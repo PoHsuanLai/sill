@@ -50,6 +50,9 @@ anyrender_vello_cpu = { version = "0.17", features = ["multithreading"] }
 vello_hybrid = "0.1"
 wgpu = "29"
 wgpu_context = "0.9"
+# Per-device image cache for the shared hybrid renderer (SPIKE.md S1 finding 5).
+rustc-hash = "2"
+vello_common = "0.1"
 parley = { version = "0.11.1", default-features = false, features = ["std"] }
 image = { version = "0.25.6", default-features = false, features = ["png", "jpeg"] }
 
