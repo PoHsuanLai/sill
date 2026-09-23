@@ -1,0 +1,29 @@
+[package]
+name = "sill-services"
+description = "Effectful services behind watch channels: power, network, volume, tray, apps, COSMIC Wayland state."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+tokio = { workspace = true }
+zbus = { workspace = true }
+cosmic-client-toolkit = { workspace = true }
+upower_dbus = { workspace = true }
+cosmic-dbus-networkmanager = { workspace = true }
+libpulse-binding = { workspace = true }
+system-tray = { workspace = true }
+freedesktop-desktop-entry = { workspace = true }
+freedesktop-icons = { workspace = true }
+notify = { workspace = true }
+image = { workspace = true }
+fend-core = { workspace = true }
+logind-zbus = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,19 @@
+[package]
+name = "sill-surfaces"
+description = "The shell's surfaces and hooks: bar, wallpaper, dock and launcher."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+dioxus = { workspace = true }
+ds = { workspace = true }
+shell-host = { workspace = true }
+sill-services = { workspace = true }
+sill-launcher = { workspace = true }
+
+[lints]
+workspace = true

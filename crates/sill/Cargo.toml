@@ -1,0 +1,20 @@
+[package]
+name = "sill"
+description = "The sill daemon and command line."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+clap = { workspace = true }
+latchkey = { workspace = true }
+shell-host = { workspace = true }
+sill-ipc = { workspace = true }
+sill-services = { workspace = true }
+sill-surfaces = { workspace = true }
+
+[lints]
+workspace = true
