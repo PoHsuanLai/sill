@@ -31,8 +31,8 @@ mod run;
 pub use activate::{LauncherEffect, LauncherProviders, effect_of};
 pub use keys::{LauncherKey, LauncherOut, LauncherState, step};
 pub use layer::{
-    CARD_BLUR_RADIUS, CARD_ID, CARD_RADIUS, PANEL_HEIGHT, PANEL_WIDTH, catcher_input,
-    catcher_layer, panel_layer, panel_rect, panel_top,
+    CARD_BLUR_RADIUS, CARD_ID, CARD_RADIUS, PANEL_HEIGHT, PANEL_WIDTH, SHADOW_BELOW, SHADOW_SIDE,
+    catcher_input, catcher_layer, panel_layer, panel_rect, panel_top,
 };
 pub use presence::{LauncherLink, LauncherShown, Opening};
 

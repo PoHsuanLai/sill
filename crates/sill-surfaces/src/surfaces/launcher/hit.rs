@@ -4,9 +4,11 @@
 //! catcher's input leaves out only what the panel takes, so a press under a short card closes
 //! the launcher like any other outside press.
 
-use shell_host::{ElementId, RegionSpec};
+use shell_host::{ElementId, Rect, RegionSpec, RoundedRect};
 
-use crate::surfaces::launcher::layer::{CARD_BLUR_RADIUS, CARD_ID};
+use crate::surfaces::launcher::layer::{
+    CARD_BLUR_RADIUS, CARD_ID, PANEL_HEIGHT, PANEL_WIDTH, SHADOW_SIDE,
+};
 
 /// The part of the panel that takes presses.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -20,10 +22,21 @@ pub enum PanelHit {
 }
 
 /// The panel's input region for `hit`: the card element itself (the host resolves it after
-/// every layout), or the whole panel.
+/// every layout), or the whole panel (never the shadow's room around it).
 pub fn panel_input(hit: PanelHit) -> RegionSpec {
     match hit {
-        PanelHit::Whole => RegionSpec::Whole,
+        PanelHit::Whole => {
+            let side = |v: u32| i32::try_from(v).unwrap_or(i32::MAX);
+            RegionSpec::Rects(vec![RoundedRect {
+                rect: Rect {
+                    x: side(SHADOW_SIDE),
+                    y: 0,
+                    width: side(PANEL_WIDTH),
+                    height: side(PANEL_HEIGHT),
+                },
+                radius: 0,
+            }])
+        }
         PanelHit::Card { .. } => card_region(),
     }
 }
@@ -60,7 +73,7 @@ pub enum ActionsShown {
 #[cfg(test)]
 mod tests {
     use super::{ActionsShown, PanelHit, card_region, hit_for, panel_input};
-    use shell_host::RegionSpec;
+    use shell_host::{Rect, RegionSpec};
 
     #[test]
     fn the_panel_takes_its_card_unless_the_actions_menu_may_hang_below_it() {
@@ -73,7 +86,16 @@ mod tests {
         for &(foot, actions, want) in CASES {
             assert_eq!(hit_for(foot, actions), want, "{foot} {actions:?}");
         }
-        assert_eq!(panel_input(PanelHit::Whole), RegionSpec::Whole);
+        let RegionSpec::Rects(whole) = panel_input(PanelHit::Whole) else {
+            panic!("the whole panel is a rect");
+        };
+        let panel = Rect {
+            x: 42,
+            y: 0,
+            width: 680,
+            height: 460,
+        };
+        assert_eq!(whole.iter().map(|r| r.rect).collect::<Vec<_>>(), [panel]);
         assert_eq!(panel_input(PanelHit::Card { height: 120 }), card_region());
     }
 }

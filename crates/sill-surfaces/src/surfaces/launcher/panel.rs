@@ -27,7 +27,9 @@ use crate::surfaces::launcher::events::{PanelCtx, use_panel};
 use crate::surfaces::launcher::groups::{Group, fresh, groups, rows};
 use crate::surfaces::launcher::hit::ActionsShown;
 use crate::surfaces::launcher::keys::ActionsMenu;
-use crate::surfaces::launcher::layer::{CARD_ID, CARD_RADIUS, PANEL_HEIGHT, PANEL_WIDTH};
+use crate::surfaces::launcher::layer::{
+    CARD_ID, CARD_RADIUS, PANEL_HEIGHT, PANEL_WIDTH, SHADOW_SIDE,
+};
 use crate::surfaces::launcher::presence::LauncherLink;
 use crate::surfaces::launcher::script::use_script;
 use crate::surfaces::launcher::session::Session;
@@ -36,12 +38,13 @@ use crate::surfaces::launcher::session::Session;
 pub(crate) const LAUNCHER_CSS: &str = include_str!("../../style/launcher.css");
 
 /// Where the actions menu hangs while the palette has reported no usable rect: under the first
-/// row (its rect in the embedded palette is 6, 80.5, 668 x 45.1; the menu hangs 6 px below).
+/// row (its rect in the embedded palette is 6, 80.5, 668 x 45.1 in the card, which starts
+/// `SHADOW_SIDE` in; the menu hangs 6 px below).
 /// quire reads a new palette's first row before the freshly mapped surface has laid it out and
 /// reports 0 x 0, then nothing more until the selection moves (FINDINGS F164), and the selection
 /// is always the first row then.
 pub const FIRST_ROW_FOOT: Point = Point {
-    x: Px(6.0),
+    x: Px(48.0),
     y: Px(125.6),
 };
 
@@ -109,7 +112,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
                 style { {LAUNCHER_CSS} }
                 div {
                     class: "sill-launcher-body",
-                    style: "width:{PANEL_WIDTH}px;height:{PANEL_HEIGHT}px",
+                    style: "margin-left:{SHADOW_SIDE}px;width:{PANEL_WIDTH}px;height:{PANEL_HEIGHT}px",
                     if let Some(shown) = shown {
                         {palette(&panel, &shown, foot)}
                     }

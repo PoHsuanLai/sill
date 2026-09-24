@@ -12,6 +12,8 @@
 set -uo pipefail
 # shellcheck source=dev/common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+# shellcheck source=dev/backdrop.sh
+source "$(dirname "${BASH_SOURCE[0]}")/backdrop.sh"
 OUT_DIR="$SILL_REPO/target/accept-bar"
 mkdir -p "$OUT_DIR"
 OUTPUT="${1:-}"
@@ -97,15 +99,17 @@ step_exclusive_zone() {
   done
   kill "$probe" 2>/dev/null; wait "$probe" 2>/dev/null
   height=$(grep '"maximized":true' "$probe_log" | tail -1 | python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["height"])')
-  # The dock (M3) reserves its base + margin too when the daemon runs one on this output.
+  # The dock (M3) reserves its base + margin too when the daemon runs one on this output: gut 8
+  # + tile 48 + 2 x the 6 px padding (quire's macOS polish pass).
   local dock_reserve=0
-  if sill debug stats 2>/dev/null | grep -q '"sill-dock-'; then dock_reserve=72; fi
+  if sill debug stats 2>/dev/null | grep -q '"sill-dock-'; then dock_reserve=68; fi
   echo "output ${out_h}, maximised window ${height}, bar ${BAR_H}, dock ${dock_reserve}" | tee -a "$OUT_DIR/exclusive-zone.log" >&2
   [ "$height" = "$(( out_h - BAR_H - dock_reserve ))" ]
 }
 
 # 6. Idle: 5 s with the pointer still, the bar's commit counter does not move (plan M0 c).
-#    Also shoots the nested screen to dev/out/bar-cosmic.png.
+#    Also shoots the nested screen to dev/out/bar-cosmic.png, over the test wallpaper
+#    (dev/backdrop.sh: the daemon's own when it draws one, else cosmic-bg's).
 step_idle() {
   local before after
   sleep 1
@@ -168,6 +172,8 @@ step_quit() {
   fi
 }
 
+BACKDROP_DIR=$(mktemp -d)
+backdrop_up "$BACKDROP_DIR" || echo "backdrop: none (the shots show the bare compositor)" >&2
 status=0
 for step in step_ping step_single_instance step_reload step_ipc_latency step_exclusive_zone \
   step_idle step_menus step_quit; do
@@ -179,5 +185,7 @@ for step in step_ping step_single_instance step_reload step_ipc_latency step_exc
     status=$(( rc > status ? rc : status ))
   fi
 done
+backdrop_down
+rm -rf "$BACKDROP_DIR"
 echo "output: ${OUTPUT:-first}; logs in $OUT_DIR"
 exit "$status"

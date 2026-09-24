@@ -7,12 +7,20 @@ use shell_host::{
 };
 use sill_settings::{BarSettings, LauncherSettings};
 
-use crate::surfaces::launcher::hit::{PanelHit, card_region};
+use crate::surfaces::launcher::hit::{PanelHit, card_region, panel_input};
 use crate::surfaces::naming::namespace;
 
-/// The panel's fixed size (design/13 §13.3.9, settled by the plan).
+/// The panel's fixed size (design/13 §13.3.9, settled by the plan): the area the card is laid
+/// out in, at most this tall.
 pub const PANEL_WIDTH: u32 = 680;
 pub const PANEL_HEIGHT: u32 = 460;
+
+/// The surface's transparent room around the panel for the card's ambient shadow (the Sheet's
+/// `0 24px 60px -18px`, material stack v2): it reaches 60 - 18 = 42 px beside the card and
+/// 24 + 42 = 66 px below it, and a surface clips at its edges. The panel sits at the top of the
+/// surface, centred, so the card's place on the output does not move.
+pub const SHADOW_SIDE: u32 = 42;
+pub const SHADOW_BELOW: u32 = 66;
 
 /// The panel's top edge on an output `output_height` tall.
 pub fn panel_top(output_height: i32, bar: &BarSettings, launcher: &LauncherSettings) -> i32 {
@@ -49,8 +57,8 @@ pub fn panel_layer(
         layer: Layer::Overlay,
         anchor: Anchor::TOP,
         size: LayerSize {
-            width: Extent::Px(PANEL_WIDTH),
-            height: Extent::Px(PANEL_HEIGHT),
+            width: Extent::Px(PANEL_WIDTH + 2 * SHADOW_SIDE),
+            height: Extent::Px(PANEL_HEIGHT + SHADOW_BELOW),
         },
         exclusive: ExclusiveZone::Ignore,
         margin: Margin {
@@ -60,11 +68,12 @@ pub fn panel_layer(
         keyboard: KeyboardMode::Exclusive,
         output: OutputTarget::Output(output.id),
         blur: BlurSpec::Region(card_region()),
-        input: RegionSpec::Whole,
+        input: panel_input(PanelHit::Whole),
     }
 }
 
-/// The panel's rectangle in its output's coordinates: centred, [`panel_top`] down.
+/// The panel's rectangle in its output's coordinates (the card's area; the surface is wider
+/// and taller by the shadow's room): centred, [`panel_top`] down.
 pub fn panel_rect(output: &OutputInfo, bar: &BarSettings, launcher: &LauncherSettings) -> Rect {
     let width = i32::try_from(PANEL_WIDTH).unwrap_or(i32::MAX);
     Rect {
@@ -184,7 +193,8 @@ mod tests {
         assert_eq!(panel.anchor, Anchor::TOP);
         assert_eq!(
             (panel.size.width, panel.size.height),
-            (Extent::Px(680), Extent::Px(460))
+            (Extent::Px(680 + 84), Extent::Px(460 + 66)),
+            "the panel and its shadow's room"
         );
         assert_eq!(panel.margin.top, 202);
         assert_eq!(panel.keyboard, KeyboardMode::Exclusive);
