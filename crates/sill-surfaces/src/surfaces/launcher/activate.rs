@@ -42,10 +42,11 @@ impl LauncherProviders {
             Arc::new(WindowsProvider {
                 toplevels: services.toplevels.clone(),
                 apps: services.apps.clone(),
+                workspaces: services.workspaces.clone(),
             }),
             Arc::new(CalculatorProvider),
             Arc::new(SettingsProvider::default()),
-            Arc::new(SystemProvider),
+            Arc::new(SystemProvider::new()),
         ])
     }
 
