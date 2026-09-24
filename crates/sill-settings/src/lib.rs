@@ -1,6 +1,6 @@
 //! `$XDG_CONFIG_HOME/sill/settings.toml`: the shell's settings domains (design/22-SETTINGS.md
 //! §3.4-3.8 and §3.11-3.14: bar, dock, launcher, scroll, scrollbar, menus, switcher, sound,
-//! notifications, control center, spaces), their schema (§9, `#[derive(SettingsSchema)]` with
+//! notifications, control center, spaces; and `display`, which design/22 has no rows for yet), their schema (§9, `#[derive(SettingsSchema)]` with
 //! `file = "sill/settings.toml"`), lenient load and atomic save through `ds-settings`, a
 //! directory watch, and the per-domain diff (§4.4).
 //!
@@ -10,6 +10,7 @@
 pub mod bar;
 pub mod control_center;
 pub mod diff;
+pub mod display;
 pub mod dock;
 mod dock_words;
 pub mod feed;
@@ -28,6 +29,10 @@ pub mod watch;
 pub use bar::{BarGlyphSize, BarSettings};
 pub use control_center::{ControlCenterModule, ControlCenterSettings, PanelMaterial};
 pub use diff::{SettingsChange, apply};
+pub use display::{
+    BrightnessKeysTarget, ColorManagement, DisplayScaleMode, DisplaySettings, FontRenderingSetting,
+    HardwareVolumeMode, NightWarmthMode,
+};
 pub use dock::{
     ActiveClick, AutoHide, Bounce, DockFloor, DockMenuOrder, DockModifierClicks, DockPosition,
     DockSettings, Indicators, LaunchAnim, Magnification, ProgressStyle, TrashTile,

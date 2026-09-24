@@ -5,6 +5,7 @@ use ds_settings::schema::{AppId, FilePath, Schema, SettingsSchema};
 
 use crate::bar::BarSettings;
 use crate::control_center::ControlCenterSettings;
+use crate::display::DisplaySettings;
 use crate::dock::DockSettings;
 use crate::launcher::LauncherSettings;
 use crate::menus::MenusSettings;
@@ -29,6 +30,7 @@ pub fn schemas() -> Vec<Schema> {
         NotificationsSettings::schema(),
         ControlCenterSettings::schema(),
         SpacesSettings::schema(),
+        DisplaySettings::schema(),
     ]
 }
 

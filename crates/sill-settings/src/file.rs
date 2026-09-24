@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::bar::BarSettings;
 use crate::control_center::ControlCenterSettings;
+use crate::display::DisplaySettings;
 use crate::dock::DockSettings;
 use crate::launcher::LauncherSettings;
 use crate::menus::MenusSettings;
@@ -48,6 +49,7 @@ pub struct ShellFile {
     pub notifications: NotificationsSettings,
     pub control_center: ControlCenterSettings,
     pub spaces: SpacesSettings,
+    pub display: DisplaySettings,
     /// Tables this build does not know, kept for the next write.
     #[serde(flatten)]
     pub extra: toml::Table,
@@ -68,6 +70,7 @@ impl Default for ShellFile {
             notifications: NotificationsSettings::default(),
             control_center: ControlCenterSettings::default(),
             spaces: SpacesSettings::default(),
+            display: DisplaySettings::default(),
             extra: toml::Table::new(),
         }
     }
