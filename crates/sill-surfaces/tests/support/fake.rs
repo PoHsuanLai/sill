@@ -195,6 +195,8 @@ pub fn services() -> (Services, Feeds) {
         wallpaper_control: control(&mut keep),
         sound: fixed(Presence::Absent, &mut keep),
         sound_control: control(&mut keep),
+        displays: fixed(sill_services::Displays::default(), &mut keep),
+        displays_control: control(&mut keep),
     };
     let feeds = Feeds {
         clock: clock_tx,

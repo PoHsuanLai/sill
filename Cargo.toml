@@ -113,6 +113,13 @@ clap = { version = "4", features = ["derive"] }
 latchkey = { git = "https://github.com/PoHsuanLai/mailo", rev = "e8344176ffcc0455c585dafd722c05c911ddc5c4" }
 # ---- END PINNED BLOCK ----
 
+# sill-only, outside the pinned block (they are not shared with quire or shell-host).
+# DDC/CI to external monitors over /dev/i2c-N: the `Ddc` trait (VCP get/set) and its Linux i2c
+# transport. Both MIT; `with-linux` only, never `with-linux-enumerate` (that links libudev):
+# sill maps connectors to buses itself from sysfs and the EDID each bus answers with.
+ddc = "0.2"
+ddc-i2c = { version = "0.2.2", default-features = false, features = ["with-linux"] }
+
 
 [workspace.lints.rust]
 unsafe_code = "deny"

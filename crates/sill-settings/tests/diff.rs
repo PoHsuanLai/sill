@@ -3,7 +3,8 @@
 
 use ds_settings::{Count, Ms, Px};
 use sill_settings::{
-    Dnd, PanelMaterial, PickFeedback, SettingsChange, ShellFile, TrackClick, UiSounds, apply,
+    DisplayScaleMode, Dnd, PanelMaterial, PickFeedback, SettingsChange, ShellFile, TrackClick,
+    UiSounds, apply,
 };
 
 fn with(edit: impl FnOnce(&mut ShellFile)) -> ShellFile {
@@ -52,6 +53,10 @@ fn apply_yields_exactly_the_changed_domain() {
         (
             with(|f| f.spaces.default_grain = Count(10)),
             SettingsChange::Spaces,
+        ),
+        (
+            with(|f| f.display.scale = DisplayScaleMode::Manual),
+            SettingsChange::Display,
         ),
     ];
     let base = ShellFile::default();

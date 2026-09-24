@@ -1,5 +1,5 @@
 //! Effectful services behind watch channels: power, network, volume, tray, apps, launcher
-//! entries, dock pins, launcher search, wallpaper, sounds and COSMIC Wayland state (plan
+//! entries, dock pins, launcher search, wallpaper, sounds, displays and COSMIC Wayland state (plan
 //! "Design: `<shell>` repo", `sill-services`).
 //!
 //! Every service is one module with the same shape: `spawn(rt) -> (watch::Receiver<T>,
@@ -18,6 +18,7 @@ pub mod clock;
 pub mod control;
 pub mod cosmic_wl;
 pub mod curve;
+pub mod displays;
 pub mod error;
 pub mod launch;
 pub mod magnify;
@@ -48,6 +49,11 @@ pub use cosmic_wl::{
     WorkspaceGroup, WorkspaceKey, Workspaces, reduce_toplevels, reduce_workspaces,
 };
 pub use curve::ease;
+pub use displays::{
+    BrightnessTarget, DisplayOutput, DisplayPolicy, DisplayScale, Displays, DisplaysCommand,
+    FontRenderingMode, Gamut, HardwareVolume, IdentityKey, KeysTarget, LevelChange, NightWarmth,
+    Ppi, ScaleMode, ScaleOverride,
+};
 pub use error::ServiceError;
 pub use launch::{
     LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches, ScopeUnit,

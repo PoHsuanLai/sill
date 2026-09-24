@@ -5,9 +5,9 @@ use std::io::Cursor;
 use std::path::PathBuf;
 
 use sill_ipc::{
-    DebugRequest, DesktopId, DockRequest, Failure, FailureKind, IpcError, LauncherRequest,
-    MAX_LINE, Micros, Point, PointerButton, Request, Response, SurfaceName, SurfaceStats, decode,
-    encode, read_message, write_message,
+    DebugRequest, DesktopId, DisplayRequest, DockRequest, Failure, FailureKind, IpcError,
+    LauncherRequest, LevelRequest, MAX_LINE, Micros, Point, PointerButton, Request, Response,
+    SurfaceName, SurfaceStats, VolumeRequest, decode, encode, read_message, write_message,
 };
 
 fn surface(name: &str) -> SurfaceName {
@@ -99,6 +99,26 @@ fn requests() -> Vec<(Request, &'static str)> {
                 button: PointerButton::Middle,
             }),
             r#"{"kind":"debug","v":{"kind":"click","v":{"surface":"sill-dock-DP-1","at":{"x":0,"y":0},"button":"middle"}}}"#,
+        ),
+        (
+            Request::Display(DisplayRequest::Brightness(LevelRequest::Up)),
+            r#"{"kind":"display","v":{"kind":"brightness","v":{"kind":"up"}}}"#,
+        ),
+        (
+            Request::Display(DisplayRequest::Brightness(LevelRequest::Set {
+                percent: 40,
+            })),
+            r#"{"kind":"display","v":{"kind":"brightness","v":{"kind":"set","v":{"percent":40}}}}"#,
+        ),
+        (
+            Request::Display(DisplayRequest::Volume(VolumeRequest::Level(
+                LevelRequest::Down,
+            ))),
+            r#"{"kind":"display","v":{"kind":"volume","v":{"kind":"level","v":{"kind":"down"}}}}"#,
+        ),
+        (
+            Request::Display(DisplayRequest::Volume(VolumeRequest::ToggleMute)),
+            r#"{"kind":"display","v":{"kind":"volume","v":{"kind":"toggle_mute"}}}"#,
         ),
     ]
 }

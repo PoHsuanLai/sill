@@ -124,6 +124,20 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
         ("sound.theme", toml::Value::String("freedesktop".to_owned())),
         ("spaces.default_grain", toml::Value::Integer(40)),
         ("menus.first_mouse_window_ms", toml::Value::Integer(100)),
+        ("display.scale", toml::Value::String("auto".to_owned())),
+        ("display.density_target_ppi", toml::Value::Integer(109)),
+        (
+            "display.hardware_volume",
+            toml::Value::String("when_monitor_is_output".to_owned()),
+        ),
+        (
+            "display.night_warmth",
+            toml::Value::String("off".to_owned()),
+        ),
+        (
+            "display.font_rendering",
+            toml::Value::String("auto".to_owned()),
+        ),
     ];
     for (path, want) in cases {
         assert_eq!(&default_of(path), want, "{path}");
