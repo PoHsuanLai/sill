@@ -168,6 +168,7 @@ mod tests {
             .map(|e| match e {
                 MenuEntry::Header(t) => format!("# {t}"),
                 MenuEntry::Item { title, .. } => title.clone(),
+                MenuEntry::Submenu { title, .. } => format!("{title} >"),
                 MenuEntry::Separator => "--".to_owned(),
             })
             .collect()
