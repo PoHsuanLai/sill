@@ -456,9 +456,7 @@ fn apply_injection(ctx: &mut HostCtx<ShellMsg>, id: SurfaceId, action: DebugActi
     }
 }
 
-/// `action` as shell-host's injection. shell-host's `Inject::Click` presses the primary button
-/// only (FINDINGS G10), so a secondary or middle click is refused as unsupported rather than
-/// sent as a primary one.
+/// `action` as shell-host's injection; every pointer button maps through (G10 is closed).
 #[cfg(feature = "debug")]
 fn to_inject(action: DebugAction) -> Result<shell_host::Inject, Response> {
     let point = |at: sill_ipc::Point| shell_host::Point { x: at.x, y: at.y };
@@ -466,15 +464,20 @@ fn to_inject(action: DebugAction) -> Result<shell_host::Inject, Response> {
         DebugAction::Pointer(at) => shell_host::Inject::Pointer { at: point(at) },
         DebugAction::Leave => shell_host::Inject::Leave,
         DebugAction::Capture(path) => shell_host::Inject::Capture { path },
-        DebugAction::Click(at, sill_ipc::PointerButton::Primary) => {
-            shell_host::Inject::Click { at: point(at) }
-        }
-        DebugAction::Click(_, button) => {
-            return Err(unsupported(&format!(
-                "shell-host injects primary clicks only; {button:?} is not supported (G10)"
-            )));
-        }
+        DebugAction::Click(at, button) => shell_host::Inject::Click {
+            at: point(at),
+            button: to_host_button(button),
+        },
     })
+}
+
+#[cfg(feature = "debug")]
+fn to_host_button(button: sill_ipc::PointerButton) -> shell_host::debug::PointerButton {
+    match button {
+        sill_ipc::PointerButton::Primary => shell_host::debug::PointerButton::Primary,
+        sill_ipc::PointerButton::Secondary => shell_host::debug::PointerButton::Secondary,
+        sill_ipc::PointerButton::Middle => shell_host::debug::PointerButton::Middle,
+    }
 }
 
 #[cfg(not(feature = "debug"))]
@@ -542,27 +545,36 @@ fn internal(error: &impl std::fmt::Display) -> Response {
 
 #[cfg(all(test, feature = "debug"))]
 mod tests {
-    use sill_ipc::{FailureKind, Point, PointerButton, Response};
+    use sill_ipc::{Point, PointerButton};
 
     use super::{DebugAction, to_inject};
 
     #[test]
-    fn a_debug_click_maps_onto_shell_hosts_injection() {
+    fn a_debug_click_maps_onto_shell_hosts_injection_with_its_button() {
         let at = Point { x: 1200, y: 16 };
-        let primary = to_inject(DebugAction::Click(at, PointerButton::Primary));
-        assert_eq!(
-            primary.ok(),
-            Some(shell_host::Inject::Click {
-                at: shell_host::Point { x: 1200, y: 16 }
-            })
-        );
-        for button in [PointerButton::Secondary, PointerButton::Middle] {
-            match to_inject(DebugAction::Click(at, button)) {
-                Err(Response::Failed(failure)) => {
-                    assert_eq!(failure.kind, FailureKind::Unsupported, "{button:?}");
-                }
-                other => panic!("{button:?}: {other:?}"),
-            }
+        let cases = [
+            (
+                PointerButton::Primary,
+                shell_host::debug::PointerButton::Primary,
+            ),
+            (
+                PointerButton::Secondary,
+                shell_host::debug::PointerButton::Secondary,
+            ),
+            (
+                PointerButton::Middle,
+                shell_host::debug::PointerButton::Middle,
+            ),
+        ];
+        for (ours, theirs) in cases {
+            assert_eq!(
+                to_inject(DebugAction::Click(at, ours)).ok(),
+                Some(shell_host::Inject::Click {
+                    at: shell_host::Point { x: 1200, y: 16 },
+                    button: theirs,
+                }),
+                "{ours:?}"
+            );
         }
     }
 }
