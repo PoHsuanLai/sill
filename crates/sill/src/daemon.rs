@@ -402,11 +402,11 @@ fn to_inject(action: DebugAction) -> Result<shell_host::Inject, Response> {
 }
 
 #[cfg(feature = "debug")]
-fn to_host_button(button: sill_ipc::PointerButton) -> shell_host::PointerButton {
+fn to_host_button(button: sill_ipc::PointerButton) -> shell_host::debug::PointerButton {
     match button {
-        sill_ipc::PointerButton::Primary => shell_host::PointerButton::Primary,
-        sill_ipc::PointerButton::Secondary => shell_host::PointerButton::Secondary,
-        sill_ipc::PointerButton::Middle => shell_host::PointerButton::Middle,
+        sill_ipc::PointerButton::Primary => shell_host::debug::PointerButton::Primary,
+        sill_ipc::PointerButton::Secondary => shell_host::debug::PointerButton::Secondary,
+        sill_ipc::PointerButton::Middle => shell_host::debug::PointerButton::Middle,
     }
 }
 
@@ -483,12 +483,18 @@ mod tests {
     fn a_debug_click_maps_onto_shell_hosts_injection_with_its_button() {
         let at = Point { x: 1200, y: 16 };
         let cases = [
-            (PointerButton::Primary, shell_host::PointerButton::Primary),
+            (
+                PointerButton::Primary,
+                shell_host::debug::PointerButton::Primary,
+            ),
             (
                 PointerButton::Secondary,
-                shell_host::PointerButton::Secondary,
+                shell_host::debug::PointerButton::Secondary,
             ),
-            (PointerButton::Middle, shell_host::PointerButton::Middle),
+            (
+                PointerButton::Middle,
+                shell_host::debug::PointerButton::Middle,
+            ),
         ];
         for (ours, theirs) in cases {
             assert_eq!(
