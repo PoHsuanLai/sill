@@ -24,8 +24,11 @@ pub fn panel_top(output_height: i32, bar: &BarSettings, launcher: &LauncherSetti
     below_bar.max(centred)
 }
 
+/// The palette card's element id: the panel's blur region, radius 14 (`--r-panel`).
+pub const CARD_ID: &str = "launcher-card";
+
 /// The panel: Overlay, anchored top only (centred horizontally), keyboard-exclusive, blurred
-/// behind its `panel` element.
+/// behind the palette card ([`CARD_ID`]).
 pub fn panel_layer(
     output: &OutputInfo,
     bar: &BarSettings,
@@ -47,7 +50,7 @@ pub fn panel_layer(
         keyboard: KeyboardMode::Exclusive,
         output: OutputTarget::Output(output.id),
         blur: BlurSpec::Region(RegionSpec::Element {
-            id: ElementId::new("panel"),
+            id: ElementId::new(CARD_ID),
             radius: 14,
             inflate: 0,
         }),

@@ -1,8 +1,8 @@
-/* The launcher (design/13 §13.3.9, design/20 §1.3). The panel's root fills its 680 x 460
-   surface (its height is written inline from the layer's constant) so the palette's overlay
-   has the surface's size to place itself in; the catcher is an empty, transparent layer that
-   only takes presses, sized by the viewport (an absolutely placed box with `inset:0` and no
-   content got no hit area on Blitz). Everything drawn is quire's. */
+/* The launcher (design/13 §13.3.9, design/20 §1.3). The panel's body is the 680 x 460 surface
+   (its size is written inline from the layer's constants): quire's palette, embedded, fills it
+   with its card, so nothing is drawn around the card. The catcher is an empty, transparent
+   layer that only takes presses, sized by the viewport (an absolutely placed box with `inset:0`
+   and no content got no hit area on Blitz). Everything drawn is quire's. */
 .sill-launcher{ position:absolute; inset:0; }
 .sill-launcher-catcher{ width:100vw; height:100vh; }
-.sill-launcher-body{ display:block; }
+.sill-launcher-body{ display:flex; flex-direction:column; }

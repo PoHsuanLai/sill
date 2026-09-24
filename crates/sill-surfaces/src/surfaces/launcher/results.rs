@@ -2,8 +2,8 @@
 //! them (44 px rows, 8 visible, selection following keys and hover).
 //!
 //! The launcher's panel draws this list inside its own palette, with its handlers
-//! (`panel.rs`). This component is the same list with no handlers, for a demo or a picture:
-//! the palette keeps its own selection, so `selected` cannot reach it (FINDINGS F141, Q41).
+//! (`panel.rs`). This component is the same list with no handlers, for a demo or a picture,
+//! embedded in its container with `selected` highlighted.
 
 use dioxus::prelude::*;
 use sill_launcher::Item;
@@ -16,7 +16,6 @@ use crate::surfaces::launcher::panel::empty_text;
 /// `items`, grouped by provider under their top hit.
 #[component]
 pub fn ResultsList(items: Vec<Item>, selected: usize) -> Element {
-    let _palette_owns_the_selection = selected;
     rsx! {
         ds::CommandPalette::<RowRef> {
             label: "Search",
@@ -28,6 +27,8 @@ pub fn ResultsList(items: Vec<Item>, selected: usize) -> Element {
             oninput: move |_| {},
             onpick: move |_| {},
             onclose: move |()| {},
+            host: ds::CommandPaletteHost::Surface,
+            selected,
         }
     }
 }

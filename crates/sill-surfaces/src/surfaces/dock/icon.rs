@@ -1,17 +1,13 @@
 //! A tile's icon (design/08-ICONS.md §4): the app's own themed icon as a `ds::IconSource`
 //! (`Symbolic` for a freedesktop `*-symbolic` file, recoloured like a glyph; `Image` for the
 //! rest), or quire's `Window` glyph when the app has none (§4.3), `Trash` for the Trash tile.
-//! The plate and the 72 % inset are the tile's; the icon is drawn at quire's largest icon
-//! size and scaled up to the inset, since `ds::IconSize` stops at 22 px (FINDINGS "M3
-//! dock-ui", Q14).
+//! The plate is the tile's; the icon is drawn at its share of the plate (72 %, a glyph 56 %)
+//! in whole pixels through `IconSize::Px`, at every magnified size.
 
-use ds::{ExternalIcon, Icon, IconSize, IconSource, IconUrl};
+use ds::{ExternalIcon, Icon, IconPx, IconSize, IconSource, IconUrl};
 use sill_services::{App, AppIcon};
 
 use crate::surfaces::dock::items::ItemKind;
-
-/// The size every tile icon is drawn at before scaling.
-pub const DRAWN: IconSize = IconSize::Bar;
 
 /// design/08 §2.2: the plate is 80.5 % of the tile (824 / 1024).
 pub const PLATE_PERMILLE: i32 = 805;
@@ -20,8 +16,9 @@ pub const PLATE_PERMILLE: i32 = 805;
 pub const ICON_PERMILLE: i32 = 720;
 pub const GLYPH_PERMILLE: i32 = 560;
 
-/// What the tile for `kind` shows, `app` being its entry when the index has one.
-pub fn tile_icon(kind: &ItemKind, app: Option<&App>) -> IconSource {
+/// What the tile for `kind` shows on a plate `plate_px` wide, `app` being its entry when the
+/// index has one.
+pub fn tile_icon(kind: &ItemKind, app: Option<&App>, plate_px: f64) -> IconSource {
     if *kind == ItemKind::Trash {
         return IconSource::Glyph(Icon::Trash);
     }
@@ -38,7 +35,10 @@ pub fn tile_icon(kind: &ItemKind, app: Option<&App>) -> IconSource {
         .is_some_and(|stem| stem.ends_with("-symbolic"));
     match IconUrl::file(&path) {
         Ok(url) => {
-            let external = ExternalIcon { url, size: DRAWN };
+            let external = ExternalIcon {
+                url,
+                size: share_of(ICON_PERMILLE, plate_px),
+            };
             if symbolic {
                 IconSource::Symbolic(external)
             } else {
@@ -49,18 +49,24 @@ pub fn tile_icon(kind: &ItemKind, app: Option<&App>) -> IconSource {
     }
 }
 
-/// The scale that takes the drawn icon to its share of a plate `plate_px` wide.
-pub fn icon_scale(source: &IconSource, plate_px: f64) -> f64 {
-    let share = match source {
-        IconSource::Glyph(_) => GLYPH_PERMILLE,
-        IconSource::Symbolic(_) | IconSource::Image(_) => ICON_PERMILLE,
-    };
-    plate_px * f64::from(share) / 1000.0 / f64::from(DRAWN.px())
+/// The size a glyph `source` is drawn at on a plate `plate_px` wide (an icon file carries its
+/// own).
+pub fn glyph_size(plate_px: f64) -> IconSize {
+    share_of(GLYPH_PERMILLE, plate_px)
+}
+
+/// `permille` of `plate_px`, in whole pixels (at least one).
+fn share_of(permille: i32, plate_px: f64) -> IconSize {
+    let side = (plate_px * f64::from(permille) / 1000.0)
+        .round()
+        .clamp(1.0, 255.0);
+    // Rounded and clamped to u8's range just above, so the cast is exact.
+    IconSize::Px(IconPx(side as u8))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{icon_scale, tile_icon};
+    use super::{glyph_size, tile_icon};
     use crate::surfaces::dock::items::ItemKind;
     use ds::{Icon, IconSource};
     use sill_launcher::AppId;
@@ -106,19 +112,32 @@ mod tests {
             (None, "glyph Window"),
         ];
         for (entry, want) in cases {
-            assert_eq!(word(tile_icon(&kind, entry.as_ref())), want, "{want}");
+            assert_eq!(
+                word(tile_icon(&kind, entry.as_ref(), 38.64)),
+                want,
+                "{want}"
+            );
         }
         assert_eq!(
-            tile_icon(&ItemKind::Trash, None),
+            tile_icon(&ItemKind::Trash, None, 38.64),
             IconSource::Glyph(Icon::Trash)
         );
     }
 
     #[test]
-    fn a_48_px_tile_shows_its_icon_at_72_percent_of_its_plate() {
-        // Plate 38.64 px (80.5 % of 48), icon 27.8 px: 22 px drawn, scaled by 1.264.
-        let plate = 48.0 * 0.805;
-        let scale = icon_scale(&tile_icon(&ItemKind::Trash, None), plate);
-        assert!((scale * 22.0 - plate * 0.56).abs() < 0.01, "{scale}");
+    fn icons_take_their_share_of_the_plate_in_whole_pixels() {
+        use ds::{IconPx, IconSize};
+        let file = app(AppIcon::File(PathBuf::from("/i/term.svg")));
+        let kind = ItemKind::Pinned(AppId("term".to_owned()));
+        let size = |plate: f64| match tile_icon(&kind, Some(&file), plate) {
+            IconSource::Image(e) => e.size,
+            other => panic!("{other:?}"),
+        };
+        // A 48 px tile's plate is 38.64 px: the icon 27.8, the glyph 21.6.
+        assert_eq!(size(48.0 * 0.805), IconSize::Px(IconPx(28)));
+        assert_eq!(glyph_size(48.0 * 0.805), IconSize::Px(IconPx(22)));
+        // Fully magnified (96 px): 55.6 and 43.3.
+        assert_eq!(size(96.0 * 0.805), IconSize::Px(IconPx(56)));
+        assert_eq!(glyph_size(96.0 * 0.805), IconSize::Px(IconPx(43)));
     }
 }

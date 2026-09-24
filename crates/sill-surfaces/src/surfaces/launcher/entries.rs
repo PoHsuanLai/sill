@@ -3,10 +3,16 @@
 //! runs, trails `↵`; any other row with actions trails `⌃K`; a row in a mixed group (Top hit,
 //! Recent) otherwise names its kind. Pure.
 //!
-//! A `Tile` is a quire glyph only, so an app's own icon file cannot be drawn here: every row
-//! shows its `IconRef::Glyph` when it names a quire icon, else its provider's glyph (Q42).
+//! A row's tile is the icon file the app index resolved (`IconRef::File`) drawn at 48 px, as a
+//! `Symbolic` for a freedesktop `*-symbolic` file and an `Image` otherwise; else the quire glyph
+//! its `IconRef::Glyph` names; else its provider's glyph.
 
-use ds::{Availability, Icon, MenuEntry, Shortcut, Tile, Trail};
+use std::path::Path;
+
+use ds::{
+    Availability, ExternalIcon, Icon, IconSize, IconSource, IconUrl, MenuEntry, Shortcut, Tile,
+    Trail,
+};
 use sill_launcher::{Action, ActionId, IconRef, Item, ItemId, ProviderKind};
 
 use crate::surfaces::launcher::groups::{Group, Mix};
@@ -73,7 +79,7 @@ fn row_entry(item: &Item, trail: Trail) -> MenuEntry<RowRef> {
         value: RowRef::of(item),
         title: item.title.clone(),
         detail: (!item.subtitle.is_empty()).then(|| item.subtitle.clone()),
-        tile: Some(Tile::Icon(glyph(item))),
+        tile: Some(tile(item)),
         trail,
         check: None,
         availability: Availability::Enabled,
@@ -99,6 +105,33 @@ fn kind_note(kind: ProviderKind) -> &'static str {
         ProviderKind::Settings => "Setting",
         ProviderKind::System => "System",
     }
+}
+
+/// The row's tile: its resolved icon file, else its glyph.
+pub fn tile(item: &Item) -> Tile {
+    match &item.icon {
+        IconRef::File(path) => file_icon(path).map_or(Tile::Icon(glyph(item)), Tile::Source),
+        IconRef::Glyph(_) | IconRef::None => Tile::Icon(glyph(item)),
+    }
+}
+
+/// An icon file at the rows' 48 px: `Symbolic` for a `*-symbolic` file, recoloured like a
+/// glyph, `Image` for the rest; none for a relative path.
+fn file_icon(path: &Path) -> Option<IconSource> {
+    let url = IconUrl::file(path).ok()?;
+    let external = ExternalIcon {
+        url,
+        size: IconSize::Tile48,
+    };
+    let symbolic = path
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .is_some_and(|stem| stem.ends_with("-symbolic"));
+    Some(if symbolic {
+        IconSource::Symbolic(external)
+    } else {
+        IconSource::Image(external)
+    })
 }
 
 /// The row's glyph: the quire icon it names, else its provider's.
@@ -142,7 +175,7 @@ fn kebab(camel: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{RowRef, glyph, kebab, named, palette_groups};
+    use super::{RowRef, glyph, kebab, named, palette_groups, tile};
     use crate::surfaces::launcher::groups::groups;
     use crate::surfaces::launcher::keys::Filter;
     use ds::{Icon, MenuEntry, Shortcut, Trail};
@@ -234,10 +267,37 @@ mod tests {
         calc.icon = IconRef::Glyph("copy".to_owned());
         assert_eq!(glyph(&calc), Icon::Copy);
         calc.icon = IconRef::File("/usr/share/icons/x.svg".into());
+        assert_eq!(glyph(&calc), Icon::Command, "a file's fallback glyph");
+    }
+
+    #[test]
+    fn a_resolved_icon_file_is_the_rows_tile() {
+        use ds::{IconSize, IconSource, Tile};
+        let mut app = item(ProviderKind::Apps, "Firefox", 0);
+        let word = |tile: Tile| match tile {
+            Tile::Source(IconSource::Image(e)) => format!("image {} {:?}", e.url.as_str(), e.size),
+            Tile::Source(IconSource::Symbolic(e)) => format!("symbolic {}", e.url.as_str()),
+            Tile::Icon(icon) => format!("glyph {icon:?}"),
+            other => format!("{other:?}"),
+        };
         assert_eq!(
-            glyph(&calc),
-            Icon::Command,
-            "no file icons in a palette tile (Q42)"
+            word(tile(&app)),
+            "glyph Grid",
+            "no icon: the provider's glyph"
         );
+        app.icon = IconRef::File("/usr/share/icons/firefox.png".into());
+        assert_eq!(
+            word(tile(&app)),
+            format!(
+                "image file:///usr/share/icons/firefox.png {:?}",
+                IconSize::Tile48
+            )
+        );
+        app.icon = IconRef::File("/i/term-symbolic.svg".into());
+        assert_eq!(word(tile(&app)), "symbolic file:///i/term-symbolic.svg");
+        app.icon = IconRef::File("relative.png".into());
+        assert_eq!(word(tile(&app)), "glyph Grid", "a relative path is refused");
+        app.icon = IconRef::Glyph("power".to_owned());
+        assert_eq!(word(tile(&app)), "glyph Power");
     }
 }

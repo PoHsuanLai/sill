@@ -40,9 +40,23 @@ fn row(provider: ProviderKind, id: &str, title: &str, subtitle: &str, score: u32
         provider,
         title: title.to_owned(),
         subtitle: subtitle.to_owned(),
-        icon: IconRef::None,
+        icon: match provider {
+            ProviderKind::Apps => app_icon(id),
+            _ => IconRef::None,
+        },
         score: Score(score),
         actions: Vec::new(),
+    }
+}
+
+/// An app's hicolor icon, as the app index would resolve it, when this system has one (COSMIC
+/// Files and Terminal do; a row without one shows its provider's glyph).
+fn app_icon(id: &str) -> IconRef {
+    let path = std::path::PathBuf::from(format!("/usr/share/icons/hicolor/48x48/apps/{id}.svg"));
+    if path.is_file() {
+        IconRef::File(path)
+    } else {
+        IconRef::None
     }
 }
 

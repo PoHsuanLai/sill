@@ -15,6 +15,12 @@ pub use clock::FrameClock;
 /// own, `ds_native::measure::MEASURE` (FINDINGS "Adoption of the bar gaps"). A popup's root
 /// component calls `ds_native::measure::provide()` instead.
 pub use ds_native::measure::MEASURE;
+
+/// quire's focus write every root the daemon spawns is given beside [`MEASURE`]
+/// (`Root::context(FOCUS)`), so a field's or a menu's focus waits out a busy document instead
+/// of printing a caught panic (FINDINGS "Adoption of the launcher gaps"). A popup's root
+/// component calls `ds_native::focus::provide()` instead.
+pub use ds_native::focus::FOCUS;
 pub use surfaces::bar::Bar;
 pub use surfaces::dock::Dock;
 pub use surfaces::launcher::{Launcher, LauncherCatcher};

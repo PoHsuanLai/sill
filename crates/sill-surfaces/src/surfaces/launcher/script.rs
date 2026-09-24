@@ -1,7 +1,6 @@
 //! A scripted stand-in for the keyboard, for `examples/launcher_demo.rs` only: shell-host can
 //! inject pointer input but no keys (FINDINGS G20), so the demo types into the field and
-//! presses Ctrl+K through this root context instead. The daemon never provides it. Arrow keys
-//! are not offered: the quire palette moves its own selection and nothing outside it can.
+//! presses Ctrl+K through this root context instead. The daemon never provides it.
 
 use dioxus::prelude::*;
 use tokio::sync::watch;

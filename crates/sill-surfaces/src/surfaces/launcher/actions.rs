@@ -5,11 +5,16 @@
 //! reach it (FINDINGS F141).
 
 use dioxus::prelude::*;
-use ds::{Anchor, Menu, MenuKind};
+use ds::{Anchor, Menu, MenuKind, Point, Px};
 use sill_launcher::{Action, ActionId};
 
 use crate::surfaces::launcher::entries::action_entries;
-use crate::surfaces::launcher::panel::ACTIONS_AT;
+
+/// Where the picture's menu hangs: the panel hangs it from the selected row's rect instead.
+const PICTURE_AT: Point = Point {
+    x: Px(330.0),
+    y: Px(131.0),
+};
 
 /// `actions`, `selected` highlighted.
 #[component]
@@ -18,7 +23,7 @@ pub fn ActionsList(actions: Vec<Action>, selected: usize) -> Element {
     rsx! {
         Menu::<ActionId> {
             kind: MenuKind::Rich,
-            anchor: Anchor::Point(ACTIONS_AT),
+            anchor: Anchor::Point(PICTURE_AT),
             entries: action_entries(&actions),
             onpick: move |_| {},
             onclose: move |()| {},

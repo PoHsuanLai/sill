@@ -97,6 +97,7 @@ fn spawn_launcher(ctx: &mut HostCtx<DemoMsg>, output: OutputInfo, demo: &mut Dem
         root.context(demo.services.clone())
             .context(demo.settings.clone())
             .context(sill_surfaces::MEASURE)
+            .context(sill_surfaces::FOCUS)
             .context(demo.link.clone())
             .context(demo.providers.clone())
             .context(LauncherScript(demo.script.subscribe()))

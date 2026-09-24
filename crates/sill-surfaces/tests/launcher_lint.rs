@@ -1,7 +1,7 @@
 //! Coherence rules 1 and 2 (quire CONSUMING.md §5) for the launcher: its stylesheet under
 //! `Profile::Strict`, and renders of the real `Launcher` (open over results, and with its
-//! actions menu) and `LauncherCatcher` through the markup lint. The panel's palette is a
-//! floating overlay that an SSR pass does not mount, so the panel is rendered by the harness.
+//! actions menu) and `LauncherCatcher` through the markup lint. The panel is rendered by the
+//! harness (its palette embedded, measured and focused as live) and by an SSR pass.
 
 mod launcher_harness;
 
@@ -48,7 +48,7 @@ fn render_ssr(root: VirtualDom) -> String {
 }
 
 fn panel_html() -> String {
-    launcher_harness::retrying_the_focus_race(|| launcher_harness::open("fi").harness.html())
+    launcher_harness::open("fi").harness.html()
 }
 
 /// The SSR pass of the panel: its root and the Ds, the palette not yet mounted.
@@ -83,7 +83,7 @@ fn the_launcher_stylesheet_is_clean_under_strict() {
 fn the_panel_renders_the_palette() {
     let html = panel_html();
     assert!(html.contains("class=\"ds-palette\""), "{html}");
-    assert!(html.contains("id=\"panel\""), "the blur element");
+    assert!(html.contains("id=\"launcher-card\""), "the blur element");
     let ssr = panel_ssr();
     assert!(ssr.contains("id=\"panel\""), "{ssr}");
 }
