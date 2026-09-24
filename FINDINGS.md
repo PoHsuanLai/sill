@@ -273,11 +273,11 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
   contents and repositions, `None` makes it close itself (a `SurfaceHandle` closes only its own
   surface). It reports picks, dismissals and its own drop on an `mpsc` the bar drains into the
   tracking machine (`plan::popup_input`).
-- **F45 The ds margin is part of the popup.** A ds floating surface is clamped 8 px inside its
-  bounds (`ds::place`), so the popup is the menu plus 8 px on every side and 16 px more right
-  and below for the drop shadow; the anchor rect folds the margin in and `PopupConfig::offset`
-  carries design/13 §13.3.2's (-8, +6) / (+8, +6) (G3, now closed upstream). The size is an
-  estimate from the entries (G7); the spare area is transparent.
+- **F45 The popup carries its own room.** A ds floating surface is clamped 8 px inside its
+  bounds (`ds::place`), so the popup's `Ds` root sits in a frame inset to leave the menu 24 px
+  either side, 8 above and 40 below (F53); the anchor rect folds that room in and
+  `PopupConfig::offset` carries design/13 §13.3.2's (-8, +6) / (+8, +6) (G3, closed upstream).
+  The size is an estimate from the entries (G7); the spare area is transparent.
 - **F46 What the machine drives, and what the ds Menu keeps.** The machine gets presses,
   releases and pointer entries on titles from the bar, and picks, Escape/outside-margin closes
   and drops from the popup; `Open`, `Switch`, `Close` and `Pick` become show, swap, hide and run.
@@ -311,12 +311,24 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
 - **F51 `use_space_look`** returns `ds::default_look(index, spaces.default_grain,
   spaces.default_card_accent)`: design/21 §4's preset for the workspace's position in its
   group (F17). With no workspaces (KWin) the bar takes preset 1.
-- **F52 Acceptance** (`dev/accept-bar-ui.sh`, nested `kwin_wayland --virtual`, 1280 x 720
+- **F52 Acceptance.** `dev/accept-bar-ui.sh` (nested `kwin_wayland --virtual`, 1280 x 720
   logical at scale 1.5, `examples/bar_demo.rs` on fake services): a maximised probe is 720 tall
   without the bar and 688 with it (32 reserved); five idle seconds add 0 frames, 0 commits and
-  0 callbacks; a click on the clock opens `sill-bar-Virtual-0/popup` (252 x 111, presented) and a
-  click on the bar's empty middle closes it. `dev/out/bar.png` is the screen with the clock
-  menu open.
+  0 callbacks; a click on the clock opens `sill-bar-Virtual-0/popup` (268 x 127, presented) and a
+  click on the bar's empty middle closes it; the popup's capture is transparent (alpha 0) at its
+  corners, above the card and beside its top-right corner. `dev/accept-bar.sh` on the nested
+  cosmic-comp (2176 x 1360, Mesa) with `sill run` (debug build): every step passes, with a
+  maximised probe of 1328 = 1360 - 32, the daemon's `sill-bar-WINIT-0` at 8 frames and 8 commits
+  before and after five idle seconds, and the menus step through `accept-bar-ui.sh cosmic`
+  (`sill debug` has no click, G8), whose screenshot shows `bar_demo`'s bar under the daemon's.
+  Screenshots: `dev/out/bar.png` (KWin, clock menu open), `dev/out/bar-cosmic.png` (the daemon's
+  bar with the live clock, tray, volume and network), `dev/out/bar-cosmic-menu.png`.
+- **F53 The popup's shadow room and root.** The popup keeps 24 px either side, 8 above and 40
+  below its menu for `--shadow-pop`, by placing its `Ds` root in a frame of its own (the overlay
+  bounds `ds::place` clamps to), and its root is `Material::Bar`, not `Popover`: a root that
+  holds only overlays is a zero-height, full-width box, and Popover's drop shadow on it painted a
+  grey band across the popup's top (Q13). The menu card's own paint does not depend on the
+  root's material.
 
 ### Gaps found in M1 bar-ui
 
@@ -331,6 +343,12 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
 - **Q11** ds `Menu` exposes no item hover or item release, and calls `onclose` before `onpick`, so
   an external tracker (design/13 §13.7) cannot drive its highlight, submenus or
   press-drag-release (F46); nor can its entrance be suppressed for a hover switch (F50).
+- **Q13** A `Ds` root (or `Surface`) paints its material's box shadow on its own box even when
+  it holds nothing but overlays, so a popup document gets a shadow band across its top (F53).
+  A host-only root (no material paint) would let a popup keep `Material::Popover`.
+- **G8** sill's frozen `DebugRequest` has `Pointer` (a motion) but no click, while shell-host's
+  `HostCtx::inject` has `Click`: `sill debug` cannot open a bar menu, so `dev/accept-bar.sh`
+  checks menus through `bar_demo` (F52).
 - **Q12** No ds status-item variant: `IconButton{Tool}` cannot take the bar's glyph box and size
   keys, and ds components on frame chrome use paper inks, not `--f-ink*` (F49). No wired-network
   glyph (`Icon::Link` stands in).
