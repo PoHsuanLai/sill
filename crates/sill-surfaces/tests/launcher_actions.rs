@@ -50,10 +50,16 @@ fn the_actions_menu_hangs_from_the_selected_row_and_gives_the_keyboard_back() {
         open.harness.is_focused("input"),
         "the field has the keyboard"
     );
+    // The palette's entrance (cmdk-in since the polish pass) may still be running when the
+    // menu closes; wait for it to settle rather than asserting the phase at once. A remount
+    // would restart the query and selection, which the next assertions cover.
+    settle(&mut open.harness, |h| {
+        h.attr(".ds-palette", "data-presence").as_deref() == Some("present")
+    });
     assert_eq!(
         open.harness.attr(".ds-palette", "data-presence").as_deref(),
         Some("present"),
-        "the palette was not remounted"
+        "the palette's entrance never settled"
     );
     assert_eq!(selected_title(&open.harness).as_deref(), Some("Files"));
     open.harness.key(Key::Enter);
