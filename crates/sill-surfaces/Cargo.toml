@@ -18,5 +18,10 @@ sill-settings = { workspace = true }
 sill-launcher = { workspace = true }
 tokio = { workspace = true }
 
+[dev-dependencies]
+# `lint` is off by default (CONSUMING.md section 5): only test builds need `ds::lint::markup`.
+ds = { workspace = true, features = ["lint"] }
+dioxus-ssr = { workspace = true }
+
 [lints]
 workspace = true

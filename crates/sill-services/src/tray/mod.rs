@@ -1,10 +1,16 @@
 //! The status tray: an SNI host with dbusmenu (plan hooks table, `use_tray`: "system-tray 0.8.9:
 //! SNI host + dbusmenu; registers watcher if none").
+//!
+//! [`spawn`] and [`host`] do the effect (a `system_tray::client::Client` on the session bus);
+//! [`icon`] turns a resolved [`TrayIcon`] into a URL shell-host's `LocalNet` can load. Neither
+//! reaches `dioxus`, `ds` or `shell-host` (`scripts/check-boundary.sh`): the bar reads this
+//! module only through [`Tray`] and [`TrayCommand`], via `sill-surfaces::hooks::use_tray`.
 
-#![allow(unused_variables, dead_code)] // Freeze stubs
-
+mod host;
+mod icon;
 mod model;
 
+pub use icon::icon_url;
 pub use model::{
     Availability, Check, Pixmap, Tray, TrayCommand, TrayEvent, TrayIcon, TrayItem, TrayItemId,
     TrayMenuEntry, TrayMenuKind, TrayStatus, reduce_tray,
@@ -15,7 +21,14 @@ use tokio::sync::watch;
 
 use crate::control::Control;
 
-/// Start the tray host on `rt`, registering a `StatusNotifierWatcher` when none is on the bus.
+/// Start the tray host on `rt`, registering a `StatusNotifierWatcher` when none is on the bus
+/// (`system_tray::client::Client::new`'s own `StatusNotifierWatcher::attach_to`: it tries to
+/// own `org.kde.StatusNotifierWatcher` and quietly defers when a desktop already does). A
+/// missing session bus leaves the receiver at `Tray::default()` — starting a service never
+/// fails the shell (`error.rs`).
 pub fn spawn(rt: &Handle) -> (watch::Receiver<Tray>, Control<TrayCommand>) {
-    todo!("M1 svc-tray: system_tray::client::Client events -> TrayEvent -> reduce_tray")
+    let (tray_tx, tray_rx) = watch::channel(Tray::default());
+    let (control, commands) = Control::channel();
+    rt.spawn(host::run(tray_tx, commands));
+    (tray_rx, control)
 }
