@@ -29,9 +29,14 @@ RON
   echo true >"$record/same-on-all"
 }
 
-# Whether the running daemon draws a wallpaper of its own.
+# Whether a running daemon draws a wallpaper of its own. Asks only once `ping` has found one
+# (never starts a daemon), and reads the whole reply before matching (an early `grep -q` exit
+# would kill the caller with SIGPIPE under `pipefail`).
 backdrop_by_sill() {
-  "$SHELL_HOST_DEV/run.sh" "$SILL_BIN" debug stats 2>/dev/null | grep -q '"sill-wallpaper-'
+  local stats
+  "$SHELL_HOST_DEV/run.sh" "$SILL_BIN" ping >/dev/null 2>&1 || return 1
+  stats=$("$SHELL_HOST_DEV/run.sh" "$SILL_BIN" debug stats 2>/dev/null) || return 1
+  [[ "$stats" == *'"sill-wallpaper-'* ]]
 }
 
 backdrop_up() {
