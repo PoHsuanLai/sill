@@ -15,8 +15,8 @@ pub(crate) fn volume_icon(volume: &Volume) -> Icon {
     }
 }
 
-/// The network glyph: off when disconnected or without connectivity, the Wi-Fi strength, and
-/// a link for a wire or anything else that is up.
+/// The network glyph: off when disconnected or without connectivity, the Wi-Fi strength, the
+/// Ethernet port for a wire, and a link for anything else that is up.
 pub(crate) fn network_icon(network: &Network) -> Icon {
     match (&network.link, network.connectivity) {
         (Link::Disconnected | Link::Connecting, _) | (_, Connectivity::None) => Icon::WifiOff,
@@ -25,7 +25,8 @@ pub(crate) fn network_icon(network: &Network) -> Icon {
             34..=66 => Icon::Wifi,
             _ => Icon::WifiHigh,
         },
-        (Link::Wired | Link::Other, _) => Icon::Link,
+        (Link::Wired, _) => Icon::Ethernet,
+        (Link::Other, _) => Icon::Link,
     }
 }
 
@@ -140,7 +141,8 @@ mod tests {
             (net(wifi(20), Connectivity::Full), Icon::WifiLow),
             (net(wifi(50), Connectivity::Full), Icon::Wifi),
             (net(wifi(90), Connectivity::Full), Icon::WifiHigh),
-            (net(Link::Wired, Connectivity::Full), Icon::Link),
+            (net(Link::Wired, Connectivity::Full), Icon::Ethernet),
+            (net(Link::Other, Connectivity::Full), Icon::Link),
         ];
         for (n, want) in cases {
             assert_eq!(network_icon(&n), want, "{n:?}");

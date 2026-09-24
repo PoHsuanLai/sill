@@ -3,22 +3,20 @@
    position from the frame (dock/frame.rs); both are written inline by the component. Everything
    here is a token. Attribute selectors carry `*|` (spike S2). */
 
-/* The surface: full width, the layer's height; the Ds root around it holds nothing in flow. */
-.sill-dock{ position:absolute; left:0; top:0; width:100%; }
+/* The pill (`dock-pill`): a box at the pill's rectangle holding the Ds root, which is the pill:
+   a Material::Dock root draws the Space gradient at the Dock's tint alpha with the material's
+   edge, drop and radius (design/21 §3 and §5). The body gives the root its height. */
+.sill-dock-pill{ position:absolute; }
+.sill-dock-body{ display:block; }
+
+/* The surface's own coordinates inside the root: the layer is moved back to the surface's
+   origin, so the tiles, the dots and the hit elements are placed as the frame computes them.
+   It holds nothing in flow. */
+.sill-dock{ position:absolute; }
 
 /* The input element (`dock-hit`) and the auto-hide strip (`dock-strip`): transparent boxes the
    host reads the input region from. */
 .sill-dock-hit{ position:absolute; }
-
-/* The pill: a box for the `dock-pill` element; its Surface{Dock} paints the material's tint,
-   edge, drop and radius. */
-.sill-dock-pill{ position:absolute; }
-
-/* The Space's hue over the material, at the materials' tint alpha, cross-fading over
-   --t-scene on a workspace switch (design/21 §5). quire paints frame layers only for
-   Material::Window (Q9), so the dock paints its own, as the bar does. */
-.sill-dock-tint{ border-radius:var(--m-radius); background-color:var(--f-solid);
-  opacity:var(--m-tint-alpha); transition:background-color var(--t-scene) var(--e-out); }
 
 .sill-dock-separator{ position:absolute; width:1px; background-color:var(--f-line); }
 
@@ -29,7 +27,7 @@
 .sill-dock-plate{ position:relative; display:flex; align-items:center; justify-content:center;
   background-image:linear-gradient(180deg, var(--raise), var(--surface-2)); box-shadow:var(--shadow-2); }
 
-/* The icon at quire's largest icon size, scaled to the inset inline (Q14). */
+/* The icon at quire's largest icon size, scaled to the inset inline (Q16). */
 .sill-dock-icon{ display:flex; flex:none; color:var(--ink); }
 
 /* design/10 §10.3.2: the red capsule, top-right, scaling with the tile from its corner. */
@@ -41,6 +39,12 @@
 .sill-dock-ring{ position:absolute; right:-2px; bottom:-2px; display:flex; border-radius:var(--r-pill); transform-origin:100% 100%;
   box-shadow:0 0 0 1px var(--raise); }
 .sill-dock-ring-hole{ flex:1; border-radius:var(--r-pill); background-color:var(--raise); }
+
+/* The hover label's target: a box over the plate for ds Tooltip{Fly}, whose own :hover rule
+   shows the label above it. The tile leaves it out while the dock machine keeps labels quiet
+   (a button down, a menu open). */
+.sill-dock-label{ position:absolute; display:flex; }
+.sill-dock-label-box{ display:block; }
 
 /* The running dot, on the baseline under the tile. */
 .sill-dock-dot{ position:absolute; border-radius:var(--r-pill); background-color:var(--f-ink);

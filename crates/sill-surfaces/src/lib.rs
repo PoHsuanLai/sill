@@ -8,11 +8,13 @@
 
 pub mod clock;
 pub mod hooks;
-pub mod measure;
 pub mod surfaces;
 
 pub use clock::FrameClock;
-pub use measure::MEASURE;
+/// The rect measurer every root the daemon spawns is given (`Root::context(MEASURE)`): quire's
+/// own, `ds_native::measure::MEASURE` (FINDINGS "Adoption of the bar gaps"). A popup's root
+/// component calls `ds_native::measure::provide()` instead.
+pub use ds_native::measure::MEASURE;
 pub use surfaces::bar::Bar;
 pub use surfaces::dock::Dock;
 pub use surfaces::launcher::{Launcher, LauncherCatcher};

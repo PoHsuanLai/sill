@@ -3,8 +3,8 @@
 //! Quit", volume "a quire `Slider`, output device, mute", network "connection, connectivity",
 //! battery "level, time remaining", clock "the date").
 //!
-//! Status lines are menu headers: quire's `MenuEntry` has no disabled or informational item
-//! (its TODO O-1), and a header is the one entry a menu never picks (FINDINGS "M1 bar-ui").
+//! Status lines are `MenuEntry::Info` rows: an item's weight without the header's eyebrow,
+//! never a choice (quire's bar gaps; FINDINGS "Adoption of the bar gaps").
 
 use ds::{Check, Fraction, MenuEntry, Trail};
 use sill_launcher::WindowKey;
@@ -103,11 +103,14 @@ fn app_menu(app: Option<&FrontApp>) -> Vec<MenuEntry<BarPick>> {
         .collect()
 }
 
-/// Status lines as headers, then Settings.
+/// Status lines, then Settings.
 fn lines_menu<const N: usize>(lines: [String; N]) -> Vec<MenuEntry<BarPick>> {
     lines
         .into_iter()
-        .map(MenuEntry::Header)
+        .map(|title| MenuEntry::Info {
+            title,
+            detail: None,
+        })
         .chain([
             MenuEntry::Separator,
             item("Settings…".to_owned(), BarPick::Settings, None),
@@ -227,11 +230,11 @@ mod tests {
         assert_eq!(menu(BarMenu::App), ["# Foot", "~", "--", "Quit Foot"]);
         assert_eq!(
             menu(BarMenu::Clock),
-            ["# Thu 24 Sep 14:05", "--", "Settings…"]
+            ["i Thu 24 Sep 14:05", "--", "Settings…"]
         );
         assert_eq!(
             menu(BarMenu::Network),
-            ["# Not connected", "# Internet: unknown", "--", "Settings…"]
+            ["i Not connected", "i Internet: unknown", "--", "Settings…"]
         );
         match body(BarMenu::Volume, &state) {
             PopupBody::Volume(panel) => {

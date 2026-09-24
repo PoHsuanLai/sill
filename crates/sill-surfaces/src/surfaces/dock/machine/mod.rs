@@ -19,6 +19,7 @@ mod types;
 pub use bounce::{Bounce, BounceKind, lift};
 pub use hover::{FreezeCause, Hover, Moved, displayed};
 pub use label::Label;
+pub(crate) use label::{LabelGate, gate as label_gate};
 pub use params::DockParams;
 pub use press::{ActivateMode, DropZone, Instance, Press};
 pub use reveal::{Reveal, exclusive_zone, slide_offset};

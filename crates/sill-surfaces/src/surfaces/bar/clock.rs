@@ -5,7 +5,7 @@ use ds::{Button, ButtonVariant, use_rect};
 use shell_host::OutputInfo;
 
 use super::menus::BarMenu;
-use super::title::TitleSlot;
+use super::title::{SlotPill, TitleSlot};
 use crate::hooks::use_clock;
 
 /// The clock status item; its menu is the date.
@@ -16,7 +16,7 @@ pub fn ClockItem(output: OutputInfo) -> Element {
     let clock = use_clock()();
     let probe = use_rect();
     rsx! {
-        TitleSlot { menu: BarMenu::Clock, probe,
+        TitleSlot { menu: BarMenu::Clock, probe, pill: SlotPill::Slot,
             div { class: "sill-bar-clock",
                 Button {
                     variant: ButtonVariant::Quiet,

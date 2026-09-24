@@ -102,14 +102,15 @@ pub(crate) fn popup_size(body: &PopupBody) -> Size {
     }
 }
 
-fn menu_size<T>(entries: &[MenuEntry<T>]) -> Size {
+/// A menu's estimated box for `entries`, before any room around it.
+pub(crate) fn menu_size<T>(entries: &[MenuEntry<T>]) -> Size {
     let (longest, height) = entries.iter().fold((0, CHROME_PX), |(longest, h), entry| {
         let (chars, row) = match entry {
             MenuEntry::Item { title, .. } | MenuEntry::Submenu { title, .. } => {
                 (title.chars().count(), ITEM_PX)
             }
             MenuEntry::Header(text) => (text.chars().count(), HEADER_PX),
-            MenuEntry::Info { title, .. } => (title.chars().count(), HEADER_PX),
+            MenuEntry::Info { title, .. } => (title.chars().count(), ITEM_PX),
             MenuEntry::Separator => (0, SEPARATOR_PX),
         };
         (longest.max(chars), h + row)

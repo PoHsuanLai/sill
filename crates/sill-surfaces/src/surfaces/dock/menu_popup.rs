@@ -1,7 +1,9 @@
 //! The context menu popup's own document: a `Ds` root in a frame inset for the shadow room
 //! (`menu_geometry`), holding one ds `Menu{Context}` anchored at the menu's bottom-left corner.
 //! It reports a pick, a dismissal and its own drop to the dock, and closes itself once the
-//! menu has closed. A popup is a `VirtualDom` of its own, so it gets the measurer itself.
+//! menu has closed. A popup is a `VirtualDom` of its own, so it provides quire's measurer
+//! itself. The root is `Material::Popover`, transparent on its own box; the menu card paints
+//! the material and its drop, which the frame's room keeps inside the popup surface.
 
 use dioxus::prelude::*;
 use ds::{Alpha, Anchor, Appearance, BlurState, Ds, Material, Menu, MenuEntry, MenuKind};
@@ -44,6 +46,7 @@ pub(crate) struct MenuLink {
 /// The popup root.
 #[component]
 pub(crate) fn DockMenuPopup() -> Element {
+    ds_native::measure::provide();
     let link = use_context::<MenuLink>();
     let surface = use_surface();
     let gone = link.reports.clone();
@@ -59,8 +62,8 @@ pub(crate) fn DockMenuPopup() -> Element {
             let _ = reports.send(PopupReport::Picked(pick));
         }
     };
-    // ds `Menu` calls `onclose` before `onpick` (Q11): report a dismissal only when no pick
-    // followed, after the handler returned, then close.
+    // ds `Menu` calls `onpick` and then `onclose`: a close reports a dismissal only when
+    // nothing was picked, then closes the popup.
     let on_close = {
         let reports = link.reports.clone();
         let surface = surface.clone();
@@ -80,12 +83,10 @@ pub(crate) fn DockMenuPopup() -> Element {
     rsx! {
         style { {DOCK_POPUP_CSS} }
         div { class: "sill-dock-popup-frame", style: frame_style(),
-            // Not Popover: a root holding only overlays is a zero-height box, and Popover's drop
-            // shadow on it paints a band (FINDINGS F53, Q13). The menu card paints itself.
             Ds {
                 appearance: look.appearance,
                 system: look.system,
-                material: Material::Bar,
+                material: Material::Popover,
                 blur: BlurState::Unavailable,
                 tint_alpha: Some(look.tint),
                 Menu {

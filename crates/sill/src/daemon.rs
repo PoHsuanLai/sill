@@ -309,9 +309,11 @@ fn spawn_missing_docks(
 }
 
 /// `root` with the contexts every surface the daemon spawns is given: the services, the
-/// settings, and the rect measurer quire's floating components read through (without it the
-/// first `use_rect` read inside a render panics; FINDINGS Q10, F76). Every spawn goes through
-/// here, so a new surface cannot forget one.
+/// settings, and quire's rect measurer, `ds_native::measure::MEASURE` (re-exported as
+/// `sill_surfaces::MEASURE`), which is what `ds_native::measure::provide()` provides from inside
+/// a root component. Without it a rect read waits a frame and the panic hook prints the
+/// collision (FINDINGS Q10, F81, "Adoption of the bar gaps"). Every spawn goes through here, so
+/// a new surface cannot forget it.
 fn surface_root(root: Root, services: &Services, settings_feed: &SettingsFeed) -> Root {
     root.context(services.clone())
         .context(settings_feed.clone())
