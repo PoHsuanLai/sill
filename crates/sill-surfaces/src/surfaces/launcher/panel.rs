@@ -139,7 +139,7 @@ fn palette(panel: &PanelCtx, shown: &Shown) -> Element {
             selected: session.keys.selected,
             on_select: move |index: usize| select.select(index),
             on_select_rect: move |rect: Rect| row.set(measured(rect)),
-            onkey: move |data: KeyboardData| key.field_key(&data),
+            onkey: move |event: dioxus::prelude::Event<KeyboardData>| key.field_key(&event.data()),
         }
         if let (Some(entries), Some(row)) = (actions, selected) {
             Menu::<ActionId> {
