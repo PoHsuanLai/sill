@@ -32,13 +32,10 @@ fn render(fed: Wallpapers) -> String {
     dioxus_ssr::render(&dom)
 }
 
-// The stylesheet itself has a `background-image` declaration (quire's own `.ds-field-plane`),
-// so these check for the inline attribute value, not the bare substring.
-
 #[test]
 fn no_entry_for_this_output_paints_no_image() {
     let html = render(Wallpapers::default());
-    assert!(!html.contains("style=\"background-image"), "{html}");
+    assert!(!html.contains("<img"), "{html}");
 }
 
 #[test]
@@ -51,7 +48,7 @@ fn an_entry_for_a_different_output_is_ignored() {
         }],
     };
     let html = render(fed);
-    assert!(!html.contains("style=\"background-image"), "{html}");
+    assert!(!html.contains("<img"), "{html}");
 }
 
 #[test]
@@ -65,7 +62,7 @@ fn this_outputs_entry_shows_its_light_path_as_a_file_url() {
     };
     let html = render(fed);
     assert!(
-        html.contains("background-image:url(file:///tmp/sill-wallpaper-render/light.png)"),
+        html.contains("src=\"file:///tmp/sill-wallpaper-render/light.png\""),
         "{html}"
     );
     assert!(!html.contains("dark.png"), "{html}");

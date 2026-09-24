@@ -81,9 +81,9 @@ pub fn Wallpaper(output: OutputInfo) -> Element {
                         key: "{slot}",
                         class: "sill-wallpaper-layer",
                         "data-layer": back,
-                        style: image
-                            .map(|url| format!("background-image:url({url})"))
-                            .unwrap_or_default(),
+                        if let Some(url) = image {
+                            img { src: "{url}", alt: "" }
+                        }
                     }
                 }
             }

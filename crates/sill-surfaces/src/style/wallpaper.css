@@ -7,8 +7,9 @@
 .sill-wallpaper{ position:relative; width:100%; height:100%; overflow:hidden;
   background-color:var(--paper); }
 
-.sill-wallpaper-layer{ position:absolute; inset:0; background-repeat:no-repeat;
-  background-position:center; background-size:cover; opacity:1;
+.sill-wallpaper-layer{ position:absolute; inset:0; opacity:1;
   transition:opacity var(--t-big) var(--e-out); }
 
 .sill-wallpaper-layer[*|data-layer=back]{ opacity:0; }
+
+.sill-wallpaper-layer img{ display:block; width:100%; height:100%; object-fit:cover; }
