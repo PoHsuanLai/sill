@@ -1481,3 +1481,113 @@ collide.
 - **G20** shell-host's `debug-inject` has pointer and click but no key, so `sill debug` cannot
   type or press Escape/Ctrl+K; the demo takes those on stdin through a `LauncherScript` context
   only it provides (`script.rs`).
+
+## Adoption of the launcher gaps (2026-09-24)
+
+quire master merged `launcher-gaps` (sill Q40-Q45, and the dock's Q15-Q17; quire FINDINGS
+"Launcher gaps"). This pass removes the launcher's and the dock's workarounds for them, in the
+order of quire's "what sill changes" list. Numbers start at F160/Q60 so they stay clear of the
+wallpaper wave running beside it.
+
+- **F160 The crash guards are gone.** `mounting.rs` (`ENTRANCE_GUARD`, `PaletteMount`, the
+  900 ms keep-mounted rule for the palette and the actions menu) and `MOUNT_WAIT` (the 60 ms
+  delayed mount) are deleted. The palette mounts with each opening, keyed by the opening's
+  serial, and unmounts when the launcher hides; the actions menu mounts and unmounts with the
+  session's `ActionsMenu`. `daemon::surface_root` gives every root `ds_native::focus::FOCUS`
+  beside `MEASURE` (re-exported as `sill_surfaces::FOCUS`, since the `sill` crate does not name
+  `ds-native`; one line in `lib.rs`), the dock's context menu popup calls
+  `ds_native::focus::provide()`, and both demos add the context. The harness's
+  `retrying_the_focus_race` is deleted: every launcher test runs once, and a full
+  `cargo test --workspace` passed with no retries.
+- **F161 The field gets the keyboard back without a remount.** The panel holds one
+  `use_focus_request()`, passes it as the palette's `focus`, and calls `request()` when the
+  actions menu closes (its `onclose`, or the machine's Escape/Ctrl+K from the demo's script).
+  `tests/launcher_actions.rs` opens Files' actions, presses Escape, and finds the menu gone,
+  `input` focused, the card still `data-presence="present"` and Files still selected; Enter then
+  launches Files.
+- **F162 Selection, keys and the menu's anchor come from the palette.** The palette's
+  selection is the session's (`selected: Some(keys.selected)`); Up, Down and the pointer ask
+  through `on_select`, so a hovered row is the one Enter runs and Ctrl+K opens
+  (`the_row_under_the_pointer_is_the_selection`). Tab, Shift+Tab, Ctrl+K and Alt+K are read
+  from the palette's `onkey`. The root `div#panel` keeps one `onkeydown`, which only calls
+  `prevent_default` on those four keys as they bubble past: `onkey` hands on an owned
+  `KeyboardData`, and Blitz's default for Tab moves the focus to the next node. The harness
+  tests pass without it too, so whether it is needed live is unproven (Q61). The actions menu
+  hangs from `Anchor::Rect` of the row rect the palette reports (`ACTIONS_AT` is gone; the inert
+  `ActionsList` picture keeps a private point). `ResultsList` now shows its `selected` prop.
+- **F163 The palette is embedded.** `host: CommandPaletteHost::Surface`,
+  `entrance: PaletteEntrance::CmdkIn`, `id: "launcher-card"` (`layer::CARD_ID`, now the panel's
+  blur region at radius 14), inside a body sized 680 x 460 from the layer constants. The dim
+  box around the card is gone: the card is the panel (`dev/out/launcher-cosmic.png`).
+- **F164 A new palette's first row rect is reported empty (Q60).** Live, the palette mounts
+  as the surface is mapped again and reads its selected row before the first layout: it reports
+  a 0 x 0 rect at the origin, and because neither the selection nor the row element under it
+  changes after that, it never reports again. The first actions menu then hung at the
+  viewport's 8 px clamp, over the field (seen in the first acceptance run's screenshot; the
+  harness, which lays out first, measured 6, 80.5, 668 x 45.1). The panel treats an empty rect
+  as unknown (`panel::measured`) and hangs the menu from `FIRST_ROW_FOOT` then: the first row's
+  foot, which is the only row selected before the selection moves. Fixing this belongs in quire
+  (measure again after the first layout, or on a zero read).
+- **F165 App icons in rows.** `entries::tile`: an `IconRef::File` (the index's resolved icon)
+  is `Tile::Source(IconSource::Image(.. IconSize::Tile48))`, or `Symbolic` for a `*-symbolic`
+  file; otherwise the named glyph, otherwise the provider's glyph. The launcher's fake rows
+  (tests and demo) carry the hicolor 48 px SVG of an app when the system has one, so COSMIC
+  Files and Terminal draw their icons in `dev/out/launcher-cosmic.png`. Firefox keeps the
+  provider glyph: this system has no Firefox icon.
+- **F166 Dock.** The pill root takes `radius: Some(Corner::Px(Px(dock.pill_radius_px)))`, so
+  the setting reaches the pill (Q15 closed). A tile's icon is drawn at its share of the plate
+  in whole pixels through `IconSize::Px` (72 % for an icon file, 56 % for a glyph) at every
+  magnified size; `DRAWN`, `icon_scale` and the `transform:scale` are gone (Q16 closed). The
+  hover label is always in the document as `Tooltip { shown }`: `Visible` for the tile the
+  machine's `Label::Shown` names, `Hidden` otherwise. The dock provides that tile as a
+  `Signal<LabelShown>` context, and the frozen `Tile` props are unchanged. The fly delay, the
+  warm skip and the hide on press, drag and open menu are now the machine's, not the Fly's
+  `:hover` (Q17 closed). The `LabelGate` re-export is removed; the machine still uses the gate
+  itself.
+- **F167 Acceptance** (nested cosmic-comp on the running `wayland-1`, 2176 x 1360; the host
+  was loaded throughout, load average 42-50, with `hu200` on about 28 of 32 cores).
+  `dev/accept-dock.sh` (debug daemon): all six pass. Maximised 1256; a sweep drew 35 frames for
+  34 callbacks, the shrink 8, then 0 in 5 s idle; the running dot after 1691 ms; the badge red
+  after 823 ms; the context menu popup opened. The new step 6 writes
+  `dock.pill_radius_px = 12` to the scratch config and finds the pixel 4 px inside the pill's
+  corner to be pill (alpha 150). The same step run with `PILL_RADIUS=22` finds it empty
+  (alpha 6), so the check tells the two apart. `dev/accept-launcher-ui.sh` with the
+  `--release --features debug` daemon: warm, hide, idle, the new stress step and the demo pass;
+  the latency step fails. First opening 149 ms; 10 warm openings min 83, p50 117, max 148 ms;
+  the panel's `open_to_frame_ms` 85-145. The demo's actions menu hangs under the Firefox row
+  (37407 px changed). Stress: 20 toggles 150 ms apart (3457 ms), then 5 s idle: the daemon
+  is still running, answers `sill ping`, and its log has no panic (every close lands mid
+  `cmdk-in`, which is what Q45 used to kill). The launcher alone cost less than the load: master's
+  release daemon (built against the same quire) and this branch's, alternated twice under the
+  same load with 10 warm openings each, gave `open_to_frame_ms` p50 130/120 ms for master and
+  135/147 ms for the branch (min 92/83 vs 105/107). Mounting a palette at every opening costs
+  about 15-20 ms. The panel's slowest frame is now 49 ms of work (p50 2 ms), and the frame
+  that mounts the palette is the slow one. F149's 57 ms p50 was measured on a quieter host.
+  Row icons are not the cost: with them switched off the numbers were the same. The demo step's
+  waits are longer now (2.5 s after `open`, 2 s after `type`): under this load the debug
+  demo's first frame took 1.1 s, and a `type` that lands before the opening's own session reset
+  is lost. Screenshots: `dev/out/launcher-cosmic.png`, `launcher-cosmic-actions.png`,
+  `dock-cosmic.png`, `dock-cosmic-magnified.png`, `dock-cosmic-menu.png` (pill at 12 px).
+
+### Gaps left after the adoption
+
+- **Q60** (quire) `CommandPalette`'s `on_select_rect` reports 0 x 0 for a row read before the
+  surface's first layout and does not measure again (F164). sill hangs the menu from a
+  fallback point until quire fixes this.
+- **Q61** (quire) `onkey` gets an owned `KeyboardData`, so the caller cannot
+  `prevent_default` the Blitz default of a key it takes (Tab moves the focus). sill prevents it
+  at its root; whether that is needed live is not proven (F162).
+- **Q62** Ctrl+K or Alt+K while the actions menu is open does not close it: the menu has the
+  keyboard and its keys do not reach the palette's `onkey`. Escape closes it; design/06 §20.2
+  says Ctrl+K again should too. The demo's scripted Ctrl+K still toggles it.
+- **Q63** Mounting on every opening puts the warm opening above the 100 ms gate on this loaded
+  host (F167; about 15-20 ms over master under the same load). Keeping a palette mounted while
+  hidden is now safe (Q45 is fixed) and would win that time back at the cost of the entrance
+  replay; that is a design decision, left open here.
+- **Q64** (shell-host) While shown, the panel redraws at about 4 ms intervals during the
+  `cmdk-in` entrance (Mailbox present mode, `interval` p50 4 ms, about 65 frames per 0.4 s
+  opening), and one bench session logged `watchdog_fired: 1` on the panel. The panel is still
+  idle once hidden (0 frames in 5 s).
+- **Q65** The bar's menu popup and the tray's dbusmenu popup do not yet call
+  `ds_native::focus::provide()` (not files this pass owns). Nothing crashes without it; a
+  collision prints the caught panic.

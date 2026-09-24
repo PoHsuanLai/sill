@@ -11,6 +11,9 @@
 #      (the dock's view of a mapped toplevel) shows within 3 s.
 #   4. `badge_emitter` for that app shows a count badge within 1 s.
 #   5. `sill debug click --button secondary` on that tile opens its context menu popup.
+#   6. The pill's corner is `dock.pill_radius_px` from the scratch settings (PILL_RADIUS, 12 by
+#      default, not the material's 22): the pixel 4 px inside its top-left corner is the pill's
+#      (inside a 12 px arc, outside a 22 px one).
 # Screenshots: dev/out/dock-cosmic.png (rest), dock-cosmic-magnified.png, dock-cosmic-menu.png.
 #
 # Usage: dev/nested.sh && dev/accept-dock.sh
@@ -25,6 +28,7 @@ PROBE="$HOST_REPO/target/release/examples/probe_toplevel"
 EMITTER="$SILL_REPO/target/debug/examples/badge_emitter"
 BAR_H="${BAR_H:-32}"
 RESERVE=72
+PILL_RADIUS="${PILL_RADIUS:-12}"
 TERM_ID=com.system76.CosmicTerm
 # Surface-local geometry of the default dock (design/10 §10.3.1): 160 tall, the pill's middle
 # at 120, the baseline at 144, the running dot's centre 4 below it.
@@ -97,6 +101,8 @@ build() {
 
 start_daemon() {
   CONFIG=$(mktemp -d)
+  mkdir -p "$CONFIG/sill"
+  printf '[dock]\npill_radius_px = %s\n' "$PILL_RADIUS" >"$CONFIG/sill/settings.toml"
   XDG_CONFIG_HOME="$CONFIG" nested "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
@@ -221,6 +227,32 @@ step_menu() {
   [ "$opened" = yes ]
 }
 
+# 6.
+step_radius() {
+  local log="$OUT_DIR/radius.log"
+  sill debug leave "$DOCK" >/dev/null 2>&1
+  sleep 0.5
+  sill debug capture "$DOCK" "$OUT_DIR/radius.png" >"$log" 2>&1 || return 1
+  python3 - "$OUT_DIR/radius.png" "$OUT_W" "$PILL_Y" "$PILL_RADIUS" <<'EOF' | tee -a "$log" >&2
+import sys
+from PIL import Image
+img = Image.open(sys.argv[1]).convert("RGBA")
+scale = img.width / int(sys.argv[2])
+mid = int(int(sys.argv[3]) * scale)
+radius = int(sys.argv[4])
+solid = lambda x, y: img.getpixel((x, y))[3] > 100  # the pill is ~150 (Dock tint), its shadow < 20
+left = next(x for x in range(img.width) if solid(x, mid))
+right = max(x for x in range(img.width) if solid(x, mid))
+cx = (left + right) // 2
+top = min(y for y in range(mid + 1) if all(solid(cx, yy) for yy in range(y, mid + 1)))
+inset = int(round(4 * scale))
+alpha = img.getpixel((left + inset, top + inset))[3]
+print(f"pill {left},{top}..{right} (device px); 4 px inside its corner alpha {alpha}; "
+      f"pill_radius_px {radius}: {'PASS' if (alpha > 100) == (radius <= 13) else 'FAIL'}")
+EOF
+  grep -q ': PASS$' "$log"
+}
+
 stop_daemon() {
   [ -n "${DAEMON:-}" ] || return 0
   sill quit >/dev/null 2>&1
@@ -241,7 +273,7 @@ if sill ping >/dev/null 2>&1; then
 fi
 start_daemon || { stop_daemon; exit 1; }
 status=0
-for step in step_exclusive_zone step_sweep_and_idle step_launch step_badge step_menu; do
+for step in step_exclusive_zone step_sweep_and_idle step_launch step_badge step_menu step_radius; do
   if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; fi
 done
 stop_daemon

@@ -408,15 +408,18 @@ fn spawn_hidden(
 }
 
 /// `root` with the contexts every surface the daemon spawns is given: the services, the
-/// settings, and quire's rect measurer, `ds_native::measure::MEASURE` (re-exported as
-/// `sill_surfaces::MEASURE`), which is what `ds_native::measure::provide()` provides from inside
-/// a root component. Without it a rect read waits a frame and the panic hook prints the
-/// collision (FINDINGS Q10, F81, "Adoption of the bar gaps"). Every spawn goes through here, so
-/// a new surface cannot forget it.
+/// settings, quire's rect measurer, `ds_native::measure::MEASURE` (re-exported as
+/// `sill_surfaces::MEASURE`), and its focus write, `ds_native::focus::FOCUS` (re-exported as
+/// `sill_surfaces::FOCUS`), which are what `ds_native::measure::provide()` and
+/// `ds_native::focus::provide()` provide from inside a root component. Without them a rect read
+/// or a focus waits a frame and the panic hook prints the collision (FINDINGS Q10, F81,
+/// "Adoption of the bar gaps", "Adoption of the launcher gaps"). Every spawn goes through here,
+/// so a new surface cannot forget them.
 fn surface_root(root: Root, services: &Services, settings_feed: &SettingsFeed) -> Root {
     root.context(services.clone())
         .context(settings_feed.clone())
         .context(sill_surfaces::MEASURE)
+        .context(sill_surfaces::FOCUS)
 }
 
 /// Answer one IPC request.

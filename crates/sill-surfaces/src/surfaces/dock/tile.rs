@@ -5,22 +5,26 @@
 //! bounce; the plate is 80.5 % of it (design/08 §2.2) with the icon inside at the design inset
 //! (§4.1). The badge and the ring hang off the plate and scale with it (design/10 §10.3.2);
 //! the running dot stays on the baseline while the tile bounces. The hover label is a ds
-//! `Tooltip{Fly}` over the plate, whose own `:hover` rule and `--d-fly` delay show it; quire's
-//! Fly has no controlled mode, so the dock machine's gate decides only whether it is in the
-//! document: it is left out while a button is down and while a context menu is open (the dock
-//! provides the gate as context; FINDINGS "Adoption of the bar gaps"). No pressed scrim: the
-//! frozen props carry no press.
+//! `Tooltip{Fly}` over the plate, shown and hidden by the dock machine alone (`shown`): up
+//! from its `ShowLabel` (the fly delay, the warm skip) to its `HideLabel` (the pointer left, a
+//! button went down, a context menu opened). The dock provides the machine's shown label as
+//! context; the frozen `Tile` props are unchanged. No pressed scrim: the frozen props carry no
+//! press.
 
 use dioxus::prelude::*;
-use ds::{IconView, Tooltip, TooltipKind};
+use ds::{IconView, Shown, Tooltip, TooltipKind};
 use sill_services::{Badge, Cpx, Permille};
 use sill_settings::{DockSettings, Indicators, ProgressStyle};
 
 use crate::hooks::{use_apps, use_settings};
 use crate::surfaces::dock::frame::Rows;
-use crate::surfaces::dock::icon::{PLATE_PERMILLE, icon_scale, tile_icon};
+use crate::surfaces::dock::icon::{PLATE_PERMILLE, glyph_size, tile_icon};
 use crate::surfaces::dock::items::{DockItem, ItemKind};
-use crate::surfaces::dock::machine::{LabelGate, TileApp};
+use crate::surfaces::dock::machine::{TileApp, TileId};
+
+/// The tile whose hover label the dock machine shows, if any: the context the dock provides.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LabelShown(pub Option<TileId>);
 
 /// A tile at `left` with side `size`, lifted `lift` by a bounce.
 #[component]
@@ -35,17 +39,21 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
         (ItemKind::Unmatched(raw), None) => raw.clone(),
         (ItemKind::Trash, None) => "Trash".to_owned(),
     };
-    let source = tile_icon(&item.kind, app);
     let side = px(size);
     let plate = side * f64::from(PLATE_PERMILLE) / 1000.0;
-    let scale = icon_scale(&source, plate);
+    let source = tile_icon(&item.kind, app, plate);
     let rows = Rows::new(&dock);
     let top = px(rows.baseline) - side - px(lift);
     let running = item.app != TileApp::NotRunning && dock.indicators == Indicators::On;
     let grow = side / f64::from(dock.tile_size_px.0.max(1));
     let count = badge.and_then(|b| b.shown_count());
     let progress = badge.and_then(|b| b.shown_progress());
-    let labels = try_use_context::<Signal<LabelGate>>().map_or(LabelGate::Open, |gate| gate());
+    let label = try_use_context::<Signal<LabelShown>>().map_or(LabelShown(None), |shown| shown());
+    let shown = if label.0 == Some(item.tile) {
+        Shown::Visible
+    } else {
+        Shown::Hidden
+    };
     let inset = (side - plate) / 2.0;
     rsx! {
         div {
@@ -54,10 +62,8 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
             div {
                 class: "sill-dock-plate",
                 style: plate_style(plate),
-                div {
-                    class: "sill-dock-icon",
-                    style: "transform:scale({scale})",
-                    IconView { source, size: crate::surfaces::dock::icon::DRAWN }
+                div { class: "sill-dock-icon",
+                    IconView { source, size: glyph_size(plate) }
                 }
                 if let Some(count) = count {
                     span {
@@ -74,15 +80,13 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
                     }
                 }
             }
-            if labels == LabelGate::Open {
-                div {
-                    class: "sill-dock-label",
-                    style: "left:{inset:.2}px;top:{inset:.2}px",
-                    Tooltip { kind: TooltipKind::Fly, text: name,
-                        span {
-                            class: "sill-dock-label-box",
-                            style: "width:{plate:.2}px;height:{plate:.2}px",
-                        }
+            div {
+                class: "sill-dock-label",
+                style: "left:{inset:.2}px;top:{inset:.2}px",
+                Tooltip { kind: TooltipKind::Fly, text: name, shown,
+                    span {
+                        class: "sill-dock-label-box",
+                        style: "width:{plate:.2}px;height:{plate:.2}px",
                     }
                 }
             }

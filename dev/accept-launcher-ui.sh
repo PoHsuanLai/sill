@@ -11,7 +11,9 @@
 #   3. `sill launcher toggle` again hides it (no capture), and a click on the catcher closes a
 #      reopened one.
 #   4. 5 s idle after the hide: 0 frames on the panel and the catcher.
-#   5. On `examples/launcher_demo.rs` (fake results; shell-host injects no keys, so the demo
+#   5. Stress: 20 toggles 150 ms apart (each close lands mid entrance), then 5 s idle; the
+#      daemon still answers `sill ping` and is still running.
+#   6. On `examples/launcher_demo.rs` (fake results; shell-host injects no keys, so the demo
 #      types through its stdin): `open`, `type fi` shows rows; `key actions` opens the
 #      selected row's actions menu; `key escape` twice closes the menu, then the launcher.
 # Screenshots: dev/out/launcher-cosmic.png (open over "fi"), launcher-cosmic-actions.png.
@@ -179,6 +181,27 @@ step_idle() {
 }
 
 # 5.
+step_stress() {
+  local log="$OUT_DIR/stress.log" start took
+  : >"$log"
+  start=$(date +%s%N)
+  for _ in $(seq 20); do
+    sill launcher toggle >>"$log" 2>&1 || { echo "a toggle failed" | tee -a "$log" >&2; return 1; }
+    sleep 0.15
+  done
+  took=$(( ($(date +%s%N) - start) / 1000000 ))
+  sleep 5
+  local alive=no answers=no
+  kill -0 "$DAEMON" 2>/dev/null && alive=yes
+  sill ping >>"$log" 2>&1 && answers=yes
+  local panics
+  panics=$(grep -c 'panicked' "$OUT_DIR/daemon.log")
+  echo "20 toggles 150 ms apart in ${took} ms, then 5 s idle: daemon running $alive, answers ping $answers, panics in its log $panics" \
+    | tee -a "$log" >&2
+  [ "$alive" = yes ] && [ "$answers" = yes ] && [ "$panics" = 0 ]
+}
+
+# 6.
 step_demo() {
   local log="$OUT_DIR/demo.log" fifo="$OUT_DIR/demo.in" ok=yes
   rm -f "$fifo"; mkfifo "$fifo"
@@ -186,11 +209,13 @@ step_demo() {
   local demo=$!
   exec 7>"$fifo"
   sleep 2
-  echo "open" >&7; sleep 0.8
-  echo "type fi" >&7; sleep 1.2
+  # Generous waits: under load a debug demo's first frame has taken over a second, and a
+  # `type` that lands before the opening's own reset is lost.
+  echo "open" >&7; sleep 2.5
+  echo "type fi" >&7; sleep 2.0
   "$SHELL_HOST_DEV/shot.sh" "$SHOTS/launcher-cosmic.png" >/dev/null 2>&1 || ok=no
   echo "sill-launcher-$NAME capture $OUT_DIR/demo-open.png" >&7; sleep 0.5
-  echo "key actions" >&7; sleep 1.0
+  echo "key actions" >&7; sleep 1.5
   "$SHELL_HOST_DEV/shot.sh" "$SHOTS/launcher-cosmic-actions.png" >/dev/null 2>&1 || ok=no
   echo "sill-launcher-$NAME capture $OUT_DIR/demo-actions.png" >&7; sleep 0.5
   echo "key escape" >&7; sleep 0.5
@@ -219,7 +244,7 @@ if sill ping >/dev/null 2>&1; then
 fi
 start_daemon || { stop_daemon; exit 1; }
 status=0
-for step in step_warm step_toggle_shows step_hide step_idle; do
+for step in step_warm step_toggle_shows step_hide step_idle step_stress; do
   if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; fi
 done
 stop_daemon

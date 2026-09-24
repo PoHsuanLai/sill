@@ -3,13 +3,13 @@
 //! §10.3.12). The surface is transparent everywhere but the pill and the tiles. The pill is the
 //! `Ds` root itself: a `Material::Dock` root in a box at the pill's rectangle, which draws the
 //! Space gradient at the Dock's tint alpha with the material's edge, drop and radius (quire's
-//! tinted frame). Everything else hangs from the root in a layer moved back to the surface's
+//! tinted frame), its corner `dock.pill_radius_px`. Everything else hangs from the root in a layer moved back to the surface's
 //! origin, so tiles, dots and the hit elements keep surface coordinates. The root's content is
 //! on paper (`Ground::Paper`): the tile plates are neutral paper (design/08 §4.1), and the dot
 //! and separator name the frame inks themselves.
 
 use dioxus::prelude::*;
-use ds::{BlurState, Ds, Ground, Material, SpaceLook};
+use ds::{BlurState, Corner, Ds, Ground, Material, Px, SpaceLook};
 use shell_host::{LayerConfig, OutputInfo, SurfaceHandle};
 use sill_services::{Activity, Cpx, OutputName, WorkspaceKey, Workspaces};
 use sill_settings::{AutoHide, SpacesSettings};
@@ -23,12 +23,12 @@ use crate::surfaces::dock::frame::{Area, Frame, Rows, frame};
 use crate::surfaces::dock::items::dock_items;
 use crate::surfaces::dock::layer::dock_layer;
 use crate::surfaces::dock::machine::{
-    DockParams, DockState, LabelGate, Reveal, displayed, label_gate, lift, slide_offset,
+    DockParams, DockState, Label, Reveal, displayed, lift, slide_offset,
 };
 use crate::surfaces::dock::menu_popup::PopupLook;
 use crate::surfaces::dock::pointer::{DockInput, PointerInput, button, modifier, point};
 use crate::surfaces::dock::session::{SessionDeps, World, use_dock_session};
-use crate::surfaces::dock::tile::Tile;
+use crate::surfaces::dock::tile::{LabelShown, Tile};
 
 /// The dock's own stylesheet (lint-clean under `Profile::Strict`, `tests/dock_lint.rs`).
 pub(crate) const DOCK_CSS: &str = include_str!("../../style/dock.css");
@@ -75,10 +75,13 @@ pub(crate) fn dock(output: OutputInfo) -> Element {
     let session = use_dock_session(initial);
     follow_layer(dock_layer(&output, &file.dock));
     let machine = session.machine.read().clone();
-    let gate = label_gate(&machine);
-    let mut labels = use_context_provider(|| Signal::new(LabelGate::Open));
-    if *labels.peek() != gate {
-        labels.set(gate);
+    let label = LabelShown(match machine.label {
+        Label::Shown { tile } => Some(tile),
+        Label::Idle | Label::Pending { .. } | Label::Warm { .. } => None,
+    });
+    let mut labels = use_context_provider(|| Signal::new(LabelShown(None)));
+    if *labels.peek() != label {
+        labels.set(label);
     }
     let at = (session.drawn)();
     let (progress, x) = displayed(&machine, at, &params);
@@ -128,6 +131,7 @@ pub(crate) fn dock(output: OutputInfo) -> Element {
                 system: environment.system,
                 look,
                 material: Material::Dock,
+                radius: Some(Corner::Px(Px(f32::from(file.dock.pill_radius_px.0)))),
                 ground: Some(Ground::Paper),
                 blur: BlurState::Available,
                 tint_alpha: Some(environment.tint_alpha()),
