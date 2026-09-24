@@ -7,7 +7,7 @@ use tokio::sync::watch;
 
 use super::history::History;
 use crate::apps::AppIndex;
-use crate::cosmic_wl::Toplevels;
+use crate::cosmic_wl::{Toplevels, Workspaces};
 use crate::providers::{
     AppsProvider, CalculatorProvider, SettingsProvider, SystemProvider, WindowsProvider,
 };
@@ -17,6 +17,7 @@ use crate::providers::{
 pub(crate) fn providers(
     apps: &watch::Receiver<AppIndex>,
     toplevels: &watch::Receiver<Toplevels>,
+    workspaces: &watch::Receiver<Workspaces>,
     history: &History,
 ) -> Vec<Arc<dyn Provider>> {
     vec![
@@ -27,9 +28,10 @@ pub(crate) fn providers(
         Arc::new(WindowsProvider {
             toplevels: toplevels.clone(),
             apps: apps.clone(),
+            workspaces: workspaces.clone(),
         }),
         Arc::new(CalculatorProvider),
         Arc::new(SettingsProvider::default()),
-        Arc::new(SystemProvider),
+        Arc::new(SystemProvider::new()),
     ]
 }

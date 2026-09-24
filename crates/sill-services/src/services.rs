@@ -76,7 +76,16 @@ impl Services {
         let (badges, badges_control) = crate::badges::spawn(rt);
         let (pins, pins_control) = crate::pins::spawn(rt);
         let (launches, launch) = crate::launch::spawn(rt, apps.clone());
-        let (results, search) = crate::results::spawn_with_providers(rt, &apps, &toplevels);
+        let (results, search) = crate::results::spawn_with_providers(
+            rt,
+            crate::results::Wiring {
+                apps: &apps,
+                toplevels: &toplevels,
+                workspaces: &workspaces,
+                wl: &wl,
+                launch: &launch,
+            },
+        );
         // M2 wallpaper replaces this with wallpaper::spawn.
         let (wallpapers, wallpaper_control) = inert();
         // M6 replaces this with sound::spawn.

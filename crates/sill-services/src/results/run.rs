@@ -2,6 +2,7 @@
 //! batches merged through `reduce_results` as they arrive, the merged list published in the
 //! command menu's groups.
 
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -10,6 +11,7 @@ use tokio::sync::{mpsc, watch};
 
 use super::SearchCommand;
 use super::arrange::{Typed, actions_then_recent, grouped};
+use super::effect::{Outlets, effect};
 use super::history::{History, Persist};
 use super::model::{Results, ResultsEvent, reduce_results};
 use super::sink::{Arrival, ChannelSink, FinishedOnDrop};
@@ -19,6 +21,7 @@ pub(crate) struct Search {
     providers: Vec<Arc<dyn Provider>>,
     history: History,
     persist: Persist,
+    outlets: Outlets,
     cancel: Cancel,
     /// Every row of the newest generation, best first (`reduce_results`'s order).
     merged: Results,
@@ -35,6 +38,7 @@ impl Search {
         providers: Vec<Arc<dyn Provider>>,
         history: History,
         persist: Persist,
+        outlets: Outlets,
         tx: watch::Sender<Results>,
     ) -> (Search, mpsc::UnboundedReceiver<Arrival>) {
         let (arrivals, rx) = mpsc::unbounded_channel();
@@ -42,6 +46,7 @@ impl Search {
             providers,
             history,
             persist,
+            outlets,
             cancel: Cancel::new(),
             merged: Results::default(),
             typed: Typed::Nothing,
@@ -113,10 +118,31 @@ impl Search {
         self.publish();
     }
 
-    /// Count the choice (whichever of the row's choices it was) and queue the file write.
-    fn chosen(&mut self, key: ItemKey, _choice: &Choice) {
-        let frecency = self.history.record(key, now());
+    /// Count the choice (whichever of the row's choices it was), queue the file write, and
+    /// carry out what the row's provider says the choice does. The row is looked up among the
+    /// newest generation's rows, so the surface sends `Chosen` before it closes (`Cancel`).
+    fn chosen(&mut self, key: ItemKey, choice: &Choice) {
+        let frecency = self.history.record(key.clone(), now());
         self.persist.save(frecency);
+        let Some(item) = self
+            .merged
+            .items
+            .iter()
+            .find(|item| ItemKey::of(item.provider, &item.id) == key)
+        else {
+            return;
+        };
+        let Some(provider) = self.providers.iter().find(|p| p.kind() == item.provider) else {
+            return;
+        };
+        // A provider's `activate` is its own code: a panic there must not end the search.
+        match catch_unwind(AssertUnwindSafe(|| provider.activate(item, choice))) {
+            Ok(activation) => self.outlets.carry(effect(&activation)),
+            Err(_) => eprintln!(
+                "sill: the {:?} provider panicked activating a row",
+                item.provider
+            ),
+        }
     }
 
     pub(super) fn arrive(&mut self, arrival: Arrival) {

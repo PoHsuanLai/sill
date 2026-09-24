@@ -1057,3 +1057,61 @@ its own row, and `Hidden`/`NoDisplay`/an unresolvable `TryExec` never listing. `
 providers_windows.rs` runs `WindowsProvider` against a fake `Toplevels`/`Workspaces` pair (no
 compositor). `tests/providers_system_live.rs::lists_session_commands_against_real_logind`
 (`#[ignore = "needs logind"]`) is the live test described in F107; run once, reported there.
+
+## M4 launcher-core (2026-09-24)
+
+Filled `results::spawn` (the runner), the `frecency.json` I/O and the `services.rs` placeholder
+line (`results/{mod,run,sink,arrange,history,registry,effect,frecency_file}.rs`); amended
+`sill-launcher::Activation` (F111). Latency: `examples/search_bench.rs` and the
+`results::tests::latency` test (F113).
+
+- **F109 Groups are an ordering of the flat `Results::items`, read back by rule.** The frozen
+  `Results { generation, items }` has no section labels, so design/06 §11.3's groups are the
+  published order (`results/arrange.rs`), and the launcher list derives its `SectionHeader`s
+  from it. Typed text: row 0 is **Top hit** (the single best row of every provider, not
+  repeated below); then one run per provider in Tab order (`ProviderKind::ALL`), best first,
+  capped Apps 6, Windows 3, Calculator 1, Settings 3, System 3 (§11.3 caps Mail 6 and People
+  and Actions 3; apps take Mail's). A header goes before row 1 and wherever the provider changes.
+  Nothing typed (whitespace counts as nothing, `Needle::is_empty`): **Actions** = every System
+  row, then **Recent** = the 5 most frecent non-System rows (never-chosen rows are not shown);
+  the list knows the query it sent, so "empty query: System prefix is Actions, the rest Recent".
+  The caps and the Recent count are proposed numbers with no settings key (design/22 has none;
+  a key is a design/22 change first). Side effect: Tab's `Filter::Only(provider)` can show at
+  most cap (+1 top hit) rows of that provider; an uncapped per-provider view needs a frozen-shape
+  change (a group field or an uncapped list), reported rather than worked around.
+- **F110 Frecency is one shared history; only apps rank with it.** The runner's `History`
+  (`Arc<Mutex<Frecency>>`) is the same `Arc` `AppsProvider::frecency` holds (`registry.rs`),
+  so a choice counts from the next keystroke; each change is saved by a single saver task
+  (newest version wins, temp file and rename, lenient load). `spawn(rt, providers)` keeps its
+  frozen signature: providers built by its caller rank with their own handle, so the daemon
+  goes through the crate-private `spawn_with_providers(rt, Wiring{..})`. Items carry only
+  their provider's final `Score`, so the runner cannot add frecency to rows whose provider
+  has no handle (windows, settings, system, calculator): those rank by match alone under typed
+  text, and every provider's rows reach Recent. The runner does not re-rank; `rank()` runs in
+  the providers. The runner publishes a generation's first rows when its first non-empty batch
+  arrives (keeping the previous rows up until then, so typing does not flash an empty list),
+  and an empty list once every provider has finished with nothing; a provider that panics
+  still counts as finished (a drop guard), and a panic in `activate` is caught.
+- **F111 Freeze amendment: `Activation::CloseWindow { window: WindowKey }` and
+  `Activation::Insert { text: String }`** (coordinator request, closing F105 and the
+  calculator's secondary action). Struct variants like `FocusWindow { window }` and
+  `Copy { text }`, adjacently tagged: `{"kind":"close_window","v":{"window":7}}`,
+  `{"kind":"insert","v":{"text":"42"}}` (every variant's wire form is pinned in
+  `activation.rs`'s test). `WindowsProvider::activate` (providers-a's file) still answers
+  `Nothing` for Close until its owner switches it to `CloseWindow`; the calculator's `Insert`
+  is providers-b's.
+- **F112 The runner carries out window and app activations.** `SearchCommand::Chosen{key,
+  choice}` finds the row among the newest generation's rows, asks its provider's `activate`,
+  and routes the answer (`results/effect.rs`): `FocusWindow` -> `WlCommand::Activate`,
+  `CloseWindow` -> `WlCommand::Close`, `Launch` -> `LaunchCommand::Launch` (no activation
+  token: the surface has none to hand over yet). `Copy`, `Insert`, `OpenSettings`, `System`
+  and `Nothing` are not the runner's (clipboard, the query field, settings, logind): the
+  launcher surface or the daemon must act on them, and nothing does yet. Because the lookup
+  uses the current rows, the surface must send `Chosen` before `Cancel` (closing clears them).
+- **F113 Latency, query to first published batch** (through `Control::send`, a new
+  generation, a blocking task per provider, the channel, `reduce_results`, grouping and the
+  watch; a stand-in apps provider doing the real work, `rank_text` over name, generic name and
+  keywords, since the real one landed in parallel). Test build, fixture index (11 listed
+  apps), 200 queries after warm-up: p50 24 us, p95 32 us, max 60 us (asserted p95 < 10 ms).
+  Release (`cargo run -p sill-services --example search_bench --release`): fixture p50 8 us,
+  p95 11 us; 1500 apps p50 88 us, p95 183 us, max 240 us.

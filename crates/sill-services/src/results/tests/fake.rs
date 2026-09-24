@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
 use sill_launcher::{
-    Activation, Batch, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink,
-    Score,
+    Activation, AppId, Batch, Choice, DesktopAction, IconRef, Item, ItemId, Provider, ProviderKind,
+    Query, ResultSink, Score, WindowKey,
 };
 
 /// Whether the fake stops when its query is overtaken.
@@ -31,6 +31,7 @@ pub(super) enum Heard {
 enum Behaviour {
     Answer,
     Panic,
+    PanicOnActivate,
 }
 
 #[derive(Debug)]
@@ -88,6 +89,10 @@ impl Fake {
         self.with(|s| s.behaviour = Behaviour::Panic)
     }
 
+    pub(super) fn panics_on_activate(self) -> Fake {
+        self.with(|s| s.behaviour = Behaviour::PanicOnActivate)
+    }
+
     /// From now on the first batch is empty.
     pub(super) fn clear_first(&self) {
         lock(&self.0.first).clear();
@@ -126,8 +131,26 @@ impl Provider for Fake {
         lock(&script.heard).push(Heard::Finished);
     }
 
-    fn activate(&self, _item: &Item, _choice: &Choice) -> Activation {
-        Activation::Nothing
+    /// A window row (id = its key) focuses on Enter and closes from its action; an app row
+    /// launches; anything else does nothing.
+    fn activate(&self, item: &Item, choice: &Choice) -> Activation {
+        if let Behaviour::PanicOnActivate = self.0.behaviour {
+            panic!("the fake provider panics activating, as told");
+        }
+        match (self.0.kind, choice) {
+            (ProviderKind::Windows, choice) => {
+                let window = WindowKey(item.id.0.parse().unwrap_or_default());
+                match choice {
+                    Choice::Primary => Activation::FocusWindow { window },
+                    Choice::Action(_) => Activation::CloseWindow { window },
+                }
+            }
+            (ProviderKind::Apps, _) => Activation::Launch {
+                app: AppId(item.id.0.clone()),
+                action: DesktopAction::Default,
+            },
+            _ => Activation::Nothing,
+        }
     }
 }
 

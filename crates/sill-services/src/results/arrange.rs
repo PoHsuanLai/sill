@@ -3,7 +3,7 @@
 //! launcher's providers. Pure.
 //!
 //! `Results` is one flat list (frozen), so the groups are an ordering the list view reads back
-//! by rule (FINDINGS F102):
+//! by rule (FINDINGS F109):
 //!
 //! - typed text: row 0 is the Top hit (the single best row of every provider); after it, one
 //!   run per provider in Tab order ([`ProviderKind::ALL`]), each capped by [`group_cap`] and

@@ -10,6 +10,7 @@
 //! late they arrive.
 
 mod arrange;
+mod effect;
 mod frecency_file;
 mod history;
 mod model;
@@ -33,7 +34,9 @@ use tokio::sync::watch;
 
 use crate::apps::AppIndex;
 use crate::control::Control;
-use crate::cosmic_wl::Toplevels;
+use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
+use crate::launch::LaunchCommand;
+use effect::Outlets;
 use history::{History, Persist};
 
 /// What the search can be told.
@@ -56,20 +59,34 @@ pub fn spawn(
 ) -> (watch::Receiver<Results>, Control<SearchCommand>) {
     let dir = state_dir();
     let history = History::new(dir.as_deref().map(load_frecency).unwrap_or_default());
-    start(rt, providers, history, dir)
+    start(rt, providers, history, dir, Outlets::default())
 }
 
-/// The daemon's search: the five providers over `apps` and `toplevels`, the apps provider
-/// ranking with the same history the runner records choices into.
+/// What the daemon's search reads and sends to: the services its providers query and the
+/// ones a chosen row's activation goes to.
+pub(crate) struct Wiring<'a> {
+    pub(crate) apps: &'a watch::Receiver<AppIndex>,
+    pub(crate) toplevels: &'a watch::Receiver<Toplevels>,
+    pub(crate) workspaces: &'a watch::Receiver<Workspaces>,
+    pub(crate) wl: &'a Control<WlCommand>,
+    pub(crate) launch: &'a Control<LaunchCommand>,
+}
+
+/// The daemon's search: the five providers, the apps provider ranking with the same history
+/// the runner records choices into; windows are focused and closed through `wl`, apps started
+/// through `launch`.
 pub(crate) fn spawn_with_providers(
     rt: &Handle,
-    apps: &watch::Receiver<AppIndex>,
-    toplevels: &watch::Receiver<Toplevels>,
+    wiring: Wiring<'_>,
 ) -> (watch::Receiver<Results>, Control<SearchCommand>) {
     let dir = state_dir();
     let history = History::new(dir.as_deref().map(load_frecency).unwrap_or_default());
-    let providers = registry::providers(apps, toplevels, &history);
-    start(rt, providers, history, dir)
+    let providers = registry::providers(wiring.apps, wiring.toplevels, wiring.workspaces, &history);
+    let outlets = Outlets {
+        wl: Some(wiring.wl.clone()),
+        launch: Some(wiring.launch.clone()),
+    };
+    start(rt, providers, history, dir, outlets)
 }
 
 /// Run the search on `rt` with `history`, saving it under `dir` when there is one.
@@ -78,13 +95,14 @@ fn start(
     providers: Vec<Arc<dyn Provider>>,
     history: History,
     dir: Option<PathBuf>,
+    outlets: Outlets,
 ) -> (watch::Receiver<Results>, Control<SearchCommand>) {
     let (tx, rx) = watch::channel(Results::default());
     let (control, commands) = Control::channel();
     let initial = history.read(Clone::clone);
     let _entered = rt.enter();
     let persist = Persist::start(dir, initial);
-    let (search, arrivals) = run::Search::new(providers, history, persist, tx);
+    let (search, arrivals) = run::Search::new(providers, history, persist, outlets, tx);
     rt.spawn(run::run(search, commands, arrivals));
     (rx, control)
 }

@@ -12,6 +12,7 @@ use sill_launcher::{Choice, ItemId, ItemKey, Provider, ProviderKind};
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
+use super::effect::Outlets;
 use super::history::History;
 use super::test_support::TempDir;
 use super::{Results, SearchCommand, load_frecency, start};
@@ -41,12 +42,21 @@ fn search(
     providers: Vec<Arc<dyn Provider>>,
     dir: &TempDir,
 ) -> (watch::Receiver<Results>, Control<SearchCommand>, History) {
+    search_to(providers, dir, Outlets::default())
+}
+
+fn search_to(
+    providers: Vec<Arc<dyn Provider>>,
+    dir: &TempDir,
+    outlets: Outlets,
+) -> (watch::Receiver<Results>, Control<SearchCommand>, History) {
     let history = History::default();
     let (rx, control) = start(
         &Handle::current(),
         providers,
         history.clone(),
         Some(dir.path().to_path_buf()),
+        outlets,
     );
     (rx, control, history)
 }
@@ -89,12 +99,16 @@ async fn a_newer_keystroke_cancels_the_older_query_and_its_late_rows_never_show(
     // A provider that ignores cancellation and pushes its late rows anyway.
     let deaf = Fake::new(ProviderKind::Settings)
         .obeys(Obeys::Never)
+        .first(&[("Quiet", 100)])
         .then(Duration::from_millis(150), &[("Deaf", 998)]);
     let (mut rx, control, _) = search(vec![obeys.provider(), deaf.provider()], &dir);
 
     send(&control, SearchCommand::Query("f".to_owned()));
-    let first = until(&mut rx, |r| !r.items.is_empty()).await;
+    // Both providers are running the first generation (a task not yet started when the next
+    // keystroke lands is skipped outright, which is not what this test is about).
+    let first = until(&mut rx, |r| r.items.len() == 2).await;
     obeys.clear_first();
+    deaf.clear_first();
     send(&control, SearchCommand::Query("fo".to_owned()));
     let second = until(&mut rx, |r| r.generation > first.generation).await;
     // Both halves of both generations have run (the first's while the second is current).
@@ -235,7 +249,13 @@ async fn the_runner_itself_drops_a_batch_of_an_older_generation() {
         })
     };
     let (tx, rx) = watch::channel(Results::default());
-    let (mut search, _arrivals) = Search::new(Vec::new(), History::default(), Persist::Nowhere, tx);
+    let (mut search, _arrivals) = Search::new(
+        Vec::new(),
+        History::default(),
+        Persist::Nowhere,
+        Outlets::default(),
+        tx,
+    );
     search.command(SearchCommand::Query("f".to_owned()));
     search.command(SearchCommand::Query("fi".to_owned()));
     search.arrive(batch(1, "late"));
@@ -245,4 +265,72 @@ async fn the_runner_itself_drops_a_batch_of_an_older_generation() {
     assert_eq!(titles(&rx.borrow()), ["current"]);
     search.arrive(batch(1, "later still"));
     assert_eq!(titles(&rx.borrow()), ["current"]);
+}
+
+async fn next<T>(rx: &mut tokio::sync::mpsc::UnboundedReceiver<T>) -> Option<T> {
+    tokio::time::timeout(PATIENCE, rx.recv())
+        .await
+        .ok()
+        .flatten()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_chosen_row_focuses_closes_or_launches_through_its_service() {
+    use crate::cosmic_wl::WlCommand;
+    use crate::launch::{LaunchCommand, LaunchRequest};
+    use sill_launcher::{ActionId, AppId, DesktopAction, WindowKey};
+
+    let dir = TempDir::new("runner-activate");
+    let windows = Fake::new(ProviderKind::Windows).first(&[("7", 800)]);
+    let apps = Fake::new(ProviderKind::Apps).first(&[("foot", 700)]);
+    let broken = Fake::new(ProviderKind::Settings)
+        .first(&[("Display", 600)])
+        .panics_on_activate();
+    let (wl, mut wl_rx) = Control::channel();
+    let (launch, mut launch_rx) = Control::channel();
+    let outlets = Outlets {
+        wl: Some(wl),
+        launch: Some(launch),
+    };
+    let (mut rx, control, _) = search_to(
+        vec![windows.provider(), apps.provider(), broken.provider()],
+        &dir,
+        outlets,
+    );
+    send(&control, SearchCommand::Query("f".to_owned()));
+    until(&mut rx, |r| r.items.len() == 3).await;
+
+    let key = |provider, id: &str| ItemKey::of(provider, &ItemId(id.to_owned()));
+    let choose = |key, choice| send(&control, SearchCommand::Chosen { key, choice });
+    choose(key(ProviderKind::Settings, "Display"), Choice::Primary);
+    choose(key(ProviderKind::Windows, "7"), Choice::Primary);
+    choose(
+        key(ProviderKind::Windows, "7"),
+        Choice::Action(ActionId("close".to_owned())),
+    );
+    choose(key(ProviderKind::Apps, "foot"), Choice::Primary);
+    choose(key(ProviderKind::Apps, "gone"), Choice::Primary);
+
+    assert_eq!(
+        next(&mut wl_rx).await,
+        Some(WlCommand::Activate(WindowKey(7)))
+    );
+    assert_eq!(next(&mut wl_rx).await, Some(WlCommand::Close(WindowKey(7))));
+    assert_eq!(
+        next(&mut launch_rx).await,
+        Some(LaunchCommand::Launch(LaunchRequest {
+            app: AppId("foot".to_owned()),
+            action: DesktopAction::Default,
+            files: Vec::new(),
+            uris: Vec::new(),
+            token: None,
+        }))
+    );
+    // The panicking provider did not end the search: it still answers.
+    send(&control, SearchCommand::Query("fo".to_owned()));
+    until(&mut rx, |r| r.generation.0 == 2 && r.items.len() == 3).await;
+    assert!(
+        wl_rx.try_recv().is_err() && launch_rx.try_recv().is_err(),
+        "nothing else sent"
+    );
 }
