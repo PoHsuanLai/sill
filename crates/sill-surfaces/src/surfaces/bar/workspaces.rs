@@ -73,7 +73,7 @@ pub fn WorkspaceIndicator(output: OutputInfo) -> Element {
                         pressed: Some(if workspace.activity == Activity::Active { Switch::On } else { Switch::Off }),
                         onclick: {
                             let wl = wl.clone();
-                            move |()| {
+                            move |_| {
                                 let _ = wl.send(WlCommand::ActivateWorkspace(workspace.key));
                             }
                         },

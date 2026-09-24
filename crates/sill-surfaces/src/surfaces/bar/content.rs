@@ -133,6 +133,7 @@ fn item(title: String, value: BarPick, check: Option<Check>) -> MenuEntry<BarPic
         tile: None,
         trail: Trail::None,
         check,
+        availability: ds::Availability::Enabled,
     }
 }
 

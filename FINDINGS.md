@@ -410,6 +410,98 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
   seen before); and with the host display in DPMS off the NVIDIA EGL path needs
   `__GL_SYNC_TO_VBLANK=0` or the compositor never answers a client (F24).
 
+## M2 apps-index (2026-09-24)
+
+Filled `apps::{scan, icons}` and `apps::spawn`; `Services::spawn`'s apps placeholder now calls
+it. `match_app`, `expand_exec`, `reduce_apps` and the index type were already frozen and
+untouched.
+
+- **F66 An absolute `Icon=` is used as-is, never checked against the filesystem.** The
+  pre-existing `tests/skeleton.rs::a_desktop_entry_parses_into_an_app` (ignored for this wave,
+  now filled and passing) asserts `Icon=/usr/share/icons/foot.svg` becomes
+  `AppIcon::File("/usr/share/icons/foot.svg")` even though that file does not exist on the
+  machine running the test — i.e. `resolve_icon` takes an absolute path on trust, the same way
+  `parse_entry` takes every other field on trust from the `.desktop` file, matching
+  `freedesktop_desktop_entry::IconSource::from_unknown`'s own comment ("a name or an absolute
+  path") and `AppIcon::File`'s doc ("an absolute `Icon=`, or the theme lookup's answer"). An
+  earlier draft added an `is_file()` check "for safety"; the frozen test caught it.
+- **F67 `TryExec` excludes the whole entry, not just a `parse_entry` doc-comment case.** The
+  brief's visibility list ("NoDisplay, Hidden, OnlyShowIn/NotShowIn ..., TryExec present") and
+  the Desktop Entry Specification's own words ("if [not found], the entry may be ignored") both
+  point at exclusion, and `App` has no field to represent "not really installed" short of not
+  yielding it — so `parse_entry` returns `None` when `TryExec` is set and neither an absolute
+  path nor a bare name on `$PATH` resolves to a file. `NoDisplay`, `Hidden` and an
+  `OnlyShowIn`/`NotShowIn` mismatch are different: they fold into `Listing::Hidden` (the frozen
+  `App::listing`'s own doc, "hidden entries still match windows, never list") and the entry is
+  still yielded and still occupies its dedup slot, so a `Hidden=true` override in a
+  higher-precedence directory still shadows a real entry lower down.
+- **F68 `OnlyShowIn`/`NotShowIn` are matched against a fixed `COSMIC`, not the live
+  `XDG_CURRENT_DESKTOP`.** sill only ever runs as the COSMIC session; reading the constant
+  keeps the scan deterministic under a nested test compositor or a dev shell where that
+  variable is unset or wrong, and matches the brief's own wording ("against
+  `XDG_CURRENT_DESKTOP=COSMIC`") read as naming the value, not the mechanism.
+- **F69 A trailing `;` in a list field leaves an empty element.** `MimeType=a;b;` (the spec's
+  own recommended, semicolon-terminated form) becomes `["a", "b", ""]` through
+  `freedesktop_desktop_entry`'s `str::split(';')`; `owned_list` (`MimeType`) and the `keywords`
+  mapping both filter it out. `only_show_in`/`not_show_in` need no such filter — an empty
+  string never equals `"COSMIC"` — and `Actions=a;b;`'s trailing empty action id is already
+  dropped by `actions`'s `filter_map` (no `[Desktop Action ]` group exists for it).
+- **F70 The icon theme is read straight from `cosmic-config`'s file layout, not the
+  `cosmic-config` crate.** `cosmic-config` is not in the pinned dependency block (`docs/workspace-deps.toml`),
+  and the value is one line (`~/.config/cosmic/com.system76.CosmicTk/v1/icon_theme`, a quoted
+  RON string) — reading and unquoting it directly avoids adding a dependency for one file read.
+  `icon_theme()` falls back to `"Cosmic"` when the file is absent, empty or unreadable (no
+  `com.system76.CosmicTk` config exists on the dev machine); `freedesktop_icons::lookup`'s own
+  fallback to `hicolor` when a theme is not installed covers the plan's third step, so this
+  function only ever chooses between the first two.
+- **F71 SVG-vs-largest-PNG preference is a heuristic, not exact, given what `freedesktop_icons`
+  0.4.0 exposes.** `try_get_icon`'s directory search returns the *first* directory, in the
+  theme's own `index.theme` section order, that has *any* matching file at the requested size —
+  not the first SVG across every matching directory. `resolve_icon` asks once with
+  `force_svg()` at `MAX_SIZE` (256) and keeps the result only if it actually is an `.svg` file
+  (checked by extension, since `force_svg` can still fall back to a raster inside whichever
+  directory it lands on first), then falls back to a plain lookup at the same size. This is
+  exactly right for every theme where the scalable directory is declared before (or matches
+  more narrowly than) the fixed ones — hicolor, Adwaita, Papirus, Cosmic and every theme found
+  on the live run all are — but a theme whose `index.theme` lists a fixed directory before its
+  scalable one at the very requested size could still surface that PNG instead of the SVG.
+  Fixing this exactly would mean re-implementing the crate's own directory-selection and
+  candidate-scoring logic; not done, since no installed theme case exercises it.
+  `tests/icons.rs` proves the intended ordering against a purpose-built fixture theme.
+- **F72 The icon-theme fixture test cannot use `std::env::set_var`, and writes into a real
+  `$HOME/.icons` subdirectory instead.** `freedesktop_icons::THEMES` is a process-wide
+  `once_cell::sync::Lazy`, seeded once from `$HOME`/XDG env at first use with no API to point a
+  lookup at an arbitrary directory; the only way to steer it is the environment read at that
+  first use. `std::env::set_var`/`remove_var` are `unsafe fn` since edition 2024, and this
+  workspace denies `unsafe_code` everywhere but shell-host's one allowed module (CONVENTIONS
+  §11) — sill-services may carry none at all. So `tests/icons.rs` (a lone `#[test]`, its own
+  process, nothing else in that binary ever touching `THEMES` first) creates its fixture theme
+  under the real `$HOME/.icons` (one of `freedesktop_icons`' own unconditional, `.exists()`-
+  filtered base paths) with a name unique per process and counter, and a `Drop` guard removes
+  only that one subdirectory afterward, panic or not. It is the one place in this crate's tests
+  that touches the real home directory.
+- **F73 `tempfile` is not in the pinned block; a hand-rolled `TempDir`.** Same shape and same
+  reason as `sill-settings/tests/common::TempDir` (its own comment: "no `tempfile`: not in the
+  pinned block"); `apps/icons.rs`'s unit tests and `tests/icons.rs` each carry their own small
+  copy rather than sharing a `tests/common` module across a src-level unit test and an
+  integration test (they cannot share one: `#[cfg(test)] mod tests` in `src/` cannot reach
+  `tests/common`).
+- **F74 Flatpak's export directories are added even when `XDG_DATA_DIRS` does not already carry
+  them.** Confirmed necessary, not just defensive: the live run's own `XDG_DATA_DIRS` did not
+  include `/var/lib/flatpak/exports/share` (no `/etc/profile.d/flatpak.sh` sourced in this
+  shell), so `applications_dirs`' safety net was the only reason
+  `/var/lib/flatpak/exports/share/applications` was searched at all.
+- **F75 Live run facts (this machine, KDE Plasma/Toshy session, no COSMIC installed).**
+  `cargo test -p sill-services --test apps_live -- --ignored --nocapture`: 353 applications
+  found across `~/.local/share/applications`, `~/.local/share/flatpak/exports/share/applications`,
+  `/var/lib/flatpak/exports/share/applications`, `/usr/local/share/applications` and
+  `/usr/share/applications`; icon theme resolved to `Cosmic` (no `com.system76.CosmicTk` config
+  on this machine, F70's fallback). Five sample entries, icons resolved by both routes:
+  `Toshy_Tray` (svg, `.../hicolor/scalable/apps/toshy_app_icon_rainbow.svg`), `app.toshy.preferences`
+  (same svg), `claude-code-url-handler` (`Listing::Hidden`, `NoDisplay`, `icon=None`),
+  `line-messenger` (png, `.../hicolor/256x256/apps/line-messenger.png`), `microsoft-teams`
+  (same, 256px png). No crash, no entry that failed to parse silently taking down the scan.
+
 ## M1 svc-dbus (2026-09-24)
 
 Filled `battery::spawn`, `network::spawn` and `volume::spawn`. All three signatures were usable
@@ -462,13 +554,133 @@ as frozen; nothing there needed to change.
   of a `Mutex`. Fixed by binding `let state = context.borrow().get_state();` first, so the `Ref`
   drops at the `;` before the `match` (and the calls inside its arm) ever runs.
 
+## M2 badges (2026-09-24)
+
+Filled `badges::spawn` (`crates/sill-services/src/badges/live.rs`, new). The frozen shapes
+(`Badges`, `Badge`, `BadgeProp`, `BadgeEvent`, `reduce_badges`, `parse_app_uri`) needed no
+change.
+
+- **F54 A bus-wide signal subscription needs `MessageStream::for_match_rule`, not a generated
+  proxy.** `com.canonical.Unity.LauncherEntry` has no crate binding (unlike UPower or
+  NetworkManager) and, unlike `StatusNotifierItem`, an app never registers a well-known name to
+  publish it — it just broadcasts `Update` from whatever connection it already has. zbus 5's
+  `MessageStream::for_match_rule(rule, &connection, None)` registers a raw `MatchRule` (`type=
+  'signal', interface='com.canonical.Unity.LauncherEntry', member='Update'`, no sender) with the
+  bus and yields every matching `Message` regardless of who sent it; `Body::deserialize::<(String,
+  HashMap<String, OwnedValue>)>()` decodes the `(s app_uri, a{sv})` body. No new dependency: zbus
+  was already in the pinned block for `battery`/`network`/`tray`/`volume`.
+- **F55 Leniency is a per-key decode, not a per-message one.** The signature `(s, a{sv})` is
+  fixed by the interface, so a message that isn't that shape at all (or whose `app_uri` names no
+  app) is simply dropped — there is no partial reading of a tuple. What *is* partial is each
+  value inside the dictionary: `decode_prop` downcasts by key (`count` -> `i64::try_from`,
+  `progress` -> `f64::try_from`, the three booleans -> `bool::try_from`) and drops only the key
+  whose value has the wrong `zvariant::Value` variant, via `filter_map` rather than a `Result`
+  that would fail the whole `Update`. `reduce_badges` already treats an absent `BadgeProp` as
+  "unchanged" (model.rs, done at W0), so a dropped key and a key the sender never sent behave
+  identically — no special case needed on the decode side for "missing".
+- **F56 Which sender is publishing an app's badge is this task's own bookkeeping, not part of
+  `Badges`.** The frozen `Badges` only ever remembers `app -> Badge` (the plan's persisted
+  shape), so there is nowhere in it to record which connection last spoke for an app. `live::run`
+  keeps a local `HashMap<AppId, OwnedUniqueName>` alongside the loop, updated on every `Update`
+  and consulted on `NameOwnerChanged`: a name-owner change is only a clear when `new_owner` is
+  empty (a name *transfer* between two still-live connections is not a departure) and its `name`
+  matches a tracked unique name.
+- **F57 Verification.** `cargo fmt --all --check`, `cargo clippy --workspace --all-targets
+  --all-features -- -D warnings`, `cargo test --workspace --features sill/debug`,
+  `./scripts/check-boundary.sh` and `cargo deny check licenses` all pass. The `#[ignore]`d live
+  test (`tests/badges_live.rs`) was run once against this machine's real session bus (`cargo test
+  -p sill-services --test badges_live -- --ignored --nocapture`): it starts `badges::spawn`,
+  spawns `examples/badge_emitter.rs` as a child publishing `org.sill.BadgeEmitterTest` with
+  `count = 7`, asserts the badge appears within the 1 s budget, kills the emitter, and asserts the
+  badge clears within the same budget — both passed (finished in 0.11 s total, well inside
+  budget).
+
+## M2 launch (2026-09-24)
+
+Filled `launch::{spawn, launch_argv, scope_unit}`, `pins::{spawn, load, save}` and
+`crates/sill/src/launch.rs`; wired both into `services.rs`'s two placeholder lines.
+
+- **F58 The terminal for `Terminal=true`.** `$TERMINAL` (trimmed, non-blank) then ghostty,
+  wezterm, foot, cosmic-term, the first found as an executable file on `$PATH`
+  (`launch/terminal.rs`); wrapped `[bin, "-e"]`. No trace exists for wezterm's or cosmic-term's
+  own flag (CONVENTIONS "a quirk without a trace is a rumour"), so `-e` is a considered default,
+  not a verified one — worth a second look once one of them is actually exercised. On this
+  machine: `$TERMINAL` is unset, ghostty is on `PATH` (the user's own preference, per the brief)
+  and is chosen; wezterm and foot are absent; cosmic-term is present but ghostty sorts first.
+- **F59 Pins live under `dirs::config_dir()`, not `sill_settings::settings_dir()`.**
+  `sill-services` may not depend on `ds-settings`/`sill-settings` (boundary: F2, and
+  `scripts/check-boundary.sh`'s `sill-services` rule), so `pins::pins_dir` calls the already-pinned
+  `dirs` crate directly (`dirs::config_dir().join("sill")`) rather than sharing
+  `sill_settings::settings_dir`'s helper — both resolve to the same `$XDG_CONFIG_HOME/sill` in
+  practice, but they are two independent readings of XDG, not one shared function (Q4 already
+  covers the general shape of this duplication for `settings.toml`; this is its `dock.json`
+  sibling). `pins::spawn` degrades to in-memory-only (a stderr line, no watch, no save) when
+  neither `$XDG_CONFIG_HOME` nor `$HOME` is set, the same shape `ServiceError`'s doc promises for
+  every other service's missing dependency.
+- **F60 Unit-name escaping.** `scope_unit` escapes an app id the way `systemd-escape` escapes a
+  unit name component, from general knowledge of systemd's own behaviour rather than by reading
+  `unit-name.c` (systemd is LGPL/GPL; CONVENTIONS "note-and-close" and "never put GPL … source
+  into a model's context"): `/` becomes `-`; a leading `.` and every byte outside
+  `[A-Za-z0-9:_.]` — a literal `-` included, since `-` is reserved for an escaped `/` and would
+  otherwise be ambiguous on unescape — becomes `\xHH`. Table-tested against the cases that matter
+  here (reverse-DNS ids, a literal dash, a leading dot, a space); not cross-checked against a real
+  `systemd-escape` binary output for every byte value, since sill's own app ids never contain most
+  of them.
+- **F61 `%i`'s value is the resolved icon file, not the entry's own `Icon=` name.** `App` (frozen,
+  `apps/index.rs`) keeps only the theme-resolved `AppIcon` (`File(PathBuf)` or `None`), not the
+  raw `Icon=` string a `.desktop` file names — apps-index's scan already threw that away. So
+  `launch_argv`'s `ExecArgs.icon` is the resolved file's path when there is one; an app whose
+  `Exec` uses `%i` gets `--icon /path/to/theme/resolved/icon.png` rather than `--icon the-name`.
+  Neither the plan nor design/10 says which `%i` should carry; this is a reasonable reading, not
+  a verified one, and it is the only reading `App`'s frozen shape allows without re-reading the
+  desktop file at launch time.
+- **F62 A named action `LaunchRequest` no longer has falls back to the entry's own `Exec`.**
+  `ExecError` (frozen, `apps/exec.rs`) has no "unknown action" variant, so `action_exec` cannot
+  refuse the launch when `DesktopAction::Named(id)` names an action `app.actions` does not have
+  (a stale index between the launcher and the app scan, in principle); it launches the entry's
+  default `Exec` instead of failing outright. Table-tested (`a_named_action_replaces_exec_and_an_
+  unknown_one_falls_back`).
+- **F63 The process-group fallback triggers on `ErrorKind::NotFound` from starting `systemd-run`
+  itself**, not on any failure inside the scope: `launch::run::start` tries the full
+  `systemd-run --user --scope …` argv first, and only when the very first exec (`systemd-run`
+  is not on `PATH`, or — the same error from `posix_spawn` — no user systemd manager answers)
+  does it fall back to the bare command (the part of `argv` after `systemd-run`'s own `--`) in a
+  fresh process group (`Command::process_group(0)`, plan "Launch": "fallback process group").
+  Either path hands back the same `tokio::process::Child` type, and `wait_for_exit` does not care
+  which one ran — `systemd-run --scope` execs in place of itself, so the tracked `Child` *is* the
+  app either way. Table-tested by aiming `start` at a made-up binary name rather than by hiding
+  the real `systemd-run` (`launch::run::tests::a_program_that_cannot_start_falls_back_to_the_
+  bare_command`).
+- **F64 Live run facts (this machine, user systemd present).** `cargo test -p sill-services --lib
+  a_launch_runs_in_a_real_systemd_scope_and_exits -- --ignored --nocapture`: `/bin/true` through
+  the real `systemd-run --user --scope --collect` path reported `Started` with unit
+  `app-sill-sill\x2dlaunch\x2dtest-1.scope` (the `AppId`'s two literal dashes escaped, as F60
+  says they should be), `systemd-run` printed its own `Running as unit: …; invocation ID: …`
+  line to the test's stderr, and the same unit was reported `Exited` once the process finished —
+  both within the test's timeouts, in well under a second in practice.
+- **G9** `crates/sill/src/launch.rs::launch` has no unit test: `shell_host::SurfaceHandle::new`
+  is `pub(crate)` to shell-host, so nothing outside that crate can construct one, even a
+  throwaway, for a test. The function is two lines against two already-frozen, already-tested
+  signatures (`SurfaceHandle::activation_token`, `LaunchCommand::Launch`); it is exercised live
+  once dock clicks call it (design/10 §10.3.6, dock-ui). A `SurfaceHandle` test constructor (or a
+  trait shell-host tests already use) would close this gap; reported rather than added here since
+  `shell-host` is not owned by this wave.
+- **F65 `services.rs`'s own `spawn_does_not_panic_and_every_stub_holds_its_default` test reaches
+  the real `~/.config/sill` directory** now that `pins::spawn` is real (F59): it asserts
+  `services.pins.borrow() == DockPins::default()`, which only holds because this machine had no
+  `~/.config/sill/dock.json` when the suite ran. The same test already reaches the real session
+  and system buses for `battery`/`network`/`volume`/`tray` (F25-F27, F29-F34) and the real
+  Wayland socket for `cosmic_wl` (F20-F24), so a real (empty) XDG config directory is the same
+  kind of live dependency this test has always had, not a new one; noted here since it is now
+  true of `sill-services`' own filesystem too, not only of buses and sockets.
+
 ## M2 wallpaper (2026-09-24)
 
 Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
 `sill-services/src/wallpaper/mod.rs` (`WallpaperSource`, `Wallpapers`, `WallpaperImage`,
 `WallpaperCommand`) and `cache_file_name` needed no change.
 
-- **F54 The source is COSMIC's `all` record only, read by hand.** `ron` is not in the pinned
+- **F76 The source is COSMIC's `all` record only, read by hand.** `ron` is not in the pinned
   dependency block (CONVENTIONS §11: a new dependency is a change to `docs/workspace-deps.toml`,
   reviewed first, not added to one crate alone), so `config::parse_source_path` reads the one
   field it needs — `source: Path("...")` — out of the RON text directly rather than
@@ -491,7 +703,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   `WallpaperSource::Pair` is never produced by this reader — only `File` (one path, both
   schemes) or `None`. `config.rs`'s tests pin this exact record text as a fixture, plus a
   `Color(..)` source (no path) and a missing `source:` field, both answering `None`.
-- **F55 COSMIC's own default background is a format this crate's `image` build cannot decode.**
+- **F77 COSMIC's own default background is a format this crate's `image` build cannot decode.**
   The pinned `image = { features = ["png", "jpeg"] }` has no `jxl` feature, and cosmic-bg's
   stock backgrounds on this machine are all `.jxl` (`/usr/share/backgrounds/default.jxl` and
   `default-dark.jxl`, both symlinks into `f44/default/`); `/usr/share/backgrounds/cosmic/*.jpg`
@@ -502,7 +714,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   session with a PNG/JPEG background works today — but worth a install-time note if `sill`
   ever ships a `dist/` default: point it at one of the `cosmic/*.jpg` backgrounds, not
   `default.jxl`.
-- **F56 The cache hash is FNV-1a, not `DefaultHasher`.** `cache.rs`'s own doc names the reason
+- **F78 The cache hash is FNV-1a, not `DefaultHasher`.** `cache.rs`'s own doc names the reason
   (`DefaultHasher`'s `RandomState` seed changes every process, so the same source would get a
   new cache name on every restart — defeating the cache); `source_hash` feeds the path's raw
   bytes, the length and the modification time (nanoseconds since the epoch) through one FNV-1a
@@ -510,7 +722,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   all, so "renders only on change" holds at the cache layer too: a second `Prepare` for the
   same source and size never re-encodes (`resize.rs`'s own round-trip test asserts the cache
   file's mtime is unchanged the second time).
-- **F57 Cover-fit resize, then crop — not resize-to-cover in one call.** `geometry::cover_fit`
+- **F79 Cover-fit resize, then crop — not resize-to-cover in one call.** `geometry::cover_fit`
   is pure: given a source and a target size, it picks a `scaled` size (Lanczos3 target) that is
   never smaller than the target on either axis, and a centred `(crop_x, crop_y)`. `resize.rs`
   then calls `image::resize_exact` to `scaled` and `crop_imm` to the target, writing the result
@@ -521,7 +733,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   "a capture's centre pixel matches the source's" a meaningful acceptance check rather than a
   coincidence: cover-fit *by construction* keeps the source's own centre aligned to the
   target's.
-- **F58 The COSMIC config watch degrades to "read once" rather than failing to start.**
+- **F80 The COSMIC config watch degrades to "read once" rather than failing to start.**
   `watch::watch` needs `notify` to watch an existing directory; COSMIC's config tree may not
   exist at all outside a real COSMIC session (it does not on this dev machine before the
   acceptance script creates it). `nearest_existing_ancestor` walks up from the `all` file's
@@ -532,7 +744,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   Debounce is 500 ms (the brief's own number), distinct from `sill-settings::watch`'s 30 ms: a
   foreign config file is edited far less often than the shell's own, written by cosmic-bg on a
   human's own "change background" click, not a live-typing settings field.
-- **F59 `watch::watch` takes `&Handle`, not the bare `tokio::spawn`.** The first version called
+- **F81 `watch::watch` takes `&Handle`, not the bare `tokio::spawn`.** The first version called
   `tokio::spawn` directly inside `watch()`, which needs an entered runtime on the *calling*
   thread — true inside an `async fn` already running on a runtime, false for `Services::spawn`
   called from a plain thread holding only a `Handle` (exactly what
@@ -543,7 +755,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   called from the context of a Tokio 1.x runtime"); every other service's `spawn` in this crate
   already gets this right by using the passed `rt: &Handle` (`clock::spawn`'s `rt.spawn(run(..))`
   is the precedent) — `watch::watch` now does the same.
-- **F60 `sill run` does not yet spawn a wallpaper surface.** `crates/sill/src/daemon.rs`'s
+- **F82 `sill run` does not yet spawn a wallpaper surface.** `crates/sill/src/daemon.rs`'s
   `spawn_missing_bars`/`spawn_bar` are bar-specific; `outputs.rs`'s `OutputSurfaces.wallpaper`
   field and `OutputAction::Resize`'s own doc comment ("re-apply sizes, re-prepare the wallpaper")
   already anticipate a wallpaper surface, but nothing calls `wallpaper_layer` or sends
@@ -555,20 +767,24 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   `examples/wallpaper_demo.rs`, with everything else faked; its first step still runs against a
   live `sill run` when one exists and prints whether `sill debug stats` shows a
   `sill-wallpaper-*` surface, so the gap is visible on every run.
-- **F61 A concurrent quire merge broke `sill-surfaces`' bar code mid-wave.** quire commit
-  `f3c1115` ("Merge tray-gaps: external icons, submenus and disabled rows, element ids and
-  pointer buttons", landed 2026-09-24 11:30, closing this repo's own Q6-Q8) changed `ds::Button`
-  and `ds::IconButton`'s `onclick` from `EventHandler<()>` to `EventHandler<Press>` and added
-  `MenuEntry::Item.availability` and a new `MenuEntry::Submenu` variant. None of this wave's own
-  files reference any of it — `cargo build -p sill-surfaces --lib` fails with seven errors, all
-  in `surfaces/bar/{app_name,clock,tray,workspaces,content,status_item,geometry}.rs`, none under
-  `surfaces/wallpaper/` — but `ds` is a path dependency shared by every sill worktree
-  (`../quire` resolves to the same on-disk checkout everywhere), so the whole `sill-surfaces`
-  crate stopped compiling partway through this wave's own verification, after every wallpaper
-  test had already passed once against the pre-merge quire (recorded in full below) and before
-  `dev/accept-wallpaper.sh`'s own build of `wallpaper_demo` could run. `bar/**` is frozen to
-  this wave; adapting it to the new `Press`/`MenuEntry` shapes is the bar-ui (or a dedicated
-  quire-bump) wave's job, reported rather than patched here.
+- **F83 A concurrent quire merge broke `sill-surfaces`' bar code mid-wave; fixed by merging
+  master.** quire commit `f3c1115` ("Merge tray-gaps: external icons, submenus and disabled
+  rows, element ids and pointer buttons", landed 2026-09-24 11:30, closing this repo's own
+  Q6-Q8) changed `ds::Button` and `ds::IconButton`'s `onclick` from `EventHandler<()>` to
+  `EventHandler<Press>` and added `MenuEntry::Item.availability` and a new `MenuEntry::Submenu`
+  variant. None of this wave's own files reference any of it — `cargo build -p sill-surfaces
+  --lib` failed with seven errors, all in
+  `surfaces/bar/{app_name,clock,tray,workspaces,content,status_item,geometry}.rs`, none under
+  `surfaces/wallpaper/` — but `ds` is a path dependency shared by every sill worktree (`../quire`
+  resolves to the same on-disk checkout everywhere), so the whole `sill-surfaces` crate stopped
+  compiling partway through this wave's own verification, after every wallpaper test had already
+  passed once against the pre-merge quire (recorded in full in this wave's own report) and
+  before `dev/accept-wallpaper.sh`'s own build of `wallpaper_demo` could run. `bar/**` is frozen
+  to this wave, so rather than patching it directly this wave merged `master` (which by then
+  carried `60582f4`, "The bar adopts quire's typed presses and the availability field on menu
+  items, and sizes submenu rows," plus the merged apps-index, launch, pins and badges services)
+  into `m2-wallpaper`; the merge touched no wallpaper file (`git merge master` only conflicted on
+  this file, `FINDINGS.md`, over both sides appending new sections).
 
 ### Gaps found in M2 wallpaper
 

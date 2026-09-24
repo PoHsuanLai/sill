@@ -26,7 +26,7 @@ pub(crate) fn StatusIcon(menu: BarMenu, icon: Icon, tooltip: String) -> Element 
                 label: menu.label().to_owned(),
                 tooltip: Some(tooltip),
                 expanded: Some(expanded),
-                onclick: move |()| {},
+                onclick: move |_| {},
                 mounted: move |event| probe.on_mounted(event),
             }
         }

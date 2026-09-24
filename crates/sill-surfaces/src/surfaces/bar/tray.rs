@@ -225,6 +225,7 @@ fn to_ds_entry(entry: &TrayMenuEntry) -> MenuEntry<i32> {
             tile: None,
             trail: Trail::None,
             check: to_ds_check(*check),
+            availability: ds::Availability::Enabled,
         },
     }
 }
