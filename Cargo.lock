@@ -4014,9 +4014,11 @@ dependencies = [
  "serde",
  "serde_json",
  "sill-launcher",
+ "sill-settings",
  "system-tray",
  "thiserror 2.0.20",
  "tokio",
+ "toml",
  "upower_dbus",
  "zbus",
 ]

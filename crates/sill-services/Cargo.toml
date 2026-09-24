@@ -29,6 +29,14 @@ jiff = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+toml = { workspace = true }
+
+# `sill-settings` only for `tests/settings_live.rs` (design/22 §9.2's own local-install path,
+# `sill_settings::schema().write_to`) — a dev-dependency, not linked into the daemon, so it does
+# not cross the `ds-settings`-free boundary `scripts/check-boundary.sh` enforces on this crate's
+# normal dependencies (schema_file.rs's module doc explains why the library itself cannot use it).
+[dev-dependencies]
+sill-settings = { workspace = true }
 
 # A LauncherEntry emitter for exercising badges without a real app: the dock's acceptance and
 # `tests/badges_live.rs` run it as a child process.
