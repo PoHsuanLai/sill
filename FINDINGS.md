@@ -468,7 +468,7 @@ Filled `badges::spawn` (`crates/sill-services/src/badges/live.rs`, new). The fro
 (`Badges`, `Badge`, `BadgeProp`, `BadgeEvent`, `reduce_badges`, `parse_app_uri`) needed no
 change.
 
-- **F29 A bus-wide signal subscription needs `MessageStream::for_match_rule`, not a generated
+- **F54 A bus-wide signal subscription needs `MessageStream::for_match_rule`, not a generated
   proxy.** `com.canonical.Unity.LauncherEntry` has no crate binding (unlike UPower or
   NetworkManager) and, unlike `StatusNotifierItem`, an app never registers a well-known name to
   publish it — it just broadcasts `Update` from whatever connection it already has. zbus 5's
@@ -477,7 +477,7 @@ change.
   bus and yields every matching `Message` regardless of who sent it; `Body::deserialize::<(String,
   HashMap<String, OwnedValue>)>()` decodes the `(s app_uri, a{sv})` body. No new dependency: zbus
   was already in the pinned block for `battery`/`network`/`tray`/`volume`.
-- **F30 Leniency is a per-key decode, not a per-message one.** The signature `(s, a{sv})` is
+- **F55 Leniency is a per-key decode, not a per-message one.** The signature `(s, a{sv})` is
   fixed by the interface, so a message that isn't that shape at all (or whose `app_uri` names no
   app) is simply dropped — there is no partial reading of a tuple. What *is* partial is each
   value inside the dictionary: `decode_prop` downcasts by key (`count` -> `i64::try_from`,
@@ -486,14 +486,14 @@ change.
   that would fail the whole `Update`. `reduce_badges` already treats an absent `BadgeProp` as
   "unchanged" (model.rs, done at W0), so a dropped key and a key the sender never sent behave
   identically — no special case needed on the decode side for "missing".
-- **F31 Which sender is publishing an app's badge is this task's own bookkeeping, not part of
+- **F56 Which sender is publishing an app's badge is this task's own bookkeeping, not part of
   `Badges`.** The frozen `Badges` only ever remembers `app -> Badge` (the plan's persisted
   shape), so there is nowhere in it to record which connection last spoke for an app. `live::run`
   keeps a local `HashMap<AppId, OwnedUniqueName>` alongside the loop, updated on every `Update`
   and consulted on `NameOwnerChanged`: a name-owner change is only a clear when `new_owner` is
   empty (a name *transfer* between two still-live connections is not a departure) and its `name`
   matches a tracked unique name.
-- **F32 Verification.** `cargo fmt --all --check`, `cargo clippy --workspace --all-targets
+- **F57 Verification.** `cargo fmt --all --check`, `cargo clippy --workspace --all-targets
   --all-features -- -D warnings`, `cargo test --workspace --features sill/debug`,
   `./scripts/check-boundary.sh` and `cargo deny check licenses` all pass. The `#[ignore]`d live
   test (`tests/badges_live.rs`) was run once against this machine's real session bus (`cargo test
