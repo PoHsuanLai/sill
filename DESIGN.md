@@ -104,7 +104,9 @@ primary|secondary|middle]`, M2 amendment F80; shell-host injects primary clicks 
 
 `dist/sill.service` (graphical-session.target, Restart=on-failure);
 `dist/cosmic/com.system76.CosmicSettings.Shortcuts/v1/{system_actions,custom}` (Launcher,
-AppLibrary; Ctrl+Alt+Space for nested use); `dist/sill-session` documented only (a real login
+AppLibrary, and the XF86 brightness and volume keys' BrightnessUp/Down, VolumeRaise/Lower and
+Mute as `sill display ...`; Ctrl+Alt+Space for nested use); `dist/udev/60-sill-ddc.rules` and
+`dist/modules-load.d/sill-ddc.conf` (DDC/CI access where ddcutil's package is not installed); `dist/sill-session` documented only (a real login
 without cosmic-session; not an M4 gate). `dev/{nested,run,shot}.sh` wrap
 `shell-host/scripts/dev/`; `dev/shot.sh --surface` uses `sill debug capture`;
 `dev/accept-bar.sh` is the M1 skeleton (every unfilled step exits 2).

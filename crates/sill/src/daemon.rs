@@ -61,6 +61,7 @@ pub fn run() -> ExitCode {
         .unwrap_or_default();
     let (settings_tx, settings_rx) = watch::channel(initial_settings.clone());
     let settings_feed = SettingsFeed(settings_rx);
+    crate::displays::send_policy(&services, &initial_settings);
 
     let config = HostConfig {
         first_mouse_window_ms: shell_host::config::Ms(u32::from(
@@ -170,6 +171,7 @@ fn run_event(
             {
                 launcher.focus(*focus);
             }
+            crate::displays::on_host_event(services, &other);
             on_event(ctx, outputs, other);
             spawn_missing_bars(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_wallpapers(ctx, outputs, services, settings_feed, settings_tx);
@@ -514,12 +516,17 @@ fn dispatch_request(
         Request::Ping => Response::Pong,
         Request::Launcher(request) => dispatch_launcher(outputs, launcher, request),
         Request::Dock(request) => dispatch_dock(services, request),
-        Request::Reload => dispatch_reload(settings_dir, settings_tx),
+        Request::Reload => {
+            let response = dispatch_reload(settings_dir, settings_tx);
+            crate::displays::send_policy(services, &settings_tx.borrow());
+            response
+        }
         Request::Quit => {
             ctx.exit();
             Response::Done
         }
         Request::Debug(request) => dispatch_debug(ctx, outputs, request),
+        Request::Display(request) => crate::displays::dispatch(services, request),
     }
 }
 

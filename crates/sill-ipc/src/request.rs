@@ -1,6 +1,7 @@
 //! What a client asks the daemon (plan: `Ping, Launcher{Toggle,Open{query},Close},
 //! Dock{Pin,Unpin}, Reload, Quit, Debug{Stats,Pointer,Leave,Capture}`), plus `Debug(Click)`
-//! from the M2 freeze amendment (sill FINDINGS F76).
+//! from the M2 freeze amendment (sill FINDINGS F76), and `Display` from the displays pass (sill
+//! FINDINGS "Displays").
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -22,6 +23,43 @@ pub enum Request {
     /// Development probes (`dev/accept-*.sh`); answered even in a release build, acted on only
     /// when the daemon was built with the `debug` feature.
     Debug(DebugRequest),
+    /// The brightness and volume keys (`sill display {brightness,volume} ...`), bound to
+    /// XF86MonBrightness*/XF86Audio* in COSMIC's shortcuts (`dist/cosmic`).
+    Display(DisplayRequest),
+}
+
+/// A display key, or a slider standing in for one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
+pub enum DisplayRequest {
+    /// The display under the pointer (else the focused one), or every display, per
+    /// `display.brightness_keys_target`: a backlight through logind, a monitor over DDC/CI.
+    Brightness(LevelRequest),
+    /// The default sink's volume, and a monitor's own speakers when they are the sink and
+    /// `display.hardware_volume` says so.
+    Volume(VolumeRequest),
+}
+
+/// A level's change: one key press either way, or an absolute percentage.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
+pub enum LevelRequest {
+    Up,
+    Down,
+    /// 0-100; more is taken as 100.
+    Set {
+        percent: u8,
+    },
+}
+
+/// A volume change: a level change, or the mute key.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
+pub enum VolumeRequest {
+    Level(LevelRequest),
+    Mute,
+    Unmute,
+    ToggleMute,
 }
 
 /// The launcher's three verbs (`sill launcher {toggle,open [--query],close}`).

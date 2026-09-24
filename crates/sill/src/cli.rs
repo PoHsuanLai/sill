@@ -1,10 +1,13 @@
 //! The command line (plan: `sill run|launcher {toggle,open [--query],close}|dock {pin,unpin}|
 //! reload|quit|ping|debug {stats,pointer,leave,capture}`, plus `debug click` from the M2 freeze
-//! amendment), and its one pure mapping to an IPC request.
+//! amendment and `display {brightness,volume}` from the displays pass (`cli_display`), and its
+//! one pure mapping to an IPC request.
 
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
+
+pub use crate::cli_display::{DisplayAction, LevelAction, VolumeAction, display_request};
 use sill_ipc::{
     DebugRequest, DesktopId, DockRequest, LauncherRequest, Point, PointerButton, Request,
     SurfaceName,
@@ -46,6 +49,11 @@ pub enum Command {
     Debug {
         #[command(subcommand)]
         action: DebugAction,
+    },
+    /// The brightness and volume keys.
+    Display {
+        #[command(subcommand)]
+        action: DisplayAction,
     },
 }
 
@@ -135,6 +143,7 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::Reload => Request::Reload,
         Command::Quit => Request::Quit,
         Command::Ping => Request::Ping,
+        Command::Display { action } => Request::Display(display_request(action)),
         Command::Debug { action } => Request::Debug(match action {
             DebugAction::Stats => DebugRequest::Stats,
             DebugAction::Pointer { surface, x, y } => DebugRequest::Pointer {

@@ -12,7 +12,7 @@ pub mod response;
 pub use error::IpcError;
 pub use line::{MAX_LINE, decode, encode, read_message, write_message};
 pub use request::{
-    DebugRequest, DesktopId, DockRequest, LauncherRequest, Point, PointerButton, Request,
-    SurfaceName,
+    DebugRequest, DesktopId, DisplayRequest, DockRequest, LauncherRequest, LevelRequest, Point,
+    PointerButton, Request, SurfaceName, VolumeRequest,
 };
 pub use response::{Failure, FailureKind, Micros, Response, SurfaceStats};
