@@ -1926,3 +1926,213 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   `Cosmic | Shell`, default `Cosmic`, "COSMIC's own background service, or the shell's wallpaper,
   which cross-fades with light and dark." Listed in `tests/keys.rs` `AWAITING_ROWS` until then.
 - When G21 is fixed: flip the default to `Shell`, re-run accept-wallpaper and accept-{bar,dock}.
+
+## Displays (2026-09-25)
+
+The `displays` service family in `sill-services` (`src/displays/`), the `display.*` settings
+domain, `sill display {brightness,volume} ...`, and the brightness and volume keys in
+`dist/cosmic`. Everything is derived from what a display reports (EDID, DDC/CI, the compositor's
+heads); nothing is keyed to a vendor or a model, and every default has a `display.*` key.
+
+### Scale
+
+- **Policy** (`displays::scale`, table-tested): density along the diagonal from the EDID's
+  preferred-timing millimetres (else the base block's centimetres, else the compositor's
+  `physical`), divided by `display.density_target_ppi` (109, Apple's 27-inch 2560 x 1440); the
+  integer when within 0.15 of one, else the nearest of 1, 1.25, 1.5, 1.75, 2, 2.5, 3. With no
+  usable size (0 mm, or a density outside 40-600 ppi such as a TV reporting 16 x 9 cm): 2 when
+  the panel is at least 3840 px wide, else 1.
+
+  | display | ppi | raw | scale |
+  |---|---|---|---|
+  | 27" 4K (and the MA270U's own 597 x 336 mm) | 163 | 1.50 | 1.5 |
+  | 27" 5K | 218 | 2.00 | 2 |
+  | 24" 1080p | 92 | 0.84 | 1 |
+  | 13.3" 2560 x 1600 | 227 | 2.08 | 2 |
+  | 14" 2880 x 1800 | 242 | 2.23 | 2 (outside the integer pull, but 2 is still the nearest step) |
+  | 32" 4K | 138 | 1.26 | 1.25 |
+  | 27" 1440p | 109 | 1.00 | 1 |
+  | 15.6" 1080p | 141 | 1.29 | 1.25 |
+  | 14" 1920 x 1200 | 162 | 1.48 | 1.5 |
+  | 16" 2560 x 1600 | 189 | 1.73 | 1.75 |
+  | 13.6" 2560 x 1664 | 224 | 2.06 | 2 |
+  | 34" 3440 x 1440 | 110 | 1.01 | 1 |
+  | 32" 6K | 216 | 1.98 | 2 |
+  | a projector at 1080p / 4K (0 mm) | - | - | 1 / 2 |
+
+  No common laptop came out absurd, so the rule stands as specified; the one addition is the
+  plausibility window. For comparison, cosmic-comp 1.8 picks its own default for a new output
+  (read for the behaviour only; it is GPL): 4K always 2, 50 % steps, different step sizes for
+  laptops and desktops, and a cap by the shorter side. On the MA270U COSMIC alone gives 2 and
+  sill gives 1.5.
+- **Applying** (`displays::seen`, `scale_pass`, `sink`): only on the first sight of an identity
+  (`IdentityKey`: `BNQ-8074-<FNV-1a of make, product and serial>`; the serial is never stored
+  in clear), recorded in `$XDG_STATE_HOME/sill/displays.json`. A recorded display is never
+  rescaled, and `display.scale = "manual"` records without setting. `display.scale_overrides`
+  is the one way sill changes a known display: a `<identity> = <scale>` pair applies when it is
+  added or edited (it is compared with the scale sill last set, so a later change in COSMIC
+  Settings stands). A failed set records nothing, so the next output change retries.
+- **Route**: cosmic-comp 1.8 persists output state itself in
+  `$XDG_STATE_HOME/cosmic-comp/outputs.ron`, keyed by the set of connected
+  `(connector, make, model)` and holding mode, scale, transform and position; it applies and
+  persists changes made through `zwlr_output_manager_v1` (v4). sill goes through the
+  `cosmic-randr` tool COSMIC ships (`cosmic-randr list --kdl`, then `cosmic-randr mode <name> <w>
+  <h> --refresh <hz> --scale <s>`) behind the `ScaleSink` trait (a fake in the tests). Under KWin
+  `cosmic-randr` finds no output manager and the pass changes nothing, so running sill in the
+  KDE session cannot touch KDE's 1.7.
+- **Live, nested** (a private `cosmic-comp --no-xwayland` with `COSMIC_BACKEND=winit` and its
+  own `XDG_STATE_HOME`, so `~/.local/state/cosmic-comp` was never written): the one head is
+  `WINIT-0`, make `COSMIC`, model `WINIT-0`, `physical 0 0`, 2176 x 1360 at 60.000 Hz, scale
+  1.00, transform flipped180. With no EDID and no size its default is 1, so the daemon's first
+  pass recorded `COSMIC-0000-8eb9a3b360803609` with nothing applied. An override row set 1.25
+  through the running daemon (cosmic-comp reported `scale 1.25` and wrote it to its
+  outputs.ron); removing the row left 1.25 alone, and setting 1.00 by hand afterwards was not
+  fought. `tests/scale_live.rs` (ignored; it refuses unless every head is `WINIT-*`) sets and
+  restores a scale through `CosmicRandr` and passes.
+
+### EDID and gamut
+
+- `displays::edid` is a hand-written base-block parser (manufacturer, product, serial string or
+  number, 0xFC name, the preferred timing and its millimetres, primaries and white): the block
+  is a fixed layout of a few dozen bytes, and the crates on offer either bring a
+  parser-combinator stack or bind libdisplay-info through C. The MA270U's own EDID (serial string
+  masked) is the fixture: R .681/.316, G .256/.680, B .152/.062, W .313/.329, 597 x 336 mm,
+  3840 x 2160 at 59.996 Hz.
+- `displays::gamut::classify`: Display P3 when the panel's triangle covers at least 90 % of
+  P3's and is at most 1.15 x P3's area; Wide when it is otherwise at least 1.2 x sRGB's area
+  (Adobe RGB, Rec.2020); else sRGB. The MA270U is P3; a typical sRGB panel, sRGB itself and a
+  72 % NTSC laptop panel are sRGB; Adobe RGB and Rec.2020 are Wide.
+
+### DDC/CI
+
+- **Crates**: `ddc` 0.2 (the VCP trait) and `ddc-i2c` 0.2.2 with `with-linux` (not
+  `with-linux-enumerate`, which links libudev); both MIT, as are `i2c`, `i2c-linux`,
+  `i2c-linux-sys`, `resize-slice` and `uninitialized` under them; `cargo deny check licenses`
+  passes. `ddcutil` is not needed at run time. They sit after the pinned block in
+  `[workspace.dependencies]` (sill-only, not part of quire's `docs/workspace-deps.toml`).
+- **Finding the monitors**: NVIDIA's driver has no `card*-<connector>/ddc` link, so the join is by
+  EDID: every `/dev/i2c-N` whose adapter hangs off a PCI display controller (class `0x03xxxx`) is
+  asked for its EDID at 0x50, the connector with the same base block is its monitor, and a bus
+  that also answers a VCP read is a DDC display. On this machine: bus 5 = `HDMI-A-2` = BenQ
+  MA270U.
+- **Measured on the MA270U** (`tests/ddc_live.rs`, ignored; every value is restored and the
+  restore asserted): a probe (EDID reads on every display bus plus the first VCP read) takes
+  158-182 ms; the first read 50-53 ms; each further read about 100 ms (the crate's 50 ms delay
+  between commands plus the transaction), 109-112 ms averaged over ten back-to-back reads; a raw
+  write 54-57 ms; a verified write (write, then read back) 155-160 ms for brightness and about
+  352 ms for speaker volume, whose read-back still shows the old value the first time, so it
+  takes a second round. Through the service a slider's value reaches the monitor 120 ms (the
+  debounce) after it stops moving, plus one verified write.
+- **The bus is lossy**: about one transaction in 25 came back "expected DDC/CI length bit" (seen
+  on 0x1A and 0x62), and one write that followed such a failed read returned Ok and was dropped
+  by the monitor (the protocol has no acknowledgement; that run left the volume at 18 until it
+  was put back by hand to 20). So `ddc::retry` retries a read three times and verifies every
+  write by reading it back, repeating it up to three times, as ddcutil does by default.
+- **Service shape**: one worker thread owns every bus (`ddc::worker`); writes are debounced per
+  (display, feature), latest wins, 120 ms after the last change (`ddc::debounce`, pure); the
+  published `DdcDisplay`s are the read cache (read at probe, then following sill's own writes);
+  a failed read makes that control absent and is logged once per bus, feature and direction.
+  The buses are re-probed when the set of outputs changes, not on every mode or scale change.
+- **Capabilities** (`ddc::Controls`, MA270U): brightness 49/100, contrast 50/100, colour preset
+  0x0B (user 1), RGB gains 100/100 each, input 0x11 (HDMI 1; read, never written live), speaker
+  volume 20 out of **50** (not 100), mute 0x02 (audible).
+
+### Brightness, volume, warmth, fonts
+
+- **Routing** (`brightness::route`): eDP, LVDS and DSI connectors go to a backlight through
+  logind's `Session.SetBrightness("backlight", name, value)` on
+  `/org/freedesktop/login1/session/auto` (firmware over platform over raw when there are several;
+  never below the lowest non-zero value); other connectors go to the DDC display on that
+  connector; anything else to nothing. Keys move along a 16-step ladder, as on a Mac keyboard; a
+  slider sets the level outright.
+- **Which output**: `display.brightness_keys_target = "pointer_output"` acts on the output of
+  the active window, since the pointer's output is only the compositor's to know (F140);
+  `all_outputs` acts on every one. There is no OSD surface yet; `Displays::brightness(target)`
+  is what it will read.
+- **Keys**: `dist/cosmic/.../system_actions` binds COSMIC's `BrightnessUp`/`BrightnessDown`,
+  `VolumeRaise`/`VolumeLower` and `Mute` (XF86MonBrightness*, XF86Audio*) to `sill display ...`.
+  While installed, this replaces cosmic-settings-daemon's own brightness handling and
+  cosmic-osd's popup for those keys.
+- **Monitor speakers** (`hw_volume`): pipewire-pulse names an HDMI or DP sink after the monitor's
+  ELD, `... Digital Stereo (HDMI) [BenQ MA270U]`. When that bracketed name is a DDC display's EDID
+  name and the display has VCP 0x62, a change the person makes to the software level or mute
+  (never a sink switch, never sill's start) is sent on as the same percentage of the monitor's
+  range, and as VCP 0x8D. The software path is unchanged, so the two levels multiply: the
+  conservative choice, since turning the software attenuation off would surprise anyone who uses
+  the sink elsewhere. The default sink here is a Bluetooth headset, so this was checked with the
+  table tests and the MA270U's real sink name, not live.
+- **Night warmth** (`warmth`, `plan::warmth_writes`): the strength maps to 6500-2700 K linearly
+  in mireds, then to per-channel multipliers from the public-domain blackbody fit, normalised so
+  that 6500 K is exactly neutral; each display's own gains are remembered the first time and
+  restored when it is turned off. Off by default. The originals live in memory only, so a crash
+  while warm leaves the monitor warm until its preset is chosen again.
+- **Font rendering** (`font`, `fontconfig_file`): greyscale antialiasing, `rgba none`, and
+  `hintslight` below 150 ppi or `hintnone` from 150, following the densest output. Written to
+  `$XDG_CONFIG_HOME/fontconfig/conf.d/50-sill-rendering.conf` with a header that marks it as
+  sill's, only under `display.font_rendering = "auto"`, and only when no other conf.d file (or
+  `fonts.conf`) has an `<edit name=...>` for antialias, hinting, hintstyle or rgba; removed when
+  the setting is `off` or such a file appears; a same-named file without the header is never
+  touched. Tested in a temporary directory only: nothing was written under this machine's home.
+  In the nested session there is no density (WINIT-0 reports 0 mm), so nothing is written.
+
+### Colour management (investigation only)
+
+- **cosmic-comp 1.8.0** (source at `epoch-1.8.0`, and `wayland-info` on the nested compositor):
+  no `wp_color_manager_v1`, no `wp_color_representation_manager_v1`, no
+  `frog_color_management_factory_v1`, and no `zwlr_gamma_control_manager_v1` either (so no
+  gammastep or wlsunset). The KMS backend sets `max bpc` per connector and nothing else colour
+  related: no GAMMA_LUT, DEGAMMA_LUT or CTM property is written, so there is no output colour
+  transform of any kind, and a P3 panel shows sRGB content oversaturated. The output globals it
+  does offer: `zwlr_output_manager_v1` v4, `zcosmic_output_manager_v1` v3, `wl_output` v4,
+  `wp_fractional_scale_manager_v1` v1, `zxdg_output_manager_v1` v3.
+- **KWin 6.7.5** (the host session): `wp_color_manager_v1` **v2** (intents perceptual, relative,
+  absolute, relative_bpc; features parametric, extended_target_volume,
+  set_mastering_display_primaries, set_primaries, set_luminances, windows_scrgb; transfer
+  functions gamma22, st2084_pq, ext_linear, bt1886; primaries srgb, pal_m, pal, ntsc,
+  generic_film, bt2020, cie1931_xyz, dci_p3, display_p3, adobe_rgb), plus
+  `frog_color_management_factory_v1` v1 and `wp_color_representation_manager_v1` v1.
+- So `display.color_management` (`auto` | `off`) is stored and does nothing yet; the gamut
+  `classify` computes is what it will hand to the compositor once cosmic-comp offers
+  `wp_color_manager_v1`.
+
+### ddcutil permissions
+
+- Fedora 44's `ddcutil` 2.2.1 installs `/usr/lib/udev/rules.d/60-ddcutil-i2c.rules`
+  (`SUBSYSTEM=="i2c-dev", KERNEL=="i2c-[0-9]*", ATTRS{class}=="0x030000", TAG+="uaccess"`) and
+  `/usr/lib/modules-load.d/ddcutil.conf` (`i2c-dev`). With it installed, the user at the active
+  seat gets an ACL on every VGA-class adapter's bus (`getfacl /dev/i2c-5`:
+  `user:pohsuanlai:rw-`), in the `i2c` group or not; that group here comes from a hand-written
+  `/etc/udev/rules.d/99-i2c-dev.rules` and is not needed. Without ddcutil's package, and outside
+  such a group, `/dev/i2c-*` is root's (or does not exist without `i2c-dev`), every probe finds
+  nothing, and the brightness keys on an external monitor quietly do nothing.
+- So sill ships `dist/udev/60-sill-ddc.rules` (the same `uaccess` tag for any display-controller
+  class `0x03????`, which also covers the `0x0302xx` discrete GPU of hybrid laptops that
+  ddcutil's rule misses) and `dist/modules-load.d/sill-ddc.conf`, for packagers on distributions
+  without ddcutil's rule. `uaccess` reaches only the active local session: a remote login or a
+  background session gets nothing. Checked with `udevadm verify`.
+
+### Gaps and choices
+
+- **quire gap**: the settings derive's `Vec<_>` shape needs an enum element, and there is no list
+  of text, so `display.scale_overrides` is one text key of `;`-separated pairs. A `List(Text)`
+  kind would let it be a rows editor.
+- **design/22 rows to add** (§3, a new `display` section; all Advanced until there is a Displays
+  page), listed in `tests/keys.rs` `AWAITING_ROWS` until they land:
+
+  | Key | Type | Default | Meaning |
+  |---|---|---|---|
+  | `display.scale` | `Auto \| Manual` | `Auto` | On first sight of a display, set the scale its density calls for; Manual never changes a scale. |
+  | `display.scale_overrides` | text | `""` | `<identity> = <scale>` pairs, `;`-separated; each applied when added or edited. |
+  | `display.density_target_ppi` | count 72..=220 ppi | 109 | The logical density the automatic scale aims for. |
+  | `display.brightness_keys_target` | `PointerOutput \| AllOutputs` | `PointerOutput` | Which displays the brightness keys and slider act on. |
+  | `display.hardware_volume` | `Off \| WhenMonitorIsOutput` | `WhenMonitorIsOutput` | A monitor's own speakers follow volume changes over DDC/CI. |
+  | `display.night_warmth` | `Off \| Hardware` | `Off` | Warm external monitors through their RGB gains. |
+  | `display.night_warmth_strength` | percent 0..=100 | 50 | 0 is 6500 K, 100 about 2700 K. |
+  | `display.font_rendering` | `Auto \| Off` | `Auto` | sill's fontconfig snippet for other apps (greyscale antialiasing, hinting below 150 ppi). |
+  | `display.color_management` | `Auto \| Off` | `Auto` | Use each display's reported gamut once the compositor supports colour management; stored only for now. |
+- **IPC**: `Request::Display(DisplayRequest::{Brightness(LevelRequest), Volume(VolumeRequest)})`
+  is a new variant; its wire spelling is pinned in `sill-ipc/tests/serde.rs`.
+- **Not done**: an OSD and a control-center slider (surfaces; `DisplaysCommand::{Brightness,
+  SetFeature}` and `Displays` are their API); a schedule for night warmth; hardware volume
+  checked live (the default sink here is Bluetooth); the pointer's own output (approximated by
+  the active window's).
