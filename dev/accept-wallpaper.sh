@@ -34,6 +34,11 @@ BACKUP_FILE="$OUT_DIR/all.backup"
 SOURCE_PNG="$OUT_DIR/source.png"
 CREATED_MARKER="$OUT_DIR/all.accept-wallpaper-created"
 SILL_PID=""
+# The shell draws the background only when `spaces.wallpaper_drawer` is "shell" (cosmic-bg by
+# default), so this script sets it in sill's settings file for the run and restores the file.
+SETTINGS_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/sill/settings.toml"
+SETTINGS_BACKUP="$OUT_DIR/settings.backup"
+SETTINGS_CREATED="$OUT_DIR/settings.accept-wallpaper-created"
 
 cleanup() {
   # Stop the daemon this script started (never the compositor); restore whatever background
@@ -42,6 +47,11 @@ cleanup() {
     sill quit >/dev/null 2>&1 || true
     for _ in $(seq 20); do kill -0 "$SILL_PID" 2>/dev/null || break; sleep 0.1; done
     kill -0 "$SILL_PID" 2>/dev/null && kill "$SILL_PID" 2>/dev/null || true
+  fi
+  if [ -f "$SETTINGS_BACKUP" ]; then
+    cp "$SETTINGS_BACKUP" "$SETTINGS_FILE"
+  elif [ -f "$SETTINGS_CREATED" ]; then
+    rm -f "$SETTINGS_FILE"
   fi
   if [ -f "$BACKUP_FILE" ]; then
     mkdir -p "$CONFIG_DIR"
@@ -59,6 +69,32 @@ if [ -f "$CONFIG_FILE" ]; then
 else
   : >"$CREATED_MARKER"
 fi
+
+rm -f "$SETTINGS_BACKUP" "$SETTINGS_CREATED"
+mkdir -p "$(dirname "$SETTINGS_FILE")"
+if [ -f "$SETTINGS_FILE" ]; then
+  cp "$SETTINGS_FILE" "$SETTINGS_BACKUP"
+else
+  : >"$SETTINGS_CREATED"
+fi
+python3 - "$SETTINGS_FILE" <<'PY'
+# Set spaces.wallpaper_drawer = "shell", keeping every other line of the file.
+import re
+import sys
+
+path = sys.argv[1]
+try:
+    text = open(path).read()
+except FileNotFoundError:
+    text = ""
+lines = [l for l in text.splitlines() if not re.match(r"\s*wallpaper_drawer\s*=", l)]
+if "[spaces]" in (l.strip() for l in lines):
+    i = next(i for i, l in enumerate(lines) if l.strip() == "[spaces]")
+    lines.insert(i + 1, 'wallpaper_drawer = "shell"')
+else:
+    lines += ["", "[spaces]", 'wallpaper_drawer = "shell"']
+open(path, "w").write("\n".join(lines) + "\n")
+PY
 
 python3 - "$SOURCE_PNG" <<'PY'
 # A 1600 x 1000 source: a big solid-colour block centred in a contrasting field, well clear of

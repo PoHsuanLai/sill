@@ -1914,3 +1914,15 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   Background-layer, non-interactive client, or both, is not established from inside this repo;
   reported for the shell-host/host team to chase with a minimal reproduction (a `Layer::Background`
   surface that mutates its own DOM shortly after its first frame, independent of any image).
+
+## Wallpaper merged behind `spaces.wallpaper_drawer`
+
+- m2-wallpaper merged with accept-wallpaper at 2/4 (centre pixel and idle fail on the host's
+  F171/G21). Until shell-host repaints a background layer after its first commit, the daemon
+  spawns the wallpaper only when `spaces.wallpaper_drawer = "shell"` (default `cosmic`, so
+  `cosmic-bg` keeps drawing and the bar/dock/launcher acceptance over `dev/backdrop.sh` is
+  unchanged). `dev/accept-wallpaper.sh` sets the key for its run and restores the settings file.
+- design/22 row for quire (§3.14 Spaces, Advanced): `spaces.wallpaper_drawer` enum
+  `Cosmic | Shell`, default `Cosmic`, "COSMIC's own background service, or the shell's wallpaper,
+  which cross-fades with light and dark." Listed in `tests/keys.rs` `AWAITING_ROWS` until then.
+- When G21 is fixed: flip the default to `Shell`, re-run accept-wallpaper and accept-{bar,dock}.

@@ -45,7 +45,7 @@ pub use scrollbar::{ScrollbarSettings, TrackClick};
 pub use sound::{SoundSettings, UiSounds, VolumeFeedback};
 pub use spaces::{
     DefaultCardAccent, DockLookSource, MailSpacePolicy, OverlayTint, SpaceLookLookup,
-    SpacesSettings, WallpaperPolicy,
+    SpacesSettings, WallpaperDrawer, WallpaperPolicy,
 };
 pub use switcher::SwitcherSettings;
 pub use watch::{ShellWatch, watch};

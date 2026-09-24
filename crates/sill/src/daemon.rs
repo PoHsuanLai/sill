@@ -22,7 +22,7 @@ use sill_ipc::{
 };
 use sill_launcher::AppId;
 use sill_services::{OutputName, PinAt, PinEvent, Services, WallpaperCommand};
-use sill_settings::{SettingsFeed, ShellFile};
+use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
 use sill_surfaces::surfaces::launcher::LauncherLink;
 use tokio::sync::watch;
 
@@ -172,7 +172,7 @@ fn run_event(
             }
             on_event(ctx, outputs, other);
             spawn_missing_bars(ctx, outputs, services, settings_feed, settings_tx);
-            spawn_missing_wallpapers(ctx, outputs, services, settings_feed);
+            spawn_missing_wallpapers(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_docks(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_launchers(ctx, outputs, services, settings_feed, settings_tx, launcher);
         }
@@ -310,13 +310,19 @@ fn spawn_bar(
 }
 
 /// Spawn a wallpaper for every output whose row has none yet (mirrors
-/// [`spawn_missing_bars`]).
+/// [`spawn_missing_bars`]), when `spaces.wallpaper_drawer` hands the background to the shell;
+/// by default `cosmic-bg` draws it. Switching the key on takes effect at the next output event
+/// or restart, and switching it off leaves any spawned wallpaper in place until restart.
 fn spawn_missing_wallpapers(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &mut Outputs,
     services: &Services,
     settings_feed: &SettingsFeed,
+    settings_tx: &watch::Sender<ShellFile>,
 ) {
+    if settings_tx.borrow().spaces.wallpaper_drawer != WallpaperDrawer::Shell {
+        return;
+    }
     let missing: Vec<OutputInfo> = outputs
         .outputs
         .iter()
