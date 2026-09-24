@@ -1,8 +1,7 @@
 //! The network: NetworkManager's primary connection over the system bus (plan hooks table,
 //! `use_network`: "cosmic-dbus-networkmanager; MPL, link only").
 
-#![allow(unused_variables, dead_code)] // Freeze stubs
-
+mod live;
 mod model;
 
 pub use model::{Connectivity, Link, Network, NetworkEvent, reduce_network};
@@ -22,7 +21,8 @@ pub enum NetworkCommand {
 /// Start the network task on `rt`. Without NetworkManager the receiver stays at
 /// `Network::default()` (disconnected, connectivity unknown).
 pub fn spawn(rt: &Handle) -> (watch::Receiver<Network>, Control<NetworkCommand>) {
-    todo!(
-        "M1 svc-dbus: NetworkManager PrimaryConnection, Connectivity, AP Strength -> reduce_network"
-    )
+    let (tx, rx) = watch::channel(Network::default());
+    let (control, commands) = Control::channel();
+    rt.spawn(live::run(tx, commands));
+    (rx, control)
 }
