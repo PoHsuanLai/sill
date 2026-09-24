@@ -898,3 +898,62 @@ start at F92/Q15 so they cannot collide with m2-wallpaper's F83-F91 and Q14.
 - **Q17** `Tooltip{Fly}` is `:hover`-driven only; a controlled mode (shown/hidden by the caller)
   would let the dock machine's label rules (hide on press, while a menu is open, while
   dragging) apply (F98).
+
+## M4 providers-b (2026-09-24)
+
+Filled `providers::calculator` and `providers::settings` (`CalculatorProvider`,
+`SettingsProvider`), each split into a small directory under `providers/{calculator,settings}/`
+per CONVENTIONS §8/§11 (one concept per file).
+
+- **F102 `sill-services` cannot depend on `ds-settings`, so the settings provider re-reads
+  `*.settings.toml` itself.** The brief asks the settings provider to index "the installed quire
+  and sill schemas" through the schema types design/22 §9 defines (`ds_settings::schema::{Schema,
+  KeySpec, discover, deep_link, ...}`), but `ds-settings` depends on `dioxus` unconditionally
+  (quire FINDINGS F2) and `scripts/check-boundary.sh` mechanically forbids `sill-services` from
+  reaching `ds-settings` at all (the "UI-free" rule, DESIGN.md "Crates"). Rather than weaken the
+  boundary or the brief, `providers/settings/schema_file.rs` reads the same on-disk TOML shape
+  directly with `toml`/`serde` (only the fields the launcher's search needs: `path`, `label`,
+  `help`, `page`), and `providers/settings/index.rs::SettingsIndex::deep_link` reimplements
+  `ds_settings::schema::deep_link`'s exact algorithm (unique case-insensitive label/help
+  substring match) independently rather than calling it. Stop-and-report per CONVENTIONS §1;
+  `data_dirs()` is likewise a second, independent reading of the same XDG directories
+  `ds_settings::schema::data_dirs` resolves (the general shape of this duplication is F59/Q4's,
+  not new). `tests/settings_live.rs` needed `sill_settings::schema()` for one live test only
+  (design/22 §9.2's own local-install path); that is a `[dev-dependencies]` entry in
+  `sill-services/Cargo.toml`, which `check-boundary.sh`'s `-e normal,build` edge filter does not
+  see (confirmed: `cargo tree -p sill-services -i ds-settings -e normal,build` prints nothing,
+  and `./scripts/check-boundary.sh` passes) — it is never linked into the daemon.
+- **F103 The calculator's secondary "Insert" action does not exist.** The plan and this wave's
+  brief both ask for "a secondary 'Insert' action if the frozen vocabulary has it"; it does not.
+  `sill_launcher::Activation`'s only text-carrying variant is `Copy { text }` — there is no
+  "put this back in the search field" kind. `CalculatorProvider::query` yields the `Copy` row
+  only, with an empty `actions` list. Reported rather than worked around by adding a frozen
+  variant (that is a cross-crate, coordinated change, not this wave's to make).
+- **F104 "bluetooth" is design/22's own example of a query that does *not* deep-link to a file
+  key.** §9.3 gives two deep-link examples side by side: "dark mode" resolves to
+  `appearance.theme` through the schemas, and "bluetooth" resolves through a *live* D-Bus
+  settings module (§9.4, `org.quire.SettingsModule1`) — nothing in quire or sill implements a
+  live module yet. `SettingsIndex::deep_link("bluetooth")` correctly returns `None` against both
+  the fixture schemas and the real ones (`tests/settings_fixture.rs`), which is right, not a
+  regression: a live-module deep link is out of this wave's scope, and inventing a static key
+  match for it would be worse than reporting the gap.
+- **F105 The 50 ms budget is enforced cooperatively, not by killing a thread.** fend-core's
+  `Interrupt::should_interrupt` is polled between steps of its own evaluation (each factorial
+  multiplication, for instance) — there is no way to hand it a signal that preempts mid-step, and
+  matching its returned error string to tell "interrupted" from "malformed input" would be
+  exactly the substring-matching CONVENTIONS warns against (its error text is not a vocabulary
+  this workspace owns). `providers/calculator/eval.rs::evaluate` instead re-reads the clock after
+  a failed evaluation: an error at or past the budget is `TimedOut`, one before it is `NoMatch`.
+  `a_pathological_expression_is_abandoned_within_the_budget` (`1000000!`) exercises this for real
+  and finishes in well under 4x the budget.
+- **F106 Live schema counts (this machine, 2026-09-24).** `tests/settings_live.rs` (writes
+  sill's schema into the real `$XDG_DATA_HOME/quire/settings`, cleans up the one file
+  afterward): sill's own schema has **142 keys** (its 11 domains merged, `sill_settings::schema`);
+  `cosmic-settings` 1.7.0 is on `PATH`, so **33 COSMIC pages** load into
+  `SettingsProvider::cosmic_pages`; **0 quire keys** are installed on this machine — quire ships
+  no program that aggregates and writes its own `quire.settings.toml` yet (only the per-struct
+  `AppearanceSettings::schema()`/`IconsSettings::schema()` derive output, each its own `Schema`
+  value with nobody calling `.write_to()` on it), unlike sill's `sill_settings::schema()`
+  (`crates/sill-settings/src/schema.rs`) which already merges its 11 domains into one. Not this
+  wave's gap to fix (quire's), but worth flagging upstream: a quire binary calling
+  `--write-schema` the way `sill`'s `main.rs` does would need writing.
