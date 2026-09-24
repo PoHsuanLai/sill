@@ -898,3 +898,91 @@ start at F92/Q15 so they cannot collide with m2-wallpaper's F83-F91 and Q14.
 - **Q17** `Tooltip{Fly}` is `:hover`-driven only; a controlled mode (shown/hidden by the caller)
   would let the dock machine's label rules (hide on press, while a menu is open, while
   dragging) apply (F98).
+
+## M4 providers-a (2026-09-24)
+
+Filled `providers::{apps, windows, system}` (`sill-services/src/providers/{apps,windows,system}.rs`);
+`sill-launcher/**`, `results/**`, `providers/{calculator,settings}.rs` and every other M4 file
+stayed untouched. `sill-services/Cargo.toml` gained one line, `nucleo-matcher = { workspace =
+true }` — already pinned (root `Cargo.toml`, used by `sill-launcher`), just not yet wired into
+this crate, which needs the concrete `nucleo_matcher::Matcher` type in provider function
+signatures that `sill_launcher::matching::matcher()` returns.
+
+- **F102 `Activation` cannot close a window; the row still offers the action.** The brief asks
+  the windows provider to close with an action, but the frozen `sill_launcher::Activation`
+  (owned by launcher-core) is `Launch | FocusWindow | Copy | OpenSettings | System | Nothing` —
+  no variant carries a `WindowKey` to a close request, and `WlCommand::Close` (the compositor
+  command that exists for it, `cosmic_wl::command.rs`) has no path from `Provider::activate`,
+  which is documented pure ("it says what should happen and the daemon does it") and so cannot
+  call it directly either. `WindowsProvider` still gives every row a `Close` action (so the row
+  shape is right and the gap is visible in the actions menu, Ctrl+K / Alt+K) but
+  `activate(item, Choice::Action(_))` can only answer `Activation::Nothing`. Recommend
+  launcher-core add `Activation::CloseWindow(WindowKey)` (mirroring `FocusWindow`'s shape) in a
+  follow-up; this is a stop-and-report, not a workaround (CONVENTIONS §1).
+- **F103 The "confirmation flag" is the actions menu, not a new field.** design/06 §20.2 gives
+  the launcher exactly one lever in the frozen `Item`/`Choice` shape for anything beyond Enter:
+  Ctrl+K / Alt+K opens `Item::actions`. `Item` has no boolean (and CONVENTIONS §11 forbids one
+  in a public signature regardless) and `Activation` has no "ask first" wrapper, so
+  `SystemProvider` reads Log Out, Restart and Shut Down as destructive (they close or interrupt
+  every running app) and gives each one action, `Action{id: "confirm", label: "Confirm
+  <title>"}`; `Choice::Primary` on one of these rows answers `Activation::Nothing`, and only
+  `Choice::Action("confirm")` answers the real `Activation::System(command)`. Suspend is treated
+  as non-destructive (instantaneous, reversible, no app is closed) matching macOS and GNOME;
+  Lock and Reload need no confirmation at all. This is a considered reading of an unspecified
+  design point, not a verified one — worth a second look once launcher-ui's actions menu exists
+  to see how it reads in practice.
+- **F104 Session-command availability is a live, cached logind probe, not a static list.**
+  `SystemProvider::query` lists Suspend, Restart and Shut Down only when logind's own read-only
+  `Manager.CanSuspend`/`CanReboot`/`CanPowerOff` (`Yes` or `Challenge`) says so, and lists
+  nothing extra when the bus or logind is unreachable at all (`Offer::Unavailable`, the wave's
+  "reports `Unavailable` cleanly" requirement) — Lock, Log Out and Reload need no such check and
+  always list. The check is real D-Bus (async `logind_zbus::manager::ManagerProxy`, not the
+  `Blocking` variant: `zbus`'s pinned features here are `default-features = false, features =
+  ["tokio"]`, so `blocking-api` — and with it `zbus::blocking` and every `*ProxyBlocking` type —
+  is not compiled in; adding it would be a pinned-dependency change, out of scope for a single
+  crate per CONVENTIONS §11) bridged from `Provider::query`'s sync signature with
+  `tokio::runtime::Handle::block_on`, which is sound exactly because `results::spawn` (M4
+  launcher-core, plan "spawn_blocking per provider") is documented to run every provider's
+  `query` inside `tokio::task::spawn_blocking` — the one context `Handle::block_on` does not
+  panic from. The probe runs once and is cached in a `OnceLock` for the provider's lifetime (a
+  fresh `Connection::system` per keystroke would risk the 50 ms budget for no benefit: session
+  policy does not change keystroke to keystroke). `tests/providers_system_live.rs` (`#[ignore =
+  "needs logind"]`) exercises the real probe through the same `spawn_blocking` seam and only
+  ever calls the read-only `Can*` properties — never `Suspend`/`Reboot`/`PowerOff`/
+  `TerminateSession`, so running it does not touch the session it runs in. Run once on this
+  machine: `Lock, Log Out, Reload, Restart, Shut Down` (Suspend absent — `CanSuspend` answered
+  `No`, most likely because this dev box has no swap/hibernation image configured for logind to
+  offer it).
+- **F105 Desktop actions surface as their own rows only once something is typed.** The brief
+  asks for "desktop actions as secondary items"; `AppsProvider` matches a `[Desktop Action]`'s
+  own name as a separate `Item` (its `Activation::Launch` carries `DesktopAction::Named`, its
+  id `<app id>\u{1}<action id>` — `\u{1}` rather than a printable separator such as `::`,
+  since CONVENTIONS "substrings are not tokens" argues for a joiner no real id can contain
+  rather than one that merely seems unlikely to collide) alongside its owning app's own row,
+  which still lists every desktop action in its own `actions` menu regardless of whether the
+  action text itself matched. An empty query skips the per-action rows (every app already lists
+  by frecency alone; also listing every one of their actions would be a wall of rows with
+  nothing typed) — a considered reading, not specified by the brief.
+- **Icon glyphs.** design/08-ICONS.md §1.6 catalogues only `lock` and `power` among session
+  glyphs, and `window` for "windows provider, dock menu" (confirming the windows provider's own
+  fallback icon by name). `SystemProvider` gives Lock its own `lock` glyph, every other
+  power-menu row `power`, and Reload `IconRef::None` (not a power-menu action, and no glyph for
+  it is catalogued — `None` falls back to the provider's own glyph per `IconRef::None`'s own
+  doc, rather than inventing an uncatalogued name locally, per CONVENTIONS §11 "a missing …
+  token is added to quire first").
+- **`WindowsProvider` gained a third field,** `workspaces: watch::Receiver<Workspaces>` (the
+  stub had only `toplevels` and `apps`): the brief's row shape is "title, app name, workspace",
+  and a `Toplevel` only carries `WorkspaceKey`s, not names — `cosmic_wl::spawn` already
+  publishes `Workspaces` (workspace names) beside `Toplevels`, so the third receiver is simply
+  wired in rather than left unresolved.
+
+### Tests
+
+`cargo test -p sill-services --lib providers::` — 19 unit tests (matching/ranking tables,
+cancellation, `activate` mappings, id encode/decode), all pass. `tests/providers_apps.rs` runs
+`AppsProvider` against the real fixture tree `tests/fixtures/applications` (the same one
+`tests/scan.rs` scans): name/generic-name/keyword matches, a matching desktop action listing as
+its own row, and `Hidden`/`NoDisplay`/an unresolvable `TryExec` never listing. `tests/
+providers_windows.rs` runs `WindowsProvider` against a fake `Toplevels`/`Workspaces` pair (no
+compositor). `tests/providers_system_live.rs::lists_session_commands_against_real_logind`
+(`#[ignore = "needs logind"]`) is the live test described in F104; run once, reported there.

@@ -4009,6 +4009,7 @@ dependencies = [
  "libpulse-binding",
  "logind-zbus",
  "notify",
+ "nucleo-matcher",
  "serde",
  "serde_json",
  "sill-launcher",
