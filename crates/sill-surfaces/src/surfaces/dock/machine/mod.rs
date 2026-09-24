@@ -82,3 +82,6 @@ fn frames(
     let _ = (now, p);
     dock
 }
+
+#[cfg(test)]
+mod settle_tests;
