@@ -164,11 +164,24 @@ step_surfaces_exist() {
   [ -n "$rows" ]
 }
 
+# The capture's centre pixel against the source's. The service resizes the source after the
+# surface spawns (a debug build takes a second or two), and the surface shows `--paper` until
+# the image lands and cross-fades in, so this polls for up to ten seconds; the idle step then
+# measures a settled surface rather than the cross-fade.
 step_centre_pixel() {
   local name cap
   name=$(wallpaper_counters | awk 'NR==1 {print $1}')
   [ -n "$name" ] || { echo "no wallpaper surface to capture" >&2; return 1; }
   cap="$OUT_DIR/wallpaper-surface.png"
+  for _ in $(seq 20); do
+    capture_matches "$name" "$cap" && return 0
+    sleep 0.5
+  done
+  return 1
+}
+
+capture_matches() {
+  local name=$1 cap=$2
   sill debug capture "$name" "$cap" >"$OUT_DIR/capture.log" 2>&1 || return 1
   grep -q '"kind":"done"' "$OUT_DIR/capture.log" || { echo "capture did not report done" >&2; return 1; }
   python3 - "$SOURCE_PNG" "$cap" <<'PY'
@@ -188,7 +201,7 @@ PY
 
 step_idle() {
   local before after
-  sleep 0.5
+  sleep 1
   before=$(wallpaper_counters) || return 1
   sleep 5
   after=$(wallpaper_counters) || return 1
