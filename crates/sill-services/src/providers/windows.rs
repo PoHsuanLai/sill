@@ -10,8 +10,8 @@ use tokio::sync::watch;
 use crate::apps::{AppIcon, AppIndex, match_app};
 use crate::cosmic_wl::{Toplevels, Workspaces};
 
-/// The id of a window row's one action: asks the daemon to close it (FINDINGS: `Activation` has
-/// no window-closing variant yet, so this can only ask for `Nothing` today — see `activate`).
+/// The id of a window row's one action: asks the daemon to close it (`Activation::CloseWindow`,
+/// FINDINGS F105/F116).
 const CLOSE_ACTION: &str = "close";
 
 /// Rows for every toplevel matching the query, most recent first on ties (the order
@@ -92,10 +92,11 @@ impl Provider for WindowsProvider {
             Choice::Primary => Activation::FocusWindow {
                 window: window_key_of(item),
             },
-            // No `Activation` variant asks the daemon to close a toplevel (FINDINGS "M4
-            // providers-a": a gap in the frozen `sill-launcher::Activation`, reported rather
-            // than worked around); the row still carries the action so the gap is visible.
-            Choice::Action(_) => Activation::Nothing,
+            // FINDINGS F116 amended `Activation` with `CloseWindow`; the runner routes it to
+            // `WlCommand::Close` (F117).
+            Choice::Action(_) => Activation::CloseWindow {
+                window: window_key_of(item),
+            },
         }
     }
 }
@@ -332,7 +333,7 @@ mod tests {
     }
 
     #[test]
-    fn activate_focuses_on_primary_and_the_close_action_is_an_acknowledged_gap() {
+    fn activate_focuses_on_primary_and_closes_on_the_close_action() {
         let provider = provider(Vec::new(), Vec::new());
         let item = Item {
             id: ItemId("42".to_owned()),
@@ -354,7 +355,9 @@ mod tests {
                 &item,
                 &Choice::Action(sill_launcher::ActionId("close".to_owned()))
             ),
-            sill_launcher::Activation::Nothing
+            sill_launcher::Activation::CloseWindow {
+                window: WindowKey(42)
+            }
         );
     }
 }

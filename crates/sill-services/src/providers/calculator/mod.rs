@@ -7,8 +7,8 @@ mod eval;
 use std::time::Duration;
 
 use sill_launcher::{
-    Activation, Batch, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, ResultSink,
-    Score,
+    Action, ActionId, Activation, Batch, Choice, IconRef, Item, ItemId, Provider, ProviderKind,
+    Query, ResultSink, Score,
 };
 
 use eval::{EvalOutcome, evaluate};
@@ -19,6 +19,10 @@ pub const CALCULATOR_BUDGET: Duration = Duration::from_millis(50);
 /// The `ItemId` prefix a calculator result's id carries; `activate` strips it back off to
 /// recover the exact value to copy, rather than re-parsing the row's display title.
 const ID_PREFIX: &str = "calc:";
+
+/// The id of the result row's secondary action: replaces the query with the result instead of
+/// copying it (`Activation::Insert`, FINDINGS F110/F116).
+const INSERT_ACTION: &str = "insert";
 
 /// A calculator result is always the sole, most relevant row it offers.
 const TOP_SCORE: Score = Score(1000);
@@ -51,18 +55,22 @@ impl Provider for CalculatorProvider {
         });
     }
 
-    fn activate(&self, item: &Item, _choice: &Choice) -> Activation {
+    fn activate(&self, item: &Item, choice: &Choice) -> Activation {
         let text = item
             .id
             .0
             .strip_prefix(ID_PREFIX)
             .unwrap_or(&item.id.0)
             .to_owned();
-        Activation::Copy { text }
+        match choice {
+            Choice::Action(id) if id.0 == INSERT_ACTION => Activation::Insert { text },
+            Choice::Primary | Choice::Action(_) => Activation::Copy { text },
+        }
     }
 }
 
-/// The one row a successful evaluation yields.
+/// The one row a successful evaluation yields: primary Enter copies it, the secondary "Insert"
+/// action carries on calculating from it (FINDINGS F110/F116).
 fn result_item(value: &str) -> Item {
     Item {
         id: ItemId(format!("{ID_PREFIX}{value}")),
@@ -71,10 +79,55 @@ fn result_item(value: &str) -> Item {
         subtitle: String::new(),
         icon: IconRef::Glyph("calculator".to_owned()),
         score: TOP_SCORE,
-        // FINDINGS.md "M4 providers-b": the plan asks for a secondary "Insert" action, but the
-        // frozen `Activation` vocabulary has no variant for "put this back in the search field"
-        // — only `Copy{text}` carries text at all. Reported, not worked around with a new
-        // frozen variant.
-        actions: Vec::new(),
+        actions: vec![Action {
+            id: ActionId(INSERT_ACTION.to_owned()),
+            label: "Insert".to_owned(),
+        }],
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sill_launcher::{ActionId, Activation, Cancel, Choice, Item, Provider, Query, VecSink};
+
+    use super::{CalculatorProvider, INSERT_ACTION};
+
+    fn row(text: &str) -> Item {
+        let provider = CalculatorProvider;
+        let cancel = Cancel::new();
+        let query = Query::begin(text, &cancel);
+        let mut sink = VecSink::default();
+        provider.query(&query, &mut sink);
+        sink.0
+            .into_iter()
+            .flat_map(|batch| batch.items)
+            .next()
+            .unwrap_or_else(|| panic!("{text:?} should evaluate to one row"))
+    }
+
+    #[test]
+    fn a_result_row_offers_an_insert_action_beside_the_primary_copy() {
+        let item = row("2 + 2");
+        assert_eq!(item.actions.len(), 1, "{:?}", item.actions);
+        assert_eq!(item.actions[0].id.0, INSERT_ACTION);
+        assert_eq!(item.actions[0].label, "Insert");
+    }
+
+    #[test]
+    fn primary_copies_the_result_and_the_insert_action_replaces_the_query_with_it() {
+        let provider = CalculatorProvider;
+        let item = row("2 + 2");
+        assert_eq!(
+            provider.activate(&item, &Choice::Primary),
+            Activation::Copy {
+                text: "4".to_owned()
+            }
+        );
+        assert_eq!(
+            provider.activate(&item, &Choice::Action(ActionId(INSERT_ACTION.to_owned()))),
+            Activation::Insert {
+                text: "4".to_owned()
+            }
+        );
     }
 }

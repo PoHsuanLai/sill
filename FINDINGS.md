@@ -1306,3 +1306,40 @@ they stay clear of the M4 launcher branches running beside it.
   dbusmenu does nothing (F129).
 - **G11** `sill debug` cannot inject a wheel event or a press-drag across surfaces, so the tray
   scroll and the bar's press-drag-release are proved by tables only (F122, F129).
+
+## M4 providers follow-ups (2026-09-24)
+
+Closed the three gaps F105, F110 and part of F109/F113 left open, now that F116's freeze
+amendment (`Activation::CloseWindow { window }`, `Activation::Insert { text }`) is merged.
+
+- **F105 closed: `WindowsProvider::activate` answers `CloseWindow`.** `Choice::Action(_)` on a
+  window row (there is only the one, `close`) now answers `Activation::CloseWindow { window:
+  window_key_of(item) }` instead of `Nothing`; `results/effect.rs` (M4 launcher-core, F117)
+  already routes it to `WlCommand::Close`, so this was the last hop. The unit test renamed from
+  "...is an acknowledged gap" to "...closes on the close action" and asserts the real variant.
+- **F110 closed: the calculator's result row carries a secondary "Insert" action.**
+  `result_item` now gives the row one `Action{id: "insert", label: "Insert"}` beside the
+  implicit primary; `activate` matches on the chosen `ActionId` (`"insert"` -> `Activation::
+  Insert{text}`, `Choice::Primary` or any other action -> `Activation::Copy{text}`, both
+  built from the same id-decoded value so a future third action cannot desync the two). No unit
+  tests existed for `CalculatorProvider::query`/`activate` before this (F110's report only
+  covered `eval.rs`); added a small `#[cfg(test)] mod tests` in `calculator/mod.rs` proving the
+  row carries exactly the one action and that both choices answer the activation F116 pinned.
+- **F119 `cosmic_settings_available`'s `$PATH` search is now a pure, injectable function, so a
+  test can prove COSMIC-page discovery without mutating the real environment.** The provider
+  already discovered pages "when `cosmic-settings` is on `PATH`" (`SettingsProvider::new` ->
+  `with_dirs` -> `cosmic_settings_available()`), but nothing tested that path, and it could not
+  be tested as written: `cosmic_pages.rs::on_path` read the real `std::env::var_os("PATH")`
+  directly, and `std::env::set_var` is `unsafe` since edition 2024 — forbidden everywhere but
+  shell-host's one allowed module (CONVENTIONS §11) — so a test cannot point it at a fake
+  directory by mutating `$PATH`. Split the search into `cosmic_pages::is_on_path(dirs, program)`
+  (pure: does `program` name a file directly under one of `dirs`) and
+  `cosmic_pages::real_path_dirs()` (reads the real `$PATH`, once); `SettingsProvider` gained a
+  crate-private `with_dirs_and_search_path(dirs, search_path)` between `with_dirs` and the
+  struct literal, so `with_dirs` still searches the real `$PATH` but a unit test can pass a
+  fixture directory instead. `providers/settings/mod.rs`'s new `tests` module creates a throwaway
+  directory holding one file named `cosmic-settings` (the same `is_file()` check `apps/scan.rs`'s
+  own `on_path` uses for `TryExec`, not a permission-bit check) and proves `cosmic_pages` is
+  non-empty when that directory is searched and empty when it is not. `results/registry.rs` now
+  builds the provider with `SettingsProvider::new()` directly rather than through `Default`
+  (`Default` already forwarded to `new()`, so this is a clarity change, not a behavior one).
