@@ -1,0 +1,4 @@
+/* A bar popup's document (design/13 §13.3.2): the frame its Ds root sits in, positioned so the
+   root's overlay bounds leave the menu's shadow room inside the popup (bar/geometry.rs). The
+   inset is written inline from the geometry's constants. */
+.sill-popup-frame{ position:absolute; }

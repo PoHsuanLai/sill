@@ -135,9 +135,136 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
   same `EGL_BAD_SURFACE`); and `nested.sh stop` leaves `wayland-1` and `wayland-1.lock` behind,
   so the next `start` reuses the name, sees no new socket, and times out (G6).
 
+## M1 svc-tray (2026-09-24)
+
+- **F29 `system-tray` 0.8.9's item addressing.** `Client`'s public events (`Event::Add`/
+  `Update`/`Remove`) name an item by its bus **destination** alone (e.g. `:1.42`), never
+  `<destination><path>`; `Client::activate`'s notifier-item proxy always targets the constant
+  `/StatusNotifierItem` path too, regardless of where an item actually registered
+  (`client.rs::get_notifier_item_proxy`). So every `TrayItemId` here is
+  `<destination>/StatusNotifierItem` — both the frozen doc comment's shape and the only path
+  `Client::activate` can reach — which is also exactly the shape `model.rs`'s own test fixtures
+  already used (`":1.{name}/StatusNotifierItem"`). The `data` feature (default-on) keeps
+  `Client`'s own item cache merged with every `Menu`/`MenuDiff` update already applied
+  (`data::TrayItemMap::apply_update_event`), so `tray::host` reads the merged `TrayMenu` back
+  off `client.items()` on every menu-related `UpdateEvent` rather than tracking diffs itself.
+  SNI's `AttentionIcon`, `OverlayIcon` and `Tooltip` updates have no `TrayEvent` variant to land
+  in (the frozen model), so they are read and dropped.
+- **F30 `TrayCommand` has no `Scroll`.** The brief asks for "activate/secondary-activate/scroll"
+  through `Control`; the frozen `TrayCommand` (`model.rs`) has `Activate`, `SecondaryActivate`,
+  `MenuPick` and `MenuOpening` only — no `Scroll` variant, and no room to add one without
+  changing a frozen enum. `org.kde.StatusNotifierItem.Scroll` is never sent. `SecondaryActivate`
+  *is* wired end to end at the service layer, but nothing in the bar UI can trigger it yet: F32.
+- **F31 Icon handling in the tray service.** `TrayIcon` (frozen) only ever holds a name or the
+  raw ARGB32 bytes, never a URL — a resolved `data:`/`file:` URL is a UI-time read (icon theme
+  lookup is I/O; the pixmap's PNG bytes depend on nothing settings-shaped), so it lives in
+  `sill_services::tray::icon_url`, not on `TrayIcon` itself. A pixmap is PNG-encoded (the
+  pinned `image` crate) and base64'd (hand-rolled — no base64 crate is pinned, matching
+  shell-host's own `LocalNet` decoder in spirit) into a `data:image/png;base64,...` URL; a
+  named icon is resolved through the installed theme (`freedesktop-icons`, pinned) into a
+  `file://` URL. Neither recolours anything: the "symbolic icon recoloured to `--ink`" half of
+  the brief needs a live theme token, which a UI-free service must not know, and needs
+  rendering it as a Blitz `mask-image` — see F32/Q6, which is why the bar does not call this
+  function yet even though it is done and tested.
+- **F32 The bar's tray item is a stand-in for per-item icons and can't wire two of the three
+  frozen commands.** `ds::Icon` is a closed enum and `IconButton`'s `Glyph` only ever draws one
+  of its variants — there is nowhere to put a pixmap's PNG or a theme's SVG, so every item
+  renders `Icon::Window` regardless of its real icon (Q6). `ds::MenuEntry::Item` has no
+  `children` field (no nested submenus, so a dbusmenu item's `submenu` is dropped) and no
+  "disabled" field (so a disabled dbusmenu row renders exactly like an enabled one) — Q7.
+  `IconButton`'s `onclick` is `EventHandler<()>`, with no button or pointer-position data, so a
+  consumer cannot tell a middle click from a left one, or read where the pointer was — `x, y`
+  on `Activate`/`MenuOpening` are `0, 0` (the SNI spec's own words call them "a hint... where to
+  show eventual windows (if any)", so this is a real simplification, not a silent one), and
+  `SecondaryActivate` is not sent from the bar at all — Q8. `IconButton` also has no `id` prop,
+  so the `tray-<n>` popup anchor the freeze asks for sits on a plain, unclassed `span` wrapping
+  it (nothing the markup lint checks, since it carries no class) rather than on the button
+  itself.
+- **F33 The popup's own geometry is provisional.** `bar::popup::menu_popup`/`menu_offset` are
+  the only pieces of the bar's popup machinery done at this point; the brief says "see how the
+  bar's other menus do it once bar-ui lands" for everything past that, since bar-ui had not
+  landed when this was written. The dbusmenu popup is its own `Ds` + `Menu{Dropdown}`, given a
+  synthetic `Anchor::Rect` the same width as the popup's own initial `PopupPlacement` size guess
+  (`POPUP_WIDTH`, 220px, design/04-COMPONENTS.md section 20's Dropdown width) so the menu's
+  right edge lands at the popup surface's own right edge; this composition is expected to be
+  revisited once bar-ui's real popup convention exists.
+- **F34 Live run facts (this machine, KDE Plasma session).** `cargo test -p sill-services
+  --test tray_live -- --ignored --nocapture` found four `StatusNotifierItem`s: "Input Method"
+  (`input-keyboard`, 4 menu entries), "Wayland to X11 Video Bridge"
+  (`org.kde.xwaylandvideobridge`, Passive, 2 entries), "Toshy Status Indicator"
+  (`toshy_app_icon_rainbow`, 20 entries) and "Updates" (`update-high`, 3 entries) — all four
+  resolved by icon name, none by pixmap, and every one's dbusmenu layout fetched and flattened
+  correctly.
+## M1 daemon (2026-09-24)
+
+- **F35 `Services::spawn` calls every module, including ones the M1 wave does not own.** The
+  frozen `Services` struct needs a value for every field, and the freeze's own stub comment
+  says to call each module's `spawn` (`M4 wires results with the five providers`). `apps`,
+  `badges`, `pins`, `launch`, `results`, `wallpaper` and `sound` stay `todo!()` until M2-M6
+  land, so `sill run` panics inside `Services::spawn` on whichever of those it reaches first
+  until then — expected during M1, not a defect in `Services::spawn` itself. `results` is
+  wired with `Vec::new()` for its providers; M4 launcher-core replaces that once
+  `sill-services::providers` exists.
+- **F36 `on_event`'s frozen signature (`ctx`, `outputs`, one `HostEvent`) cannot reach
+  `Services` or the live settings, and spawning a bar needs both.** `daemon::run`'s closure
+  (`run_event`, not frozen) intercepts `HostEvent::App(ShellMsg::Ipc{..})` for its own dispatch
+  (`Launcher`/`Dock`/`Reload` need `Services` or the settings sender) and, after every other
+  event, calls `on_event` and then `spawn_missing_bars`. `on_event` itself does the state-only
+  half: output bookkeeping through `outputs::reconcile` (a new output's row is added with every
+  surface `None`, which `spawn_missing_bars` reads as "needs one"), closing a removed output's
+  surfaces, forgetting a surface the compositor closed, and applying `ShellMsg::Settings` to
+  resize the bar (needs only the event's own payload, not `Services`). So `on_event` no longer
+  spawns surfaces itself, unlike its doc comment's original "IPC requests are answered";
+  `run_event`'s module doc says why. Reported since this is exactly the kind of frozen-signature
+  tension CONVENTIONS §1 says to stop and report, even though a workable split was found.
+- **F37 `sill dock pin/unpin` is wired to `Services::pins_control`, but cannot run yet.**
+  `pins::spawn` is `todo!()` until M2 launch, so the send would need a live pins actor that does
+  not exist (F35). `sill reload` re-reads `settings.toml` (real, already implemented) but not
+  `dock.json`: `sill_services::pins::load` is also `todo!()`, so pins are left out of Reload
+  rather than calling a function that panics; M2 launch should add it once `pins::load` exists.
+- **F38 `sill launcher ...` always answers `Failed(Unsupported)`.** No launcher surface exists
+  before M4, `Services` has no launcher-visibility control, and `LauncherRequest`'s reply carries
+  no way to say "not built yet" versus "failed" other than `Unsupported`, which is the closest
+  fit (`FailureKind::Unsupported`'s doc: "this build ... cannot do it").
+- **F39 Bar geometry only, on settings change.** `bar.*` is the only settings domain a spawned
+  M1 surface reads outside its own component (`bar_layer`'s `size`/`exclusive`); `resize_bars`
+  re-applies just those two `SurfaceOp`s per bar on a settled `ShellMsg::Settings`. Every other
+  domain's live-reload is the owning surface's own `use_settings()` watch, not the daemon's.
+- **F40 `dev/accept-bar.sh` gained four steps beyond the freeze's four**: `single_instance`
+  (a second `sill run` exits 0 fast, without touching Wayland), `reload`, `ipc_latency` (a
+  normal request answers well under the 2 s reply timeout — nothing reachable from a shell
+  script can be made to hang on purpose; `crates/sill/tests/ipc.rs` and `ipc_server`'s own
+  tests exercise the real timeout with a fake dispatcher), and `quit` (stops the daemon, so it
+  runs last). `exclusive_zone`, `idle` and `menus` stay `exit 2`, naming bar-ui.
+- **F41 Client `Quit`/`Ping` never start a daemon** (`client.rs`'s doc comment already said so);
+  every other request uses `connect_or_start`. `ClientError` gained `thiserror::Error` (`Debug`
+  only in the freeze) so `client::main` can print a real message; the enum's variants are
+  unchanged.
+- **F42 A lib target was added (`crates/sill/src/lib.rs`) so `crates/sill/tests/ipc.rs` can
+  exercise `ipc_server` without a running host.** `main.rs` is now a thin wrapper calling into
+  it; no public signature moved, only where it lives. `ipc_server::spawn`/`serve_one` (frozen)
+  are built on new, generic `spawn_with`/`serve_one_with`, which take a plain dispatch closure
+  instead of a `HostHandle`, so a fake dispatcher drives the same read/timeout/write path the
+  real one does — Ping->Pong, an over-long line->`Failed`, and the 2 s timeout are all exercised
+  this way, live in `ipc_server.rs`'s own tests and in `tests/ipc.rs`.
+- **F43 `sill_settings::watch` needs an entered runtime, and `daemon::run` calls it before
+  `Host::run` enters one.** Found by actually running `sill run` against a nested cosmic-comp
+  (`dev/nested.sh start`, `WAYLAND_DISPLAY=wayland-1`): it panicked at
+  `there is no reactor running, must be called from the context of a Tokio 1.x runtime`
+  (`tokio::task::spawn::spawn_inner`, from inside `sill_settings::watch`'s own body). Fixed with
+  `let _entered = runtime.enter();` around that one call. Past it, the daemon reaches
+  `Host::connect`, spawns the bar's layer surface, and the IPC server answers: `sill ping`,
+  `sill run` (single instance), `sill reload` and `sill quit` all round-tripped correctly
+  against the live daemon, and `dev/accept-bar.sh` passed `ping`/`single_instance`/`reload`/
+  `ipc_latency`/`quit` (in that order, `quit` last since it stops the daemon). `Bar` itself
+  still panics — `not yet implemented: M1 bar-ui` at `sill-surfaces/src/surfaces/bar/mod.rs:27`
+  — but Dioxus's own render catches it (the panic does not unwind past `initial_build`), so the
+  daemon stays up with a broken bar surface rather than crashing; `exclusive_zone`/`idle`/
+  `menus` stay `exit 2`, naming bar-ui, since there is nothing to measure yet.
+
 ## M1 bar-ui (2026-09-24)
 
-- **F29 One popup, anchored by a measured rect.** Every bar menu is one `xdg_popup` opened with
+- **F44 One popup, anchored by a measured rect.** Every bar menu is one `xdg_popup` opened with
   `bar::popup::menu_popup`'s config and `PopupAnchor::Rect`, not `Element`: ds `Button` and
   `IconButton` render no `id`, and a hover switch (`SurfaceOp::Reposition`) needs the new
   title's rect in any case. The rect is the button's own, from its `mounted` handle through
@@ -146,45 +273,45 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
   contents and repositions, `None` makes it close itself (a `SurfaceHandle` closes only its own
   surface). It reports picks, dismissals and its own drop on an `mpsc` the bar drains into the
   tracking machine (`plan::popup_input`).
-- **F30 The ds margin is part of the popup.** A ds floating surface is clamped 8 px inside its
+- **F45 The ds margin is part of the popup.** A ds floating surface is clamped 8 px inside its
   bounds (`ds::place`), so the popup is the menu plus 8 px on every side and 16 px more right
   and below for the drop shadow; the anchor rect folds the margin in and `PopupConfig::offset`
   carries design/13 §13.3.2's (-8, +6) / (+8, +6) (G3, now closed upstream). The size is an
   estimate from the entries (G7); the spare area is transparent.
-- **F31 What the machine drives, and what the ds Menu keeps.** The machine gets presses,
+- **F46 What the machine drives, and what the ds Menu keeps.** The machine gets presses,
   releases and pointer entries on titles from the bar, and picks, Escape/outside-margin closes
   and drops from the popup; `Open`, `Switch`, `Close` and `Pick` become show, swap, hide and run.
   `Highlight`, submenus, the safe triangle and `Adjacent` are not wired: the ds `Menu` draws its
-  own selection from the pointer and keys and exposes neither item hover nor item release (Q8),
+  own selection from the pointer and keys and exposes neither item hover nor item release (Q11),
   and bar menus have no submenus. Press-drag-release onto an item therefore needs a click on the
   item when the compositor keeps the implicit grab on the bar. A press on the bar outside every
   title is an outside press (as on macOS); a real outside press ends the grab and the popup's
   drop reports it.
-- **F32 Status lines are menu headers.** ds `MenuEntry` has no disabled or informational item
+- **F47 Status lines are menu headers.** ds `MenuEntry` has no disabled or informational item
   (its TODO O-1), so network, battery and clock menus show their lines as headers and end with a
   Settings item (`LaunchCommand::Launch` of `com.system76.CosmicSettings`). The volume menu is a
   ds `Popover` with a `SectionHeader{Field}`, a `Slider` and a mute `Toggle`, since a `Menu`
   cannot hold a slider.
-- **F33 The bar's tint.** `Ds` paints frame layers (the A/B cross-fade) only for
-  `Material::Window` (Q6). The bar paints its own layer of `--f-solid` at `--m-tint-alpha` over
+- **F48 The bar's tint.** `Ds` paints frame layers (the A/B cross-fade) only for
+  `Material::Window` (Q9). The bar paints its own layer of `--f-solid` at `--m-tint-alpha` over
   the Bar material, with `background-color` and `color` transitions over `--t-scene`, so a
   workspace switch cross-fades the hue (design/21 §5 through spike S4) but the layer is the
   Space's first stop, not its gradient.
-- **F34 Keys that do not reach quire components.** `bar.status_icon_box_px`,
+- **F49 Keys that do not reach quire components.** `bar.status_icon_box_px`,
   `bar.status_glyph_px` and `bar.glyph_size_policy` have no effect: `IconButton{Tool}` is 28 x 26
-  with a 16 px glyph and a consumer may not style `.ds-*` (Q9). `bar.open_title_pill_height_px`
+  with a 16 px glyph and a consumer may not style `.ds-*` (Q12). `bar.open_title_pill_height_px`
   is the title's hit height (both 24 by default): the pill is the hit box's background. The app
   name is a `Button{Quiet}`, so it is not ui 13/700. `bar.height_px`, `title_hit_height_px`,
   `title_padding_px` and `status_gap_px` are written inline from the settings.
-- **F35 Not built in this wave.** The workspace pills' right-click Edit Space (the Space editor
+- **F50 Not built in this wave.** The workspace pills' right-click Edit Space (the Space editor
   popup is later work); the bar menus' popup blur (`BlurState::Unavailable`, the solid tint:
   a popup's document would have to name the menu element for a blur region, and ds `Menu`
   renders no id); the open and close animations design/13 asks for (the ds `Menu` always plays
   its entrance, and the popup goes at once on close).
-- **F36 `use_space_look`** returns `ds::default_look(index, spaces.default_grain,
+- **F51 `use_space_look`** returns `ds::default_look(index, spaces.default_grain,
   spaces.default_card_accent)`: design/21 §4's preset for the workspace's position in its
   group (F17). With no workspaces (KWin) the bar takes preset 1.
-- **F37 Acceptance** (`dev/accept-bar-ui.sh`, nested `kwin_wayland --virtual`, 1280 x 720
+- **F52 Acceptance** (`dev/accept-bar-ui.sh`, nested `kwin_wayland --virtual`, 1280 x 720
   logical at scale 1.5, `examples/bar_demo.rs` on fake services): a maximised probe is 720 tall
   without the bar and 688 with it (32 reserved); five idle seconds add 0 frames, 0 commits and
   0 callbacks; a click on the clock opens `sill-bar-Virtual-0/popup` (252 x 111, presented) and a
@@ -194,18 +321,18 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
 ### Gaps found in M1 bar-ui
 
 - **G7** `PopupSize::FitContent` never measures the popup's document: the size passed in
-  `PopupPlacement` is the size (F30).
-- **Q6** `Ds` renders the frame layers only for `Material::Window`; the tinted shell materials
-  (Bar, Dock) need the same A/B gradient layers at the tint alpha (design/21 §3, §5) (F33).
-- **Q7** quire's `HostMeasure` for Blitz documents is private to ds-native, and shell-host cannot
+  `PopupPlacement` is the size (F45).
+- **Q9** `Ds` renders the frame layers only for `Material::Window`; the tinted shell materials
+  (Bar, Dock) need the same A/B gradient layers at the tint alpha (design/21 §3, §5) (F48).
+- **Q10** quire's `HostMeasure` for Blitz documents is private to ds-native, and shell-host cannot
   provide one, so every shell-host root without one panics ("RefCell already borrowed") on its
   first `use_rect` read once shell-host polls woken tasks inside the render (shell-host
   `df9c59b`). `bar/measure.rs` repeats ds-native's twelve lines; ds-native should export it.
-- **Q8** ds `Menu` exposes no item hover or item release, and calls `onclose` before `onpick`, so
+- **Q11** ds `Menu` exposes no item hover or item release, and calls `onclose` before `onpick`, so
   an external tracker (design/13 §13.7) cannot drive its highlight, submenus or
-  press-drag-release (F31); nor can its entrance be suppressed for a hover switch (F35).
-- **Q9** No ds status-item variant: `IconButton{Tool}` cannot take the bar's glyph box and size
-  keys, and ds components on frame chrome use paper inks, not `--f-ink*` (F34). No wired-network
+  press-drag-release (F46); nor can its entrance be suppressed for a hover switch (F50).
+- **Q12** No ds status-item variant: `IconButton{Tool}` cannot take the bar's glyph box and size
+  keys, and ds components on frame chrome use paper inks, not `--f-ink*` (F49). No wired-network
   glyph (`Icon::Link` stands in).
 
 ## Gaps reported upstream
@@ -217,9 +344,33 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
 - **Q5** The schema derive: text only by the literal type `String`; a one-variant enum cannot
   be described; a numeric newtype without an explicit `range` is read as an enum (a compile
   error naming `SchemaVariants`, not a message about the missing range).
+- **Q6** No `ds` component can draw an externally-sourced icon — a pixmap's PNG bytes or an
+  icon theme's SVG, as a status tray item or any other third-party icon needs. `ds::Icon` is a
+  closed enum of built-in glyphs; `IconButton`'s `Glyph` only ever draws one of its variants.
+  design/08-ICONS.md section 1.5 already specifies the mechanics for exactly this case
+  ("Blitz: the recoloured tray icon is a `mask-image` data URI with `background: currentColor`,
+  the same path as the S6 fallback"), settled as a rule with "proposed mechanics" — nothing
+  implements it yet (F32).
+- **Q7** `ds::MenuEntry::Item` has no `children` field (so `Menu` cannot draw a submenu) and no
+  "disabled"/`enabled` field (so a menu cannot show, or skip, a disabled item) (F32).
+- **Q8** `IconButton` has no `id` prop (nowhere to put an anchor id for a popup to open against)
+  and its `onclick` is `EventHandler<()>`, carrying no mouse button or pointer position — a
+  consumer cannot tell a secondary click from a primary one, or read where the click landed
+  (F32).
 - **G1** Debug injection: `inject::apply` (feature `debug-inject`) prints stats to stdout
   instead of returning them, and finds a surface by name only inside that module. sill's
   `debug stats` uses `HostCtx::stats`; `pointer`/`leave`/`capture` need sill's `debug` feature.
+- **G1** RESOLVED (shell-host `df9c59b`, "Close sill's host gaps G1, G3 and G5"). Was: debug
+  injection (`inject::apply`, feature `debug-inject`) printed stats to stdout instead of
+  returning them, and found a surface by name only inside that module. Now: `HostCtx::inject(id,
+  Inject) -> Result<Injected>` (feature `debug-inject`) delivers pointer/leave/capture and
+  returns the result directly (`Injected::Captured{path, size}` for a capture, so success and
+  size are visible to the caller, not just a stdout line); `HostCtx::surface_named(&SurfaceName)
+  -> Option<SurfaceId>` and `HostCtx::{stats,take_stats}` are unconditional (no `debug-inject`
+  needed). `crates/sill/src/daemon.rs` (`dispatch_debug`, `act`, `apply_injection`,
+  `collect_stats`) uses all four: `Stats` through `take_stats` (draining, one report per call);
+  `Pointer`/`Leave`/`Capture` through `surface_named` + `inject`, gated on sill's own `debug`
+  feature (`Cargo.toml`: `debug = ["shell-host/debug-inject"]`); no stdout bridge anywhere.
 - **G2** Minimize rectangles (design/10 §10.3.10): cctk's `set_rectangle` needs the dock's
   `wl_surface`, which lives on shell-host's connection, while the toplevel manager lives on the
   `cosmic_wl` thread's own connection. A protocol object cannot cross connections, so the

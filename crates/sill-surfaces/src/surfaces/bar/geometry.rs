@@ -1,10 +1,11 @@
 //! Where a bar popup goes and how big it starts, in the bar surface's logical pixels.
 //!
-//! The menu inside the popup is a ds floating surface, and `ds::place` keeps every floating
-//! surface [`MARGIN`] inside its bounds (design/01 §8.2), so the popup is the menu plus that
-//! margin on every side (and [`SHADOW`] more to the right and below, where the menu's drop
-//! shadow falls) and the menu sits at (`MARGIN`, `MARGIN`) in it. The anchor rectangle folds in
-//! that margin; design/13 §13.3.2's offset from the title is the config's (`menu_popup`).
+//! The popup is the menu plus room for its drop shadow: [`SIDE`] left and right, [`TOP`] above
+//! and [`BOTTOM`] below, all transparent. The menu is a ds floating surface, which `ds::place`
+//! keeps [`MARGIN`] inside its bounds (design/01 §8.2), so the popup's `Ds` root sits in a frame
+//! inset by the room less that margin ([`frame_style`]) and the menu lands at (`SIDE`, `TOP`).
+//! The anchor rectangle folds in the room; design/13 §13.3.2's offset from the title is the
+//! config's (`menu_popup`).
 //!
 //! shell-host's `PopupSize::FitContent` never measures the popup's document (FINDINGS "M1
 //! bar-ui", gap G7), so the size is estimated from the entries, generously: the popup's spare
@@ -19,11 +20,14 @@ use super::popup::MenuSide;
 /// How far `ds::place` keeps a floating surface inside its bounds.
 pub(crate) const MARGIN: i32 = 8;
 
-/// Room for the menu's drop shadow to the right and below, beyond the margin.
-pub(crate) const SHADOW: i32 = 16;
+/// The popup's transparent room around the menu, for `--shadow-pop` (`0 18px 40px -16px`):
+/// 24 px each side, 6 px above (8 kept), 42 px below (40 kept, the rest is under 2 % alpha).
+pub(crate) const SIDE: i32 = 24;
+pub(crate) const TOP: i32 = 8;
+pub(crate) const BOTTOM: i32 = 40;
 
-/// The widest a bar menu grows (design/13 §13.3.3: max 420), with the margin and shadow room.
-pub(crate) const MAX_PX: i32 = 420 + 2 * MARGIN + SHADOW;
+/// The widest a bar menu grows (design/13 §13.3.3: max 420), with its room.
+pub(crate) const MAX_PX: i32 = 420 + 2 * SIDE;
 
 /// design/13 §13.3.3's minimum menu width, before the margin.
 const MIN_WIDTH: i32 = 220;
@@ -63,10 +67,10 @@ pub(crate) fn anchor_rect(title: ds::Rect, side: MenuSide) -> Rect {
     let (left, top) = (floor(title.left()), floor(title.top()));
     let (right, bottom) = (ceil(title.right()), ceil(title.bottom()));
     let (left, right) = match side {
-        MenuSide::Title => (left - MARGIN, right),
-        MenuSide::Status => (left, right + MARGIN + SHADOW),
+        MenuSide::Title => (left - SIDE, right),
+        MenuSide::Status => (left, right + SIDE),
     };
-    let bottom = bottom - MARGIN;
+    let bottom = bottom - TOP;
     Rect {
         x: left,
         y: top,
@@ -75,15 +79,26 @@ pub(crate) fn anchor_rect(title: ds::Rect, side: MenuSide) -> Rect {
     }
 }
 
-/// The popup's size for `body`: the estimated menu plus the margin, capped at [`MAX_PX`].
+/// The inline position of the frame the popup's `Ds` root sits in: inset so that `ds::place`'s
+/// margin puts the menu at (`SIDE`, `TOP`).
+pub(crate) fn frame_style() -> String {
+    format!(
+        "left:{side}px;right:{side}px;top:{top}px;bottom:{bottom}px",
+        side = SIDE - MARGIN,
+        top = TOP - MARGIN,
+        bottom = BOTTOM - MARGIN
+    )
+}
+
+/// The popup's size for `body`: the estimated menu plus its room, capped at [`MAX_PX`].
 pub(crate) fn popup_size(body: &PopupBody) -> Size {
     let inner = match body {
         PopupBody::Menu(entries) => menu_size(entries),
         PopupBody::Volume(_) => VOLUME_PANEL,
     };
     Size {
-        width: (inner.width + 2 * MARGIN + SHADOW).min(MAX_PX),
-        height: (inner.height + 2 * MARGIN + SHADOW).min(MAX_PX),
+        width: (inner.width + 2 * SIDE).min(MAX_PX),
+        height: (inner.height + TOP + BOTTOM).min(MAX_PX),
     }
 }
 
@@ -113,7 +128,7 @@ fn ceil(px: ds::Px) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    use super::{MARGIN, MAX_PX, SHADOW, anchor_rect, popup_size};
+    use super::{BOTTOM, MAX_PX, SIDE, TOP, anchor_rect, popup_size};
     use crate::surfaces::bar::content::PopupBody;
     use crate::surfaces::bar::popup::{MenuSide, menu_popup};
     use ds::{MenuEntry, Point, Px, Rect as DsRect, Size as DsSize};
@@ -134,14 +149,14 @@ mod tests {
     }
 
     /// Where the menu itself lands: the offset anchor's corner (bottom-left for a title,
-    /// bottom-right for a status item), plus the margin ds keeps it inside; for a status item
-    /// the menu's right edge, before the shadow room.
+    /// bottom-right for a status item) moved in by the popup's room; for a status item the
+    /// menu's right edge.
     fn menu_corner(anchor: Rect, side: MenuSide) -> (i32, i32) {
         let anchor = offset_rect(anchor, menu_popup("bar", side, MAX_PX).offset);
-        let y = anchor.y + anchor.height + MARGIN;
+        let y = anchor.y + anchor.height + TOP;
         match side {
-            MenuSide::Title => (anchor.x + MARGIN, y),
-            MenuSide::Status => (anchor.x + anchor.width - MARGIN - SHADOW, y),
+            MenuSide::Title => (anchor.x + SIDE, y),
+            MenuSide::Status => (anchor.x + anchor.width - SIDE, y),
         }
     }
 
@@ -167,8 +182,8 @@ mod tests {
     fn a_popup_is_its_menu_plus_the_margin_capped_at_the_maximum() {
         let short = PopupBody::Menu(vec![MenuEntry::Header("Clock".to_owned())]);
         let size = popup_size(&short);
-        assert_eq!(size.width, 220 + 2 * MARGIN + SHADOW, "the minimum width");
-        assert!(size.height >= 28 + 2 * MARGIN, "{size:?}");
+        assert_eq!(size.width, 220 + 2 * SIDE, "the minimum width");
+        assert!(size.height >= 28 + TOP + BOTTOM, "{size:?}");
         let long = PopupBody::Menu(
             (0..40)
                 .map(|i| MenuEntry::Header(format!("{i:0>80}")))

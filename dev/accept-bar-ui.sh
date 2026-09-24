@@ -6,13 +6,21 @@
 #   1. exclusive zone: a maximised probe window is the output height minus the bar height;
 #   2. idle: five seconds with nothing changing, 0 frames and 0 commits (`stats`);
 #   3. menus: a click on the clock opens the menu popup; a click outside it dismisses it;
-#   4. a screenshot with the clock menu open, dev/out/bar.png (reviewed by eye).
+#   4. the popup is transparent around its card: its corners, the middle of its top edge and a
+#      point beside the card's top-right corner have alpha <= 8 in its capture;
+#   5. a screenshot with the clock menu open, dev/out/bar.png (reviewed by eye).
 #
 # The fuller `dev/accept-bar.sh` (daemon-owned) runs the same steps through `sill` once the
-# daemon lands. Logs and the result JSON: target/accept-bar-ui/. Exit 0 only when 1-3 pass.
+# daemon lands. Logs and the result JSON: target/accept-bar-ui/. Exit 0 only when 1-4 pass.
 #
-# Usage: dev/accept-bar-ui.sh
+# Usage: dev/accept-bar-ui.sh            (nested KWin: every step; screenshot dev/out/bar.png)
+#        dev/accept-bar-ui.sh cosmic     (the running nested cosmic-comp, dev/nested.sh: steps 3-4
+#                                         only, since `sill run` may already reserve a bar there;
+#                                         screenshot dev/out/bar-cosmic-menu.png). `dev/accept-bar.sh`
+#                                         calls this for its menus step: sill's debug IPC has no
+#                                         click (FINDINGS "M1 bar-ui").
 set -euo pipefail
+mode="${1:-kwin}"
 self="$(realpath "$0")"
 repo="$(cd "$(dirname "$self")/.." && pwd)"
 # shellcheck source=dev/common.sh
@@ -21,9 +29,20 @@ host_repo="$(cd "$SHELL_HOST_DEV/../.." && pwd)"
 out="$repo/target/accept-bar-ui"
 mkdir -p "$out" "$repo/dev/out"
 
-if [[ -z "${ACCEPT_NESTED:-}" ]]; then
+build() {
   (cd "$repo" && cargo build --release -p sill-surfaces --example bar_demo >&2)
   (cd "$host_repo" && cargo build --release -p shell-host --features debug-inject --example probe_toplevel >&2)
+}
+export BAR_DEMO="$repo/target/release/examples/bar_demo"
+export PROBE="$host_repo/target/release/examples/probe_toplevel"
+if [[ "$mode" == cosmic ]]; then
+  build
+  # shellcheck disable=SC1091
+  source "$SHELL_HOST_DEV/.nested-env"
+  export WAYLAND_DISPLAY ACCEPT_OUT="$out" ACCEPT_PNG="$repo/dev/out/bar-cosmic-menu.png"
+  export ACCEPT_MODE=cosmic
+elif [[ -z "${ACCEPT_NESTED:-}" ]]; then
+  build
   rc=0
   ACCEPT_NESTED=1 dbus-run-session -- "$self" </dev/null || rc=$?
   # Daemons D-Bus-activated on the nested bus outlive dbus-run-session; stop them.
@@ -37,8 +56,7 @@ if [[ -z "${ACCEPT_NESTED:-}" ]]; then
     done
   fi
   exit "$rc"
-fi
-
+else
 echo "$DBUS_SESSION_BUS_ADDRESS" >"$out/.nested-bus"
 sock="wayland-bar-ui-$$"
 kwin_wayland --virtual --no-lockscreen --no-global-shortcuts --width 1920 --height 1080 \
@@ -48,14 +66,13 @@ trap 'kill "$kpid" 2>/dev/null || true; wait "$kpid" 2>/dev/null || true' EXIT
 for _ in $(seq 100); do [ -S "$XDG_RUNTIME_DIR/$sock" ] && break; sleep 0.1; done
 sleep 1.5
 export WAYLAND_DISPLAY="$sock"
-export ACCEPT_OUT="$out" ACCEPT_PNG="$repo/dev/out/bar.png"
-export BAR_DEMO="$repo/target/release/examples/bar_demo"
-export PROBE="$host_repo/target/release/examples/probe_toplevel"
+export ACCEPT_OUT="$out" ACCEPT_PNG="$repo/dev/out/bar.png" ACCEPT_MODE=kwin
+fi
 python3 - <<'PY'
 import json, os, queue, re, subprocess, sys, threading, time
 
-OUT, PNG = os.environ["ACCEPT_OUT"], os.environ["ACCEPT_PNG"]
-LOG = open(f"{OUT}/accept.log", "w")
+OUT, PNG, MODE = os.environ["ACCEPT_OUT"], os.environ["ACCEPT_PNG"], os.environ["ACCEPT_MODE"]
+LOG = open(f"{OUT}/accept-{MODE}.log", "w")
 PROCS = []
 
 def log(*a):
@@ -123,32 +140,48 @@ def bar_ready(p):
         time.sleep(0.05)
     raise TimeoutError("the bar never presented")
 
+def corner_alphas(path):
+    """The popup capture's alpha at its four corners and at the middle of its top edge, above
+    the card: all outside the card and the reach of its shadow."""
+    from PIL import Image
+    im = Image.open(path).convert("RGBA"); w, h = im.size
+    points = ((0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1), (w // 2, 1), (w - 4, h // 4))
+    return [im.getpixel((x, y))[3] for x, y in points]
+
 def screenshot(path):
     if os.path.exists(path): os.remove(path)
-    subprocess.run(["spectacle", "-b", "-n", "-f", "-o", path], check=True, timeout=20,
-                   capture_output=True)
+    if MODE == "cosmic":
+        with open(path, "wb") as f:
+            subprocess.run(["grim", "-"], check=True, timeout=20, stdout=f)
+    else:
+        subprocess.run(["spectacle", "-b", "-n", "-f", "-o", path], check=True, timeout=20,
+                       capture_output=True)
     for _ in range(100):
         if os.path.exists(path) and os.path.getsize(path) > 0: break
         time.sleep(0.05)
 
 result = {}
 try:
-    info = output_info()
-    base, v0 = probe_maximized(); time.sleep(0.3); base.quit()
+    if MODE == "kwin":
+        info = output_info()
+        base, v0 = probe_maximized(); time.sleep(0.3); base.quit()
     bar = Proc(os.environ["BAR_DEMO"])
     name, rows = bar_ready(bar)
     height = rows[name]["logical"]["height"]
     width = rows[name]["logical"]["width"]
     time.sleep(0.5)
-    probe, v1 = probe_maximized(); time.sleep(1.0); probe.quit(); time.sleep(0.5)
-    result["exclusive_zone"] = dict(output=info, baseline=v0["height"], with_bar=v1["height"],
-                                    bar_height=height,
-                                    pass_=v0["height"] - v1["height"] == height and v1["height"] == info["logical"][1] - height)
-    # 2. Idle: let the probe's exit and the rect probes settle, then five quiet seconds.
-    time.sleep(1.5)
-    a = bar.stats()[name]["counters"]; time.sleep(5.0); b = bar.stats()[name]["counters"]
-    idle = {k: b[k] - a[k] for k in ("frames", "commits", "callbacks")}
-    result["idle"] = dict(delta=idle, pass_=idle["frames"] == 0 and idle["commits"] == 0)
+    if MODE == "kwin":
+        probe, v1 = probe_maximized(); time.sleep(1.0); probe.quit(); time.sleep(0.5)
+        result["exclusive_zone"] = dict(output=info, baseline=v0["height"], with_bar=v1["height"],
+                                        bar_height=height,
+                                        pass_=v0["height"] - v1["height"] == height and v1["height"] == info["logical"][1] - height)
+        # 2. Idle: let the probe's exit and the rect probes settle, then five quiet seconds.
+        time.sleep(1.5)
+        a = bar.stats()[name]["counters"]; time.sleep(5.0); b = bar.stats()[name]["counters"]
+        idle = {k: b[k] - a[k] for k in ("frames", "commits", "callbacks")}
+        result["idle"] = dict(delta=idle, pass_=idle["frames"] == 0 and idle["commits"] == 0)
+    else:
+        time.sleep(1.0)
     # 3. Menus: the clock sits at the right end; press and release on it.
     popup = f"{name}/popup"
     bar.send(f"{name} click {width - 60} {height // 2}")
@@ -162,8 +195,10 @@ try:
     screenshot(PNG)
     cap = f"{OUT}/bar-surface.png"
     bar.send(f"{name} capture {cap}"); bar.expect(lambda v: "capture" in v)
+    corners = None
     if opened:
         bar.send(f"{popup} capture {OUT}/popup-surface.png"); bar.expect(lambda v: "capture" in v)
+        corners = corner_alphas(f"{OUT}/popup-surface.png")
     # An outside click: the empty middle of the bar (a compositor-level outside press cannot be
     # synthesized, shell-host F17; the bar treats a press on itself outside the titles the same).
     bar.send(f"{name} click {width // 2} {height // 2}")
@@ -173,13 +208,17 @@ try:
         if popup not in bar.stats(): closed = True; break
     result["menus"] = dict(opened=opened, dismissed=closed, popup=popup_stats and dict(
         logical=popup_stats["logical"], frames=popup_stats["counters"]["frames"]),
-        pass_=opened and closed)
+        corner_alphas=corners, pass_=opened and closed)
+    # The popup is transparent around the menu card and its shadow: its four corners.
+    result["popup_transparent"] = dict(corner_alphas=corners,
+                                       pass_=corners is not None and max(corners) <= 8)
     result["screenshot"] = PNG
     bar.quit()
 finally:
     for p in PROCS: p.quit()
-json.dump(result, open(f"{OUT}/result.json", "w"), indent=1)
+json.dump(result, open(f"{OUT}/result-{MODE}.json", "w"), indent=1)
 print(json.dumps(result, indent=1))
-ok = all(v.get("pass_") for v in result.values() if isinstance(v, dict))
-sys.exit(0 if ok and len(result) >= 3 else 1)
+checks = [v for v in result.values() if isinstance(v, dict)]
+want = 4 if MODE == "kwin" else 2
+sys.exit(0 if len(checks) >= want and all(v.get("pass_") for v in checks) else 1)
 PY

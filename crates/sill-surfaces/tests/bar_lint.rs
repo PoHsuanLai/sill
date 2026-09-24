@@ -10,6 +10,7 @@ use sill_surfaces::Bar;
 use sill_surfaces::surfaces::bar::BarProps;
 
 const BAR_CSS: &str = include_str!("../src/style/bar.css");
+const POPUP_CSS: &str = include_str!("../src/style/bar_popup.css");
 
 fn strict() -> LintConfig {
     LintConfig {
@@ -47,6 +48,11 @@ fn full_css() -> String {
 #[test]
 fn the_bar_stylesheet_is_clean_under_strict() {
     assert_clean(BAR_CSS, &strict());
+}
+
+#[test]
+fn the_popup_stylesheet_is_clean_under_strict() {
+    assert_clean(POPUP_CSS, &strict());
 }
 
 #[test]

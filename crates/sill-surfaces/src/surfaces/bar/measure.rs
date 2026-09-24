@@ -3,7 +3,7 @@
 //! `get_client_rect`, which borrows the document and panics ("RefCell already borrowed") when
 //! the task is polled inside the renderer's own pass. shell-host cannot provide it (it does not
 //! depend on quire) and ds-native's is private, so the bar provides its own, the same read
-//! ds-native makes (FINDINGS "M1 bar-ui", Q7).
+//! ds-native makes (FINDINGS "M1 bar-ui", Q10).
 
 use dioxus::prelude::MountedData;
 use dioxus_native_dom::NodeHandle;

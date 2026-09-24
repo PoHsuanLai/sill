@@ -1,4 +1,4 @@
-//! The bar popup's own document: a `Ds` root in `Material::Popover` holding one ds
+//! The bar popup's own document: a `Ds` root holding one ds
 //! `Menu{Dropdown}` (or, for the volume item, a ds `Popover` with a `Slider` and a `Toggle`),
 //! following the bar's view channel: a new view swaps the contents and repositions the popup
 //! (`xdg_popup.reposition`), none closes it.
@@ -13,7 +13,7 @@ use sill_services::{Control, Mute, Percent, VolumeCommand};
 use tokio::sync::{mpsc, watch};
 
 use super::content::{PopupBody, VolumePanel};
-use super::geometry::MARGIN;
+use super::geometry::{MARGIN, frame_style};
 use super::pick::BarPick;
 use super::plan::PopupReport;
 use super::session::PopupView;
@@ -26,8 +26,9 @@ pub(crate) struct PopupLink {
     pub volume: Control<VolumeCommand>,
 }
 
-/// The anchor that puts a ds floating surface at (`MARGIN`, `MARGIN`) in the popup: `place`
-/// clamps it there whatever its size, since the popup is the surface plus the margin.
+/// The anchor that puts a ds floating surface `MARGIN` inside the frame's top-left corner, so at
+/// (`SIDE`, `TOP`) in the popup: `place` clamps it there whatever its size, since the frame is
+/// the surface plus the margin.
 fn corner() -> Anchor {
     let at = f32::from(u8::try_from(MARGIN).unwrap_or(8));
     Anchor::Point(Point {
@@ -35,6 +36,9 @@ fn corner() -> Anchor {
         y: Px(1.0),
     })
 }
+
+/// The popup document's own stylesheet: the frame its `Ds` root sits in.
+pub(crate) const POPUP_CSS: &str = include_str!("../../style/bar_popup.css");
 
 /// The gap from [`corner`]'s point to the menu's top edge.
 const GAP: Px = Px(7.0);
@@ -75,13 +79,20 @@ pub(crate) fn MenuPopup() -> Element {
         },
     };
     rsx! {
-        Ds {
-            appearance: look.appearance,
-            system: look.system,
-            material: Material::Popover,
-            blur: BlurState::Unavailable,
-            tint_alpha: Some(look.tint),
-            {content}
+        style { {POPUP_CSS} }
+        div { class: "sill-popup-frame", style: frame_style(),
+            // Not `Material::Popover` (design/03 §17.3): the root holds only overlays, so it is
+            // a zero-height, frame-wide box, and Popover's drop shadow on it paints a grey band
+            // across the popup's top (FINDINGS "M1 bar-ui", Q13). Bar's material has no drop
+            // shadow; the menu card paints itself (`.ds-popover`) whatever the root's material.
+            Ds {
+                appearance: look.appearance,
+                system: look.system,
+                material: Material::Bar,
+                blur: BlurState::Unavailable,
+                tint_alpha: Some(look.tint),
+                {content}
+            }
         }
     }
 }

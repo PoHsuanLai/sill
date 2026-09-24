@@ -19,10 +19,8 @@ sill-settings = { workspace = true }
 sill-launcher = { workspace = true }
 tokio = { workspace = true }
 
-[lints]
-workspace = true
-
 [dev-dependencies]
+# `lint` is off by default (CONSUMING.md section 5): only test builds need `ds::lint::markup`.
 ds = { workspace = true, features = ["lint"] }
 dioxus-ssr = { workspace = true }
 shell-host = { workspace = true, features = ["debug-inject"] }
@@ -31,3 +29,6 @@ shell-host = { workspace = true, features = ["debug-inject"] }
 # (`dev/accept-bar-ui.sh`); `debug-inject` gives it shell-host's stdin commands.
 [[example]]
 name = "bar_demo"
+
+[lints]
+workspace = true
