@@ -291,7 +291,7 @@ fn a_client_in_nested_cosmic_is_published_and_obeys_commands() {
     wait_for(WITHIN, || state_of(window.key).is_none().then_some(())).expect("Close closes");
 }
 
-/// The M2 freeze amendment (FINDINGS F54) live: published coordinates and capabilities, pin and
+/// The M2 freeze amendment (FINDINGS F76) live: published coordinates and capabilities, pin and
 /// unpin when the workspace offers `Pin`, and moving a window to another workspace when the
 /// group has two (cosmic-comp keeps an empty one after the last occupied one).
 #[test]

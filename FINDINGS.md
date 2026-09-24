@@ -410,6 +410,98 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
   seen before); and with the host display in DPMS off the NVIDIA EGL path needs
   `__GL_SYNC_TO_VBLANK=0` or the compositor never answers a client (F24).
 
+## M2 apps-index (2026-09-24)
+
+Filled `apps::{scan, icons}` and `apps::spawn`; `Services::spawn`'s apps placeholder now calls
+it. `match_app`, `expand_exec`, `reduce_apps` and the index type were already frozen and
+untouched.
+
+- **F66 An absolute `Icon=` is used as-is, never checked against the filesystem.** The
+  pre-existing `tests/skeleton.rs::a_desktop_entry_parses_into_an_app` (ignored for this wave,
+  now filled and passing) asserts `Icon=/usr/share/icons/foot.svg` becomes
+  `AppIcon::File("/usr/share/icons/foot.svg")` even though that file does not exist on the
+  machine running the test — i.e. `resolve_icon` takes an absolute path on trust, the same way
+  `parse_entry` takes every other field on trust from the `.desktop` file, matching
+  `freedesktop_desktop_entry::IconSource::from_unknown`'s own comment ("a name or an absolute
+  path") and `AppIcon::File`'s doc ("an absolute `Icon=`, or the theme lookup's answer"). An
+  earlier draft added an `is_file()` check "for safety"; the frozen test caught it.
+- **F67 `TryExec` excludes the whole entry, not just a `parse_entry` doc-comment case.** The
+  brief's visibility list ("NoDisplay, Hidden, OnlyShowIn/NotShowIn ..., TryExec present") and
+  the Desktop Entry Specification's own words ("if [not found], the entry may be ignored") both
+  point at exclusion, and `App` has no field to represent "not really installed" short of not
+  yielding it — so `parse_entry` returns `None` when `TryExec` is set and neither an absolute
+  path nor a bare name on `$PATH` resolves to a file. `NoDisplay`, `Hidden` and an
+  `OnlyShowIn`/`NotShowIn` mismatch are different: they fold into `Listing::Hidden` (the frozen
+  `App::listing`'s own doc, "hidden entries still match windows, never list") and the entry is
+  still yielded and still occupies its dedup slot, so a `Hidden=true` override in a
+  higher-precedence directory still shadows a real entry lower down.
+- **F68 `OnlyShowIn`/`NotShowIn` are matched against a fixed `COSMIC`, not the live
+  `XDG_CURRENT_DESKTOP`.** sill only ever runs as the COSMIC session; reading the constant
+  keeps the scan deterministic under a nested test compositor or a dev shell where that
+  variable is unset or wrong, and matches the brief's own wording ("against
+  `XDG_CURRENT_DESKTOP=COSMIC`") read as naming the value, not the mechanism.
+- **F69 A trailing `;` in a list field leaves an empty element.** `MimeType=a;b;` (the spec's
+  own recommended, semicolon-terminated form) becomes `["a", "b", ""]` through
+  `freedesktop_desktop_entry`'s `str::split(';')`; `owned_list` (`MimeType`) and the `keywords`
+  mapping both filter it out. `only_show_in`/`not_show_in` need no such filter — an empty
+  string never equals `"COSMIC"` — and `Actions=a;b;`'s trailing empty action id is already
+  dropped by `actions`'s `filter_map` (no `[Desktop Action ]` group exists for it).
+- **F70 The icon theme is read straight from `cosmic-config`'s file layout, not the
+  `cosmic-config` crate.** `cosmic-config` is not in the pinned dependency block (`docs/workspace-deps.toml`),
+  and the value is one line (`~/.config/cosmic/com.system76.CosmicTk/v1/icon_theme`, a quoted
+  RON string) — reading and unquoting it directly avoids adding a dependency for one file read.
+  `icon_theme()` falls back to `"Cosmic"` when the file is absent, empty or unreadable (no
+  `com.system76.CosmicTk` config exists on the dev machine); `freedesktop_icons::lookup`'s own
+  fallback to `hicolor` when a theme is not installed covers the plan's third step, so this
+  function only ever chooses between the first two.
+- **F71 SVG-vs-largest-PNG preference is a heuristic, not exact, given what `freedesktop_icons`
+  0.4.0 exposes.** `try_get_icon`'s directory search returns the *first* directory, in the
+  theme's own `index.theme` section order, that has *any* matching file at the requested size —
+  not the first SVG across every matching directory. `resolve_icon` asks once with
+  `force_svg()` at `MAX_SIZE` (256) and keeps the result only if it actually is an `.svg` file
+  (checked by extension, since `force_svg` can still fall back to a raster inside whichever
+  directory it lands on first), then falls back to a plain lookup at the same size. This is
+  exactly right for every theme where the scalable directory is declared before (or matches
+  more narrowly than) the fixed ones — hicolor, Adwaita, Papirus, Cosmic and every theme found
+  on the live run all are — but a theme whose `index.theme` lists a fixed directory before its
+  scalable one at the very requested size could still surface that PNG instead of the SVG.
+  Fixing this exactly would mean re-implementing the crate's own directory-selection and
+  candidate-scoring logic; not done, since no installed theme case exercises it.
+  `tests/icons.rs` proves the intended ordering against a purpose-built fixture theme.
+- **F72 The icon-theme fixture test cannot use `std::env::set_var`, and writes into a real
+  `$HOME/.icons` subdirectory instead.** `freedesktop_icons::THEMES` is a process-wide
+  `once_cell::sync::Lazy`, seeded once from `$HOME`/XDG env at first use with no API to point a
+  lookup at an arbitrary directory; the only way to steer it is the environment read at that
+  first use. `std::env::set_var`/`remove_var` are `unsafe fn` since edition 2024, and this
+  workspace denies `unsafe_code` everywhere but shell-host's one allowed module (CONVENTIONS
+  §11) — sill-services may carry none at all. So `tests/icons.rs` (a lone `#[test]`, its own
+  process, nothing else in that binary ever touching `THEMES` first) creates its fixture theme
+  under the real `$HOME/.icons` (one of `freedesktop_icons`' own unconditional, `.exists()`-
+  filtered base paths) with a name unique per process and counter, and a `Drop` guard removes
+  only that one subdirectory afterward, panic or not. It is the one place in this crate's tests
+  that touches the real home directory.
+- **F73 `tempfile` is not in the pinned block; a hand-rolled `TempDir`.** Same shape and same
+  reason as `sill-settings/tests/common::TempDir` (its own comment: "no `tempfile`: not in the
+  pinned block"); `apps/icons.rs`'s unit tests and `tests/icons.rs` each carry their own small
+  copy rather than sharing a `tests/common` module across a src-level unit test and an
+  integration test (they cannot share one: `#[cfg(test)] mod tests` in `src/` cannot reach
+  `tests/common`).
+- **F74 Flatpak's export directories are added even when `XDG_DATA_DIRS` does not already carry
+  them.** Confirmed necessary, not just defensive: the live run's own `XDG_DATA_DIRS` did not
+  include `/var/lib/flatpak/exports/share` (no `/etc/profile.d/flatpak.sh` sourced in this
+  shell), so `applications_dirs`' safety net was the only reason
+  `/var/lib/flatpak/exports/share/applications` was searched at all.
+- **F75 Live run facts (this machine, KDE Plasma/Toshy session, no COSMIC installed).**
+  `cargo test -p sill-services --test apps_live -- --ignored --nocapture`: 353 applications
+  found across `~/.local/share/applications`, `~/.local/share/flatpak/exports/share/applications`,
+  `/var/lib/flatpak/exports/share/applications`, `/usr/local/share/applications` and
+  `/usr/share/applications`; icon theme resolved to `Cosmic` (no `com.system76.CosmicTk` config
+  on this machine, F70's fallback). Five sample entries, icons resolved by both routes:
+  `Toshy_Tray` (svg, `.../hicolor/scalable/apps/toshy_app_icon_rainbow.svg`), `app.toshy.preferences`
+  (same svg), `claude-code-url-handler` (`Listing::Hidden`, `NoDisplay`, `icon=None`),
+  `line-messenger` (png, `.../hicolor/256x256/apps/line-messenger.png`), `microsoft-teams`
+  (same, 256px png). No crash, no entry that failed to parse silently taking down the scan.
+
 ## M1 svc-dbus (2026-09-24)
 
 Filled `battery::spawn`, `network::spawn` and `volume::spawn`. All three signatures were usable
@@ -462,9 +554,127 @@ as frozen; nothing there needed to change.
   of a `Mutex`. Fixed by binding `let state = context.borrow().get_state();` first, so the `Ref`
   drops at the `;` before the `match` (and the calls inside its arm) ever runs.
 
+## M2 badges (2026-09-24)
+
+Filled `badges::spawn` (`crates/sill-services/src/badges/live.rs`, new). The frozen shapes
+(`Badges`, `Badge`, `BadgeProp`, `BadgeEvent`, `reduce_badges`, `parse_app_uri`) needed no
+change.
+
+- **F54 A bus-wide signal subscription needs `MessageStream::for_match_rule`, not a generated
+  proxy.** `com.canonical.Unity.LauncherEntry` has no crate binding (unlike UPower or
+  NetworkManager) and, unlike `StatusNotifierItem`, an app never registers a well-known name to
+  publish it — it just broadcasts `Update` from whatever connection it already has. zbus 5's
+  `MessageStream::for_match_rule(rule, &connection, None)` registers a raw `MatchRule` (`type=
+  'signal', interface='com.canonical.Unity.LauncherEntry', member='Update'`, no sender) with the
+  bus and yields every matching `Message` regardless of who sent it; `Body::deserialize::<(String,
+  HashMap<String, OwnedValue>)>()` decodes the `(s app_uri, a{sv})` body. No new dependency: zbus
+  was already in the pinned block for `battery`/`network`/`tray`/`volume`.
+- **F55 Leniency is a per-key decode, not a per-message one.** The signature `(s, a{sv})` is
+  fixed by the interface, so a message that isn't that shape at all (or whose `app_uri` names no
+  app) is simply dropped — there is no partial reading of a tuple. What *is* partial is each
+  value inside the dictionary: `decode_prop` downcasts by key (`count` -> `i64::try_from`,
+  `progress` -> `f64::try_from`, the three booleans -> `bool::try_from`) and drops only the key
+  whose value has the wrong `zvariant::Value` variant, via `filter_map` rather than a `Result`
+  that would fail the whole `Update`. `reduce_badges` already treats an absent `BadgeProp` as
+  "unchanged" (model.rs, done at W0), so a dropped key and a key the sender never sent behave
+  identically — no special case needed on the decode side for "missing".
+- **F56 Which sender is publishing an app's badge is this task's own bookkeeping, not part of
+  `Badges`.** The frozen `Badges` only ever remembers `app -> Badge` (the plan's persisted
+  shape), so there is nowhere in it to record which connection last spoke for an app. `live::run`
+  keeps a local `HashMap<AppId, OwnedUniqueName>` alongside the loop, updated on every `Update`
+  and consulted on `NameOwnerChanged`: a name-owner change is only a clear when `new_owner` is
+  empty (a name *transfer* between two still-live connections is not a departure) and its `name`
+  matches a tracked unique name.
+- **F57 Verification.** `cargo fmt --all --check`, `cargo clippy --workspace --all-targets
+  --all-features -- -D warnings`, `cargo test --workspace --features sill/debug`,
+  `./scripts/check-boundary.sh` and `cargo deny check licenses` all pass. The `#[ignore]`d live
+  test (`tests/badges_live.rs`) was run once against this machine's real session bus (`cargo test
+  -p sill-services --test badges_live -- --ignored --nocapture`): it starts `badges::spawn`,
+  spawns `examples/badge_emitter.rs` as a child publishing `org.sill.BadgeEmitterTest` with
+  `count = 7`, asserts the badge appears within the 1 s budget, kills the emitter, and asserts the
+  badge clears within the same budget — both passed (finished in 0.11 s total, well inside
+  budget).
+## M2 launch (2026-09-24)
+
+Filled `launch::{spawn, launch_argv, scope_unit}`, `pins::{spawn, load, save}` and
+`crates/sill/src/launch.rs`; wired both into `services.rs`'s two placeholder lines.
+
+- **F58 The terminal for `Terminal=true`.** `$TERMINAL` (trimmed, non-blank) then ghostty,
+  wezterm, foot, cosmic-term, the first found as an executable file on `$PATH`
+  (`launch/terminal.rs`); wrapped `[bin, "-e"]`. No trace exists for wezterm's or cosmic-term's
+  own flag (CONVENTIONS "a quirk without a trace is a rumour"), so `-e` is a considered default,
+  not a verified one — worth a second look once one of them is actually exercised. On this
+  machine: `$TERMINAL` is unset, ghostty is on `PATH` (the user's own preference, per the brief)
+  and is chosen; wezterm and foot are absent; cosmic-term is present but ghostty sorts first.
+- **F59 Pins live under `dirs::config_dir()`, not `sill_settings::settings_dir()`.**
+  `sill-services` may not depend on `ds-settings`/`sill-settings` (boundary: F2, and
+  `scripts/check-boundary.sh`'s `sill-services` rule), so `pins::pins_dir` calls the already-pinned
+  `dirs` crate directly (`dirs::config_dir().join("sill")`) rather than sharing
+  `sill_settings::settings_dir`'s helper — both resolve to the same `$XDG_CONFIG_HOME/sill` in
+  practice, but they are two independent readings of XDG, not one shared function (Q4 already
+  covers the general shape of this duplication for `settings.toml`; this is its `dock.json`
+  sibling). `pins::spawn` degrades to in-memory-only (a stderr line, no watch, no save) when
+  neither `$XDG_CONFIG_HOME` nor `$HOME` is set, the same shape `ServiceError`'s doc promises for
+  every other service's missing dependency.
+- **F60 Unit-name escaping.** `scope_unit` escapes an app id the way `systemd-escape` escapes a
+  unit name component, from general knowledge of systemd's own behaviour rather than by reading
+  `unit-name.c` (systemd is LGPL/GPL; CONVENTIONS "note-and-close" and "never put GPL … source
+  into a model's context"): `/` becomes `-`; a leading `.` and every byte outside
+  `[A-Za-z0-9:_.]` — a literal `-` included, since `-` is reserved for an escaped `/` and would
+  otherwise be ambiguous on unescape — becomes `\xHH`. Table-tested against the cases that matter
+  here (reverse-DNS ids, a literal dash, a leading dot, a space); not cross-checked against a real
+  `systemd-escape` binary output for every byte value, since sill's own app ids never contain most
+  of them.
+- **F61 `%i`'s value is the resolved icon file, not the entry's own `Icon=` name.** `App` (frozen,
+  `apps/index.rs`) keeps only the theme-resolved `AppIcon` (`File(PathBuf)` or `None`), not the
+  raw `Icon=` string a `.desktop` file names — apps-index's scan already threw that away. So
+  `launch_argv`'s `ExecArgs.icon` is the resolved file's path when there is one; an app whose
+  `Exec` uses `%i` gets `--icon /path/to/theme/resolved/icon.png` rather than `--icon the-name`.
+  Neither the plan nor design/10 says which `%i` should carry; this is a reasonable reading, not
+  a verified one, and it is the only reading `App`'s frozen shape allows without re-reading the
+  desktop file at launch time.
+- **F62 A named action `LaunchRequest` no longer has falls back to the entry's own `Exec`.**
+  `ExecError` (frozen, `apps/exec.rs`) has no "unknown action" variant, so `action_exec` cannot
+  refuse the launch when `DesktopAction::Named(id)` names an action `app.actions` does not have
+  (a stale index between the launcher and the app scan, in principle); it launches the entry's
+  default `Exec` instead of failing outright. Table-tested (`a_named_action_replaces_exec_and_an_
+  unknown_one_falls_back`).
+- **F63 The process-group fallback triggers on `ErrorKind::NotFound` from starting `systemd-run`
+  itself**, not on any failure inside the scope: `launch::run::start` tries the full
+  `systemd-run --user --scope …` argv first, and only when the very first exec (`systemd-run`
+  is not on `PATH`, or — the same error from `posix_spawn` — no user systemd manager answers)
+  does it fall back to the bare command (the part of `argv` after `systemd-run`'s own `--`) in a
+  fresh process group (`Command::process_group(0)`, plan "Launch": "fallback process group").
+  Either path hands back the same `tokio::process::Child` type, and `wait_for_exit` does not care
+  which one ran — `systemd-run --scope` execs in place of itself, so the tracked `Child` *is* the
+  app either way. Table-tested by aiming `start` at a made-up binary name rather than by hiding
+  the real `systemd-run` (`launch::run::tests::a_program_that_cannot_start_falls_back_to_the_
+  bare_command`).
+- **F64 Live run facts (this machine, user systemd present).** `cargo test -p sill-services --lib
+  a_launch_runs_in_a_real_systemd_scope_and_exits -- --ignored --nocapture`: `/bin/true` through
+  the real `systemd-run --user --scope --collect` path reported `Started` with unit
+  `app-sill-sill\x2dlaunch\x2dtest-1.scope` (the `AppId`'s two literal dashes escaped, as F60
+  says they should be), `systemd-run` printed its own `Running as unit: …; invocation ID: …`
+  line to the test's stderr, and the same unit was reported `Exited` once the process finished —
+  both within the test's timeouts, in well under a second in practice.
+- **G9** `crates/sill/src/launch.rs::launch` has no unit test: `shell_host::SurfaceHandle::new`
+  is `pub(crate)` to shell-host, so nothing outside that crate can construct one, even a
+  throwaway, for a test. The function is two lines against two already-frozen, already-tested
+  signatures (`SurfaceHandle::activation_token`, `LaunchCommand::Launch`); it is exercised live
+  once dock clicks call it (design/10 §10.3.6, dock-ui). A `SurfaceHandle` test constructor (or a
+  trait shell-host tests already use) would close this gap; reported rather than added here since
+  `shell-host` is not owned by this wave.
+- **F65 `services.rs`'s own `spawn_does_not_panic_and_every_stub_holds_its_default` test reaches
+  the real `~/.config/sill` directory** now that `pins::spawn` is real (F59): it asserts
+  `services.pins.borrow() == DockPins::default()`, which only holds because this machine had no
+  `~/.config/sill/dock.json` when the suite ran. The same test already reaches the real session
+  and system buses for `battery`/`network`/`volume`/`tray` (F25-F27, F29-F34) and the real
+  Wayland socket for `cosmic_wl` (F20-F24), so a real (empty) XDG config directory is the same
+  kind of live dependency this test has always had, not a new one; noted here since it is now
+  true of `sill-services`' own filesystem too, not only of buses and sockets.
 ## M2 freeze amendments (2026-09-24)
 
-- **F54 The freeze was amended at the M1→M2 boundary.** CONVENTIONS §1 makes a frozen
+- **F76 The freeze was amended at the M1→M2 boundary.** CONVENTIONS §1 makes a frozen
   signature a stop-and-report, and the M1 wave did stop and report: `Workspace` had no
   coordinates or capabilities and `WlCommand` no pin, unpin or move-to-workspace (F23),
   `TrayCommand` had no `Scroll` (F30), `DebugRequest` had no click so `sill debug` could not
@@ -474,22 +684,22 @@ as frozen; nothing there needed to change.
   edit on `m2-amend`, while no M2 agent was coding against them, rather than as a surprise in
   the middle of M2. Every change is additive and every existing test is unchanged:
   - `sill_services::Workspace` gains `coordinates: Vec<u32>`, `capabilities: WorkspaceCaps`
-    and `pinning: Pinning`, all `#[serde(default)]` (F55); new public `WorkspaceCap`,
+    and `pinning: Pinning`, all `#[serde(default)]` (F77); new public `WorkspaceCap`,
     `WorkspaceCaps`, `Pinning`.
   - `sill_services::WlCommand` gains `PinWorkspace(WorkspaceKey)`,
     `UnpinWorkspace(WorkspaceKey)` and `MoveToplevelToWorkspace { toplevel: WindowKey,
-    workspace: WorkspaceKey }` (F56). `SetMinimizeRect` is **not** added: `set_rectangle`
+    workspace: WorkspaceKey }` (F78). `SetMinimizeRect` is **not** added: `set_rectangle`
     needs the dock's `wl_surface`, which lives on shell-host's connection, and shell-host's
     G2 (a way to bind the toplevel manager on its connection) is designed but not built.
   - `sill_services::TrayCommand` gains `Scroll { item: TrayItemId, delta: ScrollDelta }`, with
     new public `ScrollDelta { axis: ScrollAxis, steps: i32 }` and
-    `ScrollAxis::{Vertical, Horizontal}` (F57).
+    `ScrollAxis::{Vertical, Horizontal}` (F79).
   - `sill_ipc::DebugRequest` gains `Click { surface: SurfaceName, at: Point, button:
     PointerButton }`, new public `PointerButton::{Primary, Secondary, Middle}`; the CLI gains
-    `sill debug click <surface> <x> <y> [--button primary|secondary|middle]` (F58).
+    `sill debug click <surface> <x> <y> [--button primary|secondary|middle]` (F80).
   - `sill_surfaces::MEASURE` (new `sill-surfaces/src/measure.rs`) replaces the bar's private
-    `surfaces/bar/measure.rs`, and the daemon provides it on every root (F59).
-- **F55 Workspace coordinates, capabilities and pinning.** `describe::workspace` copies cctk's
+    `surfaces/bar/measure.rs`, and the daemon provides it on every root (F81).
+- **F77 Workspace coordinates, capabilities and pinning.** `describe::workspace` copies cctk's
   `coordinates` as they are (the groups were already ordered by them, F20) and merges the
   ext-workspace capability bits (`activate`, `deactivate`, `remove`, `assign`) and COSMIC's
   (`rename`, `set_tiling_state`, `pin`, `move`) into one `WorkspaceCaps`: a set that sorts and
@@ -503,7 +713,7 @@ as frozen; nothing there needed to change.
   All three fields are `#[serde(default)]`: the defaults (no coordinates, no capabilities,
   unpinned) are what a compositor without them says, and a line of the old shape still decodes
   (`a_workspace_without_the_amended_fields_still_decodes`).
-- **F56 The new commands are gated the way the existing ones are.** `PinWorkspace` and
+- **F78 The new commands are gated the way the existing ones are.** `PinWorkspace` and
   `UnpinWorkspace` need a `zcosmic_workspace_handle_v2` of version 2 advertising `pin`, send
   `pin`/`unpin` and commit the ext-workspace manager; `MoveWorkspace` now goes through the
   same `cosmic_offers(version, offered, wanted)` gate (table-tested). `MoveToplevelToWorkspace`
@@ -517,8 +727,8 @@ as frozen; nothing there needed to change.
   with the output of the target workspace's group (the request needs one), falling back to an
   output the window is on. An unknown key or a missing capability drops the command, as F22.
   The ignored live test `the_amended_workspace_commands_take_effect_in_nested_cosmic` checks
-  the published fields, pin/unpin and the move against nested cosmic-comp (result below, F60).
-- **F57 `TrayCommand::Scroll`.** `system-tray` 0.8.9's `Client` has no scroll call and keeps its
+  the published fields, pin/unpin and the move against nested cosmic-comp (result below, F82).
+- **F79 `TrayCommand::Scroll`.** `system-tray` 0.8.9's `Client` has no scroll call and keeps its
   bus connection private, so the host opens a second session connection of its own at start
   and sends `org.kde.StatusNotifierItem.Scroll(delta, orientation)` to
   `<destination>/StatusNotifierItem` (the only path the host addresses, F29), with
@@ -526,10 +736,10 @@ as frozen; nothing there needed to change.
   convention (positive is down or right, `wl_pointer`'s) is what the bar will send; which way
   a given item treats a positive delta has not been checked against a real item yet. Without
   a bus the scroll is dropped, as the other commands' failures are logged and dropped.
-- **F58 `sill debug click`, primary only.** The daemon maps `DebugRequest::Click` onto
+- **F80 `sill debug click`, primary only.** The daemon maps `DebugRequest::Click` onto
   shell-host's `Inject::Click { at }`, which presses and releases the **primary** button and
   has no button field (shell-host `inject.rs`), so `--button secondary|middle` answers
-  `Failed(Unsupported)` naming G9 rather than sending a primary click in its place (tested:
+  `Failed(Unsupported)` naming G10 rather than sending a primary click in its place (tested:
   `a_debug_click_maps_onto_shell_hosts_injection`). The dock's context menu (secondary press,
   design/10 §10.3.7) therefore cannot yet be exercised through `sill debug`. `dev/accept-bar.sh`'s
   menus step now clicks the daemon's own bar with `sill debug click` (the clock, 60 px from the
@@ -537,7 +747,7 @@ as frozen; nothing there needed to change.
   as whether `sill debug capture <bar>/popup` succeeds (`sill debug stats` lists bars only), so
   `accept-bar-ui.sh cosmic` and `bar_demo` are no longer part of the daemon's acceptance. G8
   is resolved by this.
-- **F59 One `HostMeasure` for every root.** Q10's twelve lines moved from
+- **F81 One `HostMeasure` for every root.** Q10's twelve lines moved from
   `surfaces/bar/measure.rs` to `sill-surfaces/src/measure.rs` as `pub const MEASURE`. The bar
   and its menu popup no longer provide it themselves: `daemon::surface_root` puts `Services`,
   `SettingsFeed` and `MEASURE` on every surface root the daemon spawns, so the wallpaper, dock
@@ -546,14 +756,14 @@ as frozen; nothing there needed to change.
   tray's dbusmenu popup, which had none) add `.context(crate::MEASURE)` themselves; so does
   `examples/bar_demo.rs`, which builds its own root. When quire exports ds-native's measurer
   (Q10) this module becomes a re-export.
-- **F60 What the dock and the switcher need, checked against the amended vocabulary.** design/10
+- **F82 What the dock and the switcher need, checked against the amended vocabulary.** design/10
   §10.3.6-10.3.7 and design/13 §13.3.5 ask the compositor for: activate the most recent
   toplevel, restoring it when minimized (`Activate`, which unminimizes first, F22); cycle an
   app's toplevels (`Activate` of the next key); Hide and Option-click (`Minimize` per
   toplevel); Quit (`Close` per toplevel); a picked window of the context menu (`Activate`).
   All of these existed. Force Quit is a SIGKILL to the app's `app-sill-*` scope, which is the
   launch service's, not `WlCommand`'s. The minimize target (§10.3.10) is the one thing still
-  missing, and deliberately (F54, G2). The dock's per-frame drive is not a sill signature:
+  missing, and deliberately (F76, G2). The dock's per-frame drive is not a sill signature:
   shell-host `df9c59b` added `use_frame_tick()` and `SurfaceHandle::drive_frames() ->
   FrameDrive`, which resolves G5, and shell-host F36 adds the rule the dock machine's settle
   must follow: its drop condition must be reachable at any tick rate (nested cosmic-comp calls
@@ -565,9 +775,9 @@ as frozen; nothing there needed to change.
   2 (its `workspaces` became `[2]`). The existing live test's harness leaks `cosmic-term`
   processes that outlive the killed child (the terminal hands off to a second process), which
   also holds a piped test's stdout open; kill them after a run.
-- **G5** RESOLVED (shell-host `df9c59b`, F36): `use_frame_tick` and `FrameDrive` (F60).
-- **G8** RESOLVED by F58. **F23**, **F30** and **Q10**'s sill half are resolved by F55-F57
-  and F59; Q10 itself (quire exporting ds-native's measurer) stays open.
-- **G9** shell-host's `Inject::Click { at }` presses the primary button only; a
+- **G5** RESOLVED (shell-host `df9c59b`, F36): `use_frame_tick` and `FrameDrive` (F82).
+- **G8** RESOLVED by F80. **F23**, **F30** and **Q10**'s sill half are resolved by F77-F79
+  and F81; Q10 itself (quire exporting ds-native's measurer) stays open.
+- **G10** shell-host's `Inject::Click { at }` presses the primary button only; a
   `button` field (`MouseEventButton::Secondary`/`Auxiliary`) would let `sill debug click
-  --button secondary` open the dock's context menu (F58).
+  --button secondary` open the dock's context menu (F80).

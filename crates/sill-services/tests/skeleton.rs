@@ -17,7 +17,6 @@ fn temp(tag: &str) -> PathBuf {
 }
 
 #[test]
-#[ignore = "M2 apps-index fill"]
 fn a_desktop_entry_parses_into_an_app() {
     let text = "[Desktop Entry]\nType=Application\nName=Foot\nExec=foot %F\nIcon=/usr/share/icons/foot.svg\n\
                 Terminal=false\nStartupWMClass=foot\nActions=server;\n\n[Desktop Action server]\n\

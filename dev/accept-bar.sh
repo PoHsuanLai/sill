@@ -116,7 +116,7 @@ step_idle() {
 }
 
 # 7. Menus: a press on a title opens its menu; an outside press dismisses it (design/13 §13.8
-#    tests 1 and 3), on the daemon's own bar through `sill debug click` (FINDINGS F58). The
+#    tests 1 and 3), on the daemon's own bar through `sill debug click` (FINDINGS F80). The
 #    clock sits at the bar's right end; the bar's empty middle stands in for an outside press
 #    (a compositor-level outside press cannot be synthesized, shell-host F17). Whether the popup
 #    is up is whether `sill debug capture <bar>/popup` succeeds: `debug stats` lists bars only.

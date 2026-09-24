@@ -21,7 +21,7 @@ pub fn ClockItem(output: OutputInfo) -> Element {
                 Button {
                     variant: ButtonVariant::Quiet,
                     label: clock.text,
-                    onclick: move |()| {},
+                    onclick: move |_| {},
                     mounted: move |event| probe.on_mounted(event),
                 }
             }

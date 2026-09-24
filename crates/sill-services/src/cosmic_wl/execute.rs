@@ -206,7 +206,7 @@ fn group_output(state: &WlState, workspace: &ExtWorkspaceHandleV1) -> Option<WlO
 /// Whether a toplevel manager at `version` that advertised `offered` takes
 /// `move_to_ext_workspace`. cosmic-comp 1.8 binds at version 4 and carries out
 /// `move_to_ext_workspace`, but advertises only the older `move_to_workspace` capability
-/// (FINDINGS F56), so at version 4 either capability counts.
+/// (FINDINGS F78), so at version 4 either capability counts.
 fn offers_move_to_ext(version: u32, offered: &[ManagerAbility]) -> bool {
     version >= MOVE_TO_EXT_SINCE
         && (offered.contains(&ManagerAbility::MoveToExtWorkspace)

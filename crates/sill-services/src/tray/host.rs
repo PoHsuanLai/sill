@@ -243,7 +243,7 @@ fn map_event(client: &Client, event: Event) -> Option<TrayEvent> {
 /// menu closed) — nothing a shell surface can act on, so they are logged, not propagated: a
 /// tray click that lands a beat late is not worth failing the surface over.
 ///
-/// `Scroll` is sent on `bus`, not through `client` (see [`run`]); FINDINGS F54.
+/// `Scroll` is sent on `bus`, not through `client` (see [`run`]); FINDINGS F76.
 async fn handle_command(client: &Client, bus: Option<&zbus::Connection>, command: TrayCommand) {
     let result = match command {
         TrayCommand::Activate { item, x, y } => {

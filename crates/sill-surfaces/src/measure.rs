@@ -5,7 +5,7 @@
 //! depend on quire) and ds-native's is private (Q10), so sill provides one: the daemon puts
 //! [`MEASURE`] on every surface's `Root` context, and a surface that opens a popup puts it on
 //! the popup's `Root` too (a popup is its own `VirtualDom` and inherits nothing). Moved here from
-//! the bar at the M2 freeze amendment (FINDINGS F54); the read is the one ds-native makes.
+//! the bar at the M2 freeze amendment (FINDINGS F76); the read is the one ds-native makes.
 
 use dioxus::prelude::MountedData;
 use dioxus_native_dom::NodeHandle;

@@ -272,7 +272,7 @@ fn spawn_bar(
 
 /// `root` with the contexts every surface the daemon spawns is given: the services, the
 /// settings, and the rect measurer quire's floating components read through (without it the
-/// first `use_rect` read inside a render panics; FINDINGS Q10, F54). Every spawn goes through
+/// first `use_rect` read inside a render panics; FINDINGS Q10, F76). Every spawn goes through
 /// here, so a new surface cannot forget one.
 fn surface_root(root: Root, services: &Services, settings_feed: &SettingsFeed) -> Root {
     root.context(services.clone())
@@ -387,7 +387,7 @@ fn apply_injection(ctx: &mut HostCtx<ShellMsg>, id: SurfaceId, action: DebugActi
 }
 
 /// `action` as shell-host's injection. shell-host's `Inject::Click` presses the primary button
-/// only (FINDINGS G9), so a secondary or middle click is refused as unsupported rather than
+/// only (FINDINGS G10), so a secondary or middle click is refused as unsupported rather than
 /// sent as a primary one.
 #[cfg(feature = "debug")]
 fn to_inject(action: DebugAction) -> Result<shell_host::Inject, Response> {
@@ -401,7 +401,7 @@ fn to_inject(action: DebugAction) -> Result<shell_host::Inject, Response> {
         }
         DebugAction::Click(_, button) => {
             return Err(unsupported(&format!(
-                "shell-host injects primary clicks only; {button:?} is not supported (G9)"
+                "shell-host injects primary clicks only; {button:?} is not supported (G10)"
             )));
         }
     })

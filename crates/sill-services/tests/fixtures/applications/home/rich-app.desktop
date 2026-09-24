@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Rich App
+GenericName=Text Editor
+Comment=Edits text richly
+Exec=rich-app %F
+StartupWMClass=RichApp
+X-Flatpak=org.example.RichApp
+Terminal=true
+DBusActivatable=true
+MimeType=text/plain;text/markdown;
+Keywords=edit;write;notes;

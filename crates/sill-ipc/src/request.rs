@@ -1,6 +1,6 @@
 //! What a client asks the daemon (plan: `Ping, Launcher{Toggle,Open{query},Close},
 //! Dock{Pin,Unpin}, Reload, Quit, Debug{Stats,Pointer,Leave,Capture}`), plus `Debug(Click)`
-//! from the M2 freeze amendment (sill FINDINGS F54).
+//! from the M2 freeze amendment (sill FINDINGS F76).
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -59,7 +59,7 @@ pub enum DebugRequest {
     /// Render `surface` offscreen and write a PNG to `path` (compositor-independent capture).
     Capture { surface: SurfaceName, path: PathBuf },
     /// A synthetic press and release of `button` at `at` on `surface` (surface-local logical
-    /// px): what opens a bar menu. M2 freeze amendment (F54).
+    /// px): what opens a bar menu. M2 freeze amendment (F76).
     Click {
         surface: SurfaceName,
         at: Point,
