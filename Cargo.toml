@@ -4,6 +4,7 @@ members = [
   "crates/sill-ipc",
   "crates/sill-launcher",
   "crates/sill-services",
+  "crates/sill-settings",
   "crates/sill-surfaces",
   "crates/sill",
 ]
@@ -21,9 +22,11 @@ publish = false
 sill-ipc      = { path = "crates/sill-ipc" }
 sill-launcher = { path = "crates/sill-launcher" }
 sill-services = { path = "crates/sill-services" }
+sill-settings = { path = "crates/sill-settings" }
 sill-surfaces = { path = "crates/sill-surfaces" }
 # Sibling repos, checked out next to this one.
 ds         = { path = "../quire/crates/ds" }
+ds-settings = { path = "../quire/crates/ds-settings" }
 shell-host = { path = "../shell-host/crates/shell-host" }
 
 # ---- BEGIN PINNED BLOCK (source of truth: quire/docs/workspace-deps.toml) ----
@@ -105,6 +108,14 @@ clap = { version = "4", features = ["derive"] }
 # latchkey lives in mailo until it is split into its own repo; cargo finds crates/latchkey itself.
 latchkey = { git = "https://github.com/PoHsuanLai/mailo", rev = "e8344176ffcc0455c585dafd722c05c911ddc5c4" }
 # ---- END PINNED BLOCK ----
+
+# ---- PROPOSED FOR THE PINNED BLOCK (sill W0 freeze; FINDINGS.md F1) ----
+# Not yet in quire/docs/workspace-deps.toml. Each line is already in this workspace's lock graph
+# through a pinned crate, so adopting it adds no new package, only a direct name.
+# Local wall-clock time for the bar clock (`sill-services::clock`): the time zone is the one
+# thing `std` cannot answer. jiff 0.2.37 already arrives through cosmic-dbus-networkmanager.
+jiff = "0.2"
+# ---- END PROPOSED ----
 
 [workspace.lints.rust]
 unsafe_code = "deny"

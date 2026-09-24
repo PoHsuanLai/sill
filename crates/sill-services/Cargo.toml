@@ -9,6 +9,7 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+sill-launcher = { workspace = true }
 tokio = { workspace = true }
 zbus = { workspace = true }
 cosmic-client-toolkit = { workspace = true }
@@ -22,7 +23,10 @@ notify = { workspace = true }
 image = { workspace = true }
 fend-core = { workspace = true }
 logind-zbus = { workspace = true }
+dirs = { workspace = true }
+jiff = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 
 [lints]

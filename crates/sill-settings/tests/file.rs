@@ -1,0 +1,142 @@
+//! design/22-SETTINGS.md §6 tests 1 and 2 for `sill/settings.toml`: every domain round-trips,
+//! and a bad value costs only its own key.
+
+mod common;
+
+use common::TempDir;
+use ds_settings::{Count, Px};
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+use sill_settings::{
+    BarSettings, Bounce, ControlCenterSettings, Dnd, DockSettings, FILE_NAME, LauncherSettings,
+    MenusSettings, NotificationsSettings, ScrollSettings, ScrollbarSettings, ShellFile,
+    SoundSettings, SpacesSettings, SwitcherSettings, load, save,
+};
+
+fn round_trips<T: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Default>() {
+    let default = T::default();
+    let text = toml::to_string(&default).unwrap_or_else(|e| panic!("{e}"));
+    let back: T = toml::from_str(&text).unwrap_or_else(|e| panic!("{text}: {e}"));
+    assert_eq!(back, default, "{text}");
+}
+
+#[test]
+fn every_domain_round_trips() {
+    round_trips::<BarSettings>();
+    round_trips::<DockSettings>();
+    round_trips::<LauncherSettings>();
+    round_trips::<ScrollSettings>();
+    round_trips::<ScrollbarSettings>();
+    round_trips::<MenusSettings>();
+    round_trips::<SwitcherSettings>();
+    round_trips::<SoundSettings>();
+    round_trips::<NotificationsSettings>();
+    round_trips::<ControlCenterSettings>();
+    round_trips::<SpacesSettings>();
+    round_trips::<ShellFile>();
+}
+
+fn with(edit: impl FnOnce(&mut ShellFile)) -> ShellFile {
+    let mut file = ShellFile::default();
+    edit(&mut file);
+    file
+}
+
+#[test]
+fn a_bad_value_costs_only_its_own_key() {
+    // Every row also sets a sibling away from its default, so a loader that dropped the whole
+    // table on the bad value fails it.
+    let cases: Vec<(&str, &str, ShellFile)> = vec![
+        (
+            "an unknown enum word keeps its sibling",
+            "[dock]\nbounce = \"bounceyy\"\ntile_size_px = 64\n",
+            with(|f| f.dock.tile_size_px = Px(64)),
+        ),
+        (
+            "a negative px is the default and keeps its sibling",
+            "[bar]\nheight_px = -3\nstatus_gap_px = 6\n",
+            with(|f| f.bar.status_gap_px = Px(6)),
+        ),
+        (
+            "a missing table is that table's defaults",
+            "[notifications]\ndnd = \"on\"\n",
+            with(|f| f.notifications.dnd = Dnd::On),
+        ),
+        (
+            "a table that is not a table is its defaults",
+            "dock = 7\n[spaces]\ndefault_grain = 55\n",
+            with(|f| f.spaces.default_grain = Count(55)),
+        ),
+        (
+            "a list of unknown modules is the default list",
+            "[control_center]\nmodules = [\"toaster\"]\nwidth_px = 300\n",
+            with(|f| f.control_center.width_px = Px(300)),
+        ),
+    ];
+    let dir = TempDir::new("lenient");
+    for (name, text, want) in cases {
+        std::fs::write(dir.path().join(FILE_NAME), text).unwrap_or_else(|e| panic!("{e}"));
+        let got = load(dir.path());
+        assert_eq!(got, want, "{name}");
+        assert_eq!(got.dock.bounce, Bounce::On, "{name}");
+    }
+}
+
+#[test]
+fn missing_or_garbage_files_are_the_defaults() {
+    let dir = TempDir::new("garbage");
+    assert_eq!(load(dir.path()), ShellFile::default(), "missing");
+    for bytes in [&b""[..], b"not toml [[[", &[0xff, 0xfe]] {
+        std::fs::write(dir.path().join(FILE_NAME), bytes).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(load(dir.path()), ShellFile::default(), "{bytes:?}");
+    }
+}
+
+#[test]
+fn a_save_is_one_file_and_reads_back() {
+    let dir = TempDir::new("save");
+    let target = dir.path().join("sill");
+    let file = with(|f| {
+        f.dock.autohide = sill_settings::AutoHide::On;
+        f.bar.height_px = Px(28);
+        f.sound.theme = "ocean".to_owned();
+    });
+    save(&target, &file).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(load(&target), file);
+    let names: Vec<String> = std::fs::read_dir(&target)
+        .unwrap_or_else(|e| panic!("{e}"))
+        .filter_map(|e| e.ok())
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(names, [FILE_NAME], "the temp file was renamed away");
+}
+
+#[test]
+fn unknown_keys_and_tables_survive_a_round_trip() {
+    let dir = TempDir::new("unknown");
+    let text = "version = 1\nfuture = \"kept\"\n[dock]\npuppy = true\ntile_size_px = 40\n\
+                [later]\nanswer = 42\n";
+    std::fs::write(dir.path().join(FILE_NAME), text).unwrap_or_else(|e| panic!("{e}"));
+    let read = load(dir.path());
+    assert_eq!(read.dock.tile_size_px, Px(40));
+    save(dir.path(), &read).unwrap_or_else(|e| panic!("{e}"));
+    let written =
+        std::fs::read_to_string(dir.path().join(FILE_NAME)).unwrap_or_else(|e| panic!("{e}"));
+    let tree: toml::Table = toml::from_str(&written).unwrap_or_else(|e| panic!("{e}"));
+    let at = |table: &str, key: &str| tree.get(table).and_then(|t| t.get(key)).cloned();
+    assert_eq!(
+        at("dock", "puppy"),
+        Some(toml::Value::Boolean(true)),
+        "{written}"
+    );
+    assert_eq!(
+        at("later", "answer"),
+        Some(toml::Value::Integer(42)),
+        "{written}"
+    );
+    assert_eq!(
+        tree.get("future"),
+        Some(&toml::Value::String("kept".to_owned())),
+        "{written}"
+    );
+}

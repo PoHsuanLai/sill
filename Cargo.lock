@@ -1308,7 +1308,16 @@ version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "44c45a9d03d6676652bcb5e724c7e988de1acad23a711b5217ab9cbecbec2225"
 dependencies = [
- "dirs-sys",
+ "dirs-sys 0.4.1",
+]
+
+[[package]]
+name = "dirs"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3e8aa94d75141228480295a7d0e7feb620b1a5ad9f12bc40be62411e38cce4e"
+dependencies = [
+ "dirs-sys 0.5.0",
 ]
 
 [[package]]
@@ -1319,8 +1328,20 @@ checksum = "520f05a5cbd335fae5a99ff7a6ab8627577660ee5cfd6a94a6a929b52ff0321c"
 dependencies = [
  "libc",
  "option-ext",
- "redox_users",
+ "redox_users 0.4.6",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e01a3366d27ee9890022452ee61b2b63a67e6f13f58900b651ff5665f0bb1fab"
+dependencies = [
+ "libc",
+ "option-ext",
+ "redox_users 0.5.3",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1383,6 +1404,32 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.20",
+]
+
+[[package]]
+name = "ds-settings"
+version = "0.1.0"
+dependencies = [
+ "dioxus",
+ "dirs 6.0.0",
+ "ds",
+ "ds-settings-derive",
+ "notify",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+ "tokio",
+ "toml",
+ "zbus",
+]
+
+[[package]]
+name = "ds-settings-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -1681,7 +1728,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95f87364ea709292a3b3f74014ce3ee78412c89807eea75a358c8e029b000994"
 dependencies = [
- "dirs",
+ "dirs 5.0.1",
  "ini_core",
  "once_cell",
  "thiserror 1.0.69",
@@ -3611,6 +3658,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "redox_users"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60dc65c0ff1a7ae1294b0c67b9f14baf70b644404010370171787bfac1038fc0"
+dependencies = [
+ "libredox",
+ "thiserror 2.0.20",
+]
+
+[[package]]
 name = "regex"
 version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3851,10 +3908,13 @@ dependencies = [
  "keyboard-types",
  "parley",
  "raw-window-handle",
+ "rustc-hash 2.1.3",
  "serde",
+ "serde_json",
  "smithay-client-toolkit",
  "thiserror 2.0.20",
  "tokio",
+ "vello_common",
  "vello_hybrid",
  "wayland-backend",
  "wayland-client",
@@ -3885,11 +3945,15 @@ name = "sill"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "ds-settings",
  "latchkey",
  "shell-host",
  "sill-ipc",
+ "sill-launcher",
  "sill-services",
+ "sill-settings",
  "sill-surfaces",
+ "tokio",
 ]
 
 [[package]]
@@ -3907,7 +3971,7 @@ version = "0.1.0"
 dependencies = [
  "nucleo-matcher",
  "serde",
- "thiserror 2.0.20",
+ "serde_json",
 ]
 
 [[package]]
@@ -3916,14 +3980,18 @@ version = "0.1.0"
 dependencies = [
  "cosmic-client-toolkit",
  "cosmic-dbus-networkmanager",
+ "dirs 6.0.0",
  "fend-core",
  "freedesktop-desktop-entry",
  "freedesktop-icons",
  "image",
+ "jiff",
  "libpulse-binding",
  "logind-zbus",
  "notify",
  "serde",
+ "serde_json",
+ "sill-launcher",
  "system-tray",
  "thiserror 2.0.20",
  "tokio",
@@ -3932,14 +4000,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "sill-settings"
+version = "0.1.0"
+dependencies = [
+ "ds-settings",
+ "notify",
+ "serde",
+ "thiserror 2.0.20",
+ "tokio",
+ "toml",
+]
+
+[[package]]
 name = "sill-surfaces"
 version = "0.1.0"
 dependencies = [
  "dioxus",
  "ds",
+ "ds-settings",
  "shell-host",
  "sill-launcher",
  "sill-services",
+ "sill-settings",
+ "tokio",
 ]
 
 [[package]]
