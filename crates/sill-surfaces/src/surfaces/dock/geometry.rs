@@ -61,15 +61,9 @@ mod tests {
 
     #[test]
     fn default_settings_are_the_design_geometry() {
-        // The polish pass moved the gap to 8 and the pill's padding to 6 (quire FINDINGS
-        // "macOS polish"); `design_defaults` still holds design/10's first 4 and 8.
         assert_eq!(
             magnify_params(&DockSettings::default(), 1920),
-            MagnifyParams {
-                gap: Cpx::px(8),
-                pad: Cpx::px(6),
-                ..MagnifyParams::design_defaults(Cpx::px(1920))
-            }
+            MagnifyParams::design_defaults(Cpx::px(1920))
         );
     }
 
