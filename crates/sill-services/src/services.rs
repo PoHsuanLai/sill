@@ -72,8 +72,7 @@ impl Services {
         let (volume, volume_control) = crate::volume::spawn(rt);
         let (tray, tray_control) = crate::tray::spawn(rt);
         let (workspaces, toplevels, wl) = crate::cosmic_wl::spawn();
-        // M2 apps-index replaces this with apps::spawn.
-        let (apps, apps_control) = inert();
+        let (apps, apps_control) = crate::apps::spawn(rt);
         let (badges, badges_control) = crate::badges::spawn(rt);
         let (pins, pins_control) = crate::pins::spawn(rt);
         let (launches, launch) = crate::launch::spawn(rt, apps.clone());

@@ -1,27 +1,84 @@
 //! Reading desktop entries from disk (effects: the filesystem).
 
-#![allow(unused_variables, dead_code)] // Freeze stubs
-
+use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
-use crate::apps::icons::IconTheme;
-use crate::apps::index::App;
+use freedesktop_desktop_entry::DesktopEntry;
+
+use crate::apps::icons::{IconTheme, resolve_icon};
+use crate::apps::index::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing, Terminal};
+use sill_launcher::AppId;
+
+/// The desktop this scan targets. sill only ever runs as the COSMIC session (plan hooks
+/// table), so `OnlyShowIn`/`NotShowIn` are matched against this constant rather than the live
+/// `XDG_CURRENT_DESKTOP`, which keeps the result deterministic under a nested test compositor
+/// too.
+const CURRENT_DESKTOP: &str = "COSMIC";
 
 /// `$XDG_DATA_HOME/applications` then each `$XDG_DATA_DIRS/applications`, in precedence order
-/// (Flatpak's exports included when they are on `XDG_DATA_DIRS`).
+/// (`freedesktop_desktop_entry::default_paths`), with Flatpak's own export directories added at
+/// the end when they are not already on `XDG_DATA_DIRS` (a login session that has sourced
+/// `/etc/profile.d/flatpak.sh` already has them there, at the same low precedence; this is a
+/// safety net for one that has not).
 pub fn applications_dirs() -> Vec<PathBuf> {
-    todo!("M2 apps-index")
+    let mut dirs: Vec<PathBuf> = freedesktop_desktop_entry::default_paths().collect();
+    for extra in flatpak_dirs() {
+        if !dirs.contains(&extra) {
+            dirs.push(extra);
+        }
+    }
+    dirs
+}
+
+/// Flatpak's own well-known export directories: the user install, then the system one.
+fn flatpak_dirs() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+    if let Some(data_home) = dirs::data_dir() {
+        dirs.push(data_home.join("flatpak/exports/share/applications"));
+    }
+    dirs.push(PathBuf::from("/var/lib/flatpak/exports/share/applications"));
+    dirs
 }
 
 /// Every entry under `dirs`, in precedence order, icons resolved in `theme`, with the
-/// desktop's current locales.
+/// desktop's current locales. A directory that does not exist, or a `.desktop` file that
+/// cannot be read or parsed, is skipped rather than failing the scan (`freedesktop_desktop_entry::Iter`
+/// already skips a directory it cannot read).
 pub fn scan(dirs: &[PathBuf], theme: &IconTheme, locales: &[String]) -> Vec<App> {
-    todo!("M2 apps-index: freedesktop_desktop_entry::Iter over dirs, parse_entry each")
+    freedesktop_desktop_entry::Iter::new(dirs.iter().cloned())
+        .filter_map(|path| {
+            let text = std::fs::read_to_string(&path).ok()?;
+            let id = entry_id(&path, dirs)?;
+            parse_entry(&path, &id, &text, theme, locales)
+        })
+        .collect()
+}
+
+/// `path`'s id relative to whichever of `dirs` contains it: `kde/foo.desktop` under an
+/// applications directory is `kde-foo`. `None` when `path` is not actually under any of `dirs`
+/// (should not happen for a path `Iter` itself yielded, but a scan never panics on it) or the
+/// relative path is empty.
+fn entry_id(path: &Path, dirs: &[PathBuf]) -> Option<String> {
+    let relative = dirs.iter().find_map(|dir| {
+        path.strip_prefix(dir).ok().or_else(|| {
+            let canonical = dir.canonicalize().ok()?;
+            path.strip_prefix(&canonical).ok()
+        })
+    })?;
+    let relative = relative.with_extension("");
+    let id = relative
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("-");
+    (!id.is_empty()).then_some(id)
 }
 
 /// One `.desktop` file's text as an [`App`] with id derived from `path` relative to its
-/// applications directory (`kde/foo.desktop` is `kde-foo`); `None` for a non-Application type
-/// or an entry without `Name`/`Exec`.
+/// applications directory (`kde/foo.desktop` is `kde-foo`); `None` for a non-Application type,
+/// an entry without `Name`/`Exec`, or one whose `TryExec` names a binary not found on `PATH`
+/// (the Desktop Entry Specification's own words: such an entry "may be ignored" — it is not
+/// really installed, so it should not occupy a dedup slot or ever be offered to launch).
 pub fn parse_entry(
     path: &Path,
     id: &str,
@@ -29,5 +86,252 @@ pub fn parse_entry(
     theme: &IconTheme,
     locales: &[String],
 ) -> Option<App> {
-    todo!("M2 apps-index")
+    let entry = DesktopEntry::from_str(path, text, Some(locales)).ok()?;
+    if !is_application(&entry) {
+        return None;
+    }
+    let name = entry.name(locales)?.into_owned();
+    let exec = entry.exec()?.to_owned();
+    if entry.try_exec().is_some_and(|bin| !on_path(bin)) {
+        return None;
+    }
+
+    Some(App {
+        id: AppId(id.to_owned()),
+        name,
+        generic_name: owned(entry.generic_name(locales)),
+        comment: owned(entry.comment(locales)),
+        exec,
+        icon: entry
+            .icon()
+            .map_or(AppIcon::None, |icon| resolve_icon(icon, theme)),
+        startup_wm_class: entry.startup_wm_class().map(str::to_owned),
+        flatpak: entry.flatpak().map(str::to_owned),
+        terminal: if entry.terminal() {
+            Terminal::Yes
+        } else {
+            Terminal::No
+        },
+        activation: if entry.dbus_activatable() {
+            DbusActivation::DBus
+        } else {
+            DbusActivation::Exec
+        },
+        actions: actions(&entry, locales),
+        mime_types: owned_list(entry.mime_type()),
+        keywords: entry
+            .keywords(locales)
+            .unwrap_or_default()
+            .into_iter()
+            .map(Cow::into_owned)
+            .filter(|k| !k.is_empty())
+            .collect(),
+        listing: if is_listed(&entry) {
+            Listing::Shown
+        } else {
+            Listing::Hidden
+        },
+        path: path.to_owned(),
+    })
+}
+
+fn owned(field: Option<Cow<'_, str>>) -> String {
+    field.map(Cow::into_owned).unwrap_or_default()
+}
+
+/// A `;`-separated list field (`MimeType`, `Categories`, `Implements`): the spec's own
+/// recommended form ends every list in a trailing `;`, which `str::split(';')` turns into a
+/// spurious empty final element, so it is dropped here rather than by every caller.
+fn owned_list(field: Option<Vec<&str>>) -> Vec<String> {
+    field
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|s| !s.is_empty())
+        .map(str::to_owned)
+        .collect()
+}
+
+/// `Type=Application`, or no `Type` at all (a handful of real-world entries omit it; treating
+/// that as valid rather than refusing the whole file matches how `freedesktop_desktop_entry`'s
+/// own accessors already treat every other missing field).
+fn is_application(entry: &DesktopEntry) -> bool {
+    entry.type_().is_none_or(|kind| kind == "Application")
+}
+
+/// Whether `try_exec`, an absolute path or a bare command name, resolves to a file: absolute
+/// paths are checked directly, a bare name is searched on `$PATH` (CONVENTIONS "substrings are
+/// not tokens" does not apply here — this is a filesystem existence check, not a string match).
+fn on_path(try_exec: &str) -> bool {
+    let candidate = Path::new(try_exec);
+    if candidate.is_absolute() {
+        return candidate.is_file();
+    }
+    std::env::var_os("PATH")
+        .map(|paths| std::env::split_paths(&paths).any(|dir| dir.join(try_exec).is_file()))
+        .unwrap_or(false)
+}
+
+/// `NoDisplay`, `Hidden` and an `OnlyShowIn`/`NotShowIn` mismatch against [`CURRENT_DESKTOP`]
+/// all fold into the same [`Listing::Hidden`] (the frozen `App::listing`'s own doc: "hidden
+/// entries still match windows, never list"); this scan never excludes an entry outright for
+/// any of them; the whole record is still yielded and dedupes, so a `Hidden=true` entry in a
+/// higher-precedence directory still shadows a lower one for `match_app`.
+fn is_listed(entry: &DesktopEntry) -> bool {
+    if entry.no_display() || entry.hidden() {
+        return false;
+    }
+    if let Some(only) = entry.only_show_in()
+        && !only.contains(&CURRENT_DESKTOP)
+    {
+        return false;
+    }
+    if let Some(not) = entry.not_show_in()
+        && not.contains(&CURRENT_DESKTOP)
+    {
+        return false;
+    }
+    true
+}
+
+fn actions(entry: &DesktopEntry, locales: &[String]) -> Vec<DesktopActionEntry> {
+    entry
+        .actions()
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|action| {
+            let name = entry.action_name(action, locales)?.into_owned();
+            let exec = entry.action_exec(action)?.to_owned();
+            Some(DesktopActionEntry {
+                id: action.to_owned(),
+                name,
+                exec,
+            })
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{entry_id, is_application, is_listed, on_path, parse_entry};
+    use crate::apps::icons::IconTheme;
+    use crate::apps::index::Listing;
+    use freedesktop_desktop_entry::DesktopEntry;
+    use std::path::{Path, PathBuf};
+
+    fn entry(text: &str) -> DesktopEntry {
+        DesktopEntry::from_str(Path::new("/tmp/t.desktop"), text, Some(&[] as &[&str]))
+            .unwrap_or_else(|e| panic!("{e}"))
+    }
+
+    #[test]
+    fn entry_id_is_relative_to_its_own_applications_dir_with_slashes_dashed() {
+        let dirs = [PathBuf::from("/usr/share/applications")];
+        let cases: &[(&str, Option<&str>)] = &[
+            ("/usr/share/applications/foot.desktop", Some("foot")),
+            ("/usr/share/applications/kde/foo.desktop", Some("kde-foo")),
+            ("/other/place/foot.desktop", None),
+        ];
+        for (path, want) in cases {
+            assert_eq!(
+                entry_id(Path::new(path), &dirs),
+                want.map(str::to_owned),
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn is_application_accepts_application_or_no_type_and_refuses_the_rest() {
+        let cases: &[(&str, &str, bool)] = &[
+            ("explicit", "[Desktop Entry]\nType=Application\n", true),
+            ("missing", "[Desktop Entry]\nName=X\n", true),
+            ("link", "[Desktop Entry]\nType=Link\nURL=x\n", false),
+            ("directory", "[Desktop Entry]\nType=Directory\n", false),
+        ];
+        for (name, text, want) in cases {
+            assert_eq!(is_application(&entry(text)), *want, "{name}");
+        }
+    }
+
+    #[test]
+    fn is_listed_hides_no_display_hidden_and_a_desktop_mismatch() {
+        let cases: &[(&str, &str, bool)] = &[
+            ("plain", "[Desktop Entry]\nType=Application\n", true),
+            (
+                "no display",
+                "[Desktop Entry]\nType=Application\nNoDisplay=true\n",
+                false,
+            ),
+            (
+                "hidden",
+                "[Desktop Entry]\nType=Application\nHidden=true\n",
+                false,
+            ),
+            (
+                "only cosmic",
+                "[Desktop Entry]\nType=Application\nOnlyShowIn=COSMIC;\n",
+                true,
+            ),
+            (
+                "only gnome",
+                "[Desktop Entry]\nType=Application\nOnlyShowIn=GNOME;\n",
+                false,
+            ),
+            (
+                "not cosmic",
+                "[Desktop Entry]\nType=Application\nNotShowIn=COSMIC;\n",
+                false,
+            ),
+            (
+                "not gnome",
+                "[Desktop Entry]\nType=Application\nNotShowIn=GNOME;\n",
+                true,
+            ),
+            (
+                "cosmic is not a substring match away",
+                "[Desktop Entry]\nType=Application\nOnlyShowIn=XCOSMIC;\n",
+                false,
+            ),
+        ];
+        for (name, text, want) in cases {
+            assert_eq!(is_listed(&entry(text)), *want, "{name}");
+        }
+    }
+
+    #[test]
+    fn on_path_checks_absolute_files_directly_and_bare_names_on_path() {
+        // `/bin/sh` and a bare `sh` on `$PATH` exist on every machine that can run this test
+        // suite at all (`std::process::Command` itself relies on the same).
+        assert!(on_path("/bin/sh"));
+        assert!(on_path("sh"));
+        assert!(!on_path("/no/such/binary-xyz"));
+        assert!(!on_path("no-such-binary-xyz"));
+    }
+
+    #[test]
+    fn parse_entry_refuses_a_try_exec_that_is_not_installed() {
+        let text =
+            "[Desktop Entry]\nType=Application\nName=X\nExec=x\nTryExec=/no/such/binary-xyz\n";
+        let theme = IconTheme("hicolor".to_owned());
+        assert!(parse_entry(Path::new("/a/x.desktop"), "x", text, &theme, &[]).is_none());
+    }
+
+    #[test]
+    fn parse_entry_refuses_without_name_or_exec() {
+        let theme = IconTheme("hicolor".to_owned());
+        let no_name = "[Desktop Entry]\nType=Application\nExec=x\n";
+        let no_exec = "[Desktop Entry]\nType=Application\nName=X\n";
+        assert!(parse_entry(Path::new("/a/x.desktop"), "x", no_name, &theme, &[]).is_none());
+        assert!(parse_entry(Path::new("/a/x.desktop"), "x", no_exec, &theme, &[]).is_none());
+    }
+
+    #[test]
+    fn parse_entry_marks_a_hidden_entry_shown_as_listing_hidden_but_still_yields_it() {
+        let text = "[Desktop Entry]\nType=Application\nName=X\nExec=x\nNoDisplay=true\n";
+        let theme = IconTheme("hicolor".to_owned());
+        let app = parse_entry(Path::new("/a/x.desktop"), "x", text, &theme, &[])
+            .unwrap_or_else(|| panic!("expected an App"));
+        assert_eq!(app.listing, Listing::Hidden);
+        assert_eq!(app.name, "X");
+    }
 }
