@@ -10,6 +10,7 @@ publish.workspace = true
 
 [dependencies]
 dioxus = { workspace = true }
+dioxus-native-dom = { workspace = true }
 ds = { workspace = true }
 ds-settings = { workspace = true }
 shell-host = { workspace = true }
@@ -20,3 +21,13 @@ tokio = { workspace = true }
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+ds = { workspace = true, features = ["lint"] }
+dioxus-ssr = { workspace = true }
+shell-host = { workspace = true, features = ["debug-inject"] }
+
+# A standalone bar on a real compositor with fake services, for acceptance
+# (`dev/accept-bar-ui.sh`); `debug-inject` gives it shell-host's stdin commands.
+[[example]]
+name = "bar_demo"

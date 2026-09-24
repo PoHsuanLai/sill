@@ -1,0 +1,249 @@
+//! What each bar menu lists, pure over the service values: a ds `Menu{Dropdown}`'s entries, or
+//! the volume panel (design/20 §1.1; the stubs' own descriptions: app name "its windows and
+//! Quit", volume "a quire `Slider`, output device, mute", network "connection, connectivity",
+//! battery "level, time remaining", clock "the date").
+//!
+//! Status lines are menu headers: quire's `MenuEntry` has no disabled or informational item
+//! (its TODO O-1), and a header is the one entry a menu never picks (FINDINGS "M1 bar-ui").
+
+use ds::{Check, Fraction, MenuEntry, Trail};
+use sill_launcher::WindowKey;
+use sill_services::{
+    AppIndex, Battery, ClockText, Mute, Network, OutputName, Presence, Toplevels, Volume, match_app,
+};
+
+use super::menus::BarMenu;
+use super::pick::BarPick;
+use super::status::{battery_lines, network_lines, volume_heading};
+
+/// The frontmost app on an output: its name and every one of its windows.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct FrontApp {
+    pub name: String,
+    pub windows: Vec<(WindowKey, String)>,
+}
+
+/// The volume menu: the device, a level slider and mute.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct VolumePanel {
+    pub heading: String,
+    pub level: Fraction,
+    pub mute: Mute,
+    pub presence: Presence,
+}
+
+/// What a bar popup draws.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum PopupBody {
+    Menu(Vec<MenuEntry<BarPick>>),
+    Volume(VolumePanel),
+}
+
+/// Everything the menus are built from.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct BarState {
+    pub app: Option<FrontApp>,
+    pub volume: Volume,
+    pub network: Network,
+    pub battery: Battery,
+    pub clock: ClockText,
+}
+
+/// `menu`'s contents in `state`.
+pub(crate) fn body(menu: BarMenu, state: &BarState) -> PopupBody {
+    match menu {
+        BarMenu::App => PopupBody::Menu(app_menu(state.app.as_ref())),
+        BarMenu::Volume => PopupBody::Volume(volume_panel(&state.volume)),
+        BarMenu::Network => PopupBody::Menu(lines_menu(network_lines(&state.network))),
+        BarMenu::Battery => PopupBody::Menu(lines_menu(battery_lines(&state.battery))),
+        BarMenu::Clock => PopupBody::Menu(lines_menu([state.clock.text.clone()])),
+    }
+}
+
+/// The frontmost app on `output` (any output when the bar's has no name): the most recently
+/// activated window there, named through the app index when it matches an entry.
+pub(crate) fn front_app(
+    toplevels: &Toplevels,
+    apps: &AppIndex,
+    output: Option<&OutputName>,
+) -> Option<FrontApp> {
+    let front = toplevels
+        .windows
+        .iter()
+        .find(|w| output.is_none_or(|o| w.outputs.contains(o)))?;
+    let name = match_app(&front.app_id, None, apps)
+        .and_then(|id| apps.get(&id).map(|app| app.name.clone()))
+        .unwrap_or_else(|| front.app_id.clone());
+    let windows = toplevels
+        .windows
+        .iter()
+        .filter(|w| w.app_id == front.app_id)
+        .map(|w| (w.key, w.title.clone()))
+        .collect();
+    Some(FrontApp { name, windows })
+}
+
+/// The app menu: a header, one item per window, Quit.
+fn app_menu(app: Option<&FrontApp>) -> Vec<MenuEntry<BarPick>> {
+    let Some(app) = app else {
+        return lines_menu(["Desktop".to_owned()]);
+    };
+    let windows = app
+        .windows
+        .iter()
+        .map(|(key, title)| item(title.clone(), BarPick::Activate(*key), None));
+    let quit = item(
+        format!("Quit {}", app.name),
+        BarPick::Quit(app.windows.iter().map(|(key, _)| *key).collect()),
+        None,
+    );
+    std::iter::once(MenuEntry::Header(app.name.clone()))
+        .chain(windows)
+        .chain([MenuEntry::Separator, quit])
+        .collect()
+}
+
+/// Status lines as headers, then Settings.
+fn lines_menu<const N: usize>(lines: [String; N]) -> Vec<MenuEntry<BarPick>> {
+    lines
+        .into_iter()
+        .map(MenuEntry::Header)
+        .chain([
+            MenuEntry::Separator,
+            item("Settings…".to_owned(), BarPick::Settings, None),
+        ])
+        .collect()
+}
+
+fn volume_panel(volume: &Volume) -> VolumePanel {
+    VolumePanel {
+        heading: volume_heading(volume),
+        level: Fraction(volume.level.0.min(100) * 10),
+        mute: volume.mute,
+        presence: volume.presence,
+    }
+}
+
+/// A plain item.
+fn item(title: String, value: BarPick, check: Option<Check>) -> MenuEntry<BarPick> {
+    MenuEntry::Item {
+        value,
+        title,
+        detail: None,
+        tile: None,
+        trail: Trail::None,
+        check,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{BarState, FrontApp, PopupBody, body, front_app};
+    use crate::surfaces::bar::menus::BarMenu;
+    use crate::surfaces::bar::pick::BarPick;
+    use ds::{Fraction, MenuEntry};
+    use sill_launcher::WindowKey;
+    use sill_services::{
+        Activity, AppIndex, Battery, ClockText, Mute, Network, OutputName, Percent, Presence,
+        Sizing, Toplevel, Toplevels, Volume, WindowState,
+    };
+
+    fn window(key: u64, app: &str, output: &str) -> Toplevel {
+        Toplevel {
+            key: WindowKey(key),
+            app_id: app.to_owned(),
+            title: format!("{app} {key}"),
+            activity: Activity::Inactive,
+            window: WindowState::Normal,
+            sizing: Sizing::Floating,
+            workspaces: Vec::new(),
+            outputs: vec![OutputName(output.to_owned())],
+        }
+    }
+
+    fn titles(entries: &[MenuEntry<BarPick>]) -> Vec<String> {
+        entries
+            .iter()
+            .map(|e| match e {
+                MenuEntry::Header(t) => format!("# {t}"),
+                MenuEntry::Item { title, .. } => title.clone(),
+                MenuEntry::Separator => "--".to_owned(),
+            })
+            .collect()
+    }
+
+    #[test]
+    fn the_front_app_is_the_most_recent_window_on_this_output() {
+        let toplevels = Toplevels {
+            windows: vec![
+                window(1, "foot", "DP-2"),
+                window(2, "files", "DP-1"),
+                window(3, "foot", "DP-1"),
+            ],
+        };
+        let dp1 = OutputName("DP-1".to_owned());
+        let app = front_app(&toplevels, &AppIndex::default(), Some(&dp1));
+        assert_eq!(
+            app,
+            Some(FrontApp {
+                name: "files".to_owned(),
+                windows: vec![(WindowKey(2), "files 2".to_owned())],
+            })
+        );
+        let any = front_app(&toplevels, &AppIndex::default(), None).map(|a| a.windows.len());
+        assert_eq!(any, Some(2), "foot's two windows, on any output");
+        assert_eq!(
+            front_app(&Toplevels::default(), &AppIndex::default(), None),
+            None
+        );
+    }
+
+    #[test]
+    fn each_menu_lists_its_own_lines() {
+        let state = BarState {
+            app: Some(FrontApp {
+                name: "Foot".to_owned(),
+                windows: vec![(WindowKey(4), "~".to_owned())],
+            }),
+            volume: Volume {
+                presence: Presence::Present,
+                level: Percent(40),
+                mute: Mute::Muted,
+                sink: "Speakers".to_owned(),
+            },
+            network: Network::default(),
+            battery: Battery::default(),
+            clock: ClockText {
+                text: "Thu 24 Sep 14:05".to_owned(),
+            },
+        };
+        let menu = |m| match body(m, &state) {
+            PopupBody::Menu(entries) => titles(&entries),
+            PopupBody::Volume(_) => vec!["volume".to_owned()],
+        };
+        assert_eq!(menu(BarMenu::App), ["# Foot", "~", "--", "Quit Foot"]);
+        assert_eq!(
+            menu(BarMenu::Clock),
+            ["# Thu 24 Sep 14:05", "--", "Settings…"]
+        );
+        assert_eq!(
+            menu(BarMenu::Network),
+            ["# Not connected", "# Internet: unknown", "--", "Settings…"]
+        );
+        match body(BarMenu::Volume, &state) {
+            PopupBody::Volume(panel) => {
+                assert_eq!(panel.level, Fraction(400));
+                assert_eq!(panel.mute, Mute::Muted);
+                assert_eq!(panel.heading, "Speakers");
+            }
+            PopupBody::Menu(entries) => panic!("volume is a panel: {entries:?}"),
+        }
+        let quit = match body(BarMenu::App, &state) {
+            PopupBody::Menu(entries) => entries.last().cloned(),
+            PopupBody::Volume(_) => None,
+        };
+        assert!(
+            matches!(quit, Some(MenuEntry::Item { value: BarPick::Quit(keys), .. }) if keys == vec![WindowKey(4)])
+        );
+    }
+}

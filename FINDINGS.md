@@ -92,6 +92,79 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
   - No settings key names the wallpaper file; M2 reads COSMIC's background config until one
     exists.
 
+## M1 bar-ui (2026-09-24)
+
+- **F20 One popup, anchored by a measured rect.** Every bar menu is one `xdg_popup` opened with
+  `bar::popup::menu_popup`'s config and `PopupAnchor::Rect`, not `Element`: ds `Button` and
+  `IconButton` render no `id`, and a hover switch (`SurfaceOp::Reposition`) needs the new
+  title's rect in any case. The rect is the button's own, from its `mounted` handle through
+  `ds::use_rect`, and travels with each title event to the session. The popup is a document of
+  its own (`menu_popup.rs`) that follows a per-popup `watch` of its view: a new view swaps the
+  contents and repositions, `None` makes it close itself (a `SurfaceHandle` closes only its own
+  surface). It reports picks, dismissals and its own drop on an `mpsc` the bar drains into the
+  tracking machine (`plan::popup_input`).
+- **F21 The ds margin is part of the popup.** A ds floating surface is clamped 8 px inside its
+  bounds (`ds::place`), so the popup is the menu plus 8 px on every side and 16 px more right
+  and below for the drop shadow; the anchor rect folds the margin in and `PopupConfig::offset`
+  carries design/13 §13.3.2's (-8, +6) / (+8, +6) (G3, now closed upstream). The size is an
+  estimate from the entries (G6); the spare area is transparent.
+- **F22 What the machine drives, and what the ds Menu keeps.** The machine gets presses,
+  releases and pointer entries on titles from the bar, and picks, Escape/outside-margin closes
+  and drops from the popup; `Open`, `Switch`, `Close` and `Pick` become show, swap, hide and run.
+  `Highlight`, submenus, the safe triangle and `Adjacent` are not wired: the ds `Menu` draws its
+  own selection from the pointer and keys and exposes neither item hover nor item release (Q8),
+  and bar menus have no submenus. Press-drag-release onto an item therefore needs a click on the
+  item when the compositor keeps the implicit grab on the bar. A press on the bar outside every
+  title is an outside press (as on macOS); a real outside press ends the grab and the popup's
+  drop reports it.
+- **F23 Status lines are menu headers.** ds `MenuEntry` has no disabled or informational item
+  (its TODO O-1), so network, battery and clock menus show their lines as headers and end with a
+  Settings item (`LaunchCommand::Launch` of `com.system76.CosmicSettings`). The volume menu is a
+  ds `Popover` with a `SectionHeader{Field}`, a `Slider` and a mute `Toggle`, since a `Menu`
+  cannot hold a slider.
+- **F24 The bar's tint.** `Ds` paints frame layers (the A/B cross-fade) only for
+  `Material::Window` (Q6). The bar paints its own layer of `--f-solid` at `--m-tint-alpha` over
+  the Bar material, with `background-color` and `color` transitions over `--t-scene`, so a
+  workspace switch cross-fades the hue (design/21 §5 through spike S4) but the layer is the
+  Space's first stop, not its gradient.
+- **F25 Keys that do not reach quire components.** `bar.status_icon_box_px`,
+  `bar.status_glyph_px` and `bar.glyph_size_policy` have no effect: `IconButton{Tool}` is 28 x 26
+  with a 16 px glyph and a consumer may not style `.ds-*` (Q9). `bar.open_title_pill_height_px`
+  is the title's hit height (both 24 by default): the pill is the hit box's background. The app
+  name is a `Button{Quiet}`, so it is not ui 13/700. `bar.height_px`, `title_hit_height_px`,
+  `title_padding_px` and `status_gap_px` are written inline from the settings.
+- **F26 Not built in this wave.** The workspace pills' right-click Edit Space (the Space editor
+  popup is later work); the bar menus' popup blur (`BlurState::Unavailable`, the solid tint:
+  a popup's document would have to name the menu element for a blur region, and ds `Menu`
+  renders no id); the open and close animations design/13 asks for (the ds `Menu` always plays
+  its entrance, and the popup goes at once on close).
+- **F27 `use_space_look`** returns `ds::default_look(index, spaces.default_grain,
+  spaces.default_card_accent)`: design/21 §4's preset for the workspace's position in its
+  group (F17). With no workspaces (KWin) the bar takes preset 1.
+- **F28 Acceptance** (`dev/accept-bar-ui.sh`, nested `kwin_wayland --virtual`, 1280 x 720
+  logical at scale 1.5, `examples/bar_demo.rs` on fake services): a maximised probe is 720 tall
+  without the bar and 688 with it (32 reserved); five idle seconds add 0 frames, 0 commits and
+  0 callbacks; a click on the clock opens `sill-bar-Virtual-0/popup` (252 x 111, presented) and a
+  click on the bar's empty middle closes it. `dev/out/bar.png` is the screen with the clock
+  menu open.
+
+### Gaps found in M1 bar-ui
+
+- **G6** `PopupSize::FitContent` never measures the popup's document: the size passed in
+  `PopupPlacement` is the size (F21).
+- **Q6** `Ds` renders the frame layers only for `Material::Window`; the tinted shell materials
+  (Bar, Dock) need the same A/B gradient layers at the tint alpha (design/21 §3, §5) (F24).
+- **Q7** quire's `HostMeasure` for Blitz documents is private to ds-native, and shell-host cannot
+  provide one, so every shell-host root without one panics ("RefCell already borrowed") on its
+  first `use_rect` read once shell-host polls woken tasks inside the render (shell-host
+  `df9c59b`). `bar/measure.rs` repeats ds-native's twelve lines; ds-native should export it.
+- **Q8** ds `Menu` exposes no item hover or item release, and calls `onclose` before `onpick`, so
+  an external tracker (design/13 §13.7) cannot drive its highlight, submenus or
+  press-drag-release (F22); nor can its entrance be suppressed for a hover switch (F26).
+- **Q9** No ds status-item variant: `IconButton{Tool}` cannot take the bar's glyph box and size
+  keys, and ds components on frame chrome use paper inks, not `--f-ink*` (F25). No wired-network
+  glyph (`Icon::Link` stands in).
+
 ## Gaps reported upstream
 
 - **Q1** quire has no menu tracking machine (F15).
