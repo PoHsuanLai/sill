@@ -59,27 +59,35 @@ impl Services {
     /// and bundle them. A service whose system half is missing still yields its receiver, at
     /// its default.
     ///
-    /// Every module's `spawn` is called here, including ones a later milestone still owns
-    /// (`apps`, `badges`, `pins`, `launch`, `results`, `wallpaper`, `sound` are `todo!()` until
-    /// M2-M6 land): the frozen `Services` struct needs a value for every field, and this is the
-    /// one place that builds it. Calling `sill run` for real panics on whichever of those is
-    /// reached first until its milestone lands — that is expected during M1, not a bug here.
-    /// `results` is wired with no providers; M4 launcher-core replaces `Vec::new()` with the
-    /// five real ones once `sill-services::providers` exists.
+    /// A service whose `spawn` is still a freeze stub is not called (a `todo!()` would panic
+    /// `sill run` before it ever reaches the host or the IPC server, and the daemon has to
+    /// start today): [`inert`] builds its pair locally instead, one line per service naming the
+    /// wave that replaces it. `battery`, `network`, `volume` (M1 svc-dbus) and `cosmic_wl` (M1
+    /// svc-cosmic) are real; `clock` (M1 bar-ui) and `tray` (M1 svc-tray) are still stubs as of
+    /// this write, alongside the M2-M6 services below.
     pub fn spawn(rt: &Handle) -> Services {
-        let (clock, clock_control) = crate::clock::spawn(rt);
+        // M1 bar-ui replaces this with clock::spawn.
+        let (clock, clock_control) = inert();
         let (battery, battery_control) = crate::battery::spawn(rt);
         let (network, network_control) = crate::network::spawn(rt);
         let (volume, volume_control) = crate::volume::spawn(rt);
-        let (tray, tray_control) = crate::tray::spawn(rt);
+        // M1 svc-tray replaces this with tray::spawn.
+        let (tray, tray_control) = inert();
         let (workspaces, toplevels, wl) = crate::cosmic_wl::spawn();
-        let (apps, apps_control) = crate::apps::spawn(rt);
-        let (badges, badges_control) = crate::badges::spawn(rt);
-        let (pins, pins_control) = crate::pins::spawn(rt);
-        let (launches, launch) = crate::launch::spawn(rt, apps.clone());
-        let (results, search) = crate::results::spawn(rt, Vec::new());
-        let (wallpapers, wallpaper_control) = crate::wallpaper::spawn(rt);
-        let (sound, sound_control) = crate::sound::spawn(rt);
+        // M2 apps-index replaces this with apps::spawn.
+        let (apps, apps_control) = inert();
+        // M3 badges replaces this with badges::spawn.
+        let (badges, badges_control) = inert();
+        // M2 launch (dock_config) replaces this with pins::spawn.
+        let (pins, pins_control) = inert();
+        // M2 launch replaces this with launch::spawn(rt, apps).
+        let (launches, launch) = inert();
+        // M4 launcher-core replaces this with results::spawn(rt, the five providers).
+        let (results, search) = inert();
+        // M2 wallpaper replaces this with wallpaper::spawn.
+        let (wallpapers, wallpaper_control) = inert();
+        // M6 replaces this with sound::spawn.
+        let (sound, sound_control) = inert();
 
         Services {
             clock,
@@ -110,5 +118,40 @@ impl Services {
             sound,
             sound_control,
         }
+    }
+}
+
+/// A receiver fixed at `T::default()` and a `Control` whose commands go nowhere, for a service
+/// whose `spawn` is still a freeze stub. The command channel's receiving half is dropped at
+/// once (nobody is ever going to drain it), so `Control::send` against the returned `Control`
+/// answers `ServiceError::Gone` rather than queuing forever.
+fn inert<T: Default, C>() -> (watch::Receiver<T>, Control<C>) {
+    let (_tx, rx) = watch::channel(T::default());
+    let (control, _rx) = Control::channel();
+    (rx, control)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Services;
+
+    /// `Services::spawn` must never panic — the daemon has to reach the host connect and the
+    /// IPC server before every milestone lands — and every receiver still stubbed out holds its
+    /// default (a service that is real, `battery`/`network`/`volume`/`cosmic_wl`, degrades to
+    /// its own default without a bus or a compositor, per `ServiceError`'s doc).
+    #[test]
+    fn spawn_does_not_panic_and_every_stub_holds_its_default() {
+        let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
+        let services = Services::spawn(rt.handle());
+
+        assert_eq!(*services.clock.borrow(), Default::default());
+        assert_eq!(*services.tray.borrow(), Default::default());
+        assert_eq!(*services.apps.borrow(), Default::default());
+        assert_eq!(*services.badges.borrow(), Default::default());
+        assert_eq!(*services.pins.borrow(), Default::default());
+        assert_eq!(*services.launches.borrow(), Default::default());
+        assert_eq!(*services.results.borrow(), Default::default());
+        assert_eq!(*services.wallpapers.borrow(), Default::default());
+        assert_eq!(*services.sound.borrow(), Default::default());
     }
 }
