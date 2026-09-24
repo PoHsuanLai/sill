@@ -2,14 +2,25 @@
 //! ones grouped by `match_app`, Plank magnification, bounces, labels, badges, clicks, drags and
 //! auto-hide, driven by the pure [`machine`].
 
-#![allow(unused_variables, dead_code)] // Freeze stubs
-
 pub mod context_menu;
 pub mod geometry;
 pub mod items;
 pub mod layer;
 pub mod machine;
 pub mod tile;
+
+mod activate;
+mod changes;
+mod effects;
+mod frame;
+mod hit;
+mod icon;
+mod menu_geometry;
+mod menu_popup;
+mod pick;
+mod pointer;
+mod session;
+mod view;
 
 pub use geometry::magnify_params;
 pub use items::{DockItem, ItemKind, dock_items};
@@ -23,5 +34,5 @@ use shell_host::OutputInfo;
 /// machine's `displayed` progress.
 #[component]
 pub fn Dock(output: OutputInfo) -> Element {
-    todo!("M3 dock-ui")
+    view::dock(output)
 }

@@ -24,6 +24,7 @@ mod session;
 mod status;
 mod status_item;
 mod title;
+mod tray_input;
 
 pub use layer::bar_layer;
 
@@ -40,6 +41,7 @@ use content::{BarState, front_app};
 use menu_track::{MenuIn, MenuParams, Target};
 use network::NetworkItem;
 use session::{BarInput, PopupLook, SessionDeps, use_menu_session};
+use status_item::status_metrics;
 use tray::Tray;
 use volume::VolumeItem;
 use workspaces::{WorkspaceIndicator, group_for};
@@ -71,7 +73,9 @@ fn active_look(
 }
 
 /// The bar on `output`: `Ds` root with the workspace's SpaceLook, `Material::Bar`, the left
-/// and right groups, and the one reusable menu popup.
+/// and right groups, and the one reusable menu popup. The root draws the Space gradient at the
+/// Bar's tint alpha and puts its content on the frame ground (quire's `FrameTint::Tinted` and
+/// `Ground::Frame`, the Bar's defaults), so the bar paints no tint of its own.
 #[component]
 pub fn Bar(output: OutputInfo) -> Element {
     let file = use_settings()();
@@ -103,7 +107,11 @@ pub fn Bar(output: OutputInfo) -> Element {
     use_context_provider(|| bar);
     let outside = move |input: MenuIn| bar.feed(BarInput::Bar { input, title: None });
     let strip = format!("height:{}px", file.bar.height_px.0);
-    let status = format!("gap:{}px", file.bar.status_gap_px.0);
+    let status = format!(
+        "gap:{}px;{}",
+        file.bar.status_gap_px.0,
+        status_metrics(&file.bar).style_attr()
+    );
     rsx! {
         Ds {
             appearance: popup_look.appearance,
@@ -118,7 +126,6 @@ pub fn Bar(output: OutputInfo) -> Element {
                 style: strip,
                 onpointerdown: move |_| outside(MenuIn::OutsidePress),
                 onpointerup: move |_| outside(MenuIn::Release(Target::Outside)),
-                div { class: "sill-bar-tint" }
                 div { class: "sill-bar-group",
                     AppName { output: output.clone() }
                     WorkspaceIndicator { output: output.clone() }

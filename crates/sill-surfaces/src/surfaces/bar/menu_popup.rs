@@ -1,12 +1,15 @@
 //! The bar popup's own document: a `Ds` root holding one ds
 //! `Menu{Dropdown}` (or, for the volume item, a ds `Popover` with a `Slider` and a `Toggle`),
 //! following the bar's view channel: a new view swaps the contents and repositions the popup
-//! (`xdg_popup.reposition`), none closes it.
+//! (`xdg_popup.reposition`), none closes it. The root is `Material::Popover`, which paints
+//! nothing on its own box (quire's transparent popup root); the menu card paints the material.
+//! The menu opens with no entrance (design/13 §13.3.2) and reports the pointer's hover and
+//! release to the bar's tracking machine.
 
 use dioxus::prelude::*;
 use ds::{
-    Align, Anchor, BlurState, Ds, Elevation, Fraction, HeaderKind, Material, Menu, MenuKind,
-    Placement, Point, Popover, Px, SectionHeader, Side, Slider, Switch, Toggle,
+    Align, Anchor, BlurState, Ds, Elevation, Fraction, HeaderKind, Material, Menu, MenuEntrance,
+    MenuKind, Placement, Point, Popover, Press, Px, SectionHeader, Side, Slider, Switch, Toggle,
 };
 use shell_host::{PopupPlacement, SurfaceOp, use_surface, use_watch};
 use sill_services::{Control, Mute, Percent, VolumeCommand};
@@ -15,7 +18,7 @@ use tokio::sync::{mpsc, watch};
 use super::content::{PopupBody, VolumePanel};
 use super::geometry::{MARGIN, frame_style};
 use super::pick::BarPick;
-use super::plan::PopupReport;
+use super::plan::{PopupReport, choice};
 use super::session::PopupView;
 
 /// The popup's link to its bar, provided as its root context.
@@ -43,9 +46,11 @@ pub(crate) const POPUP_CSS: &str = include_str!("../../style/bar_popup.css");
 /// The gap from [`corner`]'s point to the menu's top edge.
 const GAP: Px = Px(7.0);
 
-/// The popup root.
+/// The popup root. A popup is a `VirtualDom` of its own and inherits nothing from the bar, so
+/// it provides quire's rect measurer itself.
 #[component]
 pub(crate) fn MenuPopup() -> Element {
+    ds_native::measure::provide();
     let link = use_context::<PopupLink>();
     let surface = use_surface();
     let view = use_watch(link.view.clone());
@@ -80,14 +85,10 @@ pub(crate) fn MenuPopup() -> Element {
     rsx! {
         style { {POPUP_CSS} }
         div { class: "sill-popup-frame", style: frame_style(),
-            // Not `Material::Popover` (design/03 §17.3): the root holds only overlays, so it is
-            // a zero-height, frame-wide box, and Popover's drop shadow on it paints a grey band
-            // across the popup's top (FINDINGS "M1 bar-ui", Q13). Bar's material has no drop
-            // shadow; the menu card paints itself (`.ds-popover`) whatever the root's material.
             Ds {
                 appearance: look.appearance,
                 system: look.system,
-                material: Material::Bar,
+                material: Material::Popover,
                 blur: BlurState::Unavailable,
                 tint_alpha: Some(look.tint),
                 {content}
@@ -96,31 +97,50 @@ pub(crate) fn MenuPopup() -> Element {
     }
 }
 
-/// A ds `Menu{Dropdown}`; the root keys it by the bar menu so a hover switch starts a fresh
-/// selection.
-///
-/// The ds `Menu` calls `onclose` and then `onpick` for a pick, so a close is reported only
-/// after the handler has returned, and only when no pick followed it.
+/// A ds `Menu{Dropdown}`, at once (no entrance: a bar menu, and every hover switch); the root
+/// keys it by the bar menu so a switch starts a fresh selection. Its hover and releases go to
+/// the tracking machine, which decides a press-drag-release; quire's own pick then finds the
+/// session closed. The keyboard's pick still arrives as `Picked`, and quire calls `onpick`
+/// before `onclose`, so a close reports a dismissal only when nothing was picked.
 #[component]
 fn BarMenuList(entries: Vec<ds::MenuEntry<BarPick>>) -> Element {
     let link = use_context::<PopupLink>();
     let mut picked = use_hook(|| CopyValue::new(false));
-    let on_pick = {
+    let mut hovered = use_hook(|| CopyValue::new(None::<usize>));
+    let send = {
         let reports = link.reports.clone();
+        move |report: PopupReport| {
+            // The bar may be gone first; then there is nobody to tell.
+            let _ = reports.send(report);
+        }
+    };
+    let on_pick = {
+        let send = send.clone();
         move |pick: BarPick| {
             picked.set(true);
-            let _ = reports.send(PopupReport::Picked(pick));
+            send(PopupReport::Picked(pick));
         }
     };
     let on_close = {
-        let reports = link.reports.clone();
+        let send = send.clone();
         move |()| {
-            let reports = reports.clone();
-            spawn(async move {
-                if !picked() {
-                    let _ = reports.send(PopupReport::Dismissed);
-                }
-            });
+            if !picked() {
+                send(PopupReport::Dismissed);
+            }
+        }
+    };
+    let on_hover = {
+        let send = send.clone();
+        move |index: Option<usize>| {
+            hovered.set(index);
+            send(PopupReport::Hovered(index));
+        }
+    };
+    let on_release = {
+        let entries = entries.clone();
+        move |_: Press| {
+            let over = hovered().and_then(|index| choice(&entries, index));
+            send(PopupReport::Released(over));
         }
     };
     rsx! {
@@ -130,6 +150,9 @@ fn BarMenuList(entries: Vec<ds::MenuEntry<BarPick>>) -> Element {
             entries,
             onpick: on_pick,
             onclose: on_close,
+            on_hover,
+            on_release,
+            entrance: MenuEntrance::Instant,
         }
     }
 }

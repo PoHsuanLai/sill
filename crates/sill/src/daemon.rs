@@ -12,6 +12,7 @@
 
 use std::path::Path;
 use std::process::ExitCode;
+use std::time::{Duration, Instant};
 
 use shell_host::scale::{Size as BufferSize, buffer_size};
 use shell_host::{CloseReason, Host, HostConfig, HostCtx, HostEvent, OutputInfo, Root, SurfaceId};
@@ -132,14 +133,29 @@ fn run_event(
 ) {
     match event {
         HostEvent::App(ShellMsg::Ipc { request, reply }) => {
+            // `Toggle` is timed from here (the IPC request's arrival) regardless of what
+            // `dispatch_request` does with it: M4 perf-ime's `launcher.open_latency_ms` line
+            // (module doc; FINDINGS.md "M4 perf-ime"). Placed at the request's arrival rather
+            // than inside `dispatch_launcher` so M4 launcher-ui can freely rewrite that
+            // function's body — spawning the panel for real, keeping it warm, whatever the
+            // surface needs — without colliding with this edit: the elapsed time this measures
+            // grows on its own, from "IPC overhead only" today to "IPC arrival to the frame
+            // that presents the shown panel" once `dispatch_request` itself waits on that frame
+            // (e.g. via `HostCtx::take_stats` after spawning/showing the surface).
+            let toggled_at =
+                matches!(request, Request::Launcher(LauncherRequest::Toggle)).then(Instant::now);
             let response =
                 dispatch_request(ctx, outputs, services, settings_dir, settings_tx, request);
+            if let Some(toggled_at) = toggled_at {
+                log_open_latency(toggled_at.elapsed());
+            }
             let _ = reply.send(response);
         }
         other => {
             on_event(ctx, outputs, other);
             spawn_missing_bars(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_wallpapers(ctx, outputs, services, settings_feed);
+            spawn_missing_docks(ctx, outputs, services, settings_feed, settings_tx);
         }
     }
 }
@@ -342,10 +358,49 @@ fn spawn_wallpaper(
     }
 }
 
+/// Spawn a dock for every output whose row has none yet (the bar's pattern). The dock follows
+/// later settings changes to its geometry itself (`surfaces::dock`).
+fn spawn_missing_docks(
+    ctx: &mut HostCtx<ShellMsg>,
+    outputs: &mut Outputs,
+    services: &Services,
+    settings_feed: &SettingsFeed,
+    settings_tx: &watch::Sender<ShellFile>,
+) {
+    let missing: Vec<OutputInfo> = outputs
+        .outputs
+        .iter()
+        .filter(|(_, surfaces)| surfaces.dock.is_none())
+        .map(|(info, _)| info.clone())
+        .collect();
+    let file = settings_tx.borrow().clone();
+    for info in missing {
+        let config = sill_surfaces::surfaces::dock::dock_layer(&info, &file.dock);
+        let props = sill_surfaces::surfaces::dock::DockProps {
+            output: info.clone(),
+        };
+        let root = surface_root(
+            Root::with_props(sill_surfaces::Dock, props),
+            services,
+            settings_feed,
+        );
+        match ctx.spawn_layer(config, root) {
+            Ok(id) => {
+                let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
+                surfaces.dock = Some(id);
+                outputs.set(info, surfaces);
+            }
+            Err(error) => eprintln!("sill: spawning the dock on {:?}: {error}", info.name),
+        }
+    }
+}
+
 /// `root` with the contexts every surface the daemon spawns is given: the services, the
-/// settings, and the rect measurer quire's floating components read through (without it the
-/// first `use_rect` read inside a render panics; FINDINGS Q10, F76). Every spawn goes through
-/// here, so a new surface cannot forget one.
+/// settings, and quire's rect measurer, `ds_native::measure::MEASURE` (re-exported as
+/// `sill_surfaces::MEASURE`), which is what `ds_native::measure::provide()` provides from inside
+/// a root component. Without it a rect read waits a frame and the panic hook prints the
+/// collision (FINDINGS Q10, F81, "Adoption of the bar gaps"). Every spawn goes through here, so
+/// a new surface cannot forget it.
 fn surface_root(root: Root, services: &Services, settings_feed: &SettingsFeed) -> Root {
     root.context(services.clone())
         .context(settings_feed.clone())
@@ -487,19 +542,28 @@ fn apply_injection(_ctx: &mut HostCtx<ShellMsg>, _id: SurfaceId, _action: DebugA
     unsupported("built without the debug feature")
 }
 
-/// Every known bar's and wallpaper's frame statistics, through the always-public
+/// The dock's layer namespace on `info` (`sill-dock-<output>`), which `debug stats` reports.
+fn dock_namespace(info: &OutputInfo) -> String {
+    sill_surfaces::surfaces::dock::dock_layer(info, &sill_settings::DockSettings::default())
+        .namespace
+}
+
+/// Every known bar's, wallpaper's and dock's frame statistics, through the always-public
 /// `HostCtx::take_stats` (needs neither the `debug` feature nor shell-host's `debug-inject`;
 /// draining, so each report covers only the time since the previous one).
 fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc::SurfaceStats> {
-    let ids: Vec<(String, SurfaceId)> =
-        outputs
-            .outputs
-            .iter()
-            .filter_map(|(info, surfaces)| Some((bar_namespace(info), surfaces.bar?)))
-            .chain(outputs.outputs.iter().filter_map(|(info, surfaces)| {
-                Some((wallpaper_namespace(info), surfaces.wallpaper?))
-            }))
-            .collect();
+    let ids: Vec<(String, SurfaceId)> = outputs
+        .outputs
+        .iter()
+        .flat_map(|(info, surfaces)| {
+            let bar = surfaces.bar.map(|id| (bar_namespace(info), id));
+            let wallpaper = surfaces
+                .wallpaper
+                .map(|id| (wallpaper_namespace(info), id));
+            let dock = surfaces.dock.map(|id| (dock_namespace(info), id));
+            bar.into_iter().chain(wallpaper).chain(dock)
+        })
+        .collect();
     ids.into_iter()
         .filter_map(|(name, id)| Some(to_ipc_stats(name, ctx.take_stats(id)?)))
         .collect()
@@ -526,6 +590,32 @@ fn to_ipc_micros(p: shell_host::Percentiles) -> sill_ipc::Micros {
         p95_us: p.p95_us,
         max_us: p.max_us,
     }
+}
+
+/// Prints [`open_latency_line`] on stderr: the M4 perf-ime latency line `dev/accept-launcher.sh`
+/// parses for its p50/p95/max over 20 toggles.
+fn log_open_latency(elapsed: Duration) {
+    eprintln!("{}", open_latency_line(elapsed));
+}
+
+/// The stderr line for one `sill launcher toggle`'s latency, `elapsed` since the IPC request
+/// arrived. Its own function (rather than inlined in [`log_open_latency`]) so
+/// `crates/sill/tests/latency.rs` can check the arithmetic without a wall clock.
+pub fn open_latency_line(elapsed: Duration) -> String {
+    format!(
+        "launcher.open_latency_ms={:.3}",
+        elapsed.as_secs_f64() * 1000.0
+    )
+}
+
+/// The value [`open_latency_line`] printed, parsed back out of one line of the daemon's log.
+/// `None` for any line that is not one of ours (including a malformed number, which a caller
+/// should treat the same as "not present" rather than fail the whole log on).
+pub fn parse_open_latency_ms(line: &str) -> Option<f64> {
+    line.trim()
+        .strip_prefix("launcher.open_latency_ms=")?
+        .parse()
+        .ok()
 }
 
 fn unknown_surface(surface: &SurfaceName) -> Response {

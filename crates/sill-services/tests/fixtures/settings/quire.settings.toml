@@ -1,0 +1,43 @@
+app = "quire"
+file = "quire/appearance.toml"
+version = 1
+
+[[key]]
+path = "appearance.theme"
+default = "system"
+label = "Theme"
+help = "Follow the desktop, or force light or dark mode."
+section = "Appearance"
+exposure = "basic"
+
+[key.kind]
+kind = "segmented"
+
+[key.kind.v]
+variants = ["system", "light", "dark"]
+
+[key.page]
+kind = "appearance"
+
+[key.deprecated]
+kind = "no"
+
+[[key]]
+path = "appearance.accent"
+default = "blue"
+label = "Accent"
+help = "The frame's tint colour."
+section = "Appearance"
+exposure = "basic"
+
+[key.kind]
+kind = "menu"
+
+[key.kind.v]
+variants = ["red", "orange", "yellow", "green", "blue", "violet"]
+
+[key.page]
+kind = "appearance"
+
+[key.deprecated]
+kind = "no"

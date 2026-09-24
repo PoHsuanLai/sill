@@ -787,13 +787,571 @@ Filled `launch::{spawn, launch_argv, scope_unit}`, `pins::{spawn, load, save}` a
 - **G10** shell-host's `Inject::Click { at }` presses the primary button only; a
   `button` field (`MouseEventButton::Secondary`/`Auxiliary`) would let `sill debug click
   --button secondary` open the dock's context menu (F80).
+
+## M3 dock-ui (2026-09-24)
+
+Filled `surfaces/dock/**`: `Dock`, `Tile`, `dock_items`, `context_menu`, plus private modules
+(`frame`, `hit`, `pointer`, `activate`, `effects`, `changes`, `pick`, `icon`, `menu_geometry`,
+`menu_popup`, `session`, `view`). The machine is
+unchanged but for a new test file (`machine/settle_tests.rs`); no machine bug was found. Numbers
+start at F92/Q15 so they cannot collide with m2-wallpaper's F83-F91 and Q14.
+
+- **F92 Frames through shell-host's frame hook.** The session holds a `FrameDrive` from the
+  machine's `RequestFrames` to its `StopFrames`, and a task awaiting `SurfaceHandle::next_frame`
+  feeds `Frame` on every tick (not `use_frame_tick`, which panics without a `SurfaceHandle` and
+  so could not render in an SSR test). `Redraw` and `StopFrames` both stamp the instant the
+  render draws at, so the frame a leave reaches rest on is drawn too (the machine emits
+  `StopFrames` alone there; design/10's table says `Redraw, StopFrames`; handled in the
+  component rather than by changing the machine's tested output). `WakeAt` is a `ds::sleep`
+  task feeding `Tick`. `machine/settle_tests.rs` drives enter, a tracked move, leave, an
+  informational bounce and a released drag frame by frame at 1 ms and 16.7 ms ticks: each stops
+  frames in bounded time (enter 120-160 ms, leave 200-220 ms, bounce 1000-1020 ms) at both rates.
+- **F93 The root is `Material::Bar`, the pill a `Surface{Dock}`.** A `Ds` root of
+  `Material::Dock` holding only positioned children is a zero-height, full-width box, and its
+  drop shadow still painted a grey band down from the surface's top (seen in `sill debug
+  capture`); Q13 again. The root takes Bar (no drop shadow) and the pill's box holds a nested
+  `Surface{Dock}`, which paints the tint, edge, drop and 22 px radius. `dock.pill_radius_px`
+  therefore does not reach the pill (a consumer may not style `.ds`); only the default 22 is
+  drawn (Q15). The Space's hue is the bar's own tint layer (`--f-solid` at `--m-tint-alpha`,
+  Q9, F48).
+- **F94 Icons.** `IconView` of `IconSource::Image` (or `Symbolic` for a `*-symbolic` file) from
+  the app's resolved `AppIcon::File` via `IconUrl::file`, `Glyph(Window)` when there is none
+  (design/08 §4.3), `Glyph(Trash)` for Trash. The plate is 80.5 % of the tile (§2.2), neutral
+  paper (`--raise` to `--surface-2`), `--shadow-2`, corner 22.37 % of its side; the icon is 72 %
+  of the plate (§4.1), a glyph 56 %. `ds::IconSize` stops at 22 px (`Bar`), so the icon is drawn
+  at 22 and scaled with `transform:scale` (Q16); on Blitz the themed SVGs stay sharp at 96 px
+  (dev/out/dock-cosmic-magnified.png). §4.2's squircle detection (fill the plate when the icon
+  already is one) is not built: COSMIC's own icons sit inside our plate.
+- **F95 Items, ids and running state.** Running apps follow the pins in launch order, read as
+  each group's smallest `WindowKey` (keys are handed out as toplevels are first seen). A tile's
+  `TileId` is an FNV-1a hash of what it stands for (`app:<id>`, `raw:<app_id>`, `trash`), not
+  its index, so a bounce stays on its app when another tile appears before it and a pinned and
+  running app is one tile (the frozen `TileId` doc says "index-stable key"; the hash is stable
+  across more). `TileApp::NoWindows` is never produced: nothing tells an alive, windowless
+  D-Bus app apart from one still starting, and a second click then would launch it twice.
+  `Active{windows}` counts the app's windows on every workspace; the cycle itself picks from
+  the output's active workspace.
+- **F96 Clicks, menu, drags.** Effects become commands in `effects.rs` (pure, table-tested):
+  launch through `SurfaceHandle::activation_token` then `LaunchCommand::Launch` (the daemon's
+  `launch.rs` is not reachable from a surface, so its two lines are repeated); middle click
+  prefers the `new-window` action; `Cycle` activates the app's least recently used window on the
+  active workspace, so repeated clicks visit every window (two alternate); Option-clicks
+  minimize per §10.3.6; Cmd-click is `LaunchCommand::ShowInFiles`. The Trash tile reads as a
+  running app to the hit test, so a click activates it (opening `trash:///` in COSMIC Files)
+  instead of starting a ten-second launch bounce; its context menu is empty, so a secondary
+  press on it opens nothing (Empty Trash needs a service sill does not have). The context menu
+  (`Menu{Context}` in an `xdg_popup`, one per press, `Grab::Grabbed`) is flat for
+  `WindowsFirst` (windows, desktop actions, Keep in Dock / Remove from Dock, Quit) and has the
+  `Options` submenu for `AppleOrder`; the popup is placed above the tile as drawn (magnified),
+  8 px gap, its height estimated from the entries, wrapped titles included (shell-host's
+  `FitContent` now measures a popup, but the menu is an overlay placed from the popup's bottom
+  edge by the size given, so `Fixed` stays). Open at Login is not offered (no autostart writer);
+  Option-held Force Quit is built but never shown: layer surfaces get no keyboard while the menu
+  opens, so Option is always `Up`. The active window carries a check mark. Minimized windows are prefixed
+  `◆ ` (no ds diamond glyph). A drag reorders pins (`PinEvent::Move`), pins a running tile
+  dropped before the last pin, and unpins past the pill grown by `dock.remove_threshold_px`;
+  the ghost, the Remove label and the healing animation (§10.3.8) are not drawn (no ghost layer
+  surface, no pointer grab outside the input region to test with).
+- **F97 Right-click through the real event path.** shell-host `51cdfa7` (G10, closed while
+  this wave ran) injects a click with a button and sill master's daemon maps it, so `sill
+  debug click --button secondary` reaches the dock as Blitz's `mousedown` with the secondary
+  button, which the dock feeds the machine as a press (the menu opens on press, design/10
+  §10.3.7). An interim harness seam for the demo was removed again before commit.
+- **F98 The hover label is ds `Tooltip{Fly}`,** whose own `:hover` rule and `--d-fly` delay show
+  it and HoverHub's warm state skip the delay. The machine's `ShowLabel`/`HideLabel` are
+  therefore not applied: the Fly has no controlled mode, so the label does not hide on press or
+  while a menu is open as §10.3.4 asks (Q17).
+- **F99 Not built:** auto-hide is wired (strip element, slide offset, the machine's region
+  effects) but not exercised live; overflow shrinking (§10.3.1), file drops and spring-loading
+  (G4), minimize targets (G2), UI sounds (M6), the pressed scrim (the frozen `Tile` props carry
+  no press), a launch bounce ending on `ScopeExited`/`LaunchFailed` (the 10 s cap ends it), the
+  progress bar style (`ProgressStyle::Bar` shows nothing). The ring is a `conic-gradient`.
+- **F100 Daemon.** `run_event` spawns a dock per output after the bar (`spawn_missing_docks`,
+  the bar's pattern), and `collect_stats` reports `sill-dock-<output>` beside the bars, which the
+  acceptance needs for its frame counts: two lines outside "the lines that spawn the dock",
+  flagged here. The branch merged master (the daemon's `to_host_button` mapping) before its
+  gates. The dock follows later settings changes to its own layer (size, exclusive zone,
+  regions) through its `SurfaceHandle`. Side effect: `dev/accept-bar.sh` step 5 now sees a
+  maximised window of `output_h - 32 - 72` and needs the dock's reserve subtracted (not edited:
+  not owned here).
+- **F101 Acceptance** (`dev/accept-dock.sh`, nested cosmic-comp 1.8 on the running `wayland-1`,
+  2176 x 1360, `sill run` debug build with `--features debug` and a scratch `XDG_CONFIG_HOME`;
+  `sill debug stats` counters are cumulative, so the script takes differences), all five pass:
+  (1) a maximised probe is 1256 = 1360 - 32 - 72; (2) 60 `sill debug pointer` moves in 1.000 s
+  gave 52 frames for 52 callbacks, the leave's shrink 17 frames, then 0 frames in the next 5 s;
+  (3) a click on the pinned COSMIC Terminal tile launched it (`app-sill-com.system76.CosmicTerm-1
+  .scope`) and its running dot was in the dock's capture 502 ms later; (4) `badge_emitter
+  com.system76.CosmicTerm --count 5` turned the badge's pixel red in 131 ms; (5) `sill debug
+  click --button secondary` on that tile opened `sill-dock-WINIT-0/popup` (its window, Remove
+  from Dock, Quit). Screenshots: `dev/out/dock-cosmic.png` (rest, the probe's unmatched window as
+  a running tile), `dev/out/dock-cosmic-magnified.png` (pointer between the two tiles),
+  `dev/out/dock-cosmic-menu.png`; the last shows Q17: the hover label stays under the open menu.
+  `examples/dock_demo.rs` runs the dock alone on fake services (four tiles, a count of 7, a 40 %
+  ring) for manual checks.
+
+### Gaps found in M3 dock-ui
+
+- **Q15** `Surface` (and a `Ds` root) take the material's radius with no override, so
+  `dock.pill_radius_px` cannot reach the Dock pill (F93); and a zero-height root still paints its
+  material's drop shadow (Q13, now seen for Dock as well as Popover).
+- **Q16** `ds::IconSize` has no dock-tile size (48-128 px) and `IconView` no pixel size, so the
+  dock scales a 22 px icon (F94).
+- **Q17** `Tooltip{Fly}` is `:hover`-driven only; a controlled mode (shown/hidden by the caller)
+  would let the dock machine's label rules (hide on press, while a menu is open, while
+  dragging) apply (F98).
+
+## M4 perf-ime (2026-09-24)
+
+- **F102 `launcher.open_latency_ms` is timed at the IPC request's arrival, not inside
+  `dispatch_launcher`.** `run_event`'s `HostEvent::App(ShellMsg::Ipc { .. })` arm starts an
+  `Instant` for exactly `Request::Launcher(LauncherRequest::Toggle)`, calls
+  `dispatch_request` unchanged, then logs the elapsed time — regardless of what the response
+  turns out to be. This is the wave-ownership seam DESIGN.md's M4 table draws (perf-ime owns
+  the latency lines, launcher-ui owns "spawn/route" in the same file): launcher-ui can rewrite
+  `dispatch_launcher`'s body freely — spawn the two surfaces, wait for the shown frame, whatever
+  the design needs — without touching this edit, and the number this line prints grows on its
+  own from "IPC round trip only" (today, `dispatch_launcher` answers `Unsupported` at once) to
+  "IPC arrival to the frame that presents the shown panel" the moment `dispatch_request` itself
+  takes that long, with no further edit here. `open_latency_line`/`parse_open_latency_ms`
+  (`crates/sill/src/daemon.rs`, both `pub` for `crates/sill/tests/latency.rs` and
+  `dev/accept-launcher.sh`) are the pure formatting/parsing pair; `crates/sill/tests/latency.rs`
+  checks both without a wall clock (fixed `Duration`s), including that the parser ignores every
+  line that is not ours (an `Unsupported` failure message, another daemon line, a malformed
+  number).
+- **F103 `dev/accept-launcher.sh` runs three steps, self-contained** (own `sill run --features
+  debug`, scratch `XDG_CONFIG_HOME`, on the already-running nested `wayland-1`; quits its daemon
+  at the end via a `trap`), all with real evidence rather than assumed:
+  1. **Real pass, today.** 20 `sill launcher toggle` calls (each answers `Failed(Unsupported)`
+     and exits nonzero — expected, and irrelevant: F102's line is printed before the client ever
+     sees the response) produced exactly 20 `launcher.open_latency_ms` lines on this machine:
+     p50 0.000 ms, p95 0.001 ms, max 0.002 ms, comfortably under the 100 ms budget. This is
+     IPC-only overhead, not the real open latency the plan's gate means — but the mechanism is
+     real, and F102's design means it starts measuring the real thing unchanged once M4
+     launcher-ui lands, with nothing in this script to update.
+  2. **Skip (exit 2), "M4 launcher-ui."** `sill debug stats` carries no `sill-launcher-*` row
+     after a toggle (`dispatch_launcher` never spawns anything yet), so the panel-exists and
+     5 s-idle-after-close checks cannot run; the step checks for the row itself rather than
+     assuming its absence, so it starts passing for real the moment a launcher surface exists.
+  3. **Skip (exit 2), reason logged but not diagnosed further.** The nested `custom` shortcut
+     (`dist/cosmic/.../custom`, mirrored into shell-host's `scripts/dev/xdg-config`, already
+     loaded when this machine's `cosmic-comp` started) is `(modifiers: [Ctrl, Alt], key:
+     "space"): Spawn("sill launcher toggle")`. `wtype` is installed here (`ydotool` is not); the
+     step sends `wtype -M ctrl -M alt -k space -m alt -m ctrl` through the nested compositor and
+     watches the daemon's log for a new `launcher.open_latency_ms` line for 5 s. Live result: no
+     new line. `comp.log` names neither a shortcut match nor a spawn attempt at any log level
+     enabled by default, so the cause is not distinguished between two candidates: `cosmic-comp`
+     resolves `Spawn`'s bare `sill` on its own inherited `PATH`, fixed when `dev/nested.sh`
+     started the compositor (before any `cargo build` in this session put a `sill` binary
+     anywhere); or a `wtype`-injected key, which travels the `virtual-keyboard-unstable-v1`
+     protocol rather than a real input device, never reaches `cosmic-comp`'s global-shortcut
+     matcher at all. Either is a shell-host/cosmic-comp fact, not something `dev/`-owned code can
+     fix; recorded rather than guessed at further.
+- **F104 `dev/ime-probe.sh` proves the two checks it can and stops.** Live on this machine,
+  right now: `loginctl`'s seat0 session (found by its `SEAT` column, not `$XDG_SESSION_ID` — a
+  script invoked from a pts session must not check that session's lock state) has
+  `LockedHint=yes`, so the script exits 2 with that fact named, exactly as running it demonstrated
+  (`./dev/ime-probe.sh` printed the lock message and exited 2 without touching fcitx5 or the
+  compositor). fcitx5 answers on the session bus (`busctl --user call org.fcitx.Fcitx5
+  /controller org.fcitx.Fcitx.Controller1 State`, checked separately, unlocked or not — D-Bus
+  calls do not need keyboard focus). Past those two checks the script looks for
+  `sill-surfaces/examples/launcher_demo`, then `bar_demo`; neither offers a real text-input-v3
+  field yet (`bar_demo` has none at all — the bar has no text entry), so it always stops there,
+  exit 2, and prints the exact commands for the rest. **Correction to the brief's D-Bus name**:
+  this machine's fcitx5 does not answer on `org.fcitx.Fcitx5.Controller1` — introspecting
+  `org.fcitx.Fcitx5` `/controller` shows the interface is `org.fcitx.Fcitx.Controller1` (no
+  "5"), which is what the script and its printed commands use. **`SetCurrentIM`'s effect could
+  not be confirmed live while writing this**: calling `SetCurrentIM s chewing` then
+  `CurrentInputMethod` returned `""` before and after (session locked throughout, so no
+  wayland client had an enabled, focused `zwp_text_input_v3` context for fcitx5 to apply a
+  "current" method to) — the printed commands document the call, not a verified round trip;
+  that verification is exactly what running them against a real field, once one exists, is for.
+  Facts recorded for the documented commands rather than assumed: `wtype` is installed on this
+  machine, `ydotool` is not; the Default input-method group here is `keyboard-us` + `chewing`
+  (Taiwanese Zhuyin/Chewing — the only CJK method configured), matching shell-host FINDINGS.md's
+  own note that `fcitx5` is installed and IME has only been exercised on KWin so far (`text-
+  input-v3` accumulates `preedit_string`/`commit_string`/`delete_surrounding_text` until `done`,
+  `crates/shell-host/src/ime.rs`).
+## M4 providers-a (2026-09-24)
+
+Filled `providers::{apps, windows, system}` (`sill-services/src/providers/{apps,windows,system}.rs`);
+`sill-launcher/**`, `results/**`, `providers/{calculator,settings}.rs` and every other M4 file
+stayed untouched. `sill-services/Cargo.toml` gained one line, `nucleo-matcher = { workspace =
+true }` — already pinned (root `Cargo.toml`, used by `sill-launcher`), just not yet wired into
+this crate, which needs the concrete `nucleo_matcher::Matcher` type in provider function
+signatures that `sill_launcher::matching::matcher()` returns.
+
+- **F105 `Activation` cannot close a window; the row still offers the action.** The brief asks
+  the windows provider to close with an action, but the frozen `sill_launcher::Activation`
+  (owned by launcher-core) is `Launch | FocusWindow | Copy | OpenSettings | System | Nothing` —
+  no variant carries a `WindowKey` to a close request, and `WlCommand::Close` (the compositor
+  command that exists for it, `cosmic_wl::command.rs`) has no path from `Provider::activate`,
+  which is documented pure ("it says what should happen and the daemon does it") and so cannot
+  call it directly either. `WindowsProvider` still gives every row a `Close` action (so the row
+  shape is right and the gap is visible in the actions menu, Ctrl+K / Alt+K) but
+  `activate(item, Choice::Action(_))` can only answer `Activation::Nothing`. Recommend
+  launcher-core add `Activation::CloseWindow(WindowKey)` (mirroring `FocusWindow`'s shape) in a
+  follow-up; this is a stop-and-report, not a workaround (CONVENTIONS §1).
+- **F106 The "confirmation flag" is the actions menu, not a new field.** design/06 §20.2 gives
+  the launcher exactly one lever in the frozen `Item`/`Choice` shape for anything beyond Enter:
+  Ctrl+K / Alt+K opens `Item::actions`. `Item` has no boolean (and CONVENTIONS §11 forbids one
+  in a public signature regardless) and `Activation` has no "ask first" wrapper, so
+  `SystemProvider` reads Log Out, Restart and Shut Down as destructive (they close or interrupt
+  every running app) and gives each one action, `Action{id: "confirm", label: "Confirm
+  <title>"}`; `Choice::Primary` on one of these rows answers `Activation::Nothing`, and only
+  `Choice::Action("confirm")` answers the real `Activation::System(command)`. Suspend is treated
+  as non-destructive (instantaneous, reversible, no app is closed) matching macOS and GNOME;
+  Lock and Reload need no confirmation at all. This is a considered reading of an unspecified
+  design point, not a verified one — worth a second look once launcher-ui's actions menu exists
+  to see how it reads in practice.
+- **F107 Session-command availability is a live, cached logind probe, not a static list.**
+  `SystemProvider::query` lists Suspend, Restart and Shut Down only when logind's own read-only
+  `Manager.CanSuspend`/`CanReboot`/`CanPowerOff` (`Yes` or `Challenge`) says so, and lists
+  nothing extra when the bus or logind is unreachable at all (`Offer::Unavailable`, the wave's
+  "reports `Unavailable` cleanly" requirement) — Lock, Log Out and Reload need no such check and
+  always list. The check is real D-Bus (async `logind_zbus::manager::ManagerProxy`, not the
+  `Blocking` variant: `zbus`'s pinned features here are `default-features = false, features =
+  ["tokio"]`, so `blocking-api` — and with it `zbus::blocking` and every `*ProxyBlocking` type —
+  is not compiled in; adding it would be a pinned-dependency change, out of scope for a single
+  crate per CONVENTIONS §11) bridged from `Provider::query`'s sync signature with
+  `tokio::runtime::Handle::block_on`, which is sound exactly because `results::spawn` (M4
+  launcher-core, plan "spawn_blocking per provider") is documented to run every provider's
+  `query` inside `tokio::task::spawn_blocking` — the one context `Handle::block_on` does not
+  panic from. The probe runs once and is cached in a `OnceLock` for the provider's lifetime (a
+  fresh `Connection::system` per keystroke would risk the 50 ms budget for no benefit: session
+  policy does not change keystroke to keystroke). `tests/providers_system_live.rs` (`#[ignore =
+  "needs logind"]`) exercises the real probe through the same `spawn_blocking` seam and only
+  ever calls the read-only `Can*` properties — never `Suspend`/`Reboot`/`PowerOff`/
+  `TerminateSession`, so running it does not touch the session it runs in. Run once on this
+  machine: `Lock, Log Out, Reload, Restart, Shut Down` (Suspend absent — `CanSuspend` answered
+  `No`, most likely because this dev box has no swap/hibernation image configured for logind to
+  offer it).
+- **F108 Desktop actions surface as their own rows only once something is typed.** The brief
+  asks for "desktop actions as secondary items"; `AppsProvider` matches a `[Desktop Action]`'s
+  own name as a separate `Item` (its `Activation::Launch` carries `DesktopAction::Named`, its
+  id `<app id>\u{1}<action id>` — `\u{1}` rather than a printable separator such as `::`,
+  since CONVENTIONS "substrings are not tokens" argues for a joiner no real id can contain
+  rather than one that merely seems unlikely to collide) alongside its owning app's own row,
+  which still lists every desktop action in its own `actions` menu regardless of whether the
+  action text itself matched. An empty query skips the per-action rows (every app already lists
+  by frecency alone; also listing every one of their actions would be a wall of rows with
+  nothing typed) — a considered reading, not specified by the brief.
+- **Icon glyphs.** design/08-ICONS.md §1.6 catalogues only `lock` and `power` among session
+  glyphs, and `window` for "windows provider, dock menu" (confirming the windows provider's own
+  fallback icon by name). `SystemProvider` gives Lock its own `lock` glyph, every other
+  power-menu row `power`, and Reload `IconRef::None` (not a power-menu action, and no glyph for
+  it is catalogued — `None` falls back to the provider's own glyph per `IconRef::None`'s own
+  doc, rather than inventing an uncatalogued name locally, per CONVENTIONS §11 "a missing …
+  token is added to quire first").
+- **`WindowsProvider` gained a third field,** `workspaces: watch::Receiver<Workspaces>` (the
+  stub had only `toplevels` and `apps`): the brief's row shape is "title, app name, workspace",
+  and a `Toplevel` only carries `WorkspaceKey`s, not names — `cosmic_wl::spawn` already
+  publishes `Workspaces` (workspace names) beside `Toplevels`, so the third receiver is simply
+  wired in rather than left unresolved.
+
+### Tests
+
+`cargo test -p sill-services --lib providers::` — 19 unit tests (matching/ranking tables,
+cancellation, `activate` mappings, id encode/decode), all pass. `tests/providers_apps.rs` runs
+`AppsProvider` against the real fixture tree `tests/fixtures/applications` (the same one
+`tests/scan.rs` scans): name/generic-name/keyword matches, a matching desktop action listing as
+its own row, and `Hidden`/`NoDisplay`/an unresolvable `TryExec` never listing. `tests/
+providers_windows.rs` runs `WindowsProvider` against a fake `Toplevels`/`Workspaces` pair (no
+compositor). `tests/providers_system_live.rs::lists_session_commands_against_real_logind`
+(`#[ignore = "needs logind"]`) is the live test described in F107; run once, reported there.
+## M4 providers-b (2026-09-24)
+
+Filled `providers::calculator` and `providers::settings` (`CalculatorProvider`,
+`SettingsProvider`), each split into a small directory under `providers/{calculator,settings}/`
+per CONVENTIONS §8/§11 (one concept per file).
+
+- **F109 `sill-services` cannot depend on `ds-settings`, so the settings provider re-reads
+  `*.settings.toml` itself.** The brief asks the settings provider to index "the installed quire
+  and sill schemas" through the schema types design/22 §9 defines (`ds_settings::schema::{Schema,
+  KeySpec, discover, deep_link, ...}`), but `ds-settings` depends on `dioxus` unconditionally
+  (quire FINDINGS F2) and `scripts/check-boundary.sh` mechanically forbids `sill-services` from
+  reaching `ds-settings` at all (the "UI-free" rule, DESIGN.md "Crates"). Rather than weaken the
+  boundary or the brief, `providers/settings/schema_file.rs` reads the same on-disk TOML shape
+  directly with `toml`/`serde` (only the fields the launcher's search needs: `path`, `label`,
+  `help`, `page`), and `providers/settings/index.rs::SettingsIndex::deep_link` reimplements
+  `ds_settings::schema::deep_link`'s exact algorithm (unique case-insensitive label/help
+  substring match) independently rather than calling it. Stop-and-report per CONVENTIONS §1;
+  `data_dirs()` is likewise a second, independent reading of the same XDG directories
+  `ds_settings::schema::data_dirs` resolves (the general shape of this duplication is F59/Q4's,
+  not new). `tests/settings_live.rs` needed `sill_settings::schema()` for one live test only
+  (design/22 §9.2's own local-install path); that is a `[dev-dependencies]` entry in
+  `sill-services/Cargo.toml`, which `check-boundary.sh`'s `-e normal,build` edge filter does not
+  see (confirmed: `cargo tree -p sill-services -i ds-settings -e normal,build` prints nothing,
+  and `./scripts/check-boundary.sh` passes) — it is never linked into the daemon.
+- **F110 The calculator's secondary "Insert" action does not exist.** The plan and this wave's
+  brief both ask for "a secondary 'Insert' action if the frozen vocabulary has it"; it does not.
+  `sill_launcher::Activation`'s only text-carrying variant is `Copy { text }` — there is no
+  "put this back in the search field" kind. `CalculatorProvider::query` yields the `Copy` row
+  only, with an empty `actions` list. Reported rather than worked around by adding a frozen
+  variant (that is a cross-crate, coordinated change, not this wave's to make).
+- **F111 "bluetooth" is design/22's own example of a query that does *not* deep-link to a file
+  key.** §9.3 gives two deep-link examples side by side: "dark mode" resolves to
+  `appearance.theme` through the schemas, and "bluetooth" resolves through a *live* D-Bus
+  settings module (§9.4, `org.quire.SettingsModule1`) — nothing in quire or sill implements a
+  live module yet. `SettingsIndex::deep_link("bluetooth")` correctly returns `None` against both
+  the fixture schemas and the real ones (`tests/settings_fixture.rs`), which is right, not a
+  regression: a live-module deep link is out of this wave's scope, and inventing a static key
+  match for it would be worse than reporting the gap.
+- **F112 The 50 ms budget is enforced cooperatively, not by killing a thread.** fend-core's
+  `Interrupt::should_interrupt` is polled between steps of its own evaluation (each factorial
+  multiplication, for instance) — there is no way to hand it a signal that preempts mid-step, and
+  matching its returned error string to tell "interrupted" from "malformed input" would be
+  exactly the substring-matching CONVENTIONS warns against (its error text is not a vocabulary
+  this workspace owns). `providers/calculator/eval.rs::evaluate` instead re-reads the clock after
+  a failed evaluation: an error at or past the budget is `TimedOut`, one before it is `NoMatch`.
+  `a_pathological_expression_is_abandoned_within_the_budget` (`1000000!`) exercises this for real
+  and finishes in well under 4x the budget.
+- **F113 Live schema counts (this machine, 2026-09-24).** `tests/settings_live.rs` (writes
+  sill's schema into the real `$XDG_DATA_HOME/quire/settings`, cleans up the one file
+  afterward): sill's own schema has **142 keys** (its 11 domains merged, `sill_settings::schema`);
+  `cosmic-settings` 1.7.0 is on `PATH`, so **33 COSMIC pages** load into
+  `SettingsProvider::cosmic_pages`; **0 quire keys** are installed on this machine — quire ships
+  no program that aggregates and writes its own `quire.settings.toml` yet (only the per-struct
+  `AppearanceSettings::schema()`/`IconsSettings::schema()` derive output, each its own `Schema`
+  value with nobody calling `.write_to()` on it), unlike sill's `sill_settings::schema()`
+  (`crates/sill-settings/src/schema.rs`) which already merges its 11 domains into one. Not this
+  wave's gap to fix (quire's), but worth flagging upstream: a quire binary calling
+  `--write-schema` the way `sill`'s `main.rs` does would need writing.
+
+## M4 launcher-core (2026-09-24)
+
+Filled `results::spawn` (the runner), the `frecency.json` I/O and the `services.rs` placeholder
+line (`results/{mod,run,sink,arrange,history,registry,effect,frecency_file}.rs`); amended
+`sill-launcher::Activation` (F116). Latency: `examples/search_bench.rs` and the
+`results::tests::latency` test (F118).
+
+- **F114 Groups are an ordering of the flat `Results::items`, read back by rule.** The frozen
+  `Results { generation, items }` has no section labels, so design/06 §11.3's groups are the
+  published order (`results/arrange.rs`), and the launcher list derives its `SectionHeader`s
+  from it. Typed text: row 0 is **Top hit** (the single best row of every provider, not
+  repeated below); then one run per provider in Tab order (`ProviderKind::ALL`), best first,
+  capped Apps 6, Windows 3, Calculator 1, Settings 3, System 3 (§11.3 caps Mail 6 and People
+  and Actions 3; apps take Mail's). A header goes before row 1 and wherever the provider changes.
+  Nothing typed (whitespace counts as nothing, `Needle::is_empty`): **Actions** = every System
+  row, then **Recent** = the 5 most frecent non-System rows (never-chosen rows are not shown);
+  the list knows the query it sent, so "empty query: System prefix is Actions, the rest Recent".
+  The caps and the Recent count are proposed numbers with no settings key (design/22 has none;
+  a key is a design/22 change first). Side effect: Tab's `Filter::Only(provider)` can show at
+  most cap (+1 top hit) rows of that provider; an uncapped per-provider view needs a frozen-shape
+  change (a group field or an uncapped list), reported rather than worked around.
+- **F115 Frecency is one shared history; only apps rank with it.** The runner's `History`
+  (`Arc<Mutex<Frecency>>`) is the same `Arc` `AppsProvider::frecency` holds (`registry.rs`),
+  so a choice counts from the next keystroke; each change is saved by a single saver task
+  (newest version wins, temp file and rename, lenient load). `spawn(rt, providers)` keeps its
+  frozen signature: providers built by its caller rank with their own handle, so the daemon
+  goes through the crate-private `spawn_with_providers(rt, Wiring{..})`. Items carry only
+  their provider's final `Score`, so the runner cannot add frecency to rows whose provider
+  has no handle (windows, settings, system, calculator): those rank by match alone under typed
+  text, and every provider's rows reach Recent. The runner does not re-rank; `rank()` runs in
+  the providers. The runner publishes a generation's first rows when its first non-empty batch
+  arrives (keeping the previous rows up until then, so typing does not flash an empty list),
+  and an empty list once every provider has finished with nothing; a provider that panics
+  still counts as finished (a drop guard), and a panic in `activate` is caught.
+- **F116 Freeze amendment: `Activation::CloseWindow { window: WindowKey }` and
+  `Activation::Insert { text: String }`** (coordinator request, closing F105 and the
+  calculator's secondary action). Struct variants like `FocusWindow { window }` and
+  `Copy { text }`, adjacently tagged: `{"kind":"close_window","v":{"window":7}}`,
+  `{"kind":"insert","v":{"text":"42"}}` (every variant's wire form is pinned in
+  `activation.rs`'s test). `WindowsProvider::activate` (providers-a's file) still answers
+  `Nothing` for Close until its owner switches it to `CloseWindow`; the calculator's `Insert`
+  is providers-b's.
+- **F117 The runner carries out window and app activations.** `SearchCommand::Chosen{key,
+  choice}` finds the row among the newest generation's rows, asks its provider's `activate`,
+  and routes the answer (`results/effect.rs`): `FocusWindow` -> `WlCommand::Activate`,
+  `CloseWindow` -> `WlCommand::Close`, `Launch` -> `LaunchCommand::Launch` (no activation
+  token: the surface has none to hand over yet). `Copy`, `Insert`, `OpenSettings`, `System`
+  and `Nothing` are not the runner's (clipboard, the query field, settings, logind): the
+  launcher surface or the daemon must act on them, and nothing does yet. Because the lookup
+  uses the current rows, the surface must send `Chosen` before `Cancel` (closing clears them).
+- **F118 Latency, query to first published batch** (through `Control::send`, a new
+  generation, a blocking task per provider, the channel, `reduce_results`, grouping and the
+  watch; a stand-in apps provider doing the real work, `rank_text` over name, generic name and
+  keywords, since the real one landed in parallel). Test build, fixture index (11 listed
+  apps), 200 queries after warm-up: p50 24 us, p95 32 us, max 60 us (asserted p95 < 10 ms).
+  Release (`cargo run -p sill-services --example search_bench --release`): fixture p50 8 us,
+  p95 11 us; 1500 apps p50 88 us, p95 183 us, max 240 us.
+## Adoption of the bar gaps (2026-09-24)
+
+quire master merged `tray-gaps` (Q6-Q8) and `bar-gaps` (Q9-Q13, the status items); this pass
+removes the bar's, the dock's and the tray's workarounds for them. Numbers start at F120/Q20 so
+they stay clear of the M4 launcher branches running beside it.
+
+- **F120 The measurer is quire's.** `sill-surfaces/src/measure.rs` is gone. The workspace names
+  `ds-native` (a path dependency beside `ds`, outside the pinned block; it brings `winit` and
+  `dioxus-native` into the lockfile, all licence-clean under `cargo deny`), and
+  `sill_surfaces::MEASURE` is now a re-export of `ds_native::measure::MEASURE`, so
+  `daemon::surface_root` (and the launcher's code, which may name it) is unchanged in shape: a
+  `Root` is built outside any component, so `.context(MEASURE)` is how it provides what
+  `provide()` provides inside one. The three popup roots (the bar's menu popup, the tray's
+  dbusmenu popup, the dock's context menu) call `ds_native::measure::provide()` at their top
+  instead of taking a context from their opener. `sill-surfaces` no longer needs
+  `dioxus-native-dom` directly.
+- **F121 The bar draws the Space through its root.** The `sill-bar-tint` layer is deleted; the
+  `Ds` root (already given the workspace's `SpaceLook`) takes quire's defaults for a Bar:
+  `FrameTint::Tinted` and `Ground::Frame`. Live, the bar is the Space's gradient at the Bar's
+  alpha with its grain (`dev/out/bar-cosmic.png`). The status items are
+  `IconButton{Status}` in a group whose inline style carries `ds::StatusMetrics`, filled by
+  `status_item::status_metrics` from `bar.status_icon_box_px`, `bar.status_glyph_px` and
+  `bar.glyph_size_policy` (`IconSizeBar22`: the glyph is the box), so Q12 and F49's first
+  half are closed. An icon item's slot no longer draws the open-title pill (the button is
+  `--f-pill` while `expanded`); the clock and the app name, which are text, still do
+  (`title::SlotPill`). Wired networks show `Icon::Ethernet`. The status lines of the network,
+  battery and clock menus are `MenuEntry::Info` (F47 closed), sized as item rows in the popup's
+  estimate.
+- **F122 The menu machine hears the menu.** Bar menus are `MenuEntrance::Instant` (F50's
+  entrance closed). The popup reports `on_hover` as `Hovered(choice)` and `on_release` as
+  `Released(Option<Choice>)` (`plan::choice` maps a quire choice index to the enabled item's
+  pick, numbered as quire numbers them), and `plan::popup_input` feeds them to the tracker as
+  `Move(Target::Item | Menu)` and `Release(..)`. Because quire calls `on_release` before its own
+  pick, the machine decides press-drag-release and click mode alike: a held release over an
+  item picks and runs once, a held release over a status line or padding closes, a release in
+  click mode over a status line keeps the menu; quire's `onpick` that follows finds the session
+  closed and is ignored (table-tested in `plan.rs`). The keyboard's Enter still arrives as
+  `Picked`. Whether the popup ever gets that release during a press-drag depends on the
+  compositor handing the implicit grab over (F46); `sill debug click` cannot press on one
+  surface and release on another, so it is proved by the table, not live.
+- **F123 Popup roots are Popover again, and keep their room.** The bar's, the tray's and the
+  dock's popup roots are `Material::Popover` (transparent chrome); the menu cards paint the
+  material. The shadow room frame stays in both `bar_popup.css` and `dock_popup.css`: the card's
+  drop (`--shadow-pop`, reaching 24 px beside and 40 below it) is painted by the card now, but
+  the popup surface still clips at its own edges, so the room must be inside it. Live, the
+  popup is transparent around its card (`dev/out/bar-cosmic-menu.png`,
+  `dev/out/dock-cosmic-menu.png`).
+- **F124 Bar popups are `PopupSize::Fixed`.** With the room frame and a transparent root, the
+  bar's popup document has nothing in flow, and shell-host's content fit (its G7 fix, which
+  `menu_popup`'s `FitContent` now reaches) measured it and shrank the popup to 1 x 1: the first
+  acceptance run passed its "popup is up" check with an empty popup (a 268 x 129 capture, alpha
+  0 everywhere, then 1 x 1). The bar's menus and the tray's dbusmenu popup now pass `Fixed` with
+  the geometry's estimate, as the dock's context menu already did (F96). The tray popup's height
+  is estimated from its entries (`geometry::menu_size`, capped at 640 px) instead of a fixed
+  240; a long dbusmenu scrolls inside quire's menu.
+- **F125 The dock's pill is its root.** The root is `Material::Dock` in a box at the pill's
+  rectangle (`#dock-pill`, still the blur region's element), sized by an in-flow body of the
+  pill's height; the tiles, dots, separator and hit elements hang from the root in a layer
+  moved back to the surface's origin, so the frame's surface coordinates are unchanged. The
+  nested `Surface{Dock}` and the `sill-dock-tint` layer are deleted; the pill is the Space's
+  gradient at the Dock's alpha, with the material's edge, drop and 22 px radius
+  (`dev/out/dock-cosmic.png`). The root passes `ground: Some(Ground::Paper)`: under the Dock's
+  default frame ground the plates' `--raise`/`--surface-2` would turn into `--f-pill`, and
+  design/08 §4.1 asks for neutral paper; the dot and the separator already name `--f-ink` and
+  `--f-line`. `dock.pill_radius_px` still does not reach the pill: `Ds` has no radius override
+  and `--m-radius` is declared on the `.ds` itself (Q15 stays open).
+- **F126 The dock label follows the machine's gate, as far as the Fly allows.** quire's
+  `Tooltip` still has no controlled mode (Q17 open), so the label stays a `Tooltip{Fly}` whose
+  `:hover` shows it, now on a box over the plate beside it rather than wrapping it, and the
+  tile leaves it out of the document while `machine::label_gate` is `Quiet`: a button down or a
+  drag (the machine's `press != Up`), or a context menu open. The dock provides the gate as a
+  `Signal<LabelGate>` context; the frozen `Tile` props are unchanged. Live, the label no longer
+  shows under an open context menu (`dev/out/dock-cosmic-menu.png`, compare F101's Q17 note).
+  The Fly's delay and warm skip remain quire's, not the machine's `ShowLabel` timing.
+- **F127 Tile icons are still drawn at 22 px.** `ds::IconSize::Bar` (22) is still quire's
+  largest and `IconView` has no pixel size, so the dock keeps scaling a 22 px icon (Q16 open).
+- **F128 The tray draws each item's own icon.** `sill_services::tray::icon_url` and its
+  hand-rolled base64 are replaced by `icon_art`: a pixmap's PNG bytes, a theme PNG's bytes, a
+  theme file named `*-symbolic` (design/08 §1.5 step 1, compared at the last `-`), or another
+  theme file. The bar's `tray_input::icon_source` makes the `IconSource`: a PNG by
+  `ds::icon::classify_with` (step 2) at `icons.symbolic_chroma_max`, which quire master now
+  registers in its own `IconsSettings` (quire's appearance file, thousandths, default 40): the
+  tray reads it from the appearance feed the bar already carries
+  (`tray_input::chroma_limit`, quire's default when out of the key's 0..0.2 range), so no
+  sill-settings key is added; a symbolic file as `Symbolic`, anything else as `Image`, the
+  window glyph when there is no art. The result is kept per item until its icon or the limit
+  changes (theme lookup and a file read are not done
+  per render). Items are `IconButton{Status}` with the `tray-<n>` id on the button itself (the
+  wrapper span only listens for the wheel). Live, the coloured icons (Toshy's, the video
+  bridge's) draw as images and the other two items in the frame ink (`dev/out/bar-cosmic.png`).
+- **F129 Tray presses carry their point, and the wheel scrolls.** `tray_input::press_action`:
+  primary opens the dbusmenu (or sends `Activate` without one), secondary opens the dbusmenu,
+  middle sends `SecondaryActivate`; both activations carry `press.at` plus the output's logical
+  origin (the bar sits at the output's top-left). A secondary press on an item without a
+  dbusmenu would be SNI `ContextMenu(x, y)`, which the frozen `TrayCommand` does not have, so it
+  does nothing. The bar does receive wheel events (shell-host sends `wl_pointer.axis` to Blitz
+  as `wheel`, as lines with the sign negated), so a `wheel` over an item sends
+  `TrayCommand::Scroll` with `tray_input::scroll_delta`: whole notches on the main axis turned
+  back to `wl_pointer`'s sign, a half notch rounding to one, touchpad pixels and pages sending
+  nothing. Not exercised live: `sill debug` has no wheel injection. Disabled dbusmenu rows are
+  drawn disabled now; submenus are still dropped (the popup is not sized for one beside it).
+- **F130 Acceptance** (built against quire master `175bfb9`, with the retuned tint alphas: Bar
+  dark .68, Dock light .59 and dark .68), nested cosmic-comp 1.8 on the running `wayland-1` (2176 x 1360),
+  `sill run` debug build with `--features debug`. `dev/accept-bar.sh`: all eight steps pass;
+  the maximised probe is 1256 = 1360 - 32 - 72, the bar holds 5 frames and 5 commits across
+  five idle seconds, the clock click opened `sill-bar-WINIT-0/popup` and the middle click
+  dismissed it (the step's own `popup.png` is the popup's first frame, still empty; a capture
+  1.5 s after the click is 268 x 129, alpha 0 at the corners and the card opaque in the
+  middle). `dev/accept-dock.sh`: all five pass; maximised 1256; a 60-move sweep drew 46
+  frames for 46 callbacks, the leave's shrink 12 frames, then 0 frames in 5 s; the terminal
+  tile's click showed its running dot after 590 ms; the badge turned red in 405 ms; the
+  secondary click opened `sill-dock-WINIT-0/popup`. By hand on the same daemon: a hover from
+  the open clock menu onto the network item switched the one popup to the network menu (two
+  status lines, then Settings), and the Toshy item's dbusmenu opened with its disabled status
+  rows faint. Screenshots regenerated: `dev/out/bar-cosmic.png`, `bar-cosmic-menu.png`,
+  `dock-cosmic.png`, `dock-cosmic-magnified.png`, `dock-cosmic-menu.png`.
+
+### Gaps left after the adoption
+
+- **Q15** (open) `dock.pill_radius_px` cannot reach the Dock root's radius: no override prop,
+  and `--m-radius` is set on `.ds` itself (F125).
+- **Q16** (open) no icon size above 22 px (F127).
+- **Q17** (open) `Tooltip{Fly}` has no controlled mode; the dock only removes it (F126).
+- **Q20** The tray's dbusmenu popup is not part of the bar's menu session: a click on the bar
+  outside it does not close it, and a bar menu opened while it is up opens a second popup
+  beside it (seen live). It predates this pass (F33); folding it into `menu_track` as a sixth
+  kind of menu is the fix.
+- **Q21** A dbusmenu submenu is still dropped: the tray popup would need room beside the menu
+  for quire's submenu (quire "Tray gaps", "left for sill").
+- **Q22** SNI `ContextMenu(x, y)` has no `TrayCommand`, so a secondary press on an item with no
+  dbusmenu does nothing (F129).
+- **G11** `sill debug` cannot inject a wheel event or a press-drag across surfaces, so the tray
+  scroll and the bar's press-drag-release are proved by tables only (F122, F129).
+
+## M4 providers follow-ups (2026-09-24)
+
+Closed the three gaps F105, F110 and part of F109/F113 left open, now that F116's freeze
+amendment (`Activation::CloseWindow { window }`, `Activation::Insert { text }`) is merged.
+
+- **F105 closed: `WindowsProvider::activate` answers `CloseWindow`.** `Choice::Action(_)` on a
+  window row (there is only the one, `close`) now answers `Activation::CloseWindow { window:
+  window_key_of(item) }` instead of `Nothing`; `results/effect.rs` (M4 launcher-core, F117)
+  already routes it to `WlCommand::Close`, so this was the last hop. The unit test renamed from
+  "...is an acknowledged gap" to "...closes on the close action" and asserts the real variant.
+- **F110 closed: the calculator's result row carries a secondary "Insert" action.**
+  `result_item` now gives the row one `Action{id: "insert", label: "Insert"}` beside the
+  implicit primary; `activate` matches on the chosen `ActionId` (`"insert"` -> `Activation::
+  Insert{text}`, `Choice::Primary` or any other action -> `Activation::Copy{text}`, both
+  built from the same id-decoded value so a future third action cannot desync the two). No unit
+  tests existed for `CalculatorProvider::query`/`activate` before this (F110's report only
+  covered `eval.rs`); added a small `#[cfg(test)] mod tests` in `calculator/mod.rs` proving the
+  row carries exactly the one action and that both choices answer the activation F116 pinned.
+- **F119 `cosmic_settings_available`'s `$PATH` search is now a pure, injectable function, so a
+  test can prove COSMIC-page discovery without mutating the real environment.** The provider
+  already discovered pages "when `cosmic-settings` is on `PATH`" (`SettingsProvider::new` ->
+  `with_dirs` -> `cosmic_settings_available()`), but nothing tested that path, and it could not
+  be tested as written: `cosmic_pages.rs::on_path` read the real `std::env::var_os("PATH")`
+  directly, and `std::env::set_var` is `unsafe` since edition 2024 — forbidden everywhere but
+  shell-host's one allowed module (CONVENTIONS §11) — so a test cannot point it at a fake
+  directory by mutating `$PATH`. Split the search into `cosmic_pages::is_on_path(dirs, program)`
+  (pure: does `program` name a file directly under one of `dirs`) and
+  `cosmic_pages::real_path_dirs()` (reads the real `$PATH`, once); `SettingsProvider` gained a
+  crate-private `with_dirs_and_search_path(dirs, search_path)` between `with_dirs` and the
+  struct literal, so `with_dirs` still searches the real `$PATH` but a unit test can pass a
+  fixture directory instead. `providers/settings/mod.rs`'s new `tests` module creates a throwaway
+  directory holding one file named `cosmic-settings` (the same `is_file()` check `apps/scan.rs`'s
+  own `on_path` uses for `TryExec`, not a permission-bit check) and proves `cosmic_pages` is
+  non-empty when that directory is searched and empty when it is not. `results/registry.rs` now
+  builds the provider with `SettingsProvider::new()` directly rather than through `Default`
+  (`Default` already forwarded to `new()`, so this is a clarity change, not a behavior one).
+
 ## M2 wallpaper (2026-09-24)
 
 Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
 `sill-services/src/wallpaper/mod.rs` (`WallpaperSource`, `Wallpapers`, `WallpaperImage`,
 `WallpaperCommand`) and `cache_file_name` needed no change.
 
-- **F83 The source is COSMIC's `all` record only, read by hand.** `ron` is not in the pinned
+- **F131 The source is COSMIC's `all` record only, read by hand.** `ron` is not in the pinned
   dependency block (CONVENTIONS §11: a new dependency is a change to `docs/workspace-deps.toml`,
   reviewed first, not added to one crate alone), so `config::parse_source_path` reads the one
   field it needs — `source: Path("...")` — out of the RON text directly rather than
@@ -816,7 +1374,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   `WallpaperSource::Pair` is never produced by this reader — only `File` (one path, both
   schemes) or `None`. `config.rs`'s tests pin this exact record text as a fixture, plus a
   `Color(..)` source (no path) and a missing `source:` field, both answering `None`.
-- **F84 COSMIC's own default background is a format this crate's `image` build cannot decode.**
+- **F132 COSMIC's own default background is a format this crate's `image` build cannot decode.**
   The pinned `image = { features = ["png", "jpeg"] }` has no `jxl` feature, and cosmic-bg's
   stock backgrounds on this machine are all `.jxl` (`/usr/share/backgrounds/default.jxl` and
   `default-dark.jxl`, both symlinks into `f44/default/`); `/usr/share/backgrounds/cosmic/*.jpg`
@@ -827,7 +1385,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   session with a PNG/JPEG background works today — but worth a install-time note if `sill`
   ever ships a `dist/` default: point it at one of the `cosmic/*.jpg` backgrounds, not
   `default.jxl`.
-- **F85 The cache hash is FNV-1a, not `DefaultHasher`.** `cache.rs`'s own doc names the reason
+- **F133 The cache hash is FNV-1a, not `DefaultHasher`.** `cache.rs`'s own doc names the reason
   (`DefaultHasher`'s `RandomState` seed changes every process, so the same source would get a
   new cache name on every restart — defeating the cache); `source_hash` feeds the path's raw
   bytes, the length and the modification time (nanoseconds since the epoch) through one FNV-1a
@@ -835,7 +1393,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   all, so "renders only on change" holds at the cache layer too: a second `Prepare` for the
   same source and size never re-encodes (`resize.rs`'s own round-trip test asserts the cache
   file's mtime is unchanged the second time).
-- **F86 Cover-fit resize, then crop — not resize-to-cover in one call.** `geometry::cover_fit`
+- **F134 Cover-fit resize, then crop — not resize-to-cover in one call.** `geometry::cover_fit`
   is pure: given a source and a target size, it picks a `scaled` size (Lanczos3 target) that is
   never smaller than the target on either axis, and a centred `(crop_x, crop_y)`. `resize.rs`
   then calls `image::resize_exact` to `scaled` and `crop_imm` to the target, writing the result
@@ -846,7 +1404,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   "a capture's centre pixel matches the source's" a meaningful acceptance check rather than a
   coincidence: cover-fit *by construction* keeps the source's own centre aligned to the
   target's.
-- **F87 The COSMIC config watch degrades to "read once" rather than failing to start.**
+- **F135 The COSMIC config watch degrades to "read once" rather than failing to start.**
   `watch::watch` needs `notify` to watch an existing directory; COSMIC's config tree may not
   exist at all outside a real COSMIC session (it does not on this dev machine before the
   acceptance script creates it). `nearest_existing_ancestor` walks up from the `all` file's
@@ -857,7 +1415,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   Debounce is 500 ms (the brief's own number), distinct from `sill-settings::watch`'s 30 ms: a
   foreign config file is edited far less often than the shell's own, written by cosmic-bg on a
   human's own "change background" click, not a live-typing settings field.
-- **F88 `watch::watch` takes `&Handle`, not the bare `tokio::spawn`.** The first version called
+- **F136 `watch::watch` takes `&Handle`, not the bare `tokio::spawn`.** The first version called
   `tokio::spawn` directly inside `watch()`, which needs an entered runtime on the *calling*
   thread — true inside an `async fn` already running on a runtime, false for `Services::spawn`
   called from a plain thread holding only a `Handle` (exactly what
@@ -868,7 +1426,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   called from the context of a Tokio 1.x runtime"); every other service's `spawn` in this crate
   already gets this right by using the passed `rt: &Handle` (`clock::spawn`'s `rt.spawn(run(..))`
   is the precedent) — `watch::watch` now does the same.
-- **F89 `sill run` does not yet spawn a wallpaper surface.** `crates/sill/src/daemon.rs`'s
+- **F137 `sill run` does not yet spawn a wallpaper surface.** `crates/sill/src/daemon.rs`'s
   `spawn_missing_bars`/`spawn_bar` are bar-specific; `outputs.rs`'s `OutputSurfaces.wallpaper`
   field and `OutputAction::Resize`'s own doc comment ("re-apply sizes, re-prepare the wallpaper")
   already anticipate a wallpaper surface, but nothing calls `wallpaper_layer` or sends
@@ -880,7 +1438,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   `examples/wallpaper_demo.rs`, with everything else faked; its first step still runs against a
   live `sill run` when one exists and prints whether `sill debug stats` shows a
   `sill-wallpaper-*` surface, so the gap is visible on every run.
-- **F90 A concurrent quire merge broke `sill-surfaces`' bar code mid-wave; fixed by merging
+- **F138 A concurrent quire merge broke `sill-surfaces`' bar code mid-wave; fixed by merging
   master.** quire commit `f3c1115` ("Merge tray-gaps: external icons, submenus and disabled
   rows, element ids and pointer buttons", landed 2026-09-24 11:30, closing this repo's own
   Q6-Q8) changed `ds::Button` and `ds::IconButton`'s `onclick` from `EventHandler<()>` to
@@ -909,10 +1467,11 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   `--paper`) cover the root completely regardless of which material is picked; `Material::Window`
   is the one genuinely wrong choice, since its `--m-tint-solid` is the Space's own gradient
   (`var(--f-grad)`), exactly the per-workspace tint design/21 §8 says the wallpaper must not
-  carry.- **F91 A second merge, and `MEASURE` on the demo's own root.** Master moved again while this
+  carry.
+- **F139 A second merge, and `MEASURE` on the demo's own root.** Master moved again while this
   wave was verifying (`d3ffa0c`, a fix to the bar's own menu test for the new `Submenu` variant,
   and the M2 freeze amendment above): `cargo test --workspace` failed with the same
-  non-exhaustive-match shape as F90, this time in `surfaces/bar/content.rs`'s test helper —
+  non-exhaustive-match shape as F138, this time in `surfaces/bar/content.rs`'s test helper —
   fixed upstream by `d3ffa0c` before this wave ever touched that file. Merging `master` again
   (now at `f10e63d`) picked that up; again no wallpaper file changed, only `FINDINGS.md`
   conflicted (both sides appending). That merge also brought F81's `sill_surfaces::MEASURE`: a

@@ -97,8 +97,11 @@ step_exclusive_zone() {
   done
   kill "$probe" 2>/dev/null; wait "$probe" 2>/dev/null
   height=$(grep '"maximized":true' "$probe_log" | tail -1 | python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["height"])')
-  echo "output ${out_h}, maximised window ${height}, bar ${BAR_H}" | tee -a "$OUT_DIR/exclusive-zone.log" >&2
-  [ "$height" = "$(( out_h - BAR_H ))" ]
+  # The dock (M3) reserves its base + margin too when the daemon runs one on this output.
+  local dock_reserve=0
+  if sill debug stats 2>/dev/null | grep -q '"sill-dock-'; then dock_reserve=72; fi
+  echo "output ${out_h}, maximised window ${height}, bar ${BAR_H}, dock ${dock_reserve}" | tee -a "$OUT_DIR/exclusive-zone.log" >&2
+  [ "$height" = "$(( out_h - BAR_H - dock_reserve ))" ]
 }
 
 # 6. Idle: 5 s with the pointer still, the bar's commit counter does not move (plan M0 c).

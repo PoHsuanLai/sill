@@ -2,6 +2,9 @@
 //! §13.3.2 "one reusable `xdg_popup` per bar; hover switch = `xdg_popup.reposition` + content
 //! swap"), and from what the popup reports back to the machine's inputs. Pure.
 
+use ds::{Availability, MenuEntry};
+use shell_host::Point;
+
 use super::menu_track::{Branch, ItemPath, MenuIn, MenuKey, MenuOut, Pick, Target};
 use super::menus::BarMenu;
 use super::pick::BarPick;
@@ -19,11 +22,25 @@ pub(crate) enum BarEffect {
     Run(BarPick),
 }
 
+/// An enabled item of the open menu: its place among the menu's choices (quire's numbering:
+/// items and submenu parents, not headers, status lines or rules) and what it picks.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Choice {
+    pub index: usize,
+    pub pick: BarPick,
+}
+
 /// What the popup's document reports to the bar.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum PopupReport {
     /// An item was picked (the ds `Menu` has already closed itself).
     Picked(BarPick),
+    /// The pointer came onto the choice at this index, or off every choice (ds `Menu`'s
+    /// `on_hover`).
+    Hovered(Option<usize>),
+    /// A button came up over the menu (ds `Menu`'s `on_release`), over this enabled item or
+    /// over nothing pickable.
+    Released(Option<Choice>),
     /// The menu asked to close: Escape, or a press on the popup outside the menu.
     Dismissed,
     /// The popup's document went away: the compositor dismissed it (an outside press ends the
@@ -32,19 +49,52 @@ pub(crate) enum PopupReport {
 }
 
 /// The machine input for `report`, and the pick it carries.
+///
+/// A release over an item reaches the machine before the ds `Menu`'s own pick (quire calls
+/// `on_release` first), so the machine decides press-drag-release and click mode alike and the
+/// `Picked` that follows finds the session closed. `Picked` remains for the keyboard's Enter.
+/// Hover moves carry no point: the popup is another surface, and the point only feeds the
+/// safe triangle, which bar menus (no submenus) never arm.
 pub(crate) fn popup_input(report: PopupReport) -> (MenuIn, Option<BarPick>) {
     match report {
-        PopupReport::Picked(pick) => (
-            // The ds Menu names picks by value, not by place: the path is only the machine's.
-            MenuIn::Release(Target::Item {
-                path: ItemPath(vec![0]),
-                pick: Pick::Enabled,
-                branch: Branch::Leaf,
-            }),
-            Some(pick),
-        ),
+        PopupReport::Picked(pick) => (MenuIn::Release(item(0)), Some(pick)),
+        PopupReport::Hovered(Some(index)) => (MenuIn::Move(Point::default(), item(index)), None),
+        PopupReport::Hovered(None) => (MenuIn::Move(Point::default(), Target::Menu), None),
+        PopupReport::Released(Some(choice)) => {
+            (MenuIn::Release(item(choice.index)), Some(choice.pick))
+        }
+        PopupReport::Released(None) => (MenuIn::Release(Target::Menu), None),
         PopupReport::Dismissed => (MenuIn::Key(MenuKey::Escape), None),
         PopupReport::Gone => (MenuIn::OutsidePress, None),
+    }
+}
+
+/// The machine's name for the enabled leaf item at `index` (bar menus have no submenus).
+fn item(index: usize) -> Target {
+    Target::Item {
+        path: ItemPath(vec![u16::try_from(index).unwrap_or(u16::MAX)]),
+        pick: Pick::Enabled,
+        branch: Branch::Leaf,
+    }
+}
+
+/// The enabled item at choice `index` of `entries`, numbered as quire's `Menu` numbers
+/// `on_hover`: items and submenu parents count, headers, status lines and rules do not.
+pub(crate) fn choice(entries: &[MenuEntry<BarPick>], index: usize) -> Option<Choice> {
+    let entry = entries
+        .iter()
+        .filter(|entry| matches!(entry, MenuEntry::Item { .. } | MenuEntry::Submenu { .. }))
+        .nth(index)?;
+    match entry {
+        MenuEntry::Item {
+            value,
+            availability: Availability::Enabled,
+            ..
+        } => Some(Choice {
+            index,
+            pick: value.clone(),
+        }),
+        _ => None,
     }
 }
 
@@ -71,7 +121,7 @@ pub(crate) fn effects(outs: Vec<MenuOut>, picked: Option<BarPick>) -> Vec<BarEff
 
 #[cfg(test)]
 mod tests {
-    use super::{BarEffect, PopupReport, effects, popup_input};
+    use super::{BarEffect, Choice, PopupReport, choice, effects, popup_input};
     use crate::surfaces::bar::menu_track::{MenuIn, MenuParams, MenuTrack, Target, step};
     use crate::surfaces::bar::menus::BarMenu;
     use crate::surfaces::bar::pick::BarPick;
@@ -163,7 +213,7 @@ mod tests {
                 vec![
                     BarEffect::Show(BarMenu::Clock),
                     BarEffect::Hide,
-                    BarEffect::Run(settings),
+                    BarEffect::Run(settings.clone()),
                 ],
                 false,
             ),
@@ -189,6 +239,60 @@ mod tests {
                 false,
             ),
             (
+                "press-drag-release onto an item picks it once",
+                vec![
+                    press(BarMenu::Clock),
+                    Input::Popup(PopupReport::Hovered(Some(0))),
+                    Input::Popup(PopupReport::Released(Some(Choice {
+                        index: 0,
+                        pick: settings.clone(),
+                    }))),
+                    // quire's own pick follows the release, and finds the session closed.
+                    Input::Popup(PopupReport::Picked(settings.clone())),
+                ],
+                vec![
+                    BarEffect::Show(BarMenu::Clock),
+                    BarEffect::Hide,
+                    BarEffect::Run(settings.clone()),
+                ],
+                false,
+            ),
+            (
+                "a held release over no item closes without a pick",
+                vec![
+                    press(BarMenu::Clock),
+                    Input::Popup(PopupReport::Hovered(None)),
+                    Input::Popup(PopupReport::Released(None)),
+                ],
+                vec![BarEffect::Show(BarMenu::Clock), BarEffect::Hide],
+                false,
+            ),
+            (
+                "in click mode a release over a status line keeps the menu",
+                vec![
+                    press(BarMenu::Clock),
+                    release(BarMenu::Clock),
+                    Input::Popup(PopupReport::Hovered(None)),
+                    Input::Popup(PopupReport::Released(None)),
+                ],
+                vec![BarEffect::Show(BarMenu::Clock)],
+                true,
+            ),
+            (
+                "hovering from the menu onto another title still switches",
+                vec![
+                    press(BarMenu::Clock),
+                    release(BarMenu::Clock),
+                    Input::Popup(PopupReport::Hovered(Some(0))),
+                    enter(BarMenu::Battery),
+                ],
+                vec![
+                    BarEffect::Show(BarMenu::Clock),
+                    BarEffect::Swap(BarMenu::Battery),
+                ],
+                true,
+            ),
+            (
                 "Escape in the menu closes",
                 vec![
                     press(BarMenu::App),
@@ -206,6 +310,42 @@ mod tests {
                 matches!(track, MenuTrack::Tracking { .. }),
                 open,
                 "{name}: {track:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn choices_are_numbered_over_items_only() {
+        use ds::{Availability, MenuEntry, Trail};
+        let entry = |pick: BarPick, availability| MenuEntry::Item {
+            value: pick,
+            title: String::new(),
+            detail: None,
+            tile: None,
+            trail: Trail::None,
+            check: None,
+            availability,
+        };
+        let entries = vec![
+            MenuEntry::Header("Foot".to_owned()),
+            MenuEntry::Info {
+                title: "line".to_owned(),
+                detail: None,
+            },
+            entry(BarPick::Settings, Availability::Enabled),
+            MenuEntry::Separator,
+            entry(BarPick::Quit(Vec::new()), Availability::Disabled),
+        ];
+        let cases = [
+            (0, Some(BarPick::Settings)),
+            (1, None), // disabled
+            (2, None), // past the end
+        ];
+        for (index, want) in cases {
+            assert_eq!(
+                choice(&entries, index).map(|c| c.pick),
+                want,
+                "choice {index}"
             );
         }
     }

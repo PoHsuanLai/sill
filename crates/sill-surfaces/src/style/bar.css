@@ -2,15 +2,11 @@
    marks proposed comes from a `bar.*` settings key and is written inline by the component;
    everything here is a token. Attribute selectors carry `*|` (spike S2). */
 
-/* The strip: the layer's full size, title groups at either end. */
+/* The strip: the layer's full size, title groups at either end. The Ds root under it draws the
+   Space gradient at the Bar's tint alpha and cross-fades it on a workspace switch (design/21
+   §3 and §5); the strip paints nothing of its own. */
 .sill-bar{ position:relative; display:flex; align-items:center; justify-content:space-between;
   padding:0 var(--s-8); color:var(--f-ink-soft); transition:color var(--t-scene) var(--e-out); }
-
-/* The Space's hue over the Bar material, at the materials' tint alpha: its colour is a
-   var-driven value, so a workspace switch cross-fades it over --t-scene (design/21 §5; spike
-   S4). quire paints frame layers only for Material::Window (FINDINGS "M1 bar-ui", Q9). */
-.sill-bar-tint{ position:absolute; left:0; top:0; right:0; bottom:0; background-color:var(--f-solid);
-  opacity:var(--m-tint-alpha); transition:background-color var(--t-scene) var(--e-out); }
 
 .sill-bar-group{ position:relative; display:flex; align-items:center; height:100%; gap:var(--s-4); }
 

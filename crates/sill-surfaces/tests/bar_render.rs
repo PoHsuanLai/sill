@@ -46,6 +46,15 @@ fn the_bar_shows_what_the_services_hold() {
         ("three workspace pills", "class=\"sill-bar-space\"", 3),
         ("one active pill", "aria-pressed=\"true\"", 1),
         ("the Bar material", "data-material=\"bar\"", 1),
+        ("the root draws the Space", "data-frame=\"tinted\"", 1),
+        ("on the frame ground", "data-ground=\"frame\"", 1),
+        ("no tint layer of the bar's own", "sill-bar-tint", 0),
+        ("three status items", "data-variant=\"status\"", 3),
+        (
+            "their metrics",
+            "--bar-status-box:22px;--bar-status-glyph:16px;",
+            1,
+        ),
         ("no menu open", "data-open=\"true\"", 0),
     ];
     for (name, needle, want) in cases {

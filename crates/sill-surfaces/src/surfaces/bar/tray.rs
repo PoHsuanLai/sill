@@ -1,55 +1,54 @@
-//! The tray: one `IconButton{Tool}` per status notifier item, its dbusmenu as a quire `Menu`
-//! (M1 svc-tray owns this file).
+//! The tray: one `IconButton{Status}` per status notifier item, its dbusmenu as a quire `Menu`.
 //!
-//! **A per-item icon is a stand-in (`Icon::Window`), not the item's own icon.** `ds::Icon` is a
-//! closed enum and `IconButton`'s `Glyph` only ever draws one of its variants; there is nowhere
-//! to put a pixmap's PNG or a theme's symbolic SVG. design/08-ICONS.md section 1.5 already names
-//! the mechanics for this exact case ("Blitz: the recoloured tray icon is a `mask-image` data
-//! URI with `background: currentColor`"), but no `ds` component renders one yet
-//! (`sill_services::tray::icon_url` already resolves the real URL, ready for when one exists).
-//! `ds::MenuEntry` also has no `children` field (no nested submenus) and no "disabled" field, so
-//! a dbusmenu item's submenu is dropped and a disabled item renders exactly like an enabled one.
-//! FINDINGS.md "M1 svc-tray" has the detail (quire gap Q6).
-//!
-//! **The popup anchor is a plain `span[id]`, not a ds component.** `IconButton` exposes no `id`
-//! prop, so there is nowhere on its own `<button>` to put the `tray-<n>` id the freeze asks
-//! popups to anchor by; a bare `span` with no class carries nothing the markup lint checks, so
-//! this is the narrowest wrapper that satisfies both. `bar/popup.rs`'s `menu_popup` and
-//! `menu_offset` (done, pure) place the popup itself; the ds `Menu` inside it is given its own
-//! synthetic anchor rect the same width as the popup's initial size guess, so the two line up
-//! (see `POPUP_WIDTH`). This whole composition is provisional: "see how the bar's other menus do
-//! it once bar-ui lands" (the M1 svc-tray brief).
+//! Each item draws its own icon: a pixmap or a theme icon through `sill_services::icon_art`,
+//! symbolic (drawn in the frame's ink, like a glyph) or an image by design/08-ICONS.md §1.5, as
+//! `tray_input::icon_source` decides with quire's `ds::icon::classify`. The button carries the
+//! `tray-<n>` id the popup anchors to, and hands over the pointer button and point: the primary
+//! button opens the dbusmenu (or activates an item without one), the secondary opens the
+//! dbusmenu, the middle one is SNI's secondary activation, each with the press's screen point.
+//! The wheel over an item is SNI `Scroll`. A dbusmenu item's submenu is still dropped (the popup
+//! is not sized for one beside the menu); a disabled row is drawn disabled.
 //!
 //! `TrayButtonView` carries no hook: it is the part `tests` renders directly. `TrayButton`
-//! wraps it with the two hooks a live surface needs (`use_surface`, the tray `Control`), neither
+//! wraps it with the hooks a live surface needs (`use_surface`, the tray `Control`), neither
 //! of which a plain unit test can construct (`SurfaceHandle`'s constructor is
 //! `pub(crate)` to shell-host, and `Control` has no `PartialEq`, so it cannot be a `#[component]`
-//! prop at all — `TrayButton` reads it itself instead of receiving it).
+//! prop at all: `TrayButton` reads it itself instead of receiving it).
 
 use dioxus::prelude::*;
-use ds::icon::Icon;
 use ds::{
-    Anchor, Check as DsCheck, Ds, IconButton, IconButtonVariant, Material, Menu, MenuEntry,
-    MenuKind, Point, Px, Rect as DsRect, Size as DsSize, Trail,
+    Anchor, Check as DsCheck, ChromaLimit, Ds, IconButton, IconButtonVariant, IconSource, Material,
+    Menu, MenuEntrance, MenuEntry, MenuKind, Point, Press, Px, Rect as DsRect, Size as DsSize,
+    Trail,
 };
-use shell_host::{OutputInfo, PopupPlacement, Rect, Root, Size, SurfaceHandle, use_surface};
+use shell_host::{
+    OutputInfo, PopupConfig, PopupPlacement, PopupSize, Rect, Root, Size, SurfaceHandle,
+    use_surface,
+};
+use sill_services::tray::icon_art;
 use sill_services::{
-    Check as TrayCheck, Control, TrayCommand, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind,
-    TrayStatus, Visibility,
+    Availability as TrayAvailability, Check as TrayCheck, Control, TrayCommand, TrayIcon, TrayItem,
+    TrayItemId, TrayMenuEntry, TrayMenuKind, TrayStatus, Visibility,
 };
 
+use super::geometry::menu_size;
 use super::popup::{MenuSide, menu_popup};
-use crate::hooks::{use_appearance, use_services, use_tray};
+use super::tray_input::{
+    ItemMenu, ScreenOrigin, TrayAction, chroma_limit, icon_source, press_action, scroll_delta,
+};
+use crate::hooks::{use_appearance, use_services, use_settings, use_tray};
 
 /// The popup's guessed initial width (design/04-COMPONENTS.md section 20, Dropdown: "min 186,
 /// auto"), before its content is measured — and, doubling as the inner `Menu`'s synthetic
 /// anchor rect width, so the menu's right edge lands at the popup's own right edge (module doc).
 const POPUP_WIDTH: i32 = 220;
-/// The popup's guessed initial height, before its content is measured.
-const POPUP_HEIGHT: i32 = 240;
-/// `menu_popup`'s `max_px`: how far the popup may grow past `POPUP_WIDTH`/`POPUP_HEIGHT` once
-/// its dbusmenu content is known.
-const POPUP_MAX: i32 = 320;
+/// The room under the menu's estimated height (its 8 px inset from the popup's edge, with
+/// slack for the estimate).
+const POPUP_SLACK: i32 = 16;
+/// The tallest the popup is made, a guard of ours rather than a design value (no design doc
+/// caps a menu's height): a longer dbusmenu is clipped at its foot. Also `menu_popup`'s
+/// `max_px`.
+const POPUP_MAX: i32 = 640;
 
 /// The element id a popup anchors to for the button at `index` (module doc: "anchor by element
 /// id `tray-<n>` per the freeze").
@@ -57,67 +56,108 @@ fn popup_element_id(index: usize) -> String {
     format!("tray-{index}")
 }
 
-/// The tray: one `IconButton{Tool}` per status notifier item, its dbusmenu as a quire
-/// `Menu{Dropdown}`. `output` is unused: the tray's items are global, not per-output, and each
-/// output's bar is its own document, so `tray-<n>` needs no output qualifier.
+/// The tray: one `IconButton{Status}` per status notifier item, its dbusmenu as a quire
+/// `Menu{Dropdown}`. The items are global, not per-output, and each output's bar is its own
+/// document, so `tray-<n>` needs no output qualifier; `output` places the presses on screen.
 #[component]
-#[allow(unused_variables)]
 pub fn Tray(output: OutputInfo) -> Element {
     let tray = use_tray();
     let items = tray().items;
+    let origin = ScreenOrigin {
+        x: output.logical.x,
+        y: output.logical.y,
+    };
     rsx! {
         for (index , item) in items.into_iter().enumerate() {
-            TrayButton { key: "{item.id.0}", index, item }
+            TrayButton { key: "{item.id.0}", index, item, origin }
         }
     }
 }
 
-/// One status item, wired to the live surface: primary click opens its dbusmenu when it has
-/// one, otherwise sends `Activate` (SNI's default action); a picked entry sends `MenuPick`.
-/// `(x, y)` on `Activate`/`MenuOpening` are the SNI spec's own words for the screen coordinates:
-/// "a hint... where to show eventual windows (if any)" — not load-bearing, so `0, 0` stands in
-/// until the bar has a reason to plumb the real pointer position through here.
+/// `icon`'s art as quire draws it at the chroma `limit`, resolved (theme lookup, file read,
+/// chroma test) only when the icon or the limit changes, not on every render.
+fn use_icon_source(icon: &TrayIcon, size_px: u16, limit: ChromaLimit) -> IconSource {
+    let mut cache = use_hook(|| CopyValue::new(None::<(TrayIcon, ChromaLimit, IconSource)>));
+    if let Some((seen, seen_limit, source)) = cache.peek().as_ref()
+        && seen == icon
+        && *seen_limit == limit
+    {
+        return source.clone();
+    }
+    let source = icon_source(icon_art(icon, size_px), limit);
+    cache.set(Some((icon.clone(), limit, source.clone())));
+    source
+}
+
+/// One status item, wired to the live surface: a press does what `press_action` says, a picked
+/// menu entry sends `MenuPick`, and the wheel sends `Scroll`.
 #[component]
-fn TrayButton(index: usize, item: TrayItem) -> Element {
+fn TrayButton(index: usize, item: TrayItem, origin: ScreenOrigin) -> Element {
     let surface = use_surface();
     let control = use_services().tray_control;
+    let size_px = use_settings()().bar.status_icon_box_px.0;
+    let limit = chroma_limit(use_appearance()().settings.icons.symbolic_chroma_max.0);
+    let icon = use_icon_source(&item.icon, size_px, limit);
     let popup_id = popup_element_id(index);
     let menu = item.menu.clone();
     let item_id = item.id.clone();
-    let onclick = move |()| {
-        if menu.is_empty() {
-            let _ = control.send(TrayCommand::Activate {
-                item: item_id.clone(),
-                x: 0,
-                y: 0,
-            });
-            return;
+    let has_menu = if menu.is_empty() {
+        ItemMenu::Absent
+    } else {
+        ItemMenu::Present
+    };
+    let onclick = {
+        let control = control.clone();
+        let item_id = item_id.clone();
+        move |press: Press| match press_action(press, &item_id, has_menu, origin) {
+            TrayAction::Send(command) => {
+                let _ = control.send(command);
+            }
+            TrayAction::OpenMenu => {
+                let _ = control.send(TrayCommand::MenuOpening {
+                    item: item_id.clone(),
+                });
+                open_menu(&surface, &popup_id, &item_id, &menu, &control);
+            }
+            TrayAction::Nothing => {}
         }
-        let _ = control.send(TrayCommand::MenuOpening {
-            item: item_id.clone(),
-        });
-        open_menu(&surface, &popup_id, &item_id, &menu, &control);
+    };
+    let onwheel = move |event: WheelEvent| {
+        if let Some(delta) = scroll_delta(event.delta()) {
+            let _ = control.send(TrayCommand::Scroll {
+                item: item_id.clone(),
+                delta,
+            });
+        }
     };
     rsx! {
-        TrayButtonView { index, item, onclick }
+        TrayButtonView { index, item, icon, onclick, onwheel }
     }
 }
 
-/// One status item's markup: no hook, so `tests` can render it directly.
+/// One status item's markup: no hook, so `tests` can render it directly. The unclassed `span`
+/// only listens for the wheel, which `IconButton` does not report.
 #[component]
-fn TrayButtonView(index: usize, item: TrayItem, onclick: EventHandler<()>) -> Element {
+fn TrayButtonView(
+    index: usize,
+    item: TrayItem,
+    icon: IconSource,
+    onclick: EventHandler<Press>,
+    onwheel: EventHandler<WheelEvent>,
+) -> Element {
     let title = item.title.clone();
     let tooltip = match item.status {
         TrayStatus::NeedsAttention => format!("{title} (needs attention)"),
         TrayStatus::Passive | TrayStatus::Active => title.clone(),
     };
     rsx! {
-        span { id: "{popup_element_id(index)}",
+        span { onwheel: move |event| onwheel.call(event),
             IconButton {
-                variant: IconButtonVariant::Tool,
-                icon: Icon::Window,
+                variant: IconButtonVariant::Status,
+                icon,
                 label: title,
                 tooltip: Some(tooltip),
+                id: Some(popup_element_id(index)),
                 onclick,
             }
         }
@@ -132,7 +172,14 @@ fn open_menu(
     menu: &[TrayMenuEntry],
     control: &Control<TrayCommand>,
 ) {
-    let config = menu_popup(popup_id, MenuSide::Status, POPUP_MAX);
+    // Fixed at the estimate: a document of one overlay measures at nothing, and shell-host's
+    // content fit would shrink the popup to 1 x 1 (the bar's menus, `session.rs`).
+    let entries = to_ds_entries(menu);
+    let height = (menu_size(&entries).height + POPUP_SLACK).min(POPUP_MAX);
+    let config = PopupConfig {
+        size: PopupSize::Fixed,
+        ..menu_popup(popup_id, MenuSide::Status, POPUP_MAX)
+    };
     let placement = PopupPlacement {
         // Ignored for `PopupAnchor::Element` (shell-host's own doc on `PopupPlacement`).
         anchor_rect: Rect {
@@ -143,18 +190,17 @@ fn open_menu(
         },
         size: Size {
             width: POPUP_WIDTH,
-            height: POPUP_HEIGHT,
+            height,
         },
     };
     let root = Root::with_props(
         tray_menu_popup,
         TrayMenuProps {
-            entries: to_ds_entries(menu),
+            entries,
             item: item.clone(),
             control: control.clone(),
         },
-    )
-    .context(crate::MEASURE);
+    );
     surface.open_popup(config, placement, root);
 }
 
@@ -169,8 +215,11 @@ struct TrayMenuProps {
     control: Control<TrayCommand>,
 }
 
-/// The dbusmenu popup's document: one `Ds` over one `Menu{Dropdown}`.
+/// The dbusmenu popup's document: one transparent `Ds` root over one `Menu{Dropdown}` that
+/// opens at once (a bar menu). A popup inherits nothing from the bar, so it provides quire's
+/// rect measurer itself.
 fn tray_menu_popup(props: TrayMenuProps) -> Element {
+    ds_native::measure::provide();
     let environment = use_appearance()();
     let surface = use_surface();
     let control = props.control.clone();
@@ -199,13 +248,14 @@ fn tray_menu_popup(props: TrayMenuProps) -> Element {
                 entries: props.entries.clone(),
                 onpick,
                 onclose,
+                entrance: MenuEntrance::Instant,
             }
         }
     }
 }
 
-/// `menu`'s shown items, flattened to one level (`ds::MenuEntry` has no `children` field, module
-/// doc), hidden dbusmenu rows (`visibility: Hidden`) dropped.
+/// `menu`'s shown items at the top level (a row's children are dropped, module doc), hidden
+/// dbusmenu rows (`visibility: Hidden`) dropped.
 fn to_ds_entries(menu: &[TrayMenuEntry]) -> Vec<MenuEntry<i32>> {
     menu.iter()
         .filter(|entry| match &entry.kind {
@@ -219,14 +269,22 @@ fn to_ds_entries(menu: &[TrayMenuEntry]) -> Vec<MenuEntry<i32>> {
 fn to_ds_entry(entry: &TrayMenuEntry) -> MenuEntry<i32> {
     match &entry.kind {
         TrayMenuKind::Separator => MenuEntry::Separator,
-        TrayMenuKind::Item { label, check, .. } => MenuEntry::Item {
+        TrayMenuKind::Item {
+            label,
+            check,
+            enabled,
+            ..
+        } => MenuEntry::Item {
             value: entry.id,
             title: label.clone(),
             detail: None,
             tile: None,
             trail: Trail::None,
             check: to_ds_check(*check),
-            availability: ds::Availability::Enabled,
+            availability: match enabled {
+                TrayAvailability::Enabled => ds::Availability::Enabled,
+                TrayAvailability::Disabled => ds::Availability::Disabled,
+            },
         },
     }
 }
@@ -259,9 +317,10 @@ mod tests {
 
     /// Two fake tray entries, the way `Tray`'s own `for` loop would place them.
     fn two_fake_entries((a, b): (TrayItem, TrayItem)) -> Element {
+        let icon = ds::IconSource::Glyph(ds::Icon::Window);
         rsx! {
-            TrayButtonView { index: 0usize, item: a, onclick: move |()| {} }
-            TrayButtonView { index: 1usize, item: b, onclick: move |()| {} }
+            TrayButtonView { index: 0usize, item: a, icon: icon.clone(), onclick: move |_| {}, onwheel: move |_| {} }
+            TrayButtonView { index: 1usize, item: b, icon, onclick: move |_| {}, onwheel: move |_| {} }
         }
     }
 

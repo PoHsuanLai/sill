@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use dioxus::prelude::*;
 use ds::{Alpha, Appearance, SystemPrefs};
-use shell_host::{PopupAnchor, PopupConfig, PopupPlacement, Root, SurfaceHandle};
+use shell_host::{PopupAnchor, PopupConfig, PopupPlacement, PopupSize, Root, SurfaceHandle};
 use sill_services::Services;
 use tokio::sync::{mpsc, watch};
 
@@ -169,8 +169,13 @@ fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
             let Some(surface) = &deps.surface else {
                 return;
             };
+            // Fixed, not `menu_popup`'s FitContent: the document holds only an absolutely
+            // placed frame and an overlay, so shell-host's content fit measures it at nothing
+            // and shrinks the popup to 1 x 1 (FINDINGS "Adoption of the bar gaps"). The size is
+            // the geometry's estimate, room included.
             let config = PopupConfig {
                 anchor: PopupAnchor::Rect,
+                size: PopupSize::Fixed,
                 ..menu_popup(&deps.namespace, menu.side(), MAX_PX)
             };
             let first = view.placement;
@@ -180,13 +185,11 @@ fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
             surface.open_popup(
                 config,
                 first,
-                Root::new(MenuPopup)
-                    .context(crate::MEASURE)
-                    .context(PopupLink {
-                        view: rx,
-                        reports,
-                        volume,
-                    }),
+                Root::new(MenuPopup).context(PopupLink {
+                    view: rx,
+                    reports,
+                    volume,
+                }),
             );
             link.write().view = Some(tx);
             open.set(Some(menu));
