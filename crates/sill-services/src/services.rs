@@ -10,6 +10,7 @@ use crate::battery::{Battery, BatteryCommand};
 use crate::clock::{ClockCommand, ClockText};
 use crate::control::Control;
 use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
+use crate::displays::{Displays, DisplaysCommand};
 use crate::launch::{LaunchCommand, Launches};
 use crate::network::{Network, NetworkCommand};
 use crate::pins::{DockPins, PinEvent};
@@ -52,6 +53,8 @@ pub struct Services {
     pub wallpaper_control: Control<WallpaperCommand>,
     pub sound: watch::Receiver<Presence>,
     pub sound_control: Control<SoundCommand>,
+    pub displays: watch::Receiver<Displays>,
+    pub displays_control: Control<DisplaysCommand>,
 }
 
 impl Services {
@@ -70,6 +73,7 @@ impl Services {
         let (battery, battery_control) = crate::battery::spawn(rt);
         let (network, network_control) = crate::network::spawn(rt);
         let (volume, volume_control) = crate::volume::spawn(rt);
+        let (displays, displays_control) = crate::displays::spawn(rt, volume.clone());
         let (tray, tray_control) = crate::tray::spawn(rt);
         let (workspaces, toplevels, wl) = crate::cosmic_wl::spawn();
         let (apps, apps_control) = crate::apps::spawn(rt);
@@ -118,6 +122,8 @@ impl Services {
             wallpaper_control,
             sound,
             sound_control,
+            displays,
+            displays_control,
         }
     }
 }
@@ -154,5 +160,10 @@ mod tests {
         assert_eq!(*services.results.borrow(), Default::default());
         assert_eq!(*services.wallpapers.borrow(), Default::default());
         assert_eq!(*services.sound.borrow(), Default::default());
+        assert_eq!(
+            *services.displays.borrow(),
+            Default::default(),
+            "inert until a policy"
+        );
     }
 }
