@@ -898,3 +898,75 @@ start at F92/Q15 so they cannot collide with m2-wallpaper's F83-F91 and Q14.
 - **Q17** `Tooltip{Fly}` is `:hover`-driven only; a controlled mode (shown/hidden by the caller)
   would let the dock machine's label rules (hide on press, while a menu is open, while
   dragging) apply (F98).
+
+## M4 perf-ime (2026-09-24)
+
+- **F102 `launcher.open_latency_ms` is timed at the IPC request's arrival, not inside
+  `dispatch_launcher`.** `run_event`'s `HostEvent::App(ShellMsg::Ipc { .. })` arm starts an
+  `Instant` for exactly `Request::Launcher(LauncherRequest::Toggle)`, calls
+  `dispatch_request` unchanged, then logs the elapsed time — regardless of what the response
+  turns out to be. This is the wave-ownership seam DESIGN.md's M4 table draws (perf-ime owns
+  the latency lines, launcher-ui owns "spawn/route" in the same file): launcher-ui can rewrite
+  `dispatch_launcher`'s body freely — spawn the two surfaces, wait for the shown frame, whatever
+  the design needs — without touching this edit, and the number this line prints grows on its
+  own from "IPC round trip only" (today, `dispatch_launcher` answers `Unsupported` at once) to
+  "IPC arrival to the frame that presents the shown panel" the moment `dispatch_request` itself
+  takes that long, with no further edit here. `open_latency_line`/`parse_open_latency_ms`
+  (`crates/sill/src/daemon.rs`, both `pub` for `crates/sill/tests/latency.rs` and
+  `dev/accept-launcher.sh`) are the pure formatting/parsing pair; `crates/sill/tests/latency.rs`
+  checks both without a wall clock (fixed `Duration`s), including that the parser ignores every
+  line that is not ours (an `Unsupported` failure message, another daemon line, a malformed
+  number).
+- **F103 `dev/accept-launcher.sh` runs three steps, self-contained** (own `sill run --features
+  debug`, scratch `XDG_CONFIG_HOME`, on the already-running nested `wayland-1`; quits its daemon
+  at the end via a `trap`), all with real evidence rather than assumed:
+  1. **Real pass, today.** 20 `sill launcher toggle` calls (each answers `Failed(Unsupported)`
+     and exits nonzero — expected, and irrelevant: F102's line is printed before the client ever
+     sees the response) produced exactly 20 `launcher.open_latency_ms` lines on this machine:
+     p50 0.000 ms, p95 0.001 ms, max 0.002 ms, comfortably under the 100 ms budget. This is
+     IPC-only overhead, not the real open latency the plan's gate means — but the mechanism is
+     real, and F102's design means it starts measuring the real thing unchanged once M4
+     launcher-ui lands, with nothing in this script to update.
+  2. **Skip (exit 2), "M4 launcher-ui."** `sill debug stats` carries no `sill-launcher-*` row
+     after a toggle (`dispatch_launcher` never spawns anything yet), so the panel-exists and
+     5 s-idle-after-close checks cannot run; the step checks for the row itself rather than
+     assuming its absence, so it starts passing for real the moment a launcher surface exists.
+  3. **Skip (exit 2), reason logged but not diagnosed further.** The nested `custom` shortcut
+     (`dist/cosmic/.../custom`, mirrored into shell-host's `scripts/dev/xdg-config`, already
+     loaded when this machine's `cosmic-comp` started) is `(modifiers: [Ctrl, Alt], key:
+     "space"): Spawn("sill launcher toggle")`. `wtype` is installed here (`ydotool` is not); the
+     step sends `wtype -M ctrl -M alt -k space -m alt -m ctrl` through the nested compositor and
+     watches the daemon's log for a new `launcher.open_latency_ms` line for 5 s. Live result: no
+     new line. `comp.log` names neither a shortcut match nor a spawn attempt at any log level
+     enabled by default, so the cause is not distinguished between two candidates: `cosmic-comp`
+     resolves `Spawn`'s bare `sill` on its own inherited `PATH`, fixed when `dev/nested.sh`
+     started the compositor (before any `cargo build` in this session put a `sill` binary
+     anywhere); or a `wtype`-injected key, which travels the `virtual-keyboard-unstable-v1`
+     protocol rather than a real input device, never reaches `cosmic-comp`'s global-shortcut
+     matcher at all. Either is a shell-host/cosmic-comp fact, not something `dev/`-owned code can
+     fix; recorded rather than guessed at further.
+- **F104 `dev/ime-probe.sh` proves the two checks it can and stops.** Live on this machine,
+  right now: `loginctl`'s seat0 session (found by its `SEAT` column, not `$XDG_SESSION_ID` — a
+  script invoked from a pts session must not check that session's lock state) has
+  `LockedHint=yes`, so the script exits 2 with that fact named, exactly as running it demonstrated
+  (`./dev/ime-probe.sh` printed the lock message and exited 2 without touching fcitx5 or the
+  compositor). fcitx5 answers on the session bus (`busctl --user call org.fcitx.Fcitx5
+  /controller org.fcitx.Fcitx.Controller1 State`, checked separately, unlocked or not — D-Bus
+  calls do not need keyboard focus). Past those two checks the script looks for
+  `sill-surfaces/examples/launcher_demo`, then `bar_demo`; neither offers a real text-input-v3
+  field yet (`bar_demo` has none at all — the bar has no text entry), so it always stops there,
+  exit 2, and prints the exact commands for the rest. **Correction to the brief's D-Bus name**:
+  this machine's fcitx5 does not answer on `org.fcitx.Fcitx5.Controller1` — introspecting
+  `org.fcitx.Fcitx5` `/controller` shows the interface is `org.fcitx.Fcitx.Controller1` (no
+  "5"), which is what the script and its printed commands use. **`SetCurrentIM`'s effect could
+  not be confirmed live while writing this**: calling `SetCurrentIM s chewing` then
+  `CurrentInputMethod` returned `""` before and after (session locked throughout, so no
+  wayland client had an enabled, focused `zwp_text_input_v3` context for fcitx5 to apply a
+  "current" method to) — the printed commands document the call, not a verified round trip;
+  that verification is exactly what running them against a real field, once one exists, is for.
+  Facts recorded for the documented commands rather than assumed: `wtype` is installed on this
+  machine, `ydotool` is not; the Default input-method group here is `keyboard-us` + `chewing`
+  (Taiwanese Zhuyin/Chewing — the only CJK method configured), matching shell-host FINDINGS.md's
+  own note that `fcitx5` is installed and IME has only been exercised on KWin so far (`text-
+  input-v3` accumulates `preedit_string`/`commit_string`/`delete_surrounding_text` until `done`,
+  `crates/shell-host/src/ime.rs`).
