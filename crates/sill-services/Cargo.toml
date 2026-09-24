@@ -29,5 +29,10 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 
+# A LauncherEntry emitter for exercising badges without a real app: the dock's acceptance and
+# `tests/badges_live.rs` run it as a child process.
+[[example]]
+name = "badge_emitter"
+
 [lints]
 workspace = true
