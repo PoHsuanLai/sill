@@ -87,6 +87,7 @@ fn names(entries: &[MenuEntry<DockPick>]) -> Vec<String> {
                 format!("{title} > [{}]", names(children).join(", "))
             }
             MenuEntry::Info { title, .. } => format!("i {title}"),
+            MenuEntry::Row(row) => format!("r {}", row.title.plain_text()),
             MenuEntry::Separator => "--".to_owned(),
         })
         .collect()
