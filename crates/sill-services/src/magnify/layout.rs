@@ -169,9 +169,19 @@ mod tests {
             .collect()
     }
 
+    /// design/10's first spacing (gap 4, pad 8), which the worked numbers below were written
+    /// against; the polish pass later moved the defaults to 8 and 6.
+    fn first_spacing(p: MagnifyParams) -> MagnifyParams {
+        MagnifyParams {
+            gap: Cpx::px(4),
+            pad: Cpx::px(8),
+            ..p
+        }
+    }
+
     #[test]
     fn rest_is_centred_and_matches_the_pill_formula() {
-        let p = MagnifyParams::design_defaults(Cpx::px(1920));
+        let p = first_spacing(MagnifyParams::design_defaults(Cpx::px(1920)));
         let centers = rest_centers(7, &p);
         // W_0 = 7 * 48 + 6 * 4 + 16 = 376; left = (1920 - 376) / 2 = 772.
         assert_eq!(centers[0], Cpx::px(772 + 8 + 24));
@@ -250,7 +260,7 @@ mod tests {
 
     #[test]
     fn the_pill_widens_by_the_extra_width_and_the_baseline_order_holds() {
-        let p = wide();
+        let p = first_spacing(wide());
         let centers = rest_centers(7, &p);
         let rest = magnify(&centers, centers[3], Permille::ZERO, &p);
         let full = magnify(&centers, centers[3], Permille::ONE, &p);

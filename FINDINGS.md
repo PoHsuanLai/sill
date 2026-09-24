@@ -1680,3 +1680,8 @@ attempt and made the next script refuse to start.
   `dock-cosmic-menu.png`).
 - **Q70** `sill-services`' `MagnifyParams::design_defaults` still holds design/10's gap 4 and
   pad 8; the dock's test compares against it with the two fields overridden.
+- Resolved after the merge: Q66 and Q67 by the design/22 rows and ds-settings' own material
+  fields (sill reads `Environment::material_stack`); Q69 by 28 px of side room in both popups'
+  geometry; Q70 by `design_defaults` moving to gap 8 and pad 6 (the layout tests' worked numbers
+  keep design/10's first spacing through `first_spacing`). Q68 stays at 22: at the 60 px pill
+  the corner curve is the same as 18, and 22 matches quire's `DockMetrics` default.

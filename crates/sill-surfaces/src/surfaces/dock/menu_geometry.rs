@@ -22,8 +22,8 @@ use crate::surfaces::dock::frame::Area;
 
 /// How far `ds::place` keeps a floating surface inside its bounds.
 pub(crate) const MARGIN: i32 = 8;
-/// The popup's room around the menu, for `--shadow-pop`.
-pub(crate) const SIDE: i32 = 24;
+/// The popup's room around the menu, for `--shadow-pop` (its ambient layer reaches 28 px).
+pub(crate) const SIDE: i32 = 28;
 pub(crate) const TOP: i32 = 8;
 pub(crate) const BOTTOM: i32 = 40;
 /// design/10 §10.3.7: the menu's gap above its tile.

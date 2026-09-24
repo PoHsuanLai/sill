@@ -21,8 +21,9 @@ use super::popup::MenuSide;
 pub(crate) const MARGIN: i32 = 8;
 
 /// The popup's transparent room around the menu, for `--shadow-pop` (`0 18px 40px -16px`):
-/// 24 px each side, 6 px above (8 kept), 42 px below (40 kept, the rest is under 2 % alpha).
-pub(crate) const SIDE: i32 = 24;
+/// 28 px each side (the polish pass's ambient shadow reaches 28), 6 px above (8 kept), 42 px
+/// below (40 kept, the rest is under 2 % alpha).
+pub(crate) const SIDE: i32 = 28;
 pub(crate) const TOP: i32 = 8;
 pub(crate) const BOTTOM: i32 = 40;
 
