@@ -42,7 +42,7 @@ use content::{BarState, front_app};
 use menu_track::{MenuIn, MenuParams, Target};
 use network::NetworkItem;
 use session::{BarInput, PopupLook, SessionDeps, use_menu_session};
-use shell_style::{material_stack, shell_metrics};
+use shell_style::shell_metrics;
 use status_item::status_metrics;
 use tray::Tray;
 use volume::VolumeItem;
@@ -92,7 +92,7 @@ pub fn Bar(output: OutputInfo) -> Element {
         system: environment.system,
         tint: environment.tint_alpha(),
         metrics,
-        stack: material_stack(&environment.settings.appearance),
+        stack: environment.material_stack(),
     };
     let state = BarState {
         app: front_app(&use_toplevels()(), &use_apps()(), on.as_ref()),

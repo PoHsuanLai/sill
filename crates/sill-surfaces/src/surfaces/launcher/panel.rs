@@ -19,7 +19,7 @@ use sill_services::{Activity, OutputName, Results, WorkspaceKey, Workspaces};
 use sill_settings::{PanelMaterial, SpacesSettings};
 
 use crate::hooks::{use_appearance, use_results, use_settings, use_space_look, use_workspaces};
-use crate::surfaces::bar::shell_style::{material_stack, shell_metrics};
+use crate::surfaces::bar::shell_style::shell_metrics;
 use crate::surfaces::bar::workspaces::group_for;
 use crate::surfaces::launcher::card::{CardKey, Foot, use_card_hit};
 use crate::surfaces::launcher::entries::{RowRef, action_entries, palette_groups};
@@ -108,7 +108,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
                 material: material(file.launcher.material),
                 blur: BlurState::Available,
                 tint_alpha: Some(environment.tint_alpha()),
-                stack: Some(material_stack(&environment.settings.appearance)),
+                stack: Some(environment.material_stack()),
                 style { {LAUNCHER_CSS} }
                 div {
                     class: "sill-launcher-body",

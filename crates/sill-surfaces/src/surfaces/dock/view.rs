@@ -22,7 +22,7 @@ use crate::hooks::{
     use_appearance, use_apps, use_launcher_entry, use_pins, use_settings, use_space_look,
     use_toplevels, use_workspaces,
 };
-use crate::surfaces::bar::shell_style::{material_stack, shell_metrics};
+use crate::surfaces::bar::shell_style::shell_metrics;
 use crate::surfaces::bar::workspaces::group_for;
 use crate::surfaces::dock::frame::{Area, Frame, Rows, frame};
 use crate::surfaces::dock::geometry::{dock_metrics, pill_corner};
@@ -74,7 +74,7 @@ pub(crate) fn dock(output: OutputInfo) -> Element {
         workspace,
     };
     let metrics = shell_metrics(&file);
-    let stack = material_stack(&environment.settings.appearance);
+    let stack = environment.material_stack();
     let items = dock_items(&world.pins, &world.toplevels, &world.index, file.dock.trash);
     let initial = DockState::new(match file.dock.autohide {
         AutoHide::Off => Reveal::Fixed,
