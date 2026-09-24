@@ -1,4 +1,6 @@
 /* A bar popup's document (design/13 §13.3.2): the frame its Ds root sits in, positioned so the
    root's overlay bounds leave the menu's shadow room inside the popup (bar/geometry.rs). The
-   inset is written inline from the geometry's constants. */
+   Popover root is transparent and the menu card paints its own drop now, but that drop still
+   reaches 24 px beside and 40 px below the card, and the popup surface clips at its edges, so
+   the room stays. The inset is written inline from the geometry's constants. */
 .sill-popup-frame{ position:absolute; }

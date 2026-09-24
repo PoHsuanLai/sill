@@ -2,15 +2,16 @@
 //! SNI host + dbusmenu; registers watcher if none").
 //!
 //! [`spawn`] and [`host`] do the effect (a `system_tray::client::Client` on the session bus);
-//! [`icon`] turns a resolved [`TrayIcon`] into a URL shell-host's `LocalNet` can load. Neither
-//! reaches `dioxus`, `ds` or `shell-host` (`scripts/check-boundary.sh`): the bar reads this
-//! module only through [`Tray`] and [`TrayCommand`], via `sill-surfaces::hooks::use_tray`.
+//! [`icon`] turns a resolved [`TrayIcon`] into the art the bar draws (PNG bytes or a theme
+//! file). Neither reaches `dioxus`, `ds` or `shell-host` (`scripts/check-boundary.sh`): the bar
+//! reads this module only through [`Tray`], [`TrayCommand`] and [`icon_art`], via
+//! `sill-surfaces::hooks::use_tray`.
 
 mod host;
 mod icon;
 mod model;
 
-pub use icon::icon_url;
+pub use icon::{IconArt, icon_art};
 pub use model::{
     Availability, Check, Pixmap, ScrollAxis, ScrollDelta, Tray, TrayCommand, TrayEvent, TrayIcon,
     TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind, TrayStatus, reduce_tray,

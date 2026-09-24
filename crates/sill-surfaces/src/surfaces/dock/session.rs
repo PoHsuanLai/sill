@@ -340,9 +340,7 @@ fn open_menu(slots: Slots, deps: &SessionDeps, outward: &Outward, tile: TileId) 
     surface.open_popup(
         menu_config(&entries),
         placement,
-        Root::new(DockMenuPopup)
-            .context(crate::MEASURE)
-            .context(link),
+        Root::new(DockMenuPopup).context(link),
     );
 }
 

@@ -71,6 +71,9 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
         ),
         ("no strip while auto-hide is off", "id=\"dock-strip\"", 0),
         ("the Dock material", "data-material=\"dock\"", 1),
+        ("the root draws the Space", "data-frame=\"tinted\"", 1),
+        ("no tint layer of the dock's own", "sill-dock-tint", 0),
+        ("plates on paper", "data-ground=\"frame\"", 0),
         (
             "Files and Terminal as themed images",
             "data-kind=\"image\"",

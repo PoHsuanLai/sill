@@ -7,7 +7,7 @@ use sill_services::OutputName;
 
 use super::content::front_app;
 use super::menus::BarMenu;
-use super::title::TitleSlot;
+use super::title::{SlotPill, TitleSlot};
 use crate::hooks::{use_apps, use_toplevels};
 
 /// What the title says with no window on the output.
@@ -23,7 +23,7 @@ pub fn AppName(output: OutputInfo) -> Element {
     let name = front_app(&toplevels(), &apps(), on.as_ref())
         .map_or_else(|| NO_APP.to_owned(), |app| app.name);
     rsx! {
-        TitleSlot { menu: BarMenu::App, probe,
+        TitleSlot { menu: BarMenu::App, probe, pill: SlotPill::Slot,
             Button {
                 variant: ButtonVariant::Quiet,
                 label: name,

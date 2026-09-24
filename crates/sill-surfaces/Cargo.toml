@@ -10,8 +10,8 @@ publish.workspace = true
 
 [dependencies]
 dioxus = { workspace = true }
-dioxus-native-dom = { workspace = true }
 ds = { workspace = true }
+ds-native = { workspace = true }
 ds-settings = { workspace = true }
 shell-host = { workspace = true }
 sill-services = { workspace = true }
@@ -23,6 +23,8 @@ tokio = { workspace = true }
 # `lint` is off by default (CONSUMING.md section 5): only test builds need `ds::lint::markup`.
 ds = { workspace = true, features = ["lint"] }
 dioxus-ssr = { workspace = true }
+# Encodes the PNG fixtures the tray's symbolic-or-image tests classify.
+image = { workspace = true }
 shell-host = { workspace = true, features = ["debug-inject"] }
 
 # A standalone bar on a real compositor with fake services, for acceptance

@@ -1173,3 +1173,136 @@ line (`results/{mod,run,sink,arrange,history,registry,effect,frecency_file}.rs`)
   apps), 200 queries after warm-up: p50 24 us, p95 32 us, max 60 us (asserted p95 < 10 ms).
   Release (`cargo run -p sill-services --example search_bench --release`): fixture p50 8 us,
   p95 11 us; 1500 apps p50 88 us, p95 183 us, max 240 us.
+## Adoption of the bar gaps (2026-09-24)
+
+quire master merged `tray-gaps` (Q6-Q8) and `bar-gaps` (Q9-Q13, the status items); this pass
+removes the bar's, the dock's and the tray's workarounds for them. Numbers start at F120/Q20 so
+they stay clear of the M4 launcher branches running beside it.
+
+- **F120 The measurer is quire's.** `sill-surfaces/src/measure.rs` is gone. The workspace names
+  `ds-native` (a path dependency beside `ds`, outside the pinned block; it brings `winit` and
+  `dioxus-native` into the lockfile, all licence-clean under `cargo deny`), and
+  `sill_surfaces::MEASURE` is now a re-export of `ds_native::measure::MEASURE`, so
+  `daemon::surface_root` (and the launcher's code, which may name it) is unchanged in shape: a
+  `Root` is built outside any component, so `.context(MEASURE)` is how it provides what
+  `provide()` provides inside one. The three popup roots (the bar's menu popup, the tray's
+  dbusmenu popup, the dock's context menu) call `ds_native::measure::provide()` at their top
+  instead of taking a context from their opener. `sill-surfaces` no longer needs
+  `dioxus-native-dom` directly.
+- **F121 The bar draws the Space through its root.** The `sill-bar-tint` layer is deleted; the
+  `Ds` root (already given the workspace's `SpaceLook`) takes quire's defaults for a Bar:
+  `FrameTint::Tinted` and `Ground::Frame`. Live, the bar is the Space's gradient at the Bar's
+  alpha with its grain (`dev/out/bar-cosmic.png`). The status items are
+  `IconButton{Status}` in a group whose inline style carries `ds::StatusMetrics`, filled by
+  `status_item::status_metrics` from `bar.status_icon_box_px`, `bar.status_glyph_px` and
+  `bar.glyph_size_policy` (`IconSizeBar22`: the glyph is the box), so Q12 and F49's first
+  half are closed. An icon item's slot no longer draws the open-title pill (the button is
+  `--f-pill` while `expanded`); the clock and the app name, which are text, still do
+  (`title::SlotPill`). Wired networks show `Icon::Ethernet`. The status lines of the network,
+  battery and clock menus are `MenuEntry::Info` (F47 closed), sized as item rows in the popup's
+  estimate.
+- **F122 The menu machine hears the menu.** Bar menus are `MenuEntrance::Instant` (F50's
+  entrance closed). The popup reports `on_hover` as `Hovered(choice)` and `on_release` as
+  `Released(Option<Choice>)` (`plan::choice` maps a quire choice index to the enabled item's
+  pick, numbered as quire numbers them), and `plan::popup_input` feeds them to the tracker as
+  `Move(Target::Item | Menu)` and `Release(..)`. Because quire calls `on_release` before its own
+  pick, the machine decides press-drag-release and click mode alike: a held release over an
+  item picks and runs once, a held release over a status line or padding closes, a release in
+  click mode over a status line keeps the menu; quire's `onpick` that follows finds the session
+  closed and is ignored (table-tested in `plan.rs`). The keyboard's Enter still arrives as
+  `Picked`. Whether the popup ever gets that release during a press-drag depends on the
+  compositor handing the implicit grab over (F46); `sill debug click` cannot press on one
+  surface and release on another, so it is proved by the table, not live.
+- **F123 Popup roots are Popover again, and keep their room.** The bar's, the tray's and the
+  dock's popup roots are `Material::Popover` (transparent chrome); the menu cards paint the
+  material. The shadow room frame stays in both `bar_popup.css` and `dock_popup.css`: the card's
+  drop (`--shadow-pop`, reaching 24 px beside and 40 below it) is painted by the card now, but
+  the popup surface still clips at its own edges, so the room must be inside it. Live, the
+  popup is transparent around its card (`dev/out/bar-cosmic-menu.png`,
+  `dev/out/dock-cosmic-menu.png`).
+- **F124 Bar popups are `PopupSize::Fixed`.** With the room frame and a transparent root, the
+  bar's popup document has nothing in flow, and shell-host's content fit (its G7 fix, which
+  `menu_popup`'s `FitContent` now reaches) measured it and shrank the popup to 1 x 1: the first
+  acceptance run passed its "popup is up" check with an empty popup (a 268 x 129 capture, alpha
+  0 everywhere, then 1 x 1). The bar's menus and the tray's dbusmenu popup now pass `Fixed` with
+  the geometry's estimate, as the dock's context menu already did (F96). The tray popup's height
+  is estimated from its entries (`geometry::menu_size`, capped at 640 px) instead of a fixed
+  240; a long dbusmenu scrolls inside quire's menu.
+- **F125 The dock's pill is its root.** The root is `Material::Dock` in a box at the pill's
+  rectangle (`#dock-pill`, still the blur region's element), sized by an in-flow body of the
+  pill's height; the tiles, dots, separator and hit elements hang from the root in a layer
+  moved back to the surface's origin, so the frame's surface coordinates are unchanged. The
+  nested `Surface{Dock}` and the `sill-dock-tint` layer are deleted; the pill is the Space's
+  gradient at the Dock's alpha, with the material's edge, drop and 22 px radius
+  (`dev/out/dock-cosmic.png`). The root passes `ground: Some(Ground::Paper)`: under the Dock's
+  default frame ground the plates' `--raise`/`--surface-2` would turn into `--f-pill`, and
+  design/08 §4.1 asks for neutral paper; the dot and the separator already name `--f-ink` and
+  `--f-line`. `dock.pill_radius_px` still does not reach the pill: `Ds` has no radius override
+  and `--m-radius` is declared on the `.ds` itself (Q15 stays open).
+- **F126 The dock label follows the machine's gate, as far as the Fly allows.** quire's
+  `Tooltip` still has no controlled mode (Q17 open), so the label stays a `Tooltip{Fly}` whose
+  `:hover` shows it, now on a box over the plate beside it rather than wrapping it, and the
+  tile leaves it out of the document while `machine::label_gate` is `Quiet`: a button down or a
+  drag (the machine's `press != Up`), or a context menu open. The dock provides the gate as a
+  `Signal<LabelGate>` context; the frozen `Tile` props are unchanged. Live, the label no longer
+  shows under an open context menu (`dev/out/dock-cosmic-menu.png`, compare F101's Q17 note).
+  The Fly's delay and warm skip remain quire's, not the machine's `ShowLabel` timing.
+- **F127 Tile icons are still drawn at 22 px.** `ds::IconSize::Bar` (22) is still quire's
+  largest and `IconView` has no pixel size, so the dock keeps scaling a 22 px icon (Q16 open).
+- **F128 The tray draws each item's own icon.** `sill_services::tray::icon_url` and its
+  hand-rolled base64 are replaced by `icon_art`: a pixmap's PNG bytes, a theme PNG's bytes, a
+  theme file named `*-symbolic` (design/08 §1.5 step 1, compared at the last `-`), or another
+  theme file. The bar's `tray_input::icon_source` makes the `IconSource`: a PNG by
+  `ds::icon::classify_with` (step 2) at `icons.symbolic_chroma_max`, which quire master now
+  registers in its own `IconsSettings` (quire's appearance file, thousandths, default 40): the
+  tray reads it from the appearance feed the bar already carries
+  (`tray_input::chroma_limit`, quire's default when out of the key's 0..0.2 range), so no
+  sill-settings key is added; a symbolic file as `Symbolic`, anything else as `Image`, the
+  window glyph when there is no art. The result is kept per item until its icon or the limit
+  changes (theme lookup and a file read are not done
+  per render). Items are `IconButton{Status}` with the `tray-<n>` id on the button itself (the
+  wrapper span only listens for the wheel). Live, the coloured icons (Toshy's, the video
+  bridge's) draw as images and the other two items in the frame ink (`dev/out/bar-cosmic.png`).
+- **F129 Tray presses carry their point, and the wheel scrolls.** `tray_input::press_action`:
+  primary opens the dbusmenu (or sends `Activate` without one), secondary opens the dbusmenu,
+  middle sends `SecondaryActivate`; both activations carry `press.at` plus the output's logical
+  origin (the bar sits at the output's top-left). A secondary press on an item without a
+  dbusmenu would be SNI `ContextMenu(x, y)`, which the frozen `TrayCommand` does not have, so it
+  does nothing. The bar does receive wheel events (shell-host sends `wl_pointer.axis` to Blitz
+  as `wheel`, as lines with the sign negated), so a `wheel` over an item sends
+  `TrayCommand::Scroll` with `tray_input::scroll_delta`: whole notches on the main axis turned
+  back to `wl_pointer`'s sign, a half notch rounding to one, touchpad pixels and pages sending
+  nothing. Not exercised live: `sill debug` has no wheel injection. Disabled dbusmenu rows are
+  drawn disabled now; submenus are still dropped (the popup is not sized for one beside it).
+- **F130 Acceptance** (built against quire master `175bfb9`, with the retuned tint alphas: Bar
+  dark .68, Dock light .59 and dark .68), nested cosmic-comp 1.8 on the running `wayland-1` (2176 x 1360),
+  `sill run` debug build with `--features debug`. `dev/accept-bar.sh`: all eight steps pass;
+  the maximised probe is 1256 = 1360 - 32 - 72, the bar holds 5 frames and 5 commits across
+  five idle seconds, the clock click opened `sill-bar-WINIT-0/popup` and the middle click
+  dismissed it (the step's own `popup.png` is the popup's first frame, still empty; a capture
+  1.5 s after the click is 268 x 129, alpha 0 at the corners and the card opaque in the
+  middle). `dev/accept-dock.sh`: all five pass; maximised 1256; a 60-move sweep drew 46
+  frames for 46 callbacks, the leave's shrink 12 frames, then 0 frames in 5 s; the terminal
+  tile's click showed its running dot after 590 ms; the badge turned red in 405 ms; the
+  secondary click opened `sill-dock-WINIT-0/popup`. By hand on the same daemon: a hover from
+  the open clock menu onto the network item switched the one popup to the network menu (two
+  status lines, then Settings), and the Toshy item's dbusmenu opened with its disabled status
+  rows faint. Screenshots regenerated: `dev/out/bar-cosmic.png`, `bar-cosmic-menu.png`,
+  `dock-cosmic.png`, `dock-cosmic-magnified.png`, `dock-cosmic-menu.png`.
+
+### Gaps left after the adoption
+
+- **Q15** (open) `dock.pill_radius_px` cannot reach the Dock root's radius: no override prop,
+  and `--m-radius` is set on `.ds` itself (F125).
+- **Q16** (open) no icon size above 22 px (F127).
+- **Q17** (open) `Tooltip{Fly}` has no controlled mode; the dock only removes it (F126).
+- **Q20** The tray's dbusmenu popup is not part of the bar's menu session: a click on the bar
+  outside it does not close it, and a bar menu opened while it is up opens a second popup
+  beside it (seen live). It predates this pass (F33); folding it into `menu_track` as a sixth
+  kind of menu is the fix.
+- **Q21** A dbusmenu submenu is still dropped: the tray popup would need room beside the menu
+  for quire's submenu (quire "Tray gaps", "left for sill").
+- **Q22** SNI `ContextMenu(x, y)` has no `TrayCommand`, so a secondary press on an item with no
+  dbusmenu does nothing (F129).
+- **G11** `sill debug` cannot inject a wheel event or a press-drag across surfaces, so the tray
+  scroll and the bar's press-drag-release are proved by tables only (F122, F129).

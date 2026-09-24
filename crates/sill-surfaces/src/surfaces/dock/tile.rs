@@ -5,8 +5,11 @@
 //! bounce; the plate is 80.5 % of it (design/08 §2.2) with the icon inside at the design inset
 //! (§4.1). The badge and the ring hang off the plate and scale with it (design/10 §10.3.2);
 //! the running dot stays on the baseline while the tile bounces. The hover label is a ds
-//! `Tooltip{Fly}` on the plate, whose own `:hover` rule and `--d-fly` delay show it (FINDINGS
-//! "M3 dock-ui"). No pressed scrim: the frozen props carry no press.
+//! `Tooltip{Fly}` over the plate, whose own `:hover` rule and `--d-fly` delay show it; quire's
+//! Fly has no controlled mode, so the dock machine's gate decides only whether it is in the
+//! document: it is left out while a button is down and while a context menu is open (the dock
+//! provides the gate as context; FINDINGS "Adoption of the bar gaps"). No pressed scrim: the
+//! frozen props carry no press.
 
 use dioxus::prelude::*;
 use ds::{IconView, Tooltip, TooltipKind};
@@ -17,7 +20,7 @@ use crate::hooks::{use_apps, use_settings};
 use crate::surfaces::dock::frame::Rows;
 use crate::surfaces::dock::icon::{PLATE_PERMILLE, icon_scale, tile_icon};
 use crate::surfaces::dock::items::{DockItem, ItemKind};
-use crate::surfaces::dock::machine::TileApp;
+use crate::surfaces::dock::machine::{LabelGate, TileApp};
 
 /// A tile at `left` with side `size`, lifted `lift` by a bounce.
 #[component]
@@ -42,31 +45,43 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
     let grow = side / f64::from(dock.tile_size_px.0.max(1));
     let count = badge.and_then(|b| b.shown_count());
     let progress = badge.and_then(|b| b.shown_progress());
+    let labels = try_use_context::<Signal<LabelGate>>().map_or(LabelGate::Open, |gate| gate());
+    let inset = (side - plate) / 2.0;
     rsx! {
         div {
             class: "sill-dock-tile",
             style: "left:{px(left)}px;top:{top}px;width:{side}px;height:{side}px",
-            Tooltip { kind: TooltipKind::Fly, text: name,
+            div {
+                class: "sill-dock-plate",
+                style: plate_style(plate),
                 div {
-                    class: "sill-dock-plate",
-                    style: plate_style(plate),
-                    div {
-                        class: "sill-dock-icon",
-                        style: "transform:scale({scale})",
-                        IconView { source, size: crate::surfaces::dock::icon::DRAWN }
+                    class: "sill-dock-icon",
+                    style: "transform:scale({scale})",
+                    IconView { source, size: crate::surfaces::dock::icon::DRAWN }
+                }
+                if let Some(count) = count {
+                    span {
+                        class: "sill-dock-badge",
+                        style: badge_style(&dock, grow),
+                        {count_text(count)}
                     }
-                    if let Some(count) = count {
-                        span {
-                            class: "sill-dock-badge",
-                            style: badge_style(&dock, grow),
-                            {count_text(count)}
-                        }
+                }
+                if let (Some(progress), ProgressStyle::Ring) = (progress, dock.progress_style) {
+                    span {
+                        class: "sill-dock-ring",
+                        style: ring_style(&dock, grow, progress),
+                        span { class: "sill-dock-ring-hole" }
                     }
-                    if let (Some(progress), ProgressStyle::Ring) = (progress, dock.progress_style) {
+                }
+            }
+            if labels == LabelGate::Open {
+                div {
+                    class: "sill-dock-label",
+                    style: "left:{inset:.2}px;top:{inset:.2}px",
+                    Tooltip { kind: TooltipKind::Fly, text: name,
                         span {
-                            class: "sill-dock-ring",
-                            style: ring_style(&dock, grow, progress),
-                            span { class: "sill-dock-ring-hole" }
+                            class: "sill-dock-label-box",
+                            style: "width:{plate:.2}px;height:{plate:.2}px",
                         }
                     }
                 }

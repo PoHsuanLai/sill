@@ -21,14 +21,31 @@ pub(crate) fn pointer_at(event: &PointerEvent) -> Point {
     }
 }
 
+/// Who draws the open-title pill (design/13 §13.3.1) while a slot's menu is open.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SlotPill {
+    /// The slot's own background: a text title (the app name, the clock).
+    Slot,
+    /// The control inside it: an `IconButton{Status}` is `--f-pill` while `expanded`.
+    Control,
+}
+
 /// The hit box around a title's ds button. `probe` measures that button (its `mounted`), and
 /// its rect travels with every event so the popup can be placed under it.
 #[component]
-pub(crate) fn TitleSlot(menu: BarMenu, probe: RectProbe, children: Element) -> Element {
+pub(crate) fn TitleSlot(
+    menu: BarMenu,
+    probe: RectProbe,
+    pill: SlotPill,
+    children: Element,
+) -> Element {
     let bar = use_context::<MenuBar>();
     let settings = use_settings();
     let bar_settings = settings().bar;
-    let open = if bar.is_open(menu) { "true" } else { "false" };
+    let open = match (pill, bar.is_open(menu)) {
+        (SlotPill::Slot, true) => "true",
+        (SlotPill::Slot | SlotPill::Control, _) => "false",
+    };
     let pad = match menu.side() {
         MenuSide::Title => bar_settings.title_padding_px.0,
         MenuSide::Status => 0,

@@ -26,6 +26,23 @@ pub enum Label {
     },
 }
 
+/// Whether a hover label may show at all: not while a button is down or a drag is on, and
+/// not while a context menu is open (design/10 §10.3.4).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LabelGate {
+    Open,
+    Quiet,
+}
+
+/// The gate `dock` puts on its labels.
+pub fn gate(dock: &DockState) -> LabelGate {
+    if dock.press != Press::Up || dock.menu == MenuState::Open {
+        LabelGate::Quiet
+    } else {
+        LabelGate::Open
+    }
+}
+
 /// The label half of [`super::step`].
 pub(crate) fn step(
     dock: DockState,
@@ -34,10 +51,9 @@ pub(crate) fn step(
     p: &DockParams,
     out: &mut Vec<DockEffect>,
 ) -> DockState {
-    let quiet = dock.press != Press::Up || dock.menu == MenuState::Open;
     let label = match *event {
         DockEvent::Press { .. } => hide(dock.label, out),
-        _ if quiet => hide(dock.label, out),
+        _ if gate(&dock) == LabelGate::Quiet => hide(dock.label, out),
         DockEvent::PointerEnter { hit, .. } | DockEvent::PointerMove { hit, .. } => {
             hovered(dock.label, hit, now, p, out)
         }
@@ -255,6 +271,34 @@ mod tests {
         ];
         for (name, events, want, want_out) in cases {
             assert_eq!(run(&events), (want, want_out), "{name}");
+        }
+    }
+
+    #[test]
+    fn the_gate_is_quiet_from_a_press_and_while_the_menu_is_open() {
+        use super::{LabelGate, gate};
+        use crate::surfaces::dock::machine::types::MenuState;
+        let p = params();
+        let press = DockEvent::Press {
+            button: Button::Primary,
+            at: Point::default(),
+            hit: Hit::Tile {
+                tile: TileId(1),
+                app: TileApp::Inactive,
+            },
+        };
+        let (pressed, _) = step(DockState::default(), press, Stamp(0), &p);
+        let menu = DockState {
+            menu: MenuState::Open,
+            ..DockState::default()
+        };
+        let cases = [
+            ("at rest", DockState::default(), LabelGate::Open),
+            ("a button down", pressed, LabelGate::Quiet),
+            ("a menu open", menu, LabelGate::Quiet),
+        ];
+        for (name, dock, want) in cases {
+            assert_eq!(gate(&dock), want, "{name}");
         }
     }
 }
