@@ -20,7 +20,7 @@
    host reads the input region from. */
 .sill-dock-hit{ position:absolute; }
 
-.sill-dock-separator{ position:absolute; width:1px; background-color:var(--f-line); }
+.sill-dock-separator{ position:absolute; width:var(--hair); background-color:var(--f-line); }
 
 /* A tile: its slot at the current size; the plate centred in it. */
 .sill-dock-tile{ position:absolute; display:flex; align-items:center; justify-content:center; }
