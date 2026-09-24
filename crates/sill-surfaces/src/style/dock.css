@@ -4,8 +4,10 @@
    here is a token. Attribute selectors carry `*|` (spike S2). */
 
 /* The pill (`dock-pill`): a box at the pill's rectangle holding the Ds root, which is the pill:
-   a Material::Dock root draws the Space gradient at the Dock's tint alpha with the material's
-   edge and drop, at `dock.pill_radius_px` (design/21 §3 and §5). The body gives the root its height. */
+   a Material::Dock root draws the Space gradient at the Dock's tint alpha with the material
+   stack and a squircle corner of `dock.pill_radius_px` (design/21 §3 and §5; quire's polish
+   pass). The box also carries the shell type scale and quire's dock metrics. The body gives the
+   root its height. */
 .sill-dock-pill{ position:absolute; }
 .sill-dock-body{ display:block; }
 
@@ -23,12 +25,8 @@
 /* A tile: its slot at the current size; the plate centred in it. */
 .sill-dock-tile{ position:absolute; display:flex; align-items:center; justify-content:center; }
 
-/* design/08 §4.1: the neutral paper plate, its shadow drawn from the token (§2.5). */
-.sill-dock-plate{ position:relative; display:flex; align-items:center; justify-content:center;
-  background-image:linear-gradient(180deg, var(--raise), var(--surface-2)); box-shadow:var(--shadow-2); }
-
-/* The icon, drawn at its share of the plate (`IconSize::Px`). */
-.sill-dock-icon{ display:flex; flex:none; color:var(--ink); }
+/* The plate's box: quire's IconView plate fills it, and the badge and the ring hang from it. */
+.sill-dock-plate{ position:relative; display:flex; align-items:center; justify-content:center; }
 
 /* design/10 §10.3.2: the red capsule, top-right, scaling with the tile from its corner. */
 .sill-dock-badge{ position:absolute; top:-2px; right:-2px; display:flex; align-items:center; justify-content:center;
@@ -45,6 +43,6 @@
 .sill-dock-label{ position:absolute; display:flex; }
 .sill-dock-label-box{ display:block; }
 
-/* The running dot, on the baseline under the tile. */
-.sill-dock-dot{ position:absolute; border-radius:var(--r-pill); background-color:var(--f-ink);
-  transition:opacity var(--t-quick) var(--e-out); }
+/* The running dot's box: the tile's rest place, moved down by the bounce's lift so quire's
+   RunningDot under it stays on the baseline while the tile bounces. */
+.sill-dock-dot{ position:absolute; left:0; width:100%; pointer-events:none; }

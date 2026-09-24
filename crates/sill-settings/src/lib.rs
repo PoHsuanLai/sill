@@ -29,8 +29,8 @@ pub use bar::{BarGlyphSize, BarSettings};
 pub use control_center::{ControlCenterModule, ControlCenterSettings, PanelMaterial};
 pub use diff::{SettingsChange, apply};
 pub use dock::{
-    ActiveClick, AutoHide, Bounce, DockMenuOrder, DockModifierClicks, DockPosition, DockSettings,
-    Indicators, LaunchAnim, Magnification, ProgressStyle, TrashTile,
+    ActiveClick, AutoHide, Bounce, DockFloor, DockMenuOrder, DockModifierClicks, DockPosition,
+    DockSettings, Indicators, LaunchAnim, Magnification, ProgressStyle, TrashTile,
 };
 pub use feed::SettingsFeed;
 pub use file::{APP, FILE_NAME, ShellFile, load, save, settings_dir};

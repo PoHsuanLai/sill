@@ -16,26 +16,27 @@ use sill_settings::{AutoHide, DockSettings};
 use crate::surfaces::dock::machine::Reveal;
 use crate::surfaces::naming::namespace;
 
-/// design/10 §10.3.1: pill padding and gutter, the card inset (settled).
-pub const PAD_PX: u32 = 8;
+/// design/10 §10.3.1: the gutter under the pill, the card inset (settled). The pill's own
+/// padding is `dock.pill_padding_px`.
 pub const GUTTER_PX: u32 = 8;
 
 /// The dock's layer configuration on `output`.
 pub fn dock_layer(output: &OutputInfo, dock: &DockSettings) -> LayerConfig {
     let tile = u32::from(dock.tile_size_px.0);
     let magnified = u32::from(dock.magnified_size_px.0);
+    let pad = u32::from(dock.pill_padding_px.0);
     let reveal = match dock.autohide {
         AutoHide::Off => Reveal::Fixed,
         AutoHide::On => Reveal::Hidden,
     };
-    let reserve = GUTTER_PX + tile + 2 * PAD_PX;
+    let reserve = GUTTER_PX + tile + 2 * pad;
     LayerConfig {
         namespace: namespace("dock", output),
         layer: Layer::Top,
         anchor: Anchor::BOTTOM | Anchor::LEFT | Anchor::RIGHT,
         size: LayerSize {
             width: Extent::Fill,
-            height: Extent::Px(GUTTER_PX + PAD_PX + magnified + tile),
+            height: Extent::Px(GUTTER_PX + pad + magnified + tile),
         },
         exclusive: match reveal {
             Reveal::Fixed => ExclusiveZone::Reserve(reserve),
@@ -45,7 +46,9 @@ pub fn dock_layer(output: &OutputInfo, dock: &DockSettings) -> LayerConfig {
         keyboard: KeyboardMode::None,
         output: OutputTarget::Output(output.id),
         blur: match reveal {
-            Reveal::Fixed => BlurSpec::Region(crate::surfaces::dock::machine::pill_region()),
+            Reveal::Fixed => BlurSpec::Region(crate::surfaces::dock::machine::pill_region(
+                crate::surfaces::dock::geometry::pill_blur_radius(dock),
+            )),
             _ => BlurSpec::None,
         },
         input: match reveal {
@@ -63,13 +66,14 @@ mod tests {
     use sill_settings::{AutoHide, DockSettings};
 
     #[test]
-    fn the_dock_is_160_tall_and_reserves_72_unless_it_hides() {
+    fn the_dock_is_158_tall_and_reserves_68_unless_it_hides() {
+        // gut 8 + pad 6 + magnified 96 + tile 48; gut 8 + tile 48 + 2 x pad 6.
         let config = dock_layer(&output(Some("DP-1")), &DockSettings::default());
         assert_eq!(config.namespace, "sill-dock-DP-1");
         assert_eq!(config.layer, Layer::Top);
         assert_eq!(config.anchor, Anchor::BOTTOM | Anchor::LEFT | Anchor::RIGHT);
-        assert_eq!(config.size.height, Extent::Px(160));
-        assert_eq!(config.exclusive, ExclusiveZone::Reserve(72));
+        assert_eq!(config.size.height, Extent::Px(158));
+        assert_eq!(config.exclusive, ExclusiveZone::Reserve(68));
         assert_eq!(config.keyboard, KeyboardMode::None);
         assert!(matches!(config.blur, BlurSpec::Region(_)));
         let hiding = DockSettings {

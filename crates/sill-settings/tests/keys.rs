@@ -34,6 +34,27 @@ const FROM_APPEARANCE: &[&str] = &[
 /// domain's table for discoverability". The mirror of ds-settings' `DOC_ALIASES` (`motion.level`).
 const DOC_ALIASES: &[&str] = &["spaces.material_tint_alpha"];
 
+/// Keys registered for quire's macOS polish pass (quire FINDINGS "macOS polish", "Settings
+/// keys") whose §3 rows quire's design/22 has not gained yet: its owner adds them (sill FINDINGS
+/// "Adoption of the polish pass" lists the rows). A key here needs no row until it has one;
+/// once the row lands it is checked like every other key, and the entry can go.
+const AWAITING_ROWS: &[&str] = &[
+    "bar.item_font_px",
+    "bar.item_font_weight",
+    "bar.item_radius_px",
+    "menus.font_px",
+    "menus.highlight_radius_px",
+    "menus.tooltip_font_px",
+    "launcher.field_font_px",
+    "launcher.field_font_weight",
+    "launcher.field_glyph_px",
+    "launcher.row_title_px",
+    "launcher.row_detail_px",
+    "dock.pill_padding_px",
+    "dock.running_dot_gap_px",
+    "dock.floor",
+];
+
 fn doc_keys() -> Vec<String> {
     let doc = doc();
     let mut keys: Vec<String> = SECTIONS
@@ -72,10 +93,22 @@ fn every_key_in_catalogue_has_a_spec() {
 #[test]
 fn every_spec_has_a_row_in_the_catalogue() {
     let keys = doc_keys();
-    for path in spec_paths() {
+    let awaited = |path: &str| AWAITING_ROWS.contains(&path) && !keys.iter().any(|k| k == path);
+    for path in spec_paths().into_iter().filter(|path| !awaited(path)) {
         assert!(
             keys.contains(&path),
             "{path} has a KeySpec but no row in 22-SETTINGS.md"
+        );
+    }
+}
+
+#[test]
+fn every_key_awaiting_its_row_is_registered() {
+    let specs = spec_paths();
+    for path in AWAITING_ROWS {
+        assert!(
+            specs.iter().any(|s| s == path),
+            "{path} awaits a row but has no KeySpec"
         );
     }
 }

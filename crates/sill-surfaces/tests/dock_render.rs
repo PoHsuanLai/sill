@@ -59,6 +59,24 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
     let cases = [
         ("four tiles", "class=\"sill-dock-tile\"", 4),
         ("terminal and firefox run", "class=\"sill-dock-dot\"", 2),
+        (
+            "each with quire's running dot",
+            "class=\"ds-running-dot\"",
+            2,
+        ),
+        (
+            "every tile on a neutral plate",
+            "data-family=\"neutral\"",
+            4,
+        ),
+        ("quire's floor in the pill", "class=\"ds-dock-floor\"", 1),
+        ("a squircle pill", "data-corner=\"squircle\"", 1),
+        (
+            "quire's dock metrics",
+            "--dock-gap-px:8px;--dock-pad-px:6px;",
+            1,
+        ),
+        ("the material stack", "--m-vibrancy:1;", 1),
         ("firefox's count", ">7</span>", 1),
         ("one badge", "class=\"sill-dock-badge\"", 1),
         ("firefox's ring", "class=\"sill-dock-ring\"", 1),

@@ -49,6 +49,8 @@ pub struct DockParams {
     pub spring_load_ms: u64,
     /// `sound.event_dock_remove`.
     pub remove_sound: SoundName,
+    /// The blur region's corner radius under the pill's squircle.
+    pub pill_blur_radius: i32,
 }
 
 impl DockParams {
@@ -59,7 +61,7 @@ impl DockParams {
             Easing::Linear => [0, 0, 1000, 1000],
         };
         let px = |v: u16| Cpx::px(i32::from(v));
-        let pad = 8;
+        let pad = i32::from(dock.pill_padding_px.0);
         let gutter = 8;
         DockParams {
             magnification: dock.magnification,
@@ -83,6 +85,7 @@ impl DockParams {
             slide_distance: Cpx::px(gutter + (i32::from(dock.tile_size_px.0) + 2 * pad) + 8),
             spring_load_ms: u64::from(dock.spring_load_ms.0),
             remove_sound: SoundName(sound.event_dock_remove.clone()),
+            pill_blur_radius: crate::surfaces::dock::geometry::pill_blur_radius(dock),
         }
     }
 }
@@ -114,7 +117,7 @@ pub(crate) mod tests {
         assert_eq!((p.bounce_period_ms, p.bounce_launch_cap_ms), (500, 10_000));
         assert_eq!(p.amplitude, Cpx::px(48));
         assert_eq!((p.autohide_delay_ms, p.slide_ms), (200, 500));
-        assert_eq!(p.slide_distance, Cpx::px(80), "gut + H_p + 8 = 8 + 64 + 8");
+        assert_eq!(p.slide_distance, Cpx::px(76), "gut + H_p + 8 = 8 + 60 + 8");
         assert_eq!(p.ease_out, [220, 900, 300, 1000]);
         assert_eq!(p.remove_sound.0, "item-deleted");
     }

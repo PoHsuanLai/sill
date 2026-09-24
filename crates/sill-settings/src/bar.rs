@@ -1,7 +1,7 @@
 //! `bar.*` (design/22 §3.4; design/13 §13.3.1). All Advanced (§5).
 
-use ds_settings::Px;
 use ds_settings::schema::Page;
+use ds_settings::{Count, Px};
 use serde::{Deserialize, Serialize};
 
 /// Which box a bar status glyph is drawn at (design/13 §13.9 open decision 8).
@@ -109,6 +109,35 @@ pub struct BarSettings {
         advanced
     )]
     pub glyph_size_policy: BarGlyphSize,
+    /// `bar.item_font_px` (the macOS polish pass: menu bar text 13).
+    #[settings(
+        label = "Item text size",
+        help = "The size of a bar title's and the clock's text.",
+        section = "Bar",
+        range = "9..=24",
+        unit = "px",
+        advanced
+    )]
+    pub item_font_px: Px,
+    /// `bar.item_font_weight`.
+    #[settings(
+        label = "Item text weight",
+        help = "The weight of a bar title's and the clock's text; the app name is always bold.",
+        section = "Bar",
+        range = "100..=900",
+        advanced
+    )]
+    pub item_font_weight: Count,
+    /// `bar.item_radius_px`.
+    #[settings(
+        label = "Item highlight radius",
+        help = "The corner radius of the highlight behind a bar item.",
+        section = "Bar",
+        range = "0..=12",
+        unit = "px",
+        advanced
+    )]
+    pub item_radius_px: Px,
     /// Keys this build does not know, kept for the next write.
     #[serde(flatten)]
     #[settings(skip)]
@@ -126,6 +155,9 @@ impl Default for BarSettings {
             status_glyph_px: Px(16),
             status_gap_px: Px(4),
             glyph_size_policy: BarGlyphSize::StatusIcon16,
+            item_font_px: Px(13),
+            item_font_weight: Count(500),
+            item_radius_px: Px(4),
             extra: toml::Table::new(),
         }
     }

@@ -1,7 +1,7 @@
 //! The frontmost app's name, the first bar title (ui 13/700): its menu lists the app's windows and Quit.
 
 use dioxus::prelude::*;
-use ds::{Button, ButtonVariant, use_rect};
+use ds::{Button, ButtonVariant, Emphasis, use_rect};
 use shell_host::OutputInfo;
 use sill_services::OutputName;
 
@@ -23,7 +23,7 @@ pub fn AppName(output: OutputInfo) -> Element {
     let name = front_app(&toplevels(), &apps(), on.as_ref())
         .map_or_else(|| NO_APP.to_owned(), |app| app.name);
     rsx! {
-        TitleSlot { menu: BarMenu::App, probe, pill: SlotPill::Slot,
+        TitleSlot { menu: BarMenu::App, probe, pill: SlotPill::Item(Emphasis::Strong),
             Button {
                 variant: ButtonVariant::Quiet,
                 label: name,

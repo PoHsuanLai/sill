@@ -5,12 +5,14 @@
 //!
 //! Both surfaces follow one shared [`LauncherLink`] (`presence.rs`), which the daemon writes
 //! for `sill launcher toggle|open|close` and the panel's focus, and each surface maps or
-//! unmaps itself from.
+//! unmaps itself from. The panel also writes there which part of it takes presses
+//! ([`hit::PanelHit`]: its content-sized card), which the catcher's input leaves out.
 
 pub mod actions;
 pub mod activate;
 pub mod entries;
 pub mod groups;
+pub mod hit;
 pub mod keymap;
 pub mod keys;
 pub mod layer;
@@ -19,6 +21,7 @@ pub mod results;
 pub mod script;
 pub mod session;
 
+mod card;
 mod catcher;
 mod events;
 mod follow;
@@ -28,8 +31,8 @@ mod run;
 pub use activate::{LauncherEffect, LauncherProviders, effect_of};
 pub use keys::{LauncherKey, LauncherOut, LauncherState, step};
 pub use layer::{
-    CARD_ID, PANEL_HEIGHT, PANEL_WIDTH, catcher_input, catcher_layer, panel_layer, panel_rect,
-    panel_top,
+    CARD_BLUR_RADIUS, CARD_ID, CARD_RADIUS, PANEL_HEIGHT, PANEL_WIDTH, catcher_input,
+    catcher_layer, panel_layer, panel_rect, panel_top,
 };
 pub use presence::{LauncherLink, LauncherShown, Opening};
 

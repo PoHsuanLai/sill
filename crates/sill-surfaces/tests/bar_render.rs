@@ -44,7 +44,22 @@ fn the_bar_shows_what_the_services_hold() {
         ("the network item", "aria-label=\"Network\"", 1),
         ("the battery item", "aria-label=\"Battery\"", 1),
         ("three workspace pills", "class=\"sill-bar-space\"", 3),
-        ("one active pill", "aria-pressed=\"true\"", 1),
+        ("in one segmented group", "class=\"ds-ws-pills\"", 1),
+        ("each a quire pill", "class=\"ds-ws-pill\"", 3),
+        ("one current pill", "aria-current=\"true\"", 1),
+        (
+            "the app name and the clock as menu-bar items",
+            "class=\"ds-bar-item\"",
+            2,
+        ),
+        ("the app name bold", "data-emphasis=\"strong\"", 1),
+        ("the shell type scale", "--shell-bar-font:13px;", 1),
+        (
+            "22 px menu rows for the popups",
+            "--shell-menu-row-h:22px;",
+            1,
+        ),
+        ("the material stack", "--m-vibrancy:1;", 1),
         ("the Bar material", "data-material=\"bar\"", 1),
         ("the root draws the Space", "data-frame=\"tinted\"", 1),
         ("on the frame ground", "data-ground=\"frame\"", 1),
@@ -55,7 +70,7 @@ fn the_bar_shows_what_the_services_hold() {
             "--bar-status-box:22px;--bar-status-glyph:16px;",
             1,
         ),
-        ("no menu open", "data-open=\"true\"", 0),
+        ("no menu open", "aria-expanded=\"true\"", 0),
     ];
     for (name, needle, want) in cases {
         assert_eq!(count(&html, needle), want, "{name}: {needle}\n{html}");

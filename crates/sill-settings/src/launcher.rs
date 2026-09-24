@@ -2,7 +2,7 @@
 //! Advanced (§5).
 
 use ds_settings::schema::Page;
-use ds_settings::{Fraction, Ms, Px};
+use ds_settings::{Count, Fraction, Ms, Px};
 use serde::{Deserialize, Serialize};
 
 use crate::control_center::PanelMaterial;
@@ -74,6 +74,55 @@ pub struct LauncherSettings {
         advanced
     )]
     pub material: PanelMaterial,
+    /// `launcher.field_font_px` (the macOS polish pass: Spotlight's 22 pt query).
+    #[settings(
+        label = "Search text size",
+        help = "The size of the query in the search field.",
+        section = "Launcher",
+        range = "12..=40",
+        unit = "px",
+        advanced
+    )]
+    pub field_font_px: Px,
+    /// `launcher.field_font_weight`.
+    #[settings(
+        label = "Search text weight",
+        help = "The weight of the query in the search field.",
+        section = "Launcher",
+        range = "100..=900",
+        advanced
+    )]
+    pub field_font_weight: Count,
+    /// `launcher.field_glyph_px`.
+    #[settings(
+        label = "Search glyph size",
+        help = "The size of the magnifier beside the query.",
+        section = "Launcher",
+        range = "12..=40",
+        unit = "px",
+        advanced
+    )]
+    pub field_glyph_px: Px,
+    /// `launcher.row_title_px`.
+    #[settings(
+        label = "Result title size",
+        help = "The size of a result's title.",
+        section = "Launcher",
+        range = "9..=24",
+        unit = "px",
+        advanced
+    )]
+    pub row_title_px: Px,
+    /// `launcher.row_detail_px`.
+    #[settings(
+        label = "Result detail size",
+        help = "The size of a result's detail line.",
+        section = "Launcher",
+        range = "9..=20",
+        unit = "px",
+        advanced
+    )]
+    pub row_detail_px: Px,
     /// Keys this build does not know, kept for the next write.
     #[serde(flatten)]
     #[settings(skip)]
@@ -90,6 +139,11 @@ impl Default for LauncherSettings {
             result_row_height_px: Px(44),
             open_latency_budget_ms: Ms(100),
             material: PanelMaterial::Sheet,
+            field_font_px: Px(22),
+            field_font_weight: Count(500),
+            field_glyph_px: Px(20),
+            row_title_px: Px(14),
+            row_detail_px: Px(12),
             extra: toml::Table::new(),
         }
     }

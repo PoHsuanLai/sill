@@ -7,7 +7,7 @@
 
 use dioxus::prelude::*;
 use ds::{Alpha, Anchor, Appearance, BlurState, Ds, Material, Menu, MenuEntry, MenuKind};
-use ds::{Point, Px, SystemPrefs};
+use ds::{MaterialStack, Point, Px, ShellMetrics, SystemPrefs};
 use shell_host::{Size, use_surface};
 use tokio::sync::mpsc;
 
@@ -23,6 +23,10 @@ pub(crate) struct PopupLook {
     pub appearance: Appearance,
     pub system: SystemPrefs,
     pub tint: Alpha,
+    /// The shell type scale, written around the popup's root (its menu's 22 px rows).
+    pub metrics: ShellMetrics,
+    /// The material stack its root hands the menu card.
+    pub stack: MaterialStack,
 }
 
 /// What the popup tells the dock.
@@ -83,13 +87,16 @@ pub(crate) fn DockMenuPopup() -> Element {
     let look = link.look;
     rsx! {
         style { {DOCK_POPUP_CSS} }
-        div { class: "sill-dock-popup-frame", style: frame_style(),
+        div {
+            class: "sill-dock-popup-frame",
+            style: "{frame_style()};{look.metrics.style_attr()}",
             Ds {
                 appearance: look.appearance,
                 system: look.system,
                 material: Material::Popover,
                 blur: BlurState::Unavailable,
                 tint_alpha: Some(look.tint),
+                stack: Some(look.stack),
                 Menu {
                     kind: MenuKind::Context,
                     anchor: Anchor::Point(Point { x: Px(x), y: Px(y) }),

@@ -21,6 +21,7 @@ mod pick;
 mod plan;
 mod reorder;
 mod session;
+pub(crate) mod shell_style;
 mod status;
 mod status_item;
 mod title;
@@ -41,6 +42,7 @@ use content::{BarState, front_app};
 use menu_track::{MenuIn, MenuParams, Target};
 use network::NetworkItem;
 use session::{BarInput, PopupLook, SessionDeps, use_menu_session};
+use shell_style::{material_stack, shell_metrics};
 use status_item::status_metrics;
 use tray::Tray;
 use volume::VolumeItem;
@@ -84,10 +86,13 @@ pub fn Bar(output: OutputInfo) -> Element {
     let tray = use_tray()();
     let on = output.name.clone().map(OutputName);
     let look = active_look(&workspaces, on.as_ref(), &file.spaces);
+    let metrics = shell_metrics(&file);
     let popup_look = PopupLook {
         appearance: environment.settings.appearance.appearance(),
         system: environment.system,
         tint: environment.tint_alpha(),
+        metrics,
+        stack: material_stack(&environment.settings.appearance),
     };
     let state = BarState {
         app: front_app(&use_toplevels()(), &use_apps()(), on.as_ref()),
@@ -113,6 +118,7 @@ pub fn Bar(output: OutputInfo) -> Element {
         status_metrics(&file.bar).style_attr()
     );
     rsx! {
+        div { class: "sill-bar-root", style: metrics.style_attr(),
         Ds {
             appearance: popup_look.appearance,
             system: popup_look.system,
@@ -120,6 +126,7 @@ pub fn Bar(output: OutputInfo) -> Element {
             material: Material::Bar,
             blur: BlurState::Available,
             tint_alpha: Some(popup_look.tint),
+            stack: Some(popup_look.stack),
             style { {BAR_CSS} }
             div {
                 class: "sill-bar",
@@ -140,6 +147,7 @@ pub fn Bar(output: OutputInfo) -> Element {
                     ClockItem { output: output.clone() }
                 }
             }
+        }
         }
     }
 }

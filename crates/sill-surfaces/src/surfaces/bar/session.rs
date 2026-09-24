@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 
 use dioxus::prelude::*;
-use ds::{Alpha, Appearance, SystemPrefs};
+use ds::{Alpha, Appearance, MaterialStack, ShellMetrics, SystemPrefs};
 use shell_host::{PopupAnchor, PopupConfig, PopupPlacement, PopupSize, Root, SurfaceHandle};
 use sill_services::Services;
 use tokio::sync::{mpsc, watch};
@@ -27,6 +27,10 @@ pub(crate) struct PopupLook {
     pub appearance: Appearance,
     pub system: SystemPrefs,
     pub tint: Alpha,
+    /// The shell type scale, written around the popup's root (its menu's 22 px rows).
+    pub metrics: ShellMetrics,
+    /// The material stack its root hands the menu card.
+    pub stack: MaterialStack,
 }
 
 /// What the popup shows: one menu's contents, where, and in which appearance.

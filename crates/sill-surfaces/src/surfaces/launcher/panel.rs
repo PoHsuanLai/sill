@@ -1,14 +1,16 @@
 //! The panel's render (design/13 §13.3.9, design/20 §1.3): a `Ds` root on the active Space's
 //! look in the `launcher.material` material, holding quire's `CommandPalette` embedded in the
-//! surface (no scrim; the card fills the panel and is the blur region) over the fresh results,
-//! grouped, and the selected row's actions as a quire `Menu{Rich}` hung from that row
-//! (Ctrl+K / Alt+K). A palette mounts with each opening and unmounts when the launcher hides.
+//! surface (no scrim; the card is as tall as its content, its corner a squircle, and it is the
+//! blur and input region; `card.rs` measures it) over the fresh results, grouped, and the
+//! selected row's actions as a quire `Menu{Rich}` hung from that row (Ctrl+K / Alt+K). The box
+//! around the root carries the shell type scale (the 22/500 query, 14 and 12 px rows), and the
+//! root hands the card the material stack. A palette mounts with each opening and unmounts when the launcher hides.
 //! The palette's selection is the session's; Tab, Shift+Tab, Ctrl+K and Alt+K come from its
 //! `onkey`.
 
 use dioxus::prelude::*;
 use ds::{
-    Anchor, BlurState, CommandPalette, CommandPaletteHost, Ds, Material, Menu, MenuKind,
+    Anchor, BlurState, CommandPalette, CommandPaletteHost, Corner, Ds, Material, Menu, MenuKind,
     PaletteEntrance, Point, Px, Rect, SpaceLook,
 };
 use shell_host::OutputInfo;
@@ -17,12 +19,16 @@ use sill_services::{Activity, OutputName, Results, WorkspaceKey, Workspaces};
 use sill_settings::{PanelMaterial, SpacesSettings};
 
 use crate::hooks::{use_appearance, use_results, use_settings, use_space_look, use_workspaces};
+use crate::surfaces::bar::shell_style::{material_stack, shell_metrics};
 use crate::surfaces::bar::workspaces::group_for;
+use crate::surfaces::launcher::card::{CardKey, Foot, use_card_hit};
 use crate::surfaces::launcher::entries::{RowRef, action_entries, palette_groups};
 use crate::surfaces::launcher::events::{PanelCtx, use_panel};
 use crate::surfaces::launcher::groups::{Group, fresh, groups, rows};
+use crate::surfaces::launcher::hit::ActionsShown;
 use crate::surfaces::launcher::keys::ActionsMenu;
-use crate::surfaces::launcher::layer::{CARD_ID, PANEL_HEIGHT, PANEL_WIDTH};
+use crate::surfaces::launcher::layer::{CARD_ID, CARD_RADIUS, PANEL_HEIGHT, PANEL_WIDTH};
+use crate::surfaces::launcher::presence::LauncherLink;
 use crate::surfaces::launcher::script::use_script;
 use crate::surfaces::launcher::session::Session;
 
@@ -84,8 +90,14 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
             session,
         }
     });
+    let link = use_context::<LauncherLink>();
+    let foot = use_card_hit(&link, card_key(shown.as_ref()));
     rsx! {
-        div { id: "panel", class: "sill-launcher", onkeydown: move |event| PanelCtx::root_key(&event),
+        div {
+            id: "panel",
+            class: "sill-launcher",
+            style: shell_metrics(&file).style_attr(),
+            onkeydown: move |event| PanelCtx::root_key(&event),
             Ds {
                 appearance,
                 system: environment.system,
@@ -93,12 +105,13 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
                 material: material(file.launcher.material),
                 blur: BlurState::Available,
                 tint_alpha: Some(environment.tint_alpha()),
+                stack: Some(material_stack(&environment.settings.appearance)),
                 style { {LAUNCHER_CSS} }
                 div {
                     class: "sill-launcher-body",
                     style: "width:{PANEL_WIDTH}px;height:{PANEL_HEIGHT}px",
                     if let Some(shown) = shown {
-                        {palette(&panel, &shown)}
+                        {palette(&panel, &shown, foot)}
                     }
                 }
             }
@@ -106,9 +119,25 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
     }
 }
 
+/// What the card's height follows while it shows.
+fn card_key(shown: Option<&Shown>) -> CardKey {
+    match shown {
+        None => CardKey::Hidden,
+        Some(shown) => CardKey::Shown {
+            serial: shown.session.serial,
+            query: shown.session.query.clone(),
+            rows: rows(&shown.groups).len(),
+            actions: match shown.session.keys.actions {
+                ActionsMenu::Open { .. } => ActionsShown::Open,
+                ActionsMenu::Closed => ActionsShown::Closed,
+            },
+        },
+    }
+}
+
 /// The palette, keyed by its opening so each opening mounts one, and the actions menu while
 /// it is open.
-fn palette(panel: &PanelCtx, shown: &Shown) -> Element {
+fn palette(panel: &PanelCtx, shown: &Shown, foot: Foot) -> Element {
     let session = &shown.session;
     let actions = match session.keys.actions {
         ActionsMenu::Open { .. } => shown.selected().map(|item| action_entries(&item.actions)),
@@ -135,11 +164,16 @@ fn palette(panel: &PanelCtx, shown: &Shown) -> Element {
             host: CommandPaletteHost::Surface,
             entrance: PaletteEntrance::CmdkIn,
             id: CARD_ID.to_owned(),
+            corner: Some(Corner::Squircle(Px(CARD_RADIUS))),
             focus: panel.field,
             selected: session.keys.selected,
             on_select: move |index: usize| select.select(index),
             on_select_rect: move |rect: Rect| row.set(measured(rect)),
             onkey: move |event: dioxus::prelude::Event<KeyboardData>| key.field_key(&event.data()),
+        }
+        div {
+            class: "sill-launcher-foot",
+            onmounted: move |event| foot.on_mounted(event),
         }
         if let (Some(entries), Some(row)) = (actions, selected) {
             Menu::<ActionId> {
