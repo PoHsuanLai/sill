@@ -228,3 +228,55 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
   `$XDG_RUNTIME_DIR`, which makes the next `start` time out (it waits for a socket name it has not
   seen before); and with the host display in DPMS off the NVIDIA EGL path needs
   `__GL_SYNC_TO_VBLANK=0` or the compositor never answers a client (F24).
+
+## M1 svc-dbus (2026-09-24)
+
+Filled `battery::spawn`, `network::spawn` and `volume::spawn`. All three signatures were usable
+as frozen; nothing there needed to change.
+
+- **F25 Battery via upower_dbus's `DeviceProxy`.** `UPowerProxy::get_display_device()` gives the
+  display device; its five properties (`IsPresent`, `Percentage`, `State`, `TimeToEmpty`,
+  `TimeToFull`) are read once to seed, then followed via `receive_<property>_changed()` streams
+  polled with a small `poll_fn`-based `next()` helper (zbus's `PropertyStream` needs `futures_core`
+  for `.poll_next()`, not `.next()`; rather than add a `futures-util`/`tokio-stream` dependency to
+  the pinned block, `zbus::export::futures_core` — already re-exported, if `#[doc(hidden)]` — is
+  enough). On this desktop machine (no battery) it seeds `Battery { presence: Absent, .. }` inside
+  the first poll, which is the documented absent value.
+- **F26 Network via cosmic-dbus-networkmanager's raw interface proxies.** `NetworkManagerProxy`
+  gives `PrimaryConnection`/`Connectivity`; the primary path is resolved to an
+  `ActiveConnectionProxy` for `Type`/`State`, and for a Wi-Fi type, its first device is tried as a
+  `WirelessDeviceProxy` for `ActiveAccessPoint`, then an `AccessPointProxy` for `Ssid`/`Strength`.
+  Every step that can fail (wrong device kind, no AP, disassociated) falls back to `Link::Other`
+  rather than propagating an error, since a partial read of a real connection is still a real
+  connection. Live updates come from `PrimaryConnection`/`Connectivity` property streams only: an
+  access point's own `Strength` can change without the primary connection changing, and streaming
+  that too would mean re-subscribing on every reassociation; out of scope for M1, left for a
+  later wave if continuous RSSI turns out to matter for the bar item. On this machine it seeds
+  `Network { link: Wifi { ssid: "home-wifi", strength: Percent(70..72) }, connectivity: Full }`.
+- **F27 Volume via libpulse-binding's *standard* mainloop, not the threaded one the plan names.**
+  The threaded mainloop's callbacks (state, subscribe) are invoked by a second, C-spawned thread;
+  the crate's own canonical usage reaches back into the shared `Context`/`Mainloop` from inside
+  those callbacks via `RefCell::as_ptr()` plus a raw-pointer deref (its own doctest does exactly
+  this), because a `Ref`/`RefMut` guard held across the FFI call that blocks waiting for that
+  second thread is a genuine cross-thread data race on `RefCell`'s own (non-atomic) borrow flag —
+  confirmed by hand: the first attempt, built exactly to that pattern with `Rc<RefCell<_>>` and
+  `mainloop.lock()`/`wait()`/`signal()`, deadlocked every real run (never printed, never returned,
+  0% CPU, `Sl` in `ps`). `unsafe` is denied workspace-wide outside shell-host's one allowed module
+  (CONVENTIONS §11), so the threaded mainloop cannot be used soundly from here. `volume::spawn`
+  instead runs `mainloop::standard::Mainloop` (no thread of its own) on the dedicated OS thread
+  `Handle::spawn_blocking` already gives it, polling `iterate(false)` and `commands.try_recv()` in
+  a 10ms loop. Every callback then runs on that same one thread, so `Rc<RefCell<Context>>` is
+  sound with no unsafe at all, and DESIGN.md's "the `cosmic_wl` and volume threads on their own
+  threads" still holds — it is still one dedicated thread per service, just not the specific
+  libpulse primitive named "threaded". Subscribing to `SINK | SERVER` and re-fetching
+  `get_server_info` → `get_sink_info_by_name` on every event (rather than tracking the sink index
+  and patching in place) keeps the reducer's `Sink { .. }` event as the only event this service
+  ever sends for a level/mute/description change, at the cost of one extra round trip per event;
+  fine for a bar item. On this machine it seeds `Volume { presence: Present, level: Percent(50),
+  mute: Audible, sink: "USB Audio S/PDIF Output" }`.
+- **F28 A `match` scrutinee keeps its `Ref` borrowed for every arm.** `match context.borrow().get_state() { Ready => { ready = true; subscribe(&context, ..); refresh(&context, ..); } .. }`
+  panicked ("already borrowed") the first time `subscribe` tried its own `context.borrow_mut()`,
+  because Rust extends a `match` scrutinee's temporaries across the whole match, arm bodies
+  included — the classic `match mutex.lock().foo() { .. }` footgun, just with a `RefCell` instead
+  of a `Mutex`. Fixed by binding `let state = context.borrow().get_state();` first, so the `Ref`
+  drops at the `;` before the `match` (and the calls inside its arm) ever runs.
