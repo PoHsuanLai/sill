@@ -82,8 +82,7 @@ impl Services {
         let (launches, launch) = inert();
         // M4 launcher-core replaces this with results::spawn(rt, the five providers).
         let (results, search) = inert();
-        // M2 wallpaper replaces this with wallpaper::spawn.
-        let (wallpapers, wallpaper_control) = inert();
+        let (wallpapers, wallpaper_control) = crate::wallpaper::spawn(rt);
         // M6 replaces this with sound::spawn.
         let (sound, sound_control) = inert();
 
