@@ -50,6 +50,7 @@ pub(crate) struct MenuLink {
 /// The popup root.
 #[component]
 pub(crate) fn DockMenuPopup() -> Element {
+    let ds_scale = crate::hooks::use_ds_scale();
     ds_native::measure::provide();
     ds_native::focus::provide();
     let link = use_context::<MenuLink>();
@@ -91,6 +92,7 @@ pub(crate) fn DockMenuPopup() -> Element {
             class: "sill-dock-popup-frame",
             style: "{frame_style()};{look.metrics.style_attr()}",
             Ds {
+                scale: ds_scale,
                 appearance: look.appearance,
                 system: look.system,
                 material: Material::Popover,

@@ -80,6 +80,7 @@ fn active_look(
 /// `Ground::Frame`, the Bar's defaults), so the bar paints no tint of its own.
 #[component]
 pub fn Bar(output: OutputInfo) -> Element {
+    let ds_scale = crate::hooks::use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
     let workspaces = use_workspaces()();
@@ -120,6 +121,7 @@ pub fn Bar(output: OutputInfo) -> Element {
     rsx! {
         div { class: "sill-bar-root", style: metrics.style_attr(),
         Ds {
+            scale: ds_scale,
             appearance: popup_look.appearance,
             system: popup_look.system,
             look,

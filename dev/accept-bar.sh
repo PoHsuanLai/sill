@@ -113,6 +113,8 @@ step_exclusive_zone() {
 step_idle() {
   local before after
   sleep 1
+  # The clock repaints on the minute; keep the 5 s window clear of a minute boundary.
+  while [ "$(date +%S | sed 's/^0//')" -gt 50 ]; do sleep 1; done
   before=$(bar_counters) || return 1
   [ -n "$before" ] || { echo "no bar surface in 'sill debug stats'" >&2; return 1; }
   sleep 5

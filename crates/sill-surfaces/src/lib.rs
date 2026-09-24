@@ -16,6 +16,12 @@ pub use clock::FrameClock;
 /// component calls `ds_native::measure::provide()` instead.
 pub use ds_native::measure::MEASURE;
 
+/// The pre-paint pass the daemon installs on its host (`HostConfig::prepaint`): quire's
+/// device-pixel layout snap, a no-op at whole scales (quire FINDINGS "Pixel snapping").
+pub fn prepaint() -> shell_host::Prepaint {
+    shell_host::Prepaint::hook(ds_native::snap_to_device)
+}
+
 /// quire's focus write every root the daemon spawns is given beside [`MEASURE`]
 /// (`Root::context(FOCUS)`), so a field's or a menu's focus waits out a busy document instead
 /// of printing a caught panic (FINDINGS "Adoption of the launcher gaps"). A popup's root

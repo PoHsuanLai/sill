@@ -219,6 +219,7 @@ struct TrayMenuProps {
 /// opens at once (a bar menu). A popup inherits nothing from the bar, so it provides quire's
 /// rect measurer itself.
 fn tray_menu_popup(props: TrayMenuProps) -> Element {
+    let ds_scale = crate::hooks::use_ds_scale();
     ds_native::measure::provide();
     let environment = use_appearance()();
     let surface = use_surface();
@@ -233,6 +234,7 @@ fn tray_menu_popup(props: TrayMenuProps) -> Element {
     let onclose = move |()| surface.close();
     rsx! {
         Ds {
+            scale: ds_scale,
             appearance: environment.settings.appearance.appearance(),
             system: environment.system,
             material: Material::Popover,

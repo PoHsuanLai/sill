@@ -78,6 +78,7 @@ pub(crate) fn shown_groups(results: &Results, session: &Session) -> Vec<Group> {
 
 /// The panel on `output`.
 pub(crate) fn launcher(output: OutputInfo) -> Element {
+    let ds_scale = crate::hooks::use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
     let on = output.name.clone().map(OutputName);
@@ -102,6 +103,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
             style: shell_metrics(&file).style_attr(),
             onkeydown: move |event| PanelCtx::root_key(&event),
             Ds {
+                scale: ds_scale,
                 appearance,
                 system: environment.system,
                 look,

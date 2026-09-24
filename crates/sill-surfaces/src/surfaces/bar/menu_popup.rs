@@ -50,6 +50,7 @@ const GAP: Px = Px(7.0);
 /// it provides quire's rect measurer itself.
 #[component]
 pub(crate) fn MenuPopup() -> Element {
+    let ds_scale = crate::hooks::use_ds_scale();
     ds_native::measure::provide();
     let link = use_context::<PopupLink>();
     let surface = use_surface();
@@ -88,6 +89,7 @@ pub(crate) fn MenuPopup() -> Element {
             class: "sill-popup-frame",
             style: "{frame_style()};{look.metrics.style_attr()}",
             Ds {
+                scale: ds_scale,
                 appearance: look.appearance,
                 system: look.system,
                 material: Material::Popover,
