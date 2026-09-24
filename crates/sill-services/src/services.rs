@@ -1,8 +1,6 @@
 //! The one value every surface gets through `Root::context`: every service's receiver and
 //! control. Clone is cheap (channels are reference-counted).
 
-#![allow(unused_variables, dead_code)] // Freeze stubs
-
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
@@ -60,7 +58,57 @@ impl Services {
     /// Start every service on `rt` (the `cosmic_wl` and volume threads on their own threads)
     /// and bundle them. A service whose system half is missing still yields its receiver, at
     /// its default.
+    ///
+    /// Every module's `spawn` is called here, including ones a later milestone still owns
+    /// (`apps`, `badges`, `pins`, `launch`, `results`, `wallpaper`, `sound` are `todo!()` until
+    /// M2-M6 land): the frozen `Services` struct needs a value for every field, and this is the
+    /// one place that builds it. Calling `sill run` for real panics on whichever of those is
+    /// reached first until its milestone lands — that is expected during M1, not a bug here.
+    /// `results` is wired with no providers; M4 launcher-core replaces `Vec::new()` with the
+    /// five real ones once `sill-services::providers` exists.
     pub fn spawn(rt: &Handle) -> Services {
-        todo!("M1 daemon: call each module's spawn; M4 wires results with the five providers")
+        let (clock, clock_control) = crate::clock::spawn(rt);
+        let (battery, battery_control) = crate::battery::spawn(rt);
+        let (network, network_control) = crate::network::spawn(rt);
+        let (volume, volume_control) = crate::volume::spawn(rt);
+        let (tray, tray_control) = crate::tray::spawn(rt);
+        let (workspaces, toplevels, wl) = crate::cosmic_wl::spawn();
+        let (apps, apps_control) = crate::apps::spawn(rt);
+        let (badges, badges_control) = crate::badges::spawn(rt);
+        let (pins, pins_control) = crate::pins::spawn(rt);
+        let (launches, launch) = crate::launch::spawn(rt, apps.clone());
+        let (results, search) = crate::results::spawn(rt, Vec::new());
+        let (wallpapers, wallpaper_control) = crate::wallpaper::spawn(rt);
+        let (sound, sound_control) = crate::sound::spawn(rt);
+
+        Services {
+            clock,
+            clock_control,
+            battery,
+            battery_control,
+            network,
+            network_control,
+            volume,
+            volume_control,
+            tray,
+            tray_control,
+            workspaces,
+            toplevels,
+            wl,
+            apps,
+            apps_control,
+            badges,
+            badges_control,
+            pins,
+            pins_control,
+            launches,
+            launch,
+            results,
+            search,
+            wallpapers,
+            wallpaper_control,
+            sound,
+            sound_control,
+        }
     }
 }

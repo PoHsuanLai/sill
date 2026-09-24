@@ -135,6 +135,59 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
   same `EGL_BAD_SURFACE`); and `nested.sh stop` leaves `wayland-1` and `wayland-1.lock` behind,
   so the next `start` reuses the name, sees no new socket, and times out (G6).
 
+## M1 daemon (2026-09-24)
+
+- **F25 `Services::spawn` calls every module, including ones the M1 wave does not own.** The
+  frozen `Services` struct needs a value for every field, and the freeze's own stub comment
+  says to call each module's `spawn` (`M4 wires results with the five providers`). `apps`,
+  `badges`, `pins`, `launch`, `results`, `wallpaper` and `sound` stay `todo!()` until M2-M6
+  land, so `sill run` panics inside `Services::spawn` on whichever of those it reaches first
+  until then — expected during M1, not a defect in `Services::spawn` itself. `results` is
+  wired with `Vec::new()` for its providers; M4 launcher-core replaces that once
+  `sill-services::providers` exists.
+- **F26 `on_event`'s frozen signature (`ctx`, `outputs`, one `HostEvent`) cannot reach
+  `Services` or the live settings, and spawning a bar needs both.** `daemon::run`'s closure
+  (`run_event`, not frozen) intercepts `HostEvent::App(ShellMsg::Ipc{..})` for its own dispatch
+  (`Launcher`/`Dock`/`Reload` need `Services` or the settings sender) and, after every other
+  event, calls `on_event` and then `spawn_missing_bars`. `on_event` itself does the state-only
+  half: output bookkeeping through `outputs::reconcile` (a new output's row is added with every
+  surface `None`, which `spawn_missing_bars` reads as "needs one"), closing a removed output's
+  surfaces, forgetting a surface the compositor closed, and applying `ShellMsg::Settings` to
+  resize the bar (needs only the event's own payload, not `Services`). So `on_event` no longer
+  spawns surfaces itself, unlike its doc comment's original "IPC requests are answered";
+  `run_event`'s module doc says why. Reported since this is exactly the kind of frozen-signature
+  tension CONVENTIONS §1 says to stop and report, even though a workable split was found.
+- **F27 `sill dock pin/unpin` is wired to `Services::pins_control`, but cannot run yet.**
+  `pins::spawn` is `todo!()` until M2 launch, so the send would need a live pins actor that does
+  not exist (F25). `sill reload` re-reads `settings.toml` (real, already implemented) but not
+  `dock.json`: `sill_services::pins::load` is also `todo!()`, so pins are left out of Reload
+  rather than calling a function that panics; M2 launch should add it once `pins::load` exists.
+- **F28 `sill launcher ...` always answers `Failed(Unsupported)`.** No launcher surface exists
+  before M4, `Services` has no launcher-visibility control, and `LauncherRequest`'s reply carries
+  no way to say "not built yet" versus "failed" other than `Unsupported`, which is the closest
+  fit (`FailureKind::Unsupported`'s doc: "this build ... cannot do it").
+- **F29 Bar geometry only, on settings change.** `bar.*` is the only settings domain a spawned
+  M1 surface reads outside its own component (`bar_layer`'s `size`/`exclusive`); `resize_bars`
+  re-applies just those two `SurfaceOp`s per bar on a settled `ShellMsg::Settings`. Every other
+  domain's live-reload is the owning surface's own `use_settings()` watch, not the daemon's.
+- **F30 `dev/accept-bar.sh` gained four steps beyond the freeze's four**: `single_instance`
+  (a second `sill run` exits 0 fast, without touching Wayland), `reload`, `ipc_latency` (a
+  normal request answers well under the 2 s reply timeout — nothing reachable from a shell
+  script can be made to hang on purpose; `crates/sill/tests/ipc.rs` and `ipc_server`'s own
+  tests exercise the real timeout with a fake dispatcher), and `quit` (stops the daemon, so it
+  runs last). `exclusive_zone`, `idle` and `menus` stay `exit 2`, naming bar-ui.
+- **F31 Client `Quit`/`Ping` never start a daemon** (`client.rs`'s doc comment already said so);
+  every other request uses `connect_or_start`. `ClientError` gained `thiserror::Error` (`Debug`
+  only in the freeze) so `client::main` can print a real message; the enum's variants are
+  unchanged.
+- **F32 A lib target was added (`crates/sill/src/lib.rs`) so `crates/sill/tests/ipc.rs` can
+  exercise `ipc_server` without a running host.** `main.rs` is now a thin wrapper calling into
+  it; no public signature moved, only where it lives. `ipc_server::spawn`/`serve_one` (frozen)
+  are built on new, generic `spawn_with`/`serve_one_with`, which take a plain dispatch closure
+  instead of a `HostHandle`, so a fake dispatcher drives the same read/timeout/write path the
+  real one does — Ping->Pong, an over-long line->`Failed`, and the 2 s timeout are all exercised
+  this way, live in `ipc_server.rs`'s own tests and in `tests/ipc.rs`.
+
 ## Gaps reported upstream
 
 - **Q1** quire has no menu tracking machine (F15).
@@ -144,9 +197,17 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
 - **Q5** The schema derive: text only by the literal type `String`; a one-variant enum cannot
   be described; a numeric newtype without an explicit `range` is read as an enum (a compile
   error naming `SchemaVariants`, not a message about the missing range).
-- **G1** Debug injection: `inject::apply` (feature `debug-inject`) prints stats to stdout
-  instead of returning them, and finds a surface by name only inside that module. sill's
-  `debug stats` uses `HostCtx::stats`; `pointer`/`leave`/`capture` need sill's `debug` feature.
+- **G1** RESOLVED (shell-host `df9c59b`, "Close sill's host gaps G1, G3 and G5"). Was: debug
+  injection (`inject::apply`, feature `debug-inject`) printed stats to stdout instead of
+  returning them, and found a surface by name only inside that module. Now: `HostCtx::inject(id,
+  Inject) -> Result<Injected>` (feature `debug-inject`) delivers pointer/leave/capture and
+  returns the result directly (`Injected::Captured{path, size}` for a capture, so success and
+  size are visible to the caller, not just a stdout line); `HostCtx::surface_named(&SurfaceName)
+  -> Option<SurfaceId>` and `HostCtx::{stats,take_stats}` are unconditional (no `debug-inject`
+  needed). `crates/sill/src/daemon.rs` (`dispatch_debug`, `act`, `apply_injection`,
+  `collect_stats`) uses all four: `Stats` through `take_stats` (draining, one report per call);
+  `Pointer`/`Leave`/`Capture` through `surface_named` + `inject`, gated on sill's own `debug`
+  feature (`Cargo.toml`: `debug = ["shell-host/debug-inject"]`); no stdout bridge anywhere.
 - **G2** Minimize rectangles (design/10 §10.3.10): cctk's `set_rectangle` needs the dock's
   `wl_surface`, which lives on shell-host's connection, while the toplevel manager lives on the
   `cosmic_wl` thread's own connection. A protocol object cannot cross connections, so the

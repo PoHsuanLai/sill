@@ -3953,6 +3953,7 @@ dependencies = [
  "sill-services",
  "sill-settings",
  "sill-surfaces",
+ "thiserror 2.0.20",
  "tokio",
 ]
 
