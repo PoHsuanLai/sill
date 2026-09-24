@@ -1,23 +1,17 @@
 #!/usr/bin/env bash
 # M2 wallpaper acceptance (design/20 §1.4), against the running nested cosmic-comp
 # (`dev/nested.sh`; this script reuses `WAYLAND_DISPLAY` from shell-host's `.nested-env` and
-# never stops the compositor).
+# never stops the compositor) with a real `sill run`: `crates/sill/src/daemon.rs` now spawns a
+# `Wallpaper` per output (`spawn_missing_wallpapers`/`spawn_wallpaper`, mirroring the bar's own,
+# wired next to `spawn_missing_bars`) and sends the wallpaper service a `Prepare` at the
+# output's buffer size, so this script starts its own `sill run` rather than routing around the
+# daemon the way an earlier revision had to before that landed.
 #
-# `sill run`'s own wallpaper surface: `crates/sill/src/daemon.rs` only ever spawns a bar per
-# output today (`spawn_missing_bars`, M1 daemon). Wiring `sill_services::wallpaper::spawn`'s
-# output into the daemon's per-output surface set (`outputs.rs`'s `OutputSurfaces.wallpaper`
-# field already anticipates it) is outside this wave's ownership — `daemon.rs` is frozen to
-# everyone but the "daemon" wave (DESIGN.md "Wave ownership"). Step 1 below still runs against a
-# live `sill run` when one is up and reports what `sill debug stats` shows, so the gap stays
-# visible on every run rather than only in FINDINGS.md; it is recorded, not asserted, so it
-# never fails this script by itself. The real acceptance (steps 2-4) runs through
-# `examples/wallpaper_demo.rs`, this wave's own harness with a real `wallpaper::spawn` behind
-# fake everything else — the same shape `dev/accept-bar.sh`'s menus step takes through
-# `accept-bar-ui.sh cosmic` for a daemon/host gap of its own (FINDINGS G8).
-#
-# Checks: the wallpaper surface exists per output; a capture's centre pixel matches the marked
-# source image's own centre pixel (cover-fit keeps the crop centred, `geometry.rs`); five idle
-# seconds add zero frames. Screenshot: `dev/out/wallpaper-cosmic.png`.
+# Checks: a wallpaper surface exists per output and presents at least one frame; its capture's
+# centre pixel matches the marked source image's own centre pixel (cover-fit keeps the crop
+# centred, `geometry.rs`); five idle seconds add zero frames. Screenshot:
+# `dev/out/wallpaper-cosmic.png` (the nested screen, `shot.sh`); the pixel check itself reads
+# `sill debug capture`'s own file, not the screenshot.
 #
 # Usage: dev/nested.sh start && dev/accept-wallpaper.sh
 set -uo pipefail
@@ -31,7 +25,6 @@ source "$SHELL_HOST_DEV/.nested-env"
 export WAYLAND_DISPLAY
 
 sill() { "$SHELL_HOST_DEV/run.sh" "$SILL_BIN" "$@"; }
-nested() { "$SHELL_HOST_DEV/run.sh" "$@"; }
 
 # --- A marked source image and a COSMIC background config pointing at it, restored after -----
 
@@ -40,8 +33,16 @@ CONFIG_FILE="$CONFIG_DIR/all"
 BACKUP_FILE="$OUT_DIR/all.backup"
 SOURCE_PNG="$OUT_DIR/source.png"
 CREATED_MARKER="$OUT_DIR/all.accept-wallpaper-created"
+SILL_PID=""
 
-restore_config() {
+cleanup() {
+  # Stop the daemon this script started (never the compositor); restore whatever background
+  # config was there before.
+  if [ -n "$SILL_PID" ] && kill -0 "$SILL_PID" 2>/dev/null; then
+    sill quit >/dev/null 2>&1 || true
+    for _ in $(seq 20); do kill -0 "$SILL_PID" 2>/dev/null || break; sleep 0.1; done
+    kill -0 "$SILL_PID" 2>/dev/null && kill "$SILL_PID" 2>/dev/null || true
+  fi
   if [ -f "$BACKUP_FILE" ]; then
     mkdir -p "$CONFIG_DIR"
     cp "$BACKUP_FILE" "$CONFIG_FILE"
@@ -49,7 +50,7 @@ restore_config() {
     rm -f "$CONFIG_FILE"
   fi
 }
-trap restore_config EXIT
+trap cleanup EXIT
 
 mkdir -p "$CONFIG_DIR"
 rm -f "$BACKUP_FILE" "$CREATED_MARKER"
@@ -90,138 +91,85 @@ cat >"$CONFIG_FILE" <<RON
 )
 RON
 
-# --- 1. What a live `sill run` shows today (recorded, not asserted; see the header) ----------
+# --- Start the daemon ---------------------------------------------------------------------
 
-step_sill_run_today() {
-  if ! sill ping >"$OUT_DIR/sill-ping.log" 2>&1; then
-    echo "no running 'sill run' daemon (start one with dev/run.sh to see this step); skipped" \
-      | tee "$OUT_DIR/sill-run-wallpaper.log" >&2
-    return 0
-  fi
-  sill debug stats >"$OUT_DIR/sill-run-wallpaper.log" 2>&1
-  if grep -q '"surface":"sill-wallpaper-' "$OUT_DIR/sill-run-wallpaper.log"; then
-    echo "sill run: a wallpaper surface is present" >>"$OUT_DIR/sill-run-wallpaper.log"
-  else
-    echo "sill run: no wallpaper surface yet (daemon.rs gap, see this script's header)" \
-      >>"$OUT_DIR/sill-run-wallpaper.log"
-  fi
-  cat "$OUT_DIR/sill-run-wallpaper.log" >&2
+(cd "$SILL_REPO" && cargo build -p sill --features debug >&2) || exit 1
+"$SHELL_HOST_DEV/run.sh" "$SILL_BIN" run >"$OUT_DIR/sill-run.log" 2>&1 &
+SILL_PID=$!
+
+step_ping() {
+  for _ in $(seq 100); do
+    sill ping >"$OUT_DIR/ping.log" 2>&1 && return 0
+    kill -0 "$SILL_PID" 2>/dev/null || { echo "sill run exited early (see $OUT_DIR/sill-run.log)" >&2; return 1; }
+    sleep 0.1
+  done
+  echo "sill never answered ping" >&2
+  return 1
 }
-step_sill_run_today
 
-# --- 2-4. The real pipeline, through wallpaper_demo -------------------------------------------
+# Every wallpaper surface's frame/commit counters, as `name frames commits` lines.
+wallpaper_counters() {
+  sill debug stats | python3 -c '
+import json, sys
+reply = json.loads(sys.stdin.read())
+for row in reply["v"]:
+    if row["surface"].startswith("sill-wallpaper-"):
+        print(row["surface"], row["frames"], row["commits"])'
+}
 
-(cd "$SILL_REPO" && cargo build --release -p sill-surfaces --example wallpaper_demo >&2) || exit 1
-export WALLPAPER_DEMO="$SILL_REPO/target/release/examples/wallpaper_demo"
-export OUT_DIR SOURCE_PNG
-export PNG_OUT="$SILL_REPO/dev/out/wallpaper-cosmic.png"
+step_surfaces_exist() {
+  local rows=""
+  for _ in $(seq 100); do
+    rows=$(wallpaper_counters)
+    [ -n "$rows" ] && break
+    sleep 0.1
+  done
+  echo "$rows" | tee "$OUT_DIR/surfaces.log" >&2
+  [ -n "$rows" ]
+}
 
-python3 - <<'PY'
-import json, os, queue, subprocess, sys, threading, time
+step_centre_pixel() {
+  local name cap
+  name=$(wallpaper_counters | awk 'NR==1 {print $1}')
+  [ -n "$name" ] || { echo "no wallpaper surface to capture" >&2; return 1; }
+  cap="$OUT_DIR/wallpaper-surface.png"
+  sill debug capture "$name" "$cap" >"$OUT_DIR/capture.log" 2>&1 || return 1
+  grep -q '"kind":"done"' "$OUT_DIR/capture.log" || { echo "capture did not report done" >&2; return 1; }
+  python3 - "$SOURCE_PNG" "$cap" <<'PY'
+import sys
+from PIL import Image
 
-OUT = os.environ["OUT_DIR"]
-SOURCE_PNG = os.environ["SOURCE_PNG"]
-PNG_OUT = os.environ["PNG_OUT"]
-LOG = open(f"{OUT}/accept.log", "w")
-
-def log(*a):
-    line = " ".join(str(x) for x in a)
-    print(line, file=sys.stderr); LOG.write(line + "\n"); LOG.flush()
-
-class Proc:
-    def __init__(self, path):
-        self.name, self.lines = os.path.basename(path), queue.Queue()
-        self.p = subprocess.Popen([path], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE, text=True)
-        threading.Thread(target=self._read, args=(self.p.stdout, True), daemon=True).start()
-        threading.Thread(target=self._read, args=(self.p.stderr, False), daemon=True).start()
-        log(f"spawn {self.name} pid={self.p.pid}")
-    def _read(self, f, is_out):
-        for line in f:
-            LOG.write(f"  [{self.name}{'' if is_out else ' err'}] {line}"); LOG.flush()
-            if is_out: self.lines.put(line)
-    def send(self, s):
-        log(f"> {s}"); self.p.stdin.write(s + "\n"); self.p.stdin.flush()
-    def expect(self, pred, timeout=10.0):
-        end = time.time() + timeout
-        while time.time() < end:
-            try: line = self.lines.get(timeout=max(0.01, end - time.time()))
-            except queue.Empty: break
-            try: v = json.loads(line)
-            except ValueError: continue
-            if pred(v): return v
-        raise TimeoutError(f"{self.name}: expected line not seen")
-    def stats(self):
-        """Every surface's counters, by name: one host line, then one line per surface."""
-        self.send("stats")
-        self.expect(lambda v: "host" in v)
-        rows = {}
-        end = time.time() + 1.0
-        while time.time() < end:
-            try: v = self.expect(lambda v: "counters" in v, timeout=0.3)
-            except TimeoutError: break
-            rows[v["surface"]] = v
-        return rows
-    def quit(self):
-        if self.p.poll() is None:
-            try: self.send("quit")
-            except BrokenPipeError: pass
-            try: self.p.wait(3)
-            except subprocess.TimeoutExpired: self.p.kill()
-
-def wallpapers_ready(p, tries=200):
-    for _ in range(tries):
-        rows = p.stats()
-        walls = {k: r for k, r in rows.items() if k.startswith("sill-wallpaper-")}
-        if walls and all(r["counters"]["frames"] >= 1 for r in walls.values()):
-            return walls
-        time.sleep(0.05)
-    raise TimeoutError("no wallpaper surface ever presented a frame")
-
-def centre_pixel(path):
-    from PIL import Image
+def centre(path):
     im = Image.open(path).convert("RGB")
     w, h = im.size
     return im.getpixel((w // 2, h // 2))
 
-result = {}
-demo = Proc(os.environ["WALLPAPER_DEMO"])
-try:
-    walls = wallpapers_ready(demo)
-    result["surfaces"] = dict(names=sorted(walls.keys()), count=len(walls),
-                              pass_=len(walls) >= 1)
-    log("wallpaper surfaces:", result["surfaces"])
-
-    name = next(iter(walls))
-    cap = f"{OUT}/wallpaper-surface.png"
-    demo.send(f"{name} capture {cap}")
-    demo.expect(lambda v: "capture" in v)
-    source_centre = centre_pixel(SOURCE_PNG)
-    captured_centre = centre_pixel(cap)
-    result["centre_pixel"] = dict(source=source_centre, captured=captured_centre,
-                                  pass_=source_centre == captured_centre)
-    log("centre pixel: source", source_centre, "captured", captured_centre)
-
-    # Idle: five quiet seconds add no frames, commits or callbacks.
-    time.sleep(0.5)
-    before = demo.stats()[name]["counters"]
-    time.sleep(5.0)
-    after = demo.stats()[name]["counters"]
-    idle = {k: after[k] - before[k] for k in ("frames", "commits", "callbacks")}
-    result["idle"] = dict(delta=idle, pass_=idle["frames"] == 0)
-    log("idle delta:", idle)
-
-    import shutil
-    shutil.copyfile(cap, PNG_OUT)
-    result["screenshot"] = PNG_OUT
-finally:
-    demo.quit()
-
-json.dump(result, open(f"{OUT}/result.json", "w"), indent=1)
-print(json.dumps(result, indent=1))
-checks = [v for k, v in result.items() if isinstance(v, dict) and "pass_" in v]
-sys.exit(0 if len(checks) == 3 and all(v["pass_"] for v in checks) else 1)
+source, captured = centre(sys.argv[1]), centre(sys.argv[2])
+print(f"source centre {source}, captured centre {captured}")
+sys.exit(0 if source == captured else 1)
 PY
-status=$?
+}
+
+step_idle() {
+  local before after
+  sleep 0.5
+  before=$(wallpaper_counters) || return 1
+  sleep 5
+  after=$(wallpaper_counters) || return 1
+  printf 'before:\n%s\nafter:\n%s\n' "$before" "$after" | tee "$OUT_DIR/idle.log" >&2
+  "$SHELL_HOST_DEV/shot.sh" "$SILL_REPO/dev/out/wallpaper-cosmic.png" >&2 || true
+  [ "$before" = "$after" ]
+}
+
+status=0
+for step in step_ping step_surfaces_exist step_centre_pixel step_idle; do
+  if "$step"; then
+    echo "PASS $step"
+  else
+    rc=$?
+    echo "FAIL $step (exit $rc)"
+    status=$(( rc > status ? rc : status ))
+  fi
+done
 echo "output dir: $OUT_DIR; screenshot: $SILL_REPO/dev/out/wallpaper-cosmic.png" >&2
 exit "$status"
