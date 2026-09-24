@@ -8,7 +8,7 @@
 //! release.
 
 use std::env;
-use std::path::Path;
+use std::path::PathBuf;
 
 use nucleo_matcher::Matcher;
 use sill_launcher::{FrecencyScore, Needle, RankWeights, Score, rank_text};
@@ -58,20 +58,20 @@ const PAGES: &[(&str, &str, &[&str])] = &[
     ("workspaces", "Workspaces", &[]),
 ];
 
-/// Whether `cosmic-settings` is on `PATH` right now (checked once, at
-/// [`super::SettingsProvider::new`] construction time — not on every query).
-pub fn cosmic_settings_available() -> bool {
-    on_path("cosmic-settings")
+/// The real `$PATH`, split into directories, as [`SettingsProvider::new`](super::SettingsProvider::new)
+/// and [`SettingsProvider::with_dirs`](super::SettingsProvider::with_dirs) search it.
+pub fn real_path_dirs() -> Vec<PathBuf> {
+    env::var_os("PATH")
+        .map(|path| env::split_paths(&path).collect())
+        .unwrap_or_default()
 }
 
-fn on_path(program: &str) -> bool {
-    env::var_os("PATH").is_some_and(|path| {
-        env::split_paths(&path).any(|dir| is_executable_file(&dir.join(program)))
-    })
-}
-
-fn is_executable_file(path: &Path) -> bool {
-    path.is_file()
+/// Whether `program` names a file directly under one of `dirs` — the search `$PATH` lookup
+/// performs, but taking the directories as a plain argument so a test can supply a fake one
+/// instead of the real `$PATH`: `std::env::set_var` is `unsafe` since edition 2024, and
+/// CONVENTIONS §11 forbids `unsafe` outside shell-host's one allowed module.
+pub fn is_on_path(dirs: &[PathBuf], program: &str) -> bool {
+    dirs.iter().any(|dir| dir.join(program).is_file())
 }
 
 /// The static table, as [`super::SettingsProvider::cosmic_pages`] holds it.

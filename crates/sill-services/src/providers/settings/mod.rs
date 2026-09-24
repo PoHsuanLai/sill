@@ -14,7 +14,7 @@ use sill_launcher::{
     Score, SettingsTarget,
 };
 
-use cosmic_pages::{cosmic_pages_table, cosmic_settings_available, search_cosmic_pages};
+use cosmic_pages::{cosmic_pages_table, is_on_path, real_path_dirs, search_cosmic_pages};
 use index::{IndexedKey, SettingsIndex};
 use schema_file::{data_dirs, fingerprint, parse_schema, schema_paths};
 
@@ -58,8 +58,19 @@ impl SettingsProvider {
     /// As [`SettingsProvider::new`], but discovering schemas under `dirs` instead of the real
     /// XDG directories — for tests and for a fixture install.
     pub fn with_dirs(dirs: Vec<PathBuf>) -> SettingsProvider {
+        SettingsProvider::with_dirs_and_search_path(dirs, real_path_dirs())
+    }
+
+    /// As [`SettingsProvider::with_dirs`], but searching `search_path` for `cosmic-settings`
+    /// instead of the real `$PATH` — the seam a test uses to prove the discovery without
+    /// mutating the real environment (`cosmic_pages::is_on_path`'s doc says why that is
+    /// unavailable here).
+    fn with_dirs_and_search_path(
+        dirs: Vec<PathBuf>,
+        search_path: Vec<PathBuf>,
+    ) -> SettingsProvider {
         SettingsProvider {
-            cosmic_pages: if cosmic_settings_available() {
+            cosmic_pages: if is_on_path(&search_path, "cosmic-settings") {
                 cosmic_pages_table()
             } else {
                 Vec::new()
@@ -190,5 +201,61 @@ fn cosmic_item(page_id: &str, title: &str, score: Score) -> Item {
         icon: IconRef::Glyph("settings".to_owned()),
         score,
         actions: Vec::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::PathBuf;
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    use super::SettingsProvider;
+
+    /// A fresh directory under the system temp dir, holding one file named `cosmic-settings` —
+    /// standing in for a `$PATH` entry, removed on drop (no `tempfile`: not in the pinned block,
+    /// `results/test_support.rs` uses the same pattern).
+    struct FakePathDir(PathBuf);
+
+    impl FakePathDir {
+        fn with_cosmic_settings() -> FakePathDir {
+            static NEXT: AtomicU32 = AtomicU32::new(0);
+            let n = NEXT.fetch_add(1, Ordering::Relaxed);
+            let dir = std::env::temp_dir().join(format!(
+                "sill-services-settings-fake-path-{}-{n}",
+                std::process::id()
+            ));
+            fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("{}: {e}", dir.display()));
+            fs::write(dir.join("cosmic-settings"), b"").unwrap_or_else(|e| panic!("{e}"));
+            FakePathDir(dir)
+        }
+    }
+
+    impl Drop for FakePathDir {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn cosmic_pages_appear_when_cosmic_settings_is_on_the_search_path() {
+        let fake = FakePathDir::with_cosmic_settings();
+        let provider =
+            SettingsProvider::with_dirs_and_search_path(Vec::new(), vec![fake.0.clone()]);
+        assert!(
+            !provider.cosmic_pages.is_empty(),
+            "{:?}",
+            provider.cosmic_pages
+        );
+    }
+
+    #[test]
+    fn no_cosmic_pages_when_cosmic_settings_is_not_on_the_search_path() {
+        let provider = SettingsProvider::with_dirs_and_search_path(Vec::new(), Vec::new());
+        assert!(
+            provider.cosmic_pages.is_empty(),
+            "{:?}",
+            provider.cosmic_pages
+        );
     }
 }

@@ -31,7 +31,7 @@ pub(crate) fn providers(
             workspaces: workspaces.clone(),
         }),
         Arc::new(CalculatorProvider),
-        Arc::new(SettingsProvider::default()),
+        Arc::new(SettingsProvider::new()),
         Arc::new(SystemProvider::new()),
     ]
 }
