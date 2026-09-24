@@ -255,9 +255,11 @@ fn spawn_bar(
     let props = sill_surfaces::surfaces::bar::BarProps {
         output: info.clone(),
     };
-    let root = Root::with_props(sill_surfaces::Bar, props)
-        .context(services.clone())
-        .context(settings_feed.clone());
+    let root = surface_root(
+        Root::with_props(sill_surfaces::Bar, props),
+        services,
+        settings_feed,
+    );
     match ctx.spawn_layer(config, root) {
         Ok(id) => {
             let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
@@ -266,6 +268,16 @@ fn spawn_bar(
         }
         Err(error) => eprintln!("sill: spawning the bar on {:?}: {error}", info.name),
     }
+}
+
+/// `root` with the contexts every surface the daemon spawns is given: the services, the
+/// settings, and the rect measurer quire's floating components read through (without it the
+/// first `use_rect` read inside a render panics; FINDINGS Q10, F76). Every spawn goes through
+/// here, so a new surface cannot forget one.
+fn surface_root(root: Root, services: &Services, settings_feed: &SettingsFeed) -> Root {
+    root.context(services.clone())
+        .context(settings_feed.clone())
+        .context(sill_surfaces::MEASURE)
 }
 
 /// Answer one IPC request.
@@ -333,6 +345,11 @@ fn dispatch_debug(
         DebugRequest::Pointer { surface, at } => act(ctx, surface, DebugAction::Pointer(at)),
         DebugRequest::Leave { surface } => act(ctx, surface, DebugAction::Leave),
         DebugRequest::Capture { surface, path } => act(ctx, surface, DebugAction::Capture(path)),
+        DebugRequest::Click {
+            surface,
+            at,
+            button,
+        } => act(ctx, surface, DebugAction::Click(at, button)),
     }
 }
 
@@ -342,6 +359,7 @@ enum DebugAction {
     Pointer(sill_ipc::Point),
     Leave,
     Capture(std::path::PathBuf),
+    Click(sill_ipc::Point, sill_ipc::PointerButton),
 }
 
 /// Find `surface` by shell-host's own naming (`HostCtx::surface_named`, unconditional: it needs
@@ -358,17 +376,35 @@ fn act(ctx: &mut HostCtx<ShellMsg>, surface: SurfaceName, action: DebugAction) -
 /// FINDINGS.md G1 resolved upstream).
 #[cfg(feature = "debug")]
 fn apply_injection(ctx: &mut HostCtx<ShellMsg>, id: SurfaceId, action: DebugAction) -> Response {
-    let inject = match action {
-        DebugAction::Pointer(at) => shell_host::Inject::Pointer {
-            at: shell_host::Point { x: at.x, y: at.y },
-        },
-        DebugAction::Leave => shell_host::Inject::Leave,
-        DebugAction::Capture(path) => shell_host::Inject::Capture { path },
+    let inject = match to_inject(action) {
+        Ok(inject) => inject,
+        Err(refusal) => return refusal,
     };
     match ctx.inject(id, inject) {
         Ok(_injected) => Response::Done,
         Err(error) => internal(&error),
     }
+}
+
+/// `action` as shell-host's injection. shell-host's `Inject::Click` presses the primary button
+/// only (FINDINGS G10), so a secondary or middle click is refused as unsupported rather than
+/// sent as a primary one.
+#[cfg(feature = "debug")]
+fn to_inject(action: DebugAction) -> Result<shell_host::Inject, Response> {
+    let point = |at: sill_ipc::Point| shell_host::Point { x: at.x, y: at.y };
+    Ok(match action {
+        DebugAction::Pointer(at) => shell_host::Inject::Pointer { at: point(at) },
+        DebugAction::Leave => shell_host::Inject::Leave,
+        DebugAction::Capture(path) => shell_host::Inject::Capture { path },
+        DebugAction::Click(at, sill_ipc::PointerButton::Primary) => {
+            shell_host::Inject::Click { at: point(at) }
+        }
+        DebugAction::Click(_, button) => {
+            return Err(unsupported(&format!(
+                "shell-host injects primary clicks only; {button:?} is not supported (G10)"
+            )));
+        }
+    })
 }
 
 #[cfg(not(feature = "debug"))]
@@ -432,4 +468,31 @@ fn internal(error: &impl std::fmt::Display) -> Response {
         kind: FailureKind::Internal,
         message: error.to_string(),
     })
+}
+
+#[cfg(all(test, feature = "debug"))]
+mod tests {
+    use sill_ipc::{FailureKind, Point, PointerButton, Response};
+
+    use super::{DebugAction, to_inject};
+
+    #[test]
+    fn a_debug_click_maps_onto_shell_hosts_injection() {
+        let at = Point { x: 1200, y: 16 };
+        let primary = to_inject(DebugAction::Click(at, PointerButton::Primary));
+        assert_eq!(
+            primary.ok(),
+            Some(shell_host::Inject::Click {
+                at: shell_host::Point { x: 1200, y: 16 }
+            })
+        );
+        for button in [PointerButton::Secondary, PointerButton::Middle] {
+            match to_inject(DebugAction::Click(at, button)) {
+                Err(Response::Failed(failure)) => {
+                    assert_eq!(failure.kind, FailureKind::Unsupported, "{button:?}");
+                }
+                other => panic!("{button:?}: {other:?}"),
+            }
+        }
+    }
 }

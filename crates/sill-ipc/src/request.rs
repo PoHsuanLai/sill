@@ -1,5 +1,6 @@
 //! What a client asks the daemon (plan: `Ping, Launcher{Toggle,Open{query},Close},
-//! Dock{Pin,Unpin}, Reload, Quit, Debug{Stats,Pointer,Leave,Capture}`).
+//! Dock{Pin,Unpin}, Reload, Quit, Debug{Stats,Pointer,Leave,Capture}`), plus `Debug(Click)`
+//! from the M2 freeze amendment (sill FINDINGS F76).
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -57,6 +58,26 @@ pub enum DebugRequest {
     Leave { surface: SurfaceName },
     /// Render `surface` offscreen and write a PNG to `path` (compositor-independent capture).
     Capture { surface: SurfaceName, path: PathBuf },
+    /// A synthetic press and release of `button` at `at` on `surface` (surface-local logical
+    /// px): what opens a bar menu. M2 freeze amendment (F76).
+    Click {
+        surface: SurfaceName,
+        at: Point,
+        button: PointerButton,
+    },
+}
+
+/// Which pointer button a debug click presses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PointerButton {
+    /// The left button of a right-handed mouse.
+    #[default]
+    Primary,
+    /// The right button: context menus.
+    Secondary,
+    /// The wheel button.
+    Middle,
 }
 
 /// A desktop entry id without `.desktop`: `org.mozilla.firefox`, `foot`.

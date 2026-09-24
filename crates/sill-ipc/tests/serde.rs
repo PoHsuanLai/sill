@@ -6,8 +6,8 @@ use std::path::PathBuf;
 
 use sill_ipc::{
     DebugRequest, DesktopId, DockRequest, Failure, FailureKind, IpcError, LauncherRequest,
-    MAX_LINE, Micros, Point, Request, Response, SurfaceName, SurfaceStats, decode, encode,
-    read_message, write_message,
+    MAX_LINE, Micros, Point, PointerButton, Request, Response, SurfaceName, SurfaceStats, decode,
+    encode, read_message, write_message,
 };
 
 fn surface(name: &str) -> SurfaceName {
@@ -75,6 +75,30 @@ fn requests() -> Vec<(Request, &'static str)> {
                 path: PathBuf::from("/tmp/bar.png"),
             }),
             r#"{"kind":"debug","v":{"kind":"capture","v":{"surface":"sill-bar-DP-1","path":"/tmp/bar.png"}}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::Click {
+                surface: surface("sill-bar-DP-1"),
+                at: Point { x: 1200, y: 16 },
+                button: PointerButton::Primary,
+            }),
+            r#"{"kind":"debug","v":{"kind":"click","v":{"surface":"sill-bar-DP-1","at":{"x":1200,"y":16},"button":"primary"}}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::Click {
+                surface: surface("sill-dock-DP-1"),
+                at: Point { x: 40, y: 30 },
+                button: PointerButton::Secondary,
+            }),
+            r#"{"kind":"debug","v":{"kind":"click","v":{"surface":"sill-dock-DP-1","at":{"x":40,"y":30},"button":"secondary"}}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::Click {
+                surface: surface("sill-dock-DP-1"),
+                at: Point { x: 0, y: 0 },
+                button: PointerButton::Middle,
+            }),
+            r#"{"kind":"debug","v":{"kind":"click","v":{"surface":"sill-dock-DP-1","at":{"x":0,"y":0},"button":"middle"}}}"#,
         ),
     ]
 }

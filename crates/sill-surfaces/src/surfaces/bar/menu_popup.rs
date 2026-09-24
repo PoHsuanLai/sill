@@ -46,7 +46,6 @@ const GAP: Px = Px(7.0);
 /// The popup root.
 #[component]
 pub(crate) fn MenuPopup() -> Element {
-    use_context_provider(|| super::measure::MEASURE);
     let link = use_context::<PopupLink>();
     let surface = use_surface();
     let view = use_watch(link.view.clone());

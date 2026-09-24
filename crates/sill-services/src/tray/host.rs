@@ -20,12 +20,15 @@ use system_tray::menu::{MenuItem, MenuType, ToggleState, ToggleType};
 use tokio::sync::{broadcast, mpsc, watch};
 
 use super::model::{
-    Availability, Check, Pixmap, Tray, TrayCommand, TrayEvent, TrayIcon, TrayItem, TrayItemId,
-    TrayMenuEntry, TrayMenuKind, TrayStatus, reduce_tray,
+    Availability, Check, Pixmap, ScrollAxis, ScrollDelta, Tray, TrayCommand, TrayEvent, TrayIcon,
+    TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind, TrayStatus, reduce_tray,
 };
 use crate::units::Visibility;
 
 const ITEM_PATH: &str = "/StatusNotifierItem";
+
+/// The interface `Scroll` is a method of.
+const ITEM_INTERFACE: &str = "org.kde.StatusNotifierItem";
 
 /// Connect, seed `tray_tx` with whatever is already registered, then apply every event and
 /// command until the client's connection drops. Never panics on a missing bus: a failed
@@ -42,6 +45,9 @@ pub(super) async fn run(
             return;
         }
     };
+    // `Client` keeps its connection private and has no scroll call, so `Scroll` goes over a
+    // second session connection of our own; without one, scrolls are dropped.
+    let bus = zbus::Connection::session().await.ok();
     let mut events = client.subscribe();
     let mut state = seed(&client);
     let _ = tray_tx.send(state.clone());
@@ -60,7 +66,7 @@ pub(super) async fn run(
                 Err(broadcast::error::RecvError::Closed) => break,
             },
             command = commands.recv(), if commands_open => match command {
-                Some(command) => handle_command(&client, command).await,
+                Some(command) => handle_command(&client, bus.as_ref(), command).await,
                 None => commands_open = false,
             },
         }
@@ -237,9 +243,8 @@ fn map_event(client: &Client, event: Event) -> Option<TrayEvent> {
 /// menu closed) — nothing a shell surface can act on, so they are logged, not propagated: a
 /// tray click that lands a beat late is not worth failing the surface over.
 ///
-/// [`TrayCommand`] has no `Scroll` variant (the frozen model, `model.rs`), so
-/// `org.kde.StatusNotifierItem.Scroll` is never sent — see FINDINGS.md "M1 svc-tray".
-async fn handle_command(client: &Client, command: TrayCommand) {
+/// `Scroll` is sent on `bus`, not through `client` (see [`run`]); FINDINGS F76.
+async fn handle_command(client: &Client, bus: Option<&zbus::Connection>, command: TrayCommand) {
     let result = match command {
         TrayCommand::Activate { item, x, y } => {
             client
@@ -278,19 +283,69 @@ async fn handle_command(client: &Client, command: TrayCommand) {
                 .map(|_needs_update| ()),
             None => return,
         },
+        TrayCommand::Scroll { item, delta } => match bus {
+            Some(bus) => scroll(bus, &item, delta).await,
+            None => return,
+        },
     };
     if let Err(error) = result {
         eprintln!("sill-services: tray: command failed: {error}");
     }
 }
 
+/// `org.kde.StatusNotifierItem.Scroll(delta, orientation)` on `item`.
+async fn scroll(
+    bus: &zbus::Connection,
+    item: &TrayItemId,
+    delta: ScrollDelta,
+) -> Result<(), system_tray::error::Error> {
+    bus.call_method(
+        Some(destination_of(item)),
+        ITEM_PATH,
+        Some(ITEM_INTERFACE),
+        "Scroll",
+        &scroll_args(delta),
+    )
+    .await
+    .map(|_reply| ())
+    .map_err(system_tray::error::Error::from)
+}
+
+/// SNI `Scroll`'s two arguments: the delta and the orientation word the spec names.
+fn scroll_args(delta: ScrollDelta) -> (i32, &'static str) {
+    let orientation = match delta.axis {
+        ScrollAxis::Vertical => "vertical",
+        ScrollAxis::Horizontal => "horizontal",
+    };
+    (delta.steps, orientation)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{destination_of, item_id, to_check, to_menu_entry, to_tray_icon, to_tray_status};
+    use super::{
+        destination_of, item_id, scroll_args, to_check, to_menu_entry, to_tray_icon, to_tray_status,
+    };
     use crate::tray::model::{Availability, Check, TrayIcon, TrayItemId, TrayMenuKind, TrayStatus};
+    use crate::tray::model::{ScrollAxis, ScrollDelta};
     use crate::units::Visibility;
     use system_tray::item::{IconPixmap as SniPixmap, Status as SniStatus};
     use system_tray::menu::{MenuItem, MenuType, ToggleState, ToggleType};
+
+    #[test]
+    fn a_scroll_becomes_sni_arguments() {
+        let cases = [
+            (ScrollAxis::Vertical, 1, (1, "vertical")),
+            (ScrollAxis::Vertical, -3, (-3, "vertical")),
+            (ScrollAxis::Horizontal, 2, (2, "horizontal")),
+        ];
+        for (axis, steps, want) in cases {
+            assert_eq!(
+                scroll_args(ScrollDelta { axis, steps }),
+                want,
+                "{axis:?} {steps}"
+            );
+        }
+    }
 
     #[test]
     fn item_id_round_trips_through_destination_of() {
