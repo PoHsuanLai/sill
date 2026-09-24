@@ -3,12 +3,19 @@
 //! --collect --unit=app-sill-<id>-<rand>.scope` (fallback process group)").
 //!
 //! The activation token comes from shell-host (`SurfaceHandle::activation_token`) in the
-//! daemon's `sill::launch`, which then sends a [`LaunchCommand`] here.
+//! daemon's `sill::launch`, which then sends a [`LaunchCommand`] here. [`spawn`] prefers
+//! `org.freedesktop.Application.Activate` for a `DBusActivatable` entry (`dbus.rs`); otherwise
+//! it plans the argument vector (`plan.rs`, pure) and runs it inside a transient
+//! `systemd-run --user --scope`, wrapped in the machine's terminal (`terminal.rs`) when the
+//! entry asks for one, tracking the scope until it exits (`run.rs`).
 
-#![allow(unused_variables, dead_code)] // Freeze stubs
-
+mod dbus;
 mod model;
 mod plan;
+mod run;
+mod terminal;
+#[cfg(test)]
+mod test_support;
 
 pub use model::{LaunchOutcome, LaunchedScope, Launches, ScopeUnit, reduce_launches};
 pub use plan::{launch_argv, scope_unit};
@@ -53,5 +60,89 @@ pub fn spawn(
     rt: &Handle,
     apps: watch::Receiver<AppIndex>,
 ) -> (watch::Receiver<Launches>, Control<LaunchCommand>) {
-    todo!("M2 launch: D-Bus Activate or systemd-run scope, track scopes -> reduce_launches")
+    let (tx, rx) = watch::channel(Launches::default());
+    let (control, commands) = Control::channel();
+    rt.spawn(run::run(rt.clone(), apps, tx, commands));
+    (rx, control)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{LaunchCommand, LaunchRequest, spawn};
+    use crate::apps::{
+        App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal, reduce_apps,
+    };
+    use sill_launcher::{AppId, DesktopAction};
+    use std::path::PathBuf;
+    use std::time::Duration;
+
+    fn index_with(id: &str, exec: &str) -> AppIndex {
+        let app = App {
+            id: AppId(id.to_owned()),
+            name: id.to_owned(),
+            generic_name: String::new(),
+            comment: String::new(),
+            exec: exec.to_owned(),
+            icon: AppIcon::None,
+            startup_wm_class: None,
+            flatpak: None,
+            terminal: Terminal::No,
+            activation: DbusActivation::Exec,
+            actions: Vec::new(),
+            mime_types: Vec::new(),
+            keywords: Vec::new(),
+            listing: Listing::Shown,
+            path: PathBuf::from(format!("/usr/share/applications/{id}.desktop")),
+        };
+        reduce_apps(AppIndex::default(), AppsEvent::Scanned(vec![app]))
+    }
+
+    /// Exercises the real `systemd-run --user --scope` path on this machine: `/bin/true` starts,
+    /// `Launches` reports `Started` with a well-formed unit, and once the process exits the same
+    /// unit is reported `Exited`. Run explicitly (`cargo test -p sill-services -- --ignored
+    /// systemd_scope`); needs a user systemd (`systemctl --user status`).
+    #[tokio::test]
+    #[ignore = "needs a user systemd"]
+    async fn a_launch_runs_in_a_real_systemd_scope_and_exits() {
+        let (_apps_tx, apps_rx) =
+            tokio::sync::watch::channel(index_with("sill-launch-test", "/bin/true"));
+        let rt = tokio::runtime::Handle::current();
+        let (mut launches, control) = spawn(&rt, apps_rx);
+
+        control
+            .send(LaunchCommand::Launch(LaunchRequest {
+                app: AppId("sill-launch-test".to_owned()),
+                action: DesktopAction::Default,
+                files: Vec::new(),
+                uris: Vec::new(),
+                token: None,
+            }))
+            .unwrap_or_else(|e| panic!("{e}"));
+
+        let started = tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                launches.changed().await.unwrap_or_else(|e| panic!("{e}"));
+                if let Some(scope) = launches.borrow().scopes.first() {
+                    return scope.unit.clone();
+                }
+            }
+        })
+        .await
+        .unwrap_or_else(|_| panic!("no Started outcome within 5s"));
+        eprintln!("sill: live launch started unit {}", started.0);
+        assert!(started.0.starts_with("app-sill-"));
+        assert!(started.0.ends_with(".scope"));
+
+        tokio::time::timeout(Duration::from_secs(10), async {
+            loop {
+                if launches.borrow().scopes.is_empty() {
+                    return;
+                }
+                launches.changed().await.unwrap_or_else(|e| panic!("{e}"));
+            }
+        })
+        .await
+        .unwrap_or_else(|_| panic!("the scope never reported Exited within 10s"));
+        eprintln!("sill: live launch unit {} exited", started.0);
+    }
 }

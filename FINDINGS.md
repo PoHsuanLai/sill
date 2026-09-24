@@ -502,3 +502,81 @@ change.
   `count = 7`, asserts the badge appears within the 1 s budget, kills the emitter, and asserts the
   badge clears within the same budget — both passed (finished in 0.11 s total, well inside
   budget).
+## M2 launch (2026-09-24)
+
+Filled `launch::{spawn, launch_argv, scope_unit}`, `pins::{spawn, load, save}` and
+`crates/sill/src/launch.rs`; wired both into `services.rs`'s two placeholder lines.
+
+- **F58 The terminal for `Terminal=true`.** `$TERMINAL` (trimmed, non-blank) then ghostty,
+  wezterm, foot, cosmic-term, the first found as an executable file on `$PATH`
+  (`launch/terminal.rs`); wrapped `[bin, "-e"]`. No trace exists for wezterm's or cosmic-term's
+  own flag (CONVENTIONS "a quirk without a trace is a rumour"), so `-e` is a considered default,
+  not a verified one — worth a second look once one of them is actually exercised. On this
+  machine: `$TERMINAL` is unset, ghostty is on `PATH` (the user's own preference, per the brief)
+  and is chosen; wezterm and foot are absent; cosmic-term is present but ghostty sorts first.
+- **F59 Pins live under `dirs::config_dir()`, not `sill_settings::settings_dir()`.**
+  `sill-services` may not depend on `ds-settings`/`sill-settings` (boundary: F2, and
+  `scripts/check-boundary.sh`'s `sill-services` rule), so `pins::pins_dir` calls the already-pinned
+  `dirs` crate directly (`dirs::config_dir().join("sill")`) rather than sharing
+  `sill_settings::settings_dir`'s helper — both resolve to the same `$XDG_CONFIG_HOME/sill` in
+  practice, but they are two independent readings of XDG, not one shared function (Q4 already
+  covers the general shape of this duplication for `settings.toml`; this is its `dock.json`
+  sibling). `pins::spawn` degrades to in-memory-only (a stderr line, no watch, no save) when
+  neither `$XDG_CONFIG_HOME` nor `$HOME` is set, the same shape `ServiceError`'s doc promises for
+  every other service's missing dependency.
+- **F60 Unit-name escaping.** `scope_unit` escapes an app id the way `systemd-escape` escapes a
+  unit name component, from general knowledge of systemd's own behaviour rather than by reading
+  `unit-name.c` (systemd is LGPL/GPL; CONVENTIONS "note-and-close" and "never put GPL … source
+  into a model's context"): `/` becomes `-`; a leading `.` and every byte outside
+  `[A-Za-z0-9:_.]` — a literal `-` included, since `-` is reserved for an escaped `/` and would
+  otherwise be ambiguous on unescape — becomes `\xHH`. Table-tested against the cases that matter
+  here (reverse-DNS ids, a literal dash, a leading dot, a space); not cross-checked against a real
+  `systemd-escape` binary output for every byte value, since sill's own app ids never contain most
+  of them.
+- **F61 `%i`'s value is the resolved icon file, not the entry's own `Icon=` name.** `App` (frozen,
+  `apps/index.rs`) keeps only the theme-resolved `AppIcon` (`File(PathBuf)` or `None`), not the
+  raw `Icon=` string a `.desktop` file names — apps-index's scan already threw that away. So
+  `launch_argv`'s `ExecArgs.icon` is the resolved file's path when there is one; an app whose
+  `Exec` uses `%i` gets `--icon /path/to/theme/resolved/icon.png` rather than `--icon the-name`.
+  Neither the plan nor design/10 says which `%i` should carry; this is a reasonable reading, not
+  a verified one, and it is the only reading `App`'s frozen shape allows without re-reading the
+  desktop file at launch time.
+- **F62 A named action `LaunchRequest` no longer has falls back to the entry's own `Exec`.**
+  `ExecError` (frozen, `apps/exec.rs`) has no "unknown action" variant, so `action_exec` cannot
+  refuse the launch when `DesktopAction::Named(id)` names an action `app.actions` does not have
+  (a stale index between the launcher and the app scan, in principle); it launches the entry's
+  default `Exec` instead of failing outright. Table-tested (`a_named_action_replaces_exec_and_an_
+  unknown_one_falls_back`).
+- **F63 The process-group fallback triggers on `ErrorKind::NotFound` from starting `systemd-run`
+  itself**, not on any failure inside the scope: `launch::run::start` tries the full
+  `systemd-run --user --scope …` argv first, and only when the very first exec (`systemd-run`
+  is not on `PATH`, or — the same error from `posix_spawn` — no user systemd manager answers)
+  does it fall back to the bare command (the part of `argv` after `systemd-run`'s own `--`) in a
+  fresh process group (`Command::process_group(0)`, plan "Launch": "fallback process group").
+  Either path hands back the same `tokio::process::Child` type, and `wait_for_exit` does not care
+  which one ran — `systemd-run --scope` execs in place of itself, so the tracked `Child` *is* the
+  app either way. Table-tested by aiming `start` at a made-up binary name rather than by hiding
+  the real `systemd-run` (`launch::run::tests::a_program_that_cannot_start_falls_back_to_the_
+  bare_command`).
+- **F64 Live run facts (this machine, user systemd present).** `cargo test -p sill-services --lib
+  a_launch_runs_in_a_real_systemd_scope_and_exits -- --ignored --nocapture`: `/bin/true` through
+  the real `systemd-run --user --scope --collect` path reported `Started` with unit
+  `app-sill-sill\x2dlaunch\x2dtest-1.scope` (the `AppId`'s two literal dashes escaped, as F60
+  says they should be), `systemd-run` printed its own `Running as unit: …; invocation ID: …`
+  line to the test's stderr, and the same unit was reported `Exited` once the process finished —
+  both within the test's timeouts, in well under a second in practice.
+- **G9** `crates/sill/src/launch.rs::launch` has no unit test: `shell_host::SurfaceHandle::new`
+  is `pub(crate)` to shell-host, so nothing outside that crate can construct one, even a
+  throwaway, for a test. The function is two lines against two already-frozen, already-tested
+  signatures (`SurfaceHandle::activation_token`, `LaunchCommand::Launch`); it is exercised live
+  once dock clicks call it (design/10 §10.3.6, dock-ui). A `SurfaceHandle` test constructor (or a
+  trait shell-host tests already use) would close this gap; reported rather than added here since
+  `shell-host` is not owned by this wave.
+- **F65 `services.rs`'s own `spawn_does_not_panic_and_every_stub_holds_its_default` test reaches
+  the real `~/.config/sill` directory** now that `pins::spawn` is real (F59): it asserts
+  `services.pins.borrow() == DockPins::default()`, which only holds because this machine had no
+  `~/.config/sill/dock.json` when the suite ran. The same test already reaches the real session
+  and system buses for `battery`/`network`/`volume`/`tray` (F25-F27, F29-F34) and the real
+  Wayland socket for `cosmic_wl` (F20-F24), so a real (empty) XDG config directory is the same
+  kind of live dependency this test has always had, not a new one; noted here since it is now
+  true of `sill-services`' own filesystem too, not only of buses and sockets.
