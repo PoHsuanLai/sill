@@ -746,7 +746,12 @@ Filled `launch::{spawn, launch_argv, scope_unit}`, `pins::{spawn, load, save}` a
   right end) and dismisses with a click on the bar's empty middle; a popup's presence is read
   as whether `sill debug capture <bar>/popup` succeeds (`sill debug stats` lists bars only), so
   `accept-bar-ui.sh cosmic` and `bar_demo` are no longer part of the daemon's acceptance. G8
-  is resolved by this.
+  is resolved by this. Run on the already-running nested cosmic-comp (`wayland-1`, 2176 x 1360,
+  `sill run` from this branch with `--features debug`): all eight steps pass; the maximised
+  probe is 1328 = 1360 - 32, the bar holds 5 frames and 5 commits across five idle seconds, and
+  a click at (2116, 16) opened `sill-bar-WINIT-0/popup` (the clock menu, no measure panic now
+  that the popup root carries `MEASURE`) and a click at (1088, 16) dismissed it.
+  `dev/out/bar-cosmic-menu.png` is now the daemon's own bar with its clock menu open.
 - **F81 One `HostMeasure` for every root.** Q10's twelve lines moved from
   `surfaces/bar/measure.rs` to `sill-surfaces/src/measure.rs` as `pub const MEASURE`. The bar
   and its menu popup no longer provide it themselves: `daemon::surface_root` puts `Services`,
