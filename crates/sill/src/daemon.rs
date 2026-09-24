@@ -22,6 +22,7 @@ use sill_ipc::{
 use sill_launcher::AppId;
 use sill_services::{PinAt, PinEvent, Services};
 use sill_settings::{SettingsFeed, ShellFile};
+use sill_surfaces::surfaces::launcher::LauncherLink;
 use tokio::sync::watch;
 
 use crate::ipc_server;
@@ -94,6 +95,7 @@ pub fn run() -> ExitCode {
     }
 
     let mut outputs = Outputs::default();
+    let launcher = LauncherLink::new();
     let result = host.run(move |ctx, event| {
         run_event(
             ctx,
@@ -102,6 +104,7 @@ pub fn run() -> ExitCode {
             &settings_feed,
             settings_dir.as_deref(),
             &settings_tx,
+            &launcher,
             event,
         );
     });
@@ -118,7 +121,9 @@ fn fatal(message: &str) -> ExitCode {
 }
 
 /// Every event, dispatched: an IPC request (needs `services` and the settings), or everything
-/// else via `on_event` followed by spawning whatever it left missing.
+/// else via `on_event` followed by spawning whatever it left missing. The launcher panel's
+/// keyboard focus goes to `launcher` (a focus loss closes it, design/06 §20.2).
+#[allow(clippy::too_many_arguments)]
 fn run_event(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &mut Outputs,
@@ -126,6 +131,7 @@ fn run_event(
     settings_feed: &SettingsFeed,
     settings_dir: Option<&Path>,
     settings_tx: &watch::Sender<ShellFile>,
+    launcher: &LauncherLink,
     event: HostEvent<ShellMsg>,
 ) {
     match event {
@@ -141,17 +147,30 @@ fn run_event(
             // (e.g. via `HostCtx::take_stats` after spawning/showing the surface).
             let toggled_at =
                 matches!(request, Request::Launcher(LauncherRequest::Toggle)).then(Instant::now);
-            let response =
-                dispatch_request(ctx, outputs, services, settings_dir, settings_tx, request);
+            let response = dispatch_request(
+                ctx,
+                outputs,
+                services,
+                settings_dir,
+                settings_tx,
+                launcher,
+                request,
+            );
             if let Some(toggled_at) = toggled_at {
                 log_open_latency(toggled_at.elapsed());
             }
             let _ = reply.send(response);
         }
         other => {
+            if let HostEvent::KeyboardFocus { id, focus } = &other
+                && outputs.outputs.iter().any(|(_, s)| s.launcher == Some(*id))
+            {
+                launcher.focus(*focus);
+            }
             on_event(ctx, outputs, other);
             spawn_missing_bars(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_docks(ctx, outputs, services, settings_feed, settings_tx);
+            spawn_missing_launchers(ctx, outputs, services, settings_feed, settings_tx, launcher);
         }
     }
 }
@@ -323,6 +342,71 @@ fn spawn_missing_docks(
     }
 }
 
+/// Spawn the launcher's two surfaces for every output whose row has none yet, both hidden at
+/// once: they stay alive and are shown and hidden with `set_visibility`, following `launcher`
+/// (plan "Launcher v1"). The catcher is spawned first.
+fn spawn_missing_launchers(
+    ctx: &mut HostCtx<ShellMsg>,
+    outputs: &mut Outputs,
+    services: &Services,
+    settings_feed: &SettingsFeed,
+    settings_tx: &watch::Sender<ShellFile>,
+    launcher: &LauncherLink,
+) {
+    use sill_surfaces::surfaces::launcher::{
+        LauncherCatcherProps, LauncherProps, catcher_layer, panel_layer,
+    };
+    let missing: Vec<OutputInfo> = outputs
+        .outputs
+        .iter()
+        .filter(|(_, s)| s.launcher.is_none() || s.catcher.is_none())
+        .map(|(info, _)| info.clone())
+        .collect();
+    let file = settings_tx.borrow().clone();
+    for info in missing {
+        let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
+        let output = info.clone();
+        let root =
+            |root: Root| surface_root(root, services, settings_feed).context(launcher.clone());
+        if surfaces.catcher.is_none() {
+            let props = LauncherCatcherProps {
+                output: output.clone(),
+            };
+            let root = root(Root::with_props(sill_surfaces::LauncherCatcher, props));
+            surfaces.catcher = spawn_hidden(ctx, catcher_layer(&info), root, &info);
+        }
+        if surfaces.launcher.is_none() {
+            let config = panel_layer(&info, &file.bar, &file.launcher);
+            let root = root(Root::with_props(
+                sill_surfaces::Launcher,
+                LauncherProps { output },
+            ));
+            surfaces.launcher = spawn_hidden(ctx, config, root, &info);
+        }
+        outputs.set(info, surfaces);
+    }
+}
+
+/// Spawn a layer surface and hide it before its first paint.
+fn spawn_hidden(
+    ctx: &mut HostCtx<ShellMsg>,
+    config: shell_host::LayerConfig,
+    root: Root,
+    info: &OutputInfo,
+) -> Option<SurfaceId> {
+    let namespace = config.namespace.clone();
+    match ctx.spawn_layer(config, root) {
+        Ok(id) => {
+            ctx.set_visibility(id, shell_host::Visibility::Hidden);
+            Some(id)
+        }
+        Err(error) => {
+            eprintln!("sill: spawning {namespace} on {:?}: {error}", info.name);
+            None
+        }
+    }
+}
+
 /// `root` with the contexts every surface the daemon spawns is given: the services, the
 /// settings, and quire's rect measurer, `ds_native::measure::MEASURE` (re-exported as
 /// `sill_surfaces::MEASURE`), which is what `ds_native::measure::provide()` provides from inside
@@ -342,11 +426,12 @@ fn dispatch_request(
     services: &Services,
     settings_dir: Option<&Path>,
     settings_tx: &watch::Sender<ShellFile>,
+    launcher: &LauncherLink,
     request: Request,
 ) -> Response {
     match request {
         Request::Ping => Response::Pong,
-        Request::Launcher(request) => dispatch_launcher(request),
+        Request::Launcher(request) => dispatch_launcher(outputs, launcher, request),
         Request::Dock(request) => dispatch_dock(services, request),
         Request::Reload => dispatch_reload(settings_dir, settings_tx),
         Request::Quit => {
@@ -357,9 +442,28 @@ fn dispatch_request(
     }
 }
 
-/// The launcher has no surface before M4; nothing to toggle yet.
-fn dispatch_launcher(_request: LauncherRequest) -> Response {
-    unsupported("the launcher is not built yet (M4)")
+/// `sill launcher toggle|open|close`: the shared launcher state, which both launcher surfaces
+/// follow. It opens on the first output with a launcher (the output under the pointer is not
+/// known to the daemon; FINDINGS F140).
+fn dispatch_launcher(
+    outputs: &Outputs,
+    launcher: &LauncherLink,
+    request: LauncherRequest,
+) -> Response {
+    let target = outputs
+        .outputs
+        .iter()
+        .find(|(_, s)| s.launcher.is_some())
+        .map(|(info, _)| info.id);
+    match (request, target) {
+        (LauncherRequest::Close, _) => launcher.close(),
+        (LauncherRequest::Toggle, Some(output)) => launcher.toggle(output),
+        (LauncherRequest::Open { query }, Some(output)) => launcher.open(output, query),
+        (LauncherRequest::Toggle | LauncherRequest::Open { .. }, None) => {
+            return unsupported("no output has a launcher surface");
+        }
+    }
+    Response::Done
 }
 
 fn dispatch_dock(services: &Services, request: DockRequest) -> Response {
@@ -476,7 +580,14 @@ fn dock_namespace(info: &OutputInfo) -> String {
         .namespace
 }
 
-/// Every known bar's and dock's frame statistics, through the always-public
+/// The launcher panel's and catcher's namespaces on `info`, which `debug stats` reports.
+fn launcher_namespaces(info: &OutputInfo) -> (String, String) {
+    use sill_surfaces::surfaces::launcher::{catcher_layer, panel_layer};
+    let panel = panel_layer(info, &Default::default(), &Default::default()).namespace;
+    (panel, catcher_layer(info).namespace)
+}
+
+/// Every known bar's, dock's and launcher surface's frame statistics, through the always-public
 /// `HostCtx::take_stats` (needs neither the `debug` feature nor shell-host's `debug-inject`; draining, so each report covers
 /// only the time since the previous one).
 fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc::SurfaceStats> {
@@ -486,7 +597,10 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
         .flat_map(|(info, surfaces)| {
             let bar = surfaces.bar.map(|id| (bar_namespace(info), id));
             let dock = surfaces.dock.map(|id| (dock_namespace(info), id));
-            bar.into_iter().chain(dock)
+            let (panel, catcher) = launcher_namespaces(info);
+            let launcher = surfaces.launcher.map(|id| (panel, id));
+            let catcher = surfaces.catcher.map(|id| (catcher, id));
+            bar.into_iter().chain(dock).chain(launcher).chain(catcher)
         })
         .collect();
     ids.into_iter()
