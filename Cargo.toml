@@ -27,6 +27,8 @@ sill-surfaces = { path = "crates/sill-surfaces" }
 # Sibling repos, checked out next to this one.
 ds         = { path = "../quire/crates/ds" }
 ds-settings = { path = "../quire/crates/ds-settings" }
+# Test-only: `ds_native::Harness` drives the launcher's keyboard map (tests/launcher_keys.rs).
+ds-native  = { path = "../quire/crates/ds-native" }
 shell-host = { path = "../shell-host/crates/shell-host" }
 
 # ---- BEGIN PINNED BLOCK (source of truth: quire/docs/workspace-deps.toml) ----

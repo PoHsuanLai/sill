@@ -2,30 +2,51 @@
 //! `set_visibility` — a transparent full-output catcher (painted once, never animated) and the
 //! centred 680 x 460 panel with keyboard exclusivity — closing on Escape, focus lost, a catcher
 //! click or `launcher toggle`.
-
-#![allow(unused_variables, dead_code)] // Freeze stubs
+//!
+//! Both surfaces follow one shared [`LauncherLink`] (`presence.rs`), which the daemon writes
+//! for `sill launcher toggle|open|close` and the panel's focus, and each surface maps or
+//! unmaps itself from.
 
 pub mod actions;
+pub mod activate;
+pub mod entries;
+pub mod groups;
+pub mod keymap;
 pub mod keys;
 pub mod layer;
+pub mod presence;
 pub mod results;
+pub mod script;
+pub mod session;
 
+mod catcher;
+mod events;
+mod follow;
+mod panel;
+mod run;
+
+pub use activate::{LauncherEffect, LauncherProviders, effect_of};
 pub use keys::{LauncherKey, LauncherOut, LauncherState, step};
-pub use layer::{PANEL_HEIGHT, PANEL_WIDTH, catcher_layer, panel_layer, panel_top};
+pub use layer::{
+    PANEL_HEIGHT, PANEL_WIDTH, catcher_input, catcher_layer, panel_layer, panel_rect, panel_top,
+};
+pub use panel::ACTIONS_AT;
+pub use presence::{LauncherLink, LauncherShown, Opening};
 
 use dioxus::prelude::*;
 use shell_host::OutputInfo;
 
 /// The panel on `output`: quire `CommandPalette` with the search field, results grouped by
-/// provider, and the actions menu (Ctrl+K / Alt+K).
+/// provider, and the actions menu (Ctrl+K / Alt+K). Needs a [`LauncherLink`] root context
+/// beside the daemon's usual ones.
 #[component]
 pub fn Launcher(output: OutputInfo) -> Element {
-    todo!("M4 launcher-ui")
+    panel::launcher(output)
 }
 
 /// The catcher on `output`: an empty, transparent, full-output surface whose click closes the
-/// launcher.
+/// launcher. Needs a [`LauncherLink`] root context.
 #[component]
 pub fn LauncherCatcher(output: OutputInfo) -> Element {
-    todo!("M4 launcher-ui")
+    catcher::catcher(output)
 }
