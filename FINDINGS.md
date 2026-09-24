@@ -135,6 +135,67 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
   same `EGL_BAD_SURFACE`); and `nested.sh stop` leaves `wayland-1` and `wayland-1.lock` behind,
   so the next `start` reuses the name, sees no new socket, and times out (G6).
 
+## M1 svc-tray (2026-09-24)
+
+- **F25 `system-tray` 0.8.9's item addressing.** `Client`'s public events (`Event::Add`/
+  `Update`/`Remove`) name an item by its bus **destination** alone (e.g. `:1.42`), never
+  `<destination><path>`; `Client::activate`'s notifier-item proxy always targets the constant
+  `/StatusNotifierItem` path too, regardless of where an item actually registered
+  (`client.rs::get_notifier_item_proxy`). So every `TrayItemId` here is
+  `<destination>/StatusNotifierItem` — both the frozen doc comment's shape and the only path
+  `Client::activate` can reach — which is also exactly the shape `model.rs`'s own test fixtures
+  already used (`":1.{name}/StatusNotifierItem"`). The `data` feature (default-on) keeps
+  `Client`'s own item cache merged with every `Menu`/`MenuDiff` update already applied
+  (`data::TrayItemMap::apply_update_event`), so `tray::host` reads the merged `TrayMenu` back
+  off `client.items()` on every menu-related `UpdateEvent` rather than tracking diffs itself.
+  SNI's `AttentionIcon`, `OverlayIcon` and `Tooltip` updates have no `TrayEvent` variant to land
+  in (the frozen model), so they are read and dropped.
+- **F26 `TrayCommand` has no `Scroll`.** The brief asks for "activate/secondary-activate/scroll"
+  through `Control`; the frozen `TrayCommand` (`model.rs`) has `Activate`, `SecondaryActivate`,
+  `MenuPick` and `MenuOpening` only — no `Scroll` variant, and no room to add one without
+  changing a frozen enum. `org.kde.StatusNotifierItem.Scroll` is never sent. `SecondaryActivate`
+  *is* wired end to end at the service layer, but nothing in the bar UI can trigger it yet: F28.
+- **F27 Icon handling in the tray service.** `TrayIcon` (frozen) only ever holds a name or the
+  raw ARGB32 bytes, never a URL — a resolved `data:`/`file:` URL is a UI-time read (icon theme
+  lookup is I/O; the pixmap's PNG bytes depend on nothing settings-shaped), so it lives in
+  `sill_services::tray::icon_url`, not on `TrayIcon` itself. A pixmap is PNG-encoded (the
+  pinned `image` crate) and base64'd (hand-rolled — no base64 crate is pinned, matching
+  shell-host's own `LocalNet` decoder in spirit) into a `data:image/png;base64,...` URL; a
+  named icon is resolved through the installed theme (`freedesktop-icons`, pinned) into a
+  `file://` URL. Neither recolours anything: the "symbolic icon recoloured to `--ink`" half of
+  the brief needs a live theme token, which a UI-free service must not know, and needs
+  rendering it as a Blitz `mask-image` — see F28/Q6, which is why the bar does not call this
+  function yet even though it is done and tested.
+- **F28 The bar's tray item is a stand-in for per-item icons and can't wire two of the three
+  frozen commands.** `ds::Icon` is a closed enum and `IconButton`'s `Glyph` only ever draws one
+  of its variants — there is nowhere to put a pixmap's PNG or a theme's SVG, so every item
+  renders `Icon::Window` regardless of its real icon (Q6). `ds::MenuEntry::Item` has no
+  `children` field (no nested submenus, so a dbusmenu item's `submenu` is dropped) and no
+  "disabled" field (so a disabled dbusmenu row renders exactly like an enabled one) — Q7.
+  `IconButton`'s `onclick` is `EventHandler<()>`, with no button or pointer-position data, so a
+  consumer cannot tell a middle click from a left one, or read where the pointer was — `x, y`
+  on `Activate`/`MenuOpening` are `0, 0` (the SNI spec's own words call them "a hint... where to
+  show eventual windows (if any)", so this is a real simplification, not a silent one), and
+  `SecondaryActivate` is not sent from the bar at all — Q8. `IconButton` also has no `id` prop,
+  so the `tray-<n>` popup anchor the freeze asks for sits on a plain, unclassed `span` wrapping
+  it (nothing the markup lint checks, since it carries no class) rather than on the button
+  itself.
+- **F29 The popup's own geometry is provisional.** `bar::popup::menu_popup`/`menu_offset` are
+  the only pieces of the bar's popup machinery done at this point; the brief says "see how the
+  bar's other menus do it once bar-ui lands" for everything past that, since bar-ui had not
+  landed when this was written. The dbusmenu popup is its own `Ds` + `Menu{Dropdown}`, given a
+  synthetic `Anchor::Rect` the same width as the popup's own initial `PopupPlacement` size guess
+  (`POPUP_WIDTH`, 220px, design/04-COMPONENTS.md section 20's Dropdown width) so the menu's
+  right edge lands at the popup surface's own right edge; this composition is expected to be
+  revisited once bar-ui's real popup convention exists.
+- **F30 Live run facts (this machine, KDE Plasma session).** `cargo test -p sill-services
+  --test tray_live -- --ignored --nocapture` found four `StatusNotifierItem`s: "Input Method"
+  (`input-keyboard`, 4 menu entries), "Wayland to X11 Video Bridge"
+  (`org.kde.xwaylandvideobridge`, Passive, 2 entries), "Toshy Status Indicator"
+  (`toshy_app_icon_rainbow`, 20 entries) and "Updates" (`update-high`, 3 entries) — all four
+  resolved by icon name, none by pixmap, and every one's dbusmenu layout fetched and flattened
+  correctly.
+
 ## Gaps reported upstream
 
 - **Q1** quire has no menu tracking machine (F15).
@@ -144,6 +205,19 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
 - **Q5** The schema derive: text only by the literal type `String`; a one-variant enum cannot
   be described; a numeric newtype without an explicit `range` is read as an enum (a compile
   error naming `SchemaVariants`, not a message about the missing range).
+- **Q6** No `ds` component can draw an externally-sourced icon — a pixmap's PNG bytes or an
+  icon theme's SVG, as a status tray item or any other third-party icon needs. `ds::Icon` is a
+  closed enum of built-in glyphs; `IconButton`'s `Glyph` only ever draws one of its variants.
+  design/08-ICONS.md section 1.5 already specifies the mechanics for exactly this case
+  ("Blitz: the recoloured tray icon is a `mask-image` data URI with `background: currentColor`,
+  the same path as the S6 fallback"), settled as a rule with "proposed mechanics" — nothing
+  implements it yet (F28).
+- **Q7** `ds::MenuEntry::Item` has no `children` field (so `Menu` cannot draw a submenu) and no
+  "disabled"/`enabled` field (so a menu cannot show, or skip, a disabled item) (F28).
+- **Q8** `IconButton` has no `id` prop (nowhere to put an anchor id for a popup to open against)
+  and its `onclick` is `EventHandler<()>`, carrying no mouse button or pointer position — a
+  consumer cannot tell a secondary click from a primary one, or read where the click landed
+  (F28).
 - **G1** Debug injection: `inject::apply` (feature `debug-inject`) prints stats to stdout
   instead of returning them, and finds a surface by name only inside that module. sill's
   `debug stats` uses `HostCtx::stats`; `pointer`/`leave`/`capture` need sill's `debug` feature.
