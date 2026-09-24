@@ -8,9 +8,9 @@ use shell_host::{OutputId, OutputInfo, Rect, Scale};
 use sill_launcher::WindowKey;
 use sill_services::{
     Activity, AppIndex, Badges, Battery, Charge, ClockText, Connectivity, Control, DockPins,
-    GroupKey, Launches, Link, Mute, Network, OutputName, Percent, Presence, Results, Seconds,
-    Services, Sizing, Toplevel, Toplevels, Tray, Urgency, Visibility, Volume, Wallpapers,
-    WindowState, Workspace, WorkspaceGroup, WorkspaceKey, Workspaces,
+    GroupKey, Launches, Link, Mute, Network, OutputName, Percent, Pinning, Presence, Results,
+    Seconds, Services, Sizing, Toplevel, Toplevels, Tray, Urgency, Visibility, Volume, Wallpapers,
+    WindowState, Workspace, WorkspaceCaps, WorkspaceGroup, WorkspaceKey, Workspaces,
 };
 use tokio::sync::{mpsc, watch};
 
@@ -62,6 +62,9 @@ pub fn workspaces_on(output: &str) -> Workspaces {
         activity,
         urgency: Urgency::Calm,
         visibility: Visibility::Shown,
+        coordinates: vec![u32::try_from(key).unwrap_or(u32::MAX)],
+        capabilities: WorkspaceCaps::default(),
+        pinning: Pinning::Unpinned,
     };
     Workspaces {
         groups: vec![WorkspaceGroup {

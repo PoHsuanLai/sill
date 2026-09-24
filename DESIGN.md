@@ -27,7 +27,7 @@ state, an ignored test naming the wave that fills it (`tests/skeleton.rs`).
 
 | Module | Implements |
 | --- | --- |
-| `request.rs` | plan CLI/IPC: `Ping`, `Launcher{Toggle,Open{query},Close}`, `Dock{Pin,Unpin}`, `Reload`, `Quit`, `Debug{Stats,Pointer,Leave,Capture}` |
+| `request.rs` | plan CLI/IPC: `Ping`, `Launcher{Toggle,Open{query},Close}`, `Dock{Pin,Unpin}`, `Reload`, `Quit`, `Debug{Stats,Pointer,Leave,Capture,Click{surface, at, button: PointerButton}}`; `PointerButton::{Primary,Secondary,Middle}` (`Click` and `PointerButton`: M2 freeze amendment, FINDINGS F54, F58) |
 | `response.rs` | `Pong`, `Done`, `Stats(Vec<SurfaceStats>)` (mirror of shell-host `FrameStats`), `Failed(Failure{kind, message})` |
 | `line.rs` | newline-delimited framing, 64 KiB line cap, `read_message`/`write_message` |
 | `tests/serde.rs` | every variant's pinned wire line, round trips, malformed and overlong lines refused |
@@ -50,8 +50,8 @@ state, an ignored test naming the wave that fills it (`tests/skeleton.rs`).
 | `services.rs` | plan: "`Services` = one Clone struct of receivers+controls passed via `Root::context`" | `Services::spawn` stub (M1 daemon) |
 | `clock/` | hooks table `use_clock`: `format_clock` (`Thu 24 Sep 14:05`), `until_next_minute` | pure done; `spawn` stub |
 | `battery/`, `network/`, `volume/` | hooks table `use_battery` (UPower), `use_network` (NetworkManager), `use_volume` (libpulse) | `reduce_*` done; `spawn` stubs |
-| `tray/` | hooks table `use_tray` (system-tray SNI + dbusmenu) | `reduce_tray` done; `spawn` stub |
-| `cosmic_wl/` | plan: own Wayland connection + cctk states; `Toplevels` (MRU), `Workspaces`, `WlCommand` | `reduce_toplevels`, `reduce_workspaces` done; thread, `state.rs`, `handlers.rs` stubs |
+| `tray/` | hooks table `use_tray` (system-tray SNI + dbusmenu); `TrayCommand::Scroll{item, delta: ScrollDelta{axis: ScrollAxis, steps}}` sent as `org.kde.StatusNotifierItem.Scroll` (M2 amendment, F57) | done (M1) |
+| `cosmic_wl/` | plan: own Wayland connection + cctk states; `Toplevels` (MRU), `Workspaces`, `WlCommand`. M2 amendment (F54-F56): `Workspace` gains `coordinates: Vec<u32>`, `capabilities: WorkspaceCaps` (a set of `WorkspaceCap::{Activate,Deactivate,Remove,Assign,Rename,SetTiling,Pin,Move}`) and `pinning: Pinning::{Pinned,Unpinned}`; `WlCommand` gains `PinWorkspace(WorkspaceKey)`, `UnpinWorkspace(WorkspaceKey)`, `MoveToplevelToWorkspace{toplevel: WindowKey, workspace: WorkspaceKey}`; no `SetMinimizeRect` (shell-host G2 designed, not built) | done (M1) |
 | `apps/` | hooks table `use_apps`; `match_app` (exact, lowercase, StartupWMClass, reverse-DNS label suffix, Flatpak id); `expand_exec` (spec quoting, `%f %F %u %U %i %c %k %%`) | `reduce_apps`, `match_app`, `expand_exec` done; scan, icons, `spawn` stubs |
 | `badges/` | hooks table `use_launcher_entry`: `LauncherEntry.Update` props | `reduce_badges`, `parse_app_uri` done; `spawn` stub |
 | `pins/` | design/10 §10.6 `dock.json` | `reduce_pins`, JSON done; file I/O, `spawn` stubs |
@@ -79,6 +79,7 @@ list mirrored), §5 pages and exposures, deep links.
 | Module | Implements | State |
 | --- | --- | --- |
 | `hooks/*` | plan hooks table, one file per source; `use_settings` (`SettingsFeed`), `use_appearance` (`ds_settings::use_environment`) | done; `use_space_look` stub (quire has no `spaces.json` store, F17) |
+| `measure.rs` | `pub const MEASURE: ds::HostMeasure`, the Blitz rect read quire's `use_rect` needs (Q10); the daemon puts it on every surface root (`daemon::surface_root`), a surface on every popup root it opens. Moved from `surfaces/bar/measure.rs` at the M2 amendment (F59) | done |
 | `clock.rs` | `FrameClock`: `Instant` to the machines' `Stamp` | done |
 | `surfaces/bar/` | design/20 §1.1; design/13 §13.3.1-13.3.4; 06 §20.3 | `Bar` and items stubs; `layer.rs`, `popup.rs` done |
 | `surfaces/bar/menu_track/` | design/13 §13.4 `MenuTrack`, §13.5 safe triangle (placed in quire by the doc, F15) | pure, done |
@@ -94,7 +95,10 @@ list mirrored), §5 pages and exposures, deep links.
 `cli.rs` (clap; `request()` done and tested), `client.rs`, `daemon.rs`, `ipc_server.rs`
 (2 s reply timeout), `msg.rs` (`ShellMsg`), `outputs.rs` (`reconcile`), `launch.rs`: stubs for M1
 daemon and M2 launch. Feature `debug` enables shell-host's `debug-inject` for
-`sill debug pointer|leave|capture`. `--write-schema <dir>` writes `sill.settings.toml`.
+`sill debug pointer|leave|capture|click` (`click <surface> <x> <y> [--button
+primary|secondary|middle]`, M2 amendment F58; shell-host injects primary clicks only, G9).
+`daemon::surface_root` gives every spawned surface root `Services`, `SettingsFeed` and
+`sill_surfaces::MEASURE` (F59). `--write-schema <dir>` writes `sill.settings.toml`.
 
 ## `dist/` and `dev/`
 

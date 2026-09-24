@@ -114,6 +114,29 @@ pub enum TrayCommand {
     MenuPick { item: TrayItemId, entry: i32 },
     /// The menu is about to show (dbusmenu `AboutToShow`), so the app can refresh it.
     MenuOpening { item: TrayItemId },
+    /// The wheel turned over the item (SNI `Scroll(delta, orientation)`): a volume or
+    /// brightness item steps with it. M2 freeze amendment (FINDINGS F54).
+    Scroll {
+        item: TrayItemId,
+        delta: ScrollDelta,
+    },
+}
+
+/// How far the wheel turned over a status item.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct ScrollDelta {
+    pub axis: ScrollAxis,
+    /// Whole wheel notches, sent as SNI's `delta` unchanged; the sign is `wl_pointer`'s
+    /// (positive is down or right).
+    pub steps: i32,
+}
+
+/// Which way a status item was scrolled (SNI's `orientation` argument).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ScrollAxis {
+    Vertical,
+    Horizontal,
 }
 
 /// One change the host reported.
@@ -295,5 +318,21 @@ mod tests {
         for (name, before, event, want) in cases {
             assert_eq!(reduce_tray(before, event), want, "{name}");
         }
+    }
+
+    #[test]
+    fn a_scroll_has_a_pinned_wire_line() {
+        use super::{ScrollAxis, ScrollDelta, TrayCommand};
+        let command = TrayCommand::Scroll {
+            item: id("vol"),
+            delta: ScrollDelta {
+                axis: ScrollAxis::Vertical,
+                steps: -2,
+            },
+        };
+        let line = r#"{"kind":"scroll","v":{"item":":1.vol/StatusNotifierItem","delta":{"axis":"vertical","steps":-2}}}"#;
+        assert_eq!(serde_json::to_string(&command).ok().as_deref(), Some(line));
+        let back: TrayCommand = serde_json::from_str(line).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(back, command);
     }
 }

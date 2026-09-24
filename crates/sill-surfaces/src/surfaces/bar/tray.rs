@@ -153,7 +153,8 @@ fn open_menu(
             item: item.clone(),
             control: control.clone(),
         },
-    );
+    )
+    .context(crate::MEASURE);
     surface.open_popup(config, placement, root);
 }
 

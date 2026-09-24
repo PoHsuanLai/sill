@@ -2,15 +2,17 @@
 //! floating component's anchor) go through it, and without one they call dioxus-native-dom's
 //! `get_client_rect`, which borrows the document and panics ("RefCell already borrowed") when
 //! the task is polled inside the renderer's own pass. shell-host cannot provide it (it does not
-//! depend on quire) and ds-native's is private, so the bar provides its own, the same read
-//! ds-native makes (FINDINGS "M1 bar-ui", Q10).
+//! depend on quire) and ds-native's is private (Q10), so sill provides one: the daemon puts
+//! [`MEASURE`] on every surface's `Root` context, and a surface that opens a popup puts it on
+//! the popup's `Root` too (a popup is its own `VirtualDom` and inherits nothing). Moved here from
+//! the bar at the M2 freeze amendment (FINDINGS F54); the read is the one ds-native makes.
 
 use dioxus::prelude::MountedData;
 use dioxus_native_dom::NodeHandle;
 use ds::{HostMeasure, Measured, Point, Px, Rect, Size};
 
-/// The measurer the bar and its popup provide as context.
-pub(crate) const MEASURE: HostMeasure = HostMeasure(measure);
+/// The measurer every root is given as context (`Root::context(MEASURE)`).
+pub const MEASURE: HostMeasure = HostMeasure(measure);
 
 /// `element`'s border box, if the document is free and the element is a Blitz node; busy
 /// while the renderer holds the document, so the reader waits a frame.

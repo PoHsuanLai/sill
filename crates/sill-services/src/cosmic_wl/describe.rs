@@ -4,12 +4,18 @@
 use std::collections::HashSet;
 
 use cosmic_client_toolkit::cosmic_protocols::toplevel_info::v1::client::zcosmic_toplevel_handle_v1::State as WindowFlag;
+use cosmic_client_toolkit::cosmic_protocols::workspace::v2::client::zcosmic_workspace_handle_v2::{
+    State as CosmicFlags, WorkspaceCapabilities as CosmicAbilities,
+};
 use cosmic_client_toolkit::toplevel_info::ToplevelInfo;
-use cosmic_client_toolkit::wayland_protocols::ext::workspace::v1::client::ext_workspace_handle_v1::State as WorkspaceFlags;
+use cosmic_client_toolkit::wayland_protocols::ext::workspace::v1::client::ext_workspace_handle_v1::{
+    State as WorkspaceFlags, WorkspaceCapabilities as Abilities,
+};
 use cosmic_client_toolkit::workspace::Workspace as WorkspaceInfo;
 use sill_launcher::WindowKey;
 
-use crate::cosmic_wl::ids::{Activity, OutputName, Urgency, WorkspaceKey};
+use crate::cosmic_wl::caps::{WorkspaceCap, WorkspaceCaps};
+use crate::cosmic_wl::ids::{Activity, OutputName, Pinning, Urgency, WorkspaceKey};
 use crate::cosmic_wl::toplevels::{Sizing, Toplevel, WindowState};
 use crate::cosmic_wl::workspaces::Workspace;
 use crate::units::Visibility;
@@ -42,6 +48,9 @@ pub(super) fn workspace(key: WorkspaceKey, info: &WorkspaceInfo) -> Workspace {
         activity: workspace_activity(info.state),
         urgency: urgency(info.state),
         visibility: visibility(info.state),
+        coordinates: info.coordinates.clone(),
+        capabilities: capabilities(info.capabilities, info.cosmic_capabilities),
+        pinning: pinning(info.cosmic_state),
     }
 }
 
@@ -96,15 +105,50 @@ fn visibility(flags: WorkspaceFlags) -> Visibility {
     }
 }
 
+/// The ext-workspace and COSMIC capability bits as one set. COSMIC's `pin` bit is 3, which
+/// shares bits with `rename` and `set_tiling_state`, so every flag is tested whole
+/// (`contains`), as the thread's own gates do.
+fn capabilities(ext: Abilities, cosmic: CosmicAbilities) -> WorkspaceCaps {
+    let from_ext = [
+        (Abilities::Activate, WorkspaceCap::Activate),
+        (Abilities::Deactivate, WorkspaceCap::Deactivate),
+        (Abilities::Remove, WorkspaceCap::Remove),
+        (Abilities::Assign, WorkspaceCap::Assign),
+    ]
+    .into_iter()
+    .filter(|(bit, _)| ext.contains(*bit));
+    let from_cosmic = [
+        (CosmicAbilities::Rename, WorkspaceCap::Rename),
+        (CosmicAbilities::SetTilingState, WorkspaceCap::SetTiling),
+        (CosmicAbilities::Pin, WorkspaceCap::Pin),
+        (CosmicAbilities::Move, WorkspaceCap::Move),
+    ]
+    .into_iter()
+    .filter(|(bit, _)| cosmic.contains(*bit));
+    from_ext
+        .map(|(_, cap)| cap)
+        .chain(from_cosmic.map(|(_, cap)| cap))
+        .collect()
+}
+
+fn pinning(flags: CosmicFlags) -> Pinning {
+    if flags.contains(CosmicFlags::Pinned) {
+        Pinning::Pinned
+    } else {
+        Pinning::Unpinned
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
 
     use super::{
-        WindowFlag, WorkspaceFlags, sizing, urgency, visibility, window_activity, window_state,
-        workspace_activity,
+        Abilities, CosmicAbilities, CosmicFlags, WindowFlag, WorkspaceFlags, capabilities, pinning,
+        sizing, urgency, visibility, window_activity, window_state, workspace_activity,
     };
-    use crate::cosmic_wl::ids::{Activity, Urgency};
+    use crate::cosmic_wl::caps::WorkspaceCap;
+    use crate::cosmic_wl::ids::{Activity, Pinning, Urgency};
     use crate::cosmic_wl::toplevels::{Sizing, WindowState};
     use crate::units::Visibility;
 
@@ -197,5 +241,47 @@ mod tests {
             assert_eq!(urgency(*given), *urgent, "{name}");
             assert_eq!(visibility(*given), *shown, "{name}");
         }
+    }
+
+    #[test]
+    fn capability_bits_become_one_set() {
+        use WorkspaceCap::{Activate, Assign, Move, Pin, Remove, Rename, SetTiling};
+        let cases: &[(&str, Abilities, CosmicAbilities, &[WorkspaceCap])] = &[
+            ("none", Abilities::empty(), CosmicAbilities::empty(), &[]),
+            (
+                "ext only",
+                Abilities::Activate.union(Abilities::Remove),
+                CosmicAbilities::empty(),
+                &[Activate, Remove],
+            ),
+            (
+                "pin (bit value 3) reads as rename and set_tiling too",
+                Abilities::Activate.union(Abilities::Assign),
+                CosmicAbilities::Rename
+                    .union(CosmicAbilities::Pin)
+                    .union(CosmicAbilities::Move),
+                // pin (3) carries rename (1) and set_tiling_state (2) with it.
+                &[Activate, Assign, Rename, SetTiling, Pin, Move],
+            ),
+            (
+                "rename alone is not pin",
+                Abilities::empty(),
+                CosmicAbilities::Rename,
+                &[Rename],
+            ),
+        ];
+        for (name, ext, cosmic, want) in cases {
+            assert_eq!(
+                capabilities(*ext, *cosmic).iter().collect::<Vec<_>>(),
+                *want,
+                "{name}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_pinned_flag_becomes_pinning() {
+        assert_eq!(pinning(CosmicFlags::empty()), Pinning::Unpinned);
+        assert_eq!(pinning(CosmicFlags::Pinned), Pinning::Pinned);
     }
 }

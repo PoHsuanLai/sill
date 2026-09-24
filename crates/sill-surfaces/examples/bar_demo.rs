@@ -82,7 +82,8 @@ fn spawn_bar(
     let root = Root::with_props(Bar, BarProps { output })
         .context(services.clone())
         .context(settings.clone())
-        .context(clock);
+        .context(clock)
+        .context(sill_surfaces::MEASURE);
     if let Err(error) = ctx.spawn_layer(config, root) {
         eprintln!("bar: {error}");
     }

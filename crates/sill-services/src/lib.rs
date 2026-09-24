@@ -43,9 +43,9 @@ pub use battery::{Battery, BatteryCommand, BatteryEvent, Charge, Remaining, redu
 pub use clock::{ClockCommand, ClockText, format_clock, until_next_minute};
 pub use control::Control;
 pub use cosmic_wl::{
-    Activity, GroupKey, OutputName, Relative, Sizing, Toplevel, ToplevelEvent, Toplevels, Urgency,
-    WindowState, WlCommand, Workspace, WorkspaceEvent, WorkspaceGroup, WorkspaceKey, Workspaces,
-    reduce_toplevels, reduce_workspaces,
+    Activity, GroupKey, OutputName, Pinning, Relative, Sizing, Toplevel, ToplevelEvent, Toplevels,
+    Urgency, WindowState, WlCommand, Workspace, WorkspaceCap, WorkspaceCaps, WorkspaceEvent,
+    WorkspaceGroup, WorkspaceKey, Workspaces, reduce_toplevels, reduce_workspaces,
 };
 pub use curve::ease;
 pub use error::ServiceError;
@@ -60,8 +60,8 @@ pub use results::{Results, ResultsEvent, SearchCommand, reduce_results};
 pub use services::Services;
 pub use sound::{SoundCommand, SoundName};
 pub use tray::{
-    Availability, Check, Pixmap, Tray, TrayCommand, TrayEvent, TrayIcon, TrayItem, TrayItemId,
-    TrayMenuEntry, TrayMenuKind, TrayStatus, reduce_tray,
+    Availability, Check, Pixmap, ScrollAxis, ScrollDelta, Tray, TrayCommand, TrayEvent, TrayIcon,
+    TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind, TrayStatus, reduce_tray,
 };
 pub use units::{Cpx, Minutes, Percent, Permille, Presence, Seconds, Stamp, Visibility};
 pub use volume::{Mute, Step, Volume, VolumeCommand, VolumeEvent, reduce_volume, stepped};

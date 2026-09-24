@@ -116,11 +116,41 @@ step_idle() {
 }
 
 # 7. Menus: a press on a title opens its menu; an outside press dismisses it (design/13 §13.8
-#    tests 1 and 3). `sill debug` has `pointer` (a motion) but no click, and a menu opens on a
-#    press, so this runs the bar on the same nested compositor through `bar_demo`, whose
-#    shell-host stdin commands can click (dev/accept-bar-ui.sh cosmic; FINDINGS "M1 bar-ui").
+#    tests 1 and 3), on the daemon's own bar through `sill debug click` (FINDINGS F58). The
+#    clock sits at the bar's right end; the bar's empty middle stands in for an outside press
+#    (a compositor-level outside press cannot be synthesized, shell-host F17). Whether the popup
+#    is up is whether `sill debug capture <bar>/popup` succeeds: `debug stats` lists bars only.
+#    Shoots the nested screen with the menu open to dev/out/bar-cosmic-menu.png.
 step_menus() {
-  "$SILL_REPO/dev/accept-bar-ui.sh" cosmic >"$OUT_DIR/menus.log" 2>&1
+  local log="$OUT_DIR/menus.log" bar width y popup opened=no closed=no
+  : >"$log"
+  bar=$(bar_counters | awk 'NR==1 {print $1}')
+  [ -n "$bar" ] || { echo "no bar surface in 'sill debug stats'" >&2; return 1; }
+  width=$(nested wayland-info | sed -n 's/.*logical_width: \([0-9]*\), logical_height: .*/\1/p' | head -1)
+  [ -n "$width" ] || { echo "no output width from wayland-info" >&2; return 1; }
+  y=$(( BAR_H / 2 ))
+  popup="$bar/popup"
+  popup_up() { sill debug capture "$popup" "$OUT_DIR/popup.png" >>"$log" 2>&1; }
+  if popup_up; then
+    echo "a popup was already open before the click" | tee -a "$log" >&2
+    return 1
+  fi
+  echo "click the clock at $(( width - 60 )),$y on $bar" >>"$log"
+  sill debug click "$bar" $(( width - 60 )) "$y" >>"$log" 2>&1 || return 1
+  for _ in $(seq 40); do
+    popup_up && { opened=yes; break; }
+    sleep 0.05
+  done
+  sleep 0.5
+  "$SHELL_HOST_DEV/shot.sh" "$SILL_REPO/dev/out/bar-cosmic-menu.png" >&2 || true
+  echo "click the bar's middle at $(( width / 2 )),$y" >>"$log"
+  sill debug click "$bar" $(( width / 2 )) "$y" >>"$log" 2>&1 || return 1
+  for _ in $(seq 40); do
+    popup_up || { closed=yes; break; }
+    sleep 0.05
+  done
+  echo "opened: $opened, dismissed: $closed" | tee -a "$log" >&2
+  [ "$opened" = yes ] && [ "$closed" = yes ]
 }
 
 # 8. Quit closes every surface and exits; a `ping` after it finds nobody home. Runs last: it

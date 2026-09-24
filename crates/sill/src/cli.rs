@@ -1,12 +1,13 @@
 //! The command line (plan: `sill run|launcher {toggle,open [--query],close}|dock {pin,unpin}|
-//! reload|quit|ping|debug {stats,pointer,leave,capture}`), and its one pure mapping to an IPC
-//! request.
+//! reload|quit|ping|debug {stats,pointer,leave,capture}`, plus `debug click` from the M2 freeze
+//! amendment), and its one pure mapping to an IPC request.
 
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use sill_ipc::{
-    DebugRequest, DesktopId, DockRequest, LauncherRequest, Point, Request, SurfaceName,
+    DebugRequest, DesktopId, DockRequest, LauncherRequest, Point, PointerButton, Request,
+    SurfaceName,
 };
 
 /// sill, the COSMIC shell.
@@ -83,6 +84,33 @@ pub enum DebugAction {
     Leave { surface: String },
     /// Render SURFACE to a PNG at PATH.
     Capture { surface: String, path: PathBuf },
+    /// Press and release a pointer button at X Y on SURFACE (`sill-bar-DP-1`).
+    Click {
+        surface: String,
+        x: i32,
+        y: i32,
+        /// Which button.
+        #[arg(long, value_enum, default_value_t = ClickButton::Primary)]
+        button: ClickButton,
+    },
+}
+
+/// `sill debug click --button ...`: the command line's spelling of [`PointerButton`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum ClickButton {
+    Primary,
+    Secondary,
+    Middle,
+}
+
+impl From<ClickButton> for PointerButton {
+    fn from(button: ClickButton) -> Self {
+        match button {
+            ClickButton::Primary => PointerButton::Primary,
+            ClickButton::Secondary => PointerButton::Secondary,
+            ClickButton::Middle => PointerButton::Middle,
+        }
+    }
 }
 
 /// The request `command` sends; `None` for `run`, which is not a request.
@@ -120,6 +148,16 @@ pub fn request(command: &Command) -> Option<Request> {
                 surface: SurfaceName(surface.clone()),
                 path: path.clone(),
             },
+            DebugAction::Click {
+                surface,
+                x,
+                y,
+                button,
+            } => DebugRequest::Click {
+                surface: SurfaceName(surface.clone()),
+                at: Point { x: *x, y: *y },
+                button: (*button).into(),
+            },
         }),
     })
 }
@@ -129,7 +167,8 @@ mod tests {
     use super::{Cli, request};
     use clap::Parser;
     use sill_ipc::{
-        DebugRequest, DesktopId, DockRequest, LauncherRequest, Point, Request, SurfaceName,
+        DebugRequest, DesktopId, DockRequest, LauncherRequest, Point, PointerButton, Request,
+        SurfaceName,
     };
     use std::path::PathBuf;
 
@@ -202,6 +241,38 @@ mod tests {
                     path: PathBuf::from("/tmp/bar.png"),
                 })),
             ),
+            (
+                &["debug", "click", "sill-bar-DP-1", "1200", "16"],
+                Some(Request::Debug(DebugRequest::Click {
+                    surface: SurfaceName("sill-bar-DP-1".to_owned()),
+                    at: Point { x: 1200, y: 16 },
+                    button: PointerButton::Primary,
+                })),
+            ),
+            (
+                &[
+                    "debug",
+                    "click",
+                    "sill-dock-DP-1",
+                    "40",
+                    "30",
+                    "--button",
+                    "secondary",
+                ],
+                Some(Request::Debug(DebugRequest::Click {
+                    surface: SurfaceName("sill-dock-DP-1".to_owned()),
+                    at: Point { x: 40, y: 30 },
+                    button: PointerButton::Secondary,
+                })),
+            ),
+            (
+                &["debug", "click", "s", "0", "0", "--button", "middle"],
+                Some(Request::Debug(DebugRequest::Click {
+                    surface: SurfaceName("s".to_owned()),
+                    at: Point { x: 0, y: 0 },
+                    button: PointerButton::Middle,
+                })),
+            ),
         ];
         for (args, want) in cases {
             let cli = Cli::try_parse_from(std::iter::once("sill").chain(args.iter().copied()))
@@ -219,6 +290,8 @@ mod tests {
             &["launcher"][..],
             &["dock", "pin"],
             &["debug", "pointer", "s", "x", "1"],
+            &["debug", "click", "s", "1"],
+            &["debug", "click", "s", "1", "2", "--button", "left"],
             &["frobnicate"],
         ] {
             assert!(

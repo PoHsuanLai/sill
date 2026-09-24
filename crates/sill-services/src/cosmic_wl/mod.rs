@@ -8,6 +8,7 @@
 //! on the command channel and commands are dropped: "the dock degrades quietly on KWin"
 //! (design/10 §10.7).
 
+mod caps;
 mod command;
 mod describe;
 mod execute;
@@ -23,8 +24,9 @@ mod workspaces;
 #[cfg(test)]
 mod nested;
 
+pub use caps::{WorkspaceCap, WorkspaceCaps};
 pub use command::{Relative, WlCommand};
-pub use ids::{Activity, GroupKey, OutputName, Urgency, WorkspaceKey};
+pub use ids::{Activity, GroupKey, OutputName, Pinning, Urgency, WorkspaceKey};
 pub use toplevels::{Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, reduce_toplevels};
 pub use workspaces::{Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces, reduce_workspaces};
 

@@ -461,3 +461,113 @@ as frozen; nothing there needed to change.
   included — the classic `match mutex.lock().foo() { .. }` footgun, just with a `RefCell` instead
   of a `Mutex`. Fixed by binding `let state = context.borrow().get_state();` first, so the `Ref`
   drops at the `;` before the `match` (and the calls inside its arm) ever runs.
+
+## M2 freeze amendments (2026-09-24)
+
+- **F54 The freeze was amended at the M1→M2 boundary.** CONVENTIONS §1 makes a frozen
+  signature a stop-and-report, and the M1 wave did stop and report: `Workspace` had no
+  coordinates or capabilities and `WlCommand` no pin, unpin or move-to-workspace (F23),
+  `TrayCommand` had no `Scroll` (F30), `DebugRequest` had no click so `sill debug` could not
+  open a menu (G8), and every shell-host root needed a `ds::HostMeasure` that only the bar
+  supplied (Q10). The dock (design/10 §10.3.6-10.3.7) and the switcher (design/13 §13.3.5) are
+  the next consumers of the same types, so the reported items were added in one coordinated
+  edit on `m2-amend`, while no M2 agent was coding against them, rather than as a surprise in
+  the middle of M2. Every change is additive and every existing test is unchanged:
+  - `sill_services::Workspace` gains `coordinates: Vec<u32>`, `capabilities: WorkspaceCaps`
+    and `pinning: Pinning`, all `#[serde(default)]` (F55); new public `WorkspaceCap`,
+    `WorkspaceCaps`, `Pinning`.
+  - `sill_services::WlCommand` gains `PinWorkspace(WorkspaceKey)`,
+    `UnpinWorkspace(WorkspaceKey)` and `MoveToplevelToWorkspace { toplevel: WindowKey,
+    workspace: WorkspaceKey }` (F56). `SetMinimizeRect` is **not** added: `set_rectangle`
+    needs the dock's `wl_surface`, which lives on shell-host's connection, and shell-host's
+    G2 (a way to bind the toplevel manager on its connection) is designed but not built.
+  - `sill_services::TrayCommand` gains `Scroll { item: TrayItemId, delta: ScrollDelta }`, with
+    new public `ScrollDelta { axis: ScrollAxis, steps: i32 }` and
+    `ScrollAxis::{Vertical, Horizontal}` (F57).
+  - `sill_ipc::DebugRequest` gains `Click { surface: SurfaceName, at: Point, button:
+    PointerButton }`, new public `PointerButton::{Primary, Secondary, Middle}`; the CLI gains
+    `sill debug click <surface> <x> <y> [--button primary|secondary|middle]` (F58).
+  - `sill_surfaces::MEASURE` (new `sill-surfaces/src/measure.rs`) replaces the bar's private
+    `surfaces/bar/measure.rs`, and the daemon provides it on every root (F59).
+- **F55 Workspace coordinates, capabilities and pinning.** `describe::workspace` copies cctk's
+  `coordinates` as they are (the groups were already ordered by them, F20) and merges the
+  ext-workspace capability bits (`activate`, `deactivate`, `remove`, `assign`) and COSMIC's
+  (`rename`, `set_tiling_state`, `pin`, `move`) into one `WorkspaceCaps`: a set that sorts and
+  deduplicates however it is built or decoded, so equal sets compare equal, with `contains`
+  for the gates. COSMIC's protocol XML gives `pin` the bitfield **value 3**, which is
+  `rename | set_tiling_state`; every flag is therefore compared whole (`contains`), and a
+  compositor that offers rename and tiling but not pin reads as offering pin. That is the
+  protocol's spelling, not ours; the table test pins it. `pinning` was not in the M1 report
+  but pin and unpin are useless to a surface that cannot show which one applies, so it rides
+  the same amendment, from COSMIC's `state` event (`pinned`), `Unpinned` where there is none.
+  All three fields are `#[serde(default)]`: the defaults (no coordinates, no capabilities,
+  unpinned) are what a compositor without them says, and a line of the old shape still decodes
+  (`a_workspace_without_the_amended_fields_still_decodes`).
+- **F56 The new commands are gated the way the existing ones are.** `PinWorkspace` and
+  `UnpinWorkspace` need a `zcosmic_workspace_handle_v2` of version 2 advertising `pin`, send
+  `pin`/`unpin` and commit the ext-workspace manager; `MoveWorkspace` now goes through the
+  same `cosmic_offers(version, offered, wanted)` gate (table-tested). `MoveToplevelToWorkspace`
+  needs the toplevel manager at version 4 advertising `move_to_ext_workspace` **or** the older
+  `move_to_workspace`: nested cosmic-comp 1.8 binds the manager at version 4 and carries out
+  `move_to_ext_workspace`, yet its `capabilities` event lists only `close, activate, maximize,
+  minimize, move_to_workspace` (seen live; the older request is a no-op there, and it takes a
+  `zcosmic_workspace_handle_v1` this thread never has). Gating on the ext capability alone
+  dropped every move on the one compositor that implements it (table-tested:
+  `move_to_ext_workspace_is_gated_on_version_4_and_either_capability`). It sends the request
+  with the output of the target workspace's group (the request needs one), falling back to an
+  output the window is on. An unknown key or a missing capability drops the command, as F22.
+  The ignored live test `the_amended_workspace_commands_take_effect_in_nested_cosmic` checks
+  the published fields, pin/unpin and the move against nested cosmic-comp (result below, F60).
+- **F57 `TrayCommand::Scroll`.** `system-tray` 0.8.9's `Client` has no scroll call and keeps its
+  bus connection private, so the host opens a second session connection of its own at start
+  and sends `org.kde.StatusNotifierItem.Scroll(delta, orientation)` to
+  `<destination>/StatusNotifierItem` (the only path the host addresses, F29), with
+  `orientation` `vertical` or `horizontal` and `delta` the notches unchanged. The sign
+  convention (positive is down or right, `wl_pointer`'s) is what the bar will send; which way
+  a given item treats a positive delta has not been checked against a real item yet. Without
+  a bus the scroll is dropped, as the other commands' failures are logged and dropped.
+- **F58 `sill debug click`, primary only.** The daemon maps `DebugRequest::Click` onto
+  shell-host's `Inject::Click { at }`, which presses and releases the **primary** button and
+  has no button field (shell-host `inject.rs`), so `--button secondary|middle` answers
+  `Failed(Unsupported)` naming G9 rather than sending a primary click in its place (tested:
+  `a_debug_click_maps_onto_shell_hosts_injection`). The dock's context menu (secondary press,
+  design/10 §10.3.7) therefore cannot yet be exercised through `sill debug`. `dev/accept-bar.sh`'s
+  menus step now clicks the daemon's own bar with `sill debug click` (the clock, 60 px from the
+  right end) and dismisses with a click on the bar's empty middle; a popup's presence is read
+  as whether `sill debug capture <bar>/popup` succeeds (`sill debug stats` lists bars only), so
+  `accept-bar-ui.sh cosmic` and `bar_demo` are no longer part of the daemon's acceptance. G8
+  is resolved by this.
+- **F59 One `HostMeasure` for every root.** Q10's twelve lines moved from
+  `surfaces/bar/measure.rs` to `sill-surfaces/src/measure.rs` as `pub const MEASURE`. The bar
+  and its menu popup no longer provide it themselves: `daemon::surface_root` puts `Services`,
+  `SettingsFeed` and `MEASURE` on every surface root the daemon spawns, so the wallpaper, dock
+  and launcher get it by construction. A popup is its own `VirtualDom` and inherits nothing
+  from the surface that opened it, so the two popup roots the bar opens (the menu popup and the
+  tray's dbusmenu popup, which had none) add `.context(crate::MEASURE)` themselves; so does
+  `examples/bar_demo.rs`, which builds its own root. When quire exports ds-native's measurer
+  (Q10) this module becomes a re-export.
+- **F60 What the dock and the switcher need, checked against the amended vocabulary.** design/10
+  §10.3.6-10.3.7 and design/13 §13.3.5 ask the compositor for: activate the most recent
+  toplevel, restoring it when minimized (`Activate`, which unminimizes first, F22); cycle an
+  app's toplevels (`Activate` of the next key); Hide and Option-click (`Minimize` per
+  toplevel); Quit (`Close` per toplevel); a picked window of the context menu (`Activate`).
+  All of these existed. Force Quit is a SIGKILL to the app's `app-sill-*` scope, which is the
+  launch service's, not `WlCommand`'s. The minimize target (§10.3.10) is the one thing still
+  missing, and deliberately (F54, G2). The dock's per-frame drive is not a sill signature:
+  shell-host `df9c59b` added `use_frame_tick()` and `SurfaceHandle::drive_frames() ->
+  FrameDrive`, which resolves G5, and shell-host F36 adds the rule the dock machine's settle
+  must follow: its drop condition must be reachable at any tick rate (nested cosmic-comp calls
+  back every 1-2 ms), so dock-ui's settle test needs a 1 ms case beside 16.7 ms. Live, on the
+  running nested cosmic-comp 1.8 (`wayland-1`, one output `WINIT-0`) with `cosmic-term`:
+  both workspaces published `coordinates` `[1]` and `[2]` and capabilities `[Activate, Rename,
+  SetTiling, Pin, Move]`; `PinWorkspace` then `UnpinWorkspace` on workspace 1 each took effect
+  in the published `pinning`; `MoveToplevelToWorkspace` moved the terminal from workspace 1 to
+  2 (its `workspaces` became `[2]`). The existing live test's harness leaks `cosmic-term`
+  processes that outlive the killed child (the terminal hands off to a second process), which
+  also holds a piped test's stdout open; kill them after a run.
+- **G5** RESOLVED (shell-host `df9c59b`, F36): `use_frame_tick` and `FrameDrive` (F60).
+- **G8** RESOLVED by F58. **F23**, **F30** and **Q10**'s sill half are resolved by F55-F57
+  and F59; Q10 itself (quire exporting ds-native's measurer) stays open.
+- **G9** shell-host's `Inject::Click { at }` presses the primary button only; a
+  `button` field (`MouseEventButton::Secondary`/`Auxiliary`) would let `sill debug click
+  --button secondary` open the dock's context menu (F58).
