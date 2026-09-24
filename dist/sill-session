@@ -1,0 +1,36 @@
+#!/bin/sh
+# sill-session: a real COSMIC login with sill in place of cosmic-panel, cosmic-launcher and
+# cosmic-notifications. DOCUMENTED ONLY: not installed by anything, not a Milestone 4 gate
+# (plan "CLI/IPC/session": "Real-login `dist/sill-session` documented only").
+#
+# Why a script of our own: cosmic-session hard-codes its component list and restarts each one
+# forever, so it cannot be told to run sill instead of the panel (plan "Findings: COSMIC").
+# To try it, install this as /usr/local/bin/sill-session and add a session entry
+# /usr/share/wayland-sessions/sill.desktop:
+#
+#   [Desktop Entry]
+#   Name=COSMIC (sill)
+#   Exec=/usr/local/bin/sill-session
+#   Type=Application
+#
+# What runs, and why each:
+#   cosmic-comp              the compositor; the rest are its children through the kiosk command
+#   cosmic-settings-daemon   theme, brightness and power keys COSMIC's own config expects
+#   xdg-desktop-portal-cosmic
+#                            the settings portal quire reads (colour scheme, reduced motion)
+#   cosmic-idle              screen blanking and suspend-on-idle
+#   cosmic-osd               logout dialogs and the polkit agent (sill has none before M5)
+#   sill run                 bar, wallpaper, dock, launcher, and org.freedesktop.Notifications
+#                            once M6 lands (so cosmic-notifications must NOT run)
+set -eu
+
+export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-COSMIC}"
+export XDG_SESSION_TYPE=wayland
+
+exec cosmic-comp sh -c '
+    cosmic-settings-daemon &
+    /usr/libexec/xdg-desktop-portal-cosmic &
+    cosmic-idle &
+    cosmic-osd &
+    exec sill run
+'

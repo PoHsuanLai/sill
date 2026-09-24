@@ -1,0 +1,23 @@
+[package]
+name = "sill-settings"
+description = "sill's settings file, sill/settings.toml: the shell domains of design/22-SETTINGS.md, their schema, lenient load, atomic save and live reload."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+ds-settings = { workspace = true }
+notify = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+toml = { workspace = true }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+serde = { workspace = true }

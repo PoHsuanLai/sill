@@ -11,9 +11,12 @@ publish.workspace = true
 [dependencies]
 dioxus = { workspace = true }
 ds = { workspace = true }
+ds-settings = { workspace = true }
 shell-host = { workspace = true }
 sill-services = { workspace = true }
+sill-settings = { workspace = true }
 sill-launcher = { workspace = true }
+tokio = { workspace = true }
 
 [lints]
 workspace = true

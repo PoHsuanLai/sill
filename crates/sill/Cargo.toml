@@ -10,11 +10,21 @@ publish.workspace = true
 
 [dependencies]
 clap = { workspace = true }
+ds-settings = { workspace = true }
 latchkey = { workspace = true }
 shell-host = { workspace = true }
 sill-ipc = { workspace = true }
+sill-launcher = { workspace = true }
 sill-services = { workspace = true }
+sill-settings = { workspace = true }
 sill-surfaces = { workspace = true }
+tokio = { workspace = true }
+
+[features]
+default = []
+# `sill debug pointer|leave|capture` act on surfaces (shell-host's per-surface injection).
+# Without it those requests answer `Failed(Unsupported)`; `debug stats` always works.
+debug = ["shell-host/debug-inject"]
 
 [lints]
 workspace = true

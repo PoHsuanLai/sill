@@ -1,5 +1,17 @@
-//! The sill IPC protocol: newline-delimited JSON requests and responses, one per connection.
+//! The sill IPC protocol: newline-delimited JSON requests and responses, one request per
+//! connection (plan "Design: `<shell>` repo", CLI/IPC).
+//!
+//! Pure: no socket, no runtime. The daemon (`sill::ipc_server`) and the command line
+//! (`sill::cli`) own the stream; this crate owns the words on it.
 
-use serde as _;
-use serde_json as _;
-use thiserror as _;
+pub mod error;
+pub mod line;
+pub mod request;
+pub mod response;
+
+pub use error::IpcError;
+pub use line::{MAX_LINE, decode, encode, read_message, write_message};
+pub use request::{
+    DebugRequest, DesktopId, DockRequest, LauncherRequest, Point, Request, SurfaceName,
+};
+pub use response::{Failure, FailureKind, Micros, Response, SurfaceStats};
