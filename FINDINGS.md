@@ -92,6 +92,49 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
   - No settings key names the wallpaper file; M2 reads COSMIC's background config until one
     exists.
 
+## M1 svc-cosmic (2026-09-24)
+
+- **F20 The `cosmic_wl` thread.** Its own `wayland_client::Connection` (shell-host FINDINGS: a
+  protocol object cannot cross connections, and the host's connection is the host's), a calloop
+  loop over it, and a second small thread that forwards `Control<WlCommand>` (a tokio channel,
+  frozen) into a calloop channel so one loop wakes for both. Every cctk callback is reduced
+  through `reduce_toplevels`/`reduce_workspaces` inside `watch::Sender::send_if_modified`, so a
+  receiver wakes only when a reduction changed something. Toplevels publish on each handle's
+  `done` (that is ext-foreign-toplevel's unit of atomicity), workspaces on the manager's `done`
+  and again whenever an output is added or renamed (an output's name can arrive after the groups
+  on it). Workspaces in a group are ordered by `coordinates`.
+- **F21 The degrade path is empty channels, not an `Unavailable` value.** The frozen `Toplevels`
+  and `Workspaces` have no availability word, so on a compositor that offers neither
+  `ext_foreign_toplevel_list_v1` nor `ext_workspace_manager_v1` (KWin 6 here offers neither;
+  checked with `wayland-info` on `wayland-0`) both receivers keep their empty defaults, one line
+  goes to stderr, and the thread sleeps in `blocking_recv` on the command channel, dropping
+  commands, until every `Control` is dropped. The watch senders are held while it parks, so
+  receivers read empty values, not a closed channel. The same happens with no socket at all
+  (tested), and after the compositor goes away (both channels are emptied first).
+- **F22 Commands are gated on what the compositor advertised.** Toplevel commands need the
+  manager's matching capability (`close`, `activate`, `minimize`); `Activate` uses the first seat
+  and restores a minimized window first; `ActivateWorkspace` needs the workspace's `activate`
+  capability, commits, and publishes `WorkspaceEvent::Activated` ahead of the compositor's
+  `done`; `MoveWorkspace` needs `zcosmic_workspace_handle_v2` version 2 with the `move`
+  capability, moves along axis 0 (COSMIC's groups are one row) and commits. A command for an
+  unknown key or a missing capability is dropped.
+- **F23 Brief items the frozen interface does not carry.** The brief asks for workspace
+  coordinates and capabilities in the published state, pin/unpin, and move-toplevel-to-workspace.
+  `Workspace` has no coordinates or capabilities field (coordinates are used for order only) and
+  `WlCommand` has no `Pin`, `Unpin` or `MoveToWorkspace` variant; adding either is a frozen-type
+  change, so they are reported, not added.
+- **F24 Live run facts (nested cosmic-comp 1.8.0, `COSMIC_BACKEND=winit`).** The live test ran
+  with `cosmic-term` (`SILL_NESTED_CLIENT="cosmic-term com.system76.CosmicTerm"`): `foot` is not
+  installed on this machine. The window appeared 0.7 to 1.2 s after spawn, `Active`, on
+  `WorkspaceKey(1)` and output `WINIT-0`; `Minimize`, `Activate` (restored, active, first in MRU)
+  and `Close` each took effect. One group, one workspace named `1`, `stable_id` empty
+  (cosmic-comp sent no ext-workspace `id`). Two harness facts, both shell-host's
+  `scripts/dev/nested.sh`: with the host display in DPMS off, nested cosmic-comp on the NVIDIA
+  EGL path blocks in buffer swap and never answers a client's first roundtrip
+  (`__GL_SYNC_TO_VBLANK=0` in the environment unblocks it; `SILL_NESTED_GPU=amd` failed with the
+  same `EGL_BAD_SURFACE`); and `nested.sh stop` leaves `wayland-1` and `wayland-1.lock` behind,
+  so the next `start` reuses the name, sees no new socket, and times out (G6).
+
 ## Gaps reported upstream
 
 - **Q1** quire has no menu tracking machine (F15).
@@ -120,3 +163,7 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
   the component drives `Frame` from a timer at the output's refresh while the machine has asked
   for frames (`RequestFrames` .. `StopFrames`), which keeps idle at zero wakeups but is not
   callback-exact.
+- **G6** `scripts/dev/nested.sh`: `stop` leaves the nested socket and its lock file in
+  `$XDG_RUNTIME_DIR`, which makes the next `start` time out (it waits for a socket name it has not
+  seen before); and with the host display in DPMS off the NVIDIA EGL path needs
+  `__GL_SYNC_TO_VBLANK=0` or the compositor never answers a client (F24).
