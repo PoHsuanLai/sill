@@ -3,7 +3,7 @@
 
 use shell_host::{
     Anchor, BlurSpec, ElementId, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig,
-    LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
+    LayerSize, Margin, OutputInfo, OutputTarget, Rect, RegionSpec, RoundedRect,
 };
 use sill_settings::{BarSettings, LauncherSettings};
 
@@ -24,8 +24,11 @@ pub fn panel_top(output_height: i32, bar: &BarSettings, launcher: &LauncherSetti
     below_bar.max(centred)
 }
 
+/// The palette card's element id: the panel's blur region, radius 14 (`--r-panel`).
+pub const CARD_ID: &str = "launcher-card";
+
 /// The panel: Overlay, anchored top only (centred horizontally), keyboard-exclusive, blurred
-/// behind its `panel` element.
+/// behind the palette card ([`CARD_ID`]).
 pub fn panel_layer(
     output: &OutputInfo,
     bar: &BarSettings,
@@ -47,12 +50,68 @@ pub fn panel_layer(
         keyboard: KeyboardMode::Exclusive,
         output: OutputTarget::Output(output.id),
         blur: BlurSpec::Region(RegionSpec::Element {
-            id: ElementId::new("panel"),
+            id: ElementId::new(CARD_ID),
             radius: 14,
             inflate: 0,
         }),
         input: RegionSpec::Whole,
     }
+}
+
+/// The panel's rectangle in its output's coordinates: centred, [`panel_top`] down.
+pub fn panel_rect(output: &OutputInfo, bar: &BarSettings, launcher: &LauncherSettings) -> Rect {
+    let width = i32::try_from(PANEL_WIDTH).unwrap_or(i32::MAX);
+    Rect {
+        x: (output.logical.width - width).div_euclid(2),
+        y: panel_top(output.logical.height, bar, launcher),
+        width,
+        height: i32::try_from(PANEL_HEIGHT).unwrap_or(i32::MAX),
+    }
+}
+
+/// The catcher's input region once shown: the output less the panel, so a click on the panel
+/// reaches the panel whichever of the two Overlay surfaces the compositor stacks on top.
+pub fn catcher_input(
+    output: &OutputInfo,
+    bar: &BarSettings,
+    launcher: &LauncherSettings,
+) -> RegionSpec {
+    let (w, h) = (output.logical.width, output.logical.height);
+    let panel = panel_rect(output, bar, launcher);
+    let (right, bottom) = (panel.x + panel.width, panel.y + panel.height);
+    let bands = [
+        Rect {
+            x: 0,
+            y: 0,
+            width: w,
+            height: panel.y,
+        },
+        Rect {
+            x: 0,
+            y: bottom,
+            width: w,
+            height: h - bottom,
+        },
+        Rect {
+            x: 0,
+            y: panel.y,
+            width: panel.x,
+            height: panel.height,
+        },
+        Rect {
+            x: right,
+            y: panel.y,
+            width: w - right,
+            height: panel.height,
+        },
+    ];
+    RegionSpec::Rects(
+        bands
+            .into_iter()
+            .filter(|band| band.width > 0 && band.height > 0)
+            .map(|rect| RoundedRect { rect, radius: 0 })
+            .collect(),
+    )
 }
 
 /// The catcher: Overlay, every edge, no keyboard, no blur, input everywhere.
@@ -76,9 +135,9 @@ pub fn catcher_layer(output: &OutputInfo) -> LayerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::{catcher_layer, panel_layer, panel_top};
+    use super::{catcher_input, catcher_layer, panel_layer, panel_rect, panel_top};
     use crate::surfaces::naming::tests::output;
-    use shell_host::{Anchor, BlurSpec, Extent, KeyboardMode, Layer, RegionSpec};
+    use shell_host::{Anchor, BlurSpec, Extent, KeyboardMode, Layer, Rect, RegionSpec};
     use sill_settings::{BarSettings, LauncherSettings};
 
     #[test]
@@ -125,5 +184,40 @@ mod tests {
         );
         assert_eq!(catcher.input, RegionSpec::Whole);
         assert_eq!(catcher.keyboard, KeyboardMode::None);
+    }
+
+    #[test]
+    fn the_catcher_takes_every_click_but_the_panels() {
+        let (bar, launcher) = (BarSettings::default(), LauncherSettings::default());
+        let out = output(Some("DP-1"));
+        let panel = panel_rect(&out, &bar, &launcher);
+        assert_eq!(
+            panel,
+            Rect {
+                x: 620,
+                y: 202,
+                width: 680,
+                height: 460
+            },
+            "centred on 1920 x 1080"
+        );
+        let RegionSpec::Rects(bands) = catcher_input(&out, &bar, &launcher) else {
+            panic!("the catcher's region is a set of rects");
+        };
+        let area: i64 = bands
+            .iter()
+            .map(|b| i64::from(b.rect.width) * i64::from(b.rect.height))
+            .sum();
+        assert_eq!(area, 1920 * 1080 - 680 * 460, "everything but the panel");
+        let inside = |x: i32, y: i32| {
+            bands.iter().any(|b| {
+                x >= b.rect.x
+                    && x < b.rect.x + b.rect.width
+                    && y >= b.rect.y
+                    && y < b.rect.y + b.rect.height
+            })
+        };
+        assert!(inside(10, 10) && inside(619, 300) && inside(1300, 300) && inside(900, 662));
+        assert!(!inside(620, 202) && !inside(1299, 661) && !inside(960, 400));
     }
 }

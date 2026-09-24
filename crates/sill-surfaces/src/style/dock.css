@@ -5,7 +5,7 @@
 
 /* The pill (`dock-pill`): a box at the pill's rectangle holding the Ds root, which is the pill:
    a Material::Dock root draws the Space gradient at the Dock's tint alpha with the material's
-   edge, drop and radius (design/21 §3 and §5). The body gives the root its height. */
+   edge and drop, at `dock.pill_radius_px` (design/21 §3 and §5). The body gives the root its height. */
 .sill-dock-pill{ position:absolute; }
 .sill-dock-body{ display:block; }
 
@@ -27,7 +27,7 @@
 .sill-dock-plate{ position:relative; display:flex; align-items:center; justify-content:center;
   background-image:linear-gradient(180deg, var(--raise), var(--surface-2)); box-shadow:var(--shadow-2); }
 
-/* The icon at quire's largest icon size, scaled to the inset inline (Q16). */
+/* The icon, drawn at its share of the plate (`IconSize::Px`). */
 .sill-dock-icon{ display:flex; flex:none; color:var(--ink); }
 
 /* design/10 §10.3.2: the red capsule, top-right, scaling with the tile from its corner. */
@@ -40,9 +40,8 @@
   box-shadow:0 0 0 1px var(--raise); }
 .sill-dock-ring-hole{ flex:1; border-radius:var(--r-pill); background-color:var(--raise); }
 
-/* The hover label's target: a box over the plate for ds Tooltip{Fly}, whose own :hover rule
-   shows the label above it. The tile leaves it out while the dock machine keeps labels quiet
-   (a button down, a menu open). */
+/* The hover label's target: a box over the plate for ds Tooltip{Fly}, which the dock machine
+   shows and hides (`shown`). */
 .sill-dock-label{ position:absolute; display:flex; }
 .sill-dock-label-box{ display:block; }
 

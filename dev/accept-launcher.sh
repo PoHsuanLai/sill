@@ -71,7 +71,13 @@ stop_daemon() {
 
 # Every `launcher.open_latency_ms=<ms>` value the daemon's log holds, one per line.
 open_latencies() {
-  grep -o 'launcher\.open_latency_ms=[0-9.]*' "$OUT_DIR/daemon.log" | cut -d= -f2
+  # The panel's request-to-first-frame line (M4 launcher-ui) is the real open latency; the
+  # daemon's `open_latency_ms` times the IPC dispatch alone and is the fallback.
+  if grep -q 'launcher\.open_to_frame_ms=' "$OUT_DIR/daemon.log"; then
+    grep -o 'launcher\.open_to_frame_ms=[0-9.]*' "$OUT_DIR/daemon.log" | cut -d= -f2
+  else
+    grep -o 'launcher\.open_latency_ms=[0-9.]*' "$OUT_DIR/daemon.log" | cut -d= -f2
+  fi
 }
 
 # p50, p95, max of the values on stdin, one per line, as "p50 p95 max"; empty input prints

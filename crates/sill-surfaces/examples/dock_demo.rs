@@ -86,7 +86,8 @@ fn spawn_dock(
         .context(services.clone())
         .context(settings.clone())
         .context(clock)
-        .context(sill_surfaces::MEASURE);
+        .context(sill_surfaces::MEASURE)
+        .context(sill_surfaces::FOCUS);
     if let Err(error) = ctx.spawn_layer(config, root) {
         eprintln!("dock: {error}");
     }
