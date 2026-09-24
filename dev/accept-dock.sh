@@ -10,9 +10,7 @@
 #   3. A click on the pinned, not-running COSMIC Terminal tile launches it: its running dot
 #      (the dock's view of a mapped toplevel) shows within 3 s.
 #   4. `badge_emitter` for that app shows a count badge within 1 s.
-#   5. A secondary press opens the context menu: `sill debug click --button secondary` when
-#      shell-host injects it, else (G10) `examples/dock_demo.rs`'s stdin `press secondary`,
-#      after the daemon has quit so its dock is the only one.
+#   5. `sill debug click --button secondary` on that tile opens its context menu popup.
 # Screenshots: dev/out/dock-cosmic.png (rest), dock-cosmic-magnified.png, dock-cosmic-menu.png.
 #
 # Usage: dev/nested.sh && dev/accept-dock.sh
@@ -24,7 +22,6 @@ SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
 HOST_REPO="$(cd "$SHELL_HOST_DEV/../.." && pwd)"
 PROBE="$HOST_REPO/target/release/examples/probe_toplevel"
-DEMO="$SILL_REPO/target/debug/examples/dock_demo"
 EMITTER="$SILL_REPO/target/debug/examples/badge_emitter"
 BAR_H="${BAR_H:-32}"
 RESERVE=72
@@ -92,7 +89,6 @@ EOF
 
 build() {
   (cd "$SILL_REPO" && cargo build -p sill --features debug \
-    && cargo build -p sill-surfaces --example dock_demo \
     && cargo build -p sill-services --example badge_emitter) >"$OUT_DIR/build.log" 2>&1 || {
     echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
   [ -x "$PROBE" ] || (cd "$HOST_REPO" && cargo build --release -p shell-host --features debug-inject \
@@ -212,38 +208,17 @@ step_badge() {
 
 # 5.
 step_menu() {
-  local log="$OUT_DIR/menu.log" x
+  local log="$OUT_DIR/menu.log" x opened=no
   x=$(first_tile_x)
-  if sill debug click "$DOCK" "$x" "$PILL_Y" --button secondary >"$log" 2>&1; then
-    sleep 0.5
-    "$SHELL_HOST_DEV/shot.sh" "$SHOTS/dock-cosmic-menu.png" >/dev/null 2>&1 || true
-    sill debug capture "$DOCK/popup" "$OUT_DIR/menu-popup.png" >>"$log" 2>&1
-    return
-  fi
-  echo "sill debug click --button secondary refused (G10); through dock_demo" >>"$log"
-  stop_daemon
-  local fifo="$OUT_DIR/demo.in"
-  rm -f "$fifo"; mkfifo "$fifo"
-  nested "$DEMO" <"$fifo" >"$OUT_DIR/demo.out" 2>"$OUT_DIR/demo.err" &
-  local demo=$!
-  exec 9>"$fifo"
-  sleep 2
-  local name="$DOCK"
-  # dock_demo: COSMIC Files, COSMIC Terminal (pinned), Firefox (running), Trash.
-  local tile2=$(( (OUT_W - 4 * 48 - 3 * 4 - 16) / 2 + 8 + 52 + 24 - 6 ))
-  echo "$name hover $tile2 $PILL_Y" >&9
-  sleep 0.2
-  echo "$name press secondary $tile2 $PILL_Y" >&9
-  sleep 1
+  sill debug click "$DOCK" "$x" "$PILL_Y" --button secondary >"$log" 2>&1 || return 1
+  for _ in $(seq 40); do
+    sill debug capture "$DOCK/popup" "$OUT_DIR/menu-popup.png" >>"$log" 2>&1 && { opened=yes; break; }
+    sleep 0.05
+  done
+  sleep 0.5
   "$SHELL_HOST_DEV/shot.sh" "$SHOTS/dock-cosmic-menu.png" >/dev/null 2>&1 || true
-  echo "$name/popup capture $OUT_DIR/menu-popup.png" >&9
-  echo "stats" >&9
-  sleep 1
-  echo quit >&9
-  exec 9>&-
-  wait "$demo" 2>/dev/null
-  cat "$OUT_DIR/demo.out" >>"$log"
-  grep -q '"capture".*menu-popup.png.*"ok":true' "$OUT_DIR/demo.out"
+  echo "popup $DOCK/popup opened: $opened" | tee -a "$log" >&2
+  [ "$opened" = yes ]
 }
 
 stop_daemon() {

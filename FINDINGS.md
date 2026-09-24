@@ -791,7 +791,7 @@ Filled `launch::{spawn, launch_argv, scope_unit}`, `pins::{spawn, load, save}` a
 
 Filled `surfaces/dock/**`: `Dock`, `Tile`, `dock_items`, `context_menu`, plus private modules
 (`frame`, `hit`, `pointer`, `activate`, `effects`, `changes`, `pick`, `icon`, `menu_geometry`,
-`menu_popup`, `session`, `view`) and one public addition, `dock::poke` (F97). The machine is
+`menu_popup`, `session`, `view`). The machine is
 unchanged but for a new test file (`machine/settle_tests.rs`); no machine bug was found. Numbers
 start at F92/Q15 so they cannot collide with m2-wallpaper's F83-F91 and Q14.
 
@@ -842,19 +842,20 @@ start at F92/Q15 so they cannot collide with m2-wallpaper's F83-F91 and Q14.
   (`Menu{Context}` in an `xdg_popup`, one per press, `Grab::Grabbed`) is flat for
   `WindowsFirst` (windows, desktop actions, Keep in Dock / Remove from Dock, Quit) and has the
   `Options` submenu for `AppleOrder`; the popup is placed above the tile as drawn (magnified),
-  8 px gap, its height estimated (G7). Open at Login is not offered (no autostart writer);
+  8 px gap, its height estimated from the entries, wrapped titles included (shell-host's
+  `FitContent` now measures a popup, but the menu is an overlay placed from the popup's bottom
+  edge by the size given, so `Fixed` stays). Open at Login is not offered (no autostart writer);
   Option-held Force Quit is built but never shown: layer surfaces get no keyboard while the menu
-  opens, so Option is always `Up`. The active window's `Check` is set but `Menu{Context}` draws
-  no check column (its rows are `Tiled`), so it does not show. Minimized windows are prefixed
+  opens, so Option is always `Up`. The active window carries a check mark. Minimized windows are prefixed
   `◆ ` (no ds diamond glyph). A drag reorders pins (`PinEvent::Move`), pins a running tile
   dropped before the last pin, and unpins past the pill grown by `dock.remove_threshold_px`;
   the ghost, the Remove label and the healing animation (§10.3.8) are not drawn (no ghost layer
   surface, no pointer grab outside the input region to test with).
-- **F97 `dock::poke`, a harness's presses (G10).** shell-host injects primary clicks only, so
-  nothing could press the secondary button on a dock under test. `DockPokes(watch::Receiver<
-  Option<DockPoke>>)`, read with `try_consume_context` and so absent from the daemon's docks,
-  lets `examples/dock_demo.rs` feed the same move-and-press a pointer would (stdin `sill-dock-X
-  press secondary X Y`). It is a new public module; remove it once G10 is closed.
+- **F97 Right-click through the real event path.** shell-host `51cdfa7` (G10, closed while
+  this wave ran) injects a click with a button and sill master's daemon maps it, so `sill
+  debug click --button secondary` reaches the dock as Blitz's `mousedown` with the secondary
+  button, which the dock feeds the machine as a press (the menu opens on press, design/10
+  §10.3.7). An interim harness seam for the demo was removed again before commit.
 - **F98 The hover label is ds `Tooltip{Fly}`,** whose own `:hover` rule and `--d-fly` delay show
   it and HoverHub's warm state skip the delay. The machine's `ShowLabel`/`HideLabel` are
   therefore not applied: the Fly has no controlled mode, so the label does not hide on press or
@@ -867,23 +868,25 @@ start at F92/Q15 so they cannot collide with m2-wallpaper's F83-F91 and Q14.
 - **F100 Daemon.** `run_event` spawns a dock per output after the bar (`spawn_missing_docks`,
   the bar's pattern), and `collect_stats` reports `sill-dock-<output>` beside the bars, which the
   acceptance needs for its frame counts: two lines outside "the lines that spawn the dock",
-  flagged here. The dock follows later settings changes to its own layer (size, exclusive zone,
+  flagged here. The branch merged master (the daemon's `to_host_button` mapping) before its
+  gates. The dock follows later settings changes to its own layer (size, exclusive zone,
   regions) through its `SurfaceHandle`. Side effect: `dev/accept-bar.sh` step 5 now sees a
   maximised window of `output_h - 32 - 72` and needs the dock's reserve subtracted (not edited:
   not owned here).
 - **F101 Acceptance** (`dev/accept-dock.sh`, nested cosmic-comp 1.8 on the running `wayland-1`,
   2176 x 1360, `sill run` debug build with `--features debug` and a scratch `XDG_CONFIG_HOME`;
-  `sill debug stats` counters are cumulative, so the script takes differences): (1) a maximised
-  probe is 1256 = 1360 - 32 - 72; (2) 60 `sill debug pointer` moves in 1.000 s gave 51 frames for
-  52 callbacks (0.98), the leave's shrink 16 frames, then 0 frames in the next 5 s; (3) a click
-  on the pinned COSMIC Terminal tile launched it (`app-sill-com.system76.CosmicTerm-1.scope`)
-  and its running dot was in the dock's capture 561 ms later; (4) `badge_emitter
-  com.system76.CosmicTerm --count 5` turned the badge's pixel red in 377 ms; (5) `sill debug
-  click --button secondary` answers G10, so the menu opened through `dock_demo` after the daemon
-  quit (its popup `sill-dock-WINIT-0/popup`, 268 x 267, captured). Screenshots:
-  `dev/out/dock-cosmic.png` (rest, with the probe's unmatched window as a running tile),
-  `dev/out/dock-cosmic-magnified.png`, `dev/out/dock-cosmic-menu.png` (the demo's Terminal menu:
-  two windows, New Window, Remove from Dock, Quit).
+  `sill debug stats` counters are cumulative, so the script takes differences), all five pass:
+  (1) a maximised probe is 1256 = 1360 - 32 - 72; (2) 60 `sill debug pointer` moves in 1.000 s
+  gave 52 frames for 52 callbacks, the leave's shrink 17 frames, then 0 frames in the next 5 s;
+  (3) a click on the pinned COSMIC Terminal tile launched it (`app-sill-com.system76.CosmicTerm-1
+  .scope`) and its running dot was in the dock's capture 502 ms later; (4) `badge_emitter
+  com.system76.CosmicTerm --count 5` turned the badge's pixel red in 131 ms; (5) `sill debug
+  click --button secondary` on that tile opened `sill-dock-WINIT-0/popup` (its window, Remove
+  from Dock, Quit). Screenshots: `dev/out/dock-cosmic.png` (rest, the probe's unmatched window as
+  a running tile), `dev/out/dock-cosmic-magnified.png` (pointer between the two tiles),
+  `dev/out/dock-cosmic-menu.png`; the last shows Q17: the hover label stays under the open menu.
+  `examples/dock_demo.rs` runs the dock alone on fake services (four tiles, a count of 7, a 40 %
+  ring) for manual checks.
 
 ### Gaps found in M3 dock-ui
 

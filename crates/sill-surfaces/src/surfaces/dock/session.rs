@@ -24,8 +24,7 @@ use crate::surfaces::dock::machine::{DockEffect, DockEvent, DockParams, DockStat
 use crate::surfaces::dock::menu_geometry::{menu_config, menu_placement};
 use crate::surfaces::dock::menu_popup::{DockMenuPopup, MenuLink, PopupLook, PopupReport};
 use crate::surfaces::dock::pick::{DockCommand, pick_commands};
-use crate::surfaces::dock::pointer::{DockInput, poke_inputs, resolve};
-use crate::surfaces::dock::poke::DockPokes;
+use crate::surfaces::dock::pointer::{DockInput, resolve};
 
 /// What the session decides against, from the dock's latest render.
 #[derive(Clone)]
@@ -149,7 +148,7 @@ pub(crate) fn use_dock_session(initial: DockState) -> DockSession {
     }
 }
 
-/// The session's three tasks: frame ticks, popup reports and a harness's presses.
+/// The session's two tasks: frame ticks and popup reports.
 fn start_tasks(
     slots: Slots,
     feed: Callback<DockInput>,
@@ -169,16 +168,6 @@ fn start_tasks(
         spawn(async move {
             while let Some(report) = rx.recv().await {
                 on_report(slots, feed, &outward, report);
-            }
-        });
-    }
-    if let Some(DockPokes(mut rx)) = try_consume_context::<DockPokes>() {
-        spawn(async move {
-            while rx.changed().await.is_ok() {
-                let poke = *rx.borrow_and_update();
-                for input in poke.into_iter().flat_map(poke_inputs) {
-                    feed.call(DockInput::Pointer(input));
-                }
             }
         });
     }

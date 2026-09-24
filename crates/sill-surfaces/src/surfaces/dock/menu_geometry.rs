@@ -4,9 +4,11 @@
 //! As the bar's popups (FINDINGS F45, F53), the popup is the menu plus transparent room for its
 //! shadow: [`SIDE`] each side, [`TOP`] above, [`BOTTOM`] below. The popup hangs above its
 //! anchor (edge and gravity Top, centred), moved down by the room below the menu less the gap,
-//! so the menu's bottom edge is [`GAP`] above the tile. shell-host never measures a popup's
-//! document (G7), so the height is estimated from the entries, generously; a menu that turns
-//! out shorter leaves transparent room above it. With an `Options` submenu the popup is wide
+//! so the menu's bottom edge is [`GAP`] above the tile. The height is estimated from the
+//! entries (wrapped titles included), generously; a menu that turns out shorter leaves
+//! transparent room above it. shell-host's `PopupSize::FitContent` now measures a popup's
+//! document (G7 closed), but the menu is an overlay placed from the popup's bottom edge by the
+//! size given here, so a size the host changed afterwards would move the menu off its tile. With an `Options` submenu the popup is wide
 //! enough for the submenu to open to the menu's right, and shifted so the menu itself stays
 //! centred over the tile.
 
@@ -39,6 +41,15 @@ const ITEM_PX: i32 = 36;
 const SEPARATOR_PX: i32 = 9;
 const HEADER_PX: i32 = 30;
 const PANEL_PX: i32 = 12;
+/// A wrapped title's further lines: 13 px text at 1.55, about 20 characters to the line in the
+/// Context menu's text column.
+const LINE_PX: i32 = 20;
+const LINE_CHARS: usize = 20;
+
+/// How many lines `title` wraps to.
+fn lines(title: &str) -> i32 {
+    i32::try_from(title.chars().count().div_ceil(LINE_CHARS).max(1)).unwrap_or(1)
+}
 
 /// Whether the menu has a submenu to leave room for.
 pub(crate) fn has_submenu<T>(entries: &[MenuEntry<T>]) -> bool {
@@ -52,7 +63,9 @@ fn menu_height<T>(entries: &[MenuEntry<T>]) -> i32 {
     let rows: i32 = entries
         .iter()
         .map(|entry| match entry {
-            MenuEntry::Item { .. } | MenuEntry::Submenu { .. } => ITEM_PX,
+            MenuEntry::Item { title, .. } | MenuEntry::Submenu { title, .. } => {
+                ITEM_PX + LINE_PX * (lines(title) - 1)
+            }
             MenuEntry::Header(_) => HEADER_PX,
             MenuEntry::Separator => SEPARATOR_PX,
         })

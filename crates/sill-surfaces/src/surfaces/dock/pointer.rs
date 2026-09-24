@@ -14,7 +14,6 @@ use crate::surfaces::dock::items::DockItem;
 use crate::surfaces::dock::machine::{
     Button, DockEvent, DockState, DropZone, Modifier, Point, Press,
 };
-use crate::surfaces::dock::poke::DockPoke;
 
 /// One pointer input, surface-local.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,15 +73,6 @@ fn zone(frame: &Frame, items: &[DockItem], dock: &DockState, at: Point, remove: 
         }
         Press::Up => DropZone::Slot(0),
     }
-}
-
-/// A harness's press: the pointer moves there, then presses.
-pub(crate) fn poke_inputs(poke: DockPoke) -> [PointerInput; 2] {
-    let at = Point {
-        x: Cpx::px(poke.x),
-        y: Cpx::px(poke.y),
-    };
-    [PointerInput::Move(at), PointerInput::Press(poke.button, at)]
 }
 
 /// Where a mouse event happened, surface-local hundredths of a pixel.

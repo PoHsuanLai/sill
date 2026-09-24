@@ -7,7 +7,6 @@ pub mod geometry;
 pub mod items;
 pub mod layer;
 pub mod machine;
-pub mod poke;
 pub mod tile;
 
 mod activate;
