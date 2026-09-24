@@ -18,6 +18,7 @@ sill-launcher = { workspace = true }
 sill-services = { workspace = true }
 sill-settings = { workspace = true }
 sill-surfaces = { workspace = true }
+thiserror = { workspace = true }
 tokio = { workspace = true }
 
 [features]

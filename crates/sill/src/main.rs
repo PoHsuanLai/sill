@@ -1,17 +1,13 @@
 //! The sill daemon and command line (plan "CLI/IPC/session"): `sill run` is the daemon; every
 //! other subcommand is a client that sends one request and prints the reply.
-
-mod cli;
-mod client;
-mod daemon;
-mod ipc_server;
-mod launch;
-mod msg;
-mod outputs;
+//!
+//! The implementation lives in the `sill` library (`lib.rs`) so `crates/sill/tests/**` can
+//! exercise it; this binary is a thin wrapper.
 
 use std::process::ExitCode;
 
 use clap::Parser;
+use sill::cli;
 
 fn main() -> ExitCode {
     let cli = cli::Cli::parse();
@@ -28,9 +24,9 @@ fn main() -> ExitCode {
         };
     }
     match cli.command {
-        Some(cli::Command::Run) => daemon::run(),
+        Some(cli::Command::Run) => sill::daemon::run(),
         Some(command) => match cli::request(&command) {
-            Some(request) => client::main(&request),
+            Some(request) => sill::client::main(&request),
             None => ExitCode::SUCCESS,
         },
         None => {
