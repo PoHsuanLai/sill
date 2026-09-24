@@ -1859,3 +1859,58 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   old instance died with it. `dev/accept-wallpaper.sh` does not itself start or stop the
   compositor (`dev/nested.sh start` is a separate, manual step, per its own header) — only the
   `sill run` it starts, and it never touches `NESTED_COMPOSITOR_PID`.
+- **F171 The wallpaper's own image never paints on the nested compositor: the surface exists,
+  is correctly positioned and sized, and shows its own material fallback — the loaded image
+  itself is the one thing that never appears.** Investigated thoroughly, on the running nested
+  cosmic-comp (Mesa), not through any injected variable or forced backend
+  (CONVENTIONS "run it the way its user would"):
+  - The cache pipeline is correct end to end: `~/.cache/sill/wallpaper/<hash>-<w>x<h>.png` is a
+    real 2176 x 1360 PNG whose centre pixel is exactly the source's marked colour, checked with
+    PIL directly against the file on disk, independent of anything sill or shell-host render.
+  - The `file://` URL sill builds matches shell-host's own documented shape exactly
+    (`dom/net.rs`'s module doc: `background-image: url(file:///…)`); a `sill debug capture` of
+    the live surface is uniform black (or, once the compositor's real dark `--paper`/Widget
+    fallback shows through cleanly, that fallback colour) — never the marked colour — however
+    long the daemon has been running (checked immediately after start and again minutes later).
+  - Switching from a CSS `background-image` on an empty `div` to a plain `<img src="...">`
+    (this wave's own fix, believing the div's declarative background load was the gap) changed
+    nothing: still black, still never settles to the image.
+  - **The `file://` scheme is not the variable.** The same `<img>` given a self-contained
+    `data:image/png;base64,...` URL (a 4 x 4 red PNG, no network provider round trip at all)
+    is *also* never painted — ruling out `LocalNet`'s file read entirely. No image source this
+    wave tried, through either markup shape, ever reaches the screen.
+  - `sill debug stats`' frame counter is the other half of the picture: queried repeatedly back
+    to back (no `sleep` between calls) it never moves on its own; queried once shortly after
+    `sill run` starts and again 5 s later it is often unchanged (frames stay at 1, the initial
+    commit) — but `dev/accept-wallpaper.sh`'s own run, which checks readiness and idles within
+    a second or two of startup, sees a burst instead (2 → 69-139 across runs) that always
+    settles by the time a later, unhurried check is made. Read together: the surface's *first*
+    commit happens unconditionally: everything after it — the image resource resolving, and
+    any repaint that would show it — depends on the surface receiving further paint
+    opportunities, which arrive in a bounded burst right after creation and then stop for good.
+  - **Working theory, not confirmed inside this repo:** a `Layer::Background` surface with
+    `ExclusiveZone::Ignore` and `RegionSpec::Empty` input (this one) is the kind of layer-shell
+    client cosmic-comp (or shell-host's render-loop gating on a `wl_surface.frame` callback,
+    F21 in shell-host's own FINDINGS) is least motivated to keep scheduling frames for — nothing
+    ever interacts with it, nothing overlaps it, and most real Background clients (a wallpaper
+    daemon) paint once and never again, so this combination may simply be under-exercised. The
+    bar (`Layer::Top`, real input) keeps receiving frames indefinitely (FINDINGS F80: "8 frames
+    and 8 commits... before and after five idle seconds" — moving, not frozen); this surface is
+    the first `Layer::Background` client either shell-host or cosmic-comp has had to carry a
+    resource that loads *after* its first commit.
+  - Not this wave's to fix: `shell-host` (the render-loop/frame-callback gating) and possibly
+    `cosmic-comp` itself are both outside this wave's ownership and outside this repo. Reported
+    rather than patched (CONVENTIONS §1: "If you believe a frozen signature is wrong, stop and
+    report it").
+
+### Gaps found in M2 wallpaper (continued)
+
+- **G21** A `Layer::Background` surface whose content depends on a resource that resolves after
+  the surface's first commit (an async image load, here) never gets the second paint it needs:
+  observed as a frame counter frozen at 1 well after the image is cached and ready, on a real
+  nested cosmic-comp, independent of the URL scheme (`file://` or a self-contained `data:` URI)
+  or the markup (`background-image` or `<img src>`) carrying it (F171). Whether the gap is in
+  shell-host's frame-callback-gated render loop, in cosmic-comp's scheduling for a
+  Background-layer, non-interactive client, or both, is not established from inside this repo;
+  reported for the shell-host/host team to chase with a minimal reproduction (a `Layer::Background`
+  surface that mutates its own DOM shortly after its first frame, independent of any image).
