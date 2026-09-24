@@ -4036,6 +4036,7 @@ name = "sill-surfaces"
 version = "0.1.0"
 dependencies = [
  "dioxus",
+ "dioxus-native-dom",
  "dioxus-ssr",
  "ds",
  "ds-settings",

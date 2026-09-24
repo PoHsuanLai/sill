@@ -17,6 +17,22 @@ mkdir -p "$OUT_DIR"
 OUTPUT="${1:-}"
 
 sill() { "$SHELL_HOST_DEV/run.sh" "$SILL_BIN" "$@"; }
+nested() { "$SHELL_HOST_DEV/run.sh" "$@"; }
+HOST_REPO="$(cd "$SHELL_HOST_DEV/../.." && pwd)"
+PROBE="$HOST_REPO/target/release/examples/probe_toplevel"
+# The bar's height: `bar.height_px`, 32 unless the settings say otherwise.
+BAR_H="${BAR_H:-32}"
+
+# Every bar surface's frame and commit counters from `sill debug stats`, as `name frames commits`
+# lines (popups, `<bar>/popup`, are left out).
+bar_counters() {
+  sill debug stats | python3 -c '
+import json, sys
+reply = json.loads(sys.stdin.read())
+for row in reply["v"]:
+    if row["surface"].startswith("sill-bar-") and "/" not in row["surface"]:
+        print(row["surface"], row["frames"], row["commits"])'
+}
 
 # 1. The daemon answers.
 step_ping() {
@@ -64,22 +80,47 @@ step_ipc_latency() {
 }
 
 # 5. A maximised foot window's height is output_h - bar_h (design/13 §13.3.1: Reserve(32)).
+#    shell-host's `probe_toplevel` stands in for foot: it asks to be maximised and prints each
+#    configure as JSON.
 step_exclusive_zone() {
-  echo "exclusive zone: bar-ui fill (maximise foot, read its configure size)" >&2
-  return 2
+  [ -x "$PROBE" ] || (cd "$HOST_REPO" && cargo build --release -p shell-host --features debug-inject \
+    --example probe_toplevel >&2) || return 1
+  local out_h probe_log="$OUT_DIR/probe.log" height
+  out_h=$(nested wayland-info | sed -n 's/.*logical_width: [0-9]*, logical_height: \([0-9]*\).*/\1/p' | head -1)
+  [ -n "$out_h" ] || { echo "no output height from wayland-info" >&2; return 1; }
+  # The probe reads commands on stdin, which must be pollable: a pipe, not /dev/null.
+  sleep 20 | nested "$PROBE" >"$probe_log" 2>&1 &
+  local probe=$!
+  for _ in $(seq 100); do
+    grep -q '"maximized":true' "$probe_log" && break
+    sleep 0.1
+  done
+  kill "$probe" 2>/dev/null; wait "$probe" 2>/dev/null
+  height=$(grep '"maximized":true' "$probe_log" | tail -1 | python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["height"])')
+  echo "output ${out_h}, maximised window ${height}, bar ${BAR_H}" | tee -a "$OUT_DIR/exclusive-zone.log" >&2
+  [ "$height" = "$(( out_h - BAR_H ))" ]
 }
 
 # 6. Idle: 5 s with the pointer still, the bar's commit counter does not move (plan M0 c).
+#    Also shoots the nested screen to dev/out/bar-cosmic.png.
 step_idle() {
-  echo "idle frames: bar-ui fill (sill debug stats twice, 5 s apart, compare commits)" >&2
-  return 2
+  local before after
+  sleep 1
+  before=$(bar_counters) || return 1
+  [ -n "$before" ] || { echo "no bar surface in 'sill debug stats'" >&2; return 1; }
+  sleep 5
+  after=$(bar_counters) || return 1
+  printf 'before:\n%s\nafter:\n%s\n' "$before" "$after" | tee "$OUT_DIR/idle.log" >&2
+  "$SHELL_HOST_DEV/shot.sh" "$SILL_REPO/dev/out/bar-cosmic.png" >&2 || true
+  [ "$before" = "$after" ]
 }
 
 # 7. Menus: a press on a title opens its menu; an outside press dismisses it (design/13 §13.8
-#    tests 1 and 3, through sill debug pointer).
+#    tests 1 and 3). `sill debug` has `pointer` (a motion) but no click, and a menu opens on a
+#    press, so this runs the bar on the same nested compositor through `bar_demo`, whose
+#    shell-host stdin commands can click (dev/accept-bar-ui.sh cosmic; FINDINGS "M1 bar-ui").
 step_menus() {
-  echo "menus open/dismiss: bar-ui fill" >&2
-  return 2
+  "$SILL_REPO/dev/accept-bar-ui.sh" cosmic >"$OUT_DIR/menus.log" 2>&1
 }
 
 # 8. Quit closes every surface and exits; a `ping` after it finds nobody home. Runs last: it

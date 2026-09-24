@@ -10,6 +10,7 @@ publish.workspace = true
 
 [dependencies]
 dioxus = { workspace = true }
+dioxus-native-dom = { workspace = true }
 ds = { workspace = true }
 ds-settings = { workspace = true }
 shell-host = { workspace = true }
@@ -22,6 +23,12 @@ tokio = { workspace = true }
 # `lint` is off by default (CONSUMING.md section 5): only test builds need `ds::lint::markup`.
 ds = { workspace = true, features = ["lint"] }
 dioxus-ssr = { workspace = true }
+shell-host = { workspace = true, features = ["debug-inject"] }
+
+# A standalone bar on a real compositor with fake services, for acceptance
+# (`dev/accept-bar-ui.sh`); `debug-inject` gives it shell-host's stdin commands.
+[[example]]
+name = "bar_demo"
 
 [lints]
 workspace = true

@@ -14,7 +14,7 @@ pub enum MenuSide {
 }
 
 /// The popup configuration for a bar menu anchored to the element `button`, at most `max_px`
-/// in each direction.
+/// in each direction, offset from the anchor corner by [`menu_offset`].
 pub fn menu_popup(button: &str, side: MenuSide, max_px: i32) -> PopupConfig {
     let (edge, gravity) = match side {
         MenuSide::Title => (Edge::BottomLeft, Edge::BottomRight),
@@ -27,13 +27,15 @@ pub fn menu_popup(button: &str, side: MenuSide, max_px: i32) -> PopupConfig {
         gravity,
         adjust: Adjust::SLIDE_AND_FLIP,
         grab: Grab::Grabbed,
-        offset: Offset::ZERO,
+        offset: {
+            let (dx, dy) = menu_offset(side);
+            Offset { dx, dy }
+        },
     }
 }
 
 /// The offset from the anchor corner design/13 §13.3.2 places a menu at: (-8, +6) for a title,
-/// (+8, +6) for a status item. shell-host's `PopupConfig` has no offset (FINDINGS.md, gap G3),
-/// so the component inflates the anchor element by this much instead.
+/// (+8, +6) for a status item: `PopupConfig::offset` (shell-host closed gap G3).
 pub fn menu_offset(side: MenuSide) -> (i32, i32) {
     match side {
         MenuSide::Title => (-8, 6),
@@ -44,7 +46,7 @@ pub fn menu_offset(side: MenuSide) -> (i32, i32) {
 #[cfg(test)]
 mod tests {
     use super::{MenuSide, menu_offset, menu_popup};
-    use shell_host::{Edge, ElementId, Grab, PopupAnchor, PopupSize};
+    use shell_host::{Edge, ElementId, Grab, Offset, PopupAnchor, PopupSize};
 
     #[test]
     fn titles_hang_right_and_status_items_hang_left() {
@@ -59,11 +61,13 @@ mod tests {
         );
         assert_eq!(title.size, PopupSize::FitContent { max: 600 });
         assert_eq!(title.grab, Grab::Grabbed);
+        assert_eq!(title.offset, Offset { dx: -8, dy: 6 });
         let status = menu_popup("bar-status-clock", MenuSide::Status, 600);
         assert_eq!(
             (status.edge, status.gravity),
             (Edge::BottomRight, Edge::BottomLeft)
         );
+        assert_eq!(status.offset, Offset { dx: 8, dy: 6 });
         assert_eq!(menu_offset(MenuSide::Title), (-8, 6));
         assert_eq!(menu_offset(MenuSide::Status), (8, 6));
     }

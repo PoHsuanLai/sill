@@ -62,17 +62,15 @@ impl Services {
     /// A service whose `spawn` is still a freeze stub is not called (a `todo!()` would panic
     /// `sill run` before it ever reaches the host or the IPC server, and the daemon has to
     /// start today): [`inert`] builds its pair locally instead, one line per service naming the
-    /// wave that replaces it. `battery`, `network`, `volume` (M1 svc-dbus) and `cosmic_wl` (M1
-    /// svc-cosmic) are real; `clock` (M1 bar-ui) and `tray` (M1 svc-tray) are still stubs as of
-    /// this write, alongside the M2-M6 services below.
+    /// wave that replaces it. Every M1 service is real: `clock` (M1 bar-ui), `battery`,
+    /// `network`, `volume` (M1 svc-dbus), `tray` (M1 svc-tray) and `cosmic_wl` (M1 svc-cosmic);
+    /// the M2-M6 services below are still stubs.
     pub fn spawn(rt: &Handle) -> Services {
-        // M1 bar-ui replaces this with clock::spawn.
-        let (clock, clock_control) = inert();
+        let (clock, clock_control) = crate::clock::spawn(rt);
         let (battery, battery_control) = crate::battery::spawn(rt);
         let (network, network_control) = crate::network::spawn(rt);
         let (volume, volume_control) = crate::volume::spawn(rt);
-        // M1 svc-tray replaces this with tray::spawn.
-        let (tray, tray_control) = inert();
+        let (tray, tray_control) = crate::tray::spawn(rt);
         let (workspaces, toplevels, wl) = crate::cosmic_wl::spawn();
         // M2 apps-index replaces this with apps::spawn.
         let (apps, apps_control) = inert();
@@ -137,15 +135,15 @@ mod tests {
 
     /// `Services::spawn` must never panic — the daemon has to reach the host connect and the
     /// IPC server before every milestone lands — and every receiver still stubbed out holds its
-    /// default (a service that is real, `battery`/`network`/`volume`/`cosmic_wl`, degrades to
-    /// its own default without a bus or a compositor, per `ServiceError`'s doc).
+    /// default (a service that is real, `battery`/`network`/`volume`/`tray`/`cosmic_wl`, degrades
+    /// to its own default without a bus or a compositor, per `ServiceError`'s doc); the clock
+    /// reads the time at once (`Thu 24 Sep 14:05`: four words).
     #[test]
     fn spawn_does_not_panic_and_every_stub_holds_its_default() {
         let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
         let services = Services::spawn(rt.handle());
 
-        assert_eq!(*services.clock.borrow(), Default::default());
-        assert_eq!(*services.tray.borrow(), Default::default());
+        assert_eq!(services.clock.borrow().text.split_whitespace().count(), 4);
         assert_eq!(*services.apps.borrow(), Default::default());
         assert_eq!(*services.badges.borrow(), Default::default());
         assert_eq!(*services.pins.borrow(), Default::default());

@@ -1,12 +1,35 @@
 //! The frontmost app's name, the first bar title (ui 13/700): its menu lists the app's windows and Quit.
 
-#![allow(unused_variables, dead_code)] // Freeze stubs
-
 use dioxus::prelude::*;
+use ds::{Button, ButtonVariant, use_rect};
 use shell_host::OutputInfo;
+use sill_services::OutputName;
+
+use super::content::front_app;
+use super::menus::BarMenu;
+use super::title::TitleSlot;
+use crate::hooks::{use_apps, use_toplevels};
+
+/// What the title says with no window on the output.
+const NO_APP: &str = "Desktop";
 
 /// The frontmost app's name, the first bar title (ui 13/700): its menu lists the app's windows and Quit.
 #[component]
 pub fn AppName(output: OutputInfo) -> Element {
-    todo!("M1 bar-ui")
+    let toplevels = use_toplevels();
+    let apps = use_apps();
+    let probe = use_rect();
+    let on = output.name.clone().map(OutputName);
+    let name = front_app(&toplevels(), &apps(), on.as_ref())
+        .map_or_else(|| NO_APP.to_owned(), |app| app.name);
+    rsx! {
+        TitleSlot { menu: BarMenu::App, probe,
+            Button {
+                variant: ButtonVariant::Quiet,
+                label: name,
+                onclick: move |()| {},
+                mounted: move |event| probe.on_mounted(event),
+            }
+        }
+    }
 }
