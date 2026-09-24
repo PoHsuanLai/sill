@@ -671,9 +671,7 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
         .iter()
         .flat_map(|(info, surfaces)| {
             let bar = surfaces.bar.map(|id| (bar_namespace(info), id));
-            let wallpaper = surfaces
-                .wallpaper
-                .map(|id| (wallpaper_namespace(info), id));
+            let wallpaper = surfaces.wallpaper.map(|id| (wallpaper_namespace(info), id));
             let dock = surfaces.dock.map(|id| (dock_namespace(info), id));
             let (panel, catcher) = launcher_namespaces(info);
             let launcher = surfaces.launcher.map(|id| (panel, id));
