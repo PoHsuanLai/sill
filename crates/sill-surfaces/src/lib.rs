@@ -8,9 +8,11 @@
 
 pub mod clock;
 pub mod hooks;
+pub mod measure;
 pub mod surfaces;
 
 pub use clock::FrameClock;
+pub use measure::MEASURE;
 pub use surfaces::bar::Bar;
 pub use surfaces::dock::Dock;
 pub use surfaces::launcher::{Launcher, LauncherCatcher};

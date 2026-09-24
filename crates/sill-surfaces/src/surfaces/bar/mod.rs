@@ -15,7 +15,6 @@ pub mod workspaces;
 
 mod content;
 mod geometry;
-mod measure;
 mod menu_popup;
 mod menus;
 mod pick;
@@ -75,7 +74,6 @@ fn active_look(
 /// and right groups, and the one reusable menu popup.
 #[component]
 pub fn Bar(output: OutputInfo) -> Element {
-    use_context_provider(|| measure::MEASURE);
     let file = use_settings()();
     let environment = use_appearance()();
     let workspaces = use_workspaces()();

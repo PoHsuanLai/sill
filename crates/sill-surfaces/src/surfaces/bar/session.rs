@@ -180,11 +180,13 @@ fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
             surface.open_popup(
                 config,
                 first,
-                Root::new(MenuPopup).context(PopupLink {
-                    view: rx,
-                    reports,
-                    volume,
-                }),
+                Root::new(MenuPopup)
+                    .context(crate::MEASURE)
+                    .context(PopupLink {
+                        view: rx,
+                        reports,
+                        volume,
+                    }),
             );
             link.write().view = Some(tx);
             open.set(Some(menu));

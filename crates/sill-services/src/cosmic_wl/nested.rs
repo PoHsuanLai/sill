@@ -290,3 +290,110 @@ fn a_client_in_nested_cosmic_is_published_and_obeys_commands() {
     control.send(WlCommand::Close(window.key)).expect("sent");
     wait_for(WITHIN, || state_of(window.key).is_none().then_some(())).expect("Close closes");
 }
+
+/// The M2 freeze amendment (FINDINGS F76) live: published coordinates and capabilities, pin and
+/// unpin when the workspace offers `Pin`, and moving a window to another workspace when the
+/// group has two (cosmic-comp keeps an empty one after the last occupied one).
+#[test]
+#[ignore = "needs a nested cosmic-comp"]
+fn the_amended_workspace_commands_take_effect_in_nested_cosmic() {
+    use super::{Pinning, WorkspaceCap, WorkspaceKey};
+
+    let nested = Nested::start();
+    let (program, app_id) = client_under_test();
+    let (workspaces, toplevels, control) = spawn_on(Endpoint::Socket(nested.socket.clone()));
+    let before = windows_of(&toplevels, &app_id);
+    let _client = Client(
+        Command::new(&program)
+            .env("WAYLAND_DISPLAY", &nested.display)
+            .spawn()
+            .unwrap_or_else(|e| panic!("{program} starts: {e}")),
+    );
+    let window = wait_for(WITHIN * 2, || {
+        windows_of(&toplevels, &app_id)
+            .into_iter()
+            .find(|w| !before.iter().any(|b| b.key == w.key) && !w.workspaces.is_empty())
+    })
+    .expect("a new toplevel on a workspace");
+    let all = wait_for(WITHIN, || {
+        let now = workspaces.borrow().clone();
+        now.groups
+            .iter()
+            .any(|g| g.workspaces.len() >= 2)
+            .then_some(now)
+    })
+    .unwrap_or_else(|| workspaces.borrow().clone());
+    eprintln!("workspaces: {all:?}");
+    let spaces: Vec<_> = all
+        .groups
+        .iter()
+        .flat_map(|g| g.workspaces.clone())
+        .collect();
+    assert!(
+        spaces.iter().all(|w| !w.coordinates.is_empty()),
+        "every workspace publishes its coordinates"
+    );
+    assert!(
+        spaces
+            .iter()
+            .all(|w| w.capabilities.contains(WorkspaceCap::Activate)),
+        "cosmic-comp offers activate on every workspace"
+    );
+
+    let home = window.workspaces[0];
+    let pinning_of = |key: WorkspaceKey| {
+        workspaces
+            .borrow()
+            .groups
+            .iter()
+            .flat_map(|g| g.workspaces.iter())
+            .find(|w| w.key == key)
+            .map(|w| w.pinning)
+    };
+    let offers_pin = spaces
+        .iter()
+        .find(|w| w.key == home)
+        .is_some_and(|w| w.capabilities.contains(WorkspaceCap::Pin));
+    if offers_pin {
+        control.send(WlCommand::PinWorkspace(home)).expect("sent");
+        wait_for(WITHIN, || {
+            (pinning_of(home)? == Pinning::Pinned).then_some(())
+        })
+        .expect("PinWorkspace pins");
+        control.send(WlCommand::UnpinWorkspace(home)).expect("sent");
+        wait_for(WITHIN, || {
+            (pinning_of(home)? == Pinning::Unpinned).then_some(())
+        })
+        .expect("UnpinWorkspace unpins");
+        eprintln!("pin and unpin took effect on {home:?}");
+    } else {
+        eprintln!("{home:?} does not offer pin; pin not exercised");
+    }
+
+    let other = all
+        .groups
+        .iter()
+        .find(|g| g.workspaces.iter().any(|w| w.key == home))
+        .and_then(|g| g.workspaces.iter().find(|w| w.key != home))
+        .map(|w| w.key);
+    if let Some(other) = other {
+        control
+            .send(WlCommand::MoveToplevelToWorkspace {
+                toplevel: window.key,
+                workspace: other,
+            })
+            .expect("sent");
+        wait_for(WITHIN, || {
+            let now = windows_of(&toplevels, &app_id);
+            now.iter()
+                .find(|w| w.key == window.key)
+                .is_some_and(|w| w.workspaces == vec![other])
+                .then_some(())
+        })
+        .unwrap_or_else(|| panic!("the window moves to {other:?}: {:?}", toplevels.borrow()));
+        eprintln!("the window moved from {home:?} to {other:?}");
+    } else {
+        eprintln!("one workspace only; move-to-workspace not exercised");
+    }
+    control.send(WlCommand::Close(window.key)).expect("sent");
+}

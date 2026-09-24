@@ -12,8 +12,8 @@ mod model;
 
 pub use icon::icon_url;
 pub use model::{
-    Availability, Check, Pixmap, Tray, TrayCommand, TrayEvent, TrayIcon, TrayItem, TrayItemId,
-    TrayMenuEntry, TrayMenuKind, TrayStatus, reduce_tray,
+    Availability, Check, Pixmap, ScrollAxis, ScrollDelta, Tray, TrayCommand, TrayEvent, TrayIcon,
+    TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind, TrayStatus, reduce_tray,
 };
 
 use tokio::runtime::Handle;

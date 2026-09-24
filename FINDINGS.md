@@ -673,14 +673,127 @@ Filled `launch::{spawn, launch_argv, scope_unit}`, `pins::{spawn, load, save}` a
   Wayland socket for `cosmic_wl` (F20-F24), so a real (empty) XDG config directory is the same
   kind of live dependency this test has always had, not a new one; noted here since it is now
   true of `sill-services`' own filesystem too, not only of buses and sockets.
+## M2 freeze amendments (2026-09-24)
 
+- **F76 The freeze was amended at the M1→M2 boundary.** CONVENTIONS §1 makes a frozen
+  signature a stop-and-report, and the M1 wave did stop and report: `Workspace` had no
+  coordinates or capabilities and `WlCommand` no pin, unpin or move-to-workspace (F23),
+  `TrayCommand` had no `Scroll` (F30), `DebugRequest` had no click so `sill debug` could not
+  open a menu (G8), and every shell-host root needed a `ds::HostMeasure` that only the bar
+  supplied (Q10). The dock (design/10 §10.3.6-10.3.7) and the switcher (design/13 §13.3.5) are
+  the next consumers of the same types, so the reported items were added in one coordinated
+  edit on `m2-amend`, while no M2 agent was coding against them, rather than as a surprise in
+  the middle of M2. Every change is additive and every existing test is unchanged:
+  - `sill_services::Workspace` gains `coordinates: Vec<u32>`, `capabilities: WorkspaceCaps`
+    and `pinning: Pinning`, all `#[serde(default)]` (F77); new public `WorkspaceCap`,
+    `WorkspaceCaps`, `Pinning`.
+  - `sill_services::WlCommand` gains `PinWorkspace(WorkspaceKey)`,
+    `UnpinWorkspace(WorkspaceKey)` and `MoveToplevelToWorkspace { toplevel: WindowKey,
+    workspace: WorkspaceKey }` (F78). `SetMinimizeRect` is **not** added: `set_rectangle`
+    needs the dock's `wl_surface`, which lives on shell-host's connection, and shell-host's
+    G2 (a way to bind the toplevel manager on its connection) is designed but not built.
+  - `sill_services::TrayCommand` gains `Scroll { item: TrayItemId, delta: ScrollDelta }`, with
+    new public `ScrollDelta { axis: ScrollAxis, steps: i32 }` and
+    `ScrollAxis::{Vertical, Horizontal}` (F79).
+  - `sill_ipc::DebugRequest` gains `Click { surface: SurfaceName, at: Point, button:
+    PointerButton }`, new public `PointerButton::{Primary, Secondary, Middle}`; the CLI gains
+    `sill debug click <surface> <x> <y> [--button primary|secondary|middle]` (F80).
+  - `sill_surfaces::MEASURE` (new `sill-surfaces/src/measure.rs`) replaces the bar's private
+    `surfaces/bar/measure.rs`, and the daemon provides it on every root (F81).
+- **F77 Workspace coordinates, capabilities and pinning.** `describe::workspace` copies cctk's
+  `coordinates` as they are (the groups were already ordered by them, F20) and merges the
+  ext-workspace capability bits (`activate`, `deactivate`, `remove`, `assign`) and COSMIC's
+  (`rename`, `set_tiling_state`, `pin`, `move`) into one `WorkspaceCaps`: a set that sorts and
+  deduplicates however it is built or decoded, so equal sets compare equal, with `contains`
+  for the gates. COSMIC's protocol XML gives `pin` the bitfield **value 3**, which is
+  `rename | set_tiling_state`; every flag is therefore compared whole (`contains`), and a
+  compositor that offers rename and tiling but not pin reads as offering pin. That is the
+  protocol's spelling, not ours; the table test pins it. `pinning` was not in the M1 report
+  but pin and unpin are useless to a surface that cannot show which one applies, so it rides
+  the same amendment, from COSMIC's `state` event (`pinned`), `Unpinned` where there is none.
+  All three fields are `#[serde(default)]`: the defaults (no coordinates, no capabilities,
+  unpinned) are what a compositor without them says, and a line of the old shape still decodes
+  (`a_workspace_without_the_amended_fields_still_decodes`).
+- **F78 The new commands are gated the way the existing ones are.** `PinWorkspace` and
+  `UnpinWorkspace` need a `zcosmic_workspace_handle_v2` of version 2 advertising `pin`, send
+  `pin`/`unpin` and commit the ext-workspace manager; `MoveWorkspace` now goes through the
+  same `cosmic_offers(version, offered, wanted)` gate (table-tested). `MoveToplevelToWorkspace`
+  needs the toplevel manager at version 4 advertising `move_to_ext_workspace` **or** the older
+  `move_to_workspace`: nested cosmic-comp 1.8 binds the manager at version 4 and carries out
+  `move_to_ext_workspace`, yet its `capabilities` event lists only `close, activate, maximize,
+  minimize, move_to_workspace` (seen live; the older request is a no-op there, and it takes a
+  `zcosmic_workspace_handle_v1` this thread never has). Gating on the ext capability alone
+  dropped every move on the one compositor that implements it (table-tested:
+  `move_to_ext_workspace_is_gated_on_version_4_and_either_capability`). It sends the request
+  with the output of the target workspace's group (the request needs one), falling back to an
+  output the window is on. An unknown key or a missing capability drops the command, as F22.
+  The ignored live test `the_amended_workspace_commands_take_effect_in_nested_cosmic` checks
+  the published fields, pin/unpin and the move against nested cosmic-comp (result below, F82).
+- **F79 `TrayCommand::Scroll`.** `system-tray` 0.8.9's `Client` has no scroll call and keeps its
+  bus connection private, so the host opens a second session connection of its own at start
+  and sends `org.kde.StatusNotifierItem.Scroll(delta, orientation)` to
+  `<destination>/StatusNotifierItem` (the only path the host addresses, F29), with
+  `orientation` `vertical` or `horizontal` and `delta` the notches unchanged. The sign
+  convention (positive is down or right, `wl_pointer`'s) is what the bar will send; which way
+  a given item treats a positive delta has not been checked against a real item yet. Without
+  a bus the scroll is dropped, as the other commands' failures are logged and dropped.
+- **F80 `sill debug click`, primary only.** The daemon maps `DebugRequest::Click` onto
+  shell-host's `Inject::Click { at }`, which presses and releases the **primary** button and
+  has no button field (shell-host `inject.rs`), so `--button secondary|middle` answers
+  `Failed(Unsupported)` naming G10 rather than sending a primary click in its place (tested:
+  `a_debug_click_maps_onto_shell_hosts_injection`). The dock's context menu (secondary press,
+  design/10 §10.3.7) therefore cannot yet be exercised through `sill debug`. `dev/accept-bar.sh`'s
+  menus step now clicks the daemon's own bar with `sill debug click` (the clock, 60 px from the
+  right end) and dismisses with a click on the bar's empty middle; a popup's presence is read
+  as whether `sill debug capture <bar>/popup` succeeds (`sill debug stats` lists bars only), so
+  `accept-bar-ui.sh cosmic` and `bar_demo` are no longer part of the daemon's acceptance. G8
+  is resolved by this. Run on the already-running nested cosmic-comp (`wayland-1`, 2176 x 1360,
+  `sill run` from this branch with `--features debug`): all eight steps pass; the maximised
+  probe is 1328 = 1360 - 32, the bar holds 5 frames and 5 commits across five idle seconds, and
+  a click at (2116, 16) opened `sill-bar-WINIT-0/popup` (the clock menu, no measure panic now
+  that the popup root carries `MEASURE`) and a click at (1088, 16) dismissed it.
+  `dev/out/bar-cosmic-menu.png` is now the daemon's own bar with its clock menu open.
+- **F81 One `HostMeasure` for every root.** Q10's twelve lines moved from
+  `surfaces/bar/measure.rs` to `sill-surfaces/src/measure.rs` as `pub const MEASURE`. The bar
+  and its menu popup no longer provide it themselves: `daemon::surface_root` puts `Services`,
+  `SettingsFeed` and `MEASURE` on every surface root the daemon spawns, so the wallpaper, dock
+  and launcher get it by construction. A popup is its own `VirtualDom` and inherits nothing
+  from the surface that opened it, so the two popup roots the bar opens (the menu popup and the
+  tray's dbusmenu popup, which had none) add `.context(crate::MEASURE)` themselves; so does
+  `examples/bar_demo.rs`, which builds its own root. When quire exports ds-native's measurer
+  (Q10) this module becomes a re-export.
+- **F82 What the dock and the switcher need, checked against the amended vocabulary.** design/10
+  §10.3.6-10.3.7 and design/13 §13.3.5 ask the compositor for: activate the most recent
+  toplevel, restoring it when minimized (`Activate`, which unminimizes first, F22); cycle an
+  app's toplevels (`Activate` of the next key); Hide and Option-click (`Minimize` per
+  toplevel); Quit (`Close` per toplevel); a picked window of the context menu (`Activate`).
+  All of these existed. Force Quit is a SIGKILL to the app's `app-sill-*` scope, which is the
+  launch service's, not `WlCommand`'s. The minimize target (§10.3.10) is the one thing still
+  missing, and deliberately (F76, G2). The dock's per-frame drive is not a sill signature:
+  shell-host `df9c59b` added `use_frame_tick()` and `SurfaceHandle::drive_frames() ->
+  FrameDrive`, which resolves G5, and shell-host F36 adds the rule the dock machine's settle
+  must follow: its drop condition must be reachable at any tick rate (nested cosmic-comp calls
+  back every 1-2 ms), so dock-ui's settle test needs a 1 ms case beside 16.7 ms. Live, on the
+  running nested cosmic-comp 1.8 (`wayland-1`, one output `WINIT-0`) with `cosmic-term`:
+  both workspaces published `coordinates` `[1]` and `[2]` and capabilities `[Activate, Rename,
+  SetTiling, Pin, Move]`; `PinWorkspace` then `UnpinWorkspace` on workspace 1 each took effect
+  in the published `pinning`; `MoveToplevelToWorkspace` moved the terminal from workspace 1 to
+  2 (its `workspaces` became `[2]`). The existing live test's harness leaks `cosmic-term`
+  processes that outlive the killed child (the terminal hands off to a second process), which
+  also holds a piped test's stdout open; kill them after a run.
+- **G5** RESOLVED (shell-host `df9c59b`, F36): `use_frame_tick` and `FrameDrive` (F82).
+- **G8** RESOLVED by F80. **F23**, **F30** and **Q10**'s sill half are resolved by F77-F79
+  and F81; Q10 itself (quire exporting ds-native's measurer) stays open.
+- **G10** shell-host's `Inject::Click { at }` presses the primary button only; a
+  `button` field (`MouseEventButton::Secondary`/`Auxiliary`) would let `sill debug click
+  --button secondary` open the dock's context menu (F80).
 ## M2 wallpaper (2026-09-24)
 
 Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
 `sill-services/src/wallpaper/mod.rs` (`WallpaperSource`, `Wallpapers`, `WallpaperImage`,
 `WallpaperCommand`) and `cache_file_name` needed no change.
 
-- **F76 The source is COSMIC's `all` record only, read by hand.** `ron` is not in the pinned
+- **F83 The source is COSMIC's `all` record only, read by hand.** `ron` is not in the pinned
   dependency block (CONVENTIONS §11: a new dependency is a change to `docs/workspace-deps.toml`,
   reviewed first, not added to one crate alone), so `config::parse_source_path` reads the one
   field it needs — `source: Path("...")` — out of the RON text directly rather than
@@ -703,7 +816,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   `WallpaperSource::Pair` is never produced by this reader — only `File` (one path, both
   schemes) or `None`. `config.rs`'s tests pin this exact record text as a fixture, plus a
   `Color(..)` source (no path) and a missing `source:` field, both answering `None`.
-- **F77 COSMIC's own default background is a format this crate's `image` build cannot decode.**
+- **F84 COSMIC's own default background is a format this crate's `image` build cannot decode.**
   The pinned `image = { features = ["png", "jpeg"] }` has no `jxl` feature, and cosmic-bg's
   stock backgrounds on this machine are all `.jxl` (`/usr/share/backgrounds/default.jxl` and
   `default-dark.jxl`, both symlinks into `f44/default/`); `/usr/share/backgrounds/cosmic/*.jpg`
@@ -714,7 +827,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   session with a PNG/JPEG background works today — but worth a install-time note if `sill`
   ever ships a `dist/` default: point it at one of the `cosmic/*.jpg` backgrounds, not
   `default.jxl`.
-- **F78 The cache hash is FNV-1a, not `DefaultHasher`.** `cache.rs`'s own doc names the reason
+- **F85 The cache hash is FNV-1a, not `DefaultHasher`.** `cache.rs`'s own doc names the reason
   (`DefaultHasher`'s `RandomState` seed changes every process, so the same source would get a
   new cache name on every restart — defeating the cache); `source_hash` feeds the path's raw
   bytes, the length and the modification time (nanoseconds since the epoch) through one FNV-1a
@@ -722,7 +835,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   all, so "renders only on change" holds at the cache layer too: a second `Prepare` for the
   same source and size never re-encodes (`resize.rs`'s own round-trip test asserts the cache
   file's mtime is unchanged the second time).
-- **F79 Cover-fit resize, then crop — not resize-to-cover in one call.** `geometry::cover_fit`
+- **F86 Cover-fit resize, then crop — not resize-to-cover in one call.** `geometry::cover_fit`
   is pure: given a source and a target size, it picks a `scaled` size (Lanczos3 target) that is
   never smaller than the target on either axis, and a centred `(crop_x, crop_y)`. `resize.rs`
   then calls `image::resize_exact` to `scaled` and `crop_imm` to the target, writing the result
@@ -733,7 +846,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   "a capture's centre pixel matches the source's" a meaningful acceptance check rather than a
   coincidence: cover-fit *by construction* keeps the source's own centre aligned to the
   target's.
-- **F80 The COSMIC config watch degrades to "read once" rather than failing to start.**
+- **F87 The COSMIC config watch degrades to "read once" rather than failing to start.**
   `watch::watch` needs `notify` to watch an existing directory; COSMIC's config tree may not
   exist at all outside a real COSMIC session (it does not on this dev machine before the
   acceptance script creates it). `nearest_existing_ancestor` walks up from the `all` file's
@@ -744,7 +857,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   Debounce is 500 ms (the brief's own number), distinct from `sill-settings::watch`'s 30 ms: a
   foreign config file is edited far less often than the shell's own, written by cosmic-bg on a
   human's own "change background" click, not a live-typing settings field.
-- **F81 `watch::watch` takes `&Handle`, not the bare `tokio::spawn`.** The first version called
+- **F88 `watch::watch` takes `&Handle`, not the bare `tokio::spawn`.** The first version called
   `tokio::spawn` directly inside `watch()`, which needs an entered runtime on the *calling*
   thread — true inside an `async fn` already running on a runtime, false for `Services::spawn`
   called from a plain thread holding only a `Handle` (exactly what
@@ -755,7 +868,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   called from the context of a Tokio 1.x runtime"); every other service's `spawn` in this crate
   already gets this right by using the passed `rt: &Handle` (`clock::spawn`'s `rt.spawn(run(..))`
   is the precedent) — `watch::watch` now does the same.
-- **F82 `sill run` does not yet spawn a wallpaper surface.** `crates/sill/src/daemon.rs`'s
+- **F89 `sill run` does not yet spawn a wallpaper surface.** `crates/sill/src/daemon.rs`'s
   `spawn_missing_bars`/`spawn_bar` are bar-specific; `outputs.rs`'s `OutputSurfaces.wallpaper`
   field and `OutputAction::Resize`'s own doc comment ("re-apply sizes, re-prepare the wallpaper")
   already anticipate a wallpaper surface, but nothing calls `wallpaper_layer` or sends
@@ -767,7 +880,7 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   `examples/wallpaper_demo.rs`, with everything else faked; its first step still runs against a
   live `sill run` when one exists and prints whether `sill debug stats` shows a
   `sill-wallpaper-*` surface, so the gap is visible on every run.
-- **F83 A concurrent quire merge broke `sill-surfaces`' bar code mid-wave; fixed by merging
+- **F90 A concurrent quire merge broke `sill-surfaces`' bar code mid-wave; fixed by merging
   master.** quire commit `f3c1115` ("Merge tray-gaps: external icons, submenus and disabled
   rows, element ids and pointer buttons", landed 2026-09-24 11:30, closing this repo's own
   Q6-Q8) changed `ds::Button` and `ds::IconButton`'s `onclick` from `EventHandler<()>` to
@@ -796,4 +909,15 @@ Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
   `--paper`) cover the root completely regardless of which material is picked; `Material::Window`
   is the one genuinely wrong choice, since its `--m-tint-solid` is the Space's own gradient
   (`var(--f-grad)`), exactly the per-workspace tint design/21 §8 says the wallpaper must not
-  carry.
+  carry.- **F91 A second merge, and `MEASURE` on the demo's own root.** Master moved again while this
+  wave was verifying (`d3ffa0c`, a fix to the bar's own menu test for the new `Submenu` variant,
+  and the M2 freeze amendment above): `cargo test --workspace` failed with the same
+  non-exhaustive-match shape as F90, this time in `surfaces/bar/content.rs`'s test helper —
+  fixed upstream by `d3ffa0c` before this wave ever touched that file. Merging `master` again
+  (now at `f10e63d`) picked that up; again no wallpaper file changed, only `FINDINGS.md`
+  conflicted (both sides appending). That merge also brought F81's `sill_surfaces::MEASURE`: a
+  popup or a demo that builds its own `Root` must add `.context(sill_surfaces::MEASURE)` itself
+  (the daemon does this for every surface it spawns, but `examples/wallpaper_demo.rs` builds its
+  own), so `spawn_wallpaper` in the demo now does too — without it, `Ds`'s `OverlayHost` panics
+  ("RefCell already borrowed") the first time the renderer polls a woken task inside its own
+  render pass (F81's own wording).

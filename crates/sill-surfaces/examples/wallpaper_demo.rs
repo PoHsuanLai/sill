@@ -90,13 +90,17 @@ fn spawn_wallpaper(
         eprintln!("wallpaper_demo: preparing {:?}: {error}", output.name);
     }
     let config = wallpaper_layer(&output);
+    // Every root needs `MEASURE` now (FINDINGS F81/F91): without it, `Ds`'s own `use_rect`
+    // reads (`OverlayHost`) panic the first time the renderer polls a woken task inside its
+    // own render pass.
     let root = Root::with_props(
         Wallpaper,
         WallpaperProps {
             output: output.clone(),
         },
     )
-    .context(services.clone());
+    .context(services.clone())
+    .context(sill_surfaces::MEASURE);
     if let Err(error) = ctx.spawn_layer(config, root) {
         eprintln!("wallpaper: {error}");
     }
