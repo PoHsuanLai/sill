@@ -136,6 +136,7 @@ fn run_event(
         other => {
             on_event(ctx, outputs, other);
             spawn_missing_bars(ctx, outputs, services, settings_feed, settings_tx);
+            spawn_missing_docks(ctx, outputs, services, settings_feed, settings_tx);
         }
     }
 }
@@ -267,6 +268,43 @@ fn spawn_bar(
             outputs.set(info, surfaces);
         }
         Err(error) => eprintln!("sill: spawning the bar on {:?}: {error}", info.name),
+    }
+}
+
+/// Spawn a dock for every output whose row has none yet (the bar's pattern). The dock follows
+/// later settings changes to its geometry itself (`surfaces::dock`).
+fn spawn_missing_docks(
+    ctx: &mut HostCtx<ShellMsg>,
+    outputs: &mut Outputs,
+    services: &Services,
+    settings_feed: &SettingsFeed,
+    settings_tx: &watch::Sender<ShellFile>,
+) {
+    let missing: Vec<OutputInfo> = outputs
+        .outputs
+        .iter()
+        .filter(|(_, surfaces)| surfaces.dock.is_none())
+        .map(|(info, _)| info.clone())
+        .collect();
+    let file = settings_tx.borrow().clone();
+    for info in missing {
+        let config = sill_surfaces::surfaces::dock::dock_layer(&info, &file.dock);
+        let props = sill_surfaces::surfaces::dock::DockProps {
+            output: info.clone(),
+        };
+        let root = surface_root(
+            Root::with_props(sill_surfaces::Dock, props),
+            services,
+            settings_feed,
+        );
+        match ctx.spawn_layer(config, root) {
+            Ok(id) => {
+                let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
+                surfaces.dock = Some(id);
+                outputs.set(info, surfaces);
+            }
+            Err(error) => eprintln!("sill: spawning the dock on {:?}: {error}", info.name),
+        }
     }
 }
 
@@ -412,14 +450,24 @@ fn apply_injection(_ctx: &mut HostCtx<ShellMsg>, _id: SurfaceId, _action: DebugA
     unsupported("built without the debug feature")
 }
 
-/// Every known bar's frame statistics, through the always-public `HostCtx::take_stats` (needs
-/// neither the `debug` feature nor shell-host's `debug-inject`; draining, so each report covers
+/// The dock's layer namespace on `info` (`sill-dock-<output>`), which `debug stats` reports.
+fn dock_namespace(info: &OutputInfo) -> String {
+    sill_surfaces::surfaces::dock::dock_layer(info, &sill_settings::DockSettings::default())
+        .namespace
+}
+
+/// Every known bar's and dock's frame statistics, through the always-public
+/// `HostCtx::take_stats` (needs neither the `debug` feature nor shell-host's `debug-inject`; draining, so each report covers
 /// only the time since the previous one).
 fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc::SurfaceStats> {
     let ids: Vec<(String, SurfaceId)> = outputs
         .outputs
         .iter()
-        .filter_map(|(info, surfaces)| Some((bar_namespace(info), surfaces.bar?)))
+        .flat_map(|(info, surfaces)| {
+            let bar = surfaces.bar.map(|id| (bar_namespace(info), id));
+            let dock = surfaces.dock.map(|id| (dock_namespace(info), id));
+            bar.into_iter().chain(dock)
+        })
         .collect();
     ids.into_iter()
         .filter_map(|(name, id)| Some(to_ipc_stats(name, ctx.take_stats(id)?)))

@@ -786,3 +786,112 @@ Filled `launch::{spawn, launch_argv, scope_unit}`, `pins::{spawn, load, save}` a
 - **G10** shell-host's `Inject::Click { at }` presses the primary button only; a
   `button` field (`MouseEventButton::Secondary`/`Auxiliary`) would let `sill debug click
   --button secondary` open the dock's context menu (F80).
+
+## M3 dock-ui (2026-09-24)
+
+Filled `surfaces/dock/**`: `Dock`, `Tile`, `dock_items`, `context_menu`, plus private modules
+(`frame`, `hit`, `pointer`, `activate`, `effects`, `changes`, `pick`, `icon`, `menu_geometry`,
+`menu_popup`, `session`, `view`) and one public addition, `dock::poke` (F97). The machine is
+unchanged but for a new test file (`machine/settle_tests.rs`); no machine bug was found. Numbers
+start at F92/Q15 so they cannot collide with m2-wallpaper's F83-F91 and Q14.
+
+- **F92 Frames through shell-host's frame hook.** The session holds a `FrameDrive` from the
+  machine's `RequestFrames` to its `StopFrames`, and a task awaiting `SurfaceHandle::next_frame`
+  feeds `Frame` on every tick (not `use_frame_tick`, which panics without a `SurfaceHandle` and
+  so could not render in an SSR test). `Redraw` and `StopFrames` both stamp the instant the
+  render draws at, so the frame a leave reaches rest on is drawn too (the machine emits
+  `StopFrames` alone there; design/10's table says `Redraw, StopFrames`; handled in the
+  component rather than by changing the machine's tested output). `WakeAt` is a `ds::sleep`
+  task feeding `Tick`. `machine/settle_tests.rs` drives enter, a tracked move, leave, an
+  informational bounce and a released drag frame by frame at 1 ms and 16.7 ms ticks: each stops
+  frames in bounded time (enter 120-160 ms, leave 200-220 ms, bounce 1000-1020 ms) at both rates.
+- **F93 The root is `Material::Bar`, the pill a `Surface{Dock}`.** A `Ds` root of
+  `Material::Dock` holding only positioned children is a zero-height, full-width box, and its
+  drop shadow still painted a grey band down from the surface's top (seen in `sill debug
+  capture`); Q13 again. The root takes Bar (no drop shadow) and the pill's box holds a nested
+  `Surface{Dock}`, which paints the tint, edge, drop and 22 px radius. `dock.pill_radius_px`
+  therefore does not reach the pill (a consumer may not style `.ds`); only the default 22 is
+  drawn (Q15). The Space's hue is the bar's own tint layer (`--f-solid` at `--m-tint-alpha`,
+  Q9, F48).
+- **F94 Icons.** `IconView` of `IconSource::Image` (or `Symbolic` for a `*-symbolic` file) from
+  the app's resolved `AppIcon::File` via `IconUrl::file`, `Glyph(Window)` when there is none
+  (design/08 §4.3), `Glyph(Trash)` for Trash. The plate is 80.5 % of the tile (§2.2), neutral
+  paper (`--raise` to `--surface-2`), `--shadow-2`, corner 22.37 % of its side; the icon is 72 %
+  of the plate (§4.1), a glyph 56 %. `ds::IconSize` stops at 22 px (`Bar`), so the icon is drawn
+  at 22 and scaled with `transform:scale` (Q16); on Blitz the themed SVGs stay sharp at 96 px
+  (dev/out/dock-cosmic-magnified.png). §4.2's squircle detection (fill the plate when the icon
+  already is one) is not built: COSMIC's own icons sit inside our plate.
+- **F95 Items, ids and running state.** Running apps follow the pins in launch order, read as
+  each group's smallest `WindowKey` (keys are handed out as toplevels are first seen). A tile's
+  `TileId` is an FNV-1a hash of what it stands for (`app:<id>`, `raw:<app_id>`, `trash`), not
+  its index, so a bounce stays on its app when another tile appears before it and a pinned and
+  running app is one tile (the frozen `TileId` doc says "index-stable key"; the hash is stable
+  across more). `TileApp::NoWindows` is never produced: nothing tells an alive, windowless
+  D-Bus app apart from one still starting, and a second click then would launch it twice.
+  `Active{windows}` counts the app's windows on every workspace; the cycle itself picks from
+  the output's active workspace.
+- **F96 Clicks, menu, drags.** Effects become commands in `effects.rs` (pure, table-tested):
+  launch through `SurfaceHandle::activation_token` then `LaunchCommand::Launch` (the daemon's
+  `launch.rs` is not reachable from a surface, so its two lines are repeated); middle click
+  prefers the `new-window` action; `Cycle` activates the app's least recently used window on the
+  active workspace, so repeated clicks visit every window (two alternate); Option-clicks
+  minimize per §10.3.6; Cmd-click is `LaunchCommand::ShowInFiles`. The Trash tile reads as a
+  running app to the hit test, so a click activates it (opening `trash:///` in COSMIC Files)
+  instead of starting a ten-second launch bounce; its context menu is empty, so a secondary
+  press on it opens nothing (Empty Trash needs a service sill does not have). The context menu
+  (`Menu{Context}` in an `xdg_popup`, one per press, `Grab::Grabbed`) is flat for
+  `WindowsFirst` (windows, desktop actions, Keep in Dock / Remove from Dock, Quit) and has the
+  `Options` submenu for `AppleOrder`; the popup is placed above the tile as drawn (magnified),
+  8 px gap, its height estimated (G7). Open at Login is not offered (no autostart writer);
+  Option-held Force Quit is built but never shown: layer surfaces get no keyboard while the menu
+  opens, so Option is always `Up`. The active window's `Check` is set but `Menu{Context}` draws
+  no check column (its rows are `Tiled`), so it does not show. Minimized windows are prefixed
+  `◆ ` (no ds diamond glyph). A drag reorders pins (`PinEvent::Move`), pins a running tile
+  dropped before the last pin, and unpins past the pill grown by `dock.remove_threshold_px`;
+  the ghost, the Remove label and the healing animation (§10.3.8) are not drawn (no ghost layer
+  surface, no pointer grab outside the input region to test with).
+- **F97 `dock::poke`, a harness's presses (G10).** shell-host injects primary clicks only, so
+  nothing could press the secondary button on a dock under test. `DockPokes(watch::Receiver<
+  Option<DockPoke>>)`, read with `try_consume_context` and so absent from the daemon's docks,
+  lets `examples/dock_demo.rs` feed the same move-and-press a pointer would (stdin `sill-dock-X
+  press secondary X Y`). It is a new public module; remove it once G10 is closed.
+- **F98 The hover label is ds `Tooltip{Fly}`,** whose own `:hover` rule and `--d-fly` delay show
+  it and HoverHub's warm state skip the delay. The machine's `ShowLabel`/`HideLabel` are
+  therefore not applied: the Fly has no controlled mode, so the label does not hide on press or
+  while a menu is open as §10.3.4 asks (Q17).
+- **F99 Not built:** auto-hide is wired (strip element, slide offset, the machine's region
+  effects) but not exercised live; overflow shrinking (§10.3.1), file drops and spring-loading
+  (G4), minimize targets (G2), UI sounds (M6), the pressed scrim (the frozen `Tile` props carry
+  no press), a launch bounce ending on `ScopeExited`/`LaunchFailed` (the 10 s cap ends it), the
+  progress bar style (`ProgressStyle::Bar` shows nothing). The ring is a `conic-gradient`.
+- **F100 Daemon.** `run_event` spawns a dock per output after the bar (`spawn_missing_docks`,
+  the bar's pattern), and `collect_stats` reports `sill-dock-<output>` beside the bars, which the
+  acceptance needs for its frame counts: two lines outside "the lines that spawn the dock",
+  flagged here. The dock follows later settings changes to its own layer (size, exclusive zone,
+  regions) through its `SurfaceHandle`. Side effect: `dev/accept-bar.sh` step 5 now sees a
+  maximised window of `output_h - 32 - 72` and needs the dock's reserve subtracted (not edited:
+  not owned here).
+- **F101 Acceptance** (`dev/accept-dock.sh`, nested cosmic-comp 1.8 on the running `wayland-1`,
+  2176 x 1360, `sill run` debug build with `--features debug` and a scratch `XDG_CONFIG_HOME`;
+  `sill debug stats` counters are cumulative, so the script takes differences): (1) a maximised
+  probe is 1256 = 1360 - 32 - 72; (2) 60 `sill debug pointer` moves in 1.000 s gave 51 frames for
+  52 callbacks (0.98), the leave's shrink 16 frames, then 0 frames in the next 5 s; (3) a click
+  on the pinned COSMIC Terminal tile launched it (`app-sill-com.system76.CosmicTerm-1.scope`)
+  and its running dot was in the dock's capture 561 ms later; (4) `badge_emitter
+  com.system76.CosmicTerm --count 5` turned the badge's pixel red in 377 ms; (5) `sill debug
+  click --button secondary` answers G10, so the menu opened through `dock_demo` after the daemon
+  quit (its popup `sill-dock-WINIT-0/popup`, 268 x 267, captured). Screenshots:
+  `dev/out/dock-cosmic.png` (rest, with the probe's unmatched window as a running tile),
+  `dev/out/dock-cosmic-magnified.png`, `dev/out/dock-cosmic-menu.png` (the demo's Terminal menu:
+  two windows, New Window, Remove from Dock, Quit).
+
+### Gaps found in M3 dock-ui
+
+- **Q15** `Surface` (and a `Ds` root) take the material's radius with no override, so
+  `dock.pill_radius_px` cannot reach the Dock pill (F93); and a zero-height root still paints its
+  material's drop shadow (Q13, now seen for Dock as well as Popover).
+- **Q16** `ds::IconSize` has no dock-tile size (48-128 px) and `IconView` no pixel size, so the
+  dock scales a 22 px icon (F94).
+- **Q17** `Tooltip{Fly}` is `:hover`-driven only; a controlled mode (shown/hidden by the caller)
+  would let the dock machine's label rules (hide on press, while a menu is open, while
+  dragging) apply (F98).

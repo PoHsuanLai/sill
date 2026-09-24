@@ -1,0 +1,4 @@
+/* A dock context menu's document (design/10 §10.3.7): the frame its Ds root sits in, placed so
+   the root's overlay bounds leave the menu's shadow room inside the popup
+   (dock/menu_geometry.rs). The inset is written inline from the geometry's constants. */
+.sill-dock-popup-frame{ position:absolute; }
