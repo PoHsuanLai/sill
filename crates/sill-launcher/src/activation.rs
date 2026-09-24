@@ -13,8 +13,14 @@ pub enum Activation {
     Launch { app: AppId, action: DesktopAction },
     /// Activate an open window.
     FocusWindow { window: WindowKey },
+    /// Ask an open window to close (the windows provider's Close action). M4 freeze
+    /// amendment, FINDINGS F111.
+    CloseWindow { window: WindowKey },
     /// Put text on the clipboard (the calculator's result).
     Copy { text: String },
+    /// Replace the launcher's query with `text` and keep it open (the calculator's secondary
+    /// action: carry on calculating from the result). M4 freeze amendment, FINDINGS F111.
+    Insert { text: String },
     /// Open a settings page.
     OpenSettings { target: SettingsTarget },
     /// A session command.
@@ -62,4 +68,65 @@ pub enum SystemCommand {
     ShutDown,
     /// Re-read settings, apps and pins (the same as `sill reload`).
     Reload,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Activation, DesktopAction, SettingsTarget, SystemCommand, WindowKey};
+    use crate::ids::AppId;
+
+    /// Every variant's wire form, pinned: the daemon and the launcher UI agree on these.
+    #[test]
+    fn every_activation_has_a_pinned_wire_form_and_round_trips() {
+        let cases: Vec<(Activation, &str)> = vec![
+            (
+                Activation::Launch {
+                    app: AppId("foot".to_owned()),
+                    action: DesktopAction::Named("new-window".to_owned()),
+                },
+                r#"{"kind":"launch","v":{"app":"foot","action":{"kind":"named","v":"new-window"}}}"#,
+            ),
+            (
+                Activation::FocusWindow {
+                    window: WindowKey(7),
+                },
+                r#"{"kind":"focus_window","v":{"window":7}}"#,
+            ),
+            (
+                Activation::CloseWindow {
+                    window: WindowKey(7),
+                },
+                r#"{"kind":"close_window","v":{"window":7}}"#,
+            ),
+            (
+                Activation::Copy {
+                    text: "42".to_owned(),
+                },
+                r#"{"kind":"copy","v":{"text":"42"}}"#,
+            ),
+            (
+                Activation::Insert {
+                    text: "42".to_owned(),
+                },
+                r#"{"kind":"insert","v":{"text":"42"}}"#,
+            ),
+            (
+                Activation::OpenSettings {
+                    target: SettingsTarget::Key("appearance.theme".to_owned()),
+                },
+                r#"{"kind":"open_settings","v":{"target":{"kind":"key","v":"appearance.theme"}}}"#,
+            ),
+            (
+                Activation::System(SystemCommand::ShutDown),
+                r#"{"kind":"system","v":"shut_down"}"#,
+            ),
+            (Activation::Nothing, r#"{"kind":"nothing"}"#),
+        ];
+        for (activation, wire) in cases {
+            let written = serde_json::to_string(&activation).unwrap_or_else(|e| panic!("{e}"));
+            assert_eq!(written, wire, "{activation:?}");
+            let read: Activation = serde_json::from_str(wire).unwrap_or_else(|e| panic!("{e}"));
+            assert_eq!(read, activation, "{wire}");
+        }
+    }
 }
