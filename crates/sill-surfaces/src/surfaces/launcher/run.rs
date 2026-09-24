@@ -1,7 +1,7 @@
-//! Carrying out a [`LauncherEffect`]: the effects end of choosing a row. A launch asks the
-//! compositor for an activation token first, from the panel while it is still mapped, so the
-//! app can take focus (the same two steps as the daemon's `sill::launch`, which a surface
-//! cannot reach).
+//! Carrying out a [`LauncherEffect`]: the effects end of choosing a row. A settings launch
+//! asks the compositor for an activation token first, from the panel while it is still mapped,
+//! so the app can take focus (the same two steps as the daemon's `sill::launch`, which a
+//! surface cannot reach). The insertion into the field is the panel's own (`events.rs`).
 
 use shell_host::SurfaceHandle;
 use sill_services::{LaunchCommand, LaunchRequest, ServiceError, Services};
@@ -28,7 +28,6 @@ pub async fn run_effect(
                 token,
             }))
         }
-        LauncherEffect::Wl(command) => services.wl.send(command),
         LauncherEffect::Copy(text) => {
             if let Some(surface) = &surface {
                 surface.copy_text(text);
@@ -39,7 +38,7 @@ pub async fn run_effect(
             eprintln!("sill: launcher: {}", unreachable_text(&why));
             Ok(())
         }
-        LauncherEffect::Nothing => Ok(()),
+        LauncherEffect::ByRunner | LauncherEffect::Insert(_) | LauncherEffect::Nothing => Ok(()),
     }
 }
 

@@ -1,7 +1,8 @@
 //! Fake services for the launcher's tests and `examples/launcher_demo.rs`: the bar's fakes, a
 //! search runner that answers every `SearchCommand::Query` on the frozen results `watch`
 //! channel with a new generation (as `sill_services::results::spawn` will once launcher-core
-//! lands), and providers that say what a fixed set of rows does.
+//! lands) and carries out chosen window and app rows as the real runner does, and providers
+//! that say what a fixed set of rows does.
 
 #![allow(dead_code)] // Each test binary uses its own subset.
 
@@ -12,9 +13,12 @@ use std::sync::{Arc, Mutex};
 
 use sill_launcher::{
     Action, ActionId, Activation, AppId, Choice, DesktopAction, Generation, IconRef, Item, ItemId,
-    Provider, ProviderKind, Query, ResultSink, Score, SettingsTarget, SystemCommand, WindowKey,
+    ItemKey, Provider, ProviderKind, Query, ResultSink, Score, SettingsTarget, SystemCommand,
+    WindowKey,
 };
-use sill_services::{Control, Results, SearchCommand, Services};
+use sill_services::{
+    Control, LaunchCommand, LaunchRequest, Results, SearchCommand, Services, WlCommand,
+};
 use sill_surfaces::surfaces::launcher::LauncherProviders;
 use tokio::sync::watch;
 
@@ -111,15 +115,24 @@ pub fn services() -> (Services, LauncherFeeds) {
     services.search = control;
     let searches = Arc::new(Mutex::new(Vec::new()));
     let (log, tx) = (searches.clone(), results_tx.clone());
+    let (wl, launch, fakes) = (services.wl.clone(), services.launch.clone(), providers());
     std::thread::spawn(move || {
         let mut generation = 0;
+        let mut rows = Vec::new();
         while let Some(command) = commands.blocking_recv() {
-            if let SearchCommand::Query(text) = &command {
-                generation += 1;
-                tx.send_replace(Results {
-                    generation: Generation(generation),
-                    items: search(text),
-                });
+            match &command {
+                SearchCommand::Query(text) => {
+                    generation += 1;
+                    rows = search(text);
+                    tx.send_replace(Results {
+                        generation: Generation(generation),
+                        items: rows.clone(),
+                    });
+                }
+                SearchCommand::Chosen { key, choice } => {
+                    carry(&rows, key, choice, &fakes, &wl, &launch);
+                }
+                SearchCommand::Cancel => rows.clear(),
             }
             if let Ok(mut log) = log.lock() {
                 log.push(command);
@@ -132,6 +145,34 @@ pub fn services() -> (Services, LauncherFeeds) {
         searches,
     };
     (services, feeds)
+}
+
+/// What the real runner does with a chosen row (sill-services `results/effect.rs`, FINDINGS
+/// F117): windows go to the compositor thread, launches to the launch service, the rest are
+/// the surface's.
+fn carry(
+    rows: &[Item],
+    key: &ItemKey,
+    choice: &Choice,
+    providers: &LauncherProviders,
+    wl: &Control<WlCommand>,
+    launch: &Control<LaunchCommand>,
+) {
+    let Some(item) = rows.iter().find(|i| ItemKey::of(i.provider, &i.id) == *key) else {
+        return;
+    };
+    let _ = match providers.activation(item, choice) {
+        Activation::FocusWindow { window } => wl.send(WlCommand::Activate(window)),
+        Activation::CloseWindow { window } => wl.send(WlCommand::Close(window)),
+        Activation::Launch { app, action } => launch.send(LaunchCommand::Launch(LaunchRequest {
+            app,
+            action,
+            files: Vec::new(),
+            uris: Vec::new(),
+            token: None,
+        })),
+        _ => Ok(()),
+    };
 }
 
 /// A provider that says what the catalogue's rows of `kind` do.

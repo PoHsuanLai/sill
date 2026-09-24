@@ -77,10 +77,30 @@ pub fn catcher_input(
     let panel = panel_rect(output, bar, launcher);
     let (right, bottom) = (panel.x + panel.width, panel.y + panel.height);
     let bands = [
-        Rect { x: 0, y: 0, width: w, height: panel.y },
-        Rect { x: 0, y: bottom, width: w, height: h - bottom },
-        Rect { x: 0, y: panel.y, width: panel.x, height: panel.height },
-        Rect { x: right, y: panel.y, width: w - right, height: panel.height },
+        Rect {
+            x: 0,
+            y: 0,
+            width: w,
+            height: panel.y,
+        },
+        Rect {
+            x: 0,
+            y: bottom,
+            width: w,
+            height: h - bottom,
+        },
+        Rect {
+            x: 0,
+            y: panel.y,
+            width: panel.x,
+            height: panel.height,
+        },
+        Rect {
+            x: right,
+            y: panel.y,
+            width: w - right,
+            height: panel.height,
+        },
     ];
     RegionSpec::Rects(
         bands
@@ -170,7 +190,12 @@ mod tests {
         let panel = panel_rect(&out, &bar, &launcher);
         assert_eq!(
             panel,
-            Rect { x: 620, y: 202, width: 680, height: 460 },
+            Rect {
+                x: 620,
+                y: 202,
+                width: 680,
+                height: 460
+            },
             "centred on 1920 x 1080"
         );
         let RegionSpec::Rects(bands) = catcher_input(&out, &bar, &launcher) else {
@@ -183,7 +208,10 @@ mod tests {
         assert_eq!(area, 1920 * 1080 - 680 * 460, "everything but the panel");
         let inside = |x: i32, y: i32| {
             bands.iter().any(|b| {
-                x >= b.rect.x && x < b.rect.x + b.rect.width && y >= b.rect.y && y < b.rect.y + b.rect.height
+                x >= b.rect.x
+                    && x < b.rect.x + b.rect.width
+                    && y >= b.rect.y
+                    && y < b.rect.y + b.rect.height
             })
         };
         assert!(inside(10, 10) && inside(619, 300) && inside(1300, 300) && inside(900, 662));

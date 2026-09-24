@@ -102,6 +102,15 @@ pub fn titles(harness: &Harness) -> Vec<String> {
         .collect()
 }
 
+/// The selected row's title.
+pub fn selected_title(harness: &Harness) -> Option<String> {
+    let html = harness.html();
+    let rest = html.split("aria-selected=\"true\"").nth(1)?;
+    let rest = &rest[rest.find("class=\"ds-menu-title\"")?..];
+    let inner = &rest[rest.find('>')? + 1..];
+    Some(strip_tags(&inner[..inner.find("</b>")?]))
+}
+
 /// `html` with its tags removed.
 fn strip_tags(html: &str) -> String {
     let mut text = String::new();
@@ -120,4 +129,32 @@ fn strip_tags(html: &str) -> String {
 /// Whether the launcher is open.
 pub fn is_open(link: &LauncherLink) -> bool {
     link.now().opening().is_some()
+}
+
+/// How many runs a test gets against the race.
+const RACE_TRIES: usize = 20;
+
+/// Run `test`, again when it dies of the one known race: quire's `Focus::OnMount` field calls
+/// `set_focus` from a task that dioxus-core can poll inside `render_immediate`, while
+/// dioxus-native-dom's writer holds the document ("RefCell already borrowed"; FINDINGS Q43,
+/// the rect-read race quire fixed, but for focus). Any other panic fails the test at once, and
+/// so does the race [`RACE_TRIES`] times over.
+pub fn retrying_the_focus_race<T>(test: impl Fn() -> T) -> T {
+    for _ in 0..RACE_TRIES {
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(&test)) {
+            Ok(value) => return value,
+            Err(panic) if is_focus_race(&*panic) => continue,
+            Err(panic) => std::panic::resume_unwind(panic),
+        }
+    }
+    panic!("the focus race (Q43) hit {RACE_TRIES} runs in a row");
+}
+
+fn is_focus_race(panic: &(dyn std::any::Any + Send)) -> bool {
+    let text = panic
+        .downcast_ref::<String>()
+        .map(String::as_str)
+        .or_else(|| panic.downcast_ref::<&str>().copied())
+        .unwrap_or_default();
+    text.contains("already borrowed")
 }

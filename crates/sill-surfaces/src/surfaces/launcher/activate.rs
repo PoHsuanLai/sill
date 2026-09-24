@@ -1,7 +1,7 @@
-//! Choosing a row: its provider says what should happen (`Provider::activate`, pure, the
-//! frozen `Activation` vocabulary) and the panel hands that to the service that does it — the
-//! launch service, the compositor thread, the clipboard — then closes. The mapping is pure;
-//! the panel runs it.
+//! Choosing a row: the panel sends `SearchCommand::Chosen` (the runner counts it and carries
+//! out window and app activations, FINDINGS F117), then asks the row's provider what it does
+//! (`Provider::activate`, pure, the `Activation` vocabulary) and does the rest itself: the
+//! clipboard, the field, a settings page. The mapping is pure; the panel runs it.
 
 use std::fmt;
 use std::sync::{Arc, Mutex};
@@ -10,10 +10,10 @@ use sill_launcher::{
     Activation, AppId, Choice, DesktopAction, Item, Provider, ProviderKind, SettingsTarget,
     SystemCommand,
 };
+use sill_services::Services;
 use sill_services::providers::{
     AppsProvider, CalculatorProvider, SettingsProvider, SystemProvider, WindowsProvider,
 };
-use sill_services::{Services, WlCommand};
 
 /// The desktop entry `SettingsTarget::Cosmic` opens.
 pub const COSMIC_SETTINGS: &str = "com.system76.CosmicSettings";
@@ -56,19 +56,27 @@ impl LauncherProviders {
         self.0
             .iter()
             .find(|provider| provider.kind() == item.provider)
-            .map_or(Activation::Nothing, |provider| provider.activate(item, choice))
+            .map_or(Activation::Nothing, |provider| {
+                provider.activate(item, choice)
+            })
     }
 }
 
-/// What the panel does for an activation.
+/// What the panel does for an activation, once it has sent `SearchCommand::Chosen`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LauncherEffect {
-    /// Ask for an activation token for `app`, then send the launch.
-    Launch { app: AppId, action: DesktopAction },
-    /// A command for the compositor thread.
-    Wl(WlCommand),
+    /// The search runner carries it out on `Chosen` (windows, launches; FINDINGS F117): the
+    /// panel only closes.
+    ByRunner,
+    /// Ask for an activation token for `app`, then send the launch (a settings page).
+    Launch {
+        app: AppId,
+        action: DesktopAction,
+    },
     /// Put the text on the clipboard.
     Copy(String),
+    /// Put the text in the search field and stay open.
+    Insert(String),
     /// Nothing sill can do from a surface yet; logged with the reason.
     Unreachable(Unreachable),
     Nothing,
@@ -84,13 +92,32 @@ pub enum Unreachable {
     SettingsKey(String),
 }
 
+/// Whether an effect ends the launcher.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AfterEffect {
+    Close,
+    StayOpen,
+}
+
+impl LauncherEffect {
+    /// Every effect closes the launcher but an insertion into its own field.
+    pub fn after(&self) -> AfterEffect {
+        match self {
+            LauncherEffect::Insert(_) => AfterEffect::StayOpen,
+            _ => AfterEffect::Close,
+        }
+    }
+}
+
 /// The effect of `activation`. `SettingsTarget::Cosmic` opens COSMIC Settings on its default
 /// page: its desktop entry's `Exec` takes no page argument (FINDINGS F146).
 pub fn effect_of(activation: Activation) -> LauncherEffect {
     match activation {
-        Activation::Launch { app, action } => LauncherEffect::Launch { app, action },
-        Activation::FocusWindow { window } => LauncherEffect::Wl(WlCommand::Activate(window)),
+        Activation::Launch { .. }
+        | Activation::FocusWindow { .. }
+        | Activation::CloseWindow { .. } => LauncherEffect::ByRunner,
         Activation::Copy { text } => LauncherEffect::Copy(text),
+        Activation::Insert { text } => LauncherEffect::Insert(text),
         Activation::OpenSettings {
             target: SettingsTarget::Cosmic(_),
         } => LauncherEffect::Launch {
@@ -107,12 +134,13 @@ pub fn effect_of(activation: Activation) -> LauncherEffect {
 
 #[cfg(test)]
 mod tests {
-    use super::{COSMIC_SETTINGS, LauncherEffect, LauncherProviders, Unreachable, effect_of};
+    use super::{
+        AfterEffect, COSMIC_SETTINGS, LauncherEffect, LauncherProviders, Unreachable, effect_of,
+    };
     use sill_launcher::{
         Activation, AppId, Choice, DesktopAction, IconRef, Item, ItemId, Provider, ProviderKind,
         Query, ResultSink, Score, SettingsTarget, SystemCommand, WindowKey,
     };
-    use sill_services::WlCommand;
     use std::sync::Arc;
 
     #[derive(Debug)]
@@ -167,16 +195,25 @@ mod tests {
                     app: firefox.clone(),
                     action: DesktopAction::Named("new-window".to_owned()),
                 },
-                LauncherEffect::Launch {
-                    app: firefox,
-                    action: DesktopAction::Named("new-window".to_owned()),
+                LauncherEffect::ByRunner,
+            ),
+            (
+                Activation::CloseWindow {
+                    window: WindowKey(9),
                 },
+                LauncherEffect::ByRunner,
+            ),
+            (
+                Activation::Insert {
+                    text: "42".to_owned(),
+                },
+                LauncherEffect::Insert("42".to_owned()),
             ),
             (
                 Activation::FocusWindow {
                     window: WindowKey(9),
                 },
-                LauncherEffect::Wl(WlCommand::Activate(WindowKey(9))),
+                LauncherEffect::ByRunner,
             ),
             (
                 Activation::Copy {
@@ -210,5 +247,10 @@ mod tests {
         for (activation, want) in cases {
             assert_eq!(effect_of(activation.clone()), want, "{activation:?}");
         }
+        assert_eq!(
+            LauncherEffect::Insert(String::new()).after(),
+            AfterEffect::StayOpen
+        );
+        assert_eq!(LauncherEffect::ByRunner.after(), AfterEffect::Close);
     }
 }

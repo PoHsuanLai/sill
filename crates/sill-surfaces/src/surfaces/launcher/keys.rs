@@ -192,12 +192,16 @@ pub fn previous_filter(filter: Filter) -> Filter {
 #[cfg(test)]
 mod tests {
     use super::{
-        ActionsMenu, Filter, LauncherKey, LauncherOut, LauncherState, next_filter,
-        previous_filter, step,
+        ActionsMenu, Filter, LauncherKey, LauncherOut, LauncherState, next_filter, previous_filter,
+        step,
     };
     use sill_launcher::{Choice, ProviderKind};
 
-    fn keys(keys: &[LauncherKey], rows: usize, actions: usize) -> (LauncherState, Vec<LauncherOut>) {
+    fn keys(
+        keys: &[LauncherKey],
+        rows: usize,
+        actions: usize,
+    ) -> (LauncherState, Vec<LauncherOut>) {
         keys.iter().fold(
             (LauncherState::default(), Vec::new()),
             |(state, mut out), key| {
@@ -251,7 +255,11 @@ mod tests {
         let (state, _) = keys(&[Down, Actions], 4, 3);
         assert_eq!(state.actions, ActionsMenu::Open { selected: 0 });
         let (state, _) = keys(&[Down, Actions, Down, Down, Down, Up], 4, 3);
-        assert_eq!(state.actions, ActionsMenu::Open { selected: 1 }, "clamped at 2, then up");
+        assert_eq!(
+            state.actions,
+            ActionsMenu::Open { selected: 1 },
+            "clamped at 2, then up"
+        );
         assert_eq!(state.selected, 1, "the row does not move under the menu");
         let (state, _) = keys(&[Actions, Actions], 4, 3);
         assert_eq!(state.actions, ActionsMenu::Closed, "Ctrl+K again closes");

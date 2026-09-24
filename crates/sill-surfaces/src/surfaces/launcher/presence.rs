@@ -15,7 +15,9 @@ use tokio::sync::watch;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LauncherShown {
     /// Hidden, remembering the last opening's serial so the next one counts on.
-    Hidden { last: OpenSerial },
+    Hidden {
+        last: OpenSerial,
+    },
     Shown(Opening),
 }
 
@@ -156,13 +158,15 @@ impl LauncherLink {
     /// `launcher toggle` on `output`.
     pub fn toggle(&self, output: OutputId) {
         let now = Instant::now();
-        self.0.send_modify(|shown| *shown = toggle(shown, output, now));
+        self.0
+            .send_modify(|shown| *shown = toggle(shown, output, now));
     }
 
     /// `launcher open --query` on `output`.
     pub fn open(&self, output: OutputId, query: String) {
         let now = Instant::now();
-        self.0.send_modify(|shown| *shown = open(shown, output, query, now));
+        self.0
+            .send_modify(|shown| *shown = open(shown, output, query, now));
     }
 
     /// `launcher close`, Escape, an activation or a catcher click.
@@ -204,12 +208,20 @@ mod tests {
     fn toggle_opens_fresh_and_closes() {
         let now = Instant::now();
         let first = toggle(&LauncherShown::default(), ONE, now);
-        let opening = first.opening().cloned().expect("toggle opens a hidden launcher");
+        let opening = first
+            .opening()
+            .cloned()
+            .expect("toggle opens a hidden launcher");
         assert_eq!(opening.query, "");
         assert_eq!(opening.serial, OpenSerial(1));
         assert_eq!(opening.focus, PanelFocus::Awaited);
         let closed = toggle(&first, ONE, now);
-        assert_eq!(closed, LauncherShown::Hidden { last: OpenSerial(1) });
+        assert_eq!(
+            closed,
+            LauncherShown::Hidden {
+                last: OpenSerial(1)
+            }
+        );
         // Every opening counts on, through a close or over an open one.
         let again = toggle(&closed, ONE, now);
         assert_eq!(again.opening().map(|o| o.serial), Some(OpenSerial(2)));
@@ -233,7 +245,12 @@ mod tests {
 
     #[test]
     fn the_launcher_shows_on_its_output_only() {
-        let shown = open(&LauncherShown::default(), ONE, String::new(), Instant::now());
+        let shown = open(
+            &LauncherShown::default(),
+            ONE,
+            String::new(),
+            Instant::now(),
+        );
         assert_eq!(shown.shows_on(ONE), Visible::Yes);
         assert_eq!(shown.shows_on(OutputId(2)), Visible::No);
         assert_eq!(shown.hidden().shows_on(ONE), Visible::No);
@@ -244,7 +261,10 @@ mod tests {
         let link = LauncherLink::new();
         let mut rx = link.subscribe();
         link.close();
-        assert!(!rx.has_changed().unwrap_or(true), "closing a closed launcher");
+        assert!(
+            !rx.has_changed().unwrap_or(true),
+            "closing a closed launcher"
+        );
         link.toggle(ONE);
         assert!(rx.has_changed().unwrap_or(false));
         let _ = rx.borrow_and_update();

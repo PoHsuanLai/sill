@@ -196,7 +196,10 @@ mod tests {
         // Recent mixes providers: a row without actions names its kind.
         let recent = trails("", &items);
         assert_eq!(recent[0].1, enter);
-        assert_eq!(recent[2], ("Mail".to_owned(), Trail::Note("Window".to_owned())));
+        assert_eq!(
+            recent[2],
+            ("Mail".to_owned(), Trail::Note("Window".to_owned()))
+        );
     }
 
     #[test]
@@ -231,6 +234,10 @@ mod tests {
         calc.icon = IconRef::Glyph("copy".to_owned());
         assert_eq!(glyph(&calc), Icon::Copy);
         calc.icon = IconRef::File("/usr/share/icons/x.svg".into());
-        assert_eq!(glyph(&calc), Icon::Command, "no file icons in a palette tile (Q42)");
+        assert_eq!(
+            glyph(&calc),
+            Icon::Command,
+            "no file icons in a palette tile (Q42)"
+        );
     }
 }

@@ -1173,3 +1173,141 @@ line (`results/{mod,run,sink,arrange,history,registry,effect,frecency_file}.rs`)
   apps), 200 queries after warm-up: p50 24 us, p95 32 us, max 60 us (asserted p95 < 10 ms).
   Release (`cargo run -p sill-services --example search_bench --release`): fixture p50 8 us,
   p95 11 us; 1500 apps p50 88 us, p95 183 us, max 240 us.
+
+## M4 launcher-ui (2026-09-24)
+
+Filled `surfaces/launcher/**`: `Launcher`, `LauncherCatcher`, `ResultsList`, `ActionsList`,
+`keys::step`, plus `presence`, `keymap`, `groups`, `entries`, `activate`, `session`,
+`mounting` (public, pure, table-tested) and the private `panel`, `events`, `follow`,
+`catcher`, `run`, `script`. Numbers start at F140/Q40/G20 so the parallel M4 waves cannot
+collide.
+
+- **F140 One shared launcher state; each surface maps itself.** `presence::LauncherLink` is a
+  `watch::Sender<LauncherShown>` (`Hidden { last }` or `Shown(Opening { output, query, serial,
+  requested, focus })`), created by the daemon and given to both launcher roots as a context
+  beside `surface_root`'s. The daemon writes it for `sill launcher toggle|open|close` and for
+  the panel's `KeyboardFocus`; the panel writes it for Escape and activations, the catcher for a
+  press. Each surface follows it onto its own `SurfaceOp::SetVisibility` (`follow.rs`), so
+  neither needs the other's id. A focus loss closes only a panel that has held focus since it
+  opened (the leave of the previous opening's unmap can arrive after the next toggle). The
+  launcher opens on the first output that has one: the daemon does not know which output the
+  pointer is on (design/13 §13.3.9 "the output under the pointer" is not met). Daemon lines
+  outside "spawn and route": the `run_event` parameter, the `KeyboardFocus` check, and
+  `collect_stats` reporting `sill-launcher-<output>` and `sill-launcher-catcher-<output>`
+  (the acceptance needs their frame counts), as the dock's F100.
+- **F141 The panel is quire's `CommandPalette`, as it is.** The palette owns its selection,
+  its Up/Down/Enter/Escape and its field's focus, and draws inside whatever surface hosts it:
+  its `--scrim` wrap fills the 680 x 460 panel surface and its card is 540 wide, 11 % of the
+  width down (a dim rectangle around the card, visible in the screenshots; Q40). The keys it
+  leaves alone reach the surface's root `div#panel`, which every key event reaches (bubbling
+  from the field, or targeted at the root with no focus): Tab and Shift+Tab step the frozen
+  machine's `Filter` (providers with no rows are skipped; the palette keeps its selection,
+  clamped, as the machine does), Ctrl+K and Alt+K open the machine's selected row's actions as
+  a `Menu{Rich}` anchored at a fixed point over the card (the palette reports no row rects,
+  Q41). The machine mirrors Up and Down to know that row; a selection the pointer moves is not
+  seen (Q41). `ResultsList` and `ActionsList` (frozen names, no handlers in their props) render
+  the same palette and menu inert, for pictures. Material is `launcher.material` (Sheet by
+  default) on a `Ds` root with the active workspace's `SpaceLook` and the environment's tint;
+  blur is the whole panel (`id="panel"`, radius 14), the card has no id of its own (Q40).
+  Grouping (`groups.rs`) agrees with launcher-core's arranged order (F114): typed text is the
+  Top hit then providers in Tab order, the empty query System rows as Actions then five as
+  Recent; a Tab filter shows one provider's rows. Row hints (`entries.rs`): `↵` on the row
+  Enter runs, `⌃K` on rows with actions, the kind as a note in mixed groups. The empty state
+  is `Nothing matches "<query>".` (the ds Menu's words; design/06 §11.3's text is mailo's).
+- **F142 `keys::step` and the actions menu.** `step` knows counts, not ids, so an Enter inside
+  the actions menu cannot name the action: `step` closes the menu there and emits nothing, and
+  the pick comes from the ds `Menu`'s `onpick`. Likewise Enter in the results is the palette's
+  (`onpick` carries the row's identity, which is safer than an index when a batch lands between
+  the key and the pick); the machine's `Activate` output is table-tested but not wired.
+- **F143 Activation.** A pick sends `SearchCommand::Chosen` first (the runner looks the row up
+  among the current rows and carries out `FocusWindow`, `CloseWindow` and `Launch`, F117), then
+  asks the row's provider (`LauncherProviders`, the five real ones built from `Services`, or a
+  demo's fakes) for its `Activation` and does the rest: `Copy` through
+  `SurfaceHandle::copy_text`, `Insert` into the field (the launcher stays), `OpenSettings`
+  `Cosmic` launches COSMIC Settings with an activation token taken from the panel before it
+  hides. Then the launcher closes, which sends `Cancel`. The palette's `onclose` comes just
+  before its `onpick`, so a dismissal is deferred a turn and skipped when a pick follows.
+  Every keystroke is `SearchCommand::Query` (the runner's generation); rows of the generation
+  the launcher opened over, or older, are not shown (`groups::fresh`).
+- **F144 Warm surfaces and latency.** Both surfaces are spawned at daemon start (catcher, then
+  panel) and hidden before their first paint; `set_visibility` shows and hides them (no
+  respawn). shell-host unmaps by destroying and rebuilding the layer surface, so the GPU
+  presenter is recreated at every show and the catcher is "painted once" per showing. The
+  panel logs `launcher.open_to_frame_ms=` (request to the first frame callback of the shown
+  panel, through a held `FrameDrive`); perf-ime's `launcher.open_latency_ms` (F102) times only
+  the IPC dispatch, which never waits for the frame. The catcher's input region is the output
+  less the panel's rectangle (`layer::catcher_input`), so a press on the panel reaches the panel
+  whichever Overlay surface is stacked on top.
+- **F145 Mounting policy, forced by Q43 and Q45.** A new palette mounts `MOUNT_WAIT` (60 ms)
+  after an opening, when its first results have usually landed (mounting during a results
+  re-render is when Q43 fires most); until then the previous palette shows the new opening's
+  state. A palette (and the actions menu) is never unmounted within `ENTRANCE_GUARD` (900 ms)
+  of mounting (Q45): a quick reopening reuses it (no entrance), the refocus after the actions
+  menu waits, and the palette stays mounted while the launcher is hidden. The field gets the
+  keyboard back after the actions menu only by a remount (Q44).
+- **F146 What an activation cannot reach yet.** `Services` has no session control, so
+  `Activation::System` (lock, log out, suspend, restart, shut down, reload) is logged and
+  dropped; `SettingsTarget::Key` has no settings app; COSMIC Settings' `Exec` takes no page, so
+  `SettingsTarget::Cosmic(page)` opens its default page.
+- **F147 IME.** The field is quire's `TextInput`, a Blitz text input; shell-host feeds it
+  `zwp_text_input_v3` preedit and commit as Blitz IME events (`ime.rs`), and Blitz's input sets
+  the preedit as parley's compose region, which it draws underlined, and inserts the commit.
+  Not verified live: the nested session has no input method, and `ds_native::Harness` has no
+  IME event to send (perf-ime owns the KWin CJK report, F104).
+- **F148 Tests.** `tests/launcher_lint.rs` (the stylesheet under Strict; the panel's markup
+  from the harness, since an SSR pass does not mount the floating palette; the SSR root and the
+  catcher), `tests/launcher_render.rs` (groups, the top hit selected with `↵`, `⌃K`, Actions and
+  Recent, the empty state, a calculation) and `tests/launcher_keys.rs` (Down, Down, Enter runs
+  the third row; Tab narrows to Applications, then Windows, and Enter still runs from the field;
+  Escape closes; Enter launches the top hit) drive the real `Launcher` in a
+  `ds_native::Harness` over a fake runner that answers queries with generations and carries out
+  chosen rows as F117 does. `ds-native` is a new dev-dependency (a sibling path, beside `ds`;
+  root `Cargo.toml` and `sill-surfaces/Cargo.toml`, not files this wave owns). Each harness test
+  runs again when it dies of Q43 (up to 20 times); in parallel runs the race hits often.
+- **F149 Acceptance** (`dev/accept-launcher-ui.sh`, nested cosmic-comp on the running
+  `wayland-1` after its restart on Mesa, scratch config). With the daemon built `--release
+  --features debug` (`SILL_BIN=target/release/sill`) all five steps pass: (1) both launcher
+  surfaces are in `sill debug stats` from the start and the panel cannot be captured (hidden);
+  (2) `sill launcher toggle` to a capture of `sill-launcher-WINIT-0` holding the panel: first
+  opening 106 ms, 10 warm openings min 52, p50 57, max 80 ms; the panel's
+  `launcher.open_to_frame_ms` read 105, then 54-79 ms; (3) a second toggle hides it and a click
+  on `sill-launcher-catcher-WINIT-0` closes a reopened one; (4) 5 s idle after the hide: 0
+  frames on the panel and on the catcher; (5) on `examples/launcher_demo.rs` (fake runner;
+  typing and Ctrl+K on its stdin, G20): `open`, `type fi` shows the grouped rows, `key actions`
+  opens Firefox's actions (20014 pixels change), two `key escape` close the menu then the
+  launcher. With the debug daemon step 2 fails: warm openings take 200-240 ms (the first frame
+  of a debug-built Blitz render), the rest pass. A 15-opening stress on the debug daemon,
+  toggles 150 ms apart included, did not crash after F145 (before it, Q45 killed the daemon).
+  Screenshots: `dev/out/launcher-cosmic.png` (open over "fi"),
+  `dev/out/launcher-cosmic-actions.png` (Firefox's actions menu). The catcher is sized by the
+  viewport (`100vw` x `100vh`): an empty absolutely placed box with `inset:0` got no hit area on
+  Blitz and the catcher's press never arrived (`tests/launcher_catcher.rs`).
+
+### Gaps found in M4 launcher-ui
+
+- **Q40** `CommandPalette` has no embedded mode: it always draws its scrim wrap over the whole
+  host and a `min(540px, 88%)` card placed 11 % down, so a shell panel surface shows a dimmed
+  rectangle around a card smaller than the surface, and the card carries no id for a blur
+  region. Its entrance is fixed (`peek-in`); `cmdk-in` is not selectable.
+- **Q41** `CommandPalette` exposes neither its selection (no `selected`/`on_select`) nor its
+  rows' rects, and passes no key through: Tab and Ctrl+K are read at the surface root and the
+  selection is mirrored from Up/Down, which misses a pointer-moved selection.
+- **Q42** `Tile` (a palette row's tile) takes a glyph, text or avatar, not an `IconSource`, so
+  app icon files cannot be drawn in the launcher; rows show their provider's glyph.
+- **Q43** `TextInput { focus: Focus::OnMount }` calls `MountedData::set_focus` from a spawned
+  task; dioxus-core polls a task woken in the same turn as a dirty scope inside
+  `render_immediate`, where dioxus-native-dom's writer holds the document, and `set_focus`
+  borrows it mutably: "RefCell already borrowed" (dioxus-native-dom `events.rs:161`), the rect
+  race quire fixed with `HostMeasure`, now for focus. In `ds_native::Harness` it panics often;
+  live (shell-host polls the same way) it did not show in 25 openings and 25 Tabs, but it
+  would take the daemon down.
+- **Q44** No way to give a field focus again: no focus prop or handle on `SearchField`, so after
+  a ds `Menu` takes the keyboard the palette must be remounted (replaying its entrance).
+- **Q45** `MotionTimer` (`ds/src/motion/timer.rs`) spawns its settle task with `spawn_in(scope)`
+  and sets its signals after the sleep; when the component unmounts first, `task.set(None)`
+  panics ("ValueDroppedError", line 50) and takes the process down. Found live: the daemon
+  died on a `sill launcher toggle` pair 0.5 s apart, which unmounted a palette mid `peek-in`.
+  Any `use_entrance` user (palette, menu, popover) unmounted early is exposed.
+- **G20** shell-host's `debug-inject` has pointer and click but no key, so `sill debug` cannot
+  type or press Escape/Ctrl+K; the demo takes those on stdin through a `LauncherScript` context
+  only it provides (`script.rs`).

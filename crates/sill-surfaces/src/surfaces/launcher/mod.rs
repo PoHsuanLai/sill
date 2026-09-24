@@ -22,6 +22,7 @@ pub mod session;
 mod catcher;
 mod events;
 mod follow;
+mod mounting;
 mod panel;
 mod run;
 

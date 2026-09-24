@@ -37,6 +37,8 @@ pub const ACTIONS_AT: Point = Point {
 pub(crate) struct Shown {
     pub session: Session,
     pub groups: Vec<Group>,
+    /// The palette's mount (`mounting.rs`).
+    pub key: u64,
 }
 
 impl Shown {
@@ -65,12 +67,16 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
     let results = use_results();
     let panel = use_panel(output.id, results);
     use_script(panel.clone());
-    let shown = panel.opening_tracked().map(|opening| {
-        let session = panel.session.read().for_opening(&opening);
-        Shown {
-            groups: shown_groups(&results.read(), &session),
-            session,
-        }
+    // While hidden, the last opening's palette stays mounted (`mounting.rs`).
+    let session = match panel.opening_tracked() {
+        Some(opening) => panel.session.read().for_opening(&opening),
+        None => panel.session.read().clone(),
+    };
+    let key = panel.palette.read().key;
+    let shown = (key > 0).then(|| Shown {
+        groups: shown_groups(&results.read(), &session),
+        session,
+        key,
     });
     let onkey = {
         let panel = panel.clone();
@@ -107,7 +113,7 @@ fn palette(panel: &PanelCtx, shown: &Shown) -> Element {
     let selected = shown.selected().map(RowRef::of);
     rsx! {
         CommandPalette::<RowRef> {
-            key: "{session.palette_key()}",
+            key: "{shown.key}",
             label: "Search",
             placeholder: "Search apps, windows and settings",
             query: session.query.clone(),

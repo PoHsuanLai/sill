@@ -188,7 +188,12 @@ mod tests {
     fn shape(query: &str, filter: Filter) -> Vec<(&'static str, Vec<String>)> {
         groups(&sample(), query, filter)
             .into_iter()
-            .map(|g| (g.title.text(), g.rows.into_iter().map(|i| i.title).collect()))
+            .map(|g| {
+                (
+                    g.title.text(),
+                    g.rows.into_iter().map(|i| i.title).collect(),
+                )
+            })
             .collect()
     }
 
@@ -210,7 +215,10 @@ mod tests {
     #[test]
     fn the_empty_query_lists_actions_then_recent() {
         let got = shape("  ", Filter::All);
-        assert_eq!(got[0], ("Actions", vec!["Log Out".to_owned(), "Lock".to_owned()]));
+        assert_eq!(
+            got[0],
+            ("Actions", vec!["Log Out".to_owned(), "Lock".to_owned()])
+        );
         assert_eq!(got[1].0, "Recent");
         assert_eq!(
             got[1].1,
@@ -231,7 +239,11 @@ mod tests {
         );
         let lone = vec![item(ProviderKind::Apps, "Files", 1)];
         let got = groups(&lone, "f", Filter::All);
-        assert_eq!(got.len(), 1, "the top hit alone; the Applications group is empty");
+        assert_eq!(
+            got.len(),
+            1,
+            "the top hit alone; the Applications group is empty"
+        );
         assert_eq!(got[0].title, GroupTitle::TopHit);
         assert!(groups(&[], "f", Filter::All).is_empty(), "nothing matches");
         assert_eq!(rows(&groups(&sample(), "f", Filter::All)).len(), 8);
@@ -244,7 +256,12 @@ mod tests {
             .collect();
         let got = groups(&many, "app", Filter::All);
         assert_eq!(got[1].rows.len(), 6);
-        assert_eq!(groups(&many, "app", Filter::Only(ProviderKind::Apps))[0].rows.len(), 10);
+        assert_eq!(
+            groups(&many, "app", Filter::Only(ProviderKind::Apps))[0]
+                .rows
+                .len(),
+            10
+        );
     }
 
     #[test]
@@ -265,7 +282,10 @@ mod tests {
         ];
         let tab = |f| next_shown(&only_apps_and_system, "l", f, next_filter);
         assert_eq!(tab(Filter::All), Filter::Only(ProviderKind::Apps));
-        assert_eq!(tab(Filter::Only(ProviderKind::Apps)), Filter::Only(ProviderKind::System));
+        assert_eq!(
+            tab(Filter::Only(ProviderKind::Apps)),
+            Filter::Only(ProviderKind::System)
+        );
         assert_eq!(tab(Filter::Only(ProviderKind::System)), Filter::All);
         let back = |f| next_shown(&only_apps_and_system, "l", f, previous_filter);
         assert_eq!(back(Filter::All), Filter::Only(ProviderKind::System));

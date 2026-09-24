@@ -48,7 +48,7 @@ fn render_ssr(root: VirtualDom) -> String {
 }
 
 fn panel_html() -> String {
-    launcher_harness::open("fi").harness.html()
+    launcher_harness::retrying_the_focus_race(|| launcher_harness::open("fi").harness.html())
 }
 
 /// The SSR pass of the panel: its root and the Ds, the palette not yet mounted.

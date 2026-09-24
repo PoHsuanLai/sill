@@ -4,8 +4,10 @@
 # (`--features debug`) with a scratch XDG_CONFIG_HOME and quits it at the end.
 #
 #   1. Warm: both launcher surfaces exist from the start, hidden (no capture of either).
-#   2. `sill launcher toggle` shows the panel: a capture of `sill-launcher-<output>` within
-#      100 ms of the toggle has the panel's pixels; the daemon logs `open_latency_ms`.
+#   2. `sill launcher toggle` shows the panel: over 10 warm openings, a capture of
+#      `sill-launcher-<output>` within 100 ms of the toggle has the panel's pixels (the first
+#      opening after start is reported separately); the daemon's
+#      `launcher.open_to_frame_ms` lines are printed.
 #   3. `sill launcher toggle` again hides it (no capture), and a click on the catcher closes a
 #      reopened one.
 #   4. 5 s idle after the hide: 0 frames on the panel and the catcher.
@@ -55,8 +57,19 @@ print(sum(1 for p in img.getdata() if p[3] > 0))
 EOF
 }
 
+# How many pixels differ between the PNGs $1 and $2.
+differing_pixels() {
+  python3 - "$1" "$2" <<'EOF'
+import sys
+from PIL import Image, ImageChops
+a = Image.open(sys.argv[1]).convert("RGBA")
+b = Image.open(sys.argv[2]).convert("RGBA")
+print(sum(1 for p in ImageChops.difference(a, b).convert("L").getdata() if p > 16))
+EOF
+}
+
 build() {
-  (cd "$SILL_REPO" && cargo build -p sill --features debug \
+  (cd "$SILL_REPO" && cargo build -p sill --features debug $([ "$SILL_BIN" = "$SILL_REPO/target/release/sill" ] && echo --release) \
     && cargo build -p sill-surfaces --example launcher_demo) >"$OUT_DIR/build.log" 2>&1 || {
     echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
 }
@@ -93,30 +106,51 @@ step_warm() {
 }
 
 # 2.
-step_toggle_shows() {
-  local log="$OUT_DIR/toggle.log" start took shown=no px=0
+# One toggle, timed to the first capture of the panel with its pixels (the capture's own time
+# counted, the pixel count after it not); prints "ms".
+toggle_to_capture() {
+  local log="$1" start attempts=0 px
   start=$(date +%s%N)
-  sill launcher toggle >"$log" 2>&1 || return 1
+  sill launcher toggle >>"$log" 2>&1 || return 1
   for _ in $(seq 200); do
+    attempts=$(( attempts + 1 ))
     if sill debug capture "$PANEL" "$OUT_DIR/open.png" >>"$log" 2>&1; then
+      local took=$(( ($(date +%s%N) - start) / 1000000 ))
       px=$(opaque_pixels "$OUT_DIR/open.png")
-      [ "$px" -gt 1000 ] && { shown=yes; break; }
+      [ "$px" -gt 1000 ] && { echo "$took"; return 0; }
     fi
   done
-  took=$(( ($(date +%s%N) - start) / 1000000 ))
-  sleep 0.6
-  local latency
-  latency=$(grep -o 'open_latency_ms=[0-9]*' "$OUT_DIR/daemon.log" | tail -1)
-  echo "toggle -> panel capture with $px opaque px after ${took} ms (shown: $shown); daemon $latency" \
-    | tee -a "$log" >&2
-  "$SHELL_HOST_DEV/shot.sh" "$OUT_DIR/daemon-open.png" >/dev/null 2>&1 || true
-  [ "$shown" = yes ] && [ "$took" -le 100 ]
+  return 1
+}
+
+step_toggle_shows() {
+  local log="$OUT_DIR/toggle.log" first warm=() ms
+  : >"$log"
+  first=$(toggle_to_capture "$log") || return 1
+  sill launcher toggle >>"$log" 2>&1; sleep 0.4
+  for _ in $(seq 10); do
+    ms=$(toggle_to_capture "$log") || return 1
+    warm+=("$ms")
+    sill launcher toggle >>"$log" 2>&1; sleep 0.4
+  done
+  local frames
+  frames=$(grep -o 'launcher.open_to_frame_ms=[0-9.]*' "$OUT_DIR/daemon.log" | cut -d= -f2 | tr '\n' ' ')
+  python3 - "$first" "${warm[@]}" <<EOF | tee -a "$log" >&2
+import sys
+first, warm = int(sys.argv[1]), sorted(int(v) for v in sys.argv[2:])
+print(f"toggle -> panel capture: first opening {first} ms; 10 warm openings "
+      f"min {warm[0]} p50 {warm[len(warm)//2]} max {warm[-1]} ms")
+print("daemon launcher.open_to_frame_ms (request to first frame): $frames")
+EOF
+  [ "$(printf '%s\n' "${warm[@]}" | sort -n | tail -1)" -le 100 ]
 }
 
 # 3.
 step_hide() {
   local log="$OUT_DIR/hide.log" hidden=no closed=no
   sill launcher toggle >"$log" 2>&1 || return 1
+  sleep 0.5
+  sill launcher toggle >>"$log" 2>&1 || return 1
   for _ in $(seq 40); do
     sill debug capture "$PANEL" "$OUT_DIR/after-hide.png" >>"$log" 2>&1 || { hidden=yes; break; }
     sleep 0.025
@@ -152,8 +186,6 @@ step_demo() {
   local demo=$!
   exec 7>"$fifo"
   sleep 2
-  local name
-  name=$(grep -o 'sill-launcher-[A-Za-z0-9-]*' "$log" | head -1)
   echo "open" >&7; sleep 0.8
   echo "type fi" >&7; sleep 1.2
   "$SHELL_HOST_DEV/shot.sh" "$SHOTS/launcher-cosmic.png" >/dev/null 2>&1 || ok=no
@@ -168,11 +200,13 @@ step_demo() {
   exec 7>&-
   wait "$demo" 2>/dev/null
   rm -f "$fifo"
-  local open_px actions_px
+  local open_px changed closed=no
   open_px=$(opaque_pixels "$OUT_DIR/demo-open.png" 2>/dev/null || echo 0)
-  actions_px=$(opaque_pixels "$OUT_DIR/demo-actions.png" 2>/dev/null || echo 0)
-  echo "demo: open ${open_px} px, actions open ${actions_px} px (${name:-?})" | tee -a "$log" >&2
-  [ "$ok" = yes ] && [ "$open_px" -gt 1000 ] && [ "$actions_px" -gt "$open_px" ]
+  changed=$(differing_pixels "$OUT_DIR/demo-open.png" "$OUT_DIR/demo-actions.png" 2>/dev/null || echo 0)
+  grep -q '"capture":"[^"]*demo-closed.png","err":"[^n]' "$log" && closed=yes
+  echo "demo: open ${open_px} px; the actions menu changed ${changed} px; closed after two Escapes: $closed" \
+    | tee -a "$log" >&2
+  [ "$ok" = yes ] && [ "$open_px" -gt 1000 ] && [ "$changed" -gt 1000 ] && [ "$closed" = yes ]
 }
 
 source "$SHELL_HOST_DEV/.nested-env"

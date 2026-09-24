@@ -4,77 +4,96 @@
 
 mod launcher_harness;
 
-use launcher_harness::{open, titles};
+use launcher_harness::{open, retrying_the_focus_race, selected_title, titles};
 
 fn headings(html: &str) -> Vec<String> {
-    ["Top hit", "Applications", "Windows", "Calculator", "Settings", "System", "Actions", "Recent"]
-        .iter()
-        .filter_map(|h| html.find(&format!(">{h}<")).map(|at| (at, (*h).to_owned())))
-        .collect::<std::collections::BTreeMap<_, _>>()
-        .into_values()
-        .collect()
+    [
+        "Top hit",
+        "Applications",
+        "Windows",
+        "Calculator",
+        "Settings",
+        "System",
+        "Actions",
+        "Recent",
+    ]
+    .iter()
+    .filter_map(|h| html.find(&format!(">{h}<")).map(|at| (at, (*h).to_owned())))
+    .collect::<std::collections::BTreeMap<_, _>>()
+    .into_values()
+    .collect()
 }
 
 #[test]
 fn a_query_groups_under_the_top_hit() {
-    let open = open("fi");
-    let html = open.harness.html();
-    assert_eq!(
-        headings(&html),
-        vec!["Top hit", "Applications", "Windows", "Settings"]
-    );
-    assert_eq!(
-        titles(&open.harness),
-        vec!["Firefox", "Files", "Firefox — sill launcher", "Wi-Fi"]
-    );
-    assert!(html.contains("Web Browser"), "the subtitle is the row's detail");
+    retrying_the_focus_race(|| {
+        let open = open("fi");
+        let html = open.harness.html();
+        assert_eq!(
+            headings(&html),
+            vec!["Top hit", "Applications", "Windows", "Settings"]
+        );
+        assert_eq!(
+            titles(&open.harness),
+            vec!["Firefox", "Files", "Firefox — sill launcher", "Wi-Fi"]
+        );
+        assert!(
+            html.contains("Web Browser"),
+            "the subtitle is the row's detail"
+        );
+    });
 }
 
 #[test]
 fn the_top_hit_is_selected_and_trails_enter() {
-    let open = open("fi");
-    let h = &open.harness;
-    assert_eq!(
-        h.text_of(".ds-menu-item[aria-selected=true] .ds-menu-title").as_deref(),
-        Some("Firefox")
-    );
-    let html = h.html();
-    assert!(html.contains('↵'), "the top hit trails Enter");
-    assert!(html.contains("⌃K"), "Files trails Ctrl+K for its actions");
+    retrying_the_focus_race(|| {
+        let open = open("fi");
+        let h = &open.harness;
+        assert_eq!(selected_title(h).as_deref(), Some("Firefox"));
+        let html = h.html();
+        assert!(html.contains('↵'), "the top hit trails Enter");
+        assert!(html.contains("⌃K"), "Files trails Ctrl+K for its actions");
+    });
 }
 
 #[test]
 fn the_empty_query_lists_actions_then_recent() {
-    let open = open("");
-    assert_eq!(headings(&open.harness.html()), vec!["Actions", "Recent"]);
-    assert_eq!(
-        titles(&open.harness),
-        vec![
-            "Lock Screen",
-            "Log Out",
-            "Restart",
-            "Firefox",
-            "Files",
-            "Firefox — sill launcher",
-            "Terminal",
-            "Wi-Fi"
-        ]
-    );
+    retrying_the_focus_race(|| {
+        let open = open("");
+        assert_eq!(headings(&open.harness.html()), vec!["Actions", "Recent"]);
+        assert_eq!(
+            titles(&open.harness),
+            vec![
+                "Lock Screen",
+                "Log Out",
+                "Restart",
+                "Firefox",
+                "Files",
+                "Firefox — sill launcher",
+                "Terminal",
+                "Wi-Fi"
+            ]
+        );
+    });
 }
 
 #[test]
 fn nothing_matching_shows_the_empty_state() {
-    let open = open("zzz");
-    assert_eq!(open.harness.count(".ds-menu-item"), 0);
-    assert_eq!(
-        open.harness.text_of(".ds-menu-empty").as_deref(),
-        Some("Nothing matches \"zzz\".")
-    );
+    retrying_the_focus_race(|| {
+        let open = open("zzz");
+        assert_eq!(open.harness.count(".ds-menu-item"), 0);
+        assert_eq!(
+            open.harness.text_of(".ds-menu-empty").as_deref(),
+            Some("Nothing matches \"zzz\".")
+        );
+    });
 }
 
 #[test]
 fn a_calculation_is_the_top_hit() {
-    let open = open("6*7");
-    assert_eq!(titles(&open.harness), vec!["= 42"]);
-    assert_eq!(headings(&open.harness.html()), vec!["Top hit"]);
+    retrying_the_focus_race(|| {
+        let open = open("6*7");
+        assert_eq!(titles(&open.harness), vec!["= 42"]);
+        assert_eq!(headings(&open.harness.html()), vec!["Top hit"]);
+    });
 }

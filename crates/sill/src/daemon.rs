@@ -366,15 +366,21 @@ fn spawn_missing_launchers(
     for info in missing {
         let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
         let output = info.clone();
-        let root = |root: Root| surface_root(root, services, settings_feed).context(launcher.clone());
+        let root =
+            |root: Root| surface_root(root, services, settings_feed).context(launcher.clone());
         if surfaces.catcher.is_none() {
-            let props = LauncherCatcherProps { output: output.clone() };
+            let props = LauncherCatcherProps {
+                output: output.clone(),
+            };
             let root = root(Root::with_props(sill_surfaces::LauncherCatcher, props));
             surfaces.catcher = spawn_hidden(ctx, catcher_layer(&info), root, &info);
         }
         if surfaces.launcher.is_none() {
             let config = panel_layer(&info, &file.bar, &file.launcher);
-            let root = root(Root::with_props(sill_surfaces::Launcher, LauncherProps { output }));
+            let root = root(Root::with_props(
+                sill_surfaces::Launcher,
+                LauncherProps { output },
+            ));
             surfaces.launcher = spawn_hidden(ctx, config, root, &info);
         }
         outputs.set(info, surfaces);

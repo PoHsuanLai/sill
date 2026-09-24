@@ -41,7 +41,11 @@ mod tests {
             (Key::Tab, none, Some(LauncherKey::Tab)),
             (Key::Tab, Modifiers::SHIFT, Some(LauncherKey::ShiftTab)),
             (k("k"), Modifiers::CONTROL, Some(LauncherKey::Actions)),
-            (k("K"), Modifiers::CONTROL | Modifiers::SHIFT, Some(LauncherKey::Actions)),
+            (
+                k("K"),
+                Modifiers::CONTROL | Modifiers::SHIFT,
+                Some(LauncherKey::Actions),
+            ),
             (k("k"), Modifiers::ALT, Some(LauncherKey::Actions)),
             // Plain typing is the field's.
             (k("k"), none, None),
