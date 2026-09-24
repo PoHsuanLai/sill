@@ -89,9 +89,8 @@ pub enum WallpaperPolicy {
     PerWorkspace,
 }
 
-/// `spaces.wallpaper_drawer`: who paints the desktop background. COSMIC's own `cosmic-bg` by
-/// default until shell-host repaints a background layer after its first commit (sill FINDINGS
-/// F171, G21); `Shell` spawns sill's own wallpaper surface on every output.
+/// `spaces.wallpaper_drawer`: who paints the desktop background. `Shell` (default) spawns sill's
+/// own wallpaper surface on every output; `Cosmic` leaves it to COSMIC's own `cosmic-bg`.
 #[derive(
     Debug,
     Clone,
@@ -106,8 +105,8 @@ pub enum WallpaperPolicy {
 )]
 #[serde(rename_all = "snake_case")]
 pub enum WallpaperDrawer {
-    #[default]
     Cosmic,
+    #[default]
     Shell,
 }
 
@@ -228,7 +227,7 @@ impl Default for SpacesSettings {
             overlay_tint: OverlayTint::Off,
             mail_frame_policy: MailSpacePolicy::OwnFallbackWorkspace,
             wallpaper_follows_space: WallpaperPolicy::Independent,
-            wallpaper_drawer: WallpaperDrawer::Cosmic,
+            wallpaper_drawer: WallpaperDrawer::Shell,
             dock_look_source: DockLookSource::OwnOutput,
             lookup_order: SpaceLookLookup::ByIdThenIndex,
             extra: toml::Table::new(),

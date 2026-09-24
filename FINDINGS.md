@@ -2136,3 +2136,21 @@ heads); nothing is keyed to a vendor or a model, and every default has a `displa
   SetFeature}` and `Displays` are their API); a schedule for night warmth; hardware volume
   checked live (the default sink here is Bluetooth); the pointer's own output (approximated by
   the active window's).
+
+## Wallpaper paints (2026-09-25)
+
+- **F172 The wallpaper's whole document was 0 px tall, so the surface painted nothing; with
+  G21 gone (shell-host F42), that was the rest of F171.** Reproduced offline in
+  `tests/wallpaper_paint.rs` (a `ds_native::Harness` painted over `Backdrop::Clear`): every
+  rect from `html` to the image layers was 320 x 0, and the centre pixel was (0,0,0,0) with an
+  image and without one. Two causes, one after the other: `.sill-wallpaper{height:100%}`
+  resolved against `.ds` and `#main`, neither of which has a height (shell-host F41); and the
+  WIP's `position:fixed; inset:0` did not help, since Taffy places a fixed box against its
+  parent (the 0 px `.ds`), not the viewport. `.sill-wallpaper` is now `width:100vw;
+  height:100vh; position:relative`, as `.sill-launcher-catcher` already was, and the two tests
+  (the fixture PNG's colour at the centre and a corner; an opaque `--paper` with no image) pass.
+- The live idle "failure" (3 → 70, then 3 → 9 frames) was the acceptance measuring too early:
+  sampled every 0.5 s, the surface goes 2, 3, 4, 9 frames over the ~2 s it takes the debug
+  build to resize the source and cross-fade it in over `--paper`, then stays at 9 for 20 s.
+  `step_centre_pixel` now polls the capture for up to 10 s until the image has landed, so the
+  idle window measures a settled surface. accept-wallpaper: 4/4.
