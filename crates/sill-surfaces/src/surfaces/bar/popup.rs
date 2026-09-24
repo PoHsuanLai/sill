@@ -2,7 +2,7 @@
 //! Seat)`; design/13 §13.3.2 position: `x = title.left - 8`, `y = title.bottom + 6`, status
 //! menus right-aligned to `item.right + 8`, one reusable popup repositioned on hover switch).
 
-use shell_host::{Adjust, Edge, ElementId, Grab, PopupAnchor, PopupConfig, PopupSize};
+use shell_host::{Adjust, Edge, ElementId, Grab, Offset, PopupAnchor, PopupConfig, PopupSize};
 
 /// Which side of its title a menu hangs from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,6 +27,7 @@ pub fn menu_popup(button: &str, side: MenuSide, max_px: i32) -> PopupConfig {
         gravity,
         adjust: Adjust::SLIDE_AND_FLIP,
         grab: Grab::Grabbed,
+        offset: Offset::ZERO,
     }
 }
 
