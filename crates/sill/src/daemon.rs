@@ -74,6 +74,9 @@ pub fn run() -> ExitCode {
     let _ipc_thread = ipc_server::spawn(door, handle.clone());
 
     if let Some(dir) = settings_dir.clone() {
+        // `sill_settings::watch` calls `tokio::spawn` in its own body, which needs an entered
+        // runtime on the calling thread; `host.run` does not enter it until later.
+        let _entered = runtime.enter();
         match sill_settings::watch(&dir) {
             Ok(mut watch) => {
                 let handle = handle.clone();

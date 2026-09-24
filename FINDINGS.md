@@ -187,6 +187,20 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
   instead of a `HostHandle`, so a fake dispatcher drives the same read/timeout/write path the
   real one does — Ping->Pong, an over-long line->`Failed`, and the 2 s timeout are all exercised
   this way, live in `ipc_server.rs`'s own tests and in `tests/ipc.rs`.
+- **F33 `sill_settings::watch` needs an entered runtime, and `daemon::run` calls it before
+  `Host::run` enters one.** Found by actually running `sill run` against a nested cosmic-comp
+  (`dev/nested.sh start`, `WAYLAND_DISPLAY=wayland-1`): it panicked at
+  `there is no reactor running, must be called from the context of a Tokio 1.x runtime`
+  (`tokio::task::spawn::spawn_inner`, from inside `sill_settings::watch`'s own body). Fixed with
+  `let _entered = runtime.enter();` around that one call. Past it, the daemon reaches
+  `Host::connect`, spawns the bar's layer surface, and the IPC server answers: `sill ping`,
+  `sill run` (single instance), `sill reload` and `sill quit` all round-tripped correctly
+  against the live daemon, and `dev/accept-bar.sh` passed `ping`/`single_instance`/`reload`/
+  `ipc_latency`/`quit` (in that order, `quit` last since it stops the daemon). `Bar` itself
+  still panics — `not yet implemented: M1 bar-ui` at `sill-surfaces/src/surfaces/bar/mod.rs:27`
+  — but Dioxus's own render catches it (the panic does not unwind past `initial_build`), so the
+  daemon stays up with a broken bar surface rather than crashing; `exclusive_zone`/`idle`/
+  `menus` stay `exit 2`, naming bar-ui, since there is nothing to measure yet.
 
 ## Gaps reported upstream
 
