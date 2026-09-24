@@ -4,18 +4,28 @@
 //!
 //! design/22 has no key naming the wallpaper file; M2 reads COSMIC's own background config
 //! (`com.system76.CosmicBackground`) until one is added (FINDINGS.md).
-
-#![allow(unused_variables, dead_code)] // Freeze stubs
+//!
+//! [`spawn`]'s task owns everything effectful: [`config::resolve_source`] reads the source path
+//! (I/O, [`config`]), [`watch::watch`] notices it change (I/O, [`watch`]), and
+//! [`resize::prepare`] resizes it onto the blocking pool (I/O, [`resize`]) using the pure
+//! geometry in [`geometry`] and the pure naming in [`cache`].
 
 mod cache;
+mod config;
+mod geometry;
+mod resize;
+mod watch;
 
 pub use cache::{CACHE_DIR, cache_file_name, source_hash};
+pub use config::{config_path, resolve_source};
+pub use geometry::{CoverFit, cover_fit};
 
-use std::path::PathBuf;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use tokio::runtime::Handle;
-use tokio::sync::watch;
+use tokio::sync::{mpsc, watch as channel};
 
 use crate::control::Control;
 use crate::cosmic_wl::OutputName;
@@ -62,7 +72,177 @@ pub enum WallpaperCommand {
     Reload,
 }
 
+/// `$XDG_CACHE_HOME/sill/wallpaper` (`$TMPDIR/sill/wallpaper` on the rare system with neither
+/// `$XDG_CACHE_HOME` nor `$HOME`, so the service still runs rather than failing the shell —
+/// `error.rs`'s own rule).
+fn cache_directory() -> PathBuf {
+    dirs::cache_dir()
+        .unwrap_or_else(std::env::temp_dir)
+        .join("sill")
+        .join(CACHE_DIR)
+}
+
 /// Start the wallpaper service: resize on the blocking pool, publish cached paths.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<Wallpapers>, Control<WallpaperCommand>) {
-    todo!("M2 wallpaper: image::imageops::resize(.., Lanczos3) into CACHE_DIR, publish")
+pub fn spawn(rt: &Handle) -> (channel::Receiver<Wallpapers>, Control<WallpaperCommand>) {
+    let (tx, rx) = channel::channel(Wallpapers::default());
+    let (control, commands) = Control::channel();
+    let reload = config_path().and_then(|path| watch::watch(&path, rt));
+    rt.spawn(run(tx, commands, reload, rt.clone()));
+    (rx, control)
+}
+
+/// Waits on `commands` while `listening`; parks forever once it is not (mirrors
+/// `clock::run`'s own guard against a closed channel spinning `tokio::select!`).
+async fn next_command(
+    commands: &mut mpsc::UnboundedReceiver<WallpaperCommand>,
+    listening: bool,
+) -> Option<WallpaperCommand> {
+    if listening {
+        commands.recv().await
+    } else {
+        std::future::pending().await
+    }
+}
+
+/// Waits on the debounced reload signal, or parks forever once there is none (no ancestor of
+/// the config path existed at spawn time).
+async fn next_reload(reload: &mut Option<mpsc::UnboundedReceiver<()>>) -> Option<()> {
+    match reload {
+        Some(receiver) => receiver.recv().await,
+        None => std::future::pending().await,
+    }
+}
+
+/// Every command and every settled config change, until every [`Wallpapers`] receiver is gone.
+async fn run(
+    tx: channel::Sender<Wallpapers>,
+    mut commands: mpsc::UnboundedReceiver<WallpaperCommand>,
+    reload: Option<(notify::RecommendedWatcher, mpsc::UnboundedReceiver<()>)>,
+    rt: Handle,
+) {
+    // Held for `run`'s whole life: dropping the watcher stops the watch.
+    let (_watcher, mut reload) = match reload {
+        Some((watcher, reload)) => (Some(watcher), Some(reload)),
+        None => (None, None),
+    };
+    let mut source = resolve_source();
+    let mut sizes: HashMap<OutputName, (u32, u32)> = HashMap::new();
+    let cache_dir = cache_directory();
+    let mut listening = true;
+    while !tx.is_closed() {
+        tokio::select! {
+            command = next_command(&mut commands, listening) => match command {
+                Some(WallpaperCommand::Prepare { output, width, height }) => {
+                    sizes.insert(output.clone(), (width, height));
+                    publish(&tx, &source, &output, width, height, &cache_dir, &rt).await;
+                }
+                Some(WallpaperCommand::Forget(output)) => {
+                    sizes.remove(&output);
+                    forget(&tx, &output);
+                }
+                Some(WallpaperCommand::Reload) => {
+                    source = resolve_source();
+                    republish_all(&tx, &source, &sizes, &cache_dir, &rt).await;
+                }
+                None => listening = false,
+            },
+            signal = next_reload(&mut reload) => match signal {
+                Some(()) => {
+                    source = resolve_source();
+                    republish_all(&tx, &source, &sizes, &cache_dir, &rt).await;
+                }
+                None => reload = None,
+            },
+        }
+    }
+}
+
+/// Re-prepare every tracked output against `source` (a `Reload`, from a command or a settled
+/// watch signal).
+async fn republish_all(
+    tx: &channel::Sender<Wallpapers>,
+    source: &WallpaperSource,
+    sizes: &HashMap<OutputName, (u32, u32)>,
+    cache_dir: &Path,
+    rt: &Handle,
+) {
+    let outputs: Vec<(OutputName, u32, u32)> = sizes
+        .iter()
+        .map(|(output, &(width, height))| (output.clone(), width, height))
+        .collect();
+    for (output, width, height) in outputs {
+        publish(tx, source, &output, width, height, cache_dir, rt).await;
+    }
+}
+
+/// Prepare `output`'s images on the blocking pool and publish the result, replacing whatever
+/// that output held before (dropping it when preparation fails or `source` is
+/// [`WallpaperSource::None`], so a stale image is never shown as current).
+async fn publish(
+    tx: &channel::Sender<Wallpapers>,
+    source: &WallpaperSource,
+    output: &OutputName,
+    width: u32,
+    height: u32,
+    cache_dir: &Path,
+    rt: &Handle,
+) {
+    let source = source.clone();
+    let cache_dir = cache_dir.to_path_buf();
+    let prepared = rt
+        .spawn_blocking(move || resize::prepare(&source, width, height, &cache_dir))
+        .await
+        .unwrap_or_default();
+    let output = output.clone();
+    tx.send_modify(|wallpapers| {
+        wallpapers.outputs.retain(|image| image.output != output);
+        if let Some((light, dark)) = prepared {
+            wallpapers.outputs.push(WallpaperImage {
+                output,
+                light,
+                dark,
+            });
+        }
+    });
+}
+
+/// Drop `output`'s entry, if it has one.
+fn forget(tx: &channel::Sender<Wallpapers>, output: &OutputName) {
+    tx.send_modify(|wallpapers| wallpapers.outputs.retain(|image| image.output != *output));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{WallpaperCommand, Wallpapers, spawn};
+    use crate::cosmic_wl::OutputName;
+
+    /// `spawn` never panics (no compositor or config directory needed to start), and a
+    /// `Prepare` settles to a defined state either way: whatever this machine's own COSMIC
+    /// background config says (on a dev box with none, no entry at all) or, once one exists,
+    /// exactly one real cached pair for the requested output — never a panic, a hang, or a
+    /// half-written entry.
+    #[tokio::test]
+    async fn spawn_does_not_panic_and_prepare_settles_to_a_defined_state() {
+        let rt = tokio::runtime::Handle::current();
+        let (mut wallpapers, control) = spawn(&rt);
+        assert_eq!(*wallpapers.borrow(), Wallpapers::default());
+        control
+            .send(WallpaperCommand::Prepare {
+                output: OutputName("DP-1".to_owned()),
+                width: 64,
+                height: 64,
+            })
+            .unwrap_or_else(|e| panic!("{e}"));
+        wallpapers.changed().await.unwrap_or_else(|e| panic!("{e}"));
+        let after = wallpapers.borrow().clone();
+        match after.outputs.as_slice() {
+            [] => {}
+            [image] => {
+                assert_eq!(image.output, OutputName("DP-1".to_owned()));
+                assert!(image.light.is_file(), "{image:?}");
+                assert!(image.dark.is_file(), "{image:?}");
+            }
+            other => panic!("unexpected outputs: {other:?}"),
+        }
+    }
 }

@@ -132,9 +132,18 @@ pub fn bar_namespace(info: &OutputInfo) -> String {
     }
 }
 
+/// The wallpaper's own namespace on `info` (mirrors `bar_namespace`; the wallpaper's own
+/// `sill_surfaces::surfaces::wallpaper::wallpaper_layer` sets it the same way).
+pub fn wallpaper_namespace(info: &OutputInfo) -> String {
+    match &info.name {
+        Some(name) => format!("sill-wallpaper-{name}"),
+        None => format!("sill-wallpaper-{}", info.id.0),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{OutputSurfaces, Outputs, bar_namespace, reconcile};
+    use super::{OutputSurfaces, Outputs, bar_namespace, reconcile, wallpaper_namespace};
     use shell_host::{OutputId, OutputInfo, Rect, Scale, SurfaceId};
 
     fn output(id: u32, name: &str, width: i32) -> OutputInfo {
@@ -224,5 +233,16 @@ mod tests {
         let mut nameless = output(7, "unused", 1920);
         nameless.name = None;
         assert_eq!(bar_namespace(&nameless), "sill-bar-7");
+    }
+
+    #[test]
+    fn the_wallpaper_namespace_uses_the_connector_name_or_falls_back_to_the_id() {
+        assert_eq!(
+            wallpaper_namespace(&output(1, "DP-1", 1920)),
+            "sill-wallpaper-DP-1"
+        );
+        let mut nameless = output(7, "unused", 1920);
+        nameless.name = None;
+        assert_eq!(wallpaper_namespace(&nameless), "sill-wallpaper-7");
     }
 }

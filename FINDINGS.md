@@ -594,6 +594,7 @@ change.
   `count = 7`, asserts the badge appears within the 1 s budget, kills the emitter, and asserts the
   badge clears within the same budget — both passed (finished in 0.11 s total, well inside
   budget).
+
 ## M2 launch (2026-09-24)
 
 Filled `launch::{spawn, launch_argv, scope_unit}`, `pins::{spawn, load, save}` and
@@ -1685,3 +1686,231 @@ attempt and made the next script refuse to start.
   geometry; Q70 by `design_defaults` moving to gap 8 and pad 6 (the layout tests' worked numbers
   keep design/10's first spacing through `first_spacing`). Q68 stays at 22: at the 60 px pill
   the corner curve is the same as 18, and 22 matches quire's `DockMetrics` default.
+
+## M2 wallpaper (2026-09-24)
+
+Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in
+`sill-services/src/wallpaper/mod.rs` (`WallpaperSource`, `Wallpapers`, `WallpaperImage`,
+`WallpaperCommand`) and `cache_file_name` needed no change.
+
+- **F131 The source is COSMIC's `all` record only, read by hand.** `ron` is not in the pinned
+  dependency block (CONVENTIONS §11: a new dependency is a change to `docs/workspace-deps.toml`,
+  reviewed first, not added to one crate alone), so `config::parse_source_path` reads the one
+  field it needs — `source: Path("...")` — out of the RON text directly rather than
+  deserialising the record, unescaping RON's string escapes by hand. This machine has
+  `cosmic-bg` 1.8.0 installed (`rpm -q cosmic-bg`; not the desktop in use, but the package is
+  present), whose real default record at
+  `/usr/share/cosmic/com.system76.CosmicBackground/v1/all` is exactly the shape this reads:
+  ```
+  (
+      output: "all",
+      source: Path("/usr/share/backgrounds/default-dark.jxl"),
+      filter_by_theme: #true,
+      rotation_frequency: 3600,
+      filter_method: Lanczos,
+      scaling_mode: Zoom,
+      sampling_method: Alphanumeric,
+  )
+  ```
+  `cosmic-bg`'s schema carries one `source` per record, not a light/dark pair, so
+  `WallpaperSource::Pair` is never produced by this reader — only `File` (one path, both
+  schemes) or `None`. `config.rs`'s tests pin this exact record text as a fixture, plus a
+  `Color(..)` source (no path) and a missing `source:` field, both answering `None`.
+- **F132 COSMIC's own default background is a format this crate's `image` build cannot decode.**
+  The pinned `image = { features = ["png", "jpeg"] }` has no `jxl` feature, and cosmic-bg's
+  stock backgrounds on this machine are all `.jxl` (`/usr/share/backgrounds/default.jxl` and
+  `default-dark.jxl`, both symlinks into `f44/default/`); `/usr/share/backgrounds/cosmic/*.jpg`
+  and `*.png` decode fine. `resize::ensure_cached` answers `Err` for an undecodable source
+  (`image::open`'s own error, wrapped), and `wallpaper::publish` treats that exactly like
+  `WallpaperSource::None`: the output's entry is dropped, so the surface falls back to
+  `--paper` rather than showing a stale or partial image. Not a bug to fix here — a real COSMIC
+  session with a PNG/JPEG background works today — but worth a install-time note if `sill`
+  ever ships a `dist/` default: point it at one of the `cosmic/*.jpg` backgrounds, not
+  `default.jxl`.
+- **F133 The cache hash is FNV-1a, not `DefaultHasher`.** `cache.rs`'s own doc names the reason
+  (`DefaultHasher`'s `RandomState` seed changes every process, so the same source would get a
+  new cache name on every restart — defeating the cache); `source_hash` feeds the path's raw
+  bytes, the length and the modification time (nanoseconds since the epoch) through one FNV-1a
+  accumulator. `resize::ensure_cached` checks `cached.is_file()` before touching `image` at
+  all, so "renders only on change" holds at the cache layer too: a second `Prepare` for the
+  same source and size never re-encodes (`resize.rs`'s own round-trip test asserts the cache
+  file's mtime is unchanged the second time).
+- **F134 Cover-fit resize, then crop — not resize-to-cover in one call.** `geometry::cover_fit`
+  is pure: given a source and a target size, it picks a `scaled` size (Lanczos3 target) that is
+  never smaller than the target on either axis, and a centred `(crop_x, crop_y)`. `resize.rs`
+  then calls `image::resize_exact` to `scaled` and `crop_imm` to the target, writing the result
+  to a sibling `.png.tmp` file and renaming it over the final name — a reader of the `file://`
+  URL (shell-host's `LocalNet`, `dom/net.rs`'s own module doc: "the wallpaper is
+  `background-image: url(file:///…)`") never sees a half-written PNG. The crop is symmetric to
+  within one pixel of an odd overflow (`geometry.rs`'s own sweep test), which is what makes
+  "a capture's centre pixel matches the source's" a meaningful acceptance check rather than a
+  coincidence: cover-fit *by construction* keeps the source's own centre aligned to the
+  target's.
+- **F135 The COSMIC config watch degrades to "read once" rather than failing to start.**
+  `watch::watch` needs `notify` to watch an existing directory; COSMIC's config tree may not
+  exist at all outside a real COSMIC session (it does not on this dev machine before the
+  acceptance script creates it). `nearest_existing_ancestor` walks up from the `all` file's
+  parent to the first directory that exists and watches that one recursively, so a directory
+  created later (COSMIC's own lazy write) is still caught; when nothing above it exists either
+  (no `$HOME`), `spawn` simply runs with no live watch — `config::resolve_source`'s read at
+  start time still stands, it just never updates without a restart or `WallpaperCommand::Reload`.
+  Debounce is 500 ms (the brief's own number), distinct from `sill-settings::watch`'s 30 ms: a
+  foreign config file is edited far less often than the shell's own, written by cosmic-bg on a
+  human's own "change background" click, not a live-typing settings field.
+- **F136 `watch::watch` takes `&Handle`, not the bare `tokio::spawn`.** The first version called
+  `tokio::spawn` directly inside `watch()`, which needs an entered runtime on the *calling*
+  thread — true inside an `async fn` already running on a runtime, false for `Services::spawn`
+  called from a plain thread holding only a `Handle` (exactly what
+  `services::tests::spawn_does_not_panic_and_every_stub_holds_its_default` does, and what the
+  real daemon does too: `crates/sill/src/daemon.rs::run` calls `Services::spawn(runtime.handle())`
+  before it ever calls `runtime.enter()`, which happens only later and only around
+  `sill_settings::watch`). The test caught it immediately ("there is no reactor running, must be
+  called from the context of a Tokio 1.x runtime"); every other service's `spawn` in this crate
+  already gets this right by using the passed `rt: &Handle` (`clock::spawn`'s `rt.spawn(run(..))`
+  is the precedent) — `watch::watch` now does the same.
+- **F137 `sill run` does not yet spawn a wallpaper surface.** `crates/sill/src/daemon.rs`'s
+  `spawn_missing_bars`/`spawn_bar` are bar-specific; `outputs.rs`'s `OutputSurfaces.wallpaper`
+  field and `OutputAction::Resize`'s own doc comment ("re-apply sizes, re-prepare the wallpaper")
+  already anticipate a wallpaper surface, but nothing calls `wallpaper_layer` or sends
+  `WallpaperCommand::Prepare` from the daemon yet. `daemon.rs` is frozen to every wave but
+  "daemon" (DESIGN.md "Wave ownership"), so this is reported rather than patched here. Worked
+  around the same way `dev/accept-bar.sh`'s menus step routes around a daemon/host gap of its
+  own (G8, through `accept-bar-ui.sh cosmic`): `dev/accept-wallpaper.sh` runs the real
+  `sill_services::wallpaper::spawn` and the real `Wallpaper` component through its own harness,
+  `examples/wallpaper_demo.rs`, with everything else faked; its first step still runs against a
+  live `sill run` when one exists and prints whether `sill debug stats` shows a
+  `sill-wallpaper-*` surface, so the gap is visible on every run.
+- **F138 A concurrent quire merge broke `sill-surfaces`' bar code mid-wave; fixed by merging
+  master.** quire commit `f3c1115` ("Merge tray-gaps: external icons, submenus and disabled
+  rows, element ids and pointer buttons", landed 2026-09-24 11:30, closing this repo's own
+  Q6-Q8) changed `ds::Button` and `ds::IconButton`'s `onclick` from `EventHandler<()>` to
+  `EventHandler<Press>` and added `MenuEntry::Item.availability` and a new `MenuEntry::Submenu`
+  variant. None of this wave's own files reference any of it — `cargo build -p sill-surfaces
+  --lib` failed with seven errors, all in
+  `surfaces/bar/{app_name,clock,tray,workspaces,content,status_item,geometry}.rs`, none under
+  `surfaces/wallpaper/` — but `ds` is a path dependency shared by every sill worktree (`../quire`
+  resolves to the same on-disk checkout everywhere), so the whole `sill-surfaces` crate stopped
+  compiling partway through this wave's own verification, after every wallpaper test had already
+  passed once against the pre-merge quire (recorded in full in this wave's own report) and
+  before `dev/accept-wallpaper.sh`'s own build of `wallpaper_demo` could run. `bar/**` is frozen
+  to this wave, so rather than patching it directly this wave merged `master` (which by then
+  carried `60582f4`, "The bar adopts quire's typed presses and the availability field on menu
+  items, and sizes submenu rows," plus the merged apps-index, launch, pins and badges services)
+  into `m2-wallpaper`; the merge touched no wallpaper file (`git merge master` only conflicted on
+  this file, `FINDINGS.md`, over both sides appending new sections).
+
+### Gaps found in M2 wallpaper
+
+- **Q14** `ds::Material` has no variant for "paints nothing" (design/20 §1.4: "Material: none
+  (opaque image)"); every material's root still paints `background: var(--m-tint-solid)`
+  (`materials_css.rs`) even though nothing shows it. `Wallpaper` uses `Material::Widget` with
+  `BlurState::Unavailable` — the closest kind (a background-level surface, not a bar, menu or
+  sheet) — since the wallpaper's own opaque layers (or, with no image, `.sill-wallpaper`'s own
+  `--paper`) cover the root completely regardless of which material is picked; `Material::Window`
+  is the one genuinely wrong choice, since its `--m-tint-solid` is the Space's own gradient
+  (`var(--f-grad)`), exactly the per-workspace tint design/21 §8 says the wallpaper must not
+  carry.
+- **F139 A second merge, and `MEASURE` on the demo's own root.** Master moved again while this
+  wave was verifying (`d3ffa0c`, a fix to the bar's own menu test for the new `Submenu` variant,
+  and the M2 freeze amendment above): `cargo test --workspace` failed with the same
+  non-exhaustive-match shape as F138, this time in `surfaces/bar/content.rs`'s test helper —
+  fixed upstream by `d3ffa0c` before this wave ever touched that file. Merging `master` again
+  (now at `f10e63d`) picked that up; again no wallpaper file changed, only `FINDINGS.md`
+  conflicted (both sides appending). That merge also brought F81's `sill_surfaces::MEASURE`: a
+  popup or a demo that builds its own `Root` must add `.context(sill_surfaces::MEASURE)` itself
+  (the daemon does this for every surface it spawns, but `examples/wallpaper_demo.rs` builds its
+  own), so `spawn_wallpaper` in the demo now does too — without it, `Ds`'s `OverlayHost` panics
+  ("RefCell already borrowed") the first time the renderer polls a woken task inside its own
+  render pass (F81's own wording).- **F168 The daemon spawns a `Wallpaper` per output, added at the coordinator's request (the
+  wave's own scope was reopened to exactly this).** `daemon.rs` gained `spawn_missing_wallpapers`/
+  `spawn_wallpaper`, mirroring `spawn_bar`/`spawn_missing_bars` line for line: on each reconcile
+  it sends `WallpaperCommand::Prepare` at the output's buffer size (`shell_host::scale::
+  buffer_size`), skipped for an unnamed output (no `sill_services::OutputName` to key it by, the
+  same restraint the bar's own `on = output.name.clone().map(OutputName)` shows), then spawns
+  the layer through the daemon's shared `surface_root` helper and fills
+  `OutputSurfaces.wallpaper`. Closing on `OutputRemoved` needed no new code at all:
+  `OutputSurfaces::ids()`/`close_every` already iterate that field generically, so it started
+  working the moment the field was filled.
+- **F169 `sill debug stats` was bar-only; fixed alongside dock-ui's own identical fix.**
+  `collect_stats` filtered on `surfaces.bar` alone, so a spawned wallpaper surface never showed
+  up in `sill debug stats` — `dev/accept-wallpaper.sh`'s own discovery step (which finds a
+  surface's name from that reply before capturing it) failed with "no wallpaper surface to
+  capture" even though the surface existed and had presented frames. `outputs::
+  wallpaper_namespace` (mirrors `bar_namespace`, own unit test) plus a `.chain(..)` onto
+  `collect_stats`'s iterator fixed it. Merging master afterwards found dock-ui had independently
+  reached for the exact same shape (`dock_namespace`, `flat_map`) for the dock, and M4
+  launcher-ui a third time for the launcher panel and catcher — `collect_stats` now chains all
+  five surface kinds together; every one of the four fixes came from a different wave without
+  coordination and merged into one function with no further disagreement once the shapes were
+  compared.
+- **F170 Four merges of `master` landed inside this one wave, and a compositor restart.** In
+  order: (1) F90/F91's quire Press/`MEASURE` churn; (2) shell-host's `Inject::Click{at,button}`
+  (a mechanical `to_host_button` addition, no conflict); (3) `adopt-bar-gaps`/`m4-providers-fix`
+  (the bar's new `MenuEntry::Info` match arm, and dock-ui's own `spawn_missing_docks`/
+  `dock_namespace` interleaved with this wave's wallpaper equivalents in both `daemon.rs` and
+  `FINDINGS.md`); (4) `adopt-launcher-gaps`/M4 launcher-ui (the launcher's own
+  `launcher_namespaces` interleaved into the same `collect_stats`, F169). Every conflict outside
+  `FINDINGS.md` (itself append-only on both sides, resolved by concatenating and — only where a
+  number collided — renumbering the newer side) was a small, mechanical interleave: two
+  functions or two `.chain()` calls sitting next to each other, never a real disagreement about
+  what either wave's code should do. Separately, the shared nested cosmic-comp
+  (`dev/nested.sh`'s `wayland-1`) leaked to 64 GB resident on the NVIDIA EGL path mid-wave and
+  was killed and restarted on Mesa by the coordinator; every `sill run` this wave had against the
+  old instance died with it. `dev/accept-wallpaper.sh` does not itself start or stop the
+  compositor (`dev/nested.sh start` is a separate, manual step, per its own header) — only the
+  `sill run` it starts, and it never touches `NESTED_COMPOSITOR_PID`.
+- **F171 The wallpaper's own image never paints on the nested compositor: the surface exists,
+  is correctly positioned and sized, and shows its own material fallback — the loaded image
+  itself is the one thing that never appears.** Investigated thoroughly, on the running nested
+  cosmic-comp (Mesa), not through any injected variable or forced backend
+  (CONVENTIONS "run it the way its user would"):
+  - The cache pipeline is correct end to end: `~/.cache/sill/wallpaper/<hash>-<w>x<h>.png` is a
+    real 2176 x 1360 PNG whose centre pixel is exactly the source's marked colour, checked with
+    PIL directly against the file on disk, independent of anything sill or shell-host render.
+  - The `file://` URL sill builds matches shell-host's own documented shape exactly
+    (`dom/net.rs`'s module doc: `background-image: url(file:///…)`); a `sill debug capture` of
+    the live surface is uniform black (or, once the compositor's real dark `--paper`/Widget
+    fallback shows through cleanly, that fallback colour) — never the marked colour — however
+    long the daemon has been running (checked immediately after start and again minutes later).
+  - Switching from a CSS `background-image` on an empty `div` to a plain `<img src="...">`
+    (this wave's own fix, believing the div's declarative background load was the gap) changed
+    nothing: still black, still never settles to the image.
+  - **The `file://` scheme is not the variable.** The same `<img>` given a self-contained
+    `data:image/png;base64,...` URL (a 4 x 4 red PNG, no network provider round trip at all)
+    is *also* never painted — ruling out `LocalNet`'s file read entirely. No image source this
+    wave tried, through either markup shape, ever reaches the screen.
+  - `sill debug stats`' frame counter is the other half of the picture: queried repeatedly back
+    to back (no `sleep` between calls) it never moves on its own; queried once shortly after
+    `sill run` starts and again 5 s later it is often unchanged (frames stay at 1, the initial
+    commit) — but `dev/accept-wallpaper.sh`'s own run, which checks readiness and idles within
+    a second or two of startup, sees a burst instead (2 → 69-139 across runs) that always
+    settles by the time a later, unhurried check is made. Read together: the surface's *first*
+    commit happens unconditionally: everything after it — the image resource resolving, and
+    any repaint that would show it — depends on the surface receiving further paint
+    opportunities, which arrive in a bounded burst right after creation and then stop for good.
+  - **Working theory, not confirmed inside this repo:** a `Layer::Background` surface with
+    `ExclusiveZone::Ignore` and `RegionSpec::Empty` input (this one) is the kind of layer-shell
+    client cosmic-comp (or shell-host's render-loop gating on a `wl_surface.frame` callback,
+    F21 in shell-host's own FINDINGS) is least motivated to keep scheduling frames for — nothing
+    ever interacts with it, nothing overlaps it, and most real Background clients (a wallpaper
+    daemon) paint once and never again, so this combination may simply be under-exercised. The
+    bar (`Layer::Top`, real input) keeps receiving frames indefinitely (FINDINGS F80: "8 frames
+    and 8 commits... before and after five idle seconds" — moving, not frozen); this surface is
+    the first `Layer::Background` client either shell-host or cosmic-comp has had to carry a
+    resource that loads *after* its first commit.
+  - Not this wave's to fix: `shell-host` (the render-loop/frame-callback gating) and possibly
+    `cosmic-comp` itself are both outside this wave's ownership and outside this repo. Reported
+    rather than patched (CONVENTIONS §1: "If you believe a frozen signature is wrong, stop and
+    report it").
+
+### Gaps found in M2 wallpaper (continued)
+
+- **G21** A `Layer::Background` surface whose content depends on a resource that resolves after
+  the surface's first commit (an async image load, here) never gets the second paint it needs:
+  observed as a frame counter frozen at 1 well after the image is cached and ready, on a real
+  nested cosmic-comp, independent of the URL scheme (`file://` or a self-contained `data:` URI)
+  or the markup (`background-image` or `<img src>`) carrying it (F171). Whether the gap is in
+  shell-host's frame-callback-gated render loop, in cosmic-comp's scheduling for a
+  Background-layer, non-interactive client, or both, is not established from inside this repo;
+  reported for the shell-host/host team to chase with a minimal reproduction (a `Layer::Background`
+  surface that mutates its own DOM shortly after its first frame, independent of any image).

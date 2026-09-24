@@ -1,0 +1,15 @@
+/* The wallpaper (design/20 §1.4). One image per output, filling the layer; a light/dark pair
+   cross-fades over --t-big when the source or the resolved scheme changes, and otherwise sits
+   still (no per-frame work). No image configured: the base `--paper` shows through both empty
+   layers, painting the same solid ground `Ds`'s own reset already gives a `.ds` root — there is
+   nothing else to paint. Attribute selectors carry `*|` (spike S2). */
+
+.sill-wallpaper{ position:relative; width:100%; height:100%; overflow:hidden;
+  background-color:var(--paper); }
+
+.sill-wallpaper-layer{ position:absolute; inset:0; opacity:1;
+  transition:opacity var(--t-big) var(--e-out); }
+
+.sill-wallpaper-layer[*|data-layer=back]{ opacity:0; }
+
+.sill-wallpaper-layer img{ display:block; width:100%; height:100%; object-fit:cover; }

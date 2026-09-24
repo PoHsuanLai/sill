@@ -86,8 +86,7 @@ impl Services {
                 launch: &launch,
             },
         );
-        // M2 wallpaper replaces this with wallpaper::spawn.
-        let (wallpapers, wallpaper_control) = inert();
+        let (wallpapers, wallpaper_control) = crate::wallpaper::spawn(rt);
         // M6 replaces this with sound::spawn.
         let (sound, sound_control) = inert();
 

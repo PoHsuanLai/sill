@@ -14,20 +14,23 @@ use std::path::Path;
 use std::process::ExitCode;
 use std::time::{Duration, Instant};
 
+use shell_host::scale::{Size as BufferSize, buffer_size};
 use shell_host::{CloseReason, Host, HostConfig, HostCtx, HostEvent, OutputInfo, Root, SurfaceId};
 use sill_ipc::{
     DebugRequest, DockRequest, Failure, FailureKind, LauncherRequest, Request, Response,
     SurfaceName,
 };
 use sill_launcher::AppId;
-use sill_services::{PinAt, PinEvent, Services};
+use sill_services::{OutputName, PinAt, PinEvent, Services, WallpaperCommand};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::surfaces::launcher::LauncherLink;
 use tokio::sync::watch;
 
 use crate::ipc_server;
 use crate::msg::ShellMsg;
-use crate::outputs::{OutputAction, OutputSurfaces, Outputs, bar_namespace, reconcile};
+use crate::outputs::{
+    OutputAction, OutputSurfaces, Outputs, bar_namespace, reconcile, wallpaper_namespace,
+};
 
 /// Run the daemon until `quit` or a fatal host error.
 pub fn run() -> ExitCode {
@@ -169,6 +172,7 @@ fn run_event(
             }
             on_event(ctx, outputs, other);
             spawn_missing_bars(ctx, outputs, services, settings_feed, settings_tx);
+            spawn_missing_wallpapers(ctx, outputs, services, settings_feed);
             spawn_missing_docks(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_launchers(ctx, outputs, services, settings_feed, settings_tx, launcher);
         }
@@ -302,6 +306,74 @@ fn spawn_bar(
             outputs.set(info, surfaces);
         }
         Err(error) => eprintln!("sill: spawning the bar on {:?}: {error}", info.name),
+    }
+}
+
+/// Spawn a wallpaper for every output whose row has none yet (mirrors
+/// [`spawn_missing_bars`]).
+fn spawn_missing_wallpapers(
+    ctx: &mut HostCtx<ShellMsg>,
+    outputs: &mut Outputs,
+    services: &Services,
+    settings_feed: &SettingsFeed,
+) {
+    let missing: Vec<OutputInfo> = outputs
+        .outputs
+        .iter()
+        .filter(|(_, surfaces)| surfaces.wallpaper.is_none())
+        .map(|(info, _)| info.clone())
+        .collect();
+    for info in missing {
+        spawn_wallpaper(ctx, outputs, services, settings_feed, info);
+    }
+}
+
+/// One output's wallpaper layer (mirrors [`spawn_bar`]), and the `Prepare` that gives the
+/// service the output's buffer size to resize into — without it the service never hears about
+/// this output and the surface stays at `--paper` (design/20 §1.4). An unnamed output gets no
+/// `Prepare` (there is no `sill_services::OutputName` to key it by), the same way the bar's own
+/// `on = output.name.clone().map(OutputName)` (`surfaces/bar/mod.rs`) leaves an unnamed output
+/// at its default look rather than inventing a numeric stand-in nothing else keys by.
+fn spawn_wallpaper(
+    ctx: &mut HostCtx<ShellMsg>,
+    outputs: &mut Outputs,
+    services: &Services,
+    settings_feed: &SettingsFeed,
+    info: OutputInfo,
+) {
+    if let Some(name) = info.name.clone() {
+        let buffer = buffer_size(
+            BufferSize {
+                width: info.logical.width,
+                height: info.logical.height,
+            },
+            info.scale,
+        );
+        let prepared = services.wallpaper_control.send(WallpaperCommand::Prepare {
+            output: OutputName(name),
+            width: buffer.width.unsigned_abs(),
+            height: buffer.height.unsigned_abs(),
+        });
+        if let Err(error) = prepared {
+            eprintln!("sill: preparing the wallpaper on {:?}: {error}", info.name);
+        }
+    }
+    let config = sill_surfaces::surfaces::wallpaper::wallpaper_layer(&info);
+    let props = sill_surfaces::surfaces::wallpaper::WallpaperProps {
+        output: info.clone(),
+    };
+    let root = surface_root(
+        Root::with_props(sill_surfaces::Wallpaper, props),
+        services,
+        settings_feed,
+    );
+    match ctx.spawn_layer(config, root) {
+        Ok(id) => {
+            let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
+            surfaces.wallpaper = Some(id);
+            outputs.set(info, surfaces);
+        }
+        Err(error) => eprintln!("sill: spawning the wallpaper on {:?}: {error}", info.name),
     }
 }
 
@@ -597,20 +669,25 @@ fn launcher_namespaces(info: &OutputInfo) -> (String, String) {
     (panel, catcher_layer(info).namespace)
 }
 
-/// Every known bar's, dock's and launcher surface's frame statistics, through the always-public
-/// `HostCtx::take_stats` (needs neither the `debug` feature nor shell-host's `debug-inject`; draining, so each report covers
-/// only the time since the previous one).
+/// Every known bar's, wallpaper's, dock's and launcher surface's frame statistics, through the
+/// always-public `HostCtx::take_stats` (needs neither the `debug` feature nor shell-host's
+/// `debug-inject`; draining, so each report covers only the time since the previous one).
 fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc::SurfaceStats> {
     let ids: Vec<(String, SurfaceId)> = outputs
         .outputs
         .iter()
         .flat_map(|(info, surfaces)| {
             let bar = surfaces.bar.map(|id| (bar_namespace(info), id));
+            let wallpaper = surfaces.wallpaper.map(|id| (wallpaper_namespace(info), id));
             let dock = surfaces.dock.map(|id| (dock_namespace(info), id));
             let (panel, catcher) = launcher_namespaces(info);
             let launcher = surfaces.launcher.map(|id| (panel, id));
             let catcher = surfaces.catcher.map(|id| (catcher, id));
-            bar.into_iter().chain(dock).chain(launcher).chain(catcher)
+            bar.into_iter()
+                .chain(wallpaper)
+                .chain(dock)
+                .chain(launcher)
+                .chain(catcher)
         })
         .collect();
     ids.into_iter()
