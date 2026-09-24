@@ -461,3 +461,44 @@ as frozen; nothing there needed to change.
   included — the classic `match mutex.lock().foo() { .. }` footgun, just with a `RefCell` instead
   of a `Mutex`. Fixed by binding `let state = context.borrow().get_state();` first, so the `Ref`
   drops at the `;` before the `match` (and the calls inside its arm) ever runs.
+
+## M2 badges (2026-09-24)
+
+Filled `badges::spawn` (`crates/sill-services/src/badges/live.rs`, new). The frozen shapes
+(`Badges`, `Badge`, `BadgeProp`, `BadgeEvent`, `reduce_badges`, `parse_app_uri`) needed no
+change.
+
+- **F29 A bus-wide signal subscription needs `MessageStream::for_match_rule`, not a generated
+  proxy.** `com.canonical.Unity.LauncherEntry` has no crate binding (unlike UPower or
+  NetworkManager) and, unlike `StatusNotifierItem`, an app never registers a well-known name to
+  publish it — it just broadcasts `Update` from whatever connection it already has. zbus 5's
+  `MessageStream::for_match_rule(rule, &connection, None)` registers a raw `MatchRule` (`type=
+  'signal', interface='com.canonical.Unity.LauncherEntry', member='Update'`, no sender) with the
+  bus and yields every matching `Message` regardless of who sent it; `Body::deserialize::<(String,
+  HashMap<String, OwnedValue>)>()` decodes the `(s app_uri, a{sv})` body. No new dependency: zbus
+  was already in the pinned block for `battery`/`network`/`tray`/`volume`.
+- **F30 Leniency is a per-key decode, not a per-message one.** The signature `(s, a{sv})` is
+  fixed by the interface, so a message that isn't that shape at all (or whose `app_uri` names no
+  app) is simply dropped — there is no partial reading of a tuple. What *is* partial is each
+  value inside the dictionary: `decode_prop` downcasts by key (`count` -> `i64::try_from`,
+  `progress` -> `f64::try_from`, the three booleans -> `bool::try_from`) and drops only the key
+  whose value has the wrong `zvariant::Value` variant, via `filter_map` rather than a `Result`
+  that would fail the whole `Update`. `reduce_badges` already treats an absent `BadgeProp` as
+  "unchanged" (model.rs, done at W0), so a dropped key and a key the sender never sent behave
+  identically — no special case needed on the decode side for "missing".
+- **F31 Which sender is publishing an app's badge is this task's own bookkeeping, not part of
+  `Badges`.** The frozen `Badges` only ever remembers `app -> Badge` (the plan's persisted
+  shape), so there is nowhere in it to record which connection last spoke for an app. `live::run`
+  keeps a local `HashMap<AppId, OwnedUniqueName>` alongside the loop, updated on every `Update`
+  and consulted on `NameOwnerChanged`: a name-owner change is only a clear when `new_owner` is
+  empty (a name *transfer* between two still-live connections is not a departure) and its `name`
+  matches a tracked unique name.
+- **F32 Verification.** `cargo fmt --all --check`, `cargo clippy --workspace --all-targets
+  --all-features -- -D warnings`, `cargo test --workspace --features sill/debug`,
+  `./scripts/check-boundary.sh` and `cargo deny check licenses` all pass. The `#[ignore]`d live
+  test (`tests/badges_live.rs`) was run once against this machine's real session bus (`cargo test
+  -p sill-services --test badges_live -- --ignored --nocapture`): it starts `badges::spawn`,
+  spawns `examples/badge_emitter.rs` as a child publishing `org.sill.BadgeEmitterTest` with
+  `count = 7`, asserts the badge appears within the 1 s budget, kills the emitter, and asserts the
+  badge clears within the same budget — both passed (finished in 0.11 s total, well inside
+  budget).

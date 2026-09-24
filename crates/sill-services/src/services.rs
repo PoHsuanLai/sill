@@ -74,8 +74,7 @@ impl Services {
         let (workspaces, toplevels, wl) = crate::cosmic_wl::spawn();
         // M2 apps-index replaces this with apps::spawn.
         let (apps, apps_control) = inert();
-        // M3 badges replaces this with badges::spawn.
-        let (badges, badges_control) = inert();
+        let (badges, badges_control) = crate::badges::spawn(rt);
         // M2 launch (dock_config) replaces this with pins::spawn.
         let (pins, pins_control) = inert();
         // M2 launch replaces this with launch::spawn(rt, apps).
