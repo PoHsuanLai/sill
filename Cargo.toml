@@ -26,7 +26,7 @@ sill-settings = { path = "crates/sill-settings" }
 sill-surfaces = { path = "crates/sill-surfaces" }
 # Sibling repos, checked out next to this one.
 ds         = { path = "../quire/crates/ds" }
-ds-settings = { path = "../quire/crates/ds-settings" }
+ds-settings = { path = "../quire/crates/ds-settings", features = ["tokio"] }  # the shell runs zbus on tokio everywhere (quire CONSUMING §1)
 # The Blitz host glue: sill takes only its rect measurer (`ds_native::measure`).
 ds-native  = { path = "../quire/crates/ds-native" }
 shell-host = { path = "../shell-host/crates/shell-host" }
