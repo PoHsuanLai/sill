@@ -76,10 +76,8 @@ impl Services {
         let (apps, apps_control) = inert();
         // M3 badges replaces this with badges::spawn.
         let (badges, badges_control) = inert();
-        // M2 launch (dock_config) replaces this with pins::spawn.
-        let (pins, pins_control) = inert();
-        // M2 launch replaces this with launch::spawn(rt, apps).
-        let (launches, launch) = inert();
+        let (pins, pins_control) = crate::pins::spawn(rt);
+        let (launches, launch) = crate::launch::spawn(rt, apps.clone());
         // M4 launcher-core replaces this with results::spawn(rt, the five providers).
         let (results, search) = inert();
         // M2 wallpaper replaces this with wallpaper::spawn.
