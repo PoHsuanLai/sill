@@ -66,7 +66,7 @@ fn menu_height<T>(entries: &[MenuEntry<T>]) -> i32 {
             MenuEntry::Item { title, .. } | MenuEntry::Submenu { title, .. } => {
                 ITEM_PX + LINE_PX * (lines(title) - 1)
             }
-            MenuEntry::Header(_) => HEADER_PX,
+            MenuEntry::Header(_) | MenuEntry::Info { .. } => HEADER_PX,
             MenuEntry::Separator => SEPARATOR_PX,
         })
         .sum();

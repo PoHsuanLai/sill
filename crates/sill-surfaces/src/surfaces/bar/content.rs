@@ -169,6 +169,7 @@ mod tests {
                 MenuEntry::Header(t) => format!("# {t}"),
                 MenuEntry::Item { title, .. } => title.clone(),
                 MenuEntry::Submenu { title, .. } => format!("{title} >"),
+                MenuEntry::Info { title, .. } => format!("i {title}"),
                 MenuEntry::Separator => "--".to_owned(),
             })
             .collect()

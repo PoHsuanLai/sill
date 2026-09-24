@@ -12,6 +12,7 @@
 
 use std::path::Path;
 use std::process::ExitCode;
+use std::time::{Duration, Instant};
 
 use shell_host::{CloseReason, Host, HostConfig, HostCtx, HostEvent, OutputInfo, Root, SurfaceId};
 use sill_ipc::{
@@ -129,8 +130,22 @@ fn run_event(
 ) {
     match event {
         HostEvent::App(ShellMsg::Ipc { request, reply }) => {
+            // `Toggle` is timed from here (the IPC request's arrival) regardless of what
+            // `dispatch_request` does with it: M4 perf-ime's `launcher.open_latency_ms` line
+            // (module doc; FINDINGS.md "M4 perf-ime"). Placed at the request's arrival rather
+            // than inside `dispatch_launcher` so M4 launcher-ui can freely rewrite that
+            // function's body — spawning the panel for real, keeping it warm, whatever the
+            // surface needs — without colliding with this edit: the elapsed time this measures
+            // grows on its own, from "IPC overhead only" today to "IPC arrival to the frame
+            // that presents the shown panel" once `dispatch_request` itself waits on that frame
+            // (e.g. via `HostCtx::take_stats` after spawning/showing the surface).
+            let toggled_at =
+                matches!(request, Request::Launcher(LauncherRequest::Toggle)).then(Instant::now);
             let response =
                 dispatch_request(ctx, outputs, services, settings_dir, settings_tx, request);
+            if let Some(toggled_at) = toggled_at {
+                log_open_latency(toggled_at.elapsed());
+            }
             let _ = reply.send(response);
         }
         other => {
@@ -498,6 +513,32 @@ fn to_ipc_micros(p: shell_host::Percentiles) -> sill_ipc::Micros {
         p95_us: p.p95_us,
         max_us: p.max_us,
     }
+}
+
+/// Prints [`open_latency_line`] on stderr: the M4 perf-ime latency line `dev/accept-launcher.sh`
+/// parses for its p50/p95/max over 20 toggles.
+fn log_open_latency(elapsed: Duration) {
+    eprintln!("{}", open_latency_line(elapsed));
+}
+
+/// The stderr line for one `sill launcher toggle`'s latency, `elapsed` since the IPC request
+/// arrived. Its own function (rather than inlined in [`log_open_latency`]) so
+/// `crates/sill/tests/latency.rs` can check the arithmetic without a wall clock.
+pub fn open_latency_line(elapsed: Duration) -> String {
+    format!(
+        "launcher.open_latency_ms={:.3}",
+        elapsed.as_secs_f64() * 1000.0
+    )
+}
+
+/// The value [`open_latency_line`] printed, parsed back out of one line of the daemon's log.
+/// `None` for any line that is not one of ours (including a malformed number, which a caller
+/// should treat the same as "not present" rather than fail the whole log on).
+pub fn parse_open_latency_ms(line: &str) -> Option<f64> {
+    line.trim()
+        .strip_prefix("launcher.open_latency_ms=")?
+        .parse()
+        .ok()
 }
 
 fn unknown_surface(surface: &SurfaceName) -> Response {

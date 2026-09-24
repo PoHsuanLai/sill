@@ -10,6 +10,7 @@ publish.workspace = true
 
 [dependencies]
 sill-launcher = { workspace = true }
+nucleo-matcher = { workspace = true }
 tokio = { workspace = true }
 zbus = { workspace = true }
 cosmic-client-toolkit = { workspace = true }

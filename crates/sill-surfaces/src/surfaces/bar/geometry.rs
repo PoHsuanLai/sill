@@ -109,6 +109,7 @@ fn menu_size<T>(entries: &[MenuEntry<T>]) -> Size {
                 (title.chars().count(), ITEM_PX)
             }
             MenuEntry::Header(text) => (text.chars().count(), HEADER_PX),
+            MenuEntry::Info { title, .. } => (title.chars().count(), HEADER_PX),
             MenuEntry::Separator => (0, SEPARATOR_PX),
         };
         (longest.max(chars), h + row)

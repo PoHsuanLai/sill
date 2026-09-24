@@ -898,3 +898,162 @@ start at F92/Q15 so they cannot collide with m2-wallpaper's F83-F91 and Q14.
 - **Q17** `Tooltip{Fly}` is `:hover`-driven only; a controlled mode (shown/hidden by the caller)
   would let the dock machine's label rules (hide on press, while a menu is open, while
   dragging) apply (F98).
+
+## M4 perf-ime (2026-09-24)
+
+- **F102 `launcher.open_latency_ms` is timed at the IPC request's arrival, not inside
+  `dispatch_launcher`.** `run_event`'s `HostEvent::App(ShellMsg::Ipc { .. })` arm starts an
+  `Instant` for exactly `Request::Launcher(LauncherRequest::Toggle)`, calls
+  `dispatch_request` unchanged, then logs the elapsed time — regardless of what the response
+  turns out to be. This is the wave-ownership seam DESIGN.md's M4 table draws (perf-ime owns
+  the latency lines, launcher-ui owns "spawn/route" in the same file): launcher-ui can rewrite
+  `dispatch_launcher`'s body freely — spawn the two surfaces, wait for the shown frame, whatever
+  the design needs — without touching this edit, and the number this line prints grows on its
+  own from "IPC round trip only" (today, `dispatch_launcher` answers `Unsupported` at once) to
+  "IPC arrival to the frame that presents the shown panel" the moment `dispatch_request` itself
+  takes that long, with no further edit here. `open_latency_line`/`parse_open_latency_ms`
+  (`crates/sill/src/daemon.rs`, both `pub` for `crates/sill/tests/latency.rs` and
+  `dev/accept-launcher.sh`) are the pure formatting/parsing pair; `crates/sill/tests/latency.rs`
+  checks both without a wall clock (fixed `Duration`s), including that the parser ignores every
+  line that is not ours (an `Unsupported` failure message, another daemon line, a malformed
+  number).
+- **F103 `dev/accept-launcher.sh` runs three steps, self-contained** (own `sill run --features
+  debug`, scratch `XDG_CONFIG_HOME`, on the already-running nested `wayland-1`; quits its daemon
+  at the end via a `trap`), all with real evidence rather than assumed:
+  1. **Real pass, today.** 20 `sill launcher toggle` calls (each answers `Failed(Unsupported)`
+     and exits nonzero — expected, and irrelevant: F102's line is printed before the client ever
+     sees the response) produced exactly 20 `launcher.open_latency_ms` lines on this machine:
+     p50 0.000 ms, p95 0.001 ms, max 0.002 ms, comfortably under the 100 ms budget. This is
+     IPC-only overhead, not the real open latency the plan's gate means — but the mechanism is
+     real, and F102's design means it starts measuring the real thing unchanged once M4
+     launcher-ui lands, with nothing in this script to update.
+  2. **Skip (exit 2), "M4 launcher-ui."** `sill debug stats` carries no `sill-launcher-*` row
+     after a toggle (`dispatch_launcher` never spawns anything yet), so the panel-exists and
+     5 s-idle-after-close checks cannot run; the step checks for the row itself rather than
+     assuming its absence, so it starts passing for real the moment a launcher surface exists.
+  3. **Skip (exit 2), reason logged but not diagnosed further.** The nested `custom` shortcut
+     (`dist/cosmic/.../custom`, mirrored into shell-host's `scripts/dev/xdg-config`, already
+     loaded when this machine's `cosmic-comp` started) is `(modifiers: [Ctrl, Alt], key:
+     "space"): Spawn("sill launcher toggle")`. `wtype` is installed here (`ydotool` is not); the
+     step sends `wtype -M ctrl -M alt -k space -m alt -m ctrl` through the nested compositor and
+     watches the daemon's log for a new `launcher.open_latency_ms` line for 5 s. Live result: no
+     new line. `comp.log` names neither a shortcut match nor a spawn attempt at any log level
+     enabled by default, so the cause is not distinguished between two candidates: `cosmic-comp`
+     resolves `Spawn`'s bare `sill` on its own inherited `PATH`, fixed when `dev/nested.sh`
+     started the compositor (before any `cargo build` in this session put a `sill` binary
+     anywhere); or a `wtype`-injected key, which travels the `virtual-keyboard-unstable-v1`
+     protocol rather than a real input device, never reaches `cosmic-comp`'s global-shortcut
+     matcher at all. Either is a shell-host/cosmic-comp fact, not something `dev/`-owned code can
+     fix; recorded rather than guessed at further.
+- **F104 `dev/ime-probe.sh` proves the two checks it can and stops.** Live on this machine,
+  right now: `loginctl`'s seat0 session (found by its `SEAT` column, not `$XDG_SESSION_ID` — a
+  script invoked from a pts session must not check that session's lock state) has
+  `LockedHint=yes`, so the script exits 2 with that fact named, exactly as running it demonstrated
+  (`./dev/ime-probe.sh` printed the lock message and exited 2 without touching fcitx5 or the
+  compositor). fcitx5 answers on the session bus (`busctl --user call org.fcitx.Fcitx5
+  /controller org.fcitx.Fcitx.Controller1 State`, checked separately, unlocked or not — D-Bus
+  calls do not need keyboard focus). Past those two checks the script looks for
+  `sill-surfaces/examples/launcher_demo`, then `bar_demo`; neither offers a real text-input-v3
+  field yet (`bar_demo` has none at all — the bar has no text entry), so it always stops there,
+  exit 2, and prints the exact commands for the rest. **Correction to the brief's D-Bus name**:
+  this machine's fcitx5 does not answer on `org.fcitx.Fcitx5.Controller1` — introspecting
+  `org.fcitx.Fcitx5` `/controller` shows the interface is `org.fcitx.Fcitx.Controller1` (no
+  "5"), which is what the script and its printed commands use. **`SetCurrentIM`'s effect could
+  not be confirmed live while writing this**: calling `SetCurrentIM s chewing` then
+  `CurrentInputMethod` returned `""` before and after (session locked throughout, so no
+  wayland client had an enabled, focused `zwp_text_input_v3` context for fcitx5 to apply a
+  "current" method to) — the printed commands document the call, not a verified round trip;
+  that verification is exactly what running them against a real field, once one exists, is for.
+  Facts recorded for the documented commands rather than assumed: `wtype` is installed on this
+  machine, `ydotool` is not; the Default input-method group here is `keyboard-us` + `chewing`
+  (Taiwanese Zhuyin/Chewing — the only CJK method configured), matching shell-host FINDINGS.md's
+  own note that `fcitx5` is installed and IME has only been exercised on KWin so far (`text-
+  input-v3` accumulates `preedit_string`/`commit_string`/`delete_surrounding_text` until `done`,
+  `crates/shell-host/src/ime.rs`).
+## M4 providers-a (2026-09-24)
+
+Filled `providers::{apps, windows, system}` (`sill-services/src/providers/{apps,windows,system}.rs`);
+`sill-launcher/**`, `results/**`, `providers/{calculator,settings}.rs` and every other M4 file
+stayed untouched. `sill-services/Cargo.toml` gained one line, `nucleo-matcher = { workspace =
+true }` — already pinned (root `Cargo.toml`, used by `sill-launcher`), just not yet wired into
+this crate, which needs the concrete `nucleo_matcher::Matcher` type in provider function
+signatures that `sill_launcher::matching::matcher()` returns.
+
+- **F105 `Activation` cannot close a window; the row still offers the action.** The brief asks
+  the windows provider to close with an action, but the frozen `sill_launcher::Activation`
+  (owned by launcher-core) is `Launch | FocusWindow | Copy | OpenSettings | System | Nothing` —
+  no variant carries a `WindowKey` to a close request, and `WlCommand::Close` (the compositor
+  command that exists for it, `cosmic_wl::command.rs`) has no path from `Provider::activate`,
+  which is documented pure ("it says what should happen and the daemon does it") and so cannot
+  call it directly either. `WindowsProvider` still gives every row a `Close` action (so the row
+  shape is right and the gap is visible in the actions menu, Ctrl+K / Alt+K) but
+  `activate(item, Choice::Action(_))` can only answer `Activation::Nothing`. Recommend
+  launcher-core add `Activation::CloseWindow(WindowKey)` (mirroring `FocusWindow`'s shape) in a
+  follow-up; this is a stop-and-report, not a workaround (CONVENTIONS §1).
+- **F106 The "confirmation flag" is the actions menu, not a new field.** design/06 §20.2 gives
+  the launcher exactly one lever in the frozen `Item`/`Choice` shape for anything beyond Enter:
+  Ctrl+K / Alt+K opens `Item::actions`. `Item` has no boolean (and CONVENTIONS §11 forbids one
+  in a public signature regardless) and `Activation` has no "ask first" wrapper, so
+  `SystemProvider` reads Log Out, Restart and Shut Down as destructive (they close or interrupt
+  every running app) and gives each one action, `Action{id: "confirm", label: "Confirm
+  <title>"}`; `Choice::Primary` on one of these rows answers `Activation::Nothing`, and only
+  `Choice::Action("confirm")` answers the real `Activation::System(command)`. Suspend is treated
+  as non-destructive (instantaneous, reversible, no app is closed) matching macOS and GNOME;
+  Lock and Reload need no confirmation at all. This is a considered reading of an unspecified
+  design point, not a verified one — worth a second look once launcher-ui's actions menu exists
+  to see how it reads in practice.
+- **F107 Session-command availability is a live, cached logind probe, not a static list.**
+  `SystemProvider::query` lists Suspend, Restart and Shut Down only when logind's own read-only
+  `Manager.CanSuspend`/`CanReboot`/`CanPowerOff` (`Yes` or `Challenge`) says so, and lists
+  nothing extra when the bus or logind is unreachable at all (`Offer::Unavailable`, the wave's
+  "reports `Unavailable` cleanly" requirement) — Lock, Log Out and Reload need no such check and
+  always list. The check is real D-Bus (async `logind_zbus::manager::ManagerProxy`, not the
+  `Blocking` variant: `zbus`'s pinned features here are `default-features = false, features =
+  ["tokio"]`, so `blocking-api` — and with it `zbus::blocking` and every `*ProxyBlocking` type —
+  is not compiled in; adding it would be a pinned-dependency change, out of scope for a single
+  crate per CONVENTIONS §11) bridged from `Provider::query`'s sync signature with
+  `tokio::runtime::Handle::block_on`, which is sound exactly because `results::spawn` (M4
+  launcher-core, plan "spawn_blocking per provider") is documented to run every provider's
+  `query` inside `tokio::task::spawn_blocking` — the one context `Handle::block_on` does not
+  panic from. The probe runs once and is cached in a `OnceLock` for the provider's lifetime (a
+  fresh `Connection::system` per keystroke would risk the 50 ms budget for no benefit: session
+  policy does not change keystroke to keystroke). `tests/providers_system_live.rs` (`#[ignore =
+  "needs logind"]`) exercises the real probe through the same `spawn_blocking` seam and only
+  ever calls the read-only `Can*` properties — never `Suspend`/`Reboot`/`PowerOff`/
+  `TerminateSession`, so running it does not touch the session it runs in. Run once on this
+  machine: `Lock, Log Out, Reload, Restart, Shut Down` (Suspend absent — `CanSuspend` answered
+  `No`, most likely because this dev box has no swap/hibernation image configured for logind to
+  offer it).
+- **F108 Desktop actions surface as their own rows only once something is typed.** The brief
+  asks for "desktop actions as secondary items"; `AppsProvider` matches a `[Desktop Action]`'s
+  own name as a separate `Item` (its `Activation::Launch` carries `DesktopAction::Named`, its
+  id `<app id>\u{1}<action id>` — `\u{1}` rather than a printable separator such as `::`,
+  since CONVENTIONS "substrings are not tokens" argues for a joiner no real id can contain
+  rather than one that merely seems unlikely to collide) alongside its owning app's own row,
+  which still lists every desktop action in its own `actions` menu regardless of whether the
+  action text itself matched. An empty query skips the per-action rows (every app already lists
+  by frecency alone; also listing every one of their actions would be a wall of rows with
+  nothing typed) — a considered reading, not specified by the brief.
+- **Icon glyphs.** design/08-ICONS.md §1.6 catalogues only `lock` and `power` among session
+  glyphs, and `window` for "windows provider, dock menu" (confirming the windows provider's own
+  fallback icon by name). `SystemProvider` gives Lock its own `lock` glyph, every other
+  power-menu row `power`, and Reload `IconRef::None` (not a power-menu action, and no glyph for
+  it is catalogued — `None` falls back to the provider's own glyph per `IconRef::None`'s own
+  doc, rather than inventing an uncatalogued name locally, per CONVENTIONS §11 "a missing …
+  token is added to quire first").
+- **`WindowsProvider` gained a third field,** `workspaces: watch::Receiver<Workspaces>` (the
+  stub had only `toplevels` and `apps`): the brief's row shape is "title, app name, workspace",
+  and a `Toplevel` only carries `WorkspaceKey`s, not names — `cosmic_wl::spawn` already
+  publishes `Workspaces` (workspace names) beside `Toplevels`, so the third receiver is simply
+  wired in rather than left unresolved.
+
+### Tests
+
+`cargo test -p sill-services --lib providers::` — 19 unit tests (matching/ranking tables,
+cancellation, `activate` mappings, id encode/decode), all pass. `tests/providers_apps.rs` runs
+`AppsProvider` against the real fixture tree `tests/fixtures/applications` (the same one
+`tests/scan.rs` scans): name/generic-name/keyword matches, a matching desktop action listing as
+its own row, and `Hidden`/`NoDisplay`/an unresolvable `TryExec` never listing. `tests/
+providers_windows.rs` runs `WindowsProvider` against a fake `Toplevels`/`Workspaces` pair (no
+compositor). `tests/providers_system_live.rs::lists_session_commands_against_real_logind`
+(`#[ignore = "needs logind"]`) is the live test described in F107; run once, reported there.
