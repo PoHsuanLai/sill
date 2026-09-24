@@ -115,7 +115,7 @@ mod tests {
         let trash = f.tiles[3].left.0 / 100;
         let cases = [
             ("the first tile", at(first + 10, 120), Some(TileId(0))),
-            ("the gutter under it", at(first + 10, 159), Some(TileId(0))),
+            ("the gutter under it", at(first + 10, 157), Some(TileId(0))),
             ("the gap right of it", at(first + 49, 120), Some(TileId(0))),
             ("above the pill", at(first + 10, 80), None),
             ("the Trash tile", at(trash + 5, 120), Some(TileId(9))),
@@ -152,12 +152,12 @@ mod tests {
             ("past the last app", at(c(2) + 5, 120), DropZone::Slot(2)),
             (
                 "100 px above the pill",
-                at(c(1), 88 - 100),
+                at(c(1), 90 - 100),
                 DropZone::Remove,
             ),
             (
                 "60 px above the pill",
-                at(c(1) + 5, 88 - 60),
+                at(c(1) + 5, 90 - 60),
                 DropZone::Slot(1),
             ),
         ];

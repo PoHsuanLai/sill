@@ -1,11 +1,13 @@
 //! The workspace indicator: one pill per workspace of this output's group, active sealed, drag to reorder (`move_before`/`move_after`), right-click for Edit Space.
 //!
-//! Each pill is a ds `Button{Mini}`, pressed for the active workspace. A click activates the
-//! workspace; a press on one pill released over another reorders (`reorder`). Right-click Edit
-//! Space waits for the Space editor popup (FINDINGS "M1 bar-ui").
+//! The group is a ds `WorkspacePills` (the macOS polish pass: one segmented group on the frame),
+//! each workspace a `WorkspacePill`, current for the active one. A primary press activates the
+//! workspace; a press on one pill released over another reorders (`reorder`), which each pill's
+//! own wrapper listens for. Right-click Edit Space waits for the Space editor popup (FINDINGS
+//! "M1 bar-ui").
 
 use dioxus::prelude::*;
-use ds::{Button, ButtonVariant, Switch};
+use ds::{Here, PointerButton, Press, WorkspacePill, WorkspacePills};
 use shell_host::OutputInfo;
 use sill_services::{Activity, OutputName, WlCommand, Workspace, WorkspaceGroup};
 
@@ -48,6 +50,7 @@ pub fn WorkspaceIndicator(output: OutputInfo) -> Element {
     };
     rsx! {
         div { class: "sill-bar-spaces",
+            WorkspacePills { label: "Workspaces",
             for (index , workspace) in group.workspaces.into_iter().enumerate() {
                 div {
                     key: "{workspace.key.0}",
@@ -67,18 +70,20 @@ pub fn WorkspaceIndicator(output: OutputInfo) -> Element {
                             }
                         }
                     },
-                    Button {
-                        variant: ButtonVariant::Mini,
+                    WorkspacePill {
                         label: label(&workspace, index),
-                        pressed: Some(if workspace.activity == Activity::Active { Switch::On } else { Switch::Off }),
+                        current: if workspace.activity == Activity::Active { Here::Current } else { Here::Elsewhere },
                         onclick: {
                             let wl = wl.clone();
-                            move |_| {
-                                let _ = wl.send(WlCommand::ActivateWorkspace(workspace.key));
+                            move |press: Press| {
+                                if press.button == PointerButton::Primary {
+                                    let _ = wl.send(WlCommand::ActivateWorkspace(workspace.key));
+                                }
                             }
                         },
                     }
                 }
+            }
             }
         }
     }

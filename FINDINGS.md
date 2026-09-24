@@ -1593,6 +1593,95 @@ wallpaper wave running beside it.
   `ds_native::focus::provide()` (not files this pass owns). Nothing crashes without it; a
   collision prints the caught panic.
 
+## Adoption of the polish pass (2026-09-24)
+
+Branch `adopt-polish`, against quire `v0.1.1` (465ae77) and then `v0.1.2` (7a7ae45, through
+master's merge). What sill changed for quire's macOS polish pass (quire FINDINGS "macOS
+polish", CONSUMING.md "The macOS polish pass"):
+
+- **Settings.** `sill-settings` registers the new keys under their domains with quire's
+  defaults: `bar.item_font_px` (13), `bar.item_font_weight` (`Count`, 500, 100..=900),
+  `bar.item_radius_px` (4); `menus.font_px` (13), `menus.highlight_radius_px` (6),
+  `menus.tooltip_font_px` (12); `launcher.field_font_px` (22), `launcher.field_font_weight`
+  (500), `launcher.field_glyph_px` (20), `launcher.row_title_px` (14), `launcher.row_detail_px`
+  (12); `dock.pill_padding_px` (6), `dock.running_dot_gap_px` (3), `dock.floor`
+  (`DockFloor::{Off,On}`, Off). Three defaults move: `menus.item_height_px` 24 to 22,
+  `menus.separator_margin_px` 4 to 5, `dock.tile_gap_px` 4 to 8. The fourteen new keys have no
+  design/22 §3 row yet (design/22 is quire's): `tests/keys.rs` lists them in `AWAITING_ROWS`,
+  exempt from the row check only while the row is missing. `sill --write-schema` writes 156 keys.
+- **Shell-wide inputs** (`surfaces/bar/shell_style.rs`). `shell_metrics` builds
+  `ds::ShellMetrics` from `bar.*`, `menus.*` and `launcher.*`; every surface writes its
+  `style_attr()` on a box around its `Ds` root (`.sill-bar-root`, `#dock-pill`, `#panel`) and
+  every popup on its frame (the popup looks carry the metrics), so the 22 px menu rows, the
+  5 px separator margins and the launcher's 22/500 query follow the keys. `material_stack`
+  builds `ds::MaterialStack` and every root takes it as `Ds { stack }`. `AppearanceSettings`
+  has no `material_*` fields yet, so the six `appearance.material_*` keys are read from its
+  `extra` table (percent, clamped, each falling back to its default alone).
+- **Bar.** The app name (`Emphasis::Strong`) and the clock sit in `MenuBarItem { open }`,
+  which draws the hover and open pill; the title slot keeps only the hit box and events, and
+  its own `data-open` pill and padding are gone. The workspace indicator is one
+  `WorkspacePills` group of `WorkspacePill`s (`Here::Current` for the active one; a primary
+  press activates), each in the wrapper that keeps the drag-to-reorder.
+- **Dock.** The pill's corner is `Corner::Squircle(dock.pill_radius_px)` and the blur region's
+  radius is the squircle's shadow circle (`pill_blur_radius`: .884 r, 19 at 22). `DockMetrics`
+  from the keys (`geometry::dock_metrics`) is written around the root, whose first child is
+  `DockFloor`. The padding is `dock.pill_padding_px` everywhere the constant `PAD_PX` was
+  (rows, layer, magnify params, the slide distance): the layer is 158 tall and reserves 68.
+  Every tile is `IconView { plate: Some(PlateFamily::Neutral) }` (design/08 §4.1: third-party
+  icons and the §4.3 fallback glyph on the paper plate; quire sizes the glyph 56 % and an image
+  72 %), replacing sill's own rounded-rect plate. The running dot is quire's `RunningDot` in a
+  box at the tile's rest place, so it stays on the baseline while the tile bounces.
+- **Launcher.** The card is `CommandPalette { corner: Some(Corner::Squircle(14)) }` and content
+  sized. An empty foot element after it in the panel's column is measured through the host's
+  `HostMeasure` a frame after anything that changes the card (opening, query, row count, actions
+  menu), and the panel publishes `PanelHit::{Whole, Card { height }}` on the `LauncherLink`
+  (`launcher/card.rs`, `launcher/hit.rs`). The panel's input follows it (the card element, or
+  the panel's 680 x 460 while the actions menu is open, since the menu can hang below the
+  card), the blur is the card element at radius 12, and the catcher leaves out only the card, so
+  a press under a short card closes the launcher. The surface gained room for the Sheet's
+  ambient shadow (`0 24px 60px -18px`): 42 px each side and 66 px below; the card keeps its
+  place on the output. `LauncherLink` is now a struct of two channels.
+
+### Acceptance (nested cosmic-comp, 2176 x 1360 physical, 2000 x 1250 logical at the shots)
+
+The scripts seed COSMIC's background record in their scratch `XDG_CONFIG_HOME` with a
+generated test wallpaper (`dev/backdrop.py`: 2176 x 1360 soft colour bands; `dev/backdrop.sh`).
+m2-wallpaper had not merged, so `cosmic-bg` drew it in the nested session for every shot;
+once `sill run` has a wallpaper surface the same record is what it draws, and `backdrop_up`
+skips `cosmic-bg`. `backdrop_by_sill` pings before `debug stats`: any other sill request
+starts a daemon when none runs (`client::send`), which left a stray daemon behind the first
+attempt and made the next script refuse to start.
+
+- `dev/accept-dock.sh`: all 6 PASS. Maximised probe 1260 of 1360 (bar 32, dock 68); sweep 39
+  frames for 38 callbacks, 0 frames in 5 s idle; the launched Terminal's dot after 602 ms;
+  the badge after 152 ms; the context menu popup opens; the squircle corner probe (6.5, 1.5 px
+  inside the corner) is the pill at `pill_radius_px = 12` (alpha 211) and outside it at 22
+  (`PILL_RADIUS=22`, alpha 5), so the probe tells the two squircles apart.
+- `dev/accept-bar.sh`: all 8 PASS (idle 0 commits, menu opens and dismisses, reserve 68).
+- `dev/accept-launcher-ui.sh` on the release build: all 6 PASS. Warm openings min 64, p50 68,
+  max 100 ms (first 153); daemon `open_to_frame_ms` 65-99 warm; idle 0 frames on both
+  surfaces; 20 toggles, no panic. Under a load average of 18 an earlier run measured p50 151,
+  max 540 and failed the 100 ms gate; the same build passed once the load fell to 8.
+- Screenshots: `dev/out/bar-cosmic.png`, `bar-cosmic-menu.png`, `dock-cosmic.png`,
+  `dock-cosmic-magnified.png`, `dock-cosmic-menu.png`, `launcher-cosmic.png`,
+  `launcher-cosmic-actions.png`.
+
+### Gaps left
+
+- **Q66** design/22 §3 has no rows for the fourteen new keys (the row list is in the handback);
+  until they land, `AWAITING_ROWS` exempts them. The three moved defaults' rows still say 24,
+  4 and 4.
+- **Q67** `appearance.material_*` are read from `AppearanceSettings::extra`; once ds-settings
+  registers them as fields, `material_stack` must read the fields (the `extra` lookup then
+  silently finds nothing and falls back to the defaults).
+- **Q68** `dock.pill_radius_px` stays 22 (quire recommends 18 for a squircle). At the 60 px pill
+  both extents are capped at 30, so only the shadow circle differs (19 vs 16).
+- **Q69** The bar and dock popups keep 24 px of side room; the menus' ambient shadow reaches
+  28 px, so its last, near-transparent edge is cut (faintly visible over a light wallpaper in
+  `dock-cosmic-menu.png`).
+- **Q70** `sill-services`' `MagnifyParams::design_defaults` still holds design/10's gap 4 and
+  pad 8; the dock's test compares against it with the two fields overridden.
+
 ## M2 wallpaper (2026-09-24)
 
 Filled `wallpaper::spawn` and the `Wallpaper` component; the frozen types in

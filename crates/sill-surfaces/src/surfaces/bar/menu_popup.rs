@@ -84,13 +84,16 @@ pub(crate) fn MenuPopup() -> Element {
     };
     rsx! {
         style { {POPUP_CSS} }
-        div { class: "sill-popup-frame", style: frame_style(),
+        div {
+            class: "sill-popup-frame",
+            style: "{frame_style()};{look.metrics.style_attr()}",
             Ds {
                 appearance: look.appearance,
                 system: look.system,
                 material: Material::Popover,
                 blur: BlurState::Unavailable,
                 tint_alpha: Some(look.tint),
+                stack: Some(look.stack),
                 {content}
             }
         }

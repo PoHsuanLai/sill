@@ -2,6 +2,10 @@
    marks proposed comes from a `bar.*` settings key and is written inline by the component;
    everything here is a token. Attribute selectors carry `*|` (spike S2). */
 
+/* The box around the Ds root that carries the shell type scale's inputs (quire's
+   `ShellMetrics`), so the root's tuned tokens read the settings. */
+.sill-bar-root{ display:block; }
+
 /* The strip: the layer's full size, title groups at either end. The Ds root under it draws the
    Space gradient at the Bar's tint alpha and cross-fades it on a workspace switch (design/21
    §3 and §5); the strip paints nothing of its own. */
@@ -10,15 +14,17 @@
 
 .sill-bar-group{ position:relative; display:flex; align-items:center; height:100%; gap:var(--s-4); }
 
-/* A title's hit box; the pill behind a title whose menu is open, with no transition. */
-.sill-bar-title{ display:flex; align-items:center; border-radius:var(--r-item); }
-.sill-bar-title[*|data-open=true]{ background-color:var(--f-pill); }
+/* A title's hit box. The pill behind a text title is its ds MenuBarItem's; a status item's
+   IconButton{Status} draws its own. */
+.sill-bar-title{ display:flex; align-items:center; }
 
 /* Digits keep their width, so the status items beside the clock do not move each minute. */
 .sill-bar-clock{ display:flex; font-variant-numeric:tabular-nums; }
 
-.sill-bar-spaces{ display:flex; align-items:center; gap:var(--s-4); margin-left:var(--s-6); }
-.sill-bar-space{ display:flex; }
+/* The workspace group (ds WorkspacePills) and each pill's own wrapper, which takes the drag
+   that reorders; the wrapper stretches so the pill fills the group's height. */
+.sill-bar-spaces{ display:flex; align-items:center; margin-left:var(--s-6); }
+.sill-bar-space{ display:flex; align-self:stretch; }
 
 /* The volume menu's panel inside its ds Popover. */
 .sill-volume-panel{ display:flex; flex-direction:column; gap:var(--s-10); width:240px; padding:var(--s-12); }

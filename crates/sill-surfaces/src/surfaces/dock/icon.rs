@@ -1,7 +1,8 @@
 //! A tile's icon (design/08-ICONS.md §4): the app's own themed icon as a `ds::IconSource`
 //! (`Symbolic` for a freedesktop `*-symbolic` file, recoloured like a glyph; `Image` for the
 //! rest), or quire's `Window` glyph when the app has none (§4.3), `Trash` for the Trash tile.
-//! The plate is the tile's; the icon is drawn at its share of the plate (72 %, a glyph 56 %)
+//! The plate is quire's (`IconView { plate }`), which draws a glyph at its 56 % and an image at
+//! its 72 % (`--plate-glyph`, `--plate-inset`); an icon file is still resolved at its 72 % share
 //! in whole pixels through `IconSize::Px`, at every magnified size.
 
 use ds::{ExternalIcon, Icon, IconPx, IconSize, IconSource, IconUrl};
@@ -12,9 +13,8 @@ use crate::surfaces::dock::items::ItemKind;
 /// design/08 §2.2: the plate is 80.5 % of the tile (824 / 1024).
 pub const PLATE_PERMILLE: i32 = 805;
 
-/// design/08 §4.1: a third-party icon fills 72 % of the plate; §4.3: a fallback glyph 56 %.
+/// design/08 §4.1: a third-party icon fills 72 % of the plate.
 pub const ICON_PERMILLE: i32 = 720;
-pub const GLYPH_PERMILLE: i32 = 560;
 
 /// What the tile for `kind` shows on a plate `plate_px` wide, `app` being its entry when the
 /// index has one.
@@ -49,12 +49,6 @@ pub fn tile_icon(kind: &ItemKind, app: Option<&App>, plate_px: f64) -> IconSourc
     }
 }
 
-/// The size a glyph `source` is drawn at on a plate `plate_px` wide (an icon file carries its
-/// own).
-pub fn glyph_size(plate_px: f64) -> IconSize {
-    share_of(GLYPH_PERMILLE, plate_px)
-}
-
 /// `permille` of `plate_px`, in whole pixels (at least one).
 fn share_of(permille: i32, plate_px: f64) -> IconSize {
     let side = (plate_px * f64::from(permille) / 1000.0)
@@ -66,7 +60,7 @@ fn share_of(permille: i32, plate_px: f64) -> IconSize {
 
 #[cfg(test)]
 mod tests {
-    use super::{glyph_size, tile_icon};
+    use super::tile_icon;
     use crate::surfaces::dock::items::ItemKind;
     use ds::{Icon, IconSource};
     use sill_launcher::AppId;
@@ -133,11 +127,9 @@ mod tests {
             IconSource::Image(e) => e.size,
             other => panic!("{other:?}"),
         };
-        // A 48 px tile's plate is 38.64 px: the icon 27.8, the glyph 21.6.
+        // A 48 px tile's plate is 38.64 px: the icon 27.8.
         assert_eq!(size(48.0 * 0.805), IconSize::Px(IconPx(28)));
-        assert_eq!(glyph_size(48.0 * 0.805), IconSize::Px(IconPx(22)));
-        // Fully magnified (96 px): 55.6 and 43.3.
+        // Fully magnified (96 px): 55.6.
         assert_eq!(size(96.0 * 0.805), IconSize::Px(IconPx(56)));
-        assert_eq!(glyph_size(96.0 * 0.805), IconSize::Px(IconPx(43)));
     }
 }

@@ -1,7 +1,7 @@
 //! The clock status item; its menu is the date.
 
 use dioxus::prelude::*;
-use ds::{Button, ButtonVariant, use_rect};
+use ds::{Button, ButtonVariant, Emphasis, use_rect};
 use shell_host::OutputInfo;
 
 use super::menus::BarMenu;
@@ -16,7 +16,7 @@ pub fn ClockItem(output: OutputInfo) -> Element {
     let clock = use_clock()();
     let probe = use_rect();
     rsx! {
-        TitleSlot { menu: BarMenu::Clock, probe, pill: SlotPill::Slot,
+        TitleSlot { menu: BarMenu::Clock, probe, pill: SlotPill::Item(Emphasis::Plain),
             div { class: "sill-bar-clock",
                 Button {
                     variant: ButtonVariant::Quiet,

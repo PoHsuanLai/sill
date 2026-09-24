@@ -645,8 +645,15 @@ fn to_host_button(button: sill_ipc::PointerButton) -> shell_host::debug::Pointer
 }
 
 #[cfg(not(feature = "debug"))]
-fn apply_injection(_ctx: &mut HostCtx<ShellMsg>, _id: SurfaceId, _action: DebugAction) -> Response {
-    unsupported("built without the debug feature")
+fn apply_injection(_ctx: &mut HostCtx<ShellMsg>, _id: SurfaceId, action: DebugAction) -> Response {
+    // Naming the action keeps every variant's payload read in this build too.
+    let what = match action {
+        DebugAction::Pointer(at) => format!("pointer at {},{}", at.x, at.y),
+        DebugAction::Click(at, button) => format!("{button:?} click at {},{}", at.x, at.y),
+        DebugAction::Leave => "leave".to_owned(),
+        DebugAction::Capture(path) => format!("capture to {}", path.display()),
+    };
+    unsupported(&format!("built without the debug feature ({what})"))
 }
 
 /// The dock's layer namespace on `info` (`sill-dock-<output>`), which `debug stats` reports.

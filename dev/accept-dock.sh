@@ -4,22 +4,28 @@
 # (`--features debug`) with a scratch XDG_CONFIG_HOME, so the pins it writes never touch the
 # real ~/.config/sill, and quits it at the end.
 #
-#   1. The dock reserves base + margin: a maximised probe is output_h - bar_h - 72.
+#   1. The dock reserves base + margin: a maximised probe is output_h - bar_h - 68 (gut 8 + tile
+#      48 + 2 x the 6 px padding, quire's macOS polish pass).
 #   2. Hover sweep at 60 Hz for 1 s through `sill debug pointer`: frames >= 0.9 x callbacks;
 #      then, after `sill debug leave` and the 200 ms shrink, 5 s idle: 0 frames.
 #   3. A click on the pinned, not-running COSMIC Terminal tile launches it: its running dot
 #      (the dock's view of a mapped toplevel) shows within 3 s.
 #   4. `badge_emitter` for that app shows a count badge within 1 s.
 #   5. `sill debug click --button secondary` on that tile opens its context menu popup.
-#   6. The pill's corner is `dock.pill_radius_px` from the scratch settings (PILL_RADIUS, 12 by
-#      default, not the material's 22): the pixel 4 px inside its top-left corner is the pill's
-#      (inside a 12 px arc, outside a 22 px one).
-# Screenshots: dev/out/dock-cosmic.png (rest), dock-cosmic-magnified.png, dock-cosmic-menu.png.
+#   6. The pill's corner is a squircle of `dock.pill_radius_px` from the scratch settings
+#      (PILL_RADIUS, 12 by default, not the key's 22): the pixel centred 6.5 px in from the
+#      pill's left edge and 1.5 px down from its top is the pill's (inside a 12 px squircle,
+#      whose edge crosses that row 5.4 px in, and outside a 22 px one, 7.7 px in: its extent is
+#      capped at half the 60 px pill).
+# Screenshots: dev/out/dock-cosmic.png (rest), dock-cosmic-magnified.png, dock-cosmic-menu.png,
+# over the test wallpaper (dev/backdrop.sh).
 #
 # Usage: dev/nested.sh && dev/accept-dock.sh
 set -uo pipefail
 # shellcheck source=dev/common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+# shellcheck source=dev/backdrop.sh
+source "$(dirname "${BASH_SOURCE[0]}")/backdrop.sh"
 OUT_DIR="$SILL_REPO/target/accept-dock"
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
@@ -27,13 +33,14 @@ HOST_REPO="$(cd "$SHELL_HOST_DEV/../.." && pwd)"
 PROBE="$HOST_REPO/target/release/examples/probe_toplevel"
 EMITTER="$SILL_REPO/target/debug/examples/badge_emitter"
 BAR_H="${BAR_H:-32}"
-RESERVE=72
+RESERVE=68
 PILL_RADIUS="${PILL_RADIUS:-12}"
 TERM_ID=com.system76.CosmicTerm
-# Surface-local geometry of the default dock (design/10 §10.3.1): 160 tall, the pill's middle
-# at 120, the baseline at 144, the running dot's centre 4 below it.
+# Surface-local geometry of the default dock (design/10 §10.3.1 with the polish pass's 6 px
+# padding): 158 tall, the pill 90..150 with its middle at 120, the baseline at 144, the running
+# dot's centre 3 below it (`dock.running_dot_gap_px`).
 PILL_Y=120
-DOT_Y=148
+DOT_Y=147
 
 sill() { "$SILL_BIN" "$@"; }
 nested() { "$SHELL_HOST_DEV/run.sh" "$@"; }
@@ -73,9 +80,10 @@ kill_nested_terms() {
 }
 
 # The rest centre x of the first tile when the dock holds it and the Trash (dock/frame.rs:
-# rest_centers(2) re-centred around the 13 px separator block).
+# rest_centers(2) re-centred around the 13 px separator block): W0 = 2 x 48 + 8 + 2 x 6 = 116,
+# the first centre the padding and half a tile in, less half the separator block.
 first_tile_x() {
-  echo $(( (OUT_W - 116) / 2 + 32 - 6 ))
+  echo $(( (OUT_W - 116) / 2 + 30 - 6 ))
 }
 
 # Capture the dock surface to $1 and print the RGBA at ($2, $3), surface-local logical px.
@@ -103,9 +111,11 @@ start_daemon() {
   CONFIG=$(mktemp -d)
   mkdir -p "$CONFIG/sill"
   printf '[dock]\npill_radius_px = %s\n' "$PILL_RADIUS" >"$CONFIG/sill/settings.toml"
+  backdrop_seed "$CONFIG" || return 1
   XDG_CONFIG_HOME="$CONFIG" nested "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
+  backdrop_up "$CONFIG" || return 1
   sill dock pin "$TERM_ID" >"$OUT_DIR/pin.log" 2>&1 || return 1
   for _ in $(seq 50); do DOCK=$(dock_name); [ -n "$DOCK" ] && break; sleep 0.1; done
   [ -n "${DOCK:-}" ] || { echo "no dock surface in 'sill debug stats'" >&2; return 1; }
@@ -245,10 +255,11 @@ left = next(x for x in range(img.width) if solid(x, mid))
 right = max(x for x in range(img.width) if solid(x, mid))
 cx = (left + right) // 2
 top = min(y for y in range(mid + 1) if all(solid(cx, yy) for yy in range(y, mid + 1)))
-inset = int(round(4 * scale))
-alpha = img.getpixel((left + inset, top + inset))[3]
-print(f"pill {left},{top}..{right} (device px); 4 px inside its corner alpha {alpha}; "
-      f"pill_radius_px {radius}: {'PASS' if (alpha > 100) == (radius <= 13) else 'FAIL'}")
+# The device pixel whose centre is 6.5 logical px in from the left edge and 1.5 down from the top.
+probe = (left + int(6.5 * scale), top + int(1.5 * scale))
+alpha = img.getpixel(probe)[3]
+print(f"pill {left},{top}..{right} (device px); at 6.5, 1.5 px inside its corner alpha {alpha}; "
+      f"squircle pill_radius_px {radius}: {'PASS' if (alpha > 100) == (radius <= 13) else 'FAIL'}")
 EOF
   grep -q ': PASS$' "$log"
 }
@@ -259,6 +270,7 @@ stop_daemon() {
   wait "$DAEMON" 2>/dev/null
   DAEMON=
   kill_nested_terms
+  backdrop_down
   rm -rf "$CONFIG"
 }
 

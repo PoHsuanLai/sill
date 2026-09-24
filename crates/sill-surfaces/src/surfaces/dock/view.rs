@@ -2,14 +2,18 @@
 //! lay the frame out from the machine's displayed progress and draw it (design/10 §10.3.1,
 //! §10.3.12). The surface is transparent everywhere but the pill and the tiles. The pill is the
 //! `Ds` root itself: a `Material::Dock` root in a box at the pill's rectangle, which draws the
-//! Space gradient at the Dock's tint alpha with the material's edge, drop and radius (quire's
-//! tinted frame), its corner `dock.pill_radius_px`. Everything else hangs from the root in a layer moved back to the surface's
-//! origin, so tiles, dots and the hit elements keep surface coordinates. The root's content is
-//! on paper (`Ground::Paper`): the tile plates are neutral paper (design/08 §4.1), and the dot
-//! and separator name the frame inks themselves.
+//! Space gradient at the Dock's tint alpha with the material stack's hairline, highlight and
+//! shadows (quire's tinted frame), its corner a squircle of `dock.pill_radius_px` (the macOS
+//! polish pass). The box around the root carries the shell type scale and quire's dock metrics
+//! (`DockMetrics`: gap, padding, the running dot), and the root's first child is quire's
+//! `DockFloor` (off unless `dock.floor` is on). Everything else hangs from the root in a layer
+//! moved back to the surface's origin, so tiles, dots and the hit elements keep surface
+//! coordinates. The root's content is on paper (`Ground::Paper`): the tiles are quire plates,
+//! neutral paper for third-party icons (design/08 §4.1), and the separator names the frame ink
+//! itself.
 
 use dioxus::prelude::*;
-use ds::{BlurState, Corner, Ds, Ground, Material, Px, SpaceLook};
+use ds::{BlurState, DockFloor, Ds, Ground, Material, SpaceLook};
 use shell_host::{LayerConfig, OutputInfo, SurfaceHandle};
 use sill_services::{Activity, Cpx, OutputName, WorkspaceKey, Workspaces};
 use sill_settings::{AutoHide, SpacesSettings};
@@ -18,8 +22,10 @@ use crate::hooks::{
     use_appearance, use_apps, use_launcher_entry, use_pins, use_settings, use_space_look,
     use_toplevels, use_workspaces,
 };
+use crate::surfaces::bar::shell_style::{material_stack, shell_metrics};
 use crate::surfaces::bar::workspaces::group_for;
 use crate::surfaces::dock::frame::{Area, Frame, Rows, frame};
+use crate::surfaces::dock::geometry::{dock_metrics, pill_corner};
 use crate::surfaces::dock::items::dock_items;
 use crate::surfaces::dock::layer::dock_layer;
 use crate::surfaces::dock::machine::{
@@ -67,6 +73,8 @@ pub(crate) fn dock(output: OutputInfo) -> Element {
         badges: use_launcher_entry()(),
         workspace,
     };
+    let metrics = shell_metrics(&file);
+    let stack = material_stack(&environment.settings.appearance);
     let items = dock_items(&world.pins, &world.toplevels, &world.index, file.dock.trash);
     let initial = DockState::new(match file.dock.autohide {
         AutoHide::Off => Reveal::Fixed,
@@ -109,6 +117,8 @@ pub(crate) fn dock(output: OutputInfo) -> Element {
             appearance,
             system: environment.system,
             tint: environment.tint_alpha(),
+            metrics,
+            stack,
         },
         remove: Cpx::px(i32::from(file.dock.remove_threshold_px.0)),
     });
@@ -125,17 +135,19 @@ pub(crate) fn dock(output: OutputInfo) -> Element {
         div {
             id: "dock-pill",
             class: "sill-dock-pill",
-            style: "{area_style(&shown.pill)};transform:translateY({px(slide)}px)",
+            style: "{area_style(&shown.pill)};transform:translateY({px(slide)}px);{metrics.style_attr()}{dock_metrics(&file.dock).style_attr()}",
             Ds {
                 appearance,
                 system: environment.system,
                 look,
                 material: Material::Dock,
-                radius: Some(Corner::Px(Px(f32::from(file.dock.pill_radius_px.0)))),
+                radius: Some(pill_corner(&file.dock)),
                 ground: Some(Ground::Paper),
                 blur: BlurState::Available,
                 tint_alpha: Some(environment.tint_alpha()),
+                stack: Some(stack),
                 style { {DOCK_CSS} }
+                DockFloor {}
                 div {
                     class: "sill-dock-body",
                     style: "height:{px(shown.pill.height)}px",

@@ -2,16 +2,25 @@
 //! `top = max(bar_h + 24, round(0.4 H - 230))`, every number a `launcher.*` key).
 
 use shell_host::{
-    Anchor, BlurSpec, ElementId, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig,
-    LayerSize, Margin, OutputInfo, OutputTarget, Rect, RegionSpec, RoundedRect,
+    Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig, LayerSize, Margin,
+    OutputInfo, OutputTarget, Rect, RegionSpec, RoundedRect,
 };
 use sill_settings::{BarSettings, LauncherSettings};
 
+use crate::surfaces::launcher::hit::{PanelHit, card_region, panel_input};
 use crate::surfaces::naming::namespace;
 
-/// The panel's fixed size (design/13 §13.3.9, settled by the plan).
+/// The panel's fixed size (design/13 §13.3.9, settled by the plan): the area the card is laid
+/// out in, at most this tall.
 pub const PANEL_WIDTH: u32 = 680;
 pub const PANEL_HEIGHT: u32 = 460;
+
+/// The surface's transparent room around the panel for the card's ambient shadow (the Sheet's
+/// `0 24px 60px -18px`, material stack v2): it reaches 60 - 18 = 42 px beside the card and
+/// 24 + 42 = 66 px below it, and a surface clips at its edges. The panel sits at the top of the
+/// surface, centred, so the card's place on the output does not move.
+pub const SHADOW_SIDE: u32 = 42;
+pub const SHADOW_BELOW: u32 = 66;
 
 /// The panel's top edge on an output `output_height` tall.
 pub fn panel_top(output_height: i32, bar: &BarSettings, launcher: &LauncherSettings) -> i32 {
@@ -24,11 +33,20 @@ pub fn panel_top(output_height: i32, bar: &BarSettings, launcher: &LauncherSetti
     below_bar.max(centred)
 }
 
-/// The palette card's element id: the panel's blur region, radius 14 (`--r-panel`).
+/// The palette card's element id: the panel's blur and input region.
 pub const CARD_ID: &str = "launcher-card";
 
+/// The card's corner: a squircle of quire's panel radius (`--r-panel`, 14; the macOS polish
+/// pass), handed to the palette as `CommandPalette { corner }`.
+pub const CARD_RADIUS: f32 = 14.0;
+
+/// The blur and input regions' corner under the card: the circle its squircle's shadows follow
+/// (`Corner::Squircle(14).css()`, 12.38 px), in whole pixels.
+pub const CARD_BLUR_RADIUS: i32 = 12;
+
 /// The panel: Overlay, anchored top only (centred horizontally), keyboard-exclusive, blurred
-/// behind the palette card ([`CARD_ID`]).
+/// behind the palette card ([`CARD_ID`]). Its input starts as the whole panel; the panel narrows
+/// it to the card once it has measured one (`hit::PanelHit`).
 pub fn panel_layer(
     output: &OutputInfo,
     bar: &BarSettings,
@@ -39,8 +57,8 @@ pub fn panel_layer(
         layer: Layer::Overlay,
         anchor: Anchor::TOP,
         size: LayerSize {
-            width: Extent::Px(PANEL_WIDTH),
-            height: Extent::Px(PANEL_HEIGHT),
+            width: Extent::Px(PANEL_WIDTH + 2 * SHADOW_SIDE),
+            height: Extent::Px(PANEL_HEIGHT + SHADOW_BELOW),
         },
         exclusive: ExclusiveZone::Ignore,
         margin: Margin {
@@ -49,16 +67,13 @@ pub fn panel_layer(
         },
         keyboard: KeyboardMode::Exclusive,
         output: OutputTarget::Output(output.id),
-        blur: BlurSpec::Region(RegionSpec::Element {
-            id: ElementId::new(CARD_ID),
-            radius: 14,
-            inflate: 0,
-        }),
-        input: RegionSpec::Whole,
+        blur: BlurSpec::Region(card_region()),
+        input: panel_input(PanelHit::Whole),
     }
 }
 
-/// The panel's rectangle in its output's coordinates: centred, [`panel_top`] down.
+/// The panel's rectangle in its output's coordinates (the card's area; the surface is wider
+/// and taller by the shadow's room): centred, [`panel_top`] down.
 pub fn panel_rect(output: &OutputInfo, bar: &BarSettings, launcher: &LauncherSettings) -> Rect {
     let width = i32::try_from(PANEL_WIDTH).unwrap_or(i32::MAX);
     Rect {
@@ -69,15 +84,25 @@ pub fn panel_rect(output: &OutputInfo, bar: &BarSettings, launcher: &LauncherSet
     }
 }
 
-/// The catcher's input region once shown: the output less the panel, so a click on the panel
-/// reaches the panel whichever of the two Overlay surfaces the compositor stacks on top.
+/// The catcher's input region once shown: the output less what the panel takes (`hit`: its
+/// card, or the whole panel), so a click on the panel reaches the panel whichever of the two
+/// Overlay surfaces the compositor stacks on top, and a click under a short card reaches the
+/// catcher.
 pub fn catcher_input(
     output: &OutputInfo,
     bar: &BarSettings,
     launcher: &LauncherSettings,
+    hit: PanelHit,
 ) -> RegionSpec {
     let (w, h) = (output.logical.width, output.logical.height);
-    let panel = panel_rect(output, bar, launcher);
+    let whole = panel_rect(output, bar, launcher);
+    let panel = match hit {
+        PanelHit::Whole => whole,
+        PanelHit::Card { height } => Rect {
+            height: height.clamp(1, whole.height),
+            ..whole
+        },
+    };
     let (right, bottom) = (panel.x + panel.width, panel.y + panel.height);
     let bands = [
         Rect {
@@ -136,6 +161,7 @@ pub fn catcher_layer(output: &OutputInfo) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use super::{catcher_input, catcher_layer, panel_layer, panel_rect, panel_top};
+    use crate::surfaces::launcher::hit::PanelHit;
     use crate::surfaces::naming::tests::output;
     use shell_host::{Anchor, BlurSpec, Extent, KeyboardMode, Layer, Rect, RegionSpec};
     use sill_settings::{BarSettings, LauncherSettings};
@@ -167,7 +193,8 @@ mod tests {
         assert_eq!(panel.anchor, Anchor::TOP);
         assert_eq!(
             (panel.size.width, panel.size.height),
-            (Extent::Px(680), Extent::Px(460))
+            (Extent::Px(680 + 84), Extent::Px(460 + 66)),
+            "the panel and its shadow's room"
         );
         assert_eq!(panel.margin.top, 202);
         assert_eq!(panel.keyboard, KeyboardMode::Exclusive);
@@ -201,7 +228,7 @@ mod tests {
             },
             "centred on 1920 x 1080"
         );
-        let RegionSpec::Rects(bands) = catcher_input(&out, &bar, &launcher) else {
+        let RegionSpec::Rects(bands) = catcher_input(&out, &bar, &launcher, PanelHit::Whole) else {
             panic!("the catcher's region is a set of rects");
         };
         let area: i64 = bands
@@ -219,5 +246,20 @@ mod tests {
         };
         assert!(inside(10, 10) && inside(619, 300) && inside(1300, 300) && inside(900, 662));
         assert!(!inside(620, 202) && !inside(1299, 661) && !inside(960, 400));
+        // A 140 px card: the catcher takes everything under it too.
+        let card = PanelHit::Card { height: 140 };
+        let RegionSpec::Rects(bands) = catcher_input(&out, &bar, &launcher, card) else {
+            panic!("the catcher's region is a set of rects");
+        };
+        let inside = |x: i32, y: i32| {
+            bands.iter().any(|b| {
+                x >= b.rect.x
+                    && x < b.rect.x + b.rect.width
+                    && y >= b.rect.y
+                    && y < b.rect.y + b.rect.height
+            })
+        };
+        assert!(!inside(620, 202) && !inside(1299, 341), "the card");
+        assert!(inside(960, 342) && inside(960, 600), "under the card");
     }
 }

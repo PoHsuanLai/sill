@@ -7,8 +7,8 @@ use ds_settings::{Ms, Px};
 use serde::{Deserialize, Serialize};
 
 pub use crate::dock_words::{
-    ActiveClick, AutoHide, Bounce, DockMenuOrder, DockModifierClicks, DockPosition, Indicators,
-    LaunchAnim, Magnification, ProgressStyle, TrashTile,
+    ActiveClick, AutoHide, Bounce, DockFloor, DockMenuOrder, DockModifierClicks, DockPosition,
+    Indicators, LaunchAnim, Magnification, ProgressStyle, TrashTile,
 };
 
 /// The dock's settings.
@@ -325,6 +325,34 @@ pub struct DockSettings {
         advanced
     )]
     pub modifier_clicks: DockModifierClicks,
+    /// `dock.pill_padding_px` (the macOS polish pass: 6 on every side of the tiles).
+    #[settings(
+        label = "Dock padding",
+        help = "The space between the icons and the dock's edge.",
+        section = "Size",
+        range = "0..=24",
+        unit = "px",
+        advanced
+    )]
+    pub pill_padding_px: Px,
+    /// `dock.running_dot_gap_px`.
+    #[settings(
+        label = "Indicator dot gap",
+        help = "From an icon's bottom edge to the centre of its open-app dot.",
+        section = "Indicators",
+        range = "0..=12",
+        unit = "px",
+        advanced
+    )]
+    pub running_dot_gap_px: Px,
+    /// `dock.floor`.
+    #[settings(
+        label = "Floor",
+        help = "A soft light band along the dock's floor, under the icons.",
+        section = "Size",
+        advanced
+    )]
+    pub floor: DockFloor,
     /// Keys this build does not know, kept for the next write.
     #[serde(flatten)]
     #[settings(skip)]
@@ -338,7 +366,7 @@ impl Default for DockSettings {
             tile_size_px: Px(48),
             magnified_size_px: Px(96),
             influence_radius_px: Px(96),
-            tile_gap_px: Px(4),
+            tile_gap_px: Px(8),
             progress_style: ProgressStyle::Ring,
             autohide: AutoHide::Off,
             autohide_delay_ms: Ms(200),
@@ -372,6 +400,9 @@ impl Default for DockSettings {
             minimize_debounce_ms: Ms(100),
             context_menu_order: DockMenuOrder::WindowsFirst,
             modifier_clicks: DockModifierClicks::AppleMapping,
+            pill_padding_px: Px(6),
+            running_dot_gap_px: Px(3),
+            floor: DockFloor::Off,
             extra: toml::Table::new(),
         }
     }

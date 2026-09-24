@@ -9,7 +9,7 @@ use sill_settings::DockSettings;
 
 use crate::surfaces::dock::geometry::magnify_params;
 use crate::surfaces::dock::items::{DockItem, ItemKind};
-use crate::surfaces::dock::layer::{GUTTER_PX, PAD_PX};
+use crate::surfaces::dock::layer::GUTTER_PX;
 
 /// The Trash separator: 1 px wide with 6 px either side (design/10 §10.3.2).
 const SEPARATOR_BLOCK: Cpx = Cpx::px(13);
@@ -66,11 +66,12 @@ impl Rows {
         let px = |v: u32| Cpx::px(i32::try_from(v).unwrap_or(i32::MAX / 100));
         let tile = u32::from(dock.tile_size_px.0);
         let magnified = u32::from(dock.magnified_size_px.0);
-        let surface = GUTTER_PX + PAD_PX + magnified + tile;
-        let pill_height = tile + 2 * PAD_PX;
+        let pad = u32::from(dock.pill_padding_px.0);
+        let surface = GUTTER_PX + pad + magnified + tile;
+        let pill_height = tile + 2 * pad;
         Rows {
             surface: px(surface),
-            baseline: px(surface - GUTTER_PX - PAD_PX),
+            baseline: px(surface - GUTTER_PX - pad),
             pill_top: px(surface - GUTTER_PX - pill_height),
             pill_height: px(pill_height),
         }
@@ -200,15 +201,15 @@ mod tests {
     #[test]
     fn the_rows_are_design_10s_geometry() {
         let rows = Rows::new(&DockSettings::default());
-        assert_eq!(rows.surface, Cpx::px(160));
+        assert_eq!(rows.surface, Cpx::px(158));
         assert_eq!(rows.baseline, Cpx::px(144), "gut + pad above the bottom");
-        assert_eq!(rows.pill_top, Cpx::px(88));
-        assert_eq!(rows.pill_height, Cpx::px(64));
+        assert_eq!(rows.pill_top, Cpx::px(90));
+        assert_eq!(rows.pill_height, Cpx::px(60), "a tile and the 6 px padding");
     }
 
     #[test]
     fn at_rest_the_pill_is_w0_centred_and_the_hit_reaches_the_edge() {
-        // Seven tiles: W0 = 7 x 48 + 6 x 4 + 16 = 376, centred on 1920: 772.
+        // Seven tiles: W0 = 7 x 48 + 6 x 8 + 12 = 396, centred on 1920: 762.
         let f = frame(
             &items(7, false),
             &DockSettings::default(),
@@ -216,12 +217,12 @@ mod tests {
             Permille::ZERO,
             Cpx(0),
         );
-        assert_eq!((f.pill.left, f.pill.width), (Cpx::px(772), Cpx::px(376)));
+        assert_eq!((f.pill.left, f.pill.width), (Cpx::px(762), Cpx::px(396)));
         assert_eq!(f.separator, None);
-        assert_eq!(f.hit.top, Cpx::px(88), "the pill's top at rest");
-        assert_eq!(f.hit.height, Cpx::px(72), "pill plus gutter");
+        assert_eq!(f.hit.top, Cpx::px(90), "the pill's top at rest");
+        assert_eq!(f.hit.height, Cpx::px(68), "pill plus gutter");
         assert!(f.tiles.iter().all(|t| t.width == Cpx::px(48)));
-        assert_eq!(f.tiles[0].left, Cpx::px(780));
+        assert_eq!(f.tiles[0].left, Cpx::px(768));
     }
 
     #[test]
@@ -233,7 +234,7 @@ mod tests {
             Permille::ZERO,
             Cpx(0),
         );
-        assert_eq!(f.pill.width, Cpx::px(376 + 13));
+        assert_eq!(f.pill.width, Cpx::px(396 + 13));
         let centre = f.pill.left.0 + f.pill.width.0 / 2;
         assert!((centre - Cpx::px(960).0).abs() <= 100, "centre {centre}");
         let sep = f.separator.unwrap_or_default();

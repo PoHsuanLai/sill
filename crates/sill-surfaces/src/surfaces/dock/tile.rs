@@ -2,9 +2,11 @@
 //! count badge (`Count`, `999+`), the progress ring, the pressed scrim.
 //!
 //! The tile's box is its slot at the current size, standing on the baseline and lifted by the
-//! bounce; the plate is 80.5 % of it (design/08 §2.2) with the icon inside at the design inset
-//! (§4.1). The badge and the ring hang off the plate and scale with it (design/10 §10.3.2);
-//! the running dot stays on the baseline while the tile bounces. The hover label is a ds
+//! bounce; the plate is 80.5 % of it (design/08 §2.2), a quire `IconView` plate (the squircle
+//! with its gradient, highlight, rim and drop; the macOS polish pass) in the neutral paper family
+//! (§4.1), the icon inside at the design inset, the fallback glyph at its 56 % (§4.3). The badge
+//! and the ring hang off the plate and scale with it (design/10 §10.3.2); quire's `RunningDot`
+//! sits in a box at the tile's rest place, so it stays on the baseline while the tile bounces. The hover label is a ds
 //! `Tooltip{Fly}` over the plate, shown and hidden by the dock machine alone (`shown`): up
 //! from its `ShowLabel` (the fly delay, the warm skip) to its `HideLabel` (the pointer left, a
 //! button went down, a context menu opened). The dock provides the machine's shown label as
@@ -12,13 +14,13 @@
 //! press.
 
 use dioxus::prelude::*;
-use ds::{IconView, Shown, Tooltip, TooltipKind};
+use ds::{IconPx, IconSize, IconView, PlateFamily, RunningDot, Shown, Tooltip, TooltipKind};
 use sill_services::{Badge, Cpx, Permille};
 use sill_settings::{DockSettings, Indicators, ProgressStyle};
 
 use crate::hooks::{use_apps, use_settings};
 use crate::surfaces::dock::frame::Rows;
-use crate::surfaces::dock::icon::{PLATE_PERMILLE, glyph_size, tile_icon};
+use crate::surfaces::dock::icon::{PLATE_PERMILLE, tile_icon};
 use crate::surfaces::dock::items::{DockItem, ItemKind};
 use crate::surfaces::dock::machine::{TileApp, TileId};
 
@@ -62,8 +64,10 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
             div {
                 class: "sill-dock-plate",
                 style: plate_style(plate),
-                div { class: "sill-dock-icon",
-                    IconView { source, size: glyph_size(plate) }
+                IconView {
+                    source,
+                    size: plate_size(plate),
+                    plate: Some(PlateFamily::Neutral),
                 }
                 if let Some(count) = count {
                     span {
@@ -93,7 +97,8 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
             if running {
                 span {
                     class: "sill-dock-dot",
-                    style: dot_style(&dock, side, px(lift)),
+                    style: "top:{px(lift):.2}px;height:{side:.2}px",
+                    RunningDot {}
                 }
             }
         }
@@ -114,12 +119,15 @@ pub fn count_text(count: u64) -> String {
     }
 }
 
-/// The plate: its side and the squircle's corner (Apple's 22.37 % of the side).
+/// The plate's box, which the badge and the ring hang from.
 fn plate_style(plate: f64) -> String {
-    format!(
-        "width:{plate:.2}px;height:{plate:.2}px;border-radius:{:.2}px",
-        plate * 0.2237
-    )
+    format!("width:{plate:.2}px;height:{plate:.2}px")
+}
+
+/// The quire plate's side in whole pixels (at least one).
+fn plate_size(plate: f64) -> IconSize {
+    // Rounded and clamped to u8's range, so the cast is exact.
+    IconSize::Px(IconPx(plate.round().clamp(1.0, 255.0) as u8))
 }
 
 /// The badge: `dock.badge_size_px` tall, `dock.badge_radius_px` round, scaled with the tile.
@@ -139,17 +147,6 @@ fn ring_style(dock: &DockSettings, grow: f64, progress: Permille) -> String {
         "width:{d}px;height:{d}px;padding:{}px;transform:scale({grow:.4});\
          background-image:conic-gradient(var(--accent) 0turn {turn:.3}turn, var(--line) {turn:.3}turn 1turn)",
         dock.progress_ring_stroke_px.0
-    )
-}
-
-/// The running dot: centred under the tile, its centre 4 px below the baseline, whatever the
-/// bounce.
-fn dot_style(dock: &DockSettings, side: f64, lift: f64) -> String {
-    let d = f64::from(dock.running_dot_diameter_px.0);
-    format!(
-        "width:{d}px;height:{d}px;left:{:.2}px;top:{:.2}px",
-        (side - d) / 2.0,
-        side + lift + 4.0 - d / 2.0
     )
 }
 

@@ -85,8 +85,8 @@ pub fn open(query: &str) -> Open {
         });
     });
     let viewport = Viewport {
-        width: 680,
-        height: 460,
+        width: 680 + 84,
+        height: 460 + 66,
         scale_percent: 100,
     };
     let mut harness = Harness::new(app, viewport);

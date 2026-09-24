@@ -16,12 +16,15 @@
 #   6. On `examples/launcher_demo.rs` (fake results; shell-host injects no keys, so the demo
 #      types through its stdin): `open`, `type fi` shows rows; `key actions` opens the
 #      selected row's actions menu; `key escape` twice closes the menu, then the launcher.
-# Screenshots: dev/out/launcher-cosmic.png (open over "fi"), launcher-cosmic-actions.png.
+# Screenshots: dev/out/launcher-cosmic.png (open over "fi"), launcher-cosmic-actions.png, over
+# the test wallpaper (dev/backdrop.sh; the demo has no daemon, so cosmic-bg draws it there).
 #
 # Usage: dev/nested.sh && dev/accept-launcher-ui.sh
 set -uo pipefail
 # shellcheck source=dev/common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+# shellcheck source=dev/backdrop.sh
+source "$(dirname "${BASH_SOURCE[0]}")/backdrop.sh"
 OUT_DIR="$SILL_REPO/target/accept-launcher-ui"
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
@@ -78,6 +81,7 @@ build() {
 
 start_daemon() {
   CONFIG=$(mktemp -d)
+  backdrop_seed "$CONFIG" || return 1
   XDG_CONFIG_HOME="$CONFIG" nested "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
@@ -248,6 +252,10 @@ for step in step_warm step_toggle_shows step_hide step_idle step_stress; do
   if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; fi
 done
 stop_daemon
+BACKDROP_DIR=$(mktemp -d)
+backdrop_up "$BACKDROP_DIR" || echo "backdrop: none (the shots show the bare compositor)" >&2
 if step_demo; then echo "PASS step_demo"; else echo "FAIL step_demo"; status=1; fi
+backdrop_down
+rm -rf "$BACKDROP_DIR"
 echo "logs in $OUT_DIR; screenshots in $SHOTS"
 exit "$status"

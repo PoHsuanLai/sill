@@ -11,6 +11,8 @@ use std::time::Instant;
 use shell_host::{Focus, OutputId};
 use tokio::sync::watch;
 
+use crate::surfaces::launcher::hit::PanelHit;
+
 /// The launcher's one piece of shared state.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LauncherShown {
@@ -133,10 +135,14 @@ pub fn after_focus(shown: &LauncherShown, focus: Focus) -> LauncherShown {
     }
 }
 
-/// The shared channel, given to both launcher surfaces as a root context and kept by the
-/// daemon. Clone is cheap.
+/// The shared channels, given to both launcher surfaces as a root context and kept by the
+/// daemon: whether the launcher shows, and which part of the panel takes presses. Clone is
+/// cheap.
 #[derive(Debug, Clone)]
-pub struct LauncherLink(pub watch::Sender<LauncherShown>);
+pub struct LauncherLink {
+    shown: watch::Sender<LauncherShown>,
+    hit: watch::Sender<PanelHit>,
+}
 
 impl Default for LauncherLink {
     fn default() -> Self {
@@ -147,31 +153,34 @@ impl Default for LauncherLink {
 impl LauncherLink {
     /// A hidden launcher.
     pub fn new() -> LauncherLink {
-        LauncherLink(watch::Sender::new(LauncherShown::default()))
+        LauncherLink {
+            shown: watch::Sender::new(LauncherShown::default()),
+            hit: watch::Sender::new(PanelHit::default()),
+        }
     }
 
     /// The current value.
     pub fn now(&self) -> LauncherShown {
-        self.0.borrow().clone()
+        self.shown.borrow().clone()
     }
 
     /// `launcher toggle` on `output`.
     pub fn toggle(&self, output: OutputId) {
         let now = Instant::now();
-        self.0
+        self.shown
             .send_modify(|shown| *shown = toggle(shown, output, now));
     }
 
     /// `launcher open --query` on `output`.
     pub fn open(&self, output: OutputId, query: String) {
         let now = Instant::now();
-        self.0
+        self.shown
             .send_modify(|shown| *shown = open(shown, output, query, now));
     }
 
     /// `launcher close`, Escape, an activation or a catcher click.
     pub fn close(&self) {
-        self.0.send_if_modified(|shown| {
+        self.shown.send_if_modified(|shown| {
             let was = shown.opening().is_some();
             *shown = shown.hidden();
             was
@@ -180,7 +189,7 @@ impl LauncherLink {
 
     /// The panel's keyboard focus changed.
     pub fn focus(&self, focus: Focus) {
-        self.0.send_if_modified(|shown| {
+        self.shown.send_if_modified(|shown| {
             let next = after_focus(shown, focus);
             let changed = next != *shown;
             *shown = next;
@@ -190,7 +199,26 @@ impl LauncherLink {
 
     /// A receiver for a surface to follow.
     pub fn subscribe(&self) -> watch::Receiver<LauncherShown> {
-        self.0.subscribe()
+        self.shown.subscribe()
+    }
+
+    /// The panel measured which part of it takes presses.
+    pub fn set_hit(&self, hit: PanelHit) {
+        self.hit.send_if_modified(|now| {
+            let changed = *now != hit;
+            *now = hit;
+            changed
+        });
+    }
+
+    /// What the panel takes now.
+    pub fn hit(&self) -> PanelHit {
+        *self.hit.borrow()
+    }
+
+    /// A receiver for the catcher to follow the panel's part.
+    pub fn subscribe_hit(&self) -> watch::Receiver<PanelHit> {
+        self.hit.subscribe()
     }
 }
 

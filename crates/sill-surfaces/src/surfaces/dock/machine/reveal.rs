@@ -97,7 +97,9 @@ pub(crate) fn step(
             if now.since(since) >= p.autohide_delay_ms =>
         {
             out.push(DockEffect::SetInput(hit_region()));
-            out.push(DockEffect::SetBlur(BlurSpec::Region(pill_region())));
+            out.push(DockEffect::SetBlur(BlurSpec::Region(pill_region(
+                p.pill_blur_radius,
+            ))));
             out.push(DockEffect::RequestFrames);
             Reveal::Showing { since: now }
         }
@@ -143,11 +145,12 @@ pub(crate) fn hit_region() -> RegionSpec {
     }
 }
 
-/// The blur region while shown: the `dock-pill` element with the pill's radius.
-pub(crate) fn pill_region() -> RegionSpec {
+/// The blur region while shown: the `dock-pill` element, its corner `radius` (the circle the
+/// pill's squircle shadows follow, `geometry::pill_blur_radius`).
+pub(crate) fn pill_region(radius: i32) -> RegionSpec {
     RegionSpec::Element {
         id: ElementId::new("dock-pill"),
-        radius: 22,
+        radius,
         inflate: 0,
     }
 }
@@ -274,13 +277,13 @@ mod tests {
     #[test]
     fn the_offset_runs_from_the_full_distance_to_zero() {
         let p = params();
-        assert_eq!(slide_offset(&Reveal::Hidden, Stamp(0), &p), Cpx::px(80));
+        assert_eq!(slide_offset(&Reveal::Hidden, Stamp(0), &p), Cpx::px(76));
         assert_eq!(slide_offset(&Reveal::Fixed, Stamp(0), &p), Cpx(0));
         let showing = Reveal::Showing { since: Stamp(0) };
-        assert_eq!(slide_offset(&showing, Stamp(0), &p), Cpx::px(80));
+        assert_eq!(slide_offset(&showing, Stamp(0), &p), Cpx::px(76));
         assert_eq!(slide_offset(&showing, Stamp(500), &p), Cpx(0));
         let hiding = Reveal::Hiding { since: Stamp(0) };
         assert_eq!(slide_offset(&hiding, Stamp(0), &p), Cpx(0));
-        assert_eq!(slide_offset(&hiding, Stamp(500), &p), Cpx::px(80));
+        assert_eq!(slide_offset(&hiding, Stamp(500), &p), Cpx::px(76));
     }
 }

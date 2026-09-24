@@ -104,6 +104,36 @@ pub struct MenusSettings {
         advanced
     )]
     pub first_mouse_window_ms: Ms,
+    /// `menus.font_px` (the macOS polish pass: 13 pt menu text).
+    #[settings(
+        label = "Text size",
+        help = "The size of a text menu's items.",
+        section = "Menus",
+        range = "9..=24",
+        unit = "px",
+        advanced
+    )]
+    pub font_px: Px,
+    /// `menus.highlight_radius_px`.
+    #[settings(
+        label = "Highlight radius",
+        help = "The corner radius of the selected item's highlight.",
+        section = "Menus",
+        range = "0..=12",
+        unit = "px",
+        advanced
+    )]
+    pub highlight_radius_px: Px,
+    /// `menus.tooltip_font_px`.
+    #[settings(
+        label = "Tooltip text size",
+        help = "The size of a tooltip's label.",
+        section = "Menus",
+        range = "9..=20",
+        unit = "px",
+        advanced
+    )]
+    pub tooltip_font_px: Px,
     /// Keys this build does not know, kept for the next write.
     #[serde(flatten)]
     #[settings(skip)]
@@ -114,13 +144,16 @@ impl Default for MenusSettings {
     fn default() -> Self {
         MenusSettings {
             submenu_delay_ms: Ms(200),
-            item_height_px: Px(24),
+            item_height_px: Px(22),
             max_width_px: Px(420),
-            separator_margin_px: Px(4),
+            separator_margin_px: Px(5),
             section_header_height_px: Px(22),
             submenu_triangle_timeout_ms: Ms(300),
             pick_feedback: PickFeedback::None,
             first_mouse_window_ms: Ms(100),
+            font_px: Px(13),
+            highlight_radius_px: Px(6),
+            tooltip_font_px: Px(12),
             extra: toml::Table::new(),
         }
     }

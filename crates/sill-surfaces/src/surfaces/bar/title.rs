@@ -1,14 +1,14 @@
 //! A bar title or status item's hit box: it feeds the menu session its presses, releases and
 //! pointer entries (design/13 §13.3.2: open on press, click mode on release over the title,
-//! hover switch on entry), and shows the open-title pill while its menu is open.
+//! hover switch on entry). A text title sits in a ds `MenuBarItem`, which draws the hover and
+//! open pill (the macOS polish pass); a status item's `IconButton{Status}` draws its own.
 
 use dioxus::prelude::*;
-use ds::RectProbe;
+use ds::{Emphasis, MenuBarItem, RectProbe, Switch};
 use shell_host::Point;
 
 use super::menu_track::{MenuIn, Target};
 use super::menus::BarMenu;
-use super::popup::MenuSide;
 use super::session::{BarInput, MenuBar};
 use crate::hooks::use_settings;
 
@@ -21,11 +21,11 @@ pub(crate) fn pointer_at(event: &PointerEvent) -> Point {
     }
 }
 
-/// Who draws the open-title pill (design/13 §13.3.1) while a slot's menu is open.
+/// Who draws the hover and open pill (design/13 §13.3.1) behind a slot.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum SlotPill {
-    /// The slot's own background: a text title (the app name, the clock).
-    Slot,
+    /// A ds `MenuBarItem` around a text title (the app name, `Strong`; the clock, `Plain`).
+    Item(Emphasis),
     /// The control inside it: an `IconButton{Status}` is `--f-pill` while `expanded`.
     Control,
 }
@@ -41,19 +41,12 @@ pub(crate) fn TitleSlot(
 ) -> Element {
     let bar = use_context::<MenuBar>();
     let settings = use_settings();
-    let bar_settings = settings().bar;
-    let open = match (pill, bar.is_open(menu)) {
-        (SlotPill::Slot, true) => "true",
-        (SlotPill::Slot | SlotPill::Control, _) => "false",
+    let style = format!("height:{}px", settings().bar.title_hit_height_px.0);
+    let open = if bar.is_open(menu) {
+        Switch::On
+    } else {
+        Switch::Off
     };
-    let pad = match menu.side() {
-        MenuSide::Title => bar_settings.title_padding_px.0,
-        MenuSide::Status => 0,
-    };
-    let style = format!(
-        "height:{}px;padding:0 {pad}px",
-        bar_settings.title_hit_height_px.0
-    );
     let title = move || probe.rect().map(|rect| (menu, rect));
     let send = move |input: MenuIn| {
         bar.feed(BarInput::Bar {
@@ -64,7 +57,6 @@ pub(crate) fn TitleSlot(
     rsx! {
         div {
             class: "sill-bar-title",
-            "data-open": open,
             style,
             onpointerdown: move |event| {
                 event.stop_propagation();
@@ -77,7 +69,12 @@ pub(crate) fn TitleSlot(
             onpointerenter: move |event| {
                 send(MenuIn::Move(pointer_at(&event), Target::Title(menu.id())));
             },
-            {children}
+            match pill {
+                SlotPill::Item(emphasis) => rsx! {
+                    MenuBarItem { open, emphasis, {children} }
+                },
+                SlotPill::Control => children,
+            }
         }
     }
 }
