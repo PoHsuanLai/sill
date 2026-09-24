@@ -310,8 +310,8 @@ fn spawn_bar(
 }
 
 /// Spawn a wallpaper for every output whose row has none yet (mirrors
-/// [`spawn_missing_bars`]), when `spaces.wallpaper_drawer` hands the background to the shell;
-/// by default `cosmic-bg` draws it. Switching the key on takes effect at the next output event
+/// [`spawn_missing_bars`]), unless `spaces.wallpaper_drawer` leaves the background to
+/// `cosmic-bg`. Switching the key on takes effect at the next output event
 /// or restart, and switching it off leaves any spawned wallpaper in place until restart.
 fn spawn_missing_wallpapers(
     ctx: &mut HostCtx<ShellMsg>,

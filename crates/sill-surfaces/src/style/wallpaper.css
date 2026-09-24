@@ -4,7 +4,10 @@
    layers, painting the same solid ground `Ds`'s own reset already gives a `.ds` root — there is
    nothing else to paint. Attribute selectors carry `*|` (spike S2). */
 
-.sill-wallpaper{ position:relative; width:100%; height:100%; overflow:hidden;
+/* Fixed to the surface, not height:100%: neither the `.ds` root nor dioxus-native-dom's `#main`
+   has a height, so a percentage resolves against auto and the page lays out 0 px tall (shell-host
+   F41, the black capture of F171). */
+.sill-wallpaper{ position:fixed; inset:0; overflow:hidden;
   background-color:var(--paper); }
 
 .sill-wallpaper-layer{ position:absolute; inset:0; opacity:1;
