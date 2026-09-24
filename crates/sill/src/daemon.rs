@@ -26,7 +26,9 @@ use tokio::sync::watch;
 
 use crate::ipc_server;
 use crate::msg::ShellMsg;
-use crate::outputs::{OutputAction, OutputSurfaces, Outputs, bar_namespace, reconcile};
+use crate::outputs::{
+    OutputAction, OutputSurfaces, Outputs, bar_namespace, reconcile, wallpaper_namespace,
+};
 
 /// Run the daemon until `quit` or a fatal host error.
 pub fn run() -> ExitCode {
@@ -485,15 +487,19 @@ fn apply_injection(_ctx: &mut HostCtx<ShellMsg>, _id: SurfaceId, _action: DebugA
     unsupported("built without the debug feature")
 }
 
-/// Every known bar's frame statistics, through the always-public `HostCtx::take_stats` (needs
-/// neither the `debug` feature nor shell-host's `debug-inject`; draining, so each report covers
-/// only the time since the previous one).
+/// Every known bar's and wallpaper's frame statistics, through the always-public
+/// `HostCtx::take_stats` (needs neither the `debug` feature nor shell-host's `debug-inject`;
+/// draining, so each report covers only the time since the previous one).
 fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc::SurfaceStats> {
-    let ids: Vec<(String, SurfaceId)> = outputs
-        .outputs
-        .iter()
-        .filter_map(|(info, surfaces)| Some((bar_namespace(info), surfaces.bar?)))
-        .collect();
+    let ids: Vec<(String, SurfaceId)> =
+        outputs
+            .outputs
+            .iter()
+            .filter_map(|(info, surfaces)| Some((bar_namespace(info), surfaces.bar?)))
+            .chain(outputs.outputs.iter().filter_map(|(info, surfaces)| {
+                Some((wallpaper_namespace(info), surfaces.wallpaper?))
+            }))
+            .collect();
     ids.into_iter()
         .filter_map(|(name, id)| Some(to_ipc_stats(name, ctx.take_stats(id)?)))
         .collect()
