@@ -410,6 +410,98 @@ reported rather than patched here (ORCHESTRATION coherence rule 3).
   seen before); and with the host display in DPMS off the NVIDIA EGL path needs
   `__GL_SYNC_TO_VBLANK=0` or the compositor never answers a client (F24).
 
+## M2 apps-index (2026-09-24)
+
+Filled `apps::{scan, icons}` and `apps::spawn`; `Services::spawn`'s apps placeholder now calls
+it. `match_app`, `expand_exec`, `reduce_apps` and the index type were already frozen and
+untouched.
+
+- **F54 An absolute `Icon=` is used as-is, never checked against the filesystem.** The
+  pre-existing `tests/skeleton.rs::a_desktop_entry_parses_into_an_app` (ignored for this wave,
+  now filled and passing) asserts `Icon=/usr/share/icons/foot.svg` becomes
+  `AppIcon::File("/usr/share/icons/foot.svg")` even though that file does not exist on the
+  machine running the test — i.e. `resolve_icon` takes an absolute path on trust, the same way
+  `parse_entry` takes every other field on trust from the `.desktop` file, matching
+  `freedesktop_desktop_entry::IconSource::from_unknown`'s own comment ("a name or an absolute
+  path") and `AppIcon::File`'s doc ("an absolute `Icon=`, or the theme lookup's answer"). An
+  earlier draft added an `is_file()` check "for safety"; the frozen test caught it.
+- **F55 `TryExec` excludes the whole entry, not just a `parse_entry` doc-comment case.** The
+  brief's visibility list ("NoDisplay, Hidden, OnlyShowIn/NotShowIn ..., TryExec present") and
+  the Desktop Entry Specification's own words ("if [not found], the entry may be ignored") both
+  point at exclusion, and `App` has no field to represent "not really installed" short of not
+  yielding it — so `parse_entry` returns `None` when `TryExec` is set and neither an absolute
+  path nor a bare name on `$PATH` resolves to a file. `NoDisplay`, `Hidden` and an
+  `OnlyShowIn`/`NotShowIn` mismatch are different: they fold into `Listing::Hidden` (the frozen
+  `App::listing`'s own doc, "hidden entries still match windows, never list") and the entry is
+  still yielded and still occupies its dedup slot, so a `Hidden=true` override in a
+  higher-precedence directory still shadows a real entry lower down.
+- **F56 `OnlyShowIn`/`NotShowIn` are matched against a fixed `COSMIC`, not the live
+  `XDG_CURRENT_DESKTOP`.** sill only ever runs as the COSMIC session; reading the constant
+  keeps the scan deterministic under a nested test compositor or a dev shell where that
+  variable is unset or wrong, and matches the brief's own wording ("against
+  `XDG_CURRENT_DESKTOP=COSMIC`") read as naming the value, not the mechanism.
+- **F57 A trailing `;` in a list field leaves an empty element.** `MimeType=a;b;` (the spec's
+  own recommended, semicolon-terminated form) becomes `["a", "b", ""]` through
+  `freedesktop_desktop_entry`'s `str::split(';')`; `owned_list` (`MimeType`) and the `keywords`
+  mapping both filter it out. `only_show_in`/`not_show_in` need no such filter — an empty
+  string never equals `"COSMIC"` — and `Actions=a;b;`'s trailing empty action id is already
+  dropped by `actions`'s `filter_map` (no `[Desktop Action ]` group exists for it).
+- **F58 The icon theme is read straight from `cosmic-config`'s file layout, not the
+  `cosmic-config` crate.** `cosmic-config` is not in the pinned dependency block (`docs/workspace-deps.toml`),
+  and the value is one line (`~/.config/cosmic/com.system76.CosmicTk/v1/icon_theme`, a quoted
+  RON string) — reading and unquoting it directly avoids adding a dependency for one file read.
+  `icon_theme()` falls back to `"Cosmic"` when the file is absent, empty or unreadable (no
+  `com.system76.CosmicTk` config exists on the dev machine); `freedesktop_icons::lookup`'s own
+  fallback to `hicolor` when a theme is not installed covers the plan's third step, so this
+  function only ever chooses between the first two.
+- **F59 SVG-vs-largest-PNG preference is a heuristic, not exact, given what `freedesktop_icons`
+  0.4.0 exposes.** `try_get_icon`'s directory search returns the *first* directory, in the
+  theme's own `index.theme` section order, that has *any* matching file at the requested size —
+  not the first SVG across every matching directory. `resolve_icon` asks once with
+  `force_svg()` at `MAX_SIZE` (256) and keeps the result only if it actually is an `.svg` file
+  (checked by extension, since `force_svg` can still fall back to a raster inside whichever
+  directory it lands on first), then falls back to a plain lookup at the same size. This is
+  exactly right for every theme where the scalable directory is declared before (or matches
+  more narrowly than) the fixed ones — hicolor, Adwaita, Papirus, Cosmic and every theme found
+  on the live run all are — but a theme whose `index.theme` lists a fixed directory before its
+  scalable one at the very requested size could still surface that PNG instead of the SVG.
+  Fixing this exactly would mean re-implementing the crate's own directory-selection and
+  candidate-scoring logic; not done, since no installed theme case exercises it.
+  `tests/icons.rs` proves the intended ordering against a purpose-built fixture theme.
+- **F60 The icon-theme fixture test cannot use `std::env::set_var`, and writes into a real
+  `$HOME/.icons` subdirectory instead.** `freedesktop_icons::THEMES` is a process-wide
+  `once_cell::sync::Lazy`, seeded once from `$HOME`/XDG env at first use with no API to point a
+  lookup at an arbitrary directory; the only way to steer it is the environment read at that
+  first use. `std::env::set_var`/`remove_var` are `unsafe fn` since edition 2024, and this
+  workspace denies `unsafe_code` everywhere but shell-host's one allowed module (CONVENTIONS
+  §11) — sill-services may carry none at all. So `tests/icons.rs` (a lone `#[test]`, its own
+  process, nothing else in that binary ever touching `THEMES` first) creates its fixture theme
+  under the real `$HOME/.icons` (one of `freedesktop_icons`' own unconditional, `.exists()`-
+  filtered base paths) with a name unique per process and counter, and a `Drop` guard removes
+  only that one subdirectory afterward, panic or not. It is the one place in this crate's tests
+  that touches the real home directory.
+- **F61 `tempfile` is not in the pinned block; a hand-rolled `TempDir`.** Same shape and same
+  reason as `sill-settings/tests/common::TempDir` (its own comment: "no `tempfile`: not in the
+  pinned block"); `apps/icons.rs`'s unit tests and `tests/icons.rs` each carry their own small
+  copy rather than sharing a `tests/common` module across a src-level unit test and an
+  integration test (they cannot share one: `#[cfg(test)] mod tests` in `src/` cannot reach
+  `tests/common`).
+- **F62 Flatpak's export directories are added even when `XDG_DATA_DIRS` does not already carry
+  them.** Confirmed necessary, not just defensive: the live run's own `XDG_DATA_DIRS` did not
+  include `/var/lib/flatpak/exports/share` (no `/etc/profile.d/flatpak.sh` sourced in this
+  shell), so `applications_dirs`' safety net was the only reason
+  `/var/lib/flatpak/exports/share/applications` was searched at all.
+- **F63 Live run facts (this machine, KDE Plasma/Toshy session, no COSMIC installed).**
+  `cargo test -p sill-services --test apps_live -- --ignored --nocapture`: 353 applications
+  found across `~/.local/share/applications`, `~/.local/share/flatpak/exports/share/applications`,
+  `/var/lib/flatpak/exports/share/applications`, `/usr/local/share/applications` and
+  `/usr/share/applications`; icon theme resolved to `Cosmic` (no `com.system76.CosmicTk` config
+  on this machine, F58's fallback). Five sample entries, icons resolved by both routes:
+  `Toshy_Tray` (svg, `.../hicolor/scalable/apps/toshy_app_icon_rainbow.svg`), `app.toshy.preferences`
+  (same svg), `claude-code-url-handler` (`Listing::Hidden`, `NoDisplay`, `icon=None`),
+  `line-messenger` (png, `.../hicolor/256x256/apps/line-messenger.png`), `microsoft-teams`
+  (same, 256px png). No crash, no entry that failed to parse silently taking down the scan.
+
 ## M1 svc-dbus (2026-09-24)
 
 Filled `battery::spawn`, `network::spawn` and `volume::spawn`. All three signatures were usable

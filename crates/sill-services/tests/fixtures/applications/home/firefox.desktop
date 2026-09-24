@@ -1,0 +1,4 @@
+[Desktop Entry]
+Type=Application
+Name=Firefox (home)
+Exec=firefox %u
