@@ -9,6 +9,7 @@
 
 mod live;
 mod model;
+mod ppd;
 
 pub use model::{
     PowerProfiles, Profile, ProfileBus, ProfileDegraded, ProfileEvent, reduce_power_profiles,
