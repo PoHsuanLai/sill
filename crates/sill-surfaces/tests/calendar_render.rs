@@ -24,6 +24,9 @@ use sill_surfaces::widgets::calendar::CalendarWidget;
 use sill_surfaces::widgets::up_next::UpNextWidget;
 use sill_surfaces::widgets::{WidgetHost, widgets_css};
 
+/// Today's number, on the accent disc.
+const TODAY: &str = ".ds-month-day[aria-current=date] .ds-month-num";
+
 /// Which widget the harness draws.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Kind {
@@ -155,26 +158,26 @@ fn the_month_marks_today_and_the_busy_days() {
         read(vec![all_day("a", today), all_day("b", today)]),
     );
     let h = &running.harness;
-    assert_eq!(h.count(".sill-cal-weekday"), 7);
-    let rows = h.count(".sill-cal-row") - 1;
+    assert_eq!(h.count(".ds-month-head"), 7);
+    let rows = h.count(".ds-month-row") - 1;
     assert!((4..=6).contains(&rows), "{rows} weeks");
-    assert_eq!(h.count(".sill-cal-day"), rows * 7);
-    assert_eq!(h.count(".sill-cal-today"), 1);
+    assert_eq!(h.count(".ds-month-day"), rows * 7);
+    assert_eq!(h.count(TODAY), 1);
     assert_eq!(
-        h.text_of(".sill-cal-today").as_deref(),
+        h.text_of(TODAY).as_deref(),
         Some(today.day().to_string().as_str())
     );
     assert_eq!(
-        h.count(".sill-cal-busy"),
+        h.count(".ds-month-dot"),
         1,
         "one busy day, however many events"
     );
     assert_eq!(
-        h.count(".sill-cal-week"),
+        h.count(".ds-month-week"),
         0,
         "week numbers are hidden by default"
     );
-    let disc = h.rect(".sill-cal-today").expect("today is laid out");
+    let disc = h.rect(TODAY).expect("today is laid out");
     assert!(
         (disc.size.width.0 - disc.size.height.0).abs() < 0.5 && disc.size.width.0 > 10.0,
         "a disc: {disc:?}"
@@ -188,9 +191,9 @@ fn week_numbers_add_a_column() {
     file.calendar.week_numbers = WeekNumbers::Show;
     let running = start(Kind::Calendar, file, read(Vec::new()));
     let h = &running.harness;
-    let rows = h.count(".sill-cal-row");
+    let rows = h.count(".ds-month-row");
     assert_eq!(
-        h.count(".sill-cal-week"),
+        h.count(".ds-month-week"),
         rows,
         "a head cell and one per week"
     );
@@ -200,10 +203,10 @@ fn week_numbers_add_a_column() {
 #[test]
 fn next_and_previous_step_the_month() {
     let mut running = start(Kind::Calendar, ShellFile::default(), read(Vec::new()));
-    let title = |h: &Harness| h.text_of(".sill-cal-title").unwrap_or_default();
+    let title = |h: &Harness| h.text_of(".ds-month-title").unwrap_or_default();
     let first = title(&running.harness);
     let click = |running: &mut Running, index: usize| {
-        let selector = format!(".sill-cal-steps .ds-icon-button:nth-child({index})");
+        let selector = format!(".ds-month-header .ds-icon-button:nth-child({index})");
         let rect = running.harness.rect(&selector).expect("the step button");
         running.harness.click(ds::Point {
             x: ds::Px(rect.origin.x.0 + rect.size.width.0 / 2.0),
@@ -211,10 +214,10 @@ fn next_and_previous_step_the_month() {
         });
         running.harness.advance(Duration::from_millis(60));
     };
-    click(&mut running, 2);
+    click(&mut running, 3);
     let next = title(&running.harness);
     assert_ne!(next, first, "next month");
-    click(&mut running, 1);
+    click(&mut running, 2);
     assert_eq!(title(&running.harness), first, "and back");
 }
 

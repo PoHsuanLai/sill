@@ -1,8 +1,11 @@
-//! Which month the Calendar widget shows, and the words it draws: pure, so the view only reads.
+//! Which month the Calendar widget shows, and the grid as quire's `MonthGrid` takes it: pure, so
+//! the view only reads.
 
 use jiff::civil::{Date, Weekday};
 
-use super::grid::{Month, Step, shift_month};
+use super::grid::{
+    DayMark, DayPlace, Eventful, GridDay, GridWeek, Month, MonthGrid, Step, shift_month,
+};
 
 /// The month shown, as steps away from the month of the day they were taken on: a turn of the
 /// day brings the widget back to today's month, as the freeze asks.
@@ -50,6 +53,50 @@ impl Shown {
     }
 }
 
+/// `grid` as quire's `MonthGrid` draws it, field for field, with the title and the weekday
+/// initials in words.
+pub(super) fn grid_data(grid: &MonthGrid, today: Date) -> ds::MonthGridData {
+    ds::MonthGridData {
+        month: ds::MonthKey {
+            year: grid.month.year,
+            month: grid.month.month,
+        },
+        title: month_title(grid.month, today).into(),
+        heads: grid.weekdays.map(|day| initial(day).into()),
+        weeks: grid.weeks.iter().map(week_data).collect(),
+    }
+}
+
+fn week_data(week: &GridWeek) -> ds::MonthWeek {
+    ds::MonthWeek {
+        number: ds::IsoWeek(week.number.0),
+        days: week.days.map(|day| day_data(&day)),
+    }
+}
+
+fn day_data(day: &GridDay) -> ds::MonthDay {
+    ds::MonthDay {
+        key: ds::DayKey {
+            year: day.date.year(),
+            month: day.date.month(),
+            day: day.date.day(),
+        },
+        place: match day.place {
+            DayPlace::Before => ds::DayPlace::Before,
+            DayPlace::InMonth => ds::DayPlace::InMonth,
+            DayPlace::After => ds::DayPlace::After,
+        },
+        mark: match day.mark {
+            DayMark::Today => ds::DayMark::Today,
+            DayMark::Plain => ds::DayMark::Plain,
+        },
+        events: match day.events {
+            Eventful::Busy => ds::Eventful::Busy,
+            Eventful::Free => ds::Eventful::Free,
+        },
+    }
+}
+
 /// `September 2026`, or `September` in today's year.
 pub(super) fn month_title(month: Month, today: Date) -> String {
     let name = MONTHS[usize::try_from(month.month - 1).unwrap_or(0) % 12];
@@ -89,7 +136,10 @@ pub(super) fn initial(day: Weekday) -> &'static str {
 mod tests {
     use jiff::civil::date;
 
-    use super::{Shown, month_title};
+    use sill_settings::FirstWeekday;
+
+    use super::{Shown, grid_data, month_title};
+    use crate::widgets::calendar::grid::month_grid;
     use crate::widgets::calendar::grid::{Month, Step};
 
     #[test]
@@ -116,6 +166,47 @@ mod tests {
         let tomorrow = date(2026, 12, 21);
         assert_eq!(shown.month(tomorrow), Month::of(tomorrow));
         assert_eq!(shown.stepped(tomorrow, Step::Previous).offset, -1);
+    }
+
+    #[test]
+    fn the_grid_maps_to_quires_field_for_field() {
+        let today = date(2026, 9, 26);
+        let busy = [date(2026, 9, 28)];
+        let grid = month_grid(Month::of(today), FirstWeekday::Sunday, today, &busy);
+        let data = grid_data(&grid, today);
+        assert_eq!(
+            data.month,
+            ds::MonthKey {
+                year: 2026,
+                month: 9
+            }
+        );
+        assert_eq!(data.title.plain_text(), "September");
+        let heads: Vec<String> = data.heads.iter().map(ds::Text::plain_text).collect();
+        assert_eq!(heads, ["S", "M", "T", "W", "T", "F", "S"]);
+        assert_eq!(data.weeks.len(), grid.weeks.len());
+        let days: Vec<&ds::MonthDay> = data.weeks.iter().flat_map(|w| w.days.iter()).collect();
+        let marked: Vec<_> = days
+            .iter()
+            .filter(|d| d.mark == ds::DayMark::Today)
+            .map(|d| d.key)
+            .collect();
+        assert_eq!(
+            marked,
+            [ds::DayKey {
+                year: 2026,
+                month: 9,
+                day: 26
+            }]
+        );
+        let busy_days: Vec<_> = days
+            .iter()
+            .filter(|d| d.events == ds::Eventful::Busy)
+            .map(|d| d.key.day)
+            .collect();
+        assert_eq!(busy_days, [28]);
+        assert_eq!(days[0].place, ds::DayPlace::Before, "30 August");
+        assert_eq!(data.weeks[0].number, ds::IsoWeek(36));
     }
 
     #[test]
