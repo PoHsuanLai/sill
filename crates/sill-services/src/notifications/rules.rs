@@ -74,18 +74,25 @@ pub(super) fn close(state: NotesState, id: NotificationId, reason: CloseReason) 
     (state, effects)
 }
 
-/// A banner swiped away under `Swipe::KeepInCenter`: the banner leaves and `Closed` says
-/// `Dismissed`; the history keeps the notification (a transient one is simply gone).
+/// A banner swiped away under `Swipe::KeepInCenter`: the banner leaves and the notification
+/// stays in the history, still live for its actions from the notification center, so no
+/// `NotificationClosed` goes out (as for a banner that times out, F262); the app hears
+/// `Closed` only when the notification truly leaves (its close button, Clear,
+/// `CloseNotification`). A transient one, which the history never held, is gone for good, so
+/// it does close (reason 2).
 pub(super) fn swipe_away(mut state: NotesState, id: NotificationId) -> Step {
     if state.live.banner(id).is_none() {
         return (state, Vec::new());
     }
     state.live.banners.retain(|banner| banner.note.id != id);
-    let closed = NotificationsEffect::Closed {
-        id,
-        reason: CloseReason::Dismissed,
+    let effects = match state.history.find(id) {
+        Some(_) => Vec::new(),
+        None => vec![NotificationsEffect::Closed {
+            id,
+            reason: CloseReason::Dismissed,
+        }],
     };
-    (state, vec![closed])
+    (state, effects)
 }
 
 /// Each of `ids` dismissed in order, with one `SaveHistory` at the end if any was kept.

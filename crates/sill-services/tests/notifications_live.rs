@@ -281,10 +281,8 @@ fn an_action_is_invoked_then_closed_and_a_swipe_keeps_the_history() {
         assert!(wait_for(&mut live, SETTLE, |n| n.banners.is_empty()).await);
         assert_eq!(
             signals.next(SETTLE).await,
-            Some(Heard::Closed {
-                id: swiped,
-                reason: 2
-            })
+            None,
+            "a kept swipe tells the app nothing: the notification is still live in the center"
         );
         assert!(
             wait_for(&mut history, SETTLE, |h| h

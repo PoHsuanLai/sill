@@ -449,7 +449,7 @@ fn a_swipe_keeps_the_notification_in_the_center_unless_set_to_dismiss() {
             SwipedAway(NotificationId(3)),
             &keep,
             (vec![2, 1], groups(&[("a", &[3, 1]), ("b", &[2])])),
-            vec![closed(3, CloseReason::Dismissed)],
+            vec![],
         ),
         (
             "dismissed when set",

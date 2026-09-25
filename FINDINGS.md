@@ -3275,3 +3275,17 @@ notifications/mod.rs,notifications/tests.rs}`.
   `dev/private-bus.conf`) would make it as private as it is meant to be; until then lane d
   checks that sill holds the name before posting anything.
 
+
+## M6 lane a: the notifications server (2026-09-26)
+
+- F280 Frozen additions, all additive: `NotificationsPolicy.swipe: Swipe::{KeepInCenter, Dismiss}`
+  (from `notifications.swipe`), `NotificationsCommand::SwipeAway(id)` and
+  `NotificationsEvent::SwipedAway(id)`. Lane b sends `SwipeAway` for a swipe past the threshold
+  (each banner of a group) and keeps `Dismiss` for the close button.
+- F281 A kept swipe sends no `NotificationClosed`, like a banner that times out (F262): the
+  notification is still live in the notification center and its actions still work there. The
+  app hears `Closed` only when it truly leaves (close button, Clear, `CloseNotification`), or
+  when a transient one (never in the history) is swiped (reason 2).
+- F282 `examples/notifications_holder.rs` holds the name on a private bus so the acceptance can
+  prove sill never replaces a holder; `dev/accept-notifications-bus.sh` passes 7/7 on its own
+  bus, and the real session bus keeps plasmashell as holder throughout.
