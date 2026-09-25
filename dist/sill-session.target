@@ -1,0 +1,12 @@
+# The user target dist/sill-session starts: it brings graphical-session.target (so
+# dist/sill.service, portals and other session units start) and XDG autostart with it, the way
+# cosmic-session.target does for a COSMIC login. Documented, not installed: see dist/sill-session.
+[Unit]
+Description=sill session
+Documentation=man:systemd.special(7)
+BindsTo=graphical-session.target
+Before=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target
+Wants=xdg-desktop-autostart.target
+Before=xdg-desktop-autostart.target

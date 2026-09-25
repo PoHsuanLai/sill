@@ -12,7 +12,8 @@ use sill_services::session::{self, Session};
 #[ignore = "needs the system bus"]
 fn logind_offers_seed_within_one_second() {
     let runtime = tokio::runtime::Runtime::new().expect("a tokio runtime");
-    let (mut receiver, _control) = session::spawn(runtime.handle());
+    let (_lock, locker) = sill_services::locker::spawn(runtime.handle());
+    let (mut receiver, _control) = session::spawn(runtime.handle(), locker);
 
     let seeded = runtime
         .block_on(async { tokio::time::timeout(Duration::from_secs(1), receiver.changed()).await });

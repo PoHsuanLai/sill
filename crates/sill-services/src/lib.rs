@@ -23,12 +23,15 @@ pub mod curve;
 pub mod displays;
 pub mod error;
 pub mod launch;
+pub mod locker;
 pub mod magnify;
 pub mod network;
 pub mod notifications;
 pub mod now_playing;
 pub mod pins;
+pub mod polkit;
 pub mod power_profile;
+pub mod programs;
 pub mod providers;
 pub mod results;
 pub mod services;
@@ -69,6 +72,7 @@ pub use launch::{
     LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches, ScopeUnit,
     reduce_launches,
 };
+pub use locker::{Lock, LockPhase, LockerChoice, LockerCommand, LockerMode};
 pub use magnify::{Layout, MagnifyParams, TileBox, magnify, rest_centers, sizes, zoom};
 pub use network::wifi::{
     AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi, WifiCommand, WifiEvent,

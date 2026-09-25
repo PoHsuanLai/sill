@@ -6,4 +6,6 @@
     VolumeRaise: "sill display volume up",
     VolumeLower: "sill display volume down",
     Mute: "sill display volume toggle-mute",
+    LogOut: "sill power-menu open",
+    PowerOff: "sill power-menu toggle",
 }

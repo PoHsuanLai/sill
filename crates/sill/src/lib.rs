@@ -15,3 +15,4 @@ pub mod notifications;
 pub mod osd;
 pub mod outputs;
 pub mod power_menu;
+pub mod session;

@@ -1,7 +1,7 @@
 //! `$XDG_CONFIG_HOME/sill/settings.toml`: the shell's settings domains (design/22-SETTINGS.md
 //! §3.4-3.8 and §3.11-3.14: bar, dock, launcher, scroll, scrollbar, menus, switcher, sound,
-//! notifications, control center, spaces; `display` and `osd`; and `power_menu`, which
-//! design/22 has no rows for yet), their schema (§9, `#[derive(SettingsSchema)]` with
+//! notifications, control center, spaces; `display` and `osd`; and `power_menu` and
+//! `session`, which design/22 has no rows for yet), their schema (§9, `#[derive(SettingsSchema)]` with
 //! `file = "sill/settings.toml"`), lenient load and atomic save through `ds-settings`, a
 //! directory watch, and the per-domain diff (§4.4).
 //!
@@ -26,6 +26,7 @@ pub mod power_menu;
 pub mod schema;
 pub mod scroll;
 pub mod scrollbar;
+pub mod session;
 pub mod sound;
 pub mod spaces;
 pub mod switcher;
@@ -60,6 +61,7 @@ pub use scroll::{
     Momentum, MomentumModel, NaturalScroll, RubberBand, ScrollSettings, ScrollbarVisibility,
 };
 pub use scrollbar::{ScrollbarSettings, TrackClick};
+pub use session::SessionSettings;
 pub use sound::{SoundSettings, UiSounds, VolumeFeedback};
 pub use spaces::{
     DefaultCardAccent, DockLookSource, MailSpacePolicy, OverlayTint, SpaceLookLookup,

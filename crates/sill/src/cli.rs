@@ -3,7 +3,8 @@
 //! amendment, `display {brightness,volume}` from the displays pass (`cli_display`), and
 //! `power-menu {open,close,toggle}` and `control-center toggle` from the M5 freeze,
 //! `notifications {toggle,open,close,dismiss-all,status}` and `debug notify` from the M6 freeze
-//! (`cli_notifications`), and its one pure mapping to an IPC request.
+//! (`cli_notifications`), `lock` and `polkit-agent` from M7, and its one pure mapping to an IPC
+//! request.
 
 use std::path::PathBuf;
 
@@ -76,6 +77,23 @@ pub enum Command {
         #[command(subcommand)]
         action: NotificationsAction,
     },
+    /// Lock the screen now with the configured locker (`session.locker`).
+    Lock,
+    /// Start the polkit agent `session.polkit_agent` names (dist/sill-session runs this), or
+    /// print which one it would be.
+    PolkitAgent {
+        #[arg(value_enum, default_value_t = AgentVerb::Exec)]
+        verb: AgentVerb,
+    },
+}
+
+/// `sill polkit-agent [exec|print]`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum AgentVerb {
+    /// Replace this process with the agent.
+    Exec,
+    /// Print the agent's command line (nothing when none) and exit.
+    Print,
 }
 
 /// `sill power-menu ...`.
@@ -201,7 +219,8 @@ impl From<ClickButton> for PointerButton {
 /// The request `command` sends; `None` for `run`, which is not a request.
 pub fn request(command: &Command) -> Option<Request> {
     Some(match command {
-        Command::Run => return None,
+        Command::Run | Command::PolkitAgent { .. } => return None,
+        Command::Lock => Request::Lock,
         Command::Launcher { action } => Request::Launcher(match action {
             LauncherAction::Toggle => LauncherRequest::Toggle,
             LauncherAction::Open { query } => LauncherRequest::Open {
@@ -281,6 +300,9 @@ mod tests {
             (&["ping"], Some(Request::Ping)),
             (&["reload"], Some(Request::Reload)),
             (&["quit"], Some(Request::Quit)),
+            (&["lock"], Some(Request::Lock)),
+            (&["polkit-agent"], None),
+            (&["polkit-agent", "print"], None),
             (
                 &["power-menu", "open"],
                 Some(Request::PowerMenu(PowerMenuRequest::Open)),

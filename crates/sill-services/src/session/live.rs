@@ -12,12 +12,15 @@ use zbus::export::futures_core::Stream;
 
 use super::SessionCommand;
 use super::model::{Offer, Session, SessionAction, SessionEvent, reduce_session};
+use crate::control::Control;
+use crate::locker::LockerCommand;
 use crate::units::Presence;
 
 /// Runs until `commands` closes. Without a bus or logind, `tx` stays at `Session::default()`.
 pub(super) async fn run(
     tx: watch::Sender<Session>,
     mut commands: mpsc::UnboundedReceiver<SessionCommand>,
+    locker: Control<LockerCommand>,
 ) {
     let Ok(connection) = Connection::system().await else {
         return;
@@ -43,6 +46,12 @@ pub(super) async fn run(
             command = commands.recv() => match command {
                 Some(SessionCommand::Refresh) => {
                     session_id = probe(&connection, &tx, &manager).await;
+                }
+                Some(SessionCommand::Run(SessionAction::Lock)) => {
+                    // M7: the locker service decides (its own locker, or logind's LockSession for
+                    // COSMIC's resident one); never logind here, so sill nested in another
+                    // desktop's session cannot lock that desktop.
+                    let _gone_is_inert = locker.send(LockerCommand::Lock);
                 }
                 Some(SessionCommand::Run(action)) => {
                     let offer = tx.borrow().offer(action);
@@ -118,10 +127,8 @@ async fn run_action(
         return;
     }
     let _ = match action {
-        SessionAction::Lock => {
-            let Some(id) = session_id else { return };
-            manager.lock_session(id).await
-        }
+        // Routed to the locker service before this point (M7).
+        SessionAction::Lock => return,
         SessionAction::LogOut => {
             let Some(id) = session_id else { return };
             manager.terminate_session(id).await
