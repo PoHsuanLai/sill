@@ -26,8 +26,8 @@
 # started from a `target/*/sill run` is waited for (up to 10 minutes), so two shells never share
 # the nested output's screenshots.
 #
-# The cards are lane b's `NotificationCard`; until it lands they draw nothing, and the rows the
-# script finds are the group headers and the fold line (FINDINGS "M6 notification center").
+# The cards are lane b's `NotificationCard`; the fold line is found as the first ink that keeps
+# to the middle of the column, with or without cards drawn.
 #
 # Usage: dev/nested.sh && dev/accept-notification-center.sh
 set -uo pipefail
@@ -122,19 +122,35 @@ for r in rows:
 EOF
 }
 
-# The fold line ("N more"): the first ink row that keeps clear of the column's left and right
-# thirds (a header's name starts at the left, its Clear ends at the right). Prints "X Y".
+# The fold line ("N more"): the first run of at least 4 scanlines whose ink keeps clear of the
+# column's outer quarters (a header's name starts at the left and its Clear ends at the right;
+# a card and a stack's offset layers span the column). Prints "X Y".
 fold_centre() {
-  local box
-  read -r -a box < <(column_box "$1") || return 1
-  ink_rows "$1" | python3 -c '
+  python3 - "$1" <<'EOF'
 import sys
-left, top, right, bottom = map(int, sys.argv[1:5])
-third = (right - left) // 4
-for line in sys.stdin:
-    t, b, l, r = map(int, line.split())
-    if l > left + third and r < right - third:
-        print((l + r) // 2, (t + b) // 2); break' "${box[@]}"
+from PIL import Image
+img = Image.open(sys.argv[1]).convert("RGBA")
+left, top, right, bottom = img.getchannel("A").point(lambda a: 255 if a > 200 else 0).getbbox()
+left, right, top, bottom = left + 8, right - 8, top + 40, bottom - 14
+ground = img.getpixel(((left + right) // 2, bottom - 4))
+quarter = (right - left) // 4
+def inked(x, y):
+    return sum(abs(a - b) for a, b in zip(img.getpixel((x, y))[:3], ground[:3])) > 120
+run = []
+for y in range(top, bottom):
+    xs = [x for x in range(left, right) if inked(x, y)]
+    if xs and min(xs) > left + quarter and max(xs) < right - quarter:
+        run.append((y, min(xs), max(xs)))
+        continue
+    if len(run) >= 4:
+        break
+    run = []
+if len(run) < 4:
+    sys.exit(1)
+l = min(r[1] for r in run)
+r = max(r[2] for r in run)
+print((l + r) // 2, (run[0][0] + run[-1][0]) // 2)
+EOF
 }
 
 # The first group header's Clear: the first ink row that reaches the column's left padding
