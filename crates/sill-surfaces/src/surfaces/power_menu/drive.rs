@@ -15,7 +15,7 @@ use crate::surfaces::launcher::presence::{OpenSerial, PanelFocus, Visible};
 use crate::surfaces::power_menu::backend::{DryRunSession, PowerMenuBackend};
 use crate::surfaces::power_menu::follow::{Follow, follow};
 use crate::surfaces::power_menu::keymap::power_menu_key;
-use crate::surfaces::power_menu::keys::initial;
+use crate::surfaces::power_menu::keys::{initial, offered};
 use crate::surfaces::power_menu::labels::action_label;
 use crate::surfaces::power_menu::presence::{PowerMenuLink, PowerMenuShown};
 use crate::surfaces::power_menu::sheet::{MenuSession, SheetEffect, SheetInput, Then, advance};
@@ -91,6 +91,7 @@ fn use_openings(
                 menu.set(Some(MenuSession::opened(opening.serial, keys)));
                 ctx.backend.0.refresh();
                 eprintln!("power_menu.opened focus={}", action_label(keys.focused));
+                eprintln!("power_menu.offers={}", offered_labels(&ctx.offers.peek()));
             }
             (Follow::Reshow, _) => {
                 ctx.input(SheetInput::Reshown);
@@ -159,6 +160,17 @@ fn use_follow_visibility(shown: ReadSignal<PowerMenuShown>, output: OutputId) {
             }));
         }
     });
+}
+
+/// The actions `session` offers, in the buttons' order, as their labels joined by commas (the
+/// log line `dev/accept-power-menu.sh` reads the arrows' path from).
+fn offered_labels(session: &Session) -> String {
+    SessionAction::POWER_MENU
+        .into_iter()
+        .filter(|action| offered(session, *action))
+        .map(action_label)
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 impl MenuCtx {
