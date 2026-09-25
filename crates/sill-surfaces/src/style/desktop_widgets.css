@@ -1,2 +1,7 @@
-/* The desktop widget layer (surfaces/desktop_widgets; M10 lane b). Empty at the freeze; its lane adds the rules for the grid the widgets are placed on, with quire's tokens
-   only (coherence rule 1). */
+/* The desktop widget layer (surfaces/desktop_widgets; M10 lane b): a transparent root over the
+   whole layer (the grid is measured from it), each widget placed absolutely at its grid cell by
+   the layer (left, top, width and height written inline from `widgets.desktop_cell_px` and
+   `widgets.desktop_gap_px`). Nothing between the widgets is painted, and the input and blur
+   regions are the widgets' frames only. Tokens only (coherence rule 1). */
+.sill-dw-grid{ position:absolute; top:0; right:0; bottom:0; left:0; }
+.sill-dw-place{ position:absolute; display:grid; }

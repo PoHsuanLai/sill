@@ -7,11 +7,16 @@
 //! widget to another cell is later work (it wants a drag within the surface, which is plain
 //! pointer events, not shell-host's G4).
 
+pub mod geometry;
 pub mod layer;
 pub mod placement;
+pub mod saved;
+mod view;
 
 pub use layer::desktop_layer;
 pub use placement::{GridSize, GridSlot, Placement, grid_size, place};
+pub use saved::PlacementFile;
+pub use view::{WIDGET_RADIUS, widget_regions};
 
 use dioxus::prelude::*;
 use shell_host::OutputInfo;
@@ -19,9 +24,8 @@ use shell_host::OutputInfo;
 /// The layer's own stylesheet (the grid), injected beside `widgets_css`.
 pub const DESKTOP_WIDGETS_CSS: &str = include_str!("../../style/desktop_widgets.css");
 
-/// The desktop widgets on `output`. Draws nothing until lane b fills it.
+/// The desktop widgets on `output` (`view.rs`).
 #[component]
 pub fn DesktopWidgets(output: OutputInfo) -> Element {
-    let _ = output;
-    rsx! {}
+    view::desktop(output)
 }
