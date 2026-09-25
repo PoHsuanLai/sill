@@ -9,8 +9,8 @@ use clap::{Parser, Subcommand, ValueEnum};
 
 pub use crate::cli_display::{DisplayAction, LevelAction, VolumeAction, display_request};
 use sill_ipc::{
-    DebugRequest, DesktopId, DockRequest, LauncherRequest, Point, PointerButton, Request,
-    SurfaceName,
+    DebugRequest, DesktopId, DockRequest, FakeMute, FakeOsd, LauncherRequest, OsdTopic, Point,
+    PointerButton, Request, SurfaceName,
 };
 
 /// sill, the COSMIC shell.
@@ -101,6 +101,46 @@ pub enum DebugAction {
         #[arg(long, value_enum, default_value_t = ClickButton::Primary)]
         button: ClickButton,
     },
+    /// Show the OSD for a made-up change, moving no real level.
+    Osd {
+        /// What changed.
+        #[arg(value_enum)]
+        topic: FakeTopic,
+        /// The level to show, 0-100.
+        percent: u8,
+        /// Whether the made-up volume is muted.
+        #[arg(long, value_enum, default_value_t = FakeMuteArg::Audible)]
+        mute: FakeMuteArg,
+    },
+}
+
+/// `sill debug osd TOPIC`: the command line's spelling of [`OsdTopic`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum FakeTopic {
+    Volume,
+    Brightness,
+}
+
+/// `sill debug osd --mute ...`: the command line's spelling of [`FakeMute`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum FakeMuteArg {
+    Audible,
+    Muted,
+}
+
+/// The fake change `sill debug osd` asks for.
+fn fake_osd(topic: FakeTopic, percent: u8, mute: FakeMuteArg) -> FakeOsd {
+    FakeOsd {
+        topic: match topic {
+            FakeTopic::Volume => OsdTopic::Volume,
+            FakeTopic::Brightness => OsdTopic::Brightness,
+        },
+        percent,
+        mute: match mute {
+            FakeMuteArg::Audible => FakeMute::Audible,
+            FakeMuteArg::Muted => FakeMute::Muted,
+        },
+    }
 }
 
 /// `sill debug click --button ...`: the command line's spelling of [`PointerButton`].
@@ -167,6 +207,11 @@ pub fn request(command: &Command) -> Option<Request> {
                 at: Point { x: *x, y: *y },
                 button: (*button).into(),
             },
+            DebugAction::Osd {
+                topic,
+                percent,
+                mute,
+            } => DebugRequest::Osd(fake_osd(*topic, *percent, *mute)),
         }),
     })
 }
@@ -176,8 +221,8 @@ mod tests {
     use super::{Cli, request};
     use clap::Parser;
     use sill_ipc::{
-        DebugRequest, DesktopId, DockRequest, LauncherRequest, Point, PointerButton, Request,
-        SurfaceName,
+        DebugRequest, DesktopId, DockRequest, FakeMute, FakeOsd, LauncherRequest, OsdTopic, Point,
+        PointerButton, Request, SurfaceName,
     };
     use std::path::PathBuf;
 
@@ -282,6 +327,30 @@ mod tests {
                     button: PointerButton::Middle,
                 })),
             ),
+            (
+                &["debug", "osd", "volume", "40"],
+                Some(Request::Debug(DebugRequest::Osd(FakeOsd {
+                    topic: OsdTopic::Volume,
+                    percent: 40,
+                    mute: FakeMute::Audible,
+                }))),
+            ),
+            (
+                &["debug", "osd", "volume", "40", "--mute", "muted"],
+                Some(Request::Debug(DebugRequest::Osd(FakeOsd {
+                    topic: OsdTopic::Volume,
+                    percent: 40,
+                    mute: FakeMute::Muted,
+                }))),
+            ),
+            (
+                &["debug", "osd", "brightness", "70"],
+                Some(Request::Debug(DebugRequest::Osd(FakeOsd {
+                    topic: OsdTopic::Brightness,
+                    percent: 70,
+                    mute: FakeMute::Audible,
+                }))),
+            ),
         ];
         for (args, want) in cases {
             let cli = Cli::try_parse_from(std::iter::once("sill").chain(args.iter().copied()))
@@ -301,6 +370,8 @@ mod tests {
             &["debug", "pointer", "s", "x", "1"],
             &["debug", "click", "s", "1"],
             &["debug", "click", "s", "1", "2", "--button", "left"],
+            &["debug", "osd", "sound", "40"],
+            &["debug", "osd", "volume", "loud"],
             &["frobnicate"],
         ] {
             assert!(

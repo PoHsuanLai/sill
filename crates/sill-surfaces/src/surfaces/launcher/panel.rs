@@ -244,8 +244,8 @@ pub fn material(material: PanelMaterial) -> Material {
 }
 
 /// The look of the active workspace on `output` (design/21 §5 rule 6), the first preset while
-/// there is none.
-fn active_look(
+/// there is none. The OSD tints the same way.
+pub(crate) fn active_look(
     workspaces: &Workspaces,
     output: Option<&OutputName>,
     spaces: &SpacesSettings,
