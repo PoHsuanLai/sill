@@ -1,18 +1,40 @@
-//! The center's panel (lane c, FINDINGS "The M6 fill-in"): follows the [`super::CenterLink`] onto
-//! the surface's visibility; a `Ds` root (Popover) holding the column at the right edge,
-//! `notifications.center_width_px` wide, sliding in from the right (quire motion only); a
-//! header with Clear All (`Button{Quiet}`); the history from `use_notification_history` as
-//! `group_views` rows drawn with `NotificationCard { place: CardPlace::Center }`, each group
-//! with its header, "N more" and Clear; [`super::CenterWidgets`] below; keys through
-//! `step_keys`; a click outside the column closes it.
-//!
-//! Frozen stub: draws nothing (the daemon spawns the surface today, hidden).
+//! The center's root: one transparent `Ds` in the Popover material, as large as the output below
+//! the bar (`RootExtent::Viewport`), holding the column (`column.rs`) and its stylesheet. The
+//! column is the one painted part; the rest of the surface is the click-outside catcher.
 
 use dioxus::prelude::*;
+use ds::{BlurState, Ds, Material, RootExtent};
 use shell_host::OutputInfo;
+use sill_services::OutputName;
+
+use super::column::Column;
+use crate::hooks::{use_appearance, use_ds_scale, use_settings, use_workspaces};
+use crate::surfaces::launcher::panel::active_look;
+
+/// The center's stylesheet (lint-clean under `Profile::Strict`,
+/// `tests/notification_center_lint.rs`).
+pub const NOTIFICATION_CENTER_CSS: &str = include_str!("../../style/notification_center.css");
 
 /// The center on `output`.
 pub(super) fn center(output: OutputInfo) -> Element {
-    let _ = output;
-    rsx! {}
+    let ds_scale = use_ds_scale();
+    let file = use_settings()();
+    let environment = use_appearance()();
+    let on = output.name.clone().map(OutputName);
+    let look = active_look(&use_workspaces()(), on.as_ref(), &file.spaces);
+    rsx! {
+        Ds {
+            scale: ds_scale,
+            appearance: environment.settings.appearance.appearance(),
+            system: environment.system,
+            look,
+            material: Material::Popover,
+            extent: RootExtent::Viewport,
+            blur: BlurState::Available,
+            tint_alpha: Some(environment.tint_alpha()),
+            stack: Some(environment.material_stack()),
+            style { {NOTIFICATION_CENTER_CSS} }
+            Column { output: output.id }
+        }
+    }
 }

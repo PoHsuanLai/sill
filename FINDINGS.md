@@ -3275,6 +3275,103 @@ notifications/mod.rs,notifications/tests.rs}`.
   `dev/private-bus.conf`) would make it as private as it is meant to be; until then lane d
   checks that sill holds the name before posting anything.
 
+## M6 notification center (lane c, 2026-09-25)
+
+Lane c of "The M6 fill-in": `surfaces/notification_center/**`, the bar's clock, and
+`dev/accept-notification-center.sh`. Findings take F320-, Q150-, G90-.
+
+- **F320 The pure parts.** `group_views`, `toggle_group` and `step_keys` are filled and their
+  tables un-ignored. New pure cores, each with table tests: `phase.rs` (`step_phase`: `Hidden`,
+  `Up`, `Leaving`, keyed by an `Opening`; the frozen `CenterLink` has no "leaving" state, so the
+  surface counts its own exit and unmaps only when it has settled; wanted again while leaving,
+  it comes back without a second entrance); `rows.rs` (`rows_of` flattens the groups into the
+  rows the keys move over: cards and fold lines; `activate`, `dismiss` and `press` say what
+  Return, Delete and a card's `CardPress` ask); `keymap.rs` (Escape, Up, Down, Enter, and Delete
+  or Backspace, the Mac keyboard's Delete); `labels.rs` (the group's name, the fold line, the
+  footer).
+- **F321 macOS's stack.** A collapsed group of several is its newest card with lane b's count
+  chip and offset layers (`count: Stack::count`), then "N more" (`Button{Quiet}`); an opened
+  group ends in "Show less". As on macOS, a click (or Return) on a stack opens the group rather
+  than invoking the newest notification's `default`, and a stack's close (or Delete) clears the
+  whole group (`Clear::App`); a lone card's body invokes `default` with an activation token
+  when the compositor gives one (`SurfaceHandle::activation_token`, the sender's desktop entry)
+  and closes the center; its close dismisses it. A link in a body asks nothing of the center:
+  sill has no URL opener service yet (`rows::press`, `CardPress::Link` is `None`). A row under
+  the pointer or the keyboard's ring is drawn `Expansion::Expanded`, as a hovered banner is.
+  Each opening remounts the column (keyed by its `Opening`), so opened groups, the ring and the
+  hover start over.
+- **F322 The group's name is the center's own label.** `labels::group_title` names a group by
+  its desktop entry's `Name` (the apps index), else the newest sender's `app_name`, else
+  "Notification": lane b's `app_label` says the same for one card, and was a `todo!()` while
+  both lanes worked, so the center could not call it and stay green. Once both are merged the
+  header can call `app_label(&group.notes[0].app, entry)` instead; nothing else changes.
+- **F323 The column is quire's Popover on a stand-in edge panel (Q123).** The root is a
+  transparent `Ds { material: Popover, extent: Viewport }` (the whole surface is the click
+  catcher: `div.sill-nc-catcher`, a press closes); the column is `div#notification-center-panel`
+  (the blur element, `PANEL_ID`) holding a quire `Surface { material: Popover }`, which paints
+  the tint, the 14 px corner and the drop, in a one-cell grid so it stretches to the full height
+  (`.ds` itself may not be styled: `Rule::DsInternals`). It stands 8 px inside the right, top and
+  bottom edges of the surface, `notifications.center_width_px` wide (inline). Motion is quire's
+  pulse classes: the entrance `Anim::PaneInR` (`slide-r` at `--t-move --e-spring`, 26 px and a
+  fade), the exit `Anim::PaneOutR` (`pane-out-r` at `--t-move --e-exit`), timed by
+  `use_motion_timer(PaneOutR)` before the surface unmaps. Q123 still stands: a real edge panel
+  would slide the whole column in from past the edge and out again, not 26 px; the spots are
+  `column.rs`, `drive.rs` (`ENTRANCE`, `EXIT`) and `style/notification_center.css`.
+- **F324 The group header is `SectionHeader{Group}` (Q125).** The app's name, the count as the
+  header's value when more than one, and Clear as its one action. No app icon: quire's header
+  has no leading glyph or plate, and a local icon beside it would be a component of our own.
+  The spot is `group.rs`.
+- **F325 The clock.** `ClockItem` no longer sits in a `TitleSlot`: a `MenuBarItem` (its pill on
+  while the center is open on this output) around the clock's `Button{Quiet}`, whose click
+  toggles the `CenterLink` from `try_use_context` (a bar with no link, as a render test, toggles
+  a link of its own; `examples/bar_demo.rs` provides one). `BarMenu::Clock` is retired but not
+  removed: nothing opens it now, but `plan.rs`'s tables name it as a stand-in status menu and
+  `bar/mod.rs` still builds `BarState.clock`, both outside lane c; `content.rs` still answers
+  its date lines if asked. Removing the variant is a follow-up for whoever owns those files.
+  `dev/accept-bar.sh` and `dev/accept-bar-ui.sh` click the clock expecting a menu popup; they
+  now open the center, and need another item for their menu step (not lane c's files).
+- **F326 Under the bar on cosmic-comp.** The all-anchored Overlay with exclusive zone `Auto` is
+  kept below the bar's reserve and above the dock's by cosmic-comp: at 2560 x 1600 the center's
+  surface is 2560 x 1500 (the bar's 32 and the dock's reserve outside it), the column at
+  2168..2552 x 8..1492 in it. The `Ignore`-with-a-margin fallback of F266 is not needed there;
+  KWin is lane d's to see.
+- **F327 Joining lane b's card.** The card's stylesheet is `notification_card::CARD_CSS`
+  (lane b); the center's root must inject it next to its own: in `panel.rs`,
+  `style { {CARD_CSS} }` before `style { {NOTIFICATION_CENTER_CSS} }`, and the lint test's
+  `full_css` gains it. It cannot be written on `m6-c` before `m6-b` is merged. Proven on a
+  scratch merge of m6-a, m6-b and m6-c: without it the cards draw unlaid-out; with it they read
+  as the banners do (`dev/out/notification-center-cosmic.png`).
+
+### Acceptance (nested cosmic-comp, 2560 x 1600, on a scratch merge of m6-a + m6-b + m6-c)
+
+`dev/accept-notification-center.sh`, the daemon under `dbus-run-session
+--config-file=dev/private-bus.conf` with its own `XDG_RUNTIME_DIR`, scratch config and state:
+
+```
+PASS step_warm        sill-notification-center-WINIT-0 spawned at start, hidden
+PASS step_toggle_open_close  toggle shows the column (box 2168 8 2552 1492 in a 2560 1500
+                      surface) and hides it; open twice stays open; close hides it
+PASS step_clock       a click on the clock at 2494 16 opens the center; a second closes it
+PASS step_groups      kept 3; '1 more' at 2359 197 opened Mail's group; Mail's Clear: kept 1
+PASS step_outside     a click left of the column closes it
+PASS step_idle        5 s idle open: 0 frames; 5 s hidden: 0 frames
+```
+
+On `m6-c` after merging master (lane a in, lane b not yet) the same six steps pass too
+("kept 3; '1 more' at 2360 106 opened Mail's group; Mail's Clear: kept 1"; the cards are drawn
+unlaid-out until F327's line lands); before lane a, step 4 is a SKIP (exit 2): `sill debug
+notify` answered "the service has stopped". Screenshots, from the scratch merge:
+`dev/out/notification-center-cosmic.png` (two groups, Mail's stacked with "1 more"),
+`dev/out/notification-center-open-cosmic.png` (Mail's opened, "Show less"); and from m6-c,
+`dev/out/notification-center-empty-cosmic.png` (the empty state). Keys are not driven live
+(the nested compositor gives the layer no keyboard, as it gave the power menu none; shell-host
+injects no keys): the harness proves them
+(`tests/notification_center_keys.rs`), real Escape is lane d's.
+
+### Gaps found in the notification center
+
+- **Q123 (quire), in use:** the stand-in of F323 (`column.rs`, `drive.rs`, the stylesheet).
+- **Q125 (quire), in use:** the stand-in of F324 (`group.rs`).
 
 ## M6 lane a: the notifications server (2026-09-26)
 
