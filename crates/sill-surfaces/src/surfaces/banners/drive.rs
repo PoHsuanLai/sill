@@ -19,9 +19,9 @@ use sill_services::{
 };
 
 use super::commands::action_command;
-use super::deck::{Deck, DeckIn, DeckOut, DeckParams, EntryKey, advance};
+use super::deck::{Deck, DeckIn, DeckOut, EntryKey, advance};
 use super::gesture::{self, Click, Press, Sample};
-use super::machine::BannerIn;
+use super::machine::{BannerIn, BannerParams};
 use super::stack::Card;
 use crate::FrameClock;
 use crate::surfaces::notification_card::CardPress;
@@ -31,7 +31,7 @@ use crate::surfaces::notification_card::CardPress;
 pub(crate) struct Column {
     pub deck: Signal<Deck>,
     press: CopyValue<Press>,
-    params: CopyValue<DeckParams>,
+    params: CopyValue<BannerParams>,
     clock: FrameClock,
     control: CopyValue<Control<NotificationsCommand>>,
     surface: CopyValue<Option<SurfaceHandle>>,
@@ -207,7 +207,7 @@ impl Column {
 
 /// The column's shared state, the motion `level` read inside its `Ds`.
 pub(crate) fn use_column(
-    params: DeckParams,
+    params: BannerParams,
     control: Control<NotificationsCommand>,
     level: MotionLevel,
 ) -> Column {

@@ -5,8 +5,8 @@
 
 use sill_services::Stamp;
 
-use super::deck::{Deck, DeckOut, DeckParams, Entry, Speak, arrive, feed};
-use super::machine::{Banner, BannerIn, Persistence, step};
+use super::deck::{Deck, DeckOut, Entry, Speak, arrive, feed};
+use super::machine::{Banner, BannerIn, BannerParams, Persistence, step};
 use super::stack::Card;
 
 /// `deck` following `cards` at `now`.
@@ -14,14 +14,13 @@ pub(super) fn follow(
     deck: Deck,
     cards: Vec<Card>,
     now: Stamp,
-    p: &DeckParams,
+    p: &BannerParams,
 ) -> (Deck, Vec<DeckOut>) {
     let mut out = Vec::new();
     let mut deck = deck;
-    let (staying, gone): (Vec<Entry>, Vec<Entry>) =
-        std::mem::take(&mut deck.entries)
-            .into_iter()
-            .partition(|e| e.leaving() || cards.iter().any(|c| c.app == e.card.app));
+    let (staying, gone): (Vec<Entry>, Vec<Entry>) = std::mem::take(&mut deck.entries)
+        .into_iter()
+        .partition(|e| e.leaving() || cards.iter().any(|c| c.app == e.card.app));
     let mut entries: Vec<Entry> = staying
         .into_iter()
         .map(|e| match cards.iter().find(|c| c.app == e.card.app) {
@@ -47,7 +46,7 @@ pub(super) fn follow(
 }
 
 /// A drawn card with `card`'s content; a newer notification starts a shown card's hold again.
-fn refresh(e: Entry, card: Card, now: Stamp, p: &DeckParams) -> Entry {
+fn refresh(e: Entry, card: Card, now: Stamp, p: &BannerParams) -> Entry {
     let newer = card.newest() != e.card.newest();
     let banner = match (newer, e.banner) {
         (true, Banner::Shown { .. }) => {
@@ -57,7 +56,7 @@ fn refresh(e: Entry, card: Card, now: Stamp, p: &DeckParams) -> Entry {
                 BannerIn::Entered,
                 now,
                 Persistence::of(card.life),
-                &p.banner,
+                p,
             )
             .0
         }

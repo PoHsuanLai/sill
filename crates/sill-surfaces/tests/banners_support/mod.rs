@@ -12,8 +12,8 @@ use std::cell::RefCell;
 use dioxus::prelude::*;
 use ds_native::{Harness, Viewport};
 use sill_services::{
-    Action, ActionKey, AppRef, BannerLife, Body, Expiry, Hints, IconRef, LiveBanner,
-    Notification, NotificationId, Notifications, NotificationsCommand, Services, UnixMs,
+    Action, ActionKey, AppRef, BannerLife, Body, Expiry, Hints, IconRef, LiveBanner, Notification,
+    NotificationId, Notifications, NotificationsCommand, Services, UnixMs,
 };
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Banners;
@@ -126,7 +126,13 @@ pub fn start(file: ShellFile) -> Running {
 }
 
 /// A notification `id` from `app` with `summary`, `body` and `actions` (`key=label`).
-pub fn note(id: u32, app: &str, summary: &str, body: &str, actions: &[(&str, &str)]) -> Notification {
+pub fn note(
+    id: u32,
+    app: &str,
+    summary: &str,
+    body: &str,
+    actions: &[(&str, &str)],
+) -> Notification {
     Notification {
         id: NotificationId(id),
         arrived: UnixMs(sill_surfaces::surfaces::notification_card::wall_now().0),

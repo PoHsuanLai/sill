@@ -13,12 +13,14 @@ pub mod body;
 pub mod icon;
 pub mod labels;
 pub mod metrics;
+pub mod parts;
 
 mod view;
 
 pub use actions::{MenuOpen, MenuSeat};
 pub use labels::{Age, age, age_label, app_label, count_label};
 pub use metrics::{CARD_VARS, CardMetrics};
+pub use parts::{CardPart, part_id};
 pub use view::{CARD_CSS, wall_now};
 
 use dioxus::prelude::*;

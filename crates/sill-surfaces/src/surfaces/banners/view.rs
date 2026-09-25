@@ -3,7 +3,7 @@
 //! stylesheet moves (entering, following a drag, flying out). It follows `use_notifications` and
 //! the [`BannerLink`] (only the output the link names shows cards), maps its surface while any
 //! card is drawn and unmaps it once the last one's exit has played, and keeps the input and blur
-//! regions on the cards (`measure.rs`).
+//! regions on the cards' painted parts (`elements.rs`).
 //!
 //! [`BannerLink`]: super::BannerLink
 
@@ -13,11 +13,12 @@ use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_services::{NotificationId, Notifications};
 use sill_settings::NotificationsSettings;
 
-use super::deck::{DeckIn, DeckParams, Entry, Showing};
+use super::deck::{DeckIn, Entry, Showing};
 use super::drive::{Column, use_column};
+use super::elements::{CardShape, Regions, element_regions};
 use super::layer::ROOM;
 use super::look::{card_look, corner_slug, entry_slug, in_corner};
-use super::measure::{RegionKey, Slots, use_card_regions};
+use super::machine::BannerParams;
 use super::placement::BannerLink;
 use super::stack::stack;
 use crate::hooks::{
@@ -69,7 +70,7 @@ pub(super) fn banners(output: OutputInfo) -> Element {
 fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> Element {
     let level = ds::use_env().resolved.motion;
     let control = use_services().notifications_control;
-    let column = use_column(DeckParams::new(&settings), control, level);
+    let column = use_column(BannerParams::new(&settings), control, level);
     let live = use_notifications();
     let link = use_context::<BannerLink>();
     let shows = use_watch(link.subscribe());
@@ -83,14 +84,17 @@ fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> 
         deck.drawn().into_iter().cloned().collect(),
         settings.banner_position,
     );
-    let key = RegionKey {
-        cards: drawn
-            .iter()
-            .map(|e| (e.key, format!("{:?}{:?}{:?}", e.banner, e.expansion, e.card)))
-            .collect(),
-        menu: menu(),
-    };
-    let slots = use_card_regions(key);
+    let shapes: Vec<CardShape> = drawn
+        .iter()
+        .filter_map(|e| {
+            Some(CardShape {
+                note: e.card.newest()?,
+                count: e.card.count(),
+                expansion: e.expansion,
+            })
+        })
+        .collect();
+    use_regions(element_regions(&shapes, menu()));
     let notes = live();
     let from = entry_slug(settings.banner_entry_direction);
     let style = format!(
@@ -105,7 +109,7 @@ fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> 
             onmousemove: move |event| column.moved(event.client_coordinates().x),
             onmouseup: move |event| column.up(event.client_coordinates().x),
             for entry in drawn {
-                Fragment { key: "{entry.key.0}", {slot(column, slots, &notes, entry, from, menu)} }
+                Fragment { key: "{entry.key.0}", {slot(column, &notes, entry, from, menu)} }
             }
         }
     }
@@ -114,13 +118,16 @@ fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> 
 /// One card's slot.
 fn slot(
     column: Column,
-    slots: Slots,
     notes: &Notifications,
     entry: Entry,
     from: &'static str,
     menu: Signal<MenuOpen>,
 ) -> Element {
-    let Some(note) = entry.card.newest().and_then(|id| note_of(notes, id, &column)) else {
+    let Some(note) = entry
+        .card
+        .newest()
+        .and_then(|id| note_of(notes, id, &column))
+    else {
         return rsx! {};
     };
     let look = card_look(&entry);
@@ -134,7 +141,6 @@ fn slot(
             "data-transit": look.transit.slug(),
             "data-from": from,
             style: look.shift,
-            onmounted: move |event| slots.mounted(key, event),
             onmouseenter: move |_| column.input(DeckIn::Card(key, super::BannerIn::HoverIn)),
             onmouseleave: move |_| {
                 if menu() == MenuOpen::No {
@@ -184,6 +190,21 @@ fn use_follow_stack(
         column.keep(&banners);
         column.input(DeckIn::Cards(cards));
     }));
+}
+
+/// Keep the surface's input and blur regions on `regions`, sending them only when they change.
+/// Nothing to do without a host (a test, an SSR render).
+fn use_regions(regions: Regions) {
+    let surface = try_use_context::<SurfaceHandle>();
+    let mut last = use_hook(|| CopyValue::new(None::<Regions>));
+    if last.peek().as_ref() == Some(&regions) {
+        return;
+    }
+    if let Some(surface) = surface {
+        surface.set_input_region(regions.input.clone());
+        surface.set_blur(regions.blur.clone());
+    }
+    last.set(Some(regions));
 }
 
 /// Map the surface once a card is drawn; unmap it once none is (the last exit has played).

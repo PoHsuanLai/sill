@@ -118,7 +118,10 @@ fn an_expanded_group_shows_its_count_layers_actions_and_close() {
     assert!(html.contains("class=\"sill-card-close\""));
     assert_eq!(html.matches("class=\"sill-card-layer\"").count(), 2);
     assert!(html.contains(">3<"), "the count");
-    assert!(html.contains(">REPLY<") && html.contains(">LATER<"), "two buttons");
+    assert!(
+        html.contains(">REPLY<") && html.contains(">LATER<"),
+        "two buttons"
+    );
     assert!(!html.contains(">DEFAULT<"), "default is the body's click");
     let many = render(Shown {
         note: note(&["a", "b", "c"]),

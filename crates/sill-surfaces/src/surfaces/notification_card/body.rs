@@ -56,7 +56,11 @@ mod tests {
             ("two\nlines", Expansion::Expanded, "two\nlines"),
         ];
         for (raw, expansion, want) in cases {
-            assert_eq!(body_text(&Body::plain(raw), expansion, per), want, "{raw:?}");
+            assert_eq!(
+                body_text(&Body::plain(raw), expansion, per),
+                want,
+                "{raw:?}"
+            );
         }
         let long = Body::plain(&"a".repeat(80));
         let collapsed = body_text(&long, Expansion::Collapsed, per);
@@ -69,6 +73,10 @@ mod tests {
     #[test]
     fn a_banner_line_holds_about_forty_five_characters() {
         assert_eq!(LineChars::of(360, 12, 32, 10), LineChars(45));
-        assert_eq!(LineChars::of(100, 40, 32, 10), LineChars(8), "never under eight");
+        assert_eq!(
+            LineChars::of(100, 40, 32, 10),
+            LineChars(8),
+            "never under eight"
+        );
     }
 }

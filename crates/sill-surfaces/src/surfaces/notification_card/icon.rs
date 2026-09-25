@@ -47,10 +47,11 @@ pub fn card_art(
         AppIcon::File(path) => Some(path.clone()),
         AppIcon::None => None,
     });
-    sent.or(own).map_or(CardArt::Bell, |path| match symbolic(&path) {
-        Symbolic::Yes => CardArt::Symbolic(path),
-        Symbolic::No => CardArt::Image(path),
-    })
+    sent.or(own)
+        .map_or(CardArt::Bell, |path| match symbolic(&path) {
+            Symbolic::Yes => CardArt::Symbolic(path),
+            Symbolic::No => CardArt::Image(path),
+        })
 }
 
 /// Whether an icon file is a symbolic one.
@@ -121,8 +122,14 @@ mod tests {
         let index = index();
         let id = |a: &AppRef| entry_for(a, &index).map(|e| e.id.0.clone());
         let cases = [
-            (app("x", Some("org.gnome.Evolution"), IconRef::None), Some("org.gnome.Evolution")),
-            (app("evolution", None, IconRef::None), Some("org.gnome.Evolution")),
+            (
+                app("x", Some("org.gnome.Evolution"), IconRef::None),
+                Some("org.gnome.Evolution"),
+            ),
+            (
+                app("evolution", None, IconRef::None),
+                Some("org.gnome.Evolution"),
+            ),
             (app("Firefox", None, IconRef::None), Some("firefox")),
             (app("notify-send", None, IconRef::None), None),
             (app("", None, IconRef::None), None),

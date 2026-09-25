@@ -21,6 +21,7 @@ use super::actions::{CardActions, action_layout};
 use super::body::body_text;
 use super::icon::{CardArt, card_art, entry_for};
 use super::metrics::CardMetrics;
+use super::parts::{CardPart, part_id};
 use super::{CardPlace, CardPress, Expansion, age, age_label, app_label};
 use crate::hooks::{use_apps, use_settings};
 use crate::surfaces::banners::CARD_RADIUS;
@@ -70,14 +71,14 @@ pub(super) fn card(
             "data-grouped": if grouped { "grouped" } else { "single" },
             style: metrics.style_attr(),
             if grouped {
-                div { class: "sill-card-layer", "data-depth": "2",
+                div { id: part_id(note.id, CardPart::Far), class: "sill-card-layer", "data-depth": "2",
                     Surface { material, theme, radius: corner, div { class: "sill-card-fill" } }
                 }
-                div { class: "sill-card-layer", "data-depth": "1",
+                div { id: part_id(note.id, CardPart::Near), class: "sill-card-layer", "data-depth": "1",
                     Surface { material, theme, radius: corner, div { class: "sill-card-fill" } }
                 }
             }
-            div { class: "sill-card-face",
+            div { id: part_id(note.id, CardPart::Face), class: "sill-card-face",
                 Surface { material, theme, radius: corner,
                     div {
                         class: "sill-card",
@@ -106,7 +107,7 @@ pub(super) fn card(
                 }
             }
             if expansion == Expansion::Expanded {
-                div { class: "sill-card-close",
+                div { id: part_id(note.id, CardPart::Close), class: "sill-card-close",
                     Surface { material, theme, radius: Corner::Token(Radius::Pill),
                         IconButton {
                             variant: IconButtonVariant::Strip,

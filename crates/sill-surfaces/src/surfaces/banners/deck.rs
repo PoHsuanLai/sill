@@ -10,46 +10,11 @@
 //! Disturb's Dismiss All) leaves without telling the service anything.
 
 use sill_services::{Cpx, NotificationsCommand, Stamp};
-use sill_settings::{NotificationSwipe, NotificationsSettings};
 
 use super::commands::leave_commands;
-use super::machine::{
-    Banner, BannerIn, BannerOut, BannerParams, Deadline, Leave, Persistence, step,
-};
+use super::machine::{Banner, BannerIn, BannerOut, BannerParams, Deadline, Persistence, step};
 use super::stack::Card;
 use crate::surfaces::notification_card::Expansion;
-
-/// The deck's numbers and choices, from `notifications.*`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct DeckParams {
-    pub banner: BannerParams,
-    /// What a swipe (or a drag past the threshold) tells the service.
-    pub swipe: NotificationSwipe,
-}
-
-impl DeckParams {
-    pub fn new(n: &NotificationsSettings) -> DeckParams {
-        DeckParams {
-            banner: BannerParams::new(n),
-            swipe: n.swipe,
-        }
-    }
-}
-
-/// What the service hears when a card leaves for `why` after `input`: a swipe under
-/// `notifications.swipe = "keep_in_center"` (macOS: a swiped banner stays in Notification Center)
-/// is said as a timeout, which takes the banner away and keeps the notification; the close
-/// button, and a swipe under `"dismiss"`, dismiss it.
-pub fn told(why: Leave, input: BannerIn, swipe: NotificationSwipe) -> Leave {
-    match (why, input, swipe) {
-        (
-            Leave::Dismissed,
-            BannerIn::DragEnd { .. } | BannerIn::Swipe { .. },
-            NotificationSwipe::KeepInCenter,
-        ) => Leave::Timeout,
-        (why, _, _) => why,
-    }
-}
 
 /// One drawn card's identity for its life on screen (a new one per arrival).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -167,12 +132,15 @@ pub enum Showing {
 }
 
 /// `deck` after `input` at `now`.
-pub fn advance(deck: Deck, input: DeckIn, now: Stamp, p: &DeckParams) -> (Deck, Vec<DeckOut>) {
+pub fn advance(deck: Deck, input: DeckIn, now: Stamp, p: &BannerParams) -> (Deck, Vec<DeckOut>) {
     match input {
         DeckIn::Cards(cards) => super::deck_cards::follow(deck, cards, now, p),
         DeckIn::Risen(key) => {
             let known = deck.entries.iter().any(|e| e.key == key && !e.leaving());
-            let out = known.then_some(DeckOut::Entrance(key)).into_iter().collect();
+            let out = known
+                .then_some(DeckOut::Entrance(key))
+                .into_iter()
+                .collect();
             (
                 with_entry(deck, key, |e| Entry {
                     pose: Pose::Rest,
@@ -220,7 +188,7 @@ pub(super) fn feed(
     e: Entry,
     input: BannerIn,
     now: Stamp,
-    p: &DeckParams,
+    p: &BannerParams,
     out: &mut Vec<DeckOut>,
     speak: Speak,
 ) -> Entry {
@@ -243,43 +211,43 @@ fn apply(
     e: Entry,
     input: BannerIn,
     now: Stamp,
-    p: &DeckParams,
+    p: &BannerParams,
     out: &mut Vec<DeckOut>,
     speak: Speak,
 ) -> Entry {
-    let (banner, said) = step(e.banner, input, now, Persistence::of(e.card.life), &p.banner);
-    said.into_iter().fold(Entry { banner, ..e }, |e, said| match said {
-        BannerOut::RequestTick(_) => e,
-        BannerOut::Expand => Entry {
-            expansion: Expansion::Expanded,
-            ..e
-        },
-        BannerOut::Collapse => Entry {
-            expansion: Expansion::Collapsed,
-            ..e
-        },
-        BannerOut::Offset(dx) => Entry {
-            pose: Pose::Follow(dx),
-            ..e
-        },
-        BannerOut::SpringBack => Entry {
-            pose: Pose::Rest,
-            ..e
-        },
-        BannerOut::Leave(why) => {
-            if speak == Speak::Yes {
-                let why = told(why, input, p.swipe);
-                out.extend(leave_commands(&e.card, why).into_iter().map(DeckOut::Send));
-            }
-            out.push(DeckOut::Exit(e.key));
-            Entry {
-                pose: Pose::Offstage,
+    let (banner, said) = step(e.banner, input, now, Persistence::of(e.card.life), p);
+    said.into_iter()
+        .fold(Entry { banner, ..e }, |e, said| match said {
+            BannerOut::RequestTick(_) => e,
+            BannerOut::Expand => Entry {
+                expansion: Expansion::Expanded,
+                ..e
+            },
+            BannerOut::Collapse => Entry {
                 expansion: Expansion::Collapsed,
                 ..e
+            },
+            BannerOut::Offset(dx) => Entry {
+                pose: Pose::Follow(dx),
+                ..e
+            },
+            BannerOut::SpringBack => Entry {
+                pose: Pose::Rest,
+                ..e
+            },
+            BannerOut::Leave(why) => {
+                if speak == Speak::Yes {
+                    out.extend(leave_commands(&e.card, why).into_iter().map(DeckOut::Send));
+                }
+                out.push(DeckOut::Exit(e.key));
+                Entry {
+                    pose: Pose::Offstage,
+                    expansion: Expansion::Collapsed,
+                    ..e
+                }
             }
-        }
-        BannerOut::Remove => e,
-    })
+            BannerOut::Remove => e,
+        })
 }
 
 /// `deck` with `key`'s entry changed by `f`.

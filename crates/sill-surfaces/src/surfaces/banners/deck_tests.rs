@@ -1,17 +1,14 @@
 //! Table tests for `deck.rs` and `deck_cards.rs`.
 
-use super::{Deck, DeckIn, DeckOut, DeckParams, EntryKey, Pose, Showing, advance, told};
-use crate::surfaces::banners::machine::{Banner, BannerIn, Deadline, Leave};
+use super::{Deck, DeckIn, DeckOut, EntryKey, Pose, Showing, advance};
+use crate::surfaces::banners::machine::{Banner, BannerIn, BannerParams, Deadline, Leave};
 use crate::surfaces::banners::stack::Card;
 use crate::surfaces::notification_card::Expansion;
 use sill_services::{AppKey, BannerLife, Cpx, NotificationId, NotificationsCommand, Stamp};
-use sill_settings::{NotificationSwipe, NotificationsSettings};
+use sill_settings::NotificationsSettings;
 
-fn p() -> DeckParams {
-    DeckParams::new(&NotificationsSettings {
-        swipe: NotificationSwipe::Dismiss,
-        ..NotificationsSettings::default()
-    })
+fn p() -> BannerParams {
+    BannerParams::new(&NotificationsSettings::default())
 }
 
 fn card(app: &str, ids: &[u32]) -> Card {
@@ -80,7 +77,11 @@ fn a_card_rises_enters_holds_and_leaves_by_itself() {
             (5600, DeckIn::Card(A, BannerIn::Left)),
         ],
     ));
-    assert_eq!(deck.showing(), Showing::Nothing, "gone once the exit played");
+    assert_eq!(
+        deck.showing(),
+        Showing::Nothing,
+        "gone once the exit played"
+    );
 }
 
 #[test]
@@ -111,7 +112,11 @@ fn the_same_app_updates_its_card_and_holds_again() {
 #[test]
 fn a_card_the_service_dropped_leaves_silently_and_a_leftover_is_not_news() {
     let (deck, out) = run(with(shown(), vec![(900, DeckIn::Cards(Vec::new()))]));
-    assert_eq!(out[2..], [DeckOut::Exit(A)], "no Dismiss for the service's own drop");
+    assert_eq!(
+        out[2..],
+        [DeckOut::Exit(A)],
+        "no Dismiss for the service's own drop"
+    );
     assert!(deck.drawn()[0].leaving());
     // Closed, and before the service caught up the stack still has it: no second card.
     let (deck, out) = run(with(
@@ -176,10 +181,7 @@ fn a_drag_follows_springs_back_or_flies_out() {
             shown(),
             vec![
                 (500, DeckIn::Card(A, BannerIn::DragStart)),
-                (
-                    600,
-                    DeckIn::Card(A, BannerIn::DragMove { dx: Cpx::px(dx) }),
-                ),
+                (600, DeckIn::Card(A, BannerIn::DragMove { dx: Cpx::px(dx) })),
             ],
         ))
         .0
@@ -194,10 +196,7 @@ fn a_drag_follows_springs_back_or_flies_out() {
             shown(),
             vec![
                 (500, DeckIn::Card(A, BannerIn::DragStart)),
-                (
-                    600,
-                    DeckIn::Card(A, BannerIn::DragMove { dx: Cpx::px(dx) }),
-                ),
+                (600, DeckIn::Card(A, BannerIn::DragMove { dx: Cpx::px(dx) })),
                 (
                     700,
                     DeckIn::Card(A, BannerIn::DragEnd { velocity_px_s: 100 }),
@@ -212,14 +211,14 @@ fn a_drag_follows_springs_back_or_flies_out() {
     assert_eq!(
         out[2..],
         [
-            DeckOut::Send(NotificationsCommand::Dismiss(NotificationId(1))),
+            DeckOut::Send(NotificationsCommand::SwipeAway(NotificationId(1))),
             DeckOut::Exit(A),
         ]
     );
     assert!(matches!(
         deck.drawn()[0].banner,
         Banner::Leaving {
-            why: Leave::Dismissed,
+            why: Leave::Swiped,
             ..
         }
     ));
@@ -232,25 +231,4 @@ fn an_acted_card_leaves_without_a_leave_command() {
         vec![(900, DeckIn::Card(A, BannerIn::Clicked))],
     ));
     assert_eq!(out[2..], [DeckOut::Exit(A)]);
-}
-
-#[test]
-fn a_swipe_keeps_the_notification_in_the_center_unless_set_to_dismiss() {
-    use NotificationSwipe::{Dismiss, KeepInCenter};
-    let end = BannerIn::DragEnd { velocity_px_s: 900 };
-    let swipe = BannerIn::Swipe {
-        dx: Cpx::px(100),
-        velocity_px_s: 0,
-    };
-    let cases = [
-        (Leave::Dismissed, end, KeepInCenter, Leave::Timeout),
-        (Leave::Dismissed, swipe, KeepInCenter, Leave::Timeout),
-        (Leave::Dismissed, end, Dismiss, Leave::Dismissed),
-        (Leave::Dismissed, BannerIn::Close, KeepInCenter, Leave::Dismissed),
-        (Leave::Timeout, BannerIn::Tick, KeepInCenter, Leave::Timeout),
-        (Leave::Acted, BannerIn::Clicked, KeepInCenter, Leave::Acted),
-    ];
-    for (why, input, swipe, want) in cases {
-        assert_eq!(told(why, input, swipe), want, "{why:?} {input:?} {swipe:?}");
-    }
 }

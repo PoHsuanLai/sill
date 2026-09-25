@@ -56,7 +56,13 @@ fn render_ssr() -> String {
 fn shown_html() -> String {
     let mut running = start(ShellFile::default());
     running.show(vec![
-        live(note(2, "mail", "Two", "Body", &[("reply", "Reply"), ("archive", "Archive")])),
+        live(note(
+            2,
+            "mail",
+            "Two",
+            "Body",
+            &[("reply", "Reply"), ("archive", "Archive")],
+        )),
         live(note(1, "mail", "One", "Body", &[])),
     ]);
     running.harness.advance(Duration::from_millis(700));

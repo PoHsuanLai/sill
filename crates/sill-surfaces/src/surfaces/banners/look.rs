@@ -56,7 +56,10 @@ pub fn card_look(entry: &Entry) -> CardLook {
         Pose::Rest => ("rest", None),
         Pose::Follow(dx) => (
             "follow",
-            Some(format!("transform:translateX({}px)", f64::from(dx.0) / 100.0)),
+            Some(format!(
+                "transform:translateX({}px)",
+                f64::from(dx.0) / 100.0
+            )),
         ),
     };
     CardLook {
@@ -169,7 +172,13 @@ mod tests {
 
     #[test]
     fn the_bottom_corner_puts_the_newest_last() {
-        assert_eq!(in_corner(vec![3, 2, 1], BannerPosition::TopRight), [3, 2, 1]);
-        assert_eq!(in_corner(vec![3, 2, 1], BannerPosition::BottomRight), [1, 2, 3]);
+        assert_eq!(
+            in_corner(vec![3, 2, 1], BannerPosition::TopRight),
+            [3, 2, 1]
+        );
+        assert_eq!(
+            in_corner(vec![3, 2, 1], BannerPosition::BottomRight),
+            [1, 2, 3]
+        );
     }
 }
