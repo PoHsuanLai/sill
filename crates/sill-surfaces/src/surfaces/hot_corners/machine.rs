@@ -1,42 +1,23 @@
 //! A hot corner's trigger machine: pure, table-tested. The surface feeds it the pointer's enter
-//! and leave, the modifiers it knows, and quire's timers; it answers when to start a timer and
-//! when to fire.
+//! and leave and quire's timers; it answers when to start a timer and when to fire.
 //!
 //! - `Armed`: the pointer entering starts the dwell (`StartDwell`, a fresh token).
-//! - `Dwelling`: the dwell running out fires (`Fire`) when the required modifier is held (or
-//!   none is required) and moves to `Spent` with the re-arm running (`StartRearm`); without the
-//!   modifier it moves to `Blocked`. Leaving first goes back to `Armed` (the dwell's timer is
-//!   stale by its token).
-//! - `Blocked`: nothing fires until the pointer leaves (back to `Armed`).
+//! - `Dwelling`: the dwell running out fires (`Fire`) and moves to `Spent` with the re-arm
+//!   running (`StartRearm`). Leaving first goes back to `Armed` (the dwell's timer is stale by
+//!   its token).
 //! - `Spent`: fires nothing; it is `Armed` again once the pointer has left **and** the re-arm
 //!   has run out, in either order.
 //!
-//! Modifiers: a layer surface with keyboard `None` is never sent `wl_keyboard.modifiers`, so the
-//! surface may not know them (FINDINGS "M10 freeze", G121); `Mods` is whatever it last learned,
-//! all up by default, so a required modifier blocks until shell-host can report one.
-
-use sill_settings::CornerModifier;
+//! No modifier: `hot_corners.modifier` (macOS's "and hold a key" option) is retired. A layer
+//! surface with keyboard `None` is never sent `wl_keyboard.modifiers` on Wayland, so the surface
+//! cannot know one is held; shell-host's answer (FINDINGS G121, F61) is that no compositor gives
+//! a keyboard-less surface that state portably (KWin happens to after an enter, cosmic-comp
+//! likely does not) and a fix would need `OnDemand` keyboard, which a hot corner must never take
+//! (it would steal focus). So the dwell fires unconditionally once it elapses.
 
 /// A timer's identity; an elapsed timer with another token is stale.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Token(pub u32);
-
-/// A key's state.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum KeyState {
-    #[default]
-    Up,
-    Down,
-}
-
-/// The modifiers held.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct Mods {
-    pub super_key: KeyState,
-    pub alt: KeyState,
-    pub ctrl: KeyState,
-    pub shift: KeyState,
-}
 
 /// Where the pointer is, for `Spent`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -58,18 +39,16 @@ pub enum Phase {
     #[default]
     Armed,
     Dwelling(Token),
-    Blocked,
     Spent {
         pointer: Inside,
         rearm: Rearm,
     },
 }
 
-/// The machine: its phase, the modifiers last seen, and the next token to hand out.
+/// The machine: its phase and the next token to hand out.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct CornerMachine {
     pub phase: Phase,
-    pub mods: Mods,
     pub next: Token,
 }
 
@@ -78,7 +57,6 @@ pub struct CornerMachine {
 pub struct CornerParams {
     pub dwell_ms: u32,
     pub rearm_ms: u32,
-    pub modifier: CornerModifier,
 }
 
 /// What happened.
@@ -88,7 +66,6 @@ pub enum CornerIn {
     Leave,
     DwellElapsed(Token),
     RearmElapsed(Token),
-    Mods(Mods),
 }
 
 /// What to do.
@@ -108,61 +85,157 @@ pub fn step(
     input: CornerIn,
     params: CornerParams,
 ) -> (CornerMachine, Vec<CornerOut>) {
-    let _ = (machine, input, params);
-    todo!("M10 fill: d-corners")
+    match input {
+        CornerIn::Enter => enter(machine, params),
+        CornerIn::Leave => leave(machine),
+        CornerIn::DwellElapsed(token) => dwell_elapsed(machine, token, params),
+        CornerIn::RearmElapsed(token) => rearm_elapsed(machine, token),
+    }
 }
 
-/// Whether `mods` satisfies `needed`.
-pub fn held(mods: Mods, needed: CornerModifier) -> KeyState {
-    match needed {
-        CornerModifier::None => KeyState::Down,
-        CornerModifier::Super => mods.super_key,
-        CornerModifier::Alt => mods.alt,
-        CornerModifier::Ctrl => mods.ctrl,
-        CornerModifier::Shift => mods.shift,
+/// The pointer entered: `Armed` starts a dwell; `Spent` (still waiting on the re-arm) just notes
+/// the pointer is back in; `Dwelling` already has it.
+fn enter(machine: CornerMachine, params: CornerParams) -> (CornerMachine, Vec<CornerOut>) {
+    match machine.phase {
+        Phase::Armed => {
+            let token = machine.next;
+            let phase = Phase::Dwelling(token);
+            let next = Token(token.0 + 1);
+            (
+                CornerMachine { phase, next },
+                vec![CornerOut::StartDwell(token, params.dwell_ms)],
+            )
+        }
+        Phase::Spent { rearm, .. } => (
+            CornerMachine {
+                phase: Phase::Spent {
+                    pointer: Inside::In,
+                    rearm,
+                },
+                ..machine
+            },
+            Vec::new(),
+        ),
+        Phase::Dwelling(_) => (machine, Vec::new()),
+    }
+}
+
+/// The pointer left: `Dwelling` cancels back to `Armed`; `Spent` is done once both the pointer
+/// has left and the re-arm is over (in either order — the leave itself completes it when the
+/// re-arm already ran out), else it only notes the pointer is out.
+fn leave(machine: CornerMachine) -> (CornerMachine, Vec<CornerOut>) {
+    match machine.phase {
+        Phase::Dwelling(_) => (
+            CornerMachine {
+                phase: Phase::Armed,
+                ..machine
+            },
+            Vec::new(),
+        ),
+        Phase::Spent {
+            rearm: Rearm::Over, ..
+        } => (
+            CornerMachine {
+                phase: Phase::Armed,
+                ..machine
+            },
+            Vec::new(),
+        ),
+        Phase::Spent { rearm, .. } => (
+            CornerMachine {
+                phase: Phase::Spent {
+                    pointer: Inside::Out,
+                    rearm,
+                },
+                ..machine
+            },
+            Vec::new(),
+        ),
+        Phase::Armed => (machine, Vec::new()),
+    }
+}
+
+/// The dwell ran out: a stale token (the pointer already left, or a fresh dwell started) does
+/// nothing; a live one fires.
+fn dwell_elapsed(
+    machine: CornerMachine,
+    token: Token,
+    params: CornerParams,
+) -> (CornerMachine, Vec<CornerOut>) {
+    let Phase::Dwelling(current) = machine.phase else {
+        return (machine, Vec::new());
+    };
+    if current != token {
+        return (machine, Vec::new());
+    }
+    let rearm = machine.next;
+    let next = Token(rearm.0 + 1);
+    let phase = Phase::Spent {
+        pointer: Inside::In,
+        rearm: Rearm::Running(rearm),
+    };
+    (
+        CornerMachine { phase, next },
+        vec![
+            CornerOut::Fire,
+            CornerOut::StartRearm(rearm, params.rearm_ms),
+        ],
+    )
+}
+
+/// The re-arm ran out: a stale token does nothing; a live one re-arms at once if the pointer has
+/// already left, else only marks the re-arm over (the next leave finishes it).
+fn rearm_elapsed(machine: CornerMachine, token: Token) -> (CornerMachine, Vec<CornerOut>) {
+    let Phase::Spent {
+        pointer,
+        rearm: Rearm::Running(current),
+    } = machine.phase
+    else {
+        return (machine, Vec::new());
+    };
+    if current != token {
+        return (machine, Vec::new());
+    }
+    match pointer {
+        Inside::Out => (
+            CornerMachine {
+                phase: Phase::Armed,
+                ..machine
+            },
+            Vec::new(),
+        ),
+        Inside::In => (
+            CornerMachine {
+                phase: Phase::Spent {
+                    pointer,
+                    rearm: Rearm::Over,
+                },
+                ..machine
+            },
+            Vec::new(),
+        ),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use sill_settings::CornerModifier;
-
     use super::{
-        CornerIn, CornerMachine, CornerOut, CornerParams, Inside, KeyState, Mods, Phase, Rearm,
-        Token, held, step,
+        CornerIn, CornerMachine, CornerOut, CornerParams, Inside, Phase, Rearm, Token, step,
     };
 
     const PLAIN: CornerParams = CornerParams {
         dwell_ms: 150,
         rearm_ms: 500,
-        modifier: CornerModifier::None,
-    };
-    const WITH_SUPER: CornerParams = CornerParams {
-        modifier: CornerModifier::Super,
-        ..PLAIN
     };
 
     fn at(phase: Phase, next: u32) -> CornerMachine {
         CornerMachine {
             phase,
-            mods: Mods::default(),
             next: Token(next),
         }
     }
 
     #[test]
-    fn no_modifier_is_always_held() {
-        assert_eq!(held(Mods::default(), CornerModifier::None), KeyState::Down);
-        assert_eq!(held(Mods::default(), CornerModifier::Super), KeyState::Up);
-        let down = Mods {
-            shift: KeyState::Down,
-            ..Mods::default()
-        };
-        assert_eq!(held(down, CornerModifier::Shift), KeyState::Down);
-    }
-
-    #[test]
-    #[ignore = "M10 fill: d-corners"]
     fn the_corner_follows_its_table() {
         use CornerIn::*;
         let spent = |pointer, rearm| Phase::Spent { pointer, rearm };
@@ -236,20 +309,6 @@ mod tests {
                 at(Phase::Armed, 2),
                 vec![],
             ),
-            (
-                at(Phase::Dwelling(Token(0)), 1),
-                DwellElapsed(Token(0)),
-                WITH_SUPER,
-                at(Phase::Blocked, 1),
-                vec![],
-            ),
-            (
-                at(Phase::Blocked, 1),
-                Leave,
-                WITH_SUPER,
-                at(Phase::Armed, 1),
-                vec![],
-            ),
         ];
         for (from, input, params, want, outs) in cases {
             assert_eq!(
@@ -258,33 +317,5 @@ mod tests {
                 "{from:?} + {input:?}"
             );
         }
-    }
-
-    #[test]
-    #[ignore = "M10 fill: d-corners"]
-    fn a_held_modifier_lets_the_corner_fire() {
-        let down = Mods {
-            super_key: KeyState::Down,
-            ..Mods::default()
-        };
-        let (with_mods, outs) = step(
-            at(Phase::Dwelling(Token(0)), 1),
-            CornerIn::Mods(down),
-            WITH_SUPER,
-        );
-        assert_eq!(outs, vec![]);
-        assert_eq!(with_mods.mods, down);
-        let (fired, outs) = step(with_mods, CornerIn::DwellElapsed(Token(0)), WITH_SUPER);
-        assert_eq!(
-            outs,
-            vec![CornerOut::Fire, CornerOut::StartRearm(Token(1), 500)]
-        );
-        assert_eq!(
-            fired.phase,
-            Phase::Spent {
-                pointer: Inside::In,
-                rearm: Rearm::Running(Token(1))
-            }
-        );
     }
 }
