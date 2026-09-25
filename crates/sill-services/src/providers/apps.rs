@@ -180,6 +180,12 @@ fn action_of(entry: &DesktopActionEntry) -> Action {
     }
 }
 
+/// The app a launcher row of this provider stands for: its id before [`ACTION_JOINER`] (an app
+/// row's whole id, a desktop-action row's app part).
+pub fn row_app_id(id: &ItemId) -> AppId {
+    split_id(id).0
+}
+
 /// `id` split at [`ACTION_JOINER`] into its app id and, for a desktop-action row, that action's
 /// id.
 fn split_id(id: &ItemId) -> (AppId, Option<String>) {
