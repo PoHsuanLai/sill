@@ -68,7 +68,7 @@ fn symbolic(path: &Path) -> bool {
 }
 
 /// `item`'s tile for `art` in `cx`.
-pub fn row_tile(item: &Item, art: RowArt, cx: &IconContext<'_>) -> Tile {
+pub fn row_tile(item: &Item, art: RowArt, cx: &IconContext) -> Tile {
     let px = pick(ROW_ICON, cx.scale);
     let file = match art {
         RowArt::Glyph => None,
@@ -79,8 +79,9 @@ pub fn row_tile(item: &Item, art: RowArt, cx: &IconContext<'_>) -> Tile {
         }
         RowArt::Themed(path) => Some(cx.resolver.path(&theme_art(&path, px, cx.look))),
         RowArt::Shipped(app) => cx
-            .assets
-            .map(|dir| cx.resolver.path(&shipped_art(dir, app, px, cx.look))),
+            .resolver
+            .shipped_path(app, px, cx.look.style)
+            .map(|source| cx.resolver.path(&shipped_art(source, app, px, cx.look))),
     };
     file.as_deref()
         .and_then(external)
@@ -100,7 +101,7 @@ fn external(path: &Path) -> Option<ExternalIcon> {
 mod tests {
     use super::{RowArt, row_art, row_tile};
     use crate::app_icons::cache::Generation;
-    use crate::app_icons::{AssetDir, IconContext, IconLook, IconResolver, ShippedApp};
+    use crate::app_icons::{IconContext, IconLook, IconResolver, ShippedApp};
     use ds::icon::{IconStyle, Tint};
     use ds::{Icon, IconSource, Scale, Tile};
     use sill_launcher::{AppId, IconRef, Item, ItemId, ProviderKind, Score};
@@ -214,16 +215,17 @@ mod tests {
         }
     }
 
+    /// Under quire's real apps directory (the sibling checkout this workspace builds against,
+    /// `ds_settings`'s development fallback; sill FINDINGS Q71): each style's file for Notes at
+    /// the 48 px row raster, the scale folded in.
     #[test]
     fn row_tiles_load_the_48_px_raster_for_the_scale() {
-        let dir = AssetDir(PathBuf::from("/q/apps"));
         let cx = |style, scale| IconContext {
             look: IconLook {
                 style,
                 tint: Tint::NEUTRAL,
             },
             scale: Scale(scale),
-            assets: Some(&dir),
             resolver: IconResolver {
                 seen: Generation::default(),
             },
@@ -235,17 +237,10 @@ mod tests {
         };
         let shipped =
             |style, scale| row_tile(&item, RowArt::Shipped(ShippedApp::Notes), &cx(style, scale));
-        assert_eq!(
-            url(shipped(IconStyle::Colour, 120)),
-            "file:///q/apps/notes/48.png"
-        );
-        assert_eq!(
-            url(shipped(IconStyle::Muted, 180)),
-            "file:///q/apps/notes/muted/72.png"
-        );
-        assert_eq!(
-            url(shipped(IconStyle::Monochrome, 240)),
-            "file:///q/apps/notes/monochrome/96.png",
+        assert!(url(shipped(IconStyle::Colour, 120)).ends_with("notes/48.png"));
+        assert!(url(shipped(IconStyle::Muted, 180)).ends_with("notes/muted/72.png"));
+        assert!(
+            url(shipped(IconStyle::Monochrome, 240)).ends_with("notes/monochrome/96.png"),
             "the untinted source until the cache has it"
         );
         let themed = row_tile(

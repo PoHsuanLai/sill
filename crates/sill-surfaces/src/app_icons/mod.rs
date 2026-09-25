@@ -4,10 +4,9 @@
 //!
 //! Pure: [`shipped`] (which entries take our icons), [`size`] (the raster for a size at a
 //! scale), [`look`] (the settings read against the Space), [`key`] and [`plan`].
-//! Effects: [`assets`] (finding quire's files), [`render`] (making a raster) and [`cache`]
-//! (making each one once, off the UI thread).
+//! Effects: [`render`] (making a raster) and [`cache`] (finding quire's shipped files through
+//! `ds_settings`, sill FINDINGS Q71, and making a re-tinted raster once, off the UI thread).
 
-pub mod assets;
 pub mod cache;
 pub mod context;
 pub mod key;
@@ -17,10 +16,9 @@ pub mod render;
 pub mod shipped;
 pub mod size;
 
-pub use assets::asset_dir;
 pub use cache::{IconResolver, use_icon_resolver};
 pub use context::IconContext;
 pub use look::{IconLook, icon_look};
-pub use plan::{Art, AssetDir, shipped_art, theme_art};
+pub use plan::{Art, shipped_art, theme_art};
 pub use shipped::{DEFAULT_TABLE, ShippedApp, shipped_app};
 pub use size::{AssetPx, LogicalPx, pick};
