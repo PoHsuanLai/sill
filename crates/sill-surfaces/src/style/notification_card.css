@@ -7,13 +7,15 @@
 .sill-card-slot{ position:relative; width:var(--sill-card-w); box-sizing:border-box; }
 .sill-card-slot[*|data-grouped=grouped]{ padding-bottom:calc(2 * var(--sill-card-layer)); }
 
-/* A group's two offset layers, behind the card (earlier in the slot, so under it), each peeking
-   out one offset lower and narrower than the one above it. */
-.sill-card-layer{ position:absolute; display:flex; flex-direction:column; }
+/* A group's two offset layers, behind the card (earlier in the slot, so under it), each a sliver
+   peeking out one offset lower and narrower than the one above it. They reach only a little way
+   under the card: the materials are translucent, so a whole card behind would show through. */
+.sill-card-layer{ position:absolute; display:flex; flex-direction:column;
+  height:calc(var(--sill-card-layer) + var(--s-6)); }
 .sill-card-layer > *{ flex:1; }
-.sill-card-layer[*|data-depth="1"]{ top:var(--sill-card-layer); bottom:var(--sill-card-layer);
+.sill-card-layer[*|data-depth="1"]{ bottom:var(--sill-card-layer);
   left:calc(2 * var(--sill-card-layer)); right:calc(2 * var(--sill-card-layer)); }
-.sill-card-layer[*|data-depth="2"]{ top:calc(2 * var(--sill-card-layer)); bottom:0;
+.sill-card-layer[*|data-depth="2"]{ bottom:0;
   left:calc(4 * var(--sill-card-layer)); right:calc(4 * var(--sill-card-layer)); }
 .sill-card-fill{ flex:1; }
 

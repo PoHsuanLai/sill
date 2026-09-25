@@ -42,10 +42,10 @@ SLACK_MS=400
 # The card's centre in the column (surface-local): layer::ROOM plus half a 360 x 72 card.
 CARD_X=220
 CARD_Y=76
-# A card's height with its gap is about 80 px: one card (a group adds its layers) stays under
-# 130, three stack past 220.
-ONE_CARD_MAX=130
-THREE_CARDS_MIN=220
+# The capture's drawn height, the cards' shadows included: one card (a group adds its layers)
+# stays under 170; three stack to 240-360 (a card and its gap are about 80 px).
+ONE_CARD_MAX=170
+THREE_CARDS_MIN=240
 
 SCRATCH=$(mktemp -d)
 RUNTIME="$SCRATCH/run"
@@ -291,7 +291,7 @@ step_grouping() {
   shows "$OUT_DIR/five.png" || return 1
   h3=$(drawn_height "$OUT_DIR/five.png")
   echo "five from five apps: drawn ${h3} px tall (three cards past ${THREE_CARDS_MIN}, under four)" >&2
-  [ "$h3" -ge "$THREE_CARDS_MIN" ] && [ "$h3" -le $((THREE_CARDS_MIN + 100)) ] || return 1
+  [ "$h3" -ge "$THREE_CARDS_MIN" ] && [ "$h3" -le $((THREE_CARDS_MIN + 120)) ] || return 1
   clear_banners || return 1
   notify "Ada Lovelace" --app chat --body "Hi" || return 1
   notify "Ada Lovelace" --app chat --body "Are you there?" || return 1
