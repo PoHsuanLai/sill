@@ -168,30 +168,30 @@ mod tests {
         let cases: Vec<(&str, Vec<Input>, Vec<BarEffect>, bool)> = vec![
             (
                 "click opens and leaves it open",
-                vec![press(BarMenu::Clock), release(BarMenu::Clock)],
-                vec![BarEffect::Show(BarMenu::Clock)],
+                vec![press(BarMenu::Volume), release(BarMenu::Volume)],
+                vec![BarEffect::Show(BarMenu::Volume)],
                 true,
             ),
             (
                 "a second click on the title closes",
                 vec![
-                    press(BarMenu::Clock),
-                    release(BarMenu::Clock),
-                    press(BarMenu::Clock),
+                    press(BarMenu::Volume),
+                    release(BarMenu::Volume),
+                    press(BarMenu::Volume),
                 ],
-                vec![BarEffect::Show(BarMenu::Clock), BarEffect::Hide],
+                vec![BarEffect::Show(BarMenu::Volume), BarEffect::Hide],
                 false,
             ),
             (
                 "hover switches the one popup, no second open",
                 vec![
-                    press(BarMenu::Clock),
-                    release(BarMenu::Clock),
+                    press(BarMenu::Volume),
+                    release(BarMenu::Volume),
                     enter(BarMenu::Battery),
                     enter(BarMenu::App),
                 ],
                 vec![
-                    BarEffect::Show(BarMenu::Clock),
+                    BarEffect::Show(BarMenu::Volume),
                     BarEffect::Swap(BarMenu::Battery),
                     BarEffect::Swap(BarMenu::App),
                 ],
@@ -199,19 +199,19 @@ mod tests {
             ),
             (
                 "hovering titles with nothing open does nothing",
-                vec![enter(BarMenu::Battery), enter(BarMenu::Clock)],
+                vec![enter(BarMenu::Battery), enter(BarMenu::Volume)],
                 vec![],
                 false,
             ),
             (
                 "a pick closes, then runs",
                 vec![
-                    press(BarMenu::Clock),
-                    release(BarMenu::Clock),
+                    press(BarMenu::Volume),
+                    release(BarMenu::Volume),
                     Input::Popup(PopupReport::Picked(settings.clone())),
                 ],
                 vec![
-                    BarEffect::Show(BarMenu::Clock),
+                    BarEffect::Show(BarMenu::Volume),
                     BarEffect::Hide,
                     BarEffect::Run(settings.clone()),
                 ],
@@ -241,7 +241,7 @@ mod tests {
             (
                 "press-drag-release onto an item picks it once",
                 vec![
-                    press(BarMenu::Clock),
+                    press(BarMenu::Volume),
                     Input::Popup(PopupReport::Hovered(Some(0))),
                     Input::Popup(PopupReport::Released(Some(Choice {
                         index: 0,
@@ -251,7 +251,7 @@ mod tests {
                     Input::Popup(PopupReport::Picked(settings.clone())),
                 ],
                 vec![
-                    BarEffect::Show(BarMenu::Clock),
+                    BarEffect::Show(BarMenu::Volume),
                     BarEffect::Hide,
                     BarEffect::Run(settings.clone()),
                 ],
@@ -260,34 +260,34 @@ mod tests {
             (
                 "a held release over no item closes without a pick",
                 vec![
-                    press(BarMenu::Clock),
+                    press(BarMenu::Volume),
                     Input::Popup(PopupReport::Hovered(None)),
                     Input::Popup(PopupReport::Released(None)),
                 ],
-                vec![BarEffect::Show(BarMenu::Clock), BarEffect::Hide],
+                vec![BarEffect::Show(BarMenu::Volume), BarEffect::Hide],
                 false,
             ),
             (
                 "in click mode a release over a status line keeps the menu",
                 vec![
-                    press(BarMenu::Clock),
-                    release(BarMenu::Clock),
+                    press(BarMenu::Volume),
+                    release(BarMenu::Volume),
                     Input::Popup(PopupReport::Hovered(None)),
                     Input::Popup(PopupReport::Released(None)),
                 ],
-                vec![BarEffect::Show(BarMenu::Clock)],
+                vec![BarEffect::Show(BarMenu::Volume)],
                 true,
             ),
             (
                 "hovering from the menu onto another title still switches",
                 vec![
-                    press(BarMenu::Clock),
-                    release(BarMenu::Clock),
+                    press(BarMenu::Volume),
+                    release(BarMenu::Volume),
                     Input::Popup(PopupReport::Hovered(Some(0))),
                     enter(BarMenu::Battery),
                 ],
                 vec![
-                    BarEffect::Show(BarMenu::Clock),
+                    BarEffect::Show(BarMenu::Volume),
                     BarEffect::Swap(BarMenu::Battery),
                 ],
                 true,

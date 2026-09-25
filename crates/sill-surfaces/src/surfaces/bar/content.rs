@@ -1,15 +1,15 @@
 //! What each bar menu lists, pure over the service values: a ds `Menu{Dropdown}`'s entries, the
 //! control center, or a control center module (design/20 §1.1 and §1.5; the app name "its
-//! windows and Quit"; the clock's date menu is retired since M6, the clock opening the
-//! notification center instead (FINDINGS F266), so nothing asks for its lines; the Sound, Wi-Fi and Battery items' dropdowns are
-//! their modules since M5, FINDINGS F185).
+//! windows and Quit"; the Sound, Wi-Fi and Battery items' dropdowns are their modules since M5,
+//! FINDINGS F185). The clock opens no menu: since M6 it toggles the notification center
+//! (FINDINGS F266, F325).
 //!
 //! Status lines are `MenuEntry::Info` rows: an item's weight without the header's eyebrow,
 //! never a choice (quire's bar gaps; FINDINGS "Adoption of the bar gaps").
 
 use ds::{Check, MenuEntry, Trail};
 use sill_launcher::WindowKey;
-use sill_services::{AppIndex, ClockText, OutputName, Toplevels, match_app};
+use sill_services::{AppIndex, OutputName, Toplevels, match_app};
 
 use sill_settings::{ControlCenterModule, ControlCenterSettings};
 
@@ -39,7 +39,6 @@ pub(crate) enum PopupBody {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct BarState {
     pub app: Option<FrontApp>,
-    pub clock: ClockText,
     /// `control_center.*`, which sizes its popup.
     pub control_center: ControlCenterSettings,
 }
@@ -48,7 +47,6 @@ pub(crate) struct BarState {
 pub(crate) fn body(menu: BarMenu, state: &BarState) -> PopupBody {
     match menu {
         BarMenu::App => PopupBody::Menu(app_menu(state.app.as_ref())),
-        BarMenu::Clock => PopupBody::Menu(lines_menu([state.clock.text.clone()])),
         BarMenu::ControlCenter => PopupBody::ControlCenter(state.control_center.clone()),
         BarMenu::NowPlaying
         | BarMenu::Display
@@ -148,9 +146,7 @@ mod tests {
     use crate::surfaces::bar::pick::BarPick;
     use ds::MenuEntry;
     use sill_launcher::WindowKey;
-    use sill_services::{
-        Activity, AppIndex, ClockText, OutputName, Sizing, Toplevel, Toplevels, WindowState,
-    };
+    use sill_services::{Activity, AppIndex, OutputName, Sizing, Toplevel, Toplevels, WindowState};
     use sill_settings::ControlCenterModule;
 
     fn window(key: u64, app: &str, output: &str) -> Toplevel {
@@ -213,9 +209,6 @@ mod tests {
                 name: "Foot".to_owned(),
                 windows: vec![(WindowKey(4), "~".to_owned())],
             }),
-            clock: ClockText {
-                text: "Thu 24 Sep 14:05".to_owned(),
-            },
             control_center: sill_settings::ControlCenterSettings::default(),
         };
         let menu = |m| match body(m, &state) {
@@ -229,10 +222,6 @@ mod tests {
         );
         assert_eq!(menu(BarMenu::ControlCenter), ["control center"]);
         assert_eq!(menu(BarMenu::Bluetooth), ["Bluetooth"]);
-        assert_eq!(
-            menu(BarMenu::Clock),
-            ["i Thu 24 Sep 14:05", "--", "Settings…"]
-        );
         // Since M5 the status items drop down their control center modules (F185).
         for (item, module) in [
             (BarMenu::Volume, ControlCenterModule::Sound),

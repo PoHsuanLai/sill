@@ -124,14 +124,43 @@ step_idle() {
   [ "$before" = "$after" ]
 }
 
+# The status items' centres, right to left, from a capture of bar $1: runs of inked columns in
+# its right half (the clock's is first; dev/accept-real-input.sh reads them the same way).
+status_items() {
+  sill debug capture "$1" "$OUT_DIR/bar.png" >/dev/null 2>&1 || return 1
+  python3 - "$OUT_DIR/bar.png" <<'EOF'
+import sys
+from PIL import Image
+img = Image.open(sys.argv[1]).convert("RGB")
+w, h = img.size
+ground = img.getpixel((w // 2, h // 2))
+def inked(x):
+    return any(sum(abs(a - b) for a, b in zip(img.getpixel((x, y)), ground)) > 90
+               for y in range(4, h - 4))
+runs, run, gap = [], None, 0
+for x in range(w - 1, w // 2, -1):
+    if inked(x):
+        run = [x, x] if run is None else [x, run[1]]
+        gap = 0
+    elif run is not None:
+        gap += 1
+        if gap > 7:
+            runs.append(run); run = None
+for left, right in runs:
+    print((left + right) // 2)
+EOF
+}
+
 # 7. Menus: a press on a title opens its menu; an outside press dismisses it (design/13 §13.8
 #    tests 1 and 3), on the daemon's own bar through `sill debug click` (FINDINGS F80). The
-#    clock sits at the bar's right end; the bar's empty middle stands in for an outside press
-#    (a compositor-level outside press cannot be synthesized, shell-host F17). Whether the popup
-#    is up is whether `sill debug capture <bar>/popup` succeeds: `debug stats` lists bars only.
-#    Shoots the nested screen with the menu open to dev/out/bar-cosmic-menu.png.
+#    title is the control center's item, the status item left of the clock (the clock opens no
+#    menu since M6: it toggles the notification center, step 8); the bar's empty middle stands
+#    in for an outside press (a compositor-level outside press cannot be synthesized, shell-host
+#    F17). Whether the popup is up is whether `sill debug capture <bar>/popup` succeeds:
+#    `debug stats` lists bars only. Shoots the nested screen with the menu open to
+#    dev/out/bar-cosmic-menu.png.
 step_menus() {
-  local log="$OUT_DIR/menus.log" bar width y popup opened=no closed=no
+  local log="$OUT_DIR/menus.log" bar width y popup opened=no closed=no items
   : >"$log"
   bar=$(bar_counters | awk 'NR==1 {print $1}')
   [ -n "$bar" ] || { echo "no bar surface in 'sill debug stats'" >&2; return 1; }
@@ -144,8 +173,10 @@ step_menus() {
     echo "a popup was already open before the click" | tee -a "$log" >&2
     return 1
   fi
-  echo "click the clock at $(( width - 60 )),$y on $bar" >>"$log"
-  sill debug click "$bar" $(( width - 60 )) "$y" >>"$log" 2>&1 || return 1
+  mapfile -t items < <(status_items "$bar")
+  [ "${#items[@]}" -ge 2 ] || { echo "found ${#items[@]} status items" | tee -a "$log" >&2; return 1; }
+  echo "click the control center's item at ${items[1]},$y on $bar" >>"$log"
+  sill debug click "$bar" "${items[1]}" "$y" >>"$log" 2>&1 || return 1
   for _ in $(seq 40); do
     popup_up && { opened=yes; break; }
     sleep 0.05
@@ -162,7 +193,39 @@ step_menus() {
   [ "$opened" = yes ] && [ "$closed" = yes ]
 }
 
-# 8. Quit closes every surface and exits; a `ping` after it finds nobody home. Runs last: it
+# 8. The clock: a click toggles the notification center on its output (M6, FINDINGS F266, F325)
+#    and opens no bar menu; a second click closes the center. Whether the center is up is
+#    whether `sill debug capture sill-notification-center-<out>` succeeds.
+step_clock_center() {
+  local log="$OUT_DIR/clock.log" bar center y items opened=no closed=no menu=no
+  : >"$log"
+  bar=$(bar_counters | awk 'NR==1 {print $1}')
+  [ -n "$bar" ] || { echo "no bar surface in 'sill debug stats'" >&2; return 1; }
+  center="sill-notification-center-${bar#sill-bar-}"
+  y=$(( BAR_H / 2 ))
+  center_up() { sill debug capture "$center" "$OUT_DIR/center.png" >>"$log" 2>&1; }
+  if center_up; then echo "the center was open before the click" | tee -a "$log" >&2; return 1; fi
+  mapfile -t items < <(status_items "$bar")
+  [ "${#items[@]}" -ge 1 ] || { echo "no clock found on the bar" | tee -a "$log" >&2; return 1; }
+  echo "click the clock at ${items[0]},$y on $bar" >>"$log"
+  sill debug click "$bar" "${items[0]}" "$y" >>"$log" 2>&1 || return 1
+  for _ in $(seq 40); do
+    center_up && { opened=yes; break; }
+    sleep 0.05
+  done
+  sill debug capture "$bar/popup" "$OUT_DIR/popup.png" >>"$log" 2>&1 && menu=yes
+  sleep 0.5
+  sill debug click "$bar" "${items[0]}" "$y" >>"$log" 2>&1 || return 1
+  for _ in $(seq 40); do
+    center_up || { closed=yes; break; }
+    sleep 0.05
+  done
+  echo "the clock opened the center: $opened, a bar menu: $menu, a second click closed it: $closed" \
+    | tee -a "$log" >&2
+  [ "$opened" = yes ] && [ "$menu" = no ] && [ "$closed" = yes ]
+}
+
+# 9. Quit closes every surface and exits; a `ping` after it finds nobody home. Runs last: it
 #    stops the daemon every earlier step relied on.
 step_quit() {
   sill quit >"$OUT_DIR/quit.log" 2>&1 || return 1
@@ -178,7 +241,7 @@ BACKDROP_DIR=$(mktemp -d)
 backdrop_up "$BACKDROP_DIR" || echo "backdrop: none (the shots show the bare compositor)" >&2
 status=0
 for step in step_ping step_single_instance step_reload step_ipc_latency step_exclusive_zone \
-  step_idle step_menus step_quit; do
+  step_idle step_menus step_clock_center step_quit; do
   if "$step"; then
     echo "PASS $step"
   else

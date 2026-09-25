@@ -5,10 +5,15 @@
 #
 #   1. exclusive zone: a maximised probe window is the output height minus the bar height;
 #   2. idle: five seconds with nothing changing, 0 frames and 0 commits (`stats`);
-#   3. menus: a click on the clock opens the menu popup; a click outside it dismisses it;
+#   3. menus: a click on the control center's item (the status item left of the clock, found
+#      from the bar's capture) opens the menu popup; a click outside it dismisses it. The clock
+#      opens no menu since M6: it toggles the notification center, which the demo does not
+#      host (the daemon's `dev/accept-bar.sh` checks that);
 #   4. the popup is transparent around its card: its corners, the middle of its top edge and a
-#      point beside the card's top-right corner have alpha <= 8 in its capture;
-#   5. a screenshot with the clock menu open, dev/out/bar.png (reviewed by eye).
+#      point beside the card's top-right corner have alpha <= 16 in its capture (the control
+#      center hangs 8 px under the popup's top edge, so the middle of that edge is in the reach
+#      of its drop shadow, alpha about 10; an opaque ground would be 255);
+#   5. a screenshot with the control center open, dev/out/bar.png (reviewed by eye).
 #
 # The fuller `dev/accept-bar.sh` (daemon-owned) runs the same steps through `sill` once the
 # daemon lands. Logs and the result JSON: target/accept-bar-ui/. Exit 0 only when 1-4 pass.
@@ -148,6 +153,24 @@ def corner_alphas(path):
     points = ((0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1), (w // 2, 1), (w - 4, h // 4))
     return [im.getpixel((x, y))[3] for x, y in points]
 
+def status_items(path):
+    """The status items' centres, right to left, from a capture of the bar: runs of inked
+    columns in its right half (the clock's is first), as dev/accept-real-input.sh reads them."""
+    from PIL import Image
+    img = Image.open(path).convert("RGB"); w, h = img.size
+    ground = img.getpixel((w // 2, h // 2))
+    def inked(x):
+        return any(sum(abs(a - b) for a, b in zip(img.getpixel((x, y)), ground)) > 90
+                   for y in range(4, h - 4))
+    runs, run, gap = [], None, 0
+    for x in range(w - 1, w // 2, -1):
+        if inked(x):
+            run = [x, x] if run is None else [x, run[1]]; gap = 0
+        elif run is not None:
+            gap += 1
+            if gap > 7: runs.append(run); run = None
+    return [(left + right) // 2 for left, right in runs]
+
 def screenshot(path):
     if os.path.exists(path): os.remove(path)
     if MODE == "cosmic":
@@ -182,9 +205,14 @@ try:
         result["idle"] = dict(delta=idle, pass_=idle["frames"] == 0 and idle["commits"] == 0)
     else:
         time.sleep(1.0)
-    # 3. Menus: the clock sits at the right end; press and release on it.
+    # 3. Menus: the control center's item, left of the clock; press and release on it.
     popup = f"{name}/popup"
-    bar.send(f"{name} click {width - 60} {height // 2}")
+    cap = f"{OUT}/bar-surface.png"
+    bar.send(f"{name} capture {cap}"); bar.expect(lambda v: "capture" in v)
+    items = status_items(cap)
+    log(f"status items right to left: {items}")
+    if len(items) < 2: raise RuntimeError(f"found {len(items)} status items")
+    bar.send(f"{name} click {items[1]} {height // 2}")
     opened = False
     for _ in range(40):
         time.sleep(0.05)
@@ -193,8 +221,6 @@ try:
     popup_stats = rows.get(popup)
     time.sleep(0.8)
     screenshot(PNG)
-    cap = f"{OUT}/bar-surface.png"
-    bar.send(f"{name} capture {cap}"); bar.expect(lambda v: "capture" in v)
     corners = None
     if opened:
         bar.send(f"{popup} capture {OUT}/popup-surface.png"); bar.expect(lambda v: "capture" in v)
@@ -211,7 +237,7 @@ try:
         corner_alphas=corners, pass_=opened and closed)
     # The popup is transparent around the menu card and its shadow: its four corners.
     result["popup_transparent"] = dict(corner_alphas=corners,
-                                       pass_=corners is not None and max(corners) <= 8)
+                                       pass_=corners is not None and max(corners) <= 16)
     result["screenshot"] = PNG
     bar.quit()
 finally:

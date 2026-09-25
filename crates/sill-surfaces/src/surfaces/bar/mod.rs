@@ -50,8 +50,8 @@ use tray::Tray;
 use workspaces::{WorkspaceIndicator, group_for};
 
 use crate::hooks::{
-    use_appearance, use_apps, use_clock, use_services, use_settings, use_space_look, use_toplevels,
-    use_tray, use_workspaces,
+    use_appearance, use_apps, use_services, use_settings, use_space_look, use_toplevels, use_tray,
+    use_workspaces,
 };
 use crate::surfaces::control_center::{ControlCenterLink, height_cap, menu_bar_modules};
 
@@ -99,7 +99,6 @@ pub fn Bar(output: OutputInfo) -> Element {
     };
     let state = BarState {
         app: front_app(&use_toplevels()(), &use_apps()(), on.as_ref()),
-        clock: use_clock()(),
         control_center: file.control_center.clone(),
     };
     let focus = try_use_context::<FocusLink>().unwrap_or_else(|| FocusLink::fixed(FocusMode::Off));
