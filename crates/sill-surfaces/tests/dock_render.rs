@@ -65,9 +65,19 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
             2,
         ),
         (
-            "every tile on a neutral plate",
+            "Firefox and Trash on a neutral plate",
             "data-family=\"neutral\"",
-            4,
+            2,
+        ),
+        (
+            "Files and Terminal as quire's own icons, bare",
+            "class=\"sill-dock-art\"",
+            2,
+        ),
+        (
+            "the terminal from quire's file for the magnified size",
+            "/terminal/96.png",
+            1,
         ),
         ("quire's floor in the pill", "class=\"ds-dock-floor\"", 1),
         ("a squircle pill", "data-corner=\"squircle\"", 1),
@@ -93,17 +103,13 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
         ("no tint layer of the dock's own", "sill-dock-tint", 0),
         ("plates on paper", "data-ground=\"frame\"", 0),
         (
-            "Files and Terminal as themed images",
+            "Files and Terminal as quire's images",
             "data-kind=\"image\"",
             2,
         ),
     ];
     for (name, needle, want) in cases {
         let got = count(&html, needle);
-        // Icons need this machine's hicolor theme; the rest does not.
-        if name.contains("themed") && got == 0 {
-            continue;
-        }
         assert_eq!(got, want, "{name}: {needle}\n{html}");
     }
 }

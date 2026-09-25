@@ -18,6 +18,7 @@ use shell_host::{LayerConfig, OutputInfo, SurfaceHandle};
 use sill_services::{Activity, Cpx, OutputName, WorkspaceKey, Workspaces};
 use sill_settings::{AutoHide, SpacesSettings};
 
+use crate::app_icons::icon_look;
 use crate::hooks::{
     use_appearance, use_apps, use_launcher_entry, use_pins, use_settings, use_space_look,
     use_toplevels, use_workspaces,
@@ -34,7 +35,7 @@ use crate::surfaces::dock::machine::{
 use crate::surfaces::dock::menu_popup::PopupLook;
 use crate::surfaces::dock::pointer::{DockInput, PointerInput, button, modifier, point};
 use crate::surfaces::dock::session::{SessionDeps, World, use_dock_session};
-use crate::surfaces::dock::tile::{LabelShown, Tile};
+use crate::surfaces::dock::tile::{LabelShown, Tile, TileLook};
 
 /// The dock's own stylesheet (lint-clean under `Profile::Strict`, `tests/dock_lint.rs`).
 pub(crate) const DOCK_CSS: &str = include_str!("../../style/dock.css");
@@ -91,6 +92,17 @@ pub(crate) fn dock(output: OutputInfo) -> Element {
     let mut labels = use_context_provider(|| Signal::new(LabelShown(None)));
     if *labels.peek() != label {
         labels.set(label);
+    }
+    // The icon style, with the active Space's tint: a workspace switch that changes the tint
+    // re-keys every re-tinted tile once, here, not per frame.
+    let icons = TileLook(icon_look(
+        &environment.settings.icons,
+        &look,
+        appearance.accent,
+    ));
+    let mut tile_look = use_context_provider(|| Signal::new(TileLook::default()));
+    if *tile_look.peek() != icons {
+        tile_look.set(icons);
     }
     let at = (session.drawn)();
     let (progress, x) = displayed(&machine, at, &params);

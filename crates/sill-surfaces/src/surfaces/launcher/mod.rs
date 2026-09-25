@@ -18,6 +18,7 @@ pub mod keys;
 pub mod layer;
 pub mod presence;
 pub mod results;
+pub mod row_icon;
 pub mod script;
 pub mod session;
 

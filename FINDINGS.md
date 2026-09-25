@@ -2167,3 +2167,69 @@ heads); nothing is keyed to a vendor or a model, and every default has a `displa
   build to resize the source and cross-fade it in over `--paper`, then stays at 9 for 20 s.
   `step_centre_pixel` now polls the capture for up to 10 s until the image has landed, so the
   idle window measures a settled surface. accept-wallpaper: 4/4.
+
+## Icon style (2026-09-25)
+
+The dock and the launcher draw app icons in quire's icon style (quire CONSUMING "App icons and
+the icon style"; `crates/sill-surfaces/src/app_icons/`).
+
+- **Shipped icons.** `dock.shipped_icons = on` (default; both the dock and the launcher follow
+  it) gives an entry quire's own icon when its desktop id is in `app_icons::DEFAULT_TABLE`,
+  compared without regard to case, whole id only: COSMIC Terminal, Files and Edit; ghostty,
+  foot, kitty, Alacritty, GNOME Terminal and Console, Konsole (terminal); Nautilus, Dolphin,
+  Thunar (files); mailo, Thunderbird, Geary, Evolution (mail); GNOME Text Editor, Kate (notes);
+  Loupe, Eye of GNOME, Gwenview, Shotwell (photos). No category rule: `App` keeps no
+  `Categories=`, and a wrong match is worse than a theme icon. The shipped file carries its
+  own plate, bevel and shadow at the tile's full size, so the dock draws it bare over the
+  whole tile (`.sill-dock-art`), not inside quire's plate.
+- **Sizes.** The raster is the smallest of quire's 13 sizes covering the drawn size times the
+  output scale (`app_icons::pick`: 48 at 1x, 1.5x, 2x, 1.75x is 48, 72, 96, 96). A dock tile is
+  loaded for the largest size it is drawn at (the magnified size when magnification is on),
+  so a magnification sweep never swaps URLs (each swap would load a file and blank the icon
+  for a frame); the rows use 48.
+- **Re-tinting.** Muted and Monochrome put every third-party raster, and our Monochrome files,
+  through `ds::icon::retint` once per key (icon, size at scale, style, tint; the tint rounded
+  to 0.1 degree and 0.0001 chroma, and neutral under Colour and Muted so a Space switch
+  re-keys only Monochrome). Theme SVGs are rasterised with resvg (0.48, MIT OR Apache-2.0, the
+  renderer of the usvg and tiny-skia already in the tree). The work runs on tokio's blocking
+  pool; the first render shows the untinted file and every `use_icon_resolver` caller
+  re-renders when a raster lands. The Monochrome tint is the active Space's
+  (`Tint::space(&look.dots)`), the card accent (`Tint::from_hex`: the Space's accent under
+  `CardAccent::SpaceHue`, else `quad(appearance.accent, Light)`), or neutral.
+- **Cache as files**, `$XDG_CACHE_HOME/sill/icons/<stem>-<px>-<style>-<fnv64>.png`, written
+  through a temporary file and a rename, and remade when older than its source. An `IconUrl`
+  is `file:` or `data:`; a `data:` URL puts ~20 KB of base64 into a tile's inline style, which
+  the dock rewrites every magnification frame, and it would be re-tinted on every restart.
+- **The plate is not re-tinted** (Q72). quire's `IconView { plate }` draws the plate in CSS
+  (gradient under a superellipse mask, highlight, rim and drop as shadows), so there are no
+  plated pixels to re-tint together, and `--plate-base`/`--plate-deep` are set on
+  `.ds-plate[data-family]` itself: overriding them from sill means a selector on `.ds-plate`
+  (lint `DsInternals`) and hex colours inline (`HexColour`). The icon inside is re-tinted; the
+  neutral plate stays paper. In the light scheme the difference is small (the stops are near
+  white, where `retint` adds almost no chroma); the dark `#2A2E28` plate would take visible
+  colour.
+- **Seen live** (`dev/accept-icons.sh`, nested cosmic-comp, scratch config and cache, 6/6):
+  Terminal and Files from quire's files, Chrome and btop on the plate; Muted writes 2 rasters,
+  Monochrome 4 (the two theme icons and our two Monochrome files), in the Work preset's
+  blue-violet; 0 frames over 5 idle seconds after they land. `dev/out/dock-icons-colour.png`,
+  `dock-icons-muted.png`, `dock-icons-monochrome.png`. btop's SVG fills with `<pattern>`s,
+  which Blitz paints black and resvg red, so its re-tinted rasters are closer to the icon as
+  drawn than its Colour tile.
+
+### Gaps
+
+- **Q71 (quire)** No path for the app icon files. sill looks at `$SILL_ICON_ASSETS`, then
+  `quire/icons/apps` under the XDG data directories, then the sibling checkout
+  (`../quire/assets/icons/apps` from the crate). A `ds::icon` constant or lookup (and an
+  install location) would replace the guess.
+- **Q72 (quire)** `IconView`'s plate cannot take the icon style: a `tint: Option<(IconStyle,
+  Tint)>` prop (quire re-tints the neutral family's stops and ink with `retint` and writes them
+  as the plate's own custom properties), or a `PlateFamily::Custom { base, deep, ink }`, would
+  let the plate and a Muted or Monochrome icon share one hue as CONSUMING asks.
+- **Q73 (design/22)** `dock.shipped_icons` has no §3.5 row; `AWAITING_ROWS` exempts it:
+
+  | Key | Type | Default | Range / Alt | Source | Status |
+  | --- | --- | --- | --- | --- | --- |
+  | `dock.shipped_icons` | `ShippedIcons::{On,Off}` | `On` |  | `08-ICONS.md` 2.11; sill `FINDINGS.md` "Icon style" | proposed (2026-09-25) |
+
+  Advanced for now (§5 lists the Dock page's Basic keys); it also governs the launcher's rows.

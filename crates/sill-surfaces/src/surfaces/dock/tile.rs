@@ -4,7 +4,9 @@
 //! The tile's box is its slot at the current size, standing on the baseline and lifted by the
 //! bounce; the plate is 80.5 % of it (design/08 §2.2), a quire `IconView` plate (the squircle
 //! with its gradient, highlight, rim and drop; the macOS polish pass) in the neutral paper family
-//! (§4.1), the icon inside at the design inset, the fallback glyph at its 56 % (§4.3). The badge
+//! (§4.1), the icon inside at the design inset, the fallback glyph at its 56 % (§4.3); an app
+//! quire ships an icon for is drawn bare over the whole tile instead, in the icon style the dock
+//! provides as [`TileLook`] (`icon.rs`, `app_icons`). The badge
 //! and the ring hang off the plate and scale with it (design/10 §10.3.2); quire's `RunningDot`
 //! sits in a box at the tile's rest place, so it stays on the baseline while the tile bounces. The hover label is a ds
 //! `Tooltip{Fly}` over the plate, shown and hidden by the dock machine alone (`shown`): up
@@ -18,15 +20,21 @@ use ds::{IconPx, IconSize, IconView, PlateFamily, RunningDot, Shown, Tooltip, To
 use sill_services::{Badge, Cpx, Permille};
 use sill_settings::{DockSettings, Indicators, ProgressStyle};
 
+use crate::app_icons::{IconLook, asset_dir, use_icon_resolver};
 use crate::hooks::{use_apps, use_settings};
 use crate::surfaces::dock::frame::Rows;
-use crate::surfaces::dock::icon::{PLATE_PERMILLE, tile_icon};
+use crate::surfaces::dock::icon::{Drawn, IconContext, TileSizes, drawn, tile_art};
 use crate::surfaces::dock::items::{DockItem, ItemKind};
 use crate::surfaces::dock::machine::{TileApp, TileId};
 
 /// The tile whose hover label the dock machine shows, if any: the context the dock provides.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LabelShown(pub Option<TileId>);
+
+/// The icon style the dock draws its tiles in: the context the dock provides (Colour when a
+/// tile renders without one).
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct TileLook(pub IconLook);
 
 /// A tile at `left` with side `size`, lifted `lift` by a bounce.
 #[component]
@@ -42,8 +50,16 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
         (ItemKind::Trash, None) => "Trash".to_owned(),
     };
     let side = px(size);
-    let plate = side * f64::from(PLATE_PERMILLE) / 1000.0;
-    let source = tile_icon(&item.kind, app, plate);
+    let sizes = TileSizes::new(side, &dock);
+    let plate = sizes.plate();
+    let look = try_use_context::<Signal<TileLook>>().map_or(TileLook::default(), |look| look());
+    let cx = IconContext {
+        look: look.0,
+        scale: ds::use_scale(),
+        assets: asset_dir(),
+        resolver: use_icon_resolver(),
+    };
+    let art = drawn(tile_art(&item.kind, app, dock.shipped_icons), sizes, &cx);
     let rows = Rows::new(&dock);
     let top = px(rows.baseline) - side - px(lift);
     let running = item.app != TileApp::NotRunning && dock.indicators == Indicators::On;
@@ -64,10 +80,21 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
             div {
                 class: "sill-dock-plate",
                 style: plate_style(plate),
-                IconView {
-                    source,
-                    size: plate_size(plate),
-                    plate: Some(PlateFamily::Neutral),
+                match art {
+                    Drawn::Plated(source) => rsx! {
+                        IconView {
+                            source,
+                            size: plate_size(plate),
+                            plate: Some(PlateFamily::Neutral),
+                        }
+                    },
+                    Drawn::Bare(source) => rsx! {
+                        span {
+                            class: "sill-dock-art",
+                            style: "left:-{inset:.2}px;top:-{inset:.2}px;width:{side:.2}px;height:{side:.2}px",
+                            IconView { source }
+                        }
+                    },
                 }
                 if let Some(count) = count {
                     span {

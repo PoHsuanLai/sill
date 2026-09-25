@@ -18,7 +18,10 @@ use sill_launcher::{ActionId, Item};
 use sill_services::{Activity, OutputName, Results, WorkspaceKey, Workspaces};
 use sill_settings::{PanelMaterial, SpacesSettings};
 
-use crate::hooks::{use_appearance, use_results, use_settings, use_space_look, use_workspaces};
+use crate::app_icons::{IconContext, IconLook, asset_dir, icon_look, use_icon_resolver};
+use crate::hooks::{
+    use_appearance, use_apps, use_results, use_settings, use_space_look, use_workspaces,
+};
 use crate::surfaces::bar::shell_style::shell_metrics;
 use crate::surfaces::bar::workspaces::group_for;
 use crate::surfaces::launcher::card::{CardKey, Foot, use_card_hit};
@@ -31,6 +34,7 @@ use crate::surfaces::launcher::layer::{
     CARD_ID, CARD_RADIUS, PANEL_HEIGHT, PANEL_WIDTH, SHADOW_SIDE,
 };
 use crate::surfaces::launcher::presence::LauncherLink;
+use crate::surfaces::launcher::row_icon::{row_art, row_tile};
 use crate::surfaces::launcher::script::use_script;
 use crate::surfaces::launcher::session::Session;
 
@@ -84,6 +88,13 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
     let on = output.name.clone().map(OutputName);
     let look = active_look(&use_workspaces()(), on.as_ref(), &file.spaces);
     let appearance = environment.settings.appearance.appearance();
+    let icons = RowIcons {
+        look: icon_look(&environment.settings.icons, &look, appearance.accent),
+        scale: ds_scale.unwrap_or(ds::Scale::ONE),
+        index: use_apps()(),
+        shipped: file.dock.shipped_icons,
+        resolver: use_icon_resolver(),
+    };
     let results = use_results();
     let panel = use_panel(output.id, results);
     use_script(panel.clone());
@@ -116,7 +127,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
                     class: "sill-launcher-body",
                     style: "margin-left:{SHADOW_SIDE}px;width:{PANEL_WIDTH}px;height:{PANEL_HEIGHT}px",
                     if let Some(shown) = shown {
-                        {palette(&panel, &shown, foot)}
+                        {palette(&panel, &shown, foot, &icons)}
                     }
                 }
             }
@@ -142,7 +153,7 @@ fn card_key(shown: Option<&Shown>) -> CardKey {
 
 /// The palette, keyed by its opening so each opening mounts one, and the actions menu while
 /// it is open.
-fn palette(panel: &PanelCtx, shown: &Shown, foot: Foot) -> Element {
+fn palette(panel: &PanelCtx, shown: &Shown, foot: Foot, icons: &RowIcons) -> Element {
     let session = &shown.session;
     let actions = match session.keys.actions {
         ActionsMenu::Open { .. } => shown.selected().map(|item| action_entries(&item.actions)),
@@ -161,7 +172,7 @@ fn palette(panel: &PanelCtx, shown: &Shown, foot: Foot) -> Element {
             placeholder: "Search apps, windows and settings",
             query: session.query.clone(),
             tokens: Vec::new(),
-            groups: palette_groups(&shown.groups),
+            groups: palette_groups(&shown.groups, &|item| icons.tile(item)),
             empty: empty_text(&session.query),
             oninput: move |text: String| input.typed(text),
             onpick: move |row: RowRef| pick.pick(row, sill_launcher::Choice::Primary),
@@ -191,6 +202,28 @@ fn palette(panel: &PanelCtx, shown: &Shown, foot: Foot) -> Element {
                 onclose: move |()| action_close.actions_closed(),
             }
         }
+    }
+}
+
+/// What the rows' icons are drawn with: the icon style on the active Space, the surface's
+/// scale, the app index (which entry a row stands for) and the icon cache.
+struct RowIcons {
+    look: IconLook,
+    scale: ds::Scale,
+    index: sill_services::AppIndex,
+    shipped: sill_settings::ShippedIcons,
+    resolver: crate::app_icons::IconResolver,
+}
+
+impl RowIcons {
+    fn tile(&self, item: &sill_launcher::Item) -> ds::Tile {
+        let cx = IconContext {
+            look: self.look,
+            scale: self.scale,
+            assets: asset_dir(),
+            resolver: self.resolver,
+        };
+        row_tile(item, row_art(item, &self.index, self.shipped), &cx)
     }
 }
 

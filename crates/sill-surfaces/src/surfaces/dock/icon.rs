@@ -1,13 +1,28 @@
-//! A tile's icon (design/08-ICONS.md §4): the app's own themed icon as a `ds::IconSource`
+//! A tile's icon (design/08-ICONS.md §4): quire's shipped icon when the entry is one of the apps
+//! it stands for (`dock.shipped_icons`), else the app's own themed icon on quire's neutral plate
 //! (`Symbolic` for a freedesktop `*-symbolic` file, recoloured like a glyph; `Image` for the
-//! rest), or quire's `Window` glyph when the app has none (§4.3), `Trash` for the Trash tile.
+//! rest), quire's `Window` glyph when the app has none (§4.3), `Trash` for the Trash tile.
+//!
 //! The plate is quire's (`IconView { plate }`), which draws a glyph at its 56 % and an image at
-//! its 72 % (`--plate-glyph`, `--plate-inset`); an icon file is still resolved at its 72 % share
-//! in whole pixels through `IconSize::Px`, at every magnified size.
+//! its 72 % (`--plate-glyph`, `--plate-inset`); an icon file is still sized at its 72 % share in
+//! whole pixels through `IconSize::Px`, at every magnified size. A shipped icon is its own
+//! plate (the file carries plate, bevel and shadow at the tile's full size), so it is drawn
+//! bare over the whole tile.
+//!
+//! Under Muted and Monochrome both kinds of raster go through the icon cache (`app_icons`);
+//! each is loaded at the largest size the tile is drawn at (magnified, when magnification is
+//! on) times the output scale, so a magnification sweep never swaps files mid-flight.
+
+use std::path::{Path, PathBuf};
 
 use ds::{ExternalIcon, Icon, IconPx, IconSize, IconSource, IconUrl};
 use sill_services::{App, AppIcon};
+use sill_settings::{DockSettings, Magnification, ShippedIcons};
 
+pub use crate::app_icons::IconContext;
+use crate::app_icons::{
+    DEFAULT_TABLE, LogicalPx, ShippedApp, pick, shipped_app, shipped_art, theme_art,
+};
 use crate::surfaces::dock::items::ItemKind;
 
 /// design/08 §2.2: the plate is 80.5 % of the tile (824 / 1024).
@@ -16,120 +31,135 @@ pub const PLATE_PERMILLE: i32 = 805;
 /// design/08 §4.1: a third-party icon fills 72 % of the plate.
 pub const ICON_PERMILLE: i32 = 720;
 
-/// What the tile for `kind` shows on a plate `plate_px` wide, `app` being its entry when the
-/// index has one.
-pub fn tile_icon(kind: &ItemKind, app: Option<&App>, plate_px: f64) -> IconSource {
+/// What a tile shows, before sizes and styles.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TileArt {
+    /// A quire glyph on the plate.
+    Glyph(Icon),
+    /// A symbolic theme icon on the plate, in the plate's ink.
+    Symbolic(PathBuf),
+    /// A theme (or the entry's own) icon on the plate.
+    Themed(PathBuf),
+    /// quire's own icon, which is its own plate.
+    Shipped(ShippedApp),
+}
+
+/// What the tile for `kind` shows, `app` being its entry when the index has one.
+pub fn tile_art(kind: &ItemKind, app: Option<&App>, shipped: ShippedIcons) -> TileArt {
     if *kind == ItemKind::Trash {
-        return IconSource::Glyph(Icon::Trash);
+        return TileArt::Glyph(Icon::Trash);
     }
-    let file = app.and_then(|app| match &app.icon {
-        AppIcon::File(path) => Some(path.clone()),
-        AppIcon::None => None,
-    });
-    let Some(path) = file else {
-        return IconSource::Glyph(Icon::Window);
+    let Some(app) = app else {
+        return TileArt::Glyph(Icon::Window);
     };
-    let symbolic = path
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .is_some_and(|stem| stem.ends_with("-symbolic"));
-    match IconUrl::file(&path) {
-        Ok(url) => {
-            let external = ExternalIcon {
-                url,
-                size: share_of(ICON_PERMILLE, plate_px),
-            };
-            if symbolic {
-                IconSource::Symbolic(external)
-            } else {
-                IconSource::Image(external)
-            }
-        }
-        Err(_) => IconSource::Glyph(Icon::Window),
+    if let Some(ours) = shipped_app(&app.id, shipped, DEFAULT_TABLE) {
+        return TileArt::Shipped(ours);
+    }
+    match &app.icon {
+        AppIcon::File(path) if !path.is_absolute() => TileArt::Glyph(Icon::Window),
+        AppIcon::File(path) if symbolic(path) => TileArt::Symbolic(path.clone()),
+        AppIcon::File(path) => TileArt::Themed(path.clone()),
+        AppIcon::None => TileArt::Glyph(Icon::Window),
     }
 }
 
-/// `permille` of `plate_px`, in whole pixels (at least one).
-fn share_of(permille: i32, plate_px: f64) -> IconSize {
-    let side = (plate_px * f64::from(permille) / 1000.0)
-        .round()
-        .clamp(1.0, 255.0);
-    // Rounded and clamped to u8's range just above, so the cast is exact.
-    IconSize::Px(IconPx(side as u8))
+/// Whether a file is a freedesktop `*-symbolic` icon.
+fn symbolic(path: &Path) -> bool {
+    path.file_stem()
+        .and_then(|stem| stem.to_str())
+        .is_some_and(|stem| stem.ends_with("-symbolic"))
+}
+
+/// A tile as drawn: on quire's plate, or bare over the whole tile.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Drawn {
+    Plated(IconSource),
+    Bare(IconSource),
+}
+
+/// The sizes one frame draws a tile at, in logical pixels.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TileSizes {
+    /// The tile's side now.
+    pub side: f64,
+    /// The largest side it is ever drawn at.
+    pub largest: f64,
+}
+
+impl TileSizes {
+    /// This frame's `side` under `dock`'s sizes.
+    pub fn new(side: f64, dock: &DockSettings) -> TileSizes {
+        let rest = f64::from(dock.tile_size_px.0);
+        let largest = match dock.magnification {
+            Magnification::On => rest.max(f64::from(dock.magnified_size_px.0)),
+            Magnification::Off => rest,
+        };
+        TileSizes {
+            side,
+            largest: largest.max(side),
+        }
+    }
+
+    /// The plate's side now.
+    pub fn plate(self) -> f64 {
+        share(self.side, PLATE_PERMILLE)
+    }
+}
+
+/// `art` drawn at `sizes` in `cx`.
+pub fn drawn(art: TileArt, sizes: TileSizes, cx: &IconContext<'_>) -> Drawn {
+    let plate_icon = |side: f64| share(share(side, PLATE_PERMILLE), ICON_PERMILLE);
+    match art {
+        TileArt::Glyph(icon) => Drawn::Plated(IconSource::Glyph(icon)),
+        TileArt::Symbolic(path) => Drawn::Plated(
+            external(&path, plate_icon(sizes.side))
+                .map_or(IconSource::Glyph(Icon::Window), IconSource::Symbolic),
+        ),
+        TileArt::Themed(path) => {
+            let px = pick(logical(plate_icon(sizes.largest)), cx.scale);
+            let shown = cx.resolver.path(&theme_art(&path, px, cx.look));
+            Drawn::Plated(image(&shown, plate_icon(sizes.side)))
+        }
+        TileArt::Shipped(app) => match cx.assets {
+            Some(dir) => {
+                let px = pick(logical(sizes.largest), cx.scale);
+                let shown = cx.resolver.path(&shipped_art(dir, app, px, cx.look));
+                Drawn::Bare(image(&shown, sizes.side))
+            }
+            None => Drawn::Plated(IconSource::Glyph(Icon::Window)),
+        },
+    }
+}
+
+/// `path` as an image icon `side` wide, the window glyph when it is not a file URL.
+fn image(path: &Path, side: f64) -> IconSource {
+    external(path, side).map_or(IconSource::Glyph(Icon::Window), IconSource::Image)
+}
+
+fn external(path: &Path, side: f64) -> Option<ExternalIcon> {
+    Some(ExternalIcon {
+        url: IconUrl::file(path).ok()?,
+        size: whole(side),
+    })
+}
+
+/// `permille` of `side`.
+fn share(side: f64, permille: i32) -> f64 {
+    side * f64::from(permille) / 1000.0
+}
+
+/// `side` in whole pixels (at least one).
+fn whole(side: f64) -> IconSize {
+    // Rounded and clamped to u8's range, so the cast is exact.
+    IconSize::Px(IconPx(side.round().clamp(1.0, 255.0) as u8))
+}
+
+/// `side` as a logical size, rounded.
+fn logical(side: f64) -> LogicalPx {
+    // Rounded and clamped to u16's range, so the cast is exact.
+    LogicalPx(side.round().clamp(1.0, f64::from(u16::MAX)) as u16)
 }
 
 #[cfg(test)]
-mod tests {
-    use super::tile_icon;
-    use crate::surfaces::dock::items::ItemKind;
-    use ds::{Icon, IconSource};
-    use sill_launcher::AppId;
-    use sill_services::{App, AppIcon, DbusActivation, Listing, Terminal};
-    use std::path::PathBuf;
-
-    fn app(icon: AppIcon) -> App {
-        App {
-            id: AppId("term".to_owned()),
-            name: "Term".to_owned(),
-            generic_name: String::new(),
-            comment: String::new(),
-            exec: "term".to_owned(),
-            icon,
-            startup_wm_class: None,
-            flatpak: None,
-            terminal: Terminal::No,
-            activation: DbusActivation::Exec,
-            actions: Vec::new(),
-            mime_types: Vec::new(),
-            keywords: Vec::new(),
-            listing: Listing::Shown,
-            path: PathBuf::from("/usr/share/applications/term.desktop"),
-        }
-    }
-
-    #[test]
-    fn each_icon_kind_picks_its_source() {
-        let kind = ItemKind::Pinned(AppId("term".to_owned()));
-        let file = |p: &str| app(AppIcon::File(PathBuf::from(p)));
-        let word = |source: IconSource| match source {
-            IconSource::Glyph(icon) => format!("glyph {icon:?}"),
-            IconSource::Symbolic(e) => format!("symbolic {}", e.url.as_str()),
-            IconSource::Image(e) => format!("image {}", e.url.as_str()),
-        };
-        let cases = [
-            (Some(file("/i/term.svg")), "image file:///i/term.svg"),
-            (
-                Some(file("/i/term-symbolic.svg")),
-                "symbolic file:///i/term-symbolic.svg",
-            ),
-            (Some(app(AppIcon::None)), "glyph Window"),
-            (None, "glyph Window"),
-        ];
-        for (entry, want) in cases {
-            assert_eq!(
-                word(tile_icon(&kind, entry.as_ref(), 38.64)),
-                want,
-                "{want}"
-            );
-        }
-        assert_eq!(
-            tile_icon(&ItemKind::Trash, None, 38.64),
-            IconSource::Glyph(Icon::Trash)
-        );
-    }
-
-    #[test]
-    fn icons_take_their_share_of_the_plate_in_whole_pixels() {
-        use ds::{IconPx, IconSize};
-        let file = app(AppIcon::File(PathBuf::from("/i/term.svg")));
-        let kind = ItemKind::Pinned(AppId("term".to_owned()));
-        let size = |plate: f64| match tile_icon(&kind, Some(&file), plate) {
-            IconSource::Image(e) => e.size,
-            other => panic!("{other:?}"),
-        };
-        // A 48 px tile's plate is 38.64 px: the icon 27.8.
-        assert_eq!(size(48.0 * 0.805), IconSize::Px(IconPx(28)));
-        // Fully magnified (96 px): 55.6.
-        assert_eq!(size(96.0 * 0.805), IconSize::Px(IconPx(56)));
-    }
-}
+#[path = "icon_tests.rs"]
+mod tests;
