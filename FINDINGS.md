@@ -4269,3 +4269,21 @@ services.rs}`, `sill-surfaces/src/{lib.rs,hooks/**,widgets/mod.rs}`,
 - F443 Not done: Sonoma's dimmed look for desktop widgets under a focused window (optional);
   moving widgets by drag (F413). Q182 (widget frame, sizes, bump) and Q183 (clock face, battery
   ring) wait on quire.
+
+## M10 lane a: calendar (2026-09-26)
+
+- F420 iCalendar is parsed by hand (unfolding with LF/CRLF/BOM, quoted parameters, VEVENT only,
+  DATE/UTC/TZID/floating times, vendor-prefixed TZIDs resolve, Windows zone names float,
+  DURATION, EXDATE, STATUS, RECURRENCE-ID overrides). Recurrence covers FREQ daily to yearly,
+  INTERVAL, COUNT, UNTIL, BYDAY with ordinals, BYMONTHDAY with negatives, BYMONTH, WKST;
+  anything else shows once and logs once.
+- F421 Two readings of the frozen tests: `occurrences` reads the rule parts it knows back out of
+  `Rule.unexpanded` (the parse test keeps BYMONTHDAY there); a tab continuation unfolds to one
+  space.
+- F422 Sources: a file is one calendar; a vdir directory is one, plus one per subdirectory; the
+  live task re-reads on a change (150 ms debounce), a Refresh, or the day turning.
+- Q190 (quire) `MonthGrid` needs a compact size for a small (164 px) desktop cell; styling
+  `.ds-month-*` from sill fails DsInternals. Meanwhile the desktop Calendar is macOS's small date
+  face (weekday, large date, month) and the center keeps the full month.
+- G130 `notification_center_render`'s click tests flaked once under the full parallel run (60 ms
+  advance per click, now with real widgets drawn); passed alone and on rerun.
