@@ -24,7 +24,10 @@ pub mod names;
 pub mod reduce;
 pub mod tool;
 
+mod child;
+mod folder_watch;
 mod live;
+mod preview;
 
 pub use names::{ShotName, folders_of, is_screenshot_name, parse_folders, preview_name};
 pub use reduce::{

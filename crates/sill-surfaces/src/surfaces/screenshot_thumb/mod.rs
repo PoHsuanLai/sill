@@ -11,8 +11,14 @@
 //! [`layer::thumb_layer`].
 
 pub mod drag;
+pub mod follow;
+pub mod gesture;
 pub mod layer;
 pub mod machine;
+
+mod card;
+mod drive;
+mod view;
 
 pub use drag::{DragStart, start_file_drag};
 pub use layer::{THUMB_ID, THUMB_RADIUS, THUMB_WIDTH, thumb_layer};
@@ -24,9 +30,10 @@ use shell_host::OutputInfo;
 /// The thumbnail's stylesheet.
 pub const SCREENSHOT_THUMB_CSS: &str = include_str!("../../style/screenshot_thumb.css");
 
-/// The thumbnail on `output`. Draws nothing until lane c fills it.
+/// The thumbnail on `output`. Needs a [`BannerLink`](crate::surfaces::banners::BannerLink)
+/// root context beside the daemon's usual ones (the daemon's `surface_root` gives every surface
+/// one): only the output it names shows the thumbnail.
 #[component]
 pub fn ScreenshotThumb(output: OutputInfo) -> Element {
-    let _ = output;
-    rsx! {}
+    view::thumb(output)
 }

@@ -83,8 +83,91 @@ pub enum ThumbOut {
 
 /// One step.
 pub fn step(state: ThumbState, input: ThumbIn, params: ThumbParams) -> (ThumbState, Vec<ThumbOut>) {
-    let _ = (state, input, params);
-    todo!("M10 fill: c-screenshot")
+    match state {
+        ThumbState::Hidden => match input {
+            ThumbIn::Current(Some(id)) => show(id, Pointer::Away, HoldToken(1), params),
+            _ => (state, Vec::new()),
+        },
+        ThumbState::Shown { id, pointer, token } => shown(id, pointer, token, input, params),
+        ThumbState::Leaving { id, token } => match input {
+            ThumbIn::ExitSettled => (ThumbState::Hidden, vec![ThumbOut::Hide]),
+            ThumbIn::Current(Some(next)) if next != id => {
+                show(next, Pointer::Away, next_token(token), params)
+            }
+            _ => (state, Vec::new()),
+        },
+    }
+}
+
+/// `id` shown with `token`: the entrance, and the hold unless the pointer is already on it.
+fn show(
+    id: ShotId,
+    pointer: Pointer,
+    token: HoldToken,
+    params: ThumbParams,
+) -> (ThumbState, Vec<ThumbOut>) {
+    let state = ThumbState::Shown { id, pointer, token };
+    let outs = match pointer {
+        Pointer::Away => vec![
+            ThumbOut::Show(id),
+            ThumbOut::StartHold(token, params.hold_ms),
+        ],
+        Pointer::Over => vec![ThumbOut::Show(id)],
+    };
+    (state, outs)
+}
+
+fn shown(
+    id: ShotId,
+    pointer: Pointer,
+    token: HoldToken,
+    input: ThumbIn,
+    params: ThumbParams,
+) -> (ThumbState, Vec<ThumbOut>) {
+    let state = ThumbState::Shown { id, pointer, token };
+    let leave = |why| {
+        (
+            ThumbState::Leaving { id, token },
+            vec![ThumbOut::Leave(id, why)],
+        )
+    };
+    match (input, pointer) {
+        (ThumbIn::Current(Some(next)), _) if next != id => {
+            show(next, pointer, next_token(token), params)
+        }
+        (ThumbIn::Current(None), _) => (ThumbState::Leaving { id, token }, Vec::new()),
+        (ThumbIn::HoldElapsed(elapsed), Pointer::Away) if elapsed == token => {
+            leave(ShotLeave::Kept)
+        }
+        (ThumbIn::PointerEnter, Pointer::Away) => (
+            ThumbState::Shown {
+                id,
+                pointer: Pointer::Over,
+                token: next_token(token),
+            },
+            Vec::new(),
+        ),
+        (ThumbIn::PointerLeave, Pointer::Over) => {
+            let token = next_token(token);
+            (
+                ThumbState::Shown {
+                    id,
+                    pointer: Pointer::Away,
+                    token,
+                },
+                vec![ThumbOut::StartHold(token, params.rest_ms)],
+            )
+        }
+        (ThumbIn::Click, _) => leave(ShotLeave::Opened),
+        (ThumbIn::SwipedAway, _) => leave(ShotLeave::Kept),
+        (ThumbIn::DraggedOut, _) => leave(ShotLeave::Dragged),
+        (ThumbIn::TrashPressed, _) => leave(ShotLeave::Trashed),
+        _ => (state, Vec::new()),
+    }
+}
+
+fn next_token(token: HoldToken) -> HoldToken {
+    HoldToken(token.0.wrapping_add(1))
 }
 
 #[cfg(test)]
@@ -109,7 +192,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: c-screenshot"]
     fn the_thumbnail_follows_its_table() {
         use Pointer::{Away, Over};
         use ThumbIn::*;
