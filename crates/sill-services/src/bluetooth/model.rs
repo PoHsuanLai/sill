@@ -117,16 +117,80 @@ pub enum BluetoothEvent {
 /// `bluetooth` after `event`. A change for an address that is not listed is dropped: the
 /// `Device` event that introduces a device always comes first.
 pub fn reduce_bluetooth(bluetooth: Bluetooth, event: BluetoothEvent) -> Bluetooth {
-    let _ = (bluetooth, event);
-    todo!("M5 fill: svc-session-bt (a)")
+    match event {
+        BluetoothEvent::Adapter { power } => Bluetooth {
+            presence: Presence::Present,
+            power,
+            ..bluetooth
+        },
+        BluetoothEvent::Device(device) => {
+            let mut devices = bluetooth.devices;
+            match devices.iter_mut().find(|d| d.address == device.address) {
+                Some(existing) => *existing = device,
+                None => devices.push(device),
+            }
+            Bluetooth {
+                devices,
+                ..bluetooth
+            }
+        }
+        BluetoothEvent::Connection {
+            address,
+            connection,
+        } => with_device(bluetooth, &address, |device| device.connection = connection),
+        BluetoothEvent::Battery { address, battery } => {
+            with_device(bluetooth, &address, |device| device.battery = battery)
+        }
+        BluetoothEvent::DeviceRemoved(address) => {
+            let mut devices = bluetooth.devices;
+            devices.retain(|d| d.address != address);
+            Bluetooth {
+                devices,
+                ..bluetooth
+            }
+        }
+        BluetoothEvent::Gone => Bluetooth::default(),
+    }
+}
+
+/// Applies `f` to the device at `address`, if listed; otherwise `bluetooth` is unchanged.
+fn with_device(
+    mut bluetooth: Bluetooth,
+    address: &BtAddress,
+    f: impl FnOnce(&mut BtDevice),
+) -> Bluetooth {
+    if let Some(device) = bluetooth.devices.iter_mut().find(|d| &d.address == address) {
+        f(device);
+    }
+    bluetooth
 }
 
 /// The devices the control center lists, in order: connected first, then the other paired
 /// devices, then the rest; by name within each group. Unpaired devices are listed only while
 /// the radio is on.
 pub fn listed_devices(bluetooth: &Bluetooth) -> Vec<&BtDevice> {
-    let _ = bluetooth;
-    todo!("M5 fill: svc-session-bt (a)")
+    let mut devices: Vec<&BtDevice> = bluetooth
+        .devices
+        .iter()
+        .filter(|d| bluetooth.power == BtPower::On || d.pairing == BtPairing::Paired)
+        .collect();
+    devices.sort_by(|a, b| {
+        group_of(a)
+            .cmp(&group_of(b))
+            .then_with(|| a.name.cmp(&b.name))
+    });
+    devices
+}
+
+/// A device's sort group: connected first, then paired, then the rest.
+fn group_of(device: &BtDevice) -> u8 {
+    if device.connection == BtConnection::Connected {
+        0
+    } else if device.pairing == BtPairing::Paired {
+        1
+    } else {
+        2
+    }
 }
 
 #[cfg(test)]
@@ -161,7 +225,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M5 fill: svc-session-bt (a)"]
     fn events_reduce_to_the_expected_bluetooth() {
         use BtConnection::{Connected, Connecting, Disconnected};
         use BtPairing::Paired;
@@ -234,7 +297,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M5 fill: svc-session-bt (a)"]
     fn connected_then_paired_then_the_rest_by_name() {
         use BtConnection::{Connected, Disconnected};
         use BtPairing::{Paired, Unpaired};

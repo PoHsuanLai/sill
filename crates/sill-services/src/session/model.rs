@@ -56,8 +56,11 @@ pub enum Offer {
 impl Offer {
     /// logind's `Can*` word (`yes`, `challenge`, `no`, `na`), compared whole.
     pub fn from_logind(word: &str) -> Offer {
-        let _ = word;
-        todo!("M5 fill: svc-session-bt (a)")
+        match word {
+            "yes" => Offer::Available,
+            "challenge" => Offer::NeedsAuth,
+            _ => Offer::Unavailable,
+        }
     }
 }
 
@@ -102,8 +105,11 @@ pub enum SessionEvent {
 
 /// `session` after `event`.
 pub fn reduce_session(session: Session, event: SessionEvent) -> Session {
-    let _ = (session, event);
-    todo!("M5 fill: svc-session-bt (a)")
+    let _ = session;
+    match event {
+        SessionEvent::Probed(probed) => probed,
+        SessionEvent::Gone => Session::default(),
+    }
 }
 
 #[cfg(test)]
@@ -128,7 +134,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M5 fill: svc-session-bt (a)"]
     fn logind_words_map_to_offers() {
         const CASES: &[(&str, Offer)] = &[
             ("yes", Offer::Available),
@@ -144,7 +149,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M5 fill: svc-session-bt (a)"]
     fn a_probe_replaces_and_gone_clears() {
         let probed = Session {
             presence: Presence::Present,

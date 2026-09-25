@@ -6,8 +6,17 @@ use super::model::BtKind;
 
 /// The kind `icon` names; `Other` for an icon this list does not know, or none at all.
 pub fn device_kind(icon: &str) -> BtKind {
-    let _ = icon;
-    todo!("M5 fill: svc-session-bt (a)")
+    match icon {
+        "audio-headphones" => BtKind::Headphones,
+        "audio-headset" => BtKind::Headset,
+        "audio-speakers" | "audio-card" => BtKind::Speaker,
+        "input-keyboard" => BtKind::Keyboard,
+        "input-mouse" | "input-tablet" => BtKind::Mouse,
+        "input-gaming" => BtKind::Gamepad,
+        "phone" => BtKind::Phone,
+        "computer" => BtKind::Computer,
+        _ => BtKind::Other,
+    }
 }
 
 #[cfg(test)]
@@ -16,7 +25,6 @@ mod tests {
     use crate::bluetooth::BtKind;
 
     #[test]
-    #[ignore = "M5 fill: svc-session-bt (a)"]
     fn bluez_icon_names_map_to_kinds() {
         const CASES: &[(&str, BtKind)] = &[
             ("audio-headphones", BtKind::Headphones),

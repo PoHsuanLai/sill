@@ -36,13 +36,21 @@ impl Profile {
     /// The daemon's word for a profile (`power-saver`, `balanced`, `performance`); `None` for any
     /// other word. Compared whole.
     pub fn from_daemon(word: &str) -> Option<Profile> {
-        let _ = word;
-        todo!("M5 fill: svc-session-bt (a)")
+        match word {
+            "power-saver" => Some(Profile::PowerSaver),
+            "balanced" => Some(Profile::Balanced),
+            "performance" => Some(Profile::Performance),
+            _ => None,
+        }
     }
 
     /// The word the daemon takes for this profile.
     pub fn daemon_word(self) -> &'static str {
-        todo!("M5 fill: svc-session-bt (a)")
+        match self {
+            Profile::PowerSaver => "power-saver",
+            Profile::Balanced => "balanced",
+            Profile::Performance => "performance",
+        }
     }
 }
 
@@ -82,8 +90,23 @@ pub enum ProfileEvent {
 
 /// `profiles` after `event`. `Found` marks the service present; `Gone` returns to the default.
 pub fn reduce_power_profiles(profiles: PowerProfiles, event: ProfileEvent) -> PowerProfiles {
-    let _ = (profiles, event);
-    todo!("M5 fill: svc-session-bt (a)")
+    match event {
+        ProfileEvent::Found(bus) => PowerProfiles {
+            presence: Presence::Present,
+            bus,
+            ..profiles
+        },
+        ProfileEvent::Active(active) => PowerProfiles { active, ..profiles },
+        ProfileEvent::Offered(offered) => PowerProfiles {
+            offered,
+            ..profiles
+        },
+        ProfileEvent::Degraded(degraded) => PowerProfiles {
+            degraded,
+            ..profiles
+        },
+        ProfileEvent::Gone => PowerProfiles::default(),
+    }
 }
 
 #[cfg(test)]
@@ -94,7 +117,6 @@ mod tests {
     use crate::units::Presence;
 
     #[test]
-    #[ignore = "M5 fill: svc-session-bt (a)"]
     fn the_daemons_words_round_trip() {
         const CASES: &[(&str, Option<Profile>)] = &[
             ("power-saver", Some(Profile::PowerSaver)),
@@ -117,7 +139,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M5 fill: svc-session-bt (a)"]
     fn events_reduce_to_the_expected_profiles() {
         let present = PowerProfiles {
             presence: Presence::Present,
