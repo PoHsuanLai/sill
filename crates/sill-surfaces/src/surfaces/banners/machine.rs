@@ -1,10 +1,11 @@
 //! One banner's life (design/13 §13.4 `Banner`, §13.5): hold, hover pause and resume with at
-//! least `hover_min_remaining`, swipe right to dismiss, act, close.
+//! least `hover_min_remaining`, swipe right to dismiss, act, close. design/13 places it at
+//! `surfaces/notifications/banner.rs`; the M6 freeze moved it here, beside its surface.
 //!
 //! design/13 §13.3.6 says a 5000 ms lifetime; design/22's `notifications.banner_hold_ms` and
 //! design/20 §1.6 (`ToastHold`) say 5200. The key wins (FINDINGS.md).
 
-use sill_services::{Cpx, Stamp};
+use sill_services::{BannerLife, Cpx, Stamp};
 use sill_settings::NotificationsSettings;
 
 /// When a shown banner leaves by itself.
@@ -35,6 +36,16 @@ pub enum Leave {
 pub enum Persistence {
     Expires,
     Persists,
+}
+
+impl Persistence {
+    /// The service's word for it (`LiveBanner::life`).
+    pub fn of(life: BannerLife) -> Persistence {
+        match life {
+            BannerLife::Expires => Persistence::Expires,
+            BannerLife::Persists => Persistence::Persists,
+        }
+    }
 }
 
 /// The banner's phase.
@@ -268,5 +279,5 @@ fn dismisses(dx: Cpx, velocity_px_s: i32, p: &BannerParams) -> bool {
 }
 
 #[cfg(test)]
-#[path = "banner_tests.rs"]
+#[path = "machine_tests.rs"]
 mod tests;

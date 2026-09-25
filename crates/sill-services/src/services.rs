@@ -15,6 +15,7 @@ use crate::displays::{Displays, DisplaysCommand};
 use crate::launch::{LaunchCommand, Launches};
 use crate::network::wifi::{Wifi, WifiCommand};
 use crate::network::{Network, NetworkCommand};
+use crate::notifications::{History, Notifications, NotificationsCommand};
 use crate::now_playing::{Media, MediaCommand};
 use crate::pins::{DockPins, PinEvent};
 use crate::power_profile::{PowerProfiles, ProfileCommand};
@@ -71,6 +72,11 @@ pub struct Services {
     pub media_control: Control<MediaCommand>,
     pub session: watch::Receiver<Session>,
     pub session_control: Control<SessionCommand>,
+    /// M6: the notifications server's live banners and name holder, and its history
+    /// (FINDINGS "M6 freeze").
+    pub notifications: watch::Receiver<Notifications>,
+    pub notification_history: watch::Receiver<History>,
+    pub notifications_control: Control<NotificationsCommand>,
 }
 
 impl Services {
@@ -116,6 +122,10 @@ impl Services {
         let (power_profiles, power_profile_control) = crate::power_profile::spawn(rt);
         let (media, media_control) = crate::now_playing::spawn(rt);
         let (session, session_control) = crate::session::spawn(rt);
+        // M6: the live loop is a stub that returns at once until lane a fills it, and it is
+        // passive (never asks for the bus name) until the daemon sends its first policy.
+        let (notifications, notification_history, notifications_control) =
+            crate::notifications::spawn(rt);
 
         Services {
             clock,
@@ -157,6 +167,9 @@ impl Services {
             media_control,
             session,
             session_control,
+            notifications,
+            notification_history,
+            notifications_control,
         }
     }
 }
@@ -193,6 +206,11 @@ mod tests {
         assert_eq!(*services.results.borrow(), Default::default());
         assert_eq!(*services.wallpapers.borrow(), Default::default());
         assert_eq!(*services.sound.borrow(), Default::default());
+        assert_eq!(
+            services.notifications.borrow().server.mode,
+            crate::ServerMode::Passive,
+            "passive until the daemon's policy"
+        );
         assert_eq!(
             *services.displays.borrow(),
             Default::default(),

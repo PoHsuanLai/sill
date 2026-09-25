@@ -1,14 +1,19 @@
 //! The command line (plan: `sill run|launcher {toggle,open [--query],close}|dock {pin,unpin}|
 //! reload|quit|ping|debug {stats,pointer,leave,capture}`, plus `debug click` from the M2 freeze
 //! amendment, `display {brightness,volume}` from the displays pass (`cli_display`), and
-//! `power-menu {open,close,toggle}` and `control-center toggle` from the M5 freeze, and its one
-//! pure mapping to an IPC request.
+//! `power-menu {open,close,toggle}` and `control-center toggle` from the M5 freeze,
+//! `notifications {toggle,open,close,dismiss-all,status}` and `debug notify` from the M6 freeze
+//! (`cli_notifications`), and its one pure mapping to an IPC request.
 
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
 
 pub use crate::cli_display::{DisplayAction, LevelAction, VolumeAction, display_request};
+pub use crate::cli_notifications::{
+    ExpireArg, FakeNotifyArgs, NotificationsAction, UrgencyArg, fake_notification,
+    notifications_request,
+};
 use sill_ipc::{
     ControlCenterRequest, DebugRequest, DesktopId, DockRequest, FakeMute, FakeOsd, LauncherRequest,
     OsdTopic, Point, PointerButton, PowerMenuRequest, Request, SurfaceName,
@@ -65,6 +70,11 @@ pub enum Command {
     ControlCenter {
         #[command(subcommand)]
         action: ControlCenterAction,
+    },
+    /// The notification center and the banners.
+    Notifications {
+        #[command(subcommand)]
+        action: NotificationsAction,
     },
 }
 
@@ -137,6 +147,8 @@ pub enum DebugAction {
         #[arg(long, value_enum, default_value_t = FakeMuteArg::Audible)]
         mute: FakeMuteArg,
     },
+    /// Post a made-up notification without D-Bus: a banner, and a row in the center.
+    Notify(FakeNotifyArgs),
 }
 
 /// `sill debug osd TOPIC`: the command line's spelling of [`OsdTopic`].
@@ -217,6 +229,7 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::ControlCenter { action } => Request::ControlCenter(match action {
             ControlCenterAction::Toggle => ControlCenterRequest::Toggle,
         }),
+        Command::Notifications { action } => Request::Notifications(notifications_request(*action)),
         Command::Debug { action } => Request::Debug(match action {
             DebugAction::Stats => DebugRequest::Stats,
             DebugAction::Pointer { surface, x, y } => DebugRequest::Pointer {
@@ -245,6 +258,7 @@ pub fn request(command: &Command) -> Option<Request> {
                 percent,
                 mute,
             } => DebugRequest::Osd(fake_osd(*topic, *percent, *mute)),
+            DebugAction::Notify(args) => DebugRequest::Notify(fake_notification(args)),
         }),
     })
 }
@@ -254,8 +268,9 @@ mod tests {
     use super::{Cli, request};
     use clap::Parser;
     use sill_ipc::{
-        ControlCenterRequest, DebugRequest, DesktopId, DockRequest, FakeMute, FakeOsd,
-        LauncherRequest, OsdTopic, Point, PointerButton, PowerMenuRequest, Request, SurfaceName,
+        ControlCenterRequest, DebugRequest, DesktopId, DockRequest, FakeAction, FakeExpire,
+        FakeMute, FakeNotification, FakeOsd, FakeUrgency, LauncherRequest, NotificationsRequest,
+        OsdTopic, Point, PointerButton, PowerMenuRequest, Request, SurfaceName,
     };
     use std::path::PathBuf;
 
@@ -281,6 +296,77 @@ mod tests {
             (
                 &["control-center", "toggle"],
                 Some(Request::ControlCenter(ControlCenterRequest::Toggle)),
+            ),
+            (
+                &["notifications", "toggle"],
+                Some(Request::Notifications(NotificationsRequest::Toggle)),
+            ),
+            (
+                &["notifications", "open"],
+                Some(Request::Notifications(NotificationsRequest::Open)),
+            ),
+            (
+                &["notifications", "close"],
+                Some(Request::Notifications(NotificationsRequest::Close)),
+            ),
+            (
+                &["notifications", "dismiss-all"],
+                Some(Request::Notifications(NotificationsRequest::DismissAll)),
+            ),
+            (
+                &["notifications", "status"],
+                Some(Request::Notifications(NotificationsRequest::Status)),
+            ),
+            (
+                &["debug", "notify", "Hello"],
+                Some(Request::Debug(DebugRequest::Notify(FakeNotification {
+                    app: "sill".to_owned(),
+                    summary: "Hello".to_owned(),
+                    body: String::new(),
+                    urgency: FakeUrgency::Normal,
+                    actions: Vec::new(),
+                    expire: FakeExpire::Default,
+                    replaces: 0,
+                }))),
+            ),
+            (
+                &[
+                    "debug",
+                    "notify",
+                    "Ada",
+                    "--app",
+                    "Mail",
+                    "--body",
+                    "the <b>engine</b>",
+                    "--urgency",
+                    "critical",
+                    "--action",
+                    "default=Open",
+                    "--action",
+                    "reply=Reply",
+                    "--expire",
+                    "never",
+                    "--replaces",
+                    "4",
+                ],
+                Some(Request::Debug(DebugRequest::Notify(FakeNotification {
+                    app: "Mail".to_owned(),
+                    summary: "Ada".to_owned(),
+                    body: "the <b>engine</b>".to_owned(),
+                    urgency: FakeUrgency::Critical,
+                    actions: vec![
+                        FakeAction {
+                            key: "default".to_owned(),
+                            label: "Open".to_owned(),
+                        },
+                        FakeAction {
+                            key: "reply".to_owned(),
+                            label: "Reply".to_owned(),
+                        },
+                    ],
+                    expire: FakeExpire::Never,
+                    replaces: 4,
+                }))),
             ),
             (
                 &["launcher", "toggle"],
@@ -423,6 +509,10 @@ mod tests {
             &["debug", "click", "s", "1", "2", "--button", "left"],
             &["debug", "osd", "sound", "40"],
             &["debug", "osd", "volume", "loud"],
+            &["notifications"],
+            &["notifications", "clear"],
+            &["debug", "notify"],
+            &["debug", "notify", "x", "--urgency", "urgent"],
             &["frobnicate"],
         ] {
             assert!(

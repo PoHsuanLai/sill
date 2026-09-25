@@ -14,11 +14,14 @@ pub struct OutputSurfaces {
     pub osd: Option<SurfaceId>,
     /// M5: the power menu, warm and hidden.
     pub power_menu: Option<SurfaceId>,
+    /// M6: the banner column and the notification center, warm and hidden.
+    pub banners: Option<SurfaceId>,
+    pub notification_center: Option<SurfaceId>,
 }
 
 impl OutputSurfaces {
     /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 7] {
+    fn fields(&self) -> [Option<SurfaceId>; 9] {
         [
             self.bar,
             self.wallpaper,
@@ -27,6 +30,8 @@ impl OutputSurfaces {
             self.catcher,
             self.osd,
             self.power_menu,
+            self.banners,
+            self.notification_center,
         ]
     }
 
@@ -50,6 +55,8 @@ impl OutputSurfaces {
             &mut self.catcher,
             &mut self.osd,
             &mut self.power_menu,
+            &mut self.banners,
+            &mut self.notification_center,
         ] {
             if *field == Some(id) {
                 *field = None;

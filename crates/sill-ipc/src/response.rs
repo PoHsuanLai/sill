@@ -16,6 +16,42 @@ pub enum Response {
     Stats(Vec<SurfaceStats>),
     /// The request was understood and not carried out.
     Failed(Failure),
+    /// The answer to `Notifications(Status)`.
+    Notifications(NotificationsReport),
+}
+
+/// The notifications server as `sill notifications status` prints it (the IPC mirror of
+/// `sill_services::ServerStatus`: this crate may not depend on sill-services).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NotificationsReport {
+    pub mode: ReportMode,
+    pub holder: ReportHolder,
+    /// Live banners, the queued ones included.
+    pub banners: u32,
+    /// Notifications the history keeps.
+    pub kept: u32,
+}
+
+/// `notifications.server` as the service was last told it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReportMode {
+    Own,
+    Passive,
+}
+
+/// Who holds `org.freedesktop.Notifications`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
+pub enum ReportHolder {
+    NoBus,
+    Nobody,
+    Sill,
+    Other {
+        unique: String,
+        pid: Option<u32>,
+        command: Option<String>,
+    },
 }
 
 /// Why a request was not carried out, and what the caller can do about it.

@@ -1,5 +1,5 @@
 //! Effectful services behind watch channels: power, network, Wi-Fi, Bluetooth, power profiles,
-//! Now Playing, the session, volume, tray, apps, launcher entries, dock pins, launcher search,
+//! Now Playing, the session, notifications, volume, tray, apps, launcher entries, dock pins, launcher search,
 //! wallpaper, sounds, displays and COSMIC Wayland state (plan
 //! "Design: `<shell>` repo", `sill-services`).
 //!
@@ -25,6 +25,7 @@ pub mod error;
 pub mod launch;
 pub mod magnify;
 pub mod network;
+pub mod notifications;
 pub mod now_playing;
 pub mod pins;
 pub mod power_profile;
@@ -74,6 +75,15 @@ pub use network::wifi::{
     listed_networks, reduce_wifi,
 };
 pub use network::{Connectivity, Link, Network, NetworkCommand, NetworkEvent, reduce_network};
+pub use notifications::{
+    Action, ActionKey, Activation, ActivationToken, AppGroup, AppKey, AppRef, BannerLife, Body,
+    BodyRun, BusChoice, Chime, Clear, CloseReason, Expiry, Hints, History, HistoryCap,
+    HistoryPlace, Href, IconRef, LiveBanner, NameHolder, NameOwner, NoteImage, NotesState,
+    Notification, NotificationId, Notifications, NotificationsCommand, NotificationsEffect,
+    NotificationsEvent, NotificationsPolicy, NotifyUrgency, Pixels, Posting, Presentation,
+    Presented, Quiet, Residency, RunLink, RunStyle, ServerMode, ServerStatus, Setup, Slant,
+    SoundHint, Transience, Underline, UnixMs, Weight, assign_id, parse_body, reduce_notifications,
+};
 pub use now_playing::{
     Abilities, Art, ArtSource, Media, MediaCommand, MediaEvent, MediaPlayer, MediaVerb, Micros,
     Playback, PlayerId, Timeline, Track, art_cache_name, art_source, reduce_media,

@@ -49,7 +49,10 @@ pub use focus::{FocusMode, focus_mode, with_focus_mode};
 pub use focus_link::{Delivery, FocusLink, spawn_focus};
 pub use launcher::LauncherSettings;
 pub use menus::{MenusSettings, PickFeedback};
-pub use notifications::{BannerEntry, BannerMaterial, BannerStyle, Dnd, NotificationsSettings};
+pub use notifications::{
+    BannerEntry, BannerMaterial, BannerPosition, BannerStyle, Dnd, NotificationServer,
+    NotificationsSettings,
+};
 pub use osd::{OsdEnabled, OsdPosition, OsdSettings};
 pub use power_menu::{PowerMenuDefault, PowerMenuSettings};
 pub use schema::{schema, schemas};
