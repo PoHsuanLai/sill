@@ -1,19 +1,24 @@
 //! Q80's stand-in: the pane switcher between the module grid and a detail pane (design/13
-//! §13.3.7 "Detail"). quire's `PaneSwitcher` (on `cc-parts`) owns the slide and its timer; until
-//! it lands the pane is remounted under a new key on every page change and its box plays quire's
-//! own `slide-r` or `slide-l` keyframe from the control center's sheet (no keyframes of sill's).
+//! §13.3.7 "Detail"). quire's `PaneSwitcher` (on `cc-parts`: `shown`, `root`, `detail`) owns the
+//! slide, the leaving pane and the timer; until it lands the shown pane alone is drawn, remounted
+//! under a new key on every page change, and its box plays quire's own `slide-r` or `slide-l`
+//! keyframe from the control center's sheet (no keyframes of sill's). Switching is this file.
 
 use dioxus::prelude::*;
 
 use crate::surfaces::control_center::page::{CcPage, Slide};
 
-/// `children` as the pane `pane`, entering by `slide`.
+/// `root` (the grid) or `detail` as `shown` says, entering by `slide`.
 #[component]
-pub(crate) fn PaneSwitcher(pane: CcPage, slide: Slide, children: Element) -> Element {
-    let key = format!("{pane:?}");
+pub(crate) fn PaneSwitcher(shown: CcPage, slide: Slide, root: Element, detail: Element) -> Element {
+    let key = format!("{shown:?}");
+    let pane = match shown {
+        CcPage::Modules => root,
+        CcPage::Detail(_) => detail,
+    };
     rsx! {
         for key in [key] {
-            div { key: "{key}", class: "sill-cc-pane", "data-slide": slug(slide), {children.clone()} }
+            div { key: "{key}", class: "sill-cc-pane", "data-slide": slug(slide), {pane.clone()} }
         }
     }
 }

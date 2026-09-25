@@ -29,7 +29,7 @@ pub fn WifiModule(on_detail: EventHandler<Detail>) -> Element {
                 // A stopped service drops it: the tile shows the radio it last published.
                 let _gone = control.send(WifiCommand::Radio(radio_of(to)));
             },
-            detail: move |()| on_detail.call(Detail::Wifi),
+            on_detail: move |()| on_detail.call(Detail::Wifi),
         }
     }
 }

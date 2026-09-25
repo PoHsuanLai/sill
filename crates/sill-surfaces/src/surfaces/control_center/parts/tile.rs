@@ -58,7 +58,7 @@ impl TileSpan {
 }
 
 /// An on/off module: `glyph` and the switch, then `title` over `status`, and a chevron to its
-/// detail pane when `detail` is given. `Disabled` shows the state and takes nothing.
+/// detail pane when `on_detail` is given. `Disabled` shows the state and takes nothing.
 #[component]
 pub(crate) fn ModuleTile(
     glyph: Icon,
@@ -66,10 +66,10 @@ pub(crate) fn ModuleTile(
     status: String,
     state: ModuleState,
     on_toggle: EventHandler<ModuleState>,
-    #[props(default)] detail: Option<EventHandler<()>>,
+    #[props(default)] on_detail: Option<EventHandler<()>>,
     #[props(default)] availability: Availability,
 ) -> Element {
-    let chevron = detail.map(|open| {
+    let chevron = on_detail.map(|open| {
         rsx! {
             IconButton {
                 variant: IconButtonVariant::Tool,

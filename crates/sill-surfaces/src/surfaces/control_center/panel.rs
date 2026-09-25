@@ -47,8 +47,7 @@ pub(crate) fn control_center(
         }
     });
     let current = page();
-    let pane = match current {
-        CcPage::Modules => rsx! {
+    let root = rsx! {
             Grid {
                 placed: place(&cc.modules, cc.grid_columns.0),
                 columns: cc.grid_columns.0,
@@ -56,7 +55,9 @@ pub(crate) fn control_center(
                 output,
                 on_detail: move |detail: Detail| go.call(PageInput::Open(detail)),
             }
-        },
+    };
+    let detail = match current {
+        CcPage::Modules => rsx! {},
         CcPage::Detail(Detail::Wifi) => rsx! {
             WifiNetworks { on_back: move |()| go.call(PageInput::Back) }
         },
@@ -80,7 +81,7 @@ pub(crate) fn control_center(
                     go.call(PageInput::Escape);
                 }
             },
-            PaneSwitcher { pane: current, slide: slide(), {pane} }
+            PaneSwitcher { shown: current, slide: slide(), root, detail }
         }
     }
 }

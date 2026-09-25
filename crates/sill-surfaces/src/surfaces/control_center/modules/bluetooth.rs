@@ -27,7 +27,7 @@ pub fn BluetoothModule(on_detail: EventHandler<Detail>) -> Element {
                 // A stopped service drops it: the tile shows the power it last published.
                 let _gone = control.send(BluetoothCommand::Power(power_of(to)));
             },
-            detail: move |()| on_detail.call(Detail::Bluetooth),
+            on_detail: move |()| on_detail.call(Detail::Bluetooth),
         }
     }
 }
