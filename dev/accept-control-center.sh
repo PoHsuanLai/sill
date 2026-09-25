@@ -13,9 +13,12 @@
 #      screenshot); a second click closes it. Screenshot dev/out/control-center-cosmic.png.
 #   2. An outside click (the bar's empty middle) closes it; Escape (wtype, into the popup's grab)
 #      closes it too, or the step says why it could not try.
-#   3. The Wi-Fi tile's chevron slides the Wi-Fi pane in: the popup shrinks to the pane.
+#   3. The Wi-Fi tile's chevron slides the Wi-Fi pane in: the popup takes the pane's size (a
+#      Wi-Fi pane with a long list of networks may be as tall as the grid; then it only has to
+#      change). Its only request is a scan.
 #      Screenshot dev/out/control-center-wifi-cosmic.png.
-#   4. The Wi-Fi bar item opens the Wi-Fi pane directly (the popup at the pane's size).
+#   4. The Wi-Fi bar item opens the Wi-Fi pane directly: its popup is the pane's size from
+#      step 3, not the grid's.
 #   5. `sill control-center toggle` opens it with no pointer event behind it, and again closes
 #      it; whether cosmic-comp maps a popup opened without a fresh input serial, and whether its
 #      grab holds (an outside click dismisses it), is printed. Not mapped: exit 2, naming it.
@@ -218,16 +221,18 @@ step_wifi_pane() {
   wait_popup up || return 1
   sleep 0.5
   before=$(popup_height)
-  # The Wi-Fi tile's chevron, popup-local: the card at (28, 8), its padding 12, the tile's
-  # chevron at the tile's right less 12 + 14, 74 down.
-  sill debug click "$POPUP" 159 84 >>"$log" 2>&1
+  # The Wi-Fi tile's chevron, popup-local: the card at (28, 8) with a hairline, the panel's
+  # padding 12, a half tile 144 wide and 52 tall, its 18 px chevron 4 in from the right.
+  sill debug click "$POPUP" 171 47 >>"$log" 2>&1
   sleep 0.8
   after=$(popup_height)
   "$SHELL_HOST_DEV/shot.sh" "$SHOTS/control-center-wifi-cosmic.png" >>"$log" 2>&1 \
     || echo "screenshot failed" >&2
   close_popup
+  PANE_H=$after
+  GRID_H=$before
   echo "the chevron: popup ${before} -> ${after} tall" | tee -a "$log" >&2
-  [ -n "$after" ] && [ "$after" -lt "$before" ]
+  [ -n "$after" ] && [ "$after" != "$before" ]
 }
 
 # 4.
@@ -242,8 +247,9 @@ step_module_item() {
   height=$(popup_height)
   sill debug capture "$POPUP" "$OUT_DIR/wifi-item.png" >>"$log" 2>&1
   close_popup
-  echo "the Wi-Fi item: a ${width}x${height} popup (the pane, not the grid)" | tee -a "$log" >&2
-  [ "$width" = "$PANEL_POPUP_W" ] && [ "$height" -lt 400 ]
+  echo "the Wi-Fi item: a ${width}x${height} popup (the pane from step 3 is ${PANE_H:-?} tall, the grid ${GRID_H:-?})" \
+    | tee -a "$log" >&2
+  [ "$width" = "$PANEL_POPUP_W" ] && [ "$height" = "${PANE_H:-}" ] && [ "$height" != "${GRID_H:-}" ]
 }
 
 # 5.

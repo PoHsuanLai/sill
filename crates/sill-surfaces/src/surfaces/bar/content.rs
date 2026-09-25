@@ -8,7 +8,7 @@
 
 use ds::{Check, MenuEntry, Trail};
 use sill_launcher::WindowKey;
-use sill_services::{AppIndex, Bluetooth, ClockText, OutputName, Toplevels, Wifi, match_app};
+use sill_services::{AppIndex, ClockText, OutputName, Toplevels, match_app};
 
 use sill_settings::{ControlCenterModule, ControlCenterSettings};
 
@@ -38,9 +38,6 @@ pub(crate) enum PopupBody {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct BarState {
     pub app: Option<FrontApp>,
-    /// Wi-Fi and Bluetooth, which size their lists' popups.
-    pub wifi: Wifi,
-    pub bluetooth: Bluetooth,
     pub clock: ClockText,
     /// `control_center.*`, which sizes its popup.
     pub control_center: ControlCenterSettings,
@@ -151,8 +148,7 @@ mod tests {
     use ds::MenuEntry;
     use sill_launcher::WindowKey;
     use sill_services::{
-        Activity, AppIndex, Bluetooth, ClockText, OutputName, Sizing, Toplevel, Toplevels, Wifi,
-        WindowState,
+        Activity, AppIndex, ClockText, OutputName, Sizing, Toplevel, Toplevels, WindowState,
     };
     use sill_settings::ControlCenterModule;
 
@@ -216,8 +212,6 @@ mod tests {
                 name: "Foot".to_owned(),
                 windows: vec![(WindowKey(4), "~".to_owned())],
             }),
-            wifi: Wifi::default(),
-            bluetooth: Bluetooth::default(),
             clock: ClockText {
                 text: "Thu 24 Sep 14:05".to_owned(),
             },

@@ -36,7 +36,7 @@ fn the_grid_shows_what_the_services_hold() {
         ("the joined network", ">home<", 1),
         ("the connected headphones", ">Buds<", 1),
         ("Do Not Disturb", ">Focus<", 1),
-        ("two quire sliders", "class=\"ds-slider\"", 2),
+        ("two quire level controls", "class=\"ds-level\"", 2),
         (
             "the sink as Sound's title",
             ">Built-in Audio Analog Stereo<",

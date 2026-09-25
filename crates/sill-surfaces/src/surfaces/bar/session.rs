@@ -324,8 +324,10 @@ fn view(slots: Slots, deps: &SessionDeps, menu: BarMenu) -> Option<PopupView> {
         control_center: &deps.state.control_center,
         fit: Fit {
             page: *slots.page.peek(),
-            wifi_rows: wifi_rows(&deps.state.wifi),
-            device_rows: device_rows(&deps.state.bluetooth),
+            // Read, not followed: a scan must not re-render the bar (F175); the size catches
+            // up at the popup's next view.
+            wifi_rows: wifi_rows(&deps.services.wifi.borrow()),
+            device_rows: device_rows(&deps.services.bluetooth.borrow()),
             cap: deps.cap,
         },
     };

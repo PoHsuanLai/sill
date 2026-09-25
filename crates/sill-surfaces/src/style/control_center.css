@@ -22,12 +22,10 @@
 .sill-cc-value{ margin-left:auto; font-size:var(--fs-help); color:var(--ink-faint);
   font-variant-numeric:tabular-nums; }
 
-/* A level (Sound, Display): its title and value over the glyph and quire's Slider. */
+/* A level (Sound, Display): its title and value over quire's LevelControl. */
 .sill-cc-level{ display:flex; flex-direction:column; gap:var(--s-8); }
 .sill-cc-level-head{ display:flex; align-items:center; gap:var(--s-6); min-width:0; }
 .sill-cc-level-head > .sill-cc-title{ flex:1 1 0; min-width:0; }
-.sill-cc-level-row{ display:flex; align-items:center; gap:var(--s-10); }
-.sill-cc-level-track{ display:block; flex:1 1 0; min-width:0; }
 
 /* Now Playing: the art, two lines, the transport. */
 .sill-cc-media{ display:flex; align-items:center; gap:var(--s-12); min-width:0; }
