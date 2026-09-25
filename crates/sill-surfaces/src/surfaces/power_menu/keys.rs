@@ -43,8 +43,19 @@ pub fn initial(
     default: PowerMenuDefault,
     session: &Session,
 ) -> PowerMenuState {
-    let _ = (preselect, default, session);
-    todo!("M5 fill: power-menu (d)")
+    let wanted = match preselect {
+        Preselect::Action(action) => action,
+        Preselect::Default => default_action(default),
+    };
+    let focused = if offered(session, wanted) {
+        wanted
+    } else {
+        SessionAction::POWER_MENU
+            .into_iter()
+            .find(|&action| offered(session, action))
+            .unwrap_or(wanted)
+    };
+    PowerMenuState { focused }
 }
 
 /// `state` after `key`. Left, Up and Shift+Tab move to the previous offered button, Right, Down
@@ -56,8 +67,59 @@ pub fn step(
     key: PowerMenuKey,
     session: &Session,
 ) -> (PowerMenuState, PowerMenuOut) {
-    let _ = (state, key, session, Offer::Available);
-    todo!("M5 fill: power-menu (d)")
+    match key {
+        PowerMenuKey::Left | PowerMenuKey::Up | PowerMenuKey::BackTab => {
+            (moved(state, Direction::Back, session), PowerMenuOut::Stay)
+        }
+        PowerMenuKey::Right | PowerMenuKey::Down | PowerMenuKey::Tab => {
+            (moved(state, Direction::On, session), PowerMenuOut::Stay)
+        }
+        PowerMenuKey::Enter if offered(session, state.focused) => {
+            (state, PowerMenuOut::Run(state.focused))
+        }
+        PowerMenuKey::Enter => (state, PowerMenuOut::Stay),
+        PowerMenuKey::Escape => (state, PowerMenuOut::Close),
+    }
+}
+
+/// Which way the focus moves.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Direction {
+    Back,
+    On,
+}
+
+/// `power_menu.default_action` as the action it names.
+fn default_action(default: PowerMenuDefault) -> SessionAction {
+    match default {
+        PowerMenuDefault::LogOut => SessionAction::LogOut,
+        PowerMenuDefault::Restart => SessionAction::Restart,
+        PowerMenuDefault::ShutDown => SessionAction::PowerOff,
+        PowerMenuDefault::Suspend => SessionAction::Suspend,
+    }
+}
+
+/// Whether logind will carry `action` out (polkit asking first counts).
+pub(crate) fn offered(session: &Session, action: SessionAction) -> bool {
+    matches!(session.offer(action), Offer::Available | Offer::NeedsAuth)
+}
+
+/// The next offered button from `state` in `direction`, wrapping; `state` when none other is.
+fn moved(state: PowerMenuState, direction: Direction, session: &Session) -> PowerMenuState {
+    let buttons = SessionAction::POWER_MENU;
+    let count = buttons.len();
+    let at = buttons
+        .iter()
+        .position(|&action| action == state.focused)
+        .unwrap_or(0);
+    let step = match direction {
+        Direction::On => 1,
+        Direction::Back => count - 1,
+    };
+    (1..count)
+        .map(|n| buttons[(at + n * step) % count])
+        .find(|&action| offered(session, action))
+        .map_or(state, |focused| PowerMenuState { focused })
 }
 
 #[cfg(test)]
@@ -84,7 +146,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M5 fill: power-menu (d)"]
     fn an_opening_focuses_the_preselected_offered_button() {
         use SessionAction::{LogOut, PowerOff, Restart, Suspend};
         let cases: Vec<(Preselect, PowerMenuDefault, Session, SessionAction)> = vec![
@@ -129,7 +190,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M5 fill: power-menu (d)"]
     fn arrows_move_and_wrap_over_offered_buttons_enter_runs_escape_closes() {
         use PowerMenuKey::{BackTab, Down, Enter, Escape, Left, Right, Tab, Up};
         use SessionAction::{LogOut, PowerOff, Restart, Suspend};

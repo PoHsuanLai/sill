@@ -11,17 +11,26 @@
 //! holding focus closes it, as the launcher's does). A chosen action goes to
 //! `sill_services::SessionCommand::Run`.
 
+pub mod backend;
+pub mod keymap;
 pub mod keys;
 pub mod labels;
 pub mod layer;
 pub mod presence;
+pub mod script;
+pub mod sheet;
 
+mod drive;
 mod panel;
 
+pub use backend::{
+    BackendKind, DryRunSession, PowerMenuBackend, SessionBackend, dry_run_line, everything_offered,
+};
 pub use keys::{PowerMenuKey, PowerMenuOut, PowerMenuState, initial, step};
 pub use labels::{action_label, button_variant};
 pub use layer::{PANEL_BLUR_RADIUS, PANEL_ID, panel_region, power_menu_layer};
 pub use presence::{PowerMenuLink, PowerMenuOpening, PowerMenuShown, Preselect};
+pub use script::{PowerMenuScript, ScriptedKey, script_key};
 
 use dioxus::prelude::*;
 use shell_host::OutputInfo;

@@ -1,0 +1,31 @@
+/* The power menu (design/20 §1.8). The surface is the whole output: quire's Sheet brings its
+   own scrim (fading in over --t-move) and springs in with peek-in over --t-big --e-spring;
+   everything here is a token or one of quire's keyframes. Attribute selectors carry `*|`
+   (spike S2). */
+
+/* The whole output, from the viewport (neither `.ds` nor `#main` has a height: see
+   wallpaper.css), positioned so the sheet's overlay covers it. Escape, a scrim click or a
+   chosen action fade it out as a whole with quire's menu-out (`Anim::MenuOut`, whose timer the
+   panel waits out before closing): quire's Sheet has no leaving state of its own (FINDINGS
+   "M5 power menu", Q90). */
+.sill-power-menu{ position:relative; display:block; width:100vw; height:100vh; }
+.sill-power-menu[*|data-look=leaving]{ animation:menu-out var(--t-quick) var(--e-exit) forwards; }
+
+/* The sheet's root is as tall as its content, and quire's overlay (the scrim, the sheet's
+   `max-height`) fills that root: this in-flow box gives it the output's height. */
+.sill-power-menu-floor{ display:block; height:100vh; }
+
+/* The sheet's content, centred as macOS's shut-down dialog is: a mark, the question, what it
+   does, the buttons, the key hints. */
+.sill-power-menu-panel{ display:flex; flex-direction:column; align-items:center; text-align:center;
+  gap:var(--s-6); padding:var(--s-22) var(--s-26) var(--s-16); color:var(--ink); }
+.sill-power-menu-mark{ display:flex; align-items:center; justify-content:center; color:var(--ink-soft);
+  padding-bottom:var(--s-4); }
+.sill-power-menu-prompt{ font-size:var(--fs-heading); font-weight:700; }
+.sill-power-menu-detail{ font-size:var(--fs-small); color:var(--ink-soft); }
+.sill-power-menu-buttons{ display:flex; flex-wrap:wrap; justify-content:center; align-items:center;
+  gap:var(--s-8); padding-top:var(--s-14); }
+.sill-power-menu-hints{ display:flex; justify-content:center; gap:var(--s-16); padding-top:var(--s-10);
+  font-size:var(--fs-small); color:var(--ink-faint); }
+.sill-power-menu-hint{ display:inline-flex; align-items:center; gap:var(--s-4); }
+.sill-power-menu-hint-text{ display:inline; }

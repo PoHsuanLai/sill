@@ -90,8 +90,7 @@ pub enum LauncherEffect {
 /// Why an activation cannot be carried out from the launcher.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Unreachable {
-    /// `Services` has no session control: lock, log out, suspend, restart, shut down and
-    /// reload need one (FINDINGS F146).
+    /// A system command no surface can carry out: Reload is the daemon's (FINDINGS F146).
     System(SystemCommand),
     /// No quire settings app exists to deep-link a key into.
     SettingsKey(String),
@@ -132,8 +131,22 @@ pub fn effect_of(activation: Activation) -> LauncherEffect {
         Activation::OpenSettings {
             target: SettingsTarget::Key(key),
         } => LauncherEffect::Unreachable(Unreachable::SettingsKey(key)),
-        Activation::System(command) => LauncherEffect::Unreachable(Unreachable::System(command)),
+        Activation::System(command) => system_effect(command),
         Activation::Nothing => LauncherEffect::Nothing,
+    }
+}
+
+/// A session row: Lock and Suspend at once, Log Out, Restart and Shut Down through the power
+/// menu (it is their confirmation, F178); Reload is the daemon's, which no surface reaches.
+fn system_effect(command: SystemCommand) -> LauncherEffect {
+    match SessionAction::of_system(command) {
+        Some(action @ (SessionAction::Lock | SessionAction::Suspend)) => {
+            LauncherEffect::Session(action)
+        }
+        Some(
+            action @ (SessionAction::LogOut | SessionAction::Restart | SessionAction::PowerOff),
+        ) => LauncherEffect::PowerMenu(action),
+        None => LauncherEffect::Unreachable(Unreachable::System(command)),
     }
 }
 
@@ -243,10 +256,6 @@ mod tests {
                     "dock.magnification".to_owned(),
                 )),
             ),
-            (
-                Activation::System(SystemCommand::Lock),
-                LauncherEffect::Unreachable(Unreachable::System(SystemCommand::Lock)),
-            ),
             (Activation::Nothing, LauncherEffect::Nothing),
         ];
         for (activation, want) in cases {
@@ -259,10 +268,8 @@ mod tests {
         assert_eq!(LauncherEffect::ByRunner.after(), AfterEffect::Close);
     }
 
-    /// M5: the session rows run through the session service or open the power menu. Agent (d)
-    /// fills `effect_of` and drops the `System(Lock)` case above, which this replaces.
+    /// M5: the session rows run through the session service or open the power menu.
     #[test]
-    #[ignore = "M5 fill: power-menu (d)"]
     fn session_rows_run_or_open_the_power_menu() {
         use sill_services::SessionAction;
         let cases = [
