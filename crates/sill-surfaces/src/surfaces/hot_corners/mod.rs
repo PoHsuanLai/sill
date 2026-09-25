@@ -18,9 +18,15 @@ pub use layer::corner_layer;
 pub use link::{CornerHit, CornerLink};
 pub use machine::{CornerIn, CornerMachine, CornerOut, CornerParams, KeyState, Mods, step};
 
+use std::time::Duration;
+
+use dioxus::core::Task;
+use dioxus::html::point_interaction::ModifiersInteraction;
 use dioxus::prelude::*;
-use shell_host::OutputInfo;
+use shell_host::{OutputId, OutputInfo};
 use sill_settings::{CornerAction, HotCornersSettings};
+
+use crate::hooks::use_settings;
 
 /// A screen corner.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -78,13 +84,143 @@ pub fn active_corners(settings: &HotCornersSettings) -> Vec<Corner> {
         .collect()
 }
 
-/// `corner` of `output`. Draws nothing until lane d fills it (then: one transparent element
-/// feeding `step` on pointer enter and leave, quire timers for the dwell and the re-arm, and
-/// `CornerLink::hit` on `Fire`).
+/// This surface's stylesheet: the one rule the transparent element needs (a bare `div` has no
+/// height without one), lint-clean under `Profile::Strict` (`tests/hot_corners_render.rs`).
+pub const HOT_CORNERS_CSS: &str = include_str!("../../style/hot_corners.css");
+
+/// `params_of`'s own numbers, from `hot_corners.*`.
+fn params_of(settings: &HotCornersSettings) -> CornerParams {
+    CornerParams {
+        dwell_ms: u32::from(settings.dwell_ms.0),
+        rearm_ms: u32::from(settings.rearm_ms.0),
+        modifier: settings.modifier,
+    }
+}
+
+/// `event`'s modifiers as the machine sees them (best-effort: a keyboard-`None` layer surface is
+/// never sent `wl_keyboard.modifiers` on Wayland, FINDINGS G121, so this is `Up` on the real
+/// session until shell-host can answer; wired here so a modifier the host does report, and a
+/// test's synthetic one, both reach the machine).
+fn mods_of(event: &MouseData) -> Mods {
+    let held = event.modifiers();
+    let key = |flag| {
+        if held.contains(flag) {
+            KeyState::Down
+        } else {
+            KeyState::Up
+        }
+    };
+    Mods {
+        super_key: if held.intersects(Modifiers::SUPER | Modifiers::META) {
+            KeyState::Down
+        } else {
+            KeyState::Up
+        },
+        alt: key(Modifiers::ALT),
+        ctrl: key(Modifiers::CONTROL),
+        shift: key(Modifiers::SHIFT),
+    }
+}
+
+/// Feed `input` to the machine held in `machine`/`waking`/`params`, applying every effect: `Fire`
+/// hits `link`, `StartDwell`/`StartRearm` (re)arm quire's one timer (`ds::sleep`) and feed the
+/// elapsed event back in when it wakes (a stale token is simply ignored by `step`, so a timer
+/// that outlives its phase is harmless; cancelling it early, as here, just skips that wait).
+fn feed(
+    mut machine: Signal<CornerMachine>,
+    waking: CopyValue<Option<Task>>,
+    params: CopyValue<CornerParams>,
+    link: CornerLink,
+    output: OutputId,
+    corner: Corner,
+    input: CornerIn,
+) {
+    let (next, outs) = step(*machine.peek(), input, *params.peek());
+    machine.set(next);
+    for out in outs {
+        match out {
+            CornerOut::Fire => link.hit(corner, output),
+            CornerOut::StartDwell(token, ms) => start(
+                waking,
+                machine,
+                params,
+                link.clone(),
+                output,
+                corner,
+                ms,
+                CornerIn::DwellElapsed(token),
+            ),
+            CornerOut::StartRearm(token, ms) => start(
+                waking,
+                machine,
+                params,
+                link.clone(),
+                output,
+                corner,
+                ms,
+                CornerIn::RearmElapsed(token),
+            ),
+        }
+    }
+}
+
+/// Cancel the running timer (if any) and start a fresh one: sleep `ms`, then [`feed`] `then`.
+#[allow(clippy::too_many_arguments)]
+fn start(
+    mut waking: CopyValue<Option<Task>>,
+    machine: Signal<CornerMachine>,
+    params: CopyValue<CornerParams>,
+    link: CornerLink,
+    output: OutputId,
+    corner: Corner,
+    ms: u32,
+    then: CornerIn,
+) {
+    if let Some(old) = waking.take() {
+        old.cancel();
+    }
+    waking.set(Some(spawn(async move {
+        ds::sleep(Duration::from_millis(u64::from(ms))).await;
+        feed(machine, waking, params, link, output, corner, then);
+    })));
+}
+
+/// `corner` of `output`: a transparent element taking the pointer over the whole square (no
+/// `Ds`, no material, never painted), feeding [`machine::step`] from its enter, move and leave,
+/// quire's timer for the dwell and the re-arm, and [`CornerLink::hit`] on `Fire`.
 #[component]
 pub fn HotCorner(output: OutputInfo, corner: Corner) -> Element {
-    let _ = (output, corner);
-    rsx! {}
+    let link = use_context::<CornerLink>();
+    let file = use_settings()();
+    let now_params = params_of(&file.hot_corners);
+    let machine = use_signal(CornerMachine::default);
+    let waking = use_hook(|| CopyValue::new(None::<Task>));
+    let mut params = use_hook(|| CopyValue::new(now_params));
+    if *params.peek() != now_params {
+        params.set(now_params);
+    }
+    let output_id = output.id;
+
+    let enter_link = link.clone();
+    let move_link = link.clone();
+    let leave_link = link;
+
+    rsx! {
+        style { {HOT_CORNERS_CSS} }
+        div {
+            class: "sill-hot-corner",
+            onmouseenter: move |event| {
+                feed(machine, waking, params, enter_link.clone(), output_id, corner, CornerIn::Mods(mods_of(&event)));
+                feed(machine, waking, params, enter_link.clone(), output_id, corner, CornerIn::Enter);
+            },
+            onmousemove: move |event| {
+                feed(machine, waking, params, move_link.clone(), output_id, corner, CornerIn::Mods(mods_of(&event)));
+            },
+            onmouseleave: move |_| {
+                feed(machine, waking, params, leave_link.clone(), output_id, corner, CornerIn::Leave);
+            },
+        }
+    }
 }
 
 #[cfg(test)]

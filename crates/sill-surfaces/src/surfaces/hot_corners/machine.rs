@@ -108,8 +108,156 @@ pub fn step(
     input: CornerIn,
     params: CornerParams,
 ) -> (CornerMachine, Vec<CornerOut>) {
-    let _ = (machine, input, params);
-    todo!("M10 fill: d-corners")
+    match input {
+        CornerIn::Mods(mods) => (CornerMachine { mods, ..machine }, Vec::new()),
+        CornerIn::Enter => enter(machine, params),
+        CornerIn::Leave => leave(machine),
+        CornerIn::DwellElapsed(token) => dwell_elapsed(machine, token, params),
+        CornerIn::RearmElapsed(token) => rearm_elapsed(machine, token),
+    }
+}
+
+/// The pointer entered: `Armed` starts a dwell; `Spent` (still waiting on the re-arm) just notes
+/// the pointer is back in; `Dwelling` and `Blocked` already have it.
+fn enter(machine: CornerMachine, params: CornerParams) -> (CornerMachine, Vec<CornerOut>) {
+    match machine.phase {
+        Phase::Armed => {
+            let token = machine.next;
+            let phase = Phase::Dwelling(token);
+            let next = Token(token.0 + 1);
+            (
+                CornerMachine {
+                    phase,
+                    next,
+                    ..machine
+                },
+                vec![CornerOut::StartDwell(token, params.dwell_ms)],
+            )
+        }
+        Phase::Spent { rearm, .. } => (
+            CornerMachine {
+                phase: Phase::Spent {
+                    pointer: Inside::In,
+                    rearm,
+                },
+                ..machine
+            },
+            Vec::new(),
+        ),
+        Phase::Dwelling(_) | Phase::Blocked => (machine, Vec::new()),
+    }
+}
+
+/// The pointer left: `Dwelling` and `Blocked` cancel back to `Armed`; `Spent` is done once both
+/// the pointer has left and the re-arm is over (in either order — the leave itself completes it
+/// when the re-arm already ran out), else it only notes the pointer is out.
+fn leave(machine: CornerMachine) -> (CornerMachine, Vec<CornerOut>) {
+    match machine.phase {
+        Phase::Dwelling(_) | Phase::Blocked => (
+            CornerMachine {
+                phase: Phase::Armed,
+                ..machine
+            },
+            Vec::new(),
+        ),
+        Phase::Spent {
+            rearm: Rearm::Over, ..
+        } => (
+            CornerMachine {
+                phase: Phase::Armed,
+                ..machine
+            },
+            Vec::new(),
+        ),
+        Phase::Spent { rearm, .. } => (
+            CornerMachine {
+                phase: Phase::Spent {
+                    pointer: Inside::Out,
+                    rearm,
+                },
+                ..machine
+            },
+            Vec::new(),
+        ),
+        Phase::Armed => (machine, Vec::new()),
+    }
+}
+
+/// The dwell ran out: a stale token (the pointer already left, or a fresh dwell started) does
+/// nothing; a live one fires when the required modifier is held, else blocks until the pointer
+/// leaves.
+fn dwell_elapsed(
+    machine: CornerMachine,
+    token: Token,
+    params: CornerParams,
+) -> (CornerMachine, Vec<CornerOut>) {
+    let Phase::Dwelling(current) = machine.phase else {
+        return (machine, Vec::new());
+    };
+    if current != token {
+        return (machine, Vec::new());
+    }
+    if held(machine.mods, params.modifier) == KeyState::Down {
+        let rearm = machine.next;
+        let next = Token(rearm.0 + 1);
+        let phase = Phase::Spent {
+            pointer: Inside::In,
+            rearm: Rearm::Running(rearm),
+        };
+        (
+            CornerMachine {
+                phase,
+                next,
+                ..machine
+            },
+            vec![
+                CornerOut::Fire,
+                CornerOut::StartRearm(rearm, params.rearm_ms),
+            ],
+        )
+    } else {
+        (
+            CornerMachine {
+                phase: Phase::Blocked,
+                ..machine
+            },
+            Vec::new(),
+        )
+    }
+}
+
+/// The re-arm ran out: a stale token does nothing; a live one re-arms at once if the pointer has
+/// already left, else only marks the re-arm over (the next leave finishes it).
+fn rearm_elapsed(machine: CornerMachine, token: Token) -> (CornerMachine, Vec<CornerOut>) {
+    let Phase::Spent {
+        pointer,
+        rearm: Rearm::Running(current),
+    } = machine.phase
+    else {
+        return (machine, Vec::new());
+    };
+    if current != token {
+        return (machine, Vec::new());
+    }
+    match pointer {
+        Inside::Out => (
+            CornerMachine {
+                phase: Phase::Armed,
+                ..machine
+            },
+            Vec::new(),
+        ),
+        Inside::In => (
+            CornerMachine {
+                phase: Phase::Spent {
+                    pointer,
+                    rearm: Rearm::Over,
+                },
+                ..machine
+            },
+            Vec::new(),
+        ),
+    }
 }
 
 /// Whether `mods` satisfies `needed`.
@@ -162,7 +310,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: d-corners"]
     fn the_corner_follows_its_table() {
         use CornerIn::*;
         let spent = |pointer, rearm| Phase::Spent { pointer, rearm };
@@ -261,7 +408,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: d-corners"]
     fn a_held_modifier_lets_the_corner_fire() {
         let down = Mods {
             super_key: KeyState::Down,

@@ -9,13 +9,15 @@
 //! manager ([`show_desktop`]), and the workspace overview and a custom command as child
 //! processes.
 
-use shell_host::HostCtx;
+use std::process::Stdio;
+
+use shell_host::{HostCtx, OutputId, Root, SurfaceOp};
 use sill_ipc::{CornerName, Failure, FailureKind, FakeCorner, Response};
 use sill_launcher::WindowKey;
 use sill_services::cosmic_wl::WorkspaceKey;
-use sill_services::{Services, Toplevel, WlCommand};
+use sill_services::{Activity, Services, Toplevel, WindowState, WlCommand};
 use sill_settings::{CornerAction, ShellFile};
-use sill_surfaces::surfaces::hot_corners::{Corner, CornerLink};
+use sill_surfaces::surfaces::hot_corners::{Corner, CornerLink, HotCornerProps, corner_layer};
 use sill_surfaces::surfaces::launcher::LauncherLink;
 use tokio::runtime::Handle;
 use tokio::sync::watch;
@@ -43,8 +45,23 @@ pub enum CornerEffect {
 /// What `action` does; `command` is the corner's `*_command` (a `Command` with an empty one does
 /// nothing).
 pub fn corner_effect(action: CornerAction, command: &str) -> CornerEffect {
-    let _ = (action, command);
-    todo!("M10 fill: d-corners")
+    match action {
+        CornerAction::None => CornerEffect::Nothing,
+        CornerAction::Launcher => CornerEffect::Launcher,
+        CornerAction::NotificationCenter => CornerEffect::NotificationCenter,
+        CornerAction::ControlCenter => CornerEffect::ControlCenter,
+        CornerAction::ShowDesktop => CornerEffect::ShowDesktop,
+        CornerAction::Lock => CornerEffect::Lock,
+        CornerAction::Workspaces => CornerEffect::Run {
+            program: "cosmic-workspaces".to_owned(),
+            args: Vec::new(),
+        },
+        CornerAction::Command if command.trim().is_empty() => CornerEffect::Nothing,
+        CornerAction::Command => CornerEffect::Run {
+            program: "/bin/sh".to_owned(),
+            args: vec!["-c".to_owned(), command.to_owned()],
+        },
+    }
 }
 
 /// The windows Show Desktop minimised, to bring back on its next firing.
@@ -59,8 +76,29 @@ pub fn show_desktop(
     active: &[WorkspaceKey],
     stash: &Stash,
 ) -> (Vec<WlCommand>, Stash) {
-    let _ = (windows, active, stash);
-    todo!("M10 fill: d-corners")
+    let restore: Vec<WindowKey> = stash
+        .0
+        .iter()
+        .copied()
+        .filter(|key| {
+            windows
+                .iter()
+                .any(|w| w.key == *key && w.window == WindowState::Minimized)
+        })
+        .collect();
+    if !restore.is_empty() {
+        let commands = restore.into_iter().map(WlCommand::Unminimize).collect();
+        return (commands, Stash::default());
+    }
+    let minimize: Vec<WindowKey> = windows
+        .iter()
+        .filter(|w| {
+            w.window == WindowState::Normal && w.workspaces.iter().any(|ws| active.contains(ws))
+        })
+        .map(|w| w.key)
+        .collect();
+    let commands = minimize.iter().copied().map(WlCommand::Minimize).collect();
+    (commands, Stash(minimize))
 }
 
 /// The surface side's corner for the wire's name.
@@ -73,20 +111,52 @@ pub fn corner_of(name: CornerName) -> Corner {
     }
 }
 
-/// Spawn a corner surface for each active corner of every output that lacks one, and close the
-/// surfaces of corners whose action became `None` (a settings change). Lane d fills it; until
-/// then no corner surface exists.
+/// Spawn a corner surface for each active corner of every output that lacks one, close the
+/// surfaces of corners whose action became `None` (a settings change), and keep every remaining
+/// one's size at `hot_corners.size_px`.
 pub fn spawn_missing(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &mut Outputs,
     settings: &watch::Sender<ShellFile>,
-    root: impl Fn(shell_host::Root) -> shell_host::Root,
+    root: impl Fn(Root) -> Root,
 ) {
-    let _ = (ctx, outputs, settings, root);
+    let file = settings.borrow().clone();
+    let wanted = sill_surfaces::surfaces::hot_corners::active_corners(&file.hot_corners);
+    let size = file.hot_corners.size_px.0;
+    for (info, surfaces) in &mut outputs.outputs {
+        for corner in Corner::ALL {
+            match (wanted.contains(&corner), surfaces.corners.get(corner)) {
+                (false, Some(id)) => {
+                    ctx.close(id);
+                    surfaces.corners.set(corner, None);
+                }
+                (true, None) => {
+                    let config = corner_layer(info, corner, size);
+                    let namespace = config.namespace.clone();
+                    let props = HotCornerProps {
+                        output: info.clone(),
+                        corner,
+                    };
+                    let surface = root(Root::with_props(sill_surfaces::HotCorner, props));
+                    match ctx.spawn_layer(config, surface) {
+                        Ok(id) => surfaces.corners.set(corner, Some(id)),
+                        Err(error) => {
+                            eprintln!("sill: spawning {namespace} on {:?}: {error}", info.name)
+                        }
+                    }
+                }
+                (true, Some(id)) => {
+                    let config = corner_layer(info, corner, size);
+                    ctx.apply(id, SurfaceOp::SetSize(config.size));
+                }
+                (false, None) => {}
+            }
+        }
+    }
 }
 
 /// Follow `link` on `rt` and carry out each hit's action (read from `settings` at the hit)
-/// through `services`, `links` and `launcher`. Lane d fills it; until then hits are dropped.
+/// through `services`, `links` and `launcher`.
 pub fn spawn_hits(
     rt: &Handle,
     link: &CornerLink,
@@ -94,7 +164,83 @@ pub fn spawn_hits(
     services: Services,
     launcher: LauncherLink,
 ) {
-    let _ = (rt, link.subscribe(), settings, services, launcher);
+    let mut hits = link.subscribe();
+    rt.spawn(async move {
+        let mut stash = Stash::default();
+        loop {
+            if hits.changed().await.is_err() {
+                return;
+            }
+            let Some(hit) = *hits.borrow_and_update() else {
+                continue;
+            };
+            let file = settings.borrow().clone();
+            let action =
+                sill_surfaces::surfaces::hot_corners::corner_action(&file.hot_corners, hit.corner);
+            let command =
+                sill_surfaces::surfaces::hot_corners::corner_command(&file.hot_corners, hit.corner)
+                    .to_owned();
+            let effect = corner_effect(action, &command);
+            act(effect, hit.output, &services, &launcher, &mut stash).await;
+        }
+    });
+}
+
+/// Carry out `effect` on `output`: toggle the launcher, notification center or control center;
+/// minimise (or restore) windows for Show Desktop; lock through the session's locker; spawn a
+/// detached child process for `Run` (the workspace overview, or a custom command).
+async fn act(
+    effect: CornerEffect,
+    output: OutputId,
+    services: &Services,
+    launcher: &LauncherLink,
+    stash: &mut Stash,
+) {
+    match effect {
+        CornerEffect::Nothing => {}
+        CornerEffect::Launcher => launcher.toggle(output),
+        CornerEffect::NotificationCenter => {
+            if let Some(links) = crate::links::get() {
+                links.notification_center.toggle(output);
+            }
+        }
+        CornerEffect::ControlCenter => {
+            if let Some(links) = crate::links::get() {
+                links.control_center.toggle(output);
+            }
+        }
+        CornerEffect::ShowDesktop => {
+            let windows = services.toplevels.borrow().windows.clone();
+            let active: Vec<WorkspaceKey> = services
+                .workspaces
+                .borrow()
+                .groups
+                .iter()
+                .filter_map(|group| {
+                    group
+                        .workspaces
+                        .iter()
+                        .find(|workspace| workspace.activity == Activity::Active)
+                        .map(|workspace| workspace.key)
+                })
+                .collect();
+            let (commands, next) = show_desktop(&windows, &active, stash);
+            *stash = next;
+            for command in commands {
+                let _ = services.wl.send(command);
+            }
+        }
+        CornerEffect::Lock => {
+            let _ = crate::session::lock(services);
+        }
+        CornerEffect::Run { program, args } => {
+            let mut command = tokio::process::Command::new(&program);
+            command.args(&args).stdin(Stdio::null()).kill_on_drop(false);
+            if let Err(error) = command.spawn() {
+                eprintln!("sill: hot corner: running {program}: {error}");
+            }
+        }
+    }
 }
 
 /// `sill debug corner CORNER`: a hit of `corner` on the first output, as if its dwell had run
@@ -150,7 +296,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: d-corners"]
     fn show_desktop_minimises_the_workspace_then_brings_it_back() {
         let active = [WorkspaceKey(1)];
         let windows = vec![
@@ -201,7 +346,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: d-corners"]
     fn each_action_has_its_effect() {
         let run = |program: &str, args: &[&str]| CornerEffect::Run {
             program: program.to_owned(),
