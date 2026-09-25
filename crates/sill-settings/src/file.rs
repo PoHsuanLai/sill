@@ -21,6 +21,7 @@ use crate::scrollbar::ScrollbarSettings;
 use crate::sound::SoundSettings;
 use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
+use crate::window::WindowSettings;
 
 /// The directory name under `$XDG_CONFIG_HOME` (and `$XDG_STATE_HOME`, `$XDG_CACHE_HOME`).
 pub const APP: AppName = AppName("sill");
@@ -53,6 +54,7 @@ pub struct ShellFile {
     pub spaces: SpacesSettings,
     pub display: DisplaySettings,
     pub osd: OsdSettings,
+    pub window: WindowSettings,
     /// M5 (FINDINGS "M5 freeze"): no design/22 rows yet.
     pub power_menu: PowerMenuSettings,
     /// Tables this build does not know, kept for the next write.
@@ -77,6 +79,7 @@ impl Default for ShellFile {
             spaces: SpacesSettings::default(),
             display: DisplaySettings::default(),
             osd: OsdSettings::default(),
+            window: WindowSettings::default(),
             power_menu: PowerMenuSettings::default(),
             extra: toml::Table::new(),
         }

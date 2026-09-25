@@ -19,6 +19,7 @@ pub enum SettingsChange {
     Spaces,
     Display,
     Osd,
+    Window,
     PowerMenu,
 }
 
@@ -45,6 +46,7 @@ pub fn apply(old: &ShellFile, new: &ShellFile) -> Vec<SettingsChange> {
         (old.spaces != new.spaces, SettingsChange::Spaces),
         (old.display != new.display, SettingsChange::Display),
         (old.osd != new.osd, SettingsChange::Osd),
+        (old.window != new.window, SettingsChange::Window),
         (old.power_menu != new.power_menu, SettingsChange::PowerMenu),
     ]
     .into_iter()

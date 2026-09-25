@@ -17,6 +17,7 @@ use crate::scrollbar::ScrollbarSettings;
 use crate::sound::SoundSettings;
 use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
+use crate::window::WindowSettings;
 
 /// One schema per domain, in `ShellFile` order.
 pub fn schemas() -> Vec<Schema> {
@@ -34,6 +35,7 @@ pub fn schemas() -> Vec<Schema> {
         SpacesSettings::schema(),
         DisplaySettings::schema(),
         OsdSettings::schema(),
+        WindowSettings::schema(),
         PowerMenuSettings::schema(),
     ]
 }

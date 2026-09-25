@@ -30,6 +30,7 @@ pub mod sound;
 pub mod spaces;
 pub mod switcher;
 pub mod watch;
+pub mod window;
 
 pub use bar::{BarGlyphSize, BarSettings};
 pub use control_center::{ControlCenterModule, ControlCenterSettings, InMenuBar, PanelMaterial};
@@ -63,5 +64,6 @@ pub use spaces::{
 };
 pub use switcher::SwitcherSettings;
 pub use watch::{ShellWatch, watch};
+pub use window::WindowSettings;
 
 pub use ds_settings::{Count, Fraction, Ms, Percent, Px, Scalar};
