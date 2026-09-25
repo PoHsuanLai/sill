@@ -45,5 +45,10 @@ sill-settings = { workspace = true }
 [[example]]
 name = "badge_emitter"
 
+# A fake MPRIS player for exercising Now Playing without a real one: `tests/media_live.rs` runs
+# it as a child process, under its own bus name.
+[[example]]
+name = "mpris_player"
+
 [lints]
 workspace = true

@@ -10,7 +10,6 @@ use sill_settings::{Delivery, FocusMode, ShellFile, focus_mode, load, spawn_focu
 use tokio::sync::watch;
 
 #[test]
-#[ignore = "M5 fill: svc-media-wifi-focus (b)"]
 fn a_set_is_stored_and_the_mode_follows_the_feed() {
     let dir = TempDir::new("focus");
     let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
