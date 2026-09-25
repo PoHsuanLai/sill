@@ -37,36 +37,7 @@ const DOC_ALIASES: &[&str] = &["spaces.material_tint_alpha"];
 /// Keys registered in sill whose §3 rows quire's design/22 has not gained yet: quire's owner adds
 /// them (sill FINDINGS lists each row). A key here needs no row until it has one; once the row
 /// lands it is checked like every other key, and the entry can go.
-const AWAITING_ROWS: &[&str] = &[
-    // M10 (sill FINDINGS "M10 freeze", Q185).
-    "widgets.center",
-    "widgets.desktop",
-    "widgets.desktop_widgets",
-    "widgets.desktop_cell_px",
-    "widgets.desktop_gap_px",
-    "widgets.world_clocks",
-    "calendar.sources",
-    "calendar.first_weekday",
-    "calendar.week_numbers",
-    "calendar.up_next_days",
-    "calendar.up_next_max",
-    "screenshot.thumbnail",
-    "screenshot.thumbnail_hold_ms",
-    "screenshot.folders",
-    "screenshot.tool",
-    "hot_corners.top_left",
-    "hot_corners.top_right",
-    "hot_corners.bottom_left",
-    "hot_corners.bottom_right",
-    "hot_corners.top_left_command",
-    "hot_corners.top_right_command",
-    "hot_corners.bottom_left_command",
-    "hot_corners.bottom_right_command",
-    "hot_corners.dwell_ms",
-    "hot_corners.rearm_ms",
-    "hot_corners.modifier",
-    "hot_corners.size_px",
-];
+const AWAITING_ROWS: &[&str] = &[];
 
 fn doc_keys() -> Vec<String> {
     let doc = doc();
