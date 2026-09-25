@@ -1,9 +1,10 @@
 //! The month grid, computed: pure over the month, the first weekday, today and the busy days,
 //! so the widget and quire's `MonthGrid` (Q180) take the same data.
 
+use jiff::ToSpan;
 use jiff::civil::{Date, Weekday};
 use jiff::tz::TimeZone;
-use sill_services::CalEvent;
+use sill_services::{CalEvent, EventTime};
 use sill_settings::FirstWeekday;
 
 /// A calendar month.
@@ -86,21 +87,123 @@ pub struct MonthGrid {
 
 /// The month after or before `month`.
 pub fn shift_month(month: Month, step: Step) -> Month {
-    let _ = (month, step);
-    todo!("M10 fill: a-calendar")
+    match (step, month.month) {
+        (Step::Next, 12) => Month {
+            year: month.year.saturating_add(1),
+            month: 1,
+        },
+        (Step::Next, m) => Month {
+            year: month.year,
+            month: m + 1,
+        },
+        (Step::Previous, 1) => Month {
+            year: month.year.saturating_sub(1),
+            month: 12,
+        },
+        (Step::Previous, m) => Month {
+            year: month.year,
+            month: m - 1,
+        },
+    }
 }
 
 /// `month` laid out from `first`, `today` marked, each day in `busy` marked busy.
 pub fn month_grid(month: Month, first: FirstWeekday, today: Date, busy: &[Date]) -> MonthGrid {
-    let _ = (month, first, today, busy);
-    todo!("M10 fill: a-calendar")
+    let head = match first {
+        FirstWeekday::Monday => Weekday::Monday,
+        FirstWeekday::Sunday => Weekday::Sunday,
+    };
+    let weekdays: [Weekday; 7] = std::array::from_fn(|i| head.wrapping_add(i as i64));
+    let opening = first_of(month);
+    let back = i64::from(opening.weekday().since(head));
+    let start = opening.saturating_sub(back.days());
+    let closing = opening.last_of_month();
+    let weeks = (0..6)
+        .map(|row| start.saturating_add((row * 7).days()))
+        .take_while(|row_start| *row_start <= closing)
+        .map(|row_start| week_of(row_start, month, today, busy))
+        .collect();
+    MonthGrid {
+        month,
+        weekdays,
+        weeks,
+    }
+}
+
+/// The month's first day (a month out of range reads as January 1970's, never a panic).
+fn first_of(month: Month) -> Date {
+    Date::new(month.year, month.month, 1).unwrap_or(Date::constant(1970, 1, 1))
+}
+
+/// One row from `start`.
+fn week_of(start: Date, month: Month, today: Date, busy: &[Date]) -> GridWeek {
+    let days: [GridDay; 7] = std::array::from_fn(|i| {
+        let date = start.saturating_add((i as i64).days());
+        GridDay {
+            date,
+            place: match Month::of(date).cmp(&month) {
+                std::cmp::Ordering::Less => DayPlace::Before,
+                std::cmp::Ordering::Equal => DayPlace::InMonth,
+                std::cmp::Ordering::Greater => DayPlace::After,
+            },
+            mark: match date == today {
+                true => DayMark::Today,
+                false => DayMark::Plain,
+            },
+            events: match busy.contains(&date) {
+                true => Eventful::Busy,
+                false => Eventful::Free,
+            },
+        }
+    });
+    let thursday = days
+        .iter()
+        .find(|day| day.date.weekday() == Weekday::Thursday)
+        .map_or(start, |day| day.date);
+    GridWeek {
+        number: IsoWeek(thursday.iso_week_date().week()),
+        days,
+    }
 }
 
 /// The days of `month` that have at least one event in `zone` (an all-day event marks each of
 /// its days, a timed one each local day it touches), sorted, once each.
 pub fn busy_days(events: &[CalEvent], zone: &TimeZone, month: Month) -> Vec<Date> {
-    let _ = (events, zone, month);
-    todo!("M10 fill: a-calendar")
+    let opening = first_of(month);
+    let closing = opening.last_of_month();
+    let mut days: Vec<Date> = events
+        .iter()
+        .filter_map(|event| local_days(event, zone))
+        .flat_map(|(first, last)| {
+            let from = first.max(opening);
+            let to = last.min(closing);
+            let count = from.until(to).map_or(-1, |span| i64::from(span.get_days()));
+            (0..=count).map(move |i| from.saturating_add(i.days()))
+        })
+        .collect();
+    days.sort_unstable();
+    days.dedup();
+    days
+}
+
+/// The local days `event` touches, first and last: a timed event ending at midnight does not
+/// touch the day it ends on, a moment touches its own.
+fn local_days(event: &CalEvent, zone: &TimeZone) -> Option<(Date, Date)> {
+    match event.when {
+        EventTime::AllDay { first, last } => Some((first, last)),
+        EventTime::Timed { start, end } => {
+            let first = start.to_zoned(zone.clone()).date();
+            let last = match end > start {
+                true => end
+                    .checked_sub(1.nanosecond())
+                    .ok()?
+                    .to_zoned(zone.clone())
+                    .date(),
+                false => first,
+            };
+            Some((first, last.max(first)))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -121,7 +224,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: a-calendar"]
     fn months_step_across_years() {
         let cases = [
             (
@@ -161,7 +263,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: a-calendar"]
     fn september_2026_from_monday_and_from_sunday() {
         let today = date(2026, 9, 26);
         let busy = [date(2026, 9, 28)];
@@ -192,7 +293,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: a-calendar"]
     fn a_february_that_fits_four_weeks_has_four() {
         let feb = Month {
             year: 2027,

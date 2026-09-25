@@ -71,8 +71,7 @@ pub struct IcsProvider {
 
 impl EventsProvider for IcsProvider {
     fn read(&self, window: Window, zone: &TimeZone) -> ProviderRead {
-        let _ = (window, zone, &self.places);
-        todo!("M10 fill: a-calendar")
+        super::read::read_places(&self.places, window, zone)
     }
 
     fn watched(&self) -> Vec<PathBuf> {
@@ -148,7 +147,6 @@ mod tests {
     /// A file and a vdir collection in a temp dir are two calendars; a broken file in the
     /// collection is one problem and costs only its own event.
     #[test]
-    #[ignore = "M10 fill: a-calendar"]
     fn an_ics_provider_reads_files_and_collections() {
         let dir = std::env::temp_dir().join(format!("sill-ics-{}", std::process::id()));
         let collection = dir.join("dav");

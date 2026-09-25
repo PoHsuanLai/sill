@@ -31,10 +31,16 @@
 
 pub mod agenda;
 pub mod ics;
+mod ics_line;
+mod ics_value;
 mod live;
+mod live_watch;
 pub mod model;
+mod occur;
 pub mod provider;
+mod read;
 pub mod rule;
+mod rule_expand;
 pub mod sources;
 
 pub use agenda::{Days, up_next};

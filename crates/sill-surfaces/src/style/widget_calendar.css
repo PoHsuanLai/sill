@@ -1,2 +1,37 @@
-/* The Calendar widget (widgets/calendar; M10 lane a). Empty at the freeze; its lane adds the rules for the month grid's stand-in layout until quire's `MonthGrid` (Q180), with quire's tokens
-   only (coherence rule 1). */
+/* The Calendar widget (widgets/calendar; M10 lane a): macOS's month, laid out with quire's tokens
+   only (coherence rule 1) until quire's `MonthGrid` (Q180) replaces the grid below. The month's
+   name in the accent, weekday initials, today on the accent disc, a dot under each busy day. */
+
+.sill-cal{ display:flex; flex-direction:column; gap:var(--s-2); color:var(--ink); }
+
+/* The month's name and the previous / next buttons. */
+.sill-cal-head{ display:flex; align-items:center; justify-content:space-between;
+  padding:0 0 var(--s-2) var(--s-4); }
+.sill-cal-title{ color:var(--accent); font-size:var(--fs-small); font-weight:700;
+  text-transform:uppercase; }
+.sill-cal-steps{ display:flex; gap:var(--s-2); }
+
+/* A row: the week number when shown, then seven equal cells. */
+.sill-cal-row{ display:flex; align-items:center; }
+.sill-cal-cell{ flex:1 1 0; display:flex; flex-direction:column; align-items:center; }
+.sill-cal-heads{ padding:0 0 var(--s-1); }
+.sill-cal-weekday{ color:var(--ink-faint); font-size:var(--fs-caption); font-weight:700; }
+.sill-cal-week{ flex:0 0 var(--s-22); display:flex; justify-content:center;
+  color:var(--ink-faint); font-size:var(--fs-caption); }
+
+/* A day: its number (on the accent disc today) and the dot under it. */
+.sill-cal-day{ gap:var(--s-1); font-size:var(--fs-small); }
+.sill-cal-in{ color:var(--ink); }
+.sill-cal-out{ color:var(--ink-faint); }
+.sill-cal-num{ display:flex; align-items:center; justify-content:center; width:var(--s-22);
+  height:var(--s-22); border-radius:var(--r-pill); }
+.sill-cal-today{ background:var(--accent); color:var(--accent-ink); font-weight:700; }
+.sill-cal-dot{ width:var(--s-4); height:var(--s-4); border-radius:var(--r-pill); }
+.sill-cal-busy{ background:var(--ink-soft); }
+
+/* On the desktop the month fits one small cell. */
+.sill-cal-desktop{ gap:0; }
+.sill-cal-desktop .sill-cal-day{ font-size:var(--fs-caption); gap:0; }
+.sill-cal-desktop .sill-cal-num{ width:var(--s-16); height:var(--s-16); }
+.sill-cal-desktop .sill-cal-dot{ width:var(--s-2); height:var(--s-2); }
+.sill-cal-center{ padding:var(--s-2) 0; }

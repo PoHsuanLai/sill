@@ -5,6 +5,7 @@
 //! computes it and the view lays out text with quire's tokens only, and the gap says so.
 
 pub mod grid;
+mod shown;
 mod view;
 
 pub use grid::{DayMark, DayPlace, Eventful, GridDay, GridWeek, IsoWeek, Month, MonthGrid, Step};
