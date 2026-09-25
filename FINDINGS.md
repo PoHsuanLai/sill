@@ -3455,3 +3455,93 @@ injects no keys): the harness proves them
 - **Q124** rich runs: the body is drawn as plain text (`Body::text`), so bold, italic, underline
   and links (`CardPress::Link`) wait.
 - **Q125** is lane c's (the group header); the center shows the card's `app_label`.
+
+## M6 lane d: real input, and lane c's clean-ups (2026-09-26)
+
+Lane d of "The M6 fill-in": `dev/accept-notifications-real-input.sh` on shell-host's headless
+KWin, then F325's follow-ups. Findings take F340-, Q160-, G100-.
+
+- **F340 The real-input acceptance.** The daemon runs from the debug build on the headless KWin
+  (`kwin-virtual.sh start 1920x1080`) and its private bus, which since shell-host F56 is
+  `private-bus.conf` (G61 closed upstream), with its own `XDG_RUNTIME_DIR` (`WAYLAND_DISPLAY` the
+  absolute socket), scratch config and state, `notifications.server = "own"`; the script reads
+  `.kwin-env` without sourcing it, so `kwin-virtual.sh stop` never meets it. Every notification is
+  `sill debug notify`; one fake-input client serves the run; a `gdbus monitor` on KWin's bus
+  records the service's signals. The column is found from KWin's window list
+  (`kwin-windows.sh`: the 440 px wide sill window, at 1512,0 on KWin: its negative margins put it
+  32 px past the right edge and over the bar's reserve, as on cosmic-comp) and the card from a
+  capture of it (1552..1912 x 40..122 for a two-line card).
+- **F341 KWin keeps the center under the bar too.** The all-anchored Overlay with exclusive zone
+  `Auto` is `[0, 32, 1920, 980]` on KWin: below the bar's 32 and above the dock's 68 reserve, as
+  F326 found on cosmic-comp. It takes the keyboard when opened by a click on the clock (KWin marks
+  it active), so real Escape, Down and Delete reach it.
+- **F342 `BarMenu::Clock` and `BarState.clock` are gone** (F325's follow-up). The menu-tracking
+  tables in `plan.rs` used the clock as their stand-in status menu; they now use the Volume item
+  (a status menu on the same side; each case opens one menu), so no case was lost. `BarState`
+  no longer reads `use_clock`, so the bar's root no longer re-renders on the minute: only
+  `ClockItem`, which reads it itself, does. `content.rs`'s app menu still uses `lines_menu`.
+- **F343 The bar scripts' menu step.** Both `dev/accept-bar.sh` and `dev/accept-bar-ui.sh` now
+  open the control center's item (the status item left of the clock, found from a capture of the
+  bar as `dev/accept-real-input.sh` finds it), keeping their intent (a title opens the bar's one
+  popup, an outside press dismisses it). `accept-bar.sh` gains `step_clock_center`: a click on the
+  clock opens `sill-notification-center-<out>` and no bar popup, a second closes it.
+  `accept-bar-ui.sh`'s transparency check allows alpha 16 instead of 8: the control center hangs
+  8 px under the popup's top edge, so the middle of that edge is in its drop shadow (alpha 10);
+  the date menu had more room.
+
+### Acceptance
+
+`dev/accept-notifications-real-input.sh` (headless KWin 1920 x 1080, real pointer and keys):
+
+```
+PASS step_holder              status: holder sill, mode own
+PASS step_hover               hovered at 4000 ms: still up at 7000 ms; gone 1718 ms after the
+                              pointer left (limit 2150); kept 0 -> 1
+PASS step_close_button        hovered, the close button shows; a real click on it at 1556,44:
+                              gone in 181 ms, kept 2 -> 1
+PASS step_click_default       a real click on the body: the card left in 139 ms, kept 2 -> 1;
+                              the bus: ActionInvoked (uint32 3, 'default')
+PASS step_swipe               a real 90 px drag right: gone in 131 ms; banners 0, kept 2
+                              (kept in the center)
+PASS step_spring_back         a real 50 px drag, slowed: the card is back at x 1552, banners 1
+PASS step_center_clock_escape a real click on the clock (1852 16) opened the center; real Escape
+                              closed it
+PASS step_center_outside      a real click outside the column (200 540) closed the center
+PASS step_center_delete       in the center, real Down then Delete cleared chat's group:
+                              kept 4 -> 2
+PASS step_idle                5 s idle: 0 frames on the banners and on the center
+PASS step_holder              status: holder sill, mode own
+```
+
+KWin, the input client, the monitor and the daemon (`sill quit`) are stopped at the end.
+`dev/accept-bar.sh` on the nested cosmic-comp (2560 x 1600; daemon under `dbus-run-session
+--config-file=dev/private-bus.conf`, scratch config): 9/9, `step_menus` "opened: yes, dismissed:
+yes" (the control center at 2418,16), `step_clock_center` "the clock opened the center: yes, a
+bar menu: no, a second click closed it: yes"; `dev/out/bar-cosmic-menu.png` retaken with the
+control center open. `dev/accept-bar-ui.sh` (its own headless KWin): exclusive zone, idle,
+menus and popup transparency pass (corner alphas 1 1 0 0 10 8); `dev/out/bar.png` retaken.
+
+### Gaps found under real input (shell-host; `dev/accept-notifications-real-input.sh repro`)
+
+Neither is sill's to fix; both FAIL in `repro` mode today, and the acceptance is ordered around
+them (a move is a move and a 1 px nudge; the close button comes before the first click).
+
+- **G100 (shell-host) An enter moves nothing.** `handlers/pointer.rs` takes
+  `PointerEventKind::Enter` (focus, zone, cursor) but does not move the document's pointer to its
+  position, so a pointer that reaches a surface in one motion (KWin sends the enter with the
+  position and no motion) hovers nothing until it moves again. Repro step
+  `repro_enter_one_motion`: "one motion onto the card: hovered no; after a second motion: yes".
+  Real mice send streams of motions, so this mostly hides; a banner that appears under a resting
+  pointer and one small nudge show it. Fix: `pointer_moved(id, pos)` on enter.
+- **G101 (shell-host) An unmapped surface keeps its hover.** After a card leaves under the pointer
+  (a click on it, or its close button) the column unmaps; `ctx/ops.rs::unmap` rebuilds the
+  wl_surface without `document.pointer_left`, and the compositor's leave then names a surface
+  the host no longer knows (`surface_id_for` is `None`), so the document keeps a hover chain on
+  the removed card. The next card is never announced as entered: no `mouseenter`, so **no hover
+  pause and no close button**, even when the pointer went elsewhere while the column was unmapped
+  and comes back with a move and a nudge (most likely the new card's node reuses the removed
+  one's id, so Blitz sees no hover change). Leaving the column and re-entering it hovers it.
+  Repro step `repro_hover_after_unmap`: "a card mapped under the pointer, moved on: hovered no;
+  out and back: yes". Fix: clear the document's pointer (`pointer_left`, and `pointer_focus` if
+  it named the surface) in `unmap`. User-visible: after clicking one banner, the next one may
+  time out under the pointer.
