@@ -2931,3 +2931,347 @@ daemon (a real hang would now be silently swept away by it): `await_exit` waits 
 to end on its own and fails the script if it does not. All six steps still pass, twice in a row,
 with the daemon and its `cosmic-randr` child both gone (checked by `pgrep`) after each run.
 
+## M6 freeze (2026-09-25)
+
+Notifications (design/20 §1.6, design/13 §13.3.6): an `org.freedesktop.Notifications` server,
+banners, and the notification center, frozen on `m6-freeze` so three agents can fill them in
+parallel and a fourth can prove them under real input. Everything compiles; every pure function
+a later agent fills is `todo!()` with its table test `#[ignore = "M6 fill: <lane>"]`, so the
+suite stays green and each agent's first step is to delete its `ignore`s. Findings are numbered
+from F260/Q120/G60; the lanes take F280/Q130/G70 (a), F300/Q140/G80 (b), F320/Q150/G90 (c) and
+F340/Q160/G100 (d) so they cannot collide.
+
+- **F260 Dependencies: none added.** The server is `zbus` 5 (pinned block, `tokio` feature, no
+  defaults): `notifications/dbus.rs` holds the `#[interface(name =
+  "org.freedesktop.Notifications")]` object with `Notify`, `CloseNotification`,
+  `GetCapabilities`, `GetServerInformation` (`out_args`) and the `NotificationClosed`,
+  `ActionInvoked` and `ActivationToken` signals, so the macro and `SignalEmitter` are proven to
+  build on the workspace's features before anyone starts. The body markup is parsed by hand (the
+  spec's subset is five tags and the XML entities: no `quick-xml`/`html5ever` for that);
+  `image-data` is converted to RGBA by hand; the history is `serde_json`, its path `dirs`. Not
+  read: cosmic-notifications' source (GPL-3.0, not on this machine); the freedesktop
+  Notifications Specification 1.2 is enough, and lane a reads the GPL source, if at all, for
+  facts only (CONVENTIONS "Borrowing": note-and-close, never pasted, never into a prompt).
+  `cargo deny check licenses` is unchanged.
+- **F261 The service's shape.** `sill_services::notifications`: `spawn(rt)` (session bus,
+  history in `$XDG_STATE_HOME/sill/notifications.json`) and `spawn_with(rt, Setup { bus:
+  BusChoice::{Session, Address}, history: HistoryPlace::{State, At, NotKept} })`, returning two
+  receivers and a control. `Notifications { server: ServerStatus, banners: Vec<LiveBanner> }` is
+  what the banners follow; `History { groups: Vec<AppGroup> }` (grouped by `AppKey`: the
+  `desktop-entry` hint, else `app_name`; groups and notes newest first; no empty group) is what
+  the center follows: two channels, as Wi-Fi is apart from `Network`, so a banner coming and
+  going does not repaint a closed center. `Services` gains `notifications`,
+  `notification_history` and `notifications_control`. A `Notify` becomes a `Posting` once, at
+  the boundary (`posting_from_wire`: markup to `Body` runs, actions paired, hints typed:
+  `NotifyUrgency`, `category`, `NoteImage::{None, Icon, Pixels}`, `Transience`, `Residency`,
+  `SoundHint`, `Expiry::{Default, Never, Ms}`), then a `Notification` with an id and a
+  wall-clock `UnixMs` (persisted, so not the monotonic `Stamp`). The one reducer is
+  `reduce_notifications(NotesState, NotificationsEvent, &NotificationsPolicy) -> (NotesState,
+  Vec<NotificationsEffect>)`: signals (`Closed { id, reason }`, `Invoked { id, action, token }`),
+  `SaveHistory` and `Sound` are returned, not performed. Its rules are its module doc and
+  `reduce_tests.rs` (12 tables); `assign_id` counts up from the history's `last_id`, reuses a
+  held `replaces_id`, and skips 0.
+- **F262 Leaving, closing, and where the time is counted.** The banner's hold
+  (`notifications.banner_hold_ms`, 5200, paused while hovered: the existing banner machine) is
+  counted by the banner surface, which says `BannerTimedOut(id)`; the sender's
+  `expire_timeout` only makes a banner persist (0), as design/13 §13.3.6 says. A banner that
+  times out **stays in the history and emits nothing** (the notification still exists: a later
+  click in the center still invokes its action); a `transient` one, which the history never
+  held, is then `NotificationClosed` reason 1. A swipe, the close button, a center row's clear
+  and `DismissAll` are **dismissals**: removed from the banners and the history, reason 2
+  (design/13 acceptance 10). An action is `ActivationToken` (when the surface got a token) then
+  `ActionInvoked`, then, unless `resident`, a dismissal. `CloseNotification` is reason 3. Open
+  question for the user: macOS moves a swiped banner into Notification Center rather than
+  deleting it; design/13 makes the swipe a dismissal, and the freeze follows design/13.
+- **F263 It never fights another daemon.** The name is requested only while the policy says
+  `ServerMode::Own`, with `AllowReplacement | DoNotQueue` and never `ReplaceExisting`: a holder
+  (cosmic-notifications, mako, plasmashell) keeps it, the service reports it
+  (`NameHolder::Other(NameOwner { unique, pid, command })`), and it asks again only when
+  `NameOwnerChanged` says the name fell free; a daemon that asks with `ReplaceExisting` later
+  takes it (`NameLost`, reported). **Until the daemon's first `NotificationsCommand::Policy`
+  the service is passive** (`ServerMode`'s default), so `Services::spawn` in a test or a
+  headless render never asks for the name; `notifications.server` (`Own` by default) reaches it
+  through `crates/sill/src/notifications/policy.rs::spawn_policy`, which follows the settings
+  and the focus link and sends the policy at start and on every change. On this machine
+  plasmashell holds the name on the real session bus (`busctl --user status
+  org.freedesktop.Notifications`), so a `sill run` in the real session is passive in effect.
+- **F264 A private bus that activates nothing.** `dbus-run-session` with the stock
+  `session.conf` is not private enough: `/usr/share/dbus-1/services/
+  org.kde.plasma.Notifications.service` claims `org.freedesktop.Notifications`
+  (`Exec=/usr/bin/plasma_waitforname ...`), so a `Notify` on a fresh bus with nobody holding the
+  name asks the bus to activate KDE's. `dev/private-bus.conf` is `session.conf` without service
+  directories; `tests/support/private_bus.rs` starts `dbus-daemon --config-file=...` and every
+  live test connects by address (`BusChoice::Address`), never through
+  `DBUS_SESSION_BUS_ADDRESS`, so `cargo test -- --ignored` cannot reach the real bus. Proven:
+  `the_private_bus_starts_empty_and_activates_nothing` passes (a call to the unowned name fails;
+  nobody holds it after). The acceptance scripts run the daemon under `dbus-run-session
+  --config-file=dev/private-bus.conf`.
+- **F265 The banners are one warm column per output, shown on one.** `surfaces/banners/`:
+  `Banners { output }`, an Overlay `sill-banners-<out>` anchored `TOP | RIGHT | BOTTOM` (a stack
+  of any height fits; `notifications.banner_position` moves the cards inside it), width
+  `banner_width_px` plus 40 px of shadow room each side, exclusive zone `Auto` (under the bar's
+  reserve, above the dock's), keyboard `None`, input and blur empty until the surface sets them
+  to its cards' rounded rects through `shell_host::use_surface()` (`regions::card_regions`),
+  because one `RegionSpec::Element` cannot name several cards (G60). Spawned before the OSD, so
+  the OSD draws over a banner on the Overlay layer. Banners show only on the output the
+  `BannerLink` names, the daemon's first output (macOS shows notifications on the main display;
+  one output also means a banner is counted, paused and dismissed once). Frozen pure parts:
+  `stack::stack` (grouping by app, the count, `stack_max`, an alert keeps its card persistent),
+  `commands::{leave_commands, action_command}`, `regions::card_regions`. The banner machine
+  moved from `surfaces/notifications/banner.rs` (design/13 §13.4's path) to
+  `surfaces/banners/machine.rs`, unchanged but for `Persistence::of(BannerLife)`.
+- **F266 The notification center is a layer, not a popup** (design/20 §1.6 allows either).
+  `surfaces/notification_center/`: `NotificationCenter { output }`, an Overlay
+  `sill-notification-center-<out>` anchored on all four edges with exclusive zone `Auto` (so the
+  compositor keeps it below the bar), keyboard `OnDemand`, input `Whole` (the transparent part
+  left of the column is the click-outside catcher, as the power menu's scrim is), blur
+  `Element("notification-center-panel")`; the column is `notifications.center_width_px` (384)
+  at the right edge and slides in from it. Why: macOS 11 on opens Notification Center from the
+  clock as a full-height column pinned to the right edge, not a menu hanging from the item; the
+  history and the widgets slot want the output's height; `sill notifications toggle` has no
+  pointer serial for a grabbing popup (F179's problem); and a popup would join the bar's hover
+  switch, which Notification Center does not. One `CenterLink` (`CenterShown::{Closed,
+  Open(output)}`, implemented and tested) is written by the clock and the CLI and followed by
+  every output's surface. The bar's clock stops opening its date menu (`BarMenu::Clock`): a
+  click toggles the center on its output (lane c). Frozen pure parts: `groups::{group_views,
+  toggle_group}` (collapsed to the newest with "N more"), `keys::step_keys` (Escape, Up/Down,
+  Return, Delete). `CenterWidgets` is the empty widgets slot (design/20 §1.14, M10). Lane c
+  checks on cosmic-comp and KWin that an all-anchored `Auto` layer really sits under the bar's
+  reserve; if not, `Ignore` with a top margin of `bar.height_px` is the fallback.
+- **F267 One card for both.** `surfaces/notification_card/`: `NotificationCard { note, count,
+  expansion, place, now, on_press }` with `CardPress::{Body, Action(key), Close, Link(href)}`,
+  `Expansion::{Collapsed, Expanded}`, `CardPlace::{Banner, Center}`, and the labels (`age`,
+  `age_label`: now/5m/2h/3d; `count_label`; `app_label`). Lane b owns it and lane c only mounts
+  it, so a banner and a center row read alike. It draws nothing until lane b fills it, and it
+  is built from quire parts only until quire has a notification card (Q120).
+- **F268 Hooks, IPC, CLI.** `use_notifications() -> ReadSignal<Notifications>` and
+  `use_notification_history() -> ReadSignal<History>`. `Request::Notifications(
+  NotificationsRequest::{Toggle, Open, Close, DismissAll, Status})`, `Status` answered with
+  `Response::Notifications(NotificationsReport { mode, holder, banners, kept })` (an IPC mirror
+  of `ServerStatus`: `sill-ipc` may not reach `sill-services`); `DebugRequest::Notify(
+  FakeNotification { app, summary, body, urgency, actions, expire, replaces })` posts through
+  `NotificationsCommand::Post`, the same reducer as `Notify`, without D-Bus. Wire spellings are
+  pinned in `sill-ipc/tests/serde.rs`. CLI: `sill notifications
+  {toggle,open,close,dismiss-all,status}` and `sill debug notify SUMMARY [--app] [--body]
+  [--urgency low|normal|critical] [--action KEY=LABEL]... [--expire default|never] [--replaces
+  N]` (`cli_notifications.rs`). Seen on the nested cosmic-comp (its own runtime dir, a private
+  bus): `sill debug stats` lists `sill-banners-WINIT-0` and `sill-notification-center-WINIT-0`
+  beside the rest; `status` answers `{"mode":"passive","holder":{"kind":"no_bus"},...}` (the
+  live loop is a stub); `toggle` and `close` answer done; `debug notify` and `dismiss-all`
+  answer "notifications: the service has stopped" until lane a fills the loop.
+- **F269 Daemon wiring.** `OutputSurfaces` gains `banners` and `notification_center`;
+  `crate::links::Links` gains `notification_center: CenterLink` and `banners: BannerLink`, which
+  `surface_root` adds to every root; `crate::notifications` (`spawn_missing`, `banner_output`,
+  `dispatch`, `fake`, `report_of`, `namespaces`, `spawn_policy`) is implemented and tested; the
+  daemon sets the `BannerLink` after every event's spawns.
+- **F270 Settings.** The brief's keys against design/22 §3.12: the banner position is the
+  existing `position_right_px` and `position_top_gap_px` plus a new corner,
+  `notifications.banner_position`; the most visible banners is the existing `stack_max`; the
+  default expiry is the existing `banner_hold_ms` (design/13: "banner duration is not a
+  setting", kept Advanced as design/22 has it). New, in `AWAITING_ROWS` (row text in Q126):
+  `notifications.server`, `notifications.banner_position`, `notifications.history_cap`,
+  `notifications.center_width_px`. Per-app styles and mute are later: design/22's
+  `banner_style` row says "per app" but is one value; a table key needs a design/22 shape for a
+  map first, so it is proposed in Q126 and not registered.
+- **F271 Left out on purpose.** Playing the sound (the sound service is still `inert()`: the
+  reducer returns `Sound`, the loop drops it, and `sound` is not advertised); inline reply,
+  `action-icons`, `body-images` (an `<img>` shows its alt text), `icon-multi`; the
+  `x-canonical-private-synchronous` replace hint; per-app settings (F270); a DND schedule.
+
+### The M6 fill-in: three agents, disjoint files, then real input
+
+Every agent reads CONVENTIONS §0 and §1 (fill bodies, add private helpers and tests; never
+change a frozen signature, public field or variant; stop and report instead), ORCHESTRATION
+"Coherence rules", design/20 §1.6, design/13 §13.3.6 and §13.8 (acceptance 9-11), and this
+section. Everyone runs, before reporting:
+
+```bash
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace --features sill/debug
+./scripts/check-boundary.sh
+cargo deny check licenses
+```
+
+(`cargo fmt -p <crate>` while the wave runs.) **No test or script may reach the real session
+bus's `org.freedesktop.Notifications`**: live tests use `tests/support/private_bus.rs`, scripts
+run the daemon under `dbus-run-session --config-file=dev/private-bus.conf` (F264), and a script
+that starts `sill run` gives it its own `XDG_RUNTIME_DIR` (with `WAYLAND_DISPLAY` as an absolute
+socket path) when another sill may be running, so latchkey's single-instance lock does not hand
+its requests to somebody else's daemon. Files not listed under an agent are read-only to all:
+in particular `sill-services/src/{lib.rs,services.rs}`, `sill-surfaces/src/hooks/**`,
+`sill-surfaces/tests/support/fake.rs`, `sill-settings/**`, `sill-ipc/**`, and
+`crates/sill/src/{daemon.rs,cli.rs,cli_notifications.rs,links.rs,outputs.rs,
+notifications/mod.rs,notifications/tests.rs}`.
+
+**(a) a-server: the D-Bus server, the state, the history, Do Not Disturb.**
+- Owns: `crates/sill-services/src/notifications/**` (new private files too, e.g.
+  `name_watch.rs`), `crates/sill-services/tests/notifications_live.rs`,
+  `crates/sill-services/tests/support/**`, `crates/sill-services/Cargo.toml` (an `[[example]]`
+  entry only, e.g. a name holder for the "never replaced" check), new
+  `crates/sill-services/examples/*.rs`, `crates/sill/src/notifications/{fake.rs,policy.rs}`,
+  `dev/private-bus.conf`, a new `dev/accept-notifications-bus.sh`.
+- Frozen: every `pub` item `sill_services::notifications` re-exports (types, fields, variants,
+  `serde` attributes), `spawn`, `spawn_with`, `Setup`, `BusChoice`, `HistoryPlace`,
+  `NotificationsHandles`, `NotificationsCommand`, `BUS_NAME`, `OBJECT_PATH`, the signatures of
+  `parse_body`, `presented`, `chime`, `assign_id`, `reduce_notifications`, `pair_actions`, the
+  `history_file` API and `STORED_VERSION`, `posting_of`, `policy_of`, `spawn_policy`. `dbus.rs`
+  is private: its D-Bus names and signatures are the spec's; its Rust shape is a's.
+  `CAPABILITIES` may gain `sound` only when a hint really plays.
+- Done: every `M6 fill: a-server` test passes un-ignored (`markup`, `policy`, `reduce_tests`,
+  `dbus`, `notifications_live`); `live::run` connects to `setup.bus`, publishes `NameHolder`
+  (asking `GetConnectionUnixProcessID` and reading `/proc/<pid>/comm` for another holder),
+  serves the object and requests the name only under `Own` (F263), follows `NameOwnerChanged`
+  and `NameLost`, loads the history (`HistoryPlace`), runs `Call`s and commands through
+  `assign_id` and `reduce_notifications`, emits the signals, saves after `SaveHistory`, drops
+  `Sound`, and ends when every control is dropped; `CloseNotification` of an id no longer held
+  answers as spec 1.2 says (an empty D-Bus error); `sill debug notify` parses its body with
+  `parse_body` (`fake.rs`).
+- Verify: the gates; `cargo test -p sill-services --test notifications_live -- --ignored
+  --nocapture` (four tests); `dev/accept-notifications-bus.sh` on the nested compositor, the
+  daemon under the private bus with a scratch config: (1) `sill notifications status` says
+  holder `sill`, mode `own`; (2) `gdbus call ... GetServerInformation` answers `('sill', 'sill',
+  <version>, '1.2')` and `GetCapabilities` the six words; (3) `notify-send -a accept "Hello"`
+  makes `status` count 1 banner and 1 kept; (4) `gdbus call ... CloseNotification <id>` and a
+  `gdbus monitor` beside it records `NotificationClosed (<id>, 3)`; (5) with
+  `notifications.server = "passive"` and `sill reload` the name is released (status holder
+  `nobody`) and nothing answers `Notify`; (6) with a holder started first (the example), mode
+  `own` reports holder `other` with that pid and the holder keeps the name; (7) the history
+  file under the scratch `XDG_STATE_HOME` survives a daemon restart (`status` kept is the same).
+
+**(b) b-banners: the banner column and the card.**
+- Owns: `crates/sill-surfaces/src/surfaces/banners/**` (the implemented `machine.rs`,
+  `layer.rs` and `placement.rs` may change inside, never in signature),
+  `crates/sill-surfaces/src/surfaces/notification_card/**`, new
+  `crates/sill-surfaces/src/style/{banners,notification_card}.css`, new
+  `crates/sill-surfaces/tests/{banners_render,banners_lint,notification_card_render}.rs` and
+  `tests/banners_support/**`, a new `dev/accept-notifications.sh`.
+- Frozen: `Banners { output }`, `banners_layer`, `ROOM`, `CARD_RADIUS`, the machine's public
+  API, `Card`, `stack`, `leave_commands`, `action_command`, `CardBox`, `card_regions`,
+  `BannerLink`, `BannerOutput`; `NotificationCard`'s props, `CardPress`, `Expansion`,
+  `CardPlace`, `Age`, `age`, `age_label`, `count_label`, `app_label`.
+- Done: the ignored tests pass; the column follows `use_notifications` and the `BannerLink`,
+  maps itself (`set_visibility`) while its output shows a card and unmaps once the last card's
+  exit has settled; `stack` picks the cards; one `machine::step` per card, woken with quire's
+  timers only (`ds::sleep`, `settle`), `Persistence::of(card.life)`; hovering pauses and expands
+  (six lines, `Button{Mini}` actions, the 18 px close button at the top-left), a click on the
+  body sends `action_command(default)` with the surface's activation token
+  (`use_surface().activation_token`), a button its action, the close button and a swipe or drag
+  past the threshold `leave_commands(Dismissed)`, a hold's end `leave_commands(Timeout)`; the
+  input and blur region follow `card_regions`; the card's entrance, exit and heal are quire
+  motion only (Q121, Q122: until quire has them, the cards appear and leave without a keyframe
+  of sill's own, and the gap says so); `banner_position` and `banner_entry_direction` honoured;
+  only quire components (the SSR class test and `ds::lint::stylesheet`, as the OSD's tests do).
+- Verify: the gates; `dev/accept-notifications.sh` on the nested compositor (daemon under the
+  private bus, scratch config, `--features debug`, every notification from `sill debug notify`):
+  (1) `sill-banners-<out>` exists and is hidden at start (capture fails); (2) a notification
+  shows it within 300 ms (capture with card pixels), `dev/out/banners-cosmic.png`; (3) it hides
+  between the hold (5200) and the hold plus the exit plus 400 ms, and `status` then says
+  banners 0, kept 1; (4) hovered at 4000 ms (`sill debug pointer` on the card) it is still up at
+  7000, and gone by 1500 ms plus the exit after `sill debug leave`; (5) three from one app
+  within 2 s make one card with a count of 3, five from five apps three cards
+  (`dev/out/banners-stack-cosmic.png`); (6) `notifications.dnd = "on"` and `sill reload`: a
+  normal one shows no banner but `status` kept rises, a `--urgency critical` one shows and is
+  still up after 10 s; (7) `sill debug click` on a card's body with `--action default=Open`:
+  the card leaves and kept falls by one; (8) 5 s after the last card leaves, 0 frames on the
+  column. The drag and the swipe are lane d's (debug injection has no drag).
+
+**(c) c-center: the notification center and the clock.**
+- Owns: `crates/sill-surfaces/src/surfaces/notification_center/**` (the implemented `layer.rs`
+  and `link.rs` may change inside, never in signature); in the bar, `surfaces/bar/clock.rs`,
+  and `surfaces/bar/{menus,content,popup,menu_popup}.rs` only to retire `BarMenu::Clock`; new
+  `crates/sill-surfaces/src/style/notification_center.css`; new
+  `crates/sill-surfaces/tests/{notification_center_render,notification_center_lint,
+  notification_center_keys}.rs` and `tests/center_support/**`; `examples/bar_demo.rs` (the
+  clock's context); a new `dev/accept-notification-center.sh`.
+- Frozen: `NotificationCenter { output }`, `center_layer`, `panel_region`, `PANEL_ID`,
+  `PANEL_RADIUS`, `CenterLink`, `CenterShown`, `Expanded`, `GroupView`, `group_views`,
+  `toggle_group`, `CenterKey`, `RowFocus`, `CenterOut`, `step_keys`, `CenterWidgets`;
+  `NotificationCard` is b's (mount it, never edit it).
+- Done: the ignored tests pass; the surface follows the `CenterLink` onto its visibility; a
+  `Ds` root (`Popover`) holds the column at the right edge, `center_width_px` wide, entering
+  from the right with quire motion only (Q123); a header with Clear All (`Button{Quiet}`); the
+  history from `use_notification_history` through `group_views`, each group a header (the
+  app's icon and name, Clear) over `NotificationCard { place: Center }` rows, "N more" opening
+  the group (`toggle_group`); an empty state; a footer line when another daemon holds the name
+  (`use_notifications().server`: "Notifications are shown by plasmashell") or the server is
+  passive; `CenterWidgets` below; a row's body invokes `default` and closes the center, its
+  close dismisses it, a group's Clear sends `ClearHistory(Clear::App)`, Clear All
+  `ClearHistory(Clear::All)`; keys through `step_keys`; a press outside the column closes it;
+  the clock toggles the center on its own output (`try_use_context::<CenterLink>()`) and no
+  longer opens a date menu.
+- Verify: the gates; `dev/accept-notification-center.sh` on the nested compositor (daemon as in
+  b): (1) `sill-notification-center-<out>` exists hidden; (2) `sill notifications toggle` shows
+  it (capture), `toggle` again hides it, `open` twice stays open, `close` hides; (3) `sill debug
+  click` on the bar's clock opens it, a second click closes it; (4) with three notifications
+  from two apps (`sill debug notify`), a capture shows two groups,
+  `dev/out/notification-center-cosmic.png`; a click on "1 more" opens the group
+  (`dev/out/notification-center-open-cosmic.png`); a group's Clear drops `status` kept by that
+  group's count; (5) a click left of the column closes it; (6) 0 frames while hidden.
+
+**(d) d-real-input: after a, b and c are merged.**
+- Owns: a new `dev/accept-notifications-real-input.sh` and its entries in
+  `docs/manual-checks.md`. No source file: a bug found is reported against its lane's files.
+- Done and verify: on shell-host's headless KWin (`scripts/dev/kwin-virtual.sh start`,
+  `fake-input.sh`, one fake-input client for the whole run: G50), the daemon on KWin's private
+  bus with `notifications.server = "own"`, checked to hold the name before anything is posted
+  (G61): (1) `notify-send` shows a banner; a real hover at 4 s keeps it past 5.2 s and it leaves
+  1.5 s after the pointer does; (2) a real click on the body of one sent with a `default`
+  action: `gdbus monitor` records `ActionInvoked (<id>, 'default')` then `NotificationClosed
+  (<id>, 2)`; (3) a real drag 90 px right: `NotificationClosed (<id>, 2)`; 50 px slowly: it
+  springs back and stays; (4) a real click on the clock opens the center, real Escape closes
+  it, a click outside closes it; (5) `sill notifications status` before and after says holder
+  `sill`. KWin is stopped at the end, the daemon given the bus only (G52).
+
+### Gaps found in the M6 freeze
+
+- **Q120 (quire)** A notification card (design/13 §13.3.6 "Banner", "Content"): the app icon
+  (08 plate, 32 in a banner, 20 in a center row), the app name and the age on one line (time
+  data 10 at the right), the summary (ui 13/700) and the body (ui 13) clamped to two lines, six
+  when expanded, a count chip with the two offset layers under a grouped card
+  (`group_offset_px`), and when expanded the actions as `Button{Mini}` and an 18 px close button
+  at the top-left corner; `Material::Toast` painted on the card (or ink on paper per
+  `notifications.banner_material`), a center variant on the Popover. `Toast` is mail's one undo
+  pill at the bottom edge and `ListRow` is the mail row; neither has this shape.
+- **Q121 (quire)** A banner stack host: several cards, newest on top, gap `stack_gap_px`, at
+  most `stack_max`; each enters with `slide-l` from `translateX(calc(100% + 8px))` at `--t-big
+  --e-spring` (from below with `BannerEntry::FromBelow`), leaves sliding right at `--t-move
+  --e-exit` with an `on_hidden` after `settle`, and the cards below heal (`heal`, 18 ms per
+  row). `ToastHost` shows one toast and owns its own hub.
+- **Q122 (quire)** Swipe-to-dismiss motion: a card that follows a horizontal drag 1:1 to the
+  right and damped to the left (transitions off while dragging), springs back at `--t-move
+  --e-spring`, or flies out right on a dismiss, and sums a horizontal scroll gesture (Magic
+  Mouse, touchpad) to the same thresholds. The numbers and the decision are sill's machine; the
+  motion is quire's (rule 4). `DragTracker` is drag-and-drop with a ghost and targets, and the
+  toast's `PullTab` is a 46 px undo arm.
+- **Q123 (quire)** An edge panel: a full-height column at the output's right edge that enters
+  with `slide-l` and leaves to the right, on the Popover material, with a transparent
+  click-outside area. `SheetPlacement` has `Top` and `Centre` only.
+- **Q124 (quire)** Rich text runs: `Text`'s runs carry tones (strong, faint, a search mark), not
+  italic, underline or a link. A notification body needs bold, italic, underline and a link run
+  that calls back with its href.
+- **Q125 (quire)** A group header with a leading app icon: `SectionHeader` has text, a value and
+  one action (enough for "Clear"), but no leading glyph or plate.
+- **Q126 (design/22)** The rows `AWAITING_ROWS` exempts (F270), for §3.12:
+
+  | Key | Type | Default | Range / Alt | Source | Status |
+  | --- | --- | --- | --- | --- | --- |
+  | `notifications.server` | `NotificationServer::{Own,Passive}` | `Own` | asks for `org.freedesktop.Notifications` without replacing a holder; `Passive` leaves it to another daemon | `20-SURFACES.md#1-6-notifications-toasts-and-notification-center-spec-tier-1`; sill FINDINGS F263 | proposed (2026-09-25) |
+  | `notifications.banner_position` | `BannerPosition::{TopRight,BottomRight}` | `TopRight` | the corner banners stack in; `BottomRight` sits above the dock's reserve, newest at the bottom | `20-SURFACES.md#3-open-decisions` item 2; `13-BEHAVIOUR-menus-windows.md#13-3-6-notifications` | proposed (2026-09-25) |
+  | `notifications.history_cap` | `Count` | `100` | `0..=1000`; the oldest kept notification goes first | sill FINDINGS F261 | proposed (2026-09-25) |
+  | `notifications.center_width_px` | `Px` | `384` | `280..=600`; the notification center's column (a banner's 360 plus 12 each side) | `20-SURFACES.md#1-6-notifications-toasts-and-notification-center-spec-tier-1`; sill FINDINGS F266 | proposed (2026-09-25) |
+
+  All Advanced. Later, not registered: `notifications.apps`, a table keyed by app, each entry
+  with `style: BannerStyle` and `sound: On|Off` (the per-app form design/22's `banner_style`
+  row already names); it wants §4's shape for a map key first.
+- **G60 (shell-host)** A region of several elements: `RegionSpec::Element` names one id, and
+  design/20 §1.6 wants blur and input per banner card. The banners set `RegionSpec::Rects` from
+  their measured cards through `SurfaceHandle::set_input_region`/`set_blur`, which works but
+  lags a layout; `RegionSpec::Elements(Vec<(ElementId, radius)>)` (or a class) resolved after
+  layout, as `Element` is, would follow the cards exactly.
+- **G61 (kwin-virtual.sh)** Its private bus is `dbus-daemon --session`, the stock config with
+  service directories, so a `Notify` sent there while nobody holds the name asks for KDE's
+  notifications to be activated (F264). A `--config-file` without service directories (sill's
+  `dev/private-bus.conf`) would make it as private as it is meant to be; until then lane d
+  checks that sill holds the name before posting anything.
+
