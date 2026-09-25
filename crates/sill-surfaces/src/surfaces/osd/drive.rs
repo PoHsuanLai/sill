@@ -98,10 +98,10 @@ fn use_follow_phase(phase: ReadSignal<OsdPhase>) {
     });
 }
 
-/// Move the surface when `osd.position` or `osd.bottom_margin_px` changes (the size is fixed).
+/// Move the surface when `osd.position` or `osd.margin_px` changes (the size is fixed).
 pub fn use_follow_position(osd: &OsdSettings) {
     let surface = try_use_context::<SurfaceHandle>();
-    let wanted = (osd.position, osd.bottom_margin_px);
+    let wanted = (osd.position, osd.margin_px);
     let mut applied = use_hook(|| CopyValue::new(wanted));
     if *applied.peek() == wanted {
         return;

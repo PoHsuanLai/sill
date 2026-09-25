@@ -2311,6 +2311,6 @@ open) with 40 px of transparent room for the Osd material's ambient shadow.
   | `osd.enabled` | `OsdEnabled::{On,Off}` | `On` | shows sill's own volume and brightness changes | `20-SURFACES.md#1-7-osd`; sill `FINDINGS.md` "OSD" | proposed (2026-09-25) |
   | `osd.hold_ms` | `Ms` | `1500` | `300..=10000`; after the last change, before the fade | `20-SURFACES.md#1-7-osd` | proposed (2026-09-25) |
   | `osd.position` | `OsdPosition::{Bottom,Top}` | `Bottom` | centred along that edge | `20-SURFACES.md#1-7-osd` | proposed (2026-09-25) |
-  | `osd.bottom_margin_px` | `Px` | `24` | `0..=400`; gap from the dock's reserve (or the bar's, at the top) to the card | sill `FINDINGS.md` "OSD" | proposed (2026-09-25) |
+  | `osd.margin_px` (was `osd.bottom_margin_px`) | `Px` | `24` | `0..=400`; gap from the bar's reserve (top right, the default since 2026-09-25) or the dock's to the card | sill `FINDINGS.md` "OSD" | proposed (2026-09-25) |
 
   All Advanced until §5 places them on a page.

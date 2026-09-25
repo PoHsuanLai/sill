@@ -59,7 +59,7 @@ fn apply_yields_exactly_the_changed_domain() {
             SettingsChange::Display,
         ),
         (
-            with(|f| f.osd.position = OsdPosition::Top),
+            with(|f| f.osd.position = OsdPosition::BottomCentre),
             SettingsChange::Osd,
         ),
     ];

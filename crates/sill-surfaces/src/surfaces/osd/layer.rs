@@ -1,10 +1,11 @@
-//! The indicator's layer surface (design/20 §1.7): Overlay, anchored to the `osd.position` edge
-//! and centred along it, no keyboard, no input, blurred behind the card (`Element("osd")`).
+//! The indicator's layer surface (design/20 §1.7): Overlay, at the top right under the bar (as
+//! current macOS) or centred above the dock, per `osd.position`; no keyboard, no input, blurred
+//! behind the card (`Element("osd")`).
 //!
 //! Its exclusive zone is `Auto` (wire 0): it reserves nothing, and the compositor keeps it clear
-//! of what others reserve, so at the bottom it sits above the dock's reserve (and at the top
-//! below the bar's) without reading the dock's geometry. `osd.bottom_margin_px` is the gap
-//! from that reserve to the card. The surface is the card plus [`ROOM`] on every side for the
+//! of what others reserve, so at the top it sits below the bar's reserve (and at the bottom above
+//! the dock's) without reading either's geometry. `osd.margin_px` is the gap from that reserve
+//! to the card, and at the top right also from the output's right edge. The surface is the card plus [`ROOM`] on every side for the
 //! Osd material's ambient shadow, so its margin is the gap less that room (negative when the
 //! gap is smaller: the transparent room may overlap the reserve).
 
@@ -34,21 +35,23 @@ pub const ROOM: u32 = 40;
 /// The anchor for `position`.
 pub fn anchor(position: OsdPosition) -> Anchor {
     match position {
-        OsdPosition::Bottom => Anchor::BOTTOM,
-        OsdPosition::Top => Anchor::TOP,
+        OsdPosition::TopRight => Anchor::TOP | Anchor::RIGHT,
+        OsdPosition::BottomCentre => Anchor::BOTTOM,
     }
 }
 
-/// The margin that puts the card `osd.bottom_margin_px` from the edge's reserve.
+/// The margin that puts the card `osd.margin_px` from the edge's reserve (and, at the top right,
+/// from the right edge).
 pub fn margin(osd: &OsdSettings) -> Margin {
-    let gap = i32::from(osd.bottom_margin_px.0) - i32::try_from(ROOM).unwrap_or(i32::MAX);
+    let gap = i32::from(osd.margin_px.0) - i32::try_from(ROOM).unwrap_or(i32::MAX);
     match osd.position {
-        OsdPosition::Bottom => Margin {
+        OsdPosition::BottomCentre => Margin {
             bottom: gap,
             ..Margin::ZERO
         },
-        OsdPosition::Top => Margin {
+        OsdPosition::TopRight => Margin {
             top: gap,
+            right: gap,
             ..Margin::ZERO
         },
     }
@@ -107,12 +110,12 @@ mod tests {
     fn position_and_gap_come_from_the_settings() {
         let with = |position, gap| OsdSettings {
             position,
-            bottom_margin_px: Px(gap),
+            margin_px: Px(gap),
             ..OsdSettings::default()
         };
         let cases = [
             (
-                with(OsdPosition::Bottom, 24),
+                with(OsdPosition::BottomCentre, 24),
                 Anchor::BOTTOM,
                 Margin {
                     bottom: -16,
@@ -120,14 +123,27 @@ mod tests {
                 },
             ),
             (
-                with(OsdPosition::Bottom, 120),
+                with(OsdPosition::BottomCentre, 120),
                 Anchor::BOTTOM,
                 Margin {
                     bottom: 80,
                     ..Margin::ZERO
                 },
             ),
-            (with(OsdPosition::Top, 40), Anchor::TOP, Margin::ZERO),
+            (
+                with(OsdPosition::TopRight, 24),
+                Anchor::TOP | Anchor::RIGHT,
+                Margin {
+                    top: -16,
+                    right: -16,
+                    ..Margin::ZERO
+                },
+            ),
+            (
+                with(OsdPosition::TopRight, 40),
+                Anchor::TOP | Anchor::RIGHT,
+                Margin::ZERO,
+            ),
         ];
         for (osd, anchor, margin) in cases {
             let config = osd_layer(&output(Some("DP-1")), &osd);
