@@ -1,6 +1,8 @@
-//! `NotificationCard` on its own, as a banner and as a notification center row (lane c mounts
-//! it), SSR-rendered inside a `Ds`: the parts design/13 §13.3.6 lists are there, collapsed and
-//! expanded; three actions become an Options menu; the center row paints the Popover material.
+//! `NoteCard` on its own, as a banner and as a notification center row, SSR-rendered inside a
+//! `Ds`: it is quire's `NotificationCard` with sill's words: the app's name, the age, the
+//! summary, the body as quire's runs, every action but `default` as a button, a group's count
+//! and layers, the plate's id; a center row paints the Popover material, and an inverse banner
+//! the other scheme.
 
 #[path = "support/fake.rs"]
 mod fake;
@@ -8,12 +10,11 @@ mod fake;
 use dioxus::prelude::*;
 use ds::{Ds, Material};
 use sill_services::{
-    Action, ActionKey, AppRef, Body, Expiry, Hints, IconRef, Notification, NotificationId, UnixMs,
+    Action, ActionKey, AppRef, Expiry, Hints, IconRef, Notification, NotificationId, UnixMs,
+    parse_body,
 };
-use sill_settings::{SettingsFeed, ShellFile};
-use sill_surfaces::surfaces::notification_card::{
-    CardPlace, CardPress, Expansion, NotificationCard,
-};
+use sill_settings::{BannerMaterial, NotificationsSettings, SettingsFeed, ShellFile};
+use sill_surfaces::surfaces::notification_card::{CardPlace, CardPress, NoteCard};
 
 const NOW: UnixMs = UnixMs(1_000_000_000);
 
@@ -21,7 +22,6 @@ const NOW: UnixMs = UnixMs(1_000_000_000);
 struct Shown {
     note: Notification,
     count: usize,
-    expansion: Expansion,
     place: CardPlace,
 }
 
@@ -29,12 +29,12 @@ struct Shown {
 fn Root(shown: Shown) -> Element {
     rsx! {
         Ds { appearance: ds::Appearance::default(), material: Material::Toast,
-            NotificationCard {
+            NoteCard {
                 note: shown.note,
                 count: shown.count,
-                expansion: shown.expansion,
                 place: shown.place,
                 now: NOW,
+                id: "toast-4".to_owned(),
                 on_press: move |_: CardPress| {},
             }
         }
@@ -51,7 +51,7 @@ fn note(actions: &[&str]) -> Notification {
             desktop_entry: None,
         },
         summary: "Lunch?".to_owned(),
-        body: Body::plain("Are you free at noon on Thursday?"),
+        body: parse_body("Are you free at <b>noon</b> on <i>Thursday</i>?"),
         actions: actions
             .iter()
             .map(|key| Action {
@@ -64,7 +64,7 @@ fn note(actions: &[&str]) -> Notification {
     }
 }
 
-fn render(shown: Shown) -> String {
+fn render_with(shown: Shown, file: ShellFile) -> String {
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(1)
         .enable_all()
@@ -74,72 +74,82 @@ fn render(shown: Shown) -> String {
     let (services, _feeds) = fake::services();
     let mut dom = VirtualDom::new_with_props(Root, shown);
     dom.provide_root_context(services);
-    dom.provide_root_context(SettingsFeed::fixed(ShellFile::default()));
+    dom.provide_root_context(SettingsFeed::fixed(file));
     dom.rebuild_in_place();
     dioxus_ssr::render(&dom)
 }
 
+fn render(shown: Shown) -> String {
+    render_with(shown, ShellFile::default())
+}
+
 #[test]
-fn a_collapsed_banner_shows_icon_app_age_summary_and_body() {
+fn a_banner_is_quires_card_with_sills_words() {
     let html = render(Shown {
         note: note(&["default", "reply"]),
         count: 1,
-        expansion: Expansion::Collapsed,
         place: CardPlace::Banner,
     });
     for part in [
-        "Evolution",
+        "class=\"ds-notification\"",
+        "id=\"toast-4\"",
+        "Evolution: Lunch?",
         ">5m<",
-        "Lunch?",
-        "Are you free at noon on Thursday?",
+        ">Lunch?<",
+        ">noon<",
+        "data-tone=\"strong\"",
+        "data-tone=\"italic\"",
         "data-material=\"toast\"",
-        "class=\"sill-card-icon\"",
+        ">REPLY<",
     ] {
         assert!(html.contains(part), "{part} in {html}");
     }
+    assert!(
+        !html.contains(">DEFAULT<"),
+        "default is the card's own press"
+    );
     for absent in [
-        "class=\"sill-card-close\"",
-        "class=\"sill-card-actions\"",
-        "class=\"ds-count\"",
-        "class=\"sill-card-layer\"",
+        "class=\"ds-notification-count\"",
+        "class=\"ds-notification-layer\"",
     ] {
-        assert!(!html.contains(absent), "no {absent} collapsed and alone");
+        assert!(!html.contains(absent), "no {absent} alone");
     }
 }
 
 #[test]
-fn an_expanded_group_shows_its_count_layers_actions_and_close() {
+fn a_group_shows_its_count_and_two_layers() {
     let html = render(Shown {
-        note: note(&["default", "reply", "later"]),
+        note: note(&[]),
         count: 3,
-        expansion: Expansion::Expanded,
         place: CardPlace::Banner,
     });
-    assert!(html.contains("class=\"sill-card-close\""));
-    assert_eq!(html.matches("class=\"sill-card-layer\"").count(), 2);
     assert!(html.contains(">3<"), "the count");
-    assert!(
-        html.contains(">REPLY<") && html.contains(">LATER<"),
-        "two buttons"
-    );
-    assert!(!html.contains(">DEFAULT<"), "default is the body's click");
-    let many = render(Shown {
-        note: note(&["a", "b", "c"]),
-        count: 1,
-        expansion: Expansion::Expanded,
-        place: CardPlace::Banner,
-    });
-    assert!(many.contains(">Options<"), "more than two: a menu");
+    assert_eq!(html.matches("class=\"ds-notification-layer\"").count(), 2);
 }
 
 #[test]
-fn a_center_row_is_on_the_popover_material() {
+fn a_center_row_is_on_the_popover_material_and_an_inverse_banner_flips_the_scheme() {
     let html = render(Shown {
         note: note(&[]),
         count: 1,
-        expansion: Expansion::Collapsed,
         place: CardPlace::Center,
     });
-    assert!(html.contains("data-place=\"center\""));
     assert!(html.contains("data-material=\"popover\""));
+    let inverse = ShellFile {
+        notifications: NotificationsSettings {
+            banner_material: BannerMaterial::Inverse,
+            ..NotificationsSettings::default()
+        },
+        ..ShellFile::default()
+    };
+    let flipped = render_with(
+        Shown {
+            note: note(&[]),
+            count: 1,
+            place: CardPlace::Banner,
+        },
+        inverse,
+    );
+    let dark = "data-theme=\"dark\"";
+    assert!(flipped.contains(dark), "{flipped}");
 }

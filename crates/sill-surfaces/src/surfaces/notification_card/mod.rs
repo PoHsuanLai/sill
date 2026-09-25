@@ -1,12 +1,8 @@
-//! One notification drawn as a card (design/13 §13.3.6 "Banner", "Content"): the app icon (32)
-//! at the left, the app name and the age on the top line, the summary (ui 13/700) and the body
-//! (ui 13, two lines, six when expanded) with its runs styled, the count chip for a group, and,
-//! when expanded, the action buttons (`Button{Mini}`) and the close button at the top-left
-//! corner. Shared by the banners and the notification center, so both read alike.
-//!
-//! quire has no notification card yet (FINDINGS "M6 freeze", Q120); until it does, lane b builds
-//! this from quire's parts only (glyphs, `Count`, `Button{Mini}`, `IconButton`), never a local
-//! component that paints its own material.
+//! One notification drawn as quire's `NotificationCard` (design/13 §13.3.6 "Banner", "Content";
+//! quire CONSUMING.md "Notification parts"), shared by the banners and the notification center
+//! so both read alike. sill supplies the words (the app's icon and name, the age, the body's
+//! runs, the actions) and hears the presses; quire draws the plate, the two-to-six-line body,
+//! the actions and the close button on hover, the group's count and layers, and the swipe.
 
 pub mod actions;
 pub mod body;
@@ -17,26 +13,18 @@ pub mod parts;
 
 mod view;
 
-pub use actions::{MenuOpen, MenuSeat};
-pub use labels::{Age, age, age_label, app_label, count_label};
-pub use metrics::{CARD_VARS, CardMetrics};
+pub use body::rich_body;
+pub use labels::{Age, age, age_label, app_label, group_count};
+pub use metrics::{icon_size, notification_metrics, swipe_metrics};
 pub use parts::{CardPart, part_id};
-pub use view::{CARD_CSS, wall_now};
+pub use view::{use_app_mark, wall_now};
 
 use dioxus::prelude::*;
+use ds::{Hover, Swipe};
 use sill_services::{ActionKey, Href, Notification, UnixMs};
 
-/// Whether the card shows its full body and its buttons.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum Expansion {
-    #[default]
-    Collapsed,
-    /// Hovered (a banner) or opened (a center row).
-    Expanded,
-}
-
-/// Where the card is drawn: a banner paints the Toast material; a center row sits on the
-/// center's Popover panel.
+/// Where the card is drawn: a banner paints the Toast material (ink on paper under
+/// `notifications.banner_material = "inverse"`); a center row the center's Popover.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CardPlace {
     Banner,
@@ -46,7 +34,7 @@ pub enum CardPlace {
 /// What was pressed on a card.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CardPress {
-    /// The body: the `default` action when the notification offers one.
+    /// The card itself (a press, Enter or Space): the `default` action when it offers one.
     Body,
     /// One of its action buttons.
     Action(ActionKey),
@@ -56,15 +44,30 @@ pub enum CardPress {
     Link(Href),
 }
 
-/// `note` as a card; `count` notifications stand behind it (1: no chip).
+/// `note` as a card; `count` notifications stand behind it (1: no chip, no layers). `id` names
+/// quire's plate for a region (a banner's `toast-<id>`); `swipe` lets a drag dismiss it;
+/// `on_hover` hears the pointer come and go.
 #[component]
-pub fn NotificationCard(
+pub fn NoteCard(
     note: Notification,
     count: usize,
-    expansion: Expansion,
     place: CardPlace,
     now: UnixMs,
+    #[props(default)] id: Option<String>,
+    #[props(default)] swipe: Swipe,
+    #[props(default)] on_hover: Option<EventHandler<Hover>>,
     on_press: EventHandler<CardPress>,
 ) -> Element {
-    view::card(note, count, expansion, place, now, on_press)
+    view::card(
+        note,
+        count,
+        place,
+        now,
+        view::CardWiring {
+            id,
+            swipe,
+            on_hover,
+            on_press,
+        },
+    )
 }

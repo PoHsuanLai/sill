@@ -1,11 +1,14 @@
 //! One banner's life (design/13 §13.4 `Banner`, §13.5): hold, hover pause and resume with at
-//! least `hover_min_remaining`, swipe right to dismiss, act, close. design/13 places it at
+//! least `hover_min_remaining`, swiped away, act, close. design/13 places it at
 //! `surfaces/notifications/banner.rs`; the M6 freeze moved it here, beside its surface.
+//!
+//! The swipe itself (following the finger, the thresholds, springing back, flying out) is
+//! quire's `NotificationCard { swipe }`: the machine hears only that it went ([`BannerIn::Swiped`]).
 //!
 //! design/13 §13.3.6 says a 5000 ms lifetime; design/22's `notifications.banner_hold_ms` and
 //! design/20 §1.6 (`ToastHold`) say 5200. The key wins (FINDINGS.md).
 
-use sill_services::{BannerLife, Cpx, Stamp};
+use sill_services::{BannerLife, Stamp};
 use sill_settings::NotificationsSettings;
 
 /// When a shown banner leaves by itself.
@@ -29,7 +32,7 @@ pub enum Leave {
     Timeout,
     /// The close button, `CloseNotification`, or a replacement.
     Dismissed,
-    /// Swiped or dragged away past the threshold: kept in the center or dismissed, as
+    /// Swiped or dragged away past quire's threshold: kept in the center or dismissed, as
     /// `notifications.swipe` says (the service's decision, FINDINGS F280).
     Swiped,
     Acted,
@@ -61,12 +64,8 @@ pub enum Banner {
     Shown {
         deadline: Deadline,
     },
+    /// Under the pointer (a drag included): the hold is paused with this much left.
     Hovered {
-        remaining: Remaining,
-    },
-    /// Being dragged `dx` (raw, before damping); `remaining` resumes a spring-back.
-    Dragging {
-        dx: Cpx,
         remaining: Remaining,
     },
     Leaving {
@@ -79,31 +78,20 @@ pub enum Banner {
 /// One input.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BannerIn {
-    /// The entrance animation finished.
+    /// The card is on screen: its hold starts.
     Entered,
     Tick,
     HoverIn,
     HoverOut,
-    DragStart,
-    DragMove {
-        dx: Cpx,
-    },
-    /// Release with the pointer's horizontal velocity, px/s.
-    DragEnd {
-        velocity_px_s: i32,
-    },
-    /// A horizontal scroll gesture over the banner ended, summed, with its release velocity.
-    Swipe {
-        dx: Cpx,
-        velocity_px_s: i32,
-    },
-    /// The body was clicked (`ActionInvoked("default")`).
+    /// quire's card was swiped away (a drag or a horizontal scroll past its threshold).
+    Swiped,
+    /// The card was pressed (`ActionInvoked("default")`).
     Clicked,
-    /// An action button was clicked.
+    /// An action button was pressed.
     Action,
     /// The close button, `CloseNotification`, or a replacement.
     Close,
-    /// The exit animation finished.
+    /// The exit has played (the stack's `on_hidden`).
     Left,
 }
 
@@ -111,27 +99,18 @@ pub enum BannerIn {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BannerOut {
     RequestTick(Stamp),
-    /// Expand (body to 6 lines, actions, close button).
-    Expand,
-    Collapse,
-    /// Draw the banner at this x offset (damped left of zero).
-    Offset(Cpx),
-    SpringBack,
-    /// Start the exit and tell the service why (`commands::leave_commands`).
+    /// Stop listing the card (its exit plays) and tell the service why
+    /// (`commands::leave_commands`).
     Leave(Leave),
-    /// Remove the banner; the stack heals.
+    /// Forget the banner; the stack has healed.
     Remove,
 }
 
-/// The banner's numbers, from `notifications.*`.
+/// The banner's hold, from `notifications.*`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BannerParams {
     pub hold_ms: u64,
     pub hover_min_remaining_ms: u64,
-    pub swipe_dismiss: Cpx,
-    pub swipe_velocity_px_s: i32,
-    /// Leftward damping, thousandths.
-    pub damping: u32,
 }
 
 impl BannerParams {
@@ -139,9 +118,6 @@ impl BannerParams {
         BannerParams {
             hold_ms: u64::from(n.banner_hold_ms.0),
             hover_min_remaining_ms: u64::from(n.hover_min_remaining_ms.0),
-            swipe_dismiss: Cpx::px(i32::from(n.swipe_dismiss_px.0)),
-            swipe_velocity_px_s: n.swipe_dismiss_velocity_px_s.0.round() as i32,
-            damping: u32::from(n.swipe_damping.0),
         }
     }
 }
@@ -160,50 +136,14 @@ pub fn step(
             vec![BannerOut::Leave(why)],
         )
     };
-    let resume = |remaining: Remaining| match remaining {
-        Remaining::Forever => (
-            Banner::Shown {
-                deadline: Deadline::Never,
-            },
-            None,
-        ),
-        Remaining::Ms(ms) => {
-            let at = now.after(ms.max(p.hover_min_remaining_ms));
-            (
-                Banner::Shown {
-                    deadline: Deadline::At(at),
-                },
-                Some(BannerOut::RequestTick(at)),
-            )
-        }
-    };
-    let remaining_of = |deadline: Deadline| match deadline {
-        Deadline::Never => Remaining::Forever,
-        Deadline::At(at) => Remaining::Ms(at.since(now)),
-    };
     match (b, input) {
         (Banner::Gone, _) => (Banner::Gone, Vec::new()),
         (Banner::Leaving { .. }, BannerIn::Left) => (Banner::Gone, vec![BannerOut::Remove]),
         (Banner::Leaving { .. }, _) => (b, Vec::new()),
         (_, BannerIn::Clicked | BannerIn::Action) => leave(Leave::Acted),
         (_, BannerIn::Close) => leave(Leave::Dismissed),
-        (Banner::Entering { .. }, BannerIn::Entered) => match persistence {
-            Persistence::Persists => (
-                Banner::Shown {
-                    deadline: Deadline::Never,
-                },
-                Vec::new(),
-            ),
-            Persistence::Expires => {
-                let at = now.after(p.hold_ms);
-                (
-                    Banner::Shown {
-                        deadline: Deadline::At(at),
-                    },
-                    vec![BannerOut::RequestTick(at)],
-                )
-            }
-        },
+        (_, BannerIn::Swiped) => leave(Leave::Swiped),
+        (Banner::Entering { .. }, BannerIn::Entered) => hold(persistence, now, p),
         (
             Banner::Shown {
                 deadline: Deadline::At(at),
@@ -212,73 +152,55 @@ pub fn step(
         ) if now >= at => leave(Leave::Timeout),
         (Banner::Shown { deadline }, BannerIn::HoverIn) => (
             Banner::Hovered {
-                remaining: remaining_of(deadline),
-            },
-            vec![BannerOut::Expand],
-        ),
-        (Banner::Hovered { remaining }, BannerIn::HoverOut) => {
-            let (shown, tick) = resume(remaining);
-            (
-                shown,
-                [Some(BannerOut::Collapse), tick]
-                    .into_iter()
-                    .flatten()
-                    .collect(),
-            )
-        }
-        (Banner::Shown { deadline }, BannerIn::DragStart) => (
-            Banner::Dragging {
-                dx: Cpx(0),
-                remaining: remaining_of(deadline),
+                remaining: remaining_of(deadline, now),
             },
             Vec::new(),
         ),
-        (Banner::Hovered { remaining }, BannerIn::DragStart) => (
-            Banner::Dragging {
-                dx: Cpx(0),
-                remaining,
-            },
-            Vec::new(),
-        ),
-        (Banner::Dragging { remaining, .. }, BannerIn::DragMove { dx }) => (
-            Banner::Dragging { dx, remaining },
-            vec![BannerOut::Offset(damped(dx, p))],
-        ),
-        (Banner::Dragging { dx, remaining }, BannerIn::DragEnd { velocity_px_s }) => {
-            if dismisses(dx, velocity_px_s, p) {
-                leave(Leave::Swiped)
-            } else {
-                let (shown, tick) = resume(remaining);
-                (
-                    shown,
-                    [Some(BannerOut::SpringBack), tick]
-                        .into_iter()
-                        .flatten()
-                        .collect(),
-                )
-            }
-        }
-        (Banner::Shown { .. } | Banner::Hovered { .. }, BannerIn::Swipe { dx, velocity_px_s })
-            if dismisses(dx, velocity_px_s, p) =>
-        {
-            leave(Leave::Swiped)
-        }
+        (Banner::Hovered { remaining }, BannerIn::HoverOut) => resume(remaining, now, p),
         (other, _) => (other, Vec::new()),
     }
 }
 
-/// design/13 §13.5: `x(dx) = dx` rightward, `0.25 dx` leftward.
-pub fn damped(dx: Cpx, p: &BannerParams) -> Cpx {
-    if dx.0 >= 0 {
-        dx
-    } else {
-        Cpx(i32::try_from(i64::from(dx.0) * i64::from(p.damping) / 1000).unwrap_or(0))
+/// A banner that has just come on screen: held for `hold_ms`, or for ever as an alert.
+fn hold(persistence: Persistence, now: Stamp, p: &BannerParams) -> (Banner, Vec<BannerOut>) {
+    match persistence {
+        Persistence::Persists => (
+            Banner::Shown {
+                deadline: Deadline::Never,
+            },
+            Vec::new(),
+        ),
+        Persistence::Expires => at(now.after(p.hold_ms)),
     }
 }
 
-/// design/13 §13.5: dismiss iff `dx >= 80` or `v >= 600 px/s` (rightward).
-fn dismisses(dx: Cpx, velocity_px_s: i32, p: &BannerParams) -> bool {
-    dx.0 >= p.swipe_dismiss.0 || velocity_px_s >= p.swipe_velocity_px_s
+/// A banner the pointer left, with `remaining` (at least `hover_min_remaining_ms`).
+fn resume(remaining: Remaining, now: Stamp, p: &BannerParams) -> (Banner, Vec<BannerOut>) {
+    match remaining {
+        Remaining::Forever => (
+            Banner::Shown {
+                deadline: Deadline::Never,
+            },
+            Vec::new(),
+        ),
+        Remaining::Ms(ms) => at(now.after(ms.max(p.hover_min_remaining_ms))),
+    }
+}
+
+fn at(deadline: Stamp) -> (Banner, Vec<BannerOut>) {
+    (
+        Banner::Shown {
+            deadline: Deadline::At(deadline),
+        },
+        vec![BannerOut::RequestTick(deadline)],
+    )
+}
+
+fn remaining_of(deadline: Deadline, now: Stamp) -> Remaining {
+    match deadline {
+        Deadline::Never => Remaining::Forever,
+        Deadline::At(at) => Remaining::Ms(at.since(now)),
+    }
 }
 
 #[cfg(test)]

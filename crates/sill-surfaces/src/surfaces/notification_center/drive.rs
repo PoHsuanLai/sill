@@ -1,10 +1,9 @@
 //! The effects end of the center: follow the [`CenterLink`] through [`step_phase`] onto the
-//! surface's visibility, time the column's exit on quire's clock (`use_motion_timer`), and carry
+//! surface's visibility (quire's `Panel` plays the exit and says when it has settled), and carry
 //! a row's [`RowAct`] to the notifications service. Once hidden nothing runs and nothing asks
 //! for a frame.
 
 use dioxus::prelude::*;
-use ds::{Anim, MotionTimer, use_motion_timer};
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_services::{
     Activation, ActivationToken, Clear, Control, NotificationId, NotificationsCommand,
@@ -16,36 +15,44 @@ use super::phase::{Phase, PhaseInput, PhaseOut, Wanted, step_phase};
 use super::rows::RowAct;
 use crate::hooks::use_services;
 
-/// The column's exit: quire's `pane-out-r`, the mirror of the entrance (FINDINGS Q123).
-pub(super) const EXIT: Anim = Anim::PaneOutR;
+/// The column's phase on one output, and the surface it maps. Clone is cheap.
+#[derive(Clone)]
+pub(super) struct CenterPhase {
+    phase: Signal<Phase>,
+    surface: Option<SurfaceHandle>,
+}
 
-/// The column's entrance: quire's `slide-r` at `--t-move --e-spring`, in from the right.
-pub(super) const ENTRANCE: Anim = Anim::PaneInR;
+impl CenterPhase {
+    /// Where the column is (read reactively).
+    pub fn now(&self) -> Phase {
+        (self.phase)()
+    }
+
+    /// The panel's exit has settled (its `on_hidden`): unmap.
+    pub fn settled(&self) {
+        drive(self.phase, self.surface.clone(), PhaseInput::ExitSettled);
+    }
+}
 
 /// The column's phase on `output`, following the link.
-pub(super) fn use_phase(output: OutputId) -> Signal<Phase> {
+pub(super) fn use_phase(output: OutputId) -> CenterPhase {
     let link = use_context::<CenterLink>();
     let shown = use_watch(link.subscribe());
     let surface = try_use_context::<SurfaceHandle>();
     let phase = use_signal(Phase::default);
-    let exit = use_motion_timer(EXIT);
+    let follow = surface.clone();
     use_effect(move || {
         let wanted = match shown.read().open_on(output) {
             true => Wanted::Here,
             false => Wanted::NotHere,
         };
-        drive(phase, surface.clone(), exit, PhaseInput::Link(wanted));
+        drive(phase, follow.clone(), PhaseInput::Link(wanted));
     });
-    phase
+    CenterPhase { phase, surface }
 }
 
-/// `input` through the machine; the exit's settle comes back here.
-fn drive(
-    mut phase: Signal<Phase>,
-    surface: Option<SurfaceHandle>,
-    exit: MotionTimer,
-    input: PhaseInput,
-) {
+/// `input` through the machine.
+fn drive(mut phase: Signal<Phase>, surface: Option<SurfaceHandle>, input: PhaseInput) {
     let (next, out) = step_phase(*phase.peek(), input);
     if next != *phase.peek() {
         phase.set(next);
@@ -53,14 +60,8 @@ fn drive(
     let visibility = match out {
         Some(PhaseOut::Map) => Visibility::Shown,
         Some(PhaseOut::Unmap) => Visibility::Hidden,
-        Some(PhaseOut::PlayExit) => {
-            let settle = surface.clone();
-            exit.start(EventHandler::new(move |()| {
-                drive(phase, settle.clone(), exit, PhaseInput::ExitSettled);
-            }));
-            return;
-        }
-        None => return,
+        // quire's `Panel` plays its exit on `shown: Hidden` and reports at its settle.
+        Some(PhaseOut::PlayExit) | None => return,
     };
     eprintln!(
         "notification_center.visible={}",

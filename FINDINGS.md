@@ -3225,7 +3225,7 @@ notifications/mod.rs,notifications/tests.rs}`.
 
 ### Gaps found in the M6 freeze
 
-- **Q120 (quire)** A notification card (design/13 §13.3.6 "Banner", "Content"): the app icon
+- **Q120 (quire), closed** (quire's notification parts, adopted in F360-F362) A notification card (design/13 §13.3.6 "Banner", "Content"): the app icon
   (08 plate, 32 in a banner, 20 in a center row), the app name and the age on one line (time
   data 10 at the right), the summary (ui 13/700) and the body (ui 13) clamped to two lines, six
   when expanded, a count chip with the two offset layers under a grouped card
@@ -3233,24 +3233,24 @@ notifications/mod.rs,notifications/tests.rs}`.
   at the top-left corner; `Material::Toast` painted on the card (or ink on paper per
   `notifications.banner_material`), a center variant on the Popover. `Toast` is mail's one undo
   pill at the bottom edge and `ListRow` is the mail row; neither has this shape.
-- **Q121 (quire)** A banner stack host: several cards, newest on top, gap `stack_gap_px`, at
+- **Q121 (quire), closed** (quire's notification parts, adopted in F360-F362) A banner stack host: several cards, newest on top, gap `stack_gap_px`, at
   most `stack_max`; each enters with `slide-l` from `translateX(calc(100% + 8px))` at `--t-big
   --e-spring` (from below with `BannerEntry::FromBelow`), leaves sliding right at `--t-move
   --e-exit` with an `on_hidden` after `settle`, and the cards below heal (`heal`, 18 ms per
   row). `ToastHost` shows one toast and owns its own hub.
-- **Q122 (quire)** Swipe-to-dismiss motion: a card that follows a horizontal drag 1:1 to the
+- **Q122 (quire), closed** (quire's notification parts, adopted in F360-F362) Swipe-to-dismiss motion: a card that follows a horizontal drag 1:1 to the
   right and damped to the left (transitions off while dragging), springs back at `--t-move
   --e-spring`, or flies out right on a dismiss, and sums a horizontal scroll gesture (Magic
   Mouse, touchpad) to the same thresholds. The numbers and the decision are sill's machine; the
   motion is quire's (rule 4). `DragTracker` is drag-and-drop with a ghost and targets, and the
   toast's `PullTab` is a 46 px undo arm.
-- **Q123 (quire)** An edge panel: a full-height column at the output's right edge that enters
+- **Q123 (quire), closed** (quire's notification parts, adopted in F360-F362) An edge panel: a full-height column at the output's right edge that enters
   with `slide-l` and leaves to the right, on the Popover material, with a transparent
   click-outside area. `SheetPlacement` has `Top` and `Centre` only.
-- **Q124 (quire)** Rich text runs: `Text`'s runs carry tones (strong, faint, a search mark), not
+- **Q124 (quire), closed** (quire's notification parts, adopted in F360-F362) Rich text runs: `Text`'s runs carry tones (strong, faint, a search mark), not
   italic, underline or a link. A notification body needs bold, italic, underline and a link run
   that calls back with its href.
-- **Q125 (quire)** A group header with a leading app icon: `SectionHeader` has text, a value and
+- **Q125 (quire), closed** (quire's notification parts, adopted in F360-F362) A group header with a leading app icon: `SectionHeader` has text, a value and
   one action (enough for "Clear"), but no leading glyph or plate.
 - **Q126 (design/22)** The rows `AWAITING_ROWS` exempts (F270), for §3.12:
 
@@ -3370,8 +3370,8 @@ injects no keys): the harness proves them
 
 ### Gaps found in the notification center
 
-- **Q123 (quire), in use:** the stand-in of F323 (`column.rs`, `drive.rs`, the stylesheet).
-- **Q125 (quire), in use:** the stand-in of F324 (`group.rs`).
+- **Q123 (quire), closed** (quire `Panel`; "Adopting quire's notification parts" F361): was the stand-in of F323 (`column.rs`, `drive.rs`, the stylesheet).
+- **Q125 (quire), closed** (quire `GroupHeader`; F361): was the stand-in of F324 (`group.rs`).
 
 ## M6 lane a: the notifications server (2026-09-26)
 
@@ -3439,7 +3439,7 @@ injects no keys): the harness proves them
   and `dev/out/banners-stack-cosmic.png`. `dev/accept-notification-center.sh` also passes 6/6
   with the card's stylesheet in the center, `dev/out/notification-center-cosmic.png` retaken.
 
-### Waiting on quire (lane b's stand-ins, each in the one `notification_card` or `banners` place)
+### Waiting on quire (lane b's stand-ins; all closed by "Adopting quire's notification parts", F360-F362)
 
 - **Q120** the card itself: `notification_card/view.rs` composes `Surface`, `IconView`/`Glyph`,
   `Count`, `Button{Mini}`, `Menu` and `IconButton{Strip}` in sill's layout sheet
@@ -3521,7 +3521,7 @@ bar menu: no, a second click closed it: yes"; `dev/out/bar-cosmic-menu.png` reta
 control center open. `dev/accept-bar-ui.sh` (its own headless KWin): exclusive zone, idle,
 menus and popup transparency pass (corner alphas 1 1 0 0 10 8); `dev/out/bar.png` retaken.
 
-### Gaps found under real input (shell-host; `dev/accept-notifications-real-input.sh repro`)
+### Gaps found under real input (shell-host; `dev/accept-notifications-real-input.sh repro`; both closed by shell-host 902a12c, F364)
 
 Neither is sill's to fix; both FAIL in `repro` mode today, and the acceptance is ordered around
 them (a move is a move and a 1 px nudge; the close button comes before the first click).
@@ -3545,3 +3545,133 @@ them (a move is a move and a 1 px nudge; the close button comes before the first
   out and back: yes". Fix: clear the document's pointer (`pointer_left`, and `pointer_focus` if
   it named the surface) in `unmap`. User-visible: after clicking one banner, the next one may
   time out under the pointer.
+
+## Adopting quire's notification parts (2026-09-26)
+
+Branch `adopt-notif-parts`: the banners and the notification center move onto quire's
+notification parts (quire CONSUMING.md "Notification parts", FINDINGS "Notification parts"),
+closing Q120-Q125. Findings take F360-, Q170-.
+
+- **F360 The banners.** One transparent Toast root (`Ds { material: Toast, chrome:
+  Some(RootChrome::Transparent), extent: Viewport }`), `NotificationMetrics` (the eight
+  `notifications.*` geometry keys, `notification_card::notification_metrics`) written on the
+  `.sill-banners` wrapper, holding quire's `BannerStack { banners, position, on_hidden }`. Each
+  banner is a `ds::Banner { key: BannerKey(entry), card }` whose card is quire's
+  `NotificationCard` (through sill's `NoteCard`): `AppMark` (the icon as before, the name by
+  `app_label`), the age, the summary, the body as `Rich` (F362), `GroupCount { count, layers:
+  Layers(min(count - 1, 2)) }`, every action but `default` as a `CardAction`, `id:
+  "toast-<id>"`, `swipe: Swipe::Dismiss`, `swipe_metrics` from the swipe keys, `icon_size` from
+  `icon_px`, `on_hover` pausing and resuming sill's hold. The banner key is the deck's entry
+  (`EntryKey(u32)`, one per arrival), not the notification id: an app's card keeps its row while
+  newer notifications replace its content. sill keeps the hold machine (`machine.rs`, now
+  without drag state: quire decides the swipe and the machine hears `BannerIn::Swiped`), the
+  stack and grouping (`stack.rs`), the deck (`deck.rs`, which lists every card not leaving and
+  keeps a leaving one until the stack's `on_hidden` feeds `BannerIn::Left`) and the commands:
+  `on_dismiss` sends `SwipeAway` (the service honours `notifications.swipe = KeepInCenter`), the
+  close button `Dismiss`, a press `InvokeAction(default)` or, with no `default`, `Dismiss`. The
+  surface unmaps when `on_hidden` has emptied the deck. Input and blur stay
+  `RegionSpec::Elements`: the plate `toast-<id>` (input inflated by 6 and rounded by 9 so quire's
+  18 px close button, standing 6 px out past the corner, takes its whole press; blur rounded by
+  16), and for a group the whole card `banner-<id>` whose layers reach below the plate. Deleted:
+  `style/notification_card.css`, `banners.css`'s slide and stack rules (it now only places the
+  stack), `look.rs`, `gesture.rs`, the card's hover expand, close button, `Options` menu and
+  character clamp (`Expansion`, `MenuOpen`, `MenuSeat`, `CardMetrics`, `LineChars`,
+  `CARD_CSS`). `notifications.banner_entry_direction = "from_below"` is no longer drawn:
+  quire's stack enters from the right only.
+- **F361 The center.** Quire's `Panel { label, shown, on_hidden, onclose, width:
+  Px(center_width_px), edge: Right, material: Popover, scrim: PanelScrim::None }` inside a
+  wrapper carrying `NotificationMetrics` (filling the root, `pointer-events:none`, so the
+  catcher under it still hears a press outside). `shown` follows the phase machine (`Up` is
+  `Visible`, `Leaving` `Hidden`); the panel plays `PanelIn`/`PanelOut` and its `on_hidden` feeds
+  `ExitSettled`, which unmaps: sill's `use_motion_timer(PaneOutR)` is gone. Each group is quire's
+  `GroupHeader { icon, name, count, expanded, on_toggle, on_clear }` (the app's icon at 16 and
+  name from the card's `use_app_mark`, F322) over its cards (`Swipe::Off`). The key rows are now
+  each group's header then its cards (`CenterRow::Head` replaces the fold line: Return on a
+  header opens or folds the group, Delete clears it). The panel takes no id, so the blur element
+  is the column inside it (`PANEL_ID`) grown by the panel's padding (`PANEL_PADDING`, 12).
+  Deleted: the `Surface{Popover}` one-cell-grid panel, the `PaneInR`/`PaneOutR` slide (F323),
+  the `SectionHeader` stand-in and the fold line (F324), `fold_label`, `group_title`.
+- **F362 Rich bodies.** `notification_card::rich_body` maps the service's parsed runs onto
+  quire's: a link `RichRun::Link`, else one tone per run, the strongest of bold (`Strong`),
+  italic (`Italic`), underline (`Underline`); an empty body is `None`. A link's press stays at
+  the link; `on_link` logs it (`banners.link=<href>`), since sill has no URL opener (F321).
+- **F363 Tests.** `banners_render` (8: slides in and times out, hover pauses and resumes, a
+  press invokes `default`, the close button dismisses, a 100 px drag sends `SwipeAway` and a
+  slow 40 px one springs back with its click swallowed, a link keeps its press, grouping, a
+  dropped card and another output), `notification_card_render` (3), `notification_center_render`
+  (11), `notification_center_keys` (5), and both lint suites, all on quire's classes; the pure
+  tables for the machine, the deck, the regions, the rows, the body, the metrics and the count.
+  In the stack a leaving card keeps its place until it has gone, so five apps after one show
+  the old card first while it slides out.
+- **F364 G100 and G101 closed** (shell-host 902a12c: an enter moves the document's pointer; an
+  unmap, hide or close withdraws it). `dev/accept-notifications-real-input.sh` drops the 1 px
+  nudge (`point` is one motion) and runs its steps in their natural order (the click on a body
+  before the close button). `repro`: "G100: one motion onto the card: hovered yes; after a second
+  motion: yes" PASS; "G101: a card after the column unmapped under the pointer, one motion onto
+  it: hovered yes" PASS.
+
+### Acceptance
+
+`dev/accept-notifications.sh` (nested cosmic-comp 2560 x 1600, private bus): 7/7.
+
+```
+PASS step_warm                sill-banners-WINIT-0 spawned at start, hidden
+PASS step_shows_holds_hides   shown 189 ms after the notification; hidden at 5648 ms (limit
+                              5850); banners 0, kept 1
+PASS step_hover               hovered at 4000 ms: still up at 7000 ms; gone 1796 ms after the
+                              pointer left (limit 2150)
+PASS step_grouping            three from one app: 140 px tall, banners 3; five apps: 250 px
+PASS step_dnd                 a normal one kept without a banner (2 -> 3); a critical one up
+                              after 10 s
+PASS step_click               a click on the body: the card left in 376 ms, kept 4 -> 3
+PASS step_idle                5 s idle: 0 frames
+```
+
+`dev/accept-notification-center.sh` (same compositor): 6/6. "N more" and Clear are now found in
+the first group header's ink (`header_buttons`), and the debug pointer leaves the surface after
+the toggle so the hovered Quiet button's ground does not run into Clear.
+
+```
+PASS step_warm, step_toggle_open_close (box 2168 8 2552 1492 in a 2560 1500 surface), step_clock
+PASS step_groups   kept 3; '1 more' at 2472 71 opened Mail's group (6 ink rows collapsed, 7
+                   opened); Mail's Clear at 2515 71: kept 1
+PASS step_outside, step_idle (0 frames open, 0 hidden)
+```
+
+`dev/accept-notifications-real-input.sh` (headless KWin 1920 x 1080, real pointer and keys):
+11/11.
+
+```
+PASS step_holder, step_hover (gone 1801 ms after the pointer left, limit 2150)
+PASS step_click_default   a real click on the body: left in 110 ms, kept 2 -> 1; ActionInvoked
+                          (uint32 2, 'default')
+PASS step_close_button    hovered, the close button shows; a real click on it at 1555,43: gone
+                          in 121 ms, kept 2 -> 1
+PASS step_swipe           a real 90 px drag right: gone in 107 ms; banners 0, kept 2
+PASS step_spring_back     a real 50 px drag, slowed: back at x 1552, banners 1
+PASS step_center_clock_escape, step_center_outside, step_center_delete (kept 4 -> 2),
+     step_idle (0 frames), step_holder
+```
+
+`step_spring_back` now reads the card's box with the pointer off it: hovered, quire's close
+button widens the box by its 6 px overhang. Screenshots retaken: `dev/out/banners-cosmic.png`
+(quire's card), `dev/out/banners-stack-cosmic.png` (three cards, Ada's group with its count chip
+and layers), `dev/out/notification-center-cosmic.png` (quire's panel: MAIL 2 with "1 more" and
+Clear over its stacked card, CHAT 1), `notification-center-open-cosmic.png`,
+`notification-center-empty-cosmic.png`.
+
+### Gaps found adopting the notification parts
+
+- **Q170 (quire; Blitz `refresh_hover`) A card that slides in under a resting pointer is never
+  hovered by moving on it.** After each resolve Blitz re-resolves the hovered node against the
+  last pointer position (`Document::refresh_hover`) without dispatching pointerenter or
+  pointerleave (its own TODO). A banner that slides in under the pointer (the next card after a
+  clicked one, a newer one in the same place) becomes the hovered node silently; later motions
+  over the same node change nothing, so quire's `NotificationCard` never hears `Hover::Over`:
+  no hold pause, no close button, until the pointer leaves the card and comes back. Reproduced
+  in the harness (a hovered card removed, the next one mounted under the pointer, a move of
+  20 px: `data-hover` stays `off`) and live: `repro_card_under_resting_pointer` in
+  `dev/accept-notifications-real-input.sh repro` FAILs with "a card slid in under the resting
+  pointer, moved on: hovered no; out and back: yes". Wanted from quire: the card treats a
+  pointermove with the pointer over it as `Over` when it thinks `Away` (or the host synthesizes
+  enter and leave for hover changes that come from layout).

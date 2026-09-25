@@ -1,38 +1,13 @@
-//! The center's words, pure: a group's name, its fold line, and the footer that says when sill
-//! is not the one receiving notifications.
+//! The center's words, pure: its title, the empty state, and the footer that says when sill is
+//! not the one receiving notifications. A group's name is the card's (`use_app_mark`, F322).
 
-use sill_services::{AppGroup, AppRef, IconRef, NameHolder, ServerMode, ServerStatus};
-
-use crate::surfaces::notification_card::app_label;
-
-use super::rows::Fold;
+use sill_services::{NameHolder, ServerMode, ServerStatus};
 
 /// The column's title.
 pub const TITLE: &str = "Notifications";
 
 /// What an empty history says.
 pub const EMPTY: &str = "No Notifications";
-
-/// A group's name: its desktop entry's `Name` when the apps index knows it, else the newest
-/// sender's `app_name`, else "Notification": the card's own `app_label` (FINDINGS F322), for
-/// the group's newest notification.
-pub fn group_title(group: &AppGroup, entry_name: Option<&str>) -> String {
-    let nobody = AppRef {
-        name: String::new(),
-        icon: IconRef::None,
-        desktop_entry: None,
-    };
-    let app = group.notes.first().map_or(&nobody, |note| &note.app);
-    app_label(app, entry_name)
-}
-
-/// The fold line's words.
-pub fn fold_label(fold: Fold) -> String {
-    match fold {
-        Fold::More(n) => format!("{n} more"),
-        Fold::Less => "Show less".to_owned(),
-    }
-}
 
 /// The footer, when sill is not receiving notifications: another daemon holds the name, or
 /// `notifications.server` is passive.
@@ -49,45 +24,8 @@ pub fn server_line(server: &ServerStatus) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{fold_label, group_title, server_line};
-    use crate::surfaces::notification_center::rows::Fold;
-    use sill_services::{
-        AppGroup, AppKey, AppRef, Body, Expiry, Hints, IconRef, NameHolder, NameOwner,
-        Notification, NotificationId, ServerMode, ServerStatus, UnixMs,
-    };
-
-    fn group(sent: &str) -> AppGroup {
-        AppGroup {
-            key: AppKey(sent.to_owned()),
-            notes: vec![Notification {
-                id: NotificationId(1),
-                arrived: UnixMs(0),
-                app: AppRef {
-                    name: sent.to_owned(),
-                    icon: IconRef::None,
-                    desktop_entry: None,
-                },
-                summary: String::new(),
-                body: Body::default(),
-                actions: Vec::new(),
-                hints: Hints::default(),
-                expiry: Expiry::Default,
-            }],
-        }
-    }
-
-    #[test]
-    fn a_group_is_named_by_its_entry_then_its_sender() {
-        assert_eq!(
-            group_title(&group("evolution"), Some("Evolution")),
-            "Evolution"
-        );
-        assert_eq!(group_title(&group("evolution"), None), "evolution");
-        assert_eq!(group_title(&group("evolution"), Some(" ")), "evolution");
-        assert_eq!(group_title(&group(""), None), "Notification");
-        assert_eq!(fold_label(Fold::More(2)), "2 more");
-        assert_eq!(fold_label(Fold::Less), "Show less");
-    }
+    use super::server_line;
+    use sill_services::{NameHolder, NameOwner, ServerMode, ServerStatus};
 
     #[test]
     fn the_footer_names_whoever_else_shows_notifications() {

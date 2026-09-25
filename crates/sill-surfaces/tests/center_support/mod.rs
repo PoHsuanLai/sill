@@ -100,7 +100,7 @@ pub fn opened(history: History) -> Running {
     let mut running = start(ShellFile::default(), history);
     running.advance(40);
     running.link.open(fake::output().id);
-    settle(&mut running.harness, |h| h.count(".sill-nc-panel") == 1);
+    settle(&mut running.harness, |h| h.count(".ds-panel") == 1);
     running.advance(600);
     running
 }
@@ -152,11 +152,12 @@ pub fn two_apps() -> History {
     }
 }
 
-/// The one row (card or fold line) that carries the keyboard's ring, as its card's stack size
-/// or `fold`; `None` without a ring.
+/// The one row (card or group header) that carries the keyboard's ring, as its card's stack
+/// size or `head`; `None` without a ring.
 pub fn ringed(harness: &Harness) -> Option<String> {
     match harness.count(".sill-nc-row[*|data-focus=ring]") {
         1 => harness.attr(".sill-nc-row[*|data-focus=ring]", "data-stack"),
-        _ => (harness.count(".sill-nc-fold[*|data-focus=ring]") == 1).then(|| "fold".to_owned()),
+        _ => (harness.count(".sill-nc-group-head[*|data-focus=ring]") == 1)
+            .then(|| "head".to_owned()),
     }
 }

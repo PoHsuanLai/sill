@@ -1,36 +1,25 @@
-//! The ids a card writes on its painted parts, so a surface can name them in an element region
-//! (shell-host's `RegionSpec::Elements`): the face, a group's two layers, and the close button.
-//! Unique per document, since a notification id is.
+//! The ids a banner writes, so its surface can name them in an element region (shell-host's
+//! `RegionSpec::Elements`): quire's plate (`NotificationCard { id }`, design/20 §1.6
+//! `Element("toast-<id>")`) and sill's wrapper around the whole card, which a group's layers
+//! reach below the plate. Unique per document, since a notification id is.
 
 use sill_services::NotificationId;
 
-/// One painted part of a card.
+/// One named part of a banner.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CardPart {
-    /// The card itself.
-    Face,
-    /// The group layer just under it.
-    Near,
-    /// The group layer under that.
-    Far,
-    /// The close button.
-    Close,
+    /// quire's plate: the card itself.
+    Plate,
+    /// The whole card, the group's layers under the plate included.
+    Whole,
 }
 
-impl CardPart {
-    fn slug(self) -> &'static str {
-        match self {
-            CardPart::Face => "face",
-            CardPart::Near => "near",
-            CardPart::Far => "far",
-            CardPart::Close => "close",
-        }
-    }
-}
-
-/// The `id` of `part` of the card drawing notification `id`.
+/// The `id` of `part` of the banner drawing notification `id`.
 pub fn part_id(id: NotificationId, part: CardPart) -> String {
-    format!("note-{}-{}", id.0, part.slug())
+    match part {
+        CardPart::Plate => format!("toast-{}", id.0),
+        CardPart::Whole => format!("banner-{}", id.0),
+    }
 }
 
 #[cfg(test)]
@@ -40,17 +29,9 @@ mod tests {
 
     #[test]
     fn each_part_has_its_own_id() {
-        let id = NotificationId(7);
-        let ids = [
-            CardPart::Face,
-            CardPart::Near,
-            CardPart::Far,
-            CardPart::Close,
-        ]
-        .map(|p| part_id(id, p));
-        assert_eq!(
-            ids,
-            ["note-7-face", "note-7-near", "note-7-far", "note-7-close"]
-        );
+        let cases = [(CardPart::Plate, "toast-7"), (CardPart::Whole, "banner-7")];
+        for (part, want) in cases {
+            assert_eq!(part_id(NotificationId(7), part), want, "{part:?}");
+        }
     }
 }

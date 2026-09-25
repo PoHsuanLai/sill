@@ -1,24 +1,24 @@
-//! The banner column (lane b, FINDINGS "M6 banners"): a transparent Toast root as tall as the
-//! surface holding the drawn cards in their corner, each a [`NotificationCard`] in a slot the
-//! stylesheet moves (entering, following a drag, flying out). It follows `use_notifications` and
-//! the [`BannerLink`] (only the output the link names shows cards), maps its surface while any
-//! card is drawn and unmaps it once the last one's exit has played, and keeps the input and blur
-//! regions on the cards' painted parts (`elements.rs`).
+//! The banner column: one transparent Toast root as tall as the surface, `NotificationMetrics`
+//! (the `notifications.*` geometry keys) written on a wrapper, holding quire's `BannerStack` of
+//! the deck's listed cards, each quire's `NotificationCard` (through [`NoteCard`]) that pauses the
+//! hold under the pointer and swipes away. It follows `use_notifications` and the
+//! [`BannerLink`] (only the output the link names shows cards), maps its surface while any card
+//! is drawn and unmaps it once the stack has played the last one out (`on_hidden`), and keeps
+//! the input and blur regions on the cards (`elements.rs`).
 //!
 //! [`BannerLink`]: super::BannerLink
 
 use dioxus::prelude::*;
-use ds::{BlurState, Ds, Material, RootChrome, RootExtent};
+use ds::{BannerKey, BannerStack, BlurState, Ds, Hover, Material, RootChrome, RootExtent, Swipe};
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_services::{NotificationId, Notifications};
-use sill_settings::NotificationsSettings;
+use sill_settings::{BannerPosition, NotificationsSettings};
 
-use super::deck::{DeckIn, Entry, Showing};
+use super::deck::{DeckIn, Entry, EntryKey, Showing};
 use super::drive::{Column, use_column};
 use super::elements::{CardShape, Regions, element_regions};
 use super::layer::ROOM;
-use super::look::{card_look, corner_slug, entry_slug, in_corner};
-use super::machine::BannerParams;
+use super::machine::{BannerIn, BannerParams};
 use super::placement::BannerLink;
 use super::stack::stack;
 use crate::hooks::{
@@ -26,18 +26,14 @@ use crate::hooks::{
 };
 use crate::surfaces::launcher::panel::active_look;
 use crate::surfaces::notification_card::{
-    CARD_CSS, CardPlace, CardPress, MenuOpen, MenuSeat, NotificationCard, wall_now,
+    CardPart, CardPlace, CardPress, NoteCard, notification_metrics, part_id, wall_now,
 };
 
 /// The column's stylesheet (lint-clean under `Profile::Strict`, `tests/banners_lint.rs`).
 pub const BANNERS_CSS: &str = include_str!("../../style/banners.css");
 
 /// The custom properties the column writes on itself, for the stylesheet lint.
-pub const BANNER_VARS: [&str; 3] = [
-    "--sill-banner-room",
-    "--sill-banner-gap",
-    "--sill-banner-edge",
-];
+pub const BANNER_VARS: [&str; 1] = ["--sill-banner-room"];
 
 /// The column on `output`.
 pub(super) fn banners(output: OutputInfo) -> Element {
@@ -58,110 +54,88 @@ pub(super) fn banners(output: OutputInfo) -> Element {
             blur: BlurState::Available,
             tint_alpha: Some(environment.tint_alpha()),
             stack: Some(environment.material_stack()),
-            style { {CARD_CSS} }
             style { {BANNERS_CSS} }
             ColumnView { output: output.id, settings: file.notifications.clone() }
         }
     }
 }
 
-/// The cards, inside the root (its motion level is the timers').
+/// The cards, inside the root.
 #[component]
 fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> Element {
-    let level = ds::use_env().resolved.motion;
     let control = use_services().notifications_control;
-    let column = use_column(BannerParams::new(&settings), control, level);
+    let column = use_column(BannerParams::new(&settings), control);
     let live = use_notifications();
     let link = use_context::<BannerLink>();
     let shows = use_watch(link.subscribe());
-    let menu = use_signal(|| MenuOpen::No);
-    use_context_provider(|| MenuSeat(menu));
     let max = usize::from(settings.stack_max.0);
     use_follow_stack(column, live, shows, output, max);
     use_map_while_showing(column);
     let deck = (column.deck)();
-    let drawn: Vec<Entry> = in_corner(
-        deck.drawn().into_iter().cloned().collect(),
-        settings.banner_position,
-    );
-    let shapes: Vec<CardShape> = drawn
-        .iter()
+    let shapes: Vec<CardShape> = deck
+        .drawn()
+        .into_iter()
         .filter_map(|e| {
             Some(CardShape {
                 note: e.card.newest()?,
                 count: e.card.count(),
-                expansion: e.expansion,
             })
         })
         .collect();
-    use_regions(element_regions(&shapes, menu()));
+    use_regions(element_regions(&shapes));
     let notes = live();
-    let from = entry_slug(settings.banner_entry_direction);
+    let banners: Vec<ds::Banner> = deck
+        .listed()
+        .into_iter()
+        .filter_map(|entry| banner(column, &notes, entry))
+        .collect();
     let style = format!(
-        "--sill-banner-room:{ROOM}px;--sill-banner-gap:{}px;--sill-banner-edge:{}px;",
-        settings.stack_gap_px.0, settings.position_right_px.0
+        "{}--sill-banner-room:{ROOM}px;",
+        notification_metrics(&settings).style_attr()
     );
     rsx! {
         div {
             class: "sill-banners",
             "data-corner": corner_slug(settings.banner_position),
             style,
-            onmousemove: move |event| column.moved(event.client_coordinates().x),
-            onmouseup: move |event| column.up(event.client_coordinates().x),
-            for entry in drawn {
-                Fragment { key: "{entry.key.0}", {slot(column, &notes, entry, from, menu)} }
+            BannerStack {
+                banners,
+                position: position(settings.banner_position),
+                on_hidden: move |key: BannerKey| column.hidden(EntryKey(key.0)),
             }
         }
     }
 }
 
-/// One card's slot.
-fn slot(
-    column: Column,
-    notes: &Notifications,
-    entry: Entry,
-    from: &'static str,
-    menu: Signal<MenuOpen>,
-) -> Element {
-    let Some(note) = entry
-        .card
-        .newest()
-        .and_then(|id| note_of(notes, id, &column))
-    else {
-        return rsx! {};
-    };
-    let look = card_look(&entry);
+/// One listed card as quire's banner.
+fn banner(column: Column, notes: &Notifications, entry: &Entry) -> Option<ds::Banner> {
+    let id = entry.card.newest()?;
+    let note = note_of(notes, id, &column)?;
     let key = entry.key;
     let card = entry.card.clone();
     let pressed = note.clone();
-    rsx! {
-        div {
-            class: "sill-banner",
-            "data-pose": look.pose,
-            "data-transit": look.transit.slug(),
-            "data-from": from,
-            style: look.shift,
-            onmouseenter: move |_| column.input(DeckIn::Card(key, super::BannerIn::HoverIn)),
-            onmouseleave: move |_| {
-                if menu() == MenuOpen::No {
-                    column.input(DeckIn::Card(key, super::BannerIn::HoverOut));
-                }
-            },
-            onmousedown: move |event| column.down(key, event.client_coordinates().x),
-            NotificationCard {
+    let swiped = EventHandler::new(move |()| column.input(DeckIn::Card(key, BannerIn::Swiped)));
+    let element = rsx! {
+        div { id: part_id(id, CardPart::Whole), class: "sill-banner",
+            NoteCard {
                 note,
                 count: entry.card.count(),
-                expansion: entry.expansion,
                 place: CardPlace::Banner,
                 now: wall_now(),
+                id: part_id(id, CardPart::Plate),
+                swipe: Swipe::Dismiss(swiped),
+                on_hover: move |hover: Hover| column.hovered(key, hover),
                 on_press: move |what: CardPress| column.pressed(key, card.clone(), &pressed, what),
             }
         }
-    }
+    };
+    Some(ds::Banner {
+        key: BannerKey(key.0),
+        card: element,
+    })
 }
 
-/// The notification a card draws: the live one, else the copy the deck kept (a card sliding out
-/// after the service dropped it).
+/// The notification a card draws: the live one, else the copy the column kept.
 fn note_of(
     notes: &Notifications,
     id: NotificationId,
@@ -171,6 +145,22 @@ fn note_of(
         .banner(id)
         .map(|b| b.note.clone())
         .or_else(|| column.kept(id))
+}
+
+/// quire's word for `notifications.banner_position`.
+fn position(corner: BannerPosition) -> ds::BannerPosition {
+    match corner {
+        BannerPosition::TopRight => ds::BannerPosition::TopRight,
+        BannerPosition::BottomRight => ds::BannerPosition::BottomRight,
+    }
+}
+
+/// `data-corner` on the column: the stack stands at its top or its bottom.
+fn corner_slug(corner: BannerPosition) -> &'static str {
+    match corner {
+        BannerPosition::TopRight => "top",
+        BannerPosition::BottomRight => "bottom",
+    }
 }
 
 /// Feed the deck the stack whenever the banners, the link or the cap change.
@@ -207,7 +197,8 @@ fn use_regions(regions: Regions) {
     last.set(Some(regions));
 }
 
-/// Map the surface once a card is drawn; unmap it once none is (the last exit has played).
+/// Map the surface once a card is drawn; unmap it once none is (the stack has played the last
+/// one out and said so).
 fn use_map_while_showing(column: Column) {
     let surface = try_use_context::<SurfaceHandle>();
     let mut applied = use_hook(|| CopyValue::new(Showing::Nothing));
@@ -224,4 +215,30 @@ fn use_map_while_showing(column: Column) {
             }));
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{corner_slug, position};
+    use sill_settings::BannerPosition;
+
+    #[test]
+    fn the_corner_is_quires_position() {
+        let cases = [
+            (
+                BannerPosition::TopRight,
+                ds::BannerPosition::TopRight,
+                "top",
+            ),
+            (
+                BannerPosition::BottomRight,
+                ds::BannerPosition::BottomRight,
+                "bottom",
+            ),
+        ];
+        for (corner, want, slug) in cases {
+            assert_eq!(position(corner), want, "{corner:?}");
+            assert_eq!(corner_slug(corner), slug, "{corner:?}");
+        }
+    }
 }

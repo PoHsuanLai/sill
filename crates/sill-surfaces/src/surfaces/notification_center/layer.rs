@@ -19,18 +19,22 @@ use shell_host::{
 
 use crate::surfaces::naming::namespace;
 
-/// The panel's element id: the blur region.
+/// The element id of the column inside quire's `Panel` (which takes no id of its own): the blur
+/// region, grown by the panel's padding to the panel's own box.
 pub const PANEL_ID: &str = "notification-center-panel";
 
 /// The panel's corner: quire's Popover (`--r-panel`, 14).
 pub const PANEL_RADIUS: i32 = 14;
+
+/// quire's `Panel` pads its content by `--s-12`: the column inside is that much smaller.
+pub const PANEL_PADDING: i32 = 12;
 
 /// The panel's blur region.
 pub fn panel_region() -> RegionSpec {
     RegionSpec::Element {
         id: ElementId::new(PANEL_ID),
         radius: PANEL_RADIUS,
-        inflate: 0,
+        inflate: PANEL_PADDING,
     }
 }
 

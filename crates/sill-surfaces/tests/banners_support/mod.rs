@@ -65,19 +65,26 @@ impl Running {
         std::iter::from_fn(|| self.feeds.notification_commands.try_recv().ok()).collect()
     }
 
-    /// How many cards are drawn.
+    /// How many cards quire's stack draws (listed or playing out).
     pub fn cards(&self) -> usize {
-        self.harness.count(".sill-banner")
+        self.harness.count(".ds-banner")
     }
 
-    /// The first card's `data-pose`.
-    pub fn pose(&self) -> Option<String> {
-        self.harness.attr(".sill-banner", "data-pose")
+    /// How many of them are playing their exit.
+    pub fn leaving(&self) -> usize {
+        self.harness.count(".ds-banner[*|data-presence=leaving]")
     }
 
-    /// The first card's `data-expansion`.
-    pub fn expansion(&self) -> Option<String> {
-        self.harness.attr(".sill-card", "data-expansion")
+    /// The first card's `data-hover` (`on` under the pointer).
+    pub fn hover(&self) -> Option<String> {
+        self.harness.attr(".ds-notification", "data-hover")
+    }
+
+    /// The first card's plate: where a press opens it.
+    pub fn plate(&self) -> ds::Point {
+        self.harness
+            .centre(".ds-notification-plate")
+            .expect("a card") // test-only
     }
 
     /// Advance in 20 ms steps until `done`, at most `limit`; whether it happened.

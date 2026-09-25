@@ -1,75 +1,82 @@
-//! The card's geometry from `notifications.*` (design/22 §3.12), handed to its stylesheet as
-//! custom properties on the card's own slot (lengths only: the markup lint allows those; every
-//! colour, radius, type size and duration stays a quire token in the sheet).
+//! The card's numbers from `notifications.*` (design/22 §3.12) in quire's words: the eight
+//! geometry keys as a `NotificationMetrics` (written once on a wrapper around the banners or the
+//! center, as `--notifications-*` tokens), the swipe keys as a `SwipeMetrics`, and the icon's
+//! side.
 
+use ds::{IconPx, NotificationMetrics, Px, Speed, SwipeMetrics};
 use sill_settings::NotificationsSettings;
 
-use super::body::LineChars;
-
-/// The gap between the icon and the text, px: the sheet's `var(--s-10)`.
-const ICON_GAP: u16 = 10;
-
-/// The custom properties [`CardMetrics::style_attr`] writes, for the stylesheet lint.
-pub const CARD_VARS: [&str; 6] = [
-    "--sill-card-w",
-    "--sill-card-min-h",
-    "--sill-card-pad",
-    "--sill-card-icon",
-    "--sill-card-close",
-    "--sill-card-layer",
-];
-
-/// The card's lengths.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CardMetrics {
-    pub width: u16,
-    pub min_height: u16,
-    pub padding: u16,
-    pub icon: u16,
-    pub close: u16,
-    pub group_offset: u16,
+/// The geometry keys as quire's tokens.
+pub fn notification_metrics(n: &NotificationsSettings) -> NotificationMetrics {
+    let px = |value: ds_settings::Px| Px(f32::from(value.0));
+    NotificationMetrics {
+        banner_width: px(n.banner_width_px),
+        banner_min_height: px(n.banner_min_height_px),
+        banner_padding: px(n.banner_padding_px),
+        icon: px(n.icon_px),
+        close: px(n.close_button_px),
+        stack_gap: px(n.stack_gap_px),
+        group_offset: px(n.group_offset_px),
+        center_width: px(n.center_width_px),
+    }
 }
 
-impl CardMetrics {
-    /// From the settings.
-    pub fn new(n: &NotificationsSettings) -> CardMetrics {
-        CardMetrics {
-            width: n.banner_width_px.0,
-            min_height: n.banner_min_height_px.0,
-            padding: n.banner_padding_px.0,
-            icon: n.icon_px.0,
-            close: n.close_button_px.0,
-            group_offset: n.group_offset_px.0,
-        }
+/// The swipe keys as quire's swipe thresholds.
+pub fn swipe_metrics(n: &NotificationsSettings) -> SwipeMetrics {
+    SwipeMetrics {
+        dismiss: Px(f32::from(n.swipe_dismiss_px.0)),
+        velocity: Speed(n.swipe_dismiss_velocity_px_s.0),
+        damping: n.swipe_damping,
     }
+}
 
-    /// The custom properties the sheet reads.
-    pub fn style_attr(&self) -> String {
-        format!(
-            "--sill-card-w:{}px;--sill-card-min-h:{}px;--sill-card-pad:{}px;--sill-card-icon:{}px;\
-             --sill-card-close:{}px;--sill-card-layer:{}px;",
-            self.width, self.min_height, self.padding, self.icon, self.close, self.group_offset
-        )
-    }
-
-    /// About how many body characters fit a line.
-    pub fn line_chars(&self) -> LineChars {
-        LineChars::of(self.width, self.padding, self.icon, ICON_GAP)
-    }
+/// The app icon's side (`notifications.icon_px`, 32), held to what an `IconPx` holds.
+pub fn icon_size(n: &NotificationsSettings) -> IconPx {
+    IconPx(u8::try_from(n.icon_px.0).unwrap_or(u8::MAX))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::CardMetrics;
+    use super::{icon_size, notification_metrics, swipe_metrics};
+    use ds::{IconPx, NotificationMetrics, SwipeMetrics};
+    use ds_settings::Px;
     use sill_settings::NotificationsSettings;
 
     #[test]
-    fn the_defaults_are_design_13s() {
-        let m = CardMetrics::new(&NotificationsSettings::default());
-        assert_eq!(
-            m.style_attr(),
-            "--sill-card-w:360px;--sill-card-min-h:64px;--sill-card-pad:12px;--sill-card-icon:32px;\
-             --sill-card-close:18px;--sill-card-layer:4px;"
-        );
+    fn the_defaults_are_quires_and_the_keys_reach_it() {
+        let n = NotificationsSettings::default();
+        let cases = [
+            (
+                n.clone(),
+                NotificationMetrics::default(),
+                SwipeMetrics::default(),
+                IconPx(32),
+            ),
+            (
+                NotificationsSettings {
+                    banner_width_px: Px(420),
+                    center_width_px: Px(500),
+                    icon_px: Px(400),
+                    swipe_dismiss_px: Px(120),
+                    ..n
+                },
+                NotificationMetrics {
+                    banner_width: ds::Px(420.0),
+                    center_width: ds::Px(500.0),
+                    icon: ds::Px(400.0),
+                    ..NotificationMetrics::default()
+                },
+                SwipeMetrics {
+                    dismiss: ds::Px(120.0),
+                    ..SwipeMetrics::default()
+                },
+                IconPx(255),
+            ),
+        ];
+        for (settings, metrics, swipe, icon) in cases {
+            assert_eq!(notification_metrics(&settings), metrics);
+            assert_eq!(swipe_metrics(&settings), swipe);
+            assert_eq!(icon_size(&settings), icon);
+        }
     }
 }
