@@ -1,6 +1,6 @@
 use super::{Drawn, IconContext, TileArt, TileSizes, drawn, tile_art};
 use crate::app_icons::cache::Generation;
-use crate::app_icons::{AssetDir, IconLook, IconResolver, ShippedApp};
+use crate::app_icons::{IconLook, IconResolver, ShippedApp};
 use crate::surfaces::dock::items::ItemKind;
 use ds::icon::{IconStyle, Tint};
 use ds::{Icon, IconPx, IconSize, IconSource, Scale};
@@ -83,7 +83,7 @@ fn each_entry_picks_its_art() {
     );
 }
 
-fn cx(style: IconStyle, scale: u32, assets: Option<&AssetDir>) -> IconContext<'_> {
+fn cx(style: IconStyle, scale: u32) -> IconContext {
     IconContext {
         look: IconLook {
             style,
@@ -93,7 +93,6 @@ fn cx(style: IconStyle, scale: u32, assets: Option<&AssetDir>) -> IconContext<'_
             },
         },
         scale: Scale(scale),
-        assets,
         resolver: IconResolver {
             seen: Generation::default(),
         },
@@ -112,78 +111,85 @@ fn word(drawn: &Drawn) -> String {
     }
 }
 
-/// A 48 px tile that magnifies to 96: our icon bare at the tile's side from the file for 96 at
-/// the scale, theme icons on the plate at their 72 % share. Colour and Muted are plain files;
-/// the first render of a Monochrome one shows its untinted source (the cache fills behind it).
+/// Non-shipped art at a fixed, self-contained path: an exact word.
 #[test]
-fn a_tile_draws_its_art_at_its_size_in_its_style() {
-    let dir = AssetDir(PathBuf::from("/q/apps"));
+fn theme_symbolic_and_glyph_art_draw_their_word_exactly() {
     let dock = DockSettings::default();
     let rest = TileSizes::new(48.0, &dock);
     let cases = [
         (
-            TileArt::Shipped(ShippedApp::Terminal),
-            IconStyle::Colour,
-            120,
-            "bare image file:///q/apps/terminal/96.png Px(IconPx(48))",
-        ),
-        (
-            TileArt::Shipped(ShippedApp::Terminal),
-            IconStyle::Muted,
-            180,
-            "bare image file:///q/apps/terminal/muted/256.png Px(IconPx(48))",
-        ),
-        (
-            TileArt::Shipped(ShippedApp::Mail),
-            IconStyle::Monochrome,
-            120,
-            "bare image file:///q/apps/mail/monochrome/96.png Px(IconPx(48))",
-        ),
-        (
             TileArt::Themed("/i/firefox.svg".into()),
             IconStyle::Colour,
-            120,
             "plated image file:///i/firefox.svg Px(IconPx(28))",
         ),
         (
             TileArt::Themed("/i/firefox.svg".into()),
             IconStyle::Monochrome,
-            120,
             "plated image file:///i/firefox.svg Px(IconPx(28))",
         ),
         (
             TileArt::Symbolic("/i/a-symbolic.svg".into()),
             IconStyle::Monochrome,
-            120,
             "plated symbolic file:///i/a-symbolic.svg Px(IconPx(28))",
         ),
         (
             TileArt::Glyph(Icon::Trash),
             IconStyle::Monochrome,
-            120,
             "plated glyph Trash",
         ),
     ];
-    for (art, style, scale, want) in cases {
-        let got = drawn(art.clone(), rest, &cx(style, scale, Some(&dir)));
-        assert_eq!(word(&got), want, "{art:?} {style:?} {scale}");
+    for (art, style, want) in cases {
+        let got = drawn(art.clone(), rest, &cx(style, 120));
+        assert_eq!(word(&got), want, "{art:?} {style:?}");
     }
-    assert_eq!(
-        drawn(
-            TileArt::Shipped(ShippedApp::Files),
-            rest,
-            &cx(IconStyle::Colour, 120, None)
+}
+
+/// A 48 px tile that magnifies to 96: our icon bare at the tile's side, from the file for 96 at
+/// the scale, under quire's real apps directory (the sibling checkout this workspace builds
+/// against, `ds_settings`'s development fallback; sill FINDINGS Q71 — the path itself is no
+/// longer sill's to build, so the assertion only pins the size and the style's subdirectory).
+/// Colour and Muted are shown as they are; the first render of a Monochrome one shows its
+/// untinted source (the cache fills behind it, off the blocking pool this plain test has none
+/// of).
+#[test]
+fn a_shipped_tile_loads_the_magnified_sizes_file_in_its_style() {
+    let dock = DockSettings::default();
+    let rest = TileSizes::new(48.0, &dock);
+    let cases = [
+        (
+            ShippedApp::Terminal,
+            IconStyle::Colour,
+            120,
+            "terminal/96.png",
         ),
-        Drawn::Plated(IconSource::Glyph(Icon::Window)),
-        "no quire files found: the fallback glyph"
-    );
+        (
+            ShippedApp::Terminal,
+            IconStyle::Muted,
+            180,
+            "terminal/muted/256.png",
+        ),
+        (
+            ShippedApp::Mail,
+            IconStyle::Monochrome,
+            120,
+            "mail/monochrome/96.png",
+        ),
+    ];
+    for (app, style, scale, suffix) in cases {
+        let got = drawn(TileArt::Shipped(app), rest, &cx(style, scale));
+        let word = word(&got);
+        assert!(
+            word.starts_with("bare image file://") && word.ends_with("Px(IconPx(48))"),
+            "{app:?} {style:?} {scale}: {word}"
+        );
+        assert!(word.contains(suffix), "{app:?} {style:?} {scale}: {word}");
+    }
 }
 
 /// Without magnification the file is picked for the tile's rest size: 48 is 48.png at 1x,
 /// 72.png at 1.5x, 96.png at 2x and at 1.75x (the nearest drawn size up).
 #[test]
 fn without_magnification_the_rest_size_picks_the_file() {
-    let dir = AssetDir(PathBuf::from("/q/apps"));
     let dock = DockSettings {
         magnification: Magnification::Off,
         ..DockSettings::default()
@@ -193,12 +199,12 @@ fn without_magnification_the_rest_size_picks_the_file() {
         let got = drawn(
             TileArt::Shipped(ShippedApp::Photos),
             sizes,
-            &cx(IconStyle::Colour, scale, Some(&dir)),
+            &cx(IconStyle::Colour, scale),
         );
-        assert_eq!(
-            word(&got),
-            format!("bare image file:///q/apps/photos/{file}.png Px(IconPx(48))"),
-            "{scale}"
+        let word = word(&got);
+        assert!(
+            word.contains(&format!("photos/{file}.png")),
+            "{scale}: {word}"
         );
     }
 }
@@ -209,7 +215,7 @@ fn icons_take_their_share_of_the_plate_in_whole_pixels() {
     let size = |side: f64| match drawn(
         TileArt::Themed("/i/term.svg".into()),
         TileSizes::new(side, &dock),
-        &cx(IconStyle::Colour, 120, None),
+        &cx(IconStyle::Colour, 120),
     ) {
         Drawn::Plated(IconSource::Image(e)) => e.size,
         other => panic!("{other:?}"),

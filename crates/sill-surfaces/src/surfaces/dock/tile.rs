@@ -6,7 +6,11 @@
 //! with its gradient, highlight, rim and drop; the macOS polish pass) in the neutral paper family
 //! (§4.1), the icon inside at the design inset, the fallback glyph at its 56 % (§4.3); an app
 //! quire ships an icon for is drawn bare over the whole tile instead, in the icon style the dock
-//! provides as [`TileLook`] (`icon.rs`, `app_icons`). The badge
+//! provides as [`TileLook`] (`icon.rs`, `app_icons`). Under Muted or Monochrome the plate takes
+//! the same `(IconStyle, Tint)` pair `app_icons` hands `ds::icon::retint`, through `IconView`'s
+//! `plate_tint: PlateTint::of(style, tint)` (sill FINDINGS Q72): the plate's two stops and its
+//! glyph ink are re-coloured by quire itself, so a Muted or Monochrome dock is one hue, plate
+//! included; `PlateTint::of` is `None` under Colour, which changes nothing. The badge
 //! and the ring hang off the plate and scale with it (design/10 §10.3.2); quire's `RunningDot`
 //! sits in a box at the tile's rest place, so it stays on the baseline while the tile bounces. The hover label is a ds
 //! `Tooltip{Fly}` over the plate, shown and hidden by the dock machine alone (`shown`): up
@@ -16,11 +20,13 @@
 //! press.
 
 use dioxus::prelude::*;
-use ds::{IconPx, IconSize, IconView, PlateFamily, RunningDot, Shown, Tooltip, TooltipKind};
+use ds::{
+    IconPx, IconSize, IconView, PlateFamily, PlateTint, RunningDot, Shown, Tooltip, TooltipKind,
+};
 use sill_services::{Badge, Cpx, Permille};
 use sill_settings::{DockSettings, Indicators, ProgressStyle};
 
-use crate::app_icons::{IconLook, asset_dir, use_icon_resolver};
+use crate::app_icons::{IconLook, use_icon_resolver};
 use crate::hooks::{use_apps, use_settings};
 use crate::surfaces::dock::frame::Rows;
 use crate::surfaces::dock::icon::{Drawn, IconContext, TileSizes, drawn, tile_art};
@@ -56,7 +62,6 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
     let cx = IconContext {
         look: look.0,
         scale: ds::use_scale(),
-        assets: asset_dir(),
         resolver: use_icon_resolver(),
     };
     let art = drawn(tile_art(&item.kind, app, dock.shipped_icons), sizes, &cx);
@@ -86,6 +91,7 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
                             source,
                             size: plate_size(plate),
                             plate: Some(PlateFamily::Neutral),
+                            plate_tint: PlateTint::of(look.0.style, look.0.tint),
                         }
                     },
                     Drawn::Bare(source) => rsx! {

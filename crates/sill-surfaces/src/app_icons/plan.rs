@@ -1,5 +1,7 @@
 //! What an app icon needs before it can be shown: a file as it is, or a re-tinted raster from
-//! the cache (quire CONSUMING's table). Pure.
+//! the cache (quire CONSUMING's table). Pure: a shipped icon's file is found elsewhere
+//! (`cache::IconResolver::shipped_path`, sill FINDINGS Q71, which touches the disk) and handed
+//! in already resolved.
 //!
 //! | style | our icons | third-party icons |
 //! | --- | --- | --- |
@@ -17,23 +19,6 @@ use crate::app_icons::key::{IconKey, Origin, TintKey};
 use crate::app_icons::look::IconLook;
 use crate::app_icons::shipped::ShippedApp;
 use crate::app_icons::size::AssetPx;
-
-/// quire's `assets/icons/apps` directory.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct AssetDir(pub PathBuf);
-
-impl AssetDir {
-    /// The file of `app` in `style`'s set at `px`.
-    pub fn file(&self, app: ShippedApp, style: IconStyle, px: AssetPx) -> PathBuf {
-        let dir = self.0.join(app.slug());
-        let set = match style {
-            IconStyle::Colour => dir,
-            IconStyle::Muted => dir.join("muted"),
-            IconStyle::Monochrome => dir.join("monochrome"),
-        };
-        set.join(format!("{}.png", px.0))
-    }
-}
 
 /// An icon as the view gets it.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -54,11 +39,11 @@ impl Art {
     }
 }
 
-/// Our icon for `app` at `px` in `look`.
-pub fn shipped_art(dir: &AssetDir, app: ShippedApp, px: AssetPx, look: IconLook) -> Art {
-    let file = dir.file(app, look.style, px);
+/// Our icon for `app` at `px` in `look`, already found at `source`
+/// (`cache::IconResolver::shipped_path`).
+pub fn shipped_art(source: PathBuf, app: ShippedApp, px: AssetPx, look: IconLook) -> Art {
     match look.style {
-        IconStyle::Colour | IconStyle::Muted => Art::Plain(file),
+        IconStyle::Colour | IconStyle::Muted => Art::Plain(source),
         IconStyle::Monochrome => Art::Styled {
             key: IconKey {
                 origin: Origin::Shipped(app),
@@ -66,7 +51,7 @@ pub fn shipped_art(dir: &AssetDir, app: ShippedApp, px: AssetPx, look: IconLook)
                 style: look.style,
                 tint: TintKey::of(look.tint),
             },
-            source: file,
+            source,
         },
     }
 }
@@ -89,7 +74,7 @@ pub fn theme_art(path: &Path, px: AssetPx, look: IconLook) -> Art {
 
 #[cfg(test)]
 mod tests {
-    use super::{Art, AssetDir, shipped_art, theme_art};
+    use super::{Art, shipped_art, theme_art};
     use crate::app_icons::look::IconLook;
     use crate::app_icons::shipped::ShippedApp;
     use crate::app_icons::size::AssetPx;
@@ -117,18 +102,21 @@ mod tests {
 
     #[test]
     fn our_icons_come_from_their_style_set() {
-        let dir = AssetDir(PathBuf::from("/q/apps"));
-        let at = |style| {
+        let source = |style| PathBuf::from(format!("/q/apps/terminal/{style}72.png"));
+        let at = |style: IconStyle, sub| {
             word(&shipped_art(
-                &dir,
+                source(sub),
                 ShippedApp::Terminal,
                 AssetPx(72),
                 look(style),
             ))
         };
-        assert_eq!(at(IconStyle::Colour), "plain /q/apps/terminal/72.png");
-        assert_eq!(at(IconStyle::Muted), "plain /q/apps/terminal/muted/72.png");
-        let mono = at(IconStyle::Monochrome);
+        assert_eq!(at(IconStyle::Colour, ""), "plain /q/apps/terminal/72.png");
+        assert_eq!(
+            at(IconStyle::Muted, "muted/"),
+            "plain /q/apps/terminal/muted/72.png"
+        );
+        let mono = at(IconStyle::Monochrome, "monochrome/");
         assert!(
             mono.starts_with("styled quire-terminal-72-monochrome-")
                 && mono.ends_with("from /q/apps/terminal/monochrome/72.png"),

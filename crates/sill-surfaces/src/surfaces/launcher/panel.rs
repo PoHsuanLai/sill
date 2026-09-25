@@ -18,7 +18,7 @@ use sill_launcher::{ActionId, Item};
 use sill_services::{Activity, OutputName, Results, WorkspaceKey, Workspaces};
 use sill_settings::{PanelMaterial, SpacesSettings};
 
-use crate::app_icons::{IconContext, IconLook, asset_dir, icon_look, use_icon_resolver};
+use crate::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
 use crate::hooks::{
     use_appearance, use_apps, use_results, use_settings, use_space_look, use_workspaces,
 };
@@ -220,7 +220,6 @@ impl RowIcons {
         let cx = IconContext {
             look: self.look,
             scale: self.scale,
-            assets: asset_dir(),
             resolver: self.resolver,
         };
         row_tile(item, row_art(item, &self.index, self.shipped), &cx)

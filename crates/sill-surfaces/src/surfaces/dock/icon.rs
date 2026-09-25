@@ -107,7 +107,7 @@ impl TileSizes {
 }
 
 /// `art` drawn at `sizes` in `cx`.
-pub fn drawn(art: TileArt, sizes: TileSizes, cx: &IconContext<'_>) -> Drawn {
+pub fn drawn(art: TileArt, sizes: TileSizes, cx: &IconContext) -> Drawn {
     let plate_icon = |side: f64| share(share(side, PLATE_PERMILLE), ICON_PERMILLE);
     match art {
         TileArt::Glyph(icon) => Drawn::Plated(IconSource::Glyph(icon)),
@@ -120,14 +120,18 @@ pub fn drawn(art: TileArt, sizes: TileSizes, cx: &IconContext<'_>) -> Drawn {
             let shown = cx.resolver.path(&theme_art(&path, px, cx.look));
             Drawn::Plated(image(&shown, plate_icon(sizes.side)))
         }
-        TileArt::Shipped(app) => match cx.assets {
-            Some(dir) => {
-                let px = pick(logical(sizes.largest), cx.scale);
-                let shown = cx.resolver.path(&shipped_art(dir, app, px, cx.look));
-                Drawn::Bare(image(&shown, sizes.side))
+        TileArt::Shipped(app) => {
+            // The magnified size (when magnification is on), so a magnification sweep never
+            // swaps files mid-flight (sill FINDINGS "Icon style").
+            let px = pick(logical(sizes.largest), cx.scale);
+            match cx.resolver.shipped_path(app, px, cx.look.style) {
+                Some(source) => {
+                    let shown = cx.resolver.path(&shipped_art(source, app, px, cx.look));
+                    Drawn::Bare(image(&shown, sizes.side))
+                }
+                None => Drawn::Plated(IconSource::Glyph(Icon::Window)),
             }
-            None => Drawn::Plated(IconSource::Glyph(Icon::Window)),
-        },
+        }
     }
 }
 

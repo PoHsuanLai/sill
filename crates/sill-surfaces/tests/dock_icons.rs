@@ -2,7 +2,7 @@
 //! `Image` source, bare over the tile, under every icon style: the Colour, Muted and Monochrome
 //! files for the magnified size (the Monochrome one untinted on its first render, while the
 //! cache makes the tinted raster). `dock.shipped_icons = off` puts the theme's icon back on the
-//! neutral plate.
+//! neutral plate, tinted to the same hue under Muted or Monochrome (sill FINDINGS Q72).
 
 mod dock_support;
 
@@ -84,4 +84,34 @@ fn shipped_icons_off_keeps_the_theme_icon_on_the_plate() {
     assert!(html.contains("data-family=\"neutral\""), "{html}");
     assert!(!html.contains("sill-dock-art"), "{html}");
     assert!(!html.contains("/terminal/"), "{html}");
+    assert!(
+        !html.contains("data-icon-style="),
+        "Colour: the plate is untinted\n{html}"
+    );
+}
+
+/// Under Muted or Monochrome the plate itself carries the icon style (sill FINDINGS Q72):
+/// `IconView`'s `plate_tint` writes `data-icon-style` and the tinted stops and ink as custom
+/// properties (`--plate-base-l` … `--plate-ink-d`), so quire's own stylesheet re-colours the
+/// plate the same hue as the icon on it, in both schemes at once.
+#[test]
+fn the_plate_carries_the_icon_style_under_muted_and_monochrome() {
+    for style in [IconStyle::Muted, IconStyle::Monochrome] {
+        let html = render(style, ShippedIcons::Off);
+        let word = if style == IconStyle::Muted {
+            "muted"
+        } else {
+            "monochrome"
+        };
+        assert!(
+            html.contains(&format!("data-icon-style=\"{word}\"")),
+            "{style:?}\n{html}"
+        );
+        for var in ["--plate-base-l:", "--plate-deep-l:", "--plate-ink-l:"] {
+            assert!(html.contains(var), "{style:?}: {var}\n{html}");
+        }
+        for var in ["--plate-base-d:", "--plate-deep-d:", "--plate-ink-d:"] {
+            assert!(html.contains(var), "{style:?}: {var}\n{html}");
+        }
+    }
 }
