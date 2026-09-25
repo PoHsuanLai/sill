@@ -1,10 +1,19 @@
 //! The daemon's M5 half: one power menu surface per output, spawned warm and hidden (the
 //! launcher's pattern), and the `power-menu` and `control-center` requests, which only write the
 //! shared links the surfaces follow ([`crate::links`]).
+//!
+//! **Dry run.** A debug build (`--features debug`) started with `SILL_POWER_MENU_DRY_RUN` set
+//! gives every power menu a [`DryRunSession`] instead of the session service: every button is
+//! offered, and a chosen action is only printed (`power_menu.dry_run would=Restart`) and appended
+//! to the file the variable names (none when it is empty), never sent to logind. Each surface
+//! prints `power_menu.backend=dry-run` as it mounts, which `dev/accept-power-menu.sh` checks
+//! before it presses Enter. A release build ignores the variable.
 
 use shell_host::{HostCtx, OutputInfo, Root};
 use sill_ipc::{ControlCenterRequest, PowerMenuRequest, Response};
-use sill_surfaces::surfaces::power_menu::{PowerMenuProps, Preselect, power_menu_layer};
+use sill_surfaces::surfaces::power_menu::{
+    PowerMenuBackend, PowerMenuProps, Preselect, power_menu_layer,
+};
 
 use crate::links::Links;
 use crate::msg::ShellMsg;
@@ -29,10 +38,12 @@ pub fn spawn_missing(
         let props = PowerMenuProps {
             output: info.clone(),
         };
-        match ctx.spawn_layer(
-            config,
-            root(Root::with_props(sill_surfaces::PowerMenu, props)),
-        ) {
+        let surface = root(Root::with_props(sill_surfaces::PowerMenu, props));
+        let surface = match dry_run() {
+            Some(backend) => surface.context(backend),
+            None => surface,
+        };
+        match ctx.spawn_layer(config, surface) {
             Ok(id) => {
                 ctx.set_visibility(id, shell_host::Visibility::Hidden);
                 let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
@@ -42,6 +53,39 @@ pub fn spawn_missing(
             Err(error) => eprintln!("sill: spawning {namespace} on {:?}: {error}", info.name),
         }
     }
+}
+
+/// The environment variable that turns the dry run on (a debug build only).
+pub const DRY_RUN_VAR: &str = "SILL_POWER_MENU_DRY_RUN";
+
+/// The dry-run backend every power menu shares, when this debug build was started with
+/// [`DRY_RUN_VAR`].
+#[cfg(feature = "debug")]
+fn dry_run() -> Option<PowerMenuBackend> {
+    use sill_surfaces::surfaces::power_menu::{DryRunSession, everything_offered};
+    static DRY_RUN: std::sync::OnceLock<Option<PowerMenuBackend>> = std::sync::OnceLock::new();
+    DRY_RUN
+        .get_or_init(|| {
+            let value = std::env::var_os(DRY_RUN_VAR)?;
+            let record = (!value.is_empty()).then(|| std::path::PathBuf::from(value));
+            eprintln!(
+                "sill: power menu: dry run, recording to {}",
+                record
+                    .as_ref()
+                    .map_or("stderr only".to_owned(), |path| path.display().to_string())
+            );
+            Some(PowerMenuBackend::dry_run(DryRunSession::new(
+                everything_offered(),
+                record,
+            )))
+        })
+        .clone()
+}
+
+/// Without the `debug` feature there is no dry run: the power menu speaks to logind.
+#[cfg(not(feature = "debug"))]
+fn dry_run() -> Option<PowerMenuBackend> {
+    None
 }
 
 /// `sill power-menu open|close|toggle`: on the first output with a power menu (the output under

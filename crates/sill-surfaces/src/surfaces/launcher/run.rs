@@ -3,20 +3,30 @@
 //! so the app can take focus (the same two steps as the daemon's `sill::launch`, which a
 //! surface cannot reach). The insertion into the field is the panel's own (`events.rs`).
 
-use shell_host::SurfaceHandle;
+use shell_host::{OutputId, SurfaceHandle};
 use sill_services::{LaunchCommand, LaunchRequest, ServiceError, Services};
 
 use crate::surfaces::launcher::activate::{LauncherEffect, Unreachable};
+use crate::surfaces::power_menu::{PowerMenuLink, Preselect};
 
-/// Do `effect` with `services`, from `surface` when there is one.
+/// Where an effect is carried out from: the panel's surface (a launch's token), its output
+/// and the power menu's link (a Log Out, Restart or Shut Down row opens it there).
+#[derive(Clone)]
+pub struct EffectFrom {
+    pub surface: Option<SurfaceHandle>,
+    pub output: OutputId,
+    pub power_menu: Option<PowerMenuLink>,
+}
+
+/// Do `effect` with `services`, from `from`.
 pub async fn run_effect(
     effect: LauncherEffect,
-    surface: Option<SurfaceHandle>,
+    from: &EffectFrom,
     services: &Services,
 ) -> Result<(), ServiceError> {
     match effect {
         LauncherEffect::Launch { app, action } => {
-            let token = match &surface {
+            let token = match &from.surface {
                 Some(surface) => surface.activation_token(Some(app.0.clone())).await,
                 None => None,
             };
@@ -29,7 +39,7 @@ pub async fn run_effect(
             }))
         }
         LauncherEffect::Copy(text) => {
-            if let Some(surface) = &surface {
+            if let Some(surface) = &from.surface {
                 surface.copy_text(text);
             }
             Ok(())
@@ -41,9 +51,13 @@ pub async fn run_effect(
         LauncherEffect::Session(action) => services
             .session_control
             .send(sill_services::SessionCommand::Run(action)),
-        // M5 agent (d): `PowerMenuLink::open(output, Preselect::Action(action))`; the panel has
-        // the link and its output, this function does not yet (FINDINGS "M5 freeze").
-        LauncherEffect::PowerMenu(_) => Ok(()),
+        LauncherEffect::PowerMenu(action) => {
+            match &from.power_menu {
+                Some(link) => link.open(from.output, Preselect::Action(action)),
+                None => eprintln!("sill: launcher: no power menu here to confirm {action:?} in"),
+            }
+            Ok(())
+        }
         LauncherEffect::ByRunner | LauncherEffect::Insert(_) | LauncherEffect::Nothing => Ok(()),
     }
 }
@@ -51,7 +65,7 @@ pub async fn run_effect(
 fn unreachable_text(why: &Unreachable) -> String {
     match why {
         Unreachable::System(command) => {
-            format!("{command:?} needs a session service the surfaces do not have yet")
+            format!("{command:?} is the daemon's, which no surface reaches")
         }
         Unreachable::SettingsKey(key) => {
             format!("no settings app to open {key:?} in yet")
