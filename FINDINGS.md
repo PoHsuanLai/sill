@@ -2234,6 +2234,62 @@ the icon style"; `crates/sill-surfaces/src/app_icons/`).
 
   Advanced for now (§5 lists the Dock page's Basic keys); it also governs the launcher's rows.
 
+## OSD (2026-09-25)
+
+design/20 §1.7: one Overlay layer per output (`sill-osd-<output>`), spawned hidden and kept warm
+with `set_visibility` like the launcher; anchored to the `osd.position` edge, centred, exclusive
+zone `Auto` (reserves nothing and sits clear of the dock's reserve without reading its geometry),
+keyboard `None`, input `Empty`, blur `Element("osd")`. A 280 x 52 card (design leaves the size
+open) with 40 px of transparent room for the Osd material's ambient shadow.
+
+- **Trigger policy.** The OSD shows only the changes sill makes: `sill display volume ...` and
+  `sill display brightness ...` (what the keys run), after the service call succeeds, plus
+  `sill debug osd volume|brightness N [--mute muted]`, which shows a made-up level and moves
+  nothing. A change from another app (a player's slider, `pactl`, the monitor's buttons) never
+  shows: macOS shows its indicator for the keys only, and following every PipeWire change would
+  flash it whenever an app ramps its stream. `osd.enabled = "off"` silences all of it.
+- **Where.** Volume: the active window's output (the stand-in for the output under the pointer,
+  F140), else the first. Brightness: the outputs `display.brightness_keys_target` picks, chosen
+  with the service's own `targets`, minus those with no brightness to show.
+- **What.** The glyph at `IconSize::Bar` (`volume-x` muted or 0, then `volume`, `volume-1`,
+  `volume-2` by thirds; `sun` for brightness) and quire's `Slider` read-only (`Disabled`, empty
+  when muted), on a painted Osd root tinted by the active Space, inside a transparent Osd root
+  whose box fades: in with `fade` over `--t-quick --e-out`, out with `menu-out` over
+  `--t-move --e-exit`. The monitor's own speakers follow the sink, so volume is one level.
+- **Timing.** `osd/machine.rs` is pure (table-tested): a change maps it and holds
+  `osd.hold_ms` from the last change; a change during the fade takes it back and holds again;
+  the fade settles at `DurationToken::Move + FRAME_SLACK`, then it unmaps and no timer runs. The
+  surface wakes it with `ds::sleep` only.
+- **Seen live** (`dev/accept-osd.sh`, nested cosmic-comp, 4/4): hidden at start; shown 83 ms
+  after `sill debug osd volume 60`; hidden by 1828 ms (hold 1500); a change 100 ms into the fade
+  keeps it up at 2480 ms; 0 frames in 5 idle seconds after the hide. `dev/out/osd-cosmic.png`.
+
+### Gaps
+
+- **Q74 (quire)** `Slider` has no read-only level form: design/20 §1.7's level bar is "`Slider`
+  read-only", but the Slider always draws its thumb and is focusable, and its fill does not
+  transition, so the "level change `--t-quick --e-out`" cannot be drawn without styling
+  `.ds-slider-fill`. sill passes `Availability::Disabled` and the bar jumps between levels. A
+  `SliderMode::Level` (no thumb, no tabindex, fill width transitioning `--t-quick --e-out`)
+  would close it.
+- **Q75 (quire)** No `Anim` for the OSD's exit (`fade`/`menu-out` at `--t-move --e-exit`): sill
+  writes the animation in its own sheet and computes the settle from
+  `DurationToken::Move + FRAME_SLACK` rather than `ds::settle`. An `Anim::OsdIn`/`OsdOut` pair
+  (or an `Osd` component owning the card and its fade) would make the timer quire's.
+- **Q76 (quire)** Fading a painted root as a whole needs the motion tokens outside it: sill
+  nests a painted Osd `Ds` (`stylesheet: Inject::Host`) inside a transparent Osd `Ds` so the
+  fading box can read `--t-*`. An `Osd` component in quire would own that.
+- **Q77 (design/22)** No `osd` rows; `AWAITING_ROWS` exempts them (a new §3.16 `osd`):
+
+  | Key | Type | Default | Range / Alt | Source | Status |
+  | --- | --- | --- | --- | --- | --- |
+  | `osd.enabled` | `OsdEnabled::{On,Off}` | `On` | shows sill's own volume and brightness changes | `20-SURFACES.md#1-7-osd`; sill `FINDINGS.md` "OSD" | proposed (2026-09-25) |
+  | `osd.hold_ms` | `Ms` | `1500` | `300..=10000`; after the last change, before the fade | `20-SURFACES.md#1-7-osd` | proposed (2026-09-25) |
+  | `osd.position` | `OsdPosition::{Bottom,Top}` | `Bottom` | centred along that edge | `20-SURFACES.md#1-7-osd` | proposed (2026-09-25) |
+  | `osd.bottom_margin_px` | `Px` | `24` | `0..=400`; gap from the dock's reserve (or the bar's, at the top) to the card | sill `FINDINGS.md` "OSD" | proposed (2026-09-25) |
+
+  All Advanced until §5 places them on a page.
+
 ## M5 freeze (2026-09-25)
 
 The control center (design/20 §1.5, design/13 §13.3.7) and the power menu (design/20 §1.8),
@@ -2318,8 +2374,8 @@ so the suite stays green and each agent's first step is to delete its `ignore`s.
   toggle`. The daemon's half is `crates/sill/src/power_menu.rs` (spawn and dispatch) and
   `crates/sill/src/links.rs`: the three links are installed once in a `OnceLock` and added to
   every root by `surface_root`, rather than threaded through every `spawn_missing_*` (those
-  signatures are shared with the OSD work in flight); `daemon.rs` gained a few additive lines.
-- **F182 New keys** (no design/22 rows; `tests/keys.rs` `AWAITING_ROWS`, rows in Q78):
+  signatures were shared with the OSD work then in flight); `daemon.rs` gained a few additive lines.
+- **F182 New keys** (no design/22 rows; `tests/keys.rs` `AWAITING_ROWS`, rows in Q82):
   `control_center.bottom_margin_px` (16: design/13 §13.3.7's "max `output_h - bar_h - 16`"),
   and a new `power_menu` domain (`[power_menu]` in `settings.toml`, `SettingsChange::PowerMenu`)
   with `power_menu.default_action` (`ShutDown`) and `power_menu.material` (`Sheet`).
@@ -2327,9 +2383,10 @@ so the suite stays green and each agent's first step is to delete its `ignore`s.
   no sink list or `SetSink`; the Sound module names the current sink only). Joining a new Wi-Fi
   network or pairing a Bluetooth device (COSMIC Settings, from each page's foot). A power-menu
   countdown (macOS's 60 s auto shut-down: not in the spec).
-- **F184 Known red at freeze time, not from this branch.** `sill-settings`'
-  `every_key_in_catalogue_has_a_spec` fails on master too: quire's design/22 gained `osd.*`
-  rows (the OSD work) before sill's `osd` domain landed. It clears when the OSD branch merges.
+- **F184 Merged with the OSD.** master's OSD (FINDINGS "OSD") landed while this froze; both
+  spawn one warm hidden layer per output through `daemon::surface_root`, so the power menu's
+  `spawn_missing` sits beside the OSD's, and the quire gaps below are numbered after the OSD's
+  Q74-Q77.
 
 ### The M5 fill-in: four agents, disjoint files
 
@@ -2410,7 +2467,7 @@ cli.rs,links.rs,outputs.rs}`.
   `ds_native::measure::provide()`; the bar follows `ControlCenterLink` for its output; the
   popup is sized by `estimate_size` and repositioned on a page change; modules in
   `control_center.modules` order on `place`'s grid; the Wi-Fi and Bluetooth pages slide (quire
-  motion only: Q76); Escape unwinds; only quire components (the SSR class test and
+  motion only: Q80); Escape unwinds; only quire components (the SSR class test and
   `ds::lint::stylesheet`, as the bar's tests do); every ignored test in the module passes.
 - Verify: the gates; `dev/accept-control-center.sh` on the nested compositor (`dev/nested.sh`,
   `sill run --features debug` with a scratch `XDG_CONFIG_HOME`, as `accept-launcher.sh` does):
@@ -2444,23 +2501,23 @@ cli.rs,links.rs,outputs.rs}`.
 
 ### Gaps found in the M5 freeze
 
-- **Q74 (quire)** A control center module tile: design/13 §13.3.7's `--r-tile` 12 tile with a
+- **Q78 (quire)** A control center module tile: design/13 §13.3.7's `--r-tile` 12 tile with a
   glyph on an accent disc when on, a title, a status line, an on/off state, an optional chevron
   to a detail pane, and a row-spanning variant for sliders. Nothing in the catalogue has that
   shape (`AccountTile` is the mail account plate).
-- **Q75 (quire)** A settings-style list row for networks and devices: leading glyph, title,
+- **Q79 (quire)** A settings-style list row for networks and devices: leading glyph, title,
   detail, trailing marks (lock, check, spinner), selectable and pressable, outside a `Menu`.
   `ListRow` is the mail row (name, subject, snippet, time, star), and `MenuEntry::Row` lives
   only inside a `Menu`.
-- **Q76 (quire)** A pane switcher that plays `slide-l` / `slide-r` between a root pane and a
+- **Q80 (quire)** A pane switcher that plays `slide-l` / `slide-r` between a root pane and a
   detail pane in place (design/13 §13.3.7 "Detail"): `Anim::SlideL`/`SlideR` exist, but
   `use_entrance` is crate-private and consumers may not write keyframes (rule 4).
-- **Q77 (quire)** Glyphs: media transport (`Play`, `Pause`, `SkipBack`, `SkipForward`),
+- **Q81 (quire)** Glyphs: media transport (`Play`, `Pause`, `SkipBack`, `SkipForward`),
   `LogOut` and `Restart` for the power menu, and Bluetooth device kinds (`Headphones`,
   `Speaker`, `Mouse`, `Gamepad`, `Phone`; `Keyboard` and `Monitor` exist).
-- **Q78 (design/22)** The rows `AWAITING_ROWS` exempts (F182), for §3.13 and a new section
-  after §3.15 (which `tests/keys.rs` then reads without change, since everything up to "## 4.
-  Rust shape" is parsed); §2's file table and §4.4's `ShellFile` gain `power_menu`:
+- **Q82 (design/22)** The rows `AWAITING_ROWS` exempts (F182), for §3.13 and a new section
+  after §3.16 `osd` (which `tests/keys.rs` then reads without change, since everything up to
+  "## 4. Rust shape" is parsed); §2's file table and §4.4's `ShellFile` gain `power_menu`:
 
   | Key | Type | Default | Range / Alt | Source | Status |
   | --- | --- | --- | --- | --- | --- |

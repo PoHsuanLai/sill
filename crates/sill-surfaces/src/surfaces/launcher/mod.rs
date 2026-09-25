@@ -26,7 +26,7 @@ mod card;
 mod catcher;
 mod events;
 mod follow;
-mod panel;
+pub(crate) mod panel;
 mod run;
 
 pub use activate::{LauncherEffect, LauncherProviders, effect_of};

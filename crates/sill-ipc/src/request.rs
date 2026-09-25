@@ -1,8 +1,8 @@
 //! What a client asks the daemon (plan: `Ping, Launcher{Toggle,Open{query},Close},
 //! Dock{Pin,Unpin}, Reload, Quit, Debug{Stats,Pointer,Leave,Capture}`), plus `Debug(Click)`
 //! from the M2 freeze amendment (sill FINDINGS F76), and `Display` from the displays pass (sill
-//! FINDINGS "Displays"), and `PowerMenu`/`ControlCenter` from the M5 freeze (sill FINDINGS "M5
-//! freeze").
+//! FINDINGS "Displays"), `Debug(Osd)` from the OSD, and `PowerMenu`/`ControlCenter` from the
+//! M5 freeze (sill FINDINGS "M5 freeze").
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -129,6 +129,36 @@ pub enum DebugRequest {
         at: Point,
         button: PointerButton,
     },
+    /// Show the OSD for a made-up change, on the output a real one of its kind would use,
+    /// moving no real level (`dev/accept-osd.sh`: the session's default sink may be somebody's
+    /// headphones).
+    Osd(FakeOsd),
+}
+
+/// A made-up OSD change: what moved, to which level.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FakeOsd {
+    pub topic: OsdTopic,
+    /// 0-100; more is taken as 100.
+    pub percent: u8,
+    pub mute: FakeMute,
+}
+
+/// What an OSD change is about.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OsdTopic {
+    Volume,
+    Brightness,
+}
+
+/// Whether a made-up volume change is muted (a brightness change never is).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FakeMute {
+    #[default]
+    Audible,
+    Muted,
 }
 
 /// Which pointer button a debug click presses.

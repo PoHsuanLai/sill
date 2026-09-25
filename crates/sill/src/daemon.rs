@@ -24,6 +24,7 @@ use sill_launcher::AppId;
 use sill_services::{OutputName, PinAt, PinEvent, Services, WallpaperCommand};
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
 use sill_surfaces::surfaces::launcher::LauncherLink;
+use sill_surfaces::surfaces::osd::OsdLink;
 use tokio::sync::watch;
 
 use crate::ipc_server;
@@ -110,6 +111,7 @@ pub fn run() -> ExitCode {
 
     let mut outputs = Outputs::default();
     let launcher = LauncherLink::new();
+    let osd = OsdLink::new();
     let result = host.run(move |ctx, event| {
         run_event(
             ctx,
@@ -119,6 +121,7 @@ pub fn run() -> ExitCode {
             settings_dir.as_deref(),
             &settings_tx,
             &launcher,
+            &osd,
             event,
         );
     });
@@ -136,7 +139,8 @@ fn fatal(message: &str) -> ExitCode {
 
 /// Every event, dispatched: an IPC request (needs `services` and the settings), or everything
 /// else via `on_event` followed by spawning whatever it left missing. The launcher panel's
-/// keyboard focus goes to `launcher` (a focus loss closes it, design/06 §20.2).
+/// keyboard focus goes to `launcher` (a focus loss closes it, design/06 §20.2); `osd` is what
+/// every output's indicator follows.
 #[allow(clippy::too_many_arguments)]
 fn run_event(
     ctx: &mut HostCtx<ShellMsg>,
@@ -146,6 +150,7 @@ fn run_event(
     settings_dir: Option<&Path>,
     settings_tx: &watch::Sender<ShellFile>,
     launcher: &LauncherLink,
+    osd: &OsdLink,
     event: HostEvent<ShellMsg>,
 ) {
     match event {
@@ -168,6 +173,7 @@ fn run_event(
                 settings_dir,
                 settings_tx,
                 launcher,
+                osd,
                 request,
             );
             if let Some(toggled_at) = toggled_at {
@@ -197,6 +203,9 @@ fn run_event(
             spawn_missing_docks(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_launchers(ctx, outputs, services, settings_feed, settings_tx, launcher);
             crate::power_menu::spawn_missing(ctx, outputs, |root| {
+                surface_root(root, services, settings_feed)
+            });
+            crate::osd::spawn_missing(ctx, outputs, settings_tx, osd, |root| {
                 surface_root(root, services, settings_feed)
             });
         }
@@ -490,7 +499,7 @@ fn spawn_missing_launchers(
 }
 
 /// Spawn a layer surface and hide it before its first paint.
-fn spawn_hidden(
+pub(crate) fn spawn_hidden(
     ctx: &mut HostCtx<ShellMsg>,
     config: shell_host::LayerConfig,
     root: Root,
@@ -517,7 +526,7 @@ fn spawn_hidden(
 /// or a focus waits a frame and the panic hook prints the collision (FINDINGS Q10, F81,
 /// "Adoption of the bar gaps", "Adoption of the launcher gaps"). Every spawn goes through here,
 /// so a new surface cannot forget them.
-fn surface_root(root: Root, services: &Services, settings_feed: &SettingsFeed) -> Root {
+pub(crate) fn surface_root(root: Root, services: &Services, settings_feed: &SettingsFeed) -> Root {
     let root = root
         .context(services.clone())
         .context(settings_feed.clone())
@@ -533,7 +542,8 @@ fn surface_root(root: Root, services: &Services, settings_feed: &SettingsFeed) -
     }
 }
 
-/// Answer one IPC request.
+/// Answer one IPC request. A display key's change, and a made-up one, show on the OSD.
+#[allow(clippy::too_many_arguments)]
 fn dispatch_request(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &Outputs,
@@ -541,6 +551,7 @@ fn dispatch_request(
     settings_dir: Option<&Path>,
     settings_tx: &watch::Sender<ShellFile>,
     launcher: &LauncherLink,
+    osd: &OsdLink,
     request: Request,
 ) -> Response {
     match request {
@@ -556,8 +567,16 @@ fn dispatch_request(
             ctx.exit();
             Response::Done
         }
+        Request::Debug(DebugRequest::Osd(fake)) => {
+            crate::osd::fake(osd, services, outputs, &settings_tx.borrow(), fake)
+        }
         Request::Debug(request) => dispatch_debug(ctx, outputs, request),
-        Request::Display(request) => crate::displays::dispatch(services, request),
+        Request::Display(request) => {
+            let response = crate::displays::dispatch(services, request);
+            let file = settings_tx.borrow();
+            crate::osd::after_display(osd, services, outputs, &file, request, &response);
+            response
+        }
         Request::PowerMenu(request) => {
             crate::power_menu::dispatch_power_menu(outputs, crate::links::get(), request)
         }
@@ -634,6 +653,8 @@ fn dispatch_debug(
             at,
             button,
         } => act(ctx, surface, DebugAction::Click(at, button)),
+        // Answered by `dispatch_request`, which holds the OSD's link.
+        DebugRequest::Osd(_) => unsupported("the OSD's made-up change is answered elsewhere"),
     }
 }
 
@@ -719,7 +740,7 @@ fn launcher_namespaces(info: &OutputInfo) -> (String, String) {
     (panel, catcher_layer(info).namespace)
 }
 
-/// Every known bar's, wallpaper's, dock's and launcher surface's frame statistics, through the
+/// Every known bar's, wallpaper's, dock's, launcher surface's and OSD's frame statistics, through the
 /// always-public `HostCtx::take_stats` (needs neither the `debug` feature nor shell-host's
 /// `debug-inject`; draining, so each report covers only the time since the previous one).
 fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc::SurfaceStats> {
@@ -733,6 +754,7 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
             let (panel, catcher) = launcher_namespaces(info);
             let launcher = surfaces.launcher.map(|id| (panel, id));
             let catcher = surfaces.catcher.map(|id| (catcher, id));
+            let osd = surfaces.osd.map(|id| (crate::osd::osd_namespace(info), id));
             let power_menu = surfaces.power_menu.map(|id| {
                 let layer = sill_surfaces::surfaces::power_menu::power_menu_layer(info);
                 (layer.namespace, id)
@@ -742,6 +764,7 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
                 .chain(dock)
                 .chain(launcher)
                 .chain(catcher)
+                .chain(osd)
                 .chain(power_menu)
         })
         .collect();

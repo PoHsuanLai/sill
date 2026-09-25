@@ -10,5 +10,6 @@ pub mod ipc_server;
 pub mod launch;
 pub mod links;
 pub mod msg;
+pub mod osd;
 pub mod outputs;
 pub mod power_menu;
