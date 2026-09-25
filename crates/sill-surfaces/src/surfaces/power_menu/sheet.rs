@@ -1,9 +1,10 @@
 //! One opening of the sheet, pure: the keyboard machine's focus ([`super::step`]) plus whether
 //! the sheet is up or on its way out. Escape, a scrim click and a chosen action all leave the
-//! same way, the whole surface fading out (quire's `menu-out`); once that settles the menu
-//! closes and, for a chosen action, the action runs, so a suspend or a polkit prompt never
-//! finds the sheet still up.
+//! same way, quire's `Sheet` playing its own exit (`sheet-out`, the scrim fading); at its
+//! `on_hidden` the menu closes and, for a chosen action, the action runs, so a suspend or a
+//! polkit prompt never finds the sheet still up. Shown again while leaving, it is up again.
 
+use ds::Shown;
 use sill_services::{Session, SessionAction};
 
 use crate::surfaces::launcher::presence::OpenSerial;
@@ -26,11 +27,19 @@ pub enum SheetPhase {
 }
 
 impl SheetPhase {
-    /// The surface's `data-look` word.
+    /// The panel's `data-look` word.
     pub fn slug(self) -> &'static str {
         match self {
             SheetPhase::Open => "open",
             SheetPhase::Leaving(_) => "leaving",
+        }
+    }
+
+    /// quire's `Sheet { shown }` for this phase.
+    pub fn shown(self) -> Shown {
+        match self {
+            SheetPhase::Open => Shown::Visible,
+            SheetPhase::Leaving(_) => Shown::Hidden,
         }
     }
 }
@@ -62,15 +71,17 @@ pub enum SheetInput {
     Pressed(SessionAction),
     /// Escape through quire's `Sheet`, or a scrim click.
     Dismissed,
-    /// The exit motion finished.
+    /// The sheet's exit settled (quire's `on_hidden`).
     Settled,
+    /// Opened again the same way while leaving.
+    Reshown,
 }
 
 /// What the panel does after an input.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SheetEffect {
     Nothing,
-    /// Start the exit motion's timer.
+    /// The sheet started to leave: tell the link, which keeps the surface mapped meanwhile.
     Leave,
     /// Close the menu, then carry out `Then`.
     Finish(Then),
@@ -103,6 +114,13 @@ pub fn advance(
         }
         (SheetPhase::Open, SheetInput::Dismissed) => leave(menu.keys, Then::Close),
         (SheetPhase::Leaving(then), SheetInput::Settled) => (menu, SheetEffect::Finish(then)),
+        (SheetPhase::Leaving(_), SheetInput::Reshown) => (
+            MenuSession {
+                phase: SheetPhase::Open,
+                ..menu
+            },
+            SheetEffect::Nothing,
+        ),
         _ => (menu, SheetEffect::Nothing),
     }
 }
@@ -113,6 +131,7 @@ mod tests {
     use crate::surfaces::launcher::presence::OpenSerial;
     use crate::surfaces::power_menu::backend::everything_offered;
     use crate::surfaces::power_menu::keys::{PowerMenuKey, PowerMenuState};
+    use ds::Shown;
     use sill_services::{Offer, Session, SessionAction};
 
     fn menu(focused: SessionAction, phase: SheetPhase) -> MenuSession {
@@ -203,6 +222,20 @@ mod tests {
                 menu(PowerOff, Open),
                 SheetEffect::Nothing,
             ),
+            (
+                menu(Restart, Leaving(Then::Run(Restart))),
+                SheetInput::Reshown,
+                &all,
+                menu(Restart, Open),
+                SheetEffect::Nothing,
+            ),
+            (
+                menu(Restart, Open),
+                SheetInput::Reshown,
+                &all,
+                menu(Restart, Open),
+                SheetEffect::Nothing,
+            ),
         ];
         for (from, input, session, want, effect) in cases {
             assert_eq!(
@@ -213,5 +246,7 @@ mod tests {
         }
         assert_eq!(Open.slug(), "open");
         assert_eq!(Leaving(Then::Close).slug(), "leaving");
+        assert_eq!(Open.shown(), Shown::Visible);
+        assert_eq!(Leaving(Then::Close).shown(), Shown::Hidden);
     }
 }

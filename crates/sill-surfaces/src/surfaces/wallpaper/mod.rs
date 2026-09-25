@@ -17,7 +17,7 @@ pub mod layer;
 pub use layer::wallpaper_layer;
 
 use dioxus::prelude::*;
-use ds::{BlurState, Ds, Material};
+use ds::{BlurState, Ds, Material, RootExtent};
 use shell_host::OutputInfo;
 use sill_services::{OutputName, WallpaperImage, Wallpapers};
 
@@ -73,6 +73,7 @@ pub fn Wallpaper(output: OutputInfo) -> Element {
             appearance,
             system: environment.system,
             material: Material::Widget,
+            extent: RootExtent::Viewport,
             blur: BlurState::Unavailable,
             style { {WALLPAPER_CSS} }
             div { class: "sill-wallpaper",

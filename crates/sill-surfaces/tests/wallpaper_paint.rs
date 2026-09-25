@@ -97,8 +97,11 @@ fn this_outputs_image_covers_the_surface() {
     };
     let picture = paint(fed, |p| is_image(centre(p)));
     assert!(is_image(centre(&picture)), "centre {:?}", centre(&picture));
-    let corner = picture.get_pixel(2, 2).0;
-    assert!(is_image(corner), "corner {corner:?}");
+    let (right, bottom) = (picture.width() - 3, picture.height() - 3);
+    for (x, y) in [(2, 2), (right, bottom)] {
+        let corner = picture.get_pixel(x, y).0;
+        assert!(is_image(corner), "corner ({x}, {y}) {corner:?}");
+    }
 }
 
 #[test]

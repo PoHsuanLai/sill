@@ -120,9 +120,12 @@ pub fn ring_on_primary(harness: &Harness) -> bool {
     harness.is_focused(".ds-button[*|data-variant=primary]")
 }
 
-/// The room's `data-look`: `closed`, `open` or `leaving`.
+/// The sheet's phase: its panel's `data-look` (`open` or `leaving`), `closed` with no sheet.
 pub fn look(harness: &Harness) -> Option<String> {
-    harness.attr(".sill-power-menu", "data-look")
+    match harness.count(".sill-power-menu-panel") {
+        0 => Some("closed".to_owned()),
+        _ => harness.attr(".sill-power-menu-panel", "data-look"),
+    }
 }
 
 /// Whether the menu is showing.

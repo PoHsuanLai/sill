@@ -1,6 +1,7 @@
-//! What the power menu draws: nothing while hidden; open, quire's Sheet over its full-output
-//! scrim, the question for the focused button, the four buttons in design/20 §1.8's order and
-//! variants, the key hints, and the blur element covering exactly the sheet.
+//! What the power menu draws: nothing while hidden; open, quire's Sheet centred over its
+//! full-output modal scrim, the question for the focused button, the four buttons in design/20
+//! §1.8's order and variants at one height, the key hints, and the blur element covering exactly
+//! the sheet.
 
 mod power_menu_support;
 
@@ -31,20 +32,28 @@ fn open_it_draws_the_sheet_the_buttons_and_the_hints() {
     assert_eq!(h.count(".ds-sheet"), 1);
     assert_eq!(h.count(".ds-scrim"), 1);
     assert_eq!(
+        h.attr(".ds-scrim", "data-strength").as_deref(),
+        Some("modal")
+    );
+    assert_eq!(
+        h.attr(".ds-sheet", "data-placement").as_deref(),
+        Some("centre")
+    );
+    assert_eq!(
         h.text_of(".sill-power-menu-prompt").as_deref(),
         Some("Shut down this computer now?")
     );
     let buttons = [
-        ("Log Out", "secondary"),
-        ("Restart", "danger"),
-        ("Shut Down", "primary"),
-        ("Suspend", "secondary"),
+        ("Log Out", "secondary", None),
+        ("Restart", "danger", Some("regular")),
+        ("Shut Down", "primary", None),
+        ("Suspend", "secondary", None),
     ];
     assert_eq!(
         h.count(".sill-power-menu-buttons .ds-button"),
         buttons.len()
     );
-    for (n, (label, variant)) in buttons.iter().enumerate() {
+    for (n, (label, variant, size)) in buttons.iter().enumerate() {
         let button = nth_button(n + 1);
         assert_eq!(h.text_of(&button).as_deref(), Some(*label));
         assert_eq!(
@@ -52,7 +61,21 @@ fn open_it_draws_the_sheet_the_buttons_and_the_hints() {
             Some(*variant),
             "{label}"
         );
+        assert_eq!(h.attr(&button, "data-size").as_deref(), *size, "{label}");
     }
+    // Restart (Danger, Regular) stands level with Log Out and Suspend (Secondary); Shut Down
+    // (Primary) is their box less the Secondary's two hairlines, quire's own geometry.
+    let heights: Vec<f32> = [1, 2, 4]
+        .into_iter()
+        .filter_map(|n| h.rect(&nth_button(n)).map(|r| r.size.height.0))
+        .collect();
+    assert_eq!(heights.len(), 3);
+    assert!(
+        heights
+            .iter()
+            .all(|height| (height - heights[0]).abs() < 0.5),
+        "Danger stands level with Secondary: {heights:?}"
+    );
     assert_eq!(h.count(".sill-power-menu-hint"), 3);
     assert_eq!(h.count(".sill-power-menu-hint .ds-kbd"), 4, "← →, ↵, Esc");
 }
@@ -80,6 +103,17 @@ fn the_scrim_covers_the_output_and_the_blur_element_is_the_sheet() {
     assert!(
         (middle - WIDTH / 2.0).abs() < 1.0,
         "centred across the output: {sheet:?}"
+    );
+    let centre = sheet.origin.y.0 + sheet.size.height.0 / 2.0;
+    assert!(
+        (centre - HEIGHT / 2.0).abs() < 1.0,
+        "centred down the output: {sheet:?}"
+    );
+    let root = h.rect(".ds").expect("the root is laid out"); // test-only
+    assert_eq!(
+        (root.size.width.0, root.size.height.0),
+        (WIDTH, HEIGHT),
+        "the root is the viewport"
     );
     assert!(sheet.size.height.0 > 100.0, "{sheet:?}");
 }
