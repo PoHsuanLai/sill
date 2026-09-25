@@ -12,6 +12,8 @@ use sill_services::{
     AppIndex, Battery, ClockText, Mute, Network, OutputName, Presence, Toplevels, Volume, match_app,
 };
 
+use sill_settings::{ControlCenterModule, ControlCenterSettings};
+
 use super::menus::BarMenu;
 use super::pick::BarPick;
 use super::status::{battery_lines, network_lines, volume_heading};
@@ -37,6 +39,12 @@ pub(crate) struct VolumePanel {
 pub(crate) enum PopupBody {
     Menu(Vec<MenuEntry<BarPick>>),
     Volume(VolumePanel),
+    /// The control center (`surfaces::control_center::ControlCenter`), which reads its own
+    /// hooks; the body carries only what sizes the popup (M5 agent c).
+    ControlCenter(ControlCenterSettings),
+    /// One module's dropdown from its own bar item: the module's control center component
+    /// (`control_center::modules::Module`), reading its own hooks (M5 agent c).
+    Module(ControlCenterModule),
 }
 
 /// Everything the menus are built from.
@@ -47,6 +55,8 @@ pub(crate) struct BarState {
     pub network: Network,
     pub battery: Battery,
     pub clock: ClockText,
+    /// `control_center.*`, which sizes its popup.
+    pub control_center: ControlCenterSettings,
 }
 
 /// `menu`'s contents in `state`.
@@ -57,6 +67,10 @@ pub(crate) fn body(menu: BarMenu, state: &BarState) -> PopupBody {
         BarMenu::Network => PopupBody::Menu(lines_menu(network_lines(&state.network))),
         BarMenu::Battery => PopupBody::Menu(lines_menu(battery_lines(&state.battery))),
         BarMenu::Clock => PopupBody::Menu(lines_menu([state.clock.text.clone()])),
+        BarMenu::ControlCenter => PopupBody::ControlCenter(state.control_center.clone()),
+        BarMenu::NowPlaying | BarMenu::Display | BarMenu::Bluetooth => menu
+            .module()
+            .map_or_else(|| PopupBody::Menu(Vec::new()), PopupBody::Module),
     }
 }
 
@@ -83,10 +97,18 @@ pub(crate) fn front_app(
     Some(FrontApp { name, windows })
 }
 
-/// The app menu: a header, one item per window, Quit.
+/// The app menu: a header, one item per window, Quit; then "Shut Down…", which opens the power
+/// menu (design/20 §1.8; the bar has no system menu of its own).
 fn app_menu(app: Option<&FrontApp>) -> Vec<MenuEntry<BarPick>> {
+    let power = [
+        MenuEntry::Separator,
+        item("Shut Down…".to_owned(), BarPick::PowerMenu, None),
+    ];
     let Some(app) = app else {
-        return lines_menu(["Desktop".to_owned()]);
+        return lines_menu(["Desktop".to_owned()])
+            .into_iter()
+            .chain(power)
+            .collect();
     };
     let windows = app
         .windows
@@ -100,6 +122,7 @@ fn app_menu(app: Option<&FrontApp>) -> Vec<MenuEntry<BarPick>> {
     std::iter::once(MenuEntry::Header(app.name.clone()))
         .chain(windows)
         .chain([MenuEntry::Separator, quit])
+        .chain(power)
         .collect()
 }
 
@@ -223,12 +246,20 @@ mod tests {
             clock: ClockText {
                 text: "Thu 24 Sep 14:05".to_owned(),
             },
+            control_center: sill_settings::ControlCenterSettings::default(),
         };
         let menu = |m| match body(m, &state) {
             PopupBody::Menu(entries) => titles(&entries),
             PopupBody::Volume(_) => vec!["volume".to_owned()],
+            PopupBody::ControlCenter(_) => vec!["control center".to_owned()],
+            PopupBody::Module(module) => vec![format!("{module:?}")],
         };
-        assert_eq!(menu(BarMenu::App), ["# Foot", "~", "--", "Quit Foot"]);
+        assert_eq!(
+            menu(BarMenu::App),
+            ["# Foot", "~", "--", "Quit Foot", "--", "Shut Down…"]
+        );
+        assert_eq!(menu(BarMenu::ControlCenter), ["control center"]);
+        assert_eq!(menu(BarMenu::Bluetooth), ["Bluetooth"]);
         assert_eq!(
             menu(BarMenu::Clock),
             ["i Thu 24 Sep 14:05", "--", "Settings…"]
@@ -243,14 +274,21 @@ mod tests {
                 assert_eq!(panel.mute, Mute::Muted);
                 assert_eq!(panel.heading, "Speakers");
             }
-            PopupBody::Menu(entries) => panic!("volume is a panel: {entries:?}"),
+            other => panic!("volume is a panel: {other:?}"),
         }
-        let quit = match body(BarMenu::App, &state) {
-            PopupBody::Menu(entries) => entries.last().cloned(),
-            PopupBody::Volume(_) => None,
+        let picks: Vec<BarPick> = match body(BarMenu::App, &state) {
+            PopupBody::Menu(entries) => entries
+                .into_iter()
+                .filter_map(|entry| match entry {
+                    MenuEntry::Item { value, .. } => Some(value),
+                    _ => None,
+                })
+                .collect(),
+            _ => Vec::new(),
         };
-        assert!(
-            matches!(quit, Some(MenuEntry::Item { value: BarPick::Quit(keys), .. }) if keys == vec![WindowKey(4)])
+        assert_eq!(
+            picks[1..],
+            [BarPick::Quit(vec![WindowKey(4)]), BarPick::PowerMenu]
         );
     }
 }

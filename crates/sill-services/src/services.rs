@@ -7,14 +7,19 @@ use tokio::sync::watch;
 use crate::apps::{AppIndex, AppsCommand};
 use crate::badges::{Badges, BadgesCommand};
 use crate::battery::{Battery, BatteryCommand};
+use crate::bluetooth::{Bluetooth, BluetoothCommand};
 use crate::clock::{ClockCommand, ClockText};
 use crate::control::Control;
 use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
 use crate::displays::{Displays, DisplaysCommand};
 use crate::launch::{LaunchCommand, Launches};
+use crate::network::wifi::{Wifi, WifiCommand};
 use crate::network::{Network, NetworkCommand};
+use crate::now_playing::{Media, MediaCommand};
 use crate::pins::{DockPins, PinEvent};
+use crate::power_profile::{PowerProfiles, ProfileCommand};
 use crate::results::{Results, SearchCommand};
+use crate::session::{Session, SessionCommand};
 use crate::sound::SoundCommand;
 use crate::tray::{Tray, TrayCommand};
 use crate::units::Presence;
@@ -55,6 +60,17 @@ pub struct Services {
     pub sound_control: Control<SoundCommand>,
     pub displays: watch::Receiver<Displays>,
     pub displays_control: Control<DisplaysCommand>,
+    /// The M5 control center's and power menu's services (FINDINGS "M5 freeze").
+    pub wifi: watch::Receiver<Wifi>,
+    pub wifi_control: Control<WifiCommand>,
+    pub bluetooth: watch::Receiver<Bluetooth>,
+    pub bluetooth_control: Control<BluetoothCommand>,
+    pub power_profiles: watch::Receiver<PowerProfiles>,
+    pub power_profile_control: Control<ProfileCommand>,
+    pub media: watch::Receiver<Media>,
+    pub media_control: Control<MediaCommand>,
+    pub session: watch::Receiver<Session>,
+    pub session_control: Control<SessionCommand>,
 }
 
 impl Services {
@@ -93,6 +109,13 @@ impl Services {
         let (wallpapers, wallpaper_control) = crate::wallpaper::spawn(rt);
         // M6 replaces this with sound::spawn.
         let (sound, sound_control) = inert();
+        // M5: each `live::run` is a stub that returns at once until its agent fills it, so these
+        // are inert meanwhile without an `inert()` line to swap (FINDINGS "M5 freeze").
+        let (wifi, wifi_control) = crate::network::wifi::spawn(rt);
+        let (bluetooth, bluetooth_control) = crate::bluetooth::spawn(rt);
+        let (power_profiles, power_profile_control) = crate::power_profile::spawn(rt);
+        let (media, media_control) = crate::now_playing::spawn(rt);
+        let (session, session_control) = crate::session::spawn(rt);
 
         Services {
             clock,
@@ -124,6 +147,16 @@ impl Services {
             sound_control,
             displays,
             displays_control,
+            wifi,
+            wifi_control,
+            bluetooth,
+            bluetooth_control,
+            power_profiles,
+            power_profile_control,
+            media,
+            media_control,
+            session,
+            session_control,
         }
     }
 }

@@ -82,6 +82,9 @@ pub(crate) fn MenuPopup() -> Element {
         PopupBody::Volume(panel) => rsx! {
             VolumeMenu { panel }
         },
+        // M5 agent (c): `control_center::ControlCenter` inside a quire `Popover`, with the root
+        // contexts it needs and a report for its page changes (FINDINGS "M5 freeze").
+        PopupBody::ControlCenter(_) | PopupBody::Module(_) => todo!("M5 fill: control-center (c)"),
     };
     rsx! {
         style { {POPUP_CSS} }

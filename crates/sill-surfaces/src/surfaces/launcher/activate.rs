@@ -10,10 +10,10 @@ use sill_launcher::{
     Activation, AppId, Choice, DesktopAction, Item, Provider, ProviderKind, SettingsTarget,
     SystemCommand,
 };
-use sill_services::Services;
 use sill_services::providers::{
     AppsProvider, CalculatorProvider, SettingsProvider, SystemProvider, WindowsProvider,
 };
+use sill_services::{Services, SessionAction};
 
 /// The desktop entry `SettingsTarget::Cosmic` opens.
 pub const COSMIC_SETTINGS: &str = "com.system76.CosmicSettings";
@@ -79,6 +79,11 @@ pub enum LauncherEffect {
     Insert(String),
     /// Nothing sill can do from a surface yet; logged with the reason.
     Unreachable(Unreachable),
+    /// Carry out a session action at once (Lock, Suspend): `SessionCommand::Run` (M5).
+    Session(SessionAction),
+    /// Open the power menu on the launcher's output, focused on this action, for the person to
+    /// confirm there (Log Out, Restart, Shut Down) (M5).
+    PowerMenu(SessionAction),
     Nothing,
 }
 
@@ -252,5 +257,42 @@ mod tests {
             AfterEffect::StayOpen
         );
         assert_eq!(LauncherEffect::ByRunner.after(), AfterEffect::Close);
+    }
+
+    /// M5: the session rows run through the session service or open the power menu. Agent (d)
+    /// fills `effect_of` and drops the `System(Lock)` case above, which this replaces.
+    #[test]
+    #[ignore = "M5 fill: power-menu (d)"]
+    fn session_rows_run_or_open_the_power_menu() {
+        use sill_services::SessionAction;
+        let cases = [
+            (
+                SystemCommand::Lock,
+                LauncherEffect::Session(SessionAction::Lock),
+            ),
+            (
+                SystemCommand::Suspend,
+                LauncherEffect::Session(SessionAction::Suspend),
+            ),
+            (
+                SystemCommand::LogOut,
+                LauncherEffect::PowerMenu(SessionAction::LogOut),
+            ),
+            (
+                SystemCommand::Restart,
+                LauncherEffect::PowerMenu(SessionAction::Restart),
+            ),
+            (
+                SystemCommand::ShutDown,
+                LauncherEffect::PowerMenu(SessionAction::PowerOff),
+            ),
+            (
+                SystemCommand::Reload,
+                LauncherEffect::Unreachable(Unreachable::System(SystemCommand::Reload)),
+            ),
+        ];
+        for (command, want) in cases {
+            assert_eq!(effect_of(Activation::System(command)), want, "{command:?}");
+        }
     }
 }

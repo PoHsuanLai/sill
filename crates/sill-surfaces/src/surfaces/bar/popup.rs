@@ -11,6 +11,9 @@ pub enum MenuSide {
     Title,
     /// Right-side status items: the menu's right edge 8 px right of the item's.
     Status,
+    /// The control center: the menu's right edge at the output's right edge, less the popup
+    /// margin, whatever the item's place (macOS's top-right panel; M5 agent c places it).
+    OutputEdge,
 }
 
 /// The popup configuration for a bar menu anchored to the element `button`, at most `max_px`
@@ -18,7 +21,7 @@ pub enum MenuSide {
 pub fn menu_popup(button: &str, side: MenuSide, max_px: i32) -> PopupConfig {
     let (edge, gravity) = match side {
         MenuSide::Title => (Edge::BottomLeft, Edge::BottomRight),
-        MenuSide::Status => (Edge::BottomRight, Edge::BottomLeft),
+        MenuSide::Status | MenuSide::OutputEdge => (Edge::BottomRight, Edge::BottomLeft),
     };
     PopupConfig {
         anchor: PopupAnchor::Element(ElementId::new(button)),
@@ -40,6 +43,8 @@ pub fn menu_offset(side: MenuSide) -> (i32, i32) {
     match side {
         MenuSide::Title => (-8, 6),
         MenuSide::Status => (8, 6),
+        // M5 agent (c): the anchor rect already sits at the output's edge.
+        MenuSide::OutputEdge => todo!("M5 fill: control-center (c)"),
     }
 }
 

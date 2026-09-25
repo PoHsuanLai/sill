@@ -63,6 +63,15 @@ pub fn run() -> ExitCode {
     let (settings_tx, settings_rx) = watch::channel(initial_settings.clone());
     let settings_feed = SettingsFeed(settings_rx);
     crate::displays::send_policy(&services, &initial_settings);
+    crate::links::install(crate::links::Links {
+        focus: sill_settings::spawn_focus(
+            runtime.handle(),
+            settings_feed.0.clone(),
+            settings_dir.clone(),
+        ),
+        power_menu: sill_surfaces::surfaces::power_menu::PowerMenuLink::new(),
+        control_center: sill_surfaces::surfaces::control_center::ControlCenterLink::new(),
+    });
 
     let config = HostConfig {
         first_mouse_window_ms: shell_host::config::Ms(u32::from(
@@ -178,12 +187,24 @@ fn run_event(
             {
                 launcher.focus(*focus);
             }
+            if let HostEvent::KeyboardFocus { id, focus } = &other
+                && outputs
+                    .outputs
+                    .iter()
+                    .any(|(_, s)| s.power_menu == Some(*id))
+                && let Some(links) = crate::links::get()
+            {
+                links.power_menu.focus(*focus);
+            }
             crate::displays::on_host_event(services, &other);
             on_event(ctx, outputs, other);
             spawn_missing_bars(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_wallpapers(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_docks(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_launchers(ctx, outputs, services, settings_feed, settings_tx, launcher);
+            crate::power_menu::spawn_missing(ctx, outputs, |root| {
+                surface_root(root, services, settings_feed)
+            });
             crate::osd::spawn_missing(ctx, outputs, settings_tx, osd, |root| {
                 surface_root(root, services, settings_feed)
             });
@@ -506,10 +527,19 @@ pub(crate) fn spawn_hidden(
 /// "Adoption of the bar gaps", "Adoption of the launcher gaps"). Every spawn goes through here,
 /// so a new surface cannot forget them.
 pub(crate) fn surface_root(root: Root, services: &Services, settings_feed: &SettingsFeed) -> Root {
-    root.context(services.clone())
+    let root = root
+        .context(services.clone())
         .context(settings_feed.clone())
         .context(sill_surfaces::MEASURE)
-        .context(sill_surfaces::FOCUS)
+        .context(sill_surfaces::FOCUS);
+    // M5: the focus mode, the power menu and the control center's asks (`crate::links`).
+    match crate::links::get() {
+        Some(links) => root
+            .context(links.focus.clone())
+            .context(links.power_menu.clone())
+            .context(links.control_center.clone()),
+        None => root,
+    }
 }
 
 /// Answer one IPC request. A display key's change, and a made-up one, show on the OSD.
@@ -546,6 +576,12 @@ fn dispatch_request(
             let file = settings_tx.borrow();
             crate::osd::after_display(osd, services, outputs, &file, request, &response);
             response
+        }
+        Request::PowerMenu(request) => {
+            crate::power_menu::dispatch_power_menu(outputs, crate::links::get(), request)
+        }
+        Request::ControlCenter(request) => {
+            crate::power_menu::dispatch_control_center(outputs, crate::links::get(), request)
         }
     }
 }
@@ -719,12 +755,17 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
             let launcher = surfaces.launcher.map(|id| (panel, id));
             let catcher = surfaces.catcher.map(|id| (catcher, id));
             let osd = surfaces.osd.map(|id| (crate::osd::osd_namespace(info), id));
+            let power_menu = surfaces.power_menu.map(|id| {
+                let layer = sill_surfaces::surfaces::power_menu::power_menu_layer(info);
+                (layer.namespace, id)
+            });
             bar.into_iter()
                 .chain(wallpaper)
                 .chain(dock)
                 .chain(launcher)
                 .chain(catcher)
                 .chain(osd)
+                .chain(power_menu)
         })
         .collect();
     ids.into_iter()

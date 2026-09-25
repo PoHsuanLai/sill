@@ -5,8 +5,10 @@
 pub mod app_name;
 pub mod battery;
 pub mod clock;
+pub mod control_center_item;
 pub mod layer;
 pub mod menu_track;
+pub mod module_item;
 pub mod network;
 pub mod popup;
 pub mod tray;
@@ -101,6 +103,7 @@ pub fn Bar(output: OutputInfo) -> Element {
         network: use_network()(),
         battery: use_battery()(),
         clock: use_clock()(),
+        control_center: file.control_center.clone(),
     };
     let bar = use_menu_session(SessionDeps {
         state,
@@ -109,6 +112,8 @@ pub fn Bar(output: OutputInfo) -> Element {
         params: MenuParams::new(&file.menus),
         look: popup_look,
         namespace: bar_layer(&output, &file.bar).namespace,
+        output: output.id,
+        power_menu: try_use_context::<crate::surfaces::power_menu::PowerMenuLink>(),
     });
     use_context_provider(|| bar);
     let outside = move |input: MenuIn| bar.feed(BarInput::Bar { input, title: None });

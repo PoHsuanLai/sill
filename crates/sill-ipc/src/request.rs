@@ -1,7 +1,8 @@
 //! What a client asks the daemon (plan: `Ping, Launcher{Toggle,Open{query},Close},
 //! Dock{Pin,Unpin}, Reload, Quit, Debug{Stats,Pointer,Leave,Capture}`), plus `Debug(Click)`
 //! from the M2 freeze amendment (sill FINDINGS F76), and `Display` from the displays pass (sill
-//! FINDINGS "Displays"), and `Debug(Osd)` from the OSD.
+//! FINDINGS "Displays"), `Debug(Osd)` from the OSD, and `PowerMenu`/`ControlCenter` from the
+//! M5 freeze (sill FINDINGS "M5 freeze").
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -26,6 +27,31 @@ pub enum Request {
     /// The brightness and volume keys (`sill display {brightness,volume} ...`), bound to
     /// XF86MonBrightness*/XF86Audio* in COSMIC's shortcuts (`dist/cosmic`).
     Display(DisplayRequest),
+    /// Show or hide the power menu (`sill power-menu {open,close,toggle}`).
+    PowerMenu(PowerMenuRequest),
+    /// Open or close the control center under its bar item (`sill control-center toggle`).
+    ControlCenter(ControlCenterRequest),
+}
+
+/// The power menu's verbs. It opens on the output the daemon picks (the first with a power menu
+/// surface: the output under the pointer is not known to the daemon, FINDINGS F140).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
+pub enum PowerMenuRequest {
+    /// Open, or stay open.
+    Open,
+    /// Close if open; nothing otherwise.
+    Close,
+    /// Open when closed, close when open: the power key or a shortcut.
+    Toggle,
+}
+
+/// The control center's verb: it is a popup of a bar, so it has no open of its own to seed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
+pub enum ControlCenterRequest {
+    /// Open under the first bar's control center item when closed, close when open.
+    Toggle,
 }
 
 /// A display key, or a slider standing in for one.

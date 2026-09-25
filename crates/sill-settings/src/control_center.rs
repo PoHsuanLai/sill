@@ -29,6 +29,27 @@ pub enum PanelMaterial {
     Popover,
 }
 
+/// Whether a module also shows as its own bar item with its own dropdown (macOS's "Show in Menu
+/// Bar"), beside the control center's own item.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    Serialize,
+    Deserialize,
+    ds_settings::SettingsSchema,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum InMenuBar {
+    Show,
+    #[default]
+    Hide,
+}
+
 /// One control center module, in `control_center.modules` order.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ds_settings::SettingsSchema,
@@ -85,6 +106,17 @@ pub struct ControlCenterSettings {
         advanced
     )]
     pub grid_padding_px: Px,
+    /// design/13 §13.3.7: the panel is at most `output_h - bar_h - bottom_margin_px` tall, then
+    /// scrolls. No design/22 row yet (`AWAITING_ROWS`).
+    #[settings(
+        label = "Bottom margin",
+        help = "The least space kept between the control center and the screen's bottom edge.",
+        section = "Control center",
+        range = "0..=64",
+        unit = "px",
+        advanced
+    )]
+    pub bottom_margin_px: Px,
     #[settings(
         label = "Modules",
         help = "Which modules show, in order.",
@@ -100,6 +132,54 @@ pub struct ControlCenterSettings {
         advanced
     )]
     pub material: PanelMaterial,
+    /// Whether Wi-Fi also has its own bar item and dropdown (macOS's "Show in Menu Bar").
+    #[settings(
+        label = "Wi-Fi in the menu bar",
+        help = "Show Wi-Fi as its own item in the menu bar, beside the control center.",
+        section = "Menu bar items",
+        advanced
+    )]
+    pub menu_bar_wifi: InMenuBar,
+    /// Whether Bluetooth also has its own bar item and dropdown (macOS's "Show in Menu Bar").
+    #[settings(
+        label = "Bluetooth in the menu bar",
+        help = "Show Bluetooth as its own item in the menu bar, beside the control center.",
+        section = "Menu bar items",
+        advanced
+    )]
+    pub menu_bar_bluetooth: InMenuBar,
+    /// Whether Sound also has its own bar item and dropdown (macOS's "Show in Menu Bar").
+    #[settings(
+        label = "Sound in the menu bar",
+        help = "Show Sound as its own item in the menu bar, beside the control center.",
+        section = "Menu bar items",
+        advanced
+    )]
+    pub menu_bar_sound: InMenuBar,
+    /// Whether Display also has its own bar item and dropdown (macOS's "Show in Menu Bar").
+    #[settings(
+        label = "Display in the menu bar",
+        help = "Show Display as its own item in the menu bar, beside the control center.",
+        section = "Menu bar items",
+        advanced
+    )]
+    pub menu_bar_display: InMenuBar,
+    /// Whether Battery also has its own bar item and dropdown (macOS's "Show in Menu Bar").
+    #[settings(
+        label = "Battery in the menu bar",
+        help = "Show Battery as its own item in the menu bar, beside the control center.",
+        section = "Menu bar items",
+        advanced
+    )]
+    pub menu_bar_battery: InMenuBar,
+    /// Whether Now Playing also has its own bar item and dropdown (macOS's "Show in Menu Bar").
+    #[settings(
+        label = "Now Playing in the menu bar",
+        help = "Show Now Playing as its own item in the menu bar, beside the control center.",
+        section = "Menu bar items",
+        advanced
+    )]
+    pub menu_bar_now_playing: InMenuBar,
     /// Keys this build does not know, kept for the next write.
     #[serde(flatten)]
     #[settings(skip)]
@@ -116,10 +196,17 @@ impl Default for ControlCenterSettings {
             grid_columns: Count(2),
             grid_gap_px: Px(8),
             grid_padding_px: Px(12),
+            bottom_margin_px: Px(16),
             modules: vec![
                 Wifi, Bluetooth, Focus, Display, Sound, NowPlaying, Appearance, Battery,
             ],
             material: PanelMaterial::Sheet,
+            menu_bar_wifi: InMenuBar::Show,
+            menu_bar_bluetooth: InMenuBar::Hide,
+            menu_bar_sound: InMenuBar::Show,
+            menu_bar_display: InMenuBar::Hide,
+            menu_bar_battery: InMenuBar::Show,
+            menu_bar_now_playing: InMenuBar::Hide,
             extra: toml::Table::new(),
         }
     }

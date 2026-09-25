@@ -32,4 +32,5 @@ pub use surfaces::bar::Bar;
 pub use surfaces::dock::Dock;
 pub use surfaces::launcher::{Launcher, LauncherCatcher};
 pub use surfaces::osd::Osd;
+pub use surfaces::power_menu::PowerMenu;
 pub use surfaces::wallpaper::Wallpaper;

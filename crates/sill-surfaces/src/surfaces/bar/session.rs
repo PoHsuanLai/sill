@@ -6,7 +6,9 @@ use std::collections::HashMap;
 
 use dioxus::prelude::*;
 use ds::{Alpha, Appearance, MaterialStack, ShellMetrics, SystemPrefs};
-use shell_host::{PopupAnchor, PopupConfig, PopupPlacement, PopupSize, Root, SurfaceHandle};
+use shell_host::{
+    OutputId, PopupAnchor, PopupConfig, PopupPlacement, PopupSize, Root, SurfaceHandle,
+};
 use sill_services::Services;
 use tokio::sync::{mpsc, watch};
 
@@ -19,6 +21,7 @@ use super::pick::{BarPick, Command, commands};
 use super::plan::{BarEffect, PopupReport, effects, popup_input};
 use super::popup::menu_popup;
 use crate::clock::FrameClock;
+use crate::surfaces::power_menu::{PowerMenuLink, Preselect};
 
 /// How a popup's `Ds` root resolves its scheme: the bar's own appearance, handed over so a
 /// popup does not start a second settings watch.
@@ -82,6 +85,11 @@ pub(crate) struct SessionDeps {
     pub look: PopupLook,
     /// The bar's layer namespace, which names the popup's anchor in `menu_popup`.
     pub namespace: String,
+    /// The bar's output, where the app menu's "Shut Down…" opens the power menu.
+    pub output: OutputId,
+    /// The power menu's shared state, when the daemon gave the bar one (a demo or a test may
+    /// not).
+    pub power_menu: Option<PowerMenuLink>,
 }
 
 /// The popup channel of the open session: its view sender and the popup's report channel.
@@ -212,7 +220,7 @@ fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
                 open.set(None);
             }
         }
-        BarEffect::Run(pick) => run(&pick, &deps.services),
+        BarEffect::Run(pick) => run(&pick, deps),
     }
 }
 
@@ -249,11 +257,18 @@ fn refresh(slots: Slots, deps: &SessionDeps) {
 
 /// Send `pick`'s commands. A service that has stopped drops them: the menu has closed and
 /// there is nobody left to tell.
-fn run(pick: &BarPick, services: &Services) {
+fn run(pick: &BarPick, deps: &SessionDeps) {
+    let services = &deps.services;
     for command in commands(pick) {
         let _gone_is_dropped = match command {
             Command::Wl(c) => services.wl.send(c),
             Command::Launch(c) => services.launch.send(c),
+            Command::PowerMenu => {
+                if let Some(link) = &deps.power_menu {
+                    link.open(deps.output, Preselect::Default);
+                }
+                Ok(())
+            }
         };
     }
 }

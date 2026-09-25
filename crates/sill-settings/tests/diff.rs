@@ -3,8 +3,8 @@
 
 use ds_settings::{Count, Ms, Px};
 use sill_settings::{
-    DisplayScaleMode, Dnd, OsdPosition, PanelMaterial, PickFeedback, SettingsChange, ShellFile,
-    TrackClick, UiSounds, apply,
+    DisplayScaleMode, Dnd, OsdPosition, PanelMaterial, PickFeedback, PowerMenuDefault,
+    SettingsChange, ShellFile, TrackClick, UiSounds, apply,
 };
 
 fn with(edit: impl FnOnce(&mut ShellFile)) -> ShellFile {
@@ -61,6 +61,10 @@ fn apply_yields_exactly_the_changed_domain() {
         (
             with(|f| f.osd.position = OsdPosition::BottomCentre),
             SettingsChange::Osd,
+        ),
+        (
+            with(|f| f.power_menu.default_action = PowerMenuDefault::Suspend),
+            SettingsChange::PowerMenu,
         ),
     ];
     let base = ShellFile::default();

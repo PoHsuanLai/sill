@@ -38,6 +38,12 @@ pub async fn run_effect(
             eprintln!("sill: launcher: {}", unreachable_text(&why));
             Ok(())
         }
+        LauncherEffect::Session(action) => services
+            .session_control
+            .send(sill_services::SessionCommand::Run(action)),
+        // M5 agent (d): `PowerMenuLink::open(output, Preselect::Action(action))`; the panel has
+        // the link and its output, this function does not yet (FINDINGS "M5 freeze").
+        LauncherEffect::PowerMenu(_) => Ok(()),
         LauncherEffect::ByRunner | LauncherEffect::Insert(_) | LauncherEffect::Nothing => Ok(()),
     }
 }

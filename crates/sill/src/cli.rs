@@ -1,7 +1,8 @@
 //! The command line (plan: `sill run|launcher {toggle,open [--query],close}|dock {pin,unpin}|
 //! reload|quit|ping|debug {stats,pointer,leave,capture}`, plus `debug click` from the M2 freeze
-//! amendment and `display {brightness,volume}` from the displays pass (`cli_display`), and its
-//! one pure mapping to an IPC request.
+//! amendment, `display {brightness,volume}` from the displays pass (`cli_display`), and
+//! `power-menu {open,close,toggle}` and `control-center toggle` from the M5 freeze, and its one
+//! pure mapping to an IPC request.
 
 use std::path::PathBuf;
 
@@ -9,8 +10,8 @@ use clap::{Parser, Subcommand, ValueEnum};
 
 pub use crate::cli_display::{DisplayAction, LevelAction, VolumeAction, display_request};
 use sill_ipc::{
-    DebugRequest, DesktopId, DockRequest, FakeMute, FakeOsd, LauncherRequest, OsdTopic, Point,
-    PointerButton, Request, SurfaceName,
+    ControlCenterRequest, DebugRequest, DesktopId, DockRequest, FakeMute, FakeOsd, LauncherRequest,
+    OsdTopic, Point, PointerButton, PowerMenuRequest, Request, SurfaceName,
 };
 
 /// sill, the COSMIC shell.
@@ -55,6 +56,30 @@ pub enum Command {
         #[command(subcommand)]
         action: DisplayAction,
     },
+    /// Show or hide the power menu (Log Out, Restart, Shut Down, Suspend).
+    PowerMenu {
+        #[command(subcommand)]
+        action: PowerMenuAction,
+    },
+    /// Open or close the control center.
+    ControlCenter {
+        #[command(subcommand)]
+        action: ControlCenterAction,
+    },
+}
+
+/// `sill power-menu ...`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
+pub enum PowerMenuAction {
+    Open,
+    Close,
+    Toggle,
+}
+
+/// `sill control-center ...`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
+pub enum ControlCenterAction {
+    Toggle,
 }
 
 /// `sill launcher ...`.
@@ -184,6 +209,14 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::Quit => Request::Quit,
         Command::Ping => Request::Ping,
         Command::Display { action } => Request::Display(display_request(action)),
+        Command::PowerMenu { action } => Request::PowerMenu(match action {
+            PowerMenuAction::Open => PowerMenuRequest::Open,
+            PowerMenuAction::Close => PowerMenuRequest::Close,
+            PowerMenuAction::Toggle => PowerMenuRequest::Toggle,
+        }),
+        Command::ControlCenter { action } => Request::ControlCenter(match action {
+            ControlCenterAction::Toggle => ControlCenterRequest::Toggle,
+        }),
         Command::Debug { action } => Request::Debug(match action {
             DebugAction::Stats => DebugRequest::Stats,
             DebugAction::Pointer { surface, x, y } => DebugRequest::Pointer {
@@ -221,8 +254,8 @@ mod tests {
     use super::{Cli, request};
     use clap::Parser;
     use sill_ipc::{
-        DebugRequest, DesktopId, DockRequest, FakeMute, FakeOsd, LauncherRequest, OsdTopic, Point,
-        PointerButton, Request, SurfaceName,
+        ControlCenterRequest, DebugRequest, DesktopId, DockRequest, FakeMute, FakeOsd,
+        LauncherRequest, OsdTopic, Point, PointerButton, PowerMenuRequest, Request, SurfaceName,
     };
     use std::path::PathBuf;
 
@@ -233,6 +266,22 @@ mod tests {
             (&["ping"], Some(Request::Ping)),
             (&["reload"], Some(Request::Reload)),
             (&["quit"], Some(Request::Quit)),
+            (
+                &["power-menu", "open"],
+                Some(Request::PowerMenu(PowerMenuRequest::Open)),
+            ),
+            (
+                &["power-menu", "close"],
+                Some(Request::PowerMenu(PowerMenuRequest::Close)),
+            ),
+            (
+                &["power-menu", "toggle"],
+                Some(Request::PowerMenu(PowerMenuRequest::Toggle)),
+            ),
+            (
+                &["control-center", "toggle"],
+                Some(Request::ControlCenter(ControlCenterRequest::Toggle)),
+            ),
             (
                 &["launcher", "toggle"],
                 Some(Request::Launcher(LauncherRequest::Toggle)),
@@ -366,6 +415,8 @@ mod tests {
     fn a_malformed_command_line_is_refused() {
         for args in [
             &["launcher"][..],
+            &["power-menu"],
+            &["control-center", "open"],
             &["dock", "pin"],
             &["debug", "pointer", "s", "x", "1"],
             &["debug", "click", "s", "1"],
