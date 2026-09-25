@@ -168,7 +168,8 @@ for pts in components(vivid):
     h = pts[:, 0].max() - pts[:, 0].min() + 1
     w = pts[:, 1].max() - pts[:, 1].min() + 1
     fill = len(pts) / (h * w)
-    if 16 <= h <= 34 and abs(h - w) <= 3 and fill > 0.55 and (disc is None or len(pts) > disc[4]):
+    # Today's busy dot may touch the disc's foot: the width is the disc's, the height a little more.
+    if 16 <= w <= 40 and w - 3 <= h <= w + 12 and fill > 0.45 and (disc is None or len(pts) > disc[4]):
         disc = (pts[:, 1].min(), pts[:, 0].min(), w, h, len(pts))
 line = "BARS " + " ".join(str(i) for _, i in bars) + " ; DISC "
 line += " ".join(str(v) for v in disc[:4]) if disc else "none"
@@ -294,6 +295,7 @@ step_week_numbers() {
 step_idle() {
   local log="$OUT_DIR/idle.log" f0 f1
   : >"$log"
+  sleep 2
   if [ "$((10#$(date +%S)))" -ge 50 ]; then sleep $((62 - 10#$(date +%S))); fi
   f0=$(frames_of "$CENTER")
   sleep 5
