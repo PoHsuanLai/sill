@@ -31,8 +31,9 @@ pub mod pages;
 
 mod dropdown;
 pub(crate) mod fit;
+mod module_box;
 mod panel;
-pub(crate) mod parts;
+pub(crate) mod rows;
 
 pub(crate) use dropdown::ModuleDropdown;
 pub(crate) use panel::PanelCap;

@@ -4,10 +4,10 @@
 //! ("Bluetooth Settings…" at the foot).
 
 use dioxus::prelude::*;
-use ds::{Availability, Check};
+use ds::{Availability, Icon, ModuleState};
 use sill_services::{
-    Bluetooth, BluetoothCommand, BtAddress, BtConnection, BtDevice, BtPairing, BtPower, Presence,
-    listed_devices,
+    Bluetooth, BluetoothCommand, BtAddress, BtConnection, BtDevice, BtKind, BtPairing, BtPower,
+    Presence, listed_devices,
 };
 
 use super::foot::{EmptyLine, SettingsFoot};
@@ -17,8 +17,7 @@ use crate::surfaces::control_center::device_detail;
 use crate::surfaces::control_center::modules::bluetooth::{
     adapter_availability, power_of, power_state,
 };
-use crate::surfaces::control_center::parts::glyphs::device_glyph;
-use crate::surfaces::control_center::parts::{ModuleState, RowMark, SettingsRow, SettingsRows};
+use crate::surfaces::control_center::rows::{RowList, RowMark, RowSpec};
 
 /// The Bluetooth page.
 #[component]
@@ -52,7 +51,7 @@ pub(crate) fn BluetoothPane(back: Option<EventHandler<()>>) -> Element {
             if let Some(text) = empty {
                 EmptyLine { text }
             } else {
-                SettingsRows::<BluetoothCommand> {
+                RowList::<BluetoothCommand> {
                     label: "Devices".to_owned(),
                     rows,
                     onpick: move |command: BluetoothCommand| {
@@ -66,7 +65,7 @@ pub(crate) fn BluetoothPane(back: Option<EventHandler<()>>) -> Element {
 }
 
 /// The list's rows while the adapter is on (`listed_devices` orders them).
-pub(crate) fn device_rows(bluetooth: &Bluetooth) -> Vec<SettingsRow<BluetoothCommand>> {
+pub(crate) fn device_rows(bluetooth: &Bluetooth) -> Vec<RowSpec<BluetoothCommand>> {
     match (bluetooth.presence, bluetooth.power) {
         (Presence::Present, BtPower::On) => listed_devices(bluetooth)
             .into_iter()
@@ -78,7 +77,7 @@ pub(crate) fn device_rows(bluetooth: &Bluetooth) -> Vec<SettingsRow<BluetoothCom
 
 /// One device's row: a connected one disconnects, a paired one connects, a stranger (paired in
 /// COSMIC Settings) is shown and cannot be chosen.
-pub(crate) fn device_row(device: &BtDevice) -> SettingsRow<BluetoothCommand> {
+pub(crate) fn device_row(device: &BtDevice) -> RowSpec<BluetoothCommand> {
     let address: BtAddress = device.address.clone();
     let (value, availability) = match (device.connection, device.pairing) {
         (BtConnection::Connected | BtConnection::Connecting, _) => {
@@ -91,18 +90,31 @@ pub(crate) fn device_row(device: &BtDevice) -> SettingsRow<BluetoothCommand> {
             (BluetoothCommand::Connect(address), Availability::Disabled)
         }
     };
-    let check = match device.connection {
-        BtConnection::Connected => Check::Checked,
-        BtConnection::Connecting | BtConnection::Disconnected => Check::Unchecked,
+    let mark = match device.connection {
+        BtConnection::Connected => RowMark::InUse,
+        BtConnection::Connecting | BtConnection::Disconnected => RowMark::Nothing,
     };
-    SettingsRow {
+    RowSpec {
         value,
         glyph: device_glyph(device.kind),
         title: device.name.clone(),
         detail: device_detail(device),
-        check,
-        mark: RowMark::Nothing,
+        mark,
         availability,
+    }
+}
+
+/// A device's glyph by kind.
+pub(crate) fn device_glyph(kind: BtKind) -> Icon {
+    match kind {
+        BtKind::Headphones | BtKind::Headset => Icon::Headphones,
+        BtKind::Speaker => Icon::Speaker,
+        BtKind::Keyboard => Icon::Keyboard,
+        BtKind::Mouse => Icon::Mouse,
+        BtKind::Gamepad => Icon::Gamepad,
+        BtKind::Phone => Icon::Phone,
+        BtKind::Computer => Icon::Monitor,
+        BtKind::Other => Icon::Bluetooth,
     }
 }
 
@@ -120,7 +132,8 @@ pub(crate) fn empty_line(bluetooth: &Bluetooth, rows: usize) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::{device_row, empty_line};
-    use ds::{Availability, Check};
+    use crate::surfaces::control_center::rows::RowMark;
+    use ds::Availability;
     use sill_services::{
         Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection, BtDevice, BtKind,
         BtPairing, BtPower, Presence,
@@ -146,28 +159,28 @@ mod tests {
                 BtPairing::Paired,
                 BluetoothCommand::Disconnect(aa()),
                 Availability::Enabled,
-                Check::Checked,
+                RowMark::InUse,
             ),
             (
                 BtConnection::Disconnected,
                 BtPairing::Paired,
                 BluetoothCommand::Connect(aa()),
                 Availability::Enabled,
-                Check::Unchecked,
+                RowMark::Nothing,
             ),
             (
                 BtConnection::Disconnected,
                 BtPairing::Unpaired,
                 BluetoothCommand::Connect(aa()),
                 Availability::Disabled,
-                Check::Unchecked,
+                RowMark::Nothing,
             ),
         ];
-        for (connection, pairing, command, availability, check) in cases {
+        for (connection, pairing, command, availability, mark) in cases {
             let row = device_row(&device(connection, pairing));
             assert_eq!(
-                (row.value, row.availability, row.check),
-                (command, availability, check),
+                (row.value, row.availability, row.mark),
+                (command, availability, mark),
                 "{connection:?} {pairing:?}"
             );
         }

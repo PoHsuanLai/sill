@@ -1,33 +1,35 @@
-//! The Bluetooth tile: the adapter's radio as a quire `Toggle`,
-//! [`crate::surfaces::control_center::bluetooth_status`] as its line, and a chevron to the
+//! The Bluetooth tile: a quire `ModuleTile` whose press powers the adapter on or off,
+//! [`crate::surfaces::control_center::bluetooth_status`] as its line, and its chevron to the
 //! device list (`Detail::Bluetooth`). Reads `use_bluetooth`; sends `BluetoothCommand::Power`.
 
 use dioxus::prelude::*;
-use ds::{Availability, Icon};
+use ds::{Availability, Chevron, Icon, ModuleState, ModuleTile, Text};
 use sill_services::{Bluetooth, BluetoothCommand, BtConnection, BtPower, Presence};
 
 use crate::hooks::{use_bluetooth, use_services};
 use crate::surfaces::control_center::bluetooth_status;
+use crate::surfaces::control_center::modules::flipped;
 use crate::surfaces::control_center::page::Detail;
-use crate::surfaces::control_center::parts::{ModuleState, ModuleTile};
 
 /// The Bluetooth tile.
 #[component]
 pub fn BluetoothModule(on_detail: EventHandler<Detail>) -> Element {
     let bluetooth = use_bluetooth()();
     let control = use_services().bluetooth_control;
+    let state = power_state(bluetooth.power);
     rsx! {
         ModuleTile {
             glyph: bluetooth_glyph(&bluetooth),
-            title: "Bluetooth".to_owned(),
-            status: bluetooth_status(&bluetooth),
-            state: power_state(bluetooth.power),
+            title: "Bluetooth",
+            status: Some(Text::from(bluetooth_status(&bluetooth))),
+            state,
+            chevron: Chevron::Detail,
             availability: adapter_availability(&bluetooth),
-            on_toggle: move |to: ModuleState| {
+            onclick: move |_| {
                 // A stopped service drops it: the tile shows the power it last published.
-                let _gone = control.send(BluetoothCommand::Power(power_of(to)));
+                let _gone = control.send(BluetoothCommand::Power(power_of(flipped(state))));
             },
-            on_detail: move |()| on_detail.call(Detail::Bluetooth),
+            on_detail: move |_| on_detail.call(Detail::Bluetooth),
         }
     }
 }
@@ -41,7 +43,7 @@ pub(crate) fn power_state(power: BtPower) -> ModuleState {
 
 pub(crate) fn power_of(state: ModuleState) -> BtPower {
     match state {
-        ModuleState::On => BtPower::On,
+        ModuleState::On | ModuleState::Busy => BtPower::On,
         ModuleState::Off => BtPower::Off,
     }
 }
@@ -70,8 +72,7 @@ pub(crate) fn bluetooth_glyph(bluetooth: &Bluetooth) -> Icon {
 #[cfg(test)]
 mod tests {
     use super::{adapter_availability, bluetooth_glyph, power_of, power_state};
-    use crate::surfaces::control_center::parts::ModuleState;
-    use ds::{Availability, Icon};
+    use ds::{Availability, Icon, ModuleState};
     use sill_services::{
         Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower,
         Presence,

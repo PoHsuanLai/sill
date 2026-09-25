@@ -16,7 +16,6 @@ use super::status_item::StatusIcon;
 use crate::hooks::{use_battery, use_bluetooth, use_network, use_now_playing, use_volume};
 use crate::surfaces::control_center::bluetooth_status;
 use crate::surfaces::control_center::modules::bluetooth::bluetooth_glyph;
-use crate::surfaces::control_center::parts::glyphs::NOW_PLAYING;
 
 /// `module`'s bar item on `output` (its glyph follows the module's state: signal strength,
 /// volume level, battery level).
@@ -97,6 +96,6 @@ fn NowPlayingItem() -> Element {
         return rsx! {};
     }
     rsx! {
-        StatusIcon { menu: BarMenu::NowPlaying, icon: NOW_PLAYING, tooltip: "Now Playing".to_owned() }
+        StatusIcon { menu: BarMenu::NowPlaying, icon: Icon::Play, tooltip: "Now Playing".to_owned() }
     }
 }

@@ -5,7 +5,7 @@
 //! `WifiCommand::Scan` when it opens. "Wi-Fi Settings…" at the foot.
 
 use dioxus::prelude::*;
-use ds::{Availability, Check, Icon};
+use ds::{Availability, Icon, ModuleState};
 use sill_services::{
     AccessPoint, Association, Presence, Radio, Saved, Security, Ssid, Wifi, WifiCommand,
     listed_networks,
@@ -16,7 +16,7 @@ use super::head::DetailHead;
 use crate::hooks::{use_services, use_wifi};
 use crate::surfaces::control_center::modules::wifi::{radio_availability, radio_of, radio_state};
 use crate::surfaces::control_center::network_detail;
-use crate::surfaces::control_center::parts::{ModuleState, RowMark, SettingsRow, SettingsRows};
+use crate::surfaces::control_center::rows::{RowList, RowMark, RowSpec};
 
 /// The Wi-Fi page.
 #[component]
@@ -70,7 +70,7 @@ pub(crate) fn WifiPane(back: Option<EventHandler<()>>) -> Element {
             if let Some(text) = empty {
                 EmptyLine { text }
             } else {
-                SettingsRows::<WifiPick> {
+                RowList::<WifiPick> {
                     label: "Networks".to_owned(),
                     rows,
                     onpick: move |pick: WifiPick| {
@@ -94,7 +94,7 @@ pub(crate) fn WifiPane(back: Option<EventHandler<()>>) -> Element {
 
 /// The list's rows: none unless the radio is on (`listed_networks` orders them: connected,
 /// saved, then by strength).
-pub(crate) fn network_rows(wifi: &Wifi) -> Vec<SettingsRow<WifiPick>> {
+pub(crate) fn network_rows(wifi: &Wifi) -> Vec<RowSpec<WifiPick>> {
     match (wifi.device, wifi.radio) {
         (Presence::Present, Radio::On) => listed_networks(wifi)
             .into_iter()
@@ -105,7 +105,7 @@ pub(crate) fn network_rows(wifi: &Wifi) -> Vec<SettingsRow<WifiPick>> {
 }
 
 /// One network's row.
-pub(crate) fn network_row(ap: &AccessPoint, saved: Saved) -> SettingsRow<WifiPick> {
+pub(crate) fn network_row(ap: &AccessPoint, saved: Saved) -> RowSpec<WifiPick> {
     let value = match (ap.association, saved) {
         (Association::Connected, _) => WifiPick::Leave,
         (Association::Connecting | Association::Idle, Saved::Known) => {
@@ -113,20 +113,17 @@ pub(crate) fn network_row(ap: &AccessPoint, saved: Saved) -> SettingsRow<WifiPic
         }
         (Association::Connecting | Association::Idle, Saved::New) => WifiPick::Setup,
     };
-    let check = match ap.association {
-        Association::Connected => Check::Checked,
-        Association::Connecting | Association::Idle => Check::Unchecked,
+    // One mark: the check on the network in use, else a lock on a secured one.
+    let mark = match (ap.association, ap.security) {
+        (Association::Connected, _) => RowMark::InUse,
+        (Association::Connecting | Association::Idle, Security::Secured) => RowMark::Lock,
+        (Association::Connecting | Association::Idle, Security::Open) => RowMark::Nothing,
     };
-    let mark = match ap.security {
-        Security::Secured => RowMark::Lock,
-        Security::Open => RowMark::Nothing,
-    };
-    SettingsRow {
+    RowSpec {
         value,
         glyph: signal_glyph(ap.strength.0),
         title: ap.ssid.0.clone(),
         detail: network_detail(ap, saved),
-        check,
         mark,
         availability: Availability::Enabled,
     }
@@ -156,8 +153,8 @@ pub(crate) fn empty_line(wifi: &Wifi, rows: usize) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::{WifiPick, empty_line, network_row};
-    use crate::surfaces::control_center::parts::RowMark;
-    use ds::{Check, Icon};
+    use crate::surfaces::control_center::rows::RowMark;
+    use ds::Icon;
     use sill_services::{
         AccessPoint, Association, Percent, Presence, Radio, Saved, Security, Ssid, Wifi,
     };
@@ -173,14 +170,13 @@ mod tests {
 
     #[test]
     fn each_network_row_picks_by_what_it_is() {
-        // (access point, saved, pick, check, mark, glyph, detail)
+        // (access point, saved, pick, mark, glyph, detail)
         let cases = [
             (
                 ap("home", 80, Association::Connected, Security::Secured),
                 Saved::Known,
                 WifiPick::Leave,
-                Check::Checked,
-                RowMark::Lock,
+                RowMark::InUse,
                 Icon::WifiHigh,
                 "Connected",
             ),
@@ -188,7 +184,6 @@ mod tests {
                 ap("office", 50, Association::Idle, Security::Secured),
                 Saved::Known,
                 WifiPick::Join(Ssid("office".to_owned())),
-                Check::Unchecked,
                 RowMark::Lock,
                 Icon::Wifi,
                 "Saved",
@@ -197,23 +192,16 @@ mod tests {
                 ap("cafe", 20, Association::Idle, Security::Open),
                 Saved::New,
                 WifiPick::Setup,
-                Check::Unchecked,
                 RowMark::Nothing,
                 Icon::WifiLow,
                 "",
             ),
         ];
-        for (ap, saved, pick, check, mark, glyph, detail) in cases {
+        for (ap, saved, pick, mark, glyph, detail) in cases {
             let row = network_row(&ap, saved);
             assert_eq!(
-                (
-                    row.value,
-                    row.check,
-                    row.mark,
-                    row.glyph,
-                    row.detail.as_str()
-                ),
-                (pick, check, mark, glyph, detail),
+                (row.value, row.mark, row.glyph, row.detail.as_str()),
+                (pick, mark, glyph, detail),
                 "{}",
                 ap.ssid.0
             );

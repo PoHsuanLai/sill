@@ -1,14 +1,14 @@
-//! The Focus tile: Do Not Disturb as a quire `Toggle` (the `Moon` glyph),
+//! The Focus tile: Do Not Disturb as a quire `ModuleTile` (the `Moon` glyph),
 //! [`crate::surfaces::control_center::focus_status`] as its line. Reads `use_focus_mode`; sets
 //! through the root context's `sill_settings::FocusLink`.
 
 use dioxus::prelude::*;
-use ds::Icon;
+use ds::{Icon, ModuleState, ModuleTile, Text};
 use sill_settings::{FocusLink, FocusMode};
 
 use crate::hooks::use_focus_mode;
 use crate::surfaces::control_center::focus_status;
-use crate::surfaces::control_center::parts::{ModuleState, ModuleTile};
+use crate::surfaces::control_center::modules::flipped;
 
 /// The Focus tile.
 #[component]
@@ -18,12 +18,12 @@ pub fn FocusModule() -> Element {
     rsx! {
         ModuleTile {
             glyph: Icon::Moon,
-            title: "Focus".to_owned(),
-            status: focus_status(mode).to_owned(),
+            title: "Focus",
+            status: Some(Text::from(focus_status(mode))),
             state: focus_state(mode),
-            on_toggle: move |to: ModuleState| {
+            onclick: move |_| {
                 // Gone: the daemon's focus task has stopped; the tile keeps what it last read.
-                let _delivery = link.set(mode_of(to));
+                let _delivery = link.set(mode_of(flipped(focus_state(mode))));
             },
         }
     }
@@ -38,7 +38,7 @@ pub(crate) fn focus_state(mode: FocusMode) -> ModuleState {
 
 pub(crate) fn mode_of(state: ModuleState) -> FocusMode {
     match state {
-        ModuleState::On => FocusMode::DoNotDisturb,
+        ModuleState::On | ModuleState::Busy => FocusMode::DoNotDisturb,
         ModuleState::Off => FocusMode::Off,
     }
 }

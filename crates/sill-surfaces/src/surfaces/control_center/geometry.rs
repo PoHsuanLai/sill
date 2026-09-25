@@ -112,8 +112,8 @@ pub(crate) fn module_height(module: ControlCenterModule) -> i32 {
     }
 }
 
-/// A one-column tile: glyph and switch, title, status line, padding.
-const TILE_PX: i32 = 84;
+/// A one-column tile (quire's `ModuleTile`, 52 at least): the disc beside the title and status.
+const TILE_PX: i32 = 56;
 /// A level module: title line, the glyph and slider row, padding.
 const LEVEL_PX: i32 = 76;
 /// Now Playing: the 48 px art and padding.
@@ -213,9 +213,9 @@ mod tests {
         use sill_settings::ControlCenterModule::{Bluetooth, Focus, Sound, Wifi};
         let cc = ControlCenterSettings::default();
         let placed = place(&[Wifi, Bluetooth, Focus, Sound], 2);
-        // (page, list rows, cap, width, height): padding 12 twice; tiles 84, gap 8, level 76.
+        // (page, list rows, cap, width, height): padding 12 twice; tiles 56, gap 8, level 76.
         let cases = [
-            (CcPage::Modules, 0, 1032, 320, 24 + 84 + 8 + 84 + 8 + 76),
+            (CcPage::Modules, 0, 1032, 320, 24 + 56 + 8 + 56 + 8 + 76),
             (CcPage::Modules, 0, 200, 320, 200),
             (
                 CcPage::Detail(Detail::Wifi),

@@ -1,15 +1,16 @@
-//! The Wi-Fi tile: the radio as a quire `Toggle`, [`crate::surfaces::control_center::wifi_status`]
-//! as its line, and a chevron to the network list (`Detail::Wifi`). Reads `use_wifi` and
+//! The Wi-Fi tile: a quire `ModuleTile` whose press turns the radio on or off,
+//! [`crate::surfaces::control_center::wifi_status`] as its line, and its chevron to the network
+//! list (`Detail::Wifi`). Reads `use_wifi` and
 //! `use_network`; sends `WifiCommand::Radio`.
 
 use dioxus::prelude::*;
-use ds::{Availability, Icon};
+use ds::{Availability, Chevron, Icon, ModuleState, ModuleTile, Text};
 use sill_services::{Link, Network, Presence, Radio, Wifi, WifiCommand};
 
 use crate::hooks::{use_network, use_services, use_wifi};
 use crate::surfaces::bar::status::network_icon;
+use crate::surfaces::control_center::modules::flipped;
 use crate::surfaces::control_center::page::Detail;
-use crate::surfaces::control_center::parts::{ModuleState, ModuleTile};
 use crate::surfaces::control_center::wifi_status;
 
 /// The Wi-Fi tile.
@@ -18,18 +19,20 @@ pub fn WifiModule(on_detail: EventHandler<Detail>) -> Element {
     let wifi = use_wifi()();
     let network = use_network()();
     let control = use_services().wifi_control;
+    let state = radio_state(wifi.radio);
     rsx! {
         ModuleTile {
             glyph: wifi_glyph(&wifi, &network),
-            title: "Wi-Fi".to_owned(),
-            status: wifi_status(&wifi, &network),
-            state: radio_state(wifi.radio),
+            title: "Wi-Fi",
+            status: Some(Text::from(wifi_status(&wifi, &network))),
+            state,
+            chevron: Chevron::Detail,
             availability: radio_availability(&wifi),
-            on_toggle: move |to: ModuleState| {
+            onclick: move |_| {
                 // A stopped service drops it: the tile shows the radio it last published.
-                let _gone = control.send(WifiCommand::Radio(radio_of(to)));
+                let _gone = control.send(WifiCommand::Radio(radio_of(flipped(state))));
             },
-            on_detail: move |()| on_detail.call(Detail::Wifi),
+            on_detail: move |_| on_detail.call(Detail::Wifi),
         }
     }
 }
@@ -45,7 +48,7 @@ pub(crate) fn radio_state(radio: Radio) -> ModuleState {
 /// The radio a switch asks for.
 pub(crate) fn radio_of(state: ModuleState) -> Radio {
     match state {
-        ModuleState::On => Radio::On,
+        ModuleState::On | ModuleState::Busy => Radio::On,
         ModuleState::Off => Radio::Off,
     }
 }
@@ -70,8 +73,7 @@ pub(crate) fn wifi_glyph(wifi: &Wifi, network: &Network) -> Icon {
 #[cfg(test)]
 mod tests {
     use super::{radio_availability, radio_of, radio_state, wifi_glyph};
-    use crate::surfaces::control_center::parts::ModuleState;
-    use ds::{Availability, Icon};
+    use ds::{Availability, Icon, ModuleState};
     use sill_services::{Connectivity, Link, Network, Percent, Presence, Radio, Wifi};
 
     #[test]

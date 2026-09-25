@@ -2,9 +2,7 @@
 //! has none), the title, and the feature's switch.
 
 use dioxus::prelude::*;
-use ds::{Availability, Icon, IconButton, IconButtonVariant, Switch, Toggle};
-
-use crate::surfaces::control_center::parts::ModuleState;
+use ds::{Availability, Icon, IconButton, IconButtonVariant, ModuleState, Switch, Toggle};
 
 /// `title` with its switch at `state`; a back button when `back` is given.
 #[component]
@@ -26,7 +24,7 @@ pub(crate) fn DetailHead(
         }
     });
     let value = match state {
-        ModuleState::On => Switch::On,
+        ModuleState::On | ModuleState::Busy => Switch::On,
         ModuleState::Off => Switch::Off,
     };
     rsx! {

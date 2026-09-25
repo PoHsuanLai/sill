@@ -29,6 +29,8 @@ use dioxus::prelude::*;
 use sill_services::OutputName;
 use sill_settings::ControlCenterModule;
 
+use ds::ModuleState;
+
 use super::page::Detail;
 use wired::{WiredDisplay, WiredSound};
 
@@ -51,5 +53,13 @@ pub fn Module(
         ControlCenterModule::NowPlaying => rsx! { NowPlayingModule {} },
         ControlCenterModule::Appearance => rsx! { AppearanceModule {} },
         ControlCenterModule::Battery => rsx! { BatteryModule {} },
+    }
+}
+
+/// The state a press on a tile asks for: on from off, off from on or on the way.
+pub(crate) fn flipped(state: ModuleState) -> ModuleState {
+    match state {
+        ModuleState::Off => ModuleState::On,
+        ModuleState::On | ModuleState::Busy => ModuleState::Off,
     }
 }

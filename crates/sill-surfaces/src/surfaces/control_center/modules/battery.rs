@@ -9,7 +9,7 @@ use sill_services::Presence;
 use super::PowerProfileControl;
 use crate::hooks::{use_battery, use_power_profile};
 use crate::surfaces::bar::status::{battery_icon, battery_lines};
-use crate::surfaces::control_center::parts::{TileFrame, TileSpan};
+use crate::surfaces::control_center::module_box::ModuleBox;
 
 /// The Battery module.
 #[component]
@@ -34,7 +34,7 @@ pub fn BatteryModule() -> Element {
         }
     };
     rsx! {
-        TileFrame { span: TileSpan::Full,
+        ModuleBox {
             div { class: "sill-cc-battery",
                 {level}
                 PowerProfileControl {}

@@ -7,14 +7,14 @@ use ds::{Appearance, AppearancePicker};
 use ds_settings::{AppName, AppearanceFile, config_dir};
 
 use crate::hooks::use_appearance;
-use crate::surfaces::control_center::parts::{TileFrame, TileSpan};
+use crate::surfaces::control_center::module_box::ModuleBox;
 
 /// The Appearance module.
 #[component]
 pub fn AppearanceModule() -> Element {
     let environment = use_appearance()();
     rsx! {
-        TileFrame { span: TileSpan::Full,
+        ModuleBox {
             AppearancePicker {
                 value: environment.settings.appearance.appearance(),
                 system: environment.system,

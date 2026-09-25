@@ -9,7 +9,7 @@ use std::time::Duration;
 use cc_support::live::{self, Report};
 use cc_support::{count, fake, render};
 use ds::Key;
-use sill_services::{Bluetooth, Radio, Wifi, WifiCommand};
+use sill_services::{Bluetooth, Radio, Ssid, Wifi, WifiCommand};
 use sill_settings::{ControlCenterModule, ControlCenterSettings, ShellFile};
 use sill_surfaces::surfaces::control_center::{CcPage, Detail};
 
@@ -18,11 +18,15 @@ fn the_grid_shows_what_the_services_hold() {
     let (services, _feeds) = fake::services();
     let html = render(services, ShellFile::default());
     let cases = [
-        ("seven grid rows", "class=\"sill-cc-row\"", 7),
-        ("three half tiles", "data-span=\"half\"", 3),
-        ("five full modules", "data-span=\"full\"", 5),
-        ("a quire switch per tile", "class=\"ds-toggle\"", 3),
-        ("Wi-Fi, Bluetooth and Focus on", "data-state=\"on\"", 3),
+        ("quire's module grid", "class=\"ds-module-grid\"", 1),
+        ("three quire tiles", "class=\"ds-module-tile\"", 3),
+        ("each a column", "data-span=\"half\"", 3),
+        ("five full-width modules", "class=\"sill-cc-module\"", 5),
+        (
+            "Wi-Fi, Bluetooth and Focus on",
+            "data-state=\"on\" aria-pressed=\"true\"",
+            3,
+        ),
         (
             "chevrons on Wi-Fi and Bluetooth",
             "aria-label=\"Wi-Fi details\"",
@@ -65,7 +69,16 @@ fn modules_follow_the_settings_order() {
     let sound = html.find("Built-in Audio").expect("the Sound module");
     let wifi = html.find(">Wi-Fi<").expect("the Wi-Fi tile");
     assert!(sound < wifi, "Sound comes first");
-    assert_eq!(count(&html, "class=\"sill-cc-row\""), 2, "one row each");
+    assert_eq!(
+        count(&html, "class=\"ds-module-tile\""),
+        1,
+        "the Wi-Fi tile"
+    );
+    assert_eq!(
+        count(&html, "class=\"sill-cc-module\""),
+        1,
+        "the Sound module"
+    );
     assert_eq!(count(&html, "class=\"ds-appearance\""), 0);
 }
 
@@ -79,12 +92,16 @@ fn fed_values_replace_the_defaults() {
     feeds.bluetooth.send_replace(Bluetooth::default());
     let html = render(services, ShellFile::default());
     let cases = [
-        ("only Focus on", "data-state=\"on\"", 1),
+        (
+            "only Focus on",
+            "data-state=\"on\" aria-pressed=\"true\"",
+            1,
+        ),
         ("Wi-Fi off", ">Off<", 1),
         ("no adapter", ">Unavailable<", 1),
         (
-            "its switch disabled",
-            "aria-label=\"Bluetooth\" aria-disabled=\"true\"",
+            "its tile disabled",
+            "aria-pressed=\"false\" aria-disabled=\"true\"",
             1,
         ),
     ];
@@ -96,8 +113,6 @@ fn fed_values_replace_the_defaults() {
 #[test]
 fn a_chevron_slides_its_pane_in_and_escape_unwinds() {
     let (services, feeds) = fake::services();
-    // The radio off: the pane lists nothing, so this runs before the Wi-Fi service's
-    // `listed_networks` lands (M5 lane b).
     feeds.wifi.send_replace(Wifi {
         radio: Radio::Off,
         ..fake::wifi()
@@ -108,14 +123,14 @@ fn a_chevron_slides_its_pane_in_and_escape_unwinds() {
     running.harness.advance(Duration::from_millis(300));
     let chevron = running
         .harness
-        .centre(".sill-cc-tile-foot .ds-icon-button")
+        .centre(".ds-module-chevron")
         .expect("the Wi-Fi chevron is laid out");
     // A press in the panel reaches it (the popup frame is in flow, so the hit test descends):
-    // the Wi-Fi switch asks for the radio (a fake service: nothing real changes).
+    // the Wi-Fi tile asks for the radio (a fake service: nothing real changes).
     let switch = running
         .harness
-        .centre(".ds-toggle")
-        .expect("the Wi-Fi switch");
+        .centre(".ds-module-title")
+        .expect("the Wi-Fi tile");
     running.harness.click(switch);
     running.harness.advance(step);
     assert_eq!(
@@ -123,39 +138,37 @@ fn a_chevron_slides_its_pane_in_and_escape_unwinds() {
         Some(WifiCommand::Radio(Radio::On))
     );
     running.harness.click(chevron);
-    running.harness.advance(step);
+    // quire's PaneSwitcher slides the detail in and drops the grid once it settles.
+    running.harness.advance(Duration::from_millis(600));
+    assert_eq!(
+        running.harness.attr(".ds-panes", "data-shown").as_deref(),
+        Some("detail")
+    );
     assert_eq!(
         running.harness.count(".sill-cc-detail"),
         1,
         "the Wi-Fi pane"
     );
-    assert_eq!(running.harness.count(".sill-cc-grid"), 0);
     assert_eq!(
-        running
-            .harness
-            .attr(".sill-cc-pane", "data-slide")
-            .as_deref(),
-        Some("to-detail")
+        running.harness.count(".ds-module-grid"),
+        0,
+        "the grid is gone"
     );
     assert_eq!(
         running.harness.text_of(".sill-cc-empty").as_deref(),
         Some("Wi-Fi is off")
     );
     // Escape with the pressed chevron gone: the panel holds the keyboard.
-    running.harness.advance(step);
     running.harness.key(Key::Escape);
-    running.harness.advance(step);
+    running.harness.advance(Duration::from_millis(600));
     assert_eq!(
-        running.harness.count(".sill-cc-grid"),
-        1,
-        "back on the grid"
+        running.harness.attr(".ds-panes", "data-shown").as_deref(),
+        Some("root")
     );
     assert_eq!(
-        running
-            .harness
-            .attr(".sill-cc-pane", "data-slide")
-            .as_deref(),
-        Some("to-modules")
+        running.harness.count(".ds-module-grid"),
+        1,
+        "back on the grid"
     );
     assert_eq!(
         running.reports(),
@@ -168,4 +181,56 @@ fn a_chevron_slides_its_pane_in_and_escape_unwinds() {
     running.harness.key(Key::Escape);
     running.harness.advance(Duration::from_millis(400));
     assert_eq!(running.reports().last(), Some(&Report::Closed));
+}
+
+#[test]
+fn now_playing_shows_the_track_and_its_transport() {
+    let (services, feeds) = fake::services();
+    feeds.media.send_replace(fake::media());
+    let html = render(services, ShellFile::default());
+    let cases = [
+        ("the title", ">So What<", 1),
+        ("the artist and album", ">Miles Davis — Kind of Blue<", 1),
+        ("previous", "aria-label=\"Previous\"", 1),
+        ("pause while playing", "aria-label=\"Pause\"", 1),
+        ("next", "aria-label=\"Next\"", 1),
+        ("no empty module", ">Not Playing<", 0),
+    ];
+    for (name, needle, want) in cases {
+        assert_eq!(count(&html, needle), want, "{name}: {needle}");
+    }
+}
+
+#[test]
+fn the_wifi_pane_lists_networks_and_a_row_joins_one() {
+    let (services, feeds) = fake::services();
+    let mut running = live::start(services, feeds);
+    running.harness.advance(Duration::from_millis(300));
+    let chevron = running
+        .harness
+        .centre(".ds-module-chevron")
+        .expect("the Wi-Fi chevron");
+    running.harness.click(chevron);
+    running.harness.advance(Duration::from_millis(600));
+    // The pane asks for a scan as it opens (a fake service: nothing real changes).
+    assert_eq!(
+        running.feeds.wifi_commands.try_recv().ok(),
+        Some(WifiCommand::Scan)
+    );
+    // home (joined, checked), office (saved, locked), cafe (new, open): quire SettingsRows.
+    assert_eq!(running.harness.count(".ds-settings-row"), 3);
+    assert_eq!(
+        running.harness.text_of(".ds-settings-row-title").as_deref(),
+        Some("home")
+    );
+    let office = running
+        .harness
+        .centre(".ds-settings-row:nth-child(2)")
+        .expect("the office row");
+    running.harness.click(office);
+    running.harness.advance(Duration::from_millis(50));
+    assert_eq!(
+        running.feeds.wifi_commands.try_recv().ok(),
+        Some(WifiCommand::Connect(Ssid("office".to_owned())))
+    );
 }

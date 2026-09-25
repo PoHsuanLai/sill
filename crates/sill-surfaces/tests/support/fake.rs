@@ -214,6 +214,33 @@ pub fn power_profiles() -> PowerProfiles {
     }
 }
 
+/// One player, playing "So What" (no art file), every button live.
+pub fn media() -> Media {
+    use sill_services::{
+        Abilities, Availability, MediaPlayer, Playback, PlayerId, Stamp, Timeline, Track,
+    };
+    Media {
+        players: vec![MediaPlayer {
+            id: PlayerId("org.mpris.MediaPlayer2.fake".to_owned()),
+            identity: "Fake Player".to_owned(),
+            playback: Playback::Playing,
+            changed: Stamp(1),
+            track: Track {
+                title: "So What".to_owned(),
+                artists: vec!["Miles Davis".to_owned()],
+                album: "Kind of Blue".to_owned(),
+                ..Track::default()
+            },
+            timeline: Timeline::Unknown,
+            abilities: Abilities {
+                play_pause: Availability::Enabled,
+                next: Availability::Enabled,
+                previous: Availability::Enabled,
+            },
+        }],
+    }
+}
+
 /// A receiver whose sender is kept in `keep`.
 fn fixed<T: 'static>(value: T, keep: &mut Vec<Box<dyn std::any::Any>>) -> watch::Receiver<T> {
     let (tx, rx) = watch::channel(value);
@@ -241,7 +268,7 @@ pub fn services() -> (Services, Feeds) {
     let (wifi_tx, wifi) = watch::channel(wifi());
     let (bluetooth_tx, bluetooth) = watch::channel(bluetooth());
     let (profiles_tx, power_profiles) = watch::channel(power_profiles());
-    // No player: `Media::current` is the Now Playing service's to fill (M5 lane b).
+    // No player until a test or the demo feeds one (`media()`).
     let (media_tx, media) = watch::channel(Media::default());
     let (wl, wl_rx) = Control::channel();
     let (volume_control, volume_rx) = Control::channel();

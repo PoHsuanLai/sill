@@ -8,7 +8,7 @@
 use dioxus::prelude::*;
 use ds::{Availability, Fraction, Glyph, Icon, Slider};
 
-use super::parts::{TileFrame, TileSpan};
+use super::module_box::ModuleBox;
 
 /// The slider's keyboard step: 5 %.
 const STEP: Fraction = Fraction(50);
@@ -26,7 +26,7 @@ pub fn LevelModule(
 ) -> Element {
     let percent = (level.0.min(1000) + 5) / 10;
     rsx! {
-        TileFrame { span: TileSpan::Full,
+        ModuleBox {
             div { class: "sill-cc-level",
                 div { class: "sill-cc-level-head",
                     span { class: "sill-cc-title ds-truncate", "{title}" }

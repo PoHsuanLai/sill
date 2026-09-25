@@ -6,16 +6,13 @@
 
 use dioxus::prelude::*;
 use ds::{
-    Availability, ExternalIcon, Glyph, IconButton, IconButtonVariant, IconSize, IconSource,
+    Availability, ExternalIcon, Glyph, Icon, IconButton, IconButtonVariant, IconSize, IconSource,
     IconUrl, IconView,
 };
-use sill_services::{Art, Media, MediaCommand, MediaPlayer, MediaVerb, Playback};
+use sill_services::{Art, MediaCommand, MediaVerb, Playback};
 
 use crate::hooks::{use_now_playing, use_services};
-use crate::surfaces::control_center::parts::glyphs::{
-    NOW_PLAYING, PAUSE, PLAY, SKIP_BACK, SKIP_FORWARD,
-};
-use crate::surfaces::control_center::parts::{TileFrame, TileSpan};
+use crate::surfaces::control_center::module_box::ModuleBox;
 use crate::surfaces::control_center::track_lines;
 
 /// The Now Playing module.
@@ -23,10 +20,10 @@ use crate::surfaces::control_center::track_lines;
 pub fn NowPlayingModule() -> Element {
     let media = use_now_playing()();
     let control = use_services().media_control;
-    let playing = shown(&media).cloned();
+    let playing = media.current().cloned();
     let Some(player) = playing else {
         return rsx! {
-            TileFrame { span: TileSpan::Full,
+            ModuleBox {
                 div { class: "sill-cc-media",
                     ArtView { art: Art::None }
                     div { class: "sill-cc-media-text",
@@ -49,12 +46,12 @@ pub fn NowPlayingModule() -> Element {
         }
     };
     let (toggle, toggle_label) = match player.playback {
-        Playback::Playing => (PAUSE, "Pause"),
-        Playback::Paused | Playback::Stopped => (PLAY, "Play"),
+        Playback::Playing => (Icon::Pause, "Pause"),
+        Playback::Paused | Playback::Stopped => (Icon::Play, "Play"),
     };
     let abilities = player.abilities;
     rsx! {
-        TileFrame { span: TileSpan::Full,
+        ModuleBox {
             div { class: "sill-cc-media",
                 ArtView { art: player.track.art.clone() }
                 div { class: "sill-cc-media-text",
@@ -64,7 +61,7 @@ pub fn NowPlayingModule() -> Element {
                 div { class: "sill-cc-media-buttons",
                     IconButton {
                         variant: IconButtonVariant::Tool,
-                        icon: SKIP_BACK,
+                        icon: Icon::SkipBack,
                         label: "Previous".to_owned(),
                         availability: available(abilities.previous),
                         onclick: press(MediaVerb::Previous),
@@ -78,7 +75,7 @@ pub fn NowPlayingModule() -> Element {
                     }
                     IconButton {
                         variant: IconButtonVariant::Tool,
-                        icon: SKIP_FORWARD,
+                        icon: Icon::SkipForward,
                         label: "Next".to_owned(),
                         availability: available(abilities.next),
                         onclick: press(MediaVerb::Next),
@@ -87,14 +84,6 @@ pub fn NowPlayingModule() -> Element {
             }
         }
     }
-}
-
-/// The player to show: none without players (no call into `Media::current` then).
-fn shown(media: &Media) -> Option<&MediaPlayer> {
-    if media.players.is_empty() {
-        return None;
-    }
-    media.current()
 }
 
 /// The service's word for "can do it" as quire's.
@@ -123,7 +112,7 @@ fn ArtView(art: Art) -> Element {
         },
         None => rsx! {
             span { class: "sill-cc-art", "data-art": "none",
-                Glyph { icon: NOW_PLAYING }
+                Glyph { icon: Icon::Play }
             }
         },
     }
