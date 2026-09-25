@@ -1,0 +1,20 @@
+/* The OSD (design/20 §1.7). The surface is the card plus room for the Osd material's shadow;
+   the card is centred in it. Its width and the row's height are written inline from
+   `osd/layer.rs`; everything here is a token or one of quire's keyframes. Attribute selectors
+   carry `*|` (spike S2). */
+
+/* The whole surface, from the viewport (neither `.ds` nor `#main` has a height: see
+   wallpaper.css), centring the card. */
+.sill-osd-room{ display:flex; align-items:center; justify-content:center; width:100vw; height:100vh; }
+
+/* The card box, which fades as a whole: in over --t-quick --e-out when it maps, out over
+   --t-move --e-exit when its hold ends (design/20 §1.7). `steady` is a change that took a fade
+   out back: no animation, fully up. `hidden` is unmapped, and clear until the next fade in. */
+.sill-osd{ display:block; }
+.sill-osd[*|data-look=entering]{ animation:fade var(--t-quick) var(--e-out); }
+.sill-osd[*|data-look=leaving]{ animation:menu-out var(--t-move) var(--e-exit) forwards; }
+.sill-osd[*|data-look=hidden]{ opacity:0; }
+
+/* The glyph and the level bar in a row, in the card's ink. */
+.sill-osd-row{ display:flex; align-items:center; gap:var(--s-12); padding:0 var(--s-16); color:var(--ink); }
+.sill-osd-level{ display:block; flex:1; }

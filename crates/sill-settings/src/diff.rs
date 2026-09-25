@@ -18,6 +18,7 @@ pub enum SettingsChange {
     ControlCenter,
     Spaces,
     Display,
+    Osd,
 }
 
 /// The domains that differ between `old` and `new`, in table order. `version` and unknown
@@ -42,6 +43,7 @@ pub fn apply(old: &ShellFile, new: &ShellFile) -> Vec<SettingsChange> {
         ),
         (old.spaces != new.spaces, SettingsChange::Spaces),
         (old.display != new.display, SettingsChange::Display),
+        (old.osd != new.osd, SettingsChange::Osd),
     ]
     .into_iter()
     .filter_map(|(changed, domain)| changed.then_some(domain))

@@ -10,6 +10,7 @@ use crate::dock::DockSettings;
 use crate::launcher::LauncherSettings;
 use crate::menus::MenusSettings;
 use crate::notifications::NotificationsSettings;
+use crate::osd::OsdSettings;
 use crate::scroll::ScrollSettings;
 use crate::scrollbar::ScrollbarSettings;
 use crate::sound::SoundSettings;
@@ -31,6 +32,7 @@ pub fn schemas() -> Vec<Schema> {
         ControlCenterSettings::schema(),
         SpacesSettings::schema(),
         DisplaySettings::schema(),
+        OsdSettings::schema(),
     ]
 }
 

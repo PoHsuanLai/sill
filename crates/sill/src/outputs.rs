@@ -11,17 +11,19 @@ pub struct OutputSurfaces {
     pub dock: Option<SurfaceId>,
     pub launcher: Option<SurfaceId>,
     pub catcher: Option<SurfaceId>,
+    pub osd: Option<SurfaceId>,
 }
 
 impl OutputSurfaces {
     /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 5] {
+    fn fields(&self) -> [Option<SurfaceId>; 6] {
         [
             self.bar,
             self.wallpaper,
             self.dock,
             self.launcher,
             self.catcher,
+            self.osd,
         ]
     }
 
@@ -43,6 +45,7 @@ impl OutputSurfaces {
             &mut self.dock,
             &mut self.launcher,
             &mut self.catcher,
+            &mut self.osd,
         ] {
             if *field == Some(id) {
                 *field = None;
