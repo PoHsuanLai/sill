@@ -26,8 +26,11 @@ Add new ones at the end of their section.
   layer keyboard focus, shell G30): on a real COSMIC session, `sill power-menu open`, then
   arrows move the highlight, Esc closes. Do NOT press Enter on Restart/Shut Down unless you mean
   it; the dry run (`SILL_POWER_MENU_DRY_RUN=<file>` on a debug build) records instead.
-- [ ] **The bar's "Shut Down…" item** opens the power menu (G31: a scripted click on the popup
-  item did not open it on the nested compositor; unit-tested only).
+- [ ] **Control center with the real keyboard**: open it from the bar item (left of the clock);
+  Tab/arrows move between tiles, Enter/Space toggle, Right on a chevron opens Wi-Fi/Bluetooth,
+  Escape goes back then closes (a debug-opened popup gets no keyboard on the nested compositor).
+- [ ] **The capsule level look on the light scheme** (quire Q105: the fill reads faintly on its
+  track) when picking the level look from quire's sheets.
 
 ## Visual review
 
