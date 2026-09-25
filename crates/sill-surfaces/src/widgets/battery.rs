@@ -4,9 +4,16 @@
 //! Nothing to show (a desktop with no battery and no devices): the widget says "No batteries".
 
 use dioxus::prelude::*;
-use sill_services::{Battery, Bluetooth, BtKind, Charge, Percent};
+use ds::{Icon, RowTrailing, SettingsRow, Text};
+use sill_services::{
+    Battery, Bluetooth, BtBattery, BtConnection, BtKind, Charge, Percent, Presence,
+};
 
 use super::WidgetHost;
+use super::frame::host_word;
+use crate::hooks::{use_battery, use_bluetooth};
+use crate::surfaces::bar::status::battery_icon;
+use crate::surfaces::control_center::pages::bluetooth_devices::device_glyph;
 
 /// This widget's stylesheet, in [`crate::widgets::widgets_css`].
 pub const CSS: &str = include_str!("../style/widget_battery.css");
@@ -33,15 +40,95 @@ pub struct BatteryRow {
 /// This machine's row first when it has a battery, then each connected device with a level,
 /// by name. `machine` is the name the machine's row takes.
 pub fn battery_rows(battery: &Battery, bluetooth: &Bluetooth, machine: &str) -> Vec<BatteryRow> {
-    let _ = (battery, bluetooth, machine);
-    todo!("M10 fill: b-widgets")
+    let this = match battery.presence {
+        Presence::Present => Some(BatteryRow {
+            owner: BatteryOwner::ThisMachine,
+            name: machine.to_owned(),
+            level: battery.level,
+            charge: battery.charge,
+        }),
+        Presence::Absent => None,
+    };
+    let mut devices: Vec<BatteryRow> = bluetooth
+        .devices
+        .iter()
+        .filter(|device| device.connection == BtConnection::Connected)
+        .filter_map(|device| match device.battery {
+            BtBattery::Level(level) => Some(BatteryRow {
+                owner: BatteryOwner::Device(device.kind),
+                name: device.name.clone(),
+                level,
+                charge: Charge::Unknown,
+            }),
+            BtBattery::Unknown => None,
+        })
+        .collect();
+    devices.sort_by_key(|row| row.name.to_lowercase());
+    this.into_iter().chain(devices).collect()
 }
 
-/// The batteries.
+/// The machine row's name: the host name's first label, else "This Computer".
+pub(crate) fn machine_name(host: &str) -> String {
+    match host
+        .trim()
+        .split('.')
+        .next()
+        .filter(|label| !label.is_empty())
+    {
+        Some(label) => label.to_owned(),
+        None => "This Computer".to_owned(),
+    }
+}
+
+/// A row's glyph: the bar's battery glyph for this machine, the device's kind for the rest.
+fn row_glyph(row: &BatteryRow) -> Icon {
+    match row.owner {
+        BatteryOwner::ThisMachine => battery_icon(&Battery {
+            presence: Presence::Present,
+            level: row.level,
+            charge: row.charge,
+            ..Battery::default()
+        }),
+        BatteryOwner::Device(kind) => device_glyph(kind),
+    }
+}
+
+/// The level as the row's trailing value: "81%", "81% Charging".
+fn level_text(row: &BatteryRow) -> String {
+    match row.charge {
+        Charge::Charging => format!("{}% Charging", row.level.0),
+        _ => format!("{}%", row.level.0),
+    }
+}
+
+/// The batteries: one quire `SettingsRow` each (its glyph, the name, the level as its trailing
+/// value; a level ring is quire gap Q183).
 #[component]
 pub fn BatteryWidget(host: WidgetHost) -> Element {
-    let _ = host;
-    rsx! {}
+    let battery = use_battery()();
+    let bluetooth = use_bluetooth()();
+    let machine = use_hook(|| {
+        let host = std::fs::read_to_string("/proc/sys/kernel/hostname").unwrap_or_default();
+        machine_name(&host)
+    });
+    let rows = battery_rows(&battery, &bluetooth, &machine);
+    rsx! {
+        div { class: "sill-widget-battery", "data-host": host_word(host),
+            if rows.is_empty() {
+                span { class: "sill-widget-quiet", "No batteries" }
+            }
+            for row in rows {
+                SettingsRow {
+                    key: "{row.name}",
+                    glyph: Some(row_glyph(&row)),
+                    title: row.name.clone(),
+                    detail: None,
+                    trailing: RowTrailing::Text(Text::from(level_text(&row))),
+                    onclick: move |_| {},
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -51,7 +138,20 @@ mod tests {
         Charge, Percent, Presence,
     };
 
-    use super::{BatteryOwner, BatteryRow, battery_rows};
+    use super::{BatteryOwner, BatteryRow, battery_rows, machine_name};
+
+    #[test]
+    fn the_machine_is_named_by_its_hosts_first_label() {
+        let cases = [
+            ("desk\n", "desk"),
+            ("frieren.local", "frieren"),
+            ("", "This Computer"),
+            (" \n", "This Computer"),
+        ];
+        for (host, name) in cases {
+            assert_eq!(machine_name(host), name, "{host:?}");
+        }
+    }
 
     fn device(name: &str, kind: BtKind, connection: BtConnection, battery: BtBattery) -> BtDevice {
         BtDevice {
@@ -65,7 +165,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: b-widgets"]
     fn the_machine_then_connected_devices_with_a_level_by_name() {
         let battery = Battery {
             presence: Presence::Present,

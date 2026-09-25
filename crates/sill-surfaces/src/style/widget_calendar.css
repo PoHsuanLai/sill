@@ -1,2 +1,15 @@
-/* The Calendar widget (widgets/calendar; M10 lane a). Empty at the freeze; its lane adds the rules for the month grid's stand-in layout until quire's `MonthGrid` (Q180), with quire's tokens
-   only (coherence rule 1). */
+/* The Calendar widget (widgets/calendar; M10 lane a): quire's `MonthGrid` (Q180) draws the
+   month, its title and buttons, the heads, the days, today's disc and the busy dots; this only
+   places it in its host, with quire's tokens (coherence rule 1). */
+
+.sill-cal{ display:flex; justify-content:center; }
+.sill-cal-center{ padding:var(--s-2) 0; }
+
+/* On the desktop the Calendar is one small cell (164 px), where quire's month (seven 32 px
+   columns) does not fit: until `MonthGrid` has a compact size (Q190) it shows macOS's small
+   date face, today's weekday in the accent over the day's number and the month. */
+.sill-cal-desktop{ flex-direction:column; justify-content:flex-start; }
+.sill-cal-weekday{ color:var(--accent); font-size:var(--fs-small); font-weight:700;
+  text-transform:uppercase; }
+.sill-cal-date{ font-size:var(--fs-display); font-weight:300; }
+.sill-cal-month{ font-size:var(--fs-small); color:var(--ink-soft); }

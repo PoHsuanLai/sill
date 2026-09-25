@@ -44,6 +44,11 @@ Add new ones at the end of their section.
 - [ ] **The capsule level look on the light scheme** (quire Q105: the fill reads faintly on its
   track) when picking the level look from quire's sheets.
 
+- [ ] **Drag icon follows the pointer** (shell-host F60): on a real session, run shell-host's
+  `examples/demo_drag.rs --icon=root` and drag; the icon should follow the pointer (the headless
+  KWin draws no cursor, so it could not be seen there). Then drag the screenshot thumbnail out
+  onto a folder once sill wires `start_drag`.
+
 ## Visual review
 
 - [ ] **Shipped icons, app table**: the notes row (COSMIC Edit, GNOME Text Editor, Kate) and the

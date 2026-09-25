@@ -8,6 +8,7 @@
 use jiff::Timestamp;
 use jiff::civil::{Date, DateTime};
 
+use super::ics_line::{Draft, split_line};
 use super::rule::Rule;
 
 /// A `DTSTART`, `DTEND`, `EXDATE` or `RECURRENCE-ID` value.
@@ -73,15 +74,82 @@ pub enum IcsError {
 
 /// Content lines, unfolded (a CRLF or LF followed by one space or tab continues the line), in
 /// order, empty lines dropped.
+///
+/// A continuation starting with a space loses that space (RFC 5545 §3.1); one starting with a
+/// tab keeps one space in its place, since the producers that fold with a tab (Outlook, Lotus)
+/// fold at a word gap and drop the space they folded at.
 pub fn unfold(text: &str) -> Vec<String> {
-    let _ = text;
-    todo!("M10 fill: a-calendar")
+    let text = text.strip_prefix('\u{feff}').unwrap_or(text);
+    let mut lines: Vec<String> = Vec::new();
+    for raw in text.split('\n') {
+        let raw = raw.strip_suffix('\r').unwrap_or(raw);
+        match (raw.chars().next(), lines.last_mut()) {
+            (Some(' '), Some(last)) => last.push_str(&raw[1..]),
+            (Some('\t'), Some(last)) => {
+                last.push(' ');
+                last.push_str(&raw[1..]);
+            }
+            _ if raw.trim().is_empty() => {}
+            _ => lines.push(raw.to_owned()),
+        }
+    }
+    lines
 }
 
 /// Every `VEVENT` in `text`. A `VEVENT` missing `UID` or `DTSTART` is skipped, not an error.
+/// Several `VCALENDAR`s one after another (a concatenated export) are read in turn.
 pub fn parse_ics(text: &str) -> Result<Vec<IcsEvent>, IcsError> {
-    let _ = text;
-    todo!("M10 fill: a-calendar")
+    let lines = unfold(text);
+    let opens_calendar = lines
+        .first()
+        .is_some_and(|first| first.trim().eq_ignore_ascii_case("BEGIN:VCALENDAR"));
+    if !opens_calendar {
+        return Err(IcsError::NotCalendar);
+    }
+    let mut stack: Vec<String> = Vec::new();
+    let mut open: Option<Draft> = None;
+    let mut events = Vec::new();
+    for (index, text) in lines.iter().enumerate() {
+        let line = u32::try_from(index + 1).unwrap_or(u32::MAX);
+        let content = split_line(text).ok_or_else(|| IcsError::Bad {
+            line,
+            reason: format!("no ':' in {:?}", text.chars().take(40).collect::<String>()),
+        })?;
+        match content.name.as_str() {
+            "BEGIN" => {
+                let component = content.value.trim().to_ascii_uppercase();
+                if component == "VEVENT" && stack.len() == 1 {
+                    open = Some(Draft::default());
+                }
+                stack.push(component);
+            }
+            "END" => {
+                let component = content.value.trim().to_ascii_uppercase();
+                if stack.last() != Some(&component) {
+                    return Err(IcsError::Unbalanced { line, component });
+                }
+                stack.pop();
+                if component == "VEVENT" && stack.len() == 1 {
+                    events.extend(open.take().and_then(Draft::finish));
+                }
+            }
+            _ if stack.len() == 2 => {
+                if let Some(draft) = open.as_mut() {
+                    draft
+                        .take(&content)
+                        .map_err(|reason| IcsError::Bad { line, reason })?;
+                }
+            }
+            _ => {}
+        }
+    }
+    match stack.pop() {
+        Some(component) => Err(IcsError::Unbalanced {
+            line: u32::try_from(lines.len()).unwrap_or(u32::MAX),
+            component,
+        }),
+        None => Ok(events),
+    }
 }
 
 #[cfg(test)]
@@ -91,7 +159,6 @@ mod tests {
     use super::{IcsEnd, IcsError, IcsEvent, IcsStatus, IcsTime, parse_ics, unfold};
 
     #[test]
-    #[ignore = "M10 fill: a-calendar"]
     fn lines_unfold() {
         let cases: [(&str, &[&str]); 3] = [
             ("A:1\r\nB:2\r\n", &["A:1", "B:2"]),
@@ -107,7 +174,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: a-calendar"]
     fn events_parse_with_dates_zones_and_escapes() {
         let text = "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:a\r\nSUMMARY:Lunch\\, then a walk\r\n\
             LOCATION:Da'an Park\r\nDTSTART;TZID=Asia/Taipei:20260927T120000\r\nDURATION:PT1H30M\r\n\
@@ -147,7 +213,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: a-calendar"]
     fn broken_streams_are_refused() {
         assert_eq!(
             parse_ics("BEGIN:VEVENT\r\nEND:VEVENT\r\n"),

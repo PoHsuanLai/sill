@@ -61,11 +61,18 @@ fn open_it_is_quires_full_height_panel_at_the_right_edge() {
             && (column.size.width.0 + 2.0 * pad - panel.size.width.0).abs() < 0.5,
         "the blur element grown by the padding is the panel: {column:?} {panel:?}"
     );
+    // The widgets follow the history in the one scrolling column, as macOS's Notification
+    // Center does, rather than being pinned to the bottom.
     let widgets = h.rect(".sill-nc-widgets").expect("the widgets slot");
-    let bottom = panel.origin.y.0 + panel.size.height.0 - pad;
+    let list = h.rect(".sill-nc-list").expect("the history");
     assert!(
-        (widgets.origin.y.0 + widgets.size.height.0 - bottom).abs() < 0.5,
-        "the widgets slot sits at the bottom: {widgets:?}"
+        widgets.origin.y.0 >= list.origin.y.0 + list.size.height.0 - 0.5,
+        "the widgets slot follows the history: {widgets:?} {list:?}"
+    );
+    assert_eq!(
+        h.attr(".sill-nc-column", "style"),
+        None,
+        "the column's own stylesheet makes it scroll"
     );
 }
 

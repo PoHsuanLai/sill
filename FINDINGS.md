@@ -4256,3 +4256,34 @@ services.rs}`, `sill-surfaces/src/{lib.rs,hooks/**,widgets/mod.rs}`,
   so a hot corner cannot know whether Super is held as the pointer arrives. `hot_corners.modifier`
   is frozen and defaults to `None`; lane e confirms on KWin. A fix wants a compositor-side
   modifier state (no protocol offers one) or a surface that has the keyboard.
+
+## M10 lane b follow-ups (2026-09-26)
+
+- F440 New desktop widgets fill from the top right (the freeze's proposal, kept); one placements
+  file for all outputs; the grid is measured once when the layer mounts, so an output resize does
+  not re-place widgets yet.
+- F441 The notification center's whole column scrolls (history, then the widgets under it), as
+  macOS's Notification Center does; the history list no longer scrolls on its own.
+- F442 Now Playing's layout rules are repeated in `widget_now_playing.css`, scoped to the widget,
+  because hosts do not load `control_center.css`; a shared file later.
+- F443 Not done: Sonoma's dimmed look for desktop widgets under a focused window (optional);
+  moving widgets by drag (F413). Q182 (widget frame, sizes, bump) and Q183 (clock face, battery
+  ring) wait on quire.
+
+## M10 lane a: calendar (2026-09-26)
+
+- F420 iCalendar is parsed by hand (unfolding with LF/CRLF/BOM, quoted parameters, VEVENT only,
+  DATE/UTC/TZID/floating times, vendor-prefixed TZIDs resolve, Windows zone names float,
+  DURATION, EXDATE, STATUS, RECURRENCE-ID overrides). Recurrence covers FREQ daily to yearly,
+  INTERVAL, COUNT, UNTIL, BYDAY with ordinals, BYMONTHDAY with negatives, BYMONTH, WKST;
+  anything else shows once and logs once.
+- F421 Two readings of the frozen tests: `occurrences` reads the rule parts it knows back out of
+  `Rule.unexpanded` (the parse test keeps BYMONTHDAY there); a tab continuation unfolds to one
+  space.
+- F422 Sources: a file is one calendar; a vdir directory is one, plus one per subdirectory; the
+  live task re-reads on a change (150 ms debounce), a Refresh, or the day turning.
+- Q190 (quire) `MonthGrid` needs a compact size for a small (164 px) desktop cell; styling
+  `.ds-month-*` from sill fails DsInternals. Meanwhile the desktop Calendar is macOS's small date
+  face (weekday, large date, month) and the center keeps the full month.
+- G130 `notification_center_render`'s click tests flaked once under the full parallel run (60 ms
+  advance per click, now with real widgets drawn); passed alone and on rerun.

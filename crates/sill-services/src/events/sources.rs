@@ -38,16 +38,60 @@ pub struct AutoEnv {
 /// paths, each trimmed, `~/` expanded against `home`, a path ending in `.ics` a file and any
 /// other a directory; empty entries skipped.
 pub fn parse_sources(text: &str, home: &Path) -> EventSources {
-    let _ = (text, home);
-    todo!("M10 fill: a-calendar")
+    let trimmed = text.trim();
+    match trimmed.to_ascii_lowercase().as_str() {
+        "auto" => EventSources::Auto,
+        "off" | "" => EventSources::Off,
+        _ => {
+            let places: Vec<IcsPlace> = trimmed
+                .split(';')
+                .map(str::trim)
+                .filter(|entry| !entry.is_empty())
+                .map(|entry| place_of(expand_home(entry, home)))
+                .collect();
+            match places.is_empty() {
+                true => EventSources::Off,
+                false => EventSources::Places(places),
+            }
+        }
+    }
+}
+
+/// `~` and `~/…` against `home`; anything else as written.
+fn expand_home(entry: &str, home: &Path) -> PathBuf {
+    match entry.strip_prefix('~') {
+        Some("") => home.to_path_buf(),
+        Some(rest) if rest.starts_with('/') => home.join(rest.trim_start_matches('/')),
+        _ => PathBuf::from(entry),
+    }
+}
+
+/// A path ending in `.ics` (any case) is a file; any other a directory.
+fn place_of(path: PathBuf) -> IcsPlace {
+    let is_ics = path
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("ics"));
+    match is_ics {
+        true => IcsPlace::File(path),
+        false => IcsPlace::Dir(path),
+    }
 }
 
 /// The file KOrganizer's calendar lives in, from Akonadi's iCal resource config
 /// (`[General]` `Path[$e]=$HOME/.local/share/apps/korganizer/std.ics`): `$HOME` expanded against
 /// `home`; `None` without a `Path` key.
 pub fn akonadi_ical_path(rc: &str, home: &Path) -> Option<PathBuf> {
-    let _ = (rc, home);
-    todo!("M10 fill: a-calendar")
+    let home = home.to_string_lossy();
+    rc.lines()
+        .map(str::trim)
+        .filter_map(|line| line.split_once('='))
+        .find(|(key, _)| {
+            let key = key.trim();
+            key == "Path" || key.starts_with("Path[")
+        })
+        .map(|(_, value)| value.trim())
+        .filter(|value| !value.is_empty())
+        .map(|value| PathBuf::from(value.replace("${HOME}", &home).replace("$HOME", &home)))
 }
 
 /// Where `auto` looks, in order: KOrganizer's file ([`akonadi_ical_path`]), when the rc names
@@ -55,8 +99,18 @@ pub fn akonadi_ical_path(rc: &str, home: &Path) -> Option<PathBuf> {
 /// `~/.calendars` (vdirsyncer and khal's convention). Candidates only: the caller keeps those
 /// that exist (`provider_for`).
 pub fn auto_places(env: &AutoEnv) -> Vec<IcsPlace> {
-    let _ = env;
-    todo!("M10 fill: a-calendar")
+    let korganizer = env
+        .akonadi_rc
+        .as_deref()
+        .and_then(|rc| akonadi_ical_path(rc, &env.home))
+        .map(IcsPlace::File);
+    korganizer
+        .into_iter()
+        .chain([
+            IcsPlace::Dir(env.data_home.join("sill").join("calendars")),
+            IcsPlace::Dir(env.home.join(".calendars")),
+        ])
+        .collect()
 }
 
 #[cfg(test)]
@@ -68,7 +122,6 @@ mod tests {
     const HOME: &str = "/home/ada";
 
     #[test]
-    #[ignore = "M10 fill: a-calendar"]
     fn the_setting_parses_into_places() {
         let home = Path::new(HOME);
         let file = |p: &str| IcsPlace::File(PathBuf::from(p));
@@ -89,7 +142,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: a-calendar"]
     fn akonadis_ical_resource_names_korganizers_file() {
         let home = Path::new(HOME);
         let cases = [
@@ -111,7 +163,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: a-calendar"]
     fn auto_looks_at_korganizer_sill_and_vdirsyncer() {
         let korganizer = PathBuf::from("/home/ada/.local/share/apps/korganizer/std.ics");
         let sill = IcsPlace::Dir(PathBuf::from("/home/ada/.local/share/sill/calendars"));

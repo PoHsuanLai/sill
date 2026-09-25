@@ -1,2 +1,3 @@
-/* The Battery widget (widgets/battery.rs; M10 lane b). Empty at the freeze; its lane adds the rules for the battery rows, with quire's tokens
-   only (coherence rule 1). */
+/* The Battery widget (widgets/battery.rs; M10 lane b): quire's SettingsRow per battery (glyph,
+   name, level), stacked; the quiet line when there are none. Tokens only (coherence rule 1). */
+.sill-widget-battery{ display:flex; flex-direction:column; min-width:0; }

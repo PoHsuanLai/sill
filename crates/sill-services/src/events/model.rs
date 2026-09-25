@@ -100,9 +100,62 @@ pub enum AgendaEvent {
 /// The one place an [`Agenda`] changes. `Read` sorts the events by start (all-day before timed
 /// on the same day, then by title) and drops duplicates of the same uid and time; `Off` and
 /// `NoCalendars` drop every event; `Day` keeps the events (the next read moves the window).
+///
+/// The order is zone-free (the agenda is published to every surface): an all-day event sorts as
+/// its first day's UTC midnight; the widgets order by their own day ([`super::up_next`]).
 pub fn reduce_agenda(agenda: Agenda, event: AgendaEvent) -> Agenda {
-    let _ = (agenda, event);
-    todo!("M10 fill: a-calendar")
+    match event {
+        AgendaEvent::Day(today) => Agenda { today, ..agenda },
+        AgendaEvent::Read {
+            events,
+            calendars,
+            problems,
+        } => Agenda {
+            events: sorted_once(events),
+            status: SourceStatus::Read {
+                calendars,
+                problems,
+            },
+            ..agenda
+        },
+        AgendaEvent::NoCalendars => Agenda {
+            events: Vec::new(),
+            status: SourceStatus::NoCalendars,
+            ..agenda
+        },
+        AgendaEvent::Off => Agenda {
+            events: Vec::new(),
+            status: SourceStatus::Off,
+            ..agenda
+        },
+    }
+}
+
+/// `events` in start order, each uid and time once.
+fn sorted_once(mut events: Vec<CalEvent>) -> Vec<CalEvent> {
+    events.sort_by(|a, b| {
+        order_key(a)
+            .cmp(&order_key(b))
+            .then_with(|| a.title.cmp(&b.title))
+            .then_with(|| a.uid.cmp(&b.uid))
+    });
+    let mut seen = std::collections::HashSet::new();
+    events.retain(|event| seen.insert((event.uid.clone(), event.when)));
+    events
+}
+
+/// Where an event sorts: its start, an all-day event at its first day's UTC midnight and before
+/// a timed one at the same instant.
+fn order_key(event: &CalEvent) -> (Timestamp, u8) {
+    match event.when {
+        EventTime::AllDay { first, .. } => (
+            first
+                .to_zoned(jiff::tz::TimeZone::UTC)
+                .map_or(Timestamp::MIN, |zoned| zoned.timestamp()),
+            0,
+        ),
+        EventTime::Timed { start, .. } => (start, 1),
+    }
 }
 
 /// The days the service keeps events for around `today`: five weeks back (the month grid's
@@ -148,7 +201,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: a-calendar"]
     fn a_read_sorts_and_a_switch_off_empties() {
         let start = Agenda::starting(date(2026, 9, 26));
         let read = reduce_agenda(
