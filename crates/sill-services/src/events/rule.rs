@@ -1,12 +1,16 @@
 //! `RRULE`, the common subset, and turning a parsed event into the occurrences a window holds.
-//! `BYMONTHDAY`, `BYSETPOS`, `BYHOUR` and the like are not expanded: an event whose rule uses
-//! them shows its first occurrence only (the reader's problem list says so).
+//! Expanded: `FREQ` daily to yearly, `INTERVAL`, `COUNT`, `UNTIL`, `BYDAY` (weekdays; with an
+//! ordinal on a monthly rule, or a yearly one with `BYMONTH`), `BYMONTHDAY`, `BYMONTH` and
+//! `WKST`. `BYSETPOS`, `BYYEARDAY`, `BYWEEKNO`, `BYHOUR` and the like are not: an event whose
+//! rule uses them shows its first occurrence only, and the reader logs it once.
 
 use jiff::civil::{Date, Weekday};
 use jiff::tz::TimeZone;
 
-use super::ics::{IcsEvent, IcsTime};
-use super::model::{CalEvent, CalendarName, Window};
+use super::ics::{IcsEvent, IcsStatus, IcsTime};
+use super::model::{CalEvent, CalendarName, EventUid, Window};
+use super::occur::{Exclusions, Shape, overlaps};
+use super::rule_expand::{expand, plan};
 
 /// `FREQ`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -36,14 +40,103 @@ pub struct Rule {
     pub end: RuleEnd,
     /// `BYDAY` on a weekly rule; empty is the start's own weekday.
     pub by_day: Vec<Weekday>,
-    /// Parts this subset does not expand (`BYMONTHDAY=1`), kept to report them.
+    /// Parts outside the fields above (`BYMONTHDAY=1`), as written: [`occurrences`] expands the
+    /// ones it knows (`BYMONTHDAY`, `BYMONTH`, an ordinal `BYDAY`, `WKST`) and shows an event
+    /// with any other once, which the reader reports.
     pub unexpanded: Vec<String>,
 }
 
 /// `RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE;COUNT=10`'s value, after the colon.
+///
+/// `None` without a known `FREQ` or with a number that does not read. A `FREQ` finer than a day
+/// (`HOURLY`) reads as daily with `FREQ=HOURLY` unexpanded, so the event shows once. A `BYDAY`
+/// with an ordinal (`2TU`, `-1FR`) stays whole in `unexpanded`, where [`occurrences`] reads it
+/// for a monthly or yearly rule, as it reads `BYMONTHDAY`, `BYMONTH` and `WKST`.
 pub fn parse_rule(value: &str) -> Option<Rule> {
-    let _ = value;
-    todo!("M10 fill: a-calendar")
+    let mut freq = None;
+    let mut rule = Rule {
+        freq: Freq::Daily,
+        interval: 1,
+        end: RuleEnd::Never,
+        by_day: Vec::new(),
+        unexpanded: Vec::new(),
+    };
+    for part in value.split(';').map(str::trim).filter(|p| !p.is_empty()) {
+        let (key, val) = part.split_once('=')?;
+        let key = key.trim().to_ascii_uppercase();
+        let val = val.trim();
+        match key.as_str() {
+            "FREQ" => {
+                let (read, finer) = freq_of(val)?;
+                freq = Some(read);
+                rule.unexpanded.extend(finer.map(|f| format!("FREQ={f}")));
+            }
+            "INTERVAL" => rule.interval = val.parse().ok().filter(|n| *n > 0)?,
+            "COUNT" => rule.end = RuleEnd::Count(val.parse().ok()?),
+            "UNTIL" => rule.end = RuleEnd::Until(until_of(val)?),
+            "BYDAY" => match plain_days(val) {
+                Some(days) => rule.by_day = days,
+                None => rule.unexpanded.push(format!("BYDAY={val}")),
+            },
+            _ => rule.unexpanded.push(format!("{key}={val}")),
+        }
+    }
+    rule.freq = freq?;
+    Some(rule)
+}
+
+/// A rule that could not be read, kept so the event shows once and the reader can say why.
+pub(super) fn unparsed_rule(value: &str) -> Rule {
+    Rule {
+        freq: Freq::Daily,
+        interval: 1,
+        end: RuleEnd::Count(1),
+        by_day: Vec::new(),
+        unexpanded: vec![format!("RRULE={value}")],
+    }
+}
+
+/// `FREQ`'s value, and the finer frequency this subset reads as daily.
+fn freq_of(value: &str) -> Option<(Freq, Option<&'static str>)> {
+    match value.to_ascii_uppercase().as_str() {
+        "DAILY" => Some((Freq::Daily, None)),
+        "WEEKLY" => Some((Freq::Weekly, None)),
+        "MONTHLY" => Some((Freq::Monthly, None)),
+        "YEARLY" => Some((Freq::Yearly, None)),
+        "HOURLY" => Some((Freq::Daily, Some("HOURLY"))),
+        "MINUTELY" => Some((Freq::Daily, Some("MINUTELY"))),
+        "SECONDLY" => Some((Freq::Daily, Some("SECONDLY"))),
+        _ => None,
+    }
+}
+
+/// `UNTIL`: a date, a UTC date-time, or (against the RFC, but written) a floating one.
+fn until_of(value: &str) -> Option<IcsTime> {
+    let line = super::ics_line::ContentLine {
+        name: "UNTIL".to_owned(),
+        params: Vec::new(),
+        value: value.to_owned(),
+    };
+    super::ics_value::parse_time(&line).ok()
+}
+
+/// `MO,WE` as weekdays; `None` when any entry has an ordinal or is not a weekday.
+fn plain_days(value: &str) -> Option<Vec<Weekday>> {
+    value.split(',').map(|day| weekday_of(day.trim())).collect()
+}
+
+/// `MO` to `SU`.
+pub(super) fn weekday_of(code: &str) -> Option<Weekday> {
+    match code.to_ascii_uppercase().as_str() {
+        "MO" => Some(Weekday::Monday),
+        "TU" => Some(Weekday::Tuesday),
+        "WE" => Some(Weekday::Wednesday),
+        "TH" => Some(Weekday::Thursday),
+        "FR" => Some(Weekday::Friday),
+        "SA" => Some(Weekday::Saturday),
+        "SU" => Some(Weekday::Sunday),
+        _ => None,
+    }
 }
 
 /// The occurrences of `event` overlapping `window`, each a [`CalEvent`] of `calendar`: the rule
@@ -56,8 +149,30 @@ pub fn occurrences(
     window: Window,
     zone: &TimeZone,
 ) -> Vec<CalEvent> {
-    let _ = (event, calendar, window, zone);
-    todo!("M10 fill: a-calendar")
+    if event.status == IcsStatus::Cancelled {
+        return Vec::new();
+    }
+    let shape = Shape::of(event, zone);
+    let bounds = shape.bounds(window);
+    let days = match event.rule.as_ref().map(plan) {
+        Some(Ok(pattern)) => expand(&pattern, shape.first_day(), bounds, |day| {
+            shape.past_until(day, &pattern.end, zone)
+        }),
+        Some(Err(_)) | None => vec![shape.first_day()],
+    };
+    let skip = Exclusions::of(&event.exdates, zone);
+    days.into_iter()
+        .filter_map(|day| shape.at(day))
+        .filter(|when| !skip.covers(when, zone))
+        .filter(|when| overlaps(when, window, zone))
+        .map(|when| CalEvent {
+            uid: EventUid(event.uid.clone()),
+            title: event.summary.clone(),
+            when,
+            location: event.location.clone(),
+            calendar: calendar.clone(),
+        })
+        .collect()
 }
 
 /// The first day of the week an occurrence of a weekly rule falls in (Monday, RFC 5545's
@@ -84,7 +199,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: a-calendar"]
     fn rules_parse() {
         assert_eq!(
             parse_rule("FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE;COUNT=10"),
@@ -110,7 +224,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: a-calendar"]
     fn a_weekly_all_day_rule_expands_inside_the_window_less_its_exdates() {
         let event = IcsEvent {
             uid: "gym".to_owned(),

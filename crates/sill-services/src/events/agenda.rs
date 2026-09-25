@@ -1,9 +1,10 @@
 //! What the Up Next widget lists, from an agenda: pure over the time the caller read.
 
-use jiff::Timestamp;
+use jiff::civil::Date;
 use jiff::tz::TimeZone;
+use jiff::{Timestamp, ToSpan};
 
-use super::model::CalEvent;
+use super::model::{CalEvent, EventTime};
 
 /// A number of days.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -19,8 +20,45 @@ pub fn up_next(
     ahead: Days,
     max: usize,
 ) -> Vec<CalEvent> {
-    let _ = (events, now, zone, ahead, max);
-    todo!("M10 fill: a-calendar")
+    let today = now.to_zoned(zone.clone()).date();
+    let horizon = today.saturating_add(i64::from(ahead.0).saturating_add(1).days());
+    let horizon_at = midnight(horizon, zone);
+    let mut left: Vec<(Place, &CalEvent)> = events
+        .iter()
+        .filter(|event| match event.when {
+            EventTime::AllDay { first, last } => last >= today && first < horizon,
+            EventTime::Timed { start, end } => {
+                let still = end > now || (end == start && start >= now);
+                still && horizon_at.is_none_or(|horizon| start < horizon)
+            }
+        })
+        .map(|event| (place(event, today, zone), event))
+        .collect();
+    left.sort_by(|(a, x), (b, y)| a.cmp(b).then_with(|| x.title.cmp(&y.title)));
+    left.into_iter()
+        .take(max)
+        .map(|(_, event)| event.clone())
+        .collect()
+}
+
+/// Where an event sorts in Up Next: its day in the zone (today for one under way since
+/// earlier), all-day before timed, then its start.
+type Place = (Date, u8, Timestamp);
+
+fn place(event: &CalEvent, today: Date, zone: &TimeZone) -> Place {
+    match event.when {
+        EventTime::AllDay { first, .. } => (first.max(today), 0, Timestamp::MIN),
+        EventTime::Timed { start, .. } => {
+            (start.to_zoned(zone.clone()).date().max(today), 1, start)
+        }
+    }
+}
+
+/// The instant `day` starts in `zone`.
+fn midnight(day: Date, zone: &TimeZone) -> Option<Timestamp> {
+    day.to_zoned(zone.clone())
+        .ok()
+        .map(|zoned| zoned.timestamp())
 }
 
 #[cfg(test)]
@@ -42,7 +80,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: a-calendar"]
     fn up_next_lists_what_is_left_in_order() {
         let utc = TimeZone::UTC;
         let at = |d, h| {
