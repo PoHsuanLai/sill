@@ -12,7 +12,7 @@ use dioxus::prelude::*;
 use ds::{BannerKey, BannerStack, BlurState, Ds, Hover, Material, RootChrome, RootExtent, Swipe};
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_services::{NotificationId, Notifications};
-use sill_settings::{BannerPosition, NotificationsSettings};
+use sill_settings::{BannerEntry, BannerPosition, NotificationsSettings};
 
 use super::deck::{DeckIn, Entry, EntryKey, Showing};
 use super::drive::{Column, use_column};
@@ -101,6 +101,7 @@ fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> 
             BannerStack {
                 banners,
                 position: position(settings.banner_position),
+                entry: entry(settings.banner_entry_direction),
                 on_hidden: move |key: BannerKey| column.hidden(EntryKey(key.0)),
             }
         }
@@ -152,6 +153,15 @@ fn position(corner: BannerPosition) -> ds::BannerPosition {
     match corner {
         BannerPosition::TopRight => ds::BannerPosition::TopRight,
         BannerPosition::BottomRight => ds::BannerPosition::BottomRight,
+    }
+}
+
+/// `notifications.banner_entry_direction` as the stack's entry edge (a swiped card still
+/// leaves to the right).
+fn entry(edge: BannerEntry) -> ds::BannerEntry {
+    match edge {
+        BannerEntry::FromRight => ds::BannerEntry::FromRight,
+        BannerEntry::FromBelow => ds::BannerEntry::FromBelow,
     }
 }
 
