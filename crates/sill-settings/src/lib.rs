@@ -31,7 +31,7 @@ pub use control_center::{ControlCenterModule, ControlCenterSettings, PanelMateri
 pub use diff::{SettingsChange, apply};
 pub use display::{
     BrightnessKeysTarget, ColorManagement, DisplayScaleMode, DisplaySettings, FontRenderingSetting,
-    HardwareVolumeMode, NightWarmthMode,
+    HardwareVolumeMode, NightWarmthMode, ScaleRounding,
 };
 pub use dock::{
     ActiveClick, AutoHide, Bounce, DockFloor, DockMenuOrder, DockModifierClicks, DockPosition,

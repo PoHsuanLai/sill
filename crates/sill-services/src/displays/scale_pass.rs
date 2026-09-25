@@ -59,7 +59,12 @@ fn one<S: ScaleSink>(
     head: &Head,
 ) -> Pass {
     let connector = connectors.iter().find(|c| c.name == head.name);
-    let mut output = describe(head, connector, policy.density_target);
+    let mut output = describe(
+        head,
+        connector,
+        policy.density_target,
+        policy.scale_rounding,
+    );
     let record = pass.seen.displays.get(&output.identity);
     let decision = decide_scale(ScaleFacts {
         mode: policy.scale,

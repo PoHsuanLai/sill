@@ -7,13 +7,14 @@ use sill_ipc::{DisplayRequest, LevelRequest, Response, VolumeRequest};
 use sill_services::displays::ScaleOverride;
 use sill_services::{
     DisplayPolicy, DisplaysCommand, FontRenderingMode, HardwareVolume, KeysTarget, LevelChange,
-    NightWarmth, OutputName, Ppi, ScaleMode, Services, Step, Toplevels, VolumeCommand,
+    NightWarmth, OutputName, Ppi, ScaleMode, ScaleRounding, Services, Step, Toplevels,
+    VolumeCommand,
 };
 
 use crate::msg::ShellMsg;
 use sill_settings::{
     BrightnessKeysTarget, DisplayScaleMode, DisplaySettings, FontRenderingSetting,
-    HardwareVolumeMode, NightWarmthMode, ShellFile,
+    HardwareVolumeMode, NightWarmthMode, ScaleRounding as ScaleRoundingSetting, ShellFile,
 };
 
 /// `display.*` as the service's policy. `color_management` is stored only; the service has
@@ -30,6 +31,10 @@ pub fn policy_from(settings: &DisplaySettings) -> DisplayPolicy {
             .filter_map(ScaleOverride::parse)
             .collect(),
         density_target: Ppi(settings.density_target_ppi.0),
+        scale_rounding: match settings.scale_rounding {
+            ScaleRoundingSetting::PreferWhole => ScaleRounding::PreferWhole,
+            ScaleRoundingSetting::Nearest => ScaleRounding::Nearest,
+        },
         keys_target: match settings.brightness_keys_target {
             BrightnessKeysTarget::PointerOutput => KeysTarget::PointerOutput,
             BrightnessKeysTarget::AllOutputs => KeysTarget::AllOutputs,
@@ -135,11 +140,11 @@ mod tests {
     use sill_services::displays::ScaleOverride;
     use sill_services::{
         DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, Mute, NightWarmth, Percent,
-        Ppi, ScaleMode, Step, VolumeCommand,
+        Ppi, ScaleMode, ScaleRounding, Step, VolumeCommand,
     };
     use sill_settings::{
         BrightnessKeysTarget, DisplayScaleMode, DisplaySettings, FontRenderingSetting,
-        HardwareVolumeMode, NightWarmthMode,
+        HardwareVolumeMode, NightWarmthMode, ScaleRounding as ScaleRoundingSetting,
     };
 
     use super::{policy_from, volume_command};
@@ -158,6 +163,7 @@ mod tests {
             scale: DisplayScaleMode::Manual,
             scale_overrides: "BNQ-8074-00ff = 1.75; nonsense; DEL-a0b1-1=2".to_owned(),
             density_target_ppi: sill_settings::Count(120),
+            scale_rounding: ScaleRoundingSetting::Nearest,
             brightness_keys_target: BrightnessKeysTarget::AllOutputs,
             hardware_volume: HardwareVolumeMode::Off,
             night_warmth: NightWarmthMode::Hardware,
@@ -174,6 +180,7 @@ mod tests {
                     .filter_map(|r| ScaleOverride::parse(r))
                     .collect(),
                 density_target: Ppi(120),
+                scale_rounding: ScaleRounding::Nearest,
                 keys_target: KeysTarget::AllOutputs,
                 hardware_volume: HardwareVolume::Off,
                 night_warmth: NightWarmth::Hardware(Percent(30)),
