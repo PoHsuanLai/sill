@@ -1,0 +1,327 @@
+#!/usr/bin/env bash
+# Calendar acceptance (design/20 §1.12 and §1.14, FINDINGS "M10 freeze" F401-F403, lane a), on
+# the nested cosmic-comp (dev/nested.sh; a running wayland-1 is reused and never stopped).
+# Starts `sill run` from this checkout's debug build (`--features debug`) with a scratch
+# XDG_CONFIG_HOME, XDG_STATE_HOME, XDG_CACHE_HOME and XDG_DATA_HOME, under a private session bus
+# (dev/private-bus.conf), and with its own XDG_RUNTIME_DIR (the nested socket as an absolute
+# WAYLAND_DISPLAY). `calendar.sources` names three temp `.ics` files written here (never a real
+# calendar: `auto` is not used), each its own calendar so Up Next's colour bars tell them apart:
+# work.ics "Design review" today in an hour, team.ics a weekly "Yoga" (a week ago and today, in
+# three hours), personal.ics "Dentist" tomorrow at 09:00. `widgets.center = ["calendar",
+# "up_next"]`. The daemon is quit at the end.
+#
+#   1. `sill notifications open`: a capture of `sill-notification-center-<out>` shows the month
+#      with today on the accent disc (dev/out/calendar-cosmic.png; the output with the center
+#      open, dev/out/calendar-widget-cosmic.png).
+#   2. Up Next lists the fixture's next events in order: its colour bars, top to bottom, are
+#      work's, team's and personal's swatches (quire's `--c-person-N`, picked by the calendar's
+#      name as `widgets::up_next` picks it).
+#   3. work.ics rewritten with the review cancelled: within 2 s the bars are team's and
+#      personal's.
+#   4. `calendar.week_numbers = "show"` and `sill reload`: the week column appears (the month,
+#      centred in its tile, moves today's disc right by half a 24 px column).
+#   5. 5 s idle while open, clear of the minute's turn: 0 frames on the center.
+#
+# Exit 0 when every step passed, 2 when the notification center draws no widgets (lane b's
+# slot is not in this build), 1 on a failure. Another sill daemon started from a
+# `target/*/sill run` is waited for (up to 10 minutes).
+#
+# Usage: dev/nested.sh && dev/accept-calendar.sh
+set -uo pipefail
+# shellcheck source=dev/common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+# shellcheck source=dev/backdrop.sh
+source "$(dirname "${BASH_SOURCE[0]}")/backdrop.sh"
+OUT_DIR="$SILL_REPO/target/accept-calendar"
+SHOTS="$SILL_REPO/dev/out"
+mkdir -p "$OUT_DIR" "$SHOTS"
+
+source "$SHELL_HOST_DEV/.nested-env"
+HOST_RUNTIME="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+NESTED_SOCKET="$HOST_RUNTIME/$WAYLAND_DISPLAY"
+RUNTIME=$(mktemp -d)
+chmod 700 "$RUNTIME"
+
+sill() { XDG_RUNTIME_DIR="$RUNTIME" "$SILL_BIN" "$@"; }
+
+# A screenshot of the nested output only (shot.sh falls back to the host's session when no
+# nested compositor answers, so it is never called without one).
+shot() {
+  "$SHELL_HOST_DEV/run.sh" wayland-info >/dev/null 2>&1 || { echo "no nested compositor" >&2; return 1; }
+  "$SHELL_HOST_DEV/shot.sh" "$1" >/dev/null 2>&1
+}
+
+output_name() {
+  sill debug stats | python3 -c '
+import json, sys
+for row in json.loads(sys.stdin.read())["v"]:
+    s = row["surface"]
+    if s.startswith("sill-bar-") and "/" not in s:
+        print(s[len("sill-bar-"):]); break'
+}
+
+frames_of() {
+  sill debug stats | python3 -c '
+import json, sys
+for row in json.loads(sys.stdin.read())["v"]:
+    if row["surface"] == sys.argv[1]:
+        print(row["frames"])' "$1"
+}
+
+center_up() { sill debug capture "$CENTER" "$OUT_DIR/probe.png" >/dev/null 2>&1; }
+
+wait_center() {
+  for _ in $(seq 40); do
+    if [ "$1" = up ] && center_up; then return 0; fi
+    if [ "$1" = down ] && ! center_up; then return 0; fi
+    sleep 0.05
+  done
+  return 1
+}
+
+# The calendar files: one event each, in local (floating) time, from now.
+write_fixture() {
+  python3 - "$CAL" "${1:-CONFIRMED}" <<'EOF'
+import sys, datetime as dt
+cal, review = sys.argv[1], sys.argv[2]
+now = dt.datetime.now().replace(second=0, microsecond=0)
+fmt = lambda t: t.strftime("%Y%m%dT%H%M%S")
+def write(name, body):
+    text = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//sill//accept-calendar//EN\r\n" \
+        + body + "END:VCALENDAR\r\n"
+    open(f"{cal}/{name}.part", "w").write(text)
+    import os; os.replace(f"{cal}/{name}.part", f"{cal}/{name}")
+def event(uid, title, start, end, extra=""):
+    return (f"BEGIN:VEVENT\r\nUID:{uid}\r\nSUMMARY:{title}\r\nDTSTART:{fmt(start)}\r\n"
+            f"DTEND:{fmt(end)}\r\n{extra}END:VEVENT\r\n")
+review_at = now + dt.timedelta(hours=1)
+write("work.ics", event("review", "Design review", review_at, review_at + dt.timedelta(minutes=30),
+                        f"STATUS:{review}\r\n"))
+yoga = now + dt.timedelta(hours=3) - dt.timedelta(days=7)
+write("team.ics", event("yoga", "Yoga", yoga, yoga + dt.timedelta(hours=1),
+                        "RRULE:FREQ=WEEKLY;COUNT=2\r\n"))
+dentist = (now + dt.timedelta(days=1)).replace(hour=9, minute=0)
+write("personal.ics", event("dentist", "Dentist", dentist, dentist + dt.timedelta(hours=1)))
+EOF
+}
+
+# The swatch index Up Next gives a calendar name (FNV-1a, as `widgets::up_next::hue_class`).
+hue_of() {
+  python3 -c '
+import sys
+h = 2166136261
+for b in sys.argv[1].encode():
+    h = ((h ^ b) * 16777619) & 0xFFFFFFFF
+print(h % 8 + 1)' "$1"
+}
+
+# What a capture of the center shows: "BARS <i> <i> ... ; DISC <x> <y> <w> <h>", the Up Next
+# colour bars' swatches top to bottom (thin upright runs of a person swatch's colour) and the
+# largest round blob of one saturated colour (today's accent disc), or "DISC none".
+probe() {
+  python3 - "$1" <<'EOF'
+import sys
+import numpy as np
+from PIL import Image
+img = np.asarray(Image.open(sys.argv[1]).convert("RGBA")).astype(int)
+ys, xs = np.nonzero(img[..., 3] > 200)
+img = img[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+rgb, alpha = img[..., :3], img[..., 3]
+swatches = np.array([[0x5B, 0x4F, 0xC4], [0x2F, 0x7F, 0x6E], [0xB0, 0x66, 0x2E], [0x3C, 0x8A, 0x5B],
+                     [0x7A, 0x4A, 0x9E], [0xC0, 0x78, 0x2E], [0x2E, 0x7F, 0x8C], [0x6D, 0x7A, 0x3A]])
+dist = np.abs(rgb[:, :, None, :] - swatches[None, None, :, :]).sum(axis=3)
+nearest, best = dist.argmin(axis=2), dist.min(axis=2)
+on = (best < 36) & (alpha > 200)
+
+def components(mask):
+    seen = np.zeros(mask.shape, bool)
+    ys, xs = np.nonzero(mask)
+    for y0, x0 in zip(ys, xs):
+        if seen[y0, x0]:
+            continue
+        stack, pts = [(y0, x0)], []
+        seen[y0, x0] = True
+        while stack:
+            y, x = stack.pop()
+            pts.append((y, x))
+            for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                v, u = y + dy, x + dx
+                if 0 <= v < mask.shape[0] and 0 <= u < mask.shape[1] and mask[v, u] and not seen[v, u]:
+                    seen[v, u] = True
+                    stack.append((v, u))
+        yield np.array(pts)
+
+bars = []
+for pts in components(on):
+    h = pts[:, 0].max() - pts[:, 0].min() + 1
+    w = pts[:, 1].max() - pts[:, 1].min() + 1
+    if h >= 14 and w <= 6:
+        idx = np.bincount(nearest[pts[:, 0], pts[:, 1]], minlength=8).argmax() + 1
+        bars.append((pts[:, 0].min(), idx))
+bars.sort()
+
+mx, mn = rgb.max(axis=2), rgb.min(axis=2)
+sat = (mx - mn) / np.maximum(mx, 1)
+vivid = (sat > 0.45) & (mx > 90) & (alpha > 200) & ~on
+disc = None
+for pts in components(vivid):
+    h = pts[:, 0].max() - pts[:, 0].min() + 1
+    w = pts[:, 1].max() - pts[:, 1].min() + 1
+    fill = len(pts) / (h * w)
+    if 16 <= h <= 34 and abs(h - w) <= 3 and fill > 0.55 and (disc is None or len(pts) > disc[4]):
+        disc = (pts[:, 1].min(), pts[:, 0].min(), w, h, len(pts))
+line = "BARS " + " ".join(str(i) for _, i in bars) + " ; DISC "
+line += " ".join(str(v) for v in disc[:4]) if disc else "none"
+print(line)
+EOF
+}
+
+bars_of() { sed -e 's/^BARS *//' -e 's/ *;.*$//' <<<"$1"; }
+disc_of() { sed -e 's/^.*DISC //' <<<"$1"; }
+
+build() {
+  (cd "$SILL_REPO" && cargo build -p sill --features debug) >"$OUT_DIR/build.log" 2>&1 || {
+    echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
+}
+
+write_settings() {
+  mkdir -p "$CONFIG/sill"
+  cat >"$CONFIG/sill/settings.toml" <<TOML
+[calendar]
+sources = "$CAL/work.ics;$CAL/team.ics;$CAL/personal.ics"
+week_numbers = "$1"
+
+[widgets]
+center = ["calendar", "up_next"]
+TOML
+}
+
+start_daemon() {
+  CONFIG=$(mktemp -d)
+  STATE=$(mktemp -d)
+  CACHE=$(mktemp -d)
+  DATA=$(mktemp -d)
+  CAL=$(mktemp -d)
+  backdrop_seed "$CONFIG" || return 1
+  write_fixture
+  write_settings hide
+  XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" \
+    XDG_DATA_HOME="$DATA" XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$NESTED_SOCKET" \
+    dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- "$SILL_BIN" run \
+    >"$OUT_DIR/daemon.log" 2>&1 &
+  DAEMON=$!
+  for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
+  for _ in $(seq 50); do NAME=$(output_name); [ -n "$NAME" ] && break; sleep 0.1; done
+  [ -n "${NAME:-}" ] || { echo "no bar in 'sill debug stats'" >&2; return 1; }
+  CENTER="sill-notification-center-$NAME"
+  sleep 1.5
+  if ! sill debug stats | grep -q '"sill-wallpaper-'; then
+    XDG_CONFIG_HOME="$CONFIG" WAYLAND_DISPLAY="$WAYLAND_DISPLAY" cosmic-bg >/dev/null 2>&1 &
+    BACKDROP_PID=$!
+  fi
+  echo "daemon on a private bus and runtime dir $RUNTIME; calendars in $CAL; $CENTER" >&2
+}
+
+stop_daemon() {
+  [ -n "${DAEMON:-}" ] || return 0
+  sill quit >/dev/null 2>&1
+  wait "$DAEMON" 2>/dev/null
+  DAEMON=
+  backdrop_down
+  rm -rf "$CONFIG" "$STATE" "$CACHE" "$DATA" "$CAL"
+}
+
+WORK=$(hue_of work)
+TEAM=$(hue_of team)
+PERSONAL=$(hue_of personal)
+
+# 1. and 2.
+step_month_and_up_next() {
+  local log="$OUT_DIR/open.log" seen
+  : >"$log"
+  sill notifications open >>"$log" 2>&1 || return 1
+  wait_center up || { echo "the center never mapped" >&2; return 1; }
+  sleep 1
+  sill debug capture "$CENTER" "$SHOTS/calendar-cosmic.png" >>"$log" 2>&1 || return 1
+  shot "$SHOTS/calendar-widget-cosmic.png" || echo "screenshot failed" >&2
+  seen=$(probe "$SHOTS/calendar-cosmic.png")
+  echo "capture: $seen (work $WORK, team $TEAM, personal $PERSONAL)" | tee -a "$log" >&2
+  if [ "$(bars_of "$seen")" = "" ] && [ "$(disc_of "$seen")" = none ]; then
+    echo "the center draws no widgets: lane b's slot (CenterWidgets) is not in this build" >&2
+    return 2
+  fi
+  DISC_BEFORE=$(disc_of "$seen")
+  [ "$DISC_BEFORE" != none ] || { echo "no accent disc on today" >&2; return 1; }
+  [ "$(bars_of "$seen")" = "$WORK $TEAM $PERSONAL" ] \
+    || { echo "Up Next's order is not review, yoga, dentist" >&2; return 1; }
+}
+
+# 3.
+step_edit() {
+  local log="$OUT_DIR/edit.log" start seen elapsed
+  : >"$log"
+  start=$(date +%s%N)
+  write_fixture CANCELLED
+  for _ in $(seq 40); do
+    sill debug capture "$CENTER" "$OUT_DIR/edit.png" >>"$log" 2>&1 || return 1
+    seen=$(probe "$OUT_DIR/edit.png")
+    [ "$(bars_of "$seen")" = "$TEAM $PERSONAL" ] && break
+    sleep 0.05
+  done
+  elapsed=$(( ($(date +%s%N) - start) / 1000000 ))
+  echo "after the edit: $seen, shown after ${elapsed} ms (the probe's own time included)" \
+    | tee -a "$log" >&2
+  [ "$(bars_of "$seen")" = "$TEAM $PERSONAL" ] && [ "$elapsed" -le 2000 ]
+}
+
+# 4.
+step_week_numbers() {
+  local log="$OUT_DIR/weeks.log" seen before after
+  : >"$log"
+  write_settings show
+  sill reload >>"$log" 2>&1 || return 1
+  sleep 1
+  sill debug capture "$CENTER" "$OUT_DIR/weeks.png" >>"$log" 2>&1 || return 1
+  shot "$OUT_DIR/weeks-output.png" || true
+  seen=$(probe "$OUT_DIR/weeks.png")
+  before=$(cut -d' ' -f1 <<<"$DISC_BEFORE")
+  after=$(disc_of "$seen" | cut -d' ' -f1)
+  echo "week numbers shown: $seen; today's disc from x $before to x $after" | tee -a "$log" >&2
+  [ "$after" != none ] && [ $(( after - before )) -ge 9 ] && [ $(( after - before )) -le 15 ]
+}
+
+# 5.
+step_idle() {
+  local log="$OUT_DIR/idle.log" f0 f1
+  : >"$log"
+  if [ "$((10#$(date +%S)))" -ge 50 ]; then sleep $((62 - 10#$(date +%S))); fi
+  f0=$(frames_of "$CENTER")
+  sleep 5
+  f1=$(frames_of "$CENTER")
+  echo "5 s idle open: $(( f1 - f0 )) frames on $CENTER" | tee -a "$log" >&2
+  sill notifications close >>"$log" 2>&1
+  [ "$(( f1 - f0 ))" = 0 ]
+}
+
+"$SHELL_HOST_DEV/run.sh" wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
+build || exit 1
+for _ in $(seq 600); do
+  pgrep -f 'target/[a-z]*/sill run' >/dev/null || break
+  [ -n "${WAITED:-}" ] || { echo "another sill daemon is running; waiting for it to quit" >&2; WAITED=1; }
+  sleep 1
+done
+start_daemon || { stop_daemon; exit 1; }
+status=0
+for step in step_month_and_up_next step_edit step_week_numbers step_idle; do
+  "$step"
+  code=$?
+  case "$code" in
+    0) echo "PASS $step" ;;
+    2) echo "SKIP $step (see above)"; status=2; break ;;
+    *) echo "FAIL $step"; status=1 ;;
+  esac
+done
+stop_daemon
+rm -rf "$RUNTIME"
+echo "logs in $OUT_DIR; screenshots $SHOTS/calendar-cosmic.png, $SHOTS/calendar-widget-cosmic.png"
+exit "$status"

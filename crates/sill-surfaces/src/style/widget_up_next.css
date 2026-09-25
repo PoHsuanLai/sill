@@ -15,7 +15,7 @@
 /* The events. */
 .sill-un-list{ display:flex; flex-direction:column; gap:var(--s-6); flex:1 1 0; min-width:0; }
 .sill-un-row{ display:flex; gap:var(--s-6); align-items:stretch; }
-.sill-un-bar{ flex:0 0 var(--s-1); border-radius:var(--r-pill); }
+.sill-un-bar{ flex:0 0 var(--s-3); border-radius:var(--r-pill); }
 .sill-un-text{ display:flex; flex-direction:column; min-width:0; }
 .sill-un-title{ font-size:var(--fs-body); font-weight:600; }
 .sill-un-when{ font-size:var(--fs-small); color:var(--ink-soft); }
