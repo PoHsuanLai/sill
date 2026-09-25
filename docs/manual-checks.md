@@ -29,6 +29,18 @@ Add new ones at the end of their section.
 - [ ] **Control center with the real keyboard** (real click and Escape already pass on a headless KWin; Tab/arrows between tiles still need a person): open it from the bar item (left of the clock);
   Tab/arrows move between tiles, Enter/Space toggle, Right on a chevron opens Wi-Fi/Bluetooth,
   Escape goes back then closes (a debug-opened popup gets no keyboard on the nested compositor).
+- [ ] **Banners with a real mouse** (hover, the close button, a click, a 90 px and a 50 px drag,
+  already pass under fake input on a headless KWin through
+  `dev/accept-notifications-real-input.sh`; this is the feel with a real mouse and touchpad):
+  `sill debug notify "Hi" --body "..." --action default=Open` on a debug build, in a session
+  where sill holds `org.freedesktop.Notifications`. The card follows a drag 1:1 to the right and
+  damped to the left, springs back under 80 px and flies out past it or on a flick; after a click
+  on one card, the next card under the pointer should still pause and show its close button
+  (FINDINGS G101 says it does not until the pointer leaves the column and comes back).
+- [ ] **Notification center keys with a real keyboard** (real Escape, Down and Delete already
+  pass on a headless KWin): open it from the clock; Up/Down move the ring, Return opens a
+  group's "N more" or invokes a lone card's default action, Backspace (the Mac keyboard's
+  Delete) clears the focused row, Escape closes.
 - [ ] **The capsule level look on the light scheme** (quire Q105: the fill reads faintly on its
   track) when picking the level look from quire's sheets.
 
@@ -50,5 +62,8 @@ Add new ones at the end of their section.
 
 ## Owned by the other session (quire, shell-host)
 
+- [ ] shell-host G100 and G101 (sill FINDINGS "M6 lane d"): `dev/accept-notifications-real-input.sh
+  repro` passes both steps once shell-host moves the document's pointer on `wl_pointer.enter`
+  and clears its hover when a surface is unmapped.
 - [ ] shell-host spike item f at a fractional output (1.5): run on the nested compositor at
   `cosmic@1.5`; the KWin run at 2.0 left `screen_row_equals_buffer_row` false (shell-host F45).
