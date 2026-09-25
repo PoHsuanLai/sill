@@ -13,19 +13,18 @@ use ds::lint::{LintConfig, Profile, assert_clean};
 use ds_native::{Harness, Viewport};
 use ds_settings::Ms;
 use shell_host::OutputId;
-use sill_settings::{CornerAction, CornerModifier, HotCornersSettings, SettingsFeed, ShellFile};
+use sill_settings::{CornerAction, HotCornersSettings, SettingsFeed, ShellFile};
 use sill_surfaces::HotCorner;
 use sill_surfaces::surfaces::hot_corners::{Corner, CornerLink, HOT_CORNERS_CSS};
 
 const DWELL_MS: u16 = 40;
 const REARM_MS: u16 = 60;
 
-fn settings(modifier: CornerModifier) -> HotCornersSettings {
+fn settings() -> HotCornersSettings {
     HotCornersSettings {
         top_left: CornerAction::Launcher,
         dwell_ms: Ms(DWELL_MS),
         rearm_ms: Ms(REARM_MS),
-        modifier,
         ..HotCornersSettings::default()
     }
 }
@@ -86,7 +85,7 @@ fn outside(harness: &Harness) -> ds::Point {
 
 #[test]
 fn a_dwell_fires_once_and_not_before() {
-    let (mut harness, link) = start(settings(CornerModifier::None));
+    let (mut harness, link) = start(settings());
     harness.advance(Duration::from_millis(10));
     assert_eq!(link.last(), None);
     harness.pointer_move(inside(&harness));
@@ -107,7 +106,7 @@ fn a_dwell_fires_once_and_not_before() {
 
 #[test]
 fn leaving_before_the_dwell_cancels_it() {
-    let (mut harness, link) = start(settings(CornerModifier::None));
+    let (mut harness, link) = start(settings());
     harness.pointer_move(inside(&harness));
     harness.advance(Duration::from_millis(DWELL_MS as u64 / 2));
     harness.pointer_move(outside(&harness));
@@ -117,7 +116,7 @@ fn leaving_before_the_dwell_cancels_it() {
 
 #[test]
 fn leaving_and_the_rearm_lets_it_fire_again() {
-    let (mut harness, link) = start(settings(CornerModifier::None));
+    let (mut harness, link) = start(settings());
     harness.pointer_move(inside(&harness));
     harness.advance(Duration::from_millis(DWELL_MS as u64 * 2));
     let first = link.last().expect("the first dwell fired");
@@ -143,22 +142,6 @@ fn leaving_and_the_rearm_lets_it_fire_again() {
     assert_eq!(
         second.seq, 2,
         "a fresh firing after the leave and the re-arm"
-    );
-}
-
-#[test]
-fn a_required_modifier_blocks_the_dwell_until_it_is_held() {
-    let (mut harness, link) = start(settings(CornerModifier::Shift));
-    harness.pointer_move(inside(&harness));
-    harness.advance(Duration::from_millis(DWELL_MS as u64 * 3));
-    assert_eq!(link.last(), None, "shift was never reported held");
-    harness.pointer_move(outside(&harness));
-    harness.advance(Duration::from_millis(REARM_MS as u64 * 2));
-    harness.pointer_move_with(inside(&harness), dioxus::prelude::Modifiers::SHIFT);
-    harness.advance(Duration::from_millis(DWELL_MS as u64 * 3));
-    assert!(
-        link.last().is_some(),
-        "fires once the harness reports shift held"
     );
 }
 

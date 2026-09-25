@@ -25,10 +25,10 @@
 #      element is never painted, so even the real dwell in step 3 left no lasting frames; this
 #      checks the quiet case).
 #
-# The modifier (`hot_corners.modifier`) is not tested here: a layer surface with keyboard `None`
-# is never sent `wl_keyboard.modifiers` on Wayland (shell-host G121), so a corner cannot know
-# whether a modifier is held from this surface alone; lane e's headless-KWin script carries the
-# real check, or records G121 confirmed.
+# `hot_corners.modifier` is retired (shell-host's G121 answer, FINDINGS F61): no compositor gives
+# a keyboard-`None` layer surface a held modifier portably, and taking the keyboard to get one
+# would steal focus, which a hot corner must never do. The machine no longer has a modifier
+# input, so there is nothing left to check here.
 #
 # Exit 0 when every step passed, 1 on a failure. Another sill daemon started from a
 # `target/*/sill run` is waited for (up to 10 minutes), so two shells never share the nested

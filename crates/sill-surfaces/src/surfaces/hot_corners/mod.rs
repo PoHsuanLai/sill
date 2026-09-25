@@ -1,11 +1,15 @@
 //! Hot corners (design/20 §1.16; macOS's Hot Corners; M10 lane d): a transparent square of
 //! `hot_corners.size_px` in each corner whose action is not `None`, on every output. The pointer
-//! resting in one for `hot_corners.dwell_ms` (with `hot_corners.modifier` held, when one is
-//! set) fires it once; it fires again only after the pointer has left and `rearm_ms` has passed
-//! ([`machine::step`]). A firing is written to the [`CornerLink`]; the daemon carries out the
-//! action (`crates/sill/src/corners.rs`), since opening the launcher, the notification center
-//! or the control center, locking, minimising windows and running a command are its links and
-//! services, not a surface's.
+//! resting in one for `hot_corners.dwell_ms` fires it once; it fires again only after the
+//! pointer has left and `rearm_ms` has passed ([`machine::step`]). A firing is written to the
+//! [`CornerLink`]; the daemon carries out the action (`crates/sill/src/corners.rs`), since
+//! opening the launcher, the notification center or the control center, locking, minimising
+//! windows and running a command are its links and services, not a surface's.
+//!
+//! No modifier (`hot_corners.modifier` retired, FINDINGS G121/F61: a keyboard-`None` layer
+//! surface is never sent `wl_keyboard.modifiers`, and no compositor gives that state to one
+//! portably; `OnDemand` keyboard would steal focus, which a hot corner must never do). See
+//! `machine`'s module doc.
 //!
 //! Never painted: the root draws one transparent element that takes the pointer, no `Ds`, no
 //! material, no blur; the compositor still delivers pointer enter and leave to it.
@@ -16,12 +20,11 @@ pub mod machine;
 
 pub use layer::corner_layer;
 pub use link::{CornerHit, CornerLink};
-pub use machine::{CornerIn, CornerMachine, CornerOut, CornerParams, KeyState, Mods, step};
+pub use machine::{CornerIn, CornerMachine, CornerOut, CornerParams, step};
 
 use std::time::Duration;
 
 use dioxus::core::Task;
-use dioxus::html::point_interaction::ModifiersInteraction;
 use dioxus::prelude::*;
 use shell_host::{OutputId, OutputInfo};
 use sill_settings::{CornerAction, HotCornersSettings};
@@ -93,32 +96,6 @@ fn params_of(settings: &HotCornersSettings) -> CornerParams {
     CornerParams {
         dwell_ms: u32::from(settings.dwell_ms.0),
         rearm_ms: u32::from(settings.rearm_ms.0),
-        modifier: settings.modifier,
-    }
-}
-
-/// `event`'s modifiers as the machine sees them (best-effort: a keyboard-`None` layer surface is
-/// never sent `wl_keyboard.modifiers` on Wayland, FINDINGS G121, so this is `Up` on the real
-/// session until shell-host can answer; wired here so a modifier the host does report, and a
-/// test's synthetic one, both reach the machine).
-fn mods_of(event: &MouseData) -> Mods {
-    let held = event.modifiers();
-    let key = |flag| {
-        if held.contains(flag) {
-            KeyState::Down
-        } else {
-            KeyState::Up
-        }
-    };
-    Mods {
-        super_key: if held.intersects(Modifiers::SUPER | Modifiers::META) {
-            KeyState::Down
-        } else {
-            KeyState::Up
-        },
-        alt: key(Modifiers::ALT),
-        ctrl: key(Modifiers::CONTROL),
-        shift: key(Modifiers::SHIFT),
     }
 }
 
@@ -202,21 +179,16 @@ pub fn HotCorner(output: OutputInfo, corner: Corner) -> Element {
     let output_id = output.id;
 
     let enter_link = link.clone();
-    let move_link = link.clone();
     let leave_link = link;
 
     rsx! {
         style { {HOT_CORNERS_CSS} }
         div {
             class: "sill-hot-corner",
-            onmouseenter: move |event| {
-                feed(machine, waking, params, enter_link.clone(), output_id, corner, CornerIn::Mods(mods_of(&event)));
+            onpointerenter: move |_| {
                 feed(machine, waking, params, enter_link.clone(), output_id, corner, CornerIn::Enter);
             },
-            onmousemove: move |event| {
-                feed(machine, waking, params, move_link.clone(), output_id, corner, CornerIn::Mods(mods_of(&event)));
-            },
-            onmouseleave: move |_| {
+            onpointerleave: move |_| {
                 feed(machine, waking, params, leave_link.clone(), output_id, corner, CornerIn::Leave);
             },
         }
