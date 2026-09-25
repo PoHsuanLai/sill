@@ -297,7 +297,7 @@ fn every_common_display_gets_its_prefer_whole_default_scale() {
             px(3840, 2160),
             Some(size_of(15.6, 3840, 2160)),
             Some(283),
-            300,
+            200,
         ),
         ("a projector at 1080p", px(1920, 1080), None, None, 100),
         ("a projector at 4K", px(3840, 2160), None, None, 200),

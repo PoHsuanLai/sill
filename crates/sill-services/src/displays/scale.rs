@@ -150,14 +150,19 @@ fn snap(ideal: u32) -> DisplayScale {
     DisplayScale(nearest)
 }
 
+/// The largest whole scale [`ScaleRounding::PreferWhole`] picks: 3x on a 15.6-inch 4K laptop
+/// leaves 1280 px across, tighter than any Mac laptop's default, so a denser panel stays at 2x
+/// and nearest-step rounding remains the way to 2.5 or 3.
+const MAX_WHOLE: u32 = 2;
+
 /// [`ScaleRounding::PreferWhole`]: below 1.5, [`snap`]; at or above it, `ideal` rounded half-up
-/// to a whole scale ([`nearest_whole`]) so long as `width` stays at least
-/// [`MIN_LOGICAL_WIDTH`] px across at that scale, else [`snap`].
+/// to a whole scale ([`nearest_whole`]) and capped at [`MAX_WHOLE`], so long as `width` stays
+/// at least [`MIN_LOGICAL_WIDTH`] px across at that scale, else [`snap`].
 fn prefer_whole(ideal: u32, width: u32) -> DisplayScale {
     if ideal < 150 {
         return snap(ideal);
     }
-    let whole = nearest_whole(ideal);
+    let whole = nearest_whole(ideal).min(MAX_WHOLE);
     if width / whole >= MIN_LOGICAL_WIDTH {
         DisplayScale((whole * 100) as u16)
     } else {
