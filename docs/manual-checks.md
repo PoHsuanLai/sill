@@ -60,6 +60,38 @@ Add new ones at the end of their section.
 - [ ] **Scale policy on first sight**: a display seen for the first time gets 2x (MA270U), and a
   scale set by hand afterwards is never changed back.
 
+## Needs a sill login (`dist/sill-session`, M7)
+
+Install first (as root; nothing installs these for you): `install -m 755 dist/sill-session
+/usr/local/bin/sill-session`, `install -m 644 dist/sill.desktop
+/usr/share/wayland-sessions/sill.desktop`, `install -m 644 dist/sill-session.target
+/usr/lib/systemd/user/sill-session.target`, and sill itself on `PATH` (`cargo install --path
+crates/sill` or a copy in `/usr/local/bin`). Copy `dist/cosmic/.../system_actions` to
+`~/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1/` so the power key and Super+Shift+Esc
+open sill's power menu. Nothing needs to be installed from the distribution on this machine:
+cosmic-greeter (the locker), cosmic-idle and KDE's polkit agent are already here. Optional:
+`sudo dnf install swaylock` for a second locker to compare (`session.locker = "swaylock"`).
+Then pick "COSMIC (sill)" at the login screen.
+
+- [ ] **The session comes up**: bar, dock, wallpaper; `sill polkit-agent print` names
+  `/usr/libexec/kf6/polkit-kde-authentication-agent-1`; `systemctl --user is-active
+  graphical-session.target` says `active`.
+- [ ] **Lock**: Super+Escape, the launcher's Lock row, and `loginctl lock-session` each show
+  COSMIC's lock screen once (never two); the password unlocks it and the desktop is back as it
+  was. `journalctl --user -t sill` (or sill's stderr) shows no locker errors.
+- [ ] **Lock before sleep**: `systemctl suspend`, wake: the lock screen is already up when the
+  screen comes back (no flash of the desktop). While the machine is awake, `systemd-inhibit
+  --list` shows `sill ... lock before sleep ... delay`.
+- [ ] **Idle lock**: set a short screen-off time in COSMIC Settings (Power) or
+  `~/.config/cosmic/com.system76.CosmicIdle/v1/screen_off_time` (milliseconds, e.g. `60000`);
+  after that long idle the screen fades out and is locked when it comes back.
+- [ ] **A polkit prompt**: `pkexec true` shows KDE's password dialog; the right password returns
+  0, Cancel returns 126.
+- [ ] **The power key** opens sill's power menu and does not power off (the handle-power-key
+  inhibitor is held: `systemd-inhibit --list` shows `sill-session`).
+- [ ] **Log out** from the power menu ends the session back to the login screen (nothing left
+  running: `loginctl list-sessions`).
+
 ## Owned by the other session (quire, shell-host)
 
 - [ ] shell-host G100 and G101 (sill FINDINGS "M6 lane d"): `dev/accept-notifications-real-input.sh

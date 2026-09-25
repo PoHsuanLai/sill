@@ -146,6 +146,11 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
         ("osd.hold_ms", toml::Value::Integer(1500)),
         ("osd.position", toml::Value::String("top_right".to_owned())),
         ("osd.margin_px", toml::Value::Integer(24)),
+        ("session.locker", toml::Value::String("auto".to_owned())),
+        (
+            "session.polkit_agent",
+            toml::Value::String("auto".to_owned()),
+        ),
     ];
     for (path, want) in cases {
         assert_eq!(&default_of(path), want, "{path}");

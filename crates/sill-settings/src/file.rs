@@ -18,6 +18,7 @@ use crate::osd::OsdSettings;
 use crate::power_menu::PowerMenuSettings;
 use crate::scroll::ScrollSettings;
 use crate::scrollbar::ScrollbarSettings;
+use crate::session::SessionSettings;
 use crate::sound::SoundSettings;
 use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
@@ -57,6 +58,8 @@ pub struct ShellFile {
     pub window: WindowSettings,
     /// M5 (FINDINGS "M5 freeze"): no design/22 rows yet.
     pub power_menu: PowerMenuSettings,
+    /// M7 (FINDINGS "M7"): the borrowed locker and polkit agent; no design/22 rows yet.
+    pub session: SessionSettings,
     /// Tables this build does not know, kept for the next write.
     #[serde(flatten)]
     pub extra: toml::Table,
@@ -81,6 +84,7 @@ impl Default for ShellFile {
             osd: OsdSettings::default(),
             window: WindowSettings::default(),
             power_menu: PowerMenuSettings::default(),
+            session: SessionSettings::default(),
             extra: toml::Table::new(),
         }
     }

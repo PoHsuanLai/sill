@@ -66,6 +66,10 @@ fn apply_yields_exactly_the_changed_domain() {
             with(|f| f.power_menu.default_action = PowerMenuDefault::Suspend),
             SettingsChange::PowerMenu,
         ),
+        (
+            with(|f| f.session.locker = "swaylock".to_owned()),
+            SettingsChange::Session,
+        ),
     ];
     let base = ShellFile::default();
     for (changed, want) in cases {

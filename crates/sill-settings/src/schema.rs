@@ -14,6 +14,7 @@ use crate::osd::OsdSettings;
 use crate::power_menu::PowerMenuSettings;
 use crate::scroll::ScrollSettings;
 use crate::scrollbar::ScrollbarSettings;
+use crate::session::SessionSettings;
 use crate::sound::SoundSettings;
 use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
@@ -37,6 +38,7 @@ pub fn schemas() -> Vec<Schema> {
         OsdSettings::schema(),
         WindowSettings::schema(),
         PowerMenuSettings::schema(),
+        SessionSettings::schema(),
     ]
 }
 

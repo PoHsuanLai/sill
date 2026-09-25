@@ -51,8 +51,30 @@ without the compositor), **config** (COSMIC setting or shortcut file).
 
 | Want | COSMIC today | Evidence | Route |
 | --- | --- | --- | --- |
-| A session where sill replaces cosmic-panel, cosmic-bg, cosmic-osd, cosmic-notifications | cosmic-session hard-codes its component list | verified: source (plan, COSMIC research) | own session script (documented), or fork cosmic-session |
+| A session where sill replaces cosmic-panel, cosmic-bg, cosmic-osd, cosmic-notifications | cosmic-session hard-codes its component list | verified: source (plan, COSMIC research; cosmic-session `epoch-1.8.0` `main.rs` read for M7) | own session script `dist/sill-session` (documented, M7), or fork cosmic-session |
+| A lock screen sill can start per lock and hear "locked" from | cosmic-greeter is the locker too, but resident: with logind reachable it waits for logind's `Lock` on its parent's session and never exits; one-shot (lock at once, exit after unlock) only when the system bus is unreachable; "locked" only in the journal (tracing-journald), and a refused lock (`finished`) is not handled (it would sit with no surfaces) | verified: cosmic-greeter `epoch-1.8.0` `main.rs`, `locker.rs`, `logind.rs` read, and run on the nested 1.8.0 (sill FINDINGS "M7") | shell (sill runs it with no system bus and reads its journal line); PR (a `--lock-now` flag, a ready fd, handle `finished`) |
+| A locker that dies while locked does not leave the session locked forever | cosmic-comp keeps the lock until another client locks and unlocks (it accepts a new lock once the old client is gone); correct for security, but only a new locker can get the user back in | verified: `session_lock.rs` read, and observed on the nested 1.8.0 | none wanted: sill never kills its locker; `examples/session_locker` clears it on the nested compositor |
+| Idle lock at its own time, apart from screen off | cosmic-idle locks 0.5 s after the screen-off fade, through the `LockScreen` system action (default `loginctl lock-session`); only screen off and suspend (AC / battery) have times | verified: cosmic-idle `epoch-1.8.0` `main.rs` and `cosmic-idle-config` read | PR (a lock time), or a sill idle timer over `ext-idle-notify-v1` if a separate time is ever wanted |
 | Settings deep links (open COSMIC Settings on a page) | `Exec` takes no page argument | verified (sill FINDINGS F146) | PR, or our own Settings app (M12) |
 | Our brightness / volume OSD instead of cosmic-osd's | Replacing the `system_actions` for brightness keys also drops cosmic-settings-daemon's handling and cosmic-osd's popup | verified (sill FINDINGS "Displays") | config (dist/ shortcut files) |
 | `cosmic-randr` failing fast off COSMIC | It hangs forever (never exits, never errors) on a compositor without `zwlr_output_manager_v1`, e.g. KWin | verified (sill FINDINGS G51, gdb stack) | PR (a connect timeout / error exit); sill bounds it at 2 s meanwhile |
 | Decode COSMIC's default wallpaper format (JPEG XL) | sill's `image` build has no jxl | verified (sill F132) | shell (add jxl), not a COSMIC gap |
+
+### What cosmic-session does that `dist/sill-session` loses (M7)
+
+Read from cosmic-session `epoch-1.8.0`. "Kept" means the script does it another way.
+
+| cosmic-session does | In a sill session | Matters? |
+| --- | --- | --- |
+| Starts cosmic-comp and hands the other components its Wayland socket through a private fd | cosmic-comp runs the script as its kiosk command; children inherit `WAYLAND_DISPLAY` | no |
+| Imports the systemd user environment and pushes the compositor's into it | `dbus-update-activation-environment --systemd` | kept |
+| Starts `cosmic-session.target` (binds `graphical-session.target`, XDG autostart) | `dist/sill-session.target`, the same shape | kept |
+| Holds logind's `handle-power-key` inhibitor so the power key does not power off at once | `systemd-inhibit --what=handle-power-key` in the script; the key's `PowerOff` system action is `sill power-menu toggle` (`dist/cosmic`) | kept; needs the check in docs/manual-checks.md |
+| `com.system76.CosmicSession` on the session bus (`Exit`, `Restart`), which cosmic-osd's logout dialog and COSMIC Settings call | Nothing owns it. sill's power menu logs out through logind's `TerminateSession`; COSMIC Settings' own log-out buttons (if any call it) do nothing | low: sill's power menu is the logout dialog; `LogOut` system action is `sill power-menu open` |
+| cosmic-osd: logout / restart / shutdown dialogs, the polkit agent, volume and brightness indicators | sill's power menu, sill's OSD, `sill polkit-agent` (another desktop's agent) | kept, borrowed agent until M11 |
+| cosmic-greeter resident as the locker (logind `Lock`, sleep delay) | sill's locker service runs it per lock | kept |
+| Restarts every component forever | the script restarts each one, giving up after five quick exits | kept |
+| Screen reader (orca) when a11y is on | not started | yes for anyone who needs it; add orca to the script by hand |
+| XDG autostart without systemd | only through `xdg-desktop-autostart.target` | no on Fedora (systemd) |
+| cosmic-workspaces (the overview), cosmic-files-applet | not started | not until sill has a workspace overview; the files applet is a cosmic-panel part |
+| `org.gnome.SessionManager` shim for apps that inhibit logout | none (neither does cosmic-session in 1.8.0: cosmic-osd only calls it) | no |

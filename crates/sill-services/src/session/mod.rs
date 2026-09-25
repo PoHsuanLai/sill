@@ -17,11 +17,13 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
+use crate::locker::LockerCommand;
 
 /// What the session service can be told.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SessionCommand {
-    /// Carry out `action`: `Lock` is `LockSession` on this session, `LogOut`
+    /// Carry out `action`: `Lock` goes to the locker service (which runs the configured
+    /// locker, or asks logind's `LockSession` for COSMIC's resident one), `LogOut`
     /// `TerminateSession`, the rest the manager's `Suspend`/`Reboot`/`PowerOff` with
     /// `interactive = true` (polkit may ask). An action logind does not offer is dropped.
     Run(SessionAction),
@@ -30,10 +32,14 @@ pub enum SessionCommand {
 }
 
 /// Start the session task on `rt`. Without logind the receiver stays at `Session::default()`
-/// (absent: nothing offered), and the power menu shows every button unavailable.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<Session>, Control<SessionCommand>) {
+/// (absent: nothing offered), and the power menu shows every button unavailable. `locker` is
+/// where `Run(Lock)` goes (M7).
+pub fn spawn(
+    rt: &Handle,
+    locker: Control<LockerCommand>,
+) -> (watch::Receiver<Session>, Control<SessionCommand>) {
     let (tx, rx) = watch::channel(Session::default());
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands));
+    rt.spawn(live::run(tx, commands, locker));
     (rx, control)
 }

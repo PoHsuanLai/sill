@@ -85,6 +85,13 @@ pub fn run() -> ExitCode {
         );
     }
 
+    // M7: the locker follows `session.locker` (FINDINGS "M7").
+    crate::session::spawn_locker_policy(
+        runtime.handle(),
+        settings_feed.0.clone(),
+        services.locker_control.clone(),
+    );
+
     let config = HostConfig {
         first_mouse_window_ms: shell_host::config::Ms(u32::from(
             initial_settings.menus.first_mouse_window_ms.0,
@@ -644,6 +651,7 @@ fn dispatch_request(
         Request::Notifications(request) => {
             crate::notifications::dispatch(outputs, crate::links::get(), services, request)
         }
+        Request::Lock => crate::session::lock(services),
     }
 }
 

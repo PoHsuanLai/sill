@@ -3675,3 +3675,172 @@ Clear over its stacked card, CHAT 1), `notification-center-open-cosmic.png`,
   pointer, moved on: hovered no; out and back: yes". Wanted from quire: the card treats a
   pointermove with the pointer over it as `Over` when it thinks `Away` (or the host synthesizes
   enter and leave for hover changes that come from layout).
+
+## M7: the lock screen and the polkit prompt, borrowed (2026-09-26)
+
+design/20 §1.9 and §1.10: an existing locker and an existing polkit agent in a sill session
+(sill's own are M11), and the session script that makes a real login possible. Numbered from
+F380/G110. COSMIC's sources were read at `epoch-1.8.0` (cosmic-greeter, cosmic-idle, cosmic-osd,
+cosmic-session, cosmic-comp's `session_lock.rs`; all GPL-3.0) for facts only, note-and-close;
+nothing was pasted and nothing was put in a prompt.
+
+### What COSMIC's parts do (verified)
+
+- **F380 cosmic-greeter is COSMIC's locker.** One binary: run as the `cosmic-greeter` user it is
+  the greetd greeter, as anyone else it is the lock screen (`--help` only knows `-h`/`-v`).
+  cosmic-session starts it as a resident component. With logind reachable on the system bus it
+  takes a sleep delay inhibitor ("COSMIC Greeter needs to display a lock screen"), finds its
+  session by its **parent's** pid, and locks on that session's `Lock` signal and on
+  `PrepareForSleep(true)`, unlocks on `Unlock`, and never exits. With the system bus unreachable
+  it locks at once and exits 0 after a successful unlock. It speaks only `ext-session-lock-v1`
+  to the compositor, so it locks any compositor that has it. Its logs go to the journal
+  (tracing-journald), where it writes "session locked" once the lock is granted; nothing reaches
+  stderr. It does not handle a refused lock (`finished`): it would sit with no surfaces.
+  Verified on the nested 1.8.0: run with `DBUS_SYSTEM_BUS_ADDRESS` pointing nowhere it locked in
+  about 0.4 s, a second lock was refused while it ran, and the journal had "session locked"
+  (plus a harmless `pam_fprintd` "Error with getting the bus": the password prompt follows).
+  Its lockfile (`$XDG_RUNTIME_DIR/cosmic-greeter-$XDG_SESSION_ID.lock`) is written only on the
+  logind path, so it is no ready signal in the one-shot form.
+- **F381 cosmic-comp keeps a session locked after its locker dies,** until another client locks
+  and unlocks (its handler accepts a new lock once the old client is gone). So sill never kills
+  its locker, not even when sill exits, and a slow one is taken as locked after 10 s rather than
+  killed. `examples/session_locker.rs` (a password-free `ext-session-lock-v1` client for tests)
+  is the recovery on the nested compositor: `session_locker 0` locks and unlocks at once.
+- **F382 cosmic-idle** (config `com.system76.CosmicIdle` v1: `screen_off_time`,
+  `suspend_on_ac_time`, `suspend_on_battery_time`, milliseconds, `None` = never; defaults 15
+  min, 30 min on AC, 15 min on battery) fades the outputs to black on `ext-idle-notify-v1`,
+  turns them off (`wlr-output-power`), and 0.5 s later runs the `LockScreen` system action
+  (COSMIC's default `loginctl lock-session`); suspend runs the `Suspend` action (`systemctl
+  suspend`). There is no lock time of its own: idle lock is screen-off time. It also serves
+  `org.freedesktop.ScreenSaver` inhibits. It needs no cosmic-session.
+- **F383 cosmic-osd is the polkit agent** (it registers `/com/system76/CosmicOsd` for its own
+  logind session), but also the logout / restart / shutdown dialogs and the volume and
+  brightness indicators, and it shows its volume indicator, with a sound, on every sink volume
+  change, whoever made it.
+- **F384 cosmic-session** starts cosmic-comp and hands it the other components' socket, imports
+  and exports the systemd environment, starts `cosmic-session.target`, holds logind's
+  `handle-power-key` inhibitor, owns `com.system76.CosmicSession` (`Exit`, `Restart`), starts
+  orca when a11y is on, and restarts panel, launcher, app library, workspaces, osd, bg, greeter,
+  files applet, idle and notifications forever. docs/cosmic-gaps.md "What cosmic-session does
+  that `dist/sill-session` loses" goes row by row.
+
+### What sill does
+
+- **F385 The `locker` service** (`sill-services/src/locker/`, `Services.lock` /
+  `locker_control`). `session.locker` (`auto`, `off`, `cosmic-greeter`, `swaylock`, `hyprlock`,
+  or a command line for `/bin/sh -c`) is resolved by `choice::resolve` against the kind of
+  session (`Host`) and what is on `PATH`:
+
+  | Host | how it is told | `auto` resolves to | logind's Lock / PrepareForSleep |
+  | --- | --- | --- | --- |
+  | sill's session | no cosmic-session, `XDG_CURRENT_DESKTOP` names COSMIC | cosmic-greeter, else swaylock, else hyprlock, else off | followed |
+  | cosmic-session | a `cosmic-session` process of this user | `Delegate`: sill's Lock calls logind `LockSession` for COSMIC's resident locker (the pre-M7 behaviour) | ignored (the resident locker has them) |
+  | another desktop (nested under KDE) | anything else | the same programs as a sill session | ignored: sill never locks on another desktop's behalf |
+
+  How each known locker is run and heard: cosmic-greeter with `DBUS_SYSTEM_BUS_ADDRESS` pointing
+  nowhere (F380's one-shot form) and `RUST_LOG=warn,cosmic_greeter::locker=info`, ready when
+  `journalctl --follow _PID=<pid>` shows "session locked"; swaylock with `--ready-fd 1`, ready
+  on its first stdout line; hyprlock and commands, ready after 1 s. The cost of the one-shot
+  cosmic-greeter: its lock screen's battery and network icons and its suspend / restart /
+  shut-down buttons need the system bus and do nothing.
+- **F386 The machine** (`locker/machine.rs`, table-tested): phases Unlocked / Locking / Locked,
+  and a sleep hold Released / Armed / Delaying. Lock requests from sill's action always count;
+  from logind only when the host is followed. Never a second locker while Locking or Locked, and
+  a locker of the same process name already running (a previous sill's, or one started by
+  hand) is adopted (`/proc` scan) and watched until it exits. The delay inhibitor
+  (`Inhibit("sleep", "sill", "lock before sleep", "delay")`) is taken as soon as a locker is
+  configured in a followed session and again after every resume, **not** on
+  `PrepareForSleep(true)`: logind only waits for delay inhibitors that were held when the sleep
+  began, so one taken on the signal is too late. On `PrepareForSleep(true)` the locker starts
+  and the inhibitor is closed once it reports locked, it exits, or 4 s pass (under logind's
+  default `InhibitDelayMaxSec` of 5 s). Unlock is the locker's; sill sees its exit.
+- **F387 Deviation: sill's Lock no longer calls logind.** The launcher row and the power menu
+  still send `SessionCommand::Run(Lock)`; the session service now forwards it to the locker
+  service instead of calling `LockSession`, because sill nested under KDE shares KDE's logind
+  session, and `LockSession` there locks the user's real desktop. Under cosmic-session the
+  locker service still calls `LockSession` (`Delegate`). `Session.lock`'s offer is unchanged
+  (it says whether logind knows this session, which no longer decides anything); the power
+  menu does not show Lock. `session::spawn` takes the locker's `Control` (a signature change).
+- **F388 Freeze amendment: `Request::Lock`** (`sill lock`, wire `{"kind":"lock"}`, answered
+  `Done`), for scripts and for a `LockScreen` system action that bypasses logind. The shipped
+  `system_actions` keeps COSMIC's `loginctl lock-session` (it works in both session kinds) and
+  gains `LogOut: "sill power-menu open"` and `PowerOff: "sill power-menu toggle"` (Super+Shift+
+  Escape and the power key), since cosmic-osd's dialogs are not there in a sill session.
+- **F389 Idle: cosmic-idle, no sill idle keys.** The simplest route that keeps every timeout
+  configurable: cosmic-idle already watches `ext-idle-notify-v1`, its three times are COSMIC's
+  config (COSMIC Settings' Power page edits them), and its lock goes through `loginctl
+  lock-session`, which sill's locker follows in a sill session. `session.idle_lock_minutes` /
+  `session.idle_display_off_minutes` are not added: sill would own them only with its own idle
+  timer, and the one thing that would buy (a lock time apart from screen off) is in
+  docs/cosmic-gaps.md instead.
+- **F390 polkit: `sill polkit-agent`** resolves `session.polkit_agent` (`auto`, `off`, a known
+  agent's name, or a command) with `polkit::resolve` and execs it (`print` shows the choice).
+  **Deviation from the brief's order:** `auto` tries polkit-kde (this machine:
+  `/usr/libexec/kf6/polkit-kde-authentication-agent-1`), polkit-gnome, lxqt-policykit,
+  polkit-mate, and cosmic-osd **last**, because cosmic-osd brings its own volume indicator
+  (F383) next to sill's OSD. `session.polkit_agent = "cosmic-osd"` still picks it. sill
+  implements no agent in M7. A polkit agent registers per logind session, so running one nested
+  under KDE (whose agent already holds the session) is pointless; only the session script runs
+  it.
+- **F391 `dist/sill-session`**: two stages (outside: a login shell once, the environment, `exec
+  cosmic-comp "$0" --inside`; inside: the kiosk child, which must never exit because cosmic-comp
+  exits with it), `dbus-update-activation-environment --systemd`, `sill-session.target` (new,
+  binds `graphical-session.target` and XDG autostart like `cosmic-session.target`), a
+  `systemd-inhibit --what=handle-power-key` holder, and cosmic-settings-daemon,
+  xdg-desktop-portal-cosmic, cosmic-idle, `sill polkit-agent` and `sill run`, each restarted on
+  exit and given up after five exits within 10 s each. Kept out: cosmic-panel, cosmic-launcher,
+  cosmic-app-library, cosmic-bg, cosmic-osd, cosmic-notifications, cosmic-workspaces,
+  cosmic-files-applet, and a resident cosmic-greeter. `dist/sill.desktop` is the
+  wayland-sessions entry (`DesktopNames=COSMIC`, as COSMIC's own). Documented, not installed;
+  `sh -n` clean (shellcheck is not on this machine).
+- **F392 Dependencies:** tokio gains its `process` and `io-util` features (the locker child and
+  its stdout / journal lines); no new crate. `cargo deny check licenses` unchanged.
+- **G110 (sill) sill nested under KDE follows nothing from logind,** by design (F385), so a
+  real suspend of this machine does not lock the nested compositor; only `sill lock` and the
+  Lock row do. In a sill login everything is followed.
+
+### Settings (proposed design/22 rows; `AWAITING_ROWS` in `sill-settings/tests/keys.rs`)
+
+A new `session` domain (`sill-settings/src/session.rs`, page Accounts, both Advanced):
+
+| Key | Type | Default | Range / alternatives | Source | Status |
+| --- | --- | --- | --- | --- | --- |
+| `session.locker` | string | `"auto"` | `auto` (cosmic-greeter, else swaylock, else hyprlock; under cosmic-session COSMIC's own), `off`, `cosmic-greeter`, `swaylock`, `hyprlock`, or a command line run by `/bin/sh -c` | sill M7 (design/20 §1.9 borrowed locker) | proposed |
+| `session.polkit_agent` | string | `"auto"` | `auto` (polkit-kde, polkit-gnome, lxqt-policykit, polkit-mate, then cosmic-osd), `off`, one of those names, or a command line | sill M7 (design/20 §1.10 borrowed agent) | proposed |
+
+### Tests
+
+Pure: `locker::machine` (31 transitions, deadlines, a whole sleep in order),
+`locker::choice` (setting words, kinds of session, the resolution table, each locker's ready
+signal), `polkit` (words, the resolution table), `sill::session::command_line`, the CLI and
+wire lines for `lock`, the settings round trip, diff and defaults for `session`.
+
+Live, on the nested cosmic-comp 1.8.0 (`wayland-1`; the real session was never locked and
+nothing called logind's Lock or Suspend), `cargo test -p sill-services --test locker_live --
+--ignored --test-threads=1 --nocapture`:
+
+```
+cosmic_greeter_locks_the_nested_compositor_and_its_exit_is_seen
+  sill sees Lock { phase: Unlocked, pid: None }
+  sill sees Lock { phase: Locking, pid: Some(Pid(1694675)) }
+  sill sees Lock { phase: Locked, pid: Some(Pid(1694675)) }
+cosmic-greeter reported locked after 407.684064ms       (its journal line)
+  [a second ext-session-lock is refused while it runs: exit 3]
+  sill sees Lock { phase: Unlocked, pid: None }         (killed: it cannot unlock without the
+sill saw cosmic-greeter exit                             user's password)
+recovery lock-and-unlock: exit Some(0)                  (F381)
+the_stand_in_locks_and_unlocks_the_nested_compositor
+  sill sees Lock { phase: Locking, pid: Some(Pid(1694879)) }
+  sill sees Lock { phase: Locked, pid: Some(Pid(1694879)) }
+locked after 12.096776ms                                (a second Lock changes nothing)
+  sill sees Lock { phase: Unlocked, pid: None }
+unlocked after 1.513542066s                             (the locker unlocked and exited)
+test result: ok. 2 passed
+```
+
+End to end through the daemon (`sill run` on `wayland-1` with a scratch `XDG_CONFIG_HOME` whose
+`session.locker` is the stand-in with a 2 s hold, then `sill lock`): `{"kind":"done"}`, a second
+lock refused while it held (exit 3), free again after (exit 0), `sill quit` exit 0.
+
+What needs a real login (lock before sleep, idle lock, `pkexec true`, the power key) is in
+docs/manual-checks.md "Needs a sill login".

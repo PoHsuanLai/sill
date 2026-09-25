@@ -3,7 +3,7 @@
 //! from the M2 freeze amendment (sill FINDINGS F76), and `Display` from the displays pass (sill
 //! FINDINGS "Displays"), `Debug(Osd)` from the OSD, `PowerMenu`/`ControlCenter` from the
 //! M5 freeze (sill FINDINGS "M5 freeze"), and `Notifications` and `Debug(Notify)` from the M6
-//! freeze (sill FINDINGS "M6 freeze").
+//! freeze (sill FINDINGS "M6 freeze"), and `Lock` from M7 (sill FINDINGS "M7").
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -34,6 +34,9 @@ pub enum Request {
     ControlCenter(ControlCenterRequest),
     /// The notification center and the banners (`sill notifications ...`).
     Notifications(NotificationsRequest),
+    /// Lock the screen with the configured locker (`sill lock`; cosmic-idle's and COSMIC's
+    /// `LockScreen` system action in `dist/cosmic`). Answered `Done` once asked.
+    Lock,
 }
 
 /// `sill notifications ...`. The center opens on the output the daemon picks (the first with a

@@ -324,6 +324,8 @@ pub fn services() -> (Services, Feeds) {
         media_control,
         session: fixed(sill_services::Session::default(), &mut keep),
         session_control: control(&mut keep),
+        lock: fixed(sill_services::Lock::default(), &mut keep),
+        locker_control: control(&mut keep),
         notifications,
         notification_history,
         notifications_control,

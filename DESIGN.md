@@ -61,6 +61,8 @@ state, an ignored test naming the wave that fills it (`tests/skeleton.rs`).
 | `providers/` | apps, windows, system, calculator (fend, 50 ms), settings (schemas + cosmic-settings pages) | stubs |
 | `wallpaper/` | design/20 §1.4 cache `<hash>-<w>x<h>.png`, Lanczos3, light/dark pair | `cache_file_name` done; hash, `spawn` stubs |
 | `sound/` | design/13 §13.3.10 UI sounds | stub (M6) |
+| `locker/` | design/20 §1.9 borrowed at M7: `session.locker` resolved against the session and what is installed (`choice.rs`), the pure lock / sleep-delay machine (`machine.rs`), logind signals and the delay inhibitor (`logind.rs`), the child and its ready signal (`child.rs`) | M7 done |
+| `polkit.rs`, `programs.rs` | design/20 §1.10 borrowed at M7: `session.polkit_agent`'s table (`sill polkit-agent`); `PATH` and `/proc` lookups | M7 done |
 
 ## `sill-settings` (done)
 
@@ -107,7 +109,8 @@ primary|secondary|middle]`, M2 amendment F80; shell-host injects primary clicks 
 AppLibrary, and the XF86 brightness and volume keys' BrightnessUp/Down, VolumeRaise/Lower and
 Mute as `sill display ...`; Ctrl+Alt+Space for nested use); `dist/udev/60-sill-ddc.rules` and
 `dist/modules-load.d/sill-ddc.conf` (DDC/CI access where ddcutil's package is not installed); `dist/sill-session` documented only (a real login
-without cosmic-session; not an M4 gate). `dev/{nested,run,shot}.sh` wrap
+without cosmic-session; M7 made it a two-stage script with restarts, plus
+`dist/sill.desktop` and `dist/sill-session.target`, still not installed by anything). `dev/{nested,run,shot}.sh` wrap
 `shell-host/scripts/dev/`; `dev/shot.sh --surface` uses `sill debug capture`;
 `dev/accept-bar.sh` is the M1 skeleton (every unfilled step exits 2).
 

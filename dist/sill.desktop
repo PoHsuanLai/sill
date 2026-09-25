@@ -1,0 +1,7 @@
+[Desktop Entry]
+# A wayland-sessions entry for dist/sill-session (documented, not installed: see that script).
+Name=COSMIC (sill)
+Comment=COSMIC's compositor with sill as the shell
+Exec=/usr/local/bin/sill-session
+Type=Application
+DesktopNames=COSMIC

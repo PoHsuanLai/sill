@@ -82,7 +82,7 @@ keyboard-types = "0.7"
 cursor-icon = "1"
 
 # Common.
-tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros"] }
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros", "process", "io-util"] }
 thiserror = "2"
 # Local wall-clock time with the system time zone (the bar clock); std cannot answer it.
 jiff = "0.2"

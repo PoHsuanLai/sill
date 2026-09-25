@@ -13,6 +13,7 @@ use crate::control::Control;
 use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
 use crate::displays::{Displays, DisplaysCommand};
 use crate::launch::{LaunchCommand, Launches};
+use crate::locker::{Lock, LockerCommand};
 use crate::network::wifi::{Wifi, WifiCommand};
 use crate::network::{Network, NetworkCommand};
 use crate::notifications::{History, Notifications, NotificationsCommand};
@@ -72,6 +73,9 @@ pub struct Services {
     pub media_control: Control<MediaCommand>,
     pub session: watch::Receiver<Session>,
     pub session_control: Control<SessionCommand>,
+    /// M7: the borrowed lock screen (FINDINGS "M7"); the session's Lock goes through it.
+    pub lock: watch::Receiver<Lock>,
+    pub locker_control: Control<LockerCommand>,
     /// M6: the notifications server's live banners and name holder, and its history
     /// (FINDINGS "M6 freeze").
     pub notifications: watch::Receiver<Notifications>,
@@ -121,7 +125,8 @@ impl Services {
         let (bluetooth, bluetooth_control) = crate::bluetooth::spawn(rt);
         let (power_profiles, power_profile_control) = crate::power_profile::spawn(rt);
         let (media, media_control) = crate::now_playing::spawn(rt);
-        let (session, session_control) = crate::session::spawn(rt);
+        let (lock, locker_control) = crate::locker::spawn(rt);
+        let (session, session_control) = crate::session::spawn(rt, locker_control.clone());
         // M6: the live loop is a stub that returns at once until lane a fills it, and it is
         // passive (never asks for the bus name) until the daemon sends its first policy.
         let (notifications, notification_history, notifications_control) =
@@ -167,6 +172,8 @@ impl Services {
             media_control,
             session,
             session_control,
+            lock,
+            locker_control,
             notifications,
             notification_history,
             notifications_control,

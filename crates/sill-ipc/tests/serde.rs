@@ -55,6 +55,7 @@ fn requests() -> Vec<(Request, &'static str)> {
         ),
         (Request::Reload, r#"{"kind":"reload"}"#),
         (Request::Quit, r#"{"kind":"quit"}"#),
+        (Request::Lock, r#"{"kind":"lock"}"#),
         (
             Request::Debug(DebugRequest::Stats),
             r#"{"kind":"debug","v":{"kind":"stats"}}"#,
