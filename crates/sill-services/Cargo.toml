@@ -50,5 +50,10 @@ name = "badge_emitter"
 [[example]]
 name = "mpris_player"
 
+# Another notification daemon on a private bus, holding org.freedesktop.Notifications first:
+# `dev/accept-notifications-bus.sh` checks that sill reports it and never replaces it.
+[[example]]
+name = "notifications_holder"
+
 [lints]
 workspace = true
