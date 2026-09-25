@@ -144,8 +144,8 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
         ),
         ("osd.enabled", toml::Value::String("on".to_owned())),
         ("osd.hold_ms", toml::Value::Integer(1500)),
-        ("osd.position", toml::Value::String("bottom".to_owned())),
-        ("osd.bottom_margin_px", toml::Value::Integer(24)),
+        ("osd.position", toml::Value::String("top_right".to_owned())),
+        ("osd.margin_px", toml::Value::Integer(24)),
     ];
     for (path, want) in cases {
         assert_eq!(&default_of(path), want, "{path}");

@@ -2186,7 +2186,11 @@ the icon style"; `crates/sill-surfaces/src/app_icons/`).
   output scale (`app_icons::pick`: 48 at 1x, 1.5x, 2x, 1.75x is 48, 72, 96, 96). A dock tile is
   loaded for the largest size it is drawn at (the magnified size when magnification is on),
   so a magnification sweep never swaps URLs (each swap would load a file and blank the icon
-  for a frame); the rows use 48.
+  for a frame); the rows use 48. `pick` stays sill's own, in front of `ds_settings::app_icon_path`
+  (Q71, resolved below): it decides which of the 13 sizes to ask for, which the retint cache key
+  needs regardless (and which is what keeps a magnification sweep on one file, not a new one
+  every frame) — a call `app_icon_path` cannot make for sill, so it is behaviour quire does not
+  cover, kept and documented in `app_icons::size`.
 - **Re-tinting.** Muted and Monochrome put every third-party raster, and our Monochrome files,
   through `ds::icon::retint` once per key (icon, size at scale, style, tint; the tint rounded
   to 0.1 degree and 0.0001 chroma, and neutral under Colour and Muted so a Space switch
@@ -2200,32 +2204,53 @@ the icon style"; `crates/sill-surfaces/src/app_icons/`).
   through a temporary file and a rename, and remade when older than its source. An `IconUrl`
   is `file:` or `data:`; a `data:` URL puts ~20 KB of base64 into a tile's inline style, which
   the dock rewrites every magnification frame, and it would be re-tinted on every restart.
-- **The plate is not re-tinted** (Q72). quire's `IconView { plate }` draws the plate in CSS
-  (gradient under a superellipse mask, highlight, rim and drop as shadows), so there are no
-  plated pixels to re-tint together, and `--plate-base`/`--plate-deep` are set on
-  `.ds-plate[data-family]` itself: overriding them from sill means a selector on `.ds-plate`
-  (lint `DsInternals`) and hex colours inline (`HexColour`). The icon inside is re-tinted; the
-  neutral plate stays paper. In the light scheme the difference is small (the stops are near
-  white, where `retint` adds almost no chroma); the dark `#2A2E28` plate would take visible
-  colour.
-- **Seen live** (`dev/accept-icons.sh`, nested cosmic-comp, scratch config and cache, 6/6):
+- **The plate is re-tinted too** (Q72, resolved below). Wherever a third-party icon sits on
+  quire's neutral plate (the dock tile; the launcher rows draw no plate — `ds::Tile::Source` is
+  "drawn as it is, with no plate of its own"), `IconView` takes the same `(IconStyle, Tint)`
+  pair the icon's own raster is handed to `retint`, as `plate_tint: PlateTint::of(style, tint)`;
+  `None` under Colour changes nothing. quire re-tints the family's two stops and its glyph ink
+  by the same OKLCh rule as a raster's pixel, for both schemes at once, and writes them as the
+  plate's own custom properties (`--plate-base-l` … `--plate-ink-d`), read under
+  `data-icon-style` and the root's `data-theme`; no selector on `.ds-plate`, no hex colours
+  inline, so the markup lint stays clean with no exception. quire's one stated limit: in the
+  light scheme the neutral plate's top-left stop is white, and `retint` eases chroma to nothing
+  at white, so it stays white under a tint; the tint shows at the deep (bottom-right) stop and
+  the glyph ink instead. The dark plate (`#2A2E28` before) takes the tint at both stops.
+- **Seen live** (`dev/accept-icons.sh`, nested cosmic-comp, scratch config and cache, 7/7):
   Terminal and Files from quire's files, Chrome and btop on the plate; Muted writes 2 rasters,
   Monochrome 4 (the two theme icons and our two Monochrome files), in the Work preset's
   blue-violet; 0 frames over 5 idle seconds after they land. `dev/out/dock-icons-colour.png`,
   `dock-icons-muted.png`, `dock-icons-monochrome.png`. btop's SVG fills with `<pattern>`s,
   which Blitz paints black and resvg red, so its re-tinted rasters are closer to the icon as
-  drawn than its Colour tile.
+  drawn than its Colour tile. Under Monochrome, Chrome's and btop's plates are visibly the
+  Work preset's blue-violet, against white under Colour and Muted (Q72): a last switch to
+  `appearance.theme = "dark"` in Monochrome (`dock-icons-monochrome-dark.png`) shows the dark
+  plate taking the tint at both stops, richer than the light shot, where the top-left stop
+  stays near white and only the deep stop and the ink carry it.
 
 ### Gaps
 
-- **Q71 (quire)** No path for the app icon files. sill looks at `$SILL_ICON_ASSETS`, then
-  `quire/icons/apps` under the XDG data directories, then the sibling checkout
-  (`../quire/assets/icons/apps` from the crate). A `ds::icon` constant or lookup (and an
-  install location) would replace the guess.
-- **Q72 (quire)** `IconView`'s plate cannot take the icon style: a `tint: Option<(IconStyle,
-  Tint)>` prop (quire re-tints the neutral family's stops and ink with `retint` and writes them
-  as the plate's own custom properties), or a `PlateFamily::Custom { base, deep, ink }`, would
-  let the plate and a Muted or Monochrome icon share one hue as CONSUMING asks.
+- **Q71 (quire), resolved (2026-09-25).** sill no longer searches for the app icon files itself:
+  `$SILL_ICON_ASSETS` and sill's own XDG-then-sibling-checkout search are gone.
+  `ds_settings::apps_dir()` and `ds_settings::app_icon_path(app, Px(tile_px * scale), IconStyle)`
+  (the exact size, else the nearest larger, else the largest smaller) are quire's own lookup and
+  size match (quire CONSUMING "App icons and the icon style"). Both touch the disk on every
+  call, so `app_icons::cache::IconResolver::shipped_path` caches the resolved path (or its
+  absence) per `(app, px, style)`, in the same process-wide cache the re-tinted raster itself
+  lives in, resolved once and never looked up again for that key. `app_icons::size::pick` stays
+  in front of it (behaviour quire does not cover): it is what decides the size to ask for at
+  all — the retint cache key needs it, and it is what keeps a dock tile's magnification sweep
+  on one file rather than a new one every frame — and quire ships every one of the 13 sizes for
+  every app and style, so the size `pick` names is always an exact match.
+- **Q72 (quire), resolved (2026-09-25).** `IconView` takes `plate_tint: Option<PlateTint>`
+  (`PlateTint::of(style, tint)`, `None` under Colour); quire re-tints the plate's two stops and
+  its glyph ink itself, by the same rule as a raster's pixel, and writes them as the plate's own
+  custom properties under `data-icon-style`, so sill never touches `.ds-plate` or writes a hex
+  colour inline. quire's stated limit: in the light scheme the top-left stop is white and
+  `retint` eases chroma to nothing there, so it stays white under a tint; the tint shows at the
+  deep stop and the ink. `dock/tile.rs`'s `IconView { plate: Some(PlateFamily::Neutral),
+  plate_tint: PlateTint::of(look.0.style, look.0.tint), .. }` is the one call site: the launcher
+  rows draw no plate at all (`ds::Tile::Source`'s own doc: "with no plate of its own under it").
 - **Q73 (design/22)** `dock.shipped_icons` has no §3.5 row; `AWAITING_ROWS` exempts it:
 
   | Key | Type | Default | Range / Alt | Source | Status |
@@ -2286,7 +2311,7 @@ open) with 40 px of transparent room for the Osd material's ambient shadow.
   | `osd.enabled` | `OsdEnabled::{On,Off}` | `On` | shows sill's own volume and brightness changes | `20-SURFACES.md#1-7-osd`; sill `FINDINGS.md` "OSD" | proposed (2026-09-25) |
   | `osd.hold_ms` | `Ms` | `1500` | `300..=10000`; after the last change, before the fade | `20-SURFACES.md#1-7-osd` | proposed (2026-09-25) |
   | `osd.position` | `OsdPosition::{Bottom,Top}` | `Bottom` | centred along that edge | `20-SURFACES.md#1-7-osd` | proposed (2026-09-25) |
-  | `osd.bottom_margin_px` | `Px` | `24` | `0..=400`; gap from the dock's reserve (or the bar's, at the top) to the card | sill `FINDINGS.md` "OSD" | proposed (2026-09-25) |
+  | `osd.margin_px` (was `osd.bottom_margin_px`) | `Px` | `24` | `0..=400`; gap from the bar's reserve (top right, the default since 2026-09-25) or the dock's to the card | sill `FINDINGS.md` "OSD" | proposed (2026-09-25) |
 
   All Advanced until §5 places them on a page.
 

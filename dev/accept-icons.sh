@@ -5,11 +5,13 @@
 # nor sill's pins nor the icon cache in the real home are touched, and quits it at the end.
 #
 # The dock holds COSMIC Terminal and COSMIC Files (quire's shipped icons) and Google Chrome and
-# btop (theme icons on the neutral plate). With `icons.style` set in the scratch
-# `quire/appearance.toml` to colour, then muted, then monochrome (the running dock follows the
-# file live), it checks that the Muted and Monochrome runs each write re-tinted rasters into
-# the scratch cache, and captures the dock surface each time:
-# dev/out/dock-icons-{colour,muted,monochrome}.png.
+# btop (theme icons on the neutral plate, tinted along with the icon under Muted and Monochrome:
+# sill FINDINGS Q72). With `icons.style` set in the scratch `quire/appearance.toml` to colour,
+# then muted, then monochrome (the running dock follows the file live), it checks that the Muted
+# and Monochrome runs each write re-tinted rasters into the scratch cache, and captures the dock
+# surface each time: dev/out/dock-icons-{colour,muted,monochrome}.png. A last switch to
+# `appearance.theme = "dark"` in Monochrome (no new raster: the dark scheme changes the plate's
+# own stops, not the icon's) captures dev/out/dock-icons-monochrome-dark.png.
 #
 # Usage: dev/nested.sh && dev/accept-icons.sh
 set -uo pipefail
@@ -42,6 +44,14 @@ trap cleanup EXIT
 style() {
   mkdir -p "$CONFIG/quire"
   printf '[icons]\nstyle = "%s"\nmonochrome_tint = "space"\n' "$1" >"$CONFIG/quire/appearance.toml"
+}
+
+# Monochrome again, but `appearance.theme = "dark"`: no new raster (the dark scheme changes the
+# plate alone, through quire's own stylesheet, not a re-tinted file), so no wait, only a shot.
+style_monochrome_dark() {
+  mkdir -p "$CONFIG/quire"
+  printf '[appearance]\ntheme = "dark"\n\n[icons]\nstyle = "monochrome"\nmonochrome_tint = "space"\n' \
+    >"$CONFIG/quire/appearance.toml"
 }
 
 dock_name() {
@@ -125,8 +135,17 @@ step_idle() {
   [ "$before" = "$after" ]
 }
 
+# The plate under the dark scheme (sill FINDINGS Q72): the tinted plate's own dark stops, not
+# the light ones the other shots show.
+step_monochrome_dark() {
+  style_monochrome_dark
+  sleep 1
+  capture monochrome-dark
+}
+
 status=0
-for step in step_ping_compositor step_start step_colour step_muted step_monochrome step_idle; do
+for step in step_ping_compositor step_start step_colour step_muted step_monochrome step_idle \
+  step_monochrome_dark; do
   if "$step"; then
     echo "PASS $step"
   else
@@ -137,5 +156,5 @@ for step in step_ping_compositor step_start step_colour step_muted step_monochro
   fi
 done
 ls -l "$CACHE/sill/icons" >"$OUT_DIR/cache-files.log" 2>&1
-echo "output dir: $OUT_DIR; shots: $SHOTS/dock-icons-{colour,muted,monochrome}.png" >&2
+echo "output dir: $OUT_DIR; shots: $SHOTS/dock-icons-{colour,muted,monochrome,monochrome-dark}.png" >&2
 exit "$status"

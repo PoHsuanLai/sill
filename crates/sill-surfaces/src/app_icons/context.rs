@@ -4,14 +4,12 @@ use ds::Scale;
 
 use crate::app_icons::cache::IconResolver;
 use crate::app_icons::look::IconLook;
-use crate::app_icons::plan::AssetDir;
 
-/// The style, the output scale, quire's files (none when they were not found), and the cache
-/// re-tinted rasters come from.
+/// The style, the output scale, and the cache a shipped icon's file (`resolver.shipped_path`)
+/// and a re-tinted raster (`resolver.path`) both come from.
 #[derive(Debug, Clone, Copy)]
-pub struct IconContext<'a> {
+pub struct IconContext {
     pub look: IconLook,
     pub scale: Scale,
-    pub assets: Option<&'a AssetDir>,
     pub resolver: IconResolver,
 }
