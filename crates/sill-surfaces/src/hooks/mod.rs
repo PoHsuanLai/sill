@@ -1,6 +1,7 @@
 //! One hook per source (plan hooks table). Every body is `use_context` + `use_watch`: a hook
 //! never owns a channel, spawns a service or reads a file.
 
+mod use_agenda;
 mod use_appearance;
 mod use_apps;
 mod use_badges;
@@ -21,6 +22,7 @@ mod use_results;
 mod use_services;
 mod use_session;
 mod use_settings;
+mod use_shots;
 mod use_space_look;
 mod use_toplevels;
 mod use_tray;
@@ -29,6 +31,7 @@ mod use_wallpapers;
 mod use_wifi;
 mod use_workspaces;
 
+pub use use_agenda::use_agenda;
 pub use use_appearance::use_appearance;
 pub use use_apps::use_apps;
 pub use use_badges::use_launcher_entry;
@@ -49,6 +52,7 @@ pub use use_results::use_results;
 pub use use_services::use_services;
 pub use use_session::use_session;
 pub use use_settings::use_settings;
+pub use use_shots::use_shots;
 pub use use_space_look::use_space_look;
 pub use use_toplevels::use_toplevels;
 pub use use_tray::use_tray;

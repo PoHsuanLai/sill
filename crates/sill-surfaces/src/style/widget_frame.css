@@ -1,0 +1,2 @@
+/* The widget frame (widgets/frame.rs; M10 lane b). Empty at the freeze; its lane adds the rules for quire's `Surface` in `Material::Widget` and, in the notification center, the Popover tile, with quire's tokens
+   only (coherence rule 1). */

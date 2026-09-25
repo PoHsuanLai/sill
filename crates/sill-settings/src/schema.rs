@@ -4,20 +4,24 @@
 use ds_settings::schema::{AppId, FilePath, Schema, SettingsSchema};
 
 use crate::bar::BarSettings;
+use crate::calendar::CalendarSettings;
 use crate::control_center::ControlCenterSettings;
 use crate::display::DisplaySettings;
 use crate::dock::DockSettings;
+use crate::hot_corners::HotCornersSettings;
 use crate::launcher::LauncherSettings;
 use crate::menus::MenusSettings;
 use crate::notifications::NotificationsSettings;
 use crate::osd::OsdSettings;
 use crate::power_menu::PowerMenuSettings;
+use crate::screenshot::ScreenshotSettings;
 use crate::scroll::ScrollSettings;
 use crate::scrollbar::ScrollbarSettings;
 use crate::session::SessionSettings;
 use crate::sound::SoundSettings;
 use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
+use crate::widgets::WidgetsSettings;
 use crate::window::WindowSettings;
 
 /// One schema per domain, in `ShellFile` order.
@@ -39,6 +43,10 @@ pub fn schemas() -> Vec<Schema> {
         WindowSettings::schema(),
         PowerMenuSettings::schema(),
         SessionSettings::schema(),
+        WidgetsSettings::schema(),
+        CalendarSettings::schema(),
+        ScreenshotSettings::schema(),
+        HotCornersSettings::schema(),
     ]
 }
 

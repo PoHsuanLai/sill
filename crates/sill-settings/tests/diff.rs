@@ -3,8 +3,9 @@
 
 use ds_settings::{Count, Ms, Px};
 use sill_settings::{
-    DisplayScaleMode, Dnd, OsdPosition, PanelMaterial, PickFeedback, PowerMenuDefault,
-    SettingsChange, ShellFile, TrackClick, UiSounds, apply,
+    CornerAction, DesktopWidgets, DisplayScaleMode, Dnd, OsdPosition, PanelMaterial, PickFeedback,
+    PowerMenuDefault, SettingsChange, ShellFile, ShotThumbnail, TrackClick, UiSounds, WeekNumbers,
+    apply,
 };
 
 fn with(edit: impl FnOnce(&mut ShellFile)) -> ShellFile {
@@ -69,6 +70,22 @@ fn apply_yields_exactly_the_changed_domain() {
         (
             with(|f| f.session.locker = "swaylock".to_owned()),
             SettingsChange::Session,
+        ),
+        (
+            with(|f| f.widgets.desktop = DesktopWidgets::On),
+            SettingsChange::Widgets,
+        ),
+        (
+            with(|f| f.calendar.week_numbers = WeekNumbers::Show),
+            SettingsChange::Calendar,
+        ),
+        (
+            with(|f| f.screenshot.thumbnail = ShotThumbnail::Hide),
+            SettingsChange::Screenshot,
+        ),
+        (
+            with(|f| f.hot_corners.top_left = CornerAction::Launcher),
+            SettingsChange::HotCorners,
         ),
     ];
     let base = ShellFile::default();

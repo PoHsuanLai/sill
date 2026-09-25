@@ -73,6 +73,7 @@ pub fn run() -> ExitCode {
         control_center: sill_surfaces::surfaces::control_center::ControlCenterLink::new(),
         notification_center: sill_surfaces::surfaces::notification_center::CenterLink::new(),
         banners: sill_surfaces::surfaces::banners::BannerLink::new(),
+        corners: sill_surfaces::surfaces::hot_corners::CornerLink::new(),
     });
     // M6: the notifications service's policy from the settings and the focus mode; the first
     // one sent ends its passive start (FINDINGS "M6 freeze").
@@ -99,6 +100,19 @@ pub fn run() -> ExitCode {
         prepaint: sill_surfaces::prepaint(),
         ..HostConfig::default()
     };
+    // M10: the calendar's sources and the screenshots' folders and tool, from the settings
+    // (both services passive until then; lanes a and c fill the followers).
+    crate::calendar::spawn_policy(
+        runtime.handle(),
+        settings_feed.0.clone(),
+        services.events_control.clone(),
+    );
+    crate::screenshots::spawn_policy(
+        runtime.handle(),
+        settings_feed.0.clone(),
+        services.shots_control.clone(),
+    );
+
     let host = match Host::<ShellMsg>::connect(config) {
         Ok(host) => host,
         Err(error) => return fatal(&format!("connecting to the compositor: {error}")),
@@ -131,6 +145,16 @@ pub fn run() -> ExitCode {
     let mut outputs = Outputs::default();
     let launcher = LauncherLink::new();
     let osd = OsdLink::new();
+    // M10: the hot corners' firings, carried out off the host thread (lane d fills it).
+    if let Some(links) = crate::links::get() {
+        crate::corners::spawn_hits(
+            runtime.handle(),
+            &links.corners,
+            settings_feed.0.clone(),
+            services.clone(),
+            launcher.clone(),
+        );
+    }
     let result = host.run(move |ctx, event| {
         run_event(
             ctx,
@@ -259,6 +283,17 @@ fn run_event(
             });
             // Before the OSD, so the OSD draws over a banner (both on the Overlay layer).
             crate::notifications::spawn_missing(ctx, outputs, settings_tx, |root| {
+                surface_root(root, services, settings_feed)
+            });
+            // M10: the screenshot thumbnail after the banners and before the OSD (all Overlay);
+            // the desktop widgets (Bottom) and the hot corners (Overlay, never painted).
+            crate::screenshots::spawn_missing(ctx, outputs, |root| {
+                surface_root(root, services, settings_feed)
+            });
+            crate::widgets::spawn_missing(ctx, outputs, settings_tx, |root| {
+                surface_root(root, services, settings_feed)
+            });
+            crate::corners::spawn_missing(ctx, outputs, settings_tx, |root| {
                 surface_root(root, services, settings_feed)
             });
             crate::osd::spawn_missing(ctx, outputs, settings_tx, osd, |root| {
@@ -594,14 +629,15 @@ pub(crate) fn surface_root(root: Root, services: &Services, settings_feed: &Sett
         .context(sill_surfaces::MEASURE)
         .context(sill_surfaces::FOCUS);
     // M5: the focus mode, the power menu and the control center's asks; M6: the notification
-    // center and the banners' output (`crate::links`).
+    // center and the banners' output; M10: the hot corners' firings (`crate::links`).
     match crate::links::get() {
         Some(links) => root
             .context(links.focus.clone())
             .context(links.power_menu.clone())
             .context(links.control_center.clone())
             .context(links.notification_center.clone())
-            .context(links.banners.clone()),
+            .context(links.banners.clone())
+            .context(links.corners.clone()),
         None => root,
     }
 }
@@ -635,6 +671,10 @@ fn dispatch_request(
             crate::osd::fake(osd, services, outputs, &settings_tx.borrow(), fake)
         }
         Request::Debug(DebugRequest::Notify(fake)) => crate::notifications::fake(services, fake),
+        Request::Debug(DebugRequest::Screenshot(fake)) => crate::screenshots::fake(services, fake),
+        Request::Debug(DebugRequest::Corner(fake)) => {
+            crate::corners::fake(outputs, crate::links::get(), fake)
+        }
         Request::Debug(request) => dispatch_debug(ctx, outputs, request),
         Request::Display(request) => {
             let response = crate::displays::dispatch(services, request);
@@ -652,6 +692,8 @@ fn dispatch_request(
             crate::notifications::dispatch(outputs, crate::links::get(), services, request)
         }
         Request::Lock => crate::session::lock(services),
+        Request::Screenshot(request) => crate::screenshots::dispatch(services, request),
+        Request::Widgets(request) => crate::widgets::dispatch(settings_dir, settings_tx, request),
     }
 }
 
@@ -725,6 +767,8 @@ fn dispatch_debug(
         // Answered by `dispatch_request`, which holds the OSD's link.
         DebugRequest::Osd(_) => unsupported("the OSD's made-up change is answered elsewhere"),
         DebugRequest::Notify(_) => unsupported("a made-up notification is answered elsewhere"),
+        DebugRequest::Screenshot(_) => unsupported("a made-up screenshot is answered elsewhere"),
+        DebugRequest::Corner(_) => unsupported("a made-up corner hit is answered elsewhere"),
     }
 }
 
@@ -832,6 +876,16 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
             let (banners_name, center_name) = crate::notifications::namespaces(info);
             let banners = surfaces.banners.map(|id| (banners_name, id));
             let center = surfaces.notification_center.map(|id| (center_name, id));
+            let thumbnail = surfaces
+                .thumbnail
+                .map(|id| (crate::screenshots::namespace(info), id));
+            let desktop = surfaces
+                .desktop_widgets
+                .map(|id| (crate::widgets::namespace(info), id));
+            let corners: Vec<_> = crate::corners::namespaces(info)
+                .into_iter()
+                .filter_map(|(corner, name)| surfaces.corners.get(corner).map(|id| (name, id)))
+                .collect();
             bar.into_iter()
                 .chain(wallpaper)
                 .chain(dock)
@@ -841,6 +895,9 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
                 .chain(power_menu)
                 .chain(banners)
                 .chain(center)
+                .chain(thumbnail)
+                .chain(desktop)
+                .chain(corners)
         })
         .collect();
     ids.into_iter()

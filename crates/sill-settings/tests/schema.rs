@@ -151,6 +151,22 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
             "session.polkit_agent",
             toml::Value::String("auto".to_owned()),
         ),
+        ("widgets.desktop", toml::Value::String("off".to_owned())),
+        ("widgets.desktop_cell_px", toml::Value::Integer(164)),
+        ("calendar.sources", toml::Value::String("auto".to_owned())),
+        (
+            "calendar.first_weekday",
+            toml::Value::String("monday".to_owned()),
+        ),
+        ("calendar.up_next_days", toml::Value::Integer(7)),
+        ("screenshot.thumbnail_hold_ms", toml::Value::Integer(5200)),
+        ("screenshot.tool", toml::Value::String("auto".to_owned())),
+        (
+            "hot_corners.top_left",
+            toml::Value::String("none".to_owned()),
+        ),
+        ("hot_corners.dwell_ms", toml::Value::Integer(150)),
+        ("hot_corners.size_px", toml::Value::Integer(2)),
     ];
     for (path, want) in cases {
         assert_eq!(&default_of(path), want, "{path}");

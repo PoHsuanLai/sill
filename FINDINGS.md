@@ -3851,3 +3851,408 @@ lock refused while it held (exit 3), free again after (exit 0), `sill quit` exit
 
 What needs a real login (lock before sleep, idle lock, `pkexec true`, the power key) is in
 docs/manual-checks.md "Needs a sill login".
+
+## M10 freeze (2026-09-26)
+
+The calendar, the screenshot thumbnail, widgets in the notification center and on the desktop,
+and hot corners (design/20 §1.12, §1.13, §1.14, §1.16), frozen on `m10-freeze` so four agents
+can fill them in parallel and a fifth can prove them under real input. Everything compiles;
+every pure function a later agent fills is `todo!()` with its table test `#[ignore = "M10 fill:
+<lane>"]` (35 of them), every component draws nothing yet (the notification center's render
+tests mount the widget slot, so no component body is a `todo!()`), and every daemon follower a
+lane fills is a no-op stub, so the suite stays green and `sill run` starts. Findings are numbered
+from F400/Q180/G120; the lanes take F420/Q190/G130 (a), F440/Q200/G140 (b), F460/Q210/G150 (c),
+F480/Q220/G160 (d) and F500/Q230/G170 (e).
+
+macOS is the reference throughout: since macOS 11 the clock opens Notification Center, whose
+widgets include the month and Up Next; Sonoma puts the same widgets on the desktop; a screenshot
+floats a thumbnail at the bottom right; Hot Corners live on the "Desktop & Dock" page.
+
+- **F400 Dependencies: none added.** `jiff` (pinned block, already sill-services') joins
+  sill-surfaces for the month grid and the world clock; `notify`, `image` and `dirs` are already
+  sill-services'. Not added: `icalendar` (brings chrono, expands no `RRULE`), `rrule` (chrono and
+  chrono-tz: a second compiled-in zone database beside jiff's), a D-Bus crate for
+  evolution-data-server (zbus is here when it is wanted). `cargo deny check licenses` unchanged.
+- **F401 Where calendar events come from (researched).** On this machine: KDE's Akonadi runs,
+  and KOrganizer's default calendar is its iCal resource, a plain file named in
+  `~/.config/akonadi_ical_resource_0rc` (`Path[$e]=$HOME/.local/share/apps/korganizer/std.ics`;
+  empty here); evolution-data-server and GNOME Online Accounts are not installed (GOA's
+  calendars reach clients only through EDS anyway). In general: vdirsyncer syncs any CalDAV
+  server (Nextcloud, Fastmail, iCloud, Google) into a directory of one `.ics` per event per
+  collection (khal's `~/.calendars/<collection>/`), and every calendar exports `.ics`. So the
+  cheap, local route that covers the most is **`.ics` files and vdir directories**, parsed by
+  hand (RFC 5545's unfolding, `VEVENT`, `DTSTART`/`DTEND`/`DURATION`, dates, UTC, `TZID` by name
+  through jiff's IANA database, the common `RRULE` subset, `EXDATE`, overrides); EDS
+  (`org.gnome.evolution.dataserver.Sources5`/`Calendar8`, whose `GetObjectList` answers
+  iCalendar text the same parser reads) is a later provider behind the same trait.
+- **F402 The events service** (`sill_services::events`). `EventsProvider` (a seam with two
+  implementations today, `IcsProvider { places }` and `NullProvider`, and EDS later; blocking,
+  run on the pool) reads a `Window` and names the files it `watched()`. `calendar.sources`
+  (`auto`, `off`, or `;`-separated files and directories) parses to `EventSources`; `auto` is
+  KOrganizer's file (`akonadi_ical_path`), `$XDG_DATA_HOME/sill/calendars` and `~/.calendars`,
+  whichever exist (`auto_places`, `provider_for`). The service publishes an `Agenda { today,
+  events, status }` (`reduce_agenda`), `today` republished at local midnight so the month moves
+  on, events held for `held_window(today)` (five weeks back, ten ahead); `up_next` picks the
+  next events. **Passive until the daemon's first `EventsCommand::Sources`**
+  (`crates/sill/src/calendar.rs`), so a test or a render never reads a calendar.
+- **F403 The calendar is a widget, not a popup** (deviation from design/20 §1.12's xdg popup
+  from the clock, which M6 already replaced by the notification center, F266). `Calendar` is
+  the month (quire's `MonthGrid` once it exists, Q180; `widgets::calendar::grid::month_grid`
+  computes it: rows of ISO-numbered weeks from `calendar.first_weekday`, the neighbours' days
+  padding, today marked, busy days marked, four to six rows; `shift_month` for previous and
+  next), and `UpNext` is macOS's "Up Next" list (`event_lines`: "All day", "Now", "10:30 –
+  11:00", "Tomorrow 09:00", "Mon 09:00").
+- **F404 Widgets are one enum, drawn in two hosts** (`sill_surfaces::widgets`). `WidgetKind`
+  (settings: `Calendar`, `UpNext`, `Battery`, `NowPlaying`, `WorldClock`) is a closed set chosen
+  in the settings, so an enum, not a trait (CONVENTIONS §0); `Widget { kind, host }` picks the
+  kind's component and wraps it in `WidgetFrame`; `WidgetHost::{Center, Desktop}`,
+  `WidgetSize::{Small, Medium, Large}` (1x1, 2x1, 2x2 desktop cells; everything spans the
+  center's column), `size_of`, `widget_element_id`, and `widgets_css()` (one stylesheet file per
+  widget, so lanes a and b never share a file). Weather is not a kind: nothing provides weather
+  (adding it later is additive). Battery is this machine's UPower battery and every connected
+  Bluetooth device with a `Battery1` level (`battery_rows`); Now Playing reuses M5's module;
+  World Clock reads `widgets.world_clocks` (`parse_zones`, `clock_rows`).
+- **F405 The desktop widget layer is a skeleton** (`surfaces::desktop_widgets`, lane b). One
+  surface per output while `widgets.desktop` is on, on layer **`Bottom`**, not a second
+  `Background` surface above sill's wallpaper as the brief put it: layer-shell does not order two
+  surfaces on one layer, so the widgets could be drawn under the wallpaper (and under cosmic-bg's
+  with `spaces.wallpaper_drawer = "cosmic"`); `Bottom` is above every background and below
+  windows, which is design/20 §1.14's row. All four edges, exclusive `Auto`, keyboard `None`,
+  input and blur empty until the surface sets them to its frames (`RegionSpec::Elements`), so a
+  click between widgets reaches the desktop. One surface per output rather than design/20's "one
+  surface per widget": placement is a grid inside it (`grid_size`, `place`: saved places kept
+  when they fit, new ones from the top right), saved in `$XDG_STATE_HOME/sill/
+  desktop-widgets.json` (state, not a setting, like the dock's pins).
+- **F406 How sill learns a screenshot happened (researched).** COSMIC's `cosmic-screenshot`
+  1.8.0 calls the portal (`org.freedesktop.portal.Screenshot`, xdg-desktop-portal-cosmic), whose
+  picker saves `Screenshot_%Y-%m-%d_%H-%M-%S.png` into Pictures (its `save_location`: Pictures,
+  Documents or the clipboard); with `--interactive=false` cosmic-screenshot saves the whole
+  screen into `--save-dir` itself. Nothing is announced on the bus: the portal's `Response` goes
+  to its caller only, and `--notify` is an ordinary notification. So the simplest route that sees
+  every screenshot, whoever takes it (COSMIC's Print key, `sill screenshot`, spectacle, grim), is
+  **an inotify watch of the screenshot folders** (`screenshot.folders`, `auto` = Pictures and
+  Pictures/Screenshots): a file closed after writing, or renamed into place, whose name reads as
+  a screenshot (`is_screenshot_name`: COSMIC's, GNOME's and spectacle's names, never a hidden or
+  partial file). `sill screenshot [area|window|screen]` only runs `screenshot.tool`
+  (`tool_command`; `auto` = cosmic-screenshot, whose picker cannot be told area or window, so
+  both open it, and `screen` is `--interactive=false --save-dir`); its file comes back through
+  the same watch, so there is one path to test. A clipboard-only screenshot has no file and no
+  thumbnail, as on macOS.
+- **F407 The screenshots service** (`sill_services::screenshots`): `Shots { current, watching,
+  taking, last_id }`, `reduce_shots` returning `ShotEffect::{MakePreview, Open, Trash, RunTool}`
+  (xdg-open, `gio trash`, a 480 px PNG preview in `$XDG_CACHE_HOME/sill/shots/preview_name`),
+  `ShotCommand::{Configure, Take, Announce, Leave(id, ShotLeave::{Opened, Kept, Trashed,
+  Dragged})}`. **Passive until the daemon's first `Configure`** (`crates/sill/src/
+  screenshots.rs` `spawn_policy`), so a test never watches `~/Pictures` or runs a tool; tests
+  configure temp folders and a stand-in tool command.
+- **F408 The thumbnail** (`surfaces::screenshot_thumb`, design/20 §1.13): one warm hidden
+  Overlay per output (`thumb_layer`: `BOTTOM | RIGHT`, exclusive `Auto` so it sits above the
+  dock's reserve, keyboard `None`, input and blur `Element("thumb")`), shown on the banners'
+  output (`BannerLink`, the main display's stand-in), `THUMB_WIDTH` 240 until quire's card
+  (Q181). `machine::step`: hold `screenshot.thumbnail_hold_ms` (5200), paused under the pointer
+  and 1500 ms more after it leaves; a click opens, a swipe keeps, Delete trashes, a drag out
+  hands the file over, a newer shot replaces. **Drag out is frozen as a hook**:
+  `start_file_drag` answers `Unsupported` until shell-host has a drag source (G120).
+- **F409 Hot corners** (`surfaces::hot_corners`, design/20 §1.16): a surface per active corner
+  (`hot_corners.<corner>` not `None`) per output. `corner_layer`: Overlay, anchored to the
+  corner, `hot_corners.size_px` (2) square, exclusive **`Ignore`** so it is at the true corner
+  over the bar's and the dock's reserve, keyboard `None`, input `Whole`, no blur, never painted.
+  `machine::step` (`Armed`, `Dwelling`, `Blocked`, `Spent { pointer, rearm }`): the dwell
+  (`dwell_ms`, 150) fires once, a required modifier (`modifier`) must be held when it ends, and
+  it re-arms only after the pointer has left and `rearm_ms` (500) has passed. A firing goes to
+  the `CornerLink` (in `crate::links`, every root's context); the daemon carries it out
+  (`corners::corner_effect`): Launcher, Notification Center and Control Center through their
+  links, Lock through the locker, Show Desktop through the toplevel manager (`show_desktop`:
+  minimise the active workspace's windows, and the next firing brings them back), Workspaces as
+  `cosmic-workspaces` (COSMIC's own `WorkspaceOverview` action runs exactly that), Command as
+  `/bin/sh -c`. Defaults are all `None`, as macOS ships them (but for Quick Note), so a fresh
+  install spawns no corner surface.
+- **F410 IPC and CLI.** `Request::Screenshot(ScreenshotRequest::Take(ShotArea))`,
+  `Request::Widgets(WidgetsRequest::ToggleDesktop)`, `DebugRequest::Screenshot(FakeScreenshot {
+  path })` (as if the watch saw the file: nothing is captured) and
+  `DebugRequest::Corner(FakeCorner { corner })` (a hit on the first output, as if the dwell ran
+  out); wire spellings pinned in `sill-ipc/tests/serde.rs`. CLI (`cli_desktop.rs`): `sill
+  screenshot [area|window|screen]` (default `area`), `sill widgets toggle-desktop`, `sill debug
+  screenshot PATH`, `sill debug corner {top-left,top-right,bottom-left,bottom-right}`. Seen on
+  the nested cosmic-comp (own runtime dir, private bus, scratch config): `sill debug stats` lists
+  `sill-screenshot-thumb-WINIT-0` beside the rest (no corner or desktop surface: none is on);
+  `screenshot` and `debug screenshot` answer "screenshots: the service has stopped" until lane c
+  fills the loop; `debug corner top-left` answers done (the hit is dropped until lane d);
+  `widgets toggle-desktop` answers "not built yet (M10 lane b)"; `quit` exits 0.
+- **F411 Daemon wiring.** `OutputSurfaces` gains `thumbnail`, `desktop_widgets` and `corners:
+  CornerSurfaces` (per-corner `get`/`set`); `Links` gains `corners: CornerLink`; `run_event`
+  calls `screenshots::spawn_missing` (implemented: warm, hidden), `widgets::spawn_missing` and
+  `corners::spawn_missing` (lanes b and d) before the OSD's; `run` starts
+  `calendar::spawn_policy`, `screenshots::spawn_policy` and `corners::spawn_hits` (stubs until
+  lanes a, c and d); `collect_stats` names the new surfaces. `Services` gains `agenda`,
+  `events_control`, `shots`, `shots_control`; hooks `use_agenda`, `use_shots`; the surfaces'
+  `tests/support/fake.rs` feeds both.
+- **F412 Settings.** Four new domains, all Advanced, in `AWAITING_ROWS` (row text in Q185):
+  `widgets` (Page Dock: `center`, `desktop`, `desktop_widgets`, `desktop_cell_px`,
+  `desktop_gap_px`, `world_clocks`), `calendar` (Page Notifications: `sources`,
+  `first_weekday`, `week_numbers`, `up_next_days`, `up_next_max`), `screenshot` (Page Keyboard
+  and Shortcuts: `thumbnail`, `thumbnail_hold_ms`, `folders`, `tool`) and `hot_corners` (Page
+  Dock: the four corners, their four commands, `dwell_ms`, `rearm_ms`, `modifier`, `size_px`).
+  `SettingsChange` gains `Widgets`, `Calendar`, `Screenshot`, `HotCorners`.
+- **F413 Left out on purpose.** Weather (no source); moving desktop widgets by drag (plain
+  pointer events in the layer, later); the thumbnail's Mark Up and OCR "Copy text" (design/20
+  §1.13's actions; no markup tool or OCR here); the screenshot sound (`sound.event_screenshot`
+  exists, the sound service is still inert); opening a calendar app from an event (none to
+  name); EDS.
+
+### The M10 fill-in: four agents, disjoint files, then real input
+
+Every agent reads CONVENTIONS §0 and §1 (fill bodies, add private helpers and tests; never
+change a frozen signature, public field or variant; stop and report instead), ORCHESTRATION
+"Coherence rules", design/20 §1.12-§1.14 and §1.16, quire CONSUMING.md, and this section.
+Everyone runs, before reporting:
+
+```bash
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace --features sill/debug
+./scripts/check-boundary.sh
+cargo deny check licenses
+```
+
+(`cargo fmt -p <crate>` while the wave runs.) Safety, for every test and script: **never capture
+the user's real session, never write to `~/Pictures`** (temp folders only; the screenshot
+service is configured with `ShotFolders::At(temp)` and a stand-in tool), **never touch
+`wayland-0`**. Acceptance runs on the nested cosmic-comp (`wayland-1`: `WAYLAND_DISPLAY=wayland-1
+wayland-info` answers first; it is never stopped or restarted), the daemon with its own
+`XDG_RUNTIME_DIR` (the nested socket as an absolute `WAYLAND_DISPLAY`), a scratch
+`XDG_CONFIG_HOME`, `XDG_STATE_HOME` and `XDG_CACHE_HOME`, under `dbus-run-session
+--config-file=dev/private-bus.conf`, as `dev/accept-notification-center.sh` does. Files not
+listed under an agent are read-only to all: in particular `sill-services/src/{lib.rs,
+services.rs}`, `sill-surfaces/src/{lib.rs,hooks/**,widgets/mod.rs}`,
+`sill-surfaces/tests/support/fake.rs`, `sill-settings/**`, `sill-ipc/**`, and
+`crates/sill/src/{daemon.rs,cli.rs,cli_desktop.rs,links.rs,outputs.rs,lib.rs}`.
+
+**(a) a-calendar: the events provider, Calendar and Up Next.**
+- Owns: `crates/sill-services/src/events/**` (the implemented `NullProvider`,
+  `IcsProvider::watched`, `provider_for`, `held_window`, `Agenda::starting` and `week_start` may
+  change inside, never in signature), new `crates/sill-services/tests/events_live.rs` and
+  `tests/fixtures/calendars/**`; `crates/sill-surfaces/src/widgets/calendar/**`,
+  `widgets/up_next.rs`, `style/widget_calendar.css`, `style/widget_up_next.css`, a new
+  `crates/sill-surfaces/tests/calendar_render.rs`; `crates/sill/src/calendar.rs`; a new
+  `dev/accept-calendar.sh`.
+- Frozen: every `pub` item `events` re-exports, with its fields and variants (`Agenda`,
+  `AgendaEvent`, `CalEvent`, `EventTime`, `EventUid`, `CalendarName`, `SourceStatus`, `Window`,
+  `EventsCommand`, `EventsProvider`, `ProviderRead`, `EventsError`, `EventSources`, `IcsPlace`,
+  `AutoEnv`, `Days`), `ics::{IcsEvent, IcsTime, IcsEnd, IcsStatus, IcsError}`,
+  `rule::{Rule, Freq, RuleEnd}`, the signatures of `reduce_agenda`, `parse_sources`,
+  `akonadi_ical_path`, `auto_places`, `unfold`, `parse_ics`, `parse_rule`, `occurrences`,
+  `up_next`, `spawn`; `grid::{Month, Step, IsoWeek, DayPlace, DayMark, Eventful, GridDay,
+  GridWeek, MonthGrid, shift_month, month_grid, busy_days}`, `CalendarWidget { host }`,
+  `UpNextWidget { host }`, `EventLines`, `event_lines`, both `CSS`; `calendar::{sources_of,
+  spawn_policy}`.
+- Done: every `M10 fill: a-calendar` test passes un-ignored; `live::run` waits for `Sources`,
+  builds `provider_for` (reading `$HOME`, `$XDG_DATA_HOME` and Akonadi's rc), reads on the
+  blocking pool in the system zone, watches `watched()` with `notify` (debounced), re-reads on a
+  change, a `Refresh` and the day's turn, publishes through `reduce_agenda`, and ends when every
+  receiver is gone; `spawn_policy` sends `sources_of` at start and on every change; the Calendar
+  widget draws `month_grid` for the month shown (today's on mount), `IconButton{Tool}` previous
+  and next, week numbers per `calendar.week_numbers`, busy days marked, with quire components
+  and tokens only (the SSR class test and `ds::lint::stylesheet`); Up Next lists `up_next`
+  through `event_lines`, an empty state, and a quiet line for `SourceStatus::{Off,
+  NoCalendars}` and for problems; both redraw on the clock's minute tick. Live test
+  (`#[ignore]`): a temp directory with a file and a vdir collection; an edit is re-read within
+  1 s.
+- Verify: the gates; `cargo test -p sill-services --test events_live -- --ignored`;
+  `dev/accept-calendar.sh` on the nested compositor, the scratch config's `calendar.sources` a
+  temp `.ics` (fixture events today, tomorrow and weekly) and `widgets.center = ["calendar",
+  "up_next"]`: (1) after `sill notifications open`, a capture of
+  `sill-notification-center-<out>` shows the month with today marked
+  (`dev/out/calendar-cosmic.png`); (2) Up Next lists the fixture's next events in order; (3) an
+  edit of the file shows within 2 s; (4) `calendar.week_numbers = "show"` and `sill reload`:
+  the week column appears; (5) 0 frames idle while open. The slot is lane b's: until b is
+  merged, (1)-(4) are render tests on `Widget { kind, host: Center }` and the script exits 2
+  naming the missing slot.
+
+**(b) b-widgets: the widget frame, the notification center's slot, the desktop layer.**
+- Owns: `crates/sill-surfaces/src/widgets/{frame.rs,battery.rs,now_playing.rs,
+  world_clock.rs}`, `style/widget_{frame,battery,now_playing,world_clock}.css`,
+  `surfaces/notification_center/{widgets.rs,panel.rs}` (the panel only to inject
+  `widgets_css()`), `surfaces/control_center/modules/now_playing.rs` (only to share its body,
+  F404), `surfaces/desktop_widgets/**` (the implemented `layer.rs` inside only),
+  `style/desktop_widgets.css`; `crates/sill/src/widgets.rs`; `tests/widgets_lint.rs`, new
+  `tests/{widgets_render,desktop_widgets_render}.rs`; a new `dev/accept-widgets.sh`.
+- Frozen: `WidgetFrame { kind, host, size, children }`, `BatteryOwner`, `BatteryRow`,
+  `battery_rows`, `ZoneName`, `ClockRow`, `parse_zones`, `clock_rows`, `BatteryWidget`,
+  `NowPlayingWidget` and `WorldClockWidget` (each `{ host }`), their `CSS`; `CenterWidgets` (no
+  props); `DesktopWidgets { output }`, `desktop_layer`, `DESKTOP_WIDGETS_CSS`, `GridSlot`,
+  `GridSize`, `Placement`, `grid_size`, `place`; `widgets::{spawn_missing, flipped, dispatch,
+  namespace}` in `crates/sill`.
+- Done: the ignored tests pass; `CenterWidgets` draws `Widget { host: Center }` for each of
+  `widgets.center` in order, under the history, the column scrolling as a whole; the frame is
+  quire's `Surface{Widget}` on the desktop and a tile on the Popover in the center (Q182: the
+  corner and padding are the frame's, never sill CSS); Battery, Now Playing (M5's module, not
+  redrawn) and World Clock drawn from their pure parts; `widgets::spawn_missing` spawns the
+  desktop layer per output while `widgets.desktop` is `On` and closes it when `Off` (the daemon
+  calls it after every event, a settings change included); the layer places `desktop_widgets`
+  with `place` over `grid_size`, loads and saves the placements, and sets input and blur to the
+  frames with `RegionSpec::Elements`; `sill widgets toggle-desktop` loads, flips (`flipped`),
+  saves and publishes; quire components and tokens only.
+- Verify: the gates; `dev/accept-widgets.sh` on the nested compositor: (1) with the default
+  `widgets.center` (Calendar, Up Next, Battery), `sill notifications open` and a capture shows
+  three frames under the history (`dev/out/widgets-center-cosmic.png`; Calendar and Up Next are
+  empty until lane a is merged); (2) `sill widgets toggle-desktop` adds
+  `sill-desktop-widgets-<out>` to `sill debug stats` with the Calendar and Battery frames
+  (`dev/out/widgets-desktop-cosmic.png`), and a second toggle removes it; (3) the file's
+  `widgets.desktop` flips each time; (4) 0 frames idle on the desktop layer.
+
+**(c) c-screenshot: the screenshots service and the thumbnail.**
+- Owns: `crates/sill-services/src/screenshots/**` (the implemented `save_folder` and
+  `ShotKind::word` inside only), a new `crates/sill-services/tests/screenshots_live.rs` and its
+  fixtures; `crates/sill-surfaces/src/surfaces/screenshot_thumb/**` (the implemented `layer.rs`
+  and `drag.rs` inside only), `style/screenshot_thumb.css`, `tests/screenshot_thumb_lint.rs`, a
+  new `tests/screenshot_thumb_render.rs`; `crates/sill/src/screenshots.rs`;
+  `dist/cosmic/com.system76.CosmicSettings.Shortcuts/v1/system_actions` (a `Screenshot: "sill
+  screenshot area"` line, once the tool path works); a new `dev/accept-screenshot.sh`.
+- Frozen: every `pub` item `screenshots` re-exports, with its fields and variants (`Shots`,
+  `Shot`, `ShotId`, `ShotPreview`, `ShotLeave`, `Watching`, `Taking`, `ShotEvent`, `ShotEffect`,
+  `ShotCommand`, `ShotPolicy`, `ShotFolders`, `ShotTool`, `ShotKind`, `CommandLine`,
+  `ShotName`), the signatures of `reduce_shots`, `is_screenshot_name`, `parse_folders`,
+  `folders_of`, `preview_name`, `parse_tool`, `tool_command`, `spawn`; `ScreenshotThumb {
+  output }`, `thumb_layer`, `thumb_region`, `THUMB_ID`, `THUMB_RADIUS`, `THUMB_WIDTH`, `ROOM`,
+  `SCREENSHOT_THUMB_CSS`, `machine::{HoldToken, Pointer, ThumbState, ThumbParams, ThumbIn,
+  ThumbOut, step}`, `drag::{DragStart, start_file_drag}`; `screenshots::{spawn_missing,
+  kind_of, dispatch, fake, policy_of, spawn_policy, namespace}` in `crates/sill`.
+- Done: the ignored tests pass; `live::run` per F406 and F407 (the folders that exist watched;
+  a close after writing or a rename into place of a screenshot name; previews on the blocking
+  pool; `xdg-open`, `gio trash`, the tool as a child, `TakeEnded` at its exit); `spawn_policy`
+  sends `policy_of` at start and on change; the thumbnail follows `use_shots` and the
+  `BannerLink` through `step`, woken by quire's timers only, entrance and exit in quire motion
+  only (no keyframes of sill's own; Q181 until a thumbnail card exists);
+  `screenshot.thumbnail = "hide"` keeps it hidden; input and blur on the card; the swipe is
+  quire's `Swipe` if it can take a plain card (else the gap is Q210); a drag out calls
+  `start_file_drag` and stays put on `Unsupported`.
+- Verify: the gates; `cargo test -p sill-services --test screenshots_live -- --ignored` (a temp
+  folder; a file written under a temp name and renamed to `Screenshot_…png` is `current` within
+  500 ms with a preview; a `.part` file is nothing; a stand-in tool that copies a fixture in:
+  `Take`, then the shot); `dev/accept-screenshot.sh` on the nested compositor, the scratch
+  config's `screenshot.folders` a temp folder and `screenshot.tool` a stand-in that copies a
+  fixture PNG there (never cosmic-screenshot, never the real Pictures): (1)
+  `sill-screenshot-thumb-<out>` exists, hidden; (2) `sill debug screenshot
+  <temp>/Screenshot_a.png` shows it within 500 ms (`dev/out/screenshot-thumb-cosmic.png`); (3)
+  it hides after the hold plus the exit, and the file is still there; (4) `sill screenshot
+  screen` (the stand-in) shows the new file; (5) `sill debug click` on the card runs the opener
+  (a stand-in `xdg-open` first on `PATH`, logging its argument); (6) hovered at 4 s (`sill debug
+  pointer`) it is up at 7 s and gone 1.5 s plus the exit after `sill debug leave`; (7) 0 frames
+  while hidden.
+
+**(d) d-corners: hot corners.**
+- Owns: `crates/sill-surfaces/src/surfaces/hot_corners/**` (the implemented `layer.rs`,
+  `link.rs`, `corner_action`, `corner_command`, `active_corners` and `held` inside only), a new
+  `style/hot_corners.css` if the transparent element needs a rule, a new
+  `tests/hot_corners_render.rs`; `crates/sill/src/corners.rs`; a new
+  `dev/accept-hot-corners.sh`.
+- Frozen: `Corner` (`ALL`, `word`), `HotCorner { output, corner }`, `corner_layer`,
+  `CornerLink` (`new`, `hit`, `last`, `subscribe`), `CornerHit`, `machine::{Token, KeyState,
+  Mods, Inside, Rearm, Phase, CornerMachine, CornerParams, CornerIn, CornerOut, step, held}`;
+  `corners::{CornerEffect, corner_effect, Stash, show_desktop, corner_of, spawn_missing,
+  spawn_hits, fake, namespaces}` and `outputs::CornerSurfaces` in `crates/sill`.
+- Done: the ignored tests pass; `spawn_missing` spawns `corner_layer` for each of
+  `active_corners` per output, closes a corner whose action became `None` and resizes on a
+  `size_px` change; the surface draws one transparent element over the whole square (no `Ds`,
+  no material) and feeds `step` from its pointer enter and leave, with quire timers for the
+  dwell and the re-arm, calling `CornerLink::hit` on `Fire`; `spawn_hits` carries out
+  `corner_effect` per F409 (the launcher on the hit's output, the center and the control center
+  through their links, `crate::session::lock`, `show_desktop` over the output's active
+  workspaces as `WlCommand`s, a child process for `Run`), and the report says what shell-host
+  gives for modifiers (G121).
+- Verify: the gates; `dev/accept-hot-corners.sh` on the nested compositor, the scratch config
+  `top_left = "launcher"`, `top_right = "notification_center"`, `bottom_right = "command"` (a
+  command that touches a temp file), `bottom_left = "none"`: (1) `sill debug stats` lists three
+  corner surfaces and not the fourth; (2) `sill debug corner top-left` opens the launcher (its
+  panel captures), `top-right` the center, `bottom-right` touches the file; (3) `sill debug
+  pointer sill-hot-corner-top-left-<out> 0 0` opens the launcher after the dwell and not before
+  (checks at 50 ms and 400 ms), a second pointer without a leave does nothing, a leave and 600 ms
+  re-arm it; (4) `top_left = "none"` and `sill reload` remove its surface; (5) 0 frames on every
+  corner surface. The script never sets a corner to `lock`.
+
+**(e) e-real-input: after a, b, c and d are merged.**
+- Owns: a new `dev/accept-m10-real-input.sh` and its entries in `docs/manual-checks.md`. No
+  source file: a bug is reported against its lane's files.
+- Done and verify: on shell-host's headless KWin (`scripts/dev/kwin-virtual.sh start`,
+  `fake-input.sh`, one fake-input client for the whole run: G50), the daemon on KWin's private
+  bus with the scratch config and temp folders above: (1) the real pointer moved into the
+  top-left corner (`move 0 0`) opens the launcher after the dwell; `move 0 0` again without
+  leaving does not; leaving and coming back after the re-arm does (this is the check that a 2 px
+  transparent Overlay at the corner, over the bar, really gets pointer enter); (2) with
+  `modifier = "super"`, the corner fires with `key Super_L down` held and not without, or the
+  run records G121 as confirmed; (3) a stand-in screenshot shows the thumbnail; a real hover
+  keeps it past the hold, a real click runs the stand-in opener, a real drag 90 px right
+  dismisses it, a drag up-left leaves it in place (G120); (4) the notification center's widgets
+  scroll with the history under a real wheel; (5) with the desktop layer on, a real click between
+  widgets reaches the window beneath. KWin is stopped at the end.
+
+### Gaps found in the M10 freeze
+
+- **Q180 (quire)** `MonthGrid` (design/20 §1.12 and §3 open decision 5; into design/04 first):
+  a month of day cells in 7 columns from a first weekday, an optional leading ISO week column,
+  the neighbours' days quieter, today on the accent disc, a busy day's dot, weekday heads,
+  optionally pressable days, and the month change on `slide-l`/`slide-r`. Its data is
+  `widgets::calendar::grid::MonthGrid` (sill computes it, the component draws it). Until then
+  lane a lays text out with tokens and says so.
+- **Q181 (quire)** A thumbnail card (design/20 §1.13): an image letterboxed in a Toast card,
+  `rise --t-big --e-spring` in, `slide-r` out at `--e-exit`, a hover row of actions (Delete; Mark
+  Up and Copy Text later), a drag ghost, and its width (sill's `THUMB_WIDTH` 240 meanwhile).
+- **Q182 (quire)** A widget frame (design/20 §1.14; `Material::Widget` exists): small, medium
+  and large sizes on a grid unit, an optional title row with a glyph, the card's corner and
+  padding, a variant as a tile inside a Popover (the notification center's widgets), and `bump`
+  on a value change.
+- **Q183 (quire)** A world-clock face (an analog dial tinted for day and night, or macOS's
+  digital row in the small size), and a battery level ring for the Battery widget if
+  `ProgressRing` is not it.
+- **Q184 (quire, design/13)** Hot corners have no behaviour section in design/13, though
+  design/20 §1.16 cites "13 (dwell time and action table)": the dwell (sill proposes 150 ms),
+  the re-arm (500 ms), the modifier rule and the action table belong there.
+- **Q185 (design/22)** The rows `AWAITING_ROWS` exempts (F412): new sections `widgets`,
+  `calendar`, `screenshot` and `hot_corners` after §3.19, which `tests/keys.rs` reads without
+  change (everything up to "## 4. Rust shape" is parsed); §2's file table gains the four
+  domains:
+
+  | Key | Type | Default | Range / Alt | Source | Status |
+  | --- | --- | --- | --- | --- | --- |
+  | `widgets.center` | `Vec<WidgetKind>` (`Calendar, UpNext, Battery, NowPlaying, WorldClock`) | `[Calendar, UpNext, Battery]` | which widgets show under the notifications, in order | `20-SURFACES.md#1-14-desktop-widgets-spec-tier-2`; sill FINDINGS "M10 freeze" F404 | proposed (M10 freeze, 2026-09-26) |
+  | `widgets.desktop` | `DesktopWidgets::{Off,On}` | `Off` | the desktop widget layer (macOS Sonoma); `sill widgets toggle-desktop` flips it | same; F405 | proposed (M10 freeze, 2026-09-26) |
+  | `widgets.desktop_widgets` | `Vec<WidgetKind>` | `[Calendar, Battery]` | which widgets the desktop shows; where they sit is saved state (`desktop-widgets.json`), not a key | same; F405 | proposed (M10 freeze, 2026-09-26) |
+  | `widgets.desktop_cell_px` | `Px` | `164` | `120..=240`; a small widget is one cell, a medium 2x1, a large 2x2 | same; F405 | proposed (M10 freeze, 2026-09-26) |
+  | `widgets.desktop_gap_px` | `Px` | `16` | `0..=48`; between cells and around the grid | same; F405 | proposed (M10 freeze, 2026-09-26) |
+  | `widgets.world_clocks` | `Text` | `""` | IANA zone names separated by `;` (a `Vec` of text is not derivable yet, as for `display.scale_overrides`) | same; F404 | proposed (M10 freeze, 2026-09-26) |
+  | `calendar.sources` | `Text` | `"auto"` | `auto` (KOrganizer's file via Akonadi's iCal resource, `~/.local/share/sill/calendars`, `~/.calendars`), `off`, or `.ics` files and folders separated by `;` | `20-SURFACES.md#1-12-calendar-popup-spec-tier-2`; F401, F402 | proposed (M10 freeze, 2026-09-26) |
+  | `calendar.first_weekday` | `FirstWeekday::{Monday,Sunday}` | `Monday` | the month's first column (ISO 8601) | same; F403 | proposed (M10 freeze, 2026-09-26) |
+  | `calendar.week_numbers` | `WeekNumbers::{Hide,Show}` | `Hide` | a column of ISO week numbers | same; F403 | proposed (M10 freeze, 2026-09-26) |
+  | `calendar.up_next_days` | `Count` | `7` | `1..=31`; how far Up Next looks ahead | same; F403 | proposed (M10 freeze, 2026-09-26) |
+  | `calendar.up_next_max` | `Count` | `3` | `1..=10`; how many events Up Next lists | same; F403 | proposed (M10 freeze, 2026-09-26) |
+  | `screenshot.thumbnail` | `ShotThumbnail::{Show,Hide}` | `Show` | the floating thumbnail after a screenshot (macOS's "Show Floating Thumbnail") | `20-SURFACES.md#1-13-screenshot-thumbnail-spec-integrated-experience-priority-pick`; F408 | proposed (M10 freeze, 2026-09-26) |
+  | `screenshot.thumbnail_hold_ms` | `Ms` | `5200` | `1000..=30000`; paused while hovered (`ToastHold`) | same; F408 | proposed (M10 freeze, 2026-09-26) |
+  | `screenshot.folders` | `Text` | `"auto"` | `auto` (Pictures and Pictures/Screenshots), `off`, or folders separated by `;`, watched for new screenshots | same; F406 | proposed (M10 freeze, 2026-09-26) |
+  | `screenshot.tool` | `Text` | `"auto"` | `auto` (cosmic-screenshot), `off`, or a command line run by `/bin/sh -c` with the kind as `$1` and the folder as `$2` | same; F406 | proposed (M10 freeze, 2026-09-26) |
+  | `hot_corners.top_left` | `CornerAction::{None,Launcher,NotificationCenter,ControlCenter,ShowDesktop,Lock,Workspaces,Command}` | `None` | what the corner does; `None` spawns no surface | `20-SURFACES.md#1-16-hot-corners-spec-integrated-experience`; F409 | proposed (M10 freeze, 2026-09-26) |
+  | `hot_corners.top_right` | `CornerAction` | `None` | as `top_left` | same | proposed (M10 freeze, 2026-09-26) |
+  | `hot_corners.bottom_left` | `CornerAction` | `None` | as `top_left` | same | proposed (M10 freeze, 2026-09-26) |
+  | `hot_corners.bottom_right` | `CornerAction` | `None` | as `top_left` (macOS ships Quick Note here; sill has none until M12) | same | proposed (M10 freeze, 2026-09-26) |
+  | `hot_corners.top_left_command` | `Text` | `""` | run by `/bin/sh -c` when the corner is `Command` | same | proposed (M10 freeze, 2026-09-26) |
+  | `hot_corners.top_right_command` | `Text` | `""` | as `top_left_command` | same | proposed (M10 freeze, 2026-09-26) |
+  | `hot_corners.bottom_left_command` | `Text` | `""` | as `top_left_command` | same | proposed (M10 freeze, 2026-09-26) |
+  | `hot_corners.bottom_right_command` | `Text` | `""` | as `top_left_command` | same | proposed (M10 freeze, 2026-09-26) |
+  | `hot_corners.dwell_ms` | `Ms` | `150` | `0..=2000`; how long the pointer rests before the corner acts | `20-SURFACES.md#3-open-decisions` item 7; F409 | proposed (M10 freeze, 2026-09-26) |
+  | `hot_corners.rearm_ms` | `Ms` | `500` | `0..=5000`; acts again only after the pointer has left and this long | same | proposed (M10 freeze, 2026-09-26) |
+  | `hot_corners.modifier` | `CornerModifier::{None,Super,Alt,Ctrl,Shift}` | `None` | a key held for the corner to act (macOS's modifier option); see G121 | same | proposed (M10 freeze, 2026-09-26) |
+  | `hot_corners.size_px` | `Px` | `2` | `1..=8`; the invisible square's side | `20-SURFACES.md#1-16-hot-corners-spec-integrated-experience` (2 x 2 px) | proposed (M10 freeze, 2026-09-26) |
+
+  All Advanced. Pages: `widgets` and `hot_corners` Dock (macOS's "Desktop & Dock"), `calendar`
+  Notifications, `screenshot` Keyboard and Shortcuts. design/20 §1.12's row becomes "a widget in
+  the notification center (M6's center replaced the clock's popup)", and §1.14's layer row "one
+  `Bottom` surface per output, the widgets on a grid inside it".
+- **G120 (shell-host)** A drag source: `SurfaceHandle::start_drag(mimes, icon)` (named in
+  shell-host F35 as apart from G4's drop side): a `wl_data_source` offering `text/uri-list`,
+  `start_drag` with the press's serial and an icon surface, and `dnd_finished` or `cancelled`
+  back. The thumbnail's drag out waits on it (`start_file_drag` answers `Unsupported`).
+- **G121 (shell-host, Wayland)** Modifiers over an unfocused surface: a layer surface with
+  keyboard `None` is never sent `wl_keyboard.modifiers` (they go to the focused surface only),
+  so a hot corner cannot know whether Super is held as the pointer arrives. `hot_corners.modifier`
+  is frozen and defaults to `None`; lane e confirms on KWin. A fix wants a compositor-side
+  modifier state (no protocol offers one) or a surface that has the keyboard.

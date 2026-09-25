@@ -24,6 +24,8 @@ tokio = { workspace = true }
 image = { workspace = true }
 resvg = { version = "0.48", default-features = false }
 dirs = { workspace = true }
+# Civil dates for the calendar widgets' month grid and the world clock (M10).
+jiff = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]

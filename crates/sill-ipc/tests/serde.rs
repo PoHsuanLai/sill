@@ -5,12 +5,12 @@ use std::io::Cursor;
 use std::path::PathBuf;
 
 use sill_ipc::{
-    ControlCenterRequest, DebugRequest, DesktopId, DisplayRequest, DockRequest, Failure,
-    FailureKind, FakeAction, FakeExpire, FakeMute, FakeNotification, FakeOsd, FakeUrgency,
-    IpcError, LauncherRequest, LevelRequest, MAX_LINE, Micros, NotificationsReport,
-    NotificationsRequest, OsdTopic, Point, PointerButton, PowerMenuRequest, ReportHolder,
-    ReportMode, Request, Response, SurfaceName, SurfaceStats, VolumeRequest, decode, encode,
-    read_message, write_message,
+    ControlCenterRequest, CornerName, DebugRequest, DesktopId, DisplayRequest, DockRequest,
+    Failure, FailureKind, FakeAction, FakeCorner, FakeExpire, FakeMute, FakeNotification, FakeOsd,
+    FakeScreenshot, FakeUrgency, IpcError, LauncherRequest, LevelRequest, MAX_LINE, Micros,
+    NotificationsReport, NotificationsRequest, OsdTopic, Point, PointerButton, PowerMenuRequest,
+    ReportHolder, ReportMode, Request, Response, ScreenshotRequest, ShotArea, SurfaceName,
+    SurfaceStats, VolumeRequest, WidgetsRequest, decode, encode, read_message, write_message,
 };
 
 fn surface(name: &str) -> SurfaceName {
@@ -182,6 +182,34 @@ fn requests() -> Vec<(Request, &'static str)> {
                 replaces: 0,
             })),
             r#"{"kind":"debug","v":{"kind":"notify","v":{"app":"Mail","summary":"Ada","body":"the <b>engine</b>","urgency":"critical","actions":[{"key":"default","label":"Open"}],"expire":"never","replaces":0}}}"#,
+        ),
+        (
+            Request::Screenshot(ScreenshotRequest::Take(ShotArea::Area)),
+            r#"{"kind":"screenshot","v":{"kind":"take","v":"area"}}"#,
+        ),
+        (
+            Request::Screenshot(ScreenshotRequest::Take(ShotArea::Window)),
+            r#"{"kind":"screenshot","v":{"kind":"take","v":"window"}}"#,
+        ),
+        (
+            Request::Screenshot(ScreenshotRequest::Take(ShotArea::Screen)),
+            r#"{"kind":"screenshot","v":{"kind":"take","v":"screen"}}"#,
+        ),
+        (
+            Request::Widgets(WidgetsRequest::ToggleDesktop),
+            r#"{"kind":"widgets","v":{"kind":"toggle_desktop"}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::Screenshot(FakeScreenshot {
+                path: PathBuf::from("/tmp/shots/Screenshot_1.png"),
+            })),
+            r#"{"kind":"debug","v":{"kind":"screenshot","v":{"path":"/tmp/shots/Screenshot_1.png"}}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::Corner(FakeCorner {
+                corner: CornerName::BottomRight,
+            })),
+            r#"{"kind":"debug","v":{"kind":"corner","v":{"corner":"bottom_right"}}}"#,
         ),
     ]
 }

@@ -1,6 +1,8 @@
 //! The shell's surfaces and hooks: bar, wallpaper, dock, launcher, OSD, control center, power
-//! menu, notification banners and notification center (plan "Design: `<shell>`
-//! repo", `sill-surfaces`), plus the pure machines design/10 and design/13 specify for them.
+//! menu, notification banners and notification center, the screenshot thumbnail, hot corners
+//! and the desktop widget layer (plan "Design: `<shell>` repo", `sill-surfaces`), the
+//! [`widgets`] both the notification center and the desktop draw, plus the pure machines
+//! design/10 and design/13 specify for them.
 //!
 //! Surfaces read shared state only through [`hooks`], which read `sill_services::Services` and
 //! `sill_settings::SettingsFeed` from the root context with `shell_host::use_watch`. Nothing
@@ -11,6 +13,7 @@ pub mod app_icons;
 pub mod clock;
 pub mod hooks;
 pub mod surfaces;
+pub mod widgets;
 
 pub use clock::FrameClock;
 /// The rect measurer every root the daemon spawns is given (`Root::context(MEASURE)`): quire's
@@ -31,9 +34,12 @@ pub fn prepaint() -> shell_host::Prepaint {
 pub use ds_native::focus::FOCUS;
 pub use surfaces::banners::Banners;
 pub use surfaces::bar::Bar;
+pub use surfaces::desktop_widgets::DesktopWidgets;
 pub use surfaces::dock::Dock;
+pub use surfaces::hot_corners::HotCorner;
 pub use surfaces::launcher::{Launcher, LauncherCatcher};
 pub use surfaces::notification_center::NotificationCenter;
 pub use surfaces::osd::Osd;
 pub use surfaces::power_menu::PowerMenu;
+pub use surfaces::screenshot_thumb::ScreenshotThumb;
 pub use surfaces::wallpaper::Wallpaper;
