@@ -4256,3 +4256,16 @@ services.rs}`, `sill-surfaces/src/{lib.rs,hooks/**,widgets/mod.rs}`,
   so a hot corner cannot know whether Super is held as the pointer arrives. `hot_corners.modifier`
   is frozen and defaults to `None`; lane e confirms on KWin. A fix wants a compositor-side
   modifier state (no protocol offers one) or a surface that has the keyboard.
+
+## M10 lane b follow-ups (2026-09-26)
+
+- F440 New desktop widgets fill from the top right (the freeze's proposal, kept); one placements
+  file for all outputs; the grid is measured once when the layer mounts, so an output resize does
+  not re-place widgets yet.
+- F441 The notification center's whole column scrolls (history, then the widgets under it), as
+  macOS's Notification Center does; the history list no longer scrolls on its own.
+- F442 Now Playing's layout rules are repeated in `widget_now_playing.css`, scoped to the widget,
+  because hosts do not load `control_center.css`; a shared file later.
+- F443 Not done: Sonoma's dimmed look for desktop widgets under a focused window (optional);
+  moving widgets by drag (F413). Q182 (widget frame, sizes, bump) and Q183 (clock face, battery
+  ring) wait on quire.

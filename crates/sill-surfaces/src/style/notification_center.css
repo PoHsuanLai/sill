@@ -14,16 +14,16 @@
 /* Inside the panel: the column fills it (the blur region is this box grown by the panel's
    padding, `layer::PANEL_PADDING`). */
 .sill-nc-column{ display:flex; flex-direction:column; flex:1 1 auto; min-height:0; color:var(--ink);
-  outline:none; }
+  outline:none; overflow-y:auto; }
 
 /* The title and Clear All. */
 .sill-nc-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--s-8);
   padding:0 0 var(--s-6) var(--s-4); }
 .sill-nc-title{ font-size:var(--fs-subhead); font-weight:700; }
 
-/* The history: the groups, newest first, scrolling past the column's height. */
-.sill-nc-list{ display:flex; flex-direction:column; gap:var(--s-6); flex:1 1 0; min-height:0;
-  overflow-y:auto; }
+/* The history: the groups, newest first. The whole column scrolls (history, then the widgets
+   under it, as macOS's Notification Center does), so the list takes its natural height. */
+.sill-nc-list{ display:flex; flex-direction:column; gap:var(--s-6); flex:none; }
 .sill-nc-group{ display:flex; flex-direction:column; gap:var(--s-6); }
 .sill-nc-group-head{ display:flex; border-radius:var(--r-btn); }
 .sill-nc-row{ display:flex; justify-content:center; border-radius:var(--r-card); }
