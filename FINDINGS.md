@@ -2294,10 +2294,11 @@ of transparent room for the Osd material's ambient shadow.
   (`ds::settle`, not sill's own `DurationToken::Move + FRAME_SLACK`); `drive.rs` unmaps the
   surface there, not when the hold ends, so a show during the fade cancels it without a second
   entrance. The surface wakes the hold machine with `ds::sleep` only.
-- **Seen live** (`dev/accept-osd.sh`, nested cosmic-comp): see the run recorded below this
-  section once `dev/accept-osd.sh` has been re-run against quire's `Osd` card.
-  `dev/out/osd-cosmic.png` and, muted (`sill debug osd volume 60 --mute muted`),
-  `dev/out/osd-cosmic-muted.png`.
+- **Seen live** (`dev/accept-osd.sh`, nested cosmic-comp, 4/4, against quire's `Osd` card):
+  hidden at start; shown 114 ms after `sill debug osd volume 60`; hidden by 1842 ms (hold 1500);
+  a change 100 ms into the fade keeps it up at 2557 ms; 0 frames in 5 idle seconds after the
+  hide. `dev/out/osd-cosmic.png` (real sink title "USB Audio S/PDIF Output") and, muted
+  (`sill debug osd volume 60 --mute muted`), `dev/out/osd-cosmic-muted.png`.
 
 ### Gaps
 
