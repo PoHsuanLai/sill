@@ -2674,20 +2674,20 @@ the four M5 lanes cannot collide.
 
 ### Gaps found in the power menu (quire)
 
-- **Q90 (quire)** `Sheet` has no leaving state: it unmounts at once (`use_entrance` is
+- **Q90 (quire), closed** ("Adopt quire v0.1.9") `Sheet` has no leaving state: it unmounts at once (`use_entrance` is
   entrance-only). The power menu fades its whole room with quire's `menu-out` instead; the
   sheet's own exit (a reverse `peek-in`, the scrim fading at `--t-move`) belongs in quire.
-- **Q91 (quire)** A centred `Sheet`: it sits at Peek Center's 36 px top inset. macOS's
+- **Q91 (quire), closed** ("Adopt quire v0.1.9") A centred `Sheet`: it sits at Peek Center's 36 px top inset. macOS's
   shut-down dialog (and every confirm alert) is centred on the screen; a `SheetPlacement::Center`
   would let the power menu sit there.
-- **Q92 (quire)** A dialog-sized `Danger` button: `Danger` is `Mini` at rest, so Restart and
+- **Q92 (quire), closed** ("Adopt quire v0.1.9") A dialog-sized `Danger` button: `Danger` is `Mini` at rest, so Restart and
   Shut Down (F180's frozen `button_variant`) draw smaller than Log Out and Suspend beside them.
   A destructive action in a dialog wants `Secondary`'s geometry, red on hover.
-- **Q93 (quire)** A disabled look for `Button` (O-1: `aria-disabled` only drops the handler), so
+- **Q93 (quire), closed** ("Adopt quire v0.1.9") A disabled look for `Button` (O-1: `aria-disabled` only drops the handler), so
   an action logind does not offer does not read as pressable.
-- **Q94 (quire)** A full-surface `Ds` root (a `fill` prop, or overlay bounds from the viewport)
+- **Q94 (quire), closed** ("Adopt quire v0.1.9") A full-surface `Ds` root (a `fill` prop, or overlay bounds from the viewport)
   so a root holding only a `Sheet` need not add F205's floor.
-- **Q95 (quire)** The arrow key caps (`Key::Left`, `Key::Right`, O-2) draw as a short dash at
+- **Q95 (quire), closed** ("Adopt quire v0.1.9") The arrow key caps (`Key::Left`, `Key::Right`, O-2) draw as a short dash at
   `KbdSize::Small` in the shell font; the glyphs want sign-off and a font that has them.
 - Q81's `LogOut` and `Restart` glyphs would let the buttons carry icons; they carry none
   meanwhile (macOS's do not either).
@@ -2768,21 +2768,21 @@ the M5 lanes cannot collide.
 
 ### Gaps found in the control center
 
-- **Q100 (quire)** A full-width module with content of its own: `ModuleTile` holds a glyph, a
+- **Q100 (quire), closed** ("Adopt quire v0.1.9") A full-width module with content of its own: `ModuleTile` holds a glyph, a
   title and a status, not children, so the level, Now Playing, Appearance and Battery modules
   sit on sill's `.sill-cc-module` plate (the tile's `--r-tile`, `--surface-2` and hairline).
   A content-holding `ModuleTile` (or a plate of `LevelControl`'s own, as the OSD card has)
   would remove it.
-- **Q101 (quire)** `AppearancePicker` at the control center's width: the Motion row's five
+- **Q101 (quire), closed** ("Adopt quire v0.1.9") `AppearancePicker` at the control center's width: the Motion row's five
   segments overflow the 296 px module (Reduced is clipped). A compact picker (Theme and Accent
   only, or segments that shrink) would fit a 320 panel.
-- **Q102 (quire)** `ModuleGrid` is two columns at gap 8, fixed: `control_center.grid_columns`
+- **Q102 (quire), closed** ("Adopt quire v0.1.9") `ModuleGrid` is two columns at gap 8, fixed: `control_center.grid_columns`
   and `grid_gap_px` only size the estimate now. `columns` and `gap` props would honour them.
-- **Q103 (quire)** A control center glyph (macOS's two switches); the item uses `Settings`.
-- **Q104 (quire, CONSUMING)** A popup document's frame must be in flow with a height (F225):
+- **Q103 (quire), closed** ("Adopt quire v0.1.9") A control center glyph (macOS's two switches); the item uses `Settings`.
+- **Q104 (quire, CONSUMING), closed** ("Adopt quire v0.1.9") A popup document's frame must be in flow with a height (F225):
   worth a line beside `ds_native::measure::provide` in the bar-gaps notes, since every host
   that floats a card in a transparent `Ds` meets it.
-- **Q105 (quire, for the look pick)** On the light scheme the `Capsule` level's fill (the
+- **Q105 (quire, for the look pick), closed** ("Adopt quire v0.1.9": the light well is darker) On the light scheme the `Capsule` level's fill (the
   material's bright ink) sits pale on the module's `--surface-2` plate: in
   `dev/out/control-center-cosmic.png` the Sound capsule's filled half reads only faintly
   against its track. Worth weighing when the user picks the level look (`level.rs`'s `LOOK`).
@@ -2791,3 +2791,92 @@ the M5 lanes cannot collide.
   state. Not changed here (the service is lane b's).
 - **G41** `bar.css` still styles `.sill-volume-panel`, which nothing draws any more (the Sound
   module replaced the volume panel); `bar.css` is not this lane's file.
+
+## Adopt quire v0.1.9 (2026-09-25)
+
+The power menu, the control center and the popups on quire's sheet parts and control center
+parts 2 (quire CONSUMING "Sheet and modal parts", "Control center parts 2", §2's root-frame
+rule), on `adopt-v019`. Findings are numbered from F240/Q110/G50.
+
+- **F240 The power menu is one Viewport root with quire's own exit (Q90, Q91, Q94).** `Ds {
+  material: power_menu.material (Sheet by default), extent: RootExtent::Viewport }` holds `Sheet
+  { placement: Centre, scrim: ScrimStrength::Modal, shown, on_hidden }`: the outer transparent
+  root, the room's `menu-out` fade and its motion timer, and `.sill-power-menu-floor` are gone.
+  Escape, a scrim click or a chosen action set `shown` to `Hidden`; quire plays `sheet-out` and
+  the scrim's fade, and at `on_hidden` the menu closes and only then does a chosen action run
+  (`sheet.rs`'s `Settled`, as before). While it leaves the link says `Showing::Leaving` (the
+  surface stays mapped); `open` the same way again then shows it again (`Showing::Up`,
+  `follow.rs`'s `Reshow`), the sheet enters again and `on_hidden` does not run
+  (`power_menu_keys.rs` `opened_again_while_leaving_it_enters_again_and_stays`). `toggle` on a
+  leaving menu shows it again. The keys are taken on the panel inside the sheet (the sheet sits
+  in the root's overlay, outside any wrapper of sill's); the panel's `data-look` is the phase.
+  The sheet is centred both ways and the root is the viewport (`power_menu_render.rs`).
+- **F241 Even buttons and disabled actions (Q92, Q93).** `Danger` takes `size:
+  Some(ButtonSize::Regular)` (`labels.rs` `button_size`), so Restart stands level with Log Out
+  and Suspend; an action logind does not offer is `Availability::Disabled` and now carries
+  `disabled="true"` beside `aria-disabled` (tested) and draws at .35. Primary (Shut Down) is 2 px
+  shorter than Secondary and Danger: Secondary has a hairline border and Primary none (Q110).
+- **F242 A dry run on logind's offers.** A debug build started with
+  `SILL_POWER_MENU_DRY_RUN_OFFERS=logind` beside the dry run offers what the session service
+  reads from logind (`DryRunSession::following`, read only; a choice is still only recorded and
+  the dry run holds no sender to logind at all). Each opening logs `power_menu.offers=`.
+  `dev/accept-power-menu.sh` runs on it, so the shot shows this machine's refusals greyed, and
+  its arrows step expects the next offered button right of Shut Down. On the nested session
+  logind offers Restart and Shut Down only: Suspend is refused (`CanSuspend` "no") and Log Out
+  is unavailable there too (the nested session has no logind session of its own to terminate).
+  All six steps pass (`dev/out/power-menu-cosmic.png`: centred, the modal scrim about 0.77 of the
+  old one's brightness on the wallpaper, Log Out and Suspend greyed).
+- **F243 The Kbd arrows (Q95).** `←` and `→` now draw as arrows in bordered caps, but at
+  `KbdSize::Small` the glyph is about 4 px wide and still reads close to a dash at 1x (Q111).
+- **F244 The wallpaper root is Viewport.** `Ds { extent: RootExtent::Viewport }`, and
+  `.sill-wallpaper` fills it with `position:absolute; inset:0` (Taffy places it against the root,
+  a browser against the viewport: the same box) instead of `100vw`/`100vh`. The paint test now
+  checks both corners.
+- **F245 The control center on ModulePanel (Q100-Q103, Q105).** `module_box.rs` and
+  `.sill-cc-module` (and its dropdown rule) are gone: every full-width module is a `ModulePanel`,
+  `PanelPlate::Bare` in a module's dropdown (the dropdown provides the plate as a context,
+  `modules::use_plate`). `LevelModule` passes the glyph, the title and `trailing: "{percent}%"`;
+  Battery the same when there is a battery; `.sill-cc-level*`, `.sill-cc-value`,
+  `.sill-cc-glyph` are gone. Appearance takes `PickerLayout::Compact` (Motion's five segments fit
+  the 296 px module, `dev/out/control-center-cosmic.png`). `ModuleGrid` takes `columns` and `gap`
+  from `control_center.grid_columns`/`grid_gap_px` and `padding: Px(0.0)`: the panel keeps
+  `grid_padding_px` since it pads the detail panes too, so the layout is unchanged. The bar item
+  is `Icon::Switches`. The light level well is quire's darker one now (Q105).
+- **F246 The dock and tray popups broke the root-frame rule, now fixed (Q104).** The dock menu's
+  frame was absolutely placed with insets and the tray's root held only the floating menu: every
+  box from `html` down was 0 px (harness-measured). The dock frame is now the bar popup's: in
+  flow, `100vw` x `100vh`, a one-cell grid, the shadow room as padding (`frame_style` writes
+  padding); the tray's root is `RootExtent::Viewport`. Their documents moved to
+  `dock/menu_document.rs` and `bar/tray_menu.rs` so a harness can mount them without a surface;
+  each has a test that measures the heights and presses an entry, and both tests fail on the old
+  frames.
+- **F247 Real input (`dev/accept-real-input.sh`, all six steps pass).** On shell-host's headless
+  KWin (`kwin-virtual.sh`, `fake-input.sh`; shell-host F52), with the dry run proven first: a
+  real click on the control center item opens it and real Escape closes it; a click opens it
+  again and a click outside closes it; the power menu holds the real keyboard
+  (`power_menu.keyboard=held`, which the nested cosmic-comp never gave: G30), real Right moves
+  Shut Down to Suspend and Left Left to Restart, real Escape closes it recording nothing, and a
+  real click on the scrim closes it recording nothing. Enter is never pressed and no menu button
+  is clicked. The headless KWin is stopped at the end.
+
+### Gaps found adopting v0.1.9
+
+- **Q110 (quire)** `Button{Primary}` has no border and `Secondary`/`Danger` (Regular) a hairline,
+  so in a row the focused Primary is 2 px shorter than its neighbours (36 vs 38 at 1x), and the
+  row's height shifts by a pixel as the focus moves. A transparent border of the same width on
+  Primary would level them.
+- **Q111 (quire)** The `Kbd` arrow caps at `KbdSize::Small` draw the arrow at about 4 px: legible
+  as an arrow only when zoomed. A larger glyph size inside the small cap would read.
+- **G50 (shell-host)** Each `fake-input.sh` client is a new KWin fake input device, and KWin
+  re-announces the seat's capabilities for it (pointer removed and added). shell-host makes a new
+  `wl_pointer` on each announcement without releasing the old one, so a press reaches the
+  surfaces once per pointer: after a few clients a click on the bar opened and shut the popup in
+  one go (seen with `WAYLAND_DEBUG`: three `wl_pointer.button` for one press, two
+  `xdg_popup.grab`). `accept-real-input.sh` keeps one client for the whole run. A real seat that
+  loses and regains its pointer (a mouse unplugged) would do the same.
+- **G51** On the headless KWin `sill quit` does not end the daemon (it answers, then stays up);
+  the script ends it after 5 s. On the nested cosmic-comp it quits as before. Not looked into.
+- **G52 (kwin-virtual.sh)** `kwin-virtual.sh stop` kills every process whose environment names
+  the private bus, so a script that sourced `.kwin-env` and exported it is killed by its own stop
+  call; `accept-real-input.sh` gives the bus to the daemon only.
+
