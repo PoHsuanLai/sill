@@ -36,6 +36,7 @@ without the compositor), **config** (COSMIC setting or shortcut file).
 | --- | --- | --- | --- |
 | Keyboard focus for an `Exclusive` overlay layer (power menu, launcher) when the nested compositor window is unfocused on the host | No `wl_keyboard.enter` sent | verified on nested only (sill G30); real session unverified | check on a real login first |
 | Keyboard for a popup opened without an input serial (`sill control-center toggle`, a debug click) | The popup is mapped and kept, but gets no keyboard, so Escape cannot reach it | verified on nested (sill FINDINGS "M5 control center") | check on a real login; PR if it holds there |
+| Modifier state for an unfocused layer surface (hot corners that need a held key, as macOS offers) | Protocol-wise only the focused surface gets `wl_keyboard.modifiers`; KWin sends it anyway after `enter`, smithay-based cosmic-comp is expected not to (unverified); asking for keyboard focus would steal it from the window | shell-host F61 (KWin probe); cosmic-comp assumed | fork (send modifiers to the surface under the pointer, or a shell-only protocol), PR |
 | Virtual keyboard for automated tests | `wtype` keys never reached clients in the nested session | verified on nested (sill G30) | PR (test harness only) |
 | Layer surface under a still pointer gets `enter` | No enter until the pointer moves (cosmic-comp #2230) | upstream issue | PR |
 
