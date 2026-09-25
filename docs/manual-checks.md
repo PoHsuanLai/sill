@@ -22,11 +22,11 @@ Add new ones at the end of their section.
   audio, press volume up/down: the monitor's own volume moves too (its range is 0-50), and mute
   mutes it. Switch back to Bluetooth afterwards.
 
-- [ ] **Power menu with the real keyboard** (the nested compositor never gave its Exclusive
+- [ ] **Power menu with the real keyboard** (real arrows, Escape and a scrim click already pass on a headless KWin through `dev/accept-real-input.sh`; this check is for a real COSMIC session) (the nested compositor never gave its Exclusive
   layer keyboard focus, shell G30): on a real COSMIC session, `sill power-menu open`, then
   arrows move the highlight, Esc closes. Do NOT press Enter on Restart/Shut Down unless you mean
   it; the dry run (`SILL_POWER_MENU_DRY_RUN=<file>` on a debug build) records instead.
-- [ ] **Control center with the real keyboard**: open it from the bar item (left of the clock);
+- [ ] **Control center with the real keyboard** (real click and Escape already pass on a headless KWin; Tab/arrows between tiles still need a person): open it from the bar item (left of the clock);
   Tab/arrows move between tiles, Enter/Space toggle, Right on a chevron opens Wi-Fi/Bluetooth,
   Escape goes back then closes (a debug-opened popup gets no keyboard on the nested compositor).
 - [ ] **The capsule level look on the light scheme** (quire Q105: the fill reads faintly on its
