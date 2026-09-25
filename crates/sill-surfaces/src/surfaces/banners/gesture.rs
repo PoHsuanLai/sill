@@ -147,7 +147,9 @@ mod tests {
 
     #[test]
     fn a_still_press_is_a_click_and_a_drag_is_not() {
-        let cases: Vec<(&str, Vec<(f64, u64)>, (f64, u64), Vec<BannerIn>, Click)> = vec![
+        type Moves = Vec<(f64, u64)>;
+        type Case = (&'static str, Moves, (f64, u64), Vec<BannerIn>, Click);
+        let cases: Vec<Case> = vec![
             ("still", vec![], (100.0, 80), vec![], Click::Counts),
             (
                 "jitter under the slop",
