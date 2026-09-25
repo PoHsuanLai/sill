@@ -1,0 +1,60 @@
+//! Which raster size an icon is loaded at: its logical size times the output scale, rounded up
+//! to a size quire draws (quire CONSUMING "App icons and the icon style"). Pure.
+
+use ds::Scale;
+
+/// A raster's side in device pixels: one of [`ASSET_SIZES`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct AssetPx(pub u16);
+
+/// An icon's side in logical pixels.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct LogicalPx(pub u16);
+
+/// The sizes quire draws each app icon at, every one directly (not downscaled).
+pub const ASSET_SIZES: [u16; 13] = [16, 22, 24, 32, 36, 44, 48, 64, 72, 96, 128, 256, 512];
+
+/// The smallest drawn size covering `logical` at `scale` (so the raster is never stretched up),
+/// the largest when none does.
+pub fn pick(logical: LogicalPx, scale: Scale) -> AssetPx {
+    // Device pixels, rounded up: 48 at 1.75 is 84 exactly, 49 at 1.5 is 73.5 -> 74.
+    let device = (u32::from(logical.0) * scale.0).div_ceil(Scale::ONE.0);
+    let largest = ASSET_SIZES[ASSET_SIZES.len() - 1];
+    AssetPx(
+        ASSET_SIZES
+            .into_iter()
+            .find(|&size| u32::from(size) >= device)
+            .unwrap_or(largest),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{AssetPx, LogicalPx, pick};
+    use ds::Scale;
+
+    #[test]
+    fn a_tile_takes_the_drawn_size_that_covers_it() {
+        // (logical, scale in 120ths, file)
+        const CASES: &[(u16, u32, u16)] = &[
+            (48, 120, 48),
+            (48, 180, 72),
+            (48, 240, 96),
+            (48, 210, 96),
+            (48, 150, 64),
+            (24, 240, 48),
+            (28, 120, 32),
+            (49, 180, 96),
+            (96, 240, 256),
+            (300, 240, 512),
+            (1, 120, 16),
+        ];
+        for &(logical, scale, want) in CASES {
+            assert_eq!(
+                pick(LogicalPx(logical), Scale(scale)),
+                AssetPx(want),
+                "{logical} at {scale}/120"
+            );
+        }
+    }
+}

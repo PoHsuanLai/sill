@@ -42,8 +42,12 @@ impl RowRef {
     }
 }
 
-/// The palette's `groups` prop.
-pub fn palette_groups(groups: &[Group]) -> Vec<(String, Vec<MenuEntry<RowRef>>)> {
+/// The palette's `groups` prop, each row's tile from `tile_of` ([`tile`] draws the resolved
+/// file as it is; the panel passes `row_icon`'s, in the icon style).
+pub fn palette_groups(
+    groups: &[Group],
+    tile_of: &dyn Fn(&Item) -> Tile,
+) -> Vec<(String, Vec<MenuEntry<RowRef>>)> {
     let mut first = Some(());
     groups
         .iter()
@@ -51,7 +55,10 @@ pub fn palette_groups(groups: &[Group]) -> Vec<(String, Vec<MenuEntry<RowRef>>)>
             let entries = group
                 .rows
                 .iter()
-                .map(|item| row_entry(item, trail(item, group.title.mixes(), first.take())))
+                .map(|item| {
+                    let trail = trail(item, group.title.mixes(), first.take());
+                    row_entry(item, tile_of(item), trail)
+                })
                 .collect();
             (group.title.text().to_owned(), entries)
         })
@@ -74,12 +81,12 @@ pub fn action_entries(actions: &[Action]) -> Vec<MenuEntry<ActionId>> {
         .collect()
 }
 
-fn row_entry(item: &Item, trail: Trail) -> MenuEntry<RowRef> {
+fn row_entry(item: &Item, tile: Tile, trail: Trail) -> MenuEntry<RowRef> {
     MenuEntry::Item {
         value: RowRef::of(item),
         title: item.title.clone(),
         detail: (!item.subtitle.is_empty()).then(|| item.subtitle.clone()),
-        tile: Some(tile(item)),
+        tile: Some(tile),
         trail,
         check: None,
         availability: Availability::Enabled,
@@ -199,7 +206,7 @@ mod tests {
     }
 
     fn trails(query: &str, items: &[Item]) -> Vec<(String, Trail)> {
-        palette_groups(&groups(items, query, Filter::All))
+        palette_groups(&groups(items, query, Filter::All), &tile)
             .into_iter()
             .flat_map(|(_, entries)| entries)
             .filter_map(|entry| match entry {
@@ -238,7 +245,7 @@ mod tests {
     #[test]
     fn rows_carry_their_identity_detail_and_glyph() {
         let items = vec![item(ProviderKind::System, "Lock", 0)];
-        let got = palette_groups(&groups(&items, "l", Filter::All));
+        let got = palette_groups(&groups(&items, "l", Filter::All), &tile);
         assert_eq!(got[0].0, "Top hit");
         match &got[0].1[0] {
             MenuEntry::Item {

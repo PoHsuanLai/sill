@@ -6,6 +6,7 @@
 //! here passes a Dioxus signal through `Root::context` (ORCHESTRATION review rule), styles a
 //! `.ds-*` class, or writes raw `button`/`input`/menu markup (coherence rules 1-2).
 
+pub mod app_icons;
 pub mod clock;
 pub mod hooks;
 pub mod surfaces;

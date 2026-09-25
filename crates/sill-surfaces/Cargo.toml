@@ -18,13 +18,18 @@ sill-services = { workspace = true }
 sill-settings = { workspace = true }
 sill-launcher = { workspace = true }
 tokio = { workspace = true }
+# App icons in the icon style (`app_icons`): decode and encode rasters, rasterise theme SVGs
+# (resvg is the renderer usvg/tiny-skia already in the tree belong to; MIT OR Apache-2.0),
+# and find `$XDG_CACHE_HOME`.
+image = { workspace = true }
+resvg = { version = "0.48", default-features = false }
+dirs = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 # `lint` is off by default (CONSUMING.md section 5): only test builds need `ds::lint::markup`.
 ds = { workspace = true, features = ["lint"] }
 dioxus-ssr = { workspace = true }
-# Encodes the PNG fixtures the tray's symbolic-or-image tests classify.
-image = { workspace = true }
 shell-host = { workspace = true, features = ["debug-inject"] }
 
 # A standalone bar on a real compositor with fake services, for acceptance
