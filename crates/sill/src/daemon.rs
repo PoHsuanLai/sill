@@ -71,7 +71,19 @@ pub fn run() -> ExitCode {
         ),
         power_menu: sill_surfaces::surfaces::power_menu::PowerMenuLink::new(),
         control_center: sill_surfaces::surfaces::control_center::ControlCenterLink::new(),
+        notification_center: sill_surfaces::surfaces::notification_center::CenterLink::new(),
+        banners: sill_surfaces::surfaces::banners::BannerLink::new(),
     });
+    // M6: the notifications service's policy from the settings and the focus mode; the first
+    // one sent ends its passive start (FINDINGS "M6 freeze").
+    if let Some(links) = crate::links::get() {
+        crate::notifications::spawn_policy(
+            runtime.handle(),
+            settings_feed.0.clone(),
+            links.focus.mode(),
+            services.notifications_control.clone(),
+        );
+    }
 
     let config = HostConfig {
         first_mouse_window_ms: shell_host::config::Ms(u32::from(
@@ -205,9 +217,18 @@ fn run_event(
             crate::power_menu::spawn_missing(ctx, outputs, &services.session, |root| {
                 surface_root(root, services, settings_feed)
             });
+            // Before the OSD, so the OSD draws over a banner (both on the Overlay layer).
+            crate::notifications::spawn_missing(ctx, outputs, settings_tx, |root| {
+                surface_root(root, services, settings_feed)
+            });
             crate::osd::spawn_missing(ctx, outputs, settings_tx, osd, |root| {
                 surface_root(root, services, settings_feed)
             });
+            if let Some(links) = crate::links::get() {
+                links
+                    .banners
+                    .set(crate::notifications::banner_output(outputs));
+            }
         }
     }
 }
@@ -532,12 +553,15 @@ pub(crate) fn surface_root(root: Root, services: &Services, settings_feed: &Sett
         .context(settings_feed.clone())
         .context(sill_surfaces::MEASURE)
         .context(sill_surfaces::FOCUS);
-    // M5: the focus mode, the power menu and the control center's asks (`crate::links`).
+    // M5: the focus mode, the power menu and the control center's asks; M6: the notification
+    // center and the banners' output (`crate::links`).
     match crate::links::get() {
         Some(links) => root
             .context(links.focus.clone())
             .context(links.power_menu.clone())
-            .context(links.control_center.clone()),
+            .context(links.control_center.clone())
+            .context(links.notification_center.clone())
+            .context(links.banners.clone()),
         None => root,
     }
 }
@@ -570,6 +594,7 @@ fn dispatch_request(
         Request::Debug(DebugRequest::Osd(fake)) => {
             crate::osd::fake(osd, services, outputs, &settings_tx.borrow(), fake)
         }
+        Request::Debug(DebugRequest::Notify(fake)) => crate::notifications::fake(services, fake),
         Request::Debug(request) => dispatch_debug(ctx, outputs, request),
         Request::Display(request) => {
             let response = crate::displays::dispatch(services, request);
@@ -582,6 +607,9 @@ fn dispatch_request(
         }
         Request::ControlCenter(request) => {
             crate::power_menu::dispatch_control_center(outputs, crate::links::get(), request)
+        }
+        Request::Notifications(request) => {
+            crate::notifications::dispatch(outputs, crate::links::get(), services, request)
         }
     }
 }
@@ -655,6 +683,7 @@ fn dispatch_debug(
         } => act(ctx, surface, DebugAction::Click(at, button)),
         // Answered by `dispatch_request`, which holds the OSD's link.
         DebugRequest::Osd(_) => unsupported("the OSD's made-up change is answered elsewhere"),
+        DebugRequest::Notify(_) => unsupported("a made-up notification is answered elsewhere"),
     }
 }
 
@@ -759,6 +788,9 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
                 let layer = sill_surfaces::surfaces::power_menu::power_menu_layer(info);
                 (layer.namespace, id)
             });
+            let (banners_name, center_name) = crate::notifications::namespaces(info);
+            let banners = surfaces.banners.map(|id| (banners_name, id));
+            let center = surfaces.notification_center.map(|id| (center_name, id));
             bar.into_iter()
                 .chain(wallpaper)
                 .chain(dock)
@@ -766,6 +798,8 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
                 .chain(catcher)
                 .chain(osd)
                 .chain(power_menu)
+                .chain(banners)
+                .chain(center)
         })
         .collect();
     ids.into_iter()

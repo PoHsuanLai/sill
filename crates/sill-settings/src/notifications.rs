@@ -1,6 +1,10 @@
 //! `notifications.*` (design/22 §3.12 and `notifications.banner_material` from §3.1; design/13
 //! §13.3.6). Do Not Disturb and the banner style are on the Notifications page (§5); the rest
 //! are Advanced.
+//!
+//! M6 adds four keys design/22 has no rows for yet (`tests/keys.rs` `AWAITING_ROWS`; the row
+//! text is in sill FINDINGS "M6 freeze"): `server`, `banner_position`, `history_cap` and
+//! `center_width_px`.
 
 use ds_settings::schema::Page;
 use ds_settings::{Count, Fraction, Ms, Px, Scalar};
@@ -90,6 +94,52 @@ pub enum BannerMaterial {
     Toast,
     /// Ink on paper, like mail's toast.
     Inverse,
+}
+
+/// `notifications.server`: whether sill serves `org.freedesktop.Notifications`.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    Serialize,
+    Deserialize,
+    ds_settings::SettingsSchema,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum NotificationServer {
+    /// Ask for the name, never replacing another daemon that holds it.
+    #[default]
+    Own,
+    /// Leave the name to another daemon (cosmic-notifications, mako); sill shows nothing a
+    /// sender posts.
+    Passive,
+}
+
+/// `notifications.banner_position`: the output corner banners stack in (design/20 §3 open
+/// decision 2: top right as macOS, or bottom right nearer mail's toast).
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    Serialize,
+    Deserialize,
+    ds_settings::SettingsSchema,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum BannerPosition {
+    /// Under the bar, newest on top (macOS).
+    #[default]
+    TopRight,
+    /// Above the dock's reserve, newest at the bottom.
+    BottomRight,
 }
 
 /// Notification banners.
@@ -257,6 +307,37 @@ pub struct NotificationsSettings {
         advanced
     )]
     pub banner_material: BannerMaterial,
+    #[settings(
+        label = "Serve notifications",
+        help = "Show other apps' notifications. Off leaves them to another notification daemon.",
+        section = "Notifications",
+        advanced
+    )]
+    pub server: NotificationServer,
+    #[settings(
+        label = "Banner position",
+        help = "The corner of the screen banners appear in.",
+        section = "Banners",
+        advanced
+    )]
+    pub banner_position: BannerPosition,
+    #[settings(
+        label = "Notifications kept",
+        help = "The most notifications the notification center keeps; the oldest go first.",
+        section = "Notification center",
+        range = "0..=1000",
+        advanced
+    )]
+    pub history_cap: Count,
+    #[settings(
+        label = "Notification center width",
+        help = "The width of the notification center's column.",
+        section = "Notification center",
+        range = "280..=600",
+        unit = "px",
+        advanced
+    )]
+    pub center_width_px: Px,
     /// Keys this build does not know, kept for the next write.
     #[serde(flatten)]
     #[settings(skip)]
@@ -285,6 +366,10 @@ impl Default for NotificationsSettings {
             stack_gap_px: Px(8),
             group_offset_px: Px(4),
             banner_material: BannerMaterial::Toast,
+            server: NotificationServer::Own,
+            banner_position: BannerPosition::TopRight,
+            history_cap: Count(100),
+            center_width_px: Px(384),
             extra: toml::Table::new(),
         }
     }

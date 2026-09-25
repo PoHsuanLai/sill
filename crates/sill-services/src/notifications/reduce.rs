@@ -1,0 +1,149 @@
+//! The one place the service's state changes: [`reduce_notifications`], pure, with the D-Bus
+//! signals, sounds and history writes it implies returned as [`NotificationsEffect`]s for the
+//! live loop to carry out (CONVENTIONS §0: an effect is returned, not performed).
+//!
+//! The rules, which `reduce_tests.rs` tables:
+//!
+//! - **Posted.** A new id raises `last_id`. Unless `transient`, the notification enters the front
+//!   of its app's group and the group moves to the front; past `history_cap` the oldest kept
+//!   notification anywhere is dropped (silently: it may still be a live banner). Then it presents
+//!   per [`presented`](super::policy::presented): a banner goes to the front of `banners`. A
+//!   [`chime`](super::policy::chime) that plays is a `Sound`. A history change is `SaveHistory`.
+//! - **A replacement** (a posting whose id is already held, from `replaces_id`) is the old one
+//!   removed without a signal, then the new one posted as above: it moves to the front and shows
+//!   again.
+//! - **ClosedByApp** (`CloseNotification`), **Dismissed** (a swipe, the close button, a history
+//!   row's clear): removed from the banners and the history, `Closed` with `ClosedByCall` or
+//!   `Dismissed`. An id not held changes nothing.
+//! - **DismissedAll** (`sill notifications dismiss-all`): every live banner dismissed, in banner
+//!   order. The history keeps what is not on screen.
+//! - **BannerTimedOut**: the banner leaves; the notification stays in the history. One the
+//!   history does not hold (transient) is `Closed` with `Expired`. A persisting banner never
+//!   times out: the event is ignored.
+//! - **Invoked**: an action the notification offers is `Invoked` (the live loop emits
+//!   `ActivationToken` first when it has one, then `ActionInvoked`); unless `resident`, the
+//!   notification is then removed everywhere and `Closed` with `Dismissed`. An action it does
+//!   not offer, or an id not held, changes nothing.
+//! - **HistoryCleared**: every notification in the cleared groups is dismissed (its banner too).
+//! - **Loaded**: the stored history replaces the history (capped), `last_id` becomes the larger
+//!   of the two. No `SaveHistory`.
+//! - **Server**: the bus name's news.
+
+use serde::{Deserialize, Serialize};
+
+use super::content::{Notification, SoundHint};
+use super::history_file::StoredHistory;
+use super::ids::{ActionKey, Activation, AppKey, NotificationId};
+use super::policy::NotificationsPolicy;
+use super::state::{History, Notifications, ServerStatus};
+
+/// Everything the service holds: what it publishes on its two receivers, and the last id it
+/// handed out.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct NotesState {
+    pub live: Notifications,
+    pub history: History,
+    pub last_id: NotificationId,
+}
+
+/// One thing that happened to the service.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
+pub enum NotificationsEvent {
+    /// A `Notify` (or `sill debug notify`), with the id [`assign_id`] gave it.
+    Posted(Box<Notification>),
+    /// `CloseNotification`.
+    ClosedByApp(NotificationId),
+    /// The person dismissed it: a swipe, the close button, a row's clear.
+    Dismissed(NotificationId),
+    /// Every banner dismissed at once.
+    DismissedAll,
+    /// A banner's hold ran out (the banner surface counts it, pausing while hovered).
+    BannerTimedOut(NotificationId),
+    /// The person chose an action (`default` for the body).
+    Invoked {
+        id: NotificationId,
+        action: ActionKey,
+        token: Activation,
+    },
+    HistoryCleared(Clear),
+    /// The history file, read at start.
+    Loaded(StoredHistory),
+    Server(ServerStatus),
+}
+
+/// Which history to clear.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
+pub enum Clear {
+    All,
+    App(AppKey),
+}
+
+/// Something the live loop must do.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
+pub enum NotificationsEffect {
+    /// Emit `NotificationClosed(id, reason)`.
+    Closed {
+        id: NotificationId,
+        reason: CloseReason,
+    },
+    /// Emit `ActivationToken(id, token)` when there is one, then `ActionInvoked(id, action)`.
+    Invoked {
+        id: NotificationId,
+        action: ActionKey,
+        token: Activation,
+    },
+    /// Write the history file.
+    SaveHistory,
+    /// Play this sound (through the sound service).
+    Sound(SoundHint),
+}
+
+/// `NotificationClosed`'s reason.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CloseReason {
+    /// 1: it expired.
+    Expired,
+    /// 2: the person dismissed it.
+    Dismissed,
+    /// 3: `CloseNotification`.
+    ClosedByCall,
+    /// 4: undefined.
+    Undefined,
+}
+
+impl CloseReason {
+    /// The spec's number.
+    pub fn wire(self) -> u32 {
+        match self {
+            CloseReason::Expired => 1,
+            CloseReason::Dismissed => 2,
+            CloseReason::ClosedByCall => 3,
+            CloseReason::Undefined => 4,
+        }
+    }
+}
+
+/// The id a posting gets: the one it replaces when that one is still held (a live banner or
+/// in the history), else one past `last_id`, skipping 0 when it wraps.
+pub fn assign_id(state: &NotesState, replaces: Option<NotificationId>) -> NotificationId {
+    let _ = (state, replaces);
+    todo!("M6 fill: a-server")
+}
+
+/// `state` after `event` under `policy`, and what must happen because of it (module doc).
+pub fn reduce_notifications(
+    state: NotesState,
+    event: NotificationsEvent,
+    policy: &NotificationsPolicy,
+) -> (NotesState, Vec<NotificationsEffect>) {
+    let _ = (state, event, policy);
+    todo!("M6 fill: a-server")
+}
+
+#[cfg(test)]
+#[path = "reduce_tests.rs"]
+mod tests;

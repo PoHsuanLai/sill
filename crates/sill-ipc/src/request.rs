@@ -1,8 +1,9 @@
 //! What a client asks the daemon (plan: `Ping, Launcher{Toggle,Open{query},Close},
 //! Dock{Pin,Unpin}, Reload, Quit, Debug{Stats,Pointer,Leave,Capture}`), plus `Debug(Click)`
 //! from the M2 freeze amendment (sill FINDINGS F76), and `Display` from the displays pass (sill
-//! FINDINGS "Displays"), `Debug(Osd)` from the OSD, and `PowerMenu`/`ControlCenter` from the
-//! M5 freeze (sill FINDINGS "M5 freeze").
+//! FINDINGS "Displays"), `Debug(Osd)` from the OSD, `PowerMenu`/`ControlCenter` from the
+//! M5 freeze (sill FINDINGS "M5 freeze"), and `Notifications` and `Debug(Notify)` from the M6
+//! freeze (sill FINDINGS "M6 freeze").
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -31,6 +32,26 @@ pub enum Request {
     PowerMenu(PowerMenuRequest),
     /// Open or close the control center under its bar item (`sill control-center toggle`).
     ControlCenter(ControlCenterRequest),
+    /// The notification center and the banners (`sill notifications ...`).
+    Notifications(NotificationsRequest),
+}
+
+/// `sill notifications ...`. The center opens on the output the daemon picks (the first with a
+/// center surface, FINDINGS F140), as the power menu does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
+pub enum NotificationsRequest {
+    /// Open the notification center when closed, close it when open: a shortcut.
+    Toggle,
+    /// Open it, or keep it open.
+    Open,
+    /// Close it if open; nothing otherwise.
+    Close,
+    /// Dismiss every banner on screen (each sender hears `NotificationClosed`, reason 2).
+    DismissAll,
+    /// Who holds `org.freedesktop.Notifications`, and how many banners and kept notifications
+    /// there are: answered with `Response::Notifications`.
+    Status,
 }
 
 /// The power menu's verbs. It opens on the output the daemon picks (the first with a power menu
@@ -133,6 +154,54 @@ pub enum DebugRequest {
     /// moving no real level (`dev/accept-osd.sh`: the session's default sink may be somebody's
     /// headphones).
     Osd(FakeOsd),
+    /// Post a made-up notification straight to the notifications service, without D-Bus
+    /// (`dev/accept-notifications.sh`): it goes through the same reducer as a `Notify`, so it
+    /// shows a banner and enters the history, and its actions answer nobody.
+    Notify(FakeNotification),
+}
+
+/// A made-up notification: the parts of `Notify` an acceptance needs.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FakeNotification {
+    /// `app_name` (and the group it falls in).
+    pub app: String,
+    pub summary: String,
+    /// Markup, as a sender would write it.
+    pub body: String,
+    pub urgency: FakeUrgency,
+    /// Buttons, in order; `default` is the body's click.
+    pub actions: Vec<FakeAction>,
+    pub expire: FakeExpire,
+    /// The id it replaces (0: none).
+    pub replaces: u32,
+}
+
+/// A made-up notification's urgency.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FakeUrgency {
+    Low,
+    #[default]
+    Normal,
+    Critical,
+}
+
+/// One made-up action: its key and its button's label.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct FakeAction {
+    pub key: String,
+    pub label: String,
+}
+
+/// A made-up notification's `expire_timeout`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FakeExpire {
+    /// -1: the banner's usual hold.
+    #[default]
+    Default,
+    /// 0: an alert that stays until acted on.
+    Never,
 }
 
 /// A made-up OSD change: what moved, to which level.

@@ -1,4 +1,5 @@
-//! The shell's surfaces and hooks: bar, wallpaper, dock, launcher and OSD (plan "Design: `<shell>`
+//! The shell's surfaces and hooks: bar, wallpaper, dock, launcher, OSD, control center, power
+//! menu, notification banners and notification center (plan "Design: `<shell>`
 //! repo", `sill-surfaces`), plus the pure machines design/10 and design/13 specify for them.
 //!
 //! Surfaces read shared state only through [`hooks`], which read `sill_services::Services` and
@@ -28,9 +29,11 @@ pub fn prepaint() -> shell_host::Prepaint {
 /// of printing a caught panic (FINDINGS "Adoption of the launcher gaps"). A popup's root
 /// component calls `ds_native::focus::provide()` instead.
 pub use ds_native::focus::FOCUS;
+pub use surfaces::banners::Banners;
 pub use surfaces::bar::Bar;
 pub use surfaces::dock::Dock;
 pub use surfaces::launcher::{Launcher, LauncherCatcher};
+pub use surfaces::notification_center::NotificationCenter;
 pub use surfaces::osd::Osd;
 pub use surfaces::power_menu::PowerMenu;
 pub use surfaces::wallpaper::Wallpaper;

@@ -6,9 +6,11 @@ use std::path::PathBuf;
 
 use sill_ipc::{
     ControlCenterRequest, DebugRequest, DesktopId, DisplayRequest, DockRequest, Failure,
-    FailureKind, FakeMute, FakeOsd, IpcError, LauncherRequest, LevelRequest, MAX_LINE, Micros,
-    OsdTopic, Point, PointerButton, PowerMenuRequest, Request, Response, SurfaceName, SurfaceStats,
-    VolumeRequest, decode, encode, read_message, write_message,
+    FailureKind, FakeAction, FakeExpire, FakeMute, FakeNotification, FakeOsd, FakeUrgency,
+    IpcError, LauncherRequest, LevelRequest, MAX_LINE, Micros, NotificationsReport,
+    NotificationsRequest, OsdTopic, Point, PointerButton, PowerMenuRequest, ReportHolder,
+    ReportMode, Request, Response, SurfaceName, SurfaceStats, VolumeRequest, decode, encode,
+    read_message, write_message,
 };
 
 fn surface(name: &str) -> SurfaceName {
@@ -145,6 +147,41 @@ fn requests() -> Vec<(Request, &'static str)> {
             Request::ControlCenter(ControlCenterRequest::Toggle),
             r#"{"kind":"control_center","v":{"kind":"toggle"}}"#,
         ),
+        (
+            Request::Notifications(NotificationsRequest::Toggle),
+            r#"{"kind":"notifications","v":{"kind":"toggle"}}"#,
+        ),
+        (
+            Request::Notifications(NotificationsRequest::Open),
+            r#"{"kind":"notifications","v":{"kind":"open"}}"#,
+        ),
+        (
+            Request::Notifications(NotificationsRequest::Close),
+            r#"{"kind":"notifications","v":{"kind":"close"}}"#,
+        ),
+        (
+            Request::Notifications(NotificationsRequest::DismissAll),
+            r#"{"kind":"notifications","v":{"kind":"dismiss_all"}}"#,
+        ),
+        (
+            Request::Notifications(NotificationsRequest::Status),
+            r#"{"kind":"notifications","v":{"kind":"status"}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::Notify(FakeNotification {
+                app: "Mail".to_owned(),
+                summary: "Ada".to_owned(),
+                body: "the <b>engine</b>".to_owned(),
+                urgency: FakeUrgency::Critical,
+                actions: vec![FakeAction {
+                    key: "default".to_owned(),
+                    label: "Open".to_owned(),
+                }],
+                expire: FakeExpire::Never,
+                replaces: 0,
+            })),
+            r#"{"kind":"debug","v":{"kind":"notify","v":{"app":"Mail","summary":"Ada","body":"the <b>engine</b>","urgency":"critical","actions":[{"key":"default","label":"Open"}],"expire":"never","replaces":0}}}"#,
+        ),
     ]
 }
 
@@ -182,6 +219,28 @@ fn responses() -> Vec<(Response, &'static str)> {
                 message: "no surface sill-dock-HDMI-9".to_owned(),
             }),
             r#"{"kind":"failed","v":{"kind":"unknown_surface","message":"no surface sill-dock-HDMI-9"}}"#,
+        ),
+        (
+            Response::Notifications(NotificationsReport {
+                mode: ReportMode::Own,
+                holder: ReportHolder::Other {
+                    unique: ":1.42".to_owned(),
+                    pid: Some(7),
+                    command: Some("plasmashell".to_owned()),
+                },
+                banners: 2,
+                kept: 9,
+            }),
+            r#"{"kind":"notifications","v":{"mode":"own","holder":{"kind":"other","v":{"unique":":1.42","pid":7,"command":"plasmashell"}},"banners":2,"kept":9}}"#,
+        ),
+        (
+            Response::Notifications(NotificationsReport {
+                mode: ReportMode::Passive,
+                holder: ReportHolder::Sill,
+                banners: 0,
+                kept: 0,
+            }),
+            r#"{"kind":"notifications","v":{"mode":"passive","holder":{"kind":"sill"},"banners":0,"kept":0}}"#,
         ),
     ]
 }

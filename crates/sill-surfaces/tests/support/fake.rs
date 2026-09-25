@@ -31,6 +31,9 @@ pub struct Feeds {
     pub bluetooth: watch::Sender<Bluetooth>,
     pub power_profiles: watch::Sender<PowerProfiles>,
     pub media: watch::Sender<Media>,
+    /// M6: the live banners and the history (both empty until a test feeds them).
+    pub notifications: watch::Sender<sill_services::Notifications>,
+    pub notification_history: watch::Sender<sill_services::History>,
     pub wl: mpsc::UnboundedReceiver<sill_services::WlCommand>,
     pub volume_commands: mpsc::UnboundedReceiver<sill_services::VolumeCommand>,
     pub launch: mpsc::UnboundedReceiver<sill_services::LaunchCommand>,
@@ -38,6 +41,7 @@ pub struct Feeds {
     pub bluetooth_commands: mpsc::UnboundedReceiver<BluetoothCommand>,
     pub profile_commands: mpsc::UnboundedReceiver<ProfileCommand>,
     pub media_commands: mpsc::UnboundedReceiver<MediaCommand>,
+    pub notification_commands: mpsc::UnboundedReceiver<sill_services::NotificationsCommand>,
     /// Receivers and command queues nobody reads here, kept so sends do not fail.
     keep: Vec<Box<dyn std::any::Any>>,
 }
@@ -277,6 +281,9 @@ pub fn services() -> (Services, Feeds) {
     let (bluetooth_control, bluetooth_rx) = Control::channel();
     let (power_profile_control, profile_rx) = Control::channel();
     let (media_control, media_rx) = Control::channel();
+    let (notifications_tx, notifications) = watch::channel(sill_services::Notifications::default());
+    let (history_tx, notification_history) = watch::channel(sill_services::History::default());
+    let (notifications_control, notification_rx) = Control::channel();
     let services = Services {
         clock,
         clock_control: control(&mut keep),
@@ -317,6 +324,9 @@ pub fn services() -> (Services, Feeds) {
         media_control,
         session: fixed(sill_services::Session::default(), &mut keep),
         session_control: control(&mut keep),
+        notifications,
+        notification_history,
+        notifications_control,
     };
     let feeds = Feeds {
         clock: clock_tx,
@@ -330,6 +340,8 @@ pub fn services() -> (Services, Feeds) {
         bluetooth: bluetooth_tx,
         power_profiles: profiles_tx,
         media: media_tx,
+        notifications: notifications_tx,
+        notification_history: history_tx,
         wl: wl_rx,
         volume_commands: volume_rx,
         launch: launch_rx,
@@ -337,6 +349,7 @@ pub fn services() -> (Services, Feeds) {
         bluetooth_commands: bluetooth_rx,
         profile_commands: profile_rx,
         media_commands: media_rx,
+        notification_commands: notification_rx,
         keep,
     };
     (services, feeds)

@@ -12,8 +12,12 @@ pub mod response;
 pub use error::IpcError;
 pub use line::{MAX_LINE, decode, encode, read_message, write_message};
 pub use request::{
-    ControlCenterRequest, DebugRequest, DesktopId, DisplayRequest, DockRequest, FakeMute, FakeOsd,
-    LauncherRequest, LevelRequest, OsdTopic, Point, PointerButton, PowerMenuRequest, Request,
-    SurfaceName, VolumeRequest,
+    ControlCenterRequest, DebugRequest, DesktopId, DisplayRequest, DockRequest, FakeAction,
+    FakeExpire, FakeMute, FakeNotification, FakeOsd, FakeUrgency, LauncherRequest, LevelRequest,
+    NotificationsRequest, OsdTopic, Point, PointerButton, PowerMenuRequest, Request, SurfaceName,
+    VolumeRequest,
 };
-pub use response::{Failure, FailureKind, Micros, Response, SurfaceStats};
+pub use response::{
+    Failure, FailureKind, Micros, NotificationsReport, ReportHolder, ReportMode, Response,
+    SurfaceStats,
+};
