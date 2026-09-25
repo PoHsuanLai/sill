@@ -3275,7 +3275,6 @@ notifications/mod.rs,notifications/tests.rs}`.
   `dev/private-bus.conf`) would make it as private as it is meant to be; until then lane d
   checks that sill holds the name before posting anything.
 
-
 ## M6 notification center (lane c, 2026-09-25)
 
 Lane c of "The M6 fill-in": `surfaces/notification_center/**`, the bar's clock, and
@@ -3358,13 +3357,15 @@ PASS step_outside     a click left of the column closes it
 PASS step_idle        5 s idle open: 0 frames; 5 s hidden: 0 frames
 ```
 
-On `m6-c` alone every step but 4 passes and 4 is a SKIP (exit 2): `sill debug notify` answers
-"the service has stopped" until lane a's live loop is in the build. Screenshots:
+On `m6-c` after merging master (lane a in, lane b not yet) the same six steps pass too
+("kept 3; '1 more' at 2360 106 opened Mail's group; Mail's Clear: kept 1"; the cards are drawn
+unlaid-out until F327's line lands); before lane a, step 4 is a SKIP (exit 2): `sill debug
+notify` answered "the service has stopped". Screenshots, from the scratch merge:
 `dev/out/notification-center-cosmic.png` (two groups, Mail's stacked with "1 more"),
-`dev/out/notification-center-open-cosmic.png` (Mail's opened, "Show less"),
-`dev/out/notification-center-empty-cosmic.png` (the empty state and the passive footer, m6-c
-alone). Keys are not driven live (the nested compositor gives the layer no keyboard, as it gave
-the power menu none; shell-host injects no keys): the harness proves them
+`dev/out/notification-center-open-cosmic.png` (Mail's opened, "Show less"); and from m6-c,
+`dev/out/notification-center-empty-cosmic.png` (the empty state). Keys are not driven live
+(the nested compositor gives the layer no keyboard, as it gave the power menu none; shell-host
+injects no keys): the harness proves them
 (`tests/notification_center_keys.rs`), real Escape is lane d's.
 
 ### Gaps found in the notification center
