@@ -2233,3 +2233,239 @@ the icon style"; `crates/sill-surfaces/src/app_icons/`).
   | `dock.shipped_icons` | `ShippedIcons::{On,Off}` | `On` |  | `08-ICONS.md` 2.11; sill `FINDINGS.md` "Icon style" | proposed (2026-09-25) |
 
   Advanced for now (§5 lists the Dock page's Basic keys); it also governs the launcher's rows.
+
+## M5 freeze (2026-09-25)
+
+The control center (design/20 §1.5, design/13 §13.3.7) and the power menu (design/20 §1.8),
+frozen on `m5-freeze` so four agents can fill them in parallel. Everything compiles; every pure
+function a later agent fills is `todo!()` with its table test `#[ignore = "M5 fill: <agent>"]`,
+so the suite stays green and each agent's first step is to delete its `ignore`s.
+
+- **F173 Dependencies: none added.** Every new service is spoken through `zbus` (already in the
+  pinned block) with hand-written proxies, or through a crate already here:
+  - **Bluetooth**: hand-written `zbus` proxies for `org.bluez.Adapter1`, `Device1`, `Battery1`
+    and `org.freedesktop.DBus.ObjectManager` (zbus's own `fdo::ObjectManagerProxy`). Not
+    `bluer` 0.17 (BSD-2-Clause, but it runs on the `dbus` crate and links libdbus through
+    `libdbus-sys`: a second D-Bus stack and a C library beside the `zbus` every other service
+    uses) and not `bluez-async` (also `dbus`). There is no maintained `bluez-zbus` crate; the
+    four interfaces and a dozen properties are less code than adapting one.
+  - **power-profiles-daemon**: a hand-written proxy (three properties), tried on
+    `org.freedesktop.UPower.PowerProfiles` (0.20 on, Fedora's) and then
+    `net.hadess.PowerProfiles`.
+  - **MPRIS**: hand-written proxies for `org.mpris.MediaPlayer2` and `.Player`, found by
+    `ListNames` and followed by `NameOwnerChanged`. The `mpris` crate runs on `dbus`/libdbus.
+  - **Session**: `logind-zbus` 5, already a dependency (the launcher's system provider).
+  - **Wi-Fi**: `cosmic-dbus-networkmanager`, already the network service's (MPL-2.0, linked
+    only).
+
+  `cargo deny check licenses` is unchanged.
+- **F174 The new services and their receivers.** `Services` gains `wifi`/`wifi_control`,
+  `bluetooth`/`bluetooth_control`, `power_profiles`/`power_profile_control`,
+  `media`/`media_control` and `session`/`session_control`. Each `spawn` is real and each
+  `live::run` is a stub that returns at once, so the service is inert (its default, commands
+  answering `Gone`) with no `inert()` line in `services.rs` for the agents to fight over: an
+  agent fills `live::run` and nothing else changes there.
+- **F175 Wi-Fi is a service of its own** (`network::wifi`), not more fields on `Network`: the
+  bar draws `Network` and would repaint on every scan. `WifiCommand::{Radio, Scan,
+  Connect(Ssid), Disconnect}`; `Connect` joins a *saved* network only (joining a new one needs
+  a password prompt, which no milestone has yet; the page opens COSMIC Settings' Wi-Fi page
+  meanwhile). `Radio` has a third state, `Blocked` (`WirelessHardwareEnabled` false), which
+  disables the toggle.
+- **F176 Focus is `notifications.dnd`, read.** design/22 already has `notifications.dnd`
+  (`Dnd::{On,Off}`), so `sill_settings::FocusMode::{Off, DoNotDisturb}` is that key's reading
+  (`focus_mode`, `with_focus_mode`), not a second copy of it. It is published by
+  `sill_settings::FocusLink` (a watch that follows the settled settings, and a setter that
+  rewrites `settings.toml`, so the file stays the one truth), started by the daemon with
+  `spawn_focus` and given to every surface as a root context; `use_focus_mode` reads it. A mode
+  beyond Do Not Disturb (Sleep, Work: "room for more") needs a key that can name it,
+  `notifications.focus`, replacing `dnd`; that is a design/22 change for when a second mode is
+  wanted, not a key added now.
+- **F177 The session service owns logind for the power menu; the launcher keeps its snapshot.**
+  `SessionAction::{Lock, LogOut, Restart, PowerOff, Suspend}`, `Offer::{Available, NeedsAuth,
+  Unavailable}` (logind's `yes`/`challenge`/`no`/`na`), `SessionCommand::{Run, Refresh}`. The
+  launcher's `SystemProvider` keeps its own `OnceLock` availability probe: moving it onto the
+  session receiver changes the provider's constructor, which the results runner and the panel
+  both call, for no behaviour anyone sees yet. `SessionAction::of_system` maps the launcher's
+  `SystemCommand` (implemented, tested).
+- **F178 The launcher's session rows.** `LauncherEffect` gains `Session(SessionAction)` (Lock,
+  Suspend: at once) and `PowerMenu(SessionAction)` (Log Out, Restart, Shut Down: the power menu
+  opens focused on that button, which is the confirmation). `run_effect` already sends
+  `Session`; `PowerMenu` needs the panel's `PowerMenuLink` and output, which agent (d) passes.
+  `effect_of` still maps every `System` to `Unreachable` until (d) fills it
+  (`session_rows_run_or_open_the_power_menu`, ignored).
+- **F179 The control center is a bar menu.** design/13 §13.3.7 has it take part in the bar's
+  hover switch, so it is `BarMenu::ControlCenter` drawn in the bar's one reusable popup
+  (`PopupBody::ControlCenter(ControlCenterSettings)`), not a surface of its own; the daemon
+  spawns nothing for it. `sill control-center toggle` cannot open a popup from the daemon (a
+  popup belongs to its bar, and an xdg popup grab wants an input serial an IPC request does not
+  have), so it writes a `ControlCenterLink` ask that each bar follows for its own output.
+  Whether cosmic-comp maps a popup opened that way is agent (c)'s to find out and record. The
+  power profile has no module in design/22's `control_center.modules` list; its
+  `SegmentedControl` sits in the Battery module (macOS puts Low Power there), alone on a
+  machine without a battery.
+- **F180 The power menu is one warm surface per output.** An Overlay over the whole output
+  (`power_menu_layer`: anchor all, no exclusive zone, keyboard `Exclusive`, input `Whole`, blur
+  `Element("power-menu-panel")`), spawned hidden with the other surfaces; the scrim is its own
+  content, so no catcher is needed. Every opener (`sill power-menu`, the bar app menu's new
+  "Shut Down…" item, the launcher's rows) writes one `PowerMenuLink` (implemented and tested,
+  the launcher's `presence.rs` pattern with a `Preselect`); the daemon feeds it the surface's
+  keyboard focus. Its panel renders nothing yet rather than `todo!()`, because the daemon
+  spawns it today. The buttons are `Button{Primary}` for the focused one, `Danger` for Restart
+  and Shut Down, `Secondary` otherwise; Lock is not a power-menu button (design/20 §1.8's list).
+- **F181 IPC and CLI.** `Request::PowerMenu(PowerMenuRequest::{Open, Close, Toggle})` and
+  `Request::ControlCenter(ControlCenterRequest::Toggle)`, wire spellings pinned in
+  `sill-ipc/tests/serde.rs`; `sill power-menu {open,close,toggle}` and `sill control-center
+  toggle`. The daemon's half is `crates/sill/src/power_menu.rs` (spawn and dispatch) and
+  `crates/sill/src/links.rs`: the three links are installed once in a `OnceLock` and added to
+  every root by `surface_root`, rather than threaded through every `spawn_missing_*` (those
+  signatures are shared with the OSD work in flight); `daemon.rs` gained a few additive lines.
+- **F182 New keys** (no design/22 rows; `tests/keys.rs` `AWAITING_ROWS`, rows in Q78):
+  `control_center.bottom_margin_px` (16: design/13 §13.3.7's "max `output_h - bar_h - 16`"),
+  and a new `power_menu` domain (`[power_menu]` in `settings.toml`, `SettingsChange::PowerMenu`)
+  with `power_menu.default_action` (`ShutDown`) and `power_menu.material` (`Sheet`).
+- **F183 Things left out on purpose.** Choosing the sound output device (the volume service has
+  no sink list or `SetSink`; the Sound module names the current sink only). Joining a new Wi-Fi
+  network or pairing a Bluetooth device (COSMIC Settings, from each page's foot). A power-menu
+  countdown (macOS's 60 s auto shut-down: not in the spec).
+- **F184 Known red at freeze time, not from this branch.** `sill-settings`'
+  `every_key_in_catalogue_has_a_spec` fails on master too: quire's design/22 gained `osd.*`
+  rows (the OSD work) before sill's `osd` domain landed. It clears when the OSD branch merges.
+
+### The M5 fill-in: four agents, disjoint files
+
+Every agent reads CONVENTIONS §0 and §1 (the freeze rule: fill bodies, add private helpers and
+tests; never change a frozen signature, public field or variant; stop and report instead),
+ORCHESTRATION "Coherence rules", design/20 §1.5 or §1.8 and design/13 §13.3.7, and this
+section. Everyone runs, before reporting:
+
+```bash
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace --features sill/debug
+./scripts/check-boundary.sh
+cargo deny check licenses
+```
+
+(`cargo fmt -p <crate>` while the wave runs.) Files not listed under an agent are read-only to
+all four: in particular `sill-services/src/{lib.rs,services.rs}`, `sill-surfaces/src/hooks/**`,
+`sill-settings/src/**` but `focus_link.rs`, `sill-ipc/**`, and `crates/sill/src/{daemon.rs,
+cli.rs,links.rs,outputs.rs}`.
+
+**(a) svc-session-bt: Bluetooth, power profile, session.**
+- Owns: `crates/sill-services/src/bluetooth/**`, `power_profile/**`, `session/**` (new private
+  files in them, e.g. `bluetooth/bluez.rs` for the proxies), new
+  `crates/sill-services/tests/{bluetooth_live,power_profile_live,session_live}.rs`.
+- Frozen: each `spawn`; `BluetoothCommand`, `Bluetooth`, `BtDevice`, `BtAddress`, `BtPower`,
+  `BtKind`, `BtConnection`, `BtPairing`, `BtBattery`, `BluetoothEvent`, `reduce_bluetooth`,
+  `listed_devices`, `device_kind`; `ProfileCommand`, `PowerProfiles`, `Profile::{ALL,
+  from_daemon, daemon_word}`, `ProfileBus`, `ProfileDegraded`, `ProfileEvent`,
+  `reduce_power_profiles`; `SessionCommand`, `Session::offer`, `SessionAction::{POWER_MENU,
+  of_system}`, `Offer::from_logind`, `SessionEvent`, `reduce_session`.
+- Done: the ignored tests in those modules pass un-ignored; each `live::run` seeds a real
+  value, follows changes (BlueZ `InterfacesAdded`/`Removed` and `PropertiesChanged`; ppd's
+  properties; logind re-probed on `Refresh` and on `PrepareForSleep(false)`), and carries out
+  its commands (`Connect` publishes `Connecting` first); without the bus or daemon it returns
+  and the receiver stays default. Live tests, `#[ignore]`, read-only on this machine (never
+  suspend, reboot or power off from a test): the adapter and its devices, the active profile,
+  the offers.
+- Verify: the gates, plus `cargo test -p sill-services -- --ignored` for its live tests on the
+  machine, reporting what each saw.
+
+**(b) svc-media-wifi-focus: Now Playing, Wi-Fi, focus.**
+- Owns: `crates/sill-services/src/now_playing/**`, `crates/sill-services/src/network/wifi/**`,
+  `crates/sill-settings/src/focus_link.rs` (the `spawn_focus` body),
+  `crates/sill-settings/tests/focus.rs`, `crates/sill-services/Cargo.toml` (an `[[example]]`
+  entry only), a new `crates/sill-services/examples/mpris_player.rs` (a test MPRIS player,
+  `badge_emitter`'s pattern), new `crates/sill-services/tests/{media_live,wifi_live}.rs`.
+- Frozen: `MediaCommand`, `MediaVerb`, `Media::current`, `MediaPlayer`, `PlayerId`, `Playback`,
+  `Track`, `Art`, `Micros`, `Timeline`, `Abilities`, `MediaEvent`, `reduce_media`, `ArtSource`,
+  `art_source`, `art_cache_name`; `WifiCommand`, `Wifi`, `Radio`, `Ssid`, `AccessPoint`,
+  `Security`, `Association`, `Saved`, `WifiEvent`, `reduce_wifi`, `listed_networks`;
+  `FocusLink::{new, fixed, mode, set}`, `Delivery`, `spawn_focus`.
+- Done: the ignored tests pass (`art_cache_name` must be stable across builds, so not std's
+  `DefaultHasher`); MPRIS players found and followed, `Position` read on a status change and on
+  `Seeked`, `Press` carried out; remote art downloaded once into `$XDG_CACHE_HOME/sill/art/`
+  with no new crate (`curl` as a child process, which Fedora ships, or stop and propose a
+  dependency); Wi-Fi radio, access points (`AccessPointAdded`/`Removed`, `LastScan`) and saved
+  connections' SSIDs followed, commands carried out; `spawn_focus` follows the feed and writes
+  the file (`tests/focus.rs`). Live tests `#[ignore]`: the example player becomes current and
+  obeys PlayPause; a scan returns access points.
+- Verify: the gates, plus the ignored live tests on the machine.
+
+**(c) control-center: the popup, its modules and the bar item.**
+- Owns: `crates/sill-surfaces/src/surfaces/control_center/**`; in the bar,
+  `surfaces/bar/{menus,content,geometry,menu_popup,session,plan,status,mod}.rs` and a new
+  `surfaces/bar/control_center_item.rs`; `crates/sill-surfaces/src/style/control_center.css`
+  (new) and `style/bar_popup.css`; `crates/sill-surfaces/tests/support/fake.rs` (feed senders
+  for the new services); new `tests/{control_center_render,control_center_lint}.rs`;
+  `examples/bar_demo.rs`; `dev/accept-control-center.sh`.
+- Frozen: `ControlCenter { output, on_close, on_page }`, `Module`, every `*Module` and
+  `PowerProfileControl`, `WifiNetworks`/`BluetoothDevices { on_back }`, `page::{CcPage, Detail,
+  PageInput, Slide, PageOut, step_page}`, `geometry::{Span, span, Placed, place, height_cap,
+  estimate_size}`, every `labels` function, `ControlCenterLink`/`ControlCenterAsk`,
+  `BarMenu::ControlCenter`, `PopupBody::ControlCenter(ControlCenterSettings)`.
+- Done: a status item (quire `IconButton{Status}`) between Battery and Clock opens the control
+  center; hover switch to and from the other status menus; the popup root gets `Services`,
+  `SettingsFeed` and `FocusLink` (from the bar's `try_use_context`) and calls
+  `ds_native::measure::provide()`; the bar follows `ControlCenterLink` for its output; the
+  popup is sized by `estimate_size` and repositioned on a page change; modules in
+  `control_center.modules` order on `place`'s grid; the Wi-Fi and Bluetooth pages slide (quire
+  motion only: Q76); Escape unwinds; only quire components (the SSR class test and
+  `ds::lint::stylesheet`, as the bar's tests do); every ignored test in the module passes.
+- Verify: the gates; `dev/accept-control-center.sh` on the nested compositor (`dev/nested.sh`,
+  `sill run --features debug` with a scratch `XDG_CONFIG_HOME`, as `accept-launcher.sh` does):
+  (1) `sill debug click` on the item opens `sill-bar-<out>/popup` (a capture succeeds), a
+  second click closes it; (2) `sill control-center toggle` opens and closes it (or records the
+  grab refusal and exits 2 naming it); (3) captures of the grid and of the Wi-Fi page into
+  `dev/out/control-center*.png`; (4) the bar idles at 0 frames for 5 s after closing.
+
+**(d) power-menu: the surface, its keys, the launcher's rows.**
+- Owns: `crates/sill-surfaces/src/surfaces/power_menu/**` (the implemented `presence.rs` and
+  `layer.rs` may change inside, never in signature); `surfaces/launcher/{activate,run,
+  events}.rs`; `crates/sill-services/src/providers/system.rs` (a confirm row's primary becomes
+  its `System(command)`, since the power menu is now the confirmation);
+  `crates/sill/src/power_menu.rs`; `crates/sill-surfaces/src/style/power_menu.css` (new); new
+  `tests/{power_menu_render,power_menu_lint,power_menu_keys}.rs`; `dev/accept-power-menu.sh`.
+- Frozen: `PowerMenu { output }`, `PowerMenuLink`, `PowerMenuShown`, `PowerMenuOpening`,
+  `Preselect`, `power_menu_layer`, `panel_region`, `PANEL_ID`, `keys::{PowerMenuKey,
+  PowerMenuState, PowerMenuOut, initial, step}`, `labels::{action_label, button_variant}`,
+  `LauncherEffect::{Session, PowerMenu}`, `PowerMenuRequest`, the CLI.
+- Done: the panel follows the link onto its visibility; a `Ds` root with a quire `Scrim` and
+  `Sheet` (`peek-in`), four `Button`s per `button_variant`, unavailable per `Session::offer`,
+  `Kbd` hints (Return, Esc); `step` on the keys; a chosen action sends `SessionCommand::Run` and
+  closes; a focus loss closes; the launcher's rows per F178; the bar's "Shut Down…" (already
+  wired) opens it; the ignored tests pass.
+- Verify: the gates; `dev/accept-power-menu.sh` on the nested compositor: (1) `sill power-menu
+  open` shows `sill-power-menu-<out>` (capture into `dev/out/power-menu.png`), `close` hides
+  it, `toggle` twice round-trips; (2) the bar app menu's "Shut Down…" opens it (`sill debug
+  click`); (3) Escape closes it (by injected key if shell-host offers one, else a manual check
+  in `docs/manual-checks.md`); (4) 0 frames idle while hidden. Never confirm an action in the
+  script: the nested session shares logind with the machine.
+
+### Gaps found in the M5 freeze
+
+- **Q74 (quire)** A control center module tile: design/13 §13.3.7's `--r-tile` 12 tile with a
+  glyph on an accent disc when on, a title, a status line, an on/off state, an optional chevron
+  to a detail pane, and a row-spanning variant for sliders. Nothing in the catalogue has that
+  shape (`AccountTile` is the mail account plate).
+- **Q75 (quire)** A settings-style list row for networks and devices: leading glyph, title,
+  detail, trailing marks (lock, check, spinner), selectable and pressable, outside a `Menu`.
+  `ListRow` is the mail row (name, subject, snippet, time, star), and `MenuEntry::Row` lives
+  only inside a `Menu`.
+- **Q76 (quire)** A pane switcher that plays `slide-l` / `slide-r` between a root pane and a
+  detail pane in place (design/13 §13.3.7 "Detail"): `Anim::SlideL`/`SlideR` exist, but
+  `use_entrance` is crate-private and consumers may not write keyframes (rule 4).
+- **Q77 (quire)** Glyphs: media transport (`Play`, `Pause`, `SkipBack`, `SkipForward`),
+  `LogOut` and `Restart` for the power menu, and Bluetooth device kinds (`Headphones`,
+  `Speaker`, `Mouse`, `Gamepad`, `Phone`; `Keyboard` and `Monitor` exist).
+- **Q78 (design/22)** The rows `AWAITING_ROWS` exempts (F182), for §3.13 and a new section
+  after §3.15 (which `tests/keys.rs` then reads without change, since everything up to "## 4.
+  Rust shape" is parsed); §2's file table and §4.4's `ShellFile` gain `power_menu`:
+
+  | Key | Type | Default | Range / Alt | Source | Status |
+  | --- | --- | --- | --- | --- | --- |
+  | `control_center.bottom_margin_px` | `Px` | `16` | 0..=64; the panel scrolls past `output_h - bar_h - this` | `13-BEHAVIOUR-menus-windows.md#13-3-7-control-center` | proposed |
+  | `power_menu.default_action` | `PowerMenuDefault::{LogOut,Restart,ShutDown,Suspend}` | `ShutDown` | the button Return presses when the menu opens | `20-SURFACES.md#1-8-power-menu-spec-tier-1` | proposed |
+  | `power_menu.material` | `PanelMaterial::{Sheet,Popover}` | `Sheet` | Sheet over Scrim (design/20 §1.8) | `20-SURFACES.md#1-8-power-menu-spec-tier-1` | proposed |
+
+  All Advanced (on the Appearance page, F10's rule).
