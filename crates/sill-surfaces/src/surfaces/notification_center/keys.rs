@@ -34,8 +34,39 @@ pub enum CenterOut {
 /// clamped first; with no rows only Escape does anything. Dismissing keeps the ring on the same
 /// index, clamped to the rows that remain.
 pub fn step_keys(focus: RowFocus, key: CenterKey, rows: usize) -> (RowFocus, Vec<CenterOut>) {
-    let _ = (focus, key, rows);
-    todo!("M6 fill: c-center")
+    let last = rows.checked_sub(1);
+    let focus = clamp(focus, last);
+    match (key, focus, last) {
+        (CenterKey::Escape, _, _) => (focus, vec![CenterOut::Close]),
+        (_, _, None) => (RowFocus::None, Vec::new()),
+        (CenterKey::Down, RowFocus::None, Some(_)) => (RowFocus::Row(0), Vec::new()),
+        (CenterKey::Up, RowFocus::None, Some(last)) => (RowFocus::Row(last), Vec::new()),
+        (CenterKey::Down, RowFocus::Row(at), Some(last)) => {
+            (RowFocus::Row((at + 1).min(last)), Vec::new())
+        }
+        (CenterKey::Up, RowFocus::Row(at), Some(_)) => {
+            (RowFocus::Row(at.saturating_sub(1)), Vec::new())
+        }
+        (CenterKey::Return, RowFocus::Row(at), Some(_)) => (focus, vec![CenterOut::Activate(at)]),
+        (CenterKey::Delete, RowFocus::Row(at), Some(last)) => {
+            let after = last.checked_sub(1).map(|left| RowFocus::Row(at.min(left)));
+            (
+                after.unwrap_or(RowFocus::None),
+                vec![CenterOut::Dismiss(at)],
+            )
+        }
+        (CenterKey::Return | CenterKey::Delete, RowFocus::None, Some(_)) => {
+            (RowFocus::None, Vec::new())
+        }
+    }
+}
+
+/// `focus` kept inside rows `0..=last` (none when there are no rows).
+fn clamp(focus: RowFocus, last: Option<usize>) -> RowFocus {
+    match (focus, last) {
+        (RowFocus::None, _) | (_, None) => RowFocus::None,
+        (RowFocus::Row(at), Some(last)) => RowFocus::Row(at.min(last)),
+    }
 }
 
 #[cfg(test)]
@@ -43,7 +74,6 @@ mod tests {
     use super::{CenterKey, CenterOut, RowFocus, step_keys};
 
     #[test]
-    #[ignore = "M6 fill: c-center"]
     fn keys_move_the_ring_act_and_close() {
         use CenterKey::{Delete, Down, Escape, Return, Up};
         use RowFocus::{None, Row};

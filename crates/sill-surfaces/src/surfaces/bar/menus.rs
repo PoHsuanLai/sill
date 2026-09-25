@@ -25,6 +25,9 @@ pub(crate) enum BarMenu {
     Battery,
     /// The control center (design/20 §1.5): the last status item, left of the clock (M5).
     ControlCenter,
+    /// Retired (M6, FINDINGS F266): a click on the clock toggles the notification center, and
+    /// nothing opens this menu any more. The variant stays as a menu id the tracking machine's
+    /// tables (`plan.rs`, outside lane c) still name.
     Clock,
 }
 

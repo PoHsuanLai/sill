@@ -7,17 +7,26 @@
 //! column, or `sill notifications close`. Why a layer and not a popup: `layer.rs`.
 
 pub mod groups;
+pub mod keymap;
 pub mod keys;
+pub mod labels;
 pub mod layer;
 pub mod link;
+pub mod phase;
+pub mod rows;
 pub mod widgets;
 
+mod column;
+mod contents;
+mod drive;
+mod group;
 mod panel;
 
 pub use groups::{Expanded, GroupView, group_views, toggle_group};
 pub use keys::{CenterKey, CenterOut, RowFocus, step_keys};
 pub use layer::{PANEL_ID, PANEL_RADIUS, center_layer, panel_region};
 pub use link::{CenterLink, CenterShown};
+pub use panel::NOTIFICATION_CENTER_CSS;
 pub use widgets::CenterWidgets;
 
 use dioxus::prelude::*;
