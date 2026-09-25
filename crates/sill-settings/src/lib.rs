@@ -51,7 +51,7 @@ pub use launcher::LauncherSettings;
 pub use menus::{MenusSettings, PickFeedback};
 pub use notifications::{
     BannerEntry, BannerMaterial, BannerPosition, BannerStyle, Dnd, NotificationServer,
-    NotificationsSettings,
+    NotificationSwipe, NotificationsSettings,
 };
 pub use osd::{OsdEnabled, OsdPosition, OsdSettings};
 pub use power_menu::{PowerMenuDefault, PowerMenuSettings};
