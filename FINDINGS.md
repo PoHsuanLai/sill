@@ -2374,11 +2374,13 @@ so the suite stays green and each agent's first step is to delete its `ignore`s.
   toggle`. The daemon's half is `crates/sill/src/power_menu.rs` (spawn and dispatch) and
   `crates/sill/src/links.rs`: the three links are installed once in a `OnceLock` and added to
   every root by `surface_root`, rather than threaded through every `spawn_missing_*` (those
-  signatures were shared with the OSD work then in flight); `daemon.rs` gained a few additive lines.
+  signatures were shared with the OSD work then in flight); `daemon.rs` gained a few additive
+  lines.
 - **F182 New keys** (no design/22 rows; `tests/keys.rs` `AWAITING_ROWS`, rows in Q82):
   `control_center.bottom_margin_px` (16: design/13 §13.3.7's "max `output_h - bar_h - 16`"),
-  and a new `power_menu` domain (`[power_menu]` in `settings.toml`, `SettingsChange::PowerMenu`)
-  with `power_menu.default_action` (`ShutDown`) and `power_menu.material` (`Sheet`).
+  six `control_center.menu_bar_*` keys (F185), and a new `power_menu` domain (`[power_menu]` in
+  `settings.toml`, `SettingsChange::PowerMenu`) with `power_menu.default_action` (`ShutDown`)
+  and `power_menu.material` (`Sheet`).
 - **F183 Things left out on purpose.** Choosing the sound output device (the volume service has
   no sink list or `SetSink`; the Sound module names the current sink only). Joining a new Wi-Fi
   network or pairing a Bluetooth device (COSMIC Settings, from each page's foot). A power-menu
@@ -2387,6 +2389,28 @@ so the suite stays green and each agent's first step is to delete its `ignore`s.
   spawn one warm hidden layer per output through `daemon::surface_root`, so the power menu's
   `spawn_missing` sits beside the OSD's, and the quire gaps below are numbered after the OSD's
   Q74-Q77.
+- **F185 The controls live at the top right, as on macOS (user, 2026-09-25).** The control
+  center's item is the last status item, just left of the clock, and its panel hangs from the
+  output's right edge, less the popup margin, not from the item (`MenuSide::OutputEdge`).
+  Wi-Fi, Bluetooth, Sound, Display, Battery and Now Playing can each also be a bar item of its
+  own with its own dropdown (macOS's "Show in Menu Bar"): one key per module,
+  `control_center.menu_bar_{wifi,bluetooth,sound,display,battery,now_playing}:
+  InMenuBar::{Show,Hide}`, Wi-Fi, Sound and Battery shown by default (which keeps today's bar),
+  rather than one list key, so a module that cannot be a bar item (Focus, Appearance) cannot be
+  named. The dropdowns reuse the modules' own components (`PopupBody::Module`), so the pre-M5
+  volume, network and battery menus become the Sound, Wi-Fi and Battery modules; `BarMenu`
+  gains `NowPlaying`, `Display` and `Bluetooth`, `BarMenu::module` maps each item to its module,
+  and `control_center::MENU_BAR_ORDER` fixes their order (Now Playing, Display, Sound,
+  Bluetooth, Wi-Fi, Battery, then Control Center and the clock). The new items are
+  `bar::module_item::ModuleItem` and `bar::control_center_item::ControlCenterItem`, not mounted
+  until agent (c) does.
+- **F186 The Sound and Display modules take a level and an `on_change` (user, 2026-09-25).**
+  They read no service (`Module` and the bar dropdowns wire them), and both draw through one
+  `control_center::LevelModule { glyph, title, level, on_change, availability }` on quire's
+  `Slider` in its default mode. quire is designing a macOS-like level style (a thick capsule
+  with the glyph inside that follows the level, rubber-banding at the ends, a swell on press);
+  `LevelModule` switches to it when it lands, and the slider is never styled here meanwhile.
+  The OSD (moving under the bar at the top right, its own follow-up) is to reuse `LevelModule`.
 
 ### The M5 fill-in: four agents, disjoint files
 
@@ -2451,8 +2475,8 @@ cli.rs,links.rs,outputs.rs}`.
 
 **(c) control-center: the popup, its modules and the bar item.**
 - Owns: `crates/sill-surfaces/src/surfaces/control_center/**`; in the bar,
-  `surfaces/bar/{menus,content,geometry,menu_popup,session,plan,status,mod}.rs` and a new
-  `surfaces/bar/control_center_item.rs`; `crates/sill-surfaces/src/style/control_center.css`
+  `surfaces/bar/{menus,content,geometry,popup,menu_popup,session,plan,status,volume,network,
+  battery,mod}.rs`, `surfaces/bar/module_item.rs` and `surfaces/bar/control_center_item.rs`; `crates/sill-surfaces/src/style/control_center.css`
   (new) and `style/bar_popup.css`; `crates/sill-surfaces/tests/support/fake.rs` (feed senders
   for the new services); new `tests/{control_center_render,control_center_lint}.rs`;
   `examples/bar_demo.rs`; `dev/accept-control-center.sh`.
@@ -2460,9 +2484,15 @@ cli.rs,links.rs,outputs.rs}`.
   `PowerProfileControl`, `WifiNetworks`/`BluetoothDevices { on_back }`, `page::{CcPage, Detail,
   PageInput, Slide, PageOut, step_page}`, `geometry::{Span, span, Placed, place, height_cap,
   estimate_size}`, every `labels` function, `ControlCenterLink`/`ControlCenterAsk`,
-  `BarMenu::ControlCenter`, `PopupBody::ControlCenter(ControlCenterSettings)`.
-- Done: a status item (quire `IconButton{Status}`) between Battery and Clock opens the control
-  center; hover switch to and from the other status menus; the popup root gets `Services`,
+  `LevelModule`, `SoundModule { level, device, on_change, availability }`, `DisplayModule {
+  level, on_change, availability }`, `menu_bar::{MENU_BAR_ORDER, in_menu_bar,
+  menu_bar_modules}`, `ModuleItem { output, module }`, `ControlCenterItem { output }`;
+  crate-private but agreed: `BarMenu::{ControlCenter, NowPlaying, Display, Bluetooth}`,
+  `BarMenu::module`, `MenuSide::OutputEdge`, `PopupBody::{ControlCenter, Module}`.
+- Done: `ControlCenterItem` (quire `IconButton{Status}`), the last status item left of the
+  clock, opens the control center, hung from the output's right edge; `ModuleItem`s per
+  `menu_bar_modules`, each dropping down its module (replacing `VolumeItem`, `NetworkItem` and
+  `BatteryItem` and their panels); hover switch across all of them; the popup root gets `Services`,
   `SettingsFeed` and `FocusLink` (from the bar's `try_use_context`) and calls
   `ds_native::measure::provide()`; the bar follows `ControlCenterLink` for its output; the
   popup is sized by `estimate_size` and repositioned on a page change; modules in
@@ -2515,6 +2545,9 @@ cli.rs,links.rs,outputs.rs}`.
 - **Q81 (quire)** Glyphs: media transport (`Play`, `Pause`, `SkipBack`, `SkipForward`),
   `LogOut` and `Restart` for the power menu, and Bluetooth device kinds (`Headphones`,
   `Speaker`, `Mouse`, `Gamepad`, `Phone`; `Keyboard` and `Monitor` exist).
+- **Q83 (quire, in design)** The level control style F186 waits for: a thick capsule with the
+  glyph inside following the level, rubber-banding at the ends, a swell on press. `LevelModule`
+  is the one place that adopts it.
 - **Q82 (design/22)** The rows `AWAITING_ROWS` exempts (F182), for §3.13 and a new section
   after §3.16 `osd` (which `tests/keys.rs` then reads without change, since everything up to
   "## 4. Rust shape" is parsed); §2's file table and §4.4's `ShellFile` gain `power_menu`:
@@ -2522,7 +2555,16 @@ cli.rs,links.rs,outputs.rs}`.
   | Key | Type | Default | Range / Alt | Source | Status |
   | --- | --- | --- | --- | --- | --- |
   | `control_center.bottom_margin_px` | `Px` | `16` | 0..=64; the panel scrolls past `output_h - bar_h - this` | `13-BEHAVIOUR-menus-windows.md#13-3-7-control-center` | proposed |
+  | `control_center.menu_bar_wifi` | `InMenuBar::{Show,Hide}` | `Show` | Wi-Fi as its own bar item and dropdown (macOS "Show in Menu Bar") | `20-SURFACES.md#1-5-control-center-spec-tier-1`; sill FINDINGS F185 | proposed (user, 2026-09-25) |
+  | `control_center.menu_bar_bluetooth` | `InMenuBar::{Show,Hide}` | `Hide` | Bluetooth as its own bar item | same | proposed (user, 2026-09-25) |
+  | `control_center.menu_bar_sound` | `InMenuBar::{Show,Hide}` | `Show` | Sound as its own bar item (today's volume item) | same | proposed (user, 2026-09-25) |
+  | `control_center.menu_bar_display` | `InMenuBar::{Show,Hide}` | `Hide` | Display (brightness) as its own bar item | same | proposed (user, 2026-09-25) |
+  | `control_center.menu_bar_battery` | `InMenuBar::{Show,Hide}` | `Show` | Battery as its own bar item (today's battery item) | same | proposed (user, 2026-09-25) |
+  | `control_center.menu_bar_now_playing` | `InMenuBar::{Show,Hide}` | `Hide` | Now Playing as its own bar item | same | proposed (user, 2026-09-25) |
   | `power_menu.default_action` | `PowerMenuDefault::{LogOut,Restart,ShutDown,Suspend}` | `ShutDown` | the button Return presses when the menu opens | `20-SURFACES.md#1-8-power-menu-spec-tier-1` | proposed |
   | `power_menu.material` | `PanelMaterial::{Sheet,Popover}` | `Sheet` | Sheet over Scrim (design/20 §1.8) | `20-SURFACES.md#1-8-power-menu-spec-tier-1` | proposed |
 
-  All Advanced (on the Appearance page, F10's rule).
+  All Advanced (on the Appearance page, F10's rule); the six `menu_bar_*` keys are the macOS
+  Control Center page's own and are candidates for a Basic page when design/22 §5 gets one.
+  design/20 §1.1's bar content ("tray, volume, network, battery, clock") becomes "tray, the
+  module items `control_center.menu_bar_*` shows, the control center, clock".

@@ -32,7 +32,7 @@ pub mod switcher;
 pub mod watch;
 
 pub use bar::{BarGlyphSize, BarSettings};
-pub use control_center::{ControlCenterModule, ControlCenterSettings, PanelMaterial};
+pub use control_center::{ControlCenterModule, ControlCenterSettings, InMenuBar, PanelMaterial};
 pub use diff::{SettingsChange, apply};
 pub use display::{
     BrightnessKeysTarget, ColorManagement, DisplayScaleMode, DisplaySettings, FontRenderingSetting,

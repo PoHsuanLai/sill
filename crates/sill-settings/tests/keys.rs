@@ -39,6 +39,12 @@ const DOC_ALIASES: &[&str] = &["spaces.material_tint_alpha"];
 /// lands it is checked like every other key, and the entry can go.
 const AWAITING_ROWS: &[&str] = &[
     "control_center.bottom_margin_px",
+    "control_center.menu_bar_wifi",
+    "control_center.menu_bar_bluetooth",
+    "control_center.menu_bar_sound",
+    "control_center.menu_bar_display",
+    "control_center.menu_bar_battery",
+    "control_center.menu_bar_now_playing",
     "power_menu.default_action",
     "power_menu.material",
 ];

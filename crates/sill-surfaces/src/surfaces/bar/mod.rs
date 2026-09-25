@@ -5,8 +5,10 @@
 pub mod app_name;
 pub mod battery;
 pub mod clock;
+pub mod control_center_item;
 pub mod layer;
 pub mod menu_track;
+pub mod module_item;
 pub mod network;
 pub mod popup;
 pub mod tray;

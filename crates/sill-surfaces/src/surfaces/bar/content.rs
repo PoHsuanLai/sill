@@ -12,7 +12,7 @@ use sill_services::{
     AppIndex, Battery, ClockText, Mute, Network, OutputName, Presence, Toplevels, Volume, match_app,
 };
 
-use sill_settings::ControlCenterSettings;
+use sill_settings::{ControlCenterModule, ControlCenterSettings};
 
 use super::menus::BarMenu;
 use super::pick::BarPick;
@@ -42,6 +42,9 @@ pub(crate) enum PopupBody {
     /// The control center (`surfaces::control_center::ControlCenter`), which reads its own
     /// hooks; the body carries only what sizes the popup (M5 agent c).
     ControlCenter(ControlCenterSettings),
+    /// One module's dropdown from its own bar item: the module's control center component
+    /// (`control_center::modules::Module`), reading its own hooks (M5 agent c).
+    Module(ControlCenterModule),
 }
 
 /// Everything the menus are built from.
@@ -65,6 +68,9 @@ pub(crate) fn body(menu: BarMenu, state: &BarState) -> PopupBody {
         BarMenu::Battery => PopupBody::Menu(lines_menu(battery_lines(&state.battery))),
         BarMenu::Clock => PopupBody::Menu(lines_menu([state.clock.text.clone()])),
         BarMenu::ControlCenter => PopupBody::ControlCenter(state.control_center.clone()),
+        BarMenu::NowPlaying | BarMenu::Display | BarMenu::Bluetooth => menu
+            .module()
+            .map_or_else(|| PopupBody::Menu(Vec::new()), PopupBody::Module),
     }
 }
 
@@ -246,12 +252,14 @@ mod tests {
             PopupBody::Menu(entries) => titles(&entries),
             PopupBody::Volume(_) => vec!["volume".to_owned()],
             PopupBody::ControlCenter(_) => vec!["control center".to_owned()],
+            PopupBody::Module(module) => vec![format!("{module:?}")],
         };
         assert_eq!(
             menu(BarMenu::App),
             ["# Foot", "~", "--", "Quit Foot", "--", "Shut Down…"]
         );
         assert_eq!(menu(BarMenu::ControlCenter), ["control center"]);
+        assert_eq!(menu(BarMenu::Bluetooth), ["Bluetooth"]);
         assert_eq!(
             menu(BarMenu::Clock),
             ["i Thu 24 Sep 14:05", "--", "Settings…"]

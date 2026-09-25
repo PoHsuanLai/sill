@@ -70,6 +70,9 @@ pub(crate) fn anchor_rect(title: ds::Rect, side: MenuSide) -> Rect {
     let (left, right) = match side {
         MenuSide::Title => (left - SIDE, right),
         MenuSide::Status => (left, right + SIDE),
+        // M5 agent (c): the right end is the bar's width less the margin, which this function
+        // is not given yet.
+        MenuSide::OutputEdge => todo!("M5 fill: control-center (c)"),
     };
     let bottom = bottom - TOP;
     Rect {
@@ -96,8 +99,11 @@ pub(crate) fn popup_size(body: &PopupBody) -> Size {
     let inner = match body {
         PopupBody::Menu(entries) => menu_size(entries),
         PopupBody::Volume(_) => VOLUME_PANEL,
-        // M5 agent (c): `control_center::estimate_size` from the settings and the output's cap.
-        PopupBody::ControlCenter(_) => todo!("M5 fill: control-center (c)"),
+        // M5 agent (c): `control_center::estimate_size` from the settings and the output's cap,
+        // and a module dropdown's own estimate.
+        PopupBody::ControlCenter(_) | PopupBody::Module(_) => {
+            todo!("M5 fill: control-center (c)")
+        }
     };
     Size {
         width: (inner.width + 2 * SIDE).min(MAX_PX),
@@ -164,7 +170,7 @@ mod tests {
         let y = anchor.y + anchor.height + TOP;
         match side {
             MenuSide::Title => (anchor.x + SIDE, y),
-            MenuSide::Status => (anchor.x + anchor.width - SIDE, y),
+            MenuSide::Status | MenuSide::OutputEdge => (anchor.x + anchor.width - SIDE, y),
         }
     }
 

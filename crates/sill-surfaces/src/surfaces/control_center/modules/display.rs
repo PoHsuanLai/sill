@@ -1,15 +1,20 @@
-//! The Display module: a `SectionHeader` and a brightness quire `Slider` (the `Sun` glyph) for
-//! the bar's output, through the displays service: the level from `Displays::target` and
-//! `Displays::brightness`, a change as `DisplaysCommand::Brightness { at, change:
-//! LevelChange::Set(..) }`. Disabled when the target is `BrightnessTarget::None`. Reads
-//! `use_displays`.
+//! The Display module: a [`crate::surfaces::control_center::LevelModule`] with the `Sun` glyph,
+//! "Display" as its title, and the brightness. It reads no service: the caller
+//! ([`super::Module`], the bar's display dropdown) passes the bar output's brightness
+//! (`Displays::target`, then `Displays::brightness`), sends `DisplaysCommand::Brightness { at,
+//! change: LevelChange::Set(..) }` from `on_change`, and passes `Disabled` when the target is
+//! `BrightnessTarget::None`.
 
 use dioxus::prelude::*;
-use sill_services::OutputName;
+use ds::{Availability, Fraction};
 
-/// The Display module for the bar on `output`.
+/// The Display module at `level`.
 #[component]
-pub fn DisplayModule(output: Option<OutputName>) -> Element {
-    let _ = output;
+pub fn DisplayModule(
+    level: Fraction,
+    on_change: EventHandler<Fraction>,
+    #[props(default)] availability: Availability,
+) -> Element {
+    let _ = (level, on_change, availability);
     todo!("M5 fill: control-center (c)")
 }
