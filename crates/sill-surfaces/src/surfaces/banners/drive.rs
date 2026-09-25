@@ -82,7 +82,7 @@ impl Column {
             DeckOut::Rise(key) => self.after(FRAME_SLACK, DeckIn::Risen(key)),
             DeckOut::Entrance(key) => self.after(
                 DurationToken::Big.duration(level) + FRAME_SLACK,
-                DeckIn::Card(key, BannerIn::Entered),
+                DeckIn::Settled(key),
             ),
             DeckOut::Exit(key) => self.after(
                 DurationToken::Move.duration(level) + FRAME_SLACK,

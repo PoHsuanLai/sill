@@ -6,7 +6,7 @@
 
 use sill_settings::{BannerEntry, BannerPosition};
 
-use super::deck::{Entry, Pose};
+use super::deck::{Arrival, Entry, Pose};
 use super::machine::Banner;
 
 /// Which transition a card's transform takes.
@@ -45,11 +45,12 @@ pub struct CardLook {
 
 /// `entry`'s look.
 pub fn card_look(entry: &Entry) -> CardLook {
-    let transit = match entry.banner {
-        Banner::Entering { .. } => Transit::Enter,
-        Banner::Dragging { .. } => Transit::Live,
-        Banner::Leaving { .. } | Banner::Gone => Transit::Exit,
-        Banner::Shown { .. } | Banner::Hovered { .. } => Transit::Spring,
+    let transit = match (entry.banner, entry.arrival) {
+        (Banner::Entering { .. }, _) => Transit::Enter,
+        (Banner::Dragging { .. }, _) => Transit::Live,
+        (Banner::Leaving { .. } | Banner::Gone, _) => Transit::Exit,
+        (Banner::Shown { .. } | Banner::Hovered { .. }, Arrival::Rising) => Transit::Enter,
+        (Banner::Shown { .. } | Banner::Hovered { .. }, Arrival::Settled) => Transit::Spring,
     };
     let (pose, shift) = match entry.pose {
         Pose::Offstage => ("offstage", None),
@@ -97,7 +98,7 @@ pub fn entry_slug(entry: BannerEntry) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{CardLook, Transit, card_look, in_corner};
-    use crate::surfaces::banners::deck::{Entry, EntryKey, Pointer, Pose};
+    use crate::surfaces::banners::deck::{Arrival, Entry, EntryKey, Pointer, Pose};
     use crate::surfaces::banners::machine::{Banner, Deadline, Leave, Remaining};
     use crate::surfaces::banners::stack::Card;
     use crate::surfaces::notification_card::Expansion;
@@ -116,6 +117,7 @@ mod tests {
             pointer: Pointer::Away,
             pose,
             expansion: Expansion::Collapsed,
+            arrival: Arrival::Settled,
         }
     }
 

@@ -35,12 +35,12 @@ fn run(inputs: Vec<(u64, DeckIn)>) -> (Deck, Vec<DeckOut>) {
     )
 }
 
-/// One card from app `a`, risen and entered at 100.
+/// One card from app `a`, risen (its hold starting) at 100, its entrance played at 500.
 fn shown() -> Vec<(u64, DeckIn)> {
     vec![
         (0, DeckIn::Cards(vec![card("a", &[1])])),
-        (30, DeckIn::Risen(A)),
-        (100, DeckIn::Card(A, BannerIn::Entered)),
+        (100, DeckIn::Risen(A)),
+        (500, DeckIn::Settled(A)),
     ]
 }
 
@@ -57,6 +57,7 @@ fn a_card_rises_enters_holds_and_leaves_by_itself() {
         vec![DeckOut::Rise(A), DeckOut::Entrance(A)],
         "rise a frame later, then play the entrance"
     );
+    assert_eq!(deck.drawn()[0].arrival, super::Arrival::Settled);
     assert_eq!(deck.drawn()[0].pose, Pose::Rest);
     assert_eq!(deck.next_wake(), Some(Stamp(5300)));
     assert_eq!(deck.showing(), Showing::Cards);
@@ -164,12 +165,11 @@ fn hover_expands_and_a_card_under_the_pointer_is_hovered_once_shown() {
     ));
     assert_eq!(deck.drawn()[0].expansion, Expansion::Collapsed);
     assert_eq!(deck.next_wake(), Some(Stamp(8500)));
-    // Hovered while it was still entering: hovered as soon as it has entered.
+    // Under the pointer before it rose: hovered as soon as it rises.
     let (deck, _) = run(vec![
         (0, DeckIn::Cards(vec![card("a", &[1])])),
-        (30, DeckIn::Risen(A)),
         (50, DeckIn::Card(A, BannerIn::HoverIn)),
-        (100, DeckIn::Card(A, BannerIn::Entered)),
+        (100, DeckIn::Risen(A)),
     ]);
     assert!(matches!(deck.drawn()[0].banner, Banner::Hovered { .. }));
 }

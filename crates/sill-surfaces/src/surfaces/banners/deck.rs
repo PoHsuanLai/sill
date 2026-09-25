@@ -39,6 +39,15 @@ pub enum Pose {
     Follow(Cpx),
 }
 
+/// Whether a card's entrance is still playing. Its hold starts as it starts to slide in (so a
+/// banner is up for `banner_hold_ms` from when it appears, as design/13 acceptance 9 times it),
+/// and the entrance keeps its own transition until it has played.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Arrival {
+    Rising,
+    Settled,
+}
+
 /// One drawn card.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Entry {
@@ -48,6 +57,7 @@ pub struct Entry {
     pub pointer: Pointer,
     pub pose: Pose,
     pub expansion: Expansion,
+    pub arrival: Arrival,
 }
 
 impl Entry {
@@ -69,8 +79,10 @@ pub struct Deck {
 pub enum DeckIn {
     /// The stack the service's banners make now (this output's; none elsewhere).
     Cards(Vec<Card>),
-    /// A frame has passed since the card mounted off the edge: its entrance can start.
+    /// A frame has passed since the card mounted off the edge: its entrance starts, and its hold.
     Risen(EntryKey),
+    /// Its entrance has played.
+    Settled(EntryKey),
     /// Something happened to one card.
     Card(EntryKey, BannerIn),
     /// A hold may have run out.
@@ -82,7 +94,7 @@ pub enum DeckIn {
 pub enum DeckOut {
     /// Answer with [`DeckIn::Risen`] a frame from now.
     Rise(EntryKey),
-    /// Answer with `BannerIn::Entered` once the entrance has played.
+    /// Answer with [`DeckIn::Settled`] once the entrance has played.
     Entrance(EntryKey),
     /// Answer with `BannerIn::Left` once the exit has played.
     Exit(EntryKey),
@@ -136,19 +148,31 @@ pub fn advance(deck: Deck, input: DeckIn, now: Stamp, p: &BannerParams) -> (Deck
     match input {
         DeckIn::Cards(cards) => super::deck_cards::follow(deck, cards, now, p),
         DeckIn::Risen(key) => {
-            let known = deck.entries.iter().any(|e| e.key == key && !e.leaving());
-            let out = known
-                .then_some(DeckOut::Entrance(key))
+            let mut out = Vec::new();
+            let entries = deck
+                .entries
                 .into_iter()
+                .map(|e| match (e.key == key, e.banner) {
+                    (true, Banner::Entering { .. }) => {
+                        out.push(DeckOut::Entrance(key));
+                        let risen = Entry {
+                            pose: Pose::Rest,
+                            ..e
+                        };
+                        feed(risen, BannerIn::Entered, now, p, &mut out, Speak::Yes)
+                    }
+                    _ => e,
+                })
                 .collect();
-            (
-                with_entry(deck, key, |e| Entry {
-                    pose: Pose::Rest,
-                    ..e
-                }),
-                out,
-            )
+            (Deck { entries, ..deck }, out)
         }
+        DeckIn::Settled(key) => (
+            with_entry(deck, key, |e| Entry {
+                arrival: Arrival::Settled,
+                ..e
+            }),
+            Vec::new(),
+        ),
         DeckIn::Card(key, input) => {
             let mut out = Vec::new();
             let entries = deck
@@ -271,6 +295,7 @@ pub(super) fn arrive(deck: &mut Deck, card: Card, now: Stamp, out: &mut Vec<Deck
         pointer: Pointer::Away,
         pose: Pose::Offstage,
         expansion: Expansion::Collapsed,
+        arrival: Arrival::Rising,
     });
     out.push(DeckOut::Rise(key));
 }
