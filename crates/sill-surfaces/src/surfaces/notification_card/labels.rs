@@ -18,27 +18,46 @@ pub enum Age {
 
 /// `arrived`'s age at `now` (a clock that went backwards reads as now).
 pub fn age(arrived: UnixMs, now: UnixMs) -> Age {
-    let _ = (arrived, now);
-    todo!("M6 fill: b-banners")
+    const MINUTE: u64 = 60_000;
+    const HOUR: u64 = 60 * MINUTE;
+    const DAY: u64 = 24 * HOUR;
+    let whole = |unit: u64| u32::try_from(now.since(arrived) / unit).unwrap_or(u32::MAX);
+    match now.since(arrived) {
+        ms if ms < MINUTE => Age::Now,
+        ms if ms < HOUR => Age::Minutes(whole(MINUTE)),
+        ms if ms < DAY => Age::Hours(whole(HOUR)),
+        _ => Age::Days(whole(DAY)),
+    }
 }
 
 /// `age` as the card writes it: `now`, `5m`, `2h`, `3d` (macOS's compact form).
 pub fn age_label(age: Age) -> String {
-    let _ = age;
-    todo!("M6 fill: b-banners")
+    match age {
+        Age::Now => "now".to_owned(),
+        Age::Minutes(n) => format!("{n}m"),
+        Age::Hours(n) => format!("{n}h"),
+        Age::Days(n) => format!("{n}d"),
+    }
 }
 
 /// The count chip's text: none for a lone notification, else the count (`99+` past 99).
 pub fn count_label(count: usize) -> Option<String> {
-    let _ = count;
-    todo!("M6 fill: b-banners")
+    match count {
+        0 | 1 => None,
+        2..=99 => Some(count.to_string()),
+        _ => Some("99+".to_owned()),
+    }
 }
 
 /// The app's name as drawn: its desktop entry's `Name` when the apps index knows it, else the
 /// sender's `app_name`, else "Notification".
 pub fn app_label(app: &AppRef, entry_name: Option<&str>) -> String {
-    let _ = (app, entry_name);
-    todo!("M6 fill: b-banners")
+    [entry_name.unwrap_or_default(), app.name.as_str()]
+        .into_iter()
+        .map(str::trim)
+        .find(|name| !name.is_empty())
+        .unwrap_or("Notification")
+        .to_owned()
 }
 
 #[cfg(test)]
@@ -47,7 +66,6 @@ mod tests {
     use sill_services::{AppRef, IconRef, UnixMs};
 
     #[test]
-    #[ignore = "M6 fill: b-banners"]
     fn ages_round_down_to_the_unit() {
         const MIN: i64 = 60_000;
         let cases = [
@@ -79,7 +97,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M6 fill: b-banners"]
     fn the_chip_and_the_name() {
         assert_eq!(count_label(1), None);
         assert_eq!(count_label(3).as_deref(), Some("3"));

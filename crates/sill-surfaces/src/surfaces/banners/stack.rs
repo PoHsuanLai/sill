@@ -31,8 +31,31 @@ impl Card {
 
 /// The cards `banners` (newest first, as the service publishes them) make, at most `max`.
 pub fn stack(banners: &[LiveBanner], max: usize) -> Vec<Card> {
-    let _ = (banners, max);
-    todo!("M6 fill: b-banners")
+    let mut cards: Vec<Card> = Vec::new();
+    for banner in banners {
+        let app = banner.note.app.key();
+        match cards.iter_mut().find(|card| card.app == app) {
+            Some(card) => {
+                card.grouped.push(banner.note.id);
+                card.life = longer(card.life, banner.life);
+            }
+            None => cards.push(Card {
+                app,
+                grouped: vec![banner.note.id],
+                life: banner.life,
+            }),
+        }
+    }
+    cards.truncate(max);
+    cards
+}
+
+/// The life of a card holding banners of lives `a` and `b`: an alert among them keeps it.
+fn longer(a: BannerLife, b: BannerLife) -> BannerLife {
+    match (a, b) {
+        (BannerLife::Expires, BannerLife::Expires) => BannerLife::Expires,
+        _ => BannerLife::Persists,
+    }
 }
 
 #[cfg(test)]
@@ -72,7 +95,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M6 fill: b-banners"]
     fn banners_group_by_app_newest_first_up_to_the_cap() {
         use BannerLife::{Expires, Persists};
         let e = |id, app| live(id, app, Expires);

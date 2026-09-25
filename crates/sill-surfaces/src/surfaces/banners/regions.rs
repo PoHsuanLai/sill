@@ -1,7 +1,9 @@
 //! The banner column's input and blur region: its cards' rounded rects, in surface-local
 //! logical pixels, so clicks and blur stop at the cards (layer.rs's module doc).
 
-use shell_host::{Rect, RegionSpec};
+use shell_host::{Rect, RegionSpec, RoundedRect};
+
+use super::layer::CARD_RADIUS;
 
 /// One card's box as measured after layout (surface-local, logical px), leaving ones included
 /// until they have gone.
@@ -12,8 +14,19 @@ pub struct CardBox(pub Rect);
 /// empty (clicks pass through, nothing blurred) when no card shows. A box with no area is left
 /// out.
 pub fn card_regions(cards: &[CardBox]) -> RegionSpec {
-    let _ = cards;
-    todo!("M6 fill: b-banners")
+    let rects: Vec<RoundedRect> = cards
+        .iter()
+        .filter(|CardBox(rect)| rect.width > 0 && rect.height > 0)
+        .map(|&CardBox(rect)| RoundedRect {
+            rect,
+            radius: CARD_RADIUS,
+        })
+        .collect();
+    if rects.is_empty() {
+        RegionSpec::Empty
+    } else {
+        RegionSpec::Rects(rects)
+    }
 }
 
 #[cfg(test)]
@@ -32,7 +45,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M6 fill: b-banners"]
     fn the_region_is_the_cards_and_nothing_else() {
         assert_eq!(card_regions(&[]), RegionSpec::Empty);
         assert_eq!(card_regions(&[CardBox(rect(40, 0))]), RegionSpec::Empty);

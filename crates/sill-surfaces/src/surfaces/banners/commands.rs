@@ -12,8 +12,12 @@ use super::stack::Card;
 /// (`Dismiss`), once per grouped banner, newest first. Leaving because it was acted on sends
 /// nothing here: [`action_command`] already said it when the press happened.
 pub fn leave_commands(card: &Card, why: Leave) -> Vec<NotificationsCommand> {
-    let _ = (card, why);
-    todo!("M6 fill: b-banners")
+    let command = match why {
+        Leave::Timeout => NotificationsCommand::BannerTimedOut,
+        Leave::Dismissed => NotificationsCommand::Dismiss,
+        Leave::Acted => return Vec::new(),
+    };
+    card.grouped.iter().copied().map(command).collect()
 }
 
 /// A press on `card`'s body (`ActionKey::default_action()`) or on one of its buttons: the
@@ -24,8 +28,8 @@ pub fn action_command(
     action: ActionKey,
     token: Activation,
 ) -> Option<NotificationsCommand> {
-    let _ = (card, action, token);
-    todo!("M6 fill: b-banners")
+    card.newest()
+        .map(|id| NotificationsCommand::InvokeAction { id, action, token })
 }
 
 #[cfg(test)]
@@ -47,7 +51,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M6 fill: b-banners"]
     fn leaving_speaks_for_every_grouped_banner() {
         use NotificationsCommand::{BannerTimedOut, Dismiss};
         let cases = [
@@ -70,7 +73,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M6 fill: b-banners"]
     fn an_action_is_the_newest_ones() {
         let token = Activation::Token(ActivationToken("t".to_owned()));
         assert_eq!(
