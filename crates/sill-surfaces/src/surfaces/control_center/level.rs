@@ -1,14 +1,15 @@
-//! The one level control the Sound and Display modules share: a title and the level over
-//! quire's `LevelControl` (Q83) in its default look, the capsule with the glyph inside that
+//! The one level control the Sound and Display modules share: quire's `ModulePanel` headed by
+//! the glyph, the title and the percentage, over quire's `LevelControl` (Q83) in its default look, the capsule with the glyph inside that
 //! follows the level. The look is the user's pick to make later; it is chosen here and nowhere
 //! else ([`LOOK`]). The OSD reuses the same control through quire's `Osd`.
 
 use dioxus::prelude::*;
 use ds::{
-    Availability, Fraction, Icon, LevelControl, LevelGlyph, LevelLook, LevelMode, Muting, Tick,
+    Availability, Fraction, Icon, LevelControl, LevelGlyph, LevelLook, LevelMode, ModulePanel,
+    Muting, Text, Tick,
 };
 
-use super::module_box::ModuleBox;
+use super::modules::use_plate;
 
 /// The control center's level look.
 const LOOK: LevelLook = LevelLook::Capsule;
@@ -26,22 +27,20 @@ pub fn LevelModule(
 ) -> Element {
     let percent = (level.0.min(1000) + 5) / 10;
     rsx! {
-        ModuleBox {
-            div { class: "sill-cc-level",
-                div { class: "sill-cc-level-head",
-                    span { class: "sill-cc-title ds-truncate", "{title}" }
-                    span { class: "sill-cc-value", "{percent}%" }
-                }
-                LevelControl {
-                    label: title.clone(),
-                    value: level,
-                    glyph: level_glyph(glyph),
-                    mode: LevelMode::Interactive,
-                    look: LOOK,
-                    tick: Tick::Quiet,
-                    availability,
-                    onchange: move |value: Fraction| on_change.call(value),
-                }
+        ModulePanel {
+            glyph,
+            title: Text::from(&title),
+            trailing: rsx! { "{percent}%" },
+            plate: use_plate(),
+            LevelControl {
+                label: title.clone(),
+                value: level,
+                glyph: level_glyph(glyph),
+                mode: LevelMode::Interactive,
+                look: LOOK,
+                tick: Tick::Quiet,
+                availability,
+                onchange: move |value: Fraction| on_change.call(value),
             }
         }
     }

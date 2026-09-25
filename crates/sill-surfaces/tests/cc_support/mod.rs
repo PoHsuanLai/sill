@@ -10,8 +10,9 @@ pub mod live;
 use dioxus::prelude::*;
 use ds::{Appearance, Ds, Material};
 use sill_services::{OutputName, Services};
+use sill_settings::ControlCenterModule;
 use sill_settings::{FocusLink, FocusMode, SettingsFeed, ShellFile};
-use sill_surfaces::surfaces::control_center::ControlCenter;
+use sill_surfaces::surfaces::control_center::{ControlCenter, ModuleDropdown};
 
 /// The panel's root: a Popover `Ds`, the control center on the bar output `DP-1`.
 #[component]
@@ -27,15 +28,39 @@ fn Panel() -> Element {
     }
 }
 
+/// A module's own bar dropdown (`control_center.menu_bar_*`), in the same root.
+#[component]
+fn Dropdown(module: ControlCenterModule) -> Element {
+    rsx! {
+        Ds { appearance: Appearance::default(), material: Material::Popover,
+            ModuleDropdown {
+                module,
+                output: Some(OutputName("DP-1".to_owned())),
+                on_close: move |()| {},
+            }
+        }
+    }
+}
+
 /// The control center on `services` and `file`, with Do Not Disturb on, as HTML.
 pub fn render(services: Services, file: ShellFile) -> String {
+    render_dom(VirtualDom::new(Panel), services, file)
+}
+
+/// `module`'s bar dropdown on `services` and `file`, as HTML.
+pub fn render_dropdown(services: Services, file: ShellFile, module: ControlCenterModule) -> String {
+    let dom = VirtualDom::new_with_props(Dropdown, DropdownProps { module });
+    render_dom(dom, services, file)
+}
+
+/// `dom` on `services` and `file`, with Do Not Disturb on, as HTML.
+fn render_dom(mut dom: VirtualDom, services: Services, file: ShellFile) -> String {
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(1)
         .enable_all()
         .build()
         .expect("a runtime builds"); // test-only
     let _entered = rt.enter();
-    let mut dom = VirtualDom::new(Panel);
     dom.provide_root_context(services);
     dom.provide_root_context(SettingsFeed::fixed(file));
     dom.provide_root_context(FocusLink::fixed(FocusMode::DoNotDisturb));

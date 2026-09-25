@@ -1,23 +1,25 @@
-//! The Appearance module: quire's `AppearancePicker` (the one picker, plan), its value from
+//! The Appearance module: quire's `AppearancePicker` (the one picker, plan) in its compact
+//! layout, which fits the module's width, its value from
 //! `use_appearance`, a change written to `quire/appearance.toml` through `ds-settings` (the file
 //! quire's own settings watch then publishes to every surface).
 
 use dioxus::prelude::*;
-use ds::{Appearance, AppearancePicker};
+use ds::{Appearance, AppearancePicker, ModulePanel, PickerLayout};
 use ds_settings::{AppName, AppearanceFile, config_dir};
 
 use crate::hooks::use_appearance;
-use crate::surfaces::control_center::module_box::ModuleBox;
+use crate::surfaces::control_center::modules::use_plate;
 
 /// The Appearance module.
 #[component]
 pub fn AppearanceModule() -> Element {
     let environment = use_appearance()();
     rsx! {
-        ModuleBox {
+        ModulePanel { plate: use_plate(),
             AppearancePicker {
                 value: environment.settings.appearance.appearance(),
                 system: environment.system,
+                layout: PickerLayout::Compact,
                 onchange: move |next: Appearance| save(next),
             }
         }

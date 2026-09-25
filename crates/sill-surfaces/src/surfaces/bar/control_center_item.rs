@@ -10,8 +10,8 @@ use shell_host::OutputInfo;
 use super::menus::BarMenu;
 use super::status_item::StatusIcon;
 
-/// The control center's glyph: two switches, as macOS's (quire's `Settings` sliders).
-const GLYPH: Icon = Icon::Settings;
+/// The control center's glyph: two switches, as macOS's.
+const GLYPH: Icon = Icon::Switches;
 
 /// The control center's item on `output`.
 #[component]

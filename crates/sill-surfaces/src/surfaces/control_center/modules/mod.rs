@@ -29,7 +29,7 @@ use dioxus::prelude::*;
 use sill_services::OutputName;
 use sill_settings::ControlCenterModule;
 
-use ds::ModuleState;
+use ds::{ModuleState, PanelPlate};
 
 use super::page::Detail;
 use wired::{WiredDisplay, WiredSound};
@@ -54,6 +54,13 @@ pub fn Module(
         ControlCenterModule::Appearance => rsx! { AppearanceModule {} },
         ControlCenterModule::Battery => rsx! { BatteryModule {} },
     }
+}
+
+/// The plate a full-width module's `ModulePanel` takes: the tile's in the control center,
+/// `Bare` in a module's own dropdown, whose popover card already is its plate (the dropdown
+/// provides it).
+pub(crate) fn use_plate() -> PanelPlate {
+    try_use_context::<PanelPlate>().unwrap_or_default()
 }
 
 /// The state a press on a tile asks for: on from off, off from on or on the way.

@@ -7,12 +7,12 @@
 use dioxus::prelude::*;
 use ds::{
     Availability, ExternalIcon, Glyph, Icon, IconButton, IconButtonVariant, IconSize, IconSource,
-    IconUrl, IconView,
+    IconUrl, IconView, ModulePanel,
 };
 use sill_services::{Art, MediaCommand, MediaVerb, Playback};
 
 use crate::hooks::{use_now_playing, use_services};
-use crate::surfaces::control_center::module_box::ModuleBox;
+use crate::surfaces::control_center::modules::use_plate;
 use crate::surfaces::control_center::track_lines;
 
 /// The Now Playing module.
@@ -21,9 +21,10 @@ pub fn NowPlayingModule() -> Element {
     let media = use_now_playing()();
     let control = use_services().media_control;
     let playing = media.current().cloned();
+    let plate = use_plate();
     let Some(player) = playing else {
         return rsx! {
-            ModuleBox {
+            ModulePanel { plate,
                 div { class: "sill-cc-media",
                     ArtView { art: Art::None }
                     div { class: "sill-cc-media-text",
@@ -51,7 +52,7 @@ pub fn NowPlayingModule() -> Element {
     };
     let abilities = player.abilities;
     rsx! {
-        ModuleBox {
+        ModulePanel { plate,
             div { class: "sill-cc-media",
                 ArtView { art: player.track.art.clone() }
                 div { class: "sill-cc-media-text",
