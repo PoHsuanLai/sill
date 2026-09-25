@@ -1,14 +1,15 @@
-//! The power menu's render: a transparent `Ds` root (the active Space's look; it paints
-//! nothing and gives the exit fade its motion tokens) holding the room, which fades out as a
-//! whole; in it, a `Ds` in `power_menu.material` holds quire's `Sheet` (its own full-output
-//! scrim, `peek-in`) with the question, the four action buttons in `SessionAction::POWER_MENU`
-//! order (each unavailable where the backend's offers say so) and the `Kbd` hints. The sheet
-//! is keyed by the opening, so each opening plays the entrance and starts its focus over.
+//! The power menu's render: one `Ds` root in `power_menu.material` (the active Space's look),
+//! as large as the output (`RootExtent::Viewport`), holding quire's `Sheet` centred over its
+//! modal scrim with the question, the four action buttons in `SessionAction::POWER_MENU` order
+//! (each disabled where the backend's offers say so) and the `Kbd` hints. The sheet is keyed by
+//! the opening, so each opening plays the entrance and starts its focus over; it plays its own
+//! exit and says when it has settled (`on_hidden`), where the menu closes and a chosen action
+//! runs.
 
 use dioxus::prelude::*;
 use ds::{
-    Availability, BlurState, Button, Ds, Glyph, Icon, IconSize, Inject, Kbd, KbdSize, Material,
-    RootChrome, Sheet, Shortcut,
+    Availability, BlurState, Button, Ds, Glyph, Icon, IconSize, Kbd, KbdSize, RootExtent,
+    ScrimStrength, Sheet, SheetPlacement, Shortcut,
 };
 use shell_host::OutputInfo;
 use sill_services::{OutputName, Session, SessionAction};
@@ -17,7 +18,9 @@ use crate::hooks::{use_appearance, use_ds_scale, use_settings, use_workspaces};
 use crate::surfaces::launcher::panel::{active_look, material};
 use crate::surfaces::power_menu::drive::{MenuCtx, use_menu};
 use crate::surfaces::power_menu::keys::offered;
-use crate::surfaces::power_menu::labels::{action_label, button_variant, consequence, prompt};
+use crate::surfaces::power_menu::labels::{
+    action_label, button_size, button_variant, consequence, prompt,
+};
 use crate::surfaces::power_menu::layer::PANEL_ID;
 use crate::surfaces::power_menu::sheet::{MenuSession, SheetInput};
 
@@ -32,54 +35,23 @@ pub(crate) fn power_menu(output: OutputInfo) -> Element {
     let environment = use_appearance()();
     let on = output.name.clone().map(OutputName);
     let look = active_look(&use_workspaces()(), on.as_ref(), &file.spaces);
+    let ctx = use_menu(output.id, file.power_menu.default_action);
+    let menu = (ctx.menu)();
+    let offers = (ctx.offers)();
     rsx! {
         Ds {
             scale: ds_scale,
             appearance: environment.settings.appearance.appearance(),
             system: environment.system,
             look,
-            material: Material::Sheet,
-            chrome: Some(RootChrome::Transparent),
+            material: material(file.power_menu.material),
+            extent: RootExtent::Viewport,
             blur: BlurState::Available,
+            tint_alpha: Some(environment.tint_alpha()),
+            stack: Some(environment.material_stack()),
             style { {POWER_MENU_CSS} }
-            Room { output }
-        }
-    }
-}
-
-/// The whole output: the fading box around the sheet's own root.
-#[component]
-fn Room(output: OutputInfo) -> Element {
-    let ds_scale = use_ds_scale();
-    let file = use_settings()();
-    let environment = use_appearance()();
-    let on = output.name.clone().map(OutputName);
-    let look = active_look(&use_workspaces()(), on.as_ref(), &file.spaces);
-    let ctx = use_menu(output.id, file.power_menu.default_action);
-    let menu = (ctx.menu)();
-    let offers = (ctx.offers)();
-    let keys = ctx.clone();
-    rsx! {
-        div {
-            class: "sill-power-menu",
-            "data-look": menu.map_or("closed", |m| m.phase.slug()),
-            onkeydown: move |event| keys.key(&event),
-            Ds {
-                scale: ds_scale,
-                appearance: environment.settings.appearance.appearance(),
-                system: environment.system,
-                look,
-                material: material(file.power_menu.material),
-                blur: BlurState::Available,
-                stylesheet: Inject::Host,
-                tint_alpha: Some(environment.tint_alpha()),
-                stack: Some(environment.material_stack()),
-                // Gives this root the output's height, so the overlay the sheet floats in (and
-                // its scrim) covers the output: a `.ds` root is as tall as its content.
-                div { class: "sill-power-menu-floor" }
-                if let Some(menu) = menu {
-                    {sheet(&ctx, menu, &offers)}
-                }
+            if let Some(menu) = menu {
+                {sheet(&ctx, menu, &offers)}
             }
         }
     }
@@ -88,13 +60,21 @@ fn Room(output: OutputInfo) -> Element {
 /// The sheet for one opening.
 fn sheet(ctx: &MenuCtx, menu: MenuSession, offers: &Session) -> Element {
     let focused = menu.keys.focused;
-    let close = ctx.clone();
+    let (close, hidden, keys) = (ctx.clone(), ctx.clone(), ctx.clone());
     rsx! {
         Sheet {
             key: "{menu.serial.0}",
             label: "Power".to_owned(),
+            shown: Some(menu.phase.shown()),
+            on_hidden: move |()| hidden.input(SheetInput::Settled),
+            placement: SheetPlacement::Centre,
+            scrim: ScrimStrength::Modal,
             onclose: move |()| close.input(SheetInput::Dismissed),
-            div { id: PANEL_ID, class: "sill-power-menu-panel",
+            div {
+                id: PANEL_ID,
+                class: "sill-power-menu-panel",
+                "data-look": menu.phase.slug(),
+                onkeydown: move |event| keys.key(&event),
                 div { class: "sill-power-menu-mark",
                     Glyph { icon: Icon::Power, size: IconSize::Bar }
                 }
@@ -128,10 +108,12 @@ fn button(
     } else {
         Availability::Disabled
     };
+    let variant = button_variant(action, focused);
     rsx! {
         Button {
             key: "{action_label(action)}",
-            variant: button_variant(action, focused),
+            variant,
+            size: button_size(variant),
             label: action_label(action),
             availability,
             mounted: move |event: MountedEvent| mount.mounted(action, event.data()),

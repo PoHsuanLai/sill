@@ -6,7 +6,7 @@
 use std::rc::Rc;
 
 use dioxus::prelude::*;
-use ds::{ModuleGrid, Pane, PaneSwitcher};
+use ds::{GridColumns, ModuleGrid, Pane, PaneSwitcher, Px};
 use sill_services::OutputName;
 use sill_settings::ControlCenterModule;
 
@@ -55,6 +55,8 @@ pub(crate) fn control_center(
     let root = rsx! {
         Grid {
             modules: cc.modules.clone(),
+            columns: GridColumns(cc.grid_columns.0),
+            gap: Px(f32::from(cc.grid_gap_px.0)),
             output,
             on_detail: move |detail: Detail| go.call(PageInput::Open(detail)),
         }
@@ -131,16 +133,20 @@ pub(crate) fn panel_style(width: u16, padding: u16, cap: Option<PanelCap>) -> St
     format!("width:{width}px;padding:{padding}px;box-sizing:border-box{cap}")
 }
 
-/// The modules on quire's two-column grid, in order: a tile takes a column, a full-width module
-/// the row (as [`super::place`] lays them out for the size estimate).
+/// The modules on quire's grid (`control_center.grid_columns` and `grid_gap_px`), in order: a
+/// tile takes a column, a full-width module the row (as [`super::place`] lays them out for the
+/// size estimate). The panel pads the grid and the detail panes alike with `grid_padding_px`,
+/// so the grid pads nothing of its own.
 #[component]
 fn Grid(
     modules: Vec<ControlCenterModule>,
+    columns: GridColumns,
+    gap: Px,
     output: Option<OutputName>,
     on_detail: EventHandler<Detail>,
 ) -> Element {
     rsx! {
-        ModuleGrid {
+        ModuleGrid { columns, gap, padding: Px(0.0),
             for module in modules {
                 Module { key: "{module:?}", module, output: output.clone(), on_detail }
             }

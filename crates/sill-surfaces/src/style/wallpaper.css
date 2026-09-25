@@ -4,13 +4,10 @@
    layers, painting the same solid ground `Ds`'s own reset already gives a `.ds` root — there is
    nothing else to paint. Attribute selectors carry `*|` (spike S2). */
 
-/* Sized by the viewport, not by its ancestors: neither the `.ds` root nor dioxus-native-dom's
-   `#main` has a height, so `height:100%` resolves against auto (shell-host F41), and Taffy places
-   a `position:fixed` box against its parent (the 0 px `.ds`), not the viewport, so `inset:0`
-   is 0 px tall too. Both left the surface transparent; `100vw`/`100vh` is the viewport on any
-   host, as `.sill-launcher-catcher` already relies on. */
-.sill-wallpaper{ position:relative; width:100vw; height:100vh; overflow:hidden;
-  background-color:var(--paper); }
+/* The root is the viewport (`Ds { extent: RootExtent::Viewport }`, quire CONSUMING §2's
+   root-frame rule), and the picture fills the root: placed against it, as Taffy places an
+   absolute box against its parent (a browser, against the viewport: the same box). */
+.sill-wallpaper{ position:absolute; inset:0; overflow:hidden; background-color:var(--paper); }
 
 .sill-wallpaper-layer{ position:absolute; inset:0; opacity:1;
   transition:opacity var(--t-big) var(--e-out); }

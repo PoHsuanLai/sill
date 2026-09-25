@@ -1,14 +1,17 @@
 //! The control center's SSR render reads the frozen channels: its modules in
-//! `control_center.modules` order on the two-column grid, each tile's state and status line from
-//! the fake services, the levels on quire sliders, and a fed value replacing the default.
+//! `control_center.modules` order on quire's `ModuleGrid` (columns and gap from the settings),
+//! each tile's state and status line from the fake services, the full-width modules on quire's
+//! `ModulePanel` (bare in a module's dropdown), the levels on quire's `LevelControl`, and a fed
+//! value replacing the default.
 
 mod cc_support;
 
 use std::time::Duration;
 
 use cc_support::live::{self, Report};
-use cc_support::{count, fake, render};
+use cc_support::{count, fake, render, render_dropdown};
 use ds::Key;
+use ds_settings::{Count, Px};
 use sill_services::{Bluetooth, Radio, Ssid, Wifi, WifiCommand};
 use sill_settings::{ControlCenterModule, ControlCenterSettings, ShellFile};
 use sill_surfaces::surfaces::control_center::{CcPage, Detail};
@@ -21,7 +24,24 @@ fn the_grid_shows_what_the_services_hold() {
         ("quire's module grid", "class=\"ds-module-grid\"", 1),
         ("three quire tiles", "class=\"ds-module-tile\"", 3),
         ("each a column", "data-span=\"half\"", 3),
-        ("five full-width modules", "class=\"sill-cc-module\"", 5),
+        (
+            "five full-width quire panels",
+            "class=\"ds-module-panel\"",
+            5,
+        ),
+        ("each on the tile's plate", "data-plate=\"tile\"", 5),
+        (
+            "the grid from control_center.grid_*, the panel padding it",
+            "style=\"--grid-columns:2;--grid-gap:8px;--grid-padding:0px\"",
+            1,
+        ),
+        (
+            "Sound, Display and Battery headed",
+            "class=\"ds-module-panel-head\"",
+            3,
+        ),
+        ("the compact picker", "data-layout=\"compact\"", 1),
+        ("no plate of sill's", "sill-cc-module", 0),
         (
             "Wi-Fi, Bluetooth and Focus on",
             "data-state=\"on\" aria-pressed=\"true\"",
@@ -75,11 +95,47 @@ fn modules_follow_the_settings_order() {
         "the Wi-Fi tile"
     );
     assert_eq!(
-        count(&html, "class=\"sill-cc-module\""),
+        count(&html, "class=\"ds-module-panel\""),
         1,
         "the Sound module"
     );
     assert_eq!(count(&html, "class=\"ds-appearance\""), 0);
+}
+
+#[test]
+fn the_grid_takes_its_columns_and_gap_from_the_settings() {
+    let (services, _feeds) = fake::services();
+    let file = ShellFile {
+        control_center: ControlCenterSettings {
+            grid_columns: Count(3),
+            grid_gap_px: Px(10),
+            ..ControlCenterSettings::default()
+        },
+        ..ShellFile::default()
+    };
+    let html = render(services, file);
+    assert_eq!(
+        count(
+            &html,
+            "style=\"--grid-columns:3;--grid-gap:10px;--grid-padding:0px\""
+        ),
+        1
+    );
+}
+
+#[test]
+fn a_modules_dropdown_draws_it_bare_on_the_card() {
+    let (services, _feeds) = fake::services();
+    let html = render_dropdown(services, ShellFile::default(), ControlCenterModule::Sound);
+    let cases = [
+        ("one quire panel", "class=\"ds-module-panel\"", 1),
+        ("bare: the card is its plate", "data-plate=\"bare\"", 1),
+        ("headed", "class=\"ds-module-panel-head\"", 1),
+        ("its level", ">40%<", 1),
+    ];
+    for (name, needle, want) in cases {
+        assert_eq!(count(&html, needle), want, "{name}: {needle}");
+    }
 }
 
 #[test]

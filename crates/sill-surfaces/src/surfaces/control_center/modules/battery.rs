@@ -3,13 +3,13 @@
 //! shows; without either the module is absent. Reads `use_battery` and `use_power_profile`.
 
 use dioxus::prelude::*;
-use ds::Glyph;
+use ds::{Icon, ModulePanel, Text};
 use sill_services::Presence;
 
 use super::PowerProfileControl;
 use crate::hooks::{use_battery, use_power_profile};
 use crate::surfaces::bar::status::{battery_icon, battery_lines};
-use crate::surfaces::control_center::module_box::ModuleBox;
+use crate::surfaces::control_center::modules::use_plate;
 
 /// The Battery module.
 #[component]
@@ -19,26 +19,40 @@ pub fn BatteryModule() -> Element {
     if (battery.presence, profiles.presence) == (Presence::Absent, Presence::Absent) {
         return rsx! {};
     }
-    let level = match battery.presence {
+    let head = match battery.presence {
         Presence::Absent => None,
         Presence::Present => {
             let [_, left] = battery_lines(&battery);
-            Some(rsx! {
-                div { class: "sill-cc-level-head",
-                    span { class: "sill-cc-glyph", Glyph { icon: battery_icon(&battery) } }
-                    span { class: "sill-cc-title", "Battery" }
-                    span { class: "sill-cc-value", "{battery.level.0}%" }
-                }
-                span { class: "sill-cc-status", "{left}" }
+            Some(BatteryHead {
+                glyph: battery_icon(&battery),
+                percent: battery.level.0,
+                left,
             })
         }
     };
+    let (glyph, title, trailing) = match &head {
+        Some(head) => (
+            Some(head.glyph),
+            Some(Text::from("Battery")),
+            Some(rsx! { "{head.percent}%" }),
+        ),
+        None => (None, None, None),
+    };
     rsx! {
-        ModuleBox {
+        ModulePanel { glyph, title, trailing, plate: use_plate(),
             div { class: "sill-cc-battery",
-                {level}
+                if let Some(head) = head {
+                    span { class: "sill-cc-status", "{head.left}" }
+                }
                 PowerProfileControl {}
             }
         }
     }
+}
+
+/// The battery's header: its glyph and level, and the time left under it.
+struct BatteryHead {
+    glyph: Icon,
+    percent: u16,
+    left: String,
 }

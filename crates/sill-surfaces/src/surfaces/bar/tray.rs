@@ -17,8 +17,7 @@
 
 use dioxus::prelude::*;
 use ds::{
-    Anchor, Check as DsCheck, ChromaLimit, Ds, IconButton, IconButtonVariant, IconSource, Material,
-    Menu, MenuEntrance, MenuEntry, MenuKind, Point, Press, Px, Rect as DsRect, Size as DsSize,
+    Check as DsCheck, ChromaLimit, IconButton, IconButtonVariant, IconSource, MenuEntry, Press,
     Trail,
 };
 use shell_host::{
@@ -36,12 +35,9 @@ use super::popup::{MenuSide, menu_popup};
 use super::tray_input::{
     ItemMenu, ScreenOrigin, TrayAction, chroma_limit, icon_source, press_action, scroll_delta,
 };
+use super::tray_menu::{POPUP_WIDTH, TrayMenuDocument};
 use crate::hooks::{use_appearance, use_services, use_settings, use_tray};
 
-/// The popup's guessed initial width (design/04-COMPONENTS.md section 20, Dropdown: "min 186,
-/// auto"), before its content is measured — and, doubling as the inner `Menu`'s synthetic
-/// anchor rect width, so the menu's right edge lands at the popup's own right edge (module doc).
-const POPUP_WIDTH: i32 = 220;
 /// The room under the menu's estimated height (its 8 px inset from the popup's edge, with
 /// slack for the estimate).
 const POPUP_SLACK: i32 = 16;
@@ -215,13 +211,11 @@ struct TrayMenuProps {
     control: Control<TrayCommand>,
 }
 
-/// The dbusmenu popup's document: one transparent `Ds` root over one `Menu{Dropdown}` that
-/// opens at once (a bar menu). A popup inherits nothing from the bar, so it provides quire's
-/// rect measurer itself.
+/// The dbusmenu popup's root: [`TrayMenuDocument`], a pick sent to the item's dbusmenu, a
+/// close closing the popup. A popup inherits nothing from the bar, so it provides quire's rect
+/// measurer itself.
 fn tray_menu_popup(props: TrayMenuProps) -> Element {
-    let ds_scale = crate::hooks::use_ds_scale();
     ds_native::measure::provide();
-    let environment = use_appearance()();
     let surface = use_surface();
     let control = props.control.clone();
     let item = props.item.clone();
@@ -233,26 +227,7 @@ fn tray_menu_popup(props: TrayMenuProps) -> Element {
     };
     let onclose = move |()| surface.close();
     rsx! {
-        Ds {
-            scale: ds_scale,
-            appearance: environment.settings.appearance.appearance(),
-            system: environment.system,
-            material: Material::Popover,
-            Menu {
-                kind: MenuKind::Dropdown,
-                anchor: Anchor::Rect(DsRect {
-                    origin: Point::default(),
-                    size: DsSize {
-                        width: Px(POPUP_WIDTH as f32),
-                        height: Px(0.0),
-                    },
-                }),
-                entries: props.entries.clone(),
-                onpick,
-                onclose,
-                entrance: MenuEntrance::Instant,
-            }
-        }
+        TrayMenuDocument { entries: props.entries.clone(), onpick, onclose }
     }
 }
 

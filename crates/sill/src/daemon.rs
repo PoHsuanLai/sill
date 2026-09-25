@@ -202,7 +202,7 @@ fn run_event(
             spawn_missing_wallpapers(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_docks(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_launchers(ctx, outputs, services, settings_feed, settings_tx, launcher);
-            crate::power_menu::spawn_missing(ctx, outputs, |root| {
+            crate::power_menu::spawn_missing(ctx, outputs, &services.session, |root| {
                 surface_root(root, services, settings_feed)
             });
             crate::osd::spawn_missing(ctx, outputs, settings_tx, osd, |root| {

@@ -1,6 +1,6 @@
 //! The power menu's words and button variants, pure.
 
-use ds::ButtonVariant;
+use ds::{ButtonSize, ButtonVariant};
 use sill_services::SessionAction;
 
 /// A button's label (the launcher's row titles: "Log Out", "Restart", "Shut Down", "Suspend";
@@ -28,6 +28,15 @@ pub fn button_variant(action: SessionAction, focused: SessionAction) -> ButtonVa
     }
 }
 
+/// A button's quire size: `Danger` is Mini-sized at rest, so it takes Primary's box to stand
+/// level with the rest (quire's `ButtonSize::Regular`); the others keep their own.
+pub fn button_size(variant: ButtonVariant) -> Option<ButtonSize> {
+    match variant {
+        ButtonVariant::Danger => Some(ButtonSize::Regular),
+        _ => None,
+    }
+}
+
 /// The sheet's question for the focused button, as macOS's shut-down dialog asks it.
 pub fn prompt(action: SessionAction) -> &'static str {
     match action {
@@ -52,8 +61,8 @@ pub fn consequence(action: SessionAction) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{action_label, button_variant, consequence, prompt};
-    use ds::ButtonVariant;
+    use super::{action_label, button_size, button_variant, consequence, prompt};
+    use ds::{ButtonSize, ButtonVariant};
     use sill_services::SessionAction;
 
     #[test]
@@ -86,6 +95,18 @@ mod tests {
                 want,
                 "{action:?} {focused:?}"
             );
+        }
+    }
+
+    #[test]
+    fn danger_buttons_stand_level_with_the_rest() {
+        let cases = [
+            (ButtonVariant::Danger, Some(ButtonSize::Regular)),
+            (ButtonVariant::Primary, None),
+            (ButtonVariant::Secondary, None),
+        ];
+        for (variant, want) in cases {
+            assert_eq!(button_size(variant), want, "{variant:?}");
         }
     }
 }

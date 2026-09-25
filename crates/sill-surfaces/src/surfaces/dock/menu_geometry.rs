@@ -125,11 +125,11 @@ pub(crate) fn menu_placement<T>(tile: Area, entries: &[MenuEntry<T>]) -> PopupPl
     }
 }
 
-/// The inline inset of the frame the popup's `Ds` root sits in: `ds::place`'s margin then puts
+/// The inline padding of the frame the popup's `Ds` root fills: `ds::place`'s margin then puts
 /// the menu's left edge at [`SIDE`] and its bottom at [`BOTTOM`] from the popup's.
 pub(crate) fn frame_style() -> String {
     format!(
-        "left:{side}px;right:{side}px;top:{top}px;bottom:{bottom}px",
+        "padding:{top}px {side}px {bottom}px {side}px",
         side = SIDE - MARGIN,
         top = TOP - MARGIN,
         bottom = BOTTOM - MARGIN

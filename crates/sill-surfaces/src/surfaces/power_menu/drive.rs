@@ -1,26 +1,24 @@
 //! The effects end of the menu: follow the [`PowerMenuLink`] onto the surface's visibility and
-//! an opening's [`MenuSession`], feed [`advance`] the keys, clicks and dismissals, time the exit
-//! with quire's own timer (`Anim::MenuOut`, never a literal), move the keyboard focus onto the
-//! focused button, and hand a chosen action to the [`PowerMenuBackend`] once the sheet has
-//! left. Once hidden, nothing runs and nothing asks for a frame.
+//! an opening's [`MenuSession`], feed [`advance`] the keys, clicks and dismissals, move the
+//! keyboard focus onto the focused button, and hand a chosen action to the [`PowerMenuBackend`]
+//! once quire's `Sheet` has played its exit (its `on_hidden`). Once hidden, nothing runs and
+//! nothing asks for a frame.
 
 use std::rc::Rc;
 
 use dioxus::prelude::*;
-use ds::{Anim, MotionTimer, TimerPhase, use_motion_timer};
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_services::{Services, Session, SessionAction};
 use sill_settings::PowerMenuDefault;
 
 use crate::surfaces::launcher::presence::{OpenSerial, PanelFocus, Visible};
 use crate::surfaces::power_menu::backend::{DryRunSession, PowerMenuBackend};
+use crate::surfaces::power_menu::follow::{Follow, follow};
 use crate::surfaces::power_menu::keymap::power_menu_key;
-use crate::surfaces::power_menu::keys::initial;
+use crate::surfaces::power_menu::keys::{initial, offered};
 use crate::surfaces::power_menu::labels::action_label;
 use crate::surfaces::power_menu::presence::{PowerMenuLink, PowerMenuShown};
-use crate::surfaces::power_menu::sheet::{
-    MenuSession, SheetEffect, SheetInput, SheetPhase, Then, advance,
-};
+use crate::surfaces::power_menu::sheet::{MenuSession, SheetEffect, SheetInput, Then, advance};
 
 /// The buttons' elements, for moving the keyboard focus.
 type Buttons = Vec<(SessionAction, Rc<MountedData>)>;
@@ -32,14 +30,10 @@ pub(crate) struct MenuCtx {
     backend: PowerMenuBackend,
     pub offers: ReadSignal<Session>,
     pub menu: Signal<Option<MenuSession>>,
-    leave: MotionTimer,
-    /// The exit timer's handler: nothing, since `use_settle` follows the timer's phase.
-    left: EventHandler<()>,
     buttons: Signal<Buttons>,
 }
 
-/// The menu on `output`, opening focused per `default`. Call inside the `Ds` whose motion
-/// level the exit follows.
+/// The menu on `output`, opening focused per `default`.
 pub(crate) fn use_menu(output: OutputId, default: PowerMenuDefault) -> MenuCtx {
     let link = use_context::<PowerMenuLink>();
     let services = try_use_context::<Services>();
@@ -61,20 +55,18 @@ pub(crate) fn use_menu(output: OutputId, default: PowerMenuDefault) -> MenuCtx {
         link: link.clone(),
         backend,
         menu: use_signal(|| None),
-        leave: use_motion_timer(Anim::MenuOut),
-        left: use_callback(|()| {}),
         buttons: use_signal(Vec::new),
     };
     let shown = use_watch(link.subscribe());
     use_follow_visibility(shown, output);
     use_openings(ctx.clone(), shown, output, default);
-    use_settle(ctx.clone());
     use_button_focus(ctx.clone());
     crate::surfaces::power_menu::script::use_script(ctx.clone());
     ctx
 }
 
-/// Start an opening's session on every opening on this output; drop it once hidden.
+/// Start an opening's session on every opening on this output, show a leaving sheet again when
+/// it is opened again, and drop the session once hidden.
 fn use_openings(
     ctx: MenuCtx,
     shown: ReadSignal<PowerMenuShown>,
@@ -93,14 +85,19 @@ fn use_openings(
             .filter(|o| o.output == output)
             .cloned();
         let now = *menu.peek();
-        match (opening, now) {
-            (Some(opening), now) if now.map(|m| m.serial) != Some(opening.serial) => {
+        match (follow(opening.as_ref(), now), opening) {
+            (Follow::Start, Some(opening)) => {
                 let keys = initial(opening.preselect, *wanted.peek(), &ctx.offers.peek());
                 menu.set(Some(MenuSession::opened(opening.serial, keys)));
                 ctx.backend.0.refresh();
                 eprintln!("power_menu.opened focus={}", action_label(keys.focused));
+                eprintln!("power_menu.offers={}", offered_labels(&ctx.offers.peek()));
             }
-            (None, Some(_)) => menu.set(None),
+            (Follow::Reshow, _) => {
+                ctx.input(SheetInput::Reshown);
+                eprintln!("power_menu.reshown");
+            }
+            (Follow::Drop, _) => menu.set(None),
             _ => {}
         }
     });
@@ -123,18 +120,6 @@ fn use_keyboard_line(shown: ReadSignal<PowerMenuShown>, output: OutputId) {
         seen.set(now);
         if let Some((_, PanelFocus::Held)) = now {
             eprintln!("power_menu.keyboard=held");
-        }
-    });
-}
-
-/// Once the exit motion has settled, finish.
-fn use_settle(ctx: MenuCtx) {
-    let menu = ctx.menu;
-    use_effect(move || {
-        let settled = ctx.leave.phase() == TimerPhase::Settled;
-        let leaving = matches!(menu().map(|m| m.phase), Some(SheetPhase::Leaving(_)));
-        if settled && leaving {
-            ctx.input(SheetInput::Settled);
         }
     });
 }
@@ -177,6 +162,17 @@ fn use_follow_visibility(shown: ReadSignal<PowerMenuShown>, output: OutputId) {
     });
 }
 
+/// The actions `session` offers, in the buttons' order, as their labels joined by commas (the
+/// log line `dev/accept-power-menu.sh` reads the arrows' path from).
+fn offered_labels(session: &Session) -> String {
+    SessionAction::POWER_MENU
+        .into_iter()
+        .filter(|action| offered(session, *action))
+        .map(action_label)
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
 impl MenuCtx {
     /// `input` through the sheet's machine, then its effect.
     pub fn input(&self, input: SheetInput) {
@@ -193,7 +189,7 @@ impl MenuCtx {
         }
         match effect {
             SheetEffect::Nothing => {}
-            SheetEffect::Leave => self.leave.start(self.left),
+            SheetEffect::Leave => self.link.leaving(),
             SheetEffect::Finish(then) => self.finish(then),
         }
     }

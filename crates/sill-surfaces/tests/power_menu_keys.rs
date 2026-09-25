@@ -133,6 +133,42 @@ fn escape_leaves_and_closes_running_nothing() {
 }
 
 #[test]
+fn opened_again_while_leaving_it_enters_again_and_stays() {
+    let mut running = opened(
+        shut_down_default(),
+        everything_offered(),
+        Preselect::Default,
+    );
+    running.harness.key(Key::Escape);
+    running.harness.advance(Duration::from_millis(20));
+    assert_eq!(look(&running.harness).as_deref(), Some("leaving"));
+    assert_eq!(
+        running
+            .harness
+            .attr(".ds-sheet", "data-presence")
+            .as_deref(),
+        Some("leaving")
+    );
+    running
+        .link
+        .open(power_menu_support::fake::output().id, Preselect::Default);
+    settle(&mut running.harness, |h| look(h).as_deref() == Some("open"));
+    assert_eq!(look(&running.harness).as_deref(), Some("open"));
+    assert_ne!(
+        running
+            .harness
+            .attr(".ds-sheet", "data-presence")
+            .as_deref(),
+        Some("leaving"),
+        "the entrance plays again"
+    );
+    running.harness.advance(Duration::from_millis(600));
+    assert!(is_open(&running.link), "the exit's settle never closed it");
+    assert_eq!(running.harness.count(".ds-sheet"), 1);
+    assert!(running.session.ran().is_empty());
+}
+
+#[test]
 fn a_scrim_click_leaves_and_closes() {
     let mut running = opened(
         shut_down_default(),
@@ -178,14 +214,13 @@ fn unoffered_buttons_are_skipped_disabled_and_inert() {
         ..everything_offered()
     };
     let mut running = opened(shut_down_default(), offers, Preselect::Default);
-    assert_eq!(
-        running
-            .harness
-            .attr(&nth_button(4), "aria-disabled")
-            .as_deref(),
-        Some("true"),
-        "Suspend"
-    );
+    for attr in ["aria-disabled", "disabled"] {
+        assert_eq!(
+            running.harness.attr(&nth_button(4), attr).as_deref(),
+            Some("true"),
+            "Suspend's {attr}"
+        );
+    }
     running.harness.key(Key::Right);
     settle(&mut running.harness, |h| {
         primary(h).as_deref() == Some("Log Out")

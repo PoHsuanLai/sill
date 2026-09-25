@@ -140,6 +140,16 @@ impl DryRunSession {
         }
     }
 
+    /// A dry run offering whatever `offers` holds (the session service's, read only: logind's
+    /// answers), recording to `record` when given. It holds no way to reach logind's actions.
+    pub fn following(offers: watch::Receiver<Session>, record: Option<PathBuf>) -> DryRunSession {
+        DryRunSession {
+            offers,
+            ran: Arc::default(),
+            record,
+        }
+    }
+
     /// The actions chosen so far, oldest first.
     pub fn ran(&self) -> Vec<SessionAction> {
         self.ran.lock().map(|ran| ran.clone()).unwrap_or_default()

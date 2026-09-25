@@ -12,6 +12,12 @@
 # line, and `power_menu.backend=dry-run` with no `power_menu.backend=live`); without that proof
 # the Enter step is skipped (exit 2), never run.
 #
+# OFFERS. The dry run is also started with SILL_POWER_MENU_DRY_RUN_OFFERS=logind: it offers what
+# logind answers (the session service's read-only `Can*` calls), so an action this machine
+# refuses (Suspend here) is drawn disabled and skipped by the arrows, while a chosen action is
+# still only recorded. The panel logs the offers on each opening (`power_menu.offers=`), and the
+# arrows step expects the next offered button to the right of Shut Down.
+#
 # KEYS. On the nested cosmic-comp the power menu gets no keyboard focus (no
 # `power_menu.keyboard=held`) and `wtype` keys never reach it, and shell-host injects no keys
 # (FINDINGS "M5 power menu"). So the keys go through the debug key path: the daemon is also
@@ -24,8 +30,9 @@
 #   2. `sill power-menu open` shows the sheet over the scrim: a capture with the sheet's pixels,
 #      into dev/out/power-menu.png, and a screenshot of the nested output,
 #      dev/out/power-menu-cosmic.png. `close` hides it; `toggle` twice round-trips.
-#   3. The arrows move the focus: Right from Shut Down is Suspend, Left twice is Restart (the
-#      panel's `power_menu.focus=` lines), screenshot dev/out/power-menu-cosmic-restart.png.
+#   3. The arrows move the focus: Right from Shut Down is the next offered button (Suspend, or
+#      Log Out when logind refuses Suspend), Left twice is Restart (the panel's
+#      `power_menu.focus=` lines), screenshot dev/out/power-menu-cosmic-restart.png.
 #   4. Enter on the dry run records Restart (`power_menu.dry_run would=Restart` in the record
 #      file) and the menu closes; nothing else is recorded.
 #   5. Escape closes it, recording nothing.
@@ -124,6 +131,7 @@ start_daemon() {
   : >"$RECORD"
   rm -f "$KEYS"; mkfifo "$KEYS" || return 1
   XDG_CONFIG_HOME="$CONFIG" SILL_POWER_MENU_DRY_RUN="$RECORD" SILL_POWER_MENU_KEYS="$KEYS" \
+    SILL_POWER_MENU_DRY_RUN_OFFERS=logind \
     nested "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
@@ -212,23 +220,40 @@ step_open_close_toggle() {
   echo "open shows the sheet over the scrim; close hides it; toggle twice round-trips" | tee -a "$log" >&2
 }
 
+# The button Right moves to from Shut Down: the next one the last opening offered, round to the
+# start (the buttons' order: Log Out, Restart, Shut Down, Suspend).
+right_of_shut_down() {
+  grep 'power_menu.offers=' "$OUT_DIR/daemon.log" | tail -n 1 | python3 -c '
+import sys
+offered = sys.stdin.read().strip().split("=", 1)[1].split(",")
+order = ["Log Out", "Restart", "Shut Down", "Suspend"]
+start = order.index("Shut Down")
+for step in range(1, len(order)):
+    label = order[(start + step) % len(order)]
+    if label in offered:
+        print(label); break'
+}
+
 # 3.
 step_arrows() {
-  local log="$OUT_DIR/arrows.log" before status
+  local log="$OUT_DIR/arrows.log" before status right
   : >"$log"
   open_with_keyboard "$log"; status=$?
   [ "$status" = 0 ] || return "$status"
   grep -q "power_menu.opened focus=Shut Down" "$OUT_DIR/daemon.log" || {
     echo "the menu did not open on Shut Down (power_menu.default_action)" >&2; return 1; }
-  before=$(count_log 'power_menu.focus=Suspend')
+  grep 'power_menu.offers=' "$OUT_DIR/daemon.log" | tail -n 1 | tee -a "$log" >&2
+  right=$(right_of_shut_down)
+  [ -n "$right" ] || { echo "no offered button right of Shut Down" >&2; return 1; }
+  before=$(count_log "power_menu.focus=$right")
   type_keys "$log" right || return 2
-  wait_log 'power_menu.focus=Suspend' 20 1 "$before" || { echo "Right: no focus on Suspend" >&2; return 1; }
+  wait_log "power_menu.focus=$right" 20 1 "$before" || { echo "Right: no focus on $right" >&2; return 1; }
   before=$(count_log 'power_menu.focus=Restart')
   type_keys "$log" left left || return 2
   wait_log 'power_menu.focus=Restart' 20 1 "$before" || { echo "Left Left: no focus on Restart" >&2; return 1; }
   sleep 0.3
   "$SHELL_HOST_DEV/shot.sh" "$SHOTS/power-menu-cosmic-restart.png" >>"$log" 2>&1 || echo "screenshot failed" >&2
-  echo "Right: Shut Down -> Suspend; Left Left: -> Restart" | tee -a "$log" >&2
+  echo "Right: Shut Down -> $right; Left Left: -> Restart" | tee -a "$log" >&2
 }
 
 # 4. Runs only on a proven dry run, on the menu step 3 left open at Restart.

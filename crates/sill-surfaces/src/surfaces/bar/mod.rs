@@ -26,6 +26,7 @@ pub(crate) mod status;
 mod status_item;
 mod title;
 mod tray_input;
+mod tray_menu;
 
 pub use layer::bar_layer;
 

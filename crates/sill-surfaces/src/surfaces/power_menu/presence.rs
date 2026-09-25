@@ -36,6 +36,16 @@ pub struct PowerMenuOpening {
     pub serial: OpenSerial,
     /// Whether the surface has held keyboard focus since it opened.
     pub focus: PanelFocus,
+    /// Whether the sheet is up or playing its exit.
+    pub showing: Showing,
+}
+
+/// Whether an opening's sheet is up or on its way out (quire's `Sheet` plays the exit; the
+/// menu is hidden only once it has settled).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Showing {
+    Up,
+    Leaving,
 }
 
 /// Which button an opening focuses.
@@ -81,27 +91,42 @@ impl PowerMenuShown {
 }
 
 /// `shown` opened on `output` focusing `preselect`. Opening an open menu on the same output
-/// with the same preselect keeps it as it is (no second entrance); anything else is a new
-/// opening.
+/// with the same preselect keeps it as it is (no second entrance), and shows it again if it
+/// was leaving (the sheet enters again); anything else is a new opening.
 pub fn open(shown: &PowerMenuShown, output: OutputId, preselect: Preselect) -> PowerMenuShown {
     match shown.opening() {
         Some(opening) if opening.output == output && opening.preselect == preselect => {
-            shown.clone()
+            PowerMenuShown::Shown(PowerMenuOpening {
+                showing: Showing::Up,
+                ..opening.clone()
+            })
         }
         _ => PowerMenuShown::Shown(PowerMenuOpening {
             output,
             preselect,
             serial: OpenSerial(shown.serial().0 + 1),
             focus: PanelFocus::Awaited,
+            showing: Showing::Up,
         }),
     }
 }
 
-/// `power-menu toggle`: open (at the default button) when hidden, hide when shown.
+/// `power-menu toggle`: open (at the default button) when hidden or leaving, hide when up.
 pub fn toggle(shown: &PowerMenuShown, output: OutputId) -> PowerMenuShown {
+    match shown.opening().map(|opening| opening.showing) {
+        Some(Showing::Up) => shown.hidden(),
+        Some(Showing::Leaving) | None => open(shown, output, Preselect::Default),
+    }
+}
+
+/// The sheet started its exit: still shown (the surface stays mapped) until it settles.
+pub fn leaving(shown: &PowerMenuShown) -> PowerMenuShown {
     match shown {
-        PowerMenuShown::Hidden { .. } => open(shown, output, Preselect::Default),
-        PowerMenuShown::Shown(_) => shown.hidden(),
+        PowerMenuShown::Shown(opening) => PowerMenuShown::Shown(PowerMenuOpening {
+            showing: Showing::Leaving,
+            ..opening.clone()
+        }),
+        PowerMenuShown::Hidden { .. } => shown.clone(),
     }
 }
 
@@ -166,6 +191,12 @@ impl PowerMenuLink {
             .send_if_modified(|shown| replace(shown, shown.hidden()));
     }
 
+    /// The sheet started its exit (Escape, a scrim click or a chosen action).
+    pub fn leaving(&self) {
+        self.shown
+            .send_if_modified(|shown| replace(shown, leaving(shown)));
+    }
+
     /// The surface's keyboard focus changed.
     pub fn focus(&self, focus: Focus) {
         self.shown
@@ -187,7 +218,9 @@ fn replace(shown: &mut PowerMenuShown, next: PowerMenuShown) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{PowerMenuLink, PowerMenuShown, Preselect, after_focus, open, toggle};
+    use super::{
+        PowerMenuLink, PowerMenuShown, Preselect, Showing, after_focus, leaving, open, toggle,
+    };
     use crate::surfaces::launcher::presence::{OpenSerial, PanelFocus, Visible};
     use shell_host::{Focus, OutputId};
     use sill_services::SessionAction;
@@ -228,6 +261,45 @@ mod tests {
         );
         assert_eq!(shown.shows_on(ONE), Visible::Yes);
         assert_eq!(shown.shows_on(TWO), Visible::No);
+    }
+
+    #[test]
+    fn a_leaving_menu_opened_again_the_same_way_is_shown_again_not_reopened() {
+        let showing = |shown: &PowerMenuShown| shown.opening().map(|o| o.showing);
+        let up = open(&PowerMenuShown::default(), ONE, Preselect::Default);
+        let going = leaving(&up);
+        let cases = [
+            (showing(&going), Some(Showing::Leaving), "leaving"),
+            (
+                showing(&open(&going, ONE, Preselect::Default)),
+                Some(Showing::Up),
+                "shown again",
+            ),
+            (
+                showing(&toggle(&going, ONE)),
+                Some(Showing::Up),
+                "toggle shows again",
+            ),
+            (showing(&toggle(&up, ONE)), None, "toggle hides an up menu"),
+            (
+                showing(&leaving(&up.hidden())),
+                None,
+                "a hidden menu stays hidden",
+            ),
+        ];
+        for (got, want, what) in cases {
+            assert_eq!(got, want, "{what}");
+        }
+        assert_eq!(
+            open(&going, ONE, Preselect::Default),
+            up,
+            "the same opening"
+        );
+        assert_eq!(
+            open(&going, TWO, Preselect::Default).serial(),
+            OpenSerial(2),
+            "elsewhere is a new opening"
+        );
     }
 
     #[test]

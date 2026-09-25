@@ -1,31 +1,16 @@
 /* The control center (design/20 §1.5, design/13 §13.3.7) and the module dropdowns, inside the
    bar popup's quire Popover card. The grid, the tiles, the list rows and the pane slide are
-   quire's (ModuleGrid, ModuleTile, SettingsRow, PaneSwitcher); this sheet lays out what sill
+   quire's (ModuleGrid, ModuleTile, ModulePanel, SettingsRow, PaneSwitcher); this sheet lays out what sill
    puts around and inside them. Its width, padding and cap are `control_center.*` keys written
    inline; everything here is layout and tokens. Attribute selectors carry `*|` (spike S2). */
 
 /* The panel holds the keyboard (Escape), with no ring of its own. */
 .sill-cc{ display:block; color:var(--ink); outline:none; }
 
-/* A full-width module's plate on quire's ModuleGrid (Sound, Display, Now Playing, Appearance,
-   Battery): the whole row, on the tile's own plate (--r-tile, --surface-2, a hairline). */
-.sill-cc-module{ display:flex; flex-direction:column; gap:var(--s-8); grid-column:1 / -1; min-width:0;
-  padding:var(--s-10) var(--s-12); border:var(--hair) solid var(--line); border-radius:var(--r-tile);
-  background:var(--surface-2); }
-
-/* In a module's own dropdown the popover card is the module's plate: no second one inside. */
-.sill-cc[*|data-drop=module] > .sill-cc-module{ padding:0; border:0; background:none; }
-
-.sill-cc-glyph{ display:flex; align-items:center; color:var(--ink-soft); }
+/* The full-width modules (Sound, Display, Now Playing, Appearance, Battery) are quire's
+   ModulePanel, `Bare` in a module's own dropdown. Now Playing's and Battery's lines: */
 .sill-cc-title{ font-size:var(--fs-shell-menu); font-weight:600; color:var(--ink); }
 .sill-cc-status{ font-size:var(--fs-help); color:var(--ink-faint); }
-.sill-cc-value{ margin-left:auto; font-size:var(--fs-help); color:var(--ink-faint);
-  font-variant-numeric:tabular-nums; }
-
-/* A level (Sound, Display): its title and value over quire's LevelControl. */
-.sill-cc-level{ display:flex; flex-direction:column; gap:var(--s-8); }
-.sill-cc-level-head{ display:flex; align-items:center; gap:var(--s-6); min-width:0; }
-.sill-cc-level-head > .sill-cc-title{ flex:1 1 0; min-width:0; }
 
 /* Now Playing: the art, two lines, the transport. */
 .sill-cc-media{ display:flex; align-items:center; gap:var(--s-12); min-width:0; }
