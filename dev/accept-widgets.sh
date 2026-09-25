@@ -91,8 +91,9 @@ wait_center() {
   return 1
 }
 
-# The widget tiles in a capture of the center: quire's ModulePanel plates (`--surface-2` with a
-# hairline), found as the rows where a pixel just inside a tile's left edge differs from one in
+# The widget tiles in a capture of the center: quire's WidgetFrame tiles (`--surface-2` with a
+# hairline, 344 wide and centred in the column, so 20 in), found as the rows where a pixel just
+# inside a tile's left edge differs from one in
 # the panel's padding beside it (the panel's own ground, whatever its gradient). Prints one
 # "TOP BOTTOM" a tile, top to bottom.
 center_tiles() {
@@ -103,7 +104,7 @@ img = Image.open(sys.argv[1]).convert("RGBA")
 left, top, right, bottom = img.getchannel("A").point(lambda a: 255 if a > 200 else 0).getbbox()
 # The panel is `notifications.center_width_px` (384) wide; its padding is 12 logical px.
 scale = (right - left) / 384
-outside, inside = left + round(5 * scale), left + round(17 * scale)
+outside, inside = left + round(5 * scale), left + round(24 * scale)
 def off(y):
     a, b = img.getpixel((outside, y)), img.getpixel((inside, y))
     return sum(abs(p - q) for p, q in zip(a[:3], b[:3])) > 6

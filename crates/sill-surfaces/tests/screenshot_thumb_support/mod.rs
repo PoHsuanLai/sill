@@ -94,17 +94,18 @@ impl Running {
 
     /// How many cards quire's stack draws (shown or playing out).
     pub fn cards(&self) -> usize {
-        self.harness.count(".sill-thumb")
+        self.harness.count(".ds-shot")
     }
 
-    /// How many rows are playing their exit.
+    /// How many cards (their own exit) or rows (after a swipe) are playing their exit.
     pub fn leaving(&self) -> usize {
-        self.harness.count(".ds-banner[*|data-presence=leaving]")
+        self.harness.count(".ds-shot[*|data-presence=leaving]")
+            + self.harness.count(".ds-banner[*|data-presence=leaving]")
     }
 
     /// The card's centre.
     pub fn card(&self) -> ds::Point {
-        self.harness.centre(".sill-thumb").expect("a card") // test-only
+        self.harness.centre(".ds-shot-picture").expect("a card") // test-only
     }
 
     /// Advance in 20 ms steps until `done`, at most `limit` of wall time.

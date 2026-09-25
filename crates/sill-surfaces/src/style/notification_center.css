@@ -36,5 +36,6 @@
 .sill-nc-foot{ padding:var(--s-8) var(--s-4) 0; font-size:var(--fs-help); color:var(--ink-faint);
   border-top:var(--hair) solid var(--line-soft); }
 
-/* The widgets slot (design/20 §1.14, M10): empty, at the bottom. */
-.sill-nc-widgets{ display:flex; flex-direction:column; }
+/* The widgets slot (design/20 §1.14, M10): quire's widget tiles under the history, standing
+   apart as the control center's modules do. */
+.sill-nc-widgets{ display:flex; flex-direction:column; align-items:center; gap:var(--s-8); padding-top:var(--s-8); }

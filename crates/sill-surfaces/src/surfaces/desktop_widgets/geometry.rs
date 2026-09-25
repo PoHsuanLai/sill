@@ -3,7 +3,7 @@
 //! and between its cells. Pure.
 
 use super::placement::{GridSize, GridSlot};
-use crate::widgets::WidgetSize;
+use crate::widgets::{WidgetSize, cells};
 
 /// A widget's box on the layer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -38,10 +38,10 @@ pub fn place_box(slot: GridSlot, size: WidgetSize, metrics: GridMetrics) -> Plac
     let cell = u32::from(metrics.cell);
     let gap = u32::from(metrics.gap);
     let step = cell + gap;
-    let span = |cells: u16| u32::from(cells) * cell + u32::from(cells.saturating_sub(1)) * gap;
+    let span = |count: u16| u32::from(count) * cell + u32::from(count.saturating_sub(1)) * gap;
     let used = u32::from(metrics.grid.columns) * step + gap;
     let origin = metrics.layer_width.saturating_sub(used);
-    let (columns, rows) = size.cells();
+    let (columns, rows) = cells(size);
     PlaceBox {
         left: origin + gap + u32::from(slot.column) * step,
         top: gap + u32::from(slot.row) * step,

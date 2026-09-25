@@ -121,19 +121,6 @@ const MONTHS: [&str; 12] = [
     "December",
 ];
 
-/// A weekday's name, `Saturday`.
-pub(super) fn weekday_name(day: Weekday) -> &'static str {
-    match day {
-        Weekday::Monday => "Monday",
-        Weekday::Tuesday => "Tuesday",
-        Weekday::Wednesday => "Wednesday",
-        Weekday::Thursday => "Thursday",
-        Weekday::Friday => "Friday",
-        Weekday::Saturday => "Saturday",
-        Weekday::Sunday => "Sunday",
-    }
-}
-
 /// A weekday's one-letter head, as macOS's calendar widget draws it.
 pub(super) fn initial(day: Weekday) -> &'static str {
     match day {

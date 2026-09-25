@@ -22,7 +22,7 @@ use sill_services::{Agenda, CalEvent, EventTime, Services, SourceStatus};
 use sill_settings::{SettingsFeed, ShellFile, WeekNumbers};
 use sill_surfaces::widgets::calendar::CalendarWidget;
 use sill_surfaces::widgets::up_next::UpNextWidget;
-use sill_surfaces::widgets::{WidgetHost, widgets_css};
+use sill_surfaces::widgets::{Widget, WidgetHost, WidgetKind, widgets_css};
 
 /// Today's number, on the accent disc.
 const TODAY: &str = ".ds-month-day[*|aria-current=date] .ds-month-num";
@@ -57,9 +57,9 @@ fn app() -> Element {
         Ds { appearance: Appearance::default(), material: Material::Popover,
             style { {css} }
             match world.kind {
-                Kind::Calendar => rsx! { CalendarWidget { host: WidgetHost::Center } },
-                Kind::CalendarOnDesktop => rsx! { CalendarWidget { host: WidgetHost::Desktop } },
-                Kind::UpNext => rsx! { UpNextWidget { host: WidgetHost::Center } },
+                Kind::Calendar => rsx! { CalendarWidget { host: WidgetHost::Tile } },
+                Kind::CalendarOnDesktop => rsx! { Widget { kind: WidgetKind::Calendar, host: WidgetHost::Desktop } },
+                Kind::UpNext => rsx! { UpNextWidget { host: WidgetHost::Tile } },
             }
         }
     }
@@ -287,24 +287,59 @@ fn up_next_says_when_there_is_nothing_and_why() {
 }
 
 #[test]
-fn on_the_desktop_the_calendar_is_the_small_date_face() {
-    let today = now().date();
-    let running = start(
+fn on_the_desktop_the_calendar_is_the_compact_month_inside_its_small_frame() {
+    let mut running = start(
         Kind::CalendarOnDesktop,
         ShellFile::default(),
         read(Vec::new()),
     );
     let h = &running.harness;
     assert_eq!(
-        h.count(".ds-month"),
-        0,
-        "quire's month does not fit a small cell (Q190)"
+        h.attr(".ds-month", "data-density").as_deref(),
+        Some("compact"),
+        "the small frame asks quire's month to be compact (Q190)"
     );
     assert_eq!(
-        h.text_of(".sill-cal-date").as_deref(),
-        Some(today.day().to_string().as_str())
+        h.count(".ds-month [*|aria-current=date]"),
+        1,
+        "today marked"
     );
-    let face = h.rect(".sill-cal-desktop").expect("the face is laid out");
-    assert!(face.size.height.0 < 140.0, "fits a 164 px cell: {face:?}");
     clean(&h.html());
+    // At the default 164 px cell the frame's content box is 132 x 132 (16 px padding): every
+    // month stays inside it, a six-week one included (twelve months hold at least one).
+    let mut weeks = Vec::new();
+    for _ in 0..12 {
+        let h = &running.harness;
+        let frame = h.rect("#widget-calendar").expect("the frame is laid out");
+        let month = h.rect(".ds-month").expect("the month is laid out");
+        assert_eq!(frame.size.width.0.round(), 164.0);
+        let x = within(
+            month.origin.x.0,
+            month.size.width.0,
+            frame.origin.x.0,
+            frame.size.width.0,
+        );
+        let y = within(
+            month.origin.y.0,
+            month.size.height.0,
+            frame.origin.y.0,
+            frame.size.height.0,
+        );
+        assert!(
+            x && y,
+            "the month {month:?} inside the frame's padding {frame:?}"
+        );
+        weeks.push(h.count(".ds-month-weeks .ds-month-row"));
+        let next = h
+            .centre(".ds-month-step:last-child")
+            .expect("the next button");
+        running.harness.click(next);
+        running.harness.advance(Duration::from_millis(600));
+    }
+    assert!(weeks.contains(&6), "a six-week month was drawn: {weeks:?}");
+}
+
+/// Whether a span starting at `from`, `size` long, lies inside a frame's 16 px padding.
+fn within(from: f32, size: f32, frame_from: f32, frame_size: f32) -> bool {
+    from >= frame_from + 16.0 - 0.5 && from + size <= frame_from + frame_size - 16.0 + 0.5
 }

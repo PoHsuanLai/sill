@@ -2,15 +2,13 @@
 //! [`WidgetKind`], drawn the same in two hosts: the notification center's widget slot below the
 //! history (`surfaces::notification_center::CenterWidgets`, macOS 11's Notification Center
 //! widgets) and the desktop widget layer (`surfaces::desktop_widgets`, macOS Sonoma's desktop
-//! widgets). [`Widget`] picks the kind's component and wraps it in the [`frame::WidgetFrame`];
-//! a kind's component draws its content only.
+//! widgets). [`Widget`] picks the kind's component and wraps it in quire's `WidgetFrame` (Q182:
+//! the card, its corner, padding, footprint and title row); a kind's component draws its content
+//! only.
 //!
 //! An enum and not a trait: the kinds are a closed set chosen in the settings
 //! (`widgets.center`, `widgets.desktop_widgets`), so adding one is a compile error at every
 //! place that must learn it (CONVENTIONS §0 "Prefer an enum to a trait for closed vocabulary").
-//!
-//! Every component here draws nothing until its lane fills it (the freeze renders no `todo!()`,
-//! since the notification center's render tests mount the slot).
 
 pub mod battery;
 pub mod calendar;
@@ -19,47 +17,32 @@ pub mod now_playing;
 pub mod up_next;
 pub mod world_clock;
 
+pub use ds::{WidgetHost, WidgetSize};
 pub use sill_settings::WidgetKind;
 
 use dioxus::prelude::*;
 
-/// Where a widget is drawn.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum WidgetHost {
-    /// In the notification center's column, full width, on its Popover.
-    Center,
-    /// On the desktop layer, on its own `Material::Widget` card, on the grid.
-    Desktop,
-}
-
-/// A widget's size class, macOS's: a small one is one desktop grid cell, a medium one two cells
-/// wide, a large one two by two.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum WidgetSize {
-    Small,
-    Medium,
-    Large,
-}
-
-impl WidgetSize {
-    /// Its footprint on the desktop grid, in cells: (columns, rows).
-    pub fn cells(self) -> (u16, u16) {
-        match self {
-            WidgetSize::Small => (1, 1),
-            WidgetSize::Medium => (2, 1),
-            WidgetSize::Large => (2, 2),
-        }
+/// A size's footprint on the desktop grid, in cells: (columns, rows). quire's `WidgetFrame`
+/// sizes its card from the same unit (`--widget-cell`, `--widget-gap`).
+pub fn cells(size: WidgetSize) -> (u16, u16) {
+    match size {
+        WidgetSize::Small => (1, 1),
+        WidgetSize::Medium => (2, 1),
+        WidgetSize::Large => (2, 2),
     }
 }
 
-/// The size `kind` takes in `host`: every widget spans the notification center's column
-/// (medium); on the desktop the month and the clocks are small, the lists medium.
+/// The size `kind` takes in `host`. In the notification center every tile spans the column (a
+/// medium tile's 344 fits its 384 less the padding), the month two cells tall since its weeks do
+/// not fit in one; on the desktop the compact month and the batteries are small, the lists and the
+/// clocks' dials medium.
 pub fn size_of(kind: WidgetKind, host: WidgetHost) -> WidgetSize {
     match (host, kind) {
-        (WidgetHost::Center, _) => WidgetSize::Medium,
+        (WidgetHost::Tile, WidgetKind::Calendar) => WidgetSize::Large,
+        (WidgetHost::Tile, _) => WidgetSize::Medium,
         (WidgetHost::Desktop, WidgetKind::Calendar | WidgetKind::Battery) => WidgetSize::Small,
-        (WidgetHost::Desktop, WidgetKind::WorldClock) => WidgetSize::Small,
         (WidgetHost::Desktop, WidgetKind::UpNext | WidgetKind::NowPlaying) => WidgetSize::Medium,
+        (WidgetHost::Desktop, WidgetKind::WorldClock) => WidgetSize::Medium,
     }
 }
 
@@ -76,7 +59,7 @@ pub fn widget_element_id(kind: WidgetKind) -> String {
 }
 
 /// Every widget's stylesheet and the frame's, for a host root to inject beside its own (the
-/// notification center's panel, the desktop layer): one lane's rules per file.
+/// notification center's panel, the desktop layer): one widget's rules per file.
 pub fn widgets_css() -> String {
     [
         frame::CSS,
@@ -89,12 +72,15 @@ pub fn widgets_css() -> String {
     .join("\n")
 }
 
-/// One widget of `kind` in `host`, in its frame.
+/// One widget of `kind` in `host`, on quire's frame, named by [`widget_element_id`].
 #[component]
 pub fn Widget(kind: WidgetKind, host: WidgetHost) -> Element {
-    let size = size_of(kind, host);
     rsx! {
-        frame::WidgetFrame { kind, host, size,
+        ds::WidgetFrame {
+            size: size_of(kind, host),
+            host,
+            title: frame::frame_title(kind),
+            id: widget_element_id(kind),
             match kind {
                 WidgetKind::Calendar => rsx! { calendar::CalendarWidget { host } },
                 WidgetKind::UpNext => rsx! { up_next::UpNextWidget { host } },
@@ -108,7 +94,7 @@ pub fn Widget(kind: WidgetKind, host: WidgetHost) -> Element {
 
 #[cfg(test)]
 mod tests {
-    use super::{WidgetHost, WidgetKind, WidgetSize, size_of, widget_element_id};
+    use super::{WidgetHost, WidgetKind, cells, size_of, widget_element_id};
 
     const ALL: [WidgetKind; 5] = [
         WidgetKind::Calendar,
@@ -119,14 +105,22 @@ mod tests {
     ];
 
     #[test]
-    fn every_widget_spans_the_center_and_has_its_desktop_size() {
-        for kind in ALL {
-            assert_eq!(size_of(kind, WidgetHost::Center), WidgetSize::Medium);
+    fn each_widget_has_its_footprint_in_each_host() {
+        let cases = [
+            (WidgetKind::Calendar, (2, 2), (1, 1)),
+            (WidgetKind::UpNext, (2, 1), (2, 1)),
+            (WidgetKind::Battery, (2, 1), (1, 1)),
+            (WidgetKind::NowPlaying, (2, 1), (2, 1)),
+            (WidgetKind::WorldClock, (2, 1), (2, 1)),
+        ];
+        for (kind, tile, desktop) in cases {
+            assert_eq!(cells(size_of(kind, WidgetHost::Tile)), tile, "{kind:?}");
+            assert_eq!(
+                cells(size_of(kind, WidgetHost::Desktop)),
+                desktop,
+                "{kind:?}"
+            );
         }
-        let desktop = |kind| size_of(kind, WidgetHost::Desktop).cells();
-        assert_eq!(desktop(WidgetKind::Calendar), (1, 1));
-        assert_eq!(desktop(WidgetKind::UpNext), (2, 1));
-        assert_eq!(desktop(WidgetKind::NowPlaying), (2, 1));
     }
 
     #[test]

@@ -1,3 +1,8 @@
-/* The Battery widget (widgets/battery.rs; M10 lane b): quire's SettingsRow per battery (glyph,
-   name, level), stacked; the quiet line when there are none. Tokens only (coherence rule 1). */
-.sill-widget-battery{ display:flex; flex-direction:column; min-width:0; }
+/* The Battery widget (widgets/battery.rs): quire's LevelRing per battery (Q183) over its
+   percentage, side by side and wrapping, as macOS's Batteries widget; the quiet line when there
+   are none. Tokens only (coherence rule 1). */
+.sill-widget-battery{ display:flex; flex-wrap:wrap; align-content:center; justify-content:space-around;
+  gap:var(--s-8); flex:1 1 auto; min-width:0; }
+.sill-widget-battery-cell{ display:flex; flex-direction:column; align-items:center; gap:var(--s-4); }
+.sill-widget-battery-level{ font-size:var(--fs-help); font-weight:600; color:var(--ink-soft);
+  font-variant-numeric:tabular-nums; }

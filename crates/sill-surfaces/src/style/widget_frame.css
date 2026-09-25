@@ -1,20 +1,4 @@
-/* The widget frame (widgets/frame.rs; M10 lane b). The card is quire's: in the notification
-   center a ModulePanel on its tile plate, on the desktop a Surface in Material::Widget (its tint,
-   edge, drop and corner) holding a bare ModulePanel. Until quire's widget frame (Q182) this sheet
-   gives the desktop card its inset and lets it fill its grid place, and draws the quiet line
-   every widget shares. Tokens only (coherence rule 1). Attribute selectors carry `*|` (spike S2). */
-
-/* One widget. On the desktop it fills its place on the layer's grid; its only child, the
-   material's scope, stretches to it (a grid item stretches on both axes). */
-.sill-widget{ display:flex; flex-direction:column; min-width:0; }
-.sill-widget[*|data-host=desktop]{ display:grid; box-sizing:border-box; }
-
-/* In the notification center the tiles stand apart, as the control center's modules do. */
-.sill-widget[*|data-host=center]{ margin-top:var(--s-8); }
-
-/* The desktop card's inset, inside the Widget material's corner. */
-.sill-widget-card{ display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden;
-  box-sizing:border-box; padding:var(--s-12) var(--s-14); }
-
-/* A widget with nothing to show says so, quietly. */
+/* Shared by every widget (widgets/frame.rs). The card, its corner, padding, footprint and title
+   row are quire's `WidgetFrame` (Q182); this only draws the quiet line of a widget with nothing
+   to show. Tokens only (coherence rule 1). */
 .sill-widget-quiet{ padding:var(--s-6) 0; font-size:var(--fs-help); color:var(--ink-faint); }

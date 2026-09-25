@@ -13,7 +13,7 @@ pub fn CenterWidgets() -> Element {
     let kinds = use_settings()().widgets.center;
     rsx! {
         for (at, kind) in kinds.into_iter().enumerate() {
-            Widget { key: "{at}-{kind:?}", kind, host: WidgetHost::Center }
+            Widget { key: "{at}-{kind:?}", kind, host: WidgetHost::Tile }
         }
     }
 }

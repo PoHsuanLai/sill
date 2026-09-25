@@ -9,7 +9,6 @@ use dioxus::prelude::*;
 use ds::PanelPlate;
 
 use super::WidgetHost;
-use super::frame::host_word;
 use crate::surfaces::control_center::modules::NowPlayingModule;
 
 /// This widget's stylesheet, in [`crate::widgets::widgets_css`].
@@ -20,7 +19,7 @@ pub const CSS: &str = include_str!("../style/widget_now_playing.css");
 pub fn NowPlayingWidget(host: WidgetHost) -> Element {
     use_context_provider(|| PanelPlate::Bare);
     rsx! {
-        div { class: "sill-widget-now-playing", "data-host": host_word(host),
+        div { class: "sill-widget-now-playing", "data-host": host.slug(),
             NowPlayingModule {}
         }
     }

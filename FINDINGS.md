@@ -4195,14 +4195,14 @@ services.rs}`, `sill-surfaces/src/{lib.rs,hooks/**,widgets/mod.rs}`,
   optionally pressable days, and the month change on `slide-l`/`slide-r`. Its data is
   `widgets::calendar::grid::MonthGrid` (sill computes it, the component draws it). Until then
   lane a lays text out with tokens and says so.
-- **Q181 (quire)** A thumbnail card (design/20 §1.13): an image letterboxed in a Toast card,
+- **Q181 (quire; closed, "Adopting the M10 parts")** A thumbnail card (design/20 §1.13): an image letterboxed in a Toast card,
   `rise --t-big --e-spring` in, `slide-r` out at `--e-exit`, a hover row of actions (Delete; Mark
   Up and Copy Text later), a drag ghost, and its width (sill's `THUMB_WIDTH` 240 meanwhile).
-- **Q182 (quire)** A widget frame (design/20 §1.14; `Material::Widget` exists): small, medium
+- **Q182 (quire; closed, "Adopting the M10 parts")** A widget frame (design/20 §1.14; `Material::Widget` exists): small, medium
   and large sizes on a grid unit, an optional title row with a glyph, the card's corner and
   padding, a variant as a tile inside a Popover (the notification center's widgets), and `bump`
   on a value change.
-- **Q183 (quire)** A world-clock face (an analog dial tinted for day and night, or macOS's
+- **Q183 (quire; closed, "Adopting the M10 parts")** A world-clock face (an analog dial tinted for day and night, or macOS's
   digital row in the small size), and a battery level ring for the Battery widget if
   `ProgressRing` is not it.
 - **Q184 (quire, design/13)** Hot corners have no behaviour section in design/13, though
@@ -4247,7 +4247,7 @@ services.rs}`, `sill-surfaces/src/{lib.rs,hooks/**,widgets/mod.rs}`,
   Notifications, `screenshot` Keyboard and Shortcuts. design/20 §1.12's row becomes "a widget in
   the notification center (M6's center replaced the clock's popup)", and §1.14's layer row "one
   `Bottom` surface per output, the widgets on a grid inside it".
-- **G120 (shell-host)** A drag source: `SurfaceHandle::start_drag(mimes, icon)` (named in
+- **G120 (shell-host; closed by shell-host F60, adopted in "Adopting the M10 parts")** A drag source: `SurfaceHandle::start_drag(mimes, icon)` (named in
   shell-host F35 as apart from G4's drop side): a `wl_data_source` offering `text/uri-list`,
   `start_drag` with the press's serial and an icon surface, and `dnd_finished` or `cancelled`
   back. The thumbnail's drag out waits on it (`start_file_drag` answers `Unsupported`).
@@ -4282,11 +4282,103 @@ services.rs}`, `sill-surfaces/src/{lib.rs,hooks/**,widgets/mod.rs}`,
   space.
 - F422 Sources: a file is one calendar; a vdir directory is one, plus one per subdirectory; the
   live task re-reads on a change (150 ms debounce), a Refresh, or the day turning.
-- Q190 (quire) `MonthGrid` needs a compact size for a small (164 px) desktop cell; styling
+- Q190 (quire; closed by quire 42ce1eb, F527) `MonthGrid` needs a compact size for a small (164 px) desktop cell; styling
   `.ds-month-*` from sill fails DsInternals. Meanwhile the desktop Calendar is macOS's small date
   face (weekday, large date, month) and the center keeps the full month.
-- G130 `notification_center_render`'s click tests flaked once under the full parallel run (60 ms
+- G130 (closed, "Adopting the M10 parts") `notification_center_render`'s click tests flaked once under the full parallel run (60 ms
   advance per click, now with real widgets drawn); passed alone and on rerun.
+
+## Adopting the M10 parts (2026-09-26)
+
+quire's widget parts (design/04 §40) and screenshot thumbnail (§41), quire 42ce1eb's
+`MonthDensity`, and shell-host's drag source (its F60) replace sill's stand-ins; Q181, Q182,
+Q183, Q190, G120 (for sill) and G130 close.
+
+- F520 **Widgets are quire's `WidgetFrame` in both hosts.** sill's `WidgetHost`/`WidgetSize`
+  are quire's (re-exported from `crate::widgets`; `Center` is `WidgetHost::Tile`); `frame.rs`
+  keeps only each kind's title row (`frame_title`) and `widget_frame.css` only the quiet line.
+  The frame's `id` is `widget_element_id`, so the desktop layer's input and blur regions find
+  `div.ds-widget` as before. The desktop grid's wrapper writes `WidgetMetrics { cell, gap }`
+  from `widgets.desktop_cell_px`/`desktop_gap_px` (`style_attr()`), so a card is exactly its
+  place (the 200 px cell test measures the frame). Footprints are fixed by quire (a medium tile
+  is 344 x 164), so the center's sizes changed: the Calendar tile is **Large** (its month does
+  not fit one cell's height), every other tile Medium; the column centres them (384 less the
+  panel's 12 px padding leaves 360 for 344: checked by a render test and live). On the desktop
+  the World Clock became Medium (up to four dials side by side, macOS's medium clock).
+- F521 **World Clock is `ClockFace`s**: `Analog` on the desktop, `Digital` in the tile, the
+  zone's hour giving `DayPhase` (day 06:00-17:59, `phase_of`), seconds hidden, the city as the
+  label and the day and offset quietly under it (`MAX_CITIES` 4). **Battery is `LevelRing`s**
+  (permille level, `RingMark::Charging` while charging, the device glyph inside) over a
+  `Bumped` percentage; the ring bumps on its own and a render test sees one bump on a level
+  change and rest after it. The digital clock bumps on the minute inside quire; the analog dial
+  moves its hands and does not bump.
+- F522 **The thumbnail is quire's `ShotThumbnail` in the `BannerStack { BottomRight }` row.**
+  `card.rs` is the props (Delete as the one `ThumbAction`, `onopen`, `ondrag`, `onhover` feeding
+  the hold machine, `id: "thumb"`, `Swipe::Dismiss` with the notifications' `swipe_metrics`);
+  `gesture.rs` and the card CSS are gone. Two exits: after a swipe the row is unlisted and the
+  stack flies it out along the swipe (quire's `Carried` flight) and its `on_hidden` hides;
+  otherwise the row stays listed, the card's `shown` turns `Hidden` and its own `ShotOut`
+  plays and hides (`ThumbState::Leaving { exit: ThumbExit::{Card, Row} }`, `row_of`). The
+  entrance is the row's `banner-in` together with the card's `rise`. The surface is now 3 px
+  taller (`THUMB_HEIGHT` 153: quire's 4 px mat round a 16:10 box).
+- F523 **`ImageSource::file` works inside a Blitz document**, proved twice: the harness paints
+  the preview (`the_picture_is_the_preview_file_at_its_own_shape` compares the painted
+  picture's mean colour with the fixture's: (172, 188, 207) against (166, 184, 205), where the
+  card's own plate is a light grey), and live on the nested cosmic-comp
+  (`dev/out/screenshot-thumb-cosmic.png`). No `png(bytes)` fallback was needed. `ImageSize`
+  comes from the PNG's IHDR (`picture::png_size`; anything else is drawn 16:10).
+- F524 **Drag out (G120).** `ondrag` calls `Thumb::drag_out`: `ThumbIn::DragStarted` (the hold
+  pauses, `Pointer::Dragging`), then a task of the thumbnail's scope awaits
+  `SurfaceHandle::start_drag(DragSpec { Uris([file URI]), CopyOrMove, DragIcon::Root {
+  ShotGhost, 120 x 78 } })`; the ghost's document carries the thumbnail's appearance as props
+  (`GhostLook`), since the icon surface has none of the root contexts. The outcome maps
+  (`drag_end`) to `Dropped{Copy}` → leave `Dragged` (file kept, card dismissed),
+  `Dropped{Move}` → leave `Moved` (new `ShotLeave::Moved`: the service drops it from `Shots`
+  and touches the file no more), `Cancelled` or `Unsupported` → back to the hold with the rest
+  (`rest_ms`), the card where it was; every outcome is logged (`sill: screenshot drag: ..`).
+  With no host (a harness) the drag is refused at once and the hold resumes.
+- F525 **Drag acceptance** (`dev/accept-screenshot-drag.sh`, headless KWin 1920 x 1080, one
+  fake-input client, `dock.position = "left"` so the thumbnail sits at the true corner): foot
+  is not installed, so the run records **Cancelled over nothing**: pressed at (1760, 963) on the
+  picture, 12 px left past quire's threshold, glided to (700, 400), released: the daemon logged
+  `screenshot drag: Cancelled`, the card was still up after, the file was still there, and the
+  thumbnail unmapped 1246 ms after the release (the 1500 ms rest from the drag's end). A drop on
+  a real target (`Dropped{Copy|Move}`) is table-tested only here; shell-host F60 proved the
+  drop path against foot.
+- F526 **G130.** `center_support::Running::{until, commands_until}` advance in 20 ms steps
+  until what the test checks holds (rows opened, a command sent, the hover shown, the panel
+  leaving), at most 2 s; the click tests no longer rely on a 60 ms advance. The one negative
+  check (a press inside keeps it open) waits a fixed 400 ms.
+- F527 **Q190: the desktop Calendar is quire's compact month.** The small date face and its CSS
+  are gone; the Calendar draws `MonthGrid` in both hosts with the default `MonthDensity::Auto`,
+  which the enclosing `WidgetFrame` resolves: compact in the desktop's Small frame, regular in
+  the center's Large tile (`data-density`). A render test steps through twelve months (a
+  six-week one among them) and checks each stays inside the Small frame's 132 x 132 content
+  box at the default `widgets.desktop_cell_px` 164; live on the nested cosmic-comp in
+  `widgets-desktop-cosmic.png`. **A cell under 164 overflows**: the compact six-week month is
+  126 x 132, exactly the content box at 164, and quire's grid does not shrink further (the
+  key's range goes down to 120).
+
+### Acceptance (nested cosmic-comp, 2560 x 1600)
+
+- `dev/accept-widgets.sh`: PASS all six (3 tiles, then 5, 0 frames idle, the desktop layer's
+  two frames at 2380 16 2543 181 and 2380 196 2543 361, 0 frames idle, the toggle back). The
+  tile detector now probes 24 px in, since quire's tiles are centred 20 px in.
+- `dev/accept-calendar.sh`: PASS all four.
+- `dev/accept-screenshot.sh`: PASS all five (shown 131 ms after the debug shot, hidden at
+  5724 ms with the file kept; the tool's shot shown in 110 ms and a click ran the opener; a
+  hover kept it and it left 1849 ms after the leave; 0 frames hidden).
+- Screenshots retaken: `widgets-center-cosmic.png`, `widgets-center-all-cosmic.png`,
+  `widgets-desktop-cosmic.png`, `screenshot-thumb-cosmic.png` (and the calendar's two).
+
+### Left
+
+- The center's tiles are fixed at 344 wide: a `notifications.center_width_px` under 368 would
+  overflow them (quire's footprint is not relative to the column).
+- The Calendar's Large tile shows empty room under a five-week month.
+- No live picture of the analog World Clock or the battery rings: the acceptance's private bus
+  has no batteries and the desktop layer's default widgets are Calendar and Battery.
+- A drop onto a real target from sill (foot or a file manager) is still to be run.
 
 ## hot_corners.modifier retired (2026-09-26)
 

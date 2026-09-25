@@ -16,9 +16,16 @@ pub const THUMB_ID: &str = "thumb";
 /// The card's corner (the Toast material's, as a banner's: 16).
 pub const THUMB_RADIUS: i32 = 16;
 
-/// The card's width in logical px. design/20 names none; macOS's is about a sixth of a 1440 px
-/// screen. Until quire's thumbnail card (Q181) fixes it, a constant, not a setting.
+/// The card's width in logical px, quire's `ShotThumbnail` default. design/20 names none;
+/// macOS's is about a sixth of a 1440 px screen.
 pub const THUMB_WIDTH: u32 = 240;
+
+/// quire's mat round the picture.
+const THUMB_MAT: u32 = 4;
+
+/// The card at its tallest: a 16:10 picture box inside the mat (quire holds the box between 2:1
+/// and 16:10, so no picture makes it taller).
+pub const THUMB_HEIGHT: u32 = (THUMB_WIDTH - 2 * THUMB_MAT) * 10 / 16 + 2 * THUMB_MAT;
 
 /// Transparent room around the card: the shadow (the banners' 40) and, to the right, the swipe.
 pub const ROOM: u32 = 40;
@@ -41,7 +48,7 @@ pub fn thumb_layer(output: &OutputInfo) -> LayerConfig {
         anchor: Anchor::BOTTOM | Anchor::RIGHT,
         size: LayerSize {
             width: Extent::Px(THUMB_WIDTH + 2 * ROOM),
-            height: Extent::Px(THUMB_WIDTH * 10 / 16 + 2 * ROOM),
+            height: Extent::Px(THUMB_HEIGHT + 2 * ROOM),
         },
         exclusive: ExclusiveZone::Auto,
         margin: Margin::ZERO,
@@ -65,7 +72,7 @@ mod tests {
         assert_eq!(config.layer, Layer::Overlay);
         assert_eq!(config.anchor, Anchor::BOTTOM | Anchor::RIGHT);
         assert_eq!(config.size.width, Extent::Px(THUMB_WIDTH + 2 * ROOM));
-        assert_eq!(config.size.height, Extent::Px(150 + 2 * ROOM));
+        assert_eq!(config.size.height, Extent::Px(153 + 2 * ROOM));
         assert_eq!(config.exclusive, ExclusiveZone::Auto);
         assert_eq!(config.keyboard, KeyboardMode::None);
         assert_eq!(config.input, thumb_region());

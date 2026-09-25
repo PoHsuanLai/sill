@@ -1,39 +1,102 @@
-//! Dragging the thumbnail out as a file: the hook, frozen, waiting on shell-host.
-//!
-//! A drag out of a Wayland surface is a `wl_data_source` offering `text/uri-list` (the file's
-//! `file://` URI) and `wl_data_device.start_drag` with the press's serial and an icon surface.
-//! shell-host has the drop side designed (its FINDINGS F35, gap G4) and no drag source:
-//! `SurfaceHandle::start_drag(mimes, icon)` is named there as separate, unbuilt work. Until it
-//! lands, [`start_file_drag`] answers `Unsupported`, the thumbnail treats a drag past the swipe
-//! threshold to the left or up as nothing, and the gap is sill G120 (FINDINGS "M10 freeze").
+//! Dragging the thumbnail out as a file (G120): quire's card says when a press crossed its drag
+//! threshold (`ondrag`), and the thumbnail hands the file to shell-host's drag source
+//! (`SurfaceHandle::start_drag`) while that press is still down: a `text/uri-list` of the
+//! screenshot's `file://` URI, copy or move as the target chooses, with quire's `ShotGhost` as
+//! the icon. The outcome comes back as a [`DragEnd`] for the machine: a copy keeps the file and
+//! dismisses the card, a move counts the file as the target's, a cancel or a refusal leaves the
+//! card and resumes the hold.
 
-use std::path::Path;
+use shell_host::{DragAction, DragActions, DragOutcome, DragPayload, DragSpec};
 
-/// Whether a drag started.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum DragStart {
-    /// The compositor has the drag; a later drop or cancel ends it.
-    Started,
-    /// shell-host has no drag source yet (G4, sill G120).
-    Unsupported,
+use super::ghost::{GhostLook, ghost_icon};
+use super::machine::DragEnd;
+use super::picture::ThumbPicture;
+
+/// What the machine makes of shell-host's outcome.
+pub fn drag_end(outcome: &DragOutcome) -> DragEnd {
+    match outcome {
+        DragOutcome::Dropped {
+            action: DragAction::Copy,
+        } => DragEnd::Copied,
+        DragOutcome::Dropped {
+            action: DragAction::Move,
+        } => DragEnd::Moved,
+        DragOutcome::Cancelled => DragEnd::Cancelled,
+        DragOutcome::Unsupported { .. } => DragEnd::Refused,
+    }
 }
 
-/// Start dragging `file` out of the surface as `text/uri-list`, from the press that began the
-/// gesture. Lane c calls it; the body changes when shell-host's `start_drag` exists.
-pub fn start_file_drag(file: &Path) -> DragStart {
-    let _ = file;
-    DragStart::Unsupported
+/// The drag of `picture`'s file, its ghost drawn in `look`; `None` when the file's path makes no
+/// URI (a relative path).
+pub fn file_drag(picture: &ThumbPicture, look: GhostLook) -> Option<DragSpec> {
+    let uri = ds::ImageSource::file(&picture.file).ok()?.0;
+    Some(DragSpec {
+        payload: DragPayload::Uris(vec![uri]),
+        actions: DragActions::CopyOrMove,
+        icon: ghost_icon(picture, look),
+    })
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{DragStart, start_file_drag};
+    use std::path::PathBuf;
+
+    use ds::{ImageSize, ImageSource};
+    use shell_host::{DragAction, DragActions, DragOutcome, DragPayload, DragRefused};
+
+    use super::{drag_end, file_drag};
+    use crate::surfaces::screenshot_thumb::ghost::GhostLook;
+    use crate::surfaces::screenshot_thumb::machine::DragEnd;
+    use crate::surfaces::screenshot_thumb::picture::ThumbPicture;
 
     #[test]
-    fn no_drag_source_yet() {
+    fn each_outcome_is_what_the_machine_hears() {
+        let cases = [
+            (
+                DragOutcome::Dropped {
+                    action: DragAction::Copy,
+                },
+                DragEnd::Copied,
+            ),
+            (
+                DragOutcome::Dropped {
+                    action: DragAction::Move,
+                },
+                DragEnd::Moved,
+            ),
+            (DragOutcome::Cancelled, DragEnd::Cancelled),
+            (
+                DragOutcome::Unsupported {
+                    why: DragRefused::NoPress,
+                },
+                DragEnd::Refused,
+            ),
+        ];
+        for (outcome, want) in cases {
+            assert_eq!(drag_end(&outcome), want, "{outcome:?}");
+        }
+    }
+
+    #[test]
+    fn the_drag_carries_the_screenshot_as_a_file_uri() {
+        let picture = |file: &str| ThumbPicture {
+            file: PathBuf::from(file),
+            image: ImageSource::png(&[]),
+            size: ImageSize {
+                width: 16,
+                height: 10,
+            },
+        };
+        let spec = file_drag(
+            &picture("/tmp/shots/Screenshot 1.png"),
+            GhostLook::default(),
+        )
+        .expect("an absolute path");
         assert_eq!(
-            start_file_drag(std::path::Path::new("/tmp/Screenshot_1.png")),
-            DragStart::Unsupported
+            spec.payload,
+            DragPayload::Uris(vec!["file:///tmp/shots/Screenshot%201.png".to_owned()])
         );
+        assert_eq!(spec.actions, DragActions::CopyOrMove);
+        assert!(file_drag(&picture("shots/a.png"), GhostLook::default()).is_none());
     }
 }
