@@ -1,18 +1,16 @@
 //! The bar (design/20 §1.1, design/13 §13.3.1-13.3.4, 06 §20.3): one per output, left the app
-//! name and the workspace indicator, right tray, volume, network, battery, clock; every menu an
-//! `xdg_popup` with a quire `Menu`, tracked by [`menu_track`].
+//! name and the workspace indicator, right the tray, the control center modules shown as their
+//! own items (`control_center.menu_bar_*`: Sound, Wi-Fi and Battery by default), the control
+//! center's item and the clock; every menu an `xdg_popup`, tracked by [`menu_track`].
 
 pub mod app_name;
-pub mod battery;
 pub mod clock;
 pub mod control_center_item;
 pub mod layer;
 pub mod menu_track;
 pub mod module_item;
-pub mod network;
 pub mod popup;
 pub mod tray;
-pub mod volume;
 pub mod workspaces;
 
 mod content;
@@ -24,7 +22,7 @@ mod plan;
 mod reorder;
 mod session;
 pub(crate) mod shell_style;
-mod status;
+pub(crate) mod status;
 mod status_item;
 mod title;
 mod tray_input;
@@ -32,28 +30,29 @@ mod tray_input;
 pub use layer::bar_layer;
 
 use dioxus::prelude::*;
-use ds::{BlurState, Ds, Material, SpaceLook};
+use ds::{BlurState, Ds, Material, Point, Px, Rect, Size, SpaceLook};
 use shell_host::{OutputInfo, SurfaceHandle};
 use sill_services::{OutputName, WorkspaceKey, Workspaces};
-use sill_settings::SpacesSettings;
+use sill_settings::{BarSettings, FocusLink, FocusMode, SettingsFeed, SpacesSettings};
 
 use app_name::AppName;
-use battery::BatteryItem;
 use clock::ClockItem;
 use content::{BarState, front_app};
+use control_center_item::ControlCenterItem;
 use menu_track::{MenuIn, MenuParams, Target};
-use network::NetworkItem;
-use session::{BarInput, PopupLook, SessionDeps, use_menu_session};
+use menus::BarMenu;
+use module_item::ModuleItem;
+use session::{BarInput, MenuBar, PopupLook, SessionDeps, use_menu_session};
 use shell_style::shell_metrics;
 use status_item::status_metrics;
 use tray::Tray;
-use volume::VolumeItem;
 use workspaces::{WorkspaceIndicator, group_for};
 
 use crate::hooks::{
-    use_appearance, use_apps, use_battery, use_clock, use_network, use_services, use_settings,
-    use_space_look, use_toplevels, use_tray, use_volume, use_workspaces,
+    use_appearance, use_apps, use_bluetooth, use_clock, use_services, use_settings, use_space_look,
+    use_toplevels, use_tray, use_wifi, use_workspaces,
 };
+use crate::surfaces::control_center::{ControlCenterLink, height_cap, menu_bar_modules};
 
 /// The bar's own stylesheet (lint-clean under `Profile::Strict`, `tests/bar_lint.rs`).
 pub(crate) const BAR_CSS: &str = include_str!("../../style/bar.css");
@@ -99,12 +98,12 @@ pub fn Bar(output: OutputInfo) -> Element {
     };
     let state = BarState {
         app: front_app(&use_toplevels()(), &use_apps()(), on.as_ref()),
-        volume: use_volume()(),
-        network: use_network()(),
-        battery: use_battery()(),
+        wifi: use_wifi()(),
+        bluetooth: use_bluetooth()(),
         clock: use_clock()(),
         control_center: file.control_center.clone(),
     };
+    let focus = try_use_context::<FocusLink>().unwrap_or_else(|| FocusLink::fixed(FocusMode::Off));
     let bar = use_menu_session(SessionDeps {
         state,
         services: use_services(),
@@ -114,8 +113,16 @@ pub fn Bar(output: OutputInfo) -> Element {
         namespace: bar_layer(&output, &file.bar).namespace,
         output: output.id,
         power_menu: try_use_context::<crate::surfaces::power_menu::PowerMenuLink>(),
+        settings: use_context::<SettingsFeed>(),
+        focus,
+        output_name: on.clone(),
+        bar_width: output.logical.width,
+        cap: height_cap(output.logical.height, &file.bar, &file.control_center),
+        status_box: status_box(output.logical.width, &file.bar),
     });
     use_context_provider(|| bar);
+    use_control_center_asks(bar, output.id);
+    let modules = menu_bar_modules(&file.control_center);
     let outside = move |input: MenuIn| bar.feed(BarInput::Bar { input, title: None });
     let strip = format!("height:{}px", file.bar.height_px.0);
     let status = format!(
@@ -148,13 +155,53 @@ pub fn Bar(output: OutputInfo) -> Element {
                     if !tray.items.is_empty() {
                         Tray { output: output.clone() }
                     }
-                    VolumeItem { output: output.clone() }
-                    NetworkItem { output: output.clone() }
-                    BatteryItem { output: output.clone() }
+                    for module in modules {
+                        ModuleItem { key: "{module:?}", output: output.clone(), module }
+                    }
+                    ControlCenterItem { output: output.clone() }
                     ClockItem { output: output.clone() }
                 }
             }
         }
         }
+    }
+}
+
+/// Follow `sill control-center toggle` (the daemon's `ControlCenterLink`, absent in a demo or a
+/// test): an ask for this bar's output toggles its control center.
+fn use_control_center_asks(bar: MenuBar, output: shell_host::OutputId) {
+    let link = try_use_context::<ControlCenterLink>();
+    use_hook(move || {
+        let Some(link) = link else {
+            return;
+        };
+        let mut asks = link.subscribe();
+        // Only asks made after the bar subscribed.
+        asks.borrow_and_update();
+        spawn(async move {
+            while asks.changed().await.is_ok() {
+                let ask = *asks.borrow_and_update();
+                if ask.output == Some(output) {
+                    bar.toggle(BarMenu::ControlCenter);
+                }
+            }
+        });
+    });
+}
+
+/// The status items' box, vertically centred in the bar, at its right end: the control center's
+/// title rect when it opens with no pointer event behind it.
+fn status_box(bar_width: i32, bar: &BarSettings) -> Rect {
+    let side = f32::from(bar.status_icon_box_px.0);
+    let height = f32::from(bar.height_px.0);
+    Rect {
+        origin: Point {
+            x: Px(bar_width as f32 - side),
+            y: Px((height - side) / 2.0),
+        },
+        size: Size {
+            width: Px(side),
+            height: Px(side),
+        },
     }
 }

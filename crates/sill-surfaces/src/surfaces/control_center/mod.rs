@@ -29,7 +29,13 @@ pub mod modules;
 pub mod page;
 pub mod pages;
 
+mod dropdown;
+pub(crate) mod fit;
 mod panel;
+pub(crate) mod parts;
+
+pub(crate) use dropdown::ModuleDropdown;
+pub(crate) use panel::PanelCap;
 
 pub use geometry::{Placed, Span, estimate_size, height_cap, place, span};
 pub use labels::{

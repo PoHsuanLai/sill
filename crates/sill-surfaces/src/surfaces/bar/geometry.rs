@@ -13,12 +13,18 @@
 
 use ds::MenuEntry;
 use shell_host::{PopupPlacement, Rect, Size};
+use sill_settings::ControlCenterSettings;
 
 use super::content::PopupBody;
 use super::popup::MenuSide;
+use crate::surfaces::control_center::fit::{Fit, dropdown_size, panel_size};
 
 /// How far `ds::place` keeps a floating surface inside its bounds.
 pub(crate) const MARGIN: i32 = 8;
+
+/// The control center's gap to the output's right edge (the popup margin, as a status menu's
+/// 8 past its item).
+pub(crate) const EDGE_GAP: i32 = 8;
 
 /// The popup's transparent room around the menu, for `--shadow-pop` (`0 18px 40px -16px`):
 /// 28 px each side (the polish pass's ambient shadow reaches 28), 6 px above (8 kept), 42 px
@@ -46,33 +52,43 @@ const SEPARATOR_PX: i32 = 9;
 const CHROME_PX: i32 = 12;
 const CHECK_COLUMN_PX: i32 = 22;
 
-/// The volume panel's box, before the margin.
-const VOLUME_PANEL: Size = Size {
-    width: 260,
-    height: 132,
-};
+/// What a popup's place and size depend on beyond its title and contents: the bar's width (the
+/// control center hangs from its right end) and the control center's settings and state.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Around<'a> {
+    pub bar_width: i32,
+    pub control_center: &'a ControlCenterSettings,
+    pub fit: Fit,
+}
 
 /// The popup's placement for `body` under the element whose rect is `title`.
-pub(crate) fn placement(title: ds::Rect, side: MenuSide, body: &PopupBody) -> PopupPlacement {
+pub(crate) fn placement(
+    title: ds::Rect,
+    side: MenuSide,
+    body: &PopupBody,
+    around: &Around<'_>,
+) -> PopupPlacement {
     PopupPlacement {
-        anchor_rect: anchor_rect(title, side),
-        size: popup_size(body),
+        anchor_rect: anchor_rect(title, side, around.bar_width),
+        size: popup_size(body, around),
     }
 }
 
 /// The anchor rectangle that, moved by `menu_popup`'s offset, puts the menu itself at design/13
 /// §13.3.2's place: a title's menu at `title.left - 8`, a status item's right-aligned to
-/// `item.right + 8`, both `title.bottom + 6`. The popup hangs from the anchor's bottom-left (a
-/// title) or bottom-right (a status item), `menu_popup`'s edges.
-pub(crate) fn anchor_rect(title: ds::Rect, side: MenuSide) -> Rect {
+/// `item.right + 8`, both `title.bottom + 6`; the control center's right-aligned to the bar's
+/// right end less [`EDGE_GAP`], whatever its item's place (macOS's top right). The popup hangs
+/// from the anchor's bottom-left (a title) or bottom-right (a status item, the control center),
+/// `menu_popup`'s edges.
+pub(crate) fn anchor_rect(title: ds::Rect, side: MenuSide, bar_width: i32) -> Rect {
     let (left, top) = (floor(title.left()), floor(title.top()));
     let (right, bottom) = (ceil(title.right()), ceil(title.bottom()));
     let (left, right) = match side {
         MenuSide::Title => (left - SIDE, right),
         MenuSide::Status => (left, right + SIDE),
-        // M5 agent (c): the right end is the bar's width less the margin, which this function
-        // is not given yet.
-        MenuSide::OutputEdge => todo!("M5 fill: control-center (c)"),
+        // The anchor is the bar's last pixel column: the offset carries the popup's room past
+        // the edge (`menu_offset`), so the menu's right edge lands `EDGE_GAP` inside it.
+        MenuSide::OutputEdge => (bar_width - 1, bar_width),
     };
     let bottom = bottom - TOP;
     Rect {
@@ -94,20 +110,21 @@ pub(crate) fn frame_style() -> String {
     )
 }
 
-/// The popup's size for `body`: the estimated menu plus its room, capped at [`MAX_PX`].
-pub(crate) fn popup_size(body: &PopupBody) -> Size {
-    let inner = match body {
-        PopupBody::Menu(entries) => menu_size(entries),
-        PopupBody::Volume(_) => VOLUME_PANEL,
-        // M5 agent (c): `control_center::estimate_size` from the settings and the output's cap,
-        // and a module dropdown's own estimate.
-        PopupBody::ControlCenter(_) | PopupBody::Module(_) => {
-            todo!("M5 fill: control-center (c)")
-        }
+/// The popup's size for `body`: the estimated menu plus its room, capped at [`MAX_PX`]; the
+/// control center and a module's dropdown are capped at the panel's own cap instead (their
+/// estimate already is).
+pub(crate) fn popup_size(body: &PopupBody, around: &Around<'_>) -> Size {
+    let (inner, max_height) = match body {
+        PopupBody::Menu(entries) => (menu_size(entries), MAX_PX),
+        PopupBody::ControlCenter(cc) => (panel_size(cc, &around.fit), i32::MAX),
+        PopupBody::Module(module) => (
+            dropdown_size(around.control_center, *module, &around.fit),
+            i32::MAX,
+        ),
     };
     Size {
         width: (inner.width + 2 * SIDE).min(MAX_PX),
-        height: (inner.height + TOP + BOTTOM).min(MAX_PX),
+        height: (inner.height + TOP + BOTTOM).min(max_height),
     }
 }
 
@@ -142,12 +159,15 @@ fn ceil(px: ds::Px) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    use super::{BOTTOM, MAX_PX, SIDE, TOP, anchor_rect, popup_size};
+    use super::{Around, BOTTOM, MAX_PX, SIDE, TOP, anchor_rect, popup_size};
     use crate::surfaces::bar::content::PopupBody;
     use crate::surfaces::bar::popup::{MenuSide, menu_popup};
+    use crate::surfaces::control_center::CcPage;
+    use crate::surfaces::control_center::fit::Fit;
     use ds::{MenuEntry, Point, Px, Rect as DsRect, Size as DsSize};
     use shell_host::Rect;
     use shell_host::popup::offset_rect;
+    use sill_settings::{ControlCenterModule, ControlCenterSettings};
 
     fn title(x: f32, width: f32) -> DsRect {
         DsRect {
@@ -181,9 +201,12 @@ mod tests {
             (12.0, 60.0, MenuSide::Title, 4, 34),
             (1800.5, 110.2, MenuSide::Status, 1919, 34),
             (0.0, 28.0, MenuSide::Status, 36, 34),
+            // The control center: 8 inside the bar's right end, wherever its item is.
+            (1700.0, 28.0, MenuSide::OutputEdge, 1912, 34),
+            (100.0, 28.0, MenuSide::OutputEdge, 1912, 34),
         ];
         for &(x, width, side, edge, top) in CASES {
-            let anchor = anchor_rect(title(x, width), side);
+            let anchor = anchor_rect(title(x, width), side, 1920);
             assert_eq!(
                 menu_corner(anchor, side),
                 (edge, top),
@@ -192,10 +215,24 @@ mod tests {
         }
     }
 
+    fn around(cc: &ControlCenterSettings) -> Around<'_> {
+        Around {
+            bar_width: 1920,
+            control_center: cc,
+            fit: Fit {
+                page: CcPage::Modules,
+                wifi_rows: 0,
+                device_rows: 0,
+                cap: 1032,
+            },
+        }
+    }
+
     #[test]
     fn a_popup_is_its_menu_plus_the_margin_capped_at_the_maximum() {
+        let cc = ControlCenterSettings::default();
         let short = PopupBody::Menu(vec![MenuEntry::Header("Clock".to_owned())]);
-        let size = popup_size(&short);
+        let size = popup_size(&short, &around(&cc));
         assert_eq!(size.width, 220 + 2 * SIDE, "the minimum width");
         assert!(size.height >= 28 + TOP + BOTTOM, "{size:?}");
         let long = PopupBody::Menu(
@@ -203,7 +240,20 @@ mod tests {
                 .map(|i| MenuEntry::Header(format!("{i:0>80}")))
                 .collect(),
         );
-        let size = popup_size(&long);
+        let size = popup_size(&long, &around(&cc));
         assert_eq!((size.width, size.height), (MAX_PX, MAX_PX));
+    }
+
+    #[test]
+    fn the_control_center_is_its_panel_plus_the_margin_past_the_menu_maximum() {
+        let cc = ControlCenterSettings::default();
+        let panel = popup_size(&PopupBody::ControlCenter(cc.clone()), &around(&cc));
+        assert_eq!(panel.width, 320 + 2 * SIDE);
+        assert!(
+            panel.height > MAX_PX,
+            "the grid is taller than a menu: {panel:?}"
+        );
+        let sound = popup_size(&PopupBody::Module(ControlCenterModule::Sound), &around(&cc));
+        assert_eq!(sound.height, 24 + 76 + TOP + BOTTOM);
     }
 }

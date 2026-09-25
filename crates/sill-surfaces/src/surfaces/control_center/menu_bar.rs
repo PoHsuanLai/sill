@@ -19,14 +19,23 @@ pub const MENU_BAR_ORDER: [ControlCenterModule; 6] = [
 /// `module`'s `control_center.menu_bar_*` key; `Hide` for a module that cannot be a bar item
 /// (Focus, Appearance).
 pub fn in_menu_bar(cc: &ControlCenterSettings, module: ControlCenterModule) -> InMenuBar {
-    let _ = (cc, module);
-    todo!("M5 fill: control-center (c)")
+    match module {
+        ControlCenterModule::Wifi => cc.menu_bar_wifi,
+        ControlCenterModule::Bluetooth => cc.menu_bar_bluetooth,
+        ControlCenterModule::Sound => cc.menu_bar_sound,
+        ControlCenterModule::Display => cc.menu_bar_display,
+        ControlCenterModule::Battery => cc.menu_bar_battery,
+        ControlCenterModule::NowPlaying => cc.menu_bar_now_playing,
+        ControlCenterModule::Focus | ControlCenterModule::Appearance => InMenuBar::Hide,
+    }
 }
 
 /// The modules shown as bar items, in [`MENU_BAR_ORDER`].
 pub fn menu_bar_modules(cc: &ControlCenterSettings) -> Vec<ControlCenterModule> {
-    let _ = cc;
-    todo!("M5 fill: control-center (c)")
+    MENU_BAR_ORDER
+        .into_iter()
+        .filter(|&module| in_menu_bar(cc, module) == InMenuBar::Show)
+        .collect()
 }
 
 #[cfg(test)]
@@ -35,7 +44,6 @@ mod tests {
     use sill_settings::{ControlCenterModule, ControlCenterSettings, InMenuBar};
 
     #[test]
-    #[ignore = "M5 fill: control-center (c)"]
     fn wifi_sound_and_battery_show_by_default_in_bar_order() {
         use ControlCenterModule::{Appearance, Battery, Bluetooth, NowPlaying, Sound, Wifi};
         let cc = ControlCenterSettings::default();

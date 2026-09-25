@@ -64,7 +64,13 @@ fn the_bar_shows_what_the_services_hold() {
         ("the root draws the Space", "data-frame=\"tinted\"", 1),
         ("on the frame ground", "data-ground=\"frame\"", 1),
         ("no tint layer of the bar's own", "sill-bar-tint", 0),
-        ("three status items", "data-variant=\"status\"", 3),
+        // Sound, Wi-Fi and Battery (`control_center.menu_bar_*`), then the control center.
+        ("four status items", "data-variant=\"status\"", 4),
+        (
+            "the control center item",
+            "aria-label=\"Control Center\"",
+            1,
+        ),
         (
             "their metrics",
             "--bar-status-box:22px;--bar-status-glyph:16px;",

@@ -9,18 +9,22 @@ use ds::{Alpha, Appearance, MaterialStack, ShellMetrics, SystemPrefs};
 use shell_host::{
     OutputId, PopupAnchor, PopupConfig, PopupPlacement, PopupSize, Root, SurfaceHandle,
 };
-use sill_services::Services;
+use sill_services::{OutputName, Services};
+use sill_settings::{FocusLink, SettingsFeed};
 use tokio::sync::{mpsc, watch};
 
 use super::content::{BarState, PopupBody, body};
-use super::geometry::{MAX_PX, placement};
+use super::geometry::{Around, MAX_PX, placement};
 use super::menu_popup::{MenuPopup, PopupLink};
+use super::menu_track::Target;
 use super::menu_track::{MenuIn, MenuParams, MenuTrack, step};
 use super::menus::BarMenu;
 use super::pick::{BarPick, Command, commands};
 use super::plan::{BarEffect, PopupReport, effects, popup_input};
 use super::popup::menu_popup;
 use crate::clock::FrameClock;
+use crate::surfaces::control_center::fit::{Fit, device_rows, wifi_rows};
+use crate::surfaces::control_center::{CcPage, PanelCap};
 use crate::surfaces::power_menu::{PowerMenuLink, Preselect};
 
 /// How a popup's `Ds` root resolves its scheme: the bar's own appearance, handed over so a
@@ -55,6 +59,8 @@ pub(crate) enum BarInput {
     },
     /// What the popup reported.
     Popup(PopupReport),
+    /// The control center moved to `page` (the popup resizes to it).
+    Page(CcPage),
 }
 
 /// The session as the bar's titles see it.
@@ -74,6 +80,23 @@ impl MenuBar {
     pub(crate) fn is_open(&self, menu: BarMenu) -> bool {
         (self.open)() == Some(menu)
     }
+
+    /// Open `menu` as a click on its title would, or close it when it is the one showing:
+    /// `sill control-center toggle`, which has no pointer event behind it.
+    pub(crate) fn toggle(&self, menu: BarMenu) {
+        let press = BarInput::Bar {
+            input: MenuIn::PressTitle(menu.id()),
+            title: None,
+        };
+        let showing = *self.open.peek() == Some(menu);
+        self.feed(press);
+        if !showing {
+            self.feed(BarInput::Bar {
+                input: MenuIn::Release(Target::Title(menu.id())),
+                title: None,
+            });
+        }
+    }
 }
 
 /// What the session needs from the bar each render.
@@ -90,12 +113,25 @@ pub(crate) struct SessionDeps {
     /// The power menu's shared state, when the daemon gave the bar one (a demo or a test may
     /// not).
     pub power_menu: Option<PowerMenuLink>,
+    /// The popup root's contexts for the control center and the module dropdowns: the
+    /// settings, the focus mode, the bar's output by name.
+    pub settings: SettingsFeed,
+    pub focus: FocusLink,
+    pub output_name: Option<OutputName>,
+    /// The bar's width (the control center hangs from its right end) and the panel's cap
+    /// (`control_center::height_cap`).
+    pub bar_width: i32,
+    pub cap: i32,
+    /// The status items' box, centred in the bar: where a menu opened with no pointer event
+    /// (the control center's toggle) takes its title's rect from.
+    pub status_box: ds::Rect,
 }
 
 /// The popup channel of the open session: its view sender and the popup's report channel.
 struct Link {
     view: Option<watch::Sender<Option<PopupView>>>,
     reports: mpsc::UnboundedSender<PopupReport>,
+    pages: mpsc::UnboundedSender<CcPage>,
 }
 
 /// The mutable halves of a session, all `Copy` handles.
@@ -104,6 +140,8 @@ struct Slots {
     track: Signal<MenuTrack>,
     open: Signal<Option<BarMenu>>,
     rects: Signal<HashMap<BarMenu, ds::Rect>>,
+    /// The control center's page, which sizes its popup.
+    page: CopyValue<CcPage>,
     link: CopyValue<Link>,
 }
 
@@ -117,14 +155,20 @@ pub(crate) fn use_menu_session(deps: SessionDeps) -> MenuBar {
         let (tx, rx) = mpsc::unbounded_channel::<PopupReport>();
         (tx, CopyValue::new(Some(rx)))
     });
+    let (pages_tx, pages_rx) = use_hook(|| {
+        let (tx, rx) = mpsc::unbounded_channel::<CcPage>();
+        (tx, CopyValue::new(Some(rx)))
+    });
     let slots = Slots {
         track: use_signal(|| MenuTrack::Closed),
         open: use_signal(|| None),
         rects: use_signal(HashMap::new),
+        page: use_hook(|| CopyValue::new(CcPage::Modules)),
         link: use_hook(|| {
             CopyValue::new(Link {
                 view: None,
                 reports: reports_tx,
+                pages: pages_tx,
             })
         }),
     };
@@ -136,6 +180,16 @@ pub(crate) fn use_menu_session(deps: SessionDeps) -> MenuBar {
             spawn(async move {
                 while let Some(report) = reports.recv().await {
                     feed.call(BarInput::Popup(report));
+                }
+            });
+        }
+    });
+    use_hook(move || {
+        let mut rx = pages_rx;
+        if let Some(mut pages) = rx.write().take() {
+            spawn(async move {
+                while let Some(page) = pages.recv().await {
+                    feed.call(BarInput::Page(page));
                 }
             });
         }
@@ -159,6 +213,14 @@ fn handle(slots: Slots, deps: &SessionDeps, clock: FrameClock, input: BarInput) 
             (input, None)
         }
         BarInput::Popup(report) => popup_input(report),
+        BarInput::Page(page) => {
+            let mut slot = slots.page;
+            slot.set(page);
+            if let Some(menu) = *slots.open.peek() {
+                apply(slots, deps, BarEffect::Swap(menu));
+            }
+            return;
+        }
     };
     let mut track = slots.track;
     let (next, outs) = step(track.peek().clone(), input, clock.now(), &deps.params);
@@ -173,6 +235,13 @@ fn handle(slots: Slots, deps: &SessionDeps, clock: FrameClock, input: BarInput) 
 fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
     let mut open = slots.open;
     let mut link = slots.link;
+    if let BarEffect::Show(_) | BarEffect::Swap(_) = &effect
+        && *open.peek() != effect_menu(&effect)
+    {
+        // A menu shown afresh starts the control center on its grid.
+        let mut page = slots.page;
+        page.set(CcPage::Modules);
+    }
     match effect {
         BarEffect::Show(menu) => {
             let Some(view) = view(slots, deps, menu) else {
@@ -193,15 +262,21 @@ fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
             let first = view.placement;
             let (tx, rx) = watch::channel(Some(view));
             let reports = link.peek().reports.clone();
-            let volume = deps.services.volume_control.clone();
+            let pages = link.peek().pages.clone();
             surface.open_popup(
                 config,
                 first,
-                Root::new(MenuPopup).context(PopupLink {
-                    view: rx,
-                    reports,
-                    volume,
-                }),
+                Root::new(MenuPopup)
+                    .context(PopupLink {
+                        view: rx,
+                        reports,
+                        pages,
+                        output: deps.output_name.clone(),
+                    })
+                    .context(deps.services.clone())
+                    .context(deps.settings.clone())
+                    .context(deps.focus.clone())
+                    .context(PanelCap(deps.cap)),
             );
             link.write().view = Some(tx);
             open.set(Some(menu));
@@ -224,13 +299,38 @@ fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
     }
 }
 
-/// `menu`'s view now, placed under its title; `None` before the title has been measured.
+/// The menu a show or a swap is for.
+fn effect_menu(effect: &BarEffect) -> Option<BarMenu> {
+    match effect {
+        BarEffect::Show(menu) | BarEffect::Swap(menu) => Some(*menu),
+        BarEffect::Hide | BarEffect::Run(_) => None,
+    }
+}
+
+/// `menu`'s view now, placed under its title; `None` before the title has been measured. The
+/// control center, which hangs from the bar's end rather than its item, is placed from the
+/// status box's height when its item has not been measured (a toggle over IPC).
 fn view(slots: Slots, deps: &SessionDeps, menu: BarMenu) -> Option<PopupView> {
-    let rect = *slots.rects.peek().get(&menu)?;
+    let measured = slots.rects.peek().get(&menu).copied();
+    let rect = match (measured, menu) {
+        (Some(rect), _) => rect,
+        (None, BarMenu::ControlCenter) => deps.status_box,
+        (None, _) => return None,
+    };
     let body = body(menu, &deps.state);
+    let around = Around {
+        bar_width: deps.bar_width,
+        control_center: &deps.state.control_center,
+        fit: Fit {
+            page: *slots.page.peek(),
+            wifi_rows: wifi_rows(&deps.state.wifi),
+            device_rows: device_rows(&deps.state.bluetooth),
+            cap: deps.cap,
+        },
+    };
     Some(PopupView {
         menu,
-        placement: placement(rect, menu.side(), &body),
+        placement: placement(rect, menu.side(), &body, &around),
         body,
         look: deps.look,
     })

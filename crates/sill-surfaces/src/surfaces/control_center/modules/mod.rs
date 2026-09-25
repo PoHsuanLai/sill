@@ -13,6 +13,8 @@ pub mod power_profile;
 pub mod sound;
 pub mod wifi;
 
+mod wired;
+
 pub use appearance::AppearanceModule;
 pub use battery::BatteryModule;
 pub use bluetooth::BluetoothModule;
@@ -28,6 +30,7 @@ use sill_services::OutputName;
 use sill_settings::ControlCenterModule;
 
 use super::page::Detail;
+use wired::{WiredDisplay, WiredSound};
 
 /// The module `module` names, wired to its service: the Sound and Display modules take a level
 /// and an `on_change`, which this reads from and sends to their services (`use_volume`,
@@ -39,6 +42,14 @@ pub fn Module(
     output: Option<OutputName>,
     on_detail: EventHandler<Detail>,
 ) -> Element {
-    let _ = (module, output, on_detail);
-    todo!("M5 fill: control-center (c)")
+    match module {
+        ControlCenterModule::Wifi => rsx! { WifiModule { on_detail } },
+        ControlCenterModule::Bluetooth => rsx! { BluetoothModule { on_detail } },
+        ControlCenterModule::Focus => rsx! { FocusModule {} },
+        ControlCenterModule::Display => rsx! { WiredDisplay { output } },
+        ControlCenterModule::Sound => rsx! { WiredSound {} },
+        ControlCenterModule::NowPlaying => rsx! { NowPlayingModule {} },
+        ControlCenterModule::Appearance => rsx! { AppearanceModule {} },
+        ControlCenterModule::Battery => rsx! { BatteryModule {} },
+    }
 }

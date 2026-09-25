@@ -1,54 +1,108 @@
 //! The control center's words: each tile's status line and each list row's detail, pure over
 //! the service values.
 
-use sill_services::{AccessPoint, Bluetooth, BtDevice, MediaPlayer, Network, Profile, Saved, Wifi};
+use sill_services::{
+    AccessPoint, Association, Bluetooth, BtBattery, BtConnection, BtDevice, BtPairing, BtPower,
+    Link, MediaPlayer, Network, Presence, Profile, Radio, Saved, Wifi,
+};
 use sill_settings::FocusMode;
 
 /// The Wi-Fi tile's status line: "Off", "Unavailable" (no device, or blocked in hardware),
 /// the connected network's name, "Connecting…", or "Not connected".
 pub fn wifi_status(wifi: &Wifi, network: &Network) -> String {
-    let _ = (wifi, network);
-    todo!("M5 fill: control-center (c)")
+    match (wifi.device, wifi.radio, &network.link) {
+        (Presence::Absent, _, _) | (_, Radio::Blocked, _) => "Unavailable".to_owned(),
+        (_, Radio::Off, _) => "Off".to_owned(),
+        (_, Radio::On, Link::Wifi { ssid, .. }) => ssid.clone(),
+        (_, Radio::On, Link::Connecting) => "Connecting…".to_owned(),
+        (_, Radio::On, Link::Disconnected | Link::Wired | Link::Other) => {
+            "Not connected".to_owned()
+        }
+    }
 }
 
 /// The Bluetooth tile's status line: "Unavailable" (no adapter), "Off", the connected devices'
 /// names joined with ", " (at most two, then "and N more"), or "On".
 pub fn bluetooth_status(bluetooth: &Bluetooth) -> String {
-    let _ = bluetooth;
-    todo!("M5 fill: control-center (c)")
+    let connected: Vec<&str> = bluetooth
+        .devices
+        .iter()
+        .filter(|d| d.connection == BtConnection::Connected)
+        .map(|d| d.name.as_str())
+        .collect();
+    match (bluetooth.presence, bluetooth.power, connected.as_slice()) {
+        (Presence::Absent, _, _) => "Unavailable".to_owned(),
+        (_, BtPower::Off, _) => "Off".to_owned(),
+        (_, BtPower::On, []) => "On".to_owned(),
+        (_, BtPower::On, [one]) => (*one).to_owned(),
+        (_, BtPower::On, [one, two]) => format!("{one}, {two}"),
+        (_, BtPower::On, [one, two, rest @ ..]) => {
+            format!("{one}, {two} and {} more", rest.len())
+        }
+    }
 }
 
 /// The Focus tile's status line: "On" or "Off".
 pub fn focus_status(mode: FocusMode) -> &'static str {
-    let _ = mode;
-    todo!("M5 fill: control-center (c)")
+    match mode {
+        FocusMode::DoNotDisturb => "On",
+        FocusMode::Off => "Off",
+    }
 }
 
 /// A power profile's segment label: "Saver", "Balanced", "Performance".
 pub fn profile_label(profile: Profile) -> &'static str {
-    let _ = profile;
-    todo!("M5 fill: control-center (c)")
+    match profile {
+        Profile::PowerSaver => "Saver",
+        Profile::Balanced => "Balanced",
+        Profile::Performance => "Performance",
+    }
 }
 
 /// A network row's detail: "Connected", "Connecting…", "Saved", or "" for a new one; a secured
 /// network the row also marks with a lock glyph, not words.
 pub fn network_detail(access_point: &AccessPoint, saved: Saved) -> String {
-    let _ = (access_point, saved);
-    todo!("M5 fill: control-center (c)")
+    match (access_point.association, saved) {
+        (Association::Connected, _) => "Connected",
+        (Association::Connecting, _) => "Connecting…",
+        (Association::Idle, Saved::Known) => "Saved",
+        (Association::Idle, Saved::New) => "",
+    }
+    .to_owned()
 }
 
 /// A device row's detail: "Connected", "Connecting…", "Not connected" (paired) or "" (not
 /// paired), then " · 80%" when the device reports a battery.
 pub fn device_detail(device: &BtDevice) -> String {
-    let _ = device;
-    todo!("M5 fill: control-center (c)")
+    let state = match (device.connection, device.pairing) {
+        (BtConnection::Connected, _) => "Connected",
+        (BtConnection::Connecting, _) => "Connecting…",
+        (BtConnection::Disconnected, BtPairing::Paired) => "Not connected",
+        (BtConnection::Disconnected, BtPairing::Unpaired) => "",
+    };
+    match (state, device.battery) {
+        (state, BtBattery::Unknown) => state.to_owned(),
+        ("", BtBattery::Level(level)) => format!("{}%", level.0),
+        (state, BtBattery::Level(level)) => format!("{state} · {}%", level.0),
+    }
 }
 
 /// The Now Playing module's two lines: the title (the player's identity when there is none),
 /// and the artists joined with ", " then " — " and the album, leaving out whichever is empty.
 pub fn track_lines(player: &MediaPlayer) -> (String, String) {
-    let _ = player;
-    todo!("M5 fill: control-center (c)")
+    let track = &player.track;
+    let title = if track.title.is_empty() {
+        player.identity.clone()
+    } else {
+        track.title.clone()
+    };
+    let artists = track.artists.join(", ");
+    let by = [artists.as_str(), track.album.as_str()]
+        .into_iter()
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join(" — ");
+    (title, by)
 }
 
 #[cfg(test)]
@@ -84,7 +138,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M5 fill: control-center (c)"]
     fn tile_status_lines() {
         let home = Network {
             link: Link::Wifi {
@@ -129,7 +182,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M5 fill: control-center (c)"]
     fn row_details() {
         let ap = |association| AccessPoint {
             ssid: Ssid("home".to_owned()),
@@ -172,7 +224,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M5 fill: control-center (c)"]
     fn now_playing_lines() {
         let player = |title: &str, artists: &[&str], album: &str| MediaPlayer {
             id: PlayerId("org.mpris.MediaPlayer2.spotify".to_owned()),

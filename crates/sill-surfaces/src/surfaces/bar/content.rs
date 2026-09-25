@@ -1,22 +1,19 @@
-//! What each bar menu lists, pure over the service values: a ds `Menu{Dropdown}`'s entries, or
-//! the volume panel (design/20 §1.1; the stubs' own descriptions: app name "its windows and
-//! Quit", volume "a quire `Slider`, output device, mute", network "connection, connectivity",
-//! battery "level, time remaining", clock "the date").
+//! What each bar menu lists, pure over the service values: a ds `Menu{Dropdown}`'s entries, the
+//! control center, or a control center module (design/20 §1.1 and §1.5; the app name "its
+//! windows and Quit", the clock "the date"; the Sound, Wi-Fi and Battery items' dropdowns are
+//! their modules since M5, FINDINGS F185).
 //!
 //! Status lines are `MenuEntry::Info` rows: an item's weight without the header's eyebrow,
 //! never a choice (quire's bar gaps; FINDINGS "Adoption of the bar gaps").
 
-use ds::{Check, Fraction, MenuEntry, Trail};
+use ds::{Check, MenuEntry, Trail};
 use sill_launcher::WindowKey;
-use sill_services::{
-    AppIndex, Battery, ClockText, Mute, Network, OutputName, Presence, Toplevels, Volume, match_app,
-};
+use sill_services::{AppIndex, Bluetooth, ClockText, OutputName, Toplevels, Wifi, match_app};
 
 use sill_settings::{ControlCenterModule, ControlCenterSettings};
 
 use super::menus::BarMenu;
 use super::pick::BarPick;
-use super::status::{battery_lines, network_lines, volume_heading};
 
 /// The frontmost app on an output: its name and every one of its windows.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,20 +22,10 @@ pub(crate) struct FrontApp {
     pub windows: Vec<(WindowKey, String)>,
 }
 
-/// The volume menu: the device, a level slider and mute.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct VolumePanel {
-    pub heading: String,
-    pub level: Fraction,
-    pub mute: Mute,
-    pub presence: Presence,
-}
-
 /// What a bar popup draws.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PopupBody {
     Menu(Vec<MenuEntry<BarPick>>),
-    Volume(VolumePanel),
     /// The control center (`surfaces::control_center::ControlCenter`), which reads its own
     /// hooks; the body carries only what sizes the popup (M5 agent c).
     ControlCenter(ControlCenterSettings),
@@ -51,9 +38,9 @@ pub(crate) enum PopupBody {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct BarState {
     pub app: Option<FrontApp>,
-    pub volume: Volume,
-    pub network: Network,
-    pub battery: Battery,
+    /// Wi-Fi and Bluetooth, which size their lists' popups.
+    pub wifi: Wifi,
+    pub bluetooth: Bluetooth,
     pub clock: ClockText,
     /// `control_center.*`, which sizes its popup.
     pub control_center: ControlCenterSettings,
@@ -63,12 +50,14 @@ pub(crate) struct BarState {
 pub(crate) fn body(menu: BarMenu, state: &BarState) -> PopupBody {
     match menu {
         BarMenu::App => PopupBody::Menu(app_menu(state.app.as_ref())),
-        BarMenu::Volume => PopupBody::Volume(volume_panel(&state.volume)),
-        BarMenu::Network => PopupBody::Menu(lines_menu(network_lines(&state.network))),
-        BarMenu::Battery => PopupBody::Menu(lines_menu(battery_lines(&state.battery))),
         BarMenu::Clock => PopupBody::Menu(lines_menu([state.clock.text.clone()])),
         BarMenu::ControlCenter => PopupBody::ControlCenter(state.control_center.clone()),
-        BarMenu::NowPlaying | BarMenu::Display | BarMenu::Bluetooth => menu
+        BarMenu::NowPlaying
+        | BarMenu::Display
+        | BarMenu::Volume
+        | BarMenu::Bluetooth
+        | BarMenu::Network
+        | BarMenu::Battery => menu
             .module()
             .map_or_else(|| PopupBody::Menu(Vec::new()), PopupBody::Module),
     }
@@ -141,15 +130,6 @@ fn lines_menu<const N: usize>(lines: [String; N]) -> Vec<MenuEntry<BarPick>> {
         .collect()
 }
 
-fn volume_panel(volume: &Volume) -> VolumePanel {
-    VolumePanel {
-        heading: volume_heading(volume),
-        level: Fraction(volume.level.0.min(100) * 10),
-        mute: volume.mute,
-        presence: volume.presence,
-    }
-}
-
 /// A plain item.
 fn item(title: String, value: BarPick, check: Option<Check>) -> MenuEntry<BarPick> {
     MenuEntry::Item {
@@ -168,12 +148,13 @@ mod tests {
     use super::{BarState, FrontApp, PopupBody, body, front_app};
     use crate::surfaces::bar::menus::BarMenu;
     use crate::surfaces::bar::pick::BarPick;
-    use ds::{Fraction, MenuEntry};
+    use ds::MenuEntry;
     use sill_launcher::WindowKey;
     use sill_services::{
-        Activity, AppIndex, Battery, ClockText, Mute, Network, OutputName, Percent, Presence,
-        Sizing, Toplevel, Toplevels, Volume, WindowState,
+        Activity, AppIndex, Bluetooth, ClockText, OutputName, Sizing, Toplevel, Toplevels, Wifi,
+        WindowState,
     };
+    use sill_settings::ControlCenterModule;
 
     fn window(key: u64, app: &str, output: &str) -> Toplevel {
         Toplevel {
@@ -235,14 +216,8 @@ mod tests {
                 name: "Foot".to_owned(),
                 windows: vec![(WindowKey(4), "~".to_owned())],
             }),
-            volume: Volume {
-                presence: Presence::Present,
-                level: Percent(40),
-                mute: Mute::Muted,
-                sink: "Speakers".to_owned(),
-            },
-            network: Network::default(),
-            battery: Battery::default(),
+            wifi: Wifi::default(),
+            bluetooth: Bluetooth::default(),
             clock: ClockText {
                 text: "Thu 24 Sep 14:05".to_owned(),
             },
@@ -250,7 +225,6 @@ mod tests {
         };
         let menu = |m| match body(m, &state) {
             PopupBody::Menu(entries) => titles(&entries),
-            PopupBody::Volume(_) => vec!["volume".to_owned()],
             PopupBody::ControlCenter(_) => vec!["control center".to_owned()],
             PopupBody::Module(module) => vec![format!("{module:?}")],
         };
@@ -264,17 +238,15 @@ mod tests {
             menu(BarMenu::Clock),
             ["i Thu 24 Sep 14:05", "--", "Settings…"]
         );
-        assert_eq!(
-            menu(BarMenu::Network),
-            ["i Not connected", "i Internet: unknown", "--", "Settings…"]
-        );
-        match body(BarMenu::Volume, &state) {
-            PopupBody::Volume(panel) => {
-                assert_eq!(panel.level, Fraction(400));
-                assert_eq!(panel.mute, Mute::Muted);
-                assert_eq!(panel.heading, "Speakers");
-            }
-            other => panic!("volume is a panel: {other:?}"),
+        // Since M5 the status items drop down their control center modules (F185).
+        for (item, module) in [
+            (BarMenu::Volume, ControlCenterModule::Sound),
+            (BarMenu::Network, ControlCenterModule::Wifi),
+            (BarMenu::Battery, ControlCenterModule::Battery),
+            (BarMenu::Display, ControlCenterModule::Display),
+            (BarMenu::NowPlaying, ControlCenterModule::NowPlaying),
+        ] {
+            assert_eq!(body(item, &state), PopupBody::Module(module), "{item:?}");
         }
         let picks: Vec<BarPick> = match body(BarMenu::App, &state) {
             PopupBody::Menu(entries) => entries

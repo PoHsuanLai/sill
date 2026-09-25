@@ -4,11 +4,25 @@
 //! rather than from the item.
 
 use dioxus::prelude::*;
+use ds::Icon;
 use shell_host::OutputInfo;
+
+use super::menus::BarMenu;
+use super::status_item::StatusIcon;
+
+/// The control center's glyph: two switches, as macOS's (quire's `Settings` sliders).
+const GLYPH: Icon = Icon::Settings;
 
 /// The control center's item on `output`.
 #[component]
 pub fn ControlCenterItem(output: OutputInfo) -> Element {
-    let _ = output;
-    todo!("M5 fill: control-center (c)")
+    // Every bar item is told its output (the frozen signature); this one reads the same on all.
+    let _ = &output;
+    rsx! {
+        StatusIcon {
+            menu: BarMenu::ControlCenter,
+            icon: GLYPH,
+            tooltip: "Control Center".to_owned(),
+        }
+    }
 }

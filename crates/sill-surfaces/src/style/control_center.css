@@ -1,0 +1,61 @@
+/* The control center (design/20 §1.5, design/13 §13.3.7) and the module dropdowns, inside the
+   bar popup's quire Popover card. Its width, padding, gaps and cap are `control_center.*` keys
+   written inline; everything here is layout and tokens. Attribute selectors carry `*|` (spike
+   S2). The tile box, the list rows and the pane slide stand in for quire's ModuleTile,
+   SettingsRow and PaneSwitcher (Q78-Q80): control_center/parts. */
+
+.sill-cc{ display:block; color:var(--ink); }
+
+/* The grid, row by row: a row of one-column tiles shares its width; a row module fills it. */
+.sill-cc-grid{ display:flex; flex-direction:column; }
+.sill-cc-row{ display:flex; }
+.sill-cc-cell{ display:flex; flex:1 1 0; min-width:0; }
+
+/* A module's box (Q78's ModuleTile stand-in): the tile radius on the card's raised ground. */
+.sill-cc-tile{ display:flex; flex-direction:column; gap:var(--s-8); flex:1 1 0; min-width:0;
+  padding:var(--s-10) var(--s-12); border-radius:var(--r-tile); background:var(--surface-2);
+  box-shadow:0 0 0 var(--hair) var(--line-soft); }
+.sill-cc-tile-head{ display:flex; align-items:center; justify-content:space-between; }
+.sill-cc-tile-foot{ display:flex; align-items:center; gap:var(--s-4); min-width:0; }
+.sill-cc-tile-text{ display:flex; flex-direction:column; flex:1 1 0; min-width:0; gap:var(--s-1); }
+
+/* A module's glyph: soft at rest, the accent while its feature is on. */
+.sill-cc-glyph{ display:flex; align-items:center; color:var(--ink-soft); }
+.sill-cc-tile[*|data-state=on] .sill-cc-glyph{ color:var(--accent); }
+
+.sill-cc-title{ font-size:var(--fs-control); font-weight:600; color:var(--ink); }
+.sill-cc-status{ font-size:var(--fs-small); color:var(--ink-soft); }
+.sill-cc-value{ margin-left:auto; font-size:var(--fs-small); color:var(--ink-faint);
+  font-variant-numeric:tabular-nums; }
+
+/* A level (Sound, Display): its title and value over the glyph and quire's Slider. */
+.sill-cc-level{ display:flex; flex-direction:column; gap:var(--s-8); }
+.sill-cc-level-head{ display:flex; align-items:center; gap:var(--s-6); min-width:0; }
+.sill-cc-level-row{ display:flex; align-items:center; gap:var(--s-10); }
+.sill-cc-level-track{ display:block; flex:1 1 0; min-width:0; }
+
+/* Now Playing: the art, two lines, the transport. */
+.sill-cc-media{ display:flex; align-items:center; gap:var(--s-12); min-width:0; }
+.sill-cc-media-text{ display:flex; flex-direction:column; flex:1 1 0; min-width:0; gap:var(--s-2); }
+.sill-cc-media-buttons{ display:flex; align-items:center; gap:var(--s-2); }
+.sill-cc-art{ display:flex; align-items:center; justify-content:center; flex:none; width:48px;
+  height:48px; overflow:hidden; border-radius:var(--r-media); }
+.sill-cc-art[*|data-art=none]{ background:var(--surface); color:var(--ink-faint); }
+
+/* Battery: its lines over the power mode. */
+.sill-cc-battery{ display:flex; flex-direction:column; gap:var(--s-6); }
+.sill-cc-profile{ display:flex; flex-direction:column; margin-top:var(--s-4); }
+
+/* A detail pane (Wi-Fi's networks, Bluetooth's devices). */
+.sill-cc-detail{ display:flex; flex-direction:column; gap:var(--s-6); }
+.sill-cc-detail-head{ display:flex; align-items:center; gap:var(--s-6); padding:var(--s-2) var(--s-2) var(--s-6); }
+.sill-cc-detail-title{ flex:1 1 0; min-width:0; font-size:var(--fs-subhead); font-weight:600; }
+.sill-cc-rows{ display:block; }
+.sill-cc-empty{ padding:var(--s-10) var(--s-6); font-size:var(--fs-control); color:var(--ink-soft); }
+.sill-cc-detail-foot{ display:flex; padding-top:var(--s-6); border-top:var(--hair) solid var(--line-soft); }
+
+/* The pane switcher (Q80's stand-in): a detail comes in from the right (quire's `slide-r`),
+   the grid from the left (`slide-l`), on quire's move timing. */
+.sill-cc-pane{ display:block; }
+.sill-cc-pane[*|data-slide=to-detail]{ animation:slide-r var(--t-move) var(--e-spring); }
+.sill-cc-pane[*|data-slide=to-modules]{ animation:slide-l var(--t-move) var(--e-spring); }

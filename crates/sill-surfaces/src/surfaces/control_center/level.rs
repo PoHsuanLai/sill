@@ -6,7 +6,12 @@
 //! same look once it moves under the bar (its follow-up).
 
 use dioxus::prelude::*;
-use ds::{Availability, Fraction, Icon};
+use ds::{Availability, Fraction, Glyph, Icon, Slider};
+
+use super::parts::{TileFrame, TileSpan};
+
+/// The slider's keyboard step: 5 %.
+const STEP: Fraction = Fraction(50);
 
 /// `glyph` and `title` over the level at `level` (the percentage as the header's value);
 /// `on_change` hears every new level from a drag or a key. `Disabled` shows the level and takes
@@ -19,6 +24,27 @@ pub fn LevelModule(
     on_change: EventHandler<Fraction>,
     #[props(default)] availability: Availability,
 ) -> Element {
-    let _ = (glyph, title, level, on_change, availability);
-    todo!("M5 fill: control-center (c)")
+    let percent = (level.0.min(1000) + 5) / 10;
+    rsx! {
+        TileFrame { span: TileSpan::Full,
+            div { class: "sill-cc-level",
+                div { class: "sill-cc-level-head",
+                    span { class: "sill-cc-title ds-truncate", "{title}" }
+                    span { class: "sill-cc-value", "{percent}%" }
+                }
+                div { class: "sill-cc-level-row",
+                    span { class: "sill-cc-glyph", Glyph { icon: glyph } }
+                    div { class: "sill-cc-level-track",
+                        Slider {
+                            label: title.clone(),
+                            value: level,
+                            step: STEP,
+                            availability,
+                            onchange: move |value: Fraction| on_change.call(value),
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

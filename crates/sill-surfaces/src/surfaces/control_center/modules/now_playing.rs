@@ -5,9 +5,126 @@
 //! Reads `use_now_playing`.
 
 use dioxus::prelude::*;
+use ds::{
+    Availability, ExternalIcon, Glyph, IconButton, IconButtonVariant, IconSize, IconSource,
+    IconUrl, IconView,
+};
+use sill_services::{Art, Media, MediaCommand, MediaPlayer, MediaVerb, Playback};
+
+use crate::hooks::{use_now_playing, use_services};
+use crate::surfaces::control_center::parts::glyphs::{
+    NOW_PLAYING, PAUSE, PLAY, SKIP_BACK, SKIP_FORWARD,
+};
+use crate::surfaces::control_center::parts::{TileFrame, TileSpan};
+use crate::surfaces::control_center::track_lines;
 
 /// The Now Playing module.
 #[component]
 pub fn NowPlayingModule() -> Element {
-    todo!("M5 fill: control-center (c)")
+    let media = use_now_playing()();
+    let control = use_services().media_control;
+    let playing = shown(&media).cloned();
+    let Some(player) = playing else {
+        return rsx! {
+            TileFrame { span: TileSpan::Full,
+                div { class: "sill-cc-media",
+                    ArtView { art: Art::None }
+                    div { class: "sill-cc-media-text",
+                        span { class: "sill-cc-title", "Not Playing" }
+                    }
+                }
+            }
+        };
+    };
+    let (title, by) = track_lines(&player);
+    let press = move |verb: MediaVerb| {
+        let control = control.clone();
+        let player = player.id.clone();
+        move |_| {
+            // A stopped service drops it: the module shows what it last published.
+            let _gone = control.send(MediaCommand::Press {
+                player: player.clone(),
+                verb,
+            });
+        }
+    };
+    let (toggle, toggle_label) = match player.playback {
+        Playback::Playing => (PAUSE, "Pause"),
+        Playback::Paused | Playback::Stopped => (PLAY, "Play"),
+    };
+    let abilities = player.abilities;
+    rsx! {
+        TileFrame { span: TileSpan::Full,
+            div { class: "sill-cc-media",
+                ArtView { art: player.track.art.clone() }
+                div { class: "sill-cc-media-text",
+                    span { class: "sill-cc-title ds-truncate", "{title}" }
+                    span { class: "sill-cc-status ds-truncate", "{by}" }
+                }
+                div { class: "sill-cc-media-buttons",
+                    IconButton {
+                        variant: IconButtonVariant::Tool,
+                        icon: SKIP_BACK,
+                        label: "Previous".to_owned(),
+                        availability: available(abilities.previous),
+                        onclick: press(MediaVerb::Previous),
+                    }
+                    IconButton {
+                        variant: IconButtonVariant::Tool,
+                        icon: toggle,
+                        label: toggle_label.to_owned(),
+                        availability: available(abilities.play_pause),
+                        onclick: press(MediaVerb::PlayPause),
+                    }
+                    IconButton {
+                        variant: IconButtonVariant::Tool,
+                        icon: SKIP_FORWARD,
+                        label: "Next".to_owned(),
+                        availability: available(abilities.next),
+                        onclick: press(MediaVerb::Next),
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// The player to show: none without players (no call into `Media::current` then).
+fn shown(media: &Media) -> Option<&MediaPlayer> {
+    if media.players.is_empty() {
+        return None;
+    }
+    media.current()
+}
+
+/// The service's word for "can do it" as quire's.
+fn available(can: sill_services::Availability) -> Availability {
+    match can {
+        sill_services::Availability::Enabled => Availability::Enabled,
+        sill_services::Availability::Disabled => Availability::Disabled,
+    }
+}
+
+/// The track's art at 48, or the Now Playing glyph on the art's plate.
+#[component]
+fn ArtView(art: Art) -> Element {
+    let image = match &art {
+        Art::File(path) => IconUrl::file(path).ok(),
+        Art::None => None,
+    };
+    match image {
+        Some(url) => rsx! {
+            span { class: "sill-cc-art",
+                IconView {
+                    source: IconSource::Image(ExternalIcon { url, size: IconSize::Tile48 }),
+                    size: IconSize::Tile48,
+                }
+            }
+        },
+        None => rsx! {
+            span { class: "sill-cc-art", "data-art": "none",
+                Glyph { icon: NOW_PLAYING }
+            }
+        },
+    }
 }

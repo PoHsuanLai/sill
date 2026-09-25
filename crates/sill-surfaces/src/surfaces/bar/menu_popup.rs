@@ -1,5 +1,6 @@
 //! The bar popup's own document: a `Ds` root holding one ds
-//! `Menu{Dropdown}` (or, for the volume item, a ds `Popover` with a `Slider` and a `Toggle`),
+//! `Menu{Dropdown}` (or, for the control center and a module's own item, a ds `Popover` around
+//! `control_center::ControlCenter` or the module),
 //! following the bar's view channel: a new view swaps the contents and repositions the popup
 //! (`xdg_popup.reposition`), none closes it. The root is `Material::Popover`, which paints
 //! nothing on its own box (quire's transparent popup root); the menu card paints the material.
@@ -8,25 +9,30 @@
 
 use dioxus::prelude::*;
 use ds::{
-    Align, Anchor, BlurState, Ds, Elevation, Fraction, HeaderKind, Material, Menu, MenuEntrance,
-    MenuKind, Placement, Point, Popover, Press, Px, SectionHeader, Side, Slider, Switch, Toggle,
+    Align, Anchor, BlurState, Ds, Elevation, Material, Menu, MenuEntrance, MenuKind, Placement,
+    Point, Popover, Press, Px, Side,
 };
 use shell_host::{PopupPlacement, SurfaceOp, use_surface, use_watch};
-use sill_services::{Control, Mute, Percent, VolumeCommand};
+use sill_services::OutputName;
+use sill_settings::ControlCenterModule;
 use tokio::sync::{mpsc, watch};
 
-use super::content::{PopupBody, VolumePanel};
+use super::content::PopupBody;
 use super::geometry::{MARGIN, frame_style};
 use super::pick::BarPick;
 use super::plan::{PopupReport, choice};
 use super::session::PopupView;
+use crate::surfaces::control_center::{CcPage, ControlCenter, ModuleDropdown};
 
 /// The popup's link to its bar, provided as its root context.
 #[derive(Debug, Clone)]
 pub(crate) struct PopupLink {
     pub view: watch::Receiver<Option<PopupView>>,
     pub reports: mpsc::UnboundedSender<PopupReport>,
-    pub volume: Control<VolumeCommand>,
+    /// The control center's page changes, which resize the popup.
+    pub pages: mpsc::UnboundedSender<CcPage>,
+    /// The bar's output (the Display module's brightness target).
+    pub output: Option<OutputName>,
 }
 
 /// The anchor that puts a ds floating surface `MARGIN` inside the frame's top-left corner, so at
@@ -43,6 +49,10 @@ fn corner() -> Anchor {
 /// The popup document's own stylesheet: the frame its `Ds` root sits in.
 pub(crate) const POPUP_CSS: &str = include_str!("../../style/bar_popup.css");
 
+/// The control center's and the module dropdowns' stylesheet (lint-clean under
+/// `Profile::Strict`, `tests/control_center_lint.rs`).
+pub(crate) const CONTROL_CENTER_CSS: &str = include_str!("../../style/control_center.css");
+
 /// The gap from [`corner`]'s point to the menu's top edge.
 const GAP: Px = Px(7.0);
 
@@ -52,6 +62,7 @@ const GAP: Px = Px(7.0);
 pub(crate) fn MenuPopup() -> Element {
     let ds_scale = crate::hooks::use_ds_scale();
     ds_native::measure::provide();
+    ds_native::focus::provide();
     let link = use_context::<PopupLink>();
     let surface = use_surface();
     let view = use_watch(link.view.clone());
@@ -79,15 +90,16 @@ pub(crate) fn MenuPopup() -> Element {
         PopupBody::Menu(entries) => rsx! {
             BarMenuList { key: "{which:?}", entries }
         },
-        PopupBody::Volume(panel) => rsx! {
-            VolumeMenu { panel }
+        PopupBody::ControlCenter(_) => rsx! {
+            PanelPopover { module: None }
         },
-        // M5 agent (c): `control_center::ControlCenter` inside a quire `Popover`, with the root
-        // contexts it needs and a report for its page changes (FINDINGS "M5 freeze").
-        PopupBody::ControlCenter(_) | PopupBody::Module(_) => todo!("M5 fill: control-center (c)"),
+        PopupBody::Module(module) => rsx! {
+            PanelPopover { module: Some(module) }
+        },
     };
     rsx! {
         style { {POPUP_CSS} }
+        style { {CONTROL_CENTER_CSS} }
         div {
             class: "sill-popup-frame",
             style: "{frame_style()};{look.metrics.style_attr()}",
@@ -165,17 +177,32 @@ fn BarMenuList(entries: Vec<ds::MenuEntry<BarPick>>) -> Element {
     }
 }
 
-/// The volume panel: the device and level as a field header, a level slider, and mute.
+/// The control center (`module: None`) or `module`'s own dropdown, on a quire `Popover` card
+/// at the popup's corner: open at once, as a bar menu (a hover switch swaps it in place).
+/// Escape on the grid, an outside press, or a pick that leaves the panel reports a dismissal.
 #[component]
-fn VolumeMenu(panel: VolumePanel) -> Element {
+fn PanelPopover(module: Option<ControlCenterModule>) -> Element {
     let link = use_context::<PopupLink>();
-    let level = link.volume.clone();
-    let mute = link.volume.clone();
     let reports = link.reports.clone();
-    let percent = panel.level.0 / 10;
-    let muted = match panel.mute {
-        Mute::Muted => Switch::On,
-        Mute::Audible => Switch::Off,
+    let pages = link.pages.clone();
+    let output = link.output.clone();
+    let dismissed = EventHandler::new(move |()| {
+        // The bar may be gone first; then there is nobody to tell.
+        let _ = reports.send(PopupReport::Dismissed);
+    });
+    let content = match module {
+        None => rsx! {
+            ControlCenter {
+                output,
+                on_close: dismissed,
+                on_page: move |page: CcPage| {
+                    let _ = pages.send(page);
+                },
+            }
+        },
+        Some(module) => rsx! {
+            ModuleDropdown { module, output, on_close: dismissed }
+        },
     };
     rsx! {
         Popover {
@@ -183,35 +210,8 @@ fn VolumeMenu(panel: VolumePanel) -> Element {
             placement: Placement::new(Side::Bottom, Align::Start),
             gap: GAP,
             elevation: Elevation::Pop,
-            onclose: move |()| {
-                let _ = reports.send(PopupReport::Dismissed);
-            },
-            div { class: "sill-volume-panel",
-                SectionHeader {
-                    kind: HeaderKind::Field,
-                    text: panel.heading.clone(),
-                    value: Some(format!("{percent}%")),
-                }
-                Slider {
-                    label: "Volume".to_owned(),
-                    value: panel.level,
-                    step: Fraction(50),
-                    onchange: move |value: Fraction| {
-                        let _ = level.send(VolumeCommand::SetLevel(Percent(value.0 / 10)));
-                    },
-                }
-                Toggle {
-                    label: "Mute".to_owned(),
-                    value: muted,
-                    onchange: move |value: Switch| {
-                        let to = match value {
-                            Switch::On => Mute::Muted,
-                            Switch::Off => Mute::Audible,
-                        };
-                        let _ = mute.send(VolumeCommand::SetMute(to));
-                    },
-                }
-            }
+            onclose: dismissed,
+            {content}
         }
     }
 }
