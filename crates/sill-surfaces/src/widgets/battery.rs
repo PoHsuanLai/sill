@@ -1,16 +1,15 @@
 //! The Battery widget (M10 lane b): this machine's battery (UPower) and every connected
-//! Bluetooth device that reports one (BlueZ `Battery1`), each a glyph, a name and a level (quire
-//! `ProgressRing` or `Meter`, whichever quire offers for a level), as macOS's Batteries widget.
-//! Nothing to show (a desktop with no battery and no devices): the widget says "No batteries".
+//! Bluetooth device that reports one (BlueZ `Battery1`), each a level ring (quire's `LevelRing`,
+//! Q183) with its glyph inside and its percentage under it, as macOS's Batteries widget. Nothing
+//! to show (a desktop with no battery and no devices): the widget says "No batteries".
 
 use dioxus::prelude::*;
-use ds::{Icon, RowTrailing, SettingsRow, Text};
+use ds::{Bumped, Fraction, Glyph, Icon, IconSize, LevelRing, RingMark};
 use sill_services::{
     Battery, Bluetooth, BtBattery, BtConnection, BtKind, Charge, Percent, Presence,
 };
 
 use super::WidgetHost;
-use super::frame::host_word;
 use crate::hooks::{use_battery, use_bluetooth};
 use crate::surfaces::bar::status::battery_icon;
 use crate::surfaces::control_center::pages::bluetooth_devices::device_glyph;
@@ -93,16 +92,26 @@ fn row_glyph(row: &BatteryRow) -> Icon {
     }
 }
 
-/// The level as the row's trailing value: "81%", "81% Charging".
-fn level_text(row: &BatteryRow) -> String {
+/// A row's ring: its level in permille, and the bolt while it charges.
+fn ring_of(row: &BatteryRow) -> (Fraction, RingMark) {
+    let level = Fraction(row.level.0.min(100) * 10);
+    let mark = match row.charge {
+        Charge::Charging => RingMark::Charging,
+        _ => RingMark::Plain,
+    };
+    (level, mark)
+}
+
+/// What the ring tells assistive technology: "desk, 81%, charging".
+fn ring_label(row: &BatteryRow) -> String {
     match row.charge {
-        Charge::Charging => format!("{}% Charging", row.level.0),
-        _ => format!("{}%", row.level.0),
+        Charge::Charging => format!("{}, {}%, charging", row.name, row.level.0),
+        _ => format!("{}, {}%", row.name, row.level.0),
     }
 }
 
-/// The batteries: one quire `SettingsRow` each (its glyph, the name, the level as its trailing
-/// value; a level ring is quire gap Q183).
+/// The batteries, as macOS's Batteries widget: one quire `LevelRing` each (the level, a bolt
+/// while charging, the device's glyph inside) over its percentage, which bumps on a change.
 #[component]
 pub fn BatteryWidget(host: WidgetHost) -> Element {
     let battery = use_battery()();
@@ -113,19 +122,29 @@ pub fn BatteryWidget(host: WidgetHost) -> Element {
     });
     let rows = battery_rows(&battery, &bluetooth, &machine);
     rsx! {
-        div { class: "sill-widget-battery", "data-host": host_word(host),
+        div { class: "sill-widget-battery", "data-host": host.slug(),
             if rows.is_empty() {
                 span { class: "sill-widget-quiet", "No batteries" }
             }
             for row in rows {
-                SettingsRow {
-                    key: "{row.name}",
-                    glyph: Some(row_glyph(&row)),
-                    title: row.name.clone(),
-                    detail: None,
-                    trailing: RowTrailing::Text(Text::from(level_text(&row))),
-                    onclick: move |_| {},
-                }
+                BatteryCell { key: "{row.name}", row }
+            }
+        }
+    }
+}
+
+/// One battery: its ring over its percentage.
+#[component]
+fn BatteryCell(row: BatteryRow) -> Element {
+    let (level, mark) = ring_of(&row);
+    let percent = row.level.0;
+    rsx! {
+        div { class: "sill-widget-battery-cell",
+            LevelRing { level, mark, label: ring_label(&row),
+                Glyph { icon: row_glyph(&row), size: IconSize::Base }
+            }
+            span { class: "sill-widget-battery-level",
+                Bumped { on: percent, "{percent}%" }
             }
         }
     }
@@ -138,7 +157,49 @@ mod tests {
         Charge, Percent, Presence,
     };
 
-    use super::{BatteryOwner, BatteryRow, battery_rows, machine_name};
+    use ds::{Fraction, RingMark};
+
+    use super::{BatteryOwner, BatteryRow, battery_rows, machine_name, ring_label, ring_of};
+
+    #[test]
+    fn a_row_is_a_ring_in_permille_with_a_bolt_while_charging() {
+        let row = |level, charge| BatteryRow {
+            owner: BatteryOwner::ThisMachine,
+            name: "desk".to_owned(),
+            level: Percent(level),
+            charge,
+        };
+        let cases = [
+            (
+                row(81, Charge::Charging),
+                Fraction(810),
+                RingMark::Charging,
+                "desk, 81%, charging",
+            ),
+            (
+                row(7, Charge::Discharging),
+                Fraction(70),
+                RingMark::Plain,
+                "desk, 7%",
+            ),
+            (
+                row(100, Charge::Full),
+                Fraction(1000),
+                RingMark::Plain,
+                "desk, 100%",
+            ),
+            (
+                row(0, Charge::Unknown),
+                Fraction(0),
+                RingMark::Plain,
+                "desk, 0%",
+            ),
+        ];
+        for (row, level, mark, label) in cases {
+            assert_eq!(ring_of(&row), (level, mark), "{row:?}");
+            assert_eq!(ring_label(&row), label);
+        }
+    }
 
     #[test]
     fn the_machine_is_named_by_its_hosts_first_label() {

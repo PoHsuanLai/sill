@@ -1,15 +1,13 @@
-//! The World Clock widget (M10 lane b): one row per zone in `widgets.world_clocks`, the city,
-//! the time (24-hour, like the bar clock) and how far it is from here ("Today, +7h",
+//! The World Clock widget (M10 lane b): a quire `ClockFace` (Q183) per zone in
+//! `widgets.world_clocks`, the city under it and how far it is from here ("Today, +7h",
 //! "Tomorrow, +13h"), redrawn on the clock's minute tick. A zone jiff does not know is left out.
-//! An analog face is a quire gap (Q183); the rows are quire's `SettingsRow` meanwhile.
 
 use dioxus::prelude::*;
-use ds::{RowTrailing, SettingsRow, Text};
+use ds::{ClockFace, ClockLook, ClockTime, DayPhase, Seconds};
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 
 use super::WidgetHost;
-use super::frame::host_word;
 use crate::hooks::{use_clock, use_settings};
 
 /// This widget's stylesheet, in [`crate::widgets::widgets_css`].
@@ -24,10 +22,34 @@ pub struct ZoneName(pub String);
 pub struct ClockRow {
     /// The zone's last segment, underscores as spaces: `New York`.
     pub city: String,
-    /// `09:05`.
-    pub time: String,
+    /// The wall-clock time there, to the minute.
+    pub time: ClockTime,
+    /// Day or night there, which tints the dial.
+    pub phase: DayPhase,
     /// `Today, +7h`, `Yesterday, -5h30`, `Tomorrow, +13h`, `Today, same time`.
     pub offset: String,
+}
+
+/// The first hour a dial reads as day, and the first it reads as night again (macOS turns its
+/// world clock's face dark from 18:00 to 06:00).
+const DAY_HOURS: std::ops::Range<i8> = 6..18;
+
+/// Day or night at `hour` (0 to 23) there.
+pub fn phase_of(hour: i8) -> DayPhase {
+    match DAY_HOURS.contains(&hour) {
+        true => DayPhase::Day,
+        false => DayPhase::Night,
+    }
+}
+
+/// The wall-clock time of `hour` and `minute` as jiff hands them, the seconds hidden.
+fn clock_time(hour: i8, minute: i8) -> ClockTime {
+    let unsigned = |value: i8| u8::try_from(value).unwrap_or_default();
+    ClockTime {
+        hour: unsigned(hour),
+        minute: unsigned(minute),
+        second: Seconds::Hidden,
+    }
 }
 
 /// `widgets.world_clocks`: `;`-separated, trimmed, empty entries skipped, duplicates kept once.
@@ -55,7 +77,8 @@ pub fn clock_rows(now: Timestamp, zones: &[ZoneName], here: &TimeZone) -> Vec<Cl
             let day = day_word(there.date().cmp(&local.date()));
             Some(ClockRow {
                 city: city_of(zone),
-                time: format!("{:02}:{:02}", there.hour(), there.minute()),
+                time: clock_time(there.hour(), there.minute()),
+                phase: phase_of(there.hour()),
                 offset: format!("{day}, {}", offset_text(apart)),
             })
         })
@@ -93,27 +116,37 @@ fn offset_text(seconds: i32) -> String {
     }
 }
 
-/// The clocks: one quire `SettingsRow` per zone (the city, the day and offset under it, the time
-/// as its trailing value), redrawn on the clock service's minute tick and never otherwise. No
-/// zones: a quiet line naming the key.
+/// How many cities a medium widget has room for, side by side (macOS's medium World Clock).
+pub const MAX_CITIES: usize = 4;
+
+/// How `host` draws a clock: dials on the desktop, digits in the notification center's tile.
+pub fn look_of(host: WidgetHost) -> ClockLook {
+    match host {
+        WidgetHost::Desktop => ClockLook::Analog,
+        WidgetHost::Tile => ClockLook::Digital,
+    }
+}
+
+/// The clocks: one quire `ClockFace` per zone, up to [`MAX_CITIES`] side by side (a dial tinted
+/// for day or night there on the desktop, digits that bump on each new minute in the tile), the
+/// city under it and the day and offset under that. Redrawn on the clock service's minute tick
+/// and never otherwise. No zones: a quiet line naming the key.
 #[component]
 pub fn WorldClockWidget(host: WidgetHost) -> Element {
     // The minute tick is the only thing that redraws the widget: no timer of its own.
     let _minute = use_clock()();
     let zones = parse_zones(&use_settings()().widgets.world_clocks);
     let rows = clock_rows(Timestamp::now(), &zones, &TimeZone::system());
+    let look = look_of(host);
     rsx! {
-        div { class: "sill-widget-world-clock", "data-host": host_word(host),
+        div { class: "sill-widget-world-clock", "data-host": host.slug(),
             if rows.is_empty() {
                 span { class: "sill-widget-quiet", "No cities: add them in widgets.world_clocks" }
             }
-            for row in rows {
-                SettingsRow {
-                    key: "{row.city}",
-                    title: row.city.clone(),
-                    detail: Some(Text::from(row.offset.clone())),
-                    trailing: RowTrailing::Text(Text::from(row.time.clone())),
-                    onclick: move |_| {},
+            for row in rows.into_iter().take(MAX_CITIES) {
+                div { key: "{row.city}", class: "sill-widget-city",
+                    ClockFace { time: row.time, phase: row.phase, look, label: row.city.clone() }
+                    span { class: "sill-widget-city-offset", {row.offset} }
                 }
             }
         }
@@ -125,7 +158,11 @@ mod tests {
     use jiff::civil::date;
     use jiff::tz::TimeZone;
 
-    use super::{ClockRow, ZoneName, clock_rows, offset_text, parse_zones};
+    use ds::{ClockLook, DayPhase};
+
+    use super::{
+        ClockRow, WidgetHost, ZoneName, clock_rows, look_of, offset_text, parse_zones, phase_of,
+    };
 
     #[test]
     fn zones_parse() {
@@ -166,19 +203,48 @@ mod tests {
             ZoneName("Nowhere/Atlantis".to_owned()),
             ZoneName("Asia/Taipei".to_owned()),
         ];
-        let row = |city: &str, time: &str, offset: &str| ClockRow {
-            city: city.to_owned(),
-            time: time.to_owned(),
-            offset: offset.to_owned(),
+        let got: Vec<_> = clock_rows(now, &zones, &here)
+            .into_iter()
+            .map(|r: ClockRow| (r.city, r.time.digits(), r.phase, r.offset))
+            .collect();
+        let row = |city: &str, time: &str, phase, offset: &str| {
+            (city.to_owned(), time.to_owned(), phase, offset.to_owned())
         };
         assert_eq!(
-            clock_rows(now, &zones, &here),
+            got,
             vec![
-                row("London", "03:00", "Today, -7h"),
-                row("Auckland", "14:00", "Today, +4h"),
-                row("Taipei", "10:00", "Today, same time"),
+                row("London", "03:00", DayPhase::Night, "Today, -7h"),
+                row("Auckland", "14:00", DayPhase::Day, "Today, +4h"),
+                row("Taipei", "10:00", DayPhase::Day, "Today, same time"),
             ]
         );
+    }
+
+    #[test]
+    fn a_dial_is_day_from_six_to_six() {
+        let cases = [
+            (0, DayPhase::Night),
+            (5, DayPhase::Night),
+            (6, DayPhase::Day),
+            (12, DayPhase::Day),
+            (17, DayPhase::Day),
+            (18, DayPhase::Night),
+            (23, DayPhase::Night),
+        ];
+        for (hour, want) in cases {
+            assert_eq!(phase_of(hour), want, "{hour}");
+        }
+    }
+
+    #[test]
+    fn the_desktop_draws_dials_and_the_tile_digits() {
+        let cases = [
+            (WidgetHost::Desktop, ClockLook::Analog),
+            (WidgetHost::Tile, ClockLook::Digital),
+        ];
+        for (host, want) in cases {
+            assert_eq!(look_of(host), want, "{host:?}");
+        }
     }
 
     #[test]
@@ -196,7 +262,7 @@ mod tests {
         ];
         let got: Vec<_> = clock_rows(now, &zones, &here)
             .into_iter()
-            .map(|r| (r.city, r.time, r.offset))
+            .map(|r| (r.city, r.time.digits(), r.offset))
             .collect();
         let want = |city: &str, time: &str, offset: &str| {
             (city.to_owned(), time.to_owned(), offset.to_owned())

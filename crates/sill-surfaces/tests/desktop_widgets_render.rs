@@ -99,16 +99,21 @@ fn box_of(h: &Harness, selector: &str) -> (i32, i32, i32, i32) {
 fn the_default_widgets_fill_from_the_top_right_in_widget_frames() {
     // 1280 px: seven 164 px cells and eight 16 px gaps take 1276, so the grid starts at 4.
     let (h, _feeds) = start(ShellFile::default(), None);
-    assert_eq!(h.count(".sill-widget"), 2);
+    assert_eq!(h.count(".ds-widget"), 2);
     assert_eq!(box_of(&h, "#widget-calendar"), (1100, 16, 164, 164));
     assert_eq!(box_of(&h, "#widget-battery"), (1100, 196, 164, 164));
     for id in ["#widget-calendar", "#widget-battery"] {
         assert_eq!(
-            h.attr(&format!("{id} > .ds"), "data-material").as_deref(),
-            Some("widget"),
+            h.count(&format!(".ds[*|data-material=widget] > .ds-widget{id}")),
+            1,
             "{id}"
         );
     }
+    // The grid wrapper carries the settings' cell and gap as quire's widget tokens.
+    assert_eq!(
+        h.attr(".sill-dw-grid", "style").as_deref(),
+        Some("--widget-cell-px:164px;--widget-gap-px:16px;")
+    );
 }
 
 #[test]
@@ -117,7 +122,7 @@ fn a_medium_widget_takes_two_cells() {
     file.widgets.desktop_widgets = vec![WidgetKind::NowPlaying, WidgetKind::WorldClock];
     let (h, _feeds) = start(file, None);
     assert_eq!(box_of(&h, "#widget-now-playing"), (920, 16, 344, 164));
-    assert_eq!(box_of(&h, "#widget-world-clock"), (1100, 196, 164, 164));
+    assert_eq!(box_of(&h, "#widget-world-clock"), (920, 196, 344, 164));
 }
 
 #[test]

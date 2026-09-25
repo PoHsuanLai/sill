@@ -125,7 +125,7 @@ pub fn UpNextWidget(host: WidgetHost) -> Element {
         .collect();
     let quiet = quiet_line(&agenda.status);
     let host_class = match host {
-        WidgetHost::Center => "sill-un sill-un-center",
+        WidgetHost::Tile => "sill-un sill-un-center",
         WidgetHost::Desktop => "sill-un sill-un-desktop",
     };
     let weekday =

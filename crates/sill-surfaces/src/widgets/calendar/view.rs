@@ -39,7 +39,7 @@ pub fn CalendarWidget(host: WidgetHost) -> Element {
         shown.set(shown().stepped(today, step));
     });
     match host {
-        WidgetHost::Center => rsx! {
+        WidgetHost::Tile => rsx! {
             div { class: "sill-cal sill-cal-center",
                 ds::MonthGrid { data: grid_data(&grid, today), weeks, onstep }
             }

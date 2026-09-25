@@ -6,7 +6,7 @@
 
 use sill_settings::WidgetKind;
 
-use crate::widgets::WidgetSize;
+use crate::widgets::{WidgetSize, cells};
 
 /// A cell: column 0 is the leftmost, row 0 the top.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -87,7 +87,7 @@ struct Footprint {
 
 impl Footprint {
     fn new(slot: GridSlot, size: WidgetSize) -> Footprint {
-        let (columns, rows) = size.cells();
+        let (columns, rows) = cells(size);
         Footprint {
             slot,
             columns,

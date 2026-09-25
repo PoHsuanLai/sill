@@ -7,7 +7,7 @@
 //! runs a timer: the widgets redraw on their services' changes only.
 
 use dioxus::prelude::*;
-use ds::{BlurState, Ds, Material, RootChrome, RootExtent, use_rect};
+use ds::{BlurState, Ds, Material, Px, RootChrome, RootExtent, WidgetMetrics, use_rect};
 use shell_host::{BlurSpec, ElementId, ElementRegion, OutputInfo, RegionSpec, SurfaceHandle};
 use sill_services::OutputName;
 use sill_settings::WidgetKind;
@@ -101,7 +101,10 @@ fn Grid(kinds: Vec<WidgetKind>, cell: u16, gap: u16) -> Element {
         })
         .unwrap_or_default();
     rsx! {
-        div { class: "sill-dw-grid", onmounted: move |event| probe.on_mounted(event),
+        div {
+            class: "sill-dw-grid",
+            style: grid_style(cell, gap),
+            onmounted: move |event| probe.on_mounted(event),
             for (kind, style) in boxes {
                 div { key: "{kind:?}", class: "sill-dw-place", style,
                     Widget { kind, host: WidgetHost::Desktop }
@@ -109,6 +112,16 @@ fn Grid(kinds: Vec<WidgetKind>, cell: u16, gap: u16) -> Element {
             }
         }
     }
+}
+
+/// The grid unit as quire's widget tokens (`--widget-cell`, `--widget-gap`), so each
+/// `WidgetFrame` is as large as the place the layer gives it.
+fn grid_style(cell: u16, gap: u16) -> String {
+    WidgetMetrics {
+        cell: Px(f32::from(cell)),
+        gap: Px(f32::from(gap)),
+    }
+    .style_attr()
 }
 
 /// A measured length in whole logical px.

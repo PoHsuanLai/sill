@@ -57,9 +57,9 @@ fn app() -> Element {
         Ds { appearance: Appearance::default(), material: Material::Popover,
             style { {css} }
             match world.kind {
-                Kind::Calendar => rsx! { CalendarWidget { host: WidgetHost::Center } },
+                Kind::Calendar => rsx! { CalendarWidget { host: WidgetHost::Tile } },
                 Kind::CalendarOnDesktop => rsx! { CalendarWidget { host: WidgetHost::Desktop } },
-                Kind::UpNext => rsx! { UpNextWidget { host: WidgetHost::Center } },
+                Kind::UpNext => rsx! { UpNextWidget { host: WidgetHost::Tile } },
             }
         }
     }

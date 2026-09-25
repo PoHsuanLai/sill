@@ -1,5 +1,9 @@
-/* The World Clock widget (widgets/world_clock.rs; M10 lane b): quire's SettingsRow per city
-   (the city, the day and offset, the time) until quire has a clock face (Q183); the quiet line
-   when no city is set. Tokens only (coherence rule 1). */
-.sill-widget-world-clock{ display:flex; flex-direction:column; min-width:0;
-  font-variant-numeric:tabular-nums; }
+/* The World Clock widget (widgets/world_clock.rs): quire's ClockFace per city (Q183), side by
+   side, the day and offset quietly under each; the quiet line when no city is set. Tokens only
+   (coherence rule 1). */
+.sill-widget-world-clock{ display:flex; align-items:center; justify-content:space-around;
+  gap:var(--s-8); flex:1 1 auto; min-width:0; }
+.sill-widget-city{ display:flex; flex-direction:column; align-items:center; gap:var(--s-2);
+  flex:1 1 0; min-width:0; }
+.sill-widget-city-offset{ max-width:100%; font-size:var(--fs-small); color:var(--ink-faint);
+  white-space:nowrap; overflow:hidden; }

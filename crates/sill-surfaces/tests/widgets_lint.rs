@@ -66,7 +66,7 @@ fn app() -> Element {
         return rsx! { DesktopWidgets { output: fake::output() } };
     };
     let material = match host {
-        WidgetHost::Center => Material::Popover,
+        WidgetHost::Tile => Material::Popover,
         WidgetHost::Desktop => Material::Widget,
     };
     rsx! {
@@ -118,7 +118,7 @@ fn the_widget_stylesheets_name_no_keyframes_of_their_own() {
 
 #[test]
 fn every_widget_is_clean_markup_in_both_hosts_and_on_the_layer() {
-    for host in [Some(WidgetHost::Center), Some(WidgetHost::Desktop), None] {
+    for host in [Some(WidgetHost::Tile), Some(WidgetHost::Desktop), None] {
         let html = html_of(host);
         assert!(html.contains("widget-battery"), "{host:?} drew the widgets");
         let offences = markup(&html, &full_css(), &strict());
