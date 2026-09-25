@@ -11,6 +11,7 @@
 pub mod art;
 mod live;
 mod model;
+mod mpris;
 
 pub use art::{ArtSource, art_cache_name, art_source};
 pub use model::{

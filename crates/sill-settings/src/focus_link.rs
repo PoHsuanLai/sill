@@ -8,13 +8,13 @@
 //! any other edit, the feed settles, and the mode follows. So the file stays the one truth, and a
 //! hand edit and a toggle cannot disagree.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
 
-use crate::file::ShellFile;
-use crate::focus::{FocusMode, focus_mode};
+use crate::file::{ShellFile, load, save};
+use crate::focus::{FocusMode, focus_mode, with_focus_mode};
 
 /// Whether a set reached the focus task.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -63,15 +63,54 @@ impl FocusLink {
 /// set loads the file in `dir`, stores the mode with `crate::focus::with_focus_mode`, and saves
 /// it (`crate::save`). Without a `dir` sets are dropped (logged) and the mode still follows the
 /// feed.
-///
-/// M5 freeze stub, filled by M5 agent (b) svc-media-wifi-focus (FINDINGS "M5 freeze"): until then
-/// the mode is fixed at the feed's current value and sets go nowhere.
 pub fn spawn_focus(
     rt: &Handle,
     settings: watch::Receiver<ShellFile>,
     dir: Option<PathBuf>,
 ) -> FocusLink {
-    let _ = (rt, dir);
     let now = focus_mode(&settings.borrow());
-    FocusLink::fixed(now)
+    let (mode_tx, mode_rx) = watch::channel(now);
+    let (set_tx, set_rx) = mpsc::unbounded_channel();
+    rt.spawn(run(settings, dir, mode_tx, set_rx));
+    FocusLink::new(mode_rx, set_tx)
+}
+
+/// Follows `settings` into `mode_tx` and carries out every queued set, until either channel
+/// closes.
+async fn run(
+    mut settings: watch::Receiver<ShellFile>,
+    dir: Option<PathBuf>,
+    mode_tx: watch::Sender<FocusMode>,
+    mut sets: mpsc::UnboundedReceiver<FocusMode>,
+) {
+    loop {
+        tokio::select! {
+            changed = settings.changed() => {
+                if changed.is_err() {
+                    return;
+                }
+                let mode = focus_mode(&settings.borrow());
+                if mode_tx.send(mode).is_err() {
+                    return;
+                }
+            }
+            set = sets.recv() => match set {
+                Some(mode) => store(dir.as_deref(), mode),
+                None => return,
+            }
+        }
+    }
+}
+
+/// Writes `mode` into `dir`'s `settings.toml`, every other key as it was; without a `dir` (a
+/// headless render or a test with no file to write) the set is dropped.
+fn store(dir: Option<&Path>, mode: FocusMode) {
+    let Some(dir) = dir else {
+        eprintln!("sill-settings: focus: no settings directory, set({mode:?}) dropped");
+        return;
+    };
+    let file = with_focus_mode(load(dir), mode);
+    if let Err(error) = save(dir, &file) {
+        eprintln!("sill-settings: focus: could not save settings.toml: {error}");
+    }
 }

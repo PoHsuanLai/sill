@@ -131,16 +131,62 @@ pub enum MediaEvent {
 }
 
 /// `media` after `event`. A change for an id that is not listed is dropped.
-pub fn reduce_media(media: Media, event: MediaEvent) -> Media {
-    let _ = (media, event);
-    todo!("M5 fill: svc-media-wifi-focus (b)")
+pub fn reduce_media(mut media: Media, event: MediaEvent) -> Media {
+    match event {
+        MediaEvent::Player(player) => {
+            match media.players.iter_mut().find(|p| p.id == player.id) {
+                Some(existing) => *existing = player,
+                None => media.players.push(player),
+            }
+            media
+        }
+        MediaEvent::Playback { id, playback, at } => {
+            if let Some(player) = media.players.iter_mut().find(|p| p.id == id) {
+                player.playback = playback;
+                player.changed = at;
+            }
+            media
+        }
+        MediaEvent::Track { id, track } => {
+            if let Some(player) = media.players.iter_mut().find(|p| p.id == id) {
+                player.track = track;
+            }
+            media
+        }
+        MediaEvent::Timeline { id, timeline } => {
+            if let Some(player) = media.players.iter_mut().find(|p| p.id == id) {
+                player.timeline = timeline;
+            }
+            media
+        }
+        MediaEvent::Abilities { id, abilities } => {
+            if let Some(player) = media.players.iter_mut().find(|p| p.id == id) {
+                player.abilities = abilities;
+            }
+            media
+        }
+        MediaEvent::Removed(id) => {
+            media.players.retain(|p| p.id != id);
+            media
+        }
+        MediaEvent::Gone => Media::default(),
+    }
 }
 
 impl Media {
     /// The player the control center shows: the one that most recently started playing; with
     /// none playing, the most recently paused; a stopped player is never shown.
     pub fn current(&self) -> Option<&MediaPlayer> {
-        todo!("M5 fill: svc-media-wifi-focus (b)")
+        self.players
+            .iter()
+            .filter(|p| p.playback == Playback::Playing)
+            .max_by_key(|p| p.changed)
+            .or_else(|| {
+                self.players
+                    .iter()
+                    .filter(|p| p.playback == Playback::Paused)
+                    .max_by_key(|p| p.changed)
+            })
     }
 }
 
@@ -169,7 +215,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M5 fill: svc-media-wifi-focus (b)"]
     fn the_most_recent_player_to_play_is_current() {
         use Playback::{Paused, Playing, Stopped};
         let cases: Vec<(&str, Vec<MediaPlayer>, Option<&str>)> = vec![
@@ -197,7 +242,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M5 fill: svc-media-wifi-focus (b)"]
     fn events_reduce_to_the_expected_media() {
         let a = || player("a", Playback::Paused, 1);
         let with = |players| Media { players };
