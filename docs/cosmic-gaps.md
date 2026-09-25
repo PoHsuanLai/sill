@@ -54,4 +54,5 @@ without the compositor), **config** (COSMIC setting or shortcut file).
 | A session where sill replaces cosmic-panel, cosmic-bg, cosmic-osd, cosmic-notifications | cosmic-session hard-codes its component list | verified: source (plan, COSMIC research) | own session script (documented), or fork cosmic-session |
 | Settings deep links (open COSMIC Settings on a page) | `Exec` takes no page argument | verified (sill FINDINGS F146) | PR, or our own Settings app (M12) |
 | Our brightness / volume OSD instead of cosmic-osd's | Replacing the `system_actions` for brightness keys also drops cosmic-settings-daemon's handling and cosmic-osd's popup | verified (sill FINDINGS "Displays") | config (dist/ shortcut files) |
+| `cosmic-randr` failing fast off COSMIC | It hangs forever (never exits, never errors) on a compositor without `zwlr_output_manager_v1`, e.g. KWin | verified (sill FINDINGS G51, gdb stack) | PR (a connect timeout / error exit); sill bounds it at 2 s meanwhile |
 | Decode COSMIC's default wallpaper format (JPEG XL) | sill's `image` build has no jxl | verified (sill F132) | shell (add jxl), not a COSMIC gap |
