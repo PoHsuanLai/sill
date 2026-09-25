@@ -9,7 +9,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::content::{Notification, SoundHint};
+use super::content::{Expiry, Notification, NotifyUrgency, Residency, SoundHint};
 use super::state::{BannerLife, ServerMode};
 
 /// Everything the service is told by the daemon.
@@ -23,6 +23,19 @@ pub struct NotificationsPolicy {
     pub style: Presentation,
     /// `notifications.history_cap`.
     pub history_cap: HistoryCap,
+    /// `notifications.swipe`.
+    pub swipe: Swipe,
+}
+
+/// `notifications.swipe`: what swiping a banner away does to its notification.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Swipe {
+    /// The banner leaves; the notification stays in the notification center (macOS).
+    #[default]
+    KeepInCenter,
+    /// The notification is dismissed: gone from the history too.
+    Dismiss,
 }
 
 /// Whether banners and sounds are held back (design/13 §13.3.6 "Do Not Disturb").
@@ -81,15 +94,29 @@ pub enum Chime {
 /// Disturb is on or the style is history-only; else a banner that persists for `resident`,
 /// `expire_timeout == 0` or the Alert style, and expires otherwise.
 pub fn presented(note: &Notification, policy: &NotificationsPolicy) -> Presented {
-    let _ = (note, policy);
-    todo!("M6 fill: a-server")
+    let critical = note.hints.urgency == NotifyUrgency::Critical;
+    let held_back =
+        policy.quiet == Quiet::DoNotDisturb || policy.style == Presentation::HistoryOnly;
+    let persists = note.hints.residency == Residency::Resident
+        || note.expiry == Expiry::Never
+        || policy.style == Presentation::Alert;
+    match (critical, held_back, persists) {
+        (true, _, _) => Presented::Banner(BannerLife::Persists),
+        (false, true, _) => Presented::HistoryOnly,
+        (false, false, true) => Presented::Banner(BannerLife::Persists),
+        (false, false, false) => Presented::Banner(BannerLife::Expires),
+    }
 }
 
 /// Whether `note`'s arrival plays a sound: never when the sender suppressed it, nor while Do
 /// Not Disturb holds it back (a critical one still sounds); else its hint (or the default).
 pub fn chime(note: &Notification, policy: &NotificationsPolicy) -> Chime {
-    let _ = (note, policy);
-    todo!("M6 fill: a-server")
+    let critical = note.hints.urgency == NotifyUrgency::Critical;
+    match (&note.hints.sound, policy.quiet) {
+        (SoundHint::Suppressed, _) => Chime::Silent,
+        (_, Quiet::DoNotDisturb) if !critical => Chime::Silent,
+        (hint, _) => Chime::Play(hint.clone()),
+    }
 }
 
 #[cfg(test)]
@@ -132,7 +159,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M6 fill: a-server"]
     fn presentation_follows_urgency_focus_and_style() {
         use BannerLife::{Expires, Persists};
         use NotifyUrgency::{Critical, Low, Normal};
@@ -220,7 +246,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M6 fill: a-server"]
     fn sounds_follow_the_hint_and_do_not_disturb() {
         let with_sound = |urgency, sound: SoundHint| {
             let mut n = note(urgency, Residency::ClosesOnAction, Expiry::Default);

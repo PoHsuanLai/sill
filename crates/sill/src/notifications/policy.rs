@@ -1,10 +1,13 @@
 //! The notifications service's policy, from the settings and the focus mode: sent once at start
 //! (which ends the service's passive start) and again whenever either changes.
 
+use sill_services::notifications::Swipe;
 use sill_services::{
     Control, HistoryCap, NotificationsCommand, NotificationsPolicy, Presentation, Quiet, ServerMode,
 };
-use sill_settings::{BannerStyle, FocusMode, NotificationServer, NotificationsSettings, ShellFile};
+use sill_settings::{
+    BannerStyle, FocusMode, NotificationServer, NotificationSwipe, NotificationsSettings, ShellFile,
+};
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
@@ -25,6 +28,10 @@ pub fn policy_of(n: &NotificationsSettings, focus: FocusMode) -> NotificationsPo
             BannerStyle::None => Presentation::HistoryOnly,
         },
         history_cap: HistoryCap(n.history_cap.0),
+        swipe: match n.swipe {
+            NotificationSwipe::KeepInCenter => Swipe::KeepInCenter,
+            NotificationSwipe::Dismiss => Swipe::Dismiss,
+        },
     }
 }
 
@@ -64,8 +71,11 @@ pub fn spawn_policy(
 #[cfg(test)]
 mod tests {
     use super::policy_of;
+    use sill_services::notifications::Swipe;
     use sill_services::{HistoryCap, Presentation, Quiet, ServerMode};
-    use sill_settings::{BannerStyle, Count, FocusMode, NotificationServer, NotificationsSettings};
+    use sill_settings::{
+        BannerStyle, Count, FocusMode, NotificationServer, NotificationSwipe, NotificationsSettings,
+    };
 
     #[test]
     fn the_settings_and_focus_become_the_policy() {
@@ -74,10 +84,16 @@ mod tests {
         assert_eq!(defaults.quiet, Quiet::Off);
         assert_eq!(defaults.style, Presentation::Banner);
         assert_eq!(defaults.history_cap, HistoryCap(100));
+        assert_eq!(
+            defaults.swipe,
+            Swipe::KeepInCenter,
+            "a swipe keeps it, as macOS"
+        );
         let n = NotificationsSettings {
             server: NotificationServer::Passive,
             banner_style: BannerStyle::None,
             history_cap: Count(7),
+            swipe: NotificationSwipe::Dismiss,
             ..NotificationsSettings::default()
         };
         let quiet = policy_of(&n, FocusMode::DoNotDisturb);
@@ -85,6 +101,7 @@ mod tests {
         assert_eq!(quiet.quiet, Quiet::DoNotDisturb);
         assert_eq!(quiet.style, Presentation::HistoryOnly);
         assert_eq!(quiet.history_cap, HistoryCap(7));
+        assert_eq!(quiet.swipe, Swipe::Dismiss);
     }
 
     #[test]

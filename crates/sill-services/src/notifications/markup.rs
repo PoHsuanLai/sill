@@ -95,8 +95,7 @@ impl Body {
 
 /// `raw` (a `Notify` body) parsed per the module doc.
 pub fn parse_body(raw: &str) -> Body {
-    let _ = raw;
-    todo!("M6 fill: a-server")
+    super::markup_parse::parse(raw)
 }
 
 #[cfg(test)]
@@ -137,7 +136,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M6 fill: a-server"]
     fn the_spec_markup_subset_becomes_runs() {
         let italic_bold = RunStyle {
             weight: Weight::Bold,

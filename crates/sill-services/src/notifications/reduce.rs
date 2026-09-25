@@ -12,9 +12,14 @@
 //! - **A replacement** (a posting whose id is already held, from `replaces_id`) is the old one
 //!   removed without a signal, then the new one posted as above: it moves to the front and shows
 //!   again.
-//! - **ClosedByApp** (`CloseNotification`), **Dismissed** (a swipe, the close button, a history
-//!   row's clear): removed from the banners and the history, `Closed` with `ClosedByCall` or
+//! - **ClosedByApp** (`CloseNotification`), **Dismissed** (the close button, a history row's
+//!   clear): removed from the banners and the history, `Closed` with `ClosedByCall` or
 //!   `Dismissed`. An id not held changes nothing.
+//! - **SwipedAway** (a banner swiped or dragged off): under `notifications.swipe =
+//!   "keep_in_center"` (the default, as macOS) the banner leaves, the notification stays in the
+//!   history, and `Closed` says `Dismissed` (the spec's "dismissed by the user": the banner is
+//!   gone); a transient one, which the history never held, is gone entirely. Under `"dismiss"`
+//!   it is **Dismissed**. An id with no banner changes nothing.
 //! - **DismissedAll** (`sill notifications dismiss-all`): every live banner dismissed, in banner
 //!   order. The history keeps what is not on screen.
 //! - **BannerTimedOut**: the banner leaves; the notification stays in the history. One the
@@ -34,7 +39,8 @@ use serde::{Deserialize, Serialize};
 use super::content::{Notification, SoundHint};
 use super::history_file::StoredHistory;
 use super::ids::{ActionKey, Activation, AppKey, NotificationId};
-use super::policy::NotificationsPolicy;
+use super::policy::{NotificationsPolicy, Swipe};
+use super::rules;
 use super::state::{History, Notifications, ServerStatus};
 
 /// Everything the service holds: what it publishes on its two receivers, and the last id it
@@ -54,8 +60,13 @@ pub enum NotificationsEvent {
     Posted(Box<Notification>),
     /// `CloseNotification`.
     ClosedByApp(NotificationId),
-    /// The person dismissed it: a swipe, the close button, a row's clear.
+    /// The person dismissed it: the close button, a row's clear (a swipe under
+    /// `Swipe::Dismiss`).
     Dismissed(NotificationId),
+    /// The person swiped its banner away: under `Swipe::KeepInCenter` the banner leaves and the
+    /// notification stays in the history (`Closed` with `Dismissed`: the banner is gone); under
+    /// `Swipe::Dismiss`, as `Dismissed`.
+    SwipedAway(NotificationId),
     /// Every banner dismissed at once.
     DismissedAll,
     /// A banner's hold ran out (the banner surface counts it, pausing while hovered).
@@ -130,8 +141,21 @@ impl CloseReason {
 /// The id a posting gets: the one it replaces when that one is still held (a live banner or
 /// in the history), else one past `last_id`, skipping 0 when it wraps.
 pub fn assign_id(state: &NotesState, replaces: Option<NotificationId>) -> NotificationId {
-    let _ = (state, replaces);
-    todo!("M6 fill: a-server")
+    match replaces {
+        Some(id) if rules::holds(state, id) => id,
+        _ => {
+            let after = |id: NotificationId| match id.0.wrapping_add(1) {
+                0 => NotificationId(1),
+                next => NotificationId(next),
+            };
+            // Past a wrap, an id the history still holds is skipped (bounded: the history is
+            // capped far below u32::MAX).
+            std::iter::successors(Some(after(state.last_id)), |id| Some(after(*id)))
+                .take(usize::from(u16::MAX) + 2)
+                .find(|id| !rules::holds(state, *id))
+                .unwrap_or_else(|| after(state.last_id))
+        }
+    }
 }
 
 /// `state` after `event` under `policy`, and what must happen because of it (module doc).
@@ -140,8 +164,33 @@ pub fn reduce_notifications(
     event: NotificationsEvent,
     policy: &NotificationsPolicy,
 ) -> (NotesState, Vec<NotificationsEffect>) {
-    let _ = (state, event, policy);
-    todo!("M6 fill: a-server")
+    match event {
+        NotificationsEvent::Posted(note) => rules::post(state, *note, policy),
+        NotificationsEvent::ClosedByApp(id) => rules::close(state, id, CloseReason::ClosedByCall),
+        NotificationsEvent::Dismissed(id) => rules::close(state, id, CloseReason::Dismissed),
+        NotificationsEvent::SwipedAway(id) => match policy.swipe {
+            Swipe::KeepInCenter => rules::swipe_away(state, id),
+            Swipe::Dismiss => rules::close(state, id, CloseReason::Dismissed),
+        },
+        NotificationsEvent::DismissedAll => {
+            let ids = rules::banner_ids(&state);
+            rules::dismiss_each(state, ids)
+        }
+        NotificationsEvent::BannerTimedOut(id) => rules::time_out(state, id),
+        NotificationsEvent::Invoked { id, action, token } => {
+            rules::invoke(state, id, action, token)
+        }
+        NotificationsEvent::HistoryCleared(clear) => {
+            let ids = rules::cleared_ids(&state, &clear);
+            rules::dismiss_each(state, ids)
+        }
+        NotificationsEvent::Loaded(stored) => rules::load(state, stored, policy),
+        NotificationsEvent::Server(status) => {
+            let mut state = state;
+            state.live.server = status;
+            (state, Vec::new())
+        }
+    }
 }
 
 #[cfg(test)]
