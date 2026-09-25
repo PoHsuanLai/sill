@@ -76,10 +76,12 @@ fn first_sight_sets_the_default_and_never_again() {
     };
     let policy = DisplayPolicy::default();
     let first = scale_pass(&mut sink, &connectors(), SeenDisplays::default(), &policy);
-    assert_eq!(sink.sets, vec![("HDMI-A-2".to_owned(), DisplayScale(150))]);
-    assert_eq!(first.outputs[0].scale, DisplayScale(150));
+    // PreferWhole (the default): the MA270U's raw 1.499 rounds to the whole-number branch, and
+    // 3840 / 2 = 1920 stays well above MIN_LOGICAL_WIDTH.
+    assert_eq!(sink.sets, vec![("HDMI-A-2".to_owned(), DisplayScale(200))]);
+    assert_eq!(first.outputs[0].scale, DisplayScale(200));
     let record = first.seen.displays.get(&first.outputs[0].identity).cloned();
-    assert_eq!(record.map(|r| r.applied), Some(Some(DisplayScale(150))));
+    assert_eq!(record.map(|r| r.applied), Some(Some(DisplayScale(200))));
 
     // The person picks 1.75 in COSMIC Settings; the next pass leaves it.
     sink.heads = vec![hdmi(175)];

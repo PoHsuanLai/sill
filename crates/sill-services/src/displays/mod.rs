@@ -54,7 +54,7 @@ pub use policy::{
     DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmth, ScaleMode,
     ScaleOverride,
 };
-pub use scale::{DisplayScale, Ppi, default_scale};
+pub use scale::{DisplayScale, Ppi, ScaleRounding, default_scale};
 pub use seen::decide_scale;
 pub use sink::{CosmicRandr, ScaleSink};
 pub use warmth::warmth_gains;
