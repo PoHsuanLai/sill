@@ -13,11 +13,10 @@ use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_services::{NotificationId, Notifications};
 use sill_settings::NotificationsSettings;
 
-use super::deck::{DeckIn, Entry, Showing};
+use super::deck::{DeckIn, DeckParams, Entry, Showing};
 use super::drive::{Column, use_column};
 use super::layer::ROOM;
 use super::look::{card_look, corner_slug, entry_slug, in_corner};
-use super::machine::BannerParams;
 use super::measure::{RegionKey, Slots, use_card_regions};
 use super::placement::BannerLink;
 use super::stack::stack;
@@ -70,7 +69,7 @@ pub(super) fn banners(output: OutputInfo) -> Element {
 fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> Element {
     let level = ds::use_env().resolved.motion;
     let control = use_services().notifications_control;
-    let column = use_column(BannerParams::new(&settings), control, level);
+    let column = use_column(DeckParams::new(&settings), control, level);
     let live = use_notifications();
     let link = use_context::<BannerLink>();
     let shows = use_watch(link.subscribe());

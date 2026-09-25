@@ -1,7 +1,8 @@
 //! The banner column in a Blitz harness, on the wall clock and the fake services: a banner
 //! slides in and holds for `notifications.banner_hold_ms`, then says it timed out; hovering it
-//! expands it and pauses the hold; a click on the body invokes `default`; the close button and a
-//! drag past the threshold dismiss it, a short drag springs back; one app's banners group into
+//! expands it and pauses the hold; a click on the body invokes `default`; the close button
+//! dismisses it, a drag past the threshold takes the banner away (kept in the center), a short
+//! drag springs back; one app's banners group into
 //! one card with a count and two layers; a card the service dropped slides out silently; and
 //! another output's column draws nothing.
 
@@ -168,7 +169,8 @@ fn a_long_drag_dismisses_and_a_short_one_springs_back() {
     assert_eq!(running.pose().as_deref(), Some("offstage"), "flies out");
     assert_eq!(
         running.commands(),
-        [NotificationsCommand::Dismiss(NotificationId(1))]
+        [NotificationsCommand::BannerTimedOut(NotificationId(1))],
+        "swiped away, kept in the center (notifications.swipe's default, as macOS)"
     );
 }
 

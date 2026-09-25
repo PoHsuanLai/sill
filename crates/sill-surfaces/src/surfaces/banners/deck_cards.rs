@@ -5,8 +5,8 @@
 
 use sill_services::Stamp;
 
-use super::deck::{Deck, DeckOut, Entry, Speak, arrive, feed};
-use super::machine::{Banner, BannerIn, BannerParams, Persistence, step};
+use super::deck::{Deck, DeckOut, DeckParams, Entry, Speak, arrive, feed};
+use super::machine::{Banner, BannerIn, Persistence, step};
 use super::stack::Card;
 
 /// `deck` following `cards` at `now`.
@@ -14,7 +14,7 @@ pub(super) fn follow(
     deck: Deck,
     cards: Vec<Card>,
     now: Stamp,
-    p: &BannerParams,
+    p: &DeckParams,
 ) -> (Deck, Vec<DeckOut>) {
     let mut out = Vec::new();
     let mut deck = deck;
@@ -47,7 +47,7 @@ pub(super) fn follow(
 }
 
 /// A drawn card with `card`'s content; a newer notification starts a shown card's hold again.
-fn refresh(e: Entry, card: Card, now: Stamp, p: &BannerParams) -> Entry {
+fn refresh(e: Entry, card: Card, now: Stamp, p: &DeckParams) -> Entry {
     let newer = card.newest() != e.card.newest();
     let banner = match (newer, e.banner) {
         (true, Banner::Shown { .. }) => {
@@ -57,7 +57,7 @@ fn refresh(e: Entry, card: Card, now: Stamp, p: &BannerParams) -> Entry {
                 BannerIn::Entered,
                 now,
                 Persistence::of(card.life),
-                p,
+                &p.banner,
             )
             .0
         }

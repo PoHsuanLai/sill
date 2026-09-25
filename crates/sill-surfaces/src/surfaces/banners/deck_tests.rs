@@ -1,14 +1,17 @@
 //! Table tests for `deck.rs` and `deck_cards.rs`.
 
-use super::{Deck, DeckIn, DeckOut, EntryKey, Pose, Showing, advance};
-use crate::surfaces::banners::machine::{Banner, BannerIn, BannerParams, Deadline, Leave};
+use super::{Deck, DeckIn, DeckOut, DeckParams, EntryKey, Pose, Showing, advance, told};
+use crate::surfaces::banners::machine::{Banner, BannerIn, Deadline, Leave};
 use crate::surfaces::banners::stack::Card;
 use crate::surfaces::notification_card::Expansion;
 use sill_services::{AppKey, BannerLife, Cpx, NotificationId, NotificationsCommand, Stamp};
-use sill_settings::NotificationsSettings;
+use sill_settings::{NotificationSwipe, NotificationsSettings};
 
-fn p() -> BannerParams {
-    BannerParams::new(&NotificationsSettings::default())
+fn p() -> DeckParams {
+    DeckParams::new(&NotificationsSettings {
+        swipe: NotificationSwipe::Dismiss,
+        ..NotificationsSettings::default()
+    })
 }
 
 fn card(app: &str, ids: &[u32]) -> Card {
@@ -229,4 +232,25 @@ fn an_acted_card_leaves_without_a_leave_command() {
         vec![(900, DeckIn::Card(A, BannerIn::Clicked))],
     ));
     assert_eq!(out[2..], [DeckOut::Exit(A)]);
+}
+
+#[test]
+fn a_swipe_keeps_the_notification_in_the_center_unless_set_to_dismiss() {
+    use NotificationSwipe::{Dismiss, KeepInCenter};
+    let end = BannerIn::DragEnd { velocity_px_s: 900 };
+    let swipe = BannerIn::Swipe {
+        dx: Cpx::px(100),
+        velocity_px_s: 0,
+    };
+    let cases = [
+        (Leave::Dismissed, end, KeepInCenter, Leave::Timeout),
+        (Leave::Dismissed, swipe, KeepInCenter, Leave::Timeout),
+        (Leave::Dismissed, end, Dismiss, Leave::Dismissed),
+        (Leave::Dismissed, BannerIn::Close, KeepInCenter, Leave::Dismissed),
+        (Leave::Timeout, BannerIn::Tick, KeepInCenter, Leave::Timeout),
+        (Leave::Acted, BannerIn::Clicked, KeepInCenter, Leave::Acted),
+    ];
+    for (why, input, swipe, want) in cases {
+        assert_eq!(told(why, input, swipe), want, "{why:?} {input:?} {swipe:?}");
+    }
 }
