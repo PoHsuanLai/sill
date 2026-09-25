@@ -2733,8 +2733,10 @@ the M5 lanes cannot collide.
   (G31 is this). The frame is now in flow at `100vw` x `100vh` with the room as its padding and
   the `Ds` root filling it (a one-cell grid); `tests/control_center_render.rs` clicks a tile, a
   chevron and a network row through the same frame in a Blitz harness, and live debug clicks
-  in the popup now land. `dock_popup.css` and the tray's popup were not looked at; they may
-  have the same frame.
+  in the popup now land: G31 passes by hand on the nested session (a debug build with the power
+  menu's dry run: `sill debug click` on the app name, then on "Shut Down…", mapped
+  `sill-power-menu-<out>`; `power-menu close`, nothing chosen). `dock_popup.css` and the tray's
+  popup were not looked at; they may have the same frame.
 - **F226 Escape.** The panel element takes the keyboard as it mounts and again after a page
   change takes the focused chevron or back button away (`ds::focus_soon`), so Escape on a pane
   goes back and on the grid reaches the popover, which closes (harness-tested). Live, `wtype -k
