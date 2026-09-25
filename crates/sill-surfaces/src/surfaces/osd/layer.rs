@@ -1,6 +1,6 @@
-//! The indicator's layer surface (design/20 §1.7): Overlay, at the top right under the bar (as
-//! current macOS) or centred above the dock, per `osd.position`; no keyboard, no input, blurred
-//! behind the card (`Element("osd")`).
+//! The indicator's layer surface (design/20 §1.7; quire CONSUMING.md "OSD parts"): Overlay, at
+//! the top right under the bar (as current macOS) or centred above the dock, per `osd.position`;
+//! no keyboard, no input, blurred behind the card (`Element("osd")`, quire's `Osd` root's `id`).
 //!
 //! Its exclusive zone is `Auto` (wire 0): it reserves nothing, and the compositor keeps it clear
 //! of what others reserve, so at the top it sits below the bar's reserve (and at the bottom above
@@ -17,16 +17,18 @@ use sill_settings::{OsdPosition, OsdSettings};
 
 use crate::surfaces::naming::namespace;
 
-/// The card's size (design/20 §1.7 leaves it open; 01-LAYOUT "OSD: position, size: not
-/// specified"): room for the 22 px glyph and a level bar a macOS indicator's width.
-pub const CARD_WIDTH: u32 = 280;
-pub const CARD_HEIGHT: u32 = 52;
+/// The card's size: quire's `Osd` fixes the width at 296 (a control-center module spanning both
+/// columns); the height is the title line over the Capsule level, at the card's own padding and
+/// gap (design/20 §1.7 leaves it open; 01-LAYOUT "OSD: position, size: not specified").
+pub const CARD_WIDTH: u32 = 296;
+pub const CARD_HEIGHT: u32 = 80;
 
-/// The card's element id: the blur region.
+/// The card's element id: quire's `Osd { id: .. }`, and the blur region.
 pub const CARD_ID: &str = "osd";
 
-/// The Osd material's corner (design/03 §17: 18), which the blur region follows.
-pub const CARD_RADIUS: i32 = 18;
+/// The Osd material's corner (`--r-tile`, design/03 §17: 12), which the card's `border-radius`
+/// and the blur region both follow.
+pub const CARD_RADIUS: i32 = 12;
 
 /// Transparent room around the card for the material's ambient shadow (`0 12px 40px -12px`
 /// reaches 28 px beside the card and 40 below it).

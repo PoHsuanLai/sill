@@ -72,25 +72,34 @@ pub fn start(file: ShellFile) -> Running {
     }
 }
 
-/// The card's `data-look`.
+/// The card's presence: quire's `Osd` (`#osd`) is `"hidden"` while `data-shown="hidden"`, else
+/// its `data-presence` (`"entering"`, `"present"` or `"leaving"`).
 pub fn look(harness: &Harness) -> Option<String> {
     let html = harness.html();
-    let rest = &html[html.find("class=\"sill-osd\"")?..];
-    let rest = &rest[rest.find("data-look=\"")? + "data-look=\"".len()..];
-    Some(rest[..rest.find('"')?].to_owned())
+    let rest = &html[html.find("id=\"osd\"")?..];
+    let shown = {
+        let after = &rest[rest.find("data-shown=\"")? + "data-shown=\"".len()..];
+        &after[..after.find('"')?]
+    };
+    if shown == "hidden" {
+        return Some("hidden".to_owned());
+    }
+    let after = &rest[rest.find("data-presence=\"")? + "data-presence=\"".len()..];
+    Some(after[..after.find('"')?].to_owned())
 }
 
-/// The level bar's `aria-valuenow`.
+/// The level control's `aria-valuenow`.
 pub fn level(harness: &Harness) -> Option<u16> {
     let html = harness.html();
-    let rest = &html[html.find("aria-valuenow=\"")? + "aria-valuenow=\"".len()..];
+    let rest = &html[html.find("class=\"ds-level\"")?..];
+    let rest = &rest[rest.find("aria-valuenow=\"")? + "aria-valuenow=\"".len()..];
     rest[..rest.find('"')?].parse().ok()
 }
 
-/// The level bar's accessible name.
+/// The OSD's title (quire's `Osd { label }`, `#osd`'s own `aria-label`).
 pub fn label(harness: &Harness) -> Option<String> {
     let html = harness.html();
-    let rest = &html[html.find("class=\"ds-slider\"")?..];
+    let rest = &html[html.find("id=\"osd\"")?..];
     let rest = &rest[rest.find("aria-label=\"")? + "aria-label=\"".len()..];
     Some(rest[..rest.find('"')?].to_owned())
 }

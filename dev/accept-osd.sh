@@ -17,6 +17,10 @@
 #   4. A change during the fade takes it back: shown again at 1.6 s, it is still up at 2.4 s.
 #   5. 5 s idle after it hides: 0 frames on the OSD surface.
 #
+# Then, not one of the four: `sill debug osd volume 60 --mute muted` for a second screenshot,
+# dev/out/osd-cosmic-muted.png, of quire's `Osd` card muted (non-fatal: it does not flip the
+# script's exit status).
+#
 # Usage: dev/nested.sh && dev/accept-osd.sh
 set -uo pipefail
 # shellcheck source=dev/common.sh
@@ -160,6 +164,20 @@ step_idle() {
   [ "$(( f1 - f0 ))" = 0 ]
 }
 
+# Not one of the four: a second screenshot, muted, from the same fake-change debug path
+# (`sill debug osd volume N --mute muted`), so both looks are on file. Non-fatal.
+step_muted_shot() {
+  local log="$OUT_DIR/muted.log"
+  : >"$log"
+  sill debug osd volume 60 --mute muted >>"$log" 2>&1 || { echo "muted: sill debug osd failed" >&2; return 1; }
+  for _ in $(seq 40); do
+    shows "$log" && break
+    sleep 0.02
+  done
+  sleep 0.3
+  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/osd-cosmic-muted.png" >>"$log" 2>&1 || { echo "muted screenshot failed" >&2; return 1; }
+}
+
 source "$SHELL_HOST_DEV/.nested-env"
 nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
 build || exit 1
@@ -174,8 +192,9 @@ status=0
 for step in step_warm step_shows_then_hides step_retrigger step_idle; do
   if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; fi
 done
+if step_muted_shot; then echo "PASS step_muted_shot"; else echo "FAIL step_muted_shot (non-fatal)"; fi
 backdrop_down
 rm -rf "$BACKDROP_DIR"
 stop_daemon
-echo "logs in $OUT_DIR; screenshot $SHOTS/osd-cosmic.png"
+echo "logs in $OUT_DIR; screenshots $SHOTS/osd-cosmic.png, $SHOTS/osd-cosmic-muted.png"
 exit "$status"
