@@ -21,7 +21,13 @@ fn strict() -> LintConfig {
 }
 
 fn full_css() -> String {
-    format!("{}\n{}", ds::stylesheet(), NOTIFICATION_CENTER_CSS)
+    // What the panel injects: its own sheet and the widgets' (M10 lane b).
+    format!(
+        "{}\n{}\n{}",
+        ds::stylesheet(),
+        NOTIFICATION_CENTER_CSS,
+        sill_surfaces::widgets::widgets_css()
+    )
 }
 
 /// The center on the fake services, closed, rendered to HTML inside a runtime.
