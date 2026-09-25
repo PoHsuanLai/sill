@@ -10,6 +10,7 @@ use sill_services::OutputName;
 use super::column::Column;
 use crate::hooks::{use_appearance, use_ds_scale, use_settings, use_workspaces};
 use crate::surfaces::launcher::panel::active_look;
+use crate::surfaces::notification_card::CARD_CSS;
 
 /// The center's stylesheet (lint-clean under `Profile::Strict`,
 /// `tests/notification_center_lint.rs`).
@@ -33,6 +34,7 @@ pub(super) fn center(output: OutputInfo) -> Element {
             blur: BlurState::Available,
             tint_alpha: Some(environment.tint_alpha()),
             stack: Some(environment.material_stack()),
+            style { {CARD_CSS} }
             style { {NOTIFICATION_CENTER_CSS} }
             Column { output: output.id }
         }
