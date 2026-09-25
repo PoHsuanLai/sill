@@ -14,6 +14,7 @@ use crate::dock::DockSettings;
 use crate::launcher::LauncherSettings;
 use crate::menus::MenusSettings;
 use crate::notifications::NotificationsSettings;
+use crate::osd::OsdSettings;
 use crate::scroll::ScrollSettings;
 use crate::scrollbar::ScrollbarSettings;
 use crate::sound::SoundSettings;
@@ -50,6 +51,7 @@ pub struct ShellFile {
     pub control_center: ControlCenterSettings,
     pub spaces: SpacesSettings,
     pub display: DisplaySettings,
+    pub osd: OsdSettings,
     /// Tables this build does not know, kept for the next write.
     #[serde(flatten)]
     pub extra: toml::Table,
@@ -71,6 +73,7 @@ impl Default for ShellFile {
             control_center: ControlCenterSettings::default(),
             spaces: SpacesSettings::default(),
             display: DisplaySettings::default(),
+            osd: OsdSettings::default(),
             extra: toml::Table::new(),
         }
     }
