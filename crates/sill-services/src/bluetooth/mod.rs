@@ -7,6 +7,7 @@
 //! those run on the `dbus` crate and link libdbus, a second D-Bus stack beside the `zbus` every
 //! other service here uses, for four interfaces and a dozen properties (FINDINGS "M5 freeze").
 
+mod bluez;
 mod kind;
 mod live;
 mod model;
