@@ -2772,6 +2772,10 @@ the M5 lanes cannot collide.
 - **Q104 (quire, CONSUMING)** A popup document's frame must be in flow with a height (F225):
   worth a line beside `ds_native::measure::provide` in the bar-gaps notes, since every host
   that floats a card in a transparent `Ds` meets it.
+- **Q105 (quire, for the look pick)** On the light scheme the `Capsule` level's fill (the
+  material's bright ink) sits pale on the module's `--surface-2` plate: in
+  `dev/out/control-center-cosmic.png` the Sound capsule's filled half reads only faintly
+  against its track. Worth weighing when the user picks the level look (`level.rs`'s `LOOK`).
 - **G40 (lane b)** On this machine the Wi-Fi pane lists the joined network as "Connecting…"
   while the tile reads it as joined: `AccessPoint::association` seems to lag the device's
   state. Not changed here (the service is lane b's).
