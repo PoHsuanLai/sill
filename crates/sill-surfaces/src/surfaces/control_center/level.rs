@@ -65,7 +65,11 @@ mod tests {
     fn the_sun_is_brightness_and_the_rest_a_speaker() {
         assert_eq!(level_glyph(Icon::Sun), LevelGlyph::Brightness);
         for icon in [Icon::Volume, Icon::Volume2, Icon::VolumeX] {
-            assert_eq!(level_glyph(icon), LevelGlyph::Volume(Muting::Audible), "{icon:?}");
+            assert_eq!(
+                level_glyph(icon),
+                LevelGlyph::Volume(Muting::Audible),
+                "{icon:?}"
+            );
         }
     }
 }
