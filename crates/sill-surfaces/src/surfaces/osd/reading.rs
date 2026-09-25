@@ -1,11 +1,14 @@
 //! What one output's indicator draws for a change: the level (the default sink's volume, or the
-//! brightness of the display this output drives) and the glyph for it. Pure.
+//! brightness of the display this output drives), the card's level and glyph (quire's
+//! `LevelControl` draws the waves or sun itself, from the fill and the mute), and the title above
+//! it: the sink's or monitor's real name where the services give one, else "Sound"/"Display"
+//! (quire CONSUMING.md "OSD parts"). Pure.
 //!
 //! A monitor's own speakers follow the software volume (`display.hardware_volume`), so the
 //! volume shown is the sink's level whichever of the two is playing.
 
-use ds::{Fraction, Icon};
-use sill_services::{Displays, Mute, OutputName, Percent, Presence, Volume};
+use ds::{Fraction, LevelGlyph, Muting};
+use sill_services::{BrightnessTarget, Displays, Mute, OutputName, Percent, Presence, Volume};
 
 use crate::surfaces::osd::link::{Level, LevelSource, OsdKind};
 
@@ -36,24 +39,17 @@ pub fn level_of(
     }
 }
 
-/// The glyph (Lucide `volume*` and `sun`, design/08 §2): muted, silent or no sink is the
-/// crossed speaker, then one, two or three waves by thirds (the bar's own thresholds);
-/// brightness is always the sun.
-pub fn glyph(kind: OsdKind, level: Option<Level>) -> Icon {
-    match (kind, level) {
-        (OsdKind::Brightness, _) => Icon::Sun,
-        (OsdKind::Volume, None) => Icon::VolumeX,
-        (OsdKind::Volume, Some(level)) => match (level.mute, level.percent.0) {
-            (Mute::Muted, _) | (_, 0) => Icon::VolumeX,
-            (_, 1..=33) => Icon::Volume,
-            (_, 34..=66) => Icon::Volume1,
-            _ => Icon::Volume2,
-        },
+/// The level quire's card draws: the fill (empty when muted or unknown) and the glyph
+/// `LevelControl` follows it with (a speaker's waves for volume, the sun for brightness).
+pub fn card_level(kind: OsdKind, level: Option<Level>) -> ds::Level {
+    ds::Level {
+        value: fill(level),
+        glyph: glyph(kind, level),
     }
 }
 
 /// The level bar's fill: empty when muted or unknown, full at 100 % and above.
-pub fn fill(level: Option<Level>) -> Fraction {
+fn fill(level: Option<Level>) -> Fraction {
     match level {
         Some(Level {
             mute: Mute::Audible,
@@ -66,19 +62,60 @@ pub fn fill(level: Option<Level>) -> Fraction {
     }
 }
 
-/// The level bar's accessible name.
-pub fn label(kind: OsdKind) -> &'static str {
+/// The glyph `LevelControl` follows: volume carries its mute (no sink counts as muted, as the
+/// old `volume-x` did); brightness is always the sun.
+fn glyph(kind: OsdKind, level: Option<Level>) -> LevelGlyph {
     match kind {
-        OsdKind::Volume => "Volume",
-        OsdKind::Brightness => "Brightness",
+        OsdKind::Brightness => LevelGlyph::Brightness,
+        OsdKind::Volume => LevelGlyph::Volume(match level {
+            Some(Level {
+                mute: Mute::Audible,
+                ..
+            }) => Muting::Audible,
+            Some(Level {
+                mute: Mute::Muted, ..
+            })
+            | None => Muting::Muted,
+        }),
+    }
+}
+
+/// The OSD's title: the sink's description for volume ("Sound" when there is none), the output's
+/// monitor name for brightness ("Display" when it is a built-in panel or unknown).
+pub fn title(
+    kind: OsdKind,
+    volume: &Volume,
+    displays: &Displays,
+    output: Option<&OutputName>,
+) -> String {
+    match kind {
+        OsdKind::Volume => match volume.presence {
+            Presence::Present if !volume.sink.is_empty() => volume.sink.clone(),
+            _ => "Sound".to_owned(),
+        },
+        OsdKind::Brightness => output
+            .and_then(|name| monitor_name(displays, &displays.target(name)))
+            .unwrap_or_else(|| "Display".to_owned()),
+    }
+}
+
+/// The DDC monitor's product name behind a brightness `target`, if it has one.
+fn monitor_name(displays: &Displays, target: &BrightnessTarget) -> Option<String> {
+    match target {
+        BrightnessTarget::Ddc(id) => displays
+            .ddc
+            .iter()
+            .find(|d| d.endpoint.id == *id)
+            .map(|d| d.endpoint.product.clone()),
+        BrightnessTarget::Backlight(_) | BrightnessTarget::None => None,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{fill, glyph, level_of};
+    use super::{card_level, level_of, title};
     use crate::surfaces::osd::link::{Level, LevelSource, OsdKind};
-    use ds::{Fraction, Icon};
+    use ds::{Fraction, LevelGlyph, Muting};
     use sill_services::displays::ddc::Endpoint;
     use sill_services::displays::{Controls, DdcDisplay, DdcId, Level as DdcLevel};
     use sill_services::{Displays, Mute, OutputName, Percent, Presence, Volume};
@@ -94,39 +131,52 @@ mod tests {
     type At = Option<(u16, Mute)>;
 
     #[test]
-    fn the_glyph_follows_the_level() {
-        const CASES: &[(OsdKind, At, Icon)] = &[
-            (OsdKind::Volume, None, Icon::VolumeX),
-            (OsdKind::Volume, Some((0, Mute::Audible)), Icon::VolumeX),
-            (OsdKind::Volume, Some((70, Mute::Muted)), Icon::VolumeX),
-            (OsdKind::Volume, Some((1, Mute::Audible)), Icon::Volume),
-            (OsdKind::Volume, Some((33, Mute::Audible)), Icon::Volume),
-            (OsdKind::Volume, Some((34, Mute::Audible)), Icon::Volume1),
-            (OsdKind::Volume, Some((66, Mute::Audible)), Icon::Volume1),
-            (OsdKind::Volume, Some((67, Mute::Audible)), Icon::Volume2),
-            (OsdKind::Volume, Some((150, Mute::Audible)), Icon::Volume2),
-            (OsdKind::Brightness, Some((0, Mute::Audible)), Icon::Sun),
-            (OsdKind::Brightness, None, Icon::Sun),
+    fn the_card_level_follows_the_glyph_and_fills_by_percent() {
+        const CASES: &[(OsdKind, At, LevelGlyph, u16)] = &[
+            (OsdKind::Volume, None, LevelGlyph::Volume(Muting::Muted), 0),
+            (
+                OsdKind::Volume,
+                Some((0, Mute::Audible)),
+                LevelGlyph::Volume(Muting::Audible),
+                0,
+            ),
+            (
+                OsdKind::Volume,
+                Some((70, Mute::Muted)),
+                LevelGlyph::Volume(Muting::Muted),
+                0,
+            ),
+            (
+                OsdKind::Volume,
+                Some((45, Mute::Audible)),
+                LevelGlyph::Volume(Muting::Audible),
+                450,
+            ),
+            (
+                OsdKind::Volume,
+                Some((130, Mute::Audible)),
+                LevelGlyph::Volume(Muting::Audible),
+                1000,
+            ),
+            (
+                OsdKind::Brightness,
+                Some((0, Mute::Audible)),
+                LevelGlyph::Brightness,
+                0,
+            ),
+            (OsdKind::Brightness, None, LevelGlyph::Brightness, 0),
+            (
+                OsdKind::Brightness,
+                Some((49, Mute::Audible)),
+                LevelGlyph::Brightness,
+                490,
+            ),
         ];
-        for &(kind, at, want) in CASES {
+        for &(kind, at, glyph, fill) in CASES {
             let at = at.and_then(|(p, m)| level(p, m));
-            assert_eq!(glyph(kind, at), want, "{kind:?} {at:?}");
-        }
-    }
-
-    #[test]
-    fn the_bar_fills_by_level_and_empties_when_muted() {
-        const CASES: &[(At, u16)] = &[
-            (None, 0),
-            (Some((0, Mute::Audible)), 0),
-            (Some((45, Mute::Audible)), 450),
-            (Some((100, Mute::Audible)), 1000),
-            (Some((130, Mute::Audible)), 1000),
-            (Some((45, Mute::Muted)), 0),
-        ];
-        for &(at, want) in CASES {
-            let at = at.and_then(|(p, m)| level(p, m));
-            assert_eq!(fill(at), Fraction(want), "{at:?}");
+            let card = card_level(kind, at);
+            assert_eq!(card.glyph, glyph, "{kind:?} {at:?}");
+            assert_eq!(card.value, Fraction(fill), "{kind:?} {at:?}");
         }
     }
 
@@ -204,6 +254,84 @@ mod tests {
                 want,
                 "{name}"
             );
+        }
+    }
+
+    #[test]
+    fn the_title_is_the_real_name_where_the_services_give_one() {
+        let displays = Displays {
+            ddc: vec![DdcDisplay {
+                endpoint: Endpoint {
+                    id: DdcId(5),
+                    connector: Some(OutputName("HDMI-A-2".to_owned())),
+                    product: "BenQ MA270U".to_owned(),
+                },
+                controls: Controls {
+                    brightness: Some(DdcLevel {
+                        value: 49,
+                        max: 100,
+                    }),
+                    ..Controls::default()
+                },
+            }],
+            ..Displays::default()
+        };
+        let hdmi = OutputName("HDMI-A-2".to_owned());
+        let panel = OutputName("eDP-1".to_owned());
+        let with_sink = Volume {
+            presence: Presence::Present,
+            sink: "Built-in Audio Analog Stereo".to_owned(),
+            ..Volume::default()
+        };
+        let cases = [
+            (
+                "a real sink",
+                OsdKind::Volume,
+                &with_sink,
+                None,
+                "Built-in Audio Analog Stereo",
+            ),
+            (
+                "no sink",
+                OsdKind::Volume,
+                &Volume::default(),
+                None,
+                "Sound",
+            ),
+            (
+                "an empty sink name",
+                OsdKind::Volume,
+                &Volume {
+                    presence: Presence::Present,
+                    ..Volume::default()
+                },
+                None,
+                "Sound",
+            ),
+            (
+                "a real monitor",
+                OsdKind::Brightness,
+                &with_sink,
+                Some(&hdmi),
+                "BenQ MA270U",
+            ),
+            (
+                "a built-in panel",
+                OsdKind::Brightness,
+                &with_sink,
+                Some(&panel),
+                "Display",
+            ),
+            (
+                "no output",
+                OsdKind::Brightness,
+                &with_sink,
+                None,
+                "Display",
+            ),
+        ];
+        for (name, kind, volume, output, want) in cases {
+            assert_eq!(title(kind, volume, &displays, output), want, "{name}");
         }
     }
 }

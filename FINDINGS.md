@@ -2264,8 +2264,9 @@ the icon style"; `crates/sill-surfaces/src/app_icons/`).
 design/20 §1.7: one Overlay layer per output (`sill-osd-<output>`), spawned hidden and kept warm
 with `set_visibility` like the launcher; anchored to the `osd.position` edge, centred, exclusive
 zone `Auto` (reserves nothing and sits clear of the dock's reserve without reading its geometry),
-keyboard `None`, input `Empty`, blur `Element("osd")`. A 280 x 52 card (design leaves the size
-open) with 40 px of transparent room for the Osd material's ambient shadow.
+keyboard `None`, input `Empty`, blur `Element("osd")`. A 296 x 80 card (design leaves the size
+open; 296 is quire's `Osd` card width, a control-center module spanning both columns) with 40 px
+of transparent room for the Osd material's ambient shadow.
 
 - **Trigger policy.** The OSD shows only the changes sill makes: `sill display volume ...` and
   `sill display brightness ...` (what the keys run), after the service call succeeds, plus
@@ -2276,34 +2277,43 @@ open) with 40 px of transparent room for the Osd material's ambient shadow.
 - **Where.** Volume: the active window's output (the stand-in for the output under the pointer,
   F140), else the first. Brightness: the outputs `display.brightness_keys_target` picks, chosen
   with the service's own `targets`, minus those with no brightness to show.
-- **What.** The glyph at `IconSize::Bar` (`volume-x` muted or 0, then `volume`, `volume-1`,
-  `volume-2` by thirds; `sun` for brightness) and quire's `Slider` read-only (`Disabled`, empty
-  when muted), on a painted Osd root tinted by the active Space, inside a transparent Osd root
-  whose box fades: in with `fade` over `--t-quick --e-out`, out with `menu-out` over
-  `--t-move --e-exit`. The monitor's own speakers follow the sink, so volume is one level.
-- **Timing.** `osd/machine.rs` is pure (table-tested): a change maps it and holds
-  `osd.hold_ms` from the last change; a change during the fade takes it back and holds again;
-  the fade settles at `DurationToken::Move + FRAME_SLACK`, then it unmaps and no timer runs. The
-  surface wakes it with `ds::sleep` only.
-- **Seen live** (`dev/accept-osd.sh`, nested cosmic-comp, 4/4): hidden at start; shown 83 ms
-  after `sill debug osd volume 60`; hidden by 1828 ms (hold 1500); a change 100 ms into the fade
-  keeps it up at 2480 ms; 0 frames in 5 idle seconds after the hide. `dev/out/osd-cosmic.png`.
+- **What.** quire's `Osd` card (CONSUMING.md "OSD parts", 2026-09-25 on): a title line over a
+  read-only `LevelControl` in `LevelLook::Capsule` (sill's `view.rs::LOOK`, the one place to
+  change it once the user picks a look from quire's sheets), tinted by the active Space, inside
+  the one transparent Osd root that gives it every token (no nested painted root: Q76, closed).
+  The title is the real name where the services give one — the volume service's sink
+  description, the displays service's monitor name (its DDC product, when the output's
+  brightness target is a DDC display) — else "Sound"/"Display" (`reading::title`). The glyph is
+  `LevelGlyph::Volume(Muting::{Audible,Muted})` (no sink counts as muted) or `::Brightness`;
+  `LevelControl` draws the waves or the sun itself from the fill and the mute (Q74, closed).
+  The monitor's own speakers follow the sink, so volume is one level.
+- **Timing.** `osd/machine.rs` is pure (table-tested) and now only a show-and-hold: a change
+  shows it (`Shown::Visible`) and holds `osd.hold_ms` from the last change; the hold's end hides
+  it (`Shown::Hidden`). Quire's `Osd` card owns the entrance and exit fade from that `shown`
+  (`Anim::OsdIn`/`OsdOut`, Q75, closed) and calls `on_hidden` once the exit has settled
+  (`ds::settle`, not sill's own `DurationToken::Move + FRAME_SLACK`); `drive.rs` unmaps the
+  surface there, not when the hold ends, so a show during the fade cancels it without a second
+  entrance. The surface wakes the hold machine with `ds::sleep` only.
+- **Seen live** (`dev/accept-osd.sh`, nested cosmic-comp, 4/4, against quire's `Osd` card):
+  hidden at start; shown 114 ms after `sill debug osd volume 60`; hidden by 1842 ms (hold 1500);
+  a change 100 ms into the fade keeps it up at 2557 ms; 0 frames in 5 idle seconds after the
+  hide. `dev/out/osd-cosmic.png` (real sink title "USB Audio S/PDIF Output") and, muted
+  (`sill debug osd volume 60 --mute muted`), `dev/out/osd-cosmic-muted.png`.
 
 ### Gaps
 
-- **Q74 (quire)** `Slider` has no read-only level form: design/20 §1.7's level bar is "`Slider`
-  read-only", but the Slider always draws its thumb and is focusable, and its fill does not
-  transition, so the "level change `--t-quick --e-out`" cannot be drawn without styling
-  `.ds-slider-fill`. sill passes `Availability::Disabled` and the bar jumps between levels. A
-  `SliderMode::Level` (no thumb, no tabindex, fill width transitioning `--t-quick --e-out`)
-  would close it.
-- **Q75 (quire)** No `Anim` for the OSD's exit (`fade`/`menu-out` at `--t-move --e-exit`): sill
-  writes the animation in its own sheet and computes the settle from
-  `DurationToken::Move + FRAME_SLACK` rather than `ds::settle`. An `Anim::OsdIn`/`OsdOut` pair
-  (or an `Osd` component owning the card and its fade) would make the timer quire's.
-- **Q76 (quire)** Fading a painted root as a whole needs the motion tokens outside it: sill
-  nests a painted Osd `Ds` (`stylesheet: Inject::Host`) inside a transparent Osd `Ds` so the
-  fading box can read `--t-*`. An `Osd` component in quire would own that.
+- **Q74 (quire) RESOLVED (2026-09-25).** `LevelControl { mode: LevelMode::ReadOnly }` (design/20
+  §1.7's level bar): `role=progressbar`, not focusable, no handlers, and its fill transitions
+  over `--t-quick --e-out`; it replaced the read-only `Slider` this gap was against, which sill
+  no longer uses for the OSD.
+- **Q75 (quire) RESOLVED (2026-09-25).** `Anim::OsdIn`/`OsdOut` (`--t-quick --e-out` in,
+  `--t-move --e-exit` out) and the `Osd` component own the card and its fade, settled with
+  `ds::settle` rather than a literal `DurationToken::Move + FRAME_SLACK` in sill.
+  `Osd::on_hidden` fires once the exit has settled.
+- **Q76 (quire) RESOLVED (2026-09-25).** `Osd` is one component: a single transparent Osd root
+  holds it directly (`OsdMetrics::style_attr` around it for `--osd-margin`), and it paints its
+  own tinted frame (`.ds-osd > .ds-frame`, the Space gradient at the root's tint). No more nested
+  painted root inside a transparent one.
 - **Q77 (design/22)** No `osd` rows; `AWAITING_ROWS` exempts them (a new §3.16 `osd`):
 
   | Key | Type | Default | Range / Alt | Source | Status |

@@ -1,7 +1,7 @@
-//! The real `Osd` in a Blitz harness, on the wall clock: a change fades it in with the live
-//! level, a new level moves the bar, the hold (`osd.hold_ms`) ends in the fade out and then the
-//! hidden look, a change during the fade takes it back, and a faked change shows its own level
-//! without touching the services.
+//! Quire's `Osd` in a Blitz harness, on the wall clock: a change fades it in with the live level
+//! and its real title, a new level moves the bar, the hold (`osd.hold_ms`) ends in the fade out
+//! and then the hidden look, a change during the fade takes it back, and a faked change shows its
+//! own level without touching the services.
 
 mod osd_support;
 
@@ -57,7 +57,11 @@ fn a_change_holds_then_fades_then_hides() {
     running.harness.advance(Duration::from_millis(40));
     assert_eq!(look(&running.harness).as_deref(), Some("entering"));
     assert_eq!(level(&running.harness), Some(40), "the fake sink's level");
-    assert_eq!(label(&running.harness).as_deref(), Some("Volume"));
+    assert_eq!(
+        label(&running.harness).as_deref(),
+        Some("Built-in Audio Analog Stereo"),
+        "the fake sink's own name"
+    );
     running.feeds.volume.send_replace(Volume {
         level: Percent(55),
         ..fake::volume()
@@ -70,8 +74,12 @@ fn a_change_holds_then_fades_then_hides() {
     );
     let seen = looks_over(&mut running.harness, changed, Duration::from_millis(1500));
     let names: Vec<&str> = seen.iter().map(|(_, l)| l.as_str()).collect();
-    assert_eq!(names, ["entering", "leaving", "hidden"], "{seen:?}");
-    let leaving = seen[1].0;
+    assert_eq!(
+        names,
+        ["entering", "present", "leaving", "hidden"],
+        "{seen:?}"
+    );
+    let leaving = seen[2].0;
     assert!(
         (HOLD_MS..HOLD_MS + 200).contains(&leaving),
         "the fade starts at the hold's end: {seen:?}"
@@ -98,10 +106,14 @@ fn a_change_during_the_fade_takes_it_back_and_holds_again() {
         .link
         .show(OsdKind::Volume, vec![output], LevelSource::Live);
     running.harness.advance(Duration::from_millis(40));
-    assert_eq!(look(&running.harness).as_deref(), Some("steady"));
+    assert_eq!(
+        look(&running.harness).as_deref(),
+        Some("present"),
+        "the hide is taken back at once, no second entrance"
+    );
     let seen = looks_over(&mut running.harness, again, Duration::from_millis(1400));
     let names: Vec<&str> = seen.iter().map(|(_, l)| l.as_str()).collect();
-    assert_eq!(names, ["steady", "leaving", "hidden"], "{seen:?}");
+    assert_eq!(names, ["present", "leaving", "hidden"], "{seen:?}");
     assert!(seen[1].0 >= HOLD_MS, "a fresh hold: {seen:?}");
 }
 
@@ -130,5 +142,9 @@ fn a_faked_change_shows_its_own_level_and_another_outputs_does_not_show() {
     running.harness.advance(Duration::from_millis(60));
     assert_eq!(look(&running.harness).as_deref(), Some("entering"));
     assert_eq!(level(&running.harness), Some(70));
-    assert_eq!(label(&running.harness).as_deref(), Some("Brightness"));
+    assert_eq!(
+        label(&running.harness).as_deref(),
+        Some("Display"),
+        "no DDC monitor behind the fake output"
+    );
 }
