@@ -1,8 +1,10 @@
 //! The bar on a real compositor with fake services, for acceptance (`dev/accept-bar-ui.sh`):
 //! one `sill_surfaces::Bar` per output, fed by fixed `watch` channels (a Thursday afternoon, a
-//! 64 % battery, Wi-Fi, three workspaces, two terminal windows), driven by shell-host's
-//! `debug-inject` commands on stdin (`sill-bar-<output> click X Y`, `stats`, `<surface>
-//! capture PATH`, `quit`). Commands the bar sends to the fake services are printed on stderr.
+//! 64 % battery, Wi-Fi joined to `home` with two more networks in range, Bluetooth headphones,
+//! the Balanced power mode, a track playing, three workspaces, two terminal windows), driven by
+//! shell-host's `debug-inject` commands on stdin (`sill-bar-<output> click X Y`, `stats`,
+//! `<surface> capture PATH`, `quit`). Commands the bar sends to the fake services are printed
+//! on stderr, never carried out.
 //!
 //! `cargo run -p sill-surfaces --example bar_demo`
 
@@ -32,6 +34,11 @@ fn run() -> Result<(), String> {
         wl,
         volume_commands,
         launch,
+        wifi_commands,
+        bluetooth_commands,
+        profile_commands,
+        media_commands,
+        media,
         workspaces,
         toplevels,
         ..
@@ -39,6 +46,13 @@ fn run() -> Result<(), String> {
     print_commands("wl", wl);
     print_commands("volume", volume_commands);
     print_commands("launch", launch);
+    // The control center's: printed, never carried out (no real radio or profile changes).
+    print_commands("wifi", wifi_commands);
+    print_commands("bluetooth", bluetooth_commands);
+    print_commands("profile", profile_commands);
+    print_commands("media", media_commands);
+    // A track playing, for Now Playing (the sender lives as long as the demo).
+    media.send_replace(fake::media());
     let settings = SettingsFeed::fixed(ShellFile::default());
     let clock = FrameClock::new(Instant::now());
     let host = Host::<()>::connect(HostConfig::default()).map_err(|e| e.to_string())?;

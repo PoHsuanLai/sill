@@ -2681,3 +2681,103 @@ the four M5 lanes cannot collide.
   `KbdSize::Small` in the shell font; the glyphs want sign-off and a font that has them.
 - Q81's `LogOut` and `Restart` glyphs would let the buttons carry icons; they carry none
   meanwhile (macOS's do not either).
+
+## M5 control center (lane c, 2026-09-25)
+
+The control center (design/20 §1.5, design/13 §13.3.7), its module bar items and
+`dev/accept-control-center.sh`, filled on `m5-c`. Findings are numbered from F220/Q100/G40 so
+the M5 lanes cannot collide.
+
+- **F220 The panel is quire's control-center parts.** `ControlCenter` draws the modules in
+  `control_center.modules` order on quire's `ModuleGrid`: Wi-Fi, Bluetooth and Focus as
+  `ModuleTile`s (a press toggles; Wi-Fi's and Bluetooth's chevrons open their panes; Busy maps
+  to on), and the full-width modules (Display, Sound, Now Playing, Appearance, Battery) on a
+  plate of the tile's own tokens (`.sill-cc-module`, Q100). The Wi-Fi and Bluetooth panes are
+  quire `SettingsRow` lists (a check on the one in use, else a lock on a secured network)
+  behind quire's `PaneSwitcher` (`slide-r` in, `slide-l` back, the leaving pane out of the
+  flow); the page and which pane was last opened are sill's (`page::step_page`, pure). Now
+  Playing takes quire's `Play`/`Pause`/`SkipBack`/`SkipForward`, the device rows `Headphones`,
+  `Speaker`, `Mouse`, `Gamepad`, `Phone`. The stand-ins built while Q78-Q81 were open are
+  deleted with their CSS.
+- **F221 The levels are quire's `LevelControl`.** `LevelModule` (Sound, Display) is a title and
+  the percentage over quire's `LevelControl` (Q83, landed): `Interactive`, `Tick::Quiet`, the
+  default `LevelLook::Capsule` chosen in `level.rs`'s one `LOOK` (the user's pick may change
+  it), the glyph mapped from the module's (`Sun` to `Brightness`, the rest to the speaker,
+  whose waves follow the level; the frozen `SoundModule` is told no mute). Sound's title is the
+  sink's name (F186); a sink list is still left out (F183).
+- **F222 The items at the top right.** The bar's status area is the tray, then
+  `menu_bar_modules` as `ModuleItem`s (Sound, Wi-Fi, Battery by default; Now Playing shows only
+  while a player exists, Battery only with a battery), then `ControlCenterItem`, then the clock.
+  The old volume, network and battery items and the volume panel are gone: those items drop
+  down their modules (`PopupBody::Module`). A module's own dropdown opens its detail directly
+  (design/13 "Module bar items"): Wi-Fi and Bluetooth their panes without a back button, the
+  others their module on the popover card with no second plate. The control center's item is
+  quire's `Settings` glyph (Q103).
+- **F223 Hung from the output's edge.** `MenuSide::OutputEdge` anchors to the bar's last column
+  with the offset `(SIDE - EDGE_GAP, 6)` = (20, 6), so the card's right edge is 8 px inside the
+  output wherever the item is; its positioner allows no slide or flip (`Adjust::NONE`), since
+  the shadow room reaches past the output's edge on purpose and sliding it back would pull the
+  card in by the room.
+- **F224 The popup is sized by estimate and resized on a page change.** `control_center::fit`
+  (pure) turns the settings, the page and the lists' row counts into the popup's size
+  (`estimate_size`, capped by `height_cap`); the panel reports each page change on its own
+  channel (`PopupLink::pages`), and the bar's session swaps the view, which repositions the one
+  popup. Showing a menu afresh starts the control center on its grid. The Wi-Fi and Bluetooth
+  row counts are read from the services' receivers when the view is made, not followed: a scan
+  must not re-render the bar (F175; following them cost 2 frames of the 5 idle seconds). The
+  popup root gets `Services`, `SettingsFeed`, the `FocusLink` (a fixed Off one when the bar has
+  none) and the cap (`PanelCap`, past which the panel scrolls).
+- **F225 Presses reach a bar popup now.** The popup's frame was absolutely placed with insets;
+  neither `#main` nor `.ds` has a height (F205), so every box from `html` down was 0 px tall
+  and Blitz's hit test never descended to the card: no press in any bar popup did anything
+  (G31 is this). The frame is now in flow at `100vw` x `100vh` with the room as its padding and
+  the `Ds` root filling it (a one-cell grid); `tests/control_center_render.rs` clicks a tile, a
+  chevron and a network row through the same frame in a Blitz harness, and live debug clicks
+  in the popup now land: G31 passes by hand on the nested session (a debug build with the power
+  menu's dry run: `sill debug click` on the app name, then on "Shut Down…", mapped
+  `sill-power-menu-<out>`; `power-menu close`, nothing chosen). `dock_popup.css` and the tray's
+  popup were not looked at; they may have the same frame.
+- **F226 Escape.** The panel element takes the keyboard as it mounts and again after a page
+  change takes the focused chevron or back button away (`ds::focus_soon`), so Escape on a pane
+  goes back and on the grid reaches the popover, which closes (harness-tested). Live, `wtype -k
+  Escape` did not reach the popup: a popup opened by a debug click grabs with no real input
+  serial, so cosmic-comp gives it no keyboard (G30's kind). A real keyboard is a manual check.
+- **F227 `sill control-center toggle`.** The bar follows `ControlCenterLink` for its output and
+  toggles as a click would, placing the panel from the status box when its item has not been
+  measured. cosmic-comp maps the popup opened this way (shell-host grabs with the last serial
+  it has), it stays mapped, a second toggle closes it, and an outside click on the bar closes
+  it.
+- **F228 The acceptance (`dev/accept-control-center.sh`, all six steps pass).** The item click
+  opens the 376-wide popup, the card's shadow 5 px from the right edge, and a second click
+  closes it (`dev/out/control-center-cosmic.png`); an outside click closes it; the Wi-Fi
+  chevron swaps the popup to the pane's size (798 to 1018 on this machine's scan,
+  `dev/out/control-center-wifi-cosmic.png`); the Wi-Fi bar item opens the same pane size
+  directly; the toggle as F227; 0 frames in 5 idle seconds (the window keeps clear of the
+  clock's minute). Nothing in it presses a switch or a slider: the only request is the pane's
+  scan.
+
+### Gaps found in the control center
+
+- **Q100 (quire)** A full-width module with content of its own: `ModuleTile` holds a glyph, a
+  title and a status, not children, so the level, Now Playing, Appearance and Battery modules
+  sit on sill's `.sill-cc-module` plate (the tile's `--r-tile`, `--surface-2` and hairline).
+  A content-holding `ModuleTile` (or a plate of `LevelControl`'s own, as the OSD card has)
+  would remove it.
+- **Q101 (quire)** `AppearancePicker` at the control center's width: the Motion row's five
+  segments overflow the 296 px module (Reduced is clipped). A compact picker (Theme and Accent
+  only, or segments that shrink) would fit a 320 panel.
+- **Q102 (quire)** `ModuleGrid` is two columns at gap 8, fixed: `control_center.grid_columns`
+  and `grid_gap_px` only size the estimate now. `columns` and `gap` props would honour them.
+- **Q103 (quire)** A control center glyph (macOS's two switches); the item uses `Settings`.
+- **Q104 (quire, CONSUMING)** A popup document's frame must be in flow with a height (F225):
+  worth a line beside `ds_native::measure::provide` in the bar-gaps notes, since every host
+  that floats a card in a transparent `Ds` meets it.
+- **Q105 (quire, for the look pick)** On the light scheme the `Capsule` level's fill (the
+  material's bright ink) sits pale on the module's `--surface-2` plate: in
+  `dev/out/control-center-cosmic.png` the Sound capsule's filled half reads only faintly
+  against its track. Worth weighing when the user picks the level look (`level.rs`'s `LOOK`).
+- **G40 (lane b)** On this machine the Wi-Fi pane lists the joined network as "Connecting…"
+  while the tile reads it as joined: `AccessPoint::association` seems to lag the device's
+  state. Not changed here (the service is lane b's).
+- **G41** `bar.css` still styles `.sill-volume-panel`, which nothing draws any more (the Sound
+  module replaced the volume panel); `bar.css` is not this lane's file.

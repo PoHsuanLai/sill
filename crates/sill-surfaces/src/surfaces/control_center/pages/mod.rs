@@ -4,5 +4,8 @@
 pub mod bluetooth_devices;
 pub mod wifi_networks;
 
+pub(crate) mod foot;
+mod head;
+
 pub use bluetooth_devices::BluetoothDevices;
 pub use wifi_networks::WifiNetworks;

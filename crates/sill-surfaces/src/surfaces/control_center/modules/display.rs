@@ -6,7 +6,9 @@
 //! `BrightnessTarget::None`.
 
 use dioxus::prelude::*;
-use ds::{Availability, Fraction};
+use ds::{Availability, Fraction, Icon};
+
+use crate::surfaces::control_center::LevelModule;
 
 /// The Display module at `level`.
 #[component]
@@ -15,6 +17,13 @@ pub fn DisplayModule(
     on_change: EventHandler<Fraction>,
     #[props(default)] availability: Availability,
 ) -> Element {
-    let _ = (level, on_change, availability);
-    todo!("M5 fill: control-center (c)")
+    rsx! {
+        LevelModule {
+            glyph: Icon::Sun,
+            title: "Display".to_owned(),
+            level,
+            on_change,
+            availability,
+        }
+    }
 }

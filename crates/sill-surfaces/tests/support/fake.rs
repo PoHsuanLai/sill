@@ -7,10 +7,13 @@
 use shell_host::{OutputId, OutputInfo, Rect, Scale};
 use sill_launcher::WindowKey;
 use sill_services::{
-    Activity, AppIndex, Badges, Battery, Charge, ClockText, Connectivity, Control, DockPins,
-    GroupKey, Launches, Link, Mute, Network, OutputName, Percent, Pinning, Presence, Results,
-    Seconds, Services, Sizing, Toplevel, Toplevels, Tray, Urgency, Visibility, Volume, Wallpapers,
-    WindowState, Workspace, WorkspaceCaps, WorkspaceGroup, WorkspaceKey, Workspaces,
+    AccessPoint, Activity, AppIndex, Association, Badges, Battery, Bluetooth, BluetoothCommand,
+    BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower, Charge, ClockText,
+    Connectivity, Control, DockPins, GroupKey, Launches, Link, Media, MediaCommand, Mute, Network,
+    OutputName, Percent, Pinning, PowerProfiles, Presence, Profile, ProfileBus, ProfileCommand,
+    ProfileDegraded, Radio, Results, Seconds, Security, Services, Sizing, Ssid, Toplevel,
+    Toplevels, Tray, Urgency, Visibility, Volume, Wallpapers, Wifi, WifiCommand, WindowState,
+    Workspace, WorkspaceCaps, WorkspaceGroup, WorkspaceKey, Workspaces,
 };
 use tokio::sync::{mpsc, watch};
 
@@ -24,9 +27,17 @@ pub struct Feeds {
     pub tray: watch::Sender<Tray>,
     pub workspaces: watch::Sender<Workspaces>,
     pub toplevels: watch::Sender<Toplevels>,
+    pub wifi: watch::Sender<Wifi>,
+    pub bluetooth: watch::Sender<Bluetooth>,
+    pub power_profiles: watch::Sender<PowerProfiles>,
+    pub media: watch::Sender<Media>,
     pub wl: mpsc::UnboundedReceiver<sill_services::WlCommand>,
     pub volume_commands: mpsc::UnboundedReceiver<sill_services::VolumeCommand>,
     pub launch: mpsc::UnboundedReceiver<sill_services::LaunchCommand>,
+    pub wifi_commands: mpsc::UnboundedReceiver<WifiCommand>,
+    pub bluetooth_commands: mpsc::UnboundedReceiver<BluetoothCommand>,
+    pub profile_commands: mpsc::UnboundedReceiver<ProfileCommand>,
+    pub media_commands: mpsc::UnboundedReceiver<MediaCommand>,
     /// Receivers and command queues nobody reads here, kept so sends do not fail.
     keep: Vec<Box<dyn std::any::Any>>,
 }
@@ -140,6 +151,96 @@ pub fn volume() -> Volume {
     }
 }
 
+/// Wi-Fi on, joined to `home`, two more networks in range.
+pub fn wifi() -> Wifi {
+    let ap = |ssid: &str, strength, security, association| AccessPoint {
+        ssid: Ssid(ssid.to_owned()),
+        strength: Percent(strength),
+        security,
+        association,
+    };
+    Wifi {
+        device: Presence::Present,
+        radio: Radio::On,
+        access_points: vec![
+            ap("home", 72, Security::Secured, Association::Connected),
+            ap("office", 48, Security::Secured, Association::Idle),
+            ap("cafe", 30, Security::Open, Association::Idle),
+        ],
+        saved: vec![Ssid("home".to_owned()), Ssid("office".to_owned())],
+    }
+}
+
+/// Bluetooth on, headphones connected, a keyboard paired.
+pub fn bluetooth() -> Bluetooth {
+    let device = |address: &str, name: &str, kind, connection, battery| BtDevice {
+        address: BtAddress(address.to_owned()),
+        name: name.to_owned(),
+        kind,
+        connection,
+        pairing: BtPairing::Paired,
+        battery,
+    };
+    Bluetooth {
+        presence: Presence::Present,
+        power: BtPower::On,
+        devices: vec![
+            device(
+                "AA:01",
+                "Buds",
+                BtKind::Headphones,
+                BtConnection::Connected,
+                BtBattery::Level(Percent(80)),
+            ),
+            device(
+                "AA:02",
+                "Keychron K5 Max",
+                BtKind::Keyboard,
+                BtConnection::Disconnected,
+                BtBattery::Unknown,
+            ),
+        ],
+    }
+}
+
+/// power-profiles-daemon on Balanced, all three offered.
+pub fn power_profiles() -> PowerProfiles {
+    PowerProfiles {
+        presence: Presence::Present,
+        bus: ProfileBus::UPower,
+        active: Profile::Balanced,
+        offered: Profile::ALL.to_vec(),
+        degraded: ProfileDegraded::No,
+    }
+}
+
+/// One player, playing "So What" (no art file), every button live.
+pub fn media() -> Media {
+    use sill_services::{
+        Abilities, Availability, MediaPlayer, Playback, PlayerId, Stamp, Timeline, Track,
+    };
+    Media {
+        players: vec![MediaPlayer {
+            id: PlayerId("org.mpris.MediaPlayer2.fake".to_owned()),
+            identity: "Fake Player".to_owned(),
+            playback: Playback::Playing,
+            changed: Stamp(1),
+            track: Track {
+                title: "So What".to_owned(),
+                artists: vec!["Miles Davis".to_owned()],
+                album: "Kind of Blue".to_owned(),
+                ..Track::default()
+            },
+            timeline: Timeline::Unknown,
+            abilities: Abilities {
+                play_pause: Availability::Enabled,
+                next: Availability::Enabled,
+                previous: Availability::Enabled,
+            },
+        }],
+    }
+}
+
 /// A receiver whose sender is kept in `keep`.
 fn fixed<T: 'static>(value: T, keep: &mut Vec<Box<dyn std::any::Any>>) -> watch::Receiver<T> {
     let (tx, rx) = watch::channel(value);
@@ -164,9 +265,18 @@ pub fn services() -> (Services, Feeds) {
     let (tray_tx, tray) = watch::channel(Tray::default());
     let (workspaces_tx, workspaces) = watch::channel(workspaces());
     let (toplevels_tx, toplevels) = watch::channel(toplevels());
+    let (wifi_tx, wifi) = watch::channel(wifi());
+    let (bluetooth_tx, bluetooth) = watch::channel(bluetooth());
+    let (profiles_tx, power_profiles) = watch::channel(power_profiles());
+    // No player until a test or the demo feeds one (`media()`).
+    let (media_tx, media) = watch::channel(Media::default());
     let (wl, wl_rx) = Control::channel();
     let (volume_control, volume_rx) = Control::channel();
     let (launch, launch_rx) = Control::channel();
+    let (wifi_control, wifi_rx) = Control::channel();
+    let (bluetooth_control, bluetooth_rx) = Control::channel();
+    let (power_profile_control, profile_rx) = Control::channel();
+    let (media_control, media_rx) = Control::channel();
     let services = Services {
         clock,
         clock_control: control(&mut keep),
@@ -197,14 +307,14 @@ pub fn services() -> (Services, Feeds) {
         sound_control: control(&mut keep),
         displays: fixed(sill_services::Displays::default(), &mut keep),
         displays_control: control(&mut keep),
-        wifi: fixed(sill_services::Wifi::default(), &mut keep),
-        wifi_control: control(&mut keep),
-        bluetooth: fixed(sill_services::Bluetooth::default(), &mut keep),
-        bluetooth_control: control(&mut keep),
-        power_profiles: fixed(sill_services::PowerProfiles::default(), &mut keep),
-        power_profile_control: control(&mut keep),
-        media: fixed(sill_services::Media::default(), &mut keep),
-        media_control: control(&mut keep),
+        wifi,
+        wifi_control,
+        bluetooth,
+        bluetooth_control,
+        power_profiles,
+        power_profile_control,
+        media,
+        media_control,
         session: fixed(sill_services::Session::default(), &mut keep),
         session_control: control(&mut keep),
     };
@@ -216,9 +326,17 @@ pub fn services() -> (Services, Feeds) {
         tray: tray_tx,
         workspaces: workspaces_tx,
         toplevels: toplevels_tx,
+        wifi: wifi_tx,
+        bluetooth: bluetooth_tx,
+        power_profiles: profiles_tx,
+        media: media_tx,
         wl: wl_rx,
         volume_commands: volume_rx,
         launch: launch_rx,
+        wifi_commands: wifi_rx,
+        bluetooth_commands: bluetooth_rx,
+        profile_commands: profile_rx,
+        media_commands: media_rx,
         keep,
     };
     (services, feeds)

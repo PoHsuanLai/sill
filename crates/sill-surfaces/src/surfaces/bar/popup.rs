@@ -4,6 +4,8 @@
 
 use shell_host::{Adjust, Edge, ElementId, Grab, Offset, PopupAnchor, PopupConfig, PopupSize};
 
+use super::geometry::{EDGE_GAP, SIDE};
+
 /// Which side of its title a menu hangs from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MenuSide {
@@ -28,7 +30,7 @@ pub fn menu_popup(button: &str, side: MenuSide, max_px: i32) -> PopupConfig {
         size: PopupSize::FitContent { max: max_px },
         edge,
         gravity,
-        adjust: Adjust::SLIDE_AND_FLIP,
+        adjust: adjust(side),
         grab: Grab::Grabbed,
         offset: {
             let (dx, dy) = menu_offset(side);
@@ -43,8 +45,20 @@ pub fn menu_offset(side: MenuSide) -> (i32, i32) {
     match side {
         MenuSide::Title => (-8, 6),
         MenuSide::Status => (8, 6),
-        // M5 agent (c): the anchor rect already sits at the output's edge.
-        MenuSide::OutputEdge => todo!("M5 fill: control-center (c)"),
+        // The anchor is the bar's last column: past it by the room, less the edge gap.
+        MenuSide::OutputEdge => (SIDE - EDGE_GAP, 6),
+    }
+}
+
+/// How the compositor may move a menu that would leave the output: slide and flip, except the
+/// control center: its popup's shadow room reaches past the output's right edge, and past the
+/// bottom when the panel is at its cap, on purpose (the panel itself stays [`EDGE_GAP`] inside
+/// and `control_center.bottom_margin_px` above), and sliding it back would pull the panel in by
+/// the room.
+pub fn adjust(side: MenuSide) -> Adjust {
+    match side {
+        MenuSide::Title | MenuSide::Status => Adjust::SLIDE_AND_FLIP,
+        MenuSide::OutputEdge => Adjust::NONE,
     }
 }
 
@@ -75,5 +89,13 @@ mod tests {
         assert_eq!(status.offset, Offset { dx: 8, dy: 6 });
         assert_eq!(menu_offset(MenuSide::Title), (-8, 6));
         assert_eq!(menu_offset(MenuSide::Status), (8, 6));
+        let edge = menu_popup("bar-status-cc", MenuSide::OutputEdge, 600);
+        assert_eq!(
+            (edge.edge, edge.gravity),
+            (Edge::BottomRight, Edge::BottomLeft)
+        );
+        assert_eq!(edge.offset, Offset { dx: 20, dy: 6 });
+        assert_eq!(edge.adjust, shell_host::Adjust::NONE);
+        assert_eq!(status.adjust, shell_host::Adjust::SLIDE_AND_FLIP);
     }
 }

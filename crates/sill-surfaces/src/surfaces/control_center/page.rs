@@ -54,8 +54,19 @@ pub enum PageOut {
 /// with no slide); Back and Escape from a detail slide to the grid; Back on the grid does
 /// nothing; Escape on the grid closes.
 pub fn step_page(page: CcPage, input: PageInput) -> (CcPage, Slide, PageOut) {
-    let _ = (page, input);
-    todo!("M5 fill: control-center (c)")
+    match (page, input) {
+        (CcPage::Modules, PageInput::Open(detail)) => {
+            (CcPage::Detail(detail), Slide::ToDetail, PageOut::Stay)
+        }
+        (CcPage::Detail(_), PageInput::Open(detail)) => {
+            (CcPage::Detail(detail), Slide::None, PageOut::Stay)
+        }
+        (CcPage::Detail(_), PageInput::Back | PageInput::Escape) => {
+            (CcPage::Modules, Slide::ToModules, PageOut::Stay)
+        }
+        (CcPage::Modules, PageInput::Back) => (CcPage::Modules, Slide::None, PageOut::Stay),
+        (CcPage::Modules, PageInput::Escape) => (CcPage::Modules, Slide::None, PageOut::Close),
+    }
 }
 
 #[cfg(test)]
@@ -63,7 +74,6 @@ mod tests {
     use super::{CcPage, Detail, PageInput, PageOut, Slide, step_page};
 
     #[test]
-    #[ignore = "M5 fill: control-center (c)"]
     fn pages_slide_in_and_back_and_escape_unwinds() {
         use CcPage::{Detail as D, Modules};
         use Detail::{Bluetooth, Wifi};
