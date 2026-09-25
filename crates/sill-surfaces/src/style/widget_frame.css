@@ -9,6 +9,9 @@
 .sill-widget{ display:flex; flex-direction:column; min-width:0; }
 .sill-widget[*|data-host=desktop]{ display:grid; box-sizing:border-box; }
 
+/* In the notification center the tiles stand apart, as the control center's modules do. */
+.sill-widget[*|data-host=center]{ margin-top:var(--s-8); }
+
 /* The desktop card's inset, inside the Widget material's corner. */
 .sill-widget-card{ display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden;
   box-sizing:border-box; padding:var(--s-12) var(--s-14); }
