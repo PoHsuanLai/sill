@@ -27,7 +27,11 @@ pub enum Remaining {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Leave {
     Timeout,
+    /// The close button, `CloseNotification`, or a replacement.
     Dismissed,
+    /// Swiped or dragged away past the threshold: kept in the center or dismissed, as
+    /// `notifications.swipe` says (the service's decision, FINDINGS F280).
+    Swiped,
     Acted,
 }
 
@@ -113,8 +117,7 @@ pub enum BannerOut {
     /// Draw the banner at this x offset (damped left of zero).
     Offset(Cpx),
     SpringBack,
-    /// Start the exit and tell the client why (`NotificationClosed` reason: 1 expired, 2
-    /// dismissed; an action is `ActionInvoked` first).
+    /// Start the exit and tell the service why (`commands::leave_commands`).
     Leave(Leave),
     /// Remove the banner; the stack heals.
     Remove,
@@ -243,7 +246,7 @@ pub fn step(
         ),
         (Banner::Dragging { dx, remaining }, BannerIn::DragEnd { velocity_px_s }) => {
             if dismisses(dx, velocity_px_s, p) {
-                leave(Leave::Dismissed)
+                leave(Leave::Swiped)
             } else {
                 let (shown, tick) = resume(remaining);
                 (
@@ -258,7 +261,7 @@ pub fn step(
         (Banner::Shown { .. } | Banner::Hovered { .. }, BannerIn::Swipe { dx, velocity_px_s })
             if dismisses(dx, velocity_px_s, p) =>
         {
-            leave(Leave::Dismissed)
+            leave(Leave::Swiped)
         }
         (other, _) => (other, Vec::new()),
     }

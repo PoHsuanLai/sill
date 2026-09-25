@@ -3386,3 +3386,72 @@ injects no keys): the harness proves them
 - F282 `examples/notifications_holder.rs` holds the name on a private bus so the acceptance can
   prove sill never replaces a holder; `dev/accept-notifications-bus.sh` passes 7/7 on its own
   bus, and the real session bus keeps plasmashell as holder throughout.
+
+## M6 lane b: the banners and the notification card (2026-09-26)
+
+- **F300 The column is a deck.** `surfaces/banners/deck.rs` (pure, `deck_tests.rs`) holds the
+  drawn cards: the `stack`'s plus the ones still sliding out, one banner machine each, their
+  pose (`Offstage`, `Rest`, `Follow(dx)`) and what the column must do next (`Rise`, `Entrance`,
+  `Exit`, `Send`). `drive.rs` owns the timers (`ds::sleep` for `FRAME_SLACK`, `DurationToken::Big`
+  and `Move` at the root's motion level, and the hold: no literal duration), `gesture.rs` (pure)
+  turns a press into a click or a drag (4 px slop; the release velocity is measured from the move
+  before the last one, so a drag that pauses springs back and a flick flies out), `look.rs` (pure)
+  maps the pose onto `data-pose` and `data-transit`, and `view.rs` draws. A newer notification
+  from a drawn app replaces the card's content and restarts its hold; a card the service dropped
+  (CloseNotification, Dismiss All) slides out without a word to the service; a stack card the
+  leaving card already stood for is not a new card.
+- **F301 The hold starts as the card rises**, not when its entrance has settled: design/13
+  acceptance 9 and the freeze's step 3 time the 5200 ms from the notification, and a 420 ms
+  entrance before it would put the hide past hold + exit + 400. The entrance keeps its own
+  transition (`Arrival::Rising`) until it has played.
+- **F302 Swipe vs close.** The machine gained `Leave::Swiped` (a drag or a horizontal swipe past
+  the threshold) beside `Leave::Dismissed` (the close button, CloseNotification, a
+  replacement); `leave_commands` sends `SwipeAway` for the first and `Dismiss` for the second,
+  once per grouped banner (F280: under the default `notifications.swipe = "keep_in_center"` the
+  service keeps a swiped notification in the center, as macOS does).
+- **F303 A click without a `default` action** dismisses the card (macOS removes a clicked
+  banner); with one, it sends `InvokeAction(default)` with the surface's activation token (for
+  the app's desktop entry) and the card leaves as acted.
+- **F304 Regions are element regions.** Each card writes ids on its painted parts
+  (`notification_card::part_id`: `note-<id>-face|near|far|close`); the column's input is those
+  parts (a press between cards falls through), its blur the face and the group layers, both as
+  shell-host's `RegionSpec::Elements` (G60 closed upstream), and the whole surface while an
+  actions menu is open. `regions::card_regions` (the freeze's measured-rects form) stays for its
+  frozen signature but is no longer drawn from.
+- **F305 The card** (`notification_card/`): a quire `Surface` in `Material::Toast` (ink on paper
+  under `banner_material = "inverse"`: the same material in the other scheme; `Popover` for a
+  center row) with the app icon (the sender's `app_icon`, a theme name through the apps
+  service's lookup, else its desktop entry's icon found by `match_app` or `Name`, else quire's
+  bell), the app name (`app_label`, which the center's group title now uses too) and the age,
+  the summary, the body clipped to two lines (six expanded) with `ds::clip_chars` and an `em`
+  max-height, `Count` for a group and two sliver layers under it (translucent materials show a
+  whole card behind), and, expanded, up to two actions as `Button{Mini}` or more behind an
+  `Options` button opening a quire `Menu`, and the close button (`IconButton{Strip}` on a round
+  `Surface`) over the top-left corner. Settings lengths reach the sheet as custom properties on
+  the slot (`CARD_VARS`, declared to the lint).
+- **F306 Acceptance** (`dev/accept-notifications.sh`, nested cosmic-comp, private bus and
+  runtime dir, `sill debug notify` only): 8/8. Shown 208 ms after the notification; hidden at
+  5719 ms (limit 5850), then banners 0, kept 1; hovered at 4000 ms still up at 7000, gone 1870 ms
+  after the pointer left (limit 2150); three from one app draw one card 131 px tall with status
+  banners 3, five apps three cards (250 px); under DND a normal one is kept without a banner and
+  a critical one is still up after 10 s; a click on a `default=Open` card leaves in 292 ms and
+  kept falls 4 -> 3; 0 frames 5 s after the last card. Screenshots `dev/out/banners-cosmic.png`
+  and `dev/out/banners-stack-cosmic.png`. `dev/accept-notification-center.sh` also passes 6/6
+  with the card's stylesheet in the center, `dev/out/notification-center-cosmic.png` retaken.
+
+### Waiting on quire (lane b's stand-ins, each in the one `notification_card` or `banners` place)
+
+- **Q120** the card itself: `notification_card/view.rs` composes `Surface`, `IconView`/`Glyph`,
+  `Count`, `Button{Mini}`, `Menu` and `IconButton{Strip}` in sill's layout sheet
+  (`style/notification_card.css`). Also waiting: the 08 plate under the icon, an 18 px close
+  button (`close_button_px`; quire's Strip is 26 px, so `elements.rs` rounds it by 13), the line
+  clamp (`body.rs` counts characters), and the height animating on expand.
+- **Q121** the stack host: entrance, exit and spring are sill's transitions on quire tokens
+  (`style/banners.css`, `look.rs`), and the heal of the cards below a leaving one is missing (they
+  close the gap at once).
+- **Q122** swipe motion: the follow and fly-out are the same transitions; the horizontal scroll
+  gesture (Magic Mouse, touchpad) is not summed yet (Blitz's wheel events carry no phase; the
+  machine's `BannerIn::Swipe` is ready for it).
+- **Q124** rich runs: the body is drawn as plain text (`Body::text`), so bold, italic, underline
+  and links (`CardPress::Link`) wait.
+- **Q125** is lane c's (the group header); the center shows the card's `app_label`.

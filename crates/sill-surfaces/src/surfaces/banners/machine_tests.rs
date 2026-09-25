@@ -106,27 +106,15 @@ fn design_13_acceptance_10_swipe_dismiss() {
             ],
         )
     };
-    assert_eq!(
-        left(&drag(90, 100).0),
-        Some(Leave::Dismissed),
-        "90 px right"
-    );
-    assert_eq!(
-        left(&drag(80, 0).0),
-        Some(Leave::Dismissed),
-        "exactly 80 px"
-    );
+    assert_eq!(left(&drag(90, 100).0), Some(Leave::Swiped), "90 px right");
+    assert_eq!(left(&drag(80, 0).0), Some(Leave::Swiped), "exactly 80 px");
     let (b, out) = drag(50, 100);
     assert!(
         matches!(b, Banner::Shown { .. }),
         "50 px slowly springs back"
     );
     assert!(out.contains(&BannerOut::SpringBack));
-    assert_eq!(
-        left(&drag(20, 650).0),
-        Some(Leave::Dismissed),
-        "a fast flick"
-    );
+    assert_eq!(left(&drag(20, 650).0), Some(Leave::Swiped), "a fast flick");
     let swipe = run(
         Persistence::Expires,
         &[
@@ -142,7 +130,7 @@ fn design_13_acceptance_10_swipe_dismiss() {
     );
     assert_eq!(
         left(&swipe.0),
-        Some(Leave::Dismissed),
+        Some(Leave::Swiped),
         "a 100 px horizontal scroll"
     );
 }

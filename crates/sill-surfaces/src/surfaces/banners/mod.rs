@@ -7,16 +7,22 @@
 //! while hovered, and hovering expands it (six body lines, the action buttons, a close button);
 //! a click on the body invokes `default`; a swipe right or a drag past the threshold dismisses
 //! it. The life of one card is `machine.rs` (pure, tested); which cards show is `stack.rs`; what
-//! each decision tells the service is `commands.rs`; the input and blur region is `regions.rs`.
+//! each decision tells the service is `commands.rs`; the input and blur region is `elements.rs`.
 //! The card itself is `notification_card`, shared with the notification center.
 
 pub mod commands;
+pub mod deck;
+mod deck_cards;
+pub mod elements;
+pub mod gesture;
 pub mod layer;
+pub mod look;
 pub mod machine;
 pub mod placement;
 pub mod regions;
 pub mod stack;
 
+mod drive;
 mod view;
 
 pub use commands::{action_command, leave_commands};
@@ -27,6 +33,7 @@ pub use machine::{
 pub use placement::{BannerLink, BannerOutput};
 pub use regions::{CardBox, card_regions};
 pub use stack::{Card, stack};
+pub use view::{BANNER_VARS, BANNERS_CSS};
 
 use dioxus::prelude::*;
 use shell_host::OutputInfo;

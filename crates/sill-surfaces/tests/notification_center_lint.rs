@@ -9,6 +9,7 @@ use dioxus::prelude::*;
 use ds::lint::{LintConfig, Profile, Rule, assert_clean, markup};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::NotificationCenter;
+use sill_surfaces::surfaces::notification_card::{CARD_CSS, CARD_VARS};
 use sill_surfaces::surfaces::notification_center::{
     CenterLink, NOTIFICATION_CENTER_CSS, NotificationCenterProps,
 };
@@ -16,12 +17,18 @@ use sill_surfaces::surfaces::notification_center::{
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
+        own_vars: CARD_VARS.iter().map(|v| (*v).to_owned()).collect(),
         ..LintConfig::default()
     }
 }
 
 fn full_css() -> String {
-    format!("{}\n{}", ds::stylesheet(), NOTIFICATION_CENTER_CSS)
+    format!(
+        "{}\n{}\n{}",
+        ds::stylesheet(),
+        CARD_CSS,
+        NOTIFICATION_CENTER_CSS
+    )
 }
 
 /// The center on the fake services, closed, rendered to HTML inside a runtime.

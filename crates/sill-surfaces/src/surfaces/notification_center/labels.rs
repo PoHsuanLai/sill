@@ -1,7 +1,9 @@
 //! The center's words, pure: a group's name, its fold line, and the footer that says when sill
 //! is not the one receiving notifications.
 
-use sill_services::{AppGroup, NameHolder, ServerMode, ServerStatus};
+use sill_services::{AppGroup, AppRef, IconRef, NameHolder, ServerMode, ServerStatus};
+
+use crate::surfaces::notification_card::app_label;
 
 use super::rows::Fold;
 
@@ -12,16 +14,16 @@ pub const TITLE: &str = "Notifications";
 pub const EMPTY: &str = "No Notifications";
 
 /// A group's name: its desktop entry's `Name` when the apps index knows it, else the newest
-/// sender's `app_name`, else "Notification". lane b's `app_label` says the same for a card
-/// (FINDINGS F322); this is the group's, from the group's newest notification.
+/// sender's `app_name`, else "Notification": the card's own `app_label` (FINDINGS F322), for
+/// the group's newest notification.
 pub fn group_title(group: &AppGroup, entry_name: Option<&str>) -> String {
-    let sent = group.notes.first().map(|note| note.app.name.as_str());
-    [entry_name, sent]
-        .into_iter()
-        .flatten()
-        .find(|name| !name.trim().is_empty())
-        .unwrap_or("Notification")
-        .to_owned()
+    let nobody = AppRef {
+        name: String::new(),
+        icon: IconRef::None,
+        desktop_entry: None,
+    };
+    let app = group.notes.first().map_or(&nobody, |note| &note.app);
+    app_label(app, entry_name)
 }
 
 /// The fold line's words.
