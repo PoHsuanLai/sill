@@ -50,8 +50,8 @@ use tray::Tray;
 use workspaces::{WorkspaceIndicator, group_for};
 
 use crate::hooks::{
-    use_appearance, use_apps, use_services, use_settings, use_space_look, use_toplevels,
-    use_tray, use_workspaces,
+    use_appearance, use_apps, use_services, use_settings, use_space_look, use_toplevels, use_tray,
+    use_workspaces,
 };
 use crate::surfaces::control_center::{ControlCenterLink, height_cap, menu_bar_modules};
 

@@ -146,9 +146,7 @@ mod tests {
     use crate::surfaces::bar::pick::BarPick;
     use ds::MenuEntry;
     use sill_launcher::WindowKey;
-    use sill_services::{
-        Activity, AppIndex, OutputName, Sizing, Toplevel, Toplevels, WindowState,
-    };
+    use sill_services::{Activity, AppIndex, OutputName, Sizing, Toplevel, Toplevels, WindowState};
     use sill_settings::ControlCenterModule;
 
     fn window(key: u64, app: &str, output: &str) -> Toplevel {
