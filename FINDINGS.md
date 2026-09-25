@@ -3676,6 +3676,13 @@ Clear over its stacked card, CHAT 1), `notification-center-open-cosmic.png`,
   pointermove with the pointer over it as `Over` when it thinks `Away` (or the host synthesizes
   enter and leave for hover changes that come from layout).
 
+## Q170 closed (2026-09-26)
+
+- shell-host 0e02bdf (F59) repairs the hover Blitz's `refresh_hover` moves silently at the end
+  of a resolve. `dev/accept-notifications-real-input.sh repro` on the headless KWin: G100 "one
+  motion onto the card: hovered yes", G101 "one motion onto it: hovered yes", Q170 "a card slid
+  in under the resting pointer, moved on: hovered yes". All three stay as regression checks.
+
 ## M7: the lock screen and the polkit prompt, borrowed (2026-09-26)
 
 design/20 §1.9 and §1.10: an existing locker and an existing polkit agent in a sill session

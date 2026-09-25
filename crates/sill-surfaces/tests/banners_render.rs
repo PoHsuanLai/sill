@@ -280,3 +280,25 @@ fn a_dropped_banner_leaves_silently_and_another_output_draws_nothing() {
     running.harness.advance(Duration::from_millis(600));
     assert_eq!(running.cards(), 0);
 }
+
+#[test]
+fn the_entry_edge_follows_the_setting() {
+    for (edge, slug) in [
+        (sill_settings::BannerEntry::FromRight, "right"),
+        (sill_settings::BannerEntry::FromBelow, "below"),
+    ] {
+        let mut settings = file();
+        settings.notifications.banner_entry_direction = edge;
+        let mut running = start(settings);
+        running.show(vec![live(note(1, "mail", "Hello", "A body", &[]))]);
+        running.harness.advance(Duration::from_millis(20));
+        assert_eq!(
+            running
+                .harness
+                .attr(".ds-banner-stack", "data-entry")
+                .as_deref(),
+            Some(slug),
+            "{edge:?}"
+        );
+    }
+}
