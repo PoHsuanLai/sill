@@ -4,4 +4,12 @@
 
 .sill-cal{ display:flex; justify-content:center; }
 .sill-cal-center{ padding:var(--s-2) 0; }
-.sill-cal-desktop{ padding:0; }
+
+/* On the desktop the Calendar is one small cell (164 px), where quire's month (seven 32 px
+   columns) does not fit: until `MonthGrid` has a compact size (Q190) it shows macOS's small
+   date face, today's weekday in the accent over the day's number and the month. */
+.sill-cal-desktop{ flex-direction:column; justify-content:flex-start; }
+.sill-cal-weekday{ color:var(--accent); font-size:var(--fs-small); font-weight:700;
+  text-transform:uppercase; }
+.sill-cal-date{ font-size:var(--fs-display); font-weight:300; }
+.sill-cal-month{ font-size:var(--fs-small); color:var(--ink-soft); }

@@ -31,6 +31,7 @@ const TODAY: &str = ".ds-month-day[*|aria-current=date] .ds-month-num";
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Kind {
     Calendar,
+    CalendarOnDesktop,
     UpNext,
 }
 
@@ -57,6 +58,7 @@ fn app() -> Element {
             style { {css} }
             match world.kind {
                 Kind::Calendar => rsx! { CalendarWidget { host: WidgetHost::Center } },
+                Kind::CalendarOnDesktop => rsx! { CalendarWidget { host: WidgetHost::Desktop } },
                 Kind::UpNext => rsx! { UpNextWidget { host: WidgetHost::Center } },
             }
         }
@@ -282,4 +284,27 @@ fn up_next_says_when_there_is_nothing_and_why() {
         broken.harness.text_of(".sill-un-quiet").as_deref(),
         Some("1 calendar file could not be read")
     );
+}
+
+#[test]
+fn on_the_desktop_the_calendar_is_the_small_date_face() {
+    let today = now().date();
+    let running = start(
+        Kind::CalendarOnDesktop,
+        ShellFile::default(),
+        read(Vec::new()),
+    );
+    let h = &running.harness;
+    assert_eq!(
+        h.count(".ds-month"),
+        0,
+        "quire's month does not fit a small cell (Q190)"
+    );
+    assert_eq!(
+        h.text_of(".sill-cal-date").as_deref(),
+        Some(today.day().to_string().as_str())
+    );
+    let face = h.rect(".sill-cal-desktop").expect("the face is laid out");
+    assert!(face.size.height.0 < 140.0, "fits a 164 px cell: {face:?}");
+    clean(&h.html());
 }

@@ -3,14 +3,15 @@
 //! and next buttons, back to today's month when the day turns), and draws quire's `MonthGrid`
 //! (Q180) from [`super::grid::month_grid`] and [`super::grid::busy_days`]: macOS's calendar
 //! widget, the month's name in the accent, weekday initials, today on the accent disc, a dot
-//! under each day with an event. Redrawn on the clock's minute tick.
+//! under each day with an event. On the desktop, whose small cell quire's month does not fit
+//! (Q190), macOS's small date face instead. Redrawn on the clock's minute tick.
 
 use dioxus::prelude::*;
 use jiff::tz::TimeZone;
 use sill_settings::WeekNumbers;
 
-use super::grid::{Step, busy_days, month_grid};
-use super::shown::{Shown, grid_data};
+use super::grid::{Month, Step, busy_days, month_grid};
+use super::shown::{Shown, grid_data, month_title, weekday_name};
 use crate::hooks::{use_agenda, use_clock, use_settings};
 use crate::widgets::WidgetHost;
 
@@ -30,24 +31,26 @@ pub fn CalendarWidget(host: WidgetHost) -> Element {
         WeekNumbers::Hide => ds::WeekNumbers::Hide,
         WeekNumbers::Show => ds::WeekNumbers::Show,
     };
-    let host_class = match host {
-        WidgetHost::Center => "sill-cal sill-cal-center",
-        WidgetHost::Desktop => "sill-cal sill-cal-desktop",
-    };
-    let onstep = move |step: ds::Step| {
+    let onstep = EventHandler::new(move |step: ds::Step| {
         let step = match step {
             ds::Step::Previous => Step::Previous,
             ds::Step::Next => Step::Next,
         };
         shown.set(shown().stepped(today, step));
-    };
-    rsx! {
-        div { class: host_class,
-            ds::MonthGrid {
-                data: grid_data(&grid, today),
-                weeks,
-                onstep: EventHandler::new(onstep),
+    });
+    match host {
+        WidgetHost::Center => rsx! {
+            div { class: "sill-cal sill-cal-center",
+                ds::MonthGrid { data: grid_data(&grid, today), weeks, onstep }
             }
-        }
+        },
+        // quire's month does not fit a small desktop cell (Q190): macOS's small date face.
+        WidgetHost::Desktop => rsx! {
+            div { class: "sill-cal sill-cal-desktop",
+                span { class: "sill-cal-weekday", {weekday_name(today.weekday())} }
+                span { class: "sill-cal-date", {today.day().to_string()} }
+                span { class: "sill-cal-month", {month_title(Month::of(today), today)} }
+            }
+        },
     }
 }
