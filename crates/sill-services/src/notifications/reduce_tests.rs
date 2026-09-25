@@ -115,7 +115,6 @@ fn three() -> NotesState {
 }
 
 #[test]
-#[ignore = "M6 fill: a-server"]
 fn ids_count_up_replace_when_held_and_skip_zero() {
     let held = three();
     let at_max = NotesState {
@@ -140,7 +139,6 @@ fn ids_count_up_replace_when_held_and_skip_zero() {
 }
 
 #[test]
-#[ignore = "M6 fill: a-server"]
 fn a_post_shows_a_banner_enters_its_group_and_sounds() {
     let policy = NotificationsPolicy::default();
     let (state, effects) = run(NotesState::default(), vec![posted(note(1, "a"))], &policy);
@@ -155,7 +153,6 @@ fn a_post_shows_a_banner_enters_its_group_and_sounds() {
 }
 
 #[test]
-#[ignore = "M6 fill: a-server"]
 fn do_not_disturb_keeps_banners_and_sounds_back_except_critical() {
     let dnd = NotificationsPolicy {
         quiet: Quiet::DoNotDisturb,
@@ -181,7 +178,6 @@ fn do_not_disturb_keeps_banners_and_sounds_back_except_critical() {
 }
 
 #[test]
-#[ignore = "M6 fill: a-server"]
 fn a_timeout_leaves_the_history_and_a_transient_one_expires() {
     let policy = NotificationsPolicy::default();
     let (state, effects) = run(three(), vec![BannerTimedOut(NotificationId(3))], &policy);
@@ -227,7 +223,6 @@ fn a_timeout_leaves_the_history_and_a_transient_one_expires() {
 }
 
 #[test]
-#[ignore = "M6 fill: a-server"]
 fn the_history_keeps_the_newest_up_to_its_cap() {
     let policy = NotificationsPolicy {
         history_cap: HistoryCap(2),
@@ -249,7 +244,6 @@ fn the_history_keeps_the_newest_up_to_its_cap() {
 }
 
 #[test]
-#[ignore = "M6 fill: a-server"]
 fn a_replacement_moves_to_the_front_without_a_signal() {
     let policy = NotificationsPolicy::default();
     let mut again = note(1, "a");
@@ -275,7 +269,6 @@ fn a_replacement_moves_to_the_front_without_a_signal() {
 }
 
 #[test]
-#[ignore = "M6 fill: a-server"]
 fn closing_and_dismissing_remove_everywhere_with_their_reason() {
     let policy = NotificationsPolicy::default();
     let cases = [
@@ -306,7 +299,6 @@ fn closing_and_dismissing_remove_everywhere_with_their_reason() {
 }
 
 #[test]
-#[ignore = "M6 fill: a-server"]
 fn dismiss_all_dismisses_the_banners_in_order_and_keeps_the_rest() {
     let policy = NotificationsPolicy::default();
     let (state, _) = run(three(), vec![BannerTimedOut(NotificationId(1))], &policy);
@@ -327,7 +319,6 @@ fn dismiss_all_dismisses_the_banners_in_order_and_keeps_the_rest() {
 }
 
 #[test]
-#[ignore = "M6 fill: a-server"]
 fn an_action_is_invoked_then_closes_unless_resident() {
     let policy = NotificationsPolicy::default();
     let reply = |id| Invoked {
@@ -376,7 +367,6 @@ fn an_action_is_invoked_then_closes_unless_resident() {
 }
 
 #[test]
-#[ignore = "M6 fill: a-server"]
 fn clearing_a_group_or_everything_dismisses_what_it_held() {
     let policy = NotificationsPolicy::default();
     let (state, effects) = run(
@@ -406,7 +396,6 @@ fn clearing_a_group_or_everything_dismisses_what_it_held() {
 }
 
 #[test]
-#[ignore = "M6 fill: a-server"]
 fn a_loaded_history_replaces_capped_and_keeps_ids_ahead() {
     let policy = NotificationsPolicy {
         history_cap: HistoryCap(1),
@@ -429,7 +418,6 @@ fn a_loaded_history_replaces_capped_and_keeps_ids_ahead() {
 }
 
 #[test]
-#[ignore = "M6 fill: a-server"]
 fn the_server_status_is_published() {
     let status = ServerStatus {
         mode: ServerMode::Own,
@@ -442,6 +430,64 @@ fn the_server_status_is_published() {
     );
     assert_eq!(state.live.server, status);
     same_effects(&effects, &[], "server");
+}
+
+#[test]
+fn a_swipe_keeps_the_notification_in_the_center_unless_set_to_dismiss() {
+    use crate::notifications::policy::Swipe;
+    use NotificationsEvent::SwipedAway;
+    let keep = NotificationsPolicy::default();
+    let dismiss = NotificationsPolicy {
+        swipe: Swipe::Dismiss,
+        ..NotificationsPolicy::default()
+    };
+    let (timed_out, _) = run(three(), vec![BannerTimedOut(NotificationId(1))], &keep);
+    let cases = [
+        (
+            "kept by default",
+            three(),
+            SwipedAway(NotificationId(3)),
+            &keep,
+            (vec![2, 1], groups(&[("a", &[3, 1]), ("b", &[2])])),
+            vec![closed(3, CloseReason::Dismissed)],
+        ),
+        (
+            "dismissed when set",
+            three(),
+            SwipedAway(NotificationId(3)),
+            &dismiss,
+            (vec![2, 1], groups(&[("a", &[1]), ("b", &[2])])),
+            vec![closed(3, CloseReason::Dismissed), SaveHistory],
+        ),
+        (
+            "no banner",
+            timed_out,
+            SwipedAway(NotificationId(1)),
+            &keep,
+            (vec![3, 2], groups(&[("a", &[3, 1]), ("b", &[2])])),
+            vec![],
+        ),
+    ];
+    for (case, state, event, policy, want, effects) in cases {
+        let (state, got) = run(state, vec![event], policy);
+        assert_eq!(shape(&state), want, "{case}");
+        same_effects(&got, &effects, case);
+    }
+
+    let transient = with_hints(
+        note(1, "a"),
+        Hints {
+            transience: Transience::Transient,
+            ..Hints::default()
+        },
+    );
+    let (state, effects) = run(
+        NotesState::default(),
+        vec![posted(transient), SwipedAway(NotificationId(1))],
+        &keep,
+    );
+    assert_eq!(shape(&state), (vec![], vec![]));
+    same_effects(&effects, &[closed(1, CloseReason::Dismissed)], "transient");
 }
 
 #[test]

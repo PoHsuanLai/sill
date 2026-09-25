@@ -1,12 +1,12 @@
 //! `sill debug notify`: a made-up notification as the posting a `Notify` would have made.
 //!
-//! Lane a (FINDINGS "The M6 fill-in") parses the body with `sill_services::parse_body` once it is
-//! filled, as the D-Bus path does; until then the body is plain text (calling the frozen stub
-//! would panic the daemon).
+//! The body is parsed with `sill_services::parse_body`, as the D-Bus path parses a `Notify`'s,
+//! so `--body "<b>bold</b>"` shows as it would from a real sender.
 
 use sill_ipc::{FakeExpire, FakeNotification, FakeUrgency};
 use sill_services::{
-    Action, ActionKey, AppRef, Body, Expiry, Hints, IconRef, NotificationId, NotifyUrgency, Posting,
+    Action, ActionKey, AppRef, Expiry, Hints, IconRef, NotificationId, NotifyUrgency, Posting,
+    parse_body,
 };
 
 /// The posting `fake` stands for.
@@ -28,7 +28,7 @@ pub fn posting_of(fake: FakeNotification) -> Posting {
             desktop_entry: None,
         },
         summary,
-        body: Body::plain(&body),
+        body: parse_body(&body),
         actions: actions
             .into_iter()
             .map(|action| Action {
@@ -62,7 +62,7 @@ mod tests {
         let posting = posting_of(FakeNotification {
             app: "Mail".to_owned(),
             summary: "Ada".to_owned(),
-            body: "the engine".to_owned(),
+            body: "the <b>engine</b> &amp; more".to_owned(),
             urgency: FakeUrgency::Critical,
             actions: vec![FakeAction {
                 key: "default".to_owned(),
@@ -74,7 +74,13 @@ mod tests {
         assert_eq!(posting.replaces, Some(NotificationId(3)));
         assert_eq!(posting.app.key(), AppKey("Mail".to_owned()));
         assert_eq!(posting.summary, "Ada");
-        assert_eq!(posting.body.text(), "the engine");
+        assert_eq!(posting.body.text(), "the engine & more");
+        assert_eq!(
+            posting.body.runs.len(),
+            3,
+            "markup parsed: {:?}",
+            posting.body
+        );
         assert_eq!(posting.actions[0].key, ActionKey::default_action());
         assert_eq!(posting.hints.urgency, NotifyUrgency::Critical);
         assert_eq!(posting.expiry, Expiry::Never);

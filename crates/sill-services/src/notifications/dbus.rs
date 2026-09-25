@@ -6,16 +6,12 @@
 //! contract. The skeleton is here so the `#[interface]` macro and signal emitters are proven to
 //! build on the workspace's `zbus` features before any agent starts (dependencies first).
 
-// The live loop (`live.rs`, lane a) constructs and serves `Server`; until it does, nothing here
-// is reached. Remove this line when it is.
-#![allow(dead_code)]
-
 use std::collections::HashMap;
 
 use tokio::sync::{mpsc, oneshot};
-use zbus::interface;
 use zbus::object_server::SignalEmitter;
 use zbus::zvariant::OwnedValue;
+use zbus::{fdo, interface};
 
 use super::capabilities::{CAPABILITIES, SERVER_INFORMATION};
 use super::content::Posting;
@@ -35,8 +31,20 @@ pub enum Call {
         posting: Box<Posting>,
         reply: oneshot::Sender<NotificationId>,
     },
-    /// `CloseNotification`.
-    Close(NotificationId),
+    /// `CloseNotification`: the loop answers whether it held the id.
+    Close {
+        id: NotificationId,
+        reply: oneshot::Sender<CloseAnswer>,
+    },
+}
+
+/// What `CloseNotification` finds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CloseAnswer {
+    /// Closed, and `NotificationClosed` (reason 3) emitted.
+    Closed,
+    /// No longer held: the spec's empty D-Bus error.
+    NotHeld,
 }
 
 /// `Notify`'s eight arguments as they arrived.
@@ -59,8 +67,11 @@ pub struct WireNotify {
 /// byte or an int, read as non-zero), `sound-name`, `sound-file`, `suppress-sound`. Unknown
 /// hints are ignored; a hint of the wrong type is as if absent.
 pub fn posting_from_wire(call: WireNotify) -> Posting {
-    let _ = call;
-    todo!("M6 fill: a-server")
+    super::wire::posting(call)
+}
+
+fn stopped() -> fdo::Error {
+    fdo::Error::Failed("the notifications service has stopped".to_owned())
 }
 
 /// The served object.
@@ -83,8 +94,8 @@ impl Server {
         actions: Vec<String>,
         hints: HashMap<String, OwnedValue>,
         expire_timeout: i32,
-    ) -> u32 {
-        let _ = WireNotify {
+    ) -> fdo::Result<u32> {
+        let posting = posting_from_wire(WireNotify {
             app_name,
             replaces_id,
             app_icon,
@@ -93,14 +104,30 @@ impl Server {
             actions,
             hints,
             expire_timeout,
-        };
-        todo!("M6 fill: a-server")
+        });
+        let (reply, answer) = oneshot::channel();
+        self.calls
+            .send(Call::Notify {
+                posting: Box::new(posting),
+                reply,
+            })
+            .map_err(|_| stopped())?;
+        answer.await.map(|id| id.0).map_err(|_| stopped())
     }
 
-    /// `CloseNotification(u)`.
-    async fn close_notification(&self, id: u32) {
-        let _ = id;
-        todo!("M6 fill: a-server")
+    /// `CloseNotification(u)`: an id no longer held answers the spec's empty error.
+    async fn close_notification(&self, id: u32) -> fdo::Result<()> {
+        let (reply, answer) = oneshot::channel();
+        self.calls
+            .send(Call::Close {
+                id: NotificationId(id),
+                reply,
+            })
+            .map_err(|_| stopped())?;
+        match answer.await.map_err(|_| stopped())? {
+            CloseAnswer::Closed => Ok(()),
+            CloseAnswer::NotHeld => Err(fdo::Error::Failed(String::new())),
+        }
     }
 
     /// `GetCapabilities() -> as`.
@@ -181,7 +208,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M6 fill: a-server"]
     fn the_wire_becomes_a_posting() {
         let rgb = owned(Value::from((
             1i32,
