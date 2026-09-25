@@ -12,7 +12,7 @@ use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_services::{Services, Session, SessionAction};
 use sill_settings::PowerMenuDefault;
 
-use crate::surfaces::launcher::presence::Visible;
+use crate::surfaces::launcher::presence::{OpenSerial, PanelFocus, Visible};
 use crate::surfaces::power_menu::backend::{DryRunSession, PowerMenuBackend};
 use crate::surfaces::power_menu::keymap::power_menu_key;
 use crate::surfaces::power_menu::keys::initial;
@@ -70,6 +70,7 @@ pub(crate) fn use_menu(output: OutputId, default: PowerMenuDefault) -> MenuCtx {
     use_openings(ctx.clone(), shown, output, default);
     use_settle(ctx.clone());
     use_button_focus(ctx.clone());
+    crate::surfaces::power_menu::script::use_script(ctx.clone());
     ctx
 }
 
@@ -101,6 +102,27 @@ fn use_openings(
             }
             (None, Some(_)) => menu.set(None),
             _ => {}
+        }
+    });
+    use_keyboard_line(shown, output);
+}
+
+/// Print `power_menu.keyboard=held` once per opening, when the surface first has the keyboard
+/// (the daemon feeds the link its focus): `dev/accept-power-menu.sh` injects keys only then.
+fn use_keyboard_line(shown: ReadSignal<PowerMenuShown>, output: OutputId) {
+    let mut seen = use_hook(|| CopyValue::new(None::<(OpenSerial, PanelFocus)>));
+    use_effect(move || {
+        let now = shown
+            .read()
+            .opening()
+            .filter(|o| o.output == output)
+            .map(|o| (o.serial, o.focus));
+        if now == *seen.peek() {
+            return;
+        }
+        seen.set(now);
+        if let Some((_, PanelFocus::Held)) = now {
+            eprintln!("power_menu.keyboard=held");
         }
     });
 }

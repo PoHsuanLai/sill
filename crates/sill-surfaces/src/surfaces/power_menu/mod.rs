@@ -17,6 +17,7 @@ pub mod keys;
 pub mod labels;
 pub mod layer;
 pub mod presence;
+pub mod script;
 pub mod sheet;
 
 mod drive;
@@ -29,6 +30,7 @@ pub use keys::{PowerMenuKey, PowerMenuOut, PowerMenuState, initial, step};
 pub use labels::{action_label, button_variant};
 pub use layer::{PANEL_BLUR_RADIUS, PANEL_ID, panel_region, power_menu_layer};
 pub use presence::{PowerMenuLink, PowerMenuOpening, PowerMenuShown, Preselect};
+pub use script::{PowerMenuScript, ScriptedKey, script_key};
 
 use dioxus::prelude::*;
 use shell_host::OutputInfo;

@@ -2593,3 +2593,91 @@ cli.rs,links.rs,outputs.rs}`.
   Control Center page's own and are candidates for a Basic page when design/22 §5 gets one.
   design/20 §1.1's bar content ("tray, volume, network, battery, clock") becomes "tray, the
   module items `control_center.menu_bar_*` shows, the control center, clock".
+
+## M5 power menu (lane d, 2026-09-25)
+
+The power menu (design/20 §1.8) filled on `m5-d`. Findings are numbered from F200/Q90/G30 so
+the four M5 lanes cannot collide.
+
+- **F200 The menu.** A transparent `Ds` root (the active Space's look) holds the room, a box as
+  large as the output that fades out as a whole; in it a `Ds` in `power_menu.material` holds
+  quire's `Sheet` (its own full-output scrim, `peek-in` `--t-big` `--e-spring`, the scrim's
+  `fade` `--t-move`) with a Power glyph, a macOS-style question for the focused button ("Shut
+  down this computer now?") and what it does ("Your apps will quit and the computer will turn
+  off."), the four `Button`s in `SessionAction::POWER_MENU` order per `button_variant`
+  (unoffered ones `Availability::Disabled`), and `Kbd` hints (← → Choose, ↵ <focused>, Esc
+  Cancel). The sheet is keyed by the opening, so each opening replays the entrance and starts
+  from `initial`. The focused button is `Primary` and also has the DOM focus (`ds::focus_soon`
+  on its `mounted` element), so quire's keyboard ring moves with the arrows.
+- **F201 Every way out leaves first.** `sheet.rs` (pure, table-tested) wraps the frozen `step`:
+  Escape (through the `Sheet`'s own handler or the root's), a scrim click and a chosen action
+  all move the sheet to `Leaving`; the room plays quire's `menu-out` (`--t-quick --e-exit`,
+  `Anim::MenuOut`), timed by `ds::use_motion_timer(Anim::MenuOut)`; once it settles the menu
+  closes and only then does a chosen action run, so a suspend or a polkit prompt never finds
+  the sheet still up. Input while leaving is ignored, so Enter's key and the button's click
+  cannot run an action twice. A close from outside (`sill power-menu close`, a focus loss) hides
+  at once.
+- **F202 The session behind a trait.** `power_menu::backend::SessionBackend` (`offers`,
+  `refresh`, `run`) with `LiveSession` (the session service: `Run`, and `Refresh` on each
+  opening) and `DryRunSession` (every action offered; a chosen one is kept, printed as
+  `power_menu.dry_run would=<Label>` and appended to a record file). The panel takes a
+  `PowerMenuBackend` root context when there is one, else the live session from `Services`.
+  **Dry run:** a debug build (`--features debug`) started with `SILL_POWER_MENU_DRY_RUN=<file>`
+  gives every power menu the dry run (`crates/sill/src/power_menu.rs`; a release build ignores
+  the variable); each surface prints `power_menu.backend=<live|dry-run>` as it mounts. Every
+  test uses the dry run. The launcher's Lock and Suspend rows still go straight to the session
+  service (F178: they need no confirmation); nothing in this lane's tests or acceptance
+  chooses them.
+- **F203 The launcher's rows.** `effect_of` maps `System(Lock|Suspend)` to `Session`,
+  `System(LogOut|Restart|ShutDown)` to `PowerMenu` (the power menu opens on that button, which
+  is the confirmation) and `Reload` to `Unreachable`; `run_effect` takes an `EffectFrom`
+  (surface, output, the `PowerMenuLink`) and opens the menu. The system provider's rows all
+  activate on Enter and carry no "confirm" action any more.
+- **F204 The blur corner is 14.** `.ds-sheet` rounds with a plain `border-radius:
+  var(--r-panel)` (a circle of 14, not a squircle), and the `power-menu-panel` element is the
+  sheet's whole box (`tests/power_menu_render.rs` checks the two rects are equal), so
+  `PANEL_BLUR_RADIUS` is 14.
+- **F205 A `.ds` root is as tall as its content.** The sheet floats in its `Ds`'s overlay
+  (`position:absolute; inset:0` of the root), and a root holding only floating content is 0 px
+  tall: the scrim was 0 px and the sheet's `max-height: calc(100% - 72px)` collapsed it. An
+  in-flow `.sill-power-menu-floor` (`height:100vh`) gives the root the output's height.
+- **F206 The acceptance (`dev/accept-power-menu.sh`, all six steps pass).** Warm and hidden;
+  `open` shows the sheet over the scrim (`dev/out/power-menu.png`, `dev/out/power-menu-cosmic.png`),
+  `close` hides it, `toggle` twice round-trips; Right, Left, Left move the focus Shut Down →
+  Suspend → Shut Down → Restart (`dev/out/power-menu-cosmic-restart.png`); Enter records exactly
+  `power_menu.dry_run would=Restart` and closes; Escape closes recording nothing; 5 s hidden,
+  0 frames. The script proves the dry run from the daemon's log before any key and never
+  presses Enter without that proof.
+- **G30 No keyboard on the nested compositor.** With the nested window unfocused on the host,
+  cosmic-comp sent the power menu's `Exclusive` layer no `wl_keyboard.enter` (no
+  `KeyboardFocus` event, so no `power_menu.keyboard=held`), and `wtype` keys (the
+  virtual-keyboard protocol) never reached it; shell-host injects no keys (G20). So the debug
+  key path: a debug build started with `SILL_POWER_MENU_KEYS=<fifo>` too feeds each word
+  written to it (`right`, `enter`, ...) to every power menu as that key
+  (`power_menu::script`, the launcher demo's `LauncherScript` pattern). The daemon refuses it
+  without the dry run, so a scripted Enter can never reach logind. A real keyboard on the real
+  session remains a manual check.
+- **G31 Not verified live: the bar app menu's "Shut Down…".** `sill debug click` on the app
+  menu opens it (the popup captures with "Shut Down…"), but a click on the item did not open
+  the power menu and a pointer over it did not highlight it; the bar popup is lane (c)'s. The
+  pick is unit-tested (`bar/pick.rs`, `BarPick::PowerMenu` → `link.open`).
+
+### Gaps found in the power menu (quire)
+
+- **Q90 (quire)** `Sheet` has no leaving state: it unmounts at once (`use_entrance` is
+  entrance-only). The power menu fades its whole room with quire's `menu-out` instead; the
+  sheet's own exit (a reverse `peek-in`, the scrim fading at `--t-move`) belongs in quire.
+- **Q91 (quire)** A centred `Sheet`: it sits at Peek Center's 36 px top inset. macOS's
+  shut-down dialog (and every confirm alert) is centred on the screen; a `SheetPlacement::Center`
+  would let the power menu sit there.
+- **Q92 (quire)** A dialog-sized `Danger` button: `Danger` is `Mini` at rest, so Restart and
+  Shut Down (F180's frozen `button_variant`) draw smaller than Log Out and Suspend beside them.
+  A destructive action in a dialog wants `Secondary`'s geometry, red on hover.
+- **Q93 (quire)** A disabled look for `Button` (O-1: `aria-disabled` only drops the handler), so
+  an action logind does not offer does not read as pressable.
+- **Q94 (quire)** A full-surface `Ds` root (a `fill` prop, or overlay bounds from the viewport)
+  so a root holding only a `Sheet` need not add F205's floor.
+- **Q95 (quire)** The arrow key caps (`Key::Left`, `Key::Right`, O-2) draw as a short dash at
+  `KbdSize::Small` in the shell font; the glyphs want sign-off and a font that has them.
+- Q81's `LogOut` and `Restart` glyphs would let the buttons carry icons; they carry none
+  meanwhile (macOS's do not either).

@@ -8,11 +8,17 @@
 //! to the file the variable names (none when it is empty), never sent to logind. Each surface
 //! prints `power_menu.backend=dry-run` as it mounts, which `dev/accept-power-menu.sh` checks
 //! before it presses Enter. A release build ignores the variable.
+//!
+//! **Scripted keys.** On the nested cosmic-comp the power menu gets no keyboard focus, and
+//! shell-host injects no keys (FINDINGS "M5 power menu"), so a debug build started with
+//! `SILL_POWER_MENU_KEYS` naming a FIFO also feeds each line written to it (`right`, `enter`,
+//! ...) to every power menu as a key. Only alongside the dry run: without it the variable is
+//! refused, so a scripted Enter can never reach logind.
 
 use shell_host::{HostCtx, OutputInfo, Root};
 use sill_ipc::{ControlCenterRequest, PowerMenuRequest, Response};
 use sill_surfaces::surfaces::power_menu::{
-    PowerMenuBackend, PowerMenuProps, Preselect, power_menu_layer,
+    PowerMenuBackend, PowerMenuProps, PowerMenuScript, Preselect, power_menu_layer,
 };
 
 use crate::links::Links;
@@ -38,11 +44,7 @@ pub fn spawn_missing(
         let props = PowerMenuProps {
             output: info.clone(),
         };
-        let surface = root(Root::with_props(sill_surfaces::PowerMenu, props));
-        let surface = match dry_run() {
-            Some(backend) => surface.context(backend),
-            None => surface,
-        };
+        let surface = debug_contexts(root(Root::with_props(sill_surfaces::PowerMenu, props)));
         match ctx.spawn_layer(config, surface) {
             Ok(id) => {
                 ctx.set_visibility(id, shell_host::Visibility::Hidden);
@@ -52,6 +54,18 @@ pub fn spawn_missing(
             }
             Err(error) => eprintln!("sill: spawning {namespace} on {:?}: {error}", info.name),
         }
+    }
+}
+
+/// `surface` with the dry run and the scripted keys, when this debug build has them.
+fn debug_contexts(surface: Root) -> Root {
+    let surface = match dry_run() {
+        Some(backend) => surface.context(backend),
+        None => surface,
+    };
+    match key_script() {
+        Some(script) => surface.context(script),
+        None => surface,
     }
 }
 
@@ -85,6 +99,73 @@ fn dry_run() -> Option<PowerMenuBackend> {
 /// Without the `debug` feature there is no dry run: the power menu speaks to logind.
 #[cfg(not(feature = "debug"))]
 fn dry_run() -> Option<PowerMenuBackend> {
+    None
+}
+
+/// The environment variable naming the scripted keys' FIFO (a debug build, with the dry run).
+pub const KEYS_VAR: &str = "SILL_POWER_MENU_KEYS";
+
+/// The scripted keys every power menu shares, when this debug build was started with
+/// [`KEYS_VAR`] and the dry run.
+#[cfg(feature = "debug")]
+fn key_script() -> Option<PowerMenuScript> {
+    use sill_surfaces::surfaces::power_menu::ScriptedKey;
+    static SCRIPT: std::sync::OnceLock<Option<PowerMenuScript>> = std::sync::OnceLock::new();
+    SCRIPT
+        .get_or_init(|| {
+            let path = std::path::PathBuf::from(std::env::var_os(KEYS_VAR)?);
+            if dry_run().is_none() {
+                eprintln!(
+                    "sill: power menu: {KEYS_VAR} refused without {DRY_RUN_VAR}: scripted keys \
+                     only ever drive a dry run"
+                );
+                return None;
+            }
+            let (tx, rx) = tokio::sync::watch::channel(ScriptedKey::default());
+            eprintln!("sill: power menu: scripted keys from {}", path.display());
+            let spawned = std::thread::Builder::new()
+                .name("power-menu-keys".to_owned())
+                .spawn(move || read_keys(&path, &tx));
+            if let Err(error) = spawned {
+                eprintln!("sill: power menu: no key script: {error}");
+            }
+            Some(PowerMenuScript(rx))
+        })
+        .clone()
+}
+
+/// Read `path` a line at a time, forever (a FIFO ends at each writer's close and is opened
+/// again), sending each key it names.
+#[cfg(feature = "debug")]
+fn read_keys(
+    path: &std::path::Path,
+    tx: &tokio::sync::watch::Sender<sill_surfaces::surfaces::power_menu::ScriptedKey>,
+) {
+    use sill_surfaces::surfaces::power_menu::script_key;
+    use std::io::BufRead;
+    loop {
+        let file = match std::fs::File::open(path) {
+            Ok(file) => file,
+            Err(error) => {
+                eprintln!("sill: power menu: key script {}: {error}", path.display());
+                return;
+            }
+        };
+        for line in std::io::BufReader::new(file).lines().map_while(Result::ok) {
+            match script_key(&line) {
+                Some(key) => tx.send_modify(|scripted| {
+                    scripted.count += 1;
+                    scripted.key = Some(key);
+                }),
+                None => eprintln!("sill: power menu: no key {line:?}"),
+            }
+        }
+    }
+}
+
+/// Without the `debug` feature there are no scripted keys.
+#[cfg(not(feature = "debug"))]
+fn key_script() -> Option<PowerMenuScript> {
     None
 }
 
