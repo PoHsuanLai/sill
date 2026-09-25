@@ -4379,3 +4379,10 @@ Q183, Q190, G120 (for sill) and G130 close.
 - No live picture of the analog World Clock or the battery rings: the acceptance's private bus
   has no batteries and the desktop layer's default widgets are Calendar and Battery.
 - A drop onto a real target from sill (foot or a file manager) is still to be run.
+
+## hot_corners.modifier retired (2026-09-26)
+
+- The key, `CornerModifier`, and its design/22 row (quire 42ce1eb) are gone: a keyboard-less
+  layer surface has no portable source for held modifiers (shell-host F61). The wish stays in
+  docs/cosmic-gaps.md as a fork item. An existing settings.toml line `modifier = ...` under
+  `[hot_corners]` is kept in `extra` and ignored.

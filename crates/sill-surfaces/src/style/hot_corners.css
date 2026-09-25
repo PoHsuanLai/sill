@@ -1,16 +1,8 @@
 /* A hot corner (design/20 §1.16, design/13 §13.3.12): the surface is `hot_corners.size_px`
-   square already (`layer.rs`'s `corner_layer`), as small as 1 px. Blitz's UA sheet puts an 8 px
-   margin on `body` (the classic HTML default); at that scale the margin alone is bigger than the
-   whole surface, so plain flow content (`100vw`/`100vh`) sits inside the margin box and never
-   reaches the corner's own true origin, the one point a pointer entering at the real screen
-   corner lands on (found live with `dev/accept-hot-corners.sh`: a captured, coloured probe
-   painted nothing at (0,0), even at 200 px). `position:absolute`/`fixed` with every inset at 0
-   render nothing at all in this engine on a bare layer-shell document (also found live), so the
-   fix stays in plain flow: a negative margin the size of the UA one, with the matching amount
-   grown onto the width and height, pulls the element back over it. `var(--s-8)` (8 px, quire's
-   scale) is not available without a `Ds` root, which this surface never mounts (never painted,
-   no material); `-6pt` is the same 8 px stated in points (1 pt = 4/3 px, CSS units §5.2) so it
-   is not a pixel literal a design token should have named — it cancels a UA constant, not a
-   design decision — and passes `ds::lint::selector`'s `RawSpacing` rule (pixel lengths in
-   `margin`/`padding` only). Never painted: no background, no border. */
-.sill-hot-corner{ width:calc(100vw + 16px); height:calc(100vh + 16px); margin:-6pt; }
+   square already (`layer.rs`'s `corner_layer`), as small as 1 px. shell-host resets the body's
+   UA margin on every hosted document (F62), so a box the viewport's size lands exactly on the
+   surface and reaches its true origin, the one point a pointer entering at the real screen
+   corner lands on. It stays in flow: a bare absolute box would be 0 px tall, since the mount
+   point has no height without flow content (sill F172). Never painted: no background, no
+   border. */
+.sill-hot-corner{ width:100vw; height:100vh; }

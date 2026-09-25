@@ -38,29 +38,6 @@ pub enum CornerAction {
     Command,
 }
 
-/// The key that must be held for a corner to act (macOS: Command, Option, Control, Shift).
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
-#[serde(rename_all = "snake_case")]
-pub enum CornerModifier {
-    #[default]
-    None,
-    Super,
-    Alt,
-    Ctrl,
-    Shift,
-}
-
 /// The four corners.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
 #[serde(default)]
@@ -141,13 +118,6 @@ pub struct HotCornersSettings {
     )]
     pub rearm_ms: Ms,
     #[settings(
-        label = "Key to hold",
-        help = "A key that must be held for a corner to act, so a stray pointer does not trigger it.",
-        section = "Hot Corners",
-        advanced
-    )]
-    pub modifier: CornerModifier,
-    #[settings(
         label = "Corner size",
         help = "The side of the invisible square in each active corner.",
         section = "Hot Corners",
@@ -175,7 +145,6 @@ impl Default for HotCornersSettings {
             bottom_right_command: String::new(),
             dwell_ms: Ms(150),
             rearm_ms: Ms(500),
-            modifier: CornerModifier::None,
             size_px: Px(2),
             extra: toml::Table::new(),
         }
