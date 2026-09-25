@@ -249,9 +249,7 @@ fn cap(mut history: History, cap: HistoryCap) -> History {
 
 /// `effects` with every `SaveHistory` folded into one at the end.
 fn one_save(effects: Vec<NotificationsEffect>) -> Vec<NotificationsEffect> {
-    let saves = effects
-        .iter()
-        .any(|e| *e == NotificationsEffect::SaveHistory);
+    let saves = effects.contains(&NotificationsEffect::SaveHistory);
     let mut rest: Vec<NotificationsEffect> = effects
         .into_iter()
         .filter(|e| *e != NotificationsEffect::SaveHistory)
