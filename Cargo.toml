@@ -44,6 +44,9 @@ blitz-paint = { git = "https://github.com/DioxusLabs/blitz", rev = "e99fbdbd1d03
 # The HTML parser (html5ever 0.39): an `<iframe srcdoc>` builds a real sub-document. ds-native
 # installs it in headless documents; the window gets it through dioxus-native's `html` feature.
 blitz-html = { git = "https://github.com/DioxusLabs/blitz", rev = "e99fbdbd1d03b9f0aa1622c3f810d95daac92042" }
+# The system clipboard's text/html, for an edit surface's paste (ds-native): blitz-shell's own
+# arboard (its `clipboard` feature, same features), read directly since ShellProvider has text only.
+arboard = { version = "3.6", default-features = false }
 blitz-traits = { git = "https://github.com/DioxusLabs/blitz", rev = "e99fbdbd1d03b9f0aa1622c3f810d95daac92042" }
 dioxus-native-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "e99fbdbd1d03b9f0aa1622c3f810d95daac92042", default-features = false, features = ["svg", "system-fonts", "accessibility"] }
 # The portable window path for apps (winit); the shell uses shell-host instead.
