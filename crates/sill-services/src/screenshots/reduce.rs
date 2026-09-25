@@ -38,8 +38,11 @@ pub enum ShotLeave {
     Kept,
     /// Its Delete action: the file goes to the trash.
     Trashed,
-    /// Dragged out and dropped somewhere (shell-host G4's drag source): the file stays.
+    /// Dragged out and dropped as a copy (shell-host's drag source, G120): the file stays.
     Dragged,
+    /// Dragged out and dropped as a move: the target has taken the file, so nothing here
+    /// touches it again.
+    Moved,
 }
 
 /// What the folders' watch is doing.
@@ -176,7 +179,7 @@ fn left(shots: Shots, id: ShotId, why: ShotLeave) -> (Shots, Vec<ShotEffect>) {
     let effects = match why {
         ShotLeave::Opened => vec![ShotEffect::Open(shot.path)],
         ShotLeave::Trashed => vec![ShotEffect::Trash(shot.path)],
-        ShotLeave::Kept | ShotLeave::Dragged => Vec::new(),
+        ShotLeave::Kept | ShotLeave::Dragged | ShotLeave::Moved => Vec::new(),
     };
     (
         Shots {
@@ -235,6 +238,7 @@ mod tests {
             (ShotLeave::Trashed, vec![ShotEffect::Trash(path("a.png"))]),
             (ShotLeave::Kept, Vec::new()),
             (ShotLeave::Dragged, Vec::new()),
+            (ShotLeave::Moved, Vec::new()),
         ];
         for (why, want) in cases {
             let (gone, fx) = reduce_shots(ready.clone(), ShotEvent::Left(ShotId(1), why));

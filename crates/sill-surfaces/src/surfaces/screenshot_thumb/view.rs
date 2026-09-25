@@ -1,23 +1,25 @@
 //! The thumbnail's root: one transparent Toast root as big as the surface, holding quire's
-//! `BannerStack` at the bottom right with at most one row, the card ([`super::card`]). The
-//! stack plays the card in from the right (`banner-in`, `--e-spring`) and out (`banner-out`,
-//! `--e-exit`) and says when the exit has settled (`on_hidden`), so the motion is quire's; the
-//! thumbnail card itself is quire gap Q181. It follows `use_shots` and the `BannerLink` through
-//! [`super::follow`] and [`super::machine::step`].
+//! `BannerStack` at the bottom right with at most one row, quire's `ShotThumbnail`
+//! ([`super::card`]). The card plays its own entrance and exit (`ShotIn`, `ShotOut`) and says
+//! when the exit has settled; after a swipe the row is unlisted and the stack flies it out along
+//! the swipe (`banner-out`) and says so instead. It follows `use_shots` and the `BannerLink`
+//! through [`super::follow`] and [`super::machine::step`].
 
 use dioxus::prelude::*;
 use ds::{Banner, BannerEntry, BannerKey, BannerPosition, BannerStack, BlurState, Ds, Material};
-use ds::{RootChrome, RootExtent};
+use ds::{RootChrome, RootExtent, Shown};
 use shell_host::{OutputId, OutputInfo, use_watch};
-use sill_services::{OutputName, Shot, ShotId};
+use sill_services::{OutputName, ShotId};
 use sill_settings::ShotThumbnail;
 
 use super::SCREENSHOT_THUMB_CSS;
 use super::card::ThumbCard;
-use super::drive::{Thumb, use_thumb};
+use super::drive::use_thumb;
 use super::follow::{Here, follow};
+use super::ghost::GhostLook;
 use super::layer::ROOM;
-use super::machine::{ThumbIn, ThumbParams, ThumbState};
+use super::machine::{ThumbExit, ThumbIn, ThumbParams, ThumbState};
+use super::picture::{ThumbPicture, picture_of};
 use crate::hooks::{
     use_appearance, use_ds_scale, use_services, use_settings, use_shots, use_workspaces,
 };
@@ -36,6 +38,7 @@ pub(super) fn thumb(output: OutputInfo) -> Element {
         hold_ms: u32::from(file.screenshot.thumbnail_hold_ms.0),
         rest_ms: u32::from(file.notifications.hover_min_remaining_ms.0),
     };
+    let ghost = GhostLook::of(&environment, look.clone());
     rsx! {
         Ds {
             scale: ds_scale,
@@ -54,8 +57,27 @@ pub(super) fn thumb(output: OutputInfo) -> Element {
                 params,
                 setting: file.screenshot.thumbnail,
                 metrics: swipe_metrics(&file.notifications),
+                ghost,
             }
         }
+    }
+}
+
+/// What the stack lists for `state`, with the card's `shown`: the row while the shot shows or
+/// plays its own exit, none once a swipe has handed the flight to the row.
+fn row_of(state: ThumbState) -> Option<(ShotId, Shown)> {
+    match state {
+        ThumbState::Shown { id, .. } => Some((id, Shown::Visible)),
+        ThumbState::Leaving {
+            id,
+            exit: ThumbExit::Card,
+            ..
+        } => Some((id, Shown::Hidden)),
+        ThumbState::Leaving {
+            exit: ThumbExit::Row,
+            ..
+        }
+        | ThumbState::Hidden => None,
     }
 }
 
@@ -66,13 +88,14 @@ fn Column(
     params: ThumbParams,
     setting: ShotThumbnail,
     metrics: ds::SwipeMetrics,
+    ghost: GhostLook,
 ) -> Element {
     let thumb = use_thumb(params, use_services().shots_control);
     use_context_provider(|| thumb);
     let shots = use_shots();
     let link = use_context::<BannerLink>();
     let place = use_watch(link.subscribe());
-    let mut kept = use_hook(|| CopyValue::new(None::<Shot>));
+    let mut kept = use_hook(|| CopyValue::new(None::<(ShotId, ThumbPicture)>));
     use_effect(use_reactive!(|setting| {
         let here = match place.read().shows_on(output) {
             true => Here::This,
@@ -80,16 +103,18 @@ fn Column(
         };
         let shots = shots.read();
         if let Some(input) = follow(&shots, here, setting) {
-            if let ThumbIn::Current(Some(_)) = input {
-                kept.set(shots.current.clone());
+            if let (ThumbIn::Current(Some(id)), Some(shot)) = (input, &shots.current) {
+                kept.set(picture_of(shot).map(|picture| (id, picture)));
             }
             thumb.input(input);
         }
     }));
-    let banners: Vec<Banner> = match (*thumb.state.read(), kept.peek().clone()) {
-        (ThumbState::Shown { id, .. }, Some(shot)) if shot.id == id => vec![Banner {
+    let banners: Vec<Banner> = match (row_of(*thumb.state.read()), kept.peek().clone()) {
+        (Some((id, shown)), Some((kept_id, picture))) if kept_id == id => vec![Banner {
             key: key_of(id),
-            card: rsx! { ThumbCard { shot, metrics } },
+            card: rsx! {
+                ThumbCard { id, picture, shown, metrics, look: ghost.clone() }
+            },
         }],
         _ => Vec::new(),
     };
@@ -99,24 +124,50 @@ fn Column(
                 banners,
                 position: BannerPosition::BottomRight,
                 entry: BannerEntry::FromRight,
-                on_hidden: move |key: BannerKey| settled(thumb, key),
+                on_hidden: move |key: BannerKey| thumb.settled(id_of(key), ThumbExit::Row),
             }
         }
-    }
-}
-
-/// The stack has played `key` out: the machine hides if that is the shot it was leaving (a
-/// replaced shot's row settles while the newer one shows, and is nothing).
-fn settled(thumb: Thumb, key: BannerKey) {
-    let state = *thumb.state.peek();
-    if let ThumbState::Leaving { id, .. } = state
-        && key_of(id) == key
-    {
-        thumb.input(ThumbIn::ExitSettled);
     }
 }
 
 /// A shot's row key (ids count up from 1; a daemon never takes four billion screenshots).
 fn key_of(id: ShotId) -> BannerKey {
     BannerKey(u32::try_from(id.0).unwrap_or(u32::MAX))
+}
+
+/// The shot a row key names.
+fn id_of(key: BannerKey) -> ShotId {
+    ShotId(u64::from(key.0))
+}
+
+#[cfg(test)]
+mod tests {
+    use ds::Shown;
+    use sill_services::ShotId;
+
+    use super::row_of;
+    use crate::surfaces::screenshot_thumb::machine::{HoldToken, Pointer, ThumbExit, ThumbState};
+
+    #[test]
+    fn the_row_stays_for_the_cards_own_exit_and_goes_for_a_swipe() {
+        let id = ShotId(3);
+        let token = HoldToken(1);
+        let leaving = |exit| ThumbState::Leaving { id, token, exit };
+        let cases = [
+            (ThumbState::Hidden, None),
+            (
+                ThumbState::Shown {
+                    id,
+                    pointer: Pointer::Dragging,
+                    token,
+                },
+                Some((id, Shown::Visible)),
+            ),
+            (leaving(ThumbExit::Card), Some((id, Shown::Hidden))),
+            (leaving(ThumbExit::Row), None),
+        ];
+        for (state, want) in cases {
+            assert_eq!(row_of(state), want, "{state:?}");
+        }
+    }
 }

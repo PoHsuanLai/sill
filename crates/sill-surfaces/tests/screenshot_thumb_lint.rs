@@ -34,7 +34,7 @@ fn shown_html() -> String {
 fn the_shown_card_is_quire_markup_only() {
     let css = format!("{}\n{}", ds::stylesheet(), SCREENSHOT_THUMB_CSS);
     let html = shown_html();
-    assert!(html.contains("sill-thumb-image"), "{html}");
+    assert!(html.contains("ds-shot-image"), "{html}");
     let offences = markup(&html, &css, &LintConfig::default());
     let raw: Vec<_> = offences
         .iter()

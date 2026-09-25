@@ -68,7 +68,7 @@ fn a_shot_slides_in_holds_and_is_kept() {
     running.ready(1);
     running.harness.advance(Duration::from_millis(20));
     assert_eq!(running.cards(), 1, "quire's stack slides it in");
-    let src = running.harness.attr(".sill-thumb-image", "src");
+    let src = running.harness.attr(".ds-shot-image", "src");
     assert!(
         src.as_deref()
             .is_some_and(|s| s.starts_with("file://") && s.ends_with("Screenshot_fixture.png")),
@@ -100,11 +100,8 @@ fn the_pointer_pauses_the_hold_and_leaving_gives_the_rest() {
     running.harness.pointer_move(card);
     running.harness.advance(Duration::from_millis(40));
     assert_eq!(
-        running
-            .harness
-            .attr(".sill-thumb", "data-pointer")
-            .as_deref(),
-        Some("over")
+        running.harness.attr(".ds-shot", "data-hover").as_deref(),
+        Some("on")
     );
     running
         .harness
@@ -159,7 +156,7 @@ fn delete_trashes_it() {
     running.harness.advance(Duration::from_millis(300));
     let button = running
         .harness
-        .centre(".sill-thumb-actions .ds-icon-button")
+        .centre(".ds-shot-actions .ds-icon-button")
         .expect("the Delete button"); // test-only
     running.harness.pointer_move(button);
     running.harness.advance(Duration::from_millis(40));
@@ -169,15 +166,78 @@ fn delete_trashes_it() {
 }
 
 #[test]
-fn a_drag_out_has_nowhere_to_go_yet_and_the_card_stays() {
+fn a_drag_out_with_no_host_is_refused_the_card_stays_and_the_hold_resumes() {
     let mut running = start(file());
     running.one_up();
     let card = running.card();
     running.harness.pointer_move(card);
     drag(&mut running, card, -100.0, -60.0);
     running.harness.advance(Duration::from_millis(400));
-    assert_eq!(running.commands(), Vec::new());
+    assert_eq!(
+        running.commands(),
+        Vec::new(),
+        "no drag source in a harness"
+    );
     assert_eq!((running.cards(), running.leaving()), (1, 0));
+    // Refused, the hold gives the rest after a hover again and then keeps the file.
+    let rest = u64::from(ShellFile::default().notifications.hover_min_remaining_ms.0);
+    assert_eq!(
+        running.until(Duration::from_millis(rest + 900), |r| r.leaving() == 1),
+        Done::Yes
+    );
+    assert_eq!(running.commands(), leave(1, ShotLeave::Kept));
+}
+
+#[test]
+fn the_picture_is_the_preview_file_at_its_own_shape() {
+    let mut running = start(file());
+    running.one_up();
+    let src = running.harness.attr(".ds-shot-image", "src");
+    assert!(
+        src.as_deref().is_some_and(|s| s.starts_with("file:///")),
+        "{src:?}"
+    );
+    let plate = running
+        .harness
+        .rect("#thumb")
+        .expect("the plate is the region");
+    assert_eq!(plate.size.width.0.round(), 240.0);
+    // Blitz loaded the file: the painted picture has the fixture's colour, not the card's.
+    let image = running.harness.rect(".ds-shot-image").expect("the picture");
+    let painted = running.harness.render().expect("a paint");
+    let inside = |x: u32, y: u32| {
+        let px = |v: f32| v.round() as u32;
+        (px(image.origin.x.0) + 4..px(image.origin.x.0 + image.size.width.0) - 4).contains(&x)
+            && (px(image.origin.y.0) + 4..px(image.origin.y.0 + image.size.height.0) - 4)
+                .contains(&y)
+    };
+    let drawn = mean(
+        painted
+            .enumerate_pixels()
+            .filter(|(x, y, _)| inside(*x, *y))
+            .map(|(_, _, p)| p.0),
+    );
+    let fixture = image::open(screenshot_thumb_support::FIXTURE)
+        .expect("the fixture")
+        .to_rgba8();
+    let want = mean(fixture.pixels().map(|p| p.0));
+    let apart = drawn
+        .iter()
+        .zip(want.iter())
+        .map(|(a, b)| (a - b).abs())
+        .fold(0.0_f64, f64::max);
+    assert!(apart < 24.0, "painted {drawn:?}, the file {want:?}");
+}
+
+/// The mean red, green and blue of `pixels`.
+fn mean(pixels: impl Iterator<Item = [u8; 4]>) -> [f64; 3] {
+    let (sum, count) = pixels.fold(([0.0; 3], 0.0), |(mut sum, count), p| {
+        for (s, v) in sum.iter_mut().zip(p) {
+            *s += f64::from(v);
+        }
+        (sum, count + 1.0)
+    });
+    sum.map(|s| s / f64::max(count, 1.0))
 }
 
 #[test]

@@ -1,16 +1,20 @@
 //! The effects end of the thumbnail: feed [`step`] and carry out what it returns. The hold is
 //! quire's timer (`ds::sleep`, for `screenshot.thumbnail_hold_ms` or the banners' rest after a
 //! hover, never a literal), one at a time and a task of the thumbnail's own scope; `Show` maps
-//! the surface, `Hide` unmaps it, `Leave` tells the service. While hidden no task runs.
+//! the surface, `Hide` unmaps it, `Leave` tells the service; a drag out is a task of the same
+//! scope awaiting shell-host's outcome. While hidden no task runs.
 
 use std::time::Duration;
 
 use dioxus::core::{Runtime, ScopeId, Task, current_scope_id};
 use dioxus::prelude::*;
 use shell_host::{SurfaceHandle, SurfaceOp, Visibility};
-use sill_services::{Control, ShotCommand};
+use sill_services::{Control, ShotCommand, ShotId};
 
-use super::machine::{Pointer, ThumbIn, ThumbOut, ThumbParams, ThumbState, step};
+use super::drag::{drag_end, file_drag};
+use super::ghost::GhostLook;
+use super::machine::{DragEnd, ThumbExit, ThumbIn, ThumbOut, ThumbParams, ThumbState, step};
+use super::picture::ThumbPicture;
 
 /// Everything the thumbnail's handlers share. Copy: signals and cells only.
 #[derive(Clone, Copy)]
@@ -36,12 +40,35 @@ impl Thumb {
         }
     }
 
-    /// Whether the pointer is on the card.
-    pub fn pointer(self) -> Pointer {
-        match *self.state.read() {
-            ThumbState::Shown { pointer, .. } => pointer,
-            ThumbState::Leaving { .. } | ThumbState::Hidden => Pointer::Away,
+    /// `exit` has played shot `id` out: the machine hides if that is the exit it was waiting for
+    /// (a replaced shot's card or row settles while a newer one shows, and is nothing).
+    pub fn settled(self, id: ShotId, exit: ThumbExit) {
+        let state = *self.state.peek();
+        if matches!(state, ThumbState::Leaving { id: leaving, exit: how, .. } if leaving == id && how == exit)
+        {
+            self.input(ThumbIn::ExitSettled);
         }
+    }
+
+    /// Carry shot `id`'s file out of the surface (quire's card said a press crossed its drag
+    /// threshold; the press is still down), its ghost drawn in `look`, and feed the machine the
+    /// outcome when the drop or the cancel comes back. Without a host (a test, an SSR render)
+    /// the drag is refused at once.
+    pub fn drag_out(self, id: ShotId, picture: &ThumbPicture, look: GhostLook) {
+        self.input(ThumbIn::DragStarted(id));
+        let surface = self.surface.peek().clone();
+        let (Some(surface), Some(spec)) = (surface, file_drag(picture, look)) else {
+            eprintln!("sill: screenshot drag: no surface or no file URI; the card stays");
+            self.input(ThumbIn::DragEnded(id, DragEnd::Refused));
+            return;
+        };
+        Runtime::current().in_scope(self.scope, || {
+            spawn(async move {
+                let outcome = surface.start_drag(spec).await;
+                eprintln!("sill: screenshot drag: {outcome:?}");
+                self.input(ThumbIn::DragEnded(id, drag_end(&outcome)));
+            })
+        });
     }
 
     fn perform(self, out: ThumbOut) {

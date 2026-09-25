@@ -1,13 +1,18 @@
 //! The thumbnail's machine: pure, table-tested; the surface feeds it the service's current shot,
-//! the pointer, the gestures and quire's timers, and carries out what it returns.
+//! the pointer, the gestures, the drag's outcome and quire's timers, and carries out what it
+//! returns.
 //!
 //! - A new current shot shows (`Show`) and starts the hold (`StartHold` with a fresh token); a
 //!   newer one while shown or leaving replaces it the same way.
 //! - The pointer on the card pauses the hold (the token moves on, so the running timer's
-//!   `HoldElapsed` is stale); leaving it starts `rest_ms` more.
-//! - The hold running out with the pointer away, a swipe, a click, a drag out and Delete each
-//!   leave: `Leave(id, why)` (the surface tells the service) and the state is `Leaving` while
-//!   the exit plays; `ExitSettled` hides (`Hide`, the surface unmaps).
+//!   `HoldElapsed` is stale); leaving it starts `rest_ms` more. A drag out pauses it the same
+//!   way until its outcome comes back.
+//! - The hold running out with the pointer away, a swipe, a click, a drop and Delete each leave:
+//!   `Leave(id, why)` (the surface tells the service) and the state is `Leaving` while the exit
+//!   plays, the card's own (`ThumbExit::Card`) or, after a swipe, its row's (`ThumbExit::Row`);
+//!   `ExitSettled` hides (`Hide`, the surface unmaps).
+//! - A drag that was cancelled, or never started, leaves the card where it is and gives the
+//!   hold `rest_ms` again.
 //! - The service dropping the current shot (`Current(None)`) while shown leaves without a
 //!   `Leave`: it already knows.
 
@@ -17,11 +22,22 @@ use sill_services::{ShotId, ShotLeave};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct HoldToken(pub u32);
 
-/// Where the pointer is.
+/// Where the pointer is, as far as the hold cares.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Pointer {
     Away,
     Over,
+    /// Carrying the file out: the compositor has the pointer until the drag ends.
+    Dragging,
+}
+
+/// Which motion carries a leaving card out.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ThumbExit {
+    /// The card's own exit (quire's `ShotOut`), its row still listed.
+    Card,
+    /// A swipe: the row is unlisted and quire's stack flies it out along the swipe.
+    Row,
 }
 
 /// The thumbnail's state.
@@ -37,6 +53,7 @@ pub enum ThumbState {
     Leaving {
         id: ShotId,
         token: HoldToken,
+        exit: ThumbExit,
     },
 }
 
@@ -47,6 +64,19 @@ pub struct ThumbParams {
     pub hold_ms: u32,
     /// What is left after the pointer leaves the card (the banners' `hover_min_remaining_ms`).
     pub rest_ms: u32,
+}
+
+/// How a drag out of the card ended (shell-host's `DragOutcome`, as the thumbnail reads it).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DragEnd {
+    /// Dropped and copied: the file stays where it was saved.
+    Copied,
+    /// Dropped and moved: the target has the file now.
+    Moved,
+    /// Released over nothing that took it.
+    Cancelled,
+    /// The drag never started.
+    Refused,
 }
 
 /// What happened.
@@ -60,8 +90,10 @@ pub enum ThumbIn {
     Click,
     /// A swipe right past quire's threshold.
     SwipedAway,
-    /// A drag out of the card was dropped somewhere.
-    DraggedOut,
+    /// A press on the card crossed quire's drag threshold: shot `id` is being carried out.
+    DragStarted(ShotId),
+    /// The drag of shot `id` ended.
+    DragEnded(ShotId, DragEnd),
     /// The Delete action.
     TrashPressed,
     /// The exit motion finished.
@@ -89,7 +121,7 @@ pub fn step(state: ThumbState, input: ThumbIn, params: ThumbParams) -> (ThumbSta
             _ => (state, Vec::new()),
         },
         ThumbState::Shown { id, pointer, token } => shown(id, pointer, token, input, params),
-        ThumbState::Leaving { id, token } => match input {
+        ThumbState::Leaving { id, token, .. } => match input {
             ThumbIn::ExitSettled => (ThumbState::Hidden, vec![ThumbOut::Hide]),
             ThumbIn::Current(Some(next)) if next != id => {
                 show(next, Pointer::Away, next_token(token), params)
@@ -112,9 +144,20 @@ fn show(
             ThumbOut::Show(id),
             ThumbOut::StartHold(token, params.hold_ms),
         ],
-        Pointer::Over => vec![ThumbOut::Show(id)],
+        Pointer::Over | Pointer::Dragging => vec![ThumbOut::Show(id)],
     };
     (state, outs)
+}
+
+/// Shown, the pointer away, and `rest_ms` more on the hold.
+fn rested(id: ShotId, token: HoldToken, params: ThumbParams) -> (ThumbState, Vec<ThumbOut>) {
+    let token = next_token(token);
+    let state = ThumbState::Shown {
+        id,
+        pointer: Pointer::Away,
+        token,
+    };
+    (state, vec![ThumbOut::StartHold(token, params.rest_ms)])
 }
 
 fn shown(
@@ -125,43 +168,48 @@ fn shown(
     params: ThumbParams,
 ) -> (ThumbState, Vec<ThumbOut>) {
     let state = ThumbState::Shown { id, pointer, token };
-    let leave = |why| {
+    let leave = |why, exit| {
         (
-            ThumbState::Leaving { id, token },
+            ThumbState::Leaving { id, token, exit },
             vec![ThumbOut::Leave(id, why)],
         )
+    };
+    let paused = |pointer| {
+        let token = next_token(token);
+        (ThumbState::Shown { id, pointer, token }, Vec::new())
     };
     match (input, pointer) {
         (ThumbIn::Current(Some(next)), _) if next != id => {
             show(next, pointer, next_token(token), params)
         }
-        (ThumbIn::Current(None), _) => (ThumbState::Leaving { id, token }, Vec::new()),
-        (ThumbIn::HoldElapsed(elapsed), Pointer::Away) if elapsed == token => {
-            leave(ShotLeave::Kept)
-        }
-        (ThumbIn::PointerEnter, Pointer::Away) => (
-            ThumbState::Shown {
+        (ThumbIn::Current(None), _) => (
+            ThumbState::Leaving {
                 id,
-                pointer: Pointer::Over,
-                token: next_token(token),
+                token,
+                exit: ThumbExit::Card,
             },
             Vec::new(),
         ),
-        (ThumbIn::PointerLeave, Pointer::Over) => {
-            let token = next_token(token);
-            (
-                ThumbState::Shown {
-                    id,
-                    pointer: Pointer::Away,
-                    token,
-                },
-                vec![ThumbOut::StartHold(token, params.rest_ms)],
-            )
+        (ThumbIn::HoldElapsed(elapsed), Pointer::Away) if elapsed == token => {
+            leave(ShotLeave::Kept, ThumbExit::Card)
         }
-        (ThumbIn::Click, _) => leave(ShotLeave::Opened),
-        (ThumbIn::SwipedAway, _) => leave(ShotLeave::Kept),
-        (ThumbIn::DraggedOut, _) => leave(ShotLeave::Dragged),
-        (ThumbIn::TrashPressed, _) => leave(ShotLeave::Trashed),
+        (ThumbIn::PointerEnter, Pointer::Away) => paused(Pointer::Over),
+        (ThumbIn::PointerLeave, Pointer::Over) => rested(id, token, params),
+        (ThumbIn::DragStarted(dragged), Pointer::Away | Pointer::Over) if dragged == id => {
+            paused(Pointer::Dragging)
+        }
+        (ThumbIn::DragEnded(dragged, end), Pointer::Dragging) if dragged == id => match end {
+            DragEnd::Copied => leave(ShotLeave::Dragged, ThumbExit::Card),
+            DragEnd::Moved => leave(ShotLeave::Moved, ThumbExit::Card),
+            DragEnd::Cancelled | DragEnd::Refused => rested(id, token, params),
+        },
+        // The drag of a shot since replaced: over, whatever became of it, so the hold resumes.
+        (ThumbIn::DragEnded(..), Pointer::Dragging) => rested(id, token, params),
+        (ThumbIn::Click, Pointer::Away | Pointer::Over) => {
+            leave(ShotLeave::Opened, ThumbExit::Card)
+        }
+        (ThumbIn::SwipedAway, _) => leave(ShotLeave::Kept, ThumbExit::Row),
+        (ThumbIn::TrashPressed, _) => leave(ShotLeave::Trashed, ThumbExit::Card),
         _ => (state, Vec::new()),
     }
 }
@@ -171,125 +219,5 @@ fn next_token(token: HoldToken) -> HoldToken {
 }
 
 #[cfg(test)]
-mod tests {
-    use sill_services::{ShotId, ShotLeave};
-
-    use super::{HoldToken, Pointer, ThumbIn, ThumbOut, ThumbParams, ThumbState, step};
-
-    const P: ThumbParams = ThumbParams {
-        hold_ms: 5200,
-        rest_ms: 1500,
-    };
-    const ONE: ShotId = ShotId(1);
-    const TWO: ShotId = ShotId(2);
-
-    fn shown(id: ShotId, pointer: Pointer, token: u32) -> ThumbState {
-        ThumbState::Shown {
-            id,
-            pointer,
-            token: HoldToken(token),
-        }
-    }
-
-    #[test]
-    fn the_thumbnail_follows_its_table() {
-        use Pointer::{Away, Over};
-        use ThumbIn::*;
-        let leaving = |id, token| ThumbState::Leaving {
-            id,
-            token: HoldToken(token),
-        };
-        let cases: Vec<(ThumbState, ThumbIn, ThumbState, Vec<ThumbOut>)> = vec![
-            (
-                ThumbState::Hidden,
-                Current(Some(ONE)),
-                shown(ONE, Away, 1),
-                vec![ThumbOut::Show(ONE), ThumbOut::StartHold(HoldToken(1), 5200)],
-            ),
-            (
-                ThumbState::Hidden,
-                Current(None),
-                ThumbState::Hidden,
-                vec![],
-            ),
-            (ThumbState::Hidden, Click, ThumbState::Hidden, vec![]),
-            (
-                shown(ONE, Away, 1),
-                Current(Some(ONE)),
-                shown(ONE, Away, 1),
-                vec![],
-            ),
-            (
-                shown(ONE, Away, 1),
-                Current(Some(TWO)),
-                shown(TWO, Away, 2),
-                vec![ThumbOut::Show(TWO), ThumbOut::StartHold(HoldToken(2), 5200)],
-            ),
-            (
-                shown(ONE, Away, 1),
-                PointerEnter,
-                shown(ONE, Over, 2),
-                vec![],
-            ),
-            (
-                shown(ONE, Over, 2),
-                HoldElapsed(HoldToken(1)),
-                shown(ONE, Over, 2),
-                vec![],
-            ),
-            (
-                shown(ONE, Over, 2),
-                PointerLeave,
-                shown(ONE, Away, 3),
-                vec![ThumbOut::StartHold(HoldToken(3), 1500)],
-            ),
-            (
-                shown(ONE, Away, 3),
-                HoldElapsed(HoldToken(3)),
-                leaving(ONE, 3),
-                vec![ThumbOut::Leave(ONE, ShotLeave::Kept)],
-            ),
-            (
-                shown(ONE, Over, 2),
-                Click,
-                leaving(ONE, 2),
-                vec![ThumbOut::Leave(ONE, ShotLeave::Opened)],
-            ),
-            (
-                shown(ONE, Over, 2),
-                SwipedAway,
-                leaving(ONE, 2),
-                vec![ThumbOut::Leave(ONE, ShotLeave::Kept)],
-            ),
-            (
-                shown(ONE, Over, 2),
-                DraggedOut,
-                leaving(ONE, 2),
-                vec![ThumbOut::Leave(ONE, ShotLeave::Dragged)],
-            ),
-            (
-                shown(ONE, Over, 2),
-                TrashPressed,
-                leaving(ONE, 2),
-                vec![ThumbOut::Leave(ONE, ShotLeave::Trashed)],
-            ),
-            (shown(ONE, Away, 1), Current(None), leaving(ONE, 1), vec![]),
-            (
-                leaving(ONE, 2),
-                ExitSettled,
-                ThumbState::Hidden,
-                vec![ThumbOut::Hide],
-            ),
-            (leaving(ONE, 2), Click, leaving(ONE, 2), vec![]),
-            (
-                leaving(ONE, 2),
-                Current(Some(TWO)),
-                shown(TWO, Away, 3),
-                vec![ThumbOut::Show(TWO), ThumbOut::StartHold(HoldToken(3), 5200)],
-            ),
-        ];
-        for (from, input, want, outs) in cases {
-            assert_eq!(step(from, input, P), (want, outs), "{from:?} + {input:?}");
-        }
-    }
-}
+#[path = "machine_table.rs"]
+mod tests;
