@@ -25,7 +25,7 @@ use sill_surfaces::widgets::up_next::UpNextWidget;
 use sill_surfaces::widgets::{WidgetHost, widgets_css};
 
 /// Today's number, on the accent disc.
-const TODAY: &str = ".ds-month-day[aria-current=date] .ds-month-num";
+const TODAY: &str = ".ds-month-day[*|aria-current=date] .ds-month-num";
 
 /// Which widget the harness draws.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
