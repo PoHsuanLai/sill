@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::identity::IdentityKey;
-use super::scale::{DisplayScale, Ppi};
+use super::scale::{DisplayScale, Ppi, ScaleRounding};
 use crate::units::Percent;
 
 /// Whether sill picks a new display's scale.
@@ -86,6 +86,7 @@ pub struct DisplayPolicy {
     pub scale: ScaleMode,
     pub scale_overrides: Vec<ScaleOverride>,
     pub density_target: Ppi,
+    pub scale_rounding: ScaleRounding,
     pub keys_target: KeysTarget,
     pub hardware_volume: HardwareVolume,
     pub night_warmth: NightWarmth,
@@ -98,6 +99,7 @@ impl Default for DisplayPolicy {
             scale: ScaleMode::Auto,
             scale_overrides: Vec::new(),
             density_target: Ppi::APPLE_27,
+            scale_rounding: ScaleRounding::default(),
             keys_target: KeysTarget::PointerOutput,
             hardware_volume: HardwareVolume::WhenMonitorIsOutput,
             night_warmth: NightWarmth::Off,

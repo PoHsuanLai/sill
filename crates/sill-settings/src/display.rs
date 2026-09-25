@@ -33,6 +33,26 @@ pub enum DisplayScaleMode {
     Manual,
 }
 
+/// `display.scale_rounding`.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    Serialize,
+    Deserialize,
+    ds_settings::SettingsSchema,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum ScaleRounding {
+    #[default]
+    PreferWhole,
+    Nearest,
+}
+
 /// `display.brightness_keys_target`.
 #[derive(
     Debug,
@@ -162,6 +182,13 @@ pub struct DisplaySettings {
     )]
     pub density_target_ppi: Count,
     #[settings(
+        label = "Scale rounding",
+        help = "Round a sharp display up to a whole scale (crisper, like a Mac's default) or to the nearest step (more space).",
+        section = "Displays",
+        advanced
+    )]
+    pub scale_rounding: ScaleRounding,
+    #[settings(
         label = "Brightness keys adjust",
         help = "The display under the pointer (else the focused one), or every display at once.",
         section = "Brightness",
@@ -217,6 +244,7 @@ impl Default for DisplaySettings {
             scale: DisplayScaleMode::Auto,
             scale_overrides: String::new(),
             density_target_ppi: Count(109),
+            scale_rounding: ScaleRounding::PreferWhole,
             brightness_keys_target: BrightnessKeysTarget::PointerOutput,
             hardware_volume: HardwareVolumeMode::WhenMonitorIsOutput,
             night_warmth: NightWarmthMode::Off,

@@ -127,6 +127,10 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
         ("display.scale", toml::Value::String("auto".to_owned())),
         ("display.density_target_ppi", toml::Value::Integer(109)),
         (
+            "display.scale_rounding",
+            toml::Value::String("prefer_whole".to_owned()),
+        ),
+        (
             "display.hardware_volume",
             toml::Value::String("when_monitor_is_output".to_owned()),
         ),

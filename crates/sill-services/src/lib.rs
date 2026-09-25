@@ -52,7 +52,7 @@ pub use curve::ease;
 pub use displays::{
     BrightnessTarget, DisplayOutput, DisplayPolicy, DisplayScale, Displays, DisplaysCommand,
     FontRenderingMode, Gamut, HardwareVolume, IdentityKey, KeysTarget, LevelChange, NightWarmth,
-    Ppi, ScaleMode, ScaleOverride,
+    Ppi, ScaleMode, ScaleOverride, ScaleRounding,
 };
 pub use error::ServiceError;
 pub use launch::{

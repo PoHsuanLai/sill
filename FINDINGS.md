@@ -1938,38 +1938,51 @@ heads); nothing is keyed to a vendor or a model, and every default has a `displa
 
 - **Policy** (`displays::scale`, table-tested): density along the diagonal from the EDID's
   preferred-timing millimetres (else the base block's centimetres, else the compositor's
-  `physical`), divided by `display.density_target_ppi` (109, Apple's 27-inch 2560 x 1440); the
-  integer when within 0.15 of one, else the nearest of 1, 1.25, 1.5, 1.75, 2, 2.5, 3. With no
-  usable size (0 mm, or a density outside 40-600 ppi such as a TV reporting 16 x 9 cm): 2 when
-  the panel is at least 3840 px wide, else 1.
+  `physical`), divided by `display.density_target_ppi` (109, Apple's 27-inch 2560 x 1440), then
+  rounded per `display.scale_rounding`. With no usable size (0 mm, or a density outside 40-600
+  ppi such as a TV reporting 16 x 9 cm): 2 when the panel is at least 3840 px wide, else 1 -
+  `scale_rounding` plays no part there, since there is no density to round.
+  - **`Nearest`**: the integer when within 0.15 of one, else the nearest of 1, 1.25, 1.5, 1.75,
+    2, 2.5, 3.
+  - **`PreferWhole`** (the default, added 2026-09-25): macOS's own default for a sharp external
+    display - a 4K screen defaults to 2x there, "looks like 1920x1080" - rather than the
+    fractional scale that gives more logical space but a softer render. Below 1.5, `Nearest`'s
+    answer; at or above it, the ideal rounded half-up to a whole scale (1, 2 or 3) so long as
+    that leaves at least `MIN_LOGICAL_WIDTH` (1280) logical pixels across, else `Nearest`'s
+    answer. The user tried both on their 27" 4K (BenQ MA270U) and preferred 2.0 over 1.5.
 
-  | display | ppi | raw | scale |
-  |---|---|---|---|
-  | 27" 4K (and the MA270U's own 597 x 336 mm) | 163 | 1.50 | 1.5 |
-  | 27" 5K | 218 | 2.00 | 2 |
-  | 24" 1080p | 92 | 0.84 | 1 |
-  | 13.3" 2560 x 1600 | 227 | 2.08 | 2 |
-  | 14" 2880 x 1800 | 242 | 2.23 | 2 (outside the integer pull, but 2 is still the nearest step) |
-  | 32" 4K | 138 | 1.26 | 1.25 |
-  | 27" 1440p | 109 | 1.00 | 1 |
-  | 15.6" 1080p | 141 | 1.29 | 1.25 |
-  | 14" 1920 x 1200 | 162 | 1.48 | 1.5 |
-  | 16" 2560 x 1600 | 189 | 1.73 | 1.75 |
-  | 13.6" 2560 x 1664 | 224 | 2.06 | 2 |
-  | 34" 3440 x 1440 | 110 | 1.01 | 1 |
-  | 32" 6K | 216 | 1.98 | 2 |
-  | a projector at 1080p / 4K (0 mm) | - | - | 1 / 2 |
+  | display | ppi | raw | Nearest | PreferWhole |
+  |---|---|---|---|---|
+  | 27" 4K (and the MA270U's own 597 x 336 mm) | 163 | 1.50 | 1.5 | 2 |
+  | 27" 5K | 218 | 2.00 | 2 | 2 |
+  | 24" 1080p | 92 | 0.84 | 1 | 1 |
+  | 13.3" 2560 x 1600 | 227 | 2.08 | 2 | 2 |
+  | 14" 2880 x 1800 | 242 | 2.23 | 2 (outside the integer pull, but 2 is still the nearest step) | 2 |
+  | 32" 4K | 138 | 1.26 | 1.25 | 1.25 (below 1.5, unchanged) |
+  | 27" 1440p | 109 | 1.00 | 1 | 1 |
+  | 15.6" 1080p | 141 | 1.29 | 1.25 | 1.25 (below 1.5, unchanged; Windows' own 125% for these) |
+  | 14" 1920 x 1200 | 162 | 1.48 | 1.5 | 1.5 (below 1.5, unchanged) |
+  | 16" 2560 x 1600 | 189 | 1.73 | 1.75 | 2 |
+  | 13.6" 2560 x 1664 | 224 | 2.06 | 2 | 2 |
+  | 34" 3440 x 1440 | 110 | 1.01 | 1 | 1 |
+  | 32" 6K | 216 | 1.98 | 2 | 2 |
+  | 13.5" 2256 x 1504 | 201 | 1.84 | 1.75 | 1.75 (whole scale 2 wants 2256 / 2 = 1128 px, under `MIN_LOGICAL_WIDTH`, so this falls back) |
+  | 15.6" 4K | 283 | 2.59 | 2.5 | 3 (3840 / 3 = 1280, exactly `MIN_LOGICAL_WIDTH`) |
+  | a projector at 1080p / 4K (0 mm) | - | - | 1 / 2 | 1 / 2 |
 
   No common laptop came out absurd, so the rule stands as specified; the one addition is the
   plausibility window. For comparison, cosmic-comp 1.8 picks its own default for a new output
   (read for the behaviour only; it is GPL): 4K always 2, 50 % steps, different step sizes for
-  laptops and desktops, and a cap by the shorter side. On the MA270U COSMIC alone gives 2 and
-  sill gives 1.5.
+  laptops and desktops, and a cap by the shorter side. On the MA270U COSMIC gives 2 and sill,
+  under its new default, now agrees.
 - **Applying** (`displays::seen`, `scale_pass`, `sink`): only on the first sight of an identity
   (`IdentityKey`: `BNQ-8074-<FNV-1a of make, product and serial>`; the serial is never stored
   in clear), recorded in `$XDG_STATE_HOME/sill/displays.json`. A recorded display is never
-  rescaled, and `display.scale = "manual"` records without setting. `display.scale_overrides`
-  is the one way sill changes a known display: a `<identity> = <scale>` pair applies when it is
+  rescaled, and `display.scale = "manual"` records without setting. Since the scale pass only
+  ever runs on a display's first sight, `display.scale_rounding`'s new default needs no
+  migration: it changes nothing for a display sill has already recorded, and reaches only a
+  display connected from here on. `display.scale_overrides` is the one way sill changes a known
+  display: a `<identity> = <scale>` pair applies when it is
   added or edited (it is compared with the scale sill last set, so a later change in COSMIC
   Settings stands). A failed set records nothing, so the next output change retries.
 - **Route**: cosmic-comp 1.8 persists output state itself in
