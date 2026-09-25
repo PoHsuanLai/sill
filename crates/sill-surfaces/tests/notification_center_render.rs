@@ -141,13 +141,13 @@ fn n_more_opens_the_group_and_show_less_closes_it() {
     let toggle = format!(".sill-nc-group:nth-child(1) {TOGGLE}");
     let more = running.harness.centre(&toggle).expect("N more");
     running.harness.click(more);
-    running.advance(60);
+    running.until(|h| h.count(".sill-nc-row") == 4);
     let h = &running.harness;
     assert_eq!(h.count(".sill-nc-row"), 4, "Mail's three and Chat's one");
     assert_eq!(h.text_of(&toggle).as_deref(), Some("Show less"));
     let less = h.centre(&toggle).expect("Show less");
     running.harness.click(less);
-    running.advance(60);
+    running.until(|h| h.count(".sill-nc-row") == 2);
     assert_eq!(running.harness.count(".sill-nc-row"), 2);
     assert!(
         running.commands().is_empty(),
@@ -163,15 +163,15 @@ fn clear_and_clear_all_go_to_the_service() {
         .centre(&format!(".sill-nc-group:nth-child(2) {CLEAR}"))
         .expect("Chat's Clear");
     running.harness.click(clear);
-    running.advance(40);
+    let mut sent = running.commands_until(1);
     let all = running
         .harness
         .centre(".sill-nc-head .ds-button")
         .expect("Clear All");
     running.harness.click(all);
-    running.advance(40);
+    sent.extend(running.commands_until(1));
     assert_eq!(
-        running.commands(),
+        sent,
         vec![
             NotificationsCommand::ClearHistory(Clear::App(AppKey("chat".to_owned()))),
             NotificationsCommand::ClearHistory(Clear::All),
@@ -187,22 +187,26 @@ fn a_press_on_a_stack_opens_it_and_a_lone_cards_close_dismisses_it() {
         .centre(".sill-nc-group:nth-child(1) .ds-notification-plate")
         .expect("Mail's stack");
     running.harness.click(stack);
-    running.advance(60);
+    running.until(|h| h.count(".sill-nc-row") == 4);
     assert_eq!(running.harness.count(".sill-nc-row"), 4, "the stack opened");
     let chat = running
         .harness
         .centre(".sill-nc-group:nth-child(2) .ds-notification-plate")
         .expect("Chat's card");
     running.harness.pointer_move(chat);
+    running.until(|h| {
+        h.attr(".sill-nc-group:nth-child(2) .ds-notification", "data-hover")
+            .as_deref()
+            == Some("on")
+    });
     running.advance(300);
     let close = running
         .harness
         .centre(".sill-nc-group:nth-child(2) .ds-notification-close")
         .expect("its close button");
     running.harness.click(close);
-    running.advance(40);
     assert_eq!(
-        running.commands(),
+        running.commands_until(1),
         vec![NotificationsCommand::Dismiss(
             sill_services::NotificationId(4)
         )]
@@ -263,7 +267,7 @@ fn a_press_outside_the_panel_closes_it_after_quires_exit() {
         x: ds::Px(100.0),
         y: ds::Px(400.0),
     });
-    running.advance(20);
+    running.until(|h| h.attr(".ds-panel", "data-presence").as_deref() != Some("present"));
     assert_eq!(running.link.now(), CenterShown::Closed);
     assert_eq!(
         running
@@ -305,7 +309,8 @@ fn a_press_inside_the_panel_keeps_it_open() {
     let mut running = opened(two_apps());
     let title = running.harness.centre(".sill-nc-title").expect("the title");
     running.harness.click(title);
-    running.advance(40);
+    // Nothing should change, so nothing to wait on: a margin past the panel's exit time.
+    running.advance(400);
     assert_eq!(running.link.now(), CenterShown::Open(fake::output().id));
     assert_eq!(running.harness.count(".ds-panel"), 1);
 }

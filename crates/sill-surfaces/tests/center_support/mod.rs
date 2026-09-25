@@ -73,6 +73,23 @@ impl Running {
     pub fn advance(&mut self, ms: u64) {
         self.harness.advance(Duration::from_millis(ms));
     }
+
+    /// Advance until `done` holds ([`settle`]): what a click test waits on, rather than a fixed
+    /// advance a loaded parallel run can outlast (G130).
+    pub fn until(&mut self, done: impl Fn(&Harness) -> bool) {
+        settle(&mut self.harness, done);
+    }
+
+    /// The commands sent, advancing until `count` have come, at most two seconds.
+    pub fn commands_until(&mut self, count: usize) -> Vec<NotificationsCommand> {
+        let until = Instant::now() + Duration::from_secs(2);
+        let mut sent = self.commands();
+        while sent.len() < count && Instant::now() < until {
+            self.harness.advance(Duration::from_millis(20));
+            sent.extend(self.commands());
+        }
+        sent
+    }
 }
 
 /// The center on `file`'s settings over `history`, closed.
