@@ -1,5 +1,5 @@
 //! Effectful services behind watch channels: power, network, Wi-Fi, Bluetooth, power profiles,
-//! Now Playing, the session, notifications, volume, tray, apps, launcher entries, dock pins, launcher search,
+//! Now Playing, the session, notifications, calendar events, screenshots, volume, tray, apps, launcher entries, dock pins, launcher search,
 //! wallpaper, sounds, displays and COSMIC Wayland state (plan
 //! "Design: `<shell>` repo", `sill-services`).
 //!
@@ -22,6 +22,7 @@ pub mod cosmic_wl;
 pub mod curve;
 pub mod displays;
 pub mod error;
+pub mod events;
 pub mod launch;
 pub mod locker;
 pub mod magnify;
@@ -34,6 +35,7 @@ pub mod power_profile;
 pub mod programs;
 pub mod providers;
 pub mod results;
+pub mod screenshots;
 pub mod services;
 pub mod session;
 pub mod sound;
@@ -68,6 +70,7 @@ pub use displays::{
     Ppi, ScaleMode, ScaleOverride, ScaleRounding,
 };
 pub use error::ServiceError;
+pub use events::{Agenda, CalEvent, EventTime, EventsCommand, SourceStatus};
 pub use launch::{
     LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches, ScopeUnit,
     reduce_launches,
@@ -98,6 +101,7 @@ pub use power_profile::{
     reduce_power_profiles,
 };
 pub use results::{Results, ResultsEvent, SearchCommand, reduce_results};
+pub use screenshots::{Shot, ShotCommand, ShotId, ShotKind, ShotLeave, ShotPreview, Shots};
 pub use services::Services;
 pub use session::{Offer, Session, SessionAction, SessionCommand, SessionEvent, reduce_session};
 pub use sound::{SoundCommand, SoundName};

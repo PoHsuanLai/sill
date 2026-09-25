@@ -1,7 +1,7 @@
 //! The shared channels every surface root gets beside `Services` and `SettingsFeed`: the focus
 //! mode, the power menu's shown state, and the control center's toggle asks (FINDINGS "M5
 //! freeze"); the notification center's shown state and the banners' output (FINDINGS "M6
-//! freeze").
+//! freeze"); the hot corners' firings (FINDINGS "M10 freeze").
 //!
 //! Set once in [`crate::daemon::run`] and read by `daemon::surface_root` and the IPC dispatch.
 //! A `OnceLock` rather than one more argument through every `spawn_missing_*`: those functions
@@ -14,6 +14,7 @@ use std::sync::OnceLock;
 use sill_settings::FocusLink;
 use sill_surfaces::surfaces::banners::BannerLink;
 use sill_surfaces::surfaces::control_center::ControlCenterLink;
+use sill_surfaces::surfaces::hot_corners::CornerLink;
 use sill_surfaces::surfaces::notification_center::CenterLink;
 use sill_surfaces::surfaces::power_menu::PowerMenuLink;
 
@@ -26,6 +27,9 @@ pub struct Links {
     /// M6.
     pub notification_center: CenterLink,
     pub banners: BannerLink,
+    /// M10: every corner surface writes its firings here; the daemon carries them out. The
+    /// screenshot thumbnail follows `banners` (it shows on the banners' output).
+    pub corners: CornerLink,
 }
 
 static LINKS: OnceLock<Links> = OnceLock::new();

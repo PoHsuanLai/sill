@@ -4,11 +4,15 @@
 //! Pure: no socket, no runtime. The daemon (`sill::ipc_server`) and the command line
 //! (`sill::cli`) own the stream; this crate owns the words on it.
 
+pub mod desktop;
 pub mod error;
 pub mod line;
 pub mod request;
 pub mod response;
 
+pub use desktop::{
+    CornerName, FakeCorner, FakeScreenshot, ScreenshotRequest, ShotArea, WidgetsRequest,
+};
 pub use error::IpcError;
 pub use line::{MAX_LINE, decode, encode, read_message, write_message};
 pub use request::{

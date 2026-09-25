@@ -8,20 +8,24 @@ use ds_settings::{AppName, SettingsError};
 use serde::{Deserialize, Serialize};
 
 use crate::bar::BarSettings;
+use crate::calendar::CalendarSettings;
 use crate::control_center::ControlCenterSettings;
 use crate::display::DisplaySettings;
 use crate::dock::DockSettings;
+use crate::hot_corners::HotCornersSettings;
 use crate::launcher::LauncherSettings;
 use crate::menus::MenusSettings;
 use crate::notifications::NotificationsSettings;
 use crate::osd::OsdSettings;
 use crate::power_menu::PowerMenuSettings;
+use crate::screenshot::ScreenshotSettings;
 use crate::scroll::ScrollSettings;
 use crate::scrollbar::ScrollbarSettings;
 use crate::session::SessionSettings;
 use crate::sound::SoundSettings;
 use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
+use crate::widgets::WidgetsSettings;
 use crate::window::WindowSettings;
 
 /// The directory name under `$XDG_CONFIG_HOME` (and `$XDG_STATE_HOME`, `$XDG_CACHE_HOME`).
@@ -60,6 +64,11 @@ pub struct ShellFile {
     pub power_menu: PowerMenuSettings,
     /// M7 (FINDINGS "M7"): the borrowed locker and polkit agent; no design/22 rows yet.
     pub session: SessionSettings,
+    /// M10 (FINDINGS "M10 freeze"): no design/22 rows yet.
+    pub widgets: WidgetsSettings,
+    pub calendar: CalendarSettings,
+    pub screenshot: ScreenshotSettings,
+    pub hot_corners: HotCornersSettings,
     /// Tables this build does not know, kept for the next write.
     #[serde(flatten)]
     pub extra: toml::Table,
@@ -85,6 +94,10 @@ impl Default for ShellFile {
             window: WindowSettings::default(),
             power_menu: PowerMenuSettings::default(),
             session: SessionSettings::default(),
+            widgets: WidgetsSettings::default(),
+            calendar: CalendarSettings::default(),
+            screenshot: ScreenshotSettings::default(),
+            hot_corners: HotCornersSettings::default(),
             extra: toml::Table::new(),
         }
     }

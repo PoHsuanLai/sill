@@ -2,6 +2,7 @@
 //! list to spawn and close actions.
 
 use shell_host::{OutputId, OutputInfo, SurfaceId};
+use sill_surfaces::surfaces::hot_corners::Corner;
 
 /// One output's surfaces (each `None` until spawned).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -17,11 +18,55 @@ pub struct OutputSurfaces {
     /// M6: the banner column and the notification center, warm and hidden.
     pub banners: Option<SurfaceId>,
     pub notification_center: Option<SurfaceId>,
+    /// M10: the screenshot thumbnail (warm and hidden), the desktop widget layer (while
+    /// `widgets.desktop` is on), and a surface per active hot corner.
+    pub thumbnail: Option<SurfaceId>,
+    pub desktop_widgets: Option<SurfaceId>,
+    pub corners: CornerSurfaces,
+}
+
+/// One output's hot corner surfaces, one per corner whose action is not `None`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CornerSurfaces {
+    pub top_left: Option<SurfaceId>,
+    pub top_right: Option<SurfaceId>,
+    pub bottom_left: Option<SurfaceId>,
+    pub bottom_right: Option<SurfaceId>,
+}
+
+impl CornerSurfaces {
+    /// `corner`'s surface.
+    pub fn get(&self, corner: Corner) -> Option<SurfaceId> {
+        *self.slot(corner)
+    }
+
+    /// Set (or forget, with `None`) `corner`'s surface.
+    pub fn set(&mut self, corner: Corner, id: Option<SurfaceId>) {
+        *self.slot_mut(corner) = id;
+    }
+
+    fn slot(&self, corner: Corner) -> &Option<SurfaceId> {
+        match corner {
+            Corner::TopLeft => &self.top_left,
+            Corner::TopRight => &self.top_right,
+            Corner::BottomLeft => &self.bottom_left,
+            Corner::BottomRight => &self.bottom_right,
+        }
+    }
+
+    fn slot_mut(&mut self, corner: Corner) -> &mut Option<SurfaceId> {
+        match corner {
+            Corner::TopLeft => &mut self.top_left,
+            Corner::TopRight => &mut self.top_right,
+            Corner::BottomLeft => &mut self.bottom_left,
+            Corner::BottomRight => &mut self.bottom_right,
+        }
+    }
 }
 
 impl OutputSurfaces {
     /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 9] {
+    fn fields(&self) -> [Option<SurfaceId>; 15] {
         [
             self.bar,
             self.wallpaper,
@@ -32,6 +77,12 @@ impl OutputSurfaces {
             self.power_menu,
             self.banners,
             self.notification_center,
+            self.thumbnail,
+            self.desktop_widgets,
+            self.corners.top_left,
+            self.corners.top_right,
+            self.corners.bottom_left,
+            self.corners.bottom_right,
         ]
     }
 
@@ -57,6 +108,12 @@ impl OutputSurfaces {
             &mut self.power_menu,
             &mut self.banners,
             &mut self.notification_center,
+            &mut self.thumbnail,
+            &mut self.desktop_widgets,
+            &mut self.corners.top_left,
+            &mut self.corners.top_right,
+            &mut self.corners.bottom_left,
+            &mut self.corners.bottom_right,
         ] {
             if *field == Some(id) {
                 *field = None;
@@ -181,6 +238,20 @@ mod tests {
             bar: Some(SurfaceId(bar)),
             ..OutputSurfaces::default()
         }
+    }
+
+    #[test]
+    fn m10_surfaces_are_found_and_forgotten_like_the_rest() {
+        use sill_surfaces::surfaces::hot_corners::Corner;
+        let mut row = surfaces(1);
+        row.thumbnail = Some(SurfaceId(2));
+        row.corners.set(Corner::BottomRight, Some(SurfaceId(3)));
+        assert!(row.contains(SurfaceId(2)));
+        assert_eq!(row.corners.get(Corner::BottomRight), Some(SurfaceId(3)));
+        assert_eq!(row.ids().count(), 3);
+        row.clear(SurfaceId(3));
+        assert_eq!(row.corners.get(Corner::BottomRight), None);
+        assert_eq!(row.ids().count(), 2);
     }
 
     #[test]

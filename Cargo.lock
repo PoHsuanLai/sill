@@ -5179,6 +5179,7 @@ dependencies = [
  "ds-native",
  "ds-settings",
  "image",
+ "jiff",
  "resvg",
  "shell-host",
  "sill-launcher",

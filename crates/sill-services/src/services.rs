@@ -12,6 +12,7 @@ use crate::clock::{ClockCommand, ClockText};
 use crate::control::Control;
 use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
 use crate::displays::{Displays, DisplaysCommand};
+use crate::events::{Agenda, EventsCommand};
 use crate::launch::{LaunchCommand, Launches};
 use crate::locker::{Lock, LockerCommand};
 use crate::network::wifi::{Wifi, WifiCommand};
@@ -21,6 +22,7 @@ use crate::now_playing::{Media, MediaCommand};
 use crate::pins::{DockPins, PinEvent};
 use crate::power_profile::{PowerProfiles, ProfileCommand};
 use crate::results::{Results, SearchCommand};
+use crate::screenshots::{ShotCommand, Shots};
 use crate::session::{Session, SessionCommand};
 use crate::sound::SoundCommand;
 use crate::tray::{Tray, TrayCommand};
@@ -81,6 +83,12 @@ pub struct Services {
     pub notifications: watch::Receiver<Notifications>,
     pub notification_history: watch::Receiver<History>,
     pub notifications_control: Control<NotificationsCommand>,
+    /// M10: calendar events for the Calendar and Up Next widgets, and screenshots for the
+    /// floating thumbnail (FINDINGS "M10 freeze"). Both passive until the daemon configures them.
+    pub agenda: watch::Receiver<Agenda>,
+    pub events_control: Control<EventsCommand>,
+    pub shots: watch::Receiver<Shots>,
+    pub shots_control: Control<ShotCommand>,
 }
 
 impl Services {
@@ -131,6 +139,9 @@ impl Services {
         // passive (never asks for the bus name) until the daemon sends its first policy.
         let (notifications, notification_history, notifications_control) =
             crate::notifications::spawn(rt);
+        // M10: each `live::run` is a stub that returns at once until its lane fills it.
+        let (agenda, events_control) = crate::events::spawn(rt);
+        let (shots, shots_control) = crate::screenshots::spawn(rt);
 
         Services {
             clock,
@@ -177,6 +188,10 @@ impl Services {
             notifications,
             notification_history,
             notifications_control,
+            agenda,
+            events_control,
+            shots,
+            shots_control,
         }
     }
 }
@@ -217,6 +232,16 @@ mod tests {
             services.notifications.borrow().server.mode,
             crate::ServerMode::Passive,
             "passive until the daemon's policy"
+        );
+        assert_eq!(
+            services.agenda.borrow().status,
+            crate::SourceStatus::Off,
+            "no calendar read until the daemon names the sources"
+        );
+        assert_eq!(
+            *services.shots.borrow(),
+            Default::default(),
+            "nothing watched until the daemon names the folders"
         );
         assert_eq!(
             *services.displays.borrow(),

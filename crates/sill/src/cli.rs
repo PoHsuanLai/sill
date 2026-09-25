@@ -3,13 +3,18 @@
 //! amendment, `display {brightness,volume}` from the displays pass (`cli_display`), and
 //! `power-menu {open,close,toggle}` and `control-center toggle` from the M5 freeze,
 //! `notifications {toggle,open,close,dismiss-all,status}` and `debug notify` from the M6 freeze
-//! (`cli_notifications`), `lock` and `polkit-agent` from M7, and its one pure mapping to an IPC
-//! request.
+//! (`cli_notifications`), `lock` and `polkit-agent` from M7, `screenshot`, `widgets
+//! toggle-desktop`, `debug screenshot` and `debug corner` from the M10 freeze (`cli_desktop`),
+//! and its one pure mapping to an IPC request.
 
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
 
+pub use crate::cli_desktop::{
+    CornerArg, ShotArg, WidgetsAction, fake_corner, fake_screenshot, screenshot_request,
+    widgets_request,
+};
 pub use crate::cli_display::{DisplayAction, LevelAction, VolumeAction, display_request};
 pub use crate::cli_notifications::{
     ExpireArg, FakeNotifyArgs, NotificationsAction, UrgencyArg, fake_notification,
@@ -84,6 +89,16 @@ pub enum Command {
     PolkitAgent {
         #[arg(value_enum, default_value_t = AgentVerb::Exec)]
         verb: AgentVerb,
+    },
+    /// Take a screenshot with `screenshot.tool`; its thumbnail shows at the bottom right.
+    Screenshot {
+        #[arg(value_enum, default_value_t = ShotArg::Area)]
+        kind: ShotArg,
+    },
+    /// The widgets.
+    Widgets {
+        #[command(subcommand)]
+        action: WidgetsAction,
     },
 }
 
@@ -167,6 +182,13 @@ pub enum DebugAction {
     },
     /// Post a made-up notification without D-Bus: a banner, and a row in the center.
     Notify(FakeNotifyArgs),
+    /// Show the screenshot thumbnail for PATH, as if it had just been saved.
+    Screenshot { path: PathBuf },
+    /// Carry out CORNER's hot corner action, as if the pointer had rested there.
+    Corner {
+        #[arg(value_enum)]
+        corner: CornerArg,
+    },
 }
 
 /// `sill debug osd TOPIC`: the command line's spelling of [`OsdTopic`].
@@ -249,6 +271,8 @@ pub fn request(command: &Command) -> Option<Request> {
             ControlCenterAction::Toggle => ControlCenterRequest::Toggle,
         }),
         Command::Notifications { action } => Request::Notifications(notifications_request(*action)),
+        Command::Screenshot { kind } => Request::Screenshot(screenshot_request(*kind)),
+        Command::Widgets { action } => Request::Widgets(widgets_request(*action)),
         Command::Debug { action } => Request::Debug(match action {
             DebugAction::Stats => DebugRequest::Stats,
             DebugAction::Pointer { surface, x, y } => DebugRequest::Pointer {
@@ -278,6 +302,10 @@ pub fn request(command: &Command) -> Option<Request> {
                 mute,
             } => DebugRequest::Osd(fake_osd(*topic, *percent, *mute)),
             DebugAction::Notify(args) => DebugRequest::Notify(fake_notification(args)),
+            DebugAction::Screenshot { path } => {
+                DebugRequest::Screenshot(fake_screenshot(path.clone()))
+            }
+            DebugAction::Corner { corner } => DebugRequest::Corner(fake_corner(*corner)),
         }),
     })
 }
@@ -291,6 +319,9 @@ mod tests {
         FakeMute, FakeNotification, FakeOsd, FakeUrgency, LauncherRequest, NotificationsRequest,
         OsdTopic, Point, PointerButton, PowerMenuRequest, Request, SurfaceName,
     };
+    use sill_ipc::{
+        CornerName, FakeCorner, FakeScreenshot, ScreenshotRequest, ShotArea, WidgetsRequest,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -303,6 +334,44 @@ mod tests {
             (&["lock"], Some(Request::Lock)),
             (&["polkit-agent"], None),
             (&["polkit-agent", "print"], None),
+            (
+                &["screenshot"],
+                Some(Request::Screenshot(ScreenshotRequest::Take(ShotArea::Area))),
+            ),
+            (
+                &["screenshot", "window"],
+                Some(Request::Screenshot(ScreenshotRequest::Take(
+                    ShotArea::Window,
+                ))),
+            ),
+            (
+                &["screenshot", "screen"],
+                Some(Request::Screenshot(ScreenshotRequest::Take(
+                    ShotArea::Screen,
+                ))),
+            ),
+            (
+                &["widgets", "toggle-desktop"],
+                Some(Request::Widgets(WidgetsRequest::ToggleDesktop)),
+            ),
+            (
+                &["debug", "screenshot", "/tmp/shots/Screenshot_1.png"],
+                Some(Request::Debug(DebugRequest::Screenshot(FakeScreenshot {
+                    path: PathBuf::from("/tmp/shots/Screenshot_1.png"),
+                }))),
+            ),
+            (
+                &["debug", "corner", "top-left"],
+                Some(Request::Debug(DebugRequest::Corner(FakeCorner {
+                    corner: CornerName::TopLeft,
+                }))),
+            ),
+            (
+                &["debug", "corner", "bottom-right"],
+                Some(Request::Debug(DebugRequest::Corner(FakeCorner {
+                    corner: CornerName::BottomRight,
+                }))),
+            ),
             (
                 &["power-menu", "open"],
                 Some(Request::PowerMenu(PowerMenuRequest::Open)),
@@ -535,6 +604,11 @@ mod tests {
             &["notifications", "clear"],
             &["debug", "notify"],
             &["debug", "notify", "x", "--urgency", "urgent"],
+            &["screenshot", "region"],
+            &["widgets"],
+            &["widgets", "toggle"],
+            &["debug", "screenshot"],
+            &["debug", "corner", "middle"],
             &["frobnicate"],
         ] {
             assert!(

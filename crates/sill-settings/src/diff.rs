@@ -22,6 +22,10 @@ pub enum SettingsChange {
     Window,
     PowerMenu,
     Session,
+    Widgets,
+    Calendar,
+    Screenshot,
+    HotCorners,
 }
 
 /// The domains that differ between `old` and `new`, in table order. `version` and unknown
@@ -50,6 +54,13 @@ pub fn apply(old: &ShellFile, new: &ShellFile) -> Vec<SettingsChange> {
         (old.window != new.window, SettingsChange::Window),
         (old.power_menu != new.power_menu, SettingsChange::PowerMenu),
         (old.session != new.session, SettingsChange::Session),
+        (old.widgets != new.widgets, SettingsChange::Widgets),
+        (old.calendar != new.calendar, SettingsChange::Calendar),
+        (old.screenshot != new.screenshot, SettingsChange::Screenshot),
+        (
+            old.hot_corners != new.hot_corners,
+            SettingsChange::HotCorners,
+        ),
     ]
     .into_iter()
     .filter_map(|(changed, domain)| changed.then_some(domain))

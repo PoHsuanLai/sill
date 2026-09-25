@@ -1,0 +1,83 @@
+//! `screenshot.*`: the floating thumbnail after a screenshot (design/20 §1.13), which folders are
+//! watched for new screenshots, and what `sill screenshot` runs (sill FINDINGS "M10 freeze").
+//! macOS keeps its screenshot shortcuts under Keyboard, hence `Page::KeyboardAndShortcuts`.
+//! design/22 has no rows yet (`AWAITING_ROWS`). All Advanced.
+
+use ds_settings::Ms;
+use ds_settings::schema::Page;
+use serde::{Deserialize, Serialize};
+
+/// Whether a new screenshot shows its floating thumbnail.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    Serialize,
+    Deserialize,
+    ds_settings::SettingsSchema,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum ShotThumbnail {
+    #[default]
+    Show,
+    Hide,
+}
+
+/// Screenshots.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
+#[serde(default)]
+#[settings(file = "sill/settings.toml", domain = "screenshot", page = Page::KeyboardAndShortcuts)]
+pub struct ScreenshotSettings {
+    #[settings(
+        label = "Show floating thumbnail",
+        help = "After a screenshot, a thumbnail at the bottom right: click to open it, drag it into a document, swipe it away.",
+        section = "Screenshots",
+        advanced
+    )]
+    pub thumbnail: ShotThumbnail,
+    #[settings(
+        label = "Thumbnail stays for",
+        help = "How long the thumbnail stays unless the pointer is on it.",
+        section = "Screenshots",
+        range = "1000..=30000",
+        unit = "ms",
+        advanced
+    )]
+    pub thumbnail_hold_ms: Ms,
+    /// `auto`, `off`, or `;`-separated folders (`sill_services::screenshots::parse_folders`).
+    #[settings(
+        label = "Screenshot folders",
+        help = "Where new screenshots are noticed: `auto` is the Pictures folder and its Screenshots folder, `off` notices none, or folders separated by `;`.",
+        section = "Screenshots",
+        advanced
+    )]
+    pub folders: String,
+    /// `auto`, `off`, or a command line (`sill_services::screenshots::parse_tool`).
+    #[settings(
+        label = "Screenshot program",
+        help = "What `sill screenshot` runs: `auto` is COSMIC's (cosmic-screenshot), `off` runs nothing, or a command line run by `/bin/sh -c` with the kind (`area`, `window`, `screen`) as $1 and the folder as $2.",
+        section = "Screenshots",
+        advanced
+    )]
+    pub tool: String,
+    /// Keys this build does not know, kept for the next write.
+    #[serde(flatten)]
+    #[settings(skip)]
+    pub extra: toml::Table,
+}
+
+impl Default for ScreenshotSettings {
+    fn default() -> Self {
+        ScreenshotSettings {
+            thumbnail: ShotThumbnail::Show,
+            thumbnail_hold_ms: Ms(5200),
+            folders: "auto".to_owned(),
+            tool: "auto".to_owned(),
+            extra: toml::Table::new(),
+        }
+    }
+}

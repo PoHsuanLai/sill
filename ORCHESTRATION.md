@@ -87,6 +87,7 @@ other agents have built on top of it.
 | M1 | svc-dbus, svc-tray, svc-cosmic, bar-ui, daemon | battery/network/volume services; tray service and `bar/tray.rs`; `cosmic_wl/**`; `surfaces/bar/**` minus tray; `sill-ipc`, `sill` bin, `dist/**`, `dev/**` |
 | M2+M3 | wallpaper, apps-index, launch, badges, dock-ui | wallpaper; apps service and `match_app`; launch service and `sill/launch.rs`; launcher entry badges; `surfaces/dock/**` |
 | M4 | launcher-core, providers-a, providers-b, launcher-ui, perf-ime | `sill-launcher/**`; apps/windows/system providers; calculator/settings providers; `surfaces/launcher/**`; latency and IME acceptance |
+| M10 | a-calendar, b-widgets, c-screenshot, d-corners, then e-real-input | `events/**` and the Calendar and Up Next widgets; the widget frame, the center's slot and `desktop_widgets/**`; `screenshots/**` and `screenshot_thumb/**`; `hot_corners/**` and `corners.rs` (FINDINGS "The M10 fill-in") |
 
 Review rule: never pass a Dioxus `Signal` through `Root::context`; shared data travels on
 `tokio::sync::watch` and each surface reads it with `use_watch`.

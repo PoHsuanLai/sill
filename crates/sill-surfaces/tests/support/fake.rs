@@ -42,6 +42,10 @@ pub struct Feeds {
     pub profile_commands: mpsc::UnboundedReceiver<ProfileCommand>,
     pub media_commands: mpsc::UnboundedReceiver<MediaCommand>,
     pub notification_commands: mpsc::UnboundedReceiver<sill_services::NotificationsCommand>,
+    /// M10: the calendar widgets' agenda, the thumbnail's shots, and what the thumbnail sends.
+    pub agenda: watch::Sender<sill_services::Agenda>,
+    pub shots: watch::Sender<sill_services::Shots>,
+    pub shot_commands: mpsc::UnboundedReceiver<sill_services::ShotCommand>,
     /// Receivers and command queues nobody reads here, kept so sends do not fail.
     keep: Vec<Box<dyn std::any::Any>>,
 }
@@ -284,6 +288,10 @@ pub fn services() -> (Services, Feeds) {
     let (notifications_tx, notifications) = watch::channel(sill_services::Notifications::default());
     let (history_tx, notification_history) = watch::channel(sill_services::History::default());
     let (notifications_control, notification_rx) = Control::channel();
+    // M10: a feed for the calendar widgets and one for the screenshot thumbnail.
+    let (agenda_tx, agenda) = watch::channel(sill_services::Agenda::default());
+    let (shots_tx, shots) = watch::channel(sill_services::Shots::default());
+    let (shots_control, shot_rx) = Control::channel();
     let services = Services {
         clock,
         clock_control: control(&mut keep),
@@ -329,6 +337,10 @@ pub fn services() -> (Services, Feeds) {
         notifications,
         notification_history,
         notifications_control,
+        agenda,
+        events_control: control(&mut keep),
+        shots,
+        shots_control,
     };
     let feeds = Feeds {
         clock: clock_tx,
@@ -352,6 +364,9 @@ pub fn services() -> (Services, Feeds) {
         profile_commands: profile_rx,
         media_commands: media_rx,
         notification_commands: notification_rx,
+        agenda: agenda_tx,
+        shots: shots_tx,
+        shot_commands: shot_rx,
         keep,
     };
     (services, feeds)

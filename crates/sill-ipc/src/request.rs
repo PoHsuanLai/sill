@@ -3,10 +3,14 @@
 //! from the M2 freeze amendment (sill FINDINGS F76), and `Display` from the displays pass (sill
 //! FINDINGS "Displays"), `Debug(Osd)` from the OSD, `PowerMenu`/`ControlCenter` from the
 //! M5 freeze (sill FINDINGS "M5 freeze"), and `Notifications` and `Debug(Notify)` from the M6
-//! freeze (sill FINDINGS "M6 freeze"), and `Lock` from M7 (sill FINDINGS "M7").
+//! freeze (sill FINDINGS "M6 freeze"), and `Lock` from M7 (sill FINDINGS "M7"), and
+//! `Screenshot`, `Widgets`, `Debug(Screenshot)` and `Debug(Corner)` from the M10 freeze
+//! (`desktop.rs`).
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+
+use crate::desktop::{FakeCorner, FakeScreenshot, ScreenshotRequest, WidgetsRequest};
 
 /// One request. A connection carries exactly one, then its [`crate::Response`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -37,6 +41,10 @@ pub enum Request {
     /// Lock the screen with the configured locker (`sill lock`; cosmic-idle's and COSMIC's
     /// `LockScreen` system action in `dist/cosmic`). Answered `Done` once asked.
     Lock,
+    /// Take a screenshot with `screenshot.tool` (`sill screenshot`).
+    Screenshot(ScreenshotRequest),
+    /// The widgets (`sill widgets ...`).
+    Widgets(WidgetsRequest),
 }
 
 /// `sill notifications ...`. The center opens on the output the daemon picks (the first with a
@@ -161,6 +169,11 @@ pub enum DebugRequest {
     /// (`dev/accept-notifications.sh`): it goes through the same reducer as a `Notify`, so it
     /// shows a banner and enters the history, and its actions answer nobody.
     Notify(FakeNotification),
+    /// Show the screenshot thumbnail for a file, as if the folder watch had seen it
+    /// (`dev/accept-screenshot.sh`: nothing of the session is captured).
+    Screenshot(FakeScreenshot),
+    /// Carry out a hot corner's action as if its dwell had run out (`dev/accept-hot-corners.sh`).
+    Corner(FakeCorner),
 }
 
 /// A made-up notification: the parts of `Notify` an acceptance needs.
