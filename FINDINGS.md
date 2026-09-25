@@ -4282,7 +4282,7 @@ services.rs}`, `sill-surfaces/src/{lib.rs,hooks/**,widgets/mod.rs}`,
   space.
 - F422 Sources: a file is one calendar; a vdir directory is one, plus one per subdirectory; the
   live task re-reads on a change (150 ms debounce), a Refresh, or the day turning.
-- Q190 (quire) `MonthGrid` needs a compact size for a small (164 px) desktop cell; styling
+- Q190 (quire; closed by quire 42ce1eb, F527) `MonthGrid` needs a compact size for a small (164 px) desktop cell; styling
   `.ds-month-*` from sill fails DsInternals. Meanwhile the desktop Calendar is macOS's small date
   face (weekday, large date, month) and the center keeps the full month.
 - G130 (closed, "Adopting the M10 parts") `notification_center_render`'s click tests flaked once under the full parallel run (60 ms
@@ -4290,10 +4290,9 @@ services.rs}`, `sill-surfaces/src/{lib.rs,hooks/**,widgets/mod.rs}`,
 
 ## Adopting the M10 parts (2026-09-26)
 
-quire's widget parts (design/04 §40) and screenshot thumbnail (§41), and shell-host's drag
-source (its F60), replace sill's stand-ins; Q181, Q182, Q183, G120 (for sill) and G130 close.
-Q190 stays: the desktop Calendar keeps the small date face until quire's `MonthGrid` has a
-compact size.
+quire's widget parts (design/04 §40) and screenshot thumbnail (§41), quire 42ce1eb's
+`MonthDensity`, and shell-host's drag source (its F60) replace sill's stand-ins; Q181, Q182,
+Q183, Q190, G120 (for sill) and G130 close.
 
 - F520 **Widgets are quire's `WidgetFrame` in both hosts.** sill's `WidgetHost`/`WidgetSize`
   are quire's (re-exported from `crate::widgets`; `Center` is `WidgetHost::Tile`); `frame.rs`
@@ -4350,6 +4349,15 @@ compact size.
   until what the test checks holds (rows opened, a command sent, the hover shown, the panel
   leaving), at most 2 s; the click tests no longer rely on a 60 ms advance. The one negative
   check (a press inside keeps it open) waits a fixed 400 ms.
+- F527 **Q190: the desktop Calendar is quire's compact month.** The small date face and its CSS
+  are gone; the Calendar draws `MonthGrid` in both hosts with the default `MonthDensity::Auto`,
+  which the enclosing `WidgetFrame` resolves: compact in the desktop's Small frame, regular in
+  the center's Large tile (`data-density`). A render test steps through twelve months (a
+  six-week one among them) and checks each stays inside the Small frame's 132 x 132 content
+  box at the default `widgets.desktop_cell_px` 164; live on the nested cosmic-comp in
+  `widgets-desktop-cosmic.png`. **A cell under 164 overflows**: the compact six-week month is
+  126 x 132, exactly the content box at 164, and quire's grid does not shrink further (the
+  key's range goes down to 120).
 
 ### Acceptance (nested cosmic-comp, 2560 x 1600)
 

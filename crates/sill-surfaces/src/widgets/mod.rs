@@ -34,7 +34,7 @@ pub fn cells(size: WidgetSize) -> (u16, u16) {
 
 /// The size `kind` takes in `host`. In the notification center every tile spans the column (a
 /// medium tile's 344 fits its 384 less the padding), the month two cells tall since its weeks do
-/// not fit in one; on the desktop the date face and the batteries are small, the lists and the
+/// not fit in one; on the desktop the compact month and the batteries are small, the lists and the
 /// clocks' dials medium.
 pub fn size_of(kind: WidgetKind, host: WidgetHost) -> WidgetSize {
     match (host, kind) {
