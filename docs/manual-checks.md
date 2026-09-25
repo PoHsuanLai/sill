@@ -58,6 +58,12 @@ Add new ones at the end of their section.
   (`dev/out/dock-icons-*.png` are light-mode only). The plate tint under Monochrome lands with
   quire's IconView plate-tint change.
 
+- [ ] **Widgets by eye**: `sill widgets toggle-desktop`, then check the analog world-clock dials
+  (set `widgets.world_clocks`, add World Clock to `widgets.desktop_widgets`) and the battery rings
+  with real Bluetooth devices connected (no live picture exists; render tests only).
+- [ ] **Screenshot thumbnail drag**: take a screenshot, drag the thumbnail onto a Files window or
+  a terminal: the file copies (the card leaves, the file stays); only Cancelled was run live.
+
 ## Needs a real COSMIC login (not the nested compositor)
 
 - [ ] **Cmd+Space through Toshy** opens the launcher (the `Launcher` system action override).
