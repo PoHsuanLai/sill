@@ -32,6 +32,13 @@ use crate::surfaces::notification_card::{
 /// The column's stylesheet (lint-clean under `Profile::Strict`, `tests/banners_lint.rs`).
 pub const BANNERS_CSS: &str = include_str!("../../style/banners.css");
 
+/// The custom properties the column writes on itself, for the stylesheet lint.
+pub const BANNER_VARS: [&str; 3] = [
+    "--sill-banner-room",
+    "--sill-banner-gap",
+    "--sill-banner-edge",
+];
+
 /// The column on `output`.
 pub(super) fn banners(output: OutputInfo) -> Element {
     let ds_scale = use_ds_scale();

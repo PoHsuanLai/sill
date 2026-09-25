@@ -34,7 +34,7 @@ pub use machine::{
 pub use placement::{BannerLink, BannerOutput};
 pub use regions::{CardBox, card_regions};
 pub use stack::{Card, stack};
-pub use view::BANNERS_CSS;
+pub use view::{BANNER_VARS, BANNERS_CSS};
 
 use dioxus::prelude::*;
 use shell_host::OutputInfo;

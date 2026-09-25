@@ -9,6 +9,16 @@ use super::body::LineChars;
 /// The gap between the icon and the text, px: the sheet's `var(--s-10)`.
 const ICON_GAP: u16 = 10;
 
+/// The custom properties [`CardMetrics::style_attr`] writes, for the stylesheet lint.
+pub const CARD_VARS: [&str; 6] = [
+    "--sill-card-w",
+    "--sill-card-min-h",
+    "--sill-card-pad",
+    "--sill-card-icon",
+    "--sill-card-close",
+    "--sill-card-layer",
+];
+
 /// The card's lengths.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CardMetrics {

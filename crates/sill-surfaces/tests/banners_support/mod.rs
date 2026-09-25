@@ -1,0 +1,158 @@
+//! The real banner column in a `ds_native::Harness` (a Blitz document, no window) on the fake
+//! services, showing on the test output through a `BannerLink` the test holds, fed live banners
+//! as the notifications service publishes them, and reading back the commands it sends.
+
+#![allow(dead_code)] // Each test binary uses its own subset.
+
+#[path = "../support/fake.rs"]
+pub mod fake;
+
+use std::cell::RefCell;
+
+use dioxus::prelude::*;
+use ds_native::{Harness, Viewport};
+use sill_services::{
+    Action, ActionKey, AppRef, BannerLife, Body, Expiry, Hints, IconRef, LiveBanner,
+    Notification, NotificationId, Notifications, NotificationsCommand, Services, UnixMs,
+};
+use sill_settings::{SettingsFeed, ShellFile};
+use sill_surfaces::Banners;
+use sill_surfaces::surfaces::banners::{BannerLink, BannerOutput, ROOM};
+
+/// What the harness's root provides.
+#[derive(Clone)]
+struct World {
+    services: Services,
+    settings: SettingsFeed,
+    link: BannerLink,
+}
+
+thread_local! {
+    static WORLD: RefCell<Option<World>> = const { RefCell::new(None) };
+}
+
+fn app() -> Element {
+    let world = WORLD.with(|w| w.borrow().clone());
+    let Some(world) = world else {
+        return rsx! {};
+    };
+    use_context_provider(|| world.services.clone());
+    use_context_provider(|| world.settings.clone());
+    use_context_provider(|| world.link.clone());
+    rsx! {
+        Banners { output: fake::output() }
+    }
+}
+
+/// A running column and what it talks to.
+pub struct Running {
+    pub harness: Harness,
+    pub feeds: fake::Feeds,
+    pub link: BannerLink,
+}
+
+impl Running {
+    /// Publish `banners` (newest first) as the service would.
+    pub fn show(&mut self, banners: Vec<LiveBanner>) {
+        self.feeds.notifications.send_replace(Notifications {
+            banners,
+            ..Notifications::default()
+        });
+    }
+
+    /// Every command sent since the last call.
+    pub fn commands(&mut self) -> Vec<NotificationsCommand> {
+        std::iter::from_fn(|| self.feeds.notification_commands.try_recv().ok()).collect()
+    }
+
+    /// How many cards are drawn.
+    pub fn cards(&self) -> usize {
+        self.harness.count(".sill-banner")
+    }
+
+    /// The first card's `data-pose`.
+    pub fn pose(&self) -> Option<String> {
+        self.harness.attr(".sill-banner", "data-pose")
+    }
+
+    /// The first card's `data-expansion`.
+    pub fn expansion(&self) -> Option<String> {
+        self.harness.attr(".sill-card", "data-expansion")
+    }
+
+    /// Advance in 20 ms steps until `done`, at most `limit`; whether it happened.
+    pub fn until(&mut self, limit: std::time::Duration, done: impl Fn(&Running) -> bool) -> Done {
+        let end = std::time::Instant::now() + limit;
+        while std::time::Instant::now() < end {
+            self.harness.advance(std::time::Duration::from_millis(20));
+            if done(self) {
+                return Done::Yes;
+            }
+        }
+        Done::No
+    }
+}
+
+/// Whether a wait ended in what it waited for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Done {
+    Yes,
+    No,
+}
+
+/// The column on `file`'s settings, shown on the test output, nothing posted yet. The viewport
+/// is the surface's width and a tall column.
+pub fn start(file: ShellFile) -> Running {
+    let (services, feeds) = fake::services();
+    let link = BannerLink::new();
+    link.set(BannerOutput::On(fake::output().id));
+    WORLD.with(|w| {
+        *w.borrow_mut() = Some(World {
+            services,
+            settings: SettingsFeed::fixed(file.clone()),
+            link: link.clone(),
+        });
+    });
+    let viewport = Viewport {
+        width: u32::from(file.notifications.banner_width_px.0) + 2 * ROOM,
+        height: 700,
+        scale_percent: 100,
+    };
+    Running {
+        harness: Harness::new(app, viewport),
+        feeds,
+        link,
+    }
+}
+
+/// A notification `id` from `app` with `summary`, `body` and `actions` (`key=label`).
+pub fn note(id: u32, app: &str, summary: &str, body: &str, actions: &[(&str, &str)]) -> Notification {
+    Notification {
+        id: NotificationId(id),
+        arrived: UnixMs(sill_surfaces::surfaces::notification_card::wall_now().0),
+        app: AppRef {
+            name: app.to_owned(),
+            icon: IconRef::None,
+            desktop_entry: None,
+        },
+        summary: summary.to_owned(),
+        body: Body::plain(body),
+        actions: actions
+            .iter()
+            .map(|(key, label)| Action {
+                key: ActionKey((*key).to_owned()),
+                label: (*label).to_owned(),
+            })
+            .collect(),
+        hints: Hints::default(),
+        expiry: Expiry::Default,
+    }
+}
+
+/// `note` as a banner that expires.
+pub fn live(note: Notification) -> LiveBanner {
+    LiveBanner {
+        note,
+        life: BannerLife::Expires,
+    }
+}

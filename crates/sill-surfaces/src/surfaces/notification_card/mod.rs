@@ -18,7 +18,7 @@ mod view;
 
 pub use actions::{MenuOpen, MenuSeat};
 pub use labels::{Age, age, age_label, app_label, count_label};
-pub use metrics::CardMetrics;
+pub use metrics::{CARD_VARS, CardMetrics};
 pub use view::{CARD_CSS, wall_now};
 
 use dioxus::prelude::*;
