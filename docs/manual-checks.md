@@ -22,6 +22,13 @@ Add new ones at the end of their section.
   audio, press volume up/down: the monitor's own volume moves too (its range is 0-50), and mute
   mutes it. Switch back to Bluetooth afterwards.
 
+- [ ] **Power menu with the real keyboard** (the nested compositor never gave its Exclusive
+  layer keyboard focus, shell G30): on a real COSMIC session, `sill power-menu open`, then
+  arrows move the highlight, Esc closes. Do NOT press Enter on Restart/Shut Down unless you mean
+  it; the dry run (`SILL_POWER_MENU_DRY_RUN=<file>` on a debug build) records instead.
+- [ ] **The bar's "Shut Down…" item** opens the power menu (G31: a scripted click on the popup
+  item did not open it on the nested compositor; unit-tested only).
+
 ## Visual review
 
 - [ ] **Shipped icons, app table**: the notes row (COSMIC Edit, GNOME Text Editor, Kate) and the
