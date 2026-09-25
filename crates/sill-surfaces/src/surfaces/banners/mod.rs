@@ -10,13 +10,20 @@
 //! each decision tells the service is `commands.rs`; the input and blur region is `regions.rs`.
 //! The card itself is `notification_card`, shared with the notification center.
 
+pub mod boxes;
 pub mod commands;
+pub mod deck;
+mod deck_cards;
+pub mod gesture;
 pub mod layer;
+pub mod look;
 pub mod machine;
 pub mod placement;
 pub mod regions;
 pub mod stack;
 
+mod drive;
+mod measure;
 mod view;
 
 pub use commands::{action_command, leave_commands};
@@ -27,6 +34,7 @@ pub use machine::{
 pub use placement::{BannerLink, BannerOutput};
 pub use regions::{CardBox, card_regions};
 pub use stack::{Card, stack};
+pub use view::BANNERS_CSS;
 
 use dioxus::prelude::*;
 use shell_host::OutputInfo;
