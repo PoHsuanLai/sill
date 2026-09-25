@@ -1,7 +1,7 @@
 //! The effects end of the column: follow the service's banners and the [`BannerLink`] into the
 //! [`deck`](super::deck), carry out what it decides with quire's one timer (`ds::sleep`, for
-//! durations that are quire's duration tokens or the hold from `notifications.*`, never a
-//! literal), turn the pointer into the [`gesture`](super::gesture)'s inputs, and send the
+//! quire's `FRAME_SLACK` or the hold from `notifications.*`, never a literal), turn the card's
+//! presses, hover and swipe and the stack's `on_hidden` into the deck's inputs, and send the
 //! service what a press means (`commands.rs`). Once the last card has gone, no task runs.
 //!
 //! [`BannerLink`]: super::BannerLink
@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 
 use dioxus::core::Task;
 use dioxus::prelude::*;
-use ds::{DurationToken, FRAME_SLACK, MotionLevel};
+use ds::{FRAME_SLACK, Hover};
 use shell_host::SurfaceHandle;
 use sill_services::{
     ActionKey, Activation, ActivationToken, Control, LiveBanner, Notification, NotificationId,
@@ -20,7 +20,6 @@ use sill_services::{
 
 use super::commands::action_command;
 use super::deck::{Deck, DeckIn, DeckOut, EntryKey, advance};
-use super::gesture::{self, Click, Press, Sample};
 use super::machine::{BannerIn, BannerParams};
 use super::stack::Card;
 use crate::FrameClock;
@@ -30,15 +29,12 @@ use crate::surfaces::notification_card::CardPress;
 #[derive(Clone, Copy)]
 pub(crate) struct Column {
     pub deck: Signal<Deck>,
-    press: CopyValue<Press>,
     params: CopyValue<BannerParams>,
     clock: FrameClock,
     control: CopyValue<Control<NotificationsCommand>>,
     surface: CopyValue<Option<SurfaceHandle>>,
-    level: CopyValue<MotionLevel>,
     waking: CopyValue<Option<Task>>,
-    /// The notifications the drawn cards show, kept while a card slides out after the service
-    /// dropped it.
+    /// The notifications the listed cards show, kept a moment past the service's own drop.
     notes: CopyValue<BTreeMap<NotificationId, Notification>>,
 }
 
@@ -77,26 +73,15 @@ impl Column {
     }
 
     fn perform(self, out: DeckOut) {
-        let level = *self.level.peek();
         match out {
-            DeckOut::Rise(key) => self.after(FRAME_SLACK, DeckIn::Risen(key)),
-            DeckOut::Entrance(key) => self.after(
-                DurationToken::Big.duration(level) + FRAME_SLACK,
-                DeckIn::Settled(key),
-            ),
-            DeckOut::Exit(key) => self.after(
-                DurationToken::Move.duration(level) + FRAME_SLACK,
-                DeckIn::Card(key, BannerIn::Left),
-            ),
+            DeckOut::Rise(key) => {
+                spawn(async move {
+                    ds::sleep(FRAME_SLACK).await;
+                    self.input(DeckIn::Risen(key));
+                });
+            }
             DeckOut::Send(command) => self.send(command),
         }
-    }
-
-    fn after(self, wait: Duration, input: DeckIn) {
-        spawn(async move {
-            ds::sleep(wait).await;
-            self.input(input);
-        });
     }
 
     /// Wake at the earliest hold's end (and only then).
@@ -119,68 +104,40 @@ impl Column {
         let _ = self.control.peek().send(command);
     }
 
-    /// A button went down on `key`'s card at `x`.
-    pub fn down(self, key: EntryKey, x: f64) {
-        let at = self.sample(x);
-        {
-            let mut press = self.press;
-            press.set(gesture::down(key, at));
-        }
+    /// The pointer came to or left `key`'s card: its hold pauses or resumes.
+    pub fn hovered(self, key: EntryKey, hover: Hover) {
+        let input = match hover {
+            Hover::Over => BannerIn::HoverIn,
+            Hover::Away => BannerIn::HoverOut,
+        };
+        self.input(DeckIn::Card(key, input));
     }
 
-    /// The pointer moved to `x` over the column.
-    pub fn moved(self, x: f64) {
-        let (next, inputs) = gesture::moved(*self.press.peek(), self.sample(x));
-        {
-            let mut press = self.press;
-            press.set(next);
-        }
-        for (key, input) in inputs {
-            self.input(DeckIn::Card(key, input));
-        }
-    }
-
-    /// The button came up at `x`.
-    pub fn up(self, x: f64) {
-        let (next, inputs) = gesture::up(*self.press.peek(), self.sample(x));
-        {
-            let mut press = self.press;
-            press.set(next);
-        }
-        for (key, input) in inputs {
-            self.input(DeckIn::Card(key, input));
-        }
-    }
-
-    fn sample(self, x: f64) -> Sample {
-        Sample {
-            x,
-            at: self.clock.now(),
-        }
+    /// quire's stack has played `key`'s card out.
+    pub fn hidden(self, key: EntryKey) {
+        self.input(DeckIn::Card(key, BannerIn::Left));
     }
 
     /// `what` was pressed on `key`'s card, drawn as `note`.
     pub fn pressed(self, key: EntryKey, card: Card, note: &Notification, what: CardPress) {
-        let (next, click) = gesture::click(*self.press.peek());
-        {
-            let mut press = self.press;
-            press.set(next);
-        }
-        let input = match (what, click) {
-            (CardPress::Body, Click::Swallowed) => return,
-            (CardPress::Body, Click::Counts) => match note.default_action() {
+        let input = match what {
+            CardPress::Body => match note.default_action() {
                 Some(_) => {
                     self.act(card, ActionKey::default_action());
                     BannerIn::Clicked
                 }
                 None => BannerIn::Close,
             },
-            (CardPress::Action(action), _) => {
+            CardPress::Action(action) => {
                 self.act(card, action);
                 BannerIn::Action
             }
-            (CardPress::Close, _) => BannerIn::Close,
-            (CardPress::Link(_), _) => return,
+            CardPress::Close => BannerIn::Close,
+            CardPress::Link(href) => {
+                // sill has no URL opener yet (FINDINGS F321): the link keeps its press.
+                eprintln!("banners.link={}", href.0);
+                return;
+            }
         };
         self.input(DeckIn::Card(key, input));
     }
@@ -205,31 +162,21 @@ impl Column {
     }
 }
 
-/// The column's shared state, the motion `level` read inside its `Ds`.
-pub(crate) fn use_column(
-    params: BannerParams,
-    control: Control<NotificationsCommand>,
-    level: MotionLevel,
-) -> Column {
+/// The column's shared state.
+pub(crate) fn use_column(params: BannerParams, control: Control<NotificationsCommand>) -> Column {
     let surface = try_use_context::<SurfaceHandle>();
     let column = use_hook(|| Column {
         deck: Signal::new(Deck::default()),
-        press: CopyValue::new(Press::default()),
         params: CopyValue::new(params),
         clock: FrameClock::new(Instant::now()),
         control: CopyValue::new(control),
         surface: CopyValue::new(surface),
-        level: CopyValue::new(level),
         waking: CopyValue::new(None),
         notes: CopyValue::new(BTreeMap::new()),
     });
     if *column.params.peek() != params {
         let mut cell = column.params;
         cell.set(params);
-    }
-    if *column.level.peek() != level {
-        let mut cell = column.level;
-        cell.set(level);
     }
     column
 }

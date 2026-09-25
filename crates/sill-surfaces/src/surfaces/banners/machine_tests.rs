@@ -1,9 +1,7 @@
-//! Table tests for `banner.rs`.
+//! Table tests for `machine.rs`.
 
-use super::{
-    Banner, BannerIn, BannerOut, BannerParams, Deadline, Leave, Persistence, damped, step,
-};
-use sill_services::{Cpx, Stamp};
+use super::{Banner, BannerIn, BannerOut, BannerParams, Deadline, Leave, Persistence, step};
+use sill_services::Stamp;
 use sill_settings::NotificationsSettings;
 
 fn p() -> BannerParams {
@@ -94,52 +92,21 @@ fn a_long_remainder_is_kept_after_hover() {
 }
 
 #[test]
-fn design_13_acceptance_10_swipe_dismiss() {
-    let drag = |dx: i32, v: i32| {
-        run(
-            Persistence::Expires,
-            &[
-                (100, BannerIn::Entered),
-                (500, BannerIn::DragStart),
-                (600, BannerIn::DragMove { dx: Cpx::px(dx) }),
-                (700, BannerIn::DragEnd { velocity_px_s: v }),
-            ],
-        )
-    };
-    assert_eq!(left(&drag(90, 100).0), Some(Leave::Swiped), "90 px right");
-    assert_eq!(left(&drag(80, 0).0), Some(Leave::Swiped), "exactly 80 px");
-    let (b, out) = drag(50, 100);
-    assert!(
-        matches!(b, Banner::Shown { .. }),
-        "50 px slowly springs back"
-    );
-    assert!(out.contains(&BannerOut::SpringBack));
-    assert_eq!(left(&drag(20, 650).0), Some(Leave::Swiped), "a fast flick");
-    let swipe = run(
-        Persistence::Expires,
-        &[
-            (100, BannerIn::Entered),
-            (
-                500,
-                BannerIn::Swipe {
-                    dx: Cpx::px(100),
-                    velocity_px_s: 0,
-                },
-            ),
-        ],
-    );
-    assert_eq!(
-        left(&swipe.0),
-        Some(Leave::Swiped),
-        "a 100 px horizontal scroll"
-    );
-}
-
-#[test]
-fn leftward_drags_are_damped() {
-    let p = p();
-    assert_eq!(damped(Cpx::px(40), &p), Cpx::px(40));
-    assert_eq!(damped(Cpx::px(-40), &p), Cpx::px(-10));
+fn a_swipe_leaves_from_any_live_phase() {
+    let cases: Vec<(&str, Vec<(u64, BannerIn)>)> = vec![
+        ("entering", vec![]),
+        ("shown", vec![(100, BannerIn::Entered)]),
+        (
+            "hovered",
+            vec![(100, BannerIn::Entered), (400, BannerIn::HoverIn)],
+        ),
+    ];
+    for (name, before) in cases {
+        let inputs = [&before[..], &[(500, BannerIn::Swiped)]].concat();
+        let (b, out) = run(Persistence::Expires, &inputs);
+        assert_eq!(left(&b), Some(Leave::Swiped), "{name}");
+        assert_eq!(out.last(), Some(&BannerOut::Leave(Leave::Swiped)), "{name}");
+    }
 }
 
 #[test]

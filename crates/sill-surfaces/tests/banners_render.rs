@@ -1,9 +1,10 @@
-//! The banner column in a Blitz harness, on the wall clock and the fake services: a banner
-//! slides in and holds for `notifications.banner_hold_ms`, then says it timed out; hovering it
-//! expands it and pauses the hold; a click on the body invokes `default`; the close button
-//! dismisses it, a drag past the threshold swipes it away, a short drag springs back; one app's banners group into
-//! one card with a count and two layers; a card the service dropped slides out silently; and
-//! another output's column draws nothing.
+//! The banner column in a Blitz harness, on the wall clock and the fake services, drawn by
+//! quire's `BannerStack` and `NotificationCard`: a banner slides in and holds for
+//! `notifications.banner_hold_ms`, then says it timed out and plays out; hovering it pauses the
+//! hold; a press on the card invokes `default`; the close button dismisses it; a drag past
+//! quire's threshold swipes it away (`SwipeAway`), a short one springs back; a link in the body
+//! keeps its press; one app's banners group into one card with a count and two layers; a card
+//! the service dropped leaves silently; and another output's column draws nothing.
 
 mod banners_support;
 
@@ -13,7 +14,7 @@ use banners_support::{Done, Running, live, note, start};
 use ds::Point;
 use ds_settings::Ms;
 use shell_host::OutputId;
-use sill_services::{ActionKey, Activation, NotificationId, NotificationsCommand};
+use sill_services::{ActionKey, Activation, NotificationId, NotificationsCommand, parse_body};
 use sill_settings::{NotificationsSettings, ShellFile};
 use sill_surfaces::surfaces::banners::BannerOutput;
 
@@ -34,18 +35,32 @@ fn one(actions: &[(&str, &str)]) -> Running {
     let mut running = start(file());
     running.show(vec![live(note(1, "mail", "Hello", "A body", actions))]);
     assert_eq!(
-        running.until(Duration::from_millis(900), |r| r.pose().as_deref()
-            == Some("rest")),
+        running.until(Duration::from_millis(900), |r| r.cards() == 1),
         Done::Yes,
         "the card slides in"
     );
-    // Let the entrance settle (the hold starts once it has).
-    running.harness.advance(Duration::from_millis(500));
+    running.harness.advance(Duration::from_millis(400));
     running
 }
 
-fn card_centre(running: &Running) -> Point {
-    running.harness.centre(".sill-card").expect("a card") // test-only
+fn right(from: Point, dx: f32) -> Point {
+    Point {
+        x: ds::Px(from.x.0 + dx),
+        y: from.y,
+    }
+}
+
+/// A drag of `dx` from `from` in four moves, `step` apart.
+fn drag(running: &mut Running, from: Point, dx: f32, step: Duration) {
+    running.harness.pointer_down(from);
+    for n in 1..=4u8 {
+        running.harness.advance(step);
+        running
+            .harness
+            .pointer_move(right(from, dx * f32::from(n) / 4.0));
+    }
+    running.harness.advance(step);
+    running.harness.pointer_up(right(from, dx));
 }
 
 #[test]
@@ -54,30 +69,23 @@ fn a_banner_slides_in_holds_and_times_out() {
     running.harness.advance(Duration::from_millis(60));
     assert_eq!(running.cards(), 0, "nothing before a banner");
     running.show(vec![live(note(1, "mail", "Hello", "A body", &[]))]);
-    running.harness.advance(Duration::from_millis(1));
+    let shown = std::time::Instant::now();
+    running.harness.advance(Duration::from_millis(20));
+    assert_eq!(running.cards(), 1, "quire's stack slides it in");
+    let h = &running.harness;
     assert_eq!(
-        running.pose().as_deref(),
-        Some("offstage"),
-        "mounted off the edge"
-    );
-    assert_eq!(
-        running.harness.text_of(".sill-card-summary").as_deref(),
+        h.text_of(".ds-notification-summary").as_deref(),
         Some("Hello")
     );
+    assert_eq!(h.text_of(".ds-notification-age").as_deref(), Some("now"));
     assert_eq!(
-        running.harness.text_of(".sill-card-age").as_deref(),
-        Some("now")
+        h.count("#toast-1.ds-notification-plate"),
+        1,
+        "the plate's id"
     );
-    let shown = std::time::Instant::now();
+    assert_eq!(h.count("#banner-1"), 1, "the whole card's id");
     assert_eq!(
-        running.until(Duration::from_millis(900), |r| r.pose().as_deref()
-            == Some("rest")),
-        Done::Yes,
-        "it slides in"
-    );
-    assert_eq!(
-        running.until(Duration::from_millis(3000), |r| r.pose().as_deref()
-            == Some("offstage")),
+        running.until(Duration::from_millis(3000), |r| r.leaving() == 1),
         Done::Yes,
         "it leaves by itself"
     );
@@ -99,44 +107,45 @@ fn a_banner_slides_in_holds_and_times_out() {
 }
 
 #[test]
-fn hovering_expands_and_pauses_the_hold() {
+fn hovering_opens_the_card_and_pauses_the_hold() {
     let mut running = one(&[("reply", "Reply")]);
-    let centre = card_centre(&running);
-    running.harness.pointer_move(centre);
+    let plate = running.plate();
+    running.harness.pointer_move(plate);
     running.harness.advance(Duration::from_millis(60));
-    assert_eq!(running.expansion().as_deref(), Some("expanded"));
+    assert_eq!(running.hover().as_deref(), Some("on"));
     assert_eq!(
-        running.harness.count(".sill-card-close"),
+        running.harness.count(".ds-notification-close"),
         1,
         "the close button"
     );
     assert_eq!(
-        running.harness.count(".sill-card-actions .ds-button"),
+        running.harness.count(".ds-notification-actions .ds-button"),
         1,
         "Reply"
     );
     running
         .harness
         .advance(Duration::from_millis(HOLD_MS + 500));
-    assert_eq!(
-        running.pose().as_deref(),
-        Some("rest"),
-        "paused while hovered"
-    );
+    assert_eq!(running.leaving(), 0, "paused while hovered");
     assert!(running.commands().is_empty());
     running.harness.pointer_move(Point {
         x: ds::Px(2.0),
         y: ds::Px(690.0),
     });
     running.harness.advance(Duration::from_millis(60));
-    assert_eq!(running.expansion().as_deref(), Some("collapsed"));
+    assert_eq!(running.hover().as_deref(), Some("off"));
+    assert_eq!(
+        running.until(Duration::from_millis(3000), |r| r.leaving() == 1),
+        Done::Yes,
+        "the hold resumes once the pointer has gone"
+    );
 }
 
 #[test]
-fn a_click_on_the_body_invokes_default() {
+fn a_press_on_the_card_invokes_default() {
     let mut running = one(&[("default", "Open")]);
-    let centre = card_centre(&running);
-    running.harness.click(centre);
+    let plate = running.plate();
+    running.harness.click(plate);
     running.harness.advance(Duration::from_millis(100));
     assert_eq!(
         running.commands(),
@@ -146,21 +155,18 @@ fn a_click_on_the_body_invokes_default() {
             token: Activation::NoToken,
         }]
     );
-    assert_eq!(
-        running.pose().as_deref(),
-        Some("offstage"),
-        "the card leaves"
-    );
+    assert_eq!(running.leaving(), 1, "the card leaves");
 }
 
 #[test]
 fn the_close_button_dismisses() {
     let mut running = one(&[]);
-    running.harness.pointer_move(card_centre(&running));
-    running.harness.advance(Duration::from_millis(60));
+    let plate = running.plate();
+    running.harness.pointer_move(plate);
+    running.harness.advance(Duration::from_millis(300));
     let close = running
         .harness
-        .centre(".sill-card-close .ds-icon-button")
+        .centre(".ds-notification-close")
         .expect("a close button"); // test-only
     running.harness.click(close);
     running.harness.advance(Duration::from_millis(60));
@@ -168,45 +174,46 @@ fn the_close_button_dismisses() {
         running.commands(),
         [NotificationsCommand::Dismiss(NotificationId(1))]
     );
+    assert_eq!(running.leaving(), 1);
 }
 
 #[test]
-fn a_long_drag_dismisses_and_a_short_one_springs_back() {
+fn a_long_drag_swipes_away_and_a_short_one_springs_back() {
     let mut running = one(&[("default", "Open")]);
-    let from = card_centre(&running);
-    let right = |dx: f32| Point {
-        x: ds::Px(from.x.0 + dx),
-        y: from.y,
-    };
-    running.harness.pointer_down(from);
-    running.harness.pointer_move(right(10.0));
-    running.harness.pointer_move(right(30.0));
-    running.harness.advance(Duration::from_millis(30));
-    assert_eq!(
-        running.pose().as_deref(),
-        Some("follow"),
-        "follows the pointer"
-    );
+    let from = running.plate();
+    drag(&mut running, from, 40.0, Duration::from_millis(100));
     running.harness.advance(Duration::from_millis(400));
-    running.harness.pointer_up(right(30.0));
-    running.harness.advance(Duration::from_millis(60));
-    assert_eq!(
-        running.pose().as_deref(),
-        Some("rest"),
-        "a short, slow drag springs back"
-    );
+    assert_eq!(running.leaving(), 0, "a short, slow drag springs back");
     assert!(running.commands().is_empty(), "and its click is swallowed");
-    running.harness.pointer_down(from);
-    running.harness.pointer_move(right(50.0));
-    running.harness.pointer_move(right(95.0));
-    running.harness.pointer_up(right(95.0));
+    drag(&mut running, from, 100.0, Duration::from_millis(20));
     running.harness.advance(Duration::from_millis(60));
-    assert_eq!(running.pose().as_deref(), Some("offstage"), "flies out");
+    assert_eq!(running.leaving(), 1, "flies out");
     assert_eq!(
         running.commands(),
         [NotificationsCommand::SwipeAway(NotificationId(1))],
         "swiped away: the service keeps it in the center (notifications.swipe)"
     );
+}
+
+#[test]
+fn a_link_in_the_body_keeps_its_press() {
+    let mut running = start(file());
+    let mut linked = note(1, "mail", "Build", "", &[("default", "Open")]);
+    linked.body = parse_body("<i>See</i> <a href=\"https://ci.example/42\">the log</a>");
+    running.show(vec![live(linked)]);
+    running.harness.advance(Duration::from_millis(400));
+    let h = &running.harness;
+    assert_eq!(h.count(".ds-run-link"), 1);
+    assert_eq!(
+        h.attr(".ds-run[*|data-tone=italic]", "data-tone")
+            .as_deref(),
+        Some("italic")
+    );
+    let link = h.centre(".ds-run-link").expect("the link"); // test-only
+    running.harness.click(link);
+    running.harness.advance(Duration::from_millis(60));
+    assert!(running.commands().is_empty(), "the card is not opened");
+    assert_eq!(running.leaving(), 0);
 }
 
 #[test]
@@ -219,17 +226,14 @@ fn one_apps_banners_group_into_one_card_and_five_apps_make_three() {
     ]);
     running.harness.advance(Duration::from_millis(100));
     assert_eq!(running.cards(), 1);
+    let h = &running.harness;
     assert_eq!(
-        running.harness.text_of(".sill-card-summary").as_deref(),
+        h.text_of(".ds-notification-summary").as_deref(),
         Some("Third"),
         "the newest"
     );
-    assert_eq!(running.harness.text_of(".ds-count").as_deref(), Some("3"));
-    assert_eq!(
-        running.harness.count(".sill-card-layer"),
-        2,
-        "two offset layers"
-    );
+    assert_eq!(h.text_of(".ds-notification-count").as_deref(), Some("3"));
+    assert_eq!(h.count(".ds-notification-layer"), 2, "two offset layers");
     let apps = ["a", "b", "c", "d", "e"];
     running.show(
         apps.iter()
@@ -239,22 +243,24 @@ fn one_apps_banners_group_into_one_card_and_five_apps_make_three() {
             .collect(),
     );
     running.harness.advance(Duration::from_millis(100));
-    let summaries: Vec<String> = (0..running.cards())
-        .filter_map(|i| {
-            running.harness.text_of(&format!(
-                ".sill-banner:nth-child({}) .sill-card-summary",
-                i + 1
-            ))
-        })
-        .collect();
     assert_eq!(
         running.cards(),
         4,
         "three new cards, the old one sliding out"
     );
-    assert!(
-        summaries.starts_with(&["e".to_owned(), "d".to_owned(), "c".to_owned()]),
-        "{summaries:?}"
+    assert_eq!(running.leaving(), 1);
+    let summaries: Vec<String> = (0..4)
+        .filter_map(|i| {
+            running.harness.text_of(&format!(
+                ".ds-banner:nth-child({}) .ds-notification-summary",
+                i + 1
+            ))
+        })
+        .collect();
+    assert_eq!(
+        summaries,
+        ["Third", "e", "d", "c"],
+        "the leaving card keeps its place until it has gone; the new ones newest first"
     );
 }
 
@@ -263,8 +269,12 @@ fn a_dropped_banner_leaves_silently_and_another_output_draws_nothing() {
     let mut running = one(&[]);
     running.show(Vec::new());
     running.harness.advance(Duration::from_millis(60));
-    assert_eq!(running.pose().as_deref(), Some("offstage"));
+    assert_eq!(running.leaving(), 1);
     assert!(running.commands().is_empty());
+    assert_eq!(
+        running.until(Duration::from_millis(1000), |r| r.cards() == 0),
+        Done::Yes
+    );
     running.link.set(BannerOutput::On(OutputId(99)));
     running.show(vec![live(note(2, "mail", "Elsewhere", "", &[]))]);
     running.harness.advance(Duration::from_millis(600));

@@ -24,7 +24,7 @@ mod panel;
 
 pub use groups::{Expanded, GroupView, group_views, toggle_group};
 pub use keys::{CenterKey, CenterOut, RowFocus, step_keys};
-pub use layer::{PANEL_ID, PANEL_RADIUS, center_layer, panel_region};
+pub use layer::{PANEL_ID, PANEL_PADDING, PANEL_RADIUS, center_layer, panel_region};
 pub use link::{CenterLink, CenterShown};
 pub use panel::NOTIFICATION_CENTER_CSS;
 pub use widgets::CenterWidgets;

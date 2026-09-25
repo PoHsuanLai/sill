@@ -1,59 +1,62 @@
 //! The column and its catcher. While the center is drawn: the transparent catcher under
 //! everything (a press on it closes the center, as a click beside macOS's Notification Center
-//! does) and the column at the right edge, `notifications.center_width_px` wide, painted by a
-//! quire `Surface` in the Popover material. The column plays quire's entrance as it mounts (keyed
-//! by the opening) and quire's exit while leaving (FINDINGS Q123: quire has no edge panel yet).
+//! does) and quire's `Panel` at the right edge, `notifications.center_width_px` wide, in the
+//! Popover material, inside a wrapper carrying `NotificationMetrics`. The panel slides in as it
+//! mounts (keyed by the opening) and out when the link lets it go; its `on_hidden` unmaps the
+//! surface.
 
 use dioxus::prelude::*;
-use ds::{Material, Surface};
+use ds::{Material, Panel, PanelEdge, PanelScrim, Px, Shown};
 use shell_host::OutputId;
 
 use super::contents::Contents;
-use super::drive::{ENTRANCE, EXIT, use_center_ctx, use_phase};
-use super::layer::PANEL_ID;
+use super::drive::{use_center_ctx, use_phase};
+use super::labels::TITLE;
 use super::phase::Phase;
 use crate::hooks::use_settings;
+use crate::surfaces::notification_card::notification_metrics;
 
 /// The column on `output`, while the center is drawn there.
 #[component]
 pub(super) fn Column(output: OutputId) -> Element {
-    let phase = use_phase(output)();
-    let width = use_settings()().notifications.center_width_px.0;
-    let (motion, look) = match phase {
-        Phase::Leaving(_) => (EXIT.class(), "leaving"),
-        Phase::Hidden(_) | Phase::Up(_) => (ENTRANCE.class(), "up"),
+    let phase = use_phase(output);
+    let now = phase.now();
+    let shown = match now {
+        Phase::Up(_) => Shown::Visible,
+        Phase::Hidden(_) | Phase::Leaving(_) => Shown::Hidden,
     };
-    let Some(opening) = phase.drawn() else {
+    let Some(opening) = now.drawn() else {
         return rsx! {};
     };
+    let on_hidden = EventHandler::new(move |()| phase.settled());
     rsx! {
-        Opened {
-            key: "{opening.0}",
-            motion,
-            look,
-            width,
-        }
+        Opened { key: "{opening.0}", shown, on_hidden }
     }
 }
 
-/// One opening's catcher and column: its own handlers' state, so each opening starts closed.
+/// One opening's catcher and panel: its own handlers' state, so each opening starts closed.
 #[component]
-fn Opened(motion: &'static str, look: &'static str, width: u16) -> Element {
+fn Opened(shown: Shown, on_hidden: EventHandler<()>) -> Element {
     let ctx = use_center_ctx();
     use_context_provider(|| ctx.clone());
-    let close = ctx.clone();
+    let settings = use_settings()().notifications;
+    let metrics = notification_metrics(&settings);
+    let (catch, escape) = (ctx.clone(), ctx.clone());
     rsx! {
         div {
             class: "sill-nc-catcher",
-            onpointerdown: move |_| close.close(),
+            onpointerdown: move |_| catch.close(),
         }
-        div {
-            id: PANEL_ID,
-            class: "sill-nc-panel {motion}",
-            "data-pulse": "a",
-            "data-look": look,
-            style: "width:{width}px",
-            Surface { material: Material::Popover,
+        div { class: "sill-nc-scope", style: metrics.style_attr(),
+            Panel {
+                label: TITLE.to_owned(),
+                shown,
+                on_hidden,
+                onclose: move |()| escape.close(),
+                width: Px(metrics.center_width.0),
+                edge: PanelEdge::Right,
+                material: Material::Popover,
+                scrim: PanelScrim::None,
                 Contents {}
             }
         }

@@ -1,24 +1,26 @@
-//! The column's cards over time, pure: which cards are drawn (the [`stack`](super::stack)'s,
-//! plus the ones still sliding out), one banner [`machine`](super::machine) per card, where each
-//! card sits (off the edge, at rest, following a drag), and what the column must do next (start
-//! an entrance or an exit, tell the service). The view (`drive.rs`) owns the timers and the
-//! pointer; everything it decides with is here, tested by table (`deck_tests.rs`).
+//! The column's cards over time, pure: which cards the stack lists (the [`stack`](super::stack)'s)
+//! and which are still drawn while quire's `BannerStack` plays them out, one banner
+//! [`machine`](super::machine) per card, and what the column must do next (start a hold, tell the
+//! service). The view (`drive.rs`) owns the timers; the motion is quire's. Everything it decides
+//! with is here, tested by table (`deck_tests.rs`).
 //!
 //! A card keeps its entry while its app's banners keep coming: a newer notification replaces
 //! the content, bumps the count and starts the hold again (design/13 §13.3.6 "Grouping by app").
 //! A card the service dropped by itself (`CloseNotification`, a replacement elsewhere, Do Not
-//! Disturb's Dismiss All) leaves without telling the service anything.
+//! Disturb's Dismiss All) leaves without telling the service anything. A leaving card is no
+//! longer listed; it stays in the deck until the stack says its exit has played
+//! (`BannerIn::Left`, from `on_hidden`).
 
-use sill_services::{Cpx, NotificationsCommand, Stamp};
+use sill_services::{NotificationsCommand, Stamp};
 
 use super::commands::leave_commands;
 use super::machine::{Banner, BannerIn, BannerOut, BannerParams, Deadline, Persistence, step};
 use super::stack::Card;
-use crate::surfaces::notification_card::Expansion;
 
-/// One drawn card's identity for its life on screen (a new one per arrival).
+/// One drawn card's identity for its life on screen (a new one per arrival): quire's
+/// `BannerKey`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct EntryKey(pub u64);
+pub struct EntryKey(pub u32);
 
 /// Whether the pointer is over a card.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -28,26 +30,6 @@ pub enum Pointer {
     Away,
 }
 
-/// Where a card is drawn.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Pose {
-    /// Off the output's edge: before its entrance starts, and once its exit has.
-    Offstage,
-    /// In its place.
-    Rest,
-    /// Following a drag this far (already damped).
-    Follow(Cpx),
-}
-
-/// Whether a card's entrance is still playing. Its hold starts as it starts to slide in (so a
-/// banner is up for `banner_hold_ms` from when it appears, as design/13 acceptance 9 times it),
-/// and the entrance keeps its own transition until it has played.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Arrival {
-    Rising,
-    Settled,
-}
-
 /// One drawn card.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Entry {
@@ -55,9 +37,6 @@ pub struct Entry {
     pub card: Card,
     pub banner: Banner,
     pub pointer: Pointer,
-    pub pose: Pose,
-    pub expansion: Expansion,
-    pub arrival: Arrival,
 }
 
 impl Entry {
@@ -71,7 +50,7 @@ impl Entry {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Deck {
     pub entries: Vec<Entry>,
-    next: u64,
+    next: u32,
 }
 
 /// What reaches the deck.
@@ -79,10 +58,8 @@ pub struct Deck {
 pub enum DeckIn {
     /// The stack the service's banners make now (this output's; none elsewhere).
     Cards(Vec<Card>),
-    /// A frame has passed since the card mounted off the edge: its entrance starts, and its hold.
+    /// A frame has passed since the card mounted: its hold starts.
     Risen(EntryKey),
-    /// Its entrance has played.
-    Settled(EntryKey),
     /// Something happened to one card.
     Card(EntryKey, BannerIn),
     /// A hold may have run out.
@@ -94,16 +71,12 @@ pub enum DeckIn {
 pub enum DeckOut {
     /// Answer with [`DeckIn::Risen`] a frame from now.
     Rise(EntryKey),
-    /// Answer with [`DeckIn::Settled`] once the entrance has played.
-    Entrance(EntryKey),
-    /// Answer with `BannerIn::Left` once the exit has played.
-    Exit(EntryKey),
     /// Tell the service.
     Send(NotificationsCommand),
 }
 
 impl Deck {
-    /// The cards to draw, newest first (the order the stack shows them in, top down).
+    /// The cards still drawn, leaving ones included, newest first: the regions' cards.
     pub fn drawn(&self) -> Vec<&Entry> {
         let mut drawn: Vec<&Entry> = self
             .entries
@@ -112,6 +85,11 @@ impl Deck {
             .collect();
         drawn.sort_by_key(|e| std::cmp::Reverse(e.card.newest()));
         drawn
+    }
+
+    /// The cards the stack lists, newest first: every drawn one but those leaving.
+    pub fn listed(&self) -> Vec<&Entry> {
+        self.drawn().into_iter().filter(|e| !e.leaving()).collect()
     }
 
     /// Whether the column has anything to show (the surface is mapped while it does).
@@ -145,57 +123,23 @@ pub enum Showing {
 
 /// `deck` after `input` at `now`.
 pub fn advance(deck: Deck, input: DeckIn, now: Stamp, p: &BannerParams) -> (Deck, Vec<DeckOut>) {
-    match input {
-        DeckIn::Cards(cards) => super::deck_cards::follow(deck, cards, now, p),
-        DeckIn::Risen(key) => {
-            let mut out = Vec::new();
-            let entries = deck
-                .entries
-                .into_iter()
-                .map(|e| match (e.key == key, e.banner) {
-                    (true, Banner::Entering { .. }) => {
-                        out.push(DeckOut::Entrance(key));
-                        let risen = Entry {
-                            pose: Pose::Rest,
-                            ..e
-                        };
-                        feed(risen, BannerIn::Entered, now, p, &mut out, Speak::Yes)
-                    }
-                    _ => e,
-                })
-                .collect();
-            (Deck { entries, ..deck }, out)
-        }
-        DeckIn::Settled(key) => (
-            with_entry(deck, key, |e| Entry {
-                arrival: Arrival::Settled,
-                ..e
-            }),
-            Vec::new(),
-        ),
-        DeckIn::Card(key, input) => {
-            let mut out = Vec::new();
-            let entries = deck
-                .entries
-                .into_iter()
-                .map(|e| match e.key == key {
-                    true => feed(e, input, now, p, &mut out, Speak::Yes),
-                    false => e,
-                })
-                .filter(|e| e.banner != Banner::Gone)
-                .collect();
-            (Deck { entries, ..deck }, out)
-        }
-        DeckIn::Tick => {
-            let mut out = Vec::new();
-            let entries = deck
-                .entries
-                .into_iter()
-                .map(|e| feed(e, BannerIn::Tick, now, p, &mut out, Speak::Yes))
-                .collect();
-            (Deck { entries, ..deck }, out)
-        }
-    }
+    let mut out = Vec::new();
+    let (keyed, input) = match input {
+        DeckIn::Cards(cards) => return super::deck_cards::follow(deck, cards, now, p),
+        DeckIn::Risen(key) => (Some(key), BannerIn::Entered),
+        DeckIn::Card(key, input) => (Some(key), input),
+        DeckIn::Tick => (None, BannerIn::Tick),
+    };
+    let entries = deck
+        .entries
+        .into_iter()
+        .map(|e| match keyed.is_none_or(|key| key == e.key) {
+            true => feed(e, input, now, p, &mut out, Speak::Yes),
+            false => e,
+        })
+        .filter(|e| e.banner != Banner::Gone)
+        .collect();
+    (Deck { entries, ..deck }, out)
 }
 
 /// Whether a card's leaving is told to the service.
@@ -207,7 +151,7 @@ pub(super) enum Speak {
 }
 
 /// `e` after `input`, its effects appended to `out`. A card the pointer is over is hovered again
-/// as soon as it is shown (after its entrance, or a drag that sprang back).
+/// as soon as it is shown (after it rose, or after a newer notification restarted its hold).
 pub(super) fn feed(
     e: Entry,
     input: BannerIn,
@@ -230,7 +174,7 @@ pub(super) fn feed(
     }
 }
 
-/// `e` after one machine step, its outputs turned into the entry's pose and the deck's effects.
+/// `e` after one machine step, its leaving told to the service.
 fn apply(
     e: Entry,
     input: BannerIn,
@@ -240,62 +184,23 @@ fn apply(
     speak: Speak,
 ) -> Entry {
     let (banner, said) = step(e.banner, input, now, Persistence::of(e.card.life), p);
-    said.into_iter()
-        .fold(Entry { banner, ..e }, |e, said| match said {
-            BannerOut::RequestTick(_) => e,
-            BannerOut::Expand => Entry {
-                expansion: Expansion::Expanded,
-                ..e
-            },
-            BannerOut::Collapse => Entry {
-                expansion: Expansion::Collapsed,
-                ..e
-            },
-            BannerOut::Offset(dx) => Entry {
-                pose: Pose::Follow(dx),
-                ..e
-            },
-            BannerOut::SpringBack => Entry {
-                pose: Pose::Rest,
-                ..e
-            },
-            BannerOut::Leave(why) => {
-                if speak == Speak::Yes {
-                    out.extend(leave_commands(&e.card, why).into_iter().map(DeckOut::Send));
-                }
-                out.push(DeckOut::Exit(e.key));
-                Entry {
-                    pose: Pose::Offstage,
-                    expansion: Expansion::Collapsed,
-                    ..e
-                }
-            }
-            BannerOut::Remove => e,
-        })
+    for said in said {
+        if let (BannerOut::Leave(why), Speak::Yes) = (said, speak) {
+            out.extend(leave_commands(&e.card, why).into_iter().map(DeckOut::Send));
+        }
+    }
+    Entry { banner, ..e }
 }
 
-/// `deck` with `key`'s entry changed by `f`.
-fn with_entry(deck: Deck, key: EntryKey, f: impl Fn(Entry) -> Entry) -> Deck {
-    let entries = deck
-        .entries
-        .into_iter()
-        .map(|e| if e.key == key { f(e) } else { e })
-        .collect();
-    Deck { entries, ..deck }
-}
-
-/// A new entry for `card`, off the edge, entering from `now`; the deck's next key.
+/// A new entry for `card`, entering from `now`; the deck's next key.
 pub(super) fn arrive(deck: &mut Deck, card: Card, now: Stamp, out: &mut Vec<DeckOut>) {
     let key = EntryKey(deck.next);
-    deck.next += 1;
+    deck.next = deck.next.wrapping_add(1);
     deck.entries.push(Entry {
         key,
         card,
         banner: Banner::Entering { since: now },
         pointer: Pointer::Away,
-        pose: Pose::Offstage,
-        expansion: Expansion::Collapsed,
-        arrival: Arrival::Rising,
     });
     out.push(DeckOut::Rise(key));
 }

@@ -1,21 +1,17 @@
-//! One app's group: its header (quire `SectionHeader{Group}`: the app's name, the count, Clear;
-//! FINDINGS Q125: no leading app icon until quire's header has one), its cards (lane b's
-//! `NotificationCard { place: Center }`, the newest stacked over the rest while collapsed), and
-//! its fold line ("N more", "Show less", `Button{Quiet}`). A row under the pointer or the
-//! keyboard's ring is drawn expanded, as a hovered banner is.
+//! One app's group: quire's `GroupHeader` (the app's icon and name, the count, "N more" or "Show
+//! less", Clear) over its cards (quire's `NotificationCard` through [`NoteCard`], the newest
+//! stacked over the rest while folded). The keyboard's ring is drawn round the header or the
+//! card it is on.
 
 use dioxus::prelude::*;
-use ds::{Button, ButtonVariant, HeaderKind, SectionHeader};
-use sill_launcher::AppId;
-use sill_services::{AppGroup, NotificationId, UnixMs};
+use ds::{AppMark, GroupHeader, IconSize};
+use sill_services::{AppGroup, AppRef, IconRef, UnixMs};
 
 use super::drive::CenterCtx;
 use super::groups::GroupView;
 use super::keys::RowFocus;
-use super::labels::{fold_label, group_title};
 use super::rows::{CenterRow, RowAct, press, rows_of};
-use crate::hooks::use_apps;
-use crate::surfaces::notification_card::{CardPlace, CardPress, Expansion, NotificationCard};
+use crate::surfaces::notification_card::{CardPlace, CardPress, NoteCard, use_app_mark};
 
 /// A group, its rows numbered from `first` among the column's.
 #[component]
@@ -24,39 +20,68 @@ pub(super) fn GroupBlock(
     view: GroupView,
     first: usize,
     focus: RowFocus,
-    hovered: Signal<Option<NotificationId>>,
     now: UnixMs,
 ) -> Element {
     let ctx = use_context::<CenterCtx>();
-    let apps = use_apps();
+    let app = group
+        .as_ref()
+        .and_then(|group| group.notes.first())
+        .map_or_else(nobody, |note| note.app.clone());
+    let mark = use_app_mark(&app, IconSize::Base);
     let Some(group) = group else {
         return rsx! {};
     };
-    let entry = group
-        .notes
-        .first()
-        .and_then(|note| note.app.desktop_entry.clone())
-        .and_then(|id| apps.read().get(&AppId(id)).map(|app| app.name.clone()));
-    let title = group_title(&group, entry.as_deref());
-    let count = group.notes.len();
-    let clear = ctx.clone();
-    let key = group.key.clone();
+    let expanded = match ctx.expanded.read().0.contains(&group.key) {
+        true => ds::Expanded::Open,
+        false => ds::Expanded::Closed,
+    };
     let rows = rows_of(std::slice::from_ref(&view));
     rsx! {
         div { class: "sill-nc-group",
-            SectionHeader {
-                kind: HeaderKind::Group,
-                text: title,
-                value: (count > 1).then(|| count.to_string()),
-                action: Some((
-                    "Clear".to_owned(),
-                    EventHandler::new(move |()| clear.act(RowAct::Clear(key.clone()), None)),
-                )),
-            }
             for (n, row) in rows.into_iter().enumerate() {
-                {row_of(&ctx, &group, row, ringed(focus, first + n), hovered, now)}
+                match row {
+                    CenterRow::Head { .. } => head_row(&ctx, &group, mark.clone(), expanded, ringed(focus, first + n)),
+                    CenterRow::Note { .. } => card_row(&ctx, &group, row, ringed(focus, first + n), now),
+                }
             }
         }
+    }
+}
+
+/// The group's header row.
+fn head_row(
+    ctx: &CenterCtx,
+    group: &AppGroup,
+    mark: AppMark,
+    expanded: ds::Expanded,
+    ring: Ring,
+) -> Element {
+    let count = u32::try_from(group.notes.len()).unwrap_or(u32::MAX);
+    let (toggle, clear) = (ctx.clone(), ctx.clone());
+    let (open, gone) = (group.key.clone(), group.key.clone());
+    rsx! {
+        div {
+            key: "head-{group.key.0}",
+            class: "sill-nc-group-head",
+            "data-focus": ring.attribute(),
+            GroupHeader {
+                icon: mark.icon,
+                name: mark.name,
+                count,
+                expanded,
+                on_toggle: move |_| toggle.act(RowAct::Toggle(open.clone()), None),
+                on_clear: move |_| clear.act(RowAct::Clear(gone.clone()), None),
+            }
+        }
+    }
+}
+
+/// The sender of an empty group: nobody.
+fn nobody() -> AppRef {
+    AppRef {
+        name: String::new(),
+        icon: IconRef::None,
+        desktop_entry: None,
     }
 }
 
@@ -84,64 +109,33 @@ impl Ring {
     }
 }
 
-/// One row: a card, or the fold line.
-fn row_of(
-    ctx: &CenterCtx,
-    group: &AppGroup,
-    row: CenterRow,
-    ring: Ring,
-    mut hovered: Signal<Option<NotificationId>>,
-    now: UnixMs,
-) -> Element {
-    let (on_press, on_fold) = (ctx.clone(), ctx.clone());
-    match row.clone() {
-        CenterRow::Note { id, stack, .. } => {
-            let Some(note) = group.notes.iter().find(|note| note.id == id).cloned() else {
-                return rsx! {};
-            };
-            let app = note.app.desktop_entry.clone();
-            let expansion = match (ring, *hovered.read() == Some(id)) {
-                (Ring::On, _) | (Ring::Off, true) => Expansion::Expanded,
-                (Ring::Off, false) => Expansion::Collapsed,
-            };
-            rsx! {
-                div {
-                    key: "{id.0}",
-                    class: "sill-nc-row",
-                    "data-focus": ring.attribute(),
-                    "data-stack": stack.count(),
-                    onpointerenter: move |_| hovered.set(Some(id)),
-                    onpointerleave: move |_| {
-                        if *hovered.peek() == Some(id) {
-                            hovered.set(None);
-                        }
-                    },
-                    NotificationCard {
-                        note,
-                        count: stack.count(),
-                        expansion,
-                        place: CardPlace::Center,
-                        now,
-                        on_press: move |card: CardPress| {
-                            if let Some(act) = press(&row, card) {
-                                on_press.act(act, app.clone());
-                            }
-                        },
+/// One card row.
+fn card_row(ctx: &CenterCtx, group: &AppGroup, row: CenterRow, ring: Ring, now: UnixMs) -> Element {
+    let CenterRow::Note { id, stack, .. } = row else {
+        return rsx! {};
+    };
+    let Some(note) = group.notes.iter().find(|note| note.id == id).cloned() else {
+        return rsx! {};
+    };
+    let app = note.app.desktop_entry.clone();
+    let on_press = ctx.clone();
+    rsx! {
+        div {
+            key: "{id.0}",
+            class: "sill-nc-row",
+            "data-focus": ring.attribute(),
+            "data-stack": stack.count(),
+            NoteCard {
+                note,
+                count: stack.count(),
+                place: CardPlace::Center,
+                now,
+                on_press: move |card: CardPress| {
+                    if let Some(act) = press(&row, card) {
+                        on_press.act(act, app.clone());
                     }
-                }
+                },
             }
         }
-        CenterRow::Fold { group: key, fold } => rsx! {
-            div {
-                key: "fold-{key.0}",
-                class: "sill-nc-fold",
-                "data-focus": ring.attribute(),
-                Button {
-                    variant: ButtonVariant::Quiet,
-                    label: fold_label(fold),
-                    onclick: move |_| on_fold.act(RowAct::Toggle(key.clone()), None),
-                }
-            }
-        },
     }
 }

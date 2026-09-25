@@ -8,7 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
 use ds::{Button, ButtonVariant};
-use sill_services::{History, NotificationId, UnixMs};
+use sill_services::{History, UnixMs};
 
 use super::drive::CenterCtx;
 use super::group::GroupBlock;
@@ -16,6 +16,7 @@ use super::groups::group_views;
 use super::keymap::center_key;
 use super::keys::{CenterOut, RowFocus, step_keys};
 use super::labels::{EMPTY, TITLE, server_line};
+use super::layer::PANEL_ID;
 use super::rows::{CenterRow, activate, dismiss, rows_of};
 use super::widgets::CenterWidgets;
 use crate::hooks::{use_clock, use_notification_history, use_notifications};
@@ -30,7 +31,6 @@ pub(super) fn Contents() -> Element {
     let _minute = use_clock()();
     let now = wall_clock();
     let mut focus = use_signal(RowFocus::default);
-    let hovered = use_signal(|| None::<NotificationId>);
     let views = group_views(&history, &ctx.expanded.read());
     let rows = rows_of(&views);
     let keys = (ctx.clone(), rows.clone());
@@ -46,6 +46,7 @@ pub(super) fn Contents() -> Element {
         .collect();
     rsx! {
         div {
+            id: PANEL_ID,
             class: "sill-nc-column",
             tabindex: "-1",
             onmounted: move |event: MountedEvent| take_keyboard(event.data()),
@@ -81,7 +82,6 @@ pub(super) fn Contents() -> Element {
                         view,
                         first: at,
                         focus: focus(),
-                        hovered,
                         now,
                     }
                 }

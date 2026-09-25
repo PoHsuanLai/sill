@@ -1,7 +1,7 @@
 //! The rows the center draws, in order, and what a press, Return or Delete on one asks for,
-//! pure. A collapsed group is its newest card stacked over the rest (macOS: a click on the stack
-//! opens it, its close clears the group) and an "N more" line; an opened group of several ends
-//! in "Show less".
+//! pure. Each group is its header (quire's `GroupHeader`: the app, the count, "N more" or "Show
+//! less", Clear) and then its cards: a collapsed group of several is its newest card stacked over
+//! the rest (macOS: a press on the stack opens it, its close clears the group).
 
 use sill_services::{ActionKey, AppKey, NotificationId};
 
@@ -26,26 +26,15 @@ impl Stack {
     }
 }
 
-/// A group's opening line.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Fold {
-    /// Collapsed, hiding this many.
-    More(usize),
-    /// Opened, with several shown.
-    Less,
-}
-
 /// One row the keys move over.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CenterRow {
+    /// A group's header.
+    Head { group: AppKey },
     Note {
         group: AppKey,
         id: NotificationId,
         stack: Stack,
-    },
-    Fold {
-        group: AppKey,
-        fold: Fold,
     },
 }
 
@@ -72,25 +61,19 @@ fn group_rows(view: &GroupView) -> Vec<CenterRow> {
         0 => Stack::Alone,
         more => Stack::Stacked(more + view.shown.len()),
     };
+    let head = CenterRow::Head {
+        group: view.key.clone(),
+    };
     let notes = view.shown.iter().map(|&id| CenterRow::Note {
         group: view.key.clone(),
         id,
         stack,
     });
-    let fold = match (view.more, view.shown.len()) {
-        (0, 0 | 1) => None,
-        (0, _) => Some(Fold::Less),
-        (more, _) => Some(Fold::More(more)),
-    };
-    let fold = fold.map(|fold| CenterRow::Fold {
-        group: view.key.clone(),
-        fold,
-    });
-    notes.chain(fold).collect()
+    std::iter::once(head).chain(notes).collect()
 }
 
-/// Return, or a press on the row's body: a lone card's `default`, a stack or a fold line opens
-/// or closes its group.
+/// Return, or a press on the row's body: a lone card's `default`; a stack or a header opens or
+/// closes its group.
 pub fn activate(row: &CenterRow) -> RowAct {
     match row {
         CenterRow::Note {
@@ -98,14 +81,11 @@ pub fn activate(row: &CenterRow) -> RowAct {
             stack: Stack::Alone,
             ..
         } => RowAct::Invoke(*id, ActionKey::default_action()),
-        CenterRow::Note { group, .. } | CenterRow::Fold { group, .. } => {
-            RowAct::Toggle(group.clone())
-        }
+        CenterRow::Note { group, .. } | CenterRow::Head { group } => RowAct::Toggle(group.clone()),
     }
 }
 
-/// Delete, or a card's close: a lone card is dismissed, a stack or a fold line clears its
-/// group.
+/// Delete, or a card's close: a lone card is dismissed; a stack or a header clears its group.
 pub fn dismiss(row: &CenterRow) -> RowAct {
     match row {
         CenterRow::Note {
@@ -113,9 +93,7 @@ pub fn dismiss(row: &CenterRow) -> RowAct {
             stack: Stack::Alone,
             ..
         } => RowAct::Dismiss(*id),
-        CenterRow::Note { group, .. } | CenterRow::Fold { group, .. } => {
-            RowAct::Clear(group.clone())
-        }
+        CenterRow::Note { group, .. } | CenterRow::Head { group } => RowAct::Clear(group.clone()),
     }
 }
 
@@ -125,13 +103,13 @@ pub fn press(row: &CenterRow, press: CardPress) -> Option<RowAct> {
         (_, CardPress::Body) => Some(activate(row)),
         (_, CardPress::Close) => Some(dismiss(row)),
         (CenterRow::Note { id, .. }, CardPress::Action(key)) => Some(RowAct::Invoke(*id, key)),
-        (CenterRow::Fold { .. }, CardPress::Action(_)) | (_, CardPress::Link(_)) => None,
+        (CenterRow::Head { .. }, CardPress::Action(_)) | (_, CardPress::Link(_)) => None,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{CenterRow, Fold, RowAct, Stack, activate, dismiss, press, rows_of};
+    use super::{CenterRow, RowAct, Stack, activate, dismiss, press, rows_of};
     use crate::surfaces::notification_card::CardPress;
     use crate::surfaces::notification_center::GroupView;
     use sill_services::{ActionKey, AppKey, Href, NotificationId};
@@ -156,32 +134,33 @@ mod tests {
         }
     }
 
-    fn fold(k: &str, fold: Fold) -> CenterRow {
-        CenterRow::Fold {
-            group: key(k),
-            fold,
-        }
+    fn head(k: &str) -> CenterRow {
+        CenterRow::Head { group: key(k) }
     }
 
     #[test]
-    fn groups_become_cards_and_fold_lines() {
+    fn groups_become_a_header_and_cards() {
         let cases = [
             (vec![], vec![]),
-            (vec![view("a", &[4], 0)], vec![note("a", 4, Stack::Alone)]),
+            (
+                vec![view("a", &[4], 0)],
+                vec![head("a"), note("a", 4, Stack::Alone)],
+            ),
             (
                 vec![view("a", &[5], 2), view("b", &[4], 0)],
                 vec![
+                    head("a"),
                     note("a", 5, Stack::Stacked(3)),
-                    fold("a", Fold::More(2)),
+                    head("b"),
                     note("b", 4, Stack::Alone),
                 ],
             ),
             (
                 vec![view("a", &[5, 3], 0)],
                 vec![
+                    head("a"),
                     note("a", 5, Stack::Alone),
                     note("a", 3, Stack::Alone),
-                    fold("a", Fold::Less),
                 ],
             ),
         ];
@@ -197,7 +176,7 @@ mod tests {
         let id = NotificationId(5);
         let alone = note("a", 5, Stack::Alone);
         let stacked = note("a", 5, Stack::Stacked(3));
-        let more = fold("a", Fold::More(2));
+        let header = head("a");
         let default = ActionKey::default_action();
         let cases = [
             (
@@ -206,7 +185,7 @@ mod tests {
                 RowAct::Dismiss(id),
             ),
             (&stacked, RowAct::Toggle(key("a")), RowAct::Clear(key("a"))),
-            (&more, RowAct::Toggle(key("a")), RowAct::Clear(key("a"))),
+            (&header, RowAct::Toggle(key("a")), RowAct::Clear(key("a"))),
         ];
         for (row, on_return, on_delete) in cases {
             assert_eq!(activate(row), on_return, "{row:?}");
@@ -221,7 +200,7 @@ mod tests {
                 CardPress::Action(reply.clone()),
                 Some(RowAct::Invoke(id, reply.clone())),
             ),
-            (&more, CardPress::Action(reply), None),
+            (&header, CardPress::Action(reply), None),
             (&alone, CardPress::Link(Href("https://x".to_owned())), None),
         ];
         for (row, card, want) in presses {

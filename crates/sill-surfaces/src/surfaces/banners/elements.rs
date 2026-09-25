@@ -1,28 +1,32 @@
 //! The column's input and blur regions as element regions (shell-host's `RegionSpec::Elements`,
-//! resolved after every layout, G60): each drawn card's painted parts by id, rounded by
-//! `layer::CARD_RADIUS` (the close button by its own half), so a press in the gap between cards
-//! passes through to the window below and nothing but the cards is blurred. While a card's
-//! actions menu is open the input is the whole surface, since the menu hangs outside the cards.
-//! (`regions::card_regions`, the freeze's measured-rects form, is kept for its callers' sake but
-//! no longer drawn from.)
+//! resolved after every layout, G60): each drawn card's quire plate by its id (`toast-<id>`,
+//! design/20 §1.6), and for a group the whole card, whose layers reach below the plate, so a
+//! press in the gap between cards passes through to the window below and nothing but the cards
+//! is blurred. A card sliding out is still drawn, so it keeps its regions until the stack says
+//! it has gone. (`regions::card_regions`, the freeze's measured-rects form, is kept for its
+//! callers' sake but no longer drawn from.)
 
 use shell_host::{BlurSpec, ElementId, ElementRegion, RegionSpec};
 use sill_services::NotificationId;
 
 use super::layer::CARD_RADIUS;
-use crate::surfaces::notification_card::{CardPart, Expansion, MenuOpen, part_id};
+use crate::surfaces::notification_card::{CardPart, part_id};
 
-/// The close button's corner: a circle (quire's 26 px `IconButton{Strip}` on a round `Surface`).
-const CLOSE_RADIUS: i32 = 13;
+/// How far quire's close button stands out past the plate's top left corner (`--s-6`): the
+/// input region reaches that far round the plate so the whole button takes a press.
+const CLOSE_OVERHANG: i32 = 6;
+
+/// The input region's corner round the plate: the close button's own radius (18 / 2), so the
+/// button sits exactly in the corner's arc.
+const CLOSE_RADIUS: i32 = 9;
 
 /// One drawn card, as the regions see it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CardShape {
     /// The notification it draws.
     pub note: NotificationId,
-    /// How many it stands for (more than one draws the two layers).
+    /// How many it stands for (more than one draws the layers).
     pub count: usize,
-    pub expansion: Expansion,
 }
 
 /// The surface's input and blur regions for `cards`.
@@ -32,115 +36,98 @@ pub struct Regions {
     pub blur: BlurSpec,
 }
 
-/// The regions `cards` take, `menu` saying whether an actions menu is open.
-pub fn element_regions(cards: &[CardShape], menu: MenuOpen) -> Regions {
-    let painted: Vec<ElementRegion> = cards.iter().flat_map(painted).collect();
-    let closes = cards.iter().filter_map(|c| match c.expansion {
-        Expansion::Expanded => Some(region(c.note, CardPart::Close, CLOSE_RADIUS)),
-        Expansion::Collapsed => None,
-    });
-    let input = match (menu, painted.is_empty()) {
-        (MenuOpen::Yes, _) => RegionSpec::Whole,
-        (MenuOpen::No, true) => RegionSpec::Empty,
-        (MenuOpen::No, false) => {
-            RegionSpec::Elements(painted.iter().cloned().chain(closes).collect())
-        }
-    };
-    let blur = match painted.is_empty() {
-        true => BlurSpec::None,
-        false => BlurSpec::Region(RegionSpec::Elements(painted)),
-    };
-    Regions { input, blur }
+/// The regions `cards` take.
+pub fn element_regions(cards: &[CardShape]) -> Regions {
+    if cards.is_empty() {
+        return Regions {
+            input: RegionSpec::Empty,
+            blur: BlurSpec::None,
+        };
+    }
+    let input = cards
+        .iter()
+        .flat_map(|card| {
+            let plate = region(card.note, CardPart::Plate, CLOSE_RADIUS, CLOSE_OVERHANG);
+            std::iter::once(plate).chain(layers(card))
+        })
+        .collect();
+    let blur = cards
+        .iter()
+        .flat_map(|card| {
+            let plate = region(card.note, CardPart::Plate, CARD_RADIUS, 0);
+            std::iter::once(plate).chain(layers(card))
+        })
+        .collect();
+    Regions {
+        input: RegionSpec::Elements(input),
+        blur: BlurSpec::Region(RegionSpec::Elements(blur)),
+    }
 }
 
-/// A card's face, and its two layers when it stands for a group.
-fn painted(card: &CardShape) -> Vec<ElementRegion> {
-    let layers: &[CardPart] = match card.count {
-        0 | 1 => &[],
-        _ => &[CardPart::Near, CardPart::Far],
-    };
-    std::iter::once(&CardPart::Face)
-        .chain(layers)
-        .map(|&part| region(card.note, part, CARD_RADIUS))
-        .collect()
+/// A group's whole card, layers and all; nothing for a lone card.
+fn layers(card: &CardShape) -> Option<ElementRegion> {
+    (card.count > 1).then(|| region(card.note, CardPart::Whole, CARD_RADIUS, 0))
 }
 
-fn region(note: NotificationId, part: CardPart, radius: i32) -> ElementRegion {
+fn region(note: NotificationId, part: CardPart, radius: i32, inflate: i32) -> ElementRegion {
     ElementRegion {
         id: ElementId::new(part_id(note, part)),
         radius,
-        inflate: 0,
+        inflate,
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{CardShape, Regions, element_regions};
-    use crate::surfaces::notification_card::{Expansion, MenuOpen};
     use shell_host::{BlurSpec, ElementId, ElementRegion, RegionSpec};
     use sill_services::NotificationId;
 
-    fn el(id: &str, radius: i32) -> ElementRegion {
+    fn el(id: &str, radius: i32, inflate: i32) -> ElementRegion {
         ElementRegion {
             id: ElementId::new(id),
             radius,
-            inflate: 0,
+            inflate,
         }
     }
 
-    fn shape(note: u32, count: usize, expansion: Expansion) -> CardShape {
+    fn shape(note: u32, count: usize) -> CardShape {
         CardShape {
             note: NotificationId(note),
             count,
-            expansion,
         }
     }
 
     #[test]
-    fn the_regions_are_the_cards_painted_parts() {
-        use Expansion::{Collapsed, Expanded};
-        let cases: Vec<(&str, Vec<CardShape>, MenuOpen, Regions)> = vec![
+    fn the_regions_are_the_cards_plates_and_a_groups_layers() {
+        let cases: Vec<(&str, Vec<CardShape>, Regions)> = vec![
             (
                 "nothing",
                 vec![],
-                MenuOpen::No,
                 Regions {
                     input: RegionSpec::Empty,
                     blur: BlurSpec::None,
                 },
             ),
             (
-                "a lone card, then a group hovered",
-                vec![shape(1, 1, Collapsed), shape(5, 3, Expanded)],
-                MenuOpen::No,
+                "a lone card, then a group",
+                vec![shape(1, 1), shape(5, 3)],
                 Regions {
                     input: RegionSpec::Elements(vec![
-                        el("note-1-face", 16),
-                        el("note-5-face", 16),
-                        el("note-5-near", 16),
-                        el("note-5-far", 16),
-                        el("note-5-close", 13),
+                        el("toast-1", 9, 6),
+                        el("toast-5", 9, 6),
+                        el("banner-5", 16, 0),
                     ]),
                     blur: BlurSpec::Region(RegionSpec::Elements(vec![
-                        el("note-1-face", 16),
-                        el("note-5-face", 16),
-                        el("note-5-near", 16),
-                        el("note-5-far", 16),
+                        el("toast-1", 16, 0),
+                        el("toast-5", 16, 0),
+                        el("banner-5", 16, 0),
                     ])),
                 },
             ),
-            (
-                "an actions menu open",
-                vec![shape(2, 1, Expanded)],
-                MenuOpen::Yes,
-                Regions {
-                    input: RegionSpec::Whole,
-                    blur: BlurSpec::Region(RegionSpec::Elements(vec![el("note-2-face", 16)])),
-                },
-            ),
         ];
-        for (name, cards, menu, want) in cases {
-            assert_eq!(element_regions(&cards, menu), want, "{name}");
+        for (name, cards, want) in cases {
+            assert_eq!(element_regions(&cards), want, "{name}");
         }
     }
 }
