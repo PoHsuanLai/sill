@@ -1,4 +1,4 @@
-//! The shell's surfaces and hooks: bar, wallpaper, dock and launcher (plan "Design: `<shell>`
+//! The shell's surfaces and hooks: bar, wallpaper, dock, launcher and OSD (plan "Design: `<shell>`
 //! repo", `sill-surfaces`), plus the pure machines design/10 and design/13 specify for them.
 //!
 //! Surfaces read shared state only through [`hooks`], which read `sill_services::Services` and
@@ -31,4 +31,5 @@ pub use ds_native::focus::FOCUS;
 pub use surfaces::bar::Bar;
 pub use surfaces::dock::Dock;
 pub use surfaces::launcher::{Launcher, LauncherCatcher};
+pub use surfaces::osd::Osd;
 pub use surfaces::wallpaper::Wallpaper;
