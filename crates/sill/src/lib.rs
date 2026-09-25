@@ -9,4 +9,5 @@ pub mod displays;
 pub mod ipc_server;
 pub mod launch;
 pub mod msg;
+pub mod osd;
 pub mod outputs;

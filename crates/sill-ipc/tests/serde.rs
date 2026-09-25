@@ -5,9 +5,10 @@ use std::io::Cursor;
 use std::path::PathBuf;
 
 use sill_ipc::{
-    DebugRequest, DesktopId, DisplayRequest, DockRequest, Failure, FailureKind, IpcError,
-    LauncherRequest, LevelRequest, MAX_LINE, Micros, Point, PointerButton, Request, Response,
-    SurfaceName, SurfaceStats, VolumeRequest, decode, encode, read_message, write_message,
+    DebugRequest, DesktopId, DisplayRequest, DockRequest, Failure, FailureKind, FakeMute, FakeOsd,
+    IpcError, LauncherRequest, LevelRequest, MAX_LINE, Micros, OsdTopic, Point, PointerButton,
+    Request, Response, SurfaceName, SurfaceStats, VolumeRequest, decode, encode, read_message,
+    write_message,
 };
 
 fn surface(name: &str) -> SurfaceName {
@@ -99,6 +100,14 @@ fn requests() -> Vec<(Request, &'static str)> {
                 button: PointerButton::Middle,
             }),
             r#"{"kind":"debug","v":{"kind":"click","v":{"surface":"sill-dock-DP-1","at":{"x":0,"y":0},"button":"middle"}}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::Osd(FakeOsd {
+                topic: OsdTopic::Volume,
+                percent: 40,
+                mute: FakeMute::Muted,
+            })),
+            r#"{"kind":"debug","v":{"kind":"osd","v":{"topic":"volume","percent":40,"mute":"muted"}}}"#,
         ),
         (
             Request::Display(DisplayRequest::Brightness(LevelRequest::Up)),
