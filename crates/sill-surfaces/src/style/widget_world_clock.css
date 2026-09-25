@@ -1,2 +1,5 @@
-/* The World Clock widget (widgets/world_clock.rs; M10 lane b). Empty at the freeze; its lane adds the rules for the clock rows until quire has a clock face (Q183), with quire's tokens
-   only (coherence rule 1). */
+/* The World Clock widget (widgets/world_clock.rs; M10 lane b): quire's SettingsRow per city
+   (the city, the day and offset, the time) until quire has a clock face (Q183); the quiet line
+   when no city is set. Tokens only (coherence rule 1). */
+.sill-widget-world-clock{ display:flex; flex-direction:column; min-width:0;
+  font-variant-numeric:tabular-nums; }
