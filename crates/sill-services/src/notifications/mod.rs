@@ -28,9 +28,13 @@ pub mod history_file;
 mod ids;
 mod live;
 mod markup;
+mod markup_parse;
+mod name_watch;
 mod policy;
 mod reduce;
+mod rules;
 mod state;
+mod wire;
 
 pub use capabilities::{CAPABILITIES, SERVER_INFORMATION, SPEC_VERSION, ServerInformation};
 pub use content::{
@@ -42,7 +46,7 @@ pub use history_file::StoredHistory;
 pub use ids::{ActionKey, Activation, ActivationToken, AppKey, NotificationId, UnixMs};
 pub use markup::{Body, BodyRun, Href, RunLink, RunStyle, Slant, Underline, Weight, parse_body};
 pub use policy::{
-    Chime, HistoryCap, NotificationsPolicy, Presentation, Presented, Quiet, chime, presented,
+    Chime, HistoryCap, NotificationsPolicy, Presentation, Presented, Quiet, Swipe, chime, presented,
 };
 pub use reduce::{
     Clear, CloseReason, NotesState, NotificationsEffect, NotificationsEvent, assign_id,
@@ -68,8 +72,11 @@ pub enum NotificationsCommand {
     Policy(NotificationsPolicy),
     /// A notification as if `Notify` had been called (`sill debug notify`); no reply id.
     Post(Box<Posting>),
-    /// The person dismissed it (a swipe, the close button, a history row's clear).
+    /// The person dismissed it (the close button, a history row's clear).
     Dismiss(NotificationId),
+    /// The person swiped or dragged its banner away: kept in the center or dismissed, as
+    /// `notifications.swipe` says ([`Swipe`]).
+    SwipeAway(NotificationId),
     /// Dismiss every live banner.
     DismissAll,
     /// A banner's hold ran out.
