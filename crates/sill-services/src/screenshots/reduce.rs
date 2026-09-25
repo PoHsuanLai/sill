@@ -108,8 +108,83 @@ pub enum ShotEffect {
 /// no longer current is dropped. `Left` of the current shot clears it and asks for `Open` or
 /// `Trash` as the reason says; of any other id, nothing. `Take` while `Running` is ignored.
 pub fn reduce_shots(shots: Shots, event: ShotEvent) -> (Shots, Vec<ShotEffect>) {
-    let _ = (shots, event);
-    todo!("M10 fill: c-screenshot")
+    match event {
+        ShotEvent::Appeared(path) => appeared(shots, path),
+        ShotEvent::PreviewReady(id, preview) => (
+            previewed(shots, id, ShotPreview::Ready(preview)),
+            Vec::new(),
+        ),
+        ShotEvent::PreviewFailed(id) => (previewed(shots, id, ShotPreview::Original), Vec::new()),
+        ShotEvent::Left(id, why) => left(shots, id, why),
+        ShotEvent::Take(kind) => match shots.taking {
+            Taking::Running(_) => (shots, Vec::new()),
+            Taking::Idle => (
+                Shots {
+                    taking: Taking::Running(kind),
+                    ..shots
+                },
+                vec![ShotEffect::RunTool(kind)],
+            ),
+        },
+        ShotEvent::TakeEnded => (
+            Shots {
+                taking: Taking::Idle,
+                ..shots
+            },
+            Vec::new(),
+        ),
+        ShotEvent::Watching(watching) => (Shots { watching, ..shots }, Vec::new()),
+    }
+}
+
+fn appeared(shots: Shots, path: PathBuf) -> (Shots, Vec<ShotEffect>) {
+    if shots.current.as_ref().is_some_and(|shot| shot.path == path) {
+        return (shots, Vec::new());
+    }
+    let id = ShotId(shots.last_id.0 + 1);
+    let effect = ShotEffect::MakePreview {
+        id,
+        from: path.clone(),
+    };
+    let current = Shot {
+        id,
+        path,
+        preview: ShotPreview::Pending,
+    };
+    let next = Shots {
+        current: Some(current),
+        last_id: id,
+        ..shots
+    };
+    (next, vec![effect])
+}
+
+fn previewed(shots: Shots, id: ShotId, preview: ShotPreview) -> Shots {
+    match shots.current {
+        Some(shot) if shot.id == id => Shots {
+            current: Some(Shot { preview, ..shot }),
+            ..shots
+        },
+        current => Shots { current, ..shots },
+    }
+}
+
+fn left(shots: Shots, id: ShotId, why: ShotLeave) -> (Shots, Vec<ShotEffect>) {
+    let Some(shot) = shots.current.clone().filter(|shot| shot.id == id) else {
+        return (shots, Vec::new());
+    };
+    let effects = match why {
+        ShotLeave::Opened => vec![ShotEffect::Open(shot.path)],
+        ShotLeave::Trashed => vec![ShotEffect::Trash(shot.path)],
+        ShotLeave::Kept | ShotLeave::Dragged => Vec::new(),
+    };
+    (
+        Shots {
+            current: None,
+            ..shots
+        },
+        effects,
+    )
 }
 
 #[cfg(test)]
@@ -134,7 +209,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: c-screenshot"]
     fn a_screenshot_arrives_is_previewed_and_leaves() {
         let (one, fx) = reduce_shots(Shots::default(), ShotEvent::Appeared(path("a.png")));
         assert_eq!(one.current, Some(shot(1, "a.png", ShotPreview::Pending)));
@@ -173,7 +247,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: c-screenshot"]
     fn a_newer_screenshot_replaces_the_current_one_and_stale_previews_drop() {
         let (one, _) = reduce_shots(Shots::default(), ShotEvent::Appeared(path("a.png")));
         let (two, _) = reduce_shots(one, ShotEvent::Appeared(path("b.png")));
@@ -188,7 +261,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: c-screenshot"]
     fn one_tool_run_at_a_time() {
         let (running, fx) = reduce_shots(Shots::default(), ShotEvent::Take(ShotKind::Area));
         assert_eq!(running.taking, Taking::Running(ShotKind::Area));

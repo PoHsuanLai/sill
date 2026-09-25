@@ -1,11 +1,13 @@
 //! Screenshots on the daemon's side (FINDINGS "M10 freeze"): one warm, hidden thumbnail surface
 //! per output (the banners' pattern), `sill screenshot`, `sill debug screenshot`, and the
-//! service's policy from `screenshot.folders` and `screenshot.tool` ([`spawn_policy`], M10
-//! lane c fills it; until then the service stays passive and watches nothing).
+//! service's policy from `screenshot.folders` and `screenshot.tool` ([`spawn_policy`]; until
+//! it is sent the service stays passive and watches nothing).
+
+use std::path::PathBuf;
 
 use shell_host::{HostCtx, OutputInfo, Root};
 use sill_ipc::{FakeScreenshot, Response, ScreenshotRequest, ShotArea};
-use sill_services::screenshots::ShotPolicy;
+use sill_services::screenshots::{ShotPolicy, parse_folders, parse_tool};
 use sill_services::{Control, Services, ShotCommand, ShotKind};
 use sill_settings::ShellFile;
 use sill_surfaces::surfaces::screenshot_thumb::ScreenshotThumbProps;
@@ -65,19 +67,38 @@ pub fn fake(services: &Services, fake: FakeScreenshot) -> Response {
 /// The service's policy `file` makes. Lane c fills it (`parse_folders` against `$HOME`,
 /// `parse_tool`).
 pub fn policy_of(file: &ShellFile) -> ShotPolicy {
-    let _ = file;
-    todo!("M10 fill: c-screenshot")
+    let home = std::env::var_os("HOME").map_or_else(PathBuf::new, PathBuf::from);
+    ShotPolicy {
+        folders: parse_folders(&file.screenshot.folders, &home),
+        tool: parse_tool(&file.screenshot.tool),
+    }
 }
 
 /// Send [`policy_of`] now and on every settings change, on `rt`, until either side is gone (the
-/// notifications policy's pattern). Lane c fills it; until then the service is never
-/// configured and stays passive.
+/// notifications policy's pattern); a change elsewhere in the file sends nothing.
 pub fn spawn_policy(
     rt: &Handle,
-    settings: watch::Receiver<ShellFile>,
+    mut settings: watch::Receiver<ShellFile>,
     control: Control<ShotCommand>,
 ) {
-    let _ = (rt, settings, control);
+    rt.spawn(async move {
+        let mut sent = None;
+        loop {
+            let policy = policy_of(&settings.borrow_and_update());
+            if sent.as_ref() != Some(&policy) {
+                if control
+                    .send(ShotCommand::Configure(policy.clone()))
+                    .is_err()
+                {
+                    return;
+                }
+                sent = Some(policy);
+            }
+            if settings.changed().await.is_err() {
+                return;
+            }
+        }
+    });
 }
 
 /// The thumbnail surface's namespace on `info`, which `debug stats` reports.
@@ -112,7 +133,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: c-screenshot"]
     fn the_default_settings_watch_pictures_with_cosmics_tool() {
         assert_eq!(
             policy_of(&ShellFile::default()),

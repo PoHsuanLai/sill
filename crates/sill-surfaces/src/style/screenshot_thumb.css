@@ -1,2 +1,25 @@
-/* The screenshot thumbnail (surfaces/screenshot_thumb; M10 lane c). Empty at the freeze; its lane adds the rules for the card until quire has a thumbnail card (Q181), with quire's tokens
-   only (coherence rule 1). */
+/* The screenshot thumbnail (design/20 §1.13; surfaces/screenshot_thumb). quire's `BannerStack`
+   at the surface's bottom right carries the card in and out (its `banner-in`/`banner-out`,
+   no keyframes here); this places the stack and draws the card from quire parts until quire
+   has a thumbnail card (Q181): a Toast `Surface` holding the picture letterboxed, and a Toast
+   pill with Delete at the top left that shows under the pointer. The card's size and the room
+   around it are the surface's constants, written inline (`THUMB_WIDTH`, `ROOM`). A swipe draws
+   the card off its place: following the pointer with no transition (`live`), easing back
+   (`rest`), holding where it went while its row flies out (`gone`). Tokens only; attribute
+   selectors carry `*|` (spike S2). */
+
+.sill-thumb-column{ position:absolute; top:0; right:0; bottom:0; left:0; display:flex; flex-direction:column;
+  align-items:flex-end; justify-content:flex-end; box-sizing:border-box; overflow:hidden; }
+
+.sill-thumb{ position:relative; display:grid; box-sizing:border-box; cursor:default; touch-action:none;
+  transition:transform var(--t-move) var(--e-spring); }
+.sill-thumb[*|data-swipe=live],
+.sill-thumb[*|data-swipe=gone]{ transition:none; }
+
+.sill-thumb-picture{ display:flex; align-items:center; justify-content:center; box-sizing:border-box;
+  width:100%; height:100%; padding:var(--s-4); overflow:hidden; }
+.sill-thumb-image{ display:block; width:100%; height:100%; object-fit:contain; border-radius:var(--r-small); }
+
+.sill-thumb-actions{ position:absolute; top:var(--s-6); left:var(--s-6); display:flex; opacity:0; pointer-events:none;
+  transition:opacity var(--t-quick) var(--e-out); }
+.sill-thumb[*|data-pointer=over] .sill-thumb-actions{ opacity:1; pointer-events:auto; }
