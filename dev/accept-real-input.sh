@@ -179,9 +179,20 @@ start_daemon() {
 stop_daemon() {
   [ -n "${DAEMON:-}" ] || return 0
   timeout 10 "$SILL_BIN" quit >/dev/null 2>&1
-  reap "$DAEMON" daemon
+  local result=0
+  await_exit "$DAEMON" daemon || result=1
   DAEMON=
   rm -rf "$CONFIG"
+  return "$result"
+}
+
+# Wait up to 10 s for process $1 (named $2) to end on its own, once already asked to. Unlike
+# `reap` this never kills it: a daemon that goes back to not ending on `quit` (FINDINGS G51)
+# fails the script instead of being silently swept away.
+await_exit() {
+  for _ in $(seq 100); do kill -0 "$1" 2>/dev/null || return 0; sleep 0.1; done
+  echo "the $2 ($1) did not end after quit" >&2
+  return 1
 }
 
 # The dry run is in force, from the daemon's own log. Sets DRY_RUN=proven.
@@ -299,7 +310,7 @@ done
 sill power-menu close >/dev/null 2>&1
 echo "stopping the input client, the daemon and the headless KWin" >&2
 stop_input
-stop_daemon
+stop_daemon || status=1
 "$SHELL_HOST_DEV/kwin-virtual.sh" stop >>"$OUT_DIR/kwin.log" 2>&1
 echo "logs in $OUT_DIR"
 exit "$status"

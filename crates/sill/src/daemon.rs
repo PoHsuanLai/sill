@@ -138,9 +138,42 @@ pub fn run() -> ExitCode {
         );
     });
 
+    shutdown_runtime(runtime);
+
     match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => fatal(&format!("{error}")),
+    }
+}
+
+/// The bound [`shutdown_runtime`] gives every service's blocking-pool thread to finish once
+/// `host.run` has returned (`ctx.exit()`; every surface, and with it every clone of `Services`,
+/// is already gone by then — shell-host's own `Host::run` clears every surface before
+/// returning). Comfortably above `sill-services`' own bounded waits (its `cosmic-randr` call is
+/// 2 s: FINDINGS G51), but not unbounded.
+const RUNTIME_SHUTDOWN_BOUND: Duration = Duration::from_secs(4);
+
+/// Ends `runtime`, waiting at most [`RUNTIME_SHUTDOWN_BOUND`] for every spawned task's thread to
+/// finish. Dropping a `tokio::runtime::Runtime` plainly waits forever for that, and a
+/// `spawn_blocking` task that calls into something that hangs (`cosmic-randr` under a
+/// compositor without `zwlr_output_manager_v1`, e.g. KWin: FINDINGS G51) would otherwise keep
+/// the daemon from ever exiting after `sill quit` already got its answer. Past the bound, that
+/// thread (and whatever it is stuck in) is left running and the process exits without it; a
+/// warning on stderr says so.
+fn shutdown_runtime(runtime: tokio::runtime::Runtime) {
+    shutdown_runtime_within(runtime, RUNTIME_SHUTDOWN_BOUND);
+}
+
+/// [`shutdown_runtime`]'s body, `bound` taken as a parameter so a test can shrink it rather than
+/// waiting out the real one.
+fn shutdown_runtime_within(runtime: tokio::runtime::Runtime, bound: Duration) {
+    let started = Instant::now();
+    runtime.shutdown_timeout(bound);
+    if started.elapsed() >= bound {
+        eprintln!(
+            "sill: the async runtime did not shut down within {bound:?}; a service's thread is \
+             still running and is left behind as the process exits"
+        );
     }
 }
 
@@ -875,6 +908,60 @@ fn internal(error: &impl std::fmt::Display) -> Response {
         kind: FailureKind::Internal,
         message: error.to_string(),
     })
+}
+
+#[cfg(test)]
+mod shutdown_tests {
+    use std::sync::mpsc;
+    use std::time::{Duration, Instant};
+
+    use super::shutdown_runtime_within;
+
+    /// A `spawn_blocking` task that never returns — the shape of `cosmic-randr` hanging under a
+    /// compositor without `zwlr_output_manager_v1` (KWin: FINDINGS G51) — does not keep
+    /// [`shutdown_runtime_within`] waiting past its bound; the leaked thread is left running
+    /// (past the bound `forever` is never drained again, so it stays parked) and the call still
+    /// returns.
+    #[test]
+    fn a_stuck_blocking_task_does_not_hang_the_bound() {
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(1)
+            .enable_all()
+            .build()
+            .unwrap_or_else(|e| panic!("{e}"));
+        let (never_sent, forever) = mpsc::channel::<()>();
+        runtime.spawn_blocking(move || {
+            // `never_sent` moves in and is held here (not dropped) for as long as this closure
+            // runs, so `forever.recv()` below blocks rather than seeing a disconnected sender.
+            let _held = never_sent;
+            let _ = forever.recv();
+        });
+        let bound = Duration::from_millis(200);
+        let started = Instant::now();
+        shutdown_runtime_within(runtime, bound);
+        assert!(
+            started.elapsed() < Duration::from_secs(5),
+            "shutdown waited well past its {bound:?} bound"
+        );
+    }
+
+    /// A runtime with nothing left running shuts down well inside its bound: the bound is a
+    /// ceiling, not a fixed wait.
+    #[test]
+    fn a_clean_runtime_shuts_down_promptly() {
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(1)
+            .enable_all()
+            .build()
+            .unwrap_or_else(|e| panic!("{e}"));
+        let bound = Duration::from_secs(2);
+        let started = Instant::now();
+        shutdown_runtime_within(runtime, bound);
+        assert!(
+            started.elapsed() < bound,
+            "a clean shutdown should not need the whole bound"
+        );
+    }
 }
 
 #[cfg(all(test, feature = "debug"))]

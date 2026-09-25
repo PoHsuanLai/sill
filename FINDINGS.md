@@ -2875,8 +2875,59 @@ rule), on `adopt-v019`. Findings are numbered from F240/Q110/G50.
   `xdg_popup.grab`). `accept-real-input.sh` keeps one client for the whole run. A real seat that
   loses and regains its pointer (a mouse unplugged) would do the same.
 - **G51** On the headless KWin `sill quit` does not end the daemon (it answers, then stays up);
-  the script ends it after 5 s. On the nested cosmic-comp it quits as before. Not looked into.
+  the script ends it after 5 s. On the nested cosmic-comp it quits as before. Closed below
+  ("G51: `sill quit` ends the daemon on headless KWin").
 - **G52 (kwin-virtual.sh)** `kwin-virtual.sh stop` kills every process whose environment names
   the private bus, so a script that sourced `.kwin-env` and exported it is killed by its own stop
   call; `accept-real-input.sh` gives the bus to the daemon only.
+
+## G51: `sill quit` ends the daemon on headless KWin (2026-09-25)
+
+`gdb -p <pid> -batch -ex "thread apply all bt"` on the stuck daemon (headless KWin, no other
+change) found the main thread past `host.run` in `daemon.rs`, inside `Drop` for
+`tokio::runtime::runtime::Runtime` (`BlockingPool::shutdown` waiting on a oneshot receiver for
+every blocking-pool task to finish), and a `tokio-rt-worker` thread inside a `spawn_blocking`
+task still running `std::process::Command::output`'s `poll()`, called from
+`sill_services::displays::sink::CosmicRandr::heads` (`crates/sill-services/src/displays/sink.rs`)
+by way of `scale_pass` and `displays::run::Service::rescan_outputs`
+(`crates/sill-services/src/displays/run.rs`). `pgrep`/`ps` confirmed it: a `cosmic-randr list
+--kdl` child, still alive, spawned by the daemon at startup and never reaping.
+
+The module doc's assumption ("under a compositor without `zwlr_output_manager_v1` (KWin) it
+fails") was wrong: `cosmic-randr` hangs on KWin rather than failing promptly, so
+`Command::output` (no bound of its own) waits on its stdout pipe forever. `displays`' first
+`rescan_outputs` (fired from the daemon's very first policy send) is stuck on that
+`spawn_blocking` task for the rest of the session — which, besides parking `displays` (no
+further display command is ever answered under KWin, in this build, before this fix), also
+parks `tokio::runtime::Runtime`'s plain `Drop`, called implicitly when `daemon::run` returns
+after `host.run` (`ctx.exit()`): it waits forever for every blocking-pool thread, including this
+one, to finish. `sill quit` answers over IPC (the reply is sent from `ctx.exit()`'s handler,
+before `host.run` even returns) while the process behind it never exits.
+
+Not shell-host's: `Host::run` (shell-host's own function) already shuts its own, separate,
+internal runtime down in a bounded way (`runtime.shutdown_background()`, non-blocking) and
+clears every surface — and with it every clone of `sill_services::Services` the surfaces
+held — before it returns; the daemon's *own* `runtime` (built in `daemon::run`, passed to
+`sill_services::Services::spawn`) is the one left to an unbounded `Drop`. Not G50 or G52 either:
+G50 is shell-host's fake-input pointer double-delivery and G52 is `kwin-virtual.sh stop`'s kill
+pattern catching a script that sourced its env; neither touches how or whether the daemon process
+itself exits, and this repro reliably hung with a single fake-input client and the private bus
+given only to the daemon (G51's and G52's own fixes, already in place).
+
+Two fixes, both in `sill`:
+
+- `sink.rs`'s `wait_bounded` polls the child with `try_wait` and kills it after
+  `COSMIC_RANDR_TIMEOUT` (2 s) instead of `Command::output`'s unbounded wait, so `heads()` fails
+  fast on a compositor that never answers and `displays` stays responsive afterward. Tests:
+  `a_child_that_answers_is_read_normally`, `a_child_that_never_answers_is_killed_at_the_bound`.
+- `daemon.rs`'s `shutdown_runtime` calls `runtime.shutdown_timeout(RUNTIME_SHUTDOWN_BOUND)` (4 s)
+  instead of letting `Runtime`'s `Drop` run implicitly, and logs a warning if it took the whole
+  bound: any *other* future blocking task that gets stuck the same way leaks its thread rather
+  than the process. Tests (`shutdown_tests`): `a_stuck_blocking_task_does_not_hang_the_bound`,
+  `a_clean_runtime_shuts_down_promptly`.
+
+`dev/accept-real-input.sh`'s `stop_daemon` no longer relies on `reap`'s kill-after-5-s to end the
+daemon (a real hang would now be silently swept away by it): `await_exit` waits for the process
+to end on its own and fails the script if it does not. All six steps still pass, twice in a row,
+with the daemon and its `cosmic-randr` child both gone (checked by `pgrep`) after each run.
 
