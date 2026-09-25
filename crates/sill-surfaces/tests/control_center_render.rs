@@ -4,9 +4,14 @@
 
 mod cc_support;
 
+use std::time::Duration;
+
+use cc_support::live::{self, Report};
 use cc_support::{count, fake, render};
-use sill_services::{Bluetooth, Radio, Wifi};
+use ds::Key;
+use sill_services::{Bluetooth, Radio, Wifi, WifiCommand};
 use sill_settings::{ControlCenterModule, ControlCenterSettings, ShellFile};
+use sill_surfaces::surfaces::control_center::{CcPage, Detail};
 
 #[test]
 fn the_grid_shows_what_the_services_hold() {
@@ -86,4 +91,81 @@ fn fed_values_replace_the_defaults() {
     for (name, needle, want) in cases {
         assert_eq!(count(&html, needle), want, "{name}: {needle}");
     }
+}
+
+#[test]
+fn a_chevron_slides_its_pane_in_and_escape_unwinds() {
+    let (services, feeds) = fake::services();
+    // The radio off: the pane lists nothing, so this runs before the Wi-Fi service's
+    // `listed_networks` lands (M5 lane b).
+    feeds.wifi.send_replace(Wifi {
+        radio: Radio::Off,
+        ..fake::wifi()
+    });
+    let mut running = live::start(services, feeds);
+    let step = Duration::from_millis(50);
+    // The popover places its card a frame after it measures the anchor.
+    running.harness.advance(Duration::from_millis(300));
+    let chevron = running
+        .harness
+        .centre(".sill-cc-tile-foot .ds-icon-button")
+        .expect("the Wi-Fi chevron is laid out");
+    // A press in the panel reaches it (the popup frame is in flow, so the hit test descends):
+    // the Wi-Fi switch asks for the radio (a fake service: nothing real changes).
+    let switch = running
+        .harness
+        .centre(".ds-toggle")
+        .expect("the Wi-Fi switch");
+    running.harness.click(switch);
+    running.harness.advance(step);
+    assert_eq!(
+        running.feeds.wifi_commands.try_recv().ok(),
+        Some(WifiCommand::Radio(Radio::On))
+    );
+    running.harness.click(chevron);
+    running.harness.advance(step);
+    assert_eq!(
+        running.harness.count(".sill-cc-detail"),
+        1,
+        "the Wi-Fi pane"
+    );
+    assert_eq!(running.harness.count(".sill-cc-grid"), 0);
+    assert_eq!(
+        running
+            .harness
+            .attr(".sill-cc-pane", "data-slide")
+            .as_deref(),
+        Some("to-detail")
+    );
+    assert_eq!(
+        running.harness.text_of(".sill-cc-empty").as_deref(),
+        Some("Wi-Fi is off")
+    );
+    // Escape with the pressed chevron gone: the panel holds the keyboard.
+    running.harness.advance(step);
+    running.harness.key(Key::Escape);
+    running.harness.advance(step);
+    assert_eq!(
+        running.harness.count(".sill-cc-grid"),
+        1,
+        "back on the grid"
+    );
+    assert_eq!(
+        running
+            .harness
+            .attr(".sill-cc-pane", "data-slide")
+            .as_deref(),
+        Some("to-modules")
+    );
+    assert_eq!(
+        running.reports(),
+        [
+            Report::Page(CcPage::Detail(Detail::Wifi)),
+            Report::Page(CcPage::Modules)
+        ]
+    );
+    // Escape on the grid reaches the popover, which closes.
+    running.harness.key(Key::Escape);
+    running.harness.advance(Duration::from_millis(400));
+    assert_eq!(running.reports().last(), Some(&Report::Closed));
 }

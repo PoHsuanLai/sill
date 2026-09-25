@@ -2,6 +2,8 @@
 //! by [`super::place`] (each module from `crate::surfaces::control_center::modules`), the detail
 //! pages, the slide between them, and Escape.
 
+use std::rc::Rc;
+
 use dioxus::prelude::*;
 use sill_services::OutputName;
 
@@ -28,6 +30,7 @@ pub(crate) fn control_center(
     let cap = try_use_context::<PanelCap>();
     let mut page = use_signal(CcPage::default);
     let mut slide = use_signal(|| Slide::None);
+    let home = use_keyboard_home();
     use_context_provider(|| ClosePanel(Callback::new(move |()| on_close.call(()))));
     let go = use_callback(move |input: PageInput| {
         let (next, moved, out) = step_page(*page.peek(), input);
@@ -35,6 +38,8 @@ pub(crate) fn control_center(
             PageOut::Close => on_close.call(()),
             PageOut::Stay if next != *page.peek() => {
                 page.set(next);
+                // The pressed chevron or back button is gone with its pane.
+                home.take();
                 slide.set(moved);
                 on_page.call(next);
             }
@@ -46,6 +51,7 @@ pub(crate) fn control_center(
         CcPage::Modules => rsx! {
             Grid {
                 placed: place(&cc.modules, cc.grid_columns.0),
+                columns: cc.grid_columns.0,
                 gap: cc.grid_gap_px.0,
                 output,
                 on_detail: move |detail: Detail| go.call(PageInput::Open(detail)),
@@ -62,7 +68,9 @@ pub(crate) fn control_center(
     rsx! {
         div {
             class: "sill-cc",
+            tabindex: "-1",
             style,
+            onmounted: move |event: MountedEvent| home.mounted(event),
             onkeydown: move |event: KeyboardEvent| {
                 // Escape on a detail page goes back; on the grid it reaches the popover, which
                 // closes.
@@ -75,6 +83,32 @@ pub(crate) fn control_center(
             PaneSwitcher { pane: current, slide: slide(), {pane} }
         }
     }
+}
+
+/// The panel's own element, which holds the keyboard so Escape reaches the panel (and the
+/// popover around it) with nothing inside focused: as it mounts, and after a page change takes
+/// the focused button away.
+#[derive(Clone, Copy)]
+pub(crate) struct KeyboardHome(Signal<Option<Rc<MountedData>>>);
+
+impl KeyboardHome {
+    /// The panel mounted: keep it and give it the keyboard.
+    pub(crate) fn mounted(mut self, event: MountedEvent) {
+        let element = event.data();
+        self.0.set(Some(element.clone()));
+        ds::focus_soon(element);
+    }
+
+    /// Give the panel the keyboard again.
+    pub(crate) fn take(self) {
+        if let Some(element) = self.0.peek().clone() {
+            ds::focus_soon(element);
+        }
+    }
+}
+
+pub(crate) fn use_keyboard_home() -> KeyboardHome {
+    KeyboardHome(use_signal(|| None))
 }
 
 /// The panel's inline box: `control_center.width_px` wide, `grid_padding_px` inside, scrolling
@@ -90,6 +124,7 @@ pub(crate) fn panel_style(width: u16, padding: u16, cap: Option<PanelCap>) -> St
 #[component]
 fn Grid(
     placed: Vec<Placed>,
+    columns: u16,
     gap: u16,
     output: Option<OutputName>,
     on_detail: EventHandler<Detail>,
@@ -97,7 +132,10 @@ fn Grid(
     let gap = format!("gap:{gap}px");
     rsx! {
         div { class: "sill-cc-grid", style: gap.clone(),
-            for row in rows_of(&placed) {
+            for (row, free) in rows_of(&placed).into_iter().map(|row| {
+                let free = free_columns(&row, columns);
+                (row, free)
+            }) {
                 div { key: "{row.first().map_or(0, |cell| cell.row)}", class: "sill-cc-row", style: gap.clone(),
                     for cell in row {
                         div {
@@ -106,6 +144,9 @@ fn Grid(
                             "data-span": span_slug(cell.span),
                             Module { module: cell.module, output: output.clone(), on_detail }
                         }
+                    }
+                    for column in 0..free {
+                        div { key: "free-{column}", class: "sill-cc-cell" }
                     }
                 }
             }
@@ -128,6 +169,15 @@ pub(crate) fn rows_of(placed: &[Placed]) -> Vec<Vec<Placed>> {
         })
 }
 
+/// The empty columns a row of one-column tiles leaves, kept so each tile stays a column wide.
+pub(crate) fn free_columns(row: &[Placed], columns: u16) -> u16 {
+    if row.iter().all(|cell| cell.span == Span::One) {
+        columns.saturating_sub(u16::try_from(row.len()).unwrap_or(u16::MAX))
+    } else {
+        0
+    }
+}
+
 fn span_slug(span: Span) -> &'static str {
     match span {
         Span::One => "one",
@@ -137,7 +187,7 @@ fn span_slug(span: Span) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{PanelCap, panel_style, rows_of};
+    use super::{PanelCap, free_columns, panel_style, rows_of};
     use crate::surfaces::control_center::place;
     use sill_settings::ControlCenterSettings;
 
@@ -146,6 +196,11 @@ mod tests {
         let placed = place(&ControlCenterSettings::default().modules, 2);
         let widths: Vec<usize> = rows_of(&placed).iter().map(Vec::len).collect();
         assert_eq!(widths, [2, 1, 1, 1, 1, 1, 1]);
+        let free: Vec<u16> = rows_of(&placed)
+            .iter()
+            .map(|row| free_columns(row, 2))
+            .collect();
+        assert_eq!(free, [0, 1, 0, 0, 0, 0, 0], "Focus keeps its column");
         assert!(rows_of(&[]).is_empty());
     }
 

@@ -99,11 +99,11 @@ pub(crate) fn anchor_rect(title: ds::Rect, side: MenuSide, bar_width: i32) -> Re
     }
 }
 
-/// The inline position of the frame the popup's `Ds` root sits in: inset so that `ds::place`'s
-/// margin puts the menu at (`SIDE`, `TOP`).
+/// The inline padding of the frame the popup's `Ds` root fills: the room less `ds::place`'s
+/// margin, so the margin puts the menu at (`SIDE`, `TOP`).
 pub(crate) fn frame_style() -> String {
     format!(
-        "left:{side}px;right:{side}px;top:{top}px;bottom:{bottom}px",
+        "padding:{top}px {side}px {bottom}px {side}px",
         side = SIDE - MARGIN,
         top = TOP - MARGIN,
         bottom = BOTTOM - MARGIN

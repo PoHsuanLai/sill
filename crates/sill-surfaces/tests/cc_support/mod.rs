@@ -5,6 +5,7 @@
 
 #[path = "../support/fake.rs"]
 pub mod fake;
+pub mod live;
 
 use dioxus::prelude::*;
 use ds::{Appearance, Ds, Material};

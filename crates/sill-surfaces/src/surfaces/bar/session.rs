@@ -216,7 +216,9 @@ fn handle(slots: Slots, deps: &SessionDeps, clock: FrameClock, input: BarInput) 
         BarInput::Page(page) => {
             let mut slot = slots.page;
             slot.set(page);
-            if let Some(menu) = *slots.open.peek() {
+            // Read before the swap, which writes `open`.
+            let showing = *slots.open.peek();
+            if let Some(menu) = showing {
                 apply(slots, deps, BarEffect::Swap(menu));
             }
             return;
@@ -235,9 +237,8 @@ fn handle(slots: Slots, deps: &SessionDeps, clock: FrameClock, input: BarInput) 
 fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
     let mut open = slots.open;
     let mut link = slots.link;
-    if let BarEffect::Show(_) | BarEffect::Swap(_) = &effect
-        && *open.peek() != effect_menu(&effect)
-    {
+    let showing = *open.peek();
+    if effect_menu(&effect).is_some_and(|menu| showing != Some(menu)) {
         // A menu shown afresh starts the control center on its grid.
         let mut page = slots.page;
         page.set(CcPage::Modules);

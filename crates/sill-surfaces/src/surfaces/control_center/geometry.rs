@@ -119,7 +119,7 @@ const LEVEL_PX: i32 = 76;
 /// Now Playing: the 48 px art and padding.
 const NOW_PLAYING_PX: i32 = 76;
 /// quire's `AppearancePicker`: three field headers over their controls.
-const APPEARANCE_PX: i32 = 214;
+const APPEARANCE_PX: i32 = 226;
 /// Battery: two lines over the power profile's segmented control.
 const BATTERY_PX: i32 = 112;
 /// A detail page's header: the back button, the title and the switch.

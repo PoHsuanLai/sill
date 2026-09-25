@@ -10,7 +10,7 @@ use super::modules::Module;
 use super::pages::bluetooth_devices::BluetoothPane;
 use super::pages::foot::ClosePanel;
 use super::pages::wifi_networks::WifiPane;
-use super::panel::{PanelCap, panel_style};
+use super::panel::{PanelCap, panel_style, use_keyboard_home};
 use crate::hooks::use_settings;
 
 /// `module`'s dropdown on the bar of `output`; `on_close` closes the popup (a pick that opens
@@ -23,6 +23,7 @@ pub(crate) fn ModuleDropdown(
 ) -> Element {
     let cc = use_settings()().control_center;
     let cap = try_use_context::<PanelCap>();
+    let home = use_keyboard_home();
     use_context_provider(|| ClosePanel(Callback::new(move |()| on_close.call(()))));
     let body = match module {
         ControlCenterModule::Wifi => rsx! { WifiPane { back: None } },
@@ -39,7 +40,10 @@ pub(crate) fn ModuleDropdown(
     rsx! {
         div {
             class: "sill-cc",
+            "data-drop": "module",
+            tabindex: "-1",
             style: panel_style(cc.width_px.0, cc.grid_padding_px.0, cap),
+            onmounted: move |event: MountedEvent| home.mounted(event),
             {body}
         }
     }

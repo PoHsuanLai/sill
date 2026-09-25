@@ -4,7 +4,7 @@
    S2). The tile box, the list rows and the pane slide stand in for quire's ModuleTile,
    SettingsRow and PaneSwitcher (Q78-Q80): control_center/parts. */
 
-.sill-cc{ display:block; color:var(--ink); }
+.sill-cc{ display:block; color:var(--ink); outline:none; }
 
 /* The grid, row by row: a row of one-column tiles shares its width; a row module fills it. */
 .sill-cc-grid{ display:flex; flex-direction:column; }
@@ -19,6 +19,9 @@
 .sill-cc-tile-foot{ display:flex; align-items:center; gap:var(--s-4); min-width:0; }
 .sill-cc-tile-text{ display:flex; flex-direction:column; flex:1 1 0; min-width:0; gap:var(--s-1); }
 
+/* In a module's own dropdown the popover card is the module's box: no second tile inside it. */
+.sill-cc[*|data-drop=module] > .sill-cc-tile{ padding:0; background:none; box-shadow:none; }
+
 /* A module's glyph: soft at rest, the accent while its feature is on. */
 .sill-cc-glyph{ display:flex; align-items:center; color:var(--ink-soft); }
 .sill-cc-tile[*|data-state=on] .sill-cc-glyph{ color:var(--accent); }
@@ -31,6 +34,7 @@
 /* A level (Sound, Display): its title and value over the glyph and quire's Slider. */
 .sill-cc-level{ display:flex; flex-direction:column; gap:var(--s-8); }
 .sill-cc-level-head{ display:flex; align-items:center; gap:var(--s-6); min-width:0; }
+.sill-cc-level-head > .sill-cc-title{ flex:1 1 0; min-width:0; }
 .sill-cc-level-row{ display:flex; align-items:center; gap:var(--s-10); }
 .sill-cc-level-track{ display:block; flex:1 1 0; min-width:0; }
 
