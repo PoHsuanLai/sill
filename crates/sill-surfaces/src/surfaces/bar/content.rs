@@ -1,6 +1,7 @@
 //! What each bar menu lists, pure over the service values: a ds `Menu{Dropdown}`'s entries, the
 //! control center, or a control center module (design/20 §1.1 and §1.5; the app name "its
-//! windows and Quit", the clock "the date"; the Sound, Wi-Fi and Battery items' dropdowns are
+//! windows and Quit"; the clock's date menu is retired since M6, the clock opening the
+//! notification center instead (FINDINGS F266), so nothing asks for its lines; the Sound, Wi-Fi and Battery items' dropdowns are
 //! their modules since M5, FINDINGS F185).
 //!
 //! Status lines are `MenuEntry::Info` rows: an item's weight without the header's eyebrow,

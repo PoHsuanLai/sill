@@ -1,0 +1,39 @@
+/* The notification center (design/20 §1.6, design/13 §13.3.6). The surface is the output below
+   the bar (`Ds { extent: RootExtent::Viewport }`, a transparent Popover root); the column is a
+   quire `Surface` in the Popover material, which paints the tint, the corner and the shadow.
+   Its width is `notifications.center_width_px`, written inline; its entrance and exit are
+   quire's pulse classes (`a-pane-in-r`, `a-pane-out-r`). Everything here is layout and tokens.
+   Attribute selectors carry `*|` (spike S2). */
+
+/* The click-outside catcher: every pixel the column does not cover. */
+.sill-nc-catcher{ position:absolute; inset:0; }
+
+/* The column, pinned to the right edge, as tall as the surface less the gaps: a one-cell grid,
+   so quire's Surface inside stretches to its height. */
+.sill-nc-panel{ position:absolute; top:var(--s-8); right:var(--s-8); bottom:var(--s-8);
+  display:grid; grid-template-rows:minmax(0,1fr); grid-template-columns:minmax(0,1fr); }
+.sill-nc-column{ display:flex; flex-direction:column; height:100%; min-height:0; color:var(--ink);
+  outline:none; }
+
+/* The title and Clear All. */
+.sill-nc-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--s-8);
+  padding:var(--s-12) var(--s-10) var(--s-6) var(--s-16); }
+.sill-nc-title{ font-size:var(--fs-subhead); font-weight:700; }
+
+/* The history: the groups, newest first, scrolling past the column's height. */
+.sill-nc-list{ display:flex; flex-direction:column; gap:var(--s-6); flex:1 1 0; min-height:0;
+  overflow-y:auto; padding:0 var(--s-10) var(--s-10); }
+.sill-nc-group{ display:flex; flex-direction:column; gap:var(--s-6); }
+.sill-nc-row{ display:block; border-radius:var(--r-card); }
+.sill-nc-fold{ display:flex; justify-content:center; border-radius:var(--r-btn); }
+.sill-nc-row[*|data-focus=ring],
+.sill-nc-fold[*|data-focus=ring]{ outline:var(--focus-ring) solid var(--accent); outline-offset:var(--s-2); }
+.sill-nc-empty{ display:flex; align-items:center; justify-content:center; flex:1 1 0;
+  font-size:var(--fs-subhead); color:var(--ink-faint); }
+
+/* Who else shows notifications, when sill does not. */
+.sill-nc-foot{ padding:var(--s-8) var(--s-16); font-size:var(--fs-help); color:var(--ink-faint);
+  border-top:var(--hair) solid var(--line-soft); }
+
+/* The widgets slot (design/20 §1.14, M10): empty, at the bottom. */
+.sill-nc-widgets{ display:flex; flex-direction:column; }

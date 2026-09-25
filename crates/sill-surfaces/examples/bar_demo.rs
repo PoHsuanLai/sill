@@ -18,6 +18,7 @@ use std::time::Instant;
 use shell_host::{Host, HostConfig, HostCtx, HostEvent, OutputId, OutputInfo, Root};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::surfaces::bar::{BarProps, bar_layer};
+use sill_surfaces::surfaces::notification_center::CenterLink;
 use sill_surfaces::{Bar, FrameClock};
 use tokio::sync::mpsc;
 
@@ -83,8 +84,9 @@ fn run() -> Result<(), String> {
     .map_err(|e| e.to_string())
 }
 
-/// One bar on `output`, with the fake services, the default settings and the demo's clock as
-/// root contexts (what the daemon provides).
+/// One bar on `output`, with the fake services, the default settings, the demo's clock and a
+/// notification center link as root contexts (what the daemon provides; the clock's click
+/// toggles the link, and the demo has no center surface to follow it).
 fn spawn_bar(
     ctx: &mut HostCtx<()>,
     output: OutputInfo,
@@ -97,6 +99,7 @@ fn spawn_bar(
         .context(services.clone())
         .context(settings.clone())
         .context(clock)
+        .context(CenterLink::new())
         .context(sill_surfaces::MEASURE);
     if let Err(error) = ctx.spawn_layer(config, root) {
         eprintln!("bar: {error}");

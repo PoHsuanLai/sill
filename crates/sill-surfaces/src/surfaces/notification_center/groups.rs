@@ -2,7 +2,7 @@
 //! first, collapsed to the newest with 'N more'"): which rows each group shows, and which groups
 //! the person has opened.
 
-use sill_services::{AppKey, History, NotificationId};
+use sill_services::{AppKey, History, Notification, NotificationId};
 
 /// The groups the person has opened, in the order they opened them.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -20,14 +20,35 @@ pub struct GroupView {
 
 /// `history`'s groups, in its order, each collapsed unless `expanded` names it.
 pub fn group_views(history: &History, expanded: &Expanded) -> Vec<GroupView> {
-    let _ = (history, expanded);
-    todo!("M6 fill: c-center")
+    history
+        .groups
+        .iter()
+        .map(|group| view_of(&group.key, &group.notes, expanded))
+        .collect()
 }
 
 /// `expanded` with `key` opened when it was closed, closed when it was open.
 pub fn toggle_group(expanded: Expanded, key: &AppKey) -> Expanded {
-    let _ = (expanded, key);
-    todo!("M6 fill: c-center")
+    let Expanded(keys) = expanded;
+    let open = keys.contains(key);
+    let rest = keys.into_iter().filter(|k| k != key);
+    Expanded(match open {
+        true => rest.collect(),
+        false => rest.chain(std::iter::once(key.clone())).collect(),
+    })
+}
+
+fn view_of(key: &AppKey, notes: &[Notification], expanded: &Expanded) -> GroupView {
+    let ids = notes.iter().map(|note| note.id);
+    let shown: Vec<NotificationId> = match expanded.0.contains(key) {
+        true => ids.collect(),
+        false => ids.take(1).collect(),
+    };
+    GroupView {
+        key: key.clone(),
+        more: notes.len() - shown.len(),
+        shown,
+    }
 }
 
 #[cfg(test)]
@@ -83,7 +104,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M6 fill: c-center"]
     fn groups_collapse_to_the_newest_until_opened() {
         let cases = [
             (
@@ -109,7 +129,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M6 fill: c-center"]
     fn a_group_opens_and_closes() {
         let open = toggle_group(Expanded::default(), &key("a"));
         assert_eq!(open, Expanded(vec![key("a")]));
