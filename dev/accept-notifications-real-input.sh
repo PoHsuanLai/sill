@@ -16,32 +16,31 @@
 #   1. `sill notifications status`: holder sill, mode own.
 #   2. Hover: a real pointer on the card at 4000 ms keeps it past the hold (5200) at 7000 ms; it
 #      leaves 1500 ms (plus the exit and slack) after the pointer does; `kept` rises by one.
-#   3. Hovered, the card shows its close button; a real click on it: the card leaves, kept falls
-#      by one.
-#   4. A real click on the body of one sent with `--action default=Open`: the card leaves, kept
+#   3. A real click on the body of one sent with `--action default=Open`: the card leaves, kept
 #      falls by one, and the bus carries ActionInvoked (<id>, 'default').
+#   4. Hovered (after that click's card left under the pointer), the card shows its close
+#      button; a real click on it: the card leaves, kept falls by one.
 #   5. A real 90 px drag to the right swipes it away: the column unmaps, banners 0, and it stays in
 #      the notification center (kept unchanged; notifications.swipe = keep_in_center).
 #   6. A real 50 px drag, slowed before the release: the card springs back and stays up.
 #   7. A real click on the clock opens the center; real Escape closes it.
 #   8. Opened again by a click on the clock, a real click outside the column closes it.
-#   9. In the center, a real Down focuses the first group (two from one app, a stack) and a real
-#      Delete clears it: kept falls by two.
+#   9. In the center, a real Down focuses the first group's header (two from one app) and a real
+#      Delete clears the group: kept falls by two.
 #  10. 5 s idle: 0 frames on the banners and the center.
 #  11. `status` afterwards: holder still sill.
 #
 # Then the input client, the daemon (`sill quit`) and the headless KWin are stopped.
 #
-# Two shell-host gaps shape the order (FINDINGS G100, G101; `repro` shows both): a pointer that
-# enters a surface with one motion is not seen to hover until it moves again, so every "move
-# onto" here is a move and a 1 px nudge, as a real mouse's stream of motions is; and once a card
-# has left under the pointer (a click on it), no later card is hovered until the pointer has
-# left the column and come back, so the close button (a hover) comes before the first click.
+# Two shell-host gaps once shaped the order (FINDINGS G100, G101, closed by shell-host 902a12c):
+# an enter now moves the document's pointer and an unmap withdraws it, so a "move onto" is one
+# motion and the steps run in their natural order. `repro` keeps both as regression checks.
 #
 # Exit 0 only when every step passed; 1 on a failure.
 #
 # Usage: dev/accept-notifications-real-input.sh           (the acceptance)
-#        dev/accept-notifications-real-input.sh repro     (G100 and G101: FAIL while they stand)
+#        dev/accept-notifications-real-input.sh repro     (G100, G101 closed: regression checks;
+#                                                          Q170: FAILS while it stands)
 set -uo pipefail
 # shellcheck source=dev/common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
@@ -140,8 +139,8 @@ input() {
   return 1
 }
 key() { input "key $1 down" "sleep 30" "key $1 up" "sleep 150"; }
-# A move onto $1 $2: the move and a 1 px nudge (G100).
-point() { input "move $(( $1 - 1 )) $2" "sleep 40" "move $1 $2" "sleep 80"; }
+# A move onto $1 $2: one motion (G100 closed: the enter hovers).
+point() { input "move $1 $2" "sleep 80"; }
 click() { point "$1" "$2"; input "press left" "sleep 40" "release left" "sleep 200"; }
 rest() { point "$REST_X" "$REST_Y"; }
 
@@ -307,8 +306,8 @@ EOF
 }
 
 # Whether the top card shows its close button (it is hovered): "yes" or "no", from a capture
-# named $1. The button hangs over the card's top-left corner (translate -35 %), so its middle
-# is a few px inside the corner (layer::ROOM + 4): opaque when shown, the corner's round is not.
+# named $1. quire's 18 px button stands 6 px out past the plate's top-left corner, so its middle
+# is 3 px inside the corner (layer::ROOM + 3): opaque when shown, the corner's round is not.
 close_shown() {
   sleep 0.4
   mapped "$BANNERS" "$OUT_DIR/$1.png" || { echo "no"; return 0; }
@@ -316,7 +315,7 @@ close_shown() {
 import sys
 from PIL import Image
 img = Image.open(sys.argv[1]).convert("RGBA")
-print("yes" if img.getpixel((44, 44))[3] > 200 else "no")
+print("yes" if img.getpixel((43, 43))[3] > 200 else "no")
 EOF
 }
 
@@ -396,7 +395,7 @@ step_hover() {
   [ "$up" = yes ] && [ "$gone" -ge 1300 ] && [ "$gone" -le "$limit" ]
 }
 
-# 4.
+# 3.
 step_click_default() {
   local kept gone id
   rest || return 1
@@ -413,7 +412,7 @@ step_click_default() {
   [ "$gone" -ge 0 ] && [ -n "$id" ]
 }
 
-# 3.
+# 4.
 step_close_button() {
   local kept gone cx cy shown
   rest || return 1
@@ -422,7 +421,7 @@ step_close_button() {
   kept=$(status_field kept)
   point "$CARD_X" "$CARD_Y" || return 1
   shown=$(close_shown close-hover)
-  cx=$(( CARD_X0 + 4 )); cy=$(( CARD_Y0 + 4 ))
+  cx=$(( CARD_X0 + 3 )); cy=$(( CARD_Y0 + 3 ))
   click "$cx" "$cy" || return 1
   gone=$(await_hidden 3000)
   await_status kept $((kept - 1)) || return 1
@@ -459,10 +458,12 @@ step_spring_back() {
   drag $(( CARD_X - 60 )) "$CARD_Y" 50 10 60 300 || return 1
   sleep 1
   mapped "$BANNERS" || { echo "the card left after a 50 px drag" >&2; return 1; }
+  # Off the card first: hovered, quire's close button stands 6 px out past its corner.
+  rest || return 1
+  sleep 0.4
   card_box >>"$OUT_DIR/cards.log" || return 1
   banners=$(status_field banners)
   echo "a real 50 px drag, slowed: the card is back at x $CARD_X0 (was $x0), banners $banners" >&2
-  rest
   clear_all
   [ "$CARD_X0" = "$x0" ] && [ "$banners" = 1 ]
 }
@@ -522,12 +523,12 @@ step_idle() {
   [ "$((b1 - b0))" = 0 ] && [ "$((c1 - c0))" = 0 ]
 }
 
-# Repros of G100 and G101 (shell-host), `repro` mode: each step states what should happen and
-# fails while the gap stands.
+# Repros of G100 and G101 (shell-host, closed by 902a12c), `repro` mode: each step states what
+# should happen and failed while the gap stood.
 #
-# G100: one motion onto a card from outside the column hovers it. Fails: shell-host takes the
+# G100: one motion onto a card from outside the column hovers it. Failed: shell-host took the
 # wl_pointer.enter (with its position) without moving the document's pointer there, so nothing
-# is hovered until the next motion. The step then shows that the second motion hovers it.
+# was hovered until the next motion. The step also shows that a second motion hovers it.
 repro_enter_one_motion() {
   local one two
   rest || return 1
@@ -541,27 +542,48 @@ repro_enter_one_motion() {
   [ "$one" = yes ]
 }
 
-# G101: a card that maps where the pointer is gets hovered once the pointer moves on it. Fails
-# after a card left under the pointer and the column unmapped: shell-host's unmap rebuilds the
-# wl_surface without `pointer_left` on its document (the compositor's leave names a surface it
-# no longer knows), so the document keeps a hover chain on the removed card; the next card is
-# not announced as entered (the same happens when the pointer went elsewhere while the column
-# was unmapped and comes back with one motion and a nudge: most likely the new node reuses the
-# removed one's id). No mouseenter: no pause, no close button. Leaving and re-entering hovers it.
+# G101: after a card left under the pointer and the column unmapped, the next card is hovered
+# by one motion onto it from the desktop. Failed: shell-host's unmap rebuilt the wl_surface
+# without `pointer_left` on its document, so the document kept a hover chain on the removed card
+# and the next card was never announced as entered (no pause, no close button) even after the
+# pointer went elsewhere while the column was unmapped.
 repro_hover_after_unmap() {
-  local nudged back
+  local hovered
+  rest || return 1
+  post_card "First" --app accept --action default=Open --expire never || return 1
+  click "$CARD_X" "$CARD_Y" || return 1
+  wait_surface "$BANNERS" 30 down || return 1
+  rest || return 1
+  post_card "After the unmap" --app accept --expire never || return 1
+  point "$CARD_X" "$CARD_Y" || return 1
+  hovered=$(close_shown repro-after-unmap)
+  echo "G101: a card after the column unmapped under the pointer, one motion onto it:" \
+    "hovered $hovered" >&2
+  rest; clear_all
+  [ "$hovered" = yes ]
+}
+
+# Q170 (quire; Blitz's `refresh_hover`): a card that slides in under a resting pointer is not
+# hovered when the pointer then moves on it. Fails: after each layout Blitz re-resolves the
+# hovered node against the last pointer position without dispatching pointerenter (its own
+# TODO), so the card's node is already the hovered one when the motion comes and no enter ever
+# reaches quire's `NotificationCard`: no pause, no close button until the pointer leaves the
+# card and comes back.
+repro_card_under_resting_pointer() {
+  local moved back
   rest || return 1
   post_card "First" --app accept --action default=Open --expire never || return 1
   click "$CARD_X" "$CARD_Y" || return 1
   wait_surface "$BANNERS" 30 down || return 1
   post_card "Under the pointer" --app accept --expire never || return 1
-  point "$CARD_X" "$CARD_Y" && point $(( CARD_X - 20 )) "$CARD_Y" || return 1
-  nudged=$(close_shown repro-under-pointer)
+  point $(( CARD_X - 20 )) "$CARD_Y" || return 1
+  moved=$(close_shown repro-under-pointer)
   rest && point "$CARD_X" "$CARD_Y" || return 1
   back=$(close_shown repro-back)
-  echo "G101: a card mapped under the pointer, moved on: hovered $nudged; out and back: $back" >&2
+  echo "Q170: a card slid in under the resting pointer, moved on: hovered $moved;" \
+    "out and back: $back" >&2
   rest; clear_all
-  [ "$nudged" = yes ]
+  [ "$moved" = yes ]
 }
 
 cleanup() {
@@ -583,9 +605,9 @@ start_input || { echo "no fake input client" >&2; exit 1; }
 # The seat's pointer is announced with the input client's device: the first motion only makes
 # it known. Rest it on the desktop.
 rest; rest
-STEPS="step_holder step_hover step_close_button step_click_default step_swipe step_spring_back
+STEPS="step_holder step_hover step_click_default step_close_button step_swipe step_spring_back
   step_center_clock_escape step_center_outside step_center_delete step_idle step_holder"
-[ "${1:-}" = repro ] && STEPS="step_holder repro_enter_one_motion repro_hover_after_unmap"
+[ "${1:-}" = repro ] && STEPS="step_holder repro_enter_one_motion repro_hover_after_unmap repro_card_under_resting_pointer"
 status=0
 for step in $STEPS; do
   if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; clear_all; rest; fi

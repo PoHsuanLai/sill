@@ -26,8 +26,8 @@
 # started from a `target/*/sill run` is waited for (up to 10 minutes), so two shells never share
 # the nested output's screenshots.
 #
-# The cards are lane b's `NotificationCard`; the fold line is found as the first ink that keeps
-# to the middle of the column, with or without cards drawn.
+# The panel, the group headers and the cards are quire's (`Panel`, `GroupHeader`,
+# `NotificationCard`); a group's "N more" and Clear are found in its header's ink.
 #
 # Usage: dev/nested.sh && dev/accept-notification-center.sh
 set -uo pipefail
@@ -122,10 +122,11 @@ for r in rows:
 EOF
 }
 
-# The fold line ("N more"): the first run of at least 4 scanlines whose ink keeps clear of the
-# column's outer quarters (a header's name starts at the left and its Clear ends at the right;
-# a card and a stack's offset layers span the column). Prints "X Y".
-fold_centre() {
+# The first group header's two buttons, "N more" (or "Show less") and Clear, from a capture:
+# the first ink row (below the title) that reaches both the column's left padding (the app's
+# icon and name) and its right padding (Clear); its ink split into words by gaps wider than a
+# space, the last word is Clear and the one before it the toggle. Prints "TOGGLE_X Y CLEAR_X Y".
+header_buttons() {
   python3 - "$1" <<'EOF'
 import sys
 from PIL import Image
@@ -133,38 +134,39 @@ img = Image.open(sys.argv[1]).convert("RGBA")
 left, top, right, bottom = img.getchannel("A").point(lambda a: 255 if a > 200 else 0).getbbox()
 left, right, top, bottom = left + 8, right - 8, top + 40, bottom - 14
 ground = img.getpixel(((left + right) // 2, bottom - 4))
-quarter = (right - left) // 4
 def inked(x, y):
     return sum(abs(a - b) for a, b in zip(img.getpixel((x, y))[:3], ground[:3])) > 120
-run = []
+rows, run = [], None
 for y in range(top, bottom):
     xs = [x for x in range(left, right) if inked(x, y)]
-    if xs and min(xs) > left + quarter and max(xs) < right - quarter:
-        run.append((y, min(xs), max(xs)))
-        continue
-    if len(run) >= 4:
+    if xs and run is None:
+        run = [y, y, set(xs)]
+    elif xs:
+        run = [run[0], y, run[2] | set(xs)]
+    elif run is not None:
+        rows.append(run); run = None
+for t, b, xs in rows:
+    if min(xs) < left + 40 and max(xs) > right - 40:
+        words, word = [], None
+        for x in sorted(xs):
+            if word and x - word[1] <= 8:
+                word[1] = x
+            else:
+                if word: words.append(word)
+                word = [x, x]
+        words.append(word)
+        # "1 more" is two words a space apart: the toggle is everything after the name's words
+        # up to Clear, found as the widest gap before the last two words.
+        clear = words[-1]
+        gaps = [(words[i + 1][0] - words[i][1], i) for i in range(len(words) - 2)]
+        cut = max(gaps)[1] + 1 if gaps else len(words) - 2
+        toggle = [words[cut][0], words[-2][1]]
+        y = (t + b) // 2
+        print((toggle[0] + toggle[1]) // 2, y, (clear[0] + clear[1]) // 2, y)
         break
-    run = []
-if len(run) < 4:
+else:
     sys.exit(1)
-l = min(r[1] for r in run)
-r = max(r[2] for r in run)
-print((l + r) // 2, (run[0][0] + run[-1][0]) // 2)
 EOF
-}
-
-# The first group header's Clear: the first ink row that reaches the column's left padding
-# (the header's name) and its right padding (the Clear), clicked at its right end. Prints "X Y".
-first_clear() {
-  local box
-  read -r -a box < <(column_box "$1") || return 1
-  ink_rows "$1" | python3 -c '
-import sys
-left, top, right, bottom = map(int, sys.argv[1:5])
-for line in sys.stdin:
-    t, b, l, r = map(int, line.split())
-    if l < left + 40 and r > right - 40:
-        print(r - 12, (t + b) // 2); break' "${box[@]}"
 }
 
 # The clock: the first run of inked columns from the bar's right end. Prints "X Y".
@@ -282,7 +284,7 @@ step_clock() {
 
 # 4.
 step_groups() {
-  local log="$OUT_DIR/groups.log" before after fold clear rows
+  local log="$OUT_DIR/groups.log" before after fold clear rows buttons
   : >"$log"
   if ! sill debug notify "ping" --app Chat --body "are you there?" >>"$log" 2>&1; then
     echo "sill debug notify: $(tail -n 1 "$log") (the service's live loop is lane a's)" >&2
@@ -299,9 +301,13 @@ step_groups() {
   "$SHELL_HOST_DEV/shot.sh" "$SHOTS/notification-center-cosmic.png" >>"$log" 2>&1 \
     || echo "screenshot failed" >&2
   ink_rows "$OUT_DIR/groups.png" >"$OUT_DIR/rows-collapsed.txt"
-  fold=$(fold_centre "$OUT_DIR/groups.png") || { echo "no '1 more' line found" | tee -a "$log" >&2; return 1; }
+  read -r -a buttons < <(header_buttons "$OUT_DIR/groups.png") \
+    || { echo "no group header found" | tee -a "$log" >&2; return 1; }
+  fold="${buttons[0]} ${buttons[1]}"
   # shellcheck disable=SC2086
   sill debug click "$CENTER" $fold >>"$log" 2>&1
+  # Off the header: a hovered Quiet button's ground would run its words into Clear's.
+  sill debug leave "$CENTER" >>"$log" 2>&1
   sleep 0.5
   sill debug capture "$CENTER" "$OUT_DIR/open.png" >>"$log" 2>&1 || return 1
   "$SHELL_HOST_DEV/shot.sh" "$SHOTS/notification-center-open-cosmic.png" >>"$log" 2>&1 \
@@ -310,7 +316,9 @@ step_groups() {
   grep -q 'act=Toggle(AppKey("Mail"))' "$OUT_DIR/daemon.log" \
     || grep -q 'act=Toggle' "$OUT_DIR/daemon.log" \
     || { echo "the click at $fold did not open the group" | tee -a "$log" >&2; return 1; }
-  clear=$(first_clear "$OUT_DIR/open.png") || { echo "no group header found" | tee -a "$log" >&2; return 1; }
+  read -r -a buttons < <(header_buttons "$OUT_DIR/open.png") \
+    || { echo "no group header found" | tee -a "$log" >&2; return 1; }
+  clear="${buttons[2]} ${buttons[3]}"
   # shellcheck disable=SC2086
   sill debug click "$CENTER" $clear >>"$log" 2>&1
   sleep 0.4
