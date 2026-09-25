@@ -48,8 +48,12 @@ pub struct CommandLine {
 /// `screenshot.tool`: `auto` is [`ShotTool::Cosmic`], `off` (and empty) is `Off`, any case,
 /// trimmed; anything else is a command.
 pub fn parse_tool(text: &str) -> ShotTool {
-    let _ = text;
-    todo!("M10 fill: c-screenshot")
+    let trimmed = text.trim();
+    match trimmed.to_lowercase().as_str() {
+        "auto" => ShotTool::Cosmic,
+        "off" | "" => ShotTool::Off,
+        _ => ShotTool::Command(trimmed.to_owned()),
+    }
 }
 
 /// The command `tool` runs for `kind`, saving into `folder` where the tool can be told (the
@@ -58,8 +62,37 @@ pub fn parse_tool(text: &str) -> ShotTool {
 /// `cosmic-screenshot --interactive=true --notify=false`. `Command(c)`: `/bin/sh -c c
 /// sill-screenshot KIND FOLDER`.
 pub fn tool_command(tool: &ShotTool, kind: ShotKind, folder: &Path) -> Option<CommandLine> {
-    let _ = (tool, kind, folder);
-    todo!("M10 fill: c-screenshot")
+    let folder = folder.to_string_lossy();
+    match (tool, kind) {
+        (ShotTool::Off, _) => None,
+        (ShotTool::Cosmic, ShotKind::Screen) => Some(line(
+            COSMIC,
+            [
+                "--interactive=false",
+                "--modal=false",
+                "--notify=false",
+                "--save-dir",
+                &folder,
+            ],
+        )),
+        (ShotTool::Cosmic, ShotKind::Area | ShotKind::Window) => {
+            Some(line(COSMIC, ["--interactive=true", "--notify=false"]))
+        }
+        (ShotTool::Command(command), _) => Some(line(
+            "/bin/sh",
+            ["-c", command, "sill-screenshot", kind.word(), &folder],
+        )),
+    }
+}
+
+/// COSMIC's screenshot program.
+const COSMIC: &str = "cosmic-screenshot";
+
+fn line<'a>(program: &str, args: impl IntoIterator<Item = &'a str>) -> CommandLine {
+    CommandLine {
+        program: program.to_owned(),
+        args: args.into_iter().map(str::to_owned).collect(),
+    }
 }
 
 /// Where a tool is told to save: the first folder `folders` resolves to.
@@ -88,7 +121,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: c-screenshot"]
     fn the_tool_setting_parses() {
         assert_eq!(parse_tool("auto"), ShotTool::Cosmic);
         assert_eq!(parse_tool(" OFF "), ShotTool::Off);
@@ -100,7 +132,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M10 fill: c-screenshot"]
     fn each_kind_runs_its_command() {
         let dir = Path::new("/home/ada/Pictures");
         let cases = [
