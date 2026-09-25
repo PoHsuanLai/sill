@@ -8,5 +8,7 @@ pub mod daemon;
 pub mod displays;
 pub mod ipc_server;
 pub mod launch;
+pub mod links;
 pub mod msg;
 pub mod outputs;
+pub mod power_menu;

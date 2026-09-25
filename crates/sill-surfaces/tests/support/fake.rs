@@ -197,6 +197,16 @@ pub fn services() -> (Services, Feeds) {
         sound_control: control(&mut keep),
         displays: fixed(sill_services::Displays::default(), &mut keep),
         displays_control: control(&mut keep),
+        wifi: fixed(sill_services::Wifi::default(), &mut keep),
+        wifi_control: control(&mut keep),
+        bluetooth: fixed(sill_services::Bluetooth::default(), &mut keep),
+        bluetooth_control: control(&mut keep),
+        power_profiles: fixed(sill_services::PowerProfiles::default(), &mut keep),
+        power_profile_control: control(&mut keep),
+        media: fixed(sill_services::Media::default(), &mut keep),
+        media_control: control(&mut keep),
+        session: fixed(sill_services::Session::default(), &mut keep),
+        session_control: control(&mut keep),
     };
     let feeds = Feeds {
         clock: clock_tx,

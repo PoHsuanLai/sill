@@ -13,6 +13,8 @@ pub(crate) enum BarPick {
     Quit(Vec<WindowKey>),
     /// Open COSMIC Settings.
     Settings,
+    /// Open the power menu on this bar's output (the app menu's "Shut Down…", M5).
+    PowerMenu,
 }
 
 /// The app COSMIC's settings run as.
@@ -23,6 +25,8 @@ const SETTINGS_APP: &str = "com.system76.CosmicSettings";
 pub(crate) enum Command {
     Wl(WlCommand),
     Launch(LaunchCommand),
+    /// Open the power menu (`PowerMenuLink::open` with its default button).
+    PowerMenu,
 }
 
 /// The commands `pick` sends, in order.
@@ -40,6 +44,7 @@ pub(crate) fn commands(pick: &BarPick) -> Vec<Command> {
             uris: Vec::new(),
             token: None,
         }))],
+        BarPick::PowerMenu => vec![Command::PowerMenu],
     }
 }
 
@@ -63,6 +68,7 @@ mod tests {
                     Command::Wl(WlCommand::Close(WindowKey(2))),
                 ],
             ),
+            (BarPick::PowerMenu, vec![Command::PowerMenu]),
         ];
         for (pick, want) in cases {
             assert_eq!(commands(&pick), want, "{pick:?}");

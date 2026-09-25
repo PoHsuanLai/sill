@@ -12,16 +12,19 @@ pub(crate) enum BarMenu {
     Volume,
     Network,
     Battery,
+    /// The control center (design/20 §1.5), a status item like the others (M5).
+    ControlCenter,
     Clock,
 }
 
 impl BarMenu {
     /// Every menu, left to right along the bar.
-    pub(crate) const ALL: [BarMenu; 5] = [
+    pub(crate) const ALL: [BarMenu; 6] = [
         BarMenu::App,
         BarMenu::Volume,
         BarMenu::Network,
         BarMenu::Battery,
+        BarMenu::ControlCenter,
         BarMenu::Clock,
     ];
 
@@ -33,6 +36,7 @@ impl BarMenu {
             BarMenu::Network => 2,
             BarMenu::Battery => 3,
             BarMenu::Clock => 4,
+            BarMenu::ControlCenter => 5,
         })
     }
 
@@ -45,9 +49,11 @@ impl BarMenu {
     pub(crate) fn side(self) -> MenuSide {
         match self {
             BarMenu::App => MenuSide::Title,
-            BarMenu::Volume | BarMenu::Network | BarMenu::Battery | BarMenu::Clock => {
-                MenuSide::Status
-            }
+            BarMenu::Volume
+            | BarMenu::Network
+            | BarMenu::Battery
+            | BarMenu::ControlCenter
+            | BarMenu::Clock => MenuSide::Status,
         }
     }
 
@@ -59,6 +65,7 @@ impl BarMenu {
             BarMenu::Network => "Network",
             BarMenu::Battery => "Battery",
             BarMenu::Clock => "Clock",
+            BarMenu::ControlCenter => "Control Center",
         }
     }
 }

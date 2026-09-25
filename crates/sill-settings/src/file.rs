@@ -14,6 +14,7 @@ use crate::dock::DockSettings;
 use crate::launcher::LauncherSettings;
 use crate::menus::MenusSettings;
 use crate::notifications::NotificationsSettings;
+use crate::power_menu::PowerMenuSettings;
 use crate::scroll::ScrollSettings;
 use crate::scrollbar::ScrollbarSettings;
 use crate::sound::SoundSettings;
@@ -50,6 +51,8 @@ pub struct ShellFile {
     pub control_center: ControlCenterSettings,
     pub spaces: SpacesSettings,
     pub display: DisplaySettings,
+    /// M5 (FINDINGS "M5 freeze"): no design/22 rows yet.
+    pub power_menu: PowerMenuSettings,
     /// Tables this build does not know, kept for the next write.
     #[serde(flatten)]
     pub extra: toml::Table,
@@ -71,6 +74,7 @@ impl Default for ShellFile {
             control_center: ControlCenterSettings::default(),
             spaces: SpacesSettings::default(),
             display: DisplaySettings::default(),
+            power_menu: PowerMenuSettings::default(),
             extra: toml::Table::new(),
         }
     }

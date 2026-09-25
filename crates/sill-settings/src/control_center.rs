@@ -85,6 +85,17 @@ pub struct ControlCenterSettings {
         advanced
     )]
     pub grid_padding_px: Px,
+    /// design/13 §13.3.7: the panel is at most `output_h - bar_h - bottom_margin_px` tall, then
+    /// scrolls. No design/22 row yet (`AWAITING_ROWS`).
+    #[settings(
+        label = "Bottom margin",
+        help = "The least space kept between the control center and the screen's bottom edge.",
+        section = "Control center",
+        range = "0..=64",
+        unit = "px",
+        advanced
+    )]
+    pub bottom_margin_px: Px,
     #[settings(
         label = "Modules",
         help = "Which modules show, in order.",
@@ -116,6 +127,7 @@ impl Default for ControlCenterSettings {
             grid_columns: Count(2),
             grid_gap_px: Px(8),
             grid_padding_px: Px(12),
+            bottom_margin_px: Px(16),
             modules: vec![
                 Wifi, Bluetooth, Focus, Display, Sound, NowPlaying, Appearance, Battery,
             ],

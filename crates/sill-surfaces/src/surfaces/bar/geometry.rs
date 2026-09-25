@@ -96,6 +96,8 @@ pub(crate) fn popup_size(body: &PopupBody) -> Size {
     let inner = match body {
         PopupBody::Menu(entries) => menu_size(entries),
         PopupBody::Volume(_) => VOLUME_PANEL,
+        // M5 agent (c): `control_center::estimate_size` from the settings and the output's cap.
+        PopupBody::ControlCenter(_) => todo!("M5 fill: control-center (c)"),
     };
     Size {
         width: (inner.width + 2 * SIDE).min(MAX_PX),

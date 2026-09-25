@@ -31,4 +31,5 @@ pub use ds_native::focus::FOCUS;
 pub use surfaces::bar::Bar;
 pub use surfaces::dock::Dock;
 pub use surfaces::launcher::{Launcher, LauncherCatcher};
+pub use surfaces::power_menu::PowerMenu;
 pub use surfaces::wallpaper::Wallpaper;

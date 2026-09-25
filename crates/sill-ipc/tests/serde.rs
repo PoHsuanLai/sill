@@ -5,9 +5,10 @@ use std::io::Cursor;
 use std::path::PathBuf;
 
 use sill_ipc::{
-    DebugRequest, DesktopId, DisplayRequest, DockRequest, Failure, FailureKind, IpcError,
-    LauncherRequest, LevelRequest, MAX_LINE, Micros, Point, PointerButton, Request, Response,
-    SurfaceName, SurfaceStats, VolumeRequest, decode, encode, read_message, write_message,
+    ControlCenterRequest, DebugRequest, DesktopId, DisplayRequest, DockRequest, Failure,
+    FailureKind, IpcError, LauncherRequest, LevelRequest, MAX_LINE, Micros, Point, PointerButton,
+    PowerMenuRequest, Request, Response, SurfaceName, SurfaceStats, VolumeRequest, decode, encode,
+    read_message, write_message,
 };
 
 fn surface(name: &str) -> SurfaceName {
@@ -119,6 +120,22 @@ fn requests() -> Vec<(Request, &'static str)> {
         (
             Request::Display(DisplayRequest::Volume(VolumeRequest::ToggleMute)),
             r#"{"kind":"display","v":{"kind":"volume","v":{"kind":"toggle_mute"}}}"#,
+        ),
+        (
+            Request::PowerMenu(PowerMenuRequest::Open),
+            r#"{"kind":"power_menu","v":{"kind":"open"}}"#,
+        ),
+        (
+            Request::PowerMenu(PowerMenuRequest::Close),
+            r#"{"kind":"power_menu","v":{"kind":"close"}}"#,
+        ),
+        (
+            Request::PowerMenu(PowerMenuRequest::Toggle),
+            r#"{"kind":"power_menu","v":{"kind":"toggle"}}"#,
+        ),
+        (
+            Request::ControlCenter(ControlCenterRequest::Toggle),
+            r#"{"kind":"control_center","v":{"kind":"toggle"}}"#,
         ),
     ]
 }
