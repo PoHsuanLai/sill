@@ -12,10 +12,10 @@ use crate::surfaces::naming::namespace;
 /// The sheet's element id: the surface's blur region.
 pub const PANEL_ID: &str = "power-menu-panel";
 
-/// The blur region's corner under the sheet: the circle quire's `--r-panel` squircle (14)
-/// follows, as the launcher card's (`CARD_BLUR_RADIUS`). Agent (d) checks it against the sheet
-/// quire draws.
-pub const PANEL_BLUR_RADIUS: i32 = 12;
+/// The blur region's corner under the sheet: quire's `.ds-sheet` rounds with a plain
+/// `border-radius: var(--r-panel)`, a circle of 14 (not the launcher card's squircle, whose
+/// shadow circle is 12), and the panel element is the sheet's whole box.
+pub const PANEL_BLUR_RADIUS: i32 = 14;
 
 /// The sheet's blur region.
 pub fn panel_region() -> RegionSpec {

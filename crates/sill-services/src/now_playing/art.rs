@@ -16,15 +16,82 @@ pub enum ArtSource {
 
 /// Classify `url`. The scheme is compared whole and case-insensitively (RFC 3986 §3.1).
 pub fn art_source(url: &str) -> ArtSource {
-    let _ = url;
-    todo!("M5 fill: svc-media-wifi-focus (b)")
+    let Some((scheme, rest)) = url.split_once("://") else {
+        return ArtSource::Unusable;
+    };
+    match scheme.to_ascii_lowercase().as_str() {
+        "file" => ArtSource::File(PathBuf::from(percent_decode(rest))),
+        "http" | "https" => ArtSource::Remote(url.to_owned()),
+        _ => ArtSource::Unusable,
+    }
 }
 
 /// The cache file name for remote art at `url`: a stable hash of the whole URL (so a new cover
 /// is a new file) with the URL's own extension when it has a known image one, else none.
 pub fn art_cache_name(url: &str) -> String {
-    let _ = url;
-    todo!("M5 fill: svc-media-wifi-focus (b)")
+    let hash = fnv1a(url.as_bytes());
+    match image_extension(url) {
+        Some(ext) => format!("{hash:016x}.{ext}"),
+        None => format!("{hash:016x}"),
+    }
+}
+
+/// Known image extensions kept on a cache file name, so a browser or an image loader can still
+/// guess the type from the name alone.
+const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp", "bmp", "avif"];
+
+/// `url`'s last path segment's extension, lower-cased, when it is one of [`IMAGE_EXTENSIONS`].
+fn image_extension(url: &str) -> Option<String> {
+    let last_segment = url.rsplit('/').next().unwrap_or(url);
+    let last_segment = last_segment
+        .split(['?', '#'])
+        .next()
+        .unwrap_or(last_segment);
+    let (_, ext) = last_segment.rsplit_once('.')?;
+    let ext = ext.to_ascii_lowercase();
+    IMAGE_EXTENSIONS.contains(&ext.as_str()).then_some(ext)
+}
+
+/// FNV-1a, 64-bit: small, dependency-free and stable across builds and processes (unlike
+/// `std::collections::hash_map::DefaultHasher`, which is not guaranteed to be).
+fn fnv1a(bytes: &[u8]) -> u64 {
+    const OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+    const PRIME: u64 = 0x0000_0100_0000_01b3;
+    let mut hash = OFFSET;
+    for &byte in bytes {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(PRIME);
+    }
+    hash
+}
+
+/// Percent-decodes `%XX` escapes as UTF-8, lossily; a malformed escape passes through as-is.
+fn percent_decode(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%'
+            && i + 2 < bytes.len()
+            && let (Some(hi), Some(lo)) = (hex_digit(bytes[i + 1]), hex_digit(bytes[i + 2]))
+        {
+            out.push(hi * 16 + lo);
+            i += 3;
+            continue;
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+fn hex_digit(b: u8) -> Option<u8> {
+    match b {
+        b'0'..=b'9' => Some(b - b'0'),
+        b'a'..=b'f' => Some(b - b'a' + 10),
+        b'A'..=b'F' => Some(b - b'A' + 10),
+        _ => None,
+    }
 }
 
 #[cfg(test)]
@@ -33,7 +100,6 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    #[ignore = "M5 fill: svc-media-wifi-focus (b)"]
     fn art_urls_are_classified_by_their_scheme() {
         let cases: Vec<(&str, ArtSource)> = vec![
             (
@@ -62,7 +128,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M5 fill: svc-media-wifi-focus (b)"]
     fn cache_names_are_stable_distinct_and_keep_image_extensions() {
         let a = art_cache_name("https://example.com/a.png");
         assert_eq!(a, art_cache_name("https://example.com/a.png"), "stable");

@@ -6,42 +6,30 @@
 //! wave's brief; Lock and Reload need no such check (`loginctl lock-session` and the daemon's
 //! own reload need no session permission that can vary at runtime). `activate` stays pure
 //! (`sill_launcher::Provider`'s own contract): it never calls `loginctl` or logind itself, only
-//! says which [`SystemCommand`] was chosen; the daemon carries it out.
+//! says which [`SystemCommand`] was chosen. Every row's Enter is its command: the launcher runs
+//! Lock and Suspend at once and opens the power menu for Log Out, Restart and Shut Down, which
+//! is their confirmation (FINDINGS F178), so no row needs a confirm action of its own.
 
 use std::sync::OnceLock;
 
 use logind_zbus::manager::{IsSupported, ManagerProxy};
 use sill_launcher::{
-    Action, ActionId, Activation, Batch, Choice, FrecencyScore, IconRef, Item, ItemId, Needle,
-    Provider, ProviderKind, Query, RankWeights, ResultSink, SystemCommand, matching, rank_text,
+    Activation, Batch, Choice, FrecencyScore, IconRef, Item, ItemId, Needle, Provider,
+    ProviderKind, Query, RankWeights, ResultSink, SystemCommand, matching, rank_text,
 };
 
-/// One row's static shape: its command, title, search aliases, glyph (design/08-ICONS.md §1.6
-/// has only `lock` and `power`; every power-menu row but Lock shares `power`, and Reload —
-/// not a power-menu action — shows the provider's own glyph instead of a made-up one), and
-/// whether choosing it outright is safe or needs [`Risk::Confirm`].
+/// One row's static shape: its command, title, search aliases and glyph (design/08-ICONS.md
+/// §1.6 has only `lock` and `power`; every power-menu row but Lock shares `power`, and Reload —
+/// not a power-menu action — shows the provider's own glyph instead of a made-up one).
 struct Row {
     command: SystemCommand,
     id: &'static str,
     title: &'static str,
     aliases: &'static [&'static str],
     glyph: Option<&'static str>,
-    risk: Risk,
 }
 
-/// Whether a command may run straight from Enter, or must be confirmed first. Design/06 §20.2
-/// gives the launcher exactly one lever for this in the frozen `Item`/`Choice` shape: the
-/// actions menu (Ctrl+K / Alt+K). A [`Risk::Confirm`] row's `Choice::Primary` is
-/// [`Activation::Nothing`]; its one action (id `"confirm"`) is the real command.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Risk {
-    Direct,
-    Confirm,
-}
-
-/// Log Out, Restart and Shut Down close or interrupt every running app; Suspend and Reload do
-/// not (a consequence of interrupting nothing, not of being uninteresting — Suspend is
-/// reversible and instantaneous, matching how macOS and GNOME both treat it).
+/// Every session command, in no particular order (the query ranks them).
 const ROWS: &[Row] = &[
     Row {
         command: SystemCommand::Lock,
@@ -49,7 +37,6 @@ const ROWS: &[Row] = &[
         title: "Lock",
         aliases: &["Lock Screen"],
         glyph: Some("lock"),
-        risk: Risk::Direct,
     },
     Row {
         command: SystemCommand::LogOut,
@@ -57,7 +44,6 @@ const ROWS: &[Row] = &[
         title: "Log Out",
         aliases: &["Sign Out"],
         glyph: Some("power"),
-        risk: Risk::Confirm,
     },
     Row {
         command: SystemCommand::Suspend,
@@ -65,7 +51,6 @@ const ROWS: &[Row] = &[
         title: "Suspend",
         aliases: &["Sleep"],
         glyph: Some("power"),
-        risk: Risk::Direct,
     },
     Row {
         command: SystemCommand::Restart,
@@ -73,7 +58,6 @@ const ROWS: &[Row] = &[
         title: "Restart",
         aliases: &["Reboot"],
         glyph: Some("power"),
-        risk: Risk::Confirm,
     },
     Row {
         command: SystemCommand::ShutDown,
@@ -81,7 +65,6 @@ const ROWS: &[Row] = &[
         title: "Shut Down",
         aliases: &["Power Off", "Shutdown"],
         glyph: Some("power"),
-        risk: Risk::Confirm,
     },
     Row {
         command: SystemCommand::Reload,
@@ -89,11 +72,8 @@ const ROWS: &[Row] = &[
         title: "Reload",
         aliases: &["Reload Sill", "Refresh"],
         glyph: None,
-        risk: Risk::Direct,
     },
 ];
-
-const CONFIRM_ACTION: &str = "confirm";
 
 /// Whether logind currently allows a command that can say no (`CanSuspend`/`CanReboot`/
 /// `CanPowerOff`); every other command is always [`Offer::Available`] from this provider's own
@@ -199,7 +179,7 @@ impl Provider for SystemProvider {
                     .glyph
                     .map_or(IconRef::None, |name| IconRef::Glyph(name.to_owned())),
                 score,
-                actions: confirm_action(row),
+                actions: Vec::new(),
             });
         }
 
@@ -218,23 +198,10 @@ impl Provider for SystemProvider {
         let Some(row) = row_of(&item.id) else {
             return Activation::Nothing;
         };
-        match (row.risk, choice) {
-            (Risk::Direct, Choice::Primary) => Activation::System(row.command),
-            (Risk::Confirm, Choice::Action(id)) if id.0 == CONFIRM_ACTION => {
-                Activation::System(row.command)
-            }
-            (Risk::Confirm, Choice::Primary) | (_, Choice::Action(_)) => Activation::Nothing,
+        match choice {
+            Choice::Primary => Activation::System(row.command),
+            Choice::Action(_) => Activation::Nothing,
         }
-    }
-}
-
-fn confirm_action(row: &Row) -> Vec<Action> {
-    match row.risk {
-        Risk::Direct => Vec::new(),
-        Risk::Confirm => vec![Action {
-            id: ActionId(CONFIRM_ACTION.to_owned()),
-            label: format!("Confirm {}", row.title),
-        }],
     }
 }
 
@@ -375,18 +342,42 @@ mod tests {
         );
     }
 
+    /// Enter on a Log Out, Restart or Shut Down row names its command, and the launcher opens
+    /// the power menu on it (the confirmation, FINDINGS F178); no row carries an action.
     #[test]
-    fn a_destructive_command_needs_its_confirm_action() {
+    fn every_row_names_its_command_on_enter() {
         let provider = SystemProvider::with_availability(ALL_AVAILABLE);
-        let restart = item("restart", "Restart");
-        assert_eq!(
-            provider.activate(&restart, &Choice::Primary),
-            sill_launcher::Activation::Nothing,
-            "Enter alone must not restart the machine"
-        );
-        assert_eq!(
-            provider.activate(&restart, &Choice::Action(ActionId("confirm".to_owned()))),
-            sill_launcher::Activation::System(SystemCommand::Restart)
+        let cases = [
+            ("log_out", SystemCommand::LogOut),
+            ("restart", SystemCommand::Restart),
+            ("shut_down", SystemCommand::ShutDown),
+            ("suspend", SystemCommand::Suspend),
+        ];
+        for (id, command) in cases {
+            assert_eq!(
+                provider.activate(&item(id, id), &Choice::Primary),
+                sill_launcher::Activation::System(command),
+                "{id}"
+            );
+            assert_eq!(
+                provider.activate(
+                    &item(id, id),
+                    &Choice::Action(ActionId("confirm".to_owned()))
+                ),
+                sill_launcher::Activation::Nothing,
+                "{id}: no confirm action any more"
+            );
+        }
+        let cancel = Cancel::new();
+        let query = Query::begin("", &cancel);
+        let mut sink = VecSink::default();
+        provider.query(&query, &mut sink);
+        assert!(
+            sink.0
+                .iter()
+                .flat_map(|b| &b.items)
+                .all(|i| i.actions.is_empty()),
+            "no row carries an action"
         );
     }
 

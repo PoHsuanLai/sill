@@ -1,5 +1,7 @@
 //! Wi-Fi's state, the network list's order, and the one reducer.
 
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::units::{Percent, Presence};
@@ -95,8 +97,26 @@ pub enum WifiEvent {
 /// `wifi` after `event`. Radio `Off` or `Blocked` empties the access points (NetworkManager
 /// keeps stale ones for a while).
 pub fn reduce_wifi(wifi: Wifi, event: WifiEvent) -> Wifi {
-    let _ = (wifi, event);
-    todo!("M5 fill: svc-media-wifi-focus (b)")
+    match event {
+        WifiEvent::Device(device) => Wifi { device, ..wifi },
+        WifiEvent::Radio(radio) => {
+            let access_points = match radio {
+                Radio::On => wifi.access_points,
+                Radio::Off | Radio::Blocked => Vec::new(),
+            };
+            Wifi {
+                radio,
+                access_points,
+                ..wifi
+            }
+        }
+        WifiEvent::AccessPoints(access_points) => Wifi {
+            access_points,
+            ..wifi
+        },
+        WifiEvent::Saved(saved) => Wifi { saved, ..wifi },
+        WifiEvent::Gone => Wifi::default(),
+    }
 }
 
 /// The networks the control center lists: one per SSID (its strongest access point, and
@@ -104,8 +124,56 @@ pub fn reduce_wifi(wifi: Wifi, event: WifiEvent) -> Wifi {
 /// connected first, then saved networks, then the rest, by strength (strongest first) and then
 /// name within each group; each with whether it is saved.
 pub fn listed_networks(wifi: &Wifi) -> Vec<(AccessPoint, Saved)> {
-    let _ = wifi;
-    todo!("M5 fill: svc-media-wifi-focus (b)")
+    let mut groups: HashMap<&Ssid, (AccessPoint, bool)> = HashMap::new();
+    for ap in &wifi.access_points {
+        if ap.ssid.0.is_empty() {
+            continue;
+        }
+        let active = matches!(
+            ap.association,
+            Association::Connected | Association::Connecting
+        );
+        groups
+            .entry(&ap.ssid)
+            .and_modify(|(rep, seen_active)| {
+                if ap.strength > rep.strength {
+                    *rep = ap.clone();
+                }
+                *seen_active = *seen_active || active;
+            })
+            .or_insert_with(|| (ap.clone(), active));
+    }
+
+    let mut rows: Vec<(AccessPoint, Saved)> = groups
+        .into_values()
+        .map(|(mut rep, active)| {
+            if active && rep.association == Association::Idle {
+                rep.association = Association::Connecting;
+            }
+            let saved = if wifi.saved.contains(&rep.ssid) {
+                Saved::Known
+            } else {
+                Saved::New
+            };
+            (rep, saved)
+        })
+        .collect();
+
+    rows.sort_by(|(a_ap, a_saved), (b_ap, b_saved)| {
+        rank(a_ap, a_saved)
+            .cmp(&rank(b_ap, b_saved))
+            .then(b_ap.strength.cmp(&a_ap.strength))
+            .then(a_ap.ssid.cmp(&b_ap.ssid))
+    });
+    rows
+}
+
+/// A row's sort key: connected first, then saved, then the rest (strength and name break ties
+/// outside this key).
+fn rank(ap: &AccessPoint, saved: &Saved) -> (u8, u8) {
+    let connected = u8::from(ap.association != Association::Connected);
+    let known = u8::from(*saved != Saved::Known);
+    (connected, known)
 }
 
 #[cfg(test)]
@@ -135,7 +203,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M5 fill: svc-media-wifi-focus (b)"]
     fn one_row_per_network_connected_then_saved_then_strongest() {
         use Association::{Connected, Idle};
         let wifi = on(
@@ -165,7 +232,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M5 fill: svc-media-wifi-focus (b)"]
     fn events_reduce_to_the_expected_wifi() {
         let seen = || vec![ap("home", 60, Association::Connected)];
         let cases: Vec<(&str, Wifi, WifiEvent, Wifi)> = vec![

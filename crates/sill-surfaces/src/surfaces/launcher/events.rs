@@ -21,8 +21,9 @@ use crate::surfaces::launcher::keys::{
 };
 use crate::surfaces::launcher::panel::shown_groups;
 use crate::surfaces::launcher::presence::{LauncherLink, LauncherShown, OpenSerial, Opening};
-use crate::surfaces::launcher::run::run_effect;
+use crate::surfaces::launcher::run::{EffectFrom, run_effect};
 use crate::surfaces::launcher::session::Session;
+use crate::surfaces::power_menu::PowerMenuLink;
 
 /// The stderr line for one opening: from the request's arrival (`sill launcher toggle|open`)
 /// to the first frame the compositor showed of the panel. The daemon's
@@ -57,6 +58,9 @@ pub(crate) struct PanelCtx {
     services: Services,
     providers: LauncherProviders,
     surface: Option<SurfaceHandle>,
+    /// Where a Log Out, Restart or Shut Down row opens the power menu (the daemon gives every
+    /// root one; a demo or a test may not).
+    power_menu: Option<PowerMenuLink>,
     picking: CopyValue<Picking>,
 }
 
@@ -82,6 +86,7 @@ pub(crate) fn use_panel(output: OutputId, results: ReadSignal<Results>) -> Panel
         services,
         providers,
         surface,
+        power_menu: try_use_context::<PowerMenuLink>(),
         picking: use_hook(|| CopyValue::new(Picking::No)),
     };
     use_openings(ctx.clone());
@@ -280,14 +285,15 @@ impl PanelCtx {
             spawn(async move { picking.set(Picking::No) });
             return;
         }
-        let (surface, services, link) = (
-            self.surface.clone(),
-            self.services.clone(),
-            self.link.clone(),
-        );
+        let from = EffectFrom {
+            surface: self.surface.clone(),
+            output: self.output,
+            power_menu: self.power_menu.clone(),
+        };
+        let (services, link) = (self.services.clone(), self.link.clone());
         spawn(async move {
             let after = effect.after();
-            if let Err(error) = run_effect(effect, surface, &services).await {
+            if let Err(error) = run_effect(effect, &from, &services).await {
                 eprintln!("sill: launcher: {error}");
             }
             if after == AfterEffect::Close {
