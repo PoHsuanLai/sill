@@ -25,15 +25,11 @@ pub(crate) enum BarMenu {
     Battery,
     /// The control center (design/20 §1.5): the last status item, left of the clock (M5).
     ControlCenter,
-    /// Retired (M6, FINDINGS F266): a click on the clock toggles the notification center, and
-    /// nothing opens this menu any more. The variant stays as a menu id the tracking machine's
-    /// tables (`plan.rs`, outside lane c) still name.
-    Clock,
 }
 
 impl BarMenu {
     /// Every menu, left to right along the bar.
-    pub(crate) const ALL: [BarMenu; 9] = [
+    pub(crate) const ALL: [BarMenu; 8] = [
         BarMenu::App,
         BarMenu::NowPlaying,
         BarMenu::Display,
@@ -42,7 +38,6 @@ impl BarMenu {
         BarMenu::Network,
         BarMenu::Battery,
         BarMenu::ControlCenter,
-        BarMenu::Clock,
     ];
 
     /// The machine's name for this menu.
@@ -52,7 +47,6 @@ impl BarMenu {
             BarMenu::Volume => 1,
             BarMenu::Network => 2,
             BarMenu::Battery => 3,
-            BarMenu::Clock => 4,
             BarMenu::ControlCenter => 5,
             BarMenu::NowPlaying => 6,
             BarMenu::Display => 7,
@@ -75,8 +69,7 @@ impl BarMenu {
             | BarMenu::Volume
             | BarMenu::Bluetooth
             | BarMenu::Network
-            | BarMenu::Battery
-            | BarMenu::Clock => MenuSide::Status,
+            | BarMenu::Battery => MenuSide::Status,
         }
     }
 
@@ -87,7 +80,6 @@ impl BarMenu {
             BarMenu::Volume => "Volume",
             BarMenu::Network => "Network",
             BarMenu::Battery => "Battery",
-            BarMenu::Clock => "Clock",
             BarMenu::ControlCenter => "Control Center",
             BarMenu::NowPlaying => "Now Playing",
             BarMenu::Display => "Display",
@@ -97,7 +89,7 @@ impl BarMenu {
 
     /// The control center module whose component a module item's dropdown shows (M5: the
     /// volume, network and battery menus become the Sound, Wi-Fi and Battery modules); `None`
-    /// for the app menu, the control center and the clock.
+    /// for the app menu and the control center.
     pub(crate) fn module(self) -> Option<ControlCenterModule> {
         match self {
             BarMenu::NowPlaying => Some(ControlCenterModule::NowPlaying),
@@ -106,7 +98,7 @@ impl BarMenu {
             BarMenu::Bluetooth => Some(ControlCenterModule::Bluetooth),
             BarMenu::Network => Some(ControlCenterModule::Wifi),
             BarMenu::Battery => Some(ControlCenterModule::Battery),
-            BarMenu::App | BarMenu::ControlCenter | BarMenu::Clock => None,
+            BarMenu::App | BarMenu::ControlCenter => None,
         }
     }
 }
