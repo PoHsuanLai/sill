@@ -96,6 +96,29 @@ pub enum BannerMaterial {
     Inverse,
 }
 
+/// `notifications.swipe`: what swiping a banner away does. macOS keeps it in Notification
+/// Center; only its close button, `CloseNotification` or Clear removes it.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    Serialize,
+    Deserialize,
+    ds_settings::SettingsSchema,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum NotificationSwipe {
+    /// The banner leaves; the notification stays in the notification center.
+    #[default]
+    KeepInCenter,
+    /// The notification is dismissed (NotificationClosed reason 2) and leaves the history.
+    Dismiss,
+}
+
 /// `notifications.server`: whether sill serves `org.freedesktop.Notifications`.
 #[derive(
     Debug,
@@ -315,6 +338,13 @@ pub struct NotificationsSettings {
     )]
     pub server: NotificationServer,
     #[settings(
+        label = "Swiping a banner away",
+        help = "Keep the notification in the notification center, as macOS does, or dismiss it entirely.",
+        section = "Notifications",
+        advanced
+    )]
+    pub swipe: NotificationSwipe,
+    #[settings(
         label = "Banner position",
         help = "The corner of the screen banners appear in.",
         section = "Banners",
@@ -367,6 +397,7 @@ impl Default for NotificationsSettings {
             group_offset_px: Px(4),
             banner_material: BannerMaterial::Toast,
             server: NotificationServer::Own,
+            swipe: NotificationSwipe::KeepInCenter,
             banner_position: BannerPosition::TopRight,
             history_cap: Count(100),
             center_width_px: Px(384),
