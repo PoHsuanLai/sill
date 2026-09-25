@@ -54,7 +54,7 @@ pub use feed::SettingsFeed;
 pub use file::{APP, FILE_NAME, ShellFile, load, save, settings_dir};
 pub use focus::{FocusMode, focus_mode, with_focus_mode};
 pub use focus_link::{Delivery, FocusLink, spawn_focus};
-pub use hot_corners::{CornerAction, CornerModifier, HotCornersSettings};
+pub use hot_corners::{CornerAction, HotCornersSettings};
 pub use launcher::LauncherSettings;
 pub use menus::{MenusSettings, PickFeedback};
 pub use notifications::{

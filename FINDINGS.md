@@ -4287,3 +4287,10 @@ services.rs}`, `sill-surfaces/src/{lib.rs,hooks/**,widgets/mod.rs}`,
   face (weekday, large date, month) and the center keeps the full month.
 - G130 `notification_center_render`'s click tests flaked once under the full parallel run (60 ms
   advance per click, now with real widgets drawn); passed alone and on rerun.
+
+## hot_corners.modifier retired (2026-09-26)
+
+- The key, `CornerModifier`, and its design/22 row (quire 42ce1eb) are gone: a keyboard-less
+  layer surface has no portable source for held modifiers (shell-host F61). The wish stays in
+  docs/cosmic-gaps.md as a fork item. An existing settings.toml line `modifier = ...` under
+  `[hot_corners]` is kept in `extra` and ignored.
