@@ -5,6 +5,7 @@
 //! `Shell(Locked)`, removed on `Shell(Unlocked | Finished | Refused)`) and, right after a mode
 //! resolves to `Own`, locks at once when [`super::marker::restore_on_start`] says so.
 
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use tokio::sync::{mpsc, watch};
@@ -14,6 +15,7 @@ use super::child::{self, Generation, Heard, Word};
 use super::choice::{Host, LockerChoice, LockerMode, SessionManager, resolve};
 use super::logind::{self, Logind, next_opt};
 use super::machine::{Cause, Locker, LockerEffect, LockerEvent, next_deadline, step};
+use super::marker::{LockMarker, Restore, marker_path, restore_on_start};
 use super::{Lock, LockDrawer, LockerCommand, ShellLockEvent};
 use crate::programs::{self, Pid};
 use crate::units::Stamp;
@@ -106,6 +108,7 @@ impl Live {
                 self.feed(LockerEvent::Requested(Cause::Action, now)).await;
             }
             LockerCommand::Shell(event) => {
+                self.keep_marker(event);
                 let event = match event {
                     ShellLockEvent::Locked => LockerEvent::Reported,
                     ShellLockEvent::Unlocked
@@ -124,10 +127,41 @@ impl Live {
         let (runner, triggers) = mode.runner();
         self.mode = mode;
         self.feed(LockerEvent::Configured(runner, triggers)).await;
+        // A sill that died while its own lock held left the marker: lock again at once, so the
+        // person gets a prompt on the session the compositor kept locked.
+        let found = match marker_file() {
+            Some(path) if path.exists() => LockMarker::Present,
+            Some(_) | None => LockMarker::Absent,
+        };
+        if restore_on_start(&self.mode, found) == Restore::LockNow {
+            let now = self.now();
+            self.feed(LockerEvent::Requested(Cause::Action, now)).await;
+        }
         // A locker already running (a previous sill's, or one started by hand) is adopted, so
         // the next Lock never starts a second.
         if let Some(pid) = self.running_locker() {
             self.adopt(pid).await;
+        }
+    }
+
+    /// Keep the crash marker while the own lock is held (module doc of [`super::marker`]).
+    fn keep_marker(&self, event: ShellLockEvent) {
+        let (LockerMode::Own { .. }, Some(path)) = (&self.mode, marker_file()) else {
+            return;
+        };
+        match event {
+            ShellLockEvent::Locked => {
+                let written = path
+                    .parent()
+                    .map_or(Ok(()), std::fs::create_dir_all)
+                    .and_then(|()| std::fs::write(&path, b"locked\n"));
+                if let Err(error) = written {
+                    eprintln!("sill: writing the lock marker {}: {error}", path.display());
+                }
+            }
+            ShellLockEvent::Unlocked | ShellLockEvent::Finished | ShellLockEvent::Refused => {
+                let _ = std::fs::remove_file(&path);
+            }
         }
     }
 
@@ -234,6 +268,13 @@ impl Live {
             changed
         });
     }
+}
+
+/// The crash marker in this session's `$XDG_RUNTIME_DIR`; none without one.
+fn marker_file() -> Option<PathBuf> {
+    std::env::var_os("XDG_RUNTIME_DIR")
+        .filter(|dir| !dir.is_empty())
+        .map(|dir| marker_path(Path::new(&dir)))
 }
 
 /// Resolves `choice` against this session and this machine (blocking: `/proc` and `PATH`).

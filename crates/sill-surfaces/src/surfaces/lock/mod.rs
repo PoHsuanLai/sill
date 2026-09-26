@@ -20,6 +20,7 @@ pub mod backdrop;
 pub mod link;
 pub mod view;
 
+mod body;
 mod screen;
 
 pub use backdrop::backdrop_for;

@@ -4895,3 +4895,26 @@ session script restarts it and it re-locks), `pkexec true` answered by sill's ow
   `overflow_min_icon_px`, but no `quick_tap_ms` row. Fixed the only way this test allows,
   the same as `session.lock_clock`: added `switcher.quick_tap_ms` to `keys.rs`'s
   `AWAITING_ROWS`, no switcher logic touched. quire's owner adds the row; then the entry can go.
+
+## M11 lane a: sill's own lock screen (2026-09-26)
+
+- F560 PAM runs in a `sill auth-check` child per attempt (nonstick), the password on its stdin
+  as NUL-terminated fields, never argv or env, killed after 15 s; the daemon never holds a PAM
+  handle. Every copy is zeroed (the request bytes, the child's fixed read buffer, the Secret, the
+  PAM conversation's answers). A made-up verdict (`sill debug auth`) exists only in debug builds.
+- F561 A latch (`crates/sill/src/lock/follow.rs`) keeps the lock released until the locker
+  reports `Unlocked` or a new `Locking`, so an auth reset reaching the follower first cannot
+  re-lock. The crash marker is `$XDG_RUNTIME_DIR/sill/locked` (Own mode only).
+- F562 The prompt starts on the main display, then follows whichever lock surface gains keyboard
+  focus or a click; whether cosmic-comp focuses the pointer's output first is a manual check.
+- F563 The picture: AccountsService's icon, then `$HOME/.face` (the frozen order), else the
+  initial face; never a persona (the user chose animated emoji, a later quire break).
+- F564 The unlock fade runs at `--t-move` (250 ms), shorter than the 454 ms accepted beat, so the
+  beat is mostly faded before the unlock; a delayed fade is a follow-up.
+- Q270 Proposed rows (not registered; the user decides whether lockout is configurable):
+  `session.lockout_free_tries` u32 5, `session.lockout_first_wait_s` 60,
+  `session.lockout_max_wait_s` 900, Advanced, Accounts page. Today these are constants.
+- G191 closed: `debug stats` lists `sill-lock/<output>` while a lock is up.
+- Acceptance `dev/accept-lock.sh` on the nested compositor: 8/8 (lock 126 ms, a second locker
+  refused, wrong shakes and clears, lockout after the sixth wrong, 0 commits idle, unlock 742 ms,
+  crash re-lock 2 ms after restart, a non-debug build refuses a made-up verdict).

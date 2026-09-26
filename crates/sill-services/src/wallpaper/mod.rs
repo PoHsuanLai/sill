@@ -192,7 +192,15 @@ async fn publish(
     let source = source.clone();
     let cache_dir = cache_dir.to_path_buf();
     let prepared = rt
-        .spawn_blocking(move || resize::prepare(&source, width, height, &cache_dir))
+        .spawn_blocking(move || {
+            let prepared = resize::prepare(&source, width, height, &cache_dir);
+            // The lock screen's blurred copy, beside each image (M11: a failure only costs the
+            // lock screen its picture, never the wallpaper).
+            for image in prepared.iter().flat_map(|(light, dark)| [light, dark]) {
+                let _ = ensure_backdrop(image);
+            }
+            prepared
+        })
         .await
         .unwrap_or_default();
     let output = output.clone();

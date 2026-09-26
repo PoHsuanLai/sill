@@ -85,6 +85,9 @@ fn prompt(
             user: view.user,
             state: view.state,
             caps,
+            // The sheet carries the blur region's id (quire Q260), so `layer.rs`'s
+            // `RegionSpec::Element(PANEL_ID)` resolves.
+            panel_id: Some(super::PANEL_ID.to_owned()),
             oninput: move |_: String| {},
             onsubmit: move |text: String| {
                 let secret = Secret::new(text);

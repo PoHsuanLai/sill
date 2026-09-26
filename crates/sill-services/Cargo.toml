@@ -56,6 +56,11 @@ name = "mpris_player"
 [[example]]
 name = "notifications_holder"
 
+# A stand-in for `sill auth-check` speaking the helper protocol without PAM:
+# `tests/auth_live.rs` drives the real `PamHelper` against it.
+[[example]]
+name = "auth_helper"
+
 # polkitd's Authority and polkit's helper, stood in for on a private bus (M11 lane b):
 # `tests/polkit_live.rs` and `dev/accept-polkit.sh` drive sill's agent with them, never polkitd.
 [[example]]

@@ -9,7 +9,19 @@ use super::types::{AvatarSource, RealName, UserName};
 /// The login name and the GECOS name (its first comma-separated field; the login name when
 /// empty) of `uid` in `passwd` (the file's text).
 pub fn user_name_in_passwd(passwd: &str, uid: u32) -> Option<(UserName, RealName)> {
-    todo!("M11 fill: a-lock ({} bytes, uid {uid})", passwd.len())
+    passwd.lines().find_map(|line| {
+        let mut fields = line.split(':');
+        let user = fields.next()?;
+        let _password = fields.next()?;
+        let line_uid: u32 = fields.next()?.parse().ok()?;
+        let _gid = fields.next()?;
+        let gecos = fields.next()?;
+        (line_uid == uid && !user.is_empty()).then(|| {
+            let name = gecos.split(',').next().unwrap_or_default().trim();
+            let name = if name.is_empty() { user } else { name };
+            (UserName(user.to_owned()), RealName(name.to_owned()))
+        })
+    })
 }
 
 /// The picture: AccountsService's icon when it names an existing file (`exists`), else
@@ -19,11 +31,12 @@ pub fn avatar_source(
     home: &Path,
     exists: impl Fn(&Path) -> bool,
 ) -> AvatarSource {
-    todo!(
-        "M11 fill: a-lock ({accounts_icon:?} {} {})",
-        home.display(),
-        exists(home)
-    )
+    let face = home.join(".face");
+    accounts_icon
+        .into_iter()
+        .chain(std::iter::once(face))
+        .find(|path| exists(path))
+        .map_or(AvatarSource::Initials, AvatarSource::File)
 }
 
 #[cfg(test)]
@@ -40,7 +53,6 @@ mod tests {
         broken line\n";
 
     #[test]
-    #[ignore = "M11 fill: a-lock"]
     fn passwd_lines() {
         let named =
             |user: &str, name: &str| Some((UserName(user.to_owned()), RealName(name.to_owned())));
@@ -56,7 +68,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M11 fill: a-lock"]
     fn the_picture_prefers_accountsservice() {
         let icon = PathBuf::from("/var/lib/AccountsService/icons/ada");
         let face = PathBuf::from("/home/ada/.face");
