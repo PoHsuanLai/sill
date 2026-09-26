@@ -325,6 +325,9 @@ pub fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostE
         | HostEvent::OutputRemoved(_) => reconcile_outputs(ctx, outputs),
         HostEvent::SurfaceClosed { id, reason } => on_surface_closed(outputs, id, reason),
         HostEvent::KeyboardFocus { .. } => {}
+        // The shell's own session lock (M11, `session.locker = "sill"`) follows these; until it
+        // lands, sill never asks the host to lock, so there is nothing to do.
+        HostEvent::Lock { .. } => {}
         HostEvent::App(ShellMsg::Settings(file)) => {
             resize_bars(ctx, outputs, &file);
             ctx.set_scroll_config(crate::scroll::config(&file));
