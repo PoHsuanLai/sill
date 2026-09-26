@@ -9,7 +9,7 @@
 pub mod fake;
 
 use std::cell::RefCell;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds_native::{Harness, Viewport};
@@ -80,11 +80,13 @@ impl Running {
         settle(&mut self.harness, done);
     }
 
-    /// The commands sent, advancing until `count` have come, at most two seconds.
+    /// The commands sent, advancing until `count` have come, at most [`STEPS`] frames.
     pub fn commands_until(&mut self, count: usize) -> Vec<NotificationsCommand> {
-        let until = Instant::now() + Duration::from_secs(2);
         let mut sent = self.commands();
-        while sent.len() < count && Instant::now() < until {
+        for _ in 0..STEPS {
+            if sent.len() >= count {
+                break;
+            }
             self.harness.advance(Duration::from_millis(20));
             sent.extend(self.commands());
         }
@@ -122,14 +124,21 @@ pub fn opened(history: History) -> Running {
     running
 }
 
-/// Advance until `done` holds, at most two seconds; then one more frame's worth.
+/// Advance until `done` holds, at most [`STEPS`] frames of the harness's own clock; then one
+/// more frame's worth. Bounded by steps, not the wall clock, so a loaded machine running the
+/// whole workspace cannot time it out (G130, M9 gate).
 pub fn settle(harness: &mut Harness, done: impl Fn(&Harness) -> bool) {
-    let until = Instant::now() + Duration::from_secs(2);
-    while !done(harness) && Instant::now() < until {
+    for _ in 0..STEPS {
+        if done(harness) {
+            break;
+        }
         harness.advance(Duration::from_millis(20));
     }
     harness.advance(Duration::from_millis(20));
 }
+
+/// The most 20 ms frames a wait advances: four seconds of the harness's clock.
+const STEPS: usize = 200;
 
 /// A notification from `app`.
 pub fn note(id: u32, app: &str, summary: &str) -> Notification {
