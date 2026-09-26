@@ -5889,3 +5889,54 @@ changed. Numbers from F740, Q350, G280.
   `fake-input.sh` runs `cargo build`, which needs rustup's default toolchain under `$HOME`; the
   script gives the scratch HOME to the daemon only (a client started with the scratch HOME fails
   with "rustup could not choose a version of cargo").
+
+## M9 fixes (2026-09-27)
+
+Against master 47d606f (every M9 lane merged). Fixes F741, F742, Q350 and G280; each has a
+table or harness test that fails without its fix. Numbers from F760.
+
+- **F760 F741 fixed: ← and → move the emoji grid.** design/13 §13.3.9 gives the grid "2D arrow
+  keys", so on a cell of the Emoji section the claim leaves ← and → to quire's palette, which
+  moves the cell (`claim_keys::pane_key`, a pure table of the claim's keys; `View::layout` says
+  whether the selected line is a grid cell: an Emoji-section row, not an emoji Top Hit and not
+  the Emoji header's "Show More"). The pane there is ⌘Y's, ⌘→'s and Space's, as in the
+  reference's character viewer; a grid move feeds the pane machine `Moved` (`field_key`), so
+  Space after it is Quick Look and a shown pane follows the cell. With the pane holding the
+  keyboard, ← and → stay the pane's. Tests: `claim_keys` (19 cases; the grid rows fail with the
+  old claim), `view_tests::only_an_emoji_sections_cells_are_grid_lines`, and the harness's
+  `real_left_and_right_move_the_emoji_grid_and_command_y_previews` (real →, ←, Space, ⌘Y, ⌘→;
+  without the fix, "→ moved to the next cell" reads 0, not 1).
+- **F761 F742 fixed: `↵` trails the selected row.** The row Enter runs is the one the palette's
+  cursor is on, so `trail` gives `↵` to that line (`entries::Cursor`, counted as the palette
+  counts its stops: each row, each emoji cell, a header's "Show More"); every other row keeps its
+  chord (`⌘R`, `⌃K`) or note. The panel passes `session.keys.selected` (`Draw::cursor`), the M4
+  `ResultsList` its `selected` (`entries::palette_groups_at`); the frozen `palette_sections` and
+  M4 `palette_groups` keep their signatures with the cursor on the first line. On "Show More" or
+  an emoji cell no row trails `↵`. Tests: `sections_view_tests::the_return_glyph_follows_the_cursor`
+  and `entries::tests::the_return_glyph_moves_with_the_selection`. The real-input run's
+  `preview-space.png` now shows `↵` on the selected `m9-list-02.txt` and `⌘R` on the Top Hit.
+- **F762 Q350 fixed: emoji match on word prefixes.** An emoji is listed only when every typed word
+  begins a word of its name, keywords (not after `:`) or shortcodes (`emoji/words.rs`; words
+  split on anything not a letter or digit, compared without case), and nucleo's score still
+  ranks what is left. "lantern" lists 🏮 then 🎃 (jack-o-lantern) and nothing else; "neth" still
+  finds 🇳🇱; "thumbs" → 👍 first and `:tada` → 🎉 hold. The words may come from different fields,
+  but a row is scored per field as before, so a query whose words are spread over the name and a
+  keyword with no single field matching it fuzzily is dropped (none seen). Tests:
+  `words::tests` (12 cases) and `search::tests::scattered_letters_do_not_match` (fails without the
+  gate).
+- **F763 G280 fixed: `accept-launcher-files.sh` step 4 looks for any file row.** With
+  `files_backend = "off"` it fails on a seeded file's name in any section (Top Hit, Recent,
+  anywhere), on a Documents section, and on rows that do not read as JSON; `--self-test` runs
+  the check over a table without a compositor (the first case, a file as the Top Hit, passed the
+  old check).
+- **F764 Acceptance.** Gates: fmt, clippy (`--all-features`, `-D warnings`), `cargo test
+  --workspace --features sill/debug` (1108 passed, 0 failed, 51 ignored over 113 binaries),
+  `check-boundary.sh`, `cargo deny check licenses`: all exit 0. On the nested cosmic-comp
+  (wayland-1 pinged, reused): `accept-launcher-v2.sh` 9 PASS, exit 0 (10 warm openings p50
+  132.7, p95 229.8 ms, under a load average near 100 from other builds);
+  `accept-launcher-files.sh` 12 PASS, exit 0 (step 4: "no file row anywhere (Top Hit included),
+  no Documents section"). Its first run under that load failed step 1 twice (the probe's
+  `M9-REP` answered `partial 0`, and `launcher-rows` had no reply within 2 s), and passed
+  unchanged on the rerun a minute later: timing, not these fixes. `accept-launcher-v2-real-input.sh`
+  on headless KWin: steps 1-5 PASS, exit 0; step 4 now reads Down 0→8, Down 8→16, **Right
+  16→17**, Left 17→16, Up 16→8, and Enter copies cell 8. Q340 and Q341 still OPEN (quire's).
