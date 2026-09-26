@@ -8,13 +8,14 @@
 
 #[path = "../support/fake.rs"]
 pub mod fake;
+pub mod m9;
 
 use std::sync::{Arc, Mutex};
 
 use sill_launcher::{
-    Action, ActionId, Activation, AppId, Choice, DesktopAction, Generation, IconRef, Item, ItemId,
-    ItemKey, Provider, ProviderKind, Query, ResultSink, Score, SettingsTarget, SystemCommand,
-    WindowKey,
+    Action, ActionId, Activation, AppId, Choice, DesktopAction, Frecency, Generation, IconRef,
+    Item, ItemId, ItemKey, Placement, Provider, ProviderKind, Query, QueryShape, ResultSink,
+    Score, SectionPlan, SectionSpan, SettingsTarget, SystemCommand, UnixTime, WindowKey, place,
 };
 use sill_services::{
     Control, LaunchCommand, LaunchRequest, Results, SearchCommand, Services, WlCommand,
@@ -105,12 +106,15 @@ pub fn catalogue() -> Vec<Item> {
     ]
 }
 
-/// The rows a query finds: every row for the empty query, else those whose title or subtitle
-/// holds it (case-insensitively); the calculator answers only a query with a digit.
+/// The rows a query finds, best first: every row for the empty query, else those whose title
+/// or subtitle holds it (case-insensitively); the calculator answers only a query with a
+/// digit, the web fallback only typed text, and only when the query starts `m9` (so the M4
+/// tests' rows are as they were).
 pub fn search(query: &str) -> Vec<Item> {
     let needle = query.trim().to_lowercase();
-    catalogue()
+    let mut rows: Vec<Item> = catalogue()
         .into_iter()
+        .chain(m9::rows())
         .filter(|item| match item.provider {
             ProviderKind::Calculator => needle.chars().any(|c| c.is_ascii_digit()),
             _ => {
@@ -119,7 +123,58 @@ pub fn search(query: &str) -> Vec<Item> {
                     || item.subtitle.to_lowercase().contains(&needle)
             }
         })
-        .collect()
+        .collect();
+    if needle.starts_with("m9") {
+        rows.push(m9::web(query.trim()));
+    }
+    rows.sort_by(|a, b| b.score.cmp(&a.score).then(a.provider.cmp(&b.provider)));
+    rows
+}
+
+/// When the fake history was written.
+pub const NOW: UnixTime = UnixTime(1_790_000_000);
+
+/// What the fake history has counted: Firefox most, then Files, the Firefox window, Terminal
+/// and Wi-Fi (so Recent lists those five, in that order).
+pub fn frecency() -> Frecency {
+    let uses: [(ProviderKind, &str, usize); 5] = [
+        (ProviderKind::Apps, FIREFOX, 5),
+        (ProviderKind::Apps, FILES, 4),
+        (ProviderKind::Windows, "10", 3),
+        (ProviderKind::Apps, TERM, 2),
+        (ProviderKind::Settings, "wireless", 1),
+    ];
+    uses.iter().fold(Frecency::default(), |history, &(kind, id, times)| {
+        (0..times).fold(history, |history, _| {
+            history.record(ItemKey::of(kind, &ItemId(id.to_owned())), NOW)
+        })
+    })
+}
+
+/// `rows` (best first) as the real runner publishes them: placed in sections, or a filtered
+/// provider's rows alone.
+pub fn placed(rows: &[Item], text: &str, only: Option<ProviderKind>) -> Placement {
+    let plan = SectionPlan::default_plan();
+    match only {
+        Some(kind) => {
+            let items: Vec<Item> = rows.iter().filter(|i| i.provider == kind).cloned().collect();
+            let spans = match (plan.rule(kind), items.len()) {
+                (Some(rule), n) if n > 0 => vec![SectionSpan {
+                    section: rule.section,
+                    rows: n as u32,
+                }],
+                _ => Vec::new(),
+            };
+            Placement { items, spans }
+        }
+        None => {
+            let shape = match text.trim() {
+                "" => QueryShape::Empty,
+                _ => QueryShape::Text,
+            };
+            place(rows, &plan, shape, &frecency(), NOW)
+        }
+    }
 }
 
 /// Fake services whose search is answered by a runner thread, and their senders.
@@ -140,10 +195,15 @@ pub fn services() -> (Services, LauncherFeeds) {
                 SearchCommand::Query(text) | SearchCommand::Filtered { text, .. } => {
                     generation += 1;
                     rows = search(text);
+                    let only = match &command {
+                        SearchCommand::Filtered { provider, .. } => Some(*provider),
+                        _ => None,
+                    };
+                    let placement = placed(&rows, text, only);
                     tx.send_replace(Results {
                         generation: Generation(generation),
-                        items: rows.clone(),
-                        sections: Vec::new(),
+                        items: placement.items,
+                        sections: placement.spans,
                     });
                 }
                 SearchCommand::Chosen { key, choice } => {
@@ -224,14 +284,14 @@ impl Provider for FakeProvider {
                 target: SettingsTarget::Cosmic(item.id.0.clone()),
             },
             (ProviderKind::System, _) => Activation::System(SystemCommand::Lock),
-            // The M9 kinds: lane d gives them fakes with their rows.
+            // The M9 kinds: their rows are `m9.rs`'s.
             (
                 ProviderKind::Files
                 | ProviderKind::Clipboard
                 | ProviderKind::Emoji
                 | ProviderKind::Web,
-                _,
-            ) => Activation::Nothing,
+                choice,
+            ) => m9::activate(item, choice),
         }
     }
 }

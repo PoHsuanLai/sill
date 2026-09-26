@@ -10,3 +10,18 @@
 .sill-launcher-catcher{ width:100vw; height:100vh; }
 .sill-launcher-body{ display:flex; flex-direction:column; }
 .sill-launcher-foot{ flex:none; height:0; }
+/* M9 (FINDINGS "M9 lane d"): the results column and, while shown, the preview pane beside it.
+   The pane is a stand-in card (quire `Surface` in the launcher's material) until quire's
+   `PreviewPane` and `CommandPalette { aside }` (Q292); sill only lays its quire parts out. */
+.sill-launcher-split{ display:flex; flex-direction:row; align-items:flex-start; }
+.sill-launcher-results{ display:flex; flex-direction:column; flex:none; }
+.sill-launcher-preview{ flex:none; padding-left:var(--s-2); }
+.sill-launcher-preview-card{ display:flex; flex-direction:column; gap:var(--s-3); padding:var(--s-4); height:100%; overflow:hidden; }
+.sill-launcher-preview-visual{ display:flex; justify-content:center; }
+.sill-launcher-preview-text{ white-space:pre-wrap; overflow:hidden; flex:1; min-height:0; }
+.sill-launcher-preview-glyph{ font-size:var(--fs-widget-hero); text-align:center; }
+.sill-launcher-preview-facts{ display:flex; flex-direction:column; gap:var(--s-2); min-width:0; }
+.sill-launcher-preview-title{ font-size:var(--fs-shell-row); font-weight:var(--fw-shell-field); }
+.sill-launcher-preview-fact{ display:flex; flex-direction:column; min-width:0; }
+.sill-launcher-preview-actions{ display:flex; flex-direction:column; gap:var(--s-2); margin-top:auto; }
+.sill-launcher-preview-action{ display:flex; flex-direction:row; align-items:center; gap:var(--s-3); }
