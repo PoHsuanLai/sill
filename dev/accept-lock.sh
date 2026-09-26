@@ -16,7 +16,7 @@
 #   1. `sill lock`: `sill lock status` says locked/shell within 1 s, and a second lock client
 #      (`session_locker`) is refused (exit 3) while sill holds the lock.
 #   2. A capture of every output's lock surface (`sill-lock/<out>`; `debug stats` does not list
-#      lock surfaces, G190); the prompt's output shows the clock and the field
+#      lock surfaces, G191); the prompt's output shows the clock and the field
 #      (dev/out/lock-cosmic.png), and its pixels differ from a clock-only surface's in the
 #      prompt's band.
 #   3. `sill debug auth refuse`: the prompt spins then shakes (captures in the prompt's band
@@ -24,7 +24,7 @@
 #   4. Five more refusals (six wrongs: five free tries, then 60 s): the prompt says "Try again at
 #      ..." (dev/out/lock-lockedout-cosmic.png; the band differs from the idle one), still locked.
 #   5. 5 s idle while locked: 0 commits on the lock surfaces (counted from the daemon's
-#      WAYLAND_DEBUG=client log, since `debug stats` has no lock rows: G190).
+#      WAYLAND_DEBUG=client log, since `debug stats` has no lock rows: G191).
 #   6. `sill debug auth accept` (a made-up accept skips the 60 s wait): status unlocked within
 #      the made-up check (250 ms) plus the fade (--t-move) plus 500 ms, the lock surface is gone,
 #      the marker is removed, and the session is free (a stand-in locker locks and unlocks).
@@ -203,7 +203,7 @@ EOF
       echo "sill-lock/$name: no capture" | tee -a "$log" >&2; ok=1
     fi
   done
-  sill debug stats | grep -c '"sill-lock/' | xargs -I{} echo "debug stats rows for lock surfaces: {} (G190)" | tee -a "$log" >&2
+  sill debug stats | grep -c '"sill-lock/' | xargs -I{} echo "debug stats rows for lock surfaces: {} (G191)" | tee -a "$log" >&2
   [ -n "$PROMPT_OUT" ] && cp "$OUT_DIR/lock-$PROMPT_OUT.png" "$SHOTS/lock-cosmic.png"
   cp "$OUT_DIR/lock-$PROMPT_OUT.png" "$OUT_DIR/idle.png" 2>/dev/null
   echo "the prompt is on $PROMPT_OUT: $SHOTS/lock-cosmic.png; backdrops written: $(find "$CACHE" -name '*-backdrop.png' | wc -l)" | tee -a "$log" >&2
@@ -254,7 +254,7 @@ step_lockout() {
 step_idle() {
   local log="$OUT_DIR/idle.log" wlog="$OUT_DIR/daemon-wayland-debug.log" from to commits start
   # A daemon logging its Wayland requests (WAYLAND_DEBUG=client), for this step only: the log
-  # slows a capture past the client's 2 s wait, and `debug stats` has no lock rows (G190).
+  # slows a capture past the client's 2 s wait, and `debug stats` has no lock rows (G191).
   stop_daemon
   WDEBUG=client start_daemon "$wlog" || return 1
   start=$(now_ms)
