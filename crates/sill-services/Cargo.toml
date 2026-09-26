@@ -56,5 +56,10 @@ name = "mpris_player"
 [[example]]
 name = "notifications_holder"
 
+# A stand-in for `sill auth-check` speaking the helper protocol without PAM:
+# `tests/auth_live.rs` drives the real `PamHelper` against it.
+[[example]]
+name = "auth_helper"
+
 [lints]
 workspace = true

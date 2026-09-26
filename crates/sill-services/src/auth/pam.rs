@@ -3,6 +3,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::ffi::{OsStr, OsString};
+use std::os::unix::ffi::OsStringExt;
 use std::path::Path;
 use std::rc::Rc;
 
@@ -30,7 +31,15 @@ pub const SERVICE_DIRS: [&str; 3] = ["/etc/pam.d", "/usr/lib/pam.d", "/usr/etc/p
 /// Which service to run: [`SILL_SERVICE`] when a file for it exists in any of
 /// [`SERVICE_DIRS`] (`exists` answers for a path), else [`FALLBACK_SERVICE`].
 pub fn service(exists: impl Fn(&Path) -> bool) -> PamService {
-    todo!("M11 fill: a-lock ({})", exists(Path::new(SERVICE_DIRS[0])))
+    let installed = SERVICE_DIRS
+        .iter()
+        .any(|dir| exists(&Path::new(dir).join(SILL_SERVICE)));
+    let name = if installed {
+        SILL_SERVICE
+    } else {
+        FALLBACK_SERVICE
+    };
+    PamService(name.to_owned())
 }
 
 /// Run `pam_authenticate` then `pam_acct_mgmt` for `attempt` under `service`, answering the
@@ -89,6 +98,16 @@ struct Answers {
     notes: Rc<RefCell<Vec<PamNote>>>,
 }
 
+/// The conversation's copy of the secret is zeroed with it. (The copy handed to PAM is PAM's to
+/// free; this process exits right after the check.)
+impl Drop for Answers {
+    fn drop(&mut self) {
+        let mut bytes = std::mem::take(&mut self.secret).into_vec();
+        bytes.iter_mut().for_each(|byte| *byte = 0);
+        std::hint::black_box(&bytes);
+    }
+}
+
 impl ConversationAdapter for Answers {
     fn prompt(&self, _request: impl AsRef<OsStr>) -> PamResult<OsString> {
         Err(ErrorCode::ConversationError)
@@ -121,7 +140,6 @@ mod tests {
     use nonstick::ErrorCode;
 
     #[test]
-    #[ignore = "M11 fill: a-lock"]
     fn sills_own_file_wins_else_login() {
         let cases: [(&[&str], &str); 4] = [
             (&["/etc/pam.d/sill"], "sill"),

@@ -29,13 +29,17 @@ pub enum Restore {
 
 /// `$XDG_RUNTIME_DIR/sill/locked` for `runtime_dir`.
 pub fn marker_path(runtime_dir: &Path) -> PathBuf {
-    todo!("M11 fill: a-lock ({})", runtime_dir.display())
+    runtime_dir.join("sill").join("locked")
 }
 
 /// `LockNow` exactly when `mode` is `Own` and the marker is `Present`; a program locker has its
 /// own process to find (`programs::running`), and `Off`/`Delegate` never lock.
 pub fn restore_on_start(mode: &LockerMode, marker: LockMarker) -> Restore {
-    todo!("M11 fill: a-lock ({mode:?} {marker:?})")
+    match (mode, marker) {
+        (LockerMode::Own { .. }, LockMarker::Present) => Restore::LockNow,
+        (LockerMode::Own { .. }, LockMarker::Absent)
+        | (LockerMode::Off | LockerMode::Delegate | LockerMode::Run { .. }, _) => Restore::Nothing,
+    }
 }
 
 #[cfg(test)]
@@ -47,7 +51,6 @@ mod tests {
     use crate::locker::machine::Triggers;
 
     #[test]
-    #[ignore = "M11 fill: a-lock"]
     fn a_marker_relocks_only_the_own_lock() {
         let own = LockerMode::Own {
             triggers: Triggers::FollowLogind,
