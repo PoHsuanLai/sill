@@ -5343,3 +5343,102 @@ and reports).
 - **G230 (shell-host / KWin)** Whether headless KWin 6.7 offers `ext_data_control_manager_v1` or
   `zwlr_data_control_manager_v1` is unverified; lane e reports it, and if neither, the clipboard
   step of the real-input run is NOT PROVEN there (cosmic-comp offers both).
+
+## M9 lane a: Documents (2026-09-26)
+
+Lane a of "The M9 fill-in" (owns `providers/files/**`, `launch/open.rs`, `tests/files_*.rs`,
+`examples/{files_probe, file_manager_stub}.rs`, `dev/accept-launcher-files.sh`). The eight
+`a-files` tests run un-ignored; no frozen signature, public field or variant changed. Private
+files added under `providers/files/`: `bus.rs` (F107's `Handle::block_on`, else a
+current-thread runtime), `program.rs` (a search program within a budget), `stat.rs`, `cursor.rs`,
+`query_tests.rs`.
+
+- **F660 `FilesProvider::query` as its doc says.** The text is trimmed; nothing typed asks no
+  index, also when Files is asked alone (`Scope::Only`); `FilesChoice::Off` asks none and is
+  checked before detection, so an `Off` policy never touches the bus. Otherwise one `FileAsk {
+  text, under: home, limit: 40, budget: policy.files_budget }` (40: the section publishes at most
+  20, and a hit the name match drops leaves room); `Hits` and `Partial` are pushed as one batch,
+  `Unavailable` and a cancelled query push nothing. Pinned by `files/query_tests.rs` with a
+  scripted index that records its asks.
+- **F661 Detection is cached once per process, not per provider.** `FilesProvider`'s frozen
+  fields have no slot for a cache, so `detect()` lives in a `static OnceLock` beside it; the
+  daemon builds one provider, so the two are the same today (a backend installed after sill
+  started is seen after a restart). Tracker is `NameHasOwner` or `ListActivatableNames` (never
+  started by detecting); Baloo is `baloosearch6` on `PATH` and `balooctl6 status` (C locale) not
+  saying "disabled" (enabled but not running counts: `baloosearch6` reads the index itself);
+  `fd` and `plocate` are `PATH` only (Debian's `fdfind` is not looked for).
+- **F662 Tracker, checked live in localsearch's own sandbox.** `localsearch test-sandbox
+  --store-tmpdir --index-recursive-directories <scratch>` runs a private bus and a miner over one
+  folder only; `tests/files_tracker_live.rs` (`#[ignore = "needs localsearch"]`) runs the probe
+  inside it and gets `m9-report.pdf` (`~/Documents`, `application/pdf`) and the folder `m9 dir`
+  (`inode/directory`). What it showed: the name `org.freedesktop.Tracker3.Miner.Files` still
+  answers beside localsearch 3.11's `org.freedesktop.LocalSearch3`; `Endpoint.Query(s, h,
+  a{sv})` takes the write end of a `std::io::pipe()` (no new dependency, no unsafe); the cursor
+  format documented in `cursor.rs` (host-order i32 column count, types and end offsets, then
+  NUL-ended strings, row after row) reads correctly. The SPARQL needs `GRAPH tracker:FileSystem`
+  and `DISTINCT`: over the union graph every file came back eight times. The miner skips a
+  tmpfs folder, so the test's scratch folder is under the target directory. Name only, a
+  case-insensitive substring like `fd`, never `fts:match`; with no rank the newest come first.
+  The budget is a timeout on the call and a deadline on the read; a call that outlives it is
+  `Partial` with nothing.
+- **F663 Content hits are dropped (the lane's call `hits.rs` asked for).** A row shows a name, so
+  the name must be why it is there: Tracker is not asked for content, and a Baloo hit that
+  matched by content or a word prefix only is dropped by the name match. Two indexes naming one
+  path make one row.
+- **F664 Ranking.** `rank_text` over the name with the row's frecency, +50 for a file modified in
+  the last 7 days and +25 within 30 (a date in the future counts as today's); ties by title, then
+  path. Icons `folder`, `image`, `file`; actions Reveal in Files ⌘R and Copy Path ⌘C.
+- **F665 The walk.** `fd` and `plocate` run with no shell, the text one argument after `--`, the
+  C locale; output is read on a thread while the caller watches the clock and the query's
+  generation (10 ms tick), killed at the budget, the line the kill cut dropped. A program that
+  exits 1 still answers what it printed (`fd` after an unreadable folder, `plocate` with no
+  match). `plocate --limit` counts matches everywhere before the home filter, so a common name can
+  fill the limit with system files; `fd` comes first in `Walk`. `fd` honours `.gitignore`, so a
+  home kept as a dotfiles repository that ignores `*` would hide every file (not handled).
+- **F666 Opening (`launch/open.rs`).** `xdg-open` in `systemd-run --user --scope --collect
+  --unit=app-sill-open.<pid>-<n>.scope` when `$XDG_RUNTIME_DIR/systemd/private` exists, else in
+  its own process group (also when `systemd-run` is missing); the token as
+  `XDG_ACTIVATION_TOKEN` and `DESKTOP_STARTUP_ID`; the child reaped on the runtime; a failure logs
+  its `io::ErrorKind` only. The socket check is needed because `systemd-run --user` without a
+  reachable manager exits 1, as `xdg-open` does, so the failure cannot be told apart afterwards.
+  **The app launch path has that gap** (`launch/run.rs`, not this lane's): it falls back only on
+  `NotFound`, so a daemon given a scratch `XDG_RUNTIME_DIR` (every acceptance script) cannot
+  launch an app at all. A reveal calls `FileManager1.ShowItems([uri], token)` when the name has
+  an owner, else `xdg-open` on the folder. URIs are percent-encoded as GLib writes them
+  (`tracker::file_uri`, shared with the SPARQL prefix); **the dock's `launch/dbus.rs`
+  `show_in_files` builds its URI unencoded** (`file://` + the path as displayed), so a
+  `.desktop` path with a space or `#` is a broken URI (not this lane's file).
+- **F667 Reveal and an activatable file manager.** As frozen, a reveal needs an owner of
+  `org.freedesktop.FileManager1`; on this machine the name is only activatable (Dolphin), and
+  cosmic-files is started the same way, so a reveal usually opens the folder without selecting
+  the file. Spotlight selects it. Proposed: also call `ShowItems` when the name is activatable
+  (activation starts the file manager with the file selected). Not done, because the frozen doc
+  says "has an owner".
+- **F668 Auto on a machine where localsearch is installed but idle.** Here `detect()` finds
+  Tracker (activatable, no owner), Baloo absent (disabled), `fd` and `plocate` present, so `Auto`
+  (the daemon's default, F652) picks Tracker, and the first keystroke's `Query` **activates
+  localsearch-3, which then indexes the home folder under its own settings**, while that ask
+  answers nothing within 150 ms. That follows the frozen `Detected::tracker` doc ("has an owner or
+  is activatable") and `pick`'s order, but it is a side effect a person did not ask for.
+  Proposed for the brief owner: `Auto` prefers a running Tracker, then Baloo, then `fd`, and an
+  activatable-only Tracker only when named (`files_backend = "tracker"`); that needs
+  `Detected::tracker` to tell owned from activatable, a frozen-type change, so it is reported,
+  not made. The acceptance never reaches it: its daemon's private bus activates nothing.
+- **F669 Acceptance (`dev/accept-launcher-files.sh`, exit 2).** On the nested compositor, with a
+  scratch HOME, runtime, config, data, state and cache, a private bus and
+  `XDG_CURRENT_DESKTOP=X-Generic` (so `xdg-open` asks `xdg-mime`, which reads the scratch
+  `mimeapps.list` naming a stub `.desktop` that records its argument, the token and its cgroup):
+  (1) the provider lists `m9-report.pdf` under `~/Documents` for `m9-rep`: PASS; the daemon's
+  `launcher-rows`: PENDING (lane d). (2) Enter opens it with the token, bare (no user manager in
+  the scratch runtime): PASS; and inside `app-sill-open.<pid>-1.scope` when only `systemd-run`
+  sees the real runtime folder: PASS. (3) ⌘R: the stub `FileManager1` records `ShowItems` with
+  the file's URI and the token: PASS; with no file manager on the bus the folder opens: PASS.
+  (4) `off`: the provider lists nothing: PASS; the daemon after `sill reload`: PENDING (lane d).
+  (5) `detect()` here: `tracker=Present baloo=Absent fd=Present plocate=Present`: PASS; Tracker
+  end to end in its sandbox: PASS. Once lane d answers rows, steps 1 and 4 check the daemon with
+  no change to the script.
+- **Q310 (design/20 §1.3) Is a file matched smart-case?** The launcher's `Needle` is smart case
+  (a capital makes it case-sensitive), so typing `M9` asks every index case-insensitively and
+  then drops `m9-report.pdf`. That is consistent with apps, but Spotlight matches file names
+  without case. A row for §1.3 ("file names match without case") would need `Needle` to take a
+  case mode (a sill-launcher change, frozen).
