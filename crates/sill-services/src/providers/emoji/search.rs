@@ -2,7 +2,8 @@
 //!
 //! Typed text matches the short name first (a whole-word hit on the name ranks above a
 //! keyword), then keywords, then shortcodes (`:smile` with a leading colon searches shortcodes
-//! and names only); nothing typed with the Emoji filter lists the recent ones (the runner's
+//! and names only), each only when every typed word begins a word there (`words.rs`, Q350: no
+//! letters scattered across a long name); nothing typed with the Emoji filter lists the recent ones (the runner's
 //! frecency, `emoji:<glyph>` keys) then the rest in Unicode order: Spotlight's recent-first
 //! grid. The skin tone applies to every emoji that takes one; the frecency key is always the
 //! default-tone glyph, so changing the tone keeps the recents.
@@ -14,6 +15,7 @@ use sill_launcher::{
 };
 
 use super::table::EmojiEntry;
+use super::words::{Words, words_in};
 
 /// Room for every table position in a score's low digits, comfortably above the table's length
 /// (~1900 default-tone emoji), so a tie above it never falls back to a title sort.
@@ -52,6 +54,7 @@ pub fn emoji_items(
     let mut ranked: Vec<(Score, &EmojiEntry)> = table
         .iter()
         .enumerate()
+        .filter(|(_, entry)| searched_words(entry, active, shortcode_only) == Words::Prefixed)
         .filter_map(|(position, entry)| {
             let (kind, score) = best_match(entry, active, shortcode_only, matcher)?;
             Some((text_score(kind, score, position), entry))
@@ -63,6 +66,19 @@ pub fn emoji_items(
         .take(limit)
         .map(|(score, entry)| to_item(entry, tone, score))
         .collect()
+}
+
+/// Whether each of `needle`'s words begins a word of the fields a search reads: the name, the
+/// keywords (not after `:`) and the shortcodes (Q350: no scattered letters).
+fn searched_words(entry: &EmojiEntry, needle: &Needle, shortcode_only: bool) -> Words {
+    let keywords: &[&str] = match shortcode_only {
+        true => &[],
+        false => &entry.keywords,
+    };
+    let fields = std::iter::once(entry.name)
+        .chain(keywords.iter().copied())
+        .chain(entry.shortcodes.iter().copied());
+    words_in(needle.text(), fields)
 }
 
 /// `entry`'s best match for `needle`: its name, then (outside a `:` search) its keywords, then
@@ -231,6 +247,23 @@ mod tests {
         assert!(
             glyphs(":tada", &Frecency::default()).contains(&"🎉".to_owned()),
             "a shortcode"
+        );
+    }
+
+    /// Q350: "lantern" lists the lantern and the jack-o-lantern, and no flag whose name merely
+    /// holds its letters in order ("flag: Netherlands").
+    #[test]
+    fn scattered_letters_do_not_match() {
+        let lantern = glyphs("lantern", &Frecency::default());
+        assert_eq!(lantern.first().map(String::as_str), Some("🏮"));
+        assert!(lantern.contains(&"🎃".to_owned()), "jack-o-lantern");
+        for flag in ["🇲🇵", "🇳🇱", "🇧🇶", "🇹🇫"] {
+            assert!(!lantern.contains(&flag.to_owned()), "{flag} in {lantern:?}");
+        }
+        assert_eq!(lantern, ["🏮", "🎃"], "nothing else begins a word with it");
+        assert!(
+            glyphs("neth", &Frecency::default()).contains(&"🇳🇱".to_owned()),
+            "the country's own word still finds its flag"
         );
     }
 

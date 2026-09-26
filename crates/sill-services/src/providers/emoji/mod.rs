@@ -9,6 +9,7 @@
 
 pub mod search;
 pub mod table;
+pub mod words;
 
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
