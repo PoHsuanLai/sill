@@ -6,9 +6,7 @@
 use std::path::{Path, PathBuf};
 
 use dioxus::prelude::*;
-use ds::{
-    ExternalIcon, IconPx, IconSize, IconSource, IconUrl, IconView, Px, Size,
-};
+use ds::{ExternalIcon, IconPx, IconSize, IconSource, IconUrl, IconView, Px, Size};
 use sill_launcher::{ClipKind, Excerpt, Mime, Preview};
 
 use crate::surfaces::launcher::preview::load::{Loaded, use_clip_png, use_excerpt};
@@ -63,7 +61,10 @@ pub(super) fn use_content(preview: &Preview) -> Element {
         Preview::Text { excerpt } => text(Some(&Loaded::Text(excerpt.clone()))),
         Preview::File(file) => facts(
             &file_name(&file.path).unwrap_or_default(),
-            &[("Kind", kind_words(&file.mime)), ("Where", folder(&file.path))],
+            &[
+                ("Kind", kind_words(&file.mime)),
+                ("Where", folder(&file.path)),
+            ],
         ),
         Preview::App { name, detail, .. } => facts(name, &[("About", detail.clone())]),
         Preview::Clipboard(clip) => match &clip.kind {
@@ -80,7 +81,10 @@ pub(super) fn use_content(preview: &Preview) -> Element {
             div { class: "sill-launcher-preview-glyph ds-emoji-text", "{emoji.glyph}" }
             {facts(&emoji.name, &[])}
         },
-        Preview::Web(web) => facts("Search the web", &[("Engine", web.engine.clone()), ("Address", web.url.clone())]),
+        Preview::Web(web) => facts(
+            "Search the web",
+            &[("Engine", web.engine.clone()), ("Address", web.url.clone())],
+        ),
     }
 }
 
@@ -124,7 +128,8 @@ fn facts(title: &str, rows: &[(&str, String)]) -> Element {
 }
 
 fn file_name(path: &Path) -> Option<String> {
-    path.file_name().map(|name| name.to_string_lossy().into_owned())
+    path.file_name()
+        .map(|name| name.to_string_lossy().into_owned())
 }
 
 /// The folder as the rows word it: `~/…` under the home folder.

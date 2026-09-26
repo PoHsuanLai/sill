@@ -56,7 +56,11 @@ fn the_runners_sections_show_capped_with_a_show_more_line() {
     );
     assert_eq!(shown.sections[1].more, More::Hidden(3));
     let lines = shown.lines();
-    assert_eq!(lines.len(), 1 + 5 + 1 + 1, "top hit, five docs, Show More, clip");
+    assert_eq!(
+        lines.len(),
+        1 + 5 + 1 + 1,
+        "top hit, five docs, Show More, clip"
+    );
     assert_eq!(
         lines[6],
         Line::More {
@@ -68,8 +72,15 @@ fn the_runners_sections_show_capped_with_a_show_more_line() {
     assert_eq!(shown.row(1).map(|i| i.title), Some("d0".to_owned()));
     let report = shown.report("d", 6);
     assert_eq!(report.sections[1].hidden, 3);
-    assert_eq!(report.sections[1].rows.last().map(String::as_str), Some("Show More"));
-    assert_eq!(report.sections[2].rows, ["<clipboard>"], "no clipboard text");
+    assert_eq!(
+        report.sections[1].rows.last().map(String::as_str),
+        Some("Show More")
+    );
+    assert_eq!(
+        report.sections[2].rows,
+        ["<clipboard>"],
+        "no clipboard text"
+    );
     let open = view(
         &results(),
         Generation(1),
@@ -78,7 +89,13 @@ fn the_runners_sections_show_capped_with_a_show_more_line() {
         &Expanded(vec![Section::Documents]),
     );
     assert_eq!(open.sections[1].rows.len(), 8);
-    assert_eq!(open.report("d", 0).sections[1].rows.last().map(String::as_str), Some("Show Less"));
+    assert_eq!(
+        open.report("d", 0).sections[1]
+            .rows
+            .last()
+            .map(String::as_str),
+        Some("Show Less")
+    );
 }
 
 #[test]
@@ -111,7 +128,14 @@ fn results_without_spans_are_placed_here() {
     };
     let shown = view(&bare, Generation(1), "d", Filter::All, &Expanded::default());
     assert_eq!(shown.sections[0].section, Section::TopHit);
-    assert_eq!(shown.providers(), [ProviderKind::Apps, ProviderKind::Files, ProviderKind::Clipboard]);
+    assert_eq!(
+        shown.providers(),
+        [
+            ProviderKind::Apps,
+            ProviderKind::Files,
+            ProviderKind::Clipboard
+        ]
+    );
 }
 
 #[test]

@@ -188,7 +188,11 @@ pub fn more_ref(section: Section) -> Option<RowRef> {
 /// The section a picked reference opens or closes, when it is a "Show More" line's.
 pub fn more_section(row: &RowRef) -> Option<Section> {
     (row.id.0 == MORE_ID)
-        .then(|| SectionPlan::default_plan().rule(row.provider).map(|r| r.section))
+        .then(|| {
+            SectionPlan::default_plan()
+                .rule(row.provider)
+                .map(|r| r.section)
+        })
         .flatten()
 }
 

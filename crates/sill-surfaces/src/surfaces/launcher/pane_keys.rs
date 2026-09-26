@@ -18,7 +18,7 @@ use crate::surfaces::launcher::entries::RowRef;
 use crate::surfaces::launcher::events::{Held, PanelCtx};
 use crate::surfaces::launcher::keymap::launcher_key;
 use crate::surfaces::launcher::keys::{ActionsMenu, LauncherKey};
-use crate::surfaces::launcher::pane_session::{CaretMove, PaneSession, moved_caret};
+use crate::surfaces::launcher::pane_session::{CaretAt, CaretMove, PaneSession, moved_caret};
 use crate::surfaces::launcher::preview::keys::{
     FieldEdit, PaneFocus, PreviewKey, PreviewOut, PreviewState, Previewable, step_preview,
 };
@@ -90,7 +90,10 @@ impl PanelCtx {
                 self.press(LauncherKey::Escape);
             }
             LinkKey::Escape => {
-                if self.preview_key(PreviewKey::Escape).contains(&PreviewOut::CloseLauncher) {
+                if self
+                    .preview_key(PreviewKey::Escape)
+                    .contains(&PreviewOut::CloseLauncher)
+                {
                     self.link.close();
                 }
             }
@@ -98,7 +101,10 @@ impl PanelCtx {
             LinkKey::ShiftTab => self.tab(LauncherKey::ShiftTab),
             LinkKey::Actions => self.press(LauncherKey::Actions),
             LinkKey::Space => {
-                if self.preview_key(PreviewKey::Space).contains(&PreviewOut::PassToField) {
+                if self
+                    .preview_key(PreviewKey::Space)
+                    .contains(&PreviewOut::PassToField)
+                {
                     self.typed(format!("{} ", session.query));
                 }
             }
@@ -153,8 +159,7 @@ impl PanelCtx {
         let (Some(session), Some(pane)) = (self.current(), self.current_pane()) else {
             return false;
         };
-        let spaced = text.strip_suffix(' ') == Some(session.query.as_str());
-        if !spaced
+        if !one_space_more(&session.query, text)
             || pane.preview.edit != FieldEdit::Browsing
             || pane.preview.focus != PaneFocus::Results
         {
@@ -166,7 +171,7 @@ impl PanelCtx {
         }
         self.store_pane(PaneSession {
             preview,
-            caret: sill_caret(text),
+            caret: CaretAt(pane.caret.0 + 1),
             ..pane
         });
         let mut store = self.session;
@@ -226,14 +231,21 @@ impl PanelCtx {
 
     /// Escape in the field: the palette has already asked to close; the pane may keep it open.
     fn field_escape(&self) {
-        if !self.preview_key(PreviewKey::Escape).contains(&PreviewOut::CloseLauncher) {
+        if !self
+            .preview_key(PreviewKey::Escape)
+            .contains(&PreviewOut::CloseLauncher)
+        {
             let mut held = self.held;
             held.set(Held::Yes);
         }
     }
 
     /// ← or → (`key` given the caret): the pane's when it takes it, else the field's caret moves.
-    fn caret_key(&self, key: impl Fn(crate::surfaces::launcher::preview::keys::Caret) -> PreviewKey, step: CaretMove) -> Taken {
+    fn caret_key(
+        &self,
+        key: impl Fn(crate::surfaces::launcher::preview::keys::Caret) -> PreviewKey,
+        step: CaretMove,
+    ) -> Taken {
         let (Some(session), Some(pane)) = (self.current(), self.current_pane()) else {
             return Taken::No;
         };
@@ -286,8 +298,12 @@ impl PanelCtx {
     }
 }
 
-fn sill_caret(text: &str) -> crate::surfaces::launcher::pane_session::CaretAt {
-    crate::surfaces::launcher::pane_session::CaretAt(text.chars().count())
+/// Whether `new` is `old` with one Space inserted somewhere (where the caret was).
+pub(crate) fn one_space_more(old: &str, new: &str) -> bool {
+    new.len() == old.len() + 1
+        && new.char_indices().any(|(at, c)| {
+            c == ' ' && old.get(..at) == Some(&new[..at]) && old.get(at..) == Some(&new[at + 1..])
+        })
 }
 
 /// Step every `sill debug launcher-key` press on the panel (the daemon provides the link to
@@ -305,4 +321,25 @@ pub(crate) fn use_link_keys(panel: PanelCtx) {
             }
         });
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::one_space_more;
+
+    #[test]
+    fn a_space_inserted_anywhere_is_one_space_more() {
+        let cases = [
+            ("m9", "m9 ", true),
+            ("m9", " m9", true),
+            ("m9", "m 9", true),
+            ("m9", "m9x", false),
+            ("m9", "m9  ", false),
+            ("", " ", true),
+            ("naïf", "na ïf", true),
+        ];
+        for (old, new, want) in cases {
+            assert_eq!(one_space_more(old, new), want, "{old:?} -> {new:?}");
+        }
+    }
 }

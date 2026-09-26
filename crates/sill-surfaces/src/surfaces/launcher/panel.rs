@@ -20,7 +20,9 @@ use sill_services::{Activity, OutputName, Workspaces};
 use sill_settings::{PanelMaterial, SpacesSettings};
 
 use crate::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
-use crate::hooks::{use_appearance, use_apps, use_results, use_settings, use_space_look, use_workspaces};
+use crate::hooks::{
+    use_appearance, use_apps, use_results, use_settings, use_space_look, use_workspaces,
+};
 use crate::surfaces::bar::shell_style::shell_metrics;
 use crate::surfaces::bar::workspaces::group_for;
 use crate::surfaces::launcher::card::{CardKey, Foot, use_card_hit};
@@ -195,7 +197,9 @@ fn palette(panel: &PanelCtx, shown: &Shown, foot: Foot, icons: &RowIcons) -> Ele
     let session = &shown.session;
     let selected_item = shown.selected();
     let actions = match session.keys.actions {
-        ActionsMenu::Open { .. } => selected_item.as_ref().map(|item| action_entries(&item.actions)),
+        ActionsMenu::Open { .. } => selected_item
+            .as_ref()
+            .map(|item| action_entries(&item.actions)),
         ActionsMenu::Closed => None,
     };
     let (input, pick, close) = (panel.clone(), panel.clone(), panel.clone());

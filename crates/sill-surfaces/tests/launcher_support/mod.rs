@@ -14,8 +14,8 @@ use std::sync::{Arc, Mutex};
 
 use sill_launcher::{
     Action, ActionId, Activation, AppId, Choice, DesktopAction, Frecency, Generation, IconRef,
-    Item, ItemId, ItemKey, Placement, Provider, ProviderKind, Query, QueryShape, ResultSink,
-    Score, SectionPlan, SectionSpan, SettingsTarget, SystemCommand, UnixTime, WindowKey, place,
+    Item, ItemId, ItemKey, Placement, Provider, ProviderKind, Query, QueryShape, ResultSink, Score,
+    SectionPlan, SectionSpan, SettingsTarget, SystemCommand, UnixTime, WindowKey, place,
 };
 use sill_services::{
     Control, LaunchCommand, LaunchRequest, Results, SearchCommand, Services, WlCommand,
@@ -108,7 +108,7 @@ pub fn catalogue() -> Vec<Item> {
 
 /// The rows a query finds, best first: every row for the empty query, else those whose title
 /// or subtitle holds it (case-insensitively); the calculator answers only a query with a
-/// digit, the web fallback only typed text, and only when the query starts `m9` (so the M4
+/// digit first, the web fallback only typed text, and only when the query starts `m9` (so the M4
 /// tests' rows are as they were).
 pub fn search(query: &str) -> Vec<Item> {
     let needle = query.trim().to_lowercase();
@@ -116,7 +116,7 @@ pub fn search(query: &str) -> Vec<Item> {
         .into_iter()
         .chain(m9::rows())
         .filter(|item| match item.provider {
-            ProviderKind::Calculator => needle.chars().any(|c| c.is_ascii_digit()),
+            ProviderKind::Calculator => needle.starts_with(|c: char| c.is_ascii_digit()),
             _ => {
                 needle.is_empty()
                     || item.title.to_lowercase().contains(&needle)
@@ -144,11 +144,12 @@ pub fn frecency() -> Frecency {
         (ProviderKind::Apps, TERM, 2),
         (ProviderKind::Settings, "wireless", 1),
     ];
-    uses.iter().fold(Frecency::default(), |history, &(kind, id, times)| {
-        (0..times).fold(history, |history, _| {
-            history.record(ItemKey::of(kind, &ItemId(id.to_owned())), NOW)
+    uses.iter()
+        .fold(Frecency::default(), |history, &(kind, id, times)| {
+            (0..times).fold(history, |history, _| {
+                history.record(ItemKey::of(kind, &ItemId(id.to_owned())), NOW)
+            })
         })
-    })
 }
 
 /// `rows` (best first) as the real runner publishes them: placed in sections, or a filtered
@@ -157,7 +158,11 @@ pub fn placed(rows: &[Item], text: &str, only: Option<ProviderKind>) -> Placemen
     let plan = SectionPlan::default_plan();
     match only {
         Some(kind) => {
-            let items: Vec<Item> = rows.iter().filter(|i| i.provider == kind).cloned().collect();
+            let items: Vec<Item> = rows
+                .iter()
+                .filter(|i| i.provider == kind)
+                .cloned()
+                .collect();
             let spans = match (plan.rule(kind), items.len()) {
                 (Some(rule), n) if n > 0 => vec![SectionSpan {
                     section: rule.section,

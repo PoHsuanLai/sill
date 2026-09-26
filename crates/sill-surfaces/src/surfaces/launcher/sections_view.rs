@@ -250,7 +250,10 @@ mod tests {
         let got = sections_at(&shown, &tile, UnixTime(0));
         match &got[1].1[2] {
             MenuEntry::Item {
-                value, detail, tile, ..
+                value,
+                detail,
+                tile,
+                ..
             } => {
                 assert_eq!(Some(value.clone()), more_ref(Section::Documents));
                 assert_eq!(detail.as_deref(), Some("4 more"));

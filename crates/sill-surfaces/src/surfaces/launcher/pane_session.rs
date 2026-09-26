@@ -129,7 +129,11 @@ mod tests {
             (9, CaretMove::Left, 3),
         ];
         for &(from, step, want) in cases {
-            assert_eq!(moved_caret(CaretAt(from), step, "naïf"), CaretAt(want), "{from} {step:?}");
+            assert_eq!(
+                moved_caret(CaretAt(from), step, "naïf"),
+                CaretAt(want),
+                "{from} {step:?}"
+            );
         }
         let at = |n| PaneSession {
             caret: CaretAt(n),
@@ -149,8 +153,14 @@ mod tests {
         assert_eq!(tab(Filter::All, &Ring::Showing(Vec::new())), Filter::All);
         let every = ring_for("  ", vec![Apps]);
         assert_eq!(every, Ring::Every);
-        assert_eq!(tab(Filter::Only(Files), &every), Filter::Only(ProviderKind::Clipboard));
-        assert_eq!(tab(Filter::Only(ProviderKind::Clipboard), &every), Filter::Only(Emoji));
+        assert_eq!(
+            tab(Filter::Only(Files), &every),
+            Filter::Only(ProviderKind::Clipboard)
+        );
+        assert_eq!(
+            tab(Filter::Only(ProviderKind::Clipboard), &every),
+            Filter::Only(Emoji)
+        );
     }
 
     #[test]

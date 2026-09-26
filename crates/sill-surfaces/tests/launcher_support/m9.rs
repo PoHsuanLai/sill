@@ -1,5 +1,5 @@
 //! The M9 rows the fakes know (lane d): documents that exist in a scratch folder (a one-page
-//! PDF, a PNG, a Markdown file and plain text files, enough to put Documents over its cap), a
+//! PDF, a PNG, a Markdown file and five more PDFs, enough to put Documents over its cap), a
 //! clipboard entry, emoji and the web fallback, each with the subject the real providers give
 //! it and their chords. Nothing here reads the person's home, index or clipboard.
 
@@ -16,13 +16,19 @@ use sill_launcher::{
 pub fn folder() -> &'static Path {
     static FOLDER: OnceLock<PathBuf> = OnceLock::new();
     FOLDER.get_or_init(|| {
-        let dir = std::env::temp_dir().join(format!("sill-launcher-m9-{}", std::process::id()));
+        // A test binary's own scratch space under target/; the demo's temp directory.
+        let base =
+            option_env!("CARGO_TARGET_TMPDIR").map_or_else(std::env::temp_dir, PathBuf::from);
+        let dir = base.join(format!("sill-launcher-m9-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("a scratch folder"); // test-only
         write(&dir.join("m9-report.pdf"), &pdf());
         write(&dir.join("m9-shot.png"), &png());
-        write(&dir.join("m9-notes.md"), b"# M9 notes\n\nThe preview pane reads this head.\n");
+        write(
+            &dir.join("m9-notes.md"),
+            b"# M9 notes\n\nThe preview pane reads this head.\n",
+        );
         for n in 1..=5 {
-            write(&dir.join(format!("m9-extra-{n}.txt")), b"extra\n");
+            write(&dir.join(format!("m9-extra-{n}.pdf")), &pdf());
         }
         dir
     })
@@ -32,16 +38,21 @@ fn write(path: &Path, bytes: &[u8]) {
     std::fs::write(path, bytes).expect("a fixture file"); // test-only
 }
 
-/// A one-page PDF with a filled rectangle, written by hand (offsets counted below).
+/// A one-page PDF of many small stroked circles, written by hand (offsets counted below): heavy
+/// enough that rasterising it takes a while, as a real page does.
 pub fn pdf() -> Vec<u8> {
+    let rings: String = (0..6000)
+        .map(|n| {
+            let (x, y) = (20 + (n * 7) % 160, 20 + (n * 13) % 220);
+            format!("{x} {y} m {} {y} {x} {} {x} {y} c S\n", x + 9, y + 9)
+        })
+        .collect();
+    let stream = format!("0.2 0.4 0.8 RG 0.3 w\n0.9 0.9 0.9 rg 20 20 160 220 re f\n{rings}");
     let objects = [
         "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
         "<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_owned(),
         "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 260] /Contents 4 0 R >>".to_owned(),
-        {
-            let stream = "0.2 0.4 0.8 rg 20 20 160 220 re f";
-            format!("<< /Length {} >>\nstream\n{stream}\nendstream", stream.len())
-        },
+        format!("<< /Length {} >>\nstream\n{stream}endstream", stream.len()),
     ];
     let mut out = b"%PDF-1.4\n".to_vec();
     let mut offsets = Vec::new();
@@ -98,7 +109,11 @@ fn document(name: &str, mime: &str, score: u32) -> Item {
         icon: IconRef::None,
         score: Score(score),
         actions: vec![
-            action("reveal", "Reveal in Files", ActionKeys::Chord(chords::reveal())),
+            action(
+                "reveal",
+                "Reveal in Files",
+                ActionKeys::Chord(chords::reveal()),
+            ),
             action("copy-path", "Copy Path", ActionKeys::Chord(chords::copy())),
         ],
         subject: Subject::File(FileFacts {
@@ -116,7 +131,9 @@ pub fn rows() -> Vec<Item> {
         document("m9-shot.png", "image/png", 880),
         document("m9-notes.md", "text/markdown", 860),
     ];
-    rows.extend((1..=5).map(|n| document(&format!("m9-extra-{n}.txt"), "text/plain", 700 - n)));
+    rows.extend(
+        (1..=5).map(|n| document(&format!("m9-extra-{n}.pdf"), "application/pdf", 700 - n)),
+    );
     rows.push(Item {
         id: ItemId("7".to_owned()),
         provider: ProviderKind::Clipboard,
@@ -124,7 +141,11 @@ pub fn rows() -> Vec<Item> {
         subtitle: "Text".to_owned(),
         icon: IconRef::None,
         score: Score(800),
-        actions: vec![action("forget", "Forget", ActionKeys::Chord(chords::forget()))],
+        actions: vec![action(
+            "forget",
+            "Forget",
+            ActionKeys::Chord(chords::forget()),
+        )],
         subject: Subject::Clip(ClipFacts {
             key: ClipKey(7),
             kind: ClipKind::Text {

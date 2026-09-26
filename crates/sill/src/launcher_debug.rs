@@ -61,9 +61,9 @@ pub fn report(rows: ShownRows) -> LauncherRows {
             })
             .collect(),
         selected: rows.selected,
-        preview: rows
-            .preview
-            .map_or(ReportPreview::Hidden, |kind| ReportPreview::Shown(preview_kind(kind))),
+        preview: rows.preview.map_or(ReportPreview::Hidden, |kind| {
+            ReportPreview::Shown(preview_kind(kind))
+        }),
     }
 }
 
@@ -94,9 +94,7 @@ mod tests {
     use sill_ipc::{FakeLauncherKey, ReportPreview, ReportPreviewKind, Response};
     use sill_launcher::PreviewKind;
     use sill_surfaces::surfaces::launcher::LauncherLink;
-    use sill_surfaces::surfaces::launcher::debug_link::{
-        LinkKey, ShownRows, ShownRowsSection,
-    };
+    use sill_surfaces::surfaces::launcher::debug_link::{LinkKey, ShownRows, ShownRowsSection};
 
     use super::{key, link_key, report, rows};
 
@@ -117,7 +115,10 @@ mod tests {
     fn a_closed_launcher_answers_nothing_and_an_open_one_its_rows() {
         let link = LauncherLink::new();
         assert!(matches!(rows(&link), Response::Failed(_)));
-        assert!(matches!(key(&link, FakeLauncherKey::Down), Response::Failed(_)));
+        assert!(matches!(
+            key(&link, FakeLauncherKey::Down),
+            Response::Failed(_)
+        ));
         link.open(shell_host::OutputId(1), "m9".to_owned());
         link.show_rows(Some(ShownRows {
             query: "m9".to_owned(),

@@ -35,8 +35,10 @@ pub fn grid_step(selected: usize, step: GridStep, count: usize, columns: usize) 
     let at = selected.min(last);
     match step {
         GridStep::Up => at.checked_sub(columns).unwrap_or(at),
-        GridStep::Down => Some(at + columns).filter(|&next| next <= last).unwrap_or(at),
-        GridStep::Left if at % columns > 0 => at - 1,
+        GridStep::Down => Some(at + columns)
+            .filter(|&next| next <= last)
+            .unwrap_or(at),
+        GridStep::Left if !at.is_multiple_of(columns) => at - 1,
         GridStep::Right if at % columns + 1 < columns && at < last => at + 1,
         GridStep::Left | GridStep::Right => at,
     }

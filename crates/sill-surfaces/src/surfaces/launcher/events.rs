@@ -159,7 +159,9 @@ impl PanelCtx {
         let mut pane = self.pane;
         pane.set(PaneSession {
             serial: opening.serial,
-            caret: CaretAt(opening.query.chars().count()),
+            // A field handed its first value keeps its caret at the start (Blitz; FINDINGS
+            // Q341): only typing moves it to the end.
+            caret: CaretAt(0),
             ..PaneSession::default()
         });
         let mut row = self.row;
@@ -393,7 +395,9 @@ impl PanelCtx {
         let (services, link) = (self.services.clone(), self.link.clone());
         let again = match &effect {
             // A forgotten entry leaves the rows: ask again so it goes (the launcher stays).
-            LauncherEffect::ForgetClipboard(_) => Some((session.query.clone(), session.keys.filter)),
+            LauncherEffect::ForgetClipboard(_) => {
+                Some((session.query.clone(), session.keys.filter))
+            }
             _ => None,
         };
         let ctx = self.clone();

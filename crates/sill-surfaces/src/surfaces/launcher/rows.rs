@@ -60,9 +60,14 @@ pub fn row_detail(item: &Item, now: UnixTime) -> RowDetail {
 fn detail_in(item: &Item, now: UnixTime, zone: &TimeZone) -> RowDetail {
     let (detail, trail) = match &item.subject {
         Subject::File(facts) => (item.subtitle.clone(), when(facts.modified, now, zone)),
-        Subject::Clip(facts) => (item.subtitle.clone(), age_label(age(ms(facts.copied), ms(now)))),
+        Subject::Clip(facts) => (
+            item.subtitle.clone(),
+            age_label(age(ms(facts.copied), ms(now))),
+        ),
         Subject::Web(facts) => (facts.engine.clone(), String::new()),
-        Subject::None | Subject::App(_) | Subject::Emoji(_) => (item.subtitle.clone(), String::new()),
+        Subject::None | Subject::App(_) | Subject::Emoji(_) => {
+            (item.subtitle.clone(), String::new())
+        }
     };
     RowDetail { detail, trail }
 }

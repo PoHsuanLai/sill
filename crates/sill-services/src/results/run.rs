@@ -205,9 +205,9 @@ impl Search {
 
     /// Publish the merged rows in their sections, only when they changed.
     fn publish(&self) {
-        let placement = self.history.read(|frecency| {
-            arranged(&self.merged.items, &self.plan, self.asked, frecency, now())
-        });
+        let placement = self
+            .history
+            .read(|frecency| arranged(&self.merged.items, &self.plan, self.asked, frecency, now()));
         let next = Results {
             generation: self.merged.generation,
             items: placement.items,

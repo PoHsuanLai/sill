@@ -215,10 +215,13 @@ fn top_hit(merged: &[Item], plan: &SectionPlan) -> Option<usize> {
             let weight = plan.rule(item.provider)?.weight;
             (weight.0 > 0).then(|| (at, weighted(item.score, weight)))
         })
-        .fold(None, |best: Option<(usize, Score)>, (at, score)| match best {
-            Some((_, top)) if top >= score => best,
-            _ => Some((at, score)),
-        })
+        .fold(
+            None,
+            |best: Option<(usize, Score)>, (at, score)| match best {
+                Some((_, top)) if top >= score => best,
+                _ => Some((at, score)),
+            },
+        )
         .map(|(at, _)| at)
 }
 
@@ -259,7 +262,12 @@ fn untyped(
         .iter()
         .enumerate()
         .filter(|(_, item)| never_recent(item.provider).is_none())
-        .map(|(at, item)| (frecency.score(&ItemKey::of(item.provider, &item.id), now), at))
+        .map(|(at, item)| {
+            (
+                frecency.score(&ItemKey::of(item.provider, &item.id), now),
+                at,
+            )
+        })
         .filter(|(score, _)| *score > FrecencyScore::NONE)
         .collect();
     chosen.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
