@@ -111,6 +111,21 @@ Then pick "COSMIC (sill)" at the login screen.
 - [ ] Kill the shell while locked (`pkill -f "sill run"` from a TTY): the session stays locked,
   the session script restarts sill, and sill re-locks at start so you can unlock normally.
 
+## sill's own polkit agent (M11), on a sill login
+
+`dev/accept-polkit.sh` covers the prompt on the nested compositor against a stand-in Authority
+and a stand-in helper; these need polkitd, polkit's own helper and a real password.
+
+- [ ] With `session.polkit_agent = "sill"` (and no other agent started for the session),
+  `sill polkit status` says `registered`.
+- [ ] `pkexec true` shows sill's prompt naming the action and you; the right password returns
+  0 and the prompt hides.
+- [ ] A wrong password shakes the field and empties it; three wrong tries end the request
+  (`pkexec` returns 127, "Not authorized").
+- [ ] Cancel, Escape and a click on the scrim each end `pkexec true` with 126.
+- [ ] Caps Lock on shows the caps mark in the field.
+- [ ] Two requests at once (`pkexec true & pkexec true`): the second shows once the first ends.
+
 ## Owned by the other session (quire, shell-host)
 
 - [ ] shell-host G100 and G101 (sill FINDINGS "M6 lane d"): `dev/accept-notifications-real-input.sh

@@ -1,8 +1,8 @@
 //! What the polkit prompt hands quire's `PolkitPrompt`: pure.
 
-use ds::{LockUser, PromptState};
+use ds::{AvatarFace, AvatarShape, AvatarSize, AvatarTone, LockUser, PromptState, person_hue};
 use sill_services::Polkit;
-use sill_services::polkit_agent::{Cookie, PromptView};
+use sill_services::polkit_agent::{Cookie, LastTry, PromptPhase, PromptView};
 
 /// quire's `PolkitPrompt` props that follow the request (the rest are the surface's handlers).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -22,12 +22,52 @@ pub struct PolkitPromptView {
 
 /// The view of the request on screen; `None` when there is none.
 pub fn prompt_view(polkit: &Polkit) -> Option<PolkitPromptView> {
-    todo!("M11 fill: b-polkit ({polkit:?})")
+    let view = polkit.current.as_ref()?;
+    Some(PolkitPromptView {
+        cookie: view.cookie.clone(),
+        action: view.message.clone(),
+        detail: detail_of(view),
+        user: user_of(&view.user.0),
+        state: state_of(&view.phase, view.last),
+    })
 }
 
 /// The detail line block for `view` (see [`PolkitPromptView::detail`]).
 pub fn detail_of(view: &PromptView) -> Option<String> {
-    todo!("M11 fill: b-polkit ({view:?})")
+    let lines: Vec<String> = std::iter::once(view.action_id.0.clone())
+        .filter(|id| !id.is_empty())
+        .chain(
+            view.details
+                .iter()
+                .map(|(key, value)| format!("{key}: {value}")),
+        )
+        .collect();
+    (!lines.is_empty()).then(|| lines.join("\n"))
+}
+
+fn state_of(phase: &PromptPhase, last: LastTry) -> PromptState {
+    match (phase, last) {
+        (PromptPhase::Starting | PromptPhase::Checking, _) => PromptState::Checking,
+        (PromptPhase::Asking { .. }, LastTry::None) => PromptState::Idle,
+        (PromptPhase::Asking { .. }, LastTry::Wrong) => PromptState::Wrong,
+    }
+}
+
+/// The identity asked for: the login name and an initials face (quire draws it at 48).
+fn user_of(name: &str) -> LockUser {
+    let initial = name
+        .chars()
+        .next()
+        .map_or('?', |c| c.to_uppercase().next().unwrap_or(c));
+    LockUser {
+        name: name.to_owned(),
+        avatar: AvatarFace {
+            initial,
+            size: AvatarSize::Size48,
+            tone: AvatarTone::Person(person_hue(name)),
+            shape: AvatarShape::Round,
+        },
+    }
 }
 
 #[cfg(test)]
@@ -64,7 +104,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M11 fill: b-polkit"]
     fn the_view_follows_the_phase() {
         assert_eq!(prompt_view(&Polkit::default()), None);
         let asking = || PromptPhase::Asking {
@@ -88,7 +127,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M11 fill: b-polkit"]
     fn the_details() {
         assert_eq!(
             detail_of(&view(PromptPhase::Starting, LastTry::None)).as_deref(),
