@@ -78,7 +78,6 @@ fn a_weight_scales_a_score_in_thousandths() {
 }
 
 #[test]
-#[ignore = "M9 fill: d-preview"]
 fn typed_text_is_the_weighted_top_hit_then_sections_in_order() {
     let plan = SectionPlan::default_plan();
     type Case<'a> = (
@@ -141,7 +140,6 @@ fn typed_text_is_the_weighted_top_hit_then_sections_in_order() {
 }
 
 #[test]
-#[ignore = "M9 fill: d-preview"]
 fn a_section_publishes_up_to_the_ceiling() {
     let plan = SectionPlan {
         ceiling: Cap(4),
@@ -170,7 +168,6 @@ fn a_section_publishes_up_to_the_ceiling() {
 }
 
 #[test]
-#[ignore = "M9 fill: d-preview"]
 fn nothing_typed_is_actions_then_recent_without_clipboard_or_web() {
     let plan = SectionPlan::default_plan();
     let rows = merged(&[
@@ -198,7 +195,6 @@ fn nothing_typed_is_actions_then_recent_without_clipboard_or_web() {
 }
 
 #[test]
-#[ignore = "M9 fill: d-preview"]
 fn a_section_shows_its_cap_until_expanded() {
     let plan = SectionPlan::default_plan();
     let docs: Vec<Item> = (0..8).map(|n| item(Files, &format!("d{n}"), 100)).collect();

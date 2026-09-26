@@ -1,12 +1,24 @@
 //! The published sections as the palette's groups (M9 lane d, FINDINGS "M9 freeze" F645,
 //! F656): `sill_launcher::shown` decides which rows each section shows; this names them for
 //! quire's `CommandPalette` and says what each header's trailing action is ("Show More" or
-//! "Show Less", quire's `SectionHeader` action: Q294).
+//! "Show Less", quire's `PaletteGroup::with_action`, Q294).
+//!
+//! [`palette_groups`] is what the panel draws: each section a `PaletteGroup` with its header's
+//! action, the Emoji section quire's emoji grid (Q291), a file row quire's `RowShape::File` and a
+//! clipboard row `RowShape::Clip` (Q290). [`palette_sections`] (the freeze's) is the same rows
+//! as plain lists, for a picture of the results without handlers.
 
-use ds::{MenuEntry, Tile};
-use sill_launcher::{Item, More, ShownSection};
+use dioxus::prelude::*;
+use ds::{
+    Availability, ClipBody, EMOJI_CELL, EMOJI_COLUMNS, EmojiCell, EmojiCells, ImageSize,
+    ImageSource, MenuEntry, MenuRow, PaletteGroup, PaletteGroups, RowShape, Shortcut, Tile, Trail,
+};
+use sill_launcher::{ClipKey, ClipKind, Item, More, Section, ShownSection, Subject, UnixTime};
 
-use crate::surfaces::launcher::entries::RowRef;
+use crate::surfaces::launcher::chord_keys::action_shortcut;
+use crate::surfaces::launcher::entries::{RowRef, kind_note};
+use crate::surfaces::launcher::groups::Mix;
+use crate::surfaces::launcher::rows::row_detail;
 
 /// A section header's trailing action.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -38,26 +50,214 @@ impl HeaderAction {
 
 /// `shown` as the palette's groups (title, rows), each row's tile from `tile_of`, the first
 /// row trailing `↵` and rows with actions their first chord or `⌃K` (the M4 rule, `entries.rs`),
-/// file and clipboard rows their `rows::row_detail` trail. The emoji section is left out when
-/// the grid draws it. Lane d fills it.
+/// file and clipboard rows their `rows::row_detail` trail. No header actions and no grid: the
+/// panel draws [`palette_groups`].
 pub fn palette_sections(
     shown: &[ShownSection],
     tile_of: &dyn Fn(&Item) -> Tile,
 ) -> Vec<(String, Vec<MenuEntry<RowRef>>)> {
-    let _ = (shown, tile_of);
-    todo!("M9 fill: d-preview")
+    let draw = Draw {
+        tile_of,
+        clip_image: &|_| None,
+        now: now(),
+    };
+    let mut first = Some(());
+    shown
+        .iter()
+        .map(|section| {
+            let entries = section
+                .rows
+                .iter()
+                .map(|item| draw.plain(item, mix_of(section.section), first.take()))
+                .collect();
+            (section.section.title().to_owned(), entries)
+        })
+        .collect()
+}
+
+/// What the rows are drawn with: each row's tile, a clipboard image's pixels, the clock.
+pub struct Draw<'a> {
+    pub tile_of: &'a dyn Fn(&Item) -> Tile,
+    pub clip_image: &'a dyn Fn(ClipKey) -> Option<ImageSource>,
+    pub now: UnixTime,
+}
+
+impl std::fmt::Debug for Draw<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Draw")
+            .field("now", &self.now)
+            .finish_non_exhaustive()
+    }
+}
+
+/// `shown` as quire's palette groups: rows (file and clipboard rows in their shapes) or, for
+/// Emoji, the grid; a capped or expanded section's header offering "Show More" or "Show Less",
+/// which runs `on_more(section)`.
+pub fn palette_groups(
+    shown: &[ShownSection],
+    draw: &Draw<'_>,
+    on_more: &dyn Fn(Section) -> EventHandler<()>,
+) -> PaletteGroups<RowRef> {
+    let mut first = Some(());
+    let groups = shown
+        .iter()
+        .map(|section| {
+            let title = section.section.title();
+            let group = match section.section {
+                Section::Emoji => PaletteGroup::grid(title, emoji_cells(&section.rows)),
+                _ => PaletteGroup::list(
+                    title,
+                    section
+                        .rows
+                        .iter()
+                        .map(|item| draw.shaped(item, mix_of(section.section), first.take()))
+                        .collect(),
+                ),
+            };
+            match HeaderAction::of(section.more).label() {
+                Some(label) => group.with_action(label, on_more(section.section)),
+                None => group,
+            }
+        })
+        .collect::<Vec<_>>();
+    PaletteGroups(groups)
+}
+
+/// The Emoji section's rows as grid cells: the glyph and its name.
+fn emoji_cells(rows: &[Item]) -> EmojiCells<RowRef> {
+    let cells = rows
+        .iter()
+        .map(|item| {
+            let (glyph, name) = match &item.subject {
+                Subject::Emoji(emoji) => (emoji.glyph.clone(), emoji.name.clone()),
+                _ => (item.title.clone(), item.subtitle.clone()),
+            };
+            EmojiCell {
+                value: RowRef::of(item),
+                glyph,
+                name,
+            }
+        })
+        .collect();
+    EmojiCells {
+        cells,
+        columns: EMOJI_COLUMNS,
+        cell: EMOJI_CELL,
+    }
+}
+
+impl Draw<'_> {
+    /// `item` as a plain row: title, detail, the M4 trail (a file's date, a clip's age).
+    fn plain(&self, item: &Item, mix: Mix, first: Option<()>) -> MenuEntry<RowRef> {
+        let words = row_detail(item, self.now);
+        let trail = match words.trail.is_empty() {
+            false if first.is_none() => Trail::Note(words.trail.clone()),
+            _ => trail(item, mix, first),
+        };
+        MenuEntry::Item {
+            value: RowRef::of(item),
+            title: item.title.clone(),
+            detail: (!words.detail.is_empty()).then_some(words.detail),
+            tile: Some((self.tile_of)(item)),
+            trail,
+            check: None,
+            availability: Availability::Enabled,
+        }
+    }
+
+    /// `item` in its shape: a file's folder and date, a clipboard entry's text or picture and
+    /// age, else [`Draw::plain`].
+    fn shaped(&self, item: &Item, mix: Mix, first: Option<()>) -> MenuEntry<RowRef> {
+        let words = row_detail(item, self.now);
+        let shape = match &item.subject {
+            Subject::File(file) => RowShape::File {
+                thumb: thumb_of(&file.mime.0, &file.path),
+                location: words.detail.clone(),
+                modified: words.trail.clone(),
+            },
+            Subject::Clip(clip) => RowShape::Clip {
+                body: self.clip_body(clip.key, &clip.kind),
+                age: words.trail.clone(),
+            },
+            _ => return self.plain(item, mix, first),
+        };
+        MenuEntry::Row(MenuRow {
+            tile: Some((self.tile_of)(item)),
+            trail: trail(item, mix, first),
+            shape,
+            ..MenuRow::new(RowRef::of(item), item.title.clone())
+        })
+    }
+
+    fn clip_body(&self, key: ClipKey, kind: &ClipKind) -> ClipBody {
+        match kind {
+            ClipKind::Text { excerpt, .. } => ClipBody::Text {
+                excerpt: excerpt.0.clone(),
+                lines: CLIP_LINES,
+            },
+            ClipKind::Image { width, height, .. } => match (self.clip_image)(key) {
+                Some(src) => ClipBody::Image {
+                    src,
+                    size: ImageSize {
+                        width: *width,
+                        height: *height,
+                    },
+                },
+                None => ClipBody::Text {
+                    excerpt: format!("Image, {width} × {height}"),
+                    lines: 1,
+                },
+            },
+        }
+    }
+}
+
+/// A clipboard text's lines in a row.
+const CLIP_LINES: u8 = 2;
+
+/// A picture file's own pixels as its row's thumbnail (the renderer decodes these).
+fn thumb_of(mime: &str, path: &std::path::Path) -> Option<ImageSource> {
+    const PICTURES: [&str; 4] = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+    PICTURES
+        .contains(&mime)
+        .then(|| ImageSource::file(path).ok())
+        .flatten()
+}
+
+/// Whether a section mixes providers, so a row's kind is worth a note.
+fn mix_of(section: Section) -> Mix {
+    match section {
+        Section::TopHit | Section::Recent => Mix::Mixed,
+        _ => Mix::Single,
+    }
+}
+
+/// `↵` on the row Enter runs; else the first chord of its actions, `⌃K` when none has one;
+/// else, in a mixed section, its kind.
+fn trail(item: &Item, mix: Mix, first: Option<()>) -> Trail {
+    let chord = item
+        .actions
+        .iter()
+        .find_map(|action| action_shortcut(&action.keys));
+    match (first, chord, item.actions.is_empty(), mix) {
+        (Some(()), ..) => Trail::Shortcut(Shortcut(vec![ds::Key::Enter])),
+        (None, Some(chord), ..) => Trail::Shortcut(chord),
+        (None, None, false, _) => {
+            Trail::Shortcut(Shortcut(vec![ds::Key::Ctrl, ds::Key::Char('k')]))
+        }
+        (None, None, true, Mix::Mixed) => Trail::Note(kind_note(item.provider).to_owned()),
+        (None, None, true, Mix::Single) => Trail::None,
+    }
+}
+
+fn now() -> UnixTime {
+    UnixTime(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |since| since.as_secs()),
+    )
 }
 
 #[cfg(test)]
-mod tests {
-    use sill_launcher::More;
-
-    use super::HeaderAction;
-
-    #[test]
-    fn a_capped_section_offers_more_and_an_expanded_one_less() {
-        assert_eq!(HeaderAction::of(More::Hidden(3)).label(), Some("Show More"));
-        assert_eq!(HeaderAction::of(More::Expanded).label(), Some("Show Less"));
-        assert_eq!(HeaderAction::of(More::Nothing).label(), None);
-    }
-}
+#[path = "sections_view_tests.rs"]
+mod sections_view_tests;

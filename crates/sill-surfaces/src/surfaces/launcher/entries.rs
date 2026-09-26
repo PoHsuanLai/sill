@@ -15,6 +15,7 @@ use ds::{
 };
 use sill_launcher::{Action, ActionId, IconRef, Item, ItemId, ProviderKind};
 
+use crate::surfaces::launcher::chord_keys::action_shortcut;
 use crate::surfaces::launcher::groups::{Group, Mix};
 
 /// What a palette row picks: the row's identity, looked up again when it is chosen so a
@@ -65,7 +66,7 @@ pub fn palette_groups(
         .collect()
 }
 
-/// The actions menu's entries for a row.
+/// The actions menu's entries for a row, each trailing its chord when it has one (H5).
 pub fn action_entries(actions: &[Action]) -> Vec<MenuEntry<ActionId>> {
     actions
         .iter()
@@ -74,7 +75,7 @@ pub fn action_entries(actions: &[Action]) -> Vec<MenuEntry<ActionId>> {
             title: action.label.clone(),
             detail: None,
             tile: None,
-            trail: Trail::None,
+            trail: action_shortcut(&action.keys).map_or(Trail::None, Trail::Shortcut),
             check: None,
             availability: Availability::Enabled,
         })
@@ -104,7 +105,7 @@ fn trail(item: &Item, mix: Mix, first: Option<()>) -> Trail {
 }
 
 /// A row's kind, trailing it in a mixed group.
-fn kind_note(kind: ProviderKind) -> &'static str {
+pub(crate) fn kind_note(kind: ProviderKind) -> &'static str {
     match kind {
         ProviderKind::Apps => "Application",
         ProviderKind::Windows => "Window",
@@ -161,11 +162,11 @@ pub fn provider_glyph(kind: ProviderKind) -> Icon {
         ProviderKind::Calculator => Icon::Command,
         ProviderKind::Settings => Icon::Settings,
         ProviderKind::System => Icon::Power,
-        // M9 stand-ins until quire has `Clipboard`, `Smile` and `Globe` glyphs (FINDINGS Q296).
+        // M9: quire's glyphs for the new providers (Q296).
         ProviderKind::Files => Icon::File,
-        ProviderKind::Clipboard => Icon::Copy,
-        ProviderKind::Emoji => Icon::Sparkles,
-        ProviderKind::Web => Icon::Search,
+        ProviderKind::Clipboard => Icon::Clipboard,
+        ProviderKind::Emoji => Icon::Smile,
+        ProviderKind::Web => Icon::Globe,
     }
 }
 

@@ -8,7 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::frecency::Frecency;
+use crate::frecency::{Frecency, FrecencyScore, ItemKey};
 use crate::ids::ProviderKind;
 use crate::item::Item;
 use crate::rank::Score;
@@ -185,8 +185,109 @@ pub fn place(
     frecency: &Frecency,
     now: UnixTime,
 ) -> Placement {
-    let _ = (merged, plan, shape, frecency, now);
-    todo!("M9 fill: d-preview")
+    let groups = match shape {
+        QueryShape::Text => typed(merged, plan),
+        QueryShape::Empty => untyped(merged, plan, frecency, now),
+    };
+    let groups: Vec<(Section, Vec<Item>)> = groups
+        .into_iter()
+        .filter(|(_, rows)| !rows.is_empty())
+        .collect();
+    Placement {
+        spans: groups
+            .iter()
+            .map(|(section, rows)| SectionSpan {
+                section: *section,
+                rows: u32::try_from(rows.len()).unwrap_or(u32::MAX),
+            })
+            .collect(),
+        items: groups.into_iter().flat_map(|(_, rows)| rows).collect(),
+    }
+}
+
+/// The index of the Top Hit in `merged`: the highest weighted score of a non-zero weight, the
+/// earlier row on a tie.
+fn top_hit(merged: &[Item], plan: &SectionPlan) -> Option<usize> {
+    merged
+        .iter()
+        .enumerate()
+        .filter_map(|(at, item)| {
+            let weight = plan.rule(item.provider)?.weight;
+            (weight.0 > 0).then(|| (at, weighted(item.score, weight)))
+        })
+        .fold(
+            None,
+            |best: Option<(usize, Score)>, (at, score)| match best {
+                Some((_, top)) if top >= score => best,
+                _ => Some((at, score)),
+            },
+        )
+        .map(|(at, _)| at)
+}
+
+fn typed(merged: &[Item], plan: &SectionPlan) -> Vec<(Section, Vec<Item>)> {
+    let top = top_hit(merged, plan);
+    let ceiling = usize::from(plan.ceiling.0);
+    let head = top
+        .map(|at| (Section::TopHit, vec![merged[at].clone()]))
+        .into_iter();
+    let body = plan.order.iter().map(|&section| {
+        let rows = merged
+            .iter()
+            .enumerate()
+            .filter(|&(at, item)| {
+                Some(at) != top
+                    && plan.rule(item.provider).map(|rule| rule.section) == Some(section)
+            })
+            .map(|(_, item)| item.clone())
+            .take(ceiling)
+            .collect();
+        (section, rows)
+    });
+    head.chain(body).collect()
+}
+
+fn untyped(
+    merged: &[Item],
+    plan: &SectionPlan,
+    frecency: &Frecency,
+    now: UnixTime,
+) -> Vec<(Section, Vec<Item>)> {
+    let actions: Vec<Item> = merged
+        .iter()
+        .filter(|item| item.provider == ProviderKind::System)
+        .cloned()
+        .collect();
+    let mut chosen: Vec<(FrecencyScore, usize)> = merged
+        .iter()
+        .enumerate()
+        .filter(|(_, item)| never_recent(item.provider).is_none())
+        .map(|(at, item)| {
+            (
+                frecency.score(&ItemKey::of(item.provider, &item.id), now),
+                at,
+            )
+        })
+        .filter(|(score, _)| *score > FrecencyScore::NONE)
+        .collect();
+    chosen.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+    let recent = chosen
+        .into_iter()
+        .take(usize::from(plan.recent.0))
+        .map(|(_, at)| merged[at].clone())
+        .collect();
+    vec![(Section::Actions, actions), (Section::Recent, recent)]
+}
+
+/// Why a provider's rows are never Recent: System rows are Actions already, clipboard use is
+/// never counted, and the web row says nothing about what was searched.
+fn never_recent(kind: ProviderKind) -> Option<&'static str> {
+    match kind {
+        ProviderKind::System => Some("already under Actions"),
+        ProviderKind::Clipboard => Some("clipboard use is not counted"),
+        ProviderKind::Web => Some("the web row is the same row for every search"),
+        _ => None,
+    }
 }
 
 /// Sections the person opened with "Show More".
@@ -216,8 +317,55 @@ pub struct ShownSection {
 /// `placement`'s sections as shown: each capped at its provider's cap unless `expanded` names
 /// it (Top Hit, Actions and Recent are never capped further). Lane d fills; `sections_tests`.
 pub fn shown(placement: &Placement, plan: &SectionPlan, expanded: &Expanded) -> Vec<ShownSection> {
-    let _ = (placement, plan, expanded);
-    todo!("M9 fill: d-preview")
+    let mut rows = placement.items.iter();
+    placement
+        .spans
+        .iter()
+        .map(|span| {
+            let all: Vec<Item> = rows
+                .by_ref()
+                .take(usize::try_from(span.rows).unwrap_or(usize::MAX))
+                .cloned()
+                .collect();
+            capped(span.section, all, cap_of(span.section, plan), expanded)
+        })
+        .collect()
+}
+
+/// A section's cap: its provider's, none for Top Hit, Actions and Recent.
+fn cap_of(section: Section, plan: &SectionPlan) -> Option<usize> {
+    match section {
+        Section::TopHit | Section::Actions | Section::Recent => None,
+        _ => plan
+            .rules
+            .iter()
+            .find(|rule| rule.section == section)
+            .map(|rule| usize::from(rule.cap.0)),
+    }
+}
+
+fn capped(
+    section: Section,
+    mut rows: Vec<Item>,
+    cap: Option<usize>,
+    expanded: &Expanded,
+) -> ShownSection {
+    let more = match cap {
+        Some(cap) if rows.len() > cap => {
+            if expanded.0.contains(&section) {
+                More::Expanded
+            } else {
+                let hidden = rows.split_off(cap).len();
+                More::Hidden(u32::try_from(hidden).unwrap_or(u32::MAX))
+            }
+        }
+        _ => More::Nothing,
+    };
+    ShownSection {
+        section,
+        rows,
+        more,
+    }
 }
 
 #[cfg(test)]

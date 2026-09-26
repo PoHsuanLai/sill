@@ -45,7 +45,6 @@ fn a_preview_kind_is_its_variant() {
 }
 
 #[test]
-#[ignore = "M9 fill: d-preview"]
 fn every_subject_has_its_preview() {
     let clip = ClipFacts {
         key: ClipKey(3),
@@ -176,7 +175,6 @@ fn every_subject_has_its_preview() {
 }
 
 #[test]
-#[ignore = "M9 fill: d-preview"]
 fn an_excerpt_is_the_head_of_the_text_within_its_limit() {
     let small = ExcerptLimit { lines: 2, chars: 8 };
     let cases: Vec<(&[u8], ExcerptLimit, &str)> = vec![

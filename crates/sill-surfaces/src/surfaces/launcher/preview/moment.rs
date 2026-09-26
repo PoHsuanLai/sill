@@ -25,8 +25,13 @@ pub enum PaneMoment {
 /// shown is `Appear`, shown to hidden `Leave`, one preview to a different one `Swap`, the same
 /// `Still`.
 pub fn pane_moment(before: Option<&Preview>, after: Option<&Preview>) -> PaneMoment {
-    let _ = (before, after);
-    todo!("M9 fill: d-preview")
+    match (before, after) {
+        (None, None) => PaneMoment::Still,
+        (None, Some(_)) => PaneMoment::Appear,
+        (Some(_), None) => PaneMoment::Leave,
+        (Some(was), Some(now)) if was == now => PaneMoment::Still,
+        (Some(_), Some(_)) => PaneMoment::Swap,
+    }
 }
 
 /// Hand `moment` to quire's small-details driver. A no-op until quire's D0 `use_detail` lands
@@ -50,7 +55,6 @@ mod tests {
     use super::{PaneMoment, pane_moment};
 
     #[test]
-    #[ignore = "M9 fill: d-preview"]
     fn moments_follow_the_pane() {
         let image = Preview::Image(PathBuf::from("/a.png"));
         let other = Preview::Image(PathBuf::from("/b.png"));

@@ -1,16 +1,18 @@
 //! The search task: one generation per keystroke, every provider on its own blocking task,
-//! batches merged through `reduce_results` as they arrive, the merged list published in the
-//! command menu's groups.
+//! batches merged through `reduce_results` as they arrive, the merged list published in
+//! Spotlight's sections with their spans (`arrange`, M9 freeze F645).
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use sill_launcher::{Cancel, Choice, Counting, ItemKey, Provider, Query, Scope, UnixTime};
+use sill_launcher::{
+    Cancel, Choice, Counting, ItemKey, Provider, Query, Scope, SectionPlan, UnixTime,
+};
 use tokio::sync::{mpsc, watch};
 
 use super::SearchCommand;
-use super::arrange::{Typed, actions_then_recent, grouped};
+use super::arrange::{Asked, Typed, arranged};
 use super::effect::{Outlets, effect};
 use super::history::{History, Persist};
 use super::model::{Results, ResultsEvent, reduce_results};
@@ -28,7 +30,10 @@ pub(crate) struct Search {
     cancel: Cancel,
     /// Every row of the newest generation, best first (`reduce_results`'s order).
     merged: Results,
-    typed: Typed,
+    /// What the newest generation asked: its text's shape and scope.
+    asked: Asked,
+    /// Sections, weights and caps.
+    plan: SectionPlan,
     /// Providers still running the newest generation.
     pending: usize,
     tx: watch::Sender<Results>,
@@ -54,7 +59,8 @@ impl Search {
             policy,
             cancel: Cancel::new(),
             merged: Results::default(),
-            typed: Typed::Nothing,
+            asked: Asked::IDLE,
+            plan: SectionPlan::default_plan(),
             pending: 0,
             tx,
             arrivals,
@@ -98,7 +104,10 @@ impl Search {
 
     /// Begin a generation (every older query is now cancelled) and start every provider on it.
     fn query(&mut self, text: String, scope: Scope) {
-        self.typed = Typed::of(&text);
+        self.asked = Asked {
+            typed: Typed::of(&text),
+            scope,
+        };
         let query = Query {
             scope,
             ..Query::begin(text, &self.cancel)
@@ -134,7 +143,7 @@ impl Search {
             std::mem::take(&mut self.merged),
             ResultsEvent::Began(generation),
         );
-        self.typed = Typed::Nothing;
+        self.asked = Asked::IDLE;
         self.pending = 0;
         self.publish();
     }
@@ -194,18 +203,15 @@ impl Search {
         }
     }
 
-    /// Publish the merged rows in their groups, only when they changed.
+    /// Publish the merged rows in their sections, only when they changed.
     fn publish(&self) {
-        let items = match self.typed {
-            Typed::Text => grouped(&self.merged.items),
-            Typed::Nothing => self
-                .history
-                .read(|frecency| actions_then_recent(&self.merged.items, frecency, now())),
-        };
+        let placement = self
+            .history
+            .read(|frecency| arranged(&self.merged.items, &self.plan, self.asked, frecency, now()));
         let next = Results {
             generation: self.merged.generation,
-            items,
-            sections: Vec::new(),
+            items: placement.items,
+            sections: placement.spans,
         };
         self.tx.send_if_modified(|shown| {
             let changed = *shown != next;

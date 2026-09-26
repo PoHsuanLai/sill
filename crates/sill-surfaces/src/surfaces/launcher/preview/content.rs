@@ -1,0 +1,182 @@
+//! A [`Preview`] as quire's `PaneContent` (Q292), with what it names on disk loaded off the UI
+//! thread: a PDF's page through `ds_native::use_pdf_page` (asked only while the preview is a
+//! PDF, so one pane stays mounted whatever it shows), a text file's head and an image's size
+//! through `load.rs`, a clipboard image's bytes from the clipboard service.
+
+use std::path::Path;
+
+use ds::{Icon, IconSource, ImageSize, ImageSource, Mono, PANE_MEDIA, PaneContent, PdfPage};
+use sill_launcher::{ClipKind, Excerpt, Mime, Preview};
+
+use crate::surfaces::launcher::preview::load::{Loaded, use_clip_png, use_excerpt, use_image_size};
+use crate::surfaces::launcher::preview::moment::{PaneMoment, use_pane_moment};
+
+/// The content for `preview` (`icon`: the row's, for an app). Hooks run on every render,
+/// whatever the kind.
+pub(super) fn use_content(preview: &Preview, icon: Option<IconSource>) -> PaneContent {
+    let pdf = match preview {
+        Preview::Pdf { path, .. } => Some(path.clone()),
+        _ => None,
+    };
+    let text = match preview {
+        Preview::TextFile(path) => Some(path.clone()),
+        _ => None,
+    };
+    let image = match preview {
+        Preview::Image(path) => Some(path.clone()),
+        _ => None,
+    };
+    let clip = match preview {
+        Preview::Clipboard(facts) => match facts.kind {
+            ClipKind::Image { .. } => Some(facts.key),
+            ClipKind::Text { .. } => None,
+        },
+        _ => None,
+    };
+    let page = ds_native::use_pdf_page(pdf, PANE_MEDIA);
+    let excerpt = use_excerpt(text);
+    let size = use_image_size(image);
+    let clip_png = use_clip_png(clip);
+    // A slow head read or page is the pane's `Pending` moment (D0); its Appear, Swap and Leave
+    // are the panel's (`panel.rs`), which sees the pane come and go.
+    use_pane_moment(match (&excerpt, &page) {
+        (Some(Loaded::Reading), _) | (_, Some(PdfPage::Loading)) => PaneMoment::Pending,
+        _ => PaneMoment::Still,
+    });
+    content_of(
+        preview,
+        icon,
+        Loads {
+            page,
+            excerpt,
+            size,
+            clip_png,
+        },
+    )
+}
+
+/// What the hooks brought for the preview.
+struct Loads {
+    page: Option<PdfPage>,
+    excerpt: Option<Loaded>,
+    size: Option<ImageSize>,
+    clip_png: Option<Vec<u8>>,
+}
+
+fn content_of(preview: &Preview, icon: Option<IconSource>, loads: Loads) -> PaneContent {
+    match preview {
+        Preview::None => facts(Icon::Search, "No preview", Vec::new()),
+        Preview::Pdf { path, .. } => PaneContent::Pdf {
+            page: loads.page.unwrap_or(PdfPage::Loading),
+            name: file_name(path),
+        },
+        Preview::Image(path) => match ImageSource::file(path) {
+            Ok(src) => PaneContent::Image {
+                src,
+                size: loads.size.unwrap_or(ImageSize {
+                    width: 1,
+                    height: 1,
+                }),
+            },
+            Err(_) => facts(Icon::File, &file_name(path), vec![("Where", folder(path))]),
+        },
+        Preview::TextFile(_) => PaneContent::Text {
+            excerpt: text_of(loads.excerpt.as_ref()),
+            mono: Mono::Monospace,
+        },
+        Preview::Text { excerpt } => PaneContent::Text {
+            excerpt: excerpt.0.clone(),
+            mono: Mono::Proportional,
+        },
+        Preview::File(file) => {
+            let glyph = match file.mime.0.as_str() {
+                Mime::FOLDER => Icon::Folder,
+                _ => Icon::File,
+            };
+            facts(
+                glyph,
+                &file_name(&file.path),
+                vec![
+                    ("Kind", kind_words(&file.mime)),
+                    ("Where", folder(&file.path)),
+                ],
+            )
+        }
+        Preview::App { name, detail, .. } => PaneContent::App {
+            icon: icon.unwrap_or(IconSource::Glyph(Icon::Grid)),
+            name: name.clone(),
+            detail: (!detail.is_empty()).then(|| detail.clone()),
+        },
+        Preview::Clipboard(clip) => match (&clip.kind, loads.clip_png) {
+            (ClipKind::Text { excerpt, .. }, _) => PaneContent::Text {
+                excerpt: excerpt.0.clone(),
+                mono: Mono::Monospace,
+            },
+            (ClipKind::Image { width, height, .. }, Some(bytes)) => PaneContent::Image {
+                src: ImageSource::png(&bytes),
+                size: ImageSize {
+                    width: *width,
+                    height: *height,
+                },
+            },
+            (ClipKind::Image { width, height, .. }, None) => facts(
+                Icon::Clipboard,
+                "Image",
+                vec![("Size", format!("{width} × {height}"))],
+            ),
+        },
+        Preview::Emoji(emoji) => PaneContent::Emoji {
+            glyph: emoji.glyph.clone(),
+            name: emoji.name.clone(),
+        },
+        Preview::Web(web) => PaneContent::Web {
+            host: web.engine.clone(),
+            url: web.url.clone(),
+        },
+    }
+}
+
+fn facts(icon: Icon, title: &str, rows: Vec<(&str, String)>) -> PaneContent {
+    PaneContent::Facts {
+        icon: IconSource::Glyph(icon),
+        title: title.to_owned(),
+        rows: rows
+            .into_iter()
+            .filter(|(_, value)| !value.is_empty())
+            .map(|(label, value)| (label.to_owned(), value))
+            .collect(),
+    }
+}
+
+fn text_of(loaded: Option<&Loaded>) -> String {
+    match loaded {
+        Some(Loaded::Text(Excerpt(text))) if text.is_empty() => "No text to show.".to_owned(),
+        Some(Loaded::Text(Excerpt(text))) => text.clone(),
+        Some(Loaded::Failed(_)) => "This file could not be read.".to_owned(),
+        Some(Loaded::Reading) | None => String::new(),
+    }
+}
+
+fn file_name(path: &Path) -> String {
+    path.file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_default()
+}
+
+/// The folder as the rows word it: `~/…` under the home folder.
+fn folder(path: &Path) -> String {
+    let parent = path.parent().map(Path::to_path_buf).unwrap_or_default();
+    let home = dirs::home_dir();
+    match home.and_then(|home| parent.strip_prefix(&home).ok().map(Path::to_path_buf)) {
+        Some(inside) if inside.as_os_str().is_empty() => "~".to_owned(),
+        Some(inside) => format!("~/{}", inside.display()),
+        None => parent.display().to_string(),
+    }
+}
+
+fn kind_words(mime: &Mime) -> String {
+    match mime.0.as_str() {
+        Mime::FOLDER => "Folder".to_owned(),
+        other => other.to_owned(),
+    }
+}

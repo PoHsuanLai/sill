@@ -8,7 +8,7 @@ use launcher_harness::{open, selected_title, titles};
 
 fn headings(html: &str) -> Vec<String> {
     [
-        "Top hit",
+        "Top Hit",
         "Applications",
         "Windows",
         "Calculator",
@@ -30,7 +30,7 @@ fn a_query_groups_under_the_top_hit() {
     let html = open.harness.html();
     assert_eq!(
         headings(&html),
-        vec!["Top hit", "Applications", "Windows", "Settings"]
+        vec!["Top Hit", "Applications", "Windows", "Settings"]
     );
     assert_eq!(
         titles(&open.harness),
@@ -85,5 +85,5 @@ fn nothing_matching_shows_the_empty_state() {
 fn a_calculation_is_the_top_hit() {
     let open = open("6*7");
     assert_eq!(titles(&open.harness), vec!["= 42"]);
-    assert_eq!(headings(&open.harness.html()), vec!["Top hit"]);
+    assert_eq!(headings(&open.harness.html()), vec!["Top Hit"]);
 }

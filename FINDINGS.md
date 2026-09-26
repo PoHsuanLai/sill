@@ -5685,3 +5685,119 @@ Emoji, the web fallback and currency (FINDINGS "M9 freeze" F649/F650), against `
     only when it says yes. It is deliberately loose (`"ftp"` or `"www"` also pass it): getting
     this wrong only costs an extra, harmless disk read, never a network call, since the network
     throttle is `due`'s alone.
+
+## M9 lane d: sections, the preview pane, the rows, the debug keys (2026-09-27)
+
+Against `m9-freeze` (f17ea53), then master b9802d5 (lanes a, b and c merged) and quire master
+58fc3e48 (m9-parts and m9-palette). Numbers from F720, Q340, G270.
+
+- **F720 Sections.** `place` and `shown` are filled as their docs say (Top Hit by `weighted`
+  score among non-zero weights, earlier row on a tie, never repeated below; nothing typed:
+  Actions, then the `recent` most frecent non-System rows, Clipboard and Web never Recent;
+  `shown` caps each section at its provider's cap, Top Hit/Actions/Recent never). The runner
+  (`results/arrange.rs`, `run.rs`) now publishes `place`'s items with their spans in
+  `Results::sections`; the M4 grouping (F114's `grouped`, `actions_then_recent`, `group_cap`) is
+  retired. A filtered query (`Scope::Only`) publishes that provider's rows alone under its own
+  section, **uncapped by the ceiling** (the provider bounds its answer; the emoji provider's
+  recent set is 20). The panel reads the spans (`launcher/view.rs`); a runner that publishes no
+  covering spans (a test fake) is placed on the panel's side with no frecency.
+- **F721 The preview.** `preview_for`: PDF for `application/pdf`; `Image` for PNG, JPEG, SVG,
+  WebP, GIF, BMP; `TextFile` for `text/*` and 14 `application/*` source and config types
+  (json, xml, toml, yaml, javascript, shell, sql, desktop, perl, python, ruby); `File` for the
+  rest and folders. `excerpt_of`: a NUL in the first 1024 bytes is binary; lossy UTF-8, cut at
+  `lines` then `chars`, trailing whitespace trimmed. `read_excerpt` reads at most 16 KiB
+  (`Read::take`), `NotFound` is `Missing`, anything else `Unreadable`; the pane calls it on a
+  thread of its own and shows the answer only for the path it asked (`preview/load.rs`).
+- **F722 quire's parts, all real.** The pane is quire's `PreviewPane` as `CommandPalette { aside
+  }` (sill's frozen `PreviewPane` wraps `LauncherPane`, which maps a `Preview` to `PaneContent`,
+  a PDF's page from `ds_native::use_pdf_page(Some(path), PANE_MEDIA)` asked only while the
+  preview is a PDF so one pane stays mounted); it plays out through `shown: Hidden` and is
+  dropped at `on_hidden`. Show More/Show Less is `PaletteGroup::with_action` (a cursor stop after
+  the section's last row, so `selected` counts it: the view's `Line::More`); Emoji is
+  `PaletteGroup::grid` (`EMOJI_COLUMNS` 8, `EMOJI_CELL` 56, `.ds-emoji-text`); file rows are
+  `RowShape::File` (a picture file's own pixels as `thumb`, `~/…` as `location`, the mail
+  list's time as `modified`) and clipboard rows `RowShape::Clip` (two lines of text, or the PNG
+  from `use_clipboard`); the providers' glyphs are `Clipboard`, `Smile`, `Globe`. The frozen
+  `palette_sections` stays as plain lists (a picture without handlers); the panel draws the new
+  `palette_groups`. `pdf-thumb` is on in `sill-surfaces/Cargo.toml` (`cargo deny` ok).
+- **F723 The panel widens.** The layer surface is now `PANEL_ROOM_WIDTH` (680 + 360 = 1040) plus
+  the shadow's room for good; the 680 card sits centred in it (`CARD_INSET` 180) and the body
+  widens to 1040 while the aside is there, so the card grows by half the pane on each side and
+  its middle never moves. The blur region is still the card element (the aside is inside it);
+  while the aside is there the panel takes the whole room (`PanelHit::Whole`) and the catcher's
+  hole is the room; otherwise the hole is the measured card, 680 wide. `panel_rect` is now the
+  room (tests updated).
+- **F724 Keys.** quire's key claim (Q299) takes, before the palette: Space while browsing (the
+  field types nothing), → with the caret `AtEnd` (`Inside` and `Unknown` pass: → moves the
+  caret), ⌘Y and ⌘→, Tab/Shift+Tab/← in the pane, Escape while the pane shows or has the
+  keyboard, and any chord the selected row's actions carry (`action_for_chord`: ⌘R reveals, ⌘C
+  copies, ⌘B searches, ⌘⌫ forgets) straight from the results. The pane never takes the
+  keyboard: its focus is the machine's `PaneFocus::Pane(n)`, drawn by quire as `focused`, and
+  Enter there runs that action (`pane_choice`). `onkey` keeps Tab's filter, Ctrl+K and the Up/Down
+  that make Space Quick Look. Tab sends `SearchCommand::Filtered`, and typing under a filter
+  stays filtered; the panel shows only the filter's rows while the answer is on its way. Tab's
+  ring: with text typed, the providers that showed a row; with nothing typed, every provider (a
+  provider asked alone may list what it has for nothing typed: the emoji grid). A forgotten
+  clipboard entry asks the query again. The caret needs quire's `HostCaret`: the panel calls
+  `ds_native::focus::provide()` itself (the daemon's roots carry `FOCUS` only; G270).
+- **F725 The debug link.** `LauncherLink` gains two private channels and four methods
+  (`press`, `subscribe_keys`, `show_rows`, `rows`; additive, no frozen field or signature
+  changed); `launcher/debug_link.rs` holds the surface-side `LinkKey`/`ShownRows` (sill-surfaces
+  does not depend on sill-ipc) and `launcher_debug.rs` maps them. The panel publishes its rows
+  after each render while open (clipboard titles already `<clipboard>`, so no clipboard text
+  leaves the panel) and `None` when it closes. `launcher-rows` lists a section's header action
+  as a last line "Show More"/"Show Less", and `selected` counts it, as the palette's cursor does.
+  `launcher-key right` cannot see the field's caret and acts as → at the end (G271).
+- **F726 `LauncherProviders::from_services` builds all nine providers** (M9's `activate` reads the
+  row alone; their policy there is the default and never queried), so a picked file, clipboard,
+  emoji or web row does what its provider says rather than nothing.
+- **F727 `grid_step` is quire's**, wrapping Left/Right across rows; the freeze's test that
+  clamped Right at 7 now expects 8 (changed on the coordinator's authority, as quire answered
+  Q291 with the character viewer's wrap).
+- **F728 PDF rasters under a held key.** `tests/launcher_pdf_rasters.rs` (its own binary: the
+  counter is per process): the pane shown, Down through three PDFs one render apart, then the
+  queue drained: 1 raster (`ds_native::pdf_thumb_rasters`). The fixtures are heavy on purpose
+  (6000 stroked curves), since a trivial page rasterises inside a frame and proves nothing.
+- **F729 Acceptance** (`dev/accept-launcher-v2.sh`, nested cosmic-comp, daemon `--features
+  debug`, scratch HOME, `files_backend = "fd"`, private bus, own runtime dir), after merging
+  master b9802d5 and adopting quire 58fc3e48: every step PASS with lanes a and c's real rows.
+  (1) 10 warm openings `open_to_frame_ms` p50 108.8, p95 156.6, max 156.6 (earlier runs on this
+  host under load: p50 108-228; master's alternated run in F167, p50 120-130); (2) `--query m9`: Top Hit,
+  Documents, Web; (3) PDF preview (`dev/out/launcher-v2-preview-pdf.png`); (4) the PNG behind
+  Show More, `image`, Space hides (`launcher-v2-preview-image.png`); (5) ⌘Y while typing, → into
+  the pane (`launcher-v2-pane-focus.png`: the ring on Reveal in Files), Escape three times closes
+  one level each; (6) Documents hides 3, Enter on Show More reveals them; (7) Shift+Tab twice
+  with nothing typed: the emoji grid, 20 cells (`launcher-v2-emoji.png`); (8) 5 s idle: 0 frames.
+  (C) The caret under sill, with real keys (`wtype` on the nested socket only): after `--query
+  m9` a real → leaves the pane hidden (the caret was at the start, Q341) and End then → opens
+  it (`pdf`), the query still `m9`: the claim reads `AtEnd`/`Inside`, not `Unknown`.
+  The demo over the fakes' fixtures (`launcher-v2-*-fixtures.png`: pdf, image, text, show-more,
+  pane-focus, emoji) passes too. The harness tests (`tests/launcher_preview.rs`) prove the same
+  over fixtures, with real Space, → (after End) and Escape through the claim.
+- **F730 Lanes a and b's scripts.** Rerun with this branch's rows and keys: every step passes but
+  the one that reads `launcher-rows` in each, which looks for a section titled `Documents`
+  (`accept-launcher-files.sh` step 1) or `Clipboard` (`accept-clipboard.sh` step 4); a single
+  match is the Top Hit, which F645 never repeats below. A copy of lane b's script that accepts
+  Top Hit passes step 4 end to end (one row, `launcher-key enter`, `wl-paste` reads the entry).
+  Both checks belong to their lanes' owners (G272).
+
+### Gaps found in lane d
+
+- **Q340 (quire) A controlled selection moved by the caller does not scroll into view.** With
+  `selected` driven by `sill debug launcher-key down`, the selected row can sit below the card's
+  visible rows (`launcher-v2-preview-image.png`: m9-shot.png selected, off the card). Real Up and
+  Down are the palette's own; whether they scroll is to be checked in lane e.
+- **Q341 (quire/Blitz) A field handed its first value keeps its caret at the start.** After
+  `sill launcher open --query m9` the caret reads `Inside`, so → moves it rather than opening
+  the pane until End; macOS puts it at the end.
+- **Q342 (quire) Wide gaps between words and between a letter and a digit** in every capture
+  on this host (`m 9 -report.pdf`, `Show   More`, quire's own `Reveal   in   Files`), and a
+  row's time runs into its chord (`Mon⌘R`). Seen in quire's parts, not sill's markup.
+- **G270 (sill daemon) Roots carry `FOCUS` but not `CARET`.** `sill_surfaces::CARET` is exported
+  for `daemon.rs`'s `surface_root` (not lane d's file); the launcher provides it itself.
+- **G271 `launcher-key right` is → at the end.** A debug key never reaches the field, so it
+  cannot read the caret; the acceptance relies on that (step 5), real input on the claim.
+- **G272 Lanes a and b's `launcher-rows` checks** expect their section title for a single match
+  (F730).
+- **G273 D0 (`use_detail`, Q297) is still missing:** the row and pane moments call nothing; quire's
+  pane plays its own entrance and exit.

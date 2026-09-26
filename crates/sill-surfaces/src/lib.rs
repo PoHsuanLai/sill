@@ -27,6 +27,10 @@ pub fn prepaint() -> shell_host::Prepaint {
     shell_host::Prepaint::hook(ds_native::snap_to_device)
 }
 
+/// quire's caret read (`HostCaret`, Q299), for a root to carry beside [`FOCUS`] so a palette's
+/// key claim sees where the caret is. The launcher's panel provides it itself
+/// (`ds_native::focus::provide()`), so it does not wait on the daemon's roots.
+pub use ds_native::focus::CARET;
 /// quire's focus write every root the daemon spawns is given beside [`MEASURE`]
 /// (`Root::context(FOCUS)`), so a field's or a menu's focus waits out a busy document instead
 /// of printing a caught panic (FINDINGS "Adoption of the launcher gaps"). A popup's root

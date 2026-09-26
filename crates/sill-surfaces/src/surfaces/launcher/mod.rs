@@ -10,6 +10,8 @@
 
 pub mod actions;
 pub mod activate;
+pub mod chord_keys;
+pub mod debug_link;
 pub mod emoji_grid;
 pub mod entries;
 pub mod groups;
@@ -17,6 +19,7 @@ pub mod hit;
 pub mod keymap;
 pub mod keys;
 pub mod layer;
+pub mod pane_session;
 pub mod presence;
 pub mod preview;
 pub mod results;
@@ -25,19 +28,22 @@ pub mod rows;
 pub mod script;
 pub mod sections_view;
 pub mod session;
+pub mod view;
 
 mod card;
 mod catcher;
 mod events;
 mod follow;
+mod pane_keys;
 pub(crate) mod panel;
 mod run;
 
 pub use activate::{LauncherEffect, LauncherProviders, effect_of};
 pub use keys::{LauncherKey, LauncherOut, LauncherState, step};
 pub use layer::{
-    CARD_BLUR_RADIUS, CARD_ID, CARD_RADIUS, PANEL_HEIGHT, PANEL_WIDTH, SHADOW_BELOW, SHADOW_SIDE,
-    catcher_input, catcher_layer, panel_layer, panel_rect, panel_top,
+    CARD_BLUR_RADIUS, CARD_ID, CARD_INSET, CARD_RADIUS, PANEL_HEIGHT, PANEL_ROOM_WIDTH,
+    PANEL_WIDTH, SHADOW_BELOW, SHADOW_SIDE, catcher_input, catcher_layer, panel_layer, panel_rect,
+    panel_top,
 };
 pub use presence::{LauncherLink, LauncherShown, Opening};
 

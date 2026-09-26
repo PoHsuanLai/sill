@@ -1,54 +1,64 @@
 //! The panel's render (design/13 §13.3.9, design/20 §1.3): a `Ds` root on the active Space's
 //! look in the `launcher.material` material, holding quire's `CommandPalette` embedded in the
 //! surface (no scrim; the card is as tall as its content, its corner a squircle, and it is the
-//! blur and input region; `card.rs` measures it) over the fresh results, grouped, and the
-//! selected row's actions as a quire `Menu{Rich}` hung from that row (Ctrl+K / Alt+K). The box
+//! blur and input region; `card.rs` measures it) over the fresh results in the runner's
+//! sections (M9, F645), the selected row's actions as a quire `Menu{Rich}` hung from that row
+//! (Ctrl+K / Alt+K), and the preview pane beside the results while it is shown (F654). The box
 //! around the root carries the shell type scale (the 22/500 query, 14 and 12 px rows), and the
-//! root hands the card the material stack. A palette mounts with each opening and unmounts when the launcher hides.
-//! The palette's selection is the session's; Tab, Shift+Tab, Ctrl+K and Alt+K come from its
-//! `onkey`.
+//! root hands the card the material stack. A palette mounts with each opening and unmounts when
+//! the launcher hides. The palette's selection is the session's; Space while browsing, → at the
+//! field's end, the pane's keys and the row chords come from its `claim` (before it reads a
+//! key), Tab, Shift+Tab, Ctrl+K and Alt+K from its `onkey` (after).
 
 use dioxus::prelude::*;
 use ds::{
-    Anchor, BlurState, CommandPalette, CommandPaletteHost, Corner, Ds, Material, Menu, MenuKind,
-    PaletteEntrance, Point, Px, Rect, SpaceLook,
+    Anchor, BlurState, CommandPalette, CommandPaletteHost, Corner, Ds, FieldKey, IconSource,
+    ImageSource, Material, Menu, MenuKind, PaletteEntrance, Point, Px, Rect, SpaceLook,
 };
 use shell_host::OutputInfo;
-use sill_launcher::{ActionId, Item};
-use sill_services::{Activity, OutputName, Results, WorkspaceKey, Workspaces};
+use sill_launcher::{ActionId, ClipKey, Item, Preview, Section, preview_for};
+use sill_services::preview::clip_image;
+use sill_services::{Activity, OutputName, Workspaces};
 use sill_settings::{PanelMaterial, SpacesSettings};
 
 use crate::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
 use crate::hooks::{
-    use_appearance, use_apps, use_results, use_settings, use_space_look, use_workspaces,
+    use_appearance, use_apps, use_clipboard, use_results, use_settings, use_space_look,
+    use_workspaces,
 };
 use crate::surfaces::bar::shell_style::shell_metrics;
 use crate::surfaces::bar::workspaces::group_for;
 use crate::surfaces::launcher::card::{CardKey, Foot, use_card_hit};
-use crate::surfaces::launcher::entries::{RowRef, action_entries, palette_groups};
+use crate::surfaces::launcher::entries::{RowRef, action_entries};
 use crate::surfaces::launcher::events::{PanelCtx, use_panel};
-use crate::surfaces::launcher::groups::{Group, fresh, groups, rows};
 use crate::surfaces::launcher::hit::ActionsShown;
 use crate::surfaces::launcher::keys::ActionsMenu;
 use crate::surfaces::launcher::layer::{
-    CARD_ID, CARD_RADIUS, PANEL_HEIGHT, PANEL_WIDTH, SHADOW_SIDE,
+    CARD_ID, CARD_INSET, CARD_RADIUS, PANEL_HEIGHT, PANEL_ROOM_WIDTH, PANEL_WIDTH, SHADOW_SIDE,
 };
+use crate::surfaces::launcher::pane_keys::use_link_keys;
+use crate::surfaces::launcher::pane_session::PaneSession;
 use crate::surfaces::launcher::presence::LauncherLink;
+use crate::surfaces::launcher::preview::keys::{Pane, PaneFocus};
+use crate::surfaces::launcher::preview::moment::{pane_moment, use_pane_moment};
+use crate::surfaces::launcher::preview::{LauncherPane, PREVIEW_WIDTH_PX};
 use crate::surfaces::launcher::row_icon::{row_art, row_tile};
 use crate::surfaces::launcher::script::use_script;
+use crate::surfaces::launcher::sections_view::{Draw, palette_groups};
 use crate::surfaces::launcher::session::Session;
+use crate::surfaces::launcher::view::View;
 
 /// The launcher's stylesheet (lint-clean under `Profile::Strict`, `tests/launcher_lint.rs`).
 pub(crate) const LAUNCHER_CSS: &str = include_str!("../../style/launcher.css");
 
 /// Where the actions menu hangs while the palette has reported no usable rect: under the first
 /// row (its rect in the embedded palette is 6, 80.5, 668 x 45.1 in the card, which starts
-/// `SHADOW_SIDE` in; the menu hangs 6 px below).
+/// `SHADOW_SIDE` and `CARD_INSET` in; the menu hangs 6 px below).
 /// quire reads a new palette's first row before the freshly mapped surface has laid it out and
 /// reports 0 x 0, then nothing more until the selection moves (FINDINGS F164), and the selection
 /// is always the first row then.
 pub const FIRST_ROW_FOOT: Point = Point {
-    x: Px(48.0),
+    x: Px(48.0 + CARD_INSET as f32),
     y: Px(125.6),
 };
 
@@ -61,27 +71,30 @@ pub fn measured(rect: Rect) -> Option<Rect> {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Shown {
     pub session: Session,
-    pub groups: Vec<Group>,
+    pub pane: PaneSession,
+    pub view: View,
 }
 
 impl Shown {
-    /// The selected row.
-    pub fn selected(&self) -> Option<&Item> {
-        rows(&self.groups).get(self.session.keys.selected).copied()
+    /// The selected row (none on a "Show More" line).
+    pub fn selected(&self) -> Option<Item> {
+        self.view.row(self.session.keys.selected)
     }
-}
 
-/// The groups `session` shows over `results`.
-pub(crate) fn shown_groups(results: &Results, session: &Session) -> Vec<Group> {
-    groups(
-        fresh(results, session.since),
-        &session.query,
-        session.keys.filter,
-    )
+    /// What the pane shows: nothing while hidden.
+    pub fn preview(&self) -> Option<Preview> {
+        match self.pane.preview.pane {
+            Pane::Hidden => None,
+            Pane::Shown => Some(self.selected().as_ref().map_or(Preview::None, preview_for)),
+        }
+    }
 }
 
 /// The panel on `output`.
 pub(crate) fn launcher(output: OutputInfo) -> Element {
+    // The field's caret for quire's key claim (Q299): the daemon's roots carry quire's focus
+    // write, not its caret read, so the panel provides both for what it mounts.
+    ds_native::focus::provide();
     let ds_scale = crate::hooks::use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
@@ -95,18 +108,38 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
         shipped: file.dock.shipped_icons,
         resolver: use_icon_resolver(),
     };
+    let history = use_clipboard();
     let results = use_results();
     let panel = use_panel(output.id, results);
     use_script(panel.clone());
+    use_link_keys(panel.clone());
     let shown = panel.opening_tracked().map(|opening| {
         let session = panel.session.read().for_opening(&opening);
+        let pane = panel.pane.read().for_serial(opening.serial);
+        results.read();
         Shown {
-            groups: shown_groups(&results.read(), &session),
+            view: panel.view_of(&session, &pane.expanded),
             session,
+            pane,
         }
     });
+    use_moments(shown.as_ref().and_then(Shown::preview));
+    let aside = use_aside(shown.as_ref(), &icons, panel.left);
+    if let Some(shown) = &shown {
+        publish_rows(&panel.link, shown);
+    }
     let link = use_context::<LauncherLink>();
-    let foot = use_card_hit(&link, card_key(shown.as_ref()));
+    let foot = use_card_hit(&link, card_key(shown.as_ref(), aside.as_ref()));
+    let (width, inset) = match aside {
+        Some(_) => (PANEL_ROOM_WIDTH, 0),
+        None => (PANEL_WIDTH, CARD_INSET),
+    };
+    let left = SHADOW_SIDE + inset;
+    let clip_image = move |key: ClipKey| {
+        clip_image(&history.read(), key)
+            .filter(|image| image.mime.0 == "image/png")
+            .map(|image| ImageSource::png(&image.bytes))
+    };
     rsx! {
         div {
             id: "panel",
@@ -125,9 +158,9 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
                 style { {LAUNCHER_CSS} }
                 div {
                     class: "sill-launcher-body",
-                    style: "margin-left:{SHADOW_SIDE}px;width:{PANEL_WIDTH}px;height:{PANEL_HEIGHT}px",
+                    style: "margin-left:{left}px;width:{width}px;height:{PANEL_HEIGHT}px",
                     if let Some(shown) = shown {
-                        {palette(&panel, &shown, foot, &icons)}
+                        {palette(&panel, &shown, foot, &icons, &clip_image, aside)}
                     }
                 }
             }
@@ -135,44 +168,150 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
     }
 }
 
+/// The pane as the palette's `aside` draws it: what it previews, the row's actions and icon,
+/// the control with the keyboard, and whether it is showing or leaving.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Aside {
+    preview: Preview,
+    actions: Vec<sill_launcher::Action>,
+    icon: Option<IconSource>,
+    focused: Option<usize>,
+    shown: ds::Shown,
+    serial: crate::surfaces::launcher::presence::OpenSerial,
+}
+
+/// The pane while it shows, and after it is hidden until quire has played it out
+/// (`on_hidden`), so it leaves as it came.
+fn use_aside(shown: Option<&Shown>, icons: &RowIcons, left: Signal<u64>) -> Option<Aside> {
+    let mut last = use_hook(|| CopyValue::new(None::<Aside>));
+    let mut seen = use_hook(|| CopyValue::new(0_u64));
+    let count = *left.read();
+    if count != *seen.peek() {
+        seen.set(count);
+        last.set(None);
+    }
+    let Some(shown) = shown else {
+        last.set(None);
+        return None;
+    };
+    match shown.preview() {
+        Some(preview) => {
+            let selected = shown.selected();
+            let aside = Aside {
+                preview,
+                icon: selected
+                    .as_ref()
+                    .and_then(|item| icon_source(icons.tile(item))),
+                actions: selected.map(|item| item.actions).unwrap_or_default(),
+                focused: match shown.pane.preview.focus {
+                    PaneFocus::Pane(index) => Some(index),
+                    PaneFocus::Results => None,
+                },
+                shown: ds::Shown::Visible,
+                serial: shown.session.serial,
+            };
+            last.set(Some(aside.clone()));
+            Some(aside)
+        }
+        None => last
+            .peek()
+            .clone()
+            .filter(|leaving| leaving.serial == shown.session.serial)
+            .map(|leaving| Aside {
+                shown: ds::Shown::Hidden,
+                focused: None,
+                ..leaving
+            }),
+    }
+}
+
+/// A row's tile as the pane's icon.
+fn icon_source(tile: ds::Tile) -> Option<IconSource> {
+    match tile {
+        ds::Tile::Source(source) => Some(source),
+        ds::Tile::Icon(icon) => Some(IconSource::Glyph(icon)),
+        _ => None,
+    }
+}
+
+/// The pane's moments (D0, F655): it appears, swaps rows, leaves.
+fn use_moments(now: Option<Preview>) {
+    let mut before = use_hook(|| CopyValue::new(None::<Preview>));
+    let moment = pane_moment(before.peek().as_ref(), now.as_ref());
+    before.set(now);
+    use_pane_moment(moment);
+}
+
+/// Tell `sill debug launcher-rows` what shows.
+fn publish_rows(link: &LauncherLink, shown: &Shown) {
+    let mut rows = shown
+        .view
+        .report(&shown.session.query, shown.session.keys.selected);
+    rows.preview = shown.preview().map(|preview| preview.kind());
+    link.show_rows(Some(rows));
+}
+
 /// What the card's height follows while it shows.
-fn card_key(shown: Option<&Shown>) -> CardKey {
+fn card_key(shown: Option<&Shown>, aside: Option<&Aside>) -> CardKey {
     match shown {
         None => CardKey::Hidden,
         Some(shown) => CardKey::Shown {
             serial: shown.session.serial,
             query: shown.session.query.clone(),
-            rows: rows(&shown.groups).len(),
-            actions: match shown.session.keys.actions {
-                ActionsMenu::Open { .. } => ActionsShown::Open,
-                ActionsMenu::Closed => ActionsShown::Closed,
+            rows: shown.view.len(),
+            // While the pane widens the card, the whole room takes presses, as it does under
+            // the actions menu: the catcher's hole is the room then (`layer::catcher_input`).
+            actions: match (shown.session.keys.actions, aside) {
+                (ActionsMenu::Open { .. }, _) | (_, Some(_)) => ActionsShown::Open,
+                (ActionsMenu::Closed, None) => ActionsShown::Closed,
             },
         },
     }
 }
 
-/// The palette, keyed by its opening so each opening mounts one, and the actions menu while
-/// it is open.
-fn palette(panel: &PanelCtx, shown: &Shown, foot: Foot, icons: &RowIcons) -> Element {
+/// The palette, keyed by its opening so each opening mounts one, the preview pane as its
+/// `aside` while shown or leaving, and the actions menu while it is open.
+fn palette(
+    panel: &PanelCtx,
+    shown: &Shown,
+    foot: Foot,
+    icons: &RowIcons,
+    clip_image: &dyn Fn(ClipKey) -> Option<ImageSource>,
+    aside: Option<Aside>,
+) -> Element {
     let session = &shown.session;
+    let selected_item = shown.selected();
     let actions = match session.keys.actions {
-        ActionsMenu::Open { .. } => shown.selected().map(|item| action_entries(&item.actions)),
+        ActionsMenu::Open { .. } => selected_item
+            .as_ref()
+            .map(|item| action_entries(&item.actions)),
         ActionsMenu::Closed => None,
     };
     let (input, pick, close) = (panel.clone(), panel.clone(), panel.clone());
-    let (select, key) = (panel.clone(), panel.clone());
+    let (select, key, claim) = (panel.clone(), panel.clone(), panel.clone());
     let (action_pick, action_close) = (panel.clone(), panel.clone());
     let mut row = panel.row;
-    let selected = shown.selected().map(RowRef::of);
+    let selected = selected_item.as_ref().map(RowRef::of);
     let hung = (row)();
+    let draw = Draw {
+        tile_of: &|item| icons.tile(item),
+        clip_image,
+        now: now(),
+    };
+    let on_more = |section: Section| {
+        let panel = panel.clone();
+        EventHandler::new(move |()| panel.toggle_section(section))
+    };
+    let groups = palette_groups(&shown.view.sections, &draw, &on_more);
+    let pane = aside.map(|aside| pane(panel, aside));
     rsx! {
         CommandPalette::<RowRef> {
             key: "{session.serial.0}",
             label: "Search",
-            placeholder: "Search apps, windows and settings",
+            placeholder: "Search apps, files, windows and settings",
             query: session.query.clone(),
             tokens: Vec::new(),
-            groups: palette_groups(&shown.groups, &|item| icons.tile(item)),
+            groups,
             empty: empty_text(&session.query),
             oninput: move |text: String| input.typed(text),
             onpick: move |row: RowRef| pick.pick(row, sill_launcher::Choice::Primary),
@@ -185,7 +324,10 @@ fn palette(panel: &PanelCtx, shown: &Shown, foot: Foot, icons: &RowIcons) -> Ele
             selected: session.keys.selected,
             on_select: move |index: usize| select.select(index),
             on_select_rect: move |rect: Rect| row.set(measured(rect)),
-            onkey: move |event: dioxus::prelude::Event<KeyboardData>| key.field_key(&event.data()),
+            onkey: move |event: KeyboardEvent| key.field_key(&event),
+            claim: Callback::new(move |field: FieldKey| claim.claim(&field)),
+            aside: pane,
+            aside_width: Px(PREVIEW_WIDTH_PX as f32),
         }
         div {
             class: "sill-launcher-foot",
@@ -203,6 +345,30 @@ fn palette(panel: &PanelCtx, shown: &Shown, foot: Foot, icons: &RowIcons) -> Ele
             }
         }
     }
+}
+
+/// The preview pane for `aside`: quire's, through [`LauncherPane`].
+fn pane(panel: &PanelCtx, aside: Aside) -> Element {
+    let (act, gone) = (panel.clone(), panel.clone());
+    rsx! {
+        LauncherPane {
+            preview: aside.preview,
+            actions: aside.actions,
+            focused: aside.focused,
+            icon: aside.icon,
+            shown: aside.shown,
+            onaction: move |index: usize| act.run_pane_action(index),
+            on_hidden: move |()| gone.pane_gone(),
+        }
+    }
+}
+
+fn now() -> sill_launcher::UnixTime {
+    sill_launcher::UnixTime(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |since| since.as_secs()),
+    )
 }
 
 /// What the rows' icons are drawn with: the icon style on the active Space, the surface's
@@ -231,7 +397,7 @@ pub fn empty_text(query: &str) -> String {
     if query.trim().is_empty() {
         "Nothing to show yet.".to_owned()
     } else {
-        format!("Nothing matches \"{query}\".")
+        format!("Nothing matches \"{}\".", query.trim())
     }
 }
 
@@ -257,7 +423,7 @@ pub(crate) fn active_look(
             .position(|w| w.activity == Activity::Active)
             .map(|index| (group.workspaces[index].key, index))
     });
-    let (key, index) = active.unwrap_or((WorkspaceKey(0), 0));
+    let (key, index) = active.unwrap_or((sill_services::WorkspaceKey(0), 0));
     use_space_look(key, index, spaces)
 }
 
@@ -270,6 +436,7 @@ mod tests {
     #[test]
     fn words_and_material() {
         assert_eq!(empty_text("zz"), "Nothing matches \"zz\".");
+        assert_eq!(empty_text("zz "), "Nothing matches \"zz\".");
         assert_eq!(empty_text(""), "Nothing to show yet.");
         assert_eq!(material(PanelMaterial::Sheet), Material::Sheet);
         assert_eq!(material(PanelMaterial::Popover), Material::Popover);

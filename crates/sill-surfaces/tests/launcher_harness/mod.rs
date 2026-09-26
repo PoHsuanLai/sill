@@ -85,7 +85,7 @@ pub fn open(query: &str) -> Open {
         });
     });
     let viewport = Viewport {
-        width: 680 + 84,
+        width: 680 + 360 + 84,
         height: 460 + 66,
         scale_percent: 100,
     };

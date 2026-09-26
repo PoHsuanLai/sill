@@ -10,10 +10,15 @@ use sill_launcher::{
     Activation, AppId, Choice, ClipKey, DesktopAction, Item, OpenTarget, Provider, ProviderKind,
     SettingsTarget, SystemCommand,
 };
+use std::path::PathBuf;
+
+use sill_services::providers::files::IndexSource;
 use sill_services::providers::{
-    AppsProvider, CalculatorProvider, SettingsProvider, SystemProvider, WindowsProvider,
+    AppsProvider, CalculatorProvider, ClipboardProvider, EmojiProvider, FilesProvider,
+    SettingsProvider, SystemProvider, WebProvider, WindowsProvider,
 };
-use sill_services::{Services, SessionAction};
+use sill_services::{LauncherPolicy, Services, SessionAction};
+use tokio::sync::watch;
 
 /// The desktop entry `SettingsTarget::Cosmic` opens.
 pub const COSMIC_SETTINGS: &str = "com.system76.CosmicSettings";
@@ -32,8 +37,10 @@ impl fmt::Debug for LauncherProviders {
 }
 
 impl LauncherProviders {
-    /// The five real providers over `services`' receivers.
+    /// The real providers over `services`' receivers (the M4 five, then the M9 four, whose
+    /// `activate` reads the row alone: their policy here is the default, never queried).
     pub fn from_services(services: &Services) -> LauncherProviders {
+        let (_, policy) = watch::channel(LauncherPolicy::default());
         LauncherProviders(vec![
             Arc::new(AppsProvider {
                 apps: services.apps.clone(),
@@ -47,6 +54,20 @@ impl LauncherProviders {
             Arc::new(CalculatorProvider::default()),
             Arc::new(SettingsProvider::default()),
             Arc::new(SystemProvider::new()),
+            Arc::new(FilesProvider {
+                policy: policy.clone(),
+                frecency: Arc::new(Mutex::default()),
+                source: IndexSource::Detect,
+                home: PathBuf::from("/"),
+            }),
+            Arc::new(ClipboardProvider {
+                history: services.clipboard.clone(),
+            }),
+            Arc::new(EmojiProvider {
+                policy: policy.clone(),
+                frecency: Arc::new(Mutex::default()),
+            }),
+            Arc::new(WebProvider { policy }),
         ])
     }
 

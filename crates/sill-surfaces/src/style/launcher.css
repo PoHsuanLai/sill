@@ -10,3 +10,7 @@
 .sill-launcher-catcher{ width:100vw; height:100vh; }
 .sill-launcher-body{ display:flex; flex-direction:column; }
 .sill-launcher-foot{ flex:none; height:0; }
+/* M9 (FINDINGS "M9 lane d"): the preview pane is quire's, set in the palette's aside; its
+   wrapper only fills the aside's width. The body widens to the card's and the pane's room while
+   the pane is there (written inline from the layer's constants). */
+.sill-launcher-preview{ display:flex; flex-direction:column; flex:1; min-width:0; }

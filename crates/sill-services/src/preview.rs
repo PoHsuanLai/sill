@@ -4,9 +4,10 @@
 //! [`HEAD_BYTES`] of a file). A PDF page and an image file are drawn by quire from their paths
 //! and need nothing here.
 
+use std::io::Read;
 use std::path::Path;
 
-use sill_launcher::{ClipKey, Excerpt, ExcerptLimit};
+use sill_launcher::{ClipKey, Excerpt, ExcerptLimit, excerpt_of};
 
 use crate::clipboard::{ClipContent, ClipImage, Clipboard};
 
@@ -23,8 +24,19 @@ pub enum PreviewFault {
 /// The first lines of the text file at `path` within `limit`: at most [`HEAD_BYTES`] read, then
 /// `sill_launcher::excerpt_of`. Blocking; lane d fills it.
 pub fn read_excerpt(path: &Path, limit: ExcerptLimit) -> Result<Excerpt, PreviewFault> {
-    let _ = (path, limit);
-    todo!("M9 fill: d-preview")
+    let file = std::fs::File::open(path).map_err(fault_of)?;
+    let mut head = Vec::with_capacity(HEAD_BYTES);
+    file.take(HEAD_BYTES as u64)
+        .read_to_end(&mut head)
+        .map_err(fault_of)?;
+    Ok(excerpt_of(&head, limit))
+}
+
+fn fault_of(error: std::io::Error) -> PreviewFault {
+    match error.kind() {
+        std::io::ErrorKind::NotFound => PreviewFault::Missing,
+        _ => PreviewFault::Unreadable,
+    }
 }
 
 /// The image kept under `key`, if the history still holds it as an image.
@@ -48,7 +60,6 @@ mod tests {
     use super::{PreviewFault, read_excerpt};
 
     #[test]
-    #[ignore = "M9 fill: d-preview"]
     fn a_file_head_becomes_an_excerpt_and_a_missing_file_a_fault() {
         let dir = std::env::temp_dir().join(format!("sill-preview-{}", std::process::id()));
         std::fs::create_dir_all(&dir).expect("temp dir");
