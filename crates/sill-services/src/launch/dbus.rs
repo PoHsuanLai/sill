@@ -8,6 +8,7 @@ use zbus::zvariant::Value;
 
 use crate::apps::App;
 use crate::launch::LaunchRequest;
+use crate::providers::files::tracker::file_uri;
 
 /// `org.freedesktop.Application.Activate` on the bus name `app.id`, object path derived from it
 /// (GApplication's own convention: each `.` becomes `/`, each `-` becomes `_`, prefixed with
@@ -35,8 +36,9 @@ pub async fn activate(
 }
 
 /// `org.freedesktop.FileManager1.ShowItems([file:// URI of the entry's own .desktop file], "")`.
+/// The URI is percent-encoded (a space or `#` in the path would otherwise break it).
 pub async fn show_in_files(connection: &Connection, app: &App) -> zbus::Result<()> {
-    let uri = format!("file://{}", app.path.display());
+    let uri = file_uri(&app.path);
     connection
         .call_method(
             Some("org.freedesktop.FileManager1"),
@@ -66,7 +68,30 @@ fn object_path(id: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::object_path;
+    use std::path::Path;
+
+    use super::{file_uri, object_path};
+
+    #[test]
+    fn a_desktop_files_uri_is_percent_encoded() {
+        const CASES: &[(&str, &str)] = &[
+            (
+                "/usr/share/applications/org.mozilla.firefox.desktop",
+                "file:///usr/share/applications/org.mozilla.firefox.desktop",
+            ),
+            (
+                "/home/p/.local/share/applications/My App.desktop",
+                "file:///home/p/.local/share/applications/My%20App.desktop",
+            ),
+            (
+                "/home/p/apps/c#-ide.desktop",
+                "file:///home/p/apps/c%23-ide.desktop",
+            ),
+        ];
+        for (path, want) in CASES {
+            assert_eq!(file_uri(Path::new(path)), *want, "{path}");
+        }
+    }
 
     #[test]
     fn object_paths_replace_dots_and_dashes() {

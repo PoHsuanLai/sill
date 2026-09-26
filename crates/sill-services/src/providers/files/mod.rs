@@ -12,7 +12,7 @@
 //! directories; a live backend test only checks that the backend exists (`choice::detect`).
 
 pub mod baloo;
-mod bus;
+pub(crate) mod bus;
 pub mod choice;
 mod cursor;
 pub mod fake;

@@ -4,8 +4,9 @@
 //! - `File(path)` and `Url(url)`: `xdg-open <path|url>` in a transient `systemd-run --user
 //!   --scope` like an app launch, with `XDG_ACTIVATION_TOKEN` set to the request's token.
 //! - `Reveal(path)`: `org.freedesktop.FileManager1.ShowItems([file uri], startup id = token)`
-//!   when the name has an owner, so the file manager opens the folder with the file selected;
-//!   else `xdg-open` on [`reveal_folder`].
+//!   when the name has an owner or is activatable (the call then starts the file manager), so
+//!   the file manager opens the folder with the file selected; else `xdg-open` on
+//!   [`reveal_folder`] (FINDINGS "M9 lane a", F667).
 //!
 //! Nothing here is logged beyond the failure's kind: a path can be private.
 //!
@@ -21,11 +22,10 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, OpenTarget};
 use zbus::Connection;
-use zbus::fdo::DBusProxy;
-use zbus::names::BusName;
 
 use super::model::ScopeUnit;
 use super::plan::scope_unit;
+use crate::providers::files::bus::{NameState, name_state};
 use crate::providers::files::tracker::file_uri;
 
 const FILE_MANAGER: &str = "org.freedesktop.FileManager1";
@@ -87,9 +87,9 @@ enum Shown {
     No,
 }
 
-/// Whether the user's systemd manager can be asked for a scope.
+/// Whether the user's systemd manager can be asked for a scope (shared with `run.rs`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Manager {
+pub(super) enum Manager {
     Reachable,
     Missing,
 }
@@ -102,15 +102,12 @@ enum Wrapper {
     Bare,
 }
 
-/// `FileManager1.ShowItems([uri], token)` when the name has an owner.
+/// `FileManager1.ShowItems([uri], token)` when a file manager holds the name or can be
+/// started for it.
 async fn show_items(path: &Path, token: Option<&str>) -> Shown {
     let shown = async {
         let connection = Connection::session().await?;
-        let dbus = DBusProxy::new(&connection).await?;
-        if !dbus
-            .name_has_owner(BusName::try_from(FILE_MANAGER)?)
-            .await?
-        {
+        if asks_file_manager(name_state(&connection, FILE_MANAGER).await?) == Shown::No {
             return Ok::<Shown, zbus::Error>(Shown::No);
         }
         connection
@@ -127,7 +124,19 @@ async fn show_items(path: &Path, token: Option<&str>) -> Shown {
     shown.await.unwrap_or(Shown::No)
 }
 
-fn user_manager() -> Manager {
+/// Whether a file manager in `state` is asked to show the item: running or activatable, since
+/// activation starts it with the file selected, as Spotlight's reveal does.
+fn asks_file_manager(state: NameState) -> Shown {
+    match state {
+        NameState::Owned | NameState::Activatable => Shown::Yes,
+        NameState::Missing => Shown::No,
+    }
+}
+
+/// Whether the user's systemd manager is reachable: `systemd-run --user` connects to
+/// `$XDG_RUNTIME_DIR/systemd/private`, and without it exits 1 as the command it wraps might,
+/// so the failure could not be told apart afterwards.
+pub(super) fn user_manager() -> Manager {
     let socket =
         std::env::var_os("XDG_RUNTIME_DIR").map(|dir| PathBuf::from(dir).join("systemd/private"));
     match socket {
@@ -201,8 +210,9 @@ mod tests {
 
     use sill_launcher::OpenTarget;
 
-    use super::{Wrapper, open_argv, reveal_folder, wrapped};
+    use super::{Shown, Wrapper, asks_file_manager, open_argv, reveal_folder, wrapped};
     use crate::launch::model::ScopeUnit;
+    use crate::providers::files::bus::NameState;
 
     #[test]
     fn every_target_opens_with_xdg_open() {
@@ -240,6 +250,18 @@ mod tests {
                 PathBuf::from(want),
                 "{path}"
             );
+        }
+    }
+
+    #[test]
+    fn a_running_or_activatable_file_manager_is_asked() {
+        let cases = [
+            (NameState::Owned, Shown::Yes),
+            (NameState::Activatable, Shown::Yes),
+            (NameState::Missing, Shown::No),
+        ];
+        for (state, want) in cases {
+            assert_eq!(asks_file_manager(state), want, "{state:?}");
         }
     }
 

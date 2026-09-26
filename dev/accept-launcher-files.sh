@@ -13,11 +13,14 @@
 # does and carries out the first row's activation through the real launch service.
 #
 #   1. `files_backend = "fd"`: the provider lists m9-report.pdf under ~/Documents for
-#      "m9-rep"; the daemon, after `sill launcher open --query m9-rep`, lists it under
-#      Documents in `sill debug launcher-rows` (PENDING until lane d answers rows).
-#   2. Enter opens it: the stub opener records the file's path and the token.
-#   3. ⌘R reveals it: the stub file manager records ShowItems with its file:// URI and the
-#      token; with no file manager on the bus, xdg-open opens the folder instead.
+#      "m9-rep" and for "M9-REP" (names match without case); the daemon, after `sill launcher
+#      open --query m9-rep`, lists it under Documents in `sill debug launcher-rows` (PENDING
+#      until lane d answers rows).
+#   2. Enter opens it: the stub opener records the file's path and the token, bare and in a
+#      transient scope.
+#   3. ⌘R reveals it: the running stub file manager records ShowItems with its file:// URI and
+#      the token; with no file manager on the bus, xdg-open opens the folder instead; with the
+#      stub only activatable (a service file on the private bus), the call starts it.
 #   4. `files_backend = "off"`: the provider lists nothing; the daemon, after `sill reload`,
 #      has no Documents section (PENDING until lane d).
 #   5. Detection on this machine (the real session bus: whether names exist, nothing more), and
@@ -114,7 +117,12 @@ settings() {
 
 start_bus() {
   local out
-  out=$(dbus-daemon --config-file="$SILL_REPO/dev/private-bus.conf" --fork \
+  # dev/private-bus.conf plus one scratch service folder, empty until step 3 puts the stub file
+  # manager there to check a reveal through an activatable (not running) file manager.
+  mkdir -p "$SCRATCH/services"
+  sed "s|</busconfig>|  <servicedir>$SCRATCH/services</servicedir>\n</busconfig>|" \
+    "$SILL_REPO/dev/private-bus.conf" >"$SCRATCH/bus.conf"
+  out=$(dbus-daemon --config-file="$SCRATCH/bus.conf" --fork \
     --print-address=1 --print-pid=1) || return 1
   BUS=$(sed -n 1p <<<"$out")
   BUS_PID=$(sed -n 2p <<<"$out")
@@ -155,6 +163,7 @@ stop_daemon() {
 cleanup() {
   stop_daemon
   stop_fm
+  [ -n "$BUS" ] && stop_activated_fm
   [ -n "$BUS_PID" ] && kill "$BUS_PID" 2>/dev/null
   rm -rf "$SCRATCH"
 }
@@ -180,6 +189,12 @@ step1() {
     pass 1 "the provider lists m9-report.pdf under ~/Documents"
   else
     fail 1 "the provider's rows: $(tr '\n' '|' <"$OUT_DIR/step1.txt")"
+  fi
+  probe --backend fd --query M9-REP >>"$OUT_DIR/step1.txt" 2>&1
+  if [ "$(count $'^row\tm9-report\\.pdf\t' "$OUT_DIR/step1.txt")" = 2 ]; then
+    pass 1 "names match without case: M9-REP lists m9-report.pdf too"
+  else
+    fail 1 "M9-REP: $(tr '\n' '|' <"$OUT_DIR/step1.txt")"
   fi
   local rows
   rows=$(daemon_rows m9-rep)
@@ -233,6 +248,37 @@ step3() {
   else
     fail 3 "the fallback recorded: $(tr '\n' '|' <"$OPENED")"
   fi
+  # An activatable file manager: the stub as a bus service, started by the ShowItems call.
+  cat >"$SCRATCH/services/org.freedesktop.FileManager1.service" <<EOF
+[D-BUS Service]
+Name=org.freedesktop.FileManager1
+Exec=/bin/sh -c 'exec $STUB_FM "\$DBUS_STARTER_ADDRESS" >>$OUT_DIR/file-manager-activated.log 2>&1'
+EOF
+  : >"$OUT_DIR/file-manager-activated.log"
+  bus_call org.freedesktop.DBus.ReloadConfig >/dev/null
+  : >"$OPENED"
+  probe --backend fd --query m9-rep --choose reveal >>"$OUT_DIR/step3.txt" 2>&1
+  if grep -qxF "ShowItems	$uri	$TOKEN" "$OUT_DIR/file-manager-activated.log" && [ ! -s "$OPENED" ]; then
+    pass 3 "an activatable file manager was started and revealed it through ShowItems"
+  else
+    fail 3 "activated stub recorded: $(tr '\n' '|' <"$OUT_DIR/file-manager-activated.log") opener: $(tr '\n' '|' <"$OPENED")"
+  fi
+  stop_activated_fm
+}
+
+# A method of the private bus's own interface, with $2… as dbus-send arguments.
+bus_call() {
+  dbus-send --bus="$BUS" --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus "$@"
+}
+
+# Stop the stub the bus started (its pid from the bus), and make the name unactivatable again.
+stop_activated_fm() {
+  local pid
+  pid=$(bus_call org.freedesktop.DBus.GetConnectionUnixProcessID \
+    string:org.freedesktop.FileManager1 2>/dev/null | awk '/uint32/ {print $2}')
+  [ -n "$pid" ] && kill "$pid" 2>/dev/null
+  rm -f "$SCRATCH/services/org.freedesktop.FileManager1.service"
+  bus_call org.freedesktop.DBus.ReloadConfig >/dev/null 2>&1
 }
 
 step4() {

@@ -20,14 +20,12 @@ use std::time::{Duration, Instant};
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, percent_encode};
 use sill_launcher::Query;
 use zbus::Connection;
-use zbus::fdo::DBusProxy;
-use zbus::names::BusName;
 use zbus::zvariant::{Fd, Value};
 
-use super::bus::block_on;
+use super::bus::{NameState, block_on, name_state};
+use super::choice::IndexState;
 use super::cursor::{hit_of_row, parse_cursor};
 use super::index::{FileAnswer, FileAsk, FileIndex, IndexFault, IndexKind};
-use crate::units::Presence;
 
 /// The miner's bus name (localsearch keeps it beside its newer `org.freedesktop.LocalSearch3`).
 const TRACKER_BUS: &str = "org.freedesktop.Tracker3.Miner.Files";
@@ -95,11 +93,12 @@ impl FileIndex for TrackerIndex {
     }
 }
 
-/// Whether the miner has an owner or can be activated; asks the bus only, never the index.
-pub(super) fn tracker_presence() -> Presence {
-    block_on(miner_presence())
+/// Whether the miner is running (has an owner) or only activatable; asks the bus only, never
+/// the index, and starts nothing.
+pub(super) fn tracker_state() -> IndexState {
+    block_on(miner_state())
         .and_then(Result::ok)
-        .unwrap_or(Presence::Absent)
+        .unwrap_or(IndexState::Absent)
 }
 
 /// The SPARQL for `ask`, with the text and the folder as escaped string literals.
@@ -145,20 +144,13 @@ pub(crate) fn file_uri(path: &Path) -> String {
     )
 }
 
-async fn miner_presence() -> zbus::Result<Presence> {
+async fn miner_state() -> zbus::Result<IndexState> {
     let connection = Connection::session().await?;
-    let dbus = DBusProxy::new(&connection).await?;
-    if dbus.name_has_owner(BusName::try_from(TRACKER_BUS)?).await? {
-        return Ok(Presence::Present);
-    }
-    let activatable = dbus.list_activatable_names().await?;
-    Ok(
-        if activatable.iter().any(|name| name.as_str() == TRACKER_BUS) {
-            Presence::Present
-        } else {
-            Presence::Absent
-        },
-    )
+    Ok(match name_state(&connection, TRACKER_BUS).await? {
+        NameState::Owned => IndexState::Running,
+        NameState::Activatable => IndexState::Dormant,
+        NameState::Missing => IndexState::Absent,
+    })
 }
 
 /// `Endpoint.Query(sparql, the pipe's write end, {})`; the cursor arrives on the pipe.

@@ -9,7 +9,7 @@
 //!
 //! A hit whose name does not match is dropped, content hits included (lane a's call, FINDINGS
 //! "M9 lane a"): the row shows a name, so the name must be why it is there. Two indexes naming
-//! one path make one row.
+//! one path make one row. Names match without case, as Spotlight's do (Q310).
 
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -41,11 +41,12 @@ pub fn file_items(
     weights: &RankWeights,
     matcher: &mut Matcher,
 ) -> Vec<Item> {
+    let needle = without_case(needle);
     let mut seen = BTreeSet::new();
     let mut rows: Vec<Item> = hits
         .iter()
         .filter(|hit| seen.insert(hit.path.clone()))
-        .filter_map(|hit| file_item(hit, needle, home, frecency, now, weights, matcher))
+        .filter_map(|hit| file_item(hit, &needle, home, frecency, now, weights, matcher))
         .collect();
     rows.sort_by(|a, b| {
         b.score
@@ -54,6 +55,13 @@ pub fn file_items(
             .then_with(|| a.id.0.cmp(&b.id.0))
     });
     rows
+}
+
+/// `needle` matching without case, as Spotlight matches file names (Q310): the launcher's
+/// needle is smart case, and a lower-case needle is case-insensitive. nucleo's operators
+/// (`^`, `$`, `'`, `!`) have no case, so lower-casing keeps them.
+fn without_case(needle: &Needle) -> Needle {
+    Needle::parse(&needle.text().to_lowercase())
 }
 
 /// `folder` as a row shows it: under `home` as `~/…`, else as it is.
@@ -240,6 +248,27 @@ mod tests {
                 &ActionKeys::Chord(chords::copy())
             ]
         );
+    }
+
+    #[test]
+    fn names_match_without_case() {
+        let hits = vec![
+            hit("/home/p/Documents/m9-report.pdf", "application/pdf", 90),
+            hit("/home/p/Taxes/2025 RETURN.pdf", "application/pdf", 90),
+        ];
+        let cases: &[(&str, &[&str])] = &[
+            ("M9", &["m9-report.pdf"]),
+            ("m9-REP", &["m9-report.pdf"]),
+            ("return", &["2025 RETURN.pdf"]),
+            ("Return", &["2025 RETURN.pdf"]),
+            ("^M9", &["m9-report.pdf"]),
+            ("x9", &[]),
+        ];
+        for &(text, want) in cases {
+            let rows = rows_for(&hits, text, &Frecency::default());
+            let titles: Vec<&str> = rows.iter().map(|r| r.title.as_str()).collect();
+            assert_eq!(titles, want, "{text}");
+        }
     }
 
     #[test]

@@ -5442,3 +5442,59 @@ current-thread runtime), `program.rs` (a search program within a budget), `stat.
   then drops `m9-report.pdf`. That is consistent with apps, but Spotlight matches file names
   without case. A row for §1.3 ("file names match without case") would need `Needle` to take a
   case mode (a sill-launcher change, frozen).
+
+### M9 lane a follow-ups (2026-09-26)
+
+The coordinator authorised the frozen-type change below and `launch/{run,dbus}.rs` for this
+round. F661 and F665 stand as recorded.
+
+- **F670 `Auto` never starts an indexer (fixes F668).** `choice::Detected.{tracker, baloo}` are
+  now `choice::IndexState::{Running, Dormant, Absent}` (was `Presence`): Tracker is `Running`
+  when `org.freedesktop.Tracker3.Miner.Files` has an owner and `Dormant` when it is only
+  activatable; Baloo is `Running` when `balooctl6 status` says "is running", `Dormant` when it
+  is enabled but "is not running" (or says something unrecognised), `Absent` when disabled or
+  not installed. The rule in `pick`: **`Auto` asks a running Tracker, else a running Baloo, else
+  `fd`, else `plocate`; it never asks a dormant indexer.** A backend named in the setting
+  (`tracker`, `baloo`) is asked while it is `Running` or `Dormant`, so `files_backend =
+  "tracker"` may still start localsearch: the person chose it. Pinned by the 15-row table
+  `auto_never_starts_an_indexer_and_a_named_backend_is_never_substituted`. Call sites updated:
+  `baloo.rs`, `tracker.rs`, `files_probe`, `tests/files_{walk,tracker}_live.rs`. On this machine
+  `detect()` is now `tracker=Dormant baloo=Absent fd=Present plocate=Present`, so `Auto` walks
+  with `fd`. In localsearch's sandbox the probe sees the miner `Dormant` or `Running` depending
+  on timing; the named backend finds the files either way. The owner/activatable check is one
+  helper, `providers::files::bus::name_state` (`NameState::{Owned, Activatable, Missing}`),
+  shared with the reveal (F672).
+- **Q311 (design/22) The `launcher.files_backend` row (Q301) changes** its Range / Alt text to:
+  "auto asks a running Tracker 3, else a running Baloo, else fd/plocate; it never starts an
+  indexer. tracker or baloo asks that index and may start it; a named backend that is missing
+  searches nothing".
+- **F671 Launching without a reachable user manager (fixes F666's gap).** `launch/run.rs`'s
+  `start` now asks `open::user_manager()` (the same `$XDG_RUNTIME_DIR/systemd/private` check
+  `open.rs` uses, shared, not copied) and, when it is `Missing`, runs the command after
+  `systemd-run`'s `--` in its own process group straight away; the `NotFound` fallback stays for
+  a manager that is reachable but has no `systemd-run`. Test
+  `an_unreachable_user_manager_runs_the_bare_command` (with `/bin/false` in `systemd-run`'s
+  place, only the bare command can succeed). A daemon under a scratch runtime folder can now
+  launch apps. `launch/dbus.rs`'s `show_in_files` percent-encodes the `.desktop` file's URI with
+  `tracker::file_uri`; table test with a space (`My%20App.desktop`) and a `#` (`c%23-ide`).
+- **F672 A reveal asks an activatable file manager too (fixes F667).** `ShowItems` is called when
+  `org.freedesktop.FileManager1` is owned or activatable (activation starts it with the file
+  selected, as Spotlight's reveal does); only a missing name falls back to `xdg-open` on the
+  folder. The acceptance checks all three: the stub running, the name missing, and the stub as a
+  service file on the private bus (its own config, `dev/private-bus.conf` plus one scratch
+  `servicedir`, reloaded with `ReloadConfig`), started by the call.
+- **F673 File names match without case (answers Q310 inside the provider).** `hits::file_items`
+  re-parses the needle lower-cased (`without_case`), and a lower-case needle is case-insensitive
+  under the launcher's smart case; nucleo's operators have no case, so `^M9` still anchors. No
+  sill-launcher change. `M9`, `m9-REP`, `Return` and `^M9` find their files (table test); the
+  Tracker sandbox test now asks `M9`, and the acceptance asks `M9-REP`.
+- **F674 `fdfind`.** `fd` is looked for as `fd`, then `fdfind` (Debian and Ubuntu install it
+  under that name), both in `detect()` and when `WalkIndex` runs it
+  (`program::{FD_NAMES, first_on_path}`, table test).
+- **F675 Acceptance after the follow-ups (exit 2).** Step 1 PASS twice (`m9-rep` and `M9-REP`),
+  PENDING for the daemon (lane d); step 2 PASS bare and in `app-sill-open.<pid>-1.scope`; step 3
+  PASS three times (running, missing, activatable); step 4 PASS, PENDING for the daemon; step 5
+  PASS (`tracker=Dormant baloo=Absent fd=Present plocate=Present`; Tracker in its sandbox). The
+  full suite once failed `notification_center_render::a_press_on_a_stack_opens_it_and_a_lone_
+  cards_close_dismisses_it` (sill-surfaces, not touched here) while the machine was loaded; it
+  passed three times alone and in the `--no-fail-fast` rerun (1034 passed, 0 failed).

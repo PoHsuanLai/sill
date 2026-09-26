@@ -30,7 +30,7 @@ fn tracker_finds_files_and_folders_by_name_in_localsearchs_sandbox() {
             "--backend",
             "tracker",
             "--query",
-            "m9",
+            "M9",
             "--budget-ms",
             "2000",
         ])
@@ -41,8 +41,10 @@ fn tracker_finds_files_and_folders_by_name_in_localsearchs_sandbox() {
     let _ = std::fs::remove_dir_all(&root);
     let stdout = String::from_utf8_lossy(&output.stdout);
     eprintln!("sill: tracker sandbox said:\n{stdout}");
+    // Running or Dormant, depending on whether the sandbox's miner holds its name yet when the
+    // probe starts; a named `tracker` backend asks it either way (and may start it).
     assert!(
-        stdout.contains("detect tracker=Present"),
+        stdout.contains("detect tracker=Running") || stdout.contains("detect tracker=Dormant"),
         "the sandbox's miner is not on its bus"
     );
     let rows: Vec<&str> = stdout.lines().filter(|l| l.starts_with("row\t")).collect();

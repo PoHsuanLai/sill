@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use sill_launcher::{Cancel, Query};
-use sill_services::Presence;
+use sill_services::providers::files::choice::IndexState;
 use sill_services::providers::files::choice::detect;
 use sill_services::providers::files::walk::{WalkIndex, Walker};
 use sill_services::providers::files::{FileAnswer, FileAsk, FileIndex, HitLimit};
@@ -89,5 +89,5 @@ fn this_machine_has_tracker() {
         "sill: files detect: tracker={:?} baloo={:?} fd={:?} plocate={:?}",
         found.tracker, found.baloo, found.fd, found.plocate
     );
-    assert_eq!(found.tracker, Presence::Present);
+    assert_ne!(found.tracker, IndexState::Absent);
 }

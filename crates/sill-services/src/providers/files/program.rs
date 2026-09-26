@@ -33,17 +33,31 @@ pub(super) struct Ran {
     pub ended: Ended,
 }
 
-/// Whether `name` is a file in one of `search_path`'s folders (`PATH`'s syntax), asked through
-/// `is_file` so a table test needs no disk.
-pub(super) fn on_path(
-    name: &str,
+/// The names `fd` goes by: its own, and Debian's (`fdfind`, as `fd` is taken there).
+pub(super) const FD_NAMES: &[&str] = &["fd", "fdfind"];
+
+/// The first of `names` that is a file in one of `search_path`'s folders (`PATH`'s syntax),
+/// asked through `is_file` so a table test needs no disk.
+pub(super) fn first_on_path<'a>(
+    names: &[&'a str],
+    search_path: &OsStr,
+    is_file: impl Fn(&Path) -> bool,
+) -> Option<&'a str> {
+    names
+        .iter()
+        .copied()
+        .find(|name| std::env::split_paths(search_path).any(|dir| is_file(&dir.join(name))))
+}
+
+/// Whether any of `names` is on `search_path`.
+pub(super) fn on_path_any(
+    names: &[&str],
     search_path: &OsStr,
     is_file: impl Fn(&Path) -> bool,
 ) -> Presence {
-    if std::env::split_paths(search_path).any(|dir| is_file(&dir.join(name))) {
-        Presence::Present
-    } else {
-        Presence::Absent
+    match first_on_path(names, search_path, is_file) {
+        Some(_) => Presence::Present,
+        None => Presence::Absent,
     }
 }
 
@@ -152,7 +166,7 @@ mod tests {
 
     use sill_launcher::{Cancel, Query};
 
-    use super::{Ended, complete_lines, on_path, run_within};
+    use super::{Ended, FD_NAMES, complete_lines, first_on_path, on_path_any, run_within};
     use crate::providers::files::index::IndexFault;
     use crate::units::Presence::{self, Absent, Present};
 
@@ -167,11 +181,22 @@ mod tests {
         ];
         for &(name, path, want) in cases {
             assert_eq!(
-                on_path(name, OsStr::new(path), exists),
+                on_path_any(&[name], OsStr::new(path), exists),
                 want,
                 "{name} in {path}"
             );
         }
+    }
+
+    #[test]
+    fn fd_is_found_under_debians_name_too() {
+        let debian = |path: &Path| path == Path::new("/usr/bin/fdfind");
+        let both = |path: &Path| path.starts_with("/usr/bin");
+        let none = |_: &Path| false;
+        let path = OsStr::new("/usr/bin");
+        assert_eq!(first_on_path(FD_NAMES, path, debian), Some("fdfind"));
+        assert_eq!(first_on_path(FD_NAMES, path, both), Some("fd"));
+        assert_eq!(first_on_path(FD_NAMES, path, none), None);
     }
 
     #[test]

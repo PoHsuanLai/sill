@@ -5,12 +5,13 @@
 //! `baloo::parse_paths`).
 
 use std::ffi::OsString;
+use std::path::Path;
 
 use sill_launcher::Query;
 
 use super::baloo::answer_of;
 use super::index::{FileAnswer, FileAsk, FileIndex, IndexKind};
-use super::program::run_within;
+use super::program::{FD_NAMES, first_on_path, run_within};
 
 /// Which program walks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -35,7 +36,7 @@ impl FileIndex for WalkIndex {
 
     fn search(&self, ask: &FileAsk, query: &Query) -> FileAnswer {
         let (program, args) = match self.walker {
-            Walker::Fd => ("fd", fd_args(ask)),
+            Walker::Fd => (fd_program(), fd_args(ask)),
             Walker::Plocate => ("plocate", plocate_args(ask)),
         };
         match run_within(program, &args, ask.budget, query) {
@@ -43,6 +44,13 @@ impl FileIndex for WalkIndex {
             Err(fault) => FileAnswer::Unavailable(fault),
         }
     }
+}
+
+/// `fd` under whichever name this machine has it (`fdfind` on Debian); `fd` when neither is
+/// found, so the run fails as a missing program.
+fn fd_program() -> &'static str {
+    let search_path = std::env::var_os("PATH").unwrap_or_default();
+    first_on_path(FD_NAMES, &search_path, Path::is_file).unwrap_or("fd")
 }
 
 /// `fd`'s arguments: a case-insensitive fixed-string match on the name, absolute paths, at most

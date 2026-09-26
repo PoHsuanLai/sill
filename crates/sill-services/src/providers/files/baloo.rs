@@ -9,10 +9,10 @@ use std::time::Duration;
 
 use sill_launcher::{Cancel, Query};
 
+use super::choice::IndexState;
 use super::index::{FileAnswer, FileAsk, FileIndex, HitLimit, IndexFault, IndexKind};
 use super::program::{Ended, Ran, run_within};
 use super::stat::hit_at;
-use crate::units::Presence;
 
 /// How long `balooctl6 status` may take when detecting.
 const STATUS_BUDGET: Duration = Duration::from_secs(1);
@@ -77,24 +77,29 @@ pub(super) fn answer_of(ran: Ran, under: &Path, limit: HitLimit) -> FileAnswer {
     }
 }
 
-/// Whether Baloo is enabled, from `balooctl6 status` (it prints that it is disabled and exits
-/// 0, so the words decide).
-pub(super) fn baloo_enabled() -> Presence {
+/// Whether Baloo is running, enabled but stopped, or disabled, from `balooctl6 status` (it
+/// prints that it is disabled and exits 0, so the words decide).
+pub(super) fn baloo_state() -> IndexState {
     let query = Query::begin("", &Cancel::new());
     let args = [OsString::from("status")];
     match run_within("balooctl6", &args, STATUS_BUDGET, &query) {
         Ok(ran) => baloo_status(&ran.text),
-        Err(_) => Presence::Absent,
+        Err(_) => IndexState::Absent,
     }
 }
 
-/// `balooctl6 status`'s output (C locale) read as enabled or not.
-fn baloo_status(output: &str) -> Presence {
+/// `balooctl6 status`'s output (C locale) read as a state. "is not running" is checked before
+/// "is running", which it contains.
+fn baloo_status(output: &str) -> IndexState {
     let output = output.to_lowercase();
     if output.trim().is_empty() || output.contains("disabled") {
-        Presence::Absent
+        IndexState::Absent
+    } else if output.contains("is not running") {
+        IndexState::Dormant
+    } else if output.contains("is running") {
+        IndexState::Running
     } else {
-        Presence::Present
+        IndexState::Dormant
     }
 }
 
@@ -105,8 +110,8 @@ mod tests {
     use std::time::Duration;
 
     use super::{baloo_args, baloo_status, parse_paths};
+    use crate::providers::files::choice::IndexState::{self, Absent, Dormant, Running};
     use crate::providers::files::index::{FileAsk, HitLimit};
-    use crate::units::Presence::{self, Absent, Present};
 
     #[test]
     fn only_absolute_paths_under_the_folder_survive() {
@@ -145,17 +150,18 @@ mod tests {
     }
 
     #[test]
-    fn a_disabled_baloo_is_absent() {
-        let cases: &[(&str, Presence)] = &[
+    fn baloo_is_running_stopped_or_disabled() {
+        let cases: &[(&str, IndexState)] = &[
             (
                 "Baloo is currently disabled. To enable, please run balooctl enable\n",
                 Absent,
             ),
             (
                 "Baloo File Indexer is running\nIndexer state: Idle\n",
-                Present,
+                Running,
             ),
-            ("Baloo File Indexer is not running\n", Present),
+            ("Baloo File Indexer is not running\n", Dormant),
+            ("something else\n", Dormant),
             ("", Absent),
         ];
         for &(output, want) in cases {
