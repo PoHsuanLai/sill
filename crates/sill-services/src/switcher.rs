@@ -8,8 +8,8 @@
 use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, WindowKey};
 
-use crate::apps::AppIndex;
-use crate::cosmic_wl::{Toplevels, WlCommand};
+use crate::apps::{AppIndex, match_app};
+use crate::cosmic_wl::{Toplevel, Toplevels, WindowState, WlCommand};
 
 /// Whether an app has a window on screen.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
@@ -35,27 +35,74 @@ pub struct SwitcherApp {
 /// its raw `app_id` (so an app with no desktop entry still gets a tile); a window with an empty
 /// `app_id` is skipped.
 pub fn switcher_apps(toplevels: &Toplevels, index: &AppIndex) -> Vec<SwitcherApp> {
-    todo!(
-        "M11 fill: c-switcher ({} windows, {} apps)",
-        toplevels.windows.len(),
-        index.apps.len()
-    )
+    toplevels
+        .windows
+        .iter()
+        .filter_map(|window| app_of(window, index).map(|app| (app, window)))
+        .fold(Vec::new(), |mut apps: Vec<SwitcherApp>, (app, window)| {
+            match apps.iter_mut().find(|known| known.app == app) {
+                Some(known) => {
+                    known.windows.push(window.key);
+                    known.shown = merged(known.shown, shown_of(window));
+                }
+                None => apps.push(SwitcherApp {
+                    app,
+                    windows: vec![window.key],
+                    shown: shown_of(window),
+                }),
+            }
+            apps
+        })
+}
+
+/// The app a window belongs to: its desktop entry, else its raw `app_id`; none when empty.
+fn app_of(window: &Toplevel, index: &AppIndex) -> Option<AppId> {
+    let raw = window.app_id.trim();
+    if raw.is_empty() {
+        return None;
+    }
+    Some(match_app(raw, None, index).unwrap_or_else(|| AppId(raw.to_owned())))
+}
+
+fn shown_of(window: &Toplevel) -> AppShown {
+    match window.window {
+        WindowState::Normal => AppShown::Visible,
+        WindowState::Minimized => AppShown::AllMinimized,
+    }
+}
+
+/// An app is visible when any of its windows is.
+fn merged(a: AppShown, b: AppShown) -> AppShown {
+    match (a, b) {
+        (AppShown::AllMinimized, AppShown::AllMinimized) => AppShown::AllMinimized,
+        _ => AppShown::Visible,
+    }
 }
 
 /// Release on an app (design/13 "Release"): unminimize and activate its most recent window;
 /// macOS brings only that one forward. `Unminimize` first when every window is minimized.
 pub fn activate(app: &SwitcherApp) -> Vec<WlCommand> {
-    todo!("M11 fill: c-switcher ({app:?})")
+    let Some(&first) = app.windows.first() else {
+        return Vec::new();
+    };
+    match app.shown {
+        AppShown::Visible => vec![WlCommand::Activate(first)],
+        AppShown::AllMinimized => vec![WlCommand::Unminimize(first), WlCommand::Activate(first)],
+    }
 }
 
 /// Q: ask every window of the app to close.
 pub fn quit(app: &SwitcherApp) -> Vec<WlCommand> {
-    todo!("M11 fill: c-switcher ({app:?})")
+    app.windows.iter().copied().map(WlCommand::Close).collect()
 }
 
 /// H: minimize every window of the app.
 pub fn hide(app: &SwitcherApp) -> Vec<WlCommand> {
-    todo!("M11 fill: c-switcher ({app:?})")
+    app.windows
+        .iter()
+        .copied()
+        .map(WlCommand::Minimize)
+        .collect()
 }
 
 #[cfg(test)]
@@ -88,7 +135,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M11 fill: c-switcher"]
     fn windows_group_into_apps_in_mru_order() {
         let toplevels = Toplevels {
             windows: vec![
@@ -111,7 +157,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M11 fill: c-switcher"]
     fn each_verb_as_commands() {
         let foot = app("foot", &[1, 3], AppShown::Visible);
         let mail = app("mail", &[4], AppShown::AllMinimized);
