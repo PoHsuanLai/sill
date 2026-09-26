@@ -9,10 +9,15 @@
 //! clipboard. Live tests connect to a nested compositor by socket ([`ClipDisplay::Socket`])
 //! with their own data only.
 
+mod content;
 mod live;
 mod model;
 mod offer;
+mod pipes;
 mod reduce;
+mod wire;
+mod wire_dispatch;
+mod wire_state;
 mod wl;
 
 pub use model::{

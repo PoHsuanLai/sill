@@ -11,6 +11,7 @@ use crate::launch::{LaunchCommand, LaunchRequest};
 use sill_launcher::AppId;
 
 use super::dbus;
+use super::open::{Manager, user_manager};
 
 /// Run until `commands` closes (the `Control` was dropped).
 pub(super) async fn run(
@@ -103,6 +104,21 @@ async fn spawn_scope(
 /// --scope` execs in place of itself), so [`wait_for_exit`] does not need to know which path
 /// was taken.
 fn start(argv: &[String], token: Option<&str>) -> std::io::Result<tokio::process::Child> {
+    start_with(argv, token, user_manager())
+}
+
+/// [`start`] for a user manager in `manager`'s state: when it is unreachable (no
+/// `$XDG_RUNTIME_DIR/systemd/private`, as under a scratch runtime folder) `systemd-run --user`
+/// would only exit 1, so the bare command runs in its own process group straight away (FINDINGS
+/// "M9 lane a", F666).
+fn start_with(
+    argv: &[String],
+    token: Option<&str>,
+    manager: Manager,
+) -> std::io::Result<tokio::process::Child> {
+    if manager == Manager::Missing {
+        return spawn_argv(&bare_command(argv), token, true);
+    }
     match spawn_argv(argv, token, false) {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             spawn_argv(&bare_command(argv), token, true)
@@ -197,7 +213,7 @@ fn record(tx: &watch::Sender<Launches>, outcome: LaunchOutcome) {
 
 #[cfg(test)]
 mod tests {
-    use super::{bare_command, start};
+    use super::{Manager, bare_command, start, start_with};
 
     #[test]
     fn bare_command_takes_what_follows_the_scopes_own_dash_dash() {
@@ -231,5 +247,21 @@ mod tests {
         let mut child = start(&argv, None).unwrap_or_else(|e| panic!("{e}"));
         let status = child.wait().await.unwrap_or_else(|e| panic!("{e}"));
         assert!(status.success());
+    }
+
+    /// With no reachable user manager the wrapper is never run: `/bin/false` stands where
+    /// `systemd-run` would be, so only the bare command after `--` can succeed.
+    #[tokio::test]
+    async fn an_unreachable_user_manager_runs_the_bare_command() {
+        let argv: Vec<String> = ["/bin/false", "--user", "--scope", "--", "/bin/true"]
+            .iter()
+            .map(|s| (*s).to_owned())
+            .collect();
+        let cases = [(Manager::Missing, true), (Manager::Reachable, false)];
+        for (manager, succeeds) in cases {
+            let mut child = start_with(&argv, None, manager).unwrap_or_else(|e| panic!("{e}"));
+            let status = child.wait().await.unwrap_or_else(|e| panic!("{e}"));
+            assert_eq!(status.success(), succeeds, "{manager:?}");
+        }
     }
 }

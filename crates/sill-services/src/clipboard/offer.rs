@@ -1,5 +1,5 @@
-//! Which of an offer's MIME types to read, and which offers never to read at all. Pure; lane b
-//! fills it (FINDINGS "M9 freeze" F647).
+//! Which of an offer's MIME types to read, and which offers never to read at all. Pure (FINDINGS "M9
+//! freeze" F647, "M9 lane b" F682).
 //!
 //! Password managers mark what they copy so clipboard managers leave it alone: KDE's
 //! `x-kde-passwordManagerHint` (value `secret`; KeePassXC, KWallet, Plasma's own), and the
@@ -42,8 +42,43 @@ pub enum MimePick {
 /// keeps the richer one, but the launcher's row and paste are text first). `images` is
 /// whether the policy keeps images at all.
 pub fn offer_verdict(mimes: &[String], images: ImagesKept) -> OfferVerdict {
-    let _ = (mimes, images);
-    todo!("M9 fill: b-clipboard")
+    if mimes
+        .iter()
+        .any(|mime| SECRET_HINTS.contains(&mime.as_str()))
+    {
+        return OfferVerdict::Secret;
+    }
+    let text = best_of(mimes, TEXT_TYPES).map(MimePick::Text);
+    let image = match images {
+        ImagesKept::Kept => best_of(mimes, IMAGE_TYPES).map(MimePick::Image),
+        ImagesKept::Skipped => None,
+    };
+    text.or(image)
+        .map_or(OfferVerdict::Nothing, OfferVerdict::Read)
+}
+
+/// The text types read, preferred first. `STRING` and `TEXT` are X11's Latin-1 forms; what
+/// they hold is kept only when it is valid UTF-8 (ASCII always is).
+const TEXT_TYPES: &[&str] = &[
+    "text/plain;charset=utf-8",
+    "text/plain",
+    "UTF8_STRING",
+    "STRING",
+    "TEXT",
+];
+
+/// The image types read, preferred first: the ones the workspace's `image` build decodes.
+const IMAGE_TYPES: &[&str] = &["image/png", "image/jpeg", "image/jpg"];
+
+/// The offered type (as the source spelled it) that comes first in `preferred`, compared
+/// without regard to case (`text/plain;charset=UTF-8` is the same type).
+fn best_of(mimes: &[String], preferred: &[&str]) -> Option<String> {
+    preferred.iter().find_map(|want| {
+        mimes
+            .iter()
+            .find(|offered| offered.eq_ignore_ascii_case(want))
+            .cloned()
+    })
 }
 
 /// Whether images are kept (the policy's image cap is not zero).
@@ -62,7 +97,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M9 fill: b-clipboard"]
     fn secrets_are_never_read_and_text_is_preferred() {
         let cases: Vec<(&[&str], ImagesKept, OfferVerdict)> = vec![
             (
@@ -102,6 +136,45 @@ mod tests {
                 OfferVerdict::Nothing,
             ),
             (&[], ImagesKept::Kept, OfferVerdict::Nothing),
+        ];
+        for (offer, images, want) in cases {
+            assert_eq!(offer_verdict(&mimes(offer), images), want, "{offer:?}");
+        }
+    }
+
+    #[test]
+    fn a_hint_alone_or_a_spelling_still_decides() {
+        let cases: Vec<(&[&str], ImagesKept, OfferVerdict)> = vec![
+            (
+                &["application/x-kde-passwordManagerHint", "image/png"],
+                ImagesKept::Kept,
+                OfferVerdict::Secret,
+            ),
+            (
+                &["org.nspasteboard.TransientType"],
+                ImagesKept::Skipped,
+                OfferVerdict::Secret,
+            ),
+            (
+                &["text/plain;charset=UTF-8"],
+                ImagesKept::Kept,
+                OfferVerdict::Read(MimePick::Text("text/plain;charset=UTF-8".to_owned())),
+            ),
+            (
+                &["image/jpeg", "image/bmp"],
+                ImagesKept::Kept,
+                OfferVerdict::Read(MimePick::Image("image/jpeg".to_owned())),
+            ),
+            (
+                &["image/png", "TEXT"],
+                ImagesKept::Skipped,
+                OfferVerdict::Read(MimePick::Text("TEXT".to_owned())),
+            ),
+            (
+                &["image/bmp", "text/html"],
+                ImagesKept::Kept,
+                OfferVerdict::Nothing,
+            ),
         ];
         for (offer, images, want) in cases {
             assert_eq!(offer_verdict(&mimes(offer), images), want, "{offer:?}");

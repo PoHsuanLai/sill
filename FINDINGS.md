@@ -5343,3 +5343,227 @@ and reports).
 - **G230 (shell-host / KWin)** Whether headless KWin 6.7 offers `ext_data_control_manager_v1` or
   `zwlr_data_control_manager_v1` is unverified; lane e reports it, and if neither, the clipboard
   step of the real-input run is NOT PROVEN there (cosmic-comp offers both).
+
+## M9 lane b: the clipboard history (2026-09-26)
+
+- **F680 The service is a task and a thread per connection.** `clipboard/live.rs` (the task
+  `spawn_with` starts) owns the `ClipState`, reduces every command and every event through
+  `reduce_clipboard`, publishes with `send_if_modified`, and carries out the effects: `Connect`
+  starts `clipboard/wire.rs`'s thread (`sill-clipboard`: its own connection, `ext` else `wlr` on
+  the first `wl_seat`, a calloop loop over the connection and a channel of orders), `Disconnect`
+  drops the orders' sender, which stops the loop and drops the connection, and `OfferSelection`
+  is an order. Each connection has an epoch; the task drops whatever an older one says, so a
+  late `Connected` from a thread already told to stop cannot publish a protocol while off.
+  Nothing connects before the daemon's first policy (`Services::spawn` in a test stays passive).
+- **F681 Reading never blocks the loop.** An accepted offer is received into a `std::io::pipe`
+  whose read end is a level-triggered calloop source (one `read` per readiness, so no
+  `O_NONBLOCK` and no new dependency), given up at 2 s; an entry offered back is written the same
+  way, one page per writable readiness, given up at 5 s. So the service reading its own offer
+  back (the compositor reports it as a new selection) is served and read by the same loop, and
+  the reducer's "same content keeps its key" rule makes it one entry (proven live: one entry
+  after offering back). Limits: text **1 MiB** (`content::TEXT_LIMIT`, proposed, no settings key),
+  images the policy's `clipboard_image_max_mb`; past either the read stops (`Skipped::TooLarge`).
+  Text is kept only as valid, non-blank UTF-8 (so X11's Latin-1 `STRING`/`TEXT` only when ASCII);
+  an image only when its header gives a size (`image::ImageReader::into_dimensions`).
+- **F682 What is followed.** Only `selection`: `zwlr` is bound at version 1, which has no
+  primary selection; `ext` always sends `primary_selection`, whose offers are destroyed unread.
+  `offer_verdict` runs on the announced types before any `receive`: a `SECRET_HINTS` type skips
+  the offer on its presence (the live test and `dev/accept-clipboard.sh` step 3 use the new
+  `examples/secret_source.rs`, an `ext` data-control source offering made-up text plus
+  `x-kde-passwordManagerHint`, which refuses a relative socket path and `wayland-0`). Text types
+  are compared without case (`text/plain;charset=UTF-8`); images are PNG, else JPEG.
+- **F683 The protocol cosmic-comp offers.** The nested cosmic-comp (`wayland-1`) advertises both
+  `ext_data_control_manager_v1` v1 and `zwlr_data_control_manager_v1` v2; the service binds
+  **`ext`**, and `sill clipboard status` says `memory ext`.
+- **F684 Turning history on keeps the selection there is**: binding the device makes the
+  compositor send the current selection, which is read like any other (klipper does the same).
+  `dev/accept-clipboard.sh` clears the nested selection before turning history back on for that
+  reason. Whether the one at start should be skipped is Q320.
+- **F685 Rows.** `clip_items`: a text row's title is its first non-blank line, trimmed, cut to
+  80 characters with an ellipsis; its subtitle "2 min ago · 1,204 characters" ("Just now", "N
+  min ago", "N h ago", "Yesterday", "N days ago"); an image row "Image", "Just now · 640×480 PNG",
+  matched by "image", its short type and its MIME type. Text matches on its first 10 000
+  characters. The score is `rank` with no frecency (clipboard use is never counted), plus the
+  title-prefix boost; ties keep newest first. Id is the key; `Subject::Clip` carries an excerpt
+  at `ExcerptLimit::PANE` (a private helper, since `excerpt_of` is lane d's), never the whole
+  text. One action, "Forget" ⌘⌫. `query`: nothing for nothing typed unless asked alone
+  (`Scope::Only(Clipboard)`), then newest first; a batch is always pushed unless cancelled.
+- **F686 Reducer rules beyond the frozen table**: a smaller image cap drops kept images over it;
+  turning history off also publishes `not_connected` at once; `Connected` while off publishes
+  nothing; a cap of 0 keeps nothing.
+- **F687 Logging**: only fault kinds (`sill: clipboard: a selection was not written in time:
+  timed out`, a socket or registry error) and the missing-protocol line; never a type list, a
+  length or content. The example is found by Cargo's auto-discovery (no `[[example]]` entry:
+  `crates/sill-services/Cargo.toml` is not this lane's).
+- **Q320 (sill / design/22)** Should the selection present when history turns on (sill start,
+  or `off` to `memory`) be kept? Today it is (F684). macOS keeps nothing before the manager runs;
+  skipping it would make "turn history on" never reach back.
+- **Q321 (sill-services, frozen)** `clip_items(history, needle, matcher)` has no `now`, so it
+  reads the clock for the age words; the pure `rows_at(.., now)` is what the tables test. At the
+  next freeze: `clip_items(.., now: UnixTime)`.
+- **Q322 (sill-ipc, frozen)** `ClipboardReport` has no count of skipped selections, so a skipped
+  password-manager copy is only observable as "still N entries". A `skipped: u32` (a count, no
+  kinds) would let `sill clipboard status` prove it directly.
+- **G250** `dev/accept-clipboard.sh` step 4 (launcher row, Enter, `wl-paste`) is PENDING until lane
+  d answers `sill debug launcher-rows` and `launcher-key`; `tests/clipboard_live.rs` proves the
+  same path below the launcher (`ClipboardCommand::Offer`, then `wl-paste` reads the entry).
+- **G251** The script and the live test assume nothing else copies on the nested compositor while
+  they run (another lane's acceptance copying an emoji would change the counts).
+- Verified: `cargo test -p sill-services --test clipboard_live -- --ignored` on the nested
+  cosmic-comp: ok (`Ext`; text kept, marked copy skipped, offered back and pasted, image 3×2 kept,
+  forget, clear, off). `dev/accept-clipboard.sh`: 5 PASS, 1 PENDING (step 4), exit 2.
+
+## M9 lane a: Documents (2026-09-26)
+
+Lane a of "The M9 fill-in" (owns `providers/files/**`, `launch/open.rs`, `tests/files_*.rs`,
+`examples/{files_probe, file_manager_stub}.rs`, `dev/accept-launcher-files.sh`). The eight
+`a-files` tests run un-ignored; no frozen signature, public field or variant changed. Private
+files added under `providers/files/`: `bus.rs` (F107's `Handle::block_on`, else a
+current-thread runtime), `program.rs` (a search program within a budget), `stat.rs`, `cursor.rs`,
+`query_tests.rs`.
+
+- **F660 `FilesProvider::query` as its doc says.** The text is trimmed; nothing typed asks no
+  index, also when Files is asked alone (`Scope::Only`); `FilesChoice::Off` asks none and is
+  checked before detection, so an `Off` policy never touches the bus. Otherwise one `FileAsk {
+  text, under: home, limit: 40, budget: policy.files_budget }` (40: the section publishes at most
+  20, and a hit the name match drops leaves room); `Hits` and `Partial` are pushed as one batch,
+  `Unavailable` and a cancelled query push nothing. Pinned by `files/query_tests.rs` with a
+  scripted index that records its asks.
+- **F661 Detection is cached once per process, not per provider.** `FilesProvider`'s frozen
+  fields have no slot for a cache, so `detect()` lives in a `static OnceLock` beside it; the
+  daemon builds one provider, so the two are the same today (a backend installed after sill
+  started is seen after a restart). Tracker is `NameHasOwner` or `ListActivatableNames` (never
+  started by detecting); Baloo is `baloosearch6` on `PATH` and `balooctl6 status` (C locale) not
+  saying "disabled" (enabled but not running counts: `baloosearch6` reads the index itself);
+  `fd` and `plocate` are `PATH` only (Debian's `fdfind` is not looked for).
+- **F662 Tracker, checked live in localsearch's own sandbox.** `localsearch test-sandbox
+  --store-tmpdir --index-recursive-directories <scratch>` runs a private bus and a miner over one
+  folder only; `tests/files_tracker_live.rs` (`#[ignore = "needs localsearch"]`) runs the probe
+  inside it and gets `m9-report.pdf` (`~/Documents`, `application/pdf`) and the folder `m9 dir`
+  (`inode/directory`). What it showed: the name `org.freedesktop.Tracker3.Miner.Files` still
+  answers beside localsearch 3.11's `org.freedesktop.LocalSearch3`; `Endpoint.Query(s, h,
+  a{sv})` takes the write end of a `std::io::pipe()` (no new dependency, no unsafe); the cursor
+  format documented in `cursor.rs` (host-order i32 column count, types and end offsets, then
+  NUL-ended strings, row after row) reads correctly. The SPARQL needs `GRAPH tracker:FileSystem`
+  and `DISTINCT`: over the union graph every file came back eight times. The miner skips a
+  tmpfs folder, so the test's scratch folder is under the target directory. Name only, a
+  case-insensitive substring like `fd`, never `fts:match`; with no rank the newest come first.
+  The budget is a timeout on the call and a deadline on the read; a call that outlives it is
+  `Partial` with nothing.
+- **F663 Content hits are dropped (the lane's call `hits.rs` asked for).** A row shows a name, so
+  the name must be why it is there: Tracker is not asked for content, and a Baloo hit that
+  matched by content or a word prefix only is dropped by the name match. Two indexes naming one
+  path make one row.
+- **F664 Ranking.** `rank_text` over the name with the row's frecency, +50 for a file modified in
+  the last 7 days and +25 within 30 (a date in the future counts as today's); ties by title, then
+  path. Icons `folder`, `image`, `file`; actions Reveal in Files ⌘R and Copy Path ⌘C.
+- **F665 The walk.** `fd` and `plocate` run with no shell, the text one argument after `--`, the
+  C locale; output is read on a thread while the caller watches the clock and the query's
+  generation (10 ms tick), killed at the budget, the line the kill cut dropped. A program that
+  exits 1 still answers what it printed (`fd` after an unreadable folder, `plocate` with no
+  match). `plocate --limit` counts matches everywhere before the home filter, so a common name can
+  fill the limit with system files; `fd` comes first in `Walk`. `fd` honours `.gitignore`, so a
+  home kept as a dotfiles repository that ignores `*` would hide every file (not handled).
+- **F666 Opening (`launch/open.rs`).** `xdg-open` in `systemd-run --user --scope --collect
+  --unit=app-sill-open.<pid>-<n>.scope` when `$XDG_RUNTIME_DIR/systemd/private` exists, else in
+  its own process group (also when `systemd-run` is missing); the token as
+  `XDG_ACTIVATION_TOKEN` and `DESKTOP_STARTUP_ID`; the child reaped on the runtime; a failure logs
+  its `io::ErrorKind` only. The socket check is needed because `systemd-run --user` without a
+  reachable manager exits 1, as `xdg-open` does, so the failure cannot be told apart afterwards.
+  **The app launch path has that gap** (`launch/run.rs`, not this lane's): it falls back only on
+  `NotFound`, so a daemon given a scratch `XDG_RUNTIME_DIR` (every acceptance script) cannot
+  launch an app at all. A reveal calls `FileManager1.ShowItems([uri], token)` when the name has
+  an owner, else `xdg-open` on the folder. URIs are percent-encoded as GLib writes them
+  (`tracker::file_uri`, shared with the SPARQL prefix); **the dock's `launch/dbus.rs`
+  `show_in_files` builds its URI unencoded** (`file://` + the path as displayed), so a
+  `.desktop` path with a space or `#` is a broken URI (not this lane's file).
+- **F667 Reveal and an activatable file manager.** As frozen, a reveal needs an owner of
+  `org.freedesktop.FileManager1`; on this machine the name is only activatable (Dolphin), and
+  cosmic-files is started the same way, so a reveal usually opens the folder without selecting
+  the file. Spotlight selects it. Proposed: also call `ShowItems` when the name is activatable
+  (activation starts the file manager with the file selected). Not done, because the frozen doc
+  says "has an owner".
+- **F668 Auto on a machine where localsearch is installed but idle.** Here `detect()` finds
+  Tracker (activatable, no owner), Baloo absent (disabled), `fd` and `plocate` present, so `Auto`
+  (the daemon's default, F652) picks Tracker, and the first keystroke's `Query` **activates
+  localsearch-3, which then indexes the home folder under its own settings**, while that ask
+  answers nothing within 150 ms. That follows the frozen `Detected::tracker` doc ("has an owner or
+  is activatable") and `pick`'s order, but it is a side effect a person did not ask for.
+  Proposed for the brief owner: `Auto` prefers a running Tracker, then Baloo, then `fd`, and an
+  activatable-only Tracker only when named (`files_backend = "tracker"`); that needs
+  `Detected::tracker` to tell owned from activatable, a frozen-type change, so it is reported,
+  not made. The acceptance never reaches it: its daemon's private bus activates nothing.
+- **F669 Acceptance (`dev/accept-launcher-files.sh`, exit 2).** On the nested compositor, with a
+  scratch HOME, runtime, config, data, state and cache, a private bus and
+  `XDG_CURRENT_DESKTOP=X-Generic` (so `xdg-open` asks `xdg-mime`, which reads the scratch
+  `mimeapps.list` naming a stub `.desktop` that records its argument, the token and its cgroup):
+  (1) the provider lists `m9-report.pdf` under `~/Documents` for `m9-rep`: PASS; the daemon's
+  `launcher-rows`: PENDING (lane d). (2) Enter opens it with the token, bare (no user manager in
+  the scratch runtime): PASS; and inside `app-sill-open.<pid>-1.scope` when only `systemd-run`
+  sees the real runtime folder: PASS. (3) ⌘R: the stub `FileManager1` records `ShowItems` with
+  the file's URI and the token: PASS; with no file manager on the bus the folder opens: PASS.
+  (4) `off`: the provider lists nothing: PASS; the daemon after `sill reload`: PENDING (lane d).
+  (5) `detect()` here: `tracker=Present baloo=Absent fd=Present plocate=Present`: PASS; Tracker
+  end to end in its sandbox: PASS. Once lane d answers rows, steps 1 and 4 check the daemon with
+  no change to the script.
+- **Q310 (design/20 §1.3) Is a file matched smart-case?** The launcher's `Needle` is smart case
+  (a capital makes it case-sensitive), so typing `M9` asks every index case-insensitively and
+  then drops `m9-report.pdf`. That is consistent with apps, but Spotlight matches file names
+  without case. A row for §1.3 ("file names match without case") would need `Needle` to take a
+  case mode (a sill-launcher change, frozen).
+
+### M9 lane a follow-ups (2026-09-26)
+
+The coordinator authorised the frozen-type change below and `launch/{run,dbus}.rs` for this
+round. F661 and F665 stand as recorded.
+
+- **F670 `Auto` never starts an indexer (fixes F668).** `choice::Detected.{tracker, baloo}` are
+  now `choice::IndexState::{Running, Dormant, Absent}` (was `Presence`): Tracker is `Running`
+  when `org.freedesktop.Tracker3.Miner.Files` has an owner and `Dormant` when it is only
+  activatable; Baloo is `Running` when `balooctl6 status` says "is running", `Dormant` when it
+  is enabled but "is not running" (or says something unrecognised), `Absent` when disabled or
+  not installed. The rule in `pick`: **`Auto` asks a running Tracker, else a running Baloo, else
+  `fd`, else `plocate`; it never asks a dormant indexer.** A backend named in the setting
+  (`tracker`, `baloo`) is asked while it is `Running` or `Dormant`, so `files_backend =
+  "tracker"` may still start localsearch: the person chose it. Pinned by the 15-row table
+  `auto_never_starts_an_indexer_and_a_named_backend_is_never_substituted`. Call sites updated:
+  `baloo.rs`, `tracker.rs`, `files_probe`, `tests/files_{walk,tracker}_live.rs`. On this machine
+  `detect()` is now `tracker=Dormant baloo=Absent fd=Present plocate=Present`, so `Auto` walks
+  with `fd`. In localsearch's sandbox the probe sees the miner `Dormant` or `Running` depending
+  on timing; the named backend finds the files either way. The owner/activatable check is one
+  helper, `providers::files::bus::name_state` (`NameState::{Owned, Activatable, Missing}`),
+  shared with the reveal (F672).
+- **Q311 (design/22) The `launcher.files_backend` row (Q301) changes** its Range / Alt text to:
+  "auto asks a running Tracker 3, else a running Baloo, else fd/plocate; it never starts an
+  indexer. tracker or baloo asks that index and may start it; a named backend that is missing
+  searches nothing".
+- **F671 Launching without a reachable user manager (fixes F666's gap).** `launch/run.rs`'s
+  `start` now asks `open::user_manager()` (the same `$XDG_RUNTIME_DIR/systemd/private` check
+  `open.rs` uses, shared, not copied) and, when it is `Missing`, runs the command after
+  `systemd-run`'s `--` in its own process group straight away; the `NotFound` fallback stays for
+  a manager that is reachable but has no `systemd-run`. Test
+  `an_unreachable_user_manager_runs_the_bare_command` (with `/bin/false` in `systemd-run`'s
+  place, only the bare command can succeed). A daemon under a scratch runtime folder can now
+  launch apps. `launch/dbus.rs`'s `show_in_files` percent-encodes the `.desktop` file's URI with
+  `tracker::file_uri`; table test with a space (`My%20App.desktop`) and a `#` (`c%23-ide`).
+- **F672 A reveal asks an activatable file manager too (fixes F667).** `ShowItems` is called when
+  `org.freedesktop.FileManager1` is owned or activatable (activation starts it with the file
+  selected, as Spotlight's reveal does); only a missing name falls back to `xdg-open` on the
+  folder. The acceptance checks all three: the stub running, the name missing, and the stub as a
+  service file on the private bus (its own config, `dev/private-bus.conf` plus one scratch
+  `servicedir`, reloaded with `ReloadConfig`), started by the call.
+- **F673 File names match without case (answers Q310 inside the provider).** `hits::file_items`
+  re-parses the needle lower-cased (`without_case`), and a lower-case needle is case-insensitive
+  under the launcher's smart case; nucleo's operators have no case, so `^M9` still anchors. No
+  sill-launcher change. `M9`, `m9-REP`, `Return` and `^M9` find their files (table test); the
+  Tracker sandbox test now asks `M9`, and the acceptance asks `M9-REP`.
+- **F674 `fdfind`.** `fd` is looked for as `fd`, then `fdfind` (Debian and Ubuntu install it
+  under that name), both in `detect()` and when `WalkIndex` runs it
+  (`program::{FD_NAMES, first_on_path}`, table test).
+- **F675 Acceptance after the follow-ups (exit 2).** Step 1 PASS twice (`m9-rep` and `M9-REP`),
+  PENDING for the daemon (lane d); step 2 PASS bare and in `app-sill-open.<pid>-1.scope`; step 3
+  PASS three times (running, missing, activatable); step 4 PASS, PENDING for the daemon; step 5
+  PASS (`tracker=Dormant baloo=Absent fd=Present plocate=Present`; Tracker in its sandbox). The
+  full suite once failed `notification_center_render::a_press_on_a_stack_opens_it_and_a_lone_
+  cards_close_dismisses_it` (sill-surfaces, not touched here) while the machine was loaded; it
+  passed three times alone and in the `--no-fail-fast` rerun (1034 passed, 0 failed).
