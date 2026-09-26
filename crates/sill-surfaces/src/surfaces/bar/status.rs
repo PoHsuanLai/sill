@@ -134,7 +134,11 @@ mod tests {
             ssid: "home".to_owned(),
             strength: Percent(s),
         };
-        let net = |link, connectivity| Network { link, connectivity };
+        let net = |link, connectivity| Network {
+            link,
+            connectivity,
+            ..Network::default()
+        };
         let cases = [
             (net(Link::Disconnected, Connectivity::Full), Icon::WifiOff),
             (net(wifi(80), Connectivity::None), Icon::WifiOff),

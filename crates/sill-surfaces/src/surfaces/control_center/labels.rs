@@ -159,6 +159,7 @@ mod tests {
             presence: Presence::Present,
             power: BtPower::On,
             devices,
+            connect: Default::default(),
         };
         let connected = |name| device(name, BtConnection::Connected, BtBattery::Unknown);
         assert_eq!(bluetooth_status(&Bluetooth::default()), "Unavailable");

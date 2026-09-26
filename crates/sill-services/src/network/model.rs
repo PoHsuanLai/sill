@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::attempt::{AttemptStep as Step, Attempts};
 use crate::units::Percent;
 
 /// What the bar's network item draws.
@@ -9,6 +10,10 @@ use crate::units::Percent;
 pub struct Network {
     pub link: Link,
     pub connectivity: Connectivity,
+    /// The join attempts: one stamp per entry into `Connecting`, a new one per failed
+    /// activation (the bar's Wi-Fi glyph, quire design/26 R4 and R6).
+    #[serde(default)]
+    pub join: Attempts,
 }
 
 /// The primary connection.
@@ -67,10 +72,29 @@ pub enum NetworkEvent {
     Gone,
 }
 
+/// What a change of link means for the join under way: entering `Connecting` starts one (or
+/// is the same one reported again), leaving it for `Disconnected` is a failed activation, and
+/// any link that is up lands it.
+fn join_step(from: &Link, to: &Link) -> Step {
+    match (from, to) {
+        (_, Link::Connecting) => Step::Start,
+        (Link::Connecting, Link::Disconnected) => Step::Fail,
+        (_, Link::Wired | Link::Wifi { .. } | Link::Other) => Step::Land,
+        (
+            Link::Disconnected | Link::Wired | Link::Wifi { .. } | Link::Other,
+            Link::Disconnected,
+        ) => Step::Hold,
+    }
+}
+
 /// `network` after `event`.
 pub fn reduce_network(network: Network, event: NetworkEvent) -> Network {
     match event {
-        NetworkEvent::Link(link) => Network { link, ..network },
+        NetworkEvent::Link(link) => Network {
+            join: network.join.next(join_step(&network.link, &link)),
+            link,
+            ..network
+        },
         NetworkEvent::Strength(strength) => match network.link {
             Link::Wifi { ssid, .. } => Network {
                 link: Link::Wifi {
@@ -85,13 +109,18 @@ pub fn reduce_network(network: Network, event: NetworkEvent) -> Network {
             connectivity,
             ..network
         },
-        NetworkEvent::Gone => Network::default(),
+        // The stamps go on counting, so a later join never reuses one.
+        NetworkEvent::Gone => Network {
+            join: network.join.next(Step::Land),
+            ..Network::default()
+        },
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{Connectivity, Link, Network, NetworkEvent, reduce_network};
+    use crate::attempt::{Attempt, Attempts, OpStamp};
     use crate::units::Percent;
 
     fn wifi(strength: u16) -> Link {
@@ -102,7 +131,93 @@ mod tests {
     }
 
     fn net(link: Link, connectivity: Connectivity) -> Network {
-        Network { link, connectivity }
+        Network {
+            link,
+            connectivity,
+            join: Attempts::default(),
+        }
+    }
+
+    fn joining(link: Link, now: Attempt, minted: u32) -> Network {
+        Network {
+            join: Attempts {
+                now,
+                minted: OpStamp(minted),
+            },
+            ..net(link, Connectivity::Unknown)
+        }
+    }
+
+    #[test]
+    fn each_join_is_stamped_once_and_each_failure_anew() {
+        use Attempt::{Failed, Quiet, Running};
+        let s = OpStamp;
+        // (name, before, link event, after)
+        let cases = [
+            (
+                "entering connecting mints",
+                joining(Link::Disconnected, Quiet, 0),
+                Link::Connecting,
+                joining(Link::Connecting, Running(s(1)), 1),
+            ),
+            (
+                "the same join reported again keeps its stamp",
+                joining(Link::Connecting, Running(s(1)), 1),
+                Link::Connecting,
+                joining(Link::Connecting, Running(s(1)), 1),
+            ),
+            (
+                "a failed activation mints a new stamp",
+                joining(Link::Connecting, Running(s(1)), 1),
+                Link::Disconnected,
+                joining(Link::Disconnected, Failed(s(2)), 2),
+            ),
+            (
+                "the failure holds while disconnected",
+                joining(Link::Disconnected, Failed(s(2)), 2),
+                Link::Disconnected,
+                joining(Link::Disconnected, Failed(s(2)), 2),
+            ),
+            (
+                "a retry is a new join",
+                joining(Link::Disconnected, Failed(s(2)), 2),
+                Link::Connecting,
+                joining(Link::Connecting, Running(s(3)), 3),
+            ),
+            (
+                "joining lands",
+                joining(Link::Connecting, Running(s(3)), 3),
+                wifi(60),
+                joining(wifi(60), Quiet, 3),
+            ),
+            (
+                "a wire lands a failure too",
+                joining(Link::Disconnected, Failed(s(2)), 2),
+                Link::Wired,
+                joining(Link::Wired, Quiet, 2),
+            ),
+            (
+                "dropping an up link is no failure",
+                joining(wifi(60), Quiet, 3),
+                Link::Disconnected,
+                joining(Link::Disconnected, Quiet, 3),
+            ),
+        ];
+        for (name, before, link, want) in cases {
+            assert_eq!(
+                reduce_network(before, NetworkEvent::Link(link)),
+                want,
+                "{name}"
+            );
+        }
+        assert_eq!(
+            reduce_network(
+                joining(Link::Connecting, Running(s(5)), 5),
+                NetworkEvent::Gone
+            ),
+            joining(Link::Disconnected, Quiet, 5),
+            "gone keeps the count"
+        );
     }
 
     #[test]

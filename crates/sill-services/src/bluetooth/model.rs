@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::attempt::{AttemptStep as Step, Attempts};
 use crate::units::{Percent, Presence};
 
 /// The first BlueZ adapter and its devices, as the control center draws them.
@@ -13,6 +14,10 @@ pub struct Bluetooth {
     pub power: BtPower,
     /// Every device BlueZ knows under the adapter, in the order BlueZ reported them.
     pub devices: Vec<BtDevice>,
+    /// The connect attempts: one stamp per device entering `Connecting`, a new one per connect
+    /// that falls back to `Disconnected` (the bar's Bluetooth glyph, quire design/26 R4, R6).
+    #[serde(default)]
+    pub connect: Attempts,
 }
 
 /// The adapter's radio.
@@ -117,6 +122,57 @@ pub enum BluetoothEvent {
 /// `bluetooth` after `event`. A change for an address that is not listed is dropped: the
 /// `Device` event that introduces a device always comes first.
 pub fn reduce_bluetooth(bluetooth: Bluetooth, event: BluetoothEvent) -> Bluetooth {
+    let step = connect_step(&bluetooth, &event);
+    let bluetooth = Bluetooth {
+        connect: bluetooth.connect.next(step),
+        ..bluetooth
+    };
+    reduce_devices(bluetooth, event)
+}
+
+/// What `event` means for the connect under way: a device entering `Connecting` starts one (or
+/// is the same one reported again), one falling from `Connecting` to `Disconnected` is a failed
+/// connect, one reaching `Connected` from `Connecting` lands it, and so does the radio going off
+/// or the adapter going away.
+fn connect_step(bluetooth: &Bluetooth, event: &BluetoothEvent) -> Step {
+    let was = |address: &BtAddress| {
+        bluetooth
+            .devices
+            .iter()
+            .find(|d| &d.address == address)
+            .map(|d| d.connection)
+    };
+    match event {
+        BluetoothEvent::Device(device) => connection_step(was(&device.address), device.connection),
+        BluetoothEvent::Connection {
+            address,
+            connection,
+        } => connection_step(was(address), *connection),
+        BluetoothEvent::Adapter {
+            power: BtPower::Off,
+        }
+        | BluetoothEvent::Gone => Step::Land,
+        BluetoothEvent::Adapter { power: BtPower::On }
+        | BluetoothEvent::Battery { .. }
+        | BluetoothEvent::DeviceRemoved(_) => Step::Hold,
+    }
+}
+
+/// One device's connection going from `was` (`None`: not listed yet) to `now`.
+fn connection_step(was: Option<BtConnection>, now: BtConnection) -> Step {
+    match (was, now) {
+        (_, BtConnection::Connecting) => Step::Start,
+        (Some(BtConnection::Connecting), BtConnection::Disconnected) => Step::Fail,
+        (Some(BtConnection::Connecting), BtConnection::Connected) => Step::Land,
+        (
+            None | Some(BtConnection::Disconnected | BtConnection::Connected),
+            BtConnection::Disconnected | BtConnection::Connected,
+        ) => Step::Hold,
+    }
+}
+
+/// The devices after `event`.
+fn reduce_devices(bluetooth: Bluetooth, event: BluetoothEvent) -> Bluetooth {
     match event {
         BluetoothEvent::Adapter { power } => Bluetooth {
             presence: Presence::Present,
@@ -149,7 +205,11 @@ pub fn reduce_bluetooth(bluetooth: Bluetooth, event: BluetoothEvent) -> Bluetoot
                 ..bluetooth
             }
         }
-        BluetoothEvent::Gone => Bluetooth::default(),
+        // The stamps go on counting, so a later connect never reuses one.
+        BluetoothEvent::Gone => Bluetooth {
+            connect: bluetooth.connect,
+            ..Bluetooth::default()
+        },
     }
 }
 
@@ -199,6 +259,7 @@ mod tests {
         Bluetooth, BluetoothEvent, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,
         BtPower, listed_devices, reduce_bluetooth,
     };
+    use crate::attempt::{Attempt, Attempts, OpStamp};
     use crate::units::{Percent, Presence};
 
     fn device(address: &str, name: &str, connection: BtConnection, pairing: BtPairing) -> BtDevice {
@@ -217,6 +278,83 @@ mod tests {
             presence: Presence::Present,
             power: BtPower::On,
             devices,
+            connect: Attempts::default(),
+        }
+    }
+
+    fn stamped(bluetooth: Bluetooth, now: Attempt, minted: u32) -> Bluetooth {
+        Bluetooth {
+            connect: Attempts {
+                now,
+                minted: OpStamp(minted),
+            },
+            ..bluetooth
+        }
+    }
+
+    #[test]
+    fn each_connect_is_stamped_once_and_each_failure_anew() {
+        use Attempt::{Failed, Quiet, Running};
+        use BtConnection::{Connected, Connecting, Disconnected};
+        use BtPairing::Paired;
+        let s = OpStamp;
+        let buds = |c| on(vec![device("AA", "Buds", c, Paired)]);
+        let to = |connection| BluetoothEvent::Connection {
+            address: address("AA"),
+            connection,
+        };
+        // (name, before, event, after)
+        let cases = [
+            (
+                "a connect mints",
+                stamped(buds(Disconnected), Quiet, 0),
+                to(Connecting),
+                stamped(buds(Connecting), Running(s(1)), 1),
+            ),
+            (
+                "the same connect again keeps it",
+                stamped(buds(Connecting), Running(s(1)), 1),
+                BluetoothEvent::Device(device("AA", "Buds", Connecting, Paired)),
+                stamped(buds(Connecting), Running(s(1)), 1),
+            ),
+            (
+                "a connect that falls back fails anew",
+                stamped(buds(Connecting), Running(s(1)), 1),
+                to(Disconnected),
+                stamped(buds(Disconnected), Failed(s(2)), 2),
+            ),
+            (
+                "connected lands",
+                stamped(buds(Connecting), Running(s(3)), 3),
+                to(Connected),
+                stamped(buds(Connected), Quiet, 3),
+            ),
+            (
+                "a device dropping on its own is no failure",
+                stamped(buds(Connected), Quiet, 3),
+                to(Disconnected),
+                stamped(buds(Disconnected), Quiet, 3),
+            ),
+            (
+                "the radio off lands",
+                stamped(buds(Connecting), Running(s(4)), 4),
+                BluetoothEvent::Adapter {
+                    power: BtPower::Off,
+                },
+                Bluetooth {
+                    power: BtPower::Off,
+                    ..stamped(buds(Connecting), Quiet, 4)
+                },
+            ),
+            (
+                "gone keeps the count",
+                stamped(buds(Connecting), Running(s(4)), 4),
+                BluetoothEvent::Gone,
+                stamped(Bluetooth::default(), Quiet, 4),
+            ),
+        ];
+        for (name, before, event, want) in cases {
+            assert_eq!(reduce_bluetooth(before, event), want, "{name}");
         }
     }
 
@@ -255,7 +393,11 @@ mod tests {
                     address: address("AA"),
                     connection: Connecting,
                 },
-                on(vec![device("AA", "Buds", Connecting, Paired)]),
+                stamped(
+                    on(vec![device("AA", "Buds", Connecting, Paired)]),
+                    Attempt::Running(OpStamp(1)),
+                    1,
+                ),
             ),
             (
                 "a battery level arrives",

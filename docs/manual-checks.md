@@ -175,3 +175,8 @@ and a stand-in helper; these need polkitd, polkit's own helper and a real passwo
   and clears its hover when a surface is unmapped.
 - [ ] shell-host spike item f at a fractional output (1.5): run on the nested compositor at
   `cosmic@1.5`; the KWin run at 2.0 left `screen_row_equals_buffer_row` false (shell-host F45).
+- [ ] D1 G302 (sill FINDINGS "D1 status glyphs"): on the real session, join a saved Wi-Fi network
+  from the control center and watch `sill debug` / the bar. Does `Network.link` ever read
+  `Connecting` (NetworkManager's `PrimaryConnection` activating), or does the join only show
+  in `ActivatingConnection`? If it only shows there, the network service should read it. Once
+  Q390 lands, check that the bar's Wi-Fi glyph searches during the join and fills on joining.

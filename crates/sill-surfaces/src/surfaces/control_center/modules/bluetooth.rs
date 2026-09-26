@@ -92,6 +92,7 @@ mod tests {
             presence: Presence::Present,
             power: BtPower::On,
             devices,
+            connect: Default::default(),
         };
         assert_eq!(bluetooth_glyph(&Bluetooth::default()), Icon::BluetoothOff);
         assert_eq!(bluetooth_glyph(&on(Vec::new())), Icon::Bluetooth);
