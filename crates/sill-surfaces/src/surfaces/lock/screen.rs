@@ -6,8 +6,9 @@
 //! alone); the clock is `ds::LockClock` from [`super::clock_lines`] over the minute
 //! (`use_clock()` wakes it) and `session.lock_clock`; the prompt, only on the output the
 //! [`super::LockLink`] names, is `ds::LockPrompt` with [`super::lock_user`] over
-//! `use_auth().account`, [`super::prompt_state`] over `use_auth().phase`, [`super::caps_lock`]
-//! over the last key event's modifiers, and `onsubmit` sending
+//! `use_auth().account`, [`super::prompt_state`] over `use_auth().phase`, the Caps Lock mark
+//! from shell-host's `use_modifiers()` (published on keyboard focus, so a Caps Lock toggled
+//! before the lock shows from the first frame; [`super::view::caps_of`]), and `onsubmit` sending
 //! `AuthCommand::Submit(Secret::new(text))` on `Services.auth_control` (the text is moved into
 //! the `Secret` there, never stored or logged). On `Accepted` it fades and, on the prompt's
 //! output, calls `shell_host::use_lock().unlock()` when the fade settles;
@@ -20,10 +21,11 @@
 //! the same and the unlock is the daemon's backstop alone.
 
 use dioxus::prelude::*;
-use ds::{BlurState, Ds, Material, RootExtent};
-use shell_host::{LockHandle, LockPhase, OutputInfo, use_lock, use_lock_phase};
+use ds::{BlurState, CapsLock, Ds, Material, RootExtent};
+use shell_host::{LockHandle, LockPhase, OutputInfo, use_lock, use_lock_phase, use_modifiers};
 
 use super::body::{HostLock, LockBody};
+use super::view::caps_of;
 use crate::hooks::{use_appearance, use_ds_scale};
 
 /// The lock screen's stylesheet (lint-clean under `Profile::Strict`, `tests/lock_lint.rs`).
@@ -44,7 +46,7 @@ pub(super) fn lock_screen(output: OutputInfo) -> Element {
             HostedStage { output }
         },
         Hosted::No => rsx! {
-            Stage { output, host: HostLock::Holding, on_unlock: None }
+            Stage { output, host: HostLock::Holding, caps: CapsLock::Off, on_unlock: None }
         },
     }
 }
@@ -57,15 +59,21 @@ fn HostedStage(output: OutputInfo) -> Element {
         LockPhase::Requested | LockPhase::Locked => HostLock::Holding,
         LockPhase::Unlocking | LockPhase::Unlocked | LockPhase::Finished => HostLock::Ending,
     };
+    let caps = caps_of(use_modifiers()().caps_lock);
     let on_unlock = use_callback(move |()| handle.unlock());
     rsx! {
-        Stage { output, host, on_unlock: Some(on_unlock) }
+        Stage { output, host, caps, on_unlock: Some(on_unlock) }
     }
 }
 
 /// The `Ds` root; everything that needs quire's environment is [`LockBody`].
 #[component]
-fn Stage(output: OutputInfo, host: HostLock, on_unlock: Option<Callback<()>>) -> Element {
+fn Stage(
+    output: OutputInfo,
+    host: HostLock,
+    caps: CapsLock,
+    on_unlock: Option<Callback<()>>,
+) -> Element {
     let ds_scale = use_ds_scale();
     let environment = use_appearance()();
     let appearance = environment.settings.appearance.appearance();
@@ -84,7 +92,7 @@ fn Stage(output: OutputInfo, host: HostLock, on_unlock: Option<Callback<()>>) ->
             extent: RootExtent::Viewport,
             blur: BlurState::Unavailable,
             style { {LOCK_CSS} }
-            LockBody { output, scheme, host, on_unlock }
+            LockBody { output, scheme, host, caps, on_unlock }
         }
     }
 }

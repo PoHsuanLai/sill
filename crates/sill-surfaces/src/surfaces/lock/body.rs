@@ -8,7 +8,7 @@ use sill_services::auth::{Auth, AuthFault, PamNote, Secret};
 use sill_services::{AuthCommand, AuthPhase, OutputName};
 
 use super::link::{LockLink, PromptOutput};
-use super::{backdrop_for, caps_lock, clock_lines, lock_user, prompt_state};
+use super::{backdrop_for, clock_lines, lock_user, prompt_state};
 use crate::hooks::{use_auth, use_clock, use_services, use_settings, use_wallpapers};
 
 /// Where shell-host's session lock is, as the surface needs it.
@@ -52,6 +52,7 @@ pub(super) fn LockBody(
     output: OutputInfo,
     scheme: ds::Scheme,
     host: HostLock,
+    caps: CapsLock,
     on_unlock: Option<Callback<()>>,
 ) -> Element {
     let services = use_services();
@@ -63,7 +64,6 @@ pub(super) fn LockBody(
     let _minute = use_clock()();
     let link = use_context::<LockLink>();
     let prompt_at = shell_host::use_watch(link.subscribe())();
-    let mut caps = use_signal(|| CapsLock::Off);
     let here = match prompt_at {
         PromptOutput::On(id) if id == output.id => Here::Yes,
         PromptOutput::On(_) | PromptOutput::Nowhere => Here::No,
@@ -87,7 +87,7 @@ pub(super) fn LockBody(
                 LockPrompt {
                     user: lock_user(&auth.account),
                     state: prompt_state(&auth.phase, &now, format),
-                    caps: caps(),
+                    caps,
                     hint: hint_of(&auth),
                     oninput: move |_: String| {},
                     onsubmit: move |text: String| {
@@ -104,8 +104,6 @@ pub(super) fn LockBody(
             class: "sill-lock",
             "data-leaving": leaving(&auth.phase, host),
             onmousedown: move |_| link.set(PromptOutput::On(id)),
-            onkeydown: move |event: KeyboardEvent| caps.set(caps_lock(event.modifiers())),
-            onkeyup: move |event: KeyboardEvent| caps.set(caps_lock(event.modifiers())),
             LockScreen {
                 wallpaper,
                 clock: rsx! {

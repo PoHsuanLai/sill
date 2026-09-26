@@ -20,6 +20,16 @@ pub fn caps_lock(modifiers: Modifiers) -> CapsLock {
     }
 }
 
+/// Caps Lock from shell-host's live modifiers (`use_modifiers()`, published on keyboard focus
+/// and on every change, so it is known before the first key: G180 closed upstream). The surface
+/// uses this; [`caps_lock`] reads a key event's modifiers.
+pub fn caps_of(key: shell_host::LockKey) -> CapsLock {
+    match key {
+        shell_host::LockKey::Locked => CapsLock::On,
+        shell_host::LockKey::Unlocked => CapsLock::Off,
+    }
+}
+
 /// quire's prompt state for `phase` at `now` (whose zone words the time): `Accepted` is
 /// `Checking` (the unlock is on its way), `Unavailable` is `Idle` (the service's notes are the
 /// hint line), `LockedOut { until }` is quire's `LockedOut` with `until` as the lock clock
@@ -110,7 +120,7 @@ mod tests {
     use sill_services::notifications::UnixMs;
     use sill_settings::LockClock;
 
-    use super::{ClockLines, caps_lock, clock_lines, lock_user, prompt_state};
+    use super::{ClockLines, caps_lock, caps_of, clock_lines, lock_user, prompt_state};
 
     fn at(text: &str) -> jiff::Zoned {
         text.parse::<jiff::Zoned>()
@@ -128,6 +138,8 @@ mod tests {
         for (modifiers, want) in cases {
             assert_eq!(caps_lock(modifiers), want, "{modifiers:?}");
         }
+        assert_eq!(caps_of(shell_host::LockKey::Locked), CapsLock::On);
+        assert_eq!(caps_of(shell_host::LockKey::Unlocked), CapsLock::Off);
     }
 
     #[test]

@@ -105,8 +105,23 @@ Then pick "COSMIC (sill)" at the login screen.
 
 ## sill's own lock screen (M11), on a real COSMIC session
 
+Set `session.locker = "sill"` and install `dist/pam.d/sill` as `/etc/pam.d/sill` (without it
+sill uses the `login` service). `dev/accept-lock.sh` covers the made-up verdicts on the nested
+compositor; these need a person and a real password.
+
 - [ ] With several outputs: the password field is on the output under the pointer, every other
-  output shows the lock surface, and keyboard focus lands in the field.
+  output shows the clock only, and keyboard focus lands in the field. Clicking another output
+  moves the field there, and typing goes to it. (The field starts on the output the compositor
+  gives the keyboard, which cosmic-comp takes from the pointer; confirm that here.)
+- [ ] **A real password**: a wrong one spins, shakes and empties the field (about 2 s:
+  `pam_unix`'s delay); the right one fades the lock screen out and the desktop is back as it was.
+  Nothing about the password appears in `journalctl --user -t sill` or sill's stderr.
+- [ ] **Caps Lock**: turn it on before locking; the mark shows in the field from the first
+  frame, and goes when Caps Lock is turned off.
+- [ ] **Six wrong passwords** (five free tries): the field closes and says "Try again at HH:MM",
+  one minute on; a new lock in that minute keeps the wait.
+- [ ] **Lock before sleep** and **logind's Lock** (`loginctl lock-session`) show sill's own lock
+  screen once, never two lockers.
 - [ ] At a fractional scale (1.5x): the lock surfaces are crisp and fill every output.
 - [ ] Kill the shell while locked (`pkill -f "sill run"` from a TTY): the session stays locked,
   the session script restarts sill, and sill re-locks at start so you can unlock normally.
