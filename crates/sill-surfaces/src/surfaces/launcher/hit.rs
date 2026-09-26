@@ -7,7 +7,7 @@
 use shell_host::{ElementId, Rect, RegionSpec, RoundedRect};
 
 use crate::surfaces::launcher::layer::{
-    CARD_BLUR_RADIUS, CARD_ID, PANEL_HEIGHT, PANEL_WIDTH, SHADOW_SIDE,
+    CARD_BLUR_RADIUS, CARD_ID, PANEL_HEIGHT, PANEL_ROOM_WIDTH, SHADOW_SIDE,
 };
 
 /// The part of the panel that takes presses.
@@ -31,7 +31,7 @@ pub fn panel_input(hit: PanelHit) -> RegionSpec {
                 rect: Rect {
                     x: side(SHADOW_SIDE),
                     y: 0,
-                    width: side(PANEL_WIDTH),
+                    width: side(PANEL_ROOM_WIDTH),
                     height: side(PANEL_HEIGHT),
                 },
                 radius: 0,
@@ -92,7 +92,7 @@ mod tests {
         let panel = Rect {
             x: 42,
             y: 0,
-            width: 680,
+            width: 1040,
             height: 460,
         };
         assert_eq!(whole.iter().map(|r| r.rect).collect::<Vec<_>>(), [panel]);

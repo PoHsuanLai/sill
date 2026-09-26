@@ -1,5 +1,5 @@
 //! Launcher v2 on the real panel in a `ds_native::Harness` (M9 lane d): the runner's sections
-//! with Top Hit and "Show More", the preview pane's keys (Space while browsing, ⌘Y, → twice,
+//! with Top Hit and "Show More", the preview pane's keys (Space while browsing, ⌘Y, → at the end,
 //! Escape one level at a time), a row chord run from the results, Tab to one provider, and the
 //! `sill debug launcher-*` link. The M9 rows are the fakes' (`launcher_support/m9.rs`): lanes a,
 //! b and c fill the real providers.
@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use ds::Key;
 use launcher_harness::launcher_support::m9;
-use launcher_harness::{Open, is_open, open, settle, titles};
+use launcher_harness::{Open, is_open, open, settle};
 use sill_launcher::{OpenTarget, PreviewKind};
 use sill_services::{LaunchCommand, SearchCommand};
 use sill_surfaces::surfaces::launcher::debug_link::{LinkKey, ShownRows};
@@ -108,14 +108,14 @@ fn command_y_while_typing_then_right_enter_the_pane_and_escape_steps_out() {
         Some(PreviewKind::Pdf),
         "⌘Y while typing"
     );
-    // The field opened with "m9" keeps its caret at the start (FINDINGS Q341): two → walk it to
-    // the end, and only then does → enter the pane.
-    press(&mut open, LinkKey::Right);
-    press(&mut open, LinkKey::Right);
+    let html = open.harness.html();
+    assert!(html.contains("ds-preview"), "quire's pane");
+    assert!(html.contains("ds-palette-aside"), "as the palette's aside");
     assert!(
-        !open.harness.html().contains("data-variant=\"primary\""),
-        "the caret moved"
+        !html.contains("data-focused=\"true\""),
+        "the results have the keyboard"
     );
+    // `sill debug launcher-key right` is → at the field's end.
     press(&mut open, LinkKey::Right);
     let html = open.harness.html();
     assert!(html.contains("Reveal in Files"), "the pane's controls");
@@ -124,12 +124,12 @@ fn command_y_while_typing_then_right_enter_the_pane_and_escape_steps_out() {
         "with their chords"
     );
     assert!(
-        html.contains("data-variant=\"primary\""),
+        html.contains("data-focused=\"true\""),
         "→ at the end, with the pane shown, gave its first control the keyboard"
     );
     press(&mut open, LinkKey::Escape);
     assert!(
-        !open.harness.html().contains("data-variant=\"primary\""),
+        !open.harness.html().contains("data-focused=\"true\""),
         "back to the results"
     );
     assert_eq!(
@@ -145,6 +145,28 @@ fn command_y_while_typing_then_right_enter_the_pane_and_escape_steps_out() {
 }
 
 #[test]
+fn a_real_right_enters_the_pane_only_from_the_fields_end() {
+    let mut open = open("m9");
+    open.harness.chord(&[Key::Ctrl], Key::Char('y'));
+    open.harness.advance(Duration::from_millis(40));
+    // The field opened with "m9" has its caret at the start: → moves the caret.
+    open.harness.key(Key::Right);
+    open.harness.advance(Duration::from_millis(40));
+    assert!(
+        !open.harness.html().contains("data-focused=\"true\""),
+        "the caret moved"
+    );
+    open.harness.key(Key::End);
+    open.harness.key(Key::Right);
+    open.harness.advance(Duration::from_millis(40));
+    assert!(
+        open.harness.html().contains("data-focused=\"true\""),
+        "→ at the end entered the pane"
+    );
+    assert_eq!(rows(&open).query, "m9", "the field took no key");
+}
+
+#[test]
 fn a_real_space_after_a_real_down_is_quick_look() {
     let mut open = open("m9");
     open.harness.key(Key::Down);
@@ -153,16 +175,16 @@ fn a_real_space_after_a_real_down_is_quick_look() {
     open.harness.key(Key::Space);
     open.harness.advance(Duration::from_millis(40));
     let shown = rows(&open);
-    eprintln!(
-        "after a real Space: query {:?}, preview {:?}",
-        shown.query, shown.preview
-    );
     assert_eq!(
         shown.preview,
         Some(PreviewKind::Pdf),
         "browsing: Quick Look"
     );
     assert_eq!(shown.selected, 0, "the selection stays on the row");
+    assert_eq!(
+        shown.query, "m9",
+        "the claim took the Space: the field typed none"
+    );
 }
 
 #[test]
@@ -221,5 +243,9 @@ fn shift_tab_with_nothing_typed_reaches_emoji_alone() {
         )),
         "the filter asks the emoji provider alone: {searches:?}"
     );
-    assert!(titles(&open.harness).contains(&"🎉".to_owned()));
+    assert_eq!(
+        open.harness.count(".ds-emoji-cell"),
+        3,
+        "quire's emoji grid"
+    );
 }

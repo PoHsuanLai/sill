@@ -6,6 +6,7 @@
 use std::path::PathBuf;
 
 use dioxus::prelude::*;
+use ds::ImageSize;
 use sill_launcher::{ClipKey, Excerpt, ExcerptLimit};
 use sill_services::preview::{PreviewFault, clip_image, read_excerpt};
 
@@ -47,10 +48,38 @@ pub fn use_excerpt(path: Option<PathBuf>) -> Option<Loaded> {
     Some(loaded)
 }
 
+/// The pixel size of the image file at `path` (its header only, read on a thread of its own);
+/// `None` until it is read, or when there is no image or it cannot be read.
+pub fn use_image_size(path: Option<PathBuf>) -> Option<ImageSize> {
+    let mut answer = use_signal(|| None::<(PathBuf, ImageSize)>);
+    let mut asked = use_hook(|| CopyValue::new(None::<PathBuf>));
+    let path = path?;
+    if asked.peek().as_ref() != Some(&path) {
+        asked.set(Some(path.clone()));
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        let reading = path.clone();
+        std::thread::spawn(move || {
+            let _ = tx.send(image::image_dimensions(&reading).ok());
+        });
+        spawn(async move {
+            if let Ok(Some((width, height))) = rx.await {
+                answer.set(Some((path, ImageSize { width, height })));
+            }
+        });
+        return None;
+    }
+    answer
+        .read()
+        .as_ref()
+        .filter(|(answered, _)| *answered == path)
+        .map(|(_, size)| *size)
+}
+
 /// The PNG bytes of the clipboard image kept under `key`, while the history holds it.
 pub fn use_clip_png(key: Option<ClipKey>) -> Option<Vec<u8>> {
     let history = use_clipboard();
     let key = key?;
     let image = clip_image(&history.read(), key)?;
-    Some(image.bytes.to_vec())
+    // quire takes a picture as PNG bytes; the service keeps PNG when it is offered (F647).
+    (image.mime.0 == "image/png").then(|| image.bytes.to_vec())
 }

@@ -21,12 +21,12 @@ use crate::surfaces::launcher::keys::{
     ActionsMenu, Filter, LauncherKey, LauncherOut, LauncherState, next_filter, previous_filter,
     step,
 };
-use crate::surfaces::launcher::pane_session::{CaretAt, PaneSession, next_in_ring, ring_for};
+use crate::surfaces::launcher::pane_session::{PaneSession, next_in_ring, ring_for};
 use crate::surfaces::launcher::presence::{LauncherLink, LauncherShown, OpenSerial, Opening};
 use crate::surfaces::launcher::preview::keys::{PreviewKey, PreviewState};
 use crate::surfaces::launcher::run::{EffectFrom, run_effect};
 use crate::surfaces::launcher::session::Session;
-use crate::surfaces::launcher::view::{Expanded, View, more_section, toggled, view};
+use crate::surfaces::launcher::view::{Expanded, View, toggled, view};
 use crate::surfaces::power_menu::PowerMenuLink;
 
 /// The stderr line for one opening: from the request's arrival (`sill launcher toggle|open`)
@@ -47,14 +47,6 @@ pub(crate) enum Picking {
     Yes,
 }
 
-/// Whether the palette's Escape was the pane's (it hid the pane or gave the keyboard back), so
-/// the `onclose` the palette sent before `onkey` heard the key must not close the launcher.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Held {
-    No,
-    Yes,
-}
-
 /// Everything the panel's handlers reach. Clone is cheap.
 #[derive(Clone)]
 pub(crate) struct PanelCtx {
@@ -62,7 +54,7 @@ pub(crate) struct PanelCtx {
     pub(crate) link: LauncherLink,
     pub(crate) shown: ReadSignal<LauncherShown>,
     pub session: Signal<Session>,
-    /// The M9 state: the preview pane, "Show More", the caret estimate, Tab's ring.
+    /// The M9 state: the preview pane, "Show More", Tab's ring.
     pub pane: Signal<PaneSession>,
     /// The palette field's focus: asked for again when the actions menu closes.
     pub field: FocusRequest,
@@ -76,7 +68,8 @@ pub(crate) struct PanelCtx {
     /// root one; a demo or a test may not).
     pub(crate) power_menu: Option<PowerMenuLink>,
     pub(crate) picking: CopyValue<Picking>,
-    pub(crate) held: CopyValue<Held>,
+    /// How many times the preview pane has finished leaving (quire's `on_hidden`).
+    pub(crate) left: Signal<u64>,
 }
 
 /// The panel's state and handlers on `output`, following the shared launcher state.
@@ -104,7 +97,7 @@ pub(crate) fn use_panel(output: OutputId, results: ReadSignal<Results>) -> Panel
         surface,
         power_menu: try_use_context::<PowerMenuLink>(),
         picking: use_hook(|| CopyValue::new(Picking::No)),
-        held: use_hook(|| CopyValue::new(Held::No)),
+        left: use_signal(|| 0),
     };
     use_openings(ctx.clone());
     ctx
@@ -159,9 +152,6 @@ impl PanelCtx {
         let mut pane = self.pane;
         pane.set(PaneSession {
             serial: opening.serial,
-            // A field handed its first value keeps its caret at the start (Blitz; FINDINGS
-            // Q341): only typing moves it to the end.
-            caret: CaretAt(0),
             ..PaneSession::default()
         });
         let mut row = self.row;
@@ -205,7 +195,7 @@ impl PanelCtx {
     }
 
     /// A key reached the surface's root: the keys the machine reads from the field must not
-    /// take Blitz's default (Tab moves the focus off the field).
+    /// take Blitz's default (Tab moves the focus off the field), as they bubble past.
     pub fn root_key(event: &KeyboardEvent) {
         if matches!(
             crate::surfaces::launcher::keymap::launcher_key(&event.key(), event.modifiers()),
@@ -312,12 +302,8 @@ impl PanelCtx {
         let _ = self.services.search.send(command);
     }
 
-    /// The field's text changed: a new generation of results. A Space typed while browsing is
-    /// Quick Look (`pane_keys::browsing_space`), and asks nothing new.
+    /// The field's text changed: a new generation of results.
     pub fn typed(&self, text: String) {
-        if self.browsing_space(&text) {
-            return;
-        }
         let Some(current) = self.current() else {
             let _ = self.services.search.send(SearchCommand::Query(text));
             return;
@@ -327,7 +313,6 @@ impl PanelCtx {
             self.store_pane(PaneSession {
                 preview,
                 expanded: Expanded::default(),
-                caret: CaretAt(text.chars().count()),
                 ..pane
             });
         }
@@ -343,6 +328,12 @@ impl PanelCtx {
         store.set(pane);
     }
 
+    /// The preview pane has played out its leaving: the palette drops its `aside`.
+    pub(crate) fn pane_gone(&self) {
+        let mut left = self.left;
+        left += 1;
+    }
+
     /// Open or close `section`'s hidden rows; the selection stays on its line.
     pub(crate) fn toggle_section(&self, section: sill_launcher::Section) {
         if let Some(pane) = self.current_pane() {
@@ -354,19 +345,13 @@ impl PanelCtx {
     }
 
     /// A row (or one of its actions) was chosen: count it, carry out what its provider says,
-    /// then close. A "Show More" line opens its section instead; with the preview pane's
-    /// control `n` holding the keyboard, Enter runs that control's action.
+    /// then close. With the preview pane's control `n` holding the keyboard, Enter runs that
+    /// control's action.
     pub fn pick(&self, row: RowRef, choice: Choice) {
         let Some(session) = self.current() else {
             return;
         };
         let mut picking = self.picking;
-        if let Some(section) = more_section(&row) {
-            picking.set(Picking::Yes);
-            self.toggle_section(section);
-            spawn(async move { picking.set(Picking::No) });
-            return;
-        }
         let results = self.results.peek().clone();
         let Some(item) = row.find(fresh(&results, session.since)).cloned() else {
             return;
@@ -417,14 +402,12 @@ impl PanelCtx {
     }
 
     /// The palette asked to close (Escape, Enter, a press outside its card). Deferred a turn,
-    /// so a pick that follows in the same handler keeps the panel mapped for its token, and an
-    /// Escape the preview pane took keeps it open.
+    /// so a pick that follows in the same handler keeps the panel mapped for its token. An
+    /// Escape the preview pane takes never reaches the palette (`claim`).
     pub fn dismissed(&self) {
-        let (picking, mut held, link) = (self.picking, self.held, self.link.clone());
+        let (picking, link) = (self.picking, self.link.clone());
         spawn(async move {
-            let kept = *held.peek();
-            held.set(Held::No);
-            if *picking.peek() == Picking::No && kept == Held::No {
+            if *picking.peek() == Picking::No {
                 link.close();
             }
         });

@@ -1,141 +1,173 @@
-//! The stand-in pane's content for each kind of preview (swap point Q292: quire's
-//! `PaneContent::{Image, Text, Pdf, App, Facts, Emoji, Web}` replaces all of it). Every part is
-//! quire's: `PdfFileThumb`, `IconView`, the `ds-mono`, `ds-eyebrow`, `ds-truncate` and
-//! `ds-emoji-text` classes; sill lays them out only.
+//! A [`Preview`] as quire's `PaneContent` (Q292), with what it names on disk loaded off the UI
+//! thread: a PDF's page through `ds_native::use_pdf_page` (asked only while the preview is a
+//! PDF, so one pane stays mounted whatever it shows), a text file's head and an image's size
+//! through `load.rs`, a clipboard image's bytes from the clipboard service.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-use dioxus::prelude::*;
-use ds::{ExternalIcon, IconPx, IconSize, IconSource, IconUrl, IconView, Px, Size};
+use ds::{Icon, IconSource, ImageSize, ImageSource, Mono, PANE_MEDIA, PaneContent, PdfPage};
 use sill_launcher::{ClipKind, Excerpt, Mime, Preview};
 
-use crate::surfaces::launcher::preview::load::{Loaded, use_clip_png, use_excerpt};
+use crate::surfaces::launcher::preview::load::{Loaded, use_clip_png, use_excerpt, use_image_size};
 use crate::surfaces::launcher::preview::moment::{PaneMoment, use_pane_moment};
 
-/// The PDF page's room in the pane.
-const PDF_ROOM: Size = Size {
-    width: Px(300.0),
-    height: Px(200.0),
-};
-
-/// An image's side in the pane (an `IconView` is square).
-const IMAGE_SIDE: u8 = 200;
-
-/// The content for `preview`, its loads started (hooks run on every render, whatever the kind).
-pub(super) fn use_content(preview: &Preview) -> Element {
-    let text_path = match preview {
+/// The content for `preview` (`icon`: the row's, for an app). Hooks run on every render,
+/// whatever the kind.
+pub(super) fn use_content(preview: &Preview, icon: Option<IconSource>) -> PaneContent {
+    let pdf = match preview {
+        Preview::Pdf { path, .. } => Some(path.clone()),
+        _ => None,
+    };
+    let text = match preview {
         Preview::TextFile(path) => Some(path.clone()),
         _ => None,
     };
-    let clip_key = match preview {
+    let image = match preview {
+        Preview::Image(path) => Some(path.clone()),
+        _ => None,
+    };
+    let clip = match preview {
         Preview::Clipboard(facts) => match facts.kind {
             ClipKind::Image { .. } => Some(facts.key),
             ClipKind::Text { .. } => None,
         },
         _ => None,
     };
-    let excerpt = use_excerpt(text_path);
-    let clip_png = use_clip_png(clip_key);
-    // A slow head read is the pane's `Pending` moment (D0); the pane's Appear, Swap and Leave
+    let page = ds_native::use_pdf_page(pdf, PANE_MEDIA);
+    let excerpt = use_excerpt(text);
+    let size = use_image_size(image);
+    let clip_png = use_clip_png(clip);
+    // A slow head read or page is the pane's `Pending` moment (D0); its Appear, Swap and Leave
     // are the panel's (`panel.rs`), which sees the pane come and go.
-    use_pane_moment(match excerpt {
-        Some(Loaded::Reading) => PaneMoment::Pending,
+    use_pane_moment(match (&excerpt, &page) {
+        (Some(Loaded::Reading), _) | (_, Some(PdfPage::Loading)) => PaneMoment::Pending,
         _ => PaneMoment::Still,
     });
+    content_of(
+        preview,
+        icon,
+        Loads {
+            page,
+            excerpt,
+            size,
+            clip_png,
+        },
+    )
+}
+
+/// What the hooks brought for the preview.
+struct Loads {
+    page: Option<PdfPage>,
+    excerpt: Option<Loaded>,
+    size: Option<ImageSize>,
+    clip_png: Option<Vec<u8>>,
+}
+
+fn content_of(preview: &Preview, icon: Option<IconSource>, loads: Loads) -> PaneContent {
     match preview {
-        Preview::None => rsx! {},
-        Preview::Pdf { path, .. } => rsx! {
-            div { class: "sill-launcher-preview-visual",
-                ds_native::PdfFileThumb { path: path.clone(), size: PDF_ROOM, label: file_name(path) }
-            }
-            {facts(&file_name(path).unwrap_or_default(), &[("Kind", "PDF document".to_owned()), ("Where", folder(path))])}
+        Preview::None => facts(Icon::Search, "No preview", Vec::new()),
+        Preview::Pdf { path, .. } => PaneContent::Pdf {
+            page: loads.page.unwrap_or(PdfPage::Loading),
+            name: file_name(path),
         },
-        Preview::Image(path) => rsx! {
-            {image(IconUrl::file(path).ok())}
-            {facts(&file_name(path).unwrap_or_default(), &[("Where", folder(path))])}
-        },
-        Preview::TextFile(path) => rsx! {
-            {text(excerpt.as_ref())}
-            {facts(&file_name(path).unwrap_or_default(), &[("Where", folder(path))])}
-        },
-        Preview::Text { excerpt } => text(Some(&Loaded::Text(excerpt.clone()))),
-        Preview::File(file) => facts(
-            &file_name(&file.path).unwrap_or_default(),
-            &[
-                ("Kind", kind_words(&file.mime)),
-                ("Where", folder(&file.path)),
-            ],
-        ),
-        Preview::App { name, detail, .. } => facts(name, &[("About", detail.clone())]),
-        Preview::Clipboard(clip) => match &clip.kind {
-            ClipKind::Text { excerpt, chars } => rsx! {
-                {text(Some(&Loaded::Text(excerpt.clone())))}
-                {facts("Clipboard", &[("Length", format!("{} characters", chars.0))])}
+        Preview::Image(path) => match ImageSource::file(path) {
+            Ok(src) => PaneContent::Image {
+                src,
+                size: loads.size.unwrap_or(ImageSize {
+                    width: 1,
+                    height: 1,
+                }),
             },
-            ClipKind::Image { width, height, .. } => rsx! {
-                {image(clip_png.as_deref().map(IconUrl::png))}
-                {facts("Clipboard", &[("Size", format!("{width} × {height}"))])}
-            },
+            Err(_) => facts(Icon::File, &file_name(path), vec![("Where", folder(path))]),
         },
-        Preview::Emoji(emoji) => rsx! {
-            div { class: "sill-launcher-preview-glyph ds-emoji-text", "{emoji.glyph}" }
-            {facts(&emoji.name, &[])}
+        Preview::TextFile(_) => PaneContent::Text {
+            excerpt: text_of(loads.excerpt.as_ref()),
+            mono: Mono::Monospace,
         },
-        Preview::Web(web) => facts(
-            "Search the web",
-            &[("Engine", web.engine.clone()), ("Address", web.url.clone())],
-        ),
-    }
-}
-
-fn image(url: Option<IconUrl>) -> Element {
-    let Some(url) = url else {
-        return rsx! {};
-    };
-    let size = IconSize::Px(IconPx(IMAGE_SIDE));
-    rsx! {
-        div { class: "sill-launcher-preview-visual",
-            IconView { source: IconSource::Image(ExternalIcon { url, size }), size }
+        Preview::Text { excerpt } => PaneContent::Text {
+            excerpt: excerpt.0.clone(),
+            mono: Mono::Proportional,
+        },
+        Preview::File(file) => {
+            let glyph = match file.mime.0.as_str() {
+                Mime::FOLDER => Icon::Folder,
+                _ => Icon::File,
+            };
+            facts(
+                glyph,
+                &file_name(&file.path),
+                vec![
+                    ("Kind", kind_words(&file.mime)),
+                    ("Where", folder(&file.path)),
+                ],
+            )
         }
+        Preview::App { name, detail, .. } => PaneContent::App {
+            icon: icon.unwrap_or(IconSource::Glyph(Icon::Grid)),
+            name: name.clone(),
+            detail: (!detail.is_empty()).then(|| detail.clone()),
+        },
+        Preview::Clipboard(clip) => match (&clip.kind, loads.clip_png) {
+            (ClipKind::Text { excerpt, .. }, _) => PaneContent::Text {
+                excerpt: excerpt.0.clone(),
+                mono: Mono::Monospace,
+            },
+            (ClipKind::Image { width, height, .. }, Some(bytes)) => PaneContent::Image {
+                src: ImageSource::png(&bytes),
+                size: ImageSize {
+                    width: *width,
+                    height: *height,
+                },
+            },
+            (ClipKind::Image { width, height, .. }, None) => facts(
+                Icon::Clipboard,
+                "Image",
+                vec![("Size", format!("{width} × {height}"))],
+            ),
+        },
+        Preview::Emoji(emoji) => PaneContent::Emoji {
+            glyph: emoji.glyph.clone(),
+            name: emoji.name.clone(),
+        },
+        Preview::Web(web) => PaneContent::Web {
+            host: web.engine.clone(),
+            url: web.url.clone(),
+        },
     }
 }
 
-fn text(loaded: Option<&Loaded>) -> Element {
-    let words = match loaded {
+fn facts(icon: Icon, title: &str, rows: Vec<(&str, String)>) -> PaneContent {
+    PaneContent::Facts {
+        icon: IconSource::Glyph(icon),
+        title: title.to_owned(),
+        rows: rows
+            .into_iter()
+            .filter(|(_, value)| !value.is_empty())
+            .map(|(label, value)| (label.to_owned(), value))
+            .collect(),
+    }
+}
+
+fn text_of(loaded: Option<&Loaded>) -> String {
+    match loaded {
         Some(Loaded::Text(Excerpt(text))) if text.is_empty() => "No text to show.".to_owned(),
         Some(Loaded::Text(Excerpt(text))) => text.clone(),
         Some(Loaded::Failed(_)) => "This file could not be read.".to_owned(),
         Some(Loaded::Reading) | None => String::new(),
-    };
-    rsx! {
-        div { class: "sill-launcher-preview-text ds-mono", "{words}" }
     }
 }
 
-/// A title and its facts, each a faint label over its value.
-fn facts(title: &str, rows: &[(&str, String)]) -> Element {
-    rsx! {
-        div { class: "sill-launcher-preview-facts",
-            div { class: "sill-launcher-preview-title ds-truncate", "{title}" }
-            for (label, value) in rows.iter().filter(|(_, v)| !v.is_empty()) {
-                div { key: "{label}", class: "sill-launcher-preview-fact",
-                    div { class: "ds-eyebrow", "{label}" }
-                    div { class: "ds-truncate", "{value}" }
-                }
-            }
-        }
-    }
-}
-
-fn file_name(path: &Path) -> Option<String> {
+fn file_name(path: &Path) -> String {
     path.file_name()
         .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_default()
 }
 
 /// The folder as the rows word it: `~/…` under the home folder.
 fn folder(path: &Path) -> String {
     let parent = path.parent().map(Path::to_path_buf).unwrap_or_default();
-    match dirs::home_dir().and_then(|home| parent.strip_prefix(&home).ok().map(PathBuf::from)) {
+    let home = dirs::home_dir();
+    match home.and_then(|home| parent.strip_prefix(&home).ok().map(Path::to_path_buf)) {
         Some(inside) if inside.as_os_str().is_empty() => "~".to_owned(),
         Some(inside) => format!("~/{}", inside.display()),
         None => parent.display().to_string(),

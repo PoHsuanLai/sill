@@ -8,12 +8,22 @@ use shell_host::{
 use sill_settings::{BarSettings, LauncherSettings};
 
 use crate::surfaces::launcher::hit::{PanelHit, card_region, panel_input};
+use crate::surfaces::launcher::preview::PREVIEW_WIDTH_PX;
 use crate::surfaces::naming::namespace;
 
 /// The panel's fixed size (design/13 §13.3.9, settled by the plan): the area the card is laid
 /// out in, at most this tall.
 pub const PANEL_WIDTH: u32 = 680;
 pub const PANEL_HEIGHT: u32 = 460;
+
+/// The room the panel may take: the card and, while the preview pane is shown, the pane beside
+/// it (M9, F654: `CommandPalette { aside }` widens the card by `PREVIEW_WIDTH_PX`). The surface
+/// is this wide for good; the card sits centred in it, so it widens by half the pane on each
+/// side and its middle never moves.
+pub const PANEL_ROOM_WIDTH: u32 = PANEL_WIDTH + PREVIEW_WIDTH_PX;
+
+/// How far in from the room's left edge the card starts while the pane is hidden.
+pub const CARD_INSET: u32 = (PANEL_ROOM_WIDTH - PANEL_WIDTH) / 2;
 
 /// The surface's transparent room around the panel for the card's ambient shadow (the Sheet's
 /// `0 24px 60px -18px`, material stack v2): it reaches 60 - 18 = 42 px beside the card and
@@ -57,7 +67,7 @@ pub fn panel_layer(
         layer: Layer::Overlay,
         anchor: Anchor::TOP,
         size: LayerSize {
-            width: Extent::Px(PANEL_WIDTH + 2 * SHADOW_SIDE),
+            width: Extent::Px(PANEL_ROOM_WIDTH + 2 * SHADOW_SIDE),
             height: Extent::Px(PANEL_HEIGHT + SHADOW_BELOW),
         },
         exclusive: ExclusiveZone::Ignore,
@@ -72,10 +82,10 @@ pub fn panel_layer(
     }
 }
 
-/// The panel's rectangle in its output's coordinates (the card's area; the surface is wider
-/// and taller by the shadow's room): centred, [`panel_top`] down.
+/// The panel's rectangle in its output's coordinates (its room, the card and the pane's; the
+/// surface is wider and taller by the shadow's room): centred, [`panel_top`] down.
 pub fn panel_rect(output: &OutputInfo, bar: &BarSettings, launcher: &LauncherSettings) -> Rect {
-    let width = i32::try_from(PANEL_WIDTH).unwrap_or(i32::MAX);
+    let width = i32::try_from(PANEL_ROOM_WIDTH).unwrap_or(i32::MAX);
     Rect {
         x: (output.logical.width - width).div_euclid(2),
         y: panel_top(output.logical.height, bar, launcher),
@@ -96,9 +106,13 @@ pub fn catcher_input(
 ) -> RegionSpec {
     let (w, h) = (output.logical.width, output.logical.height);
     let whole = panel_rect(output, bar, launcher);
+    let inset = i32::try_from(CARD_INSET).unwrap_or(0);
     let panel = match hit {
         PanelHit::Whole => whole,
+        // The card alone (no pane beside it): centred in the room, as tall as it measured.
         PanelHit::Card { height } => Rect {
+            x: whole.x + inset,
+            width: whole.width - 2 * inset,
             height: height.clamp(1, whole.height),
             ..whole
         },
@@ -193,8 +207,8 @@ mod tests {
         assert_eq!(panel.anchor, Anchor::TOP);
         assert_eq!(
             (panel.size.width, panel.size.height),
-            (Extent::Px(680 + 84), Extent::Px(460 + 66)),
-            "the panel and its shadow's room"
+            (Extent::Px(680 + 360 + 84), Extent::Px(460 + 66)),
+            "the card, the pane's room beside it and the shadow's room"
         );
         assert_eq!(panel.margin.top, 202);
         assert_eq!(panel.keyboard, KeyboardMode::Exclusive);
@@ -221,12 +235,12 @@ mod tests {
         assert_eq!(
             panel,
             Rect {
-                x: 620,
+                x: 440,
                 y: 202,
-                width: 680,
+                width: 1040,
                 height: 460
             },
-            "centred on 1920 x 1080"
+            "the card's and the pane's room, centred on 1920 x 1080"
         );
         let RegionSpec::Rects(bands) = catcher_input(&out, &bar, &launcher, PanelHit::Whole) else {
             panic!("the catcher's region is a set of rects");
@@ -235,7 +249,7 @@ mod tests {
             .iter()
             .map(|b| i64::from(b.rect.width) * i64::from(b.rect.height))
             .sum();
-        assert_eq!(area, 1920 * 1080 - 680 * 460, "everything but the panel");
+        assert_eq!(area, 1920 * 1080 - 1040 * 460, "everything but the panel");
         let inside = |x: i32, y: i32| {
             bands.iter().any(|b| {
                 x >= b.rect.x
@@ -244,8 +258,8 @@ mod tests {
                     && y < b.rect.y + b.rect.height
             })
         };
-        assert!(inside(10, 10) && inside(619, 300) && inside(1300, 300) && inside(900, 662));
-        assert!(!inside(620, 202) && !inside(1299, 661) && !inside(960, 400));
+        assert!(inside(10, 10) && inside(439, 300) && inside(1480, 300) && inside(900, 662));
+        assert!(!inside(440, 202) && !inside(1479, 661) && !inside(960, 400));
         // A 140 px card: the catcher takes everything under it too.
         let card = PanelHit::Card { height: 140 };
         let RegionSpec::Rects(bands) = catcher_input(&out, &bar, &launcher, card) else {
@@ -261,5 +275,9 @@ mod tests {
         };
         assert!(!inside(620, 202) && !inside(1299, 341), "the card");
         assert!(inside(960, 342) && inside(960, 600), "under the card");
+        assert!(
+            inside(619, 300) && inside(1300, 300),
+            "beside the card: the pane's room"
+        );
     }
 }

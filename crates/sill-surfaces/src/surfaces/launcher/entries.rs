@@ -162,11 +162,11 @@ pub fn provider_glyph(kind: ProviderKind) -> Icon {
         ProviderKind::Calculator => Icon::Command,
         ProviderKind::Settings => Icon::Settings,
         ProviderKind::System => Icon::Power,
-        // M9 stand-ins until quire has `Clipboard`, `Smile` and `Globe` glyphs (FINDINGS Q296).
+        // M9: quire's glyphs for the new providers (Q296).
         ProviderKind::Files => Icon::File,
-        ProviderKind::Clipboard => Icon::Copy,
-        ProviderKind::Emoji => Icon::Sparkles,
-        ProviderKind::Web => Icon::Search,
+        ProviderKind::Clipboard => Icon::Clipboard,
+        ProviderKind::Emoji => Icon::Smile,
+        ProviderKind::Web => Icon::Globe,
     }
 }
 

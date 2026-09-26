@@ -1,15 +1,17 @@
 //! The emoji grid (M9 lanes c and d, FINDINGS "M9 freeze" F656): the Emoji section as cells,
 //! recent first, arrow keys moving in two dimensions, Enter copying. Drawn by quire's
-//! `EmojiGrid` (Q291) once it lands; the freeze's component draws nothing (never local markup).
+//! `EmojiGrid` (Q291). In the launcher the grid is a group of the palette
+//! (`sections_view::palette_groups`, `PaletteGroup::grid`), where the field keeps the keyboard;
+//! [`EmojiGrid`] is the same grid on its own, focusable, for a surface without a palette.
 //!
 //! Glyphs paint in colour from the system's COLRv1 face (Noto Color Emoji here; CBDT is out):
-//! the grid and every cell carry quire's `ds-emoji` class, which applies its `--font-emoji`
-//! token (quire m9-parts). sill never writes `font-family` (quire's lint refuses it). Open risk
-//! (F656): a scrolling grid of a few hundred colour glyphs at 60 Hz on vello_hybrid is untimed;
-//! lane c times it before the grid relies on it.
+//! quire's grid carries its `ds-emoji-text` class, which applies the `--font-emoji` token. sill
+//! never writes `font-family` (quire's lint refuses it). Lane c timed 300 cells scrolled at
+//! 60 Hz on vello_cpu (release): p50 6.89 ms, p95 9.57 ms, max 12.95 ms (vello_hybrid: Q330).
 
 use dioxus::prelude::*;
-use sill_launcher::Item;
+use ds::{EMOJI_CELL, EmojiCell, GridMove};
+use sill_launcher::{Item, Subject};
 
 use crate::surfaces::launcher::entries::RowRef;
 
@@ -23,24 +25,46 @@ pub fn EmojiGrid(
     selected: Option<usize>,
     onpick: EventHandler<RowRef>,
 ) -> Element {
-    let _ = (&cells, selected, &onpick);
-    rsx! {}
+    let cells: Vec<EmojiCell<RowRef>> = cells.iter().map(cell_of).collect();
+    rsx! {
+        ds::EmojiGrid::<RowRef> {
+            cells,
+            onpick,
+            columns: u8::try_from(GRID_COLUMNS).unwrap_or(u8::MAX),
+            cell: EMOJI_CELL,
+            selected,
+        }
+    }
 }
 
-/// Where Up, Down, Left and Right move a selection in a grid of `count` cells, `columns` wide
-/// (clamped at the edges, design/06 §2.3: no wrap). Lane d fills it.
+/// An emoji row as a cell: its glyph and name.
+fn cell_of(item: &Item) -> EmojiCell<RowRef> {
+    let (glyph, name) = match &item.subject {
+        Subject::Emoji(emoji) => (emoji.glyph.clone(), emoji.name.clone()),
+        _ => (item.title.clone(), item.subtitle.clone()),
+    };
+    EmojiCell {
+        value: RowRef::of(item),
+        glyph,
+        name,
+    }
+}
+
+/// Where Up, Down, Left and Right move a selection in a grid of `count` cells, `columns` wide:
+/// quire's move (`ds::grid_step`, Q291): Left and Right walk the cells in reading order, wrapping
+/// across rows, and stop at the first and last cell; Up and Down move a row and, past the top or
+/// the bottom row, stay (a palette leaves the grid there instead).
 pub fn grid_step(selected: usize, step: GridStep, count: usize, columns: usize) -> usize {
-    let columns = columns.max(1);
-    let last = count.saturating_sub(1);
-    let at = selected.min(last);
-    match step {
-        GridStep::Up => at.checked_sub(columns).unwrap_or(at),
-        GridStep::Down => Some(at + columns)
-            .filter(|&next| next <= last)
-            .unwrap_or(at),
-        GridStep::Left if !at.is_multiple_of(columns) => at - 1,
-        GridStep::Right if at % columns + 1 < columns && at < last => at + 1,
-        GridStep::Left | GridStep::Right => at,
+    let quire = match step {
+        GridStep::Up => ds::GridStep::Up,
+        GridStep::Down => ds::GridStep::Down,
+        GridStep::Left => ds::GridStep::Left,
+        GridStep::Right => ds::GridStep::Right,
+    };
+    let columns = u8::try_from(columns).unwrap_or(u8::MAX);
+    match ds::grid_step(selected, quire, count, columns) {
+        GridMove::To(at) => at,
+        GridMove::Out(_) => selected.min(count.saturating_sub(1)),
     }
 }
 
@@ -57,6 +81,9 @@ pub enum GridStep {
 mod tests {
     use super::{GridStep, grid_step};
 
+    /// The freeze's table, with Right from a row's last cell wrapping to the next row's first
+    /// (quire's grid, as the reference's character viewer; the coordinator's change of this
+    /// frozen test, FINDINGS "M9 lane d").
     #[test]
     fn arrows_move_in_two_dimensions_and_stop_at_the_edges() {
         let cases: &[(usize, GridStep, usize)] = &[
@@ -65,7 +92,9 @@ mod tests {
             (0, GridStep::Down, 8),
             (3, GridStep::Up, 3),
             (8, GridStep::Up, 0),
-            (7, GridStep::Right, 7),
+            (7, GridStep::Right, 8),
+            (8, GridStep::Left, 7),
+            (12, GridStep::Right, 12),
             (12, GridStep::Down, 12),
             (4, GridStep::Down, 12),
         ];

@@ -3,7 +3,7 @@ use sill_launcher::{
 };
 use sill_services::Results;
 
-use super::{Expanded, Line, MORE_ID, more_ref, more_section, toggled, view};
+use super::{Expanded, Line, toggled, view};
 use crate::surfaces::launcher::keys::Filter;
 use crate::surfaces::launcher::sections_view::HeaderAction;
 
@@ -139,11 +139,7 @@ fn results_without_spans_are_placed_here() {
 }
 
 #[test]
-fn a_show_more_reference_names_its_section_and_toggles_it() {
-    let reference = more_ref(Section::Documents).expect("documents have a provider");
-    assert_eq!(reference.id.0, MORE_ID);
-    assert_eq!(more_section(&reference), Some(Section::Documents));
-    assert_eq!(more_ref(Section::TopHit), None);
+fn show_more_toggles_its_section() {
     let open = toggled(&Expanded::default(), Section::Documents);
     assert_eq!(open, Expanded(vec![Section::Documents]));
     assert_eq!(toggled(&open, Section::Documents), Expanded::default());

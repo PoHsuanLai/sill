@@ -2,75 +2,77 @@
 //! from the palette's field and from `sill debug launcher-key`, row chords run from the results
 //! (`action_for_chord`), and Enter on the pane's focused control.
 //!
-//! The pane's keyboard focus is the machine's `PaneFocus::Pane(n)`, drawn by the pane on its
-//! `n`th control; the field keeps the DOM focus, so its keys still arrive here (quire's
-//! `PreviewPane`, Q292, takes the same `focused` index). Two gaps wait on quire (Q299): the
-//! field inserts a Space before `onkey` hears it, so a Space while browsing is recognised by the
-//! text it made (the query then carries a trailing space, which asks nothing new); and the
-//! caret is not reported, so → reads the estimate in `pane_session.rs`.
+//! The field keeps the keyboard: the pane's focus is the machine's `PaneFocus::Pane(n)`, drawn by
+//! quire's `PreviewPane` as `focused`. Keys reach the machine through quire's key claim (Q299):
+//! [`PanelCtx::claim`] hears every key before the palette with the caret's place, and takes Space
+//! while browsing, → at the field's end, and the pane's own keys, so the field never types that
+//! Space nor moves its caret. The keys the palette leaves (Tab's filter, Ctrl+K, Up and Down
+//! having moved the selection) come after it, to [`PanelCtx::field_key`].
 
 use dioxus::prelude::*;
+use ds::{Claim, FieldKey};
 use sill_launcher::{Choice, Item, Preview, action_for_chord, chords, preview_for};
 
 use crate::surfaces::launcher::chord_keys::chord_of;
 use crate::surfaces::launcher::debug_link::LinkKey;
 use crate::surfaces::launcher::entries::RowRef;
-use crate::surfaces::launcher::events::{Held, PanelCtx};
+use crate::surfaces::launcher::events::PanelCtx;
 use crate::surfaces::launcher::keymap::launcher_key;
 use crate::surfaces::launcher::keys::{ActionsMenu, LauncherKey};
-use crate::surfaces::launcher::pane_session::{CaretAt, CaretMove, PaneSession, moved_caret};
+use crate::surfaces::launcher::pane_session::PaneSession;
 use crate::surfaces::launcher::preview::keys::{
-    FieldEdit, PaneFocus, PreviewKey, PreviewOut, PreviewState, Previewable, step_preview,
+    Caret, Pane, PaneFocus, PreviewKey, PreviewOut, PreviewState, Previewable, step_preview,
 };
 use crate::surfaces::launcher::session::Session;
 
-/// Whether a key was the panel's to take.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Taken {
-    Yes,
-    No,
-}
-
 impl PanelCtx {
-    /// A key the palette's field got, after the palette read it (Up, Down, Enter and Escape
-    /// are the palette's own; it has moved the selection or picked already).
-    pub fn field_key(&self, event: &KeyboardEvent) {
-        if self.field_key_taken(&event.key(), event.modifiers()) == Taken::Yes {
-            event.prevent_default();
+    /// quire's key claim: a key the field got, before the palette, the field or `onkey`.
+    pub fn claim(&self, key: &FieldKey) -> Claim {
+        let (pressed, modifiers) = (key.event.key(), key.event.modifiers());
+        if launcher_key(&pressed, modifiers) == Some(LauncherKey::Actions) {
+            return Claim::Pass;
         }
-    }
-
-    fn field_key_taken(&self, key: &Key, modifiers: Modifiers) -> Taken {
-        let launcher = launcher_key(key, modifiers);
-        if let Some(LauncherKey::Actions) = launcher {
-            self.press(LauncherKey::Actions);
-            return Taken::Yes;
-        }
-        if let Some(chord) = chord_of(key, modifiers) {
+        if let Some(chord) = chord_of(&pressed, modifiers) {
             return self.chord(&chord);
         }
-        match (launcher, key) {
-            (Some(tab @ (LauncherKey::Tab | LauncherKey::ShiftTab)), _) => {
-                self.tab(tab);
-                Taken::Yes
-            }
-            (Some(LauncherKey::Up | LauncherKey::Down), _) => {
-                self.preview_key(PreviewKey::Moved);
-                Taken::No
-            }
-            (Some(LauncherKey::Escape), _) => {
-                self.field_escape();
-                Taken::No
-            }
-            (_, Key::ArrowRight) => self.caret_key(PreviewKey::Right, CaretMove::Right),
-            (_, Key::ArrowLeft) => self.caret_key(|_| PreviewKey::Left, CaretMove::Left),
-            (_, Key::Home) => self.caret_moved(CaretMove::Home),
-            (_, Key::End) => self.caret_moved(CaretMove::End),
-            _ => Taken::No,
+        let Some(pane) = self.current_pane() else {
+            return Claim::Pass;
+        };
+        let in_pane = matches!(pane.preview.focus, PaneFocus::Pane(_));
+        let preview = match (&pressed, in_pane) {
+            (Key::Character(text), _) if text == " " && modifiers.is_empty() => PreviewKey::Space,
+            (Key::ArrowRight, _) => PreviewKey::Right(caret_of(key.caret)),
+            (Key::ArrowLeft, true) => PreviewKey::Left,
+            (Key::Tab, true) if modifiers.contains(Modifiers::SHIFT) => PreviewKey::ShiftTab,
+            (Key::Tab, true) => PreviewKey::Tab,
+            (Key::Escape, _) if in_pane || pane.preview.pane == Pane::Shown => PreviewKey::Escape,
+            _ => return Claim::Pass,
+        };
+        let outs = self.preview_key(preview);
+        match outs.contains(&PreviewOut::PassToField) || outs.contains(&PreviewOut::CloseLauncher) {
+            true => Claim::Pass,
+            false => Claim::Take,
         }
     }
 
-    /// `sill debug launcher-key`: `key` as if pressed in the open panel.
+    /// A key the palette's field got and nobody claimed, after the palette read it (it has moved
+    /// the selection on Up and Down): Tab's filter, Ctrl+K, and the moves that make Space Quick
+    /// Look.
+    pub fn field_key(&self, event: &KeyboardEvent) {
+        match launcher_key(&event.key(), event.modifiers()) {
+            Some(key @ (LauncherKey::Tab | LauncherKey::ShiftTab | LauncherKey::Actions)) => {
+                event.prevent_default();
+                self.press(key);
+            }
+            Some(LauncherKey::Up | LauncherKey::Down) => {
+                self.preview_key(PreviewKey::Moved);
+            }
+            _ => {}
+        }
+    }
+
+    /// `sill debug launcher-key`: `key` as if pressed in the open panel. It cannot see the
+    /// field's caret, so its → acts as → at the field's end.
     pub fn debug_key(&self, key: LinkKey) {
         let Some(session) = self.current() else {
             return;
@@ -112,10 +114,10 @@ impl PanelCtx {
                 self.preview_key(PreviewKey::QuickLook);
             }
             LinkKey::Right => {
-                self.caret_key(PreviewKey::Right, CaretMove::Right);
+                self.preview_key(PreviewKey::Right(Caret::AtEnd));
             }
             LinkKey::Left => {
-                self.caret_key(|_| PreviewKey::Left, CaretMove::Left);
+                self.preview_key(PreviewKey::Left);
             }
             LinkKey::Reveal => {
                 self.chord(&chords::reveal());
@@ -125,13 +127,7 @@ impl PanelCtx {
 
     /// A press on the pane's control `index`: the selected row's action there.
     pub(crate) fn run_pane_action(&self, index: usize) {
-        let (Some(session), Some(pane)) = (self.current(), self.current_pane()) else {
-            return;
-        };
-        let Some(item) = self
-            .view_of(&session, &pane.expanded)
-            .row(session.keys.selected)
-        else {
+        let Some(item) = self.selected_row() else {
             return;
         };
         if let Some(action) = item.actions.get(index) {
@@ -150,36 +146,6 @@ impl PanelCtx {
                 .map_or(Choice::Primary, |action| Choice::Action(action.id.clone())),
             (_, choice) => choice,
         }
-    }
-
-    /// `text` is the query with one Space added while browsing a row with a preview: Quick Look
-    /// took it (Q299: the field inserted it first). The query keeps the space, so the field and
-    /// the query agree, but nothing is asked again and the selection stays.
-    pub(crate) fn browsing_space(&self, text: &str) -> bool {
-        let (Some(session), Some(pane)) = (self.current(), self.current_pane()) else {
-            return false;
-        };
-        if !one_space_more(&session.query, text)
-            || pane.preview.edit != FieldEdit::Browsing
-            || pane.preview.focus != PaneFocus::Results
-        {
-            return false;
-        }
-        let (preview, outs) = self.step_pane(&pane, &session, PreviewKey::Space);
-        if outs.contains(&PreviewOut::PassToField) {
-            return false;
-        }
-        self.store_pane(PaneSession {
-            preview,
-            caret: CaretAt(pane.caret.0 + 1),
-            ..pane
-        });
-        let mut store = self.session;
-        store.set(Session {
-            query: text.to_owned(),
-            ..session
-        });
-        true
     }
 
     /// `key` through the pane's machine; returns what came out.
@@ -213,6 +179,13 @@ impl PanelCtx {
         step_preview(pane.preview, key, previewable, controls)
     }
 
+    /// The selected row, if the selection is on a row.
+    fn selected_row(&self) -> Option<Item> {
+        let (session, pane) = (self.current()?, self.current_pane()?);
+        self.view_of(&session, &pane.expanded)
+            .row(session.keys.selected)
+    }
+
     /// Tab or Shift+Tab: the pane's controls while it has the keyboard, else the filter.
     fn tab(&self, key: LauncherKey) {
         let in_pane = self
@@ -229,81 +202,37 @@ impl PanelCtx {
         }
     }
 
-    /// Escape in the field: the palette has already asked to close; the pane may keep it open.
-    fn field_escape(&self) {
-        if !self
-            .preview_key(PreviewKey::Escape)
-            .contains(&PreviewOut::CloseLauncher)
-        {
-            let mut held = self.held;
-            held.set(Held::Yes);
-        }
-    }
-
-    /// ← or → (`key` given the caret): the pane's when it takes it, else the field's caret moves.
-    fn caret_key(
-        &self,
-        key: impl Fn(crate::surfaces::launcher::preview::keys::Caret) -> PreviewKey,
-        step: CaretMove,
-    ) -> Taken {
-        let (Some(session), Some(pane)) = (self.current(), self.current_pane()) else {
-            return Taken::No;
-        };
-        let outs = self.preview_key(key(pane.caret_in(&session.query)));
-        if outs.contains(&PreviewOut::PassToField) {
-            self.caret_moved(step)
-        } else {
-            Taken::Yes
-        }
-    }
-
-    /// The field moved its caret by `step`.
-    fn caret_moved(&self, step: CaretMove) -> Taken {
-        if let (Some(session), Some(pane)) = (self.current(), self.current_pane()) {
-            self.store_pane(PaneSession {
-                caret: moved_caret(pane.caret, step, &session.query),
-                ..pane
-            });
-        }
-        Taken::No
-    }
-
     /// A chord from the results: ⌘Y and ⌘→ are the pane's; any other runs the selected row's
-    /// action that carries it (H5).
-    fn chord(&self, chord: &sill_launcher::Chord) -> Taken {
+    /// action that carries it (H5), and nothing else hears it.
+    fn chord(&self, chord: &sill_launcher::Chord) -> Claim {
         if *chord == chords::quick_look() {
             self.preview_key(PreviewKey::QuickLook);
-            return Taken::Yes;
+            return Claim::Take;
         }
         if *chord == sill_launcher::Chord::command(sill_launcher::ChordKey::Right) {
             self.preview_key(PreviewKey::CommandRight);
-            return Taken::Yes;
+            return Claim::Take;
         }
-        let (Some(session), Some(pane)) = (self.current(), self.current_pane()) else {
-            return Taken::No;
-        };
-        let Some(item) = self
-            .view_of(&session, &pane.expanded)
-            .row(session.keys.selected)
-        else {
-            return Taken::No;
+        let Some(item) = self.selected_row() else {
+            return Claim::Pass;
         };
         match action_for_chord(&item, chord) {
             Some(action) => {
                 self.pick(RowRef::of(&item), Choice::Action(action.clone()));
-                Taken::Yes
+                Claim::Take
             }
-            None => Taken::No,
+            None => Claim::Pass,
         }
     }
 }
 
-/// Whether `new` is `old` with one Space inserted somewhere (where the caret was).
-pub(crate) fn one_space_more(old: &str, new: &str) -> bool {
-    new.len() == old.len() + 1
-        && new.char_indices().any(|(at, c)| {
-            c == ' ' && old.get(..at) == Some(&new[..at]) && old.get(at..) == Some(&new[at + 1..])
-        })
+/// quire's caret as the pane's machine reads it: a caret nobody could read is not at the end
+/// (→ moves it; ⌘Y and ⌘→ still reach the pane).
+fn caret_of(caret: ds::Caret) -> Caret {
+    match caret {
+        ds::Caret::AtEnd => Caret::AtEnd,
+        ds::Caret::Inside | ds::Caret::Unknown => Caret::Inside,
+    }
 }
 
 /// Step every `sill debug launcher-key` press on the panel (the daemon provides the link to
@@ -325,21 +254,13 @@ pub(crate) fn use_link_keys(panel: PanelCtx) {
 
 #[cfg(test)]
 mod tests {
-    use super::one_space_more;
+    use super::caret_of;
+    use crate::surfaces::launcher::preview::keys::Caret;
 
     #[test]
-    fn a_space_inserted_anywhere_is_one_space_more() {
-        let cases = [
-            ("m9", "m9 ", true),
-            ("m9", " m9", true),
-            ("m9", "m 9", true),
-            ("m9", "m9x", false),
-            ("m9", "m9  ", false),
-            ("", " ", true),
-            ("naïf", "na ïf", true),
-        ];
-        for (old, new, want) in cases {
-            assert_eq!(one_space_more(old, new), want, "{old:?} -> {new:?}");
-        }
+    fn only_a_caret_read_at_the_end_is_at_the_end() {
+        assert_eq!(caret_of(ds::Caret::AtEnd), Caret::AtEnd);
+        assert_eq!(caret_of(ds::Caret::Inside), Caret::Inside);
+        assert_eq!(caret_of(ds::Caret::Unknown), Caret::Inside);
     }
 }

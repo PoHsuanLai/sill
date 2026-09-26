@@ -1,32 +1,28 @@
 //! What the panel shows over the published results (M9 lane d, F645): the runner's sections
 //! (`Results::sections`, placed by `sill_launcher::place`) capped by [`shown`] unless expanded,
-//! or, under a Tab filter, that provider's rows alone under its own heading. The palette lists
-//! each section's rows and then, while quire's header action is missing (Q294), a stand-in
-//! "Show More"/"Show Less" line, so a line is a row or that stand-in. Pure.
+//! or, under a Tab filter, that provider's rows alone under its own heading. The palette's
+//! cursor stops on each row (each emoji cell) and then on the section header's "Show More" or
+//! "Show Less" (quire's `PaletteGroup` action, Q294), so a line here is a row or that action,
+//! numbered as the palette's `selected` counts them. Pure.
 
 use sill_launcher::{
-    Frecency, Generation, Item, ItemId, More, Placement, ProviderKind, QueryShape, Section,
-    SectionPlan, ShownSection, UnixTime, place, shown,
+    Frecency, Generation, Item, More, Placement, ProviderKind, QueryShape, Section, SectionPlan,
+    ShownSection, UnixTime, place, shown,
 };
 use sill_services::Results;
 
 use crate::surfaces::launcher::debug_link::{CLIPBOARD_TITLE, ShownRows, ShownRowsSection};
-use crate::surfaces::launcher::entries::RowRef;
 use crate::surfaces::launcher::groups::fresh;
 use crate::surfaces::launcher::keys::Filter;
 use crate::surfaces::launcher::sections_view::HeaderAction;
 
 pub use sill_launcher::Expanded;
 
-/// The id a "Show More" stand-in line picks (no provider's row has it: ids are provider
-/// namespaced paths, app ids, numbers and keys).
-pub const MORE_ID: &str = "sill:show-more";
-
 /// One line of the palette.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Line {
     Row(Item),
-    /// The stand-in for a section header's trailing action (Q294).
+    /// A section header's trailing action, a stop after the section's rows (Q294).
     More {
         section: Section,
         action: HeaderAction,
@@ -171,29 +167,6 @@ fn line_title(line: &Line) -> String {
         Line::Row(item) => item.title.clone(),
         Line::More { action, .. } => action.label().unwrap_or_default().to_owned(),
     }
-}
-
-/// The reference a "Show More" line picks: `section`'s provider and [`MORE_ID`].
-pub fn more_ref(section: Section) -> Option<RowRef> {
-    SectionPlan::default_plan()
-        .rules
-        .iter()
-        .find(|rule| rule.section == section)
-        .map(|rule| RowRef {
-            provider: rule.kind,
-            id: ItemId(MORE_ID.to_owned()),
-        })
-}
-
-/// The section a picked reference opens or closes, when it is a "Show More" line's.
-pub fn more_section(row: &RowRef) -> Option<Section> {
-    (row.id.0 == MORE_ID)
-        .then(|| {
-            SectionPlan::default_plan()
-                .rule(row.provider)
-                .map(|r| r.section)
-        })
-        .flatten()
 }
 
 /// `expanded` with `section` opened, or closed when it was open.
