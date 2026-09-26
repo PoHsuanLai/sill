@@ -192,6 +192,7 @@ mod tests {
             presence: Presence::Present,
             power: BtPower::On,
             devices: Vec::new(),
+            connect: Default::default(),
         };
         assert_eq!(
             empty_line(&Bluetooth::default(), 0).as_deref(),

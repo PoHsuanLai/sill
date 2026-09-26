@@ -1,7 +1,7 @@
 //! `bar.*` (design/22 §3.4; design/13 §13.3.1). All Advanced (§5).
 
 use ds_settings::schema::Page;
-use ds_settings::{Count, Px};
+use ds_settings::{Count, Percent, Px};
 use serde::{Deserialize, Serialize};
 
 /// Which box a bar status glyph is drawn at (design/13 §13.9 open decision 8).
@@ -138,6 +138,17 @@ pub struct BarSettings {
         advanced
     )]
     pub item_radius_px: Px,
+    /// `bar.battery_low_percent` (quire design/26 G10, G11): at or under this charge, on
+    /// battery, the bar's battery fill turns `--battery-low` and the item nudges once.
+    #[settings(
+        label = "Low battery",
+        help = "At or under this charge the battery glyph turns red and nudges once.",
+        section = "Bar",
+        range = "5..=50",
+        unit = "%",
+        advanced
+    )]
+    pub battery_low_percent: Percent,
     /// Keys this build does not know, kept for the next write.
     #[serde(flatten)]
     #[settings(skip)]
@@ -158,6 +169,7 @@ impl Default for BarSettings {
             item_font_px: Px(13),
             item_font_weight: Count(500),
             item_radius_px: Px(4),
+            battery_low_percent: Percent(20),
             extra: toml::Table::new(),
         }
     }

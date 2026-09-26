@@ -14,6 +14,7 @@
 //! channels live in `sill-surfaces::hooks`.
 
 pub mod apps;
+pub mod attempt;
 pub mod auth;
 pub mod badges;
 pub mod battery;
@@ -54,6 +55,7 @@ pub use apps::{
     App, AppIcon, AppIndex, AppsCommand, AppsEvent, DbusActivation, DesktopActionEntry, ExecArgs,
     ExecError, Listing, Terminal, expand_exec, match_app, reduce_apps,
 };
+pub use attempt::{Attempt, AttemptStep, Attempts, OpStamp};
 pub use auth::{Auth, AuthCommand, AuthPhase};
 pub use badges::{
     Badge, BadgeEvent, BadgeProp, Badges, BadgesCommand, parse_app_uri, reduce_badges,

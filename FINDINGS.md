@@ -6300,3 +6300,128 @@ contact (design/26 R5, R7).
   no results and selection; §5.4's group expand (Reveal downward, `heal` to collapse) is the
   nearest. sill calls it Change until the grammar decides; the palette would then need the same
   cue for the section's new rows.
+
+## D1 status glyphs (2026-09-27)
+
+Adopting quire's layered status glyphs (quire CONSUMING "Status glyphs", design/26 wave D1,
+design/04 section 51) in the bar and the control center, against sill master afc8fbc merged
+with gate 198a0d0 (Q297) and quire master 0d51b07f. Numbers from F820, Q390, G300.
+
+**Where it stopped.** Every place these glyphs would go takes an `Icon`, not an element:
+`IconButton { icon: IconSource }` (the bar's status items), `ModuleTile { glyph: Icon }` (the
+Wi-Fi and Bluetooth tiles), `ModulePanel { glyph: Option<Icon> }` (the Battery module's header)
+and `LevelControl`'s `LevelGlyph` (the Sound module). No quire component puts a `StatusGlyph`
+in a status item's box with its pill, ink and label, so drawing one there means raw markup or a
+local copy of `.ds-icon-button[data-variant=status]`, which the brief forbids (Rule 3). The
+lane did everything under the rendering and stopped there: Q390-Q392. The bar still draws the
+old `Icon` buckets, and still shows `WifiOff` while connecting, until Q390 lands.
+
+- **F820 Join and connect stamps (the bug's service half).** `sill-services/src/attempt.rs`:
+  `OpStamp(u32)`, `Attempt::{Quiet, Running(OpStamp), Failed(OpStamp)}`, `Attempts { now,
+  minted }` and `Attempts::next(AttemptStep::{Start, Fail, Land, Hold})`, a pure reducer.
+  - A start while one runs keeps its stamp, so the pending loop keeps its grace and cap (R4).
+  - A start otherwise mints a new stamp, and so does every failure, so each failure shakes
+    once (R6).
+  - `Gone` keeps the count, so a stamp is never reused while the daemon runs.
+  - `Network.join` is stepped by the link: entering `Connecting` is Start, `Connecting` to
+    `Disconnected` is Fail, any up link is Land, and anything else is Hold.
+  - `Bluetooth.connect` is stepped by a device's connection: entering `Connecting` is Start,
+    `Connecting` to `Disconnected` is Fail (`run_connect` already reverts a failed `Connect`
+    this way), `Connecting` to `Connected` is Land, and the radio off or the adapter gone is
+    Land.
+  - Both new fields are `#[serde(default)]`. Table tests: `attempt::tests`,
+    `network::model::tests::each_join_is_stamped_once_and_each_failure_anew`,
+    `bluetooth::model::tests::each_connect_is_stamped_once_and_each_failure_anew`.
+- **F821 The mapping.** `bar/glyph_state.rs` (pub, pure), one table test per function in
+  `glyph_state_tests.rs`, covering every row of CONSUMING's table:
+  - `network_glyph(&Network, Radio) -> NetworkGlyph::{Wifi(WifiState), Plain(Icon)}`.
+    `Connecting` is `Joining(EventStamp(n))` with the join's stamp. A Wi-Fi link is `Joined {
+    bars: WifiBars::of(Fraction(strength*10)), reach }`. Connectivity None, Portal or Limited
+    gives `NoInternet`; Full or Unknown gives `Internet`. Disconnected is `Off` with the radio
+    Off or Blocked, `Failed(stamp)` while the last join's failure stands, else `Idle`. Wired and
+    Other keep `Ethernet` and `Link`.
+  - `battery_glyph(&Battery, bar.battery_low_percent) -> Option<BatteryState>`. Level is
+    `Fraction(p*10)`. Charging gives `Charging`; Full or Idle gives `Held`; the rest give
+    `Battery`. `low_at` is `LowAt(Fraction(key*10))`. `None` when absent, so the item hides.
+  - `volume_glyph(&Volume) -> VolumeState`. Absent is `NoDevice`; muted or level 0 is `Muted`
+    (the slash stays); the rest is `Heard(VolumeWaves::of(..))`.
+  - `bluetooth_glyph_state(&Bluetooth) -> BluetoothState`, in this order: Off (no adapter or
+    radio off), `Connecting(stamp)`, `Connected` (any device), `Failed(stamp)`, `On`. A failure
+    beside an already connected device reads Connected, so the words stay true; that failure
+    does not shake (G301).
+- **F822 G11, the low-battery nudge (built, on today's item).** `bar/low_battery.rs`:
+  `LowWatch::{Clear, Low}`, a reducer over the item's `BatteryState`.
+  - Clear becomes Low at or under `low_at` on battery.
+  - Low stays Low while on battery, even when the charge wobbles back over the threshold. Only
+    Charging or Held (or no battery) re-arms it, so the item nudges once per discharge, never
+    in a loop (R6).
+  - Its `Detailed` table: Clear to Low is **Attention**, everything else is Rest, and the first
+    frame is Rest (bar chrome, R1: a session that starts low has crossed nothing).
+  - `use_low_nudge` feeds `use_detail(.., FirstShow::Still, Touch::Remote)` to quire's
+    `use_nudge`. `StatusIcon` puts the `PulseKey`'s class and `data-pulse` on a new wrapper,
+    `span.sill-bar-status` (display only, no token), around the `IconButton`, as CONSUMING says
+    ("put `.attrs()` on an HTML wrapper"). The slot still measures the button.
+  - Unplugging while already low nudges once again: a new discharge crossing. When Q390 lands,
+    the wrapper moves onto the glyph, and the fill's `--battery-low` (G10) carries the same fact
+    at rest (R8).
+- **F823 Settings.** `bar.battery_low_percent: Percent`, default 20, range 5..=50, Advanced,
+  section Bar. It is in `AWAITING_ROWS`. No Bluetooth key is needed: the bar's Bluetooth item
+  already exists behind `control_center.menu_bar_bluetooth` (`InMenuBar::{Show, Hide}`,
+  default `Hide`, a design/22 row since M5), which is the key design/26 5.1.2 names. Neither key
+  belongs on a Basic page: §5 lists no `bar.*` or `control_center.*` key outside Advanced, and
+  the reference has no low-battery threshold setting. Proposed row for design/22 §3.4:
+
+  | Key | Type | Default | Range / Alt | Source | Status |
+  | --- | --- | --- | --- | --- | --- |
+  | `bar.battery_low_percent` | `Percent` | `20` | `5..=50`; at or under this charge, on battery, the bar's battery fill turns `--battery-low` and the item nudges once per discharge | `26-DETAILS.md` 5.1.3 G10, G11; sill FINDINGS F822 | proposed (D1, 2026-09-27) |
+- **F824 Harness tests.** `tests/status_glyphs.rs`: the fake services, mapped by
+  `glyph_state`, drive quire's glyphs on a Blitz document, and every change ends in
+  `assert_settles_to_zero_frames`.
+  - Wi-Fi: `Connecting` searches (one layer lit, no slash), a join fills to two bars, and a
+    portal grows the badge. A failed join shakes once and the same stamp does not shake again;
+    the radio off slashes.
+  - Battery: 18 % turns the fill low, charging shows the bolt and is never low, full shows the
+    plug, and absent hides it.
+  - Volume: 40 % shows two waves, 0 shows the slash with no waves, and 90 % shows three.
+  - Bluetooth: connecting breathes, then connected grows the dots.
+
+  `tests/bar_low_nudge.rs`: the real `Bar` in a Harness. `.sill-bar-status.a-nudge-up`
+  appears on crossing into 20 %, not for 15 %, a wobble to 21 % or back to 19 %, nor when
+  plugged in, and again once when unplugged low. Each step ends at 0 frames.
+- **F825 The reference's motions** (the micro-interactions note; design/26 5.1, confidence as
+  there): Wi-Fi's bars cycle while it joins and fill on joining (M/H); a distinct no-internet
+  glyph (H); the battery outline fills by level and its bolt or plug shows the source (M), and
+  it turns red near a fifth (M); a notification at low battery (L). The glyphs encode these;
+  the bar shows none of them until Q390.
+
+### Gaps (sill)
+
+- **G300 The bar still says "Wi-Fi off" while connecting.** `network_icon` is unchanged. There
+  is no `Icon` for joining, and the fix is `WifiState::Joining` through Q390. The mapping and
+  the stamp are ready (F820, F821).
+- **G301 A Bluetooth failure beside a connected device does not shake.** The glyph has one
+  state; Connected wins so the words stay true (F821). Per-device failure belongs to the
+  devices pane's rows (design/26 5.2.3, G20).
+- **G302 `Link::Connecting` may rarely be seen.** The network service reads NetworkManager's
+  `PrimaryConnection`, which usually names an activated connection. An activation in progress
+  is `ActivatingConnection`. The Joining state and its stamp only appear when the primary
+  connection itself is activating. Reading `ActivatingConnection` needs a check on a real
+  NetworkManager, which this lane may not touch; it is queued for the manual checks.
+
+### Asks (quire)
+
+- **Q390 `IconButton { Status }` holds a status glyph.** Proposed: `IconSource::Status(
+  StatusState)`, or a `glyph: Option<Element>` slot, drawn in the same `--bar-status-glyph`
+  box with the same ink, pill and `aria-label`, so the bar's Wi-Fi, battery, Bluetooth and
+  volume items can pass sill's `StatusState`. Include a pulse slot, or say that sill's wrapper
+  (F822) should carry G11's nudge. Without it, the bar keeps `Icon` buckets and G300 stands.
+- **Q391 The control center's glyph slots take a status glyph.** Proposed:
+  - `ModulePanel` gets the same `IconSource::Status` (or an element slot) for the Battery
+    header, with `first: FirstShow::Animate` so `BatteryGlyph` sweeps in when the center opens.
+  - `ModuleTile`'s disc gets the same for Wi-Fi and Bluetooth, which would also carry G14's
+    fill on enable.
+  - Until then, sill cannot pass `FirstShow::Animate` anywhere (item 6 of the brief).
+- **Q392 The Sound module's `LevelControl` and `VolumeState`.** `LevelControl` takes a
+  `LevelGlyph`. `VolumeGlyph` is `LevelGlyph`'s body, so the Sound module already draws the
+  same waves and slash; say whether `LevelControl` should take a `VolumeState` for a single
+  source. sill's module maps level 0 to `VolumeX` today, and `volume_glyph` is ready.

@@ -8,12 +8,16 @@ use shell_host::OutputInfo;
 use sill_services::Presence;
 use sill_settings::ControlCenterModule;
 
+use super::glyph_state::battery_glyph;
+use super::low_battery::use_low_nudge;
 use super::menus::BarMenu;
 use super::status::{
     battery_icon, battery_lines, network_icon, network_lines, volume_heading, volume_icon,
 };
 use super::status_item::StatusIcon;
-use crate::hooks::{use_battery, use_bluetooth, use_network, use_now_playing, use_volume};
+use crate::hooks::{
+    use_battery, use_bluetooth, use_network, use_now_playing, use_settings, use_volume,
+};
 use crate::surfaces::control_center::bluetooth_status;
 use crate::surfaces::control_center::modules::bluetooth::bluetooth_glyph;
 
@@ -66,12 +70,19 @@ fn WifiItem() -> Element {
 #[component]
 fn BatteryItem() -> Element {
     let battery = use_battery()();
+    let low = use_settings()().bar.battery_low_percent;
+    let pulse = use_low_nudge(battery_glyph(&battery, low));
     if battery.presence == Presence::Absent {
         return rsx! {};
     }
     let [level, _] = battery_lines(&battery);
     rsx! {
-        StatusIcon { menu: BarMenu::Battery, icon: battery_icon(&battery), tooltip: level }
+        StatusIcon {
+            menu: BarMenu::Battery,
+            icon: battery_icon(&battery),
+            tooltip: level,
+            pulse: Some(pulse),
+        }
     }
 }
 

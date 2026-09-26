@@ -89,6 +89,7 @@ mod tests {
                 strength: Percent(90),
             },
             connectivity: Connectivity::Full,
+            join: Default::default(),
         };
         // (device, radio, state, availability, glyph on `home`)
         let cases = [

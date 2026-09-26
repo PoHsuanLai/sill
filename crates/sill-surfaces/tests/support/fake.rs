@@ -147,6 +147,7 @@ pub fn network() -> Network {
             strength: Percent(72),
         },
         connectivity: Connectivity::Full,
+        join: Default::default(),
     }
 }
 
@@ -208,6 +209,7 @@ pub fn bluetooth() -> Bluetooth {
                 BtBattery::Unknown,
             ),
         ],
+        connect: Default::default(),
     }
 }
 
