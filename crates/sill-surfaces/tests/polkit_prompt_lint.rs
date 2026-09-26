@@ -21,14 +21,14 @@ fn strict() -> LintConfig {
 fn the_hidden_prompt_markup_is_clean() {
     let mut running = start(fake::output().id);
     running.harness.advance(Duration::from_millis(40));
-    let offences = markup(&running.harness.html(), &ds::stylesheet(), &strict());
+    let offences = markup(&running.harness.html(), ds::stylesheet(), &strict());
     assert!(offences.is_empty(), "{offences:#?}");
 }
 
 #[test]
 fn the_shown_prompt_markup_is_clean_and_has_no_raw_markup() {
     let running = shown(request("c1", asking(), LastTry::None));
-    let offences = markup(&running.harness.html(), &ds::stylesheet(), &strict());
+    let offences = markup(&running.harness.html(), ds::stylesheet(), &strict());
     assert!(
         offences.iter().all(|o| o.rule != Rule::RawMarkup),
         "{offences:#?}"
