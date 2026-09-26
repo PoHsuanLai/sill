@@ -90,13 +90,93 @@ pub fn step(
     input: LockoutIn,
     policy: &LockoutPolicy,
 ) -> (Lockout, Vec<LockoutOut>) {
-    todo!("M11 fill: a-lock ({lockout:?} {input:?} {policy:?})")
+    match (lockout.gate, input) {
+        (Gate::Open, LockoutIn::Submit(_)) => (
+            Lockout {
+                gate: Gate::Checking,
+                ..lockout
+            },
+            vec![LockoutOut::Check],
+        ),
+        (Gate::Checking | Gate::Waiting { .. }, LockoutIn::Submit(_)) => {
+            (lockout, vec![LockoutOut::Busy])
+        }
+        (Gate::Checking, LockoutIn::Verdict(outcome, at)) => verdict(lockout, &outcome, at, policy),
+        (Gate::Waiting { until }, LockoutIn::Tick(now)) if now >= until => (
+            Lockout {
+                gate: Gate::Open,
+                ..lockout
+            },
+            vec![LockoutOut::Reopened],
+        ),
+        (Gate::Open | Gate::Checking, LockoutIn::Reset) => (
+            Lockout {
+                gate: Gate::Open,
+                ..lockout
+            },
+            Vec::new(),
+        ),
+        (
+            Gate::Open | Gate::Waiting { .. },
+            LockoutIn::Verdict(..) | LockoutIn::Reset | LockoutIn::Tick(_),
+        )
+        | (Gate::Checking, LockoutIn::Tick(_)) => (lockout, Vec::new()),
+    }
+}
+
+/// A check's verdict, while `Checking`.
+fn verdict(
+    lockout: Lockout,
+    outcome: &Outcome,
+    at: Stamp,
+    policy: &LockoutPolicy,
+) -> (Lockout, Vec<LockoutOut>) {
+    match outcome {
+        Outcome::Accepted => (Lockout::default(), vec![LockoutOut::Accepted]),
+        Outcome::Unavailable(_) => (
+            Lockout {
+                gate: Gate::Open,
+                ..lockout
+            },
+            vec![LockoutOut::Unavailable],
+        ),
+        Outcome::Refused => {
+            let failures = Attempts(lockout.failures.0.saturating_add(1));
+            match wait_after(failures, policy) {
+                None => (
+                    Lockout {
+                        gate: Gate::Open,
+                        failures,
+                    },
+                    vec![LockoutOut::Wrong],
+                ),
+                Some(wait) => {
+                    let until = Stamp(at.0.saturating_add(wait));
+                    (
+                        Lockout {
+                            gate: Gate::Waiting { until },
+                            failures,
+                        },
+                        vec![LockoutOut::Wrong, LockoutOut::LockedOut { until }],
+                    )
+                }
+            }
+        }
+    }
 }
 
 /// The wait after the `failures`-th failure: none up to `free_attempts`, then `first_wait_ms`,
 /// doubling per failure, capped at `max_wait_ms`.
 pub fn wait_after(failures: Attempts, policy: &LockoutPolicy) -> Option<u64> {
-    todo!("M11 fill: a-lock ({failures:?} {policy:?})")
+    let past = failures
+        .0
+        .checked_sub(policy.free_attempts)?
+        .checked_sub(1)?;
+    let doubled = 1_u64
+        .checked_shl(past)
+        .and_then(|factor| policy.first_wait_ms.checked_mul(factor))
+        .unwrap_or(u64::MAX);
+    Some(doubled.min(policy.max_wait_ms))
 }
 
 /// When `lockout` next wants a `Tick`.

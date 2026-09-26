@@ -35,7 +35,6 @@ fn wrong(at: u64) -> [LockoutIn; 2] {
 }
 
 #[test]
-#[ignore = "M11 fill: a-lock"]
 fn waits_grow_and_cap() {
     let cases = [
         (0, None),
@@ -56,7 +55,6 @@ fn waits_grow_and_cap() {
 }
 
 #[test]
-#[ignore = "M11 fill: a-lock"]
 fn the_rules_in_the_module_doc() {
     let open = Lockout::default();
     let three_wrong: Vec<LockoutIn> = [wrong(0), wrong(100), wrong(200)].concat();

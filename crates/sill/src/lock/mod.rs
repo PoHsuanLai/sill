@@ -22,19 +22,27 @@
 //! refused unless the daemon was built with `debug`, and the acceptance scripts only ever run
 //! such a daemon on the nested compositor (`wayland-1`), never on `wayland-0`.
 
+mod follow;
 pub mod host;
 
-use shell_host::{Focus, HostEvent, HostHandle, LockId, SurfaceId};
+use std::time::Duration;
+
+use shell_host::{Focus, HostEvent, HostHandle, LockId, LockState, SurfaceId};
 use sill_ipc::{
     Failure, FailureKind, FakeAuth, LockReport, ReportDrawer, ReportLockPhase, Response,
 };
-use sill_services::{Auth, Lock, LockDrawer, LockPhase, Services};
-use sill_surfaces::surfaces::lock::LockLink;
+use sill_services::{
+    Auth, AuthCommand, AuthPhase, Lock, LockDrawer, LockPhase, LockerCommand, Services,
+    ShellLockEvent,
+};
+use sill_surfaces::surfaces::banners::BannerOutput;
+use sill_surfaces::surfaces::lock::{LockLink, PromptOutput};
 use tokio::runtime::Handle;
 
 use crate::msg::ShellMsg;
 use crate::outputs::Outputs;
-use host::{LockFactory, SessionLockHost};
+use follow::{Latch, Send, follow};
+use host::{LockFactory, LockRefusal, SessionLockHost};
 
 /// How long after `Accepted` the daemon unlocks if the lock surfaces have not (their fade is
 /// `--t-move`, well under this).
@@ -50,7 +58,14 @@ pub enum LockWish {
 /// The wish from the two services: held while the locker draws with the shell and is not
 /// `Unlocked`, unless the auth service has `Accepted` (the unlock).
 pub fn lock_wish(lock: &Lock, auth: &Auth) -> LockWish {
-    todo!("M11 fill: a-lock ({lock:?} {:?})", auth.phase)
+    match (lock.drawer, lock.phase, &auth.phase) {
+        (LockDrawer::Shell, LockPhase::Locking | LockPhase::Locked, phase)
+            if *phase != AuthPhase::Accepted =>
+        {
+            LockWish::Held
+        }
+        _ => LockWish::Released,
+    }
 }
 
 /// The lock the host thread holds.
@@ -61,16 +76,60 @@ pub struct ShellLock {
 
 /// Follow `services.lock` and `services.auth` on `rt` and send `ShellMsg::Lock(wish)` to the
 /// host at start and whenever [`lock_wish`] changes (a `Released` after `Accepted` only once
-/// [`UNLOCK_BACKSTOP_MS`] has passed with the wish unchanged), until the host is gone. Lane a
-/// fills it; a no-op until then.
+/// [`UNLOCK_BACKSTOP_MS`] has passed with the wish unchanged), until the host is gone.
 pub fn spawn_follower(rt: &Handle, services: &Services, host: HostHandle<ShellMsg>) {
-    let _ = (rt, services, host);
+    let (mut lock, mut auth) = (services.lock.clone(), services.auth.clone());
+    rt.spawn(async move {
+        let mut latch = Latch::default();
+        let mut sent = None;
+        loop {
+            let (next, wish, send) = follow(latch, &lock.borrow_and_update(), &auth.borrow_and_update());
+            latch = next;
+            if sent != Some(wish) {
+                let settled = match send {
+                    Send::Now => Changed::No,
+                    Send::AfterBackstop => {
+                        tokio::select! {
+                            () = tokio::time::sleep(Duration::from_millis(UNLOCK_BACKSTOP_MS)) => Changed::No,
+                            changed = lock.changed() => changed.map_or(Changed::Gone, |()| Changed::Yes),
+                            changed = auth.changed() => changed.map_or(Changed::Gone, |()| Changed::Yes),
+                        }
+                    }
+                };
+                match settled {
+                    Changed::No => {
+                        if host.send(ShellMsg::Lock(wish)).is_err() {
+                            return;
+                        }
+                        sent = Some(wish);
+                    }
+                    Changed::Yes => continue,
+                    Changed::Gone => return,
+                }
+            }
+            let changed = tokio::select! {
+                changed = lock.changed() => changed,
+                changed = auth.changed() => changed,
+            };
+            if changed.is_err() {
+                return;
+            }
+        }
+    });
+}
+
+/// Whether a watched value moved while the follower waited.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Changed {
+    No,
+    Yes,
+    Gone,
 }
 
 /// On the host thread: make `held` match `wish`. Held and none held: `AuthCommand::Reset`,
 /// the [`LockLink`] to the main display, `lock_session(factory())`, and on a refusal
 /// `LockerCommand::Shell(Refused)` (an `InProgress` lock is adopted as held instead). Released
-/// and one held: `unlock_session`. Anything else: nothing. Lane a fills it; a no-op until then.
+/// and one held: `unlock_session`. Anything else: nothing.
 pub fn apply(
     host: &mut impl SessionLockHost,
     held: &mut ShellLock,
@@ -80,13 +139,42 @@ pub fn apply(
     outputs: &Outputs,
     services: &Services,
 ) {
-    let _ = (host, held, wish, factory, link, outputs, services);
+    match (wish, held.id) {
+        (LockWish::Held, None) => {
+            let _ = services.auth_control.send(AuthCommand::Reset);
+            link.set(main_display(outputs));
+            match host.lock_session(factory()) {
+                Ok(id) | Err(LockRefusal::InProgress(id)) => held.id = Some(id),
+                Err(LockRefusal::Unsupported) => {
+                    eprintln!("sill: the compositor has no ext-session-lock-v1; not locking");
+                    let _ = services
+                        .locker_control
+                        .send(LockerCommand::Shell(ShellLockEvent::Refused));
+                }
+            }
+        }
+        (LockWish::Released, Some(id)) => host.unlock_session(id),
+        (LockWish::Held, Some(_)) | (LockWish::Released, None) => {}
+    }
+}
+
+/// Where the prompt starts: the main display (the banners' output), else the first output. The
+/// compositor then gives one lock surface the keyboard (cosmic-comp: the active output's, where
+/// the pointer is) and [`on_host_event`] moves the prompt there.
+fn main_display(outputs: &Outputs) -> PromptOutput {
+    match crate::notifications::banner_output(outputs) {
+        BannerOutput::On(id) => PromptOutput::On(id),
+        BannerOutput::Nowhere => outputs
+            .outputs
+            .first()
+            .map_or(PromptOutput::Nowhere, |(info, _)| PromptOutput::On(info.id)),
+    }
 }
 
 /// A host event about the lock ([`host::lock_event`]): `Locked`, `Unlocked`, `Finished` to the
 /// locker service as `ShellLockEvent`s (and on `Unlocked` / `Finished` `AuthCommand::Reset`,
 /// forgetting the id); a lock surface gaining the keyboard ([`host::SessionLockHost::
-/// lock_surface_output`]) moves the [`LockLink`] there. Lane a fills it; a no-op until then.
+/// lock_surface_output`]) moves the [`LockLink`] there.
 pub fn on_host_event(
     host: &impl SessionLockHost,
     held: &mut ShellLock,
@@ -94,14 +182,25 @@ pub fn on_host_event(
     link: &LockLink,
     services: &Services,
 ) {
-    let _ = (
-        host,
-        held,
-        link,
-        services,
-        host::lock_event(event),
-        lock_focus(event),
-    );
+    if let Some((id, state)) = host::lock_event(event)
+        && held.id == Some(id)
+    {
+        let told = match state {
+            LockState::Locked => ShellLockEvent::Locked,
+            LockState::Unlocked => ShellLockEvent::Unlocked,
+            LockState::Finished => ShellLockEvent::Finished,
+        };
+        let _ = services.locker_control.send(LockerCommand::Shell(told));
+        if matches!(state, LockState::Unlocked | LockState::Finished) {
+            held.id = None;
+            let _ = services.auth_control.send(AuthCommand::Reset);
+        }
+    }
+    if let (Some(surface), Some(id)) = (lock_focus(event), held.id)
+        && let Some(output) = host.lock_surface_output(id, surface)
+    {
+        link.set(PromptOutput::On(output));
+    }
 }
 
 /// A keyboard focus gained, for moving the prompt.
@@ -170,3 +269,6 @@ fn fake_auth_in_this_build(services: &Services, fake: FakeAuth) -> Response {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod apply_tests;
