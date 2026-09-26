@@ -11,16 +11,17 @@
 
 use dioxus::prelude::*;
 use ds::{AppKey, BlurState, Ds, Material, RootChrome, RootExtent, SwitcherApp as Tile};
-use shell_host::OutputInfo;
+use shell_host::{OutputInfo, SurfaceHandle};
 use sill_services::OutputName;
 
-use super::drive::use_switcher;
+use super::drive::{SwitcherCtx, use_switcher};
 use super::icon::SwitcherIcons;
 use super::layer::PANEL_ID;
 use super::link::SwitcherLink;
 use super::machine::{Switcher, SwitcherParams};
-use super::session::Session;
+use super::session::{Session, Windows};
 use super::tiles::{key_of, metrics_of, output_width, tiles};
+use super::watch::ChordWatch;
 use crate::app_icons::{IconContext, LogicalPx, icon_look, use_icon_resolver};
 use crate::hooks::{use_appearance, use_apps, use_ds_scale, use_settings, use_workspaces};
 use crate::surfaces::launcher::panel::active_look;
@@ -54,6 +55,7 @@ pub(super) fn switcher_panel(output: OutputInfo) -> Element {
         (Switcher::Shown { sel }, Some(session)) => Some(row(session, sel, &icons)),
         _ => None,
     };
+    let host = try_use_context::<SurfaceHandle>();
     let metrics = metrics_of(&file.switcher);
     let width = output_width(output.logical.width);
     rsx! {
@@ -77,6 +79,7 @@ pub(super) fn switcher_panel(output: OutputInfo) -> Element {
                     onmounted: move |event: MountedEvent| ds::focus_soon(event.data()),
                     onkeydown: move |event: KeyboardEvent| ctx.key_down(&event),
                     onkeyup: move |event: KeyboardEvent| ctx.key_up(&event),
+                    {chord_watch(host.as_ref(), session, ctx)}
                     if let Some((apps, selected)) = row {
                         div { id: PANEL_ID, class: "sill-switcher-panel",
                             ds::AppSwitcher {
@@ -92,6 +95,15 @@ pub(super) fn switcher_panel(output: OutputInfo) -> Element {
                 }
             }
         }
+    }
+}
+
+/// An opening follows the modifiers on a host surface (`use_modifiers` needs one), for the
+/// compositor's apps.
+fn chord_watch(host: Option<&SurfaceHandle>, session: &Session, ctx: SwitcherCtx) -> Element {
+    match (host, session.windows) {
+        (Some(_), Windows::Live) => rsx! { ChordWatch { ctx } },
+        (None, _) | (_, Windows::MadeUp) => rsx! {},
     }
 }
 

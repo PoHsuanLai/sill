@@ -1,5 +1,14 @@
 //! The switcher's machine (design/13 §13.4): a quick tap switches with no UI; held past the
 //! show delay the panel appears; release activates the selection.
+//!
+//! The quick tap without the modifiers on focus (G180): a release before the surface has the
+//! keyboard is never a key event, so what arrives inside the show delay decides. A `commit`
+//! (`ModifierReleased`) switches to the armed selection with no UI; so does a second chord (a
+//! second tap whose first release went unseen: the first tap wins, the second is spent). A key
+//! the surface itself sees while armed (Tab, `` ` ``, the arrows) proves the chord is held and
+//! steps as it would shown. Past the delay a chord steps. What stays open until shell-host
+//! reports the modifiers at `wl_keyboard.enter`: a lone quick tap whose release beat the focus
+//! shows the panel after the delay and waits there for Escape, a click or another release.
 
 use sill_launcher::AppId;
 use sill_services::Stamp;

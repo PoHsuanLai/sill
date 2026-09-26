@@ -21,9 +21,11 @@ pub mod machine;
 pub mod tiles;
 
 mod drive;
+mod hold;
 mod icon;
 mod panel;
 mod session;
+mod watch;
 
 pub use keys::{Chord, chord_after_keyup, sw_key};
 pub use layer::{PANEL_ID, PANEL_RADIUS, switcher_layer};

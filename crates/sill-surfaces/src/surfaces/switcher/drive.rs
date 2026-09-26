@@ -15,6 +15,7 @@ use sill_launcher::AppId;
 use sill_services::Services;
 use sill_services::switcher::{SwitcherApp, switcher_apps};
 
+use super::hold::chord_input;
 use super::keys::{Chord, chord_after_keyup, sw_key};
 use super::link::{AskSerial, SwitcherAsk, SwitcherLink};
 use super::machine::{Dir, SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
@@ -24,7 +25,7 @@ use crate::FrameClock;
 
 /// One surface's switcher: its machine, its opening, and what it talks to. Copy, so every
 /// handler and task holds it.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub(crate) struct SwitcherCtx {
     pub state: Signal<Switcher>,
     pub session: Signal<Option<Session>>,
@@ -34,6 +35,8 @@ pub(crate) struct SwitcherCtx {
     ticking: CopyValue<Option<Task>>,
     surface: CopyValue<Option<SurfaceHandle>>,
     services: CopyValue<Services>,
+    /// What the modifiers said since the opening (`hold.rs`); `None` until the first publish.
+    hold: CopyValue<Option<Chord>>,
 }
 
 /// Run `output`'s switcher from `link` with `params` (read at each input) and `level` (for the
@@ -58,6 +61,7 @@ pub(crate) fn use_switcher(
         ticking: CopyValue::new(None),
         surface: CopyValue::new(surface),
         services: CopyValue::new(services),
+        hold: CopyValue::new(None),
     });
     ctx.keep(params, level);
     use_effect(move || {
@@ -98,7 +102,8 @@ impl SwitcherCtx {
                     }
                     self.open(Session::live(serial, apps));
                 }
-                self.input(SwIn::Chord(dir));
+                let (state, hold) = (*self.state.peek(), *self.hold.peek());
+                self.input(chord_input(state, hold, dir));
             }
             SwitcherAsk::Cancel => self.input(SwIn::Key(SwKey::Escape)),
             SwitcherAsk::Commit => self.input(SwIn::ModifierReleased),
@@ -125,6 +130,8 @@ impl SwitcherCtx {
 
     /// Start an opening: its apps, and the surface mapped so it takes the keyboard.
     fn open(self, session: Session) {
+        let mut hold = self.hold;
+        hold.set(None);
         let mut stored = self.session;
         stored.set(Some(session));
         self.visibility(Visibility::Shown);
@@ -236,6 +243,16 @@ impl SwitcherCtx {
         if let Some(key) = sw_key(&event.key(), event.modifiers()) {
             event.prevent_default();
             self.input(SwIn::Key(key));
+        }
+    }
+
+    /// The modifiers published on the surface (on focus, and at each change): a release is the
+    /// release, whether or not a key event carried it.
+    pub fn modifiers(self, chord: Chord) {
+        let mut hold = self.hold;
+        hold.set(Some(chord));
+        if chord == Chord::Released {
+            self.input(SwIn::ModifierReleased);
         }
     }
 
