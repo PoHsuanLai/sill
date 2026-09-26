@@ -4452,3 +4452,36 @@ Q183, Q190, G120 (for sill) and G130 close.
   126 x 132, missing the frame's top padding by 3.5 px. No file this branch touches is on the
   path to that component; not investigated further (quire is a sibling repo, out of this
   task's scope, and shared with other concurrent work).
+
+## Battery widget adopts quire's round-four ring composition (branch `battery-rings`, 2026-09-26)
+
+- F532 quire's `BatteryLevel` (design/23-WIDGETS.md §4.1, the fourth pass "Flat, bright,
+  measured") now draws only the 64 px ring (track, arc, the device's glyph, a bolt at twelve
+  while charging); it no longer draws the percentage or the name. `sill-surfaces/widgets/
+  battery.rs` composes the rest, copying `ds-gallery`'s "Widget reference" page exactly: a
+  `BatteryLayout` enum (`Solo`/`Grid`/`Row`) picked from the host and the row count. Desktop with
+  one battery is `Solo` (the ring top left, the percentage alone as the card's hero figure,
+  `--fs-widget-hero` 500); Desktop with several is `Grid` (a 2 x 2 of rings, empty places padded
+  to four at 0, no numbers); the tile is always `Row` (up to four rings, the percentage under
+  each at `--fs-widget-figure`). Device names are no longer printed anywhere in the widget (only
+  in the ring's `aria-label`, matched by `ring_label`); `widget_battery.css` is placement and
+  tokens only, mirroring the gallery's own `g-wr-*` rules (the row's extra `--s-8` padding on
+  top of the frame's own 12 px inset lands the pitch at the measured 20/80 px, M15).
+- F533 M25 ("no header on a glanceable widget"): `frame_head` now gives Battery and World Clock
+  no title, matching the gallery composing `WidgetFrame` with none for either. Checked World
+  Clock's own composition against the gallery's `ClockMedium`/`ClockSmall`: sill only ever draws
+  it at `WidgetSize::Medium` (both hosts), already picks Analog on the desktop and Digital in
+  the tile correctly (`look_of`), so nothing else changed. One difference kept as is (out of
+  this task's "placement only" scope, and not a regression): the gallery's reference draws a
+  city's day and its offset as two separate lines; sill's `ClockRow.offset` is one combined
+  string ("Today, -7h") rendered as a single `span.sill-widget-city-offset`. Splitting it into
+  two lines is a small data-model change (`ClockRow` growing a second field, plus its tests),
+  not a CSS placement change, so it is left for a future pass.
+- Live: `dev/accept-widgets.sh` re-run on the nested cosmic-comp (wayland-1, never stopped):
+  PASS all six steps. `sill debug capture`'s five-tile center shows the Battery tile with no
+  header ("No batteries", the private bus has neither UPower nor BlueZ) and the World Clock
+  tile with no header either (digital digits, city, one combined day/offset line). A new
+  harness test, `sill-surfaces/tests/battery_snapshot.rs`, renders the Battery widget against
+  fake services (`ds_native::snapshot`, headless) at Small (alone and several) and Medium, to
+  `target/battery-snapshots/*.png`, since the private bus never has a real battery to capture
+  live; all three match the gallery reference's own composition.
