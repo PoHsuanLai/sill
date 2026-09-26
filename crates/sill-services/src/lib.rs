@@ -93,7 +93,9 @@ pub use network::wifi::{
     AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi, WifiCommand, WifiEvent,
     listed_networks, reduce_wifi,
 };
-pub use network::{Connectivity, Link, Network, NetworkCommand, NetworkEvent, reduce_network};
+pub use network::{
+    Activating, Connectivity, Link, Network, NetworkCommand, NetworkEvent, reduce_network,
+};
 pub use notifications::{
     Action, ActionKey, Activation, ActivationToken, AppGroup, AppKey, AppRef, BannerLife, Body,
     BodyRun, BusChoice, Chime, Clear, CloseReason, Expiry, Hints, History, HistoryCap,
