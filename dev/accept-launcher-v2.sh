@@ -230,7 +230,16 @@ step_preview_pdf_and_image() {
   capture "$SHOTS/launcher-v2-preview-pdf.png" || return 1
   local png
   png=$(field index:Documents:m9-shot.png)
-  [ -n "$png" ] || { echo "no m9-shot.png row" >&2; return 1; }
+  if [ -z "$png" ] && [ -n "$(field "index:Documents:Show More")" ]; then
+    # Behind Show More (the index ranks names its own way): open the section first.
+    local more
+    more=$(field "index:Documents:Show More")
+    while [ "$(field selected)" -lt "$more" ]; do key down; done
+    key enter
+    png=$(field index:Documents:m9-shot.png)
+  fi
+  [ -n "$png" ] || { echo "no m9-shot.png row: $(field rows:Documents)" >&2; return 1; }
+  while [ "$(field selected)" -gt "$png" ]; do key up; done
   while [ "$(field selected)" -lt "$png" ]; do key down; done
   echo "on the PNG: preview $(field preview)" >&2
   [ "$(field preview)" = image ] || return 1
