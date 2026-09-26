@@ -8,6 +8,7 @@
 //! a separate, animated subset for the user's picture and is not used here.
 
 use std::collections::HashMap;
+use std::sync::OnceLock;
 
 /// The keyword table, bundled at build time.
 pub const KEYWORDS_TSV: &str = include_str!("../../../data/emoji-keywords.tsv");
@@ -36,14 +37,40 @@ pub struct EmojiEntry {
 /// `KEYWORDS_TSV` as a map from emoji to its keywords: `#` lines and blank lines skipped, each
 /// line `<emoji>\t<kw>|<kw>|…`.
 pub fn parse_keywords(tsv: &'static str) -> HashMap<&'static str, Vec<&'static str>> {
-    let _ = tsv;
-    todo!("M9 fill: c-emoji-web-units")
+    tsv.lines()
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        .filter_map(|line| line.split_once('\t'))
+        .map(|(glyph, keywords)| (glyph, keywords.split('|').collect()))
+        .collect()
 }
 
 /// Every emoji, in Unicode's order (the grid's order with nothing typed and nothing recent),
 /// built once.
 pub fn emoji_table() -> &'static [EmojiEntry] {
-    todo!("M9 fill: c-emoji-web-units")
+    static TABLE: OnceLock<Vec<EmojiEntry>> = OnceLock::new();
+    TABLE.get_or_init(build_table)
+}
+
+/// `emojis::iter()` (default-tone glyphs only, Unicode order) joined with the bundled CLDR
+/// keywords: an emoji with no keyword line simply has none.
+fn build_table() -> Vec<EmojiEntry> {
+    let keywords = parse_keywords(KEYWORDS_TSV);
+    emojis::iter()
+        .map(|emoji| {
+            let glyph = emoji.as_str();
+            EmojiEntry {
+                glyph,
+                name: emoji.name(),
+                keywords: keywords.get(glyph).cloned().unwrap_or_default(),
+                shortcodes: emoji.shortcodes().collect(),
+                tones: if emoji.skin_tone().is_some() {
+                    Tones::Takes
+                } else {
+                    Tones::Fixed
+                },
+            }
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -57,7 +84,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M9 fill: c-emoji-web-units"]
     fn keywords_and_names_come_through() {
         let keywords = parse_keywords(KEYWORDS_TSV);
         assert!(keywords["😀"].contains(&"grin"));

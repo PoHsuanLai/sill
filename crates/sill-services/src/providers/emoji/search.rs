@@ -8,9 +8,25 @@
 //! default-tone glyph, so changing the tone keeps the recents.
 
 use nucleo_matcher::Matcher;
-use sill_launcher::{Frecency, Item, Needle, SkinTone, UnixTime};
+use sill_launcher::{
+    EmojiFacts, Frecency, IconRef, Item, ItemId, ItemKey, MatchScore, Needle, ProviderKind, Score,
+    SkinTone, Subject, UnixTime,
+};
 
 use super::table::EmojiEntry;
+
+/// Room for every table position in a score's low digits, comfortably above the table's length
+/// (~1900 default-tone emoji), so a tie above it never falls back to a title sort.
+const POSITION_SPACE: u32 = 10_000;
+
+/// Which of an entry's fields answered a typed query: the short name first, then its keywords,
+/// then its shortcodes (this module's doc).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum MatchKind {
+    Shortcode,
+    Keyword,
+    Name,
+}
 
 /// `table`'s emoji as rows for `needle`, best first, at most `limit`.
 pub fn emoji_items(
@@ -22,15 +38,150 @@ pub fn emoji_items(
     limit: usize,
     matcher: &mut Matcher,
 ) -> Vec<Item> {
-    let _ = (table, needle, tone, frecency, now, limit, matcher);
-    todo!("M9 fill: c-emoji-web-units")
+    if needle.is_empty() {
+        return recent_first(table, tone, frecency, now, limit);
+    }
+    let raw = needle.text().trim_start();
+    let shortcode_needle = raw.strip_prefix(':').and_then(|rest| {
+        let rest = rest.trim_start();
+        (!rest.is_empty()).then(|| Needle::parse(rest))
+    });
+    let shortcode_only = shortcode_needle.is_some();
+    let active = shortcode_needle.as_ref().unwrap_or(needle);
+
+    let mut ranked: Vec<(Score, &EmojiEntry)> = table
+        .iter()
+        .enumerate()
+        .filter_map(|(position, entry)| {
+            let (kind, score) = best_match(entry, active, shortcode_only, matcher)?;
+            Some((text_score(kind, score, position), entry))
+        })
+        .collect();
+    ranked.sort_by_key(|(score, _)| std::cmp::Reverse(*score));
+    ranked
+        .into_iter()
+        .take(limit)
+        .map(|(score, entry)| to_item(entry, tone, score))
+        .collect()
+}
+
+/// `entry`'s best match for `needle`: its name, then (outside a `:` search) its keywords, then
+/// its shortcodes, the first of these that matches at all.
+fn best_match(
+    entry: &EmojiEntry,
+    needle: &Needle,
+    shortcode_only: bool,
+    matcher: &mut Matcher,
+) -> Option<(MatchKind, MatchScore)> {
+    if let Some(score) = needle.score(entry.name, matcher) {
+        return Some((MatchKind::Name, score));
+    }
+    if !shortcode_only
+        && let Some(score) = entry
+            .keywords
+            .iter()
+            .filter_map(|keyword| needle.score(keyword, matcher))
+            .max()
+    {
+        return Some((MatchKind::Keyword, score));
+    }
+    entry
+        .shortcodes
+        .iter()
+        .filter_map(|shortcode| needle.score(shortcode, matcher))
+        .max()
+        .map(|score| (MatchKind::Shortcode, score))
+}
+
+/// A typed-text match's score: the fuzzy score dominates (so a strong keyword hit is never
+/// beaten by a scattered, low-quality name match), the kind breaks a tie in the name's favour,
+/// and the table's own order breaks what is left.
+fn text_score(kind: MatchKind, score: MatchScore, position: usize) -> Score {
+    let kind_rank = match kind {
+        MatchKind::Name => 2,
+        MatchKind::Keyword => 1,
+        MatchKind::Shortcode => 0,
+    };
+    Score(u32::from(score.0) * 100_000 + kind_rank * POSITION_SPACE + reverse_position(position))
+}
+
+/// Nothing typed: the runner's frecency leads (`emoji:<glyph>` keys, the default-tone glyph),
+/// then the table's own order (Spotlight's recent-first grid).
+fn recent_first(
+    table: &[EmojiEntry],
+    tone: SkinTone,
+    frecency: &Frecency,
+    now: UnixTime,
+    limit: usize,
+) -> Vec<Item> {
+    let mut ranked: Vec<(Score, &EmojiEntry)> = table
+        .iter()
+        .enumerate()
+        .map(|(position, entry)| {
+            let key = ItemKey::of(ProviderKind::Emoji, &ItemId(entry.glyph.to_owned()));
+            let used = frecency.score(&key, now);
+            let score = Score(u32::from(used.0) * POSITION_SPACE + reverse_position(position));
+            (score, entry)
+        })
+        .collect();
+    ranked.sort_by_key(|(score, _)| std::cmp::Reverse(*score));
+    ranked
+        .into_iter()
+        .take(limit)
+        .map(|(score, entry)| to_item(entry, tone, score))
+        .collect()
+}
+
+/// `position` as a low digit that favours an earlier (Unicode-ordered) entry; the table is far
+/// short of [`POSITION_SPACE`], so this never goes negative in spirit (it saturates instead).
+fn reverse_position(position: usize) -> u32 {
+    let position = u32::try_from(position).unwrap_or(u32::MAX);
+    POSITION_SPACE.saturating_sub(position)
+}
+
+/// One row for `entry`: the row's title is the glyph itself (`tone` applied), its subtitle the
+/// CLDR name; the frecency key is always the default-tone glyph (F650), so changing the tone
+/// keeps the recents.
+fn to_item(entry: &EmojiEntry, tone: SkinTone, score: Score) -> Item {
+    let glyph = toned(entry.glyph, tone);
+    Item {
+        id: ItemId(entry.glyph.to_owned()),
+        provider: ProviderKind::Emoji,
+        title: glyph.clone(),
+        subtitle: entry.name.to_owned(),
+        icon: IconRef::None,
+        score,
+        actions: Vec::new(),
+        subject: Subject::Emoji(EmojiFacts {
+            glyph,
+            name: entry.name.to_owned(),
+            tone,
+        }),
+    }
 }
 
 /// `glyph` with `tone` applied (Unicode's modifier after the base, inside a ZWJ sequence where
 /// Unicode puts it), or as it is when it takes none or `tone` is the default.
 pub fn toned(glyph: &str, tone: SkinTone) -> String {
-    let _ = (glyph, tone);
-    todo!("M9 fill: c-emoji-web-units")
+    if tone == SkinTone::Default {
+        return glyph.to_owned();
+    }
+    emojis::get(glyph)
+        .and_then(|emoji| emoji.with_skin_tone(emojis_tone(tone)))
+        .map(|emoji| emoji.as_str().to_owned())
+        .unwrap_or_else(|| glyph.to_owned())
+}
+
+/// This crate's [`SkinTone`] as the `emojis` crate's own enum (the same six, Default first).
+fn emojis_tone(tone: SkinTone) -> emojis::SkinTone {
+    match tone {
+        SkinTone::Default => emojis::SkinTone::Default,
+        SkinTone::Light => emojis::SkinTone::Light,
+        SkinTone::MediumLight => emojis::SkinTone::MediumLight,
+        SkinTone::Medium => emojis::SkinTone::Medium,
+        SkinTone::MediumDark => emojis::SkinTone::MediumDark,
+        SkinTone::Dark => emojis::SkinTone::Dark,
+    }
 }
 
 #[cfg(test)]
@@ -59,10 +210,16 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M9 fill: c-emoji-web-units"]
     fn names_keywords_and_shortcodes_all_find_an_emoji() {
         assert_eq!(
             glyphs("thumbs up", &Frecency::default())
+                .first()
+                .map(String::as_str),
+            Some("👍")
+        );
+        // The M9 freeze's own verify wording (FINDINGS "M9 lane c"): a partial name match.
+        assert_eq!(
+            glyphs("thumbs", &Frecency::default())
                 .first()
                 .map(String::as_str),
             Some("👍")
@@ -78,7 +235,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M9 fill: c-emoji-web-units"]
     fn recent_emoji_lead_the_empty_grid() {
         let frecency = Frecency::default().record(
             ItemKey::of(ProviderKind::Emoji, &ItemId("🎉".to_owned())),
@@ -91,7 +247,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M9 fill: c-emoji-web-units"]
     fn a_tone_applies_only_where_it_can() {
         let cases: &[(&str, SkinTone, &str)] = &[
             ("👋", SkinTone::Default, "👋"),

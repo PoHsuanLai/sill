@@ -5567,3 +5567,121 @@ round. F661 and F665 stand as recorded.
   full suite once failed `notification_center_render::a_press_on_a_stack_opens_it_and_a_lone_
   cards_close_dismisses_it` (sill-surfaces, not touched here) while the machine was loaded; it
   passed three times alone and in the `--no-fail-fast` rerun (1034 passed, 0 failed).
+
+## M9 lane c
+
+Emoji, the web fallback and currency (FINDINGS "M9 freeze" F649/F650), against `m9-freeze`
+(f17ea53). Numbers from F700, Q330, G260.
+
+- **F700 Emoji** (`providers/emoji/{table,search}.rs`). `table::emoji_table()` builds once
+  (`OnceLock`) from `emojis::iter()` (default-tone glyphs only, Unicode order) joined with
+  `parse_keywords(KEYWORDS_TSV)`; `Tones::Takes` iff `Emoji::skin_tone().is_some()`. `search::
+  emoji_items` checks each entry's name, then (outside a `:` search) its keywords, then its
+  shortcodes with nucleo's `Needle::score`, the FIRST of these that matches deciding the entry's
+  `MatchKind`; the final `Score` is `matched_score * 100_000 + kind_rank * 10_000 +
+  reverse_position`, so the fuzzy match quality dominates (a strong keyword or shortcode hit is
+  never beaten by a scattered, low-quality name match — considered and rejected: multiplying by
+  `MatchKind` first, which let a weak subsequence match on a long CLDR name from crowding out an
+  exact shortcode hit, e.g. `:tada` against 🎉's own shortcode), `MatchKind` only breaks a tie,
+  and the table's own (Unicode) position breaks what is left, so no two rows ever tie into
+  `reduce_results`'s title sort (`results/model.rs`). Nothing typed under the Emoji filter
+  (`Scope::Only(Emoji)`) scores by frecency first, then position, the same way. A row's title is
+  the glyph itself (`toned`, `emojis::Emoji::with_skin_tone` mapped from this crate's `SkinTone`);
+  its `ItemId`/frecency key is always the default-tone glyph (F650). `EmojiProvider::query`
+  requires two or more typed characters, or any non-empty text after a leading `:`, matching the
+  module's own doc; one bare character or a bare `:` lists nothing, whatever the scope. The limit
+  passed to `emoji_items` is `SectionPlan::default_plan().ceiling` (20, F645), not the grid's
+  display cap of 8 — the cap is lane d's `place`/`shown`, not a provider concern.
+- **F701 The web fallback** (`providers/web.rs`). `search_url` keeps RFC 3986 unreserved bytes
+  (letters, digits, `-._~`) literal and percent-encodes everything else, including space, as
+  `%20` (`percent_encoding::NON_ALPHANUMERIC` with those four removed from the encode set); it
+  refuses a template with no `{query}` or not `https`/`http`, checked in that order (a `file:`
+  template with `{query}` is `NotWeb`, not `NoPlaceholder`). `web_item`'s title is
+  `Search the web for \u{201c}{text}\u{201d}` (literal curly quotes, matching the verify step's
+  wording exactly); its subtitle and `WebFacts::engine` are the template's host
+  (`host_of`, a plain split on `/`, `?`, `#` after the scheme). `WebProvider::query` reads
+  `LauncherPolicy::web` fresh each call (a `watch::Receiver`, so a settings change is live next
+  keystroke) and offers nothing for empty text or an off/refusing template.
+- **F702 Currency** (`providers/calculator/{detect,eval,rates,fetch}.rs`). Three layers:
+  - `rates::parse_ecb` is a small attribute scan (`<Cube currency="USD" rate="1.1000"/>`, single
+    or double quoted), not an XML parser, gated on a namespace fragment only the ECB's own file
+    carries (`ecb.int/vocabulary`) so `parse_ecb("<html/>")` is `NotEcb`, not an empty table;
+    `relative_to_euro` is `1 / per_euro[code]`. `rates::ExchangeRates` wraps a `Rates` snapshot as
+    `fend_core::ExchangeRateFnV2`, installed by `eval::evaluate` only when it is given `Some`
+    rates — fend already knows the ISO codes as lazily-evaluated currency units (its
+    `units/builtin.rs`), so nothing here declares them; only the exchange rate needs supplying.
+  - `detect::looks_like_expression` and `word_is_known` gained an `Option<&Rates>` parameter
+    (both were pure functions this crate owns outright, not part of the interface freeze, so
+    widening them needed no cross-lane coordination): a currency code counts as a known unit word
+    only when `rates` is `Some` and has it, so `"10 usd to eur"` is a plain search term while
+    `launcher.currency = "off"` and an expression once ECB has given a table. `eval::evaluate`
+    gained the same parameter and installs the exchange-rate handler only then.
+  - `fetch.rs` (new) is the only effectful part: `due` reads the cache file's own mtime (never an
+    in-memory field — `CalculatorProvider`'s fields are frozen at `policy`/`rates`, and this
+    avoids widening them) and says a fetch is worth trying at all, missing or damaged file
+    included; `refresh_if_due` is fire-and-forget (`tokio::spawn`, guarded by a process-wide
+    `AtomicBool` so two keystrokes in a row never start a second fetch), runs `curl --fail
+    --silent --show-error --output <path>.xml.tmp <ECB_DAILY_URL>` and renames the temp file in
+    on success only, so a reader never sees a half-written file. `CalculatorProvider::ecb_rates`
+    (private) is what `query` calls every time `launcher.currency = "ecb"`: it reloads the cache
+    from disk fresh (a local file read of a few KB, well inside the 50 ms budget, never the
+    network) so a pre-seeded cache converts on the very first query with no fetch at all, writes
+    it into the shared `SharedRates` (so other readers see the same snapshot), and only then asks
+    `refresh_if_due` whether the file itself is stale enough to refetch. `off` calls none of this
+    (`ecb_rates` returns `None` before touching the policy's `.currency` a second time, let alone
+    the disk).
+- **F703 The emoji paint bench** (`crates/sill-surfaces/examples/emoji_paint_bench.rs`, F656's
+  open risk). 300 real `.ds-emoji-text` cells (quire m9-parts, corrected by the coordinator
+  mid-wave: the colour-emoji class is `.ds-emoji-text`, not `.ds-emoji` — that root is
+  `AnimatedEmoji`'s) in a scrollable flex grid inside a `ds::Ds { material: Material::Sheet }`
+  root, built with `ds_native::Harness`, scrolled with `Harness::wheel` and `Harness::advance`
+  for 180 simulated 60 Hz frames (3 s), each frame's `Harness::render()` timed with `Instant`.
+  **vello_cpu** (release build — a debug build's numbers, p50 151 ms, are an artifact of no
+  optimisation and not reported as the finding): **p50 6.89 ms, p95 9.57 ms, max 12.95 ms**, all
+  comfortably inside the 16.67 ms/frame budget for 60 Hz on this machine. Sent to the main
+  session ahead of the rest of this lane's work, since lane d's grid depends on it.
+  **vello_hybrid was not measured**; see Q330.
+- **The six ignored tests are un-ignored** (`table::tests::keywords_and_names_come_through`,
+  `search::tests::{names_keywords_and_shortcodes_all_find_an_emoji, recent_emoji_lead_the_empty_
+  grid, a_tone_applies_only_where_it_can}`, `web::tests::the_query_is_percent_encoded_into_the_
+  template`, `rates::tests::the_daily_file_becomes_rates_per_euro`) and pass, plus new
+  table-driven tests for the currency gating (`detect.rs`, `eval.rs`) and the fetch throttle
+  (`fetch.rs`), none of which touch the network (a `Rates` value is built by hand in every test;
+  `fetch::due`'s own tests use a file this process wrote, never `curl`).
+- **Q330 (quire)** `ds_native::Harness` paints only through `anyrender_vello_cpu`
+  (`ds-native/src/headless.rs` hardcodes `VelloCpuImageRenderer`); there is no public path to
+  paint a `Harness`'s document through `anyrender_vello_hybrid` instead. The existing hybrid
+  example (`ds-native/examples/emoji_probe_hybrid.rs`) does not answer this: it hand-builds an
+  anyrender scene and drives a raw wgpu device directly, bypassing the DOM, layout and `Harness`
+  entirely, so it cannot time real markup (300 real `.ds-emoji-text` cells, real cascade, real
+  scroll). Proposed: a `Harness` method (behind a dev-feature, mirroring `pdf-thumb`'s pattern)
+  that paints the current frame through `anyrender_vello_hybrid` on an offscreen wgpu texture
+  instead of `anyrender_vello_cpu`, returning the same `image::RgbaImage` `render()` does, so a
+  caller times it the same way. Blocked in this wave on `crates/sill-surfaces/Cargo.toml`, which
+  the M9 fill-in gives to lane d (the `pdf-thumb` feature only) — lane c did not touch it.
+- **F704 A failed fetch backs off for an hour, and the calculator only reads for it when the
+  text could need it** (coordinator follow-up on F702, before merge). Two things F702 missed:
+  - `fetch::due` counted only the cache's own age, so a `curl` that fails (offline, blocked, a
+    proxy) left the cache exactly as stale as it always was — every following keystroke with
+    `launcher.currency = "ecb"` saw it as due and started another `curl` the moment the last one
+    ended, which is "on a keystroke" in every sense that matters even though no single call
+    blocks one. `due` gained a second input, the last attempt (`fetch::Attempt { at, outcome }`,
+    a sibling stamp file next to the cache, `ecb-rates.attempt`, `<unix seconds> success|
+    failure`): a failed attempt holds off the next one for an hour regardless of the cache's own
+    age; a successful one still holds off for a day, as before. `fetch::fetch_into` itself had a
+    bug in the same family: it returned `Ok(())` even when `curl`'s exit status was non-zero (it
+    only checked the status to decide whether to rename the temp file in), so a failure was never
+    distinguishable from a success by its caller — fixed to return `Err` on a non-zero exit, the
+    only way `refresh_if_due` can tell the two apart to write the right stamp. `due` stayed pure
+    and table-tested (`fetch::tests`, one table: missing cache and no attempt; a failed attempt
+    10 minutes ago; a failed attempt 2 hours ago; a fresh cache; a day-old cache) by taking
+    `Option<UnixTime>` (the cache's own `mtime`) and `Option<Attempt>` rather than a `Path` — the
+    reads themselves (`mtime`, `read_attempt`) moved to `refresh_if_due`, the effectful edge.
+  - `CalculatorProvider::ecb_rates` (the disk read plus the due check) ran on every query while
+    `currency = "ecb"`, whatever was typed — `"2 + 2"` loaded the cache exactly as `"10 usd to
+    eur"` did. `detect::mentions_possible_currency` (new, pure, table-tested) is a cheap,
+    table-free shape check — any word, once a leading number is stripped as `word_is_known`
+    already strips one, that is exactly three bare letters — and `query` now calls `ecb_rates`
+    only when it says yes. It is deliberately loose (`"ftp"` or `"www"` also pass it): getting
+    this wrong only costs an extra, harmless disk read, never a network call, since the network
+    throttle is `due`'s alone.

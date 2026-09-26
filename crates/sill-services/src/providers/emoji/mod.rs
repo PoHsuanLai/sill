@@ -11,9 +11,11 @@ pub mod search;
 pub mod table;
 
 use std::sync::{Arc, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use sill_launcher::{
-    Activation, Choice, Frecency, Item, Provider, ProviderKind, Query, ResultSink, Subject,
+    Activation, Batch, Choice, Frecency, Item, Needle, Provider, ProviderKind, Query, ResultSink,
+    Scope, Subject, UnixTime, matching,
 };
 use tokio::sync::watch;
 
@@ -33,7 +35,43 @@ impl Provider for EmojiProvider {
     }
 
     fn query(&self, query: &Query, sink: &mut dyn ResultSink) {
-        let _ = (query, sink);
+        if query.is_cancelled() {
+            return;
+        }
+        let trimmed = query.text.trim();
+        let asked_alone = query.scope == Scope::Only(ProviderKind::Emoji);
+        if trimmed.is_empty() {
+            if !asked_alone {
+                // Nothing typed, asked of the whole launcher: no emoji rows (M9 freeze F651).
+                return;
+            }
+        } else if !worth_searching(trimmed) {
+            return;
+        }
+
+        let needle = Needle::parse(&query.text);
+        let tone = self.policy.borrow().emoji_tone;
+        let frecency = snapshot(&self.frecency);
+        let now = unix_now();
+        let mut matcher = matching::matcher();
+        let items = search::emoji_items(
+            table::emoji_table(),
+            &needle,
+            tone,
+            &frecency,
+            now,
+            EMOJI_LIMIT,
+            &mut matcher,
+        );
+
+        if query.is_cancelled() {
+            return;
+        }
+        sink.push(Batch {
+            provider: ProviderKind::Emoji,
+            generation: query.generation,
+            items,
+        });
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
@@ -44,4 +82,37 @@ impl Provider for EmojiProvider {
             _ => Activation::Nothing,
         }
     }
+}
+
+/// Rows a query may answer with: `SectionPlan::default_plan().ceiling` (F645), the most any
+/// section publishes; capping to the grid's own display cap and revealing more on "Show More"
+/// is lane d's (`rank::sections::place`).
+const EMOJI_LIMIT: usize = 20;
+
+/// Typed text is worth searching at two or more characters, or any text after a leading `:`
+/// (this module's doc); one bare character (or a bare `:`) is not.
+fn worth_searching(trimmed: &str) -> bool {
+    match trimmed.strip_prefix(':') {
+        Some(rest) => !rest.trim().is_empty(),
+        None => trimmed.chars().count() >= 2,
+    }
+}
+
+/// A clone of the shared frecency, for one query.
+fn snapshot(frecency: &Mutex<Frecency>) -> Frecency {
+    frecency
+        .lock()
+        .map(|guard| guard.clone())
+        .unwrap_or_else(|poisoned| poisoned.into_inner().clone())
+}
+
+/// The wall clock, in whole seconds since the epoch; a clock that cannot be read (never
+/// observed, but not a reason to panic a keystroke) ages every entry from year 1970.
+fn unix_now() -> UnixTime {
+    UnixTime(
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0),
+    )
 }

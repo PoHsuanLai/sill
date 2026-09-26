@@ -8,6 +8,9 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
+use fend_core::{ExchangeRateFnV2, ExchangeRateFnV2Options};
+use jiff::civil::Date;
+use jiff::tz::TimeZone;
 use sill_launcher::UnixTime;
 
 /// The ECB's daily file.
@@ -31,19 +34,88 @@ pub enum RatesFault {
 /// The rates the provider converts with, shared with the fetcher.
 pub type SharedRates = Arc<Mutex<Rates>>;
 
+/// A namespace fragment only the ECB's own files carry, checked before anything else is
+/// parsed (`parse_ecb("<html/>")` is [`RatesFault::NotEcb`], not an empty table).
+const ECB_MARKER: &str = "ecb.int/vocabulary";
+
 /// The rates in an ECB `eurofxref-daily.xml`: every `<Cube currency="USD" rate="1.0876"/>`,
 /// plus `EUR` at 1. A small attribute scan, not an XML parser (the file is three levels of
 /// one element). Lane c fills it.
 pub fn parse_ecb(xml: &str) -> Result<Rates, RatesFault> {
-    let _ = xml;
-    todo!("M9 fill: c-emoji-web-units")
+    if !xml.contains(ECB_MARKER) {
+        return Err(RatesFault::NotEcb);
+    }
+    let day = xml
+        .split("<Cube")
+        .find_map(|tag| attribute(tag, "time"))
+        .and_then(day_start);
+    let mut per_euro = BTreeMap::new();
+    per_euro.insert("EUR".to_owned(), 1.0);
+    for tag in xml.split("<Cube").skip(1) {
+        let (Some(code), Some(rate)) = (attribute(tag, "currency"), attribute(tag, "rate")) else {
+            continue;
+        };
+        if let Ok(rate) = rate.parse::<f64>() {
+            per_euro.insert(code.to_uppercase(), rate);
+        }
+    }
+    if per_euro.len() <= 1 {
+        return Err(RatesFault::NoRates);
+    }
+    Ok(Rates { per_euro, day })
+}
+
+/// `name`'s value in `tag` (`<Cube currency="USD" .../`), single or double quoted.
+fn attribute<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
+    let double = format!("{name}=\"");
+    let single = format!("{name}='");
+    let (after, quote) = if let Some(pos) = tag.find(&double) {
+        (pos + double.len(), '"')
+    } else {
+        let pos = tag.find(&single)?;
+        (pos + single.len(), '\'')
+    };
+    let rest = &tag[after..];
+    let end = rest.find(quote)?;
+    Some(&rest[..end])
+}
+
+/// `text` (`2026-09-25`) as the start of that day, UTC.
+fn day_start(text: &str) -> Option<UnixTime> {
+    let date: Date = text.parse().ok()?;
+    let seconds = date.to_zoned(TimeZone::UTC).ok()?.timestamp().as_second();
+    u64::try_from(seconds).ok().map(UnixTime)
 }
 
 /// `code`'s value relative to the base (EUR): `1 / per_euro[code]`, the shape fend's
 /// `relative_to_base_currency` answers. `None` for an unknown code.
 pub fn relative_to_euro(rates: &Rates, code: &str) -> Option<f64> {
-    let _ = (rates, code);
-    todo!("M9 fill: c-emoji-web-units")
+    let per_euro = *rates.per_euro.get(&code.to_uppercase())?;
+    (per_euro != 0.0).then_some(1.0 / per_euro)
+}
+
+/// Feeds `fend` a snapshot of `Rates` as its exchange-rate handler
+/// (`Context::set_exchange_rate_handler_v2`): `evaluate` builds one from the shared rates it
+/// was given for the one query, never touching the network itself.
+#[derive(Debug, Clone)]
+pub struct ExchangeRates(Rates);
+
+impl ExchangeRates {
+    /// Wraps `rates` for fend to query while this evaluation lasts.
+    pub fn new(rates: Rates) -> ExchangeRates {
+        ExchangeRates(rates)
+    }
+}
+
+impl ExchangeRateFnV2 for ExchangeRates {
+    fn relative_to_base_currency(
+        &self,
+        currency: &str,
+        _options: &ExchangeRateFnV2Options,
+    ) -> Result<f64, Box<dyn std::error::Error + Send + Sync + 'static>> {
+        relative_to_euro(&self.0, currency)
+            .ok_or_else(|| format!("no ECB rate for {currency}").into())
+    }
 }
 
 #[cfg(test)]
@@ -63,7 +135,6 @@ mod tests {
 </gesmes:Envelope>"#;
 
     #[test]
-    #[ignore = "M9 fill: c-emoji-web-units"]
     fn the_daily_file_becomes_rates_per_euro() {
         let rates = parse_ecb(SAMPLE).expect("rates");
         assert_eq!(rates.per_euro.get("USD"), Some(&1.1));
