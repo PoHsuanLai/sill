@@ -54,6 +54,13 @@ pub struct SessionSettings {
         advanced
     )]
     pub lock_clock: LockClock,
+    #[settings(
+        label = "Your picture",
+        help = "The picture on the lock screen: `auto` is your photo (`~/.face`) if you have one, else your initial; `letter`; `photo`; or `emoji:<name>` for one of the design system's reacting emoji.",
+        section = "Lock screen",
+        advanced
+    )]
+    pub user_picture: String,
     /// Keys this build does not know, kept for the next write.
     #[serde(flatten)]
     #[settings(skip)]
@@ -66,6 +73,7 @@ impl Default for SessionSettings {
             locker: "auto".to_owned(),
             polkit_agent: "auto".to_owned(),
             lock_clock: LockClock::H24,
+            user_picture: "auto".to_owned(),
             extra: toml::Table::new(),
         }
     }
