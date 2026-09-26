@@ -19,5 +19,6 @@ pub mod osd;
 pub mod outputs;
 pub mod power_menu;
 pub mod screenshots;
+pub mod scroll;
 pub mod session;
 pub mod widgets;
