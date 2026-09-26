@@ -160,10 +160,10 @@ and a stand-in helper; these need polkitd, polkit's own helper and a real passwo
   puts the focus ring on its first button, Tab walks the buttons, Escape leaves the pane, hides
   it, then closes. ⌘R on a document opens the file manager with it selected. Hold Down through
   a long list (Tab to Documents): the selected row should stay in view (FINDINGS Q340 says it
-  does not yet). In the emoji grid (Shift+Tab twice with nothing typed) all four arrows should
-  move (FINDINGS F741 says → shows the preview instead), and Enter then Cmd+V pastes the emoji in
-  another app. Also by eye: the focus ring on the pane's buttons in the dark scheme, and whether
-  `↵` should follow the selected row (F742).
+  does not yet). In the emoji grid (Shift+Tab twice with nothing typed) all four arrows move
+  (fixed, F760) and ⌘Y shows the emoji's preview, and Enter then Cmd+V pastes the emoji in
+  another app. Also by eye: the focus ring on the pane's buttons in the dark scheme, and `↵`
+  following the selected row (F761).
 - [ ] **A clipboard row pasted into a real app** (M9 lane e): on KWin, real Enter on a clipboard
   row was proven with `wl-paste` only; on a real login, Enter on an older clipboard row, then
   Ctrl+V in a text editor and in a terminal, pastes that entry.

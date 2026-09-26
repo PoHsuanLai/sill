@@ -22,7 +22,7 @@
 #      the token; with no file manager on the bus, xdg-open opens the folder instead; with the
 #      stub only activatable (a service file on the private bus), the call starts it.
 #   4. `files_backend = "off"`: the provider lists nothing; the daemon, after `sill reload`,
-#      has no Documents section (PENDING until lane d).
+#      lists no file row in any section, Top Hit included, and no Documents section (G280).
 #   5. Detection on this machine (the real session bus: whether names exist, nothing more), and
 #      Tracker end to end in localsearch's own sandbox (a private bus and a scratch index).
 #
@@ -30,6 +30,7 @@
 # another lane.
 #
 # Usage: dev/nested.sh && dev/accept-launcher-files.sh
+#        dev/accept-launcher-files.sh --self-test   (step 4's check over a table, no compositor)
 set -uo pipefail
 # shellcheck source=dev/common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
@@ -309,14 +310,56 @@ step4() {
   fi
   settings off
   sill reload >/dev/null 2>&1
-  local rows
+  local rows held
   rows=$(daemon_rows m9-rep)
-  case "$rows" in
-    pending) pending 4 "the daemon's launcher-rows is not filled yet (M9 lane d)" ;;
-    *Documents*) fail 4 "the daemon still has a Documents section: $rows" ;;
-    *) pass 4 "after reload the daemon has no Documents section" ;;
+  if [ "$rows" = pending ]; then
+    pending 4 "the daemon's launcher-rows is not filled yet (M9 lane d)"
+    return
+  fi
+  held=$(file_rows <<<"$rows")
+  case "$held" in
+    none) pass 4 "after reload no file row anywhere (Top Hit included), no Documents section" ;;
+    unread) fail 4 "the daemon's rows did not read as JSON: $rows" ;;
+    *) fail 4 "files_backend off, yet the daemon lists: $held" ;;
   esac
 }
+
+# Where `sill debug launcher-rows` (on stdin) shows a file: "none" when no section is Documents
+# and no row in any section (Top Hit included, G280) is a seeded file's name, "unread" when the
+# rows are not JSON, else each offending section and row.
+file_rows() {
+  python3 -c '
+import json, sys
+FILES = {"m9-report.pdf", "m9-notes.md"}
+try:
+    secs = json.loads(sys.stdin.read())["v"]["sections"]
+except (ValueError, KeyError, TypeError):
+    print("unread")
+    sys.exit(0)
+held = [s["title"] + ": " + r for s in secs for r in s["rows"] if r in FILES]
+held += [s["title"] for s in secs if s["title"] == "Documents"]
+print("; ".join(held) if held else "none")'
+}
+
+# `--self-test`: step 4's check over a table of rows, no compositor needed. The first case is
+# G280's: a file as the Top Hit, which the old "no Documents title" check passed.
+self_test() {
+  local ok=0 rows want got
+  while IFS='|' read -r rows want; do
+    got=$(file_rows <<<"$rows")
+    case "$got" in none) got=pass ;; *) got=fail ;; esac
+    [ "$got" = "$want" ] || { echo "self-test: $rows: $got, want $want"; ok=1; }
+  done <<'EOF'
+{"v":{"sections":[{"title":"Top Hit","rows":["m9-report.pdf"]},{"title":"Web","rows":["w"]}]}}|fail
+{"v":{"sections":[{"title":"Recent","rows":["m9-notes.md"]}]}}|fail
+{"v":{"sections":[{"title":"Documents","rows":["x"]}]}}|fail
+{"v":{"sections":[{"title":"Top Hit","rows":["Search the web for m9-rep"]}]}}|pass
+not json|fail
+EOF
+  [ "$ok" = 0 ] && echo "self-test: PASS"
+  return "$ok"
+}
+if [ "${1:-}" = --self-test ]; then self_test; exit; fi
 
 step5() {
   (cd "$SILL_REPO" && cargo test -p sill-services --test files_walk_live -- --ignored \

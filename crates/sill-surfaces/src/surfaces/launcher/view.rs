@@ -29,6 +29,14 @@ pub enum Line {
     },
 }
 
+/// How the palette lays out a line: a list row, or a cell of the Emoji section's grid (where ←
+/// and → move the cursor, design/13 §13.3.9 "2D arrow keys").
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Layout {
+    List,
+    Grid,
+}
+
 /// The sections the panel shows.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct View {
@@ -101,6 +109,24 @@ impl View {
         match self.lines().into_iter().nth(index)? {
             Line::Row(item) => Some(item),
             Line::More { .. } => None,
+        }
+    }
+
+    /// How line `index` is laid out: a grid cell for an Emoji row (the palette draws that
+    /// section as `PaletteGroup::grid`), else a list line (a header's action included).
+    pub fn layout(&self, index: usize) -> Layout {
+        let at = self
+            .sections
+            .iter()
+            .flat_map(|s| {
+                section_lines(s)
+                    .into_iter()
+                    .map(move |line| (s.section, line))
+            })
+            .nth(index);
+        match at {
+            Some((Section::Emoji, Line::Row(_))) => Layout::Grid,
+            _ => Layout::List,
         }
     }
 

@@ -1,7 +1,8 @@
 //! Groups as the quire `CommandPalette`'s and `Menu`'s entries (design/13 §13.3.9: a 34 px
-//! tile, the title, the subtitle as its detail, a trailing hint). The first row, which Enter
-//! runs, trails `↵`; any other row with actions trails `⌃K`; a row in a mixed group (Top hit,
-//! Recent) otherwise names its kind. Pure.
+//! tile, the title, the subtitle as its detail, a trailing hint). The selected row, which Enter
+//! runs, trails `↵`, so it moves with the selection as Spotlight's return glyph does (F742); any
+//! other row with actions trails `⌃K`; a row in a mixed group (Top hit, Recent) otherwise names
+//! its kind. Pure.
 //!
 //! A row's tile is the icon file the app index resolved (`IconRef::File`) drawn at 48 px, as a
 //! `Symbolic` for a freedesktop `*-symbolic` file and an `Image` otherwise; else the quire glyph
@@ -43,21 +44,54 @@ impl RowRef {
     }
 }
 
-/// The palette's `groups` prop, each row's tile from `tile_of` ([`tile`] draws the resolved
-/// file as it is; the panel passes `row_icon`'s, in the icon style).
+/// The palette's cursor: the line its `selected` counts, whose row Enter runs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Cursor(pub usize);
+
+/// Whether Enter runs a row (it then trails `↵`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum Enter {
+    Runs,
+    Not,
+}
+
+impl Cursor {
+    /// Whether Enter runs the row on `line`.
+    pub(crate) fn on(self, line: usize) -> Enter {
+        match line == self.0 {
+            true => Enter::Runs,
+            false => Enter::Not,
+        }
+    }
+}
+
+/// The palette's `groups` prop with the cursor on the first line, each row's tile from
+/// `tile_of` ([`tile`] draws the resolved file as it is; the panel passes `row_icon`'s, in the
+/// icon style).
 pub fn palette_groups(
     groups: &[Group],
     tile_of: &dyn Fn(&Item) -> Tile,
 ) -> Vec<(String, Vec<MenuEntry<RowRef>>)> {
-    let mut first = Some(());
+    palette_groups_at(groups, tile_of, Cursor::default())
+}
+
+/// [`palette_groups`] with the palette's cursor on `cursor` (a line per row, in order): the row
+/// there trails `↵`.
+pub fn palette_groups_at(
+    groups: &[Group],
+    tile_of: &dyn Fn(&Item) -> Tile,
+    cursor: Cursor,
+) -> Vec<(String, Vec<MenuEntry<RowRef>>)> {
+    let mut lines = 0..;
     groups
         .iter()
         .map(|group| {
             let entries = group
                 .rows
                 .iter()
-                .map(|item| {
-                    let trail = trail(item, group.title.mixes(), first.take());
+                .zip(&mut lines)
+                .map(|(item, line)| {
+                    let trail = trail(item, group.title.mixes(), cursor.on(line));
                     row_entry(item, tile_of(item), trail)
                 })
                 .collect();
@@ -95,12 +129,14 @@ fn row_entry(item: &Item, tile: Tile, trail: Trail) -> MenuEntry<RowRef> {
 }
 
 /// `↵` on the row Enter runs, `⌃K` where there are actions, else a mixed group's kind note.
-fn trail(item: &Item, mix: Mix, first: Option<()>) -> Trail {
-    match (first, item.actions.is_empty(), mix) {
-        (Some(()), _, _) => Trail::Shortcut(Shortcut(vec![ds::Key::Enter])),
-        (None, false, _) => Trail::Shortcut(Shortcut(vec![ds::Key::Ctrl, ds::Key::Char('k')])),
-        (None, true, Mix::Mixed) => Trail::Note(kind_note(item.provider).to_owned()),
-        (None, true, Mix::Single) => Trail::None,
+fn trail(item: &Item, mix: Mix, enter: Enter) -> Trail {
+    match (enter, item.actions.is_empty(), mix) {
+        (Enter::Runs, _, _) => Trail::Shortcut(Shortcut(vec![ds::Key::Enter])),
+        (Enter::Not, false, _) => {
+            Trail::Shortcut(Shortcut(vec![ds::Key::Ctrl, ds::Key::Char('k')]))
+        }
+        (Enter::Not, true, Mix::Mixed) => Trail::Note(kind_note(item.provider).to_owned()),
+        (Enter::Not, true, Mix::Single) => Trail::None,
     }
 }
 
@@ -192,7 +228,7 @@ fn kebab(camel: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{RowRef, glyph, kebab, named, palette_groups, tile};
+    use super::{Cursor, RowRef, glyph, kebab, named, palette_groups, palette_groups_at, tile};
     use crate::surfaces::launcher::groups::groups;
     use crate::surfaces::launcher::keys::Filter;
     use ds::{Icon, MenuEntry, Shortcut, Trail};
@@ -252,6 +288,39 @@ mod tests {
             recent[2],
             ("Mail".to_owned(), Trail::Note("Window".to_owned()))
         );
+    }
+
+    /// F742: `↵` is on the row the cursor is on (Enter runs it), and the first row, no longer
+    /// selected, trails its `⌃K` like the rest.
+    #[test]
+    fn the_return_glyph_moves_with_the_selection() {
+        let items = vec![
+            item(ProviderKind::Apps, "Firefox", 2),
+            item(ProviderKind::Apps, "Files", 1),
+            item(ProviderKind::Windows, "Mail", 0),
+        ];
+        let enter = Trail::Shortcut(Shortcut(vec![ds::Key::Enter]));
+        let ctrl_k = Trail::Shortcut(Shortcut(vec![ds::Key::Ctrl, ds::Key::Char('k')]));
+        let at = |line: usize| -> Vec<Trail> {
+            palette_groups_at(&groups(&items, "f", Filter::All), &tile, Cursor(line))
+                .into_iter()
+                .flat_map(|(_, entries)| entries)
+                .filter_map(|entry| match entry {
+                    MenuEntry::Item { trail, .. } => Some(trail),
+                    _ => None,
+                })
+                .collect()
+        };
+        let cases: Vec<(usize, Vec<Trail>)> = vec![
+            (0, vec![enter.clone(), ctrl_k.clone(), Trail::None]),
+            (1, vec![ctrl_k.clone(), enter.clone(), Trail::None]),
+            (2, vec![ctrl_k.clone(), ctrl_k.clone(), enter.clone()]),
+            // Past the last row (no such line): no row trails `↵`.
+            (9, vec![ctrl_k.clone(), ctrl_k, Trail::None]),
+        ];
+        for (line, want) in cases {
+            assert_eq!(at(line), want, "cursor on line {line}");
+        }
     }
 
     #[test]

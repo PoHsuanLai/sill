@@ -249,3 +249,50 @@ fn shift_tab_with_nothing_typed_reaches_emoji_alone() {
         "quire's emoji grid"
     );
 }
+
+/// F741: on the emoji grid a real → moves the cell (design/13 §13.3.9, 2D arrow keys) rather than
+/// showing the preview; ← moves it back; Space after the move is Quick Look (the move was a
+/// browse), and ⌘Y and ⌘→ still reach the pane there.
+#[test]
+fn real_left_and_right_move_the_emoji_grid_and_command_y_previews() {
+    let mut open = open("");
+    press(&mut open, LinkKey::ShiftTab);
+    press(&mut open, LinkKey::ShiftTab);
+    settle(&mut open.harness, |h| h.count(".ds-emoji-cell") == 3);
+    assert_eq!(headings(&open), ["Emoji"]);
+    assert_eq!(rows(&open).selected, 0);
+    open.harness.key(Key::Right);
+    open.harness.advance(Duration::from_millis(40));
+    let shown = rows(&open);
+    assert_eq!(shown.selected, 1, "→ moved to the next cell");
+    assert_eq!(shown.preview, None, "→ on a cell is not the preview's");
+    open.harness.key(Key::Right);
+    open.harness.key(Key::Left);
+    open.harness.advance(Duration::from_millis(40));
+    assert_eq!(rows(&open).selected, 1, "→ then ← came back");
+    open.harness.key(Key::Space);
+    open.harness.advance(Duration::from_millis(40));
+    assert_eq!(
+        rows(&open).preview,
+        Some(PreviewKind::Emoji),
+        "browsing the grid: Space is Quick Look"
+    );
+    open.harness.key(Key::Right);
+    open.harness.advance(Duration::from_millis(40));
+    let shown = rows(&open);
+    assert_eq!(shown.selected, 2, "→ still moves with the pane shown");
+    assert_eq!(shown.preview, Some(PreviewKind::Emoji), "the pane follows");
+    open.harness.chord(&[Key::Ctrl], Key::Char('y'));
+    open.harness.advance(Duration::from_millis(40));
+    assert_eq!(rows(&open).preview, None, "⌘Y hides it");
+    open.harness.chord(&[Key::Ctrl], Key::Char('y'));
+    open.harness.advance(Duration::from_millis(40));
+    assert_eq!(rows(&open).preview, Some(PreviewKind::Emoji), "⌘Y shows it");
+    open.harness.chord(&[Key::Ctrl], Key::Right);
+    open.harness.advance(Duration::from_millis(40));
+    assert!(
+        open.harness.html().contains("data-focused=\"true\""),
+        "⌘→ gave the pane's first control the keyboard"
+    );
+    assert_eq!(rows(&open).selected, 2, "⌘→ did not move the cell");
+}

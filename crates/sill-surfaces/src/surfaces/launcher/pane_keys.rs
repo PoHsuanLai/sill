@@ -5,8 +5,9 @@
 //! The field keeps the keyboard: the pane's focus is the machine's `PaneFocus::Pane(n)`, drawn by
 //! quire's `PreviewPane` as `focused`. Keys reach the machine through quire's key claim (Q299):
 //! [`PanelCtx::claim`] hears every key before the palette with the caret's place, and takes Space
-//! while browsing, → at the field's end, and the pane's own keys, so the field never types that
-//! Space nor moves its caret. The keys the palette leaves (Tab's filter, Ctrl+K, Up and Down
+//! while browsing, → at the field's end (not on an emoji cell, where ← and → are the grid's:
+//! `claim_keys.rs`), and the pane's own keys, so the field never types that Space nor moves its
+//! caret. The keys the palette leaves (Tab's filter, Ctrl+K, Up and Down
 //! having moved the selection) come after it, to [`PanelCtx::field_key`].
 
 use dioxus::prelude::*;
@@ -14,6 +15,7 @@ use ds::{Claim, FieldKey};
 use sill_launcher::{Choice, Item, Preview, action_for_chord, chords, preview_for};
 
 use crate::surfaces::launcher::chord_keys::chord_of;
+use crate::surfaces::launcher::claim_keys::{KeyPlace, pane_key};
 use crate::surfaces::launcher::debug_link::LinkKey;
 use crate::surfaces::launcher::entries::RowRef;
 use crate::surfaces::launcher::events::PanelCtx;
@@ -21,9 +23,10 @@ use crate::surfaces::launcher::keymap::launcher_key;
 use crate::surfaces::launcher::keys::{ActionsMenu, LauncherKey};
 use crate::surfaces::launcher::pane_session::PaneSession;
 use crate::surfaces::launcher::preview::keys::{
-    Caret, Pane, PaneFocus, PreviewKey, PreviewOut, PreviewState, Previewable, step_preview,
+    Caret, PaneFocus, PreviewKey, PreviewOut, PreviewState, Previewable, step_preview,
 };
 use crate::surfaces::launcher::session::Session;
+use crate::surfaces::launcher::view::Layout;
 
 impl PanelCtx {
     /// quire's key claim: a key the field got, before the palette, the field or `onkey`.
@@ -38,15 +41,13 @@ impl PanelCtx {
         let Some(pane) = self.current_pane() else {
             return Claim::Pass;
         };
-        let in_pane = matches!(pane.preview.focus, PaneFocus::Pane(_));
-        let preview = match (&pressed, in_pane) {
-            (Key::Character(text), _) if text == " " && modifiers.is_empty() => PreviewKey::Space,
-            (Key::ArrowRight, _) => PreviewKey::Right(caret_of(key.caret)),
-            (Key::ArrowLeft, true) => PreviewKey::Left,
-            (Key::Tab, true) if modifiers.contains(Modifiers::SHIFT) => PreviewKey::ShiftTab,
-            (Key::Tab, true) => PreviewKey::Tab,
-            (Key::Escape, _) if in_pane || pane.preview.pane == Pane::Shown => PreviewKey::Escape,
-            _ => return Claim::Pass,
+        let place = KeyPlace {
+            pane: pane.preview.pane,
+            focus: pane.preview.focus,
+            layout: self.selected_layout(),
+        };
+        let Some(preview) = pane_key(&pressed, modifiers, caret_of(key.caret), place) else {
+            return Claim::Pass;
         };
         let outs = self.preview_key(preview);
         match outs.contains(&PreviewOut::PassToField) || outs.contains(&PreviewOut::CloseLauncher) {
@@ -65,6 +66,12 @@ impl PanelCtx {
                 self.press(key);
             }
             Some(LauncherKey::Up | LauncherKey::Down) => {
+                self.preview_key(PreviewKey::Moved);
+            }
+            // ← and → the claim passed on an emoji cell: the palette moved the cell.
+            None if matches!(event.key(), Key::ArrowLeft | Key::ArrowRight)
+                && self.selected_layout() == Layout::Grid =>
+            {
                 self.preview_key(PreviewKey::Moved);
             }
             _ => {}
@@ -177,6 +184,16 @@ impl PanelCtx {
         };
         let controls = selected.map_or(0, |item| item.actions.len());
         step_preview(pane.preview, key, previewable, controls)
+    }
+
+    /// How the selected line is laid out: a cell of the emoji grid, or a list line.
+    fn selected_layout(&self) -> Layout {
+        match (self.current(), self.current_pane()) {
+            (Some(session), Some(pane)) => self
+                .view_of(&session, &pane.expanded)
+                .layout(session.keys.selected),
+            _ => Layout::List,
+        }
     }
 
     /// The selected row, if the selection is on a row.
