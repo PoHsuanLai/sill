@@ -38,7 +38,7 @@ use crate::surfaces::launcher::pane_session::PaneSession;
 use crate::surfaces::launcher::presence::LauncherLink;
 use crate::surfaces::launcher::preview::keys::{Pane, PaneFocus};
 use crate::surfaces::launcher::preview::moment::{pane_moment, use_pane_moment};
-use crate::surfaces::launcher::preview::{PREVIEW_WIDTH_PX, PaneHost, PreviewPane};
+use crate::surfaces::launcher::preview::{PANE_GAP_PX, PREVIEW_WIDTH_PX, PaneHost, PreviewPane};
 use crate::surfaces::launcher::row_icon::{row_art, row_tile};
 use crate::surfaces::launcher::script::use_script;
 use crate::surfaces::launcher::sections_view::palette_sections;
@@ -210,7 +210,7 @@ fn palette(panel: &PanelCtx, shown: &Shown, foot: Foot, icons: &RowIcons) -> Ele
     let hung = (row)();
     let preview = shown.preview();
     let results_width = match preview {
-        Some(_) => PANEL_WIDTH.saturating_sub(PREVIEW_WIDTH_PX),
+        Some(_) => PANEL_WIDTH.saturating_sub(PREVIEW_WIDTH_PX + PANE_GAP_PX),
         None => PANEL_WIDTH,
     };
     let focused = match shown.pane.preview.focus {

@@ -37,7 +37,10 @@ pub const PREVIEW_WIDTH_PX: u32 = 360;
 
 /// The pane's height while the quire pane is missing (the card beside it is as tall as its
 /// rows; the stand-in is one fixed card).
-pub const PREVIEW_HEIGHT_PX: u32 = 400;
+pub const PREVIEW_HEIGHT_PX: u32 = 440;
+
+/// The room between the results' card and the pane's (`--s-8`, the split's `gap`).
+pub const PANE_GAP_PX: u32 = 8;
 
 /// What the panel gives the pane beside its props (a context, so the frozen props stay): the
 /// launcher's material, and what a press on control `n` does.
@@ -90,12 +93,14 @@ pub fn PreviewPane(preview: Preview, actions: Vec<Action>, focused: Option<usize
         div {
             id: PREVIEW_ID,
             class: "sill-launcher-preview",
-            style: "width:{PREVIEW_WIDTH_PX}px;height:{PREVIEW_HEIGHT_PX}px",
+            style: "width:{PREVIEW_WIDTH_PX}px",
             Surface {
                 material,
                 radius: Some(Corner::Squircle(Px(CARD_RADIUS))),
                 chrome: Some(RootChrome::Painted),
-                div { class: "sill-launcher-preview-card",
+                div {
+                    class: "sill-launcher-preview-card",
+                    style: "height:{PREVIEW_HEIGHT_PX}px",
                     {body}
                     div { class: "sill-launcher-preview-actions", {controls} }
                 }

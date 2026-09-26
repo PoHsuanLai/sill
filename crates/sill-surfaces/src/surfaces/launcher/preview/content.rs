@@ -15,11 +15,11 @@ use crate::surfaces::launcher::preview::moment::{PaneMoment, use_pane_moment};
 /// The PDF page's room in the pane.
 const PDF_ROOM: Size = Size {
     width: Px(300.0),
-    height: Px(260.0),
+    height: Px(200.0),
 };
 
 /// An image's side in the pane (an `IconView` is square).
-const IMAGE_SIDE: u8 = 240;
+const IMAGE_SIDE: u8 = 200;
 
 /// The content for `preview`, its loads started (hooks run on every render, whatever the kind).
 pub(super) fn use_content(preview: &Preview) -> Element {

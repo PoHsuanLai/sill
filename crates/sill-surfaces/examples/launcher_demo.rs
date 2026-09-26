@@ -6,6 +6,8 @@
 //! - `toggle`, `open [QUERY]`, `close`: what `sill launcher ...` does;
 //! - `type TEXT`: the field's text becomes TEXT (shell-host injects no keys, FINDINGS G20);
 //! - `key tab|shift-tab|actions|escape`: those keys, through the panel's keyboard machine;
+//! - `press up|down|enter|escape|tab|shift-tab|actions|space|quick-look|right|left|reveal`: a
+//!   key as `sill debug launcher-key` presses it (M9: the preview pane's keys, row chords);
 //! - anything else is a shell-host `debug-inject` command (`sill-launcher-<output> capture
 //!   PATH`, `sill-launcher-catcher-<output> click X Y`, `stats`, `quit`).
 //!
@@ -24,6 +26,7 @@ use shell_host::{
     Visibility,
 };
 use sill_settings::{SettingsFeed, ShellFile};
+use sill_surfaces::surfaces::launcher::debug_link::LinkKey;
 use sill_surfaces::surfaces::launcher::script::{LauncherScript, Scripted, ScriptedInput};
 use sill_surfaces::surfaces::launcher::{
     LauncherCatcherProps, LauncherKey, LauncherLink, LauncherProps, catcher_layer, panel_layer,
@@ -143,6 +146,10 @@ fn run_line(ctx: &mut HostCtx<DemoMsg>, demo: &Demo, line: &str) {
         ("open", Some(output)) => demo.link.open(output, rest.to_owned()),
         ("close", _) => demo.link.close(),
         ("type", _) => script(demo, ScriptedInput::Type(rest.to_owned())),
+        ("press", _) => match link_key(rest) {
+            Some(key) => demo.link.press(key),
+            None => eprintln!("launcher_demo: no key {rest:?}"),
+        },
         ("key", _) => match key(rest) {
             Some(key) => script(demo, ScriptedInput::Key(key)),
             None => eprintln!("launcher_demo: no key {rest:?}"),
@@ -159,6 +166,24 @@ fn key(word: &str) -> Option<LauncherKey> {
         "escape" => Some(LauncherKey::Escape),
         _ => None,
     }
+}
+
+fn link_key(word: &str) -> Option<LinkKey> {
+    Some(match word.trim() {
+        "up" => LinkKey::Up,
+        "down" => LinkKey::Down,
+        "enter" => LinkKey::Enter,
+        "escape" => LinkKey::Escape,
+        "tab" => LinkKey::Tab,
+        "shift-tab" => LinkKey::ShiftTab,
+        "actions" => LinkKey::Actions,
+        "space" => LinkKey::Space,
+        "quick-look" => LinkKey::QuickLook,
+        "right" => LinkKey::Right,
+        "left" => LinkKey::Left,
+        "reveal" => LinkKey::Reveal,
+        _ => return None,
+    })
 }
 
 fn script(demo: &Demo, input: ScriptedInput) {
