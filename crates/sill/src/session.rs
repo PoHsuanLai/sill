@@ -72,6 +72,10 @@ pub fn polkit_agent(verb: AgentVerb) -> ExitCode {
             eprintln!("sill: polkit-agent: none configured or installed ({choice:?})");
             ExitCode::SUCCESS
         }
+        (AgentVerb::Exec, AgentMode::Own) => {
+            eprintln!("sill: polkit-agent: `sill` is the daemon's own agent; nothing to start");
+            ExitCode::SUCCESS
+        }
         (AgentVerb::Exec, AgentMode::Run { program, args }) => {
             let error = Command::new(&program).args(&args).exec();
             eprintln!(
@@ -83,10 +87,10 @@ pub fn polkit_agent(verb: AgentVerb) -> ExitCode {
     }
 }
 
-/// `mode` as one line for `print`; `None` when nothing runs.
+/// `mode` as one line for `print`; `None` when nothing runs (the daemon's own agent included).
 pub fn command_line(mode: &AgentMode) -> Option<String> {
     match mode {
-        AgentMode::Off => None,
+        AgentMode::Off | AgentMode::Own => None,
         AgentMode::Run { program, args } => Some(
             std::iter::once(program.display().to_string())
                 .chain(args.iter().cloned())
@@ -107,6 +111,7 @@ mod tests {
     fn printed_lines() {
         let cases = [
             (AgentMode::Off, None),
+            (AgentMode::Own, None),
             (
                 AgentMode::Run {
                     program: PathBuf::from("/usr/libexec/kf6/polkit-kde-authentication-agent-1"),

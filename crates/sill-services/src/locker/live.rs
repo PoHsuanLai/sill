@@ -1,5 +1,9 @@
 //! The locker service's loop: turns commands, logind's signals, the locker's words and the clock
 //! into [`LockerEvent`]s, steps the machine, performs its effects and publishes [`Lock`].
+//!
+//! M11 (lane a): in `LockerMode::Own` the loop also keeps [`super::marker`]'s file (written on
+//! `Shell(Locked)`, removed on `Shell(Unlocked | Finished | Refused)`) and, right after a mode
+//! resolves to `Own`, locks at once when [`super::marker::restore_on_start`] says so.
 
 use std::time::Instant;
 
@@ -10,7 +14,7 @@ use super::child::{self, Generation, Heard, Word};
 use super::choice::{Host, LockerChoice, LockerMode, SessionManager, resolve};
 use super::logind::{self, Logind, next_opt};
 use super::machine::{Cause, Locker, LockerEffect, LockerEvent, next_deadline, step};
-use super::{Lock, LockerCommand};
+use super::{Lock, LockDrawer, LockerCommand, ShellLockEvent};
 use crate::programs::{self, Pid};
 use crate::units::Stamp;
 
@@ -101,6 +105,15 @@ impl Live {
                 let now = self.now();
                 self.feed(LockerEvent::Requested(Cause::Action, now)).await;
             }
+            LockerCommand::Shell(event) => {
+                let event = match event {
+                    ShellLockEvent::Locked => LockerEvent::Reported,
+                    ShellLockEvent::Unlocked
+                    | ShellLockEvent::Finished
+                    | ShellLockEvent::Refused => LockerEvent::Exited,
+                };
+                self.feed(event).await;
+            }
         }
     }
 
@@ -171,8 +184,12 @@ impl Live {
                     child::watch_adopted(pid, self.generation, self.words.clone());
                     return Some(LockerEvent::Adopted);
                 }
-                let LockerMode::Run { plan, .. } = &self.mode else {
-                    return Some(LockerEvent::Exited);
+                let plan = match &self.mode {
+                    LockerMode::Run { plan, .. } => plan,
+                    // The daemon follows the published phase onto shell-host's session lock and
+                    // answers with `LockerCommand::Shell` (FINDINGS F544).
+                    LockerMode::Own { .. } => return None,
+                    LockerMode::Off | LockerMode::Delegate => return Some(LockerEvent::Exited),
                 };
                 self.generation = Generation(self.generation.0 + 1);
                 self.pid = child::start(plan, self.generation, self.words.clone());
@@ -202,9 +219,14 @@ impl Live {
     }
 
     fn publish(&self) {
+        let drawer = match self.mode {
+            LockerMode::Own { .. } => LockDrawer::Shell,
+            LockerMode::Off | LockerMode::Delegate | LockerMode::Run { .. } => LockDrawer::Program,
+        };
         let lock = Lock {
             phase: self.machine.phase.public(),
             pid: self.pid,
+            drawer,
         };
         self.tx.send_if_modified(|current| {
             let changed = *current != lock;

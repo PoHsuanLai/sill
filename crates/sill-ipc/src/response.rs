@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::request::SurfaceName;
+use crate::session::{LockReport, PolkitReport};
 
 /// The one reply to one [`crate::Request`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -18,6 +19,10 @@ pub enum Response {
     Failed(Failure),
     /// The answer to `Notifications(Status)`.
     Notifications(NotificationsReport),
+    /// The answer to `LockStatus(Status)`.
+    Lock(LockReport),
+    /// The answer to `Polkit(Status)`.
+    Polkit(PolkitReport),
 }
 
 /// The notifications server as `sill notifications status` prints it (the IPC mirror of

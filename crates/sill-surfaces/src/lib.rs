@@ -1,6 +1,6 @@
 //! The shell's surfaces and hooks: bar, wallpaper, dock, launcher, OSD, control center, power
-//! menu, notification banners and notification center, the screenshot thumbnail, hot corners
-//! and the desktop widget layer (plan "Design: `<shell>` repo", `sill-surfaces`), the
+//! menu, notification banners and notification center, the screenshot thumbnail, hot corners,
+//! the desktop widget layer, and the own lock screen, polkit prompt and app switcher (M11) (plan "Design: `<shell>` repo", `sill-surfaces`), the
 //! [`widgets`] both the notification center and the desktop draw, plus the pure machines
 //! design/10 and design/13 specify for them.
 //!
@@ -38,8 +38,11 @@ pub use surfaces::desktop_widgets::DesktopWidgets;
 pub use surfaces::dock::Dock;
 pub use surfaces::hot_corners::HotCorner;
 pub use surfaces::launcher::{Launcher, LauncherCatcher};
+pub use surfaces::lock::LockScreen;
 pub use surfaces::notification_center::NotificationCenter;
 pub use surfaces::osd::Osd;
+pub use surfaces::polkit_prompt::PolkitPrompt;
 pub use surfaces::power_menu::PowerMenu;
 pub use surfaces::screenshot_thumb::ScreenshotThumb;
+pub use surfaces::switcher::SwitcherPanel;
 pub use surfaces::wallpaper::Wallpaper;

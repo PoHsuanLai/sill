@@ -1,6 +1,8 @@
-//! `session.polkit_agent`: which polkit authentication agent a sill session starts. sill has no
-//! agent of its own before M11 (design/20 §1.10: borrowed at M7); `sill polkit-agent` resolves
+//! `session.polkit_agent`: which polkit authentication agent a sill session starts. Until M11
+//! sill had no agent of its own (design/20 §1.10: borrowed at M7); `sill polkit-agent` resolves
 //! the setting with [`resolve`] and execs the result, so `dist/sill-session` can supervise it.
+//! `sill` ([`AgentChoice::Own`], M11) is the daemon's own agent (`crate::polkit_agent`): there
+//! is nothing to exec, and the daemon registers it itself.
 //!
 //! `auto` prefers a dedicated agent and takes cosmic-osd last: cosmic-osd is COSMIC's agent, but
 //! it is also COSMIC's volume and brightness OSD (it shows its own indicator, with a sound, on
@@ -14,6 +16,8 @@ use std::path::PathBuf;
 pub enum AgentChoice {
     Auto,
     Off,
+    /// sill's own agent, in the daemon (`sill`).
+    Own,
     Known(KnownAgent),
     /// A command line for `/bin/sh -c`.
     Command(String),
@@ -25,6 +29,7 @@ impl AgentChoice {
         match text.trim() {
             "" | "auto" => AgentChoice::Auto,
             "off" | "none" => AgentChoice::Off,
+            "sill" => AgentChoice::Own,
             other => KnownAgent::AUTO_ORDER
                 .into_iter()
                 .find(|known| known.name() == other)
@@ -103,7 +108,12 @@ impl KnownAgent {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AgentMode {
     Off,
-    Run { program: PathBuf, args: Vec<String> },
+    Run {
+        program: PathBuf,
+        args: Vec<String>,
+    },
+    /// The daemon's own agent: `sill polkit-agent` has nothing to start.
+    Own,
 }
 
 /// `choice`, where `find` says whether (and where) a place holds a program.
@@ -120,6 +130,7 @@ pub fn resolve(choice: &AgentChoice, find: impl Fn(Place) -> Option<PathBuf>) ->
     };
     match choice {
         AgentChoice::Off => AgentMode::Off,
+        AgentChoice::Own => AgentMode::Own,
         AgentChoice::Auto => KnownAgent::AUTO_ORDER
             .into_iter()
             .find_map(found)
@@ -144,6 +155,7 @@ mod tests {
             ("", AgentChoice::Auto),
             ("auto", AgentChoice::Auto),
             ("off", AgentChoice::Off),
+            ("sill", AgentChoice::Own),
             ("cosmic-osd", AgentChoice::Known(KnownAgent::CosmicOsd)),
             (
                 "lxqt-policykit-agent",
@@ -201,6 +213,7 @@ mod tests {
             (AgentChoice::Auto, OSD_ONLY, runs("/usr/bin/cosmic-osd")),
             (AgentChoice::Auto, NOTHING, AgentMode::Off),
             (AgentChoice::Off, THIS_MACHINE, AgentMode::Off),
+            (AgentChoice::Own, NOTHING, AgentMode::Own),
             (
                 AgentChoice::Known(KnownAgent::CosmicOsd),
                 THIS_MACHINE,

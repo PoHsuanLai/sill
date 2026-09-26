@@ -341,6 +341,10 @@ pub fn services() -> (Services, Feeds) {
         events_control: control(&mut keep),
         shots,
         shots_control,
+        auth: fixed(sill_services::Auth::default(), &mut keep),
+        auth_control: control(&mut keep),
+        polkit: fixed(sill_services::Polkit::default(), &mut keep),
+        polkit_control: control(&mut keep),
     };
     let feeds = Feeds {
         clock: clock_tx,

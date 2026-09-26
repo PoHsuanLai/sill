@@ -17,4 +17,6 @@ pub enum ShellMsg {
     },
     /// `settings.toml` settled on a new value.
     Settings(Box<ShellFile>),
+    /// Hold or drop shell-host's session lock (M11: `crate::lock::spawn_follower` sends it).
+    Lock(crate::lock::LockWish),
 }
