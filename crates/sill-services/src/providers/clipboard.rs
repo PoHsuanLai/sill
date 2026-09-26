@@ -2,20 +2,27 @@
 //! design/09 H4: what you copied is one keystroke away). The history is the clipboard
 //! service's; this provider only reads it.
 //!
-//! The freeze's `query` answers nothing; lane b fills it with [`clip_items`]: typed text
+//! `query` answers with [`clip_items`] (FINDINGS "M9 lane b" F685): typed text
 //! matches entries' text (images match "image" and their type), nothing typed lists nothing
 //! (the empty launcher shows Actions and Recent, and clipboard rows are never Recent: F645);
 //! asked alone (the Clipboard filter, `Scope::Only`, F651) it lists the newest first. Enter
 //! makes the entry the clipboard again (`Activation::SetClipboard`); "Forget" (⌘⌫,
 //! `Activation::ForgetClipboard`) drops it and the launcher stays open.
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use nucleo_matcher::Matcher;
 use sill_launcher::{
-    Activation, Choice, Item, Needle, Provider, ProviderKind, Query, ResultSink, Subject,
+    Activation, Batch, Choice, Item, Needle, Provider, ProviderKind, Query, ResultSink, Scope,
+    Subject, UnixTime, matching,
 };
 use tokio::sync::watch;
 
 use crate::clipboard::Clipboard;
+
+mod rows;
+
+use rows::rows_at;
 
 /// The action id that forgets an entry.
 pub const FORGET_ACTION: &str = "forget";
@@ -32,7 +39,25 @@ impl Provider for ClipboardProvider {
     }
 
     fn query(&self, query: &Query, sink: &mut dyn ResultSink) {
-        let _ = (query, sink);
+        if query.is_cancelled() {
+            return;
+        }
+        let needle = Needle::parse(&query.text);
+        let alone = query.scope == Scope::Only(ProviderKind::Clipboard);
+        let items = if needle.is_empty() && !alone {
+            Vec::new()
+        } else {
+            let history = self.history.borrow().clone();
+            clip_items(&history, &needle, &mut matching::matcher())
+        };
+        if query.is_cancelled() {
+            return;
+        }
+        sink.push(Batch {
+            provider: ProviderKind::Clipboard,
+            generation: query.generation,
+            items,
+        });
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
@@ -50,10 +75,19 @@ impl Provider for ClipboardProvider {
 /// row's title is its first line, trimmed to 80 characters; its subtitle its age and length
 /// ("2 min ago · 1,204 characters"); an image row's title "Image", its subtitle its size and
 /// type. Every row's subject is `Subject::Clip` with an excerpt, never the whole text.
-/// Lane b fills it.
+/// Reads the clock for the ages (Q321); the private `rows::rows_at` is the pure part.
 pub fn clip_items(history: &Clipboard, needle: &Needle, matcher: &mut Matcher) -> Vec<Item> {
-    let _ = (history, needle, matcher);
-    todo!("M9 fill: b-clipboard")
+    rows_at(history, needle, matcher, unix_now())
+}
+
+/// The wall clock, in whole seconds; a clock before 1970 reads as 1970 (every entry is then
+/// "just now").
+fn unix_now() -> UnixTime {
+    UnixTime(
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs()),
+    )
 }
 
 #[cfg(test)]
@@ -99,7 +133,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M9 fill: b-clipboard"]
     fn typed_text_finds_entries_newest_first() {
         let entry = |key, text: &str, at| ClipEntry {
             key: ClipKey(key),

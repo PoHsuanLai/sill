@@ -5343,3 +5343,72 @@ and reports).
 - **G230 (shell-host / KWin)** Whether headless KWin 6.7 offers `ext_data_control_manager_v1` or
   `zwlr_data_control_manager_v1` is unverified; lane e reports it, and if neither, the clipboard
   step of the real-input run is NOT PROVEN there (cosmic-comp offers both).
+
+## M9 lane b: the clipboard history (2026-09-26)
+
+- **F680 The service is a task and a thread per connection.** `clipboard/live.rs` (the task
+  `spawn_with` starts) owns the `ClipState`, reduces every command and every event through
+  `reduce_clipboard`, publishes with `send_if_modified`, and carries out the effects: `Connect`
+  starts `clipboard/wire.rs`'s thread (`sill-clipboard`: its own connection, `ext` else `wlr` on
+  the first `wl_seat`, a calloop loop over the connection and a channel of orders), `Disconnect`
+  drops the orders' sender, which stops the loop and drops the connection, and `OfferSelection`
+  is an order. Each connection has an epoch; the task drops whatever an older one says, so a
+  late `Connected` from a thread already told to stop cannot publish a protocol while off.
+  Nothing connects before the daemon's first policy (`Services::spawn` in a test stays passive).
+- **F681 Reading never blocks the loop.** An accepted offer is received into a `std::io::pipe`
+  whose read end is a level-triggered calloop source (one `read` per readiness, so no
+  `O_NONBLOCK` and no new dependency), given up at 2 s; an entry offered back is written the same
+  way, one page per writable readiness, given up at 5 s. So the service reading its own offer
+  back (the compositor reports it as a new selection) is served and read by the same loop, and
+  the reducer's "same content keeps its key" rule makes it one entry (proven live: one entry
+  after offering back). Limits: text **1 MiB** (`content::TEXT_LIMIT`, proposed, no settings key),
+  images the policy's `clipboard_image_max_mb`; past either the read stops (`Skipped::TooLarge`).
+  Text is kept only as valid, non-blank UTF-8 (so X11's Latin-1 `STRING`/`TEXT` only when ASCII);
+  an image only when its header gives a size (`image::ImageReader::into_dimensions`).
+- **F682 What is followed.** Only `selection`: `zwlr` is bound at version 1, which has no
+  primary selection; `ext` always sends `primary_selection`, whose offers are destroyed unread.
+  `offer_verdict` runs on the announced types before any `receive`: a `SECRET_HINTS` type skips
+  the offer on its presence (the live test and `dev/accept-clipboard.sh` step 3 use the new
+  `examples/secret_source.rs`, an `ext` data-control source offering made-up text plus
+  `x-kde-passwordManagerHint`, which refuses a relative socket path and `wayland-0`). Text types
+  are compared without case (`text/plain;charset=UTF-8`); images are PNG, else JPEG.
+- **F683 The protocol cosmic-comp offers.** The nested cosmic-comp (`wayland-1`) advertises both
+  `ext_data_control_manager_v1` v1 and `zwlr_data_control_manager_v1` v2; the service binds
+  **`ext`**, and `sill clipboard status` says `memory ext`.
+- **F684 Turning history on keeps the selection there is**: binding the device makes the
+  compositor send the current selection, which is read like any other (klipper does the same).
+  `dev/accept-clipboard.sh` clears the nested selection before turning history back on for that
+  reason. Whether the one at start should be skipped is Q320.
+- **F685 Rows.** `clip_items`: a text row's title is its first non-blank line, trimmed, cut to
+  80 characters with an ellipsis; its subtitle "2 min ago · 1,204 characters" ("Just now", "N
+  min ago", "N h ago", "Yesterday", "N days ago"); an image row "Image", "Just now · 640×480 PNG",
+  matched by "image", its short type and its MIME type. Text matches on its first 10 000
+  characters. The score is `rank` with no frecency (clipboard use is never counted), plus the
+  title-prefix boost; ties keep newest first. Id is the key; `Subject::Clip` carries an excerpt
+  at `ExcerptLimit::PANE` (a private helper, since `excerpt_of` is lane d's), never the whole
+  text. One action, "Forget" ⌘⌫. `query`: nothing for nothing typed unless asked alone
+  (`Scope::Only(Clipboard)`), then newest first; a batch is always pushed unless cancelled.
+- **F686 Reducer rules beyond the frozen table**: a smaller image cap drops kept images over it;
+  turning history off also publishes `not_connected` at once; `Connected` while off publishes
+  nothing; a cap of 0 keeps nothing.
+- **F687 Logging**: only fault kinds (`sill: clipboard: a selection was not written in time:
+  timed out`, a socket or registry error) and the missing-protocol line; never a type list, a
+  length or content. The example is found by Cargo's auto-discovery (no `[[example]]` entry:
+  `crates/sill-services/Cargo.toml` is not this lane's).
+- **Q320 (sill / design/22)** Should the selection present when history turns on (sill start,
+  or `off` to `memory`) be kept? Today it is (F684). macOS keeps nothing before the manager runs;
+  skipping it would make "turn history on" never reach back.
+- **Q321 (sill-services, frozen)** `clip_items(history, needle, matcher)` has no `now`, so it
+  reads the clock for the age words; the pure `rows_at(.., now)` is what the tables test. At the
+  next freeze: `clip_items(.., now: UnixTime)`.
+- **Q322 (sill-ipc, frozen)** `ClipboardReport` has no count of skipped selections, so a skipped
+  password-manager copy is only observable as "still N entries". A `skipped: u32` (a count, no
+  kinds) would let `sill clipboard status` prove it directly.
+- **G250** `dev/accept-clipboard.sh` step 4 (launcher row, Enter, `wl-paste`) is PENDING until lane
+  d answers `sill debug launcher-rows` and `launcher-key`; `tests/clipboard_live.rs` proves the
+  same path below the launcher (`ClipboardCommand::Offer`, then `wl-paste` reads the entry).
+- **G251** The script and the live test assume nothing else copies on the nested compositor while
+  they run (another lane's acceptance copying an emoji would change the counts).
+- Verified: `cargo test -p sill-services --test clipboard_live -- --ignored` on the nested
+  cosmic-comp: ok (`Ext`; text kept, marked copy skipped, offered back and pasted, image 3×2 kept,
+  forget, clear, off). `dev/accept-clipboard.sh`: 5 PASS, 1 PENDING (step 4), exit 2.
