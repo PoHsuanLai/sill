@@ -4,8 +4,10 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+use crate::chord::ActionKeys;
 use crate::ids::{ActionId, ItemId, ProviderKind};
 use crate::rank::Score;
+use crate::subject::Subject;
 
 /// One row of results.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -21,6 +23,9 @@ pub struct Item {
     pub score: Score,
     /// Secondary actions (Ctrl+K / Alt+K), in menu order; empty for none.
     pub actions: Vec<Action>,
+    /// What the row is about, for the preview pane and the M9 row kinds (M9 freeze, F641).
+    #[serde(default)]
+    pub subject: Subject,
 }
 
 /// Where a row's icon comes from.
@@ -40,6 +45,10 @@ pub enum IconRef {
 pub struct Action {
     pub id: ActionId,
     pub label: String,
+    /// The chord that runs it straight from the results, shown beside it (quire design/09 H5:
+    /// every action has a key). M9 freeze, F642.
+    #[serde(default)]
+    pub keys: ActionKeys,
 }
 
 /// What was chosen on a row: Enter, or an action from its actions menu.

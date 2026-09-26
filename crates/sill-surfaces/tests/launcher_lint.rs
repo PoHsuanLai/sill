@@ -35,6 +35,7 @@ fn render_ssr(root: VirtualDom) -> String {
     feeds.results.send_replace(sill_services::Results {
         generation: sill_launcher::Generation(1),
         items: launcher_support::search("fi"),
+        sections: Vec::new(),
     });
     let link = LauncherLink::new();
     link.open(launcher_support::fake::output().id, "fi".to_owned());

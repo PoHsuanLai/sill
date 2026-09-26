@@ -7,9 +7,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use nucleo_matcher::Matcher;
 use sill_launcher::{
-    Action, ActionId, Activation, AppId, Batch, Choice, DesktopAction, Frecency, FrecencyScore,
+    Action, ActionId, ActionKeys, Activation, AppId, Batch, Choice, DesktopAction, Frecency, FrecencyScore,
     IconRef, Item, ItemId, ItemKey, Needle, Provider, ProviderKind, Query, RankWeights, ResultSink,
-    Score, UnixTime, matching, rank_text,
+    Score, Subject, UnixTime, matching, rank_text,
 };
 use tokio::sync::watch;
 
@@ -125,6 +125,7 @@ fn app_item(
         icon: icon_of(&app.icon),
         score,
         actions: app.actions.iter().map(action_of).collect(),
+        subject: Subject::App(app.id.clone()),
     })
 }
 
@@ -149,6 +150,7 @@ fn action_item(
         icon: icon_of(&app.icon),
         score,
         actions: Vec::new(),
+        subject: Subject::App(app.id.clone()),
     })
 }
 
@@ -177,6 +179,7 @@ fn action_of(entry: &DesktopActionEntry) -> Action {
     Action {
         id: ActionId(entry.id.clone()),
         label: entry.name.clone(),
+        keys: ActionKeys::None,
     }
 }
 
@@ -378,6 +381,7 @@ mod tests {
             icon: icon.clone(),
             score: sill_launcher::Score(0),
             actions: Vec::new(),
+            subject: sill_launcher::Subject::None,
         };
         let secondary = sill_launcher::Item {
             id: ItemId("org.mozilla.firefox\u{1}new-window".to_owned()),

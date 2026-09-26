@@ -1,37 +1,60 @@
-//! The five providers the daemon searches, in Tab order, sharing the runner's history.
+//! The providers the daemon searches, in Tab order, sharing the runner's history and its
+//! policy (M9 freeze: the four M9 providers are registered here once, so no lane edits this
+//! file).
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use sill_launcher::Provider;
 use tokio::sync::watch;
 
+use super::Wiring;
 use super::history::History;
-use crate::apps::AppIndex;
-use crate::cosmic_wl::{Toplevels, Workspaces};
+use super::policy::LauncherPolicy;
+use crate::providers::files::IndexSource;
 use crate::providers::{
-    AppsProvider, CalculatorProvider, SettingsProvider, SystemProvider, WindowsProvider,
+    AppsProvider, CalculatorProvider, ClipboardProvider, EmojiProvider, FilesProvider,
+    SettingsProvider, SystemProvider, WebProvider, WindowsProvider,
 };
 
-/// Apps, windows, calculator, settings and system. The apps provider ranks with `history`, so
-/// a choice counts from the next keystroke on.
+/// Every provider. Apps, files and emoji rank with `history`, so a choice counts from the next
+/// keystroke on; the M9 providers read `policy` (all off until the daemon's first).
 pub(crate) fn providers(
-    apps: &watch::Receiver<AppIndex>,
-    toplevels: &watch::Receiver<Toplevels>,
-    workspaces: &watch::Receiver<Workspaces>,
+    wiring: &Wiring<'_>,
     history: &History,
+    policy: &watch::Receiver<LauncherPolicy>,
 ) -> Vec<Arc<dyn Provider>> {
     vec![
         Arc::new(AppsProvider {
-            apps: apps.clone(),
+            apps: wiring.apps.clone(),
             frecency: history.shared(),
         }),
         Arc::new(WindowsProvider {
-            toplevels: toplevels.clone(),
-            apps: apps.clone(),
-            workspaces: workspaces.clone(),
+            toplevels: wiring.toplevels.clone(),
+            apps: wiring.apps.clone(),
+            workspaces: wiring.workspaces.clone(),
         }),
-        Arc::new(CalculatorProvider),
+        Arc::new(CalculatorProvider {
+            policy: policy.clone(),
+            ..CalculatorProvider::default()
+        }),
         Arc::new(SettingsProvider::new()),
         Arc::new(SystemProvider::new()),
+        Arc::new(FilesProvider {
+            policy: policy.clone(),
+            frecency: history.shared(),
+            source: IndexSource::Detect,
+            home: dirs::home_dir().unwrap_or_else(|| PathBuf::from("/")),
+        }),
+        Arc::new(ClipboardProvider {
+            history: wiring.clipboard.clone(),
+        }),
+        Arc::new(EmojiProvider {
+            policy: policy.clone(),
+            frecency: history.shared(),
+        }),
+        Arc::new(WebProvider {
+            policy: policy.clone(),
+        }),
     ]
 }

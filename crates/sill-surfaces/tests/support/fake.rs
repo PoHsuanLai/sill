@@ -345,6 +345,8 @@ pub fn services() -> (Services, Feeds) {
         auth_control: control(&mut keep),
         polkit: fixed(sill_services::Polkit::default(), &mut keep),
         polkit_control: control(&mut keep),
+        clipboard: fixed(sill_services::Clipboard::default(), &mut keep),
+        clipboard_control: control(&mut keep),
     };
     let feeds = Feeds {
         clock: clock_tx,

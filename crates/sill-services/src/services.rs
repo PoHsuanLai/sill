@@ -9,6 +9,7 @@ use crate::auth::{Auth, AuthCommand};
 use crate::badges::{Badges, BadgesCommand};
 use crate::battery::{Battery, BatteryCommand};
 use crate::bluetooth::{Bluetooth, BluetoothCommand};
+use crate::clipboard::{Clipboard, ClipboardCommand};
 use crate::clock::{ClockCommand, ClockText};
 use crate::control::Control;
 use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
@@ -97,6 +98,9 @@ pub struct Services {
     pub auth_control: Control<AuthCommand>,
     pub polkit: watch::Receiver<Polkit>,
     pub polkit_control: Control<PolkitCommand>,
+    /// The clipboard history (M9): passive until the daemon's policy.
+    pub clipboard: watch::Receiver<Clipboard>,
+    pub clipboard_control: Control<ClipboardCommand>,
 }
 
 impl Services {
@@ -122,12 +126,14 @@ impl Services {
         let (badges, badges_control) = crate::badges::spawn(rt);
         let (pins, pins_control) = crate::pins::spawn(rt);
         let (launches, launch) = crate::launch::spawn(rt, apps.clone());
+        let (clipboard, clipboard_control) = crate::clipboard::spawn(rt);
         let (results, search) = crate::results::spawn_with_providers(
             rt,
             crate::results::Wiring {
                 apps: &apps,
                 toplevels: &toplevels,
                 workspaces: &workspaces,
+                clipboard: &clipboard,
                 wl: &wl,
                 launch: &launch,
             },
@@ -207,6 +213,8 @@ impl Services {
             auth_control,
             polkit,
             polkit_control,
+            clipboard,
+            clipboard_control,
         }
     }
 }
@@ -272,6 +280,11 @@ mod tests {
             services.auth.borrow().phase,
             crate::AuthPhase::Idle,
             "nothing checked until a secret is submitted"
+        );
+        assert_eq!(
+            services.clipboard.borrow().status.mode,
+            crate::clipboard::HistoryMode::Off,
+            "no clipboard read until the daemon's policy"
         );
     }
 }

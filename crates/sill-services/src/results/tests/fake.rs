@@ -171,6 +171,7 @@ fn batch(kind: ProviderKind, query: &Query, rows: &[(String, u32)], tag: &str) -
                 icon: IconRef::None,
                 score: Score(*score),
                 actions: Vec::new(),
+                subject: sill_launcher::Subject::None,
             }
         })
         .collect();

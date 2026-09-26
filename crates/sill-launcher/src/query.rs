@@ -6,6 +6,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::{Deserialize, Serialize};
 
+use crate::ids::ProviderKind;
+
 /// Which keystroke a query or a batch belongs to. Later is larger; 0 is before any keystroke.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Serialize, Deserialize,
@@ -47,6 +49,20 @@ pub struct Query {
     pub text: String,
     pub generation: Generation,
     pub cancel: Cancel,
+    /// Whether every provider was asked, or one alone (the launcher's Tab filter). M9 freeze,
+    /// F651: a provider asked alone lists what it has for nothing typed (the emoji grid, the
+    /// clipboard's newest), which it never does for the whole launcher.
+    pub scope: Scope,
+}
+
+/// Who a query was sent to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
+pub enum Scope {
+    /// Every provider.
+    All,
+    /// This provider alone.
+    Only(ProviderKind),
 }
 
 impl Query {
@@ -56,6 +72,15 @@ impl Query {
             text: text.into(),
             generation: cancel.begin(),
             cancel: cancel.clone(),
+            scope: Scope::All,
+        }
+    }
+
+    /// A query for `text` in a new generation of `cancel`, asked of `provider` alone.
+    pub fn begin_only(text: impl Into<String>, cancel: &Cancel, provider: ProviderKind) -> Query {
+        Query {
+            scope: Scope::Only(provider),
+            ..Query::begin(text, cancel)
         }
     }
 

@@ -3,6 +3,7 @@
 
 mod detect;
 mod eval;
+pub mod rates;
 
 use std::time::Duration;
 
@@ -12,6 +13,10 @@ use sill_launcher::{
 };
 
 use eval::{EvalOutcome, evaluate};
+use rates::SharedRates;
+use tokio::sync::watch;
+
+use crate::results::LauncherPolicy;
 
 /// How long one evaluation may run before it is abandoned.
 pub const CALCULATOR_BUDGET: Duration = Duration::from_millis(50);
@@ -27,9 +32,23 @@ const INSERT_ACTION: &str = "insert";
 /// A calculator result is always the sole, most relevant row it offers.
 const TOP_SCORE: Score = Score(1000);
 
-/// One row, `= <result>`, when the query evaluates; choosing it copies the result.
-#[derive(Debug, Clone, Default)]
-pub struct CalculatorProvider;
+/// One row, `= <result>`, when the query evaluates; choosing it copies the result. With
+/// `launcher.currency` on, currency codes convert at `rates` (M9 lane c, F650).
+#[derive(Debug, Clone)]
+pub struct CalculatorProvider {
+    pub policy: watch::Receiver<LauncherPolicy>,
+    pub rates: SharedRates,
+}
+
+impl Default for CalculatorProvider {
+    /// Currency off, no rates: the M4 calculator.
+    fn default() -> Self {
+        CalculatorProvider {
+            policy: watch::channel(LauncherPolicy::default()).1,
+            rates: SharedRates::default(),
+        }
+    }
+}
 
 impl Provider for CalculatorProvider {
     fn kind(&self) -> ProviderKind {
@@ -82,7 +101,9 @@ fn result_item(value: &str) -> Item {
         actions: vec![Action {
             id: ActionId(INSERT_ACTION.to_owned()),
             label: "Insert".to_owned(),
+            keys: sill_launcher::ActionKeys::None,
         }],
+        subject: sill_launcher::Subject::None,
     }
 }
 
@@ -93,7 +114,7 @@ mod tests {
     use super::{CalculatorProvider, INSERT_ACTION};
 
     fn row(text: &str) -> Item {
-        let provider = CalculatorProvider;
+        let provider = CalculatorProvider::default();
         let cancel = Cancel::new();
         let query = Query::begin(text, &cancel);
         let mut sink = VecSink::default();
@@ -115,7 +136,7 @@ mod tests {
 
     #[test]
     fn primary_copies_the_result_and_the_insert_action_replaces_the_query_with_it() {
-        let provider = CalculatorProvider;
+        let provider = CalculatorProvider::default();
         let item = row("2 + 2");
         assert_eq!(
             provider.activate(&item, &Choice::Primary),

@@ -1,7 +1,7 @@
 //! The merged result list and its one reducer.
 
 use serde::{Deserialize, Serialize};
-use sill_launcher::{Batch, Generation, Item};
+use sill_launcher::{Batch, Generation, Item, SectionSpan};
 
 /// The rows of the newest generation, best first: score descending, then provider (Tab
 /// order), then title. Items are appended batch by batch as providers answer.
@@ -9,6 +9,11 @@ use sill_launcher::{Batch, Generation, Item};
 pub struct Results {
     pub generation: Generation,
     pub items: Vec<Item>,
+    /// The published rows' sections, in order, covering every row (`sill_launcher::place`,
+    /// M9 freeze F645). Empty while the runner still publishes the M4 grouping, which the
+    /// launcher then derives by rule (F114); lane d moves both onto the spans.
+    #[serde(default)]
+    pub sections: Vec<SectionSpan>,
 }
 
 /// One step of the search.
@@ -28,6 +33,7 @@ pub fn reduce_results(results: Results, event: ResultsEvent) -> Results {
         ResultsEvent::Began(generation) if generation > results.generation => Results {
             generation,
             items: Vec::new(),
+            sections: Vec::new(),
         },
         ResultsEvent::Began(_) => results,
         ResultsEvent::Batch(batch) if batch.generation < results.generation => results,
@@ -47,6 +53,7 @@ pub fn reduce_results(results: Results, event: ResultsEvent) -> Results {
             Results {
                 generation: batch.generation,
                 items,
+                sections: Vec::new(),
             }
         }
     }
@@ -66,6 +73,7 @@ mod tests {
             icon: IconRef::None,
             score: Score(score),
             actions: Vec::new(),
+            subject: sill_launcher::Subject::None,
         }
     }
 

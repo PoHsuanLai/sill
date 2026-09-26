@@ -7,8 +7,8 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 
 use sill_launcher::{
-    Activation, AppId, Choice, DesktopAction, Item, Provider, ProviderKind, SettingsTarget,
-    SystemCommand,
+    Activation, AppId, Choice, ClipKey, DesktopAction, Item, OpenTarget, Provider, ProviderKind,
+    SettingsTarget, SystemCommand,
 };
 use sill_services::providers::{
     AppsProvider, CalculatorProvider, SettingsProvider, SystemProvider, WindowsProvider,
@@ -44,7 +44,7 @@ impl LauncherProviders {
                 apps: services.apps.clone(),
                 workspaces: services.workspaces.clone(),
             }),
-            Arc::new(CalculatorProvider),
+            Arc::new(CalculatorProvider::default()),
             Arc::new(SettingsProvider::default()),
             Arc::new(SystemProvider::new()),
         ])
@@ -77,6 +77,12 @@ pub enum LauncherEffect {
     Copy(String),
     /// Put the text in the search field and stay open.
     Insert(String),
+    /// Ask for an activation token, then open the file, folder or address (M9, F643).
+    Open(OpenTarget),
+    /// Make a clipboard history entry the clipboard again (M9).
+    SetClipboard(ClipKey),
+    /// Drop a clipboard history entry and stay open (M9).
+    ForgetClipboard(ClipKey),
     /// Nothing sill can do from a surface yet; logged with the reason.
     Unreachable(Unreachable),
     /// Carry out a session action at once (Lock, Suspend): `SessionCommand::Run` (M5).
@@ -104,10 +110,11 @@ pub enum AfterEffect {
 }
 
 impl LauncherEffect {
-    /// Every effect closes the launcher but an insertion into its own field.
+    /// Every effect closes the launcher but an insertion into its own field and forgetting a
+    /// clipboard entry.
     pub fn after(&self) -> AfterEffect {
         match self {
-            LauncherEffect::Insert(_) => AfterEffect::StayOpen,
+            LauncherEffect::Insert(_) | LauncherEffect::ForgetClipboard(_) => AfterEffect::StayOpen,
             _ => AfterEffect::Close,
         }
     }
@@ -132,6 +139,9 @@ pub fn effect_of(activation: Activation) -> LauncherEffect {
             target: SettingsTarget::Key(key),
         } => LauncherEffect::Unreachable(Unreachable::SettingsKey(key)),
         Activation::System(command) => system_effect(command),
+        Activation::Open { target } => LauncherEffect::Open(target),
+        Activation::SetClipboard { entry } => LauncherEffect::SetClipboard(entry),
+        Activation::ForgetClipboard { entry } => LauncherEffect::ForgetClipboard(entry),
         Activation::Nothing => LauncherEffect::Nothing,
     }
 }
@@ -185,6 +195,7 @@ mod tests {
             icon: IconRef::None,
             score: Score(1),
             actions: Vec::new(),
+            subject: sill_launcher::Subject::None,
         }
     }
 

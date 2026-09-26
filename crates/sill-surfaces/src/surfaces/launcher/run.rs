@@ -4,7 +4,8 @@
 //! surface cannot reach). The insertion into the field is the panel's own (`events.rs`).
 
 use shell_host::{OutputId, SurfaceHandle};
-use sill_services::{LaunchCommand, LaunchRequest, ServiceError, Services};
+use sill_services::launch::OpenRequest;
+use sill_services::{ClipboardCommand, LaunchCommand, LaunchRequest, ServiceError, Services};
 
 use crate::surfaces::launcher::activate::{LauncherEffect, Unreachable};
 use crate::surfaces::power_menu::{PowerMenuLink, Preselect};
@@ -38,6 +39,21 @@ pub async fn run_effect(
                 token,
             }))
         }
+        LauncherEffect::Open(target) => {
+            let token = match &from.surface {
+                Some(surface) => surface.activation_token(None).await,
+                None => None,
+            };
+            services
+                .launch
+                .send(LaunchCommand::Open(OpenRequest { target, token }))
+        }
+        LauncherEffect::SetClipboard(entry) => services
+            .clipboard_control
+            .send(ClipboardCommand::Offer(entry)),
+        LauncherEffect::ForgetClipboard(entry) => services
+            .clipboard_control
+            .send(ClipboardCommand::Forget(entry)),
         LauncherEffect::Copy(text) => {
             if let Some(surface) = &from.surface {
                 surface.copy_text(text);

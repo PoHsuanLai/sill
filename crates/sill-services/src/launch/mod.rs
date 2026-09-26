@@ -11,6 +11,7 @@
 
 mod dbus;
 mod model;
+mod open;
 mod plan;
 mod run;
 mod terminal;
@@ -18,6 +19,7 @@ mod terminal;
 mod test_support;
 
 pub use model::{LaunchOutcome, LaunchedScope, Launches, ScopeUnit, reduce_launches};
+pub use open::{OpenRequest, open_argv, reveal_folder};
 pub use plan::{launch_argv, scope_unit};
 
 use std::path::PathBuf;
@@ -53,6 +55,9 @@ pub enum LaunchCommand {
     ShowInFiles(AppId),
     /// SIGKILL the app's `app-sill-*` scopes (dock Force Quit).
     ForceQuit(AppId),
+    /// Open a file, reveal it, or open an address with the default handler (the launcher's
+    /// M9 rows; FINDINGS "M9 freeze" F643).
+    Open(OpenRequest),
 }
 
 /// Start the launch service; `apps` resolves ids to entries.

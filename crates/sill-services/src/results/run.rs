@@ -6,7 +6,9 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use sill_launcher::{Cancel, Choice, ItemKey, Provider, Query, UnixTime};
+use sill_launcher::{
+    Cancel, Choice, Counting, ItemKey, Provider, Query, Scope, UnixTime, counting,
+};
 use tokio::sync::{mpsc, watch};
 
 use super::SearchCommand;
@@ -14,6 +16,7 @@ use super::arrange::{Typed, actions_then_recent, grouped};
 use super::effect::{Outlets, effect};
 use super::history::{History, Persist};
 use super::model::{Results, ResultsEvent, reduce_results};
+use super::policy::LauncherPolicy;
 use super::sink::{Arrival, ChannelSink, FinishedOnDrop};
 
 /// Everything the task holds between events.
@@ -22,6 +25,8 @@ pub(crate) struct Search {
     history: History,
     persist: Persist,
     outlets: Outlets,
+    /// Where the M9 providers read the settings' policy from.
+    policy: watch::Sender<LauncherPolicy>,
     cancel: Cancel,
     /// Every row of the newest generation, best first (`reduce_results`'s order).
     merged: Results,
@@ -39,6 +44,7 @@ impl Search {
         history: History,
         persist: Persist,
         outlets: Outlets,
+        policy: watch::Sender<LauncherPolicy>,
         tx: watch::Sender<Results>,
     ) -> (Search, mpsc::UnboundedReceiver<Arrival>) {
         let (arrivals, rx) = mpsc::unbounded_channel();
@@ -47,6 +53,7 @@ impl Search {
             history,
             persist,
             outlets,
+            policy,
             cancel: Cancel::new(),
             merged: Results::default(),
             typed: Typed::Nothing,
@@ -81,28 +88,44 @@ pub(crate) async fn run(
 impl Search {
     pub(super) fn command(&mut self, command: SearchCommand) {
         match command {
-            SearchCommand::Query(text) => self.query(text),
+            SearchCommand::Query(text) => self.query(text, Scope::All),
+            SearchCommand::Filtered { text, provider } => self.query(text, Scope::Only(provider)),
             SearchCommand::Chosen { key, choice } => self.chosen(key, &choice),
             SearchCommand::Cancel => self.close(),
+            SearchCommand::Policy(policy) => {
+                self.policy.send_replace(policy);
+            }
         }
     }
 
     /// Begin a generation (every older query is now cancelled) and start every provider on it.
-    fn query(&mut self, text: String) {
+    fn query(&mut self, text: String, scope: Scope) {
         self.typed = Typed::of(&text);
-        let query = Query::begin(text, &self.cancel);
+        let query = Query {
+            scope,
+            ..Query::begin(text, &self.cancel)
+        };
+        let asked: Vec<Arc<dyn Provider>> = self
+            .providers
+            .iter()
+            .filter(|p| match scope {
+                Scope::All => true,
+                Scope::Only(kind) => p.kind() == kind,
+            })
+            .cloned()
+            .collect();
         self.merged = reduce_results(
             std::mem::take(&mut self.merged),
             ResultsEvent::Began(query.generation),
         );
-        self.pending = self.providers.len();
+        self.pending = asked.len();
         // The previous rows stay up until this generation has something to show (or every
         // provider has finished with nothing), so typing does not flash an empty list.
         if self.pending == 0 {
             self.publish();
         }
-        for provider in &self.providers {
-            start(Arc::clone(provider), query.clone(), self.arrivals.clone());
+        for provider in asked {
+            start(provider, query.clone(), self.arrivals.clone());
         }
     }
 
@@ -122,8 +145,6 @@ impl Search {
     /// carry out what the row's provider says the choice does. The row is looked up among the
     /// newest generation's rows, so the surface sends `Chosen` before it closes (`Cancel`).
     fn chosen(&mut self, key: ItemKey, choice: &Choice) {
-        let frecency = self.history.record(key.clone(), now());
-        self.persist.save(frecency);
         let Some(item) = self
             .merged
             .items
@@ -132,6 +153,11 @@ impl Search {
         else {
             return;
         };
+        // A clipboard entry's use is never written to disk (M9 freeze, F641).
+        if counting(item.provider) == Counting::Counted {
+            let frecency = self.history.record(key.clone(), now());
+            self.persist.save(frecency);
+        }
         let Some(provider) = self.providers.iter().find(|p| p.kind() == item.provider) else {
             return;
         };
@@ -181,6 +207,7 @@ impl Search {
         let next = Results {
             generation: self.merged.generation,
             items,
+            sections: Vec::new(),
         };
         self.tx.send_if_modified(|shown| {
             let changed = *shown != next;

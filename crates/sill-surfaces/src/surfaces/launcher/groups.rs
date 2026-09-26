@@ -58,6 +58,10 @@ pub fn provider_name(kind: ProviderKind) -> &'static str {
         ProviderKind::Calculator => "Calculator",
         ProviderKind::Settings => "Settings",
         ProviderKind::System => "System",
+        ProviderKind::Files => "Documents",
+        ProviderKind::Clipboard => "Clipboard",
+        ProviderKind::Emoji => "Emoji",
+        ProviderKind::Web => "Web",
     }
 }
 
@@ -168,6 +172,7 @@ mod tests {
             icon: IconRef::None,
             score: Score(score),
             actions: Vec::new(),
+            subject: sill_launcher::Subject::None,
         }
     }
 
@@ -269,6 +274,7 @@ mod tests {
         let results = Results {
             generation: Generation(4),
             items: sample(),
+            sections: Vec::new(),
         };
         assert!(fresh(&results, Generation(4)).is_empty(), "opened over it");
         assert_eq!(fresh(&results, Generation(3)).len(), 8);

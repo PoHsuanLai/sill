@@ -18,6 +18,7 @@ pub mod auth;
 pub mod badges;
 pub mod battery;
 pub mod bluetooth;
+pub mod clipboard;
 pub mod clock;
 pub mod control;
 pub mod cosmic_wl;
@@ -35,6 +36,7 @@ pub mod pins;
 pub mod polkit;
 pub mod polkit_agent;
 pub mod power_profile;
+pub mod preview;
 pub mod programs;
 pub mod providers;
 pub mod results;
@@ -108,7 +110,11 @@ pub use power_profile::{
     PowerProfiles, Profile, ProfileBus, ProfileCommand, ProfileDegraded, ProfileEvent,
     reduce_power_profiles,
 };
-pub use results::{Results, ResultsEvent, SearchCommand, reduce_results};
+pub use clipboard::{Clipboard, ClipboardCommand};
+pub use results::{
+    CurrencyPolicy, FilesChoice, LauncherPolicy, Results, ResultsEvent, SearchCommand, WebPolicy,
+    reduce_results,
+};
 pub use screenshots::{Shot, ShotCommand, ShotId, ShotKind, ShotLeave, ShotPreview, Shots};
 pub use services::Services;
 pub use session::{Offer, Session, SessionAction, SessionCommand, SessionEvent, reduce_session};

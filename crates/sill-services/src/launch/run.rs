@@ -29,6 +29,7 @@ pub(super) async fn run(
             }
             LaunchCommand::ShowInFiles(app_id) => show_in_files(&apps, &app_id).await,
             LaunchCommand::ForceQuit(app_id) => force_quit(&tx, &app_id).await,
+            LaunchCommand::Open(request) => super::open::open(request).await,
         }
     }
 }

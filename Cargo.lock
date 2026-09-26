@@ -190,7 +190,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -201,7 +201,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1742,7 +1742,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users 0.5.3",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1973,7 +1973,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4152,8 +4152,9 @@ dependencies = [
 
 [[package]]
 name = "pdfrum-cmap"
-version = "0.3.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=02a8dcb6#02a8dcb62e192352bd438abcd6820766e87ec7dc"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "563cad9ad77908b940e123bfb8326cfa2fcf7521b9a6ba9d1d556ba2d56eb824"
 dependencies = [
  "pdfrum-common",
  "pdfrum-object",
@@ -4162,16 +4163,18 @@ dependencies = [
 
 [[package]]
 name = "pdfrum-common"
-version = "0.3.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=02a8dcb6#02a8dcb62e192352bd438abcd6820766e87ec7dc"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "15df8ca64e7d163c9092cbcc01d1067af6a99f065c801365407742b818068a6c"
 dependencies = [
  "kurbo",
 ]
 
 [[package]]
 name = "pdfrum-crypt"
-version = "0.3.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=02a8dcb6#02a8dcb62e192352bd438abcd6820766e87ec7dc"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1af6197a7e64dfc30364fa201dbf57d5e842bfe0a0bd1cf2a274f22fba4d3a8a"
 dependencies = [
  "aes",
  "cbc",
@@ -4188,8 +4191,9 @@ dependencies = [
 
 [[package]]
 name = "pdfrum-doc"
-version = "0.3.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=02a8dcb6#02a8dcb62e192352bd438abcd6820766e87ec7dc"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f951522312e5b9d205acbcc7c5a5ed577fc8e604e5f4134009467089a2fea8e"
 dependencies = [
  "kurbo",
  "pdfrum-common",
@@ -4204,8 +4208,9 @@ dependencies = [
 
 [[package]]
 name = "pdfrum-edit"
-version = "0.3.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=02a8dcb6#02a8dcb62e192352bd438abcd6820766e87ec7dc"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f5eb53bc1c67aa7fd7fe0f6b834241db3f963b9144aac60d9b054e392dde5c8"
 dependencies = [
  "getrandom 0.4.3",
  "kurbo",
@@ -4227,8 +4232,9 @@ dependencies = [
 
 [[package]]
 name = "pdfrum-filters"
-version = "0.3.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=02a8dcb6#02a8dcb62e192352bd438abcd6820766e87ec7dc"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa99d459566a839a1335653a5777a63a8de8310cd0251aa40e3251b4a04f93ac"
 dependencies = [
  "miniz_oxide 0.9.1",
  "pdfrum-common",
@@ -4239,8 +4245,9 @@ dependencies = [
 
 [[package]]
 name = "pdfrum-font"
-version = "0.3.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=02a8dcb6#02a8dcb62e192352bd438abcd6820766e87ec7dc"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2f28e5495fc33cbc663d321d3cee08c804a9549521058b5f3c6d1158b98e5b0"
 dependencies = [
  "pdfrum-cmap",
  "pdfrum-common",
@@ -4255,8 +4262,9 @@ dependencies = [
 
 [[package]]
 name = "pdfrum-object"
-version = "0.3.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=02a8dcb6#02a8dcb62e192352bd438abcd6820766e87ec7dc"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8a893504e195bd255560e4b935f892d0a3bdb6bc9702ed3069590dd72ca1795"
 dependencies = [
  "bytes",
  "pdfrum-common",
@@ -4266,8 +4274,9 @@ dependencies = [
 
 [[package]]
 name = "pdfrum-page"
-version = "0.3.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=02a8dcb6#02a8dcb62e192352bd438abcd6820766e87ec7dc"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95fdc5326521db13c5523e011727f1dd3c93f8690ff7e086c37df4220ad0a7df"
 dependencies = [
  "kurbo",
  "moxcms 0.9.1",
@@ -4282,8 +4291,9 @@ dependencies = [
 
 [[package]]
 name = "pdfrum-parser"
-version = "0.3.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=02a8dcb6#02a8dcb62e192352bd438abcd6820766e87ec7dc"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6daa411e09268d0407d7d9c188f647cf50ed838a5a668496f82ce049ab8ed3ec"
 dependencies = [
  "pdfrum-common",
  "pdfrum-crypt",
@@ -4294,8 +4304,9 @@ dependencies = [
 
 [[package]]
 name = "pdfrum-type1"
-version = "0.3.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=02a8dcb6#02a8dcb62e192352bd438abcd6820766e87ec7dc"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6c6a82e9a57cb3b8e18fd3e28a4904a92bae099bb92b4d64d1f6d4805c6c685"
 dependencies = [
  "pdfrum-common",
  "read-fonts 0.44.0",
@@ -4891,7 +4902,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5401,7 +5412,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5780,7 +5791,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5798,7 +5809,7 @@ version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8c27177b12a6399ffc08b98f76f7c9a1f4fe9fc967c784c5a071fa8d93cf7e1"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6066,7 +6077,7 @@ checksum = "f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e"
 dependencies = [
  "memoffset",
  "tempfile",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6895,7 +6906,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

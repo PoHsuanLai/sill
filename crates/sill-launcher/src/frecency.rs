@@ -23,6 +23,10 @@ impl ItemKey {
             ProviderKind::Calculator => "calculator",
             ProviderKind::Settings => "settings",
             ProviderKind::System => "system",
+            ProviderKind::Files => "files",
+            ProviderKind::Clipboard => "clipboard",
+            ProviderKind::Emoji => "emoji",
+            ProviderKind::Web => "web",
         };
         ItemKey(format!("{provider}:{}", item.0))
     }
@@ -82,6 +86,32 @@ impl Frecency {
     pub fn to_json(&self) -> String {
         // Keys are strings and values are integers: nothing here can fail to encode.
         serde_json::to_string_pretty(self).unwrap_or_default()
+    }
+}
+
+/// Whether choosing a provider's row is counted in `frecency.json`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Counting {
+    Counted,
+    /// Never written to disk: a clipboard entry's key means nothing after the session, and the
+    /// history must leave no trace of its use (M9 freeze, F641).
+    NotCounted,
+}
+
+/// Whether `provider`'s rows are counted. The web fallback is counted under its fixed id (never
+/// the query, which is not a row's identity: FINDINGS F646).
+pub fn counting(provider: ProviderKind) -> Counting {
+    match provider {
+        ProviderKind::Clipboard => Counting::NotCounted,
+        ProviderKind::Apps
+        | ProviderKind::Windows
+        | ProviderKind::Calculator
+        | ProviderKind::Settings
+        | ProviderKind::System
+        | ProviderKind::Files
+        | ProviderKind::Emoji
+        | ProviderKind::Web => Counting::Counted,
     }
 }
 

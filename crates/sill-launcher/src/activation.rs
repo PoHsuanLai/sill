@@ -1,9 +1,11 @@
 //! What activating a result asks the daemon to do. A closed vocabulary: the daemon matches it
 //! exhaustively, so a new kind of activation is a compile error at every site that must act.
 
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
 
-use crate::ids::AppId;
+use crate::ids::{AppId, ClipKey};
 
 /// The effect of choosing a result.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -25,8 +27,30 @@ pub enum Activation {
     OpenSettings { target: SettingsTarget },
     /// A session command.
     System(SystemCommand),
+    /// Open a file, its folder, or an address with the default handler (`xdg-open`, with the
+    /// surface's activation token). M9 freeze, F643.
+    Open { target: OpenTarget },
+    /// Make a clipboard history entry the clipboard again (the clipboard service offers it as
+    /// the selection; the person pastes). M9 freeze, F643.
+    SetClipboard { entry: ClipKey },
+    /// Drop a clipboard history entry (its row's "Forget" action; the launcher stays open).
+    /// M9 freeze, F643.
+    ForgetClipboard { entry: ClipKey },
     /// Nothing to do (a header row, a stale result).
     Nothing,
+}
+
+/// What [`Activation::Open`] opens.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
+pub enum OpenTarget {
+    /// The file or folder itself, in its default app.
+    File(PathBuf),
+    /// "Reveal in Files": the folder holding this path, the path selected where the file
+    /// manager can (`org.freedesktop.FileManager1.ShowItems`), else the folder opened.
+    Reveal(PathBuf),
+    /// An address (the web fallback's search).
+    Url(String),
 }
 
 /// Which entry point of an app to start.
@@ -72,8 +96,9 @@ pub enum SystemCommand {
 
 #[cfg(test)]
 mod tests {
-    use super::{Activation, DesktopAction, SettingsTarget, SystemCommand, WindowKey};
-    use crate::ids::AppId;
+    use super::{Activation, DesktopAction, OpenTarget, SettingsTarget, SystemCommand, WindowKey};
+    use crate::ids::{AppId, ClipKey};
+    use std::path::PathBuf;
 
     /// Every variant's wire form, pinned: the daemon and the launcher UI agree on these.
     #[test]
@@ -119,6 +144,32 @@ mod tests {
             (
                 Activation::System(SystemCommand::ShutDown),
                 r#"{"kind":"system","v":"shut_down"}"#,
+            ),
+            (
+                Activation::Open {
+                    target: OpenTarget::File(PathBuf::from("/home/p/a b.pdf")),
+                },
+                r#"{"kind":"open","v":{"target":{"kind":"file","v":"/home/p/a b.pdf"}}}"#,
+            ),
+            (
+                Activation::Open {
+                    target: OpenTarget::Reveal(PathBuf::from("/home/p/a.pdf")),
+                },
+                r#"{"kind":"open","v":{"target":{"kind":"reveal","v":"/home/p/a.pdf"}}}"#,
+            ),
+            (
+                Activation::Open {
+                    target: OpenTarget::Url("https://duckduckgo.com/?q=a%20b".to_owned()),
+                },
+                r#"{"kind":"open","v":{"target":{"kind":"url","v":"https://duckduckgo.com/?q=a%20b"}}}"#,
+            ),
+            (
+                Activation::SetClipboard { entry: ClipKey(9) },
+                r#"{"kind":"set_clipboard","v":{"entry":9}}"#,
+            ),
+            (
+                Activation::ForgetClipboard { entry: ClipKey(9) },
+                r#"{"kind":"forget_clipboard","v":{"entry":9}}"#,
             ),
             (Activation::Nothing, r#"{"kind":"nothing"}"#),
         ];

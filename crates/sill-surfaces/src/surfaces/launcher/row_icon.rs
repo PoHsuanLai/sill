@@ -150,6 +150,7 @@ mod tests {
             icon,
             score: Score(0),
             actions: Vec::new(),
+            subject: sill_launcher::Subject::None,
         }
     }
 

@@ -1,5 +1,7 @@
 //! The launcher's ranking formula (plan: "score 0.7 match + 0.3 frecency + prefix boost").
 
+pub mod sections;
+
 use nucleo_matcher::Matcher;
 use serde::{Deserialize, Serialize};
 

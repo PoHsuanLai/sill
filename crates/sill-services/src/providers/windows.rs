@@ -71,7 +71,9 @@ impl Provider for WindowsProvider {
                 actions: vec![Action {
                     id: ActionId(CLOSE_ACTION.to_owned()),
                     label: "Close".to_owned(),
+                    keys: sill_launcher::ActionKeys::None,
                 }],
+                subject: sill_launcher::Subject::None,
             });
         }
 
@@ -343,6 +345,7 @@ mod tests {
             icon: IconRef::None,
             score: Score(0),
             actions: Vec::new(),
+            subject: sill_launcher::Subject::None,
         };
         assert_eq!(
             provider.activate(&item, &Choice::Primary),

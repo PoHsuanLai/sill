@@ -56,6 +56,7 @@ impl Provider for IndexApps {
                     icon: IconRef::None,
                     score,
                     actions: Vec::new(),
+                    subject: sill_launcher::Subject::None,
                 })
             })
             .collect();

@@ -111,6 +111,10 @@ fn kind_note(kind: ProviderKind) -> &'static str {
         ProviderKind::Calculator => "Calculator",
         ProviderKind::Settings => "Setting",
         ProviderKind::System => "System",
+        ProviderKind::Files => "Document",
+        ProviderKind::Clipboard => "Clipboard",
+        ProviderKind::Emoji => "Emoji",
+        ProviderKind::Web => "Web",
     }
 }
 
@@ -157,6 +161,11 @@ pub fn provider_glyph(kind: ProviderKind) -> Icon {
         ProviderKind::Calculator => Icon::Command,
         ProviderKind::Settings => Icon::Settings,
         ProviderKind::System => Icon::Power,
+        // M9 stand-ins until quire has `Clipboard`, `Smile` and `Globe` glyphs (FINDINGS Q296).
+        ProviderKind::Files => Icon::File,
+        ProviderKind::Clipboard => Icon::Copy,
+        ProviderKind::Emoji => Icon::Sparkles,
+        ProviderKind::Web => Icon::Search,
     }
 }
 
@@ -200,8 +209,10 @@ mod tests {
                 .map(|i| Action {
                     id: ActionId(format!("a{i}")),
                     label: format!("Action {i}"),
+                    keys: sill_launcher::ActionKeys::None,
                 })
                 .collect(),
+            subject: sill_launcher::Subject::None,
         }
     }
 

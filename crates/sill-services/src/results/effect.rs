@@ -40,6 +40,11 @@ pub(crate) fn effect(activation: &Activation) -> Effect {
         | Activation::Insert { .. }
         | Activation::OpenSettings { .. }
         | Activation::System(_)
+        // M9 (F643): opening needs the surface's activation token, and the clipboard entry
+        // goes to the clipboard service from the surface.
+        | Activation::Open { .. }
+        | Activation::SetClipboard { .. }
+        | Activation::ForgetClipboard { .. }
         | Activation::Nothing => Effect::Elsewhere,
     }
 }

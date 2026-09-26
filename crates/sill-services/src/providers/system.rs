@@ -180,6 +180,7 @@ impl Provider for SystemProvider {
                     .map_or(IconRef::None, |name| IconRef::Glyph(name.to_owned())),
                 score,
                 actions: Vec::new(),
+                subject: sill_launcher::Subject::None,
             });
         }
 
@@ -330,6 +331,7 @@ mod tests {
             icon: sill_launcher::IconRef::None,
             score: Score(0),
             actions: Vec::new(),
+            subject: sill_launcher::Subject::None,
         }
     }
 

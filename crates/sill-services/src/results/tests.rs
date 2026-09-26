@@ -57,6 +57,7 @@ fn search_to(
         history.clone(),
         Some(dir.path().to_path_buf()),
         outlets,
+        watch::channel(super::LauncherPolicy::default()).0,
     );
     (rx, control, history)
 }
@@ -240,6 +241,7 @@ async fn the_runner_itself_drops_a_batch_of_an_older_generation() {
         icon: IconRef::None,
         score: Score(500),
         actions: Vec::new(),
+        subject: sill_launcher::Subject::None,
     };
     let batch = |generation, title| {
         Arrival::Batch(Batch {
@@ -254,6 +256,7 @@ async fn the_runner_itself_drops_a_batch_of_an_older_generation() {
         History::default(),
         Persist::Nowhere,
         Outlets::default(),
+        watch::channel(super::LauncherPolicy::default()).0,
         tx,
     );
     search.command(SearchCommand::Query("f".to_owned()));

@@ -46,6 +46,7 @@ fn row(provider: ProviderKind, id: &str, title: &str, subtitle: &str, score: u32
         },
         score: Score(score),
         actions: Vec::new(),
+        subject: sill_launcher::Subject::None,
     }
 }
 
@@ -66,6 +67,7 @@ fn with_actions(mut item: Item, actions: &[(&str, &str)]) -> Item {
         .map(|(id, label)| Action {
             id: ActionId((*id).to_owned()),
             label: (*label).to_owned(),
+            keys: sill_launcher::ActionKeys::None,
         })
         .collect();
     item
@@ -135,18 +137,20 @@ pub fn services() -> (Services, LauncherFeeds) {
         let mut rows = Vec::new();
         while let Some(command) = commands.blocking_recv() {
             match &command {
-                SearchCommand::Query(text) => {
+                SearchCommand::Query(text) | SearchCommand::Filtered { text, .. } => {
                     generation += 1;
                     rows = search(text);
                     tx.send_replace(Results {
                         generation: Generation(generation),
                         items: rows.clone(),
+                        sections: Vec::new(),
                     });
                 }
                 SearchCommand::Chosen { key, choice } => {
                     carry(&rows, key, choice, &fakes, &wl, &launch);
                 }
                 SearchCommand::Cancel => rows.clear(),
+                SearchCommand::Policy(_) => {}
             }
             if let Ok(mut log) = log.lock() {
                 log.push(command);
@@ -220,6 +224,14 @@ impl Provider for FakeProvider {
                 target: SettingsTarget::Cosmic(item.id.0.clone()),
             },
             (ProviderKind::System, _) => Activation::System(SystemCommand::Lock),
+            // The M9 kinds: lane d gives them fakes with their rows.
+            (
+                ProviderKind::Files
+                | ProviderKind::Clipboard
+                | ProviderKind::Emoji
+                | ProviderKind::Web,
+                _,
+            ) => Activation::Nothing,
         }
     }
 }

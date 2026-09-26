@@ -189,6 +189,7 @@ fn key_item(key: &IndexedKey, score: Score) -> Item {
         icon: IconRef::Glyph("settings".to_owned()),
         score,
         actions: Vec::new(),
+        subject: sill_launcher::Subject::None,
     }
 }
 
@@ -201,6 +202,7 @@ fn cosmic_item(page_id: &str, title: &str, score: Score) -> Item {
         icon: IconRef::Glyph("settings".to_owned()),
         score,
         actions: Vec::new(),
+        subject: sill_launcher::Subject::None,
     }
 }
 

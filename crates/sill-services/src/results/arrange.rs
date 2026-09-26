@@ -43,7 +43,14 @@ pub(crate) fn group_cap(kind: ProviderKind) -> usize {
     match kind {
         ProviderKind::Apps => 6,
         ProviderKind::Calculator => 1,
-        ProviderKind::Windows | ProviderKind::Settings | ProviderKind::System => 3,
+        ProviderKind::Windows
+        | ProviderKind::Settings
+        | ProviderKind::System
+        | ProviderKind::Clipboard => 3,
+        // M9 kinds until lane d moves the runner onto `sill_launcher::place` (F645).
+        ProviderKind::Files => 5,
+        ProviderKind::Emoji => 8,
+        ProviderKind::Web => 1,
     }
 }
 
@@ -108,6 +115,7 @@ mod tests {
             icon: IconRef::None,
             score: Score(score),
             actions: Vec::new(),
+            subject: sill_launcher::Subject::None,
         }
     }
 
