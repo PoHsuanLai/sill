@@ -9,11 +9,21 @@ use ds::{Icon, IconSource, ImageSize, ImageSource, Mono, PANE_MEDIA, PaneContent
 use sill_launcher::{ClipKind, Excerpt, Mime, Preview};
 
 use crate::surfaces::launcher::preview::load::{Loaded, use_clip_png, use_excerpt, use_image_size};
-use crate::surfaces::launcher::preview::moment::{PaneMoment, use_pane_moment};
 
-/// The content for `preview` (`icon`: the row's, for an app). Hooks run on every render,
-/// whatever the kind.
-pub(super) fn use_content(preview: &Preview, icon: Option<IconSource>) -> PaneContent {
+/// How far what a preview names has loaded.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(super) enum Load {
+    /// All of it, or it needs no load.
+    Ready,
+    /// A text file's head or a PDF's page is still being read.
+    Reading,
+    /// It could not be read.
+    Failed,
+}
+
+/// The content for `preview` (`icon`: the row's, for an app), and how far it has loaded. Hooks
+/// run on every render, whatever the kind.
+pub(super) fn use_content(preview: &Preview, icon: Option<IconSource>) -> (PaneContent, Load) {
     let pdf = match preview {
         Preview::Pdf { path, .. } => Some(path.clone()),
         _ => None,
@@ -37,13 +47,8 @@ pub(super) fn use_content(preview: &Preview, icon: Option<IconSource>) -> PaneCo
     let excerpt = use_excerpt(text);
     let size = use_image_size(image);
     let clip_png = use_clip_png(clip);
-    // A slow head read or page is the pane's `Pending` moment (D0); its Appear, Swap and Leave
-    // are the panel's (`panel.rs`), which sees the pane come and go.
-    use_pane_moment(match (&excerpt, &page) {
-        (Some(Loaded::Reading), _) | (_, Some(PdfPage::Loading)) => PaneMoment::Pending,
-        _ => PaneMoment::Still,
-    });
-    content_of(
+    let load = load_of(excerpt.as_ref(), page.as_ref());
+    let content = content_of(
         preview,
         icon,
         Loads {
@@ -52,7 +57,19 @@ pub(super) fn use_content(preview: &Preview, icon: Option<IconSource>) -> PaneCo
             size,
             clip_png,
         },
-    )
+    );
+    (content, load)
+}
+
+/// How far a text file's head and a PDF's page have loaded (`None`: the preview has none).
+fn load_of(excerpt: Option<&Loaded>, page: Option<&PdfPage>) -> Load {
+    match (excerpt, page) {
+        (Some(Loaded::Reading), _) | (_, Some(PdfPage::Loading)) => Load::Reading,
+        (Some(Loaded::Failed(_)), _) | (_, Some(PdfPage::Failed(_))) => Load::Failed,
+        (Some(Loaded::Text(_)) | None, Some(PdfPage::Ready { .. } | PdfPage::Empty) | None) => {
+            Load::Ready
+        }
+    }
 }
 
 /// What the hooks brought for the preview.
@@ -178,5 +195,34 @@ fn kind_words(mime: &Mime) -> String {
     match mime.0.as_str() {
         Mime::FOLDER => "Folder".to_owned(),
         other => other.to_owned(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Load, load_of};
+    use crate::surfaces::launcher::preview::load::Loaded;
+    use ds::{PdfPage, PdfTrouble};
+    use sill_launcher::Excerpt;
+    use sill_services::preview::PreviewFault;
+
+    #[test]
+    fn a_slow_head_or_page_is_reading() {
+        let text = Loaded::Text(Excerpt("hi".to_owned()));
+        let reading = Loaded::Reading;
+        let failed = Loaded::Failed(PreviewFault::Unreadable);
+        let locked = PdfPage::Failed(PdfTrouble::Locked);
+        let cases: [(Option<&Loaded>, Option<&PdfPage>, Load); 7] = [
+            (None, None, Load::Ready),
+            (Some(&text), None, Load::Ready),
+            (Some(&reading), None, Load::Reading),
+            (Some(&failed), None, Load::Failed),
+            (None, Some(&PdfPage::Loading), Load::Reading),
+            (None, Some(&PdfPage::Empty), Load::Ready),
+            (None, Some(&locked), Load::Failed),
+        ];
+        for (excerpt, page, want) in cases {
+            assert_eq!(load_of(excerpt, page), want, "{excerpt:?} {page:?}");
+        }
     }
 }

@@ -6154,3 +6154,90 @@ surface: it is a Blitz style bug that quire's wall-clock presence timer exposes.
   hides a small lag, but a stalled first frame leaves the center displaced and its clicks
   falling through until the next open. The OSD card runs the same `use_shown_phase`; other
   timer-ended entrances were not checked.
+
+## Launcher details (Q297) (2026-09-27)
+
+Adopting quire's `ds::detail` (design/26-DETAILS.md, wave D0; quire CONSUMING "Details") in the
+launcher, against sill master 3f7e50b and quire master. Numbers from F800, Q370. Arc heuristic
+(quire design/09): **H6, power to the people**: every launcher moment now goes through quire's
+primitives, which honour the person's motion level (Reduced: final state at once; Calm: no
+overshoot) in one place instead of per surface, and a spring is spent only on the person's own
+contact (design/26 R5, R7).
+
+- **F800 The states and their tables.** `preview/moment.rs`: `PaneState::{Hidden,
+  Showing(PreviewKind), Pending, Failed}` with an exhaustive `Detailed` table (no `_` arm):
+  Hidden to Showing or Failed is **Appear**; another kind while shown, or Failed to Showing, is
+  **Preview** (the selection moved; the entrance never replays; the same kind is Rest, R2);
+  anything to Pending is **Pending**; Pending to Showing is **Change** (a load landing is content
+  arriving, not a success to settle, R12); Pending to Failed is **Failure**; to Hidden is
+  **Dismiss**. First frames: Hidden Rest, Showing/Failed Appear, Pending Pending.
+  `list_detail.rs`: `ListState::{Closed, Waiting(opening), Empty(opening), Rows { opening,
+  answer: Generation, expanded }}`: the first answer's rows after an opening are **Appear**
+  (design/26 §8 item 6: only the first set staggers), a new answer is **Change** (in place, no
+  stagger: typing is frequent, R1/R12), Show More and Show Less (`expanded` differs, same
+  answer) are **Change**, "Nothing matches" and back are **Change** (G43's fade), a new opening
+  plays its own first frame, closing is **Dismiss**. Both tables are data tests
+  (`moment_table`, `first_table`); `pane_state` and `load_of` have table tests too.
+- **F801 Where `use_detail` is called.** `LauncherPane` calls `use_pane_detail` (`FirstShow::
+  Animate`: the pane mounts when the person shows it), from the shown/hidden prop and how far
+  its content has loaded (`content::Load::{Ready, Reading, Failed}`: a text head `Reading`, a
+  PDF page `Loading`, their failures). The panel calls `use_list_detail` once per render. The
+  frozen no-op `use_pane_moment`/`use_row_moment` and `PaneMoment` are gone.
+- **F802 Touch.** `contact.rs`: the panel root's `onkeydown` and `onmousedown` record
+  `Touch::from_event` and bump a signal, so the render that follows takes it (then Remote); a
+  contact never lingers onto the next remote change. An answer arriving, a load landing and every
+  `sill debug launcher-key` are `Touch::Remote`. The pane gets the render's touch as a prop.
+- **F803 What plays today: nothing new.** The cues are computed and dropped (`_pane`,
+  `_results`): quire's `PreviewPane` and `CommandPalette` take no `Cue`, `Touch`,
+  `FirstShow` or `Operation` (Q370-Q372). So quire's pane still plays its own `slide-r` at
+  `--t-move --e-spring` on every showing (contact or not) and `pane-out-r` on hiding; the rows
+  still show with no rise; a slow text head still shows an empty media box (a slow PDF page
+  shows `PdfThumb`'s own grace-then-half-strength sheet, not `use_pending`). `use_operation`
+  and `use_pending` are **not** called: with no part to draw the frame they would only wake the
+  panel every `--t-pending-step` for up to `PendingCap` for nothing (R3). No local stand-in was
+  written (no sill CSS, no ad-hoc `rise`), per the brief.
+- **F804 Lint.** `tests/launcher_details_lint.rs`: `launcher.css` is clean under
+  `Profile::Details` (no `InfiniteLoop`, no `OffGrammarTiming`), and so is the rendered panel's
+  markup with the pane up. Nothing in the sheet had to change.
+- **F805 Idle frames.** `tests/launcher_details.rs`: open over `m9`, then Quick Look up, Down
+  under it, Quick Look off: `ds_native::harness::assert_settles_to_zero_frames` passes after
+  each step (no CSS animation, no `Harness::wakes()` for 500 ms).
+- **F806 The reference's motions** (micro-interactions note; design/26 §5.6, confidence L,
+  observed from the shipping product, not measured): Spotlight's results replace in place as
+  you type and the window grows with them; rows do not stagger (our first-set rise is design/20
+  §1.3's, not the reference's); the preview beside the results changes with the selection at
+  once, a generic icon first and the thumbnail replacing it when ready; section "Show More"
+  expands in place. That is what the tables above encode: Preview/Change in place, one Appear
+  per opening.
+- **F807 Gates and scripts.** fmt, clippy (`-D warnings`), `check-boundary.sh` and `cargo deny
+  check licenses` exit 0; `cargo test --workspace --features sill/debug` exits 0 (1119 passed,
+  0 failed, 52 ignored, 117 test binaries). The first run failed one unrelated timing test,
+  `hot_corners_render::leaving_and_the_rearm_lets_it_fire_again`, at load average 142-191; it
+  passes alone and in the full rerun. `dev/accept-launcher-v2.sh` on wayland-1: every step
+  PASS (latency p50 263.4, p95 374.1 ms under that load; sections; PDF and image preview; pane
+  levels; Show More; emoji; real caret; **step 8 idle: 189 frames before and after 5 s, so 0**;
+  fixtures). `dev/accept-launcher-v2-real-input.sh` on headless KWin: all five steps PASS.
+
+### Asks (quire)
+
+- **Q370 `PreviewPane` takes the detail's cue.** Today `shown: Shown` alone drives
+  `use_shown_phase`, whose entrance is `--e-spring` whoever caused it, breaking R5 for a remote
+  showing (`sill debug launcher-key quick-look`, a future Quick Look request over IPC). Proposed:
+  `cue: Option<Cue>` (or `touch: Touch`) so the slide-in springs only on `Touch::Contact` and
+  settles at `--e-out` otherwise, and a `Preview` moment cross-fades the media at `--t-quick`
+  instead of snapping.
+- **Q371 `PreviewPane` draws a pending frame.** A slow text head (`PaneContent::Text` with an
+  empty excerpt) is a blank box; `PdfThumb` has its own grace (`PDF_THUMB_GRACE`) outside
+  `use_pending`. Proposed: `operation: Operation` (sill passes `use_operation(detail.cue())`),
+  drawn with `use_pending` over the media box (a `Spinner` or `LayerGlyph` pending frame, its
+  still frame at the cap, the words "Loading…" for R8), and `PdfThumb`'s grace moved onto the
+  same primitive.
+- **Q372 `CommandPalette` plays the rows' first show from a cue.** The rows are the palette's,
+  so sill cannot wrap them in `ds::detail::Reveal`. Proposed: `reveal: Option<Cue>` (or
+  `first: FirstShow` per result set) so an Appear cue plays `rise` with `--stagger` (cap 12) on
+  that set only, and a Change replays nothing. `Reveal` itself only plays at mount; the palette
+  outlives result sets, so it needs a keyed replay or a cue-driven variant.
+- **Q373 (design/26) Show More / Show Less has no row.** §5.6 lists open, results, calculator,
+  no results and selection; §5.4's group expand (Reveal downward, `heal` to collapse) is the
+  nearest. sill calls it Change until the grammar decides; the palette would then need the same
+  cue for the section's new rows.

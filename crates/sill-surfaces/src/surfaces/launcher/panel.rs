@@ -29,6 +29,7 @@ use crate::hooks::{
 use crate::surfaces::bar::shell_style::shell_metrics;
 use crate::surfaces::bar::workspaces::group_for;
 use crate::surfaces::launcher::card::{CardKey, Foot, use_card_hit};
+use crate::surfaces::launcher::contact::use_contacts;
 use crate::surfaces::launcher::entries::{Cursor, RowRef, action_entries};
 use crate::surfaces::launcher::events::{PanelCtx, use_panel};
 use crate::surfaces::launcher::hit::ActionsShown;
@@ -36,11 +37,11 @@ use crate::surfaces::launcher::keys::ActionsMenu;
 use crate::surfaces::launcher::layer::{
     CARD_ID, CARD_INSET, CARD_RADIUS, PANEL_HEIGHT, PANEL_ROOM_WIDTH, PANEL_WIDTH, SHADOW_SIDE,
 };
+use crate::surfaces::launcher::list_detail::{ListState, Rows, use_list_detail};
 use crate::surfaces::launcher::pane_keys::use_link_keys;
 use crate::surfaces::launcher::pane_session::PaneSession;
 use crate::surfaces::launcher::presence::LauncherLink;
 use crate::surfaces::launcher::preview::keys::{Pane, PaneFocus};
-use crate::surfaces::launcher::preview::moment::{pane_moment, use_pane_moment};
 use crate::surfaces::launcher::preview::{LauncherPane, PREVIEW_WIDTH_PX};
 use crate::surfaces::launcher::row_icon::{row_art, row_tile};
 use crate::surfaces::launcher::script::use_script;
@@ -123,8 +124,12 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
             pane,
         }
     });
-    use_moments(shown.as_ref().and_then(Shown::preview));
-    let aside = use_aside(shown.as_ref(), &icons, panel.left);
+    let contacts = use_contacts();
+    let touch = contacts.take();
+    // The cue is ready for quire's palette; `CommandPalette` takes none yet (Q372), so the
+    // first result set shows with no rise.
+    let _results = use_list_detail(list_state(shown.as_ref(), &panel), touch);
+    let aside = use_aside(shown.as_ref(), &icons, panel.left, touch);
     if let Some(shown) = &shown {
         publish_rows(&panel.link, shown);
     }
@@ -145,7 +150,11 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
             id: "panel",
             class: "sill-launcher",
             style: shell_metrics(&file).style_attr(),
-            onkeydown: move |event| PanelCtx::root_key(&event),
+            onkeydown: move |event| {
+                contacts.heard(&event);
+                PanelCtx::root_key(&event);
+            },
+            onmousedown: move |event| contacts.heard(&event),
             Ds {
                 scale: ds_scale,
                 appearance,
@@ -178,11 +187,17 @@ pub(crate) struct Aside {
     focused: Option<usize>,
     shown: ds::Shown,
     serial: crate::surfaces::launcher::presence::OpenSerial,
+    touch: ds::detail::Touch,
 }
 
 /// The pane while it shows, and after it is hidden until quire has played it out
 /// (`on_hidden`), so it leaves as it came.
-fn use_aside(shown: Option<&Shown>, icons: &RowIcons, left: Signal<u64>) -> Option<Aside> {
+fn use_aside(
+    shown: Option<&Shown>,
+    icons: &RowIcons,
+    left: Signal<u64>,
+    touch: ds::detail::Touch,
+) -> Option<Aside> {
     let mut last = use_hook(|| CopyValue::new(None::<Aside>));
     let mut seen = use_hook(|| CopyValue::new(0_u64));
     let count = *left.read();
@@ -209,6 +224,7 @@ fn use_aside(shown: Option<&Shown>, icons: &RowIcons, left: Signal<u64>) -> Opti
                 },
                 shown: ds::Shown::Visible,
                 serial: shown.session.serial,
+                touch,
             };
             last.set(Some(aside.clone()));
             Some(aside)
@@ -220,6 +236,7 @@ fn use_aside(shown: Option<&Shown>, icons: &RowIcons, left: Signal<u64>) -> Opti
             .map(|leaving| Aside {
                 shown: ds::Shown::Hidden,
                 focused: None,
+                touch,
                 ..leaving
             }),
     }
@@ -234,12 +251,23 @@ fn icon_source(tile: ds::Tile) -> Option<IconSource> {
     }
 }
 
-/// The pane's moments (D0, F655): it appears, swaps rows, leaves.
-fn use_moments(now: Option<Preview>) {
-    let mut before = use_hook(|| CopyValue::new(None::<Preview>));
-    let moment = pane_moment(before.peek().as_ref(), now.as_ref());
-    before.set(now);
-    use_pane_moment(moment);
+/// The results as the person sees them (`list_detail.rs`): closed, waiting on the opening's
+/// first answer, nothing matching, or an answer's rows with the sections Show More opened.
+fn list_state(shown: Option<&Shown>, panel: &PanelCtx) -> ListState {
+    let Some(shown) = shown else {
+        return ListState::Closed;
+    };
+    let opening = shown.session.serial;
+    let answer = panel.results.peek().generation;
+    match (answer > shown.session.since, shown.view.len()) {
+        (false, _) => ListState::Waiting(opening),
+        (true, 0) => ListState::Empty(opening),
+        (true, _) => ListState::Rows(Rows {
+            opening,
+            answer,
+            expanded: shown.pane.expanded.clone(),
+        }),
+    }
 }
 
 /// Tell `sill debug launcher-rows` what shows.
@@ -358,6 +386,7 @@ fn pane(panel: &PanelCtx, aside: Aside) -> Element {
             focused: aside.focused,
             icon: aside.icon,
             shown: aside.shown,
+            touch: aside.touch,
             onaction: move |index: usize| act.run_pane_action(index),
             on_hidden: move |()| gone.pane_gone(),
         }
