@@ -5801,3 +5801,91 @@ Against `m9-freeze` (f17ea53), then master b9802d5 (lanes a, b and c merged) and
   (F730).
 - **G273 D0 (`use_detail`, Q297) is still missing:** the row and pane moments call nothing; quire's
   pane plays its own entrance and exit.
+
+## M9 lane e: launcher v2 under real keyboard input (2026-09-27)
+
+Against master 17f52ac (lanes a-d merged). Owns `dev/accept-launcher-v2-real-input.sh`, its
+entries in `docs/manual-checks.md`, and (authorised, G272) the section checks in
+`dev/accept-launcher-files.sh` step 1 and `dev/accept-clipboard.sh` step 4. No source file
+changed. Numbers from F740, Q350, G280.
+
+- **F740 The real-input acceptance** (`dev/accept-launcher-v2-real-input.sh`, exit 1: one
+  failure, F741). On shell-host's headless KWin (1920x1080, `kwin-virtual.sh start`, stopped at
+  the end), one `fake-input.sh` client for the whole run (G50), the daemon (`--features debug`)
+  given KWin's socket as an absolute path, KWin's private bus (never exported to the script:
+  G52), its own `XDG_RUNTIME_DIR` (under `/tmp`: the agent socket's path must fit 108 bytes) and
+  a scratch HOME, config, data, state and cache with `files_backend = "fd"`. The script refuses
+  a socket that is not `wayland-kwinvirt-*` and a `.kwin-env` that is already there (another
+  run's KWin is never borrowed or stopped). Every key is real; `launcher-rows` and `capture`
+  only look.
+  (1) PASS: typing `m9-report` lists `m9-report.pdf` as Top Hit; Backspace to `m9`, Down, Space:
+  the preview shows (`text_file` for `m9-list-02.txt`) and the query stays `m9`; Space again
+  hides it; typing `-rep`, Ctrl+Y (⌘Y): `pdf` while typing. (2) PASS: → shows the pane, a
+  second → puts the focus ring on its first button (the captures differ only inside the pane,
+  x 735-883); Tab moves the ring (735-1010, 342-378), a second Tab brings it back (the first and
+  third captures are identical; two buttons, it wraps), the headings unchanged (Tab is not the
+  provider filter there); Escape 1: the ring goes and the pane stays (the capture equals the
+  one before entering); Escape 2: the pane hides, the launcher stays; Escape 3: it closes.
+  (3) PASS: Ctrl+R (⌘R) on the file row: the stub file manager on KWin's bus records
+  `ShowItems` with the file's `file://` URI and the token `kwin-1` (a real xdg-activation
+  token), and the launcher closes. (4) FAIL (F741): Shift+Tab twice with nothing typed: the
+  Emoji grid alone, 20 cells; Down 0→8, Down 8→16, **Right 16→16 (the preview opened
+  instead)**, Left 16→15, Up 15→7; Enter copies cell 7 (`wl-paste` on KWin's socket reads the
+  selected glyph) and closes. (5) PASS: see F743; one clipboard row (`<clipboard>`, Top Hit) for
+  `lighthouse`, selected, real Enter, `wl-paste` reads the made-up entry back.
+- **F741 (lane d) → never moves in the emoji grid.** `PanelCtx::claim`
+  (`surfaces/launcher/pane_keys.rs`) takes every `ArrowRight` as `PreviewKey::Right(caret)`
+  before the palette; with nothing typed the caret is always `AtEnd`, so → shows the emoji's
+  preview (and a second → would enter it) and quire's grid never gets it, while ←, ↑ and ↓ do
+  (← is claimed only in the pane). Repro: `dev/accept-launcher-v2-real-input.sh` step 4, or by
+  hand: open, Shift+Tab twice, Down, → (`launcher-rows`: `selected` unchanged, `preview` `shown
+  emoji`). Proposed: while the selection is in a grid group, → (and ←) pass to the palette, and
+  the preview is ⌘Y/Space only there, as in the macOS character viewer. `launcher-key right`
+  cannot show this (G271: it is always the preview's →).
+- **F742 (lane d, a question) `↵` stays on the first row.** `sections_view.rs`/`entries.rs`
+  `trail` gives `↵` to the first row of the list and `⌘R` (or `⌃K`) to the rest, whatever is
+  selected; its doc says "`↵` on the row Enter runs", and Enter runs the selected row. After a
+  real Down the highlighted row shows `⌘R` and the unhighlighted first row still `↵` (the
+  script's `preview-space.png`: `m9-list-02.txt` selected, `m9-list-01.txt` with `↵`).
+  Spotlight shows the return glyph on the selected row. Kept for lane d: whether `first`
+  should be `selected`.
+- **F743 G230 answered: headless KWin 6.7 offers `ext_data_control_manager_v1` v1** (and no
+  `zwlr_data_control_manager_v1`); `sill clipboard status` says `memory ext`. So step 5 is
+  proven on KWin, not NOT PROVEN. wl-clipboard 2.2.1 uses the same protocol, so `wl-copy` and
+  `wl-paste` need no focus there. An emoji copied by Enter is read back into the history like
+  any other selection (the status read `memory ext 1` after step 4), as the service reads its
+  own offers (F681).
+- **F744 Q340 stands under real keys.** With Documents filtered by a real Tab (24 rows), eleven
+  real Downs select row 11 and the card still shows rows 0-7: no row carries the selection tint
+  (0 px against 7484 on row 0; `q340-down.png`); eleven real Ups bring it back into view only
+  because row 0 never left. So the palette's own Up and Down do not scroll the selection into
+  view either; it is quire's (`CommandPalette`'s list), not the debug link's. The script records
+  it as `Q340 OPEN|CLOSED` and does not fail on it.
+- **F745 Q341 stands under real keys.** After `sill launcher open --query m9` a real `x` makes
+  the query `xm9`: the caret starts at the beginning. A real → then leaves the pane hidden (it
+  moved the caret), and real End then → shows it (`pdf`, the query still `m9`), as lane d saw
+  with `wtype` on the nested compositor (F729 (C)). Recorded as `Q341 OPEN|CLOSED`.
+- **F746 G272 fixed: lanes a and b's section checks.** `accept-launcher-files.sh` step 1 reads
+  the rows as JSON and passes when `m9-report.pdf` is listed once, under Top Hit or Documents
+  (it is the Top Hit). `accept-clipboard.sh` step 4 finds the one `<clipboard>` row under Top
+  Hit or Clipboard and moves `launcher-key down` onto it before Enter: since lane c merged,
+  "lantern" makes the emoji 🏮 the Top Hit and the clipboard row sits under Clipboard, so Enter
+  on the first row would copy the lantern, not the entry (F730's passing copy predates that).
+  Rerun on the nested cosmic-comp (wayland-1 pinged first, reused): `accept-launcher-files.sh`
+  12 PASS, exit 0 (step 1: "the daemon lists m9-report.pdf under Top Hit"; step 5
+  `tracker=Dormant baloo=Absent fd=Present plocate=Present`, Tracker in its sandbox);
+  `accept-clipboard.sh` 6 PASS, exit 0 (step 4: "clipboard rows: 1, under Clipboard",
+  `wl-paste` read the offered entry).
+- **Q350 (lane c) Scattered emoji matches.** `--query lantern` lists, after 🏮 and 🎃, the flags
+  🇲🇵 🇳🇱 🇧🇶 🇹🇫: "lantern" is a subsequence of "fLAg: Northern mariana islands", "flAg:
+  NeTherlands" and so on. F700 lets the match quality rank them but keeps them; Spotlight shows
+  only word-prefix matches. Proposed: an emoji name or keyword matches on word prefixes (or
+  under a minimum score), so a flag needs "flag" or its country's word.
+- **G280 `accept-launcher-files.sh` step 4 checks only for a `Documents` title.** With
+  `files_backend = "off"`, a file row that were the Top Hit would still pass it (the same
+  shape as G272). It passes today (no file row at all); tightening it (no `m9-report.pdf` in any
+  section) is lane a's, not authorised here.
+- **G281 The script's fake-input client builds shell-host's tool with the caller's HOME.**
+  `fake-input.sh` runs `cargo build`, which needs rustup's default toolchain under `$HOME`; the
+  script gives the scratch HOME to the daemon only (a client started with the scratch HOME fails
+  with "rustup could not choose a version of cargo").

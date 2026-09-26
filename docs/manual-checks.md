@@ -151,6 +151,23 @@ and a stand-in helper; these need polkitd, polkit's own helper and a real passwo
   shows. `sill clipboard status` says `memory`, `ext`. Turning `launcher.clipboard_history`
   off empties it at once.
 
+- [ ] **Launcher v2 with a Mac keyboard through Toshy** (M9 lane e; real typing, Down, Space,
+  Ctrl+Y, → twice, Tab, Escape three times, Ctrl+R, Shift+Tab to Emoji and Enter on a clipboard
+  row already pass under fake input on a headless KWin through
+  `dev/accept-launcher-v2-real-input.sh`; this is the physical keys and the look). Open the
+  launcher with Cmd+Space and type part of a document's name: ⌘Y shows the preview, Space after
+  an arrow toggles it and never types a space, → at the end of the text shows it and a second →
+  puts the focus ring on its first button, Tab walks the buttons, Escape leaves the pane, hides
+  it, then closes. ⌘R on a document opens the file manager with it selected. Hold Down through
+  a long list (Tab to Documents): the selected row should stay in view (FINDINGS Q340 says it
+  does not yet). In the emoji grid (Shift+Tab twice with nothing typed) all four arrows should
+  move (FINDINGS F741 says → shows the preview instead), and Enter then Cmd+V pastes the emoji in
+  another app. Also by eye: the focus ring on the pane's buttons in the dark scheme, and whether
+  `↵` should follow the selected row (F742).
+- [ ] **A clipboard row pasted into a real app** (M9 lane e): on KWin, real Enter on a clipboard
+  row was proven with `wl-paste` only; on a real login, Enter on an older clipboard row, then
+  Ctrl+V in a text editor and in a terminal, pastes that entry.
+
 ## Owned by the other session (quire, shell-host)
 
 - [ ] shell-host G100 and G101 (sill FINDINGS "M6 lane d"): `dev/accept-notifications-real-input.sh
