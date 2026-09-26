@@ -1,72 +1,96 @@
-//! The launcher's small moments (M9, FINDINGS "M9 freeze" F655): a result row appearing and the
-//! preview pane appearing, changing and waiting on a slow load. These are a hook point, not sill
-//! CSS: quire's D0 small-details primitives (`use_detail`, moments `Appear`, `Pending`,
-//! `Preview`) drive them once they land; until then [`use_pane_moment`] does nothing and the
-//! pane changes at once (quire rule 4: motion only through quire's timers).
+//! The preview pane's moments through quire's `ds::detail` (design/26-DETAILS.md; FINDINGS
+//! "Launcher details (Q297)"): its states as the person sees them, what each change means (an
+//! exhaustive [`Detailed`] table), and [`use_pane_detail`], the one place the pane calls
+//! `use_detail`. The launcher never plays a moment itself (quire rule 4): the cue goes to quire's
+//! parts, and until `PreviewPane` takes one (Q370, Q371) quire's pane plays its own entrance.
 
-use sill_launcher::Preview;
+use ds::detail::{Detail, Detailed, FirstShow, Moment, Touch, use_detail};
+use sill_launcher::PreviewKind;
 
-/// A moment the pane or a row goes through.
+/// The pane as the person sees it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PaneMoment {
-    /// Nothing changed.
-    Still,
-    /// The pane opens (D0 `Appear`).
-    Appear,
-    /// It shows another row's preview (D0 `Preview`).
-    Swap,
-    /// Its content is loading past a frame (a text file's head, a PDF's page: D0 `Pending`).
+pub enum PaneState {
+    /// Leaving, or not there.
+    Hidden,
+    /// Showing a preview of this kind, all of it loaded.
+    Showing(PreviewKind),
+    /// Waiting on a slow load: a text file's head, a PDF's page.
     Pending,
-    /// It closes.
-    Leave,
+    /// What it names could not be read: the still words say so.
+    Failed,
 }
 
-/// The moment from `before` to `after` (`None` for a hidden pane). Lane d fills it: hidden to
-/// shown is `Appear`, shown to hidden `Leave`, one preview to a different one `Swap`, the same
-/// `Still`.
-pub fn pane_moment(before: Option<&Preview>, after: Option<&Preview>) -> PaneMoment {
-    match (before, after) {
-        (None, None) => PaneMoment::Still,
-        (None, Some(_)) => PaneMoment::Appear,
-        (Some(_), None) => PaneMoment::Leave,
-        (Some(was), Some(now)) if was == now => PaneMoment::Still,
-        (Some(_), Some(_)) => PaneMoment::Swap,
+impl Detailed for PaneState {
+    fn moment(from: &Self, to: &Self) -> Moment {
+        use PaneState::{Failed, Hidden, Pending, Showing};
+        match (from, to) {
+            (Hidden, Hidden) | (Pending, Pending) | (Failed, Failed) => Moment::Rest,
+            (Hidden, Showing(_) | Failed) => Moment::Appear,
+            // The selection moved (instant, design/13 §13.3.9): the content changes in place,
+            // the pane's entrance does not replay. The same kind is the same pane (R2).
+            (Showing(was), Showing(now)) if was == now => Moment::Rest,
+            (Showing(_) | Failed, Showing(_)) | (Showing(_), Failed) => Moment::Preview,
+            (Hidden | Showing(_) | Failed, Pending) => Moment::Pending,
+            // A load landing is content arriving, not an operation the person asked to succeed:
+            // no check, no seal (R12).
+            (Pending, Showing(_)) => Moment::Change,
+            (Pending, Failed) => Moment::Failure,
+            (Showing(_) | Pending | Failed, Hidden) => Moment::Dismiss,
+        }
+    }
+
+    fn first(state: &Self) -> Moment {
+        match state {
+            PaneState::Hidden => Moment::Rest,
+            PaneState::Showing(_) | PaneState::Failed => Moment::Appear,
+            PaneState::Pending => Moment::Pending,
+        }
     }
 }
 
-/// Hand `moment` to quire's small-details driver. A no-op until quire's D0 `use_detail` lands
-/// (Q297); lane d, or the adoption after it, calls `ds::use_detail` here and nowhere else.
-pub fn use_pane_moment(moment: PaneMoment) {
-    let _ = moment;
-}
-
-/// A row's first appearance in this opening (the `rise` stagger of design/20 §1.3, D0
-/// `Appear`), keyed by its place. A no-op until D0 lands.
-pub fn use_row_moment(index: usize) {
-    let _ = index;
+/// Track the pane's `state`, caused by `touch` (a key or a press in the panel, else
+/// `Touch::Remote`). The pane mounts when the person shows it, so its first frame animates.
+pub fn use_pane_detail(state: PaneState, touch: Touch) -> Detail<PaneState> {
+    use_detail(state, FirstShow::Animate, touch)
 }
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
-    use sill_launcher::Preview;
-
-    use super::{PaneMoment, pane_moment};
+    use super::PaneState;
+    use super::PaneState::{Failed, Hidden, Pending, Showing};
+    use ds::detail::{Moment, first_table, moment_table};
+    use sill_launcher::PreviewKind::{Image, Pdf, TextFile};
 
     #[test]
-    fn moments_follow_the_pane() {
-        let image = Preview::Image(PathBuf::from("/a.png"));
-        let other = Preview::Image(PathBuf::from("/b.png"));
-        let cases = [
-            (None, None, PaneMoment::Still),
-            (None, Some(&image), PaneMoment::Appear),
-            (Some(&image), None, PaneMoment::Leave),
-            (Some(&image), Some(&other), PaneMoment::Swap),
-            (Some(&image), Some(&image), PaneMoment::Still),
-        ];
-        for (before, after, want) in cases {
-            assert_eq!(pane_moment(before, after), want, "{before:?} -> {after:?}");
-        }
+    fn the_pane_moments() {
+        #[rustfmt::skip]
+        moment_table::<PaneState>(&[
+            (Hidden, Showing(Image), Moment::Appear),
+            (Hidden, Pending, Moment::Pending),
+            (Hidden, Failed, Moment::Appear),
+            (Showing(Image), Showing(Pdf), Moment::Preview),
+            (Showing(Image), Showing(Image), Moment::Rest),
+            (Showing(Image), Pending, Moment::Pending),
+            (Showing(Image), Failed, Moment::Preview),
+            (Pending, Showing(TextFile), Moment::Change),
+            (Pending, Failed, Moment::Failure),
+            (Pending, Pending, Moment::Rest),
+            (Failed, Showing(Image), Moment::Preview),
+            (Failed, Pending, Moment::Pending),
+            (Showing(Pdf), Hidden, Moment::Dismiss),
+            (Pending, Hidden, Moment::Dismiss),
+            (Failed, Hidden, Moment::Dismiss),
+            (Hidden, Hidden, Moment::Rest),
+        ]);
+    }
+
+    #[test]
+    fn the_pane_first_frames() {
+        first_table::<PaneState>(&[
+            (Hidden, Moment::Rest),
+            (Showing(Image), Moment::Appear),
+            (Pending, Moment::Pending),
+            (Failed, Moment::Appear),
+        ]);
     }
 }

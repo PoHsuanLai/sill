@@ -1,7 +1,7 @@
 //! The preview pane (M9 lane d, FINDINGS "M9 freeze" F654): Quick Look for the selected row, a
 //! column right of the results inside the launcher card. What it shows is
-//! `sill_launcher::preview_for(row)`; its keys are [`keys::step_preview`]; its moments go to
-//! quire's D0 driver through [`moment::use_pane_moment`].
+//! `sill_launcher::preview_for(row)`; its keys are [`keys::step_preview`]; its moments go
+//! through quire's `ds::detail` in [`moment::use_pane_detail`].
 //!
 //! It is quire's `PreviewPane` (m9-palette, Q292), set beside the results as the palette's
 //! `aside`: sill maps a [`Preview`] to quire's `PaneContent` (`content.rs`) and a row's actions
@@ -17,10 +17,13 @@ pub mod load;
 pub mod moment;
 
 use dioxus::prelude::*;
+use ds::detail::Touch;
 use ds::{IconSource, PaneAction, Shortcut, Shown};
 use sill_launcher::{Action, Preview};
 
 use crate::surfaces::launcher::chord_keys::action_shortcut;
+use crate::surfaces::launcher::preview::content::Load;
+use crate::surfaces::launcher::preview::moment::{PaneState, use_pane_detail};
 
 /// The pane's element id (for the blur region, if the card's does not cover it).
 pub const PREVIEW_ID: &str = "launcher-preview";
@@ -42,7 +45,7 @@ pub fn PreviewPane(preview: Preview, actions: Vec<Action>, focused: Option<usize
 
 /// [`PreviewPane`] as the panel draws it: `icon` is the row's (an app's), `shown` plays the
 /// pane in and out (quire calls `on_hidden` when it has left), `onaction` hears a click on a
-/// control.
+/// control, `touch` is who caused this render's change (design/26 R5).
 #[component]
 pub fn LauncherPane(
     preview: Preview,
@@ -52,8 +55,12 @@ pub fn LauncherPane(
     #[props(default = Shown::Visible)] shown: Shown,
     #[props(default)] on_hidden: EventHandler<()>,
     #[props(default)] onaction: EventHandler<usize>,
+    #[props(default)] touch: Touch,
 ) -> Element {
-    let content = content::use_content(&preview, icon);
+    let (content, load) = content::use_content(&preview, icon);
+    // The cue is ready for quire's pane; `PreviewPane` takes none yet (Q370, Q371), so quire's
+    // own entrance and exit play and a slow load shows its blank media box.
+    let _pane = use_pane_detail(pane_state(shown, preview.kind(), load), touch);
     let actions = pane_actions(&actions);
     rsx! {
         div { id: PREVIEW_ID, class: "sill-launcher-preview",
@@ -69,6 +76,16 @@ pub fn LauncherPane(
     }
 }
 
+/// The pane as the person sees it: leaving is hidden, then how far its content has loaded.
+fn pane_state(shown: Shown, kind: sill_launcher::PreviewKind, load: Load) -> PaneState {
+    match (shown, load) {
+        (Shown::Hidden, Load::Ready | Load::Reading | Load::Failed) => PaneState::Hidden,
+        (Shown::Visible, Load::Ready) => PaneState::Showing(kind),
+        (Shown::Visible, Load::Reading) => PaneState::Pending,
+        (Shown::Visible, Load::Failed) => PaneState::Failed,
+    }
+}
+
 /// A row's actions as the pane's, each with its chord (none: no keys drawn).
 pub fn pane_actions(actions: &[Action]) -> Vec<PaneAction> {
     actions
@@ -78,4 +95,28 @@ pub fn pane_actions(actions: &[Action]) -> Vec<PaneAction> {
             shortcut: action_shortcut(&action.keys).unwrap_or(Shortcut(Vec::new())),
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::content::Load;
+    use super::moment::PaneState;
+    use super::pane_state;
+    use ds::Shown;
+    use sill_launcher::PreviewKind;
+
+    #[test]
+    fn the_pane_state_follows_its_showing_and_its_load() {
+        let pdf = PreviewKind::Pdf;
+        let cases = [
+            (Shown::Visible, Load::Ready, PaneState::Showing(pdf)),
+            (Shown::Visible, Load::Reading, PaneState::Pending),
+            (Shown::Visible, Load::Failed, PaneState::Failed),
+            (Shown::Hidden, Load::Reading, PaneState::Hidden),
+            (Shown::Hidden, Load::Ready, PaneState::Hidden),
+        ];
+        for (shown, load, want) in cases {
+            assert_eq!(pane_state(shown, pdf, load), want, "{shown:?} {load:?}");
+        }
+    }
 }
