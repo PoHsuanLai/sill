@@ -11,11 +11,13 @@
 //! once, never kept), a cancel as `Dismiss`; the surface never talks to polkit.
 
 pub mod layer;
+pub mod stage;
 pub mod view;
 
 mod panel;
 
 pub use layer::{PANEL_ID, polkit_layer};
+pub use stage::{Mapped, Stage, StageIn, advance};
 pub use view::{PolkitPromptView, detail_of, prompt_view};
 
 use dioxus::prelude::*;

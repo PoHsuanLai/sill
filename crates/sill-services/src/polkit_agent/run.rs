@@ -157,7 +157,7 @@ async fn helper(
                 .args(&opening.args)
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
-                .stderr(Stdio::null())
+                .stderr(Stdio::inherit())
                 .kill_on_drop(true)
                 .spawn()?;
             let (Some(stdin), Some(stdout)) = (child.stdin.take(), child.stdout.take()) else {
