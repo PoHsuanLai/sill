@@ -97,8 +97,8 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use sill_launcher::{
-        ActionId, Activation, Choice, FileFacts, IconRef, Item, ItemId, Mime, OpenTarget,
-        Provider, ProviderKind, Score, Subject, UnixTime,
+        ActionId, Activation, Choice, FileFacts, IconRef, Item, ItemId, Mime, OpenTarget, Provider,
+        ProviderKind, Score, Subject, UnixTime,
     };
     use tokio::sync::watch;
 

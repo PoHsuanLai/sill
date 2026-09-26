@@ -286,7 +286,8 @@ mod tests {
         let (state, _) = keys(&[Tab, Tab], 5, 0);
         assert_eq!(state.filter, Filter::Only(ProviderKind::Windows));
         let (state, _) = keys(&[ShiftTab], 5, 0);
-        assert_eq!(state.filter, Filter::Only(ProviderKind::System));
+        // The last of `ProviderKind::ALL` (the web fallback since M9).
+        assert_eq!(state.filter, Filter::Only(ProviderKind::Web));
         let mut filter = Filter::All;
         let mut seen = Vec::new();
         for _ in 0..=ProviderKind::ALL.len() {

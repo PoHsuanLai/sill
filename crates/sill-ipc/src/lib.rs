@@ -6,6 +6,7 @@
 
 pub mod desktop;
 pub mod error;
+pub mod launcher;
 pub mod line;
 pub mod request;
 pub mod response;
@@ -15,6 +16,10 @@ pub use desktop::{
     CornerName, FakeCorner, FakeScreenshot, ScreenshotRequest, ShotArea, WidgetsRequest,
 };
 pub use error::IpcError;
+pub use launcher::{
+    ClipboardReport, ClipboardRequest, FakeLauncherKey, LauncherRows, ReportClipMode,
+    ReportClipProtocol, ReportPreview, ReportPreviewKind, RowsSection,
+};
 pub use line::{MAX_LINE, decode, encode, read_message, write_message};
 pub use request::{
     ControlCenterRequest, DebugRequest, DesktopId, DisplayRequest, DockRequest, FakeAction,

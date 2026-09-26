@@ -10,6 +10,7 @@
 
 pub mod actions;
 pub mod activate;
+pub mod emoji_grid;
 pub mod entries;
 pub mod groups;
 pub mod hit;
@@ -17,9 +18,12 @@ pub mod keymap;
 pub mod keys;
 pub mod layer;
 pub mod presence;
+pub mod preview;
 pub mod results;
 pub mod row_icon;
+pub mod rows;
 pub mod script;
+pub mod sections_view;
 pub mod session;
 
 mod card;

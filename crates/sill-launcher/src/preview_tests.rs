@@ -65,7 +65,10 @@ fn every_subject_has_its_preview() {
         url: "https://duckduckgo.com/?q=x".to_owned(),
     };
     let cases: Vec<(Item, Preview)> = vec![
-        (row(ProviderKind::System, "Lock", "", Subject::None), Preview::None),
+        (
+            row(ProviderKind::System, "Lock", "", Subject::None),
+            Preview::None,
+        ),
         (
             row(
                 ProviderKind::Apps,
@@ -80,26 +83,51 @@ fn every_subject_has_its_preview() {
             },
         ),
         (
-            row(ProviderKind::Files, "a.pdf", "", file("/h/a.pdf", "application/pdf")),
+            row(
+                ProviderKind::Files,
+                "a.pdf",
+                "",
+                file("/h/a.pdf", "application/pdf"),
+            ),
             Preview::Pdf {
                 path: PathBuf::from("/h/a.pdf"),
                 page: PageIndex::FIRST,
             },
         ),
         (
-            row(ProviderKind::Files, "p.png", "", file("/h/p.png", "image/png")),
+            row(
+                ProviderKind::Files,
+                "p.png",
+                "",
+                file("/h/p.png", "image/png"),
+            ),
             Preview::Image(PathBuf::from("/h/p.png")),
         ),
         (
-            row(ProviderKind::Files, "n.md", "", file("/h/n.md", "text/markdown")),
+            row(
+                ProviderKind::Files,
+                "n.md",
+                "",
+                file("/h/n.md", "text/markdown"),
+            ),
             Preview::TextFile(PathBuf::from("/h/n.md")),
         ),
         (
-            row(ProviderKind::Files, "c.rs", "", file("/h/c.rs", "text/rust")),
+            row(
+                ProviderKind::Files,
+                "c.rs",
+                "",
+                file("/h/c.rs", "text/rust"),
+            ),
             Preview::TextFile(PathBuf::from("/h/c.rs")),
         ),
         (
-            row(ProviderKind::Files, "Documents", "", file("/h/Documents", Mime::FOLDER)),
+            row(
+                ProviderKind::Files,
+                "Documents",
+                "",
+                file("/h/Documents", Mime::FOLDER),
+            ),
             Preview::File(FileFacts {
                 path: PathBuf::from("/h/Documents"),
                 mime: Mime(Mime::FOLDER.to_owned()),
@@ -107,7 +135,12 @@ fn every_subject_has_its_preview() {
             }),
         ),
         (
-            row(ProviderKind::Files, "z.zip", "", file("/h/z.zip", "application/zip")),
+            row(
+                ProviderKind::Files,
+                "z.zip",
+                "",
+                file("/h/z.zip", "application/zip"),
+            ),
             Preview::File(FileFacts {
                 path: PathBuf::from("/h/z.zip"),
                 mime: Mime("application/zip".to_owned()),
@@ -115,7 +148,12 @@ fn every_subject_has_its_preview() {
             }),
         ),
         (
-            row(ProviderKind::Clipboard, "hello", "", Subject::Clip(clip.clone())),
+            row(
+                ProviderKind::Clipboard,
+                "hello",
+                "",
+                Subject::Clip(clip.clone()),
+            ),
             Preview::Clipboard(clip),
         ),
         (
@@ -123,7 +161,12 @@ fn every_subject_has_its_preview() {
             Preview::Emoji(emoji),
         ),
         (
-            row(ProviderKind::Web, "Search the web", "", Subject::Web(web.clone())),
+            row(
+                ProviderKind::Web,
+                "Search the web",
+                "",
+                Subject::Web(web.clone()),
+            ),
             Preview::Web(web),
         ),
     ];
@@ -139,12 +182,20 @@ fn an_excerpt_is_the_head_of_the_text_within_its_limit() {
     let cases: Vec<(&[u8], ExcerptLimit, &str)> = vec![
         (b"one\ntwo\nthree\n", small, "one\ntwo"),
         (b"abcdefghijkl", small, "abcdefgh"),
-        ("naïve café".as_bytes(), ExcerptLimit { lines: 1, chars: 3 }, "naï"),
+        (
+            "naïve café".as_bytes(),
+            ExcerptLimit { lines: 1, chars: 3 },
+            "naï",
+        ),
         (b"trailing   \n\n", ExcerptLimit::PANE, "trailing"),
         (b"\x00\x01binary", ExcerptLimit::PANE, ""),
         (b"bad \xff byte", ExcerptLimit::PANE, "bad \u{fffd} byte"),
     ];
     for (bytes, limit, want) in cases {
-        assert_eq!(excerpt_of(bytes, limit), Excerpt(want.to_owned()), "{bytes:?}");
+        assert_eq!(
+            excerpt_of(bytes, limit),
+            Excerpt(want.to_owned()),
+            "{bytes:?}"
+        );
     }
 }

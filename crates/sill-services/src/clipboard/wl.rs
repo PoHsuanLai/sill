@@ -23,7 +23,10 @@ mod tests {
     fn both_managers_are_known_by_their_global_names() {
         assert_eq!(
             manager_interfaces(),
-            ["ext_data_control_manager_v1", "zwlr_data_control_manager_v1"]
+            [
+                "ext_data_control_manager_v1",
+                "zwlr_data_control_manager_v1"
+            ]
         );
     }
 }

@@ -5,8 +5,9 @@
 //! The freeze's `query` answers nothing; lane b fills it with [`clip_items`]: typed text
 //! matches entries' text (images match "image" and their type), nothing typed lists nothing
 //! (the empty launcher shows Actions and Recent, and clipboard rows are never Recent: F645);
-//! asked alone (the Clipboard filter, `Scope::Only`, F651) it lists the newest first. Enter makes the entry the clipboard
-//! again (`Activation::SetClipboard`); "Forget" (⌘⌫) drops it.
+//! asked alone (the Clipboard filter, `Scope::Only`, F651) it lists the newest first. Enter
+//! makes the entry the clipboard again (`Activation::SetClipboard`); "Forget" (⌘⌫,
+//! `Activation::ForgetClipboard`) drops it and the launcher stays open.
 
 use nucleo_matcher::Matcher;
 use sill_launcher::{
@@ -59,11 +60,11 @@ pub fn clip_items(history: &Clipboard, needle: &Needle, matcher: &mut Matcher) -
 mod tests {
     use std::sync::Arc;
 
+    use sill_launcher::{Activation, Choice, Provider};
     use sill_launcher::{
         CharCount, ClipFacts, ClipKey, ClipKind, Excerpt, IconRef, Item, ItemId, Needle,
         ProviderKind, Score, Subject, UnixTime, matching::matcher,
     };
-    use sill_launcher::{Activation, Choice, Provider};
     use tokio::sync::watch;
 
     use super::{ClipboardProvider, clip_items};
@@ -93,9 +94,7 @@ mod tests {
         };
         assert_eq!(
             provider.activate(&row, &Choice::Primary),
-            Activation::SetClipboard {
-                entry: ClipKey(7)
-            }
+            Activation::SetClipboard { entry: ClipKey(7) }
         );
     }
 

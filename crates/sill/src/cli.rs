@@ -18,6 +18,7 @@ pub use crate::cli_desktop::{
     widgets_request,
 };
 pub use crate::cli_display::{DisplayAction, LevelAction, VolumeAction, display_request};
+pub use crate::cli_launcher::{ClipboardAction, LauncherKeyArg, clipboard_request, launcher_key};
 pub use crate::cli_notifications::{
     ExpireArg, FakeNotifyArgs, NotificationsAction, UrgencyArg, fake_notification,
     notifications_request,
@@ -103,6 +104,11 @@ pub enum Command {
     Polkit {
         #[command(subcommand)]
         action: PolkitAction,
+    },
+    /// The launcher's clipboard history (M9).
+    Clipboard {
+        #[command(subcommand)]
+        action: ClipboardAction,
     },
     /// The lock screen's PAM helper: reads one request on stdin, checks it, answers on stdout
     /// (the daemon runs it; not for people).
@@ -225,6 +231,13 @@ pub enum DebugAction {
         #[arg(required = true)]
         apps: Vec<String>,
     },
+    /// Press a key on the open launcher (a debug daemon only; M9).
+    LauncherKey {
+        #[arg(value_enum)]
+        key: LauncherKeyArg,
+    },
+    /// Print the open launcher's sections, rows and preview (a debug daemon only; M9).
+    LauncherRows,
 }
 
 /// `sill debug osd TOPIC`: the command line's spelling of [`OsdTopic`].
@@ -281,6 +294,7 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::Lock { verb } => lock_request(*verb),
         Command::Switcher { action } => switcher_request(*action),
         Command::Polkit { action } => polkit_request(*action),
+        Command::Clipboard { action } => clipboard_request(*action),
         Command::Launcher { action } => Request::Launcher(match action {
             LauncherAction::Toggle => LauncherRequest::Toggle,
             LauncherAction::Open { query } => LauncherRequest::Open {
@@ -347,6 +361,8 @@ pub fn request(command: &Command) -> Option<Request> {
             DebugAction::Auth { verdict } => DebugRequest::Auth(fake_auth(*verdict)),
             DebugAction::Polkit(args) => DebugRequest::Polkit(fake_polkit(args)),
             DebugAction::Switcher { apps } => DebugRequest::Switcher(fake_switcher(apps)),
+            DebugAction::LauncherKey { key } => DebugRequest::LauncherKey(launcher_key(*key)),
+            DebugAction::LauncherRows => DebugRequest::LauncherRows,
         }),
     })
 }
@@ -401,6 +417,24 @@ mod tests {
             (
                 &["polkit", "status"],
                 Some(Request::Polkit(PolkitRequest::Status)),
+            ),
+            (
+                &["clipboard", "status"],
+                Some(Request::Clipboard(sill_ipc::ClipboardRequest::Status)),
+            ),
+            (
+                &["clipboard", "clear"],
+                Some(Request::Clipboard(sill_ipc::ClipboardRequest::Clear)),
+            ),
+            (
+                &["debug", "launcher-key", "quick-look"],
+                Some(Request::Debug(DebugRequest::LauncherKey(
+                    sill_ipc::FakeLauncherKey::QuickLook,
+                ))),
+            ),
+            (
+                &["debug", "launcher-rows"],
+                Some(Request::Debug(DebugRequest::LauncherRows)),
             ),
             (
                 &["debug", "auth", "accept"],

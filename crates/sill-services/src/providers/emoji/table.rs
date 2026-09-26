@@ -65,7 +65,10 @@ mod tests {
         let wave = table.iter().find(|e| e.glyph == "👋").expect("waving hand");
         assert_eq!(wave.name, "waving hand");
         assert_eq!(wave.tones, Tones::Takes);
-        let grin = table.iter().find(|e| e.glyph == "😀").expect("grinning face");
+        let grin = table
+            .iter()
+            .find(|e| e.glyph == "😀")
+            .expect("grinning face");
         assert_eq!(grin.tones, Tones::Fixed);
         assert!(grin.keywords.contains(&"smile"));
     }

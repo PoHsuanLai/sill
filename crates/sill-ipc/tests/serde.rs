@@ -5,6 +5,10 @@ use std::io::Cursor;
 use std::path::PathBuf;
 
 use sill_ipc::{
+    ClipboardReport, ClipboardRequest, FakeLauncherKey, LauncherRows, ReportClipMode,
+    ReportClipProtocol, ReportPreview, ReportPreviewKind, RowsSection,
+};
+use sill_ipc::{
     ControlCenterRequest, CornerName, DebugRequest, DesktopId, DisplayRequest, DockRequest,
     Failure, FailureKind, FakeAction, FakeCorner, FakeExpire, FakeMute, FakeNotification, FakeOsd,
     FakeScreenshot, FakeUrgency, IpcError, LauncherRequest, LevelRequest, MAX_LINE, Micros,
@@ -260,6 +264,22 @@ fn requests() -> Vec<(Request, &'static str)> {
             })),
             r#"{"kind":"debug","v":{"kind":"switcher","v":{"apps":["foot","firefox"]}}}"#,
         ),
+        (
+            Request::Clipboard(ClipboardRequest::Status),
+            r#"{"kind":"clipboard","v":{"kind":"status"}}"#,
+        ),
+        (
+            Request::Clipboard(ClipboardRequest::Clear),
+            r#"{"kind":"clipboard","v":{"kind":"clear"}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::LauncherKey(FakeLauncherKey::QuickLook)),
+            r#"{"kind":"debug","v":{"kind":"launcher_key","v":"quick_look"}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::LauncherRows),
+            r#"{"kind":"debug","v":{"kind":"launcher_rows"}}"#,
+        ),
     ]
 }
 
@@ -342,6 +362,27 @@ fn responses() -> Vec<(Response, &'static str)> {
                 waiting: 0,
             }),
             r#"{"kind":"polkit","v":{"registration":{"kind":"passive"},"showing":null,"waiting":0}}"#,
+        ),
+        (
+            Response::Clipboard(ClipboardReport {
+                mode: ReportClipMode::Memory,
+                protocol: ReportClipProtocol::Ext,
+                entries: 3,
+            }),
+            r#"{"kind":"clipboard","v":{"mode":"memory","protocol":"ext","entries":3}}"#,
+        ),
+        (
+            Response::LauncherRows(LauncherRows {
+                query: "rep".to_owned(),
+                sections: vec![RowsSection {
+                    title: "Documents".to_owned(),
+                    rows: vec!["report.pdf".to_owned()],
+                    hidden: 2,
+                }],
+                selected: 0,
+                preview: ReportPreview::Shown(ReportPreviewKind::Pdf),
+            }),
+            r#"{"kind":"launcher_rows","v":{"query":"rep","sections":[{"title":"Documents","rows":["report.pdf"],"hidden":2}],"selected":0,"preview":{"kind":"shown","v":"pdf"}}}"#,
         ),
     ]
 }

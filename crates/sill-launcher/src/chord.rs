@@ -111,7 +111,12 @@ mod tests {
     #[test]
     fn modifiers_sort_into_the_macs_order() {
         let chord = Chord::new(
-            vec![Modifier::Command, Modifier::Shift, Modifier::Control, Modifier::Command],
+            vec![
+                Modifier::Command,
+                Modifier::Shift,
+                Modifier::Control,
+                Modifier::Command,
+            ],
             ChordKey::Char('k'),
         );
         assert_eq!(

@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::launcher::{ClipboardReport, LauncherRows};
 use crate::request::SurfaceName;
 use crate::session::{LockReport, PolkitReport};
 
@@ -23,6 +24,10 @@ pub enum Response {
     Lock(LockReport),
     /// The answer to `Polkit(Status)`.
     Polkit(PolkitReport),
+    /// The answer to `Clipboard(Status)` (M9).
+    Clipboard(ClipboardReport),
+    /// The answer to `Debug(LauncherRows)` (M9).
+    LauncherRows(LauncherRows),
 }
 
 /// The notifications server as `sill notifications status` prints it (the IPC mirror of

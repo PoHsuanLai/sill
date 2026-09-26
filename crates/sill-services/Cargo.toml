@@ -33,6 +33,9 @@ toml = { workspace = true }
 ddc = { workspace = true }
 ddc-i2c = { workspace = true }
 nonstick = { workspace = true }
+emojis = { workspace = true }
+mime_guess = { workspace = true }
+percent-encoding = { workspace = true }
 
 # `sill-settings` only for `tests/settings_live.rs` (design/22 §9.2's own local-install path,
 # `sill_settings::schema().write_to`) — a dev-dependency, not linked into the daemon, so it does

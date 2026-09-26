@@ -51,7 +51,10 @@ mod tests {
         let output = "/home/p/a.pdf\n\nrelative/b.txt\n/etc/passwd\n/home/p/dir/c d.md\nElapsed: 1.2 msecs\n";
         assert_eq!(
             parse_paths(output, Path::new("/home/p")),
-            vec![PathBuf::from("/home/p/a.pdf"), PathBuf::from("/home/p/dir/c d.md")]
+            vec![
+                PathBuf::from("/home/p/a.pdf"),
+                PathBuf::from("/home/p/dir/c d.md")
+            ]
         );
     }
 }

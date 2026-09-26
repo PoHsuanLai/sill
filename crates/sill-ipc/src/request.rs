@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 use crate::desktop::{FakeCorner, FakeScreenshot, ScreenshotRequest, WidgetsRequest};
+use crate::launcher::{ClipboardRequest, FakeLauncherKey};
 use crate::session::{
     FakeAuth, FakePolkit, FakeSwitcher, LockRequest, PolkitRequest, SwitcherRequest,
 };
@@ -55,6 +56,8 @@ pub enum Request {
     LockStatus(LockRequest),
     /// sill's polkit agent (`sill polkit status`).
     Polkit(PolkitRequest),
+    /// The clipboard history (`sill clipboard status|clear`, M9).
+    Clipboard(ClipboardRequest),
 }
 
 /// `sill notifications ...`. The center opens on the output the daemon picks (the first with a
@@ -191,6 +194,10 @@ pub enum DebugRequest {
     Polkit(FakePolkit),
     /// Open the switcher on made-up apps (`dev/accept-switcher.sh`).
     Switcher(FakeSwitcher),
+    /// A key for the open launcher, as if typed (`dev/accept-launcher-v2.sh`, M9).
+    LauncherKey(FakeLauncherKey),
+    /// The open launcher's sections, rows and preview: answered `Response::LauncherRows` (M9).
+    LauncherRows,
 }
 
 /// A made-up notification: the parts of `Notify` an acceptance needs.

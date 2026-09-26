@@ -12,7 +12,9 @@ pub mod table;
 
 use std::sync::{Arc, Mutex};
 
-use sill_launcher::{Activation, Choice, Frecency, Item, Provider, ProviderKind, Query, ResultSink, Subject};
+use sill_launcher::{
+    Activation, Choice, Frecency, Item, Provider, ProviderKind, Query, ResultSink, Subject,
+};
 use tokio::sync::watch;
 
 use crate::results::LauncherPolicy;

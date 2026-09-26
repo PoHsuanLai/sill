@@ -63,6 +63,7 @@ pub use bluetooth::{
     Bluetooth, BluetoothCommand, BluetoothEvent, BtAddress, BtBattery, BtConnection, BtDevice,
     BtKind, BtPairing, BtPower, device_kind, listed_devices, reduce_bluetooth,
 };
+pub use clipboard::{Clipboard, ClipboardCommand};
 pub use clock::{ClockCommand, ClockText, format_clock, until_next_minute};
 pub use control::Control;
 pub use cosmic_wl::{
@@ -110,7 +111,6 @@ pub use power_profile::{
     PowerProfiles, Profile, ProfileBus, ProfileCommand, ProfileDegraded, ProfileEvent,
     reduce_power_profiles,
 };
-pub use clipboard::{Clipboard, ClipboardCommand};
 pub use results::{
     CurrencyPolicy, FilesChoice, LauncherPolicy, Results, ResultsEvent, SearchCommand, WebPolicy,
     reduce_results,

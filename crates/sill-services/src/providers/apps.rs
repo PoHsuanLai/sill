@@ -7,9 +7,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use nucleo_matcher::Matcher;
 use sill_launcher::{
-    Action, ActionId, ActionKeys, Activation, AppId, Batch, Choice, DesktopAction, Frecency, FrecencyScore,
-    IconRef, Item, ItemId, ItemKey, Needle, Provider, ProviderKind, Query, RankWeights, ResultSink,
-    Score, Subject, UnixTime, matching, rank_text,
+    Action, ActionId, ActionKeys, Activation, AppId, Batch, Choice, DesktopAction, Frecency,
+    FrecencyScore, IconRef, Item, ItemId, ItemKey, Needle, Provider, ProviderKind, Query,
+    RankWeights, ResultSink, Score, Subject, UnixTime, matching, rank_text,
 };
 use tokio::sync::watch;
 

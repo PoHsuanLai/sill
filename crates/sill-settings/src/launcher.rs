@@ -6,6 +6,9 @@ use ds_settings::{Count, Fraction, Ms, Px};
 use serde::{Deserialize, Serialize};
 
 use crate::control_center::PanelMaterial;
+use crate::launcher_kinds::{
+    ClipboardHistory, CurrencyRates, EmojiSkinTone, FilesBackend, WebSearch,
+};
 
 /// The launcher panel's placement and rows.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
@@ -123,6 +126,83 @@ pub struct LauncherSettings {
         advanced
     )]
     pub row_detail_px: Px,
+    /// `launcher.files_backend` (M9).
+    #[settings(
+        label = "File search",
+        help = "Where the launcher finds documents: `auto` asks Tracker, else Baloo, else searches your home folder with fd; or name one; `off` searches no files.",
+        section = "Launcher",
+        advanced
+    )]
+    pub files_backend: FilesBackend,
+    /// `launcher.files_budget_ms` (M9).
+    #[settings(
+        label = "File search time limit",
+        help = "How long one file search may take before the launcher shows what it found so far.",
+        section = "Launcher",
+        range = "20..=2000",
+        unit = "ms",
+        advanced
+    )]
+    pub files_budget_ms: Ms,
+    /// `launcher.clipboard_history` (M9).
+    #[settings(
+        label = "Clipboard history",
+        help = "Keep what you copy so the launcher can find it again. Kept in memory only and forgotten when sill stops; copies a password manager marks are never kept.",
+        section = "Launcher",
+        advanced
+    )]
+    pub clipboard_history: ClipboardHistory,
+    /// `launcher.clipboard_cap` (M9).
+    #[settings(
+        label = "Clipboard history length",
+        help = "How many copied items the history keeps; the oldest goes first.",
+        section = "Launcher",
+        range = "1..=500",
+        advanced
+    )]
+    pub clipboard_cap: Count,
+    /// `launcher.clipboard_image_max_mb` (M9).
+    #[settings(
+        label = "Largest copied image kept",
+        help = "Copied images larger than this are not kept; 0 keeps no images.",
+        section = "Launcher",
+        range = "0..=64",
+        unit = "MB",
+        advanced
+    )]
+    pub clipboard_image_max_mb: Count,
+    /// `launcher.emoji_skin_tone` (M9).
+    #[settings(
+        label = "Emoji skin tone",
+        help = "The skin tone of emoji that have one.",
+        section = "Launcher",
+        advanced
+    )]
+    pub emoji_skin_tone: EmojiSkinTone,
+    /// `launcher.web_search` (M9).
+    #[settings(
+        label = "Search the web",
+        help = "Offer a web search for what you type, as the launcher's last result.",
+        section = "Launcher",
+        advanced
+    )]
+    pub web_search: WebSearch,
+    /// `launcher.web_engine_url` (M9).
+    #[settings(
+        label = "Web search address",
+        help = "The search engine's address, with {query} where the words go. Only https and http addresses are opened.",
+        section = "Launcher",
+        advanced
+    )]
+    pub web_engine_url: String,
+    /// `launcher.currency` (M9).
+    #[settings(
+        label = "Currency conversion",
+        help = "Convert currencies in the launcher's calculator with the European Central Bank's daily rates, fetched once a day; `off` fetches nothing.",
+        section = "Launcher",
+        advanced
+    )]
+    pub currency: CurrencyRates,
     /// Keys this build does not know, kept for the next write.
     #[serde(flatten)]
     #[settings(skip)]
@@ -144,6 +224,15 @@ impl Default for LauncherSettings {
             field_glyph_px: Px(20),
             row_title_px: Px(14),
             row_detail_px: Px(12),
+            files_backend: FilesBackend::Auto,
+            files_budget_ms: Ms(150),
+            clipboard_history: ClipboardHistory::Memory,
+            clipboard_cap: Count(50),
+            clipboard_image_max_mb: Count(8),
+            emoji_skin_tone: EmojiSkinTone::Default,
+            web_search: WebSearch::On,
+            web_engine_url: "https://duckduckgo.com/?q={query}".to_owned(),
+            currency: CurrencyRates::Off,
             extra: toml::Table::new(),
         }
     }

@@ -132,7 +132,11 @@ fn typed_text_is_the_weighted_top_hit_then_sections_in_order() {
         );
         assert_eq!(outline(&placement), want, "{name}");
         let covered: u32 = placement.spans.iter().map(|s| s.rows).sum();
-        assert_eq!(covered as usize, placement.items.len(), "{name}: spans cover every row");
+        assert_eq!(
+            covered as usize,
+            placement.items.len(),
+            "{name}: spans cover every row"
+        );
     }
 }
 
@@ -149,7 +153,13 @@ fn a_section_publishes_up_to_the_ceiling() {
         .enumerate()
         .map(|(n, t)| (Files, t.as_str(), 500 - n as u32))
         .collect();
-    let placement = place(&merged(&rows), &plan, QueryShape::Text, &Frecency::default(), NOW);
+    let placement = place(
+        &merged(&rows),
+        &plan,
+        QueryShape::Text,
+        &Frecency::default(),
+        NOW,
+    );
     assert_eq!(
         outline(&placement),
         vec![

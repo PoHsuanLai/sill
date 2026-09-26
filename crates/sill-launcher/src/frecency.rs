@@ -17,18 +17,37 @@ pub struct ItemKey(pub String);
 impl ItemKey {
     /// The key for `item` from `provider`.
     pub fn of(provider: ProviderKind, item: &ItemId) -> ItemKey {
-        let provider = match provider {
-            ProviderKind::Apps => "apps",
-            ProviderKind::Windows => "windows",
-            ProviderKind::Calculator => "calculator",
-            ProviderKind::Settings => "settings",
-            ProviderKind::System => "system",
-            ProviderKind::Files => "files",
-            ProviderKind::Clipboard => "clipboard",
-            ProviderKind::Emoji => "emoji",
-            ProviderKind::Web => "web",
-        };
-        ItemKey(format!("{provider}:{}", item.0))
+        ItemKey(format!("{}:{}", key_prefix(provider), item.0))
+    }
+
+    /// The provider this key was made for by [`ItemKey::of`], read back from its own prefix
+    /// (the format is this module's, so this is not a guess at someone else's text).
+    pub fn provider(&self) -> Option<ProviderKind> {
+        let (prefix, _) = self.0.split_once(':')?;
+        ProviderKind::ALL
+            .into_iter()
+            .find(|kind| key_prefix(*kind) == prefix)
+    }
+
+    /// Whether choosing this key's row is counted: its provider's [`counting`]; a key of no
+    /// known provider is counted (as every key was before M9).
+    pub fn counting(&self) -> Counting {
+        self.provider().map_or(Counting::Counted, counting)
+    }
+}
+
+/// Each provider's prefix in `frecency.json`.
+fn key_prefix(provider: ProviderKind) -> &'static str {
+    match provider {
+        ProviderKind::Apps => "apps",
+        ProviderKind::Windows => "windows",
+        ProviderKind::Calculator => "calculator",
+        ProviderKind::Settings => "settings",
+        ProviderKind::System => "system",
+        ProviderKind::Files => "files",
+        ProviderKind::Clipboard => "clipboard",
+        ProviderKind::Emoji => "emoji",
+        ProviderKind::Web => "web",
     }
 }
 
@@ -135,6 +154,20 @@ mod tests {
 
     const DAY: u64 = 86_400;
     const NOW: UnixTime = UnixTime(1_790_000_000);
+
+    #[test]
+    fn a_key_knows_its_provider_and_clipboard_keys_are_never_counted() {
+        use super::Counting;
+        for kind in ProviderKind::ALL {
+            let key = ItemKey::of(kind, &ItemId("a:b".to_owned()));
+            assert_eq!(key.provider(), Some(kind), "{key:?}");
+        }
+        let clip = ItemKey::of(ProviderKind::Clipboard, &ItemId("7".to_owned()));
+        assert_eq!(clip.counting(), Counting::NotCounted);
+        let app = ItemKey::of(ProviderKind::Apps, &ItemId("foot".to_owned()));
+        assert_eq!(app.counting(), Counting::Counted);
+        assert_eq!(ItemKey("odd".to_owned()).counting(), Counting::Counted);
+    }
 
     fn key(id: &str) -> ItemKey {
         ItemKey::of(ProviderKind::Apps, &ItemId(id.to_owned()))

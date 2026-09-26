@@ -35,8 +35,8 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::apps::AppIndex;
-use crate::control::Control;
 use crate::clipboard::Clipboard;
+use crate::control::Control;
 use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
 use crate::launch::LaunchCommand;
 use effect::Outlets;
@@ -49,7 +49,10 @@ pub enum SearchCommand {
     Query(String),
     /// The text changed under the Tab filter: begin a generation and query `provider` alone
     /// (`Scope::Only`), so its rows are not capped by the other providers' (M9 freeze, F651).
-    Filtered { text: String, provider: ProviderKind },
+    Filtered {
+        text: String,
+        provider: ProviderKind,
+    },
     /// A row was chosen: count it for frecency.
     Chosen { key: ItemKey, choice: Choice },
     /// The launcher closed: cancel the running generation.

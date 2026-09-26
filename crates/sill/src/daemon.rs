@@ -101,6 +101,14 @@ pub fn run() -> ExitCode {
         settings_feed.0.clone(),
         services.polkit_control.clone(),
     );
+    // M9: the launcher v2 providers and the clipboard history follow `launcher.*`; both are
+    // passive until this first policy (FINDINGS "M9 freeze").
+    crate::launcher_policy::spawn_policy(
+        runtime.handle(),
+        settings_feed.0.clone(),
+        services.search.clone(),
+        services.clipboard_control.clone(),
+    );
 
     let config = HostConfig {
         first_mouse_window_ms: shell_host::config::Ms(u32::from(
@@ -753,6 +761,8 @@ fn dispatch_request(
         Request::Debug(DebugRequest::Switcher(fake)) => {
             crate::switcher::fake(outputs, crate::links::get(), fake)
         }
+        Request::Debug(DebugRequest::LauncherKey(key)) => launcher_key(launcher, key),
+        Request::Debug(DebugRequest::LauncherRows) => launcher_rows(launcher),
         Request::Debug(request) => dispatch_debug(ctx, outputs, request),
         Request::Display(request) => {
             let response = crate::displays::dispatch(services, request);
@@ -777,6 +787,7 @@ fn dispatch_request(
         }
         Request::LockStatus(_) => crate::lock::status(services),
         Request::Polkit(request) => crate::polkit::dispatch(services, request),
+        Request::Clipboard(request) => crate::clipboard::dispatch(services, request),
     }
 }
 
@@ -855,6 +866,9 @@ fn dispatch_debug(
         DebugRequest::Auth(_) => unsupported("a made-up verdict is answered elsewhere"),
         DebugRequest::Polkit(_) => unsupported("a made-up polkit request is answered elsewhere"),
         DebugRequest::Switcher(_) => unsupported("a made-up switcher is answered elsewhere"),
+        DebugRequest::LauncherKey(_) | DebugRequest::LauncherRows => {
+            unsupported("the launcher's debug requests are answered elsewhere")
+        }
     }
 }
 
@@ -1066,6 +1080,28 @@ fn unknown_surface(surface: &SurfaceName) -> Response {
         kind: FailureKind::UnknownSurface,
         message: format!("no surface {:?}", surface.0),
     })
+}
+
+/// A launcher key from `sill debug launcher-key` (M9): only a `debug` daemon presses it.
+#[cfg(feature = "debug")]
+fn launcher_key(launcher: &LauncherLink, key: sill_ipc::FakeLauncherKey) -> Response {
+    crate::launcher_debug::key(launcher, key)
+}
+
+#[cfg(not(feature = "debug"))]
+fn launcher_key(_launcher: &LauncherLink, _key: sill_ipc::FakeLauncherKey) -> Response {
+    unsupported("launcher keys need a daemon built with the debug feature")
+}
+
+/// The launcher's rows for `sill debug launcher-rows` (M9): only a `debug` daemon answers.
+#[cfg(feature = "debug")]
+fn launcher_rows(launcher: &LauncherLink) -> Response {
+    crate::launcher_debug::rows(launcher)
+}
+
+#[cfg(not(feature = "debug"))]
+fn launcher_rows(_launcher: &LauncherLink) -> Response {
+    unsupported("launcher rows need a daemon built with the debug feature")
 }
 
 fn unsupported(message: &str) -> Response {

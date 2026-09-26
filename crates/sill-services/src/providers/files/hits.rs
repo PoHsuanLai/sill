@@ -94,7 +94,9 @@ mod tests {
         );
         let subtitles: Vec<&str> = rows.iter().map(|r| r.subtitle.as_str()).collect();
         assert_eq!(subtitles, ["~/Documents", "~/old"]);
-        assert!(matches!(&rows[0].subject, Subject::File(f) if f.path == Path::new("/home/p/Documents/report.pdf")));
+        assert!(
+            matches!(&rows[0].subject, Subject::File(f) if f.path == Path::new("/home/p/Documents/report.pdf"))
+        );
         assert_eq!(rows[0].actions.len(), 2);
     }
 }

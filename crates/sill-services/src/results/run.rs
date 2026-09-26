@@ -6,9 +6,7 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use sill_launcher::{
-    Cancel, Choice, Counting, ItemKey, Provider, Query, Scope, UnixTime, counting,
-};
+use sill_launcher::{Cancel, Choice, Counting, ItemKey, Provider, Query, Scope, UnixTime};
 use tokio::sync::{mpsc, watch};
 
 use super::SearchCommand;
@@ -145,6 +143,11 @@ impl Search {
     /// carry out what the row's provider says the choice does. The row is looked up among the
     /// newest generation's rows, so the surface sends `Chosen` before it closes (`Cancel`).
     fn chosen(&mut self, key: ItemKey, choice: &Choice) {
+        // A clipboard entry's use is never written to disk (M9 freeze, F641).
+        if key.counting() == Counting::Counted {
+            let frecency = self.history.record(key.clone(), now());
+            self.persist.save(frecency);
+        }
         let Some(item) = self
             .merged
             .items
@@ -153,11 +156,6 @@ impl Search {
         else {
             return;
         };
-        // A clipboard entry's use is never written to disk (M9 freeze, F641).
-        if counting(item.provider) == Counting::Counted {
-            let frecency = self.history.record(key.clone(), now());
-            self.persist.save(frecency);
-        }
         let Some(provider) = self.providers.iter().find(|p| p.kind() == item.provider) else {
             return;
         };

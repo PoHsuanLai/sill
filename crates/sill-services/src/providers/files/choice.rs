@@ -69,9 +69,17 @@ mod tests {
                 only(Absent, Absent, Absent, Present),
                 Some(IndexKind::Plocate),
             ),
-            (FilesChoice::Auto, only(Absent, Absent, Absent, Absent), None),
+            (
+                FilesChoice::Auto,
+                only(Absent, Absent, Absent, Absent),
+                None,
+            ),
             (FilesChoice::Baloo, ALL, Some(IndexKind::Baloo)),
-            (FilesChoice::Tracker, only(Absent, Present, Present, Present), None),
+            (
+                FilesChoice::Tracker,
+                only(Absent, Present, Present, Present),
+                None,
+            ),
             (FilesChoice::Walk, ALL, Some(IndexKind::Fd)),
             (
                 FilesChoice::Walk,

@@ -88,7 +88,11 @@ mod tests {
             ("/", "/"),
         ];
         for &(path, want) in cases {
-            assert_eq!(reveal_folder(Path::new(path)), PathBuf::from(want), "{path}");
+            assert_eq!(
+                reveal_folder(Path::new(path)),
+                PathBuf::from(want),
+                "{path}"
+            );
         }
     }
 }

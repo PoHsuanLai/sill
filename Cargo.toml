@@ -133,6 +133,15 @@ ddc-i2c = { version = "0.2.2", default-features = false, features = ["with-linux
 # over libpam with pre-generated bindings (no bindgen or libclang at build time, unlike pam-sys
 # 1.0 under `pam` and `pam-client`). Linked only into the `sill auth-check` helper's code path.
 nonstick = "0.1.2"
+# M9 launcher v2 (FINDINGS "M9 freeze" F640). Emoji: every fully-qualified emoji with its CLDR
+# short name, group, skin-tone variants and GitHub shortcodes; (MIT OR Apache-2.0) AND
+# Unicode-3.0 for its generated data. Keywords come from CLDR annotations bundled as
+# `crates/sill-services/data/emoji-keywords.tsv` (Unicode-3.0), not from a crate.
+emojis = "0.9"
+# A file's MIME type from its name, when the index gave none (fd, plocate, Baloo): MIT.
+mime_guess = "2.0"
+# The web fallback's `{query}` escaping (RFC 3986): MIT OR Apache-2.0, already in the tree.
+percent-encoding = "2.3"
 
 
 [workspace.lints.rust]

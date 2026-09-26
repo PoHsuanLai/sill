@@ -22,6 +22,7 @@ pub mod focus;
 pub mod focus_link;
 pub mod hot_corners;
 pub mod launcher;
+pub mod launcher_kinds;
 pub mod menus;
 pub mod notifications;
 pub mod osd;
@@ -56,6 +57,7 @@ pub use focus::{FocusMode, focus_mode, with_focus_mode};
 pub use focus_link::{Delivery, FocusLink, spawn_focus};
 pub use hot_corners::{CornerAction, HotCornersSettings};
 pub use launcher::LauncherSettings;
+pub use launcher_kinds::{ClipboardHistory, CurrencyRates, EmojiSkinTone, FilesBackend, WebSearch};
 pub use menus::{MenusSettings, PickFeedback};
 pub use notifications::{
     BannerEntry, BannerMaterial, BannerPosition, BannerStyle, Dnd, NotificationServer,

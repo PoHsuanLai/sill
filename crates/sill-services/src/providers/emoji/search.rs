@@ -35,8 +35,8 @@ pub fn toned(glyph: &str, tone: SkinTone) -> String {
 
 #[cfg(test)]
 mod tests {
-    use sill_launcher::{Frecency, ItemId, ItemKey, Needle, ProviderKind, SkinTone, UnixTime};
     use sill_launcher::matching::matcher;
+    use sill_launcher::{Frecency, ItemId, ItemKey, Needle, ProviderKind, SkinTone, UnixTime};
 
     use super::{emoji_items, toned};
     use crate::providers::emoji::table::emoji_table;
@@ -61,17 +61,33 @@ mod tests {
     #[test]
     #[ignore = "M9 fill: c-emoji-web-units"]
     fn names_keywords_and_shortcodes_all_find_an_emoji() {
-        assert_eq!(glyphs("thumbs up", &Frecency::default()).first().map(String::as_str), Some("👍"));
-        assert!(glyphs("grin", &Frecency::default()).contains(&"😀".to_owned()), "a keyword");
-        assert!(glyphs(":tada", &Frecency::default()).contains(&"🎉".to_owned()), "a shortcode");
+        assert_eq!(
+            glyphs("thumbs up", &Frecency::default())
+                .first()
+                .map(String::as_str),
+            Some("👍")
+        );
+        assert!(
+            glyphs("grin", &Frecency::default()).contains(&"😀".to_owned()),
+            "a keyword"
+        );
+        assert!(
+            glyphs(":tada", &Frecency::default()).contains(&"🎉".to_owned()),
+            "a shortcode"
+        );
     }
 
     #[test]
     #[ignore = "M9 fill: c-emoji-web-units"]
     fn recent_emoji_lead_the_empty_grid() {
-        let frecency = Frecency::default()
-            .record(ItemKey::of(ProviderKind::Emoji, &ItemId("🎉".to_owned())), NOW);
-        assert_eq!(glyphs("", &frecency).first().map(String::as_str), Some("🎉"));
+        let frecency = Frecency::default().record(
+            ItemKey::of(ProviderKind::Emoji, &ItemId("🎉".to_owned())),
+            NOW,
+        );
+        assert_eq!(
+            glyphs("", &frecency).first().map(String::as_str),
+            Some("🎉")
+        );
     }
 
     #[test]

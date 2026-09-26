@@ -76,10 +76,26 @@ mod tests {
     fn the_query_is_percent_encoded_into_the_template() {
         let ddg = "https://duckduckgo.com/?q={query}";
         let cases: Vec<(&str, &str, Result<String, TemplateFault>)> = vec![
-            (ddg, "rust wayland", Ok("https://duckduckgo.com/?q=rust%20wayland".to_owned())),
-            (ddg, "a&b=c#d", Ok("https://duckduckgo.com/?q=a%26b%3Dc%23d".to_owned())),
-            (ddg, "日本", Ok("https://duckduckgo.com/?q=%E6%97%A5%E6%9C%AC".to_owned())),
-            ("https://example.com/search", "x", Err(TemplateFault::NoPlaceholder)),
+            (
+                ddg,
+                "rust wayland",
+                Ok("https://duckduckgo.com/?q=rust%20wayland".to_owned()),
+            ),
+            (
+                ddg,
+                "a&b=c#d",
+                Ok("https://duckduckgo.com/?q=a%26b%3Dc%23d".to_owned()),
+            ),
+            (
+                ddg,
+                "日本",
+                Ok("https://duckduckgo.com/?q=%E6%97%A5%E6%9C%AC".to_owned()),
+            ),
+            (
+                "https://example.com/search",
+                "x",
+                Err(TemplateFault::NoPlaceholder),
+            ),
             ("file:///etc/{query}", "passwd", Err(TemplateFault::NotWeb)),
             ("javascript:{query}", "x", Err(TemplateFault::NotWeb)),
         ];
