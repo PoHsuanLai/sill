@@ -12,6 +12,10 @@ use sill_ipc::{
     ReportHolder, ReportMode, Request, Response, ScreenshotRequest, ShotArea, SurfaceName,
     SurfaceStats, VolumeRequest, WidgetsRequest, decode, encode, read_message, write_message,
 };
+use sill_ipc::{
+    FakeAuth, FakePolkit, FakeSwitcher, LockReport, LockRequest, PolkitReport, PolkitRequest,
+    ReportDrawer, ReportLockPhase, ReportRegistration, SwitcherRequest,
+};
 
 fn surface(name: &str) -> SurfaceName {
     SurfaceName(name.to_owned())
@@ -211,6 +215,51 @@ fn requests() -> Vec<(Request, &'static str)> {
             })),
             r#"{"kind":"debug","v":{"kind":"corner","v":{"corner":"bottom_right"}}}"#,
         ),
+        (
+            Request::Switcher(SwitcherRequest::Next),
+            r#"{"kind":"switcher","v":{"kind":"next"}}"#,
+        ),
+        (
+            Request::Switcher(SwitcherRequest::Prev),
+            r#"{"kind":"switcher","v":{"kind":"prev"}}"#,
+        ),
+        (
+            Request::Switcher(SwitcherRequest::Cancel),
+            r#"{"kind":"switcher","v":{"kind":"cancel"}}"#,
+        ),
+        (
+            Request::Switcher(SwitcherRequest::Commit),
+            r#"{"kind":"switcher","v":{"kind":"commit"}}"#,
+        ),
+        (
+            Request::LockStatus(LockRequest::Status),
+            r#"{"kind":"lock_status","v":{"kind":"status"}}"#,
+        ),
+        (
+            Request::Polkit(PolkitRequest::Status),
+            r#"{"kind":"polkit","v":{"kind":"status"}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::Auth(FakeAuth::Accept)),
+            r#"{"kind":"debug","v":{"kind":"auth","v":"accept"}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::Auth(FakeAuth::Refuse)),
+            r#"{"kind":"debug","v":{"kind":"auth","v":"refuse"}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::Polkit(FakePolkit {
+                action_id: "org.example.run".to_owned(),
+                message: "Run it".to_owned(),
+            })),
+            r#"{"kind":"debug","v":{"kind":"polkit","v":{"action_id":"org.example.run","message":"Run it"}}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::Switcher(FakeSwitcher {
+                apps: vec!["foot".to_owned(), "firefox".to_owned()],
+            })),
+            r#"{"kind":"debug","v":{"kind":"switcher","v":{"apps":["foot","firefox"]}}}"#,
+        ),
     ]
 }
 
@@ -270,6 +319,29 @@ fn responses() -> Vec<(Response, &'static str)> {
                 kept: 0,
             }),
             r#"{"kind":"notifications","v":{"mode":"passive","holder":{"kind":"sill"},"banners":0,"kept":0}}"#,
+        ),
+        (
+            Response::Lock(LockReport {
+                phase: ReportLockPhase::Locked,
+                drawer: ReportDrawer::Shell,
+            }),
+            r#"{"kind":"lock","v":{"phase":"locked","drawer":"shell"}}"#,
+        ),
+        (
+            Response::Polkit(PolkitReport {
+                registration: ReportRegistration::Refused("taken".to_owned()),
+                showing: Some("org.example.run".to_owned()),
+                waiting: 1,
+            }),
+            r#"{"kind":"polkit","v":{"registration":{"kind":"refused","v":"taken"},"showing":"org.example.run","waiting":1}}"#,
+        ),
+        (
+            Response::Polkit(PolkitReport {
+                registration: ReportRegistration::Passive,
+                showing: None,
+                waiting: 0,
+            }),
+            r#"{"kind":"polkit","v":{"registration":{"kind":"passive"},"showing":null,"waiting":0}}"#,
         ),
     ]
 }

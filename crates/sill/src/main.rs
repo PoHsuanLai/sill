@@ -26,6 +26,7 @@ fn main() -> ExitCode {
     match cli.command {
         Some(cli::Command::Run) => sill::daemon::run(),
         Some(cli::Command::PolkitAgent { verb }) => sill::session::polkit_agent(verb),
+        Some(cli::Command::AuthCheck) => sill::auth_check::main(),
         Some(command) => match cli::request(&command) {
             Some(request) => sill::client::main(&request),
             None => ExitCode::SUCCESS,

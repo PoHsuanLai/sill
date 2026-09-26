@@ -5,6 +5,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::apps::{AppIndex, AppsCommand};
+use crate::auth::{Auth, AuthCommand};
 use crate::badges::{Badges, BadgesCommand};
 use crate::battery::{Battery, BatteryCommand};
 use crate::bluetooth::{Bluetooth, BluetoothCommand};
@@ -20,6 +21,7 @@ use crate::network::{Network, NetworkCommand};
 use crate::notifications::{History, Notifications, NotificationsCommand};
 use crate::now_playing::{Media, MediaCommand};
 use crate::pins::{DockPins, PinEvent};
+use crate::polkit_agent::{Polkit, PolkitCommand};
 use crate::power_profile::{PowerProfiles, ProfileCommand};
 use crate::results::{Results, SearchCommand};
 use crate::screenshots::{ShotCommand, Shots};
@@ -89,6 +91,12 @@ pub struct Services {
     pub events_control: Control<EventsCommand>,
     pub shots: watch::Receiver<Shots>,
     pub shots_control: Control<ShotCommand>,
+    /// M11: the own lock screen's password check (idle until a secret is submitted), and the
+    /// own polkit agent (passive until the daemon's policy) (FINDINGS "M11 freeze").
+    pub auth: watch::Receiver<Auth>,
+    pub auth_control: Control<AuthCommand>,
+    pub polkit: watch::Receiver<Polkit>,
+    pub polkit_control: Control<PolkitCommand>,
 }
 
 impl Services {
@@ -142,6 +150,9 @@ impl Services {
         // M10: each `live::run` is a stub that returns at once until its lane fills it.
         let (agenda, events_control) = crate::events::spawn(rt);
         let (shots, shots_control) = crate::screenshots::spawn(rt);
+        // M11: both `live::run`s are stubs that return at once until their lanes fill them.
+        let (auth, auth_control) = crate::auth::spawn(rt);
+        let (polkit, polkit_control) = crate::polkit_agent::spawn(rt);
 
         Services {
             clock,
@@ -192,6 +203,10 @@ impl Services {
             events_control,
             shots,
             shots_control,
+            auth,
+            auth_control,
+            polkit,
+            polkit_control,
         }
     }
 }
@@ -247,6 +262,16 @@ mod tests {
             *services.displays.borrow(),
             Default::default(),
             "inert until a policy"
+        );
+        assert_eq!(
+            services.polkit.borrow().registration,
+            crate::polkit_agent::Registration::Passive,
+            "no agent registered until the daemon's policy"
+        );
+        assert_eq!(
+            services.auth.borrow().phase,
+            crate::AuthPhase::Idle,
+            "nothing checked until a secret is submitted"
         );
     }
 }

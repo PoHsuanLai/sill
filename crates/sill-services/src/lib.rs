@@ -1,5 +1,6 @@
 //! Effectful services behind watch channels: power, network, Wi-Fi, Bluetooth, power profiles,
-//! Now Playing, the session, notifications, calendar events, screenshots, volume, tray, apps, launcher entries, dock pins, launcher search,
+//! Now Playing, the session, the lock screen's password check and the polkit agent (M11),
+//! notifications, calendar events, screenshots, volume, tray, apps, launcher entries, dock pins, launcher search,
 //! wallpaper, sounds, displays and COSMIC Wayland state (plan
 //! "Design: `<shell>` repo", `sill-services`).
 //!
@@ -13,6 +14,7 @@
 //! channels live in `sill-surfaces::hooks`.
 
 pub mod apps;
+pub mod auth;
 pub mod badges;
 pub mod battery;
 pub mod bluetooth;
@@ -31,6 +33,7 @@ pub mod notifications;
 pub mod now_playing;
 pub mod pins;
 pub mod polkit;
+pub mod polkit_agent;
 pub mod power_profile;
 pub mod programs;
 pub mod providers;
@@ -39,6 +42,7 @@ pub mod screenshots;
 pub mod services;
 pub mod session;
 pub mod sound;
+pub mod switcher;
 pub mod tray;
 pub mod units;
 pub mod volume;
@@ -48,6 +52,7 @@ pub use apps::{
     App, AppIcon, AppIndex, AppsCommand, AppsEvent, DbusActivation, DesktopActionEntry, ExecArgs,
     ExecError, Listing, Terminal, expand_exec, match_app, reduce_apps,
 };
+pub use auth::{Auth, AuthCommand, AuthPhase};
 pub use badges::{
     Badge, BadgeEvent, BadgeProp, Badges, BadgesCommand, parse_app_uri, reduce_badges,
 };
@@ -75,7 +80,9 @@ pub use launch::{
     LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches, ScopeUnit,
     reduce_launches,
 };
-pub use locker::{Lock, LockPhase, LockerChoice, LockerCommand, LockerMode};
+pub use locker::{
+    Lock, LockDrawer, LockPhase, LockerChoice, LockerCommand, LockerMode, ShellLockEvent,
+};
 pub use magnify::{Layout, MagnifyParams, TileBox, magnify, rest_centers, sizes, zoom};
 pub use network::wifi::{
     AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi, WifiCommand, WifiEvent,
@@ -96,6 +103,7 @@ pub use now_playing::{
     Playback, PlayerId, Timeline, Track, art_cache_name, art_source, reduce_media,
 };
 pub use pins::{DockPins, PinAt, PinEvent, reduce_pins};
+pub use polkit_agent::{Polkit, PolkitCommand};
 pub use power_profile::{
     PowerProfiles, Profile, ProfileBus, ProfileCommand, ProfileDegraded, ProfileEvent,
     reduce_power_profiles,
@@ -105,6 +113,7 @@ pub use screenshots::{Shot, ShotCommand, ShotId, ShotKind, ShotLeave, ShotPrevie
 pub use services::Services;
 pub use session::{Offer, Session, SessionAction, SessionCommand, SessionEvent, reduce_session};
 pub use sound::{SoundCommand, SoundName};
+pub use switcher::{AppShown, SwitcherApp, switcher_apps};
 pub use tray::{
     Availability, Check, Pixmap, ScrollAxis, ScrollDelta, Tray, TrayCommand, TrayEvent, TrayIcon,
     TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind, TrayStatus, reduce_tray,

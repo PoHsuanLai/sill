@@ -74,6 +74,8 @@ pub fn run() -> ExitCode {
         notification_center: sill_surfaces::surfaces::notification_center::CenterLink::new(),
         banners: sill_surfaces::surfaces::banners::BannerLink::new(),
         corners: sill_surfaces::surfaces::hot_corners::CornerLink::new(),
+        switcher: sill_surfaces::surfaces::switcher::SwitcherLink::new(),
+        lock: sill_surfaces::surfaces::lock::LockLink::new(),
     });
     // M6: the notifications service's policy from the settings and the focus mode; the first
     // one sent ends its passive start (FINDINGS "M6 freeze").
@@ -91,6 +93,13 @@ pub fn run() -> ExitCode {
         runtime.handle(),
         settings_feed.0.clone(),
         services.locker_control.clone(),
+    );
+    // M11: the own polkit agent registers only while `session.polkit_agent` is `sill`; the
+    // service is passive until this first policy (FINDINGS "M11 freeze").
+    crate::polkit::spawn_policy(
+        runtime.handle(),
+        settings_feed.0.clone(),
+        services.polkit_control.clone(),
     );
 
     let config = HostConfig {
@@ -122,6 +131,8 @@ pub fn run() -> ExitCode {
     // Detached: it accepts connections until the process exits with the host (doc on
     // `ipc_server::spawn`).
     let _ipc_thread = ipc_server::spawn(door, handle.clone());
+    // M11: the own lock screen's wish to hold the session lock (lane a fills the follower).
+    crate::lock::spawn_follower(runtime.handle(), &services, handle.clone());
 
     if let Some(dir) = settings_dir.clone() {
         // `sill_settings::watch` calls `tokio::spawn` in its own body, which needs an entered
@@ -155,10 +166,12 @@ pub fn run() -> ExitCode {
             launcher.clone(),
         );
     }
+    let mut shell_lock = crate::lock::ShellLock::default();
     let result = host.run(move |ctx, event| {
         run_event(
             ctx,
             &mut outputs,
+            &mut shell_lock,
             &services,
             &settings_feed,
             settings_dir.as_deref(),
@@ -221,6 +234,7 @@ fn fatal(message: &str) -> ExitCode {
 fn run_event(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &mut Outputs,
+    shell_lock: &mut crate::lock::ShellLock,
     services: &Services,
     settings_feed: &SettingsFeed,
     settings_dir: Option<&Path>,
@@ -257,7 +271,23 @@ fn run_event(
             }
             let _ = reply.send(response);
         }
+        HostEvent::App(ShellMsg::Lock(wish)) => {
+            if let Some(links) = crate::links::get() {
+                crate::lock::apply(
+                    ctx,
+                    shell_lock,
+                    wish,
+                    || lock_factory(services, settings_feed, &links.lock),
+                    &links.lock,
+                    outputs,
+                    services,
+                );
+            }
+        }
         other => {
+            if let Some(links) = crate::links::get() {
+                crate::lock::on_host_event(ctx, shell_lock, &other, &links.lock, services);
+            }
             if let HostEvent::KeyboardFocus { id, focus } = &other
                 && outputs.outputs.iter().any(|(_, s)| s.launcher == Some(*id))
             {
@@ -284,6 +314,13 @@ fn run_event(
             spawn_missing_docks(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_launchers(ctx, outputs, services, settings_feed, settings_tx, launcher);
             crate::power_menu::spawn_missing(ctx, outputs, &services.session, |root| {
+                surface_root(root, services, settings_feed)
+            });
+            // M11: the polkit prompt over the power menu, and the switcher (both Overlay).
+            crate::polkit::spawn_missing(ctx, outputs, |root| {
+                surface_root(root, services, settings_feed)
+            });
+            crate::switcher::spawn_missing(ctx, outputs, |root| {
                 surface_root(root, services, settings_feed)
             });
             // Before the OSD, so the OSD draws over a banner (both on the Overlay layer).
@@ -324,14 +361,14 @@ pub fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostE
         | HostEvent::OutputChanged(_)
         | HostEvent::OutputRemoved(_) => reconcile_outputs(ctx, outputs),
         HostEvent::SurfaceClosed { id, reason } => on_surface_closed(outputs, id, reason),
-        HostEvent::KeyboardFocus { .. } => {}
-        // The shell's own session lock (M11, `session.locker = "sill"`) follows these; until it
-        // lands, sill never asks the host to lock, so there is nothing to do.
-        HostEvent::Lock { .. } => {}
+        // M11: answered by `run_event` (`crate::lock::on_host_event`), which holds the lock.
+        HostEvent::KeyboardFocus { .. } | HostEvent::Lock { .. } => {}
         HostEvent::App(ShellMsg::Settings(file)) => {
             resize_bars(ctx, outputs, &file);
             ctx.set_scroll_config(crate::scroll::config(&file));
         }
+        // Answered by `run_event`, which holds the lock's state.
+        HostEvent::App(ShellMsg::Lock(_)) => {}
         HostEvent::App(ShellMsg::Ipc { reply, .. }) => {
             // Never reached through `run_event`, which answers `Ipc` itself; answered rather
             // than dropped in case another caller ever delivers one here directly.
@@ -640,7 +677,8 @@ pub(crate) fn surface_root(root: Root, services: &Services, settings_feed: &Sett
         .context(sill_surfaces::MEASURE)
         .context(sill_surfaces::FOCUS);
     // M5: the focus mode, the power menu and the control center's asks; M6: the notification
-    // center and the banners' output; M10: the hot corners' firings (`crate::links`).
+    // center and the banners' output; M10: the hot corners' firings; M11: the switcher's asks
+    // and the lock prompt's output (`crate::links`).
     match crate::links::get() {
         Some(links) => root
             .context(links.focus.clone())
@@ -648,9 +686,32 @@ pub(crate) fn surface_root(root: Root, services: &Services, settings_feed: &Sett
             .context(links.control_center.clone())
             .context(links.notification_center.clone())
             .context(links.banners.clone())
-            .context(links.corners.clone()),
+            .context(links.corners.clone())
+            .context(links.switcher.clone())
+            .context(links.lock.clone()),
         None => root,
     }
+}
+
+/// Each output's lock surface for shell-host's session lock (M11): `LockScreen` with the
+/// daemon's usual contexts and the lock prompt's link.
+fn lock_factory(
+    services: &Services,
+    settings_feed: &SettingsFeed,
+    link: &sill_surfaces::surfaces::lock::LockLink,
+) -> crate::lock::host::LockFactory {
+    let services = services.clone();
+    let settings_feed = settings_feed.clone();
+    let link = link.clone();
+    crate::lock::host::LockFactory(Box::new(move |info: OutputInfo| {
+        let props = sill_surfaces::surfaces::lock::LockScreenProps { output: info };
+        surface_root(
+            Root::with_props(sill_surfaces::LockScreen, props),
+            &services,
+            &settings_feed,
+        )
+        .context(link.clone())
+    }))
 }
 
 /// Answer one IPC request. A display key's change, and a made-up one, show on the OSD.
@@ -687,6 +748,11 @@ fn dispatch_request(
         Request::Debug(DebugRequest::Corner(fake)) => {
             crate::corners::fake(outputs, crate::links::get(), fake)
         }
+        Request::Debug(DebugRequest::Auth(fake)) => crate::lock::fake_auth(services, fake),
+        Request::Debug(DebugRequest::Polkit(fake)) => crate::polkit::fake(services, fake),
+        Request::Debug(DebugRequest::Switcher(fake)) => {
+            crate::switcher::fake(outputs, crate::links::get(), fake)
+        }
         Request::Debug(request) => dispatch_debug(ctx, outputs, request),
         Request::Display(request) => {
             let response = crate::displays::dispatch(services, request);
@@ -706,6 +772,11 @@ fn dispatch_request(
         Request::Lock => crate::session::lock(services),
         Request::Screenshot(request) => crate::screenshots::dispatch(services, request),
         Request::Widgets(request) => crate::widgets::dispatch(settings_dir, settings_tx, request),
+        Request::Switcher(request) => {
+            crate::switcher::dispatch(outputs, crate::links::get(), request)
+        }
+        Request::LockStatus(_) => crate::lock::status(services),
+        Request::Polkit(request) => crate::polkit::dispatch(services, request),
     }
 }
 
@@ -781,6 +852,9 @@ fn dispatch_debug(
         DebugRequest::Notify(_) => unsupported("a made-up notification is answered elsewhere"),
         DebugRequest::Screenshot(_) => unsupported("a made-up screenshot is answered elsewhere"),
         DebugRequest::Corner(_) => unsupported("a made-up corner hit is answered elsewhere"),
+        DebugRequest::Auth(_) => unsupported("a made-up verdict is answered elsewhere"),
+        DebugRequest::Polkit(_) => unsupported("a made-up polkit request is answered elsewhere"),
+        DebugRequest::Switcher(_) => unsupported("a made-up switcher is answered elsewhere"),
     }
 }
 
@@ -894,6 +968,12 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
             let desktop = surfaces
                 .desktop_widgets
                 .map(|id| (crate::widgets::namespace(info), id));
+            let polkit = surfaces
+                .polkit_prompt
+                .map(|id| (crate::polkit::namespace(info), id));
+            let switcher = surfaces
+                .switcher
+                .map(|id| (crate::switcher::namespace(info), id));
             let corners: Vec<_> = crate::corners::namespaces(info)
                 .into_iter()
                 .filter_map(|(corner, name)| surfaces.corners.get(corner).map(|id| (name, id)))
@@ -910,6 +990,8 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
                 .chain(thumbnail)
                 .chain(desktop)
                 .chain(corners)
+                .chain(polkit)
+                .chain(switcher)
         })
         .collect();
     ids.into_iter()

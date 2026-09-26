@@ -19,6 +19,7 @@ fn setting_words() {
         ),
         ("swaylock", LockerChoice::Known(KnownLocker::Swaylock)),
         ("hyprlock", LockerChoice::Known(KnownLocker::Hyprlock)),
+        ("sill", LockerChoice::Own),
         (
             "swaylock -c 000000",
             LockerChoice::Command("swaylock -c 000000".to_owned()),
@@ -168,4 +169,20 @@ fn each_known_locker_has_a_ready_signal() {
             .any(|(k, v)| k == "DBUS_SYSTEM_BUS_ADDRESS" && v == super::NO_SYSTEM_BUS),
         "cosmic-greeter runs one-shot only without a system bus"
     );
+}
+
+#[test]
+fn sills_own_lock_follows_logind_only_in_sills_session() {
+    let cases = [
+        (Host::SillSession, Triggers::FollowLogind),
+        (Host::CosmicSession, Triggers::IgnoreLogind),
+        (Host::Guest, Triggers::IgnoreLogind),
+    ];
+    for (host, triggers) in cases {
+        assert_eq!(
+            resolve(&LockerChoice::Own, host, |_| None),
+            LockerMode::Own { triggers },
+            "{host:?}"
+        );
+    }
 }

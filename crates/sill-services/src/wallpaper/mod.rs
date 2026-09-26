@@ -10,12 +10,14 @@
 //! [`resize::prepare`] resizes it onto the blocking pool (I/O, [`resize`]) using the pure
 //! geometry in [`geometry`] and the pure naming in [`cache`].
 
+mod backdrop;
 mod cache;
 mod config;
 mod geometry;
 mod resize;
 mod watch;
 
+pub use backdrop::{BACKDROP_SIGMA_AT_1920, backdrop_file, ensure_backdrop};
 pub use cache::{CACHE_DIR, cache_file_name, source_hash};
 pub use config::{config_path, resolve_source};
 pub use geometry::{CoverFit, cover_fit};
