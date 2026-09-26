@@ -123,8 +123,8 @@ fn use_unlock_fade(
     here: Here,
     on_unlock: Option<Callback<()>>,
 ) {
-    // quire's accepted beat (a persona's hop) settles before the unlock.
-    let timer = use_motion_timer(Anim::PersonaHop);
+    // quire's accepted beat (the picture's accept) settles before the unlock.
+    let timer = use_motion_timer(Anim::PictureAccept);
     use_effect(use_reactive!(|host, here, on_unlock| {
         let accepted = auth.read().phase == AuthPhase::Accepted;
         match (accepted, host, here, on_unlock) {
