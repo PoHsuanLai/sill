@@ -14,8 +14,8 @@
 #
 #   1. `files_backend = "fd"`: the provider lists m9-report.pdf under ~/Documents for
 #      "m9-rep" and for "M9-REP" (names match without case); the daemon, after `sill launcher
-#      open --query m9-rep`, lists it under Documents in `sill debug launcher-rows` (PENDING
-#      until lane d answers rows).
+#      open --query m9-rep`, lists it once in `sill debug launcher-rows`, under Top Hit (a
+#      single match is the Top Hit, never repeated below it: F645, G272) or Documents.
 #   2. Enter opens it: the stub opener records the file's path and the token, bare and in a
 #      transient scope.
 #   3. ⌘R reveals it: the running stub file manager records ShowItems with its file:// URI and
@@ -196,13 +196,32 @@ step1() {
   else
     fail 1 "M9-REP: $(tr '\n' '|' <"$OUT_DIR/step1.txt")"
   fi
-  local rows
+  local rows under
   rows=$(daemon_rows m9-rep)
-  case "$rows" in
-    pending) pending 1 "the daemon's launcher-rows is not filled yet (M9 lane d)" ;;
-    *Documents*m9-report.pdf*) pass 1 "the daemon lists m9-report.pdf under Documents" ;;
+  if [ "$rows" = pending ]; then
+    pending 1 "the daemon's launcher-rows is not filled yet (M9 lane d)"
+    return
+  fi
+  under=$(section_of m9-report.pdf <<<"$rows")
+  case "$under" in
+    "Top Hit" | Documents) pass 1 "the daemon lists m9-report.pdf under $under" ;;
     *) fail 1 "the daemon's rows: $rows" ;;
   esac
+}
+
+# The title of the one section of `sill debug launcher-rows` (on stdin) listing row $1, else
+# nothing. A single match is the Top Hit, which is never repeated below it (F645, G272), so a
+# file's row is under "Top Hit" or "Documents".
+section_of() {
+  python3 -c '
+import json, sys
+try:
+    secs = json.loads(sys.stdin.read())["v"]["sections"]
+except (ValueError, KeyError, TypeError):
+    sys.exit(0)
+held = [s["title"] for s in secs if sys.argv[1] in s["rows"]]
+if len(held) == 1:
+    print(held[0])' "$1"
 }
 
 step2() {
