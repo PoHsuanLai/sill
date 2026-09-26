@@ -144,11 +144,11 @@ fn battery_lists_the_machine_then_connected_devices_with_a_level() {
     let running = start(WidgetKind::Battery, WidgetHost::Tile, ShellFile::default());
     let h = &running.harness;
     // The fake machine is at 64%; Buds are connected at 80%; the keyboard is not connected.
-    assert_eq!(h.count("#widget-battery .ds-ring"), 2);
+    assert_eq!(h.count("#widget-battery .ds-battery"), 2);
     let levels: Vec<_> = (1..=2)
         .map(|n| {
             h.attr(
-                &format!("#widget-battery .sill-widget-battery-cell:nth-child({n}) .ds-ring"),
+                &format!("#widget-battery .sill-widget-battery-cell:nth-child({n}) .ds-battery"),
                 "aria-valuenow",
             )
         })
@@ -179,7 +179,7 @@ fn battery_says_so_when_there_is_none() {
         .send_replace(sill_services::Bluetooth::default());
     running.harness.advance(Duration::from_millis(100));
     let h = &running.harness;
-    assert_eq!(h.count("#widget-battery .ds-ring"), 0);
+    assert_eq!(h.count("#widget-battery .ds-battery"), 0);
     assert_eq!(
         h.text_of("#widget-battery .sill-widget-quiet").as_deref(),
         Some("No batteries")
@@ -321,7 +321,7 @@ fn on_the_desktop_the_world_clock_draws_dials_tinted_for_day_or_night() {
 #[test]
 fn a_battery_level_that_changes_bumps_once() {
     let mut running = start(WidgetKind::Battery, WidgetHost::Tile, ShellFile::default());
-    let bumping = "#widget-battery .ds-bumped.a-bump, #widget-battery .ds-ring.a-bump";
+    let bumping = "#widget-battery .ds-bumped.a-bump, #widget-battery .ds-battery.a-bump";
     assert_eq!(running.harness.count(bumping), 0, "nothing bumps on mount");
     let mut battery = running.feeds.battery.borrow().clone();
     battery.level = sill_services::Percent(65);

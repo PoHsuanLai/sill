@@ -1,8 +1,11 @@
-/* The Battery widget (widgets/battery.rs): quire's LevelRing per battery (Q183) over its
-   percentage, side by side and wrapping, as macOS's Batteries widget; the quiet line when there
-   are none. Tokens only (coherence rule 1). */
-.sill-widget-battery{ display:flex; flex-wrap:wrap; align-content:center; justify-content:space-around;
-  gap:var(--s-8); flex:1 1 auto; min-width:0; }
-.sill-widget-battery-cell{ display:flex; flex-direction:column; align-items:center; gap:var(--s-4); }
-.sill-widget-battery-level{ font-size:var(--fs-help); font-weight:600; color:var(--ink-soft);
+/* The Battery widget (widgets/battery.rs): one row per battery, as macOS's Batteries widget:
+   quire's BatteryLevel (the device glyph, then the battery), the name, the percentage at the
+   end; the quiet line when there are none. This only places quire's parts; their look is quire's
+   (design/23, Neumorphism & Soft UI). Tokens only (coherence rule 1). */
+.sill-widget-battery{ display:flex; flex-direction:column; justify-content:center; gap:var(--s-6);
+  flex:1 1 auto; min-width:0; }
+.sill-widget-battery-cell{ display:flex; align-items:center; gap:var(--s-8); min-width:0; }
+.sill-widget-battery-name{ flex:1 1 auto; min-width:0; overflow:hidden; white-space:nowrap;
+  font-size:var(--fs-help); color:var(--ink-soft); }
+.sill-widget-battery-level{ font-size:var(--fs-help); font-weight:600; color:var(--ink);
   font-variant-numeric:tabular-nums; }

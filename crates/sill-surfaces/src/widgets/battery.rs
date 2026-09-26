@@ -4,7 +4,7 @@
 //! to show (a desktop with no battery and no devices): the widget says "No batteries".
 
 use dioxus::prelude::*;
-use ds::{Bumped, Fraction, Glyph, Icon, IconSize, LevelRing, RingMark};
+use ds::{BatteryLevel, Bumped, Fraction, Glyph, Icon, IconSize, RingMark};
 use sill_services::{
     Battery, Bluetooth, BtBattery, BtConnection, BtKind, Charge, Percent, Presence,
 };
@@ -110,8 +110,9 @@ fn ring_label(row: &BatteryRow) -> String {
     }
 }
 
-/// The batteries, as macOS's Batteries widget: one quire `LevelRing` each (the level, a bolt
-/// while charging, the device's glyph inside) over its percentage, which bumps on a change.
+/// The batteries, as macOS's Batteries widget: one row each, quire's `BatteryLevel` (the device's
+/// glyph, then a battery filled to the level with a bolt while charging), the device's name and
+/// its percentage, which bumps on a change (design/23, Neumorphism & Soft UI).
 #[component]
 pub fn BatteryWidget(host: WidgetHost) -> Element {
     let battery = use_battery()();
@@ -133,16 +134,18 @@ pub fn BatteryWidget(host: WidgetHost) -> Element {
     }
 }
 
-/// One battery: its ring over its percentage.
+/// One battery: the device glyph and its battery, the name, the percentage.
 #[component]
 fn BatteryCell(row: BatteryRow) -> Element {
     let (level, mark) = ring_of(&row);
     let percent = row.level.0;
+    let name = row.name.clone();
     rsx! {
         div { class: "sill-widget-battery-cell",
-            LevelRing { level, mark, label: ring_label(&row),
+            BatteryLevel { level, mark, label: ring_label(&row),
                 Glyph { icon: row_glyph(&row), size: IconSize::Base }
             }
+            span { class: "sill-widget-battery-name", "{name}" }
             span { class: "sill-widget-battery-level",
                 Bumped { on: percent, "{percent}%" }
             }
