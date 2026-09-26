@@ -1,4 +1,6 @@
-//! The one place a surface turns the wall of `Instant`s into the machines' [`Stamp`]s.
+//! The one place a surface turns `Instant`s into the machines' [`Stamp`]s. "Now" is
+//! `ds::time::now`: the wall clock in the daemon, a test harness's virtual clock under
+//! `Clock::Virtual` (quire Q380), so a surface's timers follow the harness's time.
 
 use std::time::Instant;
 
@@ -16,6 +18,11 @@ impl FrameClock {
         FrameClock { origin }
     }
 
+    /// A clock whose zero is now, on this thread's clock (a surface with no daemon origin).
+    pub fn started() -> FrameClock {
+        FrameClock::new(ds::time::now())
+    }
+
     /// `at` as a stamp; an instant before the origin is 0.
     pub fn stamp(&self, at: Instant) -> Stamp {
         Stamp(
@@ -24,9 +31,9 @@ impl FrameClock {
         )
     }
 
-    /// Now, as a stamp.
+    /// Now on this thread's clock, as a stamp.
     pub fn now(&self) -> Stamp {
-        self.stamp(Instant::now())
+        self.stamp(ds::time::now())
     }
 }
 

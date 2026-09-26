@@ -25,6 +25,9 @@ fn the_actions_menu_hangs_from_the_selected_row_and_gives_the_keyboard_back() {
     settle(&mut open.harness, |h| {
         selected_title(h).as_deref() == Some("Files")
     });
+    // quire's palette reports the selected row's rect a `FRAME_SLACK` after the selection (its
+    // `laid_out_rect`); the menu hangs from the last rect reported.
+    open.harness.advance(ds::FRAME_SLACK);
     let row = open.harness.rect(SELECTED).expect("the selected row");
     open.scripted(LauncherKey::Actions);
     settle(&mut open.harness, |h| h.count(".ds-popover") == 1);

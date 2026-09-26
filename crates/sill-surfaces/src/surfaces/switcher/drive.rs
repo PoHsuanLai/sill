@@ -5,7 +5,7 @@
 //! and is dropped at `settle(Anim::Fold)`; the machine back at `Hidden` unmaps at once. Hidden,
 //! no task runs and nothing asks for a frame.
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use dioxus::core::Task;
 use dioxus::prelude::*;
@@ -57,7 +57,7 @@ pub(crate) fn use_switcher(
         session: Signal::new(None),
         params: CopyValue::new(params),
         level: CopyValue::new(level),
-        clock: CopyValue::new(FrameClock::new(Instant::now())),
+        clock: CopyValue::new(FrameClock::started()),
         ticking: CopyValue::new(None),
         surface: CopyValue::new(surface),
         services: CopyValue::new(services),

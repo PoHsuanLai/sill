@@ -9,6 +9,7 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds_native::{Harness, Viewport};
 use launcher_harness::launcher_support::{self, fake};
+use launcher_harness::virtual_clock;
 use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::LauncherCatcher;
@@ -41,7 +42,7 @@ fn a_press_on_the_catcher_closes_the_launcher() {
         height: 540,
         scale_percent: 100,
     };
-    let mut harness = Harness::new(app, viewport);
+    let mut harness = Harness::with_config(app, virtual_clock(viewport));
     harness.advance(Duration::from_millis(20));
     assert!(link.now().opening().is_some());
     harness.click(ds::Point {

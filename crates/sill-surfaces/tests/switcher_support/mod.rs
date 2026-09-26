@@ -9,7 +9,7 @@ pub mod fake;
 use std::cell::RefCell;
 
 use dioxus::prelude::*;
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_launcher::WindowKey;
 use sill_services::{
     Activity, OutputName, Services, Sizing, Toplevel, Toplevels, WindowState, WlCommand,
@@ -53,9 +53,12 @@ pub struct Running {
 }
 
 impl Running {
-    /// Ask the switcher on the test output.
+    /// Ask the switcher on the test output, and let it take the ask at this instant: on the
+    /// virtual clock a link's wake runs at the next stop of an `advance`, which with no timer
+    /// due is its end (G311), so the zero advance is what makes the ask's time `harness.now()`.
     pub fn ask(&mut self, ask: SwitcherAsk) {
         self.link.ask(fake::output().id, ask);
+        self.harness.advance(std::time::Duration::ZERO);
     }
 
     /// The commands sent so far, drained.
@@ -98,7 +101,8 @@ pub fn start(file: ShellFile, toplevels: Toplevels) -> Running {
         height: 720,
         scale_percent: 100,
     };
-    let harness = Harness::new(app, viewport);
+    let harness =
+        Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
     Running {
         harness,
         feeds,

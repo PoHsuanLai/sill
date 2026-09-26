@@ -104,10 +104,8 @@ struct Outward {
 
 /// Start the dock's session (once per dock) with the machine at `initial`.
 pub(crate) fn use_dock_session(initial: DockState) -> DockSession {
-    let clock = use_hook(|| {
-        try_consume_context::<FrameClock>()
-            .unwrap_or_else(|| FrameClock::new(std::time::Instant::now()))
-    });
+    let clock =
+        use_hook(|| try_consume_context::<FrameClock>().unwrap_or_else(FrameClock::started));
     let outward = Outward {
         services: use_services(),
         surface: try_use_context::<SurfaceHandle>(),

@@ -12,7 +12,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
 use sill_surfaces::DesktopWidgets;
@@ -60,7 +60,8 @@ fn start(file: ShellFile, placements: Option<PlacementFile>) -> (Harness, fake::
             file: placements,
         });
     });
-    let mut harness = Harness::new(app, VIEWPORT);
+    let mut harness =
+        Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
     for _ in 0..10 {
         harness.advance(Duration::from_millis(40));
     }

@@ -1,4 +1,4 @@
-//! The real `SwitcherPanel` in a Blitz harness, on the wall clock and fake services (design/13
+//! The real `SwitcherPanel` in a Blitz harness, on the virtual clock and fake services (design/13
 //! §13.3.5): a chord shows quire's `AppSwitcher` after the show delay with the apps in MRU
 //! order and the previous one selected; a commit inside the delay switches with no panel; Tab,
 //! Shift+Tab and the chord step; the release (Alt's key-up) and a click activate; Escape and
@@ -51,10 +51,16 @@ fn a_chord_shows_the_apps_after_the_delay_with_the_previous_selected() {
     wait(&mut running, 40);
     assert_eq!(panels(&running), 0, "hidden at start");
     running.ask(SwitcherAsk::Chord(Dir::Next));
-    wait(&mut running, 60);
-    assert_eq!(panels(&running), 0, "not before the show delay");
-    wait(&mut running, 200);
-    assert_eq!(panels(&running), 1, "shown after it");
+    let delay = u64::from(ShellFile::default().switcher.show_delay_ms.0);
+    wait(&mut running, delay - 1);
+    assert_eq!(
+        panels(&running),
+        0,
+        "not a millisecond before the show delay"
+    );
+    wait(&mut running, 1);
+    assert_eq!(panels(&running), 1, "shown at it");
+    wait(&mut running, 110);
     assert_eq!(
         tiles(&running.harness),
         (names(&["term", "calc", "edit"]), Some("calc".to_owned()))
@@ -207,6 +213,11 @@ fn made_up_apps_show_at_once_and_touch_no_window() {
         tiles(&running.harness),
         (names(&["files", "mail", "notes"]), Some("mail".to_owned()))
     );
+    // The key target's `focus_soon` lands at once or, when the document was busy, one
+    // `FRAME_SLACK` later (which of the two varies from run to run even here, G312); keys before
+    // it go nowhere.
+    running.harness.advance(ds::FRAME_SLACK);
+    assert!(running.harness.is_focused(".sill-switcher"));
     running.harness.chord(&[Key::Alt], Key::Char('q'));
     running.harness.chord(&[Key::Alt], Key::Alt);
     wait(&mut running, 20);

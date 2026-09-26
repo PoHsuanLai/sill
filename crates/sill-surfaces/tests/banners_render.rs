@@ -1,4 +1,4 @@
-//! The banner column in a Blitz harness, on the wall clock and the fake services, drawn by
+//! The banner column in a Blitz harness, on the virtual clock and the fake services, drawn by
 //! quire's `BannerStack` and `NotificationCard`: a banner slides in and holds for
 //! `notifications.banner_hold_ms`, then says it timed out and plays out; hovering it pauses the
 //! hold; a press on the card invokes `default`; the close button dismisses it; a drag past
@@ -69,7 +69,7 @@ fn a_banner_slides_in_holds_and_times_out() {
     running.harness.advance(Duration::from_millis(60));
     assert_eq!(running.cards(), 0, "nothing before a banner");
     running.show(vec![live(note(1, "mail", "Hello", "A body", &[]))]);
-    let shown = std::time::Instant::now();
+    let shown = running.harness.now();
     running.harness.advance(Duration::from_millis(20));
     assert_eq!(running.cards(), 1, "quire's stack slides it in");
     let h = &running.harness;
@@ -84,15 +84,21 @@ fn a_banner_slides_in_holds_and_times_out() {
         "the plate's id"
     );
     assert_eq!(h.count("#banner-1"), 1, "the whole card's id");
+    // The hold starts once the card has risen, a `FRAME_SLACK` after it was shown.
+    let leaves = shown + ds::FRAME_SLACK + Duration::from_millis(HOLD_MS);
+    let before = leaves - running.harness.now() - Duration::from_millis(1);
+    running.harness.advance(before);
     assert_eq!(
-        running.until(Duration::from_millis(3000), |r| r.leaving() == 1),
-        Done::Yes,
-        "it leaves by itself"
+        running.leaving(),
+        0,
+        "not a millisecond before the hold's end"
     );
-    let held = shown.elapsed();
-    assert!(
-        held >= Duration::from_millis(HOLD_MS),
-        "not before the hold: {held:?}"
+    assert!(running.commands().is_empty());
+    running.harness.advance(Duration::from_millis(1));
+    assert_eq!(
+        running.leaving(),
+        1,
+        "it leaves by itself at the hold's end"
     );
     assert_eq!(
         running.commands(),

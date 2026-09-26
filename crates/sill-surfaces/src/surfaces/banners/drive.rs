@@ -7,7 +7,7 @@
 //! [`BannerLink`]: super::BannerLink
 
 use std::collections::BTreeMap;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use dioxus::core::Task;
 use dioxus::prelude::*;
@@ -168,7 +168,7 @@ pub(crate) fn use_column(params: BannerParams, control: Control<NotificationsCom
     let column = use_hook(|| Column {
         deck: Signal::new(Deck::default()),
         params: CopyValue::new(params),
-        clock: FrameClock::new(Instant::now()),
+        clock: FrameClock::started(),
         control: CopyValue::new(control),
         surface: CopyValue::new(surface),
         waking: CopyValue::new(None),

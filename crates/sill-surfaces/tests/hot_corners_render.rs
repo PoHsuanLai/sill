@@ -1,7 +1,8 @@
 //! The hot corner surface in a `ds_native::Harness` (design/13 §13.3.12, FINDINGS "M10 freeze"
 //! F409): a real pointer dwelling in it fires once, not before the dwell and not twice without a
 //! leave and the re-arm; and its stylesheet is lint-clean under `Profile::Strict` (coherence
-//! rule 1, quire CONSUMING.md §5).
+//! rule 1, quire CONSUMING.md §5). On the virtual clock (quire Q380), so the dwell and the re-arm
+//! are checked to the millisecond.
 
 mod support;
 
@@ -10,7 +11,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::lint::{LintConfig, Profile, assert_clean};
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use ds_settings::Ms;
 use shell_host::OutputId;
 use sill_settings::{CornerAction, HotCornersSettings, SettingsFeed, ShellFile};
@@ -63,7 +64,10 @@ fn start(hot_corners: HotCornersSettings) -> (Harness, CornerLink) {
         height: 4,
         scale_percent: 100,
     };
-    (Harness::new(app, viewport), link)
+    (
+        Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual)),
+        link,
+    )
 }
 
 /// The corner element's own centre (the UA's default margin around `main` means it is not at
@@ -89,10 +93,10 @@ fn a_dwell_fires_once_and_not_before() {
     harness.advance(Duration::from_millis(10));
     assert_eq!(link.last(), None);
     harness.pointer_move(inside(&harness));
-    harness.advance(Duration::from_millis(DWELL_MS as u64 / 2));
-    assert_eq!(link.last(), None, "not before the dwell");
-    harness.advance(Duration::from_millis(DWELL_MS as u64));
-    let first = link.last().expect("fired after the dwell");
+    harness.advance(ms(DWELL_MS) - MS);
+    assert_eq!(link.last(), None, "not a millisecond before the dwell");
+    harness.advance(MS);
+    let first = link.last().expect("fired at the dwell");
     assert_eq!(first.corner, Corner::TopLeft);
     assert_eq!(first.output, OutputId(support::fake::output().id.0));
     // Staying inside fires nothing more.
@@ -144,6 +148,32 @@ fn leaving_and_the_rearm_lets_it_fire_again() {
         "a fresh firing after the leave and the re-arm"
     );
 }
+
+/// Fire once, leave at once, come back `after` the firing and stay for twice the dwell: the
+/// newest firing's sequence number.
+fn back_after(after: Duration) -> u64 {
+    let (mut harness, link) = start(settings());
+    harness.pointer_move(inside(&harness));
+    harness.advance(ms(DWELL_MS));
+    assert_eq!(link.last().map(|fired| fired.seq), Some(1));
+    harness.pointer_move(outside(&harness));
+    harness.advance(after);
+    harness.pointer_move(inside(&harness));
+    harness.advance(ms(DWELL_MS) * 2);
+    link.last().map_or(0, |fired| fired.seq)
+}
+
+#[test]
+fn the_rearm_ends_exactly_rearm_ms_after_the_firing() {
+    assert_eq!(back_after(ms(REARM_MS) - MS), 1, "a millisecond short");
+    assert_eq!(back_after(ms(REARM_MS)), 2, "re-armed at the re-arm's end");
+}
+
+fn ms(value: u16) -> Duration {
+    Duration::from_millis(u64::from(value))
+}
+
+const MS: Duration = Duration::from_millis(1);
 
 #[test]
 fn the_stylesheet_is_clean_under_strict() {

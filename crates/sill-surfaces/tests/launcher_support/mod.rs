@@ -9,13 +9,17 @@
 #[path = "../support/fake.rs"]
 pub mod fake;
 pub mod m9;
+mod runner;
+
+use runner::Answer;
+pub use runner::Runner;
 
 use std::sync::{Arc, Mutex};
 
 use sill_launcher::{
-    Action, ActionId, Activation, AppId, Choice, DesktopAction, Frecency, Generation, IconRef,
-    Item, ItemId, ItemKey, Placement, Provider, ProviderKind, Query, QueryShape, ResultSink, Score,
-    SectionPlan, SectionSpan, SettingsTarget, SystemCommand, UnixTime, WindowKey, place,
+    Action, ActionId, Activation, AppId, Choice, DesktopAction, Frecency, IconRef, Item, ItemId,
+    ItemKey, Placement, Provider, ProviderKind, Query, QueryShape, ResultSink, Score, SectionPlan,
+    SectionSpan, SettingsTarget, SystemCommand, UnixTime, WindowKey, place,
 };
 use sill_services::{
     Control, LaunchCommand, LaunchRequest, Results, SearchCommand, Services, WlCommand,
@@ -182,52 +186,39 @@ pub fn placed(rows: &[Item], text: &str, only: Option<ProviderKind>) -> Placemen
     }
 }
 
-/// Fake services whose search is answered by a runner thread, and their senders.
+/// Fake services whose search is answered by a runner thread, and their senders (the demo's
+/// window: its commands come from the window's thread).
 pub fn services() -> (Services, LauncherFeeds) {
+    let (services, feeds, runner) = services_with_runner();
+    runner.on_thread();
+    (services, feeds)
+}
+
+/// Fake services and the search runner that answers them, not yet running: a harness on the
+/// virtual clock runs it as a task on its own thread ([`Runner::run`]), where each answer lands
+/// within the `advance` that sent the query (off-thread work never does, quire Q380).
+pub fn services_with_runner() -> (Services, LauncherFeeds, Runner) {
     let (mut services, bar) = fake::services();
     let (results_tx, results_rx) = watch::channel(Results::default());
-    let (control, mut commands) = Control::channel();
+    let (control, commands) = Control::channel();
     services.results = results_rx;
     services.search = control;
     let searches = Arc::new(Mutex::new(Vec::new()));
-    let (log, tx) = (searches.clone(), results_tx.clone());
-    let (wl, launch, fakes) = (services.wl.clone(), services.launch.clone(), providers());
-    std::thread::spawn(move || {
-        let mut generation = 0;
-        let mut rows = Vec::new();
-        while let Some(command) = commands.blocking_recv() {
-            match &command {
-                SearchCommand::Query(text) | SearchCommand::Filtered { text, .. } => {
-                    generation += 1;
-                    rows = search(text);
-                    let only = match &command {
-                        SearchCommand::Filtered { provider, .. } => Some(*provider),
-                        _ => None,
-                    };
-                    let placement = placed(&rows, text, only);
-                    tx.send_replace(Results {
-                        generation: Generation(generation),
-                        items: placement.items,
-                        sections: placement.spans,
-                    });
-                }
-                SearchCommand::Chosen { key, choice } => {
-                    carry(&rows, key, choice, &fakes, &wl, &launch);
-                }
-                SearchCommand::Cancel => rows.clear(),
-                SearchCommand::Policy(_) => {}
-            }
-            if let Ok(mut log) = log.lock() {
-                log.push(command);
-            }
-        }
-    });
+    let answer = Answer {
+        results: results_tx.clone(),
+        searches: searches.clone(),
+        wl: services.wl.clone(),
+        launch: services.launch.clone(),
+        providers: providers(),
+        generation: 0,
+        rows: Vec::new(),
+    };
     let feeds = LauncherFeeds {
         bar,
         results: results_tx,
         searches,
     };
-    (services, feeds)
+    (services, feeds, Runner { commands, answer })
 }
 
 /// What the real runner does with a chosen row (sill-services `results/effect.rs`, FINDINGS

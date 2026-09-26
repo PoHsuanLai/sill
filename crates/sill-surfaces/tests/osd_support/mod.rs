@@ -9,7 +9,7 @@ pub mod fake;
 use std::cell::RefCell;
 
 use dioxus::prelude::*;
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Osd;
@@ -64,7 +64,8 @@ pub fn start(file: ShellFile) -> Running {
         height: CARD_HEIGHT + 2 * ROOM,
         scale_percent: 100,
     };
-    let harness = Harness::new(app, viewport);
+    let harness =
+        Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
     Running {
         harness,
         feeds,

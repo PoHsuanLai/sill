@@ -50,11 +50,15 @@ fn a_short_list_is_a_short_card_and_the_panel_takes_only_it() {
 
 #[test]
 fn more_rows_grow_the_card_and_the_actions_menu_takes_the_panel() {
-    let mut short = open("6*7");
-    measured(&mut short);
+    // One harness at a time: each installs its virtual clock on the thread while it lives.
+    let one = {
+        let mut short = open("6*7");
+        measured(&mut short);
+        card_height(&short)
+    };
     let mut long = open("fi");
     measured(&mut long);
-    let (one, four) = (card_height(&short), card_height(&long));
+    let four = card_height(&long);
     assert!(four > one, "four rows {four} px, one {one} px");
     assert_eq!(long.link.hit(), PanelHit::Card { height: four });
     long.scripted(LauncherKey::Actions);

@@ -1,7 +1,8 @@
 //! The real `NotificationCenter` in a `ds_native::Harness` (a Blitz document, no window) on the
 //! fake services, following a `CenterLink` the test writes, as the daemon's surfaces do. The
 //! history is fed through the fake's `watch` channel and the commands the center sends are read
-//! back from its queue: nothing here reaches a bus.
+//! back from its queue: nothing here reaches a bus. On the virtual clock (quire Q380): every
+//! timer and every frame's CSS move only with the test's `advance`.
 
 #![allow(dead_code)] // Each test binary uses its own subset.
 
@@ -12,7 +13,8 @@ use std::cell::RefCell;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds_native::{Harness, Viewport};
+use ds_native::harness::settle_until;
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{
     AppGroup, AppKey, AppRef, Body, Expiry, Hints, History, IconRef, Notification, NotificationId,
     NotificationsCommand, Services, UnixMs,
@@ -74,8 +76,7 @@ impl Running {
         self.harness.advance(Duration::from_millis(ms));
     }
 
-    /// Advance until `done` holds ([`settle`]): what a click test waits on, rather than a fixed
-    /// advance a loaded parallel run can outlast (G130).
+    /// Advance until `done` holds ([`settle`]): what a click test waits on.
     pub fn until(&mut self, done: impl Fn(&Harness) -> bool) {
         settle(&mut self.harness, done);
     }
@@ -106,7 +107,8 @@ pub fn start(file: ShellFile, history: History) -> Running {
             link: link.clone(),
         });
     });
-    let harness = Harness::new(app, VIEWPORT);
+    let harness =
+        Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
     Running {
         harness,
         feeds,
@@ -124,16 +126,10 @@ pub fn opened(history: History) -> Running {
     running
 }
 
-/// Advance until `done` holds, at most [`STEPS`] frames of the harness's own clock; then one
-/// more frame's worth. Bounded by steps, not the wall clock, so a loaded machine running the
-/// whole workspace cannot time it out (G130, M9 gate).
+/// Advance until `done` holds (`settle_until`, which fails with the document if it never does);
+/// then one more frame's worth.
 pub fn settle(harness: &mut Harness, done: impl Fn(&Harness) -> bool) {
-    for _ in 0..STEPS {
-        if done(harness) {
-            break;
-        }
-        harness.advance(Duration::from_millis(20));
-    }
+    settle_until(harness, done);
     harness.advance(Duration::from_millis(20));
 }
 

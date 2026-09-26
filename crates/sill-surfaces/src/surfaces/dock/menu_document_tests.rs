@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Alpha, Appearance, Availability, MaterialStack, MenuEntry, ShellMetrics, Trail};
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_launcher::WindowKey;
 use sill_services::Cpx;
 use tokio::sync::mpsc;
@@ -79,7 +79,8 @@ fn the_frame_has_the_popups_height_and_a_press_picks_an_item() {
         height: u32::try_from(size.height).unwrap_or(1),
         scale_percent: 100,
     };
-    let mut harness = Harness::new(app, viewport);
+    let mut harness =
+        Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
     harness.advance(Duration::from_millis(300));
     let height = f32::from(u16::try_from(size.height).unwrap_or(0));
     for selector in ["html", ".sill-dock-popup-frame", ".ds"] {

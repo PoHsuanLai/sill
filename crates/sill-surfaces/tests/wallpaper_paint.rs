@@ -7,10 +7,10 @@ mod support;
 
 use std::cell::RefCell;
 use std::path::PathBuf;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds_native::{Backdrop, Harness, Viewport};
+use ds_native::{Backdrop, Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{OutputName, Services, WallpaperImage, Wallpapers};
 use sill_surfaces::Wallpaper;
 use tokio::sync::watch;
@@ -61,14 +61,15 @@ fn paint(fed: Wallpapers, done: impl Fn(&image::RgbaImage) -> bool) -> image::Rg
     let (_tx, rx) = watch::channel(fed);
     services.wallpapers = rx;
     SERVICES.with(|s| *s.borrow_mut() = Some(services));
-    let mut harness = Harness::new(app, VIEWPORT);
-    let until = Instant::now() + Duration::from_secs(2);
+    let mut harness =
+        Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
+    let until = harness.now() + Duration::from_secs(2);
     loop {
         harness.advance(Duration::from_millis(20));
         let picture = harness
             .render_over(Backdrop::Clear)
             .expect("the wallpaper paints"); // test-only
-        if done(&picture) || Instant::now() >= until {
+        if done(&picture) || harness.now() >= until {
             return picture;
         }
     }

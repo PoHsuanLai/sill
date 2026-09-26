@@ -1,4 +1,4 @@
-//! The screenshot thumbnail in a Blitz harness, on the wall clock and the fake services: a ready
+//! The screenshot thumbnail in a Blitz harness, on the virtual clock and the fake services: a ready
 //! shot slides in (a pending one waits for its preview) and holds `screenshot.thumbnail_hold_ms`,
 //! then says it was kept and plays out; the pointer on it pauses the hold and leaving it gives the
 //! rest; a click opens it; a swipe right keeps it; Delete trashes it; a drag left or up hands it
@@ -74,16 +74,18 @@ fn a_shot_slides_in_holds_and_is_kept() {
             .is_some_and(|s| s.starts_with("file://") && s.ends_with("Screenshot_fixture.png")),
         "{src:?}"
     );
+    // The hold starts as the ready shot shows, 20 ms ago.
     running
         .harness
-        .advance(Duration::from_millis(HOLD_MS - 200));
-    assert_eq!(running.cards(), 1, "held");
-    assert_eq!(running.commands(), Vec::new());
+        .advance(Duration::from_millis(HOLD_MS - 20 - 1));
     assert_eq!(
-        running.until(Duration::from_millis(600), |r| r.leaving() == 1),
-        Done::Yes,
-        "the hold runs out"
+        (running.cards(), running.leaving()),
+        (1, 0),
+        "held a millisecond before the hold's end"
     );
+    assert_eq!(running.commands(), Vec::new());
+    running.harness.advance(Duration::from_millis(1));
+    assert_eq!(running.leaving(), 1, "the hold runs out at its end");
     assert_eq!(running.commands(), leave(1, ShotLeave::Kept));
     running.cleared();
     assert_eq!(

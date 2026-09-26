@@ -1,5 +1,7 @@
 //! The real `Launcher` in a `ds_native::Harness` (a Blitz document, no window), opened on the
-//! fake services with their search runner: keys and time as a user gives them.
+//! fake services with their search runner: keys and time as a user gives them. The harness runs
+//! on the virtual clock (quire Q380) and the runner as a task on its thread, so what a test sees
+//! depends only on what it did, never on how loaded the machine is.
 
 #![allow(dead_code)] // Each test binary uses its own subset.
 
@@ -7,11 +9,12 @@
 pub mod launcher_support;
 
 use std::cell::RefCell;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds_native::{Harness, Viewport};
-use launcher_support::{LauncherFeeds, fake};
+use ds_native::harness::settle_until;
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use launcher_support::{LauncherFeeds, Runner, fake};
 use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Launcher;
@@ -31,6 +34,8 @@ struct World {
 
 thread_local! {
     static WORLD: RefCell<Option<World>> = const { RefCell::new(None) };
+    /// The next harness's search runner, taken by its root.
+    static RUNNER: RefCell<Option<Runner>> = const { RefCell::new(None) };
 }
 
 /// The root: the daemon's contexts (the harness provides the measurer), then the panel.
@@ -44,6 +49,11 @@ fn app() -> Element {
     use_context_provider(|| world.link.clone());
     use_context_provider(|| world.providers.clone());
     use_context_provider(|| world.script.clone());
+    use_hook(|| {
+        if let Some(runner) = RUNNER.with(|r| r.borrow_mut().take()) {
+            spawn(runner.run());
+        }
+    });
     rsx! {
         Launcher { output: fake::output() }
     }
@@ -71,7 +81,8 @@ impl Open {
 
 /// The launcher opened with `query` typed, once its rows (or its empty state) have drawn.
 pub fn open(query: &str) -> Open {
-    let (services, feeds) = launcher_support::services();
+    let (services, feeds, runner) = launcher_support::services_with_runner();
+    RUNNER.with(|r| *r.borrow_mut() = Some(runner));
     let link = LauncherLink::new();
     link.open(fake::output().id, query.to_owned());
     let (script, script_rx) = watch::channel(Scripted::default());
@@ -89,7 +100,7 @@ pub fn open(query: &str) -> Open {
         height: 460 + 66,
         scale_percent: 100,
     };
-    let mut harness = Harness::new(app, viewport);
+    let mut harness = Harness::with_config(app, virtual_clock(viewport));
     settle(&mut harness, |h| {
         h.count(".ds-menu-item") > 0 || h.count(".ds-menu-empty") > 0
     });
@@ -101,12 +112,15 @@ pub fn open(query: &str) -> Open {
     }
 }
 
-/// Advance until `done` holds, at most two seconds; then one more frame's worth.
+/// `viewport` on the virtual clock.
+pub fn virtual_clock(viewport: Viewport) -> HarnessConfig {
+    HarnessConfig::new(viewport).with_clock(Clock::Virtual)
+}
+
+/// Advance until `done` holds (`settle_until`, which fails with the document if it never does);
+/// then one more frame's worth.
 pub fn settle(harness: &mut Harness, done: impl Fn(&Harness) -> bool) {
-    let until = Instant::now() + Duration::from_secs(2);
-    while !done(harness) && Instant::now() < until {
-        harness.advance(Duration::from_millis(20));
-    }
+    settle_until(harness, done);
     harness.advance(Duration::from_millis(20));
 }
 

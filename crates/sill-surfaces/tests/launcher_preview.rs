@@ -225,7 +225,7 @@ fn shift_tab_with_nothing_typed_reaches_emoji_alone() {
     let mut open = open("");
     press(&mut open, LinkKey::ShiftTab);
     press(&mut open, LinkKey::ShiftTab);
-    settle(&mut open.harness, |h| h.count(".ds-menu-item") == 3);
+    settle(&mut open.harness, |h| h.count(".ds-emoji-cell") == 3);
     let shown = rows(&open);
     assert_eq!(headings(&open), ["Emoji"]);
     assert_eq!(shown.sections[0].rows, ["🎉", "👍", "🦊"]);

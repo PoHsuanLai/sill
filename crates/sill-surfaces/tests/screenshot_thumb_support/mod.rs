@@ -9,10 +9,10 @@ pub mod fake;
 
 use std::cell::RefCell;
 use std::path::PathBuf;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{Services, Shot, ShotCommand, ShotId, ShotPreview, Shots};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::ScreenshotThumb;
@@ -64,7 +64,8 @@ pub enum Done {
 }
 
 impl Running {
-    /// Publish shot `id` as current with `preview`.
+    /// Publish shot `id` as current with `preview`, taken at this instant (a feed's wake runs at
+    /// the next stop of an `advance`, G311).
     pub fn shot(&mut self, id: u64, preview: ShotPreview) {
         self.feeds.shots.send_replace(Shots {
             current: Some(Shot {
@@ -75,6 +76,7 @@ impl Running {
             last_id: ShotId(id),
             ..Shots::default()
         });
+        self.harness.advance(Duration::ZERO);
     }
 
     /// Publish shot `id` with the fixture as its ready preview.
@@ -85,6 +87,7 @@ impl Running {
     /// The service dropping its current shot (it did, after a `Leave`).
     pub fn cleared(&mut self) {
         self.feeds.shots.send_replace(Shots::default());
+        self.harness.advance(Duration::ZERO);
     }
 
     /// Every command sent since the last call.
@@ -108,10 +111,10 @@ impl Running {
         self.harness.centre(".ds-shot-picture").expect("a card") // test-only
     }
 
-    /// Advance in 20 ms steps until `done`, at most `limit` of wall time.
+    /// Advance in 20 ms steps until `done`, at most `limit` of the harness's clock.
     pub fn until(&mut self, limit: Duration, done: impl Fn(&Running) -> bool) -> Done {
-        let end = Instant::now() + limit;
-        while Instant::now() < end {
+        let end = self.harness.now() + limit;
+        while self.harness.now() < end {
             self.harness.advance(Duration::from_millis(20));
             if done(self) {
                 return Done::Yes;
@@ -156,7 +159,7 @@ pub fn start(file: ShellFile) -> Running {
         scale_percent: 100,
     };
     Running {
-        harness: Harness::new(app, viewport),
+        harness: Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual)),
         feeds,
         link,
     }

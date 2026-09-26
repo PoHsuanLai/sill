@@ -10,7 +10,7 @@ pub mod fake;
 use std::cell::RefCell;
 
 use dioxus::prelude::*;
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{
     Action, ActionKey, AppRef, BannerLife, Body, Expiry, Hints, IconRef, LiveBanner, Notification,
     NotificationId, Notifications, NotificationsCommand, Services, UnixMs,
@@ -52,12 +52,14 @@ pub struct Running {
 }
 
 impl Running {
-    /// Publish `banners` (newest first) as the service would.
+    /// Publish `banners` (newest first) as the service would, taken at this instant (a feed's
+    /// wake runs at the next stop of an `advance`, G311).
     pub fn show(&mut self, banners: Vec<LiveBanner>) {
         self.feeds.notifications.send_replace(Notifications {
             banners,
             ..Notifications::default()
         });
+        self.harness.advance(std::time::Duration::ZERO);
     }
 
     /// Every command sent since the last call.
@@ -87,10 +89,11 @@ impl Running {
             .expect("a card") // test-only
     }
 
-    /// Advance in 20 ms steps until `done`, at most `limit`; whether it happened.
+    /// Advance in 20 ms steps until `done`, at most `limit` of the harness's clock; whether it
+    /// happened.
     pub fn until(&mut self, limit: std::time::Duration, done: impl Fn(&Running) -> bool) -> Done {
-        let end = std::time::Instant::now() + limit;
-        while std::time::Instant::now() < end {
+        let end = self.harness.now() + limit;
+        while self.harness.now() < end {
             self.harness.advance(std::time::Duration::from_millis(20));
             if done(self) {
                 return Done::Yes;
@@ -126,7 +129,7 @@ pub fn start(file: ShellFile) -> Running {
         scale_percent: 100,
     };
     Running {
-        harness: Harness::new(app, viewport),
+        harness: Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual)),
         feeds,
         link,
     }

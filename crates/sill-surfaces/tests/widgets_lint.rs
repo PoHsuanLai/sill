@@ -12,7 +12,7 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds::lint::{LintConfig, Profile, assert_clean, markup};
 use ds::{Ds, Material, RootExtent};
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
 use sill_surfaces::DesktopWidgets;
@@ -97,7 +97,8 @@ fn html_of(host: Option<WidgetHost>) -> String {
         height: 800,
         scale_percent: 100,
     };
-    let mut harness = Harness::new(app, viewport);
+    let mut harness =
+        Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
     for _ in 0..10 {
         harness.advance(Duration::from_millis(40));
     }

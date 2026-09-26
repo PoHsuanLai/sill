@@ -8,10 +8,10 @@
 pub mod fake;
 
 use std::cell::RefCell;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use shell_host::OutputId;
 use sill_services::auth::UserName;
 use sill_services::polkit_agent::{
@@ -103,7 +103,8 @@ pub fn start(on: OutputId) -> Running {
             link: link.clone(),
         });
     });
-    let harness = Harness::new(app, VIEWPORT);
+    let harness =
+        Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
     Running {
         harness,
         feeds,
@@ -146,11 +147,9 @@ pub fn shown(view: PromptView) -> Running {
     running
 }
 
-/// Advance until `done` holds, at most two seconds; then one more frame's worth.
+/// Advance until `done` holds (`settle_until`, which fails with the document if it never does);
+/// then one more frame's worth.
 pub fn settle(harness: &mut Harness, done: impl Fn(&Harness) -> bool) {
-    let until = Instant::now() + Duration::from_secs(2);
-    while !done(harness) && Instant::now() < until {
-        harness.advance(Duration::from_millis(20));
-    }
+    ds_native::harness::settle_until(harness, done);
     harness.advance(Duration::from_millis(20));
 }

@@ -13,7 +13,7 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds::lint::{LintConfig, Profile, markup};
 use ds::{Appearance, Ds, Material};
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use jiff::civil::Date;
 use jiff::tz::TimeZone;
 use jiff::{Timestamp, ToSpan, Zoned};
@@ -81,13 +81,14 @@ fn start(kind: Kind, file: ShellFile, agenda: Agenda) -> Running {
             kind,
         });
     });
-    let mut harness = Harness::new(
+    let mut harness = Harness::with_config(
         app,
-        Viewport {
+        HarnessConfig::new(Viewport {
             width: 380,
             height: 420,
             scale_percent: 100,
-        },
+        })
+        .with_clock(Clock::Virtual),
     );
     harness.advance(Duration::from_millis(60));
     Running {

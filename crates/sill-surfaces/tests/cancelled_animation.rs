@@ -7,7 +7,7 @@
 
 use dioxus::prelude::*;
 use ds::{Point, Px};
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use std::time::Duration;
 
 const CSS: &str = "@keyframes slide{ from{ transform:translateX(400px); } to{ transform:none; } }
@@ -37,7 +37,7 @@ fn at(x: f32, y: f32) -> Point {
 
 /// Take the animation away, `after` into it, then let two seconds pass.
 fn cancelled(after: u64) -> Harness {
-    let mut h = Harness::new(app, VIEWPORT);
+    let mut h = Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
     h.advance(Duration::from_millis(after));
     h.click(at(620.0, 20.0));
     h.advance(Duration::from_millis(2000));

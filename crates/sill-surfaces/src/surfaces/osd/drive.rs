@@ -4,7 +4,7 @@
 //! has settled (`on_hidden`), and move it when `osd.position` or the gap changes. Once hidden and
 //! gone, no task runs and nothing asks for a frame.
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use dioxus::core::Task;
 use dioxus::prelude::*;
@@ -36,7 +36,7 @@ pub(crate) struct Drawn {
 /// Run `output`'s indicator with `times`; returns what to draw.
 pub(crate) fn use_osd(link: &OsdLink, output: OutputId, now_times: OsdTimes) -> Drawn {
     let latest = use_watch(link.subscribe());
-    let clock = use_hook(|| FrameClock::new(Instant::now()));
+    let clock = use_hook(FrameClock::started);
     // A surface respawned after a close does not replay the change before it.
     let mut seen = use_hook(|| CopyValue::new(link.now().serial()));
     let mut shown = use_signal(|| None::<OsdChange>);
