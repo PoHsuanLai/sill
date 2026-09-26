@@ -1,37 +1,37 @@
-//! sill's own lock screen (design/20 §1.9; M11 lane a; FINDINGS "M11 freeze" F524): one
+//! sill's own lock screen (design/20 §1.9; M11 lane a; FINDINGS "M11 freeze" F544): one
 //! `ext-session-lock-v1` surface per output, which shell-host creates when the daemon locks
-//! (`crates/sill/src/lock/`), never a layer surface. Each draws the output's pre-blurred
-//! wallpaper crop ([`backdrop::backdrop_for`]) under a `Window`-material root and quire's
-//! `LockClock`; the output [`LockLink`] names also draws quire's `LockPrompt`: the avatar, the
-//! name, the password field, the caps-lock mark, the shake on a wrong password
-//! ([`view::prompt_state`]). The field's Enter sends `AuthCommand::Submit` to the auth service;
-//! the daemon unlocks when `Auth.phase` becomes `Accepted`, never the surface.
+//! (`crates/sill/src/lock/`), never a layer surface. Each draws quire's `LockScreen` stage in
+//! `Ds { material: Window, extent: Viewport }`: the output's pre-blurred wallpaper crop
+//! ([`backdrop::backdrop_for`]), quire's `LockClock` ([`view::clock_lines`]) and, on the output
+//! [`LockLink`] names, quire's `LockPrompt` ([`view::lock_user`], [`view::prompt_state`],
+//! [`view::caps_lock`]). quire's field holds the text and hands it over only in `onsubmit`, which
+//! the surface wraps in a `Secret` at once and sends as `AuthCommand::Submit`; it is never kept
+//! in a signal. Escape (quire's) empties the field.
+//!
+//! When `Auth.phase` becomes `Accepted` every lock surface fades out (design/20 §1.9: `fade`
+//! `--t-move --e-exit`, quire's motion timer) and the prompt's calls shell-host's
+//! `use_lock().unlock()` when its fade settles; the daemon unlocks as a backstop if that never
+//! comes. A surface never decides a password itself.
 //!
 //! Keyboard: a lock surface always has it (the compositor gives it to one of them); the daemon
 //! moves [`LockLink`] to whichever lock surface gains focus, so the prompt is where typing goes.
-//! Escape clears the field ([`keys::lock_key`]).
-//!
-//! quire's M11 parts (`LockClock`, `LockPrompt`) have not landed; `parts.rs` is the one file
-//! that names them, and draws nothing until they do (FINDINGS F530).
 
 pub mod backdrop;
-pub mod keys;
 pub mod link;
 pub mod view;
 
-mod parts;
 mod screen;
 
 pub use backdrop::backdrop_for;
-pub use keys::{FieldText, LockKey, LockKeyOut, lock_key};
 pub use link::{LockLink, PromptOutput};
-pub use view::{CapsLock, ClockLines, PromptState, caps_lock, clock_lines, prompt_state};
+pub use view::{ClockLines, caps_lock, clock_lines, lock_user, prompt_state};
 
 use dioxus::prelude::*;
 use shell_host::OutputInfo;
 
 /// The lock screen on `output`. Needs a [`LockLink`] root context beside the daemon's usual
-/// ones (the daemon's lock factory gives it one).
+/// ones (the daemon's lock factory gives it one) and shell-host's lock handle (shell-host gives
+/// every lock document one).
 #[component]
 pub fn LockScreen(output: OutputInfo) -> Element {
     screen::lock_screen(output)

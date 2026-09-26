@@ -1,4 +1,4 @@
-//! The app switcher on the daemon's side (M11 lane c; FINDINGS "M11 freeze" F528, F529): one
+//! The app switcher on the daemon's side (M11 lane c; FINDINGS "M11 freeze" F548, F549): one
 //! warm hidden switcher surface per output, `sill switcher next|prev|cancel|commit` written to
 //! the [`SwitcherLink`] for the output the switcher opens on, and `sill debug switcher`.
 //!

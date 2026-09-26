@@ -361,7 +361,8 @@ pub fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostE
         | HostEvent::OutputChanged(_)
         | HostEvent::OutputRemoved(_) => reconcile_outputs(ctx, outputs),
         HostEvent::SurfaceClosed { id, reason } => on_surface_closed(outputs, id, reason),
-        HostEvent::KeyboardFocus { .. } => {}
+        // M11: answered by `run_event` (`crate::lock::on_host_event`), which holds the lock.
+        HostEvent::KeyboardFocus { .. } | HostEvent::Lock { .. } => {}
         HostEvent::App(ShellMsg::Settings(file)) => {
             resize_bars(ctx, outputs, &file);
             ctx.set_scroll_config(crate::scroll::config(&file));
@@ -702,10 +703,8 @@ fn lock_factory(
     let services = services.clone();
     let settings_feed = settings_feed.clone();
     let link = link.clone();
-    crate::lock::host::LockFactory(Box::new(move |info: &OutputInfo| {
-        let props = sill_surfaces::surfaces::lock::LockScreenProps {
-            output: info.clone(),
-        };
+    crate::lock::host::LockFactory(Box::new(move |info: OutputInfo| {
+        let props = sill_surfaces::surfaces::lock::LockScreenProps { output: info };
         surface_root(
             Root::with_props(sill_surfaces::LockScreen, props),
             &services,

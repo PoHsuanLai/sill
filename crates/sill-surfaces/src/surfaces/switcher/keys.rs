@@ -1,4 +1,4 @@
-//! The switcher's keys and the chord's release (F529): pure.
+//! The switcher's keys and the chord's release (F549): pure.
 //!
 //! Which modifier holds the chord: COSMIC binds `Alt+Tab` and `Super+Tab` to the switcher, and
 //! Toshy turns a physical Cmd+Tab into `Alt+Tab` with Alt held for as long as Cmd is

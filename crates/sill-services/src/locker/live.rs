@@ -1,5 +1,9 @@
 //! The locker service's loop: turns commands, logind's signals, the locker's words and the clock
 //! into [`LockerEvent`]s, steps the machine, performs its effects and publishes [`Lock`].
+//!
+//! M11 (lane a): in `LockerMode::Own` the loop also keeps [`super::marker`]'s file (written on
+//! `Shell(Locked)`, removed on `Shell(Unlocked | Finished | Refused)`) and, right after a mode
+//! resolves to `Own`, locks at once when [`super::marker::restore_on_start`] says so.
 
 use std::time::Instant;
 
@@ -104,7 +108,9 @@ impl Live {
             LockerCommand::Shell(event) => {
                 let event = match event {
                     ShellLockEvent::Locked => LockerEvent::Reported,
-                    ShellLockEvent::Finished | ShellLockEvent::Refused => LockerEvent::Exited,
+                    ShellLockEvent::Unlocked
+                    | ShellLockEvent::Finished
+                    | ShellLockEvent::Refused => LockerEvent::Exited,
                 };
                 self.feed(event).await;
             }
@@ -181,7 +187,7 @@ impl Live {
                 let plan = match &self.mode {
                     LockerMode::Run { plan, .. } => plan,
                     // The daemon follows the published phase onto shell-host's session lock and
-                    // answers with `LockerCommand::Shell` (FINDINGS F524).
+                    // answers with `LockerCommand::Shell` (FINDINGS F544).
                     LockerMode::Own { .. } => return None,
                     LockerMode::Off | LockerMode::Delegate => return Some(LockerEvent::Exited),
                 };

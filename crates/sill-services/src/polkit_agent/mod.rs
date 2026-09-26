@@ -1,11 +1,11 @@
 //! sill's own polkit authentication agent (design/20 §1.10, M11; FINDINGS "M11 freeze"
-//! F525-F527), chosen by `session.polkit_agent = "sill"`. The daemon's own process registers
+//! F545-F547), chosen by `session.polkit_agent = "sill"`. The daemon's own process registers
 //! `org.freedesktop.PolicyKit1.AuthenticationAgent` for its logind session; polkitd calls
 //! `BeginAuthentication` when a program of that session needs an administrator (`pkexec`, a
 //! settings page), the service publishes a [`PromptView`] the polkit prompt surface draws, and
 //! the typed secret goes to polkit's own helper, never through sill's PAM.
 //!
-//! How agents authenticate (researched, F525): an agent never checks a password itself, and
+//! How agents authenticate (researched, F545): an agent never checks a password itself, and
 //! never needs root. It hands the request's cookie to `polkit-agent-helper-1` (setuid root;
 //! `/usr/lib/polkit-1/` on Fedora and Arch, `/usr/libexec/` on Debian), which runs PAM as the
 //! chosen identity and, on success, tells polkitd itself (`AuthenticationAgentResponse2`), so a

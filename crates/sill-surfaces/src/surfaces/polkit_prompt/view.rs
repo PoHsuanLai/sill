@@ -1,36 +1,23 @@
-//! What the polkit prompt shows and what its keys do: pure.
+//! What the polkit prompt hands quire's `PolkitPrompt`: pure.
 
+use ds::{LockUser, PromptState};
 use sill_services::Polkit;
-use sill_services::auth::PamNote;
-use sill_services::polkit_agent::{Cookie, Echo, LastTry, PromptPhase};
+use sill_services::polkit_agent::{Cookie, PromptView};
 
-/// quire's `PolkitPrompt` props, as sill computes them (sill's mirror until quire lands).
+/// quire's `PolkitPrompt` props that follow the request (the rest are the surface's handlers).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PolkitPromptView {
+    /// A new cookie remounts the prompt (its entrance plays again).
     pub cookie: Cookie,
-    /// The identity asked for: its login name (the avatar's initials come from it).
-    pub user: String,
-    /// The action's sentence.
-    pub message: String,
-    /// The helper's prompt (`Password:` trimmed of its colon and space); `Password` while the
-    /// helper starts.
-    pub placeholder: String,
-    pub echo: Echo,
-    /// The field and Authenticate are disabled while the helper starts or checks.
-    pub busy: Busy,
-    /// Shake once when this is `Wrong` and the phase went back to asking.
-    pub last: LastTry,
-    /// The details (`action_id` first, then polkitd's details) for the `HoverCard`.
-    pub details: Vec<(String, String)>,
-    /// The helper's error and info lines, the newest last.
-    pub notes: Vec<PamNote>,
-}
-
-/// Whether the prompt can take an answer.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Busy {
-    Ready,
-    Busy,
+    /// `action`: the action's own sentence.
+    pub action: String,
+    /// `detail`: the action id, then polkitd's details as `key: value` lines; `None` with none.
+    pub detail: Option<String>,
+    /// `user`: the identity asked for, an initials face at 48.
+    pub user: LockUser,
+    /// `state`: `Starting` and `Checking` are `Checking` (the field closed); `Asking` is `Idle`,
+    /// or `Wrong` right after a failed try (`LastTry::Wrong`: it shakes once and empties).
+    pub state: PromptState,
 }
 
 /// The view of the request on screen; `None` when there is none.
@@ -38,58 +25,40 @@ pub fn prompt_view(polkit: &Polkit) -> Option<PolkitPromptView> {
     todo!("M11 fill: b-polkit ({polkit:?})")
 }
 
-/// A key the prompt acts on.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PolkitKey {
-    Enter,
-    Escape,
-}
-
-/// What a key does.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PolkitKeyOut {
-    /// `PolkitCommand::Answer` with the field's text.
-    Answer,
-    /// `PolkitCommand::Dismiss`.
-    Cancel,
-    Nothing,
-}
-
-/// Enter answers while `Ready`, Escape always cancels (design/06).
-pub fn polkit_key(key: PolkitKey, busy: Busy) -> PolkitKeyOut {
-    todo!("M11 fill: b-polkit ({key:?} {busy:?})")
-}
-
-/// The helper's prompt as a placeholder: trailing `:` and whitespace trimmed; empty is
-/// `Password`.
-pub fn placeholder_of(phase: &PromptPhase) -> String {
-    todo!("M11 fill: b-polkit ({phase:?})")
+/// The detail line block for `view` (see [`PolkitPromptView::detail`]).
+pub fn detail_of(view: &PromptView) -> Option<String> {
+    todo!("M11 fill: b-polkit ({view:?})")
 }
 
 #[cfg(test)]
 mod tests {
+    use ds::PromptState;
     use sill_services::Polkit;
     use sill_services::auth::UserName;
     use sill_services::polkit_agent::{
         ActionId, Cookie, Echo, LastTry, PromptPhase, PromptView, Registration,
     };
 
-    use super::{Busy, PolkitKey, PolkitKeyOut, placeholder_of, polkit_key, prompt_view};
+    use super::{detail_of, prompt_view};
 
-    fn polkit(phase: PromptPhase) -> Polkit {
+    fn view(phase: PromptPhase, last: LastTry) -> PromptView {
+        PromptView {
+            cookie: Cookie("c1".to_owned()),
+            action_id: ActionId("org.example.run".to_owned()),
+            message: "Run it?".to_owned(),
+            icon: String::new(),
+            details: vec![("program".to_owned(), "/usr/bin/true".to_owned())],
+            user: UserName("ada".to_owned()),
+            phase,
+            last,
+            notes: Vec::new(),
+        }
+    }
+
+    fn polkit(view: PromptView) -> Polkit {
         Polkit {
             registration: Registration::Registered,
-            current: Some(PromptView {
-                cookie: Cookie("c1".to_owned()),
-                action_id: ActionId("org.example.run".to_owned()),
-                message: "Run it?".to_owned(),
-                icon: String::new(),
-                details: vec![("program".to_owned(), "/usr/bin/true".to_owned())],
-                user: UserName("ada".to_owned()),
-                phase,
-                last: LastTry::Wrong,
-                notes: Vec::new(),
-            }),
+            current: Some(view),
             waiting: 0,
         }
     }
@@ -98,49 +67,35 @@ mod tests {
     #[ignore = "M11 fill: b-polkit"]
     fn the_view_follows_the_phase() {
         assert_eq!(prompt_view(&Polkit::default()), None);
-        let asking = PromptPhase::Asking {
+        let asking = || PromptPhase::Asking {
             prompt: "Password: ".to_owned(),
             echo: Echo::Hidden,
         };
-        let view = prompt_view(&polkit(asking)).unwrap_or_else(|| panic!("shown"));
-        assert_eq!(view.placeholder, "Password");
-        assert_eq!(view.busy, Busy::Ready);
-        assert_eq!(view.last, LastTry::Wrong);
-        assert_eq!(
-            view.details,
-            vec![
-                ("action".to_owned(), "org.example.run".to_owned()),
-                ("program".to_owned(), "/usr/bin/true".to_owned()),
-            ]
-        );
-        for phase in [PromptPhase::Starting, PromptPhase::Checking] {
-            let view = prompt_view(&polkit(phase)).unwrap_or_else(|| panic!("shown"));
-            assert_eq!(view.busy, Busy::Busy);
+        let cases = [
+            (asking(), LastTry::None, PromptState::Idle),
+            (asking(), LastTry::Wrong, PromptState::Wrong),
+            (PromptPhase::Starting, LastTry::Wrong, PromptState::Checking),
+            (PromptPhase::Checking, LastTry::None, PromptState::Checking),
+        ];
+        for (phase, last, want) in cases {
+            let shown =
+                prompt_view(&polkit(view(phase.clone(), last))).unwrap_or_else(|| panic!("shown"));
+            assert_eq!(shown.state, want, "{phase:?} {last:?}");
+            assert_eq!(shown.action, "Run it?");
+            assert_eq!(shown.user.name, "ada");
+            assert_eq!(shown.user.avatar.initial, 'A');
         }
     }
 
     #[test]
     #[ignore = "M11 fill: b-polkit"]
-    fn keys_and_placeholders() {
+    fn the_details() {
         assert_eq!(
-            polkit_key(PolkitKey::Enter, Busy::Ready),
-            PolkitKeyOut::Answer
+            detail_of(&view(PromptPhase::Starting, LastTry::None)).as_deref(),
+            Some("org.example.run\nprogram: /usr/bin/true")
         );
-        assert_eq!(
-            polkit_key(PolkitKey::Enter, Busy::Busy),
-            PolkitKeyOut::Nothing
-        );
-        assert_eq!(
-            polkit_key(PolkitKey::Escape, Busy::Busy),
-            PolkitKeyOut::Cancel
-        );
-        let asking = |prompt: &str| PromptPhase::Asking {
-            prompt: prompt.to_owned(),
-            echo: Echo::Hidden,
-        };
-        assert_eq!(placeholder_of(&asking("Password: ")), "Password");
-        assert_eq!(placeholder_of(&asking("Passwort:")), "Passwort");
-        assert_eq!(placeholder_of(&asking("")), "Password");
-        assert_eq!(placeholder_of(&PromptPhase::Starting), "Password");
+        let mut bare = view(PromptPhase::Starting, LastTry::None);
+        bare.details.clear();
+        assert_eq!(detail_of(&bare).as_deref(), Some("org.example.run"));
     }
 }

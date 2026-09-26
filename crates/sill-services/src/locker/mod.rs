@@ -15,6 +15,7 @@ mod choice;
 mod live;
 mod logind;
 mod machine;
+pub mod marker;
 
 pub use choice::{
     COSMIC_LOCKED_LINE, GRACE_MS, Host, KnownLocker, LockerChoice, LockerMode, LockerPlan,
@@ -39,7 +40,7 @@ pub struct Lock {
     /// The running locker's process, once there is one.
     pub pid: Option<Pid>,
     /// Who draws the lock screen in the current mode. With `Shell`, the daemon holds
-    /// shell-host's session lock whenever `phase` is not `Unlocked` (M11, FINDINGS F524).
+    /// shell-host's session lock whenever `phase` is not `Unlocked` (M11, FINDINGS F544).
     pub drawer: LockDrawer,
 }
 
@@ -59,11 +60,13 @@ pub enum LockDrawer {
 pub enum ShellLockEvent {
     /// The compositor granted the lock (`ext_session_lock_v1.locked`): the machine's `Reported`.
     Locked,
-    /// The lock ended: unlocked after a right password, or the compositor ended it
-    /// (`finished`); the machine's `Exited`.
+    /// Unlocked after a right password: the machine's `Exited`.
+    Unlocked,
+    /// The compositor ended the lock itself, or refused it because another client holds one
+    /// (`finished`): also `Exited`.
     Finished,
-    /// The host cannot lock (no `ext-session-lock-v1`, or a lock already held by another
-    /// client): also `Exited`, so the next Lock can try again.
+    /// The host cannot lock (no `ext-session-lock-v1`): also `Exited`, so the next Lock can try
+    /// again.
     Refused,
 }
 

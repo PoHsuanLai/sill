@@ -1,5 +1,5 @@
 //! The lock screen's backdrop (design/20 §1.9: "the Window material with a pre-blurred wallpaper
-//! crop"; M11, FINDINGS F524): beside every prepared wallpaper image the service writes a
+//! crop"; M11, FINDINGS F544): beside every prepared wallpaper image the service writes a
 //! blurred copy of the same size, so the lock surface only loads a file and never blurs on the
 //! UI thread (Blitz has no CSS `filter: blur`).
 

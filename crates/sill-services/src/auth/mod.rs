@@ -1,11 +1,11 @@
 //! The password check behind sill's own lock screen (design/20 §1.9, M11; FINDINGS "M11 freeze"
-//! F520-F523). The lock surface sends the typed secret ([`AuthCommand::Submit`]); the service
+//! F540-F543). The lock surface sends the typed secret ([`AuthCommand::Submit`]); the service
 //! runs it through an [`Authenticator`] off the UI thread, counts failures through the pure
-//! [`lockout`] machine, and publishes [`Auth`], whose [`AuthPhase::Accepted`] is what the daemon
-//! unlocks on. The polkit prompt does not come through here: polkit's own helper runs PAM for it
+//! [`lockout`] machine, and publishes [`Auth`], whose [`AuthPhase::Accepted`] is what the lock
+//! surfaces unlock on (the daemon as a backstop). The polkit prompt does not come through here: polkit's own helper runs PAM for it
 //! (`crate::polkit_agent`).
 //!
-//! How lockers authenticate without root (researched, FINDINGS F520): PAM's `pam_unix` sees a
+//! How lockers authenticate without root (researched, FINDINGS F540): PAM's `pam_unix` sees a
 //! caller that is not root and runs the setuid `unix_chkpwd` helper, which checks the caller's
 //! own password against `/etc/shadow` and nobody else's. swaylock (MIT) runs PAM in a forked
 //! child that it talks to over a pipe (service `swaylock`, whose file is `auth include login`);

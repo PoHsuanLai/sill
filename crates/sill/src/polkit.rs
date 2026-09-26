@@ -1,4 +1,4 @@
-//! sill's own polkit agent on the daemon's side (M11 lane b; FINDINGS "M11 freeze" F526): the
+//! sill's own polkit agent on the daemon's side (M11 lane b; FINDINGS "M11 freeze" F546): the
 //! agent's policy from `session.polkit_agent` ([`spawn_policy`]: `Own` only for `sill`; the
 //! service stays passive until the first policy), one warm hidden prompt surface per output,
 //! `sill polkit status`, and `sill debug polkit`.
@@ -6,7 +6,7 @@
 //! Registering an agent is per logind session: nested under KDE, the daemon shares KDE's
 //! session, whose agent (polkit-kde) already holds it, so polkitd refuses sill's
 //! (`Registration::Refused`), and that is the right outcome there. Acceptance runs the agent on
-//! a private bus with a stand-in Authority (F527), never on the system bus.
+//! a private bus with a stand-in Authority (F547), never on the system bus.
 
 use shell_host::{HostCtx, OutputInfo, Root};
 use sill_ipc::{

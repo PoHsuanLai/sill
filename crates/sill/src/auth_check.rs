@@ -1,4 +1,4 @@
-//! `sill auth-check`: the lock screen's PAM helper (FINDINGS "M11 freeze" F520). The auth
+//! `sill auth-check`: the lock screen's PAM helper (FINDINGS "M11 freeze" F540). The auth
 //! service runs it once per attempt (`sill_services::auth::PamHelper`): it reads the whole
 //! request from stdin (`protocol::decode_request`), runs PAM (`pam::check`), writes the notes
 //! and the outcome on stdout (`protocol::render_line`), and exits 0 (an unreadable request is

@@ -35,6 +35,7 @@ impl Authenticator for PamHelper {
     /// [`super::protocol::encode_request`] to the child's stdin and closes it, reads its lines
     /// until it exits or `timeout` passes (then kills it), and folds them with
     /// [`super::protocol::verdict_of`]; a child that cannot start is `Unavailable(NoHelper)`.
+    /// The encoded request's bytes are zeroed once written; the secret is never logged.
     fn check(&self, attempt: &Attempt) -> Verdict {
         todo!("M11 fill: a-lock ({attempt:?})")
     }

@@ -14,7 +14,7 @@
 //!
 //! Anything else is a command line run by `/bin/sh -c`, also taken as locked after the grace.
 //!
-//! `sill` is sill's own lock screen (M11, FINDINGS "M11 freeze" F524): no program, the shell's
+//! `sill` is sill's own lock screen (M11, FINDINGS "M11 freeze" F544): no program, the shell's
 //! own `ext-session-lock-v1` surfaces through shell-host, drawn by `sill-surfaces`' lock screen.
 
 use std::path::PathBuf;

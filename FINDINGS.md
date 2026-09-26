@@ -4452,3 +4452,397 @@ Q183, Q190, G120 (for sill) and G130 close.
   126 x 132, missing the frame's top padding by 3.5 px. No file this branch touches is on the
   path to that component; not investigated further (quire is a sibling repo, out of this
   task's scope, and shared with other concurrent work).
+
+## M11 freeze (2026-09-26)
+
+sill's own lock screen, polkit prompt and app switcher (design/20 §1.9, §1.10, §1.11; design/13
+§13.3.5), a choice (`sill`) beside M7's borrowed locker and polkit agent, frozen on
+`m11-freeze` so three agents can fill them in parallel and a fourth can prove them under real
+input. Everything compiles; every pure function a lane fills is `todo!()` with its table test
+`#[ignore = "M11 fill: <lane>"]` (30: 16 a-lock, 9 b-polkit, 5 c-switcher), every component
+draws nothing, both new services' `live::run` return at once, and every daemon follower a lane
+fills is a no-op, so the suite stays green and `sill run` starts. Findings are numbered from
+F540/Q240/G180 (F520-F531 went to the scroll engine); the lanes take F560/Q250/G190 (a),
+F580/Q260/G200 (b), F600/Q270/G210 (c) and F620/Q280/G220 (d).
+
+Both upstreams landed while the freeze ran, and the freeze is written against their real
+shapes, not the announced ones: shell-host's session lock (its F65, on its master) and quire's
+M11 parts (quire master `89f0e37`, CONSUMING "Lock, polkit and switcher").
+
+Arc heuristics (quire design/09 §5): the lock screen and the polkit prompt serve none of the
+seven directly, so they are chrome and stay as small and conventional as macOS's (09 §5), with
+every choice a key (H6: `session.locker`, `session.polkit_agent`, `session.lock_clock`); the
+switcher serves H5 (fewer icons, more shortcuts: Cmd+Tab, then Q and H on the selection, is
+the habit it teaches).
+
+### Research
+
+- **F540 How a locker checks a password without root.** PAM's `pam_unix`, run by a process that
+  is not root, calls the setuid helper `unix_chkpwd` (here `/usr/sbin/unix_chkpwd`, mode
+  `rwsr-xr-x`), which checks only the calling user's own password against `/etc/shadow`
+  (`unix_chkpwd(8)`); a user-level locker needs nothing but a PAM service file. The lockers of
+  record: **swaylock** (MIT) forks a child first and runs PAM there, talking to it over a pipe
+  (`pam.c`, `comm.c`; service `swaylock`, whose file is `auth include login`); **hyprlock**
+  (BSD-3) runs PAM on a thread of its own (service `hyprlock`); **cosmic-greeter**'s locker
+  (GPL-3.0, read at `epoch-1.8.0` for facts only) calls `pam-client` on tokio's blocking pool
+  with service `cosmic-greeter`, `authenticate` then `acct_mgmt`. None of their PAM files is
+  installed here (Fedora 44 has `login`, `system-auth`, `password-auth`, `kde`, `kscreensaver`).
+  **sill takes swaylock's shape**: `sill_services::auth::PamHelper` runs `sill auth-check` (a
+  hidden subcommand, `crates/sill/src/auth_check.rs`) once per attempt, writes the service, the
+  user and the secret NUL-terminated on its stdin, and reads `info`/`error` lines and one of
+  `accepted`/`refused`/`fault WORD` back (`auth::protocol`). The child calls PAM
+  (`auth::pam::check`: `authenticate` then `account_management`; the first hidden prompt gets
+  the secret, a later prompt a conversation error). A module that hangs (a network directory, a
+  fingerprint reader) is killed with its child after `CHECK_TIMEOUT` (15 s) instead of wedging a
+  thread, and the daemon never holds a PAM handle. The service is `sill` when a file for it
+  exists in `/etc/pam.d`, `/usr/lib/pam.d` or `/usr/etc/pam.d` (`dist/pam.d/sill`: `auth include
+  login`, `account include login`, swaylock's shape), else `login` (`auth::pam::service`).
+- **F541 Dependencies: `nonstick` 0.1.2 (MIT) added** (sill-services), with `libpam-sys`,
+  `libpam-sys-impls` and `libpam-sys-helpers` 0.2 (all MIT): a safe API (`TransactionBuilder`,
+  `ConversationAdapter`) over pre-generated bindings, so it builds without system headers or
+  libclang (0.8 s in a scratch crate here). Rejected, each tried in a scratch crate on this
+  machine: `pam` 0.8.0 (MIT/Apache) and `pam-client` 0.5.0 (MPL-2.0, cosmic-greeter's) both need
+  `pam-sys` 1.0.0-alpha5, whose build script runs bindgen and fails with no `libclang.so`; `pam`
+  also brings `users` 0.11, unmaintained. No polkit crate: the agent is `zbus` 5 (pinned) plus
+  polkit's own helper process (F545); libpolkit-agent-1 would need FFI, which `unsafe_code =
+  "deny"` rules out. `cargo deny check licenses`: `licenses ok`; the boundary holds.
+- **F545 How a polkit agent authenticates.** An agent never checks a password and never needs
+  root: it passes the request's cookie to `polkit-agent-helper-1` (setuid root; `/usr/lib/
+  polkit-1/` on Fedora and Arch, `/usr/libexec/` on Debian and Ubuntu), which runs PAM as the
+  chosen identity and on success tells polkitd itself (`AuthenticationAgentResponse2`), so an
+  agent cannot forge an answer. libpolkit-agent-1's `PolkitAgentSession` (under polkit-gnome,
+  polkit-kde and lxqt-policykit; LGPL, not linked) and cosmic-osd's own Rust version
+  (`subscriptions/polkit_agent_helper.rs`, GPL-3.0, facts only) speak one line protocol: with
+  polkit 124+'s socket-activated helper (`/run/polkit/agent-helper.socket`) the agent connects
+  and writes the user name and the cookie, a line each; otherwise it runs the setuid helper with
+  the user name as its argument and writes the cookie on stdin. The helper writes
+  `PAM_PROMPT_ECHO_OFF <prompt>`, `PAM_PROMPT_ECHO_ON <prompt>`, `PAM_ERROR_MSG <text>`,
+  `PAM_TEXT_INFO <text>`, then `SUCCESS` or `FAILURE`; a prompt is answered with one line.
+  cosmic-osd retries a request three times. On this machine: polkit 127 (`rpm -q polkit`), the
+  setuid helper at `/usr/lib/polkit-1/polkit-agent-helper-1`, and `polkit-agent-helper.socket`
+  installed but disabled and inactive (its service runs `polkit-agent-helper-1
+  --socket-activated` on the socket), so the setuid helper is the route. The identity asked for
+  is the session's own user when listed, else root, else the first `unix-user` (GNOME Shell's
+  and cosmic-osd's rule). Registration: `org.freedesktop.PolicyKit1.Authority.
+  RegisterAuthenticationAgent(("unix-session", {"session-id": <logind id>}), locale,
+  object_path)`; the agent object is `org.freedesktop.PolicyKit1.AuthenticationAgent` with
+  `BeginAuthentication(s action_id, s message, s icon_name, a{ss} details, s cookie, a(sa{sv})
+  identities)`, answered when the request completes (errors `org.freedesktop.PolicyKit1.Error.
+  Cancelled` / `.Failed`), and `CancelAuthentication(s cookie)`.
+- **F549 How Cmd+Tab reaches sill.** COSMIC's shortcut defaults (`/usr/share/cosmic/
+  com.system76.CosmicSettings.Shortcuts/v1/defaults`) bind `Alt+Tab` and `Super+Tab` to
+  `System(WindowSwitcher)` and both with Shift to `WindowSwitcherPrevious`; `system_actions`
+  runs `cosmic-launcher alt-tab` / `shift-alt-tab` for them. cosmic-comp has no switcher code of
+  its own (its 1.0 source has "switcher" only in the action names): the action spawns the
+  command, and cosmic-launcher sees the release because its layer surface takes the keyboard
+  (`Exclusive`) and reads the modifiers. Toshy maps physical Cmd+Tab to `Alt+Tab` with `bind`
+  (`~/.config/toshy/toshy_config.py`: `C("RC-Tab"): [getDK(), bind, C("Alt-Tab"), setDK(None)]`,
+  `Shift-RC-Tab` likewise), which keeps Alt held for as long as Cmd is, so the compositor sees
+  Alt+Tab and the release as Alt going up. So `dist/cosmic`'s `system_actions` gains
+  `WindowSwitcher: "sill switcher next"` and `WindowSwitcherPrevious: "sill switcher prev"`
+  (lane c); the switcher surface maps at the chord with keyboard `Exclusive` (before the panel
+  shows) and reads the release as a key-up of `Alt` or `Meta` (`surfaces::switcher::keys::
+  chord_after_keyup`; a key-up's modifiers are still the state before it, since
+  `wl_keyboard.modifiers` follows the key). A release before the surface has the keyboard (a
+  quick tap racing the `sill switcher next` process, the IPC and the map) is never a key event:
+  G180.
+
+### What is frozen
+
+- **F542 The auth service** (`sill_services::auth`, `Services.auth` / `auth_control`). `Auth {
+  account, phase, failures, notes }`, `AuthPhase::{Idle, Checking, Wrong, LockedOut { until:
+  UnixMs }, Accepted, Unavailable(AuthFault)}`, `AuthCommand::{Submit(Secret), Reset,
+  Fake(FakeVerdict)}`. `Secret` never prints (`Secret(..)`), is never serialised, and zeroes its
+  bytes on drop; the helper's request bytes are zeroed after writing and after reading. The seam
+  is `trait Authenticator { fn check(&self, &Attempt) -> Verdict }` (blocking, on the blocking
+  pool) with `PamHelper` and `FakeAuthenticator { rule: FakeRule::{Accepts(text), RefusesAll,
+  Fails(fault)}, delay }` (implemented); `spawn` uses `PamHelper::this_exe()`, `spawn_with` any
+  authenticator. The pure `lockout` machine: a submit while checking or waiting is `Busy` (a held
+  Return queues nothing); `LockoutPolicy::DEFAULT` is five free tries, then 60 s, doubling to
+  15 min (macOS's "try again in 1 minute"); `Unavailable` is never counted; a new lock (`Reset`)
+  keeps the count and never shortens a wait. **The numbers are constants, not settings**,
+  deliberately (a lockout is a security decision; flagged for the user). Nothing runs PAM
+  before a `Submit`, so `Services::spawn` in a test checks nothing.
+- **F543 Caps Lock** comes from the lock surface's own key events: shell-host's
+  `modifiers_from` sets `Modifiers::CAPS_LOCK` from xkb's locked state, and a lock surface
+  always has the keyboard (`surfaces::lock::view::caps_lock` into quire's `CapsLock`). The state
+  before the first key is not known (G180).
+- **F544 The own lock** (`session.locker = "sill"`). `LockerChoice::Own` resolves to
+  `LockerMode::Own { triggers }` (logind followed only in a sill session, as for a program),
+  which the machine sees as `Runner::Runs`: the M7 machine is unchanged, and the sleep delay and
+  the logind triggers work as for a program. `Lock` gains `drawer: LockDrawer::{Program, Shell}`;
+  with `Shell` a `Spawn` starts nothing and the daemon follows the phase onto shell-host's
+  session lock, answering with `LockerCommand::Shell(ShellLockEvent::{Locked, Unlocked,
+  Finished, Refused})` (`Locked` is the machine's `Reported`, the rest `Exited`). M7's borrowed
+  paths are untouched. The daemon side (`crates/sill/src/lock/`): `lock_wish(&Lock, &Auth)`
+  (held while the drawer is `Shell` and the phase is not `Unlocked`, until `Accepted`);
+  `spawn_follower` sends `ShellMsg::Lock(wish)`; `apply` resets the auth service, points the
+  `LockLink` at the main display and calls `lock_session` with a `LockFactory` of `LockScreen`s
+  (`daemon::lock_factory`: `surface_root` plus the link); `on_host_event` turns `HostEvent::Lock`
+  into `ShellLockEvent`s and moves the prompt to the lock surface that gains the keyboard. **The
+  unlock is the lock surface's**: on `Accepted` every lock surface fades (`--t-move --e-exit`)
+  and the prompt's calls `shell_host::use_lock().unlock()` when its fade settles; the daemon's
+  `unlock_session` is a backstop after `UNLOCK_BACKSTOP_MS` (1.5 s). The surface
+  (`sill_surfaces::surfaces::lock`, one per output): quire's `LockScreen { wallpaper, clock,
+  prompt }` in `Ds { Window, Viewport }` with `LockClock` (`clock_lines`, `session.lock_clock`)
+  and, on the `LockLink` output, `LockPrompt` (`lock_user`, `prompt_state`: `LockedOut`'s
+  `until` worded as the lock clock words a time, `caps_lock`); `onsubmit`'s text becomes a
+  `Secret` at once and is never kept in a signal. The backdrop is a blurred copy the wallpaper
+  service writes beside each prepared image (`wallpaper::backdrop_file`:
+  `<hash>-<w>x<h>-backdrop.png`, `ensure_backdrop`), since Blitz blurs nothing. **Re-lock after
+  a crash**: a compositor keeps the session locked when its locker dies (F381), and
+  `dist/sill-session` restarts `sill run`; no protocol says whether a session is locked, so the
+  service keeps `$XDG_RUNTIME_DIR/sill/locked` while its own lock is `Locked`, and a starting
+  service in `Own` mode that finds it locks at once (`locker::marker`; a stale marker costs one
+  password prompt, never an open session). **Recommendation: keep `auto` (the borrowed locker)
+  as the default** until lane a's acceptance passes on the nested cosmic-comp and the user has
+  done the "Needs a sill login" checks (a real password, lock before sleep, a crash while
+  locked); then make `auto` prefer `sill` wherever `ext-session-lock-v1` is present. A lock
+  screen that fails open, or locks its person out, costs more than a borrowed one that looks
+  different.
+- **F546 The own polkit agent** (`sill_services::polkit_agent`, `Services.polkit` /
+  `polkit_control`), chosen by `session.polkit_agent = "sill"` (`AgentChoice::Own`; `sill
+  polkit-agent` then execs nothing). **Passive until the daemon's first
+  `PolkitCommand::Policy`** (`crates/sill/src/polkit.rs` `spawn_policy`: `Own` exactly for
+  `sill`), so a test never touches the system bus. `Setup { bus: PolkitBus::{System, Address},
+  helper: HelperChoice::{System, Use(route)}, session: SessionChoice::{Ours, Id} }` lets every
+  live test run on a private bus with a stand-in Authority and a stand-in helper. Pure parts:
+  `pick_identity`, `helper_route`, `opening`, `parse_helper_line`, and the reducer
+  `reduce(PolkitState, PolkitEvent) -> (PolkitState, Vec<PolkitEffect>)` (one request on screen,
+  the rest queued; `MAX_TRIES` 3 helper runs; `Completion::{Authorized, Cancelled, Failed}`),
+  whose rules are its module doc. `dbus.rs` holds the `#[interface]` object, the `DBusError`
+  errors and the Authority `#[proxy]`, so the macros are proven to build; `BeginAuthentication`
+  waits on a oneshot until its request completes. The prompt (`surfaces::polkit_prompt`,
+  `sill-polkit-<out>`): one warm hidden Overlay per output (full-output, keyboard `Exclusive`,
+  input `Whole`, blur on the sheet), shown on the banners' output while a request is current,
+  drawing quire's `PolkitPrompt` from `prompt_view` (`Starting` and `Checking` are quire's
+  `Checking`, `Asking` is `Idle` or `Wrong` right after a failed try, `detail` the action id and
+  polkitd's details); Enter, Escape and the scrim are quire's. Nested under KDE the daemon shares
+  KDE's logind session, whose agent (polkit-kde) holds it, so polkitd refuses sill's
+  (`Registration::Refused`), which is correct; only a sill login registers for real.
+- **F547 No test reaches polkitd, the system bus, or PAM with a real password.** Live tests use
+  `tests/support/private_bus.rs` (F264) with lane b's stand-in Authority (it records the subject
+  and calls `BeginAuthentication` on sill's agent) and stand-in helper (a program speaking F545's
+  protocol that accepts one fixed secret); the auth tests use `FakeAuthenticator`. The one live
+  PAM test lane a may add runs only when `SILL_PAM_TEST_USER` and `SILL_PAM_TEST_SECRET` name a
+  throwaway account and is skipped, saying so, otherwise; this machine has no such account.
+  `sill debug auth accept` is refused by a daemon built without `debug` (`Unsupported`: an IPC
+  request must never unlock a real session), and scripts run a debug daemon only on the nested
+  compositor.
+- **F548 The switcher.** `sill_services::switcher` is pure (no task: the switcher keeps no state
+  outside the surface's machine): `switcher_apps(&Toplevels, &AppIndex) -> Vec<SwitcherApp { app,
+  windows, shown: AppShown::{Visible, AllMinimized} }>` groups the MRU toplevels by app
+  (`match_app`, else the raw `app_id`); `activate`, `quit`, `hide` turn a verb into
+  `WlCommand`s. The surface (`surfaces::switcher`): the frozen M4-era `machine` (show delay, quick
+  tap, Tab, grave, arrows, Q, H, Escape, hover, click) now drives `SwitcherPanel { output }`, one
+  warm hidden Overlay per output (`switcher_layer`: full-output, keyboard `Exclusive`, input and
+  blur on the panel only, radius 18); `SwitcherLink` carries numbered `SwitcherAsk::{Chord(Dir),
+  Cancel, Commit, Fake(apps)}` from the daemon (implemented); `keys::{sw_key,
+  chord_after_keyup}` read keys and the release; `tiles::{tiles, metrics_of, key_of, index_of,
+  output_width}` feed quire's `AppSwitcher` (keyed by `AppKey`, which `index_of` turns back into
+  the machine's index). It opens on the banners' output (the pointer's output is not known to the
+  daemon, F140). The show delay's `Tick` is driven by quire's timer (rule 4);
+  `switcher.quick_tap_ms` is registered but the machine treats any release before the show delay
+  as the quick tap (Q242).
+- **F550 quire's M11 parts** landed on quire master (`89f0e37`) during the freeze, and sill uses
+  them directly: `ds::{LockScreen, LockClock, LockPrompt, LockUser, PromptState, CapsLock,
+  LockLook, PolkitPrompt, AppSwitcher, SwitcherApp, AppKey, TilePresence, SwitcherMetrics,
+  switcher_fit}`. sill's view functions return quire's own types (`PromptState`, `CapsLock`,
+  `LockUser`, quire's `SwitcherApp` tiles), so no adapter file is needed. Styling nothing under
+  `.ds-lock*`, `.ds-polkit*`, `.ds-switcher*`. quire's `LockUser` carries an initials face only
+  (Q243).
+- **F551 shell-host's session lock** landed on shell-host's master (its F65) during the freeze;
+  `crates/sill/src/lock/host.rs` is written against it: `HostCtx::lock_session(LockConfig {
+  namespace: "sill-lock" }, factory: Fn(OutputInfo) -> Root) -> Result<LockId,
+  LockError::{Unsupported, InProgress}>`, `unlock_session(LockId)`, `lock_surfaces(LockId)`,
+  `HostEvent::Lock { id, state: LockState::{Locked, Unlocked, Finished} }`, and in documents
+  `use_lock()` (`unlock()` sends `unlock_and_destroy` at the next flush) and `use_lock_phase()`.
+  `SessionLockHost` is the seam the daemon's lock logic is written against, so its table tests
+  use a fake host. KWin 6.7.5 has no `ext-session-lock-v1` (`Unsupported`); cosmic-comp 1.8
+  locks. `on_event` gains the `HostEvent::Lock` arm (answered in `run_event`); sill master's
+  coming no-op arm (branch `host-lock-arm`) merges into it.
+- **F552 IPC and CLI** (`sill-ipc/src/session.rs`, `crates/sill/src/cli_session.rs`, wire lines
+  pinned in `sill-ipc/tests/serde.rs`): `Request::Switcher(SwitcherRequest::{Next, Prev, Cancel,
+  Commit})` (`sill switcher next|prev|cancel|commit`); `Request::LockStatus(Status)` (`sill lock
+  status`, answered `Response::Lock(LockReport { phase, drawer })`; `sill lock` alone is `sill
+  lock now`, M7's `Request::Lock`); `Request::Polkit(Status)` (`sill polkit status`,
+  `Response::Polkit(PolkitReport { registration, showing, waiting })`);
+  `DebugRequest::Auth(FakeAuth::{Accept, Refuse})` (`sill debug auth accept|refuse`);
+  `DebugRequest::Polkit(FakePolkit { action_id, message })` (`sill debug polkit [--action]
+  [--message]`; its stand-in helper accepts `sill-fake`); `DebugRequest::Switcher(FakeSwitcher {
+  apps })` (`sill debug switcher APP...`: opens at once on made-up apps whose Q, H and release
+  touch no window); the hidden `sill auth-check`. Daemon: `ShellMsg::Lock(LockWish)`,
+  `Links.{switcher, lock}` (in every root), `OutputSurfaces.{polkit_prompt, switcher}` (in `debug
+  stats`); hooks `use_auth`, `use_polkit`, `use_locker`.
+- **F553 Settings.** `session.locker` and `session.polkit_agent` gain the word `sill` (their help
+  text says so; their design/22 rows need the alternative, Q241). New: `session.lock_clock`
+  (`LockClock::{H24, H12}`, default `H24`, the bar clock's), in `AWAITING_ROWS`. `switcher.*`
+  already has its rows (§3.11: `show_delay_ms` 150, `quick_tap_ms`, `icon_size_px` 96,
+  `cell_size_px` 112, `cell_gap_px` 8, `overflow_min_icon_px` 48); nothing is added there.
+  Considered and not registered: `session.lock_grace_s` (macOS's "require password after sleep
+  begins": a lock any key opens within N seconds is a security trade-off for the user to
+  decide), and the lockout numbers (F542).
+
+### The M11 fill-in: three agents, disjoint files, then real input
+
+Every agent reads CONVENTIONS §0 and §1 (fill bodies, add private helpers and tests; never
+change a frozen signature, public field or variant; stop and report instead), ORCHESTRATION
+"Coherence rules", design/20 §1.9-§1.11, design/13 §13.3.5, quire design/09 §5, quire
+CONSUMING "Lock, polkit and switcher", and this section. Everyone runs, before reporting:
+
+```bash
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace --features sill/debug
+./scripts/check-boundary.sh
+cargo deny check licenses
+```
+
+**Safety, binding on every lane.** Never lock `wayland-0` (the user's KDE session): a script
+that locks sets `WAYLAND_DISPLAY=wayland-1` (the nested cosmic-comp), pings it first
+(`WAYLAND_DISPLAY=wayland-1 wayland-info >/dev/null`) and **never stops or restarts it**; a lock
+left behind is recovered with `WAYLAND_DISPLAY=wayland-1 cargo run -p sill-services --example
+session_locker -- 0` (F381). Never register a polkit agent on the real session or system bus
+(private bus only, F547). Never call PAM with the user's real password (fakes; the
+throwaway-user test only). Never quit or minimise the user's real windows: switcher scripts use
+`sill debug switcher` or windows the script starts inside the nested compositor. A script that
+starts `sill run` gives it its own `XDG_RUNTIME_DIR` (with `WAYLAND_DISPLAY` as an absolute
+socket path) and a scratch `XDG_CONFIG_HOME`, so latchkey's lock and the lock marker are the
+script's. Files not listed under an agent are read-only to all: in particular
+`sill-services/src/{lib.rs,services.rs}`, `sill-surfaces/src/hooks/**`,
+`sill-surfaces/tests/support/fake.rs`, `sill-settings/**`, `sill-ipc/**`, and
+`crates/sill/src/{daemon.rs,cli.rs,cli_session.rs,links.rs,outputs.rs,msg.rs,main.rs}`.
+
+**(a) a-lock: the auth service, the own lock and the lock surface** (09 §5 chrome; H6).
+- Owns: `crates/sill-services/src/auth/**`; `crates/sill-services/src/locker/**` (the `Own`
+  mode and the marker; M7's paths may not change behaviour); `crates/sill-services/src/
+  wallpaper/{backdrop.rs,resize.rs}` and the one `ensure_backdrop` call in `wallpaper/mod.rs`'s
+  `publish`; new `crates/sill-services/tests/auth_live.rs` and a stand-in helper example (its
+  `[[example]]` entry only); `crates/sill-surfaces/src/surfaces/lock/**`; new
+  `tests/{lock_render,lock_lint}.rs`; `crates/sill/src/lock/**`; `crates/sill/src/auth_check.rs`;
+  `dist/pam.d/sill`; a new `dev/accept-lock.sh`; the lock's entries in `docs/manual-checks.md`.
+- Frozen: every `pub` item `sill_services::auth` exports; `LockerChoice::Own`, `LockerMode::Own`,
+  `Lock.drawer`, `LockDrawer`, `ShellLockEvent`, `LockerCommand::Shell`, `locker::marker`'s API;
+  `wallpaper::{backdrop_file, ensure_backdrop, BACKDROP_SIGMA_AT_1920}`; `surfaces::lock`'s
+  exports (`LockScreen { output }`, `LockLink`, `PromptOutput`, `ClockLines`, `caps_lock`,
+  `prompt_state`, `lock_user`, `clock_lines`, `backdrop_for`); `crate::lock::{LockWish,
+  lock_wish, ShellLock, spawn_follower, apply, on_host_event, status, report_of, fake_auth,
+  UNLOCK_BACKSTOP_MS}` and `lock::host`'s API.
+- Done: the 16 `a-lock` tests pass un-ignored; `auth::live::run` (its module doc) and
+  `PamHelper`; the locker's marker and restore; the backdrop written beside each prepared image;
+  the lock surface as `screen.rs`'s doc says; `spawn_follower`, `apply`, `on_host_event` as their
+  docs say; the unlock fade and `use_lock().unlock()`.
+- Verify: the gates; `cargo test -p sill-services --test auth_live -- --ignored --nocapture`
+  (a `FakeAuthenticator` through `spawn_with`: wrong five times then locked out with a
+  wall-clock `until`, `Busy` while checking, `Fake`, `Reset`; `PamHelper` against the stand-in
+  helper, including one killed at a shortened timeout; the throwaway-user PAM test, skipped here);
+  `dev/accept-lock.sh` on the nested cosmic-comp (`wayland-1`, pinged first, never stopped), a
+  `--features debug` daemon with `session.locker = "sill"`: (1) `sill lock`, then `sill lock
+  status` says `locked`/`shell` within 1 s, and `session_locker 3` (a second lock client) is
+  refused while it holds; (2) `sill debug stats` lists `sill-lock/<out>` for every output, and
+  a capture of the prompt's surface shows the clock and the field (`dev/out/lock-cosmic.png`);
+  (3) `sill debug auth refuse` keeps it locked; (4) `sill debug auth accept` unlocks within the
+  fade plus 500 ms (`status` unlocked, no `sill-lock/*` in stats); (5) kill the daemon while
+  locked and start it again: it locks at once (the marker), and `sill debug auth accept`
+  unlocks; (6) a release build answers `sill debug auth accept` with `unsupported`. Whatever
+  fails, the script ends with the recovery lock-and-unlock.
+
+**(b) b-polkit: the agent and its prompt** (09 §5 chrome; H6).
+- Owns: `crates/sill-services/src/polkit_agent/**`; `crates/sill-services/tests/polkit_live.rs`;
+  new examples `polkit_authority` (a stand-in Authority on a private bus) and `polkit_helper` (a
+  stand-in helper) with their `[[example]]` entries; `crates/sill-surfaces/src/surfaces/
+  polkit_prompt/**` (the implemented `layer.rs` may change inside, never in signature); new
+  `tests/{polkit_prompt_render,polkit_prompt_lint}.rs`; `crates/sill/src/polkit.rs`; a new
+  `dev/accept-polkit.sh`; the polkit entries in `docs/manual-checks.md`.
+- Frozen: every `pub` item `sill_services::polkit_agent` exports (types, fields, variants,
+  `Setup` and its enums, `spawn`, `spawn_with`, `FAKE_SECRET`, `MAX_TRIES`, `AGENT_PATH`),
+  `AgentChoice::Own`, `AgentMode::Own`; `PolkitPrompt { output }`, `polkit_layer`, `PANEL_ID`,
+  `PolkitPromptView`, `prompt_view`, `detail_of`; `crate::polkit::{policy_of, spawn_policy,
+  spawn_missing, namespace, dispatch, report_of, fake}`. `dbus.rs` is private: its D-Bus names
+  and signatures are polkit's.
+- Done: the 9 `b-polkit` tests pass un-ignored; `live::run` (its module doc) with the helper as a
+  `kill_on_drop` child or the socket; the prompt as `panel.rs`'s doc says.
+- Verify: the gates; `cargo test -p sill-services --test polkit_live -- --ignored --nocapture`
+  on a private bus (F264): (1) `Policy(Own)` registers, and the stand-in Authority saw
+  `("unix-session", {"session-id": <the Setup's id>})` and `AGENT_PATH`; (2) a
+  `BeginAuthentication` publishes a `PromptView`, and an `Answer` of the stand-in's secret makes
+  the call return; (3) three wrong answers make it fail `...Error.Failed`; (4)
+  `CancelAuthentication` makes it fail `...Error.Cancelled` and clears the view; (5)
+  `Policy(Off)` unregisters. `dev/accept-polkit.sh` on the nested compositor with a debug daemon
+  (`sill debug polkit` needs no registration, so nothing reaches the system bus): (1)
+  `sill-polkit-<out>` exists hidden; (2) `sill debug polkit` shows it (capture,
+  `dev/out/polkit-cosmic.png`) and `sill polkit status` says `showing` the action; (3) typing is
+  lane d's (debug injection has no keys); (4) 0 frames while hidden.
+
+**(c) c-switcher: the app switcher** (H5).
+- Owns: `crates/sill-services/src/switcher.rs`; `crates/sill-surfaces/src/surfaces/switcher/**`
+  (the implemented `machine.rs`, `layer.rs` and `link.rs` may change inside, never in
+  signature); new `tests/{switcher_render,switcher_lint}.rs`; `crates/sill/src/switcher.rs`;
+  `dist/cosmic/com.system76.CosmicSettings.Shortcuts/v1/system_actions` (the two switcher
+  lines); a new `dev/accept-switcher.sh`.
+- Frozen: `SwitcherApp`, `AppShown`, `switcher_apps`, `activate`, `quit`, `hide`; the machine's
+  public API; `SwitcherPanel { output }`, `switcher_layer`, `PANEL_ID`, `PANEL_RADIUS`,
+  `SwitcherLink`, `SwitcherAsk`, `SwitcherAsked`, `AskSerial`, `Chord`, `sw_key`,
+  `chord_after_keyup`, `tiles`, `metrics_of`, `key_of`, `index_of`, `output_width`;
+  `crate::switcher::{spawn_missing, namespace, ask_of, dispatch, fake, target}`.
+- Done: the 5 `c-switcher` tests pass un-ignored; the panel as `panel.rs`'s doc says;
+  `system_actions` binds the two switcher actions to `sill switcher next|prev`.
+- Verify: the gates; `dev/accept-switcher.sh` on the nested compositor (a debug daemon, three
+  `foot` windows the script starts on `wayland-1` with distinct app ids, never the user's): (1)
+  `sill-switcher-<out>` exists hidden; (2) `sill debug switcher a b c` shows the panel at once
+  (capture, `dev/out/switcher-cosmic.png`), `sill switcher next` moves the ring, `sill switcher
+  cancel` hides it and no toplevel changed; (3) `sill switcher next` then `sill switcher commit`
+  within 100 ms activates the previous app with no panel frames; (4) `next`, 300 ms, `next`,
+  `commit` activates the third app in MRU order; (5) 0 frames while hidden.
+
+**(d) d-real-input: after a, b and c are merged** (H5).
+- Owns: a new `dev/accept-m11-real-input.sh` and its entries in `docs/manual-checks.md`. No
+  source file: a bug is reported against its lane's files.
+- Done and verify: on shell-host's headless KWin (`scripts/dev/kwin-virtual.sh start`,
+  `fake-input.sh`, one fake-input client for the whole run: G50), the daemon on KWin's private
+  bus: (1) the switcher with real keys: `key Alt_L down`, `sill switcher next`, 300 ms, `key
+  Tab`, `key Alt_L up`: the panel showed and the release activated (the key-up path); the same
+  with the release 30 ms after the chord records whether the quick tap is seen or waits on G180;
+  Escape; Q on a window the script started (it closes); H (it minimises); (2) the polkit prompt
+  with real typing: `sill debug polkit`, a wrong secret and Return (it shakes and stays),
+  `sill-fake` and Return (it hides), Escape on a second one cancels it; (3) Caps Lock on shows the
+  mark on the polkit prompt. The lock screen's real typing is a manual check: KWin has no
+  `ext-session-lock-v1` (F551) and fake input cannot reach the nested cosmic-comp (F52). KWin is
+  stopped at the end.
+
+Needs a sill login (`docs/manual-checks.md`, lanes a and b add them): a real password on the own
+lock screen, lock before sleep and on logind's Lock, a crash while locked (kill the daemon: the
+session script restarts it and it re-locks), `pkexec true` answered by sill's own prompt.
+
+### Gaps found in the M11 freeze
+
+- **Q240 (quire), closed during the freeze** The M11 parts (`LockClock`, `LockPrompt`,
+  `PolkitPrompt`, `AppSwitcher`, `LockScreen`) landed on quire master `89f0e37` (F550).
+- **Q241 (design/22)** Rows for §3.19 (`tests/keys.rs` `AWAITING_ROWS`), and the two existing
+  rows' alternatives:
+
+  | Key | Type | Default | Range / Alt | Source | Status |
+  | --- | --- | --- | --- | --- | --- |
+  | `session.locker` | `String` | `"auto"` | `sill` (sill's own lock screen, M11), `auto` (cosmic-greeter, else swaylock, else hyprlock, whichever is installed; under cosmic-session, COSMIC's own resident locker), `off`, `cosmic-greeter`, `swaylock`, `hyprlock`, or a command line run by `/bin/sh -c` | `20-SURFACES.md#1-9-lock-screen-spec-tier-1`; sill FINDINGS "M7", "M11 freeze" F544 | proposed (2026-09-26) |
+  | `session.polkit_agent` | `String` | `"auto"` | `sill` (sill's own agent and prompt, M11), `auto` (polkit-kde, polkit-gnome, lxqt-policykit, polkit-mate, then cosmic-osd last), `off`, one of those names, or a command line run by `/bin/sh -c` | `20-SURFACES.md#1-10-polkit-prompt-spec-tier-1`; sill FINDINGS "M7", "M11 freeze" F546 | proposed (2026-09-26) |
+  | `session.lock_clock` | `LockClock::{H24,H12}` | `H24` | how sill's own lock screen writes the time: `14:05`, or `2:05` without AM/PM (macOS's lock screen) | `20-SURFACES.md#1-9-lock-screen-spec-tier-1`; sill FINDINGS "M11 freeze" F553 | proposed (M11 freeze, 2026-09-26) |
+
+  All Advanced, page Accounts. Later, not registered (F553): `session.lock_grace_s` (`Seconds`,
+  `0`, `0..=300`: after an idle lock, any key within this opens it without a password; macOS's
+  "Require password after sleep or screen saver begins"). design/20 §1.9's and §1.10's milestone
+  rows become "own at M11 behind `session.locker = sill` / `session.polkit_agent = sill`;
+  borrowed stays the default until the checks in F544 pass".
+- **Q242 (design/13)** §13.3.5's quick tap is "released before the show delay", and design/22
+  also has `switcher.quick_tap_ms` (100): two numbers for one rule. The frozen machine uses the
+  show delay only; design/13 should say what `quick_tap_ms` adds, or the row should go.
+- **Q243 (quire)** `LockUser`'s avatar is an initials `AvatarFace`; the person's picture
+  (AccountsService's `IconFile`, `~/.face`: `auth::Account.avatar`) has no slot yet (announced as
+  coming, with an animated picture).
+- **G180 (shell-host)** The keyboard's modifiers when a surface gains focus, and every
+  modifier-only change after: `wl_keyboard.enter` carries the held keys and a `modifiers` event
+  follows, but a document hears modifiers only on its next key or pointer event. The switcher
+  must know at focus whether the chord's modifier is already up (a quick tap that beat the map),
+  and the lock prompt whether Caps Lock is on before the first key. Wanted: `use_modifiers() ->
+  ReadSignal<Modifiers>` per focused surface (or the modifiers on `HostEvent::KeyboardFocus`).
+  Until then a quick tap that races the map leaves the switcher up until a key (Escape, or
+  pressing and releasing the modifier) closes it, and the caps-lock mark appears at the first key.

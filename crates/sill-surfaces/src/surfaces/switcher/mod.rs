@@ -1,5 +1,5 @@
 //! The app switcher (design/13 §13.3.5, design/20 §1.11; M11 lane c; FINDINGS "M11 freeze"
-//! F528, F529): Cmd+Tab over applications, not windows. COSMIC's `WindowSwitcher` /
+//! F548, F549): Cmd+Tab over applications, not windows. COSMIC's `WindowSwitcher` /
 //! `WindowSwitcherPrevious` shortcuts run `sill switcher next|prev`, which the daemon writes to
 //! the [`SwitcherLink`]; the switcher surface on the chosen output takes the keyboard
 //! (`Exclusive`) at once, so it sees the chord's modifier go up, and runs the pure [`machine`]:
@@ -10,21 +10,23 @@
 //! `sill_services::switcher::{activate, quit, hide}`.
 //!
 //! One warm, hidden Overlay per output ([`layer::switcher_layer`]), mapped from the chord until
-//! it closes, drawing nothing until the panel shows. quire's `AppSwitcher` has not landed;
-//! `parts.rs` is the one file that names it (F530).
+//! it closes, drawing nothing until the panel shows: quire's `AppSwitcher` in `Ds { material:
+//! Osd, chrome: Transparent }`, fed by [`tiles`].
 
 pub mod keys;
 pub mod layer;
 pub mod link;
 pub mod machine;
 
+pub mod tiles;
+
 mod panel;
-mod parts;
 
 pub use keys::{Chord, chord_after_keyup, sw_key};
 pub use layer::{PANEL_ID, PANEL_RADIUS, switcher_layer};
 pub use link::{AskSerial, SwitcherAsk, SwitcherAsked, SwitcherLink};
 pub use machine::{Dir, SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
+pub use tiles::{index_of, key_of, metrics_of, output_width, tiles};
 
 use dioxus::prelude::*;
 use shell_host::OutputInfo;

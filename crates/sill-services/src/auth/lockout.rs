@@ -1,6 +1,6 @@
 //! Failures and backoff for the lock screen's password field: pure, table-tested.
 //!
-//! Rules (FINDINGS F522; macOS's shape, "Try again in 1 minute" after repeated failures):
+//! Rules (FINDINGS F542; macOS's shape, "Try again in 1 minute" after repeated failures):
 //!
 //! - `Submit` while `Open` starts a check (`Check`); while `Checking` or `Waiting` it is refused
 //!   (`Busy`) and nothing is checked, so a held Return key cannot queue attempts.
@@ -20,7 +20,7 @@ use crate::units::Stamp;
 
 use super::types::{Attempts, Outcome};
 
-/// The numbers. Not settings (FINDINGS F522 says why): a lockout is a security decision.
+/// The numbers. Not settings (FINDINGS F542 says why): a lockout is a security decision.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LockoutPolicy {
     /// Failures allowed before any wait.
