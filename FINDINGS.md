@@ -4386,3 +4386,69 @@ Q183, Q190, G120 (for sill) and G130 close.
   layer surface has no portable source for held modifiers (shell-host F61). The wish stays in
   docs/cosmic-gaps.md as a fork item. An existing settings.toml line `modifier = ...` under
   `[hot_corners]` is kept in `extra` and ignored.
+
+## Scroll engine (branch `scroll-wire`, 2026-09-26)
+
+- F528 **sill's own `scroll` and `scrollbar` sections drive shell-host's engine
+  (`HostCtx::set_scroll_config`, shell-host FINDINGS F63).** `crates/sill/src/scroll.rs`
+  (new) maps `sill_settings::ScrollSettings` / `ScrollbarSettings` (design/22 §3.7 / §3.8) to
+  shell-host's `scroll::config::ScrollConfig` field by field: the two sides carry the same
+  keys under the same serde spelling but as two crates' own newtypes and enums (`Px`, `Ms`,
+  `Fraction`, `Scalar`; `NaturalScroll`, `Momentum`, `MomentumModel`, `RubberBand`,
+  `ScrollbarVisibility`, `TrackClick`), so a shared type was not available and the mapping is a
+  pure `fn config(&ShellFile) -> ScrollConfig`, table-tested (one row per enum this module
+  converts, plus a numeric field and the whole-default equality). `daemon.rs` calls it in three
+  places, all through the same function: `HostEvent::Started` (using the settings channel's
+  already-initial value, since `ctx` exists only inside `host.run`'s closure), every settled
+  `HostEvent::App(ShellMsg::Settings(file))` (the watcher), and `Request::Reload` (`sill
+  reload`, which only republishes the settings channel and previously touched nothing the host
+  reads — `resize_bars` has the same gap, pre-existing and out of scope here). `on_event`'s
+  frozen signature (F36) is respected: the Started call sits in `run_event`, not `on_event`,
+  since it needs the settings sender; the Settings-changed call sits in `on_event` beside
+  `resize_bars`, since it needs only the event's own payload.
+- F529 **`.sill-nc-column` carries `data-overscroll="band"`** (quire design/11 §11.3.7's
+  eligibility table): the whole notification-center column is one scroller (title, history and
+  the widgets slot together, notification_center.css's own comment), and it rubber-bands as
+  macOS's Notification Center does. The launcher's result list (Spotlight does not band) and
+  every menu (never band) carry nothing, unchanged.
+- F530 **dev/accept-real-input.sh's `sill` calls reached the ambient session, not the headless
+  KWin.** Every call (`ping`, `debug capture`, `debug stats`, `power-menu open/close`, and the
+  bare `"$SILL_BIN" quit` in `stop_daemon`, which bypassed the `sill()` wrapper entirely) ran
+  with whatever `WAYLAND_DISPLAY`/`DBUS_SESSION_BUS_ADDRESS` this shell already had, not the
+  private headless one `start_daemon`'s subshell sources for the daemon itself. Fixed to match
+  dev/accept-notifications-real-input.sh's own pattern: `start_kwin` now parses `.kwin-env`'s
+  socket and bus into `WL`/`BUS` without sourcing the file into this shell (so
+  `kwin-virtual.sh stop`'s bus-matching kill never catches this script), an `in_env` helper
+  exports them for one command, `sill()` wraps every CLI call in it, and `stop_daemon`'s `quit`
+  goes through `in_env` too. `XDG_RUNTIME_DIR` is unchanged (both scripts share the ambient
+  one), so this was latent rather than a live failure; re-run clean, all six steps PASS.
+- F531 **Live, on shell-host's headless KWin (`scripts/dev/kwin-virtual.sh`,
+  `fake-input.sh`'s `axis vertical VALUE`, one client): the engine scrolls the column.** A new
+  step in dev/accept-notifications-real-input.sh (`step_center_scroll`, 10th): 15 notifications
+  under distinct app names overflow `.sill-nc-column` (History is live the moment each arrives,
+  independent of the banners' own hold, so no wait is needed before opening the center); five
+  real wheel detents over the panel (`axis vertical 15`, KWin's fake input sends a source-less
+  frame, which the engine treats as wheel per shell-host F63's Sources rule) change a hash of
+  the capture's top band (title included, since the whole column scrolls as one): `9d7664f3…`
+  to `279e1252…`. **Rubber-band at the top is not exercised, and is not exercisable this way**:
+  design/11 §11.3.7's last row is "wheel, keyboard, programmatic: never stretch; clamp", and
+  shell-host's own test 12 checks exactly this ("no stretch at an edge"); only a finger/touch
+  gesture stretches, and fake-input has no finger source (shell-host F63's own live gap,
+  unchanged by this branch). `use_scroll`'s `ScrollState` has no reader outside a Dioxus
+  component (`SurfaceHandle::scroll_board` is `pub(crate)` to shell-host), and adding one is a
+  shell-host API change outside this task, so the rubber-band claim is recorded, not proven,
+  per the task's own fallback. `step_idle` right after (5 s, 0 frames on both surfaces) shows
+  the engine settles cleanly after the wheel gesture too.
+- **Acceptance, headless KWin 1920x1080, real input:** `dev/accept-real-input.sh`: PASS all six
+  (`step_cc_click_escape`, `step_cc_outside_click`, `step_menu_keyboard`, `step_menu_arrows`,
+  `step_menu_escape`, `step_menu_scrim_click`). `dev/accept-notifications-real-input.sh`: PASS
+  all twelve, `step_center_scroll` (new) among them. Both stopped the headless KWin on exit;
+  wayland-0 untouched throughout.
+- **Not done, or unrelated.** `cargo test --workspace --features sill/debug` has one unrelated
+  failure, `sill-surfaces::calendar_render::on_the_desktop_the_calendar_is_the_compact_month_
+  inside_its_small_frame`: it renders quire's compact `MonthGrid` against real wall-clock
+  `Zoned::now()` (F527: "exactly the content box at 164 px", a knife's-edge fit), and the sibling
+  quire checkout's `MonthGrid` now lays a six-week month out at 126 x 114 rather than F527's
+  126 x 132, missing the frame's top padding by 3.5 px. No file this branch touches is on the
+  path to that component; not investigated further (quire is a sibling repo, out of this
+  task's scope, and shared with other concurrent work).
