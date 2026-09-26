@@ -192,19 +192,20 @@ stop_daemon() {
   rm -rf "$CONFIG" "$RUN_DIR"
 }
 
-# The three windows, each waited for; demo's state lines go to demo.log.
+# The three windows, each waited for; demo's state lines go to demo.log. Each starts through
+# run.sh directly (it execs), so the pid kept is the window's own and the kill reaches it.
 start_windows() {
-  nested cosmic-term >"$OUT_DIR/term.log" 2>&1 &
+  "$SHELL_HOST_DEV/run.sh" cosmic-term >"$OUT_DIR/term.log" 2>&1 &
   PIDS+=($!)
   sleep 2
   : >"$OUT_DIR/demo.log"
   rm -f "$OUT_DIR/demo.in"
   mkfifo "$OUT_DIR/demo.in"
-  nested "$DEMO" <"$OUT_DIR/demo.in" >"$OUT_DIR/demo.log" 2>&1 &
+  "$SHELL_HOST_DEV/run.sh" "$DEMO" <"$OUT_DIR/demo.in" >"$OUT_DIR/demo.log" 2>&1 &
   PIDS+=($!)
   exec 8>"$OUT_DIR/demo.in"
   wait_demo Active 10000 || { echo "demo_window never became active" >&2; return 1; }
-  QT_QPA_PLATFORM=wayland nested kcalc >"$OUT_DIR/calc.log" 2>&1 &
+  QT_QPA_PLATFORM=wayland "$SHELL_HOST_DEV/run.sh" kcalc >"$OUT_DIR/calc.log" 2>&1 &
   CALC_PID=$!
   PIDS+=("$CALC_PID")
   wait_demo Inactive 10000 || { echo "kcalc never took the focus" >&2; return 1; }
@@ -220,6 +221,13 @@ stop_windows() {
   done
   for pid in "${PIDS[@]}"; do wait "$pid" 2>/dev/null; done
   PIDS=()
+  # cosmic-term hands its window to a process of its own: the one in the nested session started
+  # from this checkout (never the host's, never another checkout's).
+  for pid in $(pgrep -x cosmic-term); do
+    [ "$(readlink "/proc/$pid/cwd")" = "$SILL_REPO" ] || continue
+    tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null | grep -qx "WAYLAND_DISPLAY=$WAYLAND_DISPLAY" \
+      && kill "$pid" 2>/dev/null
+  done
 }
 
 # The chord `sill switcher next`, then Alt held on the nested virtual keyboard around the `wtype`
