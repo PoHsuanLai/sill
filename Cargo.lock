@@ -257,12 +257,12 @@ dependencies = [
  "bytemuck",
  "color",
  "debug_timer 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "glifo",
+ "glifo 0.2.0",
  "kurbo",
  "peniko",
  "pixels_window_renderer",
- "vello_common",
- "vello_cpu",
+ "vello_common 0.1.0",
+ "vello_cpu 0.1.0",
 ]
 
 [[package]]
@@ -274,12 +274,12 @@ dependencies = [
  "anyrender",
  "debug_timer 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures-channel",
- "glifo",
+ "glifo 0.2.0",
  "kurbo",
  "peniko",
  "pollster",
  "rustc-hash 2.1.3",
- "vello_common",
+ "vello_common 0.1.0",
  "vello_hybrid",
  "wasm-bindgen-futures",
  "wgpu",
@@ -1835,6 +1835,7 @@ dependencies = [
  "image",
  "keyboard-types 0.7.0",
  "parley",
+ "pdfrum",
  "peniko",
  "thiserror 2.0.20",
  "tokio",
@@ -2391,7 +2392,23 @@ dependencies = [
  "peniko",
  "skrifa 0.44.0",
  "smallvec",
- "vello_common",
+ "vello_common 0.1.0",
+]
+
+[[package]]
+name = "glifo"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "282a26c1e23de04bdab3e34a21b6f877a479b96737792516b9b8b8f69b6661be"
+dependencies = [
+ "bytemuck",
+ "foldhash 0.2.0",
+ "hashbrown 0.17.1",
+ "log",
+ "peniko",
+ "skrifa 0.44.0",
+ "smallvec",
+ "vello_common 0.2.0",
 ]
 
 [[package]]
@@ -4170,6 +4187,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "pdfrum"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fd84b50446e751b57079970d76bc9983517f926915612371fa7dd9ef3f71291"
+dependencies = [
+ "kurbo",
+ "pdfrum-common",
+ "pdfrum-crypt",
+ "pdfrum-doc",
+ "pdfrum-filters",
+ "pdfrum-font",
+ "pdfrum-object",
+ "pdfrum-page",
+ "pdfrum-parser",
+ "pdfrum-raster-vello-cpu",
+ "pdfrum-render",
+ "pdfrum-text",
+ "peniko",
+ "thiserror 2.0.20",
+]
+
+[[package]]
 name = "pdfrum-cmap"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4318,6 +4357,50 @@ dependencies = [
  "pdfrum-crypt",
  "pdfrum-filters",
  "pdfrum-object",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "pdfrum-raster-vello-cpu"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19595f1e988d8c3e9f74d479cf17dde78000ace7a5be73e1480e9f4d37910f2a"
+dependencies = [
+ "kurbo",
+ "pdfrum-page",
+ "pdfrum-render",
+ "peniko",
+ "vello_cpu 0.2.0",
+]
+
+[[package]]
+name = "pdfrum-render"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb774cd391df21eb6b435ab8fac643c2d60fe151971a48b704611aa47d2f6b0d"
+dependencies = [
+ "kurbo",
+ "pdfrum-common",
+ "pdfrum-font",
+ "pdfrum-object",
+ "pdfrum-page",
+ "peniko",
+ "smallvec",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "pdfrum-text"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4541cff62b0cd7c8314a0b4c134726a52932c5d7eaa7b9351721df63a14451da"
+dependencies = [
+ "kurbo",
+ "pdfrum-common",
+ "pdfrum-font",
+ "pdfrum-object",
+ "pdfrum-page",
+ "smallvec",
  "thiserror 2.0.20",
 ]
 
@@ -5139,7 +5222,7 @@ dependencies = [
  "smithay-client-toolkit 0.20.0",
  "thiserror 2.0.20",
  "tokio",
- "vello_common",
+ "vello_common 0.1.0",
  "vello_hybrid",
  "wayland-backend",
  "wayland-client",
@@ -6274,6 +6357,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "vello_common"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbb2141a2bca6e6d598e471fd4d1d7eed8e020aad6a28187edda07f091a325dd"
+dependencies = [
+ "bytemuck",
+ "fearless_simd",
+ "guillotiere",
+ "log",
+ "peniko",
+ "smallvec",
+ "thiserror 2.0.20",
+]
+
+[[package]]
 name = "vello_cpu"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6281,12 +6379,24 @@ checksum = "ac7349e1f55f6b801c7c277958df4ea53e7f20f21e8014910ad888b2ecda93ea"
 dependencies = [
  "bytemuck",
  "crossbeam-channel",
- "glifo",
+ "glifo 0.2.0",
  "hashbrown 0.17.1",
  "ordered-channel",
  "rayon",
  "thread_local",
- "vello_common",
+ "vello_common 0.1.0",
+]
+
+[[package]]
+name = "vello_cpu"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ace506ca414548966fcf3c283be94eb1cad8254de488791ee698bf438b0890a9"
+dependencies = [
+ "bytemuck",
+ "glifo 0.3.0",
+ "hashbrown 0.17.1",
+ "vello_common 0.2.0",
 ]
 
 [[package]]
@@ -6296,11 +6406,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "02606e4115d3d31ce33111dffa623dfa79629558bca8485d5ff4dde14ff884f9"
 dependencies = [
  "bytemuck",
- "glifo",
+ "glifo 0.2.0",
  "hashbrown 0.17.1",
  "log",
  "thiserror 2.0.20",
- "vello_common",
+ "vello_common 0.1.0",
  "vello_sparse_shaders",
  "wgpu",
 ]

@@ -11,7 +11,8 @@ publish.workspace = true
 [dependencies]
 dioxus = { workspace = true }
 ds = { workspace = true }
-ds-native = { workspace = true }
+# `pdf-thumb`: the preview pane's PDF page through `ds_native::PdfFileThumb` (quire m9-parts, F657).
+ds-native = { workspace = true, features = ["pdf-thumb"] }
 ds-settings = { workspace = true }
 shell-host = { workspace = true }
 sill-services = { workspace = true }

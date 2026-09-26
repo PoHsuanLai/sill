@@ -10,6 +10,8 @@
 
 pub mod actions;
 pub mod activate;
+pub mod chord_keys;
+pub mod debug_link;
 pub mod emoji_grid;
 pub mod entries;
 pub mod groups;
@@ -25,6 +27,7 @@ pub mod rows;
 pub mod script;
 pub mod sections_view;
 pub mod session;
+pub mod view;
 
 mod card;
 mod catcher;
