@@ -3,10 +3,11 @@
 
 use dioxus::prelude::Modifiers;
 use ds::{
-    AvatarFace, AvatarShape, AvatarSize, AvatarTone, CapsLock, LockUser, PromptState, person_hue,
+    AvatarFace, AvatarShape, AvatarSize, AvatarTone, CapsLock, ImageSource, LockUser, PromptState,
+    UserPicture, person_hue,
 };
 use sill_services::AuthPhase;
-use sill_services::auth::{Account, UserName};
+use sill_services::auth::{Account, AvatarSource, UserName};
 use sill_settings::LockClock;
 
 /// Caps Lock from the modifiers of the last key event the surface saw (a lock surface has the
@@ -30,14 +31,15 @@ pub fn caps_of(key: shell_host::LockKey) -> CapsLock {
     }
 }
 
-/// quire's prompt state for `phase` at `now` (whose zone words the time): `Accepted` is
-/// `Checking` (the unlock is on its way), `Unavailable` is `Idle` (the service's notes are the
+/// quire's prompt state for `phase` at `now` (whose zone words the time): `Accepted` is quire's
+/// `Accepted` (its beat plays before the unlock), `Unavailable` is `Idle` (the service's notes are the
 /// hint line), `LockedOut { until }` is quire's `LockedOut` with `until` as the lock clock
 /// words a time (`14:07`, or `2:07` in `H12`), and one whose `until` has passed is `Idle`.
 pub fn prompt_state(phase: &AuthPhase, now: &jiff::Zoned, format: LockClock) -> PromptState {
     match phase {
         AuthPhase::Idle | AuthPhase::Unavailable(_) => PromptState::Idle,
-        AuthPhase::Checking | AuthPhase::Accepted => PromptState::Checking,
+        AuthPhase::Checking => PromptState::Checking,
+        AuthPhase::Accepted => PromptState::Accepted,
         AuthPhase::Wrong => PromptState::Wrong,
         AuthPhase::LockedOut { until } if until.0 > now.timestamp().as_millisecond() => {
             jiff::Timestamp::from_millisecond(until.0).map_or(PromptState::Idle, |at| {
@@ -51,23 +53,32 @@ pub fn prompt_state(phase: &AuthPhase, now: &jiff::Zoned, format: LockClock) -> 
 }
 
 /// The person as quire's prompt shows them: the real name (the login name when it is empty),
-/// and an initials face at 64 (`AvatarFace`'s first letter of the name, `person_hue` tone).
-/// quire's `LockUser` has no picture yet (the account's `AvatarSource::File` waits on it, Q243).
+/// and their picture ([`picture_of`]).
 pub fn lock_user(account: &Account) -> LockUser {
     let name = if account.name.0.trim().is_empty() {
         account.user.0.clone()
     } else {
         account.name.0.clone()
     };
-    LockUser {
-        avatar: face_of(&name, &account.user),
-        name,
+    let picture = picture_of(account, &name);
+    LockUser::new(name, picture)
+}
+
+/// The person's picture: their photo when the account has one (AccountsService's icon, else
+/// `$HOME/.face`, read by the auth service: `sill_services::auth::avatar_source`), which quire
+/// crops round; else the initial of `name` on their hue, at 64. The one place a picture is
+/// chosen; a persona is not offered (the user prefers an animated emoji, a later change).
+fn picture_of(account: &Account, name: &str) -> UserPicture {
+    match &account.avatar {
+        AvatarSource::File(path) => ImageSource::file(path).map_or_else(
+            |_| UserPicture::from(face_of(name, &account.user)),
+            UserPicture::Photo,
+        ),
+        AvatarSource::Initials => UserPicture::from(face_of(name, &account.user)),
     }
 }
 
-/// The person's picture as quire's prompt can draw it today: the initial on their hue. When
-/// quire's `LockUser` takes a picture (Q243), an `AvatarSource::File` becomes the photo here,
-/// and only here.
+/// The initial on the person's hue.
 fn face_of(name: &str, user: &UserName) -> AvatarFace {
     AvatarFace {
         initial: name
@@ -114,9 +125,10 @@ fn time_text(at: &jiff::Zoned, format: LockClock) -> String {
 #[cfg(test)]
 mod tests {
     use dioxus::prelude::Modifiers;
+    use ds::UserPicture;
     use ds::{CapsLock, PromptState};
     use sill_services::AuthPhase;
-    use sill_services::auth::{Account, AuthFault, RealName, UserName};
+    use sill_services::auth::{Account, AuthFault, AvatarSource, RealName, UserName};
     use sill_services::notifications::UnixMs;
     use sill_settings::LockClock;
 
@@ -151,7 +163,7 @@ mod tests {
             (AuthPhase::Idle, LockClock::H24, PromptState::Idle),
             (AuthPhase::Checking, LockClock::H24, PromptState::Checking),
             (AuthPhase::Wrong, LockClock::H24, PromptState::Wrong),
-            (AuthPhase::Accepted, LockClock::H24, PromptState::Checking),
+            (AuthPhase::Accepted, LockClock::H24, PromptState::Accepted),
             (
                 AuthPhase::Unavailable(AuthFault::TimedOut),
                 LockClock::H24,
@@ -191,10 +203,25 @@ mod tests {
         };
         let ada = lock_user(&account("ada", "Ada Lovelace"));
         assert_eq!(ada.name, "Ada Lovelace");
-        assert_eq!(ada.avatar.initial, 'A');
+        assert_eq!(initial(&ada), Some('A'));
         let bob = lock_user(&account("bob", ""));
         assert_eq!(bob.name, "bob");
-        assert_eq!(bob.avatar.initial, 'B');
+        assert_eq!(initial(&bob), Some('B'));
+        let photo = lock_user(&Account {
+            avatar: AvatarSource::File("/home/ada/.face".into()),
+            ..account("ada", "Ada Lovelace")
+        });
+        assert_eq!(
+            photo.picture,
+            UserPicture::Photo(ds::ImageSource("file:///home/ada/.face".to_owned()))
+        );
+    }
+
+    fn initial(user: &ds::LockUser) -> Option<char> {
+        match &user.picture {
+            UserPicture::Face(face) => Some(face.initial),
+            _ => None,
+        }
     }
 
     #[test]

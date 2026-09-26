@@ -76,8 +76,7 @@ pub struct ShellLock {
 
 /// Follow `services.lock` and `services.auth` on `rt` and send `ShellMsg::Lock(wish)` to the
 /// host at start and whenever [`lock_wish`] changes (a `Released` after `Accepted` only once
-/// [`UNLOCK_BACKSTOP_MS`] has passed with the wish unchanged), until the host is gone. Lane a
-/// fills it; a no-op until then.
+/// [`UNLOCK_BACKSTOP_MS`] has passed with the wish unchanged), until the host is gone.
 pub fn spawn_follower(rt: &Handle, services: &Services, host: HostHandle<ShellMsg>) {
     let (mut lock, mut auth) = (services.lock.clone(), services.auth.clone());
     rt.spawn(async move {
@@ -130,7 +129,7 @@ enum Changed {
 /// On the host thread: make `held` match `wish`. Held and none held: `AuthCommand::Reset`,
 /// the [`LockLink`] to the main display, `lock_session(factory())`, and on a refusal
 /// `LockerCommand::Shell(Refused)` (an `InProgress` lock is adopted as held instead). Released
-/// and one held: `unlock_session`. Anything else: nothing. Lane a fills it; a no-op until then.
+/// and one held: `unlock_session`. Anything else: nothing.
 pub fn apply(
     host: &mut impl SessionLockHost,
     held: &mut ShellLock,
@@ -175,7 +174,7 @@ fn main_display(outputs: &Outputs) -> PromptOutput {
 /// A host event about the lock ([`host::lock_event`]): `Locked`, `Unlocked`, `Finished` to the
 /// locker service as `ShellLockEvent`s (and on `Unlocked` / `Finished` `AuthCommand::Reset`,
 /// forgetting the id); a lock surface gaining the keyboard ([`host::SessionLockHost::
-/// lock_surface_output`]) moves the [`LockLink`] there. Lane a fills it; a no-op until then.
+/// lock_surface_output`]) moves the [`LockLink`] there.
 pub fn on_host_event(
     host: &impl SessionLockHost,
     held: &mut ShellLock,

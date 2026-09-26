@@ -26,7 +26,7 @@
 #   5. 5 s idle while locked: 0 commits on the lock surfaces (counted from the daemon's
 #      WAYLAND_DEBUG=client log, since `debug stats` has no lock rows: G191).
 #   6. `sill debug auth accept` (a made-up accept skips the 60 s wait): status unlocked within
-#      the made-up check (250 ms) plus the fade (--t-move) plus 500 ms, the lock surface is gone,
+#      the made-up check (250 ms) plus the accepted beat (settle(PersonaHop), 454 ms) plus 500 ms, the lock surface is gone,
 #      the marker is removed, and the session is free (a stand-in locker locks and unlocks).
 #   7. A crash while locked: `sill lock`, the marker is written, the daemon is killed (-9) and
 #      started again: it locks at once from the marker, and `sill debug auth accept` unlocks.
@@ -302,9 +302,9 @@ step_accept() {
   if capture "$PROMPT_OUT" "$OUT_DIR/after-unlock.png"; then gone=no; else gone=yes; fi
   nested_locker 200 >>"$log" 2>&1
   free=$?
-  echo "unlocked ${took} ms after 'sill debug auth accept' (limit 250 + 284 + 500); lock surface gone: $gone; marker: $(test -e "$MARKER" && echo present || echo removed); a stand-in locker then locked and unlocked: exit $free" \
+  echo "unlocked ${took} ms after 'sill debug auth accept' (limit 250 + 454 + 500: the check, the accepted beat, slack); lock surface gone: $gone; marker: $(test -e "$MARKER" && echo present || echo removed); a stand-in locker then locked and unlocked: exit $free" \
     | tee -a "$log" >&2
-  [ "$took" -ge 0 ] && [ "$took" -le 1034 ] && [ "$gone" = yes ] && [ ! -e "$MARKER" ] && [ "$free" = 0 ]
+  [ "$took" -ge 0 ] && [ "$took" -le 1204 ] && [ "$gone" = yes ] && [ ! -e "$MARKER" ] && [ "$free" = 0 ]
 }
 
 # 7.
