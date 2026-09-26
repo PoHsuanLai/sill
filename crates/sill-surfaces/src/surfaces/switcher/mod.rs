@@ -2,7 +2,8 @@
 //! F548, F549): Cmd+Tab over applications, not windows. COSMIC's `WindowSwitcher` /
 //! `WindowSwitcherPrevious` shortcuts run `sill switcher next|prev`, which the daemon writes to
 //! the [`SwitcherLink`]; the switcher surface on the chosen output takes the keyboard
-//! (`Exclusive`) at once, so it sees the chord's modifier go up, and runs the pure [`machine`]:
+//! (`Exclusive`) at once, so it sees the chord's modifier go up (Alt's or Super's key-up, or
+//! shell-host's modifiers on focus: `hold.rs`, `watch.rs`), and runs the pure [`machine`]:
 //! a quick tap switches to the previous app with no panel, a hold past
 //! `switcher.show_delay_ms` fades quire's `AppSwitcher` in (the apps from
 //! `sill_services::switcher_apps`), Tab and the arrows move, Q quits and H hides the selected

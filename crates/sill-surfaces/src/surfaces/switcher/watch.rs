@@ -4,9 +4,11 @@
 //! made-up apps close on a key or a click, never on the state they opened in); mounting marks
 //! the opening followed (`hold.rs`: the show delay then ends a tap that never read held).
 //!
-//! The first read, when it says nothing is held, is the value before this opening's focus (a
-//! surface's modifiers reset when it loses the keyboard): it is skipped; a held chord, and every
-//! publish after it, is the seat's real state.
+//! shell-host publishes only a change, and a surface keeps its last modifiers across an unmap
+//! (the unmap rebuilds the wl_surface, so the compositor's leave names the old one and never
+//! resets them: G210). So the value as this opening mounts is its baseline, not a guess: it is
+//! the real state unless the focus publishes a change. A change after that is the seat's real
+//! state (a release, the release).
 
 use dioxus::prelude::*;
 use shell_host::use_modifiers;
@@ -15,25 +17,30 @@ use super::drive::SwitcherCtx;
 use super::hold::chord_of;
 use super::keys::Chord;
 
-/// Whether the modifiers so far are the real state or the value before the focus.
+/// Whether the modifiers read so far are this opening's baseline or a publish after it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Read {
-    Before,
+    Baseline,
     Published,
 }
 
 #[component]
 pub(super) fn ChordWatch(ctx: SwitcherCtx) -> Element {
     let modifiers = use_modifiers();
-    use_hook(move || ctx.watched());
-    let mut read = use_hook(|| CopyValue::new(Read::Before));
+    let baseline = use_hook(move || {
+        let baseline = chord_of(&modifiers.peek());
+        ctx.watched(baseline);
+        baseline
+    });
+    let mut read = use_hook(|| CopyValue::new(Read::Baseline));
     use_effect(move || {
         let chord = chord_of(&modifiers());
         let before = *read.peek();
         read.set(Read::Published);
-        match (before, chord) {
-            (Read::Before, Chord::Released) => {}
-            (Read::Before | Read::Published, _) => ctx.modifiers(chord),
+        match (before, chord, baseline) {
+            (Read::Baseline, Chord::Held, Chord::Held)
+            | (Read::Baseline, Chord::Released, Chord::Released) => {}
+            (Read::Baseline | Read::Published, _, _) => ctx.modifiers(chord),
         }
     });
     rsx! {}

@@ -5,12 +5,12 @@
 //!
 //! What it changes: a publish of `Released` while armed or shown is the release (the panel closes
 //! and activates); once the chord is known `Held`, a second chord inside the show delay is Tab
-//! held down, not a second tap, so it steps. shell-host publishes only a change, and nothing
-//! held is where it starts, so a release that came before the focus publishes nothing: the
-//! show delay decides instead. An opening that reaches the delay without ever reading `Held`
-//! was a tap, and switches with no UI; one that read `Held` shows the panel. (The keyboard
-//! focus arrives within a frame or two of the map, well inside the 150 ms delay; a focus later
-//! than the delay would read a held chord as a tap.)
+//! held down, not a second tap, so it steps. shell-host publishes only a change, so an opening
+//! starts from the value it mounts on (`watch.rs`: its baseline) and a focus that finds the same
+//! state publishes nothing. The show delay then decides: an opening that reaches it without the
+//! chord read held was a tap, and switches with no UI; one read held shows the panel. (The
+//! keyboard focus lands 50 to 90 ms after the chord on the nested cosmic-comp, inside the
+//! 150 ms delay; a focus later than the delay would read a held chord as a tap.)
 
 use shell_host::{Modifier, Modifiers};
 

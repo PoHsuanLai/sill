@@ -257,10 +257,13 @@ impl SwitcherCtx {
         }
     }
 
-    /// This opening follows the modifiers (`watch.rs`, as it mounts).
-    pub fn watched(self) {
+    /// This opening follows the modifiers (`watch.rs`, as it mounts), from `baseline`.
+    pub fn watched(self, baseline: Chord) {
         let mut hold = self.hold;
-        hold.with_mut(|hold| hold.watch = Watch::On);
+        hold.set(Hold {
+            watch: Watch::On,
+            chord: Some(baseline),
+        });
     }
 
     /// A key-up on the surface: the chord's modifier going up is the release. Only a modifier's

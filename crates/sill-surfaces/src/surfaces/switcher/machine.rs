@@ -6,9 +6,11 @@
 //! (`ModifierReleased`) switches to the armed selection with no UI; so does a second chord (a
 //! second tap whose first release went unseen: the first tap wins, the second is spent). A key
 //! the surface itself sees while armed (Tab, `` ` ``, the arrows) proves the chord is held and
-//! steps as it would shown. Past the delay a chord steps. What stays open until shell-host
-//! reports the modifiers at `wl_keyboard.enter`: a lone quick tap whose release beat the focus
-//! shows the panel after the delay and waits there for Escape, a click or another release.
+//! steps as it would shown. Past the delay a chord steps. On a host surface the modifiers on
+//! focus (shell-host's `use_modifiers`) settle the rest outside the machine (`hold.rs`): a
+//! release they report is `ModifierReleased`, a chord they report held steps while armed, and
+//! an opening that reaches the delay without reading the chord held gets `ModifierReleased`
+//! instead of its `Tick`.
 
 use sill_launcher::AppId;
 use sill_services::Stamp;
