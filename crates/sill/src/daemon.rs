@@ -673,7 +673,7 @@ pub(crate) fn spawn_hidden(
 /// `root` with the contexts every surface the daemon spawns is given: the services, the
 /// settings, quire's rect measurer, `ds_native::measure::MEASURE` (re-exported as
 /// `sill_surfaces::MEASURE`), and its focus write, `ds_native::focus::FOCUS` (re-exported as
-/// `sill_surfaces::FOCUS`), which are what `ds_native::measure::provide()` and
+/// `sill_surfaces::FOCUS`), and the field caret, `ds_native::focus::CARET` (G270), which are what `ds_native::measure::provide()` and
 /// `ds_native::focus::provide()` provide from inside a root component. Without them a rect read
 /// or a focus waits a frame and the panic hook prints the collision (FINDINGS Q10, F81,
 /// "Adoption of the bar gaps", "Adoption of the launcher gaps"). Every spawn goes through here,
@@ -683,7 +683,8 @@ pub(crate) fn surface_root(root: Root, services: &Services, settings_feed: &Sett
         .context(services.clone())
         .context(settings_feed.clone())
         .context(sill_surfaces::MEASURE)
-        .context(sill_surfaces::FOCUS);
+        .context(sill_surfaces::FOCUS)
+        .context(sill_surfaces::CARET);
     // M5: the focus mode, the power menu and the control center's asks; M6: the notification
     // center and the banners' output; M10: the hot corners' firings; M11: the switcher's asks
     // and the lock prompt's output (`crate::links`).
