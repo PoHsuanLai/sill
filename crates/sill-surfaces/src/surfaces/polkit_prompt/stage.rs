@@ -78,15 +78,15 @@ mod tests {
             cookie: Cookie(cookie.to_owned()),
             action: "Run it?".to_owned(),
             detail: None,
-            user: LockUser {
-                name: "ada".to_owned(),
-                avatar: AvatarFace {
+            user: LockUser::new(
+                "ada".to_owned(),
+                AvatarFace {
                     initial: 'A',
                     size: AvatarSize::Size48,
                     tone: AvatarTone::Person(person_hue("ada")),
                     shape: AvatarShape::Round,
                 },
-            },
+            ),
             state,
         }
     }

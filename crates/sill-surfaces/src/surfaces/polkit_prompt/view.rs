@@ -59,15 +59,15 @@ fn user_of(name: &str) -> LockUser {
         .chars()
         .next()
         .map_or('?', |c| c.to_uppercase().next().unwrap_or(c));
-    LockUser {
-        name: name.to_owned(),
-        avatar: AvatarFace {
+    LockUser::new(
+        name.to_owned(),
+        AvatarFace {
             initial,
             size: AvatarSize::Size48,
             tone: AvatarTone::Person(person_hue(name)),
             shape: AvatarShape::Round,
         },
-    }
+    )
 }
 
 #[cfg(test)]
@@ -80,6 +80,7 @@ mod tests {
     };
 
     use super::{detail_of, prompt_view};
+    use crate::surfaces::user_picture::initial_of;
 
     fn view(phase: PromptPhase, last: LastTry) -> PromptView {
         PromptView {
@@ -122,7 +123,7 @@ mod tests {
             assert_eq!(shown.state, want, "{phase:?} {last:?}");
             assert_eq!(shown.action, "Run it?");
             assert_eq!(shown.user.name, "ada");
-            assert_eq!(shown.user.avatar.initial, 'A');
+            assert_eq!(initial_of(&shown.user), Some('A'));
         }
     }
 
