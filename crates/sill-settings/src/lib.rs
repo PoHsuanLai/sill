@@ -69,7 +69,7 @@ pub use scroll::{
     Momentum, MomentumModel, NaturalScroll, RubberBand, ScrollSettings, ScrollbarVisibility,
 };
 pub use scrollbar::{ScrollbarSettings, TrackClick};
-pub use session::SessionSettings;
+pub use session::{LockClock, SessionSettings};
 pub use sound::{SoundSettings, UiSounds, VolumeFeedback};
 pub use spaces::{
     DefaultCardAccent, DockLookSource, MailSpacePolicy, OverlayTint, SpaceLookLookup,

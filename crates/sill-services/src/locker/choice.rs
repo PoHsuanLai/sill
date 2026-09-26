@@ -13,6 +13,9 @@
 //! - **hyprlock**: no ready signal, so it is taken as locked after a short grace.
 //!
 //! Anything else is a command line run by `/bin/sh -c`, also taken as locked after the grace.
+//!
+//! `sill` is sill's own lock screen (M11, FINDINGS "M11 freeze" F524): no program, the shell's
+//! own `ext-session-lock-v1` surfaces through shell-host, drawn by `sill-surfaces`' lock screen.
 
 use std::path::PathBuf;
 
@@ -28,17 +31,21 @@ pub enum LockerChoice {
     Auto,
     /// Never lock.
     Off,
+    /// sill's own lock screen (`sill`).
+    Own,
     Known(KnownLocker),
     /// A command line for `/bin/sh -c`.
     Command(String),
 }
 
 impl LockerChoice {
-    /// The setting's text: `auto` (also empty), `off`, a known locker's name, or a command.
+    /// The setting's text: `auto` (also empty), `off`, `sill`, a known locker's name, or a
+    /// command.
     pub fn parse(text: &str) -> LockerChoice {
         match text.trim() {
             "" | "auto" => LockerChoice::Auto,
             "off" | "none" => LockerChoice::Off,
+            "sill" => LockerChoice::Own,
             other => KnownLocker::ALL
                 .into_iter()
                 .find(|known| known.program() == other)
@@ -213,6 +220,11 @@ pub enum LockerMode {
         plan: LockerPlan,
         triggers: Triggers,
     },
+    /// sill's own lock screen: the daemon holds shell-host's session lock while the service's
+    /// phase is `Locking` or `Locked` (`Lock::drawer` is `Shell`).
+    Own {
+        triggers: Triggers,
+    },
 }
 
 impl LockerMode {
@@ -221,7 +233,9 @@ impl LockerMode {
         match self {
             LockerMode::Off => (Runner::Off, Triggers::IgnoreLogind),
             LockerMode::Delegate => (Runner::Delegates, Triggers::IgnoreLogind),
-            LockerMode::Run { triggers, .. } => (Runner::Runs, *triggers),
+            LockerMode::Run { triggers, .. } | LockerMode::Own { triggers } => {
+                (Runner::Runs, *triggers)
+            }
         }
     }
 }
@@ -239,6 +253,9 @@ pub fn resolve(
     let found = |known: KnownLocker| find(known.program()).map(|path| known.plan(path));
     match choice {
         LockerChoice::Off => LockerMode::Off,
+        LockerChoice::Own => LockerMode::Own {
+            triggers: host.triggers(),
+        },
         // Under cosmic-session, COSMIC's locker is already resident and answering logind.
         LockerChoice::Auto | LockerChoice::Known(KnownLocker::CosmicGreeter)
             if host == Host::CosmicSession =>

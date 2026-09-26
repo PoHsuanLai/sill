@@ -9,6 +9,7 @@ pub mod error;
 pub mod line;
 pub mod request;
 pub mod response;
+pub mod session;
 
 pub use desktop::{
     CornerName, FakeCorner, FakeScreenshot, ScreenshotRequest, ShotArea, WidgetsRequest,
@@ -24,4 +25,8 @@ pub use request::{
 pub use response::{
     Failure, FailureKind, Micros, NotificationsReport, ReportHolder, ReportMode, Response,
     SurfaceStats,
+};
+pub use session::{
+    FakeAuth, FakePolkit, FakeSwitcher, LockReport, LockRequest, PolkitReport, PolkitRequest,
+    ReportDrawer, ReportLockPhase, ReportRegistration, SwitcherRequest,
 };

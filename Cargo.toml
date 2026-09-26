@@ -129,6 +129,10 @@ latchkey = { git = "https://github.com/PoHsuanLai/mailo", rev = "e8344176ffcc045
 # sill maps connectors to buses itself from sysfs and the EDID each bus answers with.
 ddc = "0.2"
 ddc-i2c = { version = "0.2.2", default-features = false, features = ["with-linux"] }
+# PAM for the lock screen's password check (M11, FINDINGS "M11 freeze" F521): MIT, a safe API
+# over libpam with pre-generated bindings (no bindgen or libclang at build time, unlike pam-sys
+# 1.0 under `pam` and `pam-client`). Linked only into the `sill auth-check` helper's code path.
+nonstick = "0.1.2"
 
 
 [workspace.lints.rust]

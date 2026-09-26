@@ -38,6 +38,33 @@ pub struct Lock {
     pub phase: LockPhase,
     /// The running locker's process, once there is one.
     pub pid: Option<Pid>,
+    /// Who draws the lock screen in the current mode. With `Shell`, the daemon holds
+    /// shell-host's session lock whenever `phase` is not `Unlocked` (M11, FINDINGS F524).
+    pub drawer: LockDrawer,
+}
+
+/// Who draws the lock screen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LockDrawer {
+    /// A locker program (M7's borrowed ones), or nobody when the mode is off.
+    #[default]
+    Program,
+    /// sill's own lock surfaces (`session.locker = "sill"`).
+    Shell,
+}
+
+/// What the daemon reports about shell-host's session lock (`session.locker = "sill"`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ShellLockEvent {
+    /// The compositor granted the lock (`ext_session_lock_v1.locked`): the machine's `Reported`.
+    Locked,
+    /// The lock ended: unlocked after a right password, or the compositor ended it
+    /// (`finished`); the machine's `Exited`.
+    Finished,
+    /// The host cannot lock (no `ext-session-lock-v1`, or a lock already held by another
+    /// client): also `Exited`, so the next Lock can try again.
+    Refused,
 }
 
 /// What the locker service can be told.
@@ -50,6 +77,8 @@ pub enum LockerCommand {
     Use(LockerMode),
     /// Lock now (sill's own Lock action).
     Lock,
+    /// What happened to the shell's own lock (M11).
+    Shell(ShellLockEvent),
 }
 
 /// Start the locker service on `rt`. Inert until the first `Configure` or `Use`.

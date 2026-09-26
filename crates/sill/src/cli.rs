@@ -5,7 +5,9 @@
 //! `notifications {toggle,open,close,dismiss-all,status}` and `debug notify` from the M6 freeze
 //! (`cli_notifications`), `lock` and `polkit-agent` from M7, `screenshot`, `widgets
 //! toggle-desktop`, `debug screenshot` and `debug corner` from the M10 freeze (`cli_desktop`),
-//! and its one pure mapping to an IPC request.
+//! `switcher`, `lock status`, `polkit status`, `debug auth`, `debug polkit`, `debug switcher`
+//! and the hidden `auth-check` helper from the M11 freeze (`cli_session`), and its one pure
+//! mapping to an IPC request.
 
 use std::path::PathBuf;
 
@@ -19,6 +21,10 @@ pub use crate::cli_display::{DisplayAction, LevelAction, VolumeAction, display_r
 pub use crate::cli_notifications::{
     ExpireArg, FakeNotifyArgs, NotificationsAction, UrgencyArg, fake_notification,
     notifications_request,
+};
+pub use crate::cli_session::{
+    FakeAuthArg, FakePolkitArgs, LockVerb, PolkitAction, SwitcherAction, fake_auth, fake_polkit,
+    fake_switcher, lock_request, polkit_request, switcher_request,
 };
 use sill_ipc::{
     ControlCenterRequest, DebugRequest, DesktopId, DockRequest, FakeMute, FakeOsd, LauncherRequest,
@@ -82,8 +88,26 @@ pub enum Command {
         #[command(subcommand)]
         action: NotificationsAction,
     },
-    /// Lock the screen now with the configured locker (`session.locker`).
-    Lock,
+    /// Lock the screen now with the configured locker (`session.locker`), or say what it is
+    /// doing.
+    Lock {
+        #[arg(value_enum, default_value_t = LockVerb::Now)]
+        verb: LockVerb,
+    },
+    /// The app switcher's chord (COSMIC's window switcher shortcuts run these).
+    Switcher {
+        #[command(subcommand)]
+        action: SwitcherAction,
+    },
+    /// sill's own polkit agent.
+    Polkit {
+        #[command(subcommand)]
+        action: PolkitAction,
+    },
+    /// The lock screen's PAM helper: reads one request on stdin, checks it, answers on stdout
+    /// (the daemon runs it; not for people).
+    #[command(hide = true)]
+    AuthCheck,
     /// Start the polkit agent `session.polkit_agent` names (dist/sill-session runs this), or
     /// print which one it would be.
     PolkitAgent {
@@ -189,6 +213,18 @@ pub enum DebugAction {
         #[arg(value_enum)]
         corner: CornerArg,
     },
+    /// Feed the lock screen's password check a made-up verdict (a debug daemon only).
+    Auth {
+        #[arg(value_enum)]
+        verdict: FakeAuthArg,
+    },
+    /// Show a made-up polkit request (its stand-in helper accepts `sill-fake`).
+    Polkit(FakePolkitArgs),
+    /// Open the app switcher on made-up apps (desktop ids, the current one first).
+    Switcher {
+        #[arg(required = true)]
+        apps: Vec<String>,
+    },
 }
 
 /// `sill debug osd TOPIC`: the command line's spelling of [`OsdTopic`].
@@ -241,8 +277,10 @@ impl From<ClickButton> for PointerButton {
 /// The request `command` sends; `None` for `run`, which is not a request.
 pub fn request(command: &Command) -> Option<Request> {
     Some(match command {
-        Command::Run | Command::PolkitAgent { .. } => return None,
-        Command::Lock => Request::Lock,
+        Command::Run | Command::PolkitAgent { .. } | Command::AuthCheck => return None,
+        Command::Lock { verb } => lock_request(*verb),
+        Command::Switcher { action } => switcher_request(*action),
+        Command::Polkit { action } => polkit_request(*action),
         Command::Launcher { action } => Request::Launcher(match action {
             LauncherAction::Toggle => LauncherRequest::Toggle,
             LauncherAction::Open { query } => LauncherRequest::Open {
@@ -306,6 +344,9 @@ pub fn request(command: &Command) -> Option<Request> {
                 DebugRequest::Screenshot(fake_screenshot(path.clone()))
             }
             DebugAction::Corner { corner } => DebugRequest::Corner(fake_corner(*corner)),
+            DebugAction::Auth { verdict } => DebugRequest::Auth(fake_auth(*verdict)),
+            DebugAction::Polkit(args) => DebugRequest::Polkit(fake_polkit(args)),
+            DebugAction::Switcher { apps } => DebugRequest::Switcher(fake_switcher(apps)),
         }),
     })
 }
@@ -322,6 +363,9 @@ mod tests {
     use sill_ipc::{
         CornerName, FakeCorner, FakeScreenshot, ScreenshotRequest, ShotArea, WidgetsRequest,
     };
+    use sill_ipc::{
+        FakeAuth, FakePolkit, FakeSwitcher, LockRequest, PolkitRequest, SwitcherRequest,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -332,6 +376,67 @@ mod tests {
             (&["reload"], Some(Request::Reload)),
             (&["quit"], Some(Request::Quit)),
             (&["lock"], Some(Request::Lock)),
+            (&["lock", "now"], Some(Request::Lock)),
+            (
+                &["lock", "status"],
+                Some(Request::LockStatus(LockRequest::Status)),
+            ),
+            (&["auth-check"], None),
+            (
+                &["switcher", "next"],
+                Some(Request::Switcher(SwitcherRequest::Next)),
+            ),
+            (
+                &["switcher", "prev"],
+                Some(Request::Switcher(SwitcherRequest::Prev)),
+            ),
+            (
+                &["switcher", "cancel"],
+                Some(Request::Switcher(SwitcherRequest::Cancel)),
+            ),
+            (
+                &["switcher", "commit"],
+                Some(Request::Switcher(SwitcherRequest::Commit)),
+            ),
+            (
+                &["polkit", "status"],
+                Some(Request::Polkit(PolkitRequest::Status)),
+            ),
+            (
+                &["debug", "auth", "accept"],
+                Some(Request::Debug(DebugRequest::Auth(FakeAuth::Accept))),
+            ),
+            (
+                &["debug", "auth", "refuse"],
+                Some(Request::Debug(DebugRequest::Auth(FakeAuth::Refuse))),
+            ),
+            (
+                &["debug", "polkit"],
+                Some(Request::Debug(DebugRequest::Polkit(FakePolkit {
+                    action_id: "org.sill.debug.prompt".to_owned(),
+                    message: "sill is testing its password prompt".to_owned(),
+                }))),
+            ),
+            (
+                &[
+                    "debug",
+                    "polkit",
+                    "--action",
+                    "org.example.run",
+                    "--message",
+                    "Run?",
+                ],
+                Some(Request::Debug(DebugRequest::Polkit(FakePolkit {
+                    action_id: "org.example.run".to_owned(),
+                    message: "Run?".to_owned(),
+                }))),
+            ),
+            (
+                &["debug", "switcher", "foot", "firefox"],
+                Some(Request::Debug(DebugRequest::Switcher(FakeSwitcher {
+                    apps: vec!["foot".to_owned(), "firefox".to_owned()],
+                }))),
+            ),
             (&["polkit-agent"], None),
             (&["polkit-agent", "print"], None),
             (
@@ -609,6 +714,13 @@ mod tests {
             &["widgets", "toggle"],
             &["debug", "screenshot"],
             &["debug", "corner", "middle"],
+            &["switcher"],
+            &["switcher", "open"],
+            &["lock", "unlock"],
+            &["polkit"],
+            &["debug", "auth"],
+            &["debug", "auth", "maybe"],
+            &["debug", "switcher"],
             &["frobnicate"],
         ] {
             assert!(

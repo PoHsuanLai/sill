@@ -5,12 +5,16 @@
 //! M5 freeze (sill FINDINGS "M5 freeze"), and `Notifications` and `Debug(Notify)` from the M6
 //! freeze (sill FINDINGS "M6 freeze"), and `Lock` from M7 (sill FINDINGS "M7"), and
 //! `Screenshot`, `Widgets`, `Debug(Screenshot)` and `Debug(Corner)` from the M10 freeze
-//! (`desktop.rs`).
+//! (`desktop.rs`), and `Switcher`, `LockStatus`, `Polkit`, `Debug(Auth)`, `Debug(Polkit)` and
+//! `Debug(Switcher)` from the M11 freeze (`session.rs`).
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 use crate::desktop::{FakeCorner, FakeScreenshot, ScreenshotRequest, WidgetsRequest};
+use crate::session::{
+    FakeAuth, FakePolkit, FakeSwitcher, LockRequest, PolkitRequest, SwitcherRequest,
+};
 
 /// One request. A connection carries exactly one, then its [`crate::Response`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,6 +49,12 @@ pub enum Request {
     Screenshot(ScreenshotRequest),
     /// The widgets (`sill widgets ...`).
     Widgets(WidgetsRequest),
+    /// The app switcher's chord verbs (`sill switcher ...`).
+    Switcher(SwitcherRequest),
+    /// The lock screen's state (`sill lock status`).
+    LockStatus(LockRequest),
+    /// sill's polkit agent (`sill polkit status`).
+    Polkit(PolkitRequest),
 }
 
 /// `sill notifications ...`. The center opens on the output the daemon picks (the first with a
@@ -174,6 +184,13 @@ pub enum DebugRequest {
     Screenshot(FakeScreenshot),
     /// Carry out a hot corner's action as if its dwell had run out (`dev/accept-hot-corners.sh`).
     Corner(FakeCorner),
+    /// Feed the lock screen's password check a made-up verdict; refused by a daemon built
+    /// without `debug` (`dev/accept-lock.sh`, on the nested compositor only).
+    Auth(FakeAuth),
+    /// Show a made-up polkit request (`dev/accept-polkit.sh`).
+    Polkit(FakePolkit),
+    /// Open the switcher on made-up apps (`dev/accept-switcher.sh`).
+    Switcher(FakeSwitcher),
 }
 
 /// A made-up notification: the parts of `Notify` an acceptance needs.

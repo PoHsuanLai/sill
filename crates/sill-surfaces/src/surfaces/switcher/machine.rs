@@ -21,7 +21,7 @@ pub enum Switcher {
 }
 
 /// Which way a chord or key moves the selection.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Dir {
     Next,
     Prev,
