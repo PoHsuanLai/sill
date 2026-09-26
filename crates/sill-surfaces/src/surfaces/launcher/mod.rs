@@ -32,6 +32,7 @@ pub mod view;
 
 mod card;
 mod catcher;
+mod claim_keys;
 mod events;
 mod follow;
 mod pane_keys;

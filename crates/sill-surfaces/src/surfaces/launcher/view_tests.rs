@@ -1,9 +1,10 @@
 use sill_launcher::{
-    Generation, IconRef, Item, ItemId, More, ProviderKind, Score, Section, SectionSpan, Subject,
+    Generation, IconRef, Item, ItemId, More, ProviderKind, Score, Section, SectionSpan,
+    ShownSection, Subject,
 };
 use sill_services::Results;
 
-use super::{Expanded, Line, toggled, view};
+use super::{Expanded, Layout, Line, View, toggled, view};
 use crate::surfaces::launcher::keys::Filter;
 use crate::surfaces::launcher::sections_view::HeaderAction;
 
@@ -143,4 +144,41 @@ fn show_more_toggles_its_section() {
     let open = toggled(&Expanded::default(), Section::Documents);
     assert_eq!(open, Expanded(vec![Section::Documents]));
     assert_eq!(toggled(&open, Section::Documents), Expanded::default());
+}
+
+/// ← and → belong to the grid only on an Emoji section's cells (F741): an emoji as the Top Hit
+/// is a list row, and the Emoji header's "Show More" a list stop.
+#[test]
+fn only_an_emoji_sections_cells_are_grid_lines() {
+    let emoji = |t: &str| item(ProviderKind::Emoji, t);
+    let shown = View {
+        sections: vec![
+            ShownSection {
+                section: Section::TopHit,
+                rows: vec![emoji("🏮")],
+                more: More::Nothing,
+            },
+            ShownSection {
+                section: Section::Emoji,
+                rows: vec![emoji("🎃"), emoji("🎉")],
+                more: More::Hidden(4),
+            },
+            ShownSection {
+                section: Section::Documents,
+                rows: vec![item(ProviderKind::Files, "d0")],
+                more: More::Nothing,
+            },
+        ],
+    };
+    let cases = [
+        (0, Layout::List),
+        (1, Layout::Grid),
+        (2, Layout::Grid),
+        (3, Layout::List),
+        (4, Layout::List),
+        (5, Layout::List),
+    ];
+    for (line, want) in cases {
+        assert_eq!(shown.layout(line), want, "line {line}");
+    }
 }
