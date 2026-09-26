@@ -1,11 +1,23 @@
-/* The Battery widget (widgets/battery.rs): one row per battery, as macOS's Batteries widget:
-   quire's BatteryLevel (the device glyph, then the battery), the name, the percentage at the
-   end; the quiet line when there are none. This only places quire's parts; their look is quire's
-   (design/23, Neumorphism & Soft UI). Tokens only (coherence rule 1). */
-.sill-widget-battery{ display:flex; flex-direction:column; justify-content:center; gap:var(--s-6);
+/* The Battery widget (widgets/battery.rs; design/23-WIDGETS.md section 4.1, the fourth pass
+   "Flat, bright, measured"): quire's BatteryLevel draws only the ring (the device glyph inside,
+   the bolt while charging); this only places it, copying the reference's own gallery
+   composition. One device alone (Small): the ring top left, its percentage as the card's hero
+   figure, pulled up against the frame's own bottom inset. Several (Small): a 2 x 2 grid of
+   rings, no numbers. A Medium frame: a row of rings on an 80 px pitch (the frame's 12 px inset
+   plus this file's 8), the percentage under each. The quiet line when there is nothing to show.
+   Tokens only (coherence rule 1). */
+.sill-widget-battery{ display:flex; flex-direction:column; justify-content:center; flex:1 1 auto;
+  min-width:0; min-height:0; }
+.sill-widget-battery-solo{ display:flex; flex-direction:column; justify-content:space-between;
   flex:1 1 auto; min-width:0; }
-.sill-widget-battery-cell{ display:flex; align-items:center; gap:var(--s-8); min-width:0; }
-.sill-widget-battery-name{ flex:1 1 auto; min-width:0; overflow:hidden; white-space:nowrap;
-  font-size:var(--fs-help); color:var(--ink-soft); }
-.sill-widget-battery-level{ font-size:var(--fs-help); font-weight:600; color:var(--ink);
-  font-variant-numeric:tabular-nums; }
+.sill-widget-battery-hero{ margin-bottom:calc(-1 * var(--s-6)); font-family:var(--font-display);
+  font-size:var(--fs-widget-hero); font-weight:500; line-height:1; letter-spacing:-.01em;
+  color:var(--ink); }
+.sill-widget-battery-grid{ display:flex; flex-wrap:wrap; justify-content:space-between;
+  align-content:space-between; flex:1 1 auto; }
+.sill-widget-battery-row{ display:flex; justify-content:space-between; align-items:center;
+  flex:1 1 auto; padding:0 var(--s-8); }
+.sill-widget-battery-cell{ display:flex; flex-direction:column; align-items:center;
+  gap:var(--s-18); min-width:0; }
+.sill-widget-battery-figure{ font-family:var(--font-display); font-size:var(--fs-widget-figure);
+  font-weight:500; line-height:1; color:var(--ink); }
