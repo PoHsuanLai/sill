@@ -127,10 +127,7 @@ pub fn verdict_of(lines: Vec<Result<HelperLine, ProtocolError>>) -> Verdict {
     );
     match folded {
         Ok((notes, Some(outcome))) => Verdict { outcome, notes },
-        Ok((notes, None)) => Verdict {
-            notes,
-            ..failed()
-        },
+        Ok((notes, None)) => Verdict { notes, ..failed() },
         Err(()) => failed(),
     }
 }

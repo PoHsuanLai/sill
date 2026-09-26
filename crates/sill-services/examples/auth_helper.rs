@@ -18,12 +18,19 @@ fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut request = Vec::with_capacity(4096);
     let read = std::io::stdin().lock().read_to_end(&mut request);
-    let decoded = read.ok().and_then(|_| protocol::decode_request(&request).ok());
+    let decoded = read
+        .ok()
+        .and_then(|_| protocol::decode_request(&request).ok());
     request.iter_mut().for_each(|byte| *byte = 0);
     let Some(request) = decoded else {
         return ExitCode::from(2);
     };
-    let lines = match args.iter().map(String::as_str).collect::<Vec<_>>().as_slice() {
+    let lines = match args
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .as_slice()
+    {
         ["accept", secret] if request.attempt.secret.expose() == *secret => vec![
             HelperLine::Note(PamNote::Info("stand-in helper".to_owned())),
             HelperLine::Done(Outcome::Accepted),

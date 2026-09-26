@@ -3,6 +3,7 @@
 
 use std::path::PathBuf;
 
+use sill_services::wallpaper::backdrop_file;
 use sill_services::{OutputName, Wallpapers};
 
 /// The backdrop file for `output` in `scheme`: the blurred copy of that output's prepared light
@@ -12,10 +13,14 @@ pub fn backdrop_for(
     output: &OutputName,
     scheme: ds::Scheme,
 ) -> Option<PathBuf> {
-    todo!(
-        "M11 fill: a-lock ({} images, {output:?}, {scheme:?})",
-        wallpapers.outputs.len()
-    )
+    wallpapers
+        .outputs
+        .iter()
+        .find(|image| &image.output == output)
+        .map(|image| match scheme {
+            ds::Scheme::Light => backdrop_file(&image.light),
+            ds::Scheme::Dark => backdrop_file(&image.dark),
+        })
 }
 
 #[cfg(test)]
@@ -27,7 +32,6 @@ mod tests {
     use super::backdrop_for;
 
     #[test]
-    #[ignore = "M11 fill: a-lock"]
     fn each_output_and_scheme_has_its_backdrop() {
         let wallpapers = Wallpapers {
             outputs: vec![WallpaperImage {

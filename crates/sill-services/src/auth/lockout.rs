@@ -168,7 +168,10 @@ fn verdict(
 /// The wait after the `failures`-th failure: none up to `free_attempts`, then `first_wait_ms`,
 /// doubling per failure, capped at `max_wait_ms`.
 pub fn wait_after(failures: Attempts, policy: &LockoutPolicy) -> Option<u64> {
-    let past = failures.0.checked_sub(policy.free_attempts)?.checked_sub(1)?;
+    let past = failures
+        .0
+        .checked_sub(policy.free_attempts)?
+        .checked_sub(1)?;
     let doubled = 1_u64
         .checked_shl(past)
         .and_then(|factor| policy.first_wait_ms.checked_mul(factor))

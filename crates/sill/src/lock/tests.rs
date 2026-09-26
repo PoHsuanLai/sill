@@ -20,7 +20,6 @@ fn auth(phase: AuthPhase) -> Auth {
 }
 
 #[test]
-#[ignore = "M11 fill: a-lock"]
 fn the_wish_follows_the_locker_until_the_password_is_right() {
     let cases = [
         (

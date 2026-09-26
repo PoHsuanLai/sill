@@ -130,7 +130,11 @@ impl Live {
 
     fn submit(&mut self, secret: Secret) {
         let now = self.now();
-        let (next, out) = step(self.lockout, LockoutIn::Submit(now), &LockoutPolicy::DEFAULT);
+        let (next, out) = step(
+            self.lockout,
+            LockoutIn::Submit(now),
+            &LockoutPolicy::DEFAULT,
+        );
         self.lockout = next;
         if !out.contains(&LockoutOut::Check) {
             return;
@@ -139,7 +143,11 @@ impl Live {
             user: self.tx.borrow().account.user.clone(),
             secret,
         };
-        let (round, authenticator, done) = (self.round, Arc::clone(&self.authenticator), self.done.clone());
+        let (round, authenticator, done) = (
+            self.round,
+            Arc::clone(&self.authenticator),
+            self.done.clone(),
+        );
         self.rt.spawn_blocking(move || {
             let verdict = authenticator.check(&attempt);
             drop(attempt);
@@ -175,13 +183,21 @@ impl Live {
             FakeVerdict::Refuse => Outcome::Refused,
         };
         if let (Gate::Waiting { until }, FakeVerdict::Accept) = (self.lockout.gate, fake) {
-            let (next, _) = step(self.lockout, LockoutIn::Tick(until), &LockoutPolicy::DEFAULT);
+            let (next, _) = step(
+                self.lockout,
+                LockoutIn::Tick(until),
+                &LockoutPolicy::DEFAULT,
+            );
             self.lockout = next;
         }
         if self.lockout.gate == Gate::Checking {
             self.round = Round(self.round.0 + 1);
         } else {
-            let (next, out) = step(self.lockout, LockoutIn::Submit(now), &LockoutPolicy::DEFAULT);
+            let (next, out) = step(
+                self.lockout,
+                LockoutIn::Submit(now),
+                &LockoutPolicy::DEFAULT,
+            );
             self.lockout = next;
             if !out.contains(&LockoutOut::Check) {
                 return;
@@ -216,7 +232,11 @@ impl Live {
     }
 
     fn publish_out(&self, out: &[LockoutOut], verdict: &Verdict) {
-        let Some(phase) = out.iter().rev().find_map(|said| self.phase_of(*said, verdict)) else {
+        let Some(phase) = out
+            .iter()
+            .rev()
+            .find_map(|said| self.phase_of(*said, verdict))
+        else {
             return;
         };
         let failures = self.lockout.failures;

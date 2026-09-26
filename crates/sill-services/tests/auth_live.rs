@@ -53,7 +53,10 @@ fn wall_ms() -> i64 {
 
 /// One wrong secret, seen through `Checking` to `Wrong` (or `LockedOut`).
 async fn wrong_once(auth: &mut watch::Receiver<Auth>, control: &Control<AuthCommand>, n: u32) {
-    send(control, AuthCommand::Submit(Secret::new(format!("wrong {n}"))));
+    send(
+        control,
+        AuthCommand::Submit(Secret::new(format!("wrong {n}"))),
+    );
     until(auth, "checking", |a| a.phase == AuthPhase::Checking).await;
     until(auth, "a verdict", |a| a.failures == Attempts(n)).await;
 }
@@ -64,7 +67,10 @@ async fn six_wrongs_lock_out_on_the_wall_clock_and_a_reset_keeps_it() {
     let (mut auth, control) = auth::spawn_with(&tokio::runtime::Handle::current(), fake(20));
     send(&control, AuthCommand::Reset);
     let loaded = until(&mut auth, "the account", |a| !a.account.user.0.is_empty()).await;
-    println!("account: {:?} ({:?})", loaded.account.user, loaded.account.name);
+    println!(
+        "account: {:?} ({:?})",
+        loaded.account.user, loaded.account.name
+    );
     for n in 1..=5 {
         wrong_once(&mut auth, &control, n).await;
         assert_eq!(auth.borrow().phase, AuthPhase::Wrong, "free try {n}");
@@ -100,7 +106,11 @@ async fn busy_while_checking_then_right_then_reset() {
     send(&control, AuthCommand::Submit(Secret::new("nope again")));
     until(&mut auth, "wrong", |a| a.phase == AuthPhase::Wrong).await;
     tokio::time::sleep(Duration::from_millis(400)).await;
-    assert_eq!(auth.borrow().failures, Attempts(1), "the second submit was busy");
+    assert_eq!(
+        auth.borrow().failures,
+        Attempts(1),
+        "the second submit was busy"
+    );
     send(&control, AuthCommand::Submit(Secret::new(RIGHT)));
     until(&mut auth, "accepted", |a| a.phase == AuthPhase::Accepted).await;
     send(&control, AuthCommand::Reset);
@@ -138,7 +148,14 @@ async fn an_unavailable_check_counts_nothing() {
 fn stand_in() -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_owned());
     let built = Command::new(cargo)
-        .args(["build", "--quiet", "-p", "sill-services", "--example", "auth_helper"])
+        .args([
+            "build",
+            "--quiet",
+            "-p",
+            "sill-services",
+            "--example",
+            "auth_helper",
+        ])
         .status()
         .expect("cargo build the stand-in helper");
     assert!(built.success(), "building examples/auth_helper.rs");
@@ -199,9 +216,7 @@ fn pam_with_a_throwaway_account() {
         std::env::var("SILL_PAM_TEST_USER"),
         std::env::var("SILL_PAM_TEST_SECRET"),
     ) else {
-        println!(
-            "skipped: SILL_PAM_TEST_USER and SILL_PAM_TEST_SECRET name no throwaway account"
-        );
+        println!("skipped: SILL_PAM_TEST_USER and SILL_PAM_TEST_SECRET name no throwaway account");
         return;
     };
     let service = pam::service(Path::exists);

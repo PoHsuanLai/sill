@@ -5,8 +5,8 @@
 
 use std::path::{Path, PathBuf};
 
-use image::imageops::{self, FilterType};
 use image::RgbaImage;
+use image::imageops::{self, FilterType};
 
 use crate::error::ServiceError;
 

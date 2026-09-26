@@ -2,16 +2,22 @@
 //! state, the keyboard and the clock: pure.
 
 use dioxus::prelude::Modifiers;
-use ds::{CapsLock, LockUser, PromptState};
+use ds::{
+    AvatarFace, AvatarShape, AvatarSize, AvatarTone, CapsLock, LockUser, PromptState, person_hue,
+};
 use sill_services::AuthPhase;
-use sill_services::auth::Account;
+use sill_services::auth::{Account, UserName};
 use sill_settings::LockClock;
 
 /// Caps Lock from the modifiers of the last key event the surface saw (a lock surface has the
 /// keyboard, so it sees them; shell-host's `modifiers_from` sets `CAPS_LOCK` from xkb's locked
 /// state). Before the first key the state is not known (G180): `Off`.
 pub fn caps_lock(modifiers: Modifiers) -> CapsLock {
-    todo!("M11 fill: a-lock ({modifiers:?})")
+    if modifiers.contains(Modifiers::CAPS_LOCK) {
+        CapsLock::On
+    } else {
+        CapsLock::Off
+    }
 }
 
 /// quire's prompt state for `phase` at `now` (whose zone words the time): `Accepted` is
@@ -19,14 +25,49 @@ pub fn caps_lock(modifiers: Modifiers) -> CapsLock {
 /// hint line), `LockedOut { until }` is quire's `LockedOut` with `until` as the lock clock
 /// words a time (`14:07`, or `2:07` in `H12`), and one whose `until` has passed is `Idle`.
 pub fn prompt_state(phase: &AuthPhase, now: &jiff::Zoned, format: LockClock) -> PromptState {
-    todo!("M11 fill: a-lock ({phase:?} {now} {format:?})")
+    match phase {
+        AuthPhase::Idle | AuthPhase::Unavailable(_) => PromptState::Idle,
+        AuthPhase::Checking | AuthPhase::Accepted => PromptState::Checking,
+        AuthPhase::Wrong => PromptState::Wrong,
+        AuthPhase::LockedOut { until } if until.0 > now.timestamp().as_millisecond() => {
+            jiff::Timestamp::from_millisecond(until.0).map_or(PromptState::Idle, |at| {
+                PromptState::LockedOut {
+                    until: time_text(&at.to_zoned(now.time_zone().clone()), format),
+                }
+            })
+        }
+        AuthPhase::LockedOut { .. } => PromptState::Idle,
+    }
 }
 
 /// The person as quire's prompt shows them: the real name (the login name when it is empty),
 /// and an initials face at 64 (`AvatarFace`'s first letter of the name, `person_hue` tone).
 /// quire's `LockUser` has no picture yet (the account's `AvatarSource::File` waits on it, Q243).
 pub fn lock_user(account: &Account) -> LockUser {
-    todo!("M11 fill: a-lock ({account:?})")
+    let name = if account.name.0.trim().is_empty() {
+        account.user.0.clone()
+    } else {
+        account.name.0.clone()
+    };
+    LockUser {
+        avatar: face_of(&name, &account.user),
+        name,
+    }
+}
+
+/// The person's picture as quire's prompt can draw it today: the initial on their hue. When
+/// quire's `LockUser` takes a picture (Q243), an `AvatarSource::File` becomes the photo here,
+/// and only here.
+fn face_of(name: &str, user: &UserName) -> AvatarFace {
+    AvatarFace {
+        initial: name
+            .chars()
+            .next()
+            .map_or('?', |first| first.to_uppercase().next().unwrap_or(first)),
+        size: AvatarSize::Size64,
+        tone: AvatarTone::Person(person_hue(&user.0)),
+        shape: AvatarShape::Round,
+    }
 }
 
 /// The clock's two lines, for quire's `LockClock`.
@@ -40,7 +81,24 @@ pub struct ClockLines {
 
 /// `now` as the lock screen's clock.
 pub fn clock_lines(now: &jiff::Zoned, format: LockClock) -> ClockLines {
-    todo!("M11 fill: a-lock ({now} {format:?})")
+    ClockLines {
+        time: time_text(now, format),
+        date: format!(
+            "{}, {} {}",
+            now.strftime("%A"),
+            now.day(),
+            now.strftime("%B")
+        ),
+    }
+}
+
+/// The time as the lock clock words it: `14:05`, or `2:05` (no AM/PM).
+fn time_text(at: &jiff::Zoned, format: LockClock) -> String {
+    let hour = at.hour();
+    match format {
+        LockClock::H24 => format!("{hour:02}:{:02}", at.minute()),
+        LockClock::H12 => format!("{}:{:02}", (hour + 11) % 12 + 1, at.minute()),
+    }
 }
 
 #[cfg(test)]
@@ -60,7 +118,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M11 fill: a-lock"]
     fn caps_lock_from_the_modifiers() {
         let cases = [
             (Modifiers::empty(), CapsLock::Off),
@@ -74,7 +131,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M11 fill: a-lock"]
     fn prompt_states() {
         let now = at("2026-09-26T14:05:00+08:00[Asia/Taipei]");
         let ms = |z: &jiff::Zoned| UnixMs(z.timestamp().as_millisecond());
@@ -115,7 +171,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M11 fill: a-lock"]
     fn the_user_is_named_and_initialled() {
         let account = |user: &str, name: &str| Account {
             user: UserName(user.to_owned()),
@@ -131,7 +186,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M11 fill: a-lock"]
     fn clock_lines_in_both_formats() {
         let lines = |time: &str, date: &str| ClockLines {
             time: time.to_owned(),
