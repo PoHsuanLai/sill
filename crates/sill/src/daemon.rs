@@ -114,8 +114,7 @@ pub fn run() -> ExitCode {
         first_mouse_window_ms: shell_host::config::Ms(u32::from(
             initial_settings.menus.first_mouse_window_ms.0,
         )),
-        prepaint: sill_surfaces::prepaint(),
-        ..HostConfig::default()
+        ..sill_surfaces::host_config()
     };
     // M10: the calendar's sources and the screenshots' folders and tool, from the settings
     // (both services passive until then; lanes a and c fill the followers).

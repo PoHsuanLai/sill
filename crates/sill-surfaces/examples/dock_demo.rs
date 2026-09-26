@@ -15,7 +15,7 @@ use std::fmt::Debug;
 use std::io::BufRead;
 use std::time::Instant;
 
-use shell_host::{Host, HostConfig, HostCtx, HostEvent, OutputId, OutputInfo, Root};
+use shell_host::{Host, HostCtx, HostEvent, OutputId, OutputInfo, Root};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::surfaces::dock::{DockProps, dock_layer};
 use sill_surfaces::{Dock, FrameClock};
@@ -45,7 +45,7 @@ fn run() -> Result<(), String> {
     let toplevels = bar.toplevels;
     let settings = SettingsFeed::fixed(ShellFile::default());
     let clock = FrameClock::new(Instant::now());
-    let host = Host::<DemoMsg>::connect(HostConfig::default()).map_err(|e| e.to_string())?;
+    let host = Host::<DemoMsg>::connect(sill_surfaces::host_config()).map_err(|e| e.to_string())?;
     read_stdin(host.handle());
     let mut docks = HashSet::<OutputId>::new();
     host.run(move |ctx, event| match event {

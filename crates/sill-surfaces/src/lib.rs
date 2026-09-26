@@ -27,6 +27,23 @@ pub fn prepaint() -> shell_host::Prepaint {
     shell_host::Prepaint::hook(ds_native::snap_to_device)
 }
 
+/// quire's bundled faces (Inter, Inter Display, Space Mono), for `HostConfig::fonts`. Without
+/// them every document under shell-host falls back to the system face (shell-host F68, sill
+/// Q342), since none of them is installed on the system.
+pub fn faces() -> shell_host::FontFaces {
+    shell_host::FontFaces(ds::FACES.iter().map(|face| face.bytes).collect())
+}
+
+/// The host configuration every sill process starts from: quire's faces and the pre-paint
+/// pass. The daemon adds its settings on top; the demos use it as it is.
+pub fn host_config() -> shell_host::HostConfig {
+    shell_host::HostConfig {
+        fonts: faces(),
+        prepaint: prepaint(),
+        ..shell_host::HostConfig::default()
+    }
+}
+
 /// quire's caret read (`HostCaret`, Q299), for a root to carry beside [`FOCUS`] so a palette's
 /// key claim sees where the caret is. The launcher's panel provides it itself
 /// (`ds_native::focus::provide()`), so it does not wait on the daemon's roots.

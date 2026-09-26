@@ -14,7 +14,7 @@ mod fake;
 use std::collections::HashSet;
 
 use shell_host::scale::{Size, buffer_size};
-use shell_host::{Host, HostConfig, HostCtx, HostEvent, OutputId, OutputInfo, Root};
+use shell_host::{Host, HostCtx, HostEvent, OutputId, OutputInfo, Root};
 use sill_services::{Control, OutputName, Services, WallpaperCommand};
 use sill_surfaces::Wallpaper;
 use sill_surfaces::surfaces::wallpaper::{WallpaperProps, wallpaper_layer};
@@ -41,7 +41,7 @@ fn run() -> Result<(), String> {
     services.wallpapers = wallpapers;
     services.wallpaper_control = wallpaper_control.clone();
 
-    let host = Host::<()>::connect(HostConfig::default()).map_err(|e| e.to_string())?;
+    let host = Host::<()>::connect(sill_surfaces::host_config()).map_err(|e| e.to_string())?;
     let mut done = HashSet::<OutputId>::new();
     host.run(move |ctx, event| match event {
         HostEvent::Started => {

@@ -15,7 +15,7 @@ use std::collections::HashSet;
 use std::fmt::Debug;
 use std::time::Instant;
 
-use shell_host::{Host, HostConfig, HostCtx, HostEvent, OutputId, OutputInfo, Root};
+use shell_host::{Host, HostCtx, HostEvent, OutputId, OutputInfo, Root};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::surfaces::bar::{BarProps, bar_layer};
 use sill_surfaces::surfaces::notification_center::CenterLink;
@@ -56,7 +56,7 @@ fn run() -> Result<(), String> {
     media.send_replace(fake::media());
     let settings = SettingsFeed::fixed(ShellFile::default());
     let clock = FrameClock::new(Instant::now());
-    let host = Host::<()>::connect(HostConfig::default()).map_err(|e| e.to_string())?;
+    let host = Host::<()>::connect(sill_surfaces::host_config()).map_err(|e| e.to_string())?;
     // `Started` sees the initial outputs, which may also arrive as `OutputAdded`: one bar each.
     let mut barred = HashSet::<OutputId>::new();
     host.run(move |ctx, event| match event {
