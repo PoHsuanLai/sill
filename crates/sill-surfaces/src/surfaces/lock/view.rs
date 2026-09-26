@@ -124,10 +124,10 @@ mod tests {
         };
         let ada = lock_user(&account("ada", "Ada Lovelace"));
         assert_eq!(ada.name, "Ada Lovelace");
-        assert_eq!(ada.avatar.initial, 'A');
+        assert_eq!(crate::surfaces::user_picture::initial_of(&ada), Some('A'));
         let bob = lock_user(&account("bob", ""));
         assert_eq!(bob.name, "bob");
-        assert_eq!(bob.avatar.initial, 'B');
+        assert_eq!(crate::surfaces::user_picture::initial_of(&bob), Some('B'));
     }
 
     #[test]

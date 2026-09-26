@@ -32,7 +32,16 @@ pub enum HelperRoute {
 
 /// The socket when it exists (`exists`), else the first of [`HELPER_PATHS`] that exists.
 pub fn helper_route(exists: impl Fn(&Path) -> bool) -> HelperRoute {
-    todo!("M11 fill: b-polkit ({})", exists(Path::new(SOCKET_PATH)))
+    if exists(Path::new(SOCKET_PATH)) {
+        return HelperRoute::Socket(PathBuf::from(SOCKET_PATH));
+    }
+    HELPER_PATHS
+        .iter()
+        .map(Path::new)
+        .find(|path| exists(path))
+        .map_or(HelperRoute::Missing, |path| {
+            HelperRoute::Setuid(path.to_path_buf())
+        })
 }
 
 /// How one helper run starts: the program's arguments (the socket takes none) and the lines
@@ -47,7 +56,17 @@ pub struct HelperOpening {
 /// two lines; the setuid helper gets the user as its argument and the cookie as one line.
 /// `None` for `Missing`.
 pub fn opening(route: &HelperRoute, user: &UserName, cookie: &Cookie) -> Option<HelperOpening> {
-    todo!("M11 fill: b-polkit ({route:?} {user:?} {cookie:?})")
+    match route {
+        HelperRoute::Socket(_) => Some(HelperOpening {
+            args: Vec::new(),
+            lines: vec![user.0.clone(), cookie.0.clone()],
+        }),
+        HelperRoute::Setuid(_) => Some(HelperOpening {
+            args: vec![user.0.clone()],
+            lines: vec![cookie.0.clone()],
+        }),
+        HelperRoute::Missing => None,
+    }
 }
 
 /// One line from the helper.
@@ -72,7 +91,22 @@ pub struct UnknownLine(pub String);
 
 /// `line` (its newline stripped; the text after the word kept as sent, trailing space and all).
 pub fn parse_helper_line(line: &str) -> Result<HelperLine, UnknownLine> {
-    todo!("M11 fill: b-polkit ({line:?})")
+    type Make = fn(String) -> HelperLine;
+    let worded: [(&str, Make); 4] = [
+        ("PAM_PROMPT_ECHO_OFF ", HelperLine::PromptHidden),
+        ("PAM_PROMPT_ECHO_ON ", HelperLine::PromptShown),
+        ("PAM_ERROR_MSG ", HelperLine::Error),
+        ("PAM_TEXT_INFO ", HelperLine::Info),
+    ];
+    let found = worded
+        .iter()
+        .find_map(|(word, make)| line.strip_prefix(word).map(|rest| make(rest.to_owned())));
+    match (found, line) {
+        (Some(parsed), _) => Ok(parsed),
+        (None, "SUCCESS") => Ok(HelperLine::Success),
+        (None, "FAILURE") => Ok(HelperLine::Failure),
+        (None, _) => Err(UnknownLine(line.to_owned())),
+    }
 }
 
 #[cfg(test)]
@@ -87,7 +121,6 @@ mod tests {
     use crate::polkit_agent::types::Cookie;
 
     #[test]
-    #[ignore = "M11 fill: b-polkit"]
     fn the_socket_first_then_the_setuid_helper() {
         let fedora = "/usr/lib/polkit-1/polkit-agent-helper-1";
         let debian = "/usr/libexec/polkit-agent-helper-1";
@@ -108,7 +141,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M11 fill: b-polkit"]
     fn openings() {
         let user = UserName("ada".to_owned());
         let cookie = Cookie("3-abc-1".to_owned());
@@ -136,7 +168,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M11 fill: b-polkit"]
     fn helper_lines() {
         let cases = [
             (
