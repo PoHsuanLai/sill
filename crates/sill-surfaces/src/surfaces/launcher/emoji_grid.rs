@@ -30,8 +30,16 @@ pub fn EmojiGrid(
 /// Where Up, Down, Left and Right move a selection in a grid of `count` cells, `columns` wide
 /// (clamped at the edges, design/06 §2.3: no wrap). Lane d fills it.
 pub fn grid_step(selected: usize, step: GridStep, count: usize, columns: usize) -> usize {
-    let _ = (selected, step, count, columns);
-    todo!("M9 fill: d-preview")
+    let columns = columns.max(1);
+    let last = count.saturating_sub(1);
+    let at = selected.min(last);
+    match step {
+        GridStep::Up => at.checked_sub(columns).unwrap_or(at),
+        GridStep::Down => Some(at + columns).filter(|&next| next <= last).unwrap_or(at),
+        GridStep::Left if at % columns > 0 => at - 1,
+        GridStep::Right if at % columns + 1 < columns && at < last => at + 1,
+        GridStep::Left | GridStep::Right => at,
+    }
 }
 
 /// A move in the grid.
@@ -48,7 +56,6 @@ mod tests {
     use super::{GridStep, grid_step};
 
     #[test]
-    #[ignore = "M9 fill: d-preview"]
     fn arrows_move_in_two_dimensions_and_stop_at_the_edges() {
         let cases: &[(usize, GridStep, usize)] = &[
             (0, GridStep::Right, 1),

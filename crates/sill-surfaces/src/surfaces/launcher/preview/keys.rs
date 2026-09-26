@@ -100,8 +100,112 @@ pub fn step_preview(
     previewable: Previewable,
     controls: usize,
 ) -> (PreviewState, Vec<PreviewOut>) {
-    let _ = (state, key, previewable, controls);
-    todo!("M9 fill: d-preview")
+    match state.focus {
+        PaneFocus::Pane(at) => in_pane(state, key, at, controls),
+        PaneFocus::Results => in_results(state, key, previewable, controls),
+    }
+}
+
+/// A key while the results (the field) have the keyboard.
+fn in_results(
+    state: PreviewState,
+    key: PreviewKey,
+    previewable: Previewable,
+    controls: usize,
+) -> (PreviewState, Vec<PreviewOut>) {
+    let pass = (state, vec![PreviewOut::PassToField]);
+    match (key, state.edit, state.pane) {
+        (PreviewKey::Typed, _, _) => (edited(state, FieldEdit::Typing), Vec::new()),
+        (PreviewKey::Moved, _, _) => (edited(state, FieldEdit::Browsing), Vec::new()),
+        (PreviewKey::Space, FieldEdit::Typing, _) => pass,
+        (PreviewKey::Space | PreviewKey::QuickLook, _, Pane::Shown) => {
+            (shown(state, Pane::Hidden), Vec::new())
+        }
+        (PreviewKey::Space | PreviewKey::QuickLook, _, Pane::Hidden) => match previewable {
+            Previewable::Yes => (shown(state, Pane::Shown), Vec::new()),
+            // Nothing to look at: a browsing Space is a space after all; ⌘Y does nothing.
+            Previewable::No if key == PreviewKey::Space => pass,
+            Previewable::No => (state, Vec::new()),
+        },
+        (PreviewKey::Right(Caret::Inside), _, _) => pass,
+        (PreviewKey::Right(Caret::AtEnd) | PreviewKey::CommandRight, _, Pane::Shown) => {
+            enter(state, controls)
+        }
+        (PreviewKey::Right(Caret::AtEnd) | PreviewKey::CommandRight, _, Pane::Hidden) => {
+            match previewable {
+                Previewable::Yes => (shown(state, Pane::Shown), Vec::new()),
+                Previewable::No => pass,
+            }
+        }
+        (PreviewKey::Escape, _, Pane::Shown) => (shown(state, Pane::Hidden), Vec::new()),
+        (PreviewKey::Escape, _, Pane::Hidden) => (state, vec![PreviewOut::CloseLauncher]),
+        (PreviewKey::Left | PreviewKey::Tab | PreviewKey::ShiftTab, _, _) => pass,
+    }
+}
+
+/// A key while the pane's control `at` has the keyboard.
+fn in_pane(
+    state: PreviewState,
+    key: PreviewKey,
+    at: usize,
+    controls: usize,
+) -> (PreviewState, Vec<PreviewOut>) {
+    let back = PreviewState {
+        focus: PaneFocus::Results,
+        ..state
+    };
+    let focus = |to: usize| {
+        (
+            PreviewState {
+                focus: PaneFocus::Pane(to),
+                ..state
+            },
+            vec![PreviewOut::FocusPane(to)],
+        )
+    };
+    let count = controls.max(1);
+    match key {
+        PreviewKey::Tab => focus((at + 1) % count),
+        PreviewKey::ShiftTab => focus((at + count - 1) % count),
+        PreviewKey::Left | PreviewKey::Escape => (back, vec![PreviewOut::FocusField]),
+        // ⌘Y hides the pane from inside it too, and the field takes the keyboard back.
+        PreviewKey::QuickLook => (
+            PreviewState {
+                pane: Pane::Hidden,
+                ..back
+            },
+            vec![PreviewOut::FocusField],
+        ),
+        // Space presses the focused control (quire's button hears it); the rest do nothing here.
+        PreviewKey::Typed
+        | PreviewKey::Moved
+        | PreviewKey::Space
+        | PreviewKey::Right(_)
+        | PreviewKey::CommandRight => (state, Vec::new()),
+    }
+}
+
+fn edited(state: PreviewState, edit: FieldEdit) -> PreviewState {
+    PreviewState { edit, ..state }
+}
+
+fn shown(state: PreviewState, pane: Pane) -> PreviewState {
+    PreviewState { pane, ..state }
+}
+
+/// Move the keyboard into a shown pane, onto its first control; a pane with no controls keeps
+/// it in the field.
+fn enter(state: PreviewState, controls: usize) -> (PreviewState, Vec<PreviewOut>) {
+    match controls {
+        0 => (state, Vec::new()),
+        _ => (
+            PreviewState {
+                focus: PaneFocus::Pane(0),
+                ..state
+            },
+            vec![PreviewOut::FocusPane(0)],
+        ),
+    }
 }
 
 #[cfg(test)]
@@ -119,7 +223,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M9 fill: d-preview"]
     fn space_is_quick_look_only_while_browsing() {
         use PreviewKey::{Moved, Space, Typed};
         let (state, out) = run(&[Typed, Space], Previewable::Yes);
@@ -137,7 +240,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M9 fill: d-preview"]
     fn command_y_and_the_right_arrow_open_and_enter_the_pane() {
         use PreviewKey::{CommandRight, QuickLook, Right, Typed};
         let (state, _) = run(&[Typed, QuickLook], Previewable::Yes);
@@ -160,7 +262,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M9 fill: d-preview"]
     fn tab_walks_the_pane_and_escape_closes_one_level_at_a_time() {
         use PreviewKey::{CommandRight, Escape, Left, ShiftTab, Tab};
         let (state, out) = run(
