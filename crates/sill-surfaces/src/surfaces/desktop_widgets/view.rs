@@ -7,7 +7,7 @@
 //! runs a timer: the widgets redraw on their services' changes only.
 
 use dioxus::prelude::*;
-use ds::{BlurState, Ds, Material, Px, RootChrome, RootExtent, WidgetMetrics, use_rect};
+use ds::{BlurState, Ds, Material, Px, RootChrome, RootExtent, WakeStamp, WidgetMetrics, use_rect};
 use shell_host::{BlurSpec, ElementId, ElementRegion, OutputInfo, RegionSpec, SurfaceHandle};
 use sill_services::OutputName;
 use sill_settings::WidgetKind;
@@ -18,14 +18,20 @@ use super::placement::{Placement, grid_size, place};
 use super::saved::PlacementFile;
 use crate::hooks::{use_appearance, use_ds_scale, use_settings, use_workspaces};
 use crate::surfaces::launcher::panel::active_look;
-use crate::widgets::{Widget, WidgetHost, size_of, widget_element_id, widgets_css};
+use crate::widgets::{
+    Widget, WidgetHost, provide_widget_wake, size_of, widget_element_id, widgets_css,
+};
 
 /// The Widget material's corner (quire's recipe, `--m-radius` 20 px): the frames' regions round
 /// their corners by it.
 pub const WIDGET_RADIUS: i32 = 20;
 
-/// The layer on `output`.
+/// The layer on `output`: its own widget wake (`crate::widgets::WidgetWake`), bumped once when
+/// this layer is mapped (`widgets.desktop` turning `On` spawns a fresh one, FINDINGS "M10 freeze"
+/// `crates/sill/src/widgets.rs`), so the batteries' rings and figures count up as they come into
+/// view.
 pub(super) fn desktop(output: OutputInfo) -> Element {
+    provide_widget_wake(WakeStamp::default());
     let ds_scale = use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();

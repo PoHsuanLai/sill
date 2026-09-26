@@ -15,10 +15,12 @@ pub mod calendar;
 pub mod frame;
 pub mod now_playing;
 pub mod up_next;
+mod wake;
 pub mod world_clock;
 
 pub use ds::{WidgetHost, WidgetSize};
 pub use sill_settings::WidgetKind;
+pub use wake::{provide_widget_wake, use_widget_wake};
 
 use dioxus::prelude::*;
 

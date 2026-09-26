@@ -6,15 +6,16 @@
 //! surface.
 
 use dioxus::prelude::*;
-use ds::{Material, Panel, PanelEdge, PanelScrim, Px, Shown};
+use ds::{Material, Panel, PanelEdge, PanelScrim, Px, Shown, WakeStamp};
 use shell_host::OutputId;
 
 use super::contents::Contents;
 use super::drive::{use_center_ctx, use_phase};
 use super::labels::TITLE;
-use super::phase::Phase;
+use super::phase::{Opening, Phase};
 use crate::hooks::use_settings;
 use crate::surfaces::notification_card::notification_metrics;
+use crate::widgets::provide_widget_wake;
 
 /// The column on `output`, while the center is drawn there.
 #[component]
@@ -30,15 +31,19 @@ pub(super) fn Column(output: OutputId) -> Element {
     };
     let on_hidden = EventHandler::new(move |()| phase.settled());
     rsx! {
-        Opened { key: "{opening.0}", shown, on_hidden }
+        Opened { key: "{opening.0}", opening, shown, on_hidden }
     }
 }
 
-/// One opening's catcher and panel: its own handlers' state, so each opening starts closed.
+/// One opening's catcher and panel: its own handlers' state, so each opening starts closed, and
+/// its own widget wake (`crate::widgets::WidgetWake`), so a reopened battery ring counts up
+/// again (the widgets' own remount already would; the stamp also covers a host that keeps them
+/// mounted across an opening).
 #[component]
-fn Opened(shown: Shown, on_hidden: EventHandler<()>) -> Element {
+fn Opened(opening: Opening, shown: Shown, on_hidden: EventHandler<()>) -> Element {
     let ctx = use_center_ctx();
     use_context_provider(|| ctx.clone());
+    provide_widget_wake(WakeStamp(opening.0 as u32));
     let settings = use_settings()().notifications;
     let metrics = notification_metrics(&settings);
     let (catch, escape) = (ctx.clone(), ctx.clone());
