@@ -5958,3 +5958,41 @@ included), at 100/150/200 %. Release build, this machine, while other builds ran
   user's 200 %; the 44 ms max on the discrete GPU at 100 % is its first frame (pipelines built
   on first use), not the scroll. The grid needs no virtualisation (quire: off-screen cells cost
   about 4.5 µs each). The M9 open risk (F657) is closed.
+
+## G130 root cause (2026-09-27)
+
+`notification_center_render`'s four click tests fail under load (10/10 runs failed with 32
+`yes` spinning; 11/11 pass on an idle machine). The cause is not the waits and not sill's
+surface: it is a Blitz style bug that quire's wall-clock presence timer exposes.
+
+- **G295 Blitz keeps a cancelled CSS animation's last value on the element, for good.** When
+  an element's `animation-name` goes away before its animation has ended, the restyle that
+  cancels it cascades the animation's value at that moment, and nothing restyles the element
+  again: stylo sets `ElementAnimationSet::dirty` for that, but Blitz's `resolve_stylist` never
+  reads it, and `clear_canceled_animations` plus `sets.retain(non-empty)` then drop the set, so
+  the "animating nodes are dirty" pass never sees the node again. The stale transform is
+  painted and hit-tested; `get_client_bounding_rect` (layout, no transforms) reads the resting
+  box, so `Harness::rect` and `centre` look fine. Deterministic repro, no wall clock:
+  `tests/cancelled_animation.rs` (a box sliding in from `translateX(400px)` over 1 s, its class
+  removed 20 ms in: two seconds later it still paints and hit-tests 392 px to the right;
+  removed after its end, it rests). Ignored until the Blitz pin carries a fix (restyle the
+  nodes of dirty sets before dropping them, as Servo does). The fix belongs in quire's Blitz
+  pin, not sill.
+- **How the center hits it.** quire's `Panel` holds `data-presence=entering` (the `panel-in`
+  animation, `translateX(100% + 16px)` → none) until a `use_motion_timer(PanelIn)` fires on the
+  wall clock, while the animation runs on the harness clock (`Harness::advance` moves CSS time
+  at most the step asked for). Under load the first frame after `link.open` takes 700 ms-3 s of
+  wall time (probe: the first `advance(20)` returned after 769 ms at load average 125), so the
+  timer fires and `presence` flips to `present` when the animation is ~2 % in. The panel is
+  then frozen about 392 px right, past the viewport: the probe found no x in 888..1280 at the
+  title's row that hit `.ds-panel`, from the first frame on and 400 ms later, with
+  `presence=present`, `is_animating()=false` and `rect(.ds-panel).x = 888` throughout. Every
+  click at a `centre()` inside the panel lands on `.sill-nc-catcher`, which closes the center:
+  hence "the row count never reaches 4", no Clear commands, and "a press inside closes it".
+  A "settled" wait (presence present, not animating, rect stable) would pass at once and not
+  help: all three already hold while the panel is displaced.
+- **Not only tests.** In a real session both clocks are the wall clock, so the entrance is
+  cancelled only as far along as the first style resolve lagged the render; an e-out curve
+  hides a small lag, but a stalled first frame leaves the center displaced and its clicks
+  falling through until the next open. The OSD card runs the same `use_shown_phase`; other
+  timer-ended entrances were not checked.
