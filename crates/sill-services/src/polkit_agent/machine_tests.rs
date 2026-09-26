@@ -82,7 +82,6 @@ fn hidden_prompt(n: u32) -> PolkitEvent {
 }
 
 #[test]
-#[ignore = "M11 fill: b-polkit"]
 fn registration_follows_the_policy() {
     let cases: Vec<RegistrationCase> = vec![
         (
@@ -126,7 +125,6 @@ fn registration_follows_the_policy() {
 }
 
 #[test]
-#[ignore = "M11 fill: b-polkit"]
 fn one_request_through_its_helper() {
     let cases: Vec<(&str, Vec<PolkitEvent>, Vec<PolkitEffect>)> = vec![
         (
@@ -218,7 +216,6 @@ fn one_request_through_its_helper() {
 }
 
 #[test]
-#[ignore = "M11 fill: b-polkit"]
 fn the_queue_and_the_view() {
     let (state, effects) = run(registered(), vec![begin(1), begin(2)]);
     assert_eq!(effects, vec![start(1)], "the second waits");
