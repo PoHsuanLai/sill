@@ -12,7 +12,7 @@ use sill_settings::LockClock;
 
 /// Caps Lock from the modifiers of the last key event the surface saw (a lock surface has the
 /// keyboard, so it sees them; shell-host's `modifiers_from` sets `CAPS_LOCK` from xkb's locked
-/// state). Before the first key the state is not known (G180): `Off`.
+/// state). The surface itself follows [`caps_of`], which knows the state before the first key.
 pub fn caps_lock(modifiers: Modifiers) -> CapsLock {
     if modifiers.contains(Modifiers::CAPS_LOCK) {
         CapsLock::On
@@ -203,10 +203,10 @@ mod tests {
         };
         let ada = lock_user(&account("ada", "Ada Lovelace"));
         assert_eq!(ada.name, "Ada Lovelace");
-        assert_eq!(initial(&ada), Some('A'));
+        assert_eq!(crate::surfaces::user_picture::initial_of(&ada), Some('A'));
         let bob = lock_user(&account("bob", ""));
         assert_eq!(bob.name, "bob");
-        assert_eq!(initial(&bob), Some('B'));
+        assert_eq!(crate::surfaces::user_picture::initial_of(&bob), Some('B'));
         let photo = lock_user(&Account {
             avatar: AvatarSource::File("/home/ada/.face".into()),
             ..account("ada", "Ada Lovelace")
@@ -215,13 +215,6 @@ mod tests {
             photo.picture,
             UserPicture::Photo(ds::ImageSource("file:///home/ada/.face".to_owned()))
         );
-    }
-
-    fn initial(user: &ds::LockUser) -> Option<char> {
-        match &user.picture {
-            UserPicture::Face(face) => Some(face.initial),
-            _ => None,
-        }
     }
 
     #[test]
