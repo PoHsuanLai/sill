@@ -5,7 +5,7 @@ mod live;
 mod model;
 pub mod wifi;
 
-pub use model::{Connectivity, Link, Network, NetworkEvent, reduce_network};
+pub use model::{Activating, Connectivity, Link, Network, NetworkEvent, reduce_network};
 
 use tokio::runtime::Handle;
 use tokio::sync::watch;

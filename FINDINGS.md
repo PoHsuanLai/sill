@@ -6407,6 +6407,10 @@ old `Icon` buckets, and still shows `WifiOff` while connecting, until Q390 lands
   is `ActivatingConnection`. The Joining state and its stamp only appear when the primary
   connection itself is activating. Reading `ActivatingConnection` needs a check on a real
   NetworkManager, which this lane may not touch; it is queued for the manual checks.
+  **Fixed** ("G302 activating connection" below): the service now follows
+  `ActivatingConnection` too, independent of `Link`. The manual check (`docs/manual-checks.md`)
+  now confirms the live behaviour rather than diagnosing the gap. See also **G303**, a follow-up
+  the fix surfaced.
 
 ### Asks (quire)
 
@@ -6443,3 +6447,66 @@ old `Icon` buckets, and still shows `WifiOff` while connecting, until Q390 lands
     size, and the glyphs are still the `Icon` buckets. The battery item is absent because
     there is no UPower under the isolation, and the volume shows `VolumeX` because there is no
     PipeWire.
+
+## G302 activating connection (2026-09-27)
+
+Fixing G302: the network service now follows NetworkManager's `ActivatingConnection` (and its
+own `State`) the same way it already followed `PrimaryConnection`, so a join in progress reaches
+`Network.join` (and so `WifiState::Joining`, F821) even on the runs where `PrimaryConnection`
+itself never turns `Connecting`.
+
+- **The model (`network/model.rs`).** A new pure input, `Activating::{Idle, Joining}` — Wi-Fi
+  only, since the reference's searching glyph is the only thing this stamps for. `Joining` is a
+  non-`/` `ActivatingConnection` whose `State` is 1 and whose `Type` is `802-11-wireless`;
+  everything else (nothing activating, another type, or unreadable) is `Idle`.
+  - `NetworkEvent::Activating(Activating)`, reduced by a new `activating_step`, and, crucially,
+    it **never touches `Network.link`**: only `network.join` moves. The primary connection's own
+    `Link` events (`join_step`, already there) still land or fail the join when the primary
+    itself is what activates — this event covers the other case, a second connection racing to
+    replace it.
+  - `activating_step(now: Attempt, state: Activating) -> Step`: `Joining` is always `Start` (a
+    fresh stamp, or the same join reported again); `Idle` while one is `Running` is `Fail` — the
+    connection went to `State` 4 without ever becoming primary, so nothing else will report it;
+    `Idle` otherwise (`Quiet` or already `Failed`) `Hold`s.
+  - This reuses `attempt.rs` unchanged: the same stamp-minting rules (a start while one runs
+    keeps its stamp, every failure mints fresh) apply through this path exactly as they do
+    through `Link`, so two attempts in a row — one via `ActivatingConnection`, or one of each —
+    still get distinct stamps.
+- **The D-Bus side (`network/live.rs`).** One added subscription,
+  `receive_activating_connection_changed()`, plus a read mirroring `primary_link`'s shape:
+  `activating_status` reads `ActivatingConnection`, and if it is not `/`, the pointed-at
+  `Connection.Active`'s `State` and `Type`. `refresh()` seeds it too, so a join already under way
+  when the service starts is not missed. No other D-Bus surface changed.
+- **Table tests (`network::model::tests`).**
+
+  | before | event | after | note |
+  | --- | --- | --- | --- |
+  | `Disconnected`, `Quiet` | `Activating::Joining` | `Disconnected`, `Running(1)` | idle to activating mints, link untouched |
+  | `Disconnected`, `Running(1)` | `Activating::Idle` | `Disconnected`, `Failed(2)` | activating to deactivated (idle) without landing: failed |
+  | `Disconnected`, `Quiet` | `Activating::Idle` | `Disconnected`, `Quiet` | nothing running: holds |
+  | `Disconnected`, `Failed(2)` | `Activating::Idle` | `Disconnected`, `Failed(2)` | a failure already stands: holds |
+  | `Wired`, `Quiet` (primary) | `Activating::Joining` | **`Wired`** (unchanged), `Running(1)` | activating while another connection is primary |
+  | `Wifi{home,70}`, `Quiet` (primary) | `Activating::Joining` | **`Wifi{home,70}`** (unchanged), `Running(1)` | same, primary already joined |
+  | `Wired`, `Failed(1)` | `Activating::Joining` | `Wired`, `Running(2)` | a retry mints a distinct stamp |
+  | `Network::default()` --(`Activating::Joining`)--> `Running(1)` --(`Link(Wifi)`)--> | | `Wifi`, `Quiet`, same stamp `1` | idle → activating → activated, one lifecycle across both event kinds |
+
+- **What D1's glyph mapping (`bar/glyph_state.rs`, unchanged by this fix) expects, and does not
+  yet give, for the "activating while another connection is primary" row.** `network_glyph`
+  matches `(Link::Connecting, Attempt::Running(_), _)` for `WifiState::Joining`, but
+  `(Link::Wired, _, _)` and `(Link::Wifi { .. }, _, _)` both take the `_` wildcard on `join` —
+  they draw `Plain(Ethernet)` or `Joined { .. }` regardless of whether a second connection is
+  mid-join. So the reducer now correctly carries the join (`Network.join.now == Running`) through
+  this scenario, but nothing draws it: the bar still shows the established link's own icon with
+  no hint that another network is being joined alongside it. That is a real, separate gap from
+  G300 (which is about the *primary's own* activation) — logged as **G303** below — not fixed
+  here, since this lane's D-Bus and reducer changes were not meant to touch `sill-surfaces`.
+
+### Gaps (sill)
+
+- **G303 A second connection joining while another is primary draws no glyph.** `network_glyph`
+  only reads `join` when `link` is `Connecting` or `Disconnected` (F821); once G302's fix lands a
+  running join alongside an already-`Wired`- or already-`Wifi`-joined primary, nothing in the
+  current mapping surfaces it (see above). Needs a decision alongside Q390/Q391: does the bar's
+  one network item grow a secondary indicator, or does this stay a control-center-only signal
+  (the Wi-Fi module's own list already shows `Association::Connecting` on the row, `network/wifi`,
+  unaffected by this fix)?

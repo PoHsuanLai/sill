@@ -175,8 +175,23 @@ and a stand-in helper; these need polkitd, polkit's own helper and a real passwo
   and clears its hover when a surface is unmapped.
 - [ ] shell-host spike item f at a fractional output (1.5): run on the nested compositor at
   `cosmic@1.5`; the KWin run at 2.0 left `screen_row_equals_buffer_row` false (shell-host F45).
-- [ ] D1 G302 (sill FINDINGS "D1 status glyphs"): on the real session, join a saved Wi-Fi network
-  from the control center and watch `sill debug` / the bar. Does `Network.link` ever read
-  `Connecting` (NetworkManager's `PrimaryConnection` activating), or does the join only show
-  in `ActivatingConnection`? If it only shows there, the network service should read it. Once
-  Q390 lands, check that the bar's Wi-Fi glyph searches during the join and fills on joining.
+- [ ] D1 G302 (sill FINDINGS "G302 activating connection"): fixed in the pure reducer and the
+  D-Bus subscription (`network/model.rs`, `network/live.rs`), table-tested there; this check is
+  now about the real bus, not the gap. On a real session:
+  - Join a saved Wi-Fi network from the control center while nothing else is connected
+    (idle → activating → activated): with `sill debug`, `Network.join.now` should read
+    `Running(stamp)` while it joins, `Quiet` once up, and the stamp should be the **same** one
+    throughout (whether it arrived via `PrimaryConnection` turning `Connecting` or only via
+    `ActivatingConnection`).
+  - Join a network that fails (wrong password, out of range) with nothing else connected:
+    `Network.join.now` should read `Failed(stamp)` once NetworkManager gives up, a **new** stamp
+    each retry.
+  - With an existing connection already up (e.g. wired), start joining a different Wi-Fi network
+    from the control center: does `ActivatingConnection` show it (`State` 1,
+    `Type` `802-11-wireless`) while `PrimaryConnection` still names the old one? Confirm
+    `Network.link` stays the old link and `Network.join.now` still becomes `Running` — and note
+    (G303) that the bar currently draws only the old link's own glyph here, nothing for the
+    second join, since `network_glyph` does not yet read `join` when `link` is already up.
+  - Once Q390 lands, check that the bar's Wi-Fi glyph searches during the join and fills on
+    joining, for both the "nothing else connected" and the "another connection is primary"
+    (G303) cases.

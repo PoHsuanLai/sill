@@ -13,7 +13,7 @@ use zbus::export::futures_core::Stream;
 use zbus::zvariant::OwnedObjectPath;
 
 use super::NetworkCommand;
-use super::model::{Connectivity, Link, Network, NetworkEvent, reduce_network};
+use super::model::{Activating, Connectivity, Link, Network, NetworkEvent, reduce_network};
 use crate::units::Percent;
 
 /// Connects to NetworkManager and runs until `commands` closes (the `Control` was dropped). If
@@ -32,12 +32,16 @@ pub(super) async fn run(
     refresh(&connection, &nm, &tx).await;
 
     let mut primary = nm.receive_primary_connection_changed().await;
+    let mut activating = nm.receive_activating_connection_changed().await;
     let mut connectivity = nm.receive_connectivity_changed().await;
 
     loop {
         tokio::select! {
             Some(_) = next(&mut primary) => {
                 apply(&tx, NetworkEvent::Link(primary_link(&connection, &nm).await));
+            }
+            Some(_) = next(&mut activating) => {
+                apply(&tx, NetworkEvent::Activating(activating_status(&connection, &nm).await));
             }
             Some(change) = next(&mut connectivity) => {
                 if let Ok(value) = change.get().await {
@@ -52,13 +56,18 @@ pub(super) async fn run(
     }
 }
 
-/// Reads the primary connection and connectivity once and sends the resulting `Network`.
+/// Reads the primary connection, `ActivatingConnection` and connectivity once and sends the
+/// resulting `Network`.
 async fn refresh(
     connection: &Connection,
     nm: &NetworkManagerProxy<'_>,
     tx: &watch::Sender<Network>,
 ) {
     apply(tx, NetworkEvent::Link(primary_link(connection, nm).await));
+    apply(
+        tx,
+        NetworkEvent::Activating(activating_status(connection, nm).await),
+    );
     if let Ok(value) = nm.connectivity().await {
         apply(tx, NetworkEvent::Connectivity(Connectivity::from_nm(value)));
     }
@@ -91,6 +100,31 @@ async fn primary_link(connection: &Connection, nm: &NetworkManagerProxy<'_>) -> 
         1 => Link::Connecting,
         2 => link_of(connection, &active, &kind).await,
         _ => Link::Disconnected,
+    }
+}
+
+/// `ActivatingConnection`'s status for the reducer (G302): `Joining` for a non-`/` connection
+/// whose `State` is 1 (activating) and whose `Type` is `802-11-wireless`, else `Idle` — for no
+/// connection activating, one of another type, or one that cannot be read. The reducer, not this
+/// read, decides whether an `Idle` report ends a running join as a failure or holds.
+async fn activating_status(connection: &Connection, nm: &NetworkManagerProxy<'_>) -> Activating {
+    let Ok(path) = nm.activating_connection().await else {
+        return Activating::Idle;
+    };
+    if path.as_str() == "/" {
+        return Activating::Idle;
+    }
+    let Ok(builder) = ActiveConnectionProxy::builder(connection).path(path) else {
+        return Activating::Idle;
+    };
+    let Ok(active) = builder.build().await else {
+        return Activating::Idle;
+    };
+    let state = active.state().await.unwrap_or(0);
+    let kind = active.type_().await.unwrap_or_default();
+    match (state, kind.as_str()) {
+        (1, "802-11-wireless") => Activating::Joining,
+        _ => Activating::Idle,
     }
 }
 
