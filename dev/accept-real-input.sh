@@ -33,8 +33,14 @@ mkdir -p "$OUT_DIR"
 DRY_RUN=unproven
 KWIN_ENV="$SHELL_HOST_DEV/.kwin-env"
 SIZE=1920x1080
+WL=
+BUS=
 
-sill() { "$SILL_BIN" "$@"; }
+# Every `sill` call, `quit` included, must reach the daemon's own compositor and bus (the
+# headless KWin's, not this shell's ambient session's), as dev/accept-notifications-real-input.sh
+# already does; read without sourcing `$KWIN_ENV` into this shell (see start_kwin's comment).
+in_env() { env WAYLAND_DISPLAY="$WL" DBUS_SESSION_BUS_ADDRESS="$BUS" "$@"; }
+sill() { in_env "$SILL_BIN" "$@"; }
 
 # Real input into the headless KWin through ONE fake-input client for the whole run: each client
 # is a new fake input device, and KWin re-announces the seat's pointer for each; shell-host then
@@ -148,10 +154,17 @@ build() {
     echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
 }
 
-# The headless KWin. Its socket and bus reach only the daemon (start_daemon): kwin-virtual.sh stop
-# kills every process whose environment names the bus, which must not include this script.
+# The headless KWin, and its socket (absolute) and bus from its env file, read without sourcing
+# it into this shell: `kwin-virtual.sh stop` kills every process whose environment names the
+# bus, which must not include this script.
 start_kwin() {
-  "$SHELL_HOST_DEV/kwin-virtual.sh" start "$SIZE" >"$OUT_DIR/kwin.log" 2>&1
+  "$SHELL_HOST_DEV/kwin-virtual.sh" start "$SIZE" >"$OUT_DIR/kwin.log" 2>&1 || return 1
+  local runtime socket
+  runtime=$(sed -n 's/^export XDG_RUNTIME_DIR=//p' "$KWIN_ENV")
+  socket=$(sed -n 's/^export WAYLAND_DISPLAY=//p' "$KWIN_ENV")
+  BUS=$(sed -n "s/^export DBUS_SESSION_BUS_ADDRESS='\\(.*\\)'\$/\\1/p" "$KWIN_ENV")
+  WL="$runtime/$socket"
+  [ -S "$WL" ] && [ -n "$BUS" ] || { echo "no socket or bus in $KWIN_ENV" >&2; return 1; }
 }
 
 start_daemon() {
@@ -178,7 +191,7 @@ start_daemon() {
 
 stop_daemon() {
   [ -n "${DAEMON:-}" ] || return 0
-  timeout 10 "$SILL_BIN" quit >/dev/null 2>&1
+  in_env timeout 10 "$SILL_BIN" quit >/dev/null 2>&1
   local result=0
   await_exit "$DAEMON" daemon || result=1
   DAEMON=

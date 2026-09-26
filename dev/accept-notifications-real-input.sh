@@ -27,8 +27,13 @@
 #   8. Opened again by a click on the clock, a real click outside the column closes it.
 #   9. In the center, a real Down focuses the first group's header (two from one app) and a real
 #      Delete clears the group: kept falls by two.
-#  10. 5 s idle: 0 frames on the banners and the center.
-#  11. `status` afterwards: holder still sill.
+#  10. Overflowed with 15 cards, a real wheel over the column (fake-input's `axis`, shell-host
+#      FINDINGS F63) scrolls it: the whole column moves, title included. Rubber-band at the top
+#      is not exercised: wheel scrolling never stretches (F63 §11.3.7's last row and its own "no
+#      stretch at an edge" test); only a finger gesture does, and fake-input has no finger source
+#      (F63's own live gap) — recorded, not proven.
+#  11. 5 s idle: 0 frames on the banners and the center.
+#  12. `status` afterwards: holder still sill.
 #
 # Then the input client, the daemon (`sill quit`) and the headless KWin are stopped.
 #
@@ -367,7 +372,7 @@ clear_all() {
   wait_surface "$BANNERS" 30 down
 }
 
-# 1. and 11.
+# 1. and 12.
 step_holder() {
   await_status holder sill || return 1
   await_status mode own || return 1
@@ -511,7 +516,50 @@ step_center_delete() {
   echo "in the center, real Down then Delete cleared chat's group: kept $kept -> $((kept - 2))" >&2
 }
 
+# A hash of a capture's top band: the whole column scrolls (the title along with the history,
+# notification_center.css's own comment), so wheeling it changes this band if shell-host's scroll
+# engine is wired to `.sill-nc-column`.
+column_signature() {
+  python3 - "$1" <<'EOF'
+import sys, hashlib
+from PIL import Image
+img = Image.open(sys.argv[1]).convert("RGB")
+w, h = img.size
+band = img.crop((0, 0, w, min(220, h)))
+print(hashlib.sha256(band.tobytes()).hexdigest())
+EOF
+}
+
 # 10.
+step_center_scroll() {
+  local i before after cx cy
+  cx=$(( WIDTH - 100 )); cy=$(( HEIGHT / 2 ))
+  for i in $(seq 1 15); do
+    notify "Overflow $i" --app "overflow$i" --body "Card $i, so the column overflows." \
+      --expire never || return 1
+  done
+  clock_click || return 1
+  wait_surface "$CENTER" 20 up || { echo "the center never opened for the scroll check" >&2; return 1; }
+  sleep 0.5
+  mapped "$CENTER" "$OUT_DIR/scroll-before.png" || { echo "no capture before scrolling" >&2; return 1; }
+  before=$(column_signature "$OUT_DIR/scroll-before.png")
+  point "$cx" "$cy" || return 1
+  input "axis vertical 15" "sleep 40" "axis vertical 15" "sleep 40" "axis vertical 15" "sleep 40" \
+    "axis vertical 15" "sleep 40" "axis vertical 15" "sleep 200" || return 1
+  sleep 0.3
+  mapped "$CENTER" "$OUT_DIR/scroll-after.png" || { echo "no capture after scrolling" >&2; return 1; }
+  after=$(column_signature "$OUT_DIR/scroll-after.png")
+  echo "5 real wheel detents over the column: top band ${before:0:12} -> ${after:0:12}" >&2
+  echo "rubber-band at the top not exercised: wheel never stretches (F63 §11.3.7's last row" \
+    "and its own 'no stretch at an edge' test); only a finger gesture does, and fake-input has" \
+    "no finger source (F63's own gap)" >&2
+  key Escape
+  wait_surface "$CENTER" 20 down
+  clear_all
+  [ "$before" != "$after" ]
+}
+
+# 11.
 step_idle() {
   local b0 b1 c0 c1
   rest
@@ -606,7 +654,8 @@ start_input || { echo "no fake input client" >&2; exit 1; }
 # it known. Rest it on the desktop.
 rest; rest
 STEPS="step_holder step_hover step_click_default step_close_button step_swipe step_spring_back
-  step_center_clock_escape step_center_outside step_center_delete step_idle step_holder"
+  step_center_clock_escape step_center_outside step_center_delete step_center_scroll step_idle
+  step_holder"
 [ "${1:-}" = repro ] && STEPS="step_holder repro_enter_one_motion repro_hover_after_unmap repro_card_under_resting_pointer"
 status=0
 for step in $STEPS; do

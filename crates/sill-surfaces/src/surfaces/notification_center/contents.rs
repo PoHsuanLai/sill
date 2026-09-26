@@ -48,6 +48,9 @@ pub(super) fn Contents() -> Element {
         div {
             id: PANEL_ID,
             class: "sill-nc-column",
+            // macOS's Notification Center rubber-bands (quire design/11 §11.3.7); the launcher's
+            // result list and every menu are excluded by that table and carry nothing here.
+            "data-overscroll": "band",
             tabindex: "-1",
             onmounted: move |event: MountedEvent| take_keyboard(event.data()),
             onkeydown: move |event: KeyboardEvent| {
