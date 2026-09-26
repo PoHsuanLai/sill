@@ -6300,3 +6300,59 @@ contact (design/26 R5, R7).
   no results and selection; §5.4's group expand (Reveal downward, `heal` to collapse) is the
   nearest. sill calls it Change until the grammar decides; the palette would then need the same
   cue for the section's new rows.
+
+## Virtual clock (Q380) (2026-09-27)
+
+quire master 0394c5d5 gives `ds_native::Harness` a virtual clock (`HarnessConfig::with_clock(
+Clock::Virtual)`): `advance` steps through every ds timer in order and resolves CSS at the same
+instant, never waiting on the wall clock. sill's Harness tests move onto it; the ones that
+flaked under load (G130, G295's shape) are now exact.
+
+- **Production time goes through `ds::time`.** `FrameClock::now` reads `ds::time::now` (the wall
+  clock in the daemon, the harness's clock in a test), and `FrameClock::started` replaces
+  `FrameClock::new(Instant::now())` in the dock, OSD, switcher and banner column; the launcher's
+  open/toggle instant and its first-frame latency line read `ds::time::now`/`since`. Every
+  sill-surfaces timer was already `ds::sleep`. Left alone: civil time (`SystemTime`,
+  `jiff::Zoned::now`, `Timestamp::now` for "5 min ago", the lock clock, the world clock, Up Next)
+  and `sill-services`' tokio timing. D1's `bar/session.rs` still falls back to
+  `FrameClock::new(Instant::now())`; `FrameClock::started` is the drop-in.
+- **Converted.** Every sill-surfaces Harness test outside D1's files: banners, calendar,
+  cancelled animation, desktop widgets, hot corners, the launcher (actions, card, catcher, details,
+  keys, lint, PDF rasters, preview, render), notification center (keys, lint, render), OSD,
+  polkit prompt, power menu, screenshot thumbnail, switcher, wallpaper paint, widgets (lint,
+  render) and the dock menu document. Waits bound on the harness clock (`settle_until`, or
+  `harness.now()` for the helpers that report `Done`); no test reads `Instant::now()`.
+  Boundaries are exact: the OSD hold (`hold - 1ms` present, `hold` leaving), the banner hold
+  (`FRAME_SLACK + hold`), the screenshot hold, the switcher's show delay, the hot corner's dwell,
+  and a new test for the re-arm (`rearm - 1ms` stays spent, `rearm` fires again). Load run: 32
+  `yes`, each file 10 times, 340 runs, 0 failures.
+- **The launcher's fake search runner runs on the harness thread.** It was a `std::thread`, and
+  off-thread work never lands on the virtual clock. `launcher_support::Runner` keeps the thread
+  for `launcher_demo` (`on_thread`) and runs as a task the harness root spawns (`run`).
+- **One harness per thread at a time.** Each installs its virtual clock on the thread until it
+  drops, and the guards restore in LIFO order; `launcher_card` measured a short and a long card
+  from two live harnesses and now drops the first before opening the second.
+- **G310 The actions menu hangs from the last row rect the palette reported.** quire's palette
+  reports the selected row's rect a `FRAME_SLACK` after the selection (`laid_out_rect`); a
+  Ctrl+K inside that window hangs the menu under the previous row. The wall-clock test passed on
+  the slack of real time; it now advances `FRAME_SLACK` after Down. A user is never that fast;
+  not fixed.
+- **Latent: a wait that never matched.** `shift_tab_with_nothing_typed_reaches_emoji_alone`
+  waited for three `.ds-menu-item`s, which an emoji grid never has; the old two-second wall loop
+  timed out silently and the test passed on what the grid drew meanwhile. `settle_until` panics,
+  which found it; it waits for three `.ds-emoji-cell`s now.
+- **G311 On the virtual clock a feed's wake runs at the next stop, which is the advance's end.**
+  A test's `watch` send or link ask between advances wakes the surface's task, but `advance(d)`
+  with no timer due runs the woken task only at `d`, so the "asked at" instant slides to the end
+  of the next advance (the switcher's chord then showed at 260 + 150 ms, not 150). The support
+  helpers (`ask`, `show`, `shot`, `cleared`) follow each send with `advance(Duration::ZERO)`.
+  quire could run what is woken at the current instant before looking for the next timer.
+- **G312 `ds::focus_soon` lands at once or a `FRAME_SLACK` later, varying run to run.** On the
+  virtual clock the switcher's key target had the focus 5 ms after the ask in 9 of 20 runs and
+  only after 34 ms in the rest (the host write found the document busy and retried). Something
+  besides the clock still orders the harness's tasks (task or hash order); the test asserts
+  the focus after `FRAME_SLACK`, not the boundary.
+- **Left on Wall.** In sill-surfaces nothing outside D1's files: the bar's `tray_menu_tests`
+  and the control center's `cc_support/live.rs` (and so `control_center_render`) are D1's to
+  move. `examples/emoji_paint_bench.rs` is a paint benchmark, not a timing test. G295's midway
+  test still fails on the current Blitz pin and stays `#[ignore]`d.
