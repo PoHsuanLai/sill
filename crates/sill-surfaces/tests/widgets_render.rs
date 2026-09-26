@@ -373,3 +373,57 @@ fn opening_the_center_again_replays_the_batterys_fill() {
     );
     settle_until(&mut running.harness, |h| h.count(moving) == 0);
 }
+
+/// G291: `up_next_max` (default 3) asked for more events than a Medium tile's body has room
+/// for at the default 164 px cell; the third row used to draw half off the bottom of the card.
+/// With three qualifying events and the default settings, no row's rect may reach past the
+/// frame's own body rect, in either host.
+#[test]
+fn up_next_never_clips_a_row_past_the_tiles_body() {
+    let file = ShellFile::default();
+    assert_eq!(
+        file.calendar.up_next_max.0, 3,
+        "the default this test relies on"
+    );
+    for host in [WidgetHost::Tile, WidgetHost::Desktop] {
+        let mut running = start(WidgetKind::UpNext, host, file.clone());
+        let at = jiff::Timestamp::now();
+        let hour = |h: i64| at.checked_add(jiff::ToSpan::hours(h)).unwrap_or(at);
+        let event = |uid: &str, hours_ahead: i64| sill_services::CalEvent {
+            uid: sill_services::events::EventUid(uid.to_owned()),
+            title: uid.to_owned(),
+            when: sill_services::EventTime::Timed {
+                start: hour(hours_ahead),
+                end: hour(hours_ahead),
+            },
+            location: None,
+            calendar: sill_services::events::CalendarName("home".to_owned()),
+        };
+        let events = vec![event("one", 1), event("two", 2), event("three", 33)];
+        running.feeds.agenda.send_replace(sill_services::Agenda {
+            today: at.to_zoned(jiff::tz::TimeZone::UTC).date(),
+            events,
+            status: sill_services::SourceStatus::Read {
+                calendars: 1,
+                problems: Vec::new(),
+            },
+        });
+        running.harness.advance(Duration::from_millis(60));
+        let h = &running.harness;
+        let body = h
+            .rect("#widget-up-next .ds-widget-body")
+            .expect("the frame's body is laid out");
+        let bottom = body.origin.y.0 + body.size.height.0;
+        let row_count = h.count("#widget-up-next .sill-un-row");
+        assert!(row_count >= 1, "at least one row draws in {host:?}");
+        for n in 1..=row_count {
+            let row = h
+                .rect(&format!("#widget-up-next .sill-un-row:nth-child({n})"))
+                .unwrap_or_else(|| panic!("row {n} is laid out in {host:?}"));
+            assert!(
+                row.origin.y.0 + row.size.height.0 <= bottom + 0.5,
+                "row {n} clips the tile's body in {host:?}: {row:?} body_bottom={bottom}"
+            );
+        }
+    }
+}
