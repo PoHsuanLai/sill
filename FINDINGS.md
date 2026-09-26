@@ -4879,3 +4879,11 @@ session script restarts it and it re-locks), `pkexec true` answered by sill's ow
   fake services (`ds_native::snapshot`, headless) at Small (alone and several) and Medium, to
   `target/battery-snapshots/*.png`, since the private bus never has a real battery to capture
   live; all three match the gallery reference's own composition.
+- F621 Merging master (the M11 freeze) turned up one gate failure unrelated to this branch:
+  `sill-settings::keys::every_spec_has_a_row_in_the_catalogue` failed on
+  `switcher.quick_tap_ms`. F553 ("`switcher.*` already has its rows … nothing is added there")
+  was stale by the time this merge landed: the sibling quire checkout's design/22-SETTINGS.md
+  §3.11 has `show_delay_ms`, `icon_size_px`, `cell_size_px`, `cell_gap_px` and
+  `overflow_min_icon_px`, but no `quick_tap_ms` row. Fixed the only way this test allows,
+  the same as `session.lock_clock`: added `switcher.quick_tap_ms` to `keys.rs`'s
+  `AWAITING_ROWS`, no switcher logic touched. quire's owner adds the row; then the entry can go.
