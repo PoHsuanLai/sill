@@ -4,11 +4,11 @@
 //! made-up apps close on a key or a click, never on the state they opened in); mounting marks
 //! the opening followed (`hold.rs`: the show delay then ends a tap that never read held).
 //!
-//! shell-host publishes only a change, and a surface keeps its last modifiers across an unmap
-//! (the unmap rebuilds the wl_surface, so the compositor's leave names the old one and never
-//! resets them: G210). So the value as this opening mounts is its baseline, not a guess: it is
-//! the real state unless the focus publishes a change. A change after that is the seat's real
-//! state (a release, the release).
+//! shell-host publishes only a change. Since G210 (shell-host F67) an unmap withdraws the
+//! keyboard and resets the modifiers, so an opening normally mounts on "nothing held"; the value
+//! as it mounts is still taken as its baseline, which keeps the switcher right on a host older
+//! than F67 and costs nothing now. A change after that is the seat's real state (a release, the
+//! release).
 
 use dioxus::prelude::*;
 use shell_host::use_modifiers;

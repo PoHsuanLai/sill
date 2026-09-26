@@ -4938,3 +4938,10 @@ session script restarts it and it re-locks), `pkexec true` answered by sill's ow
   on unmap, as G101 did for the pointer.
 - Left open: keyboard focus arriving after the show delay (50–90 ms here) would read a held
   chord as a tap.
+
+## After the identity rewrite (2026-09-26)
+
+- History rewritten to `PoHsuan Lai <pohsuanlai0208@gmail.com>` (user-approved; same trees);
+  sill origin/master dab40b8 -> 57a7343, shell-host a32b936 -> e6638c5. Gates pass on both.
+- G210 closed by shell-host F67 (the keyboard is withdrawn on unmap and close). The switcher keeps
+  its mount-time baseline as a harmless guard (`switcher/watch.rs`).
