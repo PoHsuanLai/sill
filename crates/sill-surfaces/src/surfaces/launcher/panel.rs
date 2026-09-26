@@ -29,7 +29,7 @@ use crate::hooks::{
 use crate::surfaces::bar::shell_style::shell_metrics;
 use crate::surfaces::bar::workspaces::group_for;
 use crate::surfaces::launcher::card::{CardKey, Foot, use_card_hit};
-use crate::surfaces::launcher::entries::{RowRef, action_entries};
+use crate::surfaces::launcher::entries::{Cursor, RowRef, action_entries};
 use crate::surfaces::launcher::events::{PanelCtx, use_panel};
 use crate::surfaces::launcher::hit::ActionsShown;
 use crate::surfaces::launcher::keys::ActionsMenu;
@@ -297,6 +297,7 @@ fn palette(
         tile_of: &|item| icons.tile(item),
         clip_image,
         now: now(),
+        cursor: Cursor(session.keys.selected),
     };
     let on_more = |section: Section| {
         let panel = panel.clone();
