@@ -147,7 +147,10 @@ fn TrayButtonView(
         TrayStatus::Passive | TrayStatus::Active => title.clone(),
     };
     rsx! {
-        span { onwheel: move |event| onwheel.call(event),
+        // `data-wheel="capture"`: shell-host's scroll engine hands the raw wheel event only to
+        // an element carrying it (design/11 §11.3.7), so a scroll over a tray icon still reaches
+        // the item (TrayCommand::Scroll).
+        span { "data-wheel": "capture", onwheel: move |event| onwheel.call(event),
             IconButton {
                 variant: IconButtonVariant::Status,
                 icon,
