@@ -12,7 +12,9 @@
 #   1. `sill clipboard status`: memory, ext (cosmic-comp offers ext_data_control_v1), 0 entries.
 #   2. `wl-copy` of a made-up string: 1 entry.
 #   3. `secret_source` (text marked with x-kde-passwordManagerHint) takes the selection: still 1.
-#   4. `sill launcher open --query lantern`: one Clipboard row (`sill debug launcher-rows`),
+#   4. `sill launcher open --query lantern`: one clipboard row (`sill debug launcher-rows`),
+#      under Top Hit (a single match, never repeated below it: F645, G272) or Clipboard;
+#      `launcher-key down` onto it (the emoji 🏮 can be the Top Hit for "lantern"),
 #      `sill debug launcher-key enter`, then `wl-paste` answers the string. The rows and keys
 #      are lane d's; until they answer, the step reports PENDING (exit 2), never PASS.
 #   5. `launcher.clipboard_history = "off"`, `sill reload`: off, not_connected, 0 entries.
@@ -130,6 +132,31 @@ step_secret() {
   return "$code"
 }
 
+# The index (over every section's lines) of the one clipboard row in the `launcher-rows` file
+# $1; fails unless there is exactly one, under "Top Hit" or "Clipboard". A single match is the
+# Top Hit, never repeated below it (F645, G272). Clipboard titles read "<clipboard>" there,
+# never the text.
+clip_row() {
+  python3 - "$1" <<'PY'
+import json, sys
+v = json.load(open(sys.argv[1])).get("v", {})
+lines = [(s.get("title", ""), r) for s in v.get("sections", []) for r in s.get("rows", [])]
+held = [(at, title) for at, (title, r) in enumerate(lines) if r == "<clipboard>"]
+print(f"clipboard rows: {len(held)}, under {', '.join(t for _, t in held) or 'nothing'}",
+      file=sys.stderr)
+if len(held) != 1 or held[0][1] not in ("Top Hit", "Clipboard"):
+    sys.exit(1)
+print(held[0][0])
+PY
+}
+
+# The launcher's selected line.
+selected_row() {
+  sill debug launcher-rows 2>/dev/null | python3 -c '
+import json, sys
+print(json.loads(sys.stdin.read())["v"]["selected"])' 2>/dev/null || echo -1
+}
+
 # 4.
 step_launcher() {
   local rows="$OUT_DIR/launcher-rows.json"
@@ -144,15 +171,16 @@ step_launcher() {
     sill launcher close >/dev/null 2>&1
     return 2
   fi
-  python3 - "$rows" <<'PY' || return 1
-import json, sys
-doc = json.load(open(sys.argv[1]))
-v = doc.get("v", doc)
-clip = [s for s in v.get("sections", []) if s.get("title", "").lower() == "clipboard"]
-rows = sum(len(s.get("rows", [])) for s in clip)
-print(f"clipboard rows: {rows}", file=sys.stderr)
-sys.exit(0 if rows == 1 else 1)
-PY
+  local at
+  at=$(clip_row "$rows") || return 1
+  # Enter runs the selected row: another provider's row (the emoji 🏮 for "lantern") may be the
+  # Top Hit, so move to the clipboard row first.
+  for _ in $(seq 20); do
+    [ "$(selected_row)" -lt "$at" ] || break
+    sill debug launcher-key down >/dev/null 2>&1 || return 1
+    sleep 0.2
+  done
+  [ "$(selected_row)" = "$at" ] || { echo "could not select the clipboard row ($at)" >&2; return 1; }
   sill debug launcher-key enter >/dev/null 2>&1 || return 1
   for _ in $(seq 30); do
     if [ "$(nested_wl wl-paste --no-newline --type text)" = "$MADE_UP" ]; then
