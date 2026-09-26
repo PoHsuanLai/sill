@@ -14,6 +14,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Ds, Material, RootExtent};
+use ds_native::harness::settle_until;
 use ds_native::{Harness, Viewport};
 use sill_services::{MediaCommand, MediaVerb, Services};
 use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
@@ -141,25 +142,37 @@ fn on_the_desktop_the_frame_is_a_surface_in_the_widget_material() {
 
 #[test]
 fn battery_lists_the_machine_then_connected_devices_with_a_level() {
-    let running = start(WidgetKind::Battery, WidgetHost::Tile, ShellFile::default());
+    let mut running = start(WidgetKind::Battery, WidgetHost::Tile, ShellFile::default());
+    // quire's ring and figure sweep from empty on mount (design/23-WIDGETS.md section 4.1); let
+    // that first fill settle before reading the figures' final count.
+    settle_until(&mut running.harness, |h| {
+        h.count("#widget-battery .ds-battery[*|data-pulse=a]") == 0
+    });
     let h = &running.harness;
     // The fake machine is at 64%; Buds are connected at 80%; the keyboard is not connected.
     assert_eq!(h.count("#widget-battery .ds-battery"), 2);
-    let levels: Vec<_> = (1..=2)
-        .map(|n| {
-            h.attr(
-                &format!("#widget-battery .sill-widget-battery-cell:nth-child({n}) .ds-battery"),
-                "aria-valuenow",
-            )
-        })
-        .collect();
-    assert_eq!(levels, vec![Some("64".to_owned()), Some("80".to_owned())]);
-    let html = h.html();
-    assert!(html.contains("64%"), "the machine's level");
-    assert!(
-        html.contains("Buds") && html.contains("80%"),
-        "the headphones"
+    let cell = |n: usize, part: &str| {
+        h.attr(
+            &format!("#widget-battery .sill-widget-battery-cell:nth-child({n}) .ds-battery"),
+            part,
+        )
+    };
+    assert_eq!(
+        (cell(1, "aria-valuenow"), cell(2, "aria-valuenow")),
+        (Some("64".to_owned()), Some("80".to_owned()))
     );
+    let figure = |n: usize| {
+        h.text_of(&format!(
+            "#widget-battery .sill-widget-battery-cell:nth-child({n}) .ds-battery-figure"
+        ))
+    };
+    assert_eq!(
+        (figure(1), figure(2)),
+        (Some("64%".to_owned()), Some("80%".to_owned())),
+        "each row's figure settles on its true percentage"
+    );
+    let html = h.html();
+    assert!(html.contains("Buds"), "the headphones");
     assert!(
         !html.contains("Keychron"),
         "a disconnected device is left out"
@@ -318,20 +331,45 @@ fn on_the_desktop_the_world_clock_draws_dials_tinted_for_day_or_night() {
     assert_eq!(h.count("#widget-world-clock .ds-clock[*|data-phase]"), 2);
 }
 
+/// Renamed from `a_battery_level_that_changes_bumps_once`: sill no longer wears its own
+/// `Bumped` pulse on the percentage text (quire's `BatteryFigure` draws it now), so
+/// `.ds-bumped.a-bump` never appears; and "nothing bumps on mount" no longer holds; quire's ring
+/// always sweeps from empty on mount (design/23-WIDGETS.md section 4.1), so a fresh widget is
+/// moving from its first frame. What still holds, and what this checks instead: a level change
+/// bumps the ring's own `data-pulse` to `a` while it re-sweeps, then it comes to rest.
 #[test]
-fn a_battery_level_that_changes_bumps_once() {
+fn a_battery_level_that_changes_bumps_the_ring_again() {
     let mut running = start(WidgetKind::Battery, WidgetHost::Tile, ShellFile::default());
-    let bumping = "#widget-battery .ds-bumped.a-bump, #widget-battery .ds-battery.a-bump";
-    assert_eq!(running.harness.count(bumping), 0, "nothing bumps on mount");
+    let moving = "#widget-battery .ds-battery[*|data-pulse=a]";
+    settle_until(&mut running.harness, |h| h.count(moving) == 0);
     let mut battery = running.feeds.battery.borrow().clone();
     battery.level = sill_services::Percent(65);
     running.feeds.battery.send_replace(battery);
     running.harness.advance(Duration::from_millis(30));
     assert!(
-        running.harness.count(bumping) >= 1,
+        running.harness.count(moving) >= 1,
         "the new level bumps: {}",
         running.harness.html()
     );
-    running.harness.advance(Duration::from_millis(1500));
-    assert_eq!(running.harness.count(bumping), 0, "and comes to rest");
+    settle_until(&mut running.harness, |h| h.count(moving) == 0);
+    assert_eq!(running.harness.count(moving), 0, "and comes to rest");
+}
+
+#[test]
+fn opening_the_center_again_replays_the_batterys_fill() {
+    let mut running = center_support::opened(center_support::two_apps());
+    let moving = "#widget-battery .ds-battery[*|data-pulse=a]";
+    // Let the first opening's mount-sweep settle, so the next `moving` we see is the reopening's
+    // own wake, not a straggler from mounting.
+    settle_until(&mut running.harness, |h| h.count(moving) == 0);
+    running.link.close();
+    center_support::settle(&mut running.harness, |h| h.count(".ds-panel") == 0);
+    running.link.open(center_support::fake::output().id);
+    center_support::settle(&mut running.harness, |h| h.count(".ds-panel") == 1);
+    assert!(
+        running.harness.count(moving) >= 1,
+        "the widget host's wake replays the ring's fill on reopen: {}",
+        running.harness.html()
+    );
+    settle_until(&mut running.harness, |h| h.count(moving) == 0);
 }

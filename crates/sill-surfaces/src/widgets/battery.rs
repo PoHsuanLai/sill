@@ -10,7 +10,7 @@
 //! batteries".
 
 use dioxus::prelude::*;
-use ds::{BatteryLevel, Bumped, Fraction, Glyph, Icon, IconSize, RingMark};
+use ds::{BatteryFigure, BatteryLevel, Fraction, Glyph, Icon, IconSize, RingMark, WakeStamp};
 use sill_services::{
     Battery, Bluetooth, BtBattery, BtConnection, BtKind, Charge, Percent, Presence,
 };
@@ -19,6 +19,7 @@ use super::WidgetHost;
 use crate::hooks::{use_battery, use_bluetooth};
 use crate::surfaces::bar::status::battery_icon;
 use crate::surfaces::control_center::pages::bluetooth_devices::device_glyph;
+use crate::widgets::use_widget_wake;
 
 /// This widget's stylesheet, in [`crate::widgets::widgets_css`].
 pub const CSS: &str = include_str!("../style/widget_battery.css");
@@ -153,15 +154,16 @@ pub fn BatteryWidget(host: WidgetHost) -> Element {
         machine_name(&host)
     });
     let rows = battery_rows(&battery, &bluetooth, &machine);
+    let wake = use_widget_wake();
     rsx! {
         div { class: "sill-widget-battery", "data-host": host.slug(),
             if rows.is_empty() {
                 span { class: "sill-widget-quiet", "No batteries" }
             } else {
                 match BatteryLayout::of(host, rows.len()) {
-                    BatteryLayout::Solo => solo(&rows[0]),
-                    BatteryLayout::Grid => grid(&rows),
-                    BatteryLayout::Row => row_of(&rows),
+                    BatteryLayout::Solo => solo(&rows[0], wake),
+                    BatteryLayout::Grid => grid(&rows, wake),
+                    BatteryLayout::Row => row_of(&rows, wake),
                 }
             }
         }
@@ -169,57 +171,58 @@ pub fn BatteryWidget(host: WidgetHost) -> Element {
 }
 
 /// One row's ring, keyed by its name: the device's glyph inside, filled to its level, a bolt
-/// while it charges.
-fn ring(row: &BatteryRow) -> Element {
+/// while it charges, its fill replayed on each new `wake`.
+fn ring(row: &BatteryRow, wake: WakeStamp) -> Element {
     let (level, mark) = ring_of(row);
     rsx! {
-        BatteryLevel { key: "{row.name}", level, mark, label: ring_label(row),
+        BatteryLevel { key: "{row.name}", level, mark, label: ring_label(row), wake,
             Glyph { icon: row_glyph(row), size: IconSize::Base }
         }
     }
 }
 
 /// An empty place in the grid: a ring at 0, as the reference's own gallery draws one.
-fn empty_ring(key: usize) -> Element {
+fn empty_ring(key: usize, wake: WakeStamp) -> Element {
     rsx! {
-        BatteryLevel { key: "empty-{key}", level: Fraction(0), label: "No device" }
+        BatteryLevel { key: "empty-{key}", level: Fraction(0), label: "No device", wake }
     }
 }
 
-/// One device, alone: the ring at the top left, its percentage as the card's hero figure.
-fn solo(row: &BatteryRow) -> Element {
-    let percent = row.level.0;
+/// One device, alone: the ring at the top left, its percentage counting up as the card's hero
+/// figure.
+fn solo(row: &BatteryRow, wake: WakeStamp) -> Element {
+    let (level, _) = ring_of(row);
     rsx! {
         div { class: "sill-widget-battery-solo",
-            {ring(row)}
-            span { class: "sill-widget-battery-hero", Bumped { on: percent, "{percent}%" } }
+            {ring(row, wake)}
+            span { class: "sill-widget-battery-hero", BatteryFigure { level, wake } }
         }
     }
 }
 
 /// Several devices, a Small frame: a 2 x 2 grid of rings, empty places padded to four.
-fn grid(rows: &[BatteryRow]) -> Element {
+fn grid(rows: &[BatteryRow], wake: WakeStamp) -> Element {
     rsx! {
         div { class: "sill-widget-battery-grid",
             for row in rows.iter().take(MAX_RINGS) {
-                {ring(row)}
+                {ring(row, wake)}
             }
             for n in rows.len()..MAX_RINGS {
-                {empty_ring(n)}
+                {empty_ring(n, wake)}
             }
         }
     }
 }
 
-/// A Medium frame: a row of rings, each with its percentage under it.
-fn row_of(rows: &[BatteryRow]) -> Element {
+/// A Medium frame: a row of rings, each counting up to its percentage under it.
+fn row_of(rows: &[BatteryRow], wake: WakeStamp) -> Element {
     rsx! {
         div { class: "sill-widget-battery-row",
             for row in rows.iter().take(MAX_RINGS) {
                 div { key: "{row.name}", class: "sill-widget-battery-cell",
-                    {ring(row)}
+                    {ring(row, wake)}
                     span { class: "sill-widget-battery-figure",
-                        Bumped { on: row.level.0, "{row.level.0}%" }
+                        BatteryFigure { level: ring_of(row).0, wake }
                     }
                 }
             }
