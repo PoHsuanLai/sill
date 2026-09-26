@@ -145,6 +145,12 @@ and a stand-in helper; these need polkitd, polkit's own helper and a real passwo
   tap switches to the previous app with no panel; holding shows the panel after about 150 ms;
   Tab moves; releasing Cmd switches; Q quits the selected app; H hides it; Esc cancels.
 
+- [ ] **Clipboard history on a real login** (M9 lane b): copy text in two apps, then open the
+  launcher and type a word of it: both show as Clipboard rows, and Enter puts one back (paste it
+  somewhere). Copy a password from KeePassXC (or another manager that marks copies): it never
+  shows. `sill clipboard status` says `memory`, `ext`. Turning `launcher.clipboard_history`
+  off empties it at once.
+
 ## Owned by the other session (quire, shell-host)
 
 - [ ] shell-host G100 and G101 (sill FINDINGS "M6 lane d"): `dev/accept-notifications-real-input.sh
