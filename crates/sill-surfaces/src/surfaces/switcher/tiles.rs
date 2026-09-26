@@ -15,18 +15,33 @@ pub fn tiles(
     index: &AppIndex,
     icon: impl Fn(&AppId) -> IconSource,
 ) -> Vec<Tile> {
-    todo!(
-        "M11 fill: c-switcher ({} apps, {} entries, {:?})",
-        apps.len(),
-        index.apps.len(),
-        apps.first().map(|app| icon(&app.app))
-    )
+    apps.iter()
+        .map(|app| Tile::new(app.app.0.clone(), name_of(&app.app, index), icon(&app.app)))
+        .collect()
+}
+
+/// The entry's `Name`, else the id.
+fn name_of(app: &AppId, index: &AppIndex) -> String {
+    index
+        .get(app)
+        .map(|entry| entry.name.trim())
+        .filter(|name| !name.is_empty())
+        .map_or_else(|| app.0.clone(), str::to_owned)
 }
 
 /// quire's metrics from `switcher.*` (`icon_size_px`, `cell_size_px`, `cell_gap_px`,
 /// `overflow_min_icon_px`).
 pub fn metrics_of(settings: &SwitcherSettings) -> SwitcherMetrics {
-    todo!("M11 fill: c-switcher ({settings:?})")
+    SwitcherMetrics {
+        icon: px(settings.icon_size_px),
+        cell: px(settings.cell_size_px),
+        gap: px(settings.cell_gap_px),
+        min_icon: px(settings.overflow_min_icon_px),
+    }
+}
+
+fn px(value: ds_settings::Px) -> Px {
+    Px(f32::from(value.0))
 }
 
 /// quire's key for `app`.
@@ -36,12 +51,15 @@ pub fn key_of(app: &AppId) -> AppKey {
 
 /// The machine's index of `key` in `apps` (what `onhover` and `onactivate` become).
 pub fn index_of(key: &AppKey, apps: &[SwitcherApp]) -> Option<usize> {
-    todo!("M11 fill: c-switcher ({key:?} {} apps)", apps.len())
+    apps.iter().position(|app| app.app.0 == key.0)
 }
 
 /// The output's width in logical pixels, for quire's overflow fit.
 pub fn output_width(width: i32) -> Option<Px> {
-    todo!("M11 fill: c-switcher ({width})")
+    u16::try_from(width)
+        .ok()
+        .filter(|&width| width > 0)
+        .map(|width| Px(f32::from(width)))
 }
 
 #[cfg(test)]
@@ -63,7 +81,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M11 fill: c-switcher"]
     fn tiles_keys_and_metrics() {
         let apps = [app("foot"), app("org.mozilla.firefox")];
         let icon = |_: &AppId| IconSource::Glyph(ds::Icon::ArrowRight);

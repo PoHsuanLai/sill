@@ -1,0 +1,6 @@
+/* The app switcher (design/13 §13.3.5, design/20 §1.11). The surface is the whole output (`Ds {
+   extent: RootExtent::Viewport }`); its one element is the key target, focused per opening, which
+   centres quire's `AppSwitcher` while it shows. Its focus ring (keyboard modality) sits 2 px outside
+   the output, so nothing draws it. Everything drawn is quire's. */
+.sill-switcher{ width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
+.sill-switcher-panel{ display:flex; }

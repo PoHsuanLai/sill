@@ -9,4 +9,6 @@
     LogOut: "sill power-menu open",
     PowerOff: "sill power-menu toggle",
     Screenshot: "sill screenshot area",
+    WindowSwitcher: "sill switcher next",
+    WindowSwitcherPrevious: "sill switcher prev",
 }

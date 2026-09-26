@@ -23,14 +23,40 @@ pub enum Chord {
 /// The machine's key for a key-down of `key` with `modifiers`: Tab (Shift+Tab is `ShiftTab`),
 /// `` ` ``, the arrows, Q, H (either case), Escape; anything else is `None`.
 pub fn sw_key(key: &Key, modifiers: Modifiers) -> Option<SwKey> {
-    todo!("M11 fill: c-switcher ({key:?} {modifiers:?})")
+    match key {
+        Key::Tab if modifiers.contains(Modifiers::SHIFT) => Some(SwKey::ShiftTab),
+        Key::Tab => Some(SwKey::Tab),
+        Key::ArrowLeft => Some(SwKey::Left),
+        Key::ArrowRight => Some(SwKey::Right),
+        Key::Escape => Some(SwKey::Escape),
+        Key::Character(text) => match text.to_lowercase().as_str() {
+            "`" => Some(SwKey::Grave),
+            "q" => Some(SwKey::Q),
+            "h" => Some(SwKey::H),
+            _ => None,
+        },
+        _ => None,
+    }
 }
 
 /// Whether the chord is still held after a key-up of `key` (`modifiers` as the event carries
 /// them): an `Alt` or `Meta` (`Super`) key-up releases it unless the other of the two is still
 /// in `modifiers`; any other key-up leaves it as `modifiers` say.
 pub fn chord_after_keyup(key: &Key, modifiers: Modifiers) -> Chord {
-    todo!("M11 fill: c-switcher ({key:?} {modifiers:?})")
+    match key {
+        Key::Alt => held_while(Modifiers::META, modifiers),
+        Key::Meta | Key::Super => held_while(Modifiers::ALT, modifiers),
+        _ => held_while(Modifiers::ALT | Modifiers::META, modifiers),
+    }
+}
+
+/// Held while any of `holding` is in `modifiers`.
+fn held_while(holding: Modifiers, modifiers: Modifiers) -> Chord {
+    if modifiers.intersects(holding) {
+        Chord::Held
+    } else {
+        Chord::Released
+    }
 }
 
 #[cfg(test)]
@@ -41,7 +67,6 @@ mod tests {
     use crate::surfaces::switcher::machine::SwKey;
 
     #[test]
-    #[ignore = "M11 fill: c-switcher"]
     fn keys_while_up() {
         let ch = |c: &str| Key::Character(c.to_owned());
         let alt = Modifiers::ALT;
@@ -64,7 +89,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M11 fill: c-switcher"]
     fn the_chord_goes_up_with_its_modifier() {
         let cases = [
             (Key::Alt, Modifiers::ALT, Chord::Released),
