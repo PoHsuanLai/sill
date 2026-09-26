@@ -5940,3 +5940,161 @@ table or harness test that fails without its fix. Numbers from F760.
   unchanged on the rerun a minute later: timing, not these fixes. `accept-launcher-v2-real-input.sh`
   on headless KWin: steps 1-5 PASS, exit 0; step 4 now reads Down 0→8, Down 8→16, **Right
   16→17**, Left 17→16, Up 16→8, and Enter copies cell 8. Q340 and Q341 still OPEN (quire's).
+
+## Real faces under shell-host (2026-09-27)
+
+Against master b454262, the first build whose daemon registers quire's faces with shell-host
+(`sill_surfaces::host_config()`, shell-host F68, Q342). Until then every nested capture drew
+Noto Sans wherever sill asked for Inter, Inter Display or Space Mono. Numbers from F780, Q360,
+G290.
+
+- **F780 How the scripts ran.** Every `dev/accept-*.sh` ran on the nested cosmic-comp
+  (wayland-1 pinged, reused, never restarted), one at a time. Each ran under a wrapper that
+  gives the whole script:
+  - its own XDG_RUNTIME_DIR, holding only a symlink to the wayland-1 socket;
+  - a scratch HOME and XDG_CONFIG/DATA/STATE dirs;
+  - a scratch XDG_CACHE_HOME kept across runs, so the wallpaper's resize cache is warm;
+  - ONE private dbus-daemon (`dev/private-bus.conf`) as both the session and the system bus;
+  - no X display.
+
+  Scripts that already isolate themselves still do so inside the wrapper.
+  `accept-launcher-v2-real-input.sh` ran on its own headless KWin. The other `*-real-input.sh`
+  scripts were not run (by instruction). The bar's script needs a daemon already up, so the
+  wrapper started one (scratch config, the test wallpaper) and the script's last step quit it.
+
+  The isolation withholds some services, and the new captures show it:
+  - no PipeWire, so the volume reads "No output device";
+  - no NetworkManager, BlueZ or power-profiles-daemon, so the Wi-Fi and Bluetooth tiles read
+    "Unavailable" and there is no Power Mode row;
+  - no logind, so the power menu's dry run offers nothing;
+  - no Tracker on the session bus.
+- **F781 Results, before (b454262) and after the fixes below.** Each cell is steps
+  PASS/FAIL, then the exit code:
+
+  | script | before | after | note |
+  |---|---|---|---|
+  | bar (daemon started first) | 9/0, 0 | 9/0, 0 | |
+  | bar-ui (headless KWin) | 4/0, 0 | 4/0, 0 | JSON verdicts |
+  | calendar | 3/1, 1 | 3/1, 1; 4/0 on a rerun | the edit step's 2 s budget, G292 |
+  | clipboard | 6/0, 0 | 6/0, 0 | |
+  | control-center | 4/2, 1 | 4/2, 1 | Wi-Fi pane and module item: no NM (F780) |
+  | dock | 6/0, 0 | 6/0, 0 | |
+  | hot-corners | 5/0, 0 | 5/0, 0 | |
+  | icons | 7/0, 0 | 7/0, 0 | captures unchanged (no text) |
+  | launcher-files | 11/1, 1 | 11/1, 1 | step 5 detect: no Tracker on the private bus |
+  | launcher | 3/0 + SKIP, 2; 2/1 on two later runs | 3/0 + SKIP, 2 | F785; the SKIP is the wtype shortcut (M4 perf-ime) |
+  | launcher-ui | 5/1, 1 | 5/1, 1 | the 100 ms budget, G292 |
+  | launcher-v2 | 9/0, 0 | 9/0, 0 | |
+  | launcher-v2-real-input (KWin) | 5/0, 0 | 5/0, 0 | |
+  | lock | 7/1, 1 | 8/0, 0 | the first run read a half-written capture: timing |
+  | notification-center | 6/0, 0 | 6/0, 0 | |
+  | notifications-bus | 7/0, 0 | 7/0, 0 | |
+  | notifications | 7/0, 0 | 7/0, 0; 6/1 once (shown in 409 ms, budget 300) | G292 |
+  | osd | 5/0, 0 | 5/0, 0 | |
+  | polkit | 7/1, 1 | 8/0, 0 | the first run captured mid-shake: timing |
+  | power-menu | 4/2, 1 | 4/2, 1 | arrows and Enter: no logind offers (F780) |
+  | screenshot | 5/0, 0 | 5/0, 0 | |
+  | screenshot-drag (KWin) | 3/0, 0 | 3/0, 0 | |
+  | switcher | 4/3, 1 | 7/0, 0 | the first run under a load average near 40: timing |
+  | wallpaper | 4/0, 0 | 4/0, 0 | |
+  | widgets | 6/0, 0 | 6/0, 0 | but see G290 |
+
+  No failure was a width or font assumption that moved. Each one did one of three things:
+  - passed on a rerun at lower load;
+  - failed the same way with the faces switched off (F782);
+  - needed a service the isolation withholds.
+- **F782 Faces on against faces off.** To tell font cost from host load, the same scripts also
+  ran on a build with `fonts: faces()` commented out (not committed).
+  - launcher-ui's warm openings took 242-421 ms without the faces and 251-498 ms with them.
+    The budget is 100 ms; FINDINGS "M4" had 85-145 on this debug build at a lighter load. The
+    faces cost nothing measurable.
+  - The calendar edit showed in 1585 ms without the faces. With them it took 1901, 2332, 2501
+    and 4089 ms over four runs, at load averages from 6 to 44. That is noise around the 2 s
+    budget, not a trend.
+- **F783 What the faces changed on screen.** Every capture in `dev/out/` was read before and
+  after.
+  - Inter is wider than Noto Sans at the same size, so the bar's clock grows about 15 px
+    ("Sun 27 Sep 01:42"). `.sill-bar-clock`'s `tabular-nums` does reach parley (Blitz maps
+    `font-variant-numeric` to `tnum`), so the clock will not jump with the minutes.
+  - The power menu's `←` `→` keycaps now draw their arrows; Noto's fallback drew dashes.
+  - Launcher v2's trailing time and chord no longer run together: "01:19⌘R" is now
+    "02:12 ⌘R".
+  - The data-face labels (the control center's THEME, ACCENT and MOTION, and the calendar's
+    month) no longer fall back to the system monospace face.
+  - The bar-ui demo's Now Playing line fades one word earlier ("Miles Davis — Kind"); the fade
+    is doing its job.
+  - No label wraps that did not wrap before, nothing new is clipped, and no baseline moved.
+  - The dock's context menu wraps "New terminal — COSMIC Terminal" to two lines at quire's
+    220 px Context width, as `dock/menu_geometry.rs` expects. The old capture showed no menu
+    at all.
+  - The z-index hint from quire's "A part's leave is not the row's enter" was checked against
+    sill's positioned boxes: no press failed in any run.
+- **F784 Up Next's title no longer fades when it fits.** `.ds-truncate`'s fade always covers
+  the column's last 1.5em. `.sill-un-text` was sized to its words, so the fade covered the
+  title's own last letters: "Design revie(w)" faded beside 150 px of empty tile, before and
+  after the faces. The words column now takes the rest of the row (`flex:1 1 0`, as the control
+  center's Now Playing already did). "Design review" now draws whole
+  (`dev/out/calendar-cosmic.png`).
+- **F785 `accept-launcher.sh` step 2 counted a frame of the opening as idle.** `before` was
+  read right after the capture and before the close. So a frame of the entrance still in flight
+  (a loaded host, a debug build) failed the step (17 → 18, 9 → 10). `before` is now read 0.5 s
+  after the close.
+- **F786 Goldens and gates.** Nothing under `tests/` is a pixel or text snapshot of a nested
+  surface, and no test changed: the in-process harness already used Inter. All five gates exit
+  0:
+  - `cargo fmt --all --check`;
+  - clippy (`--all-features`, `-D warnings`);
+  - `cargo test --workspace --features sill/debug`: 1109 passed, 0 failed, 51 ignored over 114
+    binaries;
+  - `check-boundary.sh`;
+  - `cargo deny check licenses`.
+
+  Two earlier test runs failed for reasons outside this change:
+  - one hit the user's /tmp quota (rustdoc: "Disk quota exceeded");
+  - in one, `launcher_card` failed once while quire's master moved underneath, and passed on
+    the rebuild.
+- **F787 Captures.** All captures were retaken except two:
+  - `power-menu-cosmic-restart.png` needs the Enter step, which needs logind's offers;
+  - the icon strips came out identical.
+
+  Under F780's isolation:
+  - the control center's Wi-Fi and Bluetooth tiles read Unavailable;
+  - the power menu's buttons are all disabled;
+  - `control-center-wifi-cosmic.png` shows the grid, not the Wi-Fi list. The old capture
+    listed the neighbours' real network names.
+
+  Some scripts set their own XDG_CACHE_HOME: polkit, screenshot, and the calendar's widget
+  shot. They resize the wallpaper cold and shoot before it lands, so their backdrop is plain.
+  Two captures are new: `polkit-typed-cosmic.png` (Q360) and `widgets-center-all-surface.png`
+  (G290).
+
+### Asks and gaps
+
+- **Q360 (quire, OPEN) A typed `Secret` field draws its bullets from the middle and its caret
+  before them.** After typing "wrong-guess" into the polkit prompt, the eleven bullets start
+  about 90 px into the field, about the plain text's own width, and the caret stands at their
+  left (`dev/out/polkit-typed-cosmic.png`, the `sill debug capture` of the prompt). It looks
+  the same with the faces switched off (F782), so the faces are not the cause. The cause is
+  `TextInput{Secret}` over Blitz's password input. The lock screen's field is the same
+  component; no script types into it.
+- **Q361 (quire, OPEN) The compact MonthGrid's today disc barely holds two Inter digits.** On
+  the desktop's Small Calendar, "27" touches the disc's edge, and "26" sits 4 px from it
+  (`dev/out/widgets-desktop-cosmic.png`, top right). Under Noto the digits had room.
+- **G290 (shell-host, OPEN) The on-screen frame puts two widgets' contents in the first tile.**
+  With `widgets.center` = all five, the nested screen shows Now Playing and World Clock drawn
+  over the Calendar tile, and tiles four and five empty. `sill debug capture` of the same
+  surface is right (compare `dev/out/widgets-center-all-cosmic.png` with
+  `dev/out/widgets-center-all-surface.png`).
+  - The Noto capture of 3a81779 has it too, so the faces are not the cause.
+    `accept-widgets.sh` counts tile frames on the capture, so it passes.
+  - The tiles' bodies are `position:relative` with a `z-index` token (quire's WidgetFrame).
+    The presented frame misplaces these raised layers while the capture places them right.
+    That points at shell-host's present path.
+- **G291 (sill, OPEN) Up Next's third event is clipped at the tile's foot.** `up_next_max` 3
+  in a 164 px tile cuts "Tomorrow 09:00" in half (`dev/out/calendar-cosmic.png`). It did so
+  before and after the faces.
+- **G292 (sill, OPEN) Timing budgets flake on a loaded debug build.** None of these tracks the
+  faces (F782):
+  - launcher-ui's 100 ms budget: 251-498 ms here, faces on or off;
+  - the calendar edit's 2 s budget: 1.6-4.1 s;
+  - the banner's 300 ms budget: 409 ms once.
