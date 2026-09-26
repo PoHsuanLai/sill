@@ -45,6 +45,7 @@ without the compositor), **config** (COSMIC setting or shortcut file).
 | Want | COSMIC today | Evidence | Route |
 | --- | --- | --- | --- |
 | Timely frame callbacks for fullscreen layer surfaces | Delayed (cosmic-comp #2777); shell-host has a watchdog | upstream issue | PR |
+| Background blur that also boosts saturation (about ×1.8), as macOS's vibrancy does behind widgets and panels; a tunable sigma (quire recommends 22 logical px for widget cards) | cosmic-comp blurs only, with the strength from the theme's frosted setting | quire design/23 (widget card reference fit) | fork |
 | Blur on rotated outputs, and cheaper blur | #2531, #2613/#2795 | upstream issues | PR / fork |
 | Nested winit backend on NVIDIA that does not run away when its EGL surface is lost | One instance grew to 64 GB in a retry loop (shell-host F39); Mesa default and an RSS watchdog in `nested.sh` | verified | PR (dev only) |
 
