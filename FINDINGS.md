@@ -4846,3 +4846,11 @@ session script restarts it and it re-locks), `pkexec true` answered by sill's ow
   ReadSignal<Modifiers>` per focused surface (or the modifiers on `HostEvent::KeyboardFocus`).
   Until then a quick tap that races the map leaves the switcher up until a key (Escape, or
   pressing and releasing the modifier) closes it, and the caps-lock mark appears at the first key.
+
+## G190 hot-corner re-arm test flakes under heavy load (2026-09-26)
+
+- `hot_corners_render::leaving_and_the_rearm_lets_it_fire_again` failed once at load average 73
+  (three agents building) and passed 5/5 on rerun. The harness advances simulated time, but the
+  corner's re-arm window elapsed on the wall clock under that load, so a second dwell fired. Fix:
+  drive the corner machine's timers from the harness clock (as `ds::sleep` does under the
+  Harness) or assert with a settle loop; until then treat a single failure under load as noise.
