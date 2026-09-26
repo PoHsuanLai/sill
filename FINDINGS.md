@@ -6425,3 +6425,21 @@ old `Icon` buckets, and still shows `WifiOff` while connecting, until Q390 lands
   `LevelGlyph`. `VolumeGlyph` is `LevelGlyph`'s body, so the Sound module already draws the
   same waves and slash; say whether `LevelControl` should take a `VolumeState` for a single
   source. sill's module maps level 0 to `VolumeX` today, and `volume_glyph` is ready.
+- **F826 Gates and scripts.**
+  - `~/sill-wt/sill-gate.sh` with `GATE_DIR` set to this worktree: **SILL GATE GREEN**. fmt,
+    clippy `-D warnings`, boundary and deny passed. Tests: 1135 passed, 1 failed, 52 ignored.
+    The one failure was `launcher_card`, a load-flaky Harness file (load average 50-250 during
+    the run); it passed alone on the gate's retry.
+  - How the scripts ran: on the nested wayland-1, which was pinged first, reused and never
+    stopped. They ran under F780's isolation: a scratch XDG_RUNTIME_DIR holding only the socket
+    symlink, a scratch HOME and XDG dirs, and one private dbus-daemon as both buses.
+  - `dev/accept-bar.sh` (daemon started first): 9 PASS, exit 0. Idle was 6 frames before and
+    6 after, so 0.
+  - `dev/accept-control-center.sh`: 4 PASS, 2 FAIL, exit 1. `step_wifi_pane` and
+    `step_module_item` fail because there is no NetworkManager under the isolation, the same
+    as F781's baseline. Idle: 0 frames.
+  - Captures: `dev/out/bar-cosmic.png`, `bar-cosmic-menu.png`, `control-center-cosmic.png`
+    and `control-center-wifi-cosmic.png`. Unchanged apart from the time: the wrapper adds no
+    size, and the glyphs are still the `Icon` buckets. The battery item is absent because
+    there is no UPower under the isolation, and the volume shows `VolumeX` because there is no
+    PipeWire.
