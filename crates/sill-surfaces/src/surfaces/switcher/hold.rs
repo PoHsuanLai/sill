@@ -1,16 +1,47 @@
 //! Whether the chord is held, from shell-host's modifiers on focus (`use_modifiers`, G180 closed
 //! by shell-host F66): the compositor sends the seat's modifiers right after
-//! `wl_keyboard.enter`, so a release that beat the surface to the keyboard reads `Released`
-//! without any key event, and a held chord reads `Held` before its first key. Pure.
+//! `wl_keyboard.enter`, so a held chord reads `Held` before its first key, and its release reads
+//! `Released` with no key event. Pure.
 //!
-//! What it changes: a publish of `Released` while armed or shown is the release (a quick tap
-//! switches with no UI; the panel closes and activates); once the chord is known `Held`, a
-//! second chord inside the show delay is Tab held down, not a second tap, so it steps.
+//! What it changes: a publish of `Released` while armed or shown is the release (the panel closes
+//! and activates); once the chord is known `Held`, a second chord inside the show delay is Tab
+//! held down, not a second tap, so it steps. shell-host publishes only a change, and nothing
+//! held is where it starts, so a release that came before the focus publishes nothing: the
+//! show delay decides instead. An opening that reaches the delay without ever reading `Held`
+//! was a tap, and switches with no UI; one that read `Held` shows the panel. (The keyboard
+//! focus arrives within a frame or two of the map, well inside the 150 ms delay; a focus later
+//! than the delay would read a held chord as a tap.)
 
 use shell_host::{Modifier, Modifiers};
 
 use super::keys::Chord;
 use super::machine::{Dir, SwIn, SwKey, Switcher};
+
+/// Whether an opening follows the modifiers: on a host surface, for the compositor's apps
+/// (`watch.rs`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Watch {
+    #[default]
+    Off,
+    On,
+}
+
+/// What the modifiers have told one opening.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Hold {
+    pub watch: Watch,
+    /// The last publish; `None` until the first.
+    pub chord: Option<Chord>,
+}
+
+/// The machine's input when the show delay's timer fires in `state`: followed and never read
+/// held, the opening was a tap (the release); otherwise the tick.
+pub fn tick_input(state: Switcher, hold: Hold) -> SwIn {
+    match (state, hold.watch, hold.chord) {
+        (Switcher::Armed { .. }, Watch::On, None | Some(Chord::Released)) => SwIn::ModifierReleased,
+        _ => SwIn::Tick,
+    }
+}
 
 /// The chord's state in `modifiers`: held while Alt (which Toshy holds for Cmd) or the logo key
 /// is.
@@ -37,7 +68,7 @@ mod tests {
     use shell_host::{Modifier, Modifiers};
     use sill_services::Stamp;
 
-    use super::{chord_input, chord_of};
+    use super::{Hold, Watch, chord_input, chord_of, tick_input};
     use crate::surfaces::switcher::keys::Chord;
     use crate::surfaces::switcher::machine::{Dir, SwIn, SwKey, Switcher};
 
@@ -59,6 +90,33 @@ mod tests {
         ];
         for (modifiers, want) in cases {
             assert_eq!(chord_of(&modifiers), want, "{modifiers:?}");
+        }
+    }
+
+    #[test]
+    fn the_delay_ends_a_tap_that_never_read_held() {
+        let armed = Switcher::Armed {
+            since: Stamp(0),
+            sel: 1,
+        };
+        let hold = |watch, chord| Hold { watch, chord };
+        let cases = [
+            (armed, hold(Watch::On, None), SwIn::ModifierReleased),
+            (
+                armed,
+                hold(Watch::On, Some(Chord::Released)),
+                SwIn::ModifierReleased,
+            ),
+            (armed, hold(Watch::On, Some(Chord::Held)), SwIn::Tick),
+            (armed, hold(Watch::Off, None), SwIn::Tick),
+            (
+                Switcher::Shown { sel: 1 },
+                hold(Watch::On, None),
+                SwIn::Tick,
+            ),
+        ];
+        for (state, hold, want) in cases {
+            assert_eq!(tick_input(state, hold), want, "{state:?} {hold:?}");
         }
     }
 

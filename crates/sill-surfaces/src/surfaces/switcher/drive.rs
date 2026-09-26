@@ -15,7 +15,7 @@ use sill_launcher::AppId;
 use sill_services::Services;
 use sill_services::switcher::{SwitcherApp, switcher_apps};
 
-use super::hold::chord_input;
+use super::hold::{Hold, Watch, chord_input, tick_input};
 use super::keys::{Chord, chord_after_keyup, sw_key};
 use super::link::{AskSerial, SwitcherAsk, SwitcherLink};
 use super::machine::{Dir, SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
@@ -35,8 +35,8 @@ pub(crate) struct SwitcherCtx {
     ticking: CopyValue<Option<Task>>,
     surface: CopyValue<Option<SurfaceHandle>>,
     services: CopyValue<Services>,
-    /// What the modifiers said since the opening (`hold.rs`); `None` until the first publish.
-    hold: CopyValue<Option<Chord>>,
+    /// What the modifiers have told this opening (`hold.rs`).
+    hold: CopyValue<Hold>,
 }
 
 /// Run `output`'s switcher from `link` with `params` (read at each input) and `level` (for the
@@ -61,7 +61,7 @@ pub(crate) fn use_switcher(
         ticking: CopyValue::new(None),
         surface: CopyValue::new(surface),
         services: CopyValue::new(services),
-        hold: CopyValue::new(None),
+        hold: CopyValue::new(Hold::default()),
     });
     ctx.keep(params, level);
     use_effect(move || {
@@ -103,7 +103,7 @@ impl SwitcherCtx {
                     self.open(Session::live(serial, apps));
                 }
                 let (state, hold) = (*self.state.peek(), *self.hold.peek());
-                self.input(chord_input(state, hold, dir));
+                self.input(chord_input(state, hold.chord, dir));
             }
             SwitcherAsk::Cancel => self.input(SwIn::Key(SwKey::Escape)),
             SwitcherAsk::Commit => self.input(SwIn::ModifierReleased),
@@ -131,7 +131,7 @@ impl SwitcherCtx {
     /// Start an opening: its apps, and the surface mapped so it takes the keyboard.
     fn open(self, session: Session) {
         let mut hold = self.hold;
-        hold.set(None);
+        hold.set(Hold::default());
         let mut stored = self.session;
         stored.set(Some(session));
         self.visibility(Visibility::Shown);
@@ -200,7 +200,8 @@ impl SwitcherCtx {
             ds::sleep(Duration::from_millis(ms)).await;
             let mut ticking = self.ticking;
             ticking.set(None);
-            self.input(SwIn::Tick);
+            let (state, hold) = (*self.state.peek(), *self.hold.peek());
+            self.input(tick_input(state, hold));
         })));
     }
 
@@ -250,15 +251,26 @@ impl SwitcherCtx {
     /// release, whether or not a key event carried it.
     pub fn modifiers(self, chord: Chord) {
         let mut hold = self.hold;
-        hold.set(Some(chord));
+        hold.with_mut(|hold| hold.chord = Some(chord));
         if chord == Chord::Released {
             self.input(SwIn::ModifierReleased);
         }
     }
 
-    /// A key-up on the surface: the chord's modifier going up is the release.
+    /// This opening follows the modifiers (`watch.rs`, as it mounts).
+    pub fn watched(self) {
+        let mut hold = self.hold;
+        hold.with_mut(|hold| hold.watch = Watch::On);
+    }
+
+    /// A key-up on the surface: the chord's modifier going up is the release. Only a modifier's
+    /// own key-up counts: another key's carries whatever modifiers the event was given (a virtual
+    /// keyboard's own, say), and a release with no key-up at all is the modifiers' publish.
     pub fn key_up(self, event: &KeyboardEvent) {
-        if chord_after_keyup(&event.key(), event.modifiers()) == Chord::Released {
+        let key = event.key();
+        if matches!(key, Key::Alt | Key::Meta | Key::Super)
+            && chord_after_keyup(&key, event.modifiers()) == Chord::Released
+        {
             self.input(SwIn::ModifierReleased);
         }
     }
