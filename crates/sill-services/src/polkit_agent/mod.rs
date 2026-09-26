@@ -27,11 +27,14 @@
 //! never touches the system bus; every live test runs on a private bus with a stand-in
 //! Authority and a stand-in helper ([`Setup`]), never polkitd.
 
+mod bus;
+mod daemon_setup;
 mod dbus;
 pub mod helper;
 pub mod identity;
 mod live;
 pub mod machine;
+mod run;
 mod types;
 
 pub use dbus::{AGENT_PATH, AUTHORITY_NAME, AUTHORITY_PATH};
@@ -97,7 +100,7 @@ impl Setup {
 /// Start the agent service on `rt` for the daemon ([`Setup::system`]); passive until a
 /// `Policy(Own)`.
 pub fn spawn(rt: &Handle) -> (watch::Receiver<Polkit>, Control<PolkitCommand>) {
-    spawn_with(rt, Setup::system())
+    spawn_with(rt, daemon_setup::daemon_setup())
 }
 
 /// [`spawn`] against `setup`.

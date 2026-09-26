@@ -20,6 +20,7 @@ pub mod polkit_prompt;
 pub mod power_menu;
 pub mod screenshot_thumb;
 pub mod switcher;
+pub mod user_picture;
 pub mod wallpaper;
 
 pub(crate) mod naming;
