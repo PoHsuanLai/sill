@@ -37,18 +37,7 @@ const DOC_ALIASES: &[&str] = &["spaces.material_tint_alpha"];
 /// Keys registered in sill whose §3 rows quire's design/22 has not gained yet: quire's owner adds
 /// them (sill FINDINGS lists each row). A key here needs no row until it has one; once the row
 /// lands it is checked like every other key, and the entry can go.
-const AWAITING_ROWS: &[&str] = &[
-    // M9 launcher v2 (sill FINDINGS "M9 freeze" Q301).
-    "launcher.files_backend",
-    "launcher.files_budget_ms",
-    "launcher.clipboard_history",
-    "launcher.clipboard_cap",
-    "launcher.clipboard_image_max_mb",
-    "launcher.emoji_skin_tone",
-    "launcher.web_search",
-    "launcher.web_engine_url",
-    "launcher.currency",
-];
+const AWAITING_ROWS: &[&str] = &[];
 
 fn doc_keys() -> Vec<String> {
     let doc = doc();
