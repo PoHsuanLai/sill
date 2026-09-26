@@ -47,6 +47,10 @@ blitz-html = { git = "https://github.com/DioxusLabs/blitz", rev = "e99fbdbd1d03b
 # The system clipboard's text/html, for an edit surface's paste (ds-native): blitz-shell's own
 # arboard (its `clipboard` feature, same features), read directly since ShellProvider has text only.
 arboard = { version = "3.6", default-features = false }
+# Safe syscalls where std has none: SOCK_SEQPACKET for the palmrest socket (shell-host
+# input/palmrest.rs, palmrest), hidraw/uinput ioctls (palmrest). Already in every tree through
+# wayland-backend at 1.1.x; the features are the union of both users.
+rustix = { version = "1.1", default-features = false, features = ["std", "event", "fs", "net", "time", "process"] }
 blitz-traits = { git = "https://github.com/DioxusLabs/blitz", rev = "e99fbdbd1d03b9f0aa1622c3f810d95daac92042" }
 dioxus-native-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "e99fbdbd1d03b9f0aa1622c3f810d95daac92042", default-features = false, features = ["svg", "system-fonts", "accessibility"] }
 # The portable window path for apps (winit); the shell uses shell-host instead.
