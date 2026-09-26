@@ -13,11 +13,13 @@
 #   1. `sill notifications open`: a capture of `sill-notification-center-<out>` shows the month
 #      with today on the accent disc (dev/out/calendar-cosmic.png; the output with the center
 #      open, dev/out/calendar-widget-cosmic.png).
-#   2. Up Next lists the fixture's next events in order: its colour bars, top to bottom, are
-#      work's, team's and personal's swatches (quire's `--c-person-N`, picked by the calendar's
-#      name as `widgets::up_next` picks it).
+#   2. Up Next lists the fixture's next events in order, as many as the Medium tile's body
+#      holds without clipping (two, at the default cell and `up_next_max`, G291): its colour
+#      bars, top to bottom, are work's and team's swatches (quire's `--c-person-N`, picked by
+#      the calendar's name as `widgets::up_next` picks it); personal's (tomorrow's Dentist) is
+#      the third-soonest and does not draw.
 #   3. work.ics rewritten with the review cancelled: within 2 s the bars are team's and
-#      personal's.
+#      personal's (now the two soonest).
 #   4. `calendar.week_numbers = "show"` and `sill reload`: the week column appears (the month,
 #      centred in its tile, moves today's disc right by half a 24 px column).
 #   5. 5 s idle while open, clear of the minute's turn: 0 frames on the center.
@@ -253,8 +255,8 @@ step_month_and_up_next() {
   fi
   DISC_BEFORE=$(disc_of "$seen")
   [ "$DISC_BEFORE" != none ] || { echo "no accent disc on today" >&2; return 1; }
-  [ "$(bars_of "$seen")" = "$WORK $TEAM $PERSONAL" ] \
-    || { echo "Up Next's order is not review, yoga, dentist" >&2; return 1; }
+  [ "$(bars_of "$seen")" = "$WORK $TEAM" ] \
+    || { echo "Up Next's order is not review, yoga (a Medium tile holds two, G291)" >&2; return 1; }
 }
 
 # 3.

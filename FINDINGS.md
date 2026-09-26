@@ -6108,9 +6108,9 @@ G290.
   - The tiles' bodies are `position:relative` with a `z-index` token (quire's WidgetFrame).
     The presented frame misplaces these raised layers while the capture places them right.
     That points at shell-host's present path.
-- **G291 (sill, OPEN) Up Next's third event is clipped at the tile's foot.** `up_next_max` 3
-  in a 164 px tile cuts "Tomorrow 09:00" in half (`dev/out/calendar-cosmic.png`). It did so
-  before and after the faces.
+- **G291 (sill, closed below "G291 Up Next fit") Up Next's third event is clipped at the
+  tile's foot.** `up_next_max` 3 in a 164 px tile cuts "Tomorrow 09:00" in half
+  (`dev/out/calendar-cosmic.png`). It did so before and after the faces.
 - **G292 (sill, OPEN) Timing budgets flake on a loaded debug build.** None of these tracks the
   faces (F782):
   - launcher-ui's 100 ms budget: 251-498 ms here, faces on or off;
@@ -6154,3 +6154,62 @@ surface: it is a Blitz style bug that quire's wall-clock presence timer exposes.
   hides a small lag, but a stalled first frame leaves the center displaced and its clicks
   falling through until the next open. The OSD card runs the same `use_shown_phase`; other
   timer-ended entrances were not checked.
+
+## G291 Up Next fit (2026-09-27)
+
+Closed. The tile's body is a fixed number of pixels (quire's `WidgetFrame`: `--widget-cell`
+164 default, `--widget-gap` 16, 12 px card padding), not something the widget's own settings
+can grow, so asking `calendar.up_next_max` (default 3) for more rows than the body holds drew
+the last one half off the card's foot, cut by `.ds-widget{ overflow:hidden }`.
+
+- **Measured, not assumed.** A throwaway `ds_native::Harness` render of `UpNextWidget` at
+  the default tokens with three qualifying events gave the real rects: the frame is 344 x 164
+  (Medium; UpNext is never drawn Small or Large, `widgets::size_of`), the body 318 x 117.5 at
+  (13, 33.5), each event row 39.53 px tall with a 6 px (`--s-6`) gap between. Two rows
+  (2 x 39.53 + 6 = 85.06) fit inside the 116.5 px available under the body; three (130.59)
+  do not — the third row's rect bottom (166.08) sat past the card's own bottom (164), which is
+  the clip. A Small tile shares Medium's height (only a Medium's width differs, `.ds-widget`'s
+  CSS has no `[data-size=medium]` height rule), so it holds the same two; a Large tile, two
+  cells and a gap tall (344), holds six by the same arithmetic. These numbers are baked into
+  `events_capacity` (`crates/sill-surfaces/src/widgets/up_next.rs`) rather than measured again
+  on every render, matching quire's own `MonthDensity::resolve` precedent (deterministic from
+  `WidgetSize`, not the configurable `widgets.desktop_cell_px`, and not a live text
+  measurement).
+- **Option (a) chosen.** design/23-WIDGETS.md section 5 (the Calendar widget's queued restyle)
+  already answers "how many events does a small or medium widget show": Small draws the date
+  face and *one* next event ("or 'No more events today'"), Medium the date face and the *next
+  two* — fewer whole events at the smaller sizes, never a clipped one. That is a different
+  widget (the month-plus-hero-date card, not Up Next's list), so its exact counts do not carry
+  over, but its principle does, and it is the same principle the task asked to follow. Option
+  (b), retuning `--s-6` and the row's own type sizes so three fit at 164 px, was rejected: quire
+  owns those tokens and the card's height is fixed by `--widget-cell` (a setting), so shrinking
+  the row to fit three is a target chosen to match a count, not a size, and would still break
+  again the next time someone raises `up_next_max` or lowers `desktop_cell_px`.
+- **The fix.** `events_capacity(size: WidgetSize) -> usize` (Small/Medium: 2, Large: 6);
+  `UpNextWidget` now asks for `min(calendar.up_next_max, events_capacity(size_of(UpNext,
+  host)))`, so `up_next_max` is a ceiling on top of the size's own room, never a promise past
+  it. At the defaults this drops the display from 3 requested to 2 shown; the third (soonest
+  excluded) event simply does not draw, whole events over a clipped one.
+- **Tests.** A table test (`a_size_holds_as_many_rows_as_its_cell_measured_out`) pins the three
+  `events_capacity` cases. A new `ds_native::Harness` test in
+  `crates/sill-surfaces/tests/widgets_render.rs`
+  (`up_next_never_clips_a_row_past_the_tiles_body`) renders `Widget { kind: UpNext }` in both
+  hosts with three qualifying events at the default settings and asserts every `.sill-un-row`'s
+  rect stays inside `#widget-up-next .ds-widget-body`'s rect; it passes in both. The existing
+  `up_next_lists_the_next_events_in_order_with_their_colour` (`calendar_render.rs`) already only
+  ever gave two qualifying events, so it needed no change.
+- **`dev/accept-calendar.sh` updated.** Its fixture asks three calendars for events (work in an
+  hour, team's Yoga in three, personal's Dentist tomorrow at 09:00) and used to assert all
+  three colour bars drew, which was really asserting the clip: the third bar's top sliver was
+  still detectable by the pixel probe even half-cut. Step 1 now expects only `work team` (the
+  two soonest); the comment block explains why personal's bar does not draw. Steps 3-5 needed
+  no change: after work's event is cancelled only two events remain, which is exactly what
+  capacity 2 holds, so the existing `team personal` assertions already matched the fixed
+  behaviour.
+- **Verified.** All five gates: `cargo fmt --all --check`; `cargo clippy --workspace
+  --all-targets --all-features -- -D warnings`; `cargo test --workspace --features
+  sill/debug` (1111 passed, 0 failed, 97 binaries); `scripts/check-boundary.sh`; `cargo deny
+  check licenses`. `dev/accept-calendar.sh` on the nested compositor (wayland-1, pinged and
+  reused): 4/0 steps, exit 0 (`capture: BARS 1 5 ; DISC 276 225 24 28`, work then team, no
+  personal). `dev/out/calendar-cosmic.png` re-captured and read: Up Next shows "Design review
+  04:05 – 04:35" and "Yoga 06:05 – 07:05" in full, nothing cut off, nothing beyond the tile.

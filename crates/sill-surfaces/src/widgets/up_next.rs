@@ -2,6 +2,15 @@
 //! `calendar.up_next_days` and `calendar.up_next_max`), each a title and a time line; "No
 //! upcoming events" when there are none, and a quiet line naming the source state when the
 //! calendars are off or unreadable. Redrawn on the clock's minute tick.
+//!
+//! G291: `up_next_max` is a ceiling, not a promise. The tile's body is a fixed number of
+//! pixels (`--widget-cell`, `--widget-gap`; quire's `WidgetFrame`), so asking for more rows
+//! than it holds used to draw the last one half off the bottom, clipped by the card's
+//! `overflow:hidden`. [`events_capacity`] caps the count to what the frame's size class holds
+//! at the default tokens, measured once against a real render (`ds_native::Harness`, not
+//! measured again at draw time) rather than guessed: a Small or Medium tile is one cell tall
+//! either way (164 default; only a medium's width differs), so both hold the same two whole
+//! rows; a Large tile, two cells tall, holds six.
 
 use dioxus::prelude::*;
 use jiff::Timestamp;
@@ -10,8 +19,20 @@ use jiff::tz::TimeZone;
 use sill_services::events::{CalendarName, Days, up_next};
 use sill_services::{CalEvent, EventTime, SourceStatus};
 
-use super::WidgetHost;
+use super::{WidgetHost, WidgetKind, WidgetSize, size_of};
 use crate::hooks::{use_agenda, use_clock, use_settings};
+
+/// How many whole event rows the tile's body holds at `size`, measured against the default
+/// tokens (a 164 px small cell, 16 px gap, 12 px card padding, the title row and `.sill-un-day`
+/// column already drawn) rather than assumed: a Small and a Medium tile share one cell's
+/// height, so both hold two rows before a third would clip; a Large tile, two cells and a gap
+/// tall, holds six.
+fn events_capacity(size: WidgetSize) -> usize {
+    match size {
+        WidgetSize::Small | WidgetSize::Medium => 2,
+        WidgetSize::Large => 6,
+    }
+}
 
 /// This widget's stylesheet, in [`crate::widgets::widgets_css`].
 pub const CSS: &str = include_str!("../style/widget_up_next.css");
@@ -111,7 +132,8 @@ pub fn UpNextWidget(host: WidgetHost) -> Element {
     let zone = TimeZone::try_system().unwrap_or(TimeZone::UTC);
     let now = Timestamp::now();
     let today = now.to_zoned(zone.clone()).date();
-    let max = usize::from(calendar.up_next_max.0);
+    let max =
+        usize::from(calendar.up_next_max.0).min(events_capacity(size_of(WidgetKind::UpNext, host)));
     let next = up_next(
         &agenda.events,
         now,
@@ -164,7 +186,19 @@ mod tests {
     use sill_services::events::{CalendarName, EventUid};
     use sill_services::{CalEvent, EventTime};
 
-    use super::{EventLines, event_lines};
+    use super::{EventLines, WidgetSize, event_lines, events_capacity};
+
+    #[test]
+    fn a_size_holds_as_many_rows_as_its_cell_measured_out() {
+        let cases = [
+            (WidgetSize::Small, 2),
+            (WidgetSize::Medium, 2),
+            (WidgetSize::Large, 6),
+        ];
+        for (size, want) in cases {
+            assert_eq!(events_capacity(size), want, "{size:?}");
+        }
+    }
 
     #[test]
     fn an_events_time_line_reads_from_now() {
