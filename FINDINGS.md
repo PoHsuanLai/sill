@@ -5435,3 +5435,29 @@ Emoji, the web fallback and currency (FINDINGS "M9 freeze" F649/F650), against `
   instead of `anyrender_vello_cpu`, returning the same `image::RgbaImage` `render()` does, so a
   caller times it the same way. Blocked in this wave on `crates/sill-surfaces/Cargo.toml`, which
   the M9 fill-in gives to lane d (the `pdf-thumb` feature only) — lane c did not touch it.
+- **F704 A failed fetch backs off for an hour, and the calculator only reads for it when the
+  text could need it** (coordinator follow-up on F702, before merge). Two things F702 missed:
+  - `fetch::due` counted only the cache's own age, so a `curl` that fails (offline, blocked, a
+    proxy) left the cache exactly as stale as it always was — every following keystroke with
+    `launcher.currency = "ecb"` saw it as due and started another `curl` the moment the last one
+    ended, which is "on a keystroke" in every sense that matters even though no single call
+    blocks one. `due` gained a second input, the last attempt (`fetch::Attempt { at, outcome }`,
+    a sibling stamp file next to the cache, `ecb-rates.attempt`, `<unix seconds> success|
+    failure`): a failed attempt holds off the next one for an hour regardless of the cache's own
+    age; a successful one still holds off for a day, as before. `fetch::fetch_into` itself had a
+    bug in the same family: it returned `Ok(())` even when `curl`'s exit status was non-zero (it
+    only checked the status to decide whether to rename the temp file in), so a failure was never
+    distinguishable from a success by its caller — fixed to return `Err` on a non-zero exit, the
+    only way `refresh_if_due` can tell the two apart to write the right stamp. `due` stayed pure
+    and table-tested (`fetch::tests`, one table: missing cache and no attempt; a failed attempt
+    10 minutes ago; a failed attempt 2 hours ago; a fresh cache; a day-old cache) by taking
+    `Option<UnixTime>` (the cache's own `mtime`) and `Option<Attempt>` rather than a `Path` — the
+    reads themselves (`mtime`, `read_attempt`) moved to `refresh_if_due`, the effectful edge.
+  - `CalculatorProvider::ecb_rates` (the disk read plus the due check) ran on every query while
+    `currency = "ecb"`, whatever was typed — `"2 + 2"` loaded the cache exactly as `"10 usd to
+    eur"` did. `detect::mentions_possible_currency` (new, pure, table-tested) is a cheap,
+    table-free shape check — any word, once a leading number is stripped as `word_is_known`
+    already strips one, that is exactly three bare letters — and `query` now calls `ecb_rates`
+    only when it says yes. It is deliberately loose (`"ftp"` or `"www"` also pass it): getting
+    this wrong only costs an extra, harmless disk read, never a network call, since the network
+    throttle is `due`'s alone.

@@ -60,7 +60,14 @@ impl Provider for CalculatorProvider {
         if query.is_cancelled() {
             return;
         }
-        let rates = self.ecb_rates();
+        // Loading the day's ECB rates is a disk read and a check whether a fetch is due; asked
+        // only when the text could possibly need them, not for every keystroke the calculator
+        // sees while `launcher.currency = "ecb"` (a coordinator follow-up on this lane).
+        let rates = if detect::mentions_possible_currency(&query.text) {
+            self.ecb_rates()
+        } else {
+            None
+        };
         let EvalOutcome::Value(value) = evaluate(&query.text, CALCULATOR_BUDGET, rates.as_ref())
         else {
             // `NoMatch` (not an expression, or fend rejected it) and `TimedOut` both mean no

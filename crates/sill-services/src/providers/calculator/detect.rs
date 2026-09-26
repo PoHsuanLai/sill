@@ -121,6 +121,19 @@ pub fn looks_like_expression(text: &str, rates: Option<&Rates>) -> bool {
     tokens.iter().all(|token| word_is_known(token, rates))
 }
 
+/// Whether `text` has any word shaped like an ISO 4217 code (three bare letters, a leading
+/// number stripped as [`word_is_known`] strips one): a cheap, table-free pre-filter so the
+/// calculator only loads the day's ECB rates (a disk read, and a check whether a background
+/// fetch is due) for a keystroke that could possibly need them, not for every one while
+/// `launcher.currency = "ecb"`. The exact code still has to be one `rates` actually has;
+/// this only decides whether it is worth asking.
+pub fn mentions_possible_currency(text: &str) -> bool {
+    tokenize(text.trim()).into_iter().any(|token| {
+        let (_, word) = split_number_and_word(token);
+        word.len() == 3 && word.chars().all(|c| c.is_ascii_alphabetic())
+    })
+}
+
 /// Splits on anything that is not alphanumeric or `.`, so operators, parens and whitespace all
 /// separate words (`"sqrt(16)"` -> `["sqrt", "16"]`).
 fn tokenize(text: &str) -> Vec<&str> {
@@ -129,14 +142,19 @@ fn tokenize(text: &str) -> Vec<&str> {
         .collect()
 }
 
-/// Whether one token is a number, a number with a unit suffix (`"3m"`), or a bare word from the
-/// known vocabulary (`rates`'s currency codes included, while there are any).
-fn word_is_known(token: &str, rates: Option<&Rates>) -> bool {
+/// `token` split at its leading digit run: `("3", "m")` for `"3m"`, `("", "km")` for `"km"`.
+fn split_number_and_word(token: &str) -> (&str, &str) {
     let digit_prefix = token
         .chars()
         .take_while(|c| c.is_ascii_digit() || *c == '.')
         .count();
-    let (number, rest) = token.split_at(digit_prefix);
+    token.split_at(digit_prefix)
+}
+
+/// Whether one token is a number, a number with a unit suffix (`"3m"`), or a bare word from the
+/// known vocabulary (`rates`'s currency codes included, while there are any).
+fn word_is_known(token: &str, rates: Option<&Rates>) -> bool {
+    let (number, rest) = split_number_and_word(token);
     if rest.is_empty() {
         return true; // a bare number
     }
@@ -161,7 +179,7 @@ fn is_currency(lower: &str, rates: Option<&Rates>) -> bool {
 mod tests {
     use std::collections::BTreeMap;
 
-    use super::{Rates, looks_like_expression};
+    use super::{Rates, looks_like_expression, mentions_possible_currency};
 
     const CASES: &[(&str, bool)] = &[
         // Plain numbers and arithmetic.
@@ -235,5 +253,24 @@ mod tests {
             "10 USD to EUR",
             Some(&sample_rates())
         ));
+    }
+
+    #[test]
+    fn a_possible_currency_is_only_a_three_letter_word() {
+        const CASES: &[(&str, bool)] = &[
+            ("10 usd to eur", true),
+            ("10 USD to EUR", true),
+            ("3m to ft", false),
+            ("2 + 2", false),
+            ("firefox", false),
+            ("", false),
+        ];
+        for &(text, want) in CASES {
+            assert_eq!(
+                mentions_possible_currency(text),
+                want,
+                "mentions_possible_currency({text:?}) should be {want}"
+            );
+        }
     }
 }
