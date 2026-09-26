@@ -38,6 +38,14 @@ fn a_request_draws_quires_prompt_on_a_narrow_sheet_over_the_scrim() {
     assert_eq!(h.count(".ds-sheet"), 1);
     assert_eq!(h.attr(".ds-sheet", "data-width").as_deref(), Some("narrow"));
     assert_eq!(
+        h.count(&format!(
+            ".ds-sheet#{}",
+            sill_surfaces::surfaces::polkit_prompt::PANEL_ID
+        )),
+        1,
+        "the sheet carries the blur region's id"
+    );
+    assert_eq!(
         h.attr(".ds-sheet", "data-placement").as_deref(),
         Some("centre")
     );
