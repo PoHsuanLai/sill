@@ -141,8 +141,11 @@ step_panel_and_idle() {
     echo "the launcher surface is listed but would not capture" >&2
     return 1
   }
-  before=$(launcher_counters | awk '{sum += $2} END {print sum + 0}')
   sill launcher toggle >>"$log" 2>&1 || true # close it
+  # Counted once the close has landed: a frame of the opening still in flight at the capture
+  # (a loaded host, a debug build) is the opening's, not idle's.
+  sleep 0.5
+  before=$(launcher_counters | awk '{sum += $2} END {print sum + 0}')
   sleep 5
   after=$(launcher_counters | awk '{sum += $2} END {print sum + 0}')
   echo "closed frames before $before, after 5s idle $after" | tee -a "$log" >&2
