@@ -141,6 +141,10 @@ and a stand-in helper; these need polkitd, polkit's own helper and a real passwo
 - [ ] Caps Lock on shows the caps mark in the field.
 - [ ] Two requests at once (`pkexec true & pkexec true`): the second shows once the first ends.
 
+- [ ] **Cmd+Tab on a real login** (with dist/cosmic system_actions installed): a quick Cmd+Tab
+  tap switches to the previous app with no panel; holding shows the panel after about 150 ms;
+  Tab moves; releasing Cmd switches; Q quits the selected app; H hides it; Esc cancels.
+
 ## Owned by the other session (quire, shell-host)
 
 - [ ] shell-host G100 and G101 (sill FINDINGS "M6 lane d"): `dev/accept-notifications-real-input.sh

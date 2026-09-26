@@ -4911,10 +4911,30 @@ session script restarts it and it re-locks), `pkexec true` answered by sill's ow
   initial face; never a persona (the user chose animated emoji, a later quire break).
 - F564 The unlock fade runs at `--t-move` (250 ms), shorter than the 454 ms accepted beat, so the
   beat is mostly faded before the unlock; a delayed fade is a follow-up.
-- Q270 Proposed rows (not registered; the user decides whether lockout is configurable):
+- Q271 (was numbered Q270 in lane a's notes, which is lane c's range) Proposed rows (not registered; the user decides whether lockout is configurable):
   `session.lockout_free_tries` u32 5, `session.lockout_first_wait_s` 60,
   `session.lockout_max_wait_s` 900, Advanced, Accounts page. Today these are constants.
 - G191 closed: `debug stats` lists `sill-lock/<output>` while a lock is up.
 - Acceptance `dev/accept-lock.sh` on the nested compositor: 8/8 (lock 126 ms, a second locker
   refused, wrong shakes and clears, lockout after the sixth wrong, 0 commits idle, unlock 742 ms,
   crash re-lock 2 ms after restart, a non-debug build refuses a made-up verdict).
+
+## M11 lane c: the app switcher (2026-09-26)
+
+- F600 Apps are grouped by desktop entry (else the raw app id) in MRU order; activate, quit and
+  hide become window commands through cosmic_wl. A second chord inside the show delay is a quick
+  tap (switch to the previous app with no panel); an opening that reaches the show delay without
+  ever reading the chord held is also treated as a quick tap.
+- F601 Only a modifier's own key-up releases: a virtual keyboard's modifiers reach only the focused
+  client, and a non-modifier key-up from it carries none.
+- F602 dist/cosmic system_actions: `WindowSwitcher: "sill switcher next"`,
+  `WindowSwitcherPrevious: "sill switcher prev"`.
+- Acceptance `dev/accept-switcher.sh` on the nested compositor (its own three windows, wtype on
+  the nested virtual keyboard): 7/7; the no-commit quick tap is NOT PROVEN there because the
+  nested seat reports Alt held from the host session; it needs a real login (manual check).
+- G210 (shell-host) Unmapping a surface rebuilds its wl_surface, so the compositor's keyboard
+  leave names the destroyed one: `use_modifiers` is never reset and keyboard focus goes stale;
+  the switcher takes the value at mount as each opening's baseline. Wanted: withdraw the keyboard
+  on unmap, as G101 did for the pointer.
+- Left open: keyboard focus arriving after the show delay (50–90 ms here) would read a held
+  chord as a tap.
