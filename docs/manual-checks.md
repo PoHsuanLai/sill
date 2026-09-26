@@ -103,6 +103,14 @@ Then pick "COSMIC (sill)" at the login screen.
 - [ ] **Log out** from the power menu ends the session back to the login screen (nothing left
   running: `loginctl list-sessions`).
 
+## sill's own lock screen (M11), on a real COSMIC session
+
+- [ ] With several outputs: the password field is on the output under the pointer, every other
+  output shows the lock surface, and keyboard focus lands in the field.
+- [ ] At a fractional scale (1.5x): the lock surfaces are crisp and fill every output.
+- [ ] Kill the shell while locked (`pkill -f "sill run"` from a TTY): the session stays locked,
+  the session script restarts sill, and sill re-locks at start so you can unlock normally.
+
 ## Owned by the other session (quire, shell-host)
 
 - [ ] shell-host G100 and G101 (sill FINDINGS "M6 lane d"): `dev/accept-notifications-real-input.sh
