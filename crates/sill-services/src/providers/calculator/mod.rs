@@ -3,20 +3,21 @@
 
 mod detect;
 mod eval;
+mod fetch;
 pub mod rates;
 
 use std::time::Duration;
 
 use sill_launcher::{
     Action, ActionId, Activation, Batch, Choice, IconRef, Item, ItemId, Provider, ProviderKind,
-    Query, ResultSink, Score,
+    Query, ResultSink, Score, UnixTime,
 };
 
 use eval::{EvalOutcome, evaluate};
-use rates::SharedRates;
+use rates::{Rates, SharedRates};
 use tokio::sync::watch;
 
-use crate::results::LauncherPolicy;
+use crate::results::{CurrencyPolicy, LauncherPolicy};
 
 /// How long one evaluation may run before it is abandoned.
 pub const CALCULATOR_BUDGET: Duration = Duration::from_millis(50);
@@ -59,7 +60,9 @@ impl Provider for CalculatorProvider {
         if query.is_cancelled() {
             return;
         }
-        let EvalOutcome::Value(value) = evaluate(&query.text, CALCULATOR_BUDGET) else {
+        let rates = self.ecb_rates();
+        let EvalOutcome::Value(value) = evaluate(&query.text, CALCULATOR_BUDGET, rates.as_ref())
+        else {
             // `NoMatch` (not an expression, or fend rejected it) and `TimedOut` both mean no
             // item: FINDINGS.md "M4 providers-b".
             return;
@@ -86,6 +89,47 @@ impl Provider for CalculatorProvider {
             Choice::Primary | Choice::Action(_) => Activation::Copy { text },
         }
     }
+}
+
+impl CalculatorProvider {
+    /// The day's ECB rates while `launcher.currency = "ecb"`, else `None` (F650): loads the
+    /// cache fresh from disk (cheap; never the network) and, off this call's return path,
+    /// starts a background fetch when the cache is due for a new one.
+    fn ecb_rates(&self) -> Option<Rates> {
+        if self.policy.borrow().currency != CurrencyPolicy::Ecb {
+            return None;
+        }
+        let path = fetch::cache_path();
+        fetch::refresh_if_due(self.rates.clone(), path.clone(), unix_now());
+        match fetch::load(&path) {
+            Some(loaded) => {
+                if let Ok(mut guard) = self.rates.lock() {
+                    *guard = loaded.clone();
+                }
+                Some(loaded)
+            }
+            // No cache yet (or a damaged one): whatever the shared rates already hold, from an
+            // earlier fetch this process made.
+            None => self
+                .rates
+                .lock()
+                .map(|guard| guard.clone())
+                .unwrap_or_else(|poisoned| poisoned.into_inner().clone())
+                .into(),
+        }
+    }
+}
+
+/// The wall clock, in whole seconds since the epoch; a clock that cannot be read (never
+/// observed, but not a reason to panic a keystroke) treats the cache as maximally stale, which
+/// only means a fetch is attempted again.
+fn unix_now() -> UnixTime {
+    UnixTime(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0),
+    )
 }
 
 /// The one row a successful evaluation yields: primary Enter copies it, the secondary "Insert"

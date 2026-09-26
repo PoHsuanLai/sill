@@ -1,6 +1,12 @@
 //! Whether a query looks like something fend should evaluate, pure and table-tested: digits,
 //! operators, units and known function names read as an expression; plain words never do,
 //! whatever digits happen to appear in them (`"3 days ago"`, `"iPhone 15"`).
+//!
+//! ISO currency codes count as units only while `launcher.currency = "ecb"` has given a table
+//! of them (M9 freeze F650): with it `off`, `rates` is `None` and `"10 usd to eur"` reads as a
+//! plain search term, never an expression.
+
+use super::rates::Rates;
 
 /// fend's built-in function and operator names a bare word may spell.
 const FUNCTIONS: &[&str] = &[
@@ -85,9 +91,6 @@ const UNIT_WORDS: &[&str] = &[
     "byte",
     "bit",
     "bits",
-    "usd",
-    "eur",
-    "gbp",
 ];
 
 /// Operator and grouping characters that mark a string as arithmetic rather than a search term.
@@ -95,8 +98,10 @@ const SYMBOLS: &str = "+-*/^%()";
 
 /// Whether `text` reads as an expression fend should try to evaluate: it has digits, an
 /// operator, or an `=`, and every word in it is a number, a unit, a keyword or a known function
-/// — never a plain search term such as `"cd"` or `"ls -la"`.
-pub fn looks_like_expression(text: &str) -> bool {
+/// — never a plain search term such as `"cd"` or `"ls -la"`. `rates` is the day's ECB table
+/// while `launcher.currency = "ecb"`, else `None` (F650): only then does a currency code count
+/// as a unit word.
+pub fn looks_like_expression(text: &str, rates: Option<&Rates>) -> bool {
     let trimmed = text.trim();
     if trimmed.is_empty() {
         return false;
@@ -113,7 +118,7 @@ pub fn looks_like_expression(text: &str) -> bool {
     if !has_digit && !has_symbol {
         return false;
     }
-    tokens.iter().all(|token| word_is_known(token))
+    tokens.iter().all(|token| word_is_known(token, rates))
 }
 
 /// Splits on anything that is not alphanumeric or `.`, so operators, parens and whitespace all
@@ -125,8 +130,8 @@ fn tokenize(text: &str) -> Vec<&str> {
 }
 
 /// Whether one token is a number, a number with a unit suffix (`"3m"`), or a bare word from the
-/// known vocabulary.
-fn word_is_known(token: &str) -> bool {
+/// known vocabulary (`rates`'s currency codes included, while there are any).
+fn word_is_known(token: &str, rates: Option<&Rates>) -> bool {
     let digit_prefix = token
         .chars()
         .take_while(|c| c.is_ascii_digit() || *c == '.')
@@ -141,14 +146,22 @@ fn word_is_known(token: &str) -> bool {
             || KEYWORDS.contains(&lower.as_str())
             || CONSTANTS.contains(&lower.as_str())
             || UNIT_WORDS.contains(&lower.as_str())
+            || is_currency(&lower, rates)
     } else {
-        UNIT_WORDS.contains(&lower.as_str())
+        UNIT_WORDS.contains(&lower.as_str()) || is_currency(&lower, rates)
     }
+}
+
+/// Whether `lower` (already lower-cased) is one of `rates`'s currency codes.
+fn is_currency(lower: &str, rates: Option<&Rates>) -> bool {
+    rates.is_some_and(|rates| rates.per_euro.contains_key(&lower.to_uppercase()))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::looks_like_expression;
+    use std::collections::BTreeMap;
+
+    use super::{Rates, looks_like_expression};
 
     const CASES: &[(&str, bool)] = &[
         // Plain numbers and arithmetic.
@@ -191,10 +204,36 @@ mod tests {
     fn a_query_is_read_as_an_expression_exactly_when_it_looks_like_one() {
         for &(text, want) in CASES {
             assert_eq!(
-                looks_like_expression(text),
+                looks_like_expression(text, None),
                 want,
-                "looks_like_expression({text:?}) should be {want}"
+                "looks_like_expression({text:?}, None) should be {want}"
             );
         }
+    }
+
+    fn sample_rates() -> Rates {
+        Rates {
+            per_euro: BTreeMap::from([("USD".to_owned(), 1.1), ("EUR".to_owned(), 1.0)]),
+            day: None,
+        }
+    }
+
+    #[test]
+    fn a_currency_code_is_a_unit_only_while_ecb_gave_a_table_of_them() {
+        assert!(!looks_like_expression("10 usd to eur", None));
+        assert!(looks_like_expression(
+            "10 usd to eur",
+            Some(&sample_rates())
+        ));
+        // A code the table does not have is still a plain search term.
+        assert!(!looks_like_expression(
+            "10 twd to eur",
+            Some(&sample_rates())
+        ));
+        // Case does not matter, as for every other unit word.
+        assert!(looks_like_expression(
+            "10 USD to EUR",
+            Some(&sample_rates())
+        ));
     }
 }
