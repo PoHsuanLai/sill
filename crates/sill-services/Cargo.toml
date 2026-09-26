@@ -72,5 +72,16 @@ name = "polkit_authority"
 [[example]]
 name = "polkit_helper"
 
+# The launcher's files provider driven as the runner drives it, its first row opened through the
+# launch service (M9 lane a): `dev/accept-launcher-files.sh` and `tests/files_tracker_live.rs`
+# run it in a scratch HOME on a private bus, never in the person's own.
+[[example]]
+name = "files_probe"
+
+# org.freedesktop.FileManager1 on a private bus, printing each ShowItems call:
+# `dev/accept-launcher-files.sh` checks ⌘R's reveal with it, never a real file manager.
+[[example]]
+name = "file_manager_stub"
+
 [lints]
 workspace = true

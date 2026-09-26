@@ -8,7 +8,9 @@ use std::ffi::OsString;
 
 use sill_launcher::Query;
 
-use super::index::{FileAnswer, FileAsk, FileIndex, IndexFault, IndexKind};
+use super::baloo::answer_of;
+use super::index::{FileAnswer, FileAsk, FileIndex, IndexKind};
+use super::program::run_within;
 
 /// Which program walks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -32,23 +34,47 @@ impl FileIndex for WalkIndex {
     }
 
     fn search(&self, ask: &FileAsk, query: &Query) -> FileAnswer {
-        let _ = (ask, query);
-        FileAnswer::Unavailable(IndexFault::NoProgram)
+        let (program, args) = match self.walker {
+            Walker::Fd => ("fd", fd_args(ask)),
+            Walker::Plocate => ("plocate", plocate_args(ask)),
+        };
+        match run_within(program, &args, ask.budget, query) {
+            Ok(ran) => answer_of(ran, &ask.under, ask.limit),
+            Err(fault) => FileAnswer::Unavailable(fault),
+        }
     }
 }
 
 /// `fd`'s arguments: a case-insensitive fixed-string match on the name, absolute paths, at most
 /// `ask.limit` results, under `ask.under`.
 pub fn fd_args(ask: &FileAsk) -> Vec<OsString> {
-    let _ = ask;
-    todo!("M9 fill: a-files")
+    let mut args: Vec<OsString> = [
+        "--fixed-strings",
+        "--ignore-case",
+        "--absolute-path",
+        "--max-results",
+    ]
+    .iter()
+    .map(OsString::from)
+    .collect();
+    args.push(OsString::from(ask.limit.0.to_string()));
+    args.push(OsString::from("--"));
+    args.push(OsString::from(&ask.text));
+    args.push(OsString::from(&ask.under));
+    args
 }
 
 /// `plocate`'s arguments: case-insensitive, basename only, at most `ask.limit` results (the
 /// home-directory filter is applied to its output).
 pub fn plocate_args(ask: &FileAsk) -> Vec<OsString> {
-    let _ = ask;
-    todo!("M9 fill: a-files")
+    vec![
+        OsString::from("--ignore-case"),
+        OsString::from("--basename"),
+        OsString::from("--limit"),
+        OsString::from(ask.limit.0.to_string()),
+        OsString::from("--"),
+        OsString::from(&ask.text),
+    ]
 }
 
 #[cfg(test)]
@@ -74,7 +100,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "M9 fill: a-files"]
     fn the_text_is_one_fixed_string_argument() {
         assert_eq!(
             fd_args(&ask("a b; rm")),

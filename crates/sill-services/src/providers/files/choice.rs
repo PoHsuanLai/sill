@@ -2,10 +2,15 @@
 //! only asks whether each backend exists (a bus name's owner, a program on `PATH`), never
 //! what it holds.
 
+use std::path::Path;
+
 use crate::results::FilesChoice;
 use crate::units::Presence;
 
+use super::baloo::baloo_enabled;
 use super::index::IndexKind;
+use super::program::on_path;
+use super::tracker::tracker_presence;
 
 /// Which backends this machine has.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -24,14 +29,53 @@ pub struct Detected {
 /// which one, and a silent substitute would surprise), except `Walk`, which is `fd` else
 /// `plocate`.
 pub fn pick(choice: FilesChoice, detected: &Detected) -> Option<IndexKind> {
-    let _ = (choice, detected);
-    todo!("M9 fill: a-files")
+    candidates(choice)
+        .iter()
+        .copied()
+        .find(|kind| presence_of(detected, *kind) == Presence::Present)
 }
 
 /// What this machine has. Blocking (a bus call and `PATH` lookups): the provider asks once,
 /// off the UI thread, and caches it.
 pub fn detect() -> Detected {
-    todo!("M9 fill: a-files")
+    let search_path = std::env::var_os("PATH").unwrap_or_default();
+    let program = |name: &str| on_path(name, &search_path, Path::is_file);
+    let baloo = match program("baloosearch6") {
+        Presence::Present => baloo_enabled(),
+        Presence::Absent => Presence::Absent,
+    };
+    Detected {
+        tracker: tracker_presence(),
+        baloo,
+        fd: program("fd"),
+        plocate: program("plocate"),
+    }
+}
+
+/// The backends `choice` may use, in order of preference.
+fn candidates(choice: FilesChoice) -> &'static [IndexKind] {
+    match choice {
+        FilesChoice::Auto => &[
+            IndexKind::Tracker,
+            IndexKind::Baloo,
+            IndexKind::Fd,
+            IndexKind::Plocate,
+        ],
+        FilesChoice::Tracker => &[IndexKind::Tracker],
+        FilesChoice::Baloo => &[IndexKind::Baloo],
+        FilesChoice::Walk => &[IndexKind::Fd, IndexKind::Plocate],
+        FilesChoice::Off => &[],
+    }
+}
+
+fn presence_of(detected: &Detected, kind: IndexKind) -> Presence {
+    match kind {
+        IndexKind::Tracker => detected.tracker,
+        IndexKind::Baloo => detected.baloo,
+        IndexKind::Fd => detected.fd,
+        IndexKind::Plocate => detected.plocate,
+        IndexKind::Fake => Presence::Absent,
+    }
 }
 
 #[cfg(test)]
@@ -49,7 +93,6 @@ mod tests {
     };
 
     #[test]
-    #[ignore = "M9 fill: a-files"]
     fn auto_prefers_an_index_and_a_named_backend_is_never_substituted() {
         let only = |tracker, baloo, fd, plocate| Detected {
             tracker,

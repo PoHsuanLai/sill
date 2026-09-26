@@ -5,10 +5,17 @@
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
-use sill_launcher::Query;
+use sill_launcher::{Cancel, Query};
 
-use super::index::{FileAnswer, FileAsk, FileIndex, IndexFault, IndexKind};
+use super::index::{FileAnswer, FileAsk, FileIndex, HitLimit, IndexFault, IndexKind};
+use super::program::{Ended, Ran, run_within};
+use super::stat::hit_at;
+use crate::units::Presence;
+
+/// How long `balooctl6 status` may take when detecting.
+const STATUS_BUDGET: Duration = Duration::from_secs(1);
 
 /// The Baloo index.
 #[derive(Debug, Default)]
@@ -20,33 +27,88 @@ impl FileIndex for BalooIndex {
     }
 
     fn search(&self, ask: &FileAsk, query: &Query) -> FileAnswer {
-        let _ = (ask, query);
-        FileAnswer::Unavailable(IndexFault::NotRunning)
+        match run_within("baloosearch6", &baloo_args(ask), ask.budget, query) {
+            Ok(ran) => answer_of(ran, &ask.under, ask.limit),
+            Err(fault) => FileAnswer::Unavailable(fault),
+        }
     }
 }
 
 /// `baloosearch6`'s arguments for `ask` (the text is one argument, never split or quoted by a
 /// shell).
 pub fn baloo_args(ask: &FileAsk) -> Vec<OsString> {
-    let _ = ask;
-    todo!("M9 fill: a-files")
+    vec![
+        OsString::from("-l"),
+        OsString::from(ask.limit.0.to_string()),
+        OsString::from("-d"),
+        OsString::from(&ask.under),
+        OsString::from("--"),
+        OsString::from(&ask.text),
+    ]
 }
 
 /// The absolute paths in a search program's output under `under`, one per line: blank lines,
 /// relative paths, paths outside `under` and a trailing "Elapsed" line are dropped.
 pub fn parse_paths(output: &str, under: &Path) -> Vec<PathBuf> {
-    let _ = (output, under);
-    todo!("M9 fill: a-files")
+    output
+        .lines()
+        .map(Path::new)
+        .filter(|path| path.is_absolute() && path.starts_with(under))
+        .map(Path::to_path_buf)
+        .collect()
+}
+
+/// A search program's run as an answer: every path under `under` that still exists, at most
+/// `limit`; `Partial` when it was killed at the budget. A program that exited badly still
+/// printed paths worth showing (`fd` exits 1 after a folder it may not read; `plocate` exits 1
+/// when nothing matched).
+pub(super) fn answer_of(ran: Ran, under: &Path, limit: HitLimit) -> FileAnswer {
+    let hits = parse_paths(&ran.text, under)
+        .into_iter()
+        .filter_map(hit_at)
+        .take(usize::from(limit.0))
+        .collect();
+    match ran.ended {
+        Ended::Exited(status) if status.code().is_none() => {
+            FileAnswer::Unavailable(IndexFault::Failed)
+        }
+        Ended::Exited(_) => FileAnswer::Hits(hits),
+        Ended::OutOfTime => FileAnswer::Partial(hits),
+    }
+}
+
+/// Whether Baloo is enabled, from `balooctl6 status` (it prints that it is disabled and exits
+/// 0, so the words decide).
+pub(super) fn baloo_enabled() -> Presence {
+    let query = Query::begin("", &Cancel::new());
+    let args = [OsString::from("status")];
+    match run_within("balooctl6", &args, STATUS_BUDGET, &query) {
+        Ok(ran) => baloo_status(&ran.text),
+        Err(_) => Presence::Absent,
+    }
+}
+
+/// `balooctl6 status`'s output (C locale) read as enabled or not.
+fn baloo_status(output: &str) -> Presence {
+    let output = output.to_lowercase();
+    if output.trim().is_empty() || output.contains("disabled") {
+        Presence::Absent
+    } else {
+        Presence::Present
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::ffi::OsString;
     use std::path::{Path, PathBuf};
+    use std::time::Duration;
 
-    use super::parse_paths;
+    use super::{baloo_args, baloo_status, parse_paths};
+    use crate::providers::files::index::{FileAsk, HitLimit};
+    use crate::units::Presence::{self, Absent, Present};
 
     #[test]
-    #[ignore = "M9 fill: a-files"]
     fn only_absolute_paths_under_the_folder_survive() {
         let output = "/home/p/a.pdf\n\nrelative/b.txt\n/etc/passwd\n/home/p/dir/c d.md\nElapsed: 1.2 msecs\n";
         assert_eq!(
@@ -56,5 +118,48 @@ mod tests {
                 PathBuf::from("/home/p/dir/c d.md")
             ]
         );
+    }
+
+    #[test]
+    fn a_neighbour_of_the_folder_is_not_under_it() {
+        let output = "/home/pat/a.pdf\n/home/p/b.pdf\n/home/p\n";
+        assert_eq!(
+            parse_paths(output, Path::new("/home/p")),
+            vec![PathBuf::from("/home/p/b.pdf"), PathBuf::from("/home/p")]
+        );
+    }
+
+    #[test]
+    fn the_text_is_one_argument_after_the_options() {
+        let ask = FileAsk {
+            text: "-x tax 2025".to_owned(),
+            under: PathBuf::from("/home/p"),
+            limit: HitLimit(40),
+            budget: Duration::from_millis(150),
+        };
+        let want: Vec<OsString> = ["-l", "40", "-d", "/home/p", "--", "-x tax 2025"]
+            .iter()
+            .map(OsString::from)
+            .collect();
+        assert_eq!(baloo_args(&ask), want);
+    }
+
+    #[test]
+    fn a_disabled_baloo_is_absent() {
+        let cases: &[(&str, Presence)] = &[
+            (
+                "Baloo is currently disabled. To enable, please run balooctl enable\n",
+                Absent,
+            ),
+            (
+                "Baloo File Indexer is running\nIndexer state: Idle\n",
+                Present,
+            ),
+            ("Baloo File Indexer is not running\n", Present),
+            ("", Absent),
+        ];
+        for &(output, want) in cases {
+            assert_eq!(baloo_status(output), want, "{output:?}");
+        }
     }
 }
