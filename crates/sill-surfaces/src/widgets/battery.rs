@@ -1,7 +1,13 @@
-//! The Battery widget (M10 lane b): this machine's battery (UPower) and every connected
-//! Bluetooth device that reports one (BlueZ `Battery1`), each a level ring (quire's `LevelRing`,
-//! Q183) with its glyph inside and its percentage under it, as macOS's Batteries widget. Nothing
-//! to show (a desktop with no battery and no devices): the widget says "No batteries".
+//! The Battery widget (M10 lane b; design/23-WIDGETS.md section 4.1, the fourth pass "Flat,
+//! bright, measured"): this machine's battery (UPower) and every connected Bluetooth device that
+//! reports one (BlueZ `Battery1`), each a level ring (quire's `BatteryLevel`, Q183) with its
+//! glyph inside. quire draws only the ring; this widget composes the rest, copying the
+//! reference's own gallery ("Widget reference" page): one device alone is the ring at the top
+//! left with the percentage as the card's hero figure; several are a 2 x 2 grid of rings, no
+//! numbers, empty places a ring at 0; a Medium frame is a row of up to four rings, the
+//! percentage under each. No header row (M25): [`crate::widgets::frame::frame_head`] gives
+//! Battery none. Nothing to show (a desktop with no battery and no devices): the widget says "No
+//! batteries".
 
 use dioxus::prelude::*;
 use ds::{BatteryLevel, Bumped, Fraction, Glyph, Icon, IconSize, RingMark};
@@ -110,9 +116,34 @@ fn ring_label(row: &BatteryRow) -> String {
     }
 }
 
-/// The batteries, as macOS's Batteries widget: one row each, quire's `BatteryLevel` (the device's
-/// glyph, then a battery filled to the level with a bolt while charging), the device's name and
-/// its percentage, which bumps on a change (design/23, Neumorphism & Soft UI).
+/// How many rings a grid or a row holds (macOS's Batteries widget shows up to four).
+const MAX_RINGS: usize = 4;
+
+/// How the widget composes its rings for `host` with `rows` batteries, at least one
+/// (design/23-WIDGETS.md section 4.1, "Composition").
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum BatteryLayout {
+    /// A Small frame, one device: the ring at the top left, the percentage as the hero figure.
+    Solo,
+    /// A Small frame, several devices: a 2 x 2 grid of rings, no numbers.
+    Grid,
+    /// A Medium frame: a row of rings, the percentage under each.
+    Row,
+}
+
+impl BatteryLayout {
+    /// `host`'s layout for `rows` batteries.
+    fn of(host: WidgetHost, rows: usize) -> Self {
+        match (host, rows) {
+            (WidgetHost::Desktop, 1) => BatteryLayout::Solo,
+            (WidgetHost::Desktop, _) => BatteryLayout::Grid,
+            (WidgetHost::Tile, _) => BatteryLayout::Row,
+        }
+    }
+}
+
+/// The batteries, laid out as the reference's own gallery composes them (quire's `BatteryLevel`
+/// draws only the ring). Nothing to show: a quiet line.
 #[component]
 pub fn BatteryWidget(host: WidgetHost) -> Element {
     let battery = use_battery()();
@@ -126,28 +157,71 @@ pub fn BatteryWidget(host: WidgetHost) -> Element {
         div { class: "sill-widget-battery", "data-host": host.slug(),
             if rows.is_empty() {
                 span { class: "sill-widget-quiet", "No batteries" }
-            }
-            for row in rows {
-                BatteryCell { key: "{row.name}", row }
+            } else {
+                match BatteryLayout::of(host, rows.len()) {
+                    BatteryLayout::Solo => solo(&rows[0]),
+                    BatteryLayout::Grid => grid(&rows),
+                    BatteryLayout::Row => row_of(&rows),
+                }
             }
         }
     }
 }
 
-/// One battery: the device glyph and its battery, the name, the percentage.
-#[component]
-fn BatteryCell(row: BatteryRow) -> Element {
-    let (level, mark) = ring_of(&row);
-    let percent = row.level.0;
-    let name = row.name.clone();
+/// One row's ring, keyed by its name: the device's glyph inside, filled to its level, a bolt
+/// while it charges.
+fn ring(row: &BatteryRow) -> Element {
+    let (level, mark) = ring_of(row);
     rsx! {
-        div { class: "sill-widget-battery-cell",
-            BatteryLevel { level, mark, label: ring_label(&row),
-                Glyph { icon: row_glyph(&row), size: IconSize::Base }
+        BatteryLevel { key: "{row.name}", level, mark, label: ring_label(row),
+            Glyph { icon: row_glyph(row), size: IconSize::Base }
+        }
+    }
+}
+
+/// An empty place in the grid: a ring at 0, as the reference's own gallery draws one.
+fn empty_ring(key: usize) -> Element {
+    rsx! {
+        BatteryLevel { key: "empty-{key}", level: Fraction(0), label: "No device" }
+    }
+}
+
+/// One device, alone: the ring at the top left, its percentage as the card's hero figure.
+fn solo(row: &BatteryRow) -> Element {
+    let percent = row.level.0;
+    rsx! {
+        div { class: "sill-widget-battery-solo",
+            {ring(row)}
+            span { class: "sill-widget-battery-hero", Bumped { on: percent, "{percent}%" } }
+        }
+    }
+}
+
+/// Several devices, a Small frame: a 2 x 2 grid of rings, empty places padded to four.
+fn grid(rows: &[BatteryRow]) -> Element {
+    rsx! {
+        div { class: "sill-widget-battery-grid",
+            for row in rows.iter().take(MAX_RINGS) {
+                {ring(row)}
             }
-            span { class: "sill-widget-battery-name", "{name}" }
-            span { class: "sill-widget-battery-level",
-                Bumped { on: percent, "{percent}%" }
+            for n in rows.len()..MAX_RINGS {
+                {empty_ring(n)}
+            }
+        }
+    }
+}
+
+/// A Medium frame: a row of rings, each with its percentage under it.
+fn row_of(rows: &[BatteryRow]) -> Element {
+    rsx! {
+        div { class: "sill-widget-battery-row",
+            for row in rows.iter().take(MAX_RINGS) {
+                div { key: "{row.name}", class: "sill-widget-battery-cell",
+                    {ring(row)}
+                    span { class: "sill-widget-battery-figure",
+                        Bumped { on: row.level.0, "{row.level.0}%" }
+                    }
+                }
             }
         }
     }
@@ -162,7 +236,24 @@ mod tests {
 
     use ds::{Fraction, RingMark};
 
-    use super::{BatteryOwner, BatteryRow, battery_rows, machine_name, ring_label, ring_of};
+    use super::{
+        BatteryLayout, BatteryOwner, BatteryRow, WidgetHost, battery_rows, machine_name,
+        ring_label, ring_of,
+    };
+
+    #[test]
+    fn the_layout_is_solo_only_once_on_the_desktop() {
+        let cases = [
+            (WidgetHost::Desktop, 1, BatteryLayout::Solo),
+            (WidgetHost::Desktop, 2, BatteryLayout::Grid),
+            (WidgetHost::Desktop, 4, BatteryLayout::Grid),
+            (WidgetHost::Tile, 1, BatteryLayout::Row),
+            (WidgetHost::Tile, 4, BatteryLayout::Row),
+        ];
+        for (host, rows, want) in cases {
+            assert_eq!(BatteryLayout::of(host, rows), want, "{host:?} {rows}");
+        }
+    }
 
     #[test]
     fn a_row_is_a_ring_in_permille_with_a_bolt_while_charging() {

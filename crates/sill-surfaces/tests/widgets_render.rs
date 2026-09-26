@@ -81,7 +81,7 @@ fn start(kind: WidgetKind, host: WidgetHost, file: ShellFile) -> Running {
 }
 
 #[test]
-fn in_the_center_the_frame_is_quires_tile_with_the_title_row() {
+fn in_the_center_the_frame_is_quires_tile_with_no_header_row() {
     let running = start(WidgetKind::Battery, WidgetHost::Tile, ShellFile::default());
     let h = &running.harness;
     assert_eq!(h.count(".ds-widget#widget-battery"), 1);
@@ -94,9 +94,9 @@ fn in_the_center_the_frame_is_quires_tile_with_the_title_row() {
         Some("medium")
     );
     assert_eq!(
-        h.text_of("#widget-battery .ds-widget-title-text")
-            .as_deref(),
-        Some("Batteries")
+        h.count("#widget-battery .ds-widget-title"),
+        0,
+        "Battery is a glanceable widget with no header (design/23-WIDGETS.md M25)"
     );
     assert_eq!(
         h.count(".ds[*|data-material=widget]"),
