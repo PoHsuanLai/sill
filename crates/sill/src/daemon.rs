@@ -994,7 +994,20 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
                 .chain(switcher)
         })
         .collect();
+    // The lock surfaces are the host's (shell-host names each `sill-lock/<output>`), not a row
+    // of `outputs`, so they are found by name while a lock is up (G191).
+    let locks: Vec<(String, SurfaceId)> = outputs
+        .outputs
+        .iter()
+        .filter_map(|(info, _)| info.name.clone())
+        .filter_map(|name| {
+            let label = format!("{}/{name}", crate::lock::host::LOCK_NAMESPACE);
+            let id = ctx.surface_named(&shell_host::SurfaceName(label.clone()))?;
+            Some((label, id))
+        })
+        .collect();
     ids.into_iter()
+        .chain(locks)
         .filter_map(|(name, id)| Some(to_ipc_stats(name, ctx.take_stats(id)?)))
         .collect()
 }
