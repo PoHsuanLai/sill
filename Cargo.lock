@@ -1827,8 +1827,10 @@ dependencies = [
  "blitz-dom",
  "blitz-html",
  "blitz-paint",
+ "blitz-shell",
  "blitz-traits",
  "dioxus",
+ "dioxus-asset-resolver",
  "dioxus-native",
  "dioxus-native-dom",
  "ds",
@@ -1839,6 +1841,7 @@ dependencies = [
  "peniko",
  "thiserror 2.0.20",
  "tokio",
+ "webbrowser",
  "wgpu",
 ]
 
