@@ -8,41 +8,37 @@
 //! — a real Blitz document, real layout, real Noto Color Emoji COLRv1 painting — scrolled at a
 //! simulated 60 Hz, and reports each frame's paint time as p50, p95 and max.
 //!
-//! **vello_cpu only.** `ds_native::Harness::render` paints through `anyrender_vello_cpu`
-//! (`ds-native/src/headless.rs`); it has no public path to paint through `anyrender_vello_hybrid`
-//! instead (that backend is only reachable from a raw wgpu device and a hand-built scene, as
-//! `ds-native/examples/emoji_probe_hybrid.rs` does, bypassing the DOM entirely — not "300
-//! `ds-emoji` cells in a `ds_native::Harness`"). Reaching it for real DOM content needs either a
-//! `Harness` method quire adds, or new dev-dependencies (`vello_hybrid`, `wgpu`, `wgpu_context`)
-//! in `crates/sill-surfaces/Cargo.toml`, which this wave gives to lane d, not lane c. Reported as
-//! a gap (FINDINGS "M9 lane c") rather than worked around here.
+//! It times vello_cpu and vello_hybrid (quire Q330: `HarnessConfig::with_backend`, on the
+//! discrete and the integrated GPU) at 100 %, 150 % and 200 % scale, the frame's whole paint
+//! (`Harness::paint_timed`, GPU included), with the grid's real cell (56 px) and glyph size
+//! (`--fs-emoji-cell`). A backend with no GPU is skipped and said so.
 //!
+
 //! `cargo run -p sill-surfaces --example emoji_paint_bench`
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Appearance, Ds, Material, Point, Px};
-use ds_native::{Harness, Viewport};
+use ds_native::{AdapterPref, Backend, Harness, HarnessConfig, Viewport};
 
-/// The grid's cell size (quire gap Q291 proposes 56 px).
-const CELL_PX: f32 = 56.0;
-/// Columns (F656: `GRID_COLUMNS 8`).
-const COLUMNS: usize = 8;
+/// The grid's cell size (quire `EmojiGrid` default: 56 px).
+const CELL_PX: u32 = 56;
+/// Columns (`EmojiGrid` default: 8).
+const COLUMNS: u32 = 8;
 /// Cells drawn: the open risk names "a few hundred".
 const CELL_COUNT: usize = 300;
-/// The visible viewport: `COLUMNS` cells wide, tall enough to show several rows.
-const VIEWPORT: Viewport = Viewport {
-    width: (CELL_PX as u32) * (COLUMNS as u32),
-    height: 620,
-    scale_percent: 100,
-};
+/// The visible grid, in logical px: `COLUMNS` cells wide, several rows tall.
+const WIDTH: u32 = CELL_PX * COLUMNS;
+const HEIGHT: u32 = 620;
+/// Three seconds of continuous scroll at 60 Hz.
+const FRAMES: usize = 180;
 /// A 60 Hz frame.
 const FRAME: Duration = Duration::from_millis(16);
-/// Three seconds of continuous scroll.
-const FRAMES: usize = 180;
-/// Wheel delta per simulated frame: the grid scrolls its full content over the run.
+/// Wheel delta per simulated frame.
 const SCROLL_PX_PER_FRAME: f32 = 18.0;
+/// The scales timed: the user's 27" 4K runs at 200 %.
+const SCALES: [u16; 3] = [100, 150, 200];
 
 /// A representative spread of colour emoji (faces, hands in several tones, animals, food,
 /// flags, symbols): real COLRv1 glyphs, cycled to fill [`CELL_COUNT`] cells.
@@ -53,30 +49,77 @@ const GLYPHS: &[&str] = &[
     "⚽", "🚀", "🌈", "⭐", "🔥", "❤️", "✨", "🏳️", "🏴", "🎌", "🇹🇼", "🇯🇵",
 ];
 
+/// One renderer to time.
+struct Run {
+    label: &'static str,
+    backend: Backend,
+    adapter: AdapterPref,
+}
+
+fn runs() -> [Run; 3] {
+    [
+        Run {
+            label: "vello_cpu",
+            backend: Backend::Cpu,
+            adapter: AdapterPref::Auto,
+        },
+        Run {
+            label: "hybrid discrete",
+            backend: Backend::Hybrid,
+            adapter: AdapterPref::Discrete,
+        },
+        Run {
+            label: "hybrid integrated",
+            backend: Backend::Hybrid,
+            adapter: AdapterPref::Integrated,
+        },
+    ]
+}
+
 fn main() {
-    let mut harness = Harness::new(GridApp, VIEWPORT);
-    let scroll_point = Point {
-        x: Px(VIEWPORT.width as f32 / 2.0),
-        y: Px(VIEWPORT.height as f32 / 2.0),
-    };
-
-    let mut frame_times = Vec::with_capacity(FRAMES);
-    for _ in 0..FRAMES {
-        harness.wheel(scroll_point, Px(0.0), Px(SCROLL_PX_PER_FRAME));
-        harness.advance(FRAME);
-        let started = Instant::now();
-        if let Err(error) = harness.render() {
-            eprintln!("emoji_paint_bench: vello_cpu render failed: {error}");
-            std::process::exit(1);
+    for run in runs() {
+        for scale in SCALES {
+            time(&run, scale);
         }
-        frame_times.push(started.elapsed());
     }
-    report("vello_cpu", &frame_times);
+}
 
-    eprintln!(
-        "emoji_paint_bench: vello_hybrid not measured (see this file's module doc and \
-         FINDINGS \"M9 lane c\" for why)."
-    );
+/// Scroll the grid for [`FRAMES`] frames on `run`'s renderer at `scale` percent and print
+/// the paint times.
+fn time(run: &Run, scale: u16) {
+    let viewport = Viewport {
+        width: WIDTH,
+        height: HEIGHT,
+        scale_percent: scale,
+    };
+    let config = HarnessConfig::new(viewport)
+        .with_backend(run.backend)
+        .with_adapter(run.adapter.clone());
+    let mut harness = match Harness::try_with_config(GridApp, config) {
+        Ok(harness) => harness,
+        Err(error) => {
+            println!("{} @{scale}%: skipped ({error})", run.label);
+            return;
+        }
+    };
+    let adapter = harness.adapter().unwrap_or("cpu").to_owned();
+    let point = Point {
+        x: Px(WIDTH as f32 / 2.0),
+        y: Px(HEIGHT as f32 / 2.0),
+    };
+    let mut times = Vec::with_capacity(FRAMES);
+    for _ in 0..FRAMES {
+        harness.wheel(point, Px(0.0), Px(SCROLL_PX_PER_FRAME));
+        harness.advance(FRAME);
+        match harness.paint_timed() {
+            Ok(paint) => times.push(paint.total),
+            Err(error) => {
+                println!("{} @{scale}%: paint failed ({error})", run.label);
+                return;
+            }
+        }
+    }
+    report(&format!("{} @{scale}% [{adapter}]", run.label), &times);
 }
 
 /// `label`'s frame times as p50, p95 and max.
@@ -98,19 +141,14 @@ fn report(label: &str, frame_times: &[Duration]) {
     );
 }
 
-/// A scrollable grid of [`CELL_COUNT`] emoji, each carrying quire's `ds-emoji-text` class.
+/// A scrollable grid of [`CELL_COUNT`] emoji, each carrying quire's `ds-emoji-text` class at
+/// the grid's glyph size token.
 #[allow(non_snake_case)]
 fn GridApp() -> Element {
-    let scroll_style = format!(
-        "width:{}px;height:{}px;overflow-y:auto;",
-        VIEWPORT.width, VIEWPORT.height
-    );
-    let grid_style = format!(
-        "display:flex;flex-wrap:wrap;width:{}px;",
-        COLUMNS as f32 * CELL_PX
-    );
+    let scroll_style = format!("width:{WIDTH}px;height:{HEIGHT}px;overflow-y:auto;");
+    let grid_style = format!("display:flex;flex-wrap:wrap;width:{WIDTH}px;");
     let cell_style = format!(
-        "width:{CELL_PX}px;height:{CELL_PX}px;display:flex;align-items:center;justify-content:center;font-size:32px;"
+        "width:{CELL_PX}px;height:{CELL_PX}px;display:flex;align-items:center;justify-content:center;font-size:var(--fs-emoji-cell);"
     );
     rsx! {
         Ds { appearance: Appearance::default(), material: Material::Sheet,

@@ -5940,3 +5940,21 @@ table or harness test that fails without its fix. Numbers from F760.
   unchanged on the rerun a minute later: timing, not these fixes. `accept-launcher-v2-real-input.sh`
   on headless KWin: steps 1-5 PASS, exit 0; step 4 now reads Down 0→8, Down 8→16, **Right
   16→17**, Left 17→16, Up 16→8, and Enter copies cell 8. Q340 and Q341 still OPEN (quire's).
+
+## M9 close: the emoji grid on vello_hybrid (2026-09-27)
+
+`examples/emoji_paint_bench.rs` now times the real grid (300 `.ds-emoji-text` cells, 56 px
+cells, `--fs-emoji-cell`, 8 columns, 180 frames of a 60 Hz scroll) through quire's Q330
+harness backend (`HarnessConfig::with_backend`, `Harness::paint_timed`: the whole frame, GPU
+included), at 100/150/200 %. Release build, this machine, while other builds ran:
+
+| Renderer | 100 % p50 / p95 / max | 150 % | 200 % |
+| --- | --- | --- | --- |
+| vello_cpu | 7.5 / 10.6 / 22.8 | 6.9 / 10.8 / 23.5 | 8.6 / 13.6 / 22.3 |
+| hybrid, RTX 5070 Ti | 4.7 / 6.7 / 44.1 | 5.9 / 6.7 / 9.6 | 6.4 / 8.3 / 9.8 |
+| hybrid, AMD iGPU | 5.4 / 8.2 / 11.2 | 6.0 / 7.7 / 9.2 | 6.4 / 8.0 / 10.3 |
+
+- **F765** Every renderer's p95 is inside a 60 Hz frame (16.7 ms) at every scale, including the
+  user's 200 %; the 44 ms max on the discrete GPU at 100 % is its first frame (pipelines built
+  on first use), not the scroll. The grid needs no virtualisation (quire: off-screen cells cost
+  about 4.5 µs each). The M9 open risk (F657) is closed.
