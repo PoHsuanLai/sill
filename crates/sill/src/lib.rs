@@ -23,6 +23,7 @@ pub mod outputs;
 pub mod polkit;
 pub mod power_menu;
 pub mod screenshots;
+pub mod scroll;
 pub mod session;
 pub mod switcher;
 pub mod widgets;

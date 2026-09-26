@@ -302,6 +302,11 @@ fn run_event(
             {
                 links.power_menu.focus(*focus);
             }
+            // The engine has no config until told one; the watcher's and the reload's changes
+            // land through `HostEvent::App(ShellMsg::Settings(_))` and `Request::Reload` below.
+            if matches!(other, HostEvent::Started) {
+                ctx.set_scroll_config(crate::scroll::config(&settings_tx.borrow()));
+            }
             crate::displays::on_host_event(services, &other);
             on_event(ctx, outputs, other);
             spawn_missing_bars(ctx, outputs, services, settings_feed, settings_tx);
@@ -357,7 +362,10 @@ pub fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostE
         | HostEvent::OutputRemoved(_) => reconcile_outputs(ctx, outputs),
         HostEvent::SurfaceClosed { id, reason } => on_surface_closed(outputs, id, reason),
         HostEvent::KeyboardFocus { .. } => {}
-        HostEvent::App(ShellMsg::Settings(file)) => resize_bars(ctx, outputs, &file),
+        HostEvent::App(ShellMsg::Settings(file)) => {
+            resize_bars(ctx, outputs, &file);
+            ctx.set_scroll_config(crate::scroll::config(&file));
+        }
         // Answered by `run_event`, which holds the lock's state.
         HostEvent::App(ShellMsg::Lock(_)) => {}
         HostEvent::App(ShellMsg::Ipc { reply, .. }) => {
@@ -726,6 +734,7 @@ fn dispatch_request(
         Request::Reload => {
             let response = dispatch_reload(settings_dir, settings_tx);
             crate::displays::send_policy(services, &settings_tx.borrow());
+            ctx.set_scroll_config(crate::scroll::config(&settings_tx.borrow()));
             response
         }
         Request::Quit => {

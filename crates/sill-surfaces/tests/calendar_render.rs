@@ -305,29 +305,33 @@ fn on_the_desktop_the_calendar_is_the_compact_month_inside_its_small_frame() {
         "today marked"
     );
     clean(&h.html());
-    // At the default 164 px cell the frame's content box is 132 x 132 (16 px padding): every
-    // month stays inside it, a six-week one included (twelve months hold at least one).
+    // At the default 164 px cell every month stays inside the frame's content box (quire's
+    // `.ds-widget-body`, measured rather than assumed, since quire sets the padding), a six-week
+    // one included (twelve months hold at least one).
     let mut weeks = Vec::new();
     for _ in 0..12 {
         let h = &running.harness;
         let frame = h.rect("#widget-calendar").expect("the frame is laid out");
+        let body = h
+            .rect("#widget-calendar .ds-widget-body")
+            .expect("the frame's content box is laid out");
         let month = h.rect(".ds-month").expect("the month is laid out");
         assert_eq!(frame.size.width.0.round(), 164.0);
         let x = within(
             month.origin.x.0,
             month.size.width.0,
-            frame.origin.x.0,
-            frame.size.width.0,
+            body.origin.x.0,
+            body.size.width.0,
         );
         let y = within(
             month.origin.y.0,
             month.size.height.0,
-            frame.origin.y.0,
-            frame.size.height.0,
+            body.origin.y.0,
+            body.size.height.0,
         );
         assert!(
             x && y,
-            "the month {month:?} inside the frame's padding {frame:?}"
+            "the month {month:?} inside the frame's content box {body:?}"
         );
         weeks.push(h.count(".ds-month-weeks .ds-month-row"));
         let next = h
@@ -340,6 +344,6 @@ fn on_the_desktop_the_calendar_is_the_compact_month_inside_its_small_frame() {
 }
 
 /// Whether a span starting at `from`, `size` long, lies inside a frame's 16 px padding.
-fn within(from: f32, size: f32, frame_from: f32, frame_size: f32) -> bool {
-    from >= frame_from + 16.0 - 0.5 && from + size <= frame_from + frame_size - 16.0 + 0.5
+fn within(from: f32, size: f32, box_from: f32, box_size: f32) -> bool {
+    from >= box_from - 0.5 && from + size <= box_from + box_size + 0.5
 }
