@@ -12,10 +12,16 @@
 //! directories; a live backend test only checks that the backend exists (`choice::detect`).
 
 pub mod baloo;
+pub(crate) mod bus;
 pub mod choice;
+mod cursor;
 pub mod fake;
 pub mod hits;
 pub mod index;
+mod program;
+#[cfg(test)]
+mod query_tests;
+mod stat;
 pub mod tracker;
 pub mod walk;
 
@@ -23,16 +29,20 @@ pub use fake::FakeIndex;
 pub use index::{FileAnswer, FileAsk, FileHit, FileIndex, HitLimit, IndexFault, IndexKind};
 
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use sill_launcher::{
-    Activation, Choice, Frecency, Item, OpenTarget, Provider, ProviderKind, Query, ResultSink,
-    Subject,
+    Activation, Batch, Choice, Frecency, Item, Needle, OpenTarget, Provider, ProviderKind, Query,
+    RankWeights, ResultSink, Subject, UnixTime, matching,
 };
 use tokio::sync::watch;
 
-use crate::results::LauncherPolicy;
+use crate::results::{FilesChoice, LauncherPolicy};
+use baloo::BalooIndex;
 use hits::{COPY_PATH_ACTION, REVEAL_ACTION};
+use tracker::TrackerIndex;
+use walk::{WalkIndex, Walker};
 
 /// Where the provider's index comes from.
 #[derive(Clone)]
@@ -69,7 +79,41 @@ impl Provider for FilesProvider {
     }
 
     fn query(&self, query: &Query, sink: &mut dyn ResultSink) {
-        let _ = (query, sink);
+        let text = query.text.trim();
+        if text.is_empty() || query.is_cancelled() {
+            return;
+        }
+        let policy = self.policy.borrow().clone();
+        let Some(index) = index_for(&self.source, policy.files) else {
+            return;
+        };
+        let ask = FileAsk {
+            text: text.to_owned(),
+            under: self.home.clone(),
+            limit: ASK_LIMIT,
+            budget: policy.files_budget,
+        };
+        let hits = match index.search(&ask, query) {
+            FileAnswer::Hits(hits) | FileAnswer::Partial(hits) => hits,
+            FileAnswer::Unavailable(_) => return,
+        };
+        if query.is_cancelled() {
+            return;
+        }
+        let items = hits::file_items(
+            &hits,
+            &Needle::parse(text),
+            &self.home,
+            &snapshot(&self.frecency),
+            unix_now(),
+            &RankWeights::DEFAULT,
+            &mut matching::matcher(),
+        );
+        sink.push(Batch {
+            provider: ProviderKind::Files,
+            generation: query.generation,
+            items,
+        });
     }
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
@@ -89,6 +133,57 @@ impl Provider for FilesProvider {
             Choice::Action(_) => Activation::Nothing,
         }
     }
+}
+
+/// Most hits one ask brings back: the Documents section publishes at most 20 rows, and a hit
+/// the name match drops leaves room for another.
+const ASK_LIMIT: HitLimit = HitLimit(40);
+
+/// What this machine has, asked once per process ([`choice::detect`] makes a bus call and
+/// spawns `balooctl6`): `FilesProvider`'s frozen fields have no slot for a cache, and the daemon
+/// builds one provider, so once per process is once per provider (FINDINGS "M9 lane a").
+static DETECTED: OnceLock<choice::Detected> = OnceLock::new();
+
+/// The index `source` and `files` name, or none (`Off`, or nothing on this machine fits).
+fn index_for(source: &IndexSource, files: FilesChoice) -> Option<Arc<dyn FileIndex>> {
+    if files == FilesChoice::Off {
+        return None;
+    }
+    match source {
+        IndexSource::Given(index) => Some(Arc::clone(index)),
+        IndexSource::Detect => {
+            let detected = DETECTED.get_or_init(choice::detect);
+            choice::pick(files, detected).and_then(index_of)
+        }
+    }
+}
+
+fn index_of(kind: IndexKind) -> Option<Arc<dyn FileIndex>> {
+    match kind {
+        IndexKind::Tracker => Some(Arc::new(TrackerIndex)),
+        IndexKind::Baloo => Some(Arc::new(BalooIndex)),
+        IndexKind::Fd => Some(Arc::new(WalkIndex { walker: Walker::Fd })),
+        IndexKind::Plocate => Some(Arc::new(WalkIndex {
+            walker: Walker::Plocate,
+        })),
+        IndexKind::Fake => None,
+    }
+}
+
+/// A read-only copy of the history; a poisoned lock still yields the data.
+fn snapshot(frecency: &Mutex<Frecency>) -> Frecency {
+    frecency
+        .lock()
+        .map(|guard| guard.clone())
+        .unwrap_or_else(|poisoned| poisoned.into_inner().clone())
+}
+
+fn unix_now() -> UnixTime {
+    UnixTime(
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |since| since.as_secs()),
+    )
 }
 
 #[cfg(test)]
