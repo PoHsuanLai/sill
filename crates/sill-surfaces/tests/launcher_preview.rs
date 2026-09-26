@@ -149,7 +149,9 @@ fn a_real_right_enters_the_pane_only_from_the_fields_end() {
     let mut open = open("m9");
     open.harness.chord(&[Key::Ctrl], Key::Char('y'));
     open.harness.advance(Duration::from_millis(40));
-    // The field opened with "m9" has its caret at the start: → moves the caret.
+    // The field opens with its caret at the end (quire Q341, as Spotlight); Home puts it at the
+    // start, where → moves the caret rather than entering the pane.
+    open.harness.key(Key::Home);
     open.harness.key(Key::Right);
     open.harness.advance(Duration::from_millis(40));
     assert!(

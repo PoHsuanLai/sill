@@ -306,11 +306,12 @@ step_real_caret() {
   close_launcher
   open_query m9
   documents_answer || { echo "SKIP: no Documents (lane a)" >&2; return 2; }
-  WAYLAND_DISPLAY="$NESTED_SOCKET" wtype -k Right >>"$OUT_DIR/keys.log" 2>&1; sleep 0.4
+  # The field opens with its caret at the end (quire Q341): Home puts it at the start first.
+  WAYLAND_DISPLAY="$NESTED_SOCKET" wtype -k Home -k Right >>"$OUT_DIR/keys.log" 2>&1; sleep 0.4
   local first
   first=$(field preview)
   WAYLAND_DISPLAY="$NESTED_SOCKET" wtype -k End -k Right >>"$OUT_DIR/keys.log" 2>&1; sleep 0.6
-  echo "real →: preview $first; real End then →: preview $(field preview), query '$(field query)'" >&2
+  echo "real Home, →: preview $first; real End then →: preview $(field preview), query '$(field query)'" >&2
   [ "$first" = hidden ] && [ "$(field preview)" = pdf ] && [ "$(field query)" = m9 ]
 }
 
