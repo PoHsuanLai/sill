@@ -6568,3 +6568,7 @@ itself never turns `Connecting`.
   one network item grow a secondary indicator, or does this stay a control-center-only signal
   (the Wi-Fi module's own list already shows `Association::Connecting` on the row, `network/wifi`,
   unaffected by this fix)?
+  **Closed (orchestrator, 2026-09-27):** as the reference's menu bar does, a Wi-Fi primary with a
+  running join draws `Joining(stamp)` (moving to another network); a wired primary keeps its own
+  icon, and the join shows in the control center's Wi-Fi list. Two rows in
+  `glyph_state_tests.rs`.

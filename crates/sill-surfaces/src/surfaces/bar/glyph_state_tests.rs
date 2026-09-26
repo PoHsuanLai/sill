@@ -58,6 +58,18 @@ fn the_network_maps_to_the_wifi_glyph() {
             w(WifiState::Joining(EventStamp(9))),
         ),
         (
+            "joined, joining another network (G303)",
+            net(wifi(90), Full, Running(s(6))),
+            Radio::On,
+            w(WifiState::Joining(EventStamp(6))),
+        ),
+        (
+            "wired, joining Wi-Fi keeps the wired icon",
+            net(Link::Wired, Full, Running(s(7))),
+            Radio::On,
+            NetworkGlyph::Plain(Icon::Ethernet),
+        ),
+        (
             "weak",
             net(wifi(20), Full, Quiet),
             Radio::On,

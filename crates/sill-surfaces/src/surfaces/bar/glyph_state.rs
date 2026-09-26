@@ -44,6 +44,11 @@ pub fn network_glyph(network: &Network, radio: Radio) -> NetworkGlyph {
         (Link::Connecting, Attempt::Quiet | Attempt::Failed(_), _) => {
             NetworkGlyph::Wifi(WifiState::Joining(stamp(network.join.minted)))
         }
+        // Moving to another Wi-Fi network while joined: joining, as the reference's menu bar
+        // does (G303). A wired primary keeps its own icon.
+        (Link::Wifi { .. }, Attempt::Running(op), _) => {
+            NetworkGlyph::Wifi(WifiState::Joining(stamp(op)))
+        }
         (Link::Wifi { strength, .. }, _, _) => NetworkGlyph::Wifi(WifiState::Joined {
             bars: WifiBars::of(thousandths(strength.0)),
             reach: reach(network.connectivity),
