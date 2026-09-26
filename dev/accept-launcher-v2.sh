@@ -10,22 +10,21 @@
 # `sill debug capture` of the nested panel. The daemon is quit at the end.
 #
 #   1. Open latency: 10 warm `sill launcher open` / `close`, the panel's
-#      `launcher.open_to_frame_ms` p50/p95/max (FINDINGS F149 and the M4 figures are the
-#      master numbers to hold against; asserted under the plan's 100 ms p95 budget only as a
-#      report, since the host's load moves it, F170).
+#      `launcher.open_to_frame_ms` p50/p95/max, reported against master's (FINDINGS F149, F167);
+#      only the count of openings is asserted, since the host's load moves the numbers.
 #   2. `--query m9` lists Top Hit, then Documents.
 #   3. `down`, `space` (Top Hit is the PDF; `up` first so the selection is on it): the preview is
 #      `pdf`, captured (dev/out/launcher-v2-preview-pdf.png).
 #   4. `down` to the PNG: `image`; `space` hides it.
-#   5. `quick-look` while typing shows it; `right` walks the caret to the end of the query (the
-#      field keeps its caret where the opening's query left it: at the start, Q341) and one more
-#      enters the pane; `escape` gives the keyboard back (the pane stays), `escape` hides the
-#      pane, `escape` closes the launcher. On a row with actions: an `m9` document, else, while
-#      the files provider (lane a) answers nothing, the Ghostty app row (it has desktop actions).
+#   5. `quick-look` while typing shows it; `right` (a debug key is → at the field's end, G271)
+#      gives the pane's first control the keyboard; `escape` gives it back (the pane stays),
+#      `escape` hides the pane, `escape` closes the launcher. On a row with actions: an `m9`
+#      document, else, while the files provider (lane a) answers nothing, the Ghostty app row.
 #   6. Documents over its cap reports `hidden > 0`; Enter on the "Show More" line reveals them.
-#   7. `tab` to Emoji with nothing typed (Shift+Tab twice: Web, then Emoji) shows the emoji
-#      (dev/out/launcher-v2-emoji.png; rows until quire's EmojiGrid, Q291).
+#   7. `tab` to Emoji with nothing typed (Shift+Tab twice: Web, then Emoji) shows quire's emoji
+#      grid (dev/out/launcher-v2-emoji.png).
 #   8. 5 s idle after closing: 0 frames on the launcher's surfaces.
+#   C. Real → and End (wtype, nested socket only): the key claim reads the caret under sill.
 #
 # A step that needs rows lanes a (files) and c (emoji) fill exits 2 (SKIP) while those
 # providers answer nothing on this branch; `crates/sill-surfaces/tests/launcher_preview.rs`
@@ -257,7 +256,6 @@ step_pane_levels() {
   echo "pane levels on --query $query ($(field headings))" >&2
   key quick-look
   [ "$(field preview)" != hidden ] || { echo "quick-look showed nothing" >&2; return 1; }
-  for _ in $(seq ${#query}); do key right; done # the caret to the end
   key right # into the pane
   capture "$SHOTS/launcher-v2-pane-focus.png"
   key escape
@@ -300,6 +298,22 @@ step_emoji() {
   close_launcher
 }
 
+# C. The caret under sill (Q299): real keys from `wtype` on the nested socket only. After
+#    `--query m9` the caret is at the start (Q341), so → moves it and the pane stays hidden;
+#    End, then →, finds the caret at the end and opens the pane.
+step_real_caret() {
+  command -v wtype >/dev/null 2>&1 || { echo "SKIP: no wtype" >&2; return 2; }
+  close_launcher
+  open_query m9
+  documents_answer || { echo "SKIP: no Documents (lane a)" >&2; return 2; }
+  WAYLAND_DISPLAY="$NESTED_SOCKET" wtype -k Right >>"$OUT_DIR/keys.log" 2>&1; sleep 0.4
+  local first
+  first=$(field preview)
+  WAYLAND_DISPLAY="$NESTED_SOCKET" wtype -k End -k Right >>"$OUT_DIR/keys.log" 2>&1; sleep 0.6
+  echo "real →: preview $first; real End then →: preview $(field preview), query '$(field query)'" >&2
+  [ "$first" = hidden ] && [ "$(field preview)" = pdf ] && [ "$(field query)" = m9 ]
+}
+
 # 8.
 step_idle() {
   close_launcher
@@ -338,8 +352,7 @@ step_fixtures() {
   shoot show-more
   echo "open m9" >&7; sleep 2
   echo "press quick-look" >&7; sleep 1.5
-  for at in 1 2 3; do echo "press right" >&7; sleep 0.3; done
-  sleep 1
+  echo "press right" >&7; sleep 1
   shoot pane-focus
   echo "open" >&7; sleep 2
   echo "press shift-tab" >&7; sleep 0.6
@@ -373,7 +386,7 @@ seed_home
 start_daemon || { stop_daemon; exit 1; }
 status=0
 for step in step_latency step_sections step_preview_pdf_and_image step_pane_levels \
-  step_show_more step_emoji step_idle; do
+  step_show_more step_emoji step_real_caret step_idle; do
   "$step"
   rc=$?
   case "$rc" in

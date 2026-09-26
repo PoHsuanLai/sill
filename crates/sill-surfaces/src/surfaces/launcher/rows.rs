@@ -1,12 +1,11 @@
 //! The M9 row kinds (FINDINGS "M9 freeze" F656): which shape a row takes in the palette, and
-//! the words its detail line and trail carry. Pure; lane d fills [`row_detail`].
+//! the words its detail line and trail carry. Pure but for the local time zone [`row_detail`] reads.
 //!
 //! A file row is the file's icon (or a thumbnail), its name, its folder as `~/…` and when it
 //! was modified; a clipboard row an excerpt (or an image's thumbnail) with its age; an emoji a
 //! cell of the grid ([`super::emoji_grid::EmojiGrid`]); the web fallback a plain row with the
-//! engine's host. quire draws each (Q290, Q291): until its `ListRow` variants or palette row
-//! slots exist, these rows go through the palette's `MenuEntry::Item` as title, detail and a
-//! `Trail::Note`, which says the same with less shape.
+//! engine's host. quire draws each (Q290, Q291): `sections_view::palette_groups` hands these
+//! words to `RowShape::File` and `RowShape::Clip`, and the emoji to the palette's grid.
 
 use jiff::Timestamp;
 use jiff::tz::TimeZone;

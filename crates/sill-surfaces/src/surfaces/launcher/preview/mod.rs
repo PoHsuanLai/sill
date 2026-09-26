@@ -25,8 +25,8 @@ use crate::surfaces::launcher::chord_keys::action_shortcut;
 /// The pane's element id (for the blur region, if the card's does not cover it).
 pub const PREVIEW_ID: &str = "launcher-preview";
 
-/// The pane's width beside the 540 px results column (proposed: Spotlight's is about 45 % of
-/// its window). The panel widens to fit it while the pane is shown.
+/// The pane's width beside the 680 px card (quire's `ASIDE_WIDTH`; Spotlight's is about 45 % of
+/// its window). The panel widens to fit it while the pane is shown (`layer::PANEL_ROOM_WIDTH`).
 pub const PREVIEW_WIDTH_PX: u32 = 360;
 
 /// The pane for `preview`, with the selected row's `actions` as its controls (their chords
