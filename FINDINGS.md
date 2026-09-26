@@ -4846,3 +4846,52 @@ session script restarts it and it re-locks), `pkexec true` answered by sill's ow
   ReadSignal<Modifiers>` per focused surface (or the modifiers on `HostEvent::KeyboardFocus`).
   Until then a quick tap that races the map leaves the switcher up until a key (Escape, or
   pressing and releasing the modifier) closes it, and the caps-lock mark appears at the first key.
+
+## G190 hot-corner re-arm test flakes under heavy load (2026-09-26)
+
+- `hot_corners_render::leaving_and_the_rearm_lets_it_fire_again` failed once at load average 73
+  (three agents building) and passed 5/5 on rerun. The harness advances simulated time, but the
+  corner's re-arm window elapsed on the wall clock under that load, so a second dwell fired. Fix:
+  drive the corner machine's timers from the harness clock (as `ds::sleep` does under the
+  Harness) or assert with a settle loop; until then treat a single failure under load as noise.
+
+## Battery widget adopts quire's round-four ring composition (branch `battery-rings`, 2026-09-26)
+
+- F532 quire's `BatteryLevel` (design/23-WIDGETS.md §4.1, the fourth pass "Flat, bright,
+  measured") now draws only the 64 px ring (track, arc, the device's glyph, a bolt at twelve
+  while charging); it no longer draws the percentage or the name. `sill-surfaces/widgets/
+  battery.rs` composes the rest, copying `ds-gallery`'s "Widget reference" page exactly: a
+  `BatteryLayout` enum (`Solo`/`Grid`/`Row`) picked from the host and the row count. Desktop with
+  one battery is `Solo` (the ring top left, the percentage alone as the card's hero figure,
+  `--fs-widget-hero` 500); Desktop with several is `Grid` (a 2 x 2 of rings, empty places padded
+  to four at 0, no numbers); the tile is always `Row` (up to four rings, the percentage under
+  each at `--fs-widget-figure`). Device names are no longer printed anywhere in the widget (only
+  in the ring's `aria-label`, matched by `ring_label`); `widget_battery.css` is placement and
+  tokens only, mirroring the gallery's own `g-wr-*` rules (the row's extra `--s-8` padding on
+  top of the frame's own 12 px inset lands the pitch at the measured 20/80 px, M15).
+- F533 M25 ("no header on a glanceable widget"): `frame_head` now gives Battery and World Clock
+  no title, matching the gallery composing `WidgetFrame` with none for either. Checked World
+  Clock's own composition against the gallery's `ClockMedium`/`ClockSmall`: sill only ever draws
+  it at `WidgetSize::Medium` (both hosts), already picks Analog on the desktop and Digital in
+  the tile correctly (`look_of`), so nothing else changed. One difference kept as is (out of
+  this task's "placement only" scope, and not a regression): the gallery's reference draws a
+  city's day and its offset as two separate lines; sill's `ClockRow.offset` is one combined
+  string ("Today, -7h") rendered as a single `span.sill-widget-city-offset`. Splitting it into
+  two lines is a small data-model change (`ClockRow` growing a second field, plus its tests),
+  not a CSS placement change, so it is left for a future pass.
+- Live: `dev/accept-widgets.sh` re-run on the nested cosmic-comp (wayland-1, never stopped):
+  PASS all six steps. `sill debug capture`'s five-tile center shows the Battery tile with no
+  header ("No batteries", the private bus has neither UPower nor BlueZ) and the World Clock
+  tile with no header either (digital digits, city, one combined day/offset line). A new
+  harness test, `sill-surfaces/tests/battery_snapshot.rs`, renders the Battery widget against
+  fake services (`ds_native::snapshot`, headless) at Small (alone and several) and Medium, to
+  `target/battery-snapshots/*.png`, since the private bus never has a real battery to capture
+  live; all three match the gallery reference's own composition.
+- F621 (superseded: switcher.quick_tap_ms was retired instead, Q242; the key is gone and AWAITING_ROWS is empty) Merging master (the M11 freeze) turned up one gate failure unrelated to this branch:
+  `sill-settings::keys::every_spec_has_a_row_in_the_catalogue` failed on
+  `switcher.quick_tap_ms`. F553 ("`switcher.*` already has its rows … nothing is added there")
+  was stale by the time this merge landed: the sibling quire checkout's design/22-SETTINGS.md
+  §3.11 has `show_delay_ms`, `icon_size_px`, `cell_size_px`, `cell_gap_px` and
+  `overflow_min_icon_px`, but no `quick_tap_ms` row. Fixed the only way this test allows,
+  the same as `session.lock_clock`: added `switcher.quick_tap_ms` to `keys.rs`'s
+  `AWAITING_ROWS`, no switcher logic touched. quire's owner adds the row; then the entry can go.

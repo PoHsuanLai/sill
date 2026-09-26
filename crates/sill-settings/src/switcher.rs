@@ -19,15 +19,6 @@ pub struct SwitcherSettings {
     )]
     pub show_delay_ms: Ms,
     #[settings(
-        label = "Quick tap",
-        help = "A chord released this fast switches with no switcher at all.",
-        section = "App switcher",
-        range = "0..=500",
-        unit = "ms",
-        advanced
-    )]
-    pub quick_tap_ms: Ms,
-    #[settings(
         label = "Icon size",
         help = "The size of an app icon in the switcher.",
         section = "App switcher",
@@ -73,7 +64,6 @@ impl Default for SwitcherSettings {
     fn default() -> Self {
         SwitcherSettings {
             show_delay_ms: Ms(150),
-            quick_tap_ms: Ms(100),
             icon_size_px: Px(96),
             cell_size_px: Px(112),
             cell_gap_px: Px(8),
