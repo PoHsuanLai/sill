@@ -16,7 +16,10 @@
 .sill-un-list{ display:flex; flex-direction:column; gap:var(--s-6); flex:1 1 0; min-width:0; }
 .sill-un-row{ display:flex; gap:var(--s-6); align-items:stretch; }
 .sill-un-bar{ flex:0 0 var(--s-3); border-radius:var(--r-pill); }
-.sill-un-text{ display:flex; flex-direction:column; min-width:0; }
+/* The words take the rest of the row, so the title's `.ds-truncate` fade lies over the
+   column's last 1.5em, not the title's own (quire's fade covers it whether the words reach it
+   or not); a title that fits is drawn whole. */
+.sill-un-text{ display:flex; flex-direction:column; flex:1 1 0; min-width:0; }
 .sill-un-title{ font-size:var(--fs-body); font-weight:600; }
 .sill-un-when{ font-size:var(--fs-small); color:var(--ink-soft); }
 .sill-un-empty{ font-size:var(--fs-body); color:var(--ink-faint); }
