@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ids::AppId;
 use crate::item::Item;
-use crate::subject::{ClipFacts, EmojiFacts, Excerpt, FileFacts, WebFacts};
+use crate::subject::{ClipFacts, EmojiFacts, Excerpt, FileFacts, Subject, WebFacts};
 
 /// What the pane shows for a row.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -110,17 +110,85 @@ impl ExcerptLimit {
 /// types, `File` for everything else and for folders; a `Clip` is `Clipboard`; an `Emoji` is
 /// `Emoji`; a `Web` is `Web`; `Subject::None` is `None`.
 pub fn preview_for(item: &Item) -> Preview {
-    let _ = item;
-    todo!("M9 fill: d-preview")
+    match &item.subject {
+        Subject::None => Preview::None,
+        Subject::App(app) => Preview::App {
+            app: app.clone(),
+            name: item.title.clone(),
+            detail: item.subtitle.clone(),
+        },
+        Subject::File(facts) => file_preview(facts),
+        Subject::Clip(facts) => Preview::Clipboard(facts.clone()),
+        Subject::Emoji(facts) => Preview::Emoji(facts.clone()),
+        Subject::Web(facts) => Preview::Web(facts.clone()),
+    }
+}
+
+/// Image types the renderer decodes.
+const DECODED_IMAGES: [&str; 6] = [
+    "image/png",
+    "image/jpeg",
+    "image/svg+xml",
+    "image/webp",
+    "image/gif",
+    "image/bmp",
+];
+
+/// `application/*` types that are text in all but name: source, config and data files.
+const TEXT_APPLICATIONS: [&str; 14] = [
+    "application/json",
+    "application/xml",
+    "application/toml",
+    "application/x-toml",
+    "application/yaml",
+    "application/x-yaml",
+    "application/javascript",
+    "application/x-shellscript",
+    "application/x-sh",
+    "application/sql",
+    "application/x-desktop",
+    "application/x-perl",
+    "application/x-python",
+    "application/x-ruby",
+];
+
+fn file_preview(facts: &FileFacts) -> Preview {
+    let mime = facts.mime.0.as_str();
+    let path = facts.path.clone();
+    match mime {
+        "application/pdf" => Preview::Pdf {
+            path,
+            page: PageIndex::FIRST,
+        },
+        m if DECODED_IMAGES.contains(&m) => Preview::Image(path),
+        m if m.starts_with("text/") || TEXT_APPLICATIONS.contains(&m) => Preview::TextFile(path),
+        _ => Preview::File(facts.clone()),
+    }
 }
 
 /// The first lines of `bytes` as the pane shows them: decoded as UTF-8 (invalid sequences
 /// replaced), cut at `limit` on a character boundary, trailing whitespace trimmed; binary data
 /// (a NUL in the first 1024 bytes) is an empty excerpt.
 pub fn excerpt_of(bytes: &[u8], limit: ExcerptLimit) -> Excerpt {
-    let _ = (bytes, limit);
-    todo!("M9 fill: d-preview")
+    let head = &bytes[..bytes.len().min(BINARY_PROBE)];
+    if head.contains(&0) {
+        return Excerpt::default();
+    }
+    let text = String::from_utf8_lossy(bytes);
+    let lines = usize::try_from(limit.lines).unwrap_or(usize::MAX);
+    let chars = usize::try_from(limit.chars).unwrap_or(usize::MAX);
+    let cut: String = text
+        .split_inclusive('\n')
+        .take(lines)
+        .collect::<String>()
+        .chars()
+        .take(chars)
+        .collect();
+    Excerpt(cut.trim_end().to_owned())
 }
+
+/// How far into a file a NUL marks it binary.
+const BINARY_PROBE: usize = 1024;
 
 #[cfg(test)]
 #[path = "preview_tests.rs"]
