@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use dioxus::prelude::*;
 use ds::{Align, Anchor, Appearance, Ds, Material, Placement, Point, Popover, Px, Side};
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{OutputName, Services};
 use sill_settings::{FocusLink, FocusMode, SettingsFeed, ShellFile};
 use sill_surfaces::surfaces::control_center::{CcPage, ControlCenter};
@@ -108,7 +108,7 @@ pub fn start(services: Services, feeds: fake::Feeds) -> Running {
         scale_percent: 100,
     };
     Running {
-        harness: Harness::new(app, viewport),
+        harness: Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual)),
         feeds,
         reports,
     }

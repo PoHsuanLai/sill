@@ -15,7 +15,7 @@ use ds::{
     Appearance, BatteryGlyph, BluetoothGlyph, Ds, Material, RootExtent, VolumeGlyph, WifiGlyph,
 };
 use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{
     Attempt, Attempts, Battery, BtConnection, Charge, Connectivity, Link, Mute, Network, OpStamp,
     Percent, Presence, Radio, Services, Volume,
@@ -76,7 +76,8 @@ const VIEW: Viewport = Viewport {
 fn start() -> (Harness, fake::Feeds) {
     let (services, feeds) = fake::services();
     SERVICES.with(|s| *s.borrow_mut() = Some(services));
-    let mut harness = Harness::new(app, VIEW);
+    let mut harness =
+        Harness::with_config(app, HarnessConfig::new(VIEW).with_clock(Clock::Virtual));
     harness.advance(Duration::from_millis(50));
     (harness, feeds)
 }

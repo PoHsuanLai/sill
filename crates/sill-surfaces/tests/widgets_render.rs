@@ -15,7 +15,7 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds::{Ds, Material, RootExtent};
 use ds_native::harness::settle_until;
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{MediaCommand, MediaVerb, Services};
 use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
 use sill_surfaces::widgets::{Widget, WidgetHost, widgets_css};
@@ -76,7 +76,8 @@ fn start(kind: WidgetKind, host: WidgetHost, file: ShellFile) -> Running {
             host,
         });
     });
-    let mut harness = Harness::new(app, VIEWPORT);
+    let mut harness =
+        Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
     harness.advance(Duration::from_millis(100));
     Running { harness, feeds }
 }

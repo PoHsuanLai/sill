@@ -6314,8 +6314,7 @@ flaked under load (G130, G295's shape) are now exact.
   open/toggle instant and its first-frame latency line read `ds::time::now`/`since`. Every
   sill-surfaces timer was already `ds::sleep`. Left alone: civil time (`SystemTime`,
   `jiff::Zoned::now`, `Timestamp::now` for "5 min ago", the lock clock, the world clock, Up Next)
-  and `sill-services`' tokio timing. D1's `bar/session.rs` still falls back to
-  `FrameClock::new(Instant::now())`; `FrameClock::started` is the drop-in.
+  and `sill-services`' tokio timing.
 - **Converted.** Every sill-surfaces Harness test outside D1's files: banners, calendar,
   cancelled animation, desktop widgets, hot corners, the launcher (actions, card, catcher, details,
   keys, lint, PDF rasters, preview, render), notification center (keys, lint, render), OSD,
@@ -6352,10 +6351,13 @@ flaked under load (G130, G295's shape) are now exact.
   only after 34 ms in the rest (the host write found the document busy and retried). Something
   besides the clock still orders the harness's tasks (task or hash order); the test asserts
   the focus after `FRAME_SLACK`, not the boundary.
-- **Left on Wall.** In sill-surfaces nothing outside D1's files: the bar's `tray_menu_tests`
-  and the control center's `cc_support/live.rs` (and so `control_center_render`) are D1's to
-  move. `examples/emoji_paint_bench.rs` is a paint benchmark, not a timing test. G295's midway
-  test still fails on the current Blitz pin and stays `#[ignore]`d.
+- **After D1 merged.** The bar's `tray_menu_tests`, the control center's `cc_support/live.rs`
+  (so `control_center_render`), D1's `status_glyphs` and `bar_low_nudge`, and `widgets_render`'s
+  own harness moved too; `bar/session.rs` takes `FrameClock::started`. Load run: 32 `yes`, 10
+  each, 50 runs, 0 failures.
+- **Left on Wall.** No sill-surfaces Harness test. `examples/emoji_paint_bench.rs` is a paint
+  benchmark, not a timing test. G295's midway test still fails on the current Blitz pin and
+  stays `#[ignore]`d.
 
 ## D1 status glyphs (2026-09-27)
 

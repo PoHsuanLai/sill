@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{Battery, Charge, Percent, Presence, Services};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Bar;
@@ -62,7 +62,8 @@ fn feed(harness: &mut Harness, feeds: &fake::Feeds, battery: Battery) -> bool {
 fn the_battery_item_nudges_once_per_crossing() {
     let (services, feeds) = fake::services();
     SERVICES.with(|s| *s.borrow_mut() = Some(services));
-    let mut harness = Harness::new(app, VIEW);
+    let mut harness =
+        Harness::with_config(app, HarnessConfig::new(VIEW).with_clock(Clock::Virtual));
     settle_until(&mut harness, |h| h.count("[*|aria-label=Battery]") == 1);
     assert_settles_to_zero_frames(&mut harness);
     assert_eq!(

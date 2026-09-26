@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Availability, MenuEntry, Trail};
-use ds_native::{Harness, Viewport};
+use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 
 use super::{POPUP_WIDTH, TrayMenuDocument};
 
@@ -47,7 +47,8 @@ fn the_root_has_the_popups_height_and_a_press_picks_an_entry() {
         height: HEIGHT,
         scale_percent: 100,
     };
-    let mut harness = Harness::new(app, viewport);
+    let mut harness =
+        Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
     harness.advance(Duration::from_millis(300));
     for selector in ["html", ".ds"] {
         let height = harness.rect(selector).map(|r| r.size.height.0);

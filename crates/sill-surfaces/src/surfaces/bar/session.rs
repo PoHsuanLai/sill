@@ -147,10 +147,8 @@ struct Slots {
 
 /// Start (once) and update (every render) the bar's menu session.
 pub(crate) fn use_menu_session(deps: SessionDeps) -> MenuBar {
-    let clock = use_hook(|| {
-        try_consume_context::<FrameClock>()
-            .unwrap_or_else(|| FrameClock::new(std::time::Instant::now()))
-    });
+    let clock =
+        use_hook(|| try_consume_context::<FrameClock>().unwrap_or_else(FrameClock::started));
     let (reports_tx, reports_rx) = use_hook(|| {
         let (tx, rx) = mpsc::unbounded_channel::<PopupReport>();
         (tx, CopyValue::new(Some(rx)))
