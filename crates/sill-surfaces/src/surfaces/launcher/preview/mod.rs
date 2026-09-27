@@ -17,7 +17,7 @@ pub mod load;
 pub mod moment;
 
 use dioxus::prelude::*;
-use ds::detail::Touch;
+use ds::detail::{Touch, use_operation};
 use ds::{IconSource, PaneAction, Shortcut, Shown};
 use sill_launcher::{Action, Preview};
 
@@ -58,9 +58,11 @@ pub fn LauncherPane(
     #[props(default)] touch: Touch,
 ) -> Element {
     let (content, load) = content::use_content(&preview, icon);
-    // The cue is ready for quire's pane; `PreviewPane` takes none yet (Q370, Q371), so quire's
-    // own entrance and exit play and a slow load shows its blank media box.
-    let _pane = use_pane_detail(pane_state(shown, preview.kind(), load), touch);
+    // quire plays what the cue names (Q370, Q371): the entrance springs only on contact, another
+    // kind or a load landing cross-fades the media, a slow load shows its pending look. One
+    // `ds::PreviewPane` stays mounted whatever it shows, so a kind change is never an entrance.
+    let pane = use_pane_detail(pane_state(shown, preview.kind(), load), touch);
+    let operation = use_operation(pane.cue());
     let actions = pane_actions(&actions);
     rsx! {
         div { id: PREVIEW_ID, class: "sill-launcher-preview",
@@ -71,6 +73,8 @@ pub fn LauncherPane(
                 onaction,
                 shown,
                 on_hidden,
+                cue: pane.cue(),
+                operation,
             }
         }
     }

@@ -2,7 +2,7 @@
 //! "Launcher details (Q297)"): its states as the person sees them, what each change means (an
 //! exhaustive [`Detailed`] table), and [`use_pane_detail`], the one place the pane calls
 //! `use_detail`. The launcher never plays a moment itself (quire rule 4): the cue goes to quire's
-//! parts, and until `PreviewPane` takes one (Q370, Q371) quire's pane plays its own entrance.
+//! `PreviewPane` (`cue`, and `operation` from `use_operation`), which plays it (Q370, Q371).
 
 use ds::detail::{Detail, Detailed, FirstShow, Moment, Touch, use_detail};
 use sill_launcher::PreviewKind;

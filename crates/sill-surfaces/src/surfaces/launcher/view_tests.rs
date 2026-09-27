@@ -146,6 +146,22 @@ fn show_more_toggles_its_section() {
     assert_eq!(toggled(&open, Section::Documents), Expanded::default());
 }
 
+/// Where a section's "Show More" / "Show Less" line is, which the selection follows on a toggle.
+#[test]
+fn a_sections_more_line_moves_with_its_rows() {
+    let opened = Expanded(vec![Section::Documents]);
+    let cases = [
+        (Expanded::default(), Section::Documents, Some(6)),
+        (opened.clone(), Section::Documents, Some(9)),
+        (opened, Section::Clipboard, None),
+        (Expanded::default(), Section::TopHit, None),
+    ];
+    for (expanded, section, want) in cases {
+        let shown = view(&results(), Generation(1), "d", Filter::All, &expanded);
+        assert_eq!(shown.more_line(section), want, "{expanded:?} {section:?}");
+    }
+}
+
 /// ← and → belong to the grid only on an Emoji section's cells (F741): an emoji as the Top Hit
 /// is a list row, and the Emoji header's "Show More" a list stop.
 #[test]
