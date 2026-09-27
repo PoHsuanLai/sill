@@ -10,7 +10,8 @@
 //! the widgets redraw on their services' changes, and a drag's motion runs only while it moves.
 
 use dioxus::prelude::*;
-use ds::detail::{Ease, Touch};
+use ds::detail::Touch;
+use ds::motion::Release;
 use ds::{
     BlurState, Ds, Material, Px, RootChrome, RootExtent, WakeStamp, WidgetMetrics, WidgetSlotGuide,
     use_rect,
@@ -23,7 +24,8 @@ use super::DESKTOP_WIDGETS_CSS;
 use super::arrange::LayerPoint;
 use super::drag::{DragInput, DragWorld, Hold, Landing, shown, step};
 use super::geometry::{GridMetrics, PlaceBox, place_box};
-use super::placed::{Placed, Pose};
+use super::glide::{Glide, PointMeter, Pose};
+use super::placed::Placed;
 use super::placement::{Placement, grid_size, place};
 use super::saved::{OutputKey, PlacementFile};
 use crate::hooks::{use_appearance, use_ds_scale, use_settings, use_workspaces};
@@ -86,12 +88,13 @@ struct Laid {
     threshold: u32,
 }
 
-/// The last widget dropped, and who dropped it: it glides into its cell on a spring when the
-/// person's hand did, and is drawn above the others until the next drop.
+/// The last widget dropped, the contact that let it go and the hand's velocity then: it springs
+/// into its cell from there, and is drawn above the others until the next drop.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Dropped {
     kind: WidgetKind,
     touch: Touch,
+    release: Release,
 }
 
 /// The widgets on their grid, once the layer's size is known.
@@ -112,6 +115,7 @@ fn Grid(
     use_reload(&kinds, &sizes, file.as_ref(), &key, kept);
     let hold = use_signal(Hold::default);
     let dropped = use_signal(|| None::<Dropped>);
+    let meter = use_hook(|| CopyValue::new(PointMeter::default()));
     let mut laid = use_hook(|| CopyValue::new(None::<Laid>));
     let now = probe.rect().map(|rect| {
         let width = logical(rect.size.width.0);
@@ -146,6 +150,7 @@ fn Grid(
     let feed = Feeder {
         hold,
         dropped,
+        meter,
         laid,
         kept,
         file: file.clone(),
@@ -175,8 +180,8 @@ fn Grid(
                     WidgetSlotGuide { size, host: WidgetHost::Desktop }
                 }
             }
-            for (kind, size, target, pose, ease) in places {
-                Placed { key: "{kind:?}", kind, size, target, pose, ease }
+            for (kind, size, target, pose, glide) in places {
+                Placed { key: "{kind:?}", kind, size, target, pose, glide }
             }
         }
     }
@@ -240,7 +245,7 @@ fn draw_order(
     dropped: Option<Dropped>,
     metrics: GridMetrics,
     sizes: &Sizes,
-) -> Vec<(WidgetKind, WidgetSize, PlaceBox, Pose, Ease)> {
+) -> Vec<(WidgetKind, WidgetSize, PlaceBox, Pose, Glide)> {
     let lifted = held.lifted();
     let top = lifted.map(|(kind, _)| kind).or(dropped.map(|d| d.kind));
     let mut places: Vec<_> = boxes(on_screen, metrics, sizes)
@@ -250,19 +255,20 @@ fn draw_order(
                 Some((held, corner)) if held == kind => Pose::Lifted(corner),
                 Some(_) | None => Pose::Resting,
             };
-            let ease = match dropped {
+            let glide = match dropped {
                 Some(Dropped {
                     kind: last,
-                    touch: Touch::Contact(contact),
-                }) if last == kind => Ease::Spring(contact),
-                Some(_) | None => Ease::Out,
+                    touch,
+                    release,
+                }) if last == kind => Glide::Thrown { touch, release },
+                Some(_) | None => Glide::Aside,
             };
             (
                 kind,
                 sizes.of(kind, WidgetHost::Desktop),
                 target,
                 pose,
-                ease,
+                glide,
             )
         })
         .collect();
@@ -275,6 +281,7 @@ fn draw_order(
 struct Feeder {
     hold: Signal<Hold>,
     dropped: Signal<Option<Dropped>>,
+    meter: CopyValue<PointMeter>,
     laid: CopyValue<Option<Laid>>,
     kept: CopyValue<Vec<Placement>>,
     file: Option<PlacementFile>,
@@ -298,11 +305,28 @@ impl Feeder {
             x: at.x.round() as i32,
             y: at.y.round() as i32,
         };
-        self.feed(input(point), Touch::from_event(event));
+        let input = input(point);
+        let release = self.measure(input);
+        self.feed(input, Touch::from_event(event), release);
     }
 
-    /// Step the drag with `input`; a drop becomes this output's saved places.
-    fn feed(&self, input: DragInput, touch: Touch) {
+    /// Keep the pointer's moves for the release velocity; a release reads it.
+    fn measure(&self, input: DragInput) -> Release {
+        let when = ds::time::now();
+        let now = *self.meter.peek();
+        let (next, release) = match input {
+            DragInput::Down(at) => (PointMeter::pressed(at, when), Release::default()),
+            DragInput::Move(at) => (now.moved(at, when), Release::default()),
+            DragInput::Up(at) => (PointMeter::default(), now.released(at, when)),
+        };
+        let mut meter = self.meter;
+        meter.set(next);
+        release
+    }
+
+    /// Step the drag with `input`; a drop becomes this output's saved places, and the dropped
+    /// widget springs from the hand at `release`.
+    fn feed(&self, input: DragInput, touch: Touch, release: Release) {
         let Some(laid) = self.laid.peek().clone() else {
             return;
         };
@@ -327,7 +351,11 @@ impl Feeder {
                 let mut kept = self.kept;
                 kept.set(saved);
                 let mut dropped = self.dropped;
-                dropped.set(Some(Dropped { kind, touch }));
+                dropped.set(Some(Dropped {
+                    kind,
+                    touch,
+                    release,
+                }));
             }
         }
     }

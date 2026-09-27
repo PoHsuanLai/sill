@@ -7104,7 +7104,7 @@ e276242. Numbered F880, Q430, G330.
 - **Q431 A drop-slot guide.** Sonoma shows alignment guides while a widget is dragged. sill shows
   none (it would be local drawing): a quiet slot outline at the cell a drag will land in, as a
   quire part, would complete it.
-- **Q432 A point glide.** `use_tween` animates a share; sill mixes two corners by its
+- **Q432 (CLOSED, "Drag glide on springs" F970) A point glide.** `use_tween` animates a share; sill mixes two corners by its
   `progress()` and flips the target per move (`placed::use_glide`). A `use_glide(Point, spec)`
   in `ds::detail` would say it directly.
 
@@ -8018,7 +8018,7 @@ Q460, G360 (G370-G372 are the settle-strict section's).
 - **Q462 No reorder in the gallery.** `WidgetEdit::Move(id, Center(order))` exists, but the
   gallery has no way to send it. The reference reorders Notification Center widgets by
   dragging. sill's mapping already writes a reordered `widgets.center`.
-- **Q463 (still Q432) A point glide.** The drag's glide is still sill's own mix of two
+- **Q463 (CLOSED with Q432, "Drag glide on springs" F970) A point glide.** The drag's glide is still sill's own mix of two
   corners over `use_tween`.
 
 ### Gaps (sill)
@@ -8037,3 +8037,69 @@ Q460, G360 (G370-G372 are the settle-strict section's).
   send an hour of dated entries with `Refresh::AtEnd` (CONSUMING's optional item).
 - **G365 Manual checks queued** in `docs/manual-checks.md`: Edit Widgets and the slot guide
   with a real pointer.
+
+## Drag glide on springs (2026-09-27)
+
+The desktop widget drag's glide moved from sill's two-corner mix over `use_tween` onto quire's
+driven motion (quire CONSUMING "Driven motion (2026-09-27, wave H1)", quire master 47fe84ca),
+on a worktree branch from sill master ca1f971. Closes Q432 and Q463.
+
+- **F970 One spring per widget.** `placed::Placed` owns a `ds::motion::SpringPointMotion`
+  (`use_spring_point_motion`, one spring per axis) standing at its cell. Each render, the pure
+  `glide::ask(before, now, glide)` says what the spring should do: `Hold(corner)` when it is
+  picked up (a snap that stops any glide still running; while held the render draws the
+  pointer's corner 1:1 and the spring asks for no frames), `Drop { from, to, touch, release }`
+  when it is let go (snap to the hand's corner, then `go(cell, touch, release,
+  SpringResponse::Move)`), `Aside(cell)` when its cell moves under another's drag (`go` with
+  `Touch::Remote`: from where it is at the speed it has, critically damped), `Nothing` else.
+  The ask is handed over in a `queue_effect`; `glide::drawn` draws the hand's corner on the
+  release's own render so nothing flashes at the old cell. `Leg`, `between` and the `use_tween`
+  mix are deleted; `Placed` takes `glide: Glide::{Aside, Thrown { touch, release }}` in place of
+  `ease: Ease`. The lift (`Lift::Lifted`), the slot guide, per-output saved places, the draw
+  order and the click-versus-drag threshold are unchanged.
+- **F971 Release velocity.** `glide::PointMeter` is quire's `VelocityMeter` on each axis. The
+  grid's `Feeder` starts it on the press, feeds every move and reads it on the release
+  (`ds::time::now()`, so the virtual clock in tests); a release where the last move was reads
+  the moves before it, one somewhere new counts as a last move. The drop keeps the release's
+  `Touch::Contact` and `Release { x, y }` in `Dropped`; `SpringPointMotion::go` hands each axis
+  its velocity through `Contact::with_velocity`, so `SpringSpec::for_touch` picks 0.8 damping on
+  an axis the hand was moving toward the cell at 50 px/s or more, else critical.
+- **F972 Nearest cell, not the throw's landing.** `PointThrow::landing` was considered and not
+  used: a drop still lands in the nearest cell to where the card is let go. (a) The slot guide
+  shows that cell, and the others have already made room round it, for the whole drag; a flick
+  that landed elsewhere would break what the guide promised at the moment of release. (b) A
+  projected cell can have no room (`make_room` is `None`), so the drop would need a second
+  search, and a flick would reshuffle widgets the person never saw move aside. (c) macOS
+  Sonoma's desktop widgets drop where they are let go, onto the grid; they are not thrown. The
+  hand's velocity still shapes the motion: the card carries on the way the hand went and springs
+  back into its cell.
+- **F973 Reduced motion is quire's.** Under `ReducedMotion::Reduce` the spring hands on no thrown
+  velocity and is critically damped (`SpringSpec::thrown`/`spring`), so a thrown card never
+  passes its cell; it still glides from the hand to the cell (0.45 s response), with no
+  overshoot. Checked in the harness (F974). Nothing in sill reads the motion level.
+- **F974 Tests.**
+  - Table tests (`glide_tests.rs`): `ask` over every hold change, `drawn`, rounding to whole
+    px, and `PointMeter` (both axes, a release at a new point, a stopped pointer, a press let
+    go at once).
+  - Harness (`tests/desktop_widgets_glide.rs`, `Clock::Virtual`, `PinnedAppearance`, each moment
+    `assert_settles_to_zero_frames`):
+    - Let go 40 px short of its cell moving toward it at 1250 px/s, the Calendar carries 16 px
+      past the cell (x 582, 569, 560, 553, ... 544, then back to 560) and is in the cell by the
+      third frame. Let go after holding still 200 ms, it goes straight in with no overshoot and
+      reaches the cell on frame 29. So the spec implies: a throw toward the cell overshoots and
+      arrives sooner; a still release lands without passing it.
+    - The same throw under Reduced: no overshoot, the same curve as the still release.
+    - A retarget mid-glide keeps velocity: the Battery making room is at y 100 on its way up
+      when the dragged card moves on; the next frame it is at 92, still going up, before it
+      turns back to 196.
+    - Make-room springs back: from 16 to 196, rising every frame, never past home.
+  - `tests/desktop_widgets_drag.rs` passes unchanged.
+- **F975 Acceptance on wayland-1** (pinged with `wayland-info`, reused, never stopped; scratch
+  dirs; private bus). `dev/accept-widgets.sh`: **PASS 8/8**. Lifted, the widest frame is 172 px.
+  The Calendar dropped at (1479, 375); the Battery carried onto it made room, and the swap was
+  saved for `WINIT-0`. 0 frames in 5 s idle on the layer. Captures read:
+  `target/accept-widgets/drag-lifted.png` (the lifted Calendar with its drag shadow, the Battery
+  in place), `drag-room.png` (the Battery lifted over the Calendar's cell, the Calendar sprung up
+  a row), `dev/out/widgets-drag-cosmic.png` (both settled in column 8 over the wallpaper). The
+  script's release is a still one (it holds 0.3 s first), so it exercises the critically damped
+  drop.

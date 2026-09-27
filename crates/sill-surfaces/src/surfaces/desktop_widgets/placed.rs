@@ -1,42 +1,35 @@
 //! One widget at its place on the layer, and its motion (FINDINGS "Widget drag", "Widget
-//! interface port"): while dragged it follows the pointer 1:1 and its card is lifted (quire's
-//! `Lift::Lifted`: the card's own scale, drag shadow and drag layer, sill Q430); at rest it
-//! glides to its cell whenever its cell changes, so the others make room and the dropped one
-//! settles into the grid. The glide is quire's `use_tween` (its duration and easing tokens,
-//! Reduced motion inside, frames only while it moves) over `--t-move`, at `--e-spring` for the
-//! widget the person dropped and `--e-out` for the ones that made room (a spring is for
-//! contact, design/26 R5).
+//! interface port", "Drag glide on springs"): while dragged it follows the pointer 1:1 and its
+//! card is lifted (quire's `Lift::Lifted`: the card's own scale, drag shadow and drag layer,
+//! sill Q430); let go, it springs into its cell from where the hand let go at the hand's
+//! velocity; a widget making room springs to its new cell, and back, from where it is at the
+//! speed it has. The springs are quire's `SpringPointMotion` (one per axis, Reduced motion
+//! inside, frames only while it moves); `glide` decides what each render asks of it.
 
+use dioxus::core::queue_effect;
 use dioxus::prelude::*;
-use ds::detail::{Ease, TweenSpec, use_tween};
-use ds::{DurationToken, Fraction, Lift};
+use ds::Lift;
+use ds::motion::{SpringPointMotion, SpringResponse, use_spring_point_motion};
 use sill_settings::WidgetKind;
 
 use super::arrange::LayerPoint;
 use super::drag::corner;
 use super::geometry::PlaceBox;
+use super::glide::{Ask, Seen, ask, drawn, to_layer, to_point};
+pub use super::glide::{Glide, Pose};
 use crate::widgets::{Widget, WidgetHost, WidgetSize};
 
-/// Where the widget is held.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Pose {
-    /// At its cell (gliding there when the cell changed).
-    Resting,
-    /// Picked up, its corner here.
-    Lifted(LayerPoint),
-}
-
-/// `kind` at `size` at `target` (its cell's box), in `pose`; `ease` is the curve of its next
-/// glide.
+/// `kind` at `size` at `target` (its cell's box), in `pose`; `glide` is how it was let go when
+/// it is the widget just dropped.
 #[component]
 pub fn Placed(
     kind: WidgetKind,
     size: WidgetSize,
     target: PlaceBox,
     pose: Pose,
-    ease: Ease,
+    glide: Glide,
 ) -> Element {
-    let at = use_glide(corner(&target), pose, ease);
+    let at = use_glide(corner(&target), pose, glide);
     let style = place_style(at, &target);
     let lift = match pose {
         Pose::Lifted(_) => Lift::Lifted,
@@ -62,111 +55,47 @@ pub fn place_style(at: LayerPoint, target: &PlaceBox) -> String {
     )
 }
 
-/// Which way the glide's tween runs next: each new cell flips it, so every move is a new run.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Leg {
-    Out,
-    Back,
-}
-
-impl Leg {
-    fn next(self) -> Leg {
-        match self {
-            Leg::Out => Leg::Back,
-            Leg::Back => Leg::Out,
-        }
+/// The corner to draw: the pointer's while lifted; else the spring's, which the render's ask
+/// moves once this render is done.
+fn use_glide(target: LayerPoint, pose: Pose, glide: Glide) -> LayerPoint {
+    let motion = use_spring_point_motion(to_point(target));
+    let mut seen = use_hook(|| CopyValue::new(Seen { target, pose }));
+    let now = Seen { target, pose };
+    let asked = ask(*seen.peek(), now, glide);
+    seen.set(now);
+    if asked != Ask::Nothing {
+        queue_effect(move || apply(motion, asked));
     }
-
-    fn share(self) -> Fraction {
-        match self {
-            Leg::Out => Fraction(1000),
-            Leg::Back => Fraction(0),
-        }
-    }
+    drawn(pose, asked, to_layer(motion.frame().at))
 }
 
-/// What this render draws.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Glide {
-    /// Held under the pointer.
-    Held(LayerPoint),
-    /// A new glide asked this render: still where it was.
-    Starting,
-    /// On its way (or arrived).
-    Going,
-}
-
-/// The corner to draw: the pointer's while lifted; else gliding from wherever it was drawn to
-/// `target` each time `target` changes.
-fn use_glide(target: LayerPoint, pose: Pose, ease: Ease) -> LayerPoint {
-    let mut from = use_hook(|| CopyValue::new(target));
-    let mut to = use_hook(|| CopyValue::new(target));
-    let mut drawn = use_hook(|| CopyValue::new(target));
-    let mut leg = use_hook(|| CopyValue::new(Leg::Out));
-    let glide = match pose {
-        Pose::Lifted(held) => {
-            from.set(held);
-            to.set(held);
-            Glide::Held(held)
+/// Hand `asked` to the spring.
+fn apply(motion: SpringPointMotion, asked: Ask) {
+    match asked {
+        Ask::Nothing => {}
+        Ask::Hold(at) => motion.snap(to_point(at)),
+        Ask::Drop {
+            from,
+            to,
+            touch,
+            release,
+        } => {
+            motion.snap(to_point(from));
+            motion.go(to_point(to), touch, release, SpringResponse::Move);
         }
-        Pose::Resting if target != *to.peek() => {
-            from.set(*drawn.peek());
-            to.set(target);
-            let next = leg.peek().next();
-            leg.set(next);
-            Glide::Starting
-        }
-        Pose::Resting => Glide::Going,
-    };
-    let spec = TweenSpec {
-        duration: DurationToken::Move,
-        ease,
-    };
-    let tween = use_tween(leg.peek().share(), spec);
-    let now = match glide {
-        Glide::Held(held) => held,
-        Glide::Starting => *from.peek(),
-        Glide::Going if tween.landed() => *to.peek(),
-        Glide::Going => between(*from.peek(), *to.peek(), tween.progress()),
-    };
-    drawn.set(now);
-    now
-}
-
-/// `share` thousandths of the way from `a` to `b` (past `b` on a spring's overshoot).
-pub fn between(a: LayerPoint, b: LayerPoint, share: Fraction) -> LayerPoint {
-    let part = |from: i32, to: i32| {
-        let span = i64::from(to) - i64::from(from);
-        let step = (span * i64::from(share.0) + span.signum() * 500) / 1000;
-        i32::try_from(i64::from(from) + step).unwrap_or(to)
-    };
-    LayerPoint {
-        x: part(a.x, b.x),
-        y: part(a.y, b.y),
+        Ask::Aside(to) => motion.go(
+            to_point(to),
+            ds::detail::Touch::Remote,
+            ds::motion::Release::default(),
+            SpringResponse::Move,
+        ),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use ds::Fraction;
-
-    use super::{LayerPoint, between, place_style};
+    use super::{LayerPoint, place_style};
     use crate::surfaces::desktop_widgets::geometry::PlaceBox;
-
-    #[test]
-    fn a_glide_mixes_the_two_corners() {
-        let a = LayerPoint { x: 100, y: 16 };
-        let b = LayerPoint { x: 820, y: 196 };
-        let cases = [
-            (0, a),
-            (500, LayerPoint { x: 460, y: 106 }),
-            (1000, b),
-            (1100, LayerPoint { x: 892, y: 214 }),
-        ];
-        for (share, want) in cases {
-            assert_eq!(between(a, b, Fraction(share)), want, "{share}");
-        }
-    }
 
     #[test]
     fn the_style_places() {
