@@ -6735,6 +6735,13 @@ master 82678e10. F803 now says what plays. Numbers from F840.
   - Captures re-taken in `dev/out/launcher-v2-*.png`: the PDF page, the image, the text head,
     pane focus and the emoji grid are drawn as before.
 
+- **F845 Gate.** quire master moved to 1535c3aa (accent band) during the run. `ds::quad` is
+  gone, so `app_icons/look.rs` takes `accent_of(accent, Scheme::Light).fill` (its own commit).
+  That also breaks sill master, so the accent band's adopter may land the same line.
+  `GATE_DIR=<this worktree> ~/sill-wt/sill-gate.sh` then printed SILL GATE GREEN: fmt, clippy,
+  1149 passed, 0 failed, 51 ignored, boundary, licenses. Both scripts ran before that move, on
+  82678e10.
+
 ### Asks (quire)
 
 - **Q400 Book a group's action from outside the palette.** A caller that runs "Show More"
