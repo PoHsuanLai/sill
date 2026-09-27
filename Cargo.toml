@@ -39,11 +39,13 @@ shell-host = { path = "../shell-host/crates/shell-host" }
 
 # Blitz: git main, pinned by rev (crates.io dioxus-native 0.8 alpha does not build with
 # blitz 0.3.0-beta.2). The in-tree dioxus-native-dom targets dioxus 0.7.x.
-blitz-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "e99fbdbd1d03b9f0aa1622c3f810d95daac92042", default-features = false, features = ["svg", "system-fonts", "custom-widget", "accessibility"] }
-blitz-paint = { git = "https://github.com/DioxusLabs/blitz", rev = "e99fbdbd1d03b9f0aa1622c3f810d95daac92042", features = ["custom-widget"] }
+# Blitz comes from our fork (github.com/PoHsuanLai/blitz): upstream e99fbdbd plus the G295 restyle
+# (a cancelled animation's last value no longer sticks), the same rev as quire and shell-host.
+blitz-dom = { git = "https://github.com/PoHsuanLai/blitz", rev = "bf58814298b829bb42673424e86926cbd2af8f07", default-features = false, features = ["svg", "system-fonts", "custom-widget", "accessibility"] }
+blitz-paint = { git = "https://github.com/PoHsuanLai/blitz", rev = "bf58814298b829bb42673424e86926cbd2af8f07", features = ["custom-widget"] }
 # The HTML parser (html5ever 0.39): an `<iframe srcdoc>` builds a real sub-document. ds-native
 # installs it in headless documents; the window gets it through dioxus-native's `html` feature.
-blitz-html = { git = "https://github.com/DioxusLabs/blitz", rev = "e99fbdbd1d03b9f0aa1622c3f810d95daac92042" }
+blitz-html = { git = "https://github.com/PoHsuanLai/blitz", rev = "bf58814298b829bb42673424e86926cbd2af8f07" }
 # The system clipboard's text/html, for an edit surface's paste (ds-native): blitz-shell's own
 # arboard (its `clipboard` feature, same features), read directly since ShellProvider has text only.
 arboard = { version = "3.6", default-features = false }
@@ -51,10 +53,10 @@ arboard = { version = "3.6", default-features = false }
 # input/palmrest.rs, palmrest), hidraw/uinput ioctls (palmrest). Already in every tree through
 # wayland-backend at 1.1.x; the features are the union of both users.
 rustix = { version = "1.1", default-features = false, features = ["std", "event", "fs", "net", "time", "process"] }
-blitz-traits = { git = "https://github.com/DioxusLabs/blitz", rev = "e99fbdbd1d03b9f0aa1622c3f810d95daac92042" }
-dioxus-native-dom = { git = "https://github.com/DioxusLabs/blitz", rev = "e99fbdbd1d03b9f0aa1622c3f810d95daac92042", default-features = false, features = ["svg", "system-fonts", "accessibility"] }
+blitz-traits = { git = "https://github.com/PoHsuanLai/blitz", rev = "bf58814298b829bb42673424e86926cbd2af8f07" }
+dioxus-native-dom = { git = "https://github.com/PoHsuanLai/blitz", rev = "bf58814298b829bb42673424e86926cbd2af8f07", default-features = false, features = ["svg", "system-fonts", "accessibility"] }
 # The portable window path for apps (winit); the shell uses shell-host instead.
-dioxus-native = { git = "https://github.com/DioxusLabs/blitz", rev = "e99fbdbd1d03b9f0aa1622c3f810d95daac92042", default-features = false, features = ["vello-hybrid", "svg", "system-fonts", "accessibility"] }
+dioxus-native = { git = "https://github.com/PoHsuanLai/blitz", rev = "bf58814298b829bb42673424e86926cbd2af8f07", default-features = false, features = ["vello-hybrid", "svg", "system-fonts", "accessibility"] }
 
 # Dioxus 0.7.x (renderer-free core; mailo is on 0.7.10).
 dioxus = { version = "0.7", default-features = false, features = ["macro", "html", "hooks", "signals"] }

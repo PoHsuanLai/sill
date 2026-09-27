@@ -53,7 +53,6 @@ fn an_animation_removed_after_its_end_leaves_nothing() {
 }
 
 #[test]
-#[ignore = "G295: Blitz keeps a cancelled CSS animation's last value"]
 fn an_animation_removed_midway_leaves_nothing() {
     let mut h = cancelled(20);
     let rect = h.rect(".box").expect("the box");
