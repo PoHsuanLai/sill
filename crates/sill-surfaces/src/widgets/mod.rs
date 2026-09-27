@@ -23,7 +23,7 @@ mod wake;
 pub mod world_clock;
 
 pub use ds::widget::cells;
-pub use ds::{Lift, WidgetHost, WidgetSize};
+pub use ds::{CardPresence, Lift, WidgetHost, WidgetSize};
 pub use sill_settings::WidgetKind;
 pub use wake::{provide_widget_wake, use_widget_wake};
 
@@ -88,20 +88,41 @@ pub fn offered(kind: WidgetKind) -> &'static [WidgetSize] {
     }
 }
 
-/// Every widget sill can place: quire's three and sill's two.
+/// Every widget sill can place, quire's three and sill's two, each taking [`size_of`] in each
+/// host, so quire's gallery previews and adds that one size and offers no other (Q520).
 pub fn registry() -> ds::WidgetRegistry {
     let quire = ds::WidgetRegistry::quire();
-    match quire
-        .clone()
-        .with::<up_next::UpNext>()
-        .and_then(ds::WidgetRegistry::with::<now_playing::NowPlaying>)
-    {
+    match all_sized(quire.clone()) {
         Ok(all) => all,
-        Err(taken) => {
-            eprintln!("sill: widget registry: {taken}");
+        Err(why) => {
+            eprintln!("sill: widget registry: {why}");
             quire
         }
     }
+}
+
+/// Why [`registry`] could not be built as sill wants it.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+enum RegistryError {
+    #[error("{0}")]
+    Taken(#[from] ds::widget::TakenKind),
+    #[error("{0}")]
+    Unsized(#[from] ds::widget::UnsizedKind),
+}
+
+/// `quire` with sill's two widgets added and every kind held to its one size in each host.
+fn all_sized(quire: ds::WidgetRegistry) -> Result<ds::WidgetRegistry, RegistryError> {
+    let all = quire
+        .with::<up_next::UpNext>()?
+        .with::<now_playing::NowPlaying>()?;
+    let hosts = [WidgetHost::Tile, WidgetHost::Desktop];
+    let sized = ALL_KINDS
+        .into_iter()
+        .flat_map(|kind| hosts.map(|host| (kind, host)))
+        .try_fold(all, |registry, (kind, host)| {
+            registry.sized(&kind_id(kind), host, size_of(kind, host))
+        })?;
+    Ok(sized)
 }
 
 /// Provide [`registry`] to a host root's subtree (the desktop layer, the notification center,
@@ -129,15 +150,24 @@ pub fn widgets_css() -> String {
 }
 
 /// One widget of `kind` in `host` at `size`, on quire's card, named by [`widget_element_id`],
-/// `lift`ed while the desktop drags it: the kind's provider feeds the card.
+/// `lift`ed while the desktop drags it: the kind's provider feeds the card. A card the desktop
+/// took away is `Leaving`: it plays quire's exit and calls `on_gone` once it has (G423).
 #[component]
 pub fn Widget(
     kind: WidgetKind,
     host: WidgetHost,
     size: WidgetSize,
     #[props(default)] lift: Lift,
+    #[props(default)] presence: CardPresence,
+    #[props(default)] on_gone: Option<EventHandler<()>>,
 ) -> Element {
-    let place = Place { host, size, lift };
+    let place = Place {
+        host,
+        size,
+        lift,
+        presence,
+        on_gone,
+    };
     match kind {
         WidgetKind::Calendar => rsx! { calendar::CalendarCard { place } },
         WidgetKind::UpNext => rsx! { up_next::UpNextCard { place } },
@@ -147,18 +177,21 @@ pub fn Widget(
     }
 }
 
-/// Where a provider's card is drawn: the host, the size and the lift.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// Where a provider's card is drawn: the host, the size and the lift, and whether it is on its
+/// way out (and who to tell once it has gone).
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Place {
     pub host: WidgetHost,
     pub size: WidgetSize,
     pub lift: Lift,
+    pub presence: CardPresence,
+    pub on_gone: Option<EventHandler<()>>,
 }
 
 #[cfg(test)]
 mod tests {
     use super::{ALL_KINDS, WidgetHost, WidgetKind, cells, kind_id, kind_of, offered, size_of};
-    use super::{registry, widget_element_id};
+    use super::{all_sized, registry, widget_element_id};
 
     #[test]
     fn each_widget_has_its_footprint_in_each_host() {
@@ -198,8 +231,15 @@ mod tests {
                     offered(kind).contains(&size_of(kind, host)),
                     "{kind:?} {host:?}"
                 );
+                // The gallery previews and adds this one size (Q520).
+                assert_eq!(
+                    registry.get(&kind_id(kind)).map(|info| info.size_in(host)),
+                    Some(size_of(kind, host)),
+                    "{kind:?} {host:?}"
+                );
             }
         }
+        assert!(all_sized(ds::WidgetRegistry::quire()).is_ok());
         assert_eq!(registry.all().len(), ALL_KINDS.len());
         assert_eq!(kind_of(&ds::WidgetKind::fixed("org.example.weather")), None);
     }

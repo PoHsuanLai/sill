@@ -1,17 +1,13 @@
-//! What the last edit in Edit Widgets came to, said under the gallery (FINDINGS F1025; design/26
-//! moments): an add is a Success, its check drawn on beside "Added World Clock to the Desktop"
-//! (quire's `CheckMark` through `use_settle`, held `SettleHold`, then the words stay: R8); a
-//! removal is a Change, its words only; a refusal is a Failure, its words shaken once (quire's
-//! `use_shake`, R6). Nothing plays at rest, on the panel's opening, or on a re-render (R1, R3).
-//! The reference's gallery shows an add by the widget arriving on the desktop; sill's panel
-//! stands over the desktop's top right, where new widgets land (Q521), so the words say it here
-//! too.
+//! What the last edit in Edit Widgets came to, said under the gallery (FINDINGS F1025, F1082;
+//! design/26 moments): a removal is a Change, its words only; a refusal is a Failure, its words
+//! shaken once (quire's `use_shake`, R6). An add says nothing here: quire's gallery settles its
+//! Add button to a check and "Added" where the person pressed and raises the new placed row
+//! (Q523), and the widget rises on the desktop above the sheet (Q521), so a line here would say
+//! it a third time. An add clears the line, so an earlier refusal is not left standing beside it.
+//! Nothing plays at rest, on the panel's opening, or on a re-render (R1, R3).
 
 use dioxus::prelude::*;
-use ds::IconSize;
-use ds::detail::{
-    CheckMark, Detailed, FirstShow, Moment, SettleStyle, Touch, use_detail, use_settle, use_shake,
-};
+use ds::detail::{Detailed, FirstShow, Moment, Touch, use_detail, use_shake};
 use ds::widget::{WidgetEdit, WidgetLayout};
 
 use crate::widgets::layout::Refused;
@@ -38,11 +34,9 @@ pub(super) struct Said {
 /// What the last edit came to.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub(super) enum Outcome {
-    /// Nothing edited since the panel opened.
+    /// Nothing edited since the panel opened, or the last edit was an add (the gallery says it).
     #[default]
     Quiet,
-    /// A widget was added.
-    Added(Said),
     /// A widget was taken away.
     Removed(Said),
     /// The edit was not made, and why.
@@ -53,7 +47,7 @@ impl Outcome {
     fn said(&self) -> Option<&Said> {
         match self {
             Outcome::Quiet => None,
-            Outcome::Added(said) | Outcome::Removed(said) | Outcome::Refused(said) => Some(said),
+            Outcome::Removed(said) | Outcome::Refused(said) => Some(said),
         }
     }
 
@@ -61,7 +55,6 @@ impl Outcome {
     fn slug(&self) -> &'static str {
         match self {
             Outcome::Quiet => "quiet",
-            Outcome::Added(_) => "added",
             Outcome::Removed(_) => "removed",
             Outcome::Refused(_) => "refused",
         }
@@ -72,7 +65,6 @@ impl Detailed for Outcome {
     fn moment(_from: &Self, to: &Self) -> Moment {
         match to {
             Outcome::Quiet => Moment::Rest,
-            Outcome::Added(_) => Moment::Success,
             Outcome::Removed(_) => Moment::Change,
             Outcome::Refused(_) => Moment::Failure,
         }
@@ -80,15 +72,13 @@ impl Detailed for Outcome {
 
     fn first(state: &Self) -> Moment {
         match state {
-            Outcome::Quiet | Outcome::Added(_) | Outcome::Removed(_) | Outcome::Refused(_) => {
-                Moment::Rest
-            }
+            Outcome::Quiet | Outcome::Removed(_) | Outcome::Refused(_) => Moment::Rest,
         }
     }
 }
 
 /// What `edit`, made on `before`, came to, as the `count`th edit of this opening: `None` for an
-/// edit that says nothing (a move).
+/// edit that leaves the line as it was (a move).
 pub(super) fn outcome_of(
     edit: &WidgetEdit,
     before: &WidgetLayout,
@@ -98,13 +88,7 @@ pub(super) fn outcome_of(
     let said = |words: String| Said { words, edit: count };
     match (made, edit) {
         (Err(why), _) => Some(Outcome::Refused(said(why.words().to_owned()))),
-        (Ok(()), WidgetEdit::Add { kind, host, .. }) => {
-            let name = kind_of(kind).map_or_else(|| kind.as_str().to_owned(), name_of);
-            Some(Outcome::Added(said(format!(
-                "Added {name} to {}.",
-                host_words(*host)
-            ))))
-        }
+        (Ok(()), WidgetEdit::Add { .. }) => Some(Outcome::Quiet),
         (Ok(()), WidgetEdit::Remove(id)) => {
             let item = before.items().iter().find(|item| item.id == *id)?;
             let name = kind_of(&item.kind).map_or_else(|| item.kind.as_str().to_owned(), name_of);
@@ -136,7 +120,6 @@ fn host_words(host: WidgetHost) -> &'static str {
 #[component]
 pub(super) fn EditStatus(outcome: Outcome) -> Element {
     let detail = use_detail(outcome.clone(), FirstShow::Still, Touch::Remote);
-    let settling = use_settle(detail.cue(), SettleStyle::Check);
     let shake = use_shake(detail.cue()).attrs();
     let Some(said) = outcome.said() else {
         return rsx! {};
@@ -147,9 +130,6 @@ pub(super) fn EditStatus(outcome: Outcome) -> Element {
     };
     rsx! {
         div { class, "data-pulse": alias, "data-outcome": outcome.slug(), role: "status",
-            span { class: "sill-ew-status-mark",
-                CheckMark { settling, size: IconSize::Compact }
-            }
             span { class: "sill-ew-status-words", "{said.words}" }
         }
     }
@@ -174,20 +154,16 @@ mod tests {
     }
 
     #[test]
-    fn an_add_succeeds_a_removal_changes_a_refusal_fails() {
+    fn a_removal_changes_a_refusal_fails_and_an_add_is_quiet_here() {
         moment_table(&[
+            (Outcome::Refused(said("c", 1)), Outcome::Quiet, Moment::Rest),
             (
                 Outcome::Quiet,
-                Outcome::Added(said("a", 1)),
-                Moment::Success,
+                Outcome::Removed(said("b", 2)),
+                Moment::Change,
             ),
             (
-                Outcome::Added(said("a", 1)),
-                Outcome::Added(said("a", 2)),
-                Moment::Success,
-            ),
-            (
-                Outcome::Added(said("a", 1)),
+                Outcome::Removed(said("b", 1)),
                 Outcome::Removed(said("b", 2)),
                 Moment::Change,
             ),
@@ -216,15 +192,12 @@ mod tests {
             (
                 add(WidgetKind::WorldClock, WidgetHost::Desktop),
                 Ok(()),
-                Some(Outcome::Added(said("Added World Clock to the Desktop.", 4))),
+                Some(Outcome::Quiet),
             ),
             (
                 add(WidgetKind::Battery, WidgetHost::Tile),
                 Ok(()),
-                Some(Outcome::Added(said(
-                    "Added Batteries to the Notification Center.",
-                    4,
-                ))),
+                Some(Outcome::Quiet),
             ),
             (
                 WidgetEdit::Remove(PlacementId(1)),

@@ -206,3 +206,80 @@ fn an_added_widget_rises_into_its_place_once() {
     assert_eq!(h.count(".sill-dw-place [*|data-reveal=still]"), 3);
     assert_settles_to_zero_frames(&mut h);
 }
+
+/// A desktop widget's harness on a settings feed the test can change.
+fn start_live() -> (Harness, tokio::sync::watch::Sender<ShellFile>, fake::Feeds) {
+    let (services, feeds) = fake::services();
+    let (tx, rx) = tokio::sync::watch::channel(ShellFile::default());
+    WORLD.with(|w| {
+        *w.borrow_mut() = Some(World {
+            services,
+            settings: SettingsFeed(rx),
+            file: None,
+        });
+    });
+    let mut h = Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
+    h.advance(Duration::from_millis(40));
+    (h, tx, feeds)
+}
+
+/// G423: a widget Edit Widgets takes off the desktop plays its exit where it stood (quire's
+/// `widget-out`, `data-presence="leaving"`), then is dropped, and the layer paints nothing; one
+/// added back while it leaves is placed again and never goes.
+#[test]
+fn a_removed_widget_plays_its_exit_then_goes() {
+    use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
+    let (mut h, tx, _feeds) = start_live();
+    settle_until(&mut h, |h| h.count(".ds-widget") == 2);
+    assert_settles_to_zero_frames(&mut h);
+    let stood = box_of(&h, "#widget-battery");
+
+    tx.send_modify(|file| {
+        file.widgets
+            .desktop_widgets
+            .retain(|k| *k != WidgetKind::Battery)
+    });
+    h.advance(Duration::from_millis(16));
+    assert_eq!(
+        h.attr("#widget-battery", "data-presence").as_deref(),
+        Some("leaving"),
+        "the card stays, leaving: {}",
+        h.html()
+    );
+    assert!(
+        h.has_class("#widget-battery", "a-widget-out"),
+        "{}",
+        h.html()
+    );
+    assert_eq!(
+        box_of(&h, "#widget-battery"),
+        stood,
+        "it leaves from where it stood"
+    );
+    assert_eq!(h.attr("#widget-calendar", "data-presence"), None);
+    assert!(h.is_animating(), "the exit is playing");
+    settle_until(&mut h, |h| h.count("#widget-battery") == 0);
+    assert_eq!(h.count(".ds-widget"), 1);
+    assert_settles_to_zero_frames(&mut h);
+
+    // Taken away and added back before its exit ends: it stays.
+    tx.send_modify(|file| {
+        file.widgets
+            .desktop_widgets
+            .retain(|k| *k != WidgetKind::Calendar)
+    });
+    h.advance(Duration::from_millis(60));
+    assert_eq!(
+        h.attr("#widget-calendar", "data-presence").as_deref(),
+        Some("leaving")
+    );
+    tx.send_modify(|file| file.widgets.desktop_widgets.push(WidgetKind::Calendar));
+    h.advance(Duration::from_millis(16));
+    assert_eq!(h.attr("#widget-calendar", "data-presence"), None);
+    assert_settles_to_zero_frames(&mut h);
+    assert_eq!(
+        h.count("#widget-calendar"),
+        1,
+        "it was taken back, not dropped"
+    );
+}

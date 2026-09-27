@@ -1,13 +1,15 @@
 //! Edit Widgets' root: one transparent `Ds` in the Sheet material, as large as the output below
 //! the bar (`RootExtent::Viewport`), holding the catcher (a press on it closes) and quire's
-//! `Panel` at the right edge, where the notification center it was opened from stood, wide
-//! enough for the gallery's largest preview. In the panel: the title and Done, then quire's
-//! `WidgetGallery` over the layout the keys make (`widgets::layout::layout_of`), each edit
-//! applied with `widgets::layout::edited` against this output's desktop grid (measured from the
-//! catcher, the same box the desktop widget layer measures) and written through the root's
-//! [`WidgetsWriter`]. What each edit came to is said under the gallery ([`EditStatus`]): an
-//! add with a check drawn on, a removal, or why sill could not make it. An add to the desktop
-//! also turns `widgets.desktop` on, so the widget is seen.
+//! `Panel` as a sheet at the bottom edge (Q521, the reference's gallery), under half the output
+//! so the desktop's widgets stay in view above it and a widget added there is seen arriving. In
+//! the sheet: the title and Done, then quire's `WidgetGallery` over the layout the keys make
+//! (`widgets::layout::layout_of`), one preview per widget at its one size and no size control
+//! (Q520), each edit applied with `widgets::layout::edited` against this output's desktop grid
+//! (measured from the catcher, the same box the desktop widget layer measures) and written
+//! through the root's [`WidgetsWriter`]. An add is shown by the gallery itself, its button
+//! settling to "Added" with a check (Q523); a removal, or why sill could not make an edit, is
+//! said under the gallery ([`EditStatus`]). An add to the desktop also turns `widgets.desktop`
+//! on, so the widget is seen.
 
 use std::rc::Rc;
 
@@ -36,11 +38,14 @@ use crate::widgets::{WidgetHost, desktop_size, provide_registry, widgets_css};
 /// Edit Widgets' stylesheet (lint-clean under `Profile::Strict`, `tests/edit_widgets_lint.rs`).
 pub const EDIT_WIDGETS_CSS: &str = include_str!("../../style/edit_widgets.css");
 
-/// The panel's width: the gallery's list (200), a Large preview (344) and their gaps and
-/// padding, so every size's preview is drawn at its real size. quire's gallery still draws
-/// each size a widget offers until it can show one (Q520); with one size the Medium preview
-/// alone would need 624.
-const EDIT_WIDTH: f32 = 720.0;
+/// The sheet's width: the gallery's list (200), a Medium preview on its plate (344 and the
+/// plate's padding), the placed column (280), and their gaps and the panel's padding (Q521).
+const EDIT_WIDTH: f32 = 1040.0;
+
+/// The sheet's height: the Medium preview and its buttons with the title row and the status
+/// line. quire holds it under half the output, so the desktop's top-right columns, where new
+/// widgets land, stay in view above it.
+const EDIT_HEIGHT: f32 = 400.0;
 
 /// Edit Widgets on `output`.
 pub(super) fn edit(output: OutputInfo) -> Element {
@@ -173,7 +178,8 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
                 on_hidden,
                 onclose: move |()| escape.close(),
                 width: Px(EDIT_WIDTH),
-                edge: PanelEdge::Right,
+                height: Px(EDIT_HEIGHT),
+                edge: PanelEdge::Bottom,
                 material: Material::Sheet,
                 scrim: PanelScrim::None,
                 div {

@@ -126,6 +126,8 @@ pub fn BatteryCard(place: Place) -> Element {
             wake: use_widget_wake(),
             id: widget_element_id(WidgetKind::Battery),
             lift: place.lift,
+            presence: place.presence,
+            on_gone: place.on_gone,
         }
     }
 }

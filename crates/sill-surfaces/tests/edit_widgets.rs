@@ -2,10 +2,11 @@
 //! on the virtual clock and the fake services: the notification center's "Edit Widgets" closes
 //! the center and opens the gallery on its output; in the gallery an added widget is written as
 //! the same keys and places sill keeps (through a fake writer that publishes them back, as the
-//! daemon's does, `widgets.desktop` turned on by an add to the desktop) and said under the
-//! gallery with a check drawn on (FINDINGS F1025), a kind already there is refused with a line
-//! shaken once, a removal writes the keys and says so, a size pick is refused (each widget has
-//! one size, F1024), and Done closes it; every moment settles to zero frames.
+//! daemon's does, `widgets.desktop` turned on by an add to the desktop) and shown by quire's
+//! gallery, its Add button settling to "Added" with a check (Q523; nothing said under the
+//! gallery), a kind already there is refused with a line shaken once, a removal writes the keys
+//! and says so, the gallery is a sheet at the bottom offering one size per widget and no size
+//! control (Q520, Q521), and Done closes it; every moment settles to zero frames.
 
 #[path = "support/fake.rs"]
 mod fake;
@@ -244,25 +245,24 @@ fn an_added_widget_is_written_as_the_keys_and_places_and_a_second_is_refused() {
             ],
         }]
     );
-    // Said at once, the check drawing on beside the words.
+    // quire's gallery says it where the person pressed: the button settles to a check and
+    // "Added" (Q523), and sill says nothing more under the gallery.
+    settle_until(&mut run.harness, |h| {
+        h.count(".ds-widget-gallery-added .ds-check-mark") == 1
+    });
     assert_eq!(
-        status(&run.harness),
-        Some((
-            "added".to_owned(),
-            "Added World Clock to the Desktop.".to_owned()
-        ))
+        run.harness.text_of(ADD_TO_DESKTOP).as_deref(),
+        Some("Added")
     );
-    settle_until(&mut run.harness, |h| {
-        h.count(".sill-ew-status .ds-check-mark") == 1
-    });
+    assert_eq!(status(&run.harness), None, "no line under the gallery");
     settle_until(&mut run.harness, |h| rows(h, "desktop") == 3);
-    // The check goes after its hold; the words stay (design/26 R8), and nothing moves after.
+    // The check goes after its hold and the button reads as before; nothing moves after.
     settle_until(&mut run.harness, |h| {
-        h.count(".sill-ew-status .ds-check-mark") == 0
+        h.count(".ds-widget-gallery-added") == 0
     });
     assert_eq!(
-        status(&run.harness).map(|(_, words)| words).as_deref(),
-        Some("Added World Clock to the Desktop.")
+        run.harness.text_of(ADD_TO_DESKTOP).as_deref(),
+        Some("Add to Desktop")
     );
     assert_settles_to_zero_frames(&mut run.harness);
 
@@ -279,7 +279,7 @@ fn an_added_widget_is_written_as_the_keys_and_places_and_a_second_is_refused() {
         run.harness.html()
     );
     assert_eq!(
-        run.harness.count(".sill-ew-status .ds-check-mark"),
+        run.harness.count(".ds-widget-gallery-added"),
         0,
         "no check for a refusal"
     );
@@ -323,25 +323,87 @@ fn a_removed_tile_leaves_the_center_key() {
         ))
     );
     assert_eq!(
-        run.harness.count(".sill-ew-status .ds-check-mark"),
+        run.harness.count(".ds-widget-gallery-added"),
         0,
         "a removal draws no check"
     );
     assert_settles_to_zero_frames(&mut run.harness);
 }
 
-/// quire's gallery offers one size per widget (Q520, quire master aadf0b49): a placed row has
-/// no size control, so there is nothing to refuse.
+/// Q520, Q521: the gallery is a sheet at the bottom of the output, under half its height, and
+/// offers each widget at its one size: one preview, no size control, Add at that size.
 #[test]
-fn the_gallery_offers_no_size_to_pick() {
-    let run = opened();
+fn the_gallery_is_a_bottom_sheet_offering_one_size_per_widget() {
+    let mut run = opened();
+    let h = &run.harness;
     assert_eq!(
-        run.harness
-            .count(".ds-widget-gallery-surface .ds-widget-gallery-row .ds-segment"),
-        0,
-        "no size control on a placed row"
+        h.attr(".ds-panel-stage", "data-edge").as_deref(),
+        Some("bottom")
     );
-    assert_eq!(run.writes(), vec![], "nothing written");
+    let (left, top, width, height) = box_of(h, ".ds-panel");
+    assert!(top + height >= 800 - 8 - 1, "at the bottom: {top} {height}");
+    assert!(height <= 400, "under half the output: {height}");
+    assert_eq!(width, 1040, "{left} {width}");
+    assert_eq!(left, (1280 - 1040) / 2, "centred");
+    // Batteries last: the entry the gallery opens on, whose preview runs no clock.
+    for name in [
+        "Calendar",
+        "World Clock",
+        "Up Next",
+        "Now Playing",
+        "Batteries",
+    ] {
+        let entry = kind_option(&run.harness, name);
+        run.click(&entry);
+        let h = &run.harness;
+        assert_eq!(
+            h.count(".ds-widget-gallery-preview"),
+            1,
+            "{name}: one preview"
+        );
+        assert_eq!(
+            h.count(".ds-widget-gallery-preview .ds-widget"),
+            1,
+            "{name}"
+        );
+        let want = match name {
+            "Calendar" | "Batteries" => "small",
+            _ => "medium",
+        };
+        assert_eq!(
+            h.attr(".ds-widget-gallery-preview", "data-size").as_deref(),
+            Some(want),
+            "{name} at its desktop size"
+        );
+    }
+    let h = &run.harness;
+    assert_eq!(
+        h.count(".ds-widget-gallery .ds-segmented") + h.count(".ds-widget-gallery .ds-segment"),
+        0,
+        "no size control anywhere: {}",
+        h.html()
+    );
+    for size in ["Small", "Medium", "Large"] {
+        assert!(
+            !h.html().contains(&format!(">{size}<")),
+            "no size named in the gallery: {size}"
+        );
+    }
+    assert_settles_to_zero_frames(&mut run.harness);
+}
+
+/// `selector`'s box as whole px: (left, top, width, height).
+fn box_of(h: &Harness, selector: &str) -> (i32, i32, i32, i32) {
+    let rect = h
+        .rect(selector)
+        .unwrap_or_else(|| panic!("{selector} is laid out"));
+    let px = |v: f32| v.round() as i32;
+    (
+        px(rect.origin.x.0),
+        px(rect.origin.y.0),
+        px(rect.size.width.0),
+        px(rect.size.height.0),
+    )
 }
 
 #[test]

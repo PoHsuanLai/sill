@@ -6,8 +6,10 @@
 //! lets a widget be dragged to another cell (`drag`, `placed`; quire's `WidgetSlotGuide` at the
 //! cell it would land in), and keeps the surface's input and blur
 //! regions on the frames (`RegionSpec::Elements`, resolved after every layout, so they follow a
-//! dragged frame), so a press between them reaches the desktop below. Nothing here runs a timer:
-//! the widgets redraw on their services' changes, and a drag's motion runs only while it moves.
+//! dragged frame), so a press between them reaches the desktop below. A widget taken away keeps
+//! its card at its last box while it plays its exit, outside the regions (`leaving`, G423).
+//! Nothing here runs a timer: the widgets redraw on their services' changes, a drag's motion runs
+//! only while it moves, and an exit's end is quire's card's to call.
 
 use dioxus::prelude::*;
 use ds::detail::Touch;
@@ -25,14 +27,15 @@ use super::arrange::LayerPoint;
 use super::drag::{DragInput, DragWorld, Hold, Landing, shown, step};
 use super::geometry::{GridMetrics, PlaceBox, place_box};
 use super::glide::{Glide, PointMeter, Pose};
+use super::leaving::{Leaving, use_leaving};
 use super::placed::Placed;
 use super::placement::{Placement, grid_size, place};
 use super::saved::{OutputKey, PlacementFile};
 use crate::hooks::{use_appearance, use_ds_scale, use_settings, use_workspaces};
 use crate::surfaces::launcher::panel::active_look;
 use crate::widgets::{
-    WidgetHost, WidgetSize, desktop_size, provide_registry, provide_widget_wake, widget_element_id,
-    widgets_css,
+    CardPresence, WidgetHost, WidgetSize, desktop_size, provide_registry, provide_widget_wake,
+    widget_element_id, widgets_css,
 };
 
 /// The Widget material's corner (quire's recipe, `--m-radius` 20 px): the frames' regions round
@@ -114,6 +117,7 @@ fn Grid(
     let dropped = use_signal(|| None::<Dropped>);
     let meter = use_hook(|| CopyValue::new(PointMeter::default()));
     let mut laid = use_hook(|| CopyValue::new(None::<Laid>));
+    let cards = use_leaving(&kinds);
     let now = probe.rect().map(|rect| {
         let width = logical(rect.size.width.0);
         let grid = grid_size(width, logical(rect.size.height.0), cell, gap);
@@ -142,6 +146,9 @@ fn Grid(
             kept.set(recorded);
         }
     }
+    // Where each card stood before this layout: a kind just taken away leaves from there.
+    let last_boxes = laid.peek().as_ref().map(|l| l.boxes.clone());
+    let leaving = cards.now(&kinds, &last_boxes.unwrap_or_default());
     laid.set(now.clone());
     let feed = Feeder {
         hold,
@@ -160,7 +167,7 @@ fn Grid(
     use_regions(&on_screen);
     let guide = now.as_ref().and_then(|l| slot_guide(&held, l));
     let places = now
-        .map(|l| draw_order(&on_screen, &held, dropped(), l.metrics))
+        .map(|l| draw_order(&leaving, &on_screen, &held, dropped(), l.metrics))
         .unwrap_or_default();
     let (down, moved, up) = (feed.clone(), feed.clone(), feed);
     rsx! {
@@ -176,8 +183,20 @@ fn Grid(
                     WidgetSlotGuide { size, host: WidgetHost::Desktop }
                 }
             }
-            for (kind, size, target, pose, glide) in places {
-                Placed { key: "{kind:?}", kind, size, target, pose, glide }
+            for Draw { kind, size, target, pose, glide, presence } in places {
+                Placed {
+                    key: "{kind:?}",
+                    kind,
+                    size,
+                    target,
+                    pose,
+                    glide,
+                    presence,
+                    on_gone: match presence {
+                        CardPresence::Leaving => Some(cards.on_gone(kind)),
+                        CardPresence::Placed => None,
+                    },
+                }
             }
         }
     }
@@ -225,17 +244,37 @@ fn use_reload(
     }
 }
 
-/// What each widget draws, in paint order: the dragged one (else the last dropped) last, so it
-/// is above the others.
+/// One card the grid draws.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Draw {
+    kind: WidgetKind,
+    size: WidgetSize,
+    target: PlaceBox,
+    pose: Pose,
+    glide: Glide,
+    presence: CardPresence,
+}
+
+/// What each widget draws, in paint order: the cards leaving first, under the rest, then the
+/// placed ones with the dragged one (else the last dropped) last, so it is above the others.
 fn draw_order(
+    leaving: &[Leaving],
     on_screen: &[Placement],
     held: &Hold,
     dropped: Option<Dropped>,
     metrics: GridMetrics,
-) -> Vec<(WidgetKind, WidgetSize, PlaceBox, Pose, Glide)> {
+) -> Vec<Draw> {
     let lifted = held.lifted();
     let top = lifted.map(|(kind, _)| kind).or(dropped.map(|d| d.kind));
-    let mut places: Vec<_> = boxes(on_screen, metrics)
+    let going = leaving.iter().map(|l| Draw {
+        kind: l.kind,
+        size: desktop_size(l.kind),
+        target: l.target,
+        pose: Pose::Resting,
+        glide: Glide::Aside,
+        presence: CardPresence::Leaving,
+    });
+    let mut places: Vec<Draw> = boxes(on_screen, metrics)
         .into_iter()
         .map(|(kind, target)| {
             let pose = match lifted {
@@ -250,11 +289,18 @@ fn draw_order(
                 }) if last == kind => Glide::Thrown { touch, release },
                 Some(_) | None => Glide::Aside,
             };
-            (kind, desktop_size(kind), target, pose, glide)
+            Draw {
+                kind,
+                size: desktop_size(kind),
+                target,
+                pose,
+                glide,
+                presence: CardPresence::Placed,
+            }
         })
         .collect();
-    places.sort_by_key(|(kind, ..)| Some(*kind) == top);
-    places
+    places.sort_by_key(|draw| Some(draw.kind) == top);
+    going.chain(places).collect()
 }
 
 /// Everything a pointer input needs, cheap to clone into each handler.

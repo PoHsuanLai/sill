@@ -171,11 +171,19 @@ fn battery_lists_the_machine_then_connected_devices_with_a_level() {
         h.count("#widget-battery .ds-battery[*|data-pulse=a]") == 0
     });
     let h = &running.harness;
-    // The fake machine is at 64%; Buds are connected at 80%; the keyboard is not connected.
-    // quire draws four places whatever the count (Q522); the other two are empty.
+    // The fake machine is at 64%; Buds are connected at 80%; the keyboard is not connected. The
+    // Medium row has four fixed places (Q522): the two batteries from the left, then two bare
+    // places with no number.
+    assert_eq!(h.count("#widget-battery .ds-batteries-cell"), 4);
     assert_eq!(
-        h.count("#widget-battery .ds-batteries-cell:not([*|data-place=empty]) .ds-battery"),
+        h.count("#widget-battery .ds-batteries-cell[*|data-place=empty]"),
         2
+    );
+    assert_eq!(
+        h.text_of("#widget-battery .ds-batteries-cell:nth-child(3) .ds-batteries-figure")
+            .as_deref(),
+        Some(""),
+        "a place with no battery shows no number"
     );
     let cell = |n: usize, part: &str| {
         h.attr(

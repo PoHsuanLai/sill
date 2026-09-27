@@ -94,6 +94,8 @@ pub fn NowPlayingCard(place: Place) -> Element {
             id: widget_element_id(WidgetKind::NowPlaying),
             onintent,
             lift: place.lift,
+            presence: place.presence,
+            on_gone: place.on_gone,
         }
     }
 }

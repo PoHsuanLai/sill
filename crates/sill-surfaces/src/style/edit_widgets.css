@@ -12,16 +12,16 @@
    presses through to the catcher; the panel takes its own. */
 .sill-ew-scope{ position:absolute; top:0; right:0; bottom:0; left:0; pointer-events:none; }
 
-/* Inside the panel: the column fills it and scrolls (the blur region is this box grown by the
-   panel's padding). */
-.sill-ew-column{ display:flex; flex-direction:column; gap:var(--s-12); flex:1 1 auto; min-height:0;
-  color:var(--ink); outline:none; overflow-y:auto; scrollbar-width:none; }
+/* Inside the sheet: the column fills it, so quire's gallery fills what the title row and the
+   status line leave and its placed column scrolls on its own (Q521, Q523). The blur region is
+   this box grown by the panel's padding. */
+.sill-ew-column{ display:flex; flex-direction:column; flex:1; min-height:0; gap:var(--s-12);
+  color:var(--ink); outline:none; }
 .sill-ew-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--s-8);
   padding:0 0 var(--s-6) var(--s-4); }
 .sill-ew-title{ font-size:var(--fs-subhead); font-weight:700; }
-/* What the last edit came to: the check's place (kept, so the words never move when the check
-   goes), then the words. An add's check is `--ok`; the words stay `--ink-soft`. */
-.sill-ew-status{ display:flex; align-items:center; gap:var(--s-6); padding:0 var(--s-4); font-size:var(--fs-help);
+/* What the last removal or refusal came to (an add is the gallery's to show): the words, in
+   `--ink-soft`. */
+.sill-ew-status{ display:flex; flex:none; align-items:center; padding:0 var(--s-4); font-size:var(--fs-help);
   color:var(--ink-soft); }
-.sill-ew-status-mark{ display:flex; flex:none; width:var(--s-14); height:var(--s-14); color:var(--ok); }
 .sill-ew-status-words{ flex:1 1 auto; min-width:0; }
