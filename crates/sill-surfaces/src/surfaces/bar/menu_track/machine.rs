@@ -5,9 +5,16 @@ use sill_services::Stamp;
 
 use super::triangle::guarded;
 use super::types::{
-    Anim, Branch, Entered, Guard, Held, ItemPath, MenuIn, MenuKey, MenuOut, MenuParams, MenuTrack,
-    Pick, Side, Sub, Target,
+    Anim, Branch, Entered, Guard, Held, ItemPath, MenuId, MenuIn, MenuKey, MenuOut, MenuParams,
+    MenuTrack, Pick, Shown, Side, Sub, Target,
 };
+
+/// The open menu and how it came to show, which every transition that keeps it carries over.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Current {
+    menu: MenuId,
+    shown: Shown,
+}
 
 /// `track` after `input` at `now`, and what the bar must do.
 pub fn step(
@@ -18,6 +25,7 @@ pub fn step(
 ) -> (MenuTrack, Vec<MenuOut>) {
     let MenuTrack::Tracking {
         menu,
+        shown,
         held,
         entered,
         hot,
@@ -28,7 +36,7 @@ pub fn step(
     else {
         return match input {
             MenuIn::PressTitle(menu) => (
-                opened(menu, Held::Held),
+                opened(menu, Shown::Pressed, Held::Held),
                 vec![MenuOut::Open(menu, Anim::MenuPop)],
             ),
             _ => (MenuTrack::Closed, Vec::new()),
@@ -38,8 +46,10 @@ pub fn step(
         out.insert(0, MenuOut::Close(Anim::Fade));
         (MenuTrack::Closed, out)
     };
-    let tracking = |held, entered, hot, sub, pointer, under| MenuTrack::Tracking {
+    let current = Current { menu, shown };
+    let tracking = |shown, held, entered, hot, sub, pointer, under| MenuTrack::Tracking {
         menu,
+        shown,
         held,
         entered,
         hot,
@@ -48,27 +58,55 @@ pub fn step(
         under,
     };
     match input {
-        MenuIn::PressTitle(other) if other == menu => closed(Vec::new()),
-        MenuIn::PressTitle(other) => (opened(other, Held::Held), vec![MenuOut::Switch(other)]),
+        MenuIn::PressTitle(other) if other == menu => match shown {
+            Shown::Pressed => closed(Vec::new()),
+            // The pointer switched to this menu on its way to the press: the press is the click
+            // that opens it, held as a fresh press on the title is.
+            Shown::Hovered => (
+                tracking(
+                    Shown::Pressed,
+                    Held::Held,
+                    entered,
+                    hot,
+                    sub,
+                    pointer,
+                    under,
+                ),
+                Vec::new(),
+            ),
+        },
+        MenuIn::PressTitle(other) => (
+            opened(other, Shown::Pressed, Held::Held),
+            vec![MenuOut::Switch(other)],
+        ),
         MenuIn::OutsidePress => closed(Vec::new()),
         MenuIn::Release(Target::Item {
             path,
             pick: Pick::Enabled,
             ..
         }) => closed(vec![MenuOut::Pick(path)]),
+        // A release on the title, even after dragging onto it, makes the menu the person's own.
         MenuIn::Release(Target::Title(t)) if t == menu && held == Held::Held => (
-            tracking(Held::Released, entered, hot, sub, pointer, under),
+            tracking(
+                Shown::Pressed,
+                Held::Released,
+                entered,
+                hot,
+                sub,
+                pointer,
+                under,
+            ),
             Vec::new(),
         ),
         MenuIn::Release(_) if held == Held::Held => closed(Vec::new()),
         MenuIn::Release(_) => (
-            tracking(held, entered, hot, sub, pointer, under),
+            tracking(shown, held, entered, hot, sub, pointer, under),
             Vec::new(),
         ),
         MenuIn::Move(_, Target::Title(t)) if t != menu => {
-            (opened(t, held), vec![MenuOut::Switch(t)])
+            (opened(t, Shown::Hovered, held), vec![MenuOut::Switch(t)])
         }
-        MenuIn::Move(at, target) => moved(menu, held, entered, hot, sub, at, target, now, p),
+        MenuIn::Move(at, target) => moved(current, held, entered, hot, sub, at, target, now, p),
         MenuIn::SubPlaced { top, bottom } => {
             let sub = match sub {
                 Sub::Open { item, .. } => Sub::Open {
@@ -83,18 +121,19 @@ pub fn step(
                 other => other,
             };
             (
-                tracking(held, entered, hot, sub, pointer, under),
+                tracking(shown, held, entered, hot, sub, pointer, under),
                 Vec::new(),
             )
         }
-        MenuIn::Tick => ticked(menu, held, entered, hot, sub, pointer, under, now, p),
-        MenuIn::Key(key) => keyed(menu, held, entered, hot, sub, pointer, under, key),
+        MenuIn::Tick => ticked(current, held, entered, hot, sub, pointer, under, now, p),
+        MenuIn::Key(key) => keyed(current, held, entered, hot, sub, pointer, under, key),
     }
 }
 
-fn opened(menu: super::types::MenuId, held: Held) -> MenuTrack {
+fn opened(menu: MenuId, shown: Shown, held: Held) -> MenuTrack {
     MenuTrack::Tracking {
         menu,
+        shown,
         held,
         entered: Entered::NotYet,
         hot: None,
@@ -107,7 +146,7 @@ fn opened(menu: super::types::MenuId, held: Held) -> MenuTrack {
 /// A pointer sample inside the session: the safe triangle, then highlight and submenu timing.
 #[allow(clippy::too_many_arguments)]
 fn moved(
-    menu: super::types::MenuId,
+    current: Current,
     held: Held,
     entered: Entered,
     hot: Option<ItemPath>,
@@ -133,7 +172,8 @@ fn moved(
             guard: Some(guard),
         };
         let track = MenuTrack::Tracking {
-            menu,
+            menu: current.menu,
+            shown: current.shown,
             held,
             entered: Entered::Entered,
             hot,
@@ -172,7 +212,8 @@ fn moved(
     }
     (
         MenuTrack::Tracking {
-            menu,
+            menu: current.menu,
+            shown: current.shown,
             held,
             entered,
             hot,
@@ -220,7 +261,7 @@ fn close_sub(sub: Sub, out: &mut Vec<MenuOut>) -> Sub {
 /// A timer: the submenu delay, or the safe triangle's timeout.
 #[allow(clippy::too_many_arguments)]
 fn ticked(
-    menu: super::types::MenuId,
+    current: Current,
     held: Held,
     entered: Entered,
     hot: Option<ItemPath>,
@@ -236,7 +277,8 @@ fn ticked(
             let sub = Sub::Open { item, guard: None };
             (
                 MenuTrack::Tracking {
-                    menu,
+                    menu: current.menu,
+                    shown: current.shown,
                     held,
                     entered,
                     hot,
@@ -253,11 +295,12 @@ fn ticked(
         } if now.since(g.still_since) >= p.triangle_timeout_ms => {
             // The pointer stopped inside the triangle: select what is under it.
             let sub = Sub::Open { item, guard: None };
-            moved(menu, held, entered, hot, sub, pointer, under, now, p)
+            moved(current, held, entered, hot, sub, pointer, under, now, p)
         }
         sub => (
             MenuTrack::Tracking {
-                menu,
+                menu: current.menu,
+                shown: current.shown,
                 held,
                 entered,
                 hot,
@@ -274,7 +317,7 @@ fn ticked(
 /// picks the highlighted item.
 #[allow(clippy::too_many_arguments)]
 fn keyed(
-    menu: super::types::MenuId,
+    current: Current,
     held: Held,
     entered: Entered,
     hot: Option<ItemPath>,
@@ -286,7 +329,8 @@ fn keyed(
     let keep = |sub, out| {
         (
             MenuTrack::Tracking {
-                menu,
+                menu: current.menu,
+                shown: current.shown,
                 held,
                 entered,
                 hot: hot.clone(),

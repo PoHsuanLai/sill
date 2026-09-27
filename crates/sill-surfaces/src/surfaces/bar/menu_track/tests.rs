@@ -5,7 +5,7 @@ use sill_services::Stamp;
 
 use super::{
     Anim, Branch, Guard, Held, ItemPath, MenuId, MenuIn, MenuKey, MenuOut, MenuParams, MenuTrack,
-    Pick, Side, Sub, Target, inside, step,
+    Pick, Shown, Side, Sub, Target, inside, step,
 };
 
 /// One scripted input sequence: `(ms, input)` pairs.
@@ -160,6 +160,102 @@ fn press_drag_release_picks_or_closes() {
             .cloned()
             .collect();
         assert_eq!(tail, want_tail, "{name}");
+    }
+}
+
+#[test]
+fn a_press_on_a_title_the_pointer_switched_to_keeps_its_menu() {
+    // F991: with A open, the pointer enters B (the hover switch shows B), then presses B. That
+    // press is the click that opens B; only a press on a title already pressed closes.
+    let switched = vec![
+        (0, MenuIn::PressTitle(A)),
+        (60, MenuIn::Release(Target::Title(A))),
+        (300, MenuIn::Move(pt(120, 10), Target::Title(B))),
+    ];
+    let shown = |t: &MenuTrack| match t {
+        MenuTrack::Tracking { menu, shown, .. } => Some((*menu, *shown)),
+        MenuTrack::Closed => None,
+    };
+    let cases: Vec<(&str, Script, Option<(MenuId, Shown)>, Option<Held>)> = vec![
+        (
+            "switched to by hover",
+            switched.clone(),
+            Some((B, Shown::Hovered)),
+            Some(Held::Released),
+        ),
+        (
+            "a press on the switched title keeps it, held",
+            [switched.clone(), vec![(400, MenuIn::PressTitle(B))]].concat(),
+            Some((B, Shown::Pressed)),
+            Some(Held::Held),
+        ),
+        (
+            "released there: click mode",
+            [
+                switched.clone(),
+                vec![
+                    (400, MenuIn::PressTitle(B)),
+                    (460, MenuIn::Release(Target::Title(B))),
+                ],
+            ]
+            .concat(),
+            Some((B, Shown::Pressed)),
+            Some(Held::Released),
+        ),
+        (
+            "a second press closes it",
+            [
+                switched.clone(),
+                vec![
+                    (400, MenuIn::PressTitle(B)),
+                    (460, MenuIn::Release(Target::Title(B))),
+                    (900, MenuIn::PressTitle(B)),
+                ],
+            ]
+            .concat(),
+            None,
+            None,
+        ),
+        (
+            "moving inside B's menu keeps it hover-shown",
+            [
+                switched.clone(),
+                vec![(400, MenuIn::Move(pt(130, 60), item(1)))],
+            ]
+            .concat(),
+            Some((B, Shown::Hovered)),
+            Some(Held::Released),
+        ),
+        (
+            "a press-drag onto B released on its title makes it B's own",
+            vec![
+                (0, MenuIn::PressTitle(A)),
+                (100, MenuIn::Move(pt(120, 10), Target::Title(B))),
+                (200, MenuIn::Release(Target::Title(B))),
+            ],
+            Some((B, Shown::Pressed)),
+            Some(Held::Released),
+        ),
+        (
+            "a press on A's own title still closes A",
+            vec![
+                (0, MenuIn::PressTitle(A)),
+                (60, MenuIn::Release(Target::Title(A))),
+                (500, MenuIn::PressTitle(A)),
+            ],
+            None,
+            None,
+        ),
+    ];
+    for (name, inputs, want, want_held) in cases {
+        let (t, out) = run(inputs);
+        assert_eq!(shown(&t), want, "{name}");
+        assert_eq!(held(&t), want_held, "{name}");
+        assert!(
+            !out.iter()
+                .any(|o| matches!(o, MenuOut::Open(m, _) if *m == B)),
+            "{name}: B is swapped in, never opened afresh"
+        );
     }
 }
 

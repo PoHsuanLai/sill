@@ -16,7 +16,7 @@ pub use machine::step;
 pub use triangle::{guarded, inside};
 pub use types::{
     Anim, Branch, Entered, Guard, Held, ItemPath, MenuId, MenuIn, MenuKey, MenuOut, MenuParams,
-    MenuTrack, Pick, Side, Sub, Target,
+    MenuTrack, Pick, Shown, Side, Sub, Target,
 };
 
 #[cfg(test)]
