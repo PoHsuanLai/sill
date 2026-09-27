@@ -153,9 +153,11 @@ pub enum IdleEffect {
 
 /// `state` after `event`, and the effects to perform (module doc).
 pub fn reduce(state: IdleState, event: IdleEvent) -> (IdleState, Vec<IdleEffect>) {
-    let _ = (state, event);
-    todo!("idle fill: F903's rules")
+    rules::reduce(state, event)
 }
+
+#[path = "reduce_rules.rs"]
+mod rules;
 
 #[cfg(test)]
 #[path = "reduce_tests.rs"]

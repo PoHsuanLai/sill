@@ -39,7 +39,6 @@ fn watch(stage: Threshold, after: u32) -> Watch {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn sill_owns_idle_only_in_its_own_session_with_no_cosmic_idle() {
     use CosmicIdle::{Absent, Running};
     let cases = [
@@ -68,7 +67,6 @@ fn sill_owns_idle_only_in_its_own_session_with_no_cosmic_idle() {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn cosmic_times_use_one_screen_off_time_for_both_sources() {
     let cosmic = CosmicIdleTimes {
         screen_off: after(600),
@@ -90,7 +88,6 @@ fn cosmic_times_use_one_screen_off_time_for_both_sources() {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn battery_only_while_discharging() {
     let battery = |presence, charge| Battery {
         presence,
@@ -120,7 +117,6 @@ fn battery_only_while_discharging() {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn the_watches_follow_power_lock_and_never() {
     let times = IdleTimes {
         screen_off: pair(after(900), after(120)),

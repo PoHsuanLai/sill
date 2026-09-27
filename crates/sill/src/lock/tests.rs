@@ -82,6 +82,7 @@ fn the_report_mirrors_the_locker() {
         LockReport {
             phase: ReportLockPhase::Locking,
             drawer: ReportDrawer::Shell,
+            cause: None,
         }
     );
     assert_eq!(
@@ -89,6 +90,15 @@ fn the_report_mirrors_the_locker() {
         LockReport {
             phase: ReportLockPhase::Unlocked,
             drawer: ReportDrawer::Program,
+            cause: None,
         }
+    );
+    let idle = Lock {
+        cause: Some(sill_services::LockCause::IdleScreenOff),
+        ..lock(LockPhase::Locked, LockDrawer::Shell)
+    };
+    assert_eq!(
+        report_of(&idle).cause,
+        Some(sill_ipc::ReportLockCause::IdleScreenOff)
     );
 }

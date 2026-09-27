@@ -11,6 +11,7 @@ use std::time::Instant;
 use tokio::sync::{mpsc, watch};
 use zbus::zvariant::OwnedFd;
 
+use super::cause::{LockCause, cause_after, cause_of};
 use super::child::{self, Generation, Heard, Word};
 use super::choice::{Host, LockerChoice, LockerMode, SessionManager, resolve};
 use super::logind::{self, Logind, next_opt};
@@ -31,6 +32,8 @@ struct Live {
     generation: Generation,
     pid: Option<Pid>,
     words: mpsc::UnboundedSender<Word>,
+    /// What started the lock in place (F907).
+    cause: Option<LockCause>,
 }
 
 /// Runs until `commands` closes. Inert (`LockerMode::Off`) until the first `Configure`/`Use`.
@@ -49,6 +52,7 @@ pub(super) async fn run(
         generation: Generation::default(),
         pid: None,
         words,
+        cause: None,
     };
     loop {
         let deadline = next_deadline(&live.machine).map(|at| live.instant(at));
@@ -107,10 +111,11 @@ impl Live {
                 let now = self.now();
                 self.feed(LockerEvent::Requested(Cause::Action, now)).await;
             }
-            // Idle fill (sill FINDINGS "sill idle (Q420 B)", F904): feed
-            // `Requested(Cause::Idle, now)` and record `LockCause::IdleScreenOff`. A no-op until
-            // then: nothing sends it while the idle service is a stub.
-            LockerCommand::IdleLock => {}
+            // sill's own idle turned the displays off (F904).
+            LockerCommand::IdleLock => {
+                let now = self.now();
+                self.feed(LockerEvent::Requested(Cause::Idle, now)).await;
+            }
             LockerCommand::Shell(event) => {
                 self.keep_marker(event);
                 let event = match event {
@@ -139,7 +144,8 @@ impl Live {
         };
         if restore_on_start(&self.mode, found) == Restore::LockNow {
             let now = self.now();
-            self.feed(LockerEvent::Requested(Cause::Action, now)).await;
+            let event = LockerEvent::Requested(Cause::Action, now);
+            self.feed_as(event, Some(LockCause::Restored)).await;
         }
         // A locker already running (a previous sill's, or one started by hand) is adopted, so
         // the next Lock never starts a second.
@@ -201,6 +207,12 @@ impl Live {
 
     /// Steps the machine with `event` and performs what it asks, feeding back any failure.
     async fn feed(&mut self, event: LockerEvent) {
+        self.feed_as(event, cause_of(&event)).await;
+    }
+
+    /// [`Self::feed`], naming the cause a lock it starts gets (F907).
+    async fn feed_as(&mut self, event: LockerEvent, why: Option<LockCause>) {
+        let was = self.machine.phase.public();
         let mut pending = vec![event];
         while let Some(event) = pending.pop() {
             let (next, effects) = step(self.machine, event);
@@ -209,6 +221,7 @@ impl Live {
                 pending.extend(self.perform(effect).await);
             }
         }
+        self.cause = cause_after(self.cause, was, self.machine.phase.public(), why);
         self.publish();
     }
 
@@ -265,8 +278,7 @@ impl Live {
             phase: self.machine.phase.public(),
             pid: self.pid,
             drawer,
-            // Idle fill: the cause of the lock in place (F907).
-            cause: None,
+            cause: self.cause,
         };
         self.tx.send_if_modified(|current| {
             let changed = *current != lock;

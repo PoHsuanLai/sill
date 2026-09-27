@@ -29,10 +29,11 @@ use std::time::Duration;
 
 use shell_host::{Focus, HostEvent, HostHandle, LockId, LockState, SurfaceId};
 use sill_ipc::{
-    Failure, FailureKind, FakeAuth, LockReport, ReportDrawer, ReportLockPhase, Response,
+    Failure, FailureKind, FakeAuth, LockReport, ReportDrawer, ReportLockCause, ReportLockPhase,
+    Response,
 };
 use sill_services::{
-    Auth, AuthCommand, AuthPhase, Lock, LockDrawer, LockPhase, LockerCommand, Services,
+    Auth, AuthCommand, AuthPhase, Lock, LockCause, LockDrawer, LockPhase, LockerCommand, Services,
     ShellLockEvent,
 };
 use sill_surfaces::surfaces::banners::BannerOutput;
@@ -231,6 +232,14 @@ pub fn report_of(lock: &Lock) -> LockReport {
             LockDrawer::Program => ReportDrawer::Program,
             LockDrawer::Shell => ReportDrawer::Shell,
         },
+        cause: lock.cause.map(|cause| match cause {
+            LockCause::IdleScreenOff => ReportLockCause::IdleScreenOff,
+            LockCause::Action => ReportLockCause::Action,
+            LockCause::Logind => ReportLockCause::Logind,
+            LockCause::Sleep => ReportLockCause::Sleep,
+            LockCause::Restored => ReportLockCause::Restored,
+            LockCause::Adopted => ReportLockCause::Adopted,
+        }),
     }
 }
 

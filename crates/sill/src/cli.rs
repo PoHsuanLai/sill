@@ -24,8 +24,8 @@ pub use crate::cli_notifications::{
     notifications_request,
 };
 pub use crate::cli_session::{
-    FakeAuthArg, FakePolkitArgs, LockVerb, PolkitAction, SwitcherAction, fake_auth, fake_polkit,
-    fake_switcher, lock_request, polkit_request, switcher_request,
+    FakeAuthArg, FakePolkitArgs, IdleAction, LockVerb, PolkitAction, SwitcherAction, fake_auth,
+    fake_polkit, fake_switcher, idle_request, lock_request, polkit_request, switcher_request,
 };
 use sill_ipc::{
     ControlCenterRequest, DebugRequest, DesktopId, DockRequest, FakeMute, FakeOsd, LauncherRequest,
@@ -104,6 +104,11 @@ pub enum Command {
     Polkit {
         #[command(subcommand)]
         action: PolkitAction,
+    },
+    /// sill's own idle: the dim, the displays off, the lock at screen off and the idle suspend.
+    Idle {
+        #[command(subcommand)]
+        action: IdleAction,
     },
     /// The launcher's clipboard history (M9).
     Clipboard {
@@ -259,6 +264,9 @@ pub enum DebugAction {
     },
     /// Print the open launcher's sections, rows and preview (a debug daemon only; M9).
     LauncherRows,
+    /// Wake idle as real input would (a debug daemon only; inside the lock grace it opens the
+    /// lock).
+    IdleWake,
 }
 
 /// `sill debug osd TOPIC`: the command line's spelling of [`OsdTopic`].
@@ -315,6 +323,7 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::Lock { verb } => lock_request(*verb),
         Command::Switcher { action } => switcher_request(*action),
         Command::Polkit { action } => polkit_request(*action),
+        Command::Idle { action } => idle_request(*action),
         Command::Clipboard { action } => clipboard_request(*action),
         Command::Launcher { action } => Request::Launcher(match action {
             LauncherAction::Toggle => LauncherRequest::Toggle,
@@ -404,6 +413,7 @@ pub fn request(command: &Command) -> Option<Request> {
             DebugAction::Switcher { apps } => DebugRequest::Switcher(fake_switcher(apps)),
             DebugAction::LauncherKey { key } => DebugRequest::LauncherKey(launcher_key(*key)),
             DebugAction::LauncherRows => DebugRequest::LauncherRows,
+            DebugAction::IdleWake => DebugRequest::IdleWake,
         }),
     })
 }
@@ -460,6 +470,10 @@ mod tests {
                 Some(Request::Polkit(PolkitRequest::Status)),
             ),
             (
+                &["idle", "status"],
+                Some(Request::Idle(sill_ipc::IdleRequest::Status)),
+            ),
+            (
                 &["clipboard", "status"],
                 Some(Request::Clipboard(sill_ipc::ClipboardRequest::Status)),
             ),
@@ -476,6 +490,10 @@ mod tests {
             (
                 &["debug", "launcher-rows"],
                 Some(Request::Debug(DebugRequest::LauncherRows)),
+            ),
+            (
+                &["debug", "idle-wake"],
+                Some(Request::Debug(DebugRequest::IdleWake)),
             ),
             (
                 &["debug", "auth", "accept"],

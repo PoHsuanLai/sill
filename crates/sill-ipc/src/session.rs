@@ -4,6 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::idle::ReportLockCause;
+
 /// `sill switcher ...`: COSMIC's `WindowSwitcher` / `WindowSwitcherPrevious` shortcuts run
 /// `next` / `prev` (`dist/cosmic`); `cancel` and `commit` are for scripts and for a compositor
 /// that tells sill about the modifier's release some other way.
@@ -41,6 +43,8 @@ pub enum PolkitRequest {
 pub struct LockReport {
     pub phase: ReportLockPhase,
     pub drawer: ReportDrawer,
+    /// What started the lock in place; `null` while unlocked (FINDINGS F907).
+    pub cause: Option<ReportLockCause>,
 }
 
 /// `sill_services::LockPhase`'s mirror.

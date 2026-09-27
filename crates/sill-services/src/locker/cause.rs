@@ -6,6 +6,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::machine::{Cause, LockPhase, LockerEvent};
+
 /// What started the current lock.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -27,4 +29,82 @@ pub enum LockCause {
     Restored,
     /// A locker program was already running when sill looked, and was adopted (F386).
     Adopted,
+}
+
+/// The cause to publish after one step of the locker's machine: `None` once unlocked; `why`
+/// when the step moved the lock off `Unlocked`; else the cause already kept (a request while
+/// locked never changes it).
+pub fn cause_after(
+    kept: Option<LockCause>,
+    was: LockPhase,
+    now: LockPhase,
+    why: Option<LockCause>,
+) -> Option<LockCause> {
+    match (was, now) {
+        (_, LockPhase::Unlocked) => None,
+        (LockPhase::Unlocked, LockPhase::Locking | LockPhase::Locked) => why.or(kept),
+        (LockPhase::Locking | LockPhase::Locked, LockPhase::Locking | LockPhase::Locked) => kept,
+    }
+}
+
+/// The cause a machine event carries if it starts a lock.
+pub fn cause_of(event: &LockerEvent) -> Option<LockCause> {
+    match event {
+        LockerEvent::Requested(Cause::Action, _) => Some(LockCause::Action),
+        LockerEvent::Requested(Cause::Logind, _) => Some(LockCause::Logind),
+        LockerEvent::Requested(Cause::Idle, _) => Some(LockCause::IdleScreenOff),
+        LockerEvent::SleepStarting(_) => Some(LockCause::Sleep),
+        LockerEvent::Adopted => Some(LockCause::Adopted),
+        LockerEvent::Configured(..)
+        | LockerEvent::Woke
+        | LockerEvent::Reported
+        | LockerEvent::Exited
+        | LockerEvent::InhibitorRefused
+        | LockerEvent::Tick(_) => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{LockCause, cause_after};
+    use crate::locker::LockPhase::{Locked, Locking, Unlocked};
+
+    #[test]
+    fn the_first_cause_stands_until_unlocked() {
+        use LockCause::{Action, IdleScreenOff, Sleep};
+        let cases = [
+            (
+                None,
+                Unlocked,
+                Locking,
+                Some(IdleScreenOff),
+                Some(IdleScreenOff),
+            ),
+            (None, Unlocked, Locked, Some(Action), Some(Action)),
+            (
+                Some(Action),
+                Locked,
+                Locked,
+                Some(IdleScreenOff),
+                Some(Action),
+            ),
+            (
+                Some(IdleScreenOff),
+                Locking,
+                Locked,
+                None,
+                Some(IdleScreenOff),
+            ),
+            (Some(Action), Locking, Locked, Some(Sleep), Some(Action)),
+            (Some(Action), Locked, Unlocked, None, None),
+            (None, Unlocked, Unlocked, Some(Action), None),
+        ];
+        for (kept, was, now, why, want) in cases {
+            assert_eq!(
+                cause_after(kept, was, now, why),
+                want,
+                "{kept:?} {was:?} {now:?}"
+            );
+        }
+    }
 }

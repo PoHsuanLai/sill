@@ -99,9 +99,7 @@ impl Live {
             AuthCommand::Submit(secret) => self.submit(secret),
             AuthCommand::Reset => self.reset(),
             AuthCommand::Fake(verdict) => self.fake(verdict),
-            // Idle fill (F908): publish `Accepted` as a right password would. A no-op until
-            // then: nothing can mint a ticket while `grace_verdict` is a stub.
-            AuthCommand::Grace(_) => {}
+            AuthCommand::Grace(_ticket) => self.grace(),
         }
     }
 
@@ -126,6 +124,21 @@ impl Live {
             let _ = done.send(Finished { round, verdict });
         });
         self.publish_out(&out, &Verdict::plain(Outcome::Refused));
+    }
+
+    /// The lock grace (F908): `Accepted` as a right password would publish it, with no check,
+    /// so the lock surfaces unlock through their one path. Ignored while a check runs (the
+    /// person is already typing; their own verdict stands).
+    fn grace(&mut self) {
+        match self.checks.gate {
+            Gate::Checking => {}
+            Gate::Open => {
+                let (checking, _) = step(self.checks, GateIn::Submit);
+                let (next, out) = step(checking, GateIn::Verdict(Outcome::Accepted));
+                self.checks = next;
+                self.publish_out(&out, &Verdict::plain(Outcome::Accepted));
+            }
+        }
     }
 
     fn reset(&mut self) {

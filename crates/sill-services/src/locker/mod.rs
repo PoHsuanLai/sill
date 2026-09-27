@@ -14,11 +14,11 @@ mod cause;
 mod child;
 mod choice;
 mod live;
-mod logind;
+pub(crate) mod logind;
 mod machine;
 pub mod marker;
 
-pub use cause::LockCause;
+pub use cause::{LockCause, cause_after, cause_of};
 pub use choice::{
     COSMIC_LOCKED_LINE, GRACE_MS, Host, KnownLocker, LockerChoice, LockerMode, LockerPlan,
     NO_SYSTEM_BUS, Readiness, SessionManager, resolve,
@@ -45,8 +45,7 @@ pub struct Lock {
     /// shell-host's session lock whenever `phase` is not `Unlocked` (M11, FINDINGS F544).
     pub drawer: LockDrawer,
     /// What started the current lock; `None` while `Unlocked` (sill FINDINGS "sill idle (Q420
-    /// B)", F907). The idle fill sets it; until then it stays `None`, which the grace rule reads
-    /// as "ask".
+    /// B)", F907), kept from the request that started the lock until it is unlocked.
     pub cause: Option<LockCause>,
 }
 

@@ -141,7 +141,6 @@ const CASES: &[Row] = &[
 ];
 
 #[test]
-#[ignore = "idle fill"]
 fn the_grace_opens_only_a_quick_wake_from_an_idle_screen_off_lock() {
     for &(name, cause, drawer, grace, woke, sleep, want) in CASES {
         let case = GraceCase {
