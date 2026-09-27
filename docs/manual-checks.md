@@ -62,6 +62,14 @@ further down. The monitor is the BenQ MA270U (27", 3840 x 2160, on HDMI-A-2).
   a flick; after a click on one card, the next card under the pointer should still pause and
   show its close button (FINDINGS G101 says it does not until the pointer leaves the column and
   comes back).
+- [ ] **No grey block behind a moving banner** (FINDINGS F1010, once shell-host's G410 lands; at
+  scale 2 on the 4K output, over a busy wallpaper): drag a banner right and hold, then let it
+  fly; click one away. Nothing grey stands where the card was, during the motion or after it.
+  `dev/accept-notifications-real-input.sh ghost` with `KWIN_SCALE=2` should then pass whole.
+- [ ] **Notification center rises** (F1012): each opening, the groups rise in turn under the
+  panel's slide; "N more" rises the added cards downward from the head, `--stagger` apart, and a
+  reopening plays it again while a new notification arriving does not replay it. Compare with
+  macOS Sequoia's Notification Center side by side.
 - [ ] **Notification center keys with a real keyboard** (real Escape, Down and Delete already
   pass on a headless KWin): open it from the clock; Up/Down move the ring, Return opens a
   group's "N more" or invokes a lone card's default action, Backspace (the Mac keyboard's

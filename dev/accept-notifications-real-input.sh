@@ -23,10 +23,14 @@
 #   5. A real 90 px drag to the right swipes it away: the column unmaps, banners 0, and it stays in
 #      the notification center (kept unchanged; notifications.swipe = keep_in_center).
 #   6. A real 50 px drag, slowed before the release: the card springs back and stays up.
+#  6b. F1010: after a real click on a card, and after a real swipe, the card's box on the output,
+#      as KWin composites it (spectacle), is the wallpaper as it was before the card came.
 #   7. A real click on the clock opens the center; real Escape closes it.
 #   8. Opened again by a click on the clock, a real click outside the column closes it.
 #   9. In the center, a real Down focuses the first group's header (two from one app) and a real
 #      Delete clears the group: kept falls by two.
+#  9b. A real click on Clear All (found in a capture of the center): kept falls to 0 and the
+#      center then rests, 0 frames over 3 s (its exit waits on quire Q510, F1013).
 #  10. Overflowed with 15 cards, a real wheel over the column (fake-input's `axis`, shell-host
 #      FINDINGS F63) scrolls it: the whole column moves, title included. Rubber-band at the top
 #      is not exercised: wheel scrolling never stretches (F63 §11.3.7's last row and its own "no
@@ -43,7 +47,14 @@
 #
 # Exit 0 only when every step passed; 1 on a failure.
 #
+# The wallpaper is a fine checkerboard (`seed_checks`) so blur shows as grey. KWIN_SCALE=2 runs
+# the output at 3840 x 2160 and scale 2, the user's KDE setup (F1011). ACCEPT_STEPS="step_a
+# step_b" runs just those steps.
+#
 # Usage: dev/accept-notifications-real-input.sh           (the acceptance)
+#        dev/accept-notifications-real-input.sh ghost     (F1010: the blur left behind mid-drag;
+#                                                          FAILS while shell-host's G410 stands)
+#        dev/accept-notifications-real-input.sh clear     (9b alone)
 #        dev/accept-notifications-real-input.sh repro     (G100, G101 closed: regression checks;
 #                                                          Q170: FAILS while it stands)
 set -uo pipefail
@@ -55,6 +66,9 @@ KWIN_ENV="$SHELL_HOST_DEV/.kwin-env"
 SIZE=1920x1080
 WIDTH=${SIZE%x*}
 HEIGHT=${SIZE#*x}
+# KWIN_SCALE=2 runs the output at twice the pixels and scale 2 (the user's 4K at 200 %, F1010):
+# every coordinate here stays logical; captures are read back at their own density.
+SCALE=${KWIN_SCALE:-1}
 HOLD_MS=5200
 EXIT_MS=250
 SLACK_MS=400
@@ -91,7 +105,8 @@ build() {
 # The headless KWin, and its socket (absolute) and bus from its env file, read without sourcing
 # it into this shell: `kwin-virtual.sh stop` must never find this script naming the bus.
 start_kwin() {
-  "$SHELL_HOST_DEV/kwin-virtual.sh" start "$SIZE" >"$OUT_DIR/kwin.log" 2>&1 || return 1
+  "$SHELL_HOST_DEV/kwin-virtual.sh" start "$(( WIDTH * SCALE ))x$(( HEIGHT * SCALE ))" \
+    >"$OUT_DIR/kwin.log" 2>&1 || return 1
   local runtime socket
   runtime=$(sed -n 's/^export XDG_RUNTIME_DIR=//p' "$KWIN_ENV")
   socket=$(sed -n 's/^export WAYLAND_DISPLAY=//p' "$KWIN_ENV")
@@ -99,6 +114,42 @@ start_kwin() {
   WL="$runtime/$socket"
   [ -S "$WL" ] && [ -n "$BUS" ] || { echo "no socket or bus in $KWIN_ENV" >&2; return 1; }
   [ "$BUS" != "${DBUS_SESSION_BUS_ADDRESS:-}" ] || { echo "KWin's bus is the session's" >&2; return 1; }
+  [ "$SCALE" = 1 ] && return 0
+  local output
+  output=$(in_env kscreen-doctor -j 2>/dev/null | python3 -c '
+import json, sys
+print(json.load(sys.stdin)["outputs"][0]["name"])')
+  in_env kscreen-doctor "output.$output.scale.$SCALE" >>"$OUT_DIR/kwin.log" 2>&1 || return 1
+}
+
+# A wallpaper of fine checks (2 px), seeded as the COSMIC background record sill's wallpaper
+# reads: blur over it shows as flat grey where the checks were, which a flat wallpaper hides
+# (F1010).
+seed_checks() {
+  local png="$OUT_DIR/checks.png" record="$CONFIG/cosmic/com.system76.CosmicBackground/v1"
+  python3 - "$png" "$WIDTH" "$HEIGHT" "$SCALE" <<'EOF' || return 1
+import sys
+from PIL import Image
+out, w, h, k = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
+cell = 2 * k
+img = Image.new("RGB", (w * k, h * k))
+img.putdata([(40, 40, 40) if ((x // cell) + (y // cell)) % 2 else (220, 220, 220)
+             for y in range(h * k) for x in range(w * k)])
+img.save(out)
+EOF
+  mkdir -p "$record"
+  cat >"$record/all" <<RON
+(
+    output: "all",
+    source: Path("$png"),
+    filter_by_theme: false,
+    rotation_frequency: 3600,
+    filter_method: Lanczos,
+    scaling_mode: Zoom,
+    sampling_method: Alphanumeric,
+)
+RON
+  echo true >"$record/same-on-all"
 }
 
 stop_kwin() {
@@ -179,6 +230,7 @@ stop_monitor() {
 start_daemon() {
   printf '[notifications]\nserver = "own"\n[control_center]\nmenu_bar_sound = "hide"\nmenu_bar_battery = "hide"\n' \
     >"$CONFIG/sill/settings.toml"
+  seed_checks || { echo "no checks wallpaper" >&2; return 1; }
   in_env "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
@@ -298,8 +350,10 @@ import sys
 from PIL import Image
 img = Image.open(sys.argv[1]).convert("RGBA")
 ox, oy = int(sys.argv[2]), int(sys.argv[3])
+k = img.width / 440
 box = img.getchannel("A").point(lambda a: 255 if a > 200 else 0).getbbox()
 if box:
+    box = [round(v / k) for v in box]
     print(box[0] + ox, box[1] + oy, box[2] + ox, box[3] + oy)
 EOF
 )
@@ -320,7 +374,8 @@ close_shown() {
 import sys
 from PIL import Image
 img = Image.open(sys.argv[1]).convert("RGBA")
-print("yes" if img.getpixel((43, 43))[3] > 200 else "no")
+k = img.width / 440
+print("yes" if img.getpixel((round(43 * k), round(43 * k)))[3] > 200 else "no")
 EOF
 }
 
@@ -336,7 +391,7 @@ post_card() {
 # (dev/accept-real-input.sh's reading; the clock's is first). Prints "x" per item.
 status_items() {
   sill debug capture "$BAR" "$OUT_DIR/bar.png" >/dev/null 2>&1 || return 1
-  python3 - "$OUT_DIR/bar.png" <<'EOF'
+  python3 - "$OUT_DIR/bar.png" "$WIDTH" <<'EOF'
 import sys
 from PIL import Image
 img = Image.open(sys.argv[1]).convert("RGB")
@@ -355,7 +410,7 @@ for x in range(w - 1, w // 2, -1):
         if gap > 7:
             runs.append(run); run = None
 for left, right in runs:
-    print((left + right) // 2)
+    print(round((left + right) / 2 * int(sys.argv[2]) / w))
 EOF
 }
 
@@ -634,6 +689,185 @@ repro_card_under_resting_pointer() {
   [ "$moved" = yes ]
 }
 
+# The whole output as KWin composites it (blur, stale buffers and all), to $1: spectacle on the
+# headless KWin's socket and private bus (KWin's ScreenShot2 answers only a client whose desktop
+# file lists it, which spectacle's does). `sill debug capture` renders a surface offscreen and so
+# cannot see what the compositor still draws for it (F1010).
+screen_shot() {
+  rm -f "$1"
+  in_env QT_QPA_PLATFORM=wayland timeout 20 spectacle -b -n -f -o "$1" >/dev/null 2>&1
+  [ -s "$1" ]
+}
+
+# How far the box "x0 y0 x1 y1" of shot $2 differs from shot $1: the largest per-pixel channel
+# sum, and how many pixels differ by more than 24.
+shot_diff() {
+  python3 - "$1" "$2" "$3" "$WIDTH" <<'EOF'
+import sys
+from PIL import Image, ImageChops
+a = Image.open(sys.argv[1]).convert("RGB")
+b = Image.open(sys.argv[2]).convert("RGB")
+k = a.width / int(sys.argv[4])
+box = tuple(round(int(v) * k) for v in sys.argv[3].split())
+d = ImageChops.difference(a.crop(box), b.crop(box))
+sums = [r + g + bl for r, g, bl in d.get_flattened_data()]
+print(max(sums), sum(1 for s in sums if s > 24))
+EOF
+}
+
+# Wait up to 10 s for the checks wallpaper to show on the output (sill's wallpaper surface loads
+# it after the daemon is up).
+await_checks() {
+  local png="$OUT_DIR/checks-up.png"
+  for _ in $(seq 10); do
+    screen_shot "$png" && python3 - "$png" <<'EOF' && return 0
+import sys
+from PIL import Image
+img = Image.open(sys.argv[1]).convert("L")
+w, h = img.size
+row = [img.getpixel((x, h // 2)) for x in range(w // 2, w // 2 + 64)]
+sys.exit(0 if max(row) - min(row) > 100 else 1)
+EOF
+    sleep 1
+  done
+  echo "the checks wallpaper never showed" >&2
+  return 1
+}
+
+# F1010: after a card leaves (by $1: click or swipe), the output where it stood is what it was
+# before the card came, as KWin composites it. $2 names the captures.
+ghost_check() {
+  local how="$1" name="$2" box worst count
+  rest || return 1
+  wait_surface "$BANNERS" 50 down || { echo "a card from before is still up" >&2; return 1; }
+  await_checks || return 1
+  screen_shot "$OUT_DIR/$name-before.png" || { echo "no compositor shot" >&2; return 1; }
+  case "$how" in
+    click) post_card "Ghost $name" --app accept --body "Leaves nothing behind." \
+      --action default=Open --expire never || return 1 ;;
+    swipe) post_card "Ghost $name" --app accept --body "Leaves nothing behind." \
+      --expire never || return 1 ;;
+  esac
+  screen_shot "$OUT_DIR/$name-up.png"
+  box="$(( CARD_X0 - 8 )) $(( CARD_Y0 - 8 )) $(( CARD_X1 + 8 )) $(( CARD_Y1 + 8 ))"
+  case "$how" in
+    click) click "$CARD_X" "$CARD_Y" || return 1 ;;
+    swipe) drag $(( CARD_X - 60 )) "$CARD_Y" 90 15 30 0 || return 1 ;;
+  esac
+  [ "$(await_hidden 3000)" -ge 0 ] || { echo "the column stayed up after the $how" >&2; return 1; }
+  rest || return 1
+  sleep 0.5
+  screen_shot "$OUT_DIR/$name-after.png" || return 1
+  read -r worst count <<<"$(shot_diff "$OUT_DIR/$name-before.png" "$OUT_DIR/$name-after.png" "$box")"
+  echo "F1010 $how: the card's box ($box) after it left vs before it came: worst $worst," \
+    "$count px off (captures $name-{before,up,after}.png)" >&2
+  [ "$count" = 0 ]
+}
+
+# F1010, mid-drag: with a real press held 60 px right of where it went down, nothing but the card
+# is grey. The band the card has moved off (its old left 60 px, from its top to its bottom)
+# must show the wallpaper as it was before the card came.
+step_ghost_held() {
+  local box worst count x y
+  rest || return 1
+  await_checks || return 1
+  screen_shot "$OUT_DIR/ghost-held-before.png" || return 1
+  post_card "Ghost held" --app accept --body "Dragged, and held." --expire never || return 1
+  x=$(( CARD_X - 60 )); y=$CARD_Y
+  point "$x" "$y" || return 1
+  input "press left" "sleep 60" "move $(( x + 20 )) $y" "sleep 30" "move $(( x + 40 )) $y" \
+    "sleep 30" "move $(( x + 60 )) $y" "sleep 400" || return 1
+  screen_shot "$OUT_DIR/ghost-held-mid.png" || return 1
+  input "release left" "sleep 200" || return 1
+  box="$(( CARD_X0 + 8 )) $(( CARD_Y0 + 16 )) $(( CARD_X0 + 52 )) $(( CARD_Y1 - 16 ))"
+  read -r worst count <<<"$(shot_diff "$OUT_DIR/ghost-held-before.png" "$OUT_DIR/ghost-held-mid.png" "$box")"
+  echo "F1010 held: the band the card moved off ($box) mid-drag vs before it came: worst $worst," \
+    "$count px off (ghost-held-{before,mid}.png)" >&2
+  rest; clear_all
+  [ "$count" = 0 ]
+}
+
+# The center's Clear All, "x y" on the output: the rightmost run of ink in the head row of a
+# capture of the center (the title is the leftmost), offset by nothing (the center's surface
+# covers the output below the bar, so its capture's origin is the bar's height down).
+clear_all_at() {
+  python3 - "$1" "$(( WIDTH ))" <<'EOF'
+import sys
+from PIL import Image
+img = Image.open(sys.argv[1]).convert("RGBA")
+k = img.width / int(sys.argv[2])
+a = img.getchannel("A")
+box = a.point(lambda v: 255 if v > 200 else 0).getbbox()
+x0, y0, x1, y1 = box
+top = y0 + round(12 * k)
+band = range(top, top + round(28 * k))
+lum = img.convert("L")
+ground = sorted(lum.getpixel((x, top + round(14 * k))) for x in range(x0 + 20, x1 - 20))
+ground = ground[len(ground) // 2]
+def inked(x):
+    return any(abs(lum.getpixel((x, y)) - ground) > 60 for y in band)
+runs, run, gap = [], None, 0
+for x in range(x1 - round(14 * k), x0, -1):
+    if inked(x):
+        run = [x, x] if run is None else [x, run[1]]
+        gap = 0
+    elif run is not None:
+        gap += 1
+        if gap > round(10 * k):
+            runs.append(run); run = None
+            break
+if run is not None:
+    runs.append(run)
+left, right = runs[0]
+print(round((left + right) / 2 / k), round((top + 14 * k) / k))
+EOF
+}
+
+# The top of the sill window as large as capture $1 (logical px), from KWin's window list.
+surface_top() {
+  "$SHELL_HOST_DEV/kwin-windows.sh" --class sill 2>/dev/null | python3 -c '
+import json, sys
+from PIL import Image
+img = Image.open(sys.argv[1]); k = img.width / int(sys.argv[2])
+w, h = round(img.width / k), round(img.height / k)
+for line in sys.stdin:
+    f = json.loads(line)["frame"]
+    if round(f[2]) == w and round(f[3]) == h:
+        print(round(f[1])); sys.exit(0)
+sys.exit(1)' "$1" "$WIDTH"
+}
+
+# 9b. Clear All with a real click in the center: the history empties and the center then rests
+# at 0 frames (its exit and heal wait on quire, Q510; F1012).
+step_center_clear_all() {
+  local at x y bar c0 c1
+  notify "Ada" --app chat --body "Hi" || return 1
+  notify "Build" --app ci --body "Passed" || return 1
+  sleep $(( (HOLD_MS + EXIT_MS + SLACK_MS) / 1000 + 1 ))
+  wait_surface "$BANNERS" 50 down || { echo "the banners stayed up" >&2; return 1; }
+  clock_click || return 1
+  wait_surface "$CENTER" 20 up || { echo "a click on the clock opened nothing" >&2; return 1; }
+  sleep 0.8
+  mapped "$CENTER" "$OUT_DIR/clear-all-before.png" || { echo "no capture of the center" >&2; return 1; }
+  at=$(clear_all_at "$OUT_DIR/clear-all-before.png") || { echo "no Clear All found" >&2; return 1; }
+  read -r x y <<<"$at"
+  bar=$(surface_top "$OUT_DIR/clear-all-before.png") || { echo "no center in KWin's list" >&2; return 1; }
+  click "$x" $(( y + bar )) || return 1
+  await_status kept 0 || { echo "a click at $x $(( y + bar )) cleared nothing" >&2; return 1; }
+  sleep 1
+  mapped "$CENTER" "$OUT_DIR/clear-all-after.png"
+  c0=$(frames_of "$CENTER"); sleep 3; c1=$(frames_of "$CENTER")
+  echo "a real click on Clear All at $x $(( y + bar )): kept 0; then 3 s idle:" \
+    "$CENTER $((c1 - c0)) frames" >&2
+  key Escape
+  wait_surface "$CENTER" 20 down
+  [ "$((c1 - c0))" = 0 ]
+}
+
+# 5b, 5c.
+step_ghost_click() { ghost_check click ghost-click; }
+step_ghost_swipe() { ghost_check swipe ghost-swipe; }
+
 cleanup() {
   stop_input
   stop_monitor
@@ -654,8 +888,11 @@ start_input || { echo "no fake input client" >&2; exit 1; }
 # it known. Rest it on the desktop.
 rest; rest
 STEPS="step_holder step_hover step_click_default step_close_button step_swipe step_spring_back
-  step_center_clock_escape step_center_outside step_center_delete step_center_scroll step_idle
-  step_holder"
+  step_ghost_click step_ghost_swipe step_center_clock_escape step_center_outside
+  step_center_delete step_center_clear_all step_center_scroll step_idle step_holder"
+[ "${1:-}" = ghost ] && STEPS="step_holder step_ghost_held step_ghost_click step_ghost_swipe"
+[ "${1:-}" = clear ] && STEPS="step_holder step_center_clear_all"
+[ -n "${ACCEPT_STEPS:-}" ] && STEPS="$ACCEPT_STEPS"
 [ "${1:-}" = repro ] && STEPS="step_holder repro_enter_one_motion repro_hover_after_unmap repro_card_under_resting_pointer"
 status=0
 for step in $STEPS; do
