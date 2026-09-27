@@ -40,8 +40,8 @@ pub(crate) use panel::PanelCap;
 
 pub use geometry::{Placed, Span, estimate_size, height_cap, place, span};
 pub use labels::{
-    bluetooth_status, device_detail, focus_status, network_detail, profile_label, track_lines,
-    wifi_status,
+    bluetooth_status, bluetooth_tile_status, device_detail, focus_status, network_detail,
+    profile_label, track_lines, wifi_status,
 };
 pub use level::LevelModule;
 pub use link::{ControlCenterAsk, ControlCenterLink};

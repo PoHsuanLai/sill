@@ -103,6 +103,11 @@ impl Running {
 
 /// The panel on `services` (their feeds in `feeds`) and the default settings.
 pub fn start(services: Services, feeds: fake::Feeds) -> Running {
+    start_at(services, feeds, 100)
+}
+
+/// [`start`] on an output at `scale_percent` (200: the user's 4K monitor at scale 2).
+pub fn start_at(services: Services, feeds: fake::Feeds, scale_percent: u16) -> Running {
     let reports = Arc::new(Mutex::new(Vec::new()));
     let (focus, mode) = watch::channel(FocusMode::Off);
     let (set, focus_sets) = mpsc::unbounded_channel();
@@ -117,7 +122,7 @@ pub fn start(services: Services, feeds: fake::Feeds) -> Running {
     let viewport = Viewport {
         width: 360,
         height: 900,
-        scale_percent: 100,
+        scale_percent,
     };
     Running {
         harness: Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual)),
