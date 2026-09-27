@@ -33,6 +33,14 @@ further down. The monitor is the BenQ MA270U (27", 3840 x 2160, on HDMI-A-2).
   with the runner's read-only stand-in for cosmic-randr: 49 → 50.)
   - [ ] Once without the stand-in, on sill's own fallback: sill's log says "outputs read from
     kscreen-doctor", and `sill display brightness up` then `down` moves the monitor and back.
+- [ ] **The Display capsule on the BenQ MA270U** (FINDINGS F1000-F1003; the pointer path passes
+  headlessly at scale 2 in `dev/accept-cc-real-input.sh`). Open the control center from the bar:
+  within 2 s the Display capsule shows the monitor's level (sill's log says "sill: ddc: 1
+  display(s) answer DDC/CI"); drag it: the backlight follows during the drag, not only at the
+  release; click the track: it jumps there. Change the brightness in KDE's own slider with the
+  control center open: the capsule follows within 2 s. Put it back where it was afterwards.
+- [ ] **The Bluetooth tile** says "On" (no device name) with the keyboard and headphones
+  connected. Do not switch it off: the confirmation is not built yet (FINDINGS F1007, Q490).
 - [x] **Monitor speakers follow the volume**: switch the default sink to the BenQ MA270U's HDMI
   audio, press volume up/down: the monitor's own volume moves too (its range is 0-50), and mute
   mutes it. Switch back to Bluetooth afterwards. (Passed 2026-09-28, `~/manual-run` check 03.)
