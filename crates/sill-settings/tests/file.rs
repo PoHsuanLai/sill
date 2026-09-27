@@ -9,8 +9,8 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use sill_settings::{
     BarSettings, Bounce, ControlCenterSettings, Dnd, DockSettings, FILE_NAME, LauncherSettings,
-    MenusSettings, NotificationsSettings, ScrollSettings, ScrollbarSettings, ShellFile,
-    SoundSettings, SpacesSettings, SwitcherSettings, load, save,
+    LoadOutcome, MenusSettings, NotificationsSettings, ScrollSettings, ScrollbarSettings,
+    ShellFile, SoundSettings, SpacesSettings, SwitcherSettings, load, save, try_load,
 };
 
 fn round_trips<T: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Default>() {
@@ -226,4 +226,46 @@ fn a_stored_widget_sizes_line_is_ignored() {
         );
     });
     assert_eq!(read, want);
+}
+
+/// [`try_load`]'s change-to-dispatch mapping for the watch (FINDINGS F993, F1030): a bad value
+/// inside a table is still only that key ([`LoadOutcome::Read`], as [`load`] treats it — the
+/// watch may still publish it), text that is not TOML at all is [`LoadOutcome::Unparseable`]
+/// (the watch must keep the last good file rather than publish this), and a missing file is
+/// still every setting's default (nothing was ever good to keep).
+#[test]
+fn try_load_tells_a_bad_value_from_a_file_that_is_not_toml_at_all() {
+    let dir = TempDir::new("try-load");
+    assert_eq!(
+        try_load(dir.path()),
+        LoadOutcome::Read(Box::default()),
+        "missing file"
+    );
+
+    std::fs::write(
+        dir.path().join(FILE_NAME),
+        "[notifications]\ndnd = \"on\"\n",
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        try_load(dir.path()),
+        LoadOutcome::Read(Box::new(with(|f| f.notifications.dnd = Dnd::On))),
+        "a valid table with a good value"
+    );
+
+    std::fs::write(
+        dir.path().join(FILE_NAME),
+        "[dock]\nbounce = \"bounceyy\"\ntile_size_px = 64\n",
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        try_load(dir.path()),
+        LoadOutcome::Read(Box::new(with(|f| f.dock.tile_size_px = Px(64)))),
+        "a bad value costs only its own key, same as `load`"
+    );
+
+    for text in ["not toml [[[ = =", "\u{0}\u{1}garbage"] {
+        std::fs::write(dir.path().join(FILE_NAME), text).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(try_load(dir.path()), LoadOutcome::Unparseable, "{text:?}");
+    }
 }

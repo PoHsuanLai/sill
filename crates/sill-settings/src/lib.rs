@@ -53,7 +53,7 @@ pub use dock::{
     DockSettings, Indicators, LaunchAnim, Magnification, ProgressStyle, TrashTile,
 };
 pub use feed::SettingsFeed;
-pub use file::{APP, FILE_NAME, ShellFile, load, save, settings_dir};
+pub use file::{APP, FILE_NAME, LoadOutcome, ShellFile, load, save, settings_dir, try_load};
 pub use focus::{FocusMode, focus_mode, with_focus_mode};
 pub use focus_link::{Delivery, FocusLink, spawn_focus};
 pub use hot_corners::{CornerAction, HotCornersSettings};

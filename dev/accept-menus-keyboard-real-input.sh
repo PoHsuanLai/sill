@@ -24,8 +24,8 @@
 #   3. A real click on the control center's item opens it with the keyboard: real Tab moves the
 #      focus ring (each Tab changes the panel, a Shift+Tab goes back), real Space toggles the
 #      focused tile (Focus, first in `control_center.modules`: `notifications.dnd` turns on, and
-#      off again on a second Space; `sill reload` publishes it, F993), real Escape closes the
-#      panel. The sink gets none of these keys.
+#      off again on a second Space; the tile changes on its own, no `sill reload` needed, F993
+#      fixed), real Escape closes the panel. The sink gets none of these keys.
 #   4. Two notifications seeded; a real click on the clock opens the notification center with
 #      the keyboard: real Down moves the focus ring onto a row, real Escape closes the center.
 #      The sink gets none of these keys.
@@ -445,21 +445,19 @@ step_control_center_keys() {
   b1=$(diff_box cc-0 cc-tab1); b2=$(diff_box cc-tab1 cc-tab2); back=$(diff_box cc-tab1 cc-back)
   echo "control center opened by a real click on its item ($CC_AT): real Tab changed [$b1]," \
     "a second Tab [$b2], Shift+Tab back to the first Tab's look: [$back]" >&2
-  # Space on the focused Focus tile stores `notifications.dnd`. The daemon's file watch does not
-  # republish the settings feed the tile reads (FINDINGS F993), so `sill reload` publishes it
-  # before the panel is looked at; the key itself is all real.
+  # Space on the focused Focus tile stores `notifications.dnd`. The daemon's file watch
+  # republishes the settings feed the tile reads on its own (FINDINGS F993, fixed by F1030): no
+  # `sill reload` here any more; the key itself is all real, and `settled` waits out the watch's
+  # debounce plus the redraw.
   key space || return 1
   local dnd_on dnd_off
   dnd_on=$(await_dnd on)
-  sill reload >/dev/null 2>&1
-  sleep 0.6
   settled "$POPUP" cc-space || return 1
   space=$(diff_box cc-back cc-space)
-  echo "real Space on the focused tile (Focus): notifications.dnd $dnd_on; after 'sill reload'" \
-    "the tile changed [$space]" >&2
+  echo "real Space on the focused tile (Focus): notifications.dnd $dnd_on; the tile changed" \
+    "[$space] with no 'sill reload'" >&2
   key space || return 1
   dnd_off=$(await_dnd off)
-  sill reload >/dev/null 2>&1
   echo "real Space again: notifications.dnd $dnd_off" >&2
   key Escape || return 1
   wait_surface "$POPUP" 20 down || { echo "real Escape left the control center up" >&2; return 1; }

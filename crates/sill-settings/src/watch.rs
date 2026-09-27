@@ -9,7 +9,7 @@ use ds_settings::{DEBOUNCE, SettingsError};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use tokio::sync::watch as channel;
 
-use crate::file::{FILE_NAME, ShellFile, load};
+use crate::file::{FILE_NAME, LoadOutcome, ShellFile, load, try_load};
 
 /// A running watch on one directory's `settings.toml`. Needs a Tokio runtime.
 #[derive(Debug)]
@@ -75,8 +75,19 @@ pub fn watch(dir: &Path) -> Result<ShellWatch, SettingsError> {
                     Err(_settled) => break,
                 }
             }
-            if changes_tx.send(load(&dir)).is_err() {
-                return;
+            // A file that is not TOML at all keeps the last good settings rather than blanking
+            // every setting to its default (FINDINGS F993, F1030): `changes_tx` simply is not
+            // sent, so every receiver keeps what it already had.
+            match try_load(&dir) {
+                LoadOutcome::Read(file) => {
+                    if changes_tx.send(*file).is_err() {
+                        return;
+                    }
+                }
+                LoadOutcome::Unparseable => eprintln!(
+                    "sill-settings: watch: {} is not valid TOML; keeping the last good settings",
+                    dir.join(FILE_NAME).display()
+                ),
             }
         }
     });

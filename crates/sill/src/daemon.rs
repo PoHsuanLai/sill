@@ -327,6 +327,11 @@ fn run_event(
             if matches!(other, HostEvent::Started) {
                 ctx.set_scroll_config(crate::scroll::config(&settings_tx.borrow()));
             }
+            // The watch's re-read reaches `settings_tx` (every `SettingsFeed` follower: idle,
+            // launcher, notifications, the locker, polkit, calendar, screenshots, corners, the
+            // focus mode) the same way `dispatch_reload` does for `sill reload` (FINDINGS F993,
+            // F1030); geometry and the display policy already follow the same event just below.
+            publish_watched_settings(settings_tx, &other);
             crate::displays::on_host_event(services, &other);
             on_event(ctx, outputs, other);
             spawn_missing_bars(ctx, outputs, services, settings_feed, settings_tx);
@@ -877,6 +882,19 @@ fn dispatch_reload(dir: Option<&Path>, settings_tx: &watch::Sender<ShellFile>) -
     Response::Done
 }
 
+/// `event`'s file, published to `settings_tx`, if it is a watched settings change
+/// (`ShellMsg::Settings`, from the file watch task in [`run`]); anything else is a no-op. The
+/// same act [`dispatch_reload`] performs for `sill reload`, so a plain `settings.toml` edit (or
+/// one of sill's own writes: `crate::widgets`, `sill_settings::focus_link`) takes effect without
+/// one (FINDINGS F993, F1030). `sill_settings::watch` already debounces a burst of writes to one
+/// settled file and keeps the last good file on a parse failure, so there is nothing further to
+/// coalesce or guard here.
+fn publish_watched_settings(settings_tx: &watch::Sender<ShellFile>, event: &HostEvent<ShellMsg>) {
+    if let HostEvent::App(ShellMsg::Settings(file)) = event {
+        settings_tx.send_replace((**file).clone());
+    }
+}
+
 fn dispatch_debug(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &Outputs,
@@ -1234,6 +1252,84 @@ mod shutdown_tests {
             started.elapsed() < bound,
             "a clean shutdown should not need the whole bound"
         );
+    }
+}
+
+/// [`publish_watched_settings`] (a pure change-to-dispatch mapping: only `ShellMsg::Settings`
+/// dispatches, everything else is a no-op) and the live watch it feeds, end to end through a
+/// temp config dir (FINDINGS F993, F1030).
+#[cfg(test)]
+mod settings_publish_tests {
+    use std::time::Duration;
+
+    use shell_host::HostEvent;
+    use sill_settings::{ShellFile, save};
+    use tokio::sync::watch;
+
+    use super::publish_watched_settings;
+    use crate::msg::ShellMsg;
+
+    fn temp_dir(tag: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "sill-daemon-settings-test-{tag}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or_default()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("{}: {e}", dir.display()));
+        dir
+    }
+
+    #[test]
+    fn a_watched_settings_event_publishes_its_file() {
+        let (tx, rx) = watch::channel(ShellFile::default());
+        let mut changed = ShellFile::default();
+        changed.notifications.dnd = sill_settings::Dnd::On;
+        let event = HostEvent::App(ShellMsg::Settings(Box::new(changed.clone())));
+        publish_watched_settings(&tx, &event);
+        assert_eq!(rx.borrow().clone(), changed);
+    }
+
+    #[test]
+    fn every_other_event_leaves_the_feed_alone() {
+        let (tx, rx) = watch::channel(ShellFile::default());
+        for event in [
+            HostEvent::Started,
+            HostEvent::App(ShellMsg::Dim(sill_services::idle::DimShown::Clear)),
+        ] {
+            publish_watched_settings(&tx, &event);
+        }
+        assert_eq!(rx.borrow().clone(), ShellFile::default());
+    }
+
+    /// The regression itself (FINDINGS "Manual run 2026-09-28: menus and keyboard", F993): a
+    /// `settings.toml` edit under a temp config dir, with no `sill reload`, reaches a
+    /// `SettingsFeed`-shaped channel through the same watch and the same
+    /// `publish_watched_settings` `run_event` now calls.
+    #[tokio::test]
+    async fn a_file_write_reaches_the_feed_without_a_reload() {
+        let dir = temp_dir("live");
+        save(&dir, &ShellFile::default()).unwrap_or_else(|e| panic!("{e}"));
+        let mut shell_watch = sill_settings::watch(&dir).unwrap_or_else(|e| panic!("{e}"));
+
+        let (settings_tx, settings_rx) = watch::channel(ShellFile::default());
+
+        let mut changed = ShellFile::default();
+        changed.notifications.dnd = sill_settings::Dnd::On;
+        save(&dir, &changed).unwrap_or_else(|e| panic!("{e}"));
+
+        let file = tokio::time::timeout(Duration::from_secs(2), shell_watch.changed())
+            .await
+            .unwrap_or_else(|_| panic!("no settled change within 2s"))
+            .unwrap_or_else(|| panic!("the watch stopped"));
+        let event = HostEvent::App(ShellMsg::Settings(Box::new(file)));
+        publish_watched_settings(&settings_tx, &event);
+
+        assert_eq!(settings_rx.borrow().clone(), changed);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
 
