@@ -14,7 +14,7 @@ use ds::Key;
 use ds_native::Harness;
 use ds_native::harness::assert_settles_to_zero_frames;
 use launcher_harness::launcher_support::m9;
-use launcher_harness::{Open, Seen, loaded, open, settle, watch};
+use launcher_harness::{Open, Seen, await_off_thread, loaded, open, settle, watch};
 use sill_launcher::PreviewKind;
 use sill_surfaces::surfaces::launcher::debug_link::LinkKey;
 
@@ -68,7 +68,7 @@ fn the_entrance_springs_on_a_real_key_and_eases_on_a_remote_one() {
         settle(&mut open.harness, |h| h.count(".ds-preview") == 1);
         assert_eq!(touch(&open.harness).as_deref(), Some(want), "{via:?}");
         assert_eq!(
-            watch(&mut open.harness, loaded),
+            await_off_thread(&mut open.harness, loaded),
             Seen::Once,
             "{via:?}: the page lands"
         );
@@ -86,7 +86,7 @@ fn another_kind_cross_fades_and_never_replays_the_entrance() {
     let mut open = open("m9");
     quick_look(&mut open, Via::Keyboard);
     assert_eq!(
-        watch(&mut open.harness, loaded),
+        await_off_thread(&mut open.harness, loaded),
         Seen::Once,
         "the page lands"
     );
@@ -202,7 +202,7 @@ fn a_slow_text_head_shows_loading_after_the_grace_then_the_text() {
     assert_settles_to_zero_frames(&mut open.harness);
 
     head.land("The head landed.\n");
-    let landed = watch(&mut open.harness, |h| {
+    let landed = await_off_thread(&mut open.harness, |h| {
         h.text_of(".ds-preview-media")
             .is_some_and(|text| text.contains("The head landed."))
     });

@@ -196,6 +196,28 @@ pub fn watch(harness: &mut Harness, done: impl Fn(&Harness) -> bool) -> Seen {
     }
 }
 
+/// Wait for work done on another thread (a PDF page's raster, a file's head read) to land,
+/// on the wall clock and without moving the harness clock: a loaded machine may take seconds,
+/// and advancing the virtual clock meanwhile would cross quire's pending cap and change what is
+/// drawn. `advance(ZERO)` runs whatever the landing woke, at the current instant (quire G311).
+pub fn await_off_thread(harness: &mut Harness, done: impl Fn(&Harness) -> bool) -> Seen {
+    let deadline = std::time::Instant::now() + OFF_THREAD_LIMIT;
+    while std::time::Instant::now() < deadline {
+        if done(harness) {
+            return Seen::Once;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+        harness.advance(Duration::ZERO);
+    }
+    match done(harness) {
+        true => Seen::Once,
+        false => Seen::Never,
+    }
+}
+
+/// How long [`await_off_thread`] waits on the wall clock.
+const OFF_THREAD_LIMIT: Duration = Duration::from_secs(30);
+
 /// The preview pane is up with nothing left loading (quire's `aria-busy` is gone).
 pub fn loaded(harness: &Harness) -> bool {
     harness.count(".ds-preview") == 1 && harness.attr(".ds-preview", "aria-busy").is_none()

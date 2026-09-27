@@ -7,7 +7,7 @@ mod launcher_harness;
 use std::time::Duration;
 
 use ds_native::harness::assert_settles_to_zero_frames;
-use launcher_harness::{Open, Seen, loaded, open, settle, watch};
+use launcher_harness::{Open, Seen, await_off_thread, loaded, open, settle};
 use sill_surfaces::surfaces::launcher::debug_link::LinkKey;
 
 /// Press `key` through the debug link (a remote change: `Touch::Remote`).
@@ -32,7 +32,7 @@ fn open_preview_hide_then_zero_frames_at_rest() {
     assert_eq!(open.harness.count(".ds-preview"), 1, "the pane is up");
     // The PDF's page is rasterised in wall time; until it lands the pane's pending look runs.
     assert_eq!(
-        watch(&mut open.harness, loaded),
+        await_off_thread(&mut open.harness, loaded),
         Seen::Once,
         "the page lands"
     );
