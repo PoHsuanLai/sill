@@ -6,14 +6,14 @@
 //! freeze (sill FINDINGS "M6 freeze"), and `Lock` from M7 (sill FINDINGS "M7"), and
 //! `Screenshot`, `Widgets`, `Debug(Screenshot)` and `Debug(Corner)` from the M10 freeze
 //! (`desktop.rs`), and `Switcher`, `LockStatus`, `Polkit`, `Debug(Auth)`, `Debug(Polkit)` and
-//! `Debug(Switcher)` from the M11 freeze (`session.rs`).
+//! `Debug(Switcher)` from the M11 freeze (`session.rs`), and `Debug(PointerPress)` and
+//! `Debug(PointerRelease)` once shell-host's `Inject` grew a separate press and release (sill
+//! FINDINGS "Real-pointer drag", G330 closed).
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-use crate::desktop::{
-    FakeCorner, FakeScreenshot, FakeWidgetDrag, ScreenshotRequest, WidgetsRequest,
-};
+use crate::desktop::{FakeCorner, FakeScreenshot, ScreenshotRequest, WidgetsRequest};
 use crate::launcher::{ClipboardRequest, FakeLauncherKey};
 use crate::session::{
     FakeAuth, FakePolkit, FakeSwitcher, LockRequest, PolkitRequest, SwitcherRequest,
@@ -176,6 +176,22 @@ pub enum DebugRequest {
         at: Point,
         button: PointerButton,
     },
+    /// `button` presses at `at` on `surface` and stays down: the first half of a real drag
+    /// (shell-host's `Inject::PointerDown`, FINDINGS G330, closed). The existing `Pointer` moves
+    /// while it is held (shell-host now carries the held buttons on every move, the same
+    /// `PointerMove` a real `Motion` produces); `PointerRelease` lets go.
+    PointerPress {
+        surface: SurfaceName,
+        at: Point,
+        button: PointerButton,
+    },
+    /// `button` releases at `at` on `surface`, the second half of a real drag
+    /// (`Inject::PointerUp`).
+    PointerRelease {
+        surface: SurfaceName,
+        at: Point,
+        button: PointerButton,
+    },
     /// Show the OSD for a made-up change, on the output a real one of its kind would use,
     /// moving no real level (`dev/accept-osd.sh`: the session's default sink may be somebody's
     /// headphones).
@@ -189,8 +205,6 @@ pub enum DebugRequest {
     Screenshot(FakeScreenshot),
     /// Carry out a hot corner's action as if its dwell had run out (`dev/accept-hot-corners.sh`).
     Corner(FakeCorner),
-    /// A made-up press, move or release on a desktop widget layer (`dev/accept-widgets.sh`).
-    WidgetDrag(FakeWidgetDrag),
     /// Feed the lock screen's password check a made-up verdict; refused by a daemon built
     /// without `debug` (`dev/accept-lock.sh`, on the nested compositor only).
     Auth(FakeAuth),

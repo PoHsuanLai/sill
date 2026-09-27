@@ -16,7 +16,6 @@ use sill_ipc::{
     ReportHolder, ReportMode, Request, Response, ScreenshotRequest, ShotArea, SurfaceName,
     SurfaceStats, VolumeRequest, WidgetsRequest, decode, encode, read_message, write_message,
 };
-use sill_ipc::{DragPhase, FakeWidgetDrag};
 use sill_ipc::{
     FakeAuth, FakePolkit, FakeSwitcher, LockReport, LockRequest, PolkitReport, PolkitRequest,
     ReportDrawer, ReportLockPhase, ReportRegistration, SwitcherRequest,
@@ -221,12 +220,36 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"debug","v":{"kind":"corner","v":{"corner":"bottom_right"}}}"#,
         ),
         (
-            Request::Debug(DebugRequest::WidgetDrag(FakeWidgetDrag {
+            Request::Debug(DebugRequest::PointerPress {
                 surface: surface("sill-desktop-widgets-DP-1"),
-                phase: DragPhase::Move,
                 at: Point { x: 900, y: 96 },
-            })),
-            r#"{"kind":"debug","v":{"kind":"widget_drag","v":{"surface":"sill-desktop-widgets-DP-1","phase":"move","at":{"x":900,"y":96}}}}"#,
+                button: PointerButton::Primary,
+            }),
+            r#"{"kind":"debug","v":{"kind":"pointer_press","v":{"surface":"sill-desktop-widgets-DP-1","at":{"x":900,"y":96},"button":"primary"}}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::PointerPress {
+                surface: surface("sill-dock-DP-1"),
+                at: Point { x: 40, y: 30 },
+                button: PointerButton::Secondary,
+            }),
+            r#"{"kind":"debug","v":{"kind":"pointer_press","v":{"surface":"sill-dock-DP-1","at":{"x":40,"y":30},"button":"secondary"}}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::PointerRelease {
+                surface: surface("sill-desktop-widgets-DP-1"),
+                at: Point { x: 0, y: 456 },
+                button: PointerButton::Primary,
+            }),
+            r#"{"kind":"debug","v":{"kind":"pointer_release","v":{"surface":"sill-desktop-widgets-DP-1","at":{"x":0,"y":456},"button":"primary"}}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::PointerRelease {
+                surface: surface("sill-dock-DP-1"),
+                at: Point { x: 0, y: 0 },
+                button: PointerButton::Middle,
+            }),
+            r#"{"kind":"debug","v":{"kind":"pointer_release","v":{"surface":"sill-dock-DP-1","at":{"x":0,"y":0},"button":"middle"}}}"#,
         ),
         (
             Request::Switcher(SwitcherRequest::Next),

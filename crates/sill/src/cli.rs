@@ -14,8 +14,8 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand, ValueEnum};
 
 pub use crate::cli_desktop::{
-    CornerArg, DragPhaseArg, ShotArg, WidgetsAction, fake_corner, fake_screenshot,
-    fake_widget_drag, screenshot_request, widgets_request,
+    CornerArg, ShotArg, WidgetsAction, fake_corner, fake_screenshot, screenshot_request,
+    widgets_request,
 };
 pub use crate::cli_display::{DisplayAction, LevelAction, VolumeAction, display_request};
 pub use crate::cli_launcher::{ClipboardAction, LauncherKeyArg, clipboard_request, launcher_key};
@@ -219,14 +219,26 @@ pub enum DebugAction {
         #[arg(value_enum)]
         corner: CornerArg,
     },
-    /// A made-up press, move or release at X Y on a desktop widget layer
-    /// (`sill-desktop-widgets-DP-1`): one step of a drag.
-    WidgetDrag {
+    /// `button` presses at X Y on SURFACE and stays down: the first half of a real drag
+    /// (shell-host's `Inject::PointerDown`, G330 closed). `sill debug pointer` moves while it
+    /// is held, and `pointer-release` lets go.
+    PointerPress {
         surface: String,
-        #[arg(value_enum)]
-        phase: DragPhaseArg,
         x: i32,
         y: i32,
+        /// Which button.
+        #[arg(long, value_enum, default_value_t = ClickButton::Primary)]
+        button: ClickButton,
+    },
+    /// `button` releases at X Y on SURFACE: the second half of a real drag
+    /// (`Inject::PointerUp`).
+    PointerRelease {
+        surface: String,
+        x: i32,
+        y: i32,
+        /// Which button.
+        #[arg(long, value_enum, default_value_t = ClickButton::Primary)]
+        button: ClickButton,
     },
     /// Feed the lock screen's password check a made-up verdict (a debug daemon only).
     Auth {
@@ -367,12 +379,26 @@ pub fn request(command: &Command) -> Option<Request> {
                 DebugRequest::Screenshot(fake_screenshot(path.clone()))
             }
             DebugAction::Corner { corner } => DebugRequest::Corner(fake_corner(*corner)),
-            DebugAction::WidgetDrag {
+            DebugAction::PointerPress {
                 surface,
-                phase,
                 x,
                 y,
-            } => DebugRequest::WidgetDrag(fake_widget_drag(surface, *phase, *x, *y)),
+                button,
+            } => DebugRequest::PointerPress {
+                surface: SurfaceName(surface.clone()),
+                at: Point { x: *x, y: *y },
+                button: (*button).into(),
+            },
+            DebugAction::PointerRelease {
+                surface,
+                x,
+                y,
+                button,
+            } => DebugRequest::PointerRelease {
+                surface: SurfaceName(surface.clone()),
+                at: Point { x: *x, y: *y },
+                button: (*button).into(),
+            },
             DebugAction::Auth { verdict } => DebugRequest::Auth(fake_auth(*verdict)),
             DebugAction::Polkit(args) => DebugRequest::Polkit(fake_polkit(args)),
             DebugAction::Switcher { apps } => DebugRequest::Switcher(fake_switcher(apps)),
@@ -519,23 +545,6 @@ mod tests {
                 Some(Request::Debug(DebugRequest::Corner(FakeCorner {
                     corner: CornerName::TopLeft,
                 }))),
-            ),
-            (
-                &[
-                    "debug",
-                    "widget-drag",
-                    "sill-desktop-widgets-DP-1",
-                    "down",
-                    "900",
-                    "96",
-                ],
-                Some(Request::Debug(DebugRequest::WidgetDrag(
-                    sill_ipc::FakeWidgetDrag {
-                        surface: SurfaceName("sill-desktop-widgets-DP-1".to_owned()),
-                        phase: sill_ipc::DragPhase::Down,
-                        at: Point { x: 900, y: 96 },
-                    },
-                ))),
             ),
             (
                 &["debug", "corner", "bottom-right"],
@@ -725,6 +734,66 @@ mod tests {
                 })),
             ),
             (
+                &[
+                    "debug",
+                    "pointer-press",
+                    "sill-desktop-widgets-DP-1",
+                    "900",
+                    "96",
+                ],
+                Some(Request::Debug(DebugRequest::PointerPress {
+                    surface: SurfaceName("sill-desktop-widgets-DP-1".to_owned()),
+                    at: Point { x: 900, y: 96 },
+                    button: PointerButton::Primary,
+                })),
+            ),
+            (
+                &[
+                    "debug",
+                    "pointer-press",
+                    "sill-dock-DP-1",
+                    "40",
+                    "30",
+                    "--button",
+                    "secondary",
+                ],
+                Some(Request::Debug(DebugRequest::PointerPress {
+                    surface: SurfaceName("sill-dock-DP-1".to_owned()),
+                    at: Point { x: 40, y: 30 },
+                    button: PointerButton::Secondary,
+                })),
+            ),
+            (
+                &[
+                    "debug",
+                    "pointer-release",
+                    "sill-desktop-widgets-DP-1",
+                    "0",
+                    "456",
+                ],
+                Some(Request::Debug(DebugRequest::PointerRelease {
+                    surface: SurfaceName("sill-desktop-widgets-DP-1".to_owned()),
+                    at: Point { x: 0, y: 456 },
+                    button: PointerButton::Primary,
+                })),
+            ),
+            (
+                &[
+                    "debug",
+                    "pointer-release",
+                    "s",
+                    "0",
+                    "0",
+                    "--button",
+                    "middle",
+                ],
+                Some(Request::Debug(DebugRequest::PointerRelease {
+                    surface: SurfaceName("s".to_owned()),
+                    at: Point { x: 0, y: 0 },
+                    button: PointerButton::Middle,
+                })),
+            ),
+            (
                 &["debug", "osd", "volume", "40"],
                 Some(Request::Debug(DebugRequest::Osd(FakeOsd {
                     topic: OsdTopic::Volume,
@@ -769,6 +838,18 @@ mod tests {
             &["debug", "pointer", "s", "x", "1"],
             &["debug", "click", "s", "1"],
             &["debug", "click", "s", "1", "2", "--button", "left"],
+            &["debug", "pointer-press", "s", "1"],
+            &["debug", "pointer-press", "s", "1", "2", "--button", "left"],
+            &["debug", "pointer-release", "s", "1"],
+            &[
+                "debug",
+                "pointer-release",
+                "s",
+                "1",
+                "2",
+                "--button",
+                "left",
+            ],
             &["debug", "osd", "sound", "40"],
             &["debug", "osd", "volume", "loud"],
             &["notifications"],

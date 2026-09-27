@@ -13,8 +13,7 @@ pub mod response;
 pub mod session;
 
 pub use desktop::{
-    CornerName, DragPhase, FakeCorner, FakeScreenshot, FakeWidgetDrag, ScreenshotRequest, ShotArea,
-    WidgetsRequest,
+    CornerName, FakeCorner, FakeScreenshot, ScreenshotRequest, ShotArea, WidgetsRequest,
 };
 pub use error::IpcError;
 pub use launcher::{

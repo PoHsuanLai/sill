@@ -21,13 +21,14 @@
 #      the layer over the wallpaper, with a window). Then shell-host's probe window, maximised,
 #      must hide the first frame (the layer is under windows). The placements are saved in the
 #      scratch `$XDG_STATE_HOME/sill/desktop-widgets.json`.
-#   5. A scripted drag (FINDINGS "Widget drag"; `sill debug widget-drag`, since the nested
-#      compositor's injection has no separate press and release): the Calendar is pressed at its
-#      centre and carried left and down; mid-drag it is lifted (larger than a cell, under the
-#      pointer); dropped, it snaps to column 8 row 2. Then the Battery is carried onto that cell
-#      and held: the Calendar makes room, stepping up to row 1; dropped, the swap is kept. The
-#      file then names the output. Captures of the layer before, lifted, dropped, making room
-#      and after (target/accept-widgets/drag-*.png) and a screenshot after
+#   5. A real drag through shell-host's real pointer path (FINDINGS "Real-pointer drag", G330
+#      closed: `sill debug pointer-press`, `pointer` moved while it is held, `pointer-release`,
+#      the same delivery a real `wl_pointer` press/motion/release uses): the Calendar is pressed
+#      at its centre and carried left and down; mid-drag it is lifted (larger than a cell, under
+#      the pointer); dropped, it snaps to column 8 row 2. Then the Battery is carried onto that
+#      cell and held: the Calendar makes room, stepping up to row 1; dropped, the swap is kept.
+#      The file then names the output. Captures of the layer before, lifted, dropped, making
+#      room and after (target/accept-widgets/drag-*.png) and a screenshot after
 #      (dev/out/widgets-drag-cosmic.png).
 #   6. 5 s idle: 0 frames on the desktop layer.
 #   7. A second toggle removes the surface and writes `widgets.desktop = "off"`.
@@ -340,15 +341,19 @@ EOF
     && [ "${covered:-0}" -gt 30 ]
 }
 
-# One step of a made-up drag on the desktop layer: PHASE X Y (layer px).
-drag_step() { sill debug widget-drag "$LAYER" "$@" >/dev/null; }
+# A real drag on the desktop layer, through shell-host's real pointer path (FINDINGS
+# "Real-pointer drag", G330 closed): press, move (the existing `sill debug pointer`, which
+# carries the held button on every move) and release at X Y (layer px).
+pointer_press() { sill debug pointer-press "$LAYER" "$@" >/dev/null; }
+pointer_move() { sill debug pointer "$LAYER" "$@" >/dev/null; }
+pointer_release() { sill debug pointer-release "$LAYER" "$@" >/dev/null; }
 
 # Carry a drag from X0 Y0 to X1 Y1 in 12 moves a frame apart, without releasing.
 drag_to() {
   local x0=$1 y0=$2 x1=$3 y1=$4 i
-  drag_step down "$x0" "$y0" || return 1
+  pointer_press "$x0" "$y0" || return 1
   for i in $(seq 12); do
-    drag_step move $(( x0 + (x1 - x0) * i / 12 )) $(( y0 + (y1 - y0) * i / 12 )) || return 1
+    pointer_move $(( x0 + (x1 - x0) * i / 12 )) $(( y0 + (y1 - y0) * i / 12 )) || return 1
     sleep 0.016
   done
 }
@@ -384,7 +389,7 @@ import sys
 rows = [list(map(int, l.split())) for l in sys.stdin if l.strip()]
 print(max(r - l + 1 for l, t, r, b in rows))')
   echo "lifted: the widest frame is $lifted px (a cell is 164)" | tee -a "$log" >&2
-  drag_step up $(( cx - 900 )) $(( cy + 360 )) || return 1
+  pointer_release $(( cx - 900 )) $(( cy + 360 )) || return 1
   sleep 0.8
   sill debug capture "$LAYER" "$OUT_DIR/drag-dropped.png" >>"$log" 2>&1 || return 1
   desktop_frames "$OUT_DIR/drag-dropped.png" >"$OUT_DIR/drag-dropped.txt"
@@ -396,7 +401,7 @@ print(max(r - l + 1 for l, t, r, b in rows))')
   sleep 0.8
   sill debug capture "$LAYER" "$OUT_DIR/drag-room.png" >>"$log" 2>&1 || return 1
   shot "$SHOTS/widgets-drag-room-cosmic.png" || echo "screenshot failed" >&2
-  drag_step up $(( cx - 900 )) $(( cy + 360 )) || return 1
+  pointer_release $(( cx - 900 )) $(( cy + 360 )) || return 1
   sleep 0.8
   sill debug capture "$LAYER" "$OUT_DIR/drag-after.png" >>"$log" 2>&1 || return 1
   shot "$SHOTS/widgets-drag-cosmic.png" || echo "screenshot failed" >&2
