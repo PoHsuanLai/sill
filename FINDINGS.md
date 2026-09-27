@@ -8323,7 +8323,7 @@ real Bluetooth were touched.
 - **F1006 The Bluetooth tile says On or Off.** `bluetooth_tile_status`: "On", "Off" or
   "Unavailable", never a device name (several may be connected; the list is behind the chevron).
   quire's `ModuleTile` has no convention for a count. The bar item's tooltip keeps the names.
-- **F1007 No Bluetooth confirmation yet: quire has no alert.** quire has `Sheet` (a modal panel
+- **F1007 No Bluetooth confirmation yet: quire has no alert (CLOSED by F1070: quire's `Alert`).** quire has `Sheet` (a modal panel
   with no parts of its own; `SheetWidth::Narrow` is "for an alert") and `PolkitPrompt`, but no
   alert or confirm component (title, message, a cancel and a destructive default button), and a
   `Sheet` centres in a viewport root, which the control center's popover card is not. Building
@@ -8332,7 +8332,7 @@ real Bluetooth were touched.
 
 ### Asks (quire)
 
-- **Q490 An alert.** A confirm/alert component: bold title ("Turn Bluetooth off?"), message
+- **Q490 An alert (CLOSED: quire `Alert`, adopted in F1070).** A confirm/alert component: bold title ("Turn Bluetooth off?"), message
   ("Bluetooth devices such as keyboards and mice will be disconnected."), Cancel and a default
   (optionally destructive) button ("Turn Off"), Escape and a scrim press cancel, Return confirms;
   shown from inside a popover (the control center is an `xdg_popup` card of about 320 px), so
@@ -8481,7 +8481,7 @@ rows with no motion. Numbered from F1010, G410 and Q510. Branch
 
 ### Asks
 
-- **Q510 (quire) The center's list lifecycle.** The notification center needs what
+- **Q510 (quire) The center's list lifecycle (CLOSED: quire `LeavingList`, adopted in F1071).** The notification center needs what
   `BannerStack` has, in flow and for any content: a list whose rows (a group: header and cards;
   or one card) play an exit when the caller stops listing them (`Exit::Fold`, design/20 1.6
   "dismiss `fold` `--t-big` `--e-exit`"), the rows after them `heal` up by the height each
@@ -8509,7 +8509,7 @@ rows with no motion. Numbered from F1010, G410 and Q510. Branch
   as CSSOM `getBoundingClientRect` does), re-resolved on every animation frame as the regions
   already are, closes it. Real-input repro: `dev/accept-notifications-real-input.sh ghost` with
   `KWIN_SCALE=2`.
-- **G411 (sill, waits on Q510) Clear's exit.** Clear, Clear All and a card's close in the center
+- **G411 (sill, waits on Q510) Clear's exit (CLOSED by F1071).** Clear, Clear All and a card's close in the center
   drop their rows at once. Adopt Q510's part in `contents.rs` and `group.rs`; the Harness test
   `clear_and_clear_all_reach_the_service_and_the_center_rests` then asserts the fold and heal.
 - **G412 (sill, load) The acceptance's overflow step is load-sensitive.** With the machine's
@@ -8713,3 +8713,96 @@ without its Motion row, design/22's retired `dock.shipped_icons` row). Branch
   (`crates/sill-services/src/results/tests.rs:133`, on tokio's real time with 150 ms fakes),
   untouched here; it passed 5 of 5 alone and the next gate run was green. It is the one gate test
   not on a virtual clock that failed under load; a paused tokio clock would pin it.
+
+## Alert and leaving list
+
+quire's two new parts (CONSUMING "Alert (2026-09-28)" and "Leaving list (2026-09-28)") close
+two findings of the user's manual run: Bluetooth was too easy to switch off (Q490, F1007) and
+the notification center's Clear dropped its rows with no motion (Q510, G411). Numbered from
+F1070, G470 and Q570. Branch `worktree-agent-afa473e060525bd77` (cut from master 129771c,
+quire master 457e62c2). No real Bluetooth, no real notifications bus and no wayland-0 were
+touched: every real-input run was on shell-host's headless KWin and its private bus.
+
+- **F1070 Turning Bluetooth off asks first.** `control_center/modules/bluetooth_ask.rs`: a press
+  on the Bluetooth tile or the pane's switch that asks for Off only sets the panel's
+  `Confirming::TurnOff` (`power_step`: On goes at once, Off asks); quire's `Alert { flow:
+  Flow::Inline }` ("Turn Bluetooth off?", "Bluetooth devices such as keyboards and mice will be
+  disconnected.", Cancel and "Turn Off") is the last child of the panel's body (`.sill-cc`, now
+  `position:relative`), and only its `onaction` sends `BluetoothCommand::Power(Off)`. Escape, a
+  press on the scrim and Cancel leave it on; Return turns it off. Turning it on asks nothing.
+  The Bluetooth bar item's own dropdown asks the same way. Either answer gives the panel the
+  keyboard back, so a later Escape still closes the control center. The daemon logs
+  `control_center.bluetooth_ask=shown|cancel|turn-off`. **"Turn Off" is `AlertEmphasis::Default`,
+  not `Destructive`.** The brief asked for a destructive button and for Return to confirm, and
+  quire's `Destructive` gives Return to Cancel (the HIG rule CONSUMING quotes). Return
+  confirming was the user's own ask (Q490), and CONSUMING calls Turn Off not destructive, so
+  Return wins. A red Turn Off with Return on Cancel is a one-word change if the user prefers the
+  safer default (Q570). CONSUMING's "while an input device is connected" is not applied: the
+  brief asks on every turn-off. Tests: `tests/control_center_bluetooth_ask.rs` (Harness,
+  `Clock::Virtual`, `PinnedAppearance`, each ending at 0 frames): the tile asks, the alert
+  covers the panel, the keyboard starts on Turn Off; Escape, Cancel and the scrim send nothing;
+  Return and Turn Off send Off; the panel then has the keyboard and Escape closes it; On asks
+  nothing; the pane's switch asks too. Unit test `only_turning_off_asks`.
+- **F1071 The center's rows are one `LeavingList`.** `notification_center/contents.rs` lists every
+  header (keyed `RowKey::Head(AppKey)`) and card (`RowKey::Card(NotificationId)`, not its
+  `Stack`) as one `LeavingList` (`group.rs` builds each row; the `GroupBlock` wrapper is gone).
+  A Clear, Clear All, a close and Delete were already one service command and one history update
+  each, so all the rows they drop leave in one batch: they fold, staggered, and the rows below
+  heal by the measured height. "Show less" folds the cards it hides and heals. An arrival while
+  the center is open enters with `row-in`. The gap between rows is now the row's own padding
+  (`.sill-nc-item { padding-top }`, the title's bottom padding moved into it). The empty state
+  waits for the last leaving row (`drawn.rs`), so after Clear All it replaces the folded rows
+  rather than sitting under them. The daemon logs `notification_center.settled=<key>` as each
+  row's batch settles. **Both earlier `Reveal` rises are gone**: the list's own `first:
+  ListPresence::Entering` is the rise on opening (once per opening, as before), and the cards
+  an opened group adds are new keys, which the list enters itself. Keeping either `Reveal` would
+  have played two entrances on the same rows. Tests: `tests/notification_center_motion.rs`,
+  rewritten (Harness, `Clock::Virtual`, pinned appearance, each ending at 0 frames): the rise
+  on opening and no replay; a group's added cards enter, "Show less" folds two and heals Chat
+  by more than 100 px; one gap between every row; Clear folds Mail's head and stack and Chat
+  heals; Clear All folds four rows at `--i` 0 to 3, the empty state only after; an arrival
+  enters. The render tests address groups by `.sill-nc-item[data-group=...]`.
+- **F1072 Real input: `dev/accept-cc-real-input.sh` gains a fake BlueZ.** `dev/fake-bluez.py`
+  owns `org.bluez` on KWin's private bus (it refuses a system-bus address), with an adapter
+  (powered) and a connected keyboard. It logs every `Powered` set to a scratch file, and the
+  safety check requires its line before any input. New steps, with real clicks and keys at
+  3840 x 2160 scale 2: B1, a real click on the Bluetooth tile (found in a capture by its tinted
+  plate) shows the alert, and the adapter stays on; B2, real Escape cancels and the popup
+  stays; B3, a real click on the scrim cancels; B4, Cancel cancels; B5, Turn Off (the new
+  accent button in the capture) powers the fake adapter off; B6, a click on the tile powers it
+  on with no alert. `bluetooth` mode runs 1, B1-B6 and 5. The full run passed every step. Its
+  step 5 recorded real Escape still leaving the control center up after the capsule presses
+  (G400, unchanged); in the `bluetooth` run, after the alert, Escape closed it. Captures:
+  `dev/out/cc-bluetooth-alert-real-input.png`, `cc-bluetooth-off-real-input.png`.
+- **F1073 After Clear All the center took no keys.** Found by the new real-input step. The
+  pressed button leaves with the history, and so does the keyboard, so real Escape reached
+  nothing and the center stayed up. That happened on master too: 9b pressed Escape without
+  checking it. `CenterCtx` now keeps the column and gives it the keyboard back after Clear All,
+  a group's Clear and a dismissal (the pointer's paths; CONSUMING "a leaving row ... should not
+  keep the ring"). 9b and 9c now fail if Escape does not close the center. Harness:
+  `a_clear_gives_the_column_the_keyboard_back`, and the Clear All test ends focused on the
+  column.
+- **F1074 Real input: `dev/accept-notifications-real-input.sh` step 9c (`exit` mode).** Chat
+  (two) and CI (one) are posted with `sill debug notify`, and a real click on the clock opens
+  the center. A real click on Chat's Clear (found in a capture) drops kept by two after about
+  450 ms. The list settles Chat's head and card by about 950 ms, after their fold. The center
+  draws 15 frames through the fold and heal, CI's header ends where Chat's stood, and the
+  center then rests with 0 frames over 3 s. A real click on Clear All: the list settles CI's two
+  rows, 7 to 8 frames, then 0 frames; real Escape then closes it. The mid captures show the
+  rows mid-fold: `dev/out/nc-clear-exit-real-input.png` (before, Clear mid, Clear after, Clear
+  All mid, Clear All after). The frame threshold is 5 (a drop with no motion draws one or two);
+  at a load of 120, Clear All drew 7 and 8. Full acceptance: every step passed but
+  `step_hover` once (the banner left 2231 ms after the pointer, limit 2150, at a 1-minute
+  load near 100; banners untouched here; it passed in the two runs before at 1841 ms).
+- **G470 (sill) The widgets under the list do not heal.** After a Clear the list's own rows heal,
+  but the widgets slot below the list is not a list row: it jumps up once the batch drops (see
+  the Clear All frames of the strip). Putting the widgets in the list, or healing the slot by
+  the list's height change, would close it.
+
+### Asks (quire)
+
+- **Q570 The inline alert's scrim ignores the container's radius, and the panel lets the rows
+  show through.** In `cc-bluetooth-alert-real-input.png` the modal scrim is a square over the
+  popover card's rounded bottom corners, and the alert's panel is translucent enough that the
+  Sound and Now Playing labels read through it. Also for the user to decide: whether Turn Off
+  should be `Destructive` (red, Return on Cancel) despite Q490's "Return confirms" (F1070).
