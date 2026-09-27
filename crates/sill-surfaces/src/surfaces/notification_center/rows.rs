@@ -38,6 +38,40 @@ pub enum CenterRow {
     },
 }
 
+/// What a row is, for the center's `LeavingList`: a header by its group, a card by its
+/// notification. Not by its `Stack`, which changes as the group folds, so the newest card stays
+/// put when a group opens or closes.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum RowKey {
+    Head(AppKey),
+    Card(NotificationId),
+}
+
+impl CenterRow {
+    /// The row's key in the list.
+    pub fn key(&self) -> RowKey {
+        match self {
+            CenterRow::Head { group } => RowKey::Head(group.clone()),
+            CenterRow::Note { id, .. } => RowKey::Card(*id),
+        }
+    }
+
+    /// The group the row belongs to.
+    pub fn group(&self) -> &AppKey {
+        match self {
+            CenterRow::Head { group } | CenterRow::Note { group, .. } => group,
+        }
+    }
+
+    /// How many a card's count chip says; a header counts one.
+    pub fn stack_count(&self) -> usize {
+        match self {
+            CenterRow::Note { stack, .. } => stack.count(),
+            CenterRow::Head { .. } => 1,
+        }
+    }
+}
+
 /// What a row asks of the center.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RowAct {
@@ -109,7 +143,7 @@ pub fn press(row: &CenterRow, press: CardPress) -> Option<RowAct> {
 
 #[cfg(test)]
 mod tests {
-    use super::{CenterRow, RowAct, Stack, activate, dismiss, press, rows_of};
+    use super::{CenterRow, RowAct, RowKey, Stack, activate, dismiss, press, rows_of};
     use crate::surfaces::notification_card::CardPress;
     use crate::surfaces::notification_center::GroupView;
     use sill_services::{ActionKey, AppKey, Href, NotificationId};
@@ -169,6 +203,19 @@ mod tests {
         }
         assert_eq!(Stack::Stacked(3).count(), 3);
         assert_eq!(Stack::Alone.count(), 1);
+    }
+
+    #[test]
+    fn a_row_is_keyed_by_what_it_is_not_how_it_stacks() {
+        let folded = note("a", 5, Stack::Stacked(3));
+        let opened = note("a", 5, Stack::Alone);
+        assert_eq!(folded.key(), opened.key());
+        assert_eq!(folded.key(), RowKey::Card(NotificationId(5)));
+        assert_eq!(head("a").key(), RowKey::Head(key("a")));
+        assert_ne!(head("a").key(), head("b").key());
+        assert_eq!(folded.group(), &key("a"));
+        assert_eq!(folded.stack_count(), 3);
+        assert_eq!(head("a").stack_count(), 1);
     }
 
     #[test]

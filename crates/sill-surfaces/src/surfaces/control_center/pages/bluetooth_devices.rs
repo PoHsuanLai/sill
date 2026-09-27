@@ -21,6 +21,7 @@ use crate::surfaces::control_center::device_detail;
 use crate::surfaces::control_center::modules::bluetooth::{
     adapter_availability, power_of, power_state,
 };
+use crate::surfaces::control_center::modules::bluetooth_ask::use_power_request;
 use crate::surfaces::control_center::row_phase::{Aim, FAILED_WORDS, Item, aim_after, row_phase};
 use crate::surfaces::control_center::rows::{RowList, RowMark, RowSpec, use_first_show};
 
@@ -44,7 +45,7 @@ pub(crate) fn BluetoothPane(back: Option<EventHandler<()>>) -> Element {
     aim.set(last.clone());
     let rows = device_rows(&bluetooth, last.as_ref());
     let empty = empty_line(&bluetooth, rows.len());
-    let toggle = control.clone();
+    let request = use_power_request();
     rsx! {
         div { class: "sill-cc-detail",
             DetailHead {
@@ -52,10 +53,8 @@ pub(crate) fn BluetoothPane(back: Option<EventHandler<()>>) -> Element {
                 back,
                 state: power_state(bluetooth.power),
                 availability: adapter_availability(&bluetooth),
-                on_toggle: move |to: ModuleState| {
-                    // A stopped service drops it: the switch shows the power it last published.
-                    let _gone = toggle.send(BluetoothCommand::Power(power_of(to)));
-                },
+                // Off asks first (`bluetooth_ask`); the switch shows the power last published.
+                on_toggle: move |to: ModuleState| request.call(power_of(to)),
             }
             if let Some(text) = empty {
                 EmptyLine { text }

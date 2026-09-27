@@ -11,6 +11,7 @@ use sill_services::OutputName;
 use sill_settings::ControlCenterModule;
 
 use super::modules::Module;
+use super::modules::bluetooth_ask::{TurnOffAlert, provide_power_ask};
 use super::page::{CcPage, Detail, PageInput, PageOut, step_page};
 use super::pages::foot::ClosePanel;
 use super::pages::{BluetoothDevices, WifiNetworks};
@@ -34,6 +35,7 @@ pub(crate) fn control_center(
     let mut opened = use_signal(|| Detail::Wifi);
     let home = use_keyboard_home();
     use_context_provider(|| ClosePanel(Callback::new(move |()| on_close.call(()))));
+    provide_power_ask();
     let go = use_callback(move |input: PageInput| {
         // The slide is quire's `PaneSwitcher`'s, played on `shown`.
         let (next, _slide, out) = step_page(*page.peek(), input);
@@ -86,6 +88,9 @@ pub(crate) fn control_center(
                 }
             },
             PaneSwitcher { shown: pane_of(current), root, detail }
+            // The alert slot: last in the positioned body, which it covers (quire's `Alert`,
+            // `Flow::Inline`).
+            TurnOffAlert { on_answered: move |()| home.take() }
         }
     }
 }

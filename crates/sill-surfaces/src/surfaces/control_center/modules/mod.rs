@@ -6,6 +6,7 @@
 pub mod appearance;
 pub mod battery;
 pub mod bluetooth;
+pub(crate) mod bluetooth_ask;
 pub mod display;
 pub mod focus;
 pub mod keyboard;

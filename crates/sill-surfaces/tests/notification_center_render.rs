@@ -88,20 +88,20 @@ fn the_history_is_grouped_by_app_collapsed_to_the_newest() {
         h.text_of(".sill-nc-head .ds-button").as_deref(),
         Some("Clear All")
     );
-    assert_eq!(h.count(".sill-nc-group"), 2);
-    assert_eq!(h.count(".sill-nc-group .ds-group-header"), 2);
+    assert_eq!(h.count(".sill-nc-group-head"), 2);
+    assert_eq!(h.count(".sill-nc-group-head .ds-group-header"), 2);
     assert_eq!(
-        h.text_of(".sill-nc-group:nth-child(1) .ds-group-header-name")
+        h.text_of(".sill-nc-item[*|data-group=mail] .ds-group-header-name")
             .as_deref(),
         Some("Mail")
     );
     assert_eq!(
-        h.text_of(".sill-nc-group:nth-child(1) .ds-group-header-count")
+        h.text_of(".sill-nc-item[*|data-group=mail] .ds-group-header-count")
             .as_deref(),
         Some("3")
     );
     assert_eq!(
-        h.text_of(".sill-nc-group:nth-child(2) .ds-group-header-name")
+        h.text_of(".sill-nc-item[*|data-group=chat] .ds-group-header-name")
             .as_deref(),
         Some("Chat")
     );
@@ -111,13 +111,16 @@ fn the_history_is_grouped_by_app_collapsed_to_the_newest() {
         "one card per group while collapsed"
     );
     assert_eq!(
-        h.attr(".sill-nc-group:nth-child(1) .sill-nc-row", "data-stack")
-            .as_deref(),
+        h.attr(
+            ".sill-nc-item[*|data-group=mail] .sill-nc-row",
+            "data-stack"
+        )
+        .as_deref(),
         Some("3"),
         "Mail's newest stands for three"
     );
     assert_eq!(
-        h.count(".sill-nc-group:nth-child(1) .ds-notification-layer"),
+        h.count(".sill-nc-item[*|data-group=mail] .ds-notification-layer"),
         2,
         "stacked over the rest"
     );
@@ -127,7 +130,7 @@ fn the_history_is_grouped_by_app_collapsed_to_the_newest() {
         "no swipe in the center"
     );
     assert_eq!(
-        h.text_of(&format!(".sill-nc-group:nth-child(1) {TOGGLE}"))
+        h.text_of(&format!(".sill-nc-item[*|data-group=mail] {TOGGLE}"))
             .as_deref(),
         Some("2 more")
     );
@@ -138,7 +141,7 @@ fn the_history_is_grouped_by_app_collapsed_to_the_newest() {
 #[test]
 fn n_more_opens_the_group_and_show_less_closes_it() {
     let mut running = opened(two_apps());
-    let toggle = format!(".sill-nc-group:nth-child(1) {TOGGLE}");
+    let toggle = format!(".sill-nc-item[*|data-group=mail] {TOGGLE}");
     let more = running.harness.centre(&toggle).expect("N more");
     running.harness.click(more);
     running.until(|h| h.count(".sill-nc-row") == 4);
@@ -160,7 +163,7 @@ fn clear_and_clear_all_go_to_the_service() {
     let mut running = opened(two_apps());
     let clear = running
         .harness
-        .centre(&format!(".sill-nc-group:nth-child(2) {CLEAR}"))
+        .centre(&format!(".sill-nc-item[*|data-group=chat] {CLEAR}"))
         .expect("Chat's Clear");
     running.harness.click(clear);
     let mut sent = running.commands_until(1);
@@ -184,25 +187,28 @@ fn a_press_on_a_stack_opens_it_and_a_lone_cards_close_dismisses_it() {
     let mut running = opened(two_apps());
     let stack = running
         .harness
-        .centre(".sill-nc-group:nth-child(1) .ds-notification-plate")
+        .centre(".sill-nc-item[*|data-group=mail] .ds-notification-plate")
         .expect("Mail's stack");
     running.harness.click(stack);
     running.until(|h| h.count(".sill-nc-row") == 4);
     assert_eq!(running.harness.count(".sill-nc-row"), 4, "the stack opened");
     let chat = running
         .harness
-        .centre(".sill-nc-group:nth-child(2) .ds-notification-plate")
+        .centre(".sill-nc-item[*|data-group=chat] .ds-notification-plate")
         .expect("Chat's card");
     running.harness.pointer_move(chat);
     running.until(|h| {
-        h.attr(".sill-nc-group:nth-child(2) .ds-notification", "data-hover")
-            .as_deref()
+        h.attr(
+            ".sill-nc-item[*|data-group=chat] .ds-notification",
+            "data-hover",
+        )
+        .as_deref()
             == Some("on")
     });
     running.advance(300);
     let close = running
         .harness
-        .centre(".sill-nc-group:nth-child(2) .ds-notification-close")
+        .centre(".sill-nc-item[*|data-group=chat] .ds-notification-close")
         .expect("its close button");
     running.harness.click(close);
     assert_eq!(
@@ -222,7 +228,7 @@ fn an_empty_history_says_so_and_offers_no_clear_all() {
         Some("No Notifications")
     );
     assert_eq!(h.count(".sill-nc-head .ds-button"), 0);
-    assert_eq!(h.count(".sill-nc-group"), 0);
+    assert_eq!(h.count(".sill-nc-group-head"), 0);
 }
 
 #[test]
