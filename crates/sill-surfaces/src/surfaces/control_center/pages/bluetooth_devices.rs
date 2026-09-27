@@ -172,6 +172,21 @@ pub(crate) fn device_glyph(kind: BtKind) -> Icon {
     }
 }
 
+/// A device's filled glyph (quire's `DeviceGlyph`, twelve devices): the battery rings' glyph
+/// in the Batteries widget and the control center's Battery module.
+pub(crate) fn device_of(kind: BtKind) -> ds::Device {
+    match kind {
+        BtKind::Headphones | BtKind::Headset => ds::Device::Headphones,
+        BtKind::Speaker => ds::Device::Speaker,
+        BtKind::Keyboard => ds::Device::Keyboard,
+        BtKind::Mouse => ds::Device::Mouse,
+        BtKind::Gamepad => ds::Device::Gamepad,
+        BtKind::Phone => ds::Device::Phone,
+        BtKind::Computer => ds::Device::Laptop,
+        BtKind::Other => ds::Device::Other,
+    }
+}
+
 /// What the pane says instead of a list, if anything.
 pub(crate) fn empty_line(bluetooth: &Bluetooth, rows: usize) -> Option<String> {
     let text = match (bluetooth.presence, bluetooth.power, rows) {

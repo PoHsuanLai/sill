@@ -9,7 +9,7 @@
 use dioxus::prelude::*;
 use ds::detail::FirstShow;
 use ds::{
-    BatteryState, DeviceBattery, Fraction, Glyph, Icon, IconSource, ModulePanel, RingMark,
+    BatteryState, Device, DeviceBattery, DeviceGlyph, Fraction, IconSource, ModulePanel, RingMark,
     StatusState, Text,
 };
 use sill_services::{Battery, Bluetooth, BtBattery, BtConnection, Charge, Presence};
@@ -19,7 +19,7 @@ use crate::hooks::{use_battery, use_bluetooth, use_power_profile, use_settings};
 use crate::surfaces::bar::glyph_state::battery_glyph;
 use crate::surfaces::bar::status::battery_lines;
 use crate::surfaces::control_center::modules::use_plate;
-use crate::surfaces::control_center::pages::bluetooth_devices::device_glyph;
+use crate::surfaces::control_center::pages::bluetooth_devices::device_of;
 
 /// The Battery module.
 #[component]
@@ -63,7 +63,7 @@ pub fn BatteryModule() -> Element {
                                 mark: ring.mark,
                                 label: ring.label.clone(),
                                 first: FirstShow::Animate,
-                                Glyph { icon: ring.glyph }
+                                DeviceGlyph { device: ring.device }
                             }
                         }
                     }
@@ -84,14 +84,14 @@ struct BatteryHead {
     left: String,
 }
 
-/// One device's ring: its key, level, whether it is charging, its name and glyph.
+/// One device's ring: its key, level, whether it is charging, its name and its filled glyph.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct DeviceRing {
     pub key: String,
     pub level: Fraction,
     pub mark: RingMark,
     pub label: String,
-    pub glyph: Icon,
+    pub device: Device,
 }
 
 /// The rings, in order: this computer's battery when it has one, then every connected Bluetooth
@@ -103,7 +103,8 @@ pub(crate) fn device_rings(battery: &Battery, bluetooth: &Bluetooth) -> Vec<Devi
             level: Fraction(battery.level.0.min(100) * 10),
             mark: charging(battery.charge),
             label: "This computer".to_owned(),
-            glyph: Icon::Monitor,
+            // It has a battery, so a laptop (Q450).
+            device: Device::Laptop,
         }),
         Presence::Absent => None,
     };
@@ -115,7 +116,7 @@ pub(crate) fn device_rings(battery: &Battery, bluetooth: &Bluetooth) -> Vec<Devi
                 level: Fraction(level.0.min(100) * 10),
                 mark: RingMark::Plain,
                 label: device.name.clone(),
-                glyph: device_glyph(device.kind),
+                device: device_of(device.kind),
             }),
             (BtConnection::Connected, BtBattery::Unknown)
             | (BtConnection::Connecting | BtConnection::Disconnected, _) => None,
@@ -136,7 +137,7 @@ fn charging(charge: Charge) -> RingMark {
 #[cfg(test)]
 mod tests {
     use super::{DeviceRing, device_rings};
-    use ds::{Fraction, Icon, RingMark};
+    use ds::{Device, Fraction, RingMark};
     use sill_services::{
         Battery, Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,
         BtPower, Charge, Percent, Presence,
@@ -179,12 +180,12 @@ mod tests {
             ],
             connect: Default::default(),
         };
-        let ring = |key: &str, level, mark, label: &str, glyph| DeviceRing {
+        let ring = |key: &str, level, mark, label: &str, device| DeviceRing {
             key: key.to_owned(),
             level: Fraction(level),
             mark,
             label: label.to_owned(),
-            glyph,
+            device,
         };
         // (name, battery, bluetooth, rings)
         let cases = [
@@ -198,16 +199,16 @@ mod tests {
                         930,
                         RingMark::Charging,
                         "This computer",
-                        Icon::Monitor,
+                        Device::Laptop,
                     ),
-                    ring("mouse", 840, RingMark::Plain, "mouse", Icon::Mouse),
+                    ring("mouse", 840, RingMark::Plain, "mouse", Device::Mouse),
                 ],
             ),
             (
                 "a desktop and a mouse",
                 Battery::default(),
                 bluetooth,
-                vec![ring("mouse", 840, RingMark::Plain, "mouse", Icon::Mouse)],
+                vec![ring("mouse", 840, RingMark::Plain, "mouse", Device::Mouse)],
             ),
             (
                 "nothing",

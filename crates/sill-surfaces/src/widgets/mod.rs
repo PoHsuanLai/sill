@@ -1,43 +1,48 @@
-//! Widgets (design/20 §1.14; sill FINDINGS "M10 freeze"): one component per
-//! [`WidgetKind`], drawn the same in two hosts: the notification center's widget slot below the
-//! history (`surfaces::notification_center::CenterWidgets`, macOS 11's Notification Center
-//! widgets) and the desktop widget layer (`surfaces::desktop_widgets`, macOS Sonoma's desktop
-//! widgets). [`Widget`] picks the kind's component and wraps it in quire's `WidgetFrame` (Q182:
-//! the card, its corner, padding, footprint and title row); a kind's component draws its content
-//! only.
+//! Widgets (design/20 §1.14; sill FINDINGS "M10 freeze", "Widget interface port"): each kind on
+//! quire's widget interface (quire CONSUMING "Widget interface (2026-09-27)"). quire owns the
+//! card (`ds::WidgetCard`: footprint, corner, inset, material, Space tint, title row, lift); a
+//! widget is a `ds::Widget` (quire's `BatteryWidget`, `WorldClockWidget` and `MonthWidget`, and
+//! sill's own [`up_next::UpNext`] and [`now_playing::NowPlaying`]), and sill only provides each
+//! one's entries from its services ([`Widget`] picks the provider for a kind). Drawn the same in
+//! two hosts: the notification center's widget slot below the history
+//! (`surfaces::notification_center::CenterWidgets`) and the desktop widget layer
+//! (`surfaces::desktop_widgets`).
 //!
-//! An enum and not a trait: the kinds are a closed set chosen in the settings
-//! (`widgets.center`, `widgets.desktop_widgets`), so adding one is a compile error at every
-//! place that must learn it (CONVENTIONS §0 "Prefer an enum to a trait for closed vocabulary").
+//! Which kinds are placed stays a closed enum in the settings (`sill_settings::WidgetKind`,
+//! `widgets.center`, `widgets.desktop_widgets`) until `layout.toml` (design/28 section 5.6):
+//! [`kind_id`] names each one as quire's registry does, and [`layout`] maps the keys to a
+//! `ds::WidgetLayout` and back.
 
 pub mod battery;
 pub mod calendar;
-pub mod frame;
+pub mod layout;
 pub mod now_playing;
+pub mod sizes;
 pub mod up_next;
+mod up_next_view;
 mod wake;
 pub mod world_clock;
 
-pub use ds::{WidgetHost, WidgetSize};
+pub use ds::widget::cells;
+pub use ds::{Lift, WidgetHost, WidgetSize};
 pub use sill_settings::WidgetKind;
 pub use wake::{provide_widget_wake, use_widget_wake};
 
 use dioxus::prelude::*;
 
-/// A size's footprint on the desktop grid, in cells: (columns, rows). quire's `WidgetFrame`
-/// sizes its card from the same unit (`--widget-cell`, `--widget-gap`).
-pub fn cells(size: WidgetSize) -> (u16, u16) {
-    match size {
-        WidgetSize::Small => (1, 1),
-        WidgetSize::Medium => (2, 1),
-        WidgetSize::Large => (2, 2),
-    }
-}
+/// Every kind, in the settings' order.
+pub const ALL_KINDS: [WidgetKind; 5] = [
+    WidgetKind::Calendar,
+    WidgetKind::UpNext,
+    WidgetKind::Battery,
+    WidgetKind::NowPlaying,
+    WidgetKind::WorldClock,
+];
 
-/// The size `kind` takes in `host`. In the notification center every tile spans the column (a
-/// medium tile's 344 fits its 384 less the padding), the month two cells tall since its weeks do
-/// not fit in one; on the desktop the compact month and the batteries are small, the lists and the
-/// clocks' dials medium.
+/// The size `kind` takes in `host` unless the person picked another (`widgets.sizes`,
+/// [`sizes`]). In the notification center every tile spans the column (a medium tile's 344 fits
+/// its 384 less the padding), the month two cells tall; on the desktop the compact month and
+/// the batteries are small, the lists and the clocks' dials medium.
 pub fn size_of(kind: WidgetKind, host: WidgetHost) -> WidgetSize {
     match (host, kind) {
         (WidgetHost::Tile, WidgetKind::Calendar) => WidgetSize::Large,
@@ -48,7 +53,58 @@ pub fn size_of(kind: WidgetKind, host: WidgetHost) -> WidgetSize {
     }
 }
 
-/// The element id of a widget's frame on the desktop layer: its input and blur region.
+/// `kind`'s name in quire's registry.
+pub fn kind_id(kind: WidgetKind) -> ds::WidgetKind {
+    use ds::Widget as _;
+    match kind {
+        WidgetKind::Calendar => ds::MonthWidget::kind(),
+        WidgetKind::UpNext => up_next::UpNext::kind(),
+        WidgetKind::Battery => ds::BatteryWidget::kind(),
+        WidgetKind::NowPlaying => now_playing::NowPlaying::kind(),
+        WidgetKind::WorldClock => ds::WorldClockWidget::kind(),
+    }
+}
+
+/// The settings' kind named `id`; none for a widget sill does not place.
+pub fn kind_of(id: &ds::WidgetKind) -> Option<WidgetKind> {
+    ALL_KINDS.into_iter().find(|kind| kind_id(*kind) == *id)
+}
+
+/// The sizes `kind` draws, its first the one it is added at.
+pub fn offered(kind: WidgetKind) -> &'static [WidgetSize] {
+    use ds::Widget as _;
+    match kind {
+        WidgetKind::Calendar => ds::MonthWidget::sizes(),
+        WidgetKind::UpNext => up_next::UpNext::sizes(),
+        WidgetKind::Battery => ds::BatteryWidget::sizes(),
+        WidgetKind::NowPlaying => now_playing::NowPlaying::sizes(),
+        WidgetKind::WorldClock => ds::WorldClockWidget::sizes(),
+    }
+}
+
+/// Every widget sill can place: quire's three and sill's two.
+pub fn registry() -> ds::WidgetRegistry {
+    let quire = ds::WidgetRegistry::quire();
+    match quire
+        .clone()
+        .with::<up_next::UpNext>()
+        .and_then(ds::WidgetRegistry::with::<now_playing::NowPlaying>)
+    {
+        Ok(all) => all,
+        Err(taken) => {
+            eprintln!("sill: widget registry: {taken}");
+            quire
+        }
+    }
+}
+
+/// Provide [`registry`] to a host root's subtree (the desktop layer, the notification center,
+/// Edit Widgets).
+pub fn provide_registry() {
+    ds::provide_widget_registry(registry());
+}
+
+/// The element id of a widget's card on the desktop layer: its input and blur region.
 pub fn widget_element_id(kind: WidgetKind) -> String {
     let word = match kind {
         WidgetKind::Calendar => "calendar",
@@ -60,51 +116,43 @@ pub fn widget_element_id(kind: WidgetKind) -> String {
     format!("widget-{word}")
 }
 
-/// Every widget's stylesheet and the frame's, for a host root to inject beside its own (the
-/// notification center's panel, the desktop layer): one widget's rules per file.
+/// sill's own widgets' stylesheets (quire's widgets style themselves), for a host root to inject
+/// beside its own: one widget's rules per file.
 pub fn widgets_css() -> String {
-    [
-        frame::CSS,
-        calendar::CSS,
-        up_next::CSS,
-        battery::CSS,
-        now_playing::CSS,
-        world_clock::CSS,
-    ]
-    .join("\n")
+    [up_next::CSS, now_playing::CSS].join("\n")
 }
 
-/// One widget of `kind` in `host`, on quire's frame, named by [`widget_element_id`].
+/// One widget of `kind` in `host` at `size`, on quire's card, named by [`widget_element_id`],
+/// `lift`ed while the desktop drags it: the kind's provider feeds the card.
 #[component]
-pub fn Widget(kind: WidgetKind, host: WidgetHost) -> Element {
-    rsx! {
-        ds::WidgetFrame {
-            size: size_of(kind, host),
-            host,
-            title: frame::frame_title(kind),
-            id: widget_element_id(kind),
-            match kind {
-                WidgetKind::Calendar => rsx! { calendar::CalendarWidget { host } },
-                WidgetKind::UpNext => rsx! { up_next::UpNextWidget { host } },
-                WidgetKind::Battery => rsx! { battery::BatteryWidget { host } },
-                WidgetKind::NowPlaying => rsx! { now_playing::NowPlayingWidget { host } },
-                WidgetKind::WorldClock => rsx! { world_clock::WorldClockWidget { host } },
-            }
-        }
+pub fn Widget(
+    kind: WidgetKind,
+    host: WidgetHost,
+    size: WidgetSize,
+    #[props(default)] lift: Lift,
+) -> Element {
+    let place = Place { host, size, lift };
+    match kind {
+        WidgetKind::Calendar => rsx! { calendar::CalendarCard { place } },
+        WidgetKind::UpNext => rsx! { up_next::UpNextCard { place } },
+        WidgetKind::Battery => rsx! { battery::BatteryCard { place } },
+        WidgetKind::NowPlaying => rsx! { now_playing::NowPlayingCard { place } },
+        WidgetKind::WorldClock => rsx! { world_clock::WorldClockCard { place } },
     }
+}
+
+/// Where a provider's card is drawn: the host, the size and the lift.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Place {
+    pub host: WidgetHost,
+    pub size: WidgetSize,
+    pub lift: Lift,
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{WidgetHost, WidgetKind, cells, size_of, widget_element_id};
-
-    const ALL: [WidgetKind; 5] = [
-        WidgetKind::Calendar,
-        WidgetKind::UpNext,
-        WidgetKind::Battery,
-        WidgetKind::NowPlaying,
-        WidgetKind::WorldClock,
-    ];
+    use super::{ALL_KINDS, WidgetHost, WidgetKind, cells, kind_id, kind_of, offered, size_of};
+    use super::{registry, widget_element_id};
 
     #[test]
     fn each_widget_has_its_footprint_in_each_host() {
@@ -126,11 +174,36 @@ mod tests {
     }
 
     #[test]
+    fn each_kind_is_named_in_the_registry_and_offers_its_usual_sizes() {
+        let cases = [
+            (WidgetKind::Calendar, "quire.month"),
+            (WidgetKind::UpNext, "sill.up-next"),
+            (WidgetKind::Battery, "quire.battery"),
+            (WidgetKind::NowPlaying, "sill.now-playing"),
+            (WidgetKind::WorldClock, "quire.world-clock"),
+        ];
+        let registry = registry();
+        for (kind, name) in cases {
+            assert_eq!(kind_id(kind).as_str(), name);
+            assert_eq!(kind_of(&kind_id(kind)), Some(kind));
+            assert!(registry.get(&kind_id(kind)).is_some(), "{name}");
+            for host in [WidgetHost::Tile, WidgetHost::Desktop] {
+                assert!(
+                    offered(kind).contains(&size_of(kind, host)),
+                    "{kind:?} {host:?}"
+                );
+            }
+        }
+        assert_eq!(registry.all().len(), ALL_KINDS.len());
+        assert_eq!(kind_of(&ds::WidgetKind::fixed("org.example.weather")), None);
+    }
+
+    #[test]
     fn element_ids_are_distinct() {
-        let mut ids: Vec<_> = ALL.into_iter().map(widget_element_id).collect();
+        let mut ids: Vec<_> = ALL_KINDS.into_iter().map(widget_element_id).collect();
         ids.sort();
         ids.dedup();
-        assert_eq!(ids.len(), ALL.len());
+        assert_eq!(ids.len(), ALL_KINDS.len());
         assert_eq!(widget_element_id(WidgetKind::UpNext), "widget-up-next");
     }
 }

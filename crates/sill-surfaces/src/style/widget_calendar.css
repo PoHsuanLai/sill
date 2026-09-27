@@ -1,8 +1,0 @@
-/* The Calendar widget (widgets/calendar; M10 lane a): quire's `MonthGrid` (Q180) draws the
-   month, its title and buttons, the heads, the days, today's disc and the busy dots, at the
-   density its WidgetFrame asks (compact in the desktop's small frame, Q190); this only places it
-   in its host, with quire's tokens (coherence rule 1). */
-
-/* Fills the frame's body, so quire's month (rows at flex-basis) spreads over its full height. */
-.sill-cal{ display:flex; justify-content:center; flex:1 1 auto; align-self:stretch; min-height:0; }
-.sill-cal-center{ padding:var(--s-2) 0; }

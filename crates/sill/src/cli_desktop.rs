@@ -25,6 +25,10 @@ pub enum ShotArg {
 pub enum WidgetsAction {
     /// Show the desktop widgets when hidden, hide them when shown.
     ToggleDesktop,
+    /// Open Edit Widgets, the widget gallery.
+    Edit,
+    /// Close Edit Widgets.
+    EditClose,
 }
 
 /// `sill debug corner CORNER`.
@@ -49,6 +53,8 @@ pub fn screenshot_request(kind: ShotArg) -> ScreenshotRequest {
 pub fn widgets_request(action: WidgetsAction) -> WidgetsRequest {
     match action {
         WidgetsAction::ToggleDesktop => WidgetsRequest::ToggleDesktop,
+        WidgetsAction::Edit => WidgetsRequest::Edit,
+        WidgetsAction::EditClose => WidgetsRequest::EditClose,
     }
 }
 

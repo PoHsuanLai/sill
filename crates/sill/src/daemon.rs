@@ -76,6 +76,8 @@ pub fn run() -> ExitCode {
         corners: sill_surfaces::surfaces::hot_corners::CornerLink::new(),
         switcher: sill_surfaces::surfaces::switcher::SwitcherLink::new(),
         lock: sill_surfaces::surfaces::lock::LockLink::new(),
+        edit_widgets: sill_surfaces::surfaces::edit_widgets::EditWidgetsLink::new(),
+        widgets_writer: crate::edit_widgets::writer(settings_dir.clone(), settings_tx.clone()),
     });
     // M6: the notifications service's policy from the settings and the focus mode; the first
     // one sent ends its passive start (FINDINGS "M6 freeze").
@@ -348,6 +350,9 @@ fn run_event(
                 surface_root(root, services, settings_feed)
             });
             crate::widgets::spawn_missing(ctx, outputs, settings_tx, |root| {
+                surface_root(root, services, settings_feed)
+            });
+            crate::edit_widgets::spawn_missing(ctx, outputs, |root| {
                 surface_root(root, services, settings_feed)
             });
             crate::corners::spawn_missing(ctx, outputs, settings_tx, |root| {
@@ -704,7 +709,9 @@ pub(crate) fn surface_root(root: Root, services: &Services, settings_feed: &Sett
             .context(links.banners.clone())
             .context(links.corners.clone())
             .context(links.switcher.clone())
-            .context(links.lock.clone()),
+            .context(links.lock.clone())
+            .context(links.edit_widgets.clone())
+            .context(links.widgets_writer.clone()),
         None => root,
     }
 }
@@ -789,7 +796,13 @@ fn dispatch_request(
         }
         Request::Lock => crate::session::lock(services),
         Request::Screenshot(request) => crate::screenshots::dispatch(services, request),
-        Request::Widgets(request) => crate::widgets::dispatch(settings_dir, settings_tx, request),
+        Request::Widgets(request) => crate::widgets::dispatch(
+            settings_dir,
+            settings_tx,
+            outputs,
+            crate::links::get(),
+            request,
+        ),
         Request::Switcher(request) => {
             crate::switcher::dispatch(outputs, crate::links::get(), request)
         }
@@ -1012,6 +1025,9 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
             let desktop = surfaces
                 .desktop_widgets
                 .map(|id| (crate::widgets::namespace(info), id));
+            let edit = surfaces
+                .edit_widgets
+                .map(|id| (crate::edit_widgets::namespace(info), id));
             let polkit = surfaces
                 .polkit_prompt
                 .map(|id| (crate::polkit::namespace(info), id));
@@ -1033,6 +1049,7 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
                 .chain(center)
                 .chain(thumbnail)
                 .chain(desktop)
+                .chain(edit)
                 .chain(corners)
                 .chain(polkit)
                 .chain(switcher)

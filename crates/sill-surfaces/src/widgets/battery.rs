@@ -1,28 +1,20 @@
-//! The Battery widget (M10 lane b; design/23-WIDGETS.md section 4.1, the fourth pass "Flat,
-//! bright, measured"): this machine's battery (UPower) and every connected Bluetooth device that
-//! reports one (BlueZ `Battery1`), each a level ring (quire's `BatteryLevel`, Q183) with its
-//! glyph inside. quire draws only the ring; this widget composes the rest, copying the
-//! reference's own gallery ("Widget reference" page): one device alone is the ring at the top
-//! left with the percentage as the card's hero figure; several are a 2 x 2 grid of rings, no
-//! numbers, empty places a ring at 0; a Medium frame is a row of up to four rings, the
-//! percentage under each. No header row (M25): [`crate::widgets::frame::frame_head`] gives
-//! Battery none. Nothing to show (a desktop with no battery and no devices): the widget says "No
-//! batteries".
+//! The Batteries widget's provider (M10 lane b; design/23-WIDGETS.md section 4.1): this
+//! machine's battery (UPower) and every connected Bluetooth device that reports one (BlueZ
+//! `Battery1`), as quire's `BatteryEntry`. quire's `BatteryWidget` draws them (one ring with the
+//! hero figure, the 2 x 2 grid, the row; each ring holds the device's filled glyph and fills on
+//! the host's wake); sill only reads the services. Nothing to show (a desktop with no battery
+//! and no devices): `Absent("No batteries")`.
 
 use dioxus::prelude::*;
-use ds::{BatteryFigure, BatteryLevel, Fraction, Glyph, Icon, IconSize, RingMark, WakeStamp};
+use ds::{BatteryCell, BatteryEntry, Device, Fraction, RingMark, WidgetCard};
 use sill_services::{
     Battery, Bluetooth, BtBattery, BtConnection, BtKind, Charge, Percent, Presence,
 };
 
-use super::WidgetHost;
+use super::{Place, WidgetKind, widget_element_id};
 use crate::hooks::{use_battery, use_bluetooth};
-use crate::surfaces::bar::status::battery_icon;
-use crate::surfaces::control_center::pages::bluetooth_devices::device_glyph;
+use crate::surfaces::control_center::pages::bluetooth_devices::device_of;
 use crate::widgets::use_widget_wake;
-
-/// This widget's stylesheet, in [`crate::widgets::widgets_css`].
-pub const CSS: &str = include_str!("../style/widget_battery.css");
 
 /// Whose battery a row is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -86,146 +78,54 @@ pub(crate) fn machine_name(host: &str) -> String {
     }
 }
 
-/// A row's glyph: the bar's battery glyph for this machine, the device's kind for the rest.
-fn row_glyph(row: &BatteryRow) -> Icon {
-    match row.owner {
-        BatteryOwner::ThisMachine => battery_icon(&Battery {
-            presence: Presence::Present,
-            level: row.level,
-            charge: row.charge,
-            ..Battery::default()
-        }),
-        BatteryOwner::Device(kind) => device_glyph(kind),
-    }
-}
-
-/// A row's ring: its level in permille, and the bolt while it charges.
-fn ring_of(row: &BatteryRow) -> (Fraction, RingMark) {
-    let level = Fraction(row.level.0.min(100) * 10);
+/// A row as quire's cell: this machine is a laptop (it has a battery), a device its kind's
+/// glyph; the level in permille, the bolt while it charges.
+pub fn cell_of(row: &BatteryRow) -> BatteryCell {
+    let device = match row.owner {
+        BatteryOwner::ThisMachine => Device::Laptop,
+        BatteryOwner::Device(kind) => device_of(kind),
+    };
     let mark = match row.charge {
         Charge::Charging => RingMark::Charging,
-        _ => RingMark::Plain,
-    };
-    (level, mark)
-}
-
-/// What the ring tells assistive technology: "desk, 81%, charging".
-fn ring_label(row: &BatteryRow) -> String {
-    match row.charge {
-        Charge::Charging => format!("{}, {}%, charging", row.name, row.level.0),
-        _ => format!("{}, {}%", row.name, row.level.0),
-    }
-}
-
-/// How many rings a grid or a row holds (macOS's Batteries widget shows up to four).
-const MAX_RINGS: usize = 4;
-
-/// How the widget composes its rings for `host` with `rows` batteries, at least one
-/// (design/23-WIDGETS.md section 4.1, "Composition").
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum BatteryLayout {
-    /// A Small frame, one device: the ring at the top left, the percentage as the hero figure.
-    Solo,
-    /// A Small frame, several devices: a 2 x 2 grid of rings, no numbers.
-    Grid,
-    /// A Medium frame: a row of rings, the percentage under each.
-    Row,
-}
-
-impl BatteryLayout {
-    /// `host`'s layout for `rows` batteries.
-    fn of(host: WidgetHost, rows: usize) -> Self {
-        match (host, rows) {
-            (WidgetHost::Desktop, 1) => BatteryLayout::Solo,
-            (WidgetHost::Desktop, _) => BatteryLayout::Grid,
-            (WidgetHost::Tile, _) => BatteryLayout::Row,
+        Charge::Unknown | Charge::Discharging | Charge::Empty | Charge::Full | Charge::Idle => {
+            RingMark::Plain
         }
+    };
+    BatteryCell {
+        name: row.name.clone(),
+        device,
+        level: Fraction(row.level.0.min(100) * 10),
+        mark,
     }
 }
 
-/// The batteries, laid out as the reference's own gallery composes them (quire's `BatteryLevel`
-/// draws only the ring). Nothing to show: a quiet line.
+/// The widget's entry for `rows`.
+pub fn battery_entry(rows: &[BatteryRow]) -> BatteryEntry {
+    match rows {
+        [] => BatteryEntry::Absent("No batteries".to_owned()),
+        rows => BatteryEntry::Devices(rows.iter().map(cell_of).collect()),
+    }
+}
+
+/// The batteries on quire's card: a new entry each time a level changes.
 #[component]
-pub fn BatteryWidget(host: WidgetHost) -> Element {
+pub fn BatteryCard(place: Place) -> Element {
     let battery = use_battery()();
     let bluetooth = use_bluetooth()();
     let machine = use_hook(|| {
         let host = std::fs::read_to_string("/proc/sys/kernel/hostname").unwrap_or_default();
         machine_name(&host)
     });
-    let rows = battery_rows(&battery, &bluetooth, &machine);
-    let wake = use_widget_wake();
+    let entry = battery_entry(&battery_rows(&battery, &bluetooth, &machine));
     rsx! {
-        div { class: "sill-widget-battery", "data-host": host.slug(),
-            if rows.is_empty() {
-                span { class: "sill-widget-quiet", "No batteries" }
-            } else {
-                match BatteryLayout::of(host, rows.len()) {
-                    BatteryLayout::Solo => solo(&rows[0], wake),
-                    BatteryLayout::Grid => grid(&rows, wake),
-                    BatteryLayout::Row => row_of(&rows, wake),
-                }
-            }
-        }
-    }
-}
-
-/// One row's ring, keyed by its name: the device's glyph inside, filled to its level, a bolt
-/// while it charges, its fill replayed on each new `wake`.
-fn ring(row: &BatteryRow, wake: WakeStamp) -> Element {
-    let (level, mark) = ring_of(row);
-    rsx! {
-        BatteryLevel { key: "{row.name}", level, mark, label: ring_label(row), wake,
-            Glyph { icon: row_glyph(row), size: IconSize::Base }
-        }
-    }
-}
-
-/// An empty place in the grid: a ring at 0, as the reference's own gallery draws one.
-fn empty_ring(key: usize, wake: WakeStamp) -> Element {
-    rsx! {
-        BatteryLevel { key: "empty-{key}", level: Fraction(0), label: "No device", wake }
-    }
-}
-
-/// One device, alone: the ring at the top left, its percentage counting up as the card's hero
-/// figure.
-fn solo(row: &BatteryRow, wake: WakeStamp) -> Element {
-    let (level, _) = ring_of(row);
-    rsx! {
-        div { class: "sill-widget-battery-solo",
-            {ring(row, wake)}
-            span { class: "sill-widget-battery-hero", BatteryFigure { level, wake } }
-        }
-    }
-}
-
-/// Several devices, a Small frame: a 2 x 2 grid of rings, empty places padded to four.
-fn grid(rows: &[BatteryRow], wake: WakeStamp) -> Element {
-    rsx! {
-        div { class: "sill-widget-battery-grid",
-            for row in rows.iter().take(MAX_RINGS) {
-                {ring(row, wake)}
-            }
-            for n in rows.len()..MAX_RINGS {
-                {empty_ring(n, wake)}
-            }
-        }
-    }
-}
-
-/// A Medium frame: a row of rings, each counting up to its percentage under it.
-fn row_of(rows: &[BatteryRow], wake: WakeStamp) -> Element {
-    rsx! {
-        div { class: "sill-widget-battery-row",
-            for row in rows.iter().take(MAX_RINGS) {
-                div { key: "{row.name}", class: "sill-widget-battery-cell",
-                    {ring(row, wake)}
-                    span { class: "sill-widget-battery-figure",
-                        BatteryFigure { level: ring_of(row).0, wake }
-                    }
-                }
-            }
+        WidgetCard {
+            widget: ds::BatteryWidget,
+            timeline: ds::Timeline::now(entry),
+            size: place.size,
+            host: place.host,
+            wake: use_widget_wake(),
+            id: widget_element_id(WidgetKind::Battery),
+            lift: place.lift,
         }
     }
 }
@@ -237,65 +137,58 @@ mod tests {
         Charge, Percent, Presence,
     };
 
-    use ds::{Fraction, RingMark};
+    use ds::{BatteryCell, BatteryEntry, Device, Fraction, RingMark};
 
-    use super::{
-        BatteryLayout, BatteryOwner, BatteryRow, WidgetHost, battery_rows, machine_name,
-        ring_label, ring_of,
-    };
+    use super::{BatteryOwner, BatteryRow, battery_entry, battery_rows, cell_of, machine_name};
 
     #[test]
-    fn the_layout_is_solo_only_once_on_the_desktop() {
-        let cases = [
-            (WidgetHost::Desktop, 1, BatteryLayout::Solo),
-            (WidgetHost::Desktop, 2, BatteryLayout::Grid),
-            (WidgetHost::Desktop, 4, BatteryLayout::Grid),
-            (WidgetHost::Tile, 1, BatteryLayout::Row),
-            (WidgetHost::Tile, 4, BatteryLayout::Row),
-        ];
-        for (host, rows, want) in cases {
-            assert_eq!(BatteryLayout::of(host, rows), want, "{host:?} {rows}");
-        }
-    }
-
-    #[test]
-    fn a_row_is_a_ring_in_permille_with_a_bolt_while_charging() {
-        let row = |level, charge| BatteryRow {
-            owner: BatteryOwner::ThisMachine,
+    fn a_row_is_a_cell_in_permille_with_its_device_and_a_bolt_while_charging() {
+        let row = |owner, level, charge| BatteryRow {
+            owner,
             name: "desk".to_owned(),
             level: Percent(level),
             charge,
         };
+        let cell = |device, level, mark| BatteryCell {
+            name: "desk".to_owned(),
+            device,
+            level: Fraction(level),
+            mark,
+        };
+        let this = BatteryOwner::ThisMachine;
         let cases = [
             (
-                row(81, Charge::Charging),
-                Fraction(810),
-                RingMark::Charging,
-                "desk, 81%, charging",
+                row(this, 81, Charge::Charging),
+                cell(Device::Laptop, 810, RingMark::Charging),
             ),
             (
-                row(7, Charge::Discharging),
-                Fraction(70),
-                RingMark::Plain,
-                "desk, 7%",
+                row(this, 7, Charge::Discharging),
+                cell(Device::Laptop, 70, RingMark::Plain),
             ),
             (
-                row(100, Charge::Full),
-                Fraction(1000),
-                RingMark::Plain,
-                "desk, 100%",
+                row(this, 100, Charge::Full),
+                cell(Device::Laptop, 1000, RingMark::Plain),
             ),
             (
-                row(0, Charge::Unknown),
-                Fraction(0),
-                RingMark::Plain,
-                "desk, 0%",
+                row(BatteryOwner::Device(BtKind::Headset), 0, Charge::Unknown),
+                cell(Device::Headphones, 0, RingMark::Plain),
+            ),
+            (
+                row(BatteryOwner::Device(BtKind::Mouse), 140, Charge::Unknown),
+                cell(Device::Mouse, 1000, RingMark::Plain),
             ),
         ];
-        for (row, level, mark, label) in cases {
-            assert_eq!(ring_of(&row), (level, mark), "{row:?}");
-            assert_eq!(ring_label(&row), label);
+        for (row, want) in cases {
+            assert_eq!(cell_of(&row), want, "{row:?}");
         }
+        assert_eq!(
+            battery_entry(&[]),
+            BatteryEntry::Absent("No batteries".to_owned())
+        );
+        assert_eq!(
+            battery_entry(&[row(this, 50, Charge::Idle)]),
+            BatteryEntry::Devices(vec![cell(Device::Laptop, 500, RingMark::Plain)])
+        );
     }
 
     #[test]

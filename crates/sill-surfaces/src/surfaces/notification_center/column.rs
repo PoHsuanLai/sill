@@ -31,7 +31,7 @@ pub(super) fn Column(output: OutputId) -> Element {
     };
     let on_hidden = EventHandler::new(move |()| phase.settled());
     rsx! {
-        Opened { key: "{opening.0}", opening, shown, on_hidden }
+        Opened { key: "{opening.0}", output, opening, shown, on_hidden }
     }
 }
 
@@ -40,7 +40,12 @@ pub(super) fn Column(output: OutputId) -> Element {
 /// again (the widgets' own remount already would; the stamp also covers a host that keeps them
 /// mounted across an opening).
 #[component]
-fn Opened(opening: Opening, shown: Shown, on_hidden: EventHandler<()>) -> Element {
+fn Opened(
+    output: OutputId,
+    opening: Opening,
+    shown: Shown,
+    on_hidden: EventHandler<()>,
+) -> Element {
     let ctx = use_center_ctx();
     use_context_provider(|| ctx.clone());
     provide_widget_wake(WakeStamp(opening.0 as u32));
@@ -62,7 +67,7 @@ fn Opened(opening: Opening, shown: Shown, on_hidden: EventHandler<()>) -> Elemen
                 edge: PanelEdge::Right,
                 material: Material::Popover,
                 scrim: PanelScrim::None,
-                Contents {}
+                Contents { output }
             }
         }
     }

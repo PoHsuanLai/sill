@@ -1,23 +1,25 @@
 //! The Calendar widget's view: reads `use_agenda` (today, the events) and the `calendar`
-//! settings, keeps the month shown in a signal (today's month on mount, stepped by the previous
-//! and next buttons, back to today's month when the day turns), and draws quire's `MonthGrid`
-//! (Q180) from [`super::grid::month_grid`] and [`super::grid::busy_days`]: macOS's calendar
-//! widget, the month's name in the accent, weekday initials, today on the accent disc, a dot
-//! under each day with an event: compact in the desktop's small frame, regular in the center's
-//! tile (quire's `MonthDensity::Auto`, Q190). Redrawn on the clock's minute tick.
+//! settings, keeps the month shown in a signal (today's month on mount, stepped by the card's
+//! `MonthIntent::Step`, back to today's month when the day turns), and hands quire's
+//! `MonthWidget` one entry: the grid from [`super::grid::month_grid`] and
+//! [`super::grid::busy_days`], today's weekday and date, and today's events from the agenda Up
+//! Next reads ([`crate::widgets::up_next::today_events`]). Redrawn on the clock's minute tick.
 
 use dioxus::prelude::*;
+use ds::{MonthEntry, MonthFace, MonthIntent, TodayLine, WidgetCard};
+use jiff::Timestamp;
 use jiff::tz::TimeZone;
 use sill_settings::WeekNumbers;
 
 use super::grid::{Step, busy_days, month_grid};
-use super::shown::{Shown, grid_data};
+use super::shown::{Shown, grid_data, weekday_name};
 use crate::hooks::{use_agenda, use_clock, use_settings};
-use crate::widgets::WidgetHost;
+use crate::widgets::up_next::today_events;
+use crate::widgets::{Place, WidgetKind, use_widget_wake, widget_element_id};
 
-/// The month, today marked.
+/// The month, today marked, on quire's card.
 #[component]
-pub fn CalendarWidget(host: WidgetHost) -> Element {
+pub fn CalendarCard(place: Place) -> Element {
     let _minute = use_clock()();
     let agenda = use_agenda()();
     let calendar = use_settings()().calendar;
@@ -31,22 +33,33 @@ pub fn CalendarWidget(host: WidgetHost) -> Element {
         WeekNumbers::Hide => ds::WeekNumbers::Hide,
         WeekNumbers::Show => ds::WeekNumbers::Show,
     };
-    let onstep = EventHandler::new(move |step: ds::Step| {
+    let face = MonthFace {
+        today: Some(TodayLine {
+            weekday: weekday_name(today).to_owned(),
+            day: u8::try_from(today.day()).unwrap_or(1),
+        }),
+        events: today_events(&agenda, Timestamp::now(), &zone),
+        no_events: "No events today".to_owned(),
+        ..MonthFace::of(grid_data(&grid, today), weeks)
+    };
+    let onintent = EventHandler::new(move |intent: MonthIntent| {
+        let MonthIntent::Step(step) = intent;
         let step = match step {
             ds::Step::Previous => Step::Previous,
             ds::Step::Next => Step::Next,
         };
         shown.set(shown().stepped(today, step));
     });
-    // The month's density is quire's to pick from the frame (`MonthDensity::Auto`): compact in
-    // the desktop's small frame (Q190), regular in the notification center's large tile.
-    let class = match host {
-        WidgetHost::Tile => "sill-cal sill-cal-center",
-        WidgetHost::Desktop => "sill-cal",
-    };
     rsx! {
-        div { class,
-            ds::MonthGrid { data: grid_data(&grid, today), weeks, onstep }
+        WidgetCard {
+            widget: ds::MonthWidget,
+            timeline: ds::Timeline::now(MonthEntry::Month(Box::new(face))),
+            size: place.size,
+            host: place.host,
+            wake: use_widget_wake(),
+            id: widget_element_id(WidgetKind::Calendar),
+            onintent,
+            lift: place.lift,
         }
     }
 }

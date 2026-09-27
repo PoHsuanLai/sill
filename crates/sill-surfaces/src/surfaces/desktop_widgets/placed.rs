@@ -1,25 +1,21 @@
-//! One widget at its place on the layer, and its motion (FINDINGS "Widget drag"): while dragged
-//! it follows the pointer 1:1, lifted (a little larger over quire's drag shadow, `--shadow-drag`,
-//! above the others on `--z-drag`); at rest it glides to its cell whenever its cell changes, so
-//! the others make room and the dropped one settles into the grid. The motion is quire's
-//! `use_tween` (its duration and easing tokens, Reduced motion inside, frames only while it
-//! moves): the lift over `--t-quick` at `--e-out`, a glide over `--t-move`, at `--e-spring` for
-//! the widget the person dropped and `--e-out` for the ones that made room (a spring is for
+//! One widget at its place on the layer, and its motion (FINDINGS "Widget drag", "Widget
+//! interface port"): while dragged it follows the pointer 1:1 and its card is lifted (quire's
+//! `Lift::Lifted`: the card's own scale, drag shadow and drag layer, sill Q430); at rest it
+//! glides to its cell whenever its cell changes, so the others make room and the dropped one
+//! settles into the grid. The glide is quire's `use_tween` (its duration and easing tokens,
+//! Reduced motion inside, frames only while it moves) over `--t-move`, at `--e-spring` for the
+//! widget the person dropped and `--e-out` for the ones that made room (a spring is for
 //! contact, design/26 R5).
 
 use dioxus::prelude::*;
 use ds::detail::{Ease, TweenSpec, use_tween};
-use ds::{DurationToken, Fraction};
+use ds::{DurationToken, Fraction, Lift};
 use sill_settings::WidgetKind;
 
 use super::arrange::LayerPoint;
 use super::drag::corner;
 use super::geometry::PlaceBox;
-use crate::widgets::{Widget, WidgetHost};
-
-/// How much larger a lifted widget is drawn, in thousandths: 1.04, between quire's drag ghost
-/// (1.02) and its drop target (1.045), design/04 section 34.
-pub const LIFT_PERMILLE: u32 = 40;
+use crate::widgets::{Widget, WidgetHost, WidgetSize};
 
 /// Where the widget is held.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,53 +26,38 @@ pub enum Pose {
     Lifted(LayerPoint),
 }
 
-/// `kind` at `target` (its cell's box), in `pose`; `ease` is the curve of its next glide.
+/// `kind` at `size` at `target` (its cell's box), in `pose`; `ease` is the curve of its next
+/// glide.
 #[component]
-pub fn Placed(kind: WidgetKind, target: PlaceBox, pose: Pose, ease: Ease) -> Element {
-    let raised = match pose {
-        Pose::Lifted(_) => Fraction(1000),
-        Pose::Resting => Fraction(0),
-    };
-    let lift = use_tween(
-        raised,
-        TweenSpec {
-            duration: DurationToken::Quick,
-            ease: Ease::Out,
-        },
-    );
+pub fn Placed(
+    kind: WidgetKind,
+    size: WidgetSize,
+    target: PlaceBox,
+    pose: Pose,
+    ease: Ease,
+) -> Element {
     let at = use_glide(corner(&target), pose, ease);
-    let scale = 1000 + LIFT_PERMILLE * u32::from(lift.now().0) / 1000;
-    let style = place_style(at, &target, scale);
-    let (state, shield) = match pose {
-        Pose::Lifted(_) => ("up", Shield::On),
-        Pose::Resting => ("down", Shield::Off),
+    let style = place_style(at, &target);
+    let lift = match pose {
+        Pose::Lifted(_) => Lift::Lifted,
+        Pose::Resting => Lift::Rest,
     };
     rsx! {
-        div { class: "sill-dw-place", "data-lift": state, style,
-            Widget { kind, host: WidgetHost::Desktop }
+        div { class: "sill-dw-place", style,
+            Widget { kind, host: WidgetHost::Desktop, size, lift }
             // While dragged, a press's release lands here and never on the widget's own controls,
             // which move along under the pointer.
-            if shield == Shield::On {
+            if lift == Lift::Lifted {
                 div { class: "sill-dw-shield" }
             }
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Shield {
-    On,
-    Off,
-}
-
-/// The inline box at `at`, `target`'s size, scaled by `scale` thousandths.
-pub fn place_style(at: LayerPoint, target: &PlaceBox, scale: u32) -> String {
-    let transform = match scale {
-        1000 => String::new(),
-        _ => format!("transform:scale({}.{:03});", scale / 1000, scale % 1000),
-    };
+/// The inline box at `at`, `target`'s size.
+pub fn place_style(at: LayerPoint, target: &PlaceBox) -> String {
     format!(
-        "left:{}px;top:{}px;width:{}px;height:{}px;{transform}",
+        "left:{}px;top:{}px;width:{}px;height:{}px;",
         at.x, at.y, target.width, target.height
     )
 }
@@ -188,7 +169,7 @@ mod tests {
     }
 
     #[test]
-    fn the_style_places_and_scales() {
+    fn the_style_places() {
         let target = PlaceBox {
             left: 0,
             top: 0,
@@ -197,12 +178,8 @@ mod tests {
         };
         let at = LayerPoint { x: -3, y: 40 };
         assert_eq!(
-            place_style(at, &target, 1000),
+            place_style(at, &target),
             "left:-3px;top:40px;width:164px;height:164px;"
-        );
-        assert_eq!(
-            place_style(at, &target, 1040),
-            "left:-3px;top:40px;width:164px;height:164px;transform:scale(1.040);"
         );
     }
 }

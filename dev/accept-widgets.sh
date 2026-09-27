@@ -31,7 +31,11 @@
 #      room and after (target/accept-widgets/drag-*.png) and a screenshot after
 #      (dev/out/widgets-drag-cosmic.png).
 #   6. 5 s idle: 0 frames on the desktop layer.
-#   7. A second toggle removes the surface and writes `widgets.desktop = "off"`.
+#   7. `sill widgets edit` (FINDINGS "Widget interface port"): `sill-edit-widgets-<out>` maps,
+#      showing quire's widget gallery beside the desktop's widgets (a capture, and
+#      dev/out/widgets-edit-cosmic.png); 3 s idle on it: 0 frames; `sill widgets edit-close`
+#      unmaps it again.
+#   8. A second toggle removes the surface and writes `widgets.desktop = "off"`.
 #
 # Exit 0 when every step passed, 1 on a failure. Another sill daemon started from a
 # `target/*/sill run` is waited for (up to 10 minutes), so two shells never share the nested
@@ -426,6 +430,34 @@ step_desktop_idle() {
 }
 
 # 7.
+step_edit() {
+  local log="$OUT_DIR/edit.log" edit="sill-edit-widgets-$NAME" f0 f1 up=
+  : >"$log"
+  has_surface "$edit" || { echo "$edit was never spawned" | tee -a "$log" >&2; return 1; }
+  sill widgets edit >>"$log" 2>&1 || { cat "$log" >&2; return 1; }
+  for _ in $(seq 40); do
+    sill debug capture "$edit" "$OUT_DIR/edit.png" >>"$log" 2>&1 && { up=1; break; }
+    sleep 0.05
+  done
+  [ -n "$up" ] || { echo "$edit never mapped" | tee -a "$log" >&2; return 1; }
+  sleep 1
+  sill debug capture "$edit" "$OUT_DIR/edit.png" >>"$log" 2>&1 || return 1
+  shot "$SHOTS/widgets-edit-cosmic.png" || echo "screenshot failed" >&2
+  clear_of_the_minute
+  f0=$(frames_of "$edit")
+  sleep 3
+  f1=$(frames_of "$edit")
+  sill widgets edit-close >>"$log" 2>&1 || return 1
+  sleep 0.8
+  if sill debug capture "$edit" "$OUT_DIR/edit-closed.png" >>"$log" 2>&1; then
+    echo "$edit is still mapped after edit-close" | tee -a "$log" >&2; return 1
+  fi
+  echo "Edit Widgets: $edit mapped on 'sill widgets edit', $(( f1 - f0 )) frames in 3 s idle, unmapped on edit-close" \
+    | tee -a "$log" >&2
+  [ "$(( f1 - f0 ))" = 0 ]
+}
+
+# 8.
 step_toggle_off() {
   local log="$OUT_DIR/toggle-off.log"
   kill_terms
@@ -446,10 +478,10 @@ done
 start_daemon || { stop_daemon; exit 1; }
 status=0
 for step in step_center_default step_center_all step_center_idle step_toggle_on \
-  step_drag step_desktop_idle step_toggle_off; do
+  step_drag step_desktop_idle step_edit step_toggle_off; do
   if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; fi
 done
 stop_daemon
 rm -rf "$RUNTIME"
-echo "logs in $OUT_DIR; screenshots $SHOTS/widgets-center-cosmic.png, $SHOTS/widgets-center-all-cosmic.png, $SHOTS/widgets-desktop-cosmic.png"
+echo "logs in $OUT_DIR; screenshots $SHOTS/widgets-center-cosmic.png, $SHOTS/widgets-center-all-cosmic.png, $SHOTS/widgets-desktop-cosmic.png, $SHOTS/widgets-edit-cosmic.png"
 exit "$status"

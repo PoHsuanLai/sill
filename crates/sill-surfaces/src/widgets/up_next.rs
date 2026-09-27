@@ -1,33 +1,37 @@
-//! The Up Next widget (M10 lane a): the next events (`sill_services::events::up_next` over
-//! `calendar.up_next_days` and `calendar.up_next_max`), each a title and a time line; "No
-//! upcoming events" when there are none, and a quiet line naming the source state when the
-//! calendars are off or unreadable. Redrawn on the clock's minute tick.
+//! The Up Next widget's provider (M10 lane a): the next events (`sill_services::events::up_next`
+//! over `calendar.up_next_days` and `calendar.up_next_max`), each a title and a time line, as
+//! [`UpNextEntry`]; "No upcoming events" when there are none, and a quiet line naming the source
+//! state when the calendars are off or unreadable. A new entry on the clock's minute tick. The
+//! widget itself ([`UpNext`], `up_next_view.rs`) is a `ds::Widget` of kind `sill.up-next`. The
+//! same agenda feeds the month widget's events ([`today_events`]), in the same colours.
 //!
-//! G291: `up_next_max` is a ceiling, not a promise. The tile's body is a fixed number of
-//! pixels (`--widget-cell`, `--widget-gap`; quire's `WidgetFrame`), so asking for more rows
-//! than it holds used to draw the last one half off the bottom, clipped by the card's
-//! `overflow:hidden`. [`events_capacity`] caps the count to what the frame's size class holds
-//! at the default tokens, measured once against a real render (`ds_native::Harness`, not
-//! measured again at draw time) rather than guessed: a Small or Medium tile is one cell tall
-//! either way (164 default; only a medium's width differs), so both hold the same two whole
-//! rows; a Large tile, two cells tall, holds six.
+//! G291: `up_next_max` is a ceiling, not a promise. The card's body is a fixed number of pixels
+//! (`--widget-cell`, `--widget-gap`; quire's card), so asking for more rows than it holds used
+//! to draw the last one half off the bottom, clipped by the card's `overflow:hidden`. The view
+//! draws at most [`events_capacity`] of the card's size, measured once against a real render
+//! (`ds_native::Harness`, not measured again at draw time) rather than guessed: a Small or
+//! Medium card is one cell tall either way (164 default; only a medium's width differs), so
+//! both hold the same two whole rows; a Large card, two cells tall, holds six.
 
 use dioxus::prelude::*;
+use ds::{EventLine, LabelHue, WidgetCard};
 use jiff::Timestamp;
 use jiff::civil::Date;
 use jiff::tz::TimeZone;
 use sill_services::events::{CalendarName, Days, up_next};
-use sill_services::{CalEvent, EventTime, SourceStatus};
+use sill_services::{Agenda, CalEvent, EventTime, SourceStatus};
 
-use super::{WidgetHost, WidgetKind, WidgetSize, size_of};
+pub use super::up_next_view::{DayLine, UpNext, UpNextEntry, UpNextFace, UpNextRow};
+use super::{Place, WidgetKind, WidgetSize, widget_element_id};
 use crate::hooks::{use_agenda, use_clock, use_settings};
+use crate::widgets::use_widget_wake;
 
-/// How many whole event rows the tile's body holds at `size`, measured against the default
-/// tokens (a 164 px small cell, 16 px gap, 12 px card padding, the title row and `.sill-un-day`
-/// column already drawn) rather than assumed: a Small and a Medium tile share one cell's
-/// height, so both hold two rows before a third would clip; a Large tile, two cells and a gap
+/// How many whole event rows the card's body holds at `size`, measured against the default
+/// tokens (a 164 px small cell, 16 px gap, quire's card inset, the title row and `.sill-un-day`
+/// column already drawn) rather than assumed: a Small and a Medium card share one cell's
+/// height, so both hold two rows before a third would clip; a Large card, two cells and a gap
 /// tall, holds six.
-fn events_capacity(size: WidgetSize) -> usize {
+pub fn events_capacity(size: WidgetSize) -> usize {
     match size {
         WidgetSize::Small | WidgetSize::Medium => 2,
         WidgetSize::Large => 6,
@@ -101,13 +105,14 @@ const WEEKDAY_NAMES: [&str; 7] = [
     "Sunday",
 ];
 
-/// The calendar colour's class: one of quire's eight person swatches (`--c-person-N`), picked by
-/// the calendar's name, so a calendar keeps its colour everywhere.
-fn hue_class(calendar: &CalendarName) -> String {
+/// A calendar's colour: one of quire's label hues, picked by the calendar's name, so a calendar
+/// keeps its colour everywhere (Up Next's bar, the month widget's events).
+pub fn calendar_hue(calendar: &CalendarName) -> LabelHue {
     let hash = calendar.0.bytes().fold(2_166_136_261_u32, |h, b| {
         (h ^ u32::from(b)).wrapping_mul(16_777_619)
     });
-    format!("sill-un-bar sill-un-hue-{}", hash % 8 + 1)
+    let at = usize::try_from(hash).unwrap_or(0) % LabelHue::ALL.len();
+    LabelHue::ALL[at]
 }
 
 /// What the widget says instead of, or under, its events.
@@ -123,58 +128,78 @@ fn quiet_line(status: &SourceStatus) -> Option<String> {
     }
 }
 
-/// The next events.
+/// The weekday's name.
+fn weekday_name(day: Date) -> &'static str {
+    WEEKDAY_NAMES[usize::from(day.weekday().to_monday_zero_offset().unsigned_abs())]
+}
+
+/// The widget's entry: today, then up to `max` next events of `agenda` over `ahead` days as
+/// seen at `now` in `zone`.
+pub fn up_next_entry(
+    agenda: &Agenda,
+    now: Timestamp,
+    zone: &TimeZone,
+    ahead: Days,
+    max: usize,
+) -> UpNextEntry {
+    let today = now.to_zoned(zone.clone()).date();
+    let rows = up_next(&agenda.events, now, zone, ahead, max)
+        .iter()
+        .map(|event| {
+            let lines = event_lines(event, now, zone);
+            UpNextRow {
+                hue: calendar_hue(&event.calendar),
+                title: lines.title,
+                when: lines.when,
+            }
+        })
+        .collect();
+    UpNextEntry::Agenda(UpNextFace {
+        day: DayLine {
+            weekday: weekday_name(today).to_owned(),
+            date: u8::try_from(today.day()).unwrap_or(1),
+        },
+        rows,
+        quiet: quiet_line(&agenda.status),
+    })
+}
+
+/// Today's events still to come, as the month widget lists them (its Medium card the first, its
+/// Large card up to `ds::widget::LARGE_EVENTS`): the same agenda and lines Up Next draws.
+pub fn today_events(agenda: &Agenda, now: Timestamp, zone: &TimeZone) -> Vec<EventLine> {
+    up_next(&agenda.events, now, zone, Days(0), ds::widget::LARGE_EVENTS)
+        .iter()
+        .map(|event| {
+            let lines = event_lines(event, now, zone);
+            EventLine {
+                time: lines.when,
+                title: lines.title,
+                hue: calendar_hue(&event.calendar),
+            }
+        })
+        .collect()
+}
+
+/// The next events on quire's card. The entry holds as many as the largest card draws; the
+/// view keeps what its size holds whole (G291).
 #[component]
-pub fn UpNextWidget(host: WidgetHost) -> Element {
+pub fn UpNextCard(place: Place) -> Element {
     let _minute = use_clock()();
     let agenda = use_agenda()();
     let calendar = use_settings()().calendar;
     let zone = TimeZone::try_system().unwrap_or(TimeZone::UTC);
-    let now = Timestamp::now();
-    let today = now.to_zoned(zone.clone()).date();
-    let max =
-        usize::from(calendar.up_next_max.0).min(events_capacity(size_of(WidgetKind::UpNext, host)));
-    let next = up_next(
-        &agenda.events,
-        now,
-        &zone,
-        Days(calendar.up_next_days.0),
-        max,
-    );
-    let rows: Vec<(String, EventLines)> = next
-        .iter()
-        .map(|event| (hue_class(&event.calendar), event_lines(event, now, &zone)))
-        .collect();
-    let quiet = quiet_line(&agenda.status);
-    let host_class = match host {
-        WidgetHost::Tile => "sill-un sill-un-center",
-        WidgetHost::Desktop => "sill-un sill-un-desktop",
-    };
-    let weekday =
-        WEEKDAY_NAMES[usize::from(today.weekday().to_monday_zero_offset().unsigned_abs())];
+    let max = usize::from(calendar.up_next_max.0).min(events_capacity(WidgetSize::Large));
+    let days = Days(calendar.up_next_days.0);
+    let entry = up_next_entry(&agenda, Timestamp::now(), &zone, days, max);
     rsx! {
-        div { class: host_class,
-            div { class: "sill-un-day",
-                span { class: "sill-un-weekday", {weekday} }
-                span { class: "sill-un-date", {today.day().to_string()} }
-            }
-            div { class: "sill-un-list",
-                if rows.is_empty() && quiet.is_none() {
-                    span { class: "sill-un-empty", "No upcoming events" }
-                }
-                for (hue, lines) in rows {
-                    div { class: "sill-un-row",
-                        span { class: hue }
-                        div { class: "sill-un-text",
-                            span { class: "sill-un-title ds-truncate", {lines.title} }
-                            span { class: "sill-un-when", {lines.when} }
-                        }
-                    }
-                }
-                if let Some(quiet) = quiet {
-                    span { class: "sill-un-quiet", {quiet} }
-                }
-            }
+        WidgetCard {
+            widget: UpNext,
+            timeline: ds::Timeline::now(entry),
+            size: place.size,
+            host: place.host,
+            wake: use_widget_wake(),
+            id: widget_element_id(WidgetKind::UpNext),
+            lift: place.lift,
         }
     }
 }
@@ -186,7 +211,21 @@ mod tests {
     use sill_services::events::{CalendarName, EventUid};
     use sill_services::{CalEvent, EventTime};
 
-    use super::{EventLines, WidgetSize, event_lines, events_capacity};
+    use super::{EventLines, WidgetSize, calendar_hue, event_lines, events_capacity};
+    use ds::LabelHue;
+
+    #[test]
+    fn a_calendar_keeps_one_label_hue_by_its_name() {
+        // FNV-1a of the name, modulo quire's five hues (`dev/accept-calendar.sh` computes the same).
+        let cases = [
+            ("work", LabelHue::Violet),
+            ("team", LabelHue::Green),
+            ("personal", LabelHue::Amber),
+        ];
+        for (name, want) in cases {
+            assert_eq!(calendar_hue(&CalendarName(name.to_owned())), want, "{name}");
+        }
+    }
 
     #[test]
     fn a_size_holds_as_many_rows_as_its_cell_measured_out() {

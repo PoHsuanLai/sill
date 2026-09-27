@@ -27,6 +27,8 @@ pub struct OutputSurfaces {
     /// shell-host's session lock's, not a row's.
     pub polkit_prompt: Option<SurfaceId>,
     pub switcher: Option<SurfaceId>,
+    /// Edit Widgets (the widget gallery), warm and hidden.
+    pub edit_widgets: Option<SurfaceId>,
 }
 
 /// One output's hot corner surfaces, one per corner whose action is not `None`.
@@ -70,7 +72,7 @@ impl CornerSurfaces {
 
 impl OutputSurfaces {
     /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 17] {
+    fn fields(&self) -> [Option<SurfaceId>; 18] {
         [
             self.bar,
             self.wallpaper,
@@ -89,6 +91,7 @@ impl OutputSurfaces {
             self.corners.bottom_right,
             self.polkit_prompt,
             self.switcher,
+            self.edit_widgets,
         ]
     }
 
@@ -122,6 +125,7 @@ impl OutputSurfaces {
             &mut self.corners.bottom_right,
             &mut self.polkit_prompt,
             &mut self.switcher,
+            &mut self.edit_widgets,
         ] {
             if *field == Some(id) {
                 *field = None;

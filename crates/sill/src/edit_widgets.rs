@@ -1,0 +1,180 @@
+//! Edit Widgets on the daemon's side (FINDINGS "Widget interface port"): one hidden surface per
+//! output, kept warm like the notification center; `sill widgets edit` and `edit-close`, which
+//! write its link; and the writer its root is given, which saves the three widget keys into
+//! `settings.toml` (publishing them at once, as `toggle-desktop` does, so the desktop layer and
+//! the center follow before the watch fires) and the output's places into
+//! `desktop-widgets.json`.
+
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use shell_host::{HostCtx, OutputInfo, Root};
+use sill_ipc::{Failure, FailureKind, Response};
+use sill_settings::ShellFile;
+use sill_surfaces::surfaces::desktop_widgets::PlacementFile;
+use sill_surfaces::surfaces::edit_widgets::{
+    EditWidgetsLink, EditWidgetsProps, WidgetsWrite, WidgetsWriter, edit_widgets_layer,
+};
+use tokio::sync::watch;
+
+use crate::msg::ShellMsg;
+use crate::outputs::Outputs;
+
+/// Spawn a hidden Edit Widgets surface on every output whose row lacks one; each root is built
+/// by `root` (the daemon's `surface_root`, which adds the link and the writer) and given the
+/// places' file.
+pub fn spawn_missing(
+    ctx: &mut HostCtx<ShellMsg>,
+    outputs: &mut Outputs,
+    root: impl Fn(Root) -> Root,
+) {
+    let missing: Vec<OutputInfo> = outputs
+        .outputs
+        .iter()
+        .filter(|(_, s)| s.edit_widgets.is_none())
+        .map(|(info, _)| info.clone())
+        .collect();
+    for info in missing {
+        let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
+        let props = EditWidgetsProps {
+            output: info.clone(),
+        };
+        let mut made = root(Root::with_props(sill_surfaces::EditWidgets, props));
+        if let Some(file) = PlacementFile::default_path() {
+            made = made.context(file);
+        }
+        surfaces.edit_widgets =
+            crate::daemon::spawn_hidden(ctx, edit_widgets_layer(&info), made, &info);
+        outputs.set(info, surfaces);
+    }
+}
+
+/// The surface's namespace on `info`, which `debug stats` reports.
+pub fn namespace(info: &OutputInfo) -> String {
+    edit_widgets_layer(info).namespace
+}
+
+/// `sill widgets edit`: open it on the first output with its surface. `edit-close`: close it.
+pub fn open(outputs: &Outputs, link: Option<&EditWidgetsLink>) -> Response {
+    let target = outputs
+        .outputs
+        .iter()
+        .find(|(_, s)| s.edit_widgets.is_some())
+        .map(|(info, _)| info.id);
+    match (link, target) {
+        (Some(link), Some(output)) => {
+            link.open(output);
+            Response::Done
+        }
+        (None, _) | (_, None) => unsupported(),
+    }
+}
+
+/// `sill widgets edit-close`.
+pub fn close(link: Option<&EditWidgetsLink>) -> Response {
+    match link {
+        Some(link) => {
+            link.close();
+            Response::Done
+        }
+        None => unsupported(),
+    }
+}
+
+fn unsupported() -> Response {
+    Response::Failed(Failure {
+        kind: FailureKind::Unsupported,
+        message: "no output has an Edit Widgets surface".to_owned(),
+    })
+}
+
+/// The writer the surfaces are given: [`write`] into `dir` (nothing but a log line without
+/// one) and the default places' file.
+pub fn writer(dir: Option<PathBuf>, settings: watch::Sender<ShellFile>) -> WidgetsWriter {
+    WidgetsWriter(Arc::new(move |change: WidgetsWrite| {
+        let Some(dir) = dir.as_deref() else {
+            eprintln!("sill: no settings directory; Edit Widgets saved nothing");
+            return;
+        };
+        if let Err(error) = write(
+            dir,
+            &settings,
+            PlacementFile::default_path().as_ref(),
+            change,
+        ) {
+            eprintln!("sill: Edit Widgets: {error}");
+        }
+    }))
+}
+
+/// Save `change`'s keys into `dir`'s `settings.toml`, keeping every other key, publish the
+/// file on `settings`, and save its places in `places` when there is a file.
+pub fn write(
+    dir: &Path,
+    settings: &watch::Sender<ShellFile>,
+    places: Option<&PlacementFile>,
+    change: WidgetsWrite,
+) -> Result<(), String> {
+    let mut file = sill_settings::load(dir);
+    file.widgets.center = change.center;
+    file.widgets.desktop_widgets = change.desktop;
+    file.widgets.sizes = change.sizes;
+    sill_settings::save(dir, &file).map_err(|error| format!("saving the settings: {error}"))?;
+    settings.send_replace(file);
+    if let Some(places) = places {
+        places
+            .save(&change.output, &change.places)
+            .map_err(|error| format!("saving {}: {error}", places.0.display()))?;
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use sill_settings::{ShellFile, WidgetKind};
+    use sill_surfaces::surfaces::desktop_widgets::{GridSlot, OutputKey, Placement, PlacementFile};
+    use sill_surfaces::surfaces::edit_widgets::WidgetsWrite;
+    use tokio::sync::watch;
+
+    use super::write;
+
+    #[test]
+    fn an_edit_writes_the_three_keys_and_the_outputs_places() {
+        let dir = std::env::temp_dir().join(format!("sill-edit-widgets-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let places = PlacementFile(dir.join("state").join("desktop-widgets.json"));
+        let (tx, rx) = watch::channel(ShellFile::default());
+        let mut before = ShellFile::default();
+        before.widgets.world_clocks = "Europe/London".to_owned();
+        sill_settings::save(&dir, &before).unwrap_or_else(|e| panic!("{e}"));
+        let clock = Placement {
+            kind: WidgetKind::WorldClock,
+            slot: GridSlot { column: 2, row: 0 },
+        };
+        let change = WidgetsWrite {
+            center: vec![WidgetKind::UpNext],
+            desktop: vec![WidgetKind::Calendar, WidgetKind::WorldClock],
+            sizes: "desktop.calendar=medium".to_owned(),
+            output: OutputKey::Named("DP-1".to_owned()),
+            places: vec![clock],
+        };
+        write(&dir, &tx, Some(&places), change).unwrap_or_else(|e| panic!("{e}"));
+        let saved = sill_settings::load(&dir).widgets;
+        assert_eq!(saved.center, vec![WidgetKind::UpNext]);
+        assert_eq!(
+            saved.desktop_widgets,
+            vec![WidgetKind::Calendar, WidgetKind::WorldClock]
+        );
+        assert_eq!(saved.sizes, "desktop.calendar=medium");
+        assert_eq!(
+            saved.world_clocks, "Europe/London",
+            "every other key is kept"
+        );
+        assert_eq!(rx.borrow().widgets.sizes, "desktop.calendar=medium");
+        assert_eq!(
+            places.load(&OutputKey::Named("DP-1".to_owned())),
+            vec![clock]
+        );
+        let _ = std::fs::remove_dir_all(dir);
+    }
+}

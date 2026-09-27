@@ -34,6 +34,10 @@ pub enum WidgetsRequest {
     /// Flip `widgets.desktop` in `settings.toml` (the file stays the one truth; the daemon's
     /// watch picks the change up).
     ToggleDesktop,
+    /// Open Edit Widgets (the widget gallery) on the first output that has its surface.
+    Edit,
+    /// Close Edit Widgets wherever it is open.
+    EditClose,
 }
 
 /// `sill debug screenshot PATH`: show the thumbnail for `path` as if the folder watch had seen

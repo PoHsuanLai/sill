@@ -1,20 +1,8 @@
 //! What each status item shows: its glyph and its words, pure over the service values.
 
-use ds::Icon;
 use sill_services::{
     Battery, Charge, Connectivity, Link, Minutes, Network, Presence, Remaining, Volume,
 };
-
-/// The battery glyph: charging, a warning at 10 % or below, then by level.
-pub(crate) fn battery_icon(battery: &Battery) -> Icon {
-    match (battery.charge, battery.level.0) {
-        (Charge::Charging, _) => Icon::BatteryCharging,
-        (Charge::Empty, _) | (_, 0..=10) => Icon::BatteryWarning,
-        (_, 11..=35) => Icon::BatteryLow,
-        (_, 36..=75) => Icon::BatteryMedium,
-        _ => Icon::BatteryFull,
-    }
-}
 
 /// The volume menu's heading: the sink, or that there is none.
 pub(crate) fn volume_heading(volume: &Volume) -> String {
@@ -69,8 +57,7 @@ fn hours(minutes: Minutes) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{battery_icon, battery_lines, network_lines, volume_heading};
-    use ds::Icon;
+    use super::{battery_lines, network_lines, volume_heading};
     use sill_services::{
         Battery, Charge, Connectivity, Link, Mute, Network, Percent, Presence, Seconds, Volume,
     };
@@ -111,7 +98,7 @@ mod tests {
     }
 
     #[test]
-    fn the_battery_glyph_and_lines_follow_charge() {
+    fn the_battery_lines_follow_charge() {
         let battery = |level, charge, empty| Battery {
             presence: Presence::Present,
             level: Percent(level),
@@ -119,16 +106,6 @@ mod tests {
             time_to_empty: Seconds(empty),
             time_to_full: Seconds(0),
         };
-        let cases = [
-            (battery(50, Charge::Charging, 0), Icon::BatteryCharging),
-            (battery(8, Charge::Discharging, 0), Icon::BatteryWarning),
-            (battery(30, Charge::Discharging, 0), Icon::BatteryLow),
-            (battery(60, Charge::Discharging, 0), Icon::BatteryMedium),
-            (battery(100, Charge::Full, 0), Icon::BatteryFull),
-        ];
-        for (b, want) in cases {
-            assert_eq!(battery_icon(&b), want, "{b:?}");
-        }
         assert_eq!(
             battery_lines(&battery(64, Charge::Discharging, 7500)),
             [

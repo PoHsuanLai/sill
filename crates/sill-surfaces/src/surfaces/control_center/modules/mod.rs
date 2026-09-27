@@ -9,6 +9,7 @@ pub mod bluetooth;
 pub mod display;
 pub mod focus;
 pub mod keyboard;
+pub mod media_face;
 pub mod now_playing;
 pub mod power_profile;
 pub mod sound;

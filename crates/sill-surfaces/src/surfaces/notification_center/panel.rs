@@ -11,7 +11,7 @@ use sill_services::OutputName;
 use super::column::Column;
 use crate::hooks::{use_appearance, use_ds_scale, use_settings, use_workspaces};
 use crate::surfaces::launcher::panel::active_look;
-use crate::widgets::widgets_css;
+use crate::widgets::{provide_registry, widgets_css};
 
 /// The center's stylesheet (lint-clean under `Profile::Strict`,
 /// `tests/notification_center_lint.rs`).
@@ -19,6 +19,7 @@ pub const NOTIFICATION_CENTER_CSS: &str = include_str!("../../style/notification
 
 /// The center on `output`.
 pub(super) fn center(output: OutputInfo) -> Element {
+    provide_registry();
     let ds_scale = use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();

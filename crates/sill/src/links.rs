@@ -15,6 +15,7 @@ use std::sync::OnceLock;
 use sill_settings::FocusLink;
 use sill_surfaces::surfaces::banners::BannerLink;
 use sill_surfaces::surfaces::control_center::ControlCenterLink;
+use sill_surfaces::surfaces::edit_widgets::{EditWidgetsLink, WidgetsWriter};
 use sill_surfaces::surfaces::hot_corners::CornerLink;
 use sill_surfaces::surfaces::lock::LockLink;
 use sill_surfaces::surfaces::notification_center::CenterLink;
@@ -37,6 +38,10 @@ pub struct Links {
     /// `lock` for which one shows the password prompt.
     pub switcher: SwitcherLink,
     pub lock: LockLink,
+    /// Edit Widgets: which output shows it (the notification center's "Edit Widgets", `sill
+    /// widgets edit`), and where its changes are written (`crate::widgets::writer`).
+    pub edit_widgets: EditWidgetsLink,
+    pub widgets_writer: WidgetsWriter,
 }
 
 static LINKS: OnceLock<Links> = OnceLock::new();

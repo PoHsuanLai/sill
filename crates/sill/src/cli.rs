@@ -535,6 +535,14 @@ mod tests {
                 Some(Request::Widgets(WidgetsRequest::ToggleDesktop)),
             ),
             (
+                &["widgets", "edit"],
+                Some(Request::Widgets(WidgetsRequest::Edit)),
+            ),
+            (
+                &["widgets", "edit-close"],
+                Some(Request::Widgets(WidgetsRequest::EditClose)),
+            ),
+            (
                 &["debug", "screenshot", "/tmp/shots/Screenshot_1.png"],
                 Some(Request::Debug(DebugRequest::Screenshot(FakeScreenshot {
                     path: PathBuf::from("/tmp/shots/Screenshot_1.png"),

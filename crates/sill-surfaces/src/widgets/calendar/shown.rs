@@ -121,6 +121,19 @@ const MONTHS: [&str; 12] = [
     "December",
 ];
 
+/// A day's weekday in full, as the Medium card's today column says it ("Sunday").
+pub(super) fn weekday_name(day: Date) -> &'static str {
+    match day.weekday() {
+        Weekday::Monday => "Monday",
+        Weekday::Tuesday => "Tuesday",
+        Weekday::Wednesday => "Wednesday",
+        Weekday::Thursday => "Thursday",
+        Weekday::Friday => "Friday",
+        Weekday::Saturday => "Saturday",
+        Weekday::Sunday => "Sunday",
+    }
+}
+
 /// A weekday's one-letter head, as macOS's calendar widget draws it.
 pub(super) fn initial(day: Weekday) -> &'static str {
     match day {
@@ -138,7 +151,7 @@ mod tests {
 
     use sill_settings::FirstWeekday;
 
-    use super::{Shown, grid_data, month_title};
+    use super::{Shown, grid_data, month_title, weekday_name};
     use crate::widgets::calendar::grid::month_grid;
     use crate::widgets::calendar::grid::{Month, Step};
 
@@ -207,6 +220,18 @@ mod tests {
         assert_eq!(busy_days, [28]);
         assert_eq!(days[0].place, ds::DayPlace::Before, "30 August");
         assert_eq!(data.weeks[0].number, ds::IsoWeek(36));
+    }
+
+    #[test]
+    fn the_today_column_names_the_weekday_in_full() {
+        let cases = [
+            (date(2026, 9, 27), "Sunday"),
+            (date(2026, 9, 28), "Monday"),
+            (date(2026, 10, 2), "Friday"),
+        ];
+        for (day, want) in cases {
+            assert_eq!(weekday_name(day), want, "{day}");
+        }
     }
 
     #[test]

@@ -8,6 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
 use ds::{Button, ButtonVariant};
+use shell_host::OutputId;
 use sill_services::{History, UnixMs};
 
 use super::drive::CenterCtx;
@@ -23,7 +24,7 @@ use crate::hooks::{use_clock, use_notification_history, use_notifications};
 
 /// The column's contents.
 #[component]
-pub(super) fn Contents() -> Element {
+pub(super) fn Contents(output: OutputId) -> Element {
     let ctx = use_context::<CenterCtx>();
     let history = use_notification_history()();
     let server = use_notifications().read().server.clone();
@@ -92,7 +93,7 @@ pub(super) fn Contents() -> Element {
             if let Some(line) = server_line(&server) {
                 div { class: "sill-nc-foot", {line} }
             }
-            div { class: "sill-nc-widgets", CenterWidgets {} }
+            div { class: "sill-nc-widgets", CenterWidgets { output } }
         }
     }
 }

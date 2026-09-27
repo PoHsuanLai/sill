@@ -14,6 +14,7 @@ pub mod clipboard;
 pub mod corners;
 pub mod daemon;
 pub mod displays;
+pub mod edit_widgets;
 pub mod idle;
 pub mod ipc_server;
 pub mod launch;

@@ -39,3 +39,5 @@
 /* The widgets slot (design/20 §1.14, M10): quire's widget tiles under the history, standing
    apart as the control center's modules do. */
 .sill-nc-widgets{ display:flex; flex-direction:column; align-items:center; gap:var(--s-8); padding-top:var(--s-8); }
+/* "Edit Widgets" under the tiles, centred, as at the foot of macOS's Notification Center. */
+.sill-nc-edit{ display:flex; justify-content:center; padding:var(--s-4) 0 var(--s-8); }

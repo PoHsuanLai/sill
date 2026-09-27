@@ -57,6 +57,7 @@ pub use surfaces::banners::Banners;
 pub use surfaces::bar::Bar;
 pub use surfaces::desktop_widgets::DesktopWidgets;
 pub use surfaces::dock::Dock;
+pub use surfaces::edit_widgets::EditWidgets;
 pub use surfaces::hot_corners::HotCorner;
 pub use surfaces::launcher::{Launcher, LauncherCatcher};
 pub use surfaces::lock::LockScreen;

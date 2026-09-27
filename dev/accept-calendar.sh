@@ -13,13 +13,15 @@
 #   1. `sill notifications open`: a capture of `sill-notification-center-<out>` shows the month
 #      with today on the accent disc (dev/out/calendar-cosmic.png; the output with the center
 #      open, dev/out/calendar-widget-cosmic.png).
-#   2. Up Next lists the fixture's next events in order, as many as the Medium tile's body
-#      holds without clipping (two, at the default cell and `up_next_max`, G291): its colour
-#      bars, top to bottom, are work's and team's swatches (quire's `--c-person-N`, picked by
-#      the calendar's name as `widgets::up_next` picks it); personal's (tomorrow's Dentist) is
-#      the third-soonest and does not draw.
-#   3. work.ics rewritten with the review cancelled: within 2 s the bars are team's and
-#      personal's (now the two soonest).
+#   2. The Large month lists today's events still to come under it, from the agenda Up Next
+#      reads (FINDINGS "Widget interface port"), then Up Next lists the fixture's next events in
+#      order, as many as the Medium tile's body holds without clipping (two, at the default cell
+#      and `up_next_max`, G291). The colour bars, top to bottom, are the month's work and team,
+#      then Up Next's work and team (quire's label hues `--c-{red,amber,green,blue,violet}`,
+#      picked by the calendar's name as `widgets::up_next::calendar_hue` picks it); personal's
+#      (tomorrow's Dentist) is not today's and is Up Next's third-soonest, so it draws nowhere.
+#   3. work.ics rewritten with the review cancelled: within 2 s the bars are the month's team,
+#      then Up Next's team and personal (now the two soonest).
 #   4. `calendar.week_numbers = "show"` and `sill reload`: the week column appears (the month,
 #      centred in its tile, moves today's disc right by half a 24 px column).
 #   5. 5 s idle while open, clear of the minute's turn: 0 frames on the center.
@@ -107,19 +109,21 @@ write("personal.ics", event("dentist", "Dentist", dentist, dentist + dt.timedelt
 EOF
 }
 
-# The swatch index Up Next gives a calendar name (FNV-1a, as `widgets::up_next::hue_class`).
+# The label hue (1 red, 2 amber, 3 green, 4 blue, 5 violet) a calendar name takes (FNV-1a, as
+# `widgets::up_next::calendar_hue`).
 hue_of() {
   python3 -c '
 import sys
 h = 2166136261
 for b in sys.argv[1].encode():
     h = ((h ^ b) * 16777619) & 0xFFFFFFFF
-print(h % 8 + 1)' "$1"
+print(h % 5 + 1)' "$1"
 }
 
-# What a capture of the center shows: "BARS <i> <i> ... ; DISC <x> <y> <w> <h>", the Up Next
-# colour bars' swatches top to bottom (thin upright runs of a person swatch's colour) and the
-# largest round blob of one tinted colour (today's accent disc), or "DISC none".
+# What a capture of the center shows: "BARS <i> <i> ... ; DISC <x> <y> <w> <h>", the events'
+# colour bars top to bottom (thin upright runs of a label hue, light or dark: the month's list,
+# then Up Next's) and the largest round blob of one tinted colour (today's accent disc), or
+# "DISC none".
 probe() {
   python3 - "$1" <<'EOF'
 import sys
@@ -129,8 +133,11 @@ img = np.asarray(Image.open(sys.argv[1]).convert("RGBA")).astype(int)
 ys, xs = np.nonzero(img[..., 3] > 200)
 img = img[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
 rgb, alpha = img[..., :3], img[..., 3]
-swatches = np.array([[0x5B, 0x4F, 0xC4], [0x2F, 0x7F, 0x6E], [0xB0, 0x66, 0x2E], [0x3C, 0x8A, 0x5B],
-                     [0x7A, 0x4A, 0x9E], [0xC0, 0x78, 0x2E], [0x2E, 0x7F, 0x8C], [0x6D, 0x7A, 0x3A]])
+# quire's label hues (`LabelHue::family`), light then dark, in the order red, amber, green,
+# blue, violet.
+swatches = np.array([[0xE8, 0x48, 0x3C], [0xF0, 0xA8, 0x1E], [0x28, 0xB2, 0x4A], [0x2B, 0x7C, 0xFF],
+                     [0x8B, 0x5C, 0xF0], [0xFF, 0x6B, 0x60], [0xF5, 0xBC, 0x4E], [0x4F, 0xD0, 0x6A],
+                     [0x4C, 0x9B, 0xFF], [0xA9, 0x8B, 0xFF]])
 dist = np.abs(rgb[:, :, None, :] - swatches[None, None, :, :]).sum(axis=3)
 nearest, best = dist.argmin(axis=2), dist.min(axis=2)
 on = (best < 36) & (alpha > 200)
@@ -158,14 +165,14 @@ for pts in components(on):
     h = pts[:, 0].max() - pts[:, 0].min() + 1
     w = pts[:, 1].max() - pts[:, 1].min() + 1
     if h >= 14 and w <= 6:
-        idx = np.bincount(nearest[pts[:, 0], pts[:, 1]], minlength=8).argmax() + 1
+        idx = np.bincount(nearest[pts[:, 0], pts[:, 1]], minlength=10).argmax() % 5 + 1
         bars.append((pts[:, 0].min(), idx))
 bars.sort()
 
 mx, mn = rgb.max(axis=2), rgb.min(axis=2)
 sat = (mx - mn) / np.maximum(mx, 1)
 # The accent is a pastel fill since quire accent B (#94c0fe light: saturation 0.42), so the bar
-# is 0.3; the person swatches are masked out above.
+# is 0.3; the label hues are masked out above.
 vivid = (sat > 0.3) & (mx > 90) & (alpha > 200) & ~on
 disc = None
 for pts in components(vivid):
@@ -257,8 +264,8 @@ step_month_and_up_next() {
   fi
   DISC_BEFORE=$(disc_of "$seen")
   [ "$DISC_BEFORE" != none ] || { echo "no accent disc on today" >&2; return 1; }
-  [ "$(bars_of "$seen")" = "$WORK $TEAM" ] \
-    || { echo "Up Next's order is not review, yoga (a Medium tile holds two, G291)" >&2; return 1; }
+  [ "$(bars_of "$seen")" = "$WORK $TEAM $WORK $TEAM" ] \
+    || { echo "the month's events and Up Next's are not review, yoga (a Medium tile holds two, G291)" >&2; return 1; }
 }
 
 # 3.
@@ -270,13 +277,13 @@ step_edit() {
   for _ in $(seq 40); do
     sill debug capture "$CENTER" "$OUT_DIR/edit.png" >>"$log" 2>&1 || return 1
     seen=$(probe "$OUT_DIR/edit.png")
-    [ "$(bars_of "$seen")" = "$TEAM $PERSONAL" ] && break
+    [ "$(bars_of "$seen")" = "$TEAM $TEAM $PERSONAL" ] && break
     sleep 0.05
   done
   elapsed=$(( ($(date +%s%N) - start) / 1000000 ))
   echo "after the edit: $seen, shown after ${elapsed} ms (the probe's own time included)" \
     | tee -a "$log" >&2
-  [ "$(bars_of "$seen")" = "$TEAM $PERSONAL" ] && [ "$elapsed" -le 2000 ]
+  [ "$(bars_of "$seen")" = "$TEAM $TEAM $PERSONAL" ] && [ "$elapsed" -le 2000 ]
 }
 
 # 4.

@@ -208,6 +208,14 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"widgets","v":{"kind":"toggle_desktop"}}"#,
         ),
         (
+            Request::Widgets(WidgetsRequest::Edit),
+            r#"{"kind":"widgets","v":{"kind":"edit"}}"#,
+        ),
+        (
+            Request::Widgets(WidgetsRequest::EditClose),
+            r#"{"kind":"widgets","v":{"kind":"edit_close"}}"#,
+        ),
+        (
             Request::Debug(DebugRequest::Screenshot(FakeScreenshot {
                 path: PathBuf::from("/tmp/shots/Screenshot_1.png"),
             })),

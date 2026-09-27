@@ -1,6 +1,6 @@
 /* The Up Next widget (widgets/up_next.rs; M10 lane a): macOS's Up Next, today's weekday in the
    accent over the day's number, then the next events, each with its calendar's colour (quire's
-   person swatches) beside its title and time. Quire's tokens only (coherence rule 1). */
+   label hues) beside its title and time. Quire's tokens only (coherence rule 1). */
 
 .sill-un{ display:flex; gap:var(--s-12); color:var(--ink); }
 .sill-un-center{ padding:var(--s-2) var(--s-4); }
@@ -25,12 +25,9 @@
 .sill-un-empty{ font-size:var(--fs-body); color:var(--ink-faint); }
 .sill-un-quiet{ font-size:var(--fs-small); color:var(--ink-faint); }
 
-/* A calendar's colour: one of the eight person swatches. */
-.sill-un-hue-1{ background:var(--c-person-1); }
-.sill-un-hue-2{ background:var(--c-person-2); }
-.sill-un-hue-3{ background:var(--c-person-3); }
-.sill-un-hue-4{ background:var(--c-person-4); }
-.sill-un-hue-5{ background:var(--c-person-5); }
-.sill-un-hue-6{ background:var(--c-person-6); }
-.sill-un-hue-7{ background:var(--c-person-7); }
-.sill-un-hue-8{ background:var(--c-person-8); }
+/* A calendar's colour: one of quire's label hues (`data-hue`, the month widget's own words). */
+.sill-un-bar{ background:var(--c-blue); }
+.sill-un-bar[*|data-hue=red]{ background:var(--c-red); }
+.sill-un-bar[*|data-hue=amber]{ background:var(--c-amber); }
+.sill-un-bar[*|data-hue=green]{ background:var(--c-green); }
+.sill-un-bar[*|data-hue=violet]{ background:var(--c-violet); }

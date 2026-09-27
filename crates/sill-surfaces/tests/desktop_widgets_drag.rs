@@ -1,8 +1,9 @@
-//! Dragging a desktop widget (FINDINGS "Widget drag"), the real `DesktopWidgets` in a
-//! `ds_native::Harness` on the virtual clock: a press that travels lifts the widget under the
-//! pointer, the one it passes over makes room and goes back after, a release snaps it into the
-//! grid and saves the place for this output, a click still reaches a widget's own control, and
-//! every moment settles to zero frames.
+//! Dragging a desktop widget (FINDINGS "Widget drag", "Widget interface port"), the real
+//! `DesktopWidgets` in a `ds_native::Harness` on the virtual clock: a press that travels lifts
+//! the widget under the pointer (quire's card `Lift::Lifted`, with quire's slot guide at the
+//! cell it would land in), the one it passes over makes room and goes back after, a release
+//! snaps it into the grid and saves the place for this output, a click still reaches a widget's
+//! own control, and every moment settles to zero frames.
 //!
 //! The layer is 1280 x 800: seven 164 px columns from x = 20 (column `c` at 20 + 180 c), rows at
 //! 16 + 180 r. The Calendar starts at column 6 row 0 (1100, 16), the Battery under it (1100, 196).
@@ -119,7 +120,19 @@ fn box_of(h: &Harness, id: &str) -> (i32, i32, i32, i32) {
 }
 
 fn lifted(h: &Harness, id: &str) -> usize {
-    h.count(&format!(".sill-dw-place[*|data-lift=up] #{id}"))
+    h.count(&format!(".ds-widget#{id}[*|data-lift=lifted]"))
+}
+
+/// The slot guide's box, while one is drawn.
+fn guide(h: &Harness) -> Option<(i32, i32, i32, i32)> {
+    let r = h.rect(".sill-dw-guide .ds-widget-slot")?;
+    let px = |v: f32| v.round() as i32;
+    Some((
+        px(r.origin.x.0),
+        px(r.origin.y.0),
+        px(r.size.width.0),
+        px(r.size.height.0),
+    ))
 }
 
 /// The Calendar's centre, where every drag here takes it (82 px in from its corner).
@@ -153,15 +166,22 @@ fn a_press_that_travels_lifts_the_widget_under_the_pointer() {
         (1018, 16, 164, 164),
         "it follows the pointer 1:1"
     );
-    settle_until(h, |h| {
-        h.attr(".sill-dw-place[*|data-lift=up]", "style")
-            .is_some_and(|s| s.contains("transform:scale(1.040)"))
-    });
+    assert!(
+        !h.attr(".sill-dw-place:last-child", "style")
+            .is_some_and(|s| s.contains("transform")),
+        "the lift is the card's own, not the layer's"
+    );
+    assert_eq!(
+        guide(h),
+        Some((1100, 16, 164, 164)),
+        "quire's slot guide at the cell it would land in"
+    );
     // Held still, the lift settles: nothing moves while it is held.
     assert_settles_to_zero_frames(h);
     h.pointer_up(point(1100.0, 98.0));
-    settle_until(h, |h| h.count(".sill-dw-place[*|data-lift=up]") == 0);
+    settle_until(h, |h| h.count(".ds-widget[*|data-lift=lifted]") == 0);
     assert_eq!(h.count(".sill-dw-shield"), 0);
+    assert_eq!(guide(h), None, "no guide at rest");
     assert_settles_to_zero_frames(h);
 }
 
@@ -172,6 +192,7 @@ fn a_drop_snaps_into_the_grid_and_is_saved_for_this_output() {
     // The corner goes to (478, 218): nearest column 3 (560) and row 1 (196).
     pick_up(h, (560.0, 300.0));
     assert_eq!(box_of(h, "widget-calendar"), (478, 218, 164, 164));
+    assert_eq!(guide(h), Some((560, 196, 164, 164)));
     h.pointer_up(point(560.0, 300.0));
     h.advance(Duration::from_millis(16));
     assert_ne!(
@@ -288,7 +309,7 @@ fn a_click_on_a_control_still_works_and_a_drag_from_it_does_not_press_it() {
     }
     assert_eq!(lifted(h, "widget-now-playing"), 1);
     h.pointer_up(away);
-    settle_until(h, |h| h.count(".sill-dw-place[*|data-lift=up]") == 0);
+    settle_until(h, |h| h.count(".ds-widget[*|data-lift=lifted]") == 0);
     assert_settles_to_zero_frames(h);
     assert_eq!(
         pressed_next(&sent(&mut run.feeds)),

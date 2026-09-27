@@ -1,8 +1,9 @@
 //! The Calendar and Up Next widgets on the fake services, in a Popover `Ds` as the notification
 //! center holds them: the month with today on the accent disc and busy days dotted, the week
-//! column on `calendar.week_numbers = "show"`, the previous / next buttons, Up Next's rows in
-//! order with their calendar colour, its empty and quiet lines, and both through quire's markup
-//! lint (coherence rules 1 and 2).
+//! column on `calendar.week_numbers = "show"`, the previous / next buttons (the card's
+//! `MonthIntent::Step`), the Medium card's today column and the Large card's events from the
+//! agenda Up Next reads, Up Next's rows in order with their calendar colour, its empty and quiet
+//! lines, and all through quire's markup lint (coherence rules 1 and 2).
 
 #[path = "support/fake.rs"]
 mod fake;
@@ -20,9 +21,7 @@ use jiff::{Timestamp, ToSpan, Zoned};
 use sill_services::events::{CalendarName, EventUid, EventsError};
 use sill_services::{Agenda, CalEvent, EventTime, Services, SourceStatus};
 use sill_settings::{SettingsFeed, ShellFile, WeekNumbers};
-use sill_surfaces::widgets::calendar::CalendarWidget;
-use sill_surfaces::widgets::up_next::UpNextWidget;
-use sill_surfaces::widgets::{Widget, WidgetHost, WidgetKind, widgets_css};
+use sill_surfaces::widgets::{Widget, WidgetHost, WidgetKind, WidgetSize, size_of, widgets_css};
 
 /// Today's number, on the accent disc.
 const TODAY: &str = ".ds-month-day[*|aria-current=date] .ds-month-num";
@@ -32,6 +31,8 @@ const TODAY: &str = ".ds-month-day[*|aria-current=date] .ds-month-num";
 enum Kind {
     Calendar,
     CalendarOnDesktop,
+    /// The month at Medium on the desktop: today beside the compact month.
+    CalendarMedium,
     UpNext,
 }
 
@@ -57,12 +58,20 @@ fn app() -> Element {
         Ds { appearance: Appearance::default(), material: Material::Popover,
             style { {css} }
             match world.kind {
-                Kind::Calendar => rsx! { CalendarWidget { host: WidgetHost::Tile } },
-                Kind::CalendarOnDesktop => rsx! { Widget { kind: WidgetKind::Calendar, host: WidgetHost::Desktop } },
-                Kind::UpNext => rsx! { UpNextWidget { host: WidgetHost::Tile } },
+                Kind::Calendar => rsx! { {widget(WidgetKind::Calendar, WidgetHost::Tile)} },
+                Kind::CalendarOnDesktop => rsx! { {widget(WidgetKind::Calendar, WidgetHost::Desktop)} },
+                Kind::CalendarMedium => rsx! {
+                    Widget { kind: WidgetKind::Calendar, host: WidgetHost::Desktop, size: WidgetSize::Medium }
+                },
+                Kind::UpNext => rsx! { {widget(WidgetKind::UpNext, WidgetHost::Tile)} },
             }
         }
     }
+}
+
+/// `kind` in `host` at its usual size.
+fn widget(kind: WidgetKind, host: WidgetHost) -> Element {
+    rsx! { Widget { kind, host, size: size_of(kind, host) } }
 }
 
 /// A widget drawn and what feeds it.
@@ -184,6 +193,68 @@ fn the_month_marks_today_and_the_busy_days() {
     assert!(
         (disc.size.width.0 - disc.size.height.0).abs() < 0.5 && disc.size.width.0 > 10.0,
         "a disc: {disc:?}"
+    );
+    clean(&h.html());
+}
+
+#[test]
+fn the_large_month_lists_todays_events_from_the_agenda_up_next_reads() {
+    let at = now().timestamp();
+    let later = |m: i64| at.checked_add(m.minutes()).unwrap_or(at);
+    let today = now().date();
+    // Late enough in the day for none of these to run into tomorrow is not assumed: only the
+    // events still to come today are listed, at most three.
+    let events = vec![
+        all_day("holiday", today),
+        timed("standup", "work", later(1), 1),
+        timed("review", "home", later(2), 1),
+        timed("gym", "home", later(3), 1),
+    ];
+    let running = start(Kind::Calendar, ShellFile::default(), read(events));
+    let h = &running.harness;
+    let listed = h.count(".ds-month-event");
+    assert!((1..=3).contains(&listed), "{listed} events listed");
+    assert_eq!(
+        h.text_of(".ds-month-event:first-child .ds-month-event-title")
+            .as_deref(),
+        Some("holiday"),
+        "the all-day event first, as Up Next orders them"
+    );
+    assert_eq!(h.count(".ds-month-quiet"), 0);
+    clean(&h.html());
+    let quiet = start(Kind::Calendar, ShellFile::default(), read(Vec::new()));
+    assert_eq!(
+        quiet.harness.text_of(".ds-month-quiet").as_deref(),
+        Some("No events today")
+    );
+}
+
+#[test]
+fn the_medium_month_has_today_beside_it() {
+    let today = now().date();
+    let running = start(
+        Kind::CalendarMedium,
+        ShellFile::default(),
+        read(vec![all_day("holiday", today)]),
+    );
+    let h = &running.harness;
+    let weekday = h.text_of(".ds-month-weekday").unwrap_or_default();
+    assert!(
+        weekday.ends_with("day") && weekday.len() >= 6,
+        "a weekday in full: {weekday:?}"
+    );
+    assert_eq!(
+        h.text_of(".ds-month-date").as_deref(),
+        Some(today.day().to_string().as_str())
+    );
+    assert_eq!(
+        h.text_of(".ds-month-today .ds-month-event-title")
+            .as_deref(),
+        Some("holiday")
+    );
+    assert_eq!(
+        h.attr(".ds-month", "data-density").as_deref(),
+        Some("compact")
     );
     clean(&h.html());
 }

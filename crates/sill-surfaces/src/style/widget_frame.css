@@ -1,4 +1,0 @@
-/* Shared by every widget (widgets/frame.rs). The card, its corner, padding, footprint and title
-   row are quire's `WidgetFrame` (Q182); this only draws the quiet line of a widget with nothing
-   to show. Tokens only (coherence rule 1). */
-.sill-widget-quiet{ padding:var(--s-6) 0; font-size:var(--fs-help); color:var(--ink-faint); }

@@ -10,6 +10,7 @@ pub mod bar;
 pub mod control_center;
 pub mod desktop_widgets;
 pub mod dock;
+pub mod edit_widgets;
 pub mod hot_corners;
 pub mod launcher;
 pub mod lock;

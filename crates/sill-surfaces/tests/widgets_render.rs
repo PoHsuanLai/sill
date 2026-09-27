@@ -1,10 +1,11 @@
-//! What the widgets draw (M10 lane b), each in a `ds_native::Harness` on the fake services: the
-//! frame (quire's `WidgetFrame`: a tile in the notification center, the Widget material's card
-//! on the desktop, each at its footprint), Battery's rings from the machine and the connected
-//! devices and their bump on a change, Now Playing as the control center's module (its presses
-//! reach the fake media queue, never a real player), World Clock's faces from
-//! `widgets.world_clocks`; and the notification center's slot, which draws
-//! `widgets.center` in order under the history.
+//! What the widgets draw (M10 lane b, "Widget interface port"), each in a `ds_native::Harness`
+//! on the fake services: the card (quire's `WidgetCard`: a tile in the notification center, the
+//! Widget material's card on the desktop, each at its footprint, `data-widget` its kind),
+//! Battery's rings from the machine and the connected devices and their bump on a change, Now
+//! Playing as the control center's view (its presses reach the fake media queue, never a real
+//! player), World Clock's faces from `widgets.world_clocks`; and the notification center's
+//! slot, which draws `widgets.center` in order under the history, its sizes from
+//! `widgets.sizes`, and "Edit Widgets" under it.
 
 mod center_support;
 
@@ -18,7 +19,7 @@ use ds_native::harness::settle_until;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{MediaCommand, MediaVerb, Services};
 use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
-use sill_surfaces::widgets::{Widget, WidgetHost, widgets_css};
+use sill_surfaces::widgets::{Widget, WidgetHost, WidgetSize, size_of, widgets_css};
 
 /// What the harness's root provides.
 #[derive(Clone)]
@@ -27,6 +28,7 @@ struct World {
     settings: SettingsFeed,
     kind: WidgetKind,
     host: WidgetHost,
+    size: WidgetSize,
 }
 
 thread_local! {
@@ -48,7 +50,7 @@ fn app() -> Element {
         Ds { appearance: ds::Appearance::default(), material, extent: RootExtent::Viewport,
             style { {widgets_css()} }
             div { style: "width:344px;",
-                Widget { kind: world.kind, host: world.host }
+                Widget { kind: world.kind, host: world.host, size: world.size }
             }
         }
     }
@@ -67,6 +69,10 @@ struct Running {
 }
 
 fn start(kind: WidgetKind, host: WidgetHost, file: ShellFile) -> Running {
+    start_at(kind, host, size_of(kind, host), file)
+}
+
+fn start_at(kind: WidgetKind, host: WidgetHost, size: WidgetSize, file: ShellFile) -> Running {
     let (services, feeds) = fake::services();
     WORLD.with(|w| {
         *w.borrow_mut() = Some(World {
@@ -74,6 +80,7 @@ fn start(kind: WidgetKind, host: WidgetHost, file: ShellFile) -> Running {
             settings: SettingsFeed::fixed(file),
             kind,
             host,
+            size,
         });
     });
     let mut harness =
@@ -154,7 +161,7 @@ fn battery_lists_the_machine_then_connected_devices_with_a_level() {
     assert_eq!(h.count("#widget-battery .ds-battery"), 2);
     let cell = |n: usize, part: &str| {
         h.attr(
-            &format!("#widget-battery .sill-widget-battery-cell:nth-child({n}) .ds-battery"),
+            &format!("#widget-battery .ds-batteries-cell:nth-child({n}) .ds-battery"),
             part,
         )
     };
@@ -164,7 +171,7 @@ fn battery_lists_the_machine_then_connected_devices_with_a_level() {
     );
     let figure = |n: usize| {
         h.text_of(&format!(
-            "#widget-battery .sill-widget-battery-cell:nth-child({n}) .ds-battery-figure"
+            "#widget-battery .ds-batteries-cell:nth-child({n}) .ds-battery-figure"
         ))
     };
     assert_eq!(
@@ -195,13 +202,13 @@ fn battery_says_so_when_there_is_none() {
     let h = &running.harness;
     assert_eq!(h.count("#widget-battery .ds-battery"), 0);
     assert_eq!(
-        h.text_of("#widget-battery .sill-widget-quiet").as_deref(),
+        h.text_of("#widget-battery .ds-batteries-quiet").as_deref(),
         Some("No batteries")
     );
 }
 
 #[test]
-fn now_playing_is_the_control_centers_module_and_presses_reach_the_fake() {
+fn now_playing_is_the_control_centers_view_and_presses_reach_the_fake() {
     let mut running = start(
         WidgetKind::NowPlaying,
         WidgetHost::Tile,
@@ -215,13 +222,13 @@ fn now_playing_is_the_control_centers_module_and_presses_reach_the_fake() {
         Some("So What")
     );
     assert_eq!(
-        h.attr(
-            "#widget-now-playing .sill-widget-now-playing .ds-module-panel",
-            "data-plate"
-        )
-        .as_deref(),
-        Some("bare"),
-        "the module's own plate is the frame's"
+        h.count("#widget-now-playing .ds-module-panel"),
+        0,
+        "the card is the plate: no module panel inside it"
+    );
+    assert_eq!(
+        h.attr("#widget-now-playing", "data-widget").as_deref(),
+        Some("sill.now-playing")
     );
     let next = h
         .centre("#widget-now-playing .sill-cc-media-buttons .ds-icon-button:last-child")
@@ -269,7 +276,7 @@ fn world_clock_with_no_city_names_the_key() {
     );
     let text = running
         .harness
-        .text_of("#widget-world-clock .sill-widget-quiet")
+        .text_of("#widget-world-clock .ds-world-clock-quiet")
         .unwrap_or_default();
     assert!(text.contains("widgets.world_clocks"), "{text}");
 }
@@ -375,10 +382,59 @@ fn opening_the_center_again_replays_the_batterys_fill() {
     settle_until(&mut running.harness, |h| h.count(moving) == 0);
 }
 
+#[test]
+fn the_card_names_its_kind_and_takes_the_size_asked() {
+    let cases = [
+        (WidgetKind::Calendar, "quire.month"),
+        (WidgetKind::UpNext, "sill.up-next"),
+        (WidgetKind::Battery, "quire.battery"),
+        (WidgetKind::NowPlaying, "sill.now-playing"),
+        (WidgetKind::WorldClock, "quire.world-clock"),
+    ];
+    for (kind, name) in cases {
+        let running = start(kind, WidgetHost::Desktop, ShellFile::default());
+        let h = &running.harness;
+        assert_eq!(h.attr(".ds-widget", "data-widget").as_deref(), Some(name));
+        assert_eq!(
+            h.attr(".ds-widget", "data-tint").as_deref(),
+            Some("space"),
+            "a desktop card wears the Space tint"
+        );
+    }
+    let large = start_at(
+        WidgetKind::UpNext,
+        WidgetHost::Tile,
+        WidgetSize::Large,
+        ShellFile::default(),
+    );
+    assert_eq!(
+        large
+            .harness
+            .attr("#widget-up-next", "data-size")
+            .as_deref(),
+        Some("large")
+    );
+    let unoffered = start_at(
+        WidgetKind::NowPlaying,
+        WidgetHost::Tile,
+        WidgetSize::Small,
+        ShellFile::default(),
+    );
+    assert_eq!(
+        unoffered
+            .harness
+            .attr("#widget-now-playing", "data-size")
+            .as_deref(),
+        Some("medium"),
+        "a size the widget does not draw is held to its first"
+    );
+}
+
 /// G291: `up_next_max` (default 3) asked for more events than a Medium tile's body has room
 /// for at the default 164 px cell; the third row used to draw half off the bottom of the card.
-/// With three qualifying events and the default settings, no row's rect may reach past the
-/// frame's own body rect, in either host.
+/// With more qualifying events than fit, no row's rect may reach past the card's own body rect,
+/// in either host and at either size (the capacity is the card's size's: two rows at Medium,
+/// six at Large, with `up_next_max` raised to six for the Large card).
 #[test]
 fn up_next_never_clips_a_row_past_the_tiles_body() {
     let file = ShellFile::default();
@@ -386,8 +442,15 @@ fn up_next_never_clips_a_row_past_the_tiles_body() {
         file.calendar.up_next_max.0, 3,
         "the default this test relies on"
     );
-    for host in [WidgetHost::Tile, WidgetHost::Desktop] {
-        let mut running = start(WidgetKind::UpNext, host, file.clone());
+    let mut six = file.clone();
+    six.calendar.up_next_max = sill_settings::Count(6);
+    let cases = [
+        (WidgetHost::Tile, WidgetSize::Medium, file.clone(), 2),
+        (WidgetHost::Desktop, WidgetSize::Medium, file.clone(), 2),
+        (WidgetHost::Tile, WidgetSize::Large, six, 6),
+    ];
+    for (host, size, file, want) in cases {
+        let mut running = start_at(WidgetKind::UpNext, host, size, file);
         let at = jiff::Timestamp::now();
         let hour = |h: i64| at.checked_add(jiff::ToSpan::hours(h)).unwrap_or(at);
         let event = |uid: &str, hours_ahead: i64| sill_services::CalEvent {
@@ -400,7 +463,15 @@ fn up_next_never_clips_a_row_past_the_tiles_body() {
             location: None,
             calendar: sill_services::events::CalendarName("home".to_owned()),
         };
-        let events = vec![event("one", 1), event("two", 2), event("three", 33)];
+        let events = vec![
+            event("one", 1),
+            event("two", 2),
+            event("three", 3),
+            event("four", 4),
+            event("five", 5),
+            event("six", 6),
+            event("seven", 7),
+        ];
         running.feeds.agenda.send_replace(sill_services::Agenda {
             today: at.to_zoned(jiff::tz::TimeZone::UTC).date(),
             events,
@@ -416,7 +487,7 @@ fn up_next_never_clips_a_row_past_the_tiles_body() {
             .expect("the frame's body is laid out");
         let bottom = body.origin.y.0 + body.size.height.0;
         let row_count = h.count("#widget-up-next .sill-un-row");
-        assert!(row_count >= 1, "at least one row draws in {host:?}");
+        assert_eq!(row_count, want, "{host:?} {size:?} holds {want} whole rows");
         for n in 1..=row_count {
             let row = h
                 .rect(&format!("#widget-up-next .sill-un-row:nth-child({n})"))

@@ -103,6 +103,16 @@ pub struct WidgetsSettings {
         advanced
     )]
     pub world_clocks: String,
+    /// `;`-separated `host.kind=size` choices made in Edit Widgets (`desktop.calendar=medium;
+    /// center.up_next=large`); a widget not named takes its host's size for its kind. Text for
+    /// the same reason as `world_clocks`; `layout.toml` (design/28 section 5.6) replaces it.
+    #[settings(
+        label = "Widget sizes",
+        help = "Sizes picked in Edit Widgets, separated by `;`: `desktop.calendar=medium; center.up_next=large`. A widget not named takes its usual size.",
+        section = "Widgets",
+        advanced
+    )]
+    pub sizes: String,
     /// Keys this build does not know, kept for the next write.
     #[serde(flatten)]
     #[settings(skip)]
@@ -119,6 +129,7 @@ impl Default for WidgetsSettings {
             desktop_cell_px: Px(164),
             desktop_gap_px: Px(16),
             world_clocks: String::new(),
+            sizes: String::new(),
             extra: toml::Table::new(),
         }
     }

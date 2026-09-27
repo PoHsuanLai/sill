@@ -200,7 +200,17 @@ and a stand-in helper; these need polkitd, polkit's own helper and a real passwo
   on; released, the Calendar glides into its cell with a small spring. Quit and restart sill:
   the place is kept. Click the Calendar's month arrows and Now Playing's buttons without moving:
   they work. Drag starting on a button: the button does nothing. By eye: the lift (1.04 and the
-  drag shadow) reads as picked up, not as a glitch.
+  drag shadow) reads as picked up, not as a glitch. Since "Widget interface port" the lift is
+  quire's card's own (`Lift::Lifted`) and a quiet slot guide shows the cell it will land in:
+  check the guide follows the snap cell and fades in, not out of step with the widget.
+- [ ] **Edit Widgets with a real pointer** (FINDINGS "Widget interface port"): open the
+  notification center, scroll to its foot and press "Edit Widgets": the center closes and the
+  gallery slides in from the right. Pick World Clock, press its Medium preview (it lifts), then
+  "Add to Desktop": with `widgets.desktop` on, the clock appears on the desktop in the first
+  free place from the top right. Change the month's size in the Desktop list: it grows in
+  place or moves. Remove Up Next from the Notification Center list: the center no longer shows
+  it. Press Escape, Done, and a click outside the panel: each closes it. By eye: the previews
+  at their real sizes, and that nothing in the panel is cut off at 1080 px tall.
 
 ## Owned by the other session (quire, shell-host)
 

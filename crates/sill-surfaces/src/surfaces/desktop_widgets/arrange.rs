@@ -9,7 +9,8 @@ use sill_settings::WidgetKind;
 
 use super::geometry::GridMetrics;
 use super::placement::{Footprint, GridSize, GridSlot, Placement, clamp, nearest_free};
-use crate::widgets::{WidgetHost, WidgetSize, size_of};
+use crate::widgets::sizes::Sizes;
+use crate::widgets::{WidgetHost, WidgetSize};
 
 /// A point on the layer in whole logical px (may lie off it: a drag goes where the pointer goes).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -63,14 +64,15 @@ pub fn snap(corner: LayerPoint, size: WidgetSize, metrics: GridMetrics) -> Optio
 /// The arrangement with `moving` at `to` in `grid`: every other widget keeps its resting place
 /// when that is clear of the moved one, and each one it covers takes the free spot nearest its
 /// resting place (in their order in `rest`). None when one of them fits nowhere (the drag then
-/// has no room there, and a drop there puts the widget back).
+/// has no room there, and a drop there puts the widget back). Each widget is `sizes`'s size.
 pub fn make_room(
     rest: &[Placement],
     moving: WidgetKind,
     to: GridSlot,
     grid: GridSize,
+    sizes: &Sizes,
 ) -> Option<Vec<Placement>> {
-    let size = |kind| size_of(kind, WidgetHost::Desktop);
+    let size = |kind| sizes.of(kind, WidgetHost::Desktop);
     let moved = Footprint::new(to, size(moving));
     let others: Vec<&Placement> = rest.iter().filter(|p| p.kind != moving).collect();
     let (stay, pushed): (Vec<&Placement>, Vec<&Placement>) = others

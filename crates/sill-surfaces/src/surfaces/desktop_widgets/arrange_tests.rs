@@ -4,6 +4,7 @@ use super::{LayerPoint, make_room, snap};
 use crate::surfaces::desktop_widgets::geometry::GridMetrics;
 use crate::surfaces::desktop_widgets::placement::{GridSize, GridSlot, Placement};
 use crate::widgets::WidgetSize;
+use crate::widgets::sizes::Sizes;
 
 /// 1000 px wide, five 164 px cells and 16 px gaps: column `c` starts at 100 + 180 c, row `r` at
 /// 16 + 180 r (`geometry`'s own table).
@@ -140,7 +141,11 @@ fn the_others_make_room_and_only_those_covered_move() {
         ),
     ];
     for (name, moving, to, want) in cases {
-        assert_eq!(make_room(&rest, moving, to, grid), want, "{name}");
+        assert_eq!(
+            make_room(&rest, moving, to, grid, &Sizes::default()),
+            want,
+            "{name}"
+        );
     }
 }
 
@@ -158,12 +163,24 @@ fn no_room_is_none() {
         at(WidgetKind::NowPlaying, 0, 5),
     ];
     assert_eq!(
-        make_room(&full, WidgetKind::NowPlaying, slot(0, 0), grid),
+        make_room(
+            &full,
+            WidgetKind::NowPlaying,
+            slot(0, 0),
+            grid,
+            &Sizes::default()
+        ),
         None
     );
     // Swapping two small ones is room enough.
     assert_eq!(
-        make_room(&full[..2], WidgetKind::Calendar, slot(1, 0), grid),
+        make_room(
+            &full[..2],
+            WidgetKind::Calendar,
+            slot(1, 0),
+            grid,
+            &Sizes::default()
+        ),
         Some(vec![
             at(WidgetKind::Calendar, 1, 0),
             at(WidgetKind::Battery, 0, 0)

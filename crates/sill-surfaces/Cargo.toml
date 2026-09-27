@@ -28,6 +28,8 @@ dirs = { workspace = true }
 # Civil dates for the calendar widgets' month grid and the world clock (M10).
 jiff = { workspace = true }
 thiserror = { workspace = true }
+# The widgets' entries are serde data (quire's `ds::Widget::Entry`).
+serde = { workspace = true }
 
 [dev-dependencies]
 # `lint` is off by default (CONSUMING.md section 5): only test builds need `ds::lint::markup`.

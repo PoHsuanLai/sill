@@ -4,6 +4,7 @@ use super::{DragInput, DragWorld, Hold, Landing, shown, step};
 use crate::surfaces::desktop_widgets::arrange::LayerPoint;
 use crate::surfaces::desktop_widgets::geometry::{GridMetrics, PlaceBox, place_box};
 use crate::surfaces::desktop_widgets::placement::{GridSize, GridSlot, Placement};
+use crate::widgets::sizes::Sizes;
 use crate::widgets::{WidgetHost, size_of};
 
 fn metrics() -> GridMetrics {
@@ -50,8 +51,10 @@ fn boxes(rest: &[Placement]) -> Vec<(WidgetKind, PlaceBox)> {
 fn run(inputs: &[DragInput]) -> (Hold, Vec<Landing>) {
     let rest = rest();
     let boxes = boxes(&rest);
+    let sizes = Sizes::default();
     let world = DragWorld {
         rest: &rest,
+        sizes: &sizes,
         boxes: &boxes,
         metrics: metrics(),
         threshold: 4,
@@ -176,19 +179,22 @@ fn the_others_make_room_while_it_is_over_them_and_go_back_after() {
         over: Some(GridSlot { column, row }),
     };
     assert_eq!(
-        shown(&over(4, 1), &rest, metrics()),
+        shown(&over(4, 1), &rest, metrics(), &Sizes::default()),
         vec![
             at(WidgetKind::Calendar, 4, 1),
             at(WidgetKind::Battery, 4, 0)
         ]
     );
     assert_eq!(
-        shown(&over(2, 2), &rest, metrics()),
+        shown(&over(2, 2), &rest, metrics(), &Sizes::default()),
         vec![
             at(WidgetKind::Calendar, 2, 2),
             at(WidgetKind::Battery, 4, 1)
         ],
         "moved on: the Battery is back at its own place"
     );
-    assert_eq!(shown(&Hold::Idle, &rest, metrics()), rest);
+    assert_eq!(
+        shown(&Hold::Idle, &rest, metrics(), &Sizes::default()),
+        rest
+    );
 }
