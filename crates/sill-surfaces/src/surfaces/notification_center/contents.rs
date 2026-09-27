@@ -7,6 +7,7 @@ use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
+use ds::detail::{FirstShow, Reveal};
 use ds::{Button, ButtonVariant};
 use shell_host::OutputId;
 use sill_services::{History, UnixMs};
@@ -79,14 +80,19 @@ pub(super) fn Contents(output: OutputId) -> Element {
                 if history.groups.is_empty() {
                     div { class: "sill-nc-empty", {EMPTY} }
                 }
-                for (at, view) in groups {
-                    GroupBlock {
-                        key: "{view.key.0}",
-                        group: history.groups.iter().find(|g| g.key == view.key).cloned(),
-                        view,
-                        first: at,
-                        focus: focus(),
-                        now,
+                // design/20 1.6: the center's rows rise on first show. Each opening remounts the
+                // column (`phase::Opening`), so the rise plays once per opening and never on a
+                // re-render.
+                Reveal { first: FirstShow::Animate,
+                    for (at, view) in groups {
+                        GroupBlock {
+                            key: "{view.key.0}",
+                            group: history.groups.iter().find(|g| g.key == view.key).cloned(),
+                            view,
+                            first: at,
+                            focus: focus(),
+                            now,
+                        }
                     }
                 }
             }

@@ -25,6 +25,10 @@
    under it, as macOS's Notification Center does), so the list takes its natural height. */
 .sill-nc-list{ display:flex; flex-direction:column; gap:var(--s-6); flex:none; }
 .sill-nc-group{ display:flex; flex-direction:column; gap:var(--s-6); }
+/* The groups, and the cards an opened group adds, stand in quire's `Reveal` (a plain block that
+   plays their rise), so they keep the list's gap as a margin between siblings. */
+.sill-nc-group + .sill-nc-group,
+.sill-nc-row + .sill-nc-row{ margin-top:var(--s-6); }
 .sill-nc-group-head{ display:flex; border-radius:var(--r-btn); }
 .sill-nc-row{ display:flex; justify-content:center; border-radius:var(--r-card); }
 .sill-nc-row[*|data-focus=ring],

@@ -8426,3 +8426,95 @@ changed (quire's design/29 sizing is landing).
   back (the window logged `focus out` and no `focus in`; a real "j" after Escape reached
   nothing). shell-host lifted the bar to `OnDemand` for the popup and KWin activated it. With
   shell-host master c1aebd7 the script records `G391 CLOSED`.
+
+## Manual run 2026-09-28: notifications
+
+The user's manual run on KDE (KWin, 3840 x 2160 at scale 2) found a grey rectangle left where
+a banner was dragged or clicked, and a notification center whose Clear and Clear All drop their
+rows with no motion. Numbered from F1010, G410 and Q510. Branch
+`worktree-agent-ab421c7492eddf3e9` (cut from master 70db27b).
+
+- **F1010 The banner ghost is the blur region, left at the card's layout box.** The column's
+  blur and input regions are element regions (`banners/elements.rs`: `toast-<id>`), which
+  shell-host resolves with `SurfaceDocument::element_rect` (`dom/document.rs:308`), that is
+  Blitz's `get_client_bounding_rect`: the layout box, with no CSS `transform`. A card being
+  dragged (quire's swipe draws `--swipe-dx` as a transform), sliding out (`banner-out`
+  keyframes) or healing (`heal`) paints away from that box, but KWin keeps blurring the box:
+  over a wallpaper with any texture it is a flat grey rectangle beside the card for as long as
+  the card is off its place. Proven with real input on the headless KWin at scale 2 over a
+  checked wallpaper, captured by KWin itself (`step_ghost_held`: a press held 60 px right of
+  where it went down, `ghost-held-mid.png`: the grey block where the card's left 60 px were;
+  5632 px of the band it left differ from before the card came). Once the column unmaps the
+  region goes with it: after a click or a swipe the card's box is the wallpaper again to the
+  pixel (`step_ghost_click`, `step_ghost_swipe`: 0 px off). So the "left behind" grey is what
+  the drag and the exit show while they play, and it is shell-host's (G410). Not patched in sill:
+  dropping the blur while a card moves would take the card's own blur away, and sill does not
+  know the swipe's offset.
+- **F1011 `dev/accept-notifications-real-input.sh` sees what the compositor draws.** A capture
+  of the whole output as KWin composites it, blur included (`screen_shot`: spectacle on the
+  headless KWin's socket and private bus, since KWin's ScreenShot2 answers only a client whose
+  desktop file lists it; `sill debug capture` renders the surface offscreen and cannot see a
+  compositor-side ghost). The daemon's wallpaper is a 2 px checkerboard seeded as the COSMIC
+  background record (`seed_checks`), so blur shows as grey. `KWIN_SCALE=2` runs the output at
+  twice the pixels and scale 2 through `kscreen-doctor` (the user's setup); coordinates stay
+  logical and captures are read back at their density. New steps: `step_ghost_click`,
+  `step_ghost_swipe` (in the acceptance), `step_center_clear_all` (a real click on Clear All
+  found in a capture of the center; kept falls to 0; then 3 s idle is 0 frames), and
+  `step_ghost_held` (mode `ghost`, FAILS while G410 stands). Mode `clear` runs the Clear All
+  step alone.
+- **F1012 The center's rows rise on each opening, and an opened group's cards rise under its
+  head.** Both through quire's `ds::detail::Reveal { first: FirstShow::Animate }`: round the
+  groups (design/20 1.6 "center rows `rise` on first show"; each opening remounts the column,
+  so it plays once per opening and never on a re-render), and round the cards opening a group
+  adds (design/26 5.4 "Expand (group in the center)", the expand half of G33). `Reveal` is a
+  plain block, so the list's gap between groups and between the added cards is a sibling margin
+  (`notification_center.css`). Harness tests on the virtual clock with a pinned appearance,
+  each ending at 0 frames: `tests/notification_center_motion.rs`.
+- **F1013 The center's motion audit against design/26 5.4 and the reference.** Open: quire's
+  `Panel` slides in (built) and the rows now rise (F1012). Group expand: rise (F1012); collapse
+  ("Show less"): the added cards drop at once, no `heal` (Q510). A new arrival while open: the
+  group or card appears in place with no entrance and the rows below jump (Q510). Hover: quire's
+  card opens its body and shows its close button (built). Clear, Clear All, a card's close,
+  Delete: the rows vanish with no `fold` and nothing heals (Q510). The X that turns into a
+  "Clear" pill (G34) and the grouping cross-fade and chip bump (G32) stay quire's, as design/26
+  already lists them. Nothing here touches the center's keys or focus.
+
+### Asks
+
+- **Q510 (quire) The center's list lifecycle.** The notification center needs what
+  `BannerStack` has, in flow and for any content: a list whose rows (a group: header and cards;
+  or one card) play an exit when the caller stops listing them (`Exit::Fold`, design/20 1.6
+  "dismiss `fold` `--t-big` `--e-exit`"), the rows after them `heal` up by the height each
+  leaving row measured, an arrival into a list at rest plays `row-in`, and a group's added cards
+  `heal` back on "Show less" (design/26 5.4, G33's collapse half). The pieces exist but are
+  crate-private (`motion::roster_exits::use_leaving_roster`, `use_pitches`, `Leaving`), and the
+  public `use_roster` heals by one fixed pitch and drops a key the caller stops listing at once;
+  its row styles are `ListRow`'s, which a consumer may not reuse on its own markup. Wanted: a
+  public component (say `ExitList { rows: Vec<(Key, Element)>, exit, on_settled }`, or a public
+  `use_leaving_roster` with a row wrapper that writes `data-presence`, `data-exit`, `--dy`, `--d`
+  and measures itself) that sill's `Contents` and `GroupBlock` can list their groups and cards
+  in. Until then Clear plays nothing (G411).
+
+### Gaps
+
+- **G410 (shell-host) Element regions ignore CSS transforms.** `RegionSpec::Element(s)` for the
+  input and blur regions resolves each element to its layout box
+  (`SurfaceDocument::element_rect`, Blitz `get_client_bounding_rect`), not the box it paints, so
+  a blurred element moved by a transform leaves its blur behind (F1010). Minimal repro, a test
+  beside `tests/body_margin.rs`: a `div { style: "transform:translateX(60px)", div { id: "card",
+  style: "width:100px;height:40px" } }` in a 300 x 100 viewport resolves `#card` to
+  `Rect { x: 0, y: 0, width: 100, height: 40 }`, where it paints at x 60 (run against shell-host
+  master in a scratch copy: fails). Blitz keeps each node's resolved `transform()`; composing the
+  node's and its ancestors' transforms into the rect (the bounding box of the transformed box,
+  as CSSOM `getBoundingClientRect` does), re-resolved on every animation frame as the regions
+  already are, closes it. Real-input repro: `dev/accept-notifications-real-input.sh ghost` with
+  `KWIN_SCALE=2`.
+- **G411 (sill, waits on Q510) Clear's exit.** Clear, Clear All and a card's close in the center
+  drop their rows at once. Adopt Q510's part in `contents.rs` and `group.rs`; the Harness test
+  `clear_and_clear_all_reach_the_service_and_the_center_rests` then asserts the fold and heal.
+- **G412 (sill, load) The acceptance's overflow step is load-sensitive.** With the machine's
+  1-minute load near 60, `step_center_scroll` failed twice: one of its fifteen
+  `sill debug notify` calls got "no reply within 2s" while the daemon drew the banners
+  (shell-host logged `render: acquire: Timeout`), so the step stopped before opening the
+  center. Alone and at a lower load it passes. Not caused by this branch (the banners are
+  unchanged); recorded so a red run under load is read as such.

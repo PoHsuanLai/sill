@@ -1,9 +1,11 @@
 //! One app's group: quire's `GroupHeader` (the app's icon and name, the count, "N more" or "Show
 //! less", Clear) over its cards (quire's `NotificationCard` through [`NoteCard`], the newest
-//! stacked over the rest while folded). The keyboard's ring is drawn round the header or the
-//! card it is on.
+//! stacked over the rest while folded). The cards opening the group adds stand in quire's
+//! `Reveal`, so they rise under the head as they mount (FINDINGS F1012). The keyboard's ring is
+//! drawn round the header or the card it is on.
 
 use dioxus::prelude::*;
+use ds::detail::{FirstShow, Reveal};
 use ds::{AppMark, GroupHeader, IconSize};
 use sill_services::{AppGroup, AppRef, IconRef, UnixMs};
 
@@ -35,18 +37,48 @@ pub(super) fn GroupBlock(
         true => ds::Expanded::Open,
         false => ds::Expanded::Closed,
     };
-    let rows = rows_of(std::slice::from_ref(&view));
+    let drawn = |(n, row): (usize, CenterRow)| match row {
+        CenterRow::Head { .. } => head_row(
+            &ctx,
+            &group,
+            mark.clone(),
+            expanded,
+            ringed(focus, first + n),
+        ),
+        CenterRow::Note { .. } => card_row(&ctx, &group, row, ringed(focus, first + n), now),
+    };
+    let (kept, opened) = split_opened(rows_of(std::slice::from_ref(&view)));
+    let kept: Vec<Element> = kept.into_iter().enumerate().map(drawn).collect();
+    let at = kept.len();
+    let opened: Vec<Element> = opened
+        .into_iter()
+        .enumerate()
+        .map(|(n, row)| drawn((at + n, row)))
+        .collect();
     rsx! {
         div { class: "sill-nc-group",
-            for (n, row) in rows.into_iter().enumerate() {
-                match row {
-                    CenterRow::Head { .. } => head_row(&ctx, &group, mark.clone(), expanded, ringed(focus, first + n)),
-                    CenterRow::Note { .. } => card_row(&ctx, &group, row, ringed(focus, first + n), now),
+            {kept.into_iter()}
+            if !opened.is_empty() {
+                // design/26 5.4 "Expand (group in the center)": the cards an opened group adds
+                // rise downward from the head, `--stagger` apart, as they mount (G33).
+                Reveal { first: FirstShow::Animate,
+                    {opened.into_iter()}
                 }
             }
         }
     }
 }
+
+/// A group's rows split into the ones it shows folded (its header and newest card) and the ones
+/// opening it adds.
+fn split_opened(rows: Vec<CenterRow>) -> (Vec<CenterRow>, Vec<CenterRow>) {
+    let mut rows = rows;
+    let opened = rows.split_off(rows.len().min(FOLDED_ROWS));
+    (rows, opened)
+}
+
+/// A folded group's rows: the header and the newest card.
+const FOLDED_ROWS: usize = 2;
 
 /// The group's header row.
 fn head_row(
