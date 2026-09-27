@@ -44,6 +44,7 @@ fn render(style: IconStyle) -> String {
             hue: 268.0,
             chroma: 0.06,
         },
+        scheme: ds::Scheme::Light,
     });
     let mut dom = VirtualDom::new_with_props(Harness, HarnessProps { look });
     dom.provide_root_context(services);

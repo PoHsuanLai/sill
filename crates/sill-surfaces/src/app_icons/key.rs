@@ -1,9 +1,10 @@
-//! A re-tinted icon's identity in the cache: which file, at which raster size, in which style
-//! and tint. The output scale is folded into the size (a 48 px tile at 1.5 and a 72 px one at 1
+//! A re-tinted icon's identity in the cache: which file, at which raster size, in which style,
+//! tint and scheme. The output scale is folded into the size (a 48 px tile at 1.5 and a 72 px one at 1
 //! are the same raster). Pure.
 
 use std::path::PathBuf;
 
+use ds::Scheme;
 use ds::icon::{IconStyle, Tint};
 
 use crate::app_icons::size::AssetPx;
@@ -36,6 +37,8 @@ pub struct IconKey {
     pub px: AssetPx,
     pub style: IconStyle,
     pub tint: TintKey,
+    /// The scheme it is re-coloured for (the dark tone band, design/29 F3).
+    pub scheme: Scheme,
 }
 
 impl IconKey {
@@ -55,13 +58,21 @@ impl IconKey {
     /// Every field of the key as text, one way only.
     fn canonical(&self) -> String {
         format!(
-            "{}|{}|{}|{}|{}",
+            "{}|{}|{}|{}|{}|{}",
             self.path.display(),
             self.px.0,
             style_word(self.style),
             self.tint.hue_tenths,
-            self.tint.chroma_ten_thousandths
+            self.tint.chroma_ten_thousandths,
+            scheme_word(self.scheme)
         )
+    }
+}
+
+fn scheme_word(scheme: Scheme) -> &'static str {
+    match scheme {
+        Scheme::Light => "light",
+        Scheme::Dark => "dark",
     }
 }
 
@@ -108,6 +119,7 @@ fn fnv1a(bytes: &[u8]) -> u64 {
 mod tests {
     use super::{IconKey, TintKey, fnv1a};
     use crate::app_icons::size::AssetPx;
+    use ds::Scheme;
     use ds::icon::{IconStyle, Tint};
     use std::collections::HashSet;
     use std::path::PathBuf;
@@ -118,6 +130,7 @@ mod tests {
             px: AssetPx(px),
             style,
             tint: TintKey::of(Tint { hue, chroma: 0.06 }),
+            scheme: Scheme::Light,
         }
     }
 

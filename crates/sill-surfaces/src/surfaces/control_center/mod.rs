@@ -34,6 +34,7 @@ pub(crate) mod fit;
 mod panel;
 pub(crate) mod row_phase;
 pub(crate) mod rows;
+mod sizes;
 
 pub use dropdown::ModuleDropdown;
 pub(crate) use panel::PanelCap;

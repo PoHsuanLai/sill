@@ -8799,3 +8799,104 @@ sill master 84a3a79.
   callers, never drawn from (its own module doc already says so). No sill-side fix needed.
   `dev/accept-notifications-real-input.sh ghost` at `KWIN_SCALE=2` passes now that shell-host's
   fix has landed (F1010's ghost step).
+
+## Sizing (design/29)
+
+Adopts quire's size ladder (design/29 option A, the user's pick: A's numbers on B's mechanism)
+from the unlanded `sizing-audit` branch (f6d3eb44, then 5c3fb6db, which also merges quire
+master aadf0b49). Branch `sizing` in `~/sill-try/sill` (cut from master 129771c). Breaking on
+quire's side: sill prepares, quire lands, then this lands. Numbered F1060-F1069. Alert (Q490) and
+LeavingList (Q510) are not adopted here (another lane, against quire master).
+
+- **F1060 The size keys default to quire's ladder.** `bar.height_px` 32 -> 24 (design/22's row
+  already says 24), `bar.open_title_pill_height_px` 24 -> 22, `bar.title_padding_px` 10 -> 8,
+  `bar.item_radius_px` 4 -> 5, `menus.highlight_radius_px` 6 -> 5 (the four `ShellMetrics`
+  defaults quire moved; `shell_style::tests::the_default_keys_are_quires_defaults` is green
+  again), `control_center.grid_gap_px` 8 -> 10 and `grid_padding_px` 12 -> 10 (`ModuleGrid`'s
+  defaults, `ds::CONTROL_CENTER`). `bar.status_gap_px` 4 -> 0: quire's status slot is now
+  `max(--bar-status-w 30, box)` wide, and design/29 A puts the 30-wide slots side by side (the
+  glyph 7 in from each side), so a gap on top would space them twice. sill-settings cannot link
+  `ds` (the boundary), so the keys stay literals and
+  `shell_style::tests::the_default_sizes_are_quires_ladder` ties each to `SHELL_SCALE`,
+  `CONTROL_CENTER` or `ControlSize::Regular`. The bar's layer, exclusive zone, the control
+  center's cap (`output_h - 24 - 16`) and the launcher's `max(bar_h + 24, ..)` follow the key;
+  `dev/accept-{bar,dock,widgets}.sh` default `BAR_H` to 24. The CC's status box (its title rect
+  opened over IPC) is the slot's width.
+- **F1061 The control center's estimates read quire (R9).** `control_center/sizes.rs` (new)
+  holds `module_height` and `detail_height`: the tile is `CONTROL_CENTER.tile` (56, was a 56
+  copy of a 52 tile) and the level `CONTROL_CENTER.level_module()` (64, was 76). What quire has
+  no Rust size for is re-measured on a Harness (`Clock::Virtual`, `PinnedAppearance`, the
+  fakes) and written as `2 x padding (+ head + head gap) + body`: Now Playing 99.8 with a known
+  position (68 without; was 112), Appearance 121 (the segmented control on the ladder; was 134),
+  Battery 199.2 (was 204, and 218.8 before, F1044: it no longer undershoots). A detail pane is
+  head 36 (a Large control in `.sill-cc-detail-head`'s 2/6) + 6 + rows x 44 (quire's
+  `SettingsRow`, was 34) or the 40.2 empty line + 6 + foot 29 (hairline, 6, a Regular button);
+  it was 48 + rows x 34 + 82. `tests/cc_estimates.rs` replaces F1042's Appearance-only test:
+  every module of the default grid, the whole grid, and both panes full and empty are covered
+  with under 8 px to spare. The grid estimate is 721 against 720.0 laid out.
+- **F1062 The bar menu's estimate reads quire's shell scale.** `bar/geometry.rs`'s `MenuRows`:
+  rows `ShellMetrics::default().menu.row` (22; was 30), separators a hairline and twice the
+  separator margin (11; was 9, an undershoot), chrome the menu's 5 inset twice plus its two
+  hairlines (12). Headers 26 (25.5 laid out; was 28), and an info line 33, plus 15 for its
+  second line (was 30 whatever the lines: a two-line info undershot by 17). `menu_size_tests.rs`
+  lays out quire's `Menu{Dropdown}` on a Harness and checks six menus. It reads the keys'
+  defaults, not the settings (`menu_size` has no settings; the tray calls it too): a
+  `menus.item_height_px` above 22 would undershoot.
+- **F1063 The control center's level is `LevelLook::CapsuleKnob`** (design/29 decision 7): a 22
+  capsule with a white 20 knob, the glyph before it (`.ds-level-lead`, no longer
+  `.ds-level-in`). The knob's centre travels from half the height in at each end (quire's
+  `travel`), so `cc_brightness`'s drags and `dev/accept-cc-real-input.sh`'s `at()` map a
+  percentage along that travel: mapped on the whole rail, the real drag to 75 % landed on 77
+  and the click at 20 % on 17; along the travel, 74 and 20 (both within the script's 4). The OSD keeps
+  `Capsule` (the user's pick, F860); quire made it 22 too.
+- **F1064 Dark rasters: `retint_in` for the surface's scheme.** `IconLook` carries the scheme
+  (`ds::resolve(..).scheme`, as the dock, launcher and switcher already resolve their motion),
+  Colour keys on `Light` (it never re-colours), and `IconKey` hashes it, so a scheme switch
+  re-makes Muted and Monochrome rasters once. `render` takes a `Recolour {style, tint, scheme}`.
+  Tested: a near-black logo stays dark in the light and is lifted above 120 per channel in the
+  dark (quire's F3 tone band). The plates are quire's (`PlateStops::tinted_in`, inside
+  `IconView`). Queued in `docs/manual-checks.md` (dark icon styles by eye).
+- **F1065 Q491: a disabled level dims its panel.** `LevelModule` passes `availability` to
+  `ModulePanel` beside `LevelControl`. `cc_brightness` checks the Display panel carries
+  `aria-disabled` while the capsule does, the capsule has no tab stop, and both clear when the
+  monitor answers. quire dims the panel's glyph and figure (.35), not its title (the "No output
+  device" Sound capture, `menu-a-alone`): that is quire's rule as written
+  (`module_panel.css:28`).
+- **F1066 quire master's widget gallery, merged into `sizing-audit`, breaks two tests here.**
+  Q520: the gallery offers no size control, so `edit_widgets`'
+  `a_size_picked_is_refused_since_each_widget_has_one_size` is now
+  `the_gallery_offers_no_size_to_pick`; Q522: Batteries draws four places, so `widgets_render`
+  counts the `.ds-battery` outside `[data-place=empty]` cells. Only these two tests; the rest of
+  Q520-Q523 (`registry.sized`, the bottom sheet, `GalleryWords::added`) is the widgets lane's.
+- **F1067 Captures (headless KWin at scale 2, real input).** `dev/accept-cc-real-input.sh`
+  passed every step: the bar capture is 3840 x 48 (24), the Display capsule 44 device px (22)
+  with a 40 px knob (20) (`dev/out/sizing-control-center-2x.png`, `sizing-bar-2x.png`). An
+  OSD and a text menu came from a scratch script built on the same helpers (`sill debug osd
+  volume 60`, a real click on "Desktop"): the OSD's capsule is 44 device px (22)
+  (`sizing-osd-2x.png`); the menu's rows between separators are 32 (5 + 22 + 5,
+  `sizing-bar-menu-2x.png`). The nested `wayland-1` still does not answer `wayland-info`
+  (F1046), so the `accept-*.sh` nested runs were not used.
+- **F1068 `dev/accept-menus-keyboard-real-input.sh`: three steps fail on pixel-exact looks of
+  the Wi-Fi menu.** The daemon there reads the real system bus, so B's menu is this machine's
+  live Wi-Fi list, and its first row ("Connecting…") changes between two captures by a level of
+  2 (diff box 39,57-339,101). `step_click_switch`, `step_hover_switch` and
+  `step_center_then_menu` compare such captures exactly and fail; the control center and
+  notification center key steps and G391 pass. The status items read Sound, Wi-Fi, control
+  center, clock from the left, so the script's A is Sound and B is Wi-Fi, not as its comment
+  says. Not a sizing change; a tolerance (or the fake Wi-Fi) would pin it. Its captures show
+  real SSIDs and are not copied to `dev/out`.
+- **F1069 The popup is sized for modules the machine does not draw.** On the headless run the
+  Battery module is absent (no battery), but `drawn_modules` drops only Keyboard Brightness, so
+  the popup keeps Battery's 200 as transparent room. Harmless (the spare is transparent);
+  Battery's presence could join `Fit` as the keyboard's does.
+
+### Asks (quire)
+
+- design/22's rows for `bar.title_padding_px` (10), `bar.open_title_pill_height_px` (24),
+  `bar.item_radius_px` (4), `bar.status_gap_px` (4), `menus.highlight_radius_px` (6) and
+  `control_center.grid_gap_px`/`grid_padding_px` (8/12) still show the old defaults; sill's are
+  now 8, 22, 5, 0, 5 and 10/10.
+- A Rust size for `SettingsRow`'s 44 (`settings_row.css:9`), the menu's section header and info
+  rows: sill's estimates carry those as measured literals.
+- `ControlSize::scale` and `ControlCenterScale::level_module` as `const fn`, so an estimate can
+  be a `const` (sill computes them in functions for now).

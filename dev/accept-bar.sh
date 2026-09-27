@@ -22,8 +22,8 @@ sill() { "$SHELL_HOST_DEV/run.sh" "$SILL_BIN" "$@"; }
 nested() { "$SHELL_HOST_DEV/run.sh" "$@"; }
 HOST_REPO="$(cd "$SHELL_HOST_DEV/../.." && pwd)"
 PROBE="$HOST_REPO/target/release/examples/probe_toplevel"
-# The bar's height: `bar.height_px`, 32 unless the settings say otherwise.
-BAR_H="${BAR_H:-32}"
+# The bar's height: `bar.height_px`, 24 unless the settings say otherwise.
+BAR_H="${BAR_H:-24}"
 
 # Every bar surface's frame and commit counters from `sill debug stats`, as `name frames commits`
 # lines (popups, `<bar>/popup`, are left out).
@@ -81,7 +81,7 @@ step_ipc_latency() {
   fi
 }
 
-# 5. A maximised foot window's height is output_h - bar_h (design/13 §13.3.1: Reserve(32)).
+# 5. A maximised foot window's height is output_h - bar_h (design/13 §13.3.1, design/29: Reserve(24)).
 #    shell-host's `probe_toplevel` stands in for foot: it asks to be maximised and prints each
 #    configure as JSON.
 step_exclusive_zone() {

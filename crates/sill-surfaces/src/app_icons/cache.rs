@@ -23,7 +23,7 @@ use tokio::sync::watch;
 
 use crate::app_icons::key::IconKey;
 use crate::app_icons::plan::Art;
-use crate::app_icons::render::{fresh, render, write_atomic};
+use crate::app_icons::render::{Recolour, fresh, render, write_atomic};
 
 /// How many rasters the cache has finished, successfully or not: what a resolver re-renders on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -116,7 +116,12 @@ fn make(key: IconKey, source: PathBuf, dir: PathBuf) {
     let slot = if fresh(&target, &source) {
         Slot::Ready(target)
     } else {
-        match render(&source, key.px, key.style, tint_of(&key))
+        let recolour = Recolour {
+            style: key.style,
+            tint: tint_of(&key),
+            scheme: key.scheme,
+        };
+        match render(&source, key.px, recolour)
             .map_err(|e| e.to_string())
             .and_then(|png| write_atomic(&dir, &name, &png).map_err(|e| e.to_string()))
         {
@@ -165,6 +170,7 @@ mod tests {
                 hue: 150.0,
                 chroma: 0.06,
             }),
+            scheme: ds::Scheme::Light,
         };
         let other = IconKey {
             px: AssetPx(72),

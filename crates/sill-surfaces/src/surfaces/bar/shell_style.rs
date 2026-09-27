@@ -44,6 +44,56 @@ mod tests {
         );
     }
 
+    /// The size keys quire's `ShellMetrics` does not carry default to quire's size ladder
+    /// (design/29 §13): a 24 bar of Regular items, and the control center's 320 wide grid with
+    /// 10 of padding and gap.
+    #[test]
+    fn the_default_sizes_are_quires_ladder() {
+        let file = ShellFile::default();
+        let px = |value: Px| value.0;
+        let regular = ds::ControlSize::Regular.scale().height.0;
+        let cases = [
+            (
+                "bar.height_px",
+                px(file.bar.height_px),
+                ds::SHELL_SCALE.bar.0,
+            ),
+            (
+                "bar.open_title_pill_height_px",
+                px(file.bar.open_title_pill_height_px),
+                ds::SHELL_SCALE.item().0,
+            ),
+            (
+                "bar.status_icon_box_px",
+                px(file.bar.status_icon_box_px),
+                regular,
+            ),
+            (
+                "menus.item_height_px",
+                px(file.menus.item_height_px),
+                regular,
+            ),
+            (
+                "control_center.width_px",
+                px(file.control_center.width_px),
+                ds::CONTROL_CENTER.width.0,
+            ),
+            (
+                "control_center.grid_gap_px",
+                px(file.control_center.grid_gap_px),
+                ds::CONTROL_CENTER.gap.0,
+            ),
+            (
+                "control_center.grid_padding_px",
+                px(file.control_center.grid_padding_px),
+                ds::CONTROL_CENTER.padding.0,
+            ),
+        ];
+        for (key, ours, quires) in cases {
+            assert_eq!(ours, quires, "{key}");
+        }
+    }
+
     #[test]
     fn a_key_moves_its_own_input() {
         let mut file = ShellFile::default();

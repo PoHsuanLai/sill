@@ -103,7 +103,12 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
     let look = active_look(&use_workspaces()(), on.as_ref(), &file.spaces);
     let appearance = environment.settings.appearance.appearance();
     let icons = RowIcons {
-        look: icon_look(&environment.settings.icons, &look, appearance.accent),
+        look: icon_look(
+            &environment.settings.icons,
+            &look,
+            appearance.accent,
+            ds::resolve(appearance, look.theme, environment.system).scheme,
+        ),
         scale: ds_scale.unwrap_or(ds::Scale::ONE),
         resolver: use_icon_resolver(),
     };

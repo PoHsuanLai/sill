@@ -440,7 +440,11 @@ step_external() {
   [ "$RAIL_WIDTH" -gt 60 ]
 }
 
-at() { echo $(( RAIL_LEFT + RAIL_WIDTH * $1 / 100 )) "$RAIL_Y"; }
+# $1 % along the knob's travel: the control center's level is a capsule with a knob
+# (design/29), whose centre travels from half the capsule's height (a Regular control's 22) in
+# at each end.
+KNOB_HALF=11
+at() { echo $(( RAIL_LEFT + KNOB_HALF + (RAIL_WIDTH - 2 * KNOB_HALF) * $1 / 100 )) "$RAIL_Y"; }
 
 # 1b.
 step_late_monitor() {

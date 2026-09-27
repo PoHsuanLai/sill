@@ -17,7 +17,7 @@ fn with(edit: impl FnOnce(&mut ShellFile)) -> ShellFile {
 #[test]
 fn apply_yields_exactly_the_changed_domain() {
     let cases: Vec<(ShellFile, SettingsChange)> = vec![
-        (with(|f| f.bar.height_px = Px(24)), SettingsChange::Bar),
+        (with(|f| f.bar.height_px = Px(32)), SettingsChange::Bar),
         (with(|f| f.dock.tile_size_px = Px(64)), SettingsChange::Dock),
         (
             with(|f| f.launcher.material = PanelMaterial::Popover),

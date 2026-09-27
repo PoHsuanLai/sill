@@ -197,8 +197,8 @@ impl Default for ControlCenterSettings {
         ControlCenterSettings {
             width_px: Px(320),
             grid_columns: Count(2),
-            grid_gap_px: Px(8),
-            grid_padding_px: Px(12),
+            grid_gap_px: Px(10),
+            grid_padding_px: Px(10),
             bottom_margin_px: Px(16),
             modules: vec![
                 Wifi,

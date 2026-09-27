@@ -99,6 +99,7 @@ pub(crate) fn dock(output: OutputInfo) -> Element {
         &environment.settings.icons,
         &look,
         appearance.accent,
+        ds::resolve(appearance, look.theme, environment.system).scheme,
     ));
     let mut tile_look = use_context_provider(|| Signal::new(TileLook::default()));
     if *tile_look.peek() != icons {

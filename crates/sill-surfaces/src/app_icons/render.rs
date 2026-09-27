@@ -2,13 +2,15 @@
 //! tokio's blocking pool, never on the UI thread.
 //!
 //! The source is read, rasterised at the key's size (an SVG through resvg, a PNG or JPEG
-//! decoded and fitted), put through `ds::icon::retint` and written as a PNG, atomically.
+//! decoded and fitted), put through `ds::icon::retint_in` for its scheme and written as a PNG,
+//! atomically.
 
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use ds::icon::{IconStyle, Tint, retint};
+use ds::Scheme;
+use ds::icon::{IconStyle, Tint, retint_in};
 use image::imageops::FilterType;
 use image::{ImageFormat, RgbaImage};
 
@@ -25,19 +27,27 @@ pub enum RenderError {
     Svg(String),
 }
 
-/// `source` at `px`, re-tinted for `style` and `tint`, as PNG bytes.
-pub fn render(
-    source: &Path,
-    px: AssetPx,
-    style: IconStyle,
-    tint: Tint,
-) -> Result<Vec<u8>, RenderError> {
+/// How a raster is re-coloured: the style, its tint and the scheme it shows in.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Recolour {
+    pub style: IconStyle,
+    pub tint: Tint,
+    pub scheme: Scheme,
+}
+
+/// `source` at `px`, re-coloured as `recolour` says, as PNG bytes.
+pub fn render(source: &Path, px: AssetPx, recolour: Recolour) -> Result<Vec<u8>, RenderError> {
     let bytes = std::fs::read(source)?;
     let mut raster = match source.extension().and_then(|ext| ext.to_str()) {
         Some(ext) if ext.eq_ignore_ascii_case("svg") => rasterize_svg(&bytes, px)?,
         _ => fit(image::load_from_memory(&bytes)?.to_rgba8(), px),
     };
-    retint(raster.as_mut(), style, tint);
+    retint_in(
+        raster.as_mut(),
+        recolour.style,
+        recolour.tint,
+        recolour.scheme,
+    );
     let mut png = Vec::new();
     raster.write_to(&mut Cursor::new(&mut png), ImageFormat::Png)?;
     Ok(png)
@@ -116,8 +126,9 @@ pub fn fresh(target: &Path, source: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{fresh, render, write_atomic};
+    use super::{Recolour, fresh, render, write_atomic};
     use crate::app_icons::size::AssetPx;
+    use ds::Scheme;
     use ds::icon::{IconStyle, Tint};
     use std::path::PathBuf;
 
@@ -151,14 +162,45 @@ mod tests {
             hue: 150.0,
             chroma: 0.07,
         };
-        let png = render(&svg, AssetPx(48), IconStyle::Monochrome, tint)
-            .unwrap_or_else(|e| panic!("{e}"));
+        let recolour = Recolour {
+            style: IconStyle::Monochrome,
+            tint,
+            scheme: Scheme::Light,
+        };
+        let png = render(&svg, AssetPx(48), recolour).unwrap_or_else(|e| panic!("{e}"));
         let raster = decode(&png);
         assert_eq!(raster.dimensions(), (48, 48));
         let [r, g, b, a] = raster.get_pixel(24, 24).0;
         assert_eq!(a, 255);
         assert!(g > r && g > b, "green-hued: {r} {g} {b}");
         assert_eq!(raster.get_pixel(2, 2).0[3], 0, "the margin stays clear");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A near-black logo in Muted and Monochrome: kept dark in the light, lifted into quire's
+    /// tone band in the dark (design/29 F3), so it reads on the dark plate.
+    #[test]
+    fn in_the_dark_a_retinted_raster_is_lifted() {
+        let dir = temp("dark");
+        let src = dir.join("logo.png");
+        image::RgbaImage::from_pixel(16, 16, image::Rgba([20, 22, 28, 255]))
+            .save(&src)
+            .unwrap_or_else(|e| panic!("{e}"));
+        let luma = |style, scheme| {
+            let recolour = Recolour {
+                style,
+                tint: Tint::NEUTRAL,
+                scheme,
+            };
+            let png = render(&src, AssetPx(16), recolour).unwrap_or_else(|e| panic!("{e}"));
+            let [r, g, b, _] = decode(&png).get_pixel(8, 8).0;
+            u32::from(r) + u32::from(g) + u32::from(b)
+        };
+        for style in [IconStyle::Muted, IconStyle::Monochrome] {
+            let (light, dark) = (luma(style, Scheme::Light), luma(style, Scheme::Dark));
+            assert!(light < 3 * 60, "{style:?} stays dark in the light: {light}");
+            assert!(dark > 3 * 120, "{style:?} lifted in the dark: {dark}");
+        }
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -169,8 +211,12 @@ mod tests {
         image::RgbaImage::from_pixel(64, 32, image::Rgba([10, 120, 240, 255]))
             .save(&src)
             .unwrap_or_else(|e| panic!("{e}"));
-        let png = render(&src, AssetPx(32), IconStyle::Colour, Tint::NEUTRAL)
-            .unwrap_or_else(|e| panic!("{e}"));
+        let recolour = Recolour {
+            style: IconStyle::Colour,
+            tint: Tint::NEUTRAL,
+            scheme: Scheme::Dark,
+        };
+        let png = render(&src, AssetPx(32), recolour).unwrap_or_else(|e| panic!("{e}"));
         let raster = decode(&png);
         assert_eq!(raster.dimensions(), (32, 32));
         assert_eq!(raster.get_pixel(16, 16).0, [10, 120, 240, 255]);
@@ -200,6 +246,11 @@ mod tests {
     #[test]
     fn an_unreadable_source_is_an_error_not_a_panic() {
         let missing = std::path::Path::new("/nonexistent/sill/icon.svg");
-        assert!(render(missing, AssetPx(48), IconStyle::Muted, Tint::NEUTRAL).is_err());
+        let recolour = Recolour {
+            style: IconStyle::Muted,
+            tint: Tint::NEUTRAL,
+            scheme: Scheme::Light,
+        };
+        assert!(render(missing, AssetPx(48), recolour).is_err());
     }
 }

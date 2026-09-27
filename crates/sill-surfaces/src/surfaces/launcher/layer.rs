@@ -183,13 +183,13 @@ mod tests {
     #[test]
     fn the_panel_sits_slightly_above_centre_but_below_the_bar() {
         let (bar, launcher) = (BarSettings::default(), LauncherSettings::default());
-        // max(32 + 24, round(0.4 H - 230)).
+        // max(24 + 24, round(0.4 H - 230)).
         const CASES: &[(i32, i32)] = &[
             (1080, 202),
             (2160, 634),
             (768, 77),
-            (600, 56),
-            (400, 56),
+            (600, 48),
+            (400, 48),
             (1081, 202),
             (1082, 203),
         ];

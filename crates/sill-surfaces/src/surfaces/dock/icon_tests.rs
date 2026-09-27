@@ -78,6 +78,7 @@ fn cx(style: IconStyle, scale: u32) -> IconContext {
                 hue: 268.0,
                 chroma: 0.06,
             },
+            scheme: ds::Scheme::Light,
         },
         scale: Scale(scale),
         resolver: IconResolver {

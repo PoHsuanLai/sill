@@ -1,5 +1,7 @@
 //! The icon style the dock and the launcher draw in: `icons.style` and `icons.monochrome_tint`
-//! (quire's appearance file) read against the active Space. Pure.
+//! (quire's appearance file) read against the active Space, and the scheme the surface paints
+//! (in the dark, Muted and Monochrome lift a raster into quire's tone band, design/29 §11 F3).
+//! Pure.
 
 use ds::icon::{IconStyle, Tint};
 use ds::{Accent, CardAccent, Scheme, SpaceLook, accent_of, derive};
@@ -12,6 +14,9 @@ pub struct IconLook {
     /// The Monochrome hue; [`Tint::NEUTRAL`] under the other styles, which ignore it, so a
     /// Space switch never re-keys a Colour or Muted icon.
     pub tint: Tint,
+    /// The scheme the raster is re-coloured for; [`Scheme::Light`] under Colour, which draws
+    /// every icon as it comes, so a scheme switch never re-keys it.
+    pub scheme: Scheme,
 }
 
 impl IconLook {
@@ -19,6 +24,7 @@ impl IconLook {
     pub const COLOUR: IconLook = IconLook {
         style: IconStyle::Colour,
         tint: Tint::NEUTRAL,
+        scheme: Scheme::Light,
     };
 }
 
@@ -28,14 +34,28 @@ impl Default for IconLook {
     }
 }
 
-/// The look `icons` asks for on a Space drawn as `space`, with the appearance `accent`.
-pub fn icon_look(icons: &IconsSettings, space: &SpaceLook, accent: Accent) -> IconLook {
+/// The look `icons` asks for on a Space drawn as `space` in `scheme`, with the appearance
+/// `accent`.
+pub fn icon_look(
+    icons: &IconsSettings,
+    space: &SpaceLook,
+    accent: Accent,
+    scheme: Scheme,
+) -> IconLook {
     let style = style_of(icons.style);
     let tint = match style {
         IconStyle::Monochrome => tint_of(icons.monochrome_tint, space, accent),
         IconStyle::Colour | IconStyle::Muted => Tint::NEUTRAL,
     };
-    IconLook { style, tint }
+    let scheme = match style {
+        IconStyle::Colour => Scheme::Light,
+        IconStyle::Muted | IconStyle::Monochrome => scheme,
+    };
+    IconLook {
+        style,
+        tint,
+        scheme,
+    }
 }
 
 /// `icons.style` in `ds::icon`'s words.
@@ -71,7 +91,7 @@ fn card_accent(space: &SpaceLook, accent: Accent) -> String {
 mod tests {
     use super::{IconLook, icon_look};
     use ds::icon::{IconStyle, Tint};
-    use ds::{Accent, CardAccent, Grain, default_look};
+    use ds::{Accent, CardAccent, Grain, Scheme, default_look};
     use ds_settings::{IconsSettings, MonochromeTint};
 
     fn icons(style: ds_settings::IconStyle, tint: MonochromeTint) -> IconsSettings {
@@ -91,12 +111,18 @@ mod tests {
         use ds_settings::IconStyle as S;
         let work = default_look(0, Grain(35), CardAccent::Postmark);
         for (style, want) in [(S::Colour, IconStyle::Colour), (S::Muted, IconStyle::Muted)] {
-            let look = icon_look(&icons(style, MonochromeTint::Space), &work, Accent::Red);
+            let look = icon_look(
+                &icons(style, MonochromeTint::Space),
+                &work,
+                Accent::Red,
+                Scheme::Light,
+            );
             assert_eq!(
                 look,
                 IconLook {
                     style: want,
-                    tint: Tint::NEUTRAL
+                    tint: Tint::NEUTRAL,
+                    scheme: Scheme::Light,
                 }
             );
         }
@@ -109,7 +135,9 @@ mod tests {
         use ds_settings::IconStyle::Monochrome;
         let work = default_look(0, Grain(35), CardAccent::Postmark);
         let home = default_look(1, Grain(55), CardAccent::Postmark);
-        let at = |tint, space, accent| icon_look(&icons(Monochrome, tint), space, accent).tint;
+        let at = |tint, space, accent| {
+            icon_look(&icons(Monochrome, tint), space, accent, Scheme::Light).tint
+        };
         assert!(hue_near(
             at(MonochromeTint::Space, &work, Accent::Red),
             268.0
@@ -141,10 +169,33 @@ mod tests {
             icon_look(
                 &icons(Monochrome, MonochromeTint::Space),
                 &work,
-                Accent::Red
+                Accent::Red,
+                Scheme::Light,
             )
             .style,
             IconStyle::Monochrome
         );
+    }
+
+    /// Muted and Monochrome keep the surface's scheme (the dark tone band re-keys them);
+    /// Colour draws every icon as it comes, so it keys on the light rule whatever the scheme.
+    #[test]
+    fn only_a_retinted_style_keys_on_the_scheme() {
+        use ds_settings::IconStyle as S;
+        let work = default_look(0, Grain(35), CardAccent::Postmark);
+        let cases = [
+            (S::Colour, Scheme::Light),
+            (S::Muted, Scheme::Dark),
+            (S::Monochrome, Scheme::Dark),
+        ];
+        for (style, want) in cases {
+            let look = icon_look(
+                &icons(style, MonochromeTint::Space),
+                &work,
+                Accent::Red,
+                Scheme::Dark,
+            );
+            assert_eq!(look.scheme, want, "{style:?}");
+        }
     }
 }
