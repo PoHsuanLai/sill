@@ -302,6 +302,55 @@ mod tests {
                 vec![BarEffect::Show(BarMenu::App), BarEffect::Hide],
                 false,
             ),
+            (
+                // The manual run of 2026-09-28 (F991): a real pointer enters B on its way to the
+                // click, so the hover switch shows B before the press lands on B's title.
+                "a click on another title shows its menu, the first one gone",
+                vec![
+                    press(BarMenu::Network),
+                    release(BarMenu::Network),
+                    enter(BarMenu::Volume),
+                    press(BarMenu::Volume),
+                    release(BarMenu::Volume),
+                ],
+                vec![
+                    BarEffect::Show(BarMenu::Network),
+                    BarEffect::Swap(BarMenu::Volume),
+                ],
+                true,
+            ),
+            (
+                "then a click on that title closes it",
+                vec![
+                    press(BarMenu::Network),
+                    release(BarMenu::Network),
+                    enter(BarMenu::Volume),
+                    press(BarMenu::Volume),
+                    release(BarMenu::Volume),
+                    press(BarMenu::Volume),
+                ],
+                vec![
+                    BarEffect::Show(BarMenu::Network),
+                    BarEffect::Swap(BarMenu::Volume),
+                    BarEffect::Hide,
+                ],
+                false,
+            ),
+            (
+                "the control center takes part: a click on its item swaps it in",
+                vec![
+                    press(BarMenu::Volume),
+                    release(BarMenu::Volume),
+                    enter(BarMenu::ControlCenter),
+                    press(BarMenu::ControlCenter),
+                    release(BarMenu::ControlCenter),
+                ],
+                vec![
+                    BarEffect::Show(BarMenu::Volume),
+                    BarEffect::Swap(BarMenu::ControlCenter),
+                ],
+                true,
+            ),
         ];
         for (name, inputs, want, open) in cases {
             let (track, got) = run(inputs);

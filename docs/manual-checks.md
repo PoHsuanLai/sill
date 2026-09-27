@@ -44,11 +44,18 @@ further down. The monitor is the BenQ MA270U (27", 3840 x 2160, on HDMI-A-2).
 - [x] **Monitor speakers follow the volume**: switch the default sink to the BenQ MA270U's HDMI
   audio, press volume up/down: the monitor's own volume moves too (its range is 0-50), and mute
   mutes it. Switch back to Bluetooth afterwards. (Passed 2026-09-28, `~/manual-run` check 03.)
-- [ ] **Control center with the real keyboard** (real click and Escape already pass on a
-  headless KWin; Tab/arrows between tiles still need a person): open it from the bar item (left
-  of the clock); Tab/arrows move between tiles, Enter/Space toggle, Right on a chevron opens
-  Wi-Fi/Bluetooth, Escape goes back then closes (a debug-opened popup gets no keyboard on the
-  nested compositor).
+- [ ] **Control center with the real keyboard** (a real click, Tab, Shift+Tab, Space and Escape
+  pass under fake input on a headless KWin with an app window focused first:
+  `dev/accept-menus-keyboard-real-input.sh`, FINDINGS "Manual run 2026-09-28: menus and
+  keyboard"): with a window focused, open it from the bar item (left of the clock); Tab shows
+  the blue focus ring and moves it tile by tile, Shift+Tab back, Enter/Space toggle (Focus shows
+  its change only after `sill reload`, F993), Right on a chevron opens Wi-Fi/Bluetooth, Escape
+  goes back then closes, and afterwards typing reaches the window again (G391, shell-host
+  c1aebd7).
+- [ ] **Switching bar menus by click and by hover** (pass under fake input on a headless KWin,
+  same script, F991 and F994): click Wi-Fi, then Sound: Sound's menu stays open and Wi-Fi's is
+  gone; with one open, sliding along the bar switches menus; a second click on the open item
+  closes it; with Notification Center open, a click on a bar item closes it and opens the menu.
 - [ ] **Control center details on real services: Bluetooth, Now Playing, no keyboard
   backlight** (sill FINDINGS "D2 control center details"; the harness covers each on fakes;
   BlueZ, MPRIS and sysfs are all KDE needs):
