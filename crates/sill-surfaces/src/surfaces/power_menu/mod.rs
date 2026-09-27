@@ -36,9 +36,13 @@ pub use script::{PowerMenuScript, ScriptedKey, script_key};
 use dioxus::prelude::*;
 use shell_host::OutputInfo;
 
+use crate::host_modality::HostModalityBridge;
+
 /// The power menu on `output`. Needs a [`PowerMenuLink`] root context beside the daemon's usual
 /// ones (the daemon's `surface_root` gives every surface one).
 #[component]
 pub fn PowerMenu(output: OutputInfo) -> Element {
-    panel::power_menu(output)
+    rsx! {
+        HostModalityBridge { {panel::power_menu(output)} }
+    }
 }

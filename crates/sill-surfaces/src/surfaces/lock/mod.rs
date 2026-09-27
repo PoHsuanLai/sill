@@ -30,10 +30,14 @@ pub use view::{ClockLines, caps_lock, clock_lines, lock_user, prompt_state};
 use dioxus::prelude::*;
 use shell_host::OutputInfo;
 
+use crate::host_modality::HostModalityBridge;
+
 /// The lock screen on `output`. Needs a [`LockLink`] root context beside the daemon's usual
 /// ones (the daemon's lock factory gives it one) and shell-host's lock handle (shell-host gives
 /// every lock document one).
 #[component]
 pub fn LockScreen(output: OutputInfo) -> Element {
-    screen::lock_screen(output)
+    rsx! {
+        HostModalityBridge { {screen::lock_screen(output)} }
+    }
 }

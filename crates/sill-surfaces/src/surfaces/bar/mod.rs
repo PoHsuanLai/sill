@@ -19,7 +19,6 @@ pub mod glyph_state;
 mod low_battery;
 mod menu_popup;
 mod menus;
-mod modality;
 mod pick;
 mod plan;
 mod reorder;

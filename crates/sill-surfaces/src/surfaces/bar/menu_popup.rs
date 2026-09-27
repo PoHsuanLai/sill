@@ -19,10 +19,10 @@ use tokio::sync::{mpsc, watch};
 
 use super::content::PopupBody;
 use super::geometry::{MARGIN, frame_style};
-use super::modality::ModalityFrame;
 use super::pick::BarPick;
 use super::plan::{PopupReport, choice};
 use super::session::PopupView;
+use crate::host_modality::HostModalityBridge;
 use crate::surfaces::control_center::{CcPage, ControlCenter, ModuleDropdown};
 
 /// The popup's link to its bar, provided as its root context.
@@ -101,16 +101,18 @@ pub(crate) fn MenuPopup() -> Element {
     rsx! {
         style { {POPUP_CSS} }
         style { {CONTROL_CENTER_CSS} }
-        ModalityFrame { style: "{frame_style()};{look.metrics.style_attr()}",
-            Ds {
-                scale: ds_scale,
-                appearance: look.appearance,
-                system: look.system,
-                material: Material::Popover,
-                blur: BlurState::Unavailable,
-                tint_alpha: Some(look.tint),
-                stack: Some(look.stack),
-                {content}
+        HostModalityBridge {
+            div { class: "sill-popup-frame", style: "{frame_style()};{look.metrics.style_attr()}",
+                Ds {
+                    scale: ds_scale,
+                    appearance: look.appearance,
+                    system: look.system,
+                    material: Material::Popover,
+                    blur: BlurState::Unavailable,
+                    tint_alpha: Some(look.tint),
+                    stack: Some(look.stack),
+                    {content}
+                }
             }
         }
     }
