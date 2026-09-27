@@ -13,7 +13,9 @@
 #      UPower and no BlueZ). Screenshot dev/out/widgets-center-cosmic.png.
 #   2. `widgets.center` = all five and two world clocks, `sill reload`: five tiles, Now Playing
 #      showing the fake player (dev/out/widgets-center-all-cosmic.png).
-#   3. 5 s idle while open, clear of the minute's turn: 0 frames on the center.
+#   3. 5 s idle while open, clear of the minute's turn, with the fake player paused (over MPRIS
+#      on the private bus: a playing track's position steps once a second, which is motion,
+#      not idle, since D2 gave Now Playing its `TrackPosition`): 0 frames on the center.
 #   4. `sill widgets toggle-desktop`: `sill-desktop-widgets-<out>` appears in `sill debug stats`,
 #      `widgets.desktop = "on"` in the file, and a capture of the layer shows two frames
 #      (Calendar and Battery) at the top right with nothing painted between them; a COSMIC
@@ -282,14 +284,44 @@ clear_of_the_minute() {
   if [ "$((10#$(date +%S)))" -ge 50 ]; then sleep $((62 - 10#$(date +%S))); fi
 }
 
+# The private session bus's address, from our own `sill run`'s environment (never the host's).
+private_bus() {
+  local pid
+  for pid in $(pgrep -f "$SILL_BIN run"); do
+    if tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null | grep -qx "XDG_RUNTIME_DIR=$RUNTIME"; then
+      tr '\0' '\n' <"/proc/$pid/environ" | sed -n 's/^DBUS_SESSION_BUS_ADDRESS=//p'
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Toggle the fake player's playback over MPRIS on the private bus.
+player_play_pause() {
+  local bus
+  bus=$(private_bus) || return 1
+  DBUS_SESSION_BUS_ADDRESS="$bus" dbus-send --session --type=method_call \
+    --dest=org.mpris.MediaPlayer2.sillaccept /org/mpris/MediaPlayer2 \
+    org.mpris.MediaPlayer2.Player.PlayPause
+}
+
 # 3.
 step_center_idle() {
-  local log="$OUT_DIR/center-idle.log" f0 f1
+  local log="$OUT_DIR/center-idle.log" f0 f1 p0 p1
+  clear_of_the_minute
+  p0=$(frames_of "$CENTER")
+  sleep 3
+  p1=$(frames_of "$CENTER")
+  echo "3 s open while the fake track plays: $(( p1 - p0 )) frames (its position steps each second)" \
+    | tee "$log" >&2
+  player_play_pause || { echo "could not pause the fake player" | tee -a "$log" >&2; return 1; }
+  sleep 1
   clear_of_the_minute
   f0=$(frames_of "$CENTER")
   sleep 5
   f1=$(frames_of "$CENTER")
-  echo "5 s idle open with five widgets: $(( f1 - f0 )) frames on $CENTER" | tee "$log" >&2
+  echo "5 s idle open with five widgets, the track paused: $(( f1 - f0 )) frames on $CENTER" \
+    | tee -a "$log" >&2
   sill notifications close >/dev/null 2>&1
   wait_center down
   [ "$(( f1 - f0 ))" = 0 ]
