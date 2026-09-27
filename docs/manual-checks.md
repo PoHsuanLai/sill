@@ -105,7 +105,7 @@ Then pick "COSMIC (sill)" at the login screen.
 
 ## sill's own lock screen (M11), on a real COSMIC session
 
-Set `session.locker = "sill"` and install `dist/pam.d/sill` as `/etc/pam.d/sill` (without it
+`session.locker = "sill"` is the default (F861); install `dist/pam.d/sill` as `/etc/pam.d/sill` (without it
 sill uses the `login` service). `dev/accept-lock.sh` covers the made-up verdicts on the nested
 compositor; these need a person and a real password.
 
@@ -118,10 +118,21 @@ compositor; these need a person and a real password.
   Nothing about the password appears in `journalctl --user -t sill` or sill's stderr.
 - [ ] **Caps Lock**: turn it on before locking; the mark shows in the field from the first
   frame, and goes when Caps Lock is turned off.
-- [ ] **Six wrong passwords** (five free tries): the field closes and says "Try again at HH:MM",
-  one minute on; a new lock in that minute keeps the wait.
+- [ ] **Six wrong passwords, no lockout** (F862): every wrong one spins, shakes and empties the
+  field (only `pam_unix`'s own ~2 s delay); the field never closes, never says "Try again at",
+  and the right password on the seventh try unlocks at once.
 - [ ] **Lock before sleep** and **logind's Lock** (`loginctl lock-session`) show sill's own lock
   screen once, never two lockers.
+- [ ] **Lock grace (5 s), BLOCKED on Q420** (`session.lock_grace_s` is not built yet: sill
+  cannot yet tell a screen-sleep lock from a manual one, FINDINGS F863). Once it lands, with the
+  default 5 s and a short screen-off time in COSMIC Settings' Power page:
+  - let the screen sleep (cosmic-idle fades it and locks), wake it within 5 s: no password,
+    the desktop is back;
+  - let it sleep, wake it after more than 5 s: the password is asked;
+  - lock by hand (⌃⌘Q, Super+Escape, `loginctl lock-session`, the launcher's Lock row), wake at
+    once: the password is asked;
+  - close the lid or suspend, resume at once: the password is asked;
+  - with `session.lock_grace_s = 0`, sleep and wake at once: the password is asked.
 - [ ] At a fractional scale (1.5x): the lock surfaces are crisp and fill every output.
 - [ ] Kill the shell while locked (`pkill -f "sill run"` from a TTY): the session stays locked,
   the session script restarts sill, and sill re-locks at start so you can unlock normally.

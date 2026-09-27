@@ -31,24 +31,15 @@ pub fn caps_of(key: shell_host::LockKey) -> CapsLock {
     }
 }
 
-/// quire's prompt state for `phase` at `now` (whose zone words the time): `Accepted` is quire's
-/// `Accepted` (its beat plays before the unlock), `Unavailable` is `Idle` (the service's notes are the
-/// hint line), `LockedOut { until }` is quire's `LockedOut` with `until` as the lock clock
-/// words a time (`14:07`, or `2:07` in `H12`), and one whose `until` has passed is `Idle`.
-pub fn prompt_state(phase: &AuthPhase, now: &jiff::Zoned, format: LockClock) -> PromptState {
+/// quire's prompt state for `phase`: `Accepted` is quire's `Accepted` (its beat plays before the
+/// unlock), and `Unavailable` is `Idle` (the service's notes are the hint line). quire's
+/// `LockedOut` is never shown: there is no lockout (FINDINGS F862).
+pub fn prompt_state(phase: &AuthPhase) -> PromptState {
     match phase {
         AuthPhase::Idle | AuthPhase::Unavailable(_) => PromptState::Idle,
         AuthPhase::Checking => PromptState::Checking,
         AuthPhase::Accepted => PromptState::Accepted,
         AuthPhase::Wrong => PromptState::Wrong,
-        AuthPhase::LockedOut { until } if until.0 > now.timestamp().as_millisecond() => {
-            jiff::Timestamp::from_millisecond(until.0).map_or(PromptState::Idle, |at| {
-                PromptState::LockedOut {
-                    until: time_text(&at.to_zoned(now.time_zone().clone()), format),
-                }
-            })
-        }
-        AuthPhase::LockedOut { .. } => PromptState::Idle,
     }
 }
 
@@ -130,7 +121,6 @@ mod tests {
     use ds::{CapsLock, PromptState};
     use sill_services::AuthPhase;
     use sill_services::auth::{Account, AuthFault, AvatarSource, RealName, UserName};
-    use sill_services::notifications::UnixMs;
     use sill_settings::LockClock;
 
     use super::{ClockLines, caps_lock, caps_of, clock_lines, lock_user, prompt_state};
@@ -157,41 +147,18 @@ mod tests {
 
     #[test]
     fn prompt_states() {
-        let now = at("2026-09-26T14:05:00+08:00[Asia/Taipei]");
-        let ms = |z: &jiff::Zoned| UnixMs(z.timestamp().as_millisecond());
-        let later = at("2026-09-26T14:07:00+08:00[Asia/Taipei]");
         let cases = [
-            (AuthPhase::Idle, LockClock::H24, PromptState::Idle),
-            (AuthPhase::Checking, LockClock::H24, PromptState::Checking),
-            (AuthPhase::Wrong, LockClock::H24, PromptState::Wrong),
-            (AuthPhase::Accepted, LockClock::H24, PromptState::Accepted),
+            (AuthPhase::Idle, PromptState::Idle),
+            (AuthPhase::Checking, PromptState::Checking),
+            (AuthPhase::Wrong, PromptState::Wrong),
+            (AuthPhase::Accepted, PromptState::Accepted),
             (
                 AuthPhase::Unavailable(AuthFault::TimedOut),
-                LockClock::H24,
-                PromptState::Idle,
-            ),
-            (
-                AuthPhase::LockedOut { until: ms(&later) },
-                LockClock::H24,
-                PromptState::LockedOut {
-                    until: "14:07".to_owned(),
-                },
-            ),
-            (
-                AuthPhase::LockedOut { until: ms(&later) },
-                LockClock::H12,
-                PromptState::LockedOut {
-                    until: "2:07".to_owned(),
-                },
-            ),
-            (
-                AuthPhase::LockedOut { until: ms(&now) },
-                LockClock::H24,
                 PromptState::Idle,
             ),
         ];
-        for (phase, format, want) in cases {
-            assert_eq!(prompt_state(&phase, &now, format), want, "{phase:?}");
+        for (phase, want) in cases {
+            assert_eq!(prompt_state(&phase), want, "{phase:?}");
         }
     }
 

@@ -4911,7 +4911,7 @@ session script restarts it and it re-locks), `pkexec true` answered by sill's ow
   initial face; never a persona (the user chose animated emoji, a later quire break).
 - F564 The unlock fade runs at `--t-move` (250 ms), shorter than the 454 ms accepted beat, so the
   beat is mostly faded before the unlock; a delayed fade is a follow-up.
-- Q271 (was numbered Q270 in lane a's notes, which is lane c's range) Proposed rows (not registered; the user decides whether lockout is configurable):
+- Q271 (closed, left undrafted: the user chose no lockout and the lockout was removed, F862) (was numbered Q270 in lane a's notes, which is lane c's range) Proposed rows (not registered; the user decides whether lockout is configurable):
   `session.lockout_free_tries` u32 5, `session.lockout_first_wait_s` 60,
   `session.lockout_max_wait_s` 900, Advanced, Accounts page. Today these are constants.
 - G191 closed: `debug stats` lists `sill-lock/<output>` while a lock is up.
@@ -6881,3 +6881,122 @@ ring. sill master e276242; sill's own four uses had already moved. Numbers from 
 - **Note, no ask.** The today disc against its tile (1.7:1) and a module tile's on-plate against
   an off one are now soft. Both still read, because they also carry ink, weight or a hairline.
   Listed for quire's own accent-B audit.
+
+## User picks: lock and OSD (2026-09-27)
+
+The user's decisions, relayed by the quire session: the OSD level is the capsule (closes quire
+D3), sill's own lock screen is the default, a 5-second lock grace after the screen sleeps, and
+no growing delay after failed passwords. Numbered from F860/Q420.
+
+- **F860 The OSD level is the capsule.** There is no OSD look setting: the look is the one
+  `LOOK` constant in `sill-surfaces/src/surfaces/osd/view.rs`, already `LevelLook::Capsule` (and
+  quire's `LevelLook::default()`). Its comment now names the pick instead of "until the user
+  picks"; `tests/osd_render.rs::the_level_is_the_capsule` checks the rendered
+  `data-look="capsule"`. No design/22 row: the OSD has no look key and gains none.
+- **F861 `session.locker` defaults to `"sill"`** (was `"auto"`): `SessionSettings::default()`,
+  the help text, `tests/schema.rs`'s defaults row. `choice::resolve` is unchanged, so with no
+  setting the own lock follows logind in a sill session, answers only sill's own Lock under
+  cosmic-session and nested in another desktop, and a host without `ext-session-lock-v1` (KWin)
+  refuses it as before (`ShellLockEvent::Refused`). `auto` still picks the borrowed lockers.
+  sill-settings' keys test does not compare defaults with design/22 (it checks paths only), so
+  the change needs no stop-gap; the row's text changes (below, Q421). Deviation from F544's
+  recommendation ("keep `auto` until the Needs-a-sill-login checks pass"): the user chose; those
+  checks in docs/manual-checks.md stay open and matter more now.
+- **F862 No lockout.** The user chose no growing delay after failed passwords, so the one sill
+  had is removed rather than kept as constants: `auth/lockout.rs` (`LockoutPolicy::DEFAULT`, five
+  free tries then 60 s doubling to 15 min, F542) becomes `auth/gate.rs`, a smaller machine
+  (`Checks { gate: Gate::{Open, Checking}, failures }`, `GateIn::{Submit, Verdict, Reset}`,
+  `GateOut::{Check, Busy, Accepted, Wrong, Unavailable}`) that still refuses a submit while a
+  check runs (a held Return queues nothing) and counts failures, but never waits.
+  `AuthPhase::LockedOut` is gone, so `prompt_state` takes only the phase and quire's
+  `PromptState::LockedOut` is never shown. The live service loses its deadline tick and wall
+  clock. `dev/accept-lock.sh` step 4 is now `step_no_lockout` (six wrongs, the prompt settles
+  back to the idle field, still locked; then step 6 accepts at once); `tests/auth_live.rs`'s
+  lockout test is now `many_wrongs_never_lock_out_and_the_right_one_opens`. **Q271's lockout
+  rows stay undrafted** (`session.lockout_free_tries`, `session.lockout_first_wait_s`,
+  `session.lockout_max_wait_s`): there is no policy for them to set. PAM's own modules may still
+  pause (`pam_unix`'s fixed ~2 s failure delay; `pam_faillock` where the system turns it on):
+  the login stack's policy, not sill's.
+- **F863 The lock grace is not built: sill cannot tell a screen-sleep lock from a manual one.**
+  What sill sees today:
+  - cosmic-idle (F382) fades the outputs on `ext-idle-notify-v1`, powers them off
+    (`wlr-output-power`), and 0.5 s later runs COSMIC's `LockScreen` system action,
+    `loginctl lock-session` (`/usr/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1/
+    system_actions`; sill's `dist/cosmic` keeps it, F388).
+  - COSMIC's default shortcuts bind **Super+Escape to `System(LockScreen)`** (the same file's
+    `defaults`), which runs the same `loginctl lock-session`. So do a hand-typed `loginctl
+    lock-session` and logind's `HandleLidSwitch=lock`.
+  - All of them reach sill as one logind `Lock` signal, `locker::Cause::Logind`. sill binds
+    neither `ext_idle_notifier_v1` nor `zwlr_output_power_manager_v1` (cosmic-comp 1.8 offers
+    both on wayland-1: v2 and v1), so it never sees the screen sleep.
+
+  Per the brief's rule ("if the lock cause can't be known reliably, stop and report"), nothing
+  was guessed: no `session.lock_grace_s` key, no grace logic. The options are Q420. The pure
+  rule to build once one is picked, with its table (`LockCause` x grace x time since the screen
+  slept x a suspend in between -> `Ask` or `NoPassword`):
+
+  | Lock cause | How sill would know | Grace | Wake after | Suspend since | Result |
+  | --- | --- | --- | --- | --- | --- |
+  | Screen slept (cosmic-idle) | Q420's signal | 5 s | 4.9 s | no | NoPassword |
+  | Screen slept | | 5 s | 5.0 s | no | Ask (the window is `< grace`) |
+  | Screen slept | | 5 s | 30 s | no | Ask |
+  | Screen slept | | 0 | 0.1 s | no | Ask (0 always asks) |
+  | Screen slept | | 5 s | 1 s | yes (lid or idle suspend, then resume) | Ask |
+  | sill's Lock: ⌃⌘Q or `sill lock`, the launcher row, the power menu | `Cause::Action` | 5 s | 0.1 s | no | Ask |
+  | Super+Escape, `loginctl lock-session`, lid close set to lock | logind `Lock` with no screen-sleep signal | 5 s | 0.1 s | no | Ask |
+  | Lid close or suspend | `PrepareForSleep(true)` | 5 s | 0.1 s | n/a | Ask |
+  | Re-lock after a crash (the marker, F544) or an adopted locker | start-up | 5 s | 0.1 s | no | Ask |
+  | Any cause, `session.locker` other than `sill` | the borrowed locker owns its prompt | any | any | any | Ask (sill cannot dismiss it) |
+
+- **F864 Checks.** `dev/accept-lock.sh` on wayland-1 (pinged, never stopped; private bus,
+  scratch XDG dirs, made-up verdicts only): 8/8 PASS. It locked in 127 ms. Six wrongs settle back
+  to the idle field (0 pixels differ in the prompt band, still locked;
+  `dev/out/lock-sixwrong-cosmic.png`). The accept then unlocks in 789 ms. A crash re-locks from
+  the marker 1 ms after the restart. A first run at load 130 failed three capture-based steps on
+  "no reply within 2s" and passed whole at load 37. `dev/accept-osd.sh`: 5/5 PASS.
+  `tests/auth_live.rs --ignored` (fake authenticator; the PAM test skips): 4 passed, and the right
+  secret after ten wrong opened in 20 ms. Gate on d8c5b74: SILL GATE GREEN (fmt, clippy, 1149
+  passed, 0 failed, 51 ignored, boundary, licenses).
+
+### Asks
+
+- **Q420 (the user) How should sill know the screen slept?** Options, cleanest first:
+  - **A. Watch the outputs' power (recommended).** sill-services gains a
+    `zwlr_output_power_manager_v1` client (`wayland-protocols-wlr` is already in the lock graph)
+    that follows each output's `mode`. A logind `Lock` counts as a screen-sleep lock only when
+    every output reported `Off` and the last went off at most 2 s earlier (cosmic-idle locks
+    0.5 s after). The lock records that instant. When an output reports `On` again (cosmic-idle
+    powers them on at the first input) within `session.lock_grace_s` of it, and no
+    `PrepareForSleep` came in between, the daemon unlocks without auth. Keyboard locks can never
+    qualify: the key press ends idle, so the screens are on. Residual: a `loginctl
+    lock-session` run from elsewhere (ssh, a script) in those 2 s after the screens went dark
+    would get the grace.
+  - **B. sill owns idle.** `dist/sill-session` drops cosmic-idle; sill does the idle fade, power
+    off, lock (cause known by construction), and idle suspend itself. Exact, but sill takes over
+    cosmic-idle's jobs (the fade, suspend on AC and battery, `org.freedesktop.ScreenSaver`
+    inhibits, the times COSMIC Settings' Power page edits). Much more work.
+  - **C. Split the system action.** Ship `LockScreen: "sill lock --screen-slept"` and rebind
+    Super+Escape in `dist/cosmic/.../custom` to `sill lock`. Cheap, but anything else that runs
+    the `LockScreen` system action (a shortcut the person binds in COSMIC Settings) would get
+    the grace. Not recommended.
+  - **D. `ext-idle-notify-v1`**: "the seat had been idle for cosmic-idle's `screen_off_time`
+    when the Lock came". Weaker than A: idle inhibitors, and sill would read COSMIC's idle
+    config.
+
+  In every option the grace applies only in a sill session with `session.locker = "sill"`.
+  Under cosmic-session the resident cosmic-greeter answers logind, and nested in another
+  desktop sill follows no logind signal.
+- **Q421 (design/22) `session.locker`'s changed row**, and the proposed grace row (register it
+  only after Q420):
+
+  | Key | Type | Default | Range / Alt | Source | Status |
+  | --- | --- | --- | --- | --- | --- |
+  | `session.locker` | `String` | `"sill"` | `sill` (the shell's own lock screen, M11; the default, the user's pick 2026-09-27), `auto` (cosmic-greeter, else swaylock, else hyprlock, whichever is installed; under cosmic-session, COSMIC's own resident locker), `off`, `cosmic-greeter`, `swaylock`, `hyprlock`, or a command line run by `/bin/sh -c` | `20-SURFACES.md#1-9-lock-screen-spec-tier-1`; sill FINDINGS "M7", F544, F861 | changed (2026-09-27) |
+  | `session.lock_grace_s` | `Seconds` | `5` | `0..=60`; after the screen sleeps and locks, waking within this many seconds opens it without a password; `0` always asks; never after a manual lock (⌃⌘Q, Super+Escape, `loginctl lock-session`), a lid close, a suspend, or a resume from suspend; only with `session.locker = "sill"` | `20-SURFACES.md#1-9-lock-screen-spec-tier-1`; sill FINDINGS F863, Q420 | proposed (2026-09-27); not registered until Q420 |
+
+  This supersedes F553's draft of `session.lock_grace_s` (default `0`, `0..=300`, "any key
+  within N seconds after an idle lock"). design/20 §1.9's milestone note ("borrowed stays the
+  default until the checks in F544 pass") becomes "sill's own lock is the default (the user's
+  pick, 2026-09-27)".
+- **Q422 (quire)** sill no longer shows `PromptState::LockedOut` (F862). quire may keep it for
+  another consumer; sill does not need it.

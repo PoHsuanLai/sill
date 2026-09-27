@@ -8,7 +8,6 @@ mod support;
 use dioxus::prelude::*;
 use shell_host::OutputId;
 use sill_services::auth::{Account, RealName, UserName};
-use sill_services::notifications::UnixMs;
 use sill_services::{Auth, AuthPhase, OutputName, WallpaperImage, Wallpapers};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::LockScreen;
@@ -91,11 +90,9 @@ fn another_output_shows_the_clock_only() {
 
 #[test]
 fn the_prompt_follows_the_check() {
-    let later = UnixMs(jiff::Timestamp::now().as_millisecond() + 60_000);
     let cases = [
         (AuthPhase::Checking, "data-state=\"checking\""),
         (AuthPhase::Wrong, "data-state=\"wrong\""),
-        (AuthPhase::LockedOut { until: later }, "Try again at"),
         (AuthPhase::Accepted, "data-leaving=\"yes\""),
     ];
     for (phase, want) in cases {

@@ -5,8 +5,6 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::notifications::UnixMs;
-
 /// A login name (`pohsuanlai`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -143,8 +141,6 @@ pub enum AuthPhase {
     Checking,
     /// The last secret was wrong; typing again goes back to `Idle` on the surface's side.
     Wrong,
-    /// Too many wrong secrets: no check until `until` (wall clock, so a surface can count down).
-    LockedOut { until: UnixMs },
     /// The secret was right: the daemon unlocks. Stays until `Reset`.
     Accepted,
     /// The last check could not run.
@@ -172,10 +168,10 @@ pub enum FakeVerdict {
 /// What the auth service can be told.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AuthCommand {
-    /// Check `secret` for this session's user (ignored while `Checking` or `LockedOut`).
+    /// Check `secret` for this session's user (ignored while `Checking`).
     Submit(Secret),
     /// A new lock begins, or the last one ended: back to `Idle`, notes cleared. The failure count
-    /// is kept until a success, so locking again does not reset a lockout.
+    /// is kept until a success (it only counts: no lockout, F862).
     Reset,
     /// Feed a verdict as if a check had returned it, without PAM (`sill debug auth`).
     Fake(FakeVerdict),
