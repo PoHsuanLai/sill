@@ -178,7 +178,7 @@ fn ring_style(dock: &DockSettings, grow: f64, progress: Permille) -> String {
     let turn = f64::from(progress.0.min(1000)) / 1000.0;
     format!(
         "width:{d}px;height:{d}px;padding:{}px;transform:scale({grow:.4});\
-         background-image:conic-gradient(var(--accent) 0turn {turn:.3}turn, var(--line) {turn:.3}turn 1turn)",
+         background-image:conic-gradient(var(--accent-text) 0turn {turn:.3}turn, var(--line) {turn:.3}turn 1turn)",
         dock.progress_ring_stroke_px.0
     )
 }

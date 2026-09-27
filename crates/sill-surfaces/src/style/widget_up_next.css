@@ -8,7 +8,7 @@
 
 /* Today. */
 .sill-un-day{ display:flex; flex-direction:column; flex:0 0 auto; }
-.sill-un-weekday{ color:var(--accent); font-size:var(--fs-small); font-weight:700;
+.sill-un-weekday{ color:var(--accent-text); font-size:var(--fs-small); font-weight:700;
   text-transform:uppercase; }
 .sill-un-date{ font-size:var(--fs-day); font-weight:300; }
 

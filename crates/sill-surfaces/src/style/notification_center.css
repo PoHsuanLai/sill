@@ -28,7 +28,7 @@
 .sill-nc-group-head{ display:flex; border-radius:var(--r-btn); }
 .sill-nc-row{ display:flex; justify-content:center; border-radius:var(--r-card); }
 .sill-nc-row[*|data-focus=ring],
-.sill-nc-group-head[*|data-focus=ring]{ outline:var(--focus-ring) solid var(--accent); outline-offset:var(--s-2); }
+.sill-nc-group-head[*|data-focus=ring]{ outline:var(--focus-ring) solid var(--accent-ring); outline-offset:var(--s-2); }
 .sill-nc-empty{ display:flex; align-items:center; justify-content:center; flex:1 1 0;
   font-size:var(--fs-subhead); color:var(--ink-faint); }
 
