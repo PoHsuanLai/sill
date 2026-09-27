@@ -108,14 +108,18 @@ further down. The monitor is the BenQ MA270U (27", 3840 x 2160, on HDMI-A-2).
   drag shadow) reads as picked up, not as a glitch. Since "Widget interface port" the lift is
   quire's card's own (`Lift::Lifted`) and a quiet slot guide shows the cell it will land in:
   check the guide follows the snap cell and fades in, not out of step with the widget.
-- [ ] **Edit Widgets with a real pointer** (FINDINGS "Widget interface port"): open the
-  notification center, scroll to its foot and press "Edit Widgets": the center closes and the
-  gallery slides in from the right. Pick World Clock, press its Medium preview (it lifts), then
-  "Add to Desktop": with `widgets.desktop` on, the clock appears on the desktop in the first
-  free place from the top right. Change the month's size in the Desktop list: it grows in
-  place or moves. Remove Up Next from the Notification Center list: the center no longer shows
-  it. Press Escape, Done, and a click outside the panel: each closes it. By eye: the previews
-  at their real sizes, and that nothing in the panel is cut off at 1080 px tall.
+- [ ] **Edit Widgets with a real pointer** (FINDINGS "Widget interface port", "Manual run
+  2026-09-28: widgets"): open the notification center and press "Edit Widgets" at its foot: the
+  center closes and the gallery slides in from the right. Pick World Clock, then "Add to
+  Desktop": under the gallery "Added World Clock to the Desktop." appears with a check that
+  draws on and goes (the words stay); `widgets.desktop` turns on if it was off, and the clock
+  rises into the first free place from the top right (under the panel until quire Q521). Each
+  widget has one size: a size picked still shows in quire's gallery (Q520) but is refused with
+  "Each widget comes in one size." Remove Up Next from the Notification Center list: "Removed
+  Up Next from the Notification Center." Add Up Next to the center twice: the second is
+  refused, its line shaken once. Press Escape, Done, and a click outside the panel: each closes
+  it. The clicks, the add, the remove and Escape are automated at scale 2 by
+  `dev/accept-widgets-real-input.sh`; by hand only the feel is left.
 
 ## Visual review
 
@@ -128,7 +132,12 @@ further down. The monitor is the BenQ MA270U (27", 3840 x 2160, on HDMI-A-2).
 
 - [ ] **Widgets by eye**: `sill widgets toggle-desktop`, then check the analog world-clock dials
   (set `widgets.world_clocks`, add World Clock to `widgets.desktop_widgets`) and the battery rings
-  with real Bluetooth devices connected (no live picture exists; render tests only).
+  with real Bluetooth devices connected. Live pictures at scale 2 with real devices now exist
+  (`dev/out/widgets-kwin-s2-*.png`, FINDINGS F1021). Since "Manual run 2026-09-28: widgets" the
+  center's month is Medium (today beside the compact month, filling its tile); check it reads
+  right, and whether the desktop's Small Batteries with two or three devices (a 2 x 2 grid,
+  empty places as bare tracks, no numbers) reads as intended (G422). The center's Batteries row
+  still spreads two rings to the tile's ends until quire Q522.
 - [ ] **Screenshot thumbnail drag onto a real app** (works on KDE): show a thumbnail (take a
   screenshot, or `sill debug screenshot <a copy of a PNG>`), drag it onto a Files (Dolphin)
   window: the file copies there, the card leaves, the original stays; onto a terminal it inserts
