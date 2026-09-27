@@ -80,7 +80,8 @@ Install first (as root; nothing installs these for you): `install -m 755 dist/si
 crates/sill` or a copy in `/usr/local/bin`). Copy `dist/cosmic/.../system_actions` to
 `~/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1/` so the power key and Super+Shift+Esc
 open sill's power menu. Nothing needs to be installed from the distribution on this machine:
-cosmic-greeter (the locker), cosmic-idle and KDE's polkit agent are already here. Optional:
+cosmic-greeter (the locker) and KDE's polkit agent are already here (cosmic-idle is not
+started: sill owns idle). Optional:
 `sudo dnf install swaylock` for a second locker to compare (`session.locker = "swaylock"`).
 Then pick "COSMIC (sill)" at the login screen.
 
@@ -93,9 +94,12 @@ Then pick "COSMIC (sill)" at the login screen.
 - [ ] **Lock before sleep**: `systemctl suspend`, wake: the lock screen is already up when the
   screen comes back (no flash of the desktop). While the machine is awake, `systemd-inhibit
   --list` shows `sill ... lock before sleep ... delay`.
-- [ ] **Idle lock**: set a short screen-off time in COSMIC Settings (Power) or
-  `~/.config/cosmic/com.system76.CosmicIdle/v1/screen_off_time` (milliseconds, e.g. `60000`);
-  after that long idle the screen fades out and is locked when it comes back.
+- [ ] **Idle lock (sill's own idle, no cosmic-idle)**: set a short screen-off time in COSMIC
+  Settings (Power) or `~/.config/cosmic/com.system76.CosmicIdle/v1/screen_off_time`
+  (milliseconds, e.g. `60000`); `sill idle status` says `{"kind":"own"}` (not
+  `cosmic_idle_running`: `pgrep cosmic-idle` finds nothing). After that long idle the screens go
+  off (no dim is drawn yet: Q447) and `sill lock status` says `locked` with cause
+  `idle_screen_off`. The lock screen, left alone, goes dark again after 60 s.
 - [ ] **A polkit prompt**: `pkexec true` shows KDE's password dialog; the right password returns
   0, Cancel returns 126.
 - [ ] **The power key** opens sill's power menu and does not power off (the handle-power-key
@@ -123,16 +127,27 @@ compositor; these need a person and a real password.
   and the right password on the seventh try unlocks at once.
 - [ ] **Lock before sleep** and **logind's Lock** (`loginctl lock-session`) show sill's own lock
   screen once, never two lockers.
-- [ ] **Lock grace (5 s), BLOCKED on the idle fill** (the user picked Q420 B: sill owns idle;
-  the key `session.lock_grace_s` and the rule are frozen, FINDINGS "sill idle (Q420 B)" F908,
-  but not filled). Once the fill lands (and `dist/sill-session` no longer starts cosmic-idle),
-  with the default 5 s and a short screen-off time in COSMIC Settings' Power page:
-  - let the screen sleep (sill dims it for `idle.dim_s`, turns it off and locks), wake it
-    within 5 s: no password, the desktop is back;
-  - wake it during the dim: it brightens, nothing locked;
+- [ ] **Lock grace (5 s)** (sill owns idle, FINDINGS "sill idle fill"; `dev/accept-idle.sh`
+  covers the rule on the nested compositor with made-up wakes, since the nested cosmic-comp
+  counts no synthetic input as activity). With the default 5 s and a short screen-off time in
+  COSMIC Settings' Power page:
+  - dim, off and lock at the COSMIC time: `sill idle status` goes `dimmed` 5 s before the
+    screen-off time (nothing is drawn yet: the dim overlay waits on quire, Q447), then
+    `displays_off`, and `sill lock status` says cause `idle_screen_off`;
+  - G341: the screens are really off (dark, not black-but-lit) while the lock is granted, and
+    nothing of the desktop shows when they come back;
+  - let the screen sleep, wake it within 5 s (a key or the mouse): no password, the desktop is
+    back;
   - let it sleep, wake it after more than 5 s: the password is asked;
   - lock by hand (⌃⌘Q, Super+Escape, `loginctl lock-session`, the launcher's Lock row), wake at
     once: the password is asked;
+  - play a video in a browser (Firefox or Chromium, which inhibit through the Wayland protocol
+    or `org.freedesktop.ScreenSaver`): the screen never dims or goes off while it plays
+    (`sill idle status` shows `"inhibition":"held"` for a ScreenSaver inhibit), and does once
+    it is paused;
+  - on battery, with a short suspend time (`idle.times = "sill"` and
+    `idle.suspend_battery_min = 1`, or COSMIC's Power page): the machine suspends; on resume the
+    password is asked, even at once;
   - close the lid or suspend, resume at once: the password is asked;
   - with `session.lock_grace_s = 0`, sleep and wake at once: the password is asked.
 - [ ] At a fractional scale (1.5x): the lock surfaces are crisp and fill every output.
