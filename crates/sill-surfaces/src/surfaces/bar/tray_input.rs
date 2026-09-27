@@ -149,6 +149,7 @@ mod tests {
             IconSource::Glyph(_) => "other glyph",
             IconSource::Symbolic(_) => "symbolic",
             IconSource::Image(_) => "image",
+            IconSource::Status(_) => "status",
         }
     }
 

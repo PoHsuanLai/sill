@@ -35,7 +35,8 @@ const VIEW: Viewport = Viewport {
     scale_percent: 100,
 };
 
-const NUDGE: &str = ".sill-bar-status.a-nudge-up";
+/// quire's nudge inside the item's button (Q390): it lifts the glyph, never the pill.
+const NUDGE: &str = ".ds-icon-button > .ds-icon-nudge.a-nudge-up";
 
 fn at(level: u16, charge: Charge) -> Battery {
     Battery {
@@ -53,6 +54,10 @@ fn feed(harness: &mut Harness, feeds: &fake::Feeds, battery: Battery) -> bool {
     for _ in 0..20 {
         harness.advance(Duration::from_millis(50));
         seen |= harness.count(NUDGE) > 0;
+        assert!(
+            !harness.has_class(".ds-icon-button", "a-nudge-up"),
+            "the pill stays"
+        );
     }
     assert_settles_to_zero_frames(harness);
     seen
@@ -67,9 +72,14 @@ fn the_battery_item_nudges_once_per_crossing() {
     settle_until(&mut harness, |h| h.count("[*|aria-label=Battery]") == 1);
     assert_settles_to_zero_frames(&mut harness);
     assert_eq!(
-        harness.count(".sill-bar-status"),
-        4,
-        "every status item is wrapped"
+        harness.count("[*|aria-label=Battery] > .ds-icon-nudge > .ds-status-glyph"),
+        1,
+        "the battery's glyph sits in its nudge"
+    );
+    assert_eq!(
+        harness.count(".ds-icon-nudge"),
+        1,
+        "no other item carries one"
     );
     // (name, fed, nudges)
     let steps = [

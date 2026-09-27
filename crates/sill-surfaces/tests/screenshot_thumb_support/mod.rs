@@ -64,8 +64,8 @@ pub enum Done {
 }
 
 impl Running {
-    /// Publish shot `id` as current with `preview`, taken at this instant (a feed's wake runs at
-    /// the next stop of an `advance`, G311).
+    /// Publish shot `id` as current with `preview`, taken at this instant (the next `advance`
+    /// runs the woken surface first, quire G311).
     pub fn shot(&mut self, id: u64, preview: ShotPreview) {
         self.feeds.shots.send_replace(Shots {
             current: Some(Shot {
@@ -76,7 +76,6 @@ impl Running {
             last_id: ShotId(id),
             ..Shots::default()
         });
-        self.harness.advance(Duration::ZERO);
     }
 
     /// Publish shot `id` with the fixture as its ready preview.
@@ -87,7 +86,6 @@ impl Running {
     /// The service dropping its current shot (it did, after a `Leave`).
     pub fn cleared(&mut self) {
         self.feeds.shots.send_replace(Shots::default());
-        self.harness.advance(Duration::ZERO);
     }
 
     /// Every command sent since the last call.

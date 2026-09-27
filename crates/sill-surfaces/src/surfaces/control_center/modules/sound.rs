@@ -1,53 +1,33 @@
-//! The Sound module: a [`crate::surfaces::control_center::LevelModule`] with the volume glyph
-//! (by level), the output device's name as its title, and the level. It reads no service: the
-//! caller ([`super::Module`], the bar's volume dropdown) passes `Volume::level` and sends
-//! `VolumeCommand::SetLevel` from `on_change`, so the same component serves anywhere a level is
-//! shown. Choosing another output device needs a sink list and a `SetSink` the volume service
-//! does not have; it is left for later (FINDINGS "M5 freeze").
+//! The Sound module: a [`crate::surfaces::control_center::LevelModule`] headed by the bar item's
+//! volume glyph, the output device's name as its title, and the level, whose speaker draws the
+//! same `VolumeState` (quire Q392: the module and the bar read one source). It reads no service:
+//! the caller ([`super::Module`], the bar's volume dropdown) passes `volume_glyph(&volume)` and
+//! `Volume::level` and sends `VolumeCommand::SetLevel` from `on_change`, so the same component
+//! serves anywhere a level is shown. Choosing another output device needs a sink list and a
+//! `SetSink` the volume service does not have; it is left for later (FINDINGS "M5 freeze").
 
 use dioxus::prelude::*;
-use ds::{Availability, Fraction, Icon};
+use ds::{Availability, Fraction, StatusState, VolumeState};
 
 use crate::surfaces::control_center::LevelModule;
 
-/// The Sound module at `level` on `device` (`Volume::sink`).
+/// The Sound module at `level` on `device` (`Volume::sink`), its glyphs drawing `volume`.
 #[component]
 pub fn SoundModule(
+    volume: VolumeState,
     level: Fraction,
     device: String,
     on_change: EventHandler<Fraction>,
     #[props(default)] availability: Availability,
 ) -> Element {
     rsx! {
-        LevelModule { glyph: sound_glyph(level), title: device, level, on_change, availability }
-    }
-}
-
-/// The volume glyph by level (the bar's `volume_icon` thresholds, on thousandths).
-pub(crate) fn sound_glyph(level: Fraction) -> Icon {
-    match level.0 {
-        0 => Icon::VolumeX,
-        1..=333 => Icon::Volume,
-        334..=666 => Icon::Volume1,
-        _ => Icon::Volume2,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::sound_glyph;
-    use ds::{Fraction, Icon};
-
-    #[test]
-    fn the_glyph_follows_the_level() {
-        let cases = [
-            (0, Icon::VolumeX),
-            (100, Icon::Volume),
-            (500, Icon::Volume1),
-            (1000, Icon::Volume2),
-        ];
-        for (level, want) in cases {
-            assert_eq!(sound_glyph(Fraction(level)), want, "{level}");
+        LevelModule {
+            glyph: StatusState::Volume(volume),
+            level_glyph: volume,
+            title: device,
+            level,
+            on_change,
+            availability,
         }
     }
 }

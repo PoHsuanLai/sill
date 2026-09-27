@@ -3,26 +3,22 @@
 //! volume, network and battery items, whose menus become the Sound, Wi-Fi and Battery modules.
 
 use dioxus::prelude::*;
-use ds::Icon;
+use ds::{Icon, StatusState};
 use shell_host::OutputInfo;
-use sill_services::Presence;
 use sill_settings::ControlCenterModule;
 
-use super::glyph_state::battery_glyph;
-use super::low_battery::use_low_nudge;
+use super::glyph_state::{battery_glyph, bluetooth_glyph_state, network_glyph, volume_glyph};
+use super::low_battery::use_low_cue;
 use super::menus::BarMenu;
-use super::status::{
-    battery_icon, battery_lines, network_icon, network_lines, volume_heading, volume_icon,
-};
+use super::status::{battery_lines, network_lines, volume_heading};
 use super::status_item::StatusIcon;
 use crate::hooks::{
-    use_battery, use_bluetooth, use_network, use_now_playing, use_settings, use_volume,
+    use_battery, use_bluetooth, use_network, use_now_playing, use_settings, use_volume, use_wifi,
 };
 use crate::surfaces::control_center::bluetooth_status;
-use crate::surfaces::control_center::modules::bluetooth::bluetooth_glyph;
 
-/// `module`'s bar item on `output` (its glyph follows the module's state: signal strength,
-/// volume level, battery level).
+/// `module`'s bar item on `output` (its glyph is the module's status glyph: quire's Wi-Fi,
+/// battery, volume and Bluetooth glyphs through `glyph_state`).
 #[component]
 pub fn ModuleItem(output: OutputInfo, module: ControlCenterModule) -> Element {
     // Every bar item is told its output (the frozen signature); these read the same on all.
@@ -45,55 +41,62 @@ pub fn ModuleItem(output: OutputInfo, module: ControlCenterModule) -> Element {
     }
 }
 
-/// Sound: the volume glyph by level and mute.
+/// Sound: the volume glyph (quire's `VolumeGlyph` state, the Sound module's source too).
 #[component]
 fn SoundItem() -> Element {
     let volume = use_volume()();
     let tooltip = format!("{}: {}%", volume_heading(&volume), volume.level.0);
     rsx! {
-        StatusIcon { menu: BarMenu::Volume, icon: volume_icon(&volume), tooltip }
-    }
-}
-
-/// Wi-Fi: the network glyph (Wi-Fi strength, or the wire).
-#[component]
-fn WifiItem() -> Element {
-    let network = use_network()();
-    let [link, _] = network_lines(&network);
-    rsx! {
-        StatusIcon { menu: BarMenu::Network, icon: network_icon(&network), tooltip: link }
-    }
-}
-
-/// Battery: the level glyph; hidden without a battery (UPower's display device absent: a
-/// desktop).
-#[component]
-fn BatteryItem() -> Element {
-    let battery = use_battery()();
-    let low = use_settings()().bar.battery_low_percent;
-    let pulse = use_low_nudge(battery_glyph(&battery, low));
-    if battery.presence == Presence::Absent {
-        return rsx! {};
-    }
-    let [level, _] = battery_lines(&battery);
-    rsx! {
         StatusIcon {
-            menu: BarMenu::Battery,
-            icon: battery_icon(&battery),
-            tooltip: level,
-            pulse: Some(pulse),
+            menu: BarMenu::Volume,
+            icon: StatusState::Volume(volume_glyph(&volume)),
+            tooltip,
         }
     }
 }
 
-/// Bluetooth: off, on, or connected.
+/// Wi-Fi: the Wi-Fi glyph (searching while it joins, its bars and badge once joined, the slash
+/// with the radio off), or the wire's.
+#[component]
+fn WifiItem() -> Element {
+    let network = use_network()();
+    let radio = use_wifi()().radio;
+    let [link, _] = network_lines(&network);
+    rsx! {
+        StatusIcon { menu: BarMenu::Network, icon: network_glyph(&network, radio), tooltip: link }
+    }
+}
+
+/// Battery: the battery glyph by level and power, nudged once per low crossing (G11); hidden
+/// without a battery (UPower's display device absent: a desktop).
+#[component]
+fn BatteryItem() -> Element {
+    let battery = use_battery()();
+    let low = use_settings()().bar.battery_low_percent;
+    let state = battery_glyph(&battery, low);
+    let cue = use_low_cue(state);
+    let Some(state) = state else {
+        return rsx! {};
+    };
+    let [level, _] = battery_lines(&battery);
+    rsx! {
+        StatusIcon {
+            menu: BarMenu::Battery,
+            icon: StatusState::Battery(state),
+            tooltip: level,
+            nudge: Some(cue),
+        }
+    }
+}
+
+/// Bluetooth: off, on, connecting, connected, or a failed connect.
 #[component]
 fn BluetoothItem() -> Element {
     let bluetooth = use_bluetooth()();
     rsx! {
         StatusIcon {
             menu: BarMenu::Bluetooth,
-            icon: bluetooth_glyph(&bluetooth),
+            icon: StatusState::Bluetooth(bluetooth_glyph_state(&bluetooth)),
             tooltip: format!("Bluetooth: {}", bluetooth_status(&bluetooth)),
         }
     }

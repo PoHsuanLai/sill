@@ -52,14 +52,13 @@ pub struct Running {
 }
 
 impl Running {
-    /// Publish `banners` (newest first) as the service would, taken at this instant (a feed's
-    /// wake runs at the next stop of an `advance`, G311).
+    /// Publish `banners` (newest first) as the service would, taken at this instant (the next
+    /// `advance` runs the woken column first, quire G311).
     pub fn show(&mut self, banners: Vec<LiveBanner>) {
         self.feeds.notifications.send_replace(Notifications {
             banners,
             ..Notifications::default()
         });
-        self.harness.advance(std::time::Duration::ZERO);
     }
 
     /// Every command sent since the last call.

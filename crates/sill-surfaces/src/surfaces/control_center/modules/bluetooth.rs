@@ -3,10 +3,11 @@
 //! device list (`Detail::Bluetooth`). Reads `use_bluetooth`; sends `BluetoothCommand::Power`.
 
 use dioxus::prelude::*;
-use ds::{Availability, Chevron, Icon, ModuleState, ModuleTile, Text};
-use sill_services::{Bluetooth, BluetoothCommand, BtConnection, BtPower, Presence};
+use ds::{Availability, Chevron, ModuleState, ModuleTile, StatusState, Text};
+use sill_services::{Bluetooth, BluetoothCommand, BtPower, Presence};
 
 use crate::hooks::{use_bluetooth, use_services};
+use crate::surfaces::bar::glyph_state::bluetooth_glyph_state;
 use crate::surfaces::control_center::bluetooth_status;
 use crate::surfaces::control_center::modules::flipped;
 use crate::surfaces::control_center::page::Detail;
@@ -19,7 +20,7 @@ pub fn BluetoothModule(on_detail: EventHandler<Detail>) -> Element {
     let state = power_state(bluetooth.power);
     rsx! {
         ModuleTile {
-            glyph: bluetooth_glyph(&bluetooth),
+            glyph: StatusState::Bluetooth(bluetooth_glyph_state(&bluetooth)),
             title: "Bluetooth",
             status: Some(Text::from(bluetooth_status(&bluetooth))),
             state,
@@ -56,52 +57,25 @@ pub(crate) fn adapter_availability(bluetooth: &Bluetooth) -> Availability {
     }
 }
 
-/// Off, on, or on with a device connected.
-pub(crate) fn bluetooth_glyph(bluetooth: &Bluetooth) -> Icon {
-    let connected = bluetooth
-        .devices
-        .iter()
-        .any(|d| d.connection == BtConnection::Connected);
-    match (bluetooth.presence, bluetooth.power, connected) {
-        (Presence::Absent, _, _) | (_, BtPower::Off, _) => Icon::BluetoothOff,
-        (Presence::Present, BtPower::On, true) => Icon::BluetoothConnected,
-        (Presence::Present, BtPower::On, false) => Icon::Bluetooth,
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{adapter_availability, bluetooth_glyph, power_of, power_state};
-    use ds::{Availability, Icon, ModuleState};
-    use sill_services::{
-        Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower,
-        Presence,
-    };
+    use super::{adapter_availability, power_of, power_state};
+    use ds::{Availability, ModuleState};
+    use sill_services::{Bluetooth, BtPower, Presence};
 
     #[test]
     fn the_tile_follows_the_adapter() {
-        let buds = BtDevice {
-            address: BtAddress("AA".to_owned()),
-            name: "Buds".to_owned(),
-            kind: BtKind::Headphones,
-            connection: BtConnection::Connected,
-            pairing: BtPairing::Paired,
-            battery: BtBattery::Unknown,
-        };
-        let on = |devices| Bluetooth {
+        let on = Bluetooth {
             presence: Presence::Present,
             power: BtPower::On,
-            devices,
+            devices: Vec::new(),
             connect: Default::default(),
         };
-        assert_eq!(bluetooth_glyph(&Bluetooth::default()), Icon::BluetoothOff);
-        assert_eq!(bluetooth_glyph(&on(Vec::new())), Icon::Bluetooth);
-        assert_eq!(bluetooth_glyph(&on(vec![buds])), Icon::BluetoothConnected);
         assert_eq!(
             adapter_availability(&Bluetooth::default()),
             Availability::Disabled
         );
-        assert_eq!(adapter_availability(&on(Vec::new())), Availability::Enabled);
+        assert_eq!(adapter_availability(&on), Availability::Enabled);
         assert_eq!(power_state(BtPower::On), ModuleState::On);
         assert_eq!(power_of(ModuleState::Off), BtPower::Off);
     }

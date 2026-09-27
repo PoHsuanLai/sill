@@ -2,7 +2,8 @@
 //! open (design/20 §1.1), sized by the bar's status keys through `ds::StatusMetrics`.
 
 use dioxus::prelude::*;
-use ds::{Icon, IconButton, IconButtonVariant, PulseKey, Px, StatusMetrics, Switch, use_rect};
+use ds::detail::Cue;
+use ds::{IconButton, IconButtonVariant, IconSource, Px, StatusMetrics, Switch, use_rect};
 use sill_settings::{BarGlyphSize, BarSettings};
 
 use super::menus::BarMenu;
@@ -22,15 +23,16 @@ pub(crate) fn status_metrics(bar: &BarSettings) -> StatusMetrics {
     }
 }
 
-/// The status item for `menu`, drawn as `icon` with `tooltip`. The button draws its own pill
-/// while expanded, so the slot draws none. A `pulse` (the battery's low nudge, quire design/26
-/// G11) plays on a wrapper around the button, which the slot still measures.
+/// The status item for `menu`, drawn as `icon` (a glyph, or a layered status glyph for the Wi-Fi,
+/// battery, volume and Bluetooth items, quire Q390) with `tooltip`. The button draws its own pill
+/// while expanded, so the slot draws none. A `nudge` (the battery's low cue, quire design/26 G11)
+/// lifts the glyph inside the button; the item passes it for its whole life.
 #[component]
 pub(crate) fn StatusIcon(
     menu: BarMenu,
-    icon: Icon,
+    #[props(into)] icon: IconSource,
     tooltip: String,
-    #[props(default)] pulse: Option<PulseKey>,
+    #[props(default)] nudge: Option<Cue>,
 ) -> Element {
     let bar = use_context::<MenuBar>();
     let probe = use_rect();
@@ -39,22 +41,17 @@ pub(crate) fn StatusIcon(
     } else {
         Switch::Off
     };
-    let (class, alias) = match pulse.and_then(PulseKey::attrs) {
-        Some((anim, alias)) => (format!("sill-bar-status {anim}"), Some(alias)),
-        None => ("sill-bar-status".to_owned(), None),
-    };
     rsx! {
         TitleSlot { menu, probe, pill: SlotPill::Control,
-            span { class, "data-pulse": alias,
-                IconButton {
-                    variant: IconButtonVariant::Status,
-                    icon,
-                    label: menu.label().to_owned(),
-                    tooltip: Some(tooltip),
-                    expanded: Some(expanded),
-                    onclick: move |_| {},
-                    mounted: move |event| probe.on_mounted(event),
-                }
+            IconButton {
+                variant: IconButtonVariant::Status,
+                icon,
+                label: menu.label().to_owned(),
+                tooltip: Some(tooltip),
+                expanded: Some(expanded),
+                nudge,
+                onclick: move |_| {},
+                mounted: move |event| probe.on_mounted(event),
             }
         }
     }

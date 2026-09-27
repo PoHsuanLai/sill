@@ -53,12 +53,10 @@ pub struct Running {
 }
 
 impl Running {
-    /// Ask the switcher on the test output, and let it take the ask at this instant: on the
-    /// virtual clock a link's wake runs at the next stop of an `advance`, which with no timer
-    /// due is its end (G311), so the zero advance is what makes the ask's time `harness.now()`.
+    /// Ask the switcher on the test output, taken at this instant: the next `advance` runs the
+    /// woken switcher at `harness.now()` before it steps any timer (quire G311).
     pub fn ask(&mut self, ask: SwitcherAsk) {
         self.link.ask(fake::output().id, ask);
-        self.harness.advance(std::time::Duration::ZERO);
     }
 
     /// The commands sent so far, drained.

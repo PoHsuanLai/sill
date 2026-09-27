@@ -45,11 +45,10 @@ fn looks_over(
     seen
 }
 
-/// Show `kind` on the test output from `source`, taken at this instant (a link's wake runs at
-/// the next stop of an `advance`, G311); returns when it was asked, on the harness's clock.
+/// Show `kind` on the test output from `source`, taken at this instant (the next `advance` runs
+/// the woken surface first, quire G311); returns when it was asked, on the harness's clock.
 fn show(running: &mut osd_support::Running, kind: OsdKind, source: LevelSource) -> Instant {
     running.link.show(kind, vec![fake::output().id], source);
-    running.harness.advance(Duration::ZERO);
     running.harness.now()
 }
 
