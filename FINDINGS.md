@@ -7550,6 +7550,10 @@ no longer starts cosmic-idle. Numbered from F930/G350. Branch `worktree-agent-ab
   - `tests/idle_live.rs --ignored` (wayland-1, `ScreenSaver` on a private bus, no logind): 1
     passed (passive at first; displays off and `IdleLock` sent at 2 s; an inhibit held and
     released when its client leaves).
+  - Gate on 9bcf672: SILL GATE GREEN (fmt, clippy, 1194 passed, 0 failed, 52 ignored, boundary,
+    licenses). A first run at load ~90 failed one Harness test unrelated to idle
+    (`status_glyphs::the_bar_volume_keeps_the_slash_at_zero_and_its_waves_follow`, a settle
+    assertion); it passes alone and passed in the green run.
 - **F935 The dim is a stub (Q447).** quire master (`/home/pohsuanlai/quire`, read by file, not
   by git) has no `IdleDim`, scrim-idle token or dim motion; branch `idle-units` exists but is
   not on master. So no `idle_dim` surface was built: the machine still publishes
