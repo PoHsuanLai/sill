@@ -151,7 +151,13 @@ further down. The monitor is the BenQ MA270U (27", 3840 x 2160, on HDMI-A-2).
   `crates/sill-surfaces/src/app_icons/shipped.rs` `DEFAULT_TABLE`; add or remove apps.
 - [ ] **Icon styles in dark mode**: Colour, Muted and Monochrome in the dock
   (`dev/out/dock-icons-*.png` are light-mode only). The plate tint under Monochrome lands with
-  quire's IconView plate-tint change.
+  quire's IconView plate-tint change. Since "Sizing (design/29)" (F1064) a third-party raster in
+  Muted or Monochrome goes through quire's dark tone band: check a black logo (Chrome's ring, a
+  terminal) reads on its plate in the dark, and that nothing looks washed out.
+- [ ] **The 24 bar and the control center by eye** (FINDINGS "Sizing (design/29)"): the bar at
+  24 with 22 items, 30-wide status slots with no gap, the control center's 22 capsule with its
+  white knob, the 10/10 grid. Compare side by side with the reference screenshots
+  (`dev/out/sizing-*.png` are headless KWin at scale 2).
 
 - [ ] **Widgets by eye**: `sill widgets toggle-desktop`, then check the analog world-clock dials
   (set `widgets.world_clocks`, add World Clock to `widgets.desktop_widgets`) and the battery rings
