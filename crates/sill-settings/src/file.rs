@@ -114,6 +114,32 @@ pub fn load(dir: &Path) -> ShellFile {
         .unwrap_or_default()
 }
 
+/// What reading `dir`'s `settings.toml` for a live re-read produced (FINDINGS F993, F1030): a
+/// bad *value* inside a valid table costs only its own key ([`load`], `ds_settings::lenient`),
+/// but text that is not TOML at all — a half-written file the watch's debounce did not fully
+/// cover, or a hand edit with a syntax error — must not blank every setting to its default while
+/// a caller can keep the last good file instead. A missing or unreadable file is still every
+/// setting's default, as [`load`] treats it: nothing was ever good to keep.
+#[derive(Debug, Clone, PartialEq)]
+pub enum LoadOutcome {
+    /// The file parsed (its values leniently, key by key). Boxed: `Unparseable` carries nothing,
+    /// and `ShellFile` is large (`clippy::large_enum_variant`).
+    Read(Box<ShellFile>),
+    /// The file exists but is not TOML at all.
+    Unparseable,
+}
+
+/// [`LoadOutcome`] for `dir`'s `settings.toml`.
+pub fn try_load(dir: &Path) -> LoadOutcome {
+    match std::fs::read_to_string(dir.join(FILE_NAME)) {
+        Ok(text) => match text.parse::<toml::Table>() {
+            Ok(_) => LoadOutcome::Read(Box::new(ds_settings::lenient(&text))),
+            Err(_) => LoadOutcome::Unparseable,
+        },
+        Err(_) => LoadOutcome::Read(Box::default()),
+    }
+}
+
 /// Write `file` to `dir` (created if needed) through a temporary file and a rename, so a
 /// directory watch sees one rename and a crash leaves no half-written file.
 pub fn save(dir: &Path, file: &ShellFile) -> Result<(), SettingsError> {

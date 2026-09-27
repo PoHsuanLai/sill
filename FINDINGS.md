@@ -8395,7 +8395,7 @@ changed (quire's design/29 sizing is landing).
   draws clipped along its top and left edges (quire's outline under the grid); left for quire's
   sizing pass. Tested: `modality.rs` (Harness, `Clock::Virtual`), `control_center_keys.rs`
   (Tab, chevron, Shift+Tab, Space and Enter toggle, Escape closes), real input step 3.
-- **F993 The settings feed is not live (not fixed here).** The Focus tile's Space stores
+- **F993 (CLOSED, F1030) The settings feed is not live (not fixed here).** The Focus tile's Space stores
   `notifications.dnd = "on"` (the real-input step reads it from the file), but the tile never
   shows it: the daemon's file watch sends `ShellMsg::Settings` to `resize_bars`, the scroll
   config and the displays policy only, never to `settings_tx`, so the `SettingsFeed` every
@@ -8426,6 +8426,31 @@ changed (quire's design/29 sizing is landing).
   back (the window logged `focus out` and no `focus in`; a real "j" after Escape reached
   nothing). shell-host lifted the bar to `OnDemand` for the popup and KWin activated it. With
   shell-host master c1aebd7 the script records `G391 CLOSED`.
+- **F1030 (CLOSED F993) The watch now publishes to `settings_tx`.** `run_event`'s catch-all arm
+  called `on_event` (`resize_bars`, the scroll config) and `crate::displays::on_host_event` (the
+  displays policy) on every `HostEvent::App(ShellMsg::Settings(_))`, but never touched
+  `settings_tx` itself, so every `SettingsFeed` follower (idle, launcher, notifications, the
+  session locker, polkit, calendar, screenshots, corners, and `sill_settings::focus_link`'s mode
+  task, which the Focus tile reads) only saw a changed `settings.toml` on `sill reload`. Fixed
+  with one new call, `daemon::publish_watched_settings(settings_tx, &other)`: a pure
+  `HostEvent<ShellMsg> -> ()` mapping (`Some` file for `ShellMsg::Settings`, a no-op for
+  everything else) that does the same `settings_tx.send_replace` `dispatch_reload` does for
+  `sill reload`, so the two stay equivalent; `sill_settings::watch`'s existing 30 ms debounce is
+  still the only coalescing needed. Also closed in the same pass: `sill_settings::watch`'s
+  re-read used `load`, which is `ShellFile::default()` for text that is not TOML at all (a
+  half-written file the debounce did not fully cover, or a hand edit with a syntax error) — that
+  would have blanked every setting on a broken file even after this fix. `file::try_load` now
+  tells a bad *value* (still `LoadOutcome::Read`, lenient key by key as `load` always was) from
+  text that is not TOML at all (`LoadOutcome::Unparseable`); the watch task keeps the last good
+  file and logs once on the latter, never sending on the channel. Tested: `sill_settings`'s
+  `try_load_tells_a_bad_value_from_a_file_that_is_not_toml_at_all` (pure, `tests/file.rs`) and
+  `an_unparseable_write_keeps_the_last_good_file` (a real temp-dir watch, `tests/watch.rs`);
+  `sill`'s `daemon::settings_publish_tests` (`a_watched_settings_event_publishes_its_file`,
+  `every_other_event_leaves_the_feed_alone`, and `a_file_write_reaches_the_feed_without_a_reload`,
+  a temp-dir write through the real `sill_settings::watch` with no `sill reload`).
+  `dev/accept-menus-keyboard-real-input.sh`'s `step_control_center_keys` no longer calls `sill
+  reload` around the Focus tile's Space (not re-run here: a headless-KWin run is heavy; the
+  daemon test above stands in for it).
 
 ## Manual run 2026-09-28: notifications
 
