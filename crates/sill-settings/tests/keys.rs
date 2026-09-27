@@ -39,6 +39,12 @@ const DOC_ALIASES: &[&str] = &["spaces.material_tint_alpha"];
 /// lands it is checked like every other key, and the entry can go.
 const AWAITING_ROWS: &[&str] = &[];
 
+/// Keys sill has dropped whose §3 rows quire's design/22 still carries: the mirror of
+/// [`AWAITING_ROWS`] for a retirement (design/28 §6.0). sill drops the spec and lists the key
+/// here, quire's owner removes the row, then the entry goes. A key here needs no spec while its
+/// row remains.
+const RETIRING: &[&str] = &[];
+
 fn doc_keys() -> Vec<String> {
     let doc = doc();
     let mut keys: Vec<String> = SECTIONS
@@ -69,8 +75,19 @@ fn every_key_in_catalogue_has_a_spec() {
     let specs = spec_paths();
     let keys = doc_keys();
     assert!(keys.len() > 100, "only {} keys parsed", keys.len());
-    for key in &keys {
+    for key in keys.iter().filter(|key| !RETIRING.contains(&key.as_str())) {
         assert!(specs.contains(key), "{key}: no KeySpec with that path");
+    }
+}
+
+#[test]
+fn every_retiring_key_is_unregistered() {
+    let specs = spec_paths();
+    for path in RETIRING {
+        assert!(
+            !specs.iter().any(|s| s == path),
+            "{path} is retiring but still has a KeySpec"
+        );
     }
 }
 
