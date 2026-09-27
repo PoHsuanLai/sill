@@ -3,9 +3,10 @@
 //! `session.locker` defaults to `sill`, sill's own lock screen (the user's pick, 2026-09-27;
 //! the changed row text is in sill FINDINGS "User picks: lock and OSD", F861).
 //! Idle is sill's own since Q420 B (`idle.*`, FINDINGS "sill idle (Q420 B)"); the lock grace
-//! lives here because it belongs to the lock screen.
+//! lives here because it belongs to the lock screen, but its `KeySpec` is on the Power page with
+//! `idle.*` (design/22 §3.19, Q445; `crate::schema` moves it, the derive has one page a struct).
 
-use ds_settings::Count;
+use ds_settings::Secs;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
 
@@ -72,7 +73,7 @@ pub struct SessionSettings {
         unit = "s",
         advanced
     )]
-    pub lock_grace_s: Count,
+    pub lock_grace_s: Secs,
     /// Keys this build does not know, kept for the next write.
     #[serde(flatten)]
     #[settings(skip)]
@@ -86,7 +87,7 @@ impl Default for SessionSettings {
             polkit_agent: "auto".to_owned(),
             lock_clock: LockClock::H24,
             user_picture: "auto".to_owned(),
-            lock_grace_s: Count(5),
+            lock_grace_s: Secs(5),
             extra: toml::Table::new(),
         }
     }

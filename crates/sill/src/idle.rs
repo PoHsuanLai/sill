@@ -18,7 +18,7 @@ use sill_services::idle::{
     PowerSource, Timeout, TimesChoice,
 };
 use sill_services::{Control, Services};
-use sill_settings::{Count, IdleLockAt, IdleTimesFrom, ShellFile};
+use sill_settings::{IdleLockAt, IdleTimesFrom, Mins, Secs, ShellFile};
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
@@ -28,7 +28,7 @@ use tokio::sync::watch;
 /// range, so a hand-edited file cannot ask for an hour of grace.
 pub fn policy_of(file: &ShellFile) -> IdleConfig {
     let idle = &file.idle;
-    let minutes = |count: Count, max: u16| match count.0.min(max) {
+    let minutes = |count: Mins, max: u16| match count.0.min(max) {
         0 => Timeout::Never,
         m => Timeout::After(IdleSecs(u32::from(m) * 60)),
     };
@@ -45,7 +45,7 @@ pub fn policy_of(file: &ShellFile) -> IdleConfig {
             },
         }),
     };
-    let secs = |count: Count, max: u16| IdleSecs(u32::from(count.0.min(max)));
+    let secs = |count: Secs, max: u16| IdleSecs(u32::from(count.0.min(max)));
     IdleConfig {
         times,
         dim: DimPlan {
@@ -197,7 +197,7 @@ mod tests {
         DimLevel, DimPlan, IdleConfig, IdleLock, IdleSecs, IdleTimes, LockGrace, LockedScreenOff,
         PowerPair, Timeout, TimesChoice,
     };
-    use sill_settings::{Count, IdleLockAt, IdleTimesFrom, Percent, ShellFile};
+    use sill_settings::{IdleLockAt, IdleTimesFrom, Mins, Percent, Secs, ShellFile};
 
     use super::policy_of;
 
@@ -206,15 +206,15 @@ mod tests {
         let defaults = ShellFile::default();
         let mut own = ShellFile::default();
         own.idle.times = IdleTimesFrom::Sill;
-        own.idle.screen_off_ac_min = Count(10);
-        own.idle.screen_off_battery_min = Count(2);
-        own.idle.suspend_ac_min = Count(0);
-        own.idle.suspend_battery_min = Count(20);
-        own.idle.dim_s = Count(0);
+        own.idle.screen_off_ac_min = Mins(10);
+        own.idle.screen_off_battery_min = Mins(2);
+        own.idle.suspend_ac_min = Mins(0);
+        own.idle.suspend_battery_min = Mins(20);
+        own.idle.dim_s = Secs(0);
         own.idle.dim_level_pct = Percent(30);
         own.idle.lock = IdleLockAt::Never;
-        own.idle.locked_screen_off_s = Count(0);
-        own.session.lock_grace_s = Count(0);
+        own.idle.locked_screen_off_s = Secs(0);
+        own.session.lock_grace_s = Secs(0);
         let after = |s| Timeout::After(IdleSecs(s));
         let cases = [
             (

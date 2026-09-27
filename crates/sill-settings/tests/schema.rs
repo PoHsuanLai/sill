@@ -82,6 +82,59 @@ fn basic_keys_are_on_their_section_5_pages() {
     }
 }
 
+/// §5 (Q445): the Power page holds sill's idle service, every `idle.*` key and the lock grace,
+/// all Advanced; nothing else is on it, and the rest of `session.*` stays on Accounts.
+#[test]
+fn the_power_page_is_idle_and_the_lock_grace() {
+    let on_power = |path: &str| path.starts_with("idle.") || path == "session.lock_grace_s";
+    let whole = schema();
+    for key in &whole.key {
+        let path = key.path.0.as_str();
+        match (on_power(path), &key.page) {
+            (true, Page::Power) => assert_eq!(key.exposure, Exposure::Advanced, "{path}"),
+            (true, other) => panic!("{path} is on {other:?}, not Power"),
+            (false, Page::Power) => panic!("{path} is on Power"),
+            (false, _) => {}
+        }
+        if path.starts_with("session.") && !on_power(path) {
+            assert_eq!(key.page, Page::Accounts, "{path}");
+        }
+    }
+    assert_eq!(whole.key.iter().filter(|k| on_power(&k.path.0)).count(), 10);
+}
+
+/// Q445: the idle times carry their unit (`Secs` "s", `Mins` "min") and their §3.24 range.
+#[test]
+fn idle_times_are_bounded_in_their_units() {
+    use ds_settings::schema::KeyKind;
+    const CASES: &[(&str, i64, &str)] = &[
+        ("session.lock_grace_s", 60, "s"),
+        ("idle.dim_s", 60, "s"),
+        ("idle.locked_screen_off_s", 600, "s"),
+        ("idle.screen_off_ac_min", 240, "min"),
+        ("idle.screen_off_battery_min", 240, "min"),
+        ("idle.suspend_ac_min", 480, "min"),
+        ("idle.suspend_battery_min", 480, "min"),
+    ];
+    let whole = schema();
+    for &(path, max, unit) in CASES {
+        let key = whole
+            .key
+            .iter()
+            .find(|k| k.path.0 == path)
+            .unwrap_or_else(|| panic!("{path} missing"));
+        assert_eq!(
+            key.kind,
+            KeyKind::Bounded {
+                min: 0,
+                max,
+                unit: Some(unit.to_owned())
+            },
+            "{path}"
+        );
+    }
+}
+
 #[test]
 fn deep_links_resolve_through_the_schemas() {
     let all = schemas();

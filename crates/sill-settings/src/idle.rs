@@ -2,12 +2,12 @@
 //! B)", F900-F915): the dim, the screen off, the lock at screen off and the idle suspend that
 //! cosmic-idle did before. The screen-off and suspend times come from COSMIC's own config
 //! (`com.system76.CosmicIdle`, which COSMIC Settings' Power page edits) unless `idle.times` is
-//! `sill`; the rest has no COSMIC key and is sill's. design/22 has no rows yet (`tests/keys.rs`
-//! `AWAITING_ROWS`); the proposed rows are in FINDINGS (Q441). The lock grace is
-//! `session.lock_grace_s` (it belongs to the lock screen, not to idle).
+//! `sill`; the rest has no COSMIC key and is sill's. design/22 §3.24 has the rows. Seconds are
+//! `Secs` and minutes `Mins` (quire Q445), plain integers in the file as before; every key is on
+//! the Power page, Advanced, with `session.lock_grace_s` (`crate::schema` moves that one key).
 
 use ds_settings::schema::Page;
-use ds_settings::{Count, Percent};
+use ds_settings::{Mins, Percent, Secs};
 use serde::{Deserialize, Serialize};
 
 /// `idle.times`: where the screen-off and suspend times come from.
@@ -58,7 +58,7 @@ pub enum IdleLockAt {
 /// sill's idle service.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
 #[serde(default)]
-#[settings(file = "sill/settings.toml", domain = "idle", page = Page::Accounts)]
+#[settings(file = "sill/settings.toml", domain = "idle", page = Page::Power)]
 pub struct IdleSettings {
     #[settings(
         label = "Idle times from",
@@ -75,7 +75,7 @@ pub struct IdleSettings {
         unit = "min",
         advanced
     )]
-    pub screen_off_ac_min: Count,
+    pub screen_off_ac_min: Mins,
     #[settings(
         label = "Turn the display off on battery after",
         help = "Minutes without input before the displays go off on battery; 0 never. Only with `idle.times = \"sill\"`.",
@@ -84,7 +84,7 @@ pub struct IdleSettings {
         unit = "min",
         advanced
     )]
-    pub screen_off_battery_min: Count,
+    pub screen_off_battery_min: Mins,
     #[settings(
         label = "Sleep on power after",
         help = "Minutes without input before the computer sleeps while on AC power; 0 never. Only with `idle.times = \"sill\"`.",
@@ -93,7 +93,7 @@ pub struct IdleSettings {
         unit = "min",
         advanced
     )]
-    pub suspend_ac_min: Count,
+    pub suspend_ac_min: Mins,
     #[settings(
         label = "Sleep on battery after",
         help = "Minutes without input before the computer sleeps on battery; 0 never. Only with `idle.times = \"sill\"`.",
@@ -102,7 +102,7 @@ pub struct IdleSettings {
         unit = "min",
         advanced
     )]
-    pub suspend_battery_min: Count,
+    pub suspend_battery_min: Mins,
     #[settings(
         label = "Dim before the display turns off",
         help = "Seconds the displays spend dimmed before they turn off, a warning any input cancels; 0 turns them straight off.",
@@ -111,7 +111,7 @@ pub struct IdleSettings {
         unit = "s",
         advanced
     )]
-    pub dim_s: Count,
+    pub dim_s: Secs,
     #[settings(
         label = "Dimmed brightness",
         help = "How bright the displays stay while dimmed, as a share of their brightness.",
@@ -136,7 +136,7 @@ pub struct IdleSettings {
         unit = "s",
         advanced
     )]
-    pub locked_screen_off_s: Count,
+    pub locked_screen_off_s: Secs,
     /// Keys this build does not know, kept for the next write.
     #[serde(flatten)]
     #[settings(skip)]
@@ -149,14 +149,14 @@ impl Default for IdleSettings {
             times: IdleTimesFrom::Cosmic,
             // COSMIC's own defaults (cosmic-idle-config at epoch-1.8.0), so switching
             // `idle.times` to `sill` changes nothing until a time is edited.
-            screen_off_ac_min: Count(15),
-            screen_off_battery_min: Count(15),
-            suspend_ac_min: Count(30),
-            suspend_battery_min: Count(15),
-            dim_s: Count(5),
+            screen_off_ac_min: Mins(15),
+            screen_off_battery_min: Mins(15),
+            suspend_ac_min: Mins(30),
+            suspend_battery_min: Mins(15),
+            dim_s: Secs(5),
             dim_level_pct: Percent(50),
             lock: IdleLockAt::ScreenOff,
-            locked_screen_off_s: Count(60),
+            locked_screen_off_s: Secs(60),
             extra: toml::Table::new(),
         }
     }
