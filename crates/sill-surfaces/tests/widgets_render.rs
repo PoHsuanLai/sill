@@ -19,6 +19,7 @@ use ds_native::harness::settle_until;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{MediaCommand, MediaVerb, Services};
 use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
+use sill_surfaces::hooks::PinnedAppearance;
 use sill_surfaces::widgets::{Widget, WidgetHost, WidgetSize, size_of, widgets_css};
 
 /// What the harness's root provides.
@@ -41,6 +42,7 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| world.services.clone());
+    use_context_provider(PinnedAppearance::default);
     use_context_provider(|| world.settings.clone());
     let material = match world.host {
         WidgetHost::Tile => Material::Popover,

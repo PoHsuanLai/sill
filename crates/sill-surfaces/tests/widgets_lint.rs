@@ -15,6 +15,7 @@ use ds::{Ds, Material, RootExtent};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
+use sill_surfaces::hooks::PinnedAppearance;
 use sill_surfaces::surfaces::desktop_widgets::DESKTOP_WIDGETS_CSS;
 use sill_surfaces::surfaces::edit_widgets::{EDIT_WIDGETS_CSS, EditWidgetsLink};
 use sill_surfaces::widgets::{Widget, WidgetHost, size_of, widgets_css};
@@ -74,6 +75,7 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| world.services.clone());
+    use_context_provider(PinnedAppearance::default);
     use_context_provider(|| world.settings.clone());
     let link = use_context_provider(EditWidgetsLink::new);
     let host = match world.drawn {

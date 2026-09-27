@@ -17,6 +17,7 @@ use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
+use sill_surfaces::hooks::PinnedAppearance;
 use sill_surfaces::surfaces::desktop_widgets::{GridSlot, OutputKey, Placement};
 use sill_surfaces::surfaces::edit_widgets::{
     EditShown, EditWidgetsLink, WidgetsWrite, WidgetsWriter,
@@ -51,6 +52,7 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| world.services.clone());
+    use_context_provider(PinnedAppearance::default);
     use_context_provider(|| world.settings.clone());
     use_context_provider(|| world.center.clone());
     use_context_provider(|| world.edit.clone());

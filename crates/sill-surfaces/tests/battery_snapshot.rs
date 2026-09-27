@@ -23,6 +23,7 @@ use sill_services::{
     Percent, Presence, Services,
 };
 use sill_settings::{SettingsFeed, ShellFile};
+use sill_surfaces::hooks::PinnedAppearance;
 use sill_surfaces::widgets::{Widget, WidgetHost, WidgetKind, size_of, widgets_css};
 
 /// What the snapshot's root provides.
@@ -43,6 +44,7 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| world.services.clone());
+    use_context_provider(PinnedAppearance::default);
     use_context_provider(|| world.settings.clone());
     let material = match world.host {
         WidgetHost::Tile => Material::Popover,

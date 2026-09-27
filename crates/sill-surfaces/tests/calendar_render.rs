@@ -21,6 +21,7 @@ use jiff::{Timestamp, ToSpan, Zoned};
 use sill_services::events::{CalendarName, EventUid, EventsError};
 use sill_services::{Agenda, CalEvent, EventTime, Services, SourceStatus};
 use sill_settings::{SettingsFeed, ShellFile, WeekNumbers};
+use sill_surfaces::hooks::PinnedAppearance;
 use sill_surfaces::widgets::{Widget, WidgetHost, WidgetKind, WidgetSize, size_of, widgets_css};
 
 /// Today's number, on the accent disc.
@@ -52,6 +53,7 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| world.services.clone());
+    use_context_provider(PinnedAppearance::default);
     use_context_provider(|| world.settings.clone());
     let css = widgets_css();
     rsx! {
