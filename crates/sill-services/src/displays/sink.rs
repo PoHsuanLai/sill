@@ -72,16 +72,22 @@ pub fn mode_args(head: &Head, scale: DisplayScale) -> Option<Vec<String>> {
 }
 
 fn run(args: &[&str]) -> Result<String, ServiceError> {
-    let mut command = Command::new("cosmic-randr");
+    run_tool("cosmic-randr", args)
+}
+
+/// `program args`'s stdout, waited for at most [`COSMIC_RANDR_TIMEOUT`]; a launch failure, a
+/// timeout or a non-zero exit is an error naming the command. Also what reads
+/// `kscreen-doctor --json` ([`super::kscreen::KscreenDoctor`]).
+pub(super) fn run_tool(program: &str, args: &[&str]) -> Result<String, ServiceError> {
+    let mut command = Command::new(program);
     command.args(args);
-    let output = wait_bounded(command, COSMIC_RANDR_TIMEOUT).map_err(|error| {
-        ServiceError::Launch(format!("cosmic-randr {}: {error}", args.join(" ")))
-    })?;
+    let output = wait_bounded(command, COSMIC_RANDR_TIMEOUT)
+        .map_err(|error| ServiceError::Launch(format!("{program} {}: {error}", args.join(" "))))?;
     if output.status.success() {
         Ok(String::from_utf8_lossy(&output.stdout).into_owned())
     } else {
         Err(ServiceError::Launch(format!(
-            "cosmic-randr {}: {}",
+            "{program} {}: {}",
             args.join(" "),
             String::from_utf8_lossy(&output.stderr).trim()
         )))

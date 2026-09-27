@@ -64,7 +64,7 @@ without the compositor), **config** (COSMIC setting or shortcut file).
 | Dim before screen off as a brightness step, not a black overlay | cosmic-idle fades a black layer surface in over 5 s after the screen-off time, then powers off; no protocol lets a client lower an output's brightness | verified: cosmic-idle `fade_black.rs` read (`FADE_TIME` 5 s); wayland-info on the nested 1.8.0 (no gamma or brightness protocol) | shell (sill's own dim overlay, F902) |
 | Settings deep links (open COSMIC Settings on a page) | `Exec` takes no page argument | verified (sill FINDINGS F146) | PR, or our own Settings app (M12) |
 | Our brightness / volume OSD instead of cosmic-osd's | Replacing the `system_actions` for brightness keys also drops cosmic-settings-daemon's handling and cosmic-osd's popup | verified (sill FINDINGS "Displays") | config (dist/ shortcut files) |
-| `cosmic-randr` failing fast off COSMIC | It hangs forever (never exits, never errors) on a compositor without `zwlr_output_manager_v1`, e.g. KWin | verified (sill FINDINGS G51, gdb stack) | PR (a connect timeout / error exit); sill bounds it at 2 s meanwhile |
+| `cosmic-randr` failing fast off COSMIC | It hangs forever (never exits, never errors) on a compositor without `zwlr_output_manager_v1`, e.g. KWin | verified (sill FINDINGS G51, gdb stack) | PR (a connect timeout / error exit); sill bounds it at 2 s meanwhile, then reads KWin's outputs from `kscreen-doctor --json`, read-only (sill FINDINGS "Displays on KWin", F980) |
 | Decode COSMIC's default wallpaper format (JPEG XL) | sill's `image` build has no jxl | verified (sill F132) | shell (add jxl), not a COSMIC gap |
 
 ### What cosmic-session does that `dist/sill-session` loses (M7)

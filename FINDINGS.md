@@ -8175,3 +8175,49 @@ from F960. Branch `worktree-agent-af32885d5f986ea3c` (cut from master ca1f971).
 - **G380 (the user, real login)** The dim on a real output: it fades over about 2 s, any key or
   pointer motion snaps it out, and a click during the dim lands on the window under it (the
   input region is empty). Queued with the idle checks in `docs/manual-checks.md`.
+
+## Displays on KWin (2026-09-28)
+
+The displays service read its outputs only from `cosmic-randr list --kdl`, which needs
+`zwlr_output_manager_v1`. KWin has none, so on the user's KDE session the log said
+"cosmic-randr list --kdl: no answer in 2s" (G51's bound), the service had no outputs, and the
+brightness keys routed nowhere. The manual-check runner proved the rest of the path with a
+read-only stand-in that printed kscreen-doctor's outputs: DDC brightness then moved 49 → 50.
+Numbered from F980. Branch `worktree-agent-ad53d5c104d0da137` (cut from master 7daff1d).
+
+- **F980 The fallback.** `displays/kscreen.rs`: when the sink (`cosmic-randr`) has no answer or
+  is not installed, `scale_pass` asks a `HeadReader`, whose one real side is `KscreenDoctor`
+  (`kscreen-doctor --json`, bounded at 2 s like `cosmic-randr` through the shared `run_tool`).
+  `parse_outputs` (pure) maps each connected output to the same `Head`: connector name,
+  enabled/disabled, `sizeMM` (0 x 0 is unknown), the mode `currentModeId` names (Hz to mHz) and
+  the scale (to hundredths, 1 when absent or absurd). KScreen names no make, model or serial and
+  no EDID; the model is the connector name, and `output::describe` reads identity, product and
+  native mode from the EDID in `/sys/class/drm` as it does on COSMIC. Disconnected outputs are
+  dropped, disabled ones skipped like on COSMIC.
+- **F981 Read-only by construction.** `HeadReader` has only `heads()`; `KscreenDoctor` runs
+  `kscreen-doctor --json` and nothing else. A pass from the reader (`HeadSource::Reader`)
+  describes the enabled outputs and stops: no `decide_scale`, no `set_scale`, the
+  `displays.json` record unchanged (so a later COSMIC session still gets its first-sight scale),
+  and no fontconfig snippet (KDE's own font settings rule there). This holds under
+  `display.scale = auto`, `manual` and a `display.scale_overrides` row alike
+  (`a_silent_sink_falls_back_to_the_reader_read_only`). The log says once "outputs read from
+  kscreen-doctor ... read-only, no scale policy, no fontconfig snippet". When neither answers,
+  both reasons are logged and nothing changes, as before.
+- **F982 Brightness stays DDC.** Routing is unchanged: an external output goes to the DDC display
+  whose connector has its name (the DDC worker joins bus to connector by EDID or the sysfs
+  link). With the fixture's outputs, the BenQ MA270U's EDID and a fake DDC display at 49, a key
+  press up is one write of 50
+  under `pointer_output` (pointer on HDMI-A-2 or unknown) and `all_outputs`; with no outputs it
+  is nothing (`the_brightness_keys_reach_the_monitor_by_its_connector`). No real brightness was
+  changed for this work.
+- **F983 What it reads here.** `kscreen-doctor --json` on the user's Plasma 6 (wayland-0, read
+  once): one connected output, HDMI-A-2, enabled, 3840 x 2160 at 59.997 Hz, 597 x 336 mm, scale
+  2; its sysfs EDID is BNQ 8074 (the BenQ MA270U). That output is the fixture
+  (`displays/kscreen/ma270u.json`; it carries no serial). Also tabled: a disabled laptop panel
+  with no current mode, a 1.25 monitor with 0 x 0 mm, a disconnected connector, and text that is
+  not a config.
+- **F984 `dev/manual/ime-live.sh`.** `stop` ran `pkill -f examples/launcher_demo`, killing every
+  launcher demo, other sessions' too. `start` now records its demo's and its command tail's PIDs
+  in `$D` (the demo reads a FIFO the tail writes), `stop` kills only those, and the one-copy guard
+  checks only those (a PID counts while alive and its command line still matches). Checked with
+  stand-in processes: ours stopped, another "launcher_demo" left running.
