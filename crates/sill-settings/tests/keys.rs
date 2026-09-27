@@ -37,7 +37,7 @@ const DOC_ALIASES: &[&str] = &["spaces.material_tint_alpha"];
 /// Keys registered in sill whose §3 rows quire's design/22 has not gained yet: quire's owner adds
 /// them (sill FINDINGS lists each row). A key here needs no row until it has one; once the row
 /// lands it is checked like every other key, and the entry can go.
-const AWAITING_ROWS: &[&str] = &["bar.battery_low_percent"];
+const AWAITING_ROWS: &[&str] = &[];
 
 fn doc_keys() -> Vec<String> {
     let doc = doc();
