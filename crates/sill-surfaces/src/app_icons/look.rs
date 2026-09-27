@@ -2,7 +2,7 @@
 //! (quire's appearance file) read against the active Space. Pure.
 
 use ds::icon::{IconStyle, Tint};
-use ds::{Accent, CardAccent, Scheme, SpaceLook, derive, quad};
+use ds::{Accent, CardAccent, Scheme, SpaceLook, accent_of, derive};
 use ds_settings::{IconsSettings, MonochromeTint};
 
 /// The style and the tint every app icon on a surface is drawn in.
@@ -63,7 +63,7 @@ fn tint_of(tint: MonochromeTint, space: &SpaceLook, accent: Accent) -> Tint {
 fn card_accent(space: &SpaceLook, accent: Accent) -> String {
     match space.card_accent {
         CardAccent::SpaceHue => derive(&space.dots, Scheme::Light).accent,
-        CardAccent::Postmark => quad(accent, Scheme::Light).accent.css(),
+        CardAccent::Postmark => accent_of(accent, Scheme::Light).fill.css(),
     }
 }
 
