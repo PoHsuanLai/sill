@@ -154,3 +154,16 @@ fn a_faked_change_shows_its_own_level_and_another_outputs_does_not_show() {
         "no DDC monitor behind the fake output"
     );
 }
+
+/// The user's pick (2026-09-27, quire D3; FINDINGS F860): the OSD's level is the capsule.
+#[test]
+fn the_level_is_the_capsule() {
+    let mut running = start(file());
+    show(&mut running, OsdKind::Volume, LevelSource::Live);
+    running.harness.advance(Duration::from_millis(40));
+    let html = running.harness.html();
+    let at = html.find("class=\"ds-level\"").expect("a level control");
+    let tag = &html[at..];
+    let tag = &tag[..tag.find('>').unwrap_or(tag.len())];
+    assert!(tag.contains("data-look=\"capsule\""), "{tag}");
+}

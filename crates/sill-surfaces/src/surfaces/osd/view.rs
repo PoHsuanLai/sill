@@ -21,8 +21,8 @@ use crate::surfaces::osd::reading::{card_level, level_of, title};
 /// The indicator's stylesheet (lint-clean under `Profile::Strict`, `tests/osd_lint.rs`).
 pub(crate) const OSD_CSS: &str = include_str!("../../style/osd.css");
 
-/// The level's look, until the user picks one from quire's sheets (FINDINGS "OSD" Q76): kept in
-/// one place.
+/// The level's look: the capsule, the user's pick (2026-09-27, quire D3; FINDINGS "User picks:
+/// lock and OSD" F860). Not a setting: the OSD has no look key, and this is the one place.
 const LOOK: LevelLook = LevelLook::Capsule;
 
 /// `sill_settings::OsdPosition` as quire's `ds::OsdPosition`.
