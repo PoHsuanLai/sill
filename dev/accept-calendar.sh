@@ -119,7 +119,7 @@ print(h % 8 + 1)' "$1"
 
 # What a capture of the center shows: "BARS <i> <i> ... ; DISC <x> <y> <w> <h>", the Up Next
 # colour bars' swatches top to bottom (thin upright runs of a person swatch's colour) and the
-# largest round blob of one saturated colour (today's accent disc), or "DISC none".
+# largest round blob of one tinted colour (today's accent disc), or "DISC none".
 probe() {
   python3 - "$1" <<'EOF'
 import sys
@@ -164,7 +164,9 @@ bars.sort()
 
 mx, mn = rgb.max(axis=2), rgb.min(axis=2)
 sat = (mx - mn) / np.maximum(mx, 1)
-vivid = (sat > 0.45) & (mx > 90) & (alpha > 200) & ~on
+# The accent is a pastel fill since quire accent B (#94c0fe light: saturation 0.42), so the bar
+# is 0.3; the person swatches are masked out above.
+vivid = (sat > 0.3) & (mx > 90) & (alpha > 200) & ~on
 disc = None
 for pts in components(vivid):
     h = pts[:, 0].max() - pts[:, 0].min() + 1

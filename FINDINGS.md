@@ -6749,3 +6749,135 @@ master 82678e10. F803 now says what plays. Numbers from F840.
   that the next `groups` change is that action, so it plays no expand. Proposed: a handle
   (like `SearchField`'s) whose `ran_action()` books the next change, or `groups` carrying which
   group's action last ran. Not blocking: a person's input plays it.
+
+## Accent B re-shoot (2026-09-27)
+
+Every nested capture retaken after quire's accent band B ("Airy", quire master e6236f43): `--accent`
+is now a pastel fill (#94c0fe light), `--accent-ink` dark ink on it, `--accent-soft` a translucent
+wash, `--accent-text` (#426aa2 light) the colour for text and thin marks, `--accent-ring` the focus
+ring. sill master e276242; sill's own four uses had already moved. Numbers from F850, Q410.
+
+- **F850 How the scripts ran.** As F780, with F835's short runtime dir. Each `dev/accept-*.sh`
+  (not the `*-real-input.sh` ones) ran alone on the nested cosmic-comp (wayland-1 pinged first,
+  reused, never stopped) under a wrapper that gave it:
+  - its own `/tmp/sill-rt-XXXXXX` XDG_RUNTIME_DIR holding only a symlink to wayland-1;
+  - a scratch HOME and XDG_CONFIG/DATA/STATE dirs, and one XDG_CACHE_HOME kept across runs;
+  - one private dbus-daemon (`dev/private-bus.conf`) as both the session and the system bus;
+  - no DISPLAY, and a `spectacle` on PATH that refuses anything but bar-ui's own headless KWin
+    (its `wayland-bar-ui-*` socket in the scratch runtime dir, on its private bus), so `shot.sh`'s
+    host fallback can never shoot the real session.
+
+  bar-ui and screenshot-drag started and stopped their own headless KWin. For the bar, the wrapper
+  started a daemon first (scratch config, the test wallpaper); the script's last step quit it.
+  After each script the wrapper killed anything still carrying its runtime dir (nothing was
+  left), stopped the bus and removed the dir.
+- **F851 Results.** Steps PASS/FAIL, then the exit code:
+
+  | script | result | note |
+  |---|---|---|
+  | bar (daemon started first) | 9/0, 0 | idle 6 frames before and after |
+  | bar-ui (headless KWin) | 4/4 verdicts, 0 | the first run exited 1: the wrapper's `spectacle` refused KWin's socket before it learned the `wayland-bar-ui-*` name |
+  | calendar | 2/2, 1; 4/0, 0 after F852 | the today-disc probe looked for a saturated disc |
+  | clipboard | 6/0, 0 | |
+  | control-center | 4/2, 1 | `step_wifi_pane`, `step_module_item`: no NetworkManager (F780) |
+  | dock | 6/0, 0 | |
+  | hot-corners | 5/0, 0 | |
+  | icons | 7/0, 0 | the strips are unchanged (no accent) |
+  | launcher-files | 11/1, 1 | step 5 detect: no Tracker on the private bus |
+  | launcher | 3/0 + SKIP, 2 | the SKIP is the wtype shortcut (M4) |
+  | launcher-ui | 5/1, 1 | the 100 ms budget: warm openings 290-670 ms at load 50 (G292) |
+  | launcher-v2 | 9/0, 0 | |
+  | lock | 8/0, 0 | |
+  | notification-center | 6/0, 0 | |
+  | notifications-bus | 7/0, 0 | |
+  | notifications | 7/0, 0 | |
+  | osd | 5/0, 0 | |
+  | polkit | 8/0, 0 | |
+  | power-menu | 4/2, 1 | `step_arrows`, `step_enter_records`: no logind offers (F780) |
+  | screenshot | 5/0, 0 | |
+  | screenshot-drag (headless KWin) | 3/0, 0 | |
+  | switcher | 4/3, 1 (twice) | see F853 |
+  | wallpaper | 4/0, 0 | |
+  | widgets | 6/0, 0 | |
+- **F852 The calendar's disc probe assumed a saturated accent.** `accept-calendar.sh`'s probe
+  finds today's disc as the largest round blob with saturation over 0.45. #94c0fe is 0.42, so it
+  found none and steps 1 and 4 failed ("no accent disc on today"). The bar is now 0.3 (the person
+  swatches are already masked out). Against the new captures it finds the disc at the same place
+  and size as before (24 × 28), and week numbers still move it 12 px. It also finds the disc in
+  the old accent-A capture.
+- **F853 The switcher's three failures are the nested seat, not the accent.** In both runs
+  (load 21 and 51) `step_quick_tap` said "the nested seat reported Alt held at the focus", and
+  then `step_show_move_cancel`, `step_commit_third` and `step_real_keys` saw no panel, or no
+  activation, while Alt was held. F781's first run failed the same three steps under load and
+  passed on a rerun. A third try at load 21 did not start: another worktree's daemon had come
+  up on wayland-1 ("another sill daemon is running"), and it was left alone. `switcher-cosmic.png` differs from the old one only in the clock: the
+  selection is quire's white plate, which carries no accent.
+- **F854 What accent B changed on screen.** Every capture in `dev/out/` was read against
+  `git show HEAD:dev/out/<file>`. Contrast ratios are WCAG, measured on the captures' pixels.
+  - The control center's accent swatches are pastel. The chosen one keeps its dark ring
+    (`control-center-cosmic.png`, `bar-cosmic-menu.png`).
+  - On tiles (bar-ui's demo, `bar.png`, Wi-Fi and Bluetooth on): an `--accent-soft` plate, a
+    pastel disc with a hairline `--accent-text` ring, and a glyph in dark ink. It reads, but on
+    and off are now much closer: a pale blue plate against a pale grey one.
+  - The calendar's today disc (`calendar-cosmic.png`, `notification-center*-cosmic.png`,
+    `widgets-*`): "27" in `--accent-ink` on #94c0fe is 9.3:1. The disc against the tile is only
+    1.7:1, so the digit's weight and ink now carry "today" more than the disc does. The
+    month label and Up Next's weekday are `--accent-text`: 4.9:1 on the tile.
+  - Launcher selection (`launcher-cosmic*.png`, `launcher-v2-*.png`): the selected row's wash
+    is almost unchanged. The match highlight is `--accent-text`: 5.0:1 on paper, but 4.2:1 on
+    the selected row (Q410).
+  - Focus: launcher v2's focused pane action (`launcher-v2-pane-focus.png`) has an
+    `--accent-ring` ring, more visible than before. The polkit field's focused border is the
+    `--accent-text` hairline with the wash around it, and reads.
+  - The polkit prompt's Authenticate (`polkit-cosmic.png`, `polkit-typed-cosmic.png`) is the
+    pastel fill with dark ink. Its "Details" link is `--accent-text`: 4.3:1 on the prompt's
+    sheet, and 3.5:1 in the `sill debug capture` (Q411).
+  - The desktop's Small Calendar (`widgets-desktop-cosmic.png`): the month label in
+    `--accent-text` is 3.7-3.9:1 on the translucent plate over the warm wallpaper. It was
+    5.3-5.7:1 before (Q412).
+  - The dock's context menu (`dock-cosmic-menu.png`): the checkmark is `--accent-text` on the
+    selected wash. It is a thin mark, and meets 3:1.
+  - Power menu (`power-menu*.png`): every button is disabled under the isolation. The disabled
+    default Shut Down, once a dark blue pill, is now a faint pastel one, barely apart from its
+    disabled neighbours. That is not a contrast failure (disabled), but the default no longer
+    stands out while nothing is offered (Q413).
+  - The lock screen, the switcher, the OSD and the banners use no accent in these states: only
+    the clock moved. The lock's avatar colour is per name.
+  - `polkit-typed-cosmic.png` and `widgets-center-all-surface.png` are the scripts' own surface
+    captures (`target/accept-polkit/typed.png`, `target/accept-widgets/center-all.png`), copied
+    in. The typed bullets start at the field's left edge in both the old and new capture.
+  - Not retaken: `power-menu-cosmic-restart.png` (needs logind's offers). The icon strips and
+    the emoji grid came out identical.
+  - Also outside the accent: the OSD's device name is now "Sound" and the bar has no tray
+    items, because this run had no PipeWire and no StatusNotifier hosts. The earlier capture
+    evidently had them.
+- **F855 sill's own accent uses hold.** All three sill CSS uses are tokens:
+  - `.sill-un-weekday` is `--accent-text` (4.9:1);
+  - `.sill-nc-group-head[data-focus=ring]` is `--accent-ring`;
+  - the dock tile's progress ring is `--accent-text` in `dock/tile.rs`.
+
+  No sill use puts text or a thin mark on the pastel fill, and there is no raw colour. So no sill
+  fix beyond F852.
+
+### Asks (quire)
+
+- **Q410 The match highlight on a selected row is under 4.5:1.** `.ds-menu mark` (`menu.css`,
+  `--accent-text`, weight 800) on `.ds-menu-item[aria-selected=true]`'s `--accent-soft` wash
+  measures 4.2:1 in the launcher (`dev/out/launcher-v2-pane-focus.png`, the Top Hit's "m9";
+  `launcher-cosmic.png`'s "Fi"). On plain paper it is 5.0:1. Proposed: a selected-row mark
+  colour (`--ink`, or a darker accent text for the wash), or a slightly lighter wash.
+- **Q411 PolkitPrompt's "Details" is under 4.5:1.** `--accent-text` on the prompt's sheet
+  measures 4.3:1 on screen (`dev/out/polkit-cosmic.png`) and 3.5:1 in the surface capture
+  (`dev/out/polkit-typed-cosmic.png`). Before accent B it was 6.3:1 on screen and 5.1:1 in the
+  capture.
+- **Q412 The compact MonthGrid's month label on a desktop widget plate.** `--accent-text` on
+  the translucent Small Calendar plate over a warm wallpaper is 3.7-3.9:1
+  (`dev/out/widgets-desktop-cosmic.png`). On the opaque center tile it is 4.9:1. Proposed: the
+  label takes `--ink` on glass plates, or a plate-aware accent text.
+- **Q413 (low) A disabled primary button no longer stands out.** With nothing offered, the power
+  menu's default Shut Down at disabled opacity is a faint pastel pill beside the grey disabled
+  buttons (`dev/out/power-menu-cosmic.png`). Say whether the disabled primary should keep more
+  of its fill.
+- **Note, no ask.** The today disc against its tile (1.7:1) and a module tile's on-plate against
+  an off one are now soft. Both still read, because they also carry ink, weight or a hairline.
+  Listed for quire's own accent-B audit.
