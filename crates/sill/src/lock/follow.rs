@@ -57,6 +57,7 @@ mod tests {
             phase,
             pid: None,
             drawer: LockDrawer::Shell,
+            cause: None,
         };
         let auth = Auth {
             phase: auth,

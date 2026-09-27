@@ -175,4 +175,8 @@ pub enum AuthCommand {
     Reset,
     /// Feed a verdict as if a check had returned it, without PAM (`sill debug auth`).
     Fake(FakeVerdict),
+    /// The lock grace opened the lock (sill FINDINGS "sill idle (Q420 B)", F908): `Accepted`
+    /// with no check, only while a lock is up and nothing is being checked. Only the idle
+    /// service can send it: a [`crate::idle::GraceTicket`] is minted by the grace rule alone.
+    Grace(crate::idle::GraceTicket),
 }

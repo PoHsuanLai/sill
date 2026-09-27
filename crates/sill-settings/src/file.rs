@@ -13,6 +13,7 @@ use crate::control_center::ControlCenterSettings;
 use crate::display::DisplaySettings;
 use crate::dock::DockSettings;
 use crate::hot_corners::HotCornersSettings;
+use crate::idle::IdleSettings;
 use crate::launcher::LauncherSettings;
 use crate::menus::MenusSettings;
 use crate::notifications::NotificationsSettings;
@@ -69,6 +70,8 @@ pub struct ShellFile {
     pub calendar: CalendarSettings,
     pub screenshot: ScreenshotSettings,
     pub hot_corners: HotCornersSettings,
+    /// sill's own idle service (FINDINGS "sill idle (Q420 B)"): no design/22 rows yet.
+    pub idle: IdleSettings,
     /// Tables this build does not know, kept for the next write.
     #[serde(flatten)]
     pub extra: toml::Table,
@@ -98,6 +101,7 @@ impl Default for ShellFile {
             calendar: CalendarSettings::default(),
             screenshot: ScreenshotSettings::default(),
             hot_corners: HotCornersSettings::default(),
+            idle: IdleSettings::default(),
             extra: toml::Table::new(),
         }
     }

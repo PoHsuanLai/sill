@@ -9,6 +9,7 @@ fn lock(phase: LockPhase, drawer: LockDrawer) -> Lock {
         phase,
         pid: None,
         drawer,
+        cause: None,
     }
 }
 

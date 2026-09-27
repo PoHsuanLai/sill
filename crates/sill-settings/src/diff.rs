@@ -26,6 +26,7 @@ pub enum SettingsChange {
     Calendar,
     Screenshot,
     HotCorners,
+    Idle,
 }
 
 /// The domains that differ between `old` and `new`, in table order. `version` and unknown
@@ -61,6 +62,7 @@ pub fn apply(old: &ShellFile, new: &ShellFile) -> Vec<SettingsChange> {
             old.hot_corners != new.hot_corners,
             SettingsChange::HotCorners,
         ),
+        (old.idle != new.idle, SettingsChange::Idle),
     ]
     .into_iter()
     .filter_map(|(changed, domain)| changed.then_some(domain))

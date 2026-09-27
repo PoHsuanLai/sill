@@ -167,6 +167,16 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
         ),
         ("hot_corners.dwell_ms", toml::Value::Integer(150)),
         ("hot_corners.size_px", toml::Value::Integer(2)),
+        ("session.lock_grace_s", toml::Value::Integer(5)),
+        ("idle.times", toml::Value::String("cosmic".to_owned())),
+        ("idle.screen_off_ac_min", toml::Value::Integer(15)),
+        ("idle.screen_off_battery_min", toml::Value::Integer(15)),
+        ("idle.suspend_ac_min", toml::Value::Integer(30)),
+        ("idle.suspend_battery_min", toml::Value::Integer(15)),
+        ("idle.dim_s", toml::Value::Integer(5)),
+        ("idle.dim_level_pct", toml::Value::Integer(50)),
+        ("idle.lock", toml::Value::String("screen_off".to_owned())),
+        ("idle.locked_screen_off_s", toml::Value::Integer(60)),
     ];
     for (path, want) in cases {
         assert_eq!(&default_of(path), want, "{path}");

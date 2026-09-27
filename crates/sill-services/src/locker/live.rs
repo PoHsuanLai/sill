@@ -107,6 +107,10 @@ impl Live {
                 let now = self.now();
                 self.feed(LockerEvent::Requested(Cause::Action, now)).await;
             }
+            // Idle fill (sill FINDINGS "sill idle (Q420 B)", F904): feed
+            // `Requested(Cause::Idle, now)` and record `LockCause::IdleScreenOff`. A no-op until
+            // then: nothing sends it while the idle service is a stub.
+            LockerCommand::IdleLock => {}
             LockerCommand::Shell(event) => {
                 self.keep_marker(event);
                 let event = match event {
@@ -261,6 +265,8 @@ impl Live {
             phase: self.machine.phase.public(),
             pid: self.pid,
             drawer,
+            // Idle fill: the cause of the lock in place (F907).
+            cause: None,
         };
         self.tx.send_if_modified(|current| {
             let changed = *current != lock;

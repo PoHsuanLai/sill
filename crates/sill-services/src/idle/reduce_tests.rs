@@ -1,0 +1,176 @@
+use super::{DisplayPower, IdleEffect, IdleEvent, IdleHint, IdleState, LockSeen, reduce};
+use crate::idle::grace::{GraceCase, SleepSince, WakeDelay};
+use crate::idle::model::{DimShown, IdlePhase};
+use crate::idle::policy::{
+    DimLevel, DimPlan, IdleLock, IdleMode, IdlePolicy, IdleSecs, IdleTimes, LockGrace, LockView,
+    LockedScreenOff, OffReason, PowerPair, Threshold, Timeout,
+};
+use crate::locker::{LockCause, LockDrawer};
+use crate::units::Stamp;
+
+fn own() -> IdlePolicy {
+    let after = |s| Timeout::After(IdleSecs(s));
+    IdlePolicy {
+        mode: IdleMode::Own,
+        times: IdleTimes {
+            screen_off: PowerPair {
+                ac: after(900),
+                battery: after(900),
+            },
+            suspend: PowerPair {
+                ac: after(1_800),
+                battery: after(900),
+            },
+        },
+        dim: DimPlan {
+            lead: IdleSecs(5),
+            level: DimLevel(50),
+        },
+        lock: IdleLock::AtScreenOff,
+        locked_off: LockedScreenOff(IdleSecs(60)),
+        grace: LockGrace(IdleSecs(5)),
+    }
+}
+
+fn idle_locked() -> LockSeen {
+    LockSeen {
+        view: LockView::Locked,
+        cause: Some(LockCause::IdleScreenOff),
+        drawer: LockDrawer::Shell,
+    }
+}
+
+/// Runs `events` from the default state and returns the last state and every effect.
+fn run(events: &[IdleEvent]) -> (IdleState, Vec<IdleEffect>) {
+    let mut state = IdleState::default();
+    let mut all = Vec::new();
+    for event in events {
+        let (next, effects) = reduce(state, *event);
+        state = next;
+        all.extend(effects);
+    }
+    (state, all)
+}
+
+#[test]
+#[ignore = "idle fill"]
+fn passive_until_the_first_policy() {
+    let (state, effects) = run(&[
+        IdleEvent::Idled(Threshold::ScreenOff, Stamp(1)),
+        IdleEvent::Resumed(Stamp(2)),
+        IdleEvent::SleepStarting(Stamp(3)),
+    ]);
+    assert!(effects.is_empty(), "{effects:?}");
+    assert_eq!(state.policy.mode, IdleMode::Off(OffReason::NoPolicy));
+}
+
+#[test]
+#[ignore = "idle fill"]
+fn dim_then_off_locks_first_and_a_quick_wake_earns_the_grace() {
+    let (state, effects) = run(&[
+        IdleEvent::Policy(own()),
+        IdleEvent::Idled(Threshold::Dim, Stamp(895_000)),
+        IdleEvent::Idled(Threshold::ScreenOff, Stamp(900_000)),
+        IdleEvent::Lock(idle_locked()),
+        IdleEvent::Resumed(Stamp(903_000)),
+    ]);
+    let tail: Vec<IdleEffect> = effects
+        .into_iter()
+        .filter(|e| !matches!(e, IdleEffect::Watch(_)))
+        .collect();
+    assert_eq!(
+        tail,
+        vec![
+            IdleEffect::Dim(DimLevel(50)),
+            IdleEffect::Lock,
+            IdleEffect::Undim,
+            IdleEffect::Displays(DisplayPower::Off),
+            IdleEffect::IdleHint(IdleHint::Idle),
+            IdleEffect::Displays(DisplayPower::On),
+            IdleEffect::IdleHint(IdleHint::Active),
+            IdleEffect::Grace(GraceCase {
+                cause: Some(LockCause::IdleScreenOff),
+                drawer: LockDrawer::Shell,
+                grace: LockGrace(IdleSecs(5)),
+                woke: WakeDelay(3_000),
+                sleep: SleepSince::NoSleep,
+            }),
+        ]
+    );
+    assert_eq!(state.phase, IdlePhase::Active);
+    assert_eq!(state.dim, DimShown::Clear);
+}
+
+#[test]
+#[ignore = "idle fill"]
+fn input_during_the_dim_undims_and_nothing_locks() {
+    let (state, effects) = run(&[
+        IdleEvent::Policy(own()),
+        IdleEvent::Idled(Threshold::Dim, Stamp(10)),
+        IdleEvent::Resumed(Stamp(20)),
+    ]);
+    assert!(effects.contains(&IdleEffect::Undim));
+    assert!(!effects.contains(&IdleEffect::Lock));
+    assert_eq!(state.phase, IdlePhase::Active);
+}
+
+#[test]
+#[ignore = "idle fill"]
+fn an_earlier_lock_keeps_its_cause_and_gets_no_grace() {
+    let asked = LockSeen {
+        cause: Some(LockCause::Action),
+        ..idle_locked()
+    };
+    let (_, effects) = run(&[
+        IdleEvent::Policy(own()),
+        IdleEvent::Lock(asked),
+        IdleEvent::Idled(Threshold::LockedScreenOff, Stamp(60_000)),
+        IdleEvent::Resumed(Stamp(61_000)),
+    ]);
+    assert!(!effects.contains(&IdleEffect::Lock), "no second lock");
+    assert!(
+        !effects.iter().any(|e| matches!(e, IdleEffect::Grace(_))),
+        "{effects:?}"
+    );
+}
+
+#[test]
+#[ignore = "idle fill"]
+fn a_sleep_after_the_idle_lock_marks_the_case() {
+    let (_, effects) = run(&[
+        IdleEvent::Policy(own()),
+        IdleEvent::Idled(Threshold::ScreenOff, Stamp(900_000)),
+        IdleEvent::Lock(idle_locked()),
+        IdleEvent::Idled(Threshold::Suspend, Stamp(1_800_000)),
+        IdleEvent::SleepStarting(Stamp(1_800_010)),
+        IdleEvent::Woke(Stamp(1_800_020)),
+        IdleEvent::Resumed(Stamp(1_800_030)),
+    ]);
+    assert!(effects.contains(&IdleEffect::Suspend));
+    let graces: Vec<&IdleEffect> = effects
+        .iter()
+        .filter(|e| matches!(e, IdleEffect::Grace(_)))
+        .collect();
+    assert!(
+        graces
+            .iter()
+            .all(|e| matches!(e, IdleEffect::Grace(case) if case.sleep == SleepSince::Slept)),
+        "{graces:?}"
+    );
+}
+
+#[test]
+#[ignore = "idle fill"]
+fn turning_off_undoes_what_idle_did() {
+    let (state, effects) = run(&[
+        IdleEvent::Policy(own()),
+        IdleEvent::Idled(Threshold::Dim, Stamp(10)),
+        IdleEvent::Policy(IdlePolicy {
+            mode: IdleMode::Off(OffReason::CosmicIdleRunning),
+            ..own()
+        }),
+    ]);
+    assert!(effects.contains(&IdleEffect::Undim));
+    assert!(effects.contains(&IdleEffect::Watch(Vec::new())));
+    assert_eq!(state.phase, IdlePhase::Active);
+}

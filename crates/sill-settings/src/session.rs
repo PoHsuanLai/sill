@@ -2,8 +2,10 @@
 //! borrowed programs at M7, and sill's own (`sill`) since M11. design/22 §3.19 has the rows.
 //! `session.locker` defaults to `sill`, sill's own lock screen (the user's pick, 2026-09-27;
 //! the changed row text is in sill FINDINGS "User picks: lock and OSD", F861).
-//! Idle timeouts are not sill's: cosmic-idle keeps them in COSMIC's own config (FINDINGS "M7").
+//! Idle is sill's own since Q420 B (`idle.*`, FINDINGS "sill idle (Q420 B)"); the lock grace
+//! lives here because it belongs to the lock screen.
 
+use ds_settings::Count;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
 
@@ -62,6 +64,15 @@ pub struct SessionSettings {
         advanced
     )]
     pub user_picture: String,
+    #[settings(
+        label = "Require the password after the display turns off",
+        help = "Seconds after sill turns the displays off for idleness (and locks) in which any input opens the lock screen without the password; 0 always asks. Never after a lock you asked for (the Lock shortcut, `loginctl lock-session`, the launcher, the power menu), a lid close, a sleep or a wake from sleep. Only with `session.locker = \"sill\"`.",
+        section = "Lock screen",
+        range = "0..=60",
+        unit = "s",
+        advanced
+    )]
+    pub lock_grace_s: Count,
     /// Keys this build does not know, kept for the next write.
     #[serde(flatten)]
     #[settings(skip)]
@@ -75,6 +86,7 @@ impl Default for SessionSettings {
             polkit_agent: "auto".to_owned(),
             lock_clock: LockClock::H24,
             user_picture: "auto".to_owned(),
+            lock_grace_s: Count(5),
             extra: toml::Table::new(),
         }
     }

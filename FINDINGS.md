@@ -7113,3 +7113,333 @@ e276242. Numbered F880, Q430, G330.
   the harness; a real pointer drag is queued in `docs/manual-checks.md`.
 - **G331 (sill, OPEN) The grid is measured once.** An output resize while the layer is up does
   not re-place until the layer is spawned again (F440 still holds).
+
+## sill idle (Q420 B) (2026-09-27)
+
+The user picked Q420 **B**: sill takes idle over from cosmic-idle (the dim, the displays off, the
+lock at screen off, the idle suspend), so that every lock has a known cause and the 5 s lock
+grace can be exact. This section is the design and the freeze; the fills are not done.
+Numbered from F900/Q440/G340. cosmic-idle was re-read at `epoch-1.8.0` for facts only
+(`src/main.rs`, `src/fade_black.rs`, `cosmic-idle-config/src/lib.rs`; GPL-3.0, note-and-close).
+
+### What was checked
+
+- **cosmic-idle 1.8** asks `ext_idle_notifier_v1.get_idle_notification` (the form that honours
+  the compositor's idle inhibitors), one notification per time. At `screen_off_time` it maps a
+  black layer surface per output and fades its alpha in over `FADE_TIME` (5 s, ease-in-out);
+  input during the fade (`resumed`) drops the fade surfaces and sets every output `On`. When the
+  fade finishes it sets every `zwlr_output_power_v1` to `Off` and runs the `LockScreen` system
+  action (`loginctl lock-session`) `LOCK_SCREEN_DELAY` (500 ms) later. At the suspend time it
+  runs `systemctl suspend`. AC or battery comes from UPower's `OnBattery`. It serves
+  `org.freedesktop.ScreenSaver`, and while any inhibit is held it drops both its screen-off and
+  suspend notifications. It has no lid, `PrepareForSleep` or `IdleHint` handling. Its config,
+  `com.system76.CosmicIdle` v1, has `screen_off_time`, `suspend_on_ac_time` and
+  `suspend_on_battery_time` (`Option<u32>` ms; defaults 15 min, 30 min and 15 min). There is
+  **one** screen-off time for both power sources.
+- **The nested cosmic-comp 1.8.0 (`wayland-1`)**, `wayland-info` (read only):
+  `ext_idle_notifier_v1` v2, `zwp_idle_inhibit_manager_v1` v1, `zwlr_output_power_manager_v1`
+  v1 and `ext_session_lock_manager_v1` v1. It has no gamma or brightness protocol (as
+  "Displays" found). **KWin (`wayland-0`, read only)** has `ext_idle_notifier_v1` v2,
+  `zwp_idle_inhibit_manager_v1`, `org_kde_kwin_idle` and `org_kde_kwin_dpms_manager`, and no
+  `zwlr_output_power_manager_v1`. So even a mis-resolved sill on the user's KDE session could
+  not power its displays off through wlr. The policy still keeps it `Off` there (F906).
+- **Portals on this machine**: `xdg-desktop-portal-cosmic` has no
+  `org.freedesktop.impl.portal.Inhibit`. `cosmic-portals.conf` says `default=cosmic;gtk;`, so a
+  Flatpak app's Inhibit goes to the GTK portal. The GTK portal is assumed, not read, to fall back
+  to `org.freedesktop.ScreenSaver` when there is no GNOME session manager.
+- `~/.config/cosmic/com.system76.CosmicIdle` does not exist here and there is no system copy
+  under `/usr/share/cosmic`, so this machine runs on cosmic-idle's compiled defaults.
+
+### Design
+
+- **F900 What sill replaces.** Every job cosmic-idle did, with the same inputs, plus a lock
+  whose cause is known:
+
+  | Job | cosmic-idle 1.8 | sill (Q420 B) |
+  | --- | --- | --- |
+  | Dim | a 5 s black fade after the screen-off time | a dim of `idle.dim_s` (5 s) at `idle.dim_level_pct` (50 %) **before** the screen-off time, so the screen-off time means off (F902) |
+  | Displays off | `zwlr_output_power_v1` `Off` after the fade | the same protocol, at the screen-off time (F903) |
+  | Lock | `loginctl lock-session` 0.5 s after off, reaching sill as `Cause::Logind` | `LockerCommand::IdleLock` as the displays go off, with cause `IdleScreenOff` (F904, F907); `idle.lock = "never"` turns it off |
+  | Lock screen left alone | stays lit until the screen-off time comes round again | off again after `idle.locked_screen_off_s` (60 s) (F903) |
+  | Suspend | `systemctl suspend` at the AC or battery time | logind `Suspend(false)` at the AC or battery time; the locker's sleep delay locks first (F912) |
+  | Times | COSMIC's config | COSMIC's config by default, or sill's own (F901) |
+  | Inhibit | serves `org.freedesktop.ScreenSaver` | the same, plus logind's idle inhibitors (F905) |
+  | `IdleHint` | none | `SetIdleHint(true)` while the displays are off, `false` on wake |
+
+- **F901 Where the times come from. Recommendation: read COSMIC's by default, with sill's own
+  as an override** (`idle.times = "cosmic" | "sill"`, default `cosmic`). Reasons:
+  - With `cosmic`, COSMIC Settings' Power page keeps working in a sill session. It is the only
+    GUI for these times until sill has a Settings app (M12). Switching between the COSMIC and
+    sill sessions also keeps one set of times.
+  - "Every default configurable" is still met: every time has a key, either COSMIC's file or
+    sill's own.
+  - COSMIC has no screen-off time per power source, and macOS has one. With `sill`, the four
+    `idle.*_min` keys give screen off and suspend on AC and on battery. Their defaults are
+    COSMIC's (15, 15, 30, 15 min), so flipping the switch changes nothing until a time is
+    edited.
+  - The dim, the lock at screen off, the lock screen's own screen-off time and the grace exist
+    only in sill, so they are always sill keys.
+
+  Reading COSMIC's config needs no cosmic-config crate (libcosmic's tree). Each key is one file
+  holding RON `Some(<ms>)` or `None` (`idle::parse_cosmic_value`, `idle::cosmic_times`). The
+  user's `$XDG_CONFIG_HOME/cosmic/com.system76.CosmicIdle/v1/<key>` wins over
+  `/usr/share/cosmic/...`, and a missing or unreadable key falls back to cosmic-idle's default.
+  The live side re-reads a key when its file changes. sill never writes it. AC or battery
+  (`idle::power_source`) comes from sill's battery service: `Discharging` and `Empty` are
+  battery, everything else and "no battery" is AC.
+- **F902 Dim: a sill overlay, never a brightness change.** On macOS the display dims shortly
+  before display sleep (pmset's `halfdim`, on by default: an intermediate half-brightness state
+  before fully off), and any input brings it back. sill draws this as a **black overlay layer
+  per output** at `100 - idle.dim_level_pct` percent opacity, fading in with quire's motion
+  tokens. It has an empty input region and no keyboard, so it never takes input from the
+  compositor's idle tracking, and it sits below the session-lock surfaces. The rejected route
+  was brightness through sill's displays service:
+  - DDC writes cost 150-350 ms each on a lossy bus (Displays) and go to the monitor's NVRAM;
+  - a crash while dimmed would leave a backlight or a monitor dark ("Displays": warmth has the
+    same risk);
+  - it would touch real brightness in every test.
+
+  An overlay dies with its process and needs nothing from any hardware. The service publishes
+  `Idle.dim: DimShown::{Clear, Dimmed(level)}`. The surface (`sill-surfaces/src/surfaces/
+  idle_dim/**`) is not in this freeze (Q447).
+- **F903 The machine** (`idle::reduce`, rules in its module doc). Watches
+  (`idle::watches`): `Dim` at `screen_off - dim_s` (at least 1 s), `ScreenOff` at the screen-off
+  time, or `LockedScreenOff` at `idle.locked_screen_off_s` while locked (0: the normal time),
+  and `Suspend`. Each is taken for the current power source, and one whose time is `Never` is
+  left out. They are re-derived when the policy, the power source, the inhibition or the lock
+  changes. Screen off emits `Lock` first, then `Undim`, `Displays(Off)` and `IdleHint(Idle)`.
+  Wake (`resumed`) emits `Undim` if dimmed; if the displays were off, `Displays(On)`,
+  `IdleHint(Active)` and, while this idle lock is still in place, `Grace(case)`. Displays go on
+  and off through one `zwlr_output_power_v1` per `wl_output`, created as outputs come and
+  dropped as they go. An output that appears while the displays are off is set `Off` too. A
+  policy that turns idle `Off` undoes what idle did (undim, displays on).
+- **F904 The lock at screen off** is `LockerCommand::IdleLock`, new in the freeze. The locker
+  feeds it as `Requested(Cause::Idle, now)` (the machine's `Cause::Idle` counts in every kind of
+  session, like `Action`) and records `LockCause::IdleScreenOff`. The lock is asked for **as**
+  the displays go off, not 500 ms after as cosmic-idle does: a wake inside those 500 ms would
+  show the desktop unlocked. The fill must check that cosmic-comp grants
+  `ext-session-lock-v1` while the outputs are off (G341). cosmic-idle's own order (off, then
+  lock) says it does.
+- **F905 Inhibitors: who implements what.**
+  - **Wayland `zwp_idle_inhibit_manager_v1`** (mpv, Firefox's fullscreen video, most native
+    players) belongs to **the compositor**. cosmic-comp honours it for `get_idle_notification`,
+    so sill just asks that form and never `get_input_idle_notification`, which ignores
+    inhibitors. sill's `resumed` then fires only for real input.
+  - **D-Bus `org.freedesktop.ScreenSaver`** (`Inhibit(app, reason) -> cookie`,
+    `UnInhibit(cookie)`; Chromium and Electron apps, the GTK portal on behalf of Flatpak apps,
+    Steam) belongs to **sill**. cosmic-idle served it, so a sill session without cosmic-idle
+    must serve it or video calls will blank. sill owns the name at `/org/freedesktop/
+    ScreenSaver` and `/ScreenSaver` only while idle is `Own`. An inhibit ends on `UnInhibit` by
+    its own peer or when that peer leaves the bus (`idle::inhibit_step`).
+  - **logind's idle inhibitors** (`systemd-inhibit --what=idle`) are advisory, and **sill**
+    honours them: it reads `BlockInhibited` for `idle` (`idle::logind_idle`).
+  - **logind's sleep inhibitors** are logind's: a `block` one makes `Suspend` fail, and sill
+    logs that and stays in `DisplaysOff`.
+
+  While any inhibitor sill honours is held, it holds no idle notification, as cosmic-idle did.
+  So there is no dim, no screen off and no idle suspend, but a manual lock or the lid still
+  works.
+- **F906 Where sill runs idle** (`idle::resolve_mode`): `Own` only in a sill session with no
+  cosmic-idle process of this user. Under cosmic-session, `Off(CosmicSession)`: cosmic-session
+  starts cosmic-idle itself, and COSMIC's greeter answers its lock. Nested in another desktop,
+  `Off(Guest)`: never dim or power off the host's displays. In a sill session where a
+  cosmic-idle runs (a hand-started one, or an old `dist/sill-session`),
+  `Off(CosmicIdleRunning)`. The host is the locker's `Host::of`. The `/proc` check repeats when
+  the policy is re-sent and on a timer (the fill picks the period).
+
+  **If both ran anyway:**
+  - two dims would stack;
+  - two screen-offs are harmless;
+  - cosmic-idle's `loginctl lock-session` would reach the locker as `Logind` after sill's
+    `IdleLock`, so the first cause (`IdleScreenOff`) would stand, but with sill's times longer
+    than COSMIC's, cosmic-idle's `Logind` lock would come first and never get the grace;
+  - both would suspend;
+  - only one could own `org.freedesktop.ScreenSaver`, so the loser's inhibits would never
+    arrive and it would blank a video call.
+
+  Hence the deferral.
+- **F907 The lock cause** (`locker::LockCause`, new): `IdleScreenOff`, `Action` (⌃⌘Q, `sill
+  lock`, the launcher, the power menu), `Logind` (Super+Escape and every other `loginctl
+  lock-session`, `HandleLidSwitch=lock`), `Sleep` (`PrepareForSleep(true)`: a lid close to
+  suspend, an idle suspend, `systemctl suspend`), `Restored` (the crash marker) and `Adopted`.
+  `Lock.cause: Option<LockCause>` is set by the request that moves `Unlocked` to `Locking` and
+  kept until `Unlocked`, so a later request never changes it. The freeze publishes `None`, which
+  the grace reads as "ask".
+- **F908 The lock grace** (`session.lock_grace_s`, `Count` seconds, default 5, `0..=60`; 0
+  always asks). **Its exact trigger:** sill's own idle path turned the displays off and locked,
+  and real input (`resumed`) came strictly less than the grace after that instant. The pure rule
+  is `idle::grace_verdict(&GraceCase { cause, drawer, grace, woke, sleep })`:
+
+  | Lock cause | Drawer | Grace | Wake after | Sleep since | Result |
+  | --- | --- | --- | --- | --- | --- |
+  | `IdleScreenOff` | `Shell` | 5 s | 0 or 4.9 s | no | **NoPassword** |
+  | `IdleScreenOff` | `Shell` | 5 s | 5.0 s | no | Ask (`woke < grace`) |
+  | `IdleScreenOff` | `Shell` | 5 s | 30 s | no | Ask |
+  | `IdleScreenOff` | `Shell` | 60 s | 59 s | no | **NoPassword** |
+  | `IdleScreenOff` | `Shell` | 0 | 0.1 s | no | Ask (0 always asks) |
+  | `IdleScreenOff` | `Shell` | 5 s | 1 s | yes (idle or lid suspend, then resume) | Ask |
+  | `IdleScreenOff` | `Program` (a borrowed locker) | 5 s | 0.1 s | no | Ask (sill cannot dismiss it) |
+  | `Action`: ⌃⌘Q, `sill lock`, launcher, power menu | any | 5 s | 0.1 s | no | Ask |
+  | `Logind`: Super+Escape, `loginctl lock-session`, lid set to lock | any | 5 s | 0.1 s | no | Ask |
+  | `Sleep`: lid close, suspend | any | 5 s | 0.1 s | n/a | Ask |
+  | `Restored`: re-lock after a crash | any | 5 s | 0.1 s | no | Ask |
+  | `Adopted` | any | 5 s | 0.1 s | no | Ask |
+  | unknown (`None`) | any | 5 s | 0.1 s | no | Ask |
+
+  The wake delay is measured from the idle lock's instant, never from a later screen-off. A
+  lock screen that goes dark again after `locked_screen_off_s` and is woken at once still asks.
+  A lock that was already in place when idle turned the displays off keeps its own cause and
+  asks. A crash loses the idle state, so a restored lock asks.
+
+  **The seam:** a `NoPassword` verdict mints an `idle::GraceTicket`, whose only constructor is
+  `idle::ticket`, and the idle service sends `AuthCommand::Grace(ticket)` (new). The auth
+  service publishes `Accepted` as if a right password came, so the lock surfaces play the same
+  fade and unlock through `use_lock().unlock()`, with the daemon's backstop, and there is no
+  second unlock path. Nothing else in sill can build a ticket, and nothing on IPC carries one
+  (`sill debug auth accept` stays debug-only). The grace applies only with `session.locker =
+  "sill"` (the `Shell` drawer).
+- **F909 Keeping cosmic-idle out.** `dist/sill-session` still starts cosmic-idle in this freeze.
+  Removing it now would leave a sill login with no screen off, lock or suspend until the fill.
+  The script's comment says the fill commit deletes both lines, and until then F906 keeps sill's
+  idle off while cosmic-idle runs. Under cosmic-session nothing changes (F906).
+- **F910 Settings and the daemon.** New domain `idle` (`sill-settings/src/idle.rs`,
+  `IdleSettings`, page Accounts, all Advanced): `times`, `screen_off_ac_min`,
+  `screen_off_battery_min`, `suspend_ac_min`, `suspend_battery_min`, `dim_s`, `dim_level_pct`,
+  `lock` and `locked_screen_off_s`. Also `session.lock_grace_s`. `SettingsChange::Idle` is new.
+  All ten are in `tests/keys.rs` `AWAITING_ROWS`, and their defaults are pinned in
+  `tests/schema.rs`. On the daemon side, `crate::idle::{policy_of, spawn_policy}` turns the
+  settings into `IdleConfig`: minutes times 60, 0 = `Never`, everything in `IdleSecs`. The
+  service resolves `IdleConfig` into `IdlePolicy` (`IdleCommand::Configure`); live tests pass an
+  already-resolved policy (`IdleCommand::Use`).
+- **F911 Wake.** Any input the compositor counts as activity wakes: a key, pointer motion, a
+  button, touch, tablet. It arrives as `resumed` on the held notifications. A display turning
+  on for any other reason (a hotplug, a resume from sleep, another client) is not a wake and
+  never runs the grace. **A notification never wakes the displays.** macOS does not light a
+  sleeping display for a banner (assumed from use, not checked against Apple's documentation),
+  and a banner on a dark screen would also be a privacy leak. So there is no key (Q443).
+- **F912 Suspend.** At the suspend time sill calls logind `Suspend(false)` (never
+  `interactive`), on `Setup.system` (a private bus with a stand-in logind in every test). The
+  lock before sleep stays the locker's job: its delay inhibitor, "lock before sleep" (F386),
+  is already held in a sill session, and `PrepareForSleep(true)` locks with cause `Sleep` if
+  idle had not already locked. After any resume the password is asked: a `Sleep` cause asks,
+  and an idle lock with a sleep since it asks too (`SleepSince::Slept`). `Woke` sets the
+  displays `On` and holds the watches again. If a distribution sets logind's own
+  `IdleAction=suspend`, sill's `IdleHint` would trigger it too. logind's default is `ignore`,
+  and the fill logs a warning when it is not.
+- **F913 Safety, binding on the fills.**
+  - The service is passive until `Configure` or `Use`. `Services::spawn` never touches a display
+    or a bus, and a test asserts `IdleMode::Off(NoPolicy)`.
+  - `Off` resolves everywhere but a sill session.
+  - Live tests use `idle::spawn_with` with `IdleDisplay::Socket` pointing at `wayland-1` (pinged
+    first, never stopped or restarted) and `BusRoute::Address` pointing at a private bus
+    (`tests/support/private_bus.rs`) with a stand-in logind that only records `Suspend` and
+    `SetIdleHint`.
+  - No test powers off `wayland-0`'s outputs (KWin has no wlr output power anyway), calls the
+    real logind's `Suspend` or `Lock`, owns `org.freedesktop.ScreenSaver` on the real session
+    bus, or writes any brightness.
+  - A locked nested compositor is recovered with `session_locker 0` (F381).
+
+### What is frozen
+
+- `sill_services::idle` (`src/idle/`, 7 files plus 5 test files):
+  - policy: `IdleSecs`, `Timeout`, `PowerPair`, `IdleTimes`, `TimesChoice`, `DimLevel`,
+    `DimPlan`, `IdleLock`, `LockGrace`, `LockedScreenOff`, `IdleConfig`, `IdleMode`,
+    `OffReason`, `IdlePolicy`, `PowerSource`, `Watch`, `Threshold`, `LockView`, and the
+    functions `resolve_mode`, `effective_times`, `power_source`, `watches`;
+  - COSMIC's config: `COSMIC_IDLE_ID`, `COSMIC_IDLE_VERSION`, `CosmicKey`, `CosmicIdleTimes`,
+    `CosmicValue`, `CosmicIdle`, and the functions `parse_cosmic_value`, `cosmic_times`;
+  - the grace: `WakeDelay`, `SleepSince`, `GraceCase`, `GraceVerdict`, `grace_verdict`,
+    `GraceTicket` (its field private), `ticket`;
+  - the inhibitors: `InhibitCookie`, `BusPeer`, `Inhibitor`, `Inhibitors`, `InhibitMsg`,
+    `InhibitReply`, `Inhibition`, `LogindIdle`, and the functions `inhibit_step`,
+    `logind_idle`, `inhibition`;
+  - the machine: `IdleState`, `PASSIVE`, `LockSeen`, `IdleEvent`, `IdleEffect`,
+    `DisplayPower`, `IdleHint`, `reduce`;
+  - the service: `Idle`, `IdlePhase`, `DimShown`, `IdleCommand`, `IdleLinks`, `Setup`,
+    `IdleDisplay`, `BusRoute`, `spawn`, `spawn_with`.
+
+  Every pure function is `todo!()`. `live::run` returns at once, so every
+  `Control<IdleCommand>` send answers `Gone`.
+- The locker: `LockCause`, `Lock.cause` (published `None` until the fill), `Cause::Idle`
+  (counted like `Action`), and `LockerCommand::IdleLock` (a no-op arm until the fill).
+- The auth service: `AuthCommand::Grace(GraceTicket)` (a no-op arm until the fill; no ticket
+  can be minted while `grace_verdict` is a stub).
+- `Services.{idle, idle_control}`, and in the fake Services of sill-surfaces' tests.
+- The daemon: `crate::idle::{policy_of, spawn_policy}`. `spawn_policy` is called from
+  `daemon::run` and is a no-op in the freeze.
+- Settings: F910. `dist/sill-session`: a comment only (F909).
+- Tests: 18 table tests are `#[ignore = "idle fill"]`:
+  - grace, 1 test with 14 rows;
+  - COSMIC's config, 2;
+  - inhibitors, 4;
+  - policy, 4;
+  - the machine, 6: passive start, dim then off then the grace case, input during the dim, an
+    earlier lock, a sleep since, turning off undoes;
+  - the daemon's `policy_of`, 1.
+
+  The settings key, diff and defaults tests run un-ignored.
+
+### The fill (one lane, later)
+
+- Owns: `crates/sill-services/src/idle/**` (new private `wl.rs`, `dbus.rs` and `logind.rs` as
+  needed); in `locker/`, the `IdleLock` arm, the machine's recording of the cause and the
+  `Lock.cause` it publishes; in `auth/`, the `Grace` arm; `crates/sill/src/idle.rs`; a new
+  `sill-surfaces/src/surfaces/idle_dim/**` and its daemon spawn (after Q447); `dist/sill-session`
+  (removing cosmic-idle); `tests/idle_live.rs`; and a new `dev/accept-idle.sh` that runs on
+  `wayland-1` with a private bus and short times, checking dim, off, lock with cause, a wake
+  inside and outside the grace, an inhibit held and released, and `Suspend` recorded, never
+  called for real.
+- Verify: the gate, the 18 ignored tests un-ignored, the live test, and the acceptance script.
+  Then the grace checks in docs/manual-checks.md on a real sill login.
+
+### Asks
+
+- **Q440 (the user) Where the idle times come from.** Recommended and frozen: COSMIC's config
+  by default (COSMIC Settings' Power page keeps working), with `idle.times = "sill"` for sill's
+  four keys (screen off and suspend on AC and on battery) (F901). The alternative is sill-only
+  keys, with COSMIC's Power page dead in a sill session until sill's Settings app exists.
+- **Q441 (design/22) Rows**, a new §3.24 `idle` and one §3.19 row (all Advanced; `Count` because
+  ds-settings has no seconds or minutes unit, Q445):
+
+  | Key | Type | Default | Range / Alt | Source | Status |
+  | --- | --- | --- | --- | --- | --- |
+  | `session.lock_grace_s` | `Count` (s) | `5` | `0..=60`; after sill turns the displays off for idleness and locks, input within this many seconds opens the lock without the password; `0` always asks; never after a manual lock (⌃⌘Q, Super+Escape, `loginctl lock-session`, launcher, power menu), a lid close, a suspend, a resume or a re-lock after a crash; only with `session.locker = "sill"` | `20-SURFACES.md#1-9-lock-screen-spec-tier-1`; sill FINDINGS F863, F908 | proposed (2026-09-27), supersedes F553's and Q421's drafts |
+  | `idle.times` | `IdleTimesFrom::{Cosmic,Sill}` | `Cosmic` | where screen-off and suspend times come from: COSMIC's `com.system76.CosmicIdle` (COSMIC Settings' Power page) or the four keys below | sill FINDINGS F901 | proposed (2026-09-27) |
+  | `idle.screen_off_ac_min` | `Count` (min) | `15` | `0..=240`, 0 never; only with `times = sill` | F901 | proposed |
+  | `idle.screen_off_battery_min` | `Count` (min) | `15` | `0..=240`, 0 never; only with `times = sill` | F901 | proposed |
+  | `idle.suspend_ac_min` | `Count` (min) | `30` | `0..=480`, 0 never; only with `times = sill` | F901 | proposed |
+  | `idle.suspend_battery_min` | `Count` (min) | `15` | `0..=480`, 0 never; only with `times = sill` | F901 | proposed |
+  | `idle.dim_s` | `Count` (s) | `5` | `0..=60`; seconds dimmed before the displays go off; 0 no dim | F902 | proposed |
+  | `idle.dim_level_pct` | `Percent` | `50` | `10..=90`; brightness kept while dimmed (macOS's half-dim) | F902 | proposed |
+  | `idle.lock` | `IdleLockAt::{ScreenOff,Never}` | `ScreenOff` | lock as the displays go off for idleness, or never (a sleep still locks) | F904 | proposed |
+  | `idle.locked_screen_off_s` | `Count` (s) | `60` | `0..=600`; the lock screen goes dark again after this; 0 the normal screen-off time | F903 | proposed |
+
+- **Q442 (the user) The dim's defaults:** 5 s at 50 % before the displays go off (cosmic-idle's
+  fade length, and macOS's half brightness). macOS's exact dim-to-off interval was not measured.
+  The user may want longer (10 s) to have time to react.
+- **Q443 (the user) Waking on a notification:** frozen as never, with no key (F911). Say if a
+  "wake for time-sensitive notifications" key is wanted.
+- **Q444 (the user) The lock screen's own screen-off time**, `idle.locked_screen_off_s` = 60 s.
+  This is assumed from macOS's behaviour (a locked Mac's display sleeps soon) and not measured.
+- **Q445 (quire) ds-settings has no seconds or minutes unit** (`Ms` is `u16`, so at most 65 s).
+  The idle keys use `Count` with `unit = "s"` or `"min"`. design/22 §5 has no Power or Battery
+  page either (`Page` has none), so `idle.*` sits on Accounts beside `session.*` for now.
+- **Q446 (sill IPC, the fill)** `sill lock status` should report `Lock.cause`, and a `sill idle
+  status` should report the mode, phase and held inhibitors, so `dev/accept-idle.sh` can assert
+  them. These are wire additions (`sill-ipc/tests/serde.rs`) for the fill's freeze amendment.
+- **Q447 (quire) The idle dim needs a token and a component:** a scrim colour, black at a
+  variable opacity, and a fade motion token for the dim's in and out (ORCHESTRATION's coherence
+  rule 1: no colour or duration outside quire). Wanted: an `IdleDim { level }` component or a
+  `--scrim-idle` token plus `--t-*` motion. The dim surface waits on it.
+- **G340 (sill)** Until the fill lands, a sill login still gets idle from cosmic-idle, and its
+  locks reach sill as `Logind`, so the 5 s grace does not exist yet (docs/manual-checks.md says
+  so).
+- **G341 (the fill)** Check on the nested cosmic-comp that `ext-session-lock-v1` is granted
+  (`locked`) while every `zwlr_output_power_v1` is `Off`. If not, lock first, then power off on
+  `Locked` or after 500 ms, and accept the short lit gap.
+- **G342 (the fill)** `ext-idle-notify-v1` timers restart when a notification is re-created. So
+  watches re-derived while the seat is already idle (a lock, an inhibitor released) count from
+  their creation, not from the last input. That is harmless for `LockedScreenOff` (the displays
+  are already off). The fill must check it does not delay the idle suspend: re-creating the
+  `Suspend` watch at the idle lock would push the suspend back by the screen-off time. So keep
+  the `Suspend` watch whenever its time is unchanged.

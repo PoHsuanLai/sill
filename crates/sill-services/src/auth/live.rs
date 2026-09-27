@@ -99,6 +99,9 @@ impl Live {
             AuthCommand::Submit(secret) => self.submit(secret),
             AuthCommand::Reset => self.reset(),
             AuthCommand::Fake(verdict) => self.fake(verdict),
+            // Idle fill (F908): publish `Accepted` as a right password would. A no-op until
+            // then: nothing can mint a ticket while `grace_verdict` is a stub.
+            AuthCommand::Grace(_) => {}
         }
     }
 
