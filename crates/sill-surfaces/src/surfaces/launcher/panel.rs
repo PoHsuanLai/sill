@@ -11,6 +11,7 @@
 //! key), Tab, Shift+Tab, Ctrl+K and Alt+K from its `onkey` (after).
 
 use dioxus::prelude::*;
+use ds::detail::RevealCue;
 use ds::{
     Anchor, BlurState, CommandPalette, CommandPaletteHost, Corner, Ds, FieldKey, IconSource,
     ImageSource, Material, Menu, MenuKind, PaletteEntrance, Point, Px, Rect, SpaceLook,
@@ -126,9 +127,10 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
     });
     let contacts = use_contacts();
     let touch = contacts.take();
-    // The cue is ready for quire's palette; `CommandPalette` takes none yet (Q372), so the
-    // first result set shows with no rise.
-    let _results = use_list_detail(list_state(shown.as_ref(), &panel), touch);
+    // quire's palette plays the cue (Q372): the first result set of an opening rises, a later
+    // set replaces in place. Show More and Show Less it plays itself (Q373).
+    let list = use_list_detail(list_state(shown.as_ref(), &panel), touch);
+    let reveal = RevealCue::Cue(list.cue());
     let aside = use_aside(shown.as_ref(), &icons, panel.left, touch);
     if let Some(shown) = &shown {
         publish_rows(&panel.link, shown);
@@ -169,7 +171,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
                     class: "sill-launcher-body",
                     style: "margin-left:{left}px;width:{width}px;height:{PANEL_HEIGHT}px",
                     if let Some(shown) = shown {
-                        {palette(&panel, &shown, foot, &icons, &clip_image, aside)}
+                        {palette(&panel, &shown, foot, &icons, &clip_image, Beside { aside, reveal })}
                     }
                 }
             }
@@ -305,8 +307,9 @@ fn palette(
     foot: Foot,
     icons: &RowIcons,
     clip_image: &dyn Fn(ClipKey) -> Option<ImageSource>,
-    aside: Option<Aside>,
+    beside: Beside,
 ) -> Element {
+    let Beside { aside, reveal } = beside;
     let session = &shown.session;
     let selected_item = shown.selected();
     let actions = match session.keys.actions {
@@ -357,6 +360,7 @@ fn palette(
             claim: Callback::new(move |field: FieldKey| claim.claim(&field)),
             aside: pane,
             aside_width: Px(PREVIEW_WIDTH_PX as f32),
+            reveal,
         }
         div {
             class: "sill-launcher-foot",
@@ -374,6 +378,12 @@ fn palette(
             }
         }
     }
+}
+
+/// What the palette plays beside its rows: the preview pane, and the rows' first-show cue.
+struct Beside {
+    aside: Option<Aside>,
+    reveal: RevealCue,
 }
 
 /// The preview pane for `aside`: quire's, through [`LauncherPane`].

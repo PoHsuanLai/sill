@@ -113,7 +113,7 @@ pub fn catalogue() -> Vec<Item> {
 /// The rows a query finds, best first: every row for the empty query, else those whose title
 /// or subtitle holds it (case-insensitively); the calculator answers only a query with a
 /// digit first, the web fallback only typed text, and only when the query starts `m9` (so the M4
-/// tests' rows are as they were).
+/// tests' rows are as they were); the slow text file only the query `slow-head`.
 pub fn search(query: &str) -> Vec<Item> {
     let needle = query.trim().to_lowercase();
     let mut rows: Vec<Item> = catalogue()
@@ -130,6 +130,9 @@ pub fn search(query: &str) -> Vec<Item> {
         .collect();
     if needle.starts_with("m9") {
         rows.push(m9::web(query.trim()));
+    }
+    if needle.starts_with("slow-head") {
+        rows.push(m9::slow_head());
     }
     rows.sort_by(|a, b| b.score.cmp(&a.score).then(a.provider.cmp(&b.provider)));
     rows

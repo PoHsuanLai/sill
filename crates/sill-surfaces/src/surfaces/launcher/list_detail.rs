@@ -2,7 +2,12 @@
 //! FINDINGS "Launcher details (Q297)"): the first result set after the panel opens appears (the
 //! rows' `rise` stagger, R13), later sets replace in place with no stagger (R1, R12: typing is
 //! frequent), and a section's "Show More" or "Show Less" is a change the person's key or press
-//! caused. Pure but for [`use_list_detail`], the one place the results call `use_detail`.
+//! caused. The cue goes to quire's `CommandPalette { reveal }` (Q372), which rises only on an
+//! Appear. Show More and Show Less have no moment of their own in `ds::detail`: design/26 §5.6
+//! decided them (Q373: the added rows `Reveal` downward, Show Less `heal`s up) and the palette
+//! plays them itself from its own group action, so this table keeps calling them a Change (which
+//! replays no rise). Pure but for [`use_list_detail`], the one place the results call
+//! `use_detail`.
 
 use ds::detail::{Detail, Detailed, FirstShow, Moment, Touch, use_detail};
 use sill_launcher::{Expanded, Generation};
@@ -55,6 +60,7 @@ impl Detailed for ListState {
             }
             (Waiting(_), Rows(_)) => Moment::Appear,
             (Rows(was), Rows(now)) if was.answer != now.answer => Moment::Change,
+            // Show More or Show Less: the palette plays its own expand and collapse (Q373).
             (Rows(was), Rows(now)) if was.expanded != now.expanded => Moment::Change,
             (Rows(_), Rows(_)) => Moment::Rest,
             (Waiting(_) | Rows(_), Empty(_)) | (Empty(_), Rows(_)) => Moment::Change,

@@ -124,6 +124,20 @@ fn document(name: &str, mime: &str, score: u32) -> Item {
     }
 }
 
+/// The text file whose head is slow to read: `slow-head.txt` in the scratch folder, found only by
+/// the query `slow-head`. The fixture writes no file there: a test makes it a FIFO
+/// ([`slow_head_path`]) so the pane's read waits until the test writes the head.
+pub fn slow_head() -> Item {
+    document(SLOW_HEAD, "text/plain", 950)
+}
+
+/// Where [`slow_head`] points.
+pub fn slow_head_path() -> PathBuf {
+    folder().join(SLOW_HEAD)
+}
+
+const SLOW_HEAD: &str = "slow-head.txt";
+
 /// Every M9 row, in no order (the fake runner sorts).
 pub fn rows() -> Vec<Item> {
     let mut rows = vec![

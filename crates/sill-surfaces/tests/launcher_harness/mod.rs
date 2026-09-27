@@ -164,3 +164,39 @@ fn strip_tags(html: &str) -> String {
 pub fn is_open(link: &LauncherLink) -> bool {
     link.now().opening().is_some()
 }
+
+/// What a [`watch`] over some frames saw.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Seen {
+    Once,
+    Never,
+}
+
+/// The harness's clock per frame watched, the wall clock let run between frames, and how many
+/// frames a watch lasts at most (10 s on the harness's clock, at least 4 s of wall clock).
+const FRAME: Duration = Duration::from_millis(5);
+const BETWEEN: Duration = Duration::from_millis(2);
+const FRAMES: u32 = 2000;
+
+/// Advance frame by frame until `done` holds, letting the wall clock run between frames: what
+/// lands off the harness's thread (a PDF page's raster, a text file's head) lands in wall time,
+/// never within one `advance` (quire Q380). Watching for a thing that must not happen, `Never`
+/// is the pass.
+pub fn watch(harness: &mut Harness, done: impl Fn(&Harness) -> bool) -> Seen {
+    for _ in 0..FRAMES {
+        if done(harness) {
+            return Seen::Once;
+        }
+        std::thread::sleep(BETWEEN);
+        harness.advance(FRAME);
+    }
+    match done(harness) {
+        true => Seen::Once,
+        false => Seen::Never,
+    }
+}
+
+/// The preview pane is up with nothing left loading (quire's `aria-busy` is gone).
+pub fn loaded(harness: &Harness) -> bool {
+    harness.count(".ds-preview") == 1 && harness.attr(".ds-preview", "aria-busy").is_none()
+}

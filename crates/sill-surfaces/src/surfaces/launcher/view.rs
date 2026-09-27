@@ -104,6 +104,13 @@ impl View {
         self.sections.iter().flat_map(section_lines).collect()
     }
 
+    /// The line of `section`'s "Show More" or "Show Less", when it has one.
+    pub fn more_line(&self, section: Section) -> Option<usize> {
+        self.lines()
+            .iter()
+            .position(|line| matches!(line, Line::More { section: at, .. } if *at == section))
+    }
+
     /// The row on line `index`, when that line is a row.
     pub fn row(&self, index: usize) -> Option<Item> {
         match self.lines().into_iter().nth(index)? {
