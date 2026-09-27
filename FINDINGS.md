@@ -6838,6 +6838,8 @@ e276242. Numbered F880, Q430, G330.
   Captures: `target/accept-widgets/drag-{before,lifted,dropped,room,after}.png`;
   screenshots `dev/out/widgets-drag-lifted-cosmic.png`, `widgets-drag-room-cosmic.png`,
   `widgets-drag-cosmic.png`.
+- **F892 Gate.** `GATE_DIR=<this worktree> ~/sill-wt/sill-gate.sh` on 9bd1ed0: SILL GATE GREEN
+  (fmt, clippy, 1168 passed, 0 failed, 51 ignored, boundary, licenses).
 
 ### Asks (quire)
 
