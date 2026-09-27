@@ -7850,3 +7850,190 @@ failed in some runs and passed in others, all in that quiet window with `animati
   growing its own pin (sill's is `PinnedAppearance`). Settle-strict could also say "woken
   off-thread, nothing pending" when the quiet window's wake came with an empty pending list, to
   tell this apart from a timer.
+
+## Widget interface port (2026-09-27)
+
+sill's widgets moved onto quire's widget interface (quire CONSUMING "Widget interface
+(2026-09-27)", quire `widget-interface` rebased onto quire master 688226f6, tip 3eaa4344), on
+branch `widget-interface` from sill 7aa4068, with sill master 7e92fb2 merged in. Numbered F940,
+Q460, G360 (G370-G372 are the settle-strict section's).
+
+- **F940 One card per kind.** `widgets::Widget { kind, host, size, lift }` now picks a
+  provider (`CalendarCard`, `UpNextCard`, `BatteryCard`, `NowPlayingCard`, `WorldClockCard`),
+  and each provider draws one `ds::WidgetCard` with its `Timeline::now(entry)`, the host's wake
+  (`use_widget_wake`), `id: widget_element_id(kind)` and the lift. `ds::WidgetFrame`, sill's
+  `frame.rs` (titles are now `Widget::title()`), `cells()` (it is `ds::widget::cells`
+  re-exported) and the frame, battery, world-clock and calendar stylesheets are gone. Kinds keep
+  the settings' closed enum. `kind_id`/`kind_of` map it to quire's names (`quire.month`,
+  `sill.up-next`, `quire.battery`, `sill.now-playing`, `quire.world-clock`). `offered(kind)` is
+  each widget's `sizes()`. `registry()` is `WidgetRegistry::quire().with::<UpNext>()
+  .with::<NowPlaying>()`, provided at the desktop layer's, the notification center's and Edit
+  Widgets' roots.
+- **F941 Providers.**
+  - Batteries: `battery_rows` → `BatteryEntry::Devices(cell_of(row))`, with this machine as
+    `Device::Laptop` (it has a battery) and a Bluetooth device as `device_of(BtKind)`;
+    `Absent("No batteries")` when there are none.
+  - World Clock: `clock_rows` → `ClockEntry::Cities`, the offset as the city's one note;
+    `Absent("No cities: add them in widgets.world_clocks")`. `look_of` and `MAX_CITIES` are
+    gone (quire's).
+  - Calendar: `MonthWidget` with `MonthFace { today: TodayLine { weekday, day }, events:
+    up_next::today_events(..), no_events: "No events today", ..MonthFace::of(grid, weeks) }`.
+    `MonthIntent::Step` shifts `Shown` as the old buttons did. The events are the same
+    `up_next()` over the same agenda (today only, at most `LARGE_EVENTS`), with the same lines
+    and hues.
+- **F942 Up Next and Now Playing are `ds::Widget`s.**
+  - `UpNext` (`up_next_view.rs`): `Entry = UpNextEntry::{Waiting, Agenda(UpNextFace { day,
+    rows, quiet })}`, `NoIntent`, sizes Medium and Large, title Clock "Up Next".
+  - G291 holds: the provider sends up to `min(up_next_max, events_capacity(Large))` rows, and
+    the view draws only `events_capacity(cx.size)` of them, whole. Table-tested, and
+    Harness-tested at Medium in both hosts (2 rows) and at Large (6 rows with `up_next_max = 6`),
+    each row inside the card's body.
+  - A calendar's colour is now one of quire's five label hues (`calendar_hue`, FNV-1a of the
+    name mod 5, `data-hue`), shared with the month's event list, in place of the eight person
+    swatches: the month and Up Next must agree, and `EventLine` takes a `LabelHue`.
+  - `NowPlaying`: `Entry` is the control center's face as data
+    (`control_center::modules::media_face::MediaFace`), `Intent = Transport::{Previous,
+    PlayPause, Next}`, size Medium, title Play "Now Playing". The module and the widget share
+    `MediaView` and `use_media`, so the widget no longer mounts `NowPlayingModule` on a bare
+    panel.
+- **F943 Sizes: `widgets.sizes` (new key, `AWAITING_ROWS`).** quire's widgets offer several
+  sizes and the gallery changes them, but sill's keys held kinds only. `widgets.sizes` is
+  `;`-separated `host.kind=size` text (`desktop.calendar=medium; center.up_next=large`; host
+  `desktop` or `center`, kinds as `widgets.center` spells them). Only a size other than the
+  host's usual one (`size_of`) is written, and a size the kind does not draw falls back to it
+  (`widgets::sizes::Sizes`, table-tested). The desktop layer's placement, drag, `make_room` and
+  boxes all read it. Text, like `world_clocks`, until `layout.toml` carries each placement's
+  size (design/28 section 5.6). Row to forward:
+
+  | Key | Type | Default | Range / Alt | Source | Status |
+  | --- | --- | --- | --- | --- | --- |
+  | `widgets.sizes` | `String` (`;`-separated `host.kind=size`) | `""` | sizes picked in Edit Widgets, `host` `desktop` or `center`, `size` `small`, `medium` or `large`; a widget not named, or named at a size its kind does not draw, takes its host's usual size; replaced by the placements' shape in `layout.toml` (design/28 5.6) | `28-CUSTOMIZATION.md` 4.1; sill FINDINGS "Widget interface port" F943 | proposed (2026-09-27) |
+
+- **F944 The keys as a `WidgetLayout`** (`widgets/layout.rs`, pure, table-tested).
+  - `layout_of(WidgetKeys { center, desktop, sizes, placed })`: the center's widgets as
+    `Center(Order(i))`, then the desktop's at their placed cells. A desktop widget that fits
+    nowhere has no cell and is left out.
+  - `edited(keys, edit, grid)` applies the edit through `ds::widget::apply` and maps the new
+    layout back to the same three keys and this output's places. A widget taken away gets its
+    size reset to none.
+  - Refused: adding a kind the surface already shows (`Refused::Placed`, since the drag, the
+    regions and the state file are keyed by kind, G361); a kind sill cannot place
+    (`Foreign`); quire's `Full`, `Taken` and `Unknown`. Each has a line of words shown under
+    the gallery.
+  - No key was retired or renamed.
+- **F945 Places stay state.** An edit writes its output's places to `desktop-widgets.json`
+  through `edit_widgets::drive::places_to_save`. A widget whose cell did not change keeps its
+  saved entry (F882: a clamped place is never written over), and a removed one keeps its place
+  for when it comes back, as a drop does. The desktop layer re-reads its output's places from
+  the file when its kinds or sizes change (`use_reload`), so an added widget lands where Edit
+  Widgets put it.
+- **F946 Desktop drag on quire's lift.**
+  - `Placed` passes `lift: Lift::Lifted` to the held card and draws no scale of its own. The
+    1.04 `Pose` scale, `LIFT_PERMILLE`, `place_style`'s transform and
+    `.sill-dw-place[data-lift=up]` are gone.
+  - While a drag is live over a cell with room, `ds::WidgetSlotGuide { size, host: Desktop }`
+    is drawn in `div.sill-dw-guide` at that cell's box.
+  - Kept as they were: the snap, making room, per-output places, the threshold, the shield and
+    the glide.
+  - Harness: the card carries `data-lift=lifted`, the place has no transform, the guide sits at
+    (1100, 16) and then at (560, 196), and there is no guide at rest.
+- **F947 Edit Widgets** (`surfaces/edit_widgets`: `layer`, `link`, `writer`, `drive`, `view`).
+  - One Overlay surface per output, spawned hidden and kept warm, like the notification
+    center; it follows `EditWidgetsLink` through the center's phase machine.
+  - quire's `Panel` sits at the right edge, 720 px wide, in the Sheet material, with "Edit
+    Widgets", Done and `WidgetGallery { layout, onedit }` inside. The desktop grid is measured
+    from the full-surface catcher: the same box the desktop layer measures, since both are
+    exclusive `Auto`.
+  - Ways in: the notification center's "Edit Widgets" at the foot of its widgets, which closes
+    the center and opens the panel on its output; and `sill widgets edit`. Ways out: Done,
+    Escape, a click outside the panel, and `sill widgets edit-close`. IPC `WidgetsRequest::
+    {Edit, EditClose}` is pinned in `serde.rs` and parsed by the CLI.
+  - The daemon's `WidgetsWriter` (`crates/sill/src/edit_widgets.rs::write`) saves the three
+    keys into `settings.toml` (keeping every other key), publishes the file at once, and saves
+    the places.
+  - The desktop has no context menu, so there is no desktop entry (G360).
+- **F948 Control center batteries** (Q450 closed): `DeviceRing.device: ds::Device`, drawn as
+  `DeviceGlyph { device }`. This computer is `Device::Laptop`; a device is `device_of(kind)`
+  (`BtKind::Computer` → Laptop, Headset → Headphones, Other → Other). `bar::status::
+  battery_icon` lost its last caller and is gone.
+- **F949 Markup quire changed on its own, and the tests that assumed the old.** Desktop cards
+  have `data-tint="space"`, `div.ds-frame` and `data-widget`. A framed month has `data-fit`, a
+  Medium month the today column, and a Large month the event list. The desktop month's title is
+  `--ink-soft` (seen in the captures). Battery and clock classes are quire's
+  (`.ds-batteries-cell`, `.ds-batteries-quiet`, `.ds-world-clock-quiet`). No `.ds-*` internal
+  is styled by sill. Every widget test root pins the appearance (G370).
+- **F950 Tests.**
+  - Table tests: `sizes` (3), `layout` (5), `places_to_save`, `cell_of`/`battery_entry`,
+    `clock_entry`, `weekday_name`, `calendar_hue`, `kind_id` and the registry, and the
+    `edit_widgets_layer` config.
+  - Harness tests (`Clock::Virtual`, each moment `assert_settles_to_zero_frames`):
+    - `tests/edit_widgets.rs`: the center's button opens the gallery on its output; an add is
+      written as the keys and places (World Clock at (5, 2) on a 7 x 4 grid) and a second add
+      is refused with its line; removing a tile; a size pick (the month at Medium moves to
+      (5, 0)).
+    - `widgets_render`: card kinds, tint and sizes, including an unoffered size held to the
+      first; Now Playing mounted over a playing player; G291 at Large.
+    - `calendar_render`: the Large month's events from the agenda, and the Medium today
+      column.
+    - `desktop_widgets_drag`: the lift and the guide.
+    - `widgets_lint`: Edit Widgets' markup and CSS under Strict.
+  - Daemon: `edit_widgets::write` keeps every other key and writes the output's places.
+- **F951 Acceptance on wayland-1** (pinged with `wayland-info`, reused, never stopped; scratch
+  runtime, config, state and cache; private bus).
+  - `dev/accept-widgets.sh`: **PASS 8/8**.
+    - `step_center_idle` now pauses the fake player over MPRIS on the private bus before its
+      5 s count. A playing track's `TrackPosition` steps each second: 3 frames in 3 s playing,
+      0 in 5 s paused.
+    - The drag: lifted, the widest frame is 172 px (quire's `--pickup` and drag shadow). It
+      dropped at (1479, 375), made room, and the file names `WINIT-0`.
+    - New `step_edit`: `sill-edit-widgets-WINIT-0` maps on `sill widgets edit`, draws 0
+      frames in 3 s, and unmaps on `edit-close`.
+  - `dev/accept-calendar.sh`: **PASS 4/4**. Its probe moved to the label hues (work violet 5,
+    team green 3, personal amber 2). The capture's bars read `5 3 5 3` (the month's events,
+    then Up Next's), and `3 3 2` after the edit, shown in 1780 ms. The week column moves the
+    disc 12 px. 0 frames idle.
+  - The step hold: a stale daemon from an interrupted run held the start for a while. Its
+    fake-player cleanup killed the next run's player, which showed "Not Playing" in one capture.
+    A clean re-run showed the track, as a live Now-Playing-only check did.
+  - Captures read: `dev/out/widgets-edit-cosmic.png` (the gallery beside the desktop's
+    widgets, the Batteries previews at Small and Medium, the placed lists),
+    `widgets-drag-lifted-cosmic.png`, `widgets-drag-guide-cosmic.png` (held half a cell off:
+    the guide plate at the snap cell under the lifted card), `widgets-center-all-cosmic.png`
+    (five tiles, "So What" with its position bar, "Edit Widgets" at the foot),
+    `calendar-cosmic.png` (the Large month over Design review and Yoga; Up Next beside).
+- **F952 Gate.** `GATE_DIR=<this worktree> ~/sill-wt/sill-gate.sh` on e163558 (after the
+  master merge and the pins): SILL GATE GREEN (fmt, clippy, 1232 passed, 0 failed, 52 ignored,
+  boundary, licenses). Re-run on the final tip below.
+
+### Asks (quire)
+
+- **Q460 The gallery's placed rows cut the widget's name.** With a three-segment size picker,
+  "Calendar" draws as "Calenc" in both lists at 720 px (`widgets-edit-cosmic.png`). The
+  `.ds-widget-gallery-row-name` has `min-width:0` beside a `SegmentedControl` that does not
+  shrink. It wants a truncation fade (`.ds-truncate`) or the picker under the name.
+- **Q461 The gallery cannot say what a host refuses.** sill places a kind once per surface
+  (G361), but the gallery offers "Add" for a kind already there, and sill can only answer under
+  it. Proposed: `WidgetGallery { refusal: Option<Text> }`, drawn in its own place, and/or an
+  `addable: fn(&WidgetKind, WidgetHost) -> bool` that disables the button.
+- **Q462 No reorder in the gallery.** `WidgetEdit::Move(id, Center(order))` exists, but the
+  gallery has no way to send it. The reference reorders Notification Center widgets by
+  dragging. sill's mapping already writes a reordered `widgets.center`.
+- **Q463 (still Q432) A point glide.** The drag's glide is still sill's own mix of two
+  corners over `use_tween`.
+
+### Gaps (sill)
+
+- **G360 No desktop entry to Edit Widgets.** The desktop has no context menu yet (the
+  reference's "Edit Widgets" on Control-click of the wallpaper). Only the center's button and
+  `sill widgets edit` open it.
+- **G361 One widget of a kind per surface.** The drag, the input regions and the state file
+  are keyed by `WidgetKind`, so a second Batteries is refused. Instances come with
+  `layout.toml` (design/28 5.2).
+- **G362 `sill widgets edit` opens on the first output with the surface**, not the focused one
+  (the center's button opens on the center's output).
+- **G363 Places for other outputs.** An edit writes only its own output's places; another
+  output lays a new widget out at its first free spot the next time it lays out.
+- **G364 World Clock redraws on the minute tick** (`use_clock`), as before. It does not yet
+  send an hour of dated entries with `Refresh::AtEnd` (CONSUMING's optional item).
+- **G365 Manual checks queued** in `docs/manual-checks.md`: Edit Widgets and the slot guide
+  with a real pointer.
