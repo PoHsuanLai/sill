@@ -16,6 +16,7 @@ use sill_ipc::{
     ReportHolder, ReportMode, Request, Response, ScreenshotRequest, ShotArea, SurfaceName,
     SurfaceStats, VolumeRequest, WidgetsRequest, decode, encode, read_message, write_message,
 };
+use sill_ipc::{DragPhase, FakeWidgetDrag};
 use sill_ipc::{
     FakeAuth, FakePolkit, FakeSwitcher, LockReport, LockRequest, PolkitReport, PolkitRequest,
     ReportDrawer, ReportLockPhase, ReportRegistration, SwitcherRequest,
@@ -218,6 +219,14 @@ fn requests() -> Vec<(Request, &'static str)> {
                 corner: CornerName::BottomRight,
             })),
             r#"{"kind":"debug","v":{"kind":"corner","v":{"corner":"bottom_right"}}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::WidgetDrag(FakeWidgetDrag {
+                surface: surface("sill-desktop-widgets-DP-1"),
+                phase: DragPhase::Move,
+                at: Point { x: 900, y: 96 },
+            })),
+            r#"{"kind":"debug","v":{"kind":"widget_drag","v":{"surface":"sill-desktop-widgets-DP-1","phase":"move","at":{"x":900,"y":96}}}}"#,
         ),
         (
             Request::Switcher(SwitcherRequest::Next),

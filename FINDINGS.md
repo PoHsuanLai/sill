@@ -6749,3 +6749,114 @@ master 82678e10. F803 now says what plays. Numbers from F840.
   that the next `groups` change is that action, so it plays no expand. Proposed: a handle
   (like `SearchField`'s) whose `ran_action()` books the next change, or `groups` carrying which
   group's action last ran. Not blocking: a person's input plays it.
+
+## Widget drag (2026-09-27)
+
+The user chose: desktop widgets can be dragged to a new place, as on the macOS desktop; widgets
+are **not** dimmed under a focused window (F443's optional look stays out). Branch from master
+e276242. Numbered F880, Q430, G330.
+
+- **F880 The reference (researched).** macOS Sonoma: a desktop widget is moved by pressing and
+  dragging it (no edit mode is needed since 14.0's desktop widgets; Intego's walkthrough enters
+  "Edit Widgets" first, MacMost's does not); near the edges and other widgets it snaps to an
+  invisible grid, with alignment guides; what a dragged widget passes over is pushed aside and
+  snaps back once the widget moves on; the place is kept. No measured lift was published (no
+  frame-accurate recording found), so the lift's size is ours (F884). Sources: MacMost "19 Tips
+  For Using Desktop Widgets On Your Mac"; Intego "How to Use Desktop Widgets on macOS Sonoma".
+  sill always snaps to its grid (`widgets.desktop_cell_px`, `desktop_gap_px`): it has no free
+  placement in the middle of the screen.
+- **F881 Storage: the state file, per output, no settings key.** Positions stay where F405 put
+  them, `$XDG_STATE_HOME/sill/desktop-widgets.json` (state, like the dock's pins), so **no
+  design/22 row is proposed** and `AWAITING_ROWS` is unchanged. Each entry gains `"output"`, the
+  connector name (`{"output": "DP-1", "kind": "calendar", "column": 8, "row": 1}`;
+  `saved::OutputKey::{Any, Named}`). An output with entries of its own reads only those; one
+  with none reads the entries with no output (the file as F405 wrote it, and any output whose
+  name the hand-written format cannot spell), so an old file carries over. Saving an output
+  replaces its own entries and keeps every other output's (`with_output`).
+- **F882 Output changes.** A saved place is clamped into the grid (`placement::clamp`): a
+  widget on an output that got smaller moves to the nearest edge, and when that cell is taken it
+  takes the nearest free one (`nearest_free`: least squared distance in cells, then the upper,
+  then the leftmost), no longer the first from the top right. A layout **never writes a
+  clamped place back** (`view::recorded`): only a widget seen for the first time is recorded,
+  and a drop records the arrangement dropped. So the place comes back when the output does. The
+  grid is still measured when the layer mounts (F440), so a live resize re-places on the next
+  spawn (G331).
+- **F883 The drag machine** (`drag.rs`, pure): `Hold::{Idle, Pressed, Live}` over
+  `DragInput::{Down, Move, Up}`. A press on a widget is `Pressed` and does nothing visible; only
+  Manhattan travel of `window.move_threshold_px` (4, the titlebar's; no widgets key was added)
+  makes it `Live`. While live the widget's corner is the pointer less where it was grabbed, and
+  `over` is the cell it snaps to (`arrange::snap`: nearest cell, clamped so it fits), none when
+  there is no room there. The release lands `Dropped { kind, layout }`: `make_room` at `over`, or
+  the old arrangement when there was no room (the widget glides back). A press between widgets
+  never reaches the layer (the input region is the frames).
+- **F884 Making room** (`arrange::make_room`, pure): the moved widget takes its cell; every other
+  widget keeps its resting place when that is clear of it; each covered one takes the free spot
+  nearest its resting place; none when one fits nowhere. It is worked out from the resting
+  places every time, so a widget pushed aside goes back when the dragged one moves on (F880).
+- **F885 Motion, all quire's `ds::detail::use_tween`** (`placed.rs`; no keyframes, no
+  transitions in sill CSS): the lift (`data-lift="up"`) scales the place to 1.04 over `--t-quick`
+  at `--e-out` (between quire's drag ghost, 1.02, and drop target, 1.045, design/04 section 34),
+  with `--shadow-drag` and `--z-drag` from the stylesheet; the dragged widget follows the pointer
+  1:1; every widget whose cell changes glides there over `--t-move`, at `--e-spring` for the one
+  the person dropped (the `Contact` is the mouseup's) and `--e-out` for those making room and for
+  a scripted drop (`Touch::Remote`, R5). The glide mixes the old and new corners by the tween's
+  `progress()`, a new run per cell (`Leg`), so a retarget starts from where the widget is drawn.
+  Reduced motion jumps inside the tween. At rest nothing asks for a frame.
+- **F886 Frame level only.** Everything is on the layer's wrapper (`.sill-dw-place`) and the grid:
+  no widget's own view or file changed, as quire's coming `widget-interface` branch asks.
+- **F887 A click still reaches a control.** A press on Now Playing's Next that does not travel
+  is a click on the button (the harness sees `MediaCommand::Press { Next }`). Blitz sends the
+  click to whatever is under the pointer at the release, and a dragged widget carries its
+  controls along under the pointer, so while live a transparent `.sill-dw-shield` covers the
+  dragged widget: a drag started on the button presses nothing (tested).
+- **F888 Input region.** Unchanged in kind: `RegionSpec::Elements` of the frames, which
+  shell-host resolves after every layout, so the region follows a dragged frame; it is re-sent
+  only when the set of widgets changes. The implicit grab keeps delivering the drag's moves when
+  the pointer is off the frames.
+- **F889 `sill debug widget-drag SURFACE {down|move|up} X Y`**
+  (`DebugRequest::WidgetDrag(FakeWidgetDrag { surface, phase: DragPhase, at })`, wire
+  `{"kind":"widget_drag","v":{"surface":..,"phase":"move","at":{..}}}`, pinned in `serde.rs`).
+  The daemon finds the layer's output and sends the input on `WidgetDragLink` (a broadcast, so
+  no step is coalesced); the layer feeds it to the same machine as its mouse handlers. Needed
+  because shell-host's `Inject` has only a whole click (G330).
+- **F890 Tests.** Table tests: `snap`, `make_room` (free cell, push, a medium's push, own cell,
+  no room, swap), `clamp` and the nearest-free re-place, the machine (click, wobble, a press
+  between widgets, past-and-back, live cell, three drops, making room and going back), the store
+  (round trip with and without `output`, skipped entries, unspellable names, per-output reads,
+  save keeps other outputs, file), `recorded`, `between`, the style. Harness on `Clock::Virtual`
+  (`tests/desktop_widgets_drag.rs`): the lift (lifted, shielded, following 1:1, scale 1.040),
+  the drop (glides, snaps to (560, 196), saved for DP-1), making room and going back and a kept
+  swap, and a click on Next against a drag from it; `assert_settles_to_zero_frames` after each
+  moment.
+- **F891 Acceptance** (`dev/accept-widgets.sh` on wayland-1, 2560 x 1600, new step 5
+  `step_drag`): PASS all seven. Before: Calendar 2379 15 2544 180, Battery 2379 195 2544 360.
+  Lifted: the widest frame 174 px (a cell is 164: the 1.04 scale and the drag shadow). Dropped:
+  the Calendar at 1479 375 (column 8, row 2). The Battery carried onto it and held: the Calendar
+  stepped up to row 1. After: 1479 195 and 1479 375, and the file reads
+  `{"output":"WINIT-0","kind":"calendar","column":8,"row":1}`,
+  `{"output":"WINIT-0","kind":"battery","column":8,"row":2}`. 0 frames in 5 s idle after.
+  Captures: `target/accept-widgets/drag-{before,lifted,dropped,room,after}.png`;
+  screenshots `dev/out/widgets-drag-lifted-cosmic.png`, `widgets-drag-room-cosmic.png`,
+  `widgets-drag-cosmic.png`.
+
+### Asks (quire)
+
+- **Q430 A lifted state on the frame, for `widget-interface`.** sill draws the lift on its own
+  wrapper (scale from `use_tween`, `--shadow-drag`, `--z-drag`), so the frame's own shadow and
+  rim stay the resting ones under it. Proposed: `WidgetFrame { lift: Lift::{Rest, Lifted} }`
+  owning the scale, the lifted shadow and its timing, so a desktop host passes the state only.
+- **Q431 A drop-slot guide.** Sonoma shows alignment guides while a widget is dragged. sill shows
+  none (it would be local drawing): a quiet slot outline at the cell a drag will land in, as a
+  quire part, would complete it.
+- **Q432 A point glide.** `use_tween` animates a share; sill mixes two corners by its
+  `progress()` and flips the target per move (`placed::use_glide`). A `use_glide(Point, spec)`
+  in `ds::detail` would say it directly.
+
+### Gaps
+
+- **G330 (shell-host, OPEN) `Inject` has no separate press, held move and release.** A drag on
+  the nested compositor cannot be scripted through the pointer path, so the acceptance drives
+  the layer's machine through `sill debug widget-drag` (F889). The DOM handlers are covered by
+  the harness; a real pointer drag is queued in `docs/manual-checks.md`.
+- **G331 (sill, OPEN) The grid is measured once.** An output resize while the layer is up does
+  not re-place until the layer is spawned again (F440 still holds).

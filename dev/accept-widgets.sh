@@ -21,8 +21,16 @@
 #      the layer over the wallpaper, with a window). Then shell-host's probe window, maximised,
 #      must hide the first frame (the layer is under windows). The placements are saved in the
 #      scratch `$XDG_STATE_HOME/sill/desktop-widgets.json`.
-#   5. 5 s idle: 0 frames on the desktop layer.
-#   6. A second toggle removes the surface and writes `widgets.desktop = "off"`.
+#   5. A scripted drag (FINDINGS "Widget drag"; `sill debug widget-drag`, since the nested
+#      compositor's injection has no separate press and release): the Calendar is pressed at its
+#      centre and carried left and down; mid-drag it is lifted (larger than a cell, under the
+#      pointer); dropped, it snaps to column 8 row 2. Then the Battery is carried onto that cell
+#      and held: the Calendar makes room, stepping up to row 1; dropped, the swap is kept. The
+#      file then names the output. Captures of the layer before, lifted, dropped, making room
+#      and after (target/accept-widgets/drag-*.png) and a screenshot after
+#      (dev/out/widgets-drag-cosmic.png).
+#   6. 5 s idle: 0 frames on the desktop layer.
+#   7. A second toggle removes the surface and writes `widgets.desktop = "off"`.
 #
 # Exit 0 when every step passed, 1 on a failure. Another sill daemon started from a
 # `target/*/sill run` is waited for (up to 10 minutes), so two shells never share the nested
@@ -332,7 +340,76 @@ EOF
     && [ "${covered:-0}" -gt 30 ]
 }
 
+# One step of a made-up drag on the desktop layer: PHASE X Y (layer px).
+drag_step() { sill debug widget-drag "$LAYER" "$@" >/dev/null; }
+
+# Carry a drag from X0 Y0 to X1 Y1 in 12 moves a frame apart, without releasing.
+drag_to() {
+  local x0=$1 y0=$2 x1=$3 y1=$4 i
+  drag_step down "$x0" "$y0" || return 1
+  for i in $(seq 12); do
+    drag_step move $(( x0 + (x1 - x0) * i / 12 )) $(( y0 + (y1 - y0) * i / 12 )) || return 1
+    sleep 0.016
+  done
+}
+
+# Whether frame line $1 ("L T R B") is at left $2 top $3, 164 square, give or take 3 px.
+frame_at() {
+  python3 -c '
+import sys
+l, t, r, b = map(int, sys.argv[1].split())
+x, y = int(sys.argv[2]), int(sys.argv[3])
+ok = abs(l - x) <= 3 and abs(t - y) <= 3 and abs(r - l + 1 - 164) <= 3 and abs(b - t + 1 - 164) <= 3
+sys.exit(0 if ok else 1)' "$1" "$2" "$3"
+}
+
 # 5.
+step_drag() {
+  local log="$OUT_DIR/drag.log" cal bat l t r b cx cy bx by lifted saved
+  : >"$log"
+  sill debug capture "$LAYER" "$OUT_DIR/drag-before.png" >>"$log" 2>&1 || return 1
+  desktop_frames "$OUT_DIR/drag-before.png" >"$OUT_DIR/drag-before.txt"
+  cal=$(sed -n 1p "$OUT_DIR/drag-before.txt"); bat=$(sed -n 2p "$OUT_DIR/drag-before.txt")
+  read -r l t r b <<<"$cal"
+  cx=$(( (l + r) / 2 )); cy=$(( (t + b) / 2 ))
+  read -r bx by _ _ <<<"$bat"; bx=$(( bx + 82 )); by=$(( by + 82 ))
+  echo "before: Calendar $cal, Battery $bat" | tee -a "$log" >&2
+  # The Calendar five cells left and two down (a cell and its gap are 180 px).
+  drag_to "$cx" "$cy" $(( cx - 900 )) $(( cy + 360 )) || return 1
+  sleep 0.5
+  sill debug capture "$LAYER" "$OUT_DIR/drag-lifted.png" >>"$log" 2>&1 || return 1
+  shot "$SHOTS/widgets-drag-lifted-cosmic.png" || echo "screenshot failed" >&2
+  lifted=$(desktop_frames "$OUT_DIR/drag-lifted.png" | python3 -c '
+import sys
+rows = [list(map(int, l.split())) for l in sys.stdin if l.strip()]
+print(max(r - l + 1 for l, t, r, b in rows))')
+  echo "lifted: the widest frame is $lifted px (a cell is 164)" | tee -a "$log" >&2
+  drag_step up $(( cx - 900 )) $(( cy + 360 )) || return 1
+  sleep 0.8
+  sill debug capture "$LAYER" "$OUT_DIR/drag-dropped.png" >>"$log" 2>&1 || return 1
+  desktop_frames "$OUT_DIR/drag-dropped.png" >"$OUT_DIR/drag-dropped.txt"
+  echo "dropped: $(tr '\n' ';' <"$OUT_DIR/drag-dropped.txt")" | tee -a "$log" >&2
+  frame_at "$(grep -v "^$l " "$OUT_DIR/drag-dropped.txt" | head -1)" $(( l - 900 )) $(( t + 360 )) \
+    || { echo "the Calendar did not snap to $(( l - 900 )),$(( t + 360 ))" | tee -a "$log" >&2; return 1; }
+  # The Battery onto the Calendar's new cell, held there: the Calendar makes room (row 1).
+  drag_to "$bx" "$by" $(( cx - 900 )) $(( cy + 360 )) || return 1
+  sleep 0.8
+  sill debug capture "$LAYER" "$OUT_DIR/drag-room.png" >>"$log" 2>&1 || return 1
+  shot "$SHOTS/widgets-drag-room-cosmic.png" || echo "screenshot failed" >&2
+  drag_step up $(( cx - 900 )) $(( cy + 360 )) || return 1
+  sleep 0.8
+  sill debug capture "$LAYER" "$OUT_DIR/drag-after.png" >>"$log" 2>&1 || return 1
+  shot "$SHOTS/widgets-drag-cosmic.png" || echo "screenshot failed" >&2
+  desktop_frames "$OUT_DIR/drag-after.png" >"$OUT_DIR/drag-after.txt"
+  saved=$(tr -d '\n ' <"$STATE/sill/desktop-widgets.json" 2>/dev/null)
+  echo "after: $(tr '\n' ';' <"$OUT_DIR/drag-after.txt") saved $saved" | tee -a "$log" >&2
+  [ "${lifted:-0}" -ge 168 ] \
+    && frame_at "$(sed -n 1p "$OUT_DIR/drag-after.txt")" $(( l - 900 )) $(( t + 180 )) \
+    && frame_at "$(sed -n 2p "$OUT_DIR/drag-after.txt")" $(( l - 900 )) $(( t + 360 )) \
+    && [[ "$saved" == *"\"output\":\"$NAME\""* ]]
+}
+
+# 6.
 step_desktop_idle() {
   local log="$OUT_DIR/desktop-idle.log" f0 f1
   clear_of_the_minute
@@ -343,7 +420,7 @@ step_desktop_idle() {
   [ "$(( f1 - f0 ))" = 0 ]
 }
 
-# 6.
+# 7.
 step_toggle_off() {
   local log="$OUT_DIR/toggle-off.log"
   kill_terms
@@ -364,7 +441,7 @@ done
 start_daemon || { stop_daemon; exit 1; }
 status=0
 for step in step_center_default step_center_all step_center_idle step_toggle_on \
-  step_desktop_idle step_toggle_off; do
+  step_drag step_desktop_idle step_toggle_off; do
   if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; fi
 done
 stop_daemon

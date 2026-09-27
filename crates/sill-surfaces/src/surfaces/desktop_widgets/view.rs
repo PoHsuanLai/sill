@@ -1,26 +1,30 @@
 //! The layer's root: a transparent root in the Widget material as large as the layer
 //! (`RootExtent::Viewport`), holding the grid. The grid measures itself once laid out, places
-//! `widgets.desktop_widgets` with `place` over `grid_size` (saved places first, from the
-//! [`PlacementFile`] when the root was given one), writes the placements back when they changed,
-//! draws each widget at its box, and keeps the surface's input and blur regions on the frames
-//! (`RegionSpec::Elements`), so a press between them reaches the desktop below. Nothing here
-//! runs a timer: the widgets redraw on their services' changes only.
+//! `widgets.desktop_widgets` with `place` over `grid_size` (this output's saved places first,
+//! from the [`PlacementFile`] when the root was given one), draws each widget at its box, lets a
+//! widget be dragged to another cell (`drag`, `placed`), and keeps the surface's input and blur
+//! regions on the frames (`RegionSpec::Elements`, resolved after every layout, so they follow a
+//! dragged frame), so a press between them reaches the desktop below. Nothing here runs a timer:
+//! the widgets redraw on their services' changes, and a drag's motion runs only while it moves.
 
 use dioxus::prelude::*;
+use ds::detail::{Ease, Touch};
 use ds::{BlurState, Ds, Material, Px, RootChrome, RootExtent, WakeStamp, WidgetMetrics, use_rect};
 use shell_host::{BlurSpec, ElementId, ElementRegion, OutputInfo, RegionSpec, SurfaceHandle};
 use sill_services::OutputName;
 use sill_settings::WidgetKind;
 
 use super::DESKTOP_WIDGETS_CSS;
-use super::geometry::{GridMetrics, place_box};
+use super::arrange::LayerPoint;
+use super::drag::{DragInput, DragWorld, Hold, Landing, shown, step};
+use super::geometry::{GridMetrics, PlaceBox, place_box};
+use super::link::WidgetDragLink;
+use super::placed::{Placed, Pose};
 use super::placement::{Placement, grid_size, place};
-use super::saved::PlacementFile;
+use super::saved::{OutputKey, PlacementFile};
 use crate::hooks::{use_appearance, use_ds_scale, use_settings, use_workspaces};
 use crate::surfaces::launcher::panel::active_look;
-use crate::widgets::{
-    Widget, WidgetHost, provide_widget_wake, size_of, widget_element_id, widgets_css,
-};
+use crate::widgets::{WidgetHost, provide_widget_wake, size_of, widget_element_id, widgets_css};
 
 /// The Widget material's corner (quire's recipe, `--m-radius` 20 px): the frames' regions round
 /// their corners by it.
@@ -56,67 +60,247 @@ pub(super) fn desktop(output: OutputInfo) -> Element {
                 kinds: widgets.desktop_widgets,
                 cell: widgets.desktop_cell_px.0,
                 gap: widgets.desktop_gap_px.0,
+                threshold: file.window.move_threshold_px.0,
+                output,
             }
         }
     }
 }
 
+/// What the grid last laid out: what a pointer input is resolved against.
+#[derive(Debug, Clone, PartialEq)]
+struct Laid {
+    rest: Vec<Placement>,
+    boxes: Vec<(WidgetKind, PlaceBox)>,
+    metrics: GridMetrics,
+    threshold: u32,
+}
+
+/// The last widget dropped, and who dropped it: it glides into its cell on a spring when the
+/// person's hand did, and is drawn above the others until the next drop.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Dropped {
+    kind: WidgetKind,
+    touch: Touch,
+}
+
 /// The widgets on their grid, once the layer's size is known.
 #[component]
-fn Grid(kinds: Vec<WidgetKind>, cell: u16, gap: u16) -> Element {
+fn Grid(
+    kinds: Vec<WidgetKind>,
+    cell: u16,
+    gap: u16,
+    threshold: u16,
+    output: OutputInfo,
+) -> Element {
     let probe = use_rect();
     let file = try_use_context::<PlacementFile>();
+    let key = OutputKey::of(output.name.as_deref());
     let mut kept =
-        use_hook(|| CopyValue::new(file.as_ref().map(PlacementFile::load).unwrap_or_default()));
-    let laid = probe.rect().map(|rect| {
+        use_hook(|| CopyValue::new(file.as_ref().map(|f| f.load(&key)).unwrap_or_default()));
+    let hold = use_signal(Hold::default);
+    let dropped = use_signal(|| None::<Dropped>);
+    let mut laid = use_hook(|| CopyValue::new(None::<Laid>));
+    let now = probe.rect().map(|rect| {
         let width = logical(rect.size.width.0);
         let grid = grid_size(width, logical(rect.size.height.0), cell, gap);
         let sized: Vec<_> = kinds
             .iter()
             .map(|kind| (*kind, size_of(*kind, WidgetHost::Desktop)))
             .collect();
-        let placements = place(&sized, &kept.peek(), grid);
         let metrics = GridMetrics {
             grid,
             layer_width: width,
             cell,
             gap,
         };
-        (placements, metrics)
-    });
-    let placements = laid.as_ref().map(|(p, _)| p.clone()).unwrap_or_default();
-    let merged = merged(&placements, &kept.peek());
-    if laid.is_some() && merged != *kept.peek() {
-        if let Some(file) = &file
-            && let Err(error) = file.save(&merged)
-        {
-            eprintln!("sill: saving {}: {error}", file.0.display());
+        let rest = place(&sized, &kept.peek(), grid);
+        Laid {
+            boxes: boxes(&rest, metrics),
+            rest,
+            metrics,
+            threshold: u32::from(threshold),
         }
-        kept.set(merged);
+    });
+    if let Some(now) = &now {
+        let recorded = recorded(&now.rest, &kept.peek());
+        if recorded != *kept.peek() {
+            save(file.as_ref(), &key, &recorded);
+            kept.set(recorded);
+        }
     }
-    use_regions(&placements);
-    let boxes: Vec<_> = laid
-        .map(|(placements, metrics)| {
-            placements
-                .into_iter()
-                .map(|p| {
-                    let size = size_of(p.kind, WidgetHost::Desktop);
-                    (p.kind, place_box(p.slot, size, metrics).style_attr())
-                })
-                .collect()
-        })
+    laid.set(now.clone());
+    let feed = Feeder {
+        hold,
+        dropped,
+        laid,
+        kept,
+        file: file.clone(),
+        key: key.clone(),
+    };
+    use_debug_drags(output.id, feed.clone());
+    let held = hold();
+    let on_screen = now
+        .as_ref()
+        .map(|l| shown(&held, &l.rest, l.metrics))
         .unwrap_or_default();
+    use_regions(&on_screen);
+    let places = now
+        .map(|l| draw_order(&on_screen, &held, dropped(), l.metrics))
+        .unwrap_or_default();
+    let (down, moved, up) = (feed.clone(), feed.clone(), feed);
     rsx! {
         div {
             class: "sill-dw-grid",
             style: grid_style(cell, gap),
             onmounted: move |event| probe.on_mounted(event),
-            for (kind, style) in boxes {
-                div { key: "{kind:?}", class: "sill-dw-place", style,
-                    Widget { kind, host: WidgetHost::Desktop }
+            onmousedown: move |event| down.pointer(&event, DragInput::Down),
+            onmousemove: move |event| moved.pointer(&event, DragInput::Move),
+            onmouseup: move |event| up.pointer(&event, DragInput::Up),
+            for (kind, target, pose, ease) in places {
+                Placed { key: "{kind:?}", kind, target, pose, ease }
+            }
+        }
+    }
+}
+
+/// Each widget's box at its resting cell.
+fn boxes(placements: &[Placement], metrics: GridMetrics) -> Vec<(WidgetKind, PlaceBox)> {
+    placements
+        .iter()
+        .map(|p| {
+            let size = size_of(p.kind, WidgetHost::Desktop);
+            (p.kind, place_box(p.slot, size, metrics))
+        })
+        .collect()
+}
+
+/// What each widget draws, in paint order: the dragged one (else the last dropped) last, so it
+/// is above the others.
+fn draw_order(
+    on_screen: &[Placement],
+    held: &Hold,
+    dropped: Option<Dropped>,
+    metrics: GridMetrics,
+) -> Vec<(WidgetKind, PlaceBox, Pose, Ease)> {
+    let lifted = held.lifted();
+    let top = lifted.map(|(kind, _)| kind).or(dropped.map(|d| d.kind));
+    let mut places: Vec<_> = boxes(on_screen, metrics)
+        .into_iter()
+        .map(|(kind, target)| {
+            let pose = match lifted {
+                Some((held, corner)) if held == kind => Pose::Lifted(corner),
+                Some(_) | None => Pose::Resting,
+            };
+            let ease = match dropped {
+                Some(Dropped {
+                    kind: last,
+                    touch: Touch::Contact(contact),
+                }) if last == kind => Ease::Spring(contact),
+                Some(_) | None => Ease::Out,
+            };
+            (kind, target, pose, ease)
+        })
+        .collect();
+    places.sort_by_key(|(kind, ..)| Some(*kind) == top);
+    places
+}
+
+/// Everything a pointer input needs, cheap to clone into each handler.
+#[derive(Clone)]
+struct Feeder {
+    hold: Signal<Hold>,
+    dropped: Signal<Option<Dropped>>,
+    laid: CopyValue<Option<Laid>>,
+    kept: CopyValue<Vec<Placement>>,
+    file: Option<PlacementFile>,
+    key: OutputKey,
+}
+
+impl Feeder {
+    /// A primary-button pointer event on the grid.
+    fn pointer(&self, event: &Event<MouseData>, input: fn(LayerPoint) -> DragInput) {
+        use dioxus::html::input_data::MouseButton;
+        use dioxus::html::point_interaction::{InteractionLocation, PointerInteraction};
+        let primary = match event.trigger_button() {
+            Some(MouseButton::Primary) | None => Primary::Yes,
+            Some(_) => Primary::No,
+        };
+        if primary == Primary::No {
+            return;
+        }
+        let at = event.client_coordinates();
+        let point = LayerPoint {
+            x: at.x.round() as i32,
+            y: at.y.round() as i32,
+        };
+        self.feed(input(point), Touch::from_event(event));
+    }
+
+    /// Step the drag with `input`; a drop becomes this output's saved places.
+    fn feed(&self, input: DragInput, touch: Touch) {
+        let Some(laid) = self.laid.peek().clone() else {
+            return;
+        };
+        let world = DragWorld {
+            rest: &laid.rest,
+            boxes: &laid.boxes,
+            metrics: laid.metrics,
+            threshold: laid.threshold,
+        };
+        let now = *self.hold.peek();
+        let (next, landing) = step(now, input, world);
+        let mut hold = self.hold;
+        if next != now {
+            hold.set(next);
+        }
+        match landing {
+            Landing::Nothing => {}
+            Landing::Dropped { kind, layout } => {
+                let saved = merged(&layout, &self.kept.peek());
+                save(self.file.as_ref(), &self.key, &saved);
+                let mut kept = self.kept;
+                kept.set(saved);
+                let mut dropped = self.dropped;
+                dropped.set(Some(Dropped { kind, touch }));
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Primary {
+    Yes,
+    No,
+}
+
+/// `sill debug widget-drag` for this output ([`WidgetDragLink`]), when the root has the link.
+fn use_debug_drags(output: shell_host::OutputId, feed: Feeder) {
+    let link = try_use_context::<WidgetDragLink>();
+    use_future(move || {
+        let link = link.clone();
+        let feed = feed.clone();
+        async move {
+            let Some(link) = link else {
+                return;
+            };
+            let mut asks = link.subscribe();
+            loop {
+                match asks.recv().await {
+                    Ok(ask) if ask.output == output => feed.feed(ask.input, Touch::Remote),
+                    Ok(_) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => return,
                 }
             }
         }
+    });
+}
+
+fn save(file: Option<&PlacementFile>, key: &OutputKey, placements: &[Placement]) {
+    if let Some(file) = file
+        && let Err(error) = file.save(key, placements)
+    {
+        eprintln!("sill: saving {}: {error}", file.0.display());
     }
 }
 
@@ -136,8 +320,28 @@ fn logical(length: f32) -> u32 {
     length.round().clamp(0.0, 1.0e9) as u32
 }
 
-/// The file's placements: this layer's, then every saved one of a kind it does not show (a
-/// widget taken off the desktop keeps its place for when it comes back).
+/// What the file keeps after a layout: every saved place as it was (a place clamped onto a
+/// smaller output is not written over, so it comes back when the output does), then the places
+/// of widgets that had none.
+fn recorded(placed: &[Placement], saved: &[Placement]) -> Vec<Placement> {
+    let first_seen = placed
+        .iter()
+        .filter(|p| saved.iter().all(|s| s.kind != p.kind));
+    placed
+        .iter()
+        .filter_map(|p| saved.iter().find(|s| s.kind == p.kind))
+        .chain(
+            saved
+                .iter()
+                .filter(|s| placed.iter().all(|p| p.kind != s.kind)),
+        )
+        .chain(first_seen)
+        .copied()
+        .collect()
+}
+
+/// A drop's places: this layer's, then every saved one of a kind it does not show (a widget
+/// taken off the desktop keeps its place for when it comes back).
 fn merged(placed: &[Placement], saved: &[Placement]) -> Vec<Placement> {
     let others = saved
         .iter()
@@ -164,12 +368,14 @@ pub fn widget_regions(placements: &[Placement]) -> (RegionSpec, BlurSpec) {
     )
 }
 
-/// Keep the surface's regions on the placed frames, sending them only when they change. Nothing
-/// to do without a host (a test, an SSR render).
+/// Keep the surface's regions on the placed frames, sending them only when the set of widgets
+/// changes (the regions are the frames' elements, resolved after each layout, so they follow a
+/// frame that moves). Nothing to do without a host (a test, an SSR render).
 fn use_regions(placements: &[Placement]) {
     let surface = try_use_context::<SurfaceHandle>();
-    let mut last = use_hook(|| CopyValue::new(None::<Vec<Placement>>));
-    if last.peek().as_deref() == Some(placements) {
+    let mut last = use_hook(|| CopyValue::new(None::<Vec<WidgetKind>>));
+    let kinds: Vec<WidgetKind> = placements.iter().map(|p| p.kind).collect();
+    if last.peek().as_deref() == Some(kinds.as_slice()) {
         return;
     }
     if let Some(surface) = surface {
@@ -177,53 +383,9 @@ fn use_regions(placements: &[Placement]) {
         surface.set_input_region(input);
         surface.set_blur(blur);
     }
-    last.set(Some(placements.to_vec()));
+    last.set(Some(kinds));
 }
 
 #[cfg(test)]
-mod tests {
-    use shell_host::{BlurSpec, RegionSpec};
-    use sill_settings::WidgetKind;
-
-    use super::{merged, widget_regions};
-    use crate::surfaces::desktop_widgets::placement::{GridSlot, Placement};
-
-    fn at(kind: WidgetKind, column: u16, row: u16) -> Placement {
-        Placement {
-            kind,
-            slot: GridSlot { column, row },
-        }
-    }
-
-    #[test]
-    fn a_widget_taken_off_keeps_its_saved_place() {
-        let placed = [at(WidgetKind::Battery, 9, 0)];
-        let saved = [at(WidgetKind::Battery, 8, 0), at(WidgetKind::UpNext, 1, 1)];
-        assert_eq!(
-            merged(&placed, &saved),
-            vec![at(WidgetKind::Battery, 9, 0), at(WidgetKind::UpNext, 1, 1)]
-        );
-        assert_eq!(merged(&[], &[]), Vec::new());
-    }
-
-    #[test]
-    fn the_regions_are_the_frames_or_nothing() {
-        assert_eq!(widget_regions(&[]), (RegionSpec::Empty, BlurSpec::None));
-        let (input, blur) = widget_regions(&[
-            at(WidgetKind::Calendar, 0, 0),
-            at(WidgetKind::Battery, 1, 0),
-        ]);
-        let RegionSpec::Elements(regions) = &input else {
-            panic!("element regions: {input:?}");
-        };
-        let ids: Vec<_> = regions.iter().map(|r| r.id.clone()).collect();
-        assert_eq!(
-            ids,
-            vec![
-                shell_host::ElementId::new("widget-calendar"),
-                shell_host::ElementId::new("widget-battery"),
-            ]
-        );
-        assert_eq!(blur, BlurSpec::Region(input.clone()));
-    }
-}
+#[path = "view_tests.rs"]
+mod tests;

@@ -863,6 +863,13 @@ fn dispatch_debug(
         DebugRequest::Notify(_) => unsupported("a made-up notification is answered elsewhere"),
         DebugRequest::Screenshot(_) => unsupported("a made-up screenshot is answered elsewhere"),
         DebugRequest::Corner(_) => unsupported("a made-up corner hit is answered elsewhere"),
+        DebugRequest::WidgetDrag(fake) => {
+            let name = shell_host::SurfaceName(fake.surface.0.clone());
+            match ctx.surface_named(&name) {
+                Some(id) => crate::widgets::debug_drag(outputs, id, fake.phase, fake.at),
+                None => unknown_surface(&fake.surface),
+            }
+        }
         DebugRequest::Auth(_) => unsupported("a made-up verdict is answered elsewhere"),
         DebugRequest::Polkit(_) => unsupported("a made-up polkit request is answered elsewhere"),
         DebugRequest::Switcher(_) => unsupported("a made-up switcher is answered elsewhere"),

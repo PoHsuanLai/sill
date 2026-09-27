@@ -11,7 +11,9 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-use crate::desktop::{FakeCorner, FakeScreenshot, ScreenshotRequest, WidgetsRequest};
+use crate::desktop::{
+    FakeCorner, FakeScreenshot, FakeWidgetDrag, ScreenshotRequest, WidgetsRequest,
+};
 use crate::launcher::{ClipboardRequest, FakeLauncherKey};
 use crate::session::{
     FakeAuth, FakePolkit, FakeSwitcher, LockRequest, PolkitRequest, SwitcherRequest,
@@ -187,6 +189,8 @@ pub enum DebugRequest {
     Screenshot(FakeScreenshot),
     /// Carry out a hot corner's action as if its dwell had run out (`dev/accept-hot-corners.sh`).
     Corner(FakeCorner),
+    /// A made-up press, move or release on a desktop widget layer (`dev/accept-widgets.sh`).
+    WidgetDrag(FakeWidgetDrag),
     /// Feed the lock screen's password check a made-up verdict; refused by a daemon built
     /// without `debug` (`dev/accept-lock.sh`, on the nested compositor only).
     Auth(FakeAuth),

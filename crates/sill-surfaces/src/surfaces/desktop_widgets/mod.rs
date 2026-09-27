@@ -1,21 +1,27 @@
-//! The desktop widget layer (design/20 §1.14; macOS Sonoma's desktop widgets; M10 lane b,
-//! frozen as a skeleton): the widgets `widgets.desktop_widgets` names, placed on a grid over the
-//! wallpaper and under every window, shown while `widgets.desktop` is `On`. One surface per
-//! output ([`layer::desktop_layer`]); its input and blur regions are the widgets' frames only,
-//! so a click between them reaches the desktop below. Where each widget sits is saved state
-//! (`$XDG_STATE_HOME/sill/desktop-widgets.json`), placed by [`placement::place`]; dragging a
-//! widget to another cell is later work (it wants a drag within the surface, which is plain
-//! pointer events, not shell-host's G4).
+//! The desktop widget layer (design/20 §1.14; macOS Sonoma's desktop widgets; M10 lane b): the
+//! widgets `widgets.desktop_widgets` names, placed on a grid over the wallpaper and under every
+//! window, shown while `widgets.desktop` is `On`. One surface per output
+//! ([`layer::desktop_layer`]); its input and blur regions are the widgets' frames only, so a
+//! click between them reaches the desktop below. Where each widget sits is saved state, per
+//! output (`$XDG_STATE_HOME/sill/desktop-widgets.json`, [`saved`]), placed by
+//! [`placement::place`]; a widget is moved by dragging it (FINDINGS "Widget drag": [`drag`],
+//! [`arrange`], [`placed`]), plain pointer events on the layer, at the frame level: nothing inside
+//! a widget's own view takes part.
 
+pub mod arrange;
+pub mod drag;
 pub mod geometry;
 pub mod layer;
+pub mod link;
+pub mod placed;
 pub mod placement;
 pub mod saved;
 mod view;
 
 pub use layer::desktop_layer;
+pub use link::{DragAsk, WidgetDragLink};
 pub use placement::{GridSize, GridSlot, Placement, grid_size, place};
-pub use saved::PlacementFile;
+pub use saved::{OutputKey, PlacementFile};
 pub use view::{WIDGET_RADIUS, widget_regions};
 
 use dioxus::prelude::*;

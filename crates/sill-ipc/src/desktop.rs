@@ -59,3 +59,23 @@ pub enum CornerName {
 pub struct FakeCorner {
     pub corner: CornerName,
 }
+
+/// `sill debug widget-drag SURFACE PHASE X Y`: a made-up press, move or release at `at`
+/// (surface-local logical px) on a desktop widget layer, fed to its drag machine as its pointer
+/// would be (sill FINDINGS "Widget drag": the nested compositor's injection has no separate press
+/// and release).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FakeWidgetDrag {
+    pub surface: crate::request::SurfaceName,
+    pub phase: DragPhase,
+    pub at: crate::request::Point,
+}
+
+/// Which pointer input a made-up widget drag step is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DragPhase {
+    Down,
+    Move,
+    Up,
+}
