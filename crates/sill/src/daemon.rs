@@ -102,8 +102,8 @@ pub fn run() -> ExitCode {
         services.polkit_control.clone(),
     );
     // Q420 B: sill's own idle follows `idle.*` and `session.lock_grace_s`; the service is
-    // passive until this first policy (a freeze no-op until the idle fill; FINDINGS "sill idle
-    // (Q420 B)").
+    // passive until this first policy, and `Off` anywhere but a sill session with no cosmic-idle
+    // (FINDINGS "sill idle (Q420 B)", "sill idle fill").
     crate::idle::spawn_policy(
         runtime.handle(),
         settings_feed.0.clone(),
@@ -796,6 +796,7 @@ fn dispatch_request(
         Request::LockStatus(_) => crate::lock::status(services),
         Request::Polkit(request) => crate::polkit::dispatch(services, request),
         Request::Clipboard(request) => crate::clipboard::dispatch(services, request),
+        Request::Idle(request) => crate::idle::dispatch(services, request),
     }
 }
 

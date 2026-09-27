@@ -1,0 +1,168 @@
+//! Idle's Wayland thread: its own connection to [`IdleDisplay`] (a protocol object cannot cross
+//! connections), `ext_idle_notifier_v1` for the watches (`get_idle_notification`, which honours
+//! the compositor's idle inhibitors; never the input form, F905), and
+//! `zwlr_output_power_manager_v1` with one `zwlr_output_power_v1` per `wl_output` for the
+//! displays. A calloop loop runs over the connection and the service's [`Order`]s. Dropping the
+//! [`Wire`] ends the thread and with it the connection.
+
+use std::io;
+use std::os::unix::net::UnixStream;
+
+use cosmic_client_toolkit::sctk::reexports::calloop::channel::{self, Event};
+use cosmic_client_toolkit::sctk::reexports::calloop::{self, EventLoop};
+use cosmic_client_toolkit::sctk::reexports::calloop_wayland_source::WaylandSource;
+use cosmic_client_toolkit::wayland_client::globals::{GlobalError, registry_queue_init};
+use cosmic_client_toolkit::wayland_client::{ConnectError, Connection};
+use tokio::sync::mpsc::UnboundedSender;
+
+use super::model::IdleDisplay;
+use super::policy::{Threshold, Watch};
+use super::reduce::DisplayPower;
+use super::wl_state::WlState;
+
+/// Which connection an event came from: the service drops what an older one says.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct Epoch(pub(super) u64);
+
+/// What the thread saw.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum WlEvent {
+    /// Connected; whether the two protocols are there.
+    Bound(Protocols),
+    /// `idled` on the watch of that threshold.
+    Idled(Threshold),
+    /// `resumed`: real input after an `idled`.
+    Resumed,
+    /// The thread ended (no compositor, or it went away).
+    Gone,
+}
+
+/// Which of idle's protocols the compositor offers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct Protocols {
+    pub(super) notifier: Offered,
+    pub(super) output_power: Offered,
+}
+
+/// Whether a global is offered.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Offered {
+    Yes,
+    No,
+}
+
+/// An event, tagged with its connection.
+#[derive(Debug)]
+pub(super) struct Heard {
+    pub(super) epoch: Epoch,
+    pub(super) event: WlEvent,
+}
+
+/// How the thread reports to the service's task.
+#[derive(Debug, Clone)]
+pub(super) struct Tell {
+    epoch: Epoch,
+    to: UnboundedSender<Heard>,
+}
+
+impl Tell {
+    pub(super) fn new(epoch: Epoch, to: UnboundedSender<Heard>) -> Tell {
+        Tell { epoch, to }
+    }
+
+    pub(super) fn say(&self, event: WlEvent) {
+        // The service outlives every thread it starts; a closed channel means it is ending.
+        let _ = self.to.send(Heard {
+            epoch: self.epoch,
+            event,
+        });
+    }
+}
+
+/// What the service tells the thread.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum Order {
+    /// Hold these notifications: an unchanged watch is kept (its timer runs on, G342); one that
+    /// idled is kept until it resumes, so the wake is never lost.
+    Watch(Vec<Watch>),
+    Displays(DisplayPower),
+}
+
+/// A running connection; dropping it ends the thread.
+#[derive(Debug)]
+pub(super) struct Wire {
+    orders: channel::Sender<Order>,
+}
+
+impl Wire {
+    pub(super) fn order(&self, order: Order) {
+        // The thread has ended (the compositor went away); it said so, and orders are moot.
+        let _ = self.orders.send(order);
+    }
+}
+
+/// Start a thread connected to `display`.
+pub(super) fn start(display: IdleDisplay, tell: Tell) -> io::Result<Wire> {
+    let (orders, from_service) = channel::channel();
+    std::thread::Builder::new()
+        .name("sill-idle".to_owned())
+        .spawn(move || run(&display, from_service, tell))?;
+    Ok(Wire { orders })
+}
+
+/// Why the thread is not following a compositor.
+#[derive(Debug, thiserror::Error)]
+enum Refusal {
+    #[error("no Wayland socket: {0}")]
+    Socket(io::Error),
+    #[error("no Wayland connection: {0}")]
+    Connect(#[from] ConnectError),
+    #[error("the registry: {0}")]
+    Registry(#[from] GlobalError),
+    #[error("the event loop: {0}")]
+    Loop(#[from] calloop::Error),
+}
+
+fn run(display: &IdleDisplay, orders: channel::Channel<Order>, tell: Tell) {
+    if let Err(refusal) = follow(display, orders, tell.clone()) {
+        eprintln!("sill: idle: {refusal}; idle is not followed");
+    }
+    tell.say(WlEvent::Gone);
+}
+
+fn connect(display: &IdleDisplay) -> Result<Connection, Refusal> {
+    Ok(match display {
+        IdleDisplay::Environment => Connection::connect_to_env()?,
+        IdleDisplay::Socket(path) => {
+            Connection::from_socket(UnixStream::connect(path).map_err(Refusal::Socket)?)?
+        }
+    })
+}
+
+/// Bind, report, and run the loop until the service drops its [`Wire`] or the compositor goes.
+fn follow(
+    display: &IdleDisplay,
+    orders: channel::Channel<Order>,
+    tell: Tell,
+) -> Result<(), Refusal> {
+    let conn = connect(display)?;
+    let (globals, queue) = registry_queue_init::<WlState>(&conn)?;
+    let qh = queue.handle();
+    let mut state = WlState::bind(&globals, qh, tell.clone());
+    tell.say(WlEvent::Bound(state.protocols()));
+    let mut event_loop = EventLoop::<WlState>::try_new()?;
+    let handle = event_loop.handle();
+    let signal = event_loop.get_signal();
+    WaylandSource::new(conn, queue)
+        .insert(handle.clone())
+        .map_err(|error| error.error)?;
+    handle
+        .insert_source(orders, move |event, _, state: &mut WlState| match event {
+            Event::Msg(Order::Watch(watches)) => state.watch(watches),
+            Event::Msg(Order::Displays(power)) => state.displays(power),
+            Event::Closed => signal.stop(),
+        })
+        .map_err(|error| error.error)?;
+    event_loop.run(None, &mut state, |_| {})?;
+    Ok(())
+}

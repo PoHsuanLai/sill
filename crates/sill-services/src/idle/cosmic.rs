@@ -75,15 +75,33 @@ pub enum CosmicIdle {
 /// seconds (and `Some(0)` is `Never`, as cosmic-idle treats a zero timer); surrounding
 /// whitespace is ignored; anything else is `Unreadable`.
 pub fn parse_cosmic_value(text: &str) -> CosmicValue {
-    let _ = text;
-    todo!("idle fill: F901")
+    let text = text.trim();
+    if text == "None" {
+        return CosmicValue::Set(Timeout::Never);
+    }
+    let ms = text
+        .strip_prefix("Some(")
+        .and_then(|rest| rest.strip_suffix(')'))
+        .and_then(|inner| inner.trim().parse::<u32>().ok());
+    match ms {
+        None => CosmicValue::Unreadable,
+        Some(0) => CosmicValue::Set(Timeout::Never),
+        Some(ms) => CosmicValue::Set(Timeout::After(IdleSecs(ms.div_ceil(1_000)))),
+    }
 }
 
 /// The three times from `read` (a key's text from the user's directory, else the system's, else
 /// `None`), each falling back to [`CosmicKey::fallback`] when missing or unreadable.
 pub fn cosmic_times(read: impl Fn(CosmicKey) -> Option<String>) -> CosmicIdleTimes {
-    let _ = read;
-    todo!("idle fill: F901")
+    let time = |key: CosmicKey| match read(key).map(|text| parse_cosmic_value(&text)) {
+        Some(CosmicValue::Set(timeout)) => timeout,
+        Some(CosmicValue::Unreadable) | None => key.fallback(),
+    };
+    CosmicIdleTimes {
+        screen_off: time(CosmicKey::ScreenOffTime),
+        suspend_ac: time(CosmicKey::SuspendOnAcTime),
+        suspend_battery: time(CosmicKey::SuspendOnBatteryTime),
+    }
 }
 
 #[cfg(test)]

@@ -14,6 +14,7 @@ use std::path::PathBuf;
 use crate::desktop::{
     FakeCorner, FakeScreenshot, FakeWidgetDrag, ScreenshotRequest, WidgetsRequest,
 };
+use crate::idle::IdleRequest;
 use crate::launcher::{ClipboardRequest, FakeLauncherKey};
 use crate::session::{
     FakeAuth, FakePolkit, FakeSwitcher, LockRequest, PolkitRequest, SwitcherRequest,
@@ -60,6 +61,8 @@ pub enum Request {
     Polkit(PolkitRequest),
     /// The clipboard history (`sill clipboard status|clear`, M9).
     Clipboard(ClipboardRequest),
+    /// sill's own idle (`sill idle status`; FINDINGS "sill idle fill").
+    Idle(IdleRequest),
 }
 
 /// `sill notifications ...`. The center opens on the output the daemon picks (the first with a

@@ -53,7 +53,6 @@ fn run(events: &[IdleEvent]) -> (IdleState, Vec<IdleEffect>) {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn passive_until_the_first_policy() {
     let (state, effects) = run(&[
         IdleEvent::Idled(Threshold::ScreenOff, Stamp(1)),
@@ -65,7 +64,6 @@ fn passive_until_the_first_policy() {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn dim_then_off_locks_first_and_a_quick_wake_earns_the_grace() {
     let (state, effects) = run(&[
         IdleEvent::Policy(own()),
@@ -102,7 +100,6 @@ fn dim_then_off_locks_first_and_a_quick_wake_earns_the_grace() {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn input_during_the_dim_undims_and_nothing_locks() {
     let (state, effects) = run(&[
         IdleEvent::Policy(own()),
@@ -115,7 +112,6 @@ fn input_during_the_dim_undims_and_nothing_locks() {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn an_earlier_lock_keeps_its_cause_and_gets_no_grace() {
     let asked = LockSeen {
         cause: Some(LockCause::Action),
@@ -135,7 +131,6 @@ fn an_earlier_lock_keeps_its_cause_and_gets_no_grace() {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn a_sleep_after_the_idle_lock_marks_the_case() {
     let (_, effects) = run(&[
         IdleEvent::Policy(own()),
@@ -160,7 +155,6 @@ fn a_sleep_after_the_idle_lock_marks_the_case() {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn turning_off_undoes_what_idle_did() {
     let (state, effects) = run(&[
         IdleEvent::Policy(own()),

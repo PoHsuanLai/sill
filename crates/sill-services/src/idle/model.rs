@@ -10,10 +10,10 @@ use crate::battery::Battery;
 use crate::control::Control;
 use crate::locker::{Lock, LockerCommand};
 
-use super::inhibit::Inhibition;
+use super::inhibit::{Inhibition, LogindIdle};
 use super::policy::{DimLevel, IdleConfig, IdleMode, IdlePolicy, PowerSource};
 
-/// What surfaces (the dim overlay) and a later `sill idle status` read.
+/// What surfaces (the dim overlay) and `sill idle status` read.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Idle {
     pub mode: IdleMode,
@@ -22,6 +22,10 @@ pub struct Idle {
     pub dim: DimShown,
     pub power: PowerSource,
     pub inhibition: Inhibition,
+    /// `org.freedesktop.ScreenSaver` inhibits held (Q446's `sill idle status`).
+    pub inhibits: u32,
+    /// Whether logind's `BlockInhibited` names `idle`.
+    pub logind: LogindIdle,
 }
 
 /// Where idleness has got to.

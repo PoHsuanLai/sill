@@ -4,7 +4,8 @@
 
 use clap::{Args, Subcommand, ValueEnum};
 use sill_ipc::{
-    FakeAuth, FakePolkit, FakeSwitcher, LockRequest, PolkitRequest, Request, SwitcherRequest,
+    FakeAuth, FakePolkit, FakeSwitcher, IdleRequest, LockRequest, PolkitRequest, Request,
+    SwitcherRequest,
 };
 
 /// `sill switcher ...`.
@@ -26,6 +27,13 @@ pub enum LockVerb {
     /// Lock the screen now with the configured locker.
     Now,
     /// Print what the lock screen is doing.
+    Status,
+}
+
+/// `sill idle ...` (FINDINGS "sill idle fill").
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
+pub enum IdleAction {
+    /// Who owns idle, where it has got to, and what holds it off.
     Status,
 }
 
@@ -69,6 +77,13 @@ pub fn lock_request(verb: LockVerb) -> Request {
     match verb {
         LockVerb::Now => Request::Lock,
         LockVerb::Status => Request::LockStatus(LockRequest::Status),
+    }
+}
+
+/// The request `sill idle ACTION` sends.
+pub fn idle_request(action: IdleAction) -> Request {
+    match action {
+        IdleAction::Status => Request::Idle(IdleRequest::Status),
     }
 }
 

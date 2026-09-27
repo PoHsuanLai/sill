@@ -16,7 +16,7 @@
 
 use crate::locker::{LockCause, LockDrawer};
 
-use super::policy::LockGrace;
+use super::policy::{IdleSecs, LockGrace};
 
 /// Milliseconds from the displays going off (the idle lock's instant) to the wake.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -52,8 +52,27 @@ pub enum GraceVerdict {
 
 /// The rule (module doc).
 pub fn grace_verdict(case: &GraceCase) -> GraceVerdict {
-    let _ = case;
-    todo!("idle fill: F908's table")
+    let LockGrace(IdleSecs(grace_s)) = case.grace;
+    let within = case.woke.0 < u64::from(grace_s) * 1_000;
+    match (case.cause, case.drawer, case.sleep, within) {
+        (Some(LockCause::IdleScreenOff), LockDrawer::Shell, SleepSince::NoSleep, true) => {
+            GraceVerdict::NoPassword
+        }
+        (
+            Some(
+                LockCause::IdleScreenOff
+                | LockCause::Action
+                | LockCause::Logind
+                | LockCause::Sleep
+                | LockCause::Restored
+                | LockCause::Adopted,
+            )
+            | None,
+            LockDrawer::Shell | LockDrawer::Program,
+            SleepSince::NoSleep | SleepSince::Slept,
+            true | false,
+        ) => GraceVerdict::Ask,
+    }
 }
 
 /// Proof that [`grace_verdict`] said `NoPassword`: the only way to build one is [`ticket`], so

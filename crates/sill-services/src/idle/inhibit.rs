@@ -84,20 +84,68 @@ pub enum LogindIdle {
 /// `inhibitors` after `msg`, and the reply. Cookies count up from 1 and skip 0 on wrap; an
 /// `UnInhibit` only releases a cookie its own peer holds.
 pub fn inhibit_step(inhibitors: Inhibitors, msg: InhibitMsg) -> (Inhibitors, InhibitReply) {
-    let _ = (inhibitors, msg);
-    todo!("idle fill: F905")
+    let Inhibitors { mut held, last } = inhibitors;
+    match msg {
+        InhibitMsg::Inhibit { peer, app, reason } => {
+            let cookie = next_cookie(last, &held);
+            held.push(Inhibitor {
+                cookie,
+                peer,
+                app,
+                reason,
+            });
+            let next = Inhibitors {
+                held,
+                last: cookie.0,
+            };
+            (next, InhibitReply::Cookie(cookie))
+        }
+        InhibitMsg::UnInhibit { peer, cookie } => {
+            let found = held
+                .iter()
+                .position(|held| held.cookie == cookie && held.peer == peer);
+            let reply = match found {
+                Some(at) => {
+                    held.remove(at);
+                    InhibitReply::Done
+                }
+                None => InhibitReply::Unknown,
+            };
+            (Inhibitors { held, last }, reply)
+        }
+        InhibitMsg::PeerGone(peer) => {
+            held.retain(|held| held.peer != peer);
+            (Inhibitors { held, last }, InhibitReply::Done)
+        }
+    }
+}
+
+/// The cookie after `last`: never zero, never one still held.
+fn next_cookie(last: u32, held: &[Inhibitor]) -> InhibitCookie {
+    let mut next = last;
+    loop {
+        next = next.wrapping_add(1);
+        if next != 0 && !held.iter().any(|held| held.cookie.0 == next) {
+            return InhibitCookie(next);
+        }
+    }
 }
 
 /// `BlockInhibited`'s text (`"handle-power-key:idle:sleep"`) read as [`LogindIdle`].
 pub fn logind_idle(block_inhibited: &str) -> LogindIdle {
-    let _ = block_inhibited;
-    todo!("idle fill: F905")
+    if block_inhibited.split(':').any(|what| what == "idle") {
+        LogindIdle::Blocked
+    } else {
+        LogindIdle::Free
+    }
 }
 
 /// Held when any `ScreenSaver` inhibit is held or logind blocks idle.
 pub fn inhibition(inhibitors: &Inhibitors, logind: LogindIdle) -> Inhibition {
-    let _ = (inhibitors, logind);
-    todo!("idle fill: F905")
+    match (inhibitors.held.is_empty(), logind) {
+        (true, LogindIdle::Free) => Inhibition::Free,
+        (false, _) | (_, LogindIdle::Blocked) => Inhibition::Held,
+    }
 }
 
 #[cfg(test)]

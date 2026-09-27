@@ -63,7 +63,7 @@ pub(super) async fn connect() -> Logind {
 /// This process's session: by pid (sill started from the session script), else
 /// `XDG_SESSION_ID`, else the user's display session (sill as a systemd user service, which
 /// logind places in no session).
-async fn session_path(
+pub(crate) async fn session_path(
     connection: &Connection,
     manager: &ManagerProxy<'_>,
 ) -> Option<OwnedObjectPath> {
@@ -109,7 +109,7 @@ where
 }
 
 /// [`next`] for a stream that might not exist: `None` never resolves.
-pub(super) async fn next_opt<S>(stream: &mut Option<S>) -> Option<S::Item>
+pub(crate) async fn next_opt<S>(stream: &mut Option<S>) -> Option<S::Item>
 where
     S: Stream + Unpin,
 {

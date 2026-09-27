@@ -4,8 +4,9 @@
 //! battery from the battery service) and [`watches`] (which `ext-idle-notify-v1` notifications
 //! to hold). sill FINDINGS "sill idle (Q420 B)" F900-F906.
 
-use crate::battery::Battery;
+use crate::battery::{Battery, Charge};
 use crate::locker::Host;
+use crate::units::Presence;
 
 use super::cosmic::{CosmicIdle, CosmicIdleTimes};
 
@@ -164,21 +165,41 @@ pub enum LockView {
 /// Who owns idle here: `Own` only in a sill session with no cosmic-idle running; else `Off`
 /// with the reason (cosmic-session first, then a guest session, then a running cosmic-idle).
 pub fn resolve_mode(host: Host, cosmic_idle: CosmicIdle) -> IdleMode {
-    let _ = (host, cosmic_idle);
-    todo!("idle fill: F906's table")
+    match (host, cosmic_idle) {
+        (Host::CosmicSession, _) => IdleMode::Off(OffReason::CosmicSession),
+        (Host::Guest, _) => IdleMode::Off(OffReason::Guest),
+        (Host::SillSession, CosmicIdle::Running) => IdleMode::Off(OffReason::CosmicIdleRunning),
+        (Host::SillSession, CosmicIdle::Absent) => IdleMode::Own,
+    }
 }
 
 /// The times in force: sill's own, or COSMIC's (one screen-off time for both sources).
 pub fn effective_times(choice: TimesChoice, cosmic: CosmicIdleTimes) -> IdleTimes {
-    let _ = (choice, cosmic);
-    todo!("idle fill: F901")
+    match choice {
+        TimesChoice::Own(times) => times,
+        TimesChoice::Cosmic => IdleTimes {
+            screen_off: PowerPair {
+                ac: cosmic.screen_off,
+                battery: cosmic.screen_off,
+            },
+            suspend: PowerPair {
+                ac: cosmic.suspend_ac,
+                battery: cosmic.suspend_battery,
+            },
+        },
+    }
 }
 
 /// AC or battery from the battery service: `Battery` while discharging (or empty), else `Ac`;
 /// a machine with no battery is always on AC.
 pub fn power_source(battery: &Battery) -> PowerSource {
-    let _ = battery;
-    todo!("idle fill: F901")
+    match (battery.presence, battery.charge) {
+        (Presence::Present, Charge::Discharging | Charge::Empty) => PowerSource::Battery,
+        (Presence::Absent, _)
+        | (Presence::Present, Charge::Unknown | Charge::Charging | Charge::Full | Charge::Idle) => {
+            PowerSource::Ac
+        }
+    }
 }
 
 /// The notifications to hold for `policy` on `power` while the session is `lock`: none when the
@@ -186,8 +207,45 @@ pub fn power_source(battery: &Battery) -> PowerSource {
 /// `Suspend`, each only when its time is not `Never`; a dim lead longer than the screen-off time
 /// dims from the start of idleness (after zero seconds is never asked: at least one second).
 pub fn watches(policy: &IdlePolicy, power: PowerSource, lock: LockView) -> Vec<Watch> {
-    let _ = (policy, power, lock);
-    todo!("idle fill: F903")
+    match policy.mode {
+        IdleMode::Off(_) => return Vec::new(),
+        IdleMode::Own => {}
+    }
+    let off = match lock {
+        LockView::Unlocked => (Threshold::ScreenOff, policy.times.screen_off.on(power)),
+        LockView::Locked => (Threshold::LockedScreenOff, locked_off(policy, power)),
+    };
+    let dim = match (policy.dim.lead, off.1) {
+        (IdleSecs(0), _) | (_, Timeout::Never) => None,
+        (IdleSecs(lead), Timeout::After(IdleSecs(at))) => Some(Watch {
+            stage: Threshold::Dim,
+            after: IdleSecs(at.saturating_sub(lead).max(1)),
+        }),
+    };
+    let after = |(stage, time): (Threshold, Timeout)| match time {
+        Timeout::Never => None,
+        Timeout::After(after) => Some(Watch { stage, after }),
+    };
+    let suspend = after((Threshold::Suspend, policy.times.suspend.on(power)));
+    dim.into_iter().chain(after(off)).chain(suspend).collect()
+}
+
+/// The lock screen's own screen-off time, or the normal one when it is zero.
+fn locked_off(policy: &IdlePolicy, power: PowerSource) -> Timeout {
+    match policy.locked_off {
+        LockedScreenOff(IdleSecs(0)) => policy.times.screen_off.on(power),
+        LockedScreenOff(secs) => Timeout::After(secs),
+    }
+}
+
+impl PowerPair {
+    /// The time for `power`.
+    pub fn on(self, power: PowerSource) -> Timeout {
+        match power {
+            PowerSource::Ac => self.ac,
+            PowerSource::Battery => self.battery,
+        }
+    }
 }
 
 #[cfg(test)]

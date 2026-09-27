@@ -6,6 +6,7 @@
 
 pub mod desktop;
 pub mod error;
+pub mod idle;
 pub mod launcher;
 pub mod line;
 pub mod request;
@@ -17,6 +18,10 @@ pub use desktop::{
     WidgetsRequest,
 };
 pub use error::IpcError;
+pub use idle::{
+    IdleReport, IdleRequest, ReportDim, ReportIdleMode, ReportIdlePhase, ReportInhibition,
+    ReportLockCause, ReportOffReason, ReportPower,
+};
 pub use launcher::{
     ClipboardReport, ClipboardRequest, FakeLauncherKey, LauncherRows, ReportClipMode,
     ReportClipProtocol, ReportPreview, ReportPreviewKind, RowsSection,

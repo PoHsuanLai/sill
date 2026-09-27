@@ -24,8 +24,8 @@ pub use crate::cli_notifications::{
     notifications_request,
 };
 pub use crate::cli_session::{
-    FakeAuthArg, FakePolkitArgs, LockVerb, PolkitAction, SwitcherAction, fake_auth, fake_polkit,
-    fake_switcher, lock_request, polkit_request, switcher_request,
+    FakeAuthArg, FakePolkitArgs, IdleAction, LockVerb, PolkitAction, SwitcherAction, fake_auth,
+    fake_polkit, fake_switcher, idle_request, lock_request, polkit_request, switcher_request,
 };
 use sill_ipc::{
     ControlCenterRequest, DebugRequest, DesktopId, DockRequest, FakeMute, FakeOsd, LauncherRequest,
@@ -104,6 +104,11 @@ pub enum Command {
     Polkit {
         #[command(subcommand)]
         action: PolkitAction,
+    },
+    /// sill's own idle: the dim, the displays off, the lock at screen off and the idle suspend.
+    Idle {
+        #[command(subcommand)]
+        action: IdleAction,
     },
     /// The launcher's clipboard history (M9).
     Clipboard {
@@ -303,6 +308,7 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::Lock { verb } => lock_request(*verb),
         Command::Switcher { action } => switcher_request(*action),
         Command::Polkit { action } => polkit_request(*action),
+        Command::Idle { action } => idle_request(*action),
         Command::Clipboard { action } => clipboard_request(*action),
         Command::Launcher { action } => Request::Launcher(match action {
             LauncherAction::Toggle => LauncherRequest::Toggle,
@@ -432,6 +438,10 @@ mod tests {
             (
                 &["polkit", "status"],
                 Some(Request::Polkit(PolkitRequest::Status)),
+            ),
+            (
+                &["idle", "status"],
+                Some(Request::Idle(sill_ipc::IdleRequest::Status)),
             ),
             (
                 &["clipboard", "status"],
