@@ -8,6 +8,7 @@ use ds::{Alpha, Appearance, MaterialStack, MenuEntry, ShellMetrics, SystemPrefs}
 use shell_host::{Size, use_surface};
 use tokio::sync::mpsc;
 
+use crate::host_modality::HostModalityBridge;
 use crate::surfaces::dock::menu_document::MenuDocument;
 use crate::surfaces::dock::pick::DockPick;
 
@@ -78,6 +79,8 @@ pub(crate) fn DockMenuPopup() -> Element {
         }
     };
     rsx! {
-        MenuDocument { on_pick, on_close }
+        HostModalityBridge {
+            MenuDocument { on_pick, on_close }
+        }
     }
 }

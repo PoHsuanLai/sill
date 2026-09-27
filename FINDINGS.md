@@ -8416,11 +8416,13 @@ changed (quire's design/29 sizing is landing).
   (after any bar menu the app had no keyboard). Tab through the center's quire controls (Clear
   All, the widgets) shows no ring for F992's reason; its root is the notifications lane's
   (`notification_center/panel.rs`, `contents.rs`), so `ModalityFrame` is not wired there yet.
-- **G390 shell-host surfaces provide no `ds::HostModality`.** quire's contract (`root/env.rs`)
-  is that the host, which sees raw input, provides it; `ds_native::launch` and its headless
-  harness do, shell-host does not, so no focus ring draws on any shell-host surface unless the
-  surface provides its own (the bar popup now does). Repro: any shell-host surface with a quire
-  `Button`, real Tab: the button takes the focus, `.ds` keeps `data-modality="pointer"`.
+- **G390 (CLOSED, F1050) shell-host surfaces provide no `ds::HostModality`.** quire's contract
+  (`root/env.rs`) is that the host, which sees raw input, provides it; `ds_native::launch` and
+  its headless harness do, shell-host does not, so no focus ring draws on any shell-host surface
+  unless the surface provides its own (the bar popup now does). Repro: any shell-host surface
+  with a quire `Button`, real Tab: the button takes the focus, `.ds` keeps
+  `data-modality="pointer"`. Closed upstream by shell-host's `use_input_modality()`; sill's own
+  side is F1050.
 - **G391 The app lost the keyboard after a bar menu (closed by shell-host c1aebd7, F72).**
   Opening a bar menu took the keyboard from the focused window and closing it never gave it
   back (the window logged `focus out` and no `focus in`; a real "j" after Escape reached
@@ -8522,7 +8524,7 @@ rows with no motion. Numbered from F1010, G410 and Q510. Branch
 
 ### Gaps
 
-- **G410 (shell-host) Element regions ignore CSS transforms.** `RegionSpec::Element(s)` for the
+- **G410 (CLOSED, F1053) (shell-host) Element regions ignore CSS transforms.** `RegionSpec::Element(s)` for the
   input and blur regions resolves each element to its layout box
   (`SurfaceDocument::element_rect`, Blitz `get_client_bounding_rect`), not the box it paints, so
   a blurred element moved by a transform leaves its blur behind (F1010). Minimal repro, a test
@@ -8738,3 +8740,62 @@ without its Motion row, design/22's retired `dock.shipped_icons` row). Branch
   (`crates/sill-services/src/results/tests.rs:133`, on tokio's real time with 150 ms fakes),
   untouched here; it passed 5 of 5 alone and the next gate run was green. It is the one gate test
   not on a virtual clock that failed under load; a paused tokio clock would pin it.
+
+## Input modality from the host
+
+Adopting shell-host master 4c11489 (`use_input_modality()`, FINDINGS "G390", "F74"), cut from
+sill master 84a3a79.
+
+- **F1050 The bridge, once, in every surface's own root.** shell-host cannot name quire's `ds`
+  crate (`scripts/check-boundary.sh`), so it hands back its own `InputModality` per seat
+  (`shell_host::use_input_modality()`); sill maps it to `ds::HostModality` in one new component,
+  `sill_surfaces::host_modality::HostModalityBridge` (`crates/sill-surfaces/src/host_modality.rs`),
+  following shell-host's README ("Consuming: input modality"). There is no single Dioxus root
+  every surface already renders through: each of the daemon's `Root::with_props(Component, _)`
+  calls (`daemon.rs` and the other surface-owning modules) names a different top-level component
+  per surface (`Bar`, `NotificationCenter`, `PowerMenu`, ...), each its own `VirtualDom`
+  (`shell-host/src/root.rs`), and the daemon's shared `surface_root` only adds
+  `Root::context` values (a static `provide_root_context`, not a render-tree wrapper), which
+  cannot host a hook. So the bridge is one component, wired into each surface's own root that can
+  actually take keyboard input, not a single edit to `daemon.rs` (left untouched: another agent
+  edits its settings watch). Wired into: `NotificationCenter`, `PowerMenu`, `PolkitPrompt`,
+  `SwitcherPanel`, `EditWidgets` (all `KeyboardMode::{OnDemand,Exclusive}`), `LockScreen` (always
+  has the keyboard), and both context-menu popups (`bar::MenuPopup`, `dock::DockMenuPopup`, each
+  their own `VirtualDom`, `Root::new`). Left alone: `Bar`, `Dock`, `Wallpaper`, `Osd`, `Banners`,
+  `ScreenshotThumb`, `DesktopWidgets`, `IdleDimOverlay`, `HotCorner` — each `KeyboardMode::None`
+  (or, `HotCorner`, no `Ds` at all), so no Tab ever reaches a focusable element inside them and
+  the ring can never show; wiring the bridge in anyway would be dead weight.
+- **F1051 Dropping `ModalityFrame`.** The bar popup's own `bar/modality.rs::ModalityFrame`
+  (F992, G390) only saw keys that reached its own subtree; `HostModalityBridge` sees every key
+  the seat delivers to any surface, so it replaces it. `bar/menu_popup.rs`: `ModalityFrame {
+  style, .. }` became a plain `div { class: "sill-popup-frame", style, .. }` inside
+  `HostModalityBridge { ... }` (same DOM node, same class and style; only the local
+  onkeydown/onpointerdown tracking moved to the bridge). `bar/modality.rs` and its test
+  (`a_key_turns_the_ring_on_and_a_press_turns_it_off`) are deleted.
+- **F1052 The bridge no-ops with no shell-host seat.** `shell_host::use_input_modality()` calls
+  `use_surface()`, which panics outside a host surface; a `ds_native::Harness` test has none
+  (`crates/sill-surfaces/src/hooks/use_ds_scale.rs`'s same fallback: "Whether the handle exists
+  never changes over a component's life, so the hooks below run in the same order on every
+  render"). `HostModalityBridge` checks `try_consume_context::<shell_host::SurfaceHandle>()`
+  first and renders `children` unchanged when it is absent, so `center_support`'s and
+  `cc_support`'s existing Harness tests (which render the real `NotificationCenter` and
+  `ControlCenter`) keep working with no change: `Ds` then reads whatever `HostModality`
+  `ds_native::Harness` itself provides at its root (`ds-native/src/headless.rs`, live from the
+  harness's own `key`/`click`, the same mechanism `ds_native::launch` uses for a real native
+  app), or falls back to `Pointer` with none at all. New test:
+  `crates/sill-surfaces/tests/notification_center_modality.rs`
+  (`a_key_turns_the_centers_ring_on_and_a_press_turns_it_off`): opens the center on
+  `center_support`, Tab reaches Clear All (`.ds-button`) and `.ds[data-modality]` turns
+  `"keyboard"`, a press on the title turns it back to `"pointer"`. All of `sill-surfaces`' and
+  `sill`'s existing tests (1261+ before this branch) still pass unchanged.
+- **F1053 (G410 closed) The banner column was already the plural form.** shell-host's
+  `RegionSpec::Element(s)` fix (element regions now follow CSS transforms, closing G410
+  upstream) asked sill to check whether its banner column ever used the single
+  `RegionSpec::Element` for a region that can lose its element (which keeps its last rect once
+  the element is gone). `banners/elements.rs::element_regions` already builds
+  `RegionSpec::Elements(Vec<ElementRegion>)` (plural) for both the input and the blur region,
+  every frame, from `view.rs`'s `use_regions(element_regions(&shapes))`; `regions.rs`'s
+  `RegionSpec::Rects` form (the pre-G60 freeze's measured-rects shape) is kept only for its
+  callers, never drawn from (its own module doc already says so). No sill-side fix needed.
+  `dev/accept-notifications-real-input.sh ghost` at `KWIN_SCALE=2` passes now that shell-host's
+  fix has landed (F1010's ghost step).

@@ -32,9 +32,13 @@ pub use widgets::CenterWidgets;
 use dioxus::prelude::*;
 use shell_host::OutputInfo;
 
+use crate::host_modality::HostModalityBridge;
+
 /// The notification center on `output`. Needs a [`CenterLink`] root context beside the daemon's
 /// usual ones (the daemon's `surface_root` gives every surface one).
 #[component]
 pub fn NotificationCenter(output: OutputInfo) -> Element {
-    panel::center(output)
+    rsx! {
+        HostModalityBridge { {panel::center(output)} }
+    }
 }

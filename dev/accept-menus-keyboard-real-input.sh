@@ -479,7 +479,7 @@ seed_notes() {
 
 # 4.
 step_center_keys() {
-  local sunk down esc
+  local sunk down tab esc
   seed_notes || return 1
   sunk=$(sink_keys)
   # shellcheck disable=SC2086
@@ -492,12 +492,19 @@ step_center_keys() {
   down=$(diff_box nc-0 nc-down)
   echo "notification center opened by a real click on the clock ($CLOCK_AT): real Down" \
     "changed [$down]" >&2
+  # G390/F74: Tab (unhandled by the center's own key map) reaches Clear All, a quire `Button`;
+  # the modality bridge (`sill_surfaces::host_modality::HostModalityBridge`) now provides
+  # `ds::HostModality` there too, so the ring should draw.
+  key Tab || return 1
+  settled "$CENTER" nc-tab || return 1
+  tab=$(diff_box nc-down nc-tab)
+  echo "real Tab (after Down) reaches a quire control (Clear All): changed [$tab]" >&2
   key Escape || return 1
   esc=down
   wait_surface "$CENTER" 20 down || esc=up
   echo "real Escape: the center is $esc; keys the sink got meanwhile: $(( $(sink_keys) - sunk ))" >&2
   [ "$esc" = up ] && { click "$SINK_X" "$SINK_Y"; wait_surface "$CENTER" 20 down; }
-  [ "$down" != none ] && [ "$esc" = down ] && [ "$(sink_keys)" = "$sunk" ]
+  [ "$down" != none ] && [ "$tab" != none ] && [ "$esc" = down ] && [ "$(sink_keys)" = "$sunk" ]
 }
 
 center_open() { mapped "$CENTER" && echo open || echo closed; }

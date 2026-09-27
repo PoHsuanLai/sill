@@ -12,6 +12,7 @@
 pub mod app_icons;
 pub mod clock;
 pub mod hooks;
+pub mod host_modality;
 pub mod surfaces;
 pub mod widgets;
 
@@ -20,6 +21,7 @@ pub use clock::FrameClock;
 /// own, `ds_native::measure::MEASURE` (FINDINGS "Adoption of the bar gaps"). A popup's root
 /// component calls `ds_native::measure::provide()` instead.
 pub use ds_native::measure::MEASURE;
+pub use host_modality::HostModalityBridge;
 
 /// The pre-paint pass the daemon installs on its host (`HostConfig::prepaint`): quire's
 /// device-pixel layout snap, a no-op at whole scales (quire FINDINGS "Pixel snapping").
