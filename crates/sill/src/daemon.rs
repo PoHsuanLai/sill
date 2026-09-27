@@ -866,18 +866,21 @@ fn dispatch_debug(
             at,
             button,
         } => act(ctx, surface, DebugAction::Click(at, button)),
+        DebugRequest::PointerPress {
+            surface,
+            at,
+            button,
+        } => act(ctx, surface, DebugAction::Press(at, button)),
+        DebugRequest::PointerRelease {
+            surface,
+            at,
+            button,
+        } => act(ctx, surface, DebugAction::Release(at, button)),
         // Answered by `dispatch_request`, which holds the OSD's link.
         DebugRequest::Osd(_) => unsupported("the OSD's made-up change is answered elsewhere"),
         DebugRequest::Notify(_) => unsupported("a made-up notification is answered elsewhere"),
         DebugRequest::Screenshot(_) => unsupported("a made-up screenshot is answered elsewhere"),
         DebugRequest::Corner(_) => unsupported("a made-up corner hit is answered elsewhere"),
-        DebugRequest::WidgetDrag(fake) => {
-            let name = shell_host::SurfaceName(fake.surface.0.clone());
-            match ctx.surface_named(&name) {
-                Some(id) => crate::widgets::debug_drag(outputs, id, fake.phase, fake.at),
-                None => unknown_surface(&fake.surface),
-            }
-        }
         DebugRequest::Auth(_) => unsupported("a made-up verdict is answered elsewhere"),
         DebugRequest::Polkit(_) => unsupported("a made-up polkit request is answered elsewhere"),
         DebugRequest::Switcher(_) => unsupported("a made-up switcher is answered elsewhere"),
@@ -894,6 +897,8 @@ enum DebugAction {
     Leave,
     Capture(std::path::PathBuf),
     Click(sill_ipc::Point, sill_ipc::PointerButton),
+    Press(sill_ipc::Point, sill_ipc::PointerButton),
+    Release(sill_ipc::Point, sill_ipc::PointerButton),
 }
 
 /// Find `surface` by shell-host's own naming (`HostCtx::surface_named`, unconditional: it needs
@@ -932,6 +937,14 @@ fn to_inject(action: DebugAction) -> Result<shell_host::Inject, Response> {
             at: point(at),
             button: to_host_button(button),
         },
+        DebugAction::Press(at, button) => shell_host::Inject::PointerDown {
+            at: point(at),
+            button: to_host_button(button),
+        },
+        DebugAction::Release(at, button) => shell_host::Inject::PointerUp {
+            at: point(at),
+            button: to_host_button(button),
+        },
     })
 }
 
@@ -950,6 +963,8 @@ fn apply_injection(_ctx: &mut HostCtx<ShellMsg>, _id: SurfaceId, action: DebugAc
     let what = match action {
         DebugAction::Pointer(at) => format!("pointer at {},{}", at.x, at.y),
         DebugAction::Click(at, button) => format!("{button:?} click at {},{}", at.x, at.y),
+        DebugAction::Press(at, button) => format!("{button:?} press at {},{}", at.x, at.y),
+        DebugAction::Release(at, button) => format!("{button:?} release at {},{}", at.x, at.y),
         DebugAction::Leave => "leave".to_owned(),
         DebugAction::Capture(path) => format!("capture to {}", path.display()),
     };
@@ -1194,9 +1209,10 @@ mod tests {
     use super::{DebugAction, to_inject};
 
     #[test]
-    fn a_debug_click_maps_onto_shell_hosts_injection_with_its_button() {
+    fn a_debug_click_press_or_release_maps_onto_shell_hosts_injection_with_its_button() {
         let at = Point { x: 1200, y: 16 };
-        let cases = [
+        let host_at = shell_host::Point { x: 1200, y: 16 };
+        let buttons = [
             (
                 PointerButton::Primary,
                 shell_host::debug::PointerButton::Primary,
@@ -1210,14 +1226,30 @@ mod tests {
                 shell_host::debug::PointerButton::Middle,
             ),
         ];
-        for (ours, theirs) in cases {
+        for (ours, theirs) in buttons {
             assert_eq!(
                 to_inject(DebugAction::Click(at, ours)).ok(),
                 Some(shell_host::Inject::Click {
-                    at: shell_host::Point { x: 1200, y: 16 },
+                    at: host_at,
                     button: theirs,
                 }),
-                "{ours:?}"
+                "click {ours:?}"
+            );
+            assert_eq!(
+                to_inject(DebugAction::Press(at, ours)).ok(),
+                Some(shell_host::Inject::PointerDown {
+                    at: host_at,
+                    button: theirs,
+                }),
+                "press {ours:?}"
+            );
+            assert_eq!(
+                to_inject(DebugAction::Release(at, ours)).ok(),
+                Some(shell_host::Inject::PointerUp {
+                    at: host_at,
+                    button: theirs,
+                }),
+                "release {ours:?}"
             );
         }
     }

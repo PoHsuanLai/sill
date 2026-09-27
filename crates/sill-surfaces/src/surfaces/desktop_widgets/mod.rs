@@ -12,14 +12,12 @@ pub mod arrange;
 pub mod drag;
 pub mod geometry;
 pub mod layer;
-pub mod link;
 pub mod placed;
 pub mod placement;
 pub mod saved;
 mod view;
 
 pub use layer::desktop_layer;
-pub use link::{DragAsk, WidgetDragLink};
 pub use placement::{GridSize, GridSlot, Placement, grid_size, place};
 pub use saved::{OutputKey, PlacementFile};
 pub use view::{WIDGET_RADIUS, widget_regions};

@@ -18,7 +18,6 @@ use super::DESKTOP_WIDGETS_CSS;
 use super::arrange::LayerPoint;
 use super::drag::{DragInput, DragWorld, Hold, Landing, shown, step};
 use super::geometry::{GridMetrics, PlaceBox, place_box};
-use super::link::WidgetDragLink;
 use super::placed::{Placed, Pose};
 use super::placement::{Placement, grid_size, place};
 use super::saved::{OutputKey, PlacementFile};
@@ -138,7 +137,6 @@ fn Grid(
         file: file.clone(),
         key: key.clone(),
     };
-    use_debug_drags(output.id, feed.clone());
     let held = hold();
     let on_screen = now
         .as_ref()
@@ -272,28 +270,6 @@ impl Feeder {
 enum Primary {
     Yes,
     No,
-}
-
-/// `sill debug widget-drag` for this output ([`WidgetDragLink`]), when the root has the link.
-fn use_debug_drags(output: shell_host::OutputId, feed: Feeder) {
-    let link = try_use_context::<WidgetDragLink>();
-    use_future(move || {
-        let link = link.clone();
-        let feed = feed.clone();
-        async move {
-            let Some(link) = link else {
-                return;
-            };
-            let mut asks = link.subscribe();
-            loop {
-                match asks.recv().await {
-                    Ok(ask) if ask.output == output => feed.feed(ask.input, Touch::Remote),
-                    Ok(_) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
-                    Err(tokio::sync::broadcast::error::RecvError::Closed) => return,
-                }
-            }
-        }
-    });
 }
 
 fn save(file: Option<&PlacementFile>, key: &OutputKey, placements: &[Placement]) {

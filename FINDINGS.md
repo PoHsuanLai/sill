@@ -7069,7 +7069,10 @@ e276242. Numbered F880, Q430, G330.
   `{"kind":"widget_drag","v":{"surface":..,"phase":"move","at":{..}}}`, pinned in `serde.rs`).
   The daemon finds the layer's output and sends the input on `WidgetDragLink` (a broadcast, so
   no step is coalesced); the layer feeds it to the same machine as its mouse handlers. Needed
-  because shell-host's `Inject` has only a whole click (G330).
+  because shell-host's `Inject` has only a whole click (G330). **Retired** once G330 closed: see
+  "Real-pointer drag" below (F893-F895) — the layer's own `onmousedown`/`onmousemove`/
+  `onmouseup` already drove the machine; the debug link only stood in for a real press and
+  release, which shell-host can now deliver.
 - **F890 Tests.** Table tests: `snap`, `make_room` (free cell, push, a medium's push, own cell,
   no room, swap), `clamp` and the nearest-free re-place, the machine (click, wobble, a press
   between widgets, past-and-back, live cell, three drops, making room and going back), the store
@@ -7107,10 +7110,13 @@ e276242. Numbered F880, Q430, G330.
 
 ### Gaps
 
-- **G330 (shell-host, OPEN) `Inject` has no separate press, held move and release.** A drag on
-  the nested compositor cannot be scripted through the pointer path, so the acceptance drives
-  the layer's machine through `sill debug widget-drag` (F889). The DOM handlers are covered by
-  the harness; a real pointer drag is queued in `docs/manual-checks.md`.
+- **G330 (shell-host, CLOSED, "Real-pointer drag" below) `Inject` has no separate press, held
+  move and release.** Was: a drag on the nested compositor cannot be scripted through the
+  pointer path, so the acceptance drives the layer's machine through `sill debug widget-drag`
+  (F889). shell-host grew `Inject::PointerDown`/`PointerUp` (FINDINGS F70 there) through
+  `HostState::deliver`, the real pointer path; sill wired `sill debug pointer-press`/
+  `pointer-release` onto them and retired `widget-drag` (F893-F895). A real pointer drag stays
+  queued in `docs/manual-checks.md` for the feel of it (the spring, the shadow) by eye.
 - **G331 (sill, OPEN) The grid is measured once.** An output resize while the layer is up does
   not re-place until the layer is spawned again (F440 still holds).
 
@@ -7443,3 +7449,66 @@ Numbered from F900/Q440/G340. cosmic-idle was re-read at `epoch-1.8.0` for facts
   are already off). The fill must check it does not delay the idle suspend: re-creating the
   `Suspend` watch at the idle lock would push the suspend back by the screen-off time. So keep
   the `Suspend` watch whenever its time is unchanged.
+
+## Real-pointer drag (2026-09-27)
+
+Adopted shell-host's G330 fix (its FINDINGS F70: `Inject::PointerDown`/`PointerUp`, `Pointer`
+carrying the held buttons, everything through `HostState::deliver`) on top of sill master
+1506faa. Numbers start at F893 so they cannot collide with the M10 freeze's F883-F892.
+
+- **F893 `sill debug pointer-press SURFACE X Y [--button ..]` and `pointer-release`**
+  (`DebugRequest::PointerPress`/`PointerRelease { surface, at, button }`, wire
+  `{"kind":"pointer_press","v":{"surface":..,"at":{..},"button":"primary"}}` and
+  `pointer_release` the same shape, pinned in `sill-ipc/tests/serde.rs`). `PointerPress` presses
+  `button` at `at` and leaves it held; `PointerRelease` lets go; the existing `sill debug
+  pointer SURFACE X Y` moves while a button is held (unchanged: shell-host's `Inject::Pointer`
+  already carries `HostState`'s held buttons on every move, the same `PointerMove` a real
+  `Motion` produces) and `sill debug click` is still the degenerate whole click. The daemon maps
+  both onto `shell_host::Inject::PointerDown`/`PointerUp` through the same `act`/`apply_injection`
+  path as `Pointer`/`Leave`/`Capture`/`Click` (`daemon.rs`); a debug-less build refuses them by
+  name, like the others. Table-tested: every `PointerButton` maps through for click, press and
+  release alike (`daemon.rs`'s `to_inject` test), and the CLI's parse table gains `pointer-press`/
+  `pointer-release` positive and malformed-argument cases (`cli.rs`).
+- **F894 `sill debug widget-drag` retired.** It existed only because shell-host's `Inject` had no
+  separate press and release (G330): the daemon fed a made-up `DragInput` straight to the
+  layer's drag machine over `WidgetDragLink`, a broadcast channel bypassing the DOM entirely. The
+  layer's own `onmousedown`/`onmousemove`/`onmouseup` (`desktop_widgets/view.rs`'s `Grid`) already
+  drive the same machine from real pointer events; now that shell-host delivers a real press,
+  held moves and a release, nothing else needed `widget-drag`. Removed: `DebugRequest::WidgetDrag`
+  and `FakeWidgetDrag`/`DragPhase` (`sill-ipc`), `sill debug widget-drag` and `DragPhaseArg`
+  (`cli.rs`/`cli_desktop.rs`), the daemon's dispatch arm, `crate::widgets::debug_drag`/`drags()`
+  (`sill/src/widgets.rs`), and `WidgetDragLink`/`DragAsk`/`use_debug_drags` (deleted
+  `desktop_widgets/link.rs`; `view.rs` no longer takes the link as a root context). The harness
+  (`tests/desktop_widgets_drag.rs`, F890) was already independent of the debug link — it drives
+  the machine's DOM events directly — so it needed no change.
+- **F895 Acceptance switched to the real pointer** (`dev/accept-widgets.sh`'s `step_drag`): the
+  made-up `drag_step`/`sill debug widget-drag` became `pointer_press`/`pointer_move` (the
+  existing `sill debug pointer`)/`pointer_release`. The drop is now a genuine release
+  (`Touch::from_event`'s `Touch::Contact`, not the debug link's `Touch::Remote`), so the dropped
+  widget takes the spring easing (`--e-spring`) a real person's drop gets (F885) rather than the
+  scripted `--e-out`, because `arrange`/`placement` never read `Touch`. Run live on wayland-1
+  (2560 x 1600, pinged first with `wayland-info` and never stopped): PASS all seven steps.
+  Before: Calendar 2379 15 2544 180, Battery 2379 195 2544 360. Lifted: the widest frame 174 px
+  (a cell is 164: the 1.04 scale and the drag shadow) — identical to F891's scripted run.
+  Dropped: the Calendar at 1479 375 (column 8, row 2). The Battery carried onto it and held: the
+  Calendar stepped up to row 1. After: 1479 195 and 1479 375, and the file reads
+  `{"output":"WINIT-0","kind":"calendar","column":8,"row":1}`,
+  `{"output":"WINIT-0","kind":"battery","column":8,"row":2}` — the same snap points as F891's
+  `widget-drag` run, so retiring the debug link changed nothing `arrange`/`placement` cares
+  about. 0 frames in 5 s idle after. Captures:
+  `target/accept-widgets/drag-{before,lifted,dropped,room,after}.png`; screenshots
+  `dev/out/widgets-drag-lifted-cosmic.png`, `widgets-drag-room-cosmic.png`,
+  `widgets-drag-cosmic.png`.
+- **F896 Gate.** `GATE_DIR=<this worktree> ~/sill-wt/sill-gate.sh` on `4b87352` (1-minute load
+  16.6, well under 60): fmt clean, clippy clean, boundary holds, licenses ok. Tests: 1168
+  passed, 1 failed, 51 ignored — the failure is `sill-settings/tests/keys.rs`'s
+  `every_key_in_catalogue_has_a_spec` (`session.lock_grace_s: no KeySpec with that path`),
+  unrelated to this session's diff: `git diff --stat 1506faa -- crates/sill-settings/` is empty
+  (this session never touched that crate), and quire's `design/22-SETTINGS.md` line 515 carries
+  a `session.lock_grace_s` row dated today, "proposed (Q441, 2026-09-27)" — a live edit to the
+  shared quire path dependency from concurrent idle-service work (sill's own inherited F863
+  already flagged this key "not registered until Q420"; Q441 is a newer, different ask that
+  landed the doc row before sill's `AWAITING_ROWS` or a `KeySpec` caught up). Not sill's to fix
+  here (idle/session lock is out of this session's scope); every check this session's own diff
+  is answerable for is green. Re-run once the idle-service session's `KeySpec` (or an
+  `AWAITING_ROWS` entry) lands to confirm SILL GATE GREEN.
