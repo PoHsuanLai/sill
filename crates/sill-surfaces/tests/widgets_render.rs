@@ -172,7 +172,11 @@ fn battery_lists_the_machine_then_connected_devices_with_a_level() {
     });
     let h = &running.harness;
     // The fake machine is at 64%; Buds are connected at 80%; the keyboard is not connected.
-    assert_eq!(h.count("#widget-battery .ds-battery"), 2);
+    // quire draws four places whatever the count (Q522); the other two are empty.
+    assert_eq!(
+        h.count("#widget-battery .ds-batteries-cell:not([*|data-place=empty]) .ds-battery"),
+        2
+    );
     let cell = |n: usize, part: &str| {
         h.attr(
             &format!("#widget-battery .ds-batteries-cell:nth-child({n}) .ds-battery"),

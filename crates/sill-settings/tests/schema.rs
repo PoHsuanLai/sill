@@ -165,7 +165,7 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
             .unwrap_or_else(|| panic!("{path} missing"))
     };
     let cases: &[(&str, toml::Value)] = &[
-        ("bar.height_px", toml::Value::Integer(32)),
+        ("bar.height_px", toml::Value::Integer(24)),
         ("dock.tile_size_px", toml::Value::Integer(48)),
         ("dock.influence_radius_px", toml::Value::Integer(96)),
         ("dock.magnification", toml::Value::String("on".to_owned())),

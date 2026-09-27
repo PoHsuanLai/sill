@@ -330,23 +330,18 @@ fn a_removed_tile_leaves_the_center_key() {
     assert_settles_to_zero_frames(&mut run.harness);
 }
 
+/// quire's gallery offers one size per widget (Q520, quire master aadf0b49): a placed row has
+/// no size control, so there is nothing to refuse.
 #[test]
-fn a_size_picked_is_refused_since_each_widget_has_one_size() {
-    let mut run = opened();
-    // quire's gallery still offers the month's three sizes on its row (Q520); the second
-    // segment asks for Medium.
-    let medium = ".ds-widget-gallery-surface[*|data-host=desktop] \
-                  .ds-widget-gallery-row:nth-child(2) .ds-segment:nth-child(2)";
-    run.click(medium);
-    assert_eq!(run.writes(), vec![], "nothing written");
+fn the_gallery_offers_no_size_to_pick() {
+    let run = opened();
     assert_eq!(
-        status(&run.harness),
-        Some((
-            "refused".to_owned(),
-            "Each widget comes in one size.".to_owned()
-        ))
+        run.harness
+            .count(".ds-widget-gallery-surface .ds-widget-gallery-row .ds-segment"),
+        0,
+        "no size control on a placed row"
     );
-    assert_settles_to_zero_frames(&mut run.harness);
+    assert_eq!(run.writes(), vec![], "nothing written");
 }
 
 #[test]

@@ -31,7 +31,7 @@ pub enum BarGlyphSize {
 #[serde(default)]
 #[settings(file = "sill/settings.toml", domain = "bar", page = Page::Appearance)]
 pub struct BarSettings {
-    /// `bar.height_px` (proposed 32; flagged: macOS 24).
+    /// `bar.height_px` (settled 24, design/29 §13 decision 2; quire's `SHELL_SCALE.bar`).
     #[settings(
         label = "Bar height",
         help = "The top bar's height; windows are placed below it.",
@@ -158,17 +158,17 @@ pub struct BarSettings {
 impl Default for BarSettings {
     fn default() -> Self {
         BarSettings {
-            height_px: Px(32),
+            height_px: Px(24),
             title_hit_height_px: Px(24),
-            title_padding_px: Px(10),
-            open_title_pill_height_px: Px(24),
+            title_padding_px: Px(8),
+            open_title_pill_height_px: Px(22),
             status_icon_box_px: Px(22),
             status_glyph_px: Px(16),
-            status_gap_px: Px(4),
+            status_gap_px: Px(0),
             glyph_size_policy: BarGlyphSize::StatusIcon16,
             item_font_px: Px(13),
             item_font_weight: Count(500),
-            item_radius_px: Px(4),
+            item_radius_px: Px(5),
             battery_low_percent: Percent(20),
             extra: toml::Table::new(),
         }

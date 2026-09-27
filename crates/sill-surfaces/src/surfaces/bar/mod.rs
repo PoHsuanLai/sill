@@ -192,18 +192,20 @@ fn use_control_center_asks(bar: MenuBar, output: shell_host::OutputId) {
     });
 }
 
-/// The status items' box, vertically centred in the bar, at its right end: the control center's
-/// title rect when it opens with no pointer event behind it.
+/// The last status item's slot, vertically centred in the bar, at its right end: the control
+/// center's title rect when it opens with no pointer event behind it. The slot is quire's
+/// (design/29): `max(--bar-status-w, box)` wide by the box tall.
 fn status_box(bar_width: i32, bar: &BarSettings) -> Rect {
     let side = f32::from(bar.status_icon_box_px.0);
+    let width = side.max(f32::from(ds::SHELL_SCALE.status_width.0));
     let height = f32::from(bar.height_px.0);
     Rect {
         origin: Point {
-            x: Px(bar_width as f32 - side),
+            x: Px(bar_width as f32 - width),
             y: Px((height - side) / 2.0),
         },
         size: Size {
-            width: Px(side),
+            width: Px(width),
             height: Px(side),
         },
     }

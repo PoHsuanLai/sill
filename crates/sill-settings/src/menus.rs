@@ -152,7 +152,7 @@ impl Default for MenusSettings {
             pick_feedback: PickFeedback::None,
             first_mouse_window_ms: Ms(100),
             font_px: Px(13),
-            highlight_radius_px: Px(6),
+            highlight_radius_px: Px(5),
             tooltip_font_px: Px(12),
             extra: toml::Table::new(),
         }

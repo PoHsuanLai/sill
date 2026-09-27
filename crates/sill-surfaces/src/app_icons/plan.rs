@@ -46,6 +46,7 @@ pub fn theme_art(path: &Path, px: AssetPx, look: IconLook) -> Art {
                 px,
                 style: look.style,
                 tint: TintKey::of(look.tint),
+                scheme: look.scheme,
             },
             source: path.to_owned(),
         },
@@ -67,6 +68,7 @@ mod tests {
                 hue: 268.0,
                 chroma: 0.06,
             },
+            scheme: ds::Scheme::Light,
         }
     }
 

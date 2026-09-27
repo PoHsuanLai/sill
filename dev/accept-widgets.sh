@@ -58,7 +58,7 @@ HOST_REPO="$(cd "$SHELL_HOST_DEV/../.." && pwd)"
 PROBE="$HOST_REPO/target/release/examples/probe_toplevel"
 # The bar's reserve: the desktop layer (exclusive `Auto`) starts under it, so a capture of the
 # layer is this far above the same pixels in a screenshot of the output (scale 1).
-BAR_H="${BAR_H:-32}"
+BAR_H="${BAR_H:-24}"
 
 source "$SHELL_HOST_DEV/.nested-env"
 HOST_RUNTIME="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"

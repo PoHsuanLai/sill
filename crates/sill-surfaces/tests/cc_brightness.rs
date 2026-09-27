@@ -18,6 +18,8 @@ use sill_services::{Displays, DisplaysCommand, Following, LevelChange, OutputNam
 use tokio::sync::mpsc::UnboundedReceiver;
 
 const CAPSULE: &str = ".ds-level[*|aria-label=\"Display\"]";
+/// A module panel dimmed with its level (Display's, the one disabled here).
+const DISABLED_PANEL: &str = ".ds-module-panel[*|aria-disabled=true]";
 const RAIL: &str = ".ds-level[*|aria-label=\"Display\"] .ds-level-rail";
 
 /// A monitor on `DP-1` (the panel's bar output) answering DDC at `level` of 100.
@@ -58,11 +60,14 @@ fn levels(commands: &mut UnboundedReceiver<DisplaysCommand>) -> Vec<u16> {
         .collect()
 }
 
-/// The point `fraction` of the way along the capsule's rail, on its middle line.
+/// The point `fraction` of the way along the knob's travel, on the rail's middle line: the
+/// knob's centre travels from half the capsule's height in at each end (design/29, the
+/// control center's `CapsuleKnob`).
 fn along(harness: &Harness, fraction: f32) -> Point {
     let rail = harness.rect(RAIL).expect("the Display capsule is laid out");
+    let inset = rail.size.height.0 / 2.0;
     Point {
-        x: Px(rail.origin.x.0 + rail.size.width.0 * fraction),
+        x: Px(rail.origin.x.0 + inset + (rail.size.width.0 - 2.0 * inset) * fraction),
         y: Px(rail.origin.y.0 + rail.size.height.0 / 2.0),
     }
 }
@@ -180,6 +185,13 @@ fn a_monitor_that_answers_late_brings_the_capsule_alive() {
         running.harness.attr(CAPSULE, "aria-disabled").as_deref(),
         Some("true")
     );
+    // Q491: its panel dims with it (the header too), and the capsule is out of the tab order.
+    assert_eq!(running.harness.count(DISABLED_PANEL), 1, "the panel dims");
+    assert_eq!(
+        running.harness.attr(CAPSULE, "tabindex"),
+        None,
+        "no tab stop"
+    );
     let at = along(&running.harness, 0.5);
     running.harness.click(at);
     running.harness.advance(ms(50));
@@ -192,6 +204,7 @@ fn a_monitor_that_answers_late_brings_the_capsule_alive() {
     running.harness.advance(ms(400));
     assert_eq!(shown(&running.harness).as_deref(), Some("40"));
     assert_eq!(running.harness.attr(CAPSULE, "aria-disabled"), None);
+    assert_eq!(running.harness.count(DISABLED_PANEL), 0, "the panel lit");
     running.harness.click(at);
     running.harness.advance(ms(50));
     let sent = levels(&mut running.feeds.displays_commands);

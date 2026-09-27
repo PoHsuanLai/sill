@@ -42,14 +42,36 @@ const MIN_WIDTH: i32 = 220;
 /// Rough advance of one `--fs-control` (13 px) character, generous so labels never wrap.
 const CHAR_PX: i32 = 8;
 
-/// An item row: 6 px padding above and below a 17 px line, plus slack.
-const ITEM_PX: i32 = 30;
-/// A section header row.
-const HEADER_PX: i32 = 28;
-/// A separator: 1 px and 4 px above and below.
-const SEPARATOR_PX: i32 = 9;
-/// The menu's own padding, top and bottom together, plus the check column's width.
-const CHROME_PX: i32 = 12;
+/// A text menu's rows, from quire's shell scale (design/29: rows 22, a hairline with 5 above
+/// and below, the menu's 5 inset) and what quire's sheets add; checked against a Harness layout
+/// in `menu_size_tests.rs`. The `menus.*` keys' defaults are quire's (`shell_style` tests).
+#[derive(Debug, Clone, Copy)]
+struct MenuRows {
+    item: i32,
+    separator: i32,
+    chrome: i32,
+}
+
+impl MenuRows {
+    fn quire() -> MenuRows {
+        let menu = ds::ShellMetrics::default().menu;
+        MenuRows {
+            item: ceil(menu.row),
+            separator: HAIRLINE + 2 * ceil(menu.separator_margin),
+            chrome: 2 * i32::from(ds::SHELL_SCALE.menu_inset.0) + 2 * HAIRLINE,
+        }
+    }
+}
+
+/// quire's hairline (`--hair`) at 1x.
+const HAIRLINE: i32 = 1;
+/// A section header row: the micro caps line in its 7 and 3 of padding (25.5 laid out).
+const HEADER_PX: i32 = 26;
+/// An info line: 6 above and below a 13 px line at 1.55 (32.2), and its fainter second line
+/// (11.5 at 1.3, 15).
+const INFO_PX: i32 = 33;
+const INFO_DETAIL_PX: i32 = 15;
+/// The check column's width.
 const CHECK_COLUMN_PX: i32 = 22;
 
 /// What a popup's place and size depend on beyond its title and contents: the bar's width (the
@@ -130,21 +152,27 @@ pub(crate) fn popup_size(body: &PopupBody, around: &Around<'_>) -> Size {
 
 /// A menu's estimated box for `entries`, before any room around it.
 pub(crate) fn menu_size<T>(entries: &[MenuEntry<T>]) -> Size {
-    let (longest, height) = entries.iter().fold((0, CHROME_PX), |(longest, h), entry| {
-        let (chars, row) = match entry {
-            MenuEntry::Item { title, .. } | MenuEntry::Submenu { title, .. } => {
-                (title.chars().count(), ITEM_PX)
-            }
-            MenuEntry::Header(text) => (text.chars().count(), HEADER_PX),
-            MenuEntry::Info { title, .. } => (title.chars().count(), ITEM_PX),
-            MenuEntry::Row(row) => (row.title.plain_text().chars().count(), ITEM_PX),
-            MenuEntry::Separator => (0, SEPARATOR_PX),
-        };
-        (longest.max(chars), h + row)
-    });
+    let rows = MenuRows::quire();
+    let (longest, height) = entries
+        .iter()
+        .fold((0, rows.chrome), |(longest, h), entry| {
+            let (chars, row) = match entry {
+                MenuEntry::Item { title, .. } | MenuEntry::Submenu { title, .. } => {
+                    (title.chars().count(), rows.item)
+                }
+                MenuEntry::Header(text) => (text.chars().count(), HEADER_PX),
+                MenuEntry::Info { title, detail } => {
+                    let second = detail.as_ref().map_or(0, |_| INFO_DETAIL_PX);
+                    (title.chars().count(), INFO_PX + second)
+                }
+                MenuEntry::Row(row) => (row.title.plain_text().chars().count(), rows.item),
+                MenuEntry::Separator => (0, rows.separator),
+            };
+            (longest.max(chars), h + row)
+        });
     let text = i32::try_from(longest).unwrap_or(i32::MAX / CHAR_PX) * CHAR_PX;
     Size {
-        width: (text + CHROME_PX + CHECK_COLUMN_PX + 2 * 9).max(MIN_WIDTH),
+        width: (text + rows.chrome + CHECK_COLUMN_PX + 2 * 9).max(MIN_WIDTH),
         height,
     }
 }
@@ -156,6 +184,10 @@ fn floor(px: ds::Px) -> i32 {
 fn ceil(px: ds::Px) -> i32 {
     px.0.ceil() as i32
 }
+
+#[cfg(test)]
+#[path = "menu_size_tests.rs"]
+mod menu_size_tests;
 
 #[cfg(test)]
 mod tests {
@@ -255,6 +287,6 @@ mod tests {
             "the grid is taller than a menu: {panel:?}"
         );
         let sound = popup_size(&PopupBody::Module(ControlCenterModule::Sound), &around(&cc));
-        assert_eq!(sound.height, 24 + 76 + TOP + BOTTOM);
+        assert_eq!(sound.height, 20 + 64 + TOP + BOTTOM);
     }
 }

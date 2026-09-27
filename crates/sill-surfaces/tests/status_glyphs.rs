@@ -282,7 +282,8 @@ const BATTERY_HEAD: &str = ".ds-module-panel-glyph > .ds-status-glyph[*|data-kin
 const SOUND_HEAD: &str = ".ds-module-panel-glyph > .ds-status-glyph[*|data-kind=volume]";
 /// The Sound module's level (Display's is the other `.ds-level`).
 const SOUND: &str = ".ds-level[*|aria-label=\"Built-in Audio Analog Stereo\"]";
-const LEVEL: &str = ".ds-level[*|aria-label=\"Built-in Audio Analog Stereo\"] .ds-level-in";
+/// The glyph before the capsule (`CapsuleKnob` leads with it, design/29).
+const LEVEL: &str = ".ds-level[*|aria-label=\"Built-in Audio Analog Stereo\"] .ds-level-lead";
 
 /// The battery header's drawn fill width, 0 when there is none.
 fn fill(harness: &Harness) -> f32 {

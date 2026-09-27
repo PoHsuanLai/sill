@@ -32,7 +32,7 @@ mkdir -p "$OUT_DIR" "$SHOTS"
 HOST_REPO="$(cd "$SHELL_HOST_DEV/../.." && pwd)"
 PROBE="$HOST_REPO/target/release/examples/probe_toplevel"
 EMITTER="$SILL_REPO/target/debug/examples/badge_emitter"
-BAR_H="${BAR_H:-32}"
+BAR_H="${BAR_H:-24}"
 RESERVE=68
 PILL_RADIUS="${PILL_RADIUS:-12}"
 TERM_ID=com.system76.CosmicTerm

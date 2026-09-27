@@ -5,8 +5,9 @@ use shell_host::Size;
 use sill_services::{Bluetooth, BtPower, Presence, Radio, Wifi};
 use sill_settings::{ControlCenterModule, ControlCenterSettings};
 
-use super::geometry::{detail_height, estimate_size, module_height, place};
+use super::geometry::{estimate_size, place};
 use super::page::{CcPage, Detail};
+use super::sizes::{detail_height, module_height};
 
 /// What the estimate needs beyond the settings: the page on show, how many rows each detail
 /// list has, whether the machine has a keyboard backlight (its module is drawn only then), and
@@ -131,9 +132,9 @@ mod tests {
         let wifi = panel_size(&cc, &fit(CcPage::Detail(Detail::Wifi)));
         assert_eq!(grid.width, 320);
         assert!(grid.height > wifi.height, "{grid:?} {wifi:?}");
-        assert_eq!(wifi.height, 24 + 48 + 4 * 34 + 82);
+        assert_eq!(wifi.height, 20 + 36 + 6 + 4 * 44 + 6 + 29);
         let sound = dropdown_size(&cc, ControlCenterModule::Sound, &fit(CcPage::Modules));
-        assert_eq!((sound.width, sound.height), (320, 24 + 76));
+        assert_eq!((sound.width, sound.height), (320, 20 + 64));
         let list = dropdown_size(&cc, ControlCenterModule::Wifi, &fit(CcPage::Modules));
         assert_eq!(list.height, wifi.height);
     }
@@ -182,6 +183,6 @@ mod tests {
         };
         let with = panel_size(&cc, &fit(Presence::Present)).height;
         let without = panel_size(&cc, &fit(Presence::Absent)).height;
-        assert_eq!(with - without, 76 + 8, "a level module and its gap");
+        assert_eq!(with - without, 64 + 10, "a level module and its gap");
     }
 }

@@ -1,7 +1,7 @@
-//! The control center's grid and size (design/13 §13.3.7: width 320, two columns, gap 8,
-//! padding 12, sliders spanning both columns; height fits content, at most
+//! The control center's grid and size (design/13 §13.3.7, design/29: width 320, two columns,
+//! gap 10, padding 10, sliders spanning both columns; height fits content, at most
 //! `output_h - bar_h - 16`, then scrolls), pure. Every number is a `control_center.*` or
-//! `bar.*` key.
+//! `bar.*` key; the modules' own heights are quire's sizes (`sizes.rs`).
 //!
 //! The popup's size is estimated, not measured: shell-host's `PopupSize::FitContent` never
 //! measures the document (G7), so the bar sizes its popup from [`estimate_size`] and repositions
@@ -11,6 +11,7 @@ use shell_host::Size;
 use sill_settings::{BarSettings, ControlCenterModule, ControlCenterSettings};
 
 use super::page::CcPage;
+use super::sizes::{detail_height, module_height};
 
 /// How many grid columns a module takes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -99,40 +100,6 @@ pub fn height_cap(output_height: i32, bar: &BarSettings, cc: &ControlCenterSetti
     (output_height - i32::from(bar.height_px.0) - i32::from(cc.bottom_margin_px.0)).max(0)
 }
 
-/// A module's estimated height in the grid (its own box; the grid adds the gaps). Generous: the
-/// popup's spare area is transparent, a short one would clip.
-pub(crate) fn module_height(module: ControlCenterModule) -> i32 {
-    match module {
-        ControlCenterModule::Wifi | ControlCenterModule::Bluetooth | ControlCenterModule::Focus => {
-            TILE_PX
-        }
-        ControlCenterModule::Display
-        | ControlCenterModule::KeyboardBrightness
-        | ControlCenterModule::Sound => LEVEL_PX,
-        ControlCenterModule::NowPlaying => NOW_PLAYING_PX,
-        ControlCenterModule::Appearance => APPEARANCE_PX,
-        ControlCenterModule::Battery => BATTERY_PX,
-    }
-}
-
-/// A one-column tile (quire's `ModuleTile`, 52 at least): the disc beside the title and status.
-const TILE_PX: i32 = 56;
-/// A level module: title line, the glyph and slider row, padding.
-const LEVEL_PX: i32 = 76;
-/// Now Playing: the 48 px art, the position bar and its times, padding.
-const NOW_PLAYING_PX: i32 = 112;
-/// quire's `AppearancePicker`: two field headers over their controls (130.8 laid out, F1042).
-const APPEARANCE_PX: i32 = 134;
-/// Battery: a row of 64 px device rings over their percentages, two lines, the power
-/// profile's segmented control.
-const BATTERY_PX: i32 = 204;
-/// A detail page's header: the back button, the title and the switch.
-pub(crate) const DETAIL_HEAD_PX: i32 = 48;
-/// One list row on a detail page.
-pub(crate) const LIST_ROW_PX: i32 = 34;
-/// A detail page's foot: a rule and the "… Settings…" row, and the empty list's line.
-pub(crate) const DETAIL_FOOT_PX: i32 = 82;
-
 /// The panel's estimated size (before the popup's shadow room), at most `cap` tall: `width_px`
 /// wide; on the grid, its padding plus `placed`'s rows (each module's own height) and gaps; on a
 /// detail page, its header plus `list_rows` rows.
@@ -153,12 +120,6 @@ pub fn estimate_size(
         width: i32::from(cc.width_px.0),
         height: (inner + 2 * pad).min(cap),
     }
-}
-
-/// A detail page's height with `list_rows` rows (header, rows, foot), before the padding.
-pub(crate) fn detail_height(list_rows: usize) -> i32 {
-    let rows = i32::try_from(list_rows).unwrap_or(i32::MAX / LIST_ROW_PX);
-    DETAIL_HEAD_PX + rows.saturating_mul(LIST_ROW_PX) + DETAIL_FOOT_PX
 }
 
 /// The grid's rows, each as tall as its tallest module, and the gaps between them.
@@ -209,8 +170,8 @@ mod tests {
     #[test]
     fn the_panel_stops_short_of_the_bottom_edge() {
         let (bar, cc) = (BarSettings::default(), ControlCenterSettings::default());
-        // 1080 - bar 32 - margin 16.
-        assert_eq!(height_cap(1080, &bar, &cc), 1032);
+        // 1080 - bar 24 - margin 16.
+        assert_eq!(height_cap(1080, &bar, &cc), 1040);
     }
 
     #[test]
@@ -219,23 +180,24 @@ mod tests {
         use sill_settings::ControlCenterModule::{Bluetooth, Focus, Sound, Wifi};
         let cc = ControlCenterSettings::default();
         let placed = place(&[Wifi, Bluetooth, Focus, Sound], 2);
-        // (page, list rows, cap, width, height): padding 12 twice; tiles 56, gap 8, level 76.
+        // (page, list rows, cap, width, height): padding 10 twice; tiles 56, gap 10, level 64;
+        // a pane's head 36, gap 6, rows 44 (or the 41 empty line), gap 6, foot 29.
         let cases = [
-            (CcPage::Modules, 0, 1032, 320, 24 + 56 + 8 + 56 + 8 + 76),
+            (CcPage::Modules, 0, 1032, 320, 20 + 56 + 10 + 56 + 10 + 64),
             (CcPage::Modules, 0, 200, 320, 200),
             (
                 CcPage::Detail(Detail::Wifi),
                 3,
                 1032,
                 320,
-                24 + 48 + 3 * 34 + 82,
+                20 + 36 + 6 + 3 * 44 + 6 + 29,
             ),
             (
                 CcPage::Detail(Detail::Bluetooth),
                 0,
                 1032,
                 320,
-                24 + 48 + 82,
+                20 + 36 + 6 + 41 + 6 + 29,
             ),
         ];
         for (page, rows, cap, width, height) in cases {
@@ -246,6 +208,6 @@ mod tests {
                 "{page:?} {rows}"
             );
         }
-        assert_eq!(estimate_size(&cc, CcPage::Modules, &[], 0, 900).height, 24);
+        assert_eq!(estimate_size(&cc, CcPage::Modules, &[], 0, 900).height, 20);
     }
 }

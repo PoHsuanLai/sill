@@ -138,6 +138,7 @@ mod tests {
             look: IconLook {
                 style,
                 tint: Tint::NEUTRAL,
+                scheme: ds::Scheme::Light,
             },
             scale: Scale(scale),
             resolver: IconResolver {

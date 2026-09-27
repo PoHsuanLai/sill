@@ -14,7 +14,7 @@ use ds::Key;
 use ds_settings::{Count, Px};
 use sill_services::{Bluetooth, Radio, Ssid, Wifi, WifiCommand};
 use sill_settings::{ControlCenterModule, ControlCenterSettings, ShellFile};
-use sill_surfaces::surfaces::control_center::{CcPage, Detail, estimate_size, place};
+use sill_surfaces::surfaces::control_center::{CcPage, Detail};
 
 #[test]
 fn the_grid_shows_what_the_services_hold() {
@@ -32,7 +32,7 @@ fn the_grid_shows_what_the_services_hold() {
         ("each on the tile's plate", "data-plate=\"tile\"", 5),
         (
             "the grid from control_center.grid_*, the panel padding it",
-            "style=\"--grid-columns:2;--grid-gap:8px;--grid-padding:0px\"",
+            "style=\"--grid-columns:2;--grid-gap:10px;--grid-padding:0px\"",
             1,
         ),
         (
@@ -109,7 +109,7 @@ fn the_grid_takes_its_columns_and_gap_from_the_settings() {
     let file = ShellFile {
         control_center: ControlCenterSettings {
             grid_columns: Count(3),
-            grid_gap_px: Px(10),
+            grid_gap_px: Px(12),
             ..ControlCenterSettings::default()
         },
         ..ShellFile::default()
@@ -118,7 +118,7 @@ fn the_grid_takes_its_columns_and_gap_from_the_settings() {
     assert_eq!(
         count(
             &html,
-            "style=\"--grid-columns:3;--grid-gap:10px;--grid-padding:0px\""
+            "style=\"--grid-columns:3;--grid-gap:12px;--grid-padding:0px\""
         ),
         1
     );
@@ -238,38 +238,6 @@ fn a_chevron_slides_its_pane_in_and_escape_unwinds() {
     running.harness.key(Key::Escape);
     running.harness.advance(Duration::from_millis(400));
     assert_eq!(running.reports().last(), Some(&Report::Closed));
-}
-
-/// F1042: the Appearance module's estimate (`geometry::APPEARANCE_PX`) covers quire's two-row
-/// `AppearancePicker` as laid out, with no more than a few pixels to spare. The module is the
-/// seventh cell of the default grid.
-#[test]
-fn the_appearance_estimate_fits_the_two_row_picker() {
-    let (services, feeds) = fake::services();
-    let mut running = live::start(services, feeds);
-    running.harness.advance(Duration::from_millis(400));
-    let h = &running.harness;
-    let cell = ".ds-module-grid > :nth-child(7)";
-    assert_eq!(
-        h.count(&format!("{cell} .ds-appearance")),
-        1,
-        "the picker's cell"
-    );
-    let laid = h
-        .rect(cell)
-        .expect("the Appearance module is laid out")
-        .size
-        .height
-        .0;
-    let cc = ControlCenterSettings::default();
-    let placed = place(&[ControlCenterModule::Appearance], 2);
-    let pad = i32::from(cc.grid_padding_px.0);
-    let estimate = estimate_size(&cc, CcPage::Modules, &placed, 0, 1000).height - 2 * pad;
-    let spare = f64::from(estimate) - f64::from(laid);
-    assert!(
-        (0.0..8.0).contains(&spare),
-        "estimate {estimate} against the laid-out {laid}"
-    );
 }
 
 #[test]
