@@ -16,6 +16,7 @@ use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{Services, Shot, ShotCommand, ShotId, ShotPreview, Shots};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::ScreenshotThumb;
+use sill_surfaces::hooks::PinnedAppearance;
 use sill_surfaces::surfaces::banners::{BannerLink, BannerOutput};
 use sill_surfaces::surfaces::screenshot_thumb::layer::thumb_layer;
 
@@ -42,6 +43,8 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| world.services.clone());
+    // Not the desktop's portal and appearance file: they answer off-thread (FINDINGS G370).
+    use_context_provider(PinnedAppearance::default);
     use_context_provider(|| world.settings.clone());
     use_context_provider(|| world.link.clone());
     rsx! {
