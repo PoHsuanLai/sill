@@ -60,6 +60,8 @@ pub enum ControlCenterModule {
     Bluetooth,
     Focus,
     Display,
+    /// The keyboard's backlight (design/26 G25); drawn only where the machine has one.
+    KeyboardBrightness,
     Sound,
     NowPlaying,
     Appearance,
@@ -189,7 +191,8 @@ pub struct ControlCenterSettings {
 impl Default for ControlCenterSettings {
     fn default() -> Self {
         use ControlCenterModule::{
-            Appearance, Battery, Bluetooth, Display, Focus, NowPlaying, Sound, Wifi,
+            Appearance, Battery, Bluetooth, Display, Focus, KeyboardBrightness, NowPlaying, Sound,
+            Wifi,
         };
         ControlCenterSettings {
             width_px: Px(320),
@@ -198,7 +201,15 @@ impl Default for ControlCenterSettings {
             grid_padding_px: Px(12),
             bottom_margin_px: Px(16),
             modules: vec![
-                Wifi, Bluetooth, Focus, Display, Sound, NowPlaying, Appearance, Battery,
+                Wifi,
+                Bluetooth,
+                Focus,
+                Display,
+                KeyboardBrightness,
+                Sound,
+                NowPlaying,
+                Appearance,
+                Battery,
             ],
             material: PanelMaterial::Sheet,
             menu_bar_wifi: InMenuBar::Show,

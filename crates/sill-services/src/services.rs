@@ -15,6 +15,7 @@ use crate::control::Control;
 use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
 use crate::displays::{Displays, DisplaysCommand};
 use crate::events::{Agenda, EventsCommand};
+use crate::kbd_backlight::{KbdBacklight, KbdCommand};
 use crate::launch::{LaunchCommand, Launches};
 use crate::locker::{Lock, LockerCommand};
 use crate::network::wifi::{Wifi, WifiCommand};
@@ -76,6 +77,9 @@ pub struct Services {
     pub power_profile_control: Control<ProfileCommand>,
     pub media: watch::Receiver<Media>,
     pub media_control: Control<MediaCommand>,
+    /// The keyboard backlight (design/26 G25): absent on a machine without one.
+    pub kbd_backlight: watch::Receiver<KbdBacklight>,
+    pub kbd_backlight_control: Control<KbdCommand>,
     pub session: watch::Receiver<Session>,
     pub session_control: Control<SessionCommand>,
     /// M7: the borrowed lock screen (FINDINGS "M7"); the session's Lock goes through it.
@@ -147,6 +151,7 @@ impl Services {
         let (bluetooth, bluetooth_control) = crate::bluetooth::spawn(rt);
         let (power_profiles, power_profile_control) = crate::power_profile::spawn(rt);
         let (media, media_control) = crate::now_playing::spawn(rt);
+        let (kbd_backlight, kbd_backlight_control) = crate::kbd_backlight::spawn(rt);
         let (lock, locker_control) = crate::locker::spawn(rt);
         let (session, session_control) = crate::session::spawn(rt, locker_control.clone());
         // M6: the live loop is a stub that returns at once until lane a fills it, and it is
@@ -198,6 +203,8 @@ impl Services {
             power_profile_control,
             media,
             media_control,
+            kbd_backlight,
+            kbd_backlight_control,
             session,
             session_control,
             lock,
