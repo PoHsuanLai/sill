@@ -6246,15 +6246,17 @@ contact (design/26 R5, R7).
   `Touch::from_event` and bump a signal, so the render that follows takes it (then Remote); a
   contact never lingers onto the next remote change. An answer arriving, a load landing and every
   `sill debug launcher-key` are `Touch::Remote`. The pane gets the render's touch as a prop.
-- **F803 What plays today: nothing new.** The cues are computed and dropped (`_pane`,
-  `_results`): quire's `PreviewPane` and `CommandPalette` take no `Cue`, `Touch`,
-  `FirstShow` or `Operation` (Q370-Q372). So quire's pane still plays its own `slide-r` at
-  `--t-move --e-spring` on every showing (contact or not) and `pane-out-r` on hiding; the rows
-  still show with no rise; a slow text head still shows an empty media box (a slow PDF page
-  shows `PdfThumb`'s own grace-then-half-strength sheet, not `use_pending`). `use_operation`
-  and `use_pending` are **not** called: with no part to draw the frame they would only wake the
-  panel every `--t-pending-step` for up to `PendingCap` for nothing (R3). No local stand-in was
-  written (no sill CSS, no ad-hoc `rise`), per the brief.
+- **F803 What plays: the launcher animates** (since "Launcher cues wired", F840). At first
+  the cues were computed and dropped (`_pane`, `_results`) because quire's parts took none
+  (Q370-Q372). quire now takes them and sill passes them: the pane's entrance springs
+  (`--e-spring`, `data-touch=contact`) only when the person's key or press showed it and
+  eases (`--e-out`) otherwise; another kind, a load landing or a load failing cross-fades the
+  media at `--t-quick` without replaying the entrance; a slow text head or PDF page shows
+  nothing for `PendingGrace`, then quire's dashed ring over "Loading…" (`aria-busy`), still
+  from the cap; the opening's first result set rises with `--stagger` (cap 12) and later sets
+  replace in place; Show More's added rows rise downward and Show Less heals the rows after it
+  up. `use_operation` is called now, with a part to draw its frame. Still no sill CSS: sill
+  styles none of `.ds-preview-pending*`, `[data-touch]`, `[data-row-motion]`, `[data-reveal]`.
 - **F804 Lint.** `tests/launcher_details_lint.rs`: `launcher.css` is clean under
   `Profile::Details` (no `InfiniteLoop`, no `OffGrammarTiming`), and so is the rendered panel's
   markup with the pane up. Nothing in the sheet had to change.
@@ -6661,3 +6663,82 @@ merged in. Numbers from F830.
 - **G300 closed.** The bar and the Wi-Fi tile draw `WifiState::Joining` while connecting (F830,
   F832, F833).
 - **G310, G311 and G312 closed** by quire's clock fixes (F834).
+
+## Launcher cues wired (2026-09-27)
+
+quire's launcher cues (quire CONSUMING "Launcher cues", sill Q370-Q373, design/26 §5.6) in the
+launcher, on sill master 8adab89 with master afa2d6e (Status slots) merged in, against quire
+master 82678e10. F803 now says what plays. Numbers from F840.
+
+- **F840 The wiring.** `LauncherPane` passes `cue: pane.cue()` and `operation:
+  use_operation(pane.cue())` to quire's `PreviewPane` (the placeholder `_pane` is gone). One
+  `ds::PreviewPane` stays mounted whatever the content kind, so another kind cross-fades
+  (`.ds-preview-media.a-morph-fade-in`) and the entrance's `data-pulse` never flips. The panel
+  passes `reveal: RevealCue::Cue(list.cue())` to `CommandPalette` (`_results` is gone), through a
+  small `Beside { aside, reveal }` so `palette` keeps its argument count. No sill CSS: sill
+  styles none of `.ds-preview-pending*`, `[data-touch]`, `[data-row-motion]`, `[data-reveal]`.
+  No `match` over `ds::Anim` in sill, so `PaneInROut` needed no arm.
+- **F841 Show More / Show Less stay a Change.** design/26 §5.6 now decides them (the added rows
+  `Reveal` downward, Show Less `heal`s up), but `ds::detail::Moment` has no moment for a group
+  expand, and the palette plays both itself from its own group action (quire books the run of
+  its own Enter or click, then reads the next `groups` as a resize). `ListState`'s table keeps
+  calling them a Change, which replays no rise; the comment says the palette plays them.
+- **G320 Show Less played no heal: the selection stayed on the old index.** `toggle_section`'s
+  doc said "the selection stays on its line", but it kept the index. After Show Less the
+  index landed on a row of another group (the Web row), whose trail turned into "↵". Two groups
+  changed, so quire read a new result set and played nothing. After Show More the index fell
+  on an added row of the same group, so the rise played by chance. Fixed: `toggle_section` moves
+  the selection to the section's new "Show More" / "Show Less" line (`View::more_line`, table test
+  `a_sections_more_line_moves_with_its_rows`). The person can press Enter again to toggle back.
+  The scripts only read `hidden`, so they are unchanged.
+- **F842 A PDF page now waits behind the pane's pending look.** While `use_pdf_page` is
+  `Loading`, the pane's state is `Pending`. After `PendingGrace`, quire draws its ring over
+  "Loading…" in place of `PdfThumb`'s own half-strength sheet. A Harness test that shows a PDF
+  and then asserts 0 frames must first wait for the raster, which lands in wall time off the
+  harness thread. `launcher_harness` has `watch` for this (5 ms of harness clock per frame, 2 ms
+  of wall clock between frames, at most 2000 frames) and `loaded` (the pane is up with no
+  `aria-busy`). `launcher_details`' pane test uses them.
+- **F843 Tests** (`tests/launcher_cues.rs`, `Clock::Virtual`, `assert_settles_to_zero_frames`
+  after each step):
+  - `the_entrance_springs_on_a_real_key_and_eases_on_a_remote_one`: a table of a real ⌘Y
+    (`data-touch=contact`) and a link `quick-look` (`remote`). The touch is kept after the
+    entrance settles.
+  - `another_kind_cross_fades_and_never_replays_the_entrance`: PDF to PNG fades the media in,
+    with one pane and the same `data-pulse`.
+  - `a_slow_text_head_shows_loading_after_the_grace_then_the_text`: a new fixture row,
+    `slow-head.txt`, found only by the query `slow-head`, is a FIFO the test makes with
+    `mkfifo`, so the read waits until the test writes it. Within the grace nothing shows but
+    `aria-busy`. At 450 ms, "Loading…" shows. Past the cap it reads `data-pending=still` at 0
+    frames. After the write, the text replaces the pending look and `aria-busy` goes.
+  - `the_first_result_set_rises_and_a_later_one_does_not`: after opening,
+    `.ds-menu[data-reveal=play]` is present, then it settles. A real Backspace (a new answer)
+    never plays it.
+  - `show_more_rises_and_show_less_heals`: real Down ×6 and Enter show `[*|data-row-motion=rise]`.
+    The selection is then on Show Less (8). A real Enter shows `heal-from`, hides 2 rows again
+    and puts the selection back on Show More (6). Blitz's selector engine needs the `*|`
+    namespace on attribute selectors; `Harness::attr` does not.
+  - Six runs of `launcher_cues` plus `launcher_details` at load 45-75: all pass, about 6 s each.
+- **G321 A debug-link Enter on Show More plays no expand.** `sill debug launcher-key enter`
+  and the demo's scripted `press enter` go through `PanelCtx::run_line`, which calls
+  `toggle_section` directly. The palette never books its action, so the grown group reads as a
+  new result set: correct, but still. A person's Enter or click plays the motion.
+  `accept-launcher-v2.sh` step 6 and the fixtures' show-more capture therefore show no motion.
+  Asked as Q400.
+- **F844 Scripts.**
+  - `dev/accept-launcher-v2.sh` on wayland-1: every step PASS.
+    - Latency: 10 warm openings, p50 111.9, p95 404.0 ms.
+    - Sections, PDF and image preview, pane levels, Show More, emoji, the real caret, and the
+      fixtures all pass.
+    - Step 8 idle: 269 launcher frames before and after 5 s, so 0.
+  - `dev/accept-launcher-v2-real-input.sh` on headless KWin: steps 1-5 PASS. Q340 and Q341
+    read CLOSED.
+  - Captures re-taken in `dev/out/launcher-v2-*.png`: the PDF page, the image, the text head,
+    pane focus and the emoji grid are drawn as before.
+
+### Asks (quire)
+
+- **Q400 Book a group's action from outside the palette.** A caller that runs "Show More"
+  itself (sill's debug link, a future IPC or accessibility action) cannot tell `CommandPalette`
+  that the next `groups` change is that action, so it plays no expand. Proposed: a handle
+  (like `SearchField`'s) whose `ran_action()` books the next change, or `groups` carrying which
+  group's action last ran. Not blocking: a person's input plays it.
