@@ -70,6 +70,9 @@ pub(crate) struct PanelCtx {
     pub(crate) picking: CopyValue<Picking>,
     /// How many times the preview pane has finished leaving (quire's `on_hidden`).
     pub(crate) left: Signal<u64>,
+    /// quire's palette handle (Q400): a Show More / Show Less run here, not through the
+    /// palette's own Enter or click, still plays the group's rise or heal.
+    pub(crate) palette: ds::PaletteHandle,
 }
 
 /// The panel's state and handlers on `output`, following the shared launcher state.
@@ -98,6 +101,7 @@ pub(crate) fn use_panel(output: OutputId, results: ReadSignal<Results>) -> Panel
         power_menu: try_use_context::<PowerMenuLink>(),
         picking: use_hook(|| CopyValue::new(Picking::No)),
         left: use_signal(|| 0),
+        palette: ds::use_palette_handle(),
     };
     use_openings(ctx.clone());
     ctx
@@ -344,6 +348,7 @@ impl PanelCtx {
             return;
         };
         let expanded = toggled(&pane.expanded, section);
+        self.palette.mark_group_action(section.title());
         let line = self.view_of(&session, &expanded).more_line(section);
         self.store_pane(PaneSession { expanded, ..pane });
         match line {

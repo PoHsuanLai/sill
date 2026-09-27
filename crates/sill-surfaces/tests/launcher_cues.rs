@@ -270,3 +270,19 @@ fn show_more_rises_and_show_less_heals() {
     assert_eq!(shown.map(|r| r.selected), Some(6), "on Show More again");
     assert_settles_to_zero_frames(&mut open.harness);
 }
+
+/// The same Show More through the link (`sill debug launcher-key`): sill runs the group's
+/// action itself and marks it on quire's palette handle (Q400), so the rows still rise.
+#[test]
+fn a_show_more_through_the_link_still_rises() {
+    let mut open = open("m9");
+    assert_settles_to_zero_frames(&mut open.harness);
+    for _ in 0..6 {
+        press(&mut open, LinkKey::Down);
+    }
+    assert_eq!(open.link.rows().map(|r| r.selected), Some(6));
+    open.link.press(LinkKey::Enter);
+    let rose = watch(&mut open.harness, |h| row_motion(h, "rise"));
+    assert_eq!(rose, Seen::Once, "the added rows rise");
+    assert_settles_to_zero_frames(&mut open.harness);
+}

@@ -358,6 +358,7 @@ fn palette(
             on_select_rect: move |rect: Rect| row.set(measured(rect)),
             onkey: move |event: KeyboardEvent| key.field_key(&event),
             claim: Callback::new(move |field: FieldKey| claim.claim(&field)),
+            handle: Some(panel.palette),
             aside: pane,
             aside_width: Px(PREVIEW_WIDTH_PX as f32),
             reveal,
