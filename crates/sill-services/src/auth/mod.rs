@@ -1,7 +1,7 @@
 //! The password check behind sill's own lock screen (design/20 §1.9, M11; FINDINGS "M11 freeze"
 //! F540-F543). The lock surface sends the typed secret ([`AuthCommand::Submit`]); the service
 //! runs it through an [`Authenticator`] off the UI thread, counts failures through the pure
-//! [`lockout`] machine, and publishes [`Auth`], whose [`AuthPhase::Accepted`] is what the lock
+//! [`gate`] machine (one check at a time; no lockout, F862), and publishes [`Auth`], whose [`AuthPhase::Accepted`] is what the lock
 //! surfaces unlock on (the daemon as a backstop). The polkit prompt does not come through here: polkit's own helper runs PAM for it
 //! (`crate::polkit_agent`).
 //!
@@ -23,17 +23,17 @@
 
 mod account;
 mod authenticator;
+pub mod gate;
 mod helper;
 mod live;
-pub mod lockout;
 pub mod pam;
 pub mod protocol;
 mod types;
 
 pub use account::{avatar_source, user_name_in_passwd};
 pub use authenticator::{Authenticator, FakeAuthenticator, FakeRule};
+pub use gate::{Checks, Gate, GateIn, GateOut};
 pub use helper::PamHelper;
-pub use lockout::{Gate, Lockout, LockoutIn, LockoutOut, LockoutPolicy};
 pub use types::{
     Account, Attempt, Attempts, Auth, AuthCommand, AuthFault, AuthPhase, AvatarSource, FakeVerdict,
     Outcome, PamNote, RealName, Secret, UserName, Verdict,

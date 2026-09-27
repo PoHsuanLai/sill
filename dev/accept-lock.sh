@@ -21,11 +21,12 @@
 #      prompt's band.
 #   3. `sill debug auth refuse`: the prompt spins then shakes (captures in the prompt's band
 #      differ from the idle one, and settle back to it), and the session stays locked.
-#   4. Five more refusals (six wrongs: five free tries, then 60 s): the prompt says "Try again at
-#      ..." (dev/out/lock-lockedout-cosmic.png; the band differs from the idle one), still locked.
+#   4. Five more refusals (six wrongs): no lockout (F862), so the prompt settles back to the
+#      idle field every time (dev/out/lock-sixwrong-cosmic.png; the band matches the idle one, no
+#      "Try again at" line), still locked.
 #   5. 5 s idle while locked: 0 commits on the lock surfaces (counted from the daemon's
 #      WAYLAND_DEBUG=client log, since `debug stats` has no lock rows: G191).
-#   6. `sill debug auth accept` (a made-up accept skips the 60 s wait): status unlocked within
+#   6. `sill debug auth accept` right after the six wrongs (nothing to wait for): status unlocked within
 #      the made-up check (250 ms) plus the accepted beat (settle(PersonaHop), 454 ms) plus 500 ms, the lock surface is gone,
 #      the marker is removed, and the session is free (a stand-in locker locks and unlocks).
 #   7. A crash while locked: `sill lock`, the marker is written, the daemon is killed (-9) and
@@ -235,19 +236,19 @@ step_refuse_shakes() {
 }
 
 # 4.
-step_lockout() {
-  local log="$OUT_DIR/lockout.log" n diff
+step_no_lockout() {
+  local log="$OUT_DIR/no-lockout.log" n diff
   : >"$log"
   for n in 2 3 4 5 6; do
     sill debug auth refuse >>"$log" 2>&1
     sleep 0.9
   done
   sleep 0.5
-  capture "$PROMPT_OUT" "$SHOTS/lock-lockedout-cosmic.png"
-  diff=$(band_diff "$OUT_DIR/idle.png" "$SHOTS/lock-lockedout-cosmic.png" 70 97)
-  echo "six wrongs: $diff pixels differ from the idle prompt (the 'Try again at' line); status $(lock_phase); $SHOTS/lock-lockedout-cosmic.png" \
+  capture "$PROMPT_OUT" "$SHOTS/lock-sixwrong-cosmic.png"
+  diff=$(band_diff "$OUT_DIR/idle.png" "$SHOTS/lock-sixwrong-cosmic.png" 70 97)
+  echo "six wrongs: $diff pixels differ from the idle prompt (no 'Try again at' line: no lockout, F862); status $(lock_phase); $SHOTS/lock-sixwrong-cosmic.png" \
     | tee -a "$log" >&2
-  [ "$diff" -gt 150 ] && [ "$(lock_phase)" = "locked shell" ]
+  [ "$diff" -lt 150 ] && [ "$(lock_phase)" = "locked shell" ]
 }
 
 # 5.
@@ -379,7 +380,7 @@ done
 trap recover EXIT
 status=0
 if start_daemon "$OUT_DIR/daemon.log"; then
-  for step in ${STEPS:-step_lock step_surfaces step_refuse_shakes step_lockout step_accept \
+  for step in ${STEPS:-step_lock step_surfaces step_refuse_shakes step_no_lockout step_accept \
     step_idle step_crash_relocks step_release_refuses_fake}; do
     if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; fi
   done
@@ -389,5 +390,5 @@ fi
 recover
 trap - EXIT
 rm -rf "$RUNTIME" "$CONFIG" "$STATE" "$CACHE"
-echo "logs in $OUT_DIR; screenshots $SHOTS/lock-cosmic.png, $SHOTS/lock-lockedout-cosmic.png"
+echo "logs in $OUT_DIR; screenshots $SHOTS/lock-cosmic.png, $SHOTS/lock-sixwrong-cosmic.png"
 exit "$status"

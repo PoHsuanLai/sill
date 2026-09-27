@@ -86,7 +86,7 @@ pub(super) fn LockBody(
             rsx! {
                 LockPrompt {
                     user: lock_user(&auth.account),
-                    state: prompt_state(&auth.phase, &now, format),
+                    state: prompt_state(&auth.phase),
                     caps,
                     hint: hint_of(&auth),
                     oninput: move |_: String| {},

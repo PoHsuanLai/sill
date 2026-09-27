@@ -11,7 +11,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 use sill_services::auth::{
     self, Attempt, Attempts, Auth, AuthCommand, AuthFault, AuthPhase, Authenticator,
@@ -44,14 +44,7 @@ fn send(control: &Control<AuthCommand>, command: AuthCommand) {
     control.send(command).unwrap_or_else(|e| panic!("{e}"));
 }
 
-fn wall_ms() -> i64 {
-    let ms = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_or(0, |d| d.as_millis());
-    i64::try_from(ms).unwrap_or(i64::MAX)
-}
-
-/// One wrong secret, seen through `Checking` to `Wrong` (or `LockedOut`).
+/// One wrong secret, seen through `Checking` to `Wrong`.
 async fn wrong_once(auth: &mut watch::Receiver<Auth>, control: &Control<AuthCommand>, n: u32) {
     send(
         control,
@@ -61,9 +54,10 @@ async fn wrong_once(auth: &mut watch::Receiver<Auth>, control: &Control<AuthComm
     until(auth, "a verdict", |a| a.failures == Attempts(n)).await;
 }
 
+/// No lockout (F862): however many wrong secrets came before, the next one is checked at once.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "live: spawns the auth service"]
-async fn six_wrongs_lock_out_on_the_wall_clock_and_a_reset_keeps_it() {
+async fn many_wrongs_never_lock_out_and_the_right_one_opens() {
     let (mut auth, control) = auth::spawn_with(&tokio::runtime::Handle::current(), fake(20));
     send(&control, AuthCommand::Reset);
     let loaded = until(&mut auth, "the account", |a| !a.account.user.0.is_empty()).await;
@@ -71,30 +65,21 @@ async fn six_wrongs_lock_out_on_the_wall_clock_and_a_reset_keeps_it() {
         "account: {:?} ({:?})",
         loaded.account.user, loaded.account.name
     );
-    for n in 1..=5 {
+    for n in 1..=10 {
         wrong_once(&mut auth, &control, n).await;
-        assert_eq!(auth.borrow().phase, AuthPhase::Wrong, "free try {n}");
+        assert_eq!(auth.borrow().phase, AuthPhase::Wrong, "try {n}");
     }
-    let before = wall_ms();
-    wrong_once(&mut auth, &control, 6).await;
-    let AuthPhase::LockedOut { until: at } = auth.borrow().phase.clone() else {
-        panic!("the sixth wrong locks out: {:?}", auth.borrow().phase);
-    };
-    let wait = at.0 - before;
-    println!("locked out for {wait} ms");
-    assert!((59_000..=61_000).contains(&wait), "a minute: {wait}");
-    // Busy while waiting: a submit changes nothing.
-    send(&control, AuthCommand::Submit(Secret::new(RIGHT)));
-    tokio::time::sleep(Duration::from_millis(100)).await;
-    assert!(matches!(auth.borrow().phase, AuthPhase::LockedOut { .. }));
-    // A new lock keeps the wait and the count.
+    // A new lock keeps the count and waits for nothing.
     send(&control, AuthCommand::Reset);
-    tokio::time::sleep(Duration::from_millis(100)).await;
-    assert_eq!(auth.borrow().failures, Attempts(6));
-    assert!(matches!(auth.borrow().phase, AuthPhase::LockedOut { .. }));
-    // A made-up accept (debug builds' `sill debug auth accept`) skips the wait and clears.
-    send(&control, AuthCommand::Fake(FakeVerdict::Accept));
+    until(&mut auth, "idle", |a| a.phase == AuthPhase::Idle).await;
+    assert_eq!(auth.borrow().failures, Attempts(10));
+    let started = Instant::now();
+    send(&control, AuthCommand::Submit(Secret::new(RIGHT)));
     until(&mut auth, "accepted", |a| a.phase == AuthPhase::Accepted).await;
+    println!(
+        "the right secret after ten wrong opened in {:?}",
+        started.elapsed()
+    );
     assert_eq!(auth.borrow().failures, Attempts(0));
 }
 
