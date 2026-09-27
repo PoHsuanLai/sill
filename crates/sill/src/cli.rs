@@ -14,8 +14,8 @@ use std::path::PathBuf;
 use clap::{Parser, Subcommand, ValueEnum};
 
 pub use crate::cli_desktop::{
-    CornerArg, ShotArg, WidgetsAction, fake_corner, fake_screenshot, screenshot_request,
-    widgets_request,
+    CornerArg, DragPhaseArg, ShotArg, WidgetsAction, fake_corner, fake_screenshot,
+    fake_widget_drag, screenshot_request, widgets_request,
 };
 pub use crate::cli_display::{DisplayAction, LevelAction, VolumeAction, display_request};
 pub use crate::cli_launcher::{ClipboardAction, LauncherKeyArg, clipboard_request, launcher_key};
@@ -219,6 +219,15 @@ pub enum DebugAction {
         #[arg(value_enum)]
         corner: CornerArg,
     },
+    /// A made-up press, move or release at X Y on a desktop widget layer
+    /// (`sill-desktop-widgets-DP-1`): one step of a drag.
+    WidgetDrag {
+        surface: String,
+        #[arg(value_enum)]
+        phase: DragPhaseArg,
+        x: i32,
+        y: i32,
+    },
     /// Feed the lock screen's password check a made-up verdict (a debug daemon only).
     Auth {
         #[arg(value_enum)]
@@ -358,6 +367,12 @@ pub fn request(command: &Command) -> Option<Request> {
                 DebugRequest::Screenshot(fake_screenshot(path.clone()))
             }
             DebugAction::Corner { corner } => DebugRequest::Corner(fake_corner(*corner)),
+            DebugAction::WidgetDrag {
+                surface,
+                phase,
+                x,
+                y,
+            } => DebugRequest::WidgetDrag(fake_widget_drag(surface, *phase, *x, *y)),
             DebugAction::Auth { verdict } => DebugRequest::Auth(fake_auth(*verdict)),
             DebugAction::Polkit(args) => DebugRequest::Polkit(fake_polkit(args)),
             DebugAction::Switcher { apps } => DebugRequest::Switcher(fake_switcher(apps)),
@@ -504,6 +519,23 @@ mod tests {
                 Some(Request::Debug(DebugRequest::Corner(FakeCorner {
                     corner: CornerName::TopLeft,
                 }))),
+            ),
+            (
+                &[
+                    "debug",
+                    "widget-drag",
+                    "sill-desktop-widgets-DP-1",
+                    "down",
+                    "900",
+                    "96",
+                ],
+                Some(Request::Debug(DebugRequest::WidgetDrag(
+                    sill_ipc::FakeWidgetDrag {
+                        surface: SurfaceName("sill-desktop-widgets-DP-1".to_owned()),
+                        phase: sill_ipc::DragPhase::Down,
+                        at: Point { x: 900, y: 96 },
+                    },
+                ))),
             ),
             (
                 &["debug", "corner", "bottom-right"],

@@ -5,11 +5,16 @@
 //! once so the layer follows before the watch has fired).
 
 use std::path::Path;
+use std::sync::OnceLock;
 
 use shell_host::{HostCtx, OutputInfo, Root, SurfaceId};
-use sill_ipc::{Failure, FailureKind, Response, WidgetsRequest};
+use sill_ipc::{DragPhase, Failure, FailureKind, Point, Response, WidgetsRequest};
 use sill_settings::{DesktopWidgets, ShellFile};
-use sill_surfaces::surfaces::desktop_widgets::{DesktopWidgetsProps, PlacementFile, desktop_layer};
+use sill_surfaces::surfaces::desktop_widgets::arrange::LayerPoint;
+use sill_surfaces::surfaces::desktop_widgets::drag::DragInput;
+use sill_surfaces::surfaces::desktop_widgets::{
+    DesktopWidgetsProps, PlacementFile, WidgetDragLink, desktop_layer,
+};
 use tokio::sync::watch;
 
 use crate::msg::ShellMsg;
@@ -82,6 +87,7 @@ fn spawn(
     if let Some(file) = PlacementFile::default_path() {
         made = made.context(file);
     }
+    made = made.context(drags().clone());
     let config = desktop_layer(&info);
     let namespace = config.namespace.clone();
     surfaces.desktop_widgets = match ctx.spawn_layer(config, made) {
@@ -92,6 +98,42 @@ fn spawn(
         }
     };
     outputs.set(info, surfaces);
+}
+
+/// Every desktop layer's link for `sill debug widget-drag`: one per process (one daemon per
+/// process, as `crate::links`).
+fn drags() -> &'static WidgetDragLink {
+    static DRAGS: OnceLock<WidgetDragLink> = OnceLock::new();
+    DRAGS.get_or_init(WidgetDragLink::new)
+}
+
+/// `sill debug widget-drag`: `phase` at `at` for the desktop layer `layer`, fed to its drag
+/// machine as its pointer would be.
+pub fn debug_drag(outputs: &Outputs, layer: SurfaceId, phase: DragPhase, at: Point) -> Response {
+    let output = outputs
+        .outputs
+        .iter()
+        .find(|(_, surfaces)| surfaces.desktop_widgets == Some(layer))
+        .map(|(info, _)| info.id);
+    let Some(output) = output else {
+        return failed(
+            FailureKind::Unsupported,
+            "not a desktop widget layer".to_owned(),
+        );
+    };
+    let at = LayerPoint { x: at.x, y: at.y };
+    let input = match phase {
+        DragPhase::Down => DragInput::Down(at),
+        DragPhase::Move => DragInput::Move(at),
+        DragPhase::Up => DragInput::Up(at),
+    };
+    match drags().ask(output, input) {
+        0 => failed(
+            FailureKind::Unsupported,
+            "the layer is not listening yet".to_owned(),
+        ),
+        _ => Response::Done,
+    }
 }
 
 /// `widgets.desktop` flipped.

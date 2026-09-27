@@ -178,6 +178,13 @@ and a stand-in helper; these need polkitd, polkit's own helper and a real passwo
 - [ ] **A clipboard row pasted into a real app** (M9 lane e): on KWin, real Enter on a clipboard
   row was proven with `wl-paste` only; on a real login, Enter on an older clipboard row, then
   Ctrl+V in a text editor and in a terminal, pastes that entry.
+- [ ] **Dragging a desktop widget with a real pointer** (FINDINGS "Widget drag", G330): with
+  `sill widgets toggle-desktop` on, press the Calendar and drag it: it lifts under the pointer
+  and follows it; held over the Battery, the Battery steps aside, and goes back when you move
+  on; released, the Calendar glides into its cell with a small spring. Quit and restart sill:
+  the place is kept. Click the Calendar's month arrows and Now Playing's buttons without moving:
+  they work. Drag starting on a button: the button does nothing. By eye: the lift (1.04 and the
+  drag shadow) reads as picked up, not as a glitch.
 
 ## Owned by the other session (quire, shell-host)
 

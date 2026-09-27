@@ -16,7 +16,7 @@ use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
 use sill_surfaces::DesktopWidgets;
-use sill_surfaces::surfaces::desktop_widgets::{GridSlot, Placement, PlacementFile};
+use sill_surfaces::surfaces::desktop_widgets::{GridSlot, OutputKey, Placement, PlacementFile};
 
 /// What the harness's root provides.
 #[derive(Clone)]
@@ -129,20 +129,27 @@ fn a_medium_widget_takes_two_cells() {
 #[test]
 fn saved_places_are_kept_and_the_placements_are_written_back() {
     let (dir, placements) = temp_file("saved");
+    // A file from before places were per output: its entries name no output.
+    let seeded = [at(WidgetKind::Battery, 0, 0), at(WidgetKind::UpNext, 3, 2)];
     placements
-        .save(&[at(WidgetKind::Battery, 0, 0), at(WidgetKind::UpNext, 3, 2)])
+        .save(&OutputKey::Any, &seeded)
         .unwrap_or_else(|e| panic!("seeding: {e}"));
     let (h, _feeds) = start(ShellFile::default(), Some(placements.clone()));
     assert_eq!(box_of(&h, "#widget-battery"), (20, 16, 164, 164));
     assert_eq!(box_of(&h, "#widget-calendar"), (1100, 16, 164, 164));
     assert_eq!(
-        placements.load(),
+        placements.load(&OutputKey::of(Some("DP-1"))),
         vec![
-            at(WidgetKind::Calendar, 6, 0),
             at(WidgetKind::Battery, 0, 0),
             at(WidgetKind::UpNext, 3, 2),
+            at(WidgetKind::Calendar, 6, 0),
         ],
-        "the new place is saved, the hidden widget's kept"
+        "DP-1 now has places of its own: the new one saved, the hidden widget's kept"
+    );
+    assert_eq!(
+        placements.load(&OutputKey::Any),
+        seeded,
+        "the unnamed entries stay for other outputs"
     );
     let _ = std::fs::remove_dir_all(dir);
 }

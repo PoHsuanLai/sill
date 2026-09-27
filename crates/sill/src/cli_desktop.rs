@@ -6,7 +6,8 @@ use std::path::PathBuf;
 
 use clap::{Subcommand, ValueEnum};
 use sill_ipc::{
-    CornerName, FakeCorner, FakeScreenshot, ScreenshotRequest, ShotArea, WidgetsRequest,
+    CornerName, DragPhase, FakeCorner, FakeScreenshot, FakeWidgetDrag, Point, ScreenshotRequest,
+    ShotArea, SurfaceName, WidgetsRequest,
 };
 
 /// `sill screenshot KIND`.
@@ -34,6 +35,27 @@ pub enum CornerArg {
     TopRight,
     BottomLeft,
     BottomRight,
+}
+
+/// `sill debug widget-drag SURFACE PHASE X Y`'s phase.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum DragPhaseArg {
+    Down,
+    Move,
+    Up,
+}
+
+/// `sill debug widget-drag`'s made-up drag step.
+pub fn fake_widget_drag(surface: &str, phase: DragPhaseArg, x: i32, y: i32) -> FakeWidgetDrag {
+    FakeWidgetDrag {
+        surface: SurfaceName(surface.to_owned()),
+        phase: match phase {
+            DragPhaseArg::Down => DragPhase::Down,
+            DragPhaseArg::Move => DragPhase::Move,
+            DragPhaseArg::Up => DragPhase::Up,
+        },
+        at: Point { x, y },
+    }
 }
 
 /// The request `sill screenshot KIND` sends.

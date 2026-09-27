@@ -2,6 +2,11 @@
    whole layer (the grid is measured from it), each widget placed absolutely at its grid cell by
    the layer (left, top, width and height written inline from `widgets.desktop_cell_px` and
    `widgets.desktop_gap_px`). Nothing between the widgets is painted, and the input and blur
-   regions are the widgets' frames only. Tokens only (coherence rule 1). */
+   regions are the widgets' frames only. A dragged widget (`data-lift="up"`, FINDINGS "Widget
+   drag") is above the others on quire's drag layer with quire's drag shadow, its scale written
+   inline from quire's tween; its shield takes the press's release so the widget's own controls
+   never see it. Tokens only (coherence rule 1). */
 .sill-dw-grid{ position:absolute; top:0; right:0; bottom:0; left:0; }
-.sill-dw-place{ position:absolute; display:grid; }
+.sill-dw-place{ position:absolute; display:grid; border-radius:var(--m-radius); }
+.sill-dw-place[*|data-lift="up"]{ z-index:var(--z-drag); box-shadow:var(--shadow-drag); }
+.sill-dw-shield{ position:absolute; top:0; right:0; bottom:0; left:0; z-index:var(--z-drag); }
