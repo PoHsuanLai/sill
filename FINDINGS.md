@@ -8655,3 +8655,56 @@ Q520-Q523. Branch `worktree-agent-a60cd59fcac2693ce` (cut from master 70db27b).
   Q522. Queued in `docs/manual-checks.md` ("Widgets by eye").
 - **G423 A removed desktop widget vanishes.** No exit is played when Edit Widgets takes a card
   off the desktop (quire's exits are list rows' `Presence`/`Roster`; a grid card has none).
+
+## Launcher chords and picker
+
+Adopts quire master fd77336 (CONSUMING "Launcher chords (2026-09-28)", the AppearancePicker
+without its Motion row, design/22's retired `dock.shipped_icons` row). Branch
+`worktree-agent-a91fc2dc9ac2a7ea3` (cut from master 84a3a79). Numbered F1040-F1046.
+
+- **F1040 The chord is quire's, on the selected row only (Spotlight's hint).** Every launcher row
+  is now a `MenuEntry::Row(MenuRow { chord: RowChord::on_selected(..), .. })`, plain rows too
+  (`entries::row_entry`, `sections_view::Draw::plain`), so quire draws it as a plain grey
+  `.ds-chord` only on the row that is the selection and moves it with the palette's own arrows.
+  The chord is `entries::row_chord`: the first action's chord (a file's ⌘R), `⌃K` when the row
+  has actions but none carries a chord, else `↵` (Enter runs it). sill no longer tracks the
+  cursor for it, so F742/F761's machinery is gone: `entries::Cursor`, `entries::Enter`,
+  `palette_groups_at`, `Draw::cursor`, `sections_view::section_stops` and both `trail`
+  functions. `ResultsList` uses `palette_groups` (quire's `selected` places the chord).
+  `PaneAction` unchanged; the pane's buttons now read "Reveal in Files ⌘R" (no key caps). The
+  actions menu (`action_entries`, a `Menu`, not the palette) keeps its `Trail::Shortcut`.
+- **F1041 A trail is only data now, so a mixed section names every row's kind.** `trail` is
+  `entries::kind_trail`: `Note(kind)` in Top Hit and Recent, else `None` (a file's or clip's
+  time stays in its `RowShape`; a plain row with a `row_detail` trail keeps that). Before, a
+  row with actions showed its chord there instead of its kind, so the Top Hit now reads
+  "06:58 Document ⌘R" on a selected file and "Application" on an app (the calculation's Top Hit
+  says "Calculator"; `launcher_render`'s heading helper now matches `.ds-section-header-text`
+  so that note is not taken for a heading). If the time and kind together read as clutter on a
+  Top Hit file, dropping the kind for shaped rows is a one-line change in `Draw::shaped`.
+- **F1042 `APPEARANCE_PX` 226 -> 134.** The two-row `AppearancePicker`'s module is 130.8 px as a
+  Harness lays out the default grid (the seventh cell, `live::start`, `Clock::Virtual`,
+  `PinnedAppearance`). `control_center_render::the_appearance_estimate_fits_the_two_row_picker`
+  checks the estimate covers it with under 8 px to spare. Only this estimate moved (design/29
+  sizes the rest).
+- **F1043 `dock.shipped_icons` is no longer `RETIRING`** (`sill-settings/tests/keys.rs`): quire
+  fd77336 dropped its §3.5 row, so the list is empty.
+- **F1044 (for design/29) the other estimates against the same layout.** Tiles 56 vs 52 laid
+  out, levels 76 vs 73.8, Now Playing 112 vs 70 (nothing playing), **Battery 204 vs 218.8**: the
+  battery estimate is 15 px short, so the grid's estimate can undershoot when Battery is the
+  tallest in its row (the popup is sized from it). Not changed here.
+- **F1045 The Harness's `count` misses `[aria-selected="true"] .ds-chord`.** The attribute
+  selector with a descendant counted 0 though the markup has it; `launcher_render` reads the
+  selected row's markup from `html()` instead. Worth a look on quire's side if other tests want
+  that selector.
+- **F1046 Acceptance on headless KWin; nested `wayland-1` not reachable through the harness.**
+  shell-host's `scripts/dev/.nested-env` names `WAYLAND_DISPLAY=wayland-kwinvirt-1273456`, a
+  socket that no longer exists, while its `NESTED_COMPOSITOR_PID` (cosmic-comp 1272219) listens
+  on `wayland-1`; `run.sh wayland-info` fails, so `dev/accept-launcher-v2.sh` would stop at its
+  ping. Left as is (never started or stopped). `dev/accept-launcher-v2-real-input.sh` passed
+  every step (1-5, Q340 and Q341 CLOSED). Re-captured from it: `dev/out/launcher-v2-preview-pdf.png`
+  (the selected Top Hit "06:58 Document ⌘R", the pane's "Reveal in Files ⌘R", "Copy Path ⌘C"),
+  `launcher-v2-preview-text.png` (only the selected Documents row shows ⌘R; the rest their
+  time), `launcher-v2-pane-focus.png`, `launcher-v2-emoji.png` and the new
+  `launcher-v2-selection-chord.png` (twelfth row selected: only it shows ⌘R).
+  `launcher-v2-preview-image.png` and the `*-fixtures.png` come from the nested script only and
+  still show the old look (⌘R on every row, `↵`, key caps) until it runs again.

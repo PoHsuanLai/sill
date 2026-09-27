@@ -340,9 +340,8 @@ impl PanelCtx {
 
     /// Open or close `section`'s hidden rows; the selection stays on its line.
     /// Its line moves (below the added rows, or up past the removed ones), so the selection
-    /// follows it: left on the old index it would land on another row, whose "↵" would change
-    /// a second group and make quire's palette read the change as a new result set (Q373's
-    /// expand and collapse play only when the one group grew or shrank).
+    /// follows it: left on the old index it would land on another row. (It once also kept sill's
+    /// own `↵` from changing a second group; quire now places the selected row's chord, F1040.)
     pub(crate) fn toggle_section(&self, section: sill_launcher::Section) {
         let (Some(session), Some(pane)) = (self.current(), self.current_pane()) else {
             return;

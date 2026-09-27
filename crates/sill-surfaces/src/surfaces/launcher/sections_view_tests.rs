@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use dioxus::prelude::*;
-use ds::{ClipBody, GroupEntries, MenuEntry, RowShape, Shortcut, Trail};
+use ds::{ChordShown, ClipBody, GroupEntries, MenuEntry, RowChord, RowShape, Trail};
 use sill_launcher::{
     Action, ActionId, ActionKeys, CharCount, ClipFacts, ClipKey, ClipKind, EmojiFacts, Excerpt,
     FileFacts, IconRef, Item, ItemId, Mime, More, ProviderKind, Score, Section, ShownSection,
@@ -10,7 +10,7 @@ use sill_launcher::{
 
 use super::{Draw, HeaderAction, palette_groups, palette_sections};
 use crate::surfaces::launcher::chord_keys::shortcut;
-use crate::surfaces::launcher::entries::{Cursor, tile};
+use crate::surfaces::launcher::entries::tile;
 
 const NOW: UnixTime = UnixTime(1_790_000_000);
 
@@ -96,7 +96,6 @@ fn groups_carry_shapes_a_grid_and_header_actions() {
         tile_of: &tile,
         clip_image: &|_| None,
         now: NOW,
-        cursor: Cursor(0),
     };
     // A handler needs a Dioxus runtime to be made in.
     let mut dom = VirtualDom::new(|| rsx! {});
@@ -124,7 +123,11 @@ fn groups_carry_shapes_a_grid_and_header_actions() {
     };
     match row(0) {
         MenuEntry::Row(row) => {
-            assert_eq!(row.trail, Trail::Shortcut(Shortcut(vec![ds::Key::Enter])));
+            assert_eq!(
+                row.trail,
+                Trail::Note("Document".to_owned()),
+                "Top Hit mixes kinds"
+            );
             assert_eq!(
                 row.shape,
                 RowShape::File {
@@ -137,7 +140,7 @@ fn groups_carry_shapes_a_grid_and_header_actions() {
         other => panic!("a file row: {other:?}"),
     }
     match row(1) {
-        MenuEntry::Row(row) => assert_eq!(row.trail, Trail::Shortcut(shortcut(&chords::reveal()))),
+        MenuEntry::Row(row) => assert_eq!(row.trail, Trail::None, "the date is in the shape"),
         other => panic!("a file row: {other:?}"),
     }
     match row(2) {
@@ -163,46 +166,43 @@ fn groups_carry_shapes_a_grid_and_header_actions() {
     }
 }
 
-/// F742: `↵` trails the row the palette's cursor is on, counted as the palette counts its stops
-/// (each row, each emoji cell, a header's "Show More"); the other rows keep their chord. On a
-/// "Show More" stop or an emoji cell no row trails `↵`.
+/// F1040: every list row carries its first action's chord as `RowChord::on_selected`, so quire
+/// shows it on the selected row only and moves it with the selection; the trail keeps only data.
 #[test]
-fn the_return_glyph_follows_the_cursor() {
-    let enter = Trail::Shortcut(Shortcut(vec![ds::Key::Enter]));
-    let reveal = Trail::Shortcut(shortcut(&chords::reveal()));
-    // The sample's stops: a.pdf 0, b.pdf 1, Show More 2, hello 3, 🎉 4, Show Less 5.
-    let cases: Vec<(usize, [&Trail; 3])> = vec![
-        (0, [&enter, &reveal, &reveal]),
-        (1, [&reveal, &enter, &reveal]),
-        (2, [&reveal, &reveal, &reveal]),
-        (3, [&reveal, &reveal, &enter]),
-        (4, [&reveal, &reveal, &reveal]),
-    ];
+fn each_row_carries_its_chord_for_the_selection() {
+    let reveal = RowChord::on_selected(shortcut(&chords::reveal()));
+    let draw = Draw {
+        tile_of: &tile,
+        clip_image: &|_| None,
+        now: NOW,
+    };
     let mut dom = VirtualDom::new(|| rsx! {});
     dom.rebuild_in_place();
-    for (line, want) in cases {
-        let draw = Draw {
-            tile_of: &tile,
-            clip_image: &|_| None,
-            now: NOW,
-            cursor: Cursor(line),
-        };
-        let groups = dom.in_scope(ScopeId::ROOT, || {
-            palette_groups(&sample(), &draw, &|_| EventHandler::new(|()| {}))
-        });
-        let trails: Vec<Trail> = groups.0[..3]
-            .iter()
-            .map(|group| match &group.entries {
-                GroupEntries::List(entries) => match &entries[0] {
-                    MenuEntry::Row(row) => row.trail.clone(),
-                    other => panic!("a shaped row: {other:?}"),
-                },
-                GroupEntries::Grid(_) => panic!("a list"),
-            })
-            .collect();
-        let want: Vec<Trail> = want.into_iter().cloned().collect();
-        assert_eq!(trails, want, "cursor on stop {line}");
-    }
+    let groups = dom.in_scope(ScopeId::ROOT, || {
+        palette_groups(&sample(), &draw, &|_| EventHandler::new(|()| {}))
+    });
+    let rows: Vec<(RowChord, Trail)> = groups.0[..3]
+        .iter()
+        .map(|group| match &group.entries {
+            GroupEntries::List(entries) => match &entries[0] {
+                MenuEntry::Row(row) => (row.chord.clone(), row.trail.clone()),
+                other => panic!("a shaped row: {other:?}"),
+            },
+            GroupEntries::Grid(_) => panic!("a list"),
+        })
+        .collect();
+    assert_eq!(
+        rows,
+        vec![
+            (reveal.clone(), Trail::Note("Document".to_owned())),
+            (reveal.clone(), Trail::None),
+            (reveal, Trail::None),
+        ]
+    );
+    assert!(
+        rows.iter()
+            .all(|(chord, _)| chord.shown == ChordShown::Selected)
+    );
 }
 
 #[test]
@@ -213,11 +213,15 @@ fn plain_sections_are_lists_with_the_m4_trails() {
         .iter()
         .flat_map(|(_, entries)| entries.iter())
         .filter_map(|entry| match entry {
-            MenuEntry::Item { trail, .. } => Some(trail.clone()),
+            MenuEntry::Row(row) => Some(row.trail.clone()),
             _ => None,
         })
         .collect();
-    assert_eq!(trails[0], Trail::Shortcut(Shortcut(vec![ds::Key::Enter])));
+    assert!(
+        matches!(&trails[0], Trail::Note(_)),
+        "a date, not a chord: {:?}",
+        trails[0]
+    );
     assert!(
         matches!(&trails[1], Trail::Note(_)),
         "a date: {:?}",

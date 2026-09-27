@@ -42,11 +42,8 @@ const AWAITING_ROWS: &[&str] = &[];
 /// Keys sill has dropped whose §3 rows quire's design/22 still carries: the mirror of
 /// [`AWAITING_ROWS`] for a retirement (design/28 §6.0). sill drops the spec and lists the key
 /// here, quire's owner removes the row, then the entry goes. A key here needs no spec while its
-/// row remains.
-///
-/// `dock.shipped_icons`: the shipped icon set is gone (sill FINDINGS "App icons: shipped set
-/// removed", 2026-09-28); quire's owner drops the §3.5 row next.
-const RETIRING: &[&str] = &["dock.shipped_icons"];
+/// row remains. (`dock.shipped_icons` went this way: quire fd77336 retired its §3.5 row, F1043.)
+const RETIRING: &[&str] = &[];
 
 fn doc_keys() -> Vec<String> {
     let doc = doc();

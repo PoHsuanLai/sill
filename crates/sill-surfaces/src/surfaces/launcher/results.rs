@@ -8,7 +8,7 @@
 use dioxus::prelude::*;
 use sill_launcher::Item;
 
-use crate::surfaces::launcher::entries::{Cursor, RowRef, palette_groups_at, tile};
+use crate::surfaces::launcher::entries::{RowRef, palette_groups, tile};
 use crate::surfaces::launcher::groups::groups;
 use crate::surfaces::launcher::keys::Filter;
 use crate::surfaces::launcher::panel::empty_text;
@@ -22,7 +22,7 @@ pub fn ResultsList(items: Vec<Item>, selected: usize) -> Element {
             placeholder: "",
             query: String::new(),
             tokens: Vec::new(),
-            groups: palette_groups_at(&groups(&items, "*", Filter::All), &tile, Cursor(selected)),
+            groups: palette_groups(&groups(&items, "*", Filter::All), &tile),
             empty: empty_text(""),
             oninput: move |_| {},
             onpick: move |_| {},

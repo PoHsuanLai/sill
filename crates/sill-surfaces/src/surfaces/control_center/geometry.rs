@@ -121,8 +121,8 @@ const TILE_PX: i32 = 56;
 const LEVEL_PX: i32 = 76;
 /// Now Playing: the 48 px art, the position bar and its times, padding.
 const NOW_PLAYING_PX: i32 = 112;
-/// quire's `AppearancePicker`: three field headers over their controls.
-const APPEARANCE_PX: i32 = 226;
+/// quire's `AppearancePicker`: two field headers over their controls (130.8 laid out, F1042).
+const APPEARANCE_PX: i32 = 134;
 /// Battery: a row of 64 px device rings over their percentages, two lines, the power
 /// profile's segmented control.
 const BATTERY_PX: i32 = 204;
