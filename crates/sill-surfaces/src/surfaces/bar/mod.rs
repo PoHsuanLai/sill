@@ -19,6 +19,7 @@ pub mod glyph_state;
 mod low_battery;
 mod menu_popup;
 mod menus;
+mod modality;
 mod pick;
 mod plan;
 mod reorder;
@@ -56,6 +57,7 @@ use crate::hooks::{
     use_workspaces,
 };
 use crate::surfaces::control_center::{ControlCenterLink, height_cap, menu_bar_modules};
+use crate::surfaces::notification_center::CenterLink;
 
 /// The bar's own stylesheet (lint-clean under `Profile::Strict`, `tests/bar_lint.rs`).
 pub(crate) const BAR_CSS: &str = include_str!("../../style/bar.css");
@@ -119,6 +121,7 @@ pub fn Bar(output: OutputInfo) -> Element {
         bar_width: output.logical.width,
         cap: height_cap(output.logical.height, &file.bar, &file.control_center),
         status_box: status_box(output.logical.width, &file.bar),
+        center: try_use_context::<CenterLink>(),
     });
     use_context_provider(|| bar);
     use_control_center_asks(bar, output.id);

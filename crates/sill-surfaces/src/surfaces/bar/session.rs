@@ -25,7 +25,21 @@ use super::popup::menu_popup;
 use crate::clock::FrameClock;
 use crate::surfaces::control_center::fit::{Fit, device_rows, wifi_rows};
 use crate::surfaces::control_center::{CcPage, PanelCap};
+use crate::surfaces::notification_center::{CenterLink, CenterShown};
 use crate::surfaces::power_menu::{PowerMenuLink, Preselect};
+
+/// Whether a bar menu waits for the notification center to leave before its popup opens.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Handoff {
+    Idle,
+    Waiting,
+}
+
+/// How long a menu opened while the notification center is up waits for it to leave. On KWin
+/// the center's unmapping moves the activation to the window under it, and a grabbing popup
+/// opened before that move is dismissed by it at once (FINDINGS F994); by this time the center
+/// is gone and the move is over.
+const CENTER_HANDOFF: std::time::Duration = std::time::Duration::from_millis(150);
 
 /// How a popup's `Ds` root resolves its scheme: the bar's own appearance, handed over so a
 /// popup does not start a second settings watch.
@@ -61,6 +75,8 @@ pub(crate) enum BarInput {
     Popup(PopupReport),
     /// The control center moved to `page` (the popup resizes to it).
     Page(CcPage),
+    /// The notification center a menu closed has had time to leave ([`Handoff`]).
+    CenterGone,
 }
 
 /// The session as the bar's titles see it.
@@ -125,6 +141,9 @@ pub(crate) struct SessionDeps {
     /// The status items' box, centred in the bar: where a menu opened with no pointer event
     /// (the control center's toggle) takes its title's rect from.
     pub status_box: ds::Rect,
+    /// The notification center, which a bar menu closes as it opens (one menu-bar panel at a
+    /// time, as on macOS); absent in a demo or a test.
+    pub center: Option<CenterLink>,
 }
 
 /// The popup channel of the open session: its view sender and the popup's report channel.
@@ -143,6 +162,9 @@ struct Slots {
     /// The control center's page, which sizes its popup.
     page: CopyValue<CcPage>,
     link: CopyValue<Link>,
+    handoff: CopyValue<Handoff>,
+    /// The session's own input, for the handoff's wake-up (set once the callback exists).
+    feed: CopyValue<Option<Callback<BarInput>>>,
 }
 
 /// Start (once) and update (every render) the bar's menu session.
@@ -169,9 +191,15 @@ pub(crate) fn use_menu_session(deps: SessionDeps) -> MenuBar {
                 pages: pages_tx,
             })
         }),
+        handoff: use_hook(|| CopyValue::new(Handoff::Idle)),
+        feed: use_hook(|| CopyValue::new(None)),
     };
     refresh(slots, &deps);
     let feed = use_callback(move |input: BarInput| handle(slots, &deps, clock, input));
+    let mut own = slots.feed;
+    if own.peek().is_none() {
+        own.set(Some(feed));
+    }
     use_hook(move || {
         let mut rx = reports_rx;
         if let Some(mut reports) = rx.write().take() {
@@ -221,6 +249,17 @@ fn handle(slots: Slots, deps: &SessionDeps, clock: FrameClock, input: BarInput) 
             }
             return;
         }
+        BarInput::CenterGone => {
+            let mut handoff = slots.handoff;
+            let waiting = handoff.replace(Handoff::Idle);
+            if let (Handoff::Waiting, MenuTrack::Tracking { menu, .. }) =
+                (waiting, &*slots.track.peek())
+                && let Some(menu) = BarMenu::of(*menu)
+            {
+                show(slots, deps, menu);
+            }
+            return;
+        }
     };
     let mut track = slots.track;
     let (next, outs) = step(track.peek().clone(), input, clock.now(), &deps.params);
@@ -242,44 +281,22 @@ fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
         page.set(CcPage::Modules);
     }
     match effect {
-        BarEffect::Show(menu) => {
-            let Some(view) = view(slots, deps, menu) else {
-                return;
-            };
-            let Some(surface) = &deps.surface else {
-                return;
-            };
-            // Fixed, not `menu_popup`'s FitContent: the document holds only an absolutely
-            // placed frame and an overlay, so shell-host's content fit measures it at nothing
-            // and shrinks the popup to 1 x 1 (FINDINGS "Adoption of the bar gaps"). The size is
-            // the geometry's estimate, room included.
-            let config = PopupConfig {
-                anchor: PopupAnchor::Rect,
-                size: PopupSize::Fixed,
-                ..menu_popup(&deps.namespace, menu.side(), MAX_PX)
-            };
-            let first = view.placement;
-            let (tx, rx) = watch::channel(Some(view));
-            let reports = link.peek().reports.clone();
-            let pages = link.peek().pages.clone();
-            surface.open_popup(
-                config,
-                first,
-                Root::new(MenuPopup)
-                    .context(PopupLink {
-                        view: rx,
-                        reports,
-                        pages,
-                        output: deps.output_name.clone(),
-                    })
-                    .context(deps.services.clone())
-                    .context(deps.settings.clone())
-                    .context(deps.focus.clone())
-                    .context(PanelCap(deps.cap)),
-            );
-            link.write().view = Some(tx);
-            open.set(Some(menu));
-        }
+        BarEffect::Show(menu) => match center_open(deps) {
+            // The center leaves first; the popup opens once it has (F994).
+            Some(center) => {
+                center.close();
+                let mut handoff = slots.handoff;
+                handoff.set(Handoff::Waiting);
+                open.set(Some(menu));
+                if let Some(feed) = *slots.feed.peek() {
+                    spawn(async move {
+                        ds::sleep(CENTER_HANDOFF).await;
+                        feed.call(BarInput::CenterGone);
+                    });
+                }
+            }
+            None => show(slots, deps, menu),
+        },
         BarEffect::Swap(menu) => {
             if let (Some(view), Some(tx)) = (view(slots, deps, menu), &link.peek().view) {
                 tx.send_replace(Some(view));
@@ -287,6 +304,8 @@ fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
             open.set(Some(menu));
         }
         BarEffect::Hide => {
+            let mut handoff = slots.handoff;
+            handoff.set(Handoff::Idle);
             if let Some(tx) = link.write().view.take() {
                 tx.send_replace(None);
             }
@@ -296,6 +315,55 @@ fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
         }
         BarEffect::Run(pick) => run(&pick, deps),
     }
+}
+
+/// The notification center, when it is open anywhere.
+fn center_open(deps: &SessionDeps) -> Option<&CenterLink> {
+    deps.center
+        .as_ref()
+        .filter(|center| center.now() != CenterShown::Closed)
+}
+
+/// Open the popup with `menu`'s view.
+fn show(slots: Slots, deps: &SessionDeps, menu: BarMenu) {
+    let mut open = slots.open;
+    let mut link = slots.link;
+    let Some(view) = view(slots, deps, menu) else {
+        return;
+    };
+    let Some(surface) = &deps.surface else {
+        return;
+    };
+    // Fixed, not `menu_popup`'s FitContent: the document holds only an absolutely
+    // placed frame and an overlay, so shell-host's content fit measures it at nothing
+    // and shrinks the popup to 1 x 1 (FINDINGS "Adoption of the bar gaps"). The size is
+    // the geometry's estimate, room included.
+    let config = PopupConfig {
+        anchor: PopupAnchor::Rect,
+        size: PopupSize::Fixed,
+        ..menu_popup(&deps.namespace, menu.side(), MAX_PX)
+    };
+    let first = view.placement;
+    let (tx, rx) = watch::channel(Some(view));
+    let reports = link.peek().reports.clone();
+    let pages = link.peek().pages.clone();
+    surface.open_popup(
+        config,
+        first,
+        Root::new(MenuPopup)
+            .context(PopupLink {
+                view: rx,
+                reports,
+                pages,
+                output: deps.output_name.clone(),
+            })
+            .context(deps.services.clone())
+            .context(deps.settings.clone())
+            .context(deps.focus.clone())
+            .context(PanelCap(deps.cap)),
+    );
+    link.write().view = Some(tx);
+    open.set(Some(menu));
 }
 
 /// The menu a show or a swap is for.

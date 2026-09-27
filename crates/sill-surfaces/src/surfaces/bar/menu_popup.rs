@@ -19,6 +19,7 @@ use tokio::sync::{mpsc, watch};
 
 use super::content::PopupBody;
 use super::geometry::{MARGIN, frame_style};
+use super::modality::ModalityFrame;
 use super::pick::BarPick;
 use super::plan::{PopupReport, choice};
 use super::session::PopupView;
@@ -100,9 +101,7 @@ pub(crate) fn MenuPopup() -> Element {
     rsx! {
         style { {POPUP_CSS} }
         style { {CONTROL_CENTER_CSS} }
-        div {
-            class: "sill-popup-frame",
-            style: "{frame_style()};{look.metrics.style_attr()}",
+        ModalityFrame { style: "{frame_style()};{look.metrics.style_attr()}",
             Ds {
                 scale: ds_scale,
                 appearance: look.appearance,
