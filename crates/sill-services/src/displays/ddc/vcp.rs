@@ -135,6 +135,17 @@ impl Controls {
             .complete_gain()
     }
 
+    /// `self` after `feature` was read again as `level` (a change made on the monitor). One
+    /// channel read again never makes up an RGB gain the display did not have.
+    pub fn reread(self, feature: Feature, level: Level) -> Controls {
+        let before = self;
+        let next = self.read(feature, level);
+        match (before.gain, next.gain) {
+            (None, Some(_)) => Controls { gain: None, ..next },
+            _ => next,
+        }
+    }
+
     /// `self` after `feature` read `level` (the partial RGB gain is completed by
     /// [`Controls::from_readings`]).
     fn read(self, feature: Feature, level: Level) -> Controls {

@@ -1,6 +1,6 @@
 //! The Bluetooth tile: a quire `ModuleTile` whose press powers the adapter on or off,
-//! [`crate::surfaces::control_center::bluetooth_status`] as its line, and its chevron to the
-//! device list (`Detail::Bluetooth`). Reads `use_bluetooth`; sends `BluetoothCommand::Power`.
+//! [`crate::surfaces::control_center::bluetooth_tile_status`] ("On", "Off") as its line, and its
+//! chevron to the device list (`Detail::Bluetooth`). Reads `use_bluetooth`; sends `BluetoothCommand::Power`.
 
 use dioxus::prelude::*;
 use ds::{Availability, Chevron, ModuleState, ModuleTile, StatusState, Text};
@@ -8,7 +8,7 @@ use sill_services::{Bluetooth, BluetoothCommand, BtPower, Presence};
 
 use crate::hooks::{use_bluetooth, use_services};
 use crate::surfaces::bar::glyph_state::bluetooth_glyph_state;
-use crate::surfaces::control_center::bluetooth_status;
+use crate::surfaces::control_center::bluetooth_tile_status;
 use crate::surfaces::control_center::modules::flipped;
 use crate::surfaces::control_center::page::Detail;
 
@@ -22,7 +22,7 @@ pub fn BluetoothModule(on_detail: EventHandler<Detail>) -> Element {
         ModuleTile {
             glyph: StatusState::Bluetooth(bluetooth_glyph_state(&bluetooth)),
             title: "Bluetooth",
-            status: Some(Text::from(bluetooth_status(&bluetooth))),
+            status: Some(Text::from(bluetooth_tile_status(&bluetooth))),
             state,
             chevron: Chevron::Detail,
             availability: adapter_availability(&bluetooth),

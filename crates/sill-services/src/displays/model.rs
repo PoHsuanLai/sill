@@ -73,6 +73,16 @@ pub enum DisplaysCommand {
         at: Option<OutputName>,
         change: LevelChange,
     },
+    /// The control center's brightness capsule on `output`: that output's own target is set to
+    /// `level`, whatever `display.brightness_keys_target` says and whether or not the outputs
+    /// pass has listed `output` yet (the capsule shows `Displays::target(output)`, so this is
+    /// exactly the monitor it shows).
+    SetBrightness { output: OutputName, level: Percent },
+    /// A view of the brightness opened (`Start`) or closed (`Stop`). While one is open, the
+    /// monitors' brightness is read again every [`FOLLOW_EVERY_MS`], so a change made on the
+    /// monitor itself or by another program shows (a read is skipped while sill's own write is
+    /// pending).
+    Follow(Following),
     /// Set one DDC feature to a raw value (the control center's contrast, input, ... sliders).
     SetFeature {
         display: DdcId,
@@ -80,6 +90,17 @@ pub enum DisplaysCommand {
         value: u16,
     },
 }
+
+/// Whether a view of the brightness opened or closed ([`DisplaysCommand::Follow`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Following {
+    Start,
+    Stop,
+}
+
+/// How often the brightness is read again while a view follows it.
+pub const FOLLOW_EVERY_MS: u64 = 2000;
 
 /// One change the service observed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

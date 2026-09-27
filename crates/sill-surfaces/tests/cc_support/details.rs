@@ -21,6 +21,15 @@ pub fn center(feed: impl FnOnce(&fake::Feeds)) -> live::Running {
     running
 }
 
+/// [`center`] on an output at `scale_percent`.
+pub fn center_at(scale_percent: u16, feed: impl FnOnce(&fake::Feeds)) -> live::Running {
+    let (services, feeds) = fake::services();
+    feed(&feeds);
+    let mut running = live::start_at(services, feeds, scale_percent);
+    running.harness.advance(ms(300));
+    running
+}
+
 /// Presses the element at `selector`.
 pub fn press(harness: &mut Harness, selector: &str) {
     let at = harness

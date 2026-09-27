@@ -45,6 +45,16 @@ pub fn brightness_actions(
         .collect()
 }
 
+/// The action for the control center's capsule on `output`: its own target (the one the capsule
+/// shows) set to `level`. Nothing when `output` has no target.
+pub fn set_brightness_action(
+    displays: &Displays,
+    output: &OutputName,
+    level: Percent,
+) -> Option<BrightnessAction> {
+    action(displays, &displays.target(output), LevelChange::Set(level))
+}
+
 fn action(
     displays: &Displays,
     target: &BrightnessTarget,
@@ -74,6 +84,33 @@ fn action(
             }))
         }
         BrightnessTarget::None => None,
+    }
+}
+
+/// Whether the monitors should be probed again before they are read again.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Probe {
+    /// Some external output has no DDC display (it did not answer the last probe, which a
+    /// monitor busy with the compositor's own DDC traffic can miss), or no output is known and
+    /// no DDC display either: probe.
+    Needed,
+    /// Every external output has its DDC display: re-reading is enough.
+    Done,
+}
+
+/// [`Probe`] for `displays`.
+pub fn probe_needed(displays: &Displays) -> Probe {
+    let unanswered = displays.outputs.iter().any(|output| {
+        output.placement == super::drm::Placement::External
+            && displays.target(&output.name) == BrightnessTarget::None
+    });
+    match (
+        unanswered,
+        displays.outputs.is_empty(),
+        displays.ddc.is_empty(),
+    ) {
+        (true, _, _) | (false, true, true) => Probe::Needed,
+        (false, _, _) => Probe::Done,
     }
 }
 

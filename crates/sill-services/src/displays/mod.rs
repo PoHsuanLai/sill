@@ -52,7 +52,9 @@ pub use font::{FontRendering, Hinting, font_rendering_for};
 pub use gamut::{Gamut, classify};
 pub use identity::IdentityKey;
 pub use kscreen::{HeadReader, KscreenDoctor};
-pub use model::{Displays, DisplaysCommand, DisplaysEvent, reduce_displays};
+pub use model::{
+    Displays, DisplaysCommand, DisplaysEvent, FOLLOW_EVERY_MS, Following, reduce_displays,
+};
 pub use output::DisplayOutput;
 pub use policy::{
     DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmth, ScaleMode,

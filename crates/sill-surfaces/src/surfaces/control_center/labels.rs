@@ -21,8 +21,19 @@ pub fn wifi_status(wifi: &Wifi, network: &Network) -> String {
     }
 }
 
-/// The Bluetooth tile's status line: "Unavailable" (no adapter), "Off", the connected devices'
-/// names joined with ", " (at most two, then "and N more"), or "On".
+/// The Bluetooth tile's status line: "Unavailable" (no adapter), "Off" or "On". No device name:
+/// several can be connected at once, and the device list is one chevron away (FINDINGS "Manual
+/// run 2026-09-28: control center").
+pub fn bluetooth_tile_status(bluetooth: &Bluetooth) -> &'static str {
+    match (bluetooth.presence, bluetooth.power) {
+        (Presence::Absent, _) => "Unavailable",
+        (Presence::Present, BtPower::Off) => "Off",
+        (Presence::Present, BtPower::On) => "On",
+    }
+}
+
+/// The bar's Bluetooth item's tooltip line: "Unavailable" (no adapter), "Off", the connected
+/// devices' names joined with ", " (at most two, then "and N more"), or "On".
 pub fn bluetooth_status(bluetooth: &Bluetooth) -> String {
     let connected: Vec<&str> = bluetooth
         .devices
@@ -109,8 +120,8 @@ pub fn track_lines(player: &MediaPlayer) -> (String, String) {
 #[cfg(test)]
 mod tests {
     use super::{
-        bluetooth_status, device_detail, focus_status, network_detail, profile_label, track_lines,
-        wifi_status,
+        bluetooth_status, bluetooth_tile_status, device_detail, focus_status, network_detail,
+        profile_label, track_lines, wifi_status,
     };
     use sill_services::{
         Abilities, AccessPoint, Association, Bluetooth, BtAddress, BtBattery, BtConnection,
@@ -175,6 +186,12 @@ mod tests {
             ..on(Vec::new())
         };
         assert_eq!(bluetooth_status(&off), "Off");
+        // The tile names no device, however many are connected.
+        let two = on(vec![connected("Keyboard"), connected("Buds")]);
+        assert_eq!(bluetooth_tile_status(&two), "On");
+        assert_eq!(bluetooth_tile_status(&on(vec![connected("Buds")])), "On");
+        assert_eq!(bluetooth_tile_status(&off), "Off");
+        assert_eq!(bluetooth_tile_status(&Bluetooth::default()), "Unavailable");
 
         assert_eq!(focus_status(FocusMode::DoNotDisturb), "On");
         assert_eq!(focus_status(FocusMode::Off), "Off");

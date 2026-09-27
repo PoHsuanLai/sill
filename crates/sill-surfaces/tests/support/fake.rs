@@ -51,6 +51,9 @@ pub struct Feeds {
     pub shot_commands: mpsc::UnboundedReceiver<sill_services::ShotCommand>,
     /// Q420 B: sill's own idle service (passive, `Off(NoPolicy)`, until a test feeds it).
     pub idle: watch::Sender<sill_services::Idle>,
+    /// The displays (none until a test feeds some), and what the Display module sends.
+    pub displays: watch::Sender<sill_services::Displays>,
+    pub displays_commands: mpsc::UnboundedReceiver<sill_services::DisplaysCommand>,
     /// Receivers and command queues nobody reads here, kept so sends do not fail.
     keep: Vec<Box<dyn std::any::Any>>,
 }
@@ -310,6 +313,8 @@ pub fn services() -> (Services, Feeds) {
     let (shots_tx, shots) = watch::channel(sill_services::Shots::default());
     let (shots_control, shot_rx) = Control::channel();
     let (idle_tx, idle) = watch::channel(sill_services::Idle::default());
+    let (displays_tx, displays) = watch::channel(sill_services::Displays::default());
+    let (displays_control, displays_rx) = Control::channel();
     let services = Services {
         clock,
         clock_control: control(&mut keep),
@@ -338,8 +343,8 @@ pub fn services() -> (Services, Feeds) {
         wallpaper_control: control(&mut keep),
         sound: fixed(Presence::Absent, &mut keep),
         sound_control: control(&mut keep),
-        displays: fixed(sill_services::Displays::default(), &mut keep),
-        displays_control: control(&mut keep),
+        displays,
+        displays_control,
         wifi,
         wifi_control,
         bluetooth,
@@ -398,6 +403,8 @@ pub fn services() -> (Services, Feeds) {
         shots: shots_tx,
         shot_commands: shot_rx,
         idle: idle_tx,
+        displays: displays_tx,
+        displays_commands: displays_rx,
         keep,
     };
     (services, feeds)

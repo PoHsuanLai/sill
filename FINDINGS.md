@@ -8263,3 +8263,90 @@ master 70db27b).
   `row_art` no longer needs the app index at all), `switcher::icon`, `dock_render.rs`,
   `dock_icons.rs`, `dock_lint.rs` and `keys.rs`. `cargo clippy -p sill-surfaces -p sill-settings
   --all-targets`: clean.
+
+## Manual run 2026-09-28: control center
+
+The user's KDE run (KWin, BenQ MA270U at 3840 x 2160, scale 2, DDC): the Display module's
+brightness capsule could not be dragged or clicked, and Bluetooth was too easy to switch off (the
+Bluetooth keyboard went twice). Numbered from F1000, G400 and Q490. Branch
+`worktree-agent-af38e1d798c603489` (cut from master 70db27b). No real monitor brightness and no
+real Bluetooth were touched.
+
+- **F1000 The pointer path works; the capsule was disabled.** Headless KWin with real
+  fake-input (press, eight moves, release; a click on the track), at 1x and at 3840 x 2160 scale 2,
+  on master's code: with a DDC display listed the drag writes 30 → 74 continuously and the click
+  writes 20. quire's `LevelControl` and the popup surface's pointer path are fine (the Harness
+  agrees at 100 % and 200 %). What master cannot do is bring a capsule back: the DDC worker
+  probes once, at the first policy (and again only when the output names change). A monitor that
+  does not answer that probe (the MA270U drops about one DDC transaction in ten, and KWin drives
+  it over DDC too: kscreen's `ddcCiAllowed`, `brightness`) leaves `Displays::target` at `None`
+  for the whole session, and the capsule `Disabled`: it ignores the pointer. The run's daemon
+  log has no DDC line at all (a probe that finds nothing said nothing), which fits. Reproduced
+  headlessly: the fake DDC answers nothing at start, then answers at 40 with the control center
+  open; master's capsule stays disabled, the drag and click write nothing.
+- **F1001 The fix: the open module follows the monitors.** `WiredDisplay` sends
+  `DisplaysCommand::Follow(Start)` when it mounts and `Stop` when it goes. While anything
+  follows, the service every 2 s (`FOLLOW_EVERY_MS`, and at once on the first `Start`) probes
+  again when an external output has no DDC display (`plan::probe_needed`), else re-reads the
+  brightness (`DdcJob::Reread`, skipped for a display whose own write is still waiting, so a
+  drag is never undone), and the backlights. So a late monitor comes alive within 2 s of opening
+  the control center, and a level set on the monitor or by KDE shows in the capsule. The worker
+  now logs how many displays answer when that changes ("sill: ddc: N display(s) answer DDC/CI").
+- **F1002 The capsule sets exactly what it shows.** `DisplaysCommand::SetBrightness { output,
+  level }` sets `Displays::target(output)`, the target the capsule reads, instead of routing
+  through `brightness_keys_target` and the outputs list as the keys do (`Brightness { at }`).
+  Under master a capsule could show a monitor while the command went elsewhere or nowhere: with
+  `all_outputs` it moved every monitor, and with no outputs list yet (KWin's fallback answers
+  after cosmic-randr's 2 s bound) it moved nothing
+  (`the_capsule_sets_its_own_outputs_monitor_with_or_without_the_outputs_list`).
+- **F1003 DDC writes during a drag.** The debounce wrote only after 120 ms without a new value,
+  so a drag that never paused reached the monitor at its end. A write now goes out 120 ms after
+  the last value or at most 250 ms (`HOLD_MAX`) after the first one it replaced
+  (`a_drag_that_never_pauses_still_writes_every_hold`); the headless drag gets 3-4 writes during
+  the drag, rising.
+- **F1004 The fake DDC.** sill-services' `fake-ddc` feature (on in sill's `debug` build):
+  `SILL_FAKE_DDC=<file>` makes the DDC worker talk to made-up monitors in a JSON file
+  (`ddc::file_bus`: every read reads the file, every write sets it and appends to
+  `<file>.writes`), never `/dev/i2c-*`; the daemon logs "DDC is the fake in ...". A release
+  build cannot select it.
+- **F1005 `dev/accept-cc-real-input.sh`.** Headless KWin at 3840 x 2160, scale 2 (set through
+  kscreen-doctor's in-process backend, `QT_QPA_PLATFORM=wayland`, on KWin's own socket and bus),
+  one fake-input client, the fake DDC, stand-in `cosmic-randr` (never answers) and
+  `kscreen-doctor` (the headless output) first on the daemon's PATH, KWin's private bus as the
+  daemon's session and system bus (no BlueZ, no NetworkManager), a dry-run power menu, its own
+  runtime dir. The daemon's log must prove the fake DDC, the stand-in outputs and the dry run
+  before any input. Steps: a real click opens the control center; the monitor answers late and
+  the capsule comes alive (about 800 ms); the monitor's own 40 → 90 shows (about 200 ms), which
+  also measures the rail; a real drag 30 % → 75 % (writes during it, rising, last 74); a real
+  click at 20 % (20); a real click outside closes it. All PASS; on master's control center code
+  the late-monitor, external, drag and click steps FAIL.
+- **F1006 The Bluetooth tile says On or Off.** `bluetooth_tile_status`: "On", "Off" or
+  "Unavailable", never a device name (several may be connected; the list is behind the chevron).
+  quire's `ModuleTile` has no convention for a count. The bar item's tooltip keeps the names.
+- **F1007 No Bluetooth confirmation yet: quire has no alert.** quire has `Sheet` (a modal panel
+  with no parts of its own; `SheetWidth::Narrow` is "for an alert") and `PolkitPrompt`, but no
+  alert or confirm component (title, message, a cancel and a destructive default button), and a
+  `Sheet` centres in a viewport root, which the control center's popover card is not. Building
+  one from `Sheet` would need local markup, which the brief rules out, so the confirmation is
+  not built: turning Bluetooth off from the tile or the pane is still one press (Q490).
+
+### Asks (quire)
+
+- **Q490 An alert.** A confirm/alert component: bold title ("Turn Bluetooth off?"), message
+  ("Bluetooth devices such as keyboards and mice will be disconnected."), Cancel and a default
+  (optionally destructive) button ("Turn Off"), Escape and a scrim press cancel, Return confirms;
+  shown from inside a popover (the control center is an `xdg_popup` card of about 320 px), so
+  it either sits over the popover's own card or is sized to fit it. sill then asks before
+  `BluetoothCommand::Power(Off)` from the tile and the pane's switch, and not before On.
+- **Q491 A disabled level that looks disabled.** `LevelControl` with `Availability::Disabled`
+  draws the same capsule at 0 % as an enabled one at 0 %: the user saw a slider that would not
+  move. The header's percentage and glyph could dim too (`ModulePanel`).
+
+### Gaps (sill)
+
+- **G400 Escape after a pointer press in the control center.** In the headless run at scale 2
+  (master and this branch alike), real Escape after the capsule was pressed did not close the
+  control center; right after opening it does (`dev/accept-real-input.sh`). Left to the lane
+  that owns the control center's keyboard focus; the script closes with an outside click and
+  only records Escape.
+- **G401 Queued manual check** in `docs/manual-checks.md`: the capsule on the MA270U.

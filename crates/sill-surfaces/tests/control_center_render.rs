@@ -54,7 +54,8 @@ fn the_grid_shows_what_the_services_hold() {
         ),
         ("", "aria-label=\"Bluetooth details\"", 1),
         ("the joined network", ">home<", 1),
-        ("the connected headphones", ">Buds<", 1),
+        ("no device named on the Bluetooth tile", ">Buds<", 0),
+        ("Bluetooth and Do Not Disturb on", ">On<", 2),
         ("Do Not Disturb", ">Focus<", 1),
         ("two quire level controls", "class=\"ds-level\"", 2),
         (

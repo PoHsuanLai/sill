@@ -4,8 +4,8 @@
 use dioxus::prelude::*;
 use ds::{Availability, Fraction};
 use sill_services::{
-    BrightnessTarget, Displays, DisplaysCommand, LevelChange, OutputName, Percent, Presence,
-    Volume, VolumeCommand,
+    BrightnessTarget, Displays, DisplaysCommand, Following, OutputName, Percent, Presence, Volume,
+    VolumeCommand,
 };
 
 use super::{DisplayModule, SoundModule};
@@ -33,25 +33,47 @@ pub(crate) fn WiredSound() -> Element {
     }
 }
 
-/// The Display module on `output`'s brightness.
+/// The Display module on `output`'s brightness. While it is shown the service follows the
+/// monitors (`Following::Start`, then `Stop` when it goes), so a level changed on the monitor or
+/// by another program moves the capsule; a drag or click sets exactly the target the capsule
+/// shows (`SetBrightness` on `output`).
 #[component]
 pub(crate) fn WiredDisplay(output: Option<OutputName>) -> Element {
     let displays = use_displays()();
     let control = use_services().displays_control;
+    use_hook({
+        let control = control.clone();
+        // A stopped service drops it: the capsule shows the level it last published.
+        move || control.send(DisplaysCommand::Follow(Following::Start)).ok()
+    });
+    use_drop({
+        let control = control.clone();
+        move || {
+            let _gone = control.send(DisplaysCommand::Follow(Following::Stop));
+        }
+    });
     let (level, availability) = brightness_of(&displays, output.as_ref());
     rsx! {
         DisplayModule {
             level,
             availability,
             on_change: move |to: Fraction| {
-                // A stopped service drops it: the slider shows the level it last published.
-                let _gone = control.send(DisplaysCommand::Brightness {
-                    at: output.clone(),
-                    change: LevelChange::Set(percent_of(to)),
-                });
+                if let Some(command) = set_brightness(output.as_ref(), to) {
+                    // A stopped service drops it: the capsule shows the level it last published.
+                    let _gone = control.send(command);
+                }
             },
         }
     }
+}
+
+/// The command a capsule on `output` sends for `to`: nothing without an output (the capsule is
+/// disabled then).
+pub(crate) fn set_brightness(output: Option<&OutputName>, to: Fraction) -> Option<DisplaysCommand> {
+    output.map(|output| DisplaysCommand::SetBrightness {
+        output: output.clone(),
+        level: percent_of(to),
+    })
 }
 
 /// The Sound module's level, device and availability for `volume`.
@@ -96,9 +118,9 @@ pub(crate) fn percent_of(fraction: Fraction) -> Percent {
 
 #[cfg(test)]
 mod tests {
-    use super::{brightness_of, fraction_of, percent_of, sound_of};
+    use super::{brightness_of, fraction_of, percent_of, set_brightness, sound_of};
     use ds::{Availability, Fraction};
-    use sill_services::{Displays, Mute, Percent, Presence, Volume};
+    use sill_services::{Displays, DisplaysCommand, Mute, OutputName, Percent, Presence, Volume};
 
     #[test]
     fn levels_convert_both_ways() {
@@ -123,5 +145,14 @@ mod tests {
             brightness_of(&Displays::default(), None),
             (Fraction(0), Availability::Disabled)
         );
+        let hdmi = OutputName("HDMI-A-2".to_owned());
+        assert_eq!(
+            set_brightness(Some(&hdmi), Fraction(625)),
+            Some(DisplaysCommand::SetBrightness {
+                output: hdmi,
+                level: Percent(63),
+            })
+        );
+        assert_eq!(set_brightness(None, Fraction(625)), None);
     }
 }

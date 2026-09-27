@@ -41,6 +41,13 @@ percent-encoding = { workspace = true }
 # `sill_settings::schema().write_to`) — a dev-dependency, not linked into the daemon, so it does
 # not cross the `ds-settings`-free boundary `scripts/check-boundary.sh` enforces on this crate's
 # normal dependencies (schema_file.rs's module doc explains why the library itself cannot use it).
+[features]
+default = []
+# `SILL_FAKE_DDC=<file>` makes the displays service's DDC worker talk to made-up monitors in a
+# JSON file (`displays::ddc::file_bus`) instead of `/dev/i2c-N`: sill's `debug` build turns it
+# on for the acceptance scripts, so no script can reach a real monitor.
+fake-ddc = []
+
 [dev-dependencies]
 sill-settings = { workspace = true }
 
