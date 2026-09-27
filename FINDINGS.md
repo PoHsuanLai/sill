@@ -7427,13 +7427,13 @@ Numbered from F900/Q440/G340. cosmic-idle was re-read at `epoch-1.8.0` for facts
   "wake for time-sensitive notifications" key is wanted.
 - **Q444 (the user) The lock screen's own screen-off time**, `idle.locked_screen_off_s` = 60 s.
   This is assumed from macOS's behaviour (a locked Mac's display sleeps soon) and not measured.
-- **Q445 (quire) ds-settings has no seconds or minutes unit** (`Ms` is `u16`, so at most 65 s).
+- **Q445 (quire), closed** ("Idle units and dim", F960) **ds-settings has no seconds or minutes unit** (`Ms` is `u16`, so at most 65 s).
   The idle keys use `Count` with `unit = "s"` or `"min"`. design/22 §5 has no Power or Battery
   page either (`Page` has none), so `idle.*` sits on Accounts beside `session.*` for now.
 - **Q446 (sill IPC, the fill)** `sill lock status` should report `Lock.cause`, and a `sill idle
   status` should report the mode, phase and held inhibitors, so `dev/accept-idle.sh` can assert
   them. These are wire additions (`sill-ipc/tests/serde.rs`) for the fill's freeze amendment.
-- **Q447 (quire) The idle dim needs a token and a component:** a scrim colour, black at a
+- **Q447 (quire), closed** ("Idle units and dim", F961) **The idle dim needs a token and a component:** a scrim colour, black at a
   variable opacity, and a fade motion token for the dim's in and out (ORCHESTRATION's coherence
   rule 1: no colour or duration outside quire). Wanted: an `IdleDim { level }` component or a
   `--scrim-idle` token plus `--t-*` motion. The dim surface waits on it.
@@ -8037,3 +8037,73 @@ Q460, G360 (G370-G372 are the settle-strict section's).
   send an hour of dated entries with `Refresh::AtEnd` (CONSUMING's optional item).
 - **G365 Manual checks queued** in `docs/manual-checks.md`: Edit Widgets and the slot guide
   with a real pointer.
+
+## Idle units and dim (2026-09-27)
+
+The rest of sill's idle work once quire's idle-units landed on quire master 47fe84ca: the idle
+keys' units and page (Q445), and the dim overlay the fill left as a stub (F935, Q447). Numbered
+from F960. Branch `worktree-agent-af32885d5f986ea3c` (cut from master ca1f971).
+
+- **F960 Units and page (Q445).** `session.lock_grace_s`, `idle.dim_s` and
+  `idle.locked_screen_off_s` are `Secs`; `idle.screen_off_ac_min`, `idle.screen_off_battery_min`,
+  `idle.suspend_ac_min` and `idle.suspend_battery_min` are `Mins` (both re-exported by
+  `sill_settings`). Every `idle.*` key is on `Page::Power`, still Advanced. The derive gives a
+  whole struct one page, so `session.lock_grace_s` is moved to Power after `SessionSettings`'
+  schema (`sill_settings::schema::POWER_KEYS_ELSEWHERE`); the rest of `session.*` stays on
+  Accounts. Both newtypes are `#[serde(transparent)]` over `u16`, so an existing
+  `settings.toml` with plain integers loads and saves unchanged, and a negative value is only
+  that key's default (`tests/file.rs` `idle_seconds_and_minutes_are_plain_integers_both_ways`).
+  `tests/schema.rs` pins the Power page's ten keys and each time's unit and range; the defaults
+  table did not move. The daemon's `policy_of` reads the new types, same numbers.
+- **F961 The dim overlay (Q447).** `sill-surfaces/src/surfaces/idle_dim/`: `IdleDimOverlay`
+  is quire's `IdleDim` alone in a `Ds { extent: Viewport, chrome: Some(Transparent) }` root,
+  following `use_idle().dim` (a new hook over `Services.idle`). `Dimmed(level)` plays
+  `IdleDimPhase::Dimmed`, `Clear` plays `Awake` with the last level kept, so a wake is a phase
+  change (quire snaps) and never reads as a level edit. No sill CSS; nothing styles `.ds-*`.
+  - The layer (`idle_dim_layer`): Overlay, anchored to all four edges, `Fill` x `Fill`,
+    exclusive zone `Ignore` (over the bar's and the dock's reserve), keyboard `None`, no blur,
+    input region `Empty`. The session-lock surfaces are above every layer surface, so a lock
+    covers it.
+  - The daemon (`crates/sill/src/idle_dim.rs`): one surface per output, spawned warm and hidden
+    after the OSD (the last Overlay spawn), in the `OutputSurfaces.idle_dim` row. A follower of
+    `services.idle` sends `ShellMsg::Dim(DimShown)` when the dim changes, and every dim surface
+    is mapped for `Dimmed` and unmapped for `Clear` (`visibility_of`). So an awake output has no
+    dim surface on screen and draws nothing; a new output while dimmed is spawned mapped.
+  - Brightness is never touched: the overlay is the only thing the dim does. The live loop's
+    "no overlay yet, Q447" log is gone.
+- **F962 The scrim's level is what the display does not keep.** `idle.dim_level_pct` is "how
+  bright the displays stay" (F902, the key's help), while quire's `IdleDim.level` is the scrim's
+  own opacity. sill passes `100 - idle.dim_level_pct` (`scrim_of`, held to 10..=90). At the
+  default 50 the two readings agree. See Q480.
+- **F963 Tests.**
+  - `tests/idle_dim_render.rs` (5, Harness on `Clock::Virtual`, appearance pinned, G370, fed
+    only through the fake services' new `Feeds.idle`): clear at rest with 0 frames; a dim at 30 %
+    kept is mid-fade at 900 ms and 0.7 at 2.1 s; a wake mid-fade reads 0 on the next frame, and
+    again from a settled dim; a level edit while dimmed snaps; Reduced dims at once. Every
+    change ends with `assert_settles_to_zero_frames`.
+  - Unit tables: `scrim_of`, `scene_of`/`visibility_of`, the layer config.
+- **F964 Acceptance.** `dev/accept-idle.sh` on `wayland-1` (pinged with `wayland-info`,
+  reused, never stopped; one private bus as system and session bus with the logind stand-in;
+  scratch XDG dirs). The dim lead is now 3 s (screen off still 6 s), so the 2 s fade finishes
+  before the displays go off. Step 1 now also captures `sill-idle-dim-<output>`: refused before
+  the dim (unmapped), early in the fade alpha 20 of 255, at 5.8 s alpha 128 (50 %), every pixel
+  RGB 0 and one alpha across 2560 x 1600, refused again once the displays went off. **7/7 PASS**:
+  dimmed at 3018 ms, off at 6086 ms, locked (`idle_screen_off`) at 6168 ms; grace NoPassword
+  at 1.8 s, Ask at 7.2 s; `sill lock` still asks; the inhibit held 9 s; sleep locks; Suspend
+  recorded at 10006 ms. Captures: `dev/out/idle-dim.png` (the surface) and
+  `dev/out/idle-dim-cosmic.png` (the nested screen while dimmed: the scrim covers the bar and
+  the dock too).
+- **F965 Closed.** Q445 (F960), Q447 (F961). The F935 stub is gone.
+
+### Asks
+
+- **Q480 (quire) `IdleDim.level`'s wording.** design/04 section 53 and CONSUMING "Idle dim" say
+  `level` is `idle.dim_level_pct`, but the component draws it as the scrim's opacity, and the
+  key means the brightness kept (F902). sill passes `100 - kept` (F962). Either say `level` is
+  the scrim's share, or take the kept brightness and invert inside.
+
+### Gaps
+
+- **G380 (the user, real login)** The dim on a real output: it fades over about 2 s, any key or
+  pointer motion snaps it out, and a click during the dim lands on the window under it (the
+  input region is empty). Queued with the idle checks in `docs/manual-checks.md`.

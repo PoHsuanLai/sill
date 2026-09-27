@@ -147,7 +147,8 @@ compositor; these need a person and a real password.
   COSMIC Settings' Power page:
   - dim, off and lock at the COSMIC time: `sill idle status` goes `dimmed` 5 s before the
     screen-off time and every screen fades to half over about 2 s (a key or the mouse during
-    it brings them back at once, with no fade), then
+    it brings them back at once, with no fade, and a click during it lands on the window under
+    it: G380), then
     `displays_off`, and `sill lock status` says cause `idle_screen_off`;
   - G341: the screens are really off (dark, not black-but-lit) while the lock is granted, and
     nothing of the desktop shows when they come back;
