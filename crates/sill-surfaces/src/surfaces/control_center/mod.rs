@@ -32,6 +32,7 @@ pub mod pages;
 mod dropdown;
 pub(crate) mod fit;
 mod panel;
+pub(crate) mod row_phase;
 pub(crate) mod rows;
 
 pub use dropdown::ModuleDropdown;

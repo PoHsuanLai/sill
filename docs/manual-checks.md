@@ -70,6 +70,20 @@ Add new ones at the end of their section.
 - [ ] **Super shortcuts** reach the shell (the nested compositor never gets them; KDE eats them).
 - [ ] **Scale policy on first sight**: a display seen for the first time gets 2x (MA270U), and a
   scale set by hand afterwards is never changed back.
+- [ ] **D2 control center details on real services** (sill FINDINGS "D2 control center
+  details"; the harness covers each on fakes):
+  - Join a saved Wi-Fi network from the Wi-Fi pane: after about 0.4 s a spinner replaces its
+    lock, then its disc turns accent with one seal (springing, since the row was pressed); a
+    wrong password shakes the row once and says "Couldn’t connect".
+  - Connect a paired Bluetooth device from its pane: its glyph breathes, its disc seals, and its
+    battery ring sweeps in with the percentage counting.
+  - Play something in a real MPRIS player (Firefox, Spotify), open the center a minute in: the
+    position bar starts where the track is (not where it was when the player last reported),
+    steps once a second, holds when paused; the play/pause glyph grows the next action in.
+  - On a laptop with a keyboard backlight (this desktop has none: `/sys/class/leds` lists no
+    `*::kbd_backlight`): the Keyboard Brightness module shows under Display, follows the
+    laptop's own backlight keys, and a drag sets the nearest step. On this desktop the module
+    must not show.
 
 ## Needs a sill login (`dist/sill-session`, M7)
 

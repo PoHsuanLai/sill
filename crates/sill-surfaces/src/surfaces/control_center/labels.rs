@@ -72,7 +72,8 @@ pub fn network_detail(access_point: &AccessPoint, saved: Saved) -> String {
 }
 
 /// A device row's detail: "Connected", "Connecting…", "Not connected" (paired) or "" (not
-/// paired), then " · 80%" when the device reports a battery.
+/// paired), then " · 80%" when a device that is not connected reports a battery (a connected
+/// one's battery is the row's trailing ring, design/26 G21).
 pub fn device_detail(device: &BtDevice) -> String {
     let state = match (device.connection, device.pairing) {
         (BtConnection::Connected, _) => "Connected",
@@ -80,10 +81,10 @@ pub fn device_detail(device: &BtDevice) -> String {
         (BtConnection::Disconnected, BtPairing::Paired) => "Not connected",
         (BtConnection::Disconnected, BtPairing::Unpaired) => "",
     };
-    match (state, device.battery) {
-        (state, BtBattery::Unknown) => state.to_owned(),
-        ("", BtBattery::Level(level)) => format!("{}%", level.0),
-        (state, BtBattery::Level(level)) => format!("{state} · {}%", level.0),
+    match (device.connection, state, device.battery) {
+        (BtConnection::Connected, state, _) | (_, state, BtBattery::Unknown) => state.to_owned(),
+        (_, "", BtBattery::Level(level)) => format!("{}%", level.0),
+        (_, state, BtBattery::Level(level)) => format!("{state} · {}%", level.0),
     }
 }
 
@@ -207,7 +208,11 @@ mod tests {
         let level = BtBattery::Level(Percent(80));
         assert_eq!(
             device_detail(&device("Buds", BtConnection::Connected, level)),
-            "Connected · 80%"
+            "Connected"
+        );
+        assert_eq!(
+            device_detail(&device("Buds", BtConnection::Connecting, level)),
+            "Connecting… · 80%"
         );
         assert_eq!(
             device_detail(&device(

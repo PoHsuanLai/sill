@@ -8,6 +8,7 @@ pub mod battery;
 pub mod bluetooth;
 pub mod display;
 pub mod focus;
+pub mod keyboard;
 pub mod now_playing;
 pub mod power_profile;
 pub mod sound;
@@ -20,6 +21,7 @@ pub use battery::BatteryModule;
 pub use bluetooth::BluetoothModule;
 pub use display::DisplayModule;
 pub use focus::FocusModule;
+pub use keyboard::KeyboardModule;
 pub use now_playing::NowPlayingModule;
 pub use power_profile::PowerProfileControl;
 pub use sound::SoundModule;
@@ -49,6 +51,7 @@ pub fn Module(
         ControlCenterModule::Bluetooth => rsx! { BluetoothModule { on_detail } },
         ControlCenterModule::Focus => rsx! { FocusModule {} },
         ControlCenterModule::Display => rsx! { WiredDisplay { output } },
+        ControlCenterModule::KeyboardBrightness => rsx! { KeyboardModule {} },
         ControlCenterModule::Sound => rsx! { WiredSound {} },
         ControlCenterModule::NowPlaying => rsx! { NowPlayingModule {} },
         ControlCenterModule::Appearance => rsx! { AppearanceModule {} },

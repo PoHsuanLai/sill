@@ -26,7 +26,9 @@ pub fn in_menu_bar(cc: &ControlCenterSettings, module: ControlCenterModule) -> I
         ControlCenterModule::Display => cc.menu_bar_display,
         ControlCenterModule::Battery => cc.menu_bar_battery,
         ControlCenterModule::NowPlaying => cc.menu_bar_now_playing,
-        ControlCenterModule::Focus | ControlCenterModule::Appearance => InMenuBar::Hide,
+        ControlCenterModule::Focus
+        | ControlCenterModule::KeyboardBrightness
+        | ControlCenterModule::Appearance => InMenuBar::Hide,
     }
 }
 
