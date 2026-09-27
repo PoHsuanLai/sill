@@ -1,6 +1,7 @@
 //! `session.*`: the lock screen and polkit agent of a sill session (design/20 §1.9 and §1.10):
-//! borrowed programs at M7, and sill's own (`sill`) since M11. design/22 §3.19 has the M7 rows;
-//! `session.lock_clock` (M11) is in `AWAITING_ROWS` with its row in sill FINDINGS "M11 freeze".
+//! borrowed programs at M7, and sill's own (`sill`) since M11. design/22 §3.19 has the rows.
+//! `session.locker` defaults to `sill`, sill's own lock screen (the user's pick, 2026-09-27;
+//! the changed row text is in sill FINDINGS "User picks: lock and OSD", F861).
 //! Idle timeouts are not sill's: cosmic-idle keeps them in COSMIC's own config (FINDINGS "M7").
 
 use ds_settings::schema::Page;
@@ -35,7 +36,7 @@ pub enum LockClock {
 pub struct SessionSettings {
     #[settings(
         label = "Lock screen program",
-        help = "`sill` is sill's own lock screen; `auto` picks COSMIC's lock screen (cosmic-greeter), else swaylock, else hyprlock, whichever is installed; `off` never locks; or one of those names, or a command line of your own.",
+        help = "`sill` (the default) is sill's own lock screen; `auto` picks COSMIC's lock screen (cosmic-greeter), else swaylock, else hyprlock, whichever is installed; `off` never locks; or one of those names, or a command line of your own.",
         section = "Lock screen",
         advanced
     )]
@@ -70,7 +71,7 @@ pub struct SessionSettings {
 impl Default for SessionSettings {
     fn default() -> Self {
         SessionSettings {
-            locker: "auto".to_owned(),
+            locker: "sill".to_owned(),
             polkit_agent: "auto".to_owned(),
             lock_clock: LockClock::H24,
             user_picture: "auto".to_owned(),
