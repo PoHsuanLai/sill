@@ -6,6 +6,12 @@ Add new ones at the end of their section.
 
 ## On the KDE session (unlocked, at the machine)
 
+These run with sill's daemon (`sill run`) on the KDE Plasma session (KWin, wayland-0), its bar
+and dock over Plasma's; `~/manual-run/run.sh` walks them one by one. KWin has what they need:
+sill's own surfaces, BlueZ, MPRIS, NetworkManager, DDC/CI, and `ext_data_control_manager_v1`
+for the clipboard (F743). What only a COSMIC login or a sill login gives is in the sections
+further down. The monitor is the BenQ MA270U (27", 3840 x 2160, on HDMI-A-2).
+
 - [ ] **CJK input in the launcher, a short real-keyboard spot check.** Automated since
   shell-host 8acc00d (F71): `SILL_DIR=~/sill ~/shell-host/scripts/dev/accept-ime.sh` drives
   launcher_demo on a private headless KWin with fcitx5 Chewing and passes compose and backspace
@@ -13,43 +19,103 @@ Add new ones at the end of their section.
   search field, switch fcitx5 to Chewing, type `su3cl3` and press **Return** to commit (Space
   opens the candidates): 你好 appears once, not doubled. Then `bash dev/manual/ime-live.sh
   capture` and `bash dev/manual/ime-live.sh stop`. Only one copy runs at a time; `start`
-  refuses while one is up.
-- [ ] **Scale 2 look** on the MA270U: the desktop at 2x (the new default for 27" 4K) reads
-  comfortably; text and icons sharp.
-- [ ] **Brightness keys on the external monitor** (DDC/CI): after installing
-  `dist/cosmic/.../system_actions` in a COSMIC session, or with `sill display brightness up|down`
-  bound to keys: the MA270U's backlight follows within about a quarter second; no stuck value
-  after fast repeats.
-- [ ] **Monitor speakers follow the volume**: switch the default sink to the MA270U's HDMI
+  refuses while one is up, and `stop` ends only the demo its own `start` began (F984).
+- [x] **Scale 2 look** on the BenQ MA270U: the desktop at 2x (the new default for 27" 4K) reads
+  comfortably; text and icons sharp. (Passed 2026-09-28, `~/manual-run` check 01.)
+- [x] **Brightness keys on the external monitor** (DDC/CI). On KWin sill reads the outputs from
+  `kscreen-doctor --json`, read-only (cosmic-randr has no answer there; FINDINGS "Displays on
+  KWin", F980), and never changes KDE's scale. With sill running, `sill display brightness
+  up|down` (what the brightness keys run in a sill session; on KDE the keys themselves stay
+  PowerDevil's): the BenQ MA270U's backlight follows within about a quarter second, sill's OSD
+  shows the level; no stuck value after fast repeats. Leave KDE's brightness slider alone
+  meanwhile (KWin drives the monitor over DDC too). On COSMIC the keys themselves do it once
+  `dist/cosmic/.../system_actions` is installed. (Passed 2026-09-28, `~/manual-run` check 02,
+  with the runner's read-only stand-in for cosmic-randr: 49 → 50.)
+  - [ ] Once without the stand-in, on sill's own fallback: sill's log says "outputs read from
+    kscreen-doctor", and `sill display brightness up` then `down` moves the monitor and back.
+- [x] **Monitor speakers follow the volume**: switch the default sink to the BenQ MA270U's HDMI
   audio, press volume up/down: the monitor's own volume moves too (its range is 0-50), and mute
-  mutes it. Switch back to Bluetooth afterwards.
-
-- [ ] **Power menu with the real keyboard** (real arrows, Escape and a scrim click already pass on a headless KWin through `dev/accept-real-input.sh`; this check is for a real COSMIC session) (the nested compositor never gave its Exclusive
-  layer keyboard focus, shell G30): on a real COSMIC session, `sill power-menu open`, then
-  arrows move the highlight, Esc closes. Do NOT press Enter on Restart/Shut Down unless you mean
-  it; the dry run (`SILL_POWER_MENU_DRY_RUN=<file>` on a debug build) records instead.
-- [ ] **Control center with the real keyboard** (real click and Escape already pass on a headless KWin; Tab/arrows between tiles still need a person): open it from the bar item (left of the clock);
-  Tab/arrows move between tiles, Enter/Space toggle, Right on a chevron opens Wi-Fi/Bluetooth,
-  Escape goes back then closes (a debug-opened popup gets no keyboard on the nested compositor).
+  mutes it. Switch back to Bluetooth afterwards. (Passed 2026-09-28, `~/manual-run` check 03.)
+- [ ] **Control center with the real keyboard** (real click and Escape already pass on a
+  headless KWin; Tab/arrows between tiles still need a person): open it from the bar item (left
+  of the clock); Tab/arrows move between tiles, Enter/Space toggle, Right on a chevron opens
+  Wi-Fi/Bluetooth, Escape goes back then closes (a debug-opened popup gets no keyboard on the
+  nested compositor).
+- [ ] **Control center details on real services: Bluetooth, Now Playing, no keyboard
+  backlight** (sill FINDINGS "D2 control center details"; the harness covers each on fakes;
+  BlueZ, MPRIS and sysfs are all KDE needs):
+  - Connect a paired Bluetooth device from its pane (disconnect one you can spare in KDE first,
+    not the keyboard): its glyph breathes, its disc seals, and its battery ring sweeps in with
+    the percentage counting.
+  - Play something in a real MPRIS player (Firefox, Spotify), open the center a minute in: the
+    position bar starts where the track is (not where it was when the player last reported),
+    steps once a second, holds when paused; the play/pause glyph grows the next action in.
+  - This desktop has no keyboard backlight (`/sys/class/leds` lists no `*::kbd_backlight`): the
+    Keyboard Brightness module must not show under Display.
 - [ ] **Banners with a real mouse** (hover, the close button, a click, a 90 px and a 50 px drag,
   already pass under fake input on a headless KWin through
   `dev/accept-notifications-real-input.sh`; this is the feel with a real mouse and touchpad):
-  `sill debug notify "Hi" --body "..." --action default=Open` on a debug build, in a session
-  where sill holds `org.freedesktop.Notifications`. The card follows a drag 1:1 to the right and
-  damped to the left, springs back under 80 px and flies out past it or on a flick; after a click
-  on one card, the next card under the pointer should still pause and show its close button
-  (FINDINGS G101 says it does not until the pointer leaves the column and comes back).
+  `sill debug notify "Hi" --body "..." --action default=Open` on a debug build. It posts straight
+  to sill's banners without D-Bus, so sill need not hold `org.freedesktop.Notifications`: on KDE
+  leave the name to plasmashell (`notifications.server = "passive"`). The card follows a drag
+  1:1 to the right and damped to the left, springs back under 80 px and flies out past it or on
+  a flick; after a click on one card, the next card under the pointer should still pause and
+  show its close button (FINDINGS G101 says it does not until the pointer leaves the column and
+  comes back).
 - [ ] **Notification center keys with a real keyboard** (real Escape, Down and Delete already
   pass on a headless KWin): open it from the clock; Up/Down move the ring, Return opens a
   group's "N more" or invokes a lone card's default action, Backspace (the Mac keyboard's
   Delete) clears the focused row, Escape closes.
 - [ ] **The capsule level look on the light scheme** (quire Q105: the fill reads faintly on its
-  track) when picking the level look from quire's sheets.
-
-- [ ] **Drag icon follows the pointer** (shell-host F60): on a real session, run shell-host's
-  `examples/demo_drag.rs --icon=root` and drag; the icon should follow the pointer (the headless
-  KWin draws no cursor, so it could not be seen there). Then drag the screenshot thumbnail out
-  onto a folder once sill wires `start_drag`.
+  track) when picking the level look from quire's sheets. Making the sheets with `ds-gallery
+  --level-sheet DIR` also overwrites the tracked PNGs in quire's
+  `tools/progress/shots/gallery` (`level-*.png`); if you do not mean to keep them, run `git -C
+  ~/quire checkout tools/progress/shots` afterwards.
+- [ ] **Drag icon follows the real pointer** (shell-host F60): run shell-host's
+  `examples/demo_drag.rs --icon=root` and drag from its square: the icon follows the pointer the
+  whole way (the headless KWin draws no cursor, so this was never seen there). The screenshot
+  thumbnail's own drag is automated up to a drop with no target (`dev/accept-screenshot-drag.sh`:
+  press, glide, `Cancelled`, the card resumes and leaves, the file kept); dropping it onto a real
+  app is "Screenshot thumbnail drag" under Visual review.
+- [ ] **Launcher v2 with a Mac keyboard through Toshy** (M9 lane e; real typing, Down, Space,
+  Ctrl+Y, → twice, Tab, Escape three times, Ctrl+R, Shift+Tab to Emoji and Enter on a clipboard
+  row already pass under fake input on a headless KWin through
+  `dev/accept-launcher-v2-real-input.sh`; this is the physical keys and the look). Open the
+  launcher with `sill launcher open` (Cmd+Space itself needs a COSMIC login, below) and type
+  part of a document's name: ⌘Y shows the preview, Space after an arrow toggles it and never
+  types a space, → at the end of the text shows it and a second → puts the focus ring on its
+  first button, Tab walks the buttons, Escape leaves the pane, hides it, then closes. ⌘R on a
+  document opens the file manager with it selected. Hold Down through a long list (Tab to
+  Documents): the selected row should stay in view (FINDINGS Q340 says it does not yet). In the
+  emoji grid (Shift+Tab twice with nothing typed) all four arrows move (fixed, F760) and ⌘Y
+  shows the emoji's preview, and Enter then Cmd+V pastes the emoji in another app. Also by eye:
+  the focus ring on the pane's buttons in the dark scheme, and `↵` following the selected row
+  (F761). If ⌘ chords act like a terminal's, Toshy still thinks the terminal has focus: note it.
+- [ ] **Clipboard history in real apps** (M9 lane b; KWin offers `ext_data_control_manager_v1`,
+  F743): copy text in two apps, then open the launcher and type a word of it: both show as
+  Clipboard rows, and Enter puts one back (paste it somewhere). Copy a password from KeePassXC
+  (or another manager that marks copies): it never shows. `sill clipboard status` says `memory`,
+  `ext`. Turning `launcher.clipboard_history` off empties it at once.
+- [ ] **A clipboard row pasted into a real app** (M9 lane e): real Enter on a clipboard row was
+  proven on a headless KWin with `wl-paste` only; here, Enter on an older clipboard row, then
+  Ctrl+V (⌘V) in a text editor and in a terminal, pastes that entry.
+- [ ] **Dragging a desktop widget with a real pointer** (FINDINGS "Widget drag", G330): with
+  `sill widgets toggle-desktop` on, press the Calendar and drag it: it lifts under the pointer
+  and follows it; held over the Battery, the Battery steps aside, and goes back when you move
+  on; released, the Calendar glides into its cell with a small spring. Quit and restart sill:
+  the place is kept. Click the Calendar's month arrows and Now Playing's buttons without moving:
+  they work. Drag starting on a button: the button does nothing. By eye: the lift (1.04 and the
+  drag shadow) reads as picked up, not as a glitch. Since "Widget interface port" the lift is
+  quire's card's own (`Lift::Lifted`) and a quiet slot guide shows the cell it will land in:
+  check the guide follows the snap cell and fades in, not out of step with the widget.
+- [ ] **Edit Widgets with a real pointer** (FINDINGS "Widget interface port"): open the
+  notification center, scroll to its foot and press "Edit Widgets": the center closes and the
+  gallery slides in from the right. Pick World Clock, press its Medium preview (it lifts), then
+  "Add to Desktop": with `widgets.desktop` on, the clock appears on the desktop in the first
+  free place from the top right. Change the month's size in the Desktop list: it grows in
+  place or moves. Remove Up Next from the Notification Center list: the center no longer shows
+  it. Press Escape, Done, and a click outside the panel: each closes it. By eye: the previews
+  at their real sizes, and that nothing in the panel is cut off at 1080 px tall.
 
 ## Visual review
 
@@ -63,29 +129,35 @@ Add new ones at the end of their section.
 - [ ] **Widgets by eye**: `sill widgets toggle-desktop`, then check the analog world-clock dials
   (set `widgets.world_clocks`, add World Clock to `widgets.desktop_widgets`) and the battery rings
   with real Bluetooth devices connected (no live picture exists; render tests only).
-- [ ] **Screenshot thumbnail drag**: take a screenshot, drag the thumbnail onto a Files window or
-  a terminal: the file copies (the card leaves, the file stays); only Cancelled was run live.
+- [ ] **Screenshot thumbnail drag onto a real app** (works on KDE): show a thumbnail (take a
+  screenshot, or `sill debug screenshot <a copy of a PNG>`), drag it onto a Files (Dolphin)
+  window: the file copies there, the card leaves, the original stays; onto a terminal it inserts
+  the path. The press, glide and `Cancelled` outcome with no drop target are automated by
+  `dev/accept-screenshot-drag.sh`; only a real drop target needs a person.
 
 ## Needs a real COSMIC login (not the nested compositor)
 
 - [ ] **Cmd+Space through Toshy** opens the launcher (the `Launcher` system action override).
 - [ ] **Super shortcuts** reach the shell (the nested compositor never gets them; KDE eats them).
-- [ ] **Scale policy on first sight**: a display seen for the first time gets 2x (MA270U), and a
-  scale set by hand afterwards is never changed back.
-- [ ] **D2 control center details on real services** (sill FINDINGS "D2 control center
-  details"; the harness covers each on fakes):
+- [ ] **Scale policy on first sight**: a display seen for the first time gets 2x (BenQ MA270U),
+  and a scale set by hand afterwards is never changed back. (Not on KDE: there sill reads the
+  outputs read-only and never sets a scale, F981.)
+- [ ] **Power menu with the real keyboard** (real arrows, Escape and a scrim click already pass
+  on a headless KWin through `dev/accept-real-input.sh`; the nested compositor never gave its
+  Exclusive layer keyboard focus, shell G30): on a real COSMIC session, `sill power-menu open`,
+  then arrows move the highlight, Esc closes. Do NOT press Enter on Restart/Shut Down unless you
+  mean it; the dry run (`SILL_POWER_MENU_DRY_RUN=<file>` on a debug build) records instead.
+- [ ] **Cmd+Tab on a real login** (with dist/cosmic system_actions installed): a quick Cmd+Tab
+  tap switches to the previous app with no panel; holding shows the panel after about 150 ms;
+  Tab moves; releasing Cmd switches; Q quits the selected app; H hides it; Esc cancels.
+- [ ] **D2 control center details on real services, the rest** (sill FINDINGS "D2 control
+  center details"; Bluetooth, Now Playing and the missing keyboard backlight are in the KDE
+  section):
   - Join a saved Wi-Fi network from the Wi-Fi pane: after about 0.4 s a spinner replaces its
     lock, then its disc turns accent with one seal (springing, since the row was pressed); a
     wrong password shakes the row once and says "Couldn’t connect".
-  - Connect a paired Bluetooth device from its pane: its glyph breathes, its disc seals, and its
-    battery ring sweeps in with the percentage counting.
-  - Play something in a real MPRIS player (Firefox, Spotify), open the center a minute in: the
-    position bar starts where the track is (not where it was when the player last reported),
-    steps once a second, holds when paused; the play/pause glyph grows the next action in.
-  - On a laptop with a keyboard backlight (this desktop has none: `/sys/class/leds` lists no
-    `*::kbd_backlight`): the Keyboard Brightness module shows under Display, follows the
-    laptop's own backlight keys, and a drag sets the nearest step. On this desktop the module
-    must not show.
+  - On a laptop with a keyboard backlight: the Keyboard Brightness module shows under Display,
+    follows the laptop's own backlight keys, and a drag sets the nearest step.
 
 ## Needs a sill login (`dist/sill-session`, M7)
 
@@ -186,50 +258,6 @@ and a stand-in helper; these need polkitd, polkit's own helper and a real passwo
 - [ ] Cancel, Escape and a click on the scrim each end `pkexec true` with 126.
 - [ ] Caps Lock on shows the caps mark in the field.
 - [ ] Two requests at once (`pkexec true & pkexec true`): the second shows once the first ends.
-
-- [ ] **Cmd+Tab on a real login** (with dist/cosmic system_actions installed): a quick Cmd+Tab
-  tap switches to the previous app with no panel; holding shows the panel after about 150 ms;
-  Tab moves; releasing Cmd switches; Q quits the selected app; H hides it; Esc cancels.
-
-- [ ] **Clipboard history on a real login** (M9 lane b): copy text in two apps, then open the
-  launcher and type a word of it: both show as Clipboard rows, and Enter puts one back (paste it
-  somewhere). Copy a password from KeePassXC (or another manager that marks copies): it never
-  shows. `sill clipboard status` says `memory`, `ext`. Turning `launcher.clipboard_history`
-  off empties it at once.
-
-- [ ] **Launcher v2 with a Mac keyboard through Toshy** (M9 lane e; real typing, Down, Space,
-  Ctrl+Y, → twice, Tab, Escape three times, Ctrl+R, Shift+Tab to Emoji and Enter on a clipboard
-  row already pass under fake input on a headless KWin through
-  `dev/accept-launcher-v2-real-input.sh`; this is the physical keys and the look). Open the
-  launcher with Cmd+Space and type part of a document's name: ⌘Y shows the preview, Space after
-  an arrow toggles it and never types a space, → at the end of the text shows it and a second →
-  puts the focus ring on its first button, Tab walks the buttons, Escape leaves the pane, hides
-  it, then closes. ⌘R on a document opens the file manager with it selected. Hold Down through
-  a long list (Tab to Documents): the selected row should stay in view (FINDINGS Q340 says it
-  does not yet). In the emoji grid (Shift+Tab twice with nothing typed) all four arrows move
-  (fixed, F760) and ⌘Y shows the emoji's preview, and Enter then Cmd+V pastes the emoji in
-  another app. Also by eye: the focus ring on the pane's buttons in the dark scheme, and `↵`
-  following the selected row (F761).
-- [ ] **A clipboard row pasted into a real app** (M9 lane e): on KWin, real Enter on a clipboard
-  row was proven with `wl-paste` only; on a real login, Enter on an older clipboard row, then
-  Ctrl+V in a text editor and in a terminal, pastes that entry.
-- [ ] **Dragging a desktop widget with a real pointer** (FINDINGS "Widget drag", G330): with
-  `sill widgets toggle-desktop` on, press the Calendar and drag it: it lifts under the pointer
-  and follows it; held over the Battery, the Battery steps aside, and goes back when you move
-  on; released, the Calendar glides into its cell with a small spring. Quit and restart sill:
-  the place is kept. Click the Calendar's month arrows and Now Playing's buttons without moving:
-  they work. Drag starting on a button: the button does nothing. By eye: the lift (1.04 and the
-  drag shadow) reads as picked up, not as a glitch. Since "Widget interface port" the lift is
-  quire's card's own (`Lift::Lifted`) and a quiet slot guide shows the cell it will land in:
-  check the guide follows the snap cell and fades in, not out of step with the widget.
-- [ ] **Edit Widgets with a real pointer** (FINDINGS "Widget interface port"): open the
-  notification center, scroll to its foot and press "Edit Widgets": the center closes and the
-  gallery slides in from the right. Pick World Clock, press its Medium preview (it lifts), then
-  "Add to Desktop": with `widgets.desktop` on, the clock appears on the desktop in the first
-  free place from the top right. Change the month's size in the Desktop list: it grows in
-  place or moves. Remove Up Next from the Notification Center list: the center no longer shows
-  it. Press Escape, Done, and a click outside the panel: each closes it. By eye: the previews
-  at their real sizes, and that nothing in the panel is cut off at 1080 px tall.
 
 ## Owned by the other session (quire, shell-host)
 
