@@ -112,7 +112,7 @@ Then pick "COSMIC (sill)" at the login screen.
   Settings (Power) or `~/.config/cosmic/com.system76.CosmicIdle/v1/screen_off_time`
   (milliseconds, e.g. `60000`); `sill idle status` says `{"kind":"own"}` (not
   `cosmic_idle_running`: `pgrep cosmic-idle` finds nothing). After that long idle the screens go
-  off (no dim is drawn yet: Q447) and `sill lock status` says `locked` with cause
+  off, after dimming to half for `idle.dim_s` (5 s) first, and `sill lock status` says `locked` with cause
   `idle_screen_off`. The lock screen, left alone, goes dark again after 60 s.
 - [ ] **A polkit prompt**: `pkexec true` shows KDE's password dialog; the right password returns
   0, Cancel returns 126.
@@ -146,7 +146,8 @@ compositor; these need a person and a real password.
   counts no synthetic input as activity). With the default 5 s and a short screen-off time in
   COSMIC Settings' Power page:
   - dim, off and lock at the COSMIC time: `sill idle status` goes `dimmed` 5 s before the
-    screen-off time (nothing is drawn yet: the dim overlay waits on quire, Q447), then
+    screen-off time and every screen fades to half over about 2 s (a key or the mouse during
+    it brings them back at once, with no fade), then
     `displays_off`, and `sill lock status` says cause `idle_screen_off`;
   - G341: the screens are really off (dark, not black-but-lit) while the lock is granted, and
     nothing of the desktop shows when they come back;

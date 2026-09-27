@@ -29,6 +29,8 @@ pub struct OutputSurfaces {
     pub switcher: Option<SurfaceId>,
     /// Edit Widgets (the widget gallery), warm and hidden.
     pub edit_widgets: Option<SurfaceId>,
+    /// Q420 B: the idle dim, warm and mapped only while the idle service dims.
+    pub idle_dim: Option<SurfaceId>,
 }
 
 /// One output's hot corner surfaces, one per corner whose action is not `None`.
@@ -72,7 +74,7 @@ impl CornerSurfaces {
 
 impl OutputSurfaces {
     /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 18] {
+    fn fields(&self) -> [Option<SurfaceId>; 19] {
         [
             self.bar,
             self.wallpaper,
@@ -92,6 +94,7 @@ impl OutputSurfaces {
             self.polkit_prompt,
             self.switcher,
             self.edit_widgets,
+            self.idle_dim,
         ]
     }
 
@@ -126,6 +129,7 @@ impl OutputSurfaces {
             &mut self.polkit_prompt,
             &mut self.switcher,
             &mut self.edit_widgets,
+            &mut self.idle_dim,
         ] {
             if *field == Some(id) {
                 *field = None;

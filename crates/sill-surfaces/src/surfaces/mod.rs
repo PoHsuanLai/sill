@@ -12,6 +12,7 @@ pub mod desktop_widgets;
 pub mod dock;
 pub mod edit_widgets;
 pub mod hot_corners;
+pub mod idle_dim;
 pub mod launcher;
 pub mod lock;
 pub mod notification_card;
