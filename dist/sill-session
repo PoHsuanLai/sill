@@ -26,7 +26,11 @@
 #   xdg-desktop-portal-cosmic the settings portal quire reads (colour scheme, reduced motion),
 #                             screenshots and file choosers
 #   cosmic-idle               screen off after the idle time, then `loginctl lock-session`
-#                             (which sill's locker answers), and suspend on idle
+#                             (which sill's locker answers), and suspend on idle. TO GO: sill
+#                             takes idle over (Q420 B, FINDINGS "sill idle (Q420 B)" F909);
+#                             the commit that fills sill's idle service deletes this line and
+#                             the `respawn idle` below. Until then sill's idle stays off while a
+#                             cosmic-idle runs, so the two never both act.
 #   sill polkit-agent         the polkit agent session.polkit_agent names (auto: KDE's, GNOME's,
 #                             LXQt's, MATE's, else cosmic-osd)
 #   systemd-inhibit           holds logind's handle-power-key, as cosmic-session does, so the

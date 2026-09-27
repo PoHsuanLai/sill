@@ -1,0 +1,65 @@
+//! sill's own idle service: the dim, the displays off, the lock at screen off and the idle
+//! suspend that cosmic-idle did before (the user's pick Q420 B; sill FINDINGS "sill idle (Q420
+//! B)", F900-F915). Owning idle is how sill knows why it locked ([`crate::locker::LockCause`]),
+//! which the lock grace (`session.lock_grace_s`, [`grace_verdict`]) needs.
+//!
+//! **Passive until the daemon's first [`IdleCommand`]**, and `Off` (nothing held, nothing
+//! touched) anywhere but a sill session with no cosmic-idle running ([`resolve_mode`]), so no
+//! test and no nested run ever dims, powers off or suspends the real session's displays. Live
+//! tests name a nested compositor and private buses ([`Setup`]).
+//!
+//! Pure parts: [`resolve_mode`], [`effective_times`], [`power_source`], [`watches`],
+//! [`parse_cosmic_value`], [`cosmic_times`], [`inhibit_step`], [`logind_idle`], [`inhibition`],
+//! [`grace_verdict`] and the machine [`reduce`].
+
+mod cosmic;
+mod grace;
+mod inhibit;
+mod live;
+mod model;
+mod policy;
+mod reduce;
+
+pub use cosmic::{
+    COSMIC_IDLE_ID, COSMIC_IDLE_VERSION, CosmicIdle, CosmicIdleTimes, CosmicKey, CosmicValue,
+    cosmic_times, parse_cosmic_value,
+};
+pub use grace::{
+    GraceCase, GraceTicket, GraceVerdict, SleepSince, WakeDelay, grace_verdict, ticket,
+};
+pub use inhibit::{
+    BusPeer, InhibitCookie, InhibitMsg, InhibitReply, Inhibition, Inhibitor, Inhibitors,
+    LogindIdle, inhibit_step, inhibition, logind_idle,
+};
+pub use model::{BusRoute, DimShown, Idle, IdleCommand, IdleDisplay, IdleLinks, IdlePhase, Setup};
+pub use policy::{
+    DimLevel, DimPlan, IdleConfig, IdleLock, IdleMode, IdlePolicy, IdleSecs, IdleTimes, LockGrace,
+    LockView, LockedScreenOff, OffReason, PowerPair, PowerSource, Threshold, Timeout, TimesChoice,
+    Watch, effective_times, power_source, resolve_mode, watches,
+};
+pub use reduce::{
+    DisplayPower, IdleEffect, IdleEvent, IdleHint, IdleState, LockSeen, PASSIVE, reduce,
+};
+
+use tokio::runtime::Handle;
+use tokio::sync::watch;
+
+use crate::control::Control;
+
+/// Start the idle service on `rt` on the session's compositor and buses. Passive until the
+/// first command.
+pub fn spawn(rt: &Handle, links: IdleLinks) -> (watch::Receiver<Idle>, Control<IdleCommand>) {
+    spawn_with(rt, links, Setup::default())
+}
+
+/// [`spawn`] with a chosen compositor and buses (live tests).
+pub fn spawn_with(
+    rt: &Handle,
+    links: IdleLinks,
+    setup: Setup,
+) -> (watch::Receiver<Idle>, Control<IdleCommand>) {
+    let (tx, rx) = watch::channel(Idle::default());
+    let (control, commands) = Control::channel();
+    rt.spawn(live::run(setup, links, commands, tx));
+    (rx, control)
+}

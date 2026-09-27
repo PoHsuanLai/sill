@@ -123,11 +123,13 @@ compositor; these need a person and a real password.
   and the right password on the seventh try unlocks at once.
 - [ ] **Lock before sleep** and **logind's Lock** (`loginctl lock-session`) show sill's own lock
   screen once, never two lockers.
-- [ ] **Lock grace (5 s), BLOCKED on Q420** (`session.lock_grace_s` is not built yet: sill
-  cannot yet tell a screen-sleep lock from a manual one, FINDINGS F863). Once it lands, with the
-  default 5 s and a short screen-off time in COSMIC Settings' Power page:
-  - let the screen sleep (cosmic-idle fades it and locks), wake it within 5 s: no password,
-    the desktop is back;
+- [ ] **Lock grace (5 s), BLOCKED on the idle fill** (the user picked Q420 B: sill owns idle;
+  the key `session.lock_grace_s` and the rule are frozen, FINDINGS "sill idle (Q420 B)" F908,
+  but not filled). Once the fill lands (and `dist/sill-session` no longer starts cosmic-idle),
+  with the default 5 s and a short screen-off time in COSMIC Settings' Power page:
+  - let the screen sleep (sill dims it for `idle.dim_s`, turns it off and locks), wake it
+    within 5 s: no password, the desktop is back;
+  - wake it during the dim: it brightens, nothing locked;
   - let it sleep, wake it after more than 5 s: the password is asked;
   - lock by hand (⌃⌘Q, Super+Escape, `loginctl lock-session`, the launcher's Lock row), wake at
     once: the password is asked;

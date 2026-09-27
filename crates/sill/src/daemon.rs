@@ -101,6 +101,14 @@ pub fn run() -> ExitCode {
         settings_feed.0.clone(),
         services.polkit_control.clone(),
     );
+    // Q420 B: sill's own idle follows `idle.*` and `session.lock_grace_s`; the service is
+    // passive until this first policy (a freeze no-op until the idle fill; FINDINGS "sill idle
+    // (Q420 B)").
+    crate::idle::spawn_policy(
+        runtime.handle(),
+        settings_feed.0.clone(),
+        services.idle_control.clone(),
+    );
     // M9: the launcher v2 providers and the clipboard history follow `launcher.*`; both are
     // passive until this first policy (FINDINGS "M9 freeze").
     crate::launcher_policy::spawn_policy(

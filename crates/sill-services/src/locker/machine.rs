@@ -60,8 +60,10 @@ pub enum Triggers {
 pub enum Cause {
     /// sill's Lock: the launcher row, the power menu, `sill lock`.
     Action,
-    /// logind's `Lock` signal for this session (`loginctl lock-session`, cosmic-idle).
+    /// logind's `Lock` signal for this session (`loginctl lock-session`, Super+Escape).
     Logind,
+    /// sill's own idle service turned the displays off (sill FINDINGS "sill idle (Q420 B)").
+    Idle,
 }
 
 /// The sleep delay inhibitor.
@@ -232,7 +234,7 @@ fn arm(locker: Locker) -> (Locker, Vec<LockerEffect>) {
 
 fn requested(locker: Locker, cause: Cause, now: Stamp) -> (Locker, Vec<LockerEffect>) {
     let ours = match cause {
-        Cause::Action => true,
+        Cause::Action | Cause::Idle => true,
         Cause::Logind => locker.triggers == Triggers::FollowLogind,
     };
     if !ours {

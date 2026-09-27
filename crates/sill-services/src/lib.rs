@@ -27,6 +27,7 @@ pub mod curve;
 pub mod displays;
 pub mod error;
 pub mod events;
+pub mod idle;
 pub mod launch;
 pub mod locker;
 pub mod magnify;
@@ -81,12 +82,13 @@ pub use displays::{
 };
 pub use error::ServiceError;
 pub use events::{Agenda, CalEvent, EventTime, EventsCommand, SourceStatus};
+pub use idle::{Idle, IdleCommand, IdleLinks};
 pub use launch::{
     LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches, ScopeUnit,
     reduce_launches,
 };
 pub use locker::{
-    Lock, LockDrawer, LockPhase, LockerChoice, LockerCommand, LockerMode, ShellLockEvent,
+    Lock, LockCause, LockDrawer, LockPhase, LockerChoice, LockerCommand, LockerMode, ShellLockEvent,
 };
 pub use magnify::{Layout, MagnifyParams, TileBox, magnify, rest_centers, sizes, zoom};
 pub use network::wifi::{

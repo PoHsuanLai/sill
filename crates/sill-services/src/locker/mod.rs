@@ -10,6 +10,7 @@
 //! locker; nested in another desktop's session (development) only sill's own Lock action is,
 //! so sill never locks on the host desktop's behalf.
 
+mod cause;
 mod child;
 mod choice;
 mod live;
@@ -17,6 +18,7 @@ mod logind;
 mod machine;
 pub mod marker;
 
+pub use cause::LockCause;
 pub use choice::{
     COSMIC_LOCKED_LINE, GRACE_MS, Host, KnownLocker, LockerChoice, LockerMode, LockerPlan,
     NO_SYSTEM_BUS, Readiness, SessionManager, resolve,
@@ -42,6 +44,10 @@ pub struct Lock {
     /// Who draws the lock screen in the current mode. With `Shell`, the daemon holds
     /// shell-host's session lock whenever `phase` is not `Unlocked` (M11, FINDINGS F544).
     pub drawer: LockDrawer,
+    /// What started the current lock; `None` while `Unlocked` (sill FINDINGS "sill idle (Q420
+    /// B)", F907). The idle fill sets it; until then it stays `None`, which the grace rule reads
+    /// as "ask".
+    pub cause: Option<LockCause>,
 }
 
 /// Who draws the lock screen.
@@ -82,6 +88,10 @@ pub enum LockerCommand {
     Lock,
     /// What happened to the shell's own lock (M11).
     Shell(ShellLockEvent),
+    /// Lock because sill's idle service turned the displays off (`LockCause::IdleScreenOff`;
+    /// sill FINDINGS "sill idle (Q420 B)", F904). Counts in every kind of session the idle
+    /// service runs in (it runs only in a sill session, or where a test told it to).
+    IdleLock,
 }
 
 /// Start the locker service on `rt`. Inert until the first `Configure` or `Use`.

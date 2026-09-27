@@ -15,6 +15,7 @@ use crate::control::Control;
 use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
 use crate::displays::{Displays, DisplaysCommand};
 use crate::events::{Agenda, EventsCommand};
+use crate::idle::{Idle, IdleCommand, IdleLinks};
 use crate::launch::{LaunchCommand, Launches};
 use crate::locker::{Lock, LockerCommand};
 use crate::network::wifi::{Wifi, WifiCommand};
@@ -101,6 +102,10 @@ pub struct Services {
     /// The clipboard history (M9): passive until the daemon's policy.
     pub clipboard: watch::Receiver<Clipboard>,
     pub clipboard_control: Control<ClipboardCommand>,
+    /// sill's own idle (Q420 B, FINDINGS "sill idle (Q420 B)"): passive until the daemon's
+    /// policy, and `Off` anywhere but a sill session.
+    pub idle: watch::Receiver<Idle>,
+    pub idle_control: Control<IdleCommand>,
 }
 
 impl Services {
@@ -159,6 +164,16 @@ impl Services {
         // M11: both `live::run`s are stubs that return at once until their lanes fill them.
         let (auth, auth_control) = crate::auth::spawn(rt);
         let (polkit, polkit_control) = crate::polkit_agent::spawn(rt);
+        // Idle (Q420 B): the freeze's `live::run` returns at once until the fill.
+        let (idle, idle_control) = crate::idle::spawn(
+            rt,
+            IdleLinks {
+                lock: lock.clone(),
+                battery: battery.clone(),
+                locker: locker_control.clone(),
+                auth: auth_control.clone(),
+            },
+        );
 
         Services {
             clock,
@@ -215,6 +230,8 @@ impl Services {
             polkit_control,
             clipboard,
             clipboard_control,
+            idle,
+            idle_control,
         }
     }
 }
@@ -285,6 +302,11 @@ mod tests {
             services.clipboard.borrow().status.mode,
             crate::clipboard::HistoryMode::Off,
             "no clipboard read until the daemon's policy"
+        );
+        assert_eq!(
+            services.idle.borrow().mode,
+            crate::idle::IdleMode::Off(crate::idle::OffReason::NoPolicy),
+            "no idle notification, display or logind touched until the daemon's policy"
         );
     }
 }
