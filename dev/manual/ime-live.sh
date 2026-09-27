@@ -2,20 +2,42 @@
 # Live IME check on KDE: open sill's launcher demo on wayland-0 and keep it open until
 # `ime-live.sh capture` or `ime-live.sh stop`. The user types into it by hand (KWin has no
 # virtual keyboard, so nothing can type for them).
+#
+# `start` records its own demo's and its command tail's PIDs in $D; `stop` and the one-copy guard
+# look only at those, never at other sessions' launcher demos.
 set -uo pipefail
 D="${IME_LIVE_DIR:-${XDG_RUNTIME_DIR:-/tmp}/sill-ime-live}"; mkdir -p "$D"
 IN=$D/ime-cmds
+PIPE=$D/ime-pipe
+DEMO_PID=$D/demo.pid
+TAIL_PID=$D/tail.pid
+
+# The PID in pidfile $1 when that process is still alive and its command line still matches $2
+# (so a reused PID is never taken for ours); nothing otherwise.
+ours() {
+  local pid
+  pid=$(cat "$1" 2>/dev/null) || return 1
+  [[ $pid =~ ^[0-9]+$ ]] || return 1
+  tr '\0' ' ' 2>/dev/null <"/proc/$pid/cmdline" | grep -qF -- "$2" || return 1
+  echo "$pid"
+}
+
 case "${1:-start}" in
   start)
     # One copy at a time: several copies fight over the keyboard focus.
-    if pgrep -f "tail -f $IN" >/dev/null || pgrep -f examples/launcher_demo >/dev/null; then
+    if ours "$DEMO_PID" examples/launcher_demo >/dev/null || ours "$TAIL_PID" "tail -f $IN" >/dev/null; then
       echo "ime-live: a copy is already running; use \`$0 stop\` first" >&2
       exit 1
     fi
     : >"$IN"
+    rm -f "$PIPE" "$DEMO_PID" "$TAIL_PID"
+    mkfifo "$PIPE" || exit 1
     cd "$(dirname "${BASH_SOURCE[0]}")/../.."
     cargo build -q -p sill-surfaces --example launcher_demo || exit 1
-    (tail -f "$IN" | WAYLAND_DISPLAY=wayland-0 target/debug/examples/launcher_demo >"$D/ime-demo.log" 2>&1 &)
+    WAYLAND_DISPLAY=wayland-0 target/debug/examples/launcher_demo <"$PIPE" >"$D/ime-demo.log" 2>&1 &
+    echo $! >"$DEMO_PID"
+    tail -f "$IN" >"$PIPE" &
+    echo $! >"$TAIL_PID"
     sleep 4
     echo open >>"$IN"
     sleep 2
@@ -31,7 +53,8 @@ case "${1:-start}" in
   stop)
     echo quit >>"$IN"
     sleep 1
-    pkill -f "tail -f $IN" >/dev/null 2>&1 || true
-    pkill -f examples/launcher_demo || true
+    if pid=$(ours "$TAIL_PID" "tail -f $IN"); then kill "$pid" 2>/dev/null; fi
+    if pid=$(ours "$DEMO_PID" examples/launcher_demo); then kill "$pid" 2>/dev/null; fi
+    rm -f "$DEMO_PID" "$TAIL_PID" "$PIPE"
     ;;
 esac
