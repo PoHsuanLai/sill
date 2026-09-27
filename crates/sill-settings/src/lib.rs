@@ -84,4 +84,4 @@ pub use watch::{ShellWatch, watch};
 pub use widgets::{DesktopWidgets, WidgetKind, WidgetsSettings};
 pub use window::WindowSettings;
 
-pub use ds_settings::{Count, Fraction, Ms, Percent, Px, Scalar};
+pub use ds_settings::{Count, Fraction, Mins, Ms, Percent, Px, Scalar, Secs};

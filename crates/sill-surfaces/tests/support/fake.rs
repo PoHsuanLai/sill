@@ -49,6 +49,8 @@ pub struct Feeds {
     pub agenda: watch::Sender<sill_services::Agenda>,
     pub shots: watch::Sender<sill_services::Shots>,
     pub shot_commands: mpsc::UnboundedReceiver<sill_services::ShotCommand>,
+    /// Q420 B: sill's own idle service (passive, `Off(NoPolicy)`, until a test feeds it).
+    pub idle: watch::Sender<sill_services::Idle>,
     /// Receivers and command queues nobody reads here, kept so sends do not fail.
     keep: Vec<Box<dyn std::any::Any>>,
 }
@@ -307,6 +309,7 @@ pub fn services() -> (Services, Feeds) {
     let (agenda_tx, agenda) = watch::channel(sill_services::Agenda::default());
     let (shots_tx, shots) = watch::channel(sill_services::Shots::default());
     let (shots_control, shot_rx) = Control::channel();
+    let (idle_tx, idle) = watch::channel(sill_services::Idle::default());
     let services = Services {
         clock,
         clock_control: control(&mut keep),
@@ -364,7 +367,7 @@ pub fn services() -> (Services, Feeds) {
         polkit_control: control(&mut keep),
         clipboard: fixed(sill_services::Clipboard::default(), &mut keep),
         clipboard_control: control(&mut keep),
-        idle: fixed(sill_services::Idle::default(), &mut keep),
+        idle,
         idle_control: control(&mut keep),
     };
     let feeds = Feeds {
@@ -394,6 +397,7 @@ pub fn services() -> (Services, Feeds) {
         agenda: agenda_tx,
         shots: shots_tx,
         shot_commands: shot_rx,
+        idle: idle_tx,
         keep,
     };
     (services, feeds)

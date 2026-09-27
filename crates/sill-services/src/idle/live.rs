@@ -312,10 +312,9 @@ impl Live {
                 eprintln!("sill: idle: displays {power:?}");
                 self.order(Order::Displays(power));
             }
-            // The dim overlay reads `Idle.dim`, published after the step (F902). The surface
-            // waits on quire's scrim token and motion (Q447): until then the dim is only
-            // published, and nothing on screen changes before the displays go off.
-            IdleEffect::Dim(level) => eprintln!("sill: idle: dim {level:?} (no overlay yet, Q447)"),
+            // The dim overlay (`sill-surfaces` `idle_dim`, mapped by the daemon's
+            // `idle_dim` follower) reads `Idle.dim`, published after the step (F902, F960).
+            IdleEffect::Dim(level) => eprintln!("sill: idle: dim {level:?}"),
             IdleEffect::Undim => eprintln!("sill: idle: undim"),
             IdleEffect::Lock => {
                 eprintln!("sill: idle: lock at screen off");

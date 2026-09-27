@@ -140,3 +140,69 @@ fn unknown_keys_and_tables_survive_a_round_trip() {
         "{written}"
     );
 }
+
+/// Q445: the idle times became `Secs` and `Mins` after files were written with them as `Count`.
+/// Both are plain integers in the file, so an existing file loads unchanged, and a save writes
+/// them back as the same plain integers; a negative one is only that key's default.
+#[test]
+fn idle_seconds_and_minutes_are_plain_integers_both_ways() {
+    use sill_settings::{IdleTimesFrom, Mins, Secs};
+    let dir = TempDir::new("idle-units");
+    let text = "[session]\nlock_grace_s = 12\n\
+                [idle]\ntimes = \"sill\"\nscreen_off_ac_min = 20\nscreen_off_battery_min = 3\n\
+                suspend_ac_min = 0\nsuspend_battery_min = 45\ndim_s = 9\n\
+                locked_screen_off_s = 120\n";
+    std::fs::write(dir.path().join(FILE_NAME), text).unwrap_or_else(|e| panic!("{e}"));
+    let read = load(dir.path());
+    let want = with(|f| {
+        f.session.lock_grace_s = Secs(12);
+        f.idle.times = IdleTimesFrom::Sill;
+        f.idle.screen_off_ac_min = Mins(20);
+        f.idle.screen_off_battery_min = Mins(3);
+        f.idle.suspend_ac_min = Mins(0);
+        f.idle.suspend_battery_min = Mins(45);
+        f.idle.dim_s = Secs(9);
+        f.idle.locked_screen_off_s = Secs(120);
+    });
+    assert_eq!(read, want);
+
+    save(dir.path(), &read).unwrap_or_else(|e| panic!("{e}"));
+    let written =
+        std::fs::read_to_string(dir.path().join(FILE_NAME)).unwrap_or_else(|e| panic!("{e}"));
+    let tree: toml::Table = toml::from_str(&written).unwrap_or_else(|e| panic!("{e}"));
+    let at = |table: &str, key: &str| tree.get(table).and_then(|t| t.get(key)).cloned();
+    const WRITTEN: &[(&str, &str, i64)] = &[
+        ("session", "lock_grace_s", 12),
+        ("idle", "screen_off_ac_min", 20),
+        ("idle", "screen_off_battery_min", 3),
+        ("idle", "suspend_ac_min", 0),
+        ("idle", "suspend_battery_min", 45),
+        ("idle", "dim_s", 9),
+        ("idle", "locked_screen_off_s", 120),
+    ];
+    for &(table, key, value) in WRITTEN {
+        assert_eq!(
+            at(table, key),
+            Some(toml::Value::Integer(value)),
+            "{table}.{key}: {written}"
+        );
+    }
+    assert_eq!(load(dir.path()), want, "{written}");
+
+    std::fs::write(
+        dir.path().join(FILE_NAME),
+        "[idle]\ndim_s = -4\nsuspend_ac_min = 50\n",
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    let lenient = load(dir.path());
+    assert_eq!(
+        lenient.idle.dim_s,
+        Secs(5),
+        "a negative seconds is the default"
+    );
+    assert_eq!(
+        lenient.idle.suspend_ac_min,
+        Mins(50),
+        "and keeps its sibling"
+    );
+}

@@ -19,11 +19,16 @@
 # - whatever fails, the script ends by accepting on the daemon, quitting it, and running the
 #   recovery lock-and-unlock (`session_locker 0`, F381), so the nested session is left unlocked.
 #
-# Times: screen off 6 s, dim 2 s before it at 50 %, lock grace 5 s, the lock screen's own
+# Times: screen off 6 s, dim 3 s before it at 50 %, lock grace 5 s, the lock screen's own
 # screen-off 4 s; suspend never, except in step 7 (10 s).
 #
-#   1. Idle dims (the dim is published; its surface waits on quire, Q447), then turns the
-#      displays off and locks with cause idle_screen_off. G341 is looked for in the
+#   1. Idle dims, then turns the displays off and locks with cause idle_screen_off. The dim
+#      surface (`sill-idle-dim-<output>`) is unmapped before the dim (a capture is refused), and
+#      captured twice while dimmed: early in the fade and once `--t-idle-dim` (2 s) has run.
+#      Both must be the black scrim (every pixel RGB 0), the early one lighter than the late
+#      one, and the late one at 50 % (alpha 128 +- 12). The late capture is kept as
+#      dev/out/idle-dim.png, with the nested screen at that moment as dev/out/idle-dim-cosmic.png
+#      (non-fatal). Once the displays are off the surface is unmapped again. G341 is looked for in the
 #      WAYLAND_DEBUG=client log (set_mode(off) before ext_session_lock_v1.locked, and no
 #      `failed`); the nested winit outputs refuse power control, so it cannot be shown here.
 #   2. A wake within the grace: unlocked with no password (the daemon logs "grace NoPassword").
@@ -49,6 +54,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 # shellcheck source=dev/backdrop.sh
 source "$(dirname "${BASH_SOURCE[0]}")/backdrop.sh"
 OUT_DIR="$SILL_REPO/target/accept-idle"
+SHOTS="$SILL_REPO/dev/out"
+DIM_SURFACE=
 mkdir -p "$OUT_DIR"
 LOCKER="$SILL_REPO/target/debug/examples/session_locker"
 LOGIND_BIN="$SILL_REPO/target/debug/examples/logind_standin"
@@ -153,7 +160,7 @@ start_logind() {
 start_daemon() {
   local log="$1"
   backdrop_seed "$CONFIG" || return 1
-  printf '[session]\nlocker = "sill"\nlock_grace_s = 5\n\n[idle]\ndim_s = 2\ndim_level_pct = 50\nlocked_screen_off_s = 4\n' \
+  printf '[session]\nlocker = "sill"\nlock_grace_s = 5\n\n[idle]\ndim_s = 3\ndim_level_pct = 50\nlocked_screen_off_s = 4\n' \
     >"$CONFIG/sill/settings.toml"
   in_env WAYLAND_DEBUG="${WDEBUG:-}" SILL_IDLE_TIMES="$TIMES" "$SILL_BIN" run >"$log" 2>&1 &
   DAEMON=$!
@@ -181,14 +188,70 @@ open_lock() {
   [ "$(until_match "$(now_ms)" lock_state '^unlocked' 4000)" -ge 0 ]
 }
 
+# The nested output's connector name (the surfaces' namespace suffix).
+output_name() {
+  sill debug stats | python3 -c '
+import json, sys
+for row in json.loads(sys.stdin.read())["v"]:
+    s = row["surface"]
+    if s.startswith("sill-bar-"):
+        print(s[len("sill-bar-"):]); break'
+}
+
+# The PNG $1 as "width height rgb_max alpha_min alpha_max": a scrim is RGB 0 everywhere and one
+# alpha across the whole surface.
+scrim_of() {
+  python3 - "$1" <<'EOF'
+import sys
+from PIL import Image
+img = Image.open(sys.argv[1]).convert("RGBA")
+(r0, r1), (g0, g1), (b0, b1), (a0, a1) = img.getextrema()
+print(img.width, img.height, max(r1, g1, b1), a0, a1)
+EOF
+}
+
+# Capture the dim surface to $1; fails while it is unmapped.
+capture_dim() { sill debug capture "$DIM_SURFACE" "$1" >/dev/null 2>&1; }
+
 # 1.
 step_dim_off_lock() {
-  local log="$OUT_DIR/1-dim-off-lock.log" start dim off locked g341
+  local log="$OUT_DIR/1-dim-off-lock.log" start dim off locked g341 name before early late after
   : >"$log"
+  for _ in $(seq 50); do name=$(output_name); [ -n "$name" ] && break; sleep 0.1; done
+  DIM_SURFACE="sill-idle-dim-$name"
   wake; start=$(now_ms)
+  rm -f "$OUT_DIR"/dim-*.png
+  if capture_dim "$OUT_DIR/dim-before.png"; then before=mapped; else before=unmapped; fi
   dim=$(until_match "$start" idle_state ' dimmed dimmed:50 ' 8000)
+  local dimmed_at; dimmed_at=$(now_ms)
+  capture_dim "$OUT_DIR/dim-early.png" && early=$(scrim_of "$OUT_DIR/dim-early.png")
+  # `--t-idle-dim` is 2 s; the displays go off 3 s after the dim.
+  sleep "$(python3 -c "print(max(0, 2.4 - ($(now_ms) - $dimmed_at) / 1000))")"
+  capture_dim "$OUT_DIR/dim-late.png" && late=$(scrim_of "$OUT_DIR/dim-late.png")
+  local late_at=$(( $(now_ms) - start ))
+  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/idle-dim-cosmic.png" >>"$log" 2>&1 \
+    || echo "nested screenshot failed (non-fatal)" >&2
+  cp "$OUT_DIR/dim-late.png" "$SHOTS/idle-dim.png" 2>/dev/null
   off=$(until_match "$start" idle_state ' displays_off ' 10000)
   locked=$(until_match "$start" lock_state '^locked idle_screen_off$' 12000)
+  sleep 0.3
+  if capture_dim "$OUT_DIR/dim-after.png"; then after=mapped; else after=unmapped; fi
+  echo "dim surface $DIM_SURFACE: before the dim $before; early '${early:-no capture}'; at ${late_at} ms '${late:-no capture}' (width height rgb_max alpha_min alpha_max); after the displays went off $after" \
+    | tee -a "$log" >&2
+  local scrim_ok=1
+  python3 - "${early:-}" "${late:-}" <<'EOF' && scrim_ok=0
+import sys
+early, late = sys.argv[1].split(), sys.argv[2].split()
+if len(early) != 5 or len(late) != 5:
+    sys.exit(1)
+e, l = [int(v) for v in early], [int(v) for v in late]
+black = e[2] == 0 and l[2] == 0
+uniform = e[3] == e[4] and l[3] == l[4]
+fading = 0 < e[4] < l[4]
+at_level = abs(l[4] - 128) <= 12
+sys.exit(0 if black and uniform and fading and at_level else 1)
+EOF
+  [ "$scrim_ok" = 0 ] && echo "scrim: black, uniform, fading in, at 50 %" | tee -a "$log" >&2
   g341=$(python3 - "$OUT_DIR/daemon-wdebug.log" <<'EOF'
 import re, sys
 off = lock = None
@@ -213,10 +276,11 @@ else:
     print("NOT-SHOWN")
 EOF
 )
-  echo "dimmed at ${dim} ms (want ~4000), displays off at ${off} ms (~6000), locked with cause idle_screen_off at ${locked} ms; G341: $(echo "$g341" | tr '\n' ' ')" \
+  echo "dimmed at ${dim} ms (want ~3000), displays off at ${off} ms (~6000), locked with cause idle_screen_off at ${locked} ms; G341: $(echo "$g341" | tr '\n' ' ')" \
     | tee -a "$log" >&2
   echo "idle: $(idle_state); lock: $(lock_state)" | tee -a "$log" >&2
-  [ "$dim" -ge 3000 ] && [ "$off" -ge 5000 ] && [ "$locked" -ge 0 ]
+  [ "$dim" -ge 2000 ] && [ "$off" -ge 5000 ] && [ "$locked" -ge 0 ] \
+    && [ "$before" = unmapped ] && [ "$after" = unmapped ] && [ "$scrim_ok" = 0 ]
 }
 
 # 2.

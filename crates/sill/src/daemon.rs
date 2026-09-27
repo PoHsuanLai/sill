@@ -150,6 +150,8 @@ pub fn run() -> ExitCode {
     let _ipc_thread = ipc_server::spawn(door, handle.clone());
     // M11: the own lock screen's wish to hold the session lock (lane a fills the follower).
     crate::lock::spawn_follower(runtime.handle(), &services, handle.clone());
+    // Q420 B: the idle dim surfaces are mapped while the idle service dims.
+    crate::idle_dim::spawn_follower(runtime.handle(), &services, handle.clone());
 
     if let Some(dir) = settings_dir.clone() {
         // `sill_settings::watch` calls `tokio::spawn` in its own body, which needs an entered
@@ -301,6 +303,7 @@ fn run_event(
                 );
             }
         }
+        HostEvent::App(ShellMsg::Dim(dim)) => crate::idle_dim::apply(ctx, outputs, dim),
         other => {
             if let Some(links) = crate::links::get() {
                 crate::lock::on_host_event(ctx, shell_lock, &other, &links.lock, services);
@@ -361,6 +364,12 @@ fn run_event(
             crate::osd::spawn_missing(ctx, outputs, settings_tx, osd, |root| {
                 surface_root(root, services, settings_feed)
             });
+            // Q420 B: the idle dim last, over every other Overlay surface; the session-lock
+            // surfaces are above every layer surface anyway.
+            let dim = services.idle.borrow().dim;
+            crate::idle_dim::spawn_missing(ctx, outputs, dim, |root| {
+                surface_root(root, services, settings_feed)
+            });
             if let Some(links) = crate::links::get() {
                 links
                     .banners
@@ -389,6 +398,8 @@ pub fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostE
         }
         // Answered by `run_event`, which holds the lock's state.
         HostEvent::App(ShellMsg::Lock(_)) => {}
+        // Answered by `run_event`, which maps the idle dim surfaces.
+        HostEvent::App(ShellMsg::Dim(_)) => {}
         HostEvent::App(ShellMsg::Ipc { reply, .. }) => {
             // Never reached through `run_event`, which answers `Ipc` itself; answered rather
             // than dropped in case another caller ever delivers one here directly.
@@ -1037,6 +1048,9 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
             let switcher = surfaces
                 .switcher
                 .map(|id| (crate::switcher::namespace(info), id));
+            let idle_dim = surfaces
+                .idle_dim
+                .map(|id| (crate::idle_dim::namespace(info), id));
             let corners: Vec<_> = crate::corners::namespaces(info)
                 .into_iter()
                 .filter_map(|(corner, name)| surfaces.corners.get(corner).map(|id| (name, id)))
@@ -1056,6 +1070,7 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
                 .chain(corners)
                 .chain(polkit)
                 .chain(switcher)
+                .chain(idle_dim)
         })
         .collect();
     // The lock surfaces are the host's (shell-host names each `sill-lock/<output>`), not a row
