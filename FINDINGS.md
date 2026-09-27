@@ -8708,3 +8708,8 @@ without its Motion row, design/22's retired `dock.shipped_icons` row). Branch
   `launcher-v2-selection-chord.png` (twelfth row selected: only it shows ⌘R).
   `launcher-v2-preview-image.png` and the `*-fixtures.png` come from the nested script only and
   still show the old look (⌘R on every row, `↵`, key caps) until it runs again.
+- **F1047 A real-clock flake in sill-services.** The first gate run on 1e67db2 failed one test,
+  `results::tests::a_newer_keystroke_cancels_the_older_query_and_its_late_rows_never_show`
+  (`crates/sill-services/src/results/tests.rs:133`, on tokio's real time with 150 ms fakes),
+  untouched here; it passed 5 of 5 alone and the next gate run was green. It is the one gate test
+  not on a virtual clock that failed under load; a paused tokio clock would pin it.
