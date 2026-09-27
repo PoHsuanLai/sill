@@ -30,7 +30,13 @@
 #   9. In the center, a real Down focuses the first group's header (two from one app) and a real
 #      Delete clears the group: kept falls by two.
 #  9b. A real click on Clear All (found in a capture of the center): kept falls to 0 and the
-#      center then rests, 0 frames over 3 s (its exit waits on quire Q510, F1013).
+#      center then rests, 0 frames over 3 s.
+#  9c. Clear and Clear All play their exit (quire's LeavingList, FINDINGS F1071): Chat (two) and
+#      CI (one) posted with `sill debug notify`, the center opened by a real click on the clock;
+#      a real click on Chat's Clear (found in a capture): kept falls by two, the list settles
+#      Chat's head and card after their fold (the daemon logs each settled row), the center
+#      draws frames while they fold and CI heals up into Chat's place, then rests at 0 frames
+#      over 3 s; the same for a real click on Clear All.
 #  10. Overflowed with 15 cards, a real wheel over the column (fake-input's `axis`, shell-host
 #      FINDINGS F63) scrolls it: the whole column moves, title included. Rubber-band at the top
 #      is not exercised: wheel scrolling never stretches (F63 §11.3.7's last row and its own "no
@@ -55,6 +61,7 @@
 #        dev/accept-notifications-real-input.sh ghost     (F1010: the blur left behind mid-drag;
 #                                                          FAILS while shell-host's G410 stands)
 #        dev/accept-notifications-real-input.sh clear     (9b alone)
+#        dev/accept-notifications-real-input.sh exit      (9c alone)
 #        dev/accept-notifications-real-input.sh repro     (G100, G101 closed: regression checks;
 #                                                          Q170: FAILS while it stands)
 set -uo pipefail
@@ -838,7 +845,7 @@ sys.exit(1)' "$1" "$WIDTH"
 }
 
 # 9b. Clear All with a real click in the center: the history empties and the center then rests
-# at 0 frames (its exit and heal wait on quire, Q510; F1012).
+# at 0 frames.
 step_center_clear_all() {
   local at x y bar c0 c1
   notify "Ada" --app chat --body "Hi" || return 1
@@ -862,6 +869,115 @@ step_center_clear_all() {
   key Escape
   wait_surface "$CENTER" 20 down
   [ "$((c1 - c0))" = 0 ]
+}
+
+# The first group header's Clear in capture $1 of the center, "x y" on the surface (logical):
+# the rows of ink in the panel grouped into bands (the title row with Clear All first, the first
+# group's header next), and in the header's band the rightmost run of ink, which is "Clear".
+# Also prints the header band's top as a third number.
+header_clear_at() {
+  python3 - "$1" "$WIDTH" <<'EOF'
+import sys
+from PIL import Image
+img = Image.open(sys.argv[1]).convert("RGBA")
+k = img.width / int(sys.argv[2])
+x0, y0, x1, y1 = img.getchannel("A").point(lambda v: 255 if v > 200 else 0).getbbox()
+lum = img.convert("L")
+left, right = x0 + round(20 * k), x1 - round(14 * k)
+def ground(y):
+    row = sorted(lum.getpixel((x, y)) for x in range(left, right, 2))
+    return row[len(row) // 2]
+def inked_row(y):
+    g = ground(y)
+    return any(abs(lum.getpixel((x, y)) - g) > 60 for x in range(left, right, 2))
+bands, start, gap = [], None, 0
+for y in range(y0 + round(8 * k), y1):
+    if inked_row(y):
+        start = y if start is None else start
+        gap = 0
+    elif start is not None:
+        gap += 1
+        if gap > round(4 * k):
+            bands.append((start, y - gap)); start = None
+    if len(bands) == 2:
+        break
+top, bottom = bands[1]
+g = ground((top + bottom) // 2)
+def inked(x):
+    return any(abs(lum.getpixel((x, y)) - g) > 60 for y in range(top, bottom + 1))
+run, gap = None, 0
+for x in range(right, left, -1):
+    if inked(x):
+        run = [x, x] if run is None else [x, run[1]]
+        gap = 0
+    elif run is not None:
+        gap += 1
+        if gap > round(10 * k):
+            break
+print(round((run[0] + run[1]) / 2 / k), round((top + bottom) / 2 / k), round(top / k))
+EOF
+}
+
+settles() { grep -c "notification_center.settled=" "$OUT_DIR/daemon.log"; }
+
+# Click "x y" (surface px, the surface's top $3 down) and prove the exit plays: the history
+# falls to $4 kept, the rows the model dropped settle ($5 of them, logged by the list as each
+# batch settles, after its fold), the center draws frames while they fold and heal, and then
+# rests at 0 frames. Captures: $6-{mid,after}.png.
+exit_plays() {
+  local x="$1" y="$2" top="$3" kept="$4" rows="$5" name="$6" s0 c0 c1 c2 start dropped settled
+  s0=$(settles); c0=$(frames_of "$CENTER")
+  start=$(now_ms)
+  click "$x" $(( y + top )) || return 1
+  await_status kept "$kept" || { echo "a click at $x $(( y + top )) cleared nothing" >&2; return 1; }
+  dropped=$(since "$start")
+  mapped "$CENTER" "$OUT_DIR/$name-mid.png"
+  for _ in $(seq 50); do [ "$(settles)" -ge $(( s0 + rows )) ] && break; sleep 0.1; done
+  settled=$(since "$start")
+  [ "$(settles)" -ge $(( s0 + rows )) ] || { echo "the list settled $(( $(settles) - s0 )) of $rows rows" >&2; return 1; }
+  sleep 1
+  c1=$(frames_of "$CENTER")
+  mapped "$CENTER" "$OUT_DIR/$name-after.png"
+  sleep 3
+  c2=$(frames_of "$CENTER")
+  echo "  the model dropped them ${dropped} ms after the click; the list settled $rows rows by" \
+    "${settled} ms; $((c1 - c0)) frames while they folded and healed; then 3 s idle: $((c2 - c1))" \
+    "frames" >&2
+  grep "notification_center.settled=" "$OUT_DIR/daemon.log" | tail -n "$rows" | sed 's/^/  /' >&2
+  [ "$((c1 - c0))" -ge 5 ] && [ "$((c2 - c1))" = 0 ]
+}
+
+# 9c. Clear and Clear All play their exit (FINDINGS F1071): two groups posted, the center opened
+# by a real click on the clock, a real click on the first group's Clear folds its head and card
+# and the group below heals up; a real click on Clear All folds the rest; the center then rests.
+step_center_clear_exit() {
+  local at x y bar before after
+  [ "$(status_field kept)" = 0 ] || { echo "the history is not empty before the step" >&2; return 1; }
+  notify "Build" --app ci --body "Passed" || return 1
+  notify "Ada" --app chat --body "Hi" || return 1
+  notify "Ada" --app chat --body "Still there?" || return 1
+  sleep $(( (HOLD_MS + EXIT_MS + SLACK_MS) / 1000 + 1 ))
+  wait_surface "$BANNERS" 50 down || { echo "the banners stayed up" >&2; return 1; }
+  clock_click || return 1
+  wait_surface "$CENTER" 20 up || { echo "a click on the clock opened nothing" >&2; return 1; }
+  sleep 1
+  mapped "$CENTER" "$OUT_DIR/exit-before.png" || { echo "no capture of the center" >&2; return 1; }
+  bar=$(surface_top "$OUT_DIR/exit-before.png") || { echo "no center in KWin's list" >&2; return 1; }
+  at=$(header_clear_at "$OUT_DIR/exit-before.png") || { echo "no group header found" >&2; return 1; }
+  read -r x y before <<<"$at"
+  echo "a real click on Chat's Clear at $x $(( y + bar )):" >&2
+  exit_plays "$x" "$y" "$bar" 1 2 exit-clear || return 1
+  # CI's header healed up into the first header's place.
+  at=$(header_clear_at "$OUT_DIR/exit-clear-after.png") || { echo "no header after the Clear" >&2; return 1; }
+  read -r _ _ after <<<"$at"
+  echo "  the first header's top: $before before, $after after (CI healed into Chat's place)" >&2
+  [ $(( after - before )) -le 1 ] && [ $(( before - after )) -le 1 ] || return 1
+  at=$(clear_all_at "$OUT_DIR/exit-clear-after.png") || { echo "no Clear All found" >&2; return 1; }
+  read -r x y <<<"$at"
+  echo "a real click on Clear All at $x $(( y + bar )):" >&2
+  exit_plays "$x" "$y" "$bar" 0 2 exit-clear-all || return 1
+  key Escape
+  wait_surface "$CENTER" 20 down
 }
 
 # 5b, 5c.
@@ -889,9 +1005,11 @@ start_input || { echo "no fake input client" >&2; exit 1; }
 rest; rest
 STEPS="step_holder step_hover step_click_default step_close_button step_swipe step_spring_back
   step_ghost_click step_ghost_swipe step_center_clock_escape step_center_outside
-  step_center_delete step_center_clear_all step_center_scroll step_idle step_holder"
+  step_center_delete step_center_clear_all step_center_clear_exit step_center_scroll step_idle
+  step_holder"
 [ "${1:-}" = ghost ] && STEPS="step_holder step_ghost_held step_ghost_click step_ghost_swipe"
 [ "${1:-}" = clear ] && STEPS="step_holder step_center_clear_all"
+[ "${1:-}" = exit ] && STEPS="step_holder step_center_clear_exit step_idle"
 [ -n "${ACCEPT_STEPS:-}" ] && STEPS="$ACCEPT_STEPS"
 [ "${1:-}" = repro ] && STEPS="step_holder repro_enter_one_motion repro_hover_after_unmap repro_card_under_resting_pointer"
 status=0
