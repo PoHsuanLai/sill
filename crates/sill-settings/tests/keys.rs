@@ -37,19 +37,7 @@ const DOC_ALIASES: &[&str] = &["spaces.material_tint_alpha"];
 /// Keys registered in sill whose §3 rows quire's design/22 has not gained yet: quire's owner adds
 /// them (sill FINDINGS lists each row). A key here needs no row until it has one; once the row
 /// lands it is checked like every other key, and the entry can go.
-const AWAITING_ROWS: &[&str] = &[
-    // sill FINDINGS "sill idle (Q420 B)", Q441.
-    "session.lock_grace_s",
-    "idle.times",
-    "idle.screen_off_ac_min",
-    "idle.screen_off_battery_min",
-    "idle.suspend_ac_min",
-    "idle.suspend_battery_min",
-    "idle.dim_s",
-    "idle.dim_level_pct",
-    "idle.lock",
-    "idle.locked_screen_off_s",
-];
+const AWAITING_ROWS: &[&str] = &[];
 
 /// Keys sill has dropped whose §3 rows quire's design/22 still carries: the mirror of
 /// [`AWAITING_ROWS`] for a retirement (design/28 §6.0). sill drops the spec and lists the key
