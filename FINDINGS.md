@@ -8221,3 +8221,79 @@ Numbered from F980. Branch `worktree-agent-ad53d5c104d0da137` (cut from master 7
   in `$D` (the demo reads a FIFO the tail writes), `stop` kills only those, and the one-copy guard
   checks only those (a PID counts while alive and its command line still matches). Checked with
   stand-in processes: ours stopped, another "launcher_demo" left running.
+
+## Manual run 2026-09-28: menus and keyboard
+
+The user's manual run on KDE (KWin, scale 2, 4K) found two bugs: opening a second bar menu did
+not leave that menu open (macOS: with one menu open, a click on another item switches to it),
+and the control center and notification center seemed to take no keyboard. Both reproduced on
+shell-host's headless KWin with real clicks and keys (`dev/accept-menus-keyboard-real-input.sh`,
+fake input only, a GTK window holding the keyboard first as an app does). Numbered from F990 and
+G390. Branch `worktree-agent-afbae1377b9e427f7` (cut from master 70db27b). No size or spacing
+changed (quire's design/29 sizing is landing).
+
+- **F990 The real-input acceptance.** `dev/accept-menus-keyboard-real-input.sh` opens every menu
+  and panel by a real click on its bar item, never by `sill control-center toggle` or `sill
+  notifications open`, and drives it with real keys. `dev/key-sink.py`, a plain GTK 4 window
+  clicked into focus first, logs every key it gets: a key it logs went to the app, not the
+  shell. Steps: click A then B; hover switch; control center Tab, Shift+Tab, Space, Escape;
+  notification center Down, Escape; center then menu; menu then center; and G391, recorded.
+  The headless KWin runs with key repeat off (a seeded `kcminputrc`) and every look after a key
+  is a settled capture: at a load of 100 on this machine a key's release reached the shell
+  after the repeat delay once (seven Space presses logged for two), and a capture can show the
+  frame before the key's. `SHELL_HOST_DEV` may name a private copy of shell-host's `scripts/dev`,
+  since `kwin-virtual.sh` keeps one `.kwin-env` per copy.
+- **F991 Switching menus: sill's machine, not KWin.** KWin delivers a press on the bar to the bar
+  while its popup grabs (same client, no `popup_done`). What closed everything: a real pointer
+  crosses into B on its way to the click, the hover switch shows B, and the press then landed on
+  "the open menu's title", which design/13 §13.3.2 "Click toggles" closes. The trace: `Move(B)
+  -> Switch(B)`, `PressTitle(B) -> Close`. `MenuTrack::Tracking` now carries `Shown::{Pressed,
+  Hovered}`: a hover switch shows a menu `Hovered`, and a press on a `Hovered` title keeps it
+  (held, now `Pressed`); only a press on a title the person pressed, or dragged to and released
+  on, closes. So a click on another item leaves its menu open and the first one gone, and a
+  second click closes it. `menu_track/tests.rs` (`a_press_on_a_title_the_pointer_switched_to_
+  keeps_its_menu`) and `plan.rs` (three sessions, the control center's among them). Real input:
+  steps 1 and 2.
+- **F992 Tab moved the focus; nothing showed it.** Keys reached the control center all along
+  (Escape closed it, Right opened the Wi-Fi pane), and Tab did move the focus: Blitz walked from
+  the `.sill-cc` home (`tabindex -1`) to the first tile (traced with `focusin`, and the
+  `control_center_keys.rs` harness test). quire draws the ring only under
+  `.ds[data-modality=keyboard]`, which `Ds` stamps from a `ds::HostModality` root context;
+  `ds_native::launch` provides one, shell-host's surfaces none (G390), so the popup stayed
+  `pointer` and no ring ever drew. `bar/modality.rs`'s `ModalityFrame`, the popup's frame div,
+  provides it and turns it `keyboard` on a key and `pointer` on a press. Not a quire component
+  problem: the tiles' `tabindex`, order and Space/Enter all work. The ring on the Focus tile
+  draws clipped along its top and left edges (quire's outline under the grid); left for quire's
+  sizing pass. Tested: `modality.rs` (Harness, `Clock::Virtual`), `control_center_keys.rs`
+  (Tab, chevron, Shift+Tab, Space and Enter toggle, Escape closes), real input step 3.
+- **F993 The settings feed is not live (not fixed here).** The Focus tile's Space stores
+  `notifications.dnd = "on"` (the real-input step reads it from the file), but the tile never
+  shows it: the daemon's file watch sends `ShellMsg::Settings` to `resize_bars`, the scroll
+  config and the displays policy only, never to `settings_tx`, so the `SettingsFeed` every
+  surface and the focus task read changes only on `sill reload` (F39 assumed otherwise). A
+  second Space then asks for On again. The script calls `sill reload` to look. The fix belongs in
+  `daemon.rs`'s `run_event` (publish the file on `ShellMsg::Settings`), outside this lane.
+- **F994 One menu-bar panel at a time.** A click on the clock with a menu open already closed the
+  menu (the bar's own outside press). A click on a menu item with the notification center open
+  left both open. A bar menu's `Show` now closes the center (`SessionDeps::center`). On KWin the
+  center's unmapping moves the activation to the window under it and dismisses a popup grabbed
+  before that (traced: `Show`, center hidden, `OutsidePress` 400 ms later), so with the center
+  up the popup opens 150 ms after the close (`Handoff::Waiting`, `CENTER_HANDOFF`, woken by
+  `BarInput::CenterGone`; a hide meanwhile cancels it; a hover switch meanwhile opens the menu
+  the pointer is on). Real input steps 5 and 6.
+- **F995 The notification center took the keyboard under real input.** Opened by a real click on
+  the clock with the GTK window focused, real Down moved its row ring and real Escape closed
+  it; the window got none of the keys. The keyboard the user missed was most likely G391's
+  (after any bar menu the app had no keyboard). Tab through the center's quire controls (Clear
+  All, the widgets) shows no ring for F992's reason; its root is the notifications lane's
+  (`notification_center/panel.rs`, `contents.rs`), so `ModalityFrame` is not wired there yet.
+- **G390 shell-host surfaces provide no `ds::HostModality`.** quire's contract (`root/env.rs`)
+  is that the host, which sees raw input, provides it; `ds_native::launch` and its headless
+  harness do, shell-host does not, so no focus ring draws on any shell-host surface unless the
+  surface provides its own (the bar popup now does). Repro: any shell-host surface with a quire
+  `Button`, real Tab: the button takes the focus, `.ds` keeps `data-modality="pointer"`.
+- **G391 The app lost the keyboard after a bar menu (closed by shell-host c1aebd7, F72).**
+  Opening a bar menu took the keyboard from the focused window and closing it never gave it
+  back (the window logged `focus out` and no `focus in`; a real "j" after Escape reached
+  nothing). shell-host lifted the bar to `OnDemand` for the popup and KWin activated it. With
+  shell-host master c1aebd7 the script records `G391 CLOSED`.
