@@ -205,6 +205,27 @@ fn clear_all_folds_every_row_then_says_the_list_is_empty() {
     running.until(|h| h.count(".sill-nc-empty") == 1);
     assert_eq!(rows(&running.harness), 0);
     assert_settles_to_zero_frames(&mut running.harness);
+    // Clear All went with the history; the column has the keyboard again (F1073).
+    assert!(running.harness.is_focused(".sill-nc-column"));
+}
+
+#[test]
+fn a_clear_gives_the_column_the_keyboard_back() {
+    let mut running = at_rest();
+    let clear = running
+        .harness
+        .centre(&in_head("chat", CLEAR))
+        .expect("Chat's Clear");
+    running.harness.click(clear);
+    let mut left = two_apps();
+    left.groups.truncate(1);
+    running.feeds.notification_history.send_replace(left);
+    running.until(|h| rows(h) == 2);
+    assert_settles_to_zero_frames(&mut running.harness);
+    assert!(
+        running.harness.is_focused(".sill-nc-column"),
+        "Escape reaches the column, not the gone button"
+    );
 }
 
 #[test]

@@ -867,7 +867,8 @@ step_center_clear_all() {
   echo "a real click on Clear All at $x $(( y + bar )): kept 0; then 3 s idle:" \
     "$CENTER $((c1 - c0)) frames" >&2
   key Escape
-  wait_surface "$CENTER" 20 down
+  wait_surface "$CENTER" 20 down || { echo "real Escape after Clear All left the center up (F1073)" >&2; return 1; }
+  echo "real Escape then closed it" >&2
   [ "$((c1 - c0))" = 0 ]
 }
 
@@ -958,6 +959,7 @@ step_center_clear_exit() {
   notify "Ada" --app chat --body "Still there?" || return 1
   sleep $(( (HOLD_MS + EXIT_MS + SLACK_MS) / 1000 + 1 ))
   wait_surface "$BANNERS" 50 down || { echo "the banners stayed up" >&2; return 1; }
+  wait_surface "$CENTER" 30 down || { echo "the center was still up" >&2; return 1; }
   clock_click || return 1
   wait_surface "$CENTER" 20 up || { echo "a click on the clock opened nothing" >&2; return 1; }
   sleep 1
@@ -977,7 +979,8 @@ step_center_clear_exit() {
   echo "a real click on Clear All at $x $(( y + bar )):" >&2
   exit_plays "$x" "$y" "$bar" 0 2 exit-clear-all || return 1
   key Escape
-  wait_surface "$CENTER" 20 down
+  wait_surface "$CENTER" 20 down || { echo "real Escape after Clear All left the center up (F1073)" >&2; return 1; }
+  echo "real Escape then closed the center" >&2
 }
 
 # 5b, 5c.

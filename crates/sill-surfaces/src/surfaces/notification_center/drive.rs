@@ -3,6 +3,8 @@
 //! a row's [`RowAct`] to the notifications service. Once hidden nothing runs and nothing asks
 //! for a frame.
 
+use std::rc::Rc;
+
 use dioxus::prelude::*;
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_services::{
@@ -79,6 +81,8 @@ pub(super) struct CenterCtx {
     control: Control<NotificationsCommand>,
     surface: Option<SurfaceHandle>,
     pub expanded: Signal<Expanded>,
+    /// The column, which holds the keyboard.
+    home: Signal<Option<Rc<MountedData>>>,
 }
 
 /// The handlers' context for one opening (its opened groups start closed).
@@ -88,6 +92,7 @@ pub(super) fn use_center_ctx() -> CenterCtx {
         control: use_services().notifications_control,
         surface: try_use_context::<SurfaceHandle>(),
         expanded: use_signal(Expanded::default),
+        home: use_signal(|| None),
     }
 }
 
@@ -102,8 +107,30 @@ impl CenterCtx {
                 let next = toggle_group(expanded.peek().clone(), &key);
                 expanded.set(next);
             }
-            RowAct::Dismiss(id) => self.send(NotificationsCommand::Dismiss(id)),
-            RowAct::Clear(key) => self.send(NotificationsCommand::ClearHistory(Clear::App(key))),
+            RowAct::Dismiss(id) => {
+                self.send(NotificationsCommand::Dismiss(id));
+                self.take_keyboard();
+            }
+            RowAct::Clear(key) => {
+                self.send(NotificationsCommand::ClearHistory(Clear::App(key)));
+                self.take_keyboard();
+            }
+        }
+    }
+
+    /// The column mounted: keep it and give it the keyboard.
+    pub fn home(&self, column: Rc<MountedData>) {
+        let mut home = self.home;
+        home.set(Some(column));
+        self.take_keyboard();
+    }
+
+    /// Give the column the keyboard again: the button pressed (a Clear, Clear All, a card's
+    /// close) leaves with its row, and with it the keyboard, so Escape reached nothing
+    /// (FINDINGS F1073).
+    fn take_keyboard(&self) {
+        if let Some(column) = self.home.peek().clone() {
+            ds::focus_soon(column);
         }
     }
 
@@ -111,6 +138,7 @@ impl CenterCtx {
     pub fn clear_all(&self) {
         eprintln!("notification_center.act=ClearAll");
         self.send(NotificationsCommand::ClearHistory(Clear::All));
+        self.take_keyboard();
     }
 
     /// Close the center (its exit plays first).

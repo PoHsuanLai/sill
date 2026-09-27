@@ -9,7 +9,6 @@
 //! it is open enters with `row-in`, and every row the model drops in one update (a Clear, Clear
 //! All, a dismissal, "Show less") folds, staggered, then the rows below heal up by its height.
 
-use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
@@ -43,6 +42,7 @@ pub(super) fn Contents(output: OutputId) -> Element {
     let rows = rows_of(&group_views(&history, &expanded));
     let keys = (ctx.clone(), rows.clone());
     let clear = ctx.clone();
+    let home = ctx.clone();
     let items: Vec<LeavingItem<RowKey>> = rows
         .iter()
         .enumerate()
@@ -58,7 +58,7 @@ pub(super) fn Contents(output: OutputId) -> Element {
             // result list and every menu are excluded by that table and carry nothing here.
             "data-overscroll": "band",
             tabindex: "-1",
-            onmounted: move |event: MountedEvent| take_keyboard(event.data()),
+            onmounted: move |event: MountedEvent| home.home(event.data()),
             onkeydown: move |event: KeyboardEvent| {
                 let Some(key) = center_key(&event.key()) else { return };
                 event.prevent_default();
@@ -131,11 +131,6 @@ pub(super) fn app_of(history: &History, row: &CenterRow) -> Option<String> {
         .flat_map(|group| &group.notes)
         .find(|note| note.id == *id)
         .and_then(|note| note.app.desktop_entry.clone())
-}
-
-/// The column takes the keyboard as it mounts, so the arrows and Escape reach it.
-fn take_keyboard(element: Rc<MountedData>) {
-    ds::focus_soon(element);
 }
 
 /// The wall clock the ages are counted against (the history's arrival times are wall-clock).
