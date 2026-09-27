@@ -6,7 +6,7 @@
 //! `BrightnessTarget::None`.
 
 use dioxus::prelude::*;
-use ds::{Availability, Fraction, Icon};
+use ds::{Availability, Fraction, Icon, LevelGlyph};
 
 use crate::surfaces::control_center::LevelModule;
 
@@ -20,6 +20,7 @@ pub fn DisplayModule(
     rsx! {
         LevelModule {
             glyph: Icon::Sun,
+            level_glyph: LevelGlyph::Brightness,
             title: "Display".to_owned(),
             level,
             on_change,

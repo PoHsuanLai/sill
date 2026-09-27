@@ -28,7 +28,3 @@
 
 /* The volume menu's panel inside its ds Popover. */
 .sill-volume-panel{ display:flex; flex-direction:column; gap:var(--s-10); width:240px; padding:var(--s-12); }
-
-/* A status item's wrapper inside its hit box: a box, so the battery's low nudge (quire's
-   `nudge-up`, design/26 G11) can move it; it adds no size of its own. */
-.sill-bar-status{ display:inline-flex; }

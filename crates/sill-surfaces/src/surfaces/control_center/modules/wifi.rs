@@ -4,11 +4,11 @@
 //! `use_network`; sends `WifiCommand::Radio`.
 
 use dioxus::prelude::*;
-use ds::{Availability, Chevron, Icon, ModuleState, ModuleTile, Text};
-use sill_services::{Link, Network, Presence, Radio, Wifi, WifiCommand};
+use ds::{Availability, Chevron, ModuleState, ModuleTile, StatusState, Text, WifiState};
+use sill_services::{Network, Presence, Radio, Wifi, WifiCommand};
 
 use crate::hooks::{use_network, use_services, use_wifi};
-use crate::surfaces::bar::status::network_icon;
+use crate::surfaces::bar::glyph_state::{NetworkGlyph, network_glyph};
 use crate::surfaces::control_center::modules::flipped;
 use crate::surfaces::control_center::page::Detail;
 use crate::surfaces::control_center::wifi_status;
@@ -22,7 +22,7 @@ pub fn WifiModule(on_detail: EventHandler<Detail>) -> Element {
     let state = radio_state(wifi.radio);
     rsx! {
         ModuleTile {
-            glyph: wifi_glyph(&wifi, &network),
+            glyph: StatusState::Wifi(wifi_tile_state(&wifi, &network)),
             title: "Wi-Fi",
             status: Some(Text::from(wifi_status(&wifi, &network))),
             state,
@@ -61,77 +61,141 @@ pub(crate) fn radio_availability(wifi: &Wifi) -> Availability {
     }
 }
 
-/// The signal's glyph while joined over Wi-Fi, otherwise plain Wi-Fi or Wi-Fi off.
-pub(crate) fn wifi_glyph(wifi: &Wifi, network: &Network) -> Icon {
-    match (wifi.radio, &network.link) {
-        (Radio::On, Link::Wifi { .. }) => network_icon(network),
-        (Radio::On, _) => Icon::Wifi,
-        (Radio::Off | Radio::Blocked, _) => Icon::WifiOff,
+/// The disc's Wi-Fi state: the bar item's (quire's `WifiGlyph`: searching while it joins, its
+/// bars and badge once joined), off with the radio off, and not connected over a wire or
+/// another link, which is not Wi-Fi.
+pub(crate) fn wifi_tile_state(wifi: &Wifi, network: &Network) -> WifiState {
+    match (wifi.radio, network_glyph(network, wifi.radio)) {
+        (Radio::Off | Radio::Blocked, _) => WifiState::Off,
+        (Radio::On, NetworkGlyph::Wifi(state)) => state,
+        (Radio::On, NetworkGlyph::Plain(_)) => WifiState::Idle,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{radio_availability, radio_of, radio_state, wifi_glyph};
-    use ds::{Availability, Icon, ModuleState};
-    use sill_services::{Connectivity, Link, Network, Percent, Presence, Radio, Wifi};
+    use super::{radio_availability, radio_of, radio_state, wifi_tile_state};
+    use ds::detail::EventStamp;
+    use ds::{Availability, ModuleState, WifiBars, WifiReach, WifiState};
+    use sill_services::{
+        Attempt, Attempts, Connectivity, Link, Network, OpStamp, Percent, Presence, Radio, Wifi,
+    };
 
-    #[test]
-    fn the_tile_follows_the_radio() {
-        let wifi = |device, radio| Wifi {
+    fn wifi(device: Presence, radio: Radio) -> Wifi {
+        Wifi {
             device,
             radio,
             ..Wifi::default()
-        };
-        let home = Network {
-            link: Link::Wifi {
-                ssid: "home".to_owned(),
-                strength: Percent(90),
-            },
+        }
+    }
+
+    fn network(link: Link, now: Attempt) -> Network {
+        Network {
+            link,
             connectivity: Connectivity::Full,
-            join: Default::default(),
-        };
-        // (device, radio, state, availability, glyph on `home`)
+            join: Attempts {
+                now,
+                minted: OpStamp(3),
+            },
+        }
+    }
+
+    #[test]
+    fn the_tile_follows_the_radio() {
+        // (device, radio, state, availability)
         let cases = [
             (
                 Presence::Present,
                 Radio::On,
                 ModuleState::On,
                 Availability::Enabled,
-                Icon::WifiHigh,
             ),
             (
                 Presence::Present,
                 Radio::Off,
                 ModuleState::Off,
                 Availability::Enabled,
-                Icon::WifiOff,
             ),
             (
                 Presence::Present,
                 Radio::Blocked,
                 ModuleState::Off,
                 Availability::Disabled,
-                Icon::WifiOff,
             ),
             (
                 Presence::Absent,
                 Radio::Off,
                 ModuleState::Off,
                 Availability::Disabled,
-                Icon::WifiOff,
             ),
         ];
-        for (device, radio, state, availability, glyph) in cases {
+        for (device, radio, state, availability) in cases {
             let w = wifi(device, radio);
             assert_eq!(radio_state(radio), state, "{radio:?}");
             assert_eq!(radio_availability(&w), availability, "{device:?} {radio:?}");
-            assert_eq!(wifi_glyph(&w, &home), glyph, "{radio:?}");
         }
         assert_eq!(radio_of(ModuleState::On), Radio::On);
-        assert_eq!(
-            wifi_glyph(&wifi(Presence::Present, Radio::On), &Network::default()),
-            Icon::Wifi
-        );
+    }
+
+    #[test]
+    fn the_disc_draws_the_bar_items_wifi_state() {
+        let home = Link::Wifi {
+            ssid: "home".to_owned(),
+            strength: Percent(90),
+        };
+        let joined = WifiState::Joined {
+            bars: WifiBars::of(ds::Fraction(900)),
+            reach: WifiReach::Internet,
+        };
+        // (name, radio, link, join, the disc's state)
+        let cases = [
+            ("joined", Radio::On, home.clone(), Attempt::Quiet, joined),
+            (
+                "radio off",
+                Radio::Off,
+                home.clone(),
+                Attempt::Quiet,
+                WifiState::Off,
+            ),
+            (
+                "blocked",
+                Radio::Blocked,
+                Link::Disconnected,
+                Attempt::Quiet,
+                WifiState::Off,
+            ),
+            (
+                "joining, not off (G300)",
+                Radio::On,
+                Link::Connecting,
+                Attempt::Running(OpStamp(3)),
+                WifiState::Joining(EventStamp(3)),
+            ),
+            (
+                "idle",
+                Radio::On,
+                Link::Disconnected,
+                Attempt::Quiet,
+                WifiState::Idle,
+            ),
+            (
+                "a wire is not Wi-Fi",
+                Radio::On,
+                Link::Wired,
+                Attempt::Quiet,
+                WifiState::Idle,
+            ),
+            (
+                "nor another link",
+                Radio::On,
+                Link::Other,
+                Attempt::Quiet,
+                WifiState::Idle,
+            ),
+        ];
+        for (name, radio, link, now, want) in cases {
+            let got = wifi_tile_state(&wifi(Presence::Present, radio), &network(link, now));
+            assert_eq!(got, want, "{name}");
+        }
     }
 }

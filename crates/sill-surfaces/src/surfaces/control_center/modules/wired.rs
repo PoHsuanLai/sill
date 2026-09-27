@@ -10,6 +10,7 @@ use sill_services::{
 
 use super::{DisplayModule, SoundModule};
 use crate::hooks::{use_displays, use_services, use_volume};
+use crate::surfaces::bar::glyph_state::volume_glyph;
 use crate::surfaces::bar::status::volume_heading;
 
 /// The Sound module on the default sink.
@@ -20,6 +21,7 @@ pub(crate) fn WiredSound() -> Element {
     let (level, device, availability) = sound_of(&volume);
     rsx! {
         SoundModule {
+            volume: volume_glyph(&volume),
             level,
             device,
             availability,

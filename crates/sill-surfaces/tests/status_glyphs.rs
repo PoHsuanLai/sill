@@ -1,96 +1,95 @@
-//! D1's sill lane on a real Blitz document: the fake services' values, mapped by
-//! `glyph_state`, drive quire's status glyphs (quire CONSUMING "Status glyphs"), and each change
-//! ends at 0 frames (design/26 R3). The bar and the control center cannot hold these glyphs yet
-//! (quire's `IconButton`, `ModuleTile`, `ModulePanel` and `LevelControl` take an `Icon`: FINDINGS
-//! Q390-Q392), so the specimen here is the mapping plus the glyph, fed exactly as the bar is.
+//! D1 on the real surfaces (quire Q390-Q392): the fake services, mapped by `glyph_state`, drive
+//! the status glyphs in the real `Bar`'s Wi-Fi, battery, volume and Bluetooth items and in the
+//! real `ControlCenter`'s Wi-Fi and Bluetooth discs, Battery header and Sound level. Each change
+//! ends at 0 frames (design/26 R3), on the virtual clock.
 
-mod center_support;
+mod cc_support;
 
-use center_support::fake;
+use cc_support::{fake, live};
 use std::cell::RefCell;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::{
-    Appearance, BatteryGlyph, BluetoothGlyph, Ds, Material, RootExtent, VolumeGlyph, WifiGlyph,
-};
 use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{
     Attempt, Attempts, Battery, BtConnection, Charge, Connectivity, Link, Mute, Network, OpStamp,
     Percent, Presence, Radio, Services, Volume,
 };
-use sill_surfaces::hooks::{use_battery, use_bluetooth, use_network, use_volume, use_wifi};
-use sill_surfaces::surfaces::bar::glyph_state::{
-    NetworkGlyph, battery_glyph, bluetooth_glyph_state, network_glyph, volume_glyph,
-};
+use sill_settings::{InMenuBar, SettingsFeed, ShellFile};
+use sill_surfaces::Bar;
 
 thread_local! {
     static SERVICES: RefCell<Option<Services>> = const { RefCell::new(None) };
 }
 
-/// The four glyphs, each from its service through sill's mapping.
-fn app() -> Element {
+/// The bar with its Bluetooth item shown (`control_center.menu_bar_bluetooth`).
+fn bar_app() -> Element {
     let services = SERVICES.with(|s| s.borrow().clone());
     let Some(services) = services else {
         return rsx! {};
     };
     use_context_provider(|| services);
-    rsx! {
-        Ds { appearance: Appearance::default(), material: Material::Bar, extent: RootExtent::Viewport,
-            Specimens {}
-        }
-    }
+    use_context_provider(|| {
+        let mut file = ShellFile::default();
+        file.control_center.menu_bar_bluetooth = InMenuBar::Show;
+        SettingsFeed::fixed(file)
+    });
+    rsx! { Bar { output: fake::output() } }
 }
 
-#[component]
-fn Specimens() -> Element {
-    let network = use_network()();
-    let radio = use_wifi()().radio;
-    let battery = battery_glyph(&use_battery()(), sill_settings::Percent(20));
-    let volume = volume_glyph(&use_volume()());
-    let bluetooth = bluetooth_glyph_state(&use_bluetooth()());
-    rsx! {
-        div { id: "wifi",
-            match network_glyph(&network, radio) {
-                NetworkGlyph::Wifi(state) => rsx! { WifiGlyph { state } },
-                NetworkGlyph::Plain(_) => rsx! {},
-            }
-        }
-        div { id: "battery",
-            if let Some(state) = battery {
-                BatteryGlyph { state }
-            }
-        }
-        div { id: "volume", VolumeGlyph { state: volume } }
-        div { id: "bluetooth", BluetoothGlyph { state: bluetooth } }
-    }
-}
-
-const VIEW: Viewport = Viewport {
-    width: 240,
-    height: 80,
+const BAR: Viewport = Viewport {
+    width: 1280,
+    height: 40,
     scale_percent: 100,
 };
 
-fn start() -> (Harness, fake::Feeds) {
+/// The real bar on the fake services, settled.
+fn bar() -> (Harness, fake::Feeds) {
     let (services, feeds) = fake::services();
     SERVICES.with(|s| *s.borrow_mut() = Some(services));
     let mut harness =
-        Harness::with_config(app, HarnessConfig::new(VIEW).with_clock(Clock::Virtual));
-    harness.advance(Duration::from_millis(50));
+        Harness::with_config(bar_app, HarnessConfig::new(BAR).with_clock(Clock::Virtual));
+    settle_until(&mut harness, |h| h.count(&glyph("Bluetooth")) == 1);
+    assert_settles_to_zero_frames(&mut harness);
     (harness, feeds)
 }
 
-fn show(harness: &Harness, glyph: &str, part: &str) -> Option<String> {
-    harness.attr(&format!("#{glyph} [*|data-part={part}]"), "data-show")
+/// The control center on the fake services, settled.
+fn center() -> live::Running {
+    let (services, feeds) = fake::services();
+    let mut running = live::start(services, feeds);
+    settle_until(&mut running.harness, |h| h.count(DISC_WIFI) == 1);
+    running
 }
 
-fn lit_arcs(harness: &Harness) -> usize {
+/// The status glyph in the bar item named `label`.
+fn glyph(label: &str) -> String {
+    format!("[*|aria-label={label}] .ds-status-glyph")
+}
+
+/// Whether `part` of the glyph at `root` shows `lit`.
+fn lit(harness: &Harness, root: &str, part: &str) -> bool {
+    harness
+        .attr(&format!("{root} [*|data-part={part}]"), "data-show")
+        .as_deref()
+        == Some("lit")
+}
+
+/// How many of the Wi-Fi fan's layers are lit.
+fn lit_arcs(harness: &Harness, root: &str) -> usize {
     ["dot", "arc-1", "arc-2", "arc-3"]
         .iter()
-        .filter(|part| show(harness, "wifi", part).as_deref() == Some("lit"))
+        .filter(|part| lit(harness, root, part))
         .count()
+}
+
+/// Whether the speaker's `part` at `root` is on (the bar glyph's and the level's alike).
+fn on(harness: &Harness, root: &str, part: &str) -> bool {
+    harness
+        .attr(&format!("{root} [*|data-part={part}]"), "data-on")
+        .as_deref()
+        == Some("on")
 }
 
 fn network(link: Link, connectivity: Connectivity, now: Attempt) -> Network {
@@ -104,120 +103,124 @@ fn network(link: Link, connectivity: Connectivity, now: Attempt) -> Network {
     }
 }
 
-#[test]
-fn a_join_searches_then_fills_and_no_internet_grows_the_badge() {
-    let (mut harness, feeds) = start();
-    assert_eq!(lit_arcs(&harness), 4, "the fake joins at 72 %: three arcs");
-    assert_settles_to_zero_frames(&mut harness);
-    // Connecting is Joining with the service's stamp, never "Wi-Fi off" (the bug).
-    feeds.network.send_replace(network(
+fn joining() -> Network {
+    network(
         Link::Connecting,
         Connectivity::Unknown,
         Attempt::Running(OpStamp(1)),
-    ));
-    settle_until(&mut harness, |h| lit_arcs(h) == 1);
-    assert_eq!(
-        harness.count("#wifi [*|data-part=slash]"),
-        0,
-        "joining is not off"
-    );
-    let joined = Link::Wifi {
+    )
+}
+
+fn home(strength: u16) -> Link {
+    Link::Wifi {
         ssid: "home".to_owned(),
-        strength: Percent(50),
-    };
+        strength: Percent(strength),
+    }
+}
+
+fn battery(level: u16, charge: Charge) -> Battery {
+    Battery {
+        presence: Presence::Present,
+        level: Percent(level),
+        charge,
+        ..Battery::default()
+    }
+}
+
+// ---- The bar -------------------------------------------------------------------------------
+
+const WIFI: &str = "[*|aria-label=Network] .ds-status-glyph";
+
+#[test]
+fn the_bar_joins_by_searching_never_wifi_off_then_fills_and_grows_the_badge() {
+    let (mut harness, feeds) = bar();
+    assert_eq!(lit_arcs(&harness, WIFI), 4, "the fake joins at 72 %");
+    // G300: connecting is Joining with the service's stamp, never the slash of "Wi-Fi off".
+    feeds.network.send_replace(joining());
+    settle_until(&mut harness, |h| lit_arcs(h, WIFI) == 1);
+    assert_eq!(harness.count(&format!("{WIFI} [*|data-part=slash]")), 0);
     feeds
         .network
-        .send_replace(network(joined.clone(), Connectivity::Full, Attempt::Quiet));
-    settle_until(&mut harness, |h| lit_arcs(h) == 3);
+        .send_replace(network(home(50), Connectivity::Full, Attempt::Quiet));
+    settle_until(&mut harness, |h| lit_arcs(h, WIFI) == 3);
     assert_settles_to_zero_frames(&mut harness);
     feeds
         .network
-        .send_replace(network(joined, Connectivity::Portal, Attempt::Quiet));
-    settle_until(&mut harness, |h| {
-        show(h, "wifi", "badge").as_deref() == Some("lit")
-    });
+        .send_replace(network(home(50), Connectivity::Portal, Attempt::Quiet));
+    settle_until(&mut harness, |h| lit(h, WIFI, "badge"));
+    assert_settles_to_zero_frames(&mut harness);
+    feeds
+        .network
+        .send_replace(network(Link::Wired, Connectivity::Full, Attempt::Quiet));
+    settle_until(&mut harness, |h| h.count(WIFI) == 0);
+    assert_eq!(
+        harness.count("[*|aria-label=Network] svg.ds-ic"),
+        1,
+        "a wire stays a plain glyph"
+    );
     assert_settles_to_zero_frames(&mut harness);
 }
 
 #[test]
-fn a_failed_join_shakes_once_and_the_radio_off_slashes() {
-    let (mut harness, feeds) = start();
+fn the_bar_shakes_once_for_a_failed_join_and_slashes_with_the_radio_off() {
+    let (mut harness, feeds) = bar();
     let failed = network(
         Link::Disconnected,
         Connectivity::Unknown,
         Attempt::Failed(OpStamp(2)),
     );
     feeds.network.send_replace(failed.clone());
-    settle_until(&mut harness, |h| {
-        h.has_class("#wifi .ds-status-glyph", "a-shake-x")
-    });
+    settle_until(&mut harness, |h| h.has_class(WIFI, "a-shake-x"));
     assert_settles_to_zero_frames(&mut harness);
     feeds.network.send_replace(failed);
     harness.advance(Duration::from_millis(60));
     assert!(
-        !harness.has_class("#wifi .ds-status-glyph", "a-shake-x"),
+        !harness.has_class(WIFI, "a-shake-x"),
         "the same stamp shook again"
     );
+    assert_settles_to_zero_frames(&mut harness);
     feeds.wifi.send_modify(|wifi| wifi.radio = Radio::Off);
-    settle_until(&mut harness, |h| h.count("#wifi [*|data-part=slash]") == 1);
+    settle_until(&mut harness, |h| {
+        h.count(&format!("{WIFI} [*|data-part=slash]")) == 1
+    });
     assert_settles_to_zero_frames(&mut harness);
 }
 
 #[test]
-fn the_battery_fill_turns_low_at_the_key_and_charging_shows_the_bolt() {
-    let (mut harness, feeds) = start();
-    let at = |level, charge| Battery {
-        presence: Presence::Present,
-        level: Percent(level),
-        charge,
-        ..Battery::default()
-    };
+fn the_bar_battery_turns_low_at_the_key_shows_its_power_and_hides_when_absent() {
+    let (mut harness, feeds) = bar();
+    let item = glyph("Battery");
+    let tone = |h: &Harness| h.attr(&format!("{item} [*|data-part=fill]"), "data-tone");
+    feeds.battery.send_replace(battery(18, Charge::Discharging));
+    settle_until(&mut harness, |h| tone(h).as_deref() == Some("low"));
     assert_settles_to_zero_frames(&mut harness);
-    feeds.battery.send_replace(at(18, Charge::Discharging));
-    settle_until(&mut harness, |h| {
-        h.attr("#battery [*|data-part=fill]", "data-tone")
-            .as_deref()
-            == Some("low")
-    });
-    assert_settles_to_zero_frames(&mut harness);
-    feeds.battery.send_replace(at(18, Charge::Charging));
-    settle_until(&mut harness, |h| {
-        show(h, "battery", "bolt").as_deref() == Some("lit")
-    });
+    feeds.battery.send_replace(battery(18, Charge::Charging));
+    settle_until(&mut harness, |h| lit(h, &item, "bolt"));
     assert_eq!(
-        harness
-            .attr("#battery [*|data-part=fill]", "data-tone")
-            .as_deref(),
+        tone(&harness).as_deref(),
         Some("normal"),
         "charging is never low"
     );
     assert_settles_to_zero_frames(&mut harness);
-    feeds.battery.send_replace(at(100, Charge::Full));
-    settle_until(&mut harness, |h| {
-        show(h, "battery", "plug").as_deref() == Some("lit")
-    });
+    feeds.battery.send_replace(battery(100, Charge::Full));
+    settle_until(&mut harness, |h| lit(h, &item, "plug"));
     assert_settles_to_zero_frames(&mut harness);
     feeds.battery.send_replace(Battery::default());
-    settle_until(&mut harness, |h| h.count("#battery .ds-status-glyph") == 0);
+    settle_until(&mut harness, |h| h.count("[*|aria-label=Battery]") == 0);
     assert_settles_to_zero_frames(&mut harness);
 }
 
 #[test]
-fn volume_zero_keeps_the_slash_and_the_waves_follow() {
-    let (mut harness, feeds) = start();
-    let on = |h: &Harness, part: &str| {
-        h.attr(&format!("#volume [*|data-part={part}]"), "data-on")
-            .as_deref()
-            == Some("on")
-    };
+fn the_bar_volume_keeps_the_slash_at_zero_and_its_waves_follow() {
+    let (mut harness, feeds) = bar();
+    let item = glyph("Volume");
     assert!(
-        on(&harness, "wave-2") && !on(&harness, "wave-3"),
+        on(&harness, &item, "wave-2") && !on(&harness, &item, "wave-3"),
         "40 %: two waves"
     );
-    assert_settles_to_zero_frames(&mut harness);
     feeds.volume.send_modify(|v| v.level = Percent(0));
-    settle_until(&mut harness, |h| on(h, "slash"));
-    assert!(!on(&harness, "wave-1"), "no waves at zero");
+    settle_until(&mut harness, |h| on(h, &item, "slash"));
+    assert!(!on(&harness, &item, "wave-1"), "no waves at zero");
     assert_settles_to_zero_frames(&mut harness);
     feeds.volume.send_replace(Volume {
         presence: Presence::Present,
@@ -225,14 +228,16 @@ fn volume_zero_keeps_the_slash_and_the_waves_follow() {
         mute: Mute::Audible,
         sink: "Speakers".to_owned(),
     });
-    settle_until(&mut harness, |h| on(h, "wave-3") && !on(h, "slash"));
+    settle_until(&mut harness, |h| {
+        on(h, &item, "wave-3") && !on(h, &item, "slash")
+    });
     assert_settles_to_zero_frames(&mut harness);
 }
 
 #[test]
-fn bluetooth_breathes_while_connecting_and_seals_when_connected() {
-    let (mut harness, feeds) = start();
-    assert_settles_to_zero_frames(&mut harness);
+fn the_bar_bluetooth_breathes_while_connecting_and_seals_when_connected() {
+    let (mut harness, feeds) = bar();
+    let item = glyph("Bluetooth");
     feeds.bluetooth.send_modify(|bt| {
         bt.devices[0].connection = BtConnection::Connecting;
         bt.connect = Attempts {
@@ -242,8 +247,7 @@ fn bluetooth_breathes_while_connecting_and_seals_when_connected() {
     });
     settle_until(&mut harness, |h| {
         matches!(
-            h.attr("#bluetooth .ds-status-glyph", "data-pending")
-                .as_deref(),
+            h.attr(&item, "data-pending").as_deref(),
             Some("high" | "low")
         )
     });
@@ -251,8 +255,131 @@ fn bluetooth_breathes_while_connecting_and_seals_when_connected() {
         bt.devices[0].connection = BtConnection::Connected;
         bt.connect.now = Attempt::Quiet;
     });
-    settle_until(&mut harness, |h| {
-        show(h, "bluetooth", "dots").as_deref() == Some("lit")
-    });
+    settle_until(&mut harness, |h| lit(h, &item, "dots"));
     assert_settles_to_zero_frames(&mut harness);
+}
+
+// ---- The control center --------------------------------------------------------------------
+
+const DISC_WIFI: &str = ".ds-module-disc > .ds-status-glyph[*|data-kind=wifi]";
+const DISC_BT: &str = ".ds-module-disc > .ds-status-glyph[*|data-kind=bluetooth]";
+const BATTERY_HEAD: &str = ".ds-module-panel-glyph > .ds-status-glyph[*|data-kind=battery]";
+const SOUND_HEAD: &str = ".ds-module-panel-glyph > .ds-status-glyph[*|data-kind=volume]";
+/// The Sound module's level (Display's is the other `.ds-level`).
+const SOUND: &str = ".ds-level[*|aria-label=\"Built-in Audio Analog Stereo\"]";
+const LEVEL: &str = ".ds-level[*|aria-label=\"Built-in Audio Analog Stereo\"] .ds-level-in";
+
+/// The battery header's drawn fill width, 0 when there is none.
+fn fill(harness: &Harness) -> f32 {
+    harness
+        .attr(&format!("{BATTERY_HEAD} [*|data-part=fill] rect"), "width")
+        .and_then(|value| value.parse::<f32>().ok())
+        .unwrap_or(0.0)
+}
+
+#[test]
+fn the_centers_battery_sweeps_in_when_opened() {
+    let (services, feeds) = fake::services();
+    let mut running = live::start(services, feeds);
+    let harness = &mut running.harness;
+    settle_until(harness, |h| h.count(BATTERY_HEAD) == 1);
+    let start = fill(harness);
+    harness.advance(Duration::from_millis(200));
+    let midway = fill(harness);
+    assert_settles_to_zero_frames(harness);
+    let full = fill(harness);
+    assert!(
+        start < midway && midway < full,
+        "the fill sweeps in from empty: {start} {midway} {full}"
+    );
+}
+
+#[test]
+fn the_wifi_disc_searches_while_joining_then_fills() {
+    let mut running = center();
+    let harness = &mut running.harness;
+    assert_eq!(lit_arcs(harness, DISC_WIFI), 4, "joined at 72 %");
+    assert_settles_to_zero_frames(harness);
+    running.feeds.network.send_replace(joining());
+    settle_until(harness, |h| lit_arcs(h, DISC_WIFI) == 1);
+    assert_eq!(
+        harness.count(&format!("{DISC_WIFI} [*|data-part=slash]")),
+        0,
+        "joining is not off (G300)"
+    );
+    running
+        .feeds
+        .network
+        .send_replace(network(home(50), Connectivity::Full, Attempt::Quiet));
+    settle_until(harness, |h| lit_arcs(h, DISC_WIFI) == 3);
+    assert_settles_to_zero_frames(harness);
+    running
+        .feeds
+        .wifi
+        .send_modify(|wifi| wifi.radio = Radio::Off);
+    settle_until(harness, |h| {
+        h.count(&format!("{DISC_WIFI} [*|data-part=slash]")) == 1
+    });
+    assert_settles_to_zero_frames(harness);
+}
+
+#[test]
+fn the_bluetooth_disc_seals_when_a_device_connects() {
+    let mut running = center();
+    let harness = &mut running.harness;
+    assert!(
+        lit(harness, DISC_BT, "dots"),
+        "the fake's buds are connected"
+    );
+    assert_settles_to_zero_frames(harness);
+    running.feeds.bluetooth.send_modify(|bt| {
+        bt.devices[0].connection = BtConnection::Connecting;
+        bt.connect = Attempts {
+            now: Attempt::Running(OpStamp(1)),
+            minted: OpStamp(1),
+        };
+    });
+    settle_until(harness, |h| !lit(h, DISC_BT, "dots"));
+    running.feeds.bluetooth.send_modify(|bt| {
+        bt.devices[0].connection = BtConnection::Connected;
+        bt.connect.now = Attempt::Quiet;
+    });
+    settle_until(harness, |h| lit(h, DISC_BT, "dots"));
+    assert_settles_to_zero_frames(harness);
+}
+
+#[test]
+fn the_sound_level_and_its_header_read_the_bars_volume_state() {
+    let mut running = center();
+    let harness = &mut running.harness;
+    assert!(
+        on(harness, LEVEL, "wave-2") && !on(harness, LEVEL, "wave-3"),
+        "40 %: two waves"
+    );
+    assert_eq!(
+        harness.count(SOUND_HEAD),
+        1,
+        "the bar item's glyph heads it"
+    );
+    assert_settles_to_zero_frames(harness);
+    running.feeds.volume.send_modify(|v| v.mute = Mute::Muted);
+    settle_until(harness, |h| {
+        on(h, LEVEL, "slash") && on(h, SOUND_HEAD, "slash")
+    });
+    assert!(!on(harness, LEVEL, "wave-1"), "muted draws no waves");
+    assert_eq!(
+        harness.attr(SOUND, "aria-valuenow").as_deref(),
+        Some("40"),
+        "the capsule still shows the level"
+    );
+    assert_settles_to_zero_frames(harness);
+    running.feeds.volume.send_modify(|v| {
+        v.mute = Mute::Audible;
+        v.level = Percent(0);
+    });
+    settle_until(harness, |h| {
+        h.attr(SOUND, "aria-valuenow").as_deref() == Some("0")
+    });
+    assert!(on(harness, LEVEL, "slash"), "zero keeps the slash");
+    assert_settles_to_zero_frames(harness);
 }

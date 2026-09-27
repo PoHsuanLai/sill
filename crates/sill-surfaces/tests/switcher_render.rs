@@ -208,16 +208,17 @@ fn made_up_apps_show_at_once_and_touch_no_window() {
         .map(|a| AppId(a.to_owned()))
         .to_vec();
     running.ask(SwitcherAsk::Fake(apps));
-    wait(&mut running, 30);
+    // Shown at the ask, and the key target's `focus_soon` lands in the same frame, every run
+    // (quire G312): no `FRAME_SLACK` allowance.
+    wait(&mut running, 0);
     assert_eq!(
         tiles(&running.harness),
         (names(&["files", "mail", "notes"]), Some("mail".to_owned()))
     );
-    // The key target's `focus_soon` lands at once or, when the document was busy, one
-    // `FRAME_SLACK` later (which of the two varies from run to run even here, G312); keys before
-    // it go nowhere.
-    running.harness.advance(ds::FRAME_SLACK);
-    assert!(running.harness.is_focused(".sill-switcher"));
+    assert!(
+        running.harness.is_focused(".sill-switcher"),
+        "focused at the ask"
+    );
     running.harness.chord(&[Key::Alt], Key::Char('q'));
     running.harness.chord(&[Key::Alt], Key::Alt);
     wait(&mut running, 20);

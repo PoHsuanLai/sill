@@ -2,33 +2,8 @@
 
 use ds::Icon;
 use sill_services::{
-    Battery, Charge, Connectivity, Link, Minutes, Mute, Network, Presence, Remaining, Volume,
+    Battery, Charge, Connectivity, Link, Minutes, Network, Presence, Remaining, Volume,
 };
-
-/// The volume glyph: muted or silent-sink X, then by level (design/20 §1.1, Lucide `volume*`).
-pub(crate) fn volume_icon(volume: &Volume) -> Icon {
-    match (volume.presence, volume.mute, volume.level.0) {
-        (Presence::Absent, _, _) | (_, Mute::Muted, _) | (_, _, 0) => Icon::VolumeX,
-        (_, _, 1..=33) => Icon::Volume,
-        (_, _, 34..=66) => Icon::Volume1,
-        _ => Icon::Volume2,
-    }
-}
-
-/// The network glyph: off when disconnected or without connectivity, the Wi-Fi strength, the
-/// Ethernet port for a wire, and a link for anything else that is up.
-pub(crate) fn network_icon(network: &Network) -> Icon {
-    match (&network.link, network.connectivity) {
-        (Link::Disconnected | Link::Connecting, _) | (_, Connectivity::None) => Icon::WifiOff,
-        (Link::Wifi { strength, .. }, _) => match strength.0 {
-            0..=33 => Icon::WifiLow,
-            34..=66 => Icon::Wifi,
-            _ => Icon::WifiHigh,
-        },
-        (Link::Wired, _) => Icon::Ethernet,
-        (Link::Other, _) => Icon::Link,
-    }
-}
 
 /// The battery glyph: charging, a warning at 10 % or below, then by level.
 pub(crate) fn battery_icon(battery: &Battery) -> Icon {
@@ -94,9 +69,7 @@ fn hours(minutes: Minutes) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        battery_icon, battery_lines, network_icon, network_lines, volume_heading, volume_icon,
-    };
+    use super::{battery_icon, battery_lines, network_lines, volume_heading};
     use ds::Icon;
     use sill_services::{
         Battery, Charge, Connectivity, Link, Mute, Network, Percent, Presence, Seconds, Volume,
@@ -112,24 +85,13 @@ mod tests {
     }
 
     #[test]
-    fn the_volume_glyph_follows_level_and_mute() {
-        let cases = [
-            (volume(50, Mute::Muted), Icon::VolumeX),
-            (volume(0, Mute::Audible), Icon::VolumeX),
-            (volume(20, Mute::Audible), Icon::Volume),
-            (volume(50, Mute::Audible), Icon::Volume1),
-            (volume(120, Mute::Audible), Icon::Volume2),
-            (Volume::default(), Icon::VolumeX),
-        ];
-        for (v, want) in cases {
-            assert_eq!(volume_icon(&v), want, "{v:?}");
-        }
+    fn the_volume_heading_names_the_sink() {
         assert_eq!(volume_heading(&volume(5, Mute::Audible)), "Speakers");
         assert_eq!(volume_heading(&Volume::default()), "No output device");
     }
 
     #[test]
-    fn the_network_glyph_follows_the_link() {
+    fn the_network_lines_name_the_link_and_reach() {
         let wifi = |s| Link::Wifi {
             ssid: "home".to_owned(),
             strength: Percent(s),
@@ -139,18 +101,6 @@ mod tests {
             connectivity,
             ..Network::default()
         };
-        let cases = [
-            (net(Link::Disconnected, Connectivity::Full), Icon::WifiOff),
-            (net(wifi(80), Connectivity::None), Icon::WifiOff),
-            (net(wifi(20), Connectivity::Full), Icon::WifiLow),
-            (net(wifi(50), Connectivity::Full), Icon::Wifi),
-            (net(wifi(90), Connectivity::Full), Icon::WifiHigh),
-            (net(Link::Wired, Connectivity::Full), Icon::Ethernet),
-            (net(Link::Other, Connectivity::Full), Icon::Link),
-        ];
-        for (n, want) in cases {
-            assert_eq!(network_icon(&n), want, "{n:?}");
-        }
         assert_eq!(
             network_lines(&net(wifi(70), Connectivity::Portal)),
             [

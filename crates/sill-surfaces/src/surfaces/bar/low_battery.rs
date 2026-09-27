@@ -5,8 +5,8 @@
 //! that carries the same fact (R8).
 
 use dioxus::prelude::*;
-use ds::detail::{Detailed, FirstShow, Moment, Touch, use_detail, use_nudge};
-use ds::{BatteryPower, BatteryState, PulseKey};
+use ds::detail::{Cue, Detailed, FirstShow, Moment, Touch, use_detail};
+use ds::{BatteryPower, BatteryState};
 
 /// Whether the battery is in its low band, as the nudge counts crossings.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -50,15 +50,15 @@ impl Detailed for LowWatch {
     }
 }
 
-/// The nudge's pulse for the battery item showing `state`: `nudge-up` once per crossing.
-pub(crate) fn use_low_nudge(state: Option<BatteryState>) -> PulseKey {
+/// The nudge's cue for the battery item showing `state`: an Attention once per crossing, which
+/// the item's `IconButton` plays as `nudge-up` on its glyph.
+pub(crate) fn use_low_cue(state: Option<BatteryState>) -> Cue {
     let mut watch = use_hook(|| CopyValue::new(LowWatch::Clear.next(state)));
     let now = watch.peek().next(state);
     if now != *watch.peek() {
         watch.set(now);
     }
-    let detail = use_detail(now, FirstShow::Still, Touch::Remote);
-    use_nudge(detail.cue())
+    use_detail(now, FirstShow::Still, Touch::Remote).cue()
 }
 
 #[cfg(test)]

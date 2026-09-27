@@ -6335,7 +6335,7 @@ flaked under load (G130, G295's shape) are now exact.
   reports the selected row's rect a `FRAME_SLACK` after the selection (`laid_out_rect`); a
   Ctrl+K inside that window hangs the menu under the previous row. The wall-clock test passed on
   the slack of real time; it now advances `FRAME_SLACK` after Down. A user is never that fast;
-  not fixed.
+  not fixed. **Closed** by quire (Q390-Q392's clock fixes): see "Status slots (Q390-Q392)".
 - **Latent: a wait that never matched.** `shift_tab_with_nothing_typed_reaches_emoji_alone`
   waited for three `.ds-menu-item`s, which an emoji grid never has; the old two-second wall loop
   timed out silently and the test passed on what the grid drew meanwhile. `settle_until` panics,
@@ -6346,11 +6346,13 @@ flaked under load (G130, G295's shape) are now exact.
   of the next advance (the switcher's chord then showed at 260 + 150 ms, not 150). The support
   helpers (`ask`, `show`, `shot`, `cleared`) follow each send with `advance(Duration::ZERO)`.
   quire could run what is woken at the current instant before looking for the next timer.
+  **Closed** by quire: see "Status slots (Q390-Q392)".
 - **G312 `ds::focus_soon` lands at once or a `FRAME_SLACK` later, varying run to run.** On the
   virtual clock the switcher's key target had the focus 5 ms after the ask in 9 of 20 runs and
   only after 34 ms in the rest (the host write found the document busy and retried). Something
   besides the clock still orders the harness's tasks (task or hash order); the test asserts
-  the focus after `FRAME_SLACK`, not the boundary.
+  the focus after `FRAME_SLACK`, not the boundary. **Closed** by quire: see "Status slots
+  (Q390-Q392)".
 - **After D1 merged.** The bar's `tray_menu_tests`, the control center's `cc_support/live.rs`
   (so `control_center_render`), D1's `status_glyphs` and `bar_low_nudge`, and `widgets_render`'s
   own harness moved too; `bar/session.rs` takes `FrameClock::started`. Load run: 32 `yes`, 10
@@ -6456,7 +6458,7 @@ old `Icon` buckets, and still shows `WifiOff` while connecting, until Q390 lands
 
 - **G300 The bar still says "Wi-Fi off" while connecting.** `network_icon` is unchanged. There
   is no `Icon` for joining, and the fix is `WifiState::Joining` through Q390. The mapping and
-  the stamp are ready (F820, F821).
+  the stamp are ready (F820, F821). **Closed**: see "Status slots (Q390-Q392)".
 - **G301 A Bluetooth failure beside a connected device does not shake.** The glyph has one
   state; Connected wins so the words stay true (F821). Per-device failure belongs to the
   devices pane's rows (design/26 5.2.3, G20).
@@ -6572,3 +6574,73 @@ itself never turns `Connecting`.
   running join draws `Joining(stamp)` (moving to another network); a wired primary keeps its own
   icon, and the join shows in the control center's Wi-Fi list. Two rows in
   `glyph_state_tests.rs`.
+
+## Status slots (Q390-Q392) (2026-09-27)
+
+quire's status slots (quire CONSUMING "Status slots", tip 6eaf3c74 on the `status-slots` branch,
+rebased onto quire master f5645500) put D1's glyphs in the bar and the control center, and fix
+the virtual clock's three asks. sill branch `status-slots` from master 77d95bc, master 8adab89
+merged in. Numbers from F830.
+
+- **F830 The bar items draw quire's status glyphs.** `StatusIcon` takes an `IconSource` (a
+  `StatusState` or an `Icon` converts) and an optional `nudge: Cue`, passed to `IconButton`.
+  - Wi-Fi: `network_glyph(&network, wifi.radio)`; `NetworkGlyph` converts to `IconSource`
+    (`Wifi` is a status glyph, `Plain` stays the plain `Ethernet` or `Link` glyph).
+  - Battery: `StatusState::Battery(battery_glyph(..))`; hidden when that is `None`.
+  - Volume: `StatusState::Volume(volume_glyph(..))`.
+  - Bluetooth (when `control_center.menu_bar_bluetooth` shows it):
+    `StatusState::Bluetooth(bluetooth_glyph_state(..))`.
+  - The Display, Now Playing and Control Center items keep their `Icon`.
+  - `network_icon`, `volume_icon`, the Sound module's `sound_glyph` and the Bluetooth tile's
+    `bluetooth_glyph` are gone; `battery_icon` stays for the battery widget.
+- **F831 G11 moves into the button.** `use_low_nudge` is now `use_low_cue`, which returns the
+  `LowWatch` detail's `Cue`. The battery item passes `nudge: Some(cue)` for its whole life, and
+  the hook runs before the item hides, so the cue never switches between `None` and `Some`.
+  `span.sill-bar-status` and its CSS rule are deleted. `bar_low_nudge` watches
+  `.ds-icon-button > .ds-icon-nudge.a-nudge-up`, checks that only the battery's glyph sits in a
+  nudge, and checks that the button itself never takes `a-nudge-up`.
+- **F832 The control center.**
+  - The Wi-Fi tile's disc is `StatusState::Wifi(wifi_tile_state(..))`: the bar item's state,
+    `Off` with the radio off or blocked, and `Idle` over a wire or another link, which is not
+    Wi-Fi. Table test `the_disc_draws_the_bar_items_wifi_state`.
+  - The Bluetooth tile's disc is `StatusState::Bluetooth(bluetooth_glyph_state(..))`.
+  - The Battery panel's header is `IconSource::Status(StatusState::Battery(..))` with
+    `first: FirstShow::Animate`, and reads `bar.battery_low_percent`, so its fill turns low at
+    the bar's threshold.
+  - `LevelModule` takes a header `glyph: IconSource` and a `level_glyph: LevelSource`. Sound
+    passes `volume_glyph(&volume)` to both (from `WiredSound`), so the header, the capsule's
+    speaker and the bar item share one `VolumeState`. Display passes `Icon::Sun` and
+    `LevelGlyph::Brightness`. The old `level_glyph` mapping is gone.
+- **F833 Tests.** `tests/status_glyphs.rs` now drives the real `Bar` (Bluetooth shown) and the
+  real `ControlCenter` (`cc_support::live`) from the fake services, on `Clock::Virtual`. Every
+  state change ends with `assert_settles_to_zero_frames`. Nine tests:
+  - Bar Wi-Fi: Connecting searches with one layer lit and no slash (G300), a join fills to three
+    arcs, a portal lights the badge, and a wire is a plain `svg.ds-ic`.
+  - Bar Wi-Fi: a failed join shakes once, the same stamp does not shake again, and the radio off
+    slashes.
+  - Bar battery: 18 % is low, charging shows the bolt and is never low, full shows the plug, and
+    absent hides the item.
+  - Bar volume: two waves at 40 %, the slash at 0, three waves at 90 %.
+  - Bar Bluetooth: connecting breathes, and connected lights the dots.
+  - Center battery: the header's fill sweeps in when the center opens (start < 200 ms < settled).
+  - Center Wi-Fi: the disc searches while joining (no slash), fills when joined, and slashes when
+    the radio goes off.
+  - Center Bluetooth: the dots go out while connecting and light again when connected.
+  - Center sound: muting slashes the capsule's speaker and the header while the capsule stays at
+    40; level 0 keeps the slash.
+- **F834 The clock fixes are in.**
+  - G311: the `advance(Duration::ZERO)` after each send is gone from `switcher_support::ask`,
+    `banners_support::show`, `screenshot_thumb_support::{shot, cleared}` and `osd_render`'s
+    `show`. Their exact boundaries hold.
+  - G312: the switcher's made-up apps test asserts the focus at the ask's own frame
+    (`advance(0)`), with no `FRAME_SLACK`.
+  - G310: `launcher_actions` presses Ctrl+K right after the selection; the menu still hangs under
+    the selected row.
+  - Load check: status_glyphs, bar_low_nudge, switcher_render, launcher_actions, osd_render,
+    screenshot_thumb_render and banners_render ran 10 times each, with 0 failures.
+
+### Gaps (sill)
+
+- **G300 closed.** The bar and the Wi-Fi tile draw `WifiState::Joining` while connecting (F830,
+  F832, F833).
+- **G310, G311 and G312 closed** by quire's clock fixes (F834).

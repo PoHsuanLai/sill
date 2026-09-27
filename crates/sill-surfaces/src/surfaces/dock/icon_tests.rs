@@ -104,6 +104,7 @@ fn word(drawn: &Drawn) -> String {
         IconSource::Glyph(icon) => format!("glyph {icon:?}"),
         IconSource::Symbolic(e) => format!("symbolic {} {:?}", e.url.as_str(), e.size),
         IconSource::Image(e) => format!("image {} {:?}", e.url.as_str(), e.size),
+        IconSource::Status(state) => format!("status {}", state.words()),
     };
     match drawn {
         Drawn::Plated(s) => format!("plated {}", source(s)),

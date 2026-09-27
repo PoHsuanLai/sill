@@ -4,8 +4,8 @@
 
 use ds::detail::EventStamp;
 use ds::{
-    BatteryPower, BatteryState, BluetoothState, Fraction, Icon, LowAt, VolumeState, VolumeWaves,
-    WifiBars, WifiReach, WifiState,
+    BatteryPower, BatteryState, BluetoothState, Fraction, Icon, IconSource, LowAt, StatusState,
+    VolumeState, VolumeWaves, WifiBars, WifiReach, WifiState,
 };
 use sill_services::{
     Attempt, Battery, Bluetooth, BtConnection, BtPower, Charge, Connectivity, Link, Mute, Network,
@@ -20,6 +20,16 @@ pub enum NetworkGlyph {
     Wifi(WifiState),
     /// A wire (`Ethernet`) or another link (`Link`).
     Plain(Icon),
+}
+
+impl From<NetworkGlyph> for IconSource {
+    /// The Wi-Fi glyph as a layered status glyph; a wire or another link as its plain glyph.
+    fn from(glyph: NetworkGlyph) -> Self {
+        match glyph {
+            NetworkGlyph::Wifi(state) => IconSource::Status(StatusState::Wifi(state)),
+            NetworkGlyph::Plain(icon) => IconSource::Glyph(icon),
+        }
+    }
 }
 
 /// A service's op stamp as the glyph's event stamp.
