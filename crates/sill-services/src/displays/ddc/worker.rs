@@ -30,6 +30,9 @@ pub enum DdcJob {
     Probe,
     /// Set a feature: cached at once, written after the debounce.
     Write(Write),
+    /// Read `feature` again on every display (a change made on the monitor or by another
+    /// program), except where sill's own write of it is still waiting.
+    Reread(Feature),
 }
 
 /// Which half of a transaction failed, for the log-once set.
@@ -39,6 +42,13 @@ enum Op {
     Write,
 }
 
+/// Whether a re-read found anything new.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Changed {
+    Same,
+    Different,
+}
+
 struct Worker<B> {
     bus: B,
     displays: Vec<DdcDisplay>,
@@ -46,6 +56,8 @@ struct Worker<B> {
     warned: BTreeSet<(DdcId, Feature, Op)>,
     tx: watch::Sender<Vec<DdcDisplay>>,
     origin: Instant,
+    /// How many displays the last probe found (logged when it changes).
+    found: Option<usize>,
 }
 
 /// Serve `jobs` until every sender is gone, then write whatever is still pending (a restore
@@ -58,6 +70,7 @@ pub fn run<B: DdcBus>(bus: B, jobs: Receiver<DdcJob>, tx: watch::Sender<Vec<DdcD
         warned: BTreeSet::new(),
         tx,
         origin: Instant::now(),
+        found: None,
     };
     loop {
         let now = worker.now();
@@ -93,6 +106,34 @@ impl<B: DdcBus> Worker<B> {
                 self.debounce = debounce.push(self.now(), write);
                 self.publish();
             }
+            DdcJob::Reread(feature) => self.reread(feature),
+        }
+    }
+
+    fn reread(&mut self, feature: Feature) {
+        let ids: Vec<DdcId> = self
+            .displays
+            .iter()
+            .map(|d| d.endpoint.id)
+            .filter(|id| self.debounce.waiting(*id, feature).is_none())
+            .collect();
+        let mut changed = Changed::Same;
+        for id in ids {
+            let read = retry::read(&mut self.bus, id, feature);
+            let Some(level) = self.quietly(id, feature, Op::Read, read) else {
+                continue;
+            };
+            if let Some(display) = self.displays.iter_mut().find(|d| d.endpoint.id == id) {
+                let now = display.controls.reread(feature, level);
+                if now != display.controls {
+                    display.controls = now;
+                    changed = Changed::Different;
+                }
+            }
+        }
+        match changed {
+            Changed::Different => self.publish(),
+            Changed::Same => {}
         }
     }
 
@@ -115,6 +156,11 @@ impl<B: DdcBus> Worker<B> {
             })
             .filter(|d| d.controls.any())
             .collect();
+        let found = self.displays.len();
+        if self.found != Some(found) {
+            eprintln!("sill: ddc: {found} display(s) answer DDC/CI");
+            self.found = Some(found);
+        }
         self.publish();
     }
 

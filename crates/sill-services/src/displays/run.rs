@@ -5,20 +5,27 @@
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 use std::sync::mpsc as std_mpsc;
+use std::time::Duration;
 
 use tokio::sync::{mpsc, watch};
 
 use super::backlight;
 use super::brightness::Backlight;
-use super::ddc::{DdcDisplay, DdcJob, I2cBuses, Write, worker};
+use super::ddc::source::DdcSource;
+use super::ddc::{DdcDisplay, DdcJob, Feature, Write};
 use super::drm;
 use super::font::font_rendering_for;
 use super::fontconfig_file;
 use super::hw_volume::follow;
 use super::kscreen::KscreenDoctor;
-use super::model::{Displays, DisplaysCommand, DisplaysEvent, reduce_displays};
+use super::model::{
+    Displays, DisplaysCommand, DisplaysEvent, FOLLOW_EVERY_MS, Following, reduce_displays,
+};
 use super::output::{DisplayOutput, max_density};
-use super::plan::{BrightnessAction, Originals, brightness_actions, warmth_writes};
+use super::plan::{
+    BrightnessAction, Originals, Probe, brightness_actions, probe_needed, set_brightness_action,
+    warmth_writes,
+};
 use super::policy::DisplayPolicy;
 use super::scale_pass::{HeadSource, scale_pass};
 use super::seen;
@@ -36,6 +43,8 @@ pub struct Paths {
     pub seen: Option<PathBuf>,
     /// `~/.config/fontconfig`; `None` without a config directory (no snippet).
     pub fontconfig: Option<PathBuf>,
+    /// The DDC buses: the real ones, or (a debug build's acceptance runs) a fake.
+    pub ddc: DdcSource,
 }
 
 impl Default for Paths {
@@ -45,6 +54,7 @@ impl Default for Paths {
             backlight: PathBuf::from("/sys/class/backlight"),
             seen: seen::default_path(),
             fontconfig: fontconfig_file::default_dir(),
+            ddc: DdcSource::from_env(),
         }
     }
 }
@@ -63,6 +73,8 @@ struct Service {
     originals: Originals,
     volume: Volume,
     warned: BTreeSet<String>,
+    /// How many views follow the brightness now ([`DisplaysCommand::Follow`]).
+    followers: usize,
 }
 
 /// Serve until every `Control` is dropped.
@@ -81,7 +93,10 @@ pub async fn run(
         originals: Originals::new(),
         volume: volume.borrow().clone(),
         warned: BTreeSet::new(),
+        followers: 0,
     };
+    let mut follow = tokio::time::interval(Duration::from_millis(FOLLOW_EVERY_MS));
+    follow.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
     loop {
         let ddc_changed = async {
             match service.ddc.as_mut() {
@@ -101,6 +116,7 @@ pub async fn run(
                 }
                 Err(_) => volume_alive = false,
             },
+            _ = follow.tick(), if service.followers > 0 => service.reread(),
             alive = ddc_changed => {
                 if alive {
                     service.ddc_changed();
@@ -125,6 +141,16 @@ impl Service {
                     self.brightness(action).await;
                 }
             }
+            DisplaysCommand::SetBrightness { output, level } => {
+                if self.policy.is_none() {
+                    return;
+                }
+                let action = set_brightness_action(&self.tx.borrow(), &output, level);
+                if let Some(action) = action {
+                    self.brightness(action).await;
+                }
+            }
+            DisplaysCommand::Follow(following) => self.follow(following),
             DisplaysCommand::SetFeature {
                 display,
                 feature,
@@ -165,7 +191,8 @@ impl Service {
     fn start_ddc(&mut self) {
         let (jobs, rx) = std_mpsc::channel();
         let (tx, displays) = watch::channel(Vec::new());
-        tokio::task::spawn_blocking(move || worker::run(I2cBuses::default(), rx, tx));
+        let bus = self.paths.ddc.clone();
+        tokio::task::spawn_blocking(move || bus.serve(rx, tx));
         let _ = jobs.send(DdcJob::Probe);
         self.ddc = Some(Ddc { jobs, displays });
     }
@@ -215,6 +242,39 @@ impl Service {
                 let backlights = backlight::read_all(&self.paths.backlight);
                 self.publish(DisplaysEvent::Backlights(backlights));
             }
+        }
+    }
+
+    /// A view opened or closed; the first to open reads the brightness at once.
+    fn follow(&mut self, following: Following) {
+        match following {
+            Following::Start => {
+                self.followers += 1;
+                if self.followers == 1 {
+                    self.reread();
+                }
+            }
+            Following::Stop => self.followers = self.followers.saturating_sub(1),
+        }
+    }
+
+    /// Read every monitor's brightness and the backlights again (a change made elsewhere); probe
+    /// the monitors again instead while an external output has none answering (a monitor the
+    /// startup probe missed would otherwise leave its capsule disabled for the whole session).
+    fn reread(&mut self) {
+        if self.policy.is_none() {
+            return;
+        }
+        if let Some(ddc) = &self.ddc {
+            let job = match probe_needed(&self.tx.borrow()) {
+                Probe::Needed => DdcJob::Probe,
+                Probe::Done => DdcJob::Reread(Feature::Brightness),
+            };
+            let _ = ddc.jobs.send(job);
+        }
+        let backlights = backlight::read_all(&self.paths.backlight);
+        if backlights != self.tx.borrow().backlights {
+            self.publish(DisplaysEvent::Backlights(backlights));
         }
     }
 

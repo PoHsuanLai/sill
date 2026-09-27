@@ -1,4 +1,7 @@
-use super::{BrightnessAction, Originals, brightness_actions, warmth_writes};
+use super::{
+    BrightnessAction, Originals, Probe, brightness_actions, probe_needed, set_brightness_action,
+    warmth_writes,
+};
 use crate::cosmic_wl::OutputName;
 use crate::displays::brightness::{Backlight, BacklightKind, BacklightName, LevelChange};
 use crate::displays::ddc::{Controls, DdcDisplay, DdcId, Endpoint, Feature, Level, RgbGain, Write};
@@ -136,6 +139,92 @@ fn brightness_goes_where_the_keys_point() {
             want,
             "{label}"
         );
+    }
+}
+
+#[test]
+fn the_capsule_sets_its_own_outputs_monitor_with_or_without_the_outputs_list() {
+    let name = |n: &str| OutputName(n.to_owned());
+    let listed = desk();
+    // KWin before (or without) an outputs answer: the DDC displays are known, the outputs not.
+    let unlisted = Displays {
+        outputs: Vec::new(),
+        ..desk()
+    };
+    let ddc = |id, value| {
+        Some(BrightnessAction::Ddc(Write {
+            id: DdcId(id),
+            feature: Feature::Brightness,
+            value,
+        }))
+    };
+    let cases = [
+        ("the monitor, listed", &listed, "HDMI-A-2", 73, ddc(5, 73)),
+        (
+            "the monitor, not listed",
+            &unlisted,
+            "HDMI-A-2",
+            73,
+            ddc(5, 73),
+        ),
+        ("the other monitor only", &listed, "DP-1", 20, ddc(6, 20)),
+        (
+            "the laptop panel",
+            &listed,
+            "eDP-1",
+            50,
+            Some(BrightnessAction::Backlight {
+                name: BacklightName("intel_backlight".to_owned()),
+                value: 9600,
+            }),
+        ),
+        ("an output with no target", &listed, "DP-9", 50, None),
+    ];
+    for (case, displays, output, level, want) in cases {
+        assert_eq!(
+            set_brightness_action(displays, &name(output), Percent(level)),
+            want,
+            "{case}"
+        );
+    }
+    // The keys' path, by contrast, needs the outputs list.
+    assert_eq!(
+        brightness_actions(
+            &unlisted,
+            KeysTarget::PointerOutput,
+            Some(&name("HDMI-A-2")),
+            LevelChange::Set(Percent(73)),
+        ),
+        vec![]
+    );
+}
+
+#[test]
+fn a_monitor_missing_from_the_probe_is_probed_for_again() {
+    let desk = desk();
+    let one_missing = Displays {
+        ddc: desk.ddc[..1].to_vec(),
+        ..desk.clone()
+    };
+    let nothing = Displays::default();
+    let panel_only = Displays {
+        outputs: desk.outputs[..1].to_vec(),
+        ddc: Vec::new(),
+        ..desk.clone()
+    };
+    let unlisted = Displays {
+        outputs: Vec::new(),
+        ..desk.clone()
+    };
+    let cases = [
+        ("every monitor answers", &desk, Probe::Done),
+        ("DP-1 did not answer", &one_missing, Probe::Needed),
+        ("nothing known", &nothing, Probe::Needed),
+        ("only the laptop panel", &panel_only, Probe::Done),
+        ("no outputs list, monitors known", &unlisted, Probe::Done),
+    ];
+    for (case, displays, want) in cases {
+        assert_eq!(probe_needed(displays), want, "{case}");
     }
 }
 

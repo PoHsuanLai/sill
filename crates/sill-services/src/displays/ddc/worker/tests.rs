@@ -137,3 +137,37 @@ fn a_burst_of_writes_reaches_the_bus_once_with_the_latest_value() {
         "the pending restore is flushed on shutdown"
     );
 }
+
+#[test]
+fn a_reread_follows_the_monitor_but_never_undoes_a_waiting_write() {
+    let fake = bus();
+    let set_on_the_monitor = |value| {
+        let mut state = fake.0.lock().unwrap_or_else(|p| p.into_inner());
+        if let Some(level) = state.values.get_mut(&(DdcId(5), Feature::Brightness)) {
+            level.value = value;
+        }
+    };
+    let (jobs, displays, thread) = start(fake.clone());
+    let send = |job| jobs.send(job).unwrap_or_else(|e| panic!("{e}"));
+    let shown = |displays: &watch::Receiver<Vec<DdcDisplay>>| {
+        displays
+            .borrow()
+            .first()
+            .and_then(|d| d.controls.brightness)
+            .map(|l| l.value)
+    };
+    send(DdcJob::Probe);
+    // The monitor's own buttons: 49 -> 70; a re-read shows it.
+    set_on_the_monitor(70);
+    send(DdcJob::Reread(Feature::Brightness));
+    std::thread::sleep(Duration::from_millis(50));
+    assert_eq!(shown(&displays), Some(70));
+    // sill's write of 30 waits for its debounce; a re-read meanwhile keeps 30 on show.
+    send(brightness(30));
+    send(DdcJob::Reread(Feature::Brightness));
+    std::thread::sleep(Duration::from_millis(20));
+    assert_eq!(shown(&displays), Some(30));
+    drop(jobs);
+    thread.join().unwrap_or_else(|_| panic!("worker panicked"));
+    assert_eq!(fake.writes(), vec![(DdcId(5), Feature::Brightness, 30)]);
+}

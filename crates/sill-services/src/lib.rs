@@ -78,8 +78,8 @@ pub use cosmic_wl::{
 pub use curve::ease;
 pub use displays::{
     BrightnessTarget, DisplayOutput, DisplayPolicy, DisplayScale, Displays, DisplaysCommand,
-    FontRenderingMode, Gamut, HardwareVolume, IdentityKey, KeysTarget, LevelChange, NightWarmth,
-    Ppi, ScaleMode, ScaleOverride, ScaleRounding,
+    Following, FontRenderingMode, Gamut, HardwareVolume, IdentityKey, KeysTarget, LevelChange,
+    NightWarmth, Ppi, ScaleMode, ScaleOverride, ScaleRounding,
 };
 pub use error::ServiceError;
 pub use events::{Agenda, CalEvent, EventTime, EventsCommand, SourceStatus};
