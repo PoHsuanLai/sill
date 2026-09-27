@@ -8318,6 +8318,9 @@ Q520-Q523. Branch `worktree-agent-a60cd59fcac2693ce` (cut from master 70db27b).
   two; a real Escape closes the panel; 0 frames in 5 s idle on the layer. The nested cosmic
   compositor (wayland-1) was not running and was not started (dev/nested.sh is a client of the
   user's session); `dev/accept-widgets.sh` was not re-run on it.
+- **F1029 Gate.** `GATE_DIR=<this worktree> ~/sill-wt/sill-gate.sh` on bcaee4e at load 38:
+  SILL GATE GREEN (fmt, clippy, 1261 passed, 0 failed, 52 ignored, boundary, licenses). A first
+  run failed at clippy only because the disk was full (os error 28), not on the code.
 
 ### Asks (quire)
 
