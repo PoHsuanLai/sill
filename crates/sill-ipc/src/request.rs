@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 use crate::desktop::{FakeCorner, FakeScreenshot, ScreenshotRequest, WidgetsRequest};
+use crate::idle::IdleRequest;
 use crate::launcher::{ClipboardRequest, FakeLauncherKey};
 use crate::session::{
     FakeAuth, FakePolkit, FakeSwitcher, LockRequest, PolkitRequest, SwitcherRequest,
@@ -60,6 +61,8 @@ pub enum Request {
     Polkit(PolkitRequest),
     /// The clipboard history (`sill clipboard status|clear`, M9).
     Clipboard(ClipboardRequest),
+    /// sill's own idle (`sill idle status`; FINDINGS "sill idle fill").
+    Idle(IdleRequest),
 }
 
 /// `sill notifications ...`. The center opens on the output the daemon picks (the first with a
@@ -216,6 +219,10 @@ pub enum DebugRequest {
     LauncherKey(FakeLauncherKey),
     /// The open launcher's sections, rows and preview: answered `Response::LauncherRows` (M9).
     LauncherRows,
+    /// Wake idle as the compositor's `resumed` would after real input (`dev/accept-idle.sh`:
+    /// the nested cosmic-comp counts no synthetic input as activity). Refused by a daemon built
+    /// without `debug`: inside the lock grace it opens the lock.
+    IdleWake,
 }
 
 /// A made-up notification: the parts of `Notify` an acceptance needs.

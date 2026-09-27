@@ -7653,3 +7653,200 @@ Q450, G350.
 - **Q451 (small) `TrackPosition` with the report's age.** `at` anchors at arrival, so a stale
   report needs a re-read round trip (F924). An optional `reported: Duration` (how long ago `at`
   was true) would let a caller pass an old report as it is.
+
+## sill idle fill (2026-09-27)
+
+The fill of "sill idle (Q420 B)": sill now owns idle in a sill session, and `dist/sill-session`
+no longer starts cosmic-idle. Numbered from F930/G350. Branch `worktree-agent-abe4735853cb576e7`
+(cut from master a95ded1).
+
+- **F930 What landed.**
+  - The pure parts, exactly as frozen: `resolve_mode`, `effective_times`, `power_source`,
+    `watches`, `parse_cosmic_value`, `cosmic_times`, `inhibit_step`, `logind_idle`,
+    `inhibition`, `grace_verdict` (F908's 14 rows pass as listed) and `reduce` (its rules in
+    `idle/reduce_rules.rs`). The 17 ignored table tests and the daemon's `policy_of` test run,
+    plus three new machine tests (an inhibitor clears the dim and drops the watches; the idle
+    lock keeps the `Suspend` watch; a wake from sleep holds every watch afresh).
+  - The locker: `LockerCommand::IdleLock` feeds `Requested(Cause::Idle)`, and `Lock.cause` is
+    published by `locker::cause_after` (a table test): the event that moves the lock off
+    `Unlocked` names it (`cause_of`: Action, Logind, Idle as `IdleScreenOff`, SleepStarting as
+    `Sleep`, Adopted), the crash marker's re-lock is `Restored`, and it is kept until
+    `Unlocked`.
+  - The auth service: `Grace(ticket)` steps the gate `Submit` then `Verdict(Accepted)` and
+    publishes `Accepted`, so the lock surfaces fade and unlock through `use_lock().unlock()` as
+    for a right password. It is ignored while a real check runs.
+  - The daemon: `policy_of` (each key held to its range), `spawn_policy` (the polkit policy's
+    pattern) and, in a debug build only, `SILL_IDLE_TIMES=<screen_off_s>,<suspend_s>` in place
+    of the settings' times (`test_times`, a table test).
+  - IPC (Q446): `LockReport.cause` (`idle_screen_off`, `action`, `logind`, `sleep`,
+    `restored`, `adopted`, or `null` while unlocked); `Request::Idle(IdleRequest::Status)`
+    answered with `Response::Idle(IdleReport { mode, phase, dim, power, inhibition, inhibits,
+    logind })` (`sill idle status`); `DebugRequest::IdleWake` (`sill debug idle-wake`, F932).
+    Every form is pinned in `sill-ipc/tests/serde.rs`. `Idle` gained `inhibits` (the held
+    `ScreenSaver` inhibits) and `logind` (`LogindIdle`), both `Copy`.
+  - `dist/sill-session`: the `respawn idle cosmic-idle` line and its "TO GO" comment are gone;
+    a comment says sill owns idle and that a hand-started cosmic-idle makes sill stand aside
+    (F906, F909).
+- **F931 The live loop** (`idle/live.rs`, `wl.rs`, `wl_state.rs`, `wl_dispatch.rs`,
+  `logind.rs`, `screensaver.rs`, `resolve.rs`).
+  - Passive until the first command. `Configure` is resolved on the blocking pool (the `/proc`
+    scans for cosmic-session and cosmic-idle, `XDG_CURRENT_DESKTOP`, COSMIC's three key files
+    from `$XDG_CONFIG_HOME/cosmic`, else `/usr/share/cosmic`) and again every 15 s, so a
+    hand-started cosmic-idle, or a time changed on COSMIC Settings' Power page, is picked up
+    within 15 s (the "file changes" of F901, by polling). While `Own` it holds a Wayland thread,
+    logind and the `ScreenSaver` name; `Off` drops all three (the name goes with its
+    connection) after undoing what idle did.
+  - The Wayland thread has its own connection. It binds `ext_idle_notifier_v1` (v1-2),
+    `wl_seat` and `zwlr_output_power_manager_v1`, and one `zwlr_output_power_v1` per `wl_output`
+    as outputs come and go (a new output while the displays are off is set off; `failed`
+    drops that control). A `Watch` order keeps every notification whose `(stage, after)` is
+    unchanged (G342: the `Suspend` watch survives the idle lock, measured in F934), destroys
+    the rest, and keeps a dropped one that had idled until it resumes, so re-deriving the
+    watches while the seat is idle never loses the wake. `get_input_idle_notification` is
+    never used.
+  - logind on `Setup.system`: `PrepareForSleep`, `Suspend(false)`, this session's
+    `SetIdleHint` (the session found as the locker finds it, `locker::logind::session_path`,
+    now `pub(crate)`). `BlockInhibited` is polled every 5 s with property caching off: logind
+    does not signal it. A logind `IdleAction` other than `ignore` is logged (F912). A refused
+    `Suspend` is logged and the phase stays `Suspending` until a wake.
+  - `org.freedesktop.ScreenSaver` on `Setup.session` at both paths, asked for with
+    `DoNotQueue` and never replacing a holder (a holder is logged: its inhibits never reach
+    sill). `GetActive` is true while the displays are off. `NameOwnerChanged` with no new
+    owner releases that peer's inhibits.
+  - Choices the frozen rules left open: an inhibitor taken while dimmed clears the dim at once
+    (its notifications go, so no `resumed` would); `Woke` holds every watch afresh
+    (`Watch([])` then the set: the timers count from the resume); the grace case reads the
+    lock as `Locked` while the locker is still `Locking`; an idle `Undim` is emitted only when
+    dimmed.
+- **F932 The nested cosmic-comp counts no synthetic input as activity.** `wtype` keys on
+  `wayland-1` never produced `ext_idle_notification_v1.resumed` (the first acceptance run:
+  the dim fired 4.1 s after the notifications were made, ignoring a key 2 s in). cosmic-comp
+  calls `notify_activity` only for backend input events and on unlock (source read in a later
+  checkout; observed: every held notification resumed 7 ms after `sill debug auth accept`
+  unlocked). A key typed into the nested window from the host would be input on the person's
+  own session, so the acceptance uses **`sill debug idle-wake`** instead: a debug-only
+  `IdleCommand::FakeWake` (a freeze amendment) that feeds `Resumed` to the machine and renews
+  every notification (`Order::Renew`), since the compositor never saw a wake. A daemon built
+  without `debug` refuses it (a wake inside the grace opens the lock). The compositor half
+  (real input reaching `resumed`) is a real-login check (docs/manual-checks.md).
+- **F933 G341 answered from the source, not live.** cosmic-comp's
+  `SessionLockHandler::lock` calls `locker.lock()` (sends `locked`) at once, with no condition
+  on outputs or DPMS (`src/wayland/handlers/session_lock.rs`, read in a checkout newer than
+  1.8.0; 1.8.0 assumed the same, as cosmic-idle's own order, off then lock, relies on it). It
+  cannot be shown on `wayland-1`: every `zwlr_output_power_v1` answers `failed` at once there
+  (`get_dpms`/`set_dpms` exist only for KMS surfaces; winit has none), so the displays never
+  go off nested. The frozen order stays (lock first, then off). On `wayland-1` the lock was
+  granted 85 ms after the screen-off step. A real-login check is queued in
+  docs/manual-checks.md.
+- **F934 Checks.**
+  - `dev/accept-idle.sh` on `wayland-1` (pinged, never stopped; one private bus as both system
+    and session bus with `examples/logind_standin.rs`, which only records; scratch XDG dirs;
+    `XDG_CURRENT_DESKTOP=COSMIC` so the daemon resolves a sill session; `SILL_IDLE_TIMES=6,0`,
+    dim 2 s, grace 5 s, lock screen off 4 s): **7/7 PASS** at load ~90.
+    1. Dimmed at 3995 ms (`dimmed:50`, published only), displays off at 6104 ms, locked with
+       cause `idle_screen_off` at 6189 ms.
+    2. A wake 1.3 s after the idle lock: `grace NoPassword`, unlocked 570 ms later.
+    3. A wake 7.2 s after: `grace Ask`, still locked.
+    4. `sill lock`: locked (`action`) in 166 ms, dark again at 4253 ms, a wake at once: still
+       locked, no grace case at all.
+    5. A `ScreenSaver.Inhibit` (`examples/screensaver_client.rs`): `held 1`, nothing happened
+       for 9 s; after `UnInhibit` idle locked 5774 ms later; a second inhibit ended when its
+       client left the bus.
+    6. `PrepareForSleep(true)`: locked (`sleep`) in 158 ms; after the wake and a wake: still
+       locked. The locker took its sleep delay inhibitor from the stand-in.
+    7. `SILL_IDLE_TIMES=6,10`: locked at 6154 ms, `Suspend interactive=false` recorded at
+       10097 ms (G342: not 16 s), idle hints true then false; after sleep, wake and a wake:
+       still locked.
+  - `tests/idle_live.rs --ignored` (wayland-1, `ScreenSaver` on a private bus, no logind): 1
+    passed (passive at first; displays off and `IdleLock` sent at 2 s; an inhibit held and
+    released when its client leaves).
+  - Gate on 9bcf672: SILL GATE GREEN (fmt, clippy, 1194 passed, 0 failed, 52 ignored, boundary,
+    licenses). A first run at load ~90 failed one Harness test unrelated to idle
+    (`status_glyphs::the_bar_volume_keeps_the_slash_at_zero_and_its_waves_follow`, a settle
+    assertion); it passes alone and passed in the green run.
+- **F935 The dim is a stub (Q447).** quire master (`/home/pohsuanlai/quire`, read by file, not
+  by git) has no `IdleDim`, scrim-idle token or dim motion; branch `idle-units` exists but is
+  not on master. So no `idle_dim` surface was built: the machine still publishes
+  `Idle.dim = Dimmed(level)` for `idle.dim_s` before the screen-off time (and logs "no overlay
+  yet, Q447"), and nothing on screen changes until the displays go off and lock at the COSMIC
+  time. When quire lands Q447, the surface is a per-output overlay layer reading `Idle.dim`
+  (empty input region, below the session-lock surfaces), spawned by the daemon beside the
+  lock surfaces.
+- **F936 Closed.** G340 (a sill login now gets idle from sill, and its idle locks carry
+  `idle_screen_off`), G341 (F933), G342 (F931, F934), Q446 (F930).
+
+### Gaps
+
+- **G350 (sill)** A notification dropped while idled is kept until it resumes; with a fake
+  wake (`Order::Renew`) every notification is destroyed and made again, so no leak there. On a
+  real session each idled notification resumes at the next input, so at most one set is kept.
+- **G351 (sill)** `sill idle status` counts `ScreenSaver` inhibits but does not name the apps
+  (the `Idle` state stays `Copy`); the daemon's stderr logs each `Inhibit` with the app and
+  reason.
+- **G352 (the user, real login)** Everything in docs/manual-checks.md "Lock grace (5 s)" and
+  "Idle lock": real input waking the displays, the displays really off while the lock is
+  granted (G341), a browser video inhibiting, and the idle suspend on battery.
+
+## Settle-strict findings (2026-09-27)
+
+quire 688226f6 made `assert_settles_to_zero_frames` on `Clock::Virtual` drain every pending ds
+timer and then require a 500 ms quiet window with no wake and no animation. Three bar tests
+failed in some runs and passed in others, all in that quiet window with `animating: false`:
+`status_glyphs::the_bar_joins_by_searching_never_wifi_off_then_fills_and_grows_the_badge`,
+`status_glyphs::the_bar_battery_turns_low_at_the_key_shows_its_power_and_hides_when_absent`,
+`status_glyphs::the_bar_bluetooth_breathes_while_connecting_and_seals_when_connected`, and
+`bar_low_nudge::the_battery_item_nudges_once_per_crossing`.
+
+- **G370 The live appearance woke the settled bar off-thread.** `use_appearance` is quire's
+  `ds_settings::use_environment`. On the harness's Tokio runtime that reads the settings portal
+  over the real session bus, subscribes to `SettingChanged`, and watches `quire/appearance.toml`
+  with inotify. All of it runs off the harness's thread, on wall time. A virtual `advance` takes
+  no wall time, so those replies land whenever the machine gets to them. On a loaded machine
+  that includes the quiet window.
+  - Evidence (a throwaway probe): settle the real `Bar`, then sleep 5 ms of wall time and
+    `advance(0)` in a loop. The document woke at 5 ms and 13 ms of wall time after the settle,
+    and the HTML did not change. With `DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent` it
+    never woke. A root with only `use_appearance` woke at 5, 11 and 17 ms, also with no HTML
+    change.
+  - Ruled out:
+    - The bar clock: the fake's `clock` is a fixed `watch`.
+    - The fake services: they spawn nothing.
+    - The detail cues, the low nudge, the hover repair and the springs: the pinned bar is quiet.
+  - The wakes also changed nothing. `use_environment` sets its signal even when the portal
+    answers what it already holds (Q455).
+  - Baseline, 32× `yes`: 3 of 593 failed, all this one.
+- **Fix.** `hooks::PinnedAppearance(Environment)` is a root context. When a root provides it,
+  `use_appearance` returns it and never calls `use_environment`. The context is read once in
+  `use_hook`, so the hooks each render calls stay the same. Every `Clock::Virtual` test root
+  whose surface reads the appearance now pins the default:
+  - the bar tests in `status_glyphs` and `bar_low_nudge`;
+  - `cc_support::live`, `center_support`, `launcher_harness`, `banners_support`,
+    `power_menu_support`, `polkit_prompt_support` and `screenshot_thumb_support`.
+
+  This also makes them hermetic: they no longer render the developer's own dark mode or
+  `appearance.toml`. The assertion is unchanged. The regression test
+  `status_glyphs::the_settled_bar_stays_quiet_on_the_wall_clock` sleeps 200 ms of wall time
+  after a settle and asserts no wake. It fails without the pin (7 wakes against 4).
+- **G371 The bar clock is not a ds timer.** The minute tick is the `Services.clock` `watch` that
+  sill-services' Tokio ticker feeds on wall time. It never enters a virtual drain, and the fakes
+  hold it fixed. It should stay that way. As a `ds::sleep` re-armed each minute, the drain
+  would, rightly, chase it past `VIRTUAL_DRAIN_BOUND` (30 s) and fail as "rescheduling itself
+  forever". A test that wants the tick sends a new `ClockText` on the fake's feed.
+- **G372 Not pinned:** `desktop_widgets_*`, `widgets_*` and `calendar_render` (the widget port
+  owns them). They passed every load run. If they turn up in the quiet window, the same
+  one-line pin applies.
+
+### Asks (quire)
+
+- **Q455 `use_environment` sets only on a change.** Its first `env.set(Environment { .. })` and
+  the watches write the signal even when the value is equal, so a portal that answers the
+  defaults still wakes and re-renders the document. Minimal repro: a `ds_native::Harness` on
+  `Clock::Virtual` whose root calls `use_environment(AppName("x"))`. Run `advance(1 ms)`, then
+  loop `thread::sleep(5 ms)` and `advance(0)`. `wakes()` rises at about 5, 11 and 17 ms of wall
+  time and `html()` never changes.
+- **Q456 A harness-level pin for the environment**, e.g. `HarnessConfig::with_environment`, or
+  a root `Environment` context that `use_environment` honours. Then no consumer's
+  `Clock::Virtual` test reaches the real portal or the real `appearance.toml` without each app
+  growing its own pin (sill's is `PinnedAppearance`). Settle-strict could also say "woken
+  off-thread, nothing pending" when the quiet window's wake came with an empty pending list, to
+  tell this apart from a timer.

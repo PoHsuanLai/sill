@@ -6,7 +6,6 @@ const fn after(s: u32) -> Timeout {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn a_key_file_is_ron_none_or_some_milliseconds() {
     const CASES: &[(&str, CosmicValue)] = &[
         ("None", CosmicValue::Set(Timeout::Never)),
@@ -26,7 +25,6 @@ fn a_key_file_is_ron_none_or_some_milliseconds() {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn missing_or_unreadable_keys_fall_back_to_cosmic_idles_defaults() {
     let none = cosmic_times(|_| None);
     assert_eq!(

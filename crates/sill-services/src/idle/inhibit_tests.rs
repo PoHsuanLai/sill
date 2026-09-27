@@ -16,7 +16,6 @@ fn inhibit(name: &str) -> InhibitMsg {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn cookies_count_up_and_only_their_peer_releases_them() {
     let (one, reply) = inhibit_step(Inhibitors::default(), inhibit(":1.1"));
     assert_eq!(reply, InhibitReply::Cookie(InhibitCookie(1)));
@@ -46,7 +45,6 @@ fn cookies_count_up_and_only_their_peer_releases_them() {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn the_cookie_skips_zero_when_it_wraps() {
     let near = Inhibitors {
         held: Vec::new(),
@@ -57,7 +55,6 @@ fn the_cookie_skips_zero_when_it_wraps() {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn logind_blocks_idle_when_its_list_names_idle() {
     const CASES: &[(&str, LogindIdle)] = &[
         ("", LogindIdle::Free),
@@ -72,7 +69,6 @@ fn logind_blocks_idle_when_its_list_names_idle() {
 }
 
 #[test]
-#[ignore = "idle fill"]
 fn either_kind_holds_idle_off() {
     let (held, _) = inhibit_step(Inhibitors::default(), inhibit(":1.1"));
     let cases = [

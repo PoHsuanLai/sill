@@ -20,6 +20,10 @@ use sill_ipc::{
     FakeAuth, FakePolkit, FakeSwitcher, LockReport, LockRequest, PolkitReport, PolkitRequest,
     ReportDrawer, ReportLockPhase, ReportRegistration, SwitcherRequest,
 };
+use sill_ipc::{
+    IdleReport, IdleRequest, ReportDim, ReportIdleMode, ReportIdlePhase, ReportInhibition,
+    ReportLockCause, ReportOffReason, ReportPower,
+};
 
 fn surface(name: &str) -> SurfaceName {
     SurfaceName(name.to_owned())
@@ -284,6 +288,10 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"polkit","v":{"kind":"status"}}"#,
         ),
         (
+            Request::Idle(IdleRequest::Status),
+            r#"{"kind":"idle","v":{"kind":"status"}}"#,
+        ),
+        (
             Request::Debug(DebugRequest::Auth(FakeAuth::Accept)),
             r#"{"kind":"debug","v":{"kind":"auth","v":"accept"}}"#,
         ),
@@ -319,6 +327,10 @@ fn requests() -> Vec<(Request, &'static str)> {
         (
             Request::Debug(DebugRequest::LauncherRows),
             r#"{"kind":"debug","v":{"kind":"launcher_rows"}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::IdleWake),
+            r#"{"kind":"debug","v":{"kind":"idle_wake"}}"#,
         ),
     ]
 }
@@ -384,8 +396,41 @@ fn responses() -> Vec<(Response, &'static str)> {
             Response::Lock(LockReport {
                 phase: ReportLockPhase::Locked,
                 drawer: ReportDrawer::Shell,
+                cause: Some(ReportLockCause::IdleScreenOff),
             }),
-            r#"{"kind":"lock","v":{"phase":"locked","drawer":"shell"}}"#,
+            r#"{"kind":"lock","v":{"phase":"locked","drawer":"shell","cause":"idle_screen_off"}}"#,
+        ),
+        (
+            Response::Lock(LockReport {
+                phase: ReportLockPhase::Unlocked,
+                drawer: ReportDrawer::Program,
+                cause: None,
+            }),
+            r#"{"kind":"lock","v":{"phase":"unlocked","drawer":"program","cause":null}}"#,
+        ),
+        (
+            Response::Idle(IdleReport {
+                mode: ReportIdleMode::Own,
+                phase: ReportIdlePhase::DisplaysOff,
+                dim: ReportDim::Clear,
+                power: ReportPower::Battery,
+                inhibition: ReportInhibition::Held,
+                inhibits: 1,
+                logind: ReportInhibition::Free,
+            }),
+            r#"{"kind":"idle","v":{"mode":{"kind":"own"},"phase":"displays_off","dim":{"kind":"clear"},"power":"battery","inhibition":"held","inhibits":1,"logind":"free"}}"#,
+        ),
+        (
+            Response::Idle(IdleReport {
+                mode: ReportIdleMode::Off(ReportOffReason::CosmicIdleRunning),
+                phase: ReportIdlePhase::Dimmed,
+                dim: ReportDim::Dimmed(50),
+                power: ReportPower::Ac,
+                inhibition: ReportInhibition::Free,
+                inhibits: 0,
+                logind: ReportInhibition::Held,
+            }),
+            r#"{"kind":"idle","v":{"mode":{"kind":"off","v":"cosmic_idle_running"},"phase":"dimmed","dim":{"kind":"dimmed","v":50},"power":"ac","inhibition":"free","inhibits":0,"logind":"held"}}"#,
         ),
         (
             Response::Polkit(PolkitReport {

@@ -25,16 +25,16 @@
 #                             it also runs the shortcuts' system actions (dist/cosmic)
 #   xdg-desktop-portal-cosmic the settings portal quire reads (colour scheme, reduced motion),
 #                             screenshots and file choosers
-#   cosmic-idle               screen off after the idle time, then `loginctl lock-session`
-#                             (which sill's locker answers), and suspend on idle. TO GO: sill
-#                             takes idle over (Q420 B, FINDINGS "sill idle (Q420 B)" F909);
-#                             the commit that fills sill's idle service deletes this line and
-#                             the `respawn idle` below. Until then sill's idle stays off while a
-#                             cosmic-idle runs, so the two never both act.
 #   sill polkit-agent         the polkit agent session.polkit_agent names (auto: KDE's, GNOME's,
 #                             LXQt's, MATE's, else cosmic-osd)
 #   systemd-inhibit           holds logind's handle-power-key, as cosmic-session does, so the
 #                             power key opens sill's power menu instead of powering off
+# Not started: cosmic-idle. sill owns idle (the user's pick Q420 B; FINDINGS "sill idle (Q420 B)"
+# F906, F909, and "sill idle fill"): `sill run` dims, turns the displays off, locks at screen off
+# (so the 5 s lock grace knows why it locked), suspends through logind and serves
+# org.freedesktop.ScreenSaver, with COSMIC's times from COSMIC Settings' Power page unless
+# `idle.times = "sill"`. A cosmic-idle started by hand makes sill's idle stand aside
+# (`sill idle status` says `cosmic_idle_running`), so the two never both act.
 # Left out on purpose: cosmic-panel, cosmic-launcher, cosmic-app-library, cosmic-bg,
 # cosmic-notifications and cosmic-osd (sill replaces them; cosmic-osd would double sill's
 # volume indicator), cosmic-workspaces and cosmic-files-applet (not used by sill yet), and
@@ -97,7 +97,6 @@ respawn power-key systemd-inhibit --what=handle-power-key --who=sill-session \
     --why="the power key opens sill's power menu" --mode=block sleep infinity
 respawn settings-daemon cosmic-settings-daemon
 respawn portal /usr/libexec/xdg-desktop-portal-cosmic
-respawn idle cosmic-idle
 respawn polkit-agent sill polkit-agent
 respawn sill sill run
 

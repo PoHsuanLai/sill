@@ -37,7 +37,7 @@ mod use_wifi;
 mod use_workspaces;
 
 pub use use_agenda::use_agenda;
-pub use use_appearance::use_appearance;
+pub use use_appearance::{PinnedAppearance, use_appearance};
 pub use use_apps::use_apps;
 pub use use_auth::use_auth;
 pub use use_badges::use_launcher_entry;

@@ -14,6 +14,7 @@ use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{Battery, Charge, Percent, Presence, Services};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Bar;
+use sill_surfaces::hooks::PinnedAppearance;
 
 thread_local! {
     static SERVICES: RefCell<Option<Services>> = const { RefCell::new(None) };
@@ -25,6 +26,8 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| services);
+    // Not the desktop's portal and appearance file: they answer off-thread (FINDINGS G370).
+    use_context_provider(PinnedAppearance::default);
     use_context_provider(|| SettingsFeed::fixed(ShellFile::default()));
     rsx! { Bar { output: fake::output() } }
 }

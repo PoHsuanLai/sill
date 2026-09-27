@@ -12,6 +12,7 @@ use ds::{Align, Anchor, Appearance, Ds, Material, Placement, Point, Popover, Px,
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{OutputName, Services};
 use sill_settings::{FocusLink, FocusMode, SettingsFeed, ShellFile};
+use sill_surfaces::hooks::PinnedAppearance;
 use sill_surfaces::surfaces::control_center::{CcPage, ControlCenter};
 
 use super::fake;
@@ -47,6 +48,8 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| world.services.clone());
+    // Not the desktop's portal and appearance file: they answer off-thread (FINDINGS G370).
+    use_context_provider(PinnedAppearance::default);
     use_context_provider(|| world.settings.clone());
     use_context_provider(|| world.focus.clone());
     let pages = world.reports.clone();

@@ -18,6 +18,7 @@ use launcher_support::{LauncherFeeds, Runner, fake};
 use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Launcher;
+use sill_surfaces::hooks::PinnedAppearance;
 use sill_surfaces::surfaces::launcher::script::{LauncherScript, Scripted, ScriptedInput};
 use sill_surfaces::surfaces::launcher::{LauncherKey, LauncherLink, LauncherProviders};
 use tokio::sync::watch;
@@ -45,6 +46,8 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| world.services.clone());
+    // Not the desktop's portal and appearance file: they answer off-thread (FINDINGS G370).
+    use_context_provider(PinnedAppearance::default);
     use_context_provider(|| world.settings.clone());
     use_context_provider(|| world.link.clone());
     use_context_provider(|| world.providers.clone());
