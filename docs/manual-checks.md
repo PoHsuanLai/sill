@@ -6,12 +6,14 @@ Add new ones at the end of their section.
 
 ## On the KDE session (unlocked, at the machine)
 
-- [ ] **CJK input in the launcher** (fcitx5 Chewing over text-input-v3; KWin has no virtual
-  keyboard, so nothing can type for you). Run
-  `bash dev/manual/ime-live.sh start`, click into the search field, switch fcitx5 to Chewing,
-  type `su3cl3` and commit: 你好 should appear in the field. Then `bash dev/manual/ime-live.sh capture`
-  (writes the capture path) and `bash dev/manual/ime-live.sh stop`. Also try a preedit that is
-  deleted before commit (Backspace mid-word): no stray characters left behind.
+- [ ] **CJK input in the launcher, a short real-keyboard spot check.** Automated since
+  shell-host 8acc00d (F71): `SILL_DIR=~/sill ~/shell-host/scripts/dev/accept-ime.sh` drives
+  launcher_demo on a private headless KWin with fcitx5 Chewing and passes compose and backspace
+  (the field reads 你好). By hand, once: `bash dev/manual/ime-live.sh start`, click into the
+  search field, switch fcitx5 to Chewing, type `su3cl3` and press **Return** to commit (Space
+  opens the candidates): 你好 appears once, not doubled. Then `bash dev/manual/ime-live.sh
+  capture` and `bash dev/manual/ime-live.sh stop`. Only one copy runs at a time; `start`
+  refuses while one is up.
 - [ ] **Scale 2 look** on the MA270U: the desktop at 2x (the new default for 27" 4K) reads
   comfortably; text and icons sharp.
 - [ ] **Brightness keys on the external monitor** (DDC/CI): after installing

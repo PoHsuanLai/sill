@@ -7,6 +7,11 @@ D="${IME_LIVE_DIR:-${XDG_RUNTIME_DIR:-/tmp}/sill-ime-live}"; mkdir -p "$D"
 IN=$D/ime-cmds
 case "${1:-start}" in
   start)
+    # One copy at a time: several copies fight over the keyboard focus.
+    if pgrep -f "tail -f $IN" >/dev/null || pgrep -f examples/launcher_demo >/dev/null; then
+      echo "ime-live: a copy is already running; use \`$0 stop\` first" >&2
+      exit 1
+    fi
     : >"$IN"
     cd "$(dirname "${BASH_SOURCE[0]}")/../.."
     cargo build -q -p sill-surfaces --example launcher_demo || exit 1
