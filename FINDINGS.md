@@ -8003,7 +8003,7 @@ Q460, G360 (G370-G372 are the settle-strict section's).
     `calendar-cosmic.png` (the Large month over Design review and Yoga; Up Next beside).
 - **F952 Gate.** `GATE_DIR=<this worktree> ~/sill-wt/sill-gate.sh` on e163558 (after the
   master merge and the pins): SILL GATE GREEN (fmt, clippy, 1232 passed, 0 failed, 52 ignored,
-  boundary, licenses). Re-run on the final tip below.
+  boundary, licenses). Re-run on the final tip 0cd585c at load 1.7: SILL GATE GREEN, 1233 passed, 0 failed, 52 ignored.
 
 ### Asks (quire)
 
