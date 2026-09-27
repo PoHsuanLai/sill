@@ -50,7 +50,7 @@ pub use display::{
 };
 pub use dock::{
     ActiveClick, AutoHide, Bounce, DockFloor, DockMenuOrder, DockModifierClicks, DockPosition,
-    DockSettings, Indicators, LaunchAnim, Magnification, ProgressStyle, ShippedIcons, TrashTile,
+    DockSettings, Indicators, LaunchAnim, Magnification, ProgressStyle, TrashTile,
 };
 pub use feed::SettingsFeed;
 pub use file::{APP, FILE_NAME, ShellFile, load, save, settings_dir};

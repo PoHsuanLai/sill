@@ -1,4 +1,4 @@
-//! A re-tinted icon's identity in the cache: which icon, at which raster size, in which style
+//! A re-tinted icon's identity in the cache: which file, at which raster size, in which style
 //! and tint. The output scale is folded into the size (a 48 px tile at 1.5 and a 72 px one at 1
 //! are the same raster). Pure.
 
@@ -6,17 +6,7 @@ use std::path::PathBuf;
 
 use ds::icon::{IconStyle, Tint};
 
-use crate::app_icons::shipped::ShippedApp;
 use crate::app_icons::size::AssetPx;
-
-/// Where an icon's untinted pixels come from.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Origin {
-    /// One of quire's own icons (its Monochrome file).
-    Shipped(ShippedApp),
-    /// A theme's (or an entry's own) icon file.
-    Theme(PathBuf),
-}
 
 /// A tint in whole steps, so it can key a map: tenths of a degree of hue, ten-thousandths of
 /// chroma (finer than any two Space presets differ, coarser than float noise).
@@ -41,7 +31,8 @@ impl TintKey {
 /// One cached raster.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IconKey {
-    pub origin: Origin,
+    /// The untinted source file (a theme, or an entry's own icon).
+    pub path: PathBuf,
     pub px: AssetPx,
     pub style: IconStyle,
     pub tint: TintKey,
@@ -52,10 +43,7 @@ impl IconKey {
     /// of the whole key so two keys never share a file. Stable across runs and builds (FNV-1a,
     /// not std's hasher, whose output may change between releases).
     pub fn file_name(&self) -> String {
-        let name = match &self.origin {
-            Origin::Shipped(app) => format!("quire-{}", app.slug()),
-            Origin::Theme(path) => stem(path),
-        };
+        let name = stem(&self.path);
         let style = style_word(self.style);
         format!(
             "{name}-{}-{style}-{:016x}.png",
@@ -66,12 +54,9 @@ impl IconKey {
 
     /// Every field of the key as text, one way only.
     fn canonical(&self) -> String {
-        let origin = match &self.origin {
-            Origin::Shipped(app) => format!("shipped:{}", app.slug()),
-            Origin::Theme(path) => format!("theme:{}", path.display()),
-        };
         format!(
-            "{origin}|{}|{}|{}|{}",
+            "{}|{}|{}|{}|{}",
+            self.path.display(),
             self.px.0,
             style_word(self.style),
             self.tint.hue_tenths,
@@ -121,16 +106,15 @@ fn fnv1a(bytes: &[u8]) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{IconKey, Origin, TintKey, fnv1a};
-    use crate::app_icons::shipped::ShippedApp;
+    use super::{IconKey, TintKey, fnv1a};
     use crate::app_icons::size::AssetPx;
     use ds::icon::{IconStyle, Tint};
     use std::collections::HashSet;
     use std::path::PathBuf;
 
-    fn key(origin: Origin, px: u16, style: IconStyle, hue: f32) -> IconKey {
+    fn key(path: PathBuf, px: u16, style: IconStyle, hue: f32) -> IconKey {
         IconKey {
-            origin,
+            path,
             px: AssetPx(px),
             style,
             tint: TintKey::of(Tint { hue, chroma: 0.06 }),
@@ -146,17 +130,17 @@ mod tests {
     #[test]
     fn file_names_are_readable_and_stable() {
         let term = key(
-            Origin::Shipped(ShippedApp::Terminal),
+            PathBuf::from("/usr/share/icons/hicolor/scalable/apps/terminal.svg"),
             96,
             IconStyle::Monochrome,
             268.0,
         );
         let name = term.file_name();
-        assert!(name.starts_with("quire-terminal-96-monochrome-"), "{name}");
+        assert!(name.starts_with("terminal-96-monochrome-"), "{name}");
         assert!(name.ends_with(".png"), "{name}");
         assert_eq!(name, term.clone().file_name(), "same key, same name");
         let odd = key(
-            Origin::Theme(PathBuf::from("/usr/share/icons/a b/Ü?.svg")),
+            PathBuf::from("/usr/share/icons/a b/Ü?.svg"),
             48,
             IconStyle::Muted,
             0.0,
@@ -169,12 +153,12 @@ mod tests {
         assert!(!odd.file_name().contains('/'));
     }
 
-    /// Every field changes the file: icon, size, style and tint (a Space switch).
+    /// Every field changes the file: the source path, size, style and tint (a Space switch).
     #[test]
     fn every_field_of_the_key_changes_the_file() {
         let base = || {
             key(
-                Origin::Theme(PathBuf::from("/i/firefox.svg")),
+                PathBuf::from("/i/firefox.svg"),
                 48,
                 IconStyle::Monochrome,
                 268.0,
@@ -183,11 +167,7 @@ mod tests {
         let variants = [
             base(),
             IconKey {
-                origin: Origin::Theme(PathBuf::from("/j/firefox.svg")),
-                ..base()
-            },
-            IconKey {
-                origin: Origin::Shipped(ShippedApp::Mail),
+                path: PathBuf::from("/j/firefox.svg"),
                 ..base()
             },
             IconKey {
@@ -199,7 +179,7 @@ mod tests {
                 ..base()
             },
             key(
-                Origin::Theme(PathBuf::from("/i/firefox.svg")),
+                PathBuf::from("/i/firefox.svg"),
                 48,
                 IconStyle::Monochrome,
                 152.0,

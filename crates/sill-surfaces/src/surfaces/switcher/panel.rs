@@ -44,7 +44,6 @@ pub(super) fn switcher_panel(output: OutputInfo) -> Element {
             resolver: use_icon_resolver(),
         },
         index: use_apps()(),
-        shipped: file.dock.shipped_icons,
         side: LogicalPx(file.switcher.icon_size_px.0),
     };
     let link = use_context::<SwitcherLink>();

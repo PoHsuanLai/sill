@@ -1,26 +1,23 @@
-//! A tile's icon, as the dock picks one (design/08 §4): quire's shipped icon for an app it
-//! stands for (`dock.shipped_icons`), else the entry's own icon file in the icon style
-//! (re-tinted under Muted and Monochrome), a `*-symbolic` file in the text colour, and quire's
-//! `Window` glyph for an app with no icon (or no entry). quire's `AppSwitcher` stretches a file
-//! to the cell's icon square, so it is loaded at `switcher.icon_size_px` times the scale.
+//! A tile's icon, as the switcher picks one (design/08 §4): the entry's own icon file in the
+//! icon style (re-tinted under Muted and Monochrome), a `*-symbolic` file in the text colour,
+//! and quire's `Window` glyph for an app with no icon (or no entry). sill ships no per-app
+//! artwork of its own (FINDINGS "App icons: shipped set removed"): every entry takes this one
+//! path. quire's `AppSwitcher` stretches a file to the cell's icon square, so it is loaded at
+//! `switcher.icon_size_px` times the scale.
 
 use std::path::Path;
 
 use ds::{ExternalIcon, Icon, IconPx, IconSize, IconSource, IconUrl};
 use sill_launcher::AppId;
 use sill_services::{AppIcon, AppIndex};
-use sill_settings::ShippedIcons;
 
-use crate::app_icons::{
-    DEFAULT_TABLE, IconContext, LogicalPx, pick, shipped_app, shipped_art, theme_art,
-};
+use crate::app_icons::{IconContext, LogicalPx, pick, theme_art};
 
 /// What a switcher surface's icons depend on.
 #[derive(Debug, Clone)]
 pub struct SwitcherIcons {
     pub cx: IconContext,
     pub index: AppIndex,
-    pub shipped: ShippedIcons,
     /// `switcher.icon_size_px`.
     pub side: LogicalPx,
 }
@@ -30,12 +27,6 @@ impl SwitcherIcons {
     pub fn source(&self, app: &AppId) -> IconSource {
         let px = pick(self.side, self.cx.scale);
         let resolver = self.cx.resolver;
-        if let Some(ours) = shipped_app(app, self.shipped, DEFAULT_TABLE)
-            && let Some(source) = resolver.shipped_path(ours, px, self.cx.look.style)
-        {
-            let file = resolver.path(&shipped_art(source, ours, px, self.cx.look));
-            return self.external(&file).map_or(window(), IconSource::Image);
-        }
         match self.index.get(app).map(|entry| &entry.icon) {
             Some(AppIcon::File(path)) if path.is_absolute() && symbolic(path) => {
                 self.external(path).map_or(window(), IconSource::Symbolic)

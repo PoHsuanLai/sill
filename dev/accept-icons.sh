@@ -1,17 +1,22 @@
 #!/usr/bin/env bash
 # The icon style on the dock, against the running nested cosmic-comp (`dev/nested.sh`; a
-# running wayland-1 is reused and never stopped). Starts `sill run` from this checkout's debug
-# build with a scratch XDG_CONFIG_HOME and XDG_CACHE_HOME, so neither quire's appearance file
-# nor sill's pins nor the icon cache in the real home are touched, and quits it at the end.
+# running wayland-1 is pinged first, reused and never stopped). Starts `sill run` from this
+# checkout's debug build with a scratch XDG_CONFIG_HOME, XDG_CACHE_HOME and XDG_RUNTIME_DIR (the
+# nested socket as an absolute WAYLAND_DISPLAY) and a private session bus
+# (dev/private-bus.conf), so neither quire's appearance file nor sill's pins nor the icon cache
+# nor the real session bus are touched, and quits it at the end.
 #
-# The dock holds COSMIC Terminal and COSMIC Files (quire's shipped icons) and Google Chrome and
-# btop (theme icons on the neutral plate, tinted along with the icon under Muted and Monochrome:
-# sill FINDINGS Q72). With `icons.style` set in the scratch `quire/appearance.toml` to colour,
-# then muted, then monochrome (the running dock follows the file live), it checks that the Muted
-# and Monochrome runs each write re-tinted rasters into the scratch cache, and captures the dock
-# surface each time: dev/out/dock-icons-{colour,muted,monochrome}.png. A last switch to
-# `appearance.theme = "dark"` in Monochrome (no new raster: the dark scheme changes the plate's
-# own stops, not the icon's) captures dev/out/dock-icons-monochrome-dark.png.
+# sill ships no per-app artwork of its own any more (FINDINGS "App icons: shipped set removed"):
+# the dock holds COSMIC Terminal, COSMIC Files, Google Chrome and btop, every one on the neutral
+# plate with its own theme icon, tinted along with the plate under Muted and Monochrome (sill
+# FINDINGS Q72). With `icons.style` set in the scratch `quire/appearance.toml` to colour, then
+# muted, then monochrome (the running dock follows the file live), it checks that the Muted and
+# Monochrome runs each write re-tinted rasters into the scratch cache, one per pinned app, and
+# captures the dock surface each time: dev/out/dock-icons-{colour,muted,monochrome}.png. A last
+# switch to `appearance.theme = "dark"` in Monochrome (no new raster: the dark scheme changes
+# the plate's own stops, not the icon's) captures dev/out/dock-icons-monochrome-dark.png. The
+# launcher (queried for "cosmic", Colour style) is captured too: dev/out/launcher-icons.png,
+# COSMIC Terminal and Files as rows drawing their own hicolor icon, the same fallback path.
 #
 # Usage: dev/nested.sh && dev/accept-icons.sh
 set -uo pipefail
@@ -24,9 +29,14 @@ PINS=(com.system76.CosmicTerm com.system76.CosmicFiles google-chrome btop)
 
 # shellcheck disable=SC1091
 source "$SHELL_HOST_DEV/.nested-env"
+HOST_RUNTIME="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+NESTED_SOCKET="$HOST_RUNTIME/$WAYLAND_DISPLAY"
 export WAYLAND_DISPLAY
 
-sill() { "$SILL_BIN" "$@"; }
+RUNTIME=$(mktemp -d)
+chmod 700 "$RUNTIME"
+
+sill() { XDG_RUNTIME_DIR="$RUNTIME" "$SILL_BIN" "$@"; }
 nested() { "$SHELL_HOST_DEV/run.sh" "$@"; }
 
 CONFIG="" CACHE="" DAEMON=""
@@ -38,6 +48,7 @@ cleanup() {
   fi
   [ -n "$CONFIG" ] && rm -rf "$CONFIG"
   [ -n "$CACHE" ] && rm -rf "$CACHE"
+  rm -rf "$RUNTIME"
 }
 trap cleanup EXIT
 
@@ -77,7 +88,10 @@ step_start() {
   CONFIG=$(mktemp -d)
   CACHE=$(mktemp -d)
   style colour
-  XDG_CONFIG_HOME="$CONFIG" XDG_CACHE_HOME="$CACHE" nested "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
+  XDG_CONFIG_HOME="$CONFIG" XDG_CACHE_HOME="$CACHE" XDG_RUNTIME_DIR="$RUNTIME" \
+    WAYLAND_DISPLAY="$NESTED_SOCKET" \
+    dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- \
+    "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
   sill ping >/dev/null 2>&1 || { echo "sill never answered ping" >&2; return 1; }
@@ -97,8 +111,37 @@ step_colour() {
   capture colour && [ "$(cached muted)" = 0 ] && [ "$(cached monochrome)" = 0 ]
 }
 
-# Switch to style $1 and wait for its rasters: the two theme icons, plus the two shipped ones
-# under Monochrome.
+launcher_name() {
+  sill debug stats | python3 -c '
+import json, sys
+for row in json.loads(sys.stdin.read())["v"]:
+    if row["surface"].startswith("sill-launcher-"):
+        print(row["surface"]); break'
+}
+
+# The launcher, queried for "cosmic" so COSMIC Terminal and Files show as rows: their own
+# hicolor icon on the row's plate, the fallback every entry takes now (dev/out/launcher-icons.png).
+step_launcher() {
+  sill launcher open --query cosmic >>"$OUT_DIR/launcher.log" 2>&1
+  local name="" rc=1
+  for _ in $(seq 50); do name=$(launcher_name); [ -n "$name" ] && break; sleep 0.1; done
+  if [ -n "$name" ]; then
+    # The surface exists in `debug stats` before its first frame is presented; retry the
+    # capture rather than racing it with one fixed sleep.
+    for _ in $(seq 30); do
+      sill debug capture "$name" "$SHOTS/launcher-icons.png" >"$OUT_DIR/capture-launcher.log" 2>&1
+      grep -q '"kind":"done"' "$OUT_DIR/capture-launcher.log" && { rc=0; break; }
+      sleep 0.2
+    done
+  else
+    echo "no launcher surface in 'sill debug stats'" >&2
+  fi
+  sill launcher close >>"$OUT_DIR/launcher.log" 2>&1
+  return "$rc"
+}
+
+# Switch to style $1 and wait for its rasters: one per pinned app (every app takes the theme
+# path now, so Muted and Monochrome both re-tint all four).
 switch_and_wait() {
   local want=$2 n=0
   style "$1"
@@ -113,7 +156,7 @@ switch_and_wait() {
   capture "$1" && [ "$n" -ge "$want" ]
 }
 
-step_muted() { switch_and_wait muted 2; }
+step_muted() { switch_and_wait muted 4; }
 step_monochrome() { switch_and_wait monochrome 4; }
 
 # The dock's cumulative frame count.
@@ -144,8 +187,8 @@ step_monochrome_dark() {
 }
 
 status=0
-for step in step_ping_compositor step_start step_colour step_muted step_monochrome step_idle \
-  step_monochrome_dark; do
+for step in step_ping_compositor step_start step_colour step_launcher step_muted \
+  step_monochrome step_idle step_monochrome_dark; do
   if "$step"; then
     echo "PASS $step"
   else
@@ -156,5 +199,5 @@ for step in step_ping_compositor step_start step_colour step_muted step_monochro
   fi
 done
 ls -l "$CACHE/sill/icons" >"$OUT_DIR/cache-files.log" 2>&1
-echo "output dir: $OUT_DIR; shots: $SHOTS/dock-icons-{colour,muted,monochrome,monochrome-dark}.png" >&2
+echo "output dir: $OUT_DIR; shots: $SHOTS/dock-icons-{colour,muted,monochrome,monochrome-dark}.png, $SHOTS/launcher-icons.png" >&2
 exit "$status"

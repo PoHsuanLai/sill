@@ -12,28 +12,18 @@
 //! after it (every [`use_icon_resolver`] caller re-renders when one finishes) shows the cached
 //! one. A new Space tint is a new key, so a workspace switch loads new entries rather than
 //! re-tinting on every frame.
-//!
-//! [`IconResolver::shipped_path`] caches a second thing beside it: which file quire's
-//! `ds_settings::app_icon_path` found for a shipped app at a size and a style (sill FINDINGS
-//! Q71). That call touches the disk (it probes `ds_settings::apps_dir`'s own candidates, then
-//! the app's file), and a dock tile or a launcher row asks on every render, so the resolved
-//! path (or the absence of one) is kept beside the decoded/tinted icon in the same process-wide
-//! cache, found once per `(app, size, style)` and never looked up again.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex, MutexGuard};
 
 use dioxus::prelude::*;
-use ds::icon::IconStyle;
 use shell_host::use_watch;
 use tokio::sync::watch;
 
-use crate::app_icons::key::{IconKey, Origin};
+use crate::app_icons::key::IconKey;
 use crate::app_icons::plan::Art;
 use crate::app_icons::render::{fresh, render, write_atomic};
-use crate::app_icons::shipped::ShippedApp;
-use crate::app_icons::size::AssetPx;
 
 /// How many rasters the cache has finished, successfully or not: what a resolver re-renders on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -50,20 +40,14 @@ enum Slot {
     Failed,
 }
 
-/// A shipped app's resolved file at a size and a style: `ds_settings::app_icon_path`'s own
-/// answer, cached so it is asked once per key rather than on every render.
-type ShippedKey = (ShippedApp, AssetPx, IconStyle);
-
 #[derive(Debug)]
 struct Cache {
     slots: Mutex<HashMap<IconKey, Slot>>,
-    shipped: Mutex<HashMap<ShippedKey, Option<PathBuf>>>,
     done: watch::Sender<Generation>,
 }
 
 static CACHE: LazyLock<Cache> = LazyLock::new(|| Cache {
     slots: Mutex::new(HashMap::new()),
-    shipped: Mutex::new(HashMap::new()),
     done: watch::Sender::new(Generation::default()),
 });
 
@@ -76,13 +60,6 @@ fn slots() -> MutexGuard<'static, HashMap<IconKey, Slot>> {
     // A panic while holding the lock leaves a map that is still a valid map.
     CACHE
         .slots
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
-}
-
-fn shipped_paths() -> MutexGuard<'static, HashMap<ShippedKey, Option<PathBuf>>> {
-    CACHE
-        .shipped
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
@@ -110,17 +87,6 @@ impl IconResolver {
             Art::Plain(path) => path.clone(),
             Art::Styled { key, source } => styled(key, source),
         }
-    }
-
-    /// `app`'s file at `px` in `style`, from quire's apps directory (`ds_settings::apps_dir`,
-    /// `ds_settings::app_icon_path`: sill FINDINGS Q71), found once per `(app, px, style)` and
-    /// kept: `None` when quire's assets (or that file) were not found, which is itself
-    /// remembered rather than asked again.
-    pub fn shipped_path(&self, app: ShippedApp, px: AssetPx, style: IconStyle) -> Option<PathBuf> {
-        shipped_paths()
-            .entry((app, px, style))
-            .or_insert_with(|| ds_settings::app_icon_path(app.slug(), ds_settings::Px(px.0), style))
-            .clone()
     }
 }
 
@@ -156,7 +122,7 @@ fn make(key: IconKey, source: PathBuf, dir: PathBuf) {
         {
             Ok(path) => Slot::Ready(path),
             Err(why) => {
-                eprintln!("sill: icon {} not re-tinted: {why}", describe(&key.origin));
+                eprintln!("sill: icon {} not re-tinted: {why}", key.path.display());
                 Slot::Failed
             }
         }
@@ -173,17 +139,10 @@ fn tint_of(key: &IconKey) -> ds::icon::Tint {
     }
 }
 
-fn describe(origin: &Origin) -> String {
-    match origin {
-        Origin::Shipped(app) => app.slug().to_owned(),
-        Origin::Theme(path) => path.display().to_string(),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::{make, styled};
-    use crate::app_icons::key::{IconKey, Origin, TintKey};
+    use crate::app_icons::key::{IconKey, TintKey};
     use crate::app_icons::size::AssetPx;
     use ds::icon::{IconStyle, Tint};
 
@@ -199,7 +158,7 @@ mod tests {
             .save(&source)
             .unwrap_or_else(|e| panic!("{e}"));
         let key = IconKey {
-            origin: Origin::Theme(source.clone()),
+            path: source.clone(),
             px: AssetPx(48),
             style: IconStyle::Monochrome,
             tint: TintKey::of(Tint {
@@ -221,28 +180,5 @@ mod tests {
         let [r, g, _, _] = raster.get_pixel(24, 24).0;
         assert!(g > r, "re-tinted toward green");
         let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    /// `shipped_path` finds a real file under the sibling quire checkout (the workspace cannot
-    /// build without it) and answers the same `(app, px, style)` again from the cache, with no
-    /// way to tell from the result alone that the second call never touched the disk.
-    #[test]
-    fn shipped_files_are_resolved_once_and_kept() {
-        use super::IconResolver;
-        use crate::app_icons::shipped::ShippedApp;
-
-        let resolver = IconResolver {
-            seen: super::Generation::default(),
-        };
-        let first = resolver.shipped_path(ShippedApp::Terminal, AssetPx(96), IconStyle::Colour);
-        let path = first.unwrap_or_else(|| panic!("quire's dev assets: terminal/96.png"));
-        assert!(path.ends_with("terminal/96.png"), "{}", path.display());
-        let second = resolver.shipped_path(ShippedApp::Terminal, AssetPx(96), IconStyle::Colour);
-        assert_eq!(second, Some(path), "the cached answer, not a fresh lookup");
-
-        let muted = resolver
-            .shipped_path(ShippedApp::Mail, AssetPx(48), IconStyle::Muted)
-            .unwrap_or_else(|| panic!("quire's dev assets: mail/muted/48.png"));
-        assert!(muted.ends_with("mail/muted/48.png"), "{}", muted.display());
     }
 }

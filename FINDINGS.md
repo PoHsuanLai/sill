@@ -8221,3 +8221,45 @@ Numbered from F980. Branch `worktree-agent-ad53d5c104d0da137` (cut from master 7
   in `$D` (the demo reads a FIFO the tail writes), `stop` kills only those, and the one-copy guard
   checks only those (a PID counts while alive and its command line still matches). Checked with
   stand-in processes: ours stopped, another "launcher_demo" left running.
+
+## App icons: shipped set removed (user, 2026-09-28)
+
+The user reviewed the shipped app icons table ("Icon style" above: `app_icons::DEFAULT_TABLE`,
+`ShippedApp::{Mail,Files,Terminal,Notes,Photos}`, the "notes and photos rows" included) and said
+"they all look terrible". Removed entirely. Branch `worktree-agent-a6e77dc307e1f51b0` (cut from
+master 70db27b).
+
+- **F985 What went.** `crates/sill-surfaces/src/app_icons/shipped.rs` (the `ShippedApp` enum,
+  `DEFAULT_TABLE`, `shipped_app`) is deleted; `Origin::Shipped`, `plan::shipped_art`,
+  `IconResolver::shipped_path` and its `shipped` cache map, `TileArt::Shipped` /
+  `RowArt::Shipped`, and `Drawn::Bare` (a shipped icon's own plate, drawn bare over the whole
+  tile — nothing draws bare any more) are gone with it. `IconKey`'s `origin: Origin` collapsed
+  to a plain `path: PathBuf`: with only one kind of source left (a theme, or an entry's own
+  icon file), the enum was one variant doing nothing. `dock.shipped_icons`
+  (`ShippedIcons::{On,Off}`, `sill-settings/src/dock_words.rs`) is gone too, along with its
+  Dock-page Advanced toggle; `sill-settings/tests/keys.rs` lists `dock.shipped_icons` in
+  `RETIRING` (design/22 §3.5 still carries its row; quire's owner drops it next, then the entry
+  goes). None of this touches quire's own `assets/icons/apps/` files, `tools/icons/ship.toml`
+  or design/08 §2.11 "The shipped set": those are quire's, a shared checkout outside this
+  worktree, and sill no longer references any of it — every code path that read
+  `ds_settings::app_icon_path` for a shipped app is gone.
+- **F986 The fallback.** Every entry — COSMIC's own apps included — now takes the one path
+  design/08 §4.1 already described for third-party icons: its own hicolor (or entry-carried)
+  icon on quire's neutral plate, symbolic recoloured, `Icon::Window` when it has none. Checked
+  live (`dev/accept-icons.sh`, nested cosmic-comp, scratch config and cache): COSMIC Terminal and
+  COSMIC Files, pinned alongside Chrome and btop, all draw their own icon on the plate now, none
+  bare; Muted re-tints 4 rasters (every pinned app, not 2: Terminal and Files used to be
+  pre-baked, unretinted, under Muted), Monochrome still 4. `dock_render.rs`
+  (`pinned_then_running_then_trash_with_dots_and_a_badge`) and the new
+  `dock_icons.rs::a_mapped_app_still_draws_its_own_icon_on_the_plate` check the same thing at
+  the unit level: every tile lands on `data-family="neutral"`, none on the old
+  `class="sill-dock-art"` (removed, along with its one CSS rule), and a desktop id that used to
+  take a shipped icon (`icon_tests.rs::each_entry_picks_its_art`) now takes its own file like any
+  other app — never a blank tile.
+- **F987 Tests.** `cargo test -p sill-surfaces -p sill-settings`: 380+ tests green, including
+  the rewritten `app_icons::{key,plan,cache}` unit tests (the shipped-key and
+  `shipped_files_are_resolved_once_and_kept` cases dropped with the feature),
+  `dock::icon_tests`, `launcher::row_icon` (no more `index`/`ShippedIcons` parameters —
+  `row_art` no longer needs the app index at all), `switcher::icon`, `dock_render.rs`,
+  `dock_icons.rs`, `dock_lint.rs` and `keys.rs`. `cargo clippy -p sill-surfaces -p sill-settings
+  --all-targets`: clean.

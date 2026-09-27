@@ -65,18 +65,18 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
             2,
         ),
         (
-            "Firefox and Trash on a neutral plate",
+            "every tile on a neutral plate: sill ships no per-app artwork of its own",
             "data-family=\"neutral\"",
-            2,
+            4,
         ),
         (
-            "Files and Terminal as quire's own icons, bare",
+            "no bare art: there is no shipped set left to draw bare",
             "class=\"sill-dock-art\"",
-            2,
+            0,
         ),
         (
-            "the terminal from quire's file for the magnified size",
-            "/terminal/96.png",
+            "the terminal draws its own hicolor icon",
+            "CosmicTerm.svg",
             1,
         ),
         ("quire's floor in the pill", "class=\"ds-dock-floor\"", 1),
@@ -103,7 +103,7 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
         ("no tint layer of the dock's own", "sill-dock-tint", 0),
         ("plates on paper", "data-ground=\"frame\"", 0),
         (
-            "Files and Terminal as quire's images",
+            "Files and Terminal draw their own hicolor icons",
             "data-kind=\"image\"",
             2,
         ),

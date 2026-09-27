@@ -1,8 +1,8 @@
-//! A dock tile for an app quire ships an icon for (COSMIC Terminal) renders that icon as an
-//! `Image` source, bare over the tile, under every icon style: the Colour, Muted and Monochrome
-//! files for the magnified size (the Monochrome one untinted on its first render, while the
-//! cache makes the tinted raster). `dock.shipped_icons = off` puts the theme's icon back on the
-//! neutral plate, tinted to the same hue under Muted or Monochrome (sill FINDINGS Q72).
+//! A dock tile for an app with its own hicolor icon (COSMIC Terminal) draws that icon on
+//! quire's neutral plate under every icon style, tinted to the same hue under Muted or
+//! Monochrome (sill FINDINGS Q72). sill ships no per-app artwork of its own any more (FINDINGS
+//! "App icons: shipped set removed"): every entry, COSMIC's own included, takes the theme's
+//! icon.
 
 mod dock_support;
 
@@ -10,7 +10,7 @@ use dioxus::prelude::*;
 use ds::icon::{IconStyle, Tint};
 use sill_launcher::AppId;
 use sill_services::Cpx;
-use sill_settings::{SettingsFeed, ShellFile, ShippedIcons};
+use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::app_icons::IconLook;
 use sill_surfaces::surfaces::dock::machine::{TileApp, TileId};
 use sill_surfaces::surfaces::dock::tile::{Tile, TileLook};
@@ -35,10 +35,9 @@ fn Harness(props: HarnessProps) -> Element {
     }
 }
 
-fn render(style: IconStyle, shipped: ShippedIcons) -> String {
+fn render(style: IconStyle) -> String {
     let (services, _feeds) = dock_support::services();
-    let mut file = ShellFile::default();
-    file.dock.shipped_icons = shipped;
+    let file = ShellFile::default();
     let look = TileLook(IconLook {
         style,
         tint: Tint {
@@ -53,41 +52,25 @@ fn render(style: IconStyle, shipped: ShippedIcons) -> String {
     dioxus_ssr::render(&dom)
 }
 
+/// Under every style the terminal's own hicolor icon sits on the neutral plate, never bare:
+/// there is no shipped set left to draw bare over the tile.
 #[test]
-fn a_mapped_app_draws_quires_icon_under_every_style() {
-    let cases = [
-        (IconStyle::Colour, "/terminal/96.png"),
-        (IconStyle::Muted, "/terminal/muted/96.png"),
-        (IconStyle::Monochrome, "/terminal/monochrome/96.png"),
-    ];
-    for (style, file) in cases {
-        let html = render(style, ShippedIcons::On);
+fn a_mapped_app_still_draws_its_own_icon_on_the_plate() {
+    for style in [IconStyle::Colour, IconStyle::Muted, IconStyle::Monochrome] {
+        let html = render(style);
         assert!(
-            html.contains("class=\"sill-dock-art\""),
-            "{style:?}: bare\n{html}"
+            html.contains("data-family=\"neutral\""),
+            "{style:?}: {html}"
         );
         assert!(
             html.contains("data-kind=\"image\""),
-            "{style:?}: an image\n{html}"
+            "{style:?}: an image, not the window glyph\n{html}"
         );
-        assert!(html.contains(file), "{style:?}: {file}\n{html}");
         assert!(
-            !html.contains("data-family="),
-            "{style:?}: no plate\n{html}"
+            !html.contains("sill-dock-art"),
+            "{style:?}: no bare art\n{html}"
         );
     }
-}
-
-#[test]
-fn shipped_icons_off_keeps_the_theme_icon_on_the_plate() {
-    let html = render(IconStyle::Colour, ShippedIcons::Off);
-    assert!(html.contains("data-family=\"neutral\""), "{html}");
-    assert!(!html.contains("sill-dock-art"), "{html}");
-    assert!(!html.contains("/terminal/"), "{html}");
-    assert!(
-        !html.contains("data-icon-style="),
-        "Colour: the plate is untinted\n{html}"
-    );
 }
 
 /// Under Muted or Monochrome the plate itself carries the icon style (sill FINDINGS Q72):
@@ -97,7 +80,7 @@ fn shipped_icons_off_keeps_the_theme_icon_on_the_plate() {
 #[test]
 fn the_plate_carries_the_icon_style_under_muted_and_monochrome() {
     for style in [IconStyle::Muted, IconStyle::Monochrome] {
-        let html = render(style, ShippedIcons::Off);
+        let html = render(style);
         let word = if style == IconStyle::Muted {
             "muted"
         } else {

@@ -44,6 +44,4 @@ words! {
     ProgressStyle { #[default] Ring, Bar }
     /// `dock.floor`: the reflective band along the pill's floor, under the tiles.
     DockFloor { #[default] Off, On }
-    /// `dock.shipped_icons`: quire's own icons for the apps they stand for, over the theme's.
-    ShippedIcons { #[default] On, Off }
 }

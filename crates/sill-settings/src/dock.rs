@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 pub use crate::dock_words::{
     ActiveClick, AutoHide, Bounce, DockFloor, DockMenuOrder, DockModifierClicks, DockPosition,
-    Indicators, LaunchAnim, Magnification, ProgressStyle, ShippedIcons, TrashTile,
+    Indicators, LaunchAnim, Magnification, ProgressStyle, TrashTile,
 };
 
 /// The dock's settings.
@@ -353,14 +353,6 @@ pub struct DockSettings {
         advanced
     )]
     pub floor: DockFloor,
-    /// `dock.shipped_icons` (sill FINDINGS "Icon style"; no design/22 row yet).
-    #[settings(
-        label = "Shipped app icons",
-        help = "Draw a terminal, files, mail, notes or photos app with the shell's own icon.",
-        section = "Size",
-        advanced
-    )]
-    pub shipped_icons: ShippedIcons,
     /// Keys this build does not know, kept for the next write.
     #[serde(flatten)]
     #[settings(skip)]
@@ -411,7 +403,6 @@ impl Default for DockSettings {
             pill_padding_px: Px(6),
             running_dot_gap_px: Px(3),
             floor: DockFloor::Off,
-            shipped_icons: ShippedIcons::On,
             extra: toml::Table::new(),
         }
     }

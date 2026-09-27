@@ -4,9 +4,8 @@
 //! The tile's box is its slot at the current size, standing on the baseline and lifted by the
 //! bounce; the plate is 80.5 % of it (design/08 §2.2), a quire `IconView` plate (the squircle
 //! with its gradient, highlight, rim and drop; the macOS polish pass) in the neutral paper family
-//! (§4.1), the icon inside at the design inset, the fallback glyph at its 56 % (§4.3); an app
-//! quire ships an icon for is drawn bare over the whole tile instead, in the icon style the dock
-//! provides as [`TileLook`] (`icon.rs`, `app_icons`). Under Muted or Monochrome the plate takes
+//! (§4.1), the icon inside at the design inset, the fallback glyph at its 56 % (§4.3), in the
+//! icon style the dock provides as [`TileLook`] (`icon.rs`, `app_icons`). Under Muted or Monochrome the plate takes
 //! the same `(IconStyle, Tint)` pair `app_icons` hands `ds::icon::retint`, through `IconView`'s
 //! `plate_tint: PlateTint::of(style, tint)` (sill FINDINGS Q72): the plate's two stops and its
 //! glyph ink are re-coloured by quire itself, so a Muted or Monochrome dock is one hue, plate
@@ -29,7 +28,7 @@ use sill_settings::{DockSettings, Indicators, ProgressStyle};
 use crate::app_icons::{IconLook, use_icon_resolver};
 use crate::hooks::{use_apps, use_settings};
 use crate::surfaces::dock::frame::Rows;
-use crate::surfaces::dock::icon::{Drawn, IconContext, TileSizes, drawn, tile_art};
+use crate::surfaces::dock::icon::{IconContext, TileSizes, drawn, tile_art};
 use crate::surfaces::dock::items::{DockItem, ItemKind};
 use crate::surfaces::dock::machine::{TileApp, TileId};
 
@@ -64,7 +63,7 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
         scale: ds::use_scale(),
         resolver: use_icon_resolver(),
     };
-    let art = drawn(tile_art(&item.kind, app, dock.shipped_icons), sizes, &cx);
+    let source = drawn(tile_art(&item.kind, app), sizes, &cx);
     let rows = Rows::new(&dock);
     let top = px(rows.baseline) - side - px(lift);
     let running = item.app != TileApp::NotRunning && dock.indicators == Indicators::On;
@@ -85,22 +84,11 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
             div {
                 class: "sill-dock-plate",
                 style: plate_style(plate),
-                match art {
-                    Drawn::Plated(source) => rsx! {
-                        IconView {
-                            source,
-                            size: plate_size(plate),
-                            plate: Some(PlateFamily::Neutral),
-                            plate_tint: PlateTint::of(look.0.style, look.0.tint),
-                        }
-                    },
-                    Drawn::Bare(source) => rsx! {
-                        span {
-                            class: "sill-dock-art",
-                            style: "left:-{inset:.2}px;top:-{inset:.2}px;width:{side:.2}px;height:{side:.2}px",
-                            IconView { source }
-                        }
-                    },
+                IconView {
+                    source,
+                    size: plate_size(plate),
+                    plate: Some(PlateFamily::Neutral),
+                    plate_tint: PlateTint::of(look.0.style, look.0.tint),
                 }
                 if let Some(count) = count {
                     span {

@@ -24,8 +24,7 @@ use sill_settings::{PanelMaterial, SpacesSettings};
 
 use crate::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
 use crate::hooks::{
-    use_appearance, use_apps, use_clipboard, use_results, use_settings, use_space_look,
-    use_workspaces,
+    use_appearance, use_clipboard, use_results, use_settings, use_space_look, use_workspaces,
 };
 use crate::surfaces::bar::shell_style::shell_metrics;
 use crate::surfaces::bar::workspaces::group_for;
@@ -106,8 +105,6 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
     let icons = RowIcons {
         look: icon_look(&environment.settings.icons, &look, appearance.accent),
         scale: ds_scale.unwrap_or(ds::Scale::ONE),
-        index: use_apps()(),
-        shipped: file.dock.shipped_icons,
         resolver: use_icon_resolver(),
     };
     let history = use_clipboard();
@@ -413,12 +410,10 @@ fn now() -> sill_launcher::UnixTime {
 }
 
 /// What the rows' icons are drawn with: the icon style on the active Space, the surface's
-/// scale, the app index (which entry a row stands for) and the icon cache.
+/// scale, and the icon cache.
 struct RowIcons {
     look: IconLook,
     scale: ds::Scale,
-    index: sill_services::AppIndex,
-    shipped: sill_settings::ShippedIcons,
     resolver: crate::app_icons::IconResolver,
 }
 
@@ -429,7 +424,7 @@ impl RowIcons {
             scale: self.scale,
             resolver: self.resolver,
         };
-        row_tile(item, row_art(item, &self.index, self.shipped), &cx)
+        row_tile(item, row_art(item), &cx)
     }
 }
 
