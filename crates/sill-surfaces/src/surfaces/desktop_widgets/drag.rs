@@ -9,8 +9,7 @@ use sill_settings::WidgetKind;
 use super::arrange::{LayerPoint, make_room, snap};
 use super::geometry::{GridMetrics, PlaceBox};
 use super::placement::{GridSlot, Placement};
-use crate::widgets::WidgetHost;
-use crate::widgets::sizes::Sizes;
+use crate::widgets::desktop_size;
 
 /// One pointer input on the layer, in layer px.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,11 +63,10 @@ pub enum Landing {
 }
 
 /// What a step reads: the resting arrangement, where each widget is drawn, the grid and the
-/// travel that makes a press a drag, and each widget's size.
+/// travel that makes a press a drag.
 #[derive(Debug, Clone, Copy)]
 pub struct DragWorld<'a> {
     pub rest: &'a [Placement],
-    pub sizes: &'a Sizes,
     pub boxes: &'a [(WidgetKind, PlaceBox)],
     pub metrics: GridMetrics,
     pub threshold: u32,
@@ -89,7 +87,7 @@ pub fn step(hold: Hold, input: DragInput, world: DragWorld<'_>) -> (Hold, Landin
         (Hold::Live { kind, grab, .. }, DragInput::Up(at)) => {
             let layout = match live(kind, at, grab, world) {
                 Hold::Live { over: Some(to), .. } => {
-                    make_room(world.rest, kind, to, world.metrics.grid, world.sizes)
+                    make_room(world.rest, kind, to, world.metrics.grid)
                 }
                 Hold::Live { over: None, .. } | Hold::Idle | Hold::Pressed { .. } => None,
             };
@@ -118,9 +116,8 @@ fn pressed(at: LayerPoint, boxes: &[(WidgetKind, PlaceBox)]) -> Hold {
 
 /// Dragging `kind` with the pointer at `at`: the cell it snaps to, when there is room there.
 fn live(kind: WidgetKind, at: LayerPoint, grab: LayerPoint, world: DragWorld<'_>) -> Hold {
-    let size = world.sizes.of(kind, WidgetHost::Desktop);
-    let over = snap(at.minus(grab), size, world.metrics)
-        .filter(|to| make_room(world.rest, kind, *to, world.metrics.grid, world.sizes).is_some());
+    let over = snap(at.minus(grab), desktop_size(kind), world.metrics)
+        .filter(|to| make_room(world.rest, kind, *to, world.metrics.grid).is_some());
     Hold::Live {
         kind,
         at,
@@ -130,18 +127,13 @@ fn live(kind: WidgetKind, at: LayerPoint, grab: LayerPoint, world: DragWorld<'_>
 }
 
 /// The arrangement to draw under `hold`: the others making room round a live drag.
-pub fn shown(
-    hold: &Hold,
-    rest: &[Placement],
-    metrics: GridMetrics,
-    sizes: &Sizes,
-) -> Vec<Placement> {
+pub fn shown(hold: &Hold, rest: &[Placement], metrics: GridMetrics) -> Vec<Placement> {
     match *hold {
         Hold::Live {
             kind,
             over: Some(to),
             ..
-        } => make_room(rest, kind, to, metrics.grid, sizes).unwrap_or_else(|| rest.to_vec()),
+        } => make_room(rest, kind, to, metrics.grid).unwrap_or_else(|| rest.to_vec()),
         Hold::Live { over: None, .. } | Hold::Idle | Hold::Pressed { .. } => rest.to_vec(),
     }
 }

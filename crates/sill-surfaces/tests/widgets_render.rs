@@ -4,8 +4,8 @@
 //! Battery's rings from the machine and the connected devices and their bump on a change, Now
 //! Playing as the control center's view (its presses reach the fake media queue, never a real
 //! player), World Clock's faces from `widgets.world_clocks`; and the notification center's
-//! slot, which draws `widgets.center` in order under the history, its sizes from
-//! `widgets.sizes`, and "Edit Widgets" under it.
+//! slot, which draws `widgets.center` in order under the history, each at its one size
+//! (Medium), and "Edit Widgets" under it.
 
 mod center_support;
 

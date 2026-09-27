@@ -17,7 +17,6 @@ pub mod battery;
 pub mod calendar;
 pub mod layout;
 pub mod now_playing;
-pub mod sizes;
 pub mod up_next;
 mod up_next_view;
 mod wake;
@@ -39,18 +38,25 @@ pub const ALL_KINDS: [WidgetKind; 5] = [
     WidgetKind::WorldClock,
 ];
 
-/// The size `kind` takes in `host` unless the person picked another (`widgets.sizes`,
-/// [`sizes`]). In the notification center every tile spans the column (a medium tile's 344 fits
-/// its 384 less the padding), the month two cells tall; on the desktop the compact month and
-/// the batteries are small, the lists and the clocks' dials medium.
+/// The one size `kind` takes in `host` (the user's decision, 2026-09-28: a widget has one size,
+/// nothing picks another; FINDINGS "Manual run 2026-09-28: widgets" F1020, F1024). In the
+/// notification center every tile spans the column at Medium (344 fits its 384 less the
+/// padding): the month is the reference's Medium Calendar, today beside the compact month, which
+/// fills its tile where the Large month left a third of a 344-tall tile empty on a day with no
+/// events. On the desktop the compact month and the batteries are Small, the lists and the
+/// clocks' dials Medium.
 pub fn size_of(kind: WidgetKind, host: WidgetHost) -> WidgetSize {
     match (host, kind) {
-        (WidgetHost::Tile, WidgetKind::Calendar) => WidgetSize::Large,
         (WidgetHost::Tile, _) => WidgetSize::Medium,
         (WidgetHost::Desktop, WidgetKind::Calendar | WidgetKind::Battery) => WidgetSize::Small,
         (WidgetHost::Desktop, WidgetKind::UpNext | WidgetKind::NowPlaying) => WidgetSize::Medium,
         (WidgetHost::Desktop, WidgetKind::WorldClock) => WidgetSize::Medium,
     }
+}
+
+/// `kind`'s one size on the desktop.
+pub fn desktop_size(kind: WidgetKind) -> WidgetSize {
+    size_of(kind, WidgetHost::Desktop)
 }
 
 /// `kind`'s name in quire's registry.
@@ -157,7 +163,7 @@ mod tests {
     #[test]
     fn each_widget_has_its_footprint_in_each_host() {
         let cases = [
-            (WidgetKind::Calendar, (2, 2), (1, 1)),
+            (WidgetKind::Calendar, (2, 1), (1, 1)),
             (WidgetKind::UpNext, (2, 1), (2, 1)),
             (WidgetKind::Battery, (2, 1), (1, 1)),
             (WidgetKind::NowPlaying, (2, 1), (2, 1)),

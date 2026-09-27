@@ -5,7 +5,9 @@
 //! `WidgetGallery` over the layout the keys make (`widgets::layout::layout_of`), each edit
 //! applied with `widgets::layout::edited` against this output's desktop grid (measured from the
 //! catcher, the same box the desktop widget layer measures) and written through the root's
-//! [`WidgetsWriter`]. An edit sill cannot make says why under the gallery.
+//! [`WidgetsWriter`]. What each edit came to is said under the gallery ([`EditStatus`]): an
+//! add with a check drawn on, a removal, or why sill could not make it. An add to the desktop
+//! also turns `widgets.desktop` on, so the widget is seen.
 
 use std::rc::Rc;
 
@@ -17,24 +19,27 @@ use ds::{
 };
 use shell_host::OutputInfo;
 use sill_services::OutputName;
+use sill_settings::DesktopWidgets;
 
 use super::drive::{places_to_save, use_phase};
 use super::layer::EDIT_PANEL_ID;
 use super::link::EditWidgetsLink;
+use super::status::{EditCount, EditStatus, Outcome, outcome_of};
 use super::writer::{WidgetsWrite, WidgetsWriter};
 use crate::hooks::{use_appearance, use_ds_scale, use_settings, use_workspaces};
 use crate::surfaces::desktop_widgets::{OutputKey, PlacementFile, grid_size, place};
 use crate::surfaces::launcher::panel::active_look;
 use crate::surfaces::notification_center::phase::Phase;
 use crate::widgets::layout::{WidgetKeys, edited, layout_of};
-use crate::widgets::sizes::Sizes;
-use crate::widgets::{WidgetHost, provide_registry, widgets_css};
+use crate::widgets::{WidgetHost, desktop_size, provide_registry, widgets_css};
 
 /// Edit Widgets' stylesheet (lint-clean under `Profile::Strict`, `tests/edit_widgets_lint.rs`).
 pub const EDIT_WIDGETS_CSS: &str = include_str!("../../style/edit_widgets.css");
 
 /// The panel's width: the gallery's list (200), a Large preview (344) and their gaps and
-/// padding, so every size's preview is drawn at its real size.
+/// padding, so every size's preview is drawn at its real size. quire's gallery still draws
+/// each size a widget offers until it can show one (Q520); with one size the Medium preview
+/// alone would need 624.
 const EDIT_WIDTH: f32 = 720.0;
 
 /// Edit Widgets on `output`.
@@ -85,11 +90,13 @@ fn Stage(output: OutputInfo) -> Element {
 #[component]
 fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Element {
     let link = use_context::<EditWidgetsLink>();
+    let mut column = use_signal(|| None::<Rc<MountedData>>);
     let writer = try_use_context::<WidgetsWriter>();
     let file = try_use_context::<PlacementFile>();
     let probe = use_rect();
     let widgets = use_settings()().widgets;
-    let mut refused = use_signal(|| None::<&'static str>);
+    let mut outcome = use_signal(Outcome::default);
+    let mut count = use_hook(|| CopyValue::new(EditCount::default()));
     let grid = probe.rect().map(|rect| {
         let whole = |length: f32| length.round().clamp(0.0, 1.0e9) as u32;
         let size = grid_size(
@@ -105,11 +112,10 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
     });
     let key = OutputKey::of(output.name.as_deref());
     let saved = file.as_ref().map(|f| f.load(&key)).unwrap_or_default();
-    let sizes = Sizes::parse(&widgets.sizes);
     let sized: Vec<_> = widgets
         .desktop_widgets
         .iter()
-        .map(|&kind| (kind, sizes.of(kind, WidgetHost::Desktop)))
+        .map(|&kind| (kind, desktop_size(kind)))
         .collect();
     let placed = grid.map_or_else(Vec::new, |g| {
         let size = crate::surfaces::desktop_widgets::GridSize {
@@ -121,20 +127,26 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
     let keys = WidgetKeys {
         center: widgets.center.clone(),
         desktop: widgets.desktop_widgets.clone(),
-        sizes,
         placed,
     };
+    let desktop_shown = widgets.desktop;
     let layout = layout_of(&keys);
+    let before = layout.clone();
     let onedit = move |edit: WidgetEdit| {
         let Some(grid) = grid else { return };
-        match edited(&keys, edit, grid) {
+        let now = count.peek().next();
+        count.set(now);
+        let made = edited(&keys, edit.clone(), grid);
+        if let Some(said) = outcome_of(&edit, &before, made.as_ref().map(|_| ()), now) {
+            outcome.set(said);
+        }
+        match made {
             Ok(next) => {
-                refused.set(None);
                 let places = places_to_save(&keys.placed, &saved, &next.placed);
                 let change = WidgetsWrite {
                     center: next.center,
                     desktop: next.desktop,
-                    sizes: next.sizes.text(),
+                    shown: shown_after(&edit, desktop_shown),
                     output: key.clone(),
                     places,
                 };
@@ -144,10 +156,7 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
                     None => eprintln!("sill: Edit Widgets has no writer; nothing was saved"),
                 }
             }
-            Err(why) => {
-                eprintln!("edit_widgets.refused={why}");
-                refused.set(Some(why.words()));
-            }
+            Err(why) => eprintln!("edit_widgets.refused={why}"),
         }
     };
     let (catch, escape, done) = (link.clone(), link.clone(), link);
@@ -172,7 +181,20 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
                     class: "sill-ew-column",
                     "data-overscroll": "band",
                     tabindex: "-1",
-                    onmounted: move |event: MountedEvent| take_keyboard(event.data()),
+                    onmounted: move |event: MountedEvent| {
+                        let element = event.data();
+                        column.set(Some(element.clone()));
+                        take_keyboard(element);
+                    },
+                    // A pointer press anywhere in the panel leaves the keyboard with the panel:
+                    // a press on a gallery button focuses nothing, and a Remove takes its
+                    // button away with its row, so Escape reached nothing after one (G420).
+                    // Pointer only: a key's activation keeps its focus where it is.
+                    onmouseup: move |_| {
+                        if let Some(element) = column.peek().clone() {
+                            take_keyboard(element);
+                        }
+                    },
                     div { class: "sill-ew-head",
                         span { class: "sill-ew-title", "Edit Widgets" }
                         Button {
@@ -182,16 +204,82 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
                         }
                     }
                     WidgetGallery { layout, onedit }
-                    if let Some(why) = refused() {
-                        div { class: "sill-ew-refused", role: "status", {why} }
-                    }
+                    EditStatus { outcome: outcome() }
                 }
             }
         }
     }
 }
 
+/// `widgets.desktop` after `edit`: an add to the desktop shows the desktop's widgets (it was
+/// added to be seen); anything else leaves it as it was.
+fn shown_after(edit: &WidgetEdit, now: DesktopWidgets) -> DesktopWidgets {
+    match edit {
+        WidgetEdit::Add {
+            host: WidgetHost::Desktop,
+            ..
+        } => DesktopWidgets::On,
+        WidgetEdit::Add {
+            host: WidgetHost::Tile,
+            ..
+        }
+        | WidgetEdit::Remove(_)
+        | WidgetEdit::Resize(..)
+        | WidgetEdit::Move(..) => now,
+    }
+}
+
 /// The column takes the keyboard as it mounts, so Escape reaches the panel.
 fn take_keyboard(element: Rc<MountedData>) {
     ds::focus_soon(element);
+}
+
+#[cfg(test)]
+mod tests {
+    use ds::catalog::PlacementId;
+    use ds::widget::WidgetEdit;
+    use ds::{WidgetHost, WidgetSize};
+    use sill_settings::{DesktopWidgets, WidgetKind};
+
+    use super::shown_after;
+    use crate::widgets::kind_id;
+
+    #[test]
+    fn only_an_add_to_the_desktop_turns_the_desktops_widgets_on() {
+        let add = |host| WidgetEdit::Add {
+            kind: kind_id(WidgetKind::WorldClock),
+            size: WidgetSize::Medium,
+            host,
+        };
+        let cases = [
+            (
+                add(WidgetHost::Desktop),
+                DesktopWidgets::Off,
+                DesktopWidgets::On,
+            ),
+            (
+                add(WidgetHost::Desktop),
+                DesktopWidgets::On,
+                DesktopWidgets::On,
+            ),
+            (
+                add(WidgetHost::Tile),
+                DesktopWidgets::Off,
+                DesktopWidgets::Off,
+            ),
+            (
+                WidgetEdit::Remove(PlacementId(1)),
+                DesktopWidgets::Off,
+                DesktopWidgets::Off,
+            ),
+            (
+                WidgetEdit::Remove(PlacementId(1)),
+                DesktopWidgets::On,
+                DesktopWidgets::On,
+            ),
+        ];
+        for (edit, now, want) in cases {
+            assert_eq!(shown_after(&edit, now), want, "{edit:?} {now:?}");
+        }
+    }
 }

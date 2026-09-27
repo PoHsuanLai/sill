@@ -1,6 +1,6 @@
 //! The layer's root: a transparent root in the Widget material as large as the layer
 //! (`RootExtent::Viewport`), holding the grid. The grid measures itself once laid out, places
-//! `widgets.desktop_widgets` (each at its `widgets.sizes` size) with `place` over `grid_size`
+//! `widgets.desktop_widgets` (each at its one desktop size) with `place` over `grid_size`
 //! (this output's saved places first, from the [`PlacementFile`] when the root was given one,
 //! read again when Edit Widgets changes the desktop's widgets), draws each widget at its box,
 //! lets a widget be dragged to another cell (`drag`, `placed`; quire's `WidgetSlotGuide` at the
@@ -30,9 +30,9 @@ use super::placement::{Placement, grid_size, place};
 use super::saved::{OutputKey, PlacementFile};
 use crate::hooks::{use_appearance, use_ds_scale, use_settings, use_workspaces};
 use crate::surfaces::launcher::panel::active_look;
-use crate::widgets::sizes::Sizes;
 use crate::widgets::{
-    WidgetHost, WidgetSize, provide_registry, provide_widget_wake, widget_element_id, widgets_css,
+    WidgetHost, WidgetSize, desktop_size, provide_registry, provide_widget_wake, widget_element_id,
+    widgets_css,
 };
 
 /// The Widget material's corner (quire's recipe, `--m-radius` 20 px): the frames' regions round
@@ -68,7 +68,6 @@ pub(super) fn desktop(output: OutputInfo) -> Element {
             style { {widgets_css()} }
             Grid {
                 kinds: widgets.desktop_widgets,
-                sizes: Sizes::parse(&widgets.sizes),
                 cell: widgets.desktop_cell_px.0,
                 gap: widgets.desktop_gap_px.0,
                 threshold: file.window.move_threshold_px.0,
@@ -82,7 +81,6 @@ pub(super) fn desktop(output: OutputInfo) -> Element {
 #[derive(Debug, Clone, PartialEq)]
 struct Laid {
     rest: Vec<Placement>,
-    sizes: Sizes,
     boxes: Vec<(WidgetKind, PlaceBox)>,
     metrics: GridMetrics,
     threshold: u32,
@@ -101,7 +99,6 @@ struct Dropped {
 #[component]
 fn Grid(
     kinds: Vec<WidgetKind>,
-    sizes: Sizes,
     cell: u16,
     gap: u16,
     threshold: u16,
@@ -112,7 +109,7 @@ fn Grid(
     let key = OutputKey::of(output.name.as_deref());
     let mut kept =
         use_hook(|| CopyValue::new(file.as_ref().map(|f| f.load(&key)).unwrap_or_default()));
-    use_reload(&kinds, &sizes, file.as_ref(), &key, kept);
+    use_reload(&kinds, file.as_ref(), &key, kept);
     let hold = use_signal(Hold::default);
     let dropped = use_signal(|| None::<Dropped>);
     let meter = use_hook(|| CopyValue::new(PointMeter::default()));
@@ -122,7 +119,7 @@ fn Grid(
         let grid = grid_size(width, logical(rect.size.height.0), cell, gap);
         let sized: Vec<_> = kinds
             .iter()
-            .map(|kind| (*kind, sizes.of(*kind, WidgetHost::Desktop)))
+            .map(|kind| (*kind, desktop_size(*kind)))
             .collect();
         let metrics = GridMetrics {
             grid,
@@ -132,9 +129,8 @@ fn Grid(
         };
         let rest = place(&sized, &kept.peek(), grid);
         Laid {
-            boxes: boxes(&rest, metrics, &sizes),
+            boxes: boxes(&rest, metrics),
             rest,
-            sizes: sizes.clone(),
             metrics,
             threshold: u32::from(threshold),
         }
@@ -159,12 +155,12 @@ fn Grid(
     let held = hold();
     let on_screen = now
         .as_ref()
-        .map(|l| shown(&held, &l.rest, l.metrics, &l.sizes))
+        .map(|l| shown(&held, &l.rest, l.metrics))
         .unwrap_or_default();
     use_regions(&on_screen);
     let guide = now.as_ref().and_then(|l| slot_guide(&held, l));
     let places = now
-        .map(|l| draw_order(&on_screen, &held, dropped(), l.metrics, &l.sizes))
+        .map(|l| draw_order(&on_screen, &held, dropped(), l.metrics))
         .unwrap_or_default();
     let (down, moved, up) = (feed.clone(), feed.clone(), feed);
     rsx! {
@@ -188,17 +184,10 @@ fn Grid(
 }
 
 /// Each widget's box at its resting cell.
-fn boxes(
-    placements: &[Placement],
-    metrics: GridMetrics,
-    sizes: &Sizes,
-) -> Vec<(WidgetKind, PlaceBox)> {
+fn boxes(placements: &[Placement], metrics: GridMetrics) -> Vec<(WidgetKind, PlaceBox)> {
     placements
         .iter()
-        .map(|p| {
-            let size = sizes.of(p.kind, WidgetHost::Desktop);
-            (p.kind, place_box(p.slot, size, metrics))
-        })
+        .map(|p| (p.kind, place_box(p.slot, desktop_size(p.kind), metrics)))
         .collect()
 }
 
@@ -213,20 +202,19 @@ fn slot_guide(held: &Hold, laid: &Laid) -> Option<(WidgetSize, PlaceBox)> {
     else {
         return None;
     };
-    let size = laid.sizes.of(kind, WidgetHost::Desktop);
+    let size = desktop_size(kind);
     Some((size, place_box(slot, size, laid.metrics)))
 }
 
-/// Read this output's places from the file again when the desktop's widgets or their sizes
-/// change (Edit Widgets wrote them there), so a widget it added lands in the cell it chose.
+/// Read this output's places from the file again when the desktop's widgets change (Edit
+/// Widgets wrote them there), so a widget it added lands in the cell it chose.
 fn use_reload(
     kinds: &[WidgetKind],
-    sizes: &Sizes,
     file: Option<&PlacementFile>,
     key: &OutputKey,
     mut kept: CopyValue<Vec<Placement>>,
 ) {
-    let now = (kinds.to_vec(), sizes.clone());
+    let now = kinds.to_vec();
     let mut seen = use_hook(|| CopyValue::new(now.clone()));
     if *seen.peek() == now {
         return;
@@ -244,11 +232,10 @@ fn draw_order(
     held: &Hold,
     dropped: Option<Dropped>,
     metrics: GridMetrics,
-    sizes: &Sizes,
 ) -> Vec<(WidgetKind, WidgetSize, PlaceBox, Pose, Glide)> {
     let lifted = held.lifted();
     let top = lifted.map(|(kind, _)| kind).or(dropped.map(|d| d.kind));
-    let mut places: Vec<_> = boxes(on_screen, metrics, sizes)
+    let mut places: Vec<_> = boxes(on_screen, metrics)
         .into_iter()
         .map(|(kind, target)| {
             let pose = match lifted {
@@ -263,13 +250,7 @@ fn draw_order(
                 }) if last == kind => Glide::Thrown { touch, release },
                 Some(_) | None => Glide::Aside,
             };
-            (
-                kind,
-                sizes.of(kind, WidgetHost::Desktop),
-                target,
-                pose,
-                glide,
-            )
+            (kind, desktop_size(kind), target, pose, glide)
         })
         .collect();
     places.sort_by_key(|(kind, ..)| Some(*kind) == top);
@@ -332,7 +313,6 @@ impl Feeder {
         };
         let world = DragWorld {
             rest: &laid.rest,
-            sizes: &laid.sizes,
             boxes: &laid.boxes,
             metrics: laid.metrics,
             threshold: laid.threshold,

@@ -1,7 +1,8 @@
 //! Edit Widgets on the daemon's side (FINDINGS "Widget interface port"): one hidden surface per
 //! output, kept warm like the notification center; `sill widgets edit` and `edit-close`, which
-//! write its link; and the writer its root is given, which saves the three widget keys into
-//! `settings.toml` (publishing them at once, as `toggle-desktop` does, so the desktop layer and
+//! write its link; and the writer its root is given, which saves the widget keys into
+//! `settings.toml` (`widgets.center`, `widgets.desktop_widgets`, and `widgets.desktop`, which an
+//! add to the desktop turns on) (publishing them at once, as `toggle-desktop` does, so the desktop layer and
 //! the center follow before the watch fires) and the output's places into
 //! `desktop-widgets.json`.
 
@@ -118,7 +119,7 @@ pub fn write(
     let mut file = sill_settings::load(dir);
     file.widgets.center = change.center;
     file.widgets.desktop_widgets = change.desktop;
-    file.widgets.sizes = change.sizes;
+    file.widgets.desktop = change.shown;
     sill_settings::save(dir, &file).map_err(|error| format!("saving the settings: {error}"))?;
     settings.send_replace(file);
     if let Some(places) = places {
@@ -131,7 +132,7 @@ pub fn write(
 
 #[cfg(test)]
 mod tests {
-    use sill_settings::{ShellFile, WidgetKind};
+    use sill_settings::{DesktopWidgets, ShellFile, WidgetKind};
     use sill_surfaces::surfaces::desktop_widgets::{GridSlot, OutputKey, Placement, PlacementFile};
     use sill_surfaces::surfaces::edit_widgets::WidgetsWrite;
     use tokio::sync::watch;
@@ -139,7 +140,7 @@ mod tests {
     use super::write;
 
     #[test]
-    fn an_edit_writes_the_three_keys_and_the_outputs_places() {
+    fn an_edit_writes_the_widget_keys_and_the_outputs_places() {
         let dir = std::env::temp_dir().join(format!("sill-edit-widgets-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         let places = PlacementFile(dir.join("state").join("desktop-widgets.json"));
@@ -154,7 +155,7 @@ mod tests {
         let change = WidgetsWrite {
             center: vec![WidgetKind::UpNext],
             desktop: vec![WidgetKind::Calendar, WidgetKind::WorldClock],
-            sizes: "desktop.calendar=medium".to_owned(),
+            shown: DesktopWidgets::On,
             output: OutputKey::Named("DP-1".to_owned()),
             places: vec![clock],
         };
@@ -165,12 +166,16 @@ mod tests {
             saved.desktop_widgets,
             vec![WidgetKind::Calendar, WidgetKind::WorldClock]
         );
-        assert_eq!(saved.sizes, "desktop.calendar=medium");
+        assert_eq!(
+            saved.desktop,
+            DesktopWidgets::On,
+            "an add to the desktop shows it"
+        );
         assert_eq!(
             saved.world_clocks, "Europe/London",
             "every other key is kept"
         );
-        assert_eq!(rx.borrow().widgets.sizes, "desktop.calendar=medium");
+        assert_eq!(rx.borrow().widgets.desktop, DesktopWidgets::On);
         assert_eq!(
             places.load(&OutputKey::Named("DP-1".to_owned())),
             vec![clock]

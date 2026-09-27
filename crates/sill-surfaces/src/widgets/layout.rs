@@ -1,10 +1,11 @@
 //! The widget keys as quire's `WidgetLayout` and back (design/28 section 4.1; FINDINGS "Widget
 //! interface port"). Until `layout.toml` (P2), sill keeps what it kept: the notification
-//! center's widgets in order (`widgets.center`), the desktop's (`widgets.desktop_widgets`),
-//! the sizes picked (`widgets.sizes`), and each output's desktop cells in the state file
-//! (`desktop-widgets.json`). [`layout_of`] reads them as one layout for Edit Widgets;
-//! [`edited`] applies one of its edits through quire's `ds::widget::apply` and writes the
-//! result back as the same keys and places. Pure.
+//! center's widgets in order (`widgets.center`), the desktop's (`widgets.desktop_widgets`) and
+//! each output's desktop cells in the state file (`desktop-widgets.json`). Each widget has one
+//! size in each host ([`super::size_of`]; FINDINGS F1024): nothing is picked, so an add is made
+//! at that size whatever the gallery asked, and a resize is refused. [`layout_of`] reads the
+//! keys as one layout for Edit Widgets; [`edited`] applies one of its edits through quire's
+//! `ds::widget::apply` and writes the result back as the same keys and places. Pure.
 //!
 //! sill places each kind at most once per surface (the drag, the regions and the state file
 //! are keyed by kind), so adding a kind a surface already shows is refused
@@ -12,8 +13,7 @@
 
 use ds::widget::{DesktopGrid, GridCell, Order, WidgetAt, WidgetEdit, WidgetLayout, apply};
 
-use super::sizes::Sizes;
-use super::{WidgetHost, WidgetKind, kind_id, kind_of};
+use super::{WidgetHost, WidgetKind, kind_id, kind_of, size_of};
 use crate::surfaces::desktop_widgets::{GridSlot, Placement};
 
 /// What the layout is read from: the keys, and where this output's desktop widgets are now.
@@ -21,7 +21,6 @@ use crate::surfaces::desktop_widgets::{GridSlot, Placement};
 pub struct WidgetKeys {
     pub center: Vec<WidgetKind>,
     pub desktop: Vec<WidgetKind>,
-    pub sizes: Sizes,
     /// Each desktop widget's cell on this output (`desktop_widgets::place`); a widget that
     /// fits nowhere has none and is left out of the layout.
     pub placed: Vec<Placement>,
@@ -39,6 +38,9 @@ pub enum Refused {
     /// Not a widget sill can place.
     #[error("{} is not a widget sill places", .0.as_str())]
     Foreign(ds::WidgetKind),
+    /// A widget has one size; there is no other to change to.
+    #[error("a widget has one size")]
+    OneSize,
 }
 
 impl Refused {
@@ -56,6 +58,7 @@ impl Refused {
             }
             Refused::Placed(_) => "It is already there.",
             Refused::Foreign(_) => "This widget cannot be placed yet.",
+            Refused::OneSize => "Each widget comes in one size.",
         }
     }
 }
@@ -77,17 +80,19 @@ pub fn layout_of(keys: &WidgetKeys) -> WidgetLayout {
     center
         .chain(desktop)
         .fold(WidgetLayout::default(), |layout, (kind, host, at)| {
-            layout.added(kind_id(kind), keys.sizes.of(kind, host), at).0
+            layout.added(kind_id(kind), size_of(kind, host), at).0
         })
 }
 
-/// The keys after `edit` on a desktop of `grid`.
+/// The keys after `edit` on a desktop of `grid`. An add is made at the kind's one size in its
+/// host, whatever size the gallery sent; a resize is refused.
 pub fn edited(
     keys: &WidgetKeys,
     edit: WidgetEdit,
     grid: DesktopGrid,
 ) -> Result<WidgetKeys, Refused> {
     let before = layout_of(keys);
+    let edit = one_size(edit)?;
     if let WidgetEdit::Add { kind, host, .. } = &edit {
         let ours = kind_of(kind).ok_or_else(|| Refused::Foreign(kind.clone()))?;
         let shown = on(&before, *host).into_iter().any(|(k, _)| k == ours);
@@ -97,6 +102,19 @@ pub fn edited(
     }
     let after = apply(before.clone(), edit, grid).map_err(Refused::Layout)?;
     Ok(keys_of(keys, &before, &after))
+}
+
+/// `edit` with an add's size the kind's one size in its host; a resize is [`Refused::OneSize`].
+fn one_size(edit: WidgetEdit) -> Result<WidgetEdit, Refused> {
+    match edit {
+        WidgetEdit::Add { kind, host, size } => {
+            let size = kind_of(&kind).map_or(size, |ours| size_of(ours, host));
+            Ok(WidgetEdit::Add { kind, host, size })
+        }
+        WidgetEdit::Resize(..) => Err(Refused::OneSize),
+        WidgetEdit::Remove(id) => Ok(WidgetEdit::Remove(id)),
+        WidgetEdit::Move(id, at) => Ok(WidgetEdit::Move(id, at)),
+    }
 }
 
 /// The kinds on `host` in `layout`, in the surface's order, with their positions.
@@ -152,33 +170,8 @@ fn keys_of(keys: &WidgetKeys, before: &WidgetLayout, after: &WidgetLayout) -> Wi
             .map(|(kind, _)| kind)
             .collect(),
         desktop,
-        sizes: sizes_of(&keys.sizes, before, after),
         placed,
     }
-}
-
-/// `sizes` with each widget of `after` at its size, and each taken away back to none.
-fn sizes_of(sizes: &Sizes, before: &WidgetLayout, after: &WidgetLayout) -> Sizes {
-    let gone = before.items().iter().filter(|was| {
-        after
-            .items()
-            .iter()
-            .all(|now| (now.kind.clone(), now.at.host()) != (was.kind.clone(), was.at.host()))
-    });
-    let reset = gone.fold(sizes.clone(), |sizes, was| match kind_of(&was.kind) {
-        Some(kind) => {
-            let host = was.at.host();
-            sizes.with(kind, host, super::size_of(kind, host))
-        }
-        None => sizes,
-    });
-    after
-        .items()
-        .iter()
-        .fold(reset, |sizes, item| match kind_of(&item.kind) {
-            Some(kind) => sizes.with(kind, item.at.host(), item.size),
-            None => sizes,
-        })
 }
 
 #[cfg(test)]
