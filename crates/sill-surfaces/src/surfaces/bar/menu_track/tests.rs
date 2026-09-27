@@ -176,7 +176,7 @@ fn a_press_on_a_title_the_pointer_switched_to_keeps_its_menu() {
         MenuTrack::Tracking { menu, shown, .. } => Some((*menu, *shown)),
         MenuTrack::Closed => None,
     };
-    let cases: Vec<(&str, Script, Option<(MenuId, Shown)>, Option<Held>)> = vec![
+    let cases: Vec<SwitchCase> = vec![
         (
             "switched to by hover",
             switched.clone(),
@@ -410,3 +410,7 @@ fn the_triangle_test_is_a_sign_test_either_winding() {
     );
     assert!(!super::guarded(&guard, pt(100, -5)));
 }
+
+/// One row of the click-after-switch table: its name, the script, the menu then shown and how,
+/// and what is held.
+type SwitchCase = (&'static str, Script, Option<(MenuId, Shown)>, Option<Held>);
