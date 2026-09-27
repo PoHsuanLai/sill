@@ -8103,3 +8103,5 @@ on a worktree branch from sill master ca1f971. Closes Q432 and Q463.
   a row), `dev/out/widgets-drag-cosmic.png` (both settled in column 8 over the wallpaper). The
   script's release is a still one (it holds 0.3 s first), so it exercises the critically damped
   drop.
+- **F976 Gate.** `GATE_DIR=<this worktree> ~/sill-wt/sill-gate.sh` on 8ba1a18 at load 4.2:
+  SILL GATE GREEN (fmt, clippy, 1240 passed, 0 failed, 52 ignored, boundary, licenses).
