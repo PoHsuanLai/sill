@@ -6816,6 +6816,16 @@ no growing delay after failed passwords. Numbered from F860/Q420.
   | Re-lock after a crash (the marker, F544) or an adopted locker | start-up | 5 s | 0.1 s | no | Ask |
   | Any cause, `session.locker` other than `sill` | the borrowed locker owns its prompt | any | any | any | Ask (sill cannot dismiss it) |
 
+- **F864 Checks.** `dev/accept-lock.sh` on wayland-1 (pinged, never stopped; private bus,
+  scratch XDG dirs, made-up verdicts only): 8/8 PASS. It locked in 127 ms. Six wrongs settle back
+  to the idle field (0 pixels differ in the prompt band, still locked;
+  `dev/out/lock-sixwrong-cosmic.png`). The accept then unlocks in 789 ms. A crash re-locks from
+  the marker 1 ms after the restart. A first run at load 130 failed three capture-based steps on
+  "no reply within 2s" and passed whole at load 37. `dev/accept-osd.sh`: 5/5 PASS.
+  `tests/auth_live.rs --ignored` (fake authenticator; the PAM test skips): 4 passed, and the right
+  secret after ten wrong opened in 20 ms. Gate on d8c5b74: SILL GATE GREEN (fmt, clippy, 1149
+  passed, 0 failed, 51 ignored, boundary, licenses).
+
 ### Asks
 
 - **Q420 (the user) How should sill know the screen slept?** Options, cleanest first:
