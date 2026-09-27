@@ -6638,6 +6638,23 @@ merged in. Numbers from F830.
     the selected row.
   - Load check: status_glyphs, bar_low_nudge, switcher_render, launcher_actions, osd_render,
     screenshot_thumb_render and banners_render ran 10 times each, with 0 failures.
+- **F835 Gate and scripts.**
+  - `~/sill-wt/sill-gate.sh` on this worktree (564d58b, master 8adab89 merged): **SILL GATE
+    GREEN**. Tests: 1143 passed, 0 failed, 51 ignored.
+  - The scripts ran on the nested wayland-1 (pinged first, reused, never stopped), under F780's
+    isolation. The scratch XDG_RUNTIME_DIR must be short: under a long scratchpad path the
+    daemon's `agent.sock` path went past the 108-byte limit, and nothing started.
+  - `dev/accept-bar.sh` (daemon started first): 9 PASS, exit 0. Idle was 8 frames before and 8
+    after.
+  - `dev/accept-control-center.sh`: 4 PASS, 2 FAIL, exit 1. `step_wifi_pane` and
+    `step_module_item` fail because there is no NetworkManager under the isolation, as in F781.
+    Idle: 0 frames.
+  - Captures: `dev/out/bar-cosmic.png`, `bar-cosmic-menu.png`, `control-center-cosmic.png` and
+    `control-center-wifi-cosmic.png`. The bar's volume item is now quire's volume glyph
+    (NoDevice: the speaker with its slash), and its Wi-Fi item is the Wi-Fi glyph in `Off` (the
+    faint fan with the slash). The center's Sound header and capsule draw the same volume glyph.
+    The Wi-Fi and Bluetooth discs draw their status glyphs, dimmed as Unavailable. There is no
+    battery item and no Battery module, because there is no UPower under the isolation.
 
 ### Gaps (sill)
 
