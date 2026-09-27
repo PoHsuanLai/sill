@@ -31,6 +31,9 @@ pub struct Feeds {
     pub bluetooth: watch::Sender<Bluetooth>,
     pub power_profiles: watch::Sender<PowerProfiles>,
     pub media: watch::Sender<Media>,
+    /// The keyboard backlight: absent until a test feeds one (`kbd_backlight()`).
+    pub kbd_backlight: watch::Sender<sill_services::KbdBacklight>,
+    pub kbd_commands: mpsc::UnboundedReceiver<sill_services::KbdCommand>,
     /// M6: the live banners and the history (both empty until a test feeds them).
     pub notifications: watch::Sender<sill_services::Notifications>,
     pub notification_history: watch::Sender<sill_services::History>,
@@ -213,6 +216,14 @@ pub fn bluetooth() -> Bluetooth {
     }
 }
 
+/// A keyboard backlight with three steps, on the second.
+pub fn kbd_backlight() -> sill_services::KbdBacklight {
+    sill_services::KbdBacklight {
+        presence: Presence::Present,
+        level: sill_services::KbdLevel { value: 2, max: 3 },
+    }
+}
+
 /// power-profiles-daemon on Balanced, all three offered.
 pub fn power_profiles() -> PowerProfiles {
     PowerProfiles {
@@ -287,6 +298,8 @@ pub fn services() -> (Services, Feeds) {
     let (bluetooth_control, bluetooth_rx) = Control::channel();
     let (power_profile_control, profile_rx) = Control::channel();
     let (media_control, media_rx) = Control::channel();
+    let (kbd_tx, kbd_backlight) = watch::channel(sill_services::KbdBacklight::default());
+    let (kbd_backlight_control, kbd_rx) = Control::channel();
     let (notifications_tx, notifications) = watch::channel(sill_services::Notifications::default());
     let (history_tx, notification_history) = watch::channel(sill_services::History::default());
     let (notifications_control, notification_rx) = Control::channel();
@@ -332,6 +345,8 @@ pub fn services() -> (Services, Feeds) {
         power_profile_control,
         media,
         media_control,
+        kbd_backlight,
+        kbd_backlight_control,
         session: fixed(sill_services::Session::default(), &mut keep),
         session_control: control(&mut keep),
         lock: fixed(sill_services::Lock::default(), &mut keep),
@@ -364,6 +379,8 @@ pub fn services() -> (Services, Feeds) {
         bluetooth: bluetooth_tx,
         power_profiles: profiles_tx,
         media: media_tx,
+        kbd_backlight: kbd_tx,
+        kbd_commands: kbd_rx,
         notifications: notifications_tx,
         notification_history: history_tx,
         wl: wl_rx,

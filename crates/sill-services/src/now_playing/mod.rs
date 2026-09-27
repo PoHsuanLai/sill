@@ -40,6 +40,10 @@ pub enum MediaCommand {
     Press { player: PlayerId, verb: MediaVerb },
     /// Re-read every player (after a resume).
     Refresh,
+    /// Re-read `player`'s `Position` (and the track's `mpris:length`) and republish its
+    /// timeline: a read, nothing sent to the player. MPRIS signals no position change as a
+    /// track plays, so a surface that opens on a player asks for where it is now.
+    Position(PlayerId),
 }
 
 /// Start the Now Playing task on `rt`. Without a session bus the receiver stays at

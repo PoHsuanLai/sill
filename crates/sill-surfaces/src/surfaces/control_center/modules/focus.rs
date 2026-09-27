@@ -3,7 +3,7 @@
 //! through the root context's `sill_settings::FocusLink`.
 
 use dioxus::prelude::*;
-use ds::{Icon, ModuleState, ModuleTile, Text};
+use ds::{DiscMotion, Icon, ModuleState, ModuleTile, Text};
 use sill_settings::{FocusLink, FocusMode};
 
 use crate::hooks::use_focus_mode;
@@ -18,6 +18,8 @@ pub fn FocusModule() -> Element {
     rsx! {
         ModuleTile {
             glyph: Icon::Moon,
+            // On grows the filled moon in, springing under the tile's own press (design/26 G23).
+            disc: DiscMotion::Morph(Icon::MoonFilled),
             title: "Focus",
             status: Some(Text::from(focus_status(mode))),
             state: focus_state(mode),

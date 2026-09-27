@@ -28,6 +28,7 @@ pub fn span(module: ControlCenterModule) -> Span {
             Span::One
         }
         ControlCenterModule::Display
+        | ControlCenterModule::KeyboardBrightness
         | ControlCenterModule::Sound
         | ControlCenterModule::NowPlaying
         | ControlCenterModule::Appearance
@@ -105,7 +106,9 @@ pub(crate) fn module_height(module: ControlCenterModule) -> i32 {
         ControlCenterModule::Wifi | ControlCenterModule::Bluetooth | ControlCenterModule::Focus => {
             TILE_PX
         }
-        ControlCenterModule::Display | ControlCenterModule::Sound => LEVEL_PX,
+        ControlCenterModule::Display
+        | ControlCenterModule::KeyboardBrightness
+        | ControlCenterModule::Sound => LEVEL_PX,
         ControlCenterModule::NowPlaying => NOW_PLAYING_PX,
         ControlCenterModule::Appearance => APPEARANCE_PX,
         ControlCenterModule::Battery => BATTERY_PX,
@@ -116,12 +119,13 @@ pub(crate) fn module_height(module: ControlCenterModule) -> i32 {
 const TILE_PX: i32 = 56;
 /// A level module: title line, the glyph and slider row, padding.
 const LEVEL_PX: i32 = 76;
-/// Now Playing: the 48 px art and padding.
-const NOW_PLAYING_PX: i32 = 76;
+/// Now Playing: the 48 px art, the position bar and its times, padding.
+const NOW_PLAYING_PX: i32 = 112;
 /// quire's `AppearancePicker`: three field headers over their controls.
 const APPEARANCE_PX: i32 = 226;
-/// Battery: two lines over the power profile's segmented control.
-const BATTERY_PX: i32 = 112;
+/// Battery: a row of 64 px device rings over their percentages, two lines, the power
+/// profile's segmented control.
+const BATTERY_PX: i32 = 204;
 /// A detail page's header: the back button, the title and the switch.
 pub(crate) const DETAIL_HEAD_PX: i32 = 48;
 /// One list row on a detail page.
@@ -178,7 +182,8 @@ mod tests {
     #[test]
     fn the_default_modules_lay_out_in_two_columns() {
         use ControlCenterModule::{
-            Appearance, Battery, Bluetooth, Display, Focus, NowPlaying, Sound, Wifi,
+            Appearance, Battery, Bluetooth, Display, Focus, KeyboardBrightness, NowPlaying, Sound,
+            Wifi,
         };
         let cells: Vec<(ControlCenterModule, u16, u16, Span)> =
             place(&ControlCenterSettings::default().modules, 2)
@@ -192,10 +197,11 @@ mod tests {
                 (Bluetooth, 0, 1, Span::One),
                 (Focus, 1, 0, Span::One),
                 (Display, 2, 0, Span::Row),
-                (Sound, 3, 0, Span::Row),
-                (NowPlaying, 4, 0, Span::Row),
-                (Appearance, 5, 0, Span::Row),
-                (Battery, 6, 0, Span::Row),
+                (KeyboardBrightness, 3, 0, Span::Row),
+                (Sound, 4, 0, Span::Row),
+                (NowPlaying, 5, 0, Span::Row),
+                (Appearance, 6, 0, Span::Row),
+                (Battery, 7, 0, Span::Row),
             ]
         );
     }

@@ -9,12 +9,14 @@ use super::geometry::{detail_height, estimate_size, module_height, place};
 use super::page::{CcPage, Detail};
 
 /// What the estimate needs beyond the settings: the page on show, how many rows each detail
-/// list has, and the panel's cap ([`super::height_cap`]).
+/// list has, whether the machine has a keyboard backlight (its module is drawn only then), and
+/// the panel's cap ([`super::height_cap`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct Fit {
     pub page: CcPage,
     pub wifi_rows: usize,
     pub device_rows: usize,
+    pub keyboard: Presence,
     pub cap: i32,
 }
 
@@ -25,7 +27,7 @@ pub(crate) fn panel_size(cc: &ControlCenterSettings, fit: &Fit) -> Size {
         CcPage::Detail(Detail::Wifi) => fit.wifi_rows,
         CcPage::Detail(Detail::Bluetooth) => fit.device_rows,
     };
-    let placed = place(&cc.modules, cc.grid_columns.0);
+    let placed = place(&drawn_modules(&cc.modules, fit.keyboard), cc.grid_columns.0);
     estimate_size(cc, fit.page, &placed, rows, fit.cap)
 }
 
@@ -40,6 +42,7 @@ pub(crate) fn dropdown_size(
         ControlCenterModule::Bluetooth => detail_height(fit.device_rows),
         ControlCenterModule::Focus
         | ControlCenterModule::Display
+        | ControlCenterModule::KeyboardBrightness
         | ControlCenterModule::Sound
         | ControlCenterModule::NowPlaying
         | ControlCenterModule::Appearance
@@ -49,6 +52,33 @@ pub(crate) fn dropdown_size(
         width: i32::from(cc.width_px.0),
         height: (inner + 2 * i32::from(cc.grid_padding_px.0)).min(fit.cap),
     }
+}
+
+/// The modules the grid draws: `modules` less the Keyboard Brightness module on a machine with
+/// no keyboard backlight (it draws nothing there).
+pub(crate) fn drawn_modules(
+    modules: &[ControlCenterModule],
+    keyboard: Presence,
+) -> Vec<ControlCenterModule> {
+    modules
+        .iter()
+        .copied()
+        .filter(|module| match (module, keyboard) {
+            (ControlCenterModule::KeyboardBrightness, Presence::Absent) => false,
+            (ControlCenterModule::KeyboardBrightness, Presence::Present)
+            | (
+                ControlCenterModule::Wifi
+                | ControlCenterModule::Bluetooth
+                | ControlCenterModule::Focus
+                | ControlCenterModule::Display
+                | ControlCenterModule::Sound
+                | ControlCenterModule::NowPlaying
+                | ControlCenterModule::Appearance
+                | ControlCenterModule::Battery,
+                _,
+            ) => true,
+        })
+        .collect()
 }
 
 /// About how many rows the Wi-Fi list has: its distinct named networks while the radio is on
@@ -80,7 +110,7 @@ pub(crate) fn device_rows(bluetooth: &Bluetooth) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{Fit, device_rows, dropdown_size, panel_size, wifi_rows};
+    use super::{Fit, device_rows, drawn_modules, dropdown_size, panel_size, wifi_rows};
     use crate::surfaces::control_center::{CcPage, Detail};
     use sill_services::{
         AccessPoint, Association, Bluetooth, Percent, Presence, Radio, Security, Ssid, Wifi,
@@ -94,6 +124,7 @@ mod tests {
             page,
             wifi_rows: 4,
             device_rows: 0,
+            keyboard: Presence::Absent,
             cap: 1032,
         };
         let grid = panel_size(&cc, &fit(CcPage::Modules));
@@ -128,5 +159,29 @@ mod tests {
         };
         assert_eq!(wifi_rows(&off), 0);
         assert_eq!(device_rows(&Bluetooth::default()), 0);
+    }
+
+    #[test]
+    fn the_keyboard_module_is_drawn_only_with_a_backlight() {
+        use ControlCenterModule::{Display, KeyboardBrightness, Sound};
+        let modules = [Display, KeyboardBrightness, Sound];
+        let cases = [
+            (Presence::Present, vec![Display, KeyboardBrightness, Sound]),
+            (Presence::Absent, vec![Display, Sound]),
+        ];
+        for (keyboard, want) in cases {
+            assert_eq!(drawn_modules(&modules, keyboard), want, "{keyboard:?}");
+        }
+        let cc = ControlCenterSettings::default();
+        let fit = |keyboard| Fit {
+            page: CcPage::Modules,
+            wifi_rows: 0,
+            device_rows: 0,
+            keyboard,
+            cap: 2000,
+        };
+        let with = panel_size(&cc, &fit(Presence::Present)).height;
+        let without = panel_size(&cc, &fit(Presence::Absent)).height;
+        assert_eq!(with - without, 76 + 8, "a level module and its gap");
     }
 }

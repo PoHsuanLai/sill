@@ -33,6 +33,7 @@ pub fn ModuleDropdown(
         ControlCenterModule::Bluetooth => rsx! { BluetoothPane { back: None } },
         ControlCenterModule::Focus
         | ControlCenterModule::Display
+        | ControlCenterModule::KeyboardBrightness
         | ControlCenterModule::Sound
         | ControlCenterModule::NowPlaying
         | ControlCenterModule::Appearance

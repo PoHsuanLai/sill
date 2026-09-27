@@ -326,6 +326,7 @@ fn view(slots: Slots, deps: &SessionDeps, menu: BarMenu) -> Option<PopupView> {
             // up at the popup's next view.
             wifi_rows: wifi_rows(&deps.services.wifi.borrow()),
             device_rows: device_rows(&deps.services.bluetooth.borrow()),
+            keyboard: deps.services.kbd_backlight.borrow().presence,
             cap: deps.cap,
         },
     };

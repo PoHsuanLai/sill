@@ -88,6 +88,9 @@ pub(super) async fn run(
                 Some(MediaCommand::Refresh) => {
                     discover(&connection, &dbus, &tx, &art_tx, &mut owners, cache_dir.as_deref(), origin).await;
                 }
+                Some(MediaCommand::Position(id)) => {
+                    reread_timeline(&connection, &tx, id, origin).await;
+                }
                 None => break,
             }
         }
@@ -243,6 +246,17 @@ async fn handle_seeked(
     let Some(id) = sender_player(message, owners) else {
         return;
     };
+    reread_timeline(connection, tx, id, origin).await;
+}
+
+/// Reads `id`'s `Position` and `mpris:length` fresh (property reads only) and republishes just
+/// its timeline; a player that is not listed is dropped by the reducer.
+async fn reread_timeline(
+    connection: &Connection,
+    tx: &watch::Sender<Media>,
+    id: PlayerId,
+    origin: Instant,
+) {
     let Some(player) = player_proxy(connection, &id).await else {
         return;
     };

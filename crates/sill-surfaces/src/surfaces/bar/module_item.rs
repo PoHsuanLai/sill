@@ -37,7 +37,9 @@ pub fn ModuleItem(output: OutputInfo, module: ControlCenterModule) -> Element {
         },
         ControlCenterModule::NowPlaying => rsx! { NowPlayingItem {} },
         // Not bar items (`in_menu_bar` hides them); drawn as nothing if named anyway.
-        ControlCenterModule::Focus | ControlCenterModule::Appearance => rsx! {},
+        ControlCenterModule::Focus
+        | ControlCenterModule::KeyboardBrightness
+        | ControlCenterModule::Appearance => rsx! {},
     }
 }
 

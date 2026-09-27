@@ -7512,3 +7512,144 @@ carrying the held buttons, everything through `HostState::deliver`) on top of si
   here (idle/session lock is out of this session's scope); every check this session's own diff
   is answerable for is green. Re-run once the idle-service session's `KeySpec` (or an
   `AWAITING_ROWS` entry) lands to confirm SILL GATE GREEN.
+
+## D2 control center details (2026-09-27)
+
+The sill lane of quire CONSUMING "Control center details" (design/26 wave D2, 5.2), on sill
+master 1506faa with quire master 0856aaea (eba87cbf fast-forwarded by one). Numbers from F920,
+Q450, G350.
+
+- **F920 Focus.** The tile passes `disc: DiscMotion::Morph(Icon::MoonFilled)`. The tile's own
+  press springs the morph (`a-morph-in-spring`); a mode change from elsewhere grows the moon in
+  without the spring.
+- **F921 Which row an operation is on (`control_center/row_phase.rs`, pure).** The services
+  stamp one attempt at a time (`Network.join`, `Bluetooth.connect`, F820) and do not say which
+  item it is for. The row whose item reports `Connecting` is the operation's. Each pane
+  remembers the last item it saw connecting (`aim_after`), so the failure after it (the item back
+  to idle) and the success (the item in use) land on that row.
+  - `row_phase(attempts, item, aim)`: Running with the item Connecting is `Pending(stamp)`.
+    Failed with the item idle and last seen connecting is `Failed(stamp)`. Quiet with the item in
+    use and last seen connecting is `Succeeded(minted)`, the landed attempt's own stamp. Anything
+    else is `Rest`. A row whose join the pane never saw (it opened afterwards) rests. Table test,
+    10 rows.
+  - Rows are now keyed by SSID or address, not by index. With index keys, the reordering after a
+    join (connected first) handed one row's detail state to another item.
+  - A failed row's detail line says "Couldn’t connect". The services report no reason (G350).
+- **F922 Wi-Fi rows.** `work: RowWork::Trailing`, `disc: RowDisc::On` for the network in use and
+  `Off` for the rest. The in-use check is gone (`RowMark::InUse` removed) and the lock stays on a
+  secured network; the spinner takes its place while that network joins.
+- **F923 Bluetooth rows.** `work` stays `Glyph` (the device glyph breathes). `disc` is On when
+  connected. A connected device that reports a level ends in `RowTrailing::Battery(Fraction(pct *
+  10))` in place of the check. `first` is `Animate` on the pane's first frame and `Still` after
+  (`rows::use_first_show`), in the control center and in the Bluetooth bar item's dropdown, both
+  of which the person has just opened. `device_detail` no longer repeats " · 80%" for a connected
+  device, because the trailing ring shows it.
+- **F924 Now Playing.** `PlayPauseButton` replaces the toggle `IconButton` (Playing → `Playing`,
+  Paused or Stopped → `Paused`). `NowPlayingTrack` replaces `ArtView` and the two spans, and
+  "Not Playing" is a `NowPlayingTrack` with no art. `TrackPosition { at, length, playback }`
+  shows when `Timeline::Known`.
+  - The MPRIS service already read `Position` and `mpris:length` (`timeline_of`, on every
+    snapshot and on `Seeked`).
+  - The gap: MPRIS sends no signal while a track plays, so the last report can be minutes old
+    when the center opens, and `TrackPosition` anchors at arrival. New `MediaCommand::Position(
+    PlayerId)` re-reads that player's position and length (property reads only; it shares
+    `reread_timeline` with `Seeked`). The module sends it once per player when it mounts. The
+    reducer's `Timeline` event was already there and is tested.
+  - CSS: `.sill-cc-art`, `.sill-cc-media-text` and `.sill-cc-title` are dropped. New:
+    `.sill-cc-media-row` (the track beside the transport) and `.sill-cc-media-track` (`flex:1`
+    around quire's `.ds-track`). The widget's copy (`widget_now_playing.css`) matches.
+    `Playback::Buffering` is never produced (G351).
+- **F925 Battery.** There is one `DeviceBattery { first: FirstShow::Animate }` per device: this
+  computer (`RingMark::Charging` while charging, `Icon::Monitor`, Q450), then each connected
+  Bluetooth device that reports a level, in the pane's order. They sit in `.sill-cc-batteries`
+  (flex, wrap, `--s-12`). The header's glyph and percentage stay. The module now also shows on a
+  desktop with a peripheral battery. Pure `device_rings`, with a table test.
+- **F926 Keyboard brightness.**
+  - Service (`sill-services/src/kbd_backlight`): UPower's `org.freedesktop.UPower.KbdBacklight`
+    (`GetMaxBrightness`, `GetBrightness`, `SetBrightness`, `BrightnessChanged`) rather than
+    `/sys/class/leds/*::kbd_backlight`. UPower finds the LED, lets the session set it with no
+    udev rule or group, and signals every change, including the laptop's own keys, so no poll is
+    needed.
+  - It is absent when UPower has no such object or its range is 0. `KbdBacklight { presence,
+    level: KbdLevel { value, max } }`, `reduce_kbd_backlight`, `KbdLevel::percent` and `step_for`
+    (the step nearest a percentage) are pure and table-tested. Only `KbdCommand::Set` writes. The
+    tests feed a fake `watch` and never reach `live.rs`.
+  - Module (`modules/keyboard.rs`): `LevelModule { glyph: Icon::Keyboard, level_glyph:
+    LevelGlyph::KeyboardBrightness, title: "Keyboard Brightness" }`, drawn only when Present.
+    This desktop has no keyboard backlight (`/sys/class/leds` lists only the NIC's LEDs), so the
+    module is hidden here. A real-hardware check is queued in `docs/manual-checks.md`.
+- **F927 Module membership.** `ControlCenterModule::KeyboardBrightness`
+  (`keyboard_brightness`), default after Display. It is a new value of an existing key, so there
+  is no `AWAITING_ROWS` entry (`keys.rs` compares paths). It is not a bar item (`in_menu_bar` →
+  Hide). The size estimate drops it without a backlight (`Fit.keyboard`, `fit::drawn_modules`,
+  table test). The estimates grew: Now Playing 76 → 112 (position bar) and Battery 112 → 204
+  (rings). Proposed change to the design/22 §3.13 row:
+
+  | Key | Type | Default | Range / Alt | Source | Status |
+  | --- | --- | --- | --- | --- | --- |
+  | `control_center.modules` | `Vec<ControlCenterModule>` | `[Wifi, Bluetooth, Focus, Display, KeyboardBrightness, Sound, NowPlaying, Appearance, Battery]` | `KeyboardBrightness` is drawn only where UPower reports a keyboard backlight | `13-BEHAVIOUR-menus-windows.md#13-3-7-control-center`; `26-DETAILS.md` 5.2.7 G25; sill F926 | proposed, partial (D2, 2026-09-27) |
+
+- **F928 Sound outputs: skipped.** sill has no sink list. The volume service follows only the
+  default sink (`Volume.sink` is its name), so there is nothing to give `Check(On)` or
+  Pending → Succeeded (G352).
+- **F929 Tests** (`Clock::Virtual`; every change ends in `assert_settles_to_zero_frames`; a
+  pending state first runs past `PendingCap`, since the bounded loop runs until then).
+  - `tests/cc_details_rows.rs` (3 tests):
+    - A network joins: nothing within 399 ms, a spinner at 400 ms on that row only, still at the
+      cap. It lands: the row moves to the top, its disc seals once (`a-seal-out`, no spring),
+      `data-disc=on`, no `aria-pressed`, and the lock comes back.
+    - A failed join shakes once, says "Couldn’t connect", and does not shake again for the same
+      stamp.
+    - A device breathes while connecting (no spinner), then seals, and its battery sweeps in; the
+      Buds' battery counts up when the pane opens.
+  - `tests/cc_details_modules.rs` (5 tests):
+    - Focus springs under its press (through a working `FocusLink` in `cc_support::live`) and
+      not from elsewhere.
+    - Now Playing: opening sends `Position`, the time steps 1:05 → 1:06, a press sends
+      `PlayPause`, paused offers Play with the morph and holds, and a new track cross-fades.
+    - A player with no length shows no bar.
+    - The battery rings sweep in counting and then retarget.
+    - The keyboard module hides without a backlight, follows a reported step, sends `Set` on a
+      press, and hides again.
+  - Unit tables: `row_phase`, `aim_after`, `network_row`, `network_rows`, `device_row`,
+    `device_rows`, `device_rings`, `keyboard_level`, `drawn_modules`, `playback_of`,
+    `position_of`, and the kbd reducer and steps.
+  - `widgets_render` now reads `.ds-track-title`.
+- **F930 Gate.** `GATE_DIR=<this worktree> ~/sill-wt/sill-gate.sh` on adc2c87 (1-minute load
+  17.9 at the start):
+  - fmt and clippy passed. Tests: 1188 passed, 1 failed, 51 ignored.
+  - The one failure is `sill-settings/tests/keys.rs::every_key_in_catalogue_has_a_spec`:
+    `session.lock_grace_s: no KeySpec`. quire master's design/22 §3.19 gained that row (Q441,
+    sill F863/F908) before sill registered the key, so sill master fails the same way against
+    this quire. The key belongs to the idle and session lane, which this lane may not touch (G354).
+  - Run by hand afterwards: boundary holds, licenses ok. So: **not GREEN**, for that one test.
+- **F931 Scripts.** `dev/accept-control-center.sh` ran on the nested wayland-1 (pinged with
+  `wayland-info`, reused, never stopped) under F850's isolation. That is a short
+  `/tmp/sill-rt-*` XDG_RUNTIME_DIR holding only the wayland-1 symlink, scratch HOME and XDG dirs,
+  one private dbus-daemon as both buses, no DISPLAY, and a refusing `spectacle`.
+  - Result: 4 PASS, 2 FAIL, exit 1. `step_wifi_pane` and `step_module_item` fail because there
+    is no NetworkManager under the isolation (the F781 baseline). Idle: 0 frames.
+  - Captures: `dev/out/control-center-cosmic.png` and `control-center-wifi-cosmic.png`. The
+    empty Now Playing is now quire's track (the play glyph on its well, "Not Playing"). There is
+    no Battery or Keyboard module, since there is no UPower on the private bus. The Wi-Fi and
+    Bluetooth tiles are Unavailable, as before.
+
+### Gaps (sill)
+
+- **G350 No failure reason.** NetworkManager's `StateReason` and BlueZ's `Connect` error are
+  not read, so a failed row says only "Couldn’t connect" (design/26 wants "Wrong password").
+- **G351 No buffering.** The MPRIS service has no wait to report, so `Playback::Buffering` is
+  never produced.
+- **G352 No sink list.** Sound outputs (G26) wait for a volume service that lists sinks and
+  switches the default.
+- **G353 One stamp for two devices.** Two devices connecting at once share one connect stamp;
+  the first to land quiets the attempt, and the second rests until its own report.
+- **G354 The gate is red on `session.lock_grace_s`** (F930). It needs the session lane's
+  `KeySpec` (or the row held back in quire).
+
+### Asks (quire)
+
+- **Q450 `Icon::Laptop`** for this computer's battery ring. sill uses `Icon::Monitor`.
+- **Q451 (small) `TrackPosition` with the report's age.** `at` anchors at arrival, so a stale
+  report needs a re-read round trip (F924). An optional `reported: Duration` (how long ago `at`
+  was true) would let a caller pass an old report as it is.

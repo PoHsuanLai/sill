@@ -211,7 +211,7 @@ fn now_playing_is_the_control_centers_module_and_presses_reach_the_fake() {
     running.harness.advance(Duration::from_millis(100));
     let h = &running.harness;
     assert_eq!(
-        h.text_of("#widget-now-playing .sill-cc-title").as_deref(),
+        h.text_of("#widget-now-playing .ds-track-title").as_deref(),
         Some("So What")
     );
     assert_eq!(

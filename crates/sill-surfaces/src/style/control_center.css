@@ -8,20 +8,19 @@
 .sill-cc{ display:block; color:var(--ink); outline:none; }
 
 /* The full-width modules (Sound, Display, Now Playing, Appearance, Battery) are quire's
-   ModulePanel, `Bare` in a module's own dropdown. Now Playing's and Battery's lines: */
-.sill-cc-title{ font-size:var(--fs-shell-menu); font-weight:600; color:var(--ink); }
+   ModulePanel, `Bare` in a module's own dropdown. Battery's time-left line: */
 .sill-cc-status{ font-size:var(--fs-help); color:var(--ink-faint); }
 
-/* Now Playing: the art, two lines, the transport. */
-.sill-cc-media{ display:flex; align-items:center; gap:var(--s-12); min-width:0; }
-.sill-cc-media-text{ display:flex; flex-direction:column; flex:1 1 0; min-width:0; gap:var(--s-2); }
+/* Now Playing: quire's track (art and two lines) beside the transport, the position under
+   them. */
+.sill-cc-media{ display:flex; flex-direction:column; gap:var(--s-6); min-width:0; }
+.sill-cc-media-row{ display:flex; align-items:center; gap:var(--s-12); min-width:0; }
+.sill-cc-media-track{ display:block; flex:1 1 0; min-width:0; }
 .sill-cc-media-buttons{ display:flex; align-items:center; gap:var(--s-2); }
-.sill-cc-art{ display:flex; align-items:center; justify-content:center; flex:none; width:48px;
-  height:48px; overflow:hidden; border-radius:var(--r-media); }
-.sill-cc-art[*|data-art=none]{ background:var(--surface); color:var(--ink-faint); }
 
-/* Battery: its lines over the power mode. */
+/* Battery: one ring per device, its lines, the power mode. */
 .sill-cc-battery{ display:flex; flex-direction:column; gap:var(--s-6); }
+.sill-cc-batteries{ display:flex; flex-wrap:wrap; gap:var(--s-12); }
 .sill-cc-profile{ display:flex; flex-direction:column; margin-top:var(--s-4); }
 
 /* A detail pane (Wi-Fi's networks, Bluetooth's devices): its head, quire's rows, its foot. */

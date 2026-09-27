@@ -5,6 +5,8 @@
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
+use tokio::sync::{mpsc, watch};
+
 use dioxus::prelude::*;
 use ds::{Align, Anchor, Appearance, Ds, Material, Placement, Point, Popover, Px, Side};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
@@ -19,6 +21,7 @@ use super::fake;
 struct World {
     services: Services,
     settings: SettingsFeed,
+    focus: FocusLink,
     reports: Arc<Mutex<Vec<Report>>>,
 }
 
@@ -45,7 +48,7 @@ fn app() -> Element {
     };
     use_context_provider(|| world.services.clone());
     use_context_provider(|| world.settings.clone());
-    use_context_provider(|| FocusLink::fixed(FocusMode::Off));
+    use_context_provider(|| world.focus.clone());
     let pages = world.reports.clone();
     let closes = world.reports.clone();
     let closed = EventHandler::new(move |()| {
@@ -82,6 +85,9 @@ fn app() -> Element {
 pub struct Running {
     pub harness: Harness,
     pub feeds: fake::Feeds,
+    /// The Focus mode the panel reads (Off at the start), and the modes its tile asked for.
+    pub focus: watch::Sender<FocusMode>,
+    pub focus_sets: mpsc::UnboundedReceiver<FocusMode>,
     reports: Arc<Mutex<Vec<Report>>>,
 }
 
@@ -95,10 +101,13 @@ impl Running {
 /// The panel on `services` (their feeds in `feeds`) and the default settings.
 pub fn start(services: Services, feeds: fake::Feeds) -> Running {
     let reports = Arc::new(Mutex::new(Vec::new()));
+    let (focus, mode) = watch::channel(FocusMode::Off);
+    let (set, focus_sets) = mpsc::unbounded_channel();
     WORLD.with(|w| {
         *w.borrow_mut() = Some(World {
             services,
             settings: SettingsFeed::fixed(ShellFile::default()),
+            focus: FocusLink::new(mode, set),
             reports: reports.clone(),
         });
     });
@@ -110,6 +119,8 @@ pub fn start(services: Services, feeds: fake::Feeds) -> Running {
     Running {
         harness: Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual)),
         feeds,
+        focus,
+        focus_sets,
         reports,
     }
 }

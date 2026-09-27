@@ -28,6 +28,7 @@ pub mod displays;
 pub mod error;
 pub mod events;
 pub mod idle;
+pub mod kbd_backlight;
 pub mod launch;
 pub mod locker;
 pub mod magnify;
@@ -83,6 +84,9 @@ pub use displays::{
 pub use error::ServiceError;
 pub use events::{Agenda, CalEvent, EventTime, EventsCommand, SourceStatus};
 pub use idle::{Idle, IdleCommand, IdleLinks};
+pub use kbd_backlight::{
+    KbdBacklight, KbdCommand, KbdEvent, KbdLevel, reduce_kbd_backlight, step_for,
+};
 pub use launch::{
     LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches, ScopeUnit,
     reduce_launches,
