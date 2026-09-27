@@ -5,19 +5,20 @@
 
 use std::sync::Arc;
 
-use sill_settings::WidgetKind;
+use sill_settings::{DesktopWidgets, WidgetKind};
 
 use crate::surfaces::desktop_widgets::{OutputKey, Placement};
 
-/// One change: the three keys whole, and the places of one output.
+/// One change: the widget keys whole, and the places of one output.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WidgetsWrite {
     /// `widgets.center`.
     pub center: Vec<WidgetKind>,
     /// `widgets.desktop_widgets`.
     pub desktop: Vec<WidgetKind>,
-    /// `widgets.sizes`.
-    pub sizes: String,
+    /// `widgets.desktop`: `On` after an add to the desktop (the widget is to be seen), else as
+    /// it was.
+    pub shown: DesktopWidgets,
     /// Whose places.
     pub output: OutputKey,
     /// That output's places, every kind it keeps one for.

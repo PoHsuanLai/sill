@@ -1,10 +1,13 @@
 //! Edit Widgets (design/28 section 4.1; the reference's widget gallery, "Edit Widgets" at the
 //! bottom of Notification Center): quire's `WidgetGallery` in a panel over the output, where the
-//! person adds a widget to the desktop or the notification center, changes a placed one's size,
-//! or takes it away. Every choice is a `WidgetEdit` applied through quire's
-//! `ds::widget::apply` (`crate::widgets::layout::edited`) and written back as the keys and
-//! places sill already keeps (`widgets.center`, `widgets.desktop_widgets`, `widgets.sizes`,
-//! `desktop-widgets.json`) through the [`WidgetsWriter`] the daemon gives the root.
+//! person adds a widget to the desktop or the notification center or takes one away (each
+//! widget has one size: a size picked in the gallery is not a choice sill keeps, F1024). Every
+//! choice is a `WidgetEdit` applied through quire's `ds::widget::apply`
+//! (`crate::widgets::layout::edited`) and written back as the keys and places sill already keeps
+//! (`widgets.center`, `widgets.desktop_widgets`, `desktop-widgets.json`, and `widgets.desktop`
+//! turned on by an add to the desktop) through the [`WidgetsWriter`] the daemon gives the root.
+//! What an edit came to is said under the gallery (`status`): a check drawn on beside "Added
+//! World Clock to the Desktop", the words of a removal, or a refusal shaken once (F1025).
 //!
 //! One Overlay surface per output, spawned hidden and kept warm like the notification center,
 //! following one shared [`EditWidgetsLink`]: opened from the center's "Edit Widgets" and by
@@ -16,6 +19,7 @@ pub mod link;
 pub mod writer;
 
 mod drive;
+mod status;
 mod view;
 
 pub use layer::{EDIT_PANEL_ID, edit_widgets_layer};

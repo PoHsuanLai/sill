@@ -5,10 +5,16 @@
 //! velocity; a widget making room springs to its new cell, and back, from where it is at the
 //! speed it has. The springs are quire's `SpringPointMotion` (one per axis, Reduced motion
 //! inside, frames only while it moves); `glide` decides what each render asks of it.
+//!
+//! A card rises into its place when it first shows: quire's `Reveal` (design/26 Appear, the
+//! `rise` at `--t-move --e-out`, once, never on a re-render; nothing under Reduced), so a widget
+//! Edit Widgets adds arrives visibly (FINDINGS F1025), and the layer's first map shows its
+//! widgets arriving as the reference's desktop does after a login.
 
 use dioxus::core::queue_effect;
 use dioxus::prelude::*;
 use ds::Lift;
+use ds::detail::{FirstShow, Reveal};
 use ds::motion::{SpringPointMotion, SpringResponse, use_spring_point_motion};
 use sill_settings::WidgetKind;
 
@@ -37,7 +43,9 @@ pub fn Placed(
     };
     rsx! {
         div { class: "sill-dw-place", style,
-            Widget { kind, host: WidgetHost::Desktop, size, lift }
+            Reveal { first: FirstShow::Animate,
+                Widget { kind, host: WidgetHost::Desktop, size, lift }
+            }
             // While dragged, a press's release lands here and never on the widget's own controls,
             // which move along under the pointer.
             if lift == Lift::Lifted {

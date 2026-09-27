@@ -2,8 +2,10 @@
 //! on the virtual clock and the fake services: the notification center's "Edit Widgets" closes
 //! the center and opens the gallery on its output; in the gallery an added widget is written as
 //! the same keys and places sill keeps (through a fake writer that publishes them back, as the
-//! daemon's does), a kind already there is refused with a line saying so, a size change and a
-//! removal write the keys, and Done closes it; every moment settles to zero frames.
+//! daemon's does, `widgets.desktop` turned on by an add to the desktop) and said under the
+//! gallery with a check drawn on (FINDINGS F1025), a kind already there is refused with a line
+//! shaken once, a removal writes the keys and says so, a size pick is refused (each widget has
+//! one size, F1024), and Done closes it; every moment settles to zero frames.
 
 #[path = "support/fake.rs"]
 mod fake;
@@ -16,7 +18,7 @@ use dioxus::prelude::*;
 use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::Services;
-use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
+use sill_settings::{DesktopWidgets, SettingsFeed, ShellFile, WidgetKind};
 use sill_surfaces::hooks::PinnedAppearance;
 use sill_surfaces::surfaces::desktop_widgets::{GridSlot, OutputKey, Placement};
 use sill_surfaces::surfaces::edit_widgets::{
@@ -97,7 +99,7 @@ fn start(drawn: Drawn, file: ShellFile) -> Running {
         tx.send_modify(|file| {
             file.widgets.center = change.center.clone();
             file.widgets.desktop_widgets = change.desktop.clone();
-            file.widgets.sizes = change.sizes.clone();
+            file.widgets.desktop = change.shown;
         });
         if let Ok(mut log) = log.lock() {
             log.push(change);
@@ -233,7 +235,7 @@ fn an_added_widget_is_written_as_the_keys_and_places_and_a_second_is_refused() {
                 WidgetKind::Battery,
                 WidgetKind::WorldClock
             ],
-            sizes: String::new(),
+            shown: DesktopWidgets::On,
             output: OutputKey::Named("DP-1".to_owned()),
             places: vec![
                 at(WidgetKind::Calendar, 6, 0),
@@ -242,16 +244,48 @@ fn an_added_widget_is_written_as_the_keys_and_places_and_a_second_is_refused() {
             ],
         }]
     );
+    // Said at once, the check drawing on beside the words.
+    assert_eq!(
+        status(&run.harness),
+        Some((
+            "added".to_owned(),
+            "Added World Clock to the Desktop.".to_owned()
+        ))
+    );
+    settle_until(&mut run.harness, |h| {
+        h.count(".sill-ew-status .ds-check-mark") == 1
+    });
     settle_until(&mut run.harness, |h| rows(h, "desktop") == 3);
-    assert_eq!(run.harness.count(".sill-ew-refused"), 0);
+    // The check goes after its hold; the words stay (design/26 R8), and nothing moves after.
+    settle_until(&mut run.harness, |h| {
+        h.count(".sill-ew-status .ds-check-mark") == 0
+    });
+    assert_eq!(
+        status(&run.harness).map(|(_, words)| words).as_deref(),
+        Some("Added World Clock to the Desktop.")
+    );
+    assert_settles_to_zero_frames(&mut run.harness);
 
     run.click(&clock);
     run.click(ADD_TO_DESKTOP);
     assert_eq!(run.writes().len(), 1, "nothing written");
     assert_eq!(
-        run.harness.text_of(".sill-ew-refused").as_deref(),
-        Some("It is already there.")
+        status(&run.harness),
+        Some(("refused".to_owned(), "It is already there.".to_owned()))
     );
+    assert!(
+        run.harness.has_class(".sill-ew-status", "a-shake-x"),
+        "a refusal shakes once: {}",
+        run.harness.html()
+    );
+    assert_eq!(
+        run.harness.count(".sill-ew-status .ds-check-mark"),
+        0,
+        "no check for a refusal"
+    );
+    settle_until(&mut run.harness, |h| {
+        !h.has_class(".sill-ew-status", "a-shake-x")
+    });
     assert_settles_to_zero_frames(&mut run.harness);
 
     run.click(".sill-ew-head .ds-button");
@@ -276,23 +310,87 @@ fn a_removed_tile_leaves_the_center_key() {
         Some(vec![WidgetKind::Calendar, WidgetKind::Battery]),
         "the desktop is untouched"
     );
+    assert_eq!(
+        writes.last().map(|w| w.shown),
+        Some(DesktopWidgets::Off),
+        "a removal leaves the desktop's widgets as they were"
+    );
+    assert_eq!(
+        status(&run.harness),
+        Some((
+            "removed".to_owned(),
+            "Removed Up Next from the Notification Center.".to_owned()
+        ))
+    );
+    assert_eq!(
+        run.harness.count(".sill-ew-status .ds-check-mark"),
+        0,
+        "a removal draws no check"
+    );
     assert_settles_to_zero_frames(&mut run.harness);
 }
 
 #[test]
-fn a_size_picked_for_a_desktop_widget_is_written_to_the_sizes_key() {
+fn a_size_picked_is_refused_since_each_widget_has_one_size() {
     let mut run = opened();
-    // The desktop's first row is the month (row 0 of the grid); its sizes are Small, Medium
-    // and Large, so the second segment is Medium.
+    // quire's gallery still offers the month's three sizes on its row (Q520); the second
+    // segment asks for Medium.
     let medium = ".ds-widget-gallery-surface[*|data-host=desktop] \
                   .ds-widget-gallery-row:nth-child(2) .ds-segment:nth-child(2)";
     run.click(medium);
-    let last = run.writes().last().cloned().expect("a write");
-    assert_eq!(last.sizes, "desktop.calendar=medium");
+    assert_eq!(run.writes(), vec![], "nothing written");
     assert_eq!(
-        last.places.first(),
-        Some(&at(WidgetKind::Calendar, 5, 0)),
-        "a medium no longer fits at the right edge: the first free spot, a column in"
+        status(&run.harness),
+        Some((
+            "refused".to_owned(),
+            "Each widget comes in one size.".to_owned()
+        ))
     );
     assert_settles_to_zero_frames(&mut run.harness);
+}
+
+#[test]
+fn nothing_is_said_until_something_is_edited() {
+    let run = opened();
+    assert_eq!(status(&run.harness), None);
+    assert_eq!(run.harness.count(".sill-ew-status"), 0);
+}
+
+/// The status line's outcome and words, when there is one.
+fn status(h: &Harness) -> Option<(String, String)> {
+    let outcome = h.attr(".sill-ew-status", "data-outcome")?;
+    let words = h.text_of(".sill-ew-status-words")?;
+    Some((outcome, words))
+}
+
+/// F1026: Escape closes the panel after a press inside it (a list entry, Add, Remove), not only
+/// right after it opens, as the real-input run found (G420).
+#[test]
+fn escape_closes_after_a_press_inside_the_panel() {
+    /// What is pressed after World Clock's list entry.
+    #[derive(Debug, Clone, Copy)]
+    enum Then {
+        Nothing,
+        AddToDesktop,
+        RemoveADesktopRow,
+    }
+    for then in [Then::Nothing, Then::AddToDesktop, Then::RemoveADesktopRow] {
+        let mut run = opened();
+        let clock = kind_option(&run.harness, "World Clock");
+        run.click(&clock);
+        match then {
+            Then::Nothing => {}
+            Then::AddToDesktop => run.click(ADD_TO_DESKTOP),
+            Then::RemoveADesktopRow => run.click(
+                ".ds-widget-gallery-surface[*|data-host=desktop] \
+                 .ds-widget-gallery-row:nth-child(3) .ds-button[*|data-variant=danger]",
+            ),
+        }
+        run.harness.advance(Duration::from_millis(100));
+        run.harness.key(ds::Key::Escape);
+        run.harness.advance(Duration::from_millis(50));
+        assert_eq!(run.edit.now(), EditShown::Closed, "after {then:?}");
+        settle_until(&mut run.harness, |h| h.count(".ds-panel") == 0);
+        assert_settles_to_zero_frames(&mut run.harness);
+    }
 }

@@ -7896,7 +7896,7 @@ Q460, G360 (G370-G372 are the settle-strict section's).
     PlayPause, Next}`, size Medium, title Play "Now Playing". The module and the widget share
     `MediaView` and `use_media`, so the widget no longer mounts `NowPlayingModule` on a bare
     panel.
-- **F943 Sizes: `widgets.sizes` (new key, `AWAITING_ROWS`).** quire's widgets offer several
+- **F943 (DROPPED 2026-09-28 by the user's decision, F1024: each widget has one size; the row is not forwarded) Sizes: `widgets.sizes` (new key, `AWAITING_ROWS`).** quire's widgets offer several
   sizes and the gallery changes them, but sill's keys held kinds only. `widgets.sizes` is
   `;`-separated `host.kind=size` text (`desktop.calendar=medium; center.up_next=large`; host
   `desktop` or `center`, kinds as `widgets.center` spells them). Only a size other than the
@@ -8007,7 +8007,7 @@ Q460, G360 (G370-G372 are the settle-strict section's).
 
 ### Asks (quire)
 
-- **Q460 The gallery's placed rows cut the widget's name.** With a three-segment size picker,
+- **Q460 (DROPPED 2026-09-28 by the user's decision, F1024: no size picker, so nothing beside the name) The gallery's placed rows cut the widget's name.** With a three-segment size picker,
   "Calendar" draws as "Calenc" in both lists at 720 px (`widgets-edit-cosmic.png`). The
   `.ds-widget-gallery-row-name` has `min-width:0` beside a `SegmentedControl` that does not
   shrink. It wants a truncation fade (`.ds-truncate`) or the picker under the name.
@@ -8518,3 +8518,140 @@ rows with no motion. Numbered from F1010, G410 and Q510. Branch
   (shell-host logged `render: acquire: Timeout`), so the step stopped before opening the
   center. Alone and at a lower load it passes. Not caused by this branch (the banners are
   unchanged); recorded so a red run under load is read as such.
+
+## Manual run 2026-09-28: widgets
+
+The user's manual run on KDE (KWin, scale 2, the BenQ MA270U at 3840 x 2160; `~/manual-run`
+checks 07, 12 and 14) found the calendar and battery widgets' layouts "broke" and Edit Widgets
+full of small UX problems, and decided each widget has ONE size. Numbered F1020-F1029, G420-G422,
+Q520-Q523. Branch `worktree-agent-a60cd59fcac2693ce` (cut from master 70db27b).
+
+- **F1020 Root cause: not the scale; the center's month at Large, and quire's batteries row.**
+  - Reproduced on shell-host's headless KWin at 3840 x 2160 with its output set to scale 2
+    through kscreen-doctor on that KWin's own socket, and at scale 1 for comparison. The
+    desktop layer is the same at both in logical px: 164 px cells (328 device px at 2x),
+    the grid flush right under the bar, the Small month and the Batteries matching quire's
+    reference layouts (design/23 sections 4.1, 5.1, 5.2; `tools/progress/shots/
+    widgets-final/after-calendar-light.png`, `widget-reference/ours-battery-small-light.png`).
+    `desktop_cell_px`, the host's sizing and the frame's size class are right at scale 2.
+  - The user saw it in check 07, the notification center. There sill drew the month at Large
+    (`size_of(Calendar, Tile)`): with no events that day (no calendars on the KDE session) the
+    Large layout is the month and "No events today" at the top of a 344 px tall tile, its
+    lower third empty, the fault design/23 5.2 names. sill's side, fixed: the center's month
+    is Medium (today and the next event beside the compact month), which fills its 344 x 164
+    tile. The one size in the center is Medium for every widget.
+  - The Batteries tile (Medium) with two devices (the K5 Max and the MOMENTUM 4) puts one ring
+    at each end with the middle empty; with one, a lone ring at the left. quire's side:
+    `.ds-batteries[data-layout=row]{justify-content:space-between}` spreads whatever count it
+    has, where design/23 4.1 says four rings across from 20 in (Q522). Reproduced with real
+    devices at scale 2 (`dev/out/widgets-kwin-s2-center.png`) and in the Harness.
+  - The desktop's Small Batteries with two or three devices is quire's 2 x 2 grid with the
+    empty places as bare tracks and no numbers (design/23 4.1, as specified; the user may read
+    the empty tracks as broken, G422).
+- **F1021 Captures.** At scale 2 on headless KWin with real Bluetooth batteries (read only from
+  the system bus): `dev/out/widgets-kwin-s2-calendar.png`, `widgets-kwin-s2-battery.png`,
+  `widgets-kwin-s2-desktop.png` (the layer over a plain ground), `widgets-kwin-s2-center.png`
+  (the Medium month, Up Next, the batteries' row), `widgets-kwin-s2-edit.png`,
+  `widgets-kwin-s2-added.png` (the panel's foot with "Added World Clock to the Desktop.").
+- **F1022 Size picked per host, one each** (`widgets::size_of`, the only source): the center,
+  Medium for every kind; the desktop, the month and the batteries Small, Up Next, Now Playing
+  and the world clock Medium. `desktop_size(kind)` replaces `Sizes::of(kind, Desktop)` in the
+  layer, the drag (`DragWorld` loses `sizes`), `make_room`, `shown` and the boxes.
+- **F1023 `calendar.week_numbers` has no effect at the one sizes.** The compact month (Small on
+  the desktop, Medium in the center) never draws week numbers (quire `MonthDensity::Compact`);
+  only the regular month does, and sill no longer places it. The provider still passes the key
+  (tested on a Large card). G421.
+- **F1024 One size: `widgets.sizes` removed** (the user's decision). Its `KeySpec` and its
+  `AWAITING_ROWS` entry are gone together (`AWAITING_ROWS` is empty); a stored `sizes` line is
+  kept unread in `extra` (`a_stored_widget_sizes_line_is_ignored`). `widgets/sizes.rs` is
+  deleted; `WidgetKeys` and `WidgetsWrite` lose `sizes`. `layout::edited` makes an add at the
+  kind's one size whatever the gallery sent, and refuses a resize (`Refused::OneSize`, "Each
+  widget comes in one size."). **F943 and Q460 are dropped by this decision**: the row is not
+  forwarded, and there is no picker beside the name. quire's gallery still shows each size a
+  widget offers and a size control on each placed row until it can show one (Q520).
+- **F1025 Edit Widgets: saying what an edit did** (the reference: the widget arrives on the
+  desktop).
+  - Under the gallery, `edit_widgets::status::EditStatus` (replacing the refusal line): an add
+    is a design/26 Success, quire's `CheckMark` drawn on through `use_settle(Check)` beside
+    "Added World Clock to the Desktop." (the check held `SettleHold`, then gone; the words
+    stay, R8); a removal is a Change, "Removed Up Next from the Notification Center."; a refusal
+    a Failure, its words shaken once by `use_shake` (R6). Nothing on the panel's opening or a
+    re-render; `Outcome` is `Detailed` with an exhaustive table and counts each edit, so the
+    same words twice are two moments.
+  - On the desktop each card rises into its place when it first shows (quire's `Reveal`, the
+    design/26 Appear), so an added widget arrives visibly; cards already there do not replay.
+    Under the panel on a 1920 px wide output, since new widgets fill from the top right (Q521).
+  - An add to the desktop turns `widgets.desktop` on (`WidgetsWrite::shown`); before, a widget
+    added while the layer was off was written and never seen.
+- **F1026 Small details checked.** Open (the center closes, the panel slides in, quire's Panel),
+  close (Done, Escape, a click outside), add, remove, refusal, and the empty state (quire's "No
+  widgets" per surface; nothing said until an edit). Keyboard: the real-input run found
+  Escape did nothing after a real click in the panel (G420): a press on a gallery button left
+  nothing focused, and a Remove takes its button away with its row. The column now takes the
+  keyboard back on every pointer release inside it (`onmouseup`, pointer only, so a key's
+  activation keeps its focus); Harness-tested after a list entry, Add and Remove. Not sill's:
+  the gallery's list, previews, size controls and Add buttons (quire).
+- **F1027 Tests.** Table: `layout` (one size: an add at another size takes the one footprint, a
+  resize refused), `status` (the moment table; each edit's words), `shown_after`, the settings
+  file test. Harness (`Clock::Virtual`, `PinnedAppearance`, each moment
+  `assert_settles_to_zero_frames`): `edit_widgets` (the add is said with the check drawn on
+  then gone, the refusal shakes once and draws no check, the removal is said, a size pick is
+  refused and writes nothing, nothing is said before an edit, Escape closes after a press on a
+  list entry, Add or Remove), `desktop_widgets_render` (an
+  added widget rises once, the others do not, then zero frames), `calendar_render` (the
+  center's month is Medium, reaching the tile's foot).
+- **F1028 Acceptance with real input at scale 2** (new `dev/accept-widgets-real-input.sh`):
+  shell-host's headless KWin at 3840 x 2160, its output set to scale 2 with kscreen-doctor on
+  that KWin's socket, one fake-input client, the daemon on the private bus with scratch dirs;
+  never wayland-0 or wayland-1. It refuses to share a headless KWin another session started,
+  and stops only its own (by socket, else its scope), since `kwin-virtual.sh` keeps one env
+  file for every session. **PASS 8/8**: scale 2 and a 3840 px bar capture; the desktop's two
+  frames 332 x 331 device px (one 164 px cell and the card's rim) at the top right; a real
+  click on the clock (found in the bar's capture at (1894, 16)) opens the center with three
+  Medium tiles (318 device px tall each) and "Edit Widgets" under them; a real click on it
+  closes the center and maps Edit Widgets (the panel at x 1192-1912); real clicks on World
+  Clock and "Add to Desktop" write `world_clock` with `shown: On` and the layer shows three
+  frames; a real click on the Batteries row's Remove takes `battery` out and the layer shows
+  two; a real Escape closes the panel; 0 frames in 5 s idle on the layer. The nested cosmic
+  compositor (wayland-1) was not running and was not started (dev/nested.sh is a client of the
+  user's session); `dev/accept-widgets.sh` was not re-run on it.
+- **F1029 Gate.** `GATE_DIR=<this worktree> ~/sill-wt/sill-gate.sh` on bcaee4e at load 38:
+  SILL GATE GREEN (fmt, clippy, 1261 passed, 0 failed, 52 ignored, boundary, licenses). A first
+  run failed at clippy only because the disk was full (os error 28), not on the code.
+
+### Asks (quire)
+
+- **Q520 A one-size gallery.** Each widget has one size in sill (F1024), but `WidgetGallery`
+  draws every size `WidgetInfo.sizes` lists as a preview to pick and a `SegmentedControl` on
+  each placed row, and sill can only refuse a resize. Wanted: the gallery shows one preview and
+  no size control when the host says so (`sizes: fn(&WidgetKind, WidgetHost) -> WidgetSize`, or
+  a `WidgetRegistry` whose infos a host can narrow; `WidgetRegistry`'s infos are private and
+  `WidgetInfo::of` takes the type's own `sizes()`). The preview should be at the host's size:
+  sill's month is Small on the desktop and Medium in the center.
+- **Q521 The gallery over the desktop's top right.** `Panel` has only `PanelEdge::Right`, so
+  Edit Widgets' 720 px panel covers the columns where new desktop widgets land (they fill from
+  the top right), and the widget's arrival (F1025's rise) happens under it. The reference's
+  gallery is a sheet at the bottom of the screen with the desktop's widgets in view. Wanted: a
+  bottom (or left) edge for `Panel`, or a gallery sheet part.
+- **Q522 The batteries row spreads its rings.** `.ds-batteries[data-layout=row]` is
+  `justify-content:space-between`, so two devices sit at the card's two ends with the middle
+  empty and one sits alone at the left (`dev/out/widgets-kwin-s2-center.png`, the K5 Max and the
+  MOMENTUM 4). design/23 4.1: "four rings across from 20 in": four places at a fixed pitch,
+  filled from the left (or centred as a group). The user's "the battery widget's layout
+  broke".
+- **Q523 "Added" in the gallery itself.** sill says an add under the gallery (F1025); the
+  gallery could say it where the person pressed: the Add button settling to a check, or the
+  new row in the placed list rising (`Reveal`) and scrolled into view.
+
+### Gaps (sill)
+
+- **G420 (CLOSED, F1026) Escape after a real click in Edit Widgets.** Found only by the
+  real-input run: the Harness's first tests pressed Escape right after opening.
+- **G421 `calendar.week_numbers` is inert** at the one sizes (F1023): neither compact month draws
+  week numbers. Either quire's compact month gains a week column, or the key goes with the
+  regular month.
+- **G422 By eye on the real session:** the desktop's Small Batteries with two or three devices
+  (quire's 2 x 2 grid, empty places as bare tracks, no numbers) and the center's rows after
+  Q522. Queued in `docs/manual-checks.md` ("Widgets by eye").
+- **G423 A removed desktop widget vanishes.** No exit is played when Edit Widgets takes a card
+  off the desktop (quire's exits are list rows' `Presence`/`Roster`; a grid card has none).

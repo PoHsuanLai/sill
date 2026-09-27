@@ -3,6 +3,10 @@
 //! Dock" page, hence `Page::Dock`. design/22 has no rows yet: `tests/keys.rs` lists them in
 //! `AWAITING_ROWS` and FINDINGS "M10 freeze" has the row text. All Advanced.
 //!
+//! Each widget has one size (the user's decision, 2026-09-28, FINDINGS "Manual run 2026-09-28:
+//! widgets"): nothing here picks one, and a `sizes` line an earlier build wrote is kept
+//! unread in `extra`.
+//!
 //! Where a widget sits on the desktop is saved state (like the dock's pins), not a setting:
 //! `$XDG_STATE_HOME/sill/desktop-widgets.json`, owned by the desktop layer.
 
@@ -103,16 +107,6 @@ pub struct WidgetsSettings {
         advanced
     )]
     pub world_clocks: String,
-    /// `;`-separated `host.kind=size` choices made in Edit Widgets (`desktop.calendar=medium;
-    /// center.up_next=large`); a widget not named takes its host's size for its kind. Text for
-    /// the same reason as `world_clocks`; `layout.toml` (design/28 section 5.6) replaces it.
-    #[settings(
-        label = "Widget sizes",
-        help = "Sizes picked in Edit Widgets, separated by `;`: `desktop.calendar=medium; center.up_next=large`. A widget not named takes its usual size.",
-        section = "Widgets",
-        advanced
-    )]
-    pub sizes: String,
     /// Keys this build does not know, kept for the next write.
     #[serde(flatten)]
     #[settings(skip)]
@@ -129,7 +123,6 @@ impl Default for WidgetsSettings {
             desktop_cell_px: Px(164),
             desktop_gap_px: Px(16),
             world_clocks: String::new(),
-            sizes: String::new(),
             extra: toml::Table::new(),
         }
     }

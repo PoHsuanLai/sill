@@ -166,3 +166,43 @@ fn the_cell_and_the_gap_are_settings() {
     // Six 200 px cells take 1200, so the grid starts at 80.
     assert_eq!(box_of(&h, "#widget-battery"), (1080, 0, 200, 200));
 }
+
+/// F1025: a widget Edit Widgets adds arrives visibly: its card rises into its place once
+/// (quire's `Reveal`, design/26 Appear), the widgets already there do not replay theirs, and the
+/// layer then paints nothing.
+#[test]
+fn an_added_widget_rises_into_its_place_once() {
+    use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
+    let (services, _feeds) = fake::services();
+    let (tx, rx) = tokio::sync::watch::channel(ShellFile::default());
+    WORLD.with(|w| {
+        *w.borrow_mut() = Some(World {
+            services,
+            settings: SettingsFeed(rx),
+            file: None,
+        });
+    });
+    let mut h = Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
+    h.advance(Duration::from_millis(40));
+    settle_until(&mut h, |h| h.count(".ds-widget") == 2);
+    settle_until(&mut h, |h| {
+        h.count(".sill-dw-place [*|data-reveal=play]") == 0
+    });
+    assert_settles_to_zero_frames(&mut h);
+
+    tx.send_modify(|file| file.widgets.desktop_widgets.push(WidgetKind::WorldClock));
+    h.advance(Duration::from_millis(16));
+    assert_eq!(h.count("#widget-world-clock"), 1);
+    assert_eq!(
+        h.count(".sill-dw-place [*|data-reveal=play]"),
+        1,
+        "only the new card rises: {}",
+        h.html()
+    );
+    assert!(h.is_animating(), "the rise is playing");
+    settle_until(&mut h, |h| {
+        h.count(".sill-dw-place [*|data-reveal=play]") == 0
+    });
+    assert_eq!(h.count(".sill-dw-place [*|data-reveal=still]"), 3);
+    assert_settles_to_zero_frames(&mut h);
+}

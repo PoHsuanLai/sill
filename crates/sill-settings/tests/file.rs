@@ -206,3 +206,24 @@ fn idle_seconds_and_minutes_are_plain_integers_both_ways() {
         "and keeps its sibling"
     );
 }
+
+/// `widgets.sizes` is gone (each widget has one size, FINDINGS F1024): a file an earlier build
+/// wrote with it loads with every other widget key read, and the old line is kept unread.
+#[test]
+fn a_stored_widget_sizes_line_is_ignored() {
+    use sill_settings::{DesktopWidgets, WidgetKind};
+    let dir = TempDir::new("widget-sizes");
+    let text = "[widgets]\ndesktop = \"on\"\ncenter = [\"battery\"]\n\
+                sizes = \"desktop.calendar=medium; center.up_next=large\"\n";
+    std::fs::write(dir.path().join(FILE_NAME), text).unwrap_or_else(|e| panic!("{e}"));
+    let read = load(dir.path());
+    let want = with(|f| {
+        f.widgets.desktop = DesktopWidgets::On;
+        f.widgets.center = vec![WidgetKind::Battery];
+        f.widgets.extra.insert(
+            "sizes".to_owned(),
+            toml::Value::String("desktop.calendar=medium; center.up_next=large".to_owned()),
+        );
+    });
+    assert_eq!(read, want);
+}

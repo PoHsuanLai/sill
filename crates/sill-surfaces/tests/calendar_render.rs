@@ -1,8 +1,8 @@
 //! The Calendar and Up Next widgets on the fake services, in a Popover `Ds` as the notification
 //! center holds them: the month with today on the accent disc and busy days dotted, the week
 //! column on `calendar.week_numbers = "show"`, the previous / next buttons (the card's
-//! `MonthIntent::Step`), the Medium card's today column and the Large card's events from the
-//! agenda Up Next reads, Up Next's rows in order with their calendar colour, its empty and quiet
+//! `MonthIntent::Step`), the Medium card's today column and its next event from the agenda Up
+//! Next reads (the center's month is Medium, F1020), Up Next's rows in order with their calendar colour, its empty and quiet
 //! lines, and all through quire's markup lint (coherence rules 1 and 2).
 
 #[path = "support/fake.rs"]
@@ -34,6 +34,9 @@ enum Kind {
     CalendarOnDesktop,
     /// The month at Medium on the desktop: today beside the compact month.
     CalendarMedium,
+    /// The regular month (a Large card), which sill no longer places (each widget has one size,
+    /// F1024) but whose week column and steps the provider still feeds (G421).
+    CalendarLarge,
     UpNext,
 }
 
@@ -64,6 +67,9 @@ fn app() -> Element {
                 Kind::CalendarOnDesktop => rsx! { {widget(WidgetKind::Calendar, WidgetHost::Desktop)} },
                 Kind::CalendarMedium => rsx! {
                     Widget { kind: WidgetKind::Calendar, host: WidgetHost::Desktop, size: WidgetSize::Medium }
+                },
+                Kind::CalendarLarge => rsx! {
+                    Widget { kind: WidgetKind::Calendar, host: WidgetHost::Tile, size: WidgetSize::Large }
                 },
                 Kind::UpNext => rsx! { {widget(WidgetKind::UpNext, WidgetHost::Tile)} },
             }
@@ -199,30 +205,41 @@ fn the_month_marks_today_and_the_busy_days() {
     clean(&h.html());
 }
 
+/// The center's month is Medium (its one size there, F1020): today and the day's next event
+/// beside the compact month, filling the tile, where the Large month left a third of it empty
+/// on a day with nothing on.
 #[test]
-fn the_large_month_lists_todays_events_from_the_agenda_up_next_reads() {
+fn the_centers_month_has_today_and_the_next_event_from_the_agenda_up_next_reads() {
     let at = now().timestamp();
     let later = |m: i64| at.checked_add(m.minutes()).unwrap_or(at);
     let today = now().date();
-    // Late enough in the day for none of these to run into tomorrow is not assumed: only the
-    // events still to come today are listed, at most three.
     let events = vec![
         all_day("holiday", today),
         timed("standup", "work", later(1), 1),
         timed("review", "home", later(2), 1),
-        timed("gym", "home", later(3), 1),
     ];
     let running = start(Kind::Calendar, ShellFile::default(), read(events));
     let h = &running.harness;
-    let listed = h.count(".ds-month-event");
-    assert!((1..=3).contains(&listed), "{listed} events listed");
     assert_eq!(
-        h.text_of(".ds-month-event:first-child .ds-month-event-title")
+        h.attr("#widget-calendar", "data-size").as_deref(),
+        Some("medium")
+    );
+    assert_eq!(
+        h.text_of(".ds-month-today .ds-month-event-title")
             .as_deref(),
         Some("holiday"),
         "the all-day event first, as Up Next orders them"
     );
-    assert_eq!(h.count(".ds-month-quiet"), 0);
+    assert_eq!(
+        h.attr(".ds-month", "data-density").as_deref(),
+        Some("compact")
+    );
+    let card = h.rect("#widget-calendar").expect("the card");
+    let month = h.rect(".ds-month").expect("the month");
+    assert!(
+        month.origin.y.0 + month.size.height.0 >= card.origin.y.0 + card.size.height.0 - 40.0,
+        "the month reaches the card's foot, not its top two thirds: {card:?} {month:?}"
+    );
     clean(&h.html());
     let quiet = start(Kind::Calendar, ShellFile::default(), read(Vec::new()));
     assert_eq!(
@@ -265,7 +282,7 @@ fn the_medium_month_has_today_beside_it() {
 fn week_numbers_add_a_column() {
     let mut file = ShellFile::default();
     file.calendar.week_numbers = WeekNumbers::Show;
-    let running = start(Kind::Calendar, file, read(Vec::new()));
+    let running = start(Kind::CalendarLarge, file, read(Vec::new()));
     let h = &running.harness;
     let rows = h.count(".ds-month-row");
     assert_eq!(
@@ -278,7 +295,7 @@ fn week_numbers_add_a_column() {
 
 #[test]
 fn next_and_previous_step_the_month() {
-    let mut running = start(Kind::Calendar, ShellFile::default(), read(Vec::new()));
+    let mut running = start(Kind::CalendarLarge, ShellFile::default(), read(Vec::new()));
     let title = |h: &Harness| h.text_of(".ds-month-title").unwrap_or_default();
     let first = title(&running.harness);
     let click = |running: &mut Running, index: usize| {

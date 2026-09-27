@@ -5,7 +5,6 @@ use ds::{WidgetHost, WidgetSize};
 
 use super::{Refused, WidgetKeys, edited, layout_of};
 use crate::surfaces::desktop_widgets::{GridSlot, Placement};
-use crate::widgets::sizes::Sizes;
 use crate::widgets::{WidgetKind, kind_id};
 
 const GRID: DesktopGrid = DesktopGrid {
@@ -26,7 +25,6 @@ fn keys() -> WidgetKeys {
     WidgetKeys {
         center: vec![Calendar, UpNext, Battery],
         desktop: vec![Calendar, Battery],
-        sizes: Sizes::default(),
         placed: vec![at(Calendar, 4, 0), at(Battery, 4, 1)],
     }
 }
@@ -54,7 +52,7 @@ fn the_keys_read_as_one_layout() {
             (
                 1,
                 "quire.month",
-                WidgetSize::Large,
+                WidgetSize::Medium,
                 WidgetAt::Center(Order(0))
             ),
             (
@@ -87,22 +85,27 @@ fn the_keys_read_as_one_layout() {
 #[test]
 fn each_edit_writes_the_same_keys_and_places() {
     use WidgetKind::{Battery, Calendar, NowPlaying, UpNext, WorldClock};
-    // (name, edit, center, desktop, sizes, places)
+    // (name, edit, center, desktop, places)
     let cases = [
         (
             "add to the desktop: the first free spot scanning columns from the right",
             add(WorldClock, WidgetSize::Medium, WidgetHost::Desktop),
             vec![Calendar, UpNext, Battery],
             vec![Calendar, Battery, WorldClock],
-            "",
             vec![at(Calendar, 4, 0), at(Battery, 4, 1), at(WorldClock, 3, 2)],
         ),
         (
-            "add to the center at the foot, at a size of its own",
+            "an add asking another size is made at the one size (the clock's Medium)",
+            add(WorldClock, WidgetSize::Small, WidgetHost::Desktop),
+            vec![Calendar, UpNext, Battery],
+            vec![Calendar, Battery, WorldClock],
+            vec![at(Calendar, 4, 0), at(Battery, 4, 1), at(WorldClock, 3, 2)],
+        ),
+        (
+            "add to the center at the foot",
             add(NowPlaying, WidgetSize::Medium, WidgetHost::Tile),
             vec![Calendar, UpNext, Battery, NowPlaying],
             vec![Calendar, Battery],
-            "",
             vec![at(Calendar, 4, 0), at(Battery, 4, 1)],
         ),
         (
@@ -110,7 +113,6 @@ fn each_edit_writes_the_same_keys_and_places() {
             WidgetEdit::Remove(ds::catalog::PlacementId(2)),
             vec![Calendar, Battery],
             vec![Calendar, Battery],
-            "",
             vec![at(Calendar, 4, 0), at(Battery, 4, 1)],
         ),
         (
@@ -118,44 +120,48 @@ fn each_edit_writes_the_same_keys_and_places() {
             WidgetEdit::Remove(ds::catalog::PlacementId(4)),
             vec![Calendar, UpNext, Battery],
             vec![Battery],
-            "",
             vec![at(Battery, 4, 1)],
         ),
-        (
-            "grow the desktop month: its cell cannot hold a large, so the first free spot",
-            WidgetEdit::Resize(ds::catalog::PlacementId(4), WidgetSize::Large),
-            vec![Calendar, UpNext, Battery],
-            vec![Calendar, Battery],
-            "desktop.calendar=large",
-            vec![at(Calendar, 2, 0), at(Battery, 4, 1)],
-        ),
-        (
-            "a tile's size",
-            WidgetEdit::Resize(ds::catalog::PlacementId(2), WidgetSize::Large),
-            vec![Calendar, UpNext, Battery],
-            vec![Calendar, Battery],
-            "center.up_next=large",
-            vec![at(Calendar, 4, 0), at(Battery, 4, 1)],
-        ),
     ];
-    for (name, edit, center, desktop, sizes, placed) in cases {
+    for (name, edit, center, desktop, placed) in cases {
         let got = edited(&keys(), edit, GRID).unwrap_or_else(|e| panic!("{name}: {e}"));
         assert_eq!(got.center, center, "{name}");
         assert_eq!(got.desktop, desktop, "{name}");
-        assert_eq!(got.sizes.text(), sizes, "{name}");
         assert_eq!(got.placed, placed, "{name}");
     }
 }
 
 #[test]
-fn a_size_taken_away_goes_back_to_none() {
+fn an_add_at_another_size_takes_the_ones_footprint() {
+    // The month asked at Large on the desktop is placed at its one size, Small: one cell.
     let keys = WidgetKeys {
-        sizes: Sizes::parse("center.up_next=large"),
+        desktop: vec![WidgetKind::Battery],
+        placed: vec![at(WidgetKind::Battery, 4, 0)],
         ..keys()
     };
-    let got = edited(&keys, WidgetEdit::Remove(ds::catalog::PlacementId(2)), GRID)
-        .unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(got.sizes.text(), "");
+    let got = edited(
+        &keys,
+        add(WidgetKind::Calendar, WidgetSize::Large, WidgetHost::Desktop),
+        GRID,
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        got.placed,
+        vec![
+            at(WidgetKind::Battery, 4, 0),
+            at(WidgetKind::Calendar, 4, 1)
+        ]
+    );
+    let sizes: Vec<_> = layout_of(&got)
+        .items()
+        .iter()
+        .filter(|item| item.at.host() == WidgetHost::Desktop)
+        .map(|item| (item.kind.as_str().to_owned(), item.size))
+        .collect();
+    assert!(
+        sizes.contains(&("quire.month".to_owned(), WidgetSize::Small)),
+        "{sizes:?}"
+    );
 }
 
 #[test]
@@ -220,6 +226,18 @@ fn what_cannot_be_placed_is_refused() {
             keys(),
             GRID,
             Refused::Foreign(ds::WidgetKind::fixed("org.example.weather")),
+        ),
+        (
+            WidgetEdit::Resize(ds::catalog::PlacementId(4), WidgetSize::Large),
+            keys(),
+            GRID,
+            Refused::OneSize,
+        ),
+        (
+            WidgetEdit::Resize(ds::catalog::PlacementId(2), WidgetSize::Large),
+            keys(),
+            GRID,
+            Refused::OneSize,
         ),
     ];
     for (edit, keys, grid, want) in cases {
