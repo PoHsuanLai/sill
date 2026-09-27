@@ -17,6 +17,7 @@ use sill_services::{
 };
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Banners;
+use sill_surfaces::hooks::PinnedAppearance;
 use sill_surfaces::surfaces::banners::{BannerLink, BannerOutput, ROOM};
 
 /// What the harness's root provides.
@@ -37,6 +38,8 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| world.services.clone());
+    // Not the desktop's portal and appearance file: they answer off-thread (FINDINGS G370).
+    use_context_provider(PinnedAppearance::default);
     use_context_provider(|| world.settings.clone());
     use_context_provider(|| world.link.clone());
     rsx! {

@@ -7786,3 +7786,67 @@ no longer starts cosmic-idle. Numbered from F930/G350. Branch `worktree-agent-ab
 - **G352 (the user, real login)** Everything in docs/manual-checks.md "Lock grace (5 s)" and
   "Idle lock": real input waking the displays, the displays really off while the lock is
   granted (G341), a browser video inhibiting, and the idle suspend on battery.
+
+## Settle-strict findings (2026-09-27)
+
+quire 688226f6 made `assert_settles_to_zero_frames` on `Clock::Virtual` drain every pending ds
+timer and then require a 500 ms quiet window with no wake and no animation. Three bar tests
+failed in some runs and passed in others, all in that quiet window with `animating: false`:
+`status_glyphs::the_bar_joins_by_searching_never_wifi_off_then_fills_and_grows_the_badge`,
+`status_glyphs::the_bar_battery_turns_low_at_the_key_shows_its_power_and_hides_when_absent`,
+`status_glyphs::the_bar_bluetooth_breathes_while_connecting_and_seals_when_connected`, and
+`bar_low_nudge::the_battery_item_nudges_once_per_crossing`.
+
+- **G370 The live appearance woke the settled bar off-thread.** `use_appearance` is quire's
+  `ds_settings::use_environment`. On the harness's Tokio runtime that reads the settings portal
+  over the real session bus, subscribes to `SettingChanged`, and watches `quire/appearance.toml`
+  with inotify. All of it runs off the harness's thread, on wall time. A virtual `advance` takes
+  no wall time, so those replies land whenever the machine gets to them. On a loaded machine
+  that includes the quiet window.
+  - Evidence (a throwaway probe): settle the real `Bar`, then sleep 5 ms of wall time and
+    `advance(0)` in a loop. The document woke at 5 ms and 13 ms of wall time after the settle,
+    and the HTML did not change. With `DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent` it
+    never woke. A root with only `use_appearance` woke at 5, 11 and 17 ms, also with no HTML
+    change.
+  - Ruled out:
+    - The bar clock: the fake's `clock` is a fixed `watch`.
+    - The fake services: they spawn nothing.
+    - The detail cues, the low nudge, the hover repair and the springs: the pinned bar is quiet.
+  - The wakes also changed nothing. `use_environment` sets its signal even when the portal
+    answers what it already holds (Q455).
+  - Baseline, 32× `yes`: 3 of 593 failed, all this one.
+- **Fix.** `hooks::PinnedAppearance(Environment)` is a root context. When a root provides it,
+  `use_appearance` returns it and never calls `use_environment`. The context is read once in
+  `use_hook`, so the hooks each render calls stay the same. Every `Clock::Virtual` test root
+  whose surface reads the appearance now pins the default:
+  - the bar tests in `status_glyphs` and `bar_low_nudge`;
+  - `cc_support::live`, `center_support`, `launcher_harness`, `banners_support`,
+    `power_menu_support`, `polkit_prompt_support` and `screenshot_thumb_support`.
+
+  This also makes them hermetic: they no longer render the developer's own dark mode or
+  `appearance.toml`. The assertion is unchanged. The regression test
+  `status_glyphs::the_settled_bar_stays_quiet_on_the_wall_clock` sleeps 200 ms of wall time
+  after a settle and asserts no wake. It fails without the pin (7 wakes against 4).
+- **G371 The bar clock is not a ds timer.** The minute tick is the `Services.clock` `watch` that
+  sill-services' Tokio ticker feeds on wall time. It never enters a virtual drain, and the fakes
+  hold it fixed. It should stay that way. As a `ds::sleep` re-armed each minute, the drain
+  would, rightly, chase it past `VIRTUAL_DRAIN_BOUND` (30 s) and fail as "rescheduling itself
+  forever". A test that wants the tick sends a new `ClockText` on the fake's feed.
+- **G372 Not pinned:** `desktop_widgets_*`, `widgets_*` and `calendar_render` (the widget port
+  owns them). They passed every load run. If they turn up in the quiet window, the same
+  one-line pin applies.
+
+### Asks (quire)
+
+- **Q455 `use_environment` sets only on a change.** Its first `env.set(Environment { .. })` and
+  the watches write the signal even when the value is equal, so a portal that answers the
+  defaults still wakes and re-renders the document. Minimal repro: a `ds_native::Harness` on
+  `Clock::Virtual` whose root calls `use_environment(AppName("x"))`. Run `advance(1 ms)`, then
+  loop `thread::sleep(5 ms)` and `advance(0)`. `wakes()` rises at about 5, 11 and 17 ms of wall
+  time and `html()` never changes.
+- **Q456 A harness-level pin for the environment**, e.g. `HarnessConfig::with_environment`, or
+  a root `Environment` context that `use_environment` honours. Then no consumer's
+  `Clock::Virtual` test reaches the real portal or the real `appearance.toml` without each app
+  growing its own pin (sill's is `PinnedAppearance`). Settle-strict could also say "woken
+  off-thread, nothing pending" when the quiet window's wake came with an empty pending list, to
+  tell this apart from a timer.

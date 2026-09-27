@@ -15,6 +15,7 @@ use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{Services, Session};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::PowerMenu;
+use sill_surfaces::hooks::PinnedAppearance;
 use sill_surfaces::surfaces::power_menu::{
     DryRunSession, PowerMenuBackend, PowerMenuLink, Preselect,
 };
@@ -39,6 +40,8 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| world.services.clone());
+    // Not the desktop's portal and appearance file: they answer off-thread (FINDINGS G370).
+    use_context_provider(PinnedAppearance::default);
     use_context_provider(|| world.settings.clone());
     use_context_provider(|| world.link.clone());
     use_context_provider(|| world.backend.clone());

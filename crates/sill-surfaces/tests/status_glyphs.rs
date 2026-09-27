@@ -18,6 +18,7 @@ use sill_services::{
 };
 use sill_settings::{InMenuBar, SettingsFeed, ShellFile};
 use sill_surfaces::Bar;
+use sill_surfaces::hooks::PinnedAppearance;
 
 thread_local! {
     static SERVICES: RefCell<Option<Services>> = const { RefCell::new(None) };
@@ -30,6 +31,8 @@ fn bar_app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| services);
+    // Not the desktop's portal and appearance file: they answer off-thread (FINDINGS G370).
+    use_context_provider(PinnedAppearance::default);
     use_context_provider(|| {
         let mut file = ShellFile::default();
         file.control_center.menu_bar_bluetooth = InMenuBar::Show;
@@ -130,6 +133,18 @@ fn battery(level: u16, charge: Charge) -> Battery {
 // ---- The bar -------------------------------------------------------------------------------
 
 const WIFI: &str = "[*|aria-label=Network] .ds-status-glyph";
+
+/// G370: with its appearance pinned, nothing off the harness's thread is left to wake the settled
+/// bar, however much wall time passes. The live appearance's portal replies woke it 5 to 15 ms
+/// of wall time after a settle, which a loaded machine stretched into the settle's quiet window.
+#[test]
+fn the_settled_bar_stays_quiet_on_the_wall_clock() {
+    let (mut harness, _feeds) = bar();
+    let wakes = harness.wakes();
+    std::thread::sleep(Duration::from_millis(200));
+    harness.advance(Duration::ZERO);
+    assert_eq!(harness.wakes(), wakes, "something off-thread woke the bar");
+}
 
 #[test]
 fn the_bar_joins_by_searching_never_wifi_off_then_fills_and_grows_the_badge() {
