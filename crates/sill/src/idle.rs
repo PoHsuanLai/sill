@@ -127,6 +127,32 @@ pub fn dispatch(services: &Services, request: IdleRequest) -> Response {
     }
 }
 
+/// `sill debug idle-wake`: a made-up `resumed`. Only a daemon built with `debug` takes it; any
+/// other refuses, since a wake inside the lock grace opens the lock.
+pub fn fake_wake(services: &Services) -> Response {
+    fake_wake_in_this_build(services)
+}
+
+#[cfg(feature = "debug")]
+fn fake_wake_in_this_build(services: &Services) -> Response {
+    match services.idle_control.send(IdleCommand::FakeWake) {
+        Ok(()) => Response::Done,
+        Err(error) => Response::Failed(sill_ipc::Failure {
+            kind: sill_ipc::FailureKind::Internal,
+            message: format!("idle: {error}"),
+        }),
+    }
+}
+
+#[cfg(not(feature = "debug"))]
+fn fake_wake_in_this_build(services: &Services) -> Response {
+    let _ = services;
+    Response::Failed(sill_ipc::Failure {
+        kind: sill_ipc::FailureKind::Unsupported,
+        message: "built without the debug feature (a made-up wake could open the lock)".to_owned(),
+    })
+}
+
 /// The idle service's state as the wire's.
 pub fn report_of(idle: &Idle) -> IdleReport {
     IdleReport {

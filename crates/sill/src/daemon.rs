@@ -765,6 +765,7 @@ fn dispatch_request(
             crate::corners::fake(outputs, crate::links::get(), fake)
         }
         Request::Debug(DebugRequest::Auth(fake)) => crate::lock::fake_auth(services, fake),
+        Request::Debug(DebugRequest::IdleWake) => crate::idle::fake_wake(services),
         Request::Debug(DebugRequest::Polkit(fake)) => crate::polkit::fake(services, fake),
         Request::Debug(DebugRequest::Switcher(fake)) => {
             crate::switcher::fake(outputs, crate::links::get(), fake)
@@ -885,6 +886,7 @@ fn dispatch_debug(
         DebugRequest::LauncherKey(_) | DebugRequest::LauncherRows => {
             unsupported("the launcher's debug requests are answered elsewhere")
         }
+        DebugRequest::IdleWake => unsupported("a made-up wake is answered elsewhere"),
     }
 }
 

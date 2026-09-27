@@ -153,6 +153,12 @@ impl Live {
                 self.config = None;
                 policy
             }
+            IdleCommand::FakeWake => {
+                let now = self.now();
+                self.feed(IdleEvent::Resumed(now)).await;
+                self.order(Order::Renew(self.state.held.clone()));
+                return;
+            }
         };
         self.use_policy(policy).await;
     }
@@ -306,9 +312,11 @@ impl Live {
                 eprintln!("sill: idle: displays {power:?}");
                 self.order(Order::Displays(power));
             }
-            // The dim overlay reads `Idle.dim`, published after the step (F902; the surface
-            // waits on quire's token, Q447).
-            IdleEffect::Dim(_) | IdleEffect::Undim => {}
+            // The dim overlay reads `Idle.dim`, published after the step (F902). The surface
+            // waits on quire's scrim token and motion (Q447): until then the dim is only
+            // published, and nothing on screen changes before the displays go off.
+            IdleEffect::Dim(level) => eprintln!("sill: idle: dim {level:?} (no overlay yet, Q447)"),
+            IdleEffect::Undim => eprintln!("sill: idle: undim"),
             IdleEffect::Lock => {
                 eprintln!("sill: idle: lock at screen off");
                 let _ = self.links.locker.send(LockerCommand::IdleLock);

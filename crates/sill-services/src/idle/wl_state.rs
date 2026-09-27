@@ -165,6 +165,14 @@ impl WlState {
         }
     }
 
+    /// Drop every notification and hold `watches` afresh.
+    pub(super) fn renew(&mut self, watches: Vec<Watch>) {
+        for held in self.held.drain(..).chain(self.retiring.drain(..)) {
+            held.note.destroy();
+        }
+        self.watch(watches);
+    }
+
     /// Every output's power as `power` says.
     pub(super) fn displays(&mut self, power: DisplayPower) {
         self.displays = power;

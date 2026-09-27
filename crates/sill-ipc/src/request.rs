@@ -205,6 +205,10 @@ pub enum DebugRequest {
     LauncherKey(FakeLauncherKey),
     /// The open launcher's sections, rows and preview: answered `Response::LauncherRows` (M9).
     LauncherRows,
+    /// Wake idle as the compositor's `resumed` would after real input (`dev/accept-idle.sh`:
+    /// the nested cosmic-comp counts no synthetic input as activity). Refused by a daemon built
+    /// without `debug`: inside the lock grace it opens the lock.
+    IdleWake,
 }
 
 /// A made-up notification: the parts of `Notify` an acceptance needs.

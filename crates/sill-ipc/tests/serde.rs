@@ -297,6 +297,10 @@ fn requests() -> Vec<(Request, &'static str)> {
             Request::Debug(DebugRequest::LauncherRows),
             r#"{"kind":"debug","v":{"kind":"launcher_rows"}}"#,
         ),
+        (
+            Request::Debug(DebugRequest::IdleWake),
+            r#"{"kind":"debug","v":{"kind":"idle_wake"}}"#,
+        ),
     ]
 }
 

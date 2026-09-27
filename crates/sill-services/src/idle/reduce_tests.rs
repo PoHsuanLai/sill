@@ -168,3 +168,72 @@ fn turning_off_undoes_what_idle_did() {
     assert!(effects.contains(&IdleEffect::Watch(Vec::new())));
     assert_eq!(state.phase, IdlePhase::Active);
 }
+
+#[test]
+fn an_inhibitor_clears_the_dim_and_drops_the_watches() {
+    use crate::idle::inhibit::Inhibition;
+    let (state, effects) = run(&[
+        IdleEvent::Policy(own()),
+        IdleEvent::Idled(Threshold::Dim, Stamp(10)),
+        IdleEvent::Inhibition(Inhibition::Held),
+    ]);
+    let tail = &effects[effects.len() - 2..];
+    assert_eq!(tail, [IdleEffect::Undim, IdleEffect::Watch(Vec::new())]);
+    assert_eq!(
+        (state.phase, state.dim),
+        (IdlePhase::Active, DimShown::Clear)
+    );
+    let (_, again) = reduce(state, IdleEvent::Inhibition(Inhibition::Free));
+    assert!(
+        matches!(again.as_slice(), [IdleEffect::Watch(w)] if w.len() == 3),
+        "{again:?}"
+    );
+}
+
+#[test]
+fn the_idle_lock_keeps_the_suspend_watch_as_it_was() {
+    use crate::idle::policy::Watch;
+    let (_, effects) = run(&[
+        IdleEvent::Policy(own()),
+        IdleEvent::Idled(Threshold::ScreenOff, Stamp(900_000)),
+        IdleEvent::Lock(idle_locked()),
+    ]);
+    let sets: Vec<&Vec<Watch>> = effects
+        .iter()
+        .filter_map(|e| match e {
+            IdleEffect::Watch(set) => Some(set),
+            _ => None,
+        })
+        .collect();
+    let suspend = |set: &Vec<Watch>| set.iter().find(|w| w.stage == Threshold::Suspend).copied();
+    assert_eq!(sets.len(), 2, "{sets:?}");
+    assert_eq!(suspend(sets[0]), suspend(sets[1]), "G342");
+    assert!(
+        sets[1]
+            .iter()
+            .any(|w| w.stage == Threshold::LockedScreenOff)
+    );
+}
+
+#[test]
+fn waking_from_sleep_holds_every_watch_afresh() {
+    let (state, effects) = run(&[
+        IdleEvent::Policy(own()),
+        IdleEvent::Idled(Threshold::ScreenOff, Stamp(900_000)),
+        IdleEvent::Idled(Threshold::Suspend, Stamp(1_800_000)),
+        IdleEvent::SleepStarting(Stamp(1_800_010)),
+    ]);
+    let held = state.held.clone();
+    let (after, woke) = reduce(state, IdleEvent::Woke(Stamp(1_900_000)));
+    assert_eq!(
+        woke,
+        vec![
+            IdleEffect::Displays(DisplayPower::On),
+            IdleEffect::IdleHint(IdleHint::Active),
+            IdleEffect::Watch(Vec::new()),
+            IdleEffect::Watch(held),
+        ]
+    );
+    assert_eq!(after.phase, IdlePhase::Active);
+    assert!(effects.contains(&IdleEffect::Suspend));
+}

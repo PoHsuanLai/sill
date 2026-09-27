@@ -85,6 +85,9 @@ pub(super) enum Order {
     /// Hold these notifications: an unchanged watch is kept (its timer runs on, G342); one that
     /// idled is kept until it resumes, so the wake is never lost.
     Watch(Vec<Watch>),
+    /// Drop every notification, idled or not, and hold these afresh (after a made-up wake, which
+    /// the compositor never saw).
+    Renew(Vec<Watch>),
     Displays(DisplayPower),
 }
 
@@ -159,6 +162,7 @@ fn follow(
     handle
         .insert_source(orders, move |event, _, state: &mut WlState| match event {
             Event::Msg(Order::Watch(watches)) => state.watch(watches),
+            Event::Msg(Order::Renew(watches)) => state.renew(watches),
             Event::Msg(Order::Displays(power)) => state.displays(power),
             Event::Closed => signal.stop(),
         })

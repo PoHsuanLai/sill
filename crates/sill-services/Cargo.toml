@@ -83,5 +83,14 @@ name = "files_probe"
 [[example]]
 name = "file_manager_stub"
 
+# logind, stood in for on a private bus (sill FINDINGS "sill idle fill"): it only records Suspend,
+# SetIdleHint and Inhibit, and sends PrepareForSleep and Lock on command. `dev/accept-idle.sh`
+# runs it with a video player's ScreenSaver.Inhibit, never the real logind.
+[[example]]
+name = "logind_standin"
+
+[[example]]
+name = "screensaver_client"
+
 [lints]
 workspace = true

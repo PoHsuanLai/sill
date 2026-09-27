@@ -59,6 +59,10 @@ pub enum IdleCommand {
     Configure(IdleConfig),
     /// An already resolved policy (live tests on the nested compositor).
     Use(IdlePolicy),
+    /// A made-up `resumed`, then every notification held afresh (`sill debug idle-wake`, sent
+    /// only by a daemon built with `debug`): the nested cosmic-comp counts no synthetic input
+    /// as activity (FINDINGS "sill idle fill").
+    FakeWake,
 }
 
 /// The other services idle reads and drives.

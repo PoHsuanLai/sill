@@ -252,6 +252,9 @@ pub enum DebugAction {
     },
     /// Print the open launcher's sections, rows and preview (a debug daemon only; M9).
     LauncherRows,
+    /// Wake idle as real input would (a debug daemon only; inside the lock grace it opens the
+    /// lock).
+    IdleWake,
 }
 
 /// `sill debug osd TOPIC`: the command line's spelling of [`OsdTopic`].
@@ -384,6 +387,7 @@ pub fn request(command: &Command) -> Option<Request> {
             DebugAction::Switcher { apps } => DebugRequest::Switcher(fake_switcher(apps)),
             DebugAction::LauncherKey { key } => DebugRequest::LauncherKey(launcher_key(*key)),
             DebugAction::LauncherRows => DebugRequest::LauncherRows,
+            DebugAction::IdleWake => DebugRequest::IdleWake,
         }),
     })
 }
@@ -460,6 +464,10 @@ mod tests {
             (
                 &["debug", "launcher-rows"],
                 Some(Request::Debug(DebugRequest::LauncherRows)),
+            ),
+            (
+                &["debug", "idle-wake"],
+                Some(Request::Debug(DebugRequest::IdleWake)),
             ),
             (
                 &["debug", "auth", "accept"],
