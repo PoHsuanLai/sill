@@ -30,8 +30,9 @@
 #      the pointer); dropped, it snaps to column 8 row 2. Then the Battery is carried onto that
 #      cell and held: the Calendar makes room, stepping up to row 1; dropped, the swap is kept.
 #      The file then names the output. Captures of the layer before, lifted, dropped, making
-#      room and after (target/accept-widgets/drag-*.png) and a screenshot after
-#      (dev/out/widgets-drag-cosmic.png).
+#      room and after (target/accept-widgets/drag-*.png), one held half a cell off its snap cell
+#      so quire's slot guide shows beside the lifted card (dev/out/widgets-drag-guide-cosmic.png),
+#      and a screenshot after (dev/out/widgets-drag-cosmic.png).
 #   6. 5 s idle: 0 frames on the desktop layer.
 #   7. `sill widgets edit` (FINDINGS "Widget interface port"): `sill-edit-widgets-<out>` maps,
 #      showing quire's widget gallery beside the desktop's widgets (a capture, and
@@ -425,6 +426,14 @@ import sys
 rows = [list(map(int, l.split())) for l in sys.stdin if l.strip()]
 print(max(r - l + 1 for l, t, r, b in rows))')
   echo "lifted: the widest frame is $lifted px (a cell is 164)" | tee -a "$log" >&2
+  # Held off its cell by half a cell, the card no longer covers quire's slot guide at the cell
+  # it would land in; then back over the cell before the release.
+  pointer_move $(( cx - 900 + 70 )) $(( cy + 360 + 50 )) || return 1
+  sleep 0.5
+  sill debug capture "$LAYER" "$OUT_DIR/drag-guide.png" >>"$log" 2>&1 || return 1
+  shot "$SHOTS/widgets-drag-guide-cosmic.png" || echo "screenshot failed" >&2
+  pointer_move $(( cx - 900 )) $(( cy + 360 )) || return 1
+  sleep 0.3
   pointer_release $(( cx - 900 )) $(( cy + 360 )) || return 1
   sleep 0.8
   sill debug capture "$LAYER" "$OUT_DIR/drag-dropped.png" >>"$log" 2>&1 || return 1

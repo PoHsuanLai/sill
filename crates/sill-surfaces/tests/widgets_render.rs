@@ -76,6 +76,18 @@ fn start(kind: WidgetKind, host: WidgetHost, file: ShellFile) -> Running {
 
 fn start_at(kind: WidgetKind, host: WidgetHost, size: WidgetSize, file: ShellFile) -> Running {
     let (services, feeds) = fake::services();
+    start_with(services, feeds, kind, host, size, file)
+}
+
+/// `start_at` on services already fed (a player playing before the widget mounts).
+fn start_with(
+    services: Services,
+    feeds: fake::Feeds,
+    kind: WidgetKind,
+    host: WidgetHost,
+    size: WidgetSize,
+    file: ShellFile,
+) -> Running {
     WORLD.with(|w| {
         *w.borrow_mut() = Some(World {
             services,
@@ -248,6 +260,31 @@ fn now_playing_is_the_control_centers_view_and_presses_reach_the_fake() {
             }
         )),
         "{sent:?}"
+    );
+}
+
+/// The live center mounts Now Playing with a player already there (a `sill reload` that adds
+/// it): the card shows the track from its first entry.
+#[test]
+fn now_playing_mounted_over_a_playing_player_shows_its_track() {
+    let (services, feeds) = fake::services();
+    feeds.media.send_replace(fake::media());
+    let running = start_with(
+        services,
+        feeds,
+        WidgetKind::NowPlaying,
+        WidgetHost::Tile,
+        WidgetSize::Medium,
+        ShellFile::default(),
+    );
+    assert_eq!(
+        running
+            .harness
+            .text_of("#widget-now-playing .ds-track-title")
+            .as_deref(),
+        Some("So What"),
+        "{}",
+        running.harness.html()
     );
 }
 
