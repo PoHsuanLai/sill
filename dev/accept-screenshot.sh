@@ -139,6 +139,8 @@ folders = "$WATCHED"
 tool = 'cp "$FIXTURE" "\$2/Screenshot_\$1_\$(date +%s%N).png"'
 TOML
   backdrop_seed "$CONFIG" || return 1
+  use_fake_ddc "$CONFIG" >/dev/null
+  require_fake_ddc || return 1
   PATH="$STUBS:$PATH" XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" \
     XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$NESTED_SOCKET" \
     dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- \

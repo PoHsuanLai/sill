@@ -84,6 +84,8 @@ build() {
 start_daemon() {
   CONFIG=$(mktemp -d)
   backdrop_seed "$CONFIG" || return 1
+  use_fake_ddc "$CONFIG" >/dev/null
+  require_fake_ddc || return 1
   XDG_CONFIG_HOME="$CONFIG" DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
     nested "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!

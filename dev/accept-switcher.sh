@@ -178,6 +178,8 @@ start_daemon() {
   mkdir -p "$CONFIG/sill"
   printf '[switcher]\nshow_delay_ms = %s\n' "$SHOW_DELAY_MS" >"$CONFIG/sill/settings.toml"
   backdrop_seed "$CONFIG" || return 1
+  use_fake_ddc "$CONFIG" >/dev/null
+  require_fake_ddc || return 1
   XDG_RUNTIME_DIR="$RUN_DIR" WAYLAND_DISPLAY="$NESTED_SOCKET" DBUS_SESSION_BUS_ADDRESS="$BUS" \
     DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
     XDG_CONFIG_HOME="$CONFIG" "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &

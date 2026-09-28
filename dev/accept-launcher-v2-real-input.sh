@@ -205,6 +205,8 @@ EOF
 start_daemon() {
   printf '[launcher]\nfiles_backend = "fd"\nweb_search = "on"\nclipboard_history = "memory"\n' \
     >"$CONFIG/sill/settings.toml"
+  use_fake_ddc "$SCRATCH" >/dev/null
+  require_fake_ddc || return 1
   in_env "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done

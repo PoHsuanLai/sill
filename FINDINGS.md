@@ -9199,3 +9199,77 @@ F1068 (the bug) and F1090-F1097. Branch `worktree-agent-ae1696746b39071d2` (cut 
   `cargo test` never runs it), and every other test that touches D-Bus goes through
   `tests/support/private_bus.rs`'s `PrivateBus` (`dev/private-bus.conf`, killed on drop). No
   non-`_live` test connects to `Connection::system()` or `Connection::session()` directly.
+
+## Dev scripts stay off the real hardware: DDC (2026-09-28)
+
+F1095, above, found the one gap F1090-F1094 hadn't closed: `sill-services::displays::ddc::source`
+opens the real `/dev/i2c-*` (`DdcSource::Buses`) unless `SILL_FAKE_DDC` names a fixture, and the
+daemon issues a read-only `Probe` job as soon as it starts, whether or not a script ever asks for
+a brightness change — reaching the user's real BenQ MA270U. `accept-cc-real-input.sh` was the
+only script in `dev/` that set `SILL_FAKE_DDC`; every other `--features debug` script did not.
+Closed here. Branch `worktree-agent-a4e07b34bf274b99c` (cut from master 78570b1).
+
+- **F1098 (CLOSED) Every script that starts a sill daemon now gets a fake DDC.** `dev/common.sh`
+  gained `use_fake_ddc` (writes a scratch `ddc.json` fixture naming no monitor — `{"displays":
+  []}`, `accept-cc-real-input.sh`'s own fixture format, `file_bus.rs` — and exports
+  `SILL_FAKE_DDC` to it) and `require_fake_ddc` (the same refusal pattern as
+  `require_private_system_bus`: refuses to start the daemon unless `SILL_FAKE_DDC` is already
+  set). Called right before backgrounding the daemon in all 27 other `--features debug`
+  acceptance scripts that start one: `accept-calendar.sh`, `accept-clipboard.sh`,
+  `accept-control-center.sh`, `accept-dock.sh`, `accept-hot-corners.sh`, `accept-icons.sh`,
+  `accept-idle.sh`, `accept-launcher.sh`, `accept-launcher-files.sh`, `accept-launcher-ui.sh`,
+  `accept-launcher-v2.sh`, `accept-launcher-v2-real-input.sh`, `accept-lock.sh`,
+  `accept-menus-keyboard-real-input.sh`, `accept-notification-center.sh`,
+  `accept-notifications.sh`, `accept-notifications-bus.sh`, `accept-notifications-real-input.sh`,
+  `accept-osd.sh`, `accept-polkit.sh`, `accept-power-menu.sh`, `accept-real-input.sh`,
+  `accept-screenshot.sh`, `accept-screenshot-drag.sh`, `accept-switcher.sh`,
+  `accept-wallpaper.sh`, `accept-widgets.sh`, `accept-widgets-real-input.sh`. Each reuses a
+  scratch directory the script already cleans up (`$CONFIG`/`$SCRATCH`), so nothing new to tidy.
+  `accept-cc-real-input.sh` already had its own equivalent fixture (F1004) and needed no change.
+  `accept-bar.sh` starts no daemon of its own (relies on one started separately, F1094) and
+  `accept-bar-ui.sh` drives `examples/bar_demo.rs` on fake services (F1094): neither touches DDC.
+  `dev/run.sh` is the interactive dev launcher (F1094: meant to reach the real session so a
+  developer can see it working) and stays as is — a real monitor there is the point, same as the
+  real D-Bus it already keeps.
+- **F1099 Residual gap, not fixed: `accept-lock.sh`'s `NODEBUG_BIN`.** Step 8
+  (`step_release_refuses_fake`) deliberately runs a build made with `cargo build -p sill` (no
+  `--features debug`; `build()`'s `NODEBUG_BIN`), to check that such a build answers `sill debug
+  auth accept` with "unsupported". `sill`'s `debug` feature is what turns on
+  `sill-services/fake-ddc` (`crates/sill/Cargo.toml`), so a build without it never compiles the
+  fake in at all: `DdcSource::from_env` (`crates/sill-services/src/displays/ddc/source.rs`)
+  returns `DdcSource::Buses` for `NODEBUG_BIN` regardless of `SILL_FAKE_DDC`, so this one daemon
+  start still opens the real `/dev/i2c-*` (a read-only probe) for the roughly one second it
+  runs, exactly as a real release build would. `require_fake_ddc` cannot see the build kind, so
+  it cannot catch this. Audited every other `cargo build -p sill` line in `dev/*.sh`: all the
+  rest carry `--features debug` (`accept-launcher-ui.sh`'s build line adds `--release` only when
+  `$SILL_BIN` already names `target/release/sill`, but always keeps `--features debug` too, so
+  its fake still works). Closing `NODEBUG_BIN`'s gap needs a stand-in i2c device or a
+  compile-time swap, not a dev-script env var; left for the user to decide, flagged here rather
+  than fixed.
+- **F1100 Rust tests re-audited for DDC specifically: none open a real i2c bus.** Only two
+  places in the whole tree construct `I2cBuses`: `DdcSource::Buses` in the real service path,
+  and `crates/sill-services/tests/ddc_live.rs`'s `probe_time_and_restore`, `#[ignore]`d exactly
+  like every other `_live.rs` test (F1097), so `cargo test` never runs it. The DDC worker's own
+  unit tests (`crates/sill-services/src/displays/ddc/worker/tests.rs`) run against a `FakeBus`
+  (`displays::ddc::fake`), never a real bus: the displays service's DDC is already behind the
+  `DdcBus` trait in tests, as it should be. Nothing to fix.
+- **Verification.** `accept-menus-keyboard-real-input.sh` (a headless-KWin real-input script),
+  run against a private copy of shell-host's `scripts/dev` (its own header note: "SHELL_HOST_DEV
+  may name a private copy... so a copy runs beside another agent's headless KWin"; `tools/`
+  symlinked back to the shared checkout so `fake-input.sh`'s build still finds it): the daemon's
+  log read `sill: displays: DDC is the fake in <scratch>/ddc.json (SILL_FAKE_DDC): no real
+  monitor is touched` and `sill: ddc: 0 display(s) answer DDC/CI` before any input was sent,
+  proving the fixture took over the worker's boot-time probe; nothing touched the private
+  KWin's fake buses either. 6 of 7 steps passed; `step_center_then_menu` failed (a
+  notification-center/bar-menu focus race, unrelated to DDC — nothing in this batch touches that
+  path — first seen here and worth a separate look). `accept-osd.sh` and `accept-control-center.sh`
+  could not be re-run live: the shared nested `wayland-1` (another agent's `w1-integration` work
+  was apparently on it) stayed unresponsive to new Wayland clients for the whole session
+  (`wayland-info` against it timed out repeatedly over more than ten minutes, on and off); never
+  stopped or otherwise touched, per the rule against interfering with another agent's compositor.
+  Their own edits are the identical two-line `use_fake_ddc`/`require_fake_ddc` pattern already
+  proven working in the headless-KWin run, so left reviewed-but-not-executed-live pending a
+  quiet `wayland-1`.
+- **Gate.** `GATE_DIR=<this worktree> ~/sill-wt/sill-gate.sh` on 78570b1 (working tree, uncommitted
+  at gate time): SILL GATE GREEN (fmt, clippy, 1300 passed, 0 failed, 52 ignored, boundary,
+  licenses).

@@ -217,6 +217,8 @@ start_daemon() {
   backdrop_seed "$CONFIG" || return 1
   write_fixture
   write_settings hide
+  use_fake_ddc "$CONFIG" >/dev/null
+  require_fake_ddc || return 1
   XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" \
     XDG_DATA_HOME="$DATA" XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$NESTED_SOCKET" \
     dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- \

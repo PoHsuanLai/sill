@@ -163,6 +163,8 @@ start_daemon() {
   backdrop_seed "$CONFIG" || return 1
   printf '[session]\nlocker = "sill"\nlock_grace_s = 5\n\n[idle]\ndim_s = 3\ndim_level_pct = 50\nlocked_screen_off_s = 4\n' \
     >"$CONFIG/sill/settings.toml"
+  use_fake_ddc "$SCRATCH" >/dev/null
+  require_fake_ddc || return 1
   in_env WAYLAND_DEBUG="${WDEBUG:-}" SILL_IDLE_TIMES="$TIMES" "$SILL_BIN" run >"$log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done

@@ -132,6 +132,8 @@ start_daemon() {
   backdrop_seed "$CONFIG" || return 1
   : >"$RECORD"
   rm -f "$KEYS"; mkfifo "$KEYS" || return 1
+  use_fake_ddc "$CONFIG" >/dev/null
+  require_fake_ddc || return 1
   XDG_CONFIG_HOME="$CONFIG" SILL_POWER_MENU_DRY_RUN="$RECORD" SILL_POWER_MENU_KEYS="$KEYS" \
     SILL_POWER_MENU_DRY_RUN_OFFERS=logind \
     DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" \

@@ -139,6 +139,8 @@ start_daemon() {
   mkdir -p "$CONFIG/sill"
   printf '[session]\nlocker = "sill"\n' >"$CONFIG/sill/settings.toml"
   backdrop_seed "$CONFIG" || return 1
+  use_fake_ddc "$CONFIG" >/dev/null
+  require_fake_ddc || return 1
   WAYLAND_DEBUG="${WDEBUG:-}" XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" \
     XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$NESTED_SOCKET" \
     dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- \
@@ -334,7 +336,11 @@ step_crash_relocks() {
   [ "$again" -ge 0 ] && [ "$took" -ge 0 ] && [ ! -e "$MARKER" ]
 }
 
-# 8.
+# 8. NODEBUG_BIN is built without the `debug` feature (build(), above), so `fake-ddc` is not
+# compiled in either: SILL_FAKE_DDC does nothing for it, and its DDC worker opens the real
+# /dev/i2c-* on startup exactly as a release build would (FINDINGS F1095, F1098 "residual gap:
+# NODEBUG_BIN"), a read-only probe this step cannot avoid without a stand-in i2c device, unlike
+# every other daemon start in this suite.
 step_release_refuses_fake() {
   local log="$OUT_DIR/nodebug.log" answer
   stop_daemon

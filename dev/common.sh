@@ -64,3 +64,34 @@ stop_private_bus() {
   kill "$BUS_PID" 2>/dev/null
   BUS_PID=
 }
+
+# Writes a scratch DDC fixture naming no monitor (`{"displays":[]}`, the fixture format
+# dev/accept-cc-real-input.sh's fake_monitor writes, only static) and exports SILL_FAKE_DDC to
+# it, so a debug build's DDC worker (sill-services' `fake-ddc` feature, FINDINGS F1004) talks to
+# it instead of opening the real /dev/i2c-* at startup. $1: the scratch directory to write
+# ddc.json into (a fresh mktemp -d if omitted, not cleaned up here). Prints the fixture's path.
+# Call once before start_daemon/step_start, before backgrounding the daemon (FINDINGS
+# F1090-F1097, F1095, F1098: every `--features debug` script but accept-cc-real-input.sh let
+# the DDC worker probe the user's real BenQ MA270U).
+use_fake_ddc() {
+  local dir="${1:-$(mktemp -d)}"
+  SILL_FAKE_DDC="$dir/ddc.json"
+  printf '{"displays":[]}\n' >"$SILL_FAKE_DDC"
+  export SILL_FAKE_DDC
+  echo "$SILL_FAKE_DDC"
+}
+
+# Refuses to let the daemon start unless SILL_FAKE_DDC is already set (by use_fake_ddc, or a
+# script's own fixture as accept-cc-real-input.sh writes): the same pattern as
+# require_private_system_bus, closing the DDC gap (FINDINGS F1095, F1098). A release
+# (non-debug) build ignores SILL_FAKE_DDC entirely (the `fake-ddc` feature is debug-only) and
+# always opens the real bus; this guard cannot see the build kind, so no dev script may start a
+# release build against a compositor a person is not directly watching. Call immediately before
+# backgrounding the daemon.
+require_fake_ddc() {
+  [ -n "${SILL_FAKE_DDC:-}" ] || {
+    echo "refusing to start the daemon: SILL_FAKE_DDC is not set; a debug build's DDC worker" \
+      "would open the real /dev/i2c-* (FINDINGS F1095, F1098)" >&2
+    return 1
+  }
+}

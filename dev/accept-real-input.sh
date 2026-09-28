@@ -191,6 +191,8 @@ start_daemon() {
   printf '[control_center]\nmenu_bar_sound = "hide"\nmenu_bar_battery = "hide"\n' \
     >"$CONFIG/sill/settings.toml"
   : >"$RECORD"
+  use_fake_ddc "$CONFIG" >/dev/null
+  require_fake_ddc || return 1
   in_env env XDG_CONFIG_HOME="$CONFIG" SILL_POWER_MENU_DRY_RUN="$RECORD" "$SILL_BIN" run \
     >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!

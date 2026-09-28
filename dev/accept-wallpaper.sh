@@ -120,6 +120,8 @@ RON
 
 (cd "$SILL_REPO" && cargo build -p sill --features debug >&2) || exit 1
 start_private_bus || exit 1
+use_fake_ddc "$SCRATCH" >/dev/null
+require_fake_ddc || exit 1
 DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
   "$SHELL_HOST_DEV/run.sh" "$SILL_BIN" run >"$OUT_DIR/sill-run.log" 2>&1 &
 SILL_PID=$!

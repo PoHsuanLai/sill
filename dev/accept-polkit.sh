@@ -108,6 +108,8 @@ await_line() {
 start_daemon() {
   backdrop_seed "$CONFIG" || return 1
   printf '[session]\npolkit_agent = "sill"\n' >"$CONFIG/sill/settings.toml"
+  use_fake_ddc "$SCRATCH" >/dev/null
+  require_fake_ddc || return 1
   in_env "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
