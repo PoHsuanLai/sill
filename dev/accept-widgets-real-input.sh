@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Widgets with real input at scale 2 (FINDINGS "Manual run 2026-09-28: widgets", F1020-F1029),
+# Widgets with real input at scale 2 (FINDINGS "Manual run 2026-09-28: widgets", F1020-F1029;
+# "Edit Widgets, one size", F1080+),
 # on shell-host's private headless KWin (scripts/dev/kwin-virtual.sh, 3840 x 2160, its one
 # output set to scale 2 with kscreen-doctor on that KWin's own socket: the BenQ MA270U's 4K at
 # 2x, the user's session) driven by shell-host's scripts/dev/fake-input.sh: every click and key
@@ -19,14 +20,18 @@
 #   3. A real click on the bar's clock opens the notification center: three tiles, each Medium
 #      (164 tall: the month is Medium in the center now, F1020), "Edit Widgets" at their foot
 #      (dev/out/widgets-kwin-s2-center.png).
-#   4. A real click on "Edit Widgets": the center unmaps and Edit Widgets maps on the output
-#      (dev/out/widgets-kwin-s2-edit.png).
-#   5. A real click on "World Clock" in the gallery's list, then on "Add to Desktop": the daemon
-#      writes `world_clock` into `widgets.desktop_widgets`, the desktop layer shows three
-#      frames, and the panel says "Added World Clock to the Desktop." with its check
-#      (dev/out/widgets-kwin-s2-added.png, the panel's foot with the line).
+#   4. A real click on "Edit Widgets": the center unmaps and Edit Widgets maps on the output as
+#      a sheet at the bottom, centred, 1040 x 400 (Q521; dev/out/widgets-kwin-s2-edit.png).
+#   4b. A real click on "World Clock" in the gallery's list: one preview, at Medium (344 wide),
+#      and no size control (Q520; widgets-kwin-s2-one-size.png).
+#   5. A real click on "Add to Desktop": the button says "Added" with its check (Q523; captured
+#      at once, widgets-kwin-s2-added.png), the daemon writes `world_clock` into
+#      `widgets.desktop_widgets`, and the card rises on the desktop above the sheet: the layer
+#      paints the rise, then shows three frames (widgets-kwin-s2-desktop-added.png).
 #   6. A real click on the Batteries row's "Remove" in the Desktop list: `battery` leaves
-#      `widgets.desktop_widgets` and the layer shows two frames (the Calendar and the clock).
+#      `widgets.desktop_widgets`, its card plays its exit (the layer paints it, G423), and the
+#      layer shows two frames, the Calendar and the clock (widgets-kwin-s2-desktop-removed.png,
+#      widgets-kwin-s2-removed.png).
 #   7. A real Escape closes Edit Widgets (it unmaps).
 #   8. 5 s idle: 0 frames on the desktop layer.
 #
@@ -190,6 +195,27 @@ import json, sys
 for row in json.loads(sys.stdin.read())["v"]:
     if row["surface"] == sys.argv[1]:
         print(row["frames"])' "$1"
+}
+
+# SURFACE's counters now: "frames callbacks commits skipped".
+counters_of() {
+  sill debug stats | python3 -c '
+import json, sys
+for row in json.loads(sys.stdin.read())["v"]:
+    if row["surface"] == sys.argv[1]:
+        print(row["frames"], row["callbacks"], row["commits"], row["skipped"])' "$1"
+}
+
+# SURFACE's counters every 100 ms for about 1.5 s, one line each, into FILE (in the background
+# while a motion plays): the frames it paints over time. The headless KWin at 4K presents the
+# layer about every 150-200 ms here, so a 280 ms motion is two or three frames.
+sample_counters() {
+  local surface="$1" file="$2"
+  : >"$file"
+  for _ in $(seq 15); do
+    echo "$(date +%s.%N | cut -c1-14) $(counters_of "$surface")" >>"$file"
+    sleep 0.1
+  done
 }
 
 # A capture of SURFACE into FILE. A debug build paints a 4K surface in more than the IPC's 2 s
@@ -400,58 +426,139 @@ step_open_edit() {
   wait_surface "$CENTER" 25 down || { echo "the center is still up" >&2; return 1; }
   sleep 1.5
   capture "$EDIT" "$OUT_DIR/edit.png" || return 1
+  # The sheet's plate ("L T R B" logical, on the surface) and the surface's own size.
   PANEL=$(python3 -c '
 import sys
 from PIL import Image
 img = Image.open(sys.argv[1]).convert("RGBA")
 l, t, r, b = img.getchannel("A").point(lambda a: 255 if a > 200 else 0).getbbox()
 s = float(sys.argv[2])
-print(round(l / s), round(t / s), round(r / s), round(b / s))' "$OUT_DIR/edit.png" "$SCALE")
-  backdrop_crop "$OUT_DIR/edit.png" "$SHOTS/widgets-kwin-s2-edit.png" "$(( ${PANEL%% *} * SCALE - 20 )) 0 3840 1960"
-  echo "Edit Widgets mapped, the center unmapped; the panel spans $PANEL (logical, on the surface)" >&2
+print(round(l / s), round(t / s), round(r / s), round(b / s), round(img.size[0] / s), round(img.size[1] / s))' \
+    "$OUT_DIR/edit.png" "$SCALE")
+  backdrop_crop "$OUT_DIR/edit.png" "$SHOTS/widgets-kwin-s2-edit.png" "0 0 3840 2160"
+  echo "Edit Widgets mapped, the center unmapped; the sheet spans $PANEL (L T R B, then the surface's W H; logical)" >&2
+  # Q521: a sheet at the bottom, centred, 1040 wide, 400 tall, `--s-8` above the bottom.
+  python3 -c '
+import sys
+l, t, r, b, w, h = map(int, sys.argv[1].split())
+ok = abs(b - (h - 8)) <= 2 and abs((l + r) / 2 - w / 2) <= 2 and abs(r - l - 1040) <= 4 and abs(b - t - 400) <= 4
+sys.exit(0 if ok else 1)' "$PANEL" || { echo "the sheet is not at the bottom, 1040 x 400" >&2; return 1; }
 }
 
-# The panel's parts, in logical px from its plate's left edge and the surface's top (quire's
-# gallery at the panel's 720 px, measured on this 1920 x 1080 logical output with Batteries or
-# World Clock picked, whose previews stand the same height): the list's second entry (World
-# Clock) at +62, "Add to Desktop" at +291, and the Desktop list's second row's Remove at +317.
+# The sheet's parts, in logical px from its plate's top-left corner (quire's gallery in the
+# 1040 x 400 sheet, laid out by a Harness at this output's logical size): the list's second
+# entry (World Clock) at (+112, +170), "Add to Desktop" under the preview at (+382, +311), the
+# preview's card from +120 to +284 down (a row through it at +135, 344 wide at Medium), and the
+# Desktop list's second row's (the Batteries') Remove at (+991, +132). quire 5c3fb6db's sizes.
 panel_left() { echo "${PANEL%% *}"; }
+panel_top() { echo "$PANEL" | cut -d' ' -f2; }
 
-# 5.
+# A capture's crop, BOX "L T R B" in logical px on the surface, into FILE, over a plain ground.
+logical_crop() {
+  local l t r b
+  read -r l t r b <<<"$3"
+  backdrop_crop "$1" "$2" "$(( l * SCALE )) $(( t * SCALE )) $(( r * SCALE )) $(( b * SCALE ))"
+}
+
+# 4b. Q520: World Clock picked, the gallery shows one preview, at Medium (344 wide), and no
+# size control. The automated check reads the preview row: one run of card across the detail
+# plate, 344 +- 6 wide, a row through its top above the dials; the capture shows the rest.
+step_one_size() {
+  local left top run
+  left=$(panel_left); top=$(panel_top)
+  click $(( left + 112 )) $(( top + 170 + TOP )) || return 1
+  sleep 1.5
+  capture "$EDIT" "$OUT_DIR/edit-one-size.png" || return 1
+  logical_crop "$OUT_DIR/edit-one-size.png" "$SHOTS/widgets-kwin-s2-one-size.png" \
+    "$(( left - 10 )) $(( top - 10 )) $(( left + 1050 )) $(( top + 410 ))"
+  run=$(python3 - "$OUT_DIR/edit-one-size.png" "$SCALE" "$left" "$top" <<'EOF'
+import sys
+from PIL import Image
+img = Image.open(sys.argv[1]).convert("RGB")
+s, left, top = float(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
+y = round((top + 135) * s)
+x0, x1 = round((left + 232) * s), round((left + 724) * s)
+ground = img.getpixel((x0 + 4, y))
+off = [x for x in range(x0, x1) if sum(abs(p - q) for p, q in zip(img.getpixel((x, y)), ground)) > 6]
+runs, run = [], None
+for x in off:
+    if run and x - run[1] <= 40: run[1] = x
+    else:
+        run and runs.append(run); run = [x, x]
+run and runs.append(run)
+print(len(runs), *[round((r - l + 1) / s) for l, r in runs])
+EOF
+)
+  echo "the preview row: $run (runs of card, then each one's width, logical)" >&2
+  python3 -c '
+import sys
+n, *w = map(int, sys.argv[1].split())
+sys.exit(0 if n == 1 and abs(w[0] - 344) <= 6 else 1)' "$run"
+}
+
+# 5. A real click on "Add to Desktop": the button says "Added" with its check (captured at
+# once, inside quire's 900 ms hold), the daemon writes `world_clock`, and the card rises into
+# its place on the desktop above the sheet: the layer paints the rise (frames), then 3 frames.
 step_add() {
-  local left before after frames_now
-  left=$(panel_left)
+  local left top before after frames_now f0 f1
+  left=$(panel_left); top=$(panel_top)
   before=$(desktop_kinds)
-  click $(( left + 62 )) $(( 172 + TOP )) || return 1
-  sleep 0.6
-  click $(( left + 291 )) $(( 546 + TOP )) || return 1
+  f0=$(frames_of "$LAYER")
+  sample_counters "$LAYER" "$OUT_DIR/rise-frames.txt" &
+  local sampler=$!
+  click $(( left + 382 )) $(( top + 311 + TOP )) || return 1
+  capture "$EDIT" "$OUT_DIR/edit-added.png" || return 1
   for _ in $(seq 30); do after=$(desktop_kinds); [ "$after" != "$before" ] && break; sleep 0.2; done
   sleep 2
+  wait "$sampler"
+  f1=$(frames_of "$LAYER")
+  logical_crop "$OUT_DIR/edit-added.png" "$SHOTS/widgets-kwin-s2-added.png" \
+    "$(( left - 10 )) $(( top - 10 )) $(( left + 1050 )) $(( top + 410 ))"
+  logical_crop "$OUT_DIR/edit-added.png" "$OUT_DIR/added-button.png" \
+    "$(( left + 300 )) $(( top + 290 )) $(( left + 456 )) $(( top + 346 ))"
+  logical_crop "$OUT_DIR/edit-one-size.png" "$OUT_DIR/add-button.png" \
+    "$(( left + 300 )) $(( top + 290 )) $(( left + 456 )) $(( top + 346 ))"
   capture "$LAYER" "$OUT_DIR/desktop-added.png" || return 1
   frames "$OUT_DIR/desktop-added.png" >"$OUT_DIR/desktop-added.txt"
   frames_now=$(wc -l <"$OUT_DIR/desktop-added.txt")
-  capture "$EDIT" "$OUT_DIR/edit-added.png" || return 1
-  backdrop_crop "$OUT_DIR/edit-added.png" "$SHOTS/widgets-kwin-s2-added.png" "$(( left * SCALE - 20 )) 1000 3840 1960"
+  backdrop_crop "$OUT_DIR/desktop-added.png" "$SHOTS/widgets-kwin-s2-desktop-added.png" "2400 0 3840 1000"
   grep -o 'edit_widgets.write=.*' "$OUT_DIR/daemon.log" | tail -1 >"$OUT_DIR/added-write.txt"
-  echo "added: desktop_widgets '$before' -> '$after'; the layer shows $frames_now frames; $(cat "$OUT_DIR/added-write.txt")" >&2
-  [[ "$after" == *world_clock* ]] && [ "$frames_now" = 3 ] && grep -q 'shown: On' "$OUT_DIR/added-write.txt"
+  local changed
+  changed=$(python3 -c '
+import sys
+from PIL import Image, ImageChops
+a = Image.open(sys.argv[1]).convert("RGB"); b = Image.open(sys.argv[2]).convert("RGB")
+d = ImageChops.difference(a, b).convert("L").point(lambda v: 255 if v > 40 else 0)
+print(sum(1 for v in d.getdata() if v))' "$OUT_DIR/add-button.png" "$OUT_DIR/added-button.png")
+  echo "added: desktop_widgets '$before' -> '$after'; the button's pixels changed: $changed; the layer painted $(( f1 - f0 )) frames (the rise: a settings change alone paints 1; over time in rise-frames.txt) and shows $frames_now; $(cat "$OUT_DIR/added-write.txt")" >&2
+  [[ "$after" == *world_clock* ]] && [ "$frames_now" = 3 ] && grep -q 'shown: On' "$OUT_DIR/added-write.txt" \
+    && [ "$changed" -gt 200 ] && [ $(( f1 - f0 )) -ge 3 ]
 }
 
-# 6.
+# 6. A real click on the Batteries row's Remove: `battery` leaves the key, its card plays its
+# exit where it stood (the layer paints it: frames), and then the layer shows 2 frames.
 step_remove() {
-  local left before after frames_now
-  left=$(panel_left)
+  local left top before after frames_now f0 f1
+  left=$(panel_left); top=$(panel_top)
   before=$(desktop_kinds)
-  click $(( left + 317 )) $(( 683 + TOP )) || return 1
+  f0=$(frames_of "$LAYER")
+  sample_counters "$LAYER" "$OUT_DIR/exit-frames.txt" &
+  local sampler=$!
+  click $(( left + 991 )) $(( top + 132 + TOP )) || return 1
   for _ in $(seq 30); do after=$(desktop_kinds); [ "$after" != "$before" ] && break; sleep 0.2; done
-  sleep 1.5
+  sleep 2
+  wait "$sampler"
+  f1=$(frames_of "$LAYER")
   capture "$LAYER" "$OUT_DIR/desktop-removed.png" || return 1
   frames "$OUT_DIR/desktop-removed.png" >"$OUT_DIR/desktop-removed.txt"
   frames_now=$(wc -l <"$OUT_DIR/desktop-removed.txt")
+  backdrop_crop "$OUT_DIR/desktop-removed.png" "$SHOTS/widgets-kwin-s2-desktop-removed.png" "2400 0 3840 1000"
   capture "$EDIT" "$OUT_DIR/edit-removed.png" && \
-    backdrop_crop "$OUT_DIR/edit-removed.png" "$OUT_DIR/edit-removed-foot.png" "$(( left * SCALE - 20 )) 1000 3840 1960"
-  echo "removed: desktop_widgets '$before' -> '$after'; the layer shows $frames_now frames" >&2
-  [[ "$after" != *battery* ]] && [[ "$after" == *world_clock* ]] && [ "$frames_now" = 2 ]
+    logical_crop "$OUT_DIR/edit-removed.png" "$SHOTS/widgets-kwin-s2-removed.png" \
+      "$(( left - 10 )) $(( top - 10 )) $(( left + 1050 )) $(( top + 410 ))"
+  echo "removed: desktop_widgets '$before' -> '$after'; the layer painted $(( f1 - f0 )) frames (the exit: its start and its drop paint 2, so more is the exit playing; over time in exit-frames.txt) and shows $frames_now" >&2
+  [[ "$after" != *battery* ]] && [[ "$after" == *world_clock* ]] && [ "$frames_now" = 2 ] \
+    && [ $(( f1 - f0 )) -ge 3 ]
 }
 
 # 7.
@@ -485,8 +592,8 @@ set_scale || { stop_kwin; exit 1; }
 start_input || { cleanup; exit 1; }
 start_daemon || { cleanup; exit 1; }
 status=0
-for step in step_scale step_desktop step_center step_open_edit step_add step_remove step_escape \
-  step_idle; do
+for step in step_scale step_desktop step_center step_open_edit step_one_size step_add step_remove \
+  step_escape step_idle; do
   if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; fi
 done
 cleanup

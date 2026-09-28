@@ -17,7 +17,7 @@
    this box grown by the panel's padding. */
 .sill-ew-column{ display:flex; flex-direction:column; flex:1; min-height:0; gap:var(--s-12);
   color:var(--ink); outline:none; }
-.sill-ew-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--s-8);
+.sill-ew-head{ display:flex; flex:none; align-items:center; justify-content:space-between; gap:var(--s-8);
   padding:0 0 var(--s-6) var(--s-4); }
 .sill-ew-title{ font-size:var(--fs-subhead); font-weight:700; }
 /* What the last removal or refusal came to (an add is the gallery's to show): the words, in
