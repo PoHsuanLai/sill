@@ -143,6 +143,19 @@ further down. The monitor is the BenQ MA270U (27", 3840 x 2160, on HDMI-A-2).
   refused, its line shaken once. Press Escape, Done, and a click outside the panel: each closes
   it. The clicks, the add, the remove and Escape are automated at scale 2 by
   `dev/accept-widgets-real-input.sh`; by hand only the feel is left.
+- [ ] **Bluetooth asks before it goes off** (FINDINGS F1070). With the Keychron connected over
+  Bluetooth, open the control center and press the Bluetooth tile: "Turn Bluetooth off?" covers
+  the panel and the keyboard keeps working. Press Escape (the keyboard stays connected), then
+  press the tile again and click Cancel, then click beside the alert: each leaves it on. Then use
+  the pane's switch (the chevron, then the switch): the same alert. Only "Turn Off" (or Return)
+  turns it off. Turning it back on asks nothing. Automated on a fake BlueZ by
+  `dev/accept-cc-real-input.sh bluetooth`; by hand, the real radio and the look.
+- [ ] **The center's Clear and Clear All fold** (FINDINGS F1071). With a few notifications from
+  two apps, open the center from the clock and click the top group's Clear: its header and
+  cards fold one after another, then the next group slides up into place. Clear All folds
+  everything, and "No Notifications" shows once the rows have gone. Escape then closes the
+  center. "N more" enters the added cards, and "Show less" folds them back. Automated by
+  `dev/accept-notifications-real-input.sh exit`; by hand, the feel.
 
 ## Visual review
 

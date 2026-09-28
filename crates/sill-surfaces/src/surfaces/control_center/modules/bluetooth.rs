@@ -1,14 +1,16 @@
 //! The Bluetooth tile: a quire `ModuleTile` whose press powers the adapter on or off,
 //! [`crate::surfaces::control_center::bluetooth_tile_status`] ("On", "Off") as its line, and its
-//! chevron to the device list (`Detail::Bluetooth`). Reads `use_bluetooth`; sends `BluetoothCommand::Power`.
+//! chevron to the device list (`Detail::Bluetooth`). Reads `use_bluetooth`; sends
+//! `BluetoothCommand::Power`, asking first before off ([`super::bluetooth_ask`]).
 
 use dioxus::prelude::*;
 use ds::{Availability, Chevron, ModuleState, ModuleTile, StatusState, Text};
-use sill_services::{Bluetooth, BluetoothCommand, BtPower, Presence};
+use sill_services::{Bluetooth, BtPower, Presence};
 
-use crate::hooks::{use_bluetooth, use_services};
+use crate::hooks::use_bluetooth;
 use crate::surfaces::bar::glyph_state::bluetooth_glyph_state;
 use crate::surfaces::control_center::bluetooth_tile_status;
+use crate::surfaces::control_center::modules::bluetooth_ask::use_power_request;
 use crate::surfaces::control_center::modules::flipped;
 use crate::surfaces::control_center::page::Detail;
 
@@ -16,7 +18,7 @@ use crate::surfaces::control_center::page::Detail;
 #[component]
 pub fn BluetoothModule(on_detail: EventHandler<Detail>) -> Element {
     let bluetooth = use_bluetooth()();
-    let control = use_services().bluetooth_control;
+    let request = use_power_request();
     let state = power_state(bluetooth.power);
     rsx! {
         ModuleTile {
@@ -26,10 +28,7 @@ pub fn BluetoothModule(on_detail: EventHandler<Detail>) -> Element {
             state,
             chevron: Chevron::Detail,
             availability: adapter_availability(&bluetooth),
-            onclick: move |_| {
-                // A stopped service drops it: the tile shows the power it last published.
-                let _gone = control.send(BluetoothCommand::Power(power_of(flipped(state))));
-            },
+            onclick: move |_| request.call(power_of(flipped(state))),
             on_detail: move |_| on_detail.call(Detail::Bluetooth),
         }
     }

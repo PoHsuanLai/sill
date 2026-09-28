@@ -1,25 +1,30 @@
 //! Inside the column: the title with Clear All (`Button{Quiet}`), the history grouped by app
-//! (`group_views`, each group drawn by `group.rs`), or the empty state; the footer when sill is
-//! not the one receiving notifications; and the widgets slot at the bottom. The column holds the
-//! keyboard: every key goes through [`step_keys`] over the drawn rows.
+//! (`group_views`) as one quire `LeavingList` of headers and cards (each drawn by `group.rs`),
+//! or the empty state; the footer when sill is not the one receiving notifications; and the
+//! widgets slot at the bottom. The column holds the keyboard: every key goes through
+//! [`step_keys`] over the drawn rows.
+//!
+//! The list's motion is quire's (FINDINGS F1071): its rows rise as the center opens (`first:
+//! Entering`; each opening remounts the column, so once per opening), a row that arrives while
+//! it is open enters with `row-in`, and every row the model drops in one update (a Clear, Clear
+//! All, a dismissal, "Show less") folds, staggered, then the rows below heal up by its height.
 
-use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
-use ds::detail::{FirstShow, Reveal};
-use ds::{Button, ButtonVariant};
+use ds::{Button, ButtonVariant, LeavingItem, LeavingList, ListPresence};
 use shell_host::OutputId;
 use sill_services::{History, UnixMs};
 
+use super::drawn::{Rows, use_drawn};
 use super::drive::CenterCtx;
-use super::group::GroupBlock;
+use super::group::row_item;
 use super::groups::group_views;
 use super::keymap::center_key;
 use super::keys::{CenterOut, RowFocus, step_keys};
 use super::labels::{EMPTY, TITLE, server_line};
 use super::layer::PANEL_ID;
-use super::rows::{CenterRow, activate, dismiss, rows_of};
+use super::rows::{CenterRow, RowKey, activate, dismiss, rows_of};
 use super::widgets::CenterWidgets;
 use crate::hooks::{use_clock, use_notification_history, use_notifications};
 
@@ -33,19 +38,18 @@ pub(super) fn Contents(output: OutputId) -> Element {
     let _minute = use_clock()();
     let now = wall_clock();
     let mut focus = use_signal(RowFocus::default);
-    let views = group_views(&history, &ctx.expanded.read());
-    let rows = rows_of(&views);
+    let expanded = ctx.expanded.read().clone();
+    let rows = rows_of(&group_views(&history, &expanded));
     let keys = (ctx.clone(), rows.clone());
     let clear = ctx.clone();
-    // Each group with the index of its first row among the column's.
-    let groups: Vec<_> = views
-        .into_iter()
-        .scan(0, |first, view| {
-            let at = *first;
-            *first += rows_of(std::slice::from_ref(&view)).len();
-            Some((at, view))
-        })
+    let home = ctx.clone();
+    let items: Vec<LeavingItem<RowKey>> = rows
+        .iter()
+        .enumerate()
+        .filter_map(|row| row_item(&history, &expanded, row, focus(), now))
         .collect();
+    let listed: Vec<RowKey> = items.iter().map(|item| item.key.clone()).collect();
+    let drawn = use_drawn(&listed);
     rsx! {
         div {
             id: PANEL_ID,
@@ -54,7 +58,7 @@ pub(super) fn Contents(output: OutputId) -> Element {
             // result list and every menu are excluded by that table and carry nothing here.
             "data-overscroll": "band",
             tabindex: "-1",
-            onmounted: move |event: MountedEvent| take_keyboard(event.data()),
+            onmounted: move |event: MountedEvent| home.home(event.data()),
             onkeydown: move |event: KeyboardEvent| {
                 let Some(key) = center_key(&event.key()) else { return };
                 event.prevent_default();
@@ -77,23 +81,17 @@ pub(super) fn Contents(output: OutputId) -> Element {
                 }
             }
             div { class: "sill-nc-list",
-                if history.groups.is_empty() {
+                if drawn.rows() == Rows::None {
                     div { class: "sill-nc-empty", {EMPTY} }
                 }
-                // design/20 1.6: the center's rows rise on first show. Each opening remounts the
-                // column (`phase::Opening`), so the rise plays once per opening and never on a
-                // re-render.
-                Reveal { first: FirstShow::Animate,
-                    for (at, view) in groups {
-                        GroupBlock {
-                            key: "{view.key.0}",
-                            group: history.groups.iter().find(|g| g.key == view.key).cloned(),
-                            view,
-                            first: at,
-                            focus: focus(),
-                            now,
-                        }
-                    }
+                LeavingList::<RowKey> {
+                    label: TITLE.to_owned(),
+                    items,
+                    first: ListPresence::Entering,
+                    on_settled: move |key: RowKey| {
+                        eprintln!("notification_center.settled={key:?}");
+                        drawn.settled(&key);
+                    },
                 }
             }
             if let Some(line) = server_line(&server) {
@@ -133,11 +131,6 @@ pub(super) fn app_of(history: &History, row: &CenterRow) -> Option<String> {
         .flat_map(|group| &group.notes)
         .find(|note| note.id == *id)
         .and_then(|note| note.app.desktop_entry.clone())
-}
-
-/// The column takes the keyboard as it mounts, so the arrows and Escape reach it.
-fn take_keyboard(element: Rc<MountedData>) {
-    ds::focus_soon(element);
 }
 
 /// The wall clock the ages are counted against (the history's arrival times are wall-clock).

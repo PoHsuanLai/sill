@@ -16,25 +16,24 @@
 .sill-nc-column{ display:flex; flex-direction:column; flex:1 1 auto; min-height:0; color:var(--ink);
   outline:none; overflow-y:auto; }
 
-/* The title and Clear All. */
+/* The title and Clear All. The space under it is the first row's own (`.sill-nc-item`). */
 .sill-nc-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--s-8);
-  padding:0 0 var(--s-6) var(--s-4); }
+  padding:0 0 0 var(--s-4); }
 .sill-nc-title{ font-size:var(--fs-subhead); font-weight:700; }
 
-/* The history: the groups, newest first. The whole column scrolls (history, then the widgets
-   under it, as macOS's Notification Center does), so the list takes its natural height. */
-.sill-nc-list{ display:flex; flex-direction:column; gap:var(--s-6); flex:none; }
-.sill-nc-group{ display:flex; flex-direction:column; gap:var(--s-6); }
-/* The groups, and the cards an opened group adds, stand in quire's `Reveal` (a plain block that
-   plays their rise), so they keep the list's gap as a margin between siblings. */
-.sill-nc-group + .sill-nc-group,
-.sill-nc-row + .sill-nc-row{ margin-top:var(--s-6); }
+/* The history: the groups' headers and cards, newest first, as one quire `LeavingList` (its
+   rows fold, heal and enter). The whole column scrolls (history, then the widgets under it, as
+   macOS's Notification Center does), so the list takes its natural height. The gap between
+   rows is inside each row (quire CONSUMING "Leaving list"): a leaving row's measured height,
+   gap included, is how far the rows below it heal. */
+.sill-nc-list{ display:flex; flex-direction:column; flex:none; }
+.sill-nc-item{ display:flex; flex-direction:column; padding-top:var(--s-6); }
 .sill-nc-group-head{ display:flex; border-radius:var(--r-btn); }
 .sill-nc-row{ display:flex; justify-content:center; border-radius:var(--r-card); }
 .sill-nc-row[*|data-focus=ring],
 .sill-nc-group-head[*|data-focus=ring]{ outline:var(--focus-ring) solid var(--accent-ring); outline-offset:var(--s-2); }
 .sill-nc-empty{ display:flex; align-items:center; justify-content:center; flex:1 1 0;
-  font-size:var(--fs-subhead); color:var(--ink-faint); }
+  padding-top:var(--s-6); font-size:var(--fs-subhead); color:var(--ink-faint); }
 
 /* Who else shows notifications, when sill does not. */
 .sill-nc-foot{ padding:var(--s-8) var(--s-4) 0; font-size:var(--fs-help); color:var(--ink-faint);

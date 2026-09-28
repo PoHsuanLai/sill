@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The control center's Display module under real pointer input (FINDINGS "Manual run
-# 2026-09-28: control center"), on shell-host's private headless KWin (scripts/dev/kwin-virtual.sh,
+# The control center's Display module and its Bluetooth confirmation under real input (FINDINGS
+# "Manual run 2026-09-28: control center", "Alert and leaving list"), on shell-host's private headless KWin (scripts/dev/kwin-virtual.sh,
 # FINDINGS F52) driven by shell-host's scripts/dev/fake-input.sh: the control center is opened by
 # a real click on its bar item, and its brightness capsule is dragged and clicked by a real
 # pointer, with real serials, through KWin's own popup grab. No `sill debug` opener, click or
@@ -10,14 +10,17 @@
 # change it), set through kscreen-doctor's in-process backend on KWin's own socket and bus.
 #
 # SAFETY. No real monitor, no real outputs list, no real Bluetooth:
+# - Bluetooth is a FAKE: dev/fake-bluez.py owns org.bluez on KWin's private bus (never the
+#   system bus; it refuses one) with a made-up adapter and keyboard, and logs every Powered set
+#   to a scratch file. The daemon's Bluetooth service reads it as its system bus.
 # - DDC is a FAKE: the daemon is this checkout's debug build (`--features debug`, which turns on
 #   sill-services' `fake-ddc`) started with SILL_FAKE_DDC naming a JSON file of one made-up
 #   monitor on the headless output. The daemon's log must say so ("DDC is the fake in ...")
 #   before any input is sent; otherwise the script stops. The fake never opens /dev/i2c-*.
 # - The outputs list is FAKE: a stand-in `cosmic-randr` that never answers and a stand-in
 #   `kscreen-doctor` that prints the headless output are first on the daemon's PATH.
-# - KWin's private bus is the daemon's session AND system bus, so BlueZ, NetworkManager and
-#   the rest are simply absent (Bluetooth shows Unavailable); the power menu is a dry run.
+# - KWin's private bus is the daemon's session AND system bus, so the real BlueZ,
+#   NetworkManager and the rest are simply absent; the power menu is a dry run.
 # - Its own XDG_RUNTIME_DIR (no PipeWire), a scratch HOME and XDG dirs. Nothing reaches
 #   wayland-0 or the user's session bus.
 #
@@ -33,13 +36,23 @@
 #      monitor receives writes DURING the drag (not only at the release), rising, and the last
 #      is 75 (+-4).
 #   4. Real click on the track at 20 %: the fake monitor receives 20 (+-4).
+#   B1. A real click on the Bluetooth tile (its lit disc, found in a capture) shows the alert
+#       "Turn Bluetooth off?" over the panel (the daemon logs `bluetooth_ask=shown`); the fake
+#       adapter stays powered.
+#   B2. Real Escape cancels it: the popup stays, the adapter stays powered.
+#   B3. Asked again, a real click on the scrim (beside the alert) cancels it.
+#   B4. Asked again, a real click on Cancel cancels it.
+#   B5. Asked again, a real click on Turn Off (the new accent button in the capture) powers the
+#       fake adapter off.
+#   B6. A real click on the tile again powers it on, with no alert.
 #   5. A real click outside closes the popup. (Real Escape first, recorded only: the control
 #      center's keyboard focus after a pointer press is another lane's.)
 #
 # Captures: target/accept-cc-real-input/*.png. Exit 0 only when every step passed; 1 when one
 # failed; 2 when a step could not run safely (named).
 #
-# Usage: dev/accept-cc-real-input.sh
+# Usage: dev/accept-cc-real-input.sh              (every step)
+#        dev/accept-cc-real-input.sh bluetooth    (step 1, B1-B6 and 5)
 set -uo pipefail
 # shellcheck source=dev/common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
@@ -60,6 +73,13 @@ STANDINS="$SCRATCH/bin"
 DDC="$SCRATCH/ddc.json"
 WRITES="$SCRATCH/ddc.json.writes"
 RECORD="$SCRATCH/power-menu.record"
+BTLOG="$SCRATCH/bluez.powered"
+BLUEZ=
+# The Bluetooth tile's disc and the alert's buttons on screen (global logical px), from B1.
+DISC=
+TURN_OFF=
+CANCEL=
+SCRIM=
 mkdir -p "$HOME_DIR" "$CONFIG/sill" "$STANDINS" "$SCRATCH/data" "$SCRATCH/state" "$SCRATCH/cache"
 DAEMON=
 INPUT=
@@ -179,6 +199,27 @@ start_daemon() {
   sleep 1.5
 }
 
+# The fake BlueZ on KWin's private bus, before the daemon (its Bluetooth service seeds once).
+start_bluez() {
+  : >"$BTLOG"
+  python3 "$SILL_REPO/dev/fake-bluez.py" "$BUS" "$BTLOG" >"$OUT_DIR/bluez.log" 2>&1 &
+  BLUEZ=$!
+  for _ in $(seq 50); do
+    grep -q "fake-bluez: org.bluez on $BUS" "$OUT_DIR/bluez.log" && return 0
+    kill -0 "$BLUEZ" 2>/dev/null || break
+    sleep 0.1
+  done
+  echo "the fake BlueZ did not start (see $OUT_DIR/bluez.log)" >&2
+  return 1
+}
+
+stop_bluez() {
+  [ -n "$BLUEZ" ] || return 0
+  kill "$BLUEZ" 2>/dev/null
+  reap "$BLUEZ" "fake BlueZ"
+  BLUEZ=
+}
+
 # Ask the daemon to quit and wait up to 10 s; never kill it (FINDINGS G51).
 stop_daemon() {
   [ -n "$DAEMON" ] || return 0
@@ -205,6 +246,7 @@ prove_safe() {
   {
     grep "sill: displays: DDC is the fake in $DDC" "$OUT_DIR/daemon.log" || return 1
     grep "power_menu.backend=dry-run" "$OUT_DIR/daemon.log" || return 1
+    grep "fake-bluez: org.bluez on $BUS" "$OUT_DIR/bluez.log" || return 1
   } >"$log" 2>&1
   for _ in $(seq 60); do
     grep -q "outputs read from kscreen-doctor" "$OUT_DIR/daemon.log" && break
@@ -212,7 +254,8 @@ prove_safe() {
   done
   grep "outputs read from kscreen-doctor" "$OUT_DIR/daemon.log" >>"$log" || return 1
   SAFE=proven
-  echo "safety proven from the daemon's log: fake DDC ($DDC), the stand-in outputs, dry-run power menu" >&2
+  echo "safety proven from the daemon's log: fake DDC ($DDC), the stand-in outputs, dry-run power menu," \
+    "fake BlueZ on the private bus" >&2
 }
 
 # Real input through ONE fake-input client for the whole run (G50).
@@ -503,6 +546,170 @@ step_click() {
   [ "$last" -ge 16 ] && [ "$last" -le 24 ]
 }
 
+# The blue blobs of popup capture $1, one per line, "cx cy w h" in the capture's logical px:
+# pixels whose blue beats their red by more than $2 (20: a lit tile's tinted plate, about
+# (210, 224, 244); 60: the accent itself, a lit disc or a filled button, about (148, 192, 254)).
+accent_blobs() {
+  python3 - "$OUT_DIR/$1.png" "$SCALE" "$2" <<'EOF'
+import sys
+import numpy as np
+from PIL import Image
+k = float(sys.argv[2])
+img = np.asarray(Image.open(sys.argv[1]).convert("RGB"), dtype=int)
+r, g, b = img[..., 0], img[..., 1], img[..., 2]
+mask = (b > 180) & (b - r > int(sys.argv[3]))
+h, w = mask.shape
+seen = np.zeros_like(mask)
+for y0 in range(0, h, 2):
+    for x0 in range(0, w, 2):
+        if not mask[y0, x0] or seen[y0, x0]:
+            continue
+        stack, xs, ys = [(y0, x0)], [], []
+        seen[y0, x0] = True
+        while stack:
+            y, x = stack.pop()
+            xs.append(x); ys.append(y)
+            for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                ny, nx = y + dy, x + dx
+                if 0 <= ny < h and 0 <= nx < w and mask[ny, nx] and not seen[ny, nx]:
+                    seen[ny, nx] = True
+                    stack.append((ny, nx))
+        bw, bh = (max(xs) - min(xs) + 1) / k, (max(ys) - min(ys) + 1) / k
+        if bw >= 12 and bh >= 12:
+            print(round((min(xs) + max(xs)) / 2 / k), round((min(ys) + max(ys)) / 2 / k),
+                  round(bw), round(bh))
+EOF
+}
+
+asks() { grep -c "control_center.bluetooth_ask=shown" "$OUT_DIR/daemon.log"; }
+cancels() { grep -c "control_center.bluetooth_ask=cancel" "$OUT_DIR/daemon.log"; }
+powered_offs() { grep -c '^powered false' "$BTLOG"; }
+powered_ons() { grep -c '^powered true' "$BTLOG"; }
+
+# Wait up to $2 tenths for command $1 to print at least $3.
+await_count() {
+  for _ in $(seq "$2"); do [ "$($1)" -ge "$3" ] && return 0; sleep 0.1; done
+  return 1
+}
+
+# Whether B1 found the tile and the buttons.
+found() { [ -n "$DISC" ] && [ -n "$TURN_OFF" ] || { echo "B1 found no tile or buttons" >&2; return 1; }; }
+
+# A real click on the tile's disc raises the alert (the ask count rises by one).
+raise_alert() {
+  local before
+  before=$(asks)
+  # shellcheck disable=SC2086
+  click $DISC || return 1
+  await_count asks 30 $(( before + 1 )) || { echo "a real click on the tile ($DISC) asked nothing" >&2; return 1; }
+  sleep 0.5
+}
+
+# The blobs of capture $1 not in capture $2 (none within 4 px of one there).
+new_blobs() {
+  local bx by bw bh
+  accent_blobs "$1" 60 | while read -r bx by bw bh; do
+    accent_blobs "$2" 60 | awk -v x="$bx" -v y="$by" \
+      '($1-x)^2 + ($2-y)^2 < 16 { found = 1 } END { exit found }' && echo "$bx $by $bw $bh"
+  done
+}
+
+# B1. Also finds the buttons: DISC, TURN_OFF, CANCEL, SCRIM (global logical px).
+step_bt_ask() {
+  local origin ox oy disc blob cx cy bw bh
+  capture "$POPUP" bt-before || return 1
+  origin=$(popup_origin)
+  [ -n "$origin" ] || { echo "no KWin window the popup's size" >&2; return 1; }
+  read -r ox oy <<<"$origin"
+  # A lit tile's plate is tinted: Bluetooth's is the only lit tile here (Wi-Fi has no
+  # NetworkManager, Focus is off), the topmost wide tinted blob. Its disc is 24 px in.
+  accent_blobs bt-before 20 >"$OUT_DIR/bt-before.blobs"
+  disc=$(awk '$3 >= 100 && $4 >= 40 && $4 <= 90' "$OUT_DIR/bt-before.blobs" | sort -k2 -n | head -n 1)
+  [ -n "$disc" ] || { echo "no lit tile in the popup (bt-before.png)" >&2; return 1; }
+  read -r cx cy bw _ <<<"$disc"
+  cx=$(( cx - bw / 2 + 24 ))
+  DISC="$(( ox + cx )) $(( oy + cy ))"
+  # Just under the disc, still on the tile: the scrim covers it while the alert is up.
+  SCRIM="$(( ox + cx )) $(( oy + cy + 20 ))"
+  raise_alert || return 1
+  capture "$POPUP" bt-alert || return 1
+  # Turn Off: the wide accent blob the alert added.
+  new_blobs bt-alert bt-before >"$OUT_DIR/bt-alert.blobs"
+  blob=$(awk '$3 > 2.5 * $4 && $4 >= 18 && $4 <= 44' "$OUT_DIR/bt-alert.blobs" | head -n 1)
+  [ -n "$blob" ] || { echo "no Turn Off button in the capture (bt-alert.png)" >&2; return 1; }
+  read -r cx cy bw bh <<<"$blob"
+  TURN_OFF="$(( ox + cx )) $(( oy + cy ))"
+  CANCEL="$(( ox + cx - bw - 10 )) $(( oy + cy ))"
+  [ "$(powered_offs)" = 0 ] || { echo "the adapter went off on the tile press" >&2; return 1; }
+  echo "a real click on the Bluetooth tile ($DISC) showed the alert (bt-alert.png): Turn Off at" \
+    "$TURN_OFF (${bw}x${bh}), Cancel at $CANCEL; the fake adapter is still powered" >&2
+}
+
+# Wait for a cancel after the cancels were $1; the popup stays, the adapter stays on.
+cancelled() {
+  await_count cancels 30 $(( $1 + 1 )) || return 1
+  sleep 0.4
+  mapped "$POPUP" || { echo "it closed the control center too" >&2; return 1; }
+  [ "$(powered_offs)" = 0 ] || { echo "the adapter went off" >&2; return 1; }
+}
+
+# B2.
+step_bt_escape() {
+  local before
+  before=$(cancels)
+  key Escape || return 1
+  cancelled "$before" || { echo "real Escape did not cancel the alert" >&2; return 1; }
+  capture "$POPUP" bt-escaped
+  echo "real Escape cancelled the alert; the control center stays; the adapter stays powered" >&2
+}
+
+# B3.
+step_bt_scrim() {
+  local before
+  found && raise_alert || return 1
+  before=$(cancels)
+  # shellcheck disable=SC2086
+  click $SCRIM || return 1
+  cancelled "$before" || { echo "a real click on the scrim ($SCRIM) did not cancel" >&2; return 1; }
+  echo "a real click on the scrim ($SCRIM) cancelled the alert; the adapter stays powered" >&2
+}
+
+# B4.
+step_bt_cancel() {
+  local before
+  found && raise_alert || return 1
+  before=$(cancels)
+  # shellcheck disable=SC2086
+  click $CANCEL || return 1
+  cancelled "$before" || { echo "a real click on Cancel ($CANCEL) did not cancel" >&2; return 1; }
+  echo "a real click on Cancel ($CANCEL) cancelled the alert; the adapter stays powered" >&2
+}
+
+# B5.
+step_bt_turn_off() {
+  found && raise_alert || return 1
+  # shellcheck disable=SC2086
+  click $TURN_OFF || return 1
+  await_count powered_offs 30 1 || { echo "a real click on Turn Off ($TURN_OFF) left the adapter on" >&2; return 1; }
+  sleep 0.6
+  capture "$POPUP" bt-off
+  echo "a real click on Turn Off ($TURN_OFF) powered the fake adapter off (bt-off.png)" >&2
+}
+
+# B6.
+step_bt_on() {
+  local asked ons
+  found || return 1
+  asked=$(asks); ons=$(powered_ons)
+  # shellcheck disable=SC2086
+  click $DISC || return 1
+  await_count powered_ons 30 $(( ons + 1 )) || { echo "a real click on the tile left the adapter off" >&2; return 1; }
+  sleep 0.6
+  capture "$POPUP" bt-on
+  [ "$(asks)" = "$asked" ] || { echo "turning Bluetooth on asked first" >&2; return 1; }
+  echo "a real click on the tile powered the fake adapter on, with no alert (bt-on.png)" >&2
+}
+
 # 5.
 step_close() {
   key Escape || return 1
@@ -519,6 +726,7 @@ step_close() {
 cleanup() {
   stop_input
   stop_daemon
+  stop_bluez
   stop_kwin
   rm -rf "$SCRATCH" "$RUNTIME"
 }
@@ -534,13 +742,18 @@ echo "headless KWin at $WL, output $NAME" >&2
 set_scale || { echo "the headless output is not at scale $SCALE (see $OUT_DIR/scale.log)" >&2; exit 1; }
 fake_monitor none
 standins
+start_bluez || exit 1
 start_daemon || exit 1
 prove_safe || { echo "SKIP: the fake DDC or the stand-in outputs are not proven from the daemon's log; no input sent" >&2; exit 2; }
 start_input || { echo "no fake input client" >&2; exit 1; }
 # The seat's devices are announced with the input client's: the first events only make them known.
 input "move 300 900" "sleep 80" "move 310 900" "sleep 80" || exit 1
 status=0
-for step in step_open step_late_monitor step_external step_drag step_click step_close; do
+STEPS="step_open step_late_monitor step_external step_drag step_click step_bt_ask step_bt_escape
+  step_bt_scrim step_bt_cancel step_bt_turn_off step_bt_on step_close"
+[ "${1:-}" = bluetooth ] && STEPS="step_open step_bt_ask step_bt_escape step_bt_scrim step_bt_cancel
+  step_bt_turn_off step_bt_on step_close"
+for step in $STEPS; do
   "$step"
   rc=$?
   case "$rc" in

@@ -18,6 +18,7 @@ pub mod widgets;
 
 mod column;
 mod contents;
+mod drawn;
 mod drive;
 mod group;
 mod panel;

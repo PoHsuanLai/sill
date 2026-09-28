@@ -9,6 +9,7 @@ use sill_services::OutputName;
 use sill_settings::ControlCenterModule;
 
 use super::modules::Module;
+use super::modules::bluetooth_ask::{TurnOffAlert, provide_power_ask};
 use super::pages::bluetooth_devices::BluetoothPane;
 use super::pages::foot::ClosePanel;
 use super::pages::wifi_networks::WifiPane;
@@ -28,6 +29,7 @@ pub fn ModuleDropdown(
     let home = use_keyboard_home();
     use_context_provider(|| ClosePanel(Callback::new(move |()| on_close.call(()))));
     use_context_provider(|| PanelPlate::Bare);
+    provide_power_ask();
     let body = match module {
         ControlCenterModule::Wifi => rsx! { WifiPane { back: None } },
         ControlCenterModule::Bluetooth => rsx! { BluetoothPane { back: None } },
@@ -49,6 +51,7 @@ pub fn ModuleDropdown(
             style: panel_style(cc.width_px.0, cc.grid_padding_px.0, cap),
             onmounted: move |event: MountedEvent| home.mounted(event),
             {body}
+            TurnOffAlert { on_answered: move |()| home.take() }
         }
     }
 }
