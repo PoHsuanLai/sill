@@ -8794,6 +8794,17 @@ touched: every real-input run was on shell-host's headless KWin and its private 
   at a load of 120, Clear All drew 7 and 8. Full acceptance: every step passed but
   `step_hover` once (the banner left 2231 ms after the pointer, limit 2150, at a 1-minute
   load near 100; banners untouched here; it passed in the two runs before at 1841 ms).
+- **F1075 The gate is red from quire's move, not this branch.** quire master went from 457e62c2
+  to aadf0b4 and then 5c3fb6db at 07:58, while this branch's gate was running. Four sill tests
+  now fail against it: `shell_style::the_default_keys_are_quires_defaults` (quire's bar item is
+  24 px tall with 10 px padding and a radius of 4, and the menu highlight radius is 6),
+  `the_appearance_estimate_fits_the_two_row_picker` (estimate 134 against 121 laid out),
+  `edit_widgets::a_size_picked_is_refused_since_each_widget_has_one_size` (the gallery has no
+  second segment) and `widgets_render::battery_lists_the_machine_then_connected_devices_with_a_level`.
+  None touches this branch's files. The Appearance failure is the same with `.sill-cc`'s
+  `position:relative` reverted. `control_center_render`, `edit_widgets` and `widgets_render`
+  all passed on quire 457e62c2 at 07:39. The fixes belong to the sizing adoption (bar and
+  control-center metrics). fmt and clippy were clean.
 - **G470 (sill) The widgets under the list do not heal.** After a Clear the list's own rows heal,
   but the widgets slot below the list is not a list row: it jumps up once the batch drops (see
   the Clear All frames of the strip). Putting the widgets in the list, or healing the slot by
