@@ -70,7 +70,7 @@ in_env() {
     HOME="$HOME_DIR" XDG_RUNTIME_DIR="$RUNTIME" XDG_CONFIG_HOME="$CONFIG" \
     XDG_DATA_HOME="$DATA" XDG_STATE_HOME="$SCRATCH/state" XDG_CACHE_HOME="$SCRATCH/cache" \
     XDG_CURRENT_DESKTOP=X-Generic WAYLAND_DISPLAY="$WL" \
-    DBUS_SESSION_BUS_ADDRESS="$BUS" "$@"
+    DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" "$@"
 }
 sill() { in_env "$SILL_BIN" "$@"; }
 probe() { in_env "$PROBE" --home "$HOME_DIR" "$@"; }
@@ -129,6 +129,7 @@ start_bus() {
   BUS_PID=$(sed -n 2p <<<"$out")
   case "$BUS" in unix:*) ;; *) echo "no private bus address: $out" >&2; return 1 ;; esac
   [ "$BUS" != "${DBUS_SESSION_BUS_ADDRESS:-}" ] || { echo "not a private bus" >&2; return 1; }
+  require_private_system_bus "$BUS" || return 1
 }
 
 start_fm() {

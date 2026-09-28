@@ -8738,3 +8738,119 @@ without its Motion row, design/22's retired `dock.shipped_icons` row). Branch
   (`crates/sill-services/src/results/tests.rs:133`, on tokio's real time with 150 ms fakes),
   untouched here; it passed 5 of 5 alone and the next gate run was green. It is the one gate test
   not on a virtual clock that failed under load; a paused tokio clock would pin it.
+
+## Dev scripts stay off the real buses (2026-09-28)
+
+FINDINGS "Manual run 2026-09-28: menus and keyboard"'s `dev/accept-menus-keyboard-real-input.sh`
+gave its daemon a scratch HOME and XDG dirs but never overrode `DBUS_SYSTEM_BUS_ADDRESS`: the
+daemon fell back to the real one, so its Wi-Fi menu read this machine's real NetworkManager and
+showed real neighbour SSIDs in captures, and a live "Connecting..." row that changed between runs
+made the step flaky. Audited every `dev/*.sh` helper and `dev/**` and the Rust tests under
+`crates/*/tests` for the same class of bug (a daemon or test reaching the real system or session
+bus, the real XDG dirs or HOME, or real hardware) and fixed every script found doing it. Numbered
+F1068 (the bug) and F1090-F1097. Branch `worktree-agent-ae1696746b39071d2` (cut from master
+5e38ca8).
+
+- **F1068 (CLOSED here) The Wi-Fi menu read the real system bus.**
+  `dev/accept-menus-keyboard-real-input.sh`'s `in_env` set `DBUS_SESSION_BUS_ADDRESS` to the
+  headless KWin's own private bus but left `DBUS_SYSTEM_BUS_ADDRESS` unset, so the daemon's
+  system-bus services (NetworkManager, BlueZ, UPower, logind) were the real ones: the bar's
+  Wi-Fi menu showed this machine's real neighbour SSIDs, and a live "Connecting..." row made the
+  step flaky (captures differed run to run). Fixed by also setting
+  `DBUS_SYSTEM_BUS_ADDRESS="$BUS"` (KWin's own private bus stands in for both) and a guard in
+  `start_kwin` that refuses to go on if it would be the real one; NetworkManager and the rest
+  are simply absent now, so the Wi-Fi and Bluetooth items read Unavailable. This script writes
+  no tracked capture (its screenshots live under `target/`, never `dev/out/`), so nothing to
+  regenerate here; re-ran clean twice after the fix (exit 0, every step PASS).
+- **F1090 The same bug, in five more headless-KWin scripts.**
+  `dev/accept-launcher-v2-real-input.sh`, `dev/accept-screenshot-drag.sh`,
+  `dev/accept-notifications-real-input.sh`, `dev/accept-real-input.sh` and
+  `dev/accept-widgets-real-input.sh` all set `DBUS_SESSION_BUS_ADDRESS` to KWin's private bus but
+  never `DBUS_SYSTEM_BUS_ADDRESS`; same fix (plus the `require_private_system_bus` guard) in
+  each. `accept-widgets-real-input.sh`'s own header comment had said "the batteries are whatever
+  the system bus reports (UPower, BlueZ), read only" as if that were an accepted exception — it
+  was a real leak: `dev/out/widgets-kwin-s2-battery.png`, `-desktop.png` and `-center.png` (all
+  from commit `bcaee4e6`) showed this machine's real Bluetooth keyboard at a real charge,
+  matching "Manual run 2026-09-28: widgets"'s Q522, which named "the K5 Max and the MOMENTUM 4"
+  from an earlier capture of the same unscratched script. All three regenerated from the fixed
+  script (re-run twice, clean both times): they now read "No batteries" (UPower is absent on the
+  private bus), the same graceful-absence state `accept-control-center.sh` already shows for
+  Wi-Fi/Bluetooth. `dev/out/widgets-kwin-s2-edit.png`'s gallery preview (a laptop/phone/
+  headphones/mouse at 82/64/45/90%) is not this machine's real state (`upower -e` here lists one
+  device only, the keyboard, and its DisplayDevice answers 0%/`battery-missing`) — a fixed
+  illustrative example, left as is. `accept-real-input.sh` was also missing a scratch
+  `XDG_RUNTIME_DIR` (it shared the real one, so its old "wait for another sill daemon to quit"
+  preflight was polling the real IPC socket) and scratch `XDG_STATE_HOME`/`XDG_CACHE_HOME`; both
+  added, and the now-meaningless preflight loop removed.
+- **F1091 `dbus-run-session` alone never touches DBUS_SYSTEM_BUS_ADDRESS.** Nine more daemon
+  launches (`accept-calendar.sh`, `accept-clipboard.sh`, `accept-launcher-v2.sh`,
+  `accept-screenshot.sh`, `accept-icons.sh`, `accept-notification-center.sh`,
+  `accept-hot-corners.sh`, `accept-lock.sh` twice, `accept-widgets.sh`'s sill site) start the
+  daemon under `dbus-run-session --config-file=dev/private-bus.conf`, which makes a fresh
+  private bus and sets `DBUS_SESSION_BUS_ADDRESS` for the command it runs, but never touches
+  `DBUS_SYSTEM_BUS_ADDRESS`, which stayed whatever the script's own ambient shell had (usually
+  unset, i.e. the real default). Fixed with a shared fragment (`dev/common.sh`'s
+  `PRIVATE_BOTH_BUSES`), run as the command `dbus-run-session` execs: it copies the fresh
+  `DBUS_SESSION_BUS_ADDRESS` onto `DBUS_SYSTEM_BUS_ADDRESS` before `exec`ing the daemon, and
+  refuses outright if `dbus-run-session` somehow left it real.
+- **F1092 Six scripts on `dev/nested.sh` set no D-Bus address at all.** `dev/run.sh`'s `nested
+  "$SILL_BIN" run` (used by `accept-control-center.sh`, `accept-dock.sh`, `accept-osd.sh`,
+  `accept-power-menu.sh`, `accept-launcher.sh`, `accept-launcher-ui.sh`) only overrides
+  `WAYLAND_DISPLAY`, so the daemon inherited the real session AND system bus in full. Fixed by
+  starting a private `dbus-daemon` (`dev/common.sh`'s new `start_private_bus`, on the same
+  `dev/private-bus.conf` the other scripts use) before the daemon and putting its address on
+  both `DBUS_SESSION_BUS_ADDRESS` and `DBUS_SYSTEM_BUS_ADDRESS`; `stop_private_bus` kills it on
+  every exit path, including the early-failure one where `stop_daemon`'s own guard would have
+  skipped it (it checked `DAEMON`, not `BUS_PID`). `dev/accept-wallpaper.sh` was worse: no
+  D-Bus override either, and it read and wrote the REAL `~/.config/cosmic/
+  com.system76.CosmicBackground/v1/all` and the real `~/.config/sill/settings.toml` directly
+  (with a backup-and-restore dance to put them back after). Fixed by giving it a scratch
+  `XDG_CONFIG_HOME` up front, which made the backup/restore unnecessary (nothing real is ever
+  touched any more) and let about 20 lines go. `dev/accept-switcher.sh` was its own variant:
+  `BUS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"` built the real per-user
+  session bus address by hand whenever none was already exported, and never set
+  `DBUS_SYSTEM_BUS_ADDRESS` either; same `start_private_bus`/`stop_private_bus` fix.
+- **F1093 The new guard.** `dev/common.sh`'s `require_private_system_bus` refuses to let a
+  script start its daemon when the address about to be used as `DBUS_SYSTEM_BUS_ADDRESS` would
+  be the real one (unset, or `unix:path=/run/dbus/system_bus_socket`), naming why. Added to
+  every script above, and to the three that already put one private bus on both addresses but
+  only checked it against the *session* bus, never explicitly against the real system one
+  (`accept-cc-real-input.sh`, `accept-idle.sh`, `accept-polkit.sh`). It also backs the two
+  shared helpers (`PRIVATE_BOTH_BUSES`, `start_private_bus`), so it now runs before every daemon
+  this suite starts, one way or another.
+- **F1094 Not fixed, and not the same bug: `dev/run.sh` and `dev/accept-bar.sh`.** `dev/run.sh`
+  is the interactive dev launcher ("run sill inside the nested compositor" for a developer's own
+  manual use), not a test; it is meant to reach the real session so a person can see it working,
+  and stays as is. `dev/accept-bar.sh` never starts a daemon itself (its own comment: "M1 daemon
+  fills every step it can... started separately, e.g. by dev/run.sh"), so there is no bus for it
+  to own. `dev/accept-bar-ui.sh` drives `examples/bar_demo.rs` "on fake services"
+  (`fake::services()`; no `zbus::Connection` anywhere in that example): its own
+  `dbus-run-session` (no config file) is there for the nested KWin's own D-Bus-activated
+  helpers, not for sill, and nothing in it reaches a real service either.
+- **F1095 A broader gap found, not fixed here: DDC.** `sill-services::displays::ddc::source`
+  opens the real `/dev/i2c-*` buses (`DdcSource::Buses`) unless `SILL_FAKE_DDC` names a fixture
+  file, and the daemon issues a `Probe` job (a real read of every display's VCP features) as
+  soon as it starts, whether or not a script ever asks for a brightness change.
+  `dev/accept-cc-real-input.sh` is the only script in `dev/` that sets `SILL_FAKE_DDC`; every
+  other `--features debug` script (nearly all of them) reads real monitor state at startup. No
+  capture here showed a written value (nothing but `accept-cc-real-input.sh`'s own fake drives a
+  real brightness change), so this is a read-only exposure, not a data leak into a tracked PNG —
+  but it is the same class of bug as F1068, on real hardware rather than a real bus, and it is
+  not fixed by this batch. Giving every script a `SILL_FAKE_DDC` fixture (or a stand-in `PATH`
+  entry, as `accept-cc-real-input.sh` already does for `cosmic-randr`/`kscreen-doctor`) is
+  follow-up work.
+- **F1096 A separate, non-D-Bus leak: the lock screen's real name.**
+  `crates/sill-services/src/auth/account.rs`'s `load_account` reads the real `/etc/passwd` by
+  this process's own uid, by design ("the session's user... Pure here; the reads are the live
+  side's" — correct for a real desktop). No `XDG_*` or `HOME` scratch changes that: it is not
+  sandboxed by environment variables, only by actually running as a different account, which
+  none of these scripts do (and none should, without a container). `dev/out/lock-cosmic.png`,
+  `lock-relocked-cosmic.png` and `lock-sixwrong-cosmic.png` all show the real account's name on
+  the lock screen. Not fixed here (it needs a product decision, not a dev-script env fix); the
+  commits that added them, for the user to decide: `d8c5b743`, `1a6bb37b`, `bc932490`,
+  `bde97f6f`, `72b914c2`.
+- **F1097 Rust tests audited: none touch a real bus.** Every `crates/*/tests/*_live.rs` test is
+  `#[ignore]`d (a live, manual, opt-in check against the real system, by its own doc comment;
+  `cargo test` never runs it), and every other test that touches D-Bus goes through
+  `tests/support/private_bus.rs`'s `PrivateBus` (`dev/private-bus.conf`, killed on drop). No
+  non-`_live` test connects to `Connection::system()` or `Connection::session()` directly.

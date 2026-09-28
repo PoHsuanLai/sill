@@ -73,7 +73,8 @@ NAME=
 in_env() {
   env HOME="$HOME_DIR" XDG_RUNTIME_DIR="$RUNTIME" XDG_CONFIG_HOME="$CONFIG" \
     XDG_DATA_HOME="$SCRATCH/data" XDG_STATE_HOME="$SCRATCH/state" \
-    XDG_CACHE_HOME="$SCRATCH/cache" WAYLAND_DISPLAY="$WL" DBUS_SESSION_BUS_ADDRESS="$BUS" "$@"
+    XDG_CACHE_HOME="$SCRATCH/cache" WAYLAND_DISPLAY="$WL" DBUS_SESSION_BUS_ADDRESS="$BUS" \
+    DBUS_SYSTEM_BUS_ADDRESS="$BUS" "$@"
 }
 sill() { in_env "$SILL_BIN" "$@"; }
 # KWin's clipboard only: its socket by absolute path, stderr (never content) to the log.
@@ -102,6 +103,7 @@ start_kwin() {
   esac
   [ -S "$WL" ] && [ -n "$BUS" ] || { echo "no socket or bus in $KWIN_ENV" >&2; stop_kwin; return 1; }
   [ "$BUS" != "${DBUS_SESSION_BUS_ADDRESS:-}" ] || { echo "KWin's bus is the session's" >&2; stop_kwin; return 1; }
+  require_private_system_bus "$BUS" || { stop_kwin; return 1; }
 }
 
 stop_kwin() { "$SHELL_HOST_DEV/kwin-virtual.sh" stop >>"$OUT_DIR/kwin.log" 2>&1; }

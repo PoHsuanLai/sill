@@ -12,9 +12,12 @@
 #
 # The daemon runs from this checkout's debug build (`--features debug`) on the headless KWin's
 # socket (an absolute WAYLAND_DISPLAY) and its private D-Bus bus (nothing activatable), with its
-# own XDG_RUNTIME_DIR and a scratch HOME and XDG dirs. The bus goes to the daemon and the sink
-# only, never to this shell (G52). ONE fake-input client serves the whole run (G50). Nothing
-# here reaches the user's session (wayland-0) or the real session bus.
+# own XDG_RUNTIME_DIR and a scratch HOME and XDG dirs. KWin's private bus is the daemon's
+# session AND system bus (start_kwin refuses to go on if it would be the real one, FINDINGS
+# F1068), so NetworkManager, BlueZ, UPower and the rest are simply absent: the bar's Wi-Fi and
+# Bluetooth items read Unavailable, never a real neighbour SSID or device. The bus goes to the
+# daemon and the sink only, never to this shell (G52). ONE fake-input client serves the whole
+# run (G50). Nothing here reaches the user's session (wayland-0) or the real session bus.
 #
 #   0. A real click on the sink gives it the keyboard; a real "k" reaches it.
 #   1. A real click on bar item A (Wi-Fi), then one on item B (Sound): A's menu closes and B's
@@ -71,7 +74,8 @@ NAME=
 in_env() {
   env HOME="$HOME_DIR" XDG_RUNTIME_DIR="$RUNTIME" XDG_CONFIG_HOME="$CONFIG" \
     XDG_DATA_HOME="$SCRATCH/data" XDG_STATE_HOME="$SCRATCH/state" \
-    XDG_CACHE_HOME="$SCRATCH/cache" WAYLAND_DISPLAY="$WL" DBUS_SESSION_BUS_ADDRESS="$BUS" "$@"
+    XDG_CACHE_HOME="$SCRATCH/cache" WAYLAND_DISPLAY="$WL" DBUS_SESSION_BUS_ADDRESS="$BUS" \
+    DBUS_SYSTEM_BUS_ADDRESS="$BUS" "$@"
 }
 sill() { in_env "$SILL_BIN" "$@"; }
 
@@ -102,6 +106,7 @@ start_kwin() {
   esac
   [ -S "$WL" ] && [ -n "$BUS" ] || { echo "no socket or bus in $KWIN_ENV" >&2; stop_kwin; return 1; }
   [ "$BUS" != "${DBUS_SESSION_BUS_ADDRESS:-}" ] || { echo "KWin's bus is the session's" >&2; stop_kwin; return 1; }
+  require_private_system_bus "$BUS" || { stop_kwin; return 1; }
 }
 
 stop_kwin() { "$SHELL_HOST_DEV/kwin-virtual.sh" stop >>"$OUT_DIR/kwin.log" 2>&1; }

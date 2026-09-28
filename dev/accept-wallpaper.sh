@@ -7,6 +7,11 @@
 # output's buffer size, so this script starts its own `sill run` rather than routing around the
 # daemon the way an earlier revision had to before that landed.
 #
+# The COSMIC background config and sill's own settings live under a scratch XDG_CONFIG_HOME
+# (never the real ~/.config: FINDINGS F1068), so there is nothing to back up or restore. A
+# private dbus-daemon (dev/private-bus.conf) is the daemon's session AND system bus, refused if
+# it would be the real one.
+#
 # Checks: a wallpaper surface exists per output and presents at least one frame; its capture's
 # centre pixel matches the marked source image's own centre pixel (cover-fit keeps the crop
 # centred, `geometry.rs`); five idle seconds add zero frames. Screenshot:
@@ -24,59 +29,43 @@ mkdir -p "$OUT_DIR" "$SILL_REPO/dev/out"
 source "$SHELL_HOST_DEV/.nested-env"
 export WAYLAND_DISPLAY
 
-sill() { "$SHELL_HOST_DEV/run.sh" "$SILL_BIN" "$@"; }
+# A scratch XDG_CONFIG_HOME: the COSMIC background config and sill's own settings below are
+# written under it, never under the real ~/.config (FINDINGS F1068's "XDG_* not scratched"
+# cause). A private dbus-daemon (dev/private-bus.conf) stands in as both the daemon's session
+# and system bus, refused if it would be the real one.
+SCRATCH=$(mktemp -d)
+export XDG_CONFIG_HOME="$SCRATCH/config"
+mkdir -p "$XDG_CONFIG_HOME"
+BUS=
+BUS_PID=
 
-# --- A marked source image and a COSMIC background config pointing at it, restored after -----
+sill() { DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" "$SHELL_HOST_DEV/run.sh" "$SILL_BIN" "$@"; }
 
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/cosmic/com.system76.CosmicBackground/v1"
+# --- A marked source image and a COSMIC background config pointing at it (all under the ------
+# --- scratch XDG_CONFIG_HOME above, so nothing here is restored: it never touched the real one)
+
+CONFIG_DIR="$XDG_CONFIG_HOME/cosmic/com.system76.CosmicBackground/v1"
 CONFIG_FILE="$CONFIG_DIR/all"
-BACKUP_FILE="$OUT_DIR/all.backup"
 SOURCE_PNG="$OUT_DIR/source.png"
-CREATED_MARKER="$OUT_DIR/all.accept-wallpaper-created"
 SILL_PID=""
 # The shell draws the background only when `spaces.wallpaper_drawer` is "shell" (cosmic-bg by
-# default), so this script sets it in sill's settings file for the run and restores the file.
-SETTINGS_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/sill/settings.toml"
-SETTINGS_BACKUP="$OUT_DIR/settings.backup"
-SETTINGS_CREATED="$OUT_DIR/settings.accept-wallpaper-created"
+# default), so this script sets it in sill's (scratch) settings file for the run.
+SETTINGS_FILE="$XDG_CONFIG_HOME/sill/settings.toml"
 
 cleanup() {
-  # Stop the daemon this script started (never the compositor); restore whatever background
-  # config was there before.
+  # Stop the daemon this script started (never the compositor), the private bus, and the scratch
+  # config dir.
   if [ -n "$SILL_PID" ] && kill -0 "$SILL_PID" 2>/dev/null; then
     sill quit >/dev/null 2>&1 || true
     for _ in $(seq 20); do kill -0 "$SILL_PID" 2>/dev/null || break; sleep 0.1; done
     kill -0 "$SILL_PID" 2>/dev/null && kill "$SILL_PID" 2>/dev/null || true
   fi
-  if [ -f "$SETTINGS_BACKUP" ]; then
-    cp "$SETTINGS_BACKUP" "$SETTINGS_FILE"
-  elif [ -f "$SETTINGS_CREATED" ]; then
-    rm -f "$SETTINGS_FILE"
-  fi
-  if [ -f "$BACKUP_FILE" ]; then
-    mkdir -p "$CONFIG_DIR"
-    cp "$BACKUP_FILE" "$CONFIG_FILE"
-  elif [ -f "$CREATED_MARKER" ]; then
-    rm -f "$CONFIG_FILE"
-  fi
+  stop_private_bus
+  rm -rf "$SCRATCH"
 }
 trap cleanup EXIT
 
-mkdir -p "$CONFIG_DIR"
-rm -f "$BACKUP_FILE" "$CREATED_MARKER"
-if [ -f "$CONFIG_FILE" ]; then
-  cp "$CONFIG_FILE" "$BACKUP_FILE"
-else
-  : >"$CREATED_MARKER"
-fi
-
-rm -f "$SETTINGS_BACKUP" "$SETTINGS_CREATED"
-mkdir -p "$(dirname "$SETTINGS_FILE")"
-if [ -f "$SETTINGS_FILE" ]; then
-  cp "$SETTINGS_FILE" "$SETTINGS_BACKUP"
-else
-  : >"$SETTINGS_CREATED"
-fi
+mkdir -p "$CONFIG_DIR" "$(dirname "$SETTINGS_FILE")"
 python3 - "$SETTINGS_FILE" <<'PY'
 # Set spaces.wallpaper_drawer = "shell", keeping every other line of the file.
 import re
@@ -130,7 +119,9 @@ RON
 # --- Start the daemon ---------------------------------------------------------------------
 
 (cd "$SILL_REPO" && cargo build -p sill --features debug >&2) || exit 1
-"$SHELL_HOST_DEV/run.sh" "$SILL_BIN" run >"$OUT_DIR/sill-run.log" 2>&1 &
+start_private_bus || exit 1
+DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
+  "$SHELL_HOST_DEV/run.sh" "$SILL_BIN" run >"$OUT_DIR/sill-run.log" 2>&1 &
 SILL_PID=$!
 
 step_ping() {

@@ -50,6 +50,7 @@ BUS=
 
 in_env() {
   env XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$WL" DBUS_SESSION_BUS_ADDRESS="$BUS" \
+    DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
     XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" "$@"
 }
 sill() { in_env "$SILL_BIN" "$@"; }
@@ -70,6 +71,7 @@ start_kwin() {
   WL="$runtime/$socket"
   [ -S "$WL" ] && [ -n "$BUS" ] || { echo "no socket or bus in $KWIN_ENV" >&2; return 1; }
   [ "$BUS" != "${DBUS_SESSION_BUS_ADDRESS:-}" ] || { echo "KWin's bus is the session's" >&2; return 1; }
+  require_private_system_bus "$BUS" || return 1
 }
 stop_kwin() { "$SHELL_HOST_DEV/kwin-virtual.sh" stop >>"$OUT_DIR/kwin.log" 2>&1; }
 
