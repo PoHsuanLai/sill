@@ -8648,25 +8648,25 @@ Q520-Q523. Branch `worktree-agent-a60cd59fcac2693ce` (cut from master 70db27b).
 
 ### Asks (quire)
 
-- **Q520 A one-size gallery.** Each widget has one size in sill (F1024), but `WidgetGallery`
+- **Q520 (CLOSED, F1080) A one-size gallery.** Each widget has one size in sill (F1024), but `WidgetGallery`
   draws every size `WidgetInfo.sizes` lists as a preview to pick and a `SegmentedControl` on
   each placed row, and sill can only refuse a resize. Wanted: the gallery shows one preview and
   no size control when the host says so (`sizes: fn(&WidgetKind, WidgetHost) -> WidgetSize`, or
   a `WidgetRegistry` whose infos a host can narrow; `WidgetRegistry`'s infos are private and
   `WidgetInfo::of` takes the type's own `sizes()`). The preview should be at the host's size:
   sill's month is Small on the desktop and Medium in the center.
-- **Q521 The gallery over the desktop's top right.** `Panel` has only `PanelEdge::Right`, so
+- **Q521 (CLOSED, F1081) The gallery over the desktop's top right.** `Panel` has only `PanelEdge::Right`, so
   Edit Widgets' 720 px panel covers the columns where new desktop widgets land (they fill from
   the top right), and the widget's arrival (F1025's rise) happens under it. The reference's
   gallery is a sheet at the bottom of the screen with the desktop's widgets in view. Wanted: a
   bottom (or left) edge for `Panel`, or a gallery sheet part.
-- **Q522 The batteries row spreads its rings.** `.ds-batteries[data-layout=row]` is
+- **Q522 (CLOSED, F1084) The batteries row spreads its rings.** `.ds-batteries[data-layout=row]` is
   `justify-content:space-between`, so two devices sit at the card's two ends with the middle
   empty and one sits alone at the left (`dev/out/widgets-kwin-s2-center.png`, the K5 Max and the
   MOMENTUM 4). design/23 4.1: "four rings across from 20 in": four places at a fixed pitch,
   filled from the left (or centred as a group). The user's "the battery widget's layout
   broke".
-- **Q523 "Added" in the gallery itself.** sill says an add under the gallery (F1025); the
+- **Q523 (CLOSED, F1082) "Added" in the gallery itself.** sill says an add under the gallery (F1025); the
   gallery could say it where the person pressed: the Add button settling to a check, or the
   new row in the placed list rising (`Reveal`) and scrolled into view.
 
@@ -8680,7 +8680,7 @@ Q520-Q523. Branch `worktree-agent-a60cd59fcac2693ce` (cut from master 70db27b).
 - **G422 By eye on the real session:** the desktop's Small Batteries with two or three devices
   (quire's 2 x 2 grid, empty places as bare tracks, no numbers) and the center's rows after
   Q522. Queued in `docs/manual-checks.md` ("Widgets by eye").
-- **G423 A removed desktop widget vanishes.** No exit is played when Edit Widgets takes a card
+- **G423 (CLOSED, F1083) A removed desktop widget vanishes.** No exit is played when Edit Widgets takes a card
   off the desktop (quire's exits are list rows' `Presence`/`Roster`; a grid card has none).
 
 ## Launcher chords and picker
@@ -9004,3 +9004,79 @@ touched: every real-input run was on shell-host's headless KWin and its private 
   popover card's rounded bottom corners, and the alert's panel is translucent enough that the
   Sound and Now Playing labels read through it. Also for the user to decide: whether Turn Off
   should be `Destructive` (red, Return on Cancel) despite Q490's "Return confirms" (F1070).
+
+## Edit Widgets, one size
+
+Adopts quire master aadf0b49 (CONSUMING "Edit Widgets, one size (2026-09-28)"); built and run
+against quire 5c3fb6db, which moved under this branch (F1087). Branch
+`worktree-agent-a13fcc078c95cefdd` (cut from master 5e38ca8, rebased onto 296e7f6). Numbered
+F1080-F1088; closes Q520-Q523 and G423.
+
+- **F1080 One size in the gallery (Q520).** `widgets::registry()` adds Up Next and Now Playing,
+  then folds every `(kind, host)` through `WidgetRegistry::sized(&kind_id(kind), host,
+  size_of(kind, host))` (`all_sized`, a `RegistryError` of `TakenKind` or `UnsizedKind`), so
+  `size_of` stays the one source and quire's gallery previews and adds that size: the month
+  Small on the desktop and Medium in the center (quire's own `size_in` says Large there, so the
+  fold is needed, not only for sill's two). One preview per widget, no size control on a placed
+  row. `layout::edited` still refuses a `Resize` (`Refused::OneSize`) since `WidgetEdit` has
+  the variant, but nothing sends one: the Harness test that picked a size is replaced by one
+  that finds no size control and no size named anywhere in the gallery.
+- **F1081 A sheet at the bottom (Q521).** `Panel { edge: PanelEdge::Bottom, width: 1040,
+  height: 400 }`. On the 1920 x 980 logical surface under the bar (3840 x 2160 at 2x) it spans x
+  440-1480, y 572-972: the top 572 px of the desktop stay in view, where new widgets land (the
+  world clock at column 8, row 2, 376-540). `.sill-ew-column` is `display:flex;
+  flex-direction:column; flex:1; min-height:0` with no scroll of its own (the gallery's placed
+  column scrolls); `.sill-ew-head` is `flex:none`, so a tall gallery never squeezes the title
+  row. Module docs no longer say "right edge".
+- **F1082 "Added" is the gallery's (Q523).** quire's Add button settles to a check and
+  "Added" and the new placed row rises; sill says nothing more. `EditStatus` keeps a removal
+  (Change) and a refusal (Failure, shaken once); `Outcome::Added`, its `CheckMark` and
+  `use_settle` and the `.sill-ew-status-mark` rule are gone, and a successful add sets
+  `Outcome::Quiet`, so an earlier refusal is not left beside the gallery's "Added". sill does
+  not build `GalleryWords` (quire's defaults, "Added" included).
+- **F1083 A removed card plays its exit (G423).** `Place` and `Widget` carry `presence:
+  CardPresence` and `on_gone`, passed to all five providers' `WidgetCard`. New
+  `desktop_widgets/leaving.rs`: when a kind leaves `widgets.desktop_widgets`, `leaving_after`
+  keeps its last `PlaceBox` (from the previous layout) as a `Leaving`; the grid draws it first
+  (under the others) with the same `Placed` key, so the card's hooks carry over (no second
+  `Reveal`, and quire's exit starts on that render), as `CardPresence::Leaving` with an
+  `on_gone` that drops it. It is out of `Laid`'s placements, so out of `widget_regions` and the
+  drag from the first render. A kind added back while it leaves is placed again and quire's
+  `Placed` takes the exit back. `LeavingCards` keeps the list in a `CopyValue` updated in
+  render and bumps a signal on `on_gone`, so no signal is written during render.
+- **F1084 Batteries' four places (Q522).** sill has no pixel goldens for the card; the
+  Harness test `battery_lists_the_machine_then_connected_devices_with_a_level` now reads four
+  `.ds-batteries-cell`, two `[data-place=empty]` with an empty figure. The run's desktop showed
+  "No batteries" (no Bluetooth device connected and no system battery this time), so
+  `dev/out/widgets-kwin-s2-battery.png` is left as F1021 captured it; the Medium row with real
+  devices is still G422's check by eye.
+- **F1085 Harness tests** (`Clock::Virtual`, `PinnedAppearance`, each ending in
+  `assert_settles_to_zero_frames`): `edit_widgets`
+  (`the_gallery_is_a_bottom_sheet_offering_one_size_per_widget`: `data-edge=bottom`, 1040 x
+  400 centred at the foot, one preview per widget at its desktop size, no segment; the add test
+  now waits for the gallery's check and "Added" on the button, no line under the gallery, the
+  button back to "Add to Desktop"); `desktop_widgets_render::a_removed_widget_plays_its_exit_then_goes`
+  (`data-presence=leaving`, `a-widget-out`, the same box, animating, then gone; one taken back
+  mid-exit stays); `leaving` unit tables; the registry sizes each kind as `size_of`. A preview
+  left on Now Playing keeps a timer about 31 s out (past the settle bound), so the one-size test
+  ends on Batteries.
+- **F1086 Real input at scale 2** (`dev/accept-widgets-real-input.sh`, extended): **PASS 9/9**.
+  The sheet at 440 572 1480 972 on a 1920 x 980 surface (bottom, centred, 1040 x 400); a real
+  click on World Clock: one run of card 350 px across the preview row (344 and its rim); a real
+  click on Add: the button reads "Added" with its check in the capture taken at once (5661
+  pixels changed), `world_clock` written with `shown: On`, three frames on the layer; a real
+  click on the Batteries row's Remove: `battery` gone, two frames, "Removed Batteries from the
+  Desktop." under the gallery; Escape closes; 0 frames in 5 s idle. The headless KWin presents
+  the 4K layer about every 150-200 ms here, so a 280 ms motion is two or three frames: the
+  rise painted 3 and the exit 4 (its start and its drop are 2), sampled every 100 ms into
+  `target/accept-widgets-real-input/{rise,exit}-frames.txt`. Captures:
+  `dev/out/widgets-kwin-s2-edit.png` (the whole surface, the sheet at the foot),
+  `widgets-kwin-s2-one-size.png`, `widgets-kwin-s2-added.png`,
+  `widgets-kwin-s2-desktop-added.png`, `widgets-kwin-s2-desktop-removed.png`,
+  `widgets-kwin-s2-removed.png`. The world clock card reads "No cities" (the scratch settings
+  name none).
+- **F1087 quire moved mid-branch.** quire master went aadf0b49 -> 5c3fb6db (design/29 sizes:
+  a Regular button 22 tall) while this ran; the sheet's click offsets were first measured on the
+  old sizes and missed. They are now taken from a Harness at the surface's logical size
+  (1920 x 980) and written in the script relative to the sheet's plate.
+- **F1088 Gate.** See the report of this branch's gate run (below).

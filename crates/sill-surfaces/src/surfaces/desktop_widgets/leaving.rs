@@ -115,13 +115,8 @@ mod tests {
     fn a_kind_taken_away_leaves_from_its_last_box_until_it_has_gone_or_comes_back() {
         use WidgetKind::{Battery, Calendar, UpNext, WorldClock};
         let boxes = [(Calendar, at(900)), (Battery, at(1080)), (UpNext, at(0))];
-        let cases: [(
-            &str,
-            Vec<Leaving>,
-            Vec<WidgetKind>,
-            Vec<WidgetKind>,
-            Vec<Leaving>,
-        ); 5] = [
+        // (what, leaving before, the kinds before, the kinds now, leaving after)
+        let cases = [
             (
                 "a removal leaves from where it stood",
                 vec![],
