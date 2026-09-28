@@ -9079,4 +9079,7 @@ F1080-F1088; closes Q520-Q523 and G423.
   a Regular button 22 tall) while this ran; the sheet's click offsets were first measured on the
   old sizes and missed. They are now taken from a Harness at the surface's logical size
   (1920 x 980) and written in the script relative to the sheet's plate.
-- **F1088 Gate.** See the report of this branch's gate run (below).
+- **F1088 Gate.** `GATE_DIR=<this worktree> ~/sill-wt/sill-gate.sh` on 3b1a411 (quire
+  802acdf7), at load 7: SILL GATE GREEN (fmt, clippy, 1300 passed, 0 failed, 52 ignored,
+  boundary, licenses). A first run failed at clippy only (`type_complexity` on the `leaving`
+  test table's spelled-out tuple type).
