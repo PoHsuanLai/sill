@@ -52,6 +52,8 @@ RECORD="$OUT_DIR/dry-run.record"
 KEYS="$OUT_DIR/keys.fifo"
 mkdir -p "$OUT_DIR" "$SHOTS"
 DRY_RUN=unproven
+BUS=
+BUS_PID=
 
 sill() { "$SILL_BIN" "$@"; }
 nested() { "$SHELL_HOST_DEV/run.sh" "$@"; }
@@ -132,6 +134,7 @@ start_daemon() {
   rm -f "$KEYS"; mkfifo "$KEYS" || return 1
   XDG_CONFIG_HOME="$CONFIG" SILL_POWER_MENU_DRY_RUN="$RECORD" SILL_POWER_MENU_KEYS="$KEYS" \
     SILL_POWER_MENU_DRY_RUN_OFFERS=logind \
+    DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
     nested "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
@@ -146,6 +149,7 @@ stop_daemon() {
   sill quit >/dev/null 2>&1
   wait "$DAEMON" 2>/dev/null
   DAEMON=
+  stop_private_bus
   rm -rf "$CONFIG"
 }
 
@@ -310,7 +314,8 @@ if sill ping >/dev/null 2>&1; then
   echo "a sill daemon is still running; quit it first (this script starts its own)" >&2
   exit 1
 fi
-start_daemon || { stop_daemon; exit 1; }
+start_private_bus || exit 1
+start_daemon || { stop_daemon; stop_private_bus; exit 1; }
 BACKDROP_DIR=$(mktemp -d)
 backdrop_up "$BACKDROP_DIR" || echo "backdrop: none (the shot shows the bare compositor)" >&2
 prove_dry_run || echo "the dry run could not be proven from the daemon's log" >&2

@@ -91,7 +91,7 @@ step_start() {
   XDG_CONFIG_HOME="$CONFIG" XDG_CACHE_HOME="$CACHE" XDG_RUNTIME_DIR="$RUNTIME" \
     WAYLAND_DISPLAY="$NESTED_SOCKET" \
     dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- \
-    "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
+    sh -c "$PRIVATE_BOTH_BUSES" "$SILL_BIN" >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
   sill ping >/dev/null 2>&1 || { echo "sill never answered ping" >&2; return 1; }

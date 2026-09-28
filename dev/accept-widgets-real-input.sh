@@ -5,11 +5,14 @@
 # output set to scale 2 with kscreen-doctor on that KWin's own socket: the BenQ MA270U's 4K at
 # 2x, the user's session) driven by shell-host's scripts/dev/fake-input.sh: every click and key
 # is a real Wayland event with a real serial and keyboard focus. Nothing here reaches the user's
-# session (wayland-0), the nested compositor (wayland-1) or the session bus: the daemon runs
-# from this checkout's debug build (`--features debug`) on the headless KWin's private bus, with
-# its own XDG_RUNTIME_DIR (WAYLAND_DISPLAY an absolute socket path) and scratch
-# XDG_CONFIG_HOME, XDG_STATE_HOME and XDG_CACHE_HOME. ONE fake-input client serves the whole run.
-# The batteries are whatever the system bus reports (UPower, BlueZ), read only.
+# session (wayland-0), the nested compositor (wayland-1) or the real session or system bus: the
+# daemon runs from this checkout's debug build (`--features debug`) on the headless KWin's
+# private bus, which stands in for BOTH the daemon's session and system bus (start_kwin refuses
+# to go on if it would be the real one, FINDINGS F1068), with its own XDG_RUNTIME_DIR
+# (WAYLAND_DISPLAY an absolute socket path) and scratch XDG_CONFIG_HOME, XDG_STATE_HOME and
+# XDG_CACHE_HOME. ONE fake-input client serves the whole run. UPower and BlueZ are simply absent
+# on the private bus, so the Batteries widget always reads "No batteries" here: every step below
+# only checks the widget's structure (card count and size), never a real device's name or level.
 #
 #   1. Scale: kscreen-doctor reports the output at scale 2, and the bar's capture is 2x.
 #   2. The desktop at scale 2 (`widgets.desktop = "on"`, the default Calendar and Batteries):
@@ -63,6 +66,7 @@ BUS=
 
 in_env() {
   env XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$WL" DBUS_SESSION_BUS_ADDRESS="$BUS" \
+    DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
     XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" "$@"
 }
 sill() { in_env "$SILL_BIN" "$@"; }
@@ -88,6 +92,7 @@ start_kwin() {
   OUR_SCOPE=$(sed -n 's/^\(export \)\{0,1\}KWIN_SCOPE=//p' "$KWIN_ENV")
   [ -S "$WL" ] && [ -n "$BUS" ] || { echo "no socket or bus in $KWIN_ENV" >&2; return 1; }
   [ "$BUS" != "${DBUS_SESSION_BUS_ADDRESS:-}" ] || { echo "KWin's bus is the session's" >&2; return 1; }
+  require_private_system_bus "$BUS" || return 1
 }
 
 # Stop our KWin only: kwin-virtual.sh keeps one env file, so another session's start may have

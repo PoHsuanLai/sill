@@ -141,7 +141,8 @@ start_daemon() {
   backdrop_seed "$CONFIG" || return 1
   WAYLAND_DEBUG="${WDEBUG:-}" XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" \
     XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$NESTED_SOCKET" \
-    dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- "$BIN" run \
+    dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- \
+    sh -c "$PRIVATE_BOTH_BUSES" "$BIN" \
     >"$log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
@@ -341,7 +342,8 @@ step_release_refuses_fake() {
   printf '[session]\nlocker = "auto"\n' >"$CONFIG/sill/settings.toml"
   XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" \
     XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$NESTED_SOCKET" \
-    dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- "$BIN" run \
+    dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- \
+    sh -c "$PRIVATE_BOTH_BUSES" "$BIN" \
     >"$log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done

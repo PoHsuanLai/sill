@@ -56,7 +56,11 @@ SHOW_DELAY_MS=400
 
 source "$SHELL_HOST_DEV/.nested-env"
 NESTED_SOCKET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/$WAYLAND_DISPLAY"
-BUS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
+# A private dbus-daemon (dev/private-bus.conf) as both the daemon's session and system bus
+# (FINDINGS F1068): the real one was the default here (DBUS_SESSION_BUS_ADDRESS's own fallback
+# built the real per-user bus path), so NetworkManager, BlueZ, UPower and the rest were real.
+BUS=
+BUS_PID=
 RUN_DIR=
 CONFIG=
 DAEMON=
@@ -175,6 +179,7 @@ start_daemon() {
   printf '[switcher]\nshow_delay_ms = %s\n' "$SHOW_DELAY_MS" >"$CONFIG/sill/settings.toml"
   backdrop_seed "$CONFIG" || return 1
   XDG_RUNTIME_DIR="$RUN_DIR" WAYLAND_DISPLAY="$NESTED_SOCKET" DBUS_SESSION_BUS_ADDRESS="$BUS" \
+    DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
     XDG_CONFIG_HOME="$CONFIG" "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
@@ -189,6 +194,7 @@ stop_daemon() {
   sill quit >/dev/null 2>&1
   wait "$DAEMON" 2>/dev/null
   DAEMON=
+  stop_private_bus
   rm -rf "$CONFIG" "$RUN_DIR"
 }
 
@@ -390,6 +396,7 @@ step_idle() {
 cleanup() {
   stop_windows
   stop_daemon
+  stop_private_bus
 }
 trap cleanup EXIT
 
@@ -400,6 +407,7 @@ if pgrep -x sill >/dev/null; then
   echo "another sill daemon is running; wait for it to quit" >&2
   exit 1
 fi
+start_private_bus || exit 1
 start_daemon || exit 1
 start_windows || exit 1
 status=0

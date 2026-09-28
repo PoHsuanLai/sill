@@ -199,6 +199,12 @@ start_daemon() {
   XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" \
     XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$NESTED_SOCKET" \
     dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- sh -c '
+      case "$DBUS_SESSION_BUS_ADDRESS" in
+        ""|unix:path=/run/dbus/system_bus_socket)
+          echo "refusing to start the daemon: dbus-run-session gave no private bus (F1068)" >&2
+          exit 1 ;;
+      esac
+      export DBUS_SYSTEM_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS"
       "$1" sillaccept --title "So What" --artist "Miles Davis" --album "Kind of Blue" &
       exec "$2" run' sh "$PLAYER" "$SILL_BIN" >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!

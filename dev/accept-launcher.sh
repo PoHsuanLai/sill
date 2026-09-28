@@ -38,6 +38,8 @@ OUT_DIR="$SILL_REPO/target/accept-launcher"
 mkdir -p "$OUT_DIR"
 TOGGLES=20
 P95_BUDGET_MS=100
+BUS=
+BUS_PID=
 
 sill() { "$SILL_BIN" "$@"; }
 nested() { "$SHELL_HOST_DEV/run.sh" "$@"; }
@@ -51,7 +53,8 @@ build() {
 
 start_daemon() {
   CONFIG=$(mktemp -d)
-  XDG_CONFIG_HOME="$CONFIG" nested "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
+  XDG_CONFIG_HOME="$CONFIG" DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
+    nested "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do
     sill ping >/dev/null 2>&1 && return 0
@@ -66,6 +69,7 @@ stop_daemon() {
   sill quit >/dev/null 2>&1
   wait "$DAEMON" 2>/dev/null
   DAEMON=
+  stop_private_bus
   rm -rf "${CONFIG:-}"
 }
 
@@ -202,7 +206,8 @@ if sill ping >/dev/null 2>&1; then
   echo "a sill daemon is already running; quit it first (this script starts its own)" >&2
   exit 1
 fi
-start_daemon || { stop_daemon; exit 1; }
+start_private_bus || exit 1
+start_daemon || { stop_daemon; stop_private_bus; exit 1; }
 trap stop_daemon EXIT
 status=0
 for step in step_toggle_latency step_panel_and_idle step_shortcut step_quit; do

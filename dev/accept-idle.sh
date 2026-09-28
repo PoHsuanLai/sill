@@ -146,6 +146,7 @@ start_bus() {
   BUS_PID=$(sed -n 2p <<<"$out")
   case "$BUS" in unix:*) ;; *) echo "no private bus address: $out" >&2; return 1 ;; esac
   [ "$BUS" != "${DBUS_SESSION_BUS_ADDRESS:-}" ] || { echo "not a private bus" >&2; return 1; }
+  require_private_system_bus "$BUS" || return 1
   echo "private bus $BUS (pid $BUS_PID)" >&2
 }
 

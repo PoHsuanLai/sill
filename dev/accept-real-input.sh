@@ -6,8 +6,11 @@
 # and press is a real one, with a real serial and keyboard focus.
 #
 # Starts `sill run` from this checkout's debug build (`--features debug`) on the headless KWin,
-# with a scratch XDG_CONFIG_HOME and KWin's private D-Bus session bus, and quits it at the end;
-# stops the headless KWin at the end too.
+# with its own XDG_RUNTIME_DIR and a scratch XDG_CONFIG_HOME, XDG_STATE_HOME and XDG_CACHE_HOME.
+# KWin's private bus is the daemon's session AND system bus (start_kwin refuses to go on if it
+# would be the real one, FINDINGS F1068), so nothing here reaches the real session bus, the real
+# system bus (NetworkManager, BlueZ, UPower, logind), or the user's own sill IPC socket. Quits
+# the daemon and stops the headless KWin at the end.
 #
 # SAFETY. The daemon is started with SILL_POWER_MENU_DRY_RUN naming a record file, so every power
 # menu has the dry-run backend (a chosen action is only recorded, never sent to logind), and the
@@ -36,10 +39,23 @@ SIZE=1920x1080
 WL=
 BUS=
 
+SCRATCH=$(mktemp -d)
+RUNTIME="$SCRATCH/run"
+STATE="$SCRATCH/state"
+CACHE="$SCRATCH/cache"
+mkdir -p "$RUNTIME" "$STATE" "$CACHE"
+chmod 700 "$RUNTIME"
+
 # Every `sill` call, `quit` included, must reach the daemon's own compositor and bus (the
 # headless KWin's, not this shell's ambient session's), as dev/accept-notifications-real-input.sh
-# already does; read without sourcing `$KWIN_ENV` into this shell (see start_kwin's comment).
-in_env() { env WAYLAND_DISPLAY="$WL" DBUS_SESSION_BUS_ADDRESS="$BUS" "$@"; }
+# already does; read without sourcing `$KWIN_ENV` into this shell (see start_kwin's comment). Its
+# own XDG_RUNTIME_DIR (so its IPC socket is never the real one's), XDG_STATE_HOME and
+# XDG_CACHE_HOME, and KWin's private bus as BOTH DBUS_SESSION_BUS_ADDRESS and
+# DBUS_SYSTEM_BUS_ADDRESS (start_kwin refuses to go on if it would be the real one, F1068).
+in_env() {
+  env XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$WL" DBUS_SESSION_BUS_ADDRESS="$BUS" \
+    DBUS_SYSTEM_BUS_ADDRESS="$BUS" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" "$@"
+}
 sill() { in_env "$SILL_BIN" "$@"; }
 
 # Real input into the headless KWin through ONE fake-input client for the whole run: each client
@@ -165,6 +181,8 @@ start_kwin() {
   BUS=$(sed -n "s/^export DBUS_SESSION_BUS_ADDRESS='\\(.*\\)'\$/\\1/p" "$KWIN_ENV")
   WL="$runtime/$socket"
   [ -S "$WL" ] && [ -n "$BUS" ] || { echo "no socket or bus in $KWIN_ENV" >&2; return 1; }
+  [ "$BUS" != "${DBUS_SESSION_BUS_ADDRESS:-}" ] || { echo "KWin's bus is the session's" >&2; return 1; }
+  require_private_system_bus "$BUS" || return 1
 }
 
 start_daemon() {
@@ -173,12 +191,8 @@ start_daemon() {
   printf '[control_center]\nmenu_bar_sound = "hide"\nmenu_bar_battery = "hide"\n' \
     >"$CONFIG/sill/settings.toml"
   : >"$RECORD"
-  (
-    # shellcheck disable=SC1090
-    source "$KWIN_ENV"
-    export WAYLAND_DISPLAY DBUS_SESSION_BUS_ADDRESS
-    XDG_CONFIG_HOME="$CONFIG" SILL_POWER_MENU_DRY_RUN="$RECORD" exec "$SILL_BIN" run
-  ) >"$OUT_DIR/daemon.log" 2>&1 &
+  in_env env XDG_CONFIG_HOME="$CONFIG" SILL_POWER_MENU_DRY_RUN="$RECORD" "$SILL_BIN" run \
+    >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
   for _ in $(seq 50); do NAME=$(output_name); [ -n "$NAME" ] && break; sleep 0.1; done
@@ -297,16 +311,9 @@ step_cc_outside_click() {
 }
 
 build || exit 1
-# The shell's IPC socket is shared with the nested session's: wait (up to 10 min) for another
-# script's daemon to quit.
-for _ in $(seq 120); do sill ping >/dev/null 2>&1 || break; echo "a sill daemon is running; waiting" >&2; sleep 5; done
-if sill ping >/dev/null 2>&1; then
-  echo "a sill daemon is still running; quit it first (this script starts its own)" >&2
-  exit 1
-fi
-start_kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; exit 1; }
+start_kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; rm -rf "$SCRATCH"; exit 1; }
 if ! start_daemon; then
-  stop_daemon; "$SHELL_HOST_DEV/kwin-virtual.sh" stop >>"$OUT_DIR/kwin.log" 2>&1; exit 1
+  stop_daemon; "$SHELL_HOST_DEV/kwin-virtual.sh" stop >>"$OUT_DIR/kwin.log" 2>&1; rm -rf "$SCRATCH"; exit 1
 fi
 prove_dry_run || echo "the dry run could not be proven from the daemon's log" >&2
 start_input || echo "no fake input client" >&2
@@ -325,5 +332,6 @@ echo "stopping the input client, the daemon and the headless KWin" >&2
 stop_input
 stop_daemon || status=1
 "$SHELL_HOST_DEV/kwin-virtual.sh" stop >>"$OUT_DIR/kwin.log" 2>&1
+rm -rf "$SCRATCH"
 echo "logs in $OUT_DIR"
 exit "$status"

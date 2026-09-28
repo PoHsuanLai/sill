@@ -2,7 +2,9 @@
 # Milestone 3 acceptance for the dock, on the nested cosmic-comp (dev/nested.sh; a running
 # wayland-1 is reused and never stopped). Starts `sill run` from this checkout's debug build
 # (`--features debug`) with a scratch XDG_CONFIG_HOME, so the pins it writes never touch the
-# real ~/.config/sill, and quits it at the end.
+# real ~/.config/sill, and a private dbus-daemon as both its session and system bus (started
+# before it and refused if it would be the real one, FINDINGS F1068), so NetworkManager, BlueZ,
+# UPower and the rest are simply absent. Quits it at the end.
 #
 #   1. The dock reserves base + margin: a maximised probe is output_h - bar_h - 68 (gut 8 + tile
 #      48 + 2 x the 6 px padding, quire's macOS polish pass).
@@ -41,6 +43,8 @@ TERM_ID=com.system76.CosmicTerm
 # dot's centre 3 below it (`dock.running_dot_gap_px`).
 PILL_Y=120
 DOT_Y=147
+BUS=
+BUS_PID=
 
 sill() { "$SILL_BIN" "$@"; }
 nested() { "$SHELL_HOST_DEV/run.sh" "$@"; }
@@ -112,7 +116,8 @@ start_daemon() {
   mkdir -p "$CONFIG/sill"
   printf '[dock]\npill_radius_px = %s\n' "$PILL_RADIUS" >"$CONFIG/sill/settings.toml"
   backdrop_seed "$CONFIG" || return 1
-  XDG_CONFIG_HOME="$CONFIG" nested "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
+  XDG_CONFIG_HOME="$CONFIG" DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
+    nested "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
   backdrop_up "$CONFIG" || return 1
@@ -271,6 +276,7 @@ stop_daemon() {
   DAEMON=
   kill_nested_terms
   backdrop_down
+  stop_private_bus
   rm -rf "$CONFIG"
 }
 
@@ -283,7 +289,8 @@ if sill ping >/dev/null 2>&1; then
   echo "a sill daemon is already running; quit it first (this script starts its own)" >&2
   exit 1
 fi
-start_daemon || { stop_daemon; exit 1; }
+start_private_bus || exit 1
+start_daemon || { stop_daemon; stop_private_bus; exit 1; }
 status=0
 for step in step_exclusive_zone step_sweep_and_idle step_launch step_badge step_menu step_radius; do
   if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; fi
