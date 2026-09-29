@@ -87,7 +87,7 @@ pub enum BatteryEvent {
 }
 
 /// `battery` after `event`.
-pub fn reduce_battery(battery: Battery, event: BatteryEvent) -> Battery {
+pub fn step(battery: Battery, event: BatteryEvent) -> Battery {
     match event {
         BatteryEvent::Presence(presence) => Battery {
             presence,
@@ -112,7 +112,7 @@ pub fn reduce_battery(battery: Battery, event: BatteryEvent) -> Battery {
 
 #[cfg(test)]
 mod tests {
-    use super::{Battery, BatteryEvent, Charge, Remaining, reduce_battery};
+    use super::{Battery, BatteryEvent, Charge, Remaining, step};
     use crate::units::{Minutes, Percent, Presence, Seconds};
 
     fn present(level: u16, charge: Charge) -> Battery {
@@ -170,7 +170,7 @@ mod tests {
             ("upower gone", BatteryEvent::Gone, Battery::default()),
         ];
         for (name, event, want) in cases {
-            assert_eq!(reduce_battery(base.clone(), event), want, "{name}");
+            assert_eq!(step(base.clone(), event), want, "{name}");
         }
     }
 

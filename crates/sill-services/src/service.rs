@@ -61,7 +61,9 @@ pub struct Handle<S: Service> {
 
 impl<S: Service> fmt::Debug for ServiceIo<S> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ServiceIo").field("service", &S::NAME).finish()
+        f.debug_struct("ServiceIo")
+            .field("service", &S::NAME)
+            .finish()
     }
 }
 

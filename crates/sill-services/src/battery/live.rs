@@ -1,12 +1,13 @@
 //! UPower's display device over the system bus: seeds a real first value, then feeds every
-//! property change through [`reduce_battery`].
+//! property change through [`step`].
 
 use tokio::sync::{mpsc, watch};
 use upower_dbus::{BatteryState, DeviceProxy, UPowerProxy};
 
 use super::BatteryCommand;
-use super::model::{Battery, BatteryEvent, Charge, reduce_battery};
+use super::model::{Battery, BatteryEvent, Charge, step};
 use crate::env::Bus;
+use crate::error::ServiceError;
 use crate::stream::next;
 use crate::units::{Percent, Presence, Seconds};
 
@@ -16,16 +17,10 @@ pub(super) async fn run(
     bus: Bus,
     tx: watch::Sender<Battery>,
     mut commands: mpsc::UnboundedReceiver<BatteryCommand>,
-) {
-    let Ok(Some(connection)) = bus.connect().await else {
-        return;
-    };
-    let Ok(upower) = UPowerProxy::new(&connection).await else {
-        return;
-    };
-    let Ok(device) = upower.get_display_device().await else {
-        return;
-    };
+) -> Result<(), ServiceError> {
+    let connection = bus.connected().await?;
+    let upower = UPowerProxy::new(&connection).await?;
+    let device = upower.get_display_device().await?;
 
     seed(&tx, &device).await;
 
@@ -66,7 +61,7 @@ pub(super) async fn run(
                 Some(BatteryCommand::Refresh) => {
                     let _ = device.refresh().await;
                 }
-                None => break,
+                None => return Ok(()),
             }
         }
     }
@@ -93,7 +88,7 @@ async fn seed(tx: &watch::Sender<Battery>, device: &DeviceProxy<'_>) {
 
 /// Reduces `event` onto the receiver's current value and publishes the result.
 fn apply(tx: &watch::Sender<Battery>, event: BatteryEvent) {
-    let next = reduce_battery(tx.borrow().clone(), event);
+    let next = step(tx.borrow().clone(), event);
     let _ = tx.send(next);
 }
 

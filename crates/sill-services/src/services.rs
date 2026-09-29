@@ -127,7 +127,10 @@ impl Services {
             state: clock,
             control: clock_control,
         } = crate::service::spawn::<crate::clock::ClockService>(rt, env, ());
-        let (battery, battery_control) = crate::battery::spawn(rt, system());
+        let crate::Handle {
+            state: battery,
+            control: battery_control,
+        } = crate::service::spawn::<crate::battery::BatteryService>(rt, env, ());
         let (network, network_control) = crate::network::spawn(rt, system());
         let (volume, volume_control) = crate::volume::spawn(rt);
         let (displays, displays_control) = crate::displays::spawn(
