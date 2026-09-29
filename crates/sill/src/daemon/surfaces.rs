@@ -12,8 +12,8 @@ use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::surface::{LockSurface, MountLockProps, Surface, mount_lock};
 use sill_ui_kit::{
-    Banners, HotCorners, IdleDim, Lock, NotificationCenter, Osd, PolkitPrompt, PowerMenu, Switcher,
-    Wallpaper,
+    Banners, HotCorners, IdleDim, Lock, NotificationCenter, Osd, PolkitPrompt, PowerMenu,
+    ScreenshotThumb, Switcher, Wallpaper,
 };
 use tokio::sync::watch;
 
@@ -57,7 +57,7 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     spawn_surface::<NotificationCenter>(ctx, outputs, spawn, &links.notification_center);
     // The screenshot thumbnail after the banners and before the OSD (all Overlay); the
     // desktop widgets (Bottom) and the hot corners (Overlay, never painted).
-    crate::screenshots::spawn_missing(ctx, outputs, root);
+    spawn_surface::<ScreenshotThumb>(ctx, outputs, spawn, &links.banners);
     crate::widgets::spawn_missing(ctx, outputs, settings, &services.dirs, root);
     crate::edit_widgets::spawn_missing(ctx, outputs, &services.dirs, root);
     spawn_surface::<HotCorners>(ctx, outputs, spawn, &links.corners);

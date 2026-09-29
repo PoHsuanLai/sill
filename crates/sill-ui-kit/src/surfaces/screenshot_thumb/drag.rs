@@ -9,8 +9,8 @@
 use shell_host::{DragAction, DragActions, DragOutcome, DragPayload, DragSpec};
 
 use super::ghost::{GhostLook, ghost_icon};
-use super::machine::DragEnd;
 use super::picture::ThumbPicture;
+use super::step::DragEnd;
 
 /// What the machine makes of shell-host's outcome.
 pub fn drag_end(outcome: &DragOutcome) -> DragEnd {
@@ -46,8 +46,8 @@ mod tests {
 
     use super::{drag_end, file_drag};
     use crate::surfaces::screenshot_thumb::ghost::GhostLook;
-    use crate::surfaces::screenshot_thumb::machine::DragEnd;
     use crate::surfaces::screenshot_thumb::picture::ThumbPicture;
+    use crate::surfaces::screenshot_thumb::step::DragEnd;
 
     #[test]
     fn each_outcome_is_what_the_machine_hears() {

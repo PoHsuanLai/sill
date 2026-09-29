@@ -3,7 +3,7 @@
 //! ([`super::card`]). The card plays its own entrance and exit (`ShotIn`, `ShotOut`) and says when
 //! the exit has settled; after a swipe the row is unlisted and the stack flies it out along the
 //! swipe (`banner-out`) and says so instead. It follows `use_service::<ScreenshotsService>` and the
-//! `BannerLink` through [`super::follow`] and [`super::machine::step`].
+//! `BannerLink` through [`super::follow`] and [`super::step::step`].
 
 use dioxus::prelude::*;
 use ds::{Banner, BannerEntry, BannerKey, BannerPosition, BannerStack, Material};
@@ -13,22 +13,24 @@ use sill_model::screenshots::ShotId;
 use sill_services::ScreenshotsService;
 use sill_settings::ShotThumbnail;
 
-use super::SCREENSHOT_THUMB_CSS;
 use super::card::ThumbCard;
-use super::drive::use_thumb;
 use super::follow::{Here, follow};
 use super::ghost::GhostLook;
+use super::io::use_thumb;
 use super::layer::ROOM;
-use super::machine::{ThumbExit, ThumbIn, ThumbParams, ThumbState};
 use super::picture::{ThumbPicture, picture_of};
+use super::step::{ThumbExit, ThumbIn, ThumbParams, ThumbState};
 use crate::hooks::{use_appearance, use_control, use_service, use_settings};
 use crate::links::BannerLink;
 use crate::look::use_active_look;
 use crate::notification_card::swipe_metrics;
 use crate::root::SurfaceRoot;
 
+/// The thumbnail's stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
+pub const SCREENSHOT_THUMB_CSS: &str = include_str!("../../style/screenshot_thumb.css");
+
 /// The thumbnail on `output`.
-pub(super) fn thumb(output: OutputInfo) -> Element {
+pub(super) fn screenshot_thumb(output: OutputInfo) -> Element {
     let file = use_settings()();
     let environment = use_appearance()();
     let look = use_active_look(&output);
@@ -138,7 +140,7 @@ mod tests {
     use sill_model::screenshots::ShotId;
 
     use super::row_of;
-    use crate::surfaces::screenshot_thumb::machine::{HoldToken, Pointer, ThumbExit, ThumbState};
+    use crate::surfaces::screenshot_thumb::step::{HoldToken, Pointer, ThumbExit, ThumbState};
 
     #[test]
     fn the_row_stays_for_the_cards_own_exit_and_goes_for_a_swipe() {

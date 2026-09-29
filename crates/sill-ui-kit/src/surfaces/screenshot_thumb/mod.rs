@@ -8,33 +8,19 @@
 //!
 //! One warm Overlay per output, spawned hidden like the banners, shown only on the output the
 //! banners' `BannerLink` names (the main display's stand-in), following the screenshots service's
-//! `current`. `screenshot.thumbnail = "hide"` keeps it hidden. The pure parts: [`machine::step`],
-//! [`drag::drag_end`], [`picture::png_size`] and [`layer::thumb_layer`].
-
-pub mod drag;
-pub mod follow;
-pub mod ghost;
-pub mod layer;
-pub mod machine;
-pub mod picture;
+//! `current`. `screenshot.thumbnail = "hide"` keeps it hidden. The pure parts: [`step::step`],
+//! [`drag::drag_end`], [`picture::png_size`] and [`layer::layer`].
 
 mod card;
-mod drive;
+mod drag;
+mod follow;
+mod ghost;
+mod io;
+mod layer;
+mod picture;
+mod step;
+mod surface;
 mod view;
 
-pub use layer::{THUMB_ID, THUMB_RADIUS, THUMB_WIDTH, thumb_layer};
-pub use machine::{DragEnd, ThumbIn, ThumbOut, ThumbParams, ThumbState, step};
-
-use dioxus::prelude::*;
-use shell_host::OutputInfo;
-
-/// The thumbnail's stylesheet.
-pub const SCREENSHOT_THUMB_CSS: &str = include_str!("../../style/screenshot_thumb.css");
-
-/// The thumbnail on `output`. Needs a [`BannerLink`](crate::surfaces::banners::BannerLink)
-/// root context beside the daemon's usual ones (the daemon's `surface_root` gives every surface
-/// one): only the output it names shows the thumbnail.
-#[component]
-pub fn ScreenshotThumb(output: OutputInfo) -> Element {
-    view::thumb(output)
-}
+pub use surface::ScreenshotThumb;
+pub use view::SCREENSHOT_THUMB_CSS;

@@ -7,7 +7,7 @@
 use sill_model::screenshots::{ShotPreview, Shots};
 use sill_settings::ShotThumbnail;
 
-use super::machine::ThumbIn;
+use super::step::ThumbIn;
 
 /// Whether this output is the one that shows (the banners' `BannerLink`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -37,7 +37,7 @@ mod tests {
     use sill_settings::ShotThumbnail;
 
     use super::{Here, follow};
-    use crate::surfaces::screenshot_thumb::machine::ThumbIn;
+    use crate::surfaces::screenshot_thumb::step::ThumbIn;
 
     fn with(preview: ShotPreview) -> Shots {
         Shots {

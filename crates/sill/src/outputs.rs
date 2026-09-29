@@ -26,9 +26,7 @@ pub struct OutputSurfaces {
     pub dock: Option<SurfaceId>,
     pub launcher: Option<SurfaceId>,
     pub catcher: Option<SurfaceId>,
-    /// The screenshot thumbnail (warm and hidden) and the desktop widget layer (while
-    /// `widgets.desktop` is on).
-    pub thumbnail: Option<SurfaceId>,
+    /// The desktop widget layer (while `widgets.desktop` is on).
     pub desktop_widgets: Option<SurfaceId>,
     /// Edit Widgets (the widget gallery), warm and hidden.
     pub edit_widgets: Option<SurfaceId>,
@@ -36,13 +34,12 @@ pub struct OutputSurfaces {
 
 impl OutputSurfaces {
     /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 7] {
+    fn fields(&self) -> [Option<SurfaceId>; 6] {
         [
             self.bar,
             self.dock,
             self.launcher,
             self.catcher,
-            self.thumbnail,
             self.desktop_widgets,
             self.edit_widgets,
         ]
@@ -76,7 +73,6 @@ impl OutputSurfaces {
             &mut self.dock,
             &mut self.launcher,
             &mut self.catcher,
-            &mut self.thumbnail,
             &mut self.desktop_widgets,
             &mut self.edit_widgets,
         ] {
@@ -198,7 +194,7 @@ mod tests {
     #[test]
     fn spawned_surfaces_are_found_and_forgotten_like_the_rest() {
         let mut row = surfaces(1);
-        row.thumbnail = Some(SurfaceId(2));
+        row.dock = Some(SurfaceId(2));
         row.spawned.push(Spawned {
             name: "hot-corner",
             slot: "BottomRight".to_owned(),

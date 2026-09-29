@@ -14,6 +14,5 @@ pub mod osd;
 pub mod outputs;
 pub mod policy;
 pub mod run_args;
-pub mod screenshots;
 pub mod scroll;
 pub mod widgets;

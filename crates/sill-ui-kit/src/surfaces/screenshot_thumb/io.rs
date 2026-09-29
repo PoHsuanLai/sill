@@ -14,8 +14,8 @@ use sill_services::Control;
 
 use super::drag::{drag_end, file_drag};
 use super::ghost::GhostLook;
-use super::machine::{DragEnd, ThumbExit, ThumbIn, ThumbOut, ThumbParams, ThumbState, step};
 use super::picture::ThumbPicture;
+use super::step::{DragEnd, ThumbExit, ThumbIn, ThumbOut, ThumbParams, ThumbState, step};
 
 /// Everything the thumbnail's handlers share. Copy: signals and cells only.
 #[derive(Clone, Copy)]

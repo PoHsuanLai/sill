@@ -5,17 +5,109 @@
 //! nowhere yet and it stays; a newer shot replaces it; `screenshot.thumbnail = "hide"` and
 //! another output draw nothing.
 
-mod screenshot_thumb_support;
-
+use std::path::PathBuf;
 use std::time::Duration;
 
 use ds::{Point, Px};
 use ds_settings::Ms;
-use screenshot_thumb_support::{Done, Running, start};
 use shell_host::OutputId;
-use sill_model::screenshots::{ShotCommand, ShotId, ShotLeave, ShotPreview};
+use sill_model::screenshots::{Shot, ShotCommand, ShotId, ShotLeave, ShotPreview, Shots};
 use sill_settings::{ScreenshotSettings, ShellFile, ShotThumbnail};
-use sill_ui_kit::links::BannerOutput;
+use sill_ui_kit::ScreenshotThumb;
+use sill_ui_kit::harness::{SurfaceHarness, fake};
+use sill_ui_kit::links::{BannerLink, BannerOutput};
+
+type Running = SurfaceHarness<ScreenshotThumb>;
+
+/// The services' own fixture screenshot, drawn as a ready preview.
+const FIXTURE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../sill-services/tests/fixtures/shots/Screenshot_fixture.png"
+);
+
+/// Whether a wait ended in what it waited for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Done {
+    Yes,
+    No,
+}
+
+/// The thumbnail on `file`'s settings, shown on the test output, no shot yet.
+fn start(file: ShellFile) -> Running {
+    let link = BannerLink::new();
+    link.set(BannerOutput::On(fake::output().id));
+    SurfaceHarness::<ScreenshotThumb>::setup(link, ())
+        .settings(file)
+        .start()
+}
+
+/// Publish shot `id` as current with `preview`, taken at this instant (the next `advance` runs
+/// the woken surface first).
+fn shot(running: &mut Running, id: u64, preview: ShotPreview) {
+    running.feeds.shots.send_replace(Shots {
+        current: Some(Shot {
+            id: ShotId(id),
+            path: PathBuf::from(format!("/tmp/shots/Screenshot_{id}.png")),
+            preview,
+        }),
+        last_id: ShotId(id),
+        ..Shots::default()
+    });
+}
+
+/// Publish shot `id` with the fixture as its ready preview.
+fn ready(running: &mut Running, id: u64) {
+    shot(running, id, ShotPreview::Ready(PathBuf::from(FIXTURE)));
+}
+
+/// The service dropping its current shot (it did, after a `Leave`).
+fn cleared(running: &mut Running) {
+    running.feeds.shots.send_replace(Shots::default());
+}
+
+/// Every command sent since the last call.
+fn commands(running: &mut Running) -> Vec<ShotCommand> {
+    std::iter::from_fn(|| running.feeds.shot_commands.try_recv().ok()).collect()
+}
+
+/// How many cards quire's stack draws (shown or playing out).
+fn cards(running: &Running) -> usize {
+    running.harness.count(".ds-shot")
+}
+
+/// How many cards (their own exit) or rows (after a swipe) are playing their exit.
+fn leaving(running: &Running) -> usize {
+    running.harness.count(".ds-shot[*|data-presence=leaving]")
+        + running.harness.count(".ds-banner[*|data-presence=leaving]")
+}
+
+/// The card's centre.
+fn card(running: &Running) -> Point {
+    running.harness.centre(".ds-shot-picture").expect("a card") // test-only
+}
+
+/// Advance in 20 ms steps until `done`, at most `limit` of the harness's clock.
+fn until(running: &mut Running, limit: Duration, done: impl Fn(&Running) -> bool) -> Done {
+    let end = running.harness.now() + limit;
+    while running.harness.now() < end {
+        running.harness.advance(Duration::from_millis(20));
+        if done(running) {
+            return Done::Yes;
+        }
+    }
+    Done::No
+}
+
+/// Shot 1, ready, and its entrance played.
+fn one_up(running: &mut Running) {
+    ready(running, 1);
+    assert_eq!(
+        until(running, Duration::from_millis(900), |r| cards(r) == 1),
+        Done::Yes,
+        "the card slides in"
+    );
+    running.harness.advance(Duration::from_millis(400));
+}
 
 const HOLD_MS: u64 = 1000;
 
@@ -54,20 +146,20 @@ fn drag(running: &mut Running, from: Point, dx: f32, dy: f32) {
 
 /// The card is gone from the stack (the exit has played) within `limit`.
 fn gone_within(running: &mut Running, limit: Duration) -> Done {
-    running.until(limit, |r| r.cards() == 0)
+    until(running, limit, |r| cards(r) == 0)
 }
 
 #[test]
 fn a_shot_slides_in_holds_and_is_kept() {
     let mut running = start(file());
     running.harness.advance(Duration::from_millis(60));
-    assert_eq!(running.cards(), 0, "nothing before a shot");
-    running.shot(1, ShotPreview::Pending);
+    assert_eq!(cards(&running), 0, "nothing before a shot");
+    shot(&mut running, 1, ShotPreview::Pending);
     running.harness.advance(Duration::from_millis(100));
-    assert_eq!(running.cards(), 0, "a pending preview is waited for");
-    running.ready(1);
+    assert_eq!(cards(&running), 0, "a pending preview is waited for");
+    ready(&mut running, 1);
     running.harness.advance(Duration::from_millis(20));
-    assert_eq!(running.cards(), 1, "quire's stack slides it in");
+    assert_eq!(cards(&running), 1, "quire's stack slides it in");
     let src = running.harness.attr(".ds-shot-image", "src");
     assert!(
         src.as_deref()
@@ -79,15 +171,15 @@ fn a_shot_slides_in_holds_and_is_kept() {
         .harness
         .advance(Duration::from_millis(HOLD_MS - 20 - 1));
     assert_eq!(
-        (running.cards(), running.leaving()),
+        (cards(&running), leaving(&running)),
         (1, 0),
         "held a millisecond before the hold's end"
     );
-    assert_eq!(running.commands(), Vec::new());
+    assert_eq!(commands(&mut running), Vec::new());
     running.harness.advance(Duration::from_millis(1));
-    assert_eq!(running.leaving(), 1, "the hold runs out at its end");
-    assert_eq!(running.commands(), leave(1, ShotLeave::Kept));
-    running.cleared();
+    assert_eq!(leaving(&running), 1, "the hold runs out at its end");
+    assert_eq!(commands(&mut running), leave(1, ShotLeave::Kept));
+    cleared(&mut running);
     assert_eq!(
         gone_within(&mut running, Duration::from_millis(900)),
         Done::Yes
@@ -97,8 +189,8 @@ fn a_shot_slides_in_holds_and_is_kept() {
 #[test]
 fn the_pointer_pauses_the_hold_and_leaving_gives_the_rest() {
     let mut running = start(file());
-    running.one_up();
-    let card = running.card();
+    one_up(&mut running);
+    let card = card(&running);
     running.harness.pointer_move(card);
     running.harness.advance(Duration::from_millis(40));
     assert_eq!(
@@ -108,52 +200,53 @@ fn the_pointer_pauses_the_hold_and_leaving_gives_the_rest() {
     running
         .harness
         .advance(Duration::from_millis(HOLD_MS + 500));
-    assert_eq!((running.cards(), running.leaving()), (1, 0), "paused");
-    assert_eq!(running.commands(), Vec::new());
+    assert_eq!((cards(&running), leaving(&running)), (1, 0), "paused");
+    assert_eq!(commands(&mut running), Vec::new());
     running.harness.pointer_move(Point {
         x: Px(2.0),
         y: Px(2.0),
     });
     let rest = u64::from(ShellFile::default().notifications.hover_min_remaining_ms.0);
     running.harness.advance(Duration::from_millis(rest - 300));
-    assert_eq!(running.leaving(), 0, "the rest after a hover");
+    assert_eq!(leaving(&running), 0, "the rest after a hover");
     assert_eq!(
-        running.until(Duration::from_millis(900), |r| r.leaving() == 1),
+        until(&mut running, Duration::from_millis(900), |r| leaving(r)
+            == 1),
         Done::Yes
     );
-    assert_eq!(running.commands(), leave(1, ShotLeave::Kept));
+    assert_eq!(commands(&mut running), leave(1, ShotLeave::Kept));
 }
 
 #[test]
 fn a_click_opens_it() {
     let mut running = start(file());
-    running.one_up();
-    let card = running.card();
+    one_up(&mut running);
+    let card = card(&running);
     running.harness.click(card);
     running.harness.advance(Duration::from_millis(40));
-    assert_eq!(running.commands(), leave(1, ShotLeave::Opened));
-    assert_eq!(running.leaving(), 1);
+    assert_eq!(commands(&mut running), leave(1, ShotLeave::Opened));
+    assert_eq!(leaving(&running), 1);
 }
 
 #[test]
 fn a_swipe_right_keeps_it_and_a_short_drag_springs_back() {
     let mut running = start(file());
-    running.one_up();
-    let card = running.card();
-    drag(&mut running, card, 30.0, 0.0);
+    one_up(&mut running);
+    let home = card(&running);
+    drag(&mut running, home, 30.0, 0.0);
     running.harness.advance(Duration::from_millis(400));
-    assert_eq!(running.commands(), Vec::new(), "a short drag");
-    assert_eq!(running.card(), card, "springs back");
-    drag(&mut running, card, 120.0, 0.0);
+    assert_eq!(commands(&mut running), Vec::new(), "a short drag");
+    assert_eq!(card(&running), home, "springs back");
+    drag(&mut running, home, 120.0, 0.0);
     running.harness.advance(Duration::from_millis(40));
-    assert_eq!(running.commands(), leave(1, ShotLeave::Kept));
+    assert_eq!(commands(&mut running), leave(1, ShotLeave::Kept));
 }
 
 #[test]
 fn delete_trashes_it() {
     let mut running = start(file());
-    running.one_up();
-    let card = running.card();
+    one_up(&mut running);
+    let card = card(&running);
     running.harness.pointer_move(card);
     running.harness.advance(Duration::from_millis(300));
     let button = running
@@ -164,36 +257,40 @@ fn delete_trashes_it() {
     running.harness.advance(Duration::from_millis(40));
     running.harness.click(button);
     running.harness.advance(Duration::from_millis(40));
-    assert_eq!(running.commands(), leave(1, ShotLeave::Trashed));
+    assert_eq!(commands(&mut running), leave(1, ShotLeave::Trashed));
 }
 
 #[test]
 fn a_drag_out_with_no_host_is_refused_the_card_stays_and_the_hold_resumes() {
     let mut running = start(file());
-    running.one_up();
-    let card = running.card();
+    one_up(&mut running);
+    let card = card(&running);
     running.harness.pointer_move(card);
     drag(&mut running, card, -100.0, -60.0);
     running.harness.advance(Duration::from_millis(400));
     assert_eq!(
-        running.commands(),
+        commands(&mut running),
         Vec::new(),
         "no drag source in a harness"
     );
-    assert_eq!((running.cards(), running.leaving()), (1, 0));
+    assert_eq!((cards(&running), leaving(&running)), (1, 0));
     // Refused, the hold gives the rest after a hover again and then keeps the file.
     let rest = u64::from(ShellFile::default().notifications.hover_min_remaining_ms.0);
     assert_eq!(
-        running.until(Duration::from_millis(rest + 900), |r| r.leaving() == 1),
+        until(
+            &mut running,
+            Duration::from_millis(rest + 900),
+            |r| leaving(r) == 1
+        ),
         Done::Yes
     );
-    assert_eq!(running.commands(), leave(1, ShotLeave::Kept));
+    assert_eq!(commands(&mut running), leave(1, ShotLeave::Kept));
 }
 
 #[test]
 fn the_picture_is_the_preview_file_at_its_own_shape() {
     let mut running = start(file());
-    running.one_up();
+    one_up(&mut running);
     let src = running.harness.attr(".ds-shot-image", "src");
     assert!(
         src.as_deref().is_some_and(|s| s.starts_with("file:///")),
@@ -219,9 +316,7 @@ fn the_picture_is_the_preview_file_at_its_own_shape() {
             .filter(|(x, y, _)| inside(*x, *y))
             .map(|(_, _, p)| p.0),
     );
-    let fixture = image::open(screenshot_thumb_support::FIXTURE)
-        .expect("the fixture")
-        .to_rgba8();
+    let fixture = image::open(FIXTURE).expect("the fixture").to_rgba8();
     let want = mean(fixture.pixels().map(|p| p.0));
     let apart = drawn
         .iter()
@@ -245,22 +340,22 @@ fn mean(pixels: impl Iterator<Item = [u8; 4]>) -> [f64; 3] {
 #[test]
 fn a_newer_shot_replaces_the_shown_one() {
     let mut running = start(file());
-    running.one_up();
-    running.ready(2);
+    one_up(&mut running);
+    ready(&mut running, 2);
     running.harness.advance(Duration::from_millis(60));
-    assert_eq!(running.leaving(), 1, "the first plays out");
+    assert_eq!(leaving(&running), 1, "the first plays out");
     assert_eq!(
-        running.until(Duration::from_millis(900), |r| r.cards() == 1
-            && r.leaving() == 0),
+        until(&mut running, Duration::from_millis(900), |r| cards(r) == 1
+            && leaving(r) == 0),
         Done::Yes
     );
     assert_eq!(
-        running.commands(),
+        commands(&mut running),
         Vec::new(),
         "a replaced shot's file stays"
     );
     running.harness.advance(Duration::from_millis(HOLD_MS));
-    assert_eq!(running.commands(), leave(2, ShotLeave::Kept));
+    assert_eq!(commands(&mut running), leave(2, ShotLeave::Kept));
 }
 
 #[test]
@@ -272,13 +367,13 @@ fn hidden_by_the_setting_and_on_another_output() {
         },
         ..ShellFile::default()
     });
-    hidden.ready(1);
+    ready(&mut hidden, 1);
     hidden.harness.advance(Duration::from_millis(300));
-    assert_eq!(hidden.cards(), 0, "screenshot.thumbnail = hide");
+    assert_eq!(cards(&hidden), 0, "screenshot.thumbnail = hide");
 
     let mut elsewhere = start(file());
     elsewhere.link.set(BannerOutput::On(OutputId(9)));
-    elsewhere.ready(1);
+    ready(&mut elsewhere, 1);
     elsewhere.harness.advance(Duration::from_millis(300));
-    assert_eq!(elsewhere.cards(), 0, "another output shows it");
+    assert_eq!(cards(&elsewhere), 0, "another output shows it");
 }

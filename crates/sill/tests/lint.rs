@@ -18,6 +18,7 @@ use sill_model::notifications::{
 use sill_model::polkit_agent::{
     ActionId, Cookie, Echo, LastTry, Polkit, PromptPhase, PromptView, Registration,
 };
+use sill_model::screenshots::{Shot, ShotId, ShotPreview, Shots};
 use sill_model::session::Session;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
@@ -26,7 +27,8 @@ use sill_ui_kit::links::{
     PowerMenuLink, Preselect, PromptOutput, SwitcherAsk, SwitcherLink,
 };
 use sill_ui_kit::{
-    Banners, IdleDim, Lock, NotificationCenter, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper,
+    Banners, IdleDim, Lock, NotificationCenter, Osd, PolkitPrompt, PowerMenu, ScreenshotThumb,
+    Switcher, Wallpaper,
 };
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
@@ -63,6 +65,11 @@ const SURFACES: &[SurfaceCase] = &[
         name: "notification_center",
         css: sill_ui_kit::surfaces::notification_center::NOTIFICATION_CENTER_CSS,
         states: notification_center_states,
+    },
+    SurfaceCase {
+        name: "screenshot_thumb",
+        css: sill_ui_kit::surfaces::screenshot_thumb::SCREENSHOT_THUMB_CSS,
+        states: screenshot_thumb_states,
     },
     SurfaceCase {
         name: "hot_corners",
@@ -315,6 +322,35 @@ fn notification_center_states() -> Vec<(&'static str, String)> {
     let open = center.harness.html();
     assert!(open.contains("sill-nc-row"), "{open}");
     vec![("closed", closed), ("open", open)]
+}
+
+/// The thumbnail with no shot, then a shown card with the pointer on it.
+fn screenshot_thumb_states() -> Vec<(&'static str, String)> {
+    let link = BannerLink::new();
+    link.set(BannerOutput::On(fake::output().id));
+    let mut thumb = SurfaceHarness::<ScreenshotThumb>::setup(link, ()).start();
+    thumb.harness.advance(Duration::from_millis(60));
+    let idle = thumb.harness.html();
+    let fixture = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../sill-services/tests/fixtures/shots/Screenshot_fixture.png"
+    );
+    thumb.feeds.shots.send_replace(Shots {
+        current: Some(Shot {
+            id: ShotId(1),
+            path: "/tmp/shots/Screenshot_1.png".into(),
+            preview: ShotPreview::Ready(fixture.into()),
+        }),
+        last_id: ShotId(1),
+        ..Shots::default()
+    });
+    thumb.harness.advance(Duration::from_millis(1_300));
+    let card = thumb.harness.centre(".ds-shot-picture").expect("a card"); // test-only
+    thumb.harness.pointer_move(card);
+    thumb.harness.advance(Duration::from_millis(300));
+    let shown = thumb.harness.html();
+    assert!(shown.contains("ds-shot-image"), "{shown}");
+    vec![("idle", idle), ("shown", shown)]
 }
 
 /// The lock screen with the prompt on its output, then on another one (the clock alone).

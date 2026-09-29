@@ -12,11 +12,11 @@ use ds::{
 };
 use sill_model::screenshots::ShotId;
 
-use super::drive::Thumb;
 use super::ghost::GhostLook;
+use super::io::Thumb;
 use super::layer::{THUMB_ID, THUMB_WIDTH};
-use super::machine::{ThumbExit, ThumbIn};
 use super::picture::ThumbPicture;
+use super::step::{ThumbExit, ThumbIn};
 
 /// One screenshot's card, `shown` or playing its exit.
 #[component]

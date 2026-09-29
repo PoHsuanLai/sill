@@ -8,6 +8,8 @@ use shell_host::{
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
+use sill_settings::ShellFile;
+
 use crate::surfaces::naming::namespace;
 
 /// The card's element id: its input and blur region.
@@ -41,7 +43,7 @@ pub fn thumb_region() -> RegionSpec {
 
 /// The thumbnail on `output`: a column `THUMB_WIDTH` plus room wide, as tall as a 16:10 picture
 /// plus room (a taller picture is letterboxed in the card).
-pub fn thumb_layer(output: &OutputInfo) -> LayerConfig {
+pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
     LayerConfig {
         namespace: namespace("screenshot-thumb", output),
         layer: LayerLevel::Overlay,
@@ -61,13 +63,15 @@ pub fn thumb_layer(output: &OutputInfo) -> LayerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::{ROOM, THUMB_WIDTH, thumb_layer, thumb_region};
+    use sill_settings::ShellFile;
+
+    use super::{ROOM, THUMB_WIDTH, layer, thumb_region};
     use crate::surfaces::naming::tests::output;
     use shell_host::{Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel};
 
     #[test]
     fn the_thumbnail_sits_at_the_bottom_right_and_takes_its_card_only() {
-        let config = thumb_layer(&output(Some("DP-1")));
+        let config = layer(&output(Some("DP-1")), &ShellFile::default());
         assert_eq!(config.namespace, "sill-screenshot-thumb-DP-1");
         assert_eq!(config.layer, LayerLevel::Overlay);
         assert_eq!(config.anchor, Anchor::BOTTOM | Anchor::RIGHT);
