@@ -122,7 +122,6 @@ impl Services {
     /// against `env`'s seams, and bundle them. A service whose system half is missing still
     /// yields its receiver, at its default.
     pub fn spawn(rt: &Handle, env: &Env) -> Services {
-        let system = || env.buses.system.clone();
         let (clock, clock_control) = parts(spawn::<crate::clock::ClockService>(rt, env, ()));
         let (battery, battery_control) =
             parts(spawn::<crate::battery::BatteryService>(rt, env, ()));
@@ -171,7 +170,7 @@ impl Services {
         let (kbd_backlight, kbd_backlight_control) = parts(spawn::<
             crate::kbd_backlight::KbdBacklightService,
         >(rt, env, ()));
-        let (lock, locker_control) = crate::locker::spawn(rt, system(), env.dirs.runtime.clone());
+        let (lock, locker_control) = parts(spawn::<crate::locker::LockerService>(rt, env, ()));
         let (session, session_control) = parts(spawn::<crate::session::SessionService>(
             rt,
             env,

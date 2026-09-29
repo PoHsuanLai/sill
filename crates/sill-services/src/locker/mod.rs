@@ -22,14 +22,10 @@ pub use machine::{
 };
 pub use mode::{Host, LockerMode, SessionManager};
 
-use std::path::PathBuf;
-
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 use serde::{Deserialize, Serialize};
-use tokio::runtime::Handle;
-use tokio::sync::watch;
-
-use crate::control::Control;
-use crate::env::Bus;
 
 /// What the lock screen is doing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -73,15 +69,27 @@ pub enum LockerCommand {
     IdleLock,
 }
 
-/// Start the locker service on `rt`, logind on `bus`, the crash marker in `runtime`. Inert
-/// until the first `Configure` or `Use`.
-pub fn spawn(
-    rt: &Handle,
-    bus: Bus,
-    runtime: Option<PathBuf>,
-) -> (watch::Receiver<Lock>, Control<LockerCommand>) {
-    let (tx, rx) = watch::channel(Lock::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(live::run(bus, runtime, tx, commands));
-    (rx, control)
+/// sill's own lock screen as a [`Service`], logind on `env`'s system bus, the crash marker in
+/// its runtime directory. Inert until the first `Configure` or `Use`.
+#[derive(Debug)]
+pub enum LockerService {}
+
+impl Service for LockerService {
+    const NAME: &'static str = "locker";
+    type State = Lock;
+    type Command = LockerCommand;
+    type Deps = ();
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let bus = env.buses.system.clone();
+        let runtime = env.dirs.runtime.clone();
+        async move {
+            live::run(bus, runtime, io.state, io.commands).await;
+            Ok(())
+        }
+    }
 }
