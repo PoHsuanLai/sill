@@ -8,7 +8,9 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::{mpsc, watch};
 
 use dioxus::prelude::*;
-use ds::{Align, Anchor, Appearance, Ds, Material, Placement, Point, Popover, Px, Side};
+use ds::{
+    Align, Anchor, Appearance, Ds, Material, Placement, Point, Popover, Px, RootExtent, Side,
+};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_model::ids::OutputName;
 use sill_settings::{FocusMode, ShellFile};
@@ -65,6 +67,7 @@ fn app() -> Element {
         style { {CONTROL_CENTER_CSS} }
         PopupFrame { room: PopupRoom { side: 28, top: 8, bottom: 40 },
         Ds { appearance: Appearance::default(), material: Material::Popover,
+            extent: RootExtent::Popup,
             Popover {
                 anchor: Anchor::Point(Point { x: Px(8.0), y: Px(1.0) }),
                 placement: Placement::new(Side::Bottom, Align::Start),

@@ -4,7 +4,7 @@
 
 use std::time::Duration;
 
-use ds::lint::{Exception, LintConfig, Profile, Rule, assert_clean};
+use ds::lint::{LintConfig, Profile, assert_clean};
 use ds_settings::{Environment, IconStyle};
 use sill_launcher::AppId;
 use sill_model::badges::Badges;
@@ -211,19 +211,12 @@ fn the_plate_carries_the_icon_style_under_muted_and_monochrome() {
     }
 }
 
-/// The popup frame's stylesheet (the dock's context menu, the bar's menus, the tray's): its one
-/// reviewed exception names quire's overlay and card, which it lays in flow because shell-host's
-/// content fit measures the frame (no quire hook for a popup root yet).
+/// The popup frame's stylesheet (the dock's context menu, the bar's menus, the tray's): clean
+/// under Strict with no exception, since quire's `RootExtent::Popup` lays the overlay in flow.
 #[test]
 fn the_popup_frame_stylesheet_is_clean_under_strict() {
-    const EXCEPTIONS: &[Exception] = &[Exception {
-        rule: Rule::DsInternals,
-        selector: ".sill-popup-frame .ds-overlay,\n.sill-popup-frame .ds-overlay-catch,\n.sill-popup-frame .ds-popover:not([*|data-depth])",
-        reason: "FitContent measures the frame, so quire's overlay and card must lie in flow inside it",
-    }];
     let strict = LintConfig {
         profile: Profile::Strict,
-        exceptions: EXCEPTIONS,
         ..LintConfig::new(&ds::kits())
     };
     assert_clean(sill_ui_kit::menu::POPUP_FRAME_CSS, &strict);

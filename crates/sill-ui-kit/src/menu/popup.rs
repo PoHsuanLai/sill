@@ -5,7 +5,7 @@
 //! Reads [`PopupLook`] and [`PopupRoom`] from the root context.
 
 use dioxus::prelude::*;
-use ds::{Anchor, BlurState, Ds, Material, Menu, MenuKind, Point};
+use ds::{Anchor, BlurState, Ds, Material, Menu, MenuKind, Point, RootExtent};
 
 use super::frame::PopupFrame;
 use super::look::{PopupLook, PopupRoom};
@@ -26,6 +26,7 @@ pub fn MenuPopup<Model: MenuModel>(
         PopupFrame { room, style: look.metrics.style_attr(),
             Ds {
                 scale,
+                extent: RootExtent::Popup,
                 appearance: look.appearance,
                 system: look.system,
                 material: Material::Popover,

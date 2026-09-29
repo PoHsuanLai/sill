@@ -11,7 +11,7 @@
 use dioxus::prelude::*;
 use ds::{
     Align, Anchor, BlurState, Ds, Elevation, Material, Menu, MenuEntrance, MenuKind, Placement,
-    Point, Popover, Press, Px, Side,
+    Point, Popover, Press, Px, RootExtent, Side,
 };
 use shell_host::{PopupPlacement, SurfaceOp, use_surface, use_watch};
 use sill_model::ids::OutputName;
@@ -105,6 +105,7 @@ pub(crate) fn BarPopup() -> Element {
             PopupFrame { room: room(), widest, style: look.metrics.style_attr(),
                 Ds {
                     scale: ds_scale,
+                    extent: RootExtent::Popup,
                     appearance: look.appearance,
                     system: look.system,
                     material: Material::Popover,

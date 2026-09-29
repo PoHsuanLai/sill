@@ -1,6 +1,7 @@
 //! The frame every popup document draws its `Ds` root in: an absolutely placed box at the
 //! surface's origin whose padding is the popup's transparent room, so `PopupSize::FitContent`
-//! measures the menu plus its drop shadow's room and nothing else (`style.css`).
+//! measures the menu plus its drop shadow's room and nothing else (`style.css`). The root inside
+//! passes `RootExtent::Popup`, so quire lays its card in flow.
 
 use dioxus::prelude::*;
 

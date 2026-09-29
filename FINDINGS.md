@@ -368,12 +368,6 @@ A settled item is deleted, not marked closed.
 - **G366** `sill-settings` depends on `ds` for `#[derive(Word)]` (the derive names `::ds::Word`).
   Ends when quire's step 8 splits `ds-core` out of `ds`: then it depends on `ds-core` and
   `check-boundary.sh` can hold `sill-settings` clear of `ds`.
-- **G367** The popup frame (`sill-ui-kit` `menu/frame.rs`, `menu/style.css`) sets
-  `position:static` on quire's `.ds-overlay`, `.ds-overlay-catch` and the floating card, so a
-  `FitContent` popup measures the card and presses reach it (Blitz hit-tests an overlay by its
-  own box). That styles `.ds-*` from a consumer, under one reviewed `DsInternals` lint exception.
-  Ends when quire's `Ds` root gains a popup mode that lays the overlay in flow for popup
-  documents; then the override and the exception go.
 - **G350** No failure reason on a failed Wi-Fi or Bluetooth row (NetworkManager's `StateReason`
   and BlueZ's error are not read).
 - **G353** Two devices connecting at once share one connect stamp.

@@ -4,7 +4,7 @@
 //! its 8 px inset, and a press reaches the menu.
 
 use dioxus::prelude::*;
-use ds::{Anchor, Ds, Material, Menu, MenuEntrance, MenuEntry, MenuKind, Point};
+use ds::{Anchor, Ds, Material, Menu, MenuEntrance, MenuEntry, MenuKind, Point, RootExtent};
 
 use crate::hooks::use_appearance;
 use crate::menu::{PopupFrame, PopupRoom};
@@ -34,6 +34,7 @@ pub(crate) fn TrayMenuDocument(
         PopupFrame { room: INSET, widest: Some(POPUP_WIDTH),
             Ds {
                 scale: ds_scale,
+                extent: RootExtent::Popup,
                 appearance: environment.settings.appearance.appearance(),
                 system: environment.system,
                 material: Material::Popover,
