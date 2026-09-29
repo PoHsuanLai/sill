@@ -1,7 +1,7 @@
 //! The numbers the machine runs on: `dock.*` settings plus quire's motion tokens
 //! at the active motion level. Built once per settings change, never hard-coded.
 
-use ds::{StyleDelay, Easing, EasingToken, MotionLevel};
+use ds::{Easing, EasingToken, MotionLevel, StyleDelay};
 use sill_model::units::Cpx;
 use sill_settings::{
     ActiveClick, Bounce as BounceSetting, DockModifierClicks, DockSettings, LaunchAnim,
