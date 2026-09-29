@@ -666,10 +666,10 @@ where noted, and sill compiles against each.
    `test_support.rs`; services tests use it. `_live` tests move to private buses.
 2. `Env` completion (done): `Processes` seam (from `programs.rs`), `DdcBus` files into `env/`,
    `Authenticator` into `env/`; delete `curve.rs`.
-3. `sill-model`: `units`, `ids`, `attempt` first, then one service per commit (state, command,
+3. `sill-model` (done): `units`, `ids`, `attempt` first, then one service per commit (state, command,
    step out; effect files into `backend/`), keeping `sill-services` re-exports off: callers
    change in the same commit. Wi-Fi splits from network here.
-4. `sill-search`: `providers/`, `results/` runtime, `preview.rs` out; `results` state to
+4. `sill-search` (done): `providers/`, `results/` runtime, `preview.rs` out; `results` state to
    `sill-model`. `services.rs` moves to `sill-surfaces` as a module (it becomes `sill-ui-kit`'s
    in step 9); `Services::spawn` becomes the daemon's `start`.
 5. quire steps land (`ds-settings` dioxus optional, `SettingsDoc`, `Word`, the crate split and
