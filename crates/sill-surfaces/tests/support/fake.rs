@@ -10,7 +10,7 @@ use sill_services::{
     AccessPoint, Activity, AppIndex, Association, Badges, Battery, Bluetooth, BluetoothCommand,
     BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower, Charge, ClockText,
     Connectivity, Control, DockPins, GroupKey, Launches, Link, Media, MediaCommand, Mute, Network,
-    OutputName, Percent, Pinning, PowerProfiles, Presence, Profile, ProfileBus, ProfileCommand,
+    OutputName, Percent, Pinning, PowerProfiles, Presence, Profile, ProfileCommand,
     ProfileDegraded, Radio, Results, Seconds, Security, Services, Sizing, Ssid, Toplevel,
     Toplevels, Tray, Urgency, Visibility, Volume, Wallpapers, Wifi, WifiCommand, WindowState,
     Workspace, WorkspaceCaps, WorkspaceGroup, WorkspaceKey, Workspaces,
@@ -233,7 +233,6 @@ pub fn kbd_backlight() -> sill_services::KbdBacklight {
 pub fn power_profiles() -> PowerProfiles {
     PowerProfiles {
         presence: Presence::Present,
-        bus: ProfileBus::UPower,
         active: Profile::Balanced,
         offered: Profile::ALL.to_vec(),
         degraded: ProfileDegraded::No,

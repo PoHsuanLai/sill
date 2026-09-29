@@ -8,75 +8,11 @@ use tokio::sync::{mpsc, watch};
 use zbus::Connection;
 use zbus::export::futures_core::Stream;
 use zbus::fdo::DBusProxy;
-use zbus::proxy::PropertyStream;
 use zbus::zvariant::OwnedValue;
 
 use super::ProfileCommand;
-use super::model::{
-    PowerProfiles, Profile, ProfileBus, ProfileDegraded, ProfileEvent, reduce_power_profiles,
-};
-use super::ppd::{HadessPowerProfilesProxy, UPowerPowerProfilesProxy};
-
-/// Whichever of the two bus names answered, holding its own proxy: same properties, a
-/// different interface name per bus (module doc), so one enum stands in for "the daemon" once
-/// [`connect`] has found it.
-enum Ppd<'a> {
-    UPower(UPowerPowerProfilesProxy<'a>),
-    Hadess(HadessPowerProfilesProxy<'a>),
-}
-
-impl Ppd<'_> {
-    async fn active_profile(&self) -> zbus::Result<String> {
-        match self {
-            Ppd::UPower(p) => p.active_profile().await,
-            Ppd::Hadess(p) => p.active_profile().await,
-        }
-    }
-
-    async fn set_active_profile(&self, value: &str) -> zbus::Result<()> {
-        match self {
-            Ppd::UPower(p) => p.set_active_profile(value).await,
-            Ppd::Hadess(p) => p.set_active_profile(value).await,
-        }
-    }
-
-    async fn profiles(&self) -> zbus::Result<Vec<HashMap<String, OwnedValue>>> {
-        match self {
-            Ppd::UPower(p) => p.profiles().await,
-            Ppd::Hadess(p) => p.profiles().await,
-        }
-    }
-
-    async fn performance_degraded(&self) -> zbus::Result<String> {
-        match self {
-            Ppd::UPower(p) => p.performance_degraded().await,
-            Ppd::Hadess(p) => p.performance_degraded().await,
-        }
-    }
-
-    async fn receive_active_profile_changed(&self) -> PropertyStream<'_, String> {
-        match self {
-            Ppd::UPower(p) => p.receive_active_profile_changed().await,
-            Ppd::Hadess(p) => p.receive_active_profile_changed().await,
-        }
-    }
-
-    async fn receive_profiles_changed(
-        &self,
-    ) -> PropertyStream<'_, Vec<HashMap<String, OwnedValue>>> {
-        match self {
-            Ppd::UPower(p) => p.receive_profiles_changed().await,
-            Ppd::Hadess(p) => p.receive_profiles_changed().await,
-        }
-    }
-
-    async fn receive_performance_degraded_changed(&self) -> PropertyStream<'_, String> {
-        match self {
-            Ppd::UPower(p) => p.receive_performance_degraded_changed().await,
-            Ppd::Hadess(p) => p.receive_performance_degraded_changed().await,
-        }
-    }
-}
+use super::model::{PowerProfiles, Profile, ProfileDegraded, ProfileEvent, reduce_power_profiles};
+use super::ppd::UPowerPowerProfilesProxy;
 
 /// Runs until `commands` closes. Without a bus or the daemon, `tx` stays at its default.
 pub(super) async fn run(
@@ -86,15 +22,15 @@ pub(super) async fn run(
     let Ok(connection) = Connection::system().await else {
         return;
     };
-    let Some((bus, ppd)) = connect(&connection).await else {
+    let Some(ppd) = connect(&connection).await else {
         return;
     };
-    seed(&tx, bus, &ppd).await;
+    seed(&tx, &ppd).await;
 
     let mut active = ppd.receive_active_profile_changed().await;
     let mut profiles = ppd.receive_profiles_changed().await;
     let mut degraded = ppd.receive_performance_degraded_changed().await;
-    let mut departures = watch_departure(&connection, bus).await;
+    let mut departures = watch_departure(&connection).await;
 
     loop {
         tokio::select! {
@@ -131,55 +67,35 @@ pub(super) async fn run(
                         let _ = ppd.set_active_profile(profile.daemon_word()).await;
                     }
                 }
-                Some(ProfileCommand::Refresh) => seed(&tx, bus, &ppd).await,
+                Some(ProfileCommand::Refresh) => seed(&tx, &ppd).await,
                 None => break,
             }
         }
     }
 }
 
-/// Tries `org.freedesktop.UPower.PowerProfiles` first (FINDINGS "M5 freeze": Fedora's), then
-/// `net.hadess.PowerProfiles`. Building a proxy never itself touches the bus, so each candidate
-/// is confirmed with a real property read before it is trusted.
-async fn connect(connection: &Connection) -> Option<(ProfileBus, Ppd<'_>)> {
-    if let Ok(proxy) = UPowerPowerProfilesProxy::new(connection).await
-        && proxy.active_profile().await.is_ok()
-    {
-        return Some((ProfileBus::UPower, Ppd::UPower(proxy)));
-    }
-    if let Ok(proxy) = HadessPowerProfilesProxy::new(connection).await
-        && proxy.active_profile().await.is_ok()
-    {
-        return Some((ProfileBus::Hadess, Ppd::Hadess(proxy)));
-    }
-    None
+/// The daemon's proxy, confirmed with a real property read (building a proxy never itself
+/// touches the bus).
+async fn connect(connection: &Connection) -> Option<UPowerPowerProfilesProxy<'_>> {
+    let proxy = UPowerPowerProfilesProxy::new(connection).await.ok()?;
+    proxy.active_profile().await.ok().map(|_| proxy)
 }
 
-/// A stream of `NameOwnerChanged` for `bus`'s own well-known name only, so its `new_owner()`
+/// A stream of `NameOwnerChanged` for the daemon's own well-known name only, so its `new_owner()`
 /// being empty means the daemon itself left (not some unrelated name on the bus). `None` if the
 /// `DBusProxy` or the match itself could not be built, which is no worse than not detecting the
 /// departure at all ([`next_opt`] simply never fires for it).
-async fn watch_departure(
-    connection: &Connection,
-    bus: ProfileBus,
-) -> Option<zbus::fdo::NameOwnerChangedStream> {
-    let name = bus_name(bus);
+async fn watch_departure(connection: &Connection) -> Option<zbus::fdo::NameOwnerChangedStream> {
+    let name = "org.freedesktop.UPower.PowerProfiles";
     let dbus = DBusProxy::new(connection).await.ok()?;
     dbus.receive_name_owner_changed_with_args(&[(0, name)])
         .await
         .ok()
 }
 
-fn bus_name(bus: ProfileBus) -> &'static str {
-    match bus {
-        ProfileBus::UPower => "org.freedesktop.UPower.PowerProfiles",
-        ProfileBus::Hadess => "net.hadess.PowerProfiles",
-    }
-}
-
 /// Reads every property once and publishes the resulting `PowerProfiles`.
-async fn seed(tx: &watch::Sender<PowerProfiles>, bus: ProfileBus, ppd: &Ppd<'_>) {
-    apply(tx, ProfileEvent::Found(bus));
+async fn seed(tx: &watch::Sender<PowerProfiles>, ppd: &UPowerPowerProfilesProxy<'_>) {
+    apply(tx, ProfileEvent::Found);
     if let Ok(active) = ppd.active_profile().await
         && let Some(profile) = Profile::from_daemon(&active)
     {

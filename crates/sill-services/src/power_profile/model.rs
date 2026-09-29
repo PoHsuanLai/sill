@@ -9,8 +9,6 @@ use crate::units::Presence;
 pub struct PowerProfiles {
     /// Whether the daemon answered at all.
     pub presence: Presence,
-    /// Which bus name it answered on.
-    pub bus: ProfileBus,
     /// `ActiveProfile`.
     pub active: Profile,
     /// `Profiles`, in the daemon's order: a machine without a performance driver offers two.
@@ -54,17 +52,6 @@ impl Profile {
     }
 }
 
-/// Which name the daemon answered on.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ProfileBus {
-    /// `org.freedesktop.UPower.PowerProfiles` (0.20 on).
-    #[default]
-    UPower,
-    /// `net.hadess.PowerProfiles`.
-    Hadess,
-}
-
 /// `PerformanceDegraded`: empty when Performance runs fully, else the daemon's reason word
 /// (`lap-detected`, `high-operating-temperature`), shown as the control's detail.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -79,8 +66,8 @@ pub enum ProfileDegraded {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum ProfileEvent {
-    /// The daemon answered on `bus`.
-    Found(ProfileBus),
+    /// The daemon answered.
+    Found,
     Active(Profile),
     Offered(Vec<Profile>),
     Degraded(ProfileDegraded),
@@ -91,9 +78,8 @@ pub enum ProfileEvent {
 /// `profiles` after `event`. `Found` marks the service present; `Gone` returns to the default.
 pub fn reduce_power_profiles(profiles: PowerProfiles, event: ProfileEvent) -> PowerProfiles {
     match event {
-        ProfileEvent::Found(bus) => PowerProfiles {
+        ProfileEvent::Found => PowerProfiles {
             presence: Presence::Present,
-            bus,
             ..profiles
         },
         ProfileEvent::Active(active) => PowerProfiles { active, ..profiles },
@@ -111,9 +97,7 @@ pub fn reduce_power_profiles(profiles: PowerProfiles, event: ProfileEvent) -> Po
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        PowerProfiles, Profile, ProfileBus, ProfileDegraded, ProfileEvent, reduce_power_profiles,
-    };
+    use super::{PowerProfiles, Profile, ProfileDegraded, ProfileEvent, reduce_power_profiles};
     use crate::units::Presence;
 
     #[test]
@@ -142,14 +126,13 @@ mod tests {
     fn events_reduce_to_the_expected_profiles() {
         let present = PowerProfiles {
             presence: Presence::Present,
-            bus: ProfileBus::Hadess,
             ..PowerProfiles::default()
         };
         let cases: Vec<(&str, PowerProfiles, ProfileEvent, PowerProfiles)> = vec![
             (
-                "found on the old name",
+                "found",
                 PowerProfiles::default(),
-                ProfileEvent::Found(ProfileBus::Hadess),
+                ProfileEvent::Found,
                 present.clone(),
             ),
             (
