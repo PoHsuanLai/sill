@@ -132,7 +132,7 @@ pub use tray::{
     TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind, TrayService, TrayStatus,
 };
 pub use units::{Cpx, Minutes, Percent, Permille, Presence, Seconds, Stamp, Visibility};
-pub use volume::{Mute, Step, Volume, VolumeCommand, VolumeEvent, reduce_volume, stepped};
+pub use volume::{Mute, Step, Volume, VolumeCommand, VolumeEvent, VolumeService, stepped};
 pub use wallpaper::{
     WallpaperCommand, WallpaperImage, WallpaperSource, Wallpapers, cache_file_name,
 };

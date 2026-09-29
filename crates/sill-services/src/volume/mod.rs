@@ -4,20 +4,36 @@
 mod live;
 mod model;
 
-pub use model::{Mute, Step, Volume, VolumeCommand, VolumeEvent, reduce_volume, stepped};
+pub use model::{Mute, Step, Volume, VolumeCommand, VolumeEvent, step, stepped};
 
-use tokio::runtime::Handle;
-use tokio::sync::watch;
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
-use crate::control::Control;
+/// The output volume as a [`Service`]: libpulse's threaded mainloop on its own OS thread, its
+/// callbacks feeding [`step`]. Without a pulse server the state stays at `Volume::default()`
+/// (absent).
+#[derive(Debug)]
+pub enum VolumeService {}
 
-/// Start the volume thread (libpulse's threaded mainloop, on its own OS thread via
-/// `Handle::spawn_blocking`; its callbacks feed `reduce_volume`). Without a pulse server the
-/// receiver stays at `Volume::default()` (absent). The mainloop thread exits once `commands`
-/// closes, which happens when every clone of the returned `Control` has dropped.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<Volume>, Control<VolumeCommand>) {
-    let (tx, rx) = watch::channel(Volume::default());
-    let (control, commands) = Control::channel();
-    rt.spawn_blocking(move || live::run(tx, commands));
-    (rx, control)
+impl Service for VolumeService {
+    const NAME: &'static str = "volume";
+    type State = Volume;
+    type Command = VolumeCommand;
+    type Deps = ();
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let _ = env;
+        async move {
+            // libpulse's threaded mainloop blocks: it runs on the blocking pool until `commands`
+            // closes, which happens when every clone of the `Control` has dropped.
+            let ServiceIo { state, commands } = io;
+            let _ = tokio::task::spawn_blocking(move || live::run(state, commands)).await;
+            Ok(())
+        }
+    }
 }

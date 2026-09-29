@@ -64,7 +64,7 @@ pub enum VolumeEvent {
 
 /// `volume` after `event`. A level or mute change with no sink is dropped: there is nothing
 /// for it to describe.
-pub fn reduce_volume(volume: Volume, event: VolumeEvent) -> Volume {
+pub fn step(volume: Volume, event: VolumeEvent) -> Volume {
     match (volume.presence, event) {
         (_, VolumeEvent::Sink { sink, level, mute }) => Volume {
             presence: Presence::Present,
@@ -91,7 +91,7 @@ pub fn stepped(level: Percent, step: Step) -> Percent {
 
 #[cfg(test)]
 mod tests {
-    use super::{Mute, Step, Volume, VolumeEvent, reduce_volume, stepped};
+    use super::{Mute, Step, Volume, VolumeEvent, step, stepped};
     use crate::units::{Percent, Presence};
 
     fn sink(level: u16, mute: Mute) -> Volume {
@@ -154,7 +154,7 @@ mod tests {
             ),
         ];
         for (name, before, event, want) in cases {
-            assert_eq!(reduce_volume(before, event), want, "{name}");
+            assert_eq!(step(before, event), want, "{name}");
         }
     }
 

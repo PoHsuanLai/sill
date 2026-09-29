@@ -1,5 +1,5 @@
 //! libpulse over pipewire-pulse: follows the default sink and feeds every change through
-//! [`reduce_volume`]. Runs on its own OS thread (`Handle::spawn_blocking`), polling the
+//! [`step`]. Runs on its own OS thread (`Handle::spawn_blocking`), polling the
 //! *standard* mainloop (`iterate()`, no thread of its own) rather than libpulse's threaded
 //! mainloop: the threaded mainloop's callbacks are invoked from a second, C-spawned thread, and
 //! the crate's own canonical usage reaches back into the shared `Context`/`Mainloop` from inside
@@ -20,11 +20,11 @@ use libpulse_binding::volume::{ChannelVolumes, Volume as PaVolume};
 use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::{mpsc, watch};
 
-use super::model::{Mute, Volume, VolumeCommand, VolumeEvent, reduce_volume, stepped};
+use super::model::{Mute, Volume, VolumeCommand, VolumeEvent, step, stepped};
 use crate::units::Percent;
 
 /// The default sink this service last saw: enough to address a volume or mute change back to
-/// it. Zero channels means "no sink": commands are dropped, matching `reduce_volume`.
+/// it. Zero channels means "no sink": commands are dropped, matching `step`.
 #[derive(Debug, Clone, Copy, Default)]
 struct Sink {
     index: u32,
@@ -209,7 +209,7 @@ fn apply(
 
 /// Reduces `event` onto the receiver's current value and publishes the result.
 fn apply_event(tx: &watch::Sender<Volume>, event: VolumeEvent) {
-    let next = reduce_volume(tx.borrow().clone(), event);
+    let next = step(tx.borrow().clone(), event);
     let _ = tx.send(next);
 }
 

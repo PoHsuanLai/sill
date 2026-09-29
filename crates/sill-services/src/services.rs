@@ -128,7 +128,7 @@ impl Services {
             parts(spawn::<crate::battery::BatteryService>(rt, env, ()));
         let (network, network_control) =
             parts(spawn::<crate::network::NetworkService>(rt, env, ()));
-        let (volume, volume_control) = crate::volume::spawn(rt);
+        let (volume, volume_control) = parts(spawn::<crate::volume::VolumeService>(rt, env, ()));
         let (displays, displays_control) = crate::displays::spawn(
             rt,
             system(),
