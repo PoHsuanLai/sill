@@ -76,26 +76,6 @@ require_kwin_scale() {
   return 1
 }
 
-# The headless KWin's scale of its one output, from kscreen-doctor's JSON.
-kwin_scale() {
-  in_env kscreen-doctor -j 2>/dev/null | python3 -c '
-import json, sys
-print(json.load(sys.stdin)["outputs"][0].get("scale"))'
-}
-
-# Sets scale $1 (set_kwin_scale) and waits up to 3 s for kscreen-doctor to read it back; fails
-# when the output does not end up at that scale.
-require_kwin_scale() {
-  set_kwin_scale "$1" || return 1
-  for _ in $(seq 30); do
-    python3 -c 'import sys; sys.exit(0 if abs(float(sys.argv[1]) - float(sys.argv[2])) < 0.01 else 1)' \
-      "$(kwin_scale)" "$1" 2>/dev/null && return 0
-    sleep 0.1
-  done
-  echo "the output's scale is $(kwin_scale), not $1" >&2
-  return 1
-}
-
 # The nested output's logical size, "W H".
 nested_output_size() {
   nested wayland-info | sed -n 's/.*logical_width: \([0-9]*\), logical_height: \([0-9]*\).*/\1 \2/p' | head -1

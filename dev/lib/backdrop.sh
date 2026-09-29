@@ -34,8 +34,8 @@ RON
 # would kill the caller with SIGPIPE under `pipefail`).
 backdrop_by_sill() {
   local stats
-  "$SHELL_HOST_DEV/run.sh" "$SILL_BIN" ping >/dev/null 2>&1 || return 1
-  stats=$("$SHELL_HOST_DEV/run.sh" "$SILL_BIN" debug stats 2>/dev/null) || return 1
+  sill ping >/dev/null 2>&1 || return 1
+  stats=$(sill debug stats 2>/dev/null) || return 1
   [[ "$stats" == *'"sill-wallpaper-'* ]]
 }
 

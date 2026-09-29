@@ -19,12 +19,13 @@ stop_input() {
   rm -f "$OUT_DIR/input.fifo"
 }
 
-# The fake-input commands "$@", one per line; returns once each has been answered (`ok <line>`).
+# The fake-input commands "$@", one per line; returns once each has been answered (`ok <line>`),
+# waiting up to INPUT_TICKS (default 100) 50 ms ticks for them.
 input() {
   local before
   before=$(grep -c '^ok ' "$OUT_DIR/input.log")
   printf '%s\n' "$@" >&3
-  for _ in $(seq 100); do
+  for _ in $(seq "${INPUT_TICKS:-100}"); do
     [ "$(grep -c '^ok ' "$OUT_DIR/input.log")" -ge $(( before + $# )) ] && return 0
     sleep 0.05
   done
