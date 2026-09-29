@@ -146,7 +146,7 @@ fn brightness_goes_where_the_keys_point() {
 fn the_capsule_sets_its_own_outputs_monitor_with_or_without_the_outputs_list() {
     let name = |n: &str| OutputName(n.to_owned());
     let listed = desk();
-    // KWin before (or without) an outputs answer: the DDC displays are known, the outputs not.
+    // Before (or without) an outputs answer: the DDC displays are known, the outputs not.
     let unlisted = Displays {
         outputs: Vec::new(),
         ..desk()

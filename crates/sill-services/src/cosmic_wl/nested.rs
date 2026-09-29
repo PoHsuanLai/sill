@@ -1,5 +1,6 @@
 //! Live tests of the thread: against a nested cosmic-comp (`dev/nested.sh`), against the
-//! session's own compositor (KWin: the degrade path), and against no compositor at all.
+//! session's own compositor (the degrade path, when it lacks the COSMIC protocols), and against
+//! no compositor at all.
 //!
 //! The nested test launches `$SILL_NESTED_CLIENT` ("<program> <app_id>", default `foot foot`)
 //! inside the nested compositor.
@@ -82,10 +83,10 @@ fn without_a_compositor_the_thread_parks_until_the_control_goes() {
 }
 
 /// The degrade path on the session's own compositor: run with `WAYLAND_DISPLAY` naming a
-/// compositor without the COSMIC protocols (KWin: `wayland-0`).
+/// compositor without the COSMIC protocols.
 #[test]
-#[ignore = "needs a Wayland session without COSMIC protocols (KWin)"]
-fn on_kwin_the_channels_stay_empty_and_the_thread_parks() {
+#[ignore = "needs a Wayland session without COSMIC protocols"]
+fn without_cosmic_protocols_the_channels_stay_empty_and_the_thread_parks() {
     let (workspaces, toplevels, control) = spawn();
     let parked = wait_for(WITHIN, || {
         (thread_state("cosmic_wl") == Some('S')).then_some(())

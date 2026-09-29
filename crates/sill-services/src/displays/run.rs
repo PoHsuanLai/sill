@@ -17,7 +17,6 @@ use super::drm;
 use super::font::font_rendering_for;
 use super::fontconfig_file;
 use super::hw_volume::follow;
-use super::kscreen::KscreenDoctor;
 use super::model::{
     Displays, DisplaysCommand, DisplaysEvent, FOLLOW_EVERY_MS, Following, reduce_displays,
 };
@@ -27,7 +26,7 @@ use super::plan::{
     warmth_writes,
 };
 use super::policy::DisplayPolicy;
-use super::scale_pass::{HeadSource, scale_pass};
+use super::scale_pass::scale_pass;
 use super::seen;
 use super::sink::CosmicRandr;
 use crate::volume::Volume;
@@ -332,45 +331,26 @@ impl Service {
 }
 
 /// One outputs pass: describe, decide and set scales, remember them, keep the fontconfig
-/// snippet in step with the densest display, and read the backlights. Outputs read from
-/// `kscreen-doctor` (KWin) are only described: no scale, no record, and no fontconfig snippet,
-/// since KDE's own scaling and font settings rule there (FINDINGS F980).
+/// snippet in step with the densest display, and read the backlights.
 fn outputs_pass(
     paths: &Paths,
     policy: &DisplayPolicy,
 ) -> (Vec<DisplayOutput>, Vec<Backlight>, Vec<String>) {
     let connectors = drm::connected(&paths.drm);
     let before = paths.seen.as_deref().map(seen::load).unwrap_or_default();
-    let pass = scale_pass(
-        &mut CosmicRandr,
-        &mut KscreenDoctor,
-        &connectors,
-        before.clone(),
-        policy,
-    );
+    let pass = scale_pass(&mut CosmicRandr, &connectors, before.clone(), policy);
     let mut failures: Vec<String> = pass
         .failures
         .iter()
         .map(|e| format!("scale: {e}"))
         .collect();
-    let fontconfig = match pass.source {
-        HeadSource::Reader => {
-            failures.push(
-                "outputs read from kscreen-doctor (no cosmic-randr answer): read-only, \
-                 no scale policy, no fontconfig snippet"
-                    .to_owned(),
-            );
-            None
-        }
-        HeadSource::Sink | HeadSource::Neither => paths.fontconfig.as_ref(),
-    };
     if pass.seen != before
         && let Some(path) = &paths.seen
         && let Err(error) = seen::save(path, &pass.seen)
     {
         failures.push(format!("remembering displays: {error}"));
     }
-    if let Some(dir) = fontconfig {
+    if let Some(dir) = &paths.fontconfig {
         let rendering = max_density(&pass.outputs).map(font_rendering_for);
         if let Err(error) = fontconfig_file::sync(dir, policy.font_rendering, rendering) {
             failures.push(format!("fontconfig: {error}"));

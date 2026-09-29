@@ -1,12 +1,10 @@
 //! COSMIC's toplevel and workspace state, on a thread with its own Wayland connection and cctk
-//! states (plan "Design: `<shell>` repo": "`cosmic_wl` thread with its own wayland Connection +
-//! cctk states"; FINDINGS "Findings: COSMIC", cctk API).
+//! states.
 //!
-//! The sctk/cctk delegate macros live in `state.rs` only, the handler impls in `handlers.rs`
-//! (plan shell risk "sctk 0.20/0.21 -> macros confined to state.rs + handlers/"). On a
-//! compositor without the COSMIC protocols (KWin) both receivers stay empty, the thread parks
-//! on the command channel and commands are dropped: "the dock degrades quietly on KWin"
-//! (design/10 §10.7).
+//! The sctk/cctk delegate macros live in `state.rs` only, the handler impls in `handlers.rs`,
+//! so an sctk major bump touches those two files. On a compositor without the COSMIC protocols
+//! both receivers stay empty, the thread parks on the command channel and commands are
+//! dropped: the dock degrades quietly (design/10 §10.7).
 
 mod caps;
 mod command;

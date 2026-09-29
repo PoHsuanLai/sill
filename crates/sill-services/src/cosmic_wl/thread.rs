@@ -100,7 +100,8 @@ fn connect(endpoint: &Endpoint) -> Result<Connected, Refusal> {
 }
 
 /// Run the loop until every `Control` is dropped (or the compositor goes away, after which
-/// the channels are emptied and commands dropped as on KWin).
+/// the channels are emptied and commands dropped as on a compositor without the COSMIC
+/// protocols).
 fn follow(session: Session, commands: UnboundedReceiver<WlCommand>) {
     let Session {
         mut event_loop,

@@ -21,8 +21,7 @@ pub enum ServiceError {
     /// A directory watch could not be started.
     #[error("watch: {0}")]
     Watch(#[from] notify::Error),
-    /// The compositor lacks a protocol this service needs (KWin has no COSMIC toplevel or
-    /// workspace protocol): the service stays at its default.
+    /// The compositor lacks a protocol this service needs: the service stays at its default.
     #[error("the compositor does not offer {0}")]
     Unsupported(&'static str),
     /// A program to launch could not be started.

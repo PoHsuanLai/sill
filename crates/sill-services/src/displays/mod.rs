@@ -5,8 +5,6 @@
 //!   aims it at 109 points per inch, and the first time sill sees a display it sets that scale
 //!   through `cosmic-randr` ([`ScaleSink`]), then never again ([`decide_scale`],
 //!   `$XDG_STATE_HOME/sill/displays.json`).
-//! - **Outputs on KWin.** Where `cosmic-randr` has no answer (KWin), the outputs are read from
-//!   `kscreen-doctor --json` instead ([`KscreenDoctor`]), read-only: no scale policy there.
 //! - **Gamut.** The EDID primaries classified as sRGB, Display P3 or wide ([`classify`]); stored
 //!   for colour management, which cosmic-comp 1.8 does not offer yet (FINDINGS "Displays").
 //! - **DDC/CI.** External monitors' brightness, contrast, speaker volume, mute, input and RGB
@@ -29,7 +27,6 @@ pub mod fontconfig_file;
 pub mod gamut;
 pub mod hw_volume;
 pub mod identity;
-pub mod kscreen;
 pub mod model;
 pub mod output;
 pub mod plan;
@@ -51,7 +48,6 @@ pub use edid::{Edid, Millimetres, Mode, Pixels, Primaries};
 pub use font::{FontRendering, Hinting, font_rendering_for};
 pub use gamut::{Gamut, classify};
 pub use identity::IdentityKey;
-pub use kscreen::{HeadReader, KscreenDoctor};
 pub use model::{
     Displays, DisplaysCommand, DisplaysEvent, FOLLOW_EVERY_MS, Following, reduce_displays,
 };

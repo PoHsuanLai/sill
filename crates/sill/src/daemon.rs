@@ -219,7 +219,7 @@ const RUNTIME_SHUTDOWN_BOUND: Duration = Duration::from_secs(4);
 /// Ends `runtime`, waiting at most [`RUNTIME_SHUTDOWN_BOUND`] for every spawned task's thread to
 /// finish. Dropping a `tokio::runtime::Runtime` plainly waits forever for that, and a
 /// `spawn_blocking` task that calls into something that hangs (`cosmic-randr` under a
-/// compositor without `zwlr_output_manager_v1`, e.g. KWin: FINDINGS G51) would otherwise keep
+/// compositor without `zwlr_output_manager_v1`) would otherwise keep
 /// the daemon from ever exiting after `sill quit` already got its answer. Past the bound, that
 /// thread (and whatever it is stuck in) is left running and the process exits without it; a
 /// warning on stderr says so.
@@ -1209,7 +1209,7 @@ mod shutdown_tests {
     use super::shutdown_runtime_within;
 
     /// A `spawn_blocking` task that never returns — the shape of `cosmic-randr` hanging under a
-    /// compositor without `zwlr_output_manager_v1` (KWin: FINDINGS G51) — does not keep
+    /// compositor without `zwlr_output_manager_v1` — does not keep
     /// [`shutdown_runtime_within`] waiting past its bound; the leaked thread is left running
     /// (past the bound `forever` is never drained again, so it stays parked) and the call still
     /// returns.

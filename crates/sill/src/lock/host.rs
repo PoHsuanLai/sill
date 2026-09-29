@@ -1,11 +1,10 @@
-//! The one place sill names shell-host's session lock (shell-host F65, landed on its master
-//! during the freeze; FINDINGS "M11 freeze" F551): `HostCtx::lock_session(LockConfig, factory)
+//! The one place sill names shell-host's session lock: `HostCtx::lock_session(LockConfig, factory)
 //! -> Result<LockId, LockError::{Unsupported, InProgress}>`, `unlock_session(LockId)`,
 //! `lock_surfaces(LockId)`, and `HostEvent::Lock { id, state: Locked | Unlocked | Finished }`.
 //! Lock surfaces are made on request, one per output (and for outputs added while locked); a
 //! lock document reads `shell_host::use_lock()` (whose `unlock()` sends `unlock_and_destroy` at
-//! the next flush) and `use_lock_phase()`. KWin 6.7.5 has no `ext-session-lock-v1`
-//! (`Unsupported`); cosmic-comp 1.8 locks.
+//! the next flush) and `use_lock_phase()`. A compositor without `ext-session-lock-v1` answers
+//! `Unsupported`.
 //!
 //! [`SessionLockHost`] is the seam the daemon's lock logic is written against, so
 //! `crate::lock`'s table tests drive a fake host and never lock a session.
@@ -36,7 +35,7 @@ impl fmt::Debug for LockFactory {
 /// Why a lock was not taken.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LockRefusal {
-    /// No `ext-session-lock-v1` (KWin).
+    /// The compositor offers no `ext-session-lock-v1`.
     Unsupported,
     /// A lock of ours is still in force.
     InProgress(LockId),

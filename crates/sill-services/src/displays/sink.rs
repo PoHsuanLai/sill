@@ -12,11 +12,11 @@ use super::scale::DisplayScale;
 use crate::error::ServiceError;
 
 /// How long [`run`] waits for `cosmic-randr` to answer before killing it. On a compositor
-/// without `zwlr_output_manager_v1` (KWin) `cosmic-randr` does not fail promptly as this
-/// module's doc once assumed: it hangs, its stdout pipe never closes, and
-/// `std::process::Command::output` (with no bound of its own) waits forever. That parks the
-/// `displays` service's blocking-pool task forever too, which in turn parks the daemon's async
-/// runtime at shutdown: `sill quit` answers over IPC but the process never exits (FINDINGS G51).
+/// without `zwlr_output_manager_v1` `cosmic-randr` does not fail promptly: it hangs, its
+/// stdout pipe never closes, and `std::process::Command::output` (with no bound of its own)
+/// waits forever. That parks the `displays` service's blocking-pool task forever too, which in
+/// turn parks the daemon's async runtime at shutdown: `sill quit` answers over IPC but the
+/// process never exits.
 const COSMIC_RANDR_TIMEOUT: Duration = Duration::from_secs(2);
 
 /// The compositor's outputs, and the one change sill makes to them.
@@ -28,8 +28,8 @@ pub trait ScaleSink {
 }
 
 /// `cosmic-randr`, on `$PATH`, against the compositor `$WAYLAND_DISPLAY` names (the one sill
-/// itself is connected to). Under a compositor without `zwlr_output_manager_v1` (KWin) it
-/// hangs rather than failing (FINDINGS G51); [`COSMIC_RANDR_TIMEOUT`] bounds the wait, and past
+/// itself is connected to). Under a compositor without `zwlr_output_manager_v1` it hangs
+/// rather than failing; [`COSMIC_RANDR_TIMEOUT`] bounds the wait, and past
 /// it the service changes nothing.
 #[derive(Debug, Clone, Default)]
 pub struct CosmicRandr;
@@ -76,8 +76,7 @@ fn run(args: &[&str]) -> Result<String, ServiceError> {
 }
 
 /// `program args`'s stdout, waited for at most [`COSMIC_RANDR_TIMEOUT`]; a launch failure, a
-/// timeout or a non-zero exit is an error naming the command. Also what reads
-/// `kscreen-doctor --json` ([`super::kscreen::KscreenDoctor`]).
+/// timeout or a non-zero exit is an error naming the command.
 pub(super) fn run_tool(program: &str, args: &[&str]) -> Result<String, ServiceError> {
     let mut command = Command::new(program);
     command.args(args);
@@ -161,7 +160,7 @@ mod tests {
         assert_eq!(output.stderr, b"bye");
     }
 
-    /// A child that never answers (FINDINGS G51: `cosmic-randr` under KWin) is killed at the
+    /// A child that never answers (`cosmic-randr` without `zwlr_output_manager_v1`) is killed at the
     /// bound rather than waited for forever, and `wait_bounded` returns well within it.
     #[test]
     fn a_child_that_never_answers_is_killed_at_the_bound() {

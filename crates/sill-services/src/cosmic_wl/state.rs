@@ -48,7 +48,7 @@ pub(crate) struct Keys {
 pub(crate) enum Offer {
     /// Toplevels, workspaces, or both: worth running.
     Cosmic,
-    /// Neither (KWin): nothing will ever be published.
+    /// Neither: nothing will ever be published.
     Nothing,
 }
 
