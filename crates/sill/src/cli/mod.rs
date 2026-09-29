@@ -13,6 +13,7 @@ mod debug;
 mod desktop;
 mod display;
 mod launcher;
+mod made_up;
 mod notifications;
 mod request;
 mod session;
