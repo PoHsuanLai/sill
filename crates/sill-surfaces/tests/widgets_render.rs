@@ -20,7 +20,7 @@ use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_services::{MediaCommand, MediaVerb, Services};
 use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
 use sill_surfaces::hooks::PinnedAppearance;
-use sill_surfaces::widgets::{Widget, WidgetHost, WidgetSize, size_of, widgets_css};
+use sill_surfaces::widgets::{Widget, WidgetHost, widgets_css};
 
 /// What the harness's root provides.
 #[derive(Clone)]
@@ -29,7 +29,6 @@ struct World {
     settings: SettingsFeed,
     kind: WidgetKind,
     host: WidgetHost,
-    size: WidgetSize,
 }
 
 thread_local! {
@@ -52,7 +51,7 @@ fn app() -> Element {
         Ds { appearance: ds::Appearance::default(), material, extent: RootExtent::Viewport,
             style { {widgets_css()} }
             div { style: "width:344px;",
-                Widget { kind: world.kind, host: world.host, size: world.size }
+                Widget { kind: world.kind, host: world.host }
             }
         }
     }
@@ -71,21 +70,16 @@ struct Running {
 }
 
 fn start(kind: WidgetKind, host: WidgetHost, file: ShellFile) -> Running {
-    start_at(kind, host, size_of(kind, host), file)
-}
-
-fn start_at(kind: WidgetKind, host: WidgetHost, size: WidgetSize, file: ShellFile) -> Running {
     let (services, feeds) = fake::services();
-    start_with(services, feeds, kind, host, size, file)
+    start_with(services, feeds, kind, host, file)
 }
 
-/// `start_at` on services already fed (a player playing before the widget mounts).
+/// `start` on services already fed (a player playing before the widget mounts).
 fn start_with(
     services: Services,
     feeds: fake::Feeds,
     kind: WidgetKind,
     host: WidgetHost,
-    size: WidgetSize,
     file: ShellFile,
 ) -> Running {
     WORLD.with(|w| {
@@ -94,7 +88,6 @@ fn start_with(
             settings: SettingsFeed::fixed(file),
             kind,
             host,
-            size,
         });
     });
     let mut harness =
@@ -286,7 +279,6 @@ fn now_playing_mounted_over_a_playing_player_shows_its_track() {
         feeds,
         WidgetKind::NowPlaying,
         WidgetHost::Tile,
-        WidgetSize::Medium,
         ShellFile::default(),
     );
     assert_eq!(
@@ -434,7 +426,7 @@ fn opening_the_center_again_replays_the_batterys_fill() {
 }
 
 #[test]
-fn the_card_names_its_kind_and_takes_the_size_asked() {
+fn the_card_names_its_kind() {
     let cases = [
         (WidgetKind::Calendar, "quire.month"),
         (WidgetKind::UpNext, "sill.up-next"),
@@ -452,40 +444,11 @@ fn the_card_names_its_kind_and_takes_the_size_asked() {
             "a desktop card wears the Space tint"
         );
     }
-    let large = start_at(
-        WidgetKind::UpNext,
-        WidgetHost::Tile,
-        WidgetSize::Large,
-        ShellFile::default(),
-    );
-    assert_eq!(
-        large
-            .harness
-            .attr("#widget-up-next", "data-size")
-            .as_deref(),
-        Some("large")
-    );
-    let unoffered = start_at(
-        WidgetKind::NowPlaying,
-        WidgetHost::Tile,
-        WidgetSize::Small,
-        ShellFile::default(),
-    );
-    assert_eq!(
-        unoffered
-            .harness
-            .attr("#widget-now-playing", "data-size")
-            .as_deref(),
-        Some("medium"),
-        "a size the widget does not draw is held to its first"
-    );
 }
 
-/// G291: `up_next_max` (default 3) asked for more events than a Medium tile's body has room
-/// for at the default 164 px cell; the third row used to draw half off the bottom of the card.
-/// With more qualifying events than fit, no row's rect may reach past the card's own body rect,
-/// in either host and at either size (the capacity is the card's size's: two rows at Medium,
-/// six at Large, with `up_next_max` raised to six for the Large card).
+/// `up_next_max` (default 3) asks for more events than a Medium tile's body has room for at the
+/// default 164 px cell. With more qualifying events than fit, no row's rect may reach past the
+/// card's own body rect, in either host (two rows at Medium).
 #[test]
 fn up_next_never_clips_a_row_past_the_tiles_body() {
     let file = ShellFile::default();
@@ -493,15 +456,9 @@ fn up_next_never_clips_a_row_past_the_tiles_body() {
         file.calendar.up_next_max.0, 3,
         "the default this test relies on"
     );
-    let mut six = file.clone();
-    six.calendar.up_next_max = sill_settings::Count(6);
-    let cases = [
-        (WidgetHost::Tile, WidgetSize::Medium, file.clone(), 2),
-        (WidgetHost::Desktop, WidgetSize::Medium, file.clone(), 2),
-        (WidgetHost::Tile, WidgetSize::Large, six, 6),
-    ];
-    for (host, size, file, want) in cases {
-        let mut running = start_at(WidgetKind::UpNext, host, size, file);
+    let want = 2;
+    for host in [WidgetHost::Tile, WidgetHost::Desktop] {
+        let mut running = start(WidgetKind::UpNext, host, file.clone());
         let at = jiff::Timestamp::now();
         let hour = |h: i64| at.checked_add(jiff::ToSpan::hours(h)).unwrap_or(at);
         let event = |uid: &str, hours_ahead: i64| sill_services::CalEvent {
@@ -538,7 +495,7 @@ fn up_next_never_clips_a_row_past_the_tiles_body() {
             .expect("the frame's body is laid out");
         let bottom = body.origin.y.0 + body.size.height.0;
         let row_count = h.count("#widget-up-next .sill-un-row");
-        assert_eq!(row_count, want, "{host:?} {size:?} holds {want} whole rows");
+        assert_eq!(row_count, want, "{host:?} holds {want} whole rows");
         for n in 1..=row_count {
             let row = h
                 .rect(&format!("#widget-up-next .sill-un-row:nth-child({n})"))

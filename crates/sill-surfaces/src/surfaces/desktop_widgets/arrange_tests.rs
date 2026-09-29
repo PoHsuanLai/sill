@@ -73,12 +73,6 @@ fn a_dragged_corner_snaps_to_the_nearest_cell_that_fits() {
             WidgetSize::Medium,
             Some(slot(3, 0)),
         ),
-        (
-            "a large at the bottom",
-            point(100, 400),
-            WidgetSize::Large,
-            Some(slot(0, 1)),
-        ),
     ];
     for (name, corner, size, want) in cases {
         assert_eq!(snap(corner, size, metrics()), want, "{name}");

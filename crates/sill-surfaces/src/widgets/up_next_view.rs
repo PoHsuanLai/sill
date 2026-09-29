@@ -1,14 +1,14 @@
 //! The Up Next widget on quire's widget contract (kind `sill.up-next`): macOS's Up Next, today's
 //! weekday in the accent over the day's number, then the next events, each with its calendar's
-//! colour beside its title and time; the view keeps only the rows its card's size holds whole
-//! (G291, `super::up_next::events_capacity`). Its entry is plain data (`up_next::up_next_entry`
+//! colour beside its title and time; the view keeps only the rows its card holds whole
+//! (`super::up_next::EVENT_ROWS`). Its entry is plain data (`up_next::up_next_entry`
 //! builds it); it has no controls.
 
 use dioxus::prelude::*;
 use ds::{Icon, LabelHue, NoIntent, Text, WidgetContext, WidgetHost, WidgetSize, WidgetTitle};
 use serde::{Deserialize, Serialize};
 
-use super::up_next::events_capacity;
+use super::up_next::EVENT_ROWS;
 
 /// The Up Next widget.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -73,7 +73,7 @@ impl ds::Widget for UpNext {
     }
 
     fn sizes() -> &'static [WidgetSize] {
-        &[WidgetSize::Medium, WidgetSize::Large]
+        &[WidgetSize::Medium]
     }
 
     fn placeholder(_size: WidgetSize) -> UpNextEntry {
@@ -108,12 +108,7 @@ impl ds::Widget for UpNext {
             WidgetHost::Tile => "sill-un sill-un-center",
             WidgetHost::Desktop => "sill-un sill-un-desktop",
         };
-        let rows: Vec<UpNextRow> = face
-            .rows
-            .iter()
-            .take(events_capacity(cx.size))
-            .cloned()
-            .collect();
+        let rows: Vec<UpNextRow> = face.rows.iter().take(EVENT_ROWS).cloned().collect();
         let empty = match (rows.is_empty(), &face.quiet) {
             (true, None) => Some("No upcoming events"),
             (true, Some(_)) | (false, _) => None,

@@ -18,7 +18,7 @@ use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
 use sill_surfaces::hooks::PinnedAppearance;
 use sill_surfaces::surfaces::desktop_widgets::DESKTOP_WIDGETS_CSS;
 use sill_surfaces::surfaces::edit_widgets::{EDIT_WIDGETS_CSS, EditWidgetsLink};
-use sill_surfaces::widgets::{Widget, WidgetHost, size_of, widgets_css};
+use sill_surfaces::widgets::{Widget, WidgetHost, widgets_css};
 use sill_surfaces::{DesktopWidgets, EditWidgets};
 
 const ALL: [WidgetKind; 5] = [
@@ -94,7 +94,7 @@ fn app() -> Element {
         Ds { appearance: ds::Appearance::default(), material, extent: RootExtent::Viewport,
             style { {widgets_css()} }
             for kind in ALL {
-                Widget { kind, host, size: size_of(kind, host) }
+                Widget { kind, host }
             }
         }
     }

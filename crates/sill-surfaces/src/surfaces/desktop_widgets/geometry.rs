@@ -79,7 +79,6 @@ mod tests {
             (slot(4, 0), WidgetSize::Small, at(820, 16, 164, 164)),
             (slot(0, 0), WidgetSize::Small, at(100, 16, 164, 164)),
             (slot(3, 1), WidgetSize::Medium, at(640, 196, 344, 164)),
-            (slot(1, 1), WidgetSize::Large, at(280, 196, 344, 344)),
         ];
         for (slot, size, want) in cases {
             assert_eq!(place_box(slot, size, metrics), want, "{slot:?} {size:?}");

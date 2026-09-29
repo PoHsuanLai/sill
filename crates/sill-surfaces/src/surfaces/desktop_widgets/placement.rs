@@ -240,7 +240,7 @@ mod tests {
         let kinds = [
             (WidgetKind::Calendar, WidgetSize::Small),
             (WidgetKind::UpNext, WidgetSize::Medium),
-            (WidgetKind::NowPlaying, WidgetSize::Large),
+            (WidgetKind::NowPlaying, WidgetSize::Medium),
             (WidgetKind::Battery, WidgetSize::Small),
         ];
         let saved = [at(WidgetKind::Calendar, 1, 0), at(WidgetKind::UpNext, 0, 0)];
@@ -279,7 +279,12 @@ mod tests {
                 WidgetSize::Small,
                 Some(slot(4, 1)),
             ),
-            ("past both", slot(9, 9), WidgetSize::Large, Some(slot(3, 1))),
+            (
+                "past both",
+                slot(9, 9),
+                WidgetSize::Medium,
+                Some(slot(3, 2)),
+            ),
             (
                 "a medium's right cell",
                 slot(4, 0),

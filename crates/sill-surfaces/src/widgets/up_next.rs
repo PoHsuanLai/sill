@@ -1,17 +1,15 @@
-//! The Up Next widget's provider (M10 lane a): the next events (`sill_services::events::up_next`
+//! The Up Next widget's provider: the next events (`sill_services::events::up_next`
 //! over `calendar.up_next_days` and `calendar.up_next_max`), each a title and a time line, as
 //! [`UpNextEntry`]; "No upcoming events" when there are none, and a quiet line naming the source
 //! state when the calendars are off or unreadable. A new entry on the clock's minute tick. The
 //! widget itself ([`UpNext`], `up_next_view.rs`) is a `ds::Widget` of kind `sill.up-next`. The
 //! same agenda feeds the month widget's events ([`today_events`]), in the same colours.
 //!
-//! G291: `up_next_max` is a ceiling, not a promise. The card's body is a fixed number of pixels
-//! (`--widget-cell`, `--widget-gap`; quire's card), so asking for more rows than it holds used
-//! to draw the last one half off the bottom, clipped by the card's `overflow:hidden`. The view
-//! draws at most [`events_capacity`] of the card's size, measured once against a real render
-//! (`ds_native::Harness`, not measured again at draw time) rather than guessed: a Small or
-//! Medium card is one cell tall either way (164 default; only a medium's width differs), so
-//! both hold the same two whole rows; a Large card, two cells tall, holds six.
+//! `up_next_max` is a ceiling, not a promise. The card's body is a fixed number of pixels
+//! (`--widget-cell`, `--widget-gap`; quire's card), so asking for more rows than it holds would
+//! draw the last one half off the bottom, clipped by the card's `overflow:hidden`. The view draws
+//! at most [`EVENT_ROWS`], measured once against a real render (`ds_native::Harness`) rather
+//! than guessed.
 
 use dioxus::prelude::*;
 use ds::{EventLine, LabelHue, WidgetCard};
@@ -22,21 +20,14 @@ use sill_services::events::{CalendarName, Days, up_next};
 use sill_services::{Agenda, CalEvent, EventTime, SourceStatus};
 
 pub use super::up_next_view::{DayLine, UpNext, UpNextEntry, UpNextFace, UpNextRow};
-use super::{Place, WidgetKind, WidgetSize, widget_element_id};
+use super::{Place, WidgetKind, widget_element_id};
 use crate::hooks::{use_agenda, use_clock, use_settings};
 use crate::widgets::use_widget_wake;
 
-/// How many whole event rows the card's body holds at `size`, measured against the default
-/// tokens (a 164 px small cell, 16 px gap, quire's card inset, the title row and `.sill-un-day`
-/// column already drawn) rather than assumed: a Small and a Medium card share one cell's
-/// height, so both hold two rows before a third would clip; a Large card, two cells and a gap
-/// tall, holds six.
-pub fn events_capacity(size: WidgetSize) -> usize {
-    match size {
-        WidgetSize::Small | WidgetSize::Medium => 2,
-        WidgetSize::Large => 6,
-    }
-}
+/// How many whole event rows the card's body holds at its one size (Medium: one 164 px cell
+/// tall, 16 px gap, quire's card inset, the title row and `.sill-un-day` column already drawn):
+/// two before a third would clip.
+pub const EVENT_ROWS: usize = 2;
 
 /// This widget's stylesheet, in [`crate::widgets::widgets_css`].
 pub const CSS: &str = include_str!("../style/widget_up_next.css");
@@ -164,8 +155,9 @@ pub fn up_next_entry(
     })
 }
 
-/// Today's events still to come, as the month widget lists them (its Medium card the first, its
-/// Large card up to `ds::widget::LARGE_EVENTS`): the same agenda and lines Up Next draws.
+/// Today's events still to come, as the month widget lists them (its Medium card shows the
+/// first; quire caps the list at `ds::widget::LARGE_EVENTS`): the same agenda and lines Up Next
+/// draws.
 pub fn today_events(agenda: &Agenda, now: Timestamp, zone: &TimeZone) -> Vec<EventLine> {
     up_next(&agenda.events, now, zone, Days(0), ds::widget::LARGE_EVENTS)
         .iter()
@@ -180,15 +172,14 @@ pub fn today_events(agenda: &Agenda, now: Timestamp, zone: &TimeZone) -> Vec<Eve
         .collect()
 }
 
-/// The next events on quire's card. The entry holds as many as the largest card draws; the
-/// view keeps what its size holds whole (G291).
+/// The next events on quire's card, as many as its body holds whole.
 #[component]
 pub fn UpNextCard(place: Place) -> Element {
     let _minute = use_clock()();
     let agenda = use_agenda()();
     let calendar = use_settings()().calendar;
     let zone = TimeZone::try_system().unwrap_or(TimeZone::UTC);
-    let max = usize::from(calendar.up_next_max.0).min(events_capacity(WidgetSize::Large));
+    let max = usize::from(calendar.up_next_max.0).min(EVENT_ROWS);
     let days = Days(calendar.up_next_days.0);
     let entry = up_next_entry(&agenda, Timestamp::now(), &zone, days, max);
     rsx! {
@@ -213,7 +204,7 @@ mod tests {
     use sill_services::events::{CalendarName, EventUid};
     use sill_services::{CalEvent, EventTime};
 
-    use super::{EventLines, WidgetSize, calendar_hue, event_lines, events_capacity};
+    use super::{EventLines, calendar_hue, event_lines};
     use ds::LabelHue;
 
     #[test]
@@ -226,18 +217,6 @@ mod tests {
         ];
         for (name, want) in cases {
             assert_eq!(calendar_hue(&CalendarName(name.to_owned())), want, "{name}");
-        }
-    }
-
-    #[test]
-    fn a_size_holds_as_many_rows_as_its_cell_measured_out() {
-        let cases = [
-            (WidgetSize::Small, 2),
-            (WidgetSize::Medium, 2),
-            (WidgetSize::Large, 6),
-        ];
-        for (size, want) in cases {
-            assert_eq!(events_capacity(size), want, "{size:?}");
         }
     }
 

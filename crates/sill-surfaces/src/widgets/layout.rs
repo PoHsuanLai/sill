@@ -1,8 +1,7 @@
-//! The widget keys as quire's `WidgetLayout` and back (design/28 section 4.1; FINDINGS "Widget
-//! interface port"). Until `layout.toml` (P2), sill keeps what it kept: the notification
+//! The widget keys as quire's `WidgetLayout` and back (design/28 section 4.1). Until `layout.toml` (P2), sill keeps what it kept: the notification
 //! center's widgets in order (`widgets.center`), the desktop's (`widgets.desktop_widgets`) and
 //! each output's desktop cells in the state file (`desktop-widgets.json`). Each widget has one
-//! size in each host ([`super::size_of`]; FINDINGS F1024): nothing is picked, so an add is made
+//! size in each host ([`super::size_of`]): nothing is picked, so an add is made
 //! at that size whatever the gallery asked, and a resize is refused. [`layout_of`] reads the
 //! keys as one layout for Edit Widgets; [`edited`] applies one of its edits through quire's
 //! `ds::widget::apply` and writes the result back as the same keys and places. Pure.

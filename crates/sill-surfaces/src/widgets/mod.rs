@@ -1,5 +1,4 @@
-//! Widgets (design/20 §1.14; sill FINDINGS "M10 freeze", "Widget interface port"): each kind on
-//! quire's widget interface (quire CONSUMING "Widget interface (2026-09-27)"). quire owns the
+//! Widgets (design/20 §1.14): each kind on quire's widget interface. quire owns the
 //! card (`ds::WidgetCard`: footprint, corner, inset, material, Space tint, title row, lift); a
 //! widget is a `ds::Widget` (quire's `BatteryWidget`, `WorldClockWidget` and `MonthWidget`, and
 //! sill's own [`up_next::UpNext`] and [`now_playing::NowPlaying`]), and sill only provides each
@@ -38,13 +37,11 @@ pub const ALL_KINDS: [WidgetKind; 5] = [
     WidgetKind::WorldClock,
 ];
 
-/// The one size `kind` takes in `host` (the user's decision, 2026-09-28: a widget has one size,
-/// nothing picks another; FINDINGS "Manual run 2026-09-28: widgets" F1020, F1024). In the
+/// The one size `kind` takes in `host`: a widget has one size, nothing picks another. In the
 /// notification center every tile spans the column at Medium (344 fits its 384 less the
-/// padding): the month is the reference's Medium Calendar, today beside the compact month, which
-/// fills its tile where the Large month left a third of a 344-tall tile empty on a day with no
-/// events. On the desktop the compact month and the batteries are Small, the lists and the
-/// clocks' dials Medium.
+/// padding): the month is the reference's Medium Calendar, today beside the compact month. On the
+/// desktop the compact month and the batteries are Small, the lists and the clocks' dials
+/// Medium.
 pub fn size_of(kind: WidgetKind, host: WidgetHost) -> WidgetSize {
     match (host, kind) {
         (WidgetHost::Tile, _) => WidgetSize::Medium,
@@ -76,20 +73,8 @@ pub fn kind_of(id: &ds::WidgetKind) -> Option<WidgetKind> {
     ALL_KINDS.into_iter().find(|kind| kind_id(*kind) == *id)
 }
 
-/// The sizes `kind` draws, its first the one it is added at.
-pub fn offered(kind: WidgetKind) -> &'static [WidgetSize] {
-    use ds::Widget as _;
-    match kind {
-        WidgetKind::Calendar => ds::MonthWidget::sizes(),
-        WidgetKind::UpNext => up_next::UpNext::sizes(),
-        WidgetKind::Battery => ds::BatteryWidget::sizes(),
-        WidgetKind::NowPlaying => now_playing::NowPlaying::sizes(),
-        WidgetKind::WorldClock => ds::WorldClockWidget::sizes(),
-    }
-}
-
 /// Every widget sill can place, quire's three and sill's two, each taking [`size_of`] in each
-/// host, so quire's gallery previews and adds that one size and offers no other (Q520).
+/// host, so quire's gallery previews and adds that one size and offers no other.
 pub fn registry() -> ds::WidgetRegistry {
     let quire = ds::WidgetRegistry::quire();
     match all_sized(quire.clone()) {
@@ -149,21 +134,20 @@ pub fn widgets_css() -> String {
     [up_next::CSS, now_playing::CSS].join("\n")
 }
 
-/// One widget of `kind` in `host` at `size`, on quire's card, named by [`widget_element_id`],
+/// One widget of `kind` in `host` at its one size ([`size_of`]), on quire's card, named by [`widget_element_id`],
 /// `lift`ed while the desktop drags it: the kind's provider feeds the card. A card the desktop
 /// took away is `Leaving`: it plays quire's exit and calls `on_gone` once it has (G423).
 #[component]
 pub fn Widget(
     kind: WidgetKind,
     host: WidgetHost,
-    size: WidgetSize,
     #[props(default)] lift: Lift,
     #[props(default)] presence: CardPresence,
     #[props(default)] on_gone: Option<EventHandler<()>>,
 ) -> Element {
     let place = Place {
         host,
-        size,
+        size: size_of(kind, host),
         lift,
         presence,
         on_gone,
@@ -190,7 +174,7 @@ pub struct Place {
 
 #[cfg(test)]
 mod tests {
-    use super::{ALL_KINDS, WidgetHost, WidgetKind, cells, kind_id, kind_of, offered, size_of};
+    use super::{ALL_KINDS, WidgetHost, WidgetKind, cells, kind_id, kind_of, size_of};
     use super::{all_sized, registry, widget_element_id};
 
     #[test]
@@ -213,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    fn each_kind_is_named_in_the_registry_and_offers_its_usual_sizes() {
+    fn each_kind_is_named_in_the_registry_at_its_one_size() {
         let cases = [
             (WidgetKind::Calendar, "quire.month"),
             (WidgetKind::UpNext, "sill.up-next"),
@@ -227,11 +211,7 @@ mod tests {
             assert_eq!(kind_of(&kind_id(kind)), Some(kind));
             assert!(registry.get(&kind_id(kind)).is_some(), "{name}");
             for host in [WidgetHost::Tile, WidgetHost::Desktop] {
-                assert!(
-                    offered(kind).contains(&size_of(kind, host)),
-                    "{kind:?} {host:?}"
-                );
-                // The gallery previews and adds this one size (Q520).
+                // The gallery previews and adds this one size.
                 assert_eq!(
                     registry.get(&kind_id(kind)).map(|info| info.size_in(host)),
                     Some(size_of(kind, host)),

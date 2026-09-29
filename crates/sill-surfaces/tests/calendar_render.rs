@@ -20,9 +20,9 @@ use jiff::tz::TimeZone;
 use jiff::{Timestamp, ToSpan, Zoned};
 use sill_services::events::{CalendarName, EventUid, EventsError};
 use sill_services::{Agenda, CalEvent, EventTime, Services, SourceStatus};
-use sill_settings::{SettingsFeed, ShellFile, WeekNumbers};
+use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::hooks::PinnedAppearance;
-use sill_surfaces::widgets::{Widget, WidgetHost, WidgetKind, WidgetSize, size_of, widgets_css};
+use sill_surfaces::widgets::{Widget, WidgetHost, WidgetKind, widgets_css};
 
 /// Today's number, on the accent disc.
 const TODAY: &str = ".ds-month-day[*|aria-current=date] .ds-month-num";
@@ -32,11 +32,6 @@ const TODAY: &str = ".ds-month-day[*|aria-current=date] .ds-month-num";
 enum Kind {
     Calendar,
     CalendarOnDesktop,
-    /// The month at Medium on the desktop: today beside the compact month.
-    CalendarMedium,
-    /// The regular month (a Large card), which sill no longer places (each widget has one size,
-    /// F1024) but whose week column and steps the provider still feeds (G421).
-    CalendarLarge,
     UpNext,
 }
 
@@ -65,21 +60,15 @@ fn app() -> Element {
             match world.kind {
                 Kind::Calendar => rsx! { {widget(WidgetKind::Calendar, WidgetHost::Tile)} },
                 Kind::CalendarOnDesktop => rsx! { {widget(WidgetKind::Calendar, WidgetHost::Desktop)} },
-                Kind::CalendarMedium => rsx! {
-                    Widget { kind: WidgetKind::Calendar, host: WidgetHost::Desktop, size: WidgetSize::Medium }
-                },
-                Kind::CalendarLarge => rsx! {
-                    Widget { kind: WidgetKind::Calendar, host: WidgetHost::Tile, size: WidgetSize::Large }
-                },
                 Kind::UpNext => rsx! { {widget(WidgetKind::UpNext, WidgetHost::Tile)} },
             }
         }
     }
 }
 
-/// `kind` in `host` at its usual size.
+/// `kind` in `host` at its one size.
 fn widget(kind: WidgetKind, host: WidgetHost) -> Element {
-    rsx! { Widget { kind, host, size: size_of(kind, host) } }
+    rsx! { Widget { kind, host } }
 }
 
 /// A widget drawn and what feeds it.
@@ -205,9 +194,8 @@ fn the_month_marks_today_and_the_busy_days() {
     clean(&h.html());
 }
 
-/// The center's month is Medium (its one size there, F1020): today and the day's next event
-/// beside the compact month, filling the tile, where the Large month left a third of it empty
-/// on a day with nothing on.
+/// The center's month is Medium (its one size there): today and the day's next event beside the
+/// compact month, filling the tile.
 #[test]
 fn the_centers_month_has_today_and_the_next_event_from_the_agenda_up_next_reads() {
     let at = now().timestamp();
@@ -246,72 +234,6 @@ fn the_centers_month_has_today_and_the_next_event_from_the_agenda_up_next_reads(
         quiet.harness.text_of(".ds-month-quiet").as_deref(),
         Some("No events today")
     );
-}
-
-#[test]
-fn the_medium_month_has_today_beside_it() {
-    let today = now().date();
-    let running = start(
-        Kind::CalendarMedium,
-        ShellFile::default(),
-        read(vec![all_day("holiday", today)]),
-    );
-    let h = &running.harness;
-    let weekday = h.text_of(".ds-month-weekday").unwrap_or_default();
-    assert!(
-        weekday.ends_with("day") && weekday.len() >= 6,
-        "a weekday in full: {weekday:?}"
-    );
-    assert_eq!(
-        h.text_of(".ds-month-date").as_deref(),
-        Some(today.day().to_string().as_str())
-    );
-    assert_eq!(
-        h.text_of(".ds-month-today .ds-month-event-title")
-            .as_deref(),
-        Some("holiday")
-    );
-    assert_eq!(
-        h.attr(".ds-month", "data-density").as_deref(),
-        Some("compact")
-    );
-    clean(&h.html());
-}
-
-#[test]
-fn week_numbers_add_a_column() {
-    let mut file = ShellFile::default();
-    file.calendar.week_numbers = WeekNumbers::Show;
-    let running = start(Kind::CalendarLarge, file, read(Vec::new()));
-    let h = &running.harness;
-    let rows = h.count(".ds-month-row");
-    assert_eq!(
-        h.count(".ds-month-week"),
-        rows,
-        "a head cell and one per week"
-    );
-    clean(&h.html());
-}
-
-#[test]
-fn next_and_previous_step_the_month() {
-    let mut running = start(Kind::CalendarLarge, ShellFile::default(), read(Vec::new()));
-    let title = |h: &Harness| h.text_of(".ds-month-title").unwrap_or_default();
-    let first = title(&running.harness);
-    let click = |running: &mut Running, index: usize| {
-        let selector = format!(".ds-month-header .ds-icon-button:nth-child({index})");
-        let rect = running.harness.rect(&selector).expect("the step button");
-        running.harness.click(ds::Point {
-            x: ds::Px(rect.origin.x.0 + rect.size.width.0 / 2.0),
-            y: ds::Px(rect.origin.y.0 + rect.size.height.0 / 2.0),
-        });
-        running.harness.advance(Duration::from_millis(60));
-    };
-    click(&mut running, 3);
-    let next = title(&running.harness);
-    assert_ne!(next, first, "next month");
-    click(&mut running, 2);
-    assert_eq!(title(&running.harness), first, "and back");
 }
 
 #[test]

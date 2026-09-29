@@ -12,7 +12,7 @@ use shell_host::OutputId;
 use super::drive::CenterCtx;
 use crate::hooks::use_settings;
 use crate::surfaces::edit_widgets::EditWidgetsLink;
-use crate::widgets::{Widget, WidgetHost, size_of};
+use crate::widgets::{Widget, WidgetHost};
 
 /// The widgets under the history, as `widgets.center` lists them, and the way to edit them.
 #[component]
@@ -26,7 +26,6 @@ pub fn CenterWidgets(output: OutputId) -> Element {
                 key: "{at}-{kind:?}",
                 kind,
                 host: WidgetHost::Tile,
-                size: size_of(kind, WidgetHost::Tile),
             }
         }
         if let Some(edit) = edit {

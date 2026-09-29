@@ -133,7 +133,7 @@ fn each_edit_writes_the_same_keys_and_places() {
 
 #[test]
 fn an_add_at_another_size_takes_the_ones_footprint() {
-    // The month asked at Large on the desktop is placed at its one size, Small: one cell.
+    // The month asked at Medium on the desktop is placed at its one size, Small: one cell.
     let keys = WidgetKeys {
         desktop: vec![WidgetKind::Battery],
         placed: vec![at(WidgetKind::Battery, 4, 0)],
@@ -141,7 +141,11 @@ fn an_add_at_another_size_takes_the_ones_footprint() {
     };
     let got = edited(
         &keys,
-        add(WidgetKind::Calendar, WidgetSize::Large, WidgetHost::Desktop),
+        add(
+            WidgetKind::Calendar,
+            WidgetSize::Medium,
+            WidgetHost::Desktop,
+        ),
         GRID,
     )
     .unwrap_or_else(|e| panic!("{e}"));
@@ -228,13 +232,13 @@ fn what_cannot_be_placed_is_refused() {
             Refused::Foreign(ds::WidgetKind::fixed("org.example.weather")),
         ),
         (
-            WidgetEdit::Resize(ds::catalog::PlacementId(4), WidgetSize::Large),
+            WidgetEdit::Resize(ds::catalog::PlacementId(4), WidgetSize::Medium),
             keys(),
             GRID,
             Refused::OneSize,
         ),
         (
-            WidgetEdit::Resize(ds::catalog::PlacementId(2), WidgetSize::Large),
+            WidgetEdit::Resize(ds::catalog::PlacementId(2), WidgetSize::Small),
             keys(),
             GRID,
             Refused::OneSize,

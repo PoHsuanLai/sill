@@ -183,11 +183,10 @@ fn Grid(
                     WidgetSlotGuide { size, host: WidgetHost::Desktop }
                 }
             }
-            for Draw { kind, size, target, pose, glide, presence } in places {
+            for Draw { kind, target, pose, glide, presence } in places {
                 Placed {
                     key: "{kind:?}",
                     kind,
-                    size,
                     target,
                     pose,
                     glide,
@@ -248,7 +247,6 @@ fn use_reload(
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Draw {
     kind: WidgetKind,
-    size: WidgetSize,
     target: PlaceBox,
     pose: Pose,
     glide: Glide,
@@ -268,7 +266,6 @@ fn draw_order(
     let top = lifted.map(|(kind, _)| kind).or(dropped.map(|d| d.kind));
     let going = leaving.iter().map(|l| Draw {
         kind: l.kind,
-        size: desktop_size(l.kind),
         target: l.target,
         pose: Pose::Resting,
         glide: Glide::Aside,
@@ -291,7 +288,6 @@ fn draw_order(
             };
             Draw {
                 kind,
-                size: desktop_size(kind),
                 target,
                 pose,
                 glide,

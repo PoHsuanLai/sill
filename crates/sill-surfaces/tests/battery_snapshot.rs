@@ -24,7 +24,7 @@ use sill_services::{
 };
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::hooks::PinnedAppearance;
-use sill_surfaces::widgets::{Widget, WidgetHost, WidgetKind, size_of, widgets_css};
+use sill_surfaces::widgets::{Widget, WidgetHost, WidgetKind, widgets_css};
 
 /// What the snapshot's root provides.
 #[derive(Clone)]
@@ -54,7 +54,7 @@ fn app() -> Element {
         Ds { appearance: ds::Appearance::default(), material, extent: RootExtent::Viewport,
             style { {widgets_css()} }
             div { style: "padding:24px;",
-                Widget { kind: WidgetKind::Battery, host: world.host, size: size_of(WidgetKind::Battery, world.host) }
+                Widget { kind: WidgetKind::Battery, host: world.host }
             }
         }
     }
