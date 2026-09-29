@@ -209,7 +209,8 @@ start_daemon() {
       player=$1 bin=$2
       shift 2
       "$player" sillaccept --title "So What" --artist "Miles Davis" --album "Kind of Blue" &
-      exec "$bin" run "$@"' sh "$PLAYER" "$SILL_BIN" "${FAKE_DDC_FLAGS[@]}" >"$OUT_DIR/daemon.log" 2>&1 &
+      exec "$bin" run "$@"' sh "$PLAYER" "$SILL_BIN" "${FAKE_DDC_FLAGS[@]}" \
+    >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
   for _ in $(seq 50); do NAME=$(output_name); [ -n "$NAME" ] && break; sleep 0.1; done

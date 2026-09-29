@@ -6,11 +6,12 @@
 # The daemon runs from this checkout's debug build (`--features debug`) on the headless KWin and
 # its private D-Bus bus (shell-host's private-bus.conf: nothing activatable), with
 # its own XDG_RUNTIME_DIR (WAYLAND_DISPLAY an absolute socket path) and a scratch
-# XDG_CONFIG_HOME and XDG_STATE_HOME, `notifications.server = "own"`. It is checked to hold
-# org.freedesktop.Notifications on that bus before anything is posted. Every notification
-# comes from `sill debug notify`; nothing here reaches the real session bus, the user's session
-# (wayland-0) or the nested compositor (wayland-1). ONE fake-input client serves the whole run
-# (each client is a new input device, and KWin re-announces the seat's pointer for each).
+# XDG_CONFIG_HOME, XDG_STATE_HOME and XDG_CACHE_HOME, `notifications.server = "own"`. It is
+# checked to hold org.freedesktop.Notifications on that bus before anything is posted. Every
+# notification comes from `sill debug notify`; nothing here reaches the real session bus, the
+# user's session (wayland-0) or the nested compositor (wayland-1). ONE fake-input client serves
+# the whole run (each client is a new input device, and KWin re-announces the seat's pointer
+# for each).
 #
 #   1. `sill notifications status`: holder sill, mode own.
 #   2. Hover: a real pointer on the card at 4000 ms keeps it past the hold (5200) at 7000 ms; it
@@ -86,6 +87,7 @@ SCRATCH=$(mktemp -d)
 RUNTIME="$SCRATCH/run"
 CONFIG="$SCRATCH/config"
 STATE="$SCRATCH/state"
+CACHE="$SCRATCH/cache"
 mkdir -p "$RUNTIME" "$CONFIG/sill" "$STATE"
 chmod 700 "$RUNTIME"
 DAEMON=
@@ -97,7 +99,7 @@ BUS=
 in_env() {
   env XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$WL" DBUS_SESSION_BUS_ADDRESS="$BUS" \
     DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
-    XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" "$@"
+    XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" "$@"
 }
 sill() { in_env "$SILL_BIN" "$@"; }
 now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
