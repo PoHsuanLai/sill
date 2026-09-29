@@ -1,4 +1,4 @@
-//! `org.freedesktop.ScreenSaver` on [`Setup::session`](super::Setup), served while idle is
+//! `org.freedesktop.ScreenSaver` on [`Reach::session`](super::Reach), served while idle is
 //! `Own`: `Inhibit(app, reason) -> cookie`, `UnInhibit(cookie)` and `GetActive()`, at
 //! `/org/freedesktop/ScreenSaver` and `/ScreenSaver`. The object hands each call to the live
 //! loop, which owns the inhibitors ([`super::inhibit_step`]); a caller that leaves the bus loses

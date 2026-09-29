@@ -1,4 +1,4 @@
-use super::{DisplayPower, IdleEffect, IdleEvent, IdleHint, IdleState, LockSeen, reduce};
+use super::{DisplayPower, IdleEffect, IdleEvent, IdleHint, IdleState, LockSeen, step};
 use crate::idle::grace::{GraceCase, SleepSince, WakeDelay};
 use crate::idle::model::{DimShown, IdlePhase};
 use crate::idle::policy::{
@@ -44,7 +44,7 @@ fn run(events: &[IdleEvent]) -> (IdleState, Vec<IdleEffect>) {
     let mut state = IdleState::default();
     let mut all = Vec::new();
     for event in events {
-        let (next, effects) = reduce(state, *event);
+        let (next, effects) = step(state, *event);
         state = next;
         all.extend(effects);
     }
@@ -181,7 +181,7 @@ fn an_inhibitor_clears_the_dim_and_drops_the_watches() {
         (state.phase, state.dim),
         (IdlePhase::Active, DimShown::Clear)
     );
-    let (_, again) = reduce(state, IdleEvent::Inhibition(Inhibition::Free));
+    let (_, again) = step(state, IdleEvent::Inhibition(Inhibition::Free));
     assert!(
         matches!(again.as_slice(), [IdleEffect::Watch(w)] if w.len() == 3),
         "{again:?}"
@@ -222,7 +222,7 @@ fn waking_from_sleep_holds_every_watch_afresh() {
         IdleEvent::SleepStarting(Stamp(1_800_010)),
     ]);
     let held = state.held.clone();
-    let (after, woke) = reduce(state, IdleEvent::Woke(Stamp(1_900_000)));
+    let (after, woke) = step(state, IdleEvent::Woke(Stamp(1_900_000)));
     assert_eq!(
         woke,
         vec![

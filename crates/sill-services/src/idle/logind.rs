@@ -1,4 +1,4 @@
-//! Idle's half of logind, on [`Setup::system`](super::Setup) (a private bus with a stand-in in
+//! Idle's half of logind, on [`Reach::system`](super::Reach) (a private bus with a stand-in in
 //! every test): `PrepareForSleep`, `BlockInhibited` (polled: logind does not signal it),
 //! `Suspend(false)` (never `interactive`) and this session's `SetIdleHint`. Whatever fails is
 //! left out and logged once; idle still dims and turns the displays off without it.

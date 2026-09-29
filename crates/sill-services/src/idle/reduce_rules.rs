@@ -10,7 +10,7 @@ use super::{DisplayPower, IdleEffect, IdleEvent, IdleHint, IdleState, LockSeen};
 
 type Step = (IdleState, Vec<IdleEffect>);
 
-pub(super) fn reduce(state: IdleState, event: IdleEvent) -> Step {
+pub(super) fn step(state: IdleState, event: IdleEvent) -> Step {
     match (state.policy.mode, event) {
         (_, IdleEvent::Policy(policy)) => policy_changed(state, policy),
         (IdleMode::Off(_), other) => quietly(state, other),

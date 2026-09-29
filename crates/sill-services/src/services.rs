@@ -185,16 +185,16 @@ impl Services {
         let (shots, shots_control) = crate::screenshots::spawn(rt, &env.dirs);
         let (auth, auth_control) = crate::auth::spawn(rt, crate::auth::AccountPlace::of(env));
         let (polkit, polkit_control) = crate::polkit_agent::spawn(rt, env.polkit.clone());
-        let (idle, idle_control) = crate::idle::spawn(
+        let (idle, idle_control) = parts(spawn::<crate::idle::IdleService>(
             rt,
+            env,
             IdleLinks {
                 lock: lock.clone(),
                 battery: battery.clone(),
                 locker: locker_control.clone(),
                 auth: auth_control.clone(),
             },
-            crate::idle::Setup::of(env),
-        );
+        ));
 
         Services {
             clock,

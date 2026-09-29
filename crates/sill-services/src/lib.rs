@@ -83,7 +83,7 @@ pub use displays::{
 };
 pub use error::ServiceError;
 pub use events::{Agenda, CalEvent, EventTime, EventsCommand, SourceStatus};
-pub use idle::{Idle, IdleCommand, IdleLinks};
+pub use idle::{Idle, IdleCommand, IdleLinks, IdleService};
 pub use kbd_backlight::{
     KbdBacklight, KbdBacklightService, KbdCommand, KbdEvent, KbdLevel, step_for,
 };

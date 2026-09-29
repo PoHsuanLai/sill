@@ -4,11 +4,11 @@
 //!   or `Use`, and again whenever the policy's mode is `Off`;
 //! - `Configure` is resolved on the blocking pool ([`super::resolve`]) and again every
 //!   [`RESOLVE_EVERY_S`] seconds; `Use` is taken as it is;
-//! - while `Own`: the Wayland thread ([`super::wl`]) on `Setup.display`, logind on
-//!   `Setup.system` ([`super::logind`]; `BlockInhibited` polled every [`POLL_S`] seconds) and
-//!   `org.freedesktop.ScreenSaver` on `Setup.session` ([`super::screensaver`]);
+//! - while `Own`: the Wayland thread ([`super::wl`]) on `Reach.display`, logind on
+//!   `Reach.system` ([`super::logind`]; `BlockInhibited` polled every [`POLL_S`] seconds) and
+//!   `org.freedesktop.ScreenSaver` on `Reach.session` ([`super::screensaver`]);
 //! - follows `IdleLinks.lock` and `IdleLinks.battery` into `IdleEvent::{Lock, Power}`;
-//! - steps [`reduce`] and performs its effects in order, publishing [`Idle`].
+//! - steps [`step`] and performs its effects in order, publishing [`Idle`].
 
 use std::time::{Duration, Instant};
 
@@ -19,9 +19,9 @@ use zbus::fdo::NameOwnerChangedStream;
 
 use super::inhibit::{InhibitMsg, Inhibitors, LogindIdle, inhibit_step, inhibition};
 use super::logind::{self as idle_logind, IdleLogind};
-use super::model::{Idle, IdleCommand, IdleLinks, Setup};
+use super::model::{Idle, IdleCommand, IdleLinks, Reach};
 use super::policy::{IdleConfig, IdleMode, LockView, power_source};
-use super::reduce::{IdleEffect, IdleEvent, IdleState, LockSeen, reduce};
+use super::reduce::{IdleEffect, IdleEvent, IdleState, LockSeen, step};
 use super::resolve::{RESOLVE_EVERY_S, resolve};
 use super::screensaver::{self, Call, Served};
 use super::wl::{self, Epoch, Heard, Order, Tell, Wire, WlEvent};
@@ -46,7 +46,7 @@ struct Held {
 
 /// Everything the loop owns.
 struct Live {
-    setup: Setup,
+    setup: Reach,
     links: IdleLinks,
     tx: watch::Sender<Idle>,
     epoch: Instant,
@@ -62,7 +62,7 @@ struct Live {
 }
 
 pub(super) async fn run(
-    setup: Setup,
+    setup: Reach,
     links: IdleLinks,
     mut commands: mpsc::UnboundedReceiver<IdleCommand>,
     tx: watch::Sender<Idle>,
@@ -296,7 +296,7 @@ impl Live {
 
     /// Step the machine and perform its effects in order.
     async fn feed(&mut self, event: IdleEvent) {
-        let (next, effects) = reduce(std::mem::take(&mut self.state), event);
+        let (next, effects) = step(std::mem::take(&mut self.state), event);
         self.state = next;
         for effect in effects {
             self.perform(effect).await;

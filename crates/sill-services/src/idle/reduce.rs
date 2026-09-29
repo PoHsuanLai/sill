@@ -150,8 +150,8 @@ pub enum IdleEffect {
 }
 
 /// `state` after `event`, and the effects to perform (module doc).
-pub fn reduce(state: IdleState, event: IdleEvent) -> (IdleState, Vec<IdleEffect>) {
-    rules::reduce(state, event)
+pub fn step(state: IdleState, event: IdleEvent) -> (IdleState, Vec<IdleEffect>) {
+    rules::step(state, event)
 }
 
 #[path = "reduce_rules.rs"]

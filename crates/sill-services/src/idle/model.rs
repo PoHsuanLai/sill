@@ -82,21 +82,21 @@ pub struct IdleLinks {
 /// compositor and private buses so nothing reaches the real displays, logind or the session
 /// bus's `org.freedesktop.ScreenSaver`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Setup {
+pub(crate) struct Reach {
     /// The compositor to hold idle notifications and output power on.
-    pub display: WaylandRoute,
+    pub(crate) display: WaylandRoute,
     /// logind (`Suspend`, `SetIdleHint`, `PrepareForSleep`, `BlockInhibited`).
-    pub system: Bus,
+    pub(crate) system: Bus,
     /// `org.freedesktop.ScreenSaver`.
-    pub session: Bus,
+    pub(crate) session: Bus,
     /// The config directory COSMIC's own idle times are read under.
-    pub config: PathBuf,
+    pub(crate) config: PathBuf,
 }
 
-impl Setup {
+impl Reach {
     /// `env`'s compositor, buses and config directory.
-    pub fn of(env: &Env) -> Setup {
-        Setup {
+    pub(crate) fn of(env: &Env) -> Reach {
+        Reach {
             display: env.wayland.clone(),
             system: env.buses.system.clone(),
             session: env.buses.session.clone(),

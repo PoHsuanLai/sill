@@ -7,16 +7,18 @@
 #[path = "support/private_bus.rs"]
 mod private_bus;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use private_bus::PrivateBus;
 use sill_services::battery::Battery;
-use sill_services::env::{Bus, BusRoute, WaylandRoute};
+use sill_services::env::{BusRoute, Buses, Env, WaylandRoute};
+use sill_services::idle::IdleService;
 use sill_services::idle::{
     DimLevel, DimPlan, Idle, IdleCommand, IdleLinks, IdleLock, IdleMode, IdlePhase, IdlePolicy,
-    IdleSecs, IdleTimes, Inhibition, LockGrace, LockedScreenOff, PowerPair, Setup, Timeout, spawn,
+    IdleSecs, IdleTimes, Inhibition, LockGrace, LockedScreenOff, PowerPair, Timeout,
 };
+use sill_services::service::spawn;
 use sill_services::{AuthCommand, Control, Lock, LockerCommand};
 use tokio::sync::watch;
 
@@ -85,11 +87,10 @@ async fn idle_locks_at_screen_off_and_a_screensaver_inhibit_holds_it() {
     let (_battery_tx, battery) = watch::channel(Battery::default());
     let (locker, mut locker_rx) = Control::<LockerCommand>::channel();
     let (auth, _auth_rx) = Control::<AuthCommand>::channel();
-    let setup = Setup {
-        display: WaylandRoute::Socket(socket),
-        system: Bus::system(BusRoute::Absent),
-        session: Bus::session(BusRoute::Address(bus.address.clone())),
-        config: PathBuf::from("/nonexistent/sill-idle-live"),
+    let env = Env {
+        wayland: WaylandRoute::Socket(socket),
+        buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
+        ..Env::isolated(Path::new("/nonexistent/sill-idle-live"))
     };
     let links = IdleLinks {
         lock,
@@ -97,7 +98,8 @@ async fn idle_locks_at_screen_off_and_a_screensaver_inhibit_holds_it() {
         locker,
         auth,
     };
-    let (mut idle, control) = spawn(&tokio::runtime::Handle::current(), links, setup);
+    let idle = spawn::<IdleService>(&tokio::runtime::Handle::current(), &env, links);
+    let (mut idle, control) = (idle.state, idle.control);
     assert_eq!(idle.borrow().mode, IdleMode::default(), "passive at first");
     control
         .send(IdleCommand::Use(policy()))
