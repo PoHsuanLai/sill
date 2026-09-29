@@ -5,24 +5,13 @@
 //! later is required); its `ActiveProfile`, `Profiles` and `PerformanceDegraded` properties are
 //! spoken through a hand-written `zbus` proxy (no crate needed for three properties).
 
-mod live;
-mod model;
-mod ppd;
+mod backend;
 
-pub use model::{PowerProfiles, Profile, ProfileDegraded, ProfileEvent, step};
+use sill_model::power_profile::{PowerProfiles, ProfileCommand};
 
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
-
-/// What the power profile service can be told.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ProfileCommand {
-    /// Set `ActiveProfile`; one the daemon does not offer is dropped.
-    Set(Profile),
-    /// Re-read every property.
-    Refresh,
-}
 
 /// power-profiles-daemon as a [`Service`]. Without it the state stays at
 /// `PowerProfiles::default()` (absent), and the control center hides the control.
@@ -40,6 +29,6 @@ impl Service for PowerProfileService {
         (): (),
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
-        live::run(env.buses.system.clone(), io.state, io.commands)
+        backend::run(env.buses.system.clone(), io.state, io.commands)
     }
 }

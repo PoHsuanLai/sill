@@ -1,22 +1,23 @@
 //! power-profiles-daemon over the system bus: seeds the three properties, then feeds every
-//! change through [`super::step`], and carries out [`ProfileCommand`]s.
+//! change through [`sill_model::power_profile::step`], and carries out [`ProfileCommand`]s.
 
 use std::collections::HashMap;
 
+use sill_model::power_profile::{
+    PowerProfiles, Profile, ProfileCommand, ProfileDegraded, ProfileEvent, step,
+};
 use tokio::sync::{mpsc, watch};
 use zbus::Connection;
 use zbus::fdo::DBusProxy;
 use zbus::zvariant::OwnedValue;
 
-use super::ProfileCommand;
-use super::model::{PowerProfiles, Profile, ProfileDegraded, ProfileEvent, step};
 use super::ppd::UPowerPowerProfilesProxy;
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::{next, next_opt};
 
 /// Runs until `commands` closes. Without a bus or the daemon, `tx` stays at its default.
-pub(super) async fn run(
+pub(crate) async fn run(
     bus: Bus,
     tx: watch::Sender<PowerProfiles>,
     mut commands: mpsc::UnboundedReceiver<ProfileCommand>,

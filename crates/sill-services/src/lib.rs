@@ -110,9 +110,7 @@ pub use now_playing::{
 };
 pub use pins::{DockPins, PinAt, PinEvent, PinsService};
 pub use polkit_agent::{Polkit, PolkitAgentService, PolkitCommand};
-pub use power_profile::{
-    PowerProfileService, PowerProfiles, Profile, ProfileCommand, ProfileDegraded, ProfileEvent,
-};
+pub use power_profile::PowerProfileService;
 pub use results::{
     CurrencyPolicy, FilesChoice, LauncherPolicy, Results, ResultsEvent, ResultsService,
     SearchCommand, WebPolicy,

@@ -8,7 +8,7 @@ use zbus::proxy;
     default_service = "org.freedesktop.UPower.PowerProfiles",
     default_path = "/org/freedesktop/UPower/PowerProfiles"
 )]
-pub(super) trait UPowerPowerProfiles {
+pub(crate) trait UPowerPowerProfiles {
     #[zbus(property)]
     fn active_profile(&self) -> zbus::Result<String>;
 
