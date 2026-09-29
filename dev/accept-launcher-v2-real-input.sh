@@ -476,10 +476,11 @@ clip_status() {
   sill clipboard status 2>/dev/null | python3 -c '
 import json, sys
 try:
-    v = json.loads(sys.stdin.read())["v"]
+    v = json.loads(sys.stdin.read())["v"]["v"]
 except (ValueError, KeyError):
     sys.exit(0)
-print(v.get("mode", "?"), v.get("protocol", "?"), v.get("entries", "?"))'
+history = v.get("status", {})
+print(history.get("mode", "?"), history.get("protocol", "?"), v.get("entries", "?"))'
 }
 
 # 5. Returns 2 (NOT PROVEN) when KWin offers no data-control manager.
