@@ -1,12 +1,13 @@
 //! The control center's words: each tile's status line and each list row's detail, pure over
 //! the service values.
 
+use sill_model::network::{Link, Network};
 use sill_model::now_playing::MediaPlayer;
 use sill_model::power_profile::Profile;
 use sill_model::units::Presence;
 use sill_services::{
     AccessPoint, Association, Bluetooth, BtBattery, BtConnection, BtDevice, BtPairing, BtPower,
-    Link, Network, Radio, Saved, Wifi,
+    Radio, Saved, Wifi,
 };
 use sill_settings::FocusMode;
 
@@ -125,12 +126,13 @@ mod tests {
         bluetooth_status, bluetooth_tile_status, device_detail, focus_status, network_detail,
         profile_label, track_lines, wifi_status,
     };
+    use sill_model::network::{Link, Network};
     use sill_model::now_playing::{Abilities, MediaPlayer, Playback, PlayerId, Timeline, Track};
     use sill_model::power_profile::Profile;
     use sill_model::units::{Percent, Presence, Stamp};
     use sill_services::{
         AccessPoint, Association, Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind,
-        BtPairing, BtPower, Link, Network, Radio, Saved, Security, Ssid, Wifi,
+        BtPairing, BtPower, Radio, Saved, Security, Ssid, Wifi,
     };
     use sill_settings::FocusMode;
 

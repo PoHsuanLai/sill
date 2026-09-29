@@ -10,14 +10,10 @@ use cc_support::fake;
 
 use ds_native::Harness;
 use ds_native::harness::assert_settles_to_zero_frames;
-use sill_model::{
-    attempt::{Attempt, Attempts, OpStamp},
-    units::Percent,
-};
-use sill_services::{
-    AccessPoint, Association, BtBattery, BtConnection, Connectivity, Link, Network, Security, Ssid,
-    Wifi,
-};
+use sill_model::attempt::{Attempt, Attempts, OpStamp};
+use sill_model::network::{Connectivity, Link, Network};
+use sill_model::units::Percent;
+use sill_services::{AccessPoint, Association, BtBattery, BtConnection, Security, Ssid, Wifi};
 
 // ---- Wi-Fi networks -------------------------------------------------------------------------
 

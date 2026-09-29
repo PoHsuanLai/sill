@@ -14,6 +14,7 @@ pub mod idle;
 pub mod ids;
 pub mod kbd_backlight;
 pub mod locker;
+pub mod network;
 pub mod now_playing;
 pub mod pins;
 pub mod polkit_agent;

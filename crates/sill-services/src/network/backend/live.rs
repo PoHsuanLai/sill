@@ -5,20 +5,21 @@ use cosmic_dbus_networkmanager::interface::NetworkManagerProxy;
 use cosmic_dbus_networkmanager::interface::access_point::AccessPointProxy;
 use cosmic_dbus_networkmanager::interface::active_connection::ActiveConnectionProxy;
 use cosmic_dbus_networkmanager::interface::device::wireless::WirelessDeviceProxy;
+use sill_model::network::{
+    Activating, Connectivity, Link, Network, NetworkCommand, NetworkEvent, step,
+};
+use sill_model::units::Percent;
 use tokio::sync::{mpsc, watch};
 use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
 
-use super::NetworkCommand;
-use super::model::{Activating, Connectivity, Link, Network, NetworkEvent, step};
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next;
-use sill_model::units::Percent;
 
 /// Connects to NetworkManager and runs until `commands` closes (the `Control` was dropped). If
 /// the bus or NetworkManager is unreachable, `tx` is left at its seeded default (disconnected).
-pub(super) async fn run(
+pub(crate) async fn run(
     bus: Bus,
     tx: watch::Sender<Network>,
     mut commands: mpsc::UnboundedReceiver<NetworkCommand>,

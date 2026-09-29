@@ -14,6 +14,7 @@ use sill_model::cosmic_wl::{
     WorkspaceCaps, WorkspaceGroup, Workspaces,
 };
 use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
+use sill_model::network::{Connectivity, Link, Network};
 use sill_model::now_playing::{Media, MediaCommand};
 use sill_model::pins::DockPins;
 use sill_model::power_profile::{PowerProfiles, Profile, ProfileCommand, ProfileDegraded};
@@ -23,8 +24,8 @@ use sill_model::volume::{Mute, Volume};
 use sill_model::wallpaper::Wallpapers;
 use sill_services::{
     AccessPoint, AppIndex, Association, Bluetooth, BluetoothCommand, BtAddress, BtBattery,
-    BtConnection, BtDevice, BtKind, BtPairing, BtPower, Connectivity, Handle, Launches, Link,
-    Network, Radio, Results, Security, Service, Services, Ssid, Wifi, WifiCommand,
+    BtConnection, BtDevice, BtKind, BtPairing, BtPower, Handle, Launches, Radio, Results, Security,
+    Service, Services, Ssid, Wifi, WifiCommand,
 };
 use tokio::sync::{mpsc, watch};
 

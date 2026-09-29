@@ -81,9 +81,7 @@ pub use launch::{
 };
 pub use locker::LockerService;
 pub use magnify::{Layout, MagnifyParams, TileBox, magnify, rest_centers, sizes, zoom};
-pub use network::{
-    Activating, Connectivity, Link, Network, NetworkCommand, NetworkEvent, NetworkService,
-};
+pub use network::NetworkService;
 pub use notifications::{
     Action, ActionKey, Activation, ActivationToken, AppGroup, AppKey, AppRef, BannerLife, Body,
     BodyRun, Chime, Clear, CloseReason, Expiry, Hints, History, HistoryCap, Href, IconRef,

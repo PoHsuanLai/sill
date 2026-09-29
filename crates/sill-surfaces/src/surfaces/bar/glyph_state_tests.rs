@@ -8,11 +8,11 @@ use ds::{
 };
 use sill_model::attempt::{Attempt, Attempts, OpStamp};
 use sill_model::battery::{Battery, Charge};
+use sill_model::network::{Connectivity, Link, Network};
 use sill_model::units::{Percent, Presence, Seconds};
 use sill_model::volume::{Mute, Volume};
 use sill_services::{
-    BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower, Connectivity, Link,
-    Network, Radio,
+    BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower, Radio,
 };
 use sill_settings::Percent as KeyPercent;
 
