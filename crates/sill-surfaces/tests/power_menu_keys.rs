@@ -7,7 +7,7 @@ mod power_menu_support;
 
 use std::time::Duration;
 
-use ds::Key;
+use ds::ShortcutKey;
 use power_menu_support::{is_open, look, nth_button, opened, primary, ring_on_primary, settle};
 use sill_services::{Offer, Session, SessionAction};
 use sill_settings::{PowerMenuDefault, PowerMenuSettings, ShellFile};
@@ -63,13 +63,13 @@ fn arrows_and_tab_move_the_highlight_and_the_ring() {
         Preselect::Default,
     );
     let steps = [
-        (Key::Right, "Suspend"),
-        (Key::Right, "Log Out"),
-        (Key::Left, "Suspend"),
-        (Key::Up, "Shut Down"),
-        (Key::Tab, "Suspend"),
-        (Key::Down, "Log Out"),
-        (Key::Right, "Restart"),
+        (ShortcutKey::Right, "Suspend"),
+        (ShortcutKey::Right, "Log Out"),
+        (ShortcutKey::Left, "Suspend"),
+        (ShortcutKey::Up, "Shut Down"),
+        (ShortcutKey::Tab, "Suspend"),
+        (ShortcutKey::Down, "Log Out"),
+        (ShortcutKey::Right, "Restart"),
     ];
     for (key, want) in steps {
         running.harness.key(key);
@@ -90,11 +90,11 @@ fn enter_leaves_then_runs_the_focused_action_on_the_backend() {
         Session::everything(),
         Preselect::Default,
     );
-    running.harness.key(Key::Left);
+    running.harness.key(ShortcutKey::Left);
     settle(&mut running.harness, |h| {
         primary(h).as_deref() == Some("Restart")
     });
-    running.harness.key(Key::Enter);
+    running.harness.key(ShortcutKey::Enter);
     running.harness.advance(Duration::from_millis(20));
     assert_eq!(look(&running.harness).as_deref(), Some("leaving"));
     assert!(
@@ -123,7 +123,7 @@ fn escape_leaves_and_closes_running_nothing() {
         Session::everything(),
         Preselect::Default,
     );
-    running.harness.key(Key::Escape);
+    running.harness.key(ShortcutKey::Escape);
     running.harness.advance(Duration::from_millis(20));
     assert_eq!(look(&running.harness).as_deref(), Some("leaving"));
     let link = running.link.clone();
@@ -139,7 +139,7 @@ fn opened_again_while_leaving_it_enters_again_and_stays() {
         Session::everything(),
         Preselect::Default,
     );
-    running.harness.key(Key::Escape);
+    running.harness.key(ShortcutKey::Escape);
     running.harness.advance(Duration::from_millis(20));
     assert_eq!(look(&running.harness).as_deref(), Some("leaving"));
     assert_eq!(
@@ -221,7 +221,7 @@ fn unoffered_buttons_are_skipped_disabled_and_inert() {
             "Suspend's {attr}"
         );
     }
-    running.harness.key(Key::Right);
+    running.harness.key(ShortcutKey::Right);
     settle(&mut running.harness, |h| {
         primary(h).as_deref() == Some("Log Out")
     });
@@ -239,7 +239,7 @@ fn unoffered_buttons_are_skipped_disabled_and_inert() {
 fn nothing_offered_runs_nothing_on_enter() {
     let mut running = opened(shut_down_default(), Session::default(), Preselect::Default);
     assert_eq!(primary(&running.harness).as_deref(), Some("Shut Down"));
-    running.harness.key(Key::Enter);
+    running.harness.key(ShortcutKey::Enter);
     running.harness.advance(Duration::from_millis(400));
     assert!(is_open(&running.link));
     assert!(running.session.ran().is_empty());

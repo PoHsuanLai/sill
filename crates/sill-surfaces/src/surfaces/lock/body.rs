@@ -2,7 +2,9 @@
 //! prompt's output, and the unlock fade (the module doc of `screen.rs` has the rules).
 
 use dioxus::prelude::*;
-use ds::{Anim, CapsLock, ImageSource, LockPrompt, LockScreen, Text, TimerPhase, use_motion_timer};
+use ds::{
+    Anim, CapsLock, ImageSource, LockPrompt, LockScreen, TextLine, TimerPhase, use_motion_timer,
+};
 use shell_host::OutputInfo;
 use sill_services::auth::{Auth, AuthFault, PamNote, Secret};
 use sill_services::{AuthCommand, AuthPhase, OutputName};
@@ -37,13 +39,17 @@ fn leaving(phase: &AuthPhase, host: HostLock) -> Option<&'static str> {
 }
 
 /// The line under the field: the last PAM message, else a word for a check that could not run.
-fn hint_of(auth: &Auth) -> Option<Text> {
+fn hint_of(auth: &Auth) -> Option<TextLine> {
     let note = auth.notes.last().map(|note| match note {
-        PamNote::Info(text) | PamNote::Error(text) => Text::from(text.as_str()),
+        PamNote::Info(text) | PamNote::Error(text) => TextLine::from(text.as_str()),
     });
     note.or(match auth.phase {
-        AuthPhase::Unavailable(AuthFault::TimedOut) => Some(Text::from("The check took too long")),
-        AuthPhase::Unavailable(_) => Some(Text::from("The password can't be checked right now")),
+        AuthPhase::Unavailable(AuthFault::TimedOut) => {
+            Some(TextLine::from("The check took too long"))
+        }
+        AuthPhase::Unavailable(_) => {
+            Some(TextLine::from("The password can't be checked right now"))
+        }
         _ => None,
     })
 }

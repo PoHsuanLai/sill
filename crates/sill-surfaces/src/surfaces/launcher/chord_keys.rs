@@ -11,18 +11,18 @@ use sill_launcher::{ActionKeys, Chord, ChordKey, Modifier};
 /// `chord` as quire draws a shortcut.
 pub fn shortcut(chord: &Chord) -> Shortcut {
     let mods = chord.mods.iter().map(|m| match m {
-        Modifier::Control => ds::Key::Ctrl,
-        Modifier::Option => ds::Key::Alt,
-        Modifier::Shift => ds::Key::Shift,
-        Modifier::Command => ds::Key::Super,
+        Modifier::Control => ds::ShortcutKey::Ctrl,
+        Modifier::Option => ds::ShortcutKey::Alt,
+        Modifier::Shift => ds::ShortcutKey::Shift,
+        Modifier::Command => ds::ShortcutKey::Super,
     });
     let key = match chord.key {
-        ChordKey::Enter => ds::Key::Enter,
-        ChordKey::Space => ds::Key::Space,
-        ChordKey::Left => ds::Key::Left,
-        ChordKey::Right => ds::Key::Right,
-        ChordKey::Backspace => ds::Key::Backspace,
-        ChordKey::Char(c) => ds::Key::Char(c),
+        ChordKey::Enter => ds::ShortcutKey::Enter,
+        ChordKey::Space => ds::ShortcutKey::Space,
+        ChordKey::Left => ds::ShortcutKey::Left,
+        ChordKey::Right => ds::ShortcutKey::Right,
+        ChordKey::Backspace => ds::ShortcutKey::Backspace,
+        ChordKey::Char(c) => ds::ShortcutKey::Char(c),
     };
     Shortcut(mods.chain(std::iter::once(key)).collect())
 }

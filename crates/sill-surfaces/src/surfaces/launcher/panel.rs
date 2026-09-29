@@ -250,10 +250,10 @@ fn use_aside(
 }
 
 /// A row's tile as the pane's icon.
-fn icon_source(tile: ds::Tile) -> Option<IconSource> {
+fn icon_source(tile: ds::MenuTile) -> Option<IconSource> {
     match tile {
-        ds::Tile::Source(source) => Some(source),
-        ds::Tile::Icon(icon) => Some(IconSource::Glyph(icon)),
+        ds::MenuTile::Source(source) => Some(source),
+        ds::MenuTile::Icon(icon) => Some(IconSource::Glyph(icon)),
         _ => None,
     }
 }
@@ -425,7 +425,7 @@ struct RowIcons {
 }
 
 impl RowIcons {
-    fn tile(&self, item: &sill_launcher::Item) -> ds::Tile {
+    fn tile(&self, item: &sill_launcher::Item) -> ds::MenuTile {
         let cx = IconContext {
             look: self.look,
             scale: self.scale,

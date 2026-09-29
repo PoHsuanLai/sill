@@ -5,7 +5,7 @@
 
 use std::path::Path;
 
-use ds::{Icon, IconSource, ImageSize, ImageSource, Mono, PANE_MEDIA, PaneContent, PdfPage};
+use ds::{Icon, IconSource, ImageSize, ImageSource, PANE_MEDIA, PaneContent, PaneMono, PdfPage};
 use sill_launcher::{ClipKind, Excerpt, Mime, Preview};
 
 use crate::surfaces::launcher::preview::load::{Loaded, use_clip_png, use_excerpt, use_image_size};
@@ -99,11 +99,11 @@ fn content_of(preview: &Preview, icon: Option<IconSource>, loads: Loads) -> Pane
         },
         Preview::TextFile(_) => PaneContent::Text {
             excerpt: text_of(loads.excerpt.as_ref()),
-            mono: Mono::Monospace,
+            mono: PaneMono::Monospace,
         },
         Preview::Text { excerpt } => PaneContent::Text {
             excerpt: excerpt.0.clone(),
-            mono: Mono::Proportional,
+            mono: PaneMono::Proportional,
         },
         Preview::File(file) => {
             let glyph = match file.mime.0.as_str() {
@@ -127,7 +127,7 @@ fn content_of(preview: &Preview, icon: Option<IconSource>, loads: Loads) -> Pane
         Preview::Clipboard(clip) => match (&clip.kind, loads.clip_png) {
             (ClipKind::Text { excerpt, .. }, _) => PaneContent::Text {
                 excerpt: excerpt.0.clone(),
-                mono: Mono::Monospace,
+                mono: PaneMono::Monospace,
             },
             (ClipKind::Image { width, height, .. }, Some(bytes)) => PaneContent::Image {
                 src: ImageSource::png(&bytes),

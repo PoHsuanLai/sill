@@ -8,7 +8,7 @@
 
 mod launcher_harness;
 
-use ds::Key;
+use ds::ShortcutKey;
 use launcher_harness::launcher_support::{self, FIREFOX_WINDOW};
 use launcher_harness::{is_open, open, selected_title, settle};
 use sill_launcher::WindowKey;
@@ -21,7 +21,7 @@ const SELECTED: &str = ".ds-menu-item[*|aria-selected=true]";
 #[test]
 fn the_actions_menu_hangs_from_the_selected_row_and_gives_the_keyboard_back() {
     let mut open = open("fi");
-    open.harness.key(Key::Down);
+    open.harness.key(ShortcutKey::Down);
     settle(&mut open.harness, |h| {
         selected_title(h).as_deref() == Some("Files")
     });
@@ -42,7 +42,7 @@ fn the_actions_menu_hangs_from_the_selected_row_and_gives_the_keyboard_back() {
         (0.0..=12.0).contains(&below),
         "the menu hangs under the row: row {row:?}, menu {menu:?}"
     );
-    open.harness.key(Key::Escape);
+    open.harness.key(ShortcutKey::Escape);
     settle(&mut open.harness, |h| {
         h.count(".ds-popover") == 0 && h.is_focused("input")
     });
@@ -64,7 +64,7 @@ fn the_actions_menu_hangs_from_the_selected_row_and_gives_the_keyboard_back() {
         "the palette's entrance never settled"
     );
     assert_eq!(selected_title(&open.harness).as_deref(), Some("Files"));
-    open.harness.key(Key::Enter);
+    open.harness.key(ShortcutKey::Enter);
     let link = open.link.clone();
     settle(&mut open.harness, |_| !is_open(&link));
     match open.feeds.bar.launch.try_recv() {
@@ -99,7 +99,7 @@ fn the_row_under_the_pointer_is_the_selection() {
         selected_title(&open.harness).as_deref(),
         Some("Firefox — sill launcher")
     );
-    open.harness.key(Key::Enter);
+    open.harness.key(ShortcutKey::Enter);
     let link = open.link.clone();
     settle(&mut open.harness, |_| !is_open(&link));
     assert_eq!(

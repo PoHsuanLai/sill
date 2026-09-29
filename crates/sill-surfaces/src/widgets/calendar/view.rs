@@ -46,8 +46,8 @@ pub fn CalendarCard(place: Place) -> Element {
     let onintent = EventHandler::new(move |intent: MonthIntent| {
         let MonthIntent::Step(step) = intent;
         let step = match step {
-            ds::Step::Previous => Step::Previous,
-            ds::Step::Next => Step::Next,
+            ds::MonthStep::Previous => Step::Previous,
+            ds::MonthStep::Next => Step::Next,
         };
         shown.set(shown().stepped(today, step));
     });

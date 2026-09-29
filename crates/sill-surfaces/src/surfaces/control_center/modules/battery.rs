@@ -11,7 +11,7 @@ use dioxus::prelude::*;
 use ds::detail::FirstShow;
 use ds::{
     BatteryState, Device, DeviceBattery, DeviceGlyph, Fraction, IconSource, ModulePanel, RingMark,
-    StatusState, Text,
+    StatusState, TextLine,
 };
 use sill_services::{Battery, Bluetooth, BtBattery, BtConnection, Charge, Presence};
 
@@ -47,7 +47,7 @@ pub fn BatteryModule() -> Element {
     let (glyph, title, trailing) = match &head {
         Some(head) => (
             Some(IconSource::Status(StatusState::Battery(head.state))),
-            Some(Text::from("Battery")),
+            Some(TextLine::from("Battery")),
             Some(rsx! { "{head.percent}%" }),
         ),
         None => (None, None, None),

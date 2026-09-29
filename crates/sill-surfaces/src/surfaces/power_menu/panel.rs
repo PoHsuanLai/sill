@@ -91,9 +91,9 @@ fn sheet(ctx: &MenuCtx, menu: MenuSession, offers: &Session) -> Element {
                     }
                 }
                 div { class: "sill-power-menu-hints",
-                    {hint(vec![ds::Key::Left, ds::Key::Right], "Choose")}
-                    {hint(vec![ds::Key::Enter], action_label(focused))}
-                    {hint(vec![ds::Key::Escape], "Cancel")}
+                    {hint(vec![ds::ShortcutKey::Left, ds::ShortcutKey::Right], "Choose")}
+                    {hint(vec![ds::ShortcutKey::Enter], action_label(focused))}
+                    {hint(vec![ds::ShortcutKey::Escape], "Cancel")}
                 }
             }
         }
@@ -128,7 +128,7 @@ fn button(
 }
 
 /// A key hint: the caps, then what they do.
-fn hint(keys: Vec<ds::Key>, what: &str) -> Element {
+fn hint(keys: Vec<ds::ShortcutKey>, what: &str) -> Element {
     rsx! {
         span { class: "sill-power-menu-hint",
             Kbd { shortcut: Shortcut(keys), size: KbdSize::Small }

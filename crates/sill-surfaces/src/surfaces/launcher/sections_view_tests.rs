@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use dioxus::prelude::*;
-use ds::{ChordShown, ClipBody, GroupEntries, MenuEntry, RowChord, RowShape, Trail};
+use ds::{ChordShown, ClipBody, GroupEntries, MenuEntry, MenuTrail, RowChord, RowShape};
 use sill_launcher::{
     Action, ActionId, ActionKeys, CharCount, ClipFacts, ClipKey, ClipKind, EmojiFacts, Excerpt,
     FileFacts, IconRef, Item, ItemId, Mime, More, ProviderKind, Score, Section, ShownSection,
@@ -125,7 +125,7 @@ fn groups_carry_shapes_a_grid_and_header_actions() {
         MenuEntry::Row(row) => {
             assert_eq!(
                 row.trail,
-                Trail::Note("Document".to_owned()),
+                MenuTrail::Note("Document".to_owned()),
                 "Top Hit mixes kinds"
             );
             assert_eq!(
@@ -140,7 +140,7 @@ fn groups_carry_shapes_a_grid_and_header_actions() {
         other => panic!("a file row: {other:?}"),
     }
     match row(1) {
-        MenuEntry::Row(row) => assert_eq!(row.trail, Trail::None, "the date is in the shape"),
+        MenuEntry::Row(row) => assert_eq!(row.trail, MenuTrail::None, "the date is in the shape"),
         other => panic!("a file row: {other:?}"),
     }
     match row(2) {
@@ -181,7 +181,7 @@ fn each_row_carries_its_chord_for_the_selection() {
     let groups = dom.in_scope(ScopeId::ROOT, || {
         palette_groups(&sample(), &draw, &|_| EventHandler::new(|()| {}))
     });
-    let rows: Vec<(RowChord, Trail)> = groups.0[..3]
+    let rows: Vec<(RowChord, MenuTrail)> = groups.0[..3]
         .iter()
         .map(|group| match &group.entries {
             GroupEntries::List(entries) => match &entries[0] {
@@ -194,9 +194,9 @@ fn each_row_carries_its_chord_for_the_selection() {
     assert_eq!(
         rows,
         vec![
-            (reveal.clone(), Trail::Note("Document".to_owned())),
-            (reveal.clone(), Trail::None),
-            (reveal, Trail::None),
+            (reveal.clone(), MenuTrail::Note("Document".to_owned())),
+            (reveal.clone(), MenuTrail::None),
+            (reveal, MenuTrail::None),
         ]
     );
     assert!(

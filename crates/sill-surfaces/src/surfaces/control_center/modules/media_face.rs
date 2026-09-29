@@ -11,7 +11,7 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds::{
     Availability, ExternalIcon, Icon, IconButton, IconButtonVariant, IconSize, IconSource, IconUrl,
-    NowPlayingTrack, PlayPauseButton, Playback, Text, TrackPosition,
+    NowPlayingTrack, PlayPauseButton, Playback, TextLine, TrackPosition,
 };
 use serde::{Deserialize, Serialize};
 use sill_services::{Abilities, Art, MediaPlayer, MediaVerb, Micros, Timeline};
@@ -108,7 +108,7 @@ pub fn MediaView(face: MediaFace, onpress: Option<EventHandler<Transport>>) -> E
     };
     let playback = playback_of(track.playback);
     let abilities = track.abilities;
-    let by = (!track.by.is_empty()).then(|| Text::from(track.by.clone()));
+    let by = (!track.by.is_empty()).then(|| TextLine::from(track.by.clone()));
     rsx! {
         div { class: "sill-cc-media",
             div { class: "sill-cc-media-row",

@@ -7,7 +7,7 @@
 mod center_support;
 
 use center_support::{opened, ringed, two_apps};
-use ds::Key;
+use ds::ShortcutKey;
 use sill_services::{ActionKey, Activation, AppKey, Clear, NotificationId, NotificationsCommand};
 use sill_surfaces::surfaces::notification_center::CenterShown;
 
@@ -20,12 +20,12 @@ fn the_column_holds_the_keyboard_and_the_arrows_move_the_ring() {
     );
     assert_eq!(ringed(&running.harness), None);
     let steps = [
-        (Key::Down, Some("head")),
-        (Key::Down, Some("3")),
-        (Key::Down, Some("head")),
-        (Key::Down, Some("1")),
-        (Key::Down, Some("1")),
-        (Key::Up, Some("head")),
+        (ShortcutKey::Down, Some("head")),
+        (ShortcutKey::Down, Some("3")),
+        (ShortcutKey::Down, Some("head")),
+        (ShortcutKey::Down, Some("1")),
+        (ShortcutKey::Down, Some("1")),
+        (ShortcutKey::Up, Some("head")),
     ];
     for (key, want) in steps {
         running.harness.key(key);
@@ -37,13 +37,13 @@ fn the_column_holds_the_keyboard_and_the_arrows_move_the_ring() {
 #[test]
 fn return_opens_a_group_then_invokes_a_lone_card_and_closes() {
     let mut running = opened(two_apps());
-    running.harness.key(Key::Down);
-    running.harness.key(Key::Enter);
+    running.harness.key(ShortcutKey::Down);
+    running.harness.key(ShortcutKey::Enter);
     running.advance(40);
     assert_eq!(running.harness.count(".sill-nc-row"), 4, "Mail opened");
     assert!(running.commands().is_empty());
-    running.harness.key(Key::Down);
-    running.harness.key(Key::Enter);
+    running.harness.key(ShortcutKey::Down);
+    running.harness.key(ShortcutKey::Enter);
     running.advance(40);
     assert_eq!(
         running.commands(),
@@ -59,9 +59,9 @@ fn return_opens_a_group_then_invokes_a_lone_card_and_closes() {
 #[test]
 fn return_on_a_stack_opens_it() {
     let mut running = opened(two_apps());
-    running.harness.key(Key::Down);
-    running.harness.key(Key::Down);
-    running.harness.key(Key::Enter);
+    running.harness.key(ShortcutKey::Down);
+    running.harness.key(ShortcutKey::Down);
+    running.harness.key(ShortcutKey::Enter);
     running.advance(40);
     assert_eq!(running.harness.count(".sill-nc-row"), 4, "the stack opened");
     assert!(running.commands().is_empty());
@@ -70,16 +70,16 @@ fn return_on_a_stack_opens_it() {
 #[test]
 fn delete_clears_a_group_and_dismisses_a_lone_card() {
     let mut running = opened(two_apps());
-    running.harness.key(Key::Down);
-    running.harness.key(Key::Delete);
+    running.harness.key(ShortcutKey::Down);
+    running.harness.key(ShortcutKey::Delete);
     running.advance(20);
     // The service has not answered, so the rows are still Mail's header and stack and Chat's
     // header and card; the ring stayed on Mail's header. Backspace is the Mac keyboard's Delete.
-    running.harness.key(Key::Down);
-    running.harness.key(Key::Delete);
-    running.harness.key(Key::Down);
-    running.harness.key(Key::Down);
-    running.harness.key(Key::Backspace);
+    running.harness.key(ShortcutKey::Down);
+    running.harness.key(ShortcutKey::Delete);
+    running.harness.key(ShortcutKey::Down);
+    running.harness.key(ShortcutKey::Down);
+    running.harness.key(ShortcutKey::Backspace);
     running.advance(20);
     let mail = || NotificationsCommand::ClearHistory(Clear::App(AppKey("mail".to_owned())));
     assert_eq!(
@@ -95,7 +95,7 @@ fn delete_clears_a_group_and_dismisses_a_lone_card() {
 #[test]
 fn escape_closes() {
     let mut running = opened(two_apps());
-    running.harness.key(Key::Escape);
+    running.harness.key(ShortcutKey::Escape);
     running.advance(20);
     assert_eq!(running.link.now(), CenterShown::Closed);
     assert!(running.commands().is_empty());

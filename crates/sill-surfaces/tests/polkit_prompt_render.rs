@@ -8,7 +8,7 @@ mod polkit_prompt_support;
 
 use std::time::Duration;
 
-use ds::Key;
+use ds::ShortcutKey;
 use polkit_prompt_support::{HEIGHT, WIDTH, asking, fake, request, settle, shown, start};
 use shell_host::OutputId;
 use sill_services::polkit_agent::{Cookie, LastTry, PolkitCommand, PromptPhase};
@@ -80,9 +80,9 @@ fn a_request_draws_quires_prompt_on_a_narrow_sheet_over_the_scrim() {
 fn enter_answers_with_what_was_typed_and_escape_dismisses() {
     let mut running = shown(request("c1", asking(), LastTry::None));
     for c in "sill-fake".chars() {
-        running.harness.key(Key::Char(c));
+        running.harness.key(ShortcutKey::Char(c));
     }
-    running.harness.key(Key::Enter);
+    running.harness.key(ShortcutKey::Enter);
     running.harness.advance(Duration::from_millis(40));
     let sent = running.sent();
     let [PolkitCommand::Answer { cookie, secret }] = sent.as_slice() else {
@@ -95,7 +95,7 @@ fn enter_answers_with_what_was_typed_and_escape_dismisses() {
         !running.harness.html().contains("sill-fake"),
         "the secret is not in the markup"
     );
-    running.harness.key(Key::Escape);
+    running.harness.key(ShortcutKey::Escape);
     running.harness.advance(Duration::from_millis(40));
     assert_eq!(
         running.sent(),

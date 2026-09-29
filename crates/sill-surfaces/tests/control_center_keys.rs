@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use cc_support::fake;
 use cc_support::live::{self, Report};
-use ds::Key;
+use ds::ShortcutKey;
 use sill_services::{Radio, WifiCommand};
 
 #[test]
@@ -23,19 +23,21 @@ fn tab_walks_the_tiles_and_space_toggles_the_focused_one() {
         "the panel holds the keyboard as it opens"
     );
     // Wi-Fi's tile, then its chevron (the default modules: Wi-Fi, Bluetooth, Focus, ...).
-    running.harness.key(Key::Tab);
+    running.harness.key(ShortcutKey::Tab);
     running.harness.advance(step);
     assert!(
         running.harness.is_focused(".ds-module-tile"),
         "Tab: the first tile"
     );
-    running.harness.key(Key::Tab);
+    running.harness.key(ShortcutKey::Tab);
     running.harness.advance(step);
     assert!(
         running.harness.is_focused(".ds-module-chevron"),
         "Tab: its chevron"
     );
-    running.harness.chord(&[Key::Shift], Key::Tab);
+    running
+        .harness
+        .chord(&[ShortcutKey::Shift], ShortcutKey::Tab);
     running.harness.advance(step);
     assert!(
         running.harness.is_focused(".ds-module-tile"),
@@ -43,13 +45,13 @@ fn tab_walks_the_tiles_and_space_toggles_the_focused_one() {
     );
     // The fake Wi-Fi is on: Space asks for the radio off, Enter again for it off (the fake
     // service does not change), and nothing leaves the panel.
-    running.harness.key(Key::Space);
+    running.harness.key(ShortcutKey::Space);
     running.harness.advance(step);
     assert_eq!(
         running.feeds.wifi_commands.try_recv().ok(),
         Some(WifiCommand::Radio(Radio::Off))
     );
-    running.harness.key(Key::Enter);
+    running.harness.key(ShortcutKey::Enter);
     running.harness.advance(step);
     assert_eq!(
         running.feeds.wifi_commands.try_recv().ok(),
@@ -60,7 +62,7 @@ fn tab_walks_the_tiles_and_space_toggles_the_focused_one() {
         "the tile keeps the focus"
     );
     assert!(running.reports().is_empty(), "no page change, no close");
-    running.harness.key(Key::Escape);
+    running.harness.key(ShortcutKey::Escape);
     running.harness.advance(Duration::from_millis(400));
     assert_eq!(running.reports().last(), Some(&Report::Closed));
 }

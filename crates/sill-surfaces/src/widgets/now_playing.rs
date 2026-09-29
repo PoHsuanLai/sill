@@ -7,7 +7,7 @@
 //! classes.
 
 use dioxus::prelude::*;
-use ds::{Icon, Text, WidgetCard, WidgetContext, WidgetSize, WidgetTitle};
+use ds::{Icon, TextLine, WidgetCard, WidgetContext, WidgetSize, WidgetTitle};
 use sill_services::{Abilities, Art, Availability, Micros, Playback, Stamp, Timeline};
 
 use super::{Place, WidgetKind, use_widget_wake, widget_element_id};
@@ -31,12 +31,12 @@ impl ds::Widget for NowPlaying {
         ds::WidgetKind::fixed("sill.now-playing")
     }
 
-    fn name() -> Text {
-        Text::from("Now Playing")
+    fn name() -> TextLine {
+        TextLine::from("Now Playing")
     }
 
-    fn description() -> Text {
-        Text::from("See what is playing and control it.")
+    fn description() -> TextLine {
+        TextLine::from("See what is playing and control it.")
     }
 
     fn sizes() -> &'static [WidgetSize] {

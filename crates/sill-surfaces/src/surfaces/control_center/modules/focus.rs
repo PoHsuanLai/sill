@@ -3,7 +3,7 @@
 //! through the root context's `sill_settings::FocusLink`.
 
 use dioxus::prelude::*;
-use ds::{DiscMotion, Icon, ModuleState, ModuleTile, Text};
+use ds::{DiscMotion, Icon, ModuleState, ModuleTile, TextLine};
 use sill_settings::{FocusLink, FocusMode};
 
 use crate::hooks::use_focus_mode;
@@ -21,7 +21,7 @@ pub fn FocusModule() -> Element {
             // On grows the filled moon in, springing under the tile's own press (design/26 G23).
             disc: DiscMotion::Morph(Icon::MoonFilled),
             title: "Focus",
-            status: Some(Text::from(focus_status(mode))),
+            status: Some(TextLine::from(focus_status(mode))),
             state: focus_state(mode),
             onclick: move |_| {
                 // Gone: the daemon's focus task has stopped; the tile keeps what it last read.

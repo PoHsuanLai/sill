@@ -9,7 +9,7 @@
 use dioxus::prelude::*;
 use ds::{
     ClipBody, EMOJI_CELL, EMOJI_COLUMNS, EmojiCell, EmojiCells, ImageSize, ImageSource, MenuEntry,
-    MenuRow, PaletteGroup, PaletteGroups, RowShape, Tile, Trail,
+    MenuRow, MenuTile, MenuTrail, PaletteGroup, PaletteGroups, RowShape,
 };
 use sill_launcher::{ClipKey, ClipKind, Item, More, Section, ShownSection, Subject, UnixTime};
 
@@ -48,7 +48,7 @@ impl HeaderAction {
 /// What the rows are drawn with: each row's tile, a clipboard image's pixels and the clock.
 /// The selection's chord is quire's to place (`RowChord::on_selected`).
 pub struct Draw<'a> {
-    pub tile_of: &'a dyn Fn(&Item) -> Tile,
+    pub tile_of: &'a dyn Fn(&Item) -> MenuTile,
     pub clip_image: &'a dyn Fn(ClipKey) -> Option<ImageSource>,
     pub now: UnixTime,
 }
@@ -122,7 +122,7 @@ impl Draw<'_> {
     fn plain(&self, item: &Item, mix: Mix) -> MenuEntry<RowRef> {
         let words = row_detail(item, self.now);
         let trail = match words.trail.is_empty() {
-            false => Trail::Note(words.trail.clone()),
+            false => MenuTrail::Note(words.trail.clone()),
             true => kind_trail(item, mix),
         };
         MenuEntry::Row(MenuRow {

@@ -152,7 +152,7 @@ mod tests {
     use super::{BOTTOM, GAP, SIDE, TOP, menu_config, menu_placement, popup_size};
     use crate::surfaces::dock::frame::Area;
     use crate::surfaces::dock::pick::DockPick;
-    use ds::{Availability, MenuEntry, Trail};
+    use ds::{Availability, MenuEntry, MenuTrail};
     use shell_host::popup::offset_rect;
     use sill_launcher::WindowKey;
     use sill_services::Cpx;
@@ -163,7 +163,7 @@ mod tests {
             title: "x".to_owned(),
             detail: None,
             tile: None,
-            trail: Trail::None,
+            trail: MenuTrail::None,
             check: None,
             availability: Availability::Enabled,
         }

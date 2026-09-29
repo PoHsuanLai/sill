@@ -9,7 +9,7 @@
 //! and draws [`TurnOffAlert`] as the last child of its positioned body.
 
 use dioxus::prelude::*;
-use ds::{Alert, AlertEmphasis, Flow, Text};
+use ds::{Alert, AlertEmphasis, Flow, TextLine};
 use sill_services::{BluetoothCommand, BluetoothService, BtPower};
 
 use crate::hooks::use_control;
@@ -86,7 +86,7 @@ pub(crate) fn TurnOffAlert(on_answered: EventHandler<()>) -> Element {
         Confirming::TurnOff => rsx! {
             Alert {
                 title: "Turn Bluetooth off?",
-                message: Some(Text::from(
+                message: Some(TextLine::from(
                     "Bluetooth devices such as keyboards and mice will be disconnected.",
                 )),
                 action: "Turn Off",

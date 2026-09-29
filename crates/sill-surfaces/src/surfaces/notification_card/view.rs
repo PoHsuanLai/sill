@@ -9,7 +9,7 @@ use std::time::SystemTime;
 use dioxus::prelude::*;
 use ds::{
     AppMark, ExternalIcon, Hover, Icon, IconSize, IconSource, IconUrl, Material, NotificationCard,
-    RootChrome, Scheme, Surface, Swipe, Text,
+    NotificationSwipe, RootChrome, Scheme, Surface, TextLine,
 };
 use sill_services::apps::{icon_theme, resolve_icon};
 use sill_services::{AppIcon, AppRef, Href, Notification, UnixMs};
@@ -36,7 +36,7 @@ pub fn wall_now() -> UnixMs {
 #[derive(Clone, PartialEq)]
 pub(super) struct CardWiring {
     pub id: Option<String>,
-    pub swipe: Swipe,
+    pub swipe: NotificationSwipe,
     pub on_hover: Option<EventHandler<Hover>>,
     pub on_press: EventHandler<CardPress>,
 }
@@ -53,7 +53,7 @@ pub(super) fn card(
     let side = icon_size(&settings);
     let app = use_app_mark(&note.app, IconSize::Px(side));
     let on_press = wiring.on_press;
-    let (material, theme) = material_of(place, settings.banner_material, ds::use_env().scheme);
+    let (material, theme) = material_of(place, settings.banner_material, ds::use_scope().scheme);
     let swipe_metrics = super::metrics::swipe_metrics(&settings);
     rsx! {
         Surface { material, theme, chrome: RootChrome::Transparent,
@@ -89,7 +89,7 @@ pub fn use_app_mark(app: &AppRef, size: IconSize) -> AppMark {
     });
     AppMark {
         icon: icon_source(&art, size),
-        name: Text::from(app_label(app, entry.map(|e| e.name.as_str()))),
+        name: TextLine::from(app_label(app, entry.map(|e| e.name.as_str()))),
     }
 }
 

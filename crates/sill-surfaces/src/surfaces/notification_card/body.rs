@@ -3,7 +3,7 @@
 //! several at once takes the strongest: a link, then bold, then italic, then underline. The line
 //! clamp and its fade are quire's (`NotificationCard`), so nothing is clipped here.
 
-use ds::{Rich, RichRun, Run, RunTone};
+use ds::{Rich, RichRun, RunTone, TextRun};
 use sill_services::{Body, BodyRun, RunLink, RunStyle, Slant, Underline, Weight};
 
 /// `body` as quire's runs; `None` for an empty body (the card then draws no body line).
@@ -20,7 +20,7 @@ pub fn rich_body(body: &Body) -> Option<Rich> {
 fn rich_run(run: &BodyRun) -> RichRun {
     match &run.style.link {
         RunLink::To(href) => RichRun::link(run.text.clone(), href.0.clone()),
-        RunLink::Plain => RichRun::Run(Run::new(run.text.clone(), tone(&run.style))),
+        RunLink::Plain => RichRun::Run(TextRun::new(run.text.clone(), tone(&run.style))),
     }
 }
 
@@ -37,11 +37,11 @@ fn tone(style: &RunStyle) -> RunTone {
 #[cfg(test)]
 mod tests {
     use super::rich_body;
-    use ds::{Rich, RichRun, Run, RunTone};
+    use ds::{Rich, RichRun, RunTone, TextRun};
     use sill_services::{Body, parse_body};
 
     fn run(text: &str, tone: RunTone) -> RichRun {
-        RichRun::Run(Run::new(text, tone))
+        RichRun::Run(TextRun::new(text, tone))
     }
 
     #[test]

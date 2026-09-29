@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use cc_support::live::{self, Report};
 use cc_support::{count, fake, render, render_dropdown};
-use ds::Key;
+use ds::ShortcutKey;
 use ds_settings::{Count, Px};
 use sill_services::{Bluetooth, Radio, Ssid, Wifi, WifiCommand};
 use sill_settings::{ControlCenterModule, ControlCenterSettings, ShellFile};
@@ -216,7 +216,7 @@ fn a_chevron_slides_its_pane_in_and_escape_unwinds() {
         Some("Wi-Fi is off")
     );
     // Escape with the pressed chevron gone: the panel holds the keyboard.
-    running.harness.key(Key::Escape);
+    running.harness.key(ShortcutKey::Escape);
     running.harness.advance(Duration::from_millis(600));
     assert_eq!(
         running.harness.attr(".ds-panes", "data-shown").as_deref(),
@@ -235,7 +235,7 @@ fn a_chevron_slides_its_pane_in_and_escape_unwinds() {
         ]
     );
     // Escape on the grid reaches the popover, which closes.
-    running.harness.key(Key::Escape);
+    running.harness.key(ShortcutKey::Escape);
     running.harness.advance(Duration::from_millis(400));
     assert_eq!(running.reports().last(), Some(&Report::Closed));
 }

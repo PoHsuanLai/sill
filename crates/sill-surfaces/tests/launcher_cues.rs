@@ -10,7 +10,7 @@ use std::io::Write;
 use std::path::Path;
 use std::time::Duration;
 
-use ds::Key;
+use ds::ShortcutKey;
 use ds_native::Harness;
 use ds_native::harness::assert_settles_to_zero_frames;
 use launcher_harness::launcher_support::m9;
@@ -30,7 +30,9 @@ enum Via {
 /// Show the preview pane `via` that route.
 fn quick_look(open: &mut Open, via: Via) {
     match via {
-        Via::Keyboard => open.harness.chord(&[Key::Ctrl], Key::Char('y')),
+        Via::Keyboard => open
+            .harness
+            .chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y')),
         Via::Link => open.link.press(LinkKey::QuickLook),
     }
     open.harness.advance(Duration::ZERO);
@@ -220,7 +222,7 @@ fn the_first_result_set_rises_and_a_later_one_does_not() {
     assert!(!rising(&open.harness), "and settles");
 
     // A new answer (typed): replaced in place.
-    open.harness.key(Key::Backspace);
+    open.harness.key(ShortcutKey::Backspace);
     let rose = watch(&mut open.harness, rising);
     assert_eq!(rose, Seen::Never, "a later set replays no rise");
     assert_eq!(
@@ -241,11 +243,11 @@ fn show_more_rises_and_show_less_heals() {
     assert_settles_to_zero_frames(&mut open.harness);
     // Top Hit, five documents, then the Show More line (6): the person's Down and Enter.
     for _ in 0..6 {
-        open.harness.key(Key::Down);
+        open.harness.key(ShortcutKey::Down);
     }
     open.harness.advance(Duration::from_millis(20));
     assert_eq!(open.link.rows().map(|r| r.selected), Some(6));
-    open.harness.key(Key::Enter);
+    open.harness.key(ShortcutKey::Enter);
     let rose = watch(&mut open.harness, |h| row_motion(h, "rise"));
     assert_eq!(rose, Seen::Once, "the added rows rise");
     assert_eq!(
@@ -258,7 +260,7 @@ fn show_more_rises_and_show_less_heals() {
 
     // The selection followed its line, now Show Less (8): Enter again, the rows after heal up.
     assert_eq!(open.link.rows().map(|r| r.selected), Some(8));
-    open.harness.key(Key::Enter);
+    open.harness.key(ShortcutKey::Enter);
     let healed = watch(&mut open.harness, |h| row_motion(h, "heal-from"));
     assert_eq!(healed, Seen::Once, "what follows heals up");
     let shown = open.link.rows();

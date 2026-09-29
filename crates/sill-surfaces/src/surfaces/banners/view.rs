@@ -9,7 +9,10 @@
 //! [`BannerLink`]: super::BannerLink
 
 use dioxus::prelude::*;
-use ds::{BannerKey, BannerStack, BlurState, Ds, Hover, Material, RootChrome, RootExtent, Swipe};
+use ds::{
+    BannerKey, BannerStack, BlurState, Ds, Hover, Material, NotificationSwipe, RootChrome,
+    RootExtent,
+};
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_services::{NotificationId, Notifications, NotificationsService};
 use sill_settings::{BannerEntry, BannerPosition, NotificationsSettings};
@@ -127,7 +130,7 @@ fn banner(column: Column, notes: &Notifications, entry: &Entry) -> Option<ds::Ba
                 place: CardPlace::Banner,
                 now: wall_now(),
                 id: part_id(id, CardPart::Plate),
-                swipe: Swipe::Dismiss(swiped),
+                swipe: NotificationSwipe::Dismiss(swiped),
                 on_hover: move |hover: Hover| column.hovered(key, hover),
                 on_press: move |what: CardPress| column.pressed(key, card.clone(), &pressed, what),
             }

@@ -9,7 +9,7 @@ mod switcher_support;
 
 use std::time::Duration;
 
-use ds::Key;
+use ds::ShortcutKey;
 use sill_launcher::{AppId, WindowKey};
 use sill_services::WlCommand;
 use sill_settings::ShellFile;
@@ -101,18 +101,22 @@ fn a_second_chord_inside_the_delay_is_a_second_quick_tap() {
 #[test]
 fn keys_and_chords_step_and_the_release_activates() {
     let mut running = shown();
-    running.harness.chord(&[Key::Alt], Key::Tab);
+    running.harness.chord(&[ShortcutKey::Alt], ShortcutKey::Tab);
     wait(&mut running, 20);
     assert_eq!(tiles(&running.harness).1.as_deref(), Some("edit"));
-    running.harness.chord(&[Key::Alt, Key::Shift], Key::Tab);
-    running.harness.chord(&[Key::Alt], Key::Char('`'));
+    running
+        .harness
+        .chord(&[ShortcutKey::Alt, ShortcutKey::Shift], ShortcutKey::Tab);
+    running
+        .harness
+        .chord(&[ShortcutKey::Alt], ShortcutKey::Char('`'));
     wait(&mut running, 20);
     assert_eq!(tiles(&running.harness).1.as_deref(), Some("term"));
     running.ask(SwitcherAsk::Chord(Dir::Prev));
     wait(&mut running, 20);
     assert_eq!(tiles(&running.harness).1.as_deref(), Some("edit"));
     assert_eq!(running.sent(), vec![], "stepping touches no window");
-    running.harness.chord(&[Key::Alt], Key::Alt);
+    running.harness.chord(&[ShortcutKey::Alt], ShortcutKey::Alt);
     wait(&mut running, 20);
     assert_eq!(panels(&running), 0, "closed at the release");
     assert_eq!(running.sent(), vec![WlCommand::Activate(WindowKey(3))]);
@@ -121,7 +125,9 @@ fn keys_and_chords_step_and_the_release_activates() {
 #[test]
 fn escape_and_cancel_close_touching_nothing() {
     let mut running = shown();
-    running.harness.chord(&[Key::Alt], Key::Escape);
+    running
+        .harness
+        .chord(&[ShortcutKey::Alt], ShortcutKey::Escape);
     wait(&mut running, 20);
     assert_eq!(panels(&running), 0);
     running.ask(SwitcherAsk::Chord(Dir::Next));
@@ -130,7 +136,7 @@ fn escape_and_cancel_close_touching_nothing() {
     running.ask(SwitcherAsk::Cancel);
     wait(&mut running, 20);
     assert_eq!(panels(&running), 0);
-    running.harness.chord(&[Key::Alt], Key::Alt);
+    running.harness.chord(&[ShortcutKey::Alt], ShortcutKey::Alt);
     wait(&mut running, 20);
     assert_eq!(running.sent(), vec![]);
 }
@@ -138,7 +144,9 @@ fn escape_and_cancel_close_touching_nothing() {
 #[test]
 fn q_quits_the_selected_app_and_its_tile_folds_away() {
     let mut running = shown();
-    running.harness.chord(&[Key::Alt], Key::Char('q'));
+    running
+        .harness
+        .chord(&[ShortcutKey::Alt], ShortcutKey::Char('q'));
     wait(&mut running, 20);
     assert_eq!(
         running.sent(),
@@ -163,7 +171,9 @@ fn q_quits_the_selected_app_and_its_tile_folds_away() {
 #[test]
 fn h_hides_the_selected_app_and_stays() {
     let mut running = shown();
-    running.harness.chord(&[Key::Alt], Key::Char('h'));
+    running
+        .harness
+        .chord(&[ShortcutKey::Alt], ShortcutKey::Char('h'));
     wait(&mut running, 20);
     assert_eq!(
         running.sent(),
@@ -219,8 +229,10 @@ fn made_up_apps_show_at_once_and_touch_no_window() {
         running.harness.is_focused(".sill-switcher"),
         "focused at the ask"
     );
-    running.harness.chord(&[Key::Alt], Key::Char('q'));
-    running.harness.chord(&[Key::Alt], Key::Alt);
+    running
+        .harness
+        .chord(&[ShortcutKey::Alt], ShortcutKey::Char('q'));
+    running.harness.chord(&[ShortcutKey::Alt], ShortcutKey::Alt);
     wait(&mut running, 20);
     assert_eq!(panels(&running), 0);
     assert_eq!(running.sent(), vec![]);

@@ -17,8 +17,8 @@
 
 use dioxus::prelude::*;
 use ds::{
-    Check as DsCheck, ChromaLimit, IconButton, IconButtonVariant, IconSource, MenuEntry, Press,
-    Trail,
+    Check as DsCheck, ChromaLimit, IconButton, IconButtonVariant, IconSource, MenuEntry, MenuTrail,
+    Press,
 };
 use shell_host::{
     OutputInfo, PopupConfig, PopupPlacement, PopupSize, Rect, Root, Size, SurfaceHandle,
@@ -259,7 +259,7 @@ fn to_ds_entry(entry: &TrayMenuEntry) -> MenuEntry<i32> {
             title: label.clone(),
             detail: None,
             tile: None,
-            trail: Trail::None,
+            trail: MenuTrail::None,
             check: to_ds_check(*check),
             availability: match enabled {
                 TrayAvailability::Enabled => ds::Availability::Enabled,

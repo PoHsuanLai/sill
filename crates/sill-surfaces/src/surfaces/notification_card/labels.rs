@@ -1,7 +1,7 @@
 //! The words on a card: the app's name, how long ago it arrived, and the group's count (quire
 //! draws the chip from two and the layers behind the card).
 
-use ds::{GroupCount, Layers};
+use ds::{GroupCount, StackLayers};
 use sill_services::{AppRef, UnixMs};
 
 /// How long ago a notification arrived, as a card shows it (design/13 §13.3.6: "time data 10
@@ -51,7 +51,7 @@ pub fn group_count(count: usize) -> Option<GroupCount> {
     let layers = u8::try_from(count.saturating_sub(1).min(GROUP_LAYERS)).unwrap_or(0);
     (count > 1).then(|| GroupCount {
         count: u32::try_from(count).unwrap_or(u32::MAX),
-        layers: Layers(layers),
+        layers: StackLayers(layers),
     })
 }
 
@@ -69,7 +69,7 @@ pub fn app_label(app: &AppRef, entry_name: Option<&str>) -> String {
 #[cfg(test)]
 mod tests {
     use super::{Age, age, age_label, app_label, group_count};
-    use ds::{GroupCount, Layers};
+    use ds::{GroupCount, StackLayers};
     use sill_services::{AppRef, IconRef, UnixMs};
 
     #[test]
@@ -108,7 +108,7 @@ mod tests {
         let group = |count, layers| {
             Some(GroupCount {
                 count,
-                layers: Layers(layers),
+                layers: StackLayers(layers),
             })
         };
         let cases = [

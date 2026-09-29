@@ -6,7 +6,7 @@
 use dioxus::prelude::*;
 use ds::detail::FirstShow;
 use ds::{
-    Availability, Fraction, Icon, RowDisc, RowPhase, RowTrailing, RowWork, SettingsRow, Text,
+    Availability, Fraction, Icon, RowDisc, RowPhase, RowTrailing, RowWork, SettingsRow, TextLine,
 };
 use sill_services::Percent;
 
@@ -45,10 +45,10 @@ pub(crate) fn RowList<T: Clone + PartialEq + 'static>(
     first: FirstShow,
     onpick: EventHandler<T>,
 ) -> Element {
-    let items: Vec<(RowSpec<T>, Option<Text>)> = rows
+    let items: Vec<(RowSpec<T>, Option<TextLine>)> = rows
         .into_iter()
         .map(|row| {
-            let detail = (!row.detail.is_empty()).then(|| Text::from(row.detail.clone()));
+            let detail = (!row.detail.is_empty()).then(|| TextLine::from(row.detail.clone()));
             (row, detail)
         })
         .collect();

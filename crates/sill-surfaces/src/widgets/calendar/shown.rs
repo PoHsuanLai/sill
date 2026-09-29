@@ -195,7 +195,7 @@ mod tests {
             }
         );
         assert_eq!(data.title.plain_text(), "September");
-        let heads: Vec<String> = data.heads.iter().map(ds::Text::plain_text).collect();
+        let heads: Vec<String> = data.heads.iter().map(ds::TextLine::plain_text).collect();
         assert_eq!(heads, ["S", "M", "T", "W", "T", "F", "S"]);
         assert_eq!(data.weeks.len(), grid.weeks.len());
         let days: Vec<&ds::MonthDay> = data.weeks.iter().flat_map(|w| w.days.iter()).collect();

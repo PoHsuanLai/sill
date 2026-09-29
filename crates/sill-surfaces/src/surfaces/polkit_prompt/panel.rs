@@ -11,7 +11,7 @@
 //! wrapper that hears the keys' modifiers, since quire's sheet floats in the root's overlay host.
 
 use dioxus::prelude::*;
-use ds::{BlurState, CapsLock, Ds, Material, PolkitPrompt, RootExtent, Text};
+use ds::{BlurState, CapsLock, Ds, Material, PolkitPrompt, RootExtent, TextLine};
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_services::auth::Secret;
 use sill_services::polkit_agent::{Cookie, PolkitCommand};
@@ -84,8 +84,8 @@ fn prompt(
     rsx! {
         PolkitPrompt {
             key: "{key}",
-            action: Text::from(view.action),
-            detail: view.detail.map(Text::from),
+            action: TextLine::from(view.action),
+            detail: view.detail.map(TextLine::from),
             user: view.user,
             state: view.state,
             caps,

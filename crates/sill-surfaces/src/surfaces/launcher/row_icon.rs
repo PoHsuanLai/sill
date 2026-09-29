@@ -7,7 +7,7 @@
 
 use std::path::{Path, PathBuf};
 
-use ds::{ExternalIcon, IconSize, IconSource, IconUrl, Tile};
+use ds::{ExternalIcon, IconSize, IconSource, IconUrl, MenuTile};
 use sill_launcher::{IconRef, Item};
 
 use crate::app_icons::{IconContext, LogicalPx, pick, theme_art};
@@ -44,21 +44,21 @@ fn symbolic(path: &Path) -> bool {
 }
 
 /// `item`'s tile for `art` in `cx`.
-pub fn row_tile(item: &Item, art: RowArt, cx: &IconContext) -> Tile {
+pub fn row_tile(item: &Item, art: RowArt, cx: &IconContext) -> MenuTile {
     let px = pick(ROW_ICON, cx.scale);
     let file = match art {
         RowArt::Glyph => None,
         RowArt::Symbolic(path) => {
-            return external(&path).map_or(Tile::Icon(glyph(item)), |e| {
-                Tile::Source(IconSource::Symbolic(e))
+            return external(&path).map_or(MenuTile::Icon(glyph(item)), |e| {
+                MenuTile::Source(IconSource::Symbolic(e))
             });
         }
         RowArt::Themed(path) => Some(cx.resolver.path(&theme_art(&path, px, cx.look))),
     };
     file.as_deref()
         .and_then(external)
-        .map_or(Tile::Icon(glyph(item)), |e| {
-            Tile::Source(IconSource::Image(e))
+        .map_or(MenuTile::Icon(glyph(item)), |e| {
+            MenuTile::Source(IconSource::Image(e))
         })
 }
 
@@ -75,7 +75,7 @@ mod tests {
     use crate::app_icons::cache::Generation;
     use crate::app_icons::{IconContext, IconLook, IconResolver};
     use ds::icon::{IconStyle, Tint};
-    use ds::{Icon, IconSource, Scale, Tile};
+    use ds::{Icon, IconSource, MenuTile, Scale};
     use sill_launcher::{IconRef, Item, ItemId, ProviderKind, Score};
     use std::path::PathBuf;
 
@@ -145,8 +145,8 @@ mod tests {
             },
         };
         let item = row(ProviderKind::Apps, "x", IconRef::None);
-        let url = |tile: Tile| match tile {
-            Tile::Source(IconSource::Image(e)) => e.url.as_str().to_owned(),
+        let url = |tile: MenuTile| match tile {
+            MenuTile::Source(IconSource::Image(e)) => e.url.as_str().to_owned(),
             other => panic!("{other:?}"),
         };
         let themed = row_tile(
@@ -157,7 +157,7 @@ mod tests {
         assert_eq!(url(themed), "file:///i/f.svg");
         assert_eq!(
             row_tile(&item, RowArt::Glyph, &cx(IconStyle::Muted, 120)),
-            Tile::Icon(Icon::Grid)
+            MenuTile::Icon(Icon::Grid)
         );
     }
 }

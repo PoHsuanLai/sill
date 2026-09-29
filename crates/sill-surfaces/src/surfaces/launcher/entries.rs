@@ -11,8 +11,8 @@
 use std::path::Path;
 
 use ds::{
-    Availability, ExternalIcon, Icon, IconSize, IconSource, IconUrl, MenuEntry, RowChord, Shortcut,
-    Tile, Trail,
+    Availability, ExternalIcon, Icon, IconSize, IconSource, IconUrl, MenuEntry, MenuTile,
+    MenuTrail, RowChord, Shortcut,
 };
 use sill_launcher::{Action, ActionId, IconRef, Item, ItemId, ProviderKind};
 
@@ -53,7 +53,7 @@ pub fn action_entries(actions: &[Action]) -> Vec<MenuEntry<ActionId>> {
             title: action.label.clone(),
             detail: None,
             tile: None,
-            trail: action_shortcut(&action.keys).map_or(Trail::None, Trail::Shortcut),
+            trail: action_shortcut(&action.keys).map_or(MenuTrail::None, MenuTrail::Shortcut),
             check: None,
             availability: Availability::Enabled,
         })
@@ -69,17 +69,17 @@ pub(crate) fn row_chord(item: &Item) -> RowChord {
         .find_map(|action| action_shortcut(&action.keys));
     let keys = match (first, item.actions.is_empty()) {
         (Some(chord), _) => chord,
-        (None, false) => Shortcut(vec![ds::Key::Ctrl, ds::Key::Char('k')]),
-        (None, true) => Shortcut(vec![ds::Key::Enter]),
+        (None, false) => Shortcut(vec![ds::ShortcutKey::Ctrl, ds::ShortcutKey::Char('k')]),
+        (None, true) => Shortcut(vec![ds::ShortcutKey::Enter]),
     };
     RowChord::on_selected(keys)
 }
 
 /// Only data trails a row: its kind in a mixed group, else nothing.
-pub(crate) fn kind_trail(item: &Item, mix: Mix) -> Trail {
+pub(crate) fn kind_trail(item: &Item, mix: Mix) -> MenuTrail {
     match mix {
-        Mix::Mixed => Trail::Note(kind_note(item.provider).to_owned()),
-        Mix::Single => Trail::None,
+        Mix::Mixed => MenuTrail::Note(kind_note(item.provider).to_owned()),
+        Mix::Single => MenuTrail::None,
     }
 }
 
@@ -99,10 +99,12 @@ pub(crate) fn kind_note(kind: ProviderKind) -> &'static str {
 }
 
 /// The row's tile: its resolved icon file, else its glyph.
-pub fn tile(item: &Item) -> Tile {
+pub fn tile(item: &Item) -> MenuTile {
     match &item.icon {
-        IconRef::File(path) => file_icon(path).map_or(Tile::Icon(glyph(item)), Tile::Source),
-        IconRef::Glyph(_) | IconRef::None => Tile::Icon(glyph(item)),
+        IconRef::File(path) => {
+            file_icon(path).map_or(MenuTile::Icon(glyph(item)), MenuTile::Source)
+        }
+        IconRef::Glyph(_) | IconRef::None => MenuTile::Icon(glyph(item)),
     }
 }
 
@@ -173,7 +175,7 @@ mod tests {
     use super::{RowRef, glyph, kebab, kind_trail, named, row_chord, tile};
     use crate::surfaces::launcher::chord_keys::shortcut;
     use crate::surfaces::launcher::groups::Mix;
-    use ds::{ChordShown, Icon, RowChord, Shortcut, Trail};
+    use ds::{ChordShown, Icon, MenuTrail, RowChord, Shortcut};
     use sill_launcher::{
         Action, ActionId, ActionKeys, IconRef, Item, ItemId, ProviderKind, Score, chords,
     };
@@ -202,8 +204,11 @@ mod tests {
     /// in a mixed section.
     #[test]
     fn rows_carry_their_chord_for_the_selection_and_only_data_trails() {
-        let enter = RowChord::on_selected(Shortcut(vec![ds::Key::Enter]));
-        let ctrl_k = RowChord::on_selected(Shortcut(vec![ds::Key::Ctrl, ds::Key::Char('k')]));
+        let enter = RowChord::on_selected(Shortcut(vec![ds::ShortcutKey::Enter]));
+        let ctrl_k = RowChord::on_selected(Shortcut(vec![
+            ds::ShortcutKey::Ctrl,
+            ds::ShortcutKey::Char('k'),
+        ]));
         let firefox = item(ProviderKind::Apps, "Firefox", 2);
         let mail = item(ProviderKind::Windows, "Mail", 0);
         assert_eq!(row_chord(&firefox), ctrl_k);
@@ -215,13 +220,13 @@ mod tests {
         );
         assert_eq!(
             kind_trail(&firefox, Mix::Mixed),
-            Trail::Note("Application".to_owned())
+            MenuTrail::Note("Application".to_owned())
         );
         assert_eq!(
             kind_trail(&mail, Mix::Mixed),
-            Trail::Note("Window".to_owned())
+            MenuTrail::Note("Window".to_owned())
         );
-        assert_eq!(kind_trail(&firefox, Mix::Single), Trail::None);
+        assert_eq!(kind_trail(&firefox, Mix::Single), MenuTrail::None);
     }
 
     #[test]
@@ -238,7 +243,7 @@ mod tests {
     fn rows_carry_their_identity_and_glyph() {
         let lock = item(ProviderKind::System, "Lock", 0);
         assert_eq!(RowRef::of(&lock).id, lock.id);
-        assert_eq!(tile(&lock), ds::Tile::Icon(Icon::Power));
+        assert_eq!(tile(&lock), ds::MenuTile::Icon(Icon::Power));
     }
 
     #[test]
@@ -258,12 +263,14 @@ mod tests {
 
     #[test]
     fn a_resolved_icon_file_is_the_rows_tile() {
-        use ds::{IconSize, IconSource, Tile};
+        use ds::{IconSize, IconSource, MenuTile};
         let mut app = item(ProviderKind::Apps, "Firefox", 0);
-        let word = |tile: Tile| match tile {
-            Tile::Source(IconSource::Image(e)) => format!("image {} {:?}", e.url.as_str(), e.size),
-            Tile::Source(IconSource::Symbolic(e)) => format!("symbolic {}", e.url.as_str()),
-            Tile::Icon(icon) => format!("glyph {icon:?}"),
+        let word = |tile: MenuTile| match tile {
+            MenuTile::Source(IconSource::Image(e)) => {
+                format!("image {} {:?}", e.url.as_str(), e.size)
+            }
+            MenuTile::Source(IconSource::Symbolic(e)) => format!("symbolic {}", e.url.as_str()),
+            MenuTile::Icon(icon) => format!("glyph {icon:?}"),
             other => format!("{other:?}"),
         };
         assert_eq!(

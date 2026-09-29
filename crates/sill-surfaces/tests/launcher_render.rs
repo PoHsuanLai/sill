@@ -6,7 +6,7 @@ mod launcher_harness;
 
 use std::time::Duration;
 
-use ds::Key;
+use ds::ShortcutKey;
 use launcher_harness::{open, selected_title, titles};
 
 fn headings(html: &str) -> Vec<String> {
@@ -72,7 +72,7 @@ fn only_the_selected_row_shows_its_chord() {
     assert_eq!(h.count(".ds-menu-item .ds-kbd"), 0, "no key caps on a row");
     let top = h.text_of(".ds-chord").expect("the top hit's chord");
     assert!(!top.is_empty(), "the top hit's chord");
-    open.harness.key(Key::Down);
+    open.harness.key(ShortcutKey::Down);
     open.harness.advance(Duration::from_millis(40));
     let h = &open.harness;
     assert_eq!(selected_title(h).as_deref(), Some("Files"));

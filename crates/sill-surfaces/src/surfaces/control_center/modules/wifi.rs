@@ -4,7 +4,7 @@
 //! `use_service::<NetworkService>`; sends `WifiCommand::Radio`.
 
 use dioxus::prelude::*;
-use ds::{Availability, Chevron, ModuleState, ModuleTile, StatusState, Text, WifiState};
+use ds::{Availability, Chevron, ModuleState, ModuleTile, StatusState, TextLine, WifiState};
 use sill_services::{Network, Presence, Radio, Wifi, WifiCommand, WifiService};
 
 use crate::hooks::{use_control, use_service};
@@ -25,7 +25,7 @@ pub fn WifiModule(on_detail: EventHandler<Detail>) -> Element {
         ModuleTile {
             glyph: StatusState::Wifi(wifi_tile_state(&wifi, &network)),
             title: "Wi-Fi",
-            status: Some(Text::from(wifi_status(&wifi, &network))),
+            status: Some(TextLine::from(wifi_status(&wifi, &network))),
             state,
             chevron: Chevron::Detail,
             availability: radio_availability(&wifi),

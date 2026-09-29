@@ -6,7 +6,7 @@
 //! Status lines are `MenuEntry::Info` rows: an item's weight without the header's eyebrow,
 //! never a choice (quire's bar gaps).
 
-use ds::{Check, MenuEntry, Trail};
+use ds::{Check, MenuEntry, MenuTrail};
 use sill_launcher::WindowKey;
 use sill_services::{AppIndex, OutputName, Toplevels, match_app};
 
@@ -132,7 +132,7 @@ fn item(title: String, value: BarPick, check: Option<Check>) -> MenuEntry<BarPic
         title,
         detail: None,
         tile: None,
-        trail: Trail::None,
+        trail: MenuTrail::None,
         check,
         availability: ds::Availability::Enabled,
     }

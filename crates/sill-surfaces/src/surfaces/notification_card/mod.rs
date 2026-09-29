@@ -20,7 +20,7 @@ pub use parts::{CardPart, part_id};
 pub use view::{use_app_mark, wall_now};
 
 use dioxus::prelude::*;
-use ds::{Hover, Swipe};
+use ds::{Hover, NotificationSwipe};
 use sill_services::{ActionKey, Href, Notification, UnixMs};
 
 /// Where the card is drawn: a banner paints the Toast material (ink on paper under
@@ -54,7 +54,7 @@ pub fn NoteCard(
     place: CardPlace,
     now: UnixMs,
     #[props(default)] id: Option<String>,
-    #[props(default)] swipe: Swipe,
+    #[props(default)] swipe: NotificationSwipe,
     #[props(default)] on_hover: Option<EventHandler<Hover>>,
     on_press: EventHandler<CardPress>,
 ) -> Element {

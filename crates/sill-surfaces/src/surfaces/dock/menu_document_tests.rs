@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::{Alpha, Appearance, Availability, MaterialStack, MenuEntry, ShellMetrics, Trail};
+use ds::{Alpha, Appearance, Availability, MaterialStack, MenuEntry, MenuTrail, ShellMetrics};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_launcher::WindowKey;
 use sill_services::Cpx;
@@ -29,7 +29,7 @@ fn item(window: u64, title: &str) -> MenuEntry<DockPick> {
         title: title.to_owned(),
         detail: None,
         tile: None,
-        trail: Trail::None,
+        trail: MenuTrail::None,
         check: None,
         availability: Availability::Enabled,
     }

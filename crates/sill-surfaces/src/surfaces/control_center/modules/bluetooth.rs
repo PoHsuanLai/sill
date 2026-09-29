@@ -4,7 +4,7 @@
 //! `BluetoothCommand::Power`, asking first before off ([`super::bluetooth_ask`]).
 
 use dioxus::prelude::*;
-use ds::{Availability, Chevron, ModuleState, ModuleTile, StatusState, Text};
+use ds::{Availability, Chevron, ModuleState, ModuleTile, StatusState, TextLine};
 use sill_services::{Bluetooth, BtPower, Presence};
 
 use crate::hooks::use_service;
@@ -25,7 +25,7 @@ pub fn BluetoothModule(on_detail: EventHandler<Detail>) -> Element {
         ModuleTile {
             glyph: StatusState::Bluetooth(bluetooth_glyph_state(&bluetooth)),
             title: "Bluetooth",
-            status: Some(Text::from(bluetooth_tile_status(&bluetooth))),
+            status: Some(TextLine::from(bluetooth_tile_status(&bluetooth))),
             state,
             chevron: Chevron::Detail,
             availability: adapter_availability(&bluetooth),

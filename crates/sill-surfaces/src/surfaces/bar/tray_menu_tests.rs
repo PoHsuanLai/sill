@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::{Availability, MenuEntry, Trail};
+use ds::{Availability, MenuEntry, MenuTrail};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 
 use super::{POPUP_WIDTH, TrayMenuDocument};
@@ -23,7 +23,7 @@ fn entry(id: i32, title: &str) -> MenuEntry<i32> {
         title: title.to_owned(),
         detail: None,
         tile: None,
-        trail: Trail::None,
+        trail: MenuTrail::None,
         check: None,
         availability: Availability::Enabled,
     }

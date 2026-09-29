@@ -6,7 +6,7 @@
 use dioxus::prelude::*;
 use ds::{
     Availability, Fraction, IconSource, LevelControl, LevelLook, LevelMode, LevelSource,
-    ModulePanel, Text, Tick,
+    ModulePanel, TextLine, Tick,
 };
 
 use super::modules::use_plate;
@@ -31,7 +31,7 @@ pub fn LevelModule(
     rsx! {
         ModulePanel {
             glyph: Some(glyph),
-            title: Text::from(&title),
+            title: TextLine::from(&title),
             trailing: rsx! { "{percent}%" },
             plate: use_plate(),
             availability,

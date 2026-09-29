@@ -365,13 +365,13 @@ mod tests {
 
     #[test]
     fn choices_are_numbered_over_items_only() {
-        use ds::{Availability, MenuEntry, Trail};
+        use ds::{Availability, MenuEntry, MenuTrail};
         let entry = |pick: BarPick, availability| MenuEntry::Item {
             value: pick,
             title: String::new(),
             detail: None,
             tile: None,
-            trail: Trail::None,
+            trail: MenuTrail::None,
             check: None,
             availability,
         };

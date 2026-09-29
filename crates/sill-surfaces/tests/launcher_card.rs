@@ -4,7 +4,7 @@
 
 mod launcher_harness;
 
-use ds::Key;
+use ds::ShortcutKey;
 use launcher_harness::{open, settle};
 use sill_surfaces::surfaces::launcher::hit::PanelHit;
 use sill_surfaces::surfaces::launcher::{CARD_ID, LauncherKey, PANEL_HEIGHT};
@@ -68,7 +68,7 @@ fn more_rows_grow_the_card_and_the_actions_menu_takes_the_panel() {
         PanelHit::Whole,
         "the menu may hang below the card"
     );
-    long.harness.key(Key::Escape);
+    long.harness.key(ShortcutKey::Escape);
     settle(&mut long.harness, |h| h.count(".ds-popover") == 0);
     measured(&mut long);
     assert_eq!(

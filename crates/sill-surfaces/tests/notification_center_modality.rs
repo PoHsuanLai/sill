@@ -8,7 +8,7 @@
 mod center_support;
 
 use center_support::{opened, two_apps};
-use ds::Key;
+use ds::ShortcutKey;
 use ds_native::Harness;
 
 fn modality(harness: &Harness) -> Option<String> {
@@ -23,7 +23,7 @@ fn a_key_turns_the_centers_ring_on_and_a_press_turns_it_off() {
         Some("pointer"),
         "at first"
     );
-    running.harness.key(Key::Tab);
+    running.harness.key(ShortcutKey::Tab);
     running.advance(20);
     assert!(
         running.harness.is_focused(".ds-button"),

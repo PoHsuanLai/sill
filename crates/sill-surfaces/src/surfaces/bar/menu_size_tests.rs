@@ -7,8 +7,8 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{
-    Anchor, Appearance, Availability, Ds, Material, Menu, MenuEntrance, MenuEntry, MenuKind, Point,
-    Px, Trail,
+    Anchor, Appearance, Availability, Ds, Material, Menu, MenuEntrance, MenuEntry, MenuKind,
+    MenuTrail, Point, Px,
 };
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 
@@ -27,7 +27,7 @@ fn item(title: &str) -> MenuEntry<u8> {
         title: title.to_owned(),
         detail: None,
         tile: None,
-        trail: Trail::None,
+        trail: MenuTrail::None,
         check: None,
         availability: Availability::Enabled,
     }

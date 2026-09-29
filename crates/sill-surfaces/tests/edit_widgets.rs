@@ -444,7 +444,7 @@ fn escape_closes_after_a_press_inside_the_panel() {
             ),
         }
         run.harness.advance(Duration::from_millis(100));
-        run.harness.key(ds::Key::Escape);
+        run.harness.key(ds::ShortcutKey::Escape);
         run.harness.advance(Duration::from_millis(50));
         assert_eq!(run.edit.now(), EditShown::Closed, "after {then:?}");
         settle_until(&mut run.harness, |h| h.count(".ds-panel") == 0);

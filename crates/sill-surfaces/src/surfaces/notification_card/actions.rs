@@ -3,7 +3,7 @@
 //! keep their press.
 
 use dioxus::prelude::*;
-use ds::{CardAction, Text};
+use ds::{CardAction, TextLine};
 use sill_services::{Action, Notification};
 
 use super::CardPress;
@@ -19,7 +19,7 @@ pub fn card_actions(note: &Notification, on_press: EventHandler<CardPress>) -> V
 fn card_action(action: Action, on_press: EventHandler<CardPress>) -> CardAction {
     let Action { key, label } = action;
     CardAction {
-        label: Text::from(label),
+        label: TextLine::from(label),
         on_press: EventHandler::new(move |_| on_press.call(CardPress::Action(key.clone()))),
     }
 }

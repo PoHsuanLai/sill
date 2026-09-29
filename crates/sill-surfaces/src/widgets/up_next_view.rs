@@ -5,7 +5,7 @@
 //! builds it); it has no controls.
 
 use dioxus::prelude::*;
-use ds::{Icon, LabelHue, NoIntent, Text, WidgetContext, WidgetHost, WidgetSize, WidgetTitle};
+use ds::{Icon, LabelHue, NoIntent, TextLine, WidgetContext, WidgetHost, WidgetSize, WidgetTitle};
 use serde::{Deserialize, Serialize};
 
 use super::up_next::EVENT_ROWS;
@@ -64,12 +64,12 @@ impl ds::Widget for UpNext {
         ds::WidgetKind::fixed("sill.up-next")
     }
 
-    fn name() -> Text {
-        Text::from("Up Next")
+    fn name() -> TextLine {
+        TextLine::from("Up Next")
     }
 
-    fn description() -> Text {
-        Text::from("See your next events from your calendars.")
+    fn description() -> TextLine {
+        TextLine::from("See your next events from your calendars.")
     }
 
     fn sizes() -> &'static [WidgetSize] {

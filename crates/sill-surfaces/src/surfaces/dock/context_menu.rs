@@ -7,7 +7,7 @@
 //! the same, then Keep in Dock and Show in Files in an `Options` submenu, Hide and Quit. Open
 //! at Login is not offered: writing `~/.config/autostart` is a service sill does not have yet.
 
-use ds::{Availability, Check, MenuEntry, Trail};
+use ds::{Availability, Check, MenuEntry, MenuTrail};
 use sill_launcher::AppId;
 use sill_services::{Activity, App, AppIndex, Toplevel, Toplevels, WindowState, match_app};
 use sill_settings::DockMenuOrder;
@@ -256,7 +256,7 @@ fn row_entry(
         title,
         detail: None,
         tile: None,
-        trail: Trail::None,
+        trail: MenuTrail::None,
         check,
         availability: Availability::Enabled,
     })
