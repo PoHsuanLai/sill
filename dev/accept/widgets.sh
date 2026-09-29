@@ -103,6 +103,7 @@ if [ "$MODE" = real ]; then
   INPUT_TICKS=200
 fi
 scratch_new
+trap scratch_drop EXIT
 
 # --- nested compositor ---
 

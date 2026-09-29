@@ -39,6 +39,7 @@ SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
 
 scratch_new
+trap scratch_drop EXIT
 CAL="$SCRATCH/calendars"
 mkdir -p "$CAL"
 

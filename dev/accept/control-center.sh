@@ -104,6 +104,7 @@ if [ "$MODE" = real ]; then
   INPUT_TICKS=400
 fi
 scratch_new
+trap scratch_drop EXIT
 STANDINS="$SCRATCH/bin"
 RECORD="$SCRATCH/power-menu.record"
 BTLOG="$SCRATCH/bluez.powered"
