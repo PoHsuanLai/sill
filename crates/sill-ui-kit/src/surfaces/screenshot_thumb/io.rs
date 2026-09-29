@@ -2,13 +2,17 @@
 //! quire's timer (`ds::sleep`, for `screenshot.thumbnail_hold_ms` or the banners' rest after a
 //! hover, never a literal), one at a time and a task of the thumbnail's own scope; `Show` maps
 //! the surface, `Hide` unmaps it, `Leave` tells the service; a drag out is a task of the same
-//! scope awaiting shell-host's outcome. While hidden no task runs.
+//! scope awaiting shell-host's outcome. `TakeKeyboard` asks the compositor for the keyboard
+//! (`Exclusive`, the one mode that takes it without a click), marks the seat's modality as the
+//! keyboard's so quire's focus ring shows before the first key, and focuses the picture;
+//! `ReleaseKeyboard` sets the mode back to `None`. While hidden no task runs.
 
 use std::time::Duration;
 
 use dioxus::core::{Runtime, ScopeId, Task, current_scope_id};
 use dioxus::prelude::*;
-use shell_host::{SurfaceHandle, SurfaceOp, Visibility};
+use ds::{FocusError, HostSignals, InputModality, Select, focus_by_selector};
+use shell_host::{KeyboardMode, SurfaceHandle, SurfaceOp, Visibility};
 use sill_model::screenshots::{ShotCommand, ShotId};
 use sill_services::Control;
 
@@ -17,6 +21,9 @@ use super::ghost::GhostLook;
 use super::picture::ThumbPicture;
 use super::step::{DragEnd, ThumbExit, ThumbIn, ThumbOut, ThumbParams, ThumbState, step};
 
+/// The card's press target, the element the keyboard lands on (quire's `ShotThumbnail`).
+const PICTURE: &str = ".ds-shot-picture";
+
 /// Everything the thumbnail's handlers share. Copy: signals and cells only.
 #[derive(Clone, Copy)]
 pub(super) struct Thumb {
@@ -24,6 +31,7 @@ pub(super) struct Thumb {
     params: CopyValue<ThumbParams>,
     control: CopyValue<Control<ShotCommand>>,
     surface: CopyValue<Option<SurfaceHandle>>,
+    signals: CopyValue<Option<HostSignals>>,
     hold: CopyValue<Option<Task>>,
     scope: ScopeId,
 }
@@ -96,6 +104,32 @@ impl Thumb {
                 self.stop_hold();
                 self.visibility(Visibility::Hidden);
             }
+            ThumbOut::TakeKeyboard => self.take_keyboard(),
+            ThumbOut::ReleaseKeyboard => self.keyboard(KeyboardMode::None),
+        }
+    }
+
+    /// The keyboard on the picture, its focus ring drawn (the ask came from a shortcut, so the
+    /// person is on the keyboard, though the seat has seen no key yet).
+    fn take_keyboard(self) {
+        self.keyboard(KeyboardMode::Exclusive);
+        if let Some(mut modality) = (*self.signals.peek()).map(|signals| signals.modality) {
+            modality.set(InputModality::Keyboard);
+        }
+        Runtime::current().in_scope(self.scope, || {
+            spawn(async move {
+                let landed = focus_by_selector(PICTURE, Select::None).await;
+                if let Err(error @ (FocusError::Busy | FocusError::Refused { .. })) = landed {
+                    eprintln!("sill: screenshot thumbnail focus: {error}");
+                }
+            })
+        });
+    }
+
+    /// Set the surface's keyboard mode; nothing without a host (a test, an SSR render).
+    fn keyboard(self, mode: KeyboardMode) {
+        if let Some(surface) = self.surface.peek().as_ref() {
+            surface.apply(SurfaceOp::SetKeyboard(mode));
         }
     }
 
@@ -117,11 +151,13 @@ impl Thumb {
 /// The thumbnail's shared state, its timers owned by the calling component's scope.
 pub(super) fn use_thumb(params: ThumbParams, control: Control<ShotCommand>) -> Thumb {
     let surface = try_use_context::<SurfaceHandle>();
+    let signals = try_use_context::<HostSignals>();
     let thumb = use_hook(|| Thumb {
         state: Signal::new(ThumbState::Hidden),
         params: CopyValue::new(params),
         control: CopyValue::new(control),
         surface: CopyValue::new(surface),
+        signals: CopyValue::new(signals),
         hold: CopyValue::new(None),
         scope: current_scope_id(),
     });

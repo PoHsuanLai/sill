@@ -3,7 +3,7 @@
 //! then says it was kept and plays out; the pointer on it pauses the hold and leaving it gives the
 //! rest; a click opens it; a swipe right keeps it; Delete trashes it; a drag left or up hands it
 //! nowhere yet and it stays; a newer shot replaces it; `screenshot.thumbnail = "hide"` and
-//! another output draw nothing.
+//! another output draw nothing; the keyboard ([`keys`]) is asked for and never taken.
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -16,6 +16,8 @@ use sill_settings::{ScreenshotSettings, ShellFile, ShotThumbnail};
 use sill_ui_kit::ScreenshotThumb;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{BannerLink, BannerOutput};
+
+mod keys;
 
 type Running = SurfaceHarness<ScreenshotThumb>;
 

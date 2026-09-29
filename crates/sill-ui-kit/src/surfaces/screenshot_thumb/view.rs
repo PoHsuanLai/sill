@@ -17,11 +17,12 @@ use super::card::ThumbCard;
 use super::follow::{Here, follow};
 use super::ghost::GhostLook;
 use super::io::use_thumb;
+use super::keys::thumb_key;
 use super::layer::ROOM;
 use super::picture::{ThumbPicture, picture_of};
 use super::step::{ThumbExit, ThumbIn, ThumbParams, ThumbState};
 use crate::hooks::{use_appearance, use_control, use_service, use_settings};
-use crate::links::BannerLink;
+use crate::links::{BannerLink, KeyWhat};
 use crate::look::use_active_look;
 use crate::notification_card::swipe_metrics;
 use crate::root::SurfaceRoot;
@@ -103,6 +104,20 @@ fn Column(
             thumb.input(input);
         }
     }));
+    let keys = use_watch(link.subscribe_keys());
+    let mut heard = use_hook(|| CopyValue::new(keys.peek().serial));
+    use_effect(move || {
+        let event = *keys.read();
+        if *heard.peek() == event.serial {
+            return;
+        }
+        heard.set(event.serial);
+        match event.what {
+            KeyWhat::Asked => thumb.input(ThumbIn::FocusAsked),
+            KeyWhat::Lost => thumb.input(ThumbIn::FocusLost),
+            KeyWhat::Idle => {}
+        }
+    });
     let banners: Vec<Banner> = match (row_of(*thumb.state.read()), kept.peek().clone()) {
         (Some((id, shown)), Some((kept_id, picture))) if kept_id == id => vec![Banner {
             key: key_of(id),
@@ -113,7 +128,16 @@ fn Column(
         _ => Vec::new(),
     };
     rsx! {
-        div { class: "sill-thumb-column", style: "padding:{ROOM}px;",
+        div {
+            class: "sill-thumb-column",
+            style: "padding:{ROOM}px;",
+            onkeydown: move |event: KeyboardEvent| {
+                if let Some(input) = thumb_key(&event.key()) {
+                    event.prevent_default();
+                    event.stop_propagation();
+                    thumb.input(input);
+                }
+            },
             BannerStack {
                 banners,
                 position: BannerPosition::BottomRight,
@@ -140,7 +164,9 @@ mod tests {
     use sill_model::screenshots::ShotId;
 
     use super::row_of;
-    use crate::surfaces::screenshot_thumb::step::{HoldToken, Pointer, ThumbExit, ThumbState};
+    use crate::surfaces::screenshot_thumb::step::{
+        HoldToken, KeyFocus, Pointer, ThumbExit, ThumbState,
+    };
 
     #[test]
     fn the_row_stays_for_the_cards_own_exit_and_goes_for_a_swipe() {
@@ -153,6 +179,7 @@ mod tests {
                 ThumbState::Shown {
                     id,
                     pointer: Pointer::Dragging,
+                    keys: KeyFocus::Away,
                     token,
                 },
                 Some((id, Shown::Visible)),

@@ -3,7 +3,8 @@
 use sill_model::screenshots::{ShotId, ShotLeave};
 
 use super::{
-    DragEnd, HoldToken, Pointer, ThumbExit, ThumbIn, ThumbOut, ThumbParams, ThumbState, step,
+    DragEnd, HoldToken, KeyFocus, Pointer, ThumbExit, ThumbIn, ThumbOut, ThumbParams, ThumbState,
+    step,
 };
 
 const P: ThumbParams = ThumbParams {
@@ -14,9 +15,14 @@ const ONE: ShotId = ShotId(1);
 const TWO: ShotId = ShotId(2);
 
 fn shown(id: ShotId, pointer: Pointer, token: u32) -> ThumbState {
+    held(id, pointer, KeyFocus::Away, token)
+}
+
+fn held(id: ShotId, pointer: Pointer, keys: KeyFocus, token: u32) -> ThumbState {
     ThumbState::Shown {
         id,
         pointer,
+        keys,
         token: HoldToken(token),
     }
 }
@@ -203,6 +209,111 @@ fn a_drag_out_pauses_the_hold_until_its_outcome() {
             DragEnded(ONE, DragEnd::Copied),
             shown(ONE, Away, 1),
             vec![],
+        ),
+    ]);
+}
+
+#[test]
+fn the_keyboard_is_asked_for_held_and_given_back_on_every_way_out() {
+    use KeyFocus::{Away as Free, Held};
+    use Pointer::{Away, Over};
+    use ThumbExit::Card;
+    use ThumbIn::*;
+    use ThumbOut::{ReleaseKeyboard, TakeKeyboard};
+    let kept = || ThumbOut::Leave(ONE, ShotLeave::Kept);
+    check(vec![
+        (
+            shown(ONE, Away, 1),
+            FocusAsked,
+            held(ONE, Away, Held, 2),
+            vec![TakeKeyboard],
+        ),
+        (
+            held(ONE, Over, Free, 2),
+            FocusAsked,
+            held(ONE, Over, Held, 3),
+            vec![TakeKeyboard],
+        ),
+        // The hold is paused: the timer that was running is stale.
+        (
+            held(ONE, Away, Held, 2),
+            HoldElapsed(HoldToken(1)),
+            held(ONE, Away, Held, 2),
+            vec![],
+        ),
+        (
+            held(ONE, Away, Held, 2),
+            HoldElapsed(HoldToken(2)),
+            leaving(ONE, 2, Card),
+            vec![ReleaseKeyboard, kept()],
+        ),
+        // The pointer leaving does not restart the hold while the keyboard is held.
+        (
+            held(ONE, Over, Held, 3),
+            PointerLeave,
+            held(ONE, Away, Held, 4),
+            vec![],
+        ),
+        (
+            held(ONE, Away, Held, 2),
+            FocusLost,
+            shown(ONE, Away, 3),
+            vec![ReleaseKeyboard, ThumbOut::StartHold(HoldToken(3), 1500)],
+        ),
+        (
+            held(ONE, Over, Held, 2),
+            FocusLost,
+            shown(ONE, Over, 3),
+            vec![ReleaseKeyboard],
+        ),
+        (shown(ONE, Away, 1), FocusLost, shown(ONE, Away, 1), vec![]),
+        (ThumbState::Hidden, FocusAsked, ThumbState::Hidden, vec![]),
+        (
+            leaving(ONE, 2, Card),
+            FocusAsked,
+            leaving(ONE, 2, Card),
+            vec![],
+        ),
+        (
+            held(ONE, Away, Held, 2),
+            Click,
+            leaving(ONE, 2, Card),
+            vec![ReleaseKeyboard, ThumbOut::Leave(ONE, ShotLeave::Opened)],
+        ),
+        (
+            held(ONE, Away, Held, 2),
+            TrashPressed,
+            leaving(ONE, 2, Card),
+            vec![ReleaseKeyboard, ThumbOut::Leave(ONE, ShotLeave::Trashed)],
+        ),
+        (
+            held(ONE, Away, Held, 2),
+            Dismissed,
+            leaving(ONE, 2, Card),
+            vec![ReleaseKeyboard, kept()],
+        ),
+        (
+            shown(ONE, Over, 2),
+            Dismissed,
+            leaving(ONE, 2, Card),
+            vec![kept()],
+        ),
+        (
+            held(ONE, Away, Held, 2),
+            Current(None),
+            leaving(ONE, 2, Card),
+            vec![ReleaseKeyboard],
+        ),
+        // A newer shot takes the card and the keyboard goes back: it never follows a shot.
+        (
+            held(ONE, Away, Held, 2),
+            Current(Some(TWO)),
+            shown(TWO, Away, 3),
+            vec![
+                ReleaseKeyboard,
+                ThumbOut::Show(TWO),
+                ThumbOut::StartHold(HoldToken(3), 5200),
+            ],
         ),
     ]);
 }

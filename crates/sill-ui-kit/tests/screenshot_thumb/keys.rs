@@ -1,0 +1,162 @@
+//! The thumbnail's keyboard: it appears without taking focus; `sill focus-latest` (the banners'
+//! link asks) gives it the keyboard, pauses the hold, and then Enter and Space open it, Delete
+//! and Backspace trash it, Escape dismisses it and Tab moves between its buttons.
+
+use std::time::Duration;
+
+use ds::ShortcutKey;
+use sill_model::screenshots::ShotLeave;
+use sill_settings::ShellFile;
+
+use super::{Done, HOLD_MS, Running, commands, file, leave, leaving, one_up, start, until};
+
+const PICTURE: &str = ".ds-shot-picture";
+const ACTION: &str = ".ds-shot-actions .ds-icon-button";
+
+/// The card up, then the keyboard asked for and given a few frames to land.
+fn focused(running: &mut Running) {
+    one_up(running);
+    running.link.ask_keyboard();
+    running.harness.advance(Duration::from_millis(200));
+    assert!(
+        running.harness.is_focused(PICTURE),
+        "the picture has the keyboard"
+    );
+}
+
+fn modality(running: &Running) -> Option<String> {
+    running.harness.attr(".ds", "data-modality")
+}
+
+#[test]
+fn it_appears_without_the_keyboard_and_keys_do_nothing_until_it_is_asked_for() {
+    let mut running = start(file());
+    one_up(&mut running);
+    assert!(!running.harness.is_focused(PICTURE), "no focus on appear");
+    assert_ne!(
+        modality(&running).as_deref(),
+        Some("keyboard"),
+        "no ring yet"
+    );
+    for key in [ShortcutKey::Enter, ShortcutKey::Delete, ShortcutKey::Escape] {
+        running.harness.key(key);
+        running.harness.advance(Duration::from_millis(40));
+    }
+    assert_eq!(
+        commands(&mut running),
+        Vec::new(),
+        "no key reached the card"
+    );
+    assert_eq!(leaving(&running), 0);
+}
+
+#[test]
+fn asking_for_the_keyboard_focuses_the_picture_with_its_ring() {
+    let mut running = start(file());
+    focused(&mut running);
+    assert_eq!(
+        modality(&running).as_deref(),
+        Some("keyboard"),
+        "the ring shows"
+    );
+}
+
+#[test]
+fn the_hold_pauses_while_the_keyboard_is_held_and_resumes_when_it_is_lost() {
+    let mut running = start(file());
+    focused(&mut running);
+    running
+        .harness
+        .advance(Duration::from_millis(HOLD_MS + 800));
+    assert_eq!(leaving(&running), 0, "paused past the hold");
+    assert_eq!(commands(&mut running), Vec::new());
+    running.link.keyboard_lost();
+    let rest = u64::from(ShellFile::default().notifications.hover_min_remaining_ms.0);
+    running.harness.advance(Duration::from_millis(rest - 300));
+    assert_eq!(leaving(&running), 0, "the rest after the keyboard goes");
+    assert_eq!(
+        until(&mut running, Duration::from_millis(900), |r| leaving(r)
+            == 1),
+        Done::Yes
+    );
+    assert_eq!(commands(&mut running), leave(1, ShotLeave::Kept));
+}
+
+#[test]
+fn enter_and_space_open_it() {
+    for key in [ShortcutKey::Enter, ShortcutKey::Space] {
+        let mut running = start(file());
+        focused(&mut running);
+        running.harness.key(key);
+        running.harness.advance(Duration::from_millis(40));
+        assert_eq!(
+            commands(&mut running),
+            leave(1, ShotLeave::Opened),
+            "{key:?}"
+        );
+        assert_eq!(leaving(&running), 1, "{key:?}");
+    }
+}
+
+#[test]
+fn delete_and_backspace_trash_it() {
+    for key in [ShortcutKey::Delete, ShortcutKey::Backspace] {
+        let mut running = start(file());
+        focused(&mut running);
+        running.harness.key(key);
+        running.harness.advance(Duration::from_millis(40));
+        assert_eq!(
+            commands(&mut running),
+            leave(1, ShotLeave::Trashed),
+            "{key:?}"
+        );
+        assert_eq!(leaving(&running), 1, "{key:?}");
+    }
+}
+
+#[test]
+fn escape_dismisses_it_and_keeps_the_file() {
+    let mut running = start(file());
+    focused(&mut running);
+    running.harness.key(ShortcutKey::Escape);
+    running.harness.advance(Duration::from_millis(40));
+    assert_eq!(commands(&mut running), leave(1, ShotLeave::Kept));
+    assert_eq!(leaving(&running), 1, "it slides out");
+}
+
+#[test]
+fn tab_moves_between_the_picture_and_its_button_and_the_card_keys_still_act_there() {
+    let mut running = start(file());
+    focused(&mut running);
+    running.harness.key(ShortcutKey::Tab);
+    running.harness.advance(Duration::from_millis(40));
+    assert!(
+        running.harness.is_focused(ACTION),
+        "Tab reaches the Delete button"
+    );
+    assert!(!running.harness.is_focused(PICTURE));
+    running
+        .harness
+        .chord(&[ShortcutKey::Shift], ShortcutKey::Tab);
+    running.harness.advance(Duration::from_millis(40));
+    assert!(running.harness.is_focused(PICTURE), "Shift+Tab goes back");
+    running.harness.key(ShortcutKey::Tab);
+    running.harness.key(ShortcutKey::Escape);
+    running.harness.advance(Duration::from_millis(40));
+    assert_eq!(
+        commands(&mut running),
+        leave(1, ShotLeave::Kept),
+        "Escape from the button"
+    );
+}
+
+#[test]
+fn a_second_ask_brings_the_keyboard_back_to_the_picture() {
+    let mut running = start(file());
+    focused(&mut running);
+    running.harness.key(ShortcutKey::Tab);
+    running.harness.advance(Duration::from_millis(40));
+    running.link.ask_keyboard();
+    running.harness.advance(Duration::from_millis(200));
+    assert!(running.harness.is_focused(PICTURE));
+}

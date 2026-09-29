@@ -6,6 +6,12 @@
 //! shell-host's drag source ([`drag`]): a copy dismisses it (`Dragged`), a move gives the file away
 //! (`Moved`), a cancel leaves it.
 //!
+//! The card never takes the keyboard on appear. `sill focus-latest` (the launcher's kind of
+//! shortcut, bound in COSMIC) asks for it through the banners' link ([`crate::links::BannerLink`]);
+//! the card then holds the keyboard and its hold pauses, Enter and Space open it, Delete and
+//! Backspace trash it, Escape dismisses it (the file kept), Tab moves between its buttons; every
+//! way out gives the keyboard back ([`step`], [`keys`]).
+//!
 //! One warm Overlay per output, spawned hidden like the banners, shown only on the output the
 //! banners' `BannerLink` names (the main display's stand-in), following the screenshots service's
 //! `current`. `screenshot.thumbnail = "hide"` keeps it hidden. The pure parts: [`step::step`],
@@ -16,6 +22,7 @@ mod drag;
 mod follow;
 mod ghost;
 mod io;
+mod keys;
 mod layer;
 mod picture;
 mod step;

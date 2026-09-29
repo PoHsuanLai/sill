@@ -11,6 +11,12 @@
 //!   `Leave(id, why)` (the surface tells the service) and the state is `Leaving` while the exit
 //!   plays, the card's own (`ThumbExit::Card`) or, after a swipe, its row's (`ThumbExit::Row`);
 //!   `ExitSettled` hides (`Hide`, the surface unmaps).
+//! - The keyboard is never taken on appear. The shared ask (`FocusAsked`, from `sill focus-latest`)
+//!   gives the card the keyboard (`TakeKeyboard`) and pauses the hold like the pointer does; the
+//!   keys then act as the card's buttons do (Enter and Space open it in quire's card; Delete and
+//!   Backspace are `TrashPressed`; Escape is `Dismissed`: the hold's own leave, the file kept). Every
+//!   way out of `Shown` while the keyboard is held gives it back (`ReleaseKeyboard`), and the
+//!   compositor taking it away (`FocusLost`) gives the hold `rest_ms` again.
 //! - A drag that was cancelled, or never started, leaves the card where it is and gives the
 //!   hold `rest_ms` again.
 //! - The service dropping the current shot (`Current(None)`) while shown leaves without a
@@ -31,6 +37,13 @@ pub enum Pointer {
     Dragging,
 }
 
+/// Whether the card holds the keyboard: only when the person asked for it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum KeyFocus {
+    Away,
+    Held,
+}
+
 /// Which motion carries a leaving card out.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ThumbExit {
@@ -48,6 +61,7 @@ pub enum ThumbState {
     Shown {
         id: ShotId,
         pointer: Pointer,
+        keys: KeyFocus,
         token: HoldToken,
     },
     Leaving {
@@ -94,8 +108,14 @@ pub enum ThumbIn {
     DragStarted(ShotId),
     /// The drag of shot `id` ended.
     DragEnded(ShotId, DragEnd),
-    /// The Delete action.
+    /// The Delete action, or the Delete or Backspace key.
     TrashPressed,
+    /// The Escape key: dismissed like the hold running out, the file kept.
+    Dismissed,
+    /// `sill focus-latest`: the person wants the keyboard on the card.
+    FocusAsked,
+    /// The compositor took the keyboard away.
+    FocusLost,
     /// The exit motion finished.
     ExitSettled,
 }
@@ -111,6 +131,10 @@ pub enum ThumbOut {
     Leave(ShotId, ShotLeave),
     /// Unmap the surface.
     Hide,
+    /// Ask the compositor for the keyboard and put the focus on the card.
+    TakeKeyboard,
+    /// Give the keyboard back to what had it.
+    ReleaseKeyboard,
 }
 
 /// One step.
@@ -120,7 +144,21 @@ pub fn step(state: ThumbState, input: ThumbIn, params: ThumbParams) -> (ThumbSta
             ThumbIn::Current(Some(id)) => show(id, Pointer::Away, HoldToken(1), params),
             _ => (state, Vec::new()),
         },
-        ThumbState::Shown { id, pointer, token } => shown(id, pointer, token, input, params),
+        ThumbState::Shown {
+            id,
+            pointer,
+            keys,
+            token,
+        } => shown(
+            Card {
+                id,
+                pointer,
+                keys,
+                token,
+            },
+            input,
+            params,
+        ),
         ThumbState::Leaving { id, token, .. } => match input {
             ThumbIn::ExitSettled => (ThumbState::Hidden, vec![ThumbOut::Hide]),
             ThumbIn::Current(Some(next)) if next != id => {
@@ -138,7 +176,12 @@ fn show(
     token: HoldToken,
     params: ThumbParams,
 ) -> (ThumbState, Vec<ThumbOut>) {
-    let state = ThumbState::Shown { id, pointer, token };
+    let state = ThumbState::Shown {
+        id,
+        pointer,
+        keys: KeyFocus::Away,
+        token,
+    };
     let outs = match pointer {
         Pointer::Away => vec![
             ThumbOut::Show(id),
@@ -149,68 +192,116 @@ fn show(
     (state, outs)
 }
 
-/// Shown, the pointer away, and `rest_ms` more on the hold.
-fn rested(id: ShotId, token: HoldToken, params: ThumbParams) -> (ThumbState, Vec<ThumbOut>) {
-    let token = next_token(token);
-    let state = ThumbState::Shown {
-        id,
-        pointer: Pointer::Away,
-        token,
-    };
-    (state, vec![ThumbOut::StartHold(token, params.rest_ms)])
-}
-
-fn shown(
+/// The fields of `Shown`, taken apart to be changed together.
+#[derive(Debug, Clone, Copy)]
+struct Card {
     id: ShotId,
     pointer: Pointer,
+    keys: KeyFocus,
     token: HoldToken,
-    input: ThumbIn,
-    params: ThumbParams,
-) -> (ThumbState, Vec<ThumbOut>) {
-    let state = ThumbState::Shown { id, pointer, token };
-    let leave = |why, exit| {
-        (
-            ThumbState::Leaving { id, token, exit },
-            vec![ThumbOut::Leave(id, why)],
-        )
-    };
-    let paused = |pointer| {
-        let token = next_token(token);
-        (ThumbState::Shown { id, pointer, token }, Vec::new())
-    };
+}
+
+impl Card {
+    fn state(self) -> ThumbState {
+        ThumbState::Shown {
+            id: self.id,
+            pointer: self.pointer,
+            keys: self.keys,
+            token: self.token,
+        }
+    }
+
+    fn leaving(self, exit: ThumbExit) -> ThumbState {
+        ThumbState::Leaving {
+            id: self.id,
+            token: self.token,
+            exit,
+        }
+    }
+
+    /// Leaving because of `why`: the service is told, and the keyboard given back if held.
+    fn leave(self, why: ShotLeave, exit: ThumbExit) -> (ThumbState, Vec<ThumbOut>) {
+        let outs = self.releasing([ThumbOut::Leave(self.id, why)]);
+        (self.leaving(exit), outs)
+    }
+
+    /// `outs`, with the keyboard given back first if the card holds it.
+    fn releasing(self, outs: impl IntoIterator<Item = ThumbOut>) -> Vec<ThumbOut> {
+        let release = (self.keys == KeyFocus::Held).then_some(ThumbOut::ReleaseKeyboard);
+        release.into_iter().chain(outs).collect()
+    }
+
+    /// The pointer and keyboard as given, the running timer stale; `rest_ms` more on the hold
+    /// only when neither the pointer nor the keyboard is on the card.
+    fn resumed(
+        self,
+        pointer: Pointer,
+        keys: KeyFocus,
+        params: ThumbParams,
+    ) -> (ThumbState, Vec<ThumbOut>) {
+        let card = Card {
+            pointer,
+            keys,
+            token: next_token(self.token),
+            ..self
+        };
+        let outs = match (pointer, keys) {
+            (Pointer::Away, KeyFocus::Away) => {
+                vec![ThumbOut::StartHold(card.token, params.rest_ms)]
+            }
+            _ => Vec::new(),
+        };
+        (card.state(), outs)
+    }
+}
+
+fn shown(card: Card, input: ThumbIn, params: ThumbParams) -> (ThumbState, Vec<ThumbOut>) {
+    let Card {
+        id,
+        pointer,
+        keys,
+        token,
+    } = card;
+    let resumed = |pointer, keys| card.resumed(pointer, keys, params);
     match (input, pointer) {
         (ThumbIn::Current(Some(next)), _) if next != id => {
-            show(next, pointer, next_token(token), params)
+            let (state, outs) = show(next, pointer, next_token(token), params);
+            (state, card.releasing(outs))
         }
-        (ThumbIn::Current(None), _) => (
-            ThumbState::Leaving {
-                id,
-                token,
-                exit: ThumbExit::Card,
-            },
-            Vec::new(),
-        ),
+        (ThumbIn::Current(None), _) => (card.leaving(ThumbExit::Card), card.releasing([])),
         (ThumbIn::HoldElapsed(elapsed), Pointer::Away) if elapsed == token => {
-            leave(ShotLeave::Kept, ThumbExit::Card)
+            card.leave(ShotLeave::Kept, ThumbExit::Card)
         }
-        (ThumbIn::PointerEnter, Pointer::Away) => paused(Pointer::Over),
-        (ThumbIn::PointerLeave, Pointer::Over) => rested(id, token, params),
+        (ThumbIn::PointerEnter, Pointer::Away) => resumed(Pointer::Over, keys),
+        (ThumbIn::PointerLeave, Pointer::Over) => resumed(Pointer::Away, keys),
         (ThumbIn::DragStarted(dragged), Pointer::Away | Pointer::Over) if dragged == id => {
-            paused(Pointer::Dragging)
+            resumed(Pointer::Dragging, keys)
         }
         (ThumbIn::DragEnded(dragged, end), Pointer::Dragging) if dragged == id => match end {
-            DragEnd::Copied => leave(ShotLeave::Dragged, ThumbExit::Card),
-            DragEnd::Moved => leave(ShotLeave::Moved, ThumbExit::Card),
-            DragEnd::Cancelled | DragEnd::Refused => rested(id, token, params),
+            DragEnd::Copied => card.leave(ShotLeave::Dragged, ThumbExit::Card),
+            DragEnd::Moved => card.leave(ShotLeave::Moved, ThumbExit::Card),
+            DragEnd::Cancelled | DragEnd::Refused => resumed(Pointer::Away, keys),
         },
         // The drag of a shot since replaced: over, whatever became of it, so the hold resumes.
-        (ThumbIn::DragEnded(..), Pointer::Dragging) => rested(id, token, params),
+        (ThumbIn::DragEnded(..), Pointer::Dragging) => resumed(Pointer::Away, keys),
         (ThumbIn::Click, Pointer::Away | Pointer::Over) => {
-            leave(ShotLeave::Opened, ThumbExit::Card)
+            card.leave(ShotLeave::Opened, ThumbExit::Card)
         }
-        (ThumbIn::SwipedAway, _) => leave(ShotLeave::Kept, ThumbExit::Row),
-        (ThumbIn::TrashPressed, _) => leave(ShotLeave::Trashed, ThumbExit::Card),
-        _ => (state, Vec::new()),
+        (ThumbIn::SwipedAway, _) => card.leave(ShotLeave::Kept, ThumbExit::Row),
+        (ThumbIn::TrashPressed, _) => card.leave(ShotLeave::Trashed, ThumbExit::Card),
+        (ThumbIn::Dismissed, Pointer::Away | Pointer::Over) => {
+            card.leave(ShotLeave::Kept, ThumbExit::Card)
+        }
+        (ThumbIn::FocusAsked, _) => {
+            let (state, _) = resumed(pointer, KeyFocus::Held);
+            (state, vec![ThumbOut::TakeKeyboard])
+        }
+        (ThumbIn::FocusLost, _) if keys == KeyFocus::Held => {
+            let (state, outs) = resumed(pointer, KeyFocus::Away);
+            let outs = [ThumbOut::ReleaseKeyboard].into_iter().chain(outs);
+            (state, outs.collect())
+        }
+        _ => (card.state(), Vec::new()),
     }
 }
 
