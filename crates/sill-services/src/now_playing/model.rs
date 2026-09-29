@@ -131,7 +131,7 @@ pub enum MediaEvent {
 }
 
 /// `media` after `event`. A change for an id that is not listed is dropped.
-pub fn reduce_media(mut media: Media, event: MediaEvent) -> Media {
+pub fn step(mut media: Media, event: MediaEvent) -> Media {
     match event {
         MediaEvent::Player(player) => {
             match media.players.iter_mut().find(|p| p.id == player.id) {
@@ -193,8 +193,7 @@ impl Media {
 #[cfg(test)]
 mod tests {
     use super::{
-        Abilities, Media, MediaEvent, MediaPlayer, Playback, PlayerId, Timeline, Track,
-        reduce_media,
+        Abilities, Media, MediaEvent, MediaPlayer, Playback, PlayerId, Timeline, Track, step,
     };
     use crate::units::Stamp;
 
@@ -286,7 +285,7 @@ mod tests {
             ),
         ];
         for (name, before, event, want) in cases {
-            assert_eq!(reduce_media(before, event), want, "{name}");
+            assert_eq!(step(before, event), want, "{name}");
         }
     }
 }

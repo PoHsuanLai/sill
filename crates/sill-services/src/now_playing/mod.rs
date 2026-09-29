@@ -16,14 +16,12 @@ mod mpris;
 pub use art::{ArtSource, art_cache_name, art_source};
 pub use model::{
     Abilities, Art, Media, MediaEvent, MediaPlayer, Micros, Playback, PlayerId, Timeline, Track,
-    reduce_media,
+    step,
 };
 
-use tokio::runtime::Handle;
-use tokio::sync::watch;
-
-use crate::control::Control;
-use crate::env::{Bus, Dirs};
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
 /// One transport button.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -47,15 +45,27 @@ pub enum MediaCommand {
     Position(PlayerId),
 }
 
-/// Start the Now Playing task on `rt`. Without a session bus the receiver stays at
+/// Now Playing (MPRIS) as a [`Service`]. Without a session bus the state stays at
 /// `Media::default()` (no players), and the module shows nothing playing.
-pub fn spawn(
-    rt: &Handle,
-    bus: Bus,
-    dirs: &Dirs,
-) -> (watch::Receiver<Media>, Control<MediaCommand>) {
-    let (tx, rx) = watch::channel(Media::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(live::run(bus, dirs.sill_cache().join("art"), tx, commands));
-    (rx, control)
+#[derive(Debug)]
+pub enum NowPlayingService {}
+
+impl Service for NowPlayingService {
+    const NAME: &'static str = "now_playing";
+    type State = Media;
+    type Command = MediaCommand;
+    type Deps = ();
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        live::run(
+            env.buses.session.clone(),
+            env.dirs.sill_cache().join("art"),
+            io.state,
+            io.commands,
+        )
+    }
 }

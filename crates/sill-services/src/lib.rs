@@ -111,7 +111,7 @@ pub use notifications::{
 };
 pub use now_playing::{
     Abilities, Art, ArtSource, Media, MediaCommand, MediaEvent, MediaPlayer, MediaVerb, Micros,
-    Playback, PlayerId, Timeline, Track, art_cache_name, art_source, reduce_media,
+    NowPlayingService, Playback, PlayerId, Timeline, Track, art_cache_name, art_source,
 };
 pub use pins::{DockPins, PinAt, PinEvent, reduce_pins};
 pub use polkit_agent::{Polkit, PolkitCommand};

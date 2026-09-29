@@ -1,6 +1,6 @@
 //! MPRIS over the session bus: finds every `org.mpris.MediaPlayer2.*` name, follows their
 //! `PropertiesChanged` and `Seeked`, fetches remote art into the cache, feeds every change
-//! through [`super::reduce_media`], and carries out [`MediaCommand`]s.
+//! through [`super::step`], and carries out [`MediaCommand`]s.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -17,11 +17,12 @@ use super::MediaCommand;
 use super::art::ArtSource;
 use super::model::{
     Abilities, Art, Media, MediaEvent, MediaPlayer, Micros, Playback, PlayerId, Timeline, Track,
-    reduce_media,
+    step,
 };
 use super::mpris::{MediaPlayer2Proxy, PLAYER_INTERFACE, PlayerProxy};
 use super::{MediaVerb, art_cache_name, art_source};
 use crate::env::Bus;
+use crate::error::ServiceError;
 use crate::stream::next;
 use crate::tray::Availability;
 use crate::units::Stamp;
@@ -34,26 +35,13 @@ pub(super) async fn run(
     cache_dir: PathBuf,
     tx: watch::Sender<Media>,
     mut commands: mpsc::UnboundedReceiver<MediaCommand>,
-) {
-    let Ok(Some(connection)) = bus.connect().await else {
-        return;
-    };
-    let Ok(dbus) = DBusProxy::new(&connection).await else {
-        return;
-    };
-    let Ok(mut owner_changes) = dbus.receive_name_owner_changed().await else {
-        return;
-    };
-    let Ok(mut prop_changes) =
-        MessageStream::for_match_rule(properties_changed_rule().unwrap(), &connection, None).await
-    else {
-        return;
-    };
-    let Ok(mut seeks) =
-        MessageStream::for_match_rule(seeked_rule().unwrap(), &connection, None).await
-    else {
-        return;
-    };
+) -> Result<(), ServiceError> {
+    let connection = bus.connected().await?;
+    let dbus = DBusProxy::new(&connection).await?;
+    let mut owner_changes = dbus.receive_name_owner_changed().await?;
+    let mut prop_changes =
+        MessageStream::for_match_rule(properties_changed_rule()?, &connection, None).await?;
+    let mut seeks = MessageStream::for_match_rule(seeked_rule()?, &connection, None).await?;
 
     let origin = Instant::now();
     let (art_tx, mut art_rx) = mpsc::unbounded_channel::<(PlayerId, PathBuf)>();
@@ -96,6 +84,7 @@ pub(super) async fn run(
             }
         }
     }
+    Ok(())
 }
 
 /// A bus-wide match on every `PropertiesChanged` signal, whoever sends it (any interface; only
@@ -504,6 +493,6 @@ fn stamp(origin: Instant) -> Stamp {
 
 /// Reduces `event` onto the receiver's current value and publishes the result.
 fn apply(tx: &watch::Sender<Media>, event: MediaEvent) {
-    let next = reduce_media(tx.borrow().clone(), event);
+    let next = step(tx.borrow().clone(), event);
     let _ = tx.send(next);
 }

@@ -123,7 +123,6 @@ impl Services {
     /// yields its receiver, at its default.
     pub fn spawn(rt: &Handle, env: &Env) -> Services {
         let system = || env.buses.system.clone();
-        let session = || env.buses.session.clone();
         let (clock, clock_control) = parts(spawn::<crate::clock::ClockService>(rt, env, ()));
         let (battery, battery_control) =
             parts(spawn::<crate::battery::BatteryService>(rt, env, ()));
@@ -170,7 +169,8 @@ impl Services {
         let (power_profiles, power_profile_control) = parts(spawn::<
             crate::power_profile::PowerProfileService,
         >(rt, env, ()));
-        let (media, media_control) = crate::now_playing::spawn(rt, session(), &env.dirs);
+        let (media, media_control) =
+            parts(spawn::<crate::now_playing::NowPlayingService>(rt, env, ()));
         let (kbd_backlight, kbd_backlight_control) = parts(spawn::<
             crate::kbd_backlight::KbdBacklightService,
         >(rt, env, ()));
