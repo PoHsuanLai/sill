@@ -32,7 +32,7 @@ pub struct App {
     pub generic_name: String,
     /// `Comment`, localised; empty for none.
     pub comment: String,
-    /// `Exec`, after desktop-file escapes, before field codes (see [`crate::expand_exec`]).
+    /// `Exec`, after desktop-file escapes, before field codes (see [`crate::apps::expand_exec`]).
     pub exec: String,
     pub icon: AppIcon,
     /// `StartupWMClass`, for `match_app`; `None` when the entry does not say.

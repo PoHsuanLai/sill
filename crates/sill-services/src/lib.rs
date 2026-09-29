@@ -52,10 +52,7 @@ pub mod volume;
 pub mod wallpaper;
 pub mod wifi;
 
-pub use apps::{
-    App, AppIcon, AppIndex, AppsCommand, AppsEvent, AppsService, DbusActivation,
-    DesktopActionEntry, ExecArgs, ExecError, Listing, Terminal, expand_exec, match_app,
-};
+pub use apps::AppsService;
 pub use auth::AuthService;
 pub use badges::BadgesService;
 pub use battery::BatteryService;

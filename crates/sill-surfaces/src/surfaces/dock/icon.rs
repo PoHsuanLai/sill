@@ -14,7 +14,7 @@
 use std::path::{Path, PathBuf};
 
 use ds::{ExternalIcon, Icon, IconPx, IconSize, IconSource, IconUrl};
-use sill_services::{App, AppIcon};
+use sill_model::apps::{App, AppIcon};
 use sill_settings::{DockSettings, Magnification};
 
 pub use crate::app_icons::IconContext;

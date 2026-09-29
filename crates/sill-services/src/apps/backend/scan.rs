@@ -4,10 +4,10 @@ use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
 use freedesktop_desktop_entry::DesktopEntry;
-
-use crate::apps::icons::{IconTheme, resolve_icon};
-use crate::apps::index::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing, Terminal};
 use sill_launcher::AppId;
+use sill_model::apps::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing, Terminal};
+
+use super::icons::{IconTheme, resolve_icon};
 
 /// The desktop this scan targets. sill only ever runs as the COSMIC session, so
 /// `OnlyShowIn`/`NotShowIn` are matched against this constant rather than the live
@@ -210,10 +210,10 @@ fn actions(entry: &DesktopEntry, locales: &[String]) -> Vec<DesktopActionEntry> 
 
 #[cfg(test)]
 mod tests {
+    use super::super::icons::IconTheme;
     use super::{entry_id, is_application, is_listed, on_path, parse_entry};
-    use crate::apps::icons::IconTheme;
-    use crate::apps::index::Listing;
     use freedesktop_desktop_entry::DesktopEntry;
+    use sill_model::apps::Listing;
     use std::path::{Path, PathBuf};
 
     fn entry(text: &str) -> DesktopEntry {

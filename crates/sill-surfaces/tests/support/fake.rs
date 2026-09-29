@@ -6,6 +6,7 @@
 
 use shell_host::{OutputId, OutputInfo, Rect, Scale};
 use sill_launcher::WindowKey;
+use sill_model::apps::AppIndex;
 use sill_model::badges::Badges;
 use sill_model::battery::{Battery, Charge};
 use sill_model::bluetooth::{
@@ -27,7 +28,7 @@ use sill_model::units::{Percent, Presence, Seconds, Urgency, Visibility};
 use sill_model::volume::{Mute, Volume};
 use sill_model::wallpaper::Wallpapers;
 use sill_model::wifi::{AccessPoint, Association, Radio, Security, Ssid, Wifi, WifiCommand};
-use sill_services::{AppIndex, Handle, Launches, Results, Service, Services};
+use sill_services::{Handle, Launches, Results, Service, Services};
 use tokio::sync::{mpsc, watch};
 
 /// The senders behind a fake [`Services`], and the command queues the bar writes to.

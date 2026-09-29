@@ -8,7 +8,7 @@
 use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, WindowKey};
 
-use crate::apps::{AppIndex, match_app};
+use sill_model::apps::{AppIndex, match_app};
 use sill_model::cosmic_wl::{Toplevel, Toplevels, WindowState, WlCommand};
 
 /// Whether an app has a window on screen.
@@ -31,7 +31,7 @@ pub struct SwitcherApp {
 }
 
 /// `toplevels` (already most recently activated first) grouped by app, in the order each app's
-/// most recent window appears; a window is its app's by [`crate::match_app`] over `index`, else
+/// most recent window appears; a window is its app's by [`sill_model::apps::match_app`] over `index`, else
 /// its raw `app_id` (so an app with no desktop entry still gets a tile); a window with an empty
 /// `app_id` is skipped.
 pub fn switcher_apps(toplevels: &Toplevels, index: &AppIndex) -> Vec<SwitcherApp> {
@@ -110,7 +110,7 @@ mod tests {
     use sill_launcher::{AppId, WindowKey};
 
     use super::{AppShown, SwitcherApp, activate, hide, quit, switcher_apps};
-    use crate::apps::AppIndex;
+    use sill_model::apps::AppIndex;
     use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 
     fn window(key: u64, app_id: &str, window: WindowState) -> Toplevel {

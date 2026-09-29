@@ -18,7 +18,7 @@ use std::time::{Duration, Instant};
 use sill_launcher::{
     ActionId, Activation, Cancel, Choice, Item, Provider, Query, Subject, VecSink,
 };
-use sill_services::apps::AppIndex;
+use sill_model::apps::AppIndex;
 use sill_services::env::{Bus, BusRoute, Env};
 use sill_services::launch::{self, LaunchCommand, OpenRequest};
 use sill_services::providers::FilesProvider;

@@ -7,7 +7,7 @@
 
 use sill_launcher::AppId;
 
-use crate::apps::index::{App, AppIndex};
+use super::{App, AppIndex};
 
 /// The entry a toplevel with Wayland `app_id` (and, through XWayland, `wm_class`) belongs to.
 /// The first rule that matches any entry wins; within a rule, the first entry in id order.
@@ -54,7 +54,7 @@ fn is_label_suffix(id: &str, suffix: &str) -> bool {
 mod tests {
     use super::match_app;
     use crate::apps::index::tests::app;
-    use crate::apps::index::{App, AppIndex, AppsEvent, step};
+    use crate::apps::{App, AppIndex, AppsEvent, step};
 
     fn index() -> AppIndex {
         let with = |mut a: App, edit: fn(&mut App)| {

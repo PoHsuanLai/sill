@@ -13,7 +13,7 @@ use sill_launcher::{
 };
 use tokio::sync::watch;
 
-use crate::apps::{App, AppIcon, AppIndex, DesktopActionEntry, Listing};
+use sill_model::apps::{App, AppIcon, AppIndex, DesktopActionEntry, Listing};
 
 /// A row's id separator between an app id and one of its desktop action ids: `\u{1}`, a control
 /// character neither an app id (reverse-DNS or a bare token) nor a `[Desktop Action <id>]` id
@@ -221,12 +221,12 @@ fn unix_now() -> UnixTime {
 #[cfg(test)]
 mod tests {
     use super::{AppsProvider, split_id};
-    use crate::apps::{
-        App, AppIcon, AppIndex, AppsEvent, DbusActivation, DesktopActionEntry, Listing, Terminal,
-    };
     use sill_launcher::{
         AppId, Cancel, Choice, DesktopAction, Frecency, IconRef, ItemId, Provider, ProviderKind,
         Query, VecSink,
+    };
+    use sill_model::apps::{
+        App, AppIcon, AppIndex, AppsEvent, DbusActivation, DesktopActionEntry, Listing, Terminal,
     };
     use std::path::PathBuf;
     use std::sync::{Arc, Mutex};
@@ -256,7 +256,7 @@ mod tests {
     /// A provider over `apps`; the channel's sender is dropped at once — `query` only ever
     /// borrows the receiver's last value, so nothing needs to keep sending.
     fn provider(apps: Vec<App>) -> AppsProvider {
-        let (_tx, rx) = tokio::sync::watch::channel(crate::apps::step(
+        let (_tx, rx) = tokio::sync::watch::channel(sill_model::apps::step(
             AppIndex::default(),
             AppsEvent::Scanned(apps),
         ));

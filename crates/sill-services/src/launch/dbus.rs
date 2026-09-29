@@ -6,9 +6,9 @@ use std::collections::HashMap;
 use zbus::Connection;
 use zbus::zvariant::Value;
 
-use crate::apps::App;
 use crate::launch::LaunchRequest;
 use crate::providers::files::tracker::file_uri;
+use sill_model::apps::App;
 
 /// `org.freedesktop.Application.Activate` on the bus name `app.id`, object path derived from it
 /// (GApplication's own convention: each `.` becomes `/`, each `-` becomes `_`, prefixed with

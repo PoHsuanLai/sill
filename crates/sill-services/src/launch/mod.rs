@@ -26,10 +26,10 @@ use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, DesktopAction};
 use tokio::sync::watch;
 
-use crate::apps::AppIndex;
 use crate::env::{Bus, Env};
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
+use sill_model::apps::AppIndex;
 
 /// One launch.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -103,9 +103,9 @@ impl Service for LaunchService {
 #[cfg(test)]
 mod tests {
     use super::{LaunchCommand, LaunchRequest, LaunchService};
-    use crate::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
     use crate::service::spawn;
     use sill_launcher::{AppId, DesktopAction};
+    use sill_model::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
     use std::path::PathBuf;
     use std::time::Duration;
 
@@ -127,7 +127,7 @@ mod tests {
             listing: Listing::Shown,
             path: PathBuf::from(format!("/usr/share/applications/{id}.desktop")),
         };
-        crate::apps::step(AppIndex::default(), AppsEvent::Scanned(vec![app]))
+        sill_model::apps::step(AppIndex::default(), AppsEvent::Scanned(vec![app]))
     }
 
     /// Exercises the real `systemd-run --user --scope` path on this machine: `/bin/true` starts,

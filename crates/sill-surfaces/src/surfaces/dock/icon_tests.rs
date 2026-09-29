@@ -5,7 +5,7 @@ use crate::surfaces::dock::items::ItemKind;
 use ds::icon::{IconStyle, Tint};
 use ds::{Icon, IconPx, IconSize, IconSource, Scale};
 use sill_launcher::AppId;
-use sill_services::{App, AppIcon, DbusActivation, Listing, Terminal};
+use sill_model::apps::{App, AppIcon, DbusActivation, Listing, Terminal};
 use sill_settings::{DockSettings, Magnification};
 use std::path::PathBuf;
 

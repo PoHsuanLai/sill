@@ -2,9 +2,9 @@
 
 use sill_launcher::{AppId, DesktopAction};
 
-use crate::apps::{App, AppIcon, ExecArgs, ExecError, Terminal, expand_exec};
 use crate::launch::LaunchRequest;
 use crate::launch::model::ScopeUnit;
+use sill_model::apps::{App, AppIcon, ExecArgs, ExecError, Terminal, expand_exec};
 
 /// The full command: `systemd-run --user --scope --collect --unit=<unit> -- <exec...>`, with
 /// the terminal wrapper (`terminal`, e.g. `["cosmic-term", "-e"]`) in front of `Exec` when the
@@ -94,12 +94,12 @@ fn escape_component(id: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{escape_component, launch_argv, scope_unit};
-    use crate::apps::{
-        App, AppIcon, DbusActivation, DesktopActionEntry, ExecError, Listing, Terminal,
-    };
     use crate::launch::LaunchRequest;
     use crate::launch::model::ScopeUnit;
     use sill_launcher::{AppId, DesktopAction};
+    use sill_model::apps::{
+        App, AppIcon, DbusActivation, DesktopActionEntry, ExecError, Listing, Terminal,
+    };
     use std::path::PathBuf;
 
     fn id(s: &str) -> AppId {

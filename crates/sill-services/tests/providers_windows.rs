@@ -4,12 +4,12 @@
 use std::path::PathBuf;
 
 use sill_launcher::{AppId, Cancel, Provider, Query, VecSink, WindowKey};
+use sill_model::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
 use sill_model::cosmic_wl::{
     Activity, CosmicWl, Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, Workspace,
     WorkspaceGroup, Workspaces,
 };
 use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
-use sill_services::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
 use sill_services::providers::WindowsProvider;
 
 fn app(id: &str, name: &str) -> App {
@@ -73,7 +73,7 @@ fn provider() -> WindowsProvider {
     let toplevels = windows.into_iter().fold(Toplevels::default(), |t, w| {
         sill_model::cosmic_wl::toplevels::step(t, ToplevelEvent::Opened(w))
     });
-    let apps = sill_services::apps::step(
+    let apps = sill_model::apps::step(
         AppIndex::default(),
         AppsEvent::Scanned(vec![
             app("thunderbird", "Thunderbird"),

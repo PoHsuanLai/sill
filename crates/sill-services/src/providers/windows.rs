@@ -7,7 +7,7 @@ use sill_launcher::{
 };
 use tokio::sync::watch;
 
-use crate::apps::{AppIcon, AppIndex, match_app};
+use sill_model::apps::{AppIcon, AppIndex, match_app};
 use sill_model::cosmic_wl::{CosmicWl, Workspaces};
 
 /// The id of a window row's one action: asks the daemon to close it (`Activation::CloseWindow`).
@@ -156,11 +156,11 @@ fn window_key_of(item: &Item) -> WindowKey {
 #[cfg(test)]
 mod tests {
     use super::WindowsProvider;
-    use crate::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
     use sill_launcher::{
         AppId, Cancel, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, Score,
         VecSink, WindowKey,
     };
+    use sill_model::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
     use sill_model::cosmic_wl::{
         Activity, CosmicWl, Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, Workspace,
         WorkspaceGroup, Workspaces, toplevels::step,
@@ -188,7 +188,7 @@ mod tests {
     }
 
     fn provider(windows: Vec<Toplevel>, apps: Vec<App>) -> WindowsProvider {
-        let (_atx, arx) = tokio::sync::watch::channel(crate::apps::step(
+        let (_atx, arx) = tokio::sync::watch::channel(sill_model::apps::step(
             AppIndex::default(),
             AppsEvent::Scanned(apps),
         ));

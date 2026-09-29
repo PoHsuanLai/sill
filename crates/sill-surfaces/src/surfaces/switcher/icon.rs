@@ -8,7 +8,7 @@ use std::path::Path;
 
 use ds::{ExternalIcon, Icon, IconPx, IconSize, IconSource, IconUrl};
 use sill_launcher::AppId;
-use sill_services::{AppIcon, AppIndex};
+use sill_model::apps::{AppIcon, AppIndex};
 
 use crate::app_icons::{IconContext, LogicalPx, pick, theme_art};
 

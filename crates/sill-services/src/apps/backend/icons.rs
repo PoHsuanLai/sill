@@ -3,8 +3,7 @@
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-
-use crate::apps::index::AppIcon;
+use sill_model::apps::AppIcon;
 
 /// The icon theme lookups use.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -102,7 +101,7 @@ mod tests {
     use std::path::Path;
 
     use super::{IconTheme, cosmic_tk_icon_theme_path, pixmap_dirs, resolve_icon};
-    use crate::apps::index::AppIcon;
+    use sill_model::apps::AppIcon;
     use std::fs;
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicU32, Ordering};

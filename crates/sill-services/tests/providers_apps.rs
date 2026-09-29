@@ -8,9 +8,9 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use sill_launcher::{Cancel, Frecency, Provider, Query, VecSink};
+use sill_model::apps::{AppIndex, AppsEvent};
 use sill_services::apps::{IconTheme, scan};
 use sill_services::providers::AppsProvider;
-use sill_services::{AppIndex, AppsEvent};
 
 fn fixture_dirs() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/applications");
@@ -19,7 +19,7 @@ fn fixture_dirs() -> Vec<PathBuf> {
 
 fn provider() -> AppsProvider {
     let found = scan(&fixture_dirs(), &IconTheme("hicolor".to_owned()), &[]);
-    let index = sill_services::apps::step(AppIndex::default(), AppsEvent::Scanned(found));
+    let index = sill_model::apps::step(AppIndex::default(), AppsEvent::Scanned(found));
     let (_tx, rx) = tokio::sync::watch::channel(index);
     AppsProvider {
         apps: rx,

@@ -4,12 +4,12 @@
 use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
 
-use crate::apps::{App, AppIndex, DbusActivation};
 use crate::env::Bus;
 use crate::launch::model::{LaunchOutcome, LaunchedScope, Launches, ScopeUnit, step};
 use crate::launch::plan::{launch_argv, scope_unit};
 use crate::launch::{LaunchCommand, LaunchRequest, Reach};
 use sill_launcher::AppId;
+use sill_model::apps::{App, AppIndex, DbusActivation};
 
 use super::dbus;
 use super::open::{Manager, user_manager};

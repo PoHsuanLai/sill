@@ -46,7 +46,7 @@ pub(crate) struct SessionDeps {
 #[derive(Clone)]
 pub(crate) struct World {
     pub toplevels: sill_model::cosmic_wl::Toplevels,
-    pub index: sill_services::AppIndex,
+    pub index: sill_model::apps::AppIndex,
     pub pins: sill_model::pins::DockPins,
     pub badges: Badges,
     pub workspace: Option<sill_model::ids::WorkspaceKey>,

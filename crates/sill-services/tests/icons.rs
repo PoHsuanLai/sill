@@ -23,7 +23,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use sill_services::AppIcon;
+use sill_model::apps::AppIcon;
 use sill_services::apps::{IconTheme, resolve_icon};
 
 const FIXTURE_THEME: &str = "SillM2ApfixtureTheme";

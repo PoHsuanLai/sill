@@ -3,7 +3,7 @@
 
 use ds::{AppKey, IconSource, Px, SwitcherApp as Tile, SwitcherMetrics};
 use sill_launcher::AppId;
-use sill_services::apps::AppIndex;
+use sill_model::apps::AppIndex;
 use sill_services::switcher::SwitcherApp;
 use sill_settings::SwitcherSettings;
 
@@ -66,7 +66,7 @@ pub fn output_width(width: i32) -> Option<Px> {
 mod tests {
     use ds::{AppKey, IconSource, Px, SwitcherMetrics};
     use sill_launcher::AppId;
-    use sill_services::apps::AppIndex;
+    use sill_model::apps::AppIndex;
     use sill_services::switcher::{AppShown, SwitcherApp};
     use sill_settings::SwitcherSettings;
 

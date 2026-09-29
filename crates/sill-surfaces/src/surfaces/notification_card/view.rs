@@ -11,8 +11,9 @@ use ds::{
     AppMark, ExternalIcon, Hover, Icon, IconSize, IconSource, IconUrl, Material, NotificationCard,
     NotificationSwipe, RootChrome, Scheme, Surface, TextLine,
 };
+use sill_model::apps::AppIcon;
 use sill_services::apps::{icon_theme, resolve_icon};
-use sill_services::{AppIcon, AppRef, Href, Notification, UnixMs};
+use sill_services::{AppRef, Href, Notification, UnixMs};
 use sill_settings::BannerMaterial;
 
 use super::actions::card_actions;

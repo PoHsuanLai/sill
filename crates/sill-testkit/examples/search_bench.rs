@@ -17,11 +17,12 @@ use sill_launcher::{
     Activation, AppId, Batch, Choice, FrecencyScore, IconRef, Item, ItemId, Needle, Provider,
     ProviderKind, Query, RankWeights, ResultSink, Score, matching::matcher, rank_text,
 };
+use sill_model::apps::{AppIndex, AppsEvent, Listing};
 use sill_services::apps::{IconTheme, scan};
 use sill_services::env::Env;
 use sill_services::results;
 use sill_services::service::spawn;
-use sill_services::{AppIndex, AppsEvent, Listing, ResultsService, SearchCommand};
+use sill_services::{ResultsService, SearchCommand};
 
 const QUERIES: &[&str] = &[
     "fi", "firefox", "rich", "act", "only", "o", "fx", "ric", "ff", "fire", "app", "ac",
@@ -82,7 +83,7 @@ fn fixture() -> AppIndex {
         &IconTheme("hicolor".to_owned()),
         &[],
     );
-    sill_services::apps::step(AppIndex::default(), AppsEvent::Scanned(found))
+    sill_model::apps::step(AppIndex::default(), AppsEvent::Scanned(found))
 }
 
 fn enlarged(base: &AppIndex, count: usize) -> AppIndex {
@@ -95,7 +96,7 @@ fn enlarged(base: &AppIndex, count: usize) -> AppIndex {
             app
         })
         .collect();
-    sill_services::apps::step(AppIndex::default(), AppsEvent::Scanned(found))
+    sill_model::apps::step(AppIndex::default(), AppsEvent::Scanned(found))
 }
 
 fn percentile(sorted: &[Duration], p: usize) -> Duration {

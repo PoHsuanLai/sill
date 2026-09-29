@@ -1,11 +1,12 @@
 //! Which app a notification came from, and the icon its card shows: the sender's `app_icon`
 //! (a file, or a theme name the caller resolves), else its desktop entry's icon, else a bell.
-//! The entry is found as a window's is (`sill_services::match_app`: the `desktop-entry` hint,
+//! The entry is found as a window's is (`sill_model::apps::match_app`: the `desktop-entry` hint,
 //! else the app name, whole or by its last labels), then by the entry's own `Name`.
 
 use std::path::{Path, PathBuf};
 
-use sill_services::{App, AppIcon, AppIndex, AppRef, IconRef, match_app};
+use sill_model::apps::{App, AppIcon, AppIndex, match_app};
+use sill_services::{AppRef, IconRef};
 
 /// The icon a card draws.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -73,9 +74,8 @@ fn symbolic(path: &Path) -> Symbolic {
 mod tests {
     use super::{CardArt, card_art, entry_for};
     use sill_launcher::AppId;
-    use sill_services::{
-        App, AppIcon, AppIndex, AppRef, AppsEvent, DbusActivation, IconRef, Listing, Terminal,
-    };
+    use sill_model::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
+    use sill_services::{AppRef, IconRef};
     use std::path::PathBuf;
 
     fn entry(id: &str, name: &str, icon: &str) -> App {
@@ -99,7 +99,7 @@ mod tests {
     }
 
     fn index() -> AppIndex {
-        sill_services::apps::step(
+        sill_model::apps::step(
             AppIndex::default(),
             AppsEvent::Scanned(vec![
                 entry("org.gnome.Evolution", "Evolution", "/i/evolution.svg"),
