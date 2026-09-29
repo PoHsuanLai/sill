@@ -7,10 +7,9 @@ mod support;
 
 use dioxus::prelude::*;
 use shell_host::OutputId;
+use sill_model::auth::{Account, Auth, AuthPhase, RealName, UserName};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
-use sill_services::auth::{Account, RealName, UserName};
-use sill_services::{Auth, AuthPhase};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::LockScreen;
 use sill_surfaces::surfaces::lock::{LockLink, LockScreenProps, PromptOutput};

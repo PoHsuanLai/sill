@@ -19,7 +19,7 @@ use std::path::Path;
 
 use tokio::sync::{mpsc, oneshot, watch};
 
-use crate::auth::{Secret, UserName};
+use sill_model::auth::{Secret, UserName};
 
 use super::bus::{self, BusLink, BusTrouble};
 use super::dbus::Call;

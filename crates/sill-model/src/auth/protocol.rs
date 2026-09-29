@@ -9,8 +9,7 @@
 
 use thiserror::Error;
 
-use super::pam::PamService;
-use super::types::{Attempt, AuthFault, Outcome, PamNote, Secret, UserName, Verdict};
+use super::{Attempt, AuthFault, Outcome, PamNote, PamService, Secret, UserName, Verdict};
 
 /// What the parent writes.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -160,8 +159,8 @@ mod tests {
         HelperLine, HelperRequest, ProtocolError, decode_request, encode_request, parse_line,
         render_line, verdict_of,
     };
-    use crate::auth::pam::PamService;
-    use crate::auth::types::{Attempt, AuthFault, Outcome, PamNote, Secret, UserName, Verdict};
+    use crate::auth::PamService;
+    use crate::auth::{Attempt, AuthFault, Outcome, PamNote, Secret, UserName, Verdict};
 
     fn request(secret: &str) -> HelperRequest {
         HelperRequest {

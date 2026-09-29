@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
-use crate::auth::UserName;
+use sill_model::auth::UserName;
 
 use super::types::Cookie;
 
@@ -117,8 +117,8 @@ mod tests {
         HelperLine, HelperOpening, HelperRoute, UnknownLine, helper_route, opening,
         parse_helper_line,
     };
-    use crate::auth::UserName;
     use crate::polkit_agent::types::Cookie;
+    use sill_model::auth::UserName;
 
     #[test]
     fn the_socket_first_then_the_setuid_helper() {

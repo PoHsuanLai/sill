@@ -13,7 +13,7 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use shell_host::OutputId;
-use sill_services::auth::UserName;
+use sill_model::auth::UserName;
 use sill_services::polkit_agent::{
     ActionId, Cookie, Echo, LastTry, Polkit, PolkitCommand, PromptPhase, PromptView, Registration,
 };

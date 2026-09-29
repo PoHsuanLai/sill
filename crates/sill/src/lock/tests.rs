@@ -1,7 +1,6 @@
 use sill_ipc::{LockReport, ReportLockPhase};
+use sill_model::auth::{Auth, AuthFault, AuthPhase};
 use sill_model::locker::{Lock, LockPhase};
-use sill_services::auth::AuthFault;
-use sill_services::{Auth, AuthPhase};
 
 use super::{LockWish, lock_wish, report_of};
 

@@ -16,6 +16,7 @@ zbus = { workspace = true }
 # name these: the library reaches no sill crate (scripts/check-boundary.sh).
 [dev-dependencies]
 sill-launcher = { workspace = true }
+sill-model = { workspace = true }
 sill-services = { workspace = true }
 cosmic-client-toolkit = { workspace = true }
 serde = { workspace = true }

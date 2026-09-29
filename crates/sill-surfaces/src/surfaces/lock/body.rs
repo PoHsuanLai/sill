@@ -6,9 +6,8 @@ use ds::{
     Anim, CapsLock, ImageSource, LockPrompt, LockScreen, TextLine, TimerPhase, use_motion_timer,
 };
 use shell_host::OutputInfo;
+use sill_model::auth::{Auth, AuthCommand, AuthFault, AuthPhase, PamNote, Secret};
 use sill_model::ids::OutputName;
-use sill_services::auth::{Auth, AuthFault, PamNote, Secret};
-use sill_services::{AuthCommand, AuthPhase};
 
 use super::link::{LockLink, PromptOutput};
 use super::{backdrop_for, clock_lines, lock_user, prompt_state};

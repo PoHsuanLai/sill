@@ -1,13 +1,16 @@
 //! The auth service's loop.
 //!
-//! Loads the [`super::Account`] once, at the first command (so a service nobody locks with never
-//! reads anything: uid from `/proc/self`'s owner, [`super::user_name_in_passwd`] over
+//! Loads the [`sill_model::auth::Account`] once, at the first command (so a service nobody locks
+//! with never
+//! reads anything: uid from `/proc/self`'s owner, [`crate::auth::user_name_in_passwd`] over
 //! `/etc/passwd`, AccountsService's `IconFile` over the system bus when it answers within 1 s,
-//! [`super::avatar_source`]); feeds every command and every finished check through
-//! [`super::gate::step`]; runs each `Check` with `authenticator.check` on `rt`'s blocking pool,
+//! [`crate::auth::avatar_source`]); feeds every command and every finished check through
+//! [`sill_model::auth::step`]; runs each `Check` with `authenticator.check` on `rt`'s blocking
+//! pool,
 //! tagged with a [`Round`] so a verdict that comes back after a `Reset` is dropped; turns `Fake`
 //! into a verdict without the authenticator (after [`FAKE_CHECK_MS`], so the surface sees
-//! `Checking` first, as for a real check: debug builds only); publishes [`super::Auth`]; ends
+//! `Checking` first, as for a real check: debug builds only); publishes [`sill_model::auth::Auth`];
+//! ends
 //! when every control is gone. There is no lockout wait. The secret lives only in the `Submit` and
 //! the check's `Attempt`, both dropped (and zeroed) when the check ends; it is never logged or
 //! published.
@@ -16,17 +19,16 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
+use sill_model::auth::gate::step;
+use sill_model::auth::{
+    Account, Attempt, Auth, AuthCommand, AuthPhase, Checks, FakeVerdict, Gate, GateIn, GateOut,
+    Outcome, RealName, Secret, UserName, Verdict,
+};
 use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
 
-use super::gate::{Checks, Gate, GateIn, GateOut, step};
-use super::types::{
-    Account, Attempt, Auth, AuthCommand, AuthPhase, FakeVerdict, Outcome, RealName, Secret,
-    UserName, Verdict,
-};
-use super::{AccountPlace, avatar_source, user_name_in_passwd};
-use crate::env::Authenticator;
-use crate::env::Bus;
+use super::account::{avatar_source, user_name_in_passwd};
+use crate::env::{Authenticator, Bus};
 
 /// How long a made-up verdict (`sill debug auth`) takes, so the surface sees `Checking` and the
 /// field shakes again on every wrong one.
@@ -64,7 +66,7 @@ struct Live {
     done: mpsc::UnboundedSender<Finished>,
 }
 
-pub(super) async fn run(
+pub(crate) async fn run(
     tx: watch::Sender<Auth>,
     mut commands: mpsc::UnboundedReceiver<AuthCommand>,
     account: AccountPlace,
@@ -274,4 +276,13 @@ async fn accounts_icon(system: &Bus, uid: u32) -> Option<PathBuf> {
         .ok()?;
     let icon: String = user.get_property("IconFile").await.ok()?;
     (!icon.is_empty()).then(|| PathBuf::from(icon))
+}
+
+/// Where the person's name and picture are read.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct AccountPlace {
+    /// AccountsService's bus, which may name the picture.
+    pub(crate) system: Bus,
+    /// The home folder, whose `.face` is the fallback picture.
+    pub(crate) home: std::path::PathBuf,
 }

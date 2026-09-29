@@ -20,7 +20,7 @@
 //! - Completing the first request starts the next one's helper.
 //! - A cookie nobody holds changes nothing.
 
-use crate::auth::{PamNote, UserName};
+use sill_model::auth::{PamNote, UserName};
 
 use super::helper::HelperLine;
 use super::types::{

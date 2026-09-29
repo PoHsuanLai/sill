@@ -1,5 +1,5 @@
 //! A stand-in for `sill auth-check`: it speaks the helper protocol
-//! (`sill_services::auth::protocol`) without PAM, so `tests/auth_live.rs` drives the real
+//! (`sill_model::auth::protocol`) without PAM, so `tests/auth_live.rs` drives the real
 //! `PamHelper` against a child process and nobody's password is ever checked.
 //!
 //! `auth_helper accept SECRET` accepts exactly `SECRET` (with one `info` note first) and refuses
@@ -11,8 +11,8 @@ use std::io::{Read, Write};
 use std::process::ExitCode;
 use std::time::Duration;
 
-use sill_services::auth::protocol::{self, HelperLine};
-use sill_services::auth::{Outcome, PamNote};
+use sill_model::auth::protocol::HelperLine;
+use sill_model::auth::{Outcome, PamNote, protocol};
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();

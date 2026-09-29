@@ -130,53 +130,6 @@ pub struct Account {
 #[serde(transparent)]
 pub struct Attempts(pub u32);
 
-/// Where the lock screen's password check is.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
-pub enum AuthPhase {
-    /// Waiting for a secret.
-    #[default]
-    Idle,
-    /// A check is running.
-    Checking,
-    /// The last secret was wrong; typing again goes back to `Idle` on the surface's side.
-    Wrong,
-    /// The secret was right: the daemon unlocks. Stays until `Reset`.
-    Accepted,
-    /// The last check could not run.
-    Unavailable(AuthFault),
-}
-
-/// What the lock screen follows (`Services.auth`).
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
-pub struct Auth {
-    pub account: Account,
-    pub phase: AuthPhase,
-    pub failures: Attempts,
-    /// The last check's PAM messages, in order.
-    pub notes: Vec<PamNote>,
-}
-
-/// A verdict made up by `sill debug auth` (debug builds only: the daemon refuses it otherwise).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum FakeVerdict {
-    Accept,
-    Refuse,
-}
-
-/// What the auth service can be told.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum AuthCommand {
-    /// Check `secret` for this session's user (ignored while `Checking`).
-    Submit(Secret),
-    /// A new lock begins, or the last one ended: back to `Idle`, notes cleared. The failure count
-    /// is kept until a success (it only counts: no lockout).
-    Reset,
-    /// Feed a verdict as if a check had returned it, without PAM (`sill debug auth`).
-    Fake(FakeVerdict),
-    /// The lock grace opened the lock: `Accepted` with no check, only while a lock is up and
-    /// nothing is being checked. Only the idle service can send it: a [`sill_model::idle::GraceTicket`]
-    /// is minted by the grace rule alone.
-    Grace(sill_model::idle::GraceTicket),
-}
+/// A PAM service name: the file under `/etc/pam.d` that says which modules run.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PamService(pub String);

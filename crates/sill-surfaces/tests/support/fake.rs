@@ -338,7 +338,7 @@ pub fn services() -> (Services, Feeds) {
         notifications,
         events,
         screenshots,
-        auth: fixed(sill_services::Auth::default(), &mut keep),
+        auth: fixed(sill_model::auth::Auth::default(), &mut keep),
         polkit_agent: fixed(sill_services::Polkit::default(), &mut keep),
         clipboard: fixed(sill_services::Clipboard::default(), &mut keep),
         idle,

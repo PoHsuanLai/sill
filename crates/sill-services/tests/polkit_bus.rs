@@ -8,7 +8,7 @@ use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use sill_services::auth::Secret;
+use sill_model::auth::Secret;
 use sill_services::control::Control;
 use sill_services::env::{Bus, BusRoute, Env};
 use sill_services::polkit_agent::machine::MAX_TRIES;

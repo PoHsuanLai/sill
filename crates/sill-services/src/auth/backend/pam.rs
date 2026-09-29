@@ -11,12 +11,7 @@ use nonstick::{
     AuthnFlags, ConversationAdapter, ErrorCode, Result as PamResult, Transaction,
     TransactionBuilder,
 };
-
-use super::types::{Attempt, AuthFault, Outcome, PamNote, Verdict};
-
-/// A PAM service name: the file under `/etc/pam.d` that says which modules run.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PamService(pub String);
+use sill_model::auth::{Attempt, AuthFault, Outcome, PamNote, PamService, Verdict};
 
 /// sill's own service (`dist/pam.d/sill`).
 pub const SILL_SERVICE: &str = "sill";
@@ -135,9 +130,10 @@ impl ConversationAdapter for Answers {
 mod tests {
     use std::path::Path;
 
-    use super::{PamService, outcome_of, service};
-    use crate::auth::types::{AuthFault, Outcome};
+    use super::{outcome_of, service};
     use nonstick::ErrorCode;
+    use sill_model::auth::PamService;
+    use sill_model::auth::{AuthFault, Outcome};
 
     #[test]
     fn sills_own_file_wins_else_login() {

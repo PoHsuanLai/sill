@@ -5,7 +5,7 @@
 use std::fmt;
 use std::time::Duration;
 
-use crate::auth::{Attempt, AuthFault, Outcome, Verdict};
+use sill_model::auth::{Attempt, AuthFault, Outcome, Verdict};
 
 /// Checks one attempt. Blocking: the service calls it on tokio's blocking pool, never on a
 /// surface's thread.
@@ -56,7 +56,7 @@ impl Authenticator for FakeAuthenticator {
 #[cfg(test)]
 mod tests {
     use super::{Authenticator, FakeAuthenticator, FakeRule};
-    use crate::auth::{Attempt, AuthFault, Outcome, Secret, UserName};
+    use sill_model::auth::{Attempt, AuthFault, Outcome, Secret, UserName};
     use std::time::Duration;
 
     #[test]

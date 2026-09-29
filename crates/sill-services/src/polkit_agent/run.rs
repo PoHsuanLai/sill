@@ -12,7 +12,7 @@ use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt, BufRea
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 
-use crate::auth::{Secret, UserName};
+use sill_model::auth::{Secret, UserName};
 
 use super::helper::{HelperLine, HelperRoute, opening, parse_helper_line};
 use super::types::{Cookie, FAKE_SECRET};

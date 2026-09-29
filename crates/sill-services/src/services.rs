@@ -262,7 +262,7 @@ mod tests {
         );
         assert_eq!(
             services.auth.state.borrow().phase,
-            crate::AuthPhase::Idle,
+            sill_model::auth::AuthPhase::Idle,
             "nothing checked until a secret is submitted"
         );
         assert_eq!(

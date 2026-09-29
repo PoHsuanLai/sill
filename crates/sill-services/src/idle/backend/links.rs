@@ -2,11 +2,11 @@
 
 use std::path::PathBuf;
 
+use sill_model::auth::AuthCommand;
 use sill_model::battery::Battery;
 use sill_model::locker::{Lock, LockerCommand};
 use tokio::sync::watch;
 
-use crate::auth::AuthCommand;
 use crate::control::Control;
 use crate::env::{Bus, Env, WaylandRoute};
 

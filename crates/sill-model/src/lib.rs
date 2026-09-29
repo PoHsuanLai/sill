@@ -5,6 +5,7 @@
 //! `sill-services` carries the effects, and every transition is table-tested without a bus.
 
 pub mod attempt;
+pub mod auth;
 pub mod badges;
 pub mod battery;
 pub mod clock;

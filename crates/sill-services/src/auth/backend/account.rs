@@ -4,11 +4,11 @@
 
 use std::path::{Path, PathBuf};
 
-use super::types::{AvatarSource, RealName, UserName};
+use sill_model::auth::{AvatarSource, RealName, UserName};
 
 /// The login name and the GECOS name (its first comma-separated field; the login name when
 /// empty) of `uid` in `passwd` (the file's text).
-pub fn user_name_in_passwd(passwd: &str, uid: u32) -> Option<(UserName, RealName)> {
+pub(crate) fn user_name_in_passwd(passwd: &str, uid: u32) -> Option<(UserName, RealName)> {
     passwd.lines().find_map(|line| {
         let mut fields = line.split(':');
         let user = fields.next()?;
@@ -26,7 +26,7 @@ pub fn user_name_in_passwd(passwd: &str, uid: u32) -> Option<(UserName, RealName
 
 /// The picture: AccountsService's icon when it names an existing file (`exists`), else
 /// `home/.face` when that exists, else initials.
-pub fn avatar_source(
+pub(crate) fn avatar_source(
     accounts_icon: Option<PathBuf>,
     home: &Path,
     exists: impl Fn(&Path) -> bool,
@@ -44,7 +44,7 @@ mod tests {
     use std::path::{Path, PathBuf};
 
     use super::{avatar_source, user_name_in_passwd};
-    use crate::auth::types::{AvatarSource, RealName, UserName};
+    use sill_model::auth::{AvatarSource, RealName, UserName};
 
     const PASSWD: &str = "root:x:0:0:Super User:/root:/bin/bash\n\
         ada:x:1000:1000:Ada Lovelace,,,:/home/ada:/bin/zsh\n\

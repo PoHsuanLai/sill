@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::auth::{PamNote, Secret, UserName};
+use sill_model::auth::{PamNote, Secret, UserName};
 
 /// polkitd's handle for one authentication.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

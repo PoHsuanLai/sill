@@ -6,8 +6,7 @@ use ds::{
     AvatarFace, AvatarShape, AvatarSize, AvatarTone, CapsLock, ImageSource, LockUser, PromptState,
     UserPicture, person_hue,
 };
-use sill_services::AuthPhase;
-use sill_services::auth::{Account, AvatarSource, UserName};
+use sill_model::auth::{Account, AuthPhase, AvatarSource, UserName};
 use sill_settings::LockClock;
 
 /// Caps Lock from the modifiers of the last key event the surface saw (a lock surface has the
@@ -119,8 +118,8 @@ mod tests {
     use dioxus::prelude::Modifiers;
     use ds::UserPicture;
     use ds::{CapsLock, PromptState};
-    use sill_services::AuthPhase;
-    use sill_services::auth::{Account, AuthFault, AvatarSource, RealName, UserName};
+    use sill_model::auth::AuthPhase;
+    use sill_model::auth::{Account, AuthFault, AvatarSource, RealName, UserName};
     use sill_settings::LockClock;
 
     use super::{ClockLines, caps_lock, caps_of, clock_lines, lock_user, prompt_state};

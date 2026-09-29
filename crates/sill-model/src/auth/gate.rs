@@ -17,7 +17,7 @@
 //! or `pam_faillock` where the system configures it); that is the login stack's policy, not
 //! sill's.
 
-use super::types::{Attempts, Outcome};
+use super::{Attempts, Outcome};
 
 /// Whether a secret can be checked now.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -99,5 +99,4 @@ fn verdict(checks: Checks, outcome: &Outcome) -> (Checks, Vec<GateOut>) {
 }
 
 #[cfg(test)]
-#[path = "gate_tests.rs"]
 mod tests;

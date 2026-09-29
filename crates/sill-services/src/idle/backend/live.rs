@@ -13,6 +13,7 @@
 use std::time::{Duration, Instant};
 
 use logind_zbus::manager::PrepareForSleepStream;
+use sill_model::auth::AuthCommand;
 use sill_model::idle::{
     Idle, IdleCommand, IdleConfig, IdleEffect, IdleEvent, IdleMode, IdleState, InhibitMsg,
     Inhibitors, LockSeen, LockView, LogindIdle, inhibit_step, inhibition, power_source, step,
@@ -30,7 +31,6 @@ use super::resolve::{RESOLVE_EVERY_S, resolve};
 use super::screensaver::{Call, Served};
 use super::wl::{Epoch, Heard, Order, Tell, Wire, WlEvent};
 use super::{logind as idle_logind, screensaver, wl};
-use crate::auth::AuthCommand;
 use crate::stream::next_opt;
 
 /// How often logind's `BlockInhibited` is read.

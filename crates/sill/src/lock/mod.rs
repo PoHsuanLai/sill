@@ -30,8 +30,9 @@ use shell_host::{Focus, HostEvent, HostHandle, LockId, LockState, SurfaceId};
 use sill_ipc::{
     Failure, FailureKind, FakeAuth, LockReport, ReportLockCause, ReportLockPhase, Response,
 };
+use sill_model::auth::{Auth, AuthCommand, AuthPhase};
 use sill_model::locker::{Lock, LockCause, LockPhase, LockerCommand, ShellLockEvent};
-use sill_services::{Auth, AuthCommand, AuthPhase, Services};
+use sill_services::Services;
 use sill_surfaces::surfaces::banners::BannerOutput;
 use sill_surfaces::surfaces::lock::{LockLink, PromptOutput};
 use tokio::runtime::Handle;
@@ -242,13 +243,13 @@ pub fn fake_auth(services: &Services, fake: FakeAuth) -> Response {
 #[cfg(feature = "debug")]
 fn fake_auth_in_this_build(services: &Services, fake: FakeAuth) -> Response {
     let verdict = match fake {
-        FakeAuth::Accept => sill_services::auth::FakeVerdict::Accept,
-        FakeAuth::Refuse => sill_services::auth::FakeVerdict::Refuse,
+        FakeAuth::Accept => sill_model::auth::FakeVerdict::Accept,
+        FakeAuth::Refuse => sill_model::auth::FakeVerdict::Refuse,
     };
     match services
         .auth
         .control
-        .send(sill_services::AuthCommand::Fake(verdict))
+        .send(sill_model::auth::AuthCommand::Fake(verdict))
     {
         Ok(()) => Response::Done,
         Err(error) => Response::Failed(Failure {

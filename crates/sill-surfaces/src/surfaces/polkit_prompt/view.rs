@@ -73,8 +73,8 @@ fn user_of(name: &str) -> LockUser {
 #[cfg(test)]
 mod tests {
     use ds::PromptState;
+    use sill_model::auth::UserName;
     use sill_services::Polkit;
-    use sill_services::auth::UserName;
     use sill_services::polkit_agent::{
         ActionId, Cookie, Echo, LastTry, PromptPhase, PromptView, Registration,
     };

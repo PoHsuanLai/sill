@@ -5332,6 +5332,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sill-launcher",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
@@ -5412,6 +5413,7 @@ dependencies = [
  "cosmic-client-toolkit",
  "serde",
  "sill-launcher",
+ "sill-model",
  "sill-services",
  "tokio",
  "zbus",

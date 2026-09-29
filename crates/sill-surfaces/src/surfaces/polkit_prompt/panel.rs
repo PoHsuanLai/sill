@@ -13,8 +13,8 @@
 use dioxus::prelude::*;
 use ds::{BlurState, CapsLock, Ds, Material, PolkitPrompt, RootExtent, TextLine};
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use sill_model::auth::Secret;
 use sill_model::ids::OutputName;
-use sill_services::auth::Secret;
 use sill_services::polkit_agent::{Cookie, PolkitCommand};
 use sill_services::{Control, PolkitAgentService};
 

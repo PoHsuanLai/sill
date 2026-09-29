@@ -1,15 +1,17 @@
 //! The real [`Authenticator`]: one `sill auth-check` child per attempt (swaylock's shape, module
-//! doc), spoken to with [`super::protocol`].
+//! doc), spoken to with [`sill_model::auth::protocol`].
 
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdout, Command, Stdio};
-use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
+use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, RecvTimeoutError};
 use std::time::{Duration, Instant};
 
+use sill_model::auth::protocol::{HelperLine, HelperRequest, ProtocolError};
+use sill_model::auth::{Attempt, AuthFault, Outcome, Verdict, protocol};
+
 use super::pam;
-use super::protocol::{self, HelperLine, HelperRequest, ProtocolError};
-use super::types::{Attempt, AuthFault, Outcome, Verdict};
 use crate::env::Authenticator;
 
 /// How long one check may run before its child is killed (`Unavailable(TimedOut)`): past
@@ -37,9 +39,9 @@ impl PamHelper {
 
 impl Authenticator for PamHelper {
     /// Resolves the service ([`super::pam::service`]), writes
-    /// [`super::protocol::encode_request`] to the child's stdin and closes it, reads its lines
+    /// [`sill_model::auth::encode_request`] to the child's stdin and closes it, reads its lines
     /// until it exits or `timeout` passes (then kills it), and folds them with
-    /// [`super::protocol::verdict_of`]; a child that cannot start is `Unavailable(NoHelper)`.
+    /// [`sill_model::auth::verdict_of`]; a child that cannot start is `Unavailable(NoHelper)`.
     /// The encoded request's bytes are zeroed once written; the secret is never logged.
     fn check(&self, attempt: &Attempt) -> Verdict {
         let request = HelperRequest {

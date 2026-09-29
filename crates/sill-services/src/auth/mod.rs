@@ -12,46 +12,29 @@
 //! hyprlock runs it on a thread (service `hyprlock`); cosmic-greeter's locker calls `pam-client`
 //! on tokio's blocking pool (service `cosmic-greeter`), then `acct_mgmt`. sill takes swaylock's
 //! shape: [`PamHelper`] runs `sill auth-check` as a child per attempt, which calls PAM through
-//! the safe `nonstick` crate ([`pam::check`]), so a module that hangs (a network directory, a
+//! the safe `nonstick` crate ([`backend::pam::check`]), so a module that hangs (a network
+//! directory, a
 //! fingerprint reader) is killed with its child instead of wedging a thread, and the lock
 //! surface's process never holds a PAM handle. The PAM service is `sill` when
 //! `/etc/pam.d/sill` exists (`dist/pam.d/sill`: `auth include login`, as swaylock's), else
-//! `login` ([`pam::service`]).
+//! `login` ([`backend::pam::service`]).
 //!
 //! Nothing here runs PAM until a [`AuthCommand::Submit`] arrives, and every test drives a
 //! [`FakeAuthenticator`] (the [`Env`]'s authenticator); no test calls PAM with anyone's real
 //! password.
 
-mod account;
-pub mod gate;
-mod helper;
-mod live;
-pub mod pam;
-pub mod protocol;
-mod types;
-
-pub use account::{avatar_source, user_name_in_passwd};
-pub use gate::{Checks, Gate, GateIn, GateOut};
-pub use helper::PamHelper;
-pub use types::{
-    Account, Attempt, Attempts, Auth, AuthCommand, AuthFault, AuthPhase, AvatarSource, FakeVerdict,
-    Outcome, PamNote, RealName, Secret, UserName, Verdict,
-};
+mod backend;
 
 use std::sync::Arc;
 
-use crate::env::{Bus, Env};
+use backend::AccountPlace;
+use sill_model::auth::{Auth, AuthCommand};
+
+use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
-/// Where the person's name and picture are read.
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct AccountPlace {
-    /// AccountsService's bus, which may name the picture.
-    system: Bus,
-    /// The home folder, whose `.face` is the fallback picture.
-    home: std::path::PathBuf,
-}
+pub use backend::{PamHelper, pam};
 
 /// The lock screen's password check as a [`Service`], through `env`'s [`Authenticator`] (PAM
 /// through `sill auth-check` in the daemon, a [`FakeAuthenticator`] in every test), the account
@@ -77,7 +60,7 @@ impl Service for AuthService {
         };
         let authenticator = Arc::clone(&env.authenticator);
         async move {
-            live::run(io.state, io.commands, account, authenticator).await;
+            backend::run(io.state, io.commands, account, authenticator).await;
             Ok(())
         }
     }

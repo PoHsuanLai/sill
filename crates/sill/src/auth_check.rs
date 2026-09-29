@@ -9,8 +9,9 @@
 use std::io::{Read, Write};
 use std::process::ExitCode;
 
-use sill_services::auth::protocol::{self, HelperLine};
-use sill_services::auth::{AuthFault, Outcome, pam};
+use sill_model::auth::protocol::HelperLine;
+use sill_model::auth::{AuthFault, Outcome, protocol};
+use sill_services::auth::pam;
 
 /// The longest request read: a service, a login name and a secret, with room to spare.
 const MAX_REQUEST: usize = 8 * 1024;

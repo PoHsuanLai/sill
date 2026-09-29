@@ -1,5 +1,5 @@
 use super::{Checks, Gate, GateIn, GateOut, step};
-use crate::auth::types::{Attempts, AuthFault, Outcome};
+use crate::auth::{Attempts, AuthFault, Outcome};
 
 /// One case: a name, the start, the inputs, the end, and everything said on the way.
 type Case = (&'static str, Checks, Vec<GateIn>, Checks, Vec<GateOut>);

@@ -1,12 +1,12 @@
 use super::{
     Completion, MAX_TRIES, Origin, PolkitEffect, PolkitEvent, PolkitState, polkit_of, step,
 };
-use crate::auth::{PamNote, UserName};
 use crate::polkit_agent::helper::HelperLine;
 use crate::polkit_agent::types::{
     ActionId, AgentPolicy, AuthRequest, Cookie, Echo, Identity, LastTry, PromptPhase, Registration,
     Uid,
 };
+use sill_model::auth::{PamNote, UserName};
 
 fn cookie(n: u32) -> Cookie {
     Cookie(format!("cookie-{n}"))

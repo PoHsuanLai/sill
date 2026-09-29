@@ -55,7 +55,7 @@ pub use apps::{
     App, AppIcon, AppIndex, AppsCommand, AppsEvent, AppsService, DbusActivation,
     DesktopActionEntry, ExecArgs, ExecError, Listing, Terminal, expand_exec, match_app,
 };
-pub use auth::{Auth, AuthCommand, AuthPhase, AuthService};
+pub use auth::AuthService;
 pub use badges::BadgesService;
 pub use battery::BatteryService;
 pub use bluetooth::{
