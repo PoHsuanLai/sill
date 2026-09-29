@@ -212,7 +212,7 @@ fn battery_says_so_when_there_is_none() {
     running
         .feeds
         .battery
-        .send_replace(sill_services::Battery::default());
+        .send_replace(sill_model::battery::Battery::default());
     running
         .feeds
         .bluetooth

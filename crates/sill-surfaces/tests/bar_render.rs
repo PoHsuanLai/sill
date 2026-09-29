@@ -4,8 +4,9 @@
 mod support;
 
 use dioxus::prelude::*;
+use sill_model::battery::Battery;
 use sill_model::units::Presence;
-use sill_services::{Battery, ClockText, Services, Toplevels};
+use sill_services::{ClockText, Services, Toplevels};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Bar;
 use sill_surfaces::surfaces::bar::BarProps;

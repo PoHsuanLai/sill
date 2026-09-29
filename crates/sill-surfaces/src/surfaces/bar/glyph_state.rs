@@ -7,13 +7,11 @@ use ds::{
     BatteryPower, BatteryState, BluetoothState, Fraction, Icon, IconSource, LowAt, StatusState,
     VolumeState, VolumeWaves, WifiBars, WifiReach, WifiState,
 };
-use sill_model::{
-    attempt::{Attempt, OpStamp},
-    units::Presence,
-};
+use sill_model::attempt::{Attempt, OpStamp};
+use sill_model::battery::{Battery, Charge};
+use sill_model::units::Presence;
 use sill_services::{
-    Battery, Bluetooth, BtConnection, BtPower, Charge, Connectivity, Link, Mute, Network, Radio,
-    Volume,
+    Bluetooth, BtConnection, BtPower, Connectivity, Link, Mute, Network, Radio, Volume,
 };
 use sill_settings::Percent as KeyPercent;
 

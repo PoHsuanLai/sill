@@ -1,20 +1,11 @@
 //! The battery: UPower's display device over the system bus.
 
-mod live;
-mod model;
-
-pub use model::{Battery, BatteryEvent, Charge, Remaining, step};
-
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
+use sill_model::battery::{Battery, BatteryCommand};
 
-/// What the battery service can be told.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BatteryCommand {
-    /// Re-read every property (after a resume).
-    Refresh,
-}
+mod backend;
 
 /// UPower's display device as a [`Service`]. Without UPower the state stays at
 /// `Battery::default()` (absent), and the bar hides the item.
@@ -32,6 +23,6 @@ impl Service for BatteryService {
         (): (),
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
-        live::run(env.buses.system.clone(), io.state, io.commands)
+        backend::run(env.buses.system.clone(), io.state, io.commands)
     }
 }

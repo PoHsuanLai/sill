@@ -59,7 +59,7 @@ pub use auth::{Auth, AuthCommand, AuthPhase, AuthService};
 pub use badges::{
     Badge, BadgeEvent, BadgeProp, Badges, BadgesCommand, BadgesService, parse_app_uri,
 };
-pub use battery::{Battery, BatteryCommand, BatteryEvent, BatteryService, Charge, Remaining};
+pub use battery::BatteryService;
 pub use bluetooth::{
     Bluetooth, BluetoothCommand, BluetoothEvent, BluetoothService, BtAddress, BtBattery,
     BtConnection, BtDevice, BtKind, BtPairing, BtPower, device_kind, listed_devices,

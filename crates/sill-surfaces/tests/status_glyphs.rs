@@ -12,13 +12,10 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
-use sill_model::{
-    attempt::{Attempt, Attempts, OpStamp},
-    units::{Percent, Presence},
-};
-use sill_services::{
-    Battery, BtConnection, Charge, Connectivity, Link, Mute, Network, Radio, Services, Volume,
-};
+use sill_model::attempt::{Attempt, Attempts, OpStamp};
+use sill_model::battery::{Battery, Charge};
+use sill_model::units::{Percent, Presence};
+use sill_services::{BtConnection, Connectivity, Link, Mute, Network, Radio, Services, Volume};
 use sill_settings::{InMenuBar, SettingsFeed, ShellFile};
 use sill_surfaces::Bar;
 use sill_surfaces::hooks::PinnedAppearance;

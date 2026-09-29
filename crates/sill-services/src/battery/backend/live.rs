@@ -4,16 +4,15 @@
 use tokio::sync::{mpsc, watch};
 use upower_dbus::{BatteryState, DeviceProxy, UPowerProxy};
 
-use super::BatteryCommand;
-use super::model::{Battery, BatteryEvent, Charge, step};
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next;
+use sill_model::battery::{Battery, BatteryCommand, BatteryEvent, Charge, step};
 use sill_model::units::{Percent, Presence, Seconds};
 
 /// Connects to UPower's display device and runs until `commands` closes (the `Control` was
 /// dropped). If the bus or UPower is unreachable, `tx` is left at its seeded default (absent).
-pub(super) async fn run(
+pub(crate) async fn run(
     bus: Bus,
     tx: watch::Sender<Battery>,
     mut commands: mpsc::UnboundedReceiver<BatteryCommand>,

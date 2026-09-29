@@ -286,7 +286,7 @@ impl Live {
         self.state.lock = seen_of(lock);
     }
 
-    fn follow_power(&mut self, battery: &crate::battery::Battery) {
+    fn follow_power(&mut self, battery: &sill_model::battery::Battery) {
         self.state.power = power_source(battery);
     }
 

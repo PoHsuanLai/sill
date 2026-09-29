@@ -7,7 +7,7 @@
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-use sill_services::battery::Battery;
+use sill_model::battery::Battery;
 use sill_services::env::{BusRoute, Buses, Env, WaylandRoute};
 use sill_services::idle::IdleService;
 use sill_services::idle::{

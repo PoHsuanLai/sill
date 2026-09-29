@@ -13,8 +13,9 @@ use ds::{
     BatteryState, Device, DeviceBattery, DeviceGlyph, Fraction, IconSource, ModulePanel, RingMark,
     StatusState, TextLine,
 };
+use sill_model::battery::{Battery, Charge};
 use sill_model::units::Presence;
-use sill_services::{Battery, Bluetooth, BtBattery, BtConnection, Charge};
+use sill_services::{Bluetooth, BtBattery, BtConnection};
 
 use super::PowerProfileControl;
 use crate::hooks::{use_service, use_settings};
@@ -141,10 +142,10 @@ fn charging(charge: Charge) -> RingMark {
 mod tests {
     use super::{DeviceRing, device_rings};
     use ds::{Device, Fraction, RingMark};
+    use sill_model::battery::{Battery, Charge};
     use sill_model::units::{Percent, Presence};
     use sill_services::{
-        Battery, Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,
-        BtPower, Charge,
+        Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower,
     };
 
     fn device(address: &str, connection: BtConnection, battery: BtBattery) -> BtDevice {

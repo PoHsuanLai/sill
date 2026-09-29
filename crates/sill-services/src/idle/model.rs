@@ -5,10 +5,10 @@ use std::path::PathBuf;
 use tokio::sync::watch;
 
 use crate::auth::AuthCommand;
-use crate::battery::Battery;
 use crate::control::Control;
 use crate::env::{Bus, Env, WaylandRoute};
 use crate::locker::{Lock, LockerCommand};
+use sill_model::battery::Battery;
 
 use super::inhibit::{Inhibition, LogindIdle};
 use super::policy::{DimLevel, IdleConfig, IdleMode, IdlePolicy, PowerSource};
