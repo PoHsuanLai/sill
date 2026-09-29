@@ -17,9 +17,9 @@ fn on(output: &str, placement: Placement) -> SavedEntry {
     }
 }
 
-fn anywhere(placement: Placement) -> SavedEntry {
+fn unnamed(placement: Placement) -> SavedEntry {
     SavedEntry {
-        output: OutputKey::Any,
+        output: OutputKey::Unnamed,
         placement,
     }
 }
@@ -30,20 +30,13 @@ fn entries_round_trip_through_the_file_format() {
         on("DP-1", at(WidgetKind::Calendar, 9, 0)),
         on("DP-1", at(WidgetKind::UpNext, 7, 1)),
         on("HDMI-A-1", at(WidgetKind::NowPlaying, 0, 4)),
-        anywhere(at(WidgetKind::WorldClock, 2, 2)),
+        unnamed(at(WidgetKind::WorldClock, 2, 2)),
         on("eDP-1", at(WidgetKind::Battery, 9, 1)),
     ];
     let text = encode(&entries);
-    assert!(
-        text.contains(r#"{"output": "DP-1", "kind": "up_next", "column": 7, "row": 1}"#),
-        "{text}"
-    );
-    assert!(
-        text.contains(r#"{"kind": "world_clock", "column": 2, "row": 2}"#),
-        "{text}"
-    );
+    assert!(text.contains(r#""kind": "up_next""#), "{text}");
     assert_eq!(decode(&text), entries);
-    assert_eq!(encode(&[]), "[]\n");
+    assert_eq!(decode(&encode(&[])), Vec::new());
     assert_eq!(decode("[]"), Vec::new());
 }
 
@@ -54,7 +47,7 @@ fn what_cannot_be_read_is_skipped() {
         ("not json", Vec::new()),
         (
             r#"[{"kind":"weather","column":1,"row":1},{"row":2,"column":3,"kind":"battery"}]"#,
-            vec![anywhere(at(WidgetKind::Battery, 3, 2))],
+            vec![unnamed(at(WidgetKind::Battery, 3, 2))],
         ),
         (
             r#"[{"kind":"calendar","column":-1,"row":0},{"kind":"calendar","column":1}]"#,
@@ -71,14 +64,11 @@ fn what_cannot_be_read_is_skipped() {
 }
 
 #[test]
-fn a_name_the_format_cannot_spell_is_any_output() {
+fn an_output_without_a_name_is_unnamed() {
     let cases = [
         (Some("DP-1"), OutputKey::Named("DP-1".to_owned())),
-        (None, OutputKey::Any),
-        (Some(""), OutputKey::Any),
-        (Some("a\"b"), OutputKey::Any),
-        (Some("a,b"), OutputKey::Any),
-        (Some("a:b"), OutputKey::Any),
+        (None, OutputKey::Unnamed),
+        (Some(""), OutputKey::Unnamed),
     ];
     for (name, want) in cases {
         assert_eq!(OutputKey::of(name), want, "{name:?}");
@@ -86,9 +76,9 @@ fn a_name_the_format_cannot_spell_is_any_output() {
 }
 
 #[test]
-fn each_output_reads_its_own_places_or_the_unnamed_ones() {
+fn each_output_reads_only_its_own_places() {
     let entries = vec![
-        anywhere(at(WidgetKind::Calendar, 5, 0)),
+        unnamed(at(WidgetKind::Calendar, 5, 0)),
         on("DP-1", at(WidgetKind::Calendar, 1, 1)),
     ];
     let dp1 = OutputKey::of(Some("DP-1"));
@@ -97,11 +87,7 @@ fn each_output_reads_its_own_places_or_the_unnamed_ones() {
         for_output(&entries, &dp1),
         vec![at(WidgetKind::Calendar, 1, 1)]
     );
-    assert_eq!(
-        for_output(&entries, &hdmi),
-        vec![at(WidgetKind::Calendar, 5, 0)],
-        "an output with none of its own reads the unnamed ones"
-    );
+    assert_eq!(for_output(&entries, &hdmi), Vec::new());
     let saved = with_output(entries, &hdmi, &[at(WidgetKind::Battery, 0, 0)]);
     assert_eq!(
         for_output(&saved, &hdmi),

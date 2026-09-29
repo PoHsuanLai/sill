@@ -5349,6 +5349,7 @@ dependencies = [
  "jiff",
  "resvg",
  "serde",
+ "serde_json",
  "shell-host",
  "sill-launcher",
  "sill-services",

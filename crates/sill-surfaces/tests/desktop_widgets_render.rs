@@ -131,27 +131,22 @@ fn a_medium_widget_takes_two_cells() {
 #[test]
 fn saved_places_are_kept_and_the_placements_are_written_back() {
     let (dir, placements) = temp_file("saved");
-    // A file from before places were per output: its entries name no output.
+    let dp1 = OutputKey::of(Some("DP-1"));
     let seeded = [at(WidgetKind::Battery, 0, 0), at(WidgetKind::UpNext, 3, 2)];
     placements
-        .save(&OutputKey::Any, &seeded)
+        .save(&dp1, &seeded)
         .unwrap_or_else(|e| panic!("seeding: {e}"));
     let (h, _feeds) = start(ShellFile::default(), Some(placements.clone()));
     assert_eq!(box_of(&h, "#widget-battery"), (20, 16, 164, 164));
     assert_eq!(box_of(&h, "#widget-calendar"), (1100, 16, 164, 164));
     assert_eq!(
-        placements.load(&OutputKey::of(Some("DP-1"))),
+        placements.load(&dp1),
         vec![
             at(WidgetKind::Battery, 0, 0),
             at(WidgetKind::UpNext, 3, 2),
             at(WidgetKind::Calendar, 6, 0),
         ],
-        "DP-1 now has places of its own: the new one saved, the hidden widget's kept"
-    );
-    assert_eq!(
-        placements.load(&OutputKey::Any),
-        seeded,
-        "the unnamed entries stay for other outputs"
+        "the new one saved, the hidden widget's kept"
     );
     let _ = std::fs::remove_dir_all(dir);
 }
