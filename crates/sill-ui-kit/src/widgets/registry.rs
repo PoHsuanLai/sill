@@ -2,35 +2,29 @@
 //! names it, the registry with sill's two widgets added and every kind held to its one size in
 //! each host, and the stylesheets sill's own widgets need.
 
-use ds::WidgetHost;
+use ds::{WidgetHost, Word as _};
 use sill_settings::WidgetKind;
 
-use super::{now_playing, size_of, up_next};
-
-/// Every kind, in the settings' order.
-pub const ALL_KINDS: [WidgetKind; 5] = [
-    WidgetKind::Calendar,
-    WidgetKind::UpNext,
-    WidgetKind::Battery,
-    WidgetKind::NowPlaying,
-    WidgetKind::WorldClock,
-];
+use super::{OnProvider, WidgetProvider, now_playing, size_of, up_next, with_provider};
 
 /// `kind`'s name in quire's registry.
 pub fn kind_id(kind: WidgetKind) -> ds::WidgetKind {
-    use ds::Widget as _;
-    match kind {
-        WidgetKind::Calendar => ds::MonthWidget::kind(),
-        WidgetKind::UpNext => up_next::UpNext::kind(),
-        WidgetKind::Battery => ds::BatteryWidget::kind(),
-        WidgetKind::NowPlaying => now_playing::NowPlaying::kind(),
-        WidgetKind::WorldClock => ds::WorldClockWidget::kind(),
+    struct RegistryId;
+    impl OnProvider for RegistryId {
+        type Out = ds::WidgetKind;
+        fn on<P: WidgetProvider>(self) -> ds::WidgetKind {
+            P::registry_id()
+        }
     }
+    with_provider(kind, RegistryId)
 }
 
 /// The settings' kind named `id`; none for a widget sill does not place.
 pub fn kind_of(id: &ds::WidgetKind) -> Option<WidgetKind> {
-    ALL_KINDS.into_iter().find(|kind| kind_id(*kind) == *id)
+    WidgetKind::ALL
+        .iter()
+        .copied()
+        .find(|kind| kind_id(*kind) == *id)
 }
 
 /// Every widget sill can place, quire's three and sill's two, each taking [`size_of`] in each
@@ -61,9 +55,9 @@ pub(super) fn all_sized(quire: ds::WidgetRegistry) -> Result<ds::WidgetRegistry,
         .with::<up_next::UpNext>()?
         .with::<now_playing::NowPlaying>()?;
     let hosts = [WidgetHost::Tile, WidgetHost::Desktop];
-    let sized = ALL_KINDS
-        .into_iter()
-        .flat_map(|kind| hosts.map(|host| (kind, host)))
+    let sized = WidgetKind::ALL
+        .iter()
+        .flat_map(|kind| hosts.map(|host| (*kind, host)))
         .try_fold(all, |registry, (kind, host)| {
             registry.sized(&kind_id(kind), host, size_of(kind, host))
         })?;
@@ -78,14 +72,7 @@ pub fn provide_registry() {
 
 /// The element id of a widget's card on the desktop layer: its input and blur region.
 pub fn widget_element_id(kind: WidgetKind) -> String {
-    let word = match kind {
-        WidgetKind::Calendar => "calendar",
-        WidgetKind::UpNext => "up-next",
-        WidgetKind::Battery => "battery",
-        WidgetKind::NowPlaying => "now-playing",
-        WidgetKind::WorldClock => "world-clock",
-    };
-    format!("widget-{word}")
+    format!("widget-{}", kind.slug())
 }
 
 /// sill's own widgets' stylesheets (quire's widgets style themselves), for a host root to inject

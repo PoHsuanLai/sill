@@ -8,15 +8,16 @@ use sill_services::{ClockService, EventsService};
 use super::provider::{EVENT_ROWS, up_next_entry};
 use super::widget::UpNext;
 use crate::hooks::{use_service, use_settings};
-use crate::widgets::{Feed, WidgetKind, WidgetProvider};
+use crate::widgets::{Feed, WidgetKind, WidgetProvider, WidgetSize};
 
 /// The next events, as many as the card's body holds whole.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct UpNextProvider;
 
 impl WidgetProvider for UpNextProvider {
     type W = UpNext;
     const KIND: WidgetKind = WidgetKind::UpNext;
+    const DESKTOP_SIZE: WidgetSize = WidgetSize::Medium;
 
     fn use_feed() -> Feed<UpNext> {
         let _minute = use_service::<ClockService>()();

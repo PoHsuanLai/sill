@@ -4,17 +4,24 @@ use dioxus::prelude::EventHandler;
 use ds::{CardPresence, Lift, WidgetHost, WidgetSize};
 use sill_settings::WidgetKind;
 
+use super::{OnProvider, WidgetProvider, with_provider};
+
 /// The one size `kind` takes in `host`: a widget has one size, nothing picks another. In the
 /// notification center every tile spans the column at Medium (344 fits its 384 less the
 /// padding): the month is the reference's Medium Calendar, today beside the compact month. On the
 /// desktop the compact month and the batteries are Small, the lists and the clocks' dials
 /// Medium.
 pub fn size_of(kind: WidgetKind, host: WidgetHost) -> WidgetSize {
-    match (host, kind) {
-        (WidgetHost::Tile, _) => WidgetSize::Medium,
-        (WidgetHost::Desktop, WidgetKind::Calendar | WidgetKind::Battery) => WidgetSize::Small,
-        (WidgetHost::Desktop, WidgetKind::UpNext | WidgetKind::NowPlaying) => WidgetSize::Medium,
-        (WidgetHost::Desktop, WidgetKind::WorldClock) => WidgetSize::Medium,
+    struct DesktopSize;
+    impl OnProvider for DesktopSize {
+        type Out = WidgetSize;
+        fn on<P: WidgetProvider>(self) -> WidgetSize {
+            P::DESKTOP_SIZE
+        }
+    }
+    match host {
+        WidgetHost::Tile => WidgetSize::Medium,
+        WidgetHost::Desktop => with_provider(kind, DesktopSize),
     }
 }
 

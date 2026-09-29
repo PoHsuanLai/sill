@@ -9,6 +9,7 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+ds = { workspace = true }
 ds-settings = { workspace = true }
 notify = { workspace = true }
 serde = { workspace = true }

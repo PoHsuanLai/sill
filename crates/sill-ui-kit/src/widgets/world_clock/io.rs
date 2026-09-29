@@ -6,16 +6,17 @@ use sill_services::ClockService;
 
 use super::provider::{clock_entry, clock_rows, parse_zones};
 use crate::hooks::{use_service, use_settings};
-use crate::widgets::{Feed, WidgetKind, WidgetProvider};
+use crate::widgets::{Feed, WidgetKind, WidgetProvider, WidgetSize};
 
 /// The clocks. The clock service's minute tick is the only thing that makes a new entry: no
 /// timer of its own.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct WorldClockProvider;
 
 impl WidgetProvider for WorldClockProvider {
     type W = ds::WorldClockWidget;
     const KIND: WidgetKind = WidgetKind::WorldClock;
+    const DESKTOP_SIZE: WidgetSize = WidgetSize::Medium;
 
     fn use_feed() -> Feed<ds::WorldClockWidget> {
         let _minute = use_service::<ClockService>()();

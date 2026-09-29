@@ -406,17 +406,23 @@ Bluetooth, Focus, Display, Keyboard, Sound, Now Playing, Appearance, Battery.
 pub trait WidgetProvider: Clone + PartialEq + 'static {
     type W: ds::Widget;                       // a value: `ds::Widget: Default`
     const KIND: WidgetKind;
+    const DESKTOP_SIZE: WidgetSize;           // its one size on the desktop (tiles are all Medium)
     fn use_feed() -> Feed<Self::W>;           // reads the services; one hook, one shape
+    fn registry_id() -> ds::WidgetKind;       // provided: `W::kind()`, the name in quire's registry
 }
 pub struct Feed<W: ds::Widget> {
     pub entry: W::Entry,                                   // the entry now
     pub onintent: Option<EventHandler<W::Intent>>,         // the card's controls; none without any
 }
 #[component] pub fn Card<P: WidgetProvider>(provider: P, place: Place) -> Element;  // quire's WidgetCard
-pub fn card(kind: WidgetKind, place: Place) -> Element;             // the only match on the kind
+pub fn with_provider<A: OnProvider>(kind: WidgetKind, action: A) -> A::Out;  // the only match on the kind
+pub fn card(kind: WidgetKind, place: Place) -> Element;             // `with_provider(kind, CardAt(place))`
 ```
 
-The size is `size_of(kind, host)` (in `Place`), not the provider's. A provider is a unit struct
+`size_of(kind, host)` reads `DESKTOP_SIZE` (desktop) or Medium (tile); `kind_id`, `kind_of`
+and `size_of` all go through `with_provider`. `WidgetKind` derives quire's `Word`: `ALL` and the
+slug (the element id `widget-<slug>`) come from the derive, the settings key stays serde
+snake_case. A provider is a `Default` unit struct
 (`CalendarProvider`), passed to `Card` only to name the type. Calendar's `use_feed` keeps the
 shown month in a signal and returns the `MonthIntent` handler; Now Playing's returns the
 `Transport` handler (`use_media`, shared with the control center).
@@ -527,7 +533,9 @@ Each ends with its tests. Name the concept once and use it in every file name be
    `sill-settings/src/widgets.rs`.
 2. `sill-ui-kit/src/widgets/<kind>/{mod,provider,io,tests}.rs` (+ `style.css` if it has one):
    `impl WidgetProvider` (`use_feed` over services) on a unit struct in `io.rs`.
-3. The one arm in `widgets/card.rs::card`, and `WidgetKind::ALL` follows.
+3. `const DESKTOP_SIZE` on the provider, and the one arm in `widgets/card.rs::with_provider`;
+   `WidgetKind::ALL`, the slug, `kind_id`, `size_of` and the element id follow. Add the
+   variant's row to the table test in `widgets/tests.rs` (slug, element id, size).
 4. Tests: entry table in `tests.rs`; a row in `sill-widgets-ui/tests/desktop.rs` and in
    `sill-notify-ui/tests/center.rs` render loops (both hosts).
 

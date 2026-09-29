@@ -2,7 +2,7 @@
 //! card (`ds::WidgetCard`: footprint, corner, inset, material, Space tint, title row, lift); a
 //! widget is a `ds::Widget` (quire's `BatteryWidget`, `WorldClockWidget` and `MonthWidget`, and
 //! sill's own [`up_next::UpNext`] and [`now_playing::NowPlaying`]), and sill only provides each
-//! one's entries from its services ([`Widget`] picks the provider for a kind). Drawn the same in
+//! one's entries from its services ([`Widget`] picks the provider for a kind, [`with_provider`]). Drawn the same in
 //! two hosts: the notification center's widget slot below the history
 //! (`surfaces::notification_center::CenterWidgets`) and the desktop widget layer
 //! (`surfaces::desktop_widgets`).
@@ -28,12 +28,10 @@ pub mod world_clock;
 #[cfg(test)]
 mod tests;
 
-pub use card::{Card, Feed, Widget, WidgetProvider, card};
+pub use card::{Card, Feed, OnProvider, Widget, WidgetProvider, card, with_provider};
 pub use ds::widget::cells;
 pub use ds::{CardPresence, Lift, WidgetHost, WidgetSize};
 pub use place::{Place, desktop_size, size_of};
-pub use registry::{
-    ALL_KINDS, kind_id, kind_of, provide_registry, registry, widget_element_id, widgets_css,
-};
+pub use registry::{kind_id, kind_of, provide_registry, registry, widget_element_id, widgets_css};
 pub use sill_settings::WidgetKind;
 pub use wake::{provide_widget_wake, use_widget_wake};

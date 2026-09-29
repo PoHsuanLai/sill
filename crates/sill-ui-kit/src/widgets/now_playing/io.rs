@@ -8,15 +8,16 @@ use sill_services::NowPlayingService;
 use super::face::{MediaFace, Transport, media_face};
 use super::widget::NowPlaying;
 use crate::hooks::{use_control, use_service};
-use crate::widgets::{Feed, WidgetKind, WidgetProvider};
+use crate::widgets::{Feed, WidgetKind, WidgetProvider, WidgetSize};
 
 /// The current player on quire's card; a press goes to that player.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct NowPlayingProvider;
 
 impl WidgetProvider for NowPlayingProvider {
     type W = NowPlaying;
     const KIND: WidgetKind = WidgetKind::NowPlaying;
+    const DESKTOP_SIZE: WidgetSize = WidgetSize::Medium;
 
     fn use_feed() -> Feed<NowPlaying> {
         let (entry, onintent) = use_media();

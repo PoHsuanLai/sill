@@ -14,7 +14,16 @@ use serde::{Deserialize, Serialize};
 /// One widget. The same component draws it in the notification center and on the desktop. Weather
 /// is not a variant yet: it needs a weather source nothing provides; adding it later is additive.
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ds_settings::SettingsSchema,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize,
+    ds_settings::SettingsSchema,
+    ds::Word,
 )]
 #[serde(rename_all = "snake_case")]
 pub enum WidgetKind {
@@ -116,5 +125,29 @@ impl Default for WidgetsSettings {
             desktop_gap_px: Px(16),
             world_clocks: String::new(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::WidgetKind;
+    use ds::Word as _;
+
+    #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+    struct Keys {
+        kinds: Vec<WidgetKind>,
+    }
+
+    #[test]
+    fn kinds_are_stored_by_their_snake_case_keys() {
+        let keys = Keys {
+            kinds: WidgetKind::ALL.to_vec(),
+        };
+        let text = toml::to_string(&keys).unwrap();
+        assert_eq!(
+            text.trim(),
+            r#"kinds = ["calendar", "up_next", "battery", "now_playing", "world_clock"]"#
+        );
+        assert_eq!(toml::from_str::<Keys>(&text).unwrap(), keys);
     }
 }

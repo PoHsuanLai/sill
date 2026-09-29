@@ -1,8 +1,9 @@
 use super::registry::all_sized;
 use super::{
-    ALL_KINDS, WidgetHost, WidgetKind, cells, kind_id, kind_of, registry, size_of,
+    WidgetHost, WidgetKind, WidgetSize, cells, kind_id, kind_of, registry, size_of,
     widget_element_id,
 };
+use ds::Word as _;
 
 #[test]
 fn each_widget_has_its_footprint_in_each_host() {
@@ -47,15 +48,63 @@ fn each_kind_is_named_in_the_registry_at_its_one_size() {
         }
     }
     assert!(all_sized(ds::WidgetRegistry::quire()).is_ok());
-    assert_eq!(registry.all().len(), ALL_KINDS.len());
+    assert_eq!(registry.all().len(), WidgetKind::ALL.len());
     assert_eq!(kind_of(&ds::WidgetKind::fixed("org.example.weather")), None);
 }
 
 #[test]
 fn element_ids_are_distinct() {
-    let mut ids: Vec<_> = ALL_KINDS.into_iter().map(widget_element_id).collect();
+    let mut ids: Vec<_> = WidgetKind::ALL
+        .iter()
+        .copied()
+        .map(widget_element_id)
+        .collect();
     ids.sort();
     ids.dedup();
-    assert_eq!(ids.len(), ALL_KINDS.len());
+    assert_eq!(ids.len(), WidgetKind::ALL.len());
     assert_eq!(widget_element_id(WidgetKind::UpNext), "widget-up-next");
+}
+
+#[test]
+fn every_slug_and_desktop_size_is_pinned() {
+    let table = [
+        (
+            WidgetKind::Calendar,
+            "calendar",
+            "widget-calendar",
+            WidgetSize::Small,
+        ),
+        (
+            WidgetKind::UpNext,
+            "up-next",
+            "widget-up-next",
+            WidgetSize::Medium,
+        ),
+        (
+            WidgetKind::Battery,
+            "battery",
+            "widget-battery",
+            WidgetSize::Small,
+        ),
+        (
+            WidgetKind::NowPlaying,
+            "now-playing",
+            "widget-now-playing",
+            WidgetSize::Medium,
+        ),
+        (
+            WidgetKind::WorldClock,
+            "world-clock",
+            "widget-world-clock",
+            WidgetSize::Medium,
+        ),
+    ];
+    let kinds: Vec<_> = table.iter().map(|row| row.0).collect();
+    assert_eq!(kinds, WidgetKind::ALL);
+    for (kind, slug, element, desktop) in table {
+        assert_eq!(kind.slug(), slug);
+        assert_eq!(widget_element_id(kind), element);
+        assert_eq!(size_of(kind, WidgetHost::Desktop), desktop);
+        assert_eq!(size_of(kind, WidgetHost::Tile), WidgetSize::Medium);
+    }
 }
