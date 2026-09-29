@@ -1,7 +1,6 @@
 //! The providers the daemon searches, in Tab order, sharing the runner's history and its
 //! policy.
 
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use sill_launcher::Provider;
@@ -35,15 +34,16 @@ pub(crate) fn providers(
         }),
         Arc::new(CalculatorProvider {
             policy: policy.clone(),
+            rates_file: crate::providers::calculator::fetch::cache_path(wiring.dirs),
             ..CalculatorProvider::default()
         }),
-        Arc::new(SettingsProvider::new()),
+        Arc::new(SettingsProvider::new(&wiring.dirs.data)),
         Arc::new(SystemProvider::new(wiring.buses.system.clone())),
         Arc::new(FilesProvider {
             policy: policy.clone(),
             frecency: history.shared(),
             source: IndexSource::Detect(wiring.buses.session.clone()),
-            home: dirs::home_dir().unwrap_or_else(|| PathBuf::from("/")),
+            home: wiring.dirs.home.clone(),
         }),
         Arc::new(ClipboardProvider {
             history: wiring.clipboard.clone(),

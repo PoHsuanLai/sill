@@ -80,9 +80,9 @@ pub fn decide_scale(facts: ScaleFacts) -> ScaleDecision {
     }
 }
 
-/// `displays.json` under `$XDG_STATE_HOME/sill`, else `$HOME/.local/state/sill`.
-pub fn default_path() -> Option<PathBuf> {
-    dirs::state_dir().map(|dir| dir.join("sill").join("displays.json"))
+/// `displays.json` in sill's folder of `dirs`' state directory.
+pub fn path_in(dirs: &crate::env::Dirs) -> PathBuf {
+    dirs.sill_state().join("displays.json")
 }
 
 /// The record at `path`; empty when there is none or it cannot be read (a broken record costs

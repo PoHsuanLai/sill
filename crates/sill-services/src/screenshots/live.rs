@@ -1,5 +1,5 @@
 //! The screenshots task: on `Configure`, resolve the folders (`folders_of`, the Pictures folder
-//! from `dirs::picture_dir`), keep those that exist, watch them with `notify` (a file closed
+//! from the Pictures folder of [`Dirs`]), keep those that exist, watch them with `notify` (a file closed
 //! after writing, or renamed into place, whose name `is_screenshot_name`, [`super::folder_watch`]), and
 //! publish `Watching`; run each event and command through `reduce_shots` and carry out its
 //! effects: `MakePreview` on the blocking pool ([`super::preview`]), `Open` (`xdg-open`),
@@ -16,6 +16,7 @@ use tokio::sync::{mpsc, watch};
 use super::reduce::{ShotEffect, ShotEvent, Shots, Watching, reduce_shots};
 use super::tool::{ShotKind, save_folder, tool_command};
 use super::{ShotCommand, ShotPolicy, folders_of};
+use crate::env::Dirs;
 
 /// The task's own state beside the published [`Shots`].
 struct Live {
@@ -25,11 +26,14 @@ struct Live {
     folders: Vec<PathBuf>,
     /// Held so the watch lives; replaced on every new policy.
     watcher: Option<RecommendedWatcher>,
+    /// Pictures and home (the folders), and the cache (the previews).
+    dirs: Dirs,
 }
 
 pub(super) async fn run(
     tx: watch::Sender<Shots>,
     mut commands: mpsc::UnboundedReceiver<ShotCommand>,
+    dirs: Dirs,
 ) {
     let (events, mut heard) = mpsc::unbounded_channel();
     let mut live = Live {
@@ -38,6 +42,7 @@ pub(super) async fn run(
         policy: None,
         folders: Vec::new(),
         watcher: None,
+        dirs,
     };
     loop {
         let event = tokio::select! {
@@ -71,8 +76,7 @@ impl Live {
             return None;
         }
         self.watcher = None;
-        let pictures = dirs::picture_dir();
-        self.folders = folders_of(&policy.folders, pictures.as_deref());
+        self.folders = folders_of(&policy.folders, self.dirs.pictures.as_deref());
         let (watcher, watching) = super::folder_watch::start(&self.folders, self.events.clone());
         self.watcher = watcher;
         self.policy = Some(policy);
@@ -95,11 +99,13 @@ impl Live {
         match effect {
             ShotEffect::MakePreview { id, from } => {
                 let events = self.events.clone();
+                let cache = super::preview::cache_in(&self.dirs);
                 tokio::spawn(async move {
-                    let made = tokio::task::spawn_blocking(move || super::preview::make(&from))
-                        .await
-                        .ok()
-                        .and_then(Result::ok);
+                    let made =
+                        tokio::task::spawn_blocking(move || super::preview::make_in(&from, &cache))
+                            .await
+                            .ok()
+                            .and_then(Result::ok);
                     let _ = events.send(match made {
                         Some(preview) => ShotEvent::PreviewReady(id, preview),
                         None => ShotEvent::PreviewFailed(id),
@@ -118,9 +124,8 @@ impl Live {
     fn run_tool(&self, kind: ShotKind) {
         let folder = save_folder(&self.folders)
             .map(Path::to_path_buf)
-            .or_else(dirs::picture_dir)
-            .or_else(dirs::home_dir)
-            .unwrap_or_else(std::env::temp_dir);
+            .or_else(|| self.dirs.pictures.clone())
+            .unwrap_or_else(|| self.dirs.home.clone());
         let tool = self.policy.clone().unwrap_or_default().tool;
         let events = self.events.clone();
         match tool_command(&tool, kind, &folder) {

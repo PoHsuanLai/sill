@@ -45,23 +45,46 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
-use crate::env::Bus;
+use crate::env::{Bus, Dirs, Env};
+
+/// Where the person's name and picture are read.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AccountPlace {
+    /// AccountsService's bus, which may name the picture.
+    pub system: Bus,
+    /// The home folder, whose `.face` is the fallback picture.
+    pub home: std::path::PathBuf,
+}
+
+impl AccountPlace {
+    /// `env`'s system bus and home.
+    pub fn of(env: &Env) -> AccountPlace {
+        AccountPlace::on(env.buses.system.clone(), &env.dirs)
+    }
+
+    /// AccountsService on `system`, the home in `dirs`.
+    pub fn on(system: Bus, dirs: &Dirs) -> AccountPlace {
+        AccountPlace {
+            system,
+            home: dirs.home.clone(),
+        }
+    }
+}
 
 /// Start the auth service on `rt` with PAM through `sill auth-check` ([`PamHelper::this_exe`]).
 /// Idle until the first `Submit`: nothing is checked, and no PAM module runs, before that.
-pub fn spawn(rt: &Handle, system: Bus) -> (watch::Receiver<Auth>, Control<AuthCommand>) {
-    spawn_with(rt, system, Arc::new(PamHelper::this_exe()))
+pub fn spawn(rt: &Handle, account: AccountPlace) -> (watch::Receiver<Auth>, Control<AuthCommand>) {
+    spawn_with(rt, account, Arc::new(PamHelper::this_exe()))
 }
 
-/// [`spawn`] with any [`Authenticator`] (tests: a [`FakeAuthenticator`]). `system` is where
-/// AccountsService names the person's picture.
+/// [`spawn`] with any [`Authenticator`] (tests: a [`FakeAuthenticator`]).
 pub fn spawn_with(
     rt: &Handle,
-    system: Bus,
+    account: AccountPlace,
     authenticator: Arc<dyn Authenticator>,
 ) -> (watch::Receiver<Auth>, Control<AuthCommand>) {
     let (tx, rx) = watch::channel(Auth::default());
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands, system, authenticator, rt.clone()));
+    rt.spawn(live::run(tx, commands, account, authenticator, rt.clone()));
     (rx, control)
 }

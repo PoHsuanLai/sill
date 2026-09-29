@@ -19,10 +19,10 @@ const CURRENT_DESKTOP: &str = "COSMIC";
 /// (`freedesktop_desktop_entry::default_paths`), with Flatpak's own export directories added at
 /// the end when they are not already on `XDG_DATA_DIRS` (a login session that has sourced
 /// `/etc/profile.d/flatpak.sh` already has them there, at the same low precedence; this is a
-/// safety net for one that has not).
-pub fn applications_dirs() -> Vec<PathBuf> {
+/// safety net for one that has not). `data_home` is where the user's own Flatpak installs.
+pub fn applications_dirs(data_home: &Path) -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = freedesktop_desktop_entry::default_paths().collect();
-    for extra in flatpak_dirs() {
+    for extra in flatpak_dirs(data_home) {
         if !dirs.contains(&extra) {
             dirs.push(extra);
         }
@@ -31,13 +31,11 @@ pub fn applications_dirs() -> Vec<PathBuf> {
 }
 
 /// Flatpak's own well-known export directories: the user install, then the system one.
-fn flatpak_dirs() -> Vec<PathBuf> {
-    let mut dirs = Vec::new();
-    if let Some(data_home) = dirs::data_dir() {
-        dirs.push(data_home.join("flatpak/exports/share/applications"));
-    }
-    dirs.push(PathBuf::from("/var/lib/flatpak/exports/share/applications"));
-    dirs
+fn flatpak_dirs(data_home: &Path) -> Vec<PathBuf> {
+    vec![
+        data_home.join("flatpak/exports/share/applications"),
+        PathBuf::from("/var/lib/flatpak/exports/share/applications"),
+    ]
 }
 
 /// Every entry under `dirs`, in precedence order, icons resolved in `theme`, with the

@@ -34,12 +34,9 @@ pub struct Attempt {
     pub outcome: Outcome,
 }
 
-/// `$XDG_CACHE_HOME/sill/ecb-rates.xml`.
-pub fn cache_path() -> PathBuf {
-    dirs::cache_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join("sill")
-        .join("ecb-rates.xml")
+/// `ecb-rates.xml` in sill's folder of `dirs`' cache directory.
+pub fn cache_path(dirs: &crate::env::Dirs) -> PathBuf {
+    dirs.sill_cache().join("ecb-rates.xml")
 }
 
 /// The attempt stamp beside `cache_path`'s file: `ecb-rates.attempt`.

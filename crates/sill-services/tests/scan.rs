@@ -120,5 +120,5 @@ fn applications_dirs_is_non_empty_and_does_not_panic() {
     // Not a fixture test: just proves the real function runs on this machine's real
     // environment and returns something (the desktop entry spec guarantees at least
     // `/usr/share/applications` is always a candidate, whether or not it exists).
-    assert!(!applications_dirs().is_empty());
+    assert!(!applications_dirs(std::path::Path::new("/nowhere")).is_empty());
 }

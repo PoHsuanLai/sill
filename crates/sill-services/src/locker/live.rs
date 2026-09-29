@@ -5,7 +5,7 @@
 //! `Shell(Locked)`, removed on `Shell(Unlocked | Finished | Refused)`) and, right after a mode
 //! resolves to `Own`, locks at once when [`super::marker::restore_on_start`] says so.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Instant;
 
 use tokio::sync::{mpsc, watch};
@@ -31,11 +31,14 @@ struct Live {
     inhibitor: Option<OwnedFd>,
     /// What started the lock in place.
     cause: Option<LockCause>,
+    /// The crash marker in this session's runtime directory; none without one.
+    marker: Option<PathBuf>,
 }
 
 /// Runs until `commands` closes. Inert (`LockerMode::Off`) until the first `Configure`/`Use`.
 pub(super) async fn run(
     bus: Bus,
+    runtime: Option<PathBuf>,
     tx: watch::Sender<Lock>,
     mut commands: mpsc::UnboundedReceiver<LockerCommand>,
 ) {
@@ -47,6 +50,7 @@ pub(super) async fn run(
         logind: logind::connect(&bus).await,
         inhibitor: None,
         cause: None,
+        marker: runtime.as_deref().map(marker_path),
     };
     loop {
         let deadline = next_deadline(&live.machine).map(|at| live.instant(at));
@@ -131,7 +135,7 @@ impl Live {
         self.feed(LockerEvent::Configured(runner, triggers)).await;
         // A sill that died while its own lock held left the marker: lock again at once, so the
         // person gets a prompt on the session the compositor kept locked.
-        let found = match marker_file() {
+        let found = match &self.marker {
             Some(path) if path.exists() => LockMarker::Present,
             Some(_) | None => LockMarker::Absent,
         };
@@ -144,7 +148,7 @@ impl Live {
 
     /// Keep the crash marker while the own lock is held (module doc of [`super::marker`]).
     fn keep_marker(&self, event: ShellLockEvent) {
-        let (LockerMode::Own { .. }, Some(path)) = (&self.mode, marker_file()) else {
+        let (LockerMode::Own { .. }, Some(path)) = (&self.mode, &self.marker) else {
             return;
         };
         match event {
@@ -152,13 +156,13 @@ impl Live {
                 let written = path
                     .parent()
                     .map_or(Ok(()), std::fs::create_dir_all)
-                    .and_then(|()| std::fs::write(&path, b"locked\n"));
+                    .and_then(|()| std::fs::write(path, b"locked\n"));
                 if let Err(error) = written {
                     eprintln!("sill: writing the lock marker {}: {error}", path.display());
                 }
             }
             ShellLockEvent::Unlocked | ShellLockEvent::Finished | ShellLockEvent::Refused => {
-                let _ = std::fs::remove_file(&path);
+                let _ = std::fs::remove_file(path);
             }
         }
     }
@@ -213,13 +217,6 @@ impl Live {
             changed
         });
     }
-}
-
-/// The crash marker in this session's `$XDG_RUNTIME_DIR`; none without one.
-fn marker_file() -> Option<PathBuf> {
-    std::env::var_os("XDG_RUNTIME_DIR")
-        .filter(|dir| !dir.is_empty())
-        .map(|dir| marker_path(Path::new(&dir)))
 }
 
 /// Resolves the mode against this session (blocking: `/proc`).

@@ -22,6 +22,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, OpenTarget};
 
+use super::Setup;
 use super::model::ScopeUnit;
 use super::plan::scope_unit;
 use crate::env::Bus;
@@ -64,14 +65,14 @@ pub fn reveal_folder(path: &Path) -> PathBuf {
 
 /// Carry out `request`: a reveal through the file manager when one is on the bus, else (and
 /// for a file or an address) `xdg-open`.
-pub(super) async fn open(session: &Bus, request: OpenRequest) {
+pub(super) async fn open(setup: &Setup, request: OpenRequest) {
     let token = request.token.as_deref();
     if let OpenTarget::Reveal(path) = &request.target
-        && show_items(session, path, token).await == Shown::Yes
+        && show_items(&setup.session, path, token).await == Shown::Yes
     {
         return;
     }
-    let wrapper = match user_manager() {
+    let wrapper = match user_manager(setup.runtime.as_deref()) {
         Manager::Reachable => Wrapper::Scope(next_unit()),
         Manager::Missing => Wrapper::Bare,
     };
@@ -138,9 +139,8 @@ fn asks_file_manager(state: NameState) -> Shown {
 /// Whether the user's systemd manager is reachable: `systemd-run --user` connects to
 /// `$XDG_RUNTIME_DIR/systemd/private`, and without it exits 1 as the command it wraps might,
 /// so the failure could not be told apart afterwards.
-pub(super) fn user_manager() -> Manager {
-    let socket =
-        std::env::var_os("XDG_RUNTIME_DIR").map(|dir| PathBuf::from(dir).join("systemd/private"));
+pub(super) fn user_manager(runtime: Option<&Path>) -> Manager {
+    let socket = runtime.map(|dir| dir.join("systemd/private"));
     match socket {
         Some(socket) if socket.exists() => Manager::Reachable,
         _ => Manager::Missing,

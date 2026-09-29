@@ -18,7 +18,7 @@ pub use index::{
 pub use match_app::match_app;
 pub use scan::{applications_dirs, parse_entry, scan};
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
@@ -26,6 +26,7 @@ use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
 
 use crate::control::Control;
+use crate::env::Dirs;
 
 /// How long the applications directories (and the icon theme file) must be quiet before a
 /// rescan.
@@ -40,23 +41,28 @@ pub enum AppsCommand {
 
 /// Scan once, publish, then watch every applications directory and rescan after
 /// [`RESCAN_DEBOUNCE`] of quiet.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<AppIndex>, Control<AppsCommand>) {
+pub fn spawn(rt: &Handle, dirs: &Dirs) -> (watch::Receiver<AppIndex>, Control<AppsCommand>) {
     let (tx, rx) = watch::channel(AppIndex::default());
     let (control, commands) = Control::channel();
-    rt.spawn(run(tx, commands));
+    rt.spawn(run(tx, commands, dirs.config.clone(), dirs.data.clone()));
     (rx, control)
 }
 
 /// Scan once, publish, then watch every applications directory and the CosmicTk file the icon
 /// theme lives in (all coalesced onto one signal), rescanning [`RESCAN_DEBOUNCE`] after the
 /// last one settles or on [`AppsCommand::Rescan`], until every receiver and control is gone.
-async fn run(tx: watch::Sender<AppIndex>, mut commands: mpsc::UnboundedReceiver<AppsCommand>) {
-    let dirs = applications_dirs();
+async fn run(
+    tx: watch::Sender<AppIndex>,
+    mut commands: mpsc::UnboundedReceiver<AppsCommand>,
+    config: PathBuf,
+    data: PathBuf,
+) {
+    let dirs = applications_dirs(&data);
     let locales = freedesktop_desktop_entry::get_languages_from_env();
-    publish(&tx, &dirs, &locales).await;
+    publish(&tx, &config, &dirs, &locales).await;
 
     let (signal, mut signals) = mpsc::unbounded_channel::<()>();
-    let _watchers = watch_dirs(&dirs, signal);
+    let _watchers = watch_dirs(&config, &dirs, signal);
 
     let mut listening = true;
     while !tx.is_closed() {
@@ -66,15 +72,15 @@ async fn run(tx: watch::Sender<AppIndex>, mut commands: mpsc::UnboundedReceiver<
                     if !changed {
                         return;
                     }
-                    publish(&tx, &dirs, &locales).await;
+                    publish(&tx, &config, &dirs, &locales).await;
                 }
                 command = commands.recv() => match command {
-                    Some(AppsCommand::Rescan) => publish(&tx, &dirs, &locales).await,
+                    Some(AppsCommand::Rescan) => publish(&tx, &config, &dirs, &locales).await,
                     None => listening = false,
                 },
             }
         } else if settle(&mut signals).await {
-            publish(&tx, &dirs, &locales).await;
+            publish(&tx, &config, &dirs, &locales).await;
         } else {
             return;
         }
@@ -84,11 +90,17 @@ async fn run(tx: watch::Sender<AppIndex>, mut commands: mpsc::UnboundedReceiver<
 /// Rescan (off the async worker: filesystem and theme-file reads are blocking) and publish,
 /// skipping the send entirely when the fresh index equals the one already shown
 /// (`watch::Sender::send_if_modified`, so a receiver only wakes on a real change).
-async fn publish(tx: &watch::Sender<AppIndex>, dirs: &[PathBuf], locales: &[String]) {
+async fn publish(
+    tx: &watch::Sender<AppIndex>,
+    config: &Path,
+    dirs: &[PathBuf],
+    locales: &[String],
+) {
+    let config = config.to_path_buf();
     let dirs = dirs.to_vec();
     let locales = locales.to_vec();
     let found = tokio::task::spawn_blocking(move || {
-        let theme = icon_theme();
+        let theme = icon_theme(&config);
         scan(&dirs, &theme, &locales)
     })
     .await
@@ -125,10 +137,14 @@ async fn settle(signals: &mut mpsc::UnboundedReceiver<()>) -> bool {
 /// file, since [`publish`] re-reads [`icon_theme`] every time), coalesced onto one `signal`. A
 /// directory whose watch fails to start (most often: it does not exist) is silently skipped —
 /// `sill reload` and the next daemon start both still find what it would have caught.
-fn watch_dirs(dirs: &[PathBuf], signal: mpsc::UnboundedSender<()>) -> Vec<RecommendedWatcher> {
+fn watch_dirs(
+    config: &Path,
+    dirs: &[PathBuf],
+    signal: mpsc::UnboundedSender<()>,
+) -> Vec<RecommendedWatcher> {
     let mut targets: Vec<PathBuf> = dirs.iter().filter(|dir| dir.is_dir()).cloned().collect();
-    if let Some(theme_file) = icons::cosmic_tk_icon_theme_path()
-        && let Some(parent) = theme_file.parent()
+    let theme_file = icons::cosmic_tk_icon_theme_path(config);
+    if let Some(parent) = theme_file.parent()
         && parent.is_dir()
         && !targets.contains(&parent.to_path_buf())
     {
@@ -166,7 +182,8 @@ mod tests {
     #[test]
     fn spawn_does_not_panic_and_the_receiver_is_usable() {
         let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
-        let (rx, control) = spawn(rt.handle());
+        let scratch = crate::env::scratch::Scratch::new("apps-spawn");
+        let (rx, control) = spawn(rt.handle(), &scratch.env().dirs);
         let _: AppIndex = rx.borrow().clone();
         drop(control);
         drop(rx);

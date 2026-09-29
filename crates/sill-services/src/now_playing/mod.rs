@@ -23,7 +23,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
-use crate::env::Bus;
+use crate::env::{Bus, Dirs};
 
 /// One transport button.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -49,9 +49,13 @@ pub enum MediaCommand {
 
 /// Start the Now Playing task on `rt`. Without a session bus the receiver stays at
 /// `Media::default()` (no players), and the module shows nothing playing.
-pub fn spawn(rt: &Handle, bus: Bus) -> (watch::Receiver<Media>, Control<MediaCommand>) {
+pub fn spawn(
+    rt: &Handle,
+    bus: Bus,
+    dirs: &Dirs,
+) -> (watch::Receiver<Media>, Control<MediaCommand>) {
     let (tx, rx) = watch::channel(Media::default());
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(bus, tx, commands));
+    rt.spawn(live::run(bus, dirs.sill_cache().join("art"), tx, commands));
     (rx, control)
 }

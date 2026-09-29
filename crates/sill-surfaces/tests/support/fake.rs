@@ -371,6 +371,10 @@ pub fn services() -> (Services, Feeds) {
         clipboard_control: control(&mut keep),
         idle,
         idle_control: control(&mut keep),
+        // Nowhere real: a surface that reads a file under these finds nothing.
+        dirs: sill_services::env::Dirs::under(std::path::Path::new(
+            "/nonexistent/sill-surfaces-test",
+        )),
     };
     let feeds = Feeds {
         clock: clock_tx,

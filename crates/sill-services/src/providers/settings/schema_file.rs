@@ -10,7 +10,7 @@
 //! other field (`kind`, `default`, `deprecated`) untouched by not naming it — the same
 //! forward-compatible reading every lenient settings load in this workspace does.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{env, fs};
 
 use serde::Deserialize;
@@ -90,30 +90,19 @@ pub fn schema_paths(dirs: &[PathBuf]) -> Vec<PathBuf> {
     found
 }
 
-/// `$XDG_DATA_HOME/quire/settings` then every `$XDG_DATA_DIRS`-listed `<dir>/quire/settings`
-/// (`ds_settings::schema::data_dirs`'s own directories: every program's schema, quire's and
-/// sill's alike, installs under the shared `quire/settings` namespace, design/22 §9.2).
-pub fn data_dirs() -> Vec<PathBuf> {
-    data_dirs_from(
-        env::var_os("XDG_DATA_HOME"),
-        env::var_os("XDG_DATA_DIRS"),
-        env::var_os("HOME"),
-    )
+/// `<data_home>/quire/settings` (the user's data directory) then every `$XDG_DATA_DIRS`-listed
+/// `<dir>/quire/settings` (`ds_settings::schema::data_dirs`'s own directories: every program's
+/// schema, quire's and sill's alike, installs under the shared `quire/settings` namespace,
+/// design/22 §9.2). `$XDG_DATA_DIRS` is a system search path, read like `$PATH`.
+pub fn data_dirs(data_home: &Path) -> Vec<PathBuf> {
+    data_dirs_from(data_home, env::var_os("XDG_DATA_DIRS"))
 }
 
-fn data_dirs_from(
-    xdg_data_home: Option<std::ffi::OsString>,
-    xdg_data_dirs: Option<std::ffi::OsString>,
-    home: Option<std::ffi::OsString>,
-) -> Vec<PathBuf> {
-    let home_dir = xdg_data_home
-        .map(PathBuf::from)
-        .or_else(|| home.map(|home| PathBuf::from(home).join(".local/share")));
+fn data_dirs_from(data_home: &Path, xdg_data_dirs: Option<std::ffi::OsString>) -> Vec<PathBuf> {
     let dirs_list = xdg_data_dirs
         .map(|value| value.to_string_lossy().into_owned())
         .unwrap_or_else(|| "/usr/local/share:/usr/share".to_owned());
-    home_dir
-        .into_iter()
+    std::iter::once(data_home.to_path_buf())
         .chain(
             dirs_list
                 .split(':')
@@ -152,9 +141,8 @@ mod tests {
     #[test]
     fn xdg_data_home_comes_before_xdg_data_dirs() {
         let dirs = data_dirs_from(
-            Some(OsString::from("/xdg-data-home")),
+            std::path::Path::new("/xdg-data-home"),
             Some(OsString::from("/a:/b")),
-            Some(OsString::from("/home/ada")),
         );
         assert_eq!(
             dirs,
@@ -163,19 +151,6 @@ mod tests {
                 std::path::PathBuf::from("/a/quire/settings"),
                 std::path::PathBuf::from("/b/quire/settings"),
             ]
-        );
-    }
-
-    #[test]
-    fn xdg_data_home_falls_back_to_home_local_share() {
-        let dirs = data_dirs_from(
-            None,
-            Some(OsString::from("/a")),
-            Some(OsString::from("/home/ada")),
-        );
-        assert_eq!(
-            dirs[0],
-            std::path::PathBuf::from("/home/ada/.local/share/quire/settings")
         );
     }
 

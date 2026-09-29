@@ -5,6 +5,7 @@
 //! (publishing them at once, as `toggle-desktop` does, so the desktop layer and the center follow
 //! before the watch fires) and the output's places into `desktop-widgets.json`.
 
+use sill_services::env::Dirs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -22,10 +23,11 @@ use crate::outputs::Outputs;
 
 /// Spawn a hidden Edit Widgets surface on every output whose row lacks one; each root is built
 /// by `root` (the daemon's `surface_root`, which adds the link and the writer) and given the
-/// places' file.
+/// places' file in `dirs`.
 pub fn spawn_missing(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &mut Outputs,
+    dirs: &Dirs,
     root: impl Fn(Root) -> Root,
 ) {
     let missing: Vec<OutputInfo> = outputs
@@ -40,9 +42,7 @@ pub fn spawn_missing(
             output: info.clone(),
         };
         let mut made = root(Root::with_props(sill_surfaces::EditWidgets, props));
-        if let Some(file) = PlacementFile::default_path() {
-            made = made.context(file);
-        }
+        made = made.context(PlacementFile::in_dirs(dirs));
         surfaces.edit_widgets =
             crate::daemon::spawn_hidden(ctx, edit_widgets_layer(&info), made, &info);
         outputs.set(info, surfaces);
@@ -90,18 +90,17 @@ fn unsupported() -> Response {
 
 /// The writer the surfaces are given: [`write`] into `dir` (nothing but a log line without
 /// one) and the default places' file.
-pub fn writer(dir: Option<PathBuf>, settings: watch::Sender<ShellFile>) -> WidgetsWriter {
+pub fn writer(
+    dir: Option<PathBuf>,
+    places: PlacementFile,
+    settings: watch::Sender<ShellFile>,
+) -> WidgetsWriter {
     WidgetsWriter(Arc::new(move |change: WidgetsWrite| {
         let Some(dir) = dir.as_deref() else {
             eprintln!("sill: no settings directory; Edit Widgets saved nothing");
             return;
         };
-        if let Err(error) = write(
-            dir,
-            &settings,
-            PlacementFile::default_path().as_ref(),
-            change,
-        ) {
+        if let Err(error) = write(dir, &settings, Some(&places), change) {
             eprintln!("sill: Edit Widgets: {error}");
         }
     }))

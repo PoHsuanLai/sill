@@ -89,6 +89,7 @@ async fn idle_locks_at_screen_off_and_a_screensaver_inhibit_holds_it() {
         display: WaylandRoute::Socket(socket),
         system: Bus::system(BusRoute::Absent),
         session: Bus::session(BusRoute::Address(bus.address.clone())),
+        config: PathBuf::from("/nonexistent/sill-idle-live"),
     };
     let links = IdleLinks {
         lock,

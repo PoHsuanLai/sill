@@ -42,6 +42,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
+use crate::env::Dirs;
 
 /// Which folders are watched.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
@@ -76,9 +77,9 @@ pub enum ShotCommand {
 }
 
 /// Start the screenshots task on `rt`, passive until `Configure`.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<Shots>, Control<ShotCommand>) {
+pub fn spawn(rt: &Handle, dirs: &Dirs) -> (watch::Receiver<Shots>, Control<ShotCommand>) {
     let (tx, rx) = watch::channel(Shots::default());
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands));
+    rt.spawn(live::run(tx, commands, dirs.clone()));
     (rx, control)
 }

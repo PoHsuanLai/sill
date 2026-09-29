@@ -92,12 +92,9 @@ pub enum NotificationsCommand {
 }
 
 /// Where the history is kept.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HistoryPlace {
-    /// `$XDG_STATE_HOME/sill/notifications.json` ([`history_file::default_path`]).
-    #[default]
-    State,
-    /// A file of the caller's (tests).
+    /// This file: the daemon's is [`history_file::path_in`] of the state directory.
     At(PathBuf),
     /// Nowhere: nothing read, nothing written.
     NotKept,
@@ -112,11 +109,11 @@ pub struct Setup {
 }
 
 impl Setup {
-    /// On `env`'s session bus, the history in `$XDG_STATE_HOME`.
+    /// On `env`'s session bus, the history in its state directory.
     pub fn of(env: &crate::env::Env) -> Setup {
         Setup {
             bus: env.buses.session.clone(),
-            history: HistoryPlace::State,
+            history: HistoryPlace::At(history_file::path_in(&env.dirs)),
         }
     }
 }

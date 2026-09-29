@@ -31,7 +31,7 @@ use tokio::sync::watch;
 
 use crate::apps::AppIndex;
 use crate::control::Control;
-use crate::env::Bus;
+use crate::env::{Bus, Env};
 
 /// One launch.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -60,16 +60,33 @@ pub enum LaunchCommand {
     Open(OpenRequest),
 }
 
-/// Start the launch service; `apps` resolves ids to entries, D-Bus activation and the file
-/// manager are on `session`.
+/// What the launch service reaches: D-Bus activation and the file manager on `session`, the
+/// user's systemd manager under `runtime` (`$XDG_RUNTIME_DIR`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Setup {
+    pub session: Bus,
+    pub runtime: Option<PathBuf>,
+}
+
+impl Setup {
+    /// `env`'s session bus and runtime directory.
+    pub fn of(env: &Env) -> Setup {
+        Setup {
+            session: env.buses.session.clone(),
+            runtime: env.dirs.runtime.clone(),
+        }
+    }
+}
+
+/// Start the launch service on `setup`; `apps` resolves ids to entries.
 pub fn spawn(
     rt: &Handle,
-    session: Bus,
+    setup: Setup,
     apps: watch::Receiver<AppIndex>,
 ) -> (watch::Receiver<Launches>, Control<LaunchCommand>) {
     let (tx, rx) = watch::channel(Launches::default());
     let (control, commands) = Control::channel();
-    rt.spawn(run::run(rt.clone(), session, apps, tx, commands));
+    rt.spawn(run::run(rt.clone(), setup, apps, tx, commands));
     (rx, control)
 }
 
@@ -114,8 +131,11 @@ mod tests {
         let (_apps_tx, apps_rx) =
             tokio::sync::watch::channel(index_with("sill-launch-test", "/bin/true"));
         let rt = tokio::runtime::Handle::current();
-        let session = crate::env::Bus::session(crate::env::BusRoute::Absent);
-        let (mut launches, control) = spawn(&rt, session, apps_rx);
+        let setup = super::Setup {
+            session: crate::env::Bus::session(crate::env::BusRoute::Absent),
+            runtime: std::env::var_os("XDG_RUNTIME_DIR").map(std::path::PathBuf::from),
+        };
+        let (mut launches, control) = spawn(&rt, setup, apps_rx);
 
         control
             .send(LaunchCommand::Launch(LaunchRequest {

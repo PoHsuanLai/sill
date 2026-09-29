@@ -19,7 +19,7 @@ use sill_launcher::{
     ActionId, Activation, Cancel, Choice, Item, Provider, Query, Subject, VecSink,
 };
 use sill_services::apps::AppIndex;
-use sill_services::env::{Bus, BusRoute};
+use sill_services::env::{Bus, BusRoute, Env};
 use sill_services::launch::{self, LaunchCommand, OpenRequest};
 use sill_services::providers::FilesProvider;
 use sill_services::providers::files::tracker::TrackerIndex;
@@ -186,8 +186,11 @@ async fn choose(provider: &FilesProvider, row: &Item, args: &Args) {
         Activation::Open { target } => {
             println!("open {target:?}");
             let (_apps_tx, apps) = watch::channel(AppIndex::default());
-            let (_launches, control) =
-                launch::spawn(&tokio::runtime::Handle::current(), session(), apps);
+            let (_launches, control) = launch::spawn(
+                &tokio::runtime::Handle::current(),
+                launch::Setup::of(&Env::from_process()),
+                apps,
+            );
             control
                 .send(LaunchCommand::Open(OpenRequest {
                     target,

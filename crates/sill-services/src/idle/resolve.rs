@@ -5,7 +5,7 @@
 //! cosmic-idle started by hand, or a time changed on COSMIC Settings' Power page, is picked up
 //! within that.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::locker::{Host, SessionManager};
 use crate::programs;
@@ -19,7 +19,7 @@ use super::policy::{IdleConfig, IdlePolicy, TimesChoice, effective_times, resolv
 pub(super) const RESOLVE_EVERY_S: u64 = 15;
 
 /// `config` in this session.
-pub(super) fn resolve(config: &IdleConfig) -> IdlePolicy {
+pub(super) fn resolve(config: &IdleConfig, config_dir: &Path) -> IdlePolicy {
     let manager = programs::running("cosmic-session")
         .first()
         .map_or(SessionManager::Other, |_| SessionManager::CosmicSession);
@@ -28,7 +28,7 @@ pub(super) fn resolve(config: &IdleConfig) -> IdlePolicy {
         .first()
         .map_or(CosmicIdle::Absent, |_| CosmicIdle::Running);
     let cosmic = match config.times {
-        TimesChoice::Cosmic => read_cosmic(),
+        TimesChoice::Cosmic => read_cosmic(config_dir),
         TimesChoice::Own(_) => cosmic_times(|_| None),
     };
     IdlePolicy {
@@ -41,13 +41,12 @@ pub(super) fn resolve(config: &IdleConfig) -> IdlePolicy {
     }
 }
 
-/// COSMIC's three times from the user's directory, else the system's.
-fn read_cosmic() -> CosmicIdleTimes {
-    let dirs: Vec<PathBuf> = dirs::config_dir()
-        .map(|config| config.join("cosmic"))
-        .into_iter()
-        .chain([PathBuf::from("/usr/share/cosmic")])
-        .collect();
+/// COSMIC's three times from the user's directory under `config_dir`, else the system's.
+fn read_cosmic(config_dir: &Path) -> CosmicIdleTimes {
+    let dirs = [
+        config_dir.join("cosmic"),
+        PathBuf::from("/usr/share/cosmic"),
+    ];
     cosmic_times(|key: CosmicKey| {
         dirs.iter().find_map(|dir| {
             let path = dir

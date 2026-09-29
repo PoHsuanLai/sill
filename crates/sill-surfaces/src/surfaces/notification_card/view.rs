@@ -3,7 +3,7 @@
 //! [`CardPress`]. The card's look (the plate, the clamp, hover, the close button, the group's
 //! layers, the swipe) is quire's.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 use dioxus::prelude::*;
@@ -21,7 +21,7 @@ use super::icon::{CardArt, card_art, entry_for};
 use super::labels::{age, age_label, app_label, group_count};
 use super::metrics::icon_size;
 use super::{CardPlace, CardPress};
-use crate::hooks::{use_apps, use_settings};
+use crate::hooks::{use_apps, use_services, use_settings};
 
 /// Now, as the cards' ages count it.
 pub fn wall_now() -> UnixMs {
@@ -81,9 +81,10 @@ pub(super) fn card(
 /// and the center's group header show.
 pub fn use_app_mark(app: &AppRef, size: IconSize) -> AppMark {
     let apps = use_apps()();
+    let config = use_services().dirs.config;
     let entry = entry_for(app, &apps);
     let art = use_art(app, entry.map(|e| &e.icon), || {
-        card_art(app, entry, theme_icon)
+        card_art(app, entry, |name| theme_icon(name, &config))
     });
     AppMark {
         icon: icon_source(&art, size),
@@ -124,9 +125,10 @@ fn use_art(app: &AppRef, entry: Option<&AppIcon>, look: impl FnOnce() -> CardArt
     art
 }
 
-/// A theme icon name as a file, through the apps service's lookup.
-fn theme_icon(name: &str) -> Option<PathBuf> {
-    match resolve_icon(name, &icon_theme()) {
+/// A theme icon name as a file, through the apps service's lookup (the theme is COSMIC's
+/// setting under the config directory `config`).
+fn theme_icon(name: &str, config: &Path) -> Option<PathBuf> {
+    match resolve_icon(name, &icon_theme(config)) {
         AppIcon::File(path) => Some(path),
         AppIcon::None => None,
     }

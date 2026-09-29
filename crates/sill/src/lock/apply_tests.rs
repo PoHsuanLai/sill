@@ -64,10 +64,27 @@ fn never_built() -> LockFactory {
     LockFactory(Box::new(|_| panic!("the fake host builds no surface")))
 }
 
-/// Nothing here reaches the real logind, UPower, session bus or compositor.
-fn test_env() -> sill_services::env::Env {
-    let scratch = std::env::temp_dir().join(format!("sill-lock-apply-{}", std::process::id()));
-    sill_services::env::Env::isolated(&scratch)
+/// A folder of this test's own, removed when dropped.
+struct Scratch(std::path::PathBuf);
+
+impl Scratch {
+    fn new(name: &str) -> Scratch {
+        let dir = std::env::temp_dir().join(format!("sill-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("{e}"));
+        Scratch(dir)
+    }
+
+    /// Nothing reaches the real logind, UPower, session bus, compositor or files.
+    fn env(&self) -> sill_services::env::Env {
+        sill_services::env::Env::isolated(&self.0)
+    }
+}
+
+impl Drop for Scratch {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
 }
 
 fn runtime() -> tokio::runtime::Runtime {
@@ -81,7 +98,8 @@ fn runtime() -> tokio::runtime::Runtime {
 #[test]
 fn a_wish_takes_and_drops_the_lock_once() {
     let rt = runtime();
-    let services = Services::spawn(rt.handle(), &test_env());
+    let scratch = Scratch::new("lock-wish");
+    let services = Services::spawn(rt.handle(), &scratch.env());
     let (mut host, mut held, link) = (FakeHost::default(), ShellLock::default(), LockLink::new());
     let outputs = outputs();
     let wish = |host: &mut FakeHost, held: &mut ShellLock, wish| {
@@ -147,7 +165,8 @@ fn a_wish_takes_and_drops_the_lock_once() {
 #[test]
 fn a_refusal_is_not_held_and_a_lock_in_progress_is_adopted() {
     let rt = runtime();
-    let services = Services::spawn(rt.handle(), &test_env());
+    let scratch = Scratch::new("lock-refusal");
+    let services = Services::spawn(rt.handle(), &scratch.env());
     let link = LockLink::new();
     let outputs = outputs();
     let mut refused = FakeHost {

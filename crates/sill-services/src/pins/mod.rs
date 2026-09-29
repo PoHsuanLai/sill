@@ -9,12 +9,13 @@ mod test_support;
 
 pub use model::{DockPins, PinAt, PinEvent, reduce_pins};
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
+use crate::env::Dirs;
 use crate::error::ServiceError;
 
 /// The file's name inside `$XDG_CONFIG_HOME/sill`.
@@ -23,19 +24,13 @@ pub const FILE_NAME: &str = "dock.json";
 /// Load the pins, then apply every [`PinEvent`] sent to the control, writing the file
 /// atomically after each; an external edit (another process, a text editor) is picked up
 /// through a 30 ms debounced directory watch and published as if it were a `Replaced` event.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<DockPins>, Control<PinEvent>) {
-    let dir = pins_dir();
+pub fn spawn(rt: &Handle, dirs: &Dirs) -> (watch::Receiver<DockPins>, Control<PinEvent>) {
+    let dir = Some(dirs.sill_config());
     let initial = dir.as_deref().map(load).unwrap_or_default();
     let (tx, rx) = watch::channel(initial);
     let (control, commands) = Control::channel();
     rt.spawn(run::run(dir, tx, commands));
     (rx, control)
-}
-
-/// `$XDG_CONFIG_HOME/sill`, else `$HOME/.config/sill`; `None` when neither is set, in which
-/// case [`spawn`] still applies commands, just without persistence or a watch.
-fn pins_dir() -> Option<PathBuf> {
-    dirs::config_dir().map(|dir| dir.join("sill"))
 }
 
 /// The pins in `dir`; a missing or damaged file is no pins (the dock still shows running

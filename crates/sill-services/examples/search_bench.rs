@@ -18,6 +18,7 @@ use sill_launcher::{
     ProviderKind, Query, RankWeights, ResultSink, Score, matching::matcher, rank_text,
 };
 use sill_services::apps::{IconTheme, scan};
+use sill_services::env::Dirs;
 use sill_services::{AppIndex, AppsEvent, Listing, SearchCommand, reduce_apps, results};
 
 const QUERIES: &[&str] = &[
@@ -101,7 +102,10 @@ fn percentile(sorted: &[Duration], p: usize) -> Duration {
 
 fn measure(rt: &tokio::runtime::Runtime, name: &str, index: AppIndex) {
     let apps = index.apps.len();
-    let (mut rx, control) = results::spawn(rt.handle(), vec![Arc::new(IndexApps(index))]);
+    // A scratch state folder: the bench's choices never reach the person's launcher history.
+    let scratch = std::env::temp_dir().join(format!("sill-search-bench-{}", std::process::id()));
+    let dirs = Dirs::under(&scratch);
+    let (mut rx, control) = results::spawn(rt.handle(), vec![Arc::new(IndexApps(index))], &dirs);
     let mut generation = 0u64;
     let mut ask = |text: &str| {
         generation += 1;

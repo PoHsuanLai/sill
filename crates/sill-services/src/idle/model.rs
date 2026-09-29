@@ -1,5 +1,7 @@
 //! The idle service's published state, commands, wiring and set-up.
 
+use std::path::PathBuf;
+
 use tokio::sync::watch;
 
 use crate::auth::AuthCommand;
@@ -87,15 +89,18 @@ pub struct Setup {
     pub system: Bus,
     /// `org.freedesktop.ScreenSaver`.
     pub session: Bus,
+    /// The config directory COSMIC's own idle times are read under.
+    pub config: PathBuf,
 }
 
 impl Setup {
-    /// `env`'s compositor and buses.
+    /// `env`'s compositor, buses and config directory.
     pub fn of(env: &Env) -> Setup {
         Setup {
             display: env.wayland.clone(),
             system: env.buses.system.clone(),
             session: env.buses.session.clone(),
+            config: env.dirs.config.clone(),
         }
     }
 }

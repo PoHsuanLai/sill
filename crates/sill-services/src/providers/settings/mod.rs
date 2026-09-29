@@ -5,7 +5,7 @@ pub mod cosmic_pages;
 pub mod index;
 pub mod schema_file;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use nucleo_matcher::Matcher;
@@ -43,16 +43,17 @@ pub struct SettingsProvider {
 }
 
 impl Default for SettingsProvider {
+    /// No schemas at all: rows can still be activated, none is ever found.
     fn default() -> SettingsProvider {
-        SettingsProvider::new()
+        SettingsProvider::with_dirs(Vec::new())
     }
 }
 
 impl SettingsProvider {
-    /// Indexes the installed quire and sill schemas (`schema_file::data_dirs`, the real XDG
-    /// directories), adding the COSMIC pages table when `cosmic-settings` is on `PATH`.
-    pub fn new() -> SettingsProvider {
-        SettingsProvider::with_dirs(data_dirs())
+    /// Indexes the installed quire and sill schemas (`schema_file::data_dirs` of the data
+    /// directory `data_home`), adding the COSMIC pages table when `cosmic-settings` is on `PATH`.
+    pub fn new(data_home: &Path) -> SettingsProvider {
+        SettingsProvider::with_dirs(data_dirs(data_home))
     }
 
     /// As [`SettingsProvider::new`], but discovering schemas under `dirs` instead of the real

@@ -37,7 +37,10 @@ fn run() -> Result<(), String> {
         .build()
         .map_err(|e| e.to_string())?;
     let (mut services, _feeds) = fake::services();
-    let (wallpapers, wallpaper_control) = sill_services::wallpaper::spawn(runtime.handle());
+    let (wallpapers, wallpaper_control) = sill_services::wallpaper::spawn(
+        runtime.handle(),
+        &sill_services::env::Dirs::from_process(),
+    );
     services.wallpapers = wallpapers;
     services.wallpaper_control = wallpaper_control.clone();
 

@@ -63,9 +63,9 @@ pub fn plan(
     }
 }
 
-/// `fontconfig` under `$XDG_CONFIG_HOME` (else `~/.config`).
-pub fn default_dir() -> Option<PathBuf> {
-    dirs::config_dir().map(|dir| dir.join("fontconfig"))
+/// `fontconfig` under `dirs`' config directory.
+pub fn dir_in(dirs: &crate::env::Dirs) -> PathBuf {
+    dirs.config.join("fontconfig")
 }
 
 /// Read `dir` (a `fontconfig` directory), [`plan`], and carry the plan out.

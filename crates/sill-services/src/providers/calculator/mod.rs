@@ -2,9 +2,10 @@
 
 mod detect;
 mod eval;
-mod fetch;
+pub(crate) mod fetch;
 pub mod rates;
 
+use std::path::PathBuf;
 use std::time::Duration;
 
 use sill_launcher::{
@@ -38,14 +39,18 @@ const TOP_SCORE: Score = Score(1000);
 pub struct CalculatorProvider {
     pub policy: watch::Receiver<LauncherPolicy>,
     pub rates: SharedRates,
+    /// The ECB rates cache ([`fetch::cache_path`] of the cache directory).
+    pub rates_file: PathBuf,
 }
 
 impl Default for CalculatorProvider {
-    /// Currency off, no rates: arithmetic and units only.
+    /// Currency off for good (its policy's sender is gone), so no rates file is ever read:
+    /// arithmetic and units only.
     fn default() -> Self {
         CalculatorProvider {
             policy: watch::channel(LauncherPolicy::default()).1,
             rates: SharedRates::default(),
+            rates_file: PathBuf::new(),
         }
     }
 }
@@ -105,7 +110,7 @@ impl CalculatorProvider {
         if self.policy.borrow().currency != CurrencyPolicy::Ecb {
             return None;
         }
-        let path = fetch::cache_path();
+        let path = self.rates_file.clone();
         fetch::refresh_if_due(self.rates.clone(), path.clone(), unix_now());
         match fetch::load(&path) {
             Some(loaded) => {

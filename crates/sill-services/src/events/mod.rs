@@ -55,6 +55,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
+use crate::env::Dirs;
 
 /// What the events service can be told.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,10 +69,10 @@ pub enum EventsCommand {
 
 /// Start the events task on `rt`. Until the first `Sources` the agenda holds today only, with
 /// `SourceStatus::Off`.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<Agenda>, Control<EventsCommand>) {
+pub fn spawn(rt: &Handle, dirs: &Dirs) -> (watch::Receiver<Agenda>, Control<EventsCommand>) {
     let (tx, rx) = watch::channel(Agenda::starting(local_today()));
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands));
+    rt.spawn(live::run(tx, commands, sources::AutoEnv::of(dirs)));
     (rx, control)
 }
 

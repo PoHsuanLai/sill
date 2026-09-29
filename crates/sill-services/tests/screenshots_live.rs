@@ -1,12 +1,13 @@
 //! The screenshots service against a real inotify watch of a temp folder (never Pictures, never
 //! a real screenshot tool): a file written under a temp name and renamed to `Screenshot_…png` is
 //! `current` within 500 ms with a preview; a `.part` file is nothing; a stand-in tool that copies
-//! the fixture in is `Take`, then the shot. The previews land in the cache; the test removes
-//! the ones it made.
+//! the fixture in is `Take`, then the shot. The previews land in a scratch cache inside the temp
+//! folder (never the person's own), removed with it.
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
+use sill_services::env::Dirs;
 use sill_services::screenshots::{ShotFolders, ShotPolicy, ShotTool, Taking, Watching, spawn};
 use sill_services::{ShotCommand, ShotKind, ShotPreview, Shots};
 use tokio::sync::watch;
@@ -49,17 +50,12 @@ fn current_is(path: &Path) -> impl Fn(&Shots) -> bool + '_ {
     }
 }
 
-fn forget_preview(shots: &Shots) {
-    if let Some(ShotPreview::Ready(preview)) = shots.current.as_ref().map(|s| &s.preview) {
-        let _ = std::fs::remove_file(preview);
-    }
-}
-
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "a real inotify watch of a temp folder"]
 async fn a_renamed_screenshot_is_current_with_a_preview_and_a_part_file_is_not() {
     let dir = folder("watch");
-    let (mut rx, control) = spawn(&tokio::runtime::Handle::current());
+    let dirs = Dirs::under(&dir.join("dirs"));
+    let (mut rx, control) = spawn(&tokio::runtime::Handle::current(), &dirs);
     let policy = ShotPolicy {
         folders: ShotFolders::At(vec![dir.clone()]),
         tool: ShotTool::Off,
@@ -86,11 +82,10 @@ async fn a_renamed_screenshot_is_current_with_a_preview_and_a_part_file_is_not()
     assert!(
         matches!(
             seen.current.as_ref().map(|s| &s.preview),
-            Some(ShotPreview::Ready(_))
+            Some(ShotPreview::Ready(preview)) if preview.starts_with(&dirs.cache)
         ),
-        "a preview is made"
+        "a preview is made in the scratch cache"
     );
-    forget_preview(&seen);
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -98,7 +93,8 @@ async fn a_renamed_screenshot_is_current_with_a_preview_and_a_part_file_is_not()
 #[ignore = "a real inotify watch of a temp folder and a stand-in tool"]
 async fn a_stand_in_tool_takes_a_screenshot_that_the_watch_sees() {
     let dir = folder("take");
-    let (mut rx, control) = spawn(&tokio::runtime::Handle::current());
+    let dirs = Dirs::under(&dir.join("dirs"));
+    let (mut rx, control) = spawn(&tokio::runtime::Handle::current(), &dirs);
     let command = format!("sleep 0.2; cp '{FIXTURE}' \"$2/Screenshot_$1.png\"");
     let policy = ShotPolicy {
         folders: ShotFolders::At(vec![dir.clone()]),
@@ -119,12 +115,11 @@ async fn a_stand_in_tool_takes_a_screenshot_that_the_watch_sees() {
     assert!(running.is_some(), "the tool runs");
     let target = dir.join("Screenshot_screen.png");
     let seen = until(&mut rx, Duration::from_secs(3), current_is(&target)).await;
-    let seen = seen.expect("the tool's file is current"); // test-only
+    assert!(seen.is_some(), "the tool's file is current");
     let idle = until(&mut rx, Duration::from_secs(2), |s| {
         s.taking == Taking::Idle
     })
     .await;
     assert!(idle.is_some(), "the tool's exit ends the take");
-    forget_preview(&seen);
     let _ = std::fs::remove_dir_all(&dir);
 }

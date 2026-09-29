@@ -22,6 +22,8 @@ pub use machine::{
 };
 pub use mode::{Host, LockerMode, SessionManager};
 
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
 use tokio::runtime::Handle;
 use tokio::sync::watch;
@@ -71,10 +73,15 @@ pub enum LockerCommand {
     IdleLock,
 }
 
-/// Start the locker service on `rt`. Inert until the first `Configure` or `Use`.
-pub fn spawn(rt: &Handle, bus: Bus) -> (watch::Receiver<Lock>, Control<LockerCommand>) {
+/// Start the locker service on `rt`, logind on `bus`, the crash marker in `runtime`. Inert
+/// until the first `Configure` or `Use`.
+pub fn spawn(
+    rt: &Handle,
+    bus: Bus,
+    runtime: Option<PathBuf>,
+) -> (watch::Receiver<Lock>, Control<LockerCommand>) {
     let (tx, rx) = watch::channel(Lock::default());
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(bus, tx, commands));
+    rt.spawn(live::run(bus, runtime, tx, commands));
     (rx, control)
 }

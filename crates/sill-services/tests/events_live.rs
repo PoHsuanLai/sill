@@ -9,6 +9,7 @@ use std::time::Duration;
 use jiff::Zoned;
 use jiff::civil::Date;
 use jiff::tz::TimeZone;
+use sill_services::env::Dirs;
 use sill_services::events::{self, Agenda, EventSources, EventsCommand, IcsPlace, SourceStatus};
 use tokio::sync::watch;
 
@@ -85,7 +86,7 @@ fn a_file_and_a_collection_are_read_and_an_edit_is_read_again_within_a_second() 
     save(&scratch.0.join("dav/b.ics"), &calendar("b", "Review", day));
 
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
-    let (mut rx, control) = events::spawn(runtime.handle());
+    let (mut rx, control) = events::spawn(runtime.handle(), &Dirs::under(&scratch.0));
     runtime.block_on(async {
         let passive = wait_for(&mut rx, Duration::from_millis(300), |a| {
             a.status != SourceStatus::Off

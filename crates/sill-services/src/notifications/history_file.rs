@@ -40,9 +40,9 @@ impl Default for StoredHistory {
     }
 }
 
-/// `notifications.json` under `$XDG_STATE_HOME/sill`, else `$HOME/.local/state/sill`.
-pub fn default_path() -> Option<PathBuf> {
-    dirs::state_dir().map(|dir| dir.join("sill").join(FILE_NAME))
+/// `notifications.json` in sill's folder of `dirs`' state directory.
+pub fn path_in(dirs: &crate::env::Dirs) -> PathBuf {
+    dirs.sill_state().join(FILE_NAME)
 }
 
 /// What `state` writes: its history and last id, pixel images dropped.

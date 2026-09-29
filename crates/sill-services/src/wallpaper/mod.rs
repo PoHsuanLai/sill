@@ -31,6 +31,7 @@ use tokio::sync::{mpsc, watch as channel};
 
 use crate::control::Control;
 use crate::cosmic_wl::OutputName;
+use crate::env::Dirs;
 
 /// Where a wallpaper comes from.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -74,22 +75,25 @@ pub enum WallpaperCommand {
     Reload,
 }
 
-/// `$XDG_CACHE_HOME/sill/wallpaper` (`$TMPDIR/sill/wallpaper` on the rare system with neither
-/// `$XDG_CACHE_HOME` nor `$HOME`, so the service still runs rather than failing the shell —
-/// `error.rs`'s own rule).
-fn cache_directory() -> PathBuf {
-    dirs::cache_dir()
-        .unwrap_or_else(std::env::temp_dir)
-        .join("sill")
-        .join(CACHE_DIR)
+/// `wallpaper` in sill's folder of `dirs`' cache directory.
+fn cache_directory(dirs: &Dirs) -> PathBuf {
+    dirs.sill_cache().join(CACHE_DIR)
 }
 
 /// Start the wallpaper service: resize on the blocking pool, publish cached paths.
-pub fn spawn(rt: &Handle) -> (channel::Receiver<Wallpapers>, Control<WallpaperCommand>) {
+/// COSMIC's record is read under `dirs`' config directory, the resized copies kept in its cache.
+pub fn spawn(
+    rt: &Handle,
+    dirs: &Dirs,
+) -> (channel::Receiver<Wallpapers>, Control<WallpaperCommand>) {
     let (tx, rx) = channel::channel(Wallpapers::default());
     let (control, commands) = Control::channel();
-    let reload = config_path().and_then(|path| watch::watch(&path, rt));
-    rt.spawn(run(tx, commands, reload, rt.clone()));
+    let reload = watch::watch(&config_path(&dirs.config), rt);
+    let places = Places {
+        config: dirs.config.clone(),
+        cache: cache_directory(dirs),
+    };
+    rt.spawn(run(tx, commands, reload, places, rt.clone()));
     (rx, control)
 }
 
@@ -115,11 +119,18 @@ async fn next_reload(reload: &mut Option<mpsc::UnboundedReceiver<()>>) -> Option
     }
 }
 
+/// Where the service reads COSMIC's record and keeps its resized copies.
+struct Places {
+    config: PathBuf,
+    cache: PathBuf,
+}
+
 /// Every command and every settled config change, until every [`Wallpapers`] receiver is gone.
 async fn run(
     tx: channel::Sender<Wallpapers>,
     mut commands: mpsc::UnboundedReceiver<WallpaperCommand>,
     reload: Option<(notify::RecommendedWatcher, mpsc::UnboundedReceiver<()>)>,
+    places: Places,
     rt: Handle,
 ) {
     // Held for `run`'s whole life: dropping the watcher stops the watch.
@@ -127,9 +138,9 @@ async fn run(
         Some((watcher, reload)) => (Some(watcher), Some(reload)),
         None => (None, None),
     };
-    let mut source = resolve_source();
+    let mut source = resolve_source(&places.config);
     let mut sizes: HashMap<OutputName, (u32, u32)> = HashMap::new();
-    let cache_dir = cache_directory();
+    let cache_dir = places.cache;
     let mut listening = true;
     while !tx.is_closed() {
         tokio::select! {
@@ -143,14 +154,14 @@ async fn run(
                     forget(&tx, &output);
                 }
                 Some(WallpaperCommand::Reload) => {
-                    source = resolve_source();
+                    source = resolve_source(&places.config);
                     republish_all(&tx, &source, &sizes, &cache_dir, &rt).await;
                 }
                 None => listening = false,
             },
             signal = next_reload(&mut reload) => match signal {
                 Some(()) => {
-                    source = resolve_source();
+                    source = resolve_source(&places.config);
                     republish_all(&tx, &source, &sizes, &cache_dir, &rt).await;
                 }
                 None => reload = None,
@@ -227,14 +238,13 @@ mod tests {
     use crate::cosmic_wl::OutputName;
 
     /// `spawn` never panics (no compositor or config directory needed to start), and a
-    /// `Prepare` settles to a defined state either way: whatever this machine's own COSMIC
-    /// background config says (on a dev box with none, no entry at all) or, once one exists,
-    /// exactly one real cached pair for the requested output — never a panic, a hang, or a
-    /// half-written entry.
+    /// `Prepare` in a scratch home with no COSMIC background config settles to no entry at
+    /// all — never a panic, a hang, or a half-written entry.
     #[tokio::test]
     async fn spawn_does_not_panic_and_prepare_settles_to_a_defined_state() {
         let rt = tokio::runtime::Handle::current();
-        let (mut wallpapers, control) = spawn(&rt);
+        let scratch = crate::env::scratch::Scratch::new("wallpaper-spawn");
+        let (mut wallpapers, control) = spawn(&rt, &scratch.env().dirs);
         assert_eq!(*wallpapers.borrow(), Wallpapers::default());
         control
             .send(WallpaperCommand::Prepare {
@@ -244,15 +254,10 @@ mod tests {
             })
             .unwrap_or_else(|e| panic!("{e}"));
         wallpapers.changed().await.unwrap_or_else(|e| panic!("{e}"));
-        let after = wallpapers.borrow().clone();
-        match after.outputs.as_slice() {
-            [] => {}
-            [image] => {
-                assert_eq!(image.output, OutputName("DP-1".to_owned()));
-                assert!(image.light.is_file(), "{image:?}");
-                assert!(image.dark.is_file(), "{image:?}");
-            }
-            other => panic!("unexpected outputs: {other:?}"),
-        }
+        assert_eq!(
+            wallpapers.borrow().outputs,
+            Vec::new(),
+            "no source: nothing prepared"
+        );
     }
 }

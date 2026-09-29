@@ -59,7 +59,7 @@ pub fn run() -> ExitCode {
     let env = sill_services::env::Env::from_process();
     let services = sill_services::Services::spawn(runtime.handle(), &env);
 
-    let settings_dir = sill_settings::settings_dir();
+    let settings_dir = Some(env.dirs.sill_config());
     let initial_settings = settings_dir
         .as_deref()
         .map(sill_settings::load)
@@ -81,7 +81,11 @@ pub fn run() -> ExitCode {
         switcher: sill_surfaces::surfaces::switcher::SwitcherLink::new(),
         lock: sill_surfaces::surfaces::lock::LockLink::new(),
         edit_widgets: sill_surfaces::surfaces::edit_widgets::EditWidgetsLink::new(),
-        widgets_writer: crate::edit_widgets::writer(settings_dir.clone(), settings_tx.clone()),
+        widgets_writer: crate::edit_widgets::writer(
+            settings_dir.clone(),
+            sill_surfaces::surfaces::desktop_widgets::PlacementFile::in_dirs(&env.dirs),
+            settings_tx.clone(),
+        ),
     });
     // The notifications service's policy from the settings and the focus mode; the first one
     // sent ends its passive start.
@@ -127,11 +131,13 @@ pub fn run() -> ExitCode {
         runtime.handle(),
         settings_feed.0.clone(),
         services.events_control.clone(),
+        env.dirs.home.clone(),
     );
     crate::screenshots::spawn_policy(
         runtime.handle(),
         settings_feed.0.clone(),
         services.shots_control.clone(),
+        env.dirs.home.clone(),
     );
 
     let host = match Host::<ShellMsg>::connect(config) {
@@ -351,10 +357,10 @@ fn run_event(
             crate::screenshots::spawn_missing(ctx, outputs, |root| {
                 surface_root(root, services, settings_feed)
             });
-            crate::widgets::spawn_missing(ctx, outputs, settings_tx, |root| {
+            crate::widgets::spawn_missing(ctx, outputs, settings_tx, &services.dirs, |root| {
                 surface_root(root, services, settings_feed)
             });
-            crate::edit_widgets::spawn_missing(ctx, outputs, |root| {
+            crate::edit_widgets::spawn_missing(ctx, outputs, &services.dirs, |root| {
                 surface_root(root, services, settings_feed)
             });
             crate::corners::spawn_missing(ctx, outputs, settings_tx, |root| {

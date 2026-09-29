@@ -6,17 +6,15 @@ use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
 use super::names::preview_name;
+use crate::env::Dirs;
 use crate::error::ServiceError;
 
 /// The preview's long side in px: twice the thumbnail's width, for a 2x output.
 pub const PREVIEW_MAX: u32 = 480;
 
-/// `from`'s preview in the cache, made there unless it already is.
-pub(super) fn make(from: &Path) -> Result<PathBuf, ServiceError> {
-    let cache = dirs::cache_dir()
-        .map(|dir| dir.join("sill").join("shots"))
-        .ok_or_else(|| io(from, std::io::Error::other("no cache folder")))?;
-    make_in(from, &cache)
+/// Where previews go: `shots` in sill's folder of `dirs`' cache directory.
+pub(super) fn cache_in(dirs: &Dirs) -> PathBuf {
+    dirs.sill_cache().join("shots")
 }
 
 /// `from`'s preview in `cache`.

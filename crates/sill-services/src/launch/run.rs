@@ -8,7 +8,7 @@ use crate::apps::{App, AppIndex, DbusActivation};
 use crate::env::Bus;
 use crate::launch::model::{LaunchOutcome, LaunchedScope, Launches, ScopeUnit, reduce_launches};
 use crate::launch::plan::{launch_argv, scope_unit};
-use crate::launch::{LaunchCommand, LaunchRequest};
+use crate::launch::{LaunchCommand, LaunchRequest, Setup};
 use sill_launcher::AppId;
 
 use super::dbus;
@@ -17,7 +17,7 @@ use super::open::{Manager, user_manager};
 /// Run until `commands` closes (the `Control` was dropped).
 pub(super) async fn run(
     rt: Handle,
-    session: Bus,
+    setup: Setup,
     apps: watch::Receiver<AppIndex>,
     tx: watch::Sender<Launches>,
     mut commands: mpsc::UnboundedReceiver<LaunchCommand>,
@@ -28,18 +28,20 @@ pub(super) async fn run(
         match command {
             LaunchCommand::Launch(request) => {
                 nonce += 1;
-                launch_one(&rt, &session, &apps, &tx, &terminal, request, nonce).await;
+                launch_one(&rt, &setup, &apps, &tx, &terminal, request, nonce).await;
             }
-            LaunchCommand::ShowInFiles(app_id) => show_in_files(&session, &apps, &app_id).await,
+            LaunchCommand::ShowInFiles(app_id) => {
+                show_in_files(&setup.session, &apps, &app_id).await
+            }
             LaunchCommand::ForceQuit(app_id) => force_quit(&tx, &app_id).await,
-            LaunchCommand::Open(request) => super::open::open(&session, request).await,
+            LaunchCommand::Open(request) => super::open::open(&setup, request).await,
         }
     }
 }
 
 async fn launch_one(
     rt: &Handle,
-    session: &Bus,
+    setup: &Setup,
     apps: &watch::Receiver<AppIndex>,
     tx: &watch::Sender<Launches>,
     terminal: &[String],
@@ -54,11 +56,12 @@ async fn launch_one(
     if app.activation == DbusActivation::DBus {
         record(
             tx,
-            activate_over_dbus(session, &app, &request, app_id).await,
+            activate_over_dbus(&setup.session, &app, &request, app_id).await,
         );
         return;
     }
-    spawn_scope(rt, tx, &app, terminal, &request, app_id, nonce).await;
+    let manager = user_manager(setup.runtime.as_deref());
+    spawn_scope(rt, tx, &app, terminal, &request, nonce, manager).await;
 }
 
 async fn activate_over_dbus(
@@ -83,9 +86,10 @@ async fn spawn_scope(
     app: &App,
     terminal: &[String],
     request: &LaunchRequest,
-    app_id: AppId,
     nonce: u32,
+    manager: Manager,
 ) {
+    let app_id = request.app.clone();
     let unit = scope_unit(&app_id, nonce);
     let argv = match launch_argv(app, request, &unit, terminal) {
         Ok(argv) => argv,
@@ -94,7 +98,7 @@ async fn spawn_scope(
             return;
         }
     };
-    match start(&argv, request.token.as_deref()) {
+    match start_with(&argv, request.token.as_deref(), manager) {
         Ok(child) => {
             record(
                 tx,
@@ -109,18 +113,13 @@ async fn spawn_scope(
     }
 }
 
-/// Start `argv` (`systemd-run --user --scope ...`-wrapped); when `systemd-run` itself cannot be
-/// started (no user systemd manager, or it is not on `PATH`: `ErrorKind::NotFound`), fall back
-/// to the bare command in its own process group, detached from sill's own. Either way the returned
-/// `Child` *is* the app (`systemd-run --scope` execs in place of itself), so [`wait_for_exit`] does
-/// not need to know which path was taken.
-fn start(argv: &[String], token: Option<&str>) -> std::io::Result<tokio::process::Child> {
-    start_with(argv, token, user_manager())
-}
-
-/// [`start`] for a user manager in `manager`'s state: when it is unreachable (no
-/// `$XDG_RUNTIME_DIR/systemd/private`, as under a scratch runtime folder) `systemd-run --user`
-/// would only exit 1, so the bare command runs in its own process group straight away.
+/// Start `argv` (`systemd-run --user --scope ...`-wrapped) for a user manager in `manager`'s
+/// state. When it is unreachable (no `$XDG_RUNTIME_DIR/systemd/private`, as under a scratch
+/// runtime folder) `systemd-run --user` would only exit 1, so the bare command runs in its own
+/// process group straight away; when `systemd-run` itself cannot be started (not on `PATH`:
+/// `ErrorKind::NotFound`) the bare command runs too. Either way the returned `Child` *is* the
+/// app (`systemd-run --scope` execs in place of itself), so [`wait_for_exit`] does not need to
+/// know which path was taken.
 fn start_with(
     argv: &[String],
     token: Option<&str>,
@@ -223,7 +222,7 @@ fn record(tx: &watch::Sender<Launches>, outcome: LaunchOutcome) {
 
 #[cfg(test)]
 mod tests {
-    use super::{Manager, bare_command, start, start_with};
+    use super::{Manager, bare_command, start_with};
 
     #[test]
     fn bare_command_takes_what_follows_the_scopes_own_dash_dash() {
@@ -254,7 +253,8 @@ mod tests {
             "--".to_owned(),
             "/bin/true".to_owned(),
         ];
-        let mut child = start(&argv, None).unwrap_or_else(|e| panic!("{e}"));
+        let mut child =
+            start_with(&argv, None, Manager::Reachable).unwrap_or_else(|e| panic!("{e}"));
         let status = child.wait().await.unwrap_or_else(|e| panic!("{e}"));
         assert!(status.success());
     }

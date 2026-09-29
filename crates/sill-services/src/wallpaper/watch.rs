@@ -18,7 +18,7 @@ pub const DEBOUNCE: Duration = Duration::from_millis(500);
 
 /// The nearest existing ancestor of `path` — `path` itself excluded, since a watch's purpose
 /// here is to notice `path` being created. `None` when nothing above it exists either (no
-/// `$HOME`, which [`super::config::config_path`] already treats as "no source").
+/// filesystem root at all).
 fn nearest_existing_ancestor(path: &Path) -> Option<PathBuf> {
     path.parent()?
         .ancestors()

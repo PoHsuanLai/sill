@@ -72,7 +72,6 @@ pub(super) async fn run(
 /// The file the history lives in, if any.
 fn file_of(place: &HistoryPlace) -> Option<PathBuf> {
     match place {
-        HistoryPlace::State => history_file::default_path(),
         HistoryPlace::At(path) => Some(path.clone()),
         HistoryPlace::NotKept => None,
     }

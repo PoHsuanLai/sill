@@ -44,9 +44,9 @@ pub struct SavedEntry {
 pub struct PlacementFile(pub PathBuf);
 
 impl PlacementFile {
-    /// `desktop-widgets.json` under `$XDG_STATE_HOME/sill`, else `$HOME/.local/state/sill`.
-    pub fn default_path() -> Option<PlacementFile> {
-        dirs::state_dir().map(|dir| PlacementFile(dir.join("sill").join("desktop-widgets.json")))
+    /// `desktop-widgets.json` in sill's folder of `dirs`' state directory.
+    pub fn in_dirs(dirs: &sill_services::env::Dirs) -> PlacementFile {
+        PlacementFile(dirs.sill_state().join("desktop-widgets.json"))
     }
 
     /// Every entry in the file; none when it is missing or unreadable.

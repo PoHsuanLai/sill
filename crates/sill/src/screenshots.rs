@@ -3,7 +3,7 @@
 //! `screenshot.folders` and `screenshot.tool` ([`spawn_policy`]; until it is sent the service stays
 //! passive and watches nothing).
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use shell_host::{HostCtx, OutputInfo, Root};
 use sill_ipc::{FakeScreenshot, Response, ScreenshotRequest, ShotArea};
@@ -64,12 +64,10 @@ pub fn fake(services: &Services, fake: FakeScreenshot) -> Response {
     send(services, ShotCommand::Announce(fake.path))
 }
 
-/// The service's policy `file` makes. Lane c fills it (`parse_folders` against `$HOME`,
-/// `parse_tool`).
-pub fn policy_of(file: &ShellFile) -> ShotPolicy {
-    let home = std::env::var_os("HOME").map_or_else(PathBuf::new, PathBuf::from);
+/// The service's policy `file` makes (`parse_folders` against `home`, `parse_tool`).
+pub fn policy_of(file: &ShellFile, home: &Path) -> ShotPolicy {
     ShotPolicy {
-        folders: parse_folders(&file.screenshot.folders, &home),
+        folders: parse_folders(&file.screenshot.folders, home),
         tool: parse_tool(&file.screenshot.tool),
     }
 }
@@ -80,11 +78,12 @@ pub fn spawn_policy(
     rt: &Handle,
     mut settings: watch::Receiver<ShellFile>,
     control: Control<ShotCommand>,
+    home: PathBuf,
 ) {
     rt.spawn(async move {
         let mut sent = None;
         loop {
-            let policy = policy_of(&settings.borrow_and_update());
+            let policy = policy_of(&settings.borrow_and_update(), &home);
             if sent.as_ref() != Some(&policy) {
                 if control
                     .send(ShotCommand::Configure(policy.clone()))
@@ -135,7 +134,7 @@ mod tests {
     #[test]
     fn the_default_settings_watch_pictures_with_cosmics_tool() {
         assert_eq!(
-            policy_of(&ShellFile::default()),
+            policy_of(&ShellFile::default(), std::path::Path::new("/home/p")),
             ShotPolicy {
                 folders: ShotFolders::Auto,
                 tool: ShotTool::Cosmic,

@@ -22,17 +22,16 @@
 //! own string-escaping unquoted. A `source: Color(...)` (or any shape this does not recognise)
 //! answers `None`, which [`resolve_source`] turns into [`crate::wallpaper::WallpaperSource::None`].
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::wallpaper::WallpaperSource;
 
 /// The file this reads: `all`, cosmic-bg's fallback record for every output.
 const RELATIVE_PATH: &str = "cosmic/com.system76.CosmicBackground/v1/all";
 
-/// Where COSMIC keeps its `all` background record, when `$XDG_CONFIG_HOME` (or `$HOME`)
-/// resolves at all.
-pub fn config_path() -> Option<PathBuf> {
-    Some(dirs::config_dir()?.join(RELATIVE_PATH))
+/// Where COSMIC keeps its `all` background record under the config directory `config`.
+pub fn config_path(config: &Path) -> PathBuf {
+    config.join(RELATIVE_PATH)
 }
 
 /// The `all` record's `source: Path("...")` field. `None` for a `source: Color(...)`, a record
@@ -76,9 +75,9 @@ fn ron_string(text: &str) -> Option<(String, &str)> {
 /// [`image`] cannot decode (COSMIC's own default backgrounds are `.jxl`; this crate's `image`
 /// build carries only `png`/`jpeg`) is not distinguished here: it reaches the same fallback once
 /// the resize fails (`resize::ensure_cached`'s `Err`).
-pub fn resolve_source() -> WallpaperSource {
-    let path = config_path()
-        .and_then(|path| std::fs::read_to_string(path).ok())
+pub fn resolve_source(config: &Path) -> WallpaperSource {
+    let path = std::fs::read_to_string(config_path(config))
+        .ok()
         .and_then(|ron| parse_source_path(&ron))
         .filter(|path| path.is_file());
     match path {

@@ -4,6 +4,7 @@
 //! `ShellMsg::Settings` too, and the reply publishes it at once so the layer follows before the
 //! watch has fired).
 
+use sill_services::env::Dirs;
 use std::path::Path;
 
 use shell_host::{HostCtx, OutputInfo, Root, SurfaceId};
@@ -47,6 +48,7 @@ pub fn spawn_missing(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &mut Outputs,
     settings: &watch::Sender<ShellFile>,
+    dirs: &Dirs,
     root: impl Fn(Root) -> Root,
 ) {
     let desktop = settings.borrow().widgets.desktop;
@@ -57,7 +59,7 @@ pub fn spawn_missing(
         .collect();
     for action in layer_actions(desktop, &rows) {
         match action {
-            LayerAction::Spawn(info) => spawn(ctx, outputs, &root, info),
+            LayerAction::Spawn(info) => spawn(ctx, outputs, &root, dirs, info),
             LayerAction::Close(id) => {
                 ctx.close(id);
                 if let Some((_, surfaces)) = outputs.row_with(id) {
@@ -73,6 +75,7 @@ fn spawn(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &mut Outputs,
     root: &impl Fn(Root) -> Root,
+    dirs: &Dirs,
     info: OutputInfo,
 ) {
     let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
@@ -80,9 +83,7 @@ fn spawn(
         output: info.clone(),
     };
     let mut made = root(Root::with_props(sill_surfaces::DesktopWidgets, props));
-    if let Some(file) = PlacementFile::default_path() {
-        made = made.context(file);
-    }
+    made = made.context(PlacementFile::in_dirs(dirs));
     let config = desktop_layer(&info);
     let namespace = config.namespace.clone();
     surfaces.desktop_widgets = match ctx.spawn_layer(config, made) {

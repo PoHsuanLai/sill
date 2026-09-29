@@ -29,7 +29,7 @@ use super::policy::DisplayPolicy;
 use super::scale_pass::scale_pass;
 use super::seen;
 use super::sink::CosmicRandr;
-use crate::env::Bus;
+use crate::env::{Bus, Dirs};
 use crate::volume::Volume;
 
 /// Where the service looks and writes.
@@ -50,13 +50,13 @@ pub struct Paths {
 }
 
 impl Paths {
-    /// The usual places, logind on `system`.
-    pub fn of(system: Bus) -> Self {
+    /// The kernel's usual places, the files in `dirs`, logind on `system`.
+    pub fn of(system: Bus, dirs: &Dirs) -> Self {
         Paths {
             drm: PathBuf::from("/sys/class/drm"),
             backlight: PathBuf::from("/sys/class/backlight"),
-            seen: seen::default_path(),
-            fontconfig: fontconfig_file::default_dir(),
+            seen: Some(seen::path_in(dirs)),
+            fontconfig: Some(fontconfig_file::dir_in(dirs)),
             ddc: DdcSource::from_env(),
             system,
         }

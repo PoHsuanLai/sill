@@ -38,7 +38,7 @@ use crate::apps::AppIndex;
 use crate::clipboard::Clipboard;
 use crate::control::Control;
 use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
-use crate::env::Buses;
+use crate::env::{Buses, Dirs};
 use crate::launch::LaunchCommand;
 use effect::Outlets;
 use history::{History, Persist};
@@ -64,13 +64,14 @@ pub enum SearchCommand {
 }
 
 /// Start the search runner with `providers` (queried in parallel on `rt`'s blocking pool),
-/// its history loaded from `$XDG_STATE_HOME/sill`. Providers built by the caller rank with
+/// its history loaded from sill's folder of `dirs`' state directory. Providers built by the caller rank with
 /// their own frecency handle; [`spawn_with_providers`] builds the five sharing this runner's.
 pub fn spawn(
     rt: &Handle,
     providers: Vec<Arc<dyn Provider>>,
+    dirs: &Dirs,
 ) -> (watch::Receiver<Results>, Control<SearchCommand>) {
-    let dir = state_dir();
+    let dir = Some(dirs.sill_state());
     let history = History::new(dir.as_deref().map(load_frecency).unwrap_or_default());
     let policy = watch::Sender::new(LauncherPolicy::default());
     start(rt, providers, history, dir, Outlets::default(), policy)
@@ -87,6 +88,8 @@ pub(crate) struct Wiring<'a> {
     pub(crate) launch: &'a Control<LaunchCommand>,
     /// logind (the system rows' offers) and Tracker (the files index).
     pub(crate) buses: &'a Buses,
+    /// The history's and the rates cache's folders, and the home the files provider searches.
+    pub(crate) dirs: &'a Dirs,
 }
 
 /// The daemon's search: the five providers, the apps provider ranking with the same history
@@ -96,7 +99,7 @@ pub(crate) fn spawn_with_providers(
     rt: &Handle,
     wiring: Wiring<'_>,
 ) -> (watch::Receiver<Results>, Control<SearchCommand>) {
-    let dir = state_dir();
+    let dir = Some(wiring.dirs.sill_state());
     let history = History::new(dir.as_deref().map(load_frecency).unwrap_or_default());
     let (policy, policy_rx) = watch::channel(LauncherPolicy::default());
     let providers = registry::providers(&wiring, &history, &policy_rx);
@@ -124,9 +127,4 @@ fn start(
     let (search, arrivals) = run::Search::new(providers, history, persist, outlets, policy, tx);
     rt.spawn(run::run(search, commands, arrivals));
     (rx, control)
-}
-
-/// `$XDG_STATE_HOME/sill`, else `$HOME/.local/state/sill`; `None` when neither is set.
-fn state_dir() -> Option<PathBuf> {
-    dirs::state_dir().map(|dir| dir.join("sill"))
 }

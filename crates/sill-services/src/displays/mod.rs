@@ -65,7 +65,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
-use crate::env::Bus;
+use crate::env::{Bus, Dirs};
 use crate::volume::Volume;
 
 /// Start the displays task on `rt`, following `volume` for the monitor-speaker path. Until the
@@ -73,10 +73,11 @@ use crate::volume::Volume;
 pub fn spawn(
     rt: &Handle,
     system: Bus,
+    dirs: &Dirs,
     volume: watch::Receiver<Volume>,
 ) -> (watch::Receiver<Displays>, Control<DisplaysCommand>) {
     let (tx, rx) = watch::channel(Displays::default());
     let (control, commands) = Control::channel();
-    rt.spawn(run::run(tx, commands, volume, run::Paths::of(system)));
+    rt.spawn(run::run(tx, commands, volume, run::Paths::of(system, dirs)));
     (rx, control)
 }

@@ -14,18 +14,22 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use sill_services::auth::{
-    self, Attempt, Attempts, Auth, AuthCommand, AuthFault, AuthPhase, Authenticator,
+    self, AccountPlace, Attempt, Attempts, Auth, AuthCommand, AuthFault, AuthPhase, Authenticator,
     FakeAuthenticator, FakeRule, FakeVerdict, Outcome, PamHelper, Secret, UserName, pam,
 };
 use sill_services::control::Control;
-use sill_services::env::{Bus, BusRoute};
+use sill_services::env::{Bus, BusRoute, Dirs};
 use tokio::sync::watch;
 
 const RIGHT: &str = "right horse battery";
 
-/// No system bus: the account's picture is never asked of the real AccountsService.
-fn no_bus() -> Bus {
-    Bus::system(BusRoute::Absent)
+/// No system bus and a home that is not there: the account's picture is never asked of the
+/// real AccountsService, nor read from the real home.
+fn no_bus() -> AccountPlace {
+    AccountPlace::on(
+        Bus::system(BusRoute::Absent),
+        &Dirs::under(Path::new("/nonexistent/sill-auth-live")),
+    )
 }
 
 fn fake(delay_ms: u64) -> Arc<dyn Authenticator> {

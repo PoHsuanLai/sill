@@ -32,6 +32,7 @@ const MPRIS_PREFIX: &str = "org.mpris.MediaPlayer2.";
 /// Runs until `commands` closes. Without a session bus, `tx` stays at its default.
 pub(super) async fn run(
     bus: Bus,
+    cache_dir: PathBuf,
     tx: watch::Sender<Media>,
     mut commands: mpsc::UnboundedReceiver<MediaCommand>,
 ) {
@@ -56,7 +57,6 @@ pub(super) async fn run(
     };
 
     let origin = Instant::now();
-    let cache_dir = art_cache_dir();
     let (art_tx, mut art_rx) = mpsc::unbounded_channel::<(PlayerId, PathBuf)>();
     let mut owners: HashMap<OwnedUniqueName, PlayerId> = HashMap::new();
 
@@ -66,7 +66,7 @@ pub(super) async fn run(
         &tx,
         &art_tx,
         &mut owners,
-        cache_dir.as_deref(),
+        Some(cache_dir.as_path()),
         origin,
     )
     .await;
@@ -74,10 +74,10 @@ pub(super) async fn run(
     loop {
         tokio::select! {
             Some(signal) = next(&mut owner_changes) => {
-                handle_owner_change(&signal, &connection, &tx, &art_tx, &mut owners, cache_dir.as_deref(), origin).await;
+                handle_owner_change(&signal, &connection, &tx, &art_tx, &mut owners, Some(cache_dir.as_path()), origin).await;
             }
             Some(Ok(message)) = next(&mut prop_changes) => {
-                handle_properties_changed(&message, &connection, &tx, &art_tx, &owners, cache_dir.as_deref(), origin).await;
+                handle_properties_changed(&message, &connection, &tx, &art_tx, &owners, Some(cache_dir.as_path()), origin).await;
             }
             Some(Ok(message)) = next(&mut seeks) => {
                 handle_seeked(&message, &connection, &tx, &owners, origin).await;
@@ -88,7 +88,7 @@ pub(super) async fn run(
             command = commands.recv() => match command {
                 Some(MediaCommand::Press { player, verb }) => press(&connection, &tx, &player, verb).await,
                 Some(MediaCommand::Refresh) => {
-                    discover(&connection, &dbus, &tx, &art_tx, &mut owners, cache_dir.as_deref(), origin).await;
+                    discover(&connection, &dbus, &tx, &art_tx, &mut owners, Some(cache_dir.as_path()), origin).await;
                 }
                 Some(MediaCommand::Position(id)) => {
                     reread_timeline(&connection, &tx, id, origin).await;
@@ -460,18 +460,6 @@ fn metadata_micros(metadata: &HashMap<String, OwnedValue>, key: &str) -> Option<
         .get(key)
         .and_then(|v| i64::try_from(v.clone()).ok())
         .map(|v| Micros(v.max(0).cast_unsigned()))
-}
-
-/// `$XDG_CACHE_HOME/sill/art`, or `$HOME/.cache/sill/art`; `None` when neither is set (art then
-/// never leaves the bus).
-fn art_cache_dir() -> Option<PathBuf> {
-    if let Ok(dir) = std::env::var("XDG_CACHE_HOME")
-        && !dir.is_empty()
-    {
-        return Some(PathBuf::from(dir).join("sill").join("art"));
-    }
-    let home = std::env::var("HOME").ok()?;
-    Some(PathBuf::from(home).join(".cache").join("sill").join("art"))
 }
 
 /// Downloads `url` into `cache_path` with `curl` (Fedora ships it) and reports success on `art_tx`.

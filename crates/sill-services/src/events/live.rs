@@ -25,6 +25,7 @@ const DAY_CHECK: Duration = Duration::from_secs(60);
 pub(super) async fn run(
     tx: watch::Sender<Agenda>,
     mut commands: mpsc::UnboundedReceiver<EventsCommand>,
+    auto: AutoEnv,
 ) {
     let mut sources = loop {
         match commands.recv().await {
@@ -34,7 +35,7 @@ pub(super) async fn run(
         }
     };
     loop {
-        match follow(&tx, &mut commands, &sources).await {
+        match follow(&tx, &mut commands, &sources, &auto).await {
             Next::Switch(next) => sources = next,
             Next::Stop => return,
         }
@@ -59,8 +60,9 @@ async fn follow(
     tx: &watch::Sender<Agenda>,
     commands: &mut mpsc::UnboundedReceiver<EventsCommand>,
     sources: &EventSources,
+    auto: &AutoEnv,
 ) -> Next {
-    let plan = plan_for(sources).await;
+    let plan = plan_for(sources, auto).await;
     let watched = match &plan {
         Plan::Read(provider) => provider.watched(),
         Plan::Off | Plan::NoCalendars => Vec::new(),
@@ -92,10 +94,10 @@ async fn follow(
 }
 
 /// The provider `sources` names, `auto` resolved against this session's directories.
-async fn plan_for(sources: &EventSources) -> Plan {
+async fn plan_for(sources: &EventSources, auto: &AutoEnv) -> Plan {
     let sources = sources.clone();
+    let env = auto.clone();
     let built = tokio::task::spawn_blocking(move || {
-        let env = auto_env();
         let exists = |place: &IcsPlace| match place {
             IcsPlace::File(path) | IcsPlace::Dir(path) => path.exists(),
         };
@@ -108,13 +110,6 @@ async fn plan_for(sources: &EventSources) -> Plan {
     })
     .await;
     built.unwrap_or(Plan::Off)
-}
-
-/// What `auto` looks at in this session.
-fn auto_env() -> AutoEnv {
-    let home = dirs::home_dir().unwrap_or_default();
-    let data_home = dirs::data_dir().unwrap_or_else(|| home.join(".local/share"));
-    AutoEnv { home, data_home }
 }
 
 /// Read `plan` on the blocking pool and publish what it found.

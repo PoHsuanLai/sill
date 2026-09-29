@@ -24,29 +24,26 @@ const MAX_SIZE: u16 = 256;
 /// `hicolor`. The third step is `freedesktop_icons::lookup`'s own: every lookup falls back to the
 /// `hicolor` theme whenever the chosen theme is not installed, so this
 /// function only ever has to choose between the first two.
-pub fn icon_theme() -> IconTheme {
-    cosmic_tk_icon_theme().unwrap_or_else(|| IconTheme("Cosmic".to_owned()))
+pub fn icon_theme(config: &Path) -> IconTheme {
+    cosmic_tk_icon_theme(config).unwrap_or_else(|| IconTheme("Cosmic".to_owned()))
 }
 
-/// The path [`icon_theme`] reads: `~/.config/cosmic/com.system76.CosmicTk/v1/icon_theme`
-/// (`cosmic-config`'s own layout, read directly rather than through the `cosmic-config` crate,
-/// which is not in the pinned dependency block). `None` when `$XDG_CONFIG_HOME`/`$HOME` cannot
-/// be resolved at all.
-pub fn cosmic_tk_icon_theme_path() -> Option<PathBuf> {
-    Some(
-        dirs::config_dir()?
-            .join("cosmic")
-            .join("com.system76.CosmicTk")
-            .join("v1")
-            .join(COSMIC_TK_ICON_THEME),
-    )
+/// The path [`icon_theme`] reads under the config directory `config`:
+/// `cosmic/com.system76.CosmicTk/v1/icon_theme` (`cosmic-config`'s own layout, read directly
+/// rather than through the `cosmic-config` crate, which is not in the pinned dependency block).
+pub fn cosmic_tk_icon_theme_path(config: &Path) -> PathBuf {
+    config
+        .join("cosmic")
+        .join("com.system76.CosmicTk")
+        .join("v1")
+        .join(COSMIC_TK_ICON_THEME)
 }
 
 /// `cosmic-config` writes a RON string (`"Pop"`), one line, no trailing content; reading it is
 /// just stripping the quotes. `None` when the file is absent, empty or unreadable (no theme has
 /// been set, or COSMIC is not installed), which is exactly when the caller should fall back.
-fn cosmic_tk_icon_theme() -> Option<IconTheme> {
-    let raw = std::fs::read_to_string(cosmic_tk_icon_theme_path()?).ok()?;
+fn cosmic_tk_icon_theme(config: &Path) -> Option<IconTheme> {
+    let raw = std::fs::read_to_string(cosmic_tk_icon_theme_path(config)).ok()?;
     let name = raw.trim().trim_matches('"');
     (!name.is_empty()).then(|| IconTheme(name.to_owned()))
 }
@@ -102,6 +99,8 @@ pub fn pixmap_dirs() -> Vec<PathBuf> {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use super::{IconTheme, cosmic_tk_icon_theme_path, pixmap_dirs, resolve_icon};
     use crate::apps::index::AppIcon;
     use std::fs;
@@ -162,9 +161,9 @@ mod tests {
 
     #[test]
     fn cosmic_tk_icon_theme_path_ends_in_the_documented_layout() {
-        let path = cosmic_tk_icon_theme_path().unwrap_or_else(|| panic!("no config dir"));
+        let path = cosmic_tk_icon_theme_path(Path::new("/c"));
         assert!(
-            path.ends_with("cosmic/com.system76.CosmicTk/v1/icon_theme"),
+            path == Path::new("/c/cosmic/com.system76.CosmicTk/v1/icon_theme"),
             "{path:?}"
         );
     }
