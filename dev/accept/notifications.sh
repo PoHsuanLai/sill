@@ -623,7 +623,7 @@ post_card() {
 }
 
 # The status items' centres, right to left, from a capture of the bar: runs of inked columns
-# (dev/accept-real-input.sh's reading; the clock's is first). Prints "x" per item.
+# (the control center's reading; the clock's is first). Prints "x" per item.
 status_items() {
   sill debug capture "$BAR" "$OUT_DIR/bar.png" >/dev/null 2>&1 || return 1
   python3 - "$OUT_DIR/bar.png" "$WIDTH" <<'EOF'

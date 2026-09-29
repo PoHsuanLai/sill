@@ -24,7 +24,7 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   mutes it. Switch back afterwards. (Passed 2026-09-28.)
 - [ ] **Control center with the real keyboard** (a real click, Tab, Shift+Tab, Space and Escape
   pass under fake input on a headless KWin with an app window focused first:
-  `dev/accept-menus-keyboard-real-input.sh`): with a window focused, open it from the bar item
+  `dev/accept/bar.sh --real-input`): with a window focused, open it from the bar item
   (left of the clock); Tab shows the focus ring and moves it tile by tile, Shift+Tab back,
   Enter/Space toggle, Right on a chevron opens Wi-Fi/Bluetooth, Escape goes back then closes,
   and afterwards typing reaches the window again.
@@ -48,11 +48,11 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   the keyboard keeps working. Press Escape (the keyboard stays connected), then press the tile
   again and click Cancel, then click beside the alert: each leaves it on. The pane's switch (the
   chevron, then the switch) asks the same. Only "Turn Off" (or Return) turns it off; turning it
-  back on asks nothing. Automated on a fake BlueZ by `dev/accept-cc-real-input.sh bluetooth`;
+  back on asks nothing. Automated on a fake BlueZ by `dev/accept/control-center.sh --real-input bluetooth`;
   by hand, the real radio and the look.
 - [ ] **Banners with a real mouse** (hover, the close button, a click, a 90 px and a 50 px drag
   already pass under fake input on a headless KWin through
-  `dev/accept-notifications-real-input.sh`; this is the feel with a real mouse and touchpad):
+  `dev/accept/notifications.sh --real-input`; this is the feel with a real mouse and touchpad):
   `sill debug notify "Hi" --body "..." --action default=Open` on a debug build. It posts straight
   to sill's banners without D-Bus, so sill need not hold `org.freedesktop.Notifications`
   (`notifications.server = "passive"` leaves the name to the session's own daemon). The card
@@ -61,7 +61,7 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   and shows its close button.
 - [ ] **No grey block behind a moving banner** (at scale 2 on the 4K output, over a busy
   wallpaper): drag a banner right and hold, then let it fly; click one away. Nothing grey stands
-  where the card was, during the motion or after it. `dev/accept-notifications-real-input.sh
+  where the card was, during the motion or after it. `dev/accept/notifications.sh --real-input
   ghost` with `KWIN_SCALE=2` covers it headlessly.
 - [ ] **Notification center rises and folds.** Each opening, the groups rise in turn under the
   panel's slide; "N more" enters the added cards and "Show less" folds them back; a new
@@ -69,7 +69,7 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   two apps, click the top group's Clear: its header and cards fold one after another, then the
   next group heals up. Clear All folds everything, and "No Notifications" shows once the rows
   have gone; Escape then closes the center. Automated by
-  `dev/accept-notifications-real-input.sh exit`; by hand, the feel, side by side with macOS
+  `dev/accept/notifications.sh --real-input exit`; by hand, the feel, side by side with macOS
   Sequoia's Notification Center.
 - [ ] **Notification center keys with a real keyboard** (real Escape, Down and Delete already
   pass on a headless KWin): open it from the clock; Up/Down move the ring, Return opens a
@@ -80,10 +80,10 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
 - [ ] **Drag icon follows the real pointer**: run shell-host's `examples/demo_drag.rs
   --icon=root` and drag from its square: the icon follows the pointer the whole way (the
   headless KWin draws no cursor). The screenshot thumbnail's own drag is automated up to a drop
-  with no target (`dev/accept-screenshot-drag.sh`).
+  with no target (`dev/accept/screenshot.sh --real-input`).
 - [ ] **Launcher with a Mac keyboard through Toshy** (real typing, Down, Space, Ctrl+Y, → twice,
   Tab, Escape three times, Ctrl+R, Shift+Tab to Emoji and Enter on a clipboard row already pass
-  under fake input through `dev/accept-launcher-v2-real-input.sh`; this is the physical keys and
+  under fake input through `dev/accept/launcher.sh --real-input`; this is the physical keys and
   the look). Open the launcher with `sill launcher open` (Cmd+Space itself needs a COSMIC
   login) and type part of a document's name: ⌘Y shows the preview, Space after an arrow toggles
   it and never types a space, → at the end of the text shows it and a second → puts the focus
@@ -112,7 +112,7 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   place from the top right. Remove Up Next from the Notification Center list: "Removed Up Next
   from the Notification Center." and, on the desktop, a removed card plays its exit. Add Up Next
   to the center twice: the second is refused, its line shaken once. Escape, Done and a click
-  outside the sheet each close it. Automated at scale 2 by `dev/accept-widgets-real-input.sh`;
+  outside the sheet each close it. Automated at scale 2 by `dev/accept/widgets.sh --real-input`;
   by hand only the feel is left.
 
 ## Visual review
@@ -145,13 +145,13 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   installed): the keys (or `sill display brightness up|down`) move the BenQ MA270U's backlight
   within about a quarter second, sill's OSD shows the level, no stuck value after fast repeats.
 - [ ] **The Display capsule on the BenQ MA270U** (the pointer path passes headlessly at scale 2
-  in `dev/accept-cc-real-input.sh`): open the control center from the bar: within 2 s the
+  in `dev/accept/control-center.sh --real-input`): open the control center from the bar: within 2 s the
   Display capsule shows the monitor's level (sill's log says "sill: ddc: 1 display(s) answer
   DDC/CI"); drag it: the backlight follows during the drag, not only at the release; click the
   track: it jumps there. Change the brightness with the monitor's own buttons with the control
   center open: the capsule follows within 2 s. Put it back where it was afterwards.
 - [ ] **Power menu with the real keyboard** (real arrows, Escape and a scrim click already pass
-  on a headless KWin through `dev/accept-real-input.sh`): `sill power-menu open`, then arrows
+  on a headless KWin through `dev/accept/power-menu.sh --real-input`): `sill power-menu open`, then arrows
   move the highlight, Esc closes. Do NOT press Enter on Restart/Shut Down unless you mean it; the
   dry run (`sill run --session-dry-run <file>` on a debug build) records instead.
 - [ ] **Cmd+Tab** (with `dist/cosmic` system_actions installed): a quick Cmd+Tab tap switches to
@@ -209,7 +209,7 @@ Super+Shift+Esc open sill's power menu. Then pick "COSMIC (sill)" at the login s
 
 Set a short screen-off time in COSMIC Settings (Power) or
 `~/.config/cosmic/com.system76.CosmicIdle/v1/screen_off_time` (milliseconds, e.g. `60000`).
-`dev/accept-idle.sh` covers the rules on the nested compositor with made-up wakes, since the
+`dev/accept/idle.sh` covers the rules on the nested compositor with made-up wakes, since the
 nested cosmic-comp counts no synthetic input as activity.
 
 - [ ] `sill idle status` says `{"kind":"own"}` (`pgrep cosmic-idle` finds nothing). After that
@@ -234,7 +234,7 @@ nested cosmic-comp counts no synthetic input as activity.
 
 ### The polkit agent
 
-`dev/accept-polkit.sh` covers the prompt on the nested compositor against a stand-in Authority
+`dev/accept/polkit.sh` covers the prompt on the nested compositor against a stand-in Authority
 and a stand-in helper; these need polkitd, polkit's own helper and a real password.
 
 - [ ] `pkexec true` shows sill's prompt naming the action and you; the right password returns

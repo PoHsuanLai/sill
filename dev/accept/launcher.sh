@@ -44,7 +44,7 @@
 #        types through its stdin): `open`, `type fi` shows rows; `key actions` opens the
 #        selected row's actions menu; `key escape` twice closes the menu, then the launcher.
 #     Screenshots: dev/out/launcher-cosmic.png, launcher-cosmic-actions.png, over the test
-#     wallpaper (dev/backdrop.sh; the demo has no daemon, so cosmic-bg draws it there).
+#     wallpaper (dev/lib/backdrop.sh; the demo has no daemon, so cosmic-bg draws it there).
 #
 #   palette: the palette, its preview pane, sections and emoji grid
 #     A scratch HOME holds a PDF, a PNG, a Markdown file and six more `m9-*` documents,

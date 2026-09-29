@@ -695,7 +695,7 @@ where noted, and sill compiles against each.
     switcher derivation to `sill-overlays`; delete `sill-surfaces`.
 13. shell-host `Inject::Key`: delete the script stand-ins, `launcher_debug`, `DryRunSession`
     key paths and `key-sink.py`.
-14. `dev/lib/*.sh` and one script per surface with `--real-input`; untrack `dev/out/*.png`.
+14. (done) `dev/lib/*.sh` and one script per surface with `--real-input`; untrack `dev/out/*.png`.
 15. Update `check-boundary.sh` to section 1's table; prune FINDINGS to open items and standing
     facts.
 16. User styles: `daemon/settings/user_style.rs`, the feed field, `SurfaceRoot`'s `user_style`
