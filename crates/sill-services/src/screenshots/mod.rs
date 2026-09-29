@@ -10,9 +10,9 @@
 //! the caller only, and `--notify` posts an ordinary notification. So the one route that sees
 //! every screenshot, whoever took it (COSMIC's Print key, `sill screenshot`, spectacle, grim), is
 //! **an inotify watch of the screenshot folders** (`notify`, already a dependency): a new file
-//! whose name reads as a screenshot ([`names::is_screenshot_name`]), seen when it is closed after
-//! writing or renamed into place, becomes the current [`Shot`]. `sill screenshot
-//! [area|window|screen]` only runs the tool ([`tool::tool_command`]); its file arrives through
+//! whose name reads as a screenshot (`names::is_screenshot_name`), seen when it is closed after
+//! writing or renamed into place, becomes the current `Shot`. `sill screenshot
+//! [area|window|screen]` only runs the tool (`tool::tool_command`); its file arrives through
 //! the same watch, so there is one path to test. A clipboard-only screenshot has no file and no
 //! thumbnail, as on macOS.
 //!

@@ -10,7 +10,7 @@ use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
 /// The output volume as a [`Service`]: libpulse's threaded mainloop on its own OS thread, its
-/// callbacks feeding [`step`]. Without a pulse server the state stays at `Volume::default()`
+/// callbacks feeding `step`. Without a pulse server the state stays at `Volume::default()`
 /// (absent).
 #[derive(Debug)]
 pub enum VolumeService {}

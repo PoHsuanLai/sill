@@ -3,7 +3,7 @@
 //!
 //! The service keeps the last N copied texts and images **in this process's memory only**:
 //! nothing is written to disk, nothing is logged (the content types redact themselves in
-//! `Debug`), offers a password manager marks are never read ([`SECRET_HINTS`]), and with
+//! `Debug`), offers a password manager marks are never read (`SECRET_HINTS`), and with
 //! `launcher.clipboard_history = "off"` it holds no connection and no entries. It is passive
 //! until the daemon's first [`ClipboardCommand::Policy`], so a test never reads the session's
 //! clipboard. Live tests connect to a nested compositor by socket

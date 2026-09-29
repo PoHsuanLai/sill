@@ -7,7 +7,7 @@ use crate::env::Bus;
 /// How to reach polkit's helper.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum HelperChoice {
-    /// Look for the socket, then the setuid binary ([`helper::helper_route`]).
+    /// Look for the socket, then the setuid binary (`helper::helper_route`).
     System,
     /// This route (tests: a stand-in helper program speaking the protocol).
     Use(HelperRoute),

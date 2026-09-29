@@ -4,7 +4,7 @@ use super::{ActionId, AgentPolicy, Cookie};
 use crate::auth::Secret;
 
 /// A request made up by `sill debug polkit`: shown like a real one, answered by an in-process
-/// stand-in helper that accepts [`FAKE_SECRET`] and nothing else, and completed to nobody.
+/// stand-in helper that accepts `FAKE_SECRET` and nothing else, and completed to nobody.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FakeRequest {
     pub action_id: ActionId,

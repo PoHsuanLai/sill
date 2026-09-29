@@ -87,7 +87,7 @@ pub enum PamNote {
     Error(String),
 }
 
-/// What an [`crate::env::Authenticator`] answers for one attempt.
+/// What an `crate::env::Authenticator` answers for one attempt.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Verdict {
     pub outcome: Outcome,

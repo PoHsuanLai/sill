@@ -32,7 +32,7 @@ pub enum DisplaysCommand {
     /// exactly the monitor it shows).
     SetBrightness { output: OutputName, level: Percent },
     /// A view of the brightness opened (`Start`) or closed (`Stop`). While one is open, the
-    /// monitors' brightness is read again every [`FOLLOW_EVERY_MS`], so a change made on the
+    /// monitors' brightness is read again every `FOLLOW_EVERY_MS`, so a change made on the
     /// monitor itself or by another program shows (a read is skipped while sill's own write is
     /// pending).
     Follow(Following),

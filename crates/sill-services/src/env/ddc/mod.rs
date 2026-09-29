@@ -1,5 +1,5 @@
 //! The DDC/CI wire the displays service reads and writes: [`DdcBus`], the kernel's i2c buses
-//! ([`I2cBuses`]), made-up monitors in a file ([`FileBus`]) and, in tests, maps ([`FakeBus`]).
+//! ([`I2cBuses`]), made-up monitors in a file ([`FileBus`]) and, in tests, maps (`FakeBus`).
 
 mod bus;
 mod connectors;

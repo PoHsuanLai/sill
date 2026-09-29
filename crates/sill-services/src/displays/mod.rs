@@ -1,18 +1,18 @@
 //! Displays: Mac-quality defaults derived from what each display reports, nothing
 //! vendor-specific, every default overridable in `display.*`.
 //!
-//! - **Scale.** Every output's EDID (size, native mode) gives its density; [`default_scale`]
+//! - **Scale.** Every output's EDID (size, native mode) gives its density; `default_scale`
 //!   aims it at 109 points per inch, and the first time sill sees a display it sets that scale
-//!   through `cosmic-randr` ([`ScaleSink`]), then never again ([`decide_scale`],
+//!   through `cosmic-randr` ([`ScaleSink`]), then never again (`decide_scale`,
 //!   `$XDG_STATE_HOME/sill/displays.json`).
-//! - **Gamut.** The EDID primaries classified as sRGB, Display P3 or wide ([`classify`]); stored
+//! - **Gamut.** The EDID primaries classified as sRGB, Display P3 or wide (`classify`); stored
 //!   for colour management, which cosmic-comp 1.8 does not offer yet.
 //! - **DDC/CI.** External monitors' brightness, contrast, speaker volume, mute, input and RGB
-//!   gains ([`Controls`]) on one worker thread, with debounced writes and cached reads.
+//!   gains (`Controls`) on one worker thread, with debounced writes and cached reads.
 //! - **Brightness routing.** Built-in panels through logind, monitors through DDC
-//!   ([`BrightnessTarget`]), on the output under the pointer or all of them.
+//!   (`BrightnessTarget`), on the output under the pointer or all of them.
 //! - **Monitor speakers** follow the software volume when the default sink is the monitor.
-//! - **Night warmth** through the monitors' RGB gains ([`warmth_gains`]), off by default.
+//! - **Night warmth** through the monitors' RGB gains (`warmth_gains`), off by default.
 //! - **Font rendering** for other apps: a fontconfig snippet from the densest display.
 //!
 //! The service is inert until the daemon sends its first [`DisplaysCommand::Policy`].

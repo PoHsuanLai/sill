@@ -5,7 +5,7 @@ use tokio::sync::mpsc;
 use crate::error::ServiceError;
 
 /// Sends commands of type `C` to one running service. Cheap to clone; every surface holds one
-/// through [`crate::Services`].
+/// through `crate::Services`.
 #[derive(Debug)]
 pub struct Control<C> {
     tx: mpsc::UnboundedSender<C>,

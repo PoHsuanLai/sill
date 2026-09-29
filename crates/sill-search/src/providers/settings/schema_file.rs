@@ -25,7 +25,7 @@ pub struct RawKey {
 }
 
 /// A key's `page` table: `{ kind = "dock" }`, or `{ kind = "app", v = "<id>" }` for
-/// [`ds_settings::schema::Page::App`].
+/// `ds_settings::schema::Page::App`.
 #[derive(Debug, Clone, Deserialize)]
 pub struct RawPage {
     pub kind: String,

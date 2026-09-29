@@ -1,7 +1,7 @@
 //! sill's own polkit authentication agent (design/20 §1.10). The daemon's own process registers
 //! `org.freedesktop.PolicyKit1.AuthenticationAgent` for its logind session; polkitd calls
 //! `BeginAuthentication` when a program of that session needs an administrator (`pkexec`, a
-//! settings page), the service publishes a [`PromptView`] the polkit prompt surface draws, and
+//! settings page), the service publishes a `PromptView` the polkit prompt surface draws, and
 //! the typed secret goes to polkit's own helper, never through sill's PAM.
 //!
 //! How agents authenticate: an agent never checks a password itself, and

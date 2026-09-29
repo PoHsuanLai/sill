@@ -4,7 +4,7 @@
 //!
 //! Each [`SearchCommand::Query`] begins a generation (`Cancel::begin`, so every older query
 //! reads as cancelled) and runs every provider on its own blocking task; their batches merge
-//! through [`step`] as they arrive and the merged rows are published in the command
+//! through `step` as they arrive and the merged rows are published in the command
 //! menu's groups (`arrange`: Top hit, then one run per provider in Tab order; with nothing
 //! typed, the System rows then Recent). Batches of an older generation are dropped however
 //! late they arrive.

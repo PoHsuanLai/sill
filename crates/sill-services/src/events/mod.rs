@@ -7,9 +7,9 @@
 //!   it covers more than it sounds: vdirsyncer syncs any CalDAV server (Nextcloud, Fastmail,
 //!   iCloud, Google) into a directory of one `.ics` per event per collection, the layout khal
 //!   reads (`~/.calendars/<collection>/<uid>.ics` by convention); and every calendar exports
-//!   `.ics`. [`IcsProvider`] reads them: [`ics`] parses RFC 5545 by hand (unfolding, `VEVENT`,
+//!   `.ics`. [`IcsProvider`] reads them: `ics` parses RFC 5545 by hand (unfolding, `VEVENT`,
 //!   `DTSTART`/`DTEND`/`DURATION`, `VALUE=DATE`, UTC and `TZID=` times resolved with jiff's zone
-//!   database), and [`rule`] expands the common `RRULE` subset (`FREQ` daily to yearly,
+//!   database), and `rule` expands the common `RRULE` subset (`FREQ` daily to yearly,
 //!   `INTERVAL`, `COUNT`, `UNTIL`, `BYDAY` on weekly rules, `EXDATE`).
 //! - **evolution-data-server** (`org.gnome.evolution.dataserver.Sources5` and `Calendar8` on the
 //!   session bus) is what GNOME Calendar and GNOME Online Accounts feed; it answers

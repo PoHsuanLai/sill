@@ -18,7 +18,7 @@ pub enum NotificationsCommand {
     /// The person dismissed it (the close button, a history row's clear).
     Dismiss(NotificationId),
     /// The person swiped or dragged its banner away: kept in the center or dismissed, as
-    /// `notifications.swipe` says ([`Swipe`]).
+    /// `notifications.swipe` says (`Swipe`).
     SwipeAway(NotificationId),
     /// Dismiss every live banner.
     DismissAll,
@@ -38,7 +38,7 @@ pub enum NotificationsCommand {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum NotificationsEvent {
-    /// A `Notify` (or `sill debug notify`), with the id [`assign_id`] gave it.
+    /// A `Notify` (or `sill debug notify`), with the id `assign_id` gave it.
     Posted(Box<Notification>),
     /// `CloseNotification`.
     ClosedByApp(NotificationId),

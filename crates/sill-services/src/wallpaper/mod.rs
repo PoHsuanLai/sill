@@ -5,11 +5,11 @@
 //! design/22 has no key naming the wallpaper file; sill reads COSMIC's own background config
 //! (`com.system76.CosmicBackground`) until one is added.
 //!
-//! [`spawn`]'s task owns everything effectful: [`backend::config::resolve_source`] reads the source
+//! `spawn`'s task owns everything effectful: `backend::config::resolve_source` reads the source
 //! path
-//! (I/O, [`config`]), [`backend::watch::watch`] notices it change (I/O, [`watch`]), and
-//! [`backend::resize::prepare`] resizes it onto the blocking pool (I/O, [`resize`]) using the pure
-//! geometry in [`geometry`] and the pure naming in [`cache`].
+//! (I/O, `config`), `backend::watch::watch` notices it change (I/O, `watch`), and
+//! `backend::resize::prepare` resizes it onto the blocking pool (I/O, `resize`) using the pure
+//! geometry in `geometry` and the pure naming in `cache`.
 
 mod backend;
 

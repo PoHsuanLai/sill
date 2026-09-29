@@ -56,7 +56,7 @@ impl Displays {
     }
 }
 
-/// Whether a view of the brightness opened or closed ([`DisplaysCommand::Follow`]).
+/// Whether a view of the brightness opened or closed (`DisplaysCommand::Follow`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Following {

@@ -1,4 +1,4 @@
-//! The words between [`super::PamHelper`] and its child, `sill auth-check`: pure, so both ends
+//! The words between `super::PamHelper` and its child, `sill auth-check`: pure, so both ends
 //! are table-tested without a process.
 //!
 //! The request is the child's whole stdin: the PAM service, the user and the secret, each

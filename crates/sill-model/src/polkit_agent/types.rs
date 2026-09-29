@@ -120,5 +120,5 @@ pub enum AgentPolicy {
     Off,
 }
 
-/// The secret a [`FakeRequest`]'s stand-in helper accepts (debug builds only).
+/// The secret a `FakeRequest`'s stand-in helper accepts (debug builds only).
 pub const FAKE_SECRET: &str = "sill-fake";
