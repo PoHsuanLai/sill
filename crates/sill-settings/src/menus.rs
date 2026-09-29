@@ -133,10 +133,6 @@ pub struct MenusSettings {
         advanced
     )]
     pub tooltip_font_px: Px,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for MenusSettings {
@@ -153,7 +149,6 @@ impl Default for MenusSettings {
             font_px: Px(13),
             highlight_radius_px: Px(5),
             tooltip_font_px: Px(12),
-            extra: toml::Table::new(),
         }
     }
 }

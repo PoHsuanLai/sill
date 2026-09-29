@@ -56,10 +56,6 @@ pub struct SessionSettings {
         advanced
     )]
     pub lock_grace_s: Secs,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for SessionSettings {
@@ -68,7 +64,6 @@ impl Default for SessionSettings {
             lock_clock: LockClock::H24,
             user_picture: "auto".to_owned(),
             lock_grace_s: Secs(5),
-            extra: toml::Table::new(),
         }
     }
 }

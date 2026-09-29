@@ -137,10 +137,6 @@ pub struct IdleSettings {
         advanced
     )]
     pub locked_screen_off_s: Secs,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for IdleSettings {
@@ -157,7 +153,6 @@ impl Default for IdleSettings {
             dim_level_pct: Percent(50),
             lock: IdleLockAt::ScreenOff,
             locked_screen_off_s: Secs(60),
-            extra: toml::Table::new(),
         }
     }
 }

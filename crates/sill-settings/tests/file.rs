@@ -10,7 +10,7 @@ use serde::de::DeserializeOwned;
 use sill_settings::{
     BarSettings, Bounce, ControlCenterSettings, Dnd, DockSettings, FILE_NAME, LauncherSettings,
     LoadOutcome, MenusSettings, NotificationsSettings, ScrollSettings, ScrollbarSettings,
-    ShellFile, SpacesSettings, SwitcherSettings, load, save, try_load,
+    ShellFile, SpacesSettings, SwitcherSettings, load, save, try_load, unknown_keys,
 };
 
 fn round_trips<T: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Default>() {
@@ -111,10 +111,15 @@ fn a_save_is_one_file_and_reads_back() {
 }
 
 #[test]
-fn unknown_keys_and_tables_survive_a_round_trip() {
+fn unknown_keys_are_reported_and_dropped() {
     let dir = TempDir::new("unknown");
-    let text = "version = 1\nfuture = \"kept\"\n[dock]\npuppy = true\ntile_size_px = 40\n\
-                [later]\nanswer = 42\n";
+    let text = "version = 1\nfuture = \"x\"\n[dock]\npuppy = true\ntile_size_px = 40\n\
+                [later]\nanswer = 42\n[control_center]\nmodules = [\"wifi\"]\n";
+    let given: toml::Table = toml::from_str(text).unwrap_or_else(|e| panic!("{e}"));
+    let mut unknown: Vec<String> = unknown_keys(&given).into_iter().map(|k| k.0).collect();
+    unknown.sort();
+    assert_eq!(unknown, ["dock.puppy", "future", "later", "version"]);
+
     std::fs::write(dir.path().join(FILE_NAME), text).unwrap_or_else(|e| panic!("{e}"));
     let read = load(dir.path());
     assert_eq!(read.dock.tile_size_px, Px(40));
@@ -122,27 +127,11 @@ fn unknown_keys_and_tables_survive_a_round_trip() {
     let written =
         std::fs::read_to_string(dir.path().join(FILE_NAME)).unwrap_or_else(|e| panic!("{e}"));
     let tree: toml::Table = toml::from_str(&written).unwrap_or_else(|e| panic!("{e}"));
-    let at = |table: &str, key: &str| tree.get(table).and_then(|t| t.get(key)).cloned();
-    assert_eq!(
-        at("dock", "puppy"),
-        Some(toml::Value::Boolean(true)),
-        "{written}"
-    );
-    assert_eq!(
-        at("later", "answer"),
-        Some(toml::Value::Integer(42)),
-        "{written}"
-    );
-    assert_eq!(
-        tree.get("future"),
-        Some(&toml::Value::String("kept".to_owned())),
-        "{written}"
-    );
+    assert_eq!(unknown_keys(&tree), [], "{written}");
 }
 
-/// Q445: the idle times became `Secs` and `Mins` after files were written with them as `Count`.
-/// Both are plain integers in the file, so an existing file loads unchanged, and a save writes
-/// them back as the same plain integers; a negative one is only that key's default.
+/// The idle times are `Secs` and `Mins`: plain integers in the file both ways; a negative one is
+/// only that key's default.
 #[test]
 fn idle_seconds_and_minutes_are_plain_integers_both_ways() {
     use sill_settings::{IdleTimesFrom, Mins, Secs};
@@ -206,28 +195,7 @@ fn idle_seconds_and_minutes_are_plain_integers_both_ways() {
     );
 }
 
-/// `widgets.sizes` is gone (each widget has one size, FINDINGS F1024): a file an earlier build
-/// wrote with it loads with every other widget key read, and the old line is kept unread.
-#[test]
-fn a_stored_widget_sizes_line_is_ignored() {
-    use sill_settings::{DesktopWidgets, WidgetKind};
-    let dir = TempDir::new("widget-sizes");
-    let text = "[widgets]\ndesktop = \"on\"\ncenter = [\"battery\"]\n\
-                sizes = \"desktop.calendar=medium; center.up_next=large\"\n";
-    std::fs::write(dir.path().join(FILE_NAME), text).unwrap_or_else(|e| panic!("{e}"));
-    let read = load(dir.path());
-    let want = with(|f| {
-        f.widgets.desktop = DesktopWidgets::On;
-        f.widgets.center = vec![WidgetKind::Battery];
-        f.widgets.extra.insert(
-            "sizes".to_owned(),
-            toml::Value::String("desktop.calendar=medium; center.up_next=large".to_owned()),
-        );
-    });
-    assert_eq!(read, want);
-}
-
-/// [`try_load`]'s change-to-dispatch mapping for the watch (FINDINGS F993, F1030): a bad value
+/// [`try_load`]'s change-to-dispatch mapping for the watch: a bad value
 /// inside a table is still only that key ([`LoadOutcome::Read`], as [`load`] treats it — the
 /// watch may still publish it), text that is not TOML at all is [`LoadOutcome::Unparseable`]
 /// (the watch must keep the last good file rather than publish this), and a missing file is

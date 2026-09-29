@@ -138,10 +138,6 @@ pub struct ScrollbarSettings {
         advanced
     )]
     pub track_click_mode: TrackClick,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for ScrollbarSettings {
@@ -159,7 +155,6 @@ impl Default for ScrollbarSettings {
             legacy_track_width_px: Px(15),
             other_axis_offset_px: Px(12),
             track_click_mode: TrackClick::PageTowardClick,
-            extra: toml::Table::new(),
         }
     }
 }

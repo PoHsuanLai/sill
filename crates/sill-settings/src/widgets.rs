@@ -1,11 +1,8 @@
 //! `widgets.*`: which widgets the notification center shows and in what order, and the desktop
-//! widget layer (design/20 §1.14; sill FINDINGS "M10 freeze"). macOS keeps both on its "Desktop &
-//! Dock" page, hence `Page::Dock`. design/22 has no rows yet: `tests/keys.rs` lists them in
-//! `AWAITING_ROWS` and FINDINGS "M10 freeze" has the row text. All Advanced.
+//! widget layer (design/20 §1.14). macOS keeps both on its "Desktop & Dock" page, hence
+//! `Page::Dock`. All Advanced.
 //!
-//! Each widget has one size (the user's decision, 2026-09-28, FINDINGS "Manual run 2026-09-28:
-//! widgets"): nothing here picks one, and a `sizes` line an earlier build wrote is kept
-//! unread in `extra`.
+//! Each widget has one size: nothing here picks one.
 //!
 //! Where a widget sits on the desktop is saved state (like the dock's pins), not a setting:
 //! `$XDG_STATE_HOME/sill/desktop-widgets.json`, owned by the desktop layer.
@@ -107,10 +104,6 @@ pub struct WidgetsSettings {
         advanced
     )]
     pub world_clocks: String,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for WidgetsSettings {
@@ -123,7 +116,6 @@ impl Default for WidgetsSettings {
             desktop_cell_px: Px(164),
             desktop_gap_px: Px(16),
             world_clocks: String::new(),
-            extra: toml::Table::new(),
         }
     }
 }

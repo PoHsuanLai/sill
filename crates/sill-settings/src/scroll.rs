@@ -293,10 +293,6 @@ pub struct ScrollSettings {
         advanced
     )]
     pub scrollbars: ScrollbarVisibility,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for ScrollSettings {
@@ -323,7 +319,6 @@ impl Default for ScrollSettings {
             momentum_boost_threshold_px_s: Scalar(350.0),
             double_scroll_grace_ms: Ms(150),
             scrollbars: ScrollbarVisibility::WhenScrolling,
-            extra: toml::Table::new(),
         }
     }
 }

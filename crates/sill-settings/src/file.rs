@@ -1,6 +1,7 @@
 //! `sill/settings.toml`, whole, and reading and writing it (design/22 §2): lenient read through
-//! `ds_settings::lenient` (a bad value costs its own key), atomic temp-and-rename write,
-//! unknown keys and tables preserved.
+//! `ds_settings::lenient` (a bad value costs its own key), atomic temp-and-rename write. A key
+//! this build does not know is ignored and reported on stderr ([`unknown_keys`]); a save drops
+//! it.
 
 use std::path::{Path, PathBuf};
 
@@ -43,8 +44,6 @@ pub fn settings_dir() -> Option<PathBuf> {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ShellFile {
-    /// 1. Nothing reads it yet but its absence.
-    pub version: u16,
     pub bar: BarSettings,
     pub dock: DockSettings,
     pub launcher: LauncherSettings,
@@ -69,15 +68,11 @@ pub struct ShellFile {
     pub hot_corners: HotCornersSettings,
     /// sill's own idle service (FINDINGS "sill idle (Q420 B)"): no design/22 rows yet.
     pub idle: IdleSettings,
-    /// Tables this build does not know, kept for the next write.
-    #[serde(flatten)]
-    pub extra: toml::Table,
 }
 
 impl Default for ShellFile {
     fn default() -> Self {
         ShellFile {
-            version: 1,
             bar: BarSettings::default(),
             dock: DockSettings::default(),
             launcher: LauncherSettings::default(),
@@ -98,7 +93,6 @@ impl Default for ShellFile {
             screenshot: ScreenshotSettings::default(),
             hot_corners: HotCornersSettings::default(),
             idle: IdleSettings::default(),
-            extra: toml::Table::new(),
         }
     }
 }
@@ -106,11 +100,53 @@ impl Default for ShellFile {
 /// The stored settings in `dir`, or the defaults when there are none or they cannot be read.
 pub fn load(dir: &Path) -> ShellFile {
     std::fs::read_to_string(dir.join(FILE_NAME))
-        .map(|text| ds_settings::lenient(&text))
+        .map(|text| read(&text))
         .unwrap_or_default()
 }
 
-/// What reading `dir`'s `settings.toml` for a live re-read produced (FINDINGS F993, F1030): a
+/// A dotted key path in the file that [`ShellFile`] has no field for (`dock.puppy`, `later`).
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct UnknownKey(pub String);
+
+/// Every key in `given` that [`ShellFile`] does not know, depth first. A table sill knows is
+/// walked; a key under a known non-table value (an array, a word) is that value's business.
+pub fn unknown_keys(given: &toml::Table) -> Vec<UnknownKey> {
+    match toml::Value::try_from(ShellFile::default()) {
+        Ok(toml::Value::Table(known)) => unknown_under(given, &known, ""),
+        _ => Vec::new(),
+    }
+}
+
+fn unknown_under(given: &toml::Table, known: &toml::Table, prefix: &str) -> Vec<UnknownKey> {
+    given
+        .iter()
+        .flat_map(|(key, value)| {
+            let path = match prefix {
+                "" => key.clone(),
+                _ => format!("{prefix}.{key}"),
+            };
+            match (known.get(key), value) {
+                (None, _) => vec![UnknownKey(path)],
+                (Some(toml::Value::Table(inner)), toml::Value::Table(value)) => {
+                    unknown_under(value, inner, &path)
+                }
+                (Some(_), _) => Vec::new(),
+            }
+        })
+        .collect()
+}
+
+/// `text` read leniently, each unknown key reported once on stderr.
+fn read(text: &str) -> ShellFile {
+    if let Ok(given) = text.parse::<toml::Table>() {
+        for UnknownKey(path) in unknown_keys(&given) {
+            eprintln!("sill: {FILE_NAME}: unknown key `{path}` ignored");
+        }
+    }
+    ds_settings::lenient(text)
+}
+
+/// What reading `dir`'s `settings.toml` for a live re-read produced: a
 /// bad *value* inside a valid table costs only its own key ([`load`], `ds_settings::lenient`),
 /// but text that is not TOML at all — a half-written file the watch's debounce did not fully
 /// cover, or a hand edit with a syntax error — must not blank every setting to its default while
@@ -129,7 +165,7 @@ pub enum LoadOutcome {
 pub fn try_load(dir: &Path) -> LoadOutcome {
     match std::fs::read_to_string(dir.join(FILE_NAME)) {
         Ok(text) => match text.parse::<toml::Table>() {
-            Ok(_) => LoadOutcome::Read(Box::new(ds_settings::lenient(&text))),
+            Ok(_) => LoadOutcome::Read(Box::new(read(&text))),
             Err(_) => LoadOutcome::Unparseable,
         },
         Err(_) => LoadOutcome::Read(Box::default()),

@@ -64,10 +64,6 @@ pub struct ScreenshotSettings {
         advanced
     )]
     pub tool: String,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for ScreenshotSettings {
@@ -77,7 +73,6 @@ impl Default for ScreenshotSettings {
             thumbnail_hold_ms: Ms(5200),
             folders: "auto".to_owned(),
             tool: "auto".to_owned(),
-            extra: toml::Table::new(),
         }
     }
 }

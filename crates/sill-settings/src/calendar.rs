@@ -92,10 +92,6 @@ pub struct CalendarSettings {
         advanced
     )]
     pub up_next_max: Count,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for CalendarSettings {
@@ -106,7 +102,6 @@ impl Default for CalendarSettings {
             week_numbers: WeekNumbers::Hide,
             up_next_days: Count(7),
             up_next_max: Count(3),
-            extra: toml::Table::new(),
         }
     }
 }

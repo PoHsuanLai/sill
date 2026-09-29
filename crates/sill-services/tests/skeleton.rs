@@ -100,7 +100,6 @@ fn pins_round_trip_through_dock_json() {
     let dir = temp("pins");
     assert_eq!(load_pins(&dir), DockPins::default(), "missing is no pins");
     let pins = DockPins {
-        version: 1,
         pinned: vec![AppId("foot".to_owned())],
     };
     save_pins(&dir, &pins).unwrap_or_else(|e| panic!("{e}"));

@@ -119,7 +119,6 @@ fn fed_values_replace_the_defaults() {
     let (services, feeds) = dock_support::services();
     let before = render(services.clone());
     feeds.pins.send_replace(DockPins {
-        version: 1,
         pinned: vec![AppId(dock_support::FIREFOX.to_owned())],
     });
     feeds.bar.toplevels.send_replace(Toplevels::default());

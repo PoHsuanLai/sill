@@ -54,10 +54,6 @@ pub struct SwitcherSettings {
         advanced
     )]
     pub overflow_min_icon_px: Px,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for SwitcherSettings {
@@ -68,7 +64,6 @@ impl Default for SwitcherSettings {
             cell_size_px: Px(112),
             cell_gap_px: Px(8),
             overflow_min_icon_px: Px(48),
-            extra: toml::Table::new(),
         }
     }
 }

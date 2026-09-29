@@ -78,7 +78,6 @@ pub fn index() -> AppIndex {
 /// Files and Terminal pinned.
 pub fn pins() -> DockPins {
     DockPins {
-        version: 1,
         pinned: vec![AppId(FILES.to_owned()), AppId(TERM.to_owned())],
     }
 }

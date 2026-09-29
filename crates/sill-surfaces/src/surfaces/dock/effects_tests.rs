@@ -94,7 +94,6 @@ fn world() -> World {
             ],
         },
         pins: DockPins {
-            version: 1,
             pinned: vec![id("term"), id("files")],
         },
     }

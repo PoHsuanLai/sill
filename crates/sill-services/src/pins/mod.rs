@@ -70,7 +70,6 @@ mod tests {
     fn save_then_load_round_trips() {
         let dir = TempDir::new("pins-round-trip");
         let pins = DockPins {
-            version: 1,
             pinned: vec![
                 AppId("org.mozilla.firefox".to_owned()),
                 AppId("foot".to_owned()),

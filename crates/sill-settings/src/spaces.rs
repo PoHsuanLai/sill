@@ -213,10 +213,6 @@ pub struct SpacesSettings {
         advanced
     )]
     pub lookup_order: SpaceLookLookup,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for SpacesSettings {
@@ -230,7 +226,6 @@ impl Default for SpacesSettings {
             wallpaper_drawer: WallpaperDrawer::Shell,
             dock_look_source: DockLookSource::OwnOutput,
             lookup_order: SpaceLookLookup::ByIdThenIndex,
-            extra: toml::Table::new(),
         }
     }
 }

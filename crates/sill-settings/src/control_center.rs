@@ -182,10 +182,6 @@ pub struct ControlCenterSettings {
         advanced
     )]
     pub menu_bar_now_playing: InMenuBar,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for ControlCenterSettings {
@@ -218,7 +214,6 @@ impl Default for ControlCenterSettings {
             menu_bar_display: InMenuBar::Hide,
             menu_bar_battery: InMenuBar::Show,
             menu_bar_now_playing: InMenuBar::Hide,
-            extra: toml::Table::new(),
         }
     }
 }

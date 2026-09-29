@@ -85,10 +85,6 @@ pub struct OsdSettings {
         advanced
     )]
     pub margin_px: Px,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for OsdSettings {
@@ -98,7 +94,6 @@ impl Default for OsdSettings {
             hold_ms: Ms(1500),
             position: OsdPosition::TopRight,
             margin_px: Px(24),
-            extra: toml::Table::new(),
         }
     }
 }

@@ -38,10 +38,6 @@ pub struct WindowSettings {
         advanced
     )]
     pub tile_menu_hover_ms: Ms,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for WindowSettings {
@@ -50,7 +46,6 @@ impl Default for WindowSettings {
             move_threshold_px: Px(4),
             tile_menu_press_ms: Ms(500),
             tile_menu_hover_ms: Ms(800),
-            extra: toml::Table::new(),
         }
     }
 }

@@ -126,10 +126,6 @@ pub struct HotCornersSettings {
         advanced
     )]
     pub size_px: Px,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for HotCornersSettings {
@@ -146,7 +142,6 @@ impl Default for HotCornersSettings {
             dwell_ms: Ms(150),
             rearm_ms: Ms(500),
             size_px: Px(2),
-            extra: toml::Table::new(),
         }
     }
 }

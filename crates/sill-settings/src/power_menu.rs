@@ -49,10 +49,6 @@ pub struct PowerMenuSettings {
         advanced
     )]
     pub material: PanelMaterial,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for PowerMenuSettings {
@@ -60,7 +56,6 @@ impl Default for PowerMenuSettings {
         PowerMenuSettings {
             default_action: PowerMenuDefault::ShutDown,
             material: PanelMaterial::Sheet,
-            extra: toml::Table::new(),
         }
     }
 }

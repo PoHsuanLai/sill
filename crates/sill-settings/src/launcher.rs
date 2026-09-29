@@ -203,10 +203,6 @@ pub struct LauncherSettings {
         advanced
     )]
     pub currency: CurrencyRates,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for LauncherSettings {
@@ -233,7 +229,6 @@ impl Default for LauncherSettings {
             web_search: WebSearch::On,
             web_engine_url: "https://duckduckgo.com/?q={query}".to_owned(),
             currency: CurrencyRates::Off,
-            extra: toml::Table::new(),
         }
     }
 }

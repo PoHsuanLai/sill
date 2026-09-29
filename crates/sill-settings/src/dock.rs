@@ -353,10 +353,6 @@ pub struct DockSettings {
         advanced
     )]
     pub floor: DockFloor,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for DockSettings {
@@ -403,7 +399,6 @@ impl Default for DockSettings {
             pill_padding_px: Px(6),
             running_dot_gap_px: Px(3),
             floor: DockFloor::Off,
-            extra: toml::Table::new(),
         }
     }
 }

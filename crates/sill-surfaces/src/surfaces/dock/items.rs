@@ -209,7 +209,6 @@ mod tests {
 
     fn pins(ids: &[&str]) -> DockPins {
         DockPins {
-            version: 1,
             pinned: ids.iter().map(|id| AppId((*id).to_owned())).collect(),
         }
     }

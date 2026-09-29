@@ -10,7 +10,6 @@ use sill_surfaces::surfaces::launcher::{LauncherKey, LauncherOut, LauncherState,
 #[ignore = "M3 dock-ui fill"]
 fn pins_come_first_then_trash() {
     let pins = DockPins {
-        version: 1,
         pinned: vec![AppId("foot".to_owned()), AppId("files".to_owned())],
     };
     let items = dock_items(

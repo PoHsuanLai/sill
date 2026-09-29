@@ -232,10 +232,6 @@ pub struct DisplaySettings {
         advanced
     )]
     pub color_management: ColorManagement,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for DisplaySettings {
@@ -251,7 +247,6 @@ impl Default for DisplaySettings {
             night_warmth_strength: Percent(50),
             font_rendering: FontRenderingSetting::Auto,
             color_management: ColorManagement::Auto,
-            extra: toml::Table::new(),
         }
     }
 }

@@ -4,26 +4,10 @@ use serde::{Deserialize, Serialize};
 use sill_launcher::AppId;
 
 /// `dock.json`: the pinned apps, left to right.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct DockPins {
-    /// 1; nothing reads it yet but its absence.
-    #[serde(default = "version_one")]
-    pub version: u16,
     #[serde(default)]
     pub pinned: Vec<AppId>,
-}
-
-fn version_one() -> u16 {
-    1
-}
-
-impl Default for DockPins {
-    fn default() -> Self {
-        DockPins {
-            version: 1,
-            pinned: Vec::new(),
-        }
-    }
 }
 
 impl DockPins {
@@ -34,7 +18,7 @@ impl DockPins {
 
     /// The file's contents to write.
     pub fn to_json(&self) -> String {
-        // Strings and a number: nothing here can fail to encode.
+        // Strings only: nothing here can fail to encode.
         serde_json::to_string_pretty(self).unwrap_or_default()
     }
 }
@@ -65,10 +49,7 @@ pub enum PinEvent {
 
 /// `pins` after `event`.
 pub fn reduce_pins(pins: DockPins, event: PinEvent) -> DockPins {
-    let DockPins {
-        version,
-        mut pinned,
-    } = pins;
+    let DockPins { mut pinned } = pins;
     match event {
         PinEvent::Pin { app, at } => {
             pinned.retain(|a| a != &app);
@@ -87,7 +68,7 @@ pub fn reduce_pins(pins: DockPins, event: PinEvent) -> DockPins {
         }
         PinEvent::Replaced(all) => return all,
     }
-    DockPins { version, pinned }
+    DockPins { pinned }
 }
 
 fn clamp(index: u32, len: usize) -> usize {
@@ -101,7 +82,6 @@ mod tests {
 
     fn pins(ids: &[&str]) -> DockPins {
         DockPins {
-            version: 1,
             pinned: ids.iter().map(|s| AppId((*s).to_owned())).collect(),
         }
     }
@@ -215,8 +195,7 @@ mod tests {
         assert_eq!(DockPins::from_json(&p.to_json()), p);
         assert_eq!(
             DockPins::from_json(r#"{"pinned":["foot"]}"#),
-            pins(&["foot"]),
-            "version defaults to 1"
+            pins(&["foot"])
         );
         for text in ["", "[]", "{\"pinned\": 3}", "garbage"] {
             assert_eq!(DockPins::from_json(text), DockPins::default(), "{text:?}");

@@ -368,10 +368,6 @@ pub struct NotificationsSettings {
         advanced
     )]
     pub center_width_px: Px,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for NotificationsSettings {
@@ -401,7 +397,6 @@ impl Default for NotificationsSettings {
             banner_position: BannerPosition::TopRight,
             history_cap: Count(100),
             center_width_px: Px(384),
-            extra: toml::Table::new(),
         }
     }
 }

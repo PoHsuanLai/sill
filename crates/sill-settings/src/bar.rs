@@ -149,10 +149,6 @@ pub struct BarSettings {
         advanced
     )]
     pub battery_low_percent: Percent,
-    /// Keys this build does not know, kept for the next write.
-    #[serde(flatten)]
-    #[settings(skip)]
-    pub extra: toml::Table,
 }
 
 impl Default for BarSettings {
@@ -170,7 +166,6 @@ impl Default for BarSettings {
             item_font_weight: Count(500),
             item_radius_px: Px(5),
             battery_low_percent: Percent(20),
-            extra: toml::Table::new(),
         }
     }
 }
