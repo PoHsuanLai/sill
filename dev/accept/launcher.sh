@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Launcher acceptance. The default mode runs four groups of steps on the nested cosmic-comp
-# (dev/nested.sh; a running compositor is reused and never stopped); --real-input runs on a
-# private headless KWin (shell-host scripts/dev/kwin-virtual.sh) under real keyboard input.
+# Launcher acceptance, on a private headless KWin (shell-host scripts/dev/kwin-virtual.sh) that
+# the script starts and stops. The default mode runs four groups of steps with every key sent by
+# `sill debug key SURFACE KEY` (shell-host's `Inject::Key`: the key enters the panel where a real
+# xkb key does, whether or not KWin gave the panel the keyboard); --real-input types real Wayland
+# key events instead.
 #
 # Every group starts `sill run` from this checkout's debug build (`--features debug`) in its own
 # scratch tree (scratch_new: HOME and every XDG directory, its own XDG_RUNTIME_DIR) on a private
@@ -18,16 +20,7 @@
 #        prints p50/p95/max.
 #     2. The panel exists after a toggle (`sill debug capture <launcher panel>`), and after the
 #        closing toggle, 5 s idle adds 0 frames to every launcher surface.
-#     3. The nested `custom` shortcut Ctrl+Alt+Space (seeded by shell-host's own
-#        `scripts/dev/xdg-config`) sends `Spawn("sill launcher toggle")`. Exercised through
-#        `wtype` (present on this machine) or `ydotool`, whichever exists; skipped with the
-#        reason if neither does, or if the daemon's log gains no new `launcher.open_latency_ms`
-#        line within 5 s. Plausible causes, not distinguished here: `cosmic-comp`'s `Spawn`
-#        resolves `sill` on ITS OWN inherited `PATH`; a `wtype`-injected key (the
-#        virtual-keyboard protocol) never reaches its global-shortcut matcher the way a real
-#        keyboard's does; the spawned `sill` talks to the compositor's own XDG_RUNTIME_DIR, not
-#        to this daemon's scratch one.
-#     4. `sill quit` ends the daemon, which then no longer answers `ping`.
+#     3. `sill quit` ends the daemon, which then no longer answers `ping`.
 #
 #   ui: the panel and the catcher
 #     1. Warm: both launcher surfaces exist from the start, hidden (no capture of either).
@@ -40,17 +33,15 @@
 #     4. 5 s idle after the hide: 0 frames on the panel and the catcher.
 #     5. Stress: 20 toggles 150 ms apart (each close lands mid entrance), then 5 s idle; the
 #        daemon still answers `sill ping` and is still running.
-#     6. On `examples/launcher_demo.rs` (fake results; shell-host injects no keys, so the demo
-#        types through its stdin): `open`, `type fi` shows rows; `key actions` opens the
-#        selected row's actions menu; `key escape` twice closes the menu, then the launcher.
-#     Screenshots: dev/out/launcher-cosmic.png, launcher-cosmic-actions.png, over the test
-#     wallpaper (dev/lib/backdrop.sh; the demo has no daemon, so cosmic-bg draws it there).
+#     6. On `examples/launcher_demo.rs` (fake results, driven through its stdin): `open`, then
+#        the keys `f` and `i` (shell-host's `key` verb) show rows; Ctrl+K opens the selected
+#        row's actions menu; Escape twice closes the menu, then the launcher. Captures of the
+#        panel: target/accept-launcher/ui/demo-{open,actions,closed}.png.
 #
 #   palette: the palette, its preview pane, sections and emoji grid
 #     A scratch HOME holds a PDF, a PNG, a Markdown file and six more `m9-*` documents,
-#     `launcher.files_backend = "fd"`. No key is typed anywhere: every key goes through `sill
-#     debug launcher-key`, every look through `sill debug launcher-rows` and `sill debug capture`
-#     of the nested panel.
+#     `launcher.files_backend = "fd"`. Every key goes through `sill debug key`, every look
+#     through `sill debug launcher-rows` and `sill debug capture` of the panel.
 #     1. Open latency: 10 warm `sill launcher open` / `close`, the panel's
 #        `launcher.open_to_frame_ms` p50/p95/max; only the count of openings is asserted, since
 #        the host's load moves the numbers.
@@ -58,18 +49,18 @@
 #     3. `down`, `space` (Top Hit is the PDF; `up` first so the selection is on it): the preview
 #        is `pdf`, captured (dev/out/launcher-v2-preview-pdf.png).
 #     4. `down` to the PNG: `image`; `space` hides it.
-#     5. `quick-look` while typing shows it; `right` (a debug key is → at the field's end)
-#        gives the pane's first control the keyboard; `escape` gives it back (the pane stays),
+#     5. `quick-look` while typing shows it; `right` (→ with the caret at the
+#        field's end, where `--query` leaves it) gives the pane's first control the keyboard; `escape` gives it back (the pane stays),
 #        `escape` hides the pane, `escape` closes the launcher. On a row with actions: an `m9`
 #        document, else, while the files provider answers nothing, the Ghostty app row.
 #     6. Documents over its cap reports `hidden > 0`; Enter on the "Show More" line reveals them.
 #     7. `tab` to Emoji with nothing typed (Shift+Tab twice: Web, then Emoji) shows quire's emoji
 #        grid (dev/out/launcher-v2-emoji.png).
 #     8. 5 s idle after closing: 0 frames on the launcher's surfaces.
-#     C. Real → and End (wtype, nested socket only): the key claim reads the caret under sill.
+#     C. Home then →, End then →: the key claim reads the caret under sill.
 #     F. The same looks over the fakes' fixtures (`tests/launcher_support/m9.rs`: a PDF, a PNG, a
 #        Markdown file, five more PDFs, a clipboard entry, emoji), on `examples/launcher_demo.rs`
-#        after the daemon has quit, while the files and emoji providers answer nothing:
+#        (its keys are shell-host's `key` verb) after the daemon has quit, while the files and emoji providers answer nothing:
 #        dev/out/launcher-v2-{preview-pdf,preview-image,preview-text,show-more,pane-focus,
 #        emoji}-fixtures.png.
 #     A step that needs rows from the files or emoji provider exits 2 (SKIP) while that provider
@@ -95,13 +86,12 @@
 #        stub only activatable (a service file on the private bus), the call starts it.
 #     4. `files_backend = "off"`: the provider lists nothing; the daemon, after `sill reload`,
 #        lists no file row in any section, Top Hit included, and no Documents section.
-#     5. Detection on this machine (the real session bus: whether names exist, nothing more), and
-#        Tracker end to end in localsearch's own sandbox (a private bus and a scratch index).
+#     5. Tracker end to end in localsearch's own sandbox (a private bus and a scratch index).
 #
 # --real-input: shell-host's scripts/dev/fake-input.sh drives the headless KWin: every key is a
 # real Wayland key event with a real serial and keyboard focus, reaching the palette's field and
 # quire's key claim as a person's would. `sill debug launcher-rows` and `sill debug capture` only
-# look; no key goes through `sill debug launcher-key`. The bus is KWin's private bus, given to
+# look; no key goes through `sill debug key`. The bus is KWin's private bus, given to
 # the daemon (and the stub file manager, as an argument) only, never to this shell. ONE
 # fake-input client serves the whole run. `wl-copy`/`wl-paste` get KWin's socket by absolute
 # path and only made-up strings, and no clipboard content is printed. `launcher.files_backend =
@@ -134,7 +124,7 @@
 # safely or was not proven (named); 1 on a failure. The scroll and caret lines never change the
 # exit status.
 #
-# Usage: dev/nested.sh && dev/accept/launcher.sh [--only toggle|ui|palette|files]...
+# Usage: dev/accept/launcher.sh [--only toggle|ui|palette|files]...
 #        dev/accept/launcher.sh --real-input
 #        dev/accept/launcher.sh --self-test   (files step 4's check over a table, no compositor)
 set -uo pipefail
@@ -145,7 +135,7 @@ usage() {
   echo "usage: dev/accept/launcher.sh [--only toggle|ui|palette|files]... | --real-input | --self-test" >&2
   exit 2
 }
-MODE=nested
+MODE=keys
 ONLY=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -323,6 +313,29 @@ stop_fm() {
   FM=
 }
 
+# `sill debug key`'s spelling (a W3C key name, `+ctrl`, `+shift`) of a key by its usual word;
+# any other word is already a key name (`f`, `Home`).
+key_spec() {
+  case "$1" in
+    up) echo ArrowUp ;;
+    down) echo ArrowDown ;;
+    left) echo ArrowLeft ;;
+    right) echo ArrowRight ;;
+    enter) echo Enter ;;
+    escape) echo Escape ;;
+    space) echo Space ;;
+    tab) echo Tab ;;
+    shift-tab) echo Tab+shift ;;
+    actions) echo k+ctrl ;;
+    quick-look) echo y+ctrl ;;
+    reveal) echo r+ctrl ;;
+    *) echo "$1" ;;
+  esac
+}
+
+# A key (`key_spec`'s words) on the demo's panel (its stdin is fd 7), through shell-host's `key` verb.
+demo_key() { echo "sill-launcher-$NAME key $(key_spec "$1")" >&7; sleep 0.3; }
+
 # ---------------------------------------------------------------- group toggle
 
 TOGGLES=20
@@ -375,40 +388,6 @@ step_panel_and_idle() {
 }
 
 # toggle 3.
-step_shortcut() {
-  local log="$OUT_DIR/shortcut.log" before after tool
-  : >"$log"
-  if command -v wtype >/dev/null 2>&1; then
-    tool=wtype
-  elif command -v ydotool >/dev/null 2>&1; then
-    tool=ydotool
-  else
-    echo "skipped: neither wtype nor ydotool is installed" | tee -a "$log" >&2
-    return 2
-  fi
-  before=$(open_latencies | wc -l)
-  case "$tool" in
-    wtype) nested wtype -M ctrl -M alt -k space -m alt -m ctrl >>"$log" 2>&1 ;;
-    ydotool) nested ydotool key ctrl+alt+space >>"$log" 2>&1 ;;
-  esac || { echo "sending Ctrl+Alt+Space via $tool failed" >>"$log"; }
-  for _ in $(seq 50); do
-    after=$(open_latencies | wc -l)
-    [ "$after" -gt "$before" ] && break
-    sleep 0.1
-  done
-  after=$(open_latencies | wc -l)
-  echo "$tool sent Ctrl+Alt+Space; open_latency_ms lines before $before, after $after" \
-    | tee -a "$log" >&2
-  if [ "$after" -le "$before" ]; then
-    echo "skipped: no new launcher.open_latency_ms line; either cosmic-comp's Spawn could not" \
-      "resolve 'sill' on its own PATH, or the shortcut never matched a wtype-injected key, or" \
-      "the spawned 'sill' looked for the daemon in the compositor's runtime dir, not this" \
-      "scratch one" | tee -a "$log" >&2
-    return 2
-  fi
-}
-
-# toggle 4.
 step_quit() {
   sill quit >"$OUT_DIR/quit.log" 2>&1 || return 1
   grep -q '"kind":"done"' "$OUT_DIR/quit.log" || return 1
@@ -424,7 +403,7 @@ group_toggle() {
   build || { group_end; return 1; }
   start_private_bus || { group_end; return 1; }
   launch_daemon || { group_end; return 1; }
-  run_steps step_toggle_latency step_panel_and_idle step_shortcut step_quit
+  run_steps step_toggle_latency step_panel_and_idle step_quit
   local result=$STATUS
   group_end || result=1
   return "$result"
@@ -562,15 +541,13 @@ step_ui_demo() {
   # Generous waits: under load a debug demo's first frame has taken over a second, and a
   # `type` that lands before the opening's own reset is lost.
   echo "open" >&7; sleep 2.5
-  echo "type fi" >&7; sleep 2.0
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/launcher-cosmic.png" >/dev/null 2>&1 || ok=no
-  echo "sill-launcher-$NAME capture $OUT_DIR/demo-open.png" >&7; sleep 0.5
-  echo "key actions" >&7; sleep 1.5
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/launcher-cosmic-actions.png" >/dev/null 2>&1 || ok=no
-  echo "sill-launcher-$NAME capture $OUT_DIR/demo-actions.png" >&7; sleep 0.5
-  echo "key escape" >&7; sleep 0.5
-  echo "key escape" >&7; sleep 0.8
-  echo "sill-launcher-$NAME capture $OUT_DIR/demo-closed.png" >&7; sleep 0.5
+  demo_key f; demo_key i; sleep 2.0
+  echo "$PANEL capture $OUT_DIR/demo-open.png" >&7; sleep 0.5
+  demo_key actions; sleep 1.5
+  echo "$PANEL capture $OUT_DIR/demo-actions.png" >&7; sleep 0.5
+  demo_key escape; sleep 0.5
+  demo_key escape; sleep 0.8
+  echo "$PANEL capture $OUT_DIR/demo-closed.png" >&7; sleep 0.5
   echo "quit" >&7
   exec 7>&-
   wait "$demo" 2>/dev/null
@@ -587,8 +564,7 @@ step_ui_demo() {
 group_ui() {
   group_begin ui
   build "-p sill-ui-kit --example launcher_demo" || { group_end; return 1; }
-  read -r _ OUT_H < <(nested_output_size)
-  [ -n "${OUT_H:-}" ] || { echo "no nested output (dev/nested.sh first)" >&2; group_end; return 1; }
+  OUT_H="${SIZE#*x}"
   start_private_bus || { group_end; return 1; }
   backdrop_seed "$CONFIG" || { group_end; return 1; }
   launch_daemon || { group_end; return 1; }
@@ -598,12 +574,9 @@ group_ui() {
   run_steps step_ui_warm step_ui_toggle_shows step_ui_hide step_ui_idle step_ui_stress
   local result=$STATUS
   stop_daemon || result=1
-  backdrop_up "$SCRATCH/backdrop" || echo "backdrop: none (the shots show the bare compositor)" >&2
   run_steps step_ui_demo
   result=$(worst "$result" "$STATUS")
-  backdrop_down
   group_end || result=1
-  echo "screenshots in $SHOTS" >&2
   return "$result"
 }
 
@@ -611,8 +584,8 @@ group_ui() {
 
 OPENINGS=10
 
-# One key for the open launcher, as if typed, through `sill debug launcher-key`.
-debug_key() { sill debug launcher-key "$1" >>"$OUT_DIR/keys.log" 2>&1; sleep 0.25; }
+# One key (`key_spec`'s words) on the launcher's panel, through `sill debug key`.
+debug_key() { sill debug key "sill-launcher-$NAME" "$(key_spec "$1")" >>"$OUT_DIR/keys.log" 2>&1; sleep 0.25; }
 
 open_query() {
   sill launcher open --query "$1" >>"$OUT_DIR/keys.log" 2>&1
@@ -731,20 +704,18 @@ step_palette_emoji() {
   close_launcher
 }
 
-# palette C. The caret under sill: real keys from `wtype` on the nested socket only. After
-#    `--query m9` the caret is at the start, so → moves it and the pane stays hidden;
-#    End, then →, finds the caret at the end and opens the pane.
-step_palette_caret_wtype() {
-  command -v wtype >/dev/null 2>&1 || { echo "SKIP: no wtype" >&2; return 2; }
+# palette C. The caret under sill: After `--query m9` the caret is at the end, so Home puts it at
+#    the start, where → moves it and the pane stays hidden; End, then →, finds the caret at the
+#    end and opens the pane.
+step_palette_caret() {
   close_launcher
   open_query m9
   documents_answer || { echo "SKIP: no Documents (the files provider answers nothing)" >&2; return 2; }
-  # The field opens with its caret at the end: Home puts it at the start first.
-  WAYLAND_DISPLAY="$WL" wtype -k Home -k Right >>"$OUT_DIR/keys.log" 2>&1; sleep 0.4
+  debug_key Home; debug_key right; sleep 0.4
   local first
   first=$(field preview)
-  WAYLAND_DISPLAY="$WL" wtype -k End -k Right >>"$OUT_DIR/keys.log" 2>&1; sleep 0.6
-  echo "real Home, →: preview $first; real End then →: preview $(field preview), query '$(field query)'" >&2
+  debug_key End; debug_key right; sleep 0.6
+  echo "Home, →: preview $first; End then →: preview $(field preview), query '$(field query)'" >&2
   [ "$first" = hidden ] && [ "$(field preview)" = pdf ] && [ "$(field query)" = m9 ]
 }
 
@@ -771,24 +742,24 @@ step_palette_fixtures() {
   exec 7>"$fifo"
   sleep 2
   echo "open m9" >&7; sleep 2.5
-  echo "press quick-look" >&7; sleep 2.5
+  demo_key quick-look; sleep 2.5
   fixtures_shot preview-pdf
-  echo "press down" >&7; sleep 1.2
+  demo_key down; sleep 1.2
   fixtures_shot preview-image
-  echo "press down" >&7; sleep 1.2
+  demo_key down; sleep 1.2
   fixtures_shot preview-text
-  echo "press quick-look" >&7; sleep 0.5
+  demo_key quick-look; sleep 0.5
   # From the Markdown file (line 2) to the Show More line (6).
-  for at in 1 2 3 4; do echo "press down" >&7; sleep 0.3; done
-  echo "press enter" >&7; sleep 1.2
+  for at in 1 2 3 4; do demo_key down; sleep 0.3; done
+  demo_key enter; sleep 1.2
   fixtures_shot show-more
   echo "open m9" >&7; sleep 2
-  echo "press quick-look" >&7; sleep 1.5
-  echo "press right" >&7; sleep 1
+  demo_key quick-look; sleep 1.5
+  demo_key right; sleep 1
   fixtures_shot pane-focus
   echo "open" >&7; sleep 2
-  echo "press shift-tab" >&7; sleep 0.6
-  echo "press shift-tab" >&7; sleep 1.5
+  demo_key shift-tab; sleep 0.6
+  demo_key shift-tab; sleep 1.5
   fixtures_shot emoji
   echo "close" >&7; sleep 0.5
   echo "quit" >&7
@@ -816,7 +787,7 @@ group_palette() {
   echo "daemon on a private bus, runtime dir $RUNTIME, home $HOME_DIR, output $NAME" >&2
   run_steps step_palette_latency step_palette_sections step_palette_preview_pdf_and_image \
     step_palette_pane_levels step_palette_show_more step_palette_emoji \
-    step_palette_caret_wtype step_palette_idle
+    step_palette_caret step_palette_idle
   local result=$STATUS
   stop_daemon || result=1
   run_steps step_palette_fixtures
@@ -1079,21 +1050,12 @@ EOF
   return "$ok"
 }
 
-files_detection() {
-  (cd "$SILL_REPO" && cargo test -p sill-services --test files_walk_live -- --ignored \
-    --nocapture this_machine_has_tracker) >"$OUT_DIR/step5-detect.txt" 2>&1
-  local detected
-  detected=$(grep -o 'sill: files detect: .*' "$OUT_DIR/step5-detect.txt")
-  if grep -q 'test result: ok. 1 passed' "$OUT_DIR/step5-detect.txt"; then
-    pass 5 "${detected:-detect ran}"
-  else
-    fail 5 "detect: ${detected:-see $OUT_DIR/step5-detect.txt}"
-  fi
+files_tracker() {
   if ! command -v localsearch >/dev/null; then
     pending 5 "no localsearch here: Tracker's sandbox test was not run"
     return
   fi
-  (cd "$SILL_REPO" && cargo test -p sill-services --test files_tracker_live -- --ignored \
+  (cd "$SILL_REPO" && cargo test -p sill-search --test files_tracker_live -- --ignored \
     --nocapture) >"$OUT_DIR/step5-tracker.txt" 2>&1
   if grep -q 'test result: ok. 1 passed' "$OUT_DIR/step5-tracker.txt"; then
     pass 5 "Tracker found m9-report.pdf and 'm9 dir' in localsearch's sandbox"
@@ -1106,7 +1068,7 @@ step_files_listing() { judge files_listing; }
 step_files_open() { judge files_open; }
 step_files_reveal() { judge files_reveal; }
 step_files_off() { judge files_off; }
-step_files_detection() { judge files_detection; }
+step_files_tracker() { judge files_tracker; }
 
 group_files_end() {
   local result=0
@@ -1133,7 +1095,7 @@ group_files() {
   run_steps step_files_listing step_files_open step_files_reveal step_files_off
   local result=$STATUS
   stop_daemon || result=1
-  run_steps step_files_detection
+  run_steps step_files_tracker
   result=$(worst "$result" "$STATUS")
   group_files_end || result=1
   return "$result"
@@ -1505,35 +1467,36 @@ main_real() {
   exit "$status"
 }
 
-# ---------------------------------------------------------------- nested
+# ---------------------------------------------------------------- debug keys
 
-cleanup_nested() {
+cleanup_keys() {
   stop_fm
-  backdrop_down
   stop_daemon
   stop_private_bus
+  stop_kwin
   scratch_drop
 }
 
-main_nested() {
+main_keys() {
   local total=0 group
+  OUT_DIR="$OUT_ROOT"
   mkdir -p "$OUT_ROOT" "$SHOTS"
-  use_nested_socket || exit 1
-  nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
-  await_no_process 'target/[a-z]*/sill run' || echo "carrying on with it running" >&2
-  trap cleanup_nested EXIT
+  start_kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; exit 1; }
+  trap cleanup_keys EXIT
+  echo "headless KWin at $WL" >&2
   for group in toggle ui palette files; do
     [ "${#ONLY[@]}" = 0 ] || [[ " ${ONLY[*]} " == *" $group "* ]] || continue
     "group_$group"
     total=$(worst "$total" "$?")
   done
+  cleanup_keys
   trap - EXIT
-  echo "logs in $OUT_ROOT; screenshots in $SHOTS"
+  echo "logs in $OUT_ROOT; captures in $SHOTS"
   exit "$total"
 }
 
 case "$MODE" in
   self) self_test; exit ;;
   real) main_real ;;
-  *) main_nested ;;
+  *) main_keys ;;
 esac

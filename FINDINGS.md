@@ -409,8 +409,9 @@ A settled item is deleted, not marked closed.
   shell-host's connection, while the toplevel manager lives on `cosmic_wl`'s.
 - **G4** No drag and drop into shell surfaces (file drops on dock tiles, spring-loading).
 - **G11** `sill debug` cannot inject a wheel event, so the tray scroll is proved by tables only.
-- **G20** Debug injection has no key; the launcher has `sill debug launcher-key`, and real keys
-  come from headless KWin.
+- **G20** `sill debug key` sends a key event to a surface but no modifier state to the seat, so
+  a held chord (the switcher's Alt) still needs a real modifier: `wtype -M alt` on the nested
+  compositor in `dev/accept/switcher.sh`.
 - **G180** A document hears the keyboard's modifiers only on its next key or pointer event, so
   a quick tap that beats the switcher's map, or Caps Lock before the first key on the lock
   screen, is not seen.

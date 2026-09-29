@@ -138,6 +138,10 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
 
 - [ ] **Cmd+Space through Toshy** opens the launcher (the `Launcher` system action override).
 - [ ] **Super shortcuts** reach the shell (the nested compositor never gets them).
+- [ ] **A compositor shortcut runs `sill launcher toggle`**: bind Ctrl+Alt+Space to
+  `Spawn("sill launcher toggle")` (or use Cmd+Space above) and press it: the launcher opens, and a
+  second press closes it. cosmic-comp must resolve `sill` on its own `PATH` and the spawned client
+  must reach the daemon's socket; no injected key reaches a compositor's shortcut matcher.
 - [ ] **Scale policy on first sight**: a display seen for the first time gets 2x (BenQ MA270U),
   and a scale set by hand afterwards is never changed back. The desktop at 2x reads
   comfortably; text and icons are sharp.
