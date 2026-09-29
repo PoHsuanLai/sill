@@ -47,47 +47,32 @@
 # Exit 0 when every step passed, 1 on a failure. Another sill daemon started from a
 # `target/*/sill run` is waited for (up to 10 minutes).
 #
-# Usage: dev/nested.sh && dev/accept-idle.sh
+# Usage: dev/nested.sh && dev/accept/idle.sh
 set -uo pipefail
-# shellcheck source=dev/common.sh
-source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
-# shellcheck source=dev/backdrop.sh
-source "$(dirname "${BASH_SOURCE[0]}")/backdrop.sh"
+# shellcheck source=dev/lib/all.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 OUT_DIR="$SILL_REPO/target/accept-idle"
 SHOTS="$SILL_REPO/dev/out"
 DIM_SURFACE=
-mkdir -p "$OUT_DIR"
+mkdir -p "$OUT_DIR" "$SHOTS"
 LOCKER="$SILL_REPO/target/debug/examples/session_locker"
 LOGIND_BIN="$SILL_REPO/target/debug/examples/logind_standin"
 CLIENT_BIN="$SILL_REPO/target/debug/examples/screensaver_client"
 
-source "$SHELL_HOST_DEV/.nested-env"
-HOST_RUNTIME="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-NESTED_SOCKET="$HOST_RUNTIME/$WAYLAND_DISPLAY"
-case "$(basename "$NESTED_SOCKET")" in
+use_nested_socket || exit 1
+case "$(basename "$WL")" in
   wayland-0) echo "the nested socket is wayland-0 (the real session): refusing" >&2; exit 1 ;;
 esac
-SCRATCH=$(mktemp -d)
-RUNTIME="$SCRATCH/run"
-CONFIG="$SCRATCH/config"
-STATE="$SCRATCH/state"
-CACHE="$SCRATCH/cache"
-mkdir -p "$RUNTIME" "$CONFIG/sill" "$STATE" "$CACHE"
-chmod 700 "$RUNTIME"
-BUS=
-BUS_PID=
+scratch_new
+mkdir -p "$CONFIG/sill"
 LOGIND=
-DAEMON=
 TIMES="6,0"
+DAEMON_LOG="$OUT_DIR/daemon.log"
+# The daemon resolves a sill session (Host::SillSession) and owns idle only as COSMIC.
+COSMIC_ENV=(XDG_CURRENT_DESKTOP=COSMIC)
+IN_ENV_EXTRA=("${COSMIC_ENV[@]}")
 
-in_env() {
-  env XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$NESTED_SOCKET" XDG_CONFIG_HOME="$CONFIG" \
-    XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" XDG_CURRENT_DESKTOP=COSMIC \
-    DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" "$@"
-}
-sill() { in_env "$SILL_BIN" "$@"; }
-nested_locker() { WAYLAND_DISPLAY="$NESTED_SOCKET" "$LOCKER" "$@"; }
-now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
+nested_locker() { WAYLAND_DISPLAY="$WL" "$LOCKER" "$@"; }
 # A wake: `sill debug idle-wake` stands in for the compositor's `resumed` (the nested
 # cosmic-comp 1.8 counts no virtual-keyboard input as activity, and a key typed into the host's
 # window of it would be real input on the person's own session).
@@ -131,25 +116,6 @@ await_logind() {
   return 1
 }
 
-build() {
-  (cd "$SILL_REPO" && cargo build -p sill --features debug &&
-    cargo build -p sill-testkit --example session_locker --example logind_standin \
-      --example screensaver_client) >"$OUT_DIR/build.log" 2>&1 \
-    || { echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
-}
-
-start_bus() {
-  local out
-  out=$(dbus-daemon --config-file="$SILL_REPO/dev/private-bus.conf" --fork \
-    --print-address=1 --print-pid=1) || return 1
-  BUS=$(sed -n 1p <<<"$out")
-  BUS_PID=$(sed -n 2p <<<"$out")
-  case "$BUS" in unix:*) ;; *) echo "no private bus address: $out" >&2; return 1 ;; esac
-  [ "$BUS" != "${DBUS_SESSION_BUS_ADDRESS:-}" ] || { echo "not a private bus" >&2; return 1; }
-  require_private_system_bus "$BUS" || return 1
-  echo "private bus $BUS (pid $BUS_PID)" >&2
-}
-
 start_logind() {
   mkfifo "$SCRATCH/logind.in"
   "$LOGIND_BIN" "$BUS" <"$SCRATCH/logind.in" >"$OUT_DIR/logind.log" 2>&1 &
@@ -158,28 +124,20 @@ start_logind() {
   await_logind "^ready$" || { echo "the logind stand-in never started" >&2; return 1; }
 }
 
-start_daemon() {
-  local log="$1"
+# Starts the daemon with the short idle times in TIMES; "$@" (NAME=VALUE) adds variables to its
+# environment for its launch only.
+start_idle_daemon() {
   backdrop_seed "$CONFIG" || return 1
   printf '[session]\nlock_grace_s = 5\n\n[idle]\ndim_s = 3\ndim_level_pct = 50\nlocked_screen_off_s = 4\n' \
     >"$CONFIG/sill/settings.toml"
-  use_fake_ddc "$SCRATCH" >/dev/null
-  require_fake_ddc || return 1
-  in_env WAYLAND_DEBUG="${WDEBUG:-}" "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" --idle-times "$TIMES" \
-    >"$log" 2>&1 &
-  DAEMON=$!
-  for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
-  sill ping >/dev/null 2>&1 || { echo "the daemon never answered (see $log)" >&2; return 1; }
+  IN_ENV_EXTRA=("${COSMIC_ENV[@]}" "$@")
+  launch_daemon --idle-times "$TIMES"
+  local launched=$?
+  IN_ENV_EXTRA=("${COSMIC_ENV[@]}")
+  [ "$launched" = 0 ] || return 1
   [ "$(until_match "$(now_ms)" idle_state '^own ' 5000)" -ge 0 ] \
     || { echo "idle is not own: $(idle_state)" >&2; return 1; }
   sleep 2
-}
-
-stop_daemon() {
-  [ -n "${DAEMON:-}" ] || return 0
-  sill quit >/dev/null 2>&1
-  wait "$DAEMON" 2>/dev/null
-  DAEMON=
 }
 
 # Accept whatever lock is up, and wait for it to open.
@@ -190,16 +148,6 @@ open_lock() {
   wake
   sill debug auth accept >/dev/null 2>&1
   [ "$(until_match "$(now_ms)" lock_state '^unlocked' 4000)" -ge 0 ]
-}
-
-# The nested output's connector name (the surfaces' namespace suffix).
-output_name() {
-  sill debug stats | python3 -c '
-import json, sys
-for row in json.loads(sys.stdin.read())["v"]:
-    s = row["surface"]
-    if s.startswith("sill-bar-"):
-        print(s[len("sill-bar-"):]); break'
 }
 
 # The PNG $1 as "width height rgb_max alpha_min alpha_max": a scrim is RGB 0 everywhere and one
@@ -221,7 +169,7 @@ capture_dim() { sill debug capture "$DIM_SURFACE" "$1" >/dev/null 2>&1; }
 step_dim_off_lock() {
   local log="$OUT_DIR/1-dim-off-lock.log" start dim off locked g341 name before early late after
   : >"$log"
-  for _ in $(seq 50); do name=$(output_name); [ -n "$name" ] && break; sleep 0.1; done
+  name=$(output_name) || return 1
   DIM_SURFACE="sill-idle-dim-$name"
   wake; start=$(now_ms)
   rm -f "$OUT_DIR"/dim-*.png
@@ -256,7 +204,7 @@ at_level = abs(l[4] - 128) <= 12
 sys.exit(0 if black and uniform and fading and at_level else 1)
 EOF
   [ "$scrim_ok" = 0 ] && echo "scrim: black, uniform, fading in, at 50 %" | tee -a "$log" >&2
-  g341=$(python3 - "$OUT_DIR/daemon-wdebug.log" <<'EOF'
+  g341=$(python3 - "$DAEMON_LOG" <<'EOF'
 import re, sys
 off = lock = None
 failed = 0
@@ -391,10 +339,10 @@ step_sleep_locks() {
 step_idle_suspend() {
   local log="$OUT_DIR/7-suspend.log" start locked suspended still hints ok=1
   : >"$log"
-  stop_daemon
+  stop_daemon || return 1
+  mv "$DAEMON_LOG" "$OUT_DIR/daemon-wdebug.log"
   TIMES="6,10"
-  DAEMON_LOG="$OUT_DIR/daemon-suspend.log"
-  start_daemon "$DAEMON_LOG" || return 1
+  start_idle_daemon || return 1
   : >"$OUT_DIR/logind.log.mark"
   local before; before=$(grep -c '^suspend ' "$OUT_DIR/logind.log")
   wake; start=$(now_ms)
@@ -430,26 +378,20 @@ recover() {
   fi
   exec 3>&- 2>/dev/null
   [ -n "$LOGIND" ] && kill "$LOGIND" 2>/dev/null
-  [ -n "$BUS_PID" ] && kill "$BUS_PID" 2>/dev/null
-  rm -rf "$SCRATCH"
+  stop_private_bus
+  scratch_drop
 }
 
-WAYLAND_DISPLAY="$NESTED_SOCKET" wayland-info >/dev/null 2>&1 || {
-  echo "no nested compositor at $NESTED_SOCKET (dev/nested.sh first)" >&2; exit 1; }
-build || exit 1
-for _ in $(seq 600); do
-  pgrep -f 'target/[a-z]*/sill run' >/dev/null || break
-  [ -n "${WAITED:-}" ] || { echo "another sill daemon is running; waiting for it to quit" >&2; WAITED=1; }
-  sleep 1
-done
+WAYLAND_DISPLAY="$WL" wayland-info >/dev/null 2>&1 || {
+  echo "no nested compositor at $WL (dev/nested.sh first)" >&2; exit 1; }
+build "-p sill-testkit --example session_locker --example logind_standin --example screensaver_client" || exit 1
+await_no_process 'target/[a-z]*/sill run' || exit 1
 trap recover EXIT
 status=0
-DAEMON_LOG="$OUT_DIR/daemon-wdebug.log"
-if start_bus && start_logind && WDEBUG=client start_daemon "$DAEMON_LOG"; then
-  for step in ${STEPS:-step_dim_off_lock step_wake_in_grace step_wake_after_grace \
-    step_manual_lock_asks step_inhibit_holds step_sleep_locks step_idle_suspend}; do
-    if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; fi
-  done
+if start_private_bus && start_logind && start_idle_daemon WAYLAND_DEBUG=client; then
+  run_steps ${STEPS:-step_dim_off_lock step_wake_in_grace step_wake_after_grace \
+    step_manual_lock_asks step_inhibit_holds step_sleep_locks step_idle_suspend}
+  status=$STATUS
 else
   status=1
 fi
