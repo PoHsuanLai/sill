@@ -241,12 +241,13 @@ A settled item is deleted, not marked closed.
   tool are `#[ignore]`d. Every test that speaks D-Bus goes through
   `sill-testkit/src/private_bus.rs` (`dev/private-bus.conf`). Every other test that starts
   services does so on `Env::isolated` (no bus, no compositor, scratch directories).
-- Every `dev/accept-*.sh` that starts a daemon gives it a private bus on both
-  `DBUS_SESSION_BUS_ADDRESS` and `DBUS_SYSTEM_BUS_ADDRESS` (`dev/common.sh`:
+- Every `dev/accept/*.sh` that starts a daemon gives it a private bus on both
+  `DBUS_SESSION_BUS_ADDRESS` and `DBUS_SYSTEM_BUS_ADDRESS` (`dev/lib/bus.sh`:
   `PRIVATE_BOTH_BUSES`, `start_private_bus`, guarded by `require_private_system_bus`), a fake
-  DDC (`use_fake_ddc`, `require_fake_ddc`), scratch XDG dirs and its own `XDG_RUNTIME_DIR`.
+  DDC (`use_fake_ddc`, `require_fake_ddc`), scratch `HOME` and XDG dirs (`scratch_new`) and its
+  own `XDG_RUNTIME_DIR`.
   `dev/run.sh` is the interactive launcher and reaches the real session on purpose.
-- Residual: `accept-lock.sh` step 8 runs a build without `debug`, which has no fake DDC, so that
+- Residual: `dev/accept/lock.sh` step 8 runs a build without `debug`, which has no fake DDC, so that
   one daemon start probes the real `/dev/i2c-*` (read only) for about a second. The lock
   screen shows the real account's name from `/etc/passwd` (by uid), which no environment
   variable sandboxes.
@@ -359,17 +360,15 @@ A settled item is deleted, not marked closed.
 - The switcher: keyboard focus arriving after the show delay would read a held chord as a quick
   tap.
 - **G292** Timing budgets flake on a loaded debug build (launcher-ui's 100 ms, the calendar
-  edit's 2 s, the banner's 300 ms); `accept-notifications-real-input.sh`'s overflow step fails
+  edit's 2 s, the banner's 300 ms); `dev/accept/notifications.sh --real-input`'s overflow step fails
   when a `sill debug notify` misses its 2 s reply under load.
 - One real-clock test, `results::tests::a_newer_keystroke_cancels_the_older_query...`, can fail
   under load; a paused tokio clock would pin it.
-- `accept-menus-keyboard-real-input.sh`'s `step_center_then_menu` failed once on a
+- `dev/accept/bar.sh --real-input`'s `step_center_then_menu` failed once on a
   center/menu focus race; not yet looked at.
 
 ### quire
 
-- **Q1** No menu tracking machine in quire; sill's is `surfaces/bar/menu_track/`.
-- **Q2** No easing evaluator for `CubicBezier`; sill has `curve.rs`.
 - **Q3** No per-workspace look store; `use_space_look` computes the preset for the position.
 - **Q4** ds-settings' file I/O and watch are fixed to `appearance.toml`; sill repeats them.
 - **Q20** The tray's dbusmenu popup is not part of the bar's menu session.
