@@ -157,7 +157,7 @@ status_field() {
 import json, sys
 def find(v):
     if isinstance(v, dict):
-        if "holder" in v and "kept" in v:
+        if "server" in v and "kept" in v:
             return v
         for x in v.values():
             r = find(x)

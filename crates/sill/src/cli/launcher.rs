@@ -1,8 +1,23 @@
-//! The launcher's command line: `sill clipboard status|clear`, `sill debug launcher-key KEY` and
-//! `sill debug launcher-rows`, and their pure mappings to IPC requests.
+//! The launcher's command line: `sill launcher {toggle,open,close}` and `sill clipboard
+//! {status,clear}`.
 
-use clap::{Subcommand, ValueEnum};
-use sill_ipc::{ClipboardRequest, FakeLauncherKey, Request};
+use clap::Subcommand;
+use sill_ipc::act::ActRequest;
+use sill_ipc::request::Request;
+use sill_ipc::show::{LauncherRequest, ShowRequest};
+use sill_ipc::status::StatusRequest;
+
+/// `sill launcher ...`.
+#[derive(Debug, Clone, PartialEq, Eq, Subcommand)]
+pub enum LauncherAction {
+    Toggle,
+    Open {
+        /// Text to start with.
+        #[arg(long, default_value = "")]
+        query: String,
+    },
+    Close,
+}
 
 /// `sill clipboard ...`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
@@ -13,45 +28,21 @@ pub enum ClipboardAction {
     Clear,
 }
 
+/// The request `sill launcher ACTION` sends.
+pub fn launcher_request(action: &LauncherAction) -> Request {
+    Request::Show(ShowRequest::Launcher(match action {
+        LauncherAction::Toggle => LauncherRequest::Toggle,
+        LauncherAction::Open { query } => LauncherRequest::Open {
+            query: query.clone(),
+        },
+        LauncherAction::Close => LauncherRequest::Close,
+    }))
+}
+
 /// The request `sill clipboard ACTION` sends.
 pub fn clipboard_request(action: ClipboardAction) -> Request {
-    Request::Clipboard(match action {
-        ClipboardAction::Status => ClipboardRequest::Status,
-        ClipboardAction::Clear => ClipboardRequest::Clear,
-    })
-}
-
-/// `sill debug launcher-key KEY`: the command line's spelling of [`FakeLauncherKey`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-pub enum LauncherKeyArg {
-    Up,
-    Down,
-    Enter,
-    Escape,
-    Tab,
-    ShiftTab,
-    Actions,
-    Space,
-    QuickLook,
-    Right,
-    Left,
-    Reveal,
-}
-
-/// The IPC key for `key`.
-pub fn launcher_key(key: LauncherKeyArg) -> FakeLauncherKey {
-    match key {
-        LauncherKeyArg::Up => FakeLauncherKey::Up,
-        LauncherKeyArg::Down => FakeLauncherKey::Down,
-        LauncherKeyArg::Enter => FakeLauncherKey::Enter,
-        LauncherKeyArg::Escape => FakeLauncherKey::Escape,
-        LauncherKeyArg::Tab => FakeLauncherKey::Tab,
-        LauncherKeyArg::ShiftTab => FakeLauncherKey::ShiftTab,
-        LauncherKeyArg::Actions => FakeLauncherKey::Actions,
-        LauncherKeyArg::Space => FakeLauncherKey::Space,
-        LauncherKeyArg::QuickLook => FakeLauncherKey::QuickLook,
-        LauncherKeyArg::Right => FakeLauncherKey::Right,
-        LauncherKeyArg::Left => FakeLauncherKey::Left,
-        LauncherKeyArg::Reveal => FakeLauncherKey::Reveal,
+    match action {
+        ClipboardAction::Status => Request::Status(StatusRequest::Clipboard),
+        ClipboardAction::Clear => Request::Act(ActRequest::ClearClipboard),
     }
 }

@@ -5314,6 +5314,8 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "sill-launcher",
+ "sill-model",
  "thiserror 2.0.20",
 ]
 

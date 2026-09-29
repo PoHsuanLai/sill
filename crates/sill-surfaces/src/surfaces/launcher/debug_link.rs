@@ -6,7 +6,7 @@
 
 use sill_launcher::PreviewKind;
 
-/// A key for the open launcher, as the panel steps it (`sill_ipc::FakeLauncherKey`'s mirror:
+/// A key for the open launcher, as the panel steps it (`sill_ipc::debug::LauncherKey`'s mirror:
 /// this crate does not depend on sill-ipc).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LinkKey {

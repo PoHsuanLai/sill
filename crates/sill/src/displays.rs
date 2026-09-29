@@ -1,19 +1,15 @@
 //! The daemon's half of the displays service: the `display.*` settings translated into the
 //! service's [`DisplayPolicy`] (sill-services may not see sill-settings, which brings dioxus),
-//! outputs changes forwarded as rescans, and `sill display ...` answered.
+//! and outputs changes forwarded as rescans.
 
 use shell_host::HostEvent;
-use sill_ipc::{DisplayRequest, LevelRequest, Response, VolumeRequest};
-use sill_model::cosmic_wl::Toplevels;
 use sill_model::displays::{
-    DisplayPolicy, DisplaysCommand, FontRenderingMode, HardwareVolume, KeysTarget, LevelChange,
-    NightWarmth, Ppi, ScaleMode, ScaleOverride, ScaleRounding,
+    DisplayPolicy, DisplaysCommand, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmth,
+    Ppi, ScaleMode, ScaleOverride, ScaleRounding,
 };
-use sill_model::ids::OutputName;
-use sill_model::volume::{Step, VolumeCommand};
 use sill_surfaces::services::Services;
 
-use crate::msg::ShellMsg;
+use crate::daemon::msg::ShellMsg;
 use crate::policy::Policy;
 use sill_settings::{
     BrightnessKeysTarget, DisplayScaleMode, DisplaySettings, FontRenderingSetting,
@@ -88,78 +84,20 @@ pub fn on_host_event(services: &Services, event: &HostEvent<ShellMsg>) {
     }
 }
 
-/// The output of the active window: the daemon's stand-in for "under the pointer", which only
-/// the compositor knows.
-pub fn focused_output(toplevels: &Toplevels) -> Option<OutputName> {
-    toplevels
-        .windows
-        .iter()
-        .find(|w| w.activity == sill_model::cosmic_wl::Activity::Active)
-        .and_then(|w| w.outputs.first().cloned())
-}
-
-fn change(level: LevelRequest) -> LevelChange {
-    match level {
-        LevelRequest::Up => LevelChange::Step(Step::Up),
-        LevelRequest::Down => LevelChange::Step(Step::Down),
-        LevelRequest::Set { percent } => {
-            LevelChange::Set(sill_model::units::Percent(u16::from(percent.min(100))))
-        }
-    }
-}
-
-/// The volume service's command for a volume key. The monitor's own speakers follow the
-/// software level inside the displays service (`hw_volume`), so this is the whole of it.
-pub fn volume_command(request: VolumeRequest) -> VolumeCommand {
-    match request {
-        VolumeRequest::Level(LevelRequest::Up) => VolumeCommand::Step(Step::Up),
-        VolumeRequest::Level(LevelRequest::Down) => VolumeCommand::Step(Step::Down),
-        VolumeRequest::Level(LevelRequest::Set { percent }) => {
-            VolumeCommand::SetLevel(sill_model::units::Percent(u16::from(percent.min(100))))
-        }
-        VolumeRequest::Mute => VolumeCommand::SetMute(sill_model::volume::Mute::Muted),
-        VolumeRequest::Unmute => VolumeCommand::SetMute(sill_model::volume::Mute::Audible),
-        VolumeRequest::ToggleMute => VolumeCommand::ToggleMute,
-    }
-}
-
-/// Answer `sill display ...`.
-pub fn dispatch(services: &Services, request: DisplayRequest) -> Response {
-    let sent = match request {
-        DisplayRequest::Brightness(level) => {
-            let at = focused_output(&services.cosmic_wl.state.borrow().toplevels);
-            services.displays.control.send(DisplaysCommand::Brightness {
-                at,
-                change: change(level),
-            })
-        }
-        DisplayRequest::Volume(volume) => services.volume.control.send(volume_command(volume)),
-    };
-    match sent {
-        Ok(()) => Response::Done,
-        Err(error) => Response::Failed(sill_ipc::Failure {
-            kind: sill_ipc::FailureKind::Internal,
-            message: error.to_string(),
-        }),
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use sill_ipc::{LevelRequest, VolumeRequest};
     use sill_model::displays::ScaleOverride;
     use sill_model::displays::{
         DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmth, Ppi, ScaleMode,
         ScaleRounding,
     };
     use sill_model::units::Percent;
-    use sill_model::volume::{Mute, Step, VolumeCommand};
     use sill_settings::{
         BrightnessKeysTarget, DisplayScaleMode, DisplaySettings, FontRenderingSetting,
         HardwareVolumeMode, NightWarmthMode, ScaleRounding as ScaleRoundingSetting,
     };
 
-    use super::{policy_from, volume_command};
+    use super::policy_from;
 
     #[test]
     fn the_default_settings_are_the_default_policy() {
@@ -198,66 +136,5 @@ mod tests {
                 font_rendering: FontRenderingMode::Off,
             }
         );
-    }
-
-    #[test]
-    fn the_focused_output_is_the_active_windows_first() {
-        use sill_model::cosmic_wl::{Activity, Toplevel, Toplevels};
-        use sill_model::ids::OutputName;
-        let window = |key, activity, outputs: &[&str]| Toplevel {
-            key: sill_launcher::WindowKey(key),
-            app_id: "foot".to_owned(),
-            title: String::new(),
-            activity,
-            window: Default::default(),
-            sizing: Default::default(),
-            workspaces: Vec::new(),
-            outputs: outputs
-                .iter()
-                .map(|o| OutputName((*o).to_owned()))
-                .collect(),
-        };
-        let toplevels = |windows| Toplevels { windows };
-        let cases = [
-            (toplevels(vec![]), None),
-            (
-                toplevels(vec![
-                    window(1, Activity::Inactive, &["eDP-1"]),
-                    window(2, Activity::Active, &["HDMI-A-2", "eDP-1"]),
-                ]),
-                Some("HDMI-A-2"),
-            ),
-            (toplevels(vec![window(1, Activity::Active, &[])]), None),
-        ];
-        for (toplevels, want) in cases {
-            assert_eq!(
-                super::focused_output(&toplevels),
-                want.map(|w| OutputName(w.to_owned()))
-            );
-        }
-    }
-
-    #[test]
-    fn volume_keys_are_the_volume_services_commands() {
-        let cases = [
-            (
-                VolumeRequest::Level(LevelRequest::Up),
-                VolumeCommand::Step(Step::Up),
-            ),
-            (
-                VolumeRequest::Level(LevelRequest::Down),
-                VolumeCommand::Step(Step::Down),
-            ),
-            (
-                VolumeRequest::Level(LevelRequest::Set { percent: 250 }),
-                VolumeCommand::SetLevel(Percent(100)),
-            ),
-            (VolumeRequest::Mute, VolumeCommand::SetMute(Mute::Muted)),
-            (VolumeRequest::Unmute, VolumeCommand::SetMute(Mute::Audible)),
-            (VolumeRequest::ToggleMute, VolumeCommand::ToggleMute),
-        ];
-        for (request, want) in cases {
-            assert_eq!(volume_command(request), want, "{request:?}");
-        }
     }
 }

@@ -64,7 +64,7 @@ step_reload() {
   grep -q '"kind":"done"' "$OUT_DIR/reload.log"
 }
 
-# 4. A request in the ordinary case answers well inside the 2 s reply timeout (`ipc_server`'s
+# 4. A request in the ordinary case answers well inside the 2 s reply timeout (`ipc::server`'s
 #    own tests, `crates/sill/tests/ipc.rs`, exercise the timeout itself with a fake dispatcher
 #    that never answers; nothing reachable from this script can be made to hang deliberately).
 step_ipc_latency() {

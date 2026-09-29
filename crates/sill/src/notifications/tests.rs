@@ -1,9 +1,7 @@
 use shell_host::{OutputId, OutputInfo, Rect, Scale, SurfaceId};
-use sill_ipc::{ReportHolder, ReportMode};
-use sill_model::notifications::{NameHolder, NameOwner, Notifications, ServerMode, ServerStatus};
 use sill_surfaces::surfaces::banners::BannerOutput;
 
-use super::{banner_output, namespaces, report_of};
+use super::{banner_output, namespaces};
 use crate::outputs::{OutputSurfaces, Outputs};
 
 fn output(id: u32, name: &str) -> OutputInfo {
@@ -53,35 +51,6 @@ fn banners_show_on_the_first_output_that_has_a_column() {
         let outputs = Outputs { outputs: rows };
         assert_eq!(banner_output(&outputs), want, "{outputs:?}");
     }
-}
-
-#[test]
-fn the_status_reports_the_holder_and_the_counts() {
-    let live = Notifications {
-        server: ServerStatus {
-            mode: ServerMode::Own,
-            holder: NameHolder::Other(NameOwner {
-                unique: ":1.9".to_owned(),
-                pid: Some(42),
-                command: Some("plasmashell".to_owned()),
-            }),
-        },
-        banners: Vec::new(),
-    };
-    let report = report_of(&live, &Default::default());
-    assert_eq!(report.mode, ReportMode::Own);
-    assert_eq!(
-        report.holder,
-        ReportHolder::Other {
-            unique: ":1.9".to_owned(),
-            pid: Some(42),
-            command: Some("plasmashell".to_owned()),
-        }
-    );
-    assert_eq!((report.banners, report.kept), (0, 0));
-    let passive = report_of(&Notifications::default(), &Default::default());
-    assert_eq!(passive.mode, ReportMode::Passive);
-    assert_eq!(passive.holder, ReportHolder::NoBus);
 }
 
 #[test]

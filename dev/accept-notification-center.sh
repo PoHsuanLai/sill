@@ -68,7 +68,7 @@ for row in json.loads(sys.stdin.read())["v"]:
 
 # `sill notifications status`'s kept count.
 kept() {
-  sill notifications status | python3 -c 'import json, sys; print(json.loads(sys.stdin.read())["v"]["kept"])'
+  sill notifications status | python3 -c 'import json, sys; print(json.loads(sys.stdin.read())["v"]["v"]["kept"])'
 }
 
 center_up() { sill debug capture "$CENTER" "$OUT_DIR/probe.png" >/dev/null 2>&1; }

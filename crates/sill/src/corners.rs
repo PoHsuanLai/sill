@@ -1,20 +1,21 @@
 //! Hot corners on the daemon's side: the corner surfaces per output and per active corner, the
-//! actions a firing carries out, and `sill debug corner`.
+//! actions a firing carries out.
 //!
 //! A firing arrives on the [`CornerLink`] (from a corner surface's machine, or from
-//! [`fake`]); [`spawn_hits`] follows it and carries out [`corner_effect`] of that corner's
+//! `sill debug corner`); [`spawn_hits`] follows it and carries out [`corner_effect`] of that corner's
 //! action: the launcher, notification center and control center through their links, Lock
-//! through the locker service (`crate::session::lock`), Show Desktop through the toplevel
+//! through the locker service, Show Desktop through the toplevel
 //! manager ([`show_desktop`]), and the workspace overview and a custom command as child
 //! processes.
 
 use std::process::Stdio;
 
 use shell_host::{HostCtx, OutputId, Root, SurfaceOp};
-use sill_ipc::{CornerName, Failure, FailureKind, FakeCorner, Response};
+use sill_ipc::debug::CornerName;
 use sill_launcher::WindowKey;
 use sill_model::cosmic_wl::{Activity, Toplevel, WindowState, WlCommand};
 use sill_model::ids::WorkspaceKey;
+use sill_model::locker::LockerCommand;
 use sill_settings::{CornerAction, ShellFile};
 use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::hot_corners::{Corner, CornerLink, HotCornerProps, corner_layer};
@@ -22,8 +23,7 @@ use sill_surfaces::surfaces::launcher::LauncherLink;
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
-use crate::links::Links;
-use crate::msg::ShellMsg;
+use crate::daemon::msg::ShellMsg;
 use crate::outputs::Outputs;
 
 /// What a corner's action does, resolved from the settings.
@@ -231,7 +231,7 @@ async fn act(
             }
         }
         CornerEffect::Lock => {
-            let _ = crate::session::lock(services);
+            let _ = services.locker.control.send(LockerCommand::Lock);
         }
         CornerEffect::Run { program, args } => {
             let mut command = tokio::process::Command::new(&program);
@@ -240,22 +240,6 @@ async fn act(
                 eprintln!("sill: hot corner: running {program}: {error}");
             }
         }
-    }
-}
-
-/// `sill debug corner CORNER`: a hit of `corner` on the first output, as if its dwell had run
-/// out.
-pub fn fake(outputs: &Outputs, links: Option<&Links>, fake: FakeCorner) -> Response {
-    let first = outputs.outputs.first().map(|(info, _)| info.id);
-    match (links, first) {
-        (Some(links), Some(output)) => {
-            links.corners.hit(corner_of(fake.corner), output);
-            Response::Done
-        }
-        (None, _) | (_, None) => Response::Failed(Failure {
-            kind: FailureKind::Unsupported,
-            message: "no output to fire a corner on".to_owned(),
-        }),
     }
 }
 
@@ -272,7 +256,7 @@ pub fn namespaces(info: &shell_host::OutputInfo) -> Vec<(Corner, String)> {
 
 #[cfg(test)]
 mod tests {
-    use sill_ipc::CornerName;
+    use sill_ipc::debug::CornerName;
     use sill_settings::CornerAction;
     use sill_surfaces::surfaces::hot_corners::Corner;
 

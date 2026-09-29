@@ -1,12 +1,35 @@
-//! `sill screenshot [area|window|screen]`, `sill widgets toggle-desktop`, `sill debug screenshot
-//! PATH` and `sill debug corner CORNER`, and their pure mappings to IPC requests.
-
-use std::path::PathBuf;
+//! The desktop's command line: `sill dock`, `sill power-menu`, `sill control-center`, `sill
+//! screenshot` and `sill widgets`.
 
 use clap::{Subcommand, ValueEnum};
-use sill_ipc::{
-    CornerName, FakeCorner, FakeScreenshot, ScreenshotRequest, ShotArea, WidgetsRequest,
-};
+use sill_ipc::act::{ActRequest, DockRequest};
+use sill_ipc::request::Request;
+use sill_ipc::show::{EditWidgetsRequest, Reveal, ShowRequest};
+use sill_launcher::AppId;
+use sill_model::screenshots::ShotKind;
+
+/// `sill dock ...`.
+#[derive(Debug, Clone, PartialEq, Eq, Subcommand)]
+pub enum DockAction {
+    /// Keep APP (a desktop id, `org.mozilla.firefox`) in the dock.
+    Pin { app: String },
+    /// Stop keeping APP; a running app keeps its tile.
+    Unpin { app: String },
+}
+
+/// `sill power-menu ...`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
+pub enum PowerMenuAction {
+    Open,
+    Close,
+    Toggle,
+}
+
+/// `sill control-center ...`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
+pub enum ControlCenterAction {
+    Toggle,
+}
 
 /// `sill screenshot KIND`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -30,46 +53,50 @@ pub enum WidgetsAction {
     EditClose,
 }
 
-/// `sill debug corner CORNER`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-pub enum CornerArg {
-    TopLeft,
-    TopRight,
-    BottomLeft,
-    BottomRight,
+/// The request `sill dock ACTION` sends.
+pub fn dock_request(action: &DockAction) -> Request {
+    Request::Act(ActRequest::Dock(match action {
+        DockAction::Pin { app } => DockRequest::Pin {
+            app: AppId(app.clone()),
+        },
+        DockAction::Unpin { app } => DockRequest::Unpin {
+            app: AppId(app.clone()),
+        },
+    }))
 }
 
-/// The request `sill screenshot KIND` sends.
-pub fn screenshot_request(kind: ShotArg) -> ScreenshotRequest {
-    ScreenshotRequest::Take(match kind {
-        ShotArg::Area => ShotArea::Area,
-        ShotArg::Window => ShotArea::Window,
-        ShotArg::Screen => ShotArea::Screen,
-    })
+/// The request `sill power-menu ACTION` sends.
+pub fn power_menu_request(action: PowerMenuAction) -> Request {
+    Request::Show(ShowRequest::PowerMenu(match action {
+        PowerMenuAction::Open => Reveal::Open,
+        PowerMenuAction::Close => Reveal::Close,
+        PowerMenuAction::Toggle => Reveal::Toggle,
+    }))
 }
 
-/// The request `sill widgets ACTION` sends.
-pub fn widgets_request(action: WidgetsAction) -> WidgetsRequest {
+/// The request `sill control-center ACTION` sends.
+pub fn control_center_request(action: ControlCenterAction) -> Request {
     match action {
-        WidgetsAction::ToggleDesktop => WidgetsRequest::ToggleDesktop,
-        WidgetsAction::Edit => WidgetsRequest::Edit,
-        WidgetsAction::EditClose => WidgetsRequest::EditClose,
+        ControlCenterAction::Toggle => Request::Show(ShowRequest::ControlCenter),
     }
 }
 
-/// `sill debug screenshot PATH`'s made-up screenshot.
-pub fn fake_screenshot(path: PathBuf) -> FakeScreenshot {
-    FakeScreenshot { path }
+/// The request `sill screenshot KIND` sends.
+pub fn screenshot_request(kind: ShotArg) -> Request {
+    Request::Act(ActRequest::Screenshot(match kind {
+        ShotArg::Area => ShotKind::Area,
+        ShotArg::Window => ShotKind::Window,
+        ShotArg::Screen => ShotKind::Screen,
+    }))
 }
 
-/// `sill debug corner CORNER`'s made-up hit.
-pub fn fake_corner(corner: CornerArg) -> FakeCorner {
-    FakeCorner {
-        corner: match corner {
-            CornerArg::TopLeft => CornerName::TopLeft,
-            CornerArg::TopRight => CornerName::TopRight,
-            CornerArg::BottomLeft => CornerName::BottomLeft,
-            CornerArg::BottomRight => CornerName::BottomRight,
-        },
+/// The request `sill widgets ACTION` sends.
+pub fn widgets_request(action: WidgetsAction) -> Request {
+    match action {
+        WidgetsAction::ToggleDesktop => Request::Act(ActRequest::ToggleDesktopWidgets),
+        WidgetsAction::Edit => Request::Show(ShowRequest::EditWidgets(EditWidgetsRequest::Open)),
+        WidgetsAction::EditClose => {
+            Request::Show(ShowRequest::EditWidgets(EditWidgetsRequest::Close))
+        }
     }
 }

@@ -1,8 +1,9 @@
 //! `sill display {brightness,volume} ...`: the brightness and volume keys' command line, and
-//! its pure mapping to a [`DisplayRequest`].
+//! its pure mapping to a request.
 
 use clap::Subcommand;
-use sill_ipc::{DisplayRequest, LevelRequest, VolumeRequest};
+use sill_ipc::act::{ActRequest, DisplayRequest, LevelRequest, VolumeRequest};
+use sill_ipc::request::Request;
 
 /// `sill display ...`.
 #[derive(Debug, Clone, PartialEq, Eq, Subcommand)]
@@ -56,8 +57,8 @@ fn level(action: LevelAction) -> LevelRequest {
 }
 
 /// The request `action` sends.
-pub fn display_request(action: &DisplayAction) -> DisplayRequest {
-    match action {
+pub fn display_request(action: &DisplayAction) -> Request {
+    Request::Act(ActRequest::Display(match action {
         DisplayAction::Brightness { change } => DisplayRequest::Brightness(level(*change)),
         DisplayAction::Volume { change } => DisplayRequest::Volume(match change {
             VolumeAction::Up => VolumeRequest::Level(LevelRequest::Up),
@@ -69,20 +70,25 @@ pub fn display_request(action: &DisplayAction) -> DisplayRequest {
             VolumeAction::Unmute => VolumeRequest::Unmute,
             VolumeAction::ToggleMute => VolumeRequest::ToggleMute,
         }),
-    }
+    }))
 }
 
 #[cfg(test)]
 mod tests {
     use clap::Parser;
-    use sill_ipc::{DisplayRequest, LevelRequest, Request, VolumeRequest};
+    use sill_ipc::act::{ActRequest, DisplayRequest, LevelRequest, VolumeRequest};
+    use sill_ipc::request::Request;
 
     use crate::cli::{Cli, request};
 
     #[test]
     fn every_display_command_line_sends_its_request() {
-        let brightness = |l| Some(Request::Display(DisplayRequest::Brightness(l)));
-        let volume = |v| Some(Request::Display(DisplayRequest::Volume(v)));
+        let brightness = |l| {
+            Some(Request::Act(ActRequest::Display(
+                DisplayRequest::Brightness(l),
+            )))
+        };
+        let volume = |v| Some(Request::Act(ActRequest::Display(DisplayRequest::Volume(v))));
         let cases: Vec<(&[&str], Option<Request>)> = vec![
             (
                 &["display", "brightness", "up"],

@@ -5,8 +5,11 @@
 use std::io::BufReader;
 use std::time::{Duration, Instant};
 
-use sill::ipc_server;
-use sill_ipc::{FailureKind, LauncherRequest, MAX_LINE, Request, Response};
+use sill::ipc::server;
+use sill_ipc::line::{MAX_LINE, read_message, write_message};
+use sill_ipc::request::Request;
+use sill_ipc::response::{FailureKind, Response};
+use sill_ipc::show::{LauncherRequest, ShowRequest};
 
 /// A `Listening` on a throwaway socket under a per-test temp directory, so this suite never
 /// touches the real `sill` agent's socket even when it runs alongside a live daemon.
@@ -36,14 +39,14 @@ fn round_trip(agent: &latchkey::Agent, request: &Request) -> Response {
         .connect()
         .unwrap_or_else(|e| panic!("connecting: {e}"))
         .unwrap_or_else(|| panic!("nobody is listening"));
-    sill_ipc::write_message(&mut stream, request).unwrap_or_else(|e| panic!("writing: {e}"));
-    sill_ipc::read_message(&mut BufReader::new(stream)).unwrap_or_else(|e| panic!("reading: {e}"))
+    write_message(&mut stream, request).unwrap_or_else(|e| panic!("writing: {e}"));
+    read_message(&mut BufReader::new(stream)).unwrap_or_else(|e| panic!("reading: {e}"))
 }
 
 #[test]
 fn ping_answers_pong() {
     let (agent, door) = temp_door("ping");
-    ipc_server::spawn_with(door, |request, reply| {
+    server::spawn_with(door, |request, reply| {
         let response = match request {
             Request::Ping => Response::Pong,
             _ => Response::Done,
@@ -56,13 +59,13 @@ fn ping_answers_pong() {
 #[test]
 fn an_over_long_line_answers_failed() {
     let (agent, door) = temp_door("overlong");
-    ipc_server::spawn_with(door, |_request, reply| {
+    server::spawn_with(door, |_request, reply| {
         // If the dispatcher is reached at all, the over-long line was not refused first.
         let _ = reply.send(Response::Done);
     });
-    let request = Request::Launcher(LauncherRequest::Open {
+    let request = Request::Show(ShowRequest::Launcher(LauncherRequest::Open {
         query: "a".repeat(MAX_LINE),
-    });
+    }));
     let response = round_trip(&agent, &request);
     let Response::Failed(failure) = response else {
         panic!("expected Failed, got {response:?}");
@@ -73,7 +76,7 @@ fn an_over_long_line_answers_failed() {
 #[test]
 fn a_silent_dispatcher_times_out_within_the_budget() {
     let (agent, door) = temp_door("timeout");
-    ipc_server::spawn_with(door, |_request, _reply| {
+    server::spawn_with(door, |_request, _reply| {
         // Drop the reply sender without sending: a service that never comes back.
     });
     let started = Instant::now();
@@ -95,6 +98,6 @@ fn a_silent_dispatcher_times_out_within_the_budget() {
 #[test]
 #[ignore = "needs a running `sill run` daemon"]
 fn ping_reaches_a_running_daemon() {
-    let response = sill::client::send(&Request::Ping).unwrap_or_else(|e| panic!("{e}"));
+    let response = sill::cli::client::send(&Request::Ping).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(response, Response::Pong);
 }

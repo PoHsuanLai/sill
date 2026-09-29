@@ -1,20 +1,14 @@
 //! The desktop widget layer on the daemon's side: one surface per output while `widgets.desktop` is
-//! `On` (closed when it turns `Off`), and `sill widgets toggle-desktop`, which flips the key in
-//! `settings.toml` (the file stays the one truth; the watch brings the change back as a
-//! `ShellMsg::Settings` too, and the reply publishes it at once so the layer follows before the
-//! watch has fired).
+//! `On`, closed when it turns `Off`.
 
 use sill_services::env::Dirs;
-use std::path::Path;
 
 use shell_host::{HostCtx, OutputInfo, Root, SurfaceId};
-use sill_ipc::{Failure, FailureKind, Response, WidgetsRequest};
 use sill_settings::{DesktopWidgets, ShellFile};
 use sill_surfaces::surfaces::desktop_widgets::{DesktopWidgetsProps, PlacementFile, desktop_layer};
 use tokio::sync::watch;
 
-use crate::links::Links;
-use crate::msg::ShellMsg;
+use crate::daemon::msg::ShellMsg;
 use crate::outputs::Outputs;
 
 /// What one output's desktop layer needs.
@@ -96,56 +90,6 @@ fn spawn(
     outputs.set(info, surfaces);
 }
 
-/// `widgets.desktop` flipped.
-pub fn flipped(now: DesktopWidgets) -> DesktopWidgets {
-    match now {
-        DesktopWidgets::Off => DesktopWidgets::On,
-        DesktopWidgets::On => DesktopWidgets::Off,
-    }
-}
-
-/// `sill widgets ...`. `ToggleDesktop` loads `settings.toml` from `dir`, flips
-/// `widgets.desktop` with [`flipped`], saves it and publishes it on `settings`; `Edit` and
-/// `EditClose` write Edit Widgets' link (`crate::edit_widgets`).
-pub fn dispatch(
-    dir: Option<&Path>,
-    settings: &watch::Sender<ShellFile>,
-    outputs: &Outputs,
-    links: Option<&Links>,
-    request: WidgetsRequest,
-) -> Response {
-    let edit = links.map(|links| &links.edit_widgets);
-    match request {
-        WidgetsRequest::ToggleDesktop => toggle_desktop(dir, settings),
-        WidgetsRequest::Edit => crate::edit_widgets::open(outputs, edit),
-        WidgetsRequest::EditClose => crate::edit_widgets::close(edit),
-    }
-}
-
-/// Flip `widgets.desktop` in `dir`'s `settings.toml` and publish it.
-fn toggle_desktop(dir: Option<&Path>, settings: &watch::Sender<ShellFile>) -> Response {
-    let Some(dir) = dir else {
-        return failed(
-            FailureKind::Internal,
-            "no settings directory (XDG_CONFIG_HOME and HOME are both unset)".to_owned(),
-        );
-    };
-    let mut file = sill_settings::load(dir);
-    file.widgets.desktop = flipped(file.widgets.desktop);
-    if let Err(error) = sill_settings::save(dir, &file) {
-        return failed(
-            FailureKind::Internal,
-            format!("saving the settings: {error}"),
-        );
-    }
-    settings.send_replace(file);
-    Response::Done
-}
-
-fn failed(kind: FailureKind, message: String) -> Response {
-    Response::Failed(Failure { kind, message })
-}
-
 /// The desktop layer's namespace on `info`, which `debug stats` reports.
 pub fn namespace(info: &OutputInfo) -> String {
     desktop_layer(info).namespace
@@ -154,12 +98,9 @@ pub fn namespace(info: &OutputInfo) -> String {
 #[cfg(test)]
 mod tests {
     use shell_host::{OutputId, OutputInfo, Rect, Scale, SurfaceId};
-    use sill_ipc::{Response, WidgetsRequest};
-    use sill_settings::{DesktopWidgets, ShellFile};
-    use tokio::sync::watch;
+    use sill_settings::DesktopWidgets;
 
-    use super::{LayerAction, dispatch, flipped, layer_actions};
-    use crate::outputs::Outputs;
+    use super::{LayerAction, layer_actions};
 
     fn output(id: u32) -> OutputInfo {
         OutputInfo {
@@ -178,12 +119,6 @@ mod tests {
     }
 
     #[test]
-    fn toggling_flips_the_key() {
-        assert_eq!(flipped(DesktopWidgets::Off), DesktopWidgets::On);
-        assert_eq!(flipped(DesktopWidgets::On), DesktopWidgets::Off);
-    }
-
-    #[test]
     fn a_layer_per_output_while_on_and_none_while_off() {
         let rows = [(output(1), None), (output(2), Some(SurfaceId(7)))];
         let cases = [
@@ -197,29 +132,5 @@ mod tests {
             layer_actions(DesktopWidgets::Off, &[(output(1), None)]),
             Vec::new()
         );
-    }
-
-    #[test]
-    fn toggle_desktop_flips_saves_and_publishes() {
-        let dir = std::env::temp_dir().join(format!("sill-widgets-toggle-{}", std::process::id()));
-        let (tx, rx) = watch::channel(ShellFile::default());
-        let outputs = Outputs::default();
-        for want in [DesktopWidgets::On, DesktopWidgets::Off] {
-            let response = dispatch(
-                Some(&dir),
-                &tx,
-                &outputs,
-                None,
-                WidgetsRequest::ToggleDesktop,
-            );
-            assert_eq!(response, Response::Done);
-            assert_eq!(sill_settings::load(&dir).widgets.desktop, want);
-            assert_eq!(rx.borrow().widgets.desktop, want);
-        }
-        let _ = std::fs::remove_dir_all(dir);
-        assert!(matches!(
-            dispatch(None, &tx, &outputs, None, WidgetsRequest::ToggleDesktop),
-            Response::Failed(_)
-        ));
     }
 }

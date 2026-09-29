@@ -2,7 +2,8 @@
 
 use std::sync::mpsc::SyncSender;
 
-use sill_ipc::{Request, Response};
+use sill_ipc::request::Request;
+use sill_ipc::response::Response;
 use sill_settings::ShellFile;
 
 /// One message to the host thread (`HostHandle::send`).

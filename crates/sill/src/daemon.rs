@@ -10,21 +10,21 @@
 //! `Services`) and, after delegating every other event to `on_event`, spawns whatever `on_event`
 //! marked as missing (an `OutputSurfaces` row with `bar: None`).
 
+pub mod msg;
 pub(crate) mod services;
+pub(crate) mod settings;
+
 use std::path::Path;
 use std::process::ExitCode;
 use std::time::{Duration, Instant};
 
 use shell_host::scale::{Size as BufferSize, buffer_size};
 use shell_host::{CloseReason, Host, HostConfig, HostCtx, HostEvent, OutputInfo, Root, SurfaceId};
-use sill_ipc::{
-    DebugRequest, DockRequest, Failure, FailureKind, LauncherRequest, LockRequest, Request,
-    Response, SurfaceName,
-};
-use sill_launcher::AppId;
+use sill_ipc::request::Request;
+use sill_ipc::response::{Failure, FailureKind, Response};
+use sill_ipc::show::{LauncherRequest, ShowRequest};
 use sill_model::ids::OutputName;
 use sill_model::locker::LockerCommand;
-use sill_model::pins::{PinAt, PinEvent};
 use sill_model::polkit_agent::{AgentPolicy, PolkitCommand};
 use sill_model::wallpaper::WallpaperCommand;
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
@@ -33,11 +33,10 @@ use sill_surfaces::surfaces::launcher::LauncherLink;
 use sill_surfaces::surfaces::osd::OsdLink;
 use tokio::sync::watch;
 
-use crate::ipc_server;
-use crate::msg::ShellMsg;
-use crate::outputs::{
-    OutputAction, OutputSurfaces, Outputs, bar_namespace, reconcile, wallpaper_namespace,
-};
+use crate::daemon::msg::ShellMsg;
+use crate::ipc::dispatch::{Reach, route};
+use crate::ipc::{latency, server};
+use crate::outputs::{OutputAction, OutputSurfaces, Outputs, reconcile};
 use crate::policy::follow;
 
 /// Run the daemon until `quit` or a fatal host error, on the seams `args` make.
@@ -175,7 +174,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
 
     // Detached: it accepts connections until the process exits with the host (doc on
     // `ipc_server::spawn`).
-    let _ipc_thread = ipc_server::spawn(door, handle.clone());
+    let _ipc_thread = server::spawn(door, handle.clone());
     // The own lock screen's wish to hold the session lock.
     crate::lock::spawn_follower(runtime.handle(), &services, handle.clone());
     // The idle dim surfaces are mapped while the idle service dims.
@@ -293,27 +292,30 @@ fn run_event(
     match event {
         HostEvent::App(ShellMsg::Ipc { request, reply }) => {
             // `Toggle` is timed from here (the IPC request's arrival) regardless of what
-            // `dispatch_request` does with it: the `launcher.open_latency_ms` line (module doc).
-            // Placed at the request's arrival rather than inside `dispatch_launcher` so that
+            // `route` does with it: the `launcher.open_latency_ms` line (module doc).
+            // Placed at the request's arrival rather than inside the launcher's dispatch so that
             // function's body can change freely — spawning the panel for real, keeping it warm,
             // whatever the surface needs — without moving this: the elapsed time this measures
             // grows on its own, from "IPC overhead only" today to "IPC arrival to the frame that
-            // presents the shown panel" once `dispatch_request` itself waits on that frame (e.g.
+            // presents the shown panel" once `route` itself waits on that frame (e.g.
             // via `HostCtx::take_stats` after spawning/showing the surface).
-            let toggled_at =
-                matches!(request, Request::Launcher(LauncherRequest::Toggle)).then(Instant::now);
-            let response = dispatch_request(
-                ctx,
-                outputs,
+            let toggled_at = matches!(
+                request,
+                Request::Show(ShowRequest::Launcher(LauncherRequest::Toggle))
+            )
+            .then(Instant::now);
+            let reach = Reach {
                 services,
-                settings_dir,
-                settings_tx,
+                outputs,
+                links: crate::links::get(),
                 launcher,
                 osd,
-                request,
-            );
+                settings_dir,
+                settings: settings_tx,
+            };
+            let response = route(ctx, &reach, request);
             if let Some(toggled_at) = toggled_at {
-                log_open_latency(toggled_at.elapsed());
+                latency::log_open_latency(toggled_at.elapsed());
             }
             let _ = reply.send(response);
         }
@@ -358,7 +360,7 @@ fn run_event(
             // policies, `crate::policy::follow`, the locker, corners, the focus mode) the same
             // way `dispatch_reload` does for `sill reload`; geometry follows the same event just
             // below.
-            publish_watched_settings(settings_tx, &other);
+            settings::publish_watched(settings_tx, &other);
             crate::displays::on_host_event(services, &other);
             on_event(ctx, outputs, other);
             spawn_missing_bars(ctx, outputs, services, settings_feed, settings_tx);
@@ -779,451 +781,6 @@ fn lock_factory(
     }))
 }
 
-/// Answer one IPC request. A display key's change, and a made-up one, show on the OSD.
-#[allow(clippy::too_many_arguments)]
-fn dispatch_request(
-    ctx: &mut HostCtx<ShellMsg>,
-    outputs: &Outputs,
-    services: &Services,
-    settings_dir: Option<&Path>,
-    settings_tx: &watch::Sender<ShellFile>,
-    launcher: &LauncherLink,
-    osd: &OsdLink,
-    request: Request,
-) -> Response {
-    match request {
-        Request::Ping => Response::Pong,
-        Request::Launcher(request) => dispatch_launcher(outputs, launcher, request),
-        Request::Dock(request) => dispatch_dock(services, request),
-        Request::Reload => {
-            let response = dispatch_reload(settings_dir, settings_tx);
-            ctx.set_scroll_config(crate::scroll::config(&settings_tx.borrow()));
-            response
-        }
-        Request::Quit => {
-            ctx.exit();
-            Response::Done
-        }
-        Request::Debug(DebugRequest::Osd(fake)) => {
-            crate::osd::fake(osd, services, outputs, &settings_tx.borrow(), fake)
-        }
-        Request::Debug(DebugRequest::Notify(fake)) => crate::notifications::fake(services, fake),
-        Request::Debug(DebugRequest::Screenshot(fake)) => crate::screenshots::fake(services, fake),
-        Request::Debug(DebugRequest::Corner(fake)) => {
-            crate::corners::fake(outputs, crate::links::get(), fake)
-        }
-        Request::Debug(DebugRequest::Auth(fake)) => crate::lock::fake_auth(services, fake),
-        Request::Debug(DebugRequest::IdleWake) => crate::idle::fake_wake(services),
-        Request::Debug(DebugRequest::Polkit(fake)) => crate::polkit::fake(services, fake),
-        Request::Debug(DebugRequest::Switcher(fake)) => {
-            crate::switcher::fake(outputs, crate::links::get(), fake)
-        }
-        Request::Debug(DebugRequest::LauncherKey(key)) => launcher_key(launcher, key),
-        Request::Debug(DebugRequest::LauncherRows) => launcher_rows(launcher),
-        Request::Debug(request) => dispatch_debug(ctx, outputs, request),
-        Request::Display(request) => {
-            let response = crate::displays::dispatch(services, request);
-            let file = settings_tx.borrow();
-            crate::osd::after_display(osd, services, outputs, &file, request, &response);
-            response
-        }
-        Request::PowerMenu(request) => {
-            crate::power_menu::dispatch_power_menu(outputs, crate::links::get(), request)
-        }
-        Request::ControlCenter(request) => {
-            crate::power_menu::dispatch_control_center(outputs, crate::links::get(), request)
-        }
-        Request::Notifications(request) => {
-            crate::notifications::dispatch(outputs, crate::links::get(), services, request)
-        }
-        Request::Lock(LockRequest::Now) => crate::session::lock(services),
-        Request::Lock(LockRequest::Status) => crate::lock::status(services),
-        Request::Screenshot(request) => crate::screenshots::dispatch(services, request),
-        Request::Widgets(request) => crate::widgets::dispatch(
-            settings_dir,
-            settings_tx,
-            outputs,
-            crate::links::get(),
-            request,
-        ),
-        Request::Switcher(request) => {
-            crate::switcher::dispatch(outputs, crate::links::get(), request)
-        }
-        Request::Polkit(request) => crate::polkit::dispatch(services, request),
-        Request::Clipboard(request) => crate::clipboard::dispatch(services, request),
-        Request::Idle(request) => crate::idle::dispatch(services, request),
-    }
-}
-
-/// `sill launcher toggle|open|close`: the shared launcher state, which both launcher surfaces
-/// follow. It opens on the first output with a launcher (the output under the pointer is not
-/// known to the daemon).
-fn dispatch_launcher(
-    outputs: &Outputs,
-    launcher: &LauncherLink,
-    request: LauncherRequest,
-) -> Response {
-    let target = outputs
-        .outputs
-        .iter()
-        .find(|(_, s)| s.launcher.is_some())
-        .map(|(info, _)| info.id);
-    match (request, target) {
-        (LauncherRequest::Close, _) => launcher.close(),
-        (LauncherRequest::Toggle, Some(output)) => launcher.toggle(output),
-        (LauncherRequest::Open { query }, Some(output)) => launcher.open(output, query),
-        (LauncherRequest::Toggle | LauncherRequest::Open { .. }, None) => {
-            return unsupported("no output has a launcher surface");
-        }
-    }
-    Response::Done
-}
-
-fn dispatch_dock(services: &Services, request: DockRequest) -> Response {
-    let event = match request {
-        DockRequest::Pin { app } => PinEvent::Pin {
-            app: AppId(app.0),
-            at: PinAt::End,
-        },
-        DockRequest::Unpin { app } => PinEvent::Unpin(AppId(app.0)),
-    };
-    match services.pins.control.send(event) {
-        Ok(()) => Response::Done,
-        Err(error) => internal(&error),
-    }
-}
-
-/// Re-read `settings.toml` and publish it (the bar and every future surface pick it up through
-/// [`SettingsFeed`] and, for geometry, through `ShellMsg::Settings`). Dock pins are not re-read
-/// here: the pins service watches its own file.
-fn dispatch_reload(dir: Option<&Path>, settings_tx: &watch::Sender<ShellFile>) -> Response {
-    let Some(dir) = dir else {
-        return Response::Failed(Failure {
-            kind: FailureKind::Internal,
-            message: "no settings directory (XDG_CONFIG_HOME and HOME are both unset)".to_owned(),
-        });
-    };
-    settings_tx.send_replace(sill_settings::load(dir));
-    Response::Done
-}
-
-/// `event`'s file, published to `settings_tx`, if it is a watched settings change
-/// (`ShellMsg::Settings`, from the file watch task in [`run`]); anything else is a no-op. The same
-/// act [`dispatch_reload`] performs for `sill reload`, so a plain `settings.toml` edit (or one of
-/// sill's own writes: `crate::widgets`, `sill_settings::focus_link`) takes effect without one.
-/// `sill_settings::watch` already debounces a burst of writes to one settled file and keeps the
-/// last good file on a parse failure, so there is nothing further to coalesce or guard here.
-fn publish_watched_settings(settings_tx: &watch::Sender<ShellFile>, event: &HostEvent<ShellMsg>) {
-    if let HostEvent::App(ShellMsg::Settings(file)) = event {
-        settings_tx.send_replace((**file).clone());
-    }
-}
-
-fn dispatch_debug(
-    ctx: &mut HostCtx<ShellMsg>,
-    outputs: &Outputs,
-    request: DebugRequest,
-) -> Response {
-    match request {
-        DebugRequest::Stats => Response::Stats(collect_stats(ctx, outputs)),
-        DebugRequest::Pointer { surface, at } => act(ctx, surface, DebugAction::Pointer(at)),
-        DebugRequest::Leave { surface } => act(ctx, surface, DebugAction::Leave),
-        DebugRequest::Capture { surface, path } => act(ctx, surface, DebugAction::Capture(path)),
-        DebugRequest::Click {
-            surface,
-            at,
-            button,
-        } => act(ctx, surface, DebugAction::Click(at, button)),
-        DebugRequest::PointerPress {
-            surface,
-            at,
-            button,
-        } => act(ctx, surface, DebugAction::Press(at, button)),
-        DebugRequest::PointerRelease {
-            surface,
-            at,
-            button,
-        } => act(ctx, surface, DebugAction::Release(at, button)),
-        // Answered by `dispatch_request`, which holds the OSD's link.
-        DebugRequest::Osd(_) => unsupported("the OSD's made-up change is answered elsewhere"),
-        DebugRequest::Notify(_) => unsupported("a made-up notification is answered elsewhere"),
-        DebugRequest::Screenshot(_) => unsupported("a made-up screenshot is answered elsewhere"),
-        DebugRequest::Corner(_) => unsupported("a made-up corner hit is answered elsewhere"),
-        DebugRequest::Auth(_) => unsupported("a made-up verdict is answered elsewhere"),
-        DebugRequest::Polkit(_) => unsupported("a made-up polkit request is answered elsewhere"),
-        DebugRequest::Switcher(_) => unsupported("a made-up switcher is answered elsewhere"),
-        DebugRequest::LauncherKey(_) | DebugRequest::LauncherRows => {
-            unsupported("the launcher's debug requests are answered elsewhere")
-        }
-        DebugRequest::IdleWake => unsupported("a made-up wake is answered elsewhere"),
-    }
-}
-
-/// What [`act`] was asked to do, independent of `shell_host::Inject` (only defined under
-/// shell-host's `debug-inject` feature) so `dispatch_debug` and `act` compile either way.
-enum DebugAction {
-    Pointer(sill_ipc::Point),
-    Leave,
-    Capture(std::path::PathBuf),
-    Click(sill_ipc::Point, sill_ipc::PointerButton),
-    Press(sill_ipc::Point, sill_ipc::PointerButton),
-    Release(sill_ipc::Point, sill_ipc::PointerButton),
-}
-
-/// Find `surface` by shell-host's own naming (`HostCtx::surface_named`, unconditional: it needs
-/// neither `debug` nor shell-host's `debug-inject`) and deliver `action` to it.
-fn act(ctx: &mut HostCtx<ShellMsg>, surface: SurfaceName, action: DebugAction) -> Response {
-    let Some(id) = ctx.surface_named(&shell_host::SurfaceName(surface.0.clone())) else {
-        return unknown_surface(&surface);
-    };
-    apply_injection(ctx, id, action)
-}
-
-/// Pointer/leave/capture, through shell-host's typed `HostCtx::inject` (feature `debug`; a
-/// capture's success and size come back directly through `Injected`, no bridging over stdout).
-#[cfg(feature = "debug")]
-fn apply_injection(ctx: &mut HostCtx<ShellMsg>, id: SurfaceId, action: DebugAction) -> Response {
-    let inject = match to_inject(action) {
-        Ok(inject) => inject,
-        Err(refusal) => return refusal,
-    };
-    match ctx.inject(id, inject) {
-        Ok(_injected) => Response::Done,
-        Err(error) => internal(&error),
-    }
-}
-
-/// `action` as shell-host's injection; every pointer button maps through.
-#[cfg(feature = "debug")]
-fn to_inject(action: DebugAction) -> Result<shell_host::Inject, Response> {
-    let point = |at: sill_ipc::Point| shell_host::Point { x: at.x, y: at.y };
-    Ok(match action {
-        DebugAction::Pointer(at) => shell_host::Inject::Pointer { at: point(at) },
-        DebugAction::Leave => shell_host::Inject::Leave,
-        DebugAction::Capture(path) => shell_host::Inject::Capture { path },
-        DebugAction::Click(at, button) => shell_host::Inject::Click {
-            at: point(at),
-            button: to_host_button(button),
-        },
-        DebugAction::Press(at, button) => shell_host::Inject::PointerDown {
-            at: point(at),
-            button: to_host_button(button),
-        },
-        DebugAction::Release(at, button) => shell_host::Inject::PointerUp {
-            at: point(at),
-            button: to_host_button(button),
-        },
-    })
-}
-
-#[cfg(feature = "debug")]
-fn to_host_button(button: sill_ipc::PointerButton) -> shell_host::debug::PointerButton {
-    match button {
-        sill_ipc::PointerButton::Primary => shell_host::debug::PointerButton::Primary,
-        sill_ipc::PointerButton::Secondary => shell_host::debug::PointerButton::Secondary,
-        sill_ipc::PointerButton::Middle => shell_host::debug::PointerButton::Middle,
-    }
-}
-
-#[cfg(not(feature = "debug"))]
-fn apply_injection(_ctx: &mut HostCtx<ShellMsg>, _id: SurfaceId, action: DebugAction) -> Response {
-    // Naming the action keeps every variant's payload read in this build too.
-    let what = match action {
-        DebugAction::Pointer(at) => format!("pointer at {},{}", at.x, at.y),
-        DebugAction::Click(at, button) => format!("{button:?} click at {},{}", at.x, at.y),
-        DebugAction::Press(at, button) => format!("{button:?} press at {},{}", at.x, at.y),
-        DebugAction::Release(at, button) => format!("{button:?} release at {},{}", at.x, at.y),
-        DebugAction::Leave => "leave".to_owned(),
-        DebugAction::Capture(path) => format!("capture to {}", path.display()),
-    };
-    unsupported(&format!("built without the debug feature ({what})"))
-}
-
-/// The dock's layer namespace on `info` (`sill-dock-<output>`), which `debug stats` reports.
-fn dock_namespace(info: &OutputInfo) -> String {
-    sill_surfaces::surfaces::dock::dock_layer(info, &sill_settings::DockSettings::default())
-        .namespace
-}
-
-/// The launcher panel's and catcher's namespaces on `info`, which `debug stats` reports.
-fn launcher_namespaces(info: &OutputInfo) -> (String, String) {
-    use sill_surfaces::surfaces::launcher::{catcher_layer, panel_layer};
-    let panel = panel_layer(info, &Default::default(), &Default::default()).namespace;
-    (panel, catcher_layer(info).namespace)
-}
-
-/// Every known bar's, wallpaper's, dock's, launcher surface's and OSD's frame statistics, through the
-/// always-public `HostCtx::take_stats` (needs neither the `debug` feature nor shell-host's
-/// `debug-inject`; draining, so each report covers only the time since the previous one).
-fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc::SurfaceStats> {
-    let ids: Vec<(String, SurfaceId)> = outputs
-        .outputs
-        .iter()
-        .flat_map(|(info, surfaces)| {
-            let bar = surfaces.bar.map(|id| (bar_namespace(info), id));
-            let wallpaper = surfaces.wallpaper.map(|id| (wallpaper_namespace(info), id));
-            let dock = surfaces.dock.map(|id| (dock_namespace(info), id));
-            let (panel, catcher) = launcher_namespaces(info);
-            let launcher = surfaces.launcher.map(|id| (panel, id));
-            let catcher = surfaces.catcher.map(|id| (catcher, id));
-            let osd = surfaces.osd.map(|id| (crate::osd::osd_namespace(info), id));
-            let power_menu = surfaces.power_menu.map(|id| {
-                let layer = sill_surfaces::surfaces::power_menu::power_menu_layer(info);
-                (layer.namespace, id)
-            });
-            let (banners_name, center_name) = crate::notifications::namespaces(info);
-            let banners = surfaces.banners.map(|id| (banners_name, id));
-            let center = surfaces.notification_center.map(|id| (center_name, id));
-            let thumbnail = surfaces
-                .thumbnail
-                .map(|id| (crate::screenshots::namespace(info), id));
-            let desktop = surfaces
-                .desktop_widgets
-                .map(|id| (crate::widgets::namespace(info), id));
-            let edit = surfaces
-                .edit_widgets
-                .map(|id| (crate::edit_widgets::namespace(info), id));
-            let polkit = surfaces
-                .polkit_prompt
-                .map(|id| (crate::polkit::namespace(info), id));
-            let switcher = surfaces
-                .switcher
-                .map(|id| (crate::switcher::namespace(info), id));
-            let idle_dim = surfaces
-                .idle_dim
-                .map(|id| (crate::idle_dim::namespace(info), id));
-            let corners: Vec<_> = crate::corners::namespaces(info)
-                .into_iter()
-                .filter_map(|(corner, name)| surfaces.corners.get(corner).map(|id| (name, id)))
-                .collect();
-            bar.into_iter()
-                .chain(wallpaper)
-                .chain(dock)
-                .chain(launcher)
-                .chain(catcher)
-                .chain(osd)
-                .chain(power_menu)
-                .chain(banners)
-                .chain(center)
-                .chain(thumbnail)
-                .chain(desktop)
-                .chain(edit)
-                .chain(corners)
-                .chain(polkit)
-                .chain(switcher)
-                .chain(idle_dim)
-        })
-        .collect();
-    // The lock surfaces are the host's (shell-host names each `sill-lock/<output>`), not a row
-    // of `outputs`, so they are found by name while a lock is up.
-    let locks: Vec<(String, SurfaceId)> = outputs
-        .outputs
-        .iter()
-        .filter_map(|(info, _)| info.name.clone())
-        .filter_map(|name| {
-            let label = format!("{}/{name}", crate::lock::host::LOCK_NAMESPACE);
-            let id = ctx.surface_named(&shell_host::SurfaceName(label.clone()))?;
-            Some((label, id))
-        })
-        .collect();
-    ids.into_iter()
-        .chain(locks)
-        .filter_map(|(name, id)| Some(to_ipc_stats(name, ctx.take_stats(id)?)))
-        .collect()
-}
-
-fn to_ipc_stats(name: String, stats: shell_host::FrameStats) -> sill_ipc::SurfaceStats {
-    sill_ipc::SurfaceStats {
-        surface: SurfaceName(name),
-        frames: stats.counters.frames,
-        callbacks: stats.counters.callbacks,
-        commits: stats.counters.commits,
-        skipped: stats.counters.skipped,
-        watchdog_fired: stats.counters.watchdog_fired,
-        work: to_ipc_micros(stats.work),
-        interval: to_ipc_micros(stats.interval),
-        samples: stats.samples,
-        vm_rss_kib: stats.vm_rss_kib,
-    }
-}
-
-fn to_ipc_micros(p: shell_host::Percentiles) -> sill_ipc::Micros {
-    sill_ipc::Micros {
-        p50_us: p.p50_us,
-        p95_us: p.p95_us,
-        max_us: p.max_us,
-    }
-}
-
-/// Prints [`open_latency_line`] on stderr: the latency line `dev/accept-launcher.sh` parses for its
-/// p50/p95/max over 20 toggles.
-fn log_open_latency(elapsed: Duration) {
-    eprintln!("{}", open_latency_line(elapsed));
-}
-
-/// The stderr line for one `sill launcher toggle`'s latency, `elapsed` since the IPC request
-/// arrived. Its own function (rather than inlined in [`log_open_latency`]) so
-/// `crates/sill/tests/latency.rs` can check the arithmetic without a wall clock.
-pub fn open_latency_line(elapsed: Duration) -> String {
-    format!(
-        "launcher.open_latency_ms={:.3}",
-        elapsed.as_secs_f64() * 1000.0
-    )
-}
-
-/// The value [`open_latency_line`] printed, parsed back out of one line of the daemon's log.
-/// `None` for any line that is not one of ours (including a malformed number, which a caller
-/// should treat the same as "not present" rather than fail the whole log on).
-pub fn parse_open_latency_ms(line: &str) -> Option<f64> {
-    line.trim()
-        .strip_prefix("launcher.open_latency_ms=")?
-        .parse()
-        .ok()
-}
-
-fn unknown_surface(surface: &SurfaceName) -> Response {
-    Response::Failed(Failure {
-        kind: FailureKind::UnknownSurface,
-        message: format!("no surface {:?}", surface.0),
-    })
-}
-
-/// A launcher key from `sill debug launcher-key`: only a `debug` daemon presses it.
-#[cfg(feature = "debug")]
-fn launcher_key(launcher: &LauncherLink, key: sill_ipc::FakeLauncherKey) -> Response {
-    crate::launcher_debug::key(launcher, key)
-}
-
-#[cfg(not(feature = "debug"))]
-fn launcher_key(_launcher: &LauncherLink, _key: sill_ipc::FakeLauncherKey) -> Response {
-    unsupported("launcher keys need a daemon built with the debug feature")
-}
-
-/// The launcher's rows for `sill debug launcher-rows`: only a `debug` daemon answers.
-#[cfg(feature = "debug")]
-fn launcher_rows(launcher: &LauncherLink) -> Response {
-    crate::launcher_debug::rows(launcher)
-}
-
-#[cfg(not(feature = "debug"))]
-fn launcher_rows(_launcher: &LauncherLink) -> Response {
-    unsupported("launcher rows need a daemon built with the debug feature")
-}
-
-fn unsupported(message: &str) -> Response {
-    Response::Failed(Failure {
-        kind: FailureKind::Unsupported,
-        message: message.to_owned(),
-    })
-}
-
-fn internal(error: &impl std::fmt::Display) -> Response {
-    Response::Failed(Failure {
-        kind: FailureKind::Internal,
-        message: error.to_string(),
-    })
-}
-
 #[cfg(test)]
 mod shutdown_tests {
     use std::sync::mpsc;
@@ -1275,135 +832,5 @@ mod shutdown_tests {
             started.elapsed() < bound,
             "a clean shutdown should not need the whole bound"
         );
-    }
-}
-
-/// [`publish_watched_settings`] (a pure change-to-dispatch mapping: only `ShellMsg::Settings`
-/// dispatches, everything else is a no-op) and the live watch it feeds, end to end through a
-/// temp config dir.
-#[cfg(test)]
-mod settings_publish_tests {
-    use std::time::Duration;
-
-    use shell_host::HostEvent;
-    use sill_settings::{ShellFile, save};
-    use tokio::sync::watch;
-
-    use super::publish_watched_settings;
-    use crate::msg::ShellMsg;
-
-    fn temp_dir(tag: &str) -> std::path::PathBuf {
-        let dir = std::env::temp_dir().join(format!(
-            "sill-daemon-settings-test-{tag}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_nanos())
-                .unwrap_or_default()
-        ));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("{}: {e}", dir.display()));
-        dir
-    }
-
-    #[test]
-    fn a_watched_settings_event_publishes_its_file() {
-        let (tx, rx) = watch::channel(ShellFile::default());
-        let mut changed = ShellFile::default();
-        changed.notifications.dnd = sill_settings::Dnd::On;
-        let event = HostEvent::App(ShellMsg::Settings(Box::new(changed.clone())));
-        publish_watched_settings(&tx, &event);
-        assert_eq!(rx.borrow().clone(), changed);
-    }
-
-    #[test]
-    fn every_other_event_leaves_the_feed_alone() {
-        let (tx, rx) = watch::channel(ShellFile::default());
-        for event in [
-            HostEvent::Started,
-            HostEvent::App(ShellMsg::Dim(sill_model::idle::DimShown::Clear)),
-        ] {
-            publish_watched_settings(&tx, &event);
-        }
-        assert_eq!(rx.borrow().clone(), ShellFile::default());
-    }
-
-    /// The regression itself: a `settings.toml` edit under a temp config dir, with no `sill
-    /// reload`, reaches a `SettingsFeed`-shaped channel through the same watch and the same
-    /// `publish_watched_settings` `run_event` now calls.
-    #[tokio::test]
-    async fn a_file_write_reaches_the_feed_without_a_reload() {
-        let dir = temp_dir("live");
-        save(&dir, &ShellFile::default()).unwrap_or_else(|e| panic!("{e}"));
-        let mut shell_watch = sill_settings::watch(&dir).unwrap_or_else(|e| panic!("{e}"));
-
-        let (settings_tx, settings_rx) = watch::channel(ShellFile::default());
-
-        let mut changed = ShellFile::default();
-        changed.notifications.dnd = sill_settings::Dnd::On;
-        save(&dir, &changed).unwrap_or_else(|e| panic!("{e}"));
-
-        let file = tokio::time::timeout(Duration::from_secs(2), shell_watch.changed())
-            .await
-            .unwrap_or_else(|_| panic!("no settled change within 2s"))
-            .unwrap_or_else(|| panic!("the watch stopped"));
-        let event = HostEvent::App(ShellMsg::Settings(Box::new(file)));
-        publish_watched_settings(&settings_tx, &event);
-
-        assert_eq!(settings_rx.borrow().clone(), changed);
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-}
-
-#[cfg(all(test, feature = "debug"))]
-mod tests {
-    use sill_ipc::{Point, PointerButton};
-
-    use super::{DebugAction, to_inject};
-
-    #[test]
-    fn a_debug_click_press_or_release_maps_onto_shell_hosts_injection_with_its_button() {
-        let at = Point { x: 1200, y: 16 };
-        let host_at = shell_host::Point { x: 1200, y: 16 };
-        let buttons = [
-            (
-                PointerButton::Primary,
-                shell_host::debug::PointerButton::Primary,
-            ),
-            (
-                PointerButton::Secondary,
-                shell_host::debug::PointerButton::Secondary,
-            ),
-            (
-                PointerButton::Middle,
-                shell_host::debug::PointerButton::Middle,
-            ),
-        ];
-        for (ours, theirs) in buttons {
-            assert_eq!(
-                to_inject(DebugAction::Click(at, ours)).ok(),
-                Some(shell_host::Inject::Click {
-                    at: host_at,
-                    button: theirs,
-                }),
-                "click {ours:?}"
-            );
-            assert_eq!(
-                to_inject(DebugAction::Press(at, ours)).ok(),
-                Some(shell_host::Inject::PointerDown {
-                    at: host_at,
-                    button: theirs,
-                }),
-                "press {ours:?}"
-            );
-            assert_eq!(
-                to_inject(DebugAction::Release(at, ours)).ok(),
-                Some(shell_host::Inject::PointerUp {
-                    at: host_at,
-                    button: theirs,
-                }),
-                "release {ours:?}"
-            );
-        }
     }
 }

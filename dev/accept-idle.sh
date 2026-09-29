@@ -99,13 +99,13 @@ logind() { echo "$*" >&3; }
 # `sill lock status` as "phase cause" (cause null while unlocked).
 lock_state() { sill lock status 2>/dev/null | python3 -c '
 import json, sys
-r = json.loads(sys.stdin.read())["v"]
+r = json.loads(sys.stdin.read())["v"]["v"]
 print(r["phase"], r["cause"] or "none")' 2>/dev/null; }
 
 # `sill idle status` as "mode phase dim inhibition inhibits".
 idle_state() { sill idle status 2>/dev/null | python3 -c '
 import json, sys
-r = json.loads(sys.stdin.read())["v"]
+r = json.loads(sys.stdin.read())["v"]["v"]
 m = r["mode"]["kind"] + ("" if r["mode"]["kind"] == "own" else ":" + r["mode"]["v"])
 d = "clear" if r["dim"]["kind"] == "clear" else "dimmed:%d" % r["dim"]["v"]
 print(m, r["phase"], d, r["inhibition"], r["inhibits"])' 2>/dev/null; }

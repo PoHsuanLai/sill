@@ -14,7 +14,9 @@
 //! output), less those with no brightness to show.
 
 use shell_host::{HostCtx, OutputId, OutputInfo, Root};
-use sill_ipc::{DisplayRequest, FakeMute, FakeOsd, OsdTopic, Response};
+use sill_ipc::act::DisplayRequest;
+use sill_ipc::debug::OsdTopic;
+use sill_ipc::response::Response;
 use sill_model::displays::brightness::targets;
 use sill_model::displays::{Displays, KeysTarget};
 use sill_model::ids::OutputName;
@@ -25,7 +27,7 @@ use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::osd::{Level, LevelSource, OsdKind, OsdLink, OsdProps, osd_layer};
 use tokio::sync::watch;
 
-use crate::msg::ShellMsg;
+use crate::daemon::msg::ShellMsg;
 use crate::outputs::Outputs;
 
 /// The outputs that show a `kind` change whose level comes from `level`: see the module doc.
@@ -69,17 +71,13 @@ pub fn kind_of(request: DisplayRequest) -> OsdKind {
     }
 }
 
-/// A made-up change's kind and level.
-pub fn fake_of(fake: FakeOsd) -> (OsdKind, Level) {
-    let kind = match fake.topic {
+/// A made-up change's kind and level: `percent` is held to 0-100.
+pub fn fake_of(topic: OsdTopic, percent: Percent, mute: Mute) -> (OsdKind, Level) {
+    let kind = match topic {
         OsdTopic::Volume => OsdKind::Volume,
         OsdTopic::Brightness => OsdKind::Brightness,
     };
-    let mute = match fake.mute {
-        FakeMute::Audible => Mute::Audible,
-        FakeMute::Muted => Mute::Muted,
-    };
-    let percent = Percent(u16::from(fake.percent.min(100)));
+    let percent = Percent(percent.0.min(100));
     (kind, Level { percent, mute })
 }
 
@@ -96,7 +94,7 @@ fn show(
         return;
     }
     let infos: Vec<OutputInfo> = outputs.outputs.iter().map(|(i, _)| i.clone()).collect();
-    let focus = crate::displays::focused_output(&services.cosmic_wl.state.borrow().toplevels);
+    let focus = services.cosmic_wl.state.borrow().toplevels.focused_output();
     let keys = crate::displays::policy_from(&file.display).keys_target;
     let ids = osd_outputs(
         kind,
@@ -130,15 +128,15 @@ pub fn after_display(
     }
 }
 
-/// `sill debug osd`: show a made-up change.
+/// `sill debug osd`: show a made-up change of `kind` at `level`, moving no real level.
 pub fn fake(
     link: &OsdLink,
     services: &Services,
     outputs: &Outputs,
     file: &ShellFile,
-    fake: FakeOsd,
-) -> Response {
-    let (kind, level) = fake_of(fake);
+    kind: OsdKind,
+    level: Level,
+) {
     show(
         link,
         services,
@@ -147,7 +145,6 @@ pub fn fake(
         kind,
         LevelSource::Fixed(level),
     );
-    Response::Done
 }
 
 /// Spawn an indicator, hidden, for every output whose row has none yet (the launcher's warm

@@ -14,9 +14,12 @@ use std::time::Duration;
 
 use latchkey::{Listening, Stream};
 use shell_host::HostHandle;
-use sill_ipc::{Failure, FailureKind, IpcError, Request, Response};
+use sill_ipc::error::IpcError;
+use sill_ipc::line::{read_message, write_message};
+use sill_ipc::request::Request;
+use sill_ipc::response::{Failure, FailureKind, Response};
 
-use crate::msg::ShellMsg;
+use crate::daemon::msg::ShellMsg;
 
 /// How long a client waits for the host thread's answer.
 pub const REPLY_TIMEOUT: Duration = Duration::from_secs(2);
@@ -59,11 +62,11 @@ fn serve_one_with(mut stream: Stream, dispatch: &impl Fn(Request, mpsc::SyncSend
         Ok(request) => answer(dispatch, request),
         Err(error) => malformed(&error),
     };
-    let _ = sill_ipc::write_message(&mut stream, &response);
+    let _ = write_message(&mut stream, &response);
 }
 
 fn read_request(stream: &mut Stream) -> Result<Request, IpcError> {
-    sill_ipc::read_message(&mut BufReader::new(stream))
+    read_message(&mut BufReader::new(stream))
 }
 
 /// Dispatch `request` and wait up to [`REPLY_TIMEOUT`] for the answer.
@@ -103,7 +106,11 @@ fn malformed(error: &IpcError) -> Response {
 #[cfg(test)]
 mod tests {
     use super::{answer, malformed, spawn_with, timeout};
-    use sill_ipc::{FailureKind, IpcError, LauncherRequest, MAX_LINE, Request, Response};
+    use sill_ipc::error::IpcError;
+    use sill_ipc::line::{MAX_LINE, read_message, write_message};
+    use sill_ipc::request::Request;
+    use sill_ipc::response::{Failure, FailureKind, Response};
+    use sill_ipc::show::{LauncherRequest, ShowRequest};
     use std::io::BufReader;
 
     /// A temp-socket `Listening`, so tests never touch the real `sill` agent socket.
@@ -124,8 +131,8 @@ mod tests {
             .connect()
             .unwrap_or_else(|e| panic!("{e}"))
             .unwrap_or_else(|| panic!("no daemon listening"));
-        sill_ipc::write_message(&mut stream, request).unwrap_or_else(|e| panic!("{e}"));
-        sill_ipc::read_message(&mut BufReader::new(stream)).unwrap_or_else(|e| panic!("{e}"))
+        write_message(&mut stream, request).unwrap_or_else(|e| panic!("{e}"));
+        read_message(&mut BufReader::new(stream)).unwrap_or_else(|e| panic!("{e}"))
     }
 
     #[test]
@@ -149,13 +156,13 @@ mod tests {
             // If this runs, the over-long line was not refused before dispatch.
             let _ = reply.send(Response::Done);
         });
-        let long = Request::Launcher(LauncherRequest::Open {
+        let long = Request::Show(ShowRequest::Launcher(LauncherRequest::Open {
             query: "a".repeat(MAX_LINE),
-        });
+        }));
         let response = round_trip(&agent, &long);
         assert_eq!(
             response,
-            Response::Failed(sill_ipc::Failure {
+            Response::Failed(Failure {
                 kind: FailureKind::Internal,
                 message: IpcError::TooLong { limit: MAX_LINE }.to_string(),
             })
@@ -181,7 +188,7 @@ mod tests {
         let error = IpcError::TooLong { limit: 8 };
         assert_eq!(
             malformed(&error),
-            Response::Failed(sill_ipc::Failure {
+            Response::Failed(Failure {
                 kind: FailureKind::Internal,
                 message: error.to_string(),
             })

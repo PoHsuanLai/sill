@@ -1,5 +1,6 @@
 use shell_host::{OutputId, OutputInfo, Rect, Scale};
-use sill_ipc::{DisplayRequest, FakeMute, FakeOsd, LevelRequest, OsdTopic, VolumeRequest};
+use sill_ipc::act::{DisplayRequest, LevelRequest, VolumeRequest};
+use sill_ipc::debug::OsdTopic;
 use sill_model::displays::ddc::Endpoint;
 use sill_model::displays::{Controls, DdcDisplay, Displays, KeysTarget, Level as DdcLevel};
 use sill_model::ids::{DdcId, OutputName};
@@ -187,25 +188,17 @@ fn requests_name_their_kind_and_fakes_their_level() {
     );
     let cases = [
         (
-            FakeOsd {
-                topic: OsdTopic::Volume,
-                percent: 40,
-                mute: FakeMute::Muted,
-            },
+            (OsdTopic::Volume, Percent(40), Mute::Muted),
             (OsdKind::Volume, 40, Mute::Muted),
         ),
         (
-            FakeOsd {
-                topic: OsdTopic::Brightness,
-                percent: 250,
-                mute: FakeMute::Audible,
-            },
+            (OsdTopic::Brightness, Percent(250), Mute::Audible),
             (OsdKind::Brightness, 100, Mute::Audible),
         ),
     ];
-    for (fake, (kind, percent, mute)) in cases {
+    for ((topic, asked, asked_mute), (kind, percent, mute)) in cases {
         assert_eq!(
-            fake_of(fake),
+            fake_of(topic, asked, asked_mute),
             (
                 kind,
                 Level {
@@ -213,7 +206,7 @@ fn requests_name_their_kind_and_fakes_their_level() {
                     mute
                 }
             ),
-            "{fake:?}"
+            "{topic:?} {asked:?}"
         );
     }
 }

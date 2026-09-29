@@ -4,7 +4,7 @@
 
 use std::time::Duration;
 
-use sill::daemon::{open_latency_line, parse_open_latency_ms};
+use sill::ipc::latency::{open_latency_line, parse_open_latency_ms};
 
 const FORMAT_CASES: &[(Duration, &str)] = &[
     (Duration::ZERO, "launcher.open_latency_ms=0.000"),

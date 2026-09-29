@@ -255,7 +255,7 @@ secs = v["sections"]
 lines = [r for s in secs for r in s["rows"]]
 if want == "preview":
     p = v["preview"]
-    print("hidden" if p["kind"] == "hidden" else p["v"])
+    print("hidden" if p is None else p)
 elif want == "selected":
     print(v["selected"])
 elif want == "query":

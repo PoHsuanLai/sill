@@ -1,6 +1,5 @@
 //! The daemon's power menu half: one power menu surface per output, spawned warm and hidden (the
-//! launcher's pattern), and the `power-menu` and `control-center` requests, which only write the
-//! shared links the surfaces follow ([`crate::links`]).
+//! launcher's pattern).
 //!
 //! **Dry run.** A chosen action goes to the session service, which takes it through the daemon's
 //! `SessionActions` (`sill_services::env`): logind's, or, in a debug build started with `sill run
@@ -14,11 +13,9 @@
 //! written to it (`right`, `enter`, ...) to every power menu as a key ([`key_script`]).
 
 use shell_host::{HostCtx, OutputInfo, Root};
-use sill_ipc::{ControlCenterRequest, PowerMenuRequest, Response};
-use sill_surfaces::surfaces::power_menu::{PowerMenuProps, Preselect, power_menu_layer};
+use sill_surfaces::surfaces::power_menu::{PowerMenuProps, power_menu_layer};
 
-use crate::links::Links;
-use crate::msg::ShellMsg;
+use crate::daemon::msg::ShellMsg;
 use crate::outputs::Outputs;
 
 /// Spawn a hidden power menu for every output whose row has none yet, each root built by `root`
@@ -102,58 +99,4 @@ fn read_keys(
             }
         }
     }
-}
-
-/// `sill power-menu open|close|toggle`: on the first output with a power menu (the output under
-/// the pointer is not known to the daemon).
-pub fn dispatch_power_menu(
-    outputs: &Outputs,
-    links: Option<&Links>,
-    request: PowerMenuRequest,
-) -> Response {
-    let Some(links) = links else {
-        return unsupported("the power menu's link is not installed");
-    };
-    let target = outputs
-        .outputs
-        .iter()
-        .find(|(_, s)| s.power_menu.is_some())
-        .map(|(info, _)| info.id);
-    match (request, target) {
-        (PowerMenuRequest::Close, _) => links.power_menu.close(),
-        (PowerMenuRequest::Open, Some(output)) => links.power_menu.open(output, Preselect::Default),
-        (PowerMenuRequest::Toggle, Some(output)) => links.power_menu.toggle(output),
-        (PowerMenuRequest::Open | PowerMenuRequest::Toggle, None) => {
-            return unsupported("no output has a power menu surface");
-        }
-    }
-    Response::Done
-}
-
-/// `sill control-center toggle`: asks the first output's bar.
-pub fn dispatch_control_center(
-    outputs: &Outputs,
-    links: Option<&Links>,
-    request: ControlCenterRequest,
-) -> Response {
-    let Some(links) = links else {
-        return unsupported("the control center's link is not installed");
-    };
-    let target = outputs
-        .outputs
-        .iter()
-        .find(|(_, s)| s.bar.is_some())
-        .map(|(info, _)| info.id);
-    match (request, target) {
-        (ControlCenterRequest::Toggle, Some(output)) => links.control_center.toggle(output),
-        (ControlCenterRequest::Toggle, None) => return unsupported("no output has a bar"),
-    }
-    Response::Done
-}
-
-fn unsupported(message: &str) -> Response {
-    Response::Failed(sill_ipc::Failure {
-        kind: sill_ipc::FailureKind::Unsupported,
-        message: message.to_owned(),
-    })
 }

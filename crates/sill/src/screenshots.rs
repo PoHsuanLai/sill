@@ -1,19 +1,16 @@
 //! Screenshots on the daemon's side: one warm, hidden thumbnail surface per output (the banners'
-//! pattern), `sill screenshot`, `sill debug screenshot`, and the service's policy from
-//! `screenshot.folders` and `screenshot.tool` ([`Bridge`]; until it is sent the service stays
-//! passive and watches nothing).
+//! pattern), and the service's policy from `screenshot.folders` and `screenshot.tool`
+//! ([`Bridge`]; until it is sent the service stays passive and watches nothing).
 
 use std::path::{Path, PathBuf};
 
 use shell_host::{HostCtx, OutputInfo, Root};
-use sill_ipc::{FakeScreenshot, Response, ScreenshotRequest, ShotArea};
-use sill_model::screenshots::{ShotCommand, ShotKind, ShotPolicy, parse_folders, parse_tool};
+use sill_model::screenshots::{ShotCommand, ShotPolicy, parse_folders, parse_tool};
 use sill_settings::ShellFile;
-use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::screenshot_thumb::ScreenshotThumbProps;
 use sill_surfaces::surfaces::screenshot_thumb::thumb_layer;
 
-use crate::msg::ShellMsg;
+use crate::daemon::msg::ShellMsg;
 use crate::outputs::Outputs;
 use crate::policy::Policy;
 
@@ -40,27 +37,6 @@ pub fn spawn_missing(
         surfaces.thumbnail = crate::daemon::spawn_hidden(ctx, thumb_layer(&info), root, &info);
         outputs.set(info, surfaces);
     }
-}
-
-/// The service's kind for the wire's.
-pub fn kind_of(area: ShotArea) -> ShotKind {
-    match area {
-        ShotArea::Area => ShotKind::Area,
-        ShotArea::Window => ShotKind::Window,
-        ShotArea::Screen => ShotKind::Screen,
-    }
-}
-
-/// `sill screenshot KIND`: ask the service to run the tool.
-pub fn dispatch(services: &Services, request: ScreenshotRequest) -> Response {
-    match request {
-        ScreenshotRequest::Take(area) => send(services, ShotCommand::Take(kind_of(area))),
-    }
-}
-
-/// `sill debug screenshot PATH`: as if the folder watch had just seen `PATH`.
-pub fn fake(services: &Services, fake: FakeScreenshot) -> Response {
-    send(services, ShotCommand::Announce(fake.path))
 }
 
 /// The service's policy `file` makes (`parse_folders` against `home`, `parse_tool`).
@@ -95,31 +71,12 @@ pub fn namespace(info: &OutputInfo) -> String {
     thumb_layer(info).namespace
 }
 
-fn send(services: &Services, command: ShotCommand) -> Response {
-    match services.screenshots.control.send(command) {
-        Ok(()) => Response::Done,
-        Err(error) => Response::Failed(sill_ipc::Failure {
-            kind: sill_ipc::FailureKind::Internal,
-            message: format!("screenshots: {error}"),
-        }),
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use sill_ipc::ShotArea;
-    use sill_model::screenshots::ShotKind;
     use sill_model::screenshots::{ShotFolders, ShotPolicy, ShotTool};
     use sill_settings::ShellFile;
 
-    use super::{kind_of, policy_of};
-
-    #[test]
-    fn wire_kinds_map_onto_the_services() {
-        assert_eq!(kind_of(ShotArea::Area), ShotKind::Area);
-        assert_eq!(kind_of(ShotArea::Window), ShotKind::Window);
-        assert_eq!(kind_of(ShotArea::Screen), ShotKind::Screen);
-    }
+    use super::policy_of;
 
     #[test]
     fn the_default_settings_watch_pictures_with_cosmics_tool() {

@@ -61,7 +61,7 @@ want = sys.argv[1]
 secs = v["sections"]
 if want == "preview":
     p = v["preview"]
-    print("hidden" if p["kind"] == "hidden" else p["v"])
+    print("hidden" if p is None else p)
 elif want == "selected":
     print(v["selected"])
 elif want == "query":

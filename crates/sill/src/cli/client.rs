@@ -5,7 +5,10 @@ use std::io::BufReader;
 use std::process::ExitCode;
 use std::time::Duration;
 
-use sill_ipc::{Request, Response};
+use sill_ipc::error::IpcError;
+use sill_ipc::line::{encode, read_message, write_message};
+use sill_ipc::request::Request;
+use sill_ipc::response::Response;
 
 /// How long a client waits for a daemon it started.
 pub const START_TIMEOUT: Duration = Duration::from_secs(3);
@@ -17,7 +20,7 @@ pub fn main(request: &Request) -> ExitCode {
             eprintln!("sill: {}", failure.message);
             ExitCode::FAILURE
         }
-        Ok(response) => match sill_ipc::encode(&response) {
+        Ok(response) => match encode(&response) {
             Ok(line) => {
                 print!("{line}");
                 ExitCode::SUCCESS
@@ -45,9 +48,9 @@ pub fn send(request: &Request) -> Result<Response, ClientError> {
         Request::Ping | Request::Quit => agent.connect()?.ok_or(ClientError::NotRunning)?,
         _ => agent.connect_or_start(|| latchkey::spawn(&["run"]), START_TIMEOUT)?,
     };
-    sill_ipc::write_message(&mut stream, request)?;
+    write_message(&mut stream, request)?;
     let mut reader = BufReader::new(stream);
-    Ok(sill_ipc::read_message(&mut reader)?)
+    Ok(read_message(&mut reader)?)
 }
 
 /// Why a request got no reply.
@@ -61,5 +64,5 @@ pub enum ClientError {
     Agent(#[from] latchkey::Error),
     /// The reply could not be read.
     #[error("{0}")]
-    Ipc(#[from] sill_ipc::IpcError),
+    Ipc(#[from] IpcError),
 }

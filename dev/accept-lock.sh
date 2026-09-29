@@ -83,7 +83,7 @@ for row in json.loads(sys.stdin.read())["v"]:
 # `sill lock status`'s phase word (locked, locking, unlocked).
 lock_phase() { sill lock status 2>/dev/null | python3 -c '
 import json, sys
-r = json.loads(sys.stdin.read())["v"]
+r = json.loads(sys.stdin.read())["v"]["v"]
 print(r["phase"])' 2>/dev/null; }
 
 # ms since $1 until the status is "$2", or -1 within $3 ms.

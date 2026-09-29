@@ -104,7 +104,7 @@ status_field() {
 import json, sys
 def find(v):
     if isinstance(v, dict):
-        if "holder" in v and "kept" in v:
+        if "server" in v and "kept" in v:
             return v
         for x in v.values():
             r = find(x)
@@ -112,8 +112,10 @@ def find(v):
     return None
 r = find(json.loads(sys.stdin.read())) or {}
 f = sys.argv[1]
-if f == "holder": print(r.get("holder", {}).get("kind", ""))
-elif f == "pid": print((r.get("holder", {}).get("v") or {}).get("pid", ""))
+server = r.get("server", {})
+if f == "holder": print(server.get("holder", {}).get("kind", ""))
+elif f == "pid": print((server.get("holder", {}).get("v") or {}).get("pid", ""))
+elif f == "mode": print(server.get("mode", ""))
 else: print(r.get(f, ""))' "$1"
 }
 

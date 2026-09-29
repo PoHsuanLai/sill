@@ -7,7 +7,7 @@ use sill_surfaces::surfaces::lock::{LockLink, PromptOutput};
 
 use super::host::{LockFactory, LockRefusal, SessionLockHost};
 use super::{LockWish, ShellLock, apply, on_host_event};
-use crate::msg::ShellMsg;
+use crate::daemon::msg::ShellMsg;
 use crate::outputs::{OutputSurfaces, Outputs};
 
 /// What the fake host was asked, and what it answers.

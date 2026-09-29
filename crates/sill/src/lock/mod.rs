@@ -1,7 +1,6 @@
 //! sill's own lock screen on the daemon's side: the follower that turns the locker's and the auth service's state into a wish to hold the
 //! session lock or not, the host-thread half that takes and drops shell-host's session lock
-//! through [`host::SessionLockHost`], the prompt's output, `sill lock status`, and `sill debug
-//! auth`.
+//! through [`host::SessionLockHost`], and the prompt's output.
 //!
 //! The flow: `sill lock` (or logind's Lock in a sill session, or a lock marker left by a sill
 //! that died locked) steps the locker service to `Locking`;
@@ -27,17 +26,14 @@ pub mod host;
 use std::time::Duration;
 
 use shell_host::{Focus, HostEvent, HostHandle, LockId, LockState, SurfaceId};
-use sill_ipc::{
-    Failure, FailureKind, FakeAuth, LockReport, ReportLockCause, ReportLockPhase, Response,
-};
 use sill_model::auth::{Auth, AuthCommand, AuthPhase};
-use sill_model::locker::{Lock, LockCause, LockPhase, LockerCommand, ShellLockEvent};
+use sill_model::locker::{Lock, LockPhase, LockerCommand, ShellLockEvent};
 use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::banners::BannerOutput;
 use sill_surfaces::surfaces::lock::{LockLink, PromptOutput};
 use tokio::runtime::Handle;
 
-use crate::msg::ShellMsg;
+use crate::daemon::msg::ShellMsg;
 use crate::outputs::Outputs;
 use follow::{Latch, Send, follow};
 use host::{LockFactory, LockRefusal, SessionLockHost};
@@ -209,63 +205,6 @@ fn lock_focus(event: &HostEvent<ShellMsg>) -> Option<SurfaceId> {
         } => Some(*id),
         _ => None,
     }
-}
-
-/// `sill lock status`.
-pub fn status(services: &Services) -> Response {
-    Response::Lock(report_of(&services.locker.state.borrow()))
-}
-
-/// The locker's state as the wire's.
-pub fn report_of(lock: &Lock) -> LockReport {
-    LockReport {
-        phase: match lock.phase {
-            LockPhase::Unlocked => ReportLockPhase::Unlocked,
-            LockPhase::Locking => ReportLockPhase::Locking,
-            LockPhase::Locked => ReportLockPhase::Locked,
-        },
-        cause: lock.cause.map(|cause| match cause {
-            LockCause::IdleScreenOff => ReportLockCause::IdleScreenOff,
-            LockCause::Action => ReportLockCause::Action,
-            LockCause::Logind => ReportLockCause::Logind,
-            LockCause::Sleep => ReportLockCause::Sleep,
-            LockCause::Restored => ReportLockCause::Restored,
-        }),
-    }
-}
-
-/// `sill debug auth accept|refuse`: a made-up verdict for the lock screen's check. Only a
-/// daemon built with `debug` takes it; any other refuses, since an accepted verdict unlocks.
-pub fn fake_auth(services: &Services, fake: FakeAuth) -> Response {
-    fake_auth_in_this_build(services, fake)
-}
-
-#[cfg(feature = "debug")]
-fn fake_auth_in_this_build(services: &Services, fake: FakeAuth) -> Response {
-    let verdict = match fake {
-        FakeAuth::Accept => sill_model::auth::FakeVerdict::Accept,
-        FakeAuth::Refuse => sill_model::auth::FakeVerdict::Refuse,
-    };
-    match services
-        .auth
-        .control
-        .send(sill_model::auth::AuthCommand::Fake(verdict))
-    {
-        Ok(()) => Response::Done,
-        Err(error) => Response::Failed(Failure {
-            kind: FailureKind::Internal,
-            message: format!("auth: {error}"),
-        }),
-    }
-}
-
-#[cfg(not(feature = "debug"))]
-fn fake_auth_in_this_build(services: &Services, fake: FakeAuth) -> Response {
-    let _ = services;
-    Response::Failed(Failure {
-        kind: FailureKind::Unsupported,
-        message: format!("built without the debug feature (a made-up {fake:?} could unlock)"),
-    })
 }
 
 #[cfg(test)]

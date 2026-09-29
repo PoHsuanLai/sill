@@ -1,6 +1,5 @@
 //! Edit Widgets on the daemon's side: one hidden surface per output, kept warm like the
-//! notification center; `sill widgets edit` and `edit-close`, which write its link; and the writer
-//! its root is given, which saves the widget keys into `settings.toml` (`widgets.center`,
+//! notification center; and the writer its root is given, which saves the widget keys into `settings.toml` (`widgets.center`,
 //! `widgets.desktop_widgets`, and `widgets.desktop`, which an add to the desktop turns on)
 //! (publishing them at once, as `toggle-desktop` does, so the desktop layer and the center follow
 //! before the watch fires) and the output's places into `desktop-widgets.json`.
@@ -10,15 +9,14 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use shell_host::{HostCtx, OutputInfo, Root};
-use sill_ipc::{Failure, FailureKind, Response};
 use sill_settings::ShellFile;
 use sill_surfaces::surfaces::desktop_widgets::PlacementFile;
 use sill_surfaces::surfaces::edit_widgets::{
-    EditWidgetsLink, EditWidgetsProps, WidgetsWrite, WidgetsWriter, edit_widgets_layer,
+    EditWidgetsProps, WidgetsWrite, WidgetsWriter, edit_widgets_layer,
 };
 use tokio::sync::watch;
 
-use crate::msg::ShellMsg;
+use crate::daemon::msg::ShellMsg;
 use crate::outputs::Outputs;
 
 /// Spawn a hidden Edit Widgets surface on every output whose row lacks one; each root is built
@@ -52,40 +50,6 @@ pub fn spawn_missing(
 /// The surface's namespace on `info`, which `debug stats` reports.
 pub fn namespace(info: &OutputInfo) -> String {
     edit_widgets_layer(info).namespace
-}
-
-/// `sill widgets edit`: open it on the first output with its surface. `edit-close`: close it.
-pub fn open(outputs: &Outputs, link: Option<&EditWidgetsLink>) -> Response {
-    let target = outputs
-        .outputs
-        .iter()
-        .find(|(_, s)| s.edit_widgets.is_some())
-        .map(|(info, _)| info.id);
-    match (link, target) {
-        (Some(link), Some(output)) => {
-            link.open(output);
-            Response::Done
-        }
-        (None, _) | (_, None) => unsupported(),
-    }
-}
-
-/// `sill widgets edit-close`.
-pub fn close(link: Option<&EditWidgetsLink>) -> Response {
-    match link {
-        Some(link) => {
-            link.close();
-            Response::Done
-        }
-        None => unsupported(),
-    }
-}
-
-fn unsupported() -> Response {
-    Response::Failed(Failure {
-        kind: FailureKind::Unsupported,
-        message: "no output has an Edit Widgets surface".to_owned(),
-    })
 }
 
 /// The writer the surfaces are given: [`write`] into `dir` (nothing but a log line without

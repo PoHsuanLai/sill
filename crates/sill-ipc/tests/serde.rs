@@ -4,72 +4,226 @@
 use std::io::Cursor;
 use std::path::PathBuf;
 
-use sill_ipc::{
-    ClipboardReport, ClipboardRequest, FakeLauncherKey, LauncherRows, ReportClipMode,
-    ReportClipProtocol, ReportPreview, ReportPreviewKind, RowsSection,
+use sill_ipc::act::{
+    ActRequest, DisplayRequest, DockRequest, LevelRequest, SwitcherRequest, VolumeRequest,
 };
-use sill_ipc::{
-    ControlCenterRequest, CornerName, DebugRequest, DesktopId, DisplayRequest, DockRequest,
-    Failure, FailureKind, FakeAction, FakeCorner, FakeExpire, FakeMute, FakeNotification, FakeOsd,
-    FakeScreenshot, FakeUrgency, IpcError, LauncherRequest, LevelRequest, MAX_LINE, Micros,
-    NotificationsReport, NotificationsRequest, OsdTopic, Point, PointerButton, PowerMenuRequest,
-    ReportHolder, ReportMode, Request, Response, ScreenshotRequest, ShotArea, SurfaceName,
-    SurfaceStats, VolumeRequest, WidgetsRequest, decode, encode, read_message, write_message,
+use sill_ipc::debug::{
+    CornerName, DebugRequest, LauncherKey, LauncherRows, Micros, OsdTopic, Point, PointerButton,
+    RowsSection, SurfaceName, SurfaceStats,
 };
-use sill_ipc::{
-    FakeAuth, FakePolkit, FakeSwitcher, LockReport, LockRequest, PolkitReport, PolkitRequest,
-    ReportLockPhase, ReportRegistration, SwitcherRequest,
+use sill_ipc::error::IpcError;
+use sill_ipc::line::{MAX_LINE, decode, encode, read_message, write_message};
+use sill_ipc::request::Request;
+use sill_ipc::response::{Failure, FailureKind, Response};
+use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
+use sill_ipc::status::{
+    ClipboardStatus, NotificationsStatus, PolkitStatus, StatusReport, StatusRequest,
 };
-use sill_ipc::{
-    IdleReport, IdleRequest, ReportDim, ReportIdleMode, ReportIdlePhase, ReportInhibition,
-    ReportLockCause, ReportOffReason, ReportPower,
+use sill_launcher::{AppId, PreviewKind};
+use sill_model::auth::FakeVerdict;
+use sill_model::clipboard::{ClipProtocol, ClipStatus, HistoryMode};
+use sill_model::idle::{
+    DimLevel, DimShown, Idle, IdleMode, IdlePhase, Inhibition, LogindIdle, OffReason, PowerSource,
 };
+use sill_model::locker::{Lock, LockCause, LockPhase};
+use sill_model::notifications::{
+    Action, ActionKey, AppRef, Expiry, Hints, IconRef, NameHolder, NameOwner, NotifyUrgency,
+    Posting, ServerMode, ServerStatus, parse_body,
+};
+use sill_model::polkit_agent::{ActionId, FakeRequest, Registration};
+use sill_model::screenshots::ShotKind;
+use sill_model::units::Percent;
+use sill_model::volume::Mute;
 
 fn surface(name: &str) -> SurfaceName {
     SurfaceName(name.to_owned())
+}
+
+fn app(id: &str) -> AppId {
+    AppId(id.to_owned())
+}
+
+fn notification() -> Posting {
+    Posting {
+        replaces: None,
+        app: AppRef {
+            name: "Mail".to_owned(),
+            icon: IconRef::None,
+            desktop_entry: None,
+        },
+        summary: "Ada".to_owned(),
+        body: parse_body("the <b>engine</b>"),
+        actions: vec![Action {
+            key: ActionKey("default".to_owned()),
+            label: "Open".to_owned(),
+        }],
+        hints: Hints {
+            urgency: NotifyUrgency::Critical,
+            ..Hints::default()
+        },
+        expiry: Expiry::Never,
+    }
 }
 
 /// Every request variant, with the exact line it is written as.
 fn requests() -> Vec<(Request, &'static str)> {
     vec![
         (Request::Ping, r#"{"kind":"ping"}"#),
-        (
-            Request::Launcher(LauncherRequest::Toggle),
-            r#"{"kind":"launcher","v":{"kind":"toggle"}}"#,
-        ),
-        (
-            Request::Launcher(LauncherRequest::Open {
-                query: "fire".to_owned(),
-            }),
-            r#"{"kind":"launcher","v":{"kind":"open","v":{"query":"fire"}}}"#,
-        ),
-        (
-            Request::Launcher(LauncherRequest::Open {
-                query: String::new(),
-            }),
-            r#"{"kind":"launcher","v":{"kind":"open","v":{"query":""}}}"#,
-        ),
-        (
-            Request::Launcher(LauncherRequest::Close),
-            r#"{"kind":"launcher","v":{"kind":"close"}}"#,
-        ),
-        (
-            Request::Dock(DockRequest::Pin {
-                app: DesktopId("org.mozilla.firefox".to_owned()),
-            }),
-            r#"{"kind":"dock","v":{"kind":"pin","v":{"app":"org.mozilla.firefox"}}}"#,
-        ),
-        (
-            Request::Dock(DockRequest::Unpin {
-                app: DesktopId("foot".to_owned()),
-            }),
-            r#"{"kind":"dock","v":{"kind":"unpin","v":{"app":"foot"}}}"#,
-        ),
-        (Request::Reload, r#"{"kind":"reload"}"#),
         (Request::Quit, r#"{"kind":"quit"}"#),
+        (Request::Reload, r#"{"kind":"reload"}"#),
         (
-            Request::Lock(LockRequest::Now),
-            r#"{"kind":"lock","v":{"kind":"now"}}"#,
+            Request::Show(ShowRequest::Launcher(LauncherRequest::Toggle)),
+            r#"{"kind":"show","v":{"kind":"launcher","v":{"kind":"toggle"}}}"#,
+        ),
+        (
+            Request::Show(ShowRequest::Launcher(LauncherRequest::Open {
+                query: "fire".to_owned(),
+            })),
+            r#"{"kind":"show","v":{"kind":"launcher","v":{"kind":"open","v":{"query":"fire"}}}}"#,
+        ),
+        (
+            Request::Show(ShowRequest::Launcher(LauncherRequest::Open {
+                query: String::new(),
+            })),
+            r#"{"kind":"show","v":{"kind":"launcher","v":{"kind":"open","v":{"query":""}}}}"#,
+        ),
+        (
+            Request::Show(ShowRequest::Launcher(LauncherRequest::Close)),
+            r#"{"kind":"show","v":{"kind":"launcher","v":{"kind":"close"}}}"#,
+        ),
+        (
+            Request::Show(ShowRequest::PowerMenu(Reveal::Open)),
+            r#"{"kind":"show","v":{"kind":"power_menu","v":"open"}}"#,
+        ),
+        (
+            Request::Show(ShowRequest::PowerMenu(Reveal::Close)),
+            r#"{"kind":"show","v":{"kind":"power_menu","v":"close"}}"#,
+        ),
+        (
+            Request::Show(ShowRequest::PowerMenu(Reveal::Toggle)),
+            r#"{"kind":"show","v":{"kind":"power_menu","v":"toggle"}}"#,
+        ),
+        (
+            Request::Show(ShowRequest::NotificationCenter(Reveal::Toggle)),
+            r#"{"kind":"show","v":{"kind":"notification_center","v":"toggle"}}"#,
+        ),
+        (
+            Request::Show(ShowRequest::NotificationCenter(Reveal::Open)),
+            r#"{"kind":"show","v":{"kind":"notification_center","v":"open"}}"#,
+        ),
+        (
+            Request::Show(ShowRequest::NotificationCenter(Reveal::Close)),
+            r#"{"kind":"show","v":{"kind":"notification_center","v":"close"}}"#,
+        ),
+        (
+            Request::Show(ShowRequest::ControlCenter),
+            r#"{"kind":"show","v":{"kind":"control_center"}}"#,
+        ),
+        (
+            Request::Show(ShowRequest::EditWidgets(EditWidgetsRequest::Open)),
+            r#"{"kind":"show","v":{"kind":"edit_widgets","v":"open"}}"#,
+        ),
+        (
+            Request::Show(ShowRequest::EditWidgets(EditWidgetsRequest::Close)),
+            r#"{"kind":"show","v":{"kind":"edit_widgets","v":"close"}}"#,
+        ),
+        (
+            Request::Status(StatusRequest::Notifications),
+            r#"{"kind":"status","v":"notifications"}"#,
+        ),
+        (
+            Request::Status(StatusRequest::Lock),
+            r#"{"kind":"status","v":"lock"}"#,
+        ),
+        (
+            Request::Status(StatusRequest::Polkit),
+            r#"{"kind":"status","v":"polkit"}"#,
+        ),
+        (
+            Request::Status(StatusRequest::Clipboard),
+            r#"{"kind":"status","v":"clipboard"}"#,
+        ),
+        (
+            Request::Status(StatusRequest::Idle),
+            r#"{"kind":"status","v":"idle"}"#,
+        ),
+        (
+            Request::Act(ActRequest::Dock(DockRequest::Pin {
+                app: app("org.mozilla.firefox"),
+            })),
+            r#"{"kind":"act","v":{"kind":"dock","v":{"kind":"pin","v":{"app":"org.mozilla.firefox"}}}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Dock(DockRequest::Unpin { app: app("foot") })),
+            r#"{"kind":"act","v":{"kind":"dock","v":{"kind":"unpin","v":{"app":"foot"}}}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Display(DisplayRequest::Brightness(
+                LevelRequest::Up,
+            ))),
+            r#"{"kind":"act","v":{"kind":"display","v":{"kind":"brightness","v":{"kind":"up"}}}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Display(DisplayRequest::Brightness(
+                LevelRequest::Set { percent: 40 },
+            ))),
+            r#"{"kind":"act","v":{"kind":"display","v":{"kind":"brightness","v":{"kind":"set","v":{"percent":40}}}}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Display(DisplayRequest::Volume(
+                VolumeRequest::Level(LevelRequest::Down),
+            ))),
+            r#"{"kind":"act","v":{"kind":"display","v":{"kind":"volume","v":{"kind":"level","v":{"kind":"down"}}}}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Display(DisplayRequest::Volume(
+                VolumeRequest::ToggleMute,
+            ))),
+            r#"{"kind":"act","v":{"kind":"display","v":{"kind":"volume","v":{"kind":"toggle_mute"}}}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Lock),
+            r#"{"kind":"act","v":{"kind":"lock"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Screenshot(ShotKind::Area)),
+            r#"{"kind":"act","v":{"kind":"screenshot","v":"area"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Screenshot(ShotKind::Window)),
+            r#"{"kind":"act","v":{"kind":"screenshot","v":"window"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Screenshot(ShotKind::Screen)),
+            r#"{"kind":"act","v":{"kind":"screenshot","v":"screen"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::ToggleDesktopWidgets),
+            r#"{"kind":"act","v":{"kind":"toggle_desktop_widgets"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Switcher(SwitcherRequest::Next)),
+            r#"{"kind":"act","v":{"kind":"switcher","v":"next"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Switcher(SwitcherRequest::Prev)),
+            r#"{"kind":"act","v":{"kind":"switcher","v":"prev"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Switcher(SwitcherRequest::Cancel)),
+            r#"{"kind":"act","v":{"kind":"switcher","v":"cancel"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Switcher(SwitcherRequest::Commit)),
+            r#"{"kind":"act","v":{"kind":"switcher","v":"commit"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::ClearClipboard),
+            r#"{"kind":"act","v":{"kind":"clear_clipboard"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::DismissNotifications),
+            r#"{"kind":"act","v":{"kind":"dismiss_notifications"}}"#,
         ),
         (
             Request::Debug(DebugRequest::Stats),
@@ -120,121 +274,6 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"debug","v":{"kind":"click","v":{"surface":"sill-dock-DP-1","at":{"x":0,"y":0},"button":"middle"}}}"#,
         ),
         (
-            Request::Debug(DebugRequest::Osd(FakeOsd {
-                topic: OsdTopic::Volume,
-                percent: 40,
-                mute: FakeMute::Muted,
-            })),
-            r#"{"kind":"debug","v":{"kind":"osd","v":{"topic":"volume","percent":40,"mute":"muted"}}}"#,
-        ),
-        (
-            Request::Display(DisplayRequest::Brightness(LevelRequest::Up)),
-            r#"{"kind":"display","v":{"kind":"brightness","v":{"kind":"up"}}}"#,
-        ),
-        (
-            Request::Display(DisplayRequest::Brightness(LevelRequest::Set {
-                percent: 40,
-            })),
-            r#"{"kind":"display","v":{"kind":"brightness","v":{"kind":"set","v":{"percent":40}}}}"#,
-        ),
-        (
-            Request::Display(DisplayRequest::Volume(VolumeRequest::Level(
-                LevelRequest::Down,
-            ))),
-            r#"{"kind":"display","v":{"kind":"volume","v":{"kind":"level","v":{"kind":"down"}}}}"#,
-        ),
-        (
-            Request::Display(DisplayRequest::Volume(VolumeRequest::ToggleMute)),
-            r#"{"kind":"display","v":{"kind":"volume","v":{"kind":"toggle_mute"}}}"#,
-        ),
-        (
-            Request::PowerMenu(PowerMenuRequest::Open),
-            r#"{"kind":"power_menu","v":{"kind":"open"}}"#,
-        ),
-        (
-            Request::PowerMenu(PowerMenuRequest::Close),
-            r#"{"kind":"power_menu","v":{"kind":"close"}}"#,
-        ),
-        (
-            Request::PowerMenu(PowerMenuRequest::Toggle),
-            r#"{"kind":"power_menu","v":{"kind":"toggle"}}"#,
-        ),
-        (
-            Request::ControlCenter(ControlCenterRequest::Toggle),
-            r#"{"kind":"control_center","v":{"kind":"toggle"}}"#,
-        ),
-        (
-            Request::Notifications(NotificationsRequest::Toggle),
-            r#"{"kind":"notifications","v":{"kind":"toggle"}}"#,
-        ),
-        (
-            Request::Notifications(NotificationsRequest::Open),
-            r#"{"kind":"notifications","v":{"kind":"open"}}"#,
-        ),
-        (
-            Request::Notifications(NotificationsRequest::Close),
-            r#"{"kind":"notifications","v":{"kind":"close"}}"#,
-        ),
-        (
-            Request::Notifications(NotificationsRequest::DismissAll),
-            r#"{"kind":"notifications","v":{"kind":"dismiss_all"}}"#,
-        ),
-        (
-            Request::Notifications(NotificationsRequest::Status),
-            r#"{"kind":"notifications","v":{"kind":"status"}}"#,
-        ),
-        (
-            Request::Debug(DebugRequest::Notify(FakeNotification {
-                app: "Mail".to_owned(),
-                summary: "Ada".to_owned(),
-                body: "the <b>engine</b>".to_owned(),
-                urgency: FakeUrgency::Critical,
-                actions: vec![FakeAction {
-                    key: "default".to_owned(),
-                    label: "Open".to_owned(),
-                }],
-                expire: FakeExpire::Never,
-                replaces: 0,
-            })),
-            r#"{"kind":"debug","v":{"kind":"notify","v":{"app":"Mail","summary":"Ada","body":"the <b>engine</b>","urgency":"critical","actions":[{"key":"default","label":"Open"}],"expire":"never","replaces":0}}}"#,
-        ),
-        (
-            Request::Screenshot(ScreenshotRequest::Take(ShotArea::Area)),
-            r#"{"kind":"screenshot","v":{"kind":"take","v":"area"}}"#,
-        ),
-        (
-            Request::Screenshot(ScreenshotRequest::Take(ShotArea::Window)),
-            r#"{"kind":"screenshot","v":{"kind":"take","v":"window"}}"#,
-        ),
-        (
-            Request::Screenshot(ScreenshotRequest::Take(ShotArea::Screen)),
-            r#"{"kind":"screenshot","v":{"kind":"take","v":"screen"}}"#,
-        ),
-        (
-            Request::Widgets(WidgetsRequest::ToggleDesktop),
-            r#"{"kind":"widgets","v":{"kind":"toggle_desktop"}}"#,
-        ),
-        (
-            Request::Widgets(WidgetsRequest::Edit),
-            r#"{"kind":"widgets","v":{"kind":"edit"}}"#,
-        ),
-        (
-            Request::Widgets(WidgetsRequest::EditClose),
-            r#"{"kind":"widgets","v":{"kind":"edit_close"}}"#,
-        ),
-        (
-            Request::Debug(DebugRequest::Screenshot(FakeScreenshot {
-                path: PathBuf::from("/tmp/shots/Screenshot_1.png"),
-            })),
-            r#"{"kind":"debug","v":{"kind":"screenshot","v":{"path":"/tmp/shots/Screenshot_1.png"}}}"#,
-        ),
-        (
-            Request::Debug(DebugRequest::Corner(FakeCorner {
-                corner: CornerName::BottomRight,
-            })),
-            r#"{"kind":"debug","v":{"kind":"corner","v":{"corner":"bottom_right"}}}"#,
-        ),
-        (
             Request::Debug(DebugRequest::PointerPress {
                 surface: surface("sill-desktop-widgets-DP-1"),
                 at: Point { x: 900, y: 96 },
@@ -267,64 +306,51 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"debug","v":{"kind":"pointer_release","v":{"surface":"sill-dock-DP-1","at":{"x":0,"y":0},"button":"middle"}}}"#,
         ),
         (
-            Request::Switcher(SwitcherRequest::Next),
-            r#"{"kind":"switcher","v":{"kind":"next"}}"#,
+            Request::Debug(DebugRequest::Osd {
+                topic: OsdTopic::Volume,
+                percent: Percent(40),
+                mute: Mute::Muted,
+            }),
+            r#"{"kind":"debug","v":{"kind":"osd","v":{"topic":"volume","percent":40,"mute":"muted"}}}"#,
         ),
         (
-            Request::Switcher(SwitcherRequest::Prev),
-            r#"{"kind":"switcher","v":{"kind":"prev"}}"#,
+            Request::Debug(DebugRequest::Notify(Box::new(notification()))),
+            r#"{"kind":"debug","v":{"kind":"notify","v":{"replaces":null,"app":{"name":"Mail","icon":{"kind":"none"},"desktop_entry":null},"summary":"Ada","body":{"runs":[{"text":"the ","style":{"weight":"regular","slant":"upright","underline":"none","link":{"kind":"plain"}}},{"text":"engine","style":{"weight":"bold","slant":"upright","underline":"none","link":{"kind":"plain"}}}]},"actions":[{"key":"default","label":"Open"}],"hints":{"urgency":"critical","category":null,"image":{"kind":"none"},"transience":"kept","residency":"closes_on_action","sound":{"kind":"default"}},"expiry":{"kind":"never"}}}}"#,
         ),
         (
-            Request::Switcher(SwitcherRequest::Cancel),
-            r#"{"kind":"switcher","v":{"kind":"cancel"}}"#,
+            Request::Debug(DebugRequest::Screenshot {
+                path: PathBuf::from("/tmp/shots/Screenshot_1.png"),
+            }),
+            r#"{"kind":"debug","v":{"kind":"screenshot","v":{"path":"/tmp/shots/Screenshot_1.png"}}}"#,
         ),
         (
-            Request::Switcher(SwitcherRequest::Commit),
-            r#"{"kind":"switcher","v":{"kind":"commit"}}"#,
+            Request::Debug(DebugRequest::Corner(CornerName::BottomRight)),
+            r#"{"kind":"debug","v":{"kind":"corner","v":"bottom_right"}}"#,
         ),
         (
-            Request::Lock(LockRequest::Status),
-            r#"{"kind":"lock","v":{"kind":"status"}}"#,
-        ),
-        (
-            Request::Polkit(PolkitRequest::Status),
-            r#"{"kind":"polkit","v":{"kind":"status"}}"#,
-        ),
-        (
-            Request::Idle(IdleRequest::Status),
-            r#"{"kind":"idle","v":{"kind":"status"}}"#,
-        ),
-        (
-            Request::Debug(DebugRequest::Auth(FakeAuth::Accept)),
+            Request::Debug(DebugRequest::Auth(FakeVerdict::Accept)),
             r#"{"kind":"debug","v":{"kind":"auth","v":"accept"}}"#,
         ),
         (
-            Request::Debug(DebugRequest::Auth(FakeAuth::Refuse)),
+            Request::Debug(DebugRequest::Auth(FakeVerdict::Refuse)),
             r#"{"kind":"debug","v":{"kind":"auth","v":"refuse"}}"#,
         ),
         (
-            Request::Debug(DebugRequest::Polkit(FakePolkit {
-                action_id: "org.example.run".to_owned(),
+            Request::Debug(DebugRequest::Polkit(FakeRequest {
+                action_id: ActionId("org.example.run".to_owned()),
                 message: "Run it".to_owned(),
+                icon: String::new(),
             })),
-            r#"{"kind":"debug","v":{"kind":"polkit","v":{"action_id":"org.example.run","message":"Run it"}}}"#,
+            r#"{"kind":"debug","v":{"kind":"polkit","v":{"action_id":"org.example.run","message":"Run it","icon":""}}}"#,
         ),
         (
-            Request::Debug(DebugRequest::Switcher(FakeSwitcher {
-                apps: vec!["foot".to_owned(), "firefox".to_owned()],
-            })),
+            Request::Debug(DebugRequest::Switcher {
+                apps: vec![app("foot"), app("firefox")],
+            }),
             r#"{"kind":"debug","v":{"kind":"switcher","v":{"apps":["foot","firefox"]}}}"#,
         ),
         (
-            Request::Clipboard(ClipboardRequest::Status),
-            r#"{"kind":"clipboard","v":{"kind":"status"}}"#,
-        ),
-        (
-            Request::Clipboard(ClipboardRequest::Clear),
-            r#"{"kind":"clipboard","v":{"kind":"clear"}}"#,
-        ),
-        (
-            Request::Debug(DebugRequest::LauncherKey(FakeLauncherKey::QuickLook)),
+            Request::Debug(DebugRequest::LauncherKey(LauncherKey::QuickLook)),
             r#"{"kind":"debug","v":{"kind":"launcher_key","v":"quick_look"}}"#,
         ),
         (
@@ -374,88 +400,94 @@ fn responses() -> Vec<(Response, &'static str)> {
             r#"{"kind":"failed","v":{"kind":"unknown_surface","message":"no surface sill-dock-HDMI-9"}}"#,
         ),
         (
-            Response::Notifications(NotificationsReport {
-                mode: ReportMode::Own,
-                holder: ReportHolder::Other {
-                    unique: ":1.42".to_owned(),
-                    pid: Some(7),
-                    command: Some("plasmashell".to_owned()),
+            Response::Status(StatusReport::Notifications(NotificationsStatus {
+                server: ServerStatus {
+                    mode: ServerMode::Own,
+                    holder: NameHolder::Other(NameOwner {
+                        unique: ":1.42".to_owned(),
+                        pid: Some(7),
+                        command: Some("plasmashell".to_owned()),
+                    }),
                 },
                 banners: 2,
                 kept: 9,
-            }),
-            r#"{"kind":"notifications","v":{"mode":"own","holder":{"kind":"other","v":{"unique":":1.42","pid":7,"command":"plasmashell"}},"banners":2,"kept":9}}"#,
+            })),
+            r#"{"kind":"status","v":{"kind":"notifications","v":{"server":{"mode":"own","holder":{"kind":"other","v":{"unique":":1.42","pid":7,"command":"plasmashell"}}},"banners":2,"kept":9}}}"#,
         ),
         (
-            Response::Notifications(NotificationsReport {
-                mode: ReportMode::Passive,
-                holder: ReportHolder::Sill,
+            Response::Status(StatusReport::Notifications(NotificationsStatus {
+                server: ServerStatus {
+                    mode: ServerMode::Passive,
+                    holder: NameHolder::Sill,
+                },
                 banners: 0,
                 kept: 0,
-            }),
-            r#"{"kind":"notifications","v":{"mode":"passive","holder":{"kind":"sill"},"banners":0,"kept":0}}"#,
+            })),
+            r#"{"kind":"status","v":{"kind":"notifications","v":{"server":{"mode":"passive","holder":{"kind":"sill"}},"banners":0,"kept":0}}}"#,
         ),
         (
-            Response::Lock(LockReport {
-                phase: ReportLockPhase::Locked,
-                cause: Some(ReportLockCause::IdleScreenOff),
-            }),
-            r#"{"kind":"lock","v":{"phase":"locked","cause":"idle_screen_off"}}"#,
+            Response::Status(StatusReport::Lock(Lock {
+                phase: LockPhase::Locked,
+                cause: Some(LockCause::IdleScreenOff),
+            })),
+            r#"{"kind":"status","v":{"kind":"lock","v":{"phase":"locked","cause":"idle_screen_off"}}}"#,
         ),
         (
-            Response::Lock(LockReport {
-                phase: ReportLockPhase::Unlocked,
+            Response::Status(StatusReport::Lock(Lock {
+                phase: LockPhase::Unlocked,
                 cause: None,
-            }),
-            r#"{"kind":"lock","v":{"phase":"unlocked","cause":null}}"#,
+            })),
+            r#"{"kind":"status","v":{"kind":"lock","v":{"phase":"unlocked","cause":null}}}"#,
         ),
         (
-            Response::Idle(IdleReport {
-                mode: ReportIdleMode::Own,
-                phase: ReportIdlePhase::DisplaysOff,
-                dim: ReportDim::Clear,
-                power: ReportPower::Battery,
-                inhibition: ReportInhibition::Held,
+            Response::Status(StatusReport::Idle(Idle {
+                mode: IdleMode::Own,
+                phase: IdlePhase::DisplaysOff,
+                dim: DimShown::Clear,
+                power: PowerSource::Battery,
+                inhibition: Inhibition::Held,
                 inhibits: 1,
-                logind: ReportInhibition::Free,
-            }),
-            r#"{"kind":"idle","v":{"mode":{"kind":"own"},"phase":"displays_off","dim":{"kind":"clear"},"power":"battery","inhibition":"held","inhibits":1,"logind":"free"}}"#,
+                logind: LogindIdle::Free,
+            })),
+            r#"{"kind":"status","v":{"kind":"idle","v":{"mode":{"kind":"own"},"phase":"displays_off","dim":{"kind":"clear"},"power":"battery","inhibition":"held","inhibits":1,"logind":"free"}}}"#,
         ),
         (
-            Response::Idle(IdleReport {
-                mode: ReportIdleMode::Off(ReportOffReason::CosmicIdleRunning),
-                phase: ReportIdlePhase::Dimmed,
-                dim: ReportDim::Dimmed(50),
-                power: ReportPower::Ac,
-                inhibition: ReportInhibition::Free,
+            Response::Status(StatusReport::Idle(Idle {
+                mode: IdleMode::Off(OffReason::CosmicIdleRunning),
+                phase: IdlePhase::Dimmed,
+                dim: DimShown::Dimmed(DimLevel(50)),
+                power: PowerSource::Ac,
+                inhibition: Inhibition::Free,
                 inhibits: 0,
-                logind: ReportInhibition::Held,
-            }),
-            r#"{"kind":"idle","v":{"mode":{"kind":"off","v":"cosmic_idle_running"},"phase":"dimmed","dim":{"kind":"dimmed","v":50},"power":"ac","inhibition":"free","inhibits":0,"logind":"held"}}"#,
+                logind: LogindIdle::Blocked,
+            })),
+            r#"{"kind":"status","v":{"kind":"idle","v":{"mode":{"kind":"off","v":"cosmic_idle_running"},"phase":"dimmed","dim":{"kind":"dimmed","v":50},"power":"ac","inhibition":"free","inhibits":0,"logind":"blocked"}}}"#,
         ),
         (
-            Response::Polkit(PolkitReport {
-                registration: ReportRegistration::Refused("taken".to_owned()),
-                showing: Some("org.example.run".to_owned()),
+            Response::Status(StatusReport::Polkit(PolkitStatus {
+                registration: Registration::Refused("taken".to_owned()),
+                showing: Some(ActionId("org.example.run".to_owned())),
                 waiting: 1,
-            }),
-            r#"{"kind":"polkit","v":{"registration":{"kind":"refused","v":"taken"},"showing":"org.example.run","waiting":1}}"#,
+            })),
+            r#"{"kind":"status","v":{"kind":"polkit","v":{"registration":{"kind":"refused","v":"taken"},"showing":"org.example.run","waiting":1}}}"#,
         ),
         (
-            Response::Polkit(PolkitReport {
-                registration: ReportRegistration::Passive,
+            Response::Status(StatusReport::Polkit(PolkitStatus {
+                registration: Registration::Passive,
                 showing: None,
                 waiting: 0,
-            }),
-            r#"{"kind":"polkit","v":{"registration":{"kind":"passive"},"showing":null,"waiting":0}}"#,
+            })),
+            r#"{"kind":"status","v":{"kind":"polkit","v":{"registration":{"kind":"passive"},"showing":null,"waiting":0}}}"#,
         ),
         (
-            Response::Clipboard(ClipboardReport {
-                mode: ReportClipMode::Memory,
-                protocol: ReportClipProtocol::Ext,
+            Response::Status(StatusReport::Clipboard(ClipboardStatus {
+                status: ClipStatus {
+                    mode: HistoryMode::Memory,
+                    protocol: ClipProtocol::Ext,
+                },
                 entries: 3,
-            }),
-            r#"{"kind":"clipboard","v":{"mode":"memory","protocol":"ext","entries":3}}"#,
+            })),
+            r#"{"kind":"status","v":{"kind":"clipboard","v":{"status":{"mode":"memory","protocol":"ext"},"entries":3}}}"#,
         ),
         (
             Response::LauncherRows(LauncherRows {
@@ -466,9 +498,18 @@ fn responses() -> Vec<(Response, &'static str)> {
                     hidden: 2,
                 }],
                 selected: 0,
-                preview: ReportPreview::Shown(ReportPreviewKind::Pdf),
+                preview: Some(PreviewKind::Pdf),
             }),
-            r#"{"kind":"launcher_rows","v":{"query":"rep","sections":[{"title":"Documents","rows":["report.pdf"],"hidden":2}],"selected":0,"preview":{"kind":"shown","v":"pdf"}}}"#,
+            r#"{"kind":"launcher_rows","v":{"query":"rep","sections":[{"title":"Documents","rows":["report.pdf"],"hidden":2}],"selected":0,"preview":"pdf"}}"#,
+        ),
+        (
+            Response::LauncherRows(LauncherRows {
+                query: String::new(),
+                sections: Vec::new(),
+                selected: 0,
+                preview: None,
+            }),
+            r#"{"kind":"launcher_rows","v":{"query":"","sections":[],"selected":0,"preview":null}}"#,
         ),
     ]
 }
@@ -525,16 +566,16 @@ fn a_malformed_line_is_refused() {
         ("unknown top-level kind", r#"{"kind":"explode"}"#),
         (
             "unknown nested kind",
-            r#"{"kind":"launcher","v":{"kind":"explode"}}"#,
+            r#"{"kind":"show","v":{"kind":"launcher","v":{"kind":"explode"}}}"#,
         ),
-        ("missing payload", r#"{"kind":"launcher"}"#),
+        ("missing payload", r#"{"kind":"show"}"#),
         (
             "payload of the wrong shape",
-            r#"{"kind":"dock","v":{"kind":"pin","v":{"app":7}}}"#,
+            r#"{"kind":"act","v":{"kind":"dock","v":{"kind":"pin","v":{"app":7}}}}"#,
         ),
         (
             "internally tagged, not adjacently",
-            r#"{"kind":"launcher","query":"x"}"#,
+            r#"{"kind":"show","query":"x"}"#,
         ),
         (
             "two messages on one line",
@@ -555,7 +596,7 @@ fn a_malformed_line_is_refused() {
 #[test]
 fn an_overlong_line_is_refused_before_it_is_parsed() {
     let long = format!(
-        r#"{{"kind":"launcher","v":{{"kind":"open","v":{{"query":"{}"}}}}}}"#,
+        r#"{{"kind":"show","v":{{"kind":"launcher","v":{{"kind":"open","v":{{"query":"{}"}}}}}}}}"#,
         "a".repeat(MAX_LINE)
     );
     let got: Result<Request, IpcError> = decode(&long);
@@ -571,9 +612,9 @@ fn an_overlong_line_is_refused_before_it_is_parsed() {
 
 #[test]
 fn a_line_just_under_the_limit_is_accepted() {
-    let request = Request::Launcher(LauncherRequest::Open {
-        query: "a".repeat(MAX_LINE - 64),
-    });
+    let request = Request::Show(ShowRequest::Launcher(LauncherRequest::Open {
+        query: "a".repeat(MAX_LINE - 80),
+    }));
     let line = encode(&request).unwrap_or_else(|e| panic!("{e}"));
     assert!(line.len() <= MAX_LINE, "{}", line.len());
     let mut reader = Cursor::new(line.into_bytes());

@@ -16,7 +16,7 @@ use shell_host::{
     SurfaceId,
 };
 
-use crate::msg::ShellMsg;
+use crate::daemon::msg::ShellMsg;
 
 /// The lock surfaces' name prefix: each is `sill-lock/<output>` (shell-host's naming), which
 /// `sill debug capture` and `debug stats` address.
@@ -94,7 +94,7 @@ mod tests {
     use shell_host::{HostEvent, LockError, LockId, LockState, OutputId};
 
     use super::{LockRefusal, lock_event, refusal_of};
-    use crate::msg::ShellMsg;
+    use crate::daemon::msg::ShellMsg;
 
     #[test]
     fn shell_hosts_words_map_onto_sills() {

@@ -56,8 +56,9 @@ try:
     doc = json.loads(sys.stdin.read())
 except ValueError:
     sys.exit(0)
-v = doc.get("v", doc) if isinstance(doc, dict) else {}
-print(v.get("mode", "?"), v.get("protocol", "?"), v.get("entries", "?"))'
+v = doc["v"]["v"] if isinstance(doc, dict) and "v" in doc else {}
+history = v.get("status", {})
+print(history.get("mode", "?"), history.get("protocol", "?"), v.get("entries", "?"))'
 }
 
 # Wait up to 5 s for the status to read WANT ("mode protocol entries").

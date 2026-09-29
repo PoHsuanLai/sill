@@ -2,10 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::idle::IdleReport;
-use crate::launcher::{ClipboardReport, LauncherRows};
-use crate::request::SurfaceName;
-use crate::session::{LockReport, PolkitReport};
+use crate::debug::{LauncherRows, SurfaceStats};
+use crate::status::StatusReport;
 
 /// The one reply to one [`crate::Request`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -15,56 +13,14 @@ pub enum Response {
     Pong,
     /// The request was carried out.
     Done,
-    /// The answer to `Debug(Stats)`, one entry per surface.
-    Stats(Vec<SurfaceStats>),
     /// The request was understood and not carried out.
     Failed(Failure),
-    /// The answer to `Notifications(Status)`.
-    Notifications(NotificationsReport),
-    /// The answer to `LockStatus(Status)`.
-    Lock(LockReport),
-    /// The answer to `Polkit(Status)`.
-    Polkit(PolkitReport),
-    /// The answer to `Clipboard(Status)`.
-    Clipboard(ClipboardReport),
+    /// The answer to `Status`.
+    Status(StatusReport),
+    /// The answer to `Debug(Stats)`, one entry per surface.
+    Stats(Vec<SurfaceStats>),
     /// The answer to `Debug(LauncherRows)`.
     LauncherRows(LauncherRows),
-    /// The answer to `Idle(Status)`.
-    Idle(IdleReport),
-}
-
-/// The notifications server as `sill notifications status` prints it (the IPC mirror of
-/// `sill_model::notifications::ServerStatus`: this crate may not depend on sill-services).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct NotificationsReport {
-    pub mode: ReportMode,
-    pub holder: ReportHolder,
-    /// Live banners, the queued ones included.
-    pub banners: u32,
-    /// Notifications the history keeps.
-    pub kept: u32,
-}
-
-/// `notifications.server` as the service was last told it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ReportMode {
-    Own,
-    Passive,
-}
-
-/// Who holds `org.freedesktop.Notifications`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
-pub enum ReportHolder {
-    NoBus,
-    Nobody,
-    Sill,
-    Other {
-        unique: String,
-        pid: Option<u32>,
-        command: Option<String>,
-    },
 }
 
 /// Why a request was not carried out, and what the caller can do about it.
@@ -87,37 +43,4 @@ pub enum FailureKind {
     Timeout,
     /// Anything else; the message says what.
     Internal,
-}
-
-/// One surface's frame statistics, the IPC mirror of shell-host's `FrameStats` (this crate may
-/// not depend on shell-host: `scripts/check-boundary.sh`).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SurfaceStats {
-    pub surface: SurfaceName,
-    /// Frames presented since the surface was created.
-    pub frames: u64,
-    /// Frame callbacks received.
-    pub callbacks: u64,
-    /// `wl_surface.commit`s; idle means this number stops moving.
-    pub commits: u64,
-    /// Frames that were due but not presented.
-    pub skipped: u64,
-    /// Watchdog expiries.
-    pub watchdog_fired: u64,
-    /// Trigger-to-present time over the samples since the previous report.
-    pub work: Micros,
-    /// Present-to-present time over the same samples.
-    pub interval: Micros,
-    /// How many frames the two percentile sets cover.
-    pub samples: u32,
-    /// The daemon's resident set size, KiB.
-    pub vm_rss_kib: u64,
-}
-
-/// Nearest-rank percentiles of a set of durations, in microseconds.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub struct Micros {
-    pub p50_us: u32,
-    pub p95_us: u32,
-    pub max_us: u32,
 }

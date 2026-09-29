@@ -8,18 +8,12 @@
 //! seconds for both power sources, since `dev/accept-idle.sh` needs seconds and the keys count
 //! minutes.
 
-use sill_ipc::{
-    IdleReport, IdleRequest, ReportDim, ReportIdleMode, ReportIdlePhase, ReportInhibition,
-    ReportOffReason, ReportPower, Response,
-};
 use sill_model::idle::{
-    DimLevel, DimPlan, DimShown, Idle, IdleCommand, IdleConfig, IdleLock, IdleMode, IdlePhase,
-    IdleSecs, IdleTimes, Inhibition, LockGrace, LockedScreenOff, LogindIdle, OffReason, PowerPair,
-    PowerSource, Timeout, TimesChoice,
+    DimLevel, DimPlan, IdleCommand, IdleConfig, IdleLock, IdleSecs, IdleTimes, LockGrace,
+    LockedScreenOff, PowerPair, Timeout, TimesChoice,
 };
 use sill_services::env::IdleTimesSource;
 use sill_settings::{IdleLockAt, IdleTimesFrom, Mins, Secs, ShellFile};
-use sill_surfaces::services::Services;
 
 use crate::policy::Policy;
 
@@ -104,77 +98,6 @@ impl Policy for Bridge {
 
     fn command(config: IdleConfig) -> IdleCommand {
         IdleCommand::Configure(config)
-    }
-}
-
-/// `sill idle status`.
-pub fn dispatch(services: &Services, request: IdleRequest) -> Response {
-    match request {
-        IdleRequest::Status => Response::Idle(report_of(&services.idle.state.borrow())),
-    }
-}
-
-/// `sill debug idle-wake`: a made-up `resumed`. Only a daemon built with `debug` takes it; any
-/// other refuses, since a wake inside the lock grace opens the lock.
-pub fn fake_wake(services: &Services) -> Response {
-    fake_wake_in_this_build(services)
-}
-
-#[cfg(feature = "debug")]
-fn fake_wake_in_this_build(services: &Services) -> Response {
-    match services.idle.control.send(IdleCommand::FakeWake) {
-        Ok(()) => Response::Done,
-        Err(error) => Response::Failed(sill_ipc::Failure {
-            kind: sill_ipc::FailureKind::Internal,
-            message: format!("idle: {error}"),
-        }),
-    }
-}
-
-#[cfg(not(feature = "debug"))]
-fn fake_wake_in_this_build(services: &Services) -> Response {
-    let _ = services;
-    Response::Failed(sill_ipc::Failure {
-        kind: sill_ipc::FailureKind::Unsupported,
-        message: "built without the debug feature (a made-up wake could open the lock)".to_owned(),
-    })
-}
-
-/// The idle service's state as the wire's.
-pub fn report_of(idle: &Idle) -> IdleReport {
-    IdleReport {
-        mode: match idle.mode {
-            IdleMode::Own => ReportIdleMode::Own,
-            IdleMode::Off(reason) => ReportIdleMode::Off(match reason {
-                OffReason::NoPolicy => ReportOffReason::NoPolicy,
-                OffReason::CosmicSession => ReportOffReason::CosmicSession,
-                OffReason::Guest => ReportOffReason::Guest,
-                OffReason::CosmicIdleRunning => ReportOffReason::CosmicIdleRunning,
-            }),
-        },
-        phase: match idle.phase {
-            IdlePhase::Active => ReportIdlePhase::Active,
-            IdlePhase::Dimmed => ReportIdlePhase::Dimmed,
-            IdlePhase::DisplaysOff => ReportIdlePhase::DisplaysOff,
-            IdlePhase::Suspending => ReportIdlePhase::Suspending,
-        },
-        dim: match idle.dim {
-            DimShown::Clear => ReportDim::Clear,
-            DimShown::Dimmed(DimLevel(level)) => ReportDim::Dimmed(level),
-        },
-        power: match idle.power {
-            PowerSource::Ac => ReportPower::Ac,
-            PowerSource::Battery => ReportPower::Battery,
-        },
-        inhibition: match idle.inhibition {
-            Inhibition::Free => ReportInhibition::Free,
-            Inhibition::Held => ReportInhibition::Held,
-        },
-        inhibits: idle.inhibits,
-        logind: match idle.logind {
-            LogindIdle::Free => ReportInhibition::Free,
-            LogindIdle::Blocked => ReportInhibition::Held,
-        },
     }
 }
 
@@ -274,50 +197,5 @@ mod tests {
         for (text, want) in cases {
             assert_eq!(test_times(text), want, "{text:?}");
         }
-    }
-
-    #[test]
-    fn the_status_mirrors_the_service() {
-        use super::report_of;
-        use sill_ipc::{
-            IdleReport, ReportDim, ReportIdleMode, ReportIdlePhase, ReportInhibition,
-            ReportOffReason, ReportPower,
-        };
-        use sill_model::idle::{
-            DimShown, Idle, IdleMode, IdlePhase, Inhibition, LogindIdle, PowerSource,
-        };
-        assert_eq!(
-            report_of(&Idle::default()),
-            IdleReport {
-                mode: ReportIdleMode::Off(ReportOffReason::NoPolicy),
-                phase: ReportIdlePhase::Active,
-                dim: ReportDim::Clear,
-                power: ReportPower::Ac,
-                inhibition: ReportInhibition::Free,
-                inhibits: 0,
-                logind: ReportInhibition::Free,
-            }
-        );
-        let busy = Idle {
-            mode: IdleMode::Own,
-            phase: IdlePhase::Dimmed,
-            dim: DimShown::Dimmed(DimLevel(50)),
-            power: PowerSource::Battery,
-            inhibition: Inhibition::Held,
-            inhibits: 2,
-            logind: LogindIdle::Blocked,
-        };
-        assert_eq!(
-            report_of(&busy),
-            IdleReport {
-                mode: ReportIdleMode::Own,
-                phase: ReportIdlePhase::Dimmed,
-                dim: ReportDim::Dimmed(50),
-                power: ReportPower::Battery,
-                inhibition: ReportInhibition::Held,
-                inhibits: 2,
-                logind: ReportInhibition::Held,
-            }
-        );
     }
 }

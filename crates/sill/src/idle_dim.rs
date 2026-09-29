@@ -13,7 +13,7 @@ use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::idle_dim::{IdleDimOverlayProps, idle_dim_layer, visibility_of};
 use tokio::runtime::Handle;
 
-use crate::msg::ShellMsg;
+use crate::daemon::msg::ShellMsg;
 use crate::outputs::Outputs;
 
 /// Spawn a dim surface for every output whose row has none yet, mapped only while `dim` dims.
