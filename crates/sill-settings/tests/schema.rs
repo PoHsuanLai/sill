@@ -47,8 +47,6 @@ const BASIC: &[&str] = &[
     "scroll.natural",
     "notifications.dnd",
     "notifications.banner_style",
-    "sound.ui_sounds",
-    "sound.volume_feedback",
     "spaces.mail_frame_policy",
     "spaces.wallpaper_follows_space",
 ];
@@ -174,7 +172,6 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
         ("scroll.natural", toml::Value::String("natural".to_owned())),
         ("scroll.momentum_a", toml::Value::Float(30.0)),
         ("notifications.banner_hold_ms", toml::Value::Integer(5200)),
-        ("sound.theme", toml::Value::String("freedesktop".to_owned())),
         ("spaces.default_grain", toml::Value::Integer(40)),
         ("menus.first_mouse_window_ms", toml::Value::Integer(100)),
         ("display.scale", toml::Value::String("auto".to_owned())),

@@ -7,7 +7,7 @@ use crate::surfaces::dock::machine::types::{
     TileId,
 };
 use crate::surfaces::dock::machine::{DockParams, step};
-use sill_services::{Cpx, SoundName, Stamp};
+use sill_services::{Cpx, Stamp};
 use sill_settings::{ActiveClick, DockModifierClicks};
 
 /// One scripted input sequence: `(ms, input)` pairs.
@@ -297,7 +297,7 @@ fn drags_reorder_remove_or_cancel() {
             vec![DockEffect::Reorder { tile: T, to: 1 }],
         ),
         (
-            "release beyond the threshold unpins with the remove sound",
+            "release beyond the threshold unpins",
             [
                 start(DropZone::Remove),
                 vec![(
@@ -306,10 +306,7 @@ fn drags_reorder_remove_or_cancel() {
                 )],
             ]
             .concat(),
-            vec![
-                DockEffect::Unpin { tile: T },
-                DockEffect::Sound(SoundName("item-deleted".to_owned())),
-            ],
+            vec![DockEffect::Unpin { tile: T }],
         ),
         (
             "escape cancels",

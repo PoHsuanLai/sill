@@ -1,9 +1,9 @@
-//! The live loop (lane a, FINDINGS "The M6 fill-in"): connect to the bus `setup` names, follow
+//! The live loop: connect to the bus `setup` names, follow
 //! who holds `org.freedesktop.Notifications`, own it only while the policy says `Own` (never
 //! replacing a holder: `AllowReplacement | DoNotQueue`, and ask again when the name falls
 //! free), serve [`super::dbus::Server`] while owned, load the history, and run every call and
 //! command through [`super::reduce_notifications`], carrying out its effects (signals,
-//! `history_file::save`; a `Sound` is dropped until the sound service is real, F271) and
+//! `history_file::save`; a `Sound` is dropped, as sill plays no sounds yet) and
 //! publishing both receivers.
 //!
 //! Nothing here may ever touch the real session bus from a test: tests pass

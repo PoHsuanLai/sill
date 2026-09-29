@@ -2,8 +2,7 @@
 //!
 //! Advertised only what the banners and the center draw: actions, a body with the markup subset
 //! and links, a static icon, and persistence (the history). Not `body-images` (an `<img>` shows
-//! its alt text), `action-icons`, `icon-multi` or `sound` (the sound service is not real yet;
-//! lane a adds `sound` once a hint actually plays).
+//! its alt text), `action-icons`, `icon-multi` or `sound` (sill plays no sounds yet).
 
 /// The capability words, in the spec's spelling.
 pub const CAPABILITIES: &[&str] = &[

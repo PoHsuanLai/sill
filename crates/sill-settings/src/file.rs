@@ -23,7 +23,6 @@ use crate::screenshot::ScreenshotSettings;
 use crate::scroll::ScrollSettings;
 use crate::scrollbar::ScrollbarSettings;
 use crate::session::SessionSettings;
-use crate::sound::SoundSettings;
 use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
 use crate::widgets::WidgetsSettings;
@@ -40,8 +39,7 @@ pub fn settings_dir() -> Option<PathBuf> {
     ds_settings::config_dir(APP)
 }
 
-/// Every shell domain (design/22 §4.4 `ShellFile`, with `switcher` and `sound` as tables of
-/// their own: FINDINGS.md).
+/// Every shell domain (design/22 §4.4 `ShellFile`, with `switcher` as a table of its own).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ShellFile {
@@ -54,7 +52,6 @@ pub struct ShellFile {
     pub scrollbar: ScrollbarSettings,
     pub menus: MenusSettings,
     pub switcher: SwitcherSettings,
-    pub sound: SoundSettings,
     pub notifications: NotificationsSettings,
     pub control_center: ControlCenterSettings,
     pub spaces: SpacesSettings,
@@ -88,7 +85,6 @@ impl Default for ShellFile {
             scrollbar: ScrollbarSettings::default(),
             menus: MenusSettings::default(),
             switcher: SwitcherSettings::default(),
-            sound: SoundSettings::default(),
             notifications: NotificationsSettings::default(),
             control_center: ControlCenterSettings::default(),
             spaces: SpacesSettings::default(),

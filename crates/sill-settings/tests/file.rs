@@ -10,7 +10,7 @@ use serde::de::DeserializeOwned;
 use sill_settings::{
     BarSettings, Bounce, ControlCenterSettings, Dnd, DockSettings, FILE_NAME, LauncherSettings,
     LoadOutcome, MenusSettings, NotificationsSettings, ScrollSettings, ScrollbarSettings,
-    ShellFile, SoundSettings, SpacesSettings, SwitcherSettings, load, save, try_load,
+    ShellFile, SpacesSettings, SwitcherSettings, load, save, try_load,
 };
 
 fn round_trips<T: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Default>() {
@@ -29,7 +29,6 @@ fn every_domain_round_trips() {
     round_trips::<ScrollbarSettings>();
     round_trips::<MenusSettings>();
     round_trips::<SwitcherSettings>();
-    round_trips::<SoundSettings>();
     round_trips::<NotificationsSettings>();
     round_trips::<ControlCenterSettings>();
     round_trips::<SpacesSettings>();
@@ -99,7 +98,7 @@ fn a_save_is_one_file_and_reads_back() {
     let file = with(|f| {
         f.dock.autohide = sill_settings::AutoHide::On;
         f.bar.height_px = Px(28);
-        f.sound.theme = "ocean".to_owned();
+        f.launcher.web_engine_url = "https://example.org/?q={query}".to_owned();
     });
     save(&target, &file).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(load(&target), file);

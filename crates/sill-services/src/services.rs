@@ -29,9 +29,7 @@ use crate::power_profile::{PowerProfiles, ProfileCommand};
 use crate::results::{Results, SearchCommand};
 use crate::screenshots::{ShotCommand, Shots};
 use crate::session::{Session, SessionCommand};
-use crate::sound::SoundCommand;
 use crate::tray::{Tray, TrayCommand};
-use crate::units::Presence;
 use crate::volume::{Volume, VolumeCommand};
 use crate::wallpaper::{WallpaperCommand, Wallpapers};
 
@@ -65,8 +63,6 @@ pub struct Services {
     pub search: Control<SearchCommand>,
     pub wallpapers: watch::Receiver<Wallpapers>,
     pub wallpaper_control: Control<WallpaperCommand>,
-    pub sound: watch::Receiver<Presence>,
-    pub sound_control: Control<SoundCommand>,
     pub displays: watch::Receiver<Displays>,
     pub displays_control: Control<DisplaysCommand>,
     /// The M5 control center's and power menu's services (FINDINGS "M5 freeze").
@@ -148,8 +144,6 @@ impl Services {
             },
         );
         let (wallpapers, wallpaper_control) = crate::wallpaper::spawn(rt);
-        // M6 replaces this with sound::spawn.
-        let (sound, sound_control) = inert();
         // M5: each `live::run` is a stub that returns at once until its agent fills it, so these
         // are inert meanwhile without an `inert()` line to swap (FINDINGS "M5 freeze").
         let (wifi, wifi_control) = crate::network::wifi::spawn(rt);
@@ -206,8 +200,6 @@ impl Services {
             search,
             wallpapers,
             wallpaper_control,
-            sound,
-            sound_control,
             displays,
             displays_control,
             wifi,
@@ -243,16 +235,6 @@ impl Services {
     }
 }
 
-/// A receiver fixed at `T::default()` and a `Control` whose commands go nowhere, for a service
-/// whose `spawn` is still a freeze stub. The command channel's receiving half is dropped at
-/// once (nobody is ever going to drain it), so `Control::send` against the returned `Control`
-/// answers `ServiceError::Gone` rather than queuing forever.
-fn inert<T: Default, C>() -> (watch::Receiver<T>, Control<C>) {
-    let (_tx, rx) = watch::channel(T::default());
-    let (control, _rx) = Control::channel();
-    (rx, control)
-}
-
 #[cfg(test)]
 mod tests {
     use super::Services;
@@ -274,7 +256,6 @@ mod tests {
         assert_eq!(*services.launches.borrow(), Default::default());
         assert_eq!(*services.results.borrow(), Default::default());
         assert_eq!(*services.wallpapers.borrow(), Default::default());
-        assert_eq!(*services.sound.borrow(), Default::default());
         assert_eq!(
             services.notifications.borrow().server.mode,
             crate::ServerMode::Passive,

@@ -32,7 +32,6 @@ pub mod screenshot;
 pub mod scroll;
 pub mod scrollbar;
 pub mod session;
-pub mod sound;
 pub mod spaces;
 pub mod switcher;
 pub mod watch;
@@ -72,7 +71,6 @@ pub use scroll::{
 };
 pub use scrollbar::{ScrollbarSettings, TrackClick};
 pub use session::{LockClock, SessionSettings};
-pub use sound::{SoundSettings, UiSounds, VolumeFeedback};
 pub use spaces::{
     DefaultCardAccent, DockLookSource, MailSpacePolicy, OverlayTint, SpaceLookLookup,
     SpacesSettings, WallpaperDrawer, WallpaperPolicy,

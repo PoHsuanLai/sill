@@ -1,7 +1,6 @@
 //! `menus.*` (design/22 §3.11; design/13 §13.3.2-13.3.4, §13.6). All Advanced (§5). The
-//! switcher and sound keys §3.11 groups with these are their own domains (`switcher.rs`,
-//! `sound.rs`): their dotted paths are `switcher.*` and `sound.*`, and the schema derive's path
-//! is always `<domain>.<field>` (FINDINGS.md).
+//! switcher keys §3.11 groups with these are their own domain (`switcher.rs`): their dotted
+//! paths are `switcher.*`, and the schema derive's path is always `<domain>.<field>`.
 
 use ds_settings::schema::Page;
 use ds_settings::{Ms, Px};

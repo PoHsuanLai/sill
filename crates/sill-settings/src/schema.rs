@@ -19,7 +19,6 @@ use crate::screenshot::ScreenshotSettings;
 use crate::scroll::ScrollSettings;
 use crate::scrollbar::ScrollbarSettings;
 use crate::session::SessionSettings;
-use crate::sound::SoundSettings;
 use crate::spaces::SpacesSettings;
 use crate::switcher::SwitcherSettings;
 use crate::widgets::WidgetsSettings;
@@ -51,7 +50,6 @@ pub fn schemas() -> Vec<Schema> {
         ScrollbarSettings::schema(),
         MenusSettings::schema(),
         SwitcherSettings::schema(),
-        SoundSettings::schema(),
         NotificationsSettings::schema(),
         ControlCenterSettings::schema(),
         SpacesSettings::schema(),

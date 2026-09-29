@@ -1,7 +1,7 @@
 //! The dock machine's vocabulary: its whole state, its events and its effects.
 
 use shell_host::{BlurSpec, ExclusiveZone, RegionSpec};
-use sill_services::{Cpx, SoundName, Stamp};
+use sill_services::{Cpx, Stamp};
 
 use super::bounce::Bounce;
 use super::hover::Hover;
@@ -243,7 +243,6 @@ pub enum DockEffect {
     SpringOpen {
         tile: TileId,
     },
-    Sound(SoundName),
     /// Re-send every toplevel's minimize rectangle (debounced by the component).
     SetMinimizeRects,
 }

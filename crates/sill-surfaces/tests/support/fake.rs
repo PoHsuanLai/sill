@@ -341,8 +341,6 @@ pub fn services() -> (Services, Feeds) {
         search: control(&mut keep),
         wallpapers: fixed(Wallpapers::default(), &mut keep),
         wallpaper_control: control(&mut keep),
-        sound: fixed(Presence::Absent, &mut keep),
-        sound_control: control(&mut keep),
         displays,
         displays_control,
         wifi,

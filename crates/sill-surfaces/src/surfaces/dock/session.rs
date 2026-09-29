@@ -272,12 +272,9 @@ fn apply(
             }
         }
         DockEffect::OpenMenu { tile } => open_menu(slots, deps, outward, *tile),
-        // The label is ds `Tooltip{Fly}`'s own (tile.rs); sounds are M6 (sound service stub);
-        // minimize targets need shell-host G2.
-        DockEffect::ShowLabel { .. }
-        | DockEffect::HideLabel
-        | DockEffect::Sound(_)
-        | DockEffect::SetMinimizeRects => {}
+        // The label is ds `Tooltip{Fly}`'s own (tile.rs); minimize targets need shell-host
+        // support first.
+        DockEffect::ShowLabel { .. } | DockEffect::HideLabel | DockEffect::SetMinimizeRects => {}
         DockEffect::Launch { .. }
         | DockEffect::Activate { .. }
         | DockEffect::ShowInFiles { .. }

@@ -45,7 +45,6 @@ pub mod results;
 pub mod screenshots;
 pub mod services;
 pub mod session;
-pub mod sound;
 pub mod switcher;
 pub mod tray;
 pub mod units;
@@ -125,7 +124,6 @@ pub use results::{
 pub use screenshots::{Shot, ShotCommand, ShotId, ShotKind, ShotLeave, ShotPreview, Shots};
 pub use services::Services;
 pub use session::{Offer, Session, SessionAction, SessionCommand, SessionEvent, reduce_session};
-pub use sound::{SoundCommand, SoundName};
 pub use switcher::{AppShown, SwitcherApp, switcher_apps};
 pub use tray::{
     Availability, Check, Pixmap, ScrollAxis, ScrollDelta, Tray, TrayCommand, TrayEvent, TrayIcon,

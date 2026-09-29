@@ -227,7 +227,7 @@ pub enum Residency {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum SoundHint {
-    /// None named: `sound.event_notification` plays.
+    /// None named: the default notification sound.
     #[default]
     Default,
     /// `sound-name`, a freedesktop sound theme name.

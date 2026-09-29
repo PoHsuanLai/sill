@@ -43,7 +43,20 @@ const AWAITING_ROWS: &[&str] = &[];
 /// [`AWAITING_ROWS`] for a retirement (design/28 §6.0). sill drops the spec and lists the key
 /// here, quire's owner removes the row, then the entry goes. A key here needs no spec while its
 /// row remains. (`dock.shipped_icons` went this way: quire fd77336 retired its §3.5 row, F1043.)
-const RETIRING: &[&str] = &["session.locker", "session.polkit_agent"];
+const RETIRING: &[&str] = &[
+    "session.locker",
+    "session.polkit_agent",
+    "sound.theme",
+    "sound.ui_sounds",
+    "sound.volume_feedback",
+    "sound.event_screenshot",
+    "sound.event_trash_empty",
+    "sound.event_volume_step",
+    "sound.event_dock_remove",
+    "sound.event_notification",
+    "sound.event_critical_alert",
+    "sound.event_invalid_key",
+];
 
 fn doc_keys() -> Vec<String> {
     let doc = doc();

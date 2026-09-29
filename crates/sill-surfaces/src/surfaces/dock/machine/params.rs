@@ -1,11 +1,11 @@
-//! The numbers the machine runs on: `dock.*` and `sound.*` settings plus quire's motion tokens
+//! The numbers the machine runs on: `dock.*` settings plus quire's motion tokens
 //! at the active motion level. Built once per settings change, never hard-coded.
 
 use ds::{DelayToken, Easing, EasingToken, MotionLevel};
-use sill_services::{Cpx, SoundName};
+use sill_services::Cpx;
 use sill_settings::{
     ActiveClick, Bounce as BounceSetting, DockModifierClicks, DockSettings, LaunchAnim,
-    Magnification, SoundSettings,
+    Magnification,
 };
 
 /// Every parameter [`super::step`] reads.
@@ -47,15 +47,13 @@ pub struct DockParams {
     pub slide_distance: Cpx,
     /// `dock.spring_load_ms`.
     pub spring_load_ms: u64,
-    /// `sound.event_dock_remove`.
-    pub remove_sound: SoundName,
     /// The blur region's corner radius under the pill's squircle.
     pub pill_blur_radius: i32,
 }
 
 impl DockParams {
-    /// The parameters for `dock` and `sound` settings at motion `level`.
-    pub fn new(dock: &DockSettings, sound: &SoundSettings, level: MotionLevel) -> DockParams {
+    /// The parameters for `dock` settings at motion `level`.
+    pub fn new(dock: &DockSettings, level: MotionLevel) -> DockParams {
         let curve = |token: EasingToken| match token.easing(level) {
             Easing::Cubic(bezier) => bezier.0,
             Easing::Linear => [0, 0, 1000, 1000],
@@ -84,7 +82,6 @@ impl DockParams {
             slide_ms: u64::from(dock.autohide_slide_ms.0),
             slide_distance: Cpx::px(gutter + (i32::from(dock.tile_size_px.0) + 2 * pad) + 8),
             spring_load_ms: u64::from(dock.spring_load_ms.0),
-            remove_sound: SoundName(sound.event_dock_remove.clone()),
             pill_blur_radius: crate::surfaces::dock::geometry::pill_blur_radius(dock),
         }
     }
@@ -95,15 +92,11 @@ pub(crate) mod tests {
     use super::DockParams;
     use ds::MotionLevel;
     use sill_services::Cpx;
-    use sill_settings::{DockSettings, SoundSettings};
+    use sill_settings::DockSettings;
 
     /// The design defaults at the standard level: what every machine test runs on.
     pub(crate) fn params() -> DockParams {
-        DockParams::new(
-            &DockSettings::default(),
-            &SoundSettings::default(),
-            MotionLevel::Standard,
-        )
+        DockParams::new(&DockSettings::default(), MotionLevel::Standard)
     }
 
     #[test]
@@ -119,6 +112,5 @@ pub(crate) mod tests {
         assert_eq!((p.autohide_delay_ms, p.slide_ms), (200, 500));
         assert_eq!(p.slide_distance, Cpx::px(76), "gut + H_p + 8 = 8 + 60 + 8");
         assert_eq!(p.ease_out, [220, 900, 300, 1000]);
-        assert_eq!(p.remove_sound.0, "item-deleted");
     }
 }

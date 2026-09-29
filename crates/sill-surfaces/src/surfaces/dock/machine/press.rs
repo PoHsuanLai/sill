@@ -132,10 +132,7 @@ pub(crate) fn step(
         }
         (Press::Dragging { tile, over, .. }, DockEvent::Release { .. }) => {
             match over {
-                DropZone::Remove => {
-                    out.push(DockEffect::Unpin { tile });
-                    out.push(DockEffect::Sound(p.remove_sound.clone()));
-                }
+                DropZone::Remove => out.push(DockEffect::Unpin { tile }),
                 DropZone::Slot(to) => out.push(DockEffect::Reorder { tile, to }),
             }
             hover::thaw(

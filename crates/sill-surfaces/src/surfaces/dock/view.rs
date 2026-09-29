@@ -67,7 +67,7 @@ pub(crate) fn dock(output: OutputInfo) -> Element {
     let (look, workspace) = active(&use_workspaces()(), on.as_ref(), &file.spaces);
     let appearance = environment.settings.appearance.appearance();
     let level = ds::resolve(appearance, look.theme, environment.system).motion;
-    let params = DockParams::new(&file.dock, &file.sound, level);
+    let params = DockParams::new(&file.dock, level);
     let world = World {
         toplevels: use_toplevels()(),
         index: use_apps()(),
