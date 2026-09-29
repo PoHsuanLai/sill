@@ -8,4 +8,5 @@ pub mod attempt;
 pub mod battery;
 pub mod clock;
 pub mod ids;
+pub mod kbd_backlight;
 pub mod units;

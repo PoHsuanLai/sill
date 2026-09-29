@@ -34,8 +34,8 @@ pub struct Feeds {
     pub power_profiles: watch::Sender<PowerProfiles>,
     pub media: watch::Sender<Media>,
     /// The keyboard backlight: absent until a test feeds one (`kbd_backlight()`).
-    pub kbd_backlight: watch::Sender<sill_services::KbdBacklight>,
-    pub kbd_commands: mpsc::UnboundedReceiver<sill_services::KbdCommand>,
+    pub kbd_backlight: watch::Sender<sill_model::kbd_backlight::KbdBacklight>,
+    pub kbd_commands: mpsc::UnboundedReceiver<sill_model::kbd_backlight::KbdCommand>,
     /// The live banners and the history (both empty until a test feeds them).
     pub notifications: watch::Sender<sill_services::notifications::NotesState>,
     pub wl: mpsc::UnboundedReceiver<sill_services::WlCommand>,
@@ -223,10 +223,10 @@ pub fn bluetooth() -> Bluetooth {
 }
 
 /// A keyboard backlight with three steps, on the second.
-pub fn kbd_backlight() -> sill_services::KbdBacklight {
-    sill_services::KbdBacklight {
+pub fn kbd_backlight() -> sill_model::kbd_backlight::KbdBacklight {
+    sill_model::kbd_backlight::KbdBacklight {
         presence: Presence::Present,
-        level: sill_services::KbdLevel { value: 2, max: 3 },
+        level: sill_model::kbd_backlight::KbdLevel { value: 2, max: 3 },
     }
 }
 
@@ -293,7 +293,8 @@ pub fn services() -> (Services, Feeds) {
     // No player until a test or the demo feeds one (`media()`).
     let (now_playing, media_io) = Handle::channel(Media::default());
     let (launch, launch_io) = Handle::channel(Launches::default());
-    let (kbd_backlight, kbd_io) = Handle::channel(sill_services::KbdBacklight::default());
+    let (kbd_backlight, kbd_io) =
+        Handle::channel(sill_model::kbd_backlight::KbdBacklight::default());
     let (notifications, notifications_io) =
         Handle::channel(sill_services::notifications::NotesState::default());
     // A feed for the calendar widgets and one for the screenshot thumbnail.

@@ -7,25 +7,13 @@
 //! poll. On a machine with no keyboard backlight UPower exports no such object (or answers its
 //! `GetMaxBrightness` with 0 or an error), and the service stays absent, so the module hides.
 
-mod live;
-mod model;
-mod upower;
+mod backend;
 
-pub use model::{KbdBacklight, KbdEvent, KbdLevel, step, step_for};
+use sill_model::kbd_backlight::{KbdBacklight, KbdCommand};
 
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
-use sill_model::units::Percent;
-
-/// What the keyboard backlight service can be told.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum KbdCommand {
-    /// Set the backlight to the step nearest `Percent` of its range; dropped while absent.
-    Set(Percent),
-    /// Re-read the backlight (after a resume).
-    Refresh,
-}
 
 /// The keyboard backlight as a [`Service`]. Without UPower or a backlight the state stays at
 /// `KbdBacklight::default()` (absent), and the control center shows no module.
@@ -43,6 +31,6 @@ impl Service for KbdBacklightService {
         (): (),
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
-        live::run(env.buses.system.clone(), io.state, io.commands)
+        backend::run(env.buses.system.clone(), io.state, io.commands)
     }
 }

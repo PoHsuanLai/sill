@@ -1,20 +1,19 @@
 //! UPower's keyboard backlight over the system bus: seeds the step and range, then feeds every
-//! `BrightnessChanged` through [`super::step`], and carries out
+//! `BrightnessChanged` through [`sill_model::kbd_backlight::step`], and carries out
 //! [`KbdCommand`]s. Only a `KbdCommand::Set` writes the backlight; tests never reach this file
 //! (they feed a fake `watch` channel).
 
+use sill_model::kbd_backlight::{KbdBacklight, KbdCommand, KbdEvent, KbdLevel, step, step_for};
+use sill_model::units::Presence;
 use tokio::sync::{mpsc, watch};
 
-use super::KbdCommand;
-use super::model::{KbdBacklight, KbdEvent, KbdLevel, step, step_for};
 use super::upower::KbdBacklightProxy;
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next_opt;
-use sill_model::units::Presence;
 
 /// Runs until `commands` closes. Without a bus or UPower, `tx` stays at its default.
-pub(super) async fn run(
+pub(crate) async fn run(
     bus: Bus,
     tx: watch::Sender<KbdBacklight>,
     mut commands: mpsc::UnboundedReceiver<KbdCommand>,

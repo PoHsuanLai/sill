@@ -8,7 +8,7 @@ use zbus::proxy;
     default_service = "org.freedesktop.UPower",
     default_path = "/org/freedesktop/UPower/KbdBacklight"
 )]
-pub(super) trait KbdBacklight {
+pub(crate) trait KbdBacklight {
     fn get_brightness(&self) -> zbus::Result<i32>;
     fn get_max_brightness(&self) -> zbus::Result<i32>;
     fn set_brightness(&self, value: i32) -> zbus::Result<()>;

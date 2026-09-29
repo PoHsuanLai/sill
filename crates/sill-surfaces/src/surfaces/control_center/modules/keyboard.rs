@@ -7,8 +7,9 @@
 
 use dioxus::prelude::*;
 use ds::{Fraction, Icon, LevelGlyph};
+use sill_model::kbd_backlight::{KbdBacklight, KbdCommand};
 use sill_model::units::Presence;
-use sill_services::{KbdBacklight, KbdBacklightService, KbdCommand};
+use sill_services::KbdBacklightService;
 
 use super::wired::{fraction_of, percent_of};
 use crate::hooks::{use_control, use_service};
@@ -48,8 +49,8 @@ pub(crate) fn keyboard_level(backlight: KbdBacklight) -> Option<Fraction> {
 mod tests {
     use super::keyboard_level;
     use ds::Fraction;
+    use sill_model::kbd_backlight::{KbdBacklight, KbdLevel};
     use sill_model::units::Presence;
-    use sill_services::{KbdBacklight, KbdLevel};
 
     #[test]
     fn the_module_shows_only_where_there_is_a_backlight() {
