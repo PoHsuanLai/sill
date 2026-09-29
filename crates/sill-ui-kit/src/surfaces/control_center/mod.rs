@@ -25,16 +25,14 @@ pub mod page;
 pub mod pages;
 
 mod dropdown;
-pub(crate) mod fit;
 mod panel;
 pub(crate) mod row_phase;
 pub(crate) mod rows;
-mod sizes;
 
 pub use dropdown::ModuleDropdown;
 pub(crate) use panel::PanelCap;
 
-pub use geometry::{Placed, estimate_size, height_cap, place};
+pub use geometry::{Placed, height_cap, place};
 pub use labels::{
     bluetooth_status, bluetooth_tile_status, device_detail, focus_status, network_detail,
     profile_label, wifi_status,
@@ -49,8 +47,7 @@ use sill_model::ids::OutputName;
 
 /// The control center's contents, inside the bar popup's `Ds` root. `output` is the bar's
 /// (the Display module's brightness target). Escape on the module page, or a pick that ends the
-/// panel, calls `on_close`; every page change calls `on_page` so the popup can resize to
-/// [`estimate_size`] (shell-host's content fit does not measure).
+/// panel, calls `on_close`; every page change calls `on_page`, when given.
 ///
 /// Needs `crate::services::Services`, `crate::settings::SettingsFeed` and `crate::links::FocusLink`
 /// in the popup root's context.
