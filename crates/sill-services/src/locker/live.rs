@@ -6,6 +6,7 @@
 //! resolves to `Own`, locks at once when [`super::marker::restore_on_start`] says so.
 
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Instant;
 
 use tokio::sync::{mpsc, watch};
@@ -18,7 +19,7 @@ use super::marker::{LockMarker, Restore, marker_path, restore_on_start};
 use super::mode::{Host, LockerMode, SessionManager};
 use super::{Lock, LockerCommand, ShellLockEvent};
 use crate::env::Bus;
-use crate::programs;
+use crate::env::Processes;
 use crate::stream::next_opt;
 use crate::units::Stamp;
 
@@ -34,12 +35,14 @@ struct Live {
     cause: Option<LockCause>,
     /// The crash marker in this session's runtime directory; none without one.
     marker: Option<PathBuf>,
+    processes: Arc<dyn Processes>,
 }
 
 /// Runs until `commands` closes. Inert (`LockerMode::Off`) until the first `Configure`/`Use`.
 pub(super) async fn run(
     bus: Bus,
     runtime: Option<PathBuf>,
+    processes: Arc<dyn Processes>,
     tx: watch::Sender<Lock>,
     mut commands: mpsc::UnboundedReceiver<LockerCommand>,
 ) {
@@ -52,6 +55,7 @@ pub(super) async fn run(
         inhibitor: None,
         cause: None,
         marker: runtime.as_deref().map(marker_path),
+        processes,
     };
     loop {
         let deadline = next_deadline(&live.machine).map(|at| live.instant(at));
@@ -99,7 +103,8 @@ impl Live {
     async fn command(&mut self, command: LockerCommand) {
         match command {
             LockerCommand::Configure => {
-                let mode = tokio::task::spawn_blocking(detect)
+                let processes = self.processes.clone();
+                let mode = tokio::task::spawn_blocking(move || detect(processes.as_ref()))
                     .await
                     .unwrap_or(LockerMode::Off);
                 self.use_mode(mode).await;
@@ -221,8 +226,8 @@ impl Live {
 }
 
 /// Resolves the mode against this session (blocking: `/proc`).
-fn detect() -> LockerMode {
-    let manager = if programs::running("cosmic-session").is_empty() {
+fn detect(processes: &dyn Processes) -> LockerMode {
+    let manager = if processes.running("cosmic-session").is_empty() {
         SessionManager::Other
     } else {
         SessionManager::CosmicSession

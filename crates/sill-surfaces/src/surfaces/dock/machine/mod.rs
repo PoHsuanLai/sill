@@ -9,6 +9,7 @@
 //! auto-hide-off state; geometry is `Cpx` and progress `Permille`, never floats.
 
 mod bounce;
+mod easing;
 mod hover;
 mod label;
 mod params;

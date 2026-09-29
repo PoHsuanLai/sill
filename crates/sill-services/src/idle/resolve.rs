@@ -7,8 +7,8 @@
 
 use std::path::{Path, PathBuf};
 
+use crate::env::Processes;
 use crate::locker::{Host, SessionManager};
-use crate::programs;
 
 use super::cosmic::{
     COSMIC_IDLE_ID, COSMIC_IDLE_VERSION, CosmicIdle, CosmicIdleTimes, CosmicKey, cosmic_times,
@@ -19,12 +19,18 @@ use super::policy::{IdleConfig, IdlePolicy, TimesChoice, effective_times, resolv
 pub(super) const RESOLVE_EVERY_S: u64 = 15;
 
 /// `config` in this session.
-pub(super) fn resolve(config: &IdleConfig, config_dir: &Path) -> IdlePolicy {
-    let manager = programs::running("cosmic-session")
+pub(super) fn resolve(
+    config: &IdleConfig,
+    config_dir: &Path,
+    processes: &dyn Processes,
+) -> IdlePolicy {
+    let manager = processes
+        .running("cosmic-session")
         .first()
         .map_or(SessionManager::Other, |_| SessionManager::CosmicSession);
     let desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
-    let cosmic_idle = programs::running("cosmic-idle")
+    let cosmic_idle = processes
+        .running("cosmic-idle")
         .first()
         .map_or(CosmicIdle::Absent, |_| CosmicIdle::Running);
     let cosmic = match config.times {

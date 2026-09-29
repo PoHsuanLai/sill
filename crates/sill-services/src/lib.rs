@@ -24,7 +24,6 @@ pub mod clipboard;
 pub mod clock;
 pub mod control;
 pub mod cosmic_wl;
-pub mod curve;
 pub mod displays;
 pub mod env;
 pub mod error;
@@ -41,7 +40,6 @@ pub mod pins;
 pub mod polkit_agent;
 pub mod power_profile;
 pub mod preview;
-pub mod programs;
 pub mod providers;
 pub mod results;
 pub mod screenshots;
@@ -77,7 +75,6 @@ pub use cosmic_wl::{
     ToplevelEvent, Toplevels, Urgency, WindowState, WlCommand, Workspace, WorkspaceCap,
     WorkspaceCaps, WorkspaceEvent, WorkspaceGroup, WorkspaceKey, Workspaces,
 };
-pub use curve::ease;
 pub use displays::{
     BrightnessTarget, DisplayOutput, DisplayPolicy, DisplayScale, Displays, DisplaysCommand,
     DisplaysService, Following, FontRenderingMode, Gamut, HardwareVolume, IdentityKey, KeysTarget,

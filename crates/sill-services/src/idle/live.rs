@@ -146,7 +146,7 @@ impl Live {
         let policy = match command {
             IdleCommand::Configure(config) => {
                 self.config = Some(config);
-                resolved(config, &self.setup.config).await
+                resolved(config, &self.setup).await
             }
             IdleCommand::Use(policy) => {
                 self.config = None;
@@ -166,7 +166,7 @@ impl Live {
         let Some(config) = self.config else {
             return;
         };
-        let policy = resolved(config, &self.setup.config).await;
+        let policy = resolved(config, &self.setup).await;
         if policy != self.state.policy {
             self.use_policy(policy).await;
         }
@@ -369,9 +369,10 @@ impl Live {
 }
 
 /// `config` resolved on the blocking pool; `Off` if that fails.
-async fn resolved(config: IdleConfig, dir: &std::path::Path) -> super::IdlePolicy {
-    let dir = dir.to_path_buf();
-    tokio::task::spawn_blocking(move || resolve(&config, &dir))
+async fn resolved(config: IdleConfig, reach: &Reach) -> super::IdlePolicy {
+    let dir = reach.config.clone();
+    let processes = reach.processes.clone();
+    tokio::task::spawn_blocking(move || resolve(&config, &dir, processes.as_ref()))
         .await
         .unwrap_or(super::IdlePolicy {
             mode: IdleMode::Off(super::OffReason::NoPolicy),

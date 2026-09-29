@@ -70,8 +70,8 @@ pub fn save(dir: &Path, pins: &DockPins) -> Result<(), ServiceError> {
 #[cfg(test)]
 mod tests {
     use super::{DockPins, load, save};
-    use sill_testkit::TempDir;
     use sill_launcher::AppId;
+    use sill_testkit::TempDir;
 
     #[test]
     fn save_then_load_round_trips() {

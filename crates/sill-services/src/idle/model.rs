@@ -81,7 +81,7 @@ pub struct IdleLinks {
 /// Where the service connects. The default is the session's own; live tests name a nested
 /// compositor and private buses so nothing reaches the real displays, logind or the session
 /// bus's `org.freedesktop.ScreenSaver`.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub(crate) struct Reach {
     /// The compositor to hold idle notifications and output power on.
     pub(crate) display: WaylandRoute,
@@ -91,6 +91,8 @@ pub(crate) struct Reach {
     pub(crate) session: Bus,
     /// The config directory COSMIC's own idle times are read under.
     pub(crate) config: PathBuf,
+    /// Which processes run (a cosmic-idle already there decides who owns idle).
+    pub(crate) processes: std::sync::Arc<dyn crate::env::Processes>,
 }
 
 impl Reach {
@@ -101,6 +103,7 @@ impl Reach {
             system: env.buses.system.clone(),
             session: env.buses.session.clone(),
             config: env.dirs.config.clone(),
+            processes: env.processes.clone(),
         }
     }
 }

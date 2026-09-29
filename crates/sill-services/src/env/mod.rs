@@ -13,12 +13,14 @@ use crate::polkit_agent;
 
 mod buses;
 mod dirs;
+mod processes;
 mod session_actions;
 mod wall_clock;
 mod wayland;
 
 pub use buses::{Bus, BusKind, BusRoute, Buses};
 pub use dirs::Dirs;
+pub use processes::{NoProcesses, Pid, ProcScan, Processes};
 pub use session_actions::{
     ActionReach, DryRunActions, DryRunOffers, LogindActions, SessionActions, dry_run_line,
 };
@@ -45,6 +47,8 @@ pub struct Env {
     pub session_actions: Arc<dyn SessionActions>,
     /// What checks the lock screen's password: PAM through `sill auth-check`, or a stand-in.
     pub authenticator: Arc<dyn Authenticator>,
+    /// The processes a service looks for by name: a `/proc` scan, or none.
+    pub processes: Arc<dyn Processes>,
 }
 
 /// Where idle's screen-off and suspend times come from.
@@ -73,13 +77,14 @@ impl Env {
             idle_times: IdleTimesSource::Settings,
             session_actions: Arc::new(LogindActions),
             authenticator: Arc::new(PamHelper::this_exe()),
+            processes: Arc::new(ProcScan),
         }
     }
 
     /// Nothing outside the process: no bus, a compositor socket in `scratch` that does not exist,
     /// every directory inside `scratch`, the system clock (read only), DDC monitors from a file
     /// that is not there (none), no polkit helper, session actions that are only recorded, and a
-    /// password check that refuses everything. For tests that start services and must never reach
+    /// password check that refuses everything, and no processes running. For tests that start services and must never reach
     /// the person's session or files. `scratch` must exist: the wallpaper service watches the
     /// nearest existing folder above COSMIC's record.
     pub fn isolated(scratch: &Path) -> Env {
@@ -100,6 +105,7 @@ impl Env {
                 rule: FakeRule::RefusesAll,
                 delay: std::time::Duration::ZERO,
             }),
+            processes: Arc::new(NoProcesses),
         }
     }
 }

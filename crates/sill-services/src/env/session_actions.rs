@@ -133,14 +133,18 @@ mod tests {
     use super::{
         ActionReach, DryRunActions, DryRunOffers, LogindActions, SessionActions, dry_run_line,
     };
-    use sill_testkit::TempDir;
     use crate::session::{Session, SessionAction};
+    use sill_testkit::TempDir;
 
     #[test]
     fn a_dry_run_offers_as_told_and_only_records() {
         let scratch = TempDir::new("dry-run");
-        let record = crate::env::Env::isolated(scratch.path()).dirs.state.join("record");
-        std::fs::create_dir_all(&crate::env::Env::isolated(scratch.path()).dirs.state).unwrap_or_else(|e| panic!("{e}"));
+        let record = crate::env::Env::isolated(scratch.path())
+            .dirs
+            .state
+            .join("record");
+        std::fs::create_dir_all(&crate::env::Env::isolated(scratch.path()).dirs.state)
+            .unwrap_or_else(|e| panic!("{e}"));
         let dry = DryRunActions::new(DryRunOffers::Everything, Some(record.clone()));
         assert_eq!(dry.offers(Session::default()), Session::everything());
         assert_eq!(dry.act(SessionAction::Restart), ActionReach::DryRun);

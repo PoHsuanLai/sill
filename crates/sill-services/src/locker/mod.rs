@@ -87,8 +87,9 @@ impl Service for LockerService {
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let bus = env.buses.system.clone();
         let runtime = env.dirs.runtime.clone();
+        let processes = env.processes.clone();
         async move {
-            live::run(bus, runtime, io.state, io.commands).await;
+            live::run(bus, runtime, processes, io.state, io.commands).await;
             Ok(())
         }
     }

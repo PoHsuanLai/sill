@@ -14,10 +14,10 @@ use tokio::sync::watch;
 
 use super::effect::Outlets;
 use super::history::History;
-use sill_testkit::TempDir;
 use super::{Results, ResultsService, SearchCommand, load_frecency, runner};
 use crate::control::Control;
 use fake::{Fake, Heard, Obeys};
+use sill_testkit::TempDir;
 
 /// How long a test waits for a published value before it fails.
 const PATIENCE: Duration = Duration::from_secs(5);

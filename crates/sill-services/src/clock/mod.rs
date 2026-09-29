@@ -101,8 +101,8 @@ mod tests {
 
     use super::{ClockCommand, ClockService, ClockText, publish};
     use crate::env::FixedClock;
-    use sill_testkit::TempDir;
     use crate::service::spawn;
+    use sill_testkit::TempDir;
 
     #[test]
     fn only_a_new_minute_wakes_the_bar() {

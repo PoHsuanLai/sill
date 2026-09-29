@@ -1,8 +1,9 @@
 //! Auto-hide (design/10 §10.3.11, §10.4 "Reveal", §10.5.5). `Fixed` is auto-hide off.
 
 use shell_host::{BlurSpec, ElementId, ExclusiveZone, RegionSpec};
-use sill_services::{Cpx, Permille, Stamp, ease};
+use sill_services::{Cpx, Permille, Stamp};
 
+use super::easing::ease;
 use super::params::DockParams;
 use super::press::Press;
 use super::types::{DockEffect, DockEvent, DockState, Hit, MenuState};
