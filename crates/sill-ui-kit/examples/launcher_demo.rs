@@ -4,12 +4,10 @@
 //! on stdin:
 //!
 //! - `toggle`, `open [QUERY]`, `close`: what `sill launcher ...` does;
-//! - `type TEXT`: the field's text becomes TEXT (shell-host injects no keys);
-//! - `key tab|shift-tab|actions|escape`: those keys, through the panel's keyboard machine;
-//! - `press up|down|enter|escape|tab|shift-tab|actions|space|quick-look|right|left|reveal`: a
-//!   key as `sill debug launcher-key` presses it (the preview pane's keys, row chords);
-//! - anything else is a shell-host `debug-inject` command (`sill-launcher-<output> capture
-//!   PATH`, `sill-launcher-catcher-<output> click X Y`, `stats`, `quit`).
+//! - anything else is a shell-host `debug-inject` command (`sill-launcher-<output> key
+//!   ArrowDown`, `sill-launcher-<output> key k+ctrl`, `sill-launcher-<output> capture PATH`,
+//!   `sill-launcher-catcher-<output> click X Y`, `stats`, `quit`); a key enters the panel where a
+//!   real one does.
 //!
 //! What the launcher sends to the fake launch and compositor services is printed on stderr.
 //!
@@ -26,12 +24,9 @@ use shell_host::{
 };
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_ui_kit::links::LauncherLink;
-use sill_ui_kit::links::LinkKey;
 use sill_ui_kit::surface::{MountProps, Surface, mount};
-use sill_ui_kit::surfaces::launcher::LauncherKey;
-use sill_ui_kit::surfaces::launcher::script::{LauncherScript, Scripted, ScriptedInput};
 use sill_ui_kit::{Launcher, LauncherCatcher};
-use tokio::sync::{mpsc, watch};
+use tokio::sync::mpsc;
 
 /// A line from stdin, or its end.
 enum DemoMsg {
@@ -44,7 +39,6 @@ struct Demo {
     services: sill_ui_kit::services::Services,
     settings: SettingsFeed,
     link: LauncherLink,
-    script: watch::Sender<Scripted>,
     providers: sill_ui_kit::surfaces::launcher::LauncherProviders,
     panels: Vec<(OutputId, SurfaceId)>,
 }
@@ -60,12 +54,10 @@ fn run() -> Result<(), String> {
     let (services, feeds) = launcher_support::services();
     print_commands("launch", feeds.bar.launch);
     print_commands("wl", feeds.bar.wl);
-    let (script, _) = watch::channel(Scripted::default());
     let mut demo = Demo {
         services,
         settings: SettingsFeed::fixed(ShellFile::default()),
         link: LauncherLink::new(),
-        script,
         providers: launcher_support::providers(),
         panels: Vec::new(),
     };
@@ -103,7 +95,6 @@ fn spawn_launcher(ctx: &mut HostCtx<DemoMsg>, output: OutputInfo, demo: &mut Dem
             .context(sill_ui_kit::root::FOCUS)
             .context(demo.link.clone())
             .context(demo.providers.clone())
-            .context(LauncherScript(demo.script.subscribe()))
     };
     let catcher = root(HostRoot::with_props(
         mount::<LauncherCatcher>,
@@ -145,52 +136,8 @@ fn run_line(ctx: &mut HostCtx<DemoMsg>, demo: &Demo, line: &str) {
         ("toggle", Some(output)) => demo.link.toggle(output),
         ("open", Some(output)) => demo.link.open(output, rest.to_owned()),
         ("close", _) => demo.link.close(),
-        ("type", _) => script(demo, ScriptedInput::Type(rest.to_owned())),
-        ("press", _) => match link_key(rest) {
-            Some(key) => demo.link.press(key),
-            None => eprintln!("launcher_demo: no key {rest:?}"),
-        },
-        ("key", _) => match key(rest) {
-            Some(key) => script(demo, ScriptedInput::Key(key)),
-            None => eprintln!("launcher_demo: no key {rest:?}"),
-        },
         _ => inject(ctx, line),
     }
-}
-
-fn key(word: &str) -> Option<LauncherKey> {
-    match word.trim() {
-        "tab" => Some(LauncherKey::Tab),
-        "shift-tab" => Some(LauncherKey::ShiftTab),
-        "actions" => Some(LauncherKey::Actions),
-        "escape" => Some(LauncherKey::Escape),
-        _ => None,
-    }
-}
-
-fn link_key(word: &str) -> Option<LinkKey> {
-    Some(match word.trim() {
-        "up" => LinkKey::Up,
-        "down" => LinkKey::Down,
-        "enter" => LinkKey::Enter,
-        "escape" => LinkKey::Escape,
-        "tab" => LinkKey::Tab,
-        "shift-tab" => LinkKey::ShiftTab,
-        "actions" => LinkKey::Actions,
-        "space" => LinkKey::Space,
-        "quick-look" => LinkKey::QuickLook,
-        "right" => LinkKey::Right,
-        "left" => LinkKey::Left,
-        "reveal" => LinkKey::Reveal,
-        _ => return None,
-    })
-}
-
-fn script(demo: &Demo, input: ScriptedInput) {
-    demo.script.send_modify(|scripted| {
-        scripted.count += 1;
-        scripted.input = Some(input);
-    });
 }
 
 /// One `debug-inject` line.

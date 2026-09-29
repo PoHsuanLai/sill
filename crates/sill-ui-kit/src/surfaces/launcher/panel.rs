@@ -37,12 +37,10 @@ use crate::surfaces::launcher::layer::{
     CARD_ID, CARD_INSET, CARD_RADIUS, PANEL_HEIGHT, PANEL_ROOM_WIDTH, PANEL_WIDTH, SHADOW_SIDE,
 };
 use crate::surfaces::launcher::list_detail::{ListState, Rows, use_list_detail};
-use crate::surfaces::launcher::pane_keys::use_link_keys;
 use crate::surfaces::launcher::pane_session::PaneSession;
 use crate::surfaces::launcher::preview::keys::{Pane, PaneFocus};
 use crate::surfaces::launcher::preview::{LauncherPane, PREVIEW_WIDTH_PX};
 use crate::surfaces::launcher::row_icon::{row_art, row_tile};
-use crate::surfaces::launcher::script::use_script;
 use crate::surfaces::launcher::sections_view::{Draw, palette_groups};
 use crate::surfaces::launcher::session::Session;
 use crate::surfaces::launcher::view::View;
@@ -114,8 +112,6 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
     let history = use_service::<ClipboardService>();
     let results = use_service::<ResultsService>();
     let panel = use_panel(output.id, results);
-    use_script(panel.clone());
-    use_link_keys(panel.clone());
     let shown = panel.opening_tracked().map(|opening| {
         let session = panel.session.read().for_opening(&opening);
         let pane = panel.pane.read().for_serial(opening.serial);

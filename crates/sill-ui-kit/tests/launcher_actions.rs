@@ -10,11 +10,10 @@ mod launcher_harness;
 
 use ds::ShortcutKey;
 use launcher_harness::launcher_support::{self, FIREFOX_WINDOW};
-use launcher_harness::{is_open, open, selected_title, settle};
+use launcher_harness::{Press, is_open, open, selected_title, settle};
 use sill_launcher::WindowKey;
 use sill_model::cosmic_wl::WlCommand;
 use sill_model::launch::LaunchCommand;
-use sill_ui_kit::surfaces::launcher::LauncherKey;
 
 /// The selected row (attribute selectors need the namespace wildcard on Blitz).
 const SELECTED: &str = ".ds-menu-item[*|aria-selected=true]";
@@ -29,7 +28,7 @@ fn the_actions_menu_hangs_from_the_selected_row_and_gives_the_keyboard_back() {
     // quire's palette reports an already laid-out row's rect in the frame it was selected,
     // so Ctrl+K right after the selection hangs the menu from that row.
     let row = open.harness.rect(SELECTED).expect("the selected row");
-    open.scripted(LauncherKey::Actions);
+    open.press(Press::Actions);
     settle(&mut open.harness, |h| h.count(".ds-popover") == 1);
     let menu = open.harness.rect(".ds-popover").expect("the actions menu");
     let html = open.harness.html();

@@ -5,9 +5,9 @@
 mod launcher_harness;
 
 use ds::ShortcutKey;
-use launcher_harness::{open, settle};
+use launcher_harness::{Press, open, settle};
 use sill_ui_kit::links::PanelHit;
-use sill_ui_kit::surfaces::launcher::{CARD_ID, LauncherKey, PANEL_HEIGHT};
+use sill_ui_kit::surfaces::launcher::{CARD_ID, PANEL_HEIGHT};
 
 /// Advance until the panel has published its card (at most two seconds).
 fn measured(open: &mut launcher_harness::Open) {
@@ -61,7 +61,7 @@ fn more_rows_grow_the_card_and_the_actions_menu_takes_the_panel() {
     let four = card_height(&long);
     assert!(four > one, "four rows {four} px, one {one} px");
     assert_eq!(long.link.hit(), PanelHit::Card { height: four });
-    long.scripted(LauncherKey::Actions);
+    long.press(Press::Actions);
     settle(&mut long.harness, |h| h.count(".ds-popover") == 1);
     assert_eq!(
         long.link.hit(),

@@ -83,8 +83,6 @@ pub enum DebugRequest {
     /// Open the switcher on made-up apps, the current one first (`dev/accept/switcher.sh`): shown
     /// at once (no show delay), and Q, H and release act on no real window.
     Switcher { apps: Vec<AppId> },
-    /// A key for the open launcher, as if typed (`dev/accept/launcher.sh`).
-    LauncherKey(LauncherKey),
     /// The open launcher's sections, rows and preview: answered `Response::LauncherRows`.
     LauncherRows,
     /// Wake idle as the compositor's `resumed` would after real input (`dev/accept/idle.sh`:
@@ -155,29 +153,6 @@ pub enum KeyAction {
 pub struct Point {
     pub x: i32,
     pub y: i32,
-}
-
-/// A key for the launcher, as if typed (`sill debug launcher-key`). Acted on only by a daemon
-/// built with `debug`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum LauncherKey {
-    Up,
-    Down,
-    Enter,
-    Escape,
-    Tab,
-    ShiftTab,
-    /// Ctrl+K.
-    Actions,
-    /// Space: the preview pane (Quick Look).
-    Space,
-    /// Ctrl+Y (Cmd+Y): the preview pane from anywhere.
-    QuickLook,
-    Right,
-    Left,
-    /// Ctrl+R (Cmd+R): the selected row's reveal.
-    Reveal,
 }
 
 /// The launcher as shown on the output it is open on (`sill debug launcher-rows`): each section

@@ -5,8 +5,7 @@ use std::path::PathBuf;
 
 use clap::{Subcommand, ValueEnum};
 use sill_ipc::debug::{
-    CornerName, DebugRequest, KeyAction, KeySpec, LauncherKey, OsdTopic, Point, PointerButton,
-    SurfaceName,
+    CornerName, DebugRequest, KeyAction, KeySpec, OsdTopic, Point, PointerButton, SurfaceName,
 };
 use sill_ipc::request::Request;
 
@@ -99,11 +98,6 @@ pub enum DebugAction {
         #[arg(required = true)]
         apps: Vec<String>,
     },
-    /// Press a key on the open launcher (a debug daemon only).
-    LauncherKey {
-        #[arg(value_enum)]
-        key: LauncherKeyArg,
-    },
     /// Print the open launcher's sections, rows and preview (a debug daemon only).
     LauncherRows,
     /// Wake idle as real input would (a debug daemon only; inside the lock grace it opens the
@@ -155,23 +149,6 @@ pub enum CornerArg {
 pub enum VerdictArg {
     Accept,
     Refuse,
-}
-
-/// `sill debug launcher-key KEY`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-pub enum LauncherKeyArg {
-    Up,
-    Down,
-    Enter,
-    Escape,
-    Tab,
-    ShiftTab,
-    Actions,
-    Space,
-    QuickLook,
-    Right,
-    Left,
-    Reveal,
 }
 
 /// The request `sill debug ACTION` sends.
@@ -249,7 +226,6 @@ pub fn debug_request(action: &DebugAction) -> Request {
         DebugAction::Switcher { apps } => DebugRequest::Switcher {
             apps: apps.iter().cloned().map(AppId).collect(),
         },
-        DebugAction::LauncherKey { key } => DebugRequest::LauncherKey(launcher_key(*key)),
         DebugAction::LauncherRows => DebugRequest::LauncherRows,
         DebugAction::IdleWake => DebugRequest::IdleWake,
     })
@@ -298,22 +274,5 @@ fn verdict_of(verdict: VerdictArg) -> FakeVerdict {
     match verdict {
         VerdictArg::Accept => FakeVerdict::Accept,
         VerdictArg::Refuse => FakeVerdict::Refuse,
-    }
-}
-
-fn launcher_key(key: LauncherKeyArg) -> LauncherKey {
-    match key {
-        LauncherKeyArg::Up => LauncherKey::Up,
-        LauncherKeyArg::Down => LauncherKey::Down,
-        LauncherKeyArg::Enter => LauncherKey::Enter,
-        LauncherKeyArg::Escape => LauncherKey::Escape,
-        LauncherKeyArg::Tab => LauncherKey::Tab,
-        LauncherKeyArg::ShiftTab => LauncherKey::ShiftTab,
-        LauncherKeyArg::Actions => LauncherKey::Actions,
-        LauncherKeyArg::Space => LauncherKey::Space,
-        LauncherKeyArg::QuickLook => LauncherKey::QuickLook,
-        LauncherKeyArg::Right => LauncherKey::Right,
-        LauncherKeyArg::Left => LauncherKey::Left,
-        LauncherKeyArg::Reveal => LauncherKey::Reveal,
     }
 }

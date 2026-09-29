@@ -1,7 +1,7 @@
 //! Launcher v2 on the real panel in a `ds_native::Harness`: the runner's sections
 //! with Top Hit and "Show More", the preview pane's keys (Space while browsing, ⌘Y, → at the end,
 //! Escape one level at a time), a row chord run from the results, Tab to one provider, and the
-//! `sill debug launcher-*` link. The preview rows are the fakes' (`launcher_support/m9.rs`).
+//! rows `sill debug launcher-rows` reports. The preview rows are the fakes' (`launcher_support/m9.rs`).
 
 mod launcher_harness;
 
@@ -9,19 +9,19 @@ use std::time::Duration;
 
 use ds::ShortcutKey;
 use launcher_harness::launcher_support::m9;
-use launcher_harness::{Open, is_open, open, settle};
+use launcher_harness::{Open, Press, is_open, open, settle};
 use sill_launcher::{OpenTarget, PreviewKind};
 use sill_model::launch::LaunchCommand;
 use sill_model::results::SearchCommand;
-use sill_ui_kit::links::{LinkKey, ShownRows};
+use sill_ui_kit::links::ShownRows;
 
 fn rows(open: &Open) -> ShownRows {
     open.link.rows().expect("the open panel publishes its rows")
 }
 
-/// Press `key` through the debug link, as `sill debug launcher-key` does.
-fn press(open: &mut Open, key: LinkKey) {
-    open.link.press(key);
+/// Press `key` on the harness's keyboard.
+fn press(open: &mut Open, key: Press) {
+    open.press(key);
     open.harness.advance(Duration::from_millis(40));
     open.harness.advance(Duration::from_millis(20));
 }
@@ -51,10 +51,10 @@ fn m9_lists_top_hit_then_documents_capped_with_show_more() {
     );
     // Down to the Show More line (Top Hit, five documents: line 6) and Enter: all seven show.
     for _ in 0..6 {
-        press(&mut open, LinkKey::Down);
+        press(&mut open, Press::Down);
     }
     assert_eq!(rows(&open).selected, 6);
-    press(&mut open, LinkKey::Enter);
+    press(&mut open, Press::Enter);
     let shown = rows(&open);
     assert!(is_open(&open.link), "Show More keeps the launcher open");
     assert_eq!(shown.sections[1].hidden, 0);
@@ -72,11 +72,13 @@ fn m9_lists_top_hit_then_documents_capped_with_show_more() {
 #[test]
 fn space_while_browsing_shows_the_pdf_and_then_the_image() {
     let mut open = open("m9");
-    press(&mut open, LinkKey::Space);
+    // The harness's field opens with its caret at the start; a person's ends at the query.
+    open.harness.key(ShortcutKey::End);
+    press(&mut open, Press::Space);
     assert_eq!(rows(&open).preview, None, "typing: Space is a space");
     assert_eq!(rows(&open).query, "m9 ");
-    press(&mut open, LinkKey::Up);
-    press(&mut open, LinkKey::Space);
+    press(&mut open, Press::Up);
+    press(&mut open, Press::Space);
     assert_eq!(
         rows(&open).preview,
         Some(PreviewKind::Pdf),
@@ -88,13 +90,13 @@ fn space_while_browsing_shows_the_pdf_and_then_the_image() {
         1,
         "quire's PDF thumbnail"
     );
-    press(&mut open, LinkKey::Down);
+    press(&mut open, Press::Down);
     assert_eq!(
         rows(&open).preview,
         Some(PreviewKind::Image),
         "the pane follows the row"
     );
-    press(&mut open, LinkKey::Space);
+    press(&mut open, Press::Space);
     assert_eq!(rows(&open).preview, None, "Space again hides it");
 }
 
@@ -117,7 +119,7 @@ fn command_y_while_typing_then_right_enter_the_pane_and_escape_steps_out() {
         "the results have the keyboard"
     );
     // `sill debug launcher-key right` is → at the field's end.
-    press(&mut open, LinkKey::Right);
+    press(&mut open, Press::Right);
     let html = open.harness.html();
     assert!(html.contains("Reveal in Files"), "the pane's controls");
     assert!(
@@ -129,7 +131,7 @@ fn command_y_while_typing_then_right_enter_the_pane_and_escape_steps_out() {
         html.contains("data-focused=\"true\""),
         "→ at the end, with the pane shown, gave its first control the keyboard"
     );
-    press(&mut open, LinkKey::Escape);
+    press(&mut open, Press::Escape);
     assert!(
         !open.harness.html().contains("data-focused=\"true\""),
         "back to the results"
@@ -139,10 +141,10 @@ fn command_y_while_typing_then_right_enter_the_pane_and_escape_steps_out() {
         Some(PreviewKind::Pdf),
         "the pane stays"
     );
-    press(&mut open, LinkKey::Escape);
+    press(&mut open, Press::Escape);
     assert_eq!(rows(&open).preview, None, "Escape hides the pane");
     assert!(is_open(&open.link));
-    press(&mut open, LinkKey::Escape);
+    press(&mut open, Press::Escape);
     assert!(!is_open(&open.link), "then Escape closes the launcher");
 }
 
@@ -228,8 +230,8 @@ fn command_r_reveals_the_selected_file() {
 #[test]
 fn shift_tab_with_nothing_typed_reaches_emoji_alone() {
     let mut open = open("");
-    press(&mut open, LinkKey::ShiftTab);
-    press(&mut open, LinkKey::ShiftTab);
+    press(&mut open, Press::ShiftTab);
+    press(&mut open, Press::ShiftTab);
     settle(&mut open.harness, |h| h.count(".ds-emoji-cell") == 3);
     let shown = rows(&open);
     assert_eq!(headings(&open), ["Emoji"]);
@@ -263,8 +265,8 @@ fn shift_tab_with_nothing_typed_reaches_emoji_alone() {
 #[test]
 fn real_left_and_right_move_the_emoji_grid_and_command_y_previews() {
     let mut open = open("");
-    press(&mut open, LinkKey::ShiftTab);
-    press(&mut open, LinkKey::ShiftTab);
+    press(&mut open, Press::ShiftTab);
+    press(&mut open, Press::ShiftTab);
     settle(&mut open.harness, |h| h.count(".ds-emoji-cell") == 3);
     assert_eq!(headings(&open), ["Emoji"]);
     assert_eq!(rows(&open).selected, 0);

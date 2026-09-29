@@ -1,6 +1,6 @@
 //! Who caused what the panel draws next (design/26-DETAILS.md R5): the person's key or press
 //! anywhere in the panel is a `Touch::Contact`, taken by the render that follows it; anything
-//! else (an answer arriving, a load landing, `sill debug launcher-key`) is `Touch::Remote`.
+//! else (an answer arriving, a load landing) is `Touch::Remote`.
 
 use dioxus::prelude::*;
 use ds::detail::{Handled, Touch};

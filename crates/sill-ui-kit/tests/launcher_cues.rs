@@ -14,33 +14,18 @@ use ds::ShortcutKey;
 use ds_native::Harness;
 use ds_native::harness::assert_settles_to_zero_frames;
 use launcher_harness::launcher_support::m9;
-use launcher_harness::{Open, Seen, await_off_thread, loaded, open, settle, watch};
+use launcher_harness::{Open, Press, Seen, await_off_thread, loaded, open, settle, watch};
 use sill_launcher::PreviewKind;
-use sill_ui_kit::links::LinkKey;
 
-/// How a key reached the panel.
-#[derive(Debug, Clone, Copy)]
-enum Via {
-    /// The person's own key (⌘Y through the harness's keyboard).
-    Keyboard,
-    /// `sill debug launcher-key` (a remote change).
-    Link,
-}
-
-/// Show the preview pane `via` that route.
-fn quick_look(open: &mut Open, via: Via) {
-    match via {
-        Via::Keyboard => open
-            .harness
-            .chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y')),
-        Via::Link => open.link.press(LinkKey::QuickLook),
-    }
+/// Show the preview pane with ⌘Y through the harness's keyboard.
+fn quick_look(open: &mut Open) {
+    open.press(Press::QuickLook);
     open.harness.advance(Duration::ZERO);
 }
 
-/// Press `key` through the debug link.
-fn press(open: &mut Open, key: LinkKey) {
-    open.link.press(key);
+/// Press `key` on the harness's keyboard.
+fn press(open: &mut Open, key: Press) {
+    open.press(key);
     open.harness.advance(Duration::ZERO);
 }
 
@@ -61,32 +46,29 @@ fn rising(harness: &Harness) -> bool {
 }
 
 #[test]
-fn the_entrance_springs_on_a_real_key_and_eases_on_a_remote_one() {
-    let cases = [(Via::Keyboard, "contact"), (Via::Link, "remote")];
-    for (via, want) in cases {
-        let mut open = open("m9");
-        assert_settles_to_zero_frames(&mut open.harness);
-        quick_look(&mut open, via);
-        settle(&mut open.harness, |h| h.count(".ds-preview") == 1);
-        assert_eq!(touch(&open.harness).as_deref(), Some(want), "{via:?}");
-        assert_eq!(
-            await_off_thread(&mut open.harness, loaded),
-            Seen::Once,
-            "{via:?}: the page lands"
-        );
-        assert_settles_to_zero_frames(&mut open.harness);
-        assert_eq!(
-            touch(&open.harness).as_deref(),
-            Some(want),
-            "{via:?}: the entrance keeps the touch that started it"
-        );
-    }
+fn the_entrance_springs_on_a_real_key() {
+    let mut open = open("m9");
+    assert_settles_to_zero_frames(&mut open.harness);
+    quick_look(&mut open);
+    settle(&mut open.harness, |h| h.count(".ds-preview") == 1);
+    assert_eq!(touch(&open.harness).as_deref(), Some("contact"));
+    assert_eq!(
+        await_off_thread(&mut open.harness, loaded),
+        Seen::Once,
+        "the page lands"
+    );
+    assert_settles_to_zero_frames(&mut open.harness);
+    assert_eq!(
+        touch(&open.harness).as_deref(),
+        Some("contact"),
+        "the entrance keeps the touch that started it"
+    );
 }
 
 #[test]
 fn another_kind_cross_fades_and_never_replays_the_entrance() {
     let mut open = open("m9");
-    quick_look(&mut open, Via::Keyboard);
+    quick_look(&mut open);
     assert_eq!(
         await_off_thread(&mut open.harness, loaded),
         Seen::Once,
@@ -101,7 +83,7 @@ fn another_kind_cross_fades_and_never_replays_the_entrance() {
     let before = entrance(&open.harness);
 
     // Down onto the PNG: the selection moved onto another kind (a Preview moment).
-    press(&mut open, LinkKey::Down);
+    press(&mut open, Press::Down);
     assert_eq!(
         open.link.rows().and_then(|r| r.preview),
         Some(PreviewKind::Image)
@@ -165,7 +147,7 @@ fn a_slow_text_head_shows_loading_after_the_grace_then_the_text() {
     let path = m9::slow_head_path();
     let head = SlowHead::make(&path);
     let mut open = open("slow-head");
-    press(&mut open, LinkKey::QuickLook);
+    press(&mut open, Press::QuickLook);
     settle(&mut open.harness, |h| h.count(".ds-preview") == 1);
     assert_eq!(
         open.link.rows().and_then(|r| r.preview),
@@ -280,10 +262,10 @@ fn a_show_more_through_the_link_still_rises() {
     let mut open = open("m9");
     assert_settles_to_zero_frames(&mut open.harness);
     for _ in 0..6 {
-        press(&mut open, LinkKey::Down);
+        press(&mut open, Press::Down);
     }
     assert_eq!(open.link.rows().map(|r| r.selected), Some(6));
-    open.link.press(LinkKey::Enter);
+    open.press(Press::Enter);
     let rose = watch(&mut open.harness, |h| row_motion(h, "rise"));
     assert_eq!(rose, Seen::Once, "the added rows rise");
     assert_settles_to_zero_frames(&mut open.harness);

@@ -13,28 +13,21 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use dioxus::prelude::*;
+use ds::ShortcutKey;
 use ds_native::Harness;
 use ds_native::harness::settle_until;
 use launcher_support::{LauncherFeeds, Runner, fake};
 use sill_ui_kit::Launcher;
 use sill_ui_kit::harness::SurfaceHarness;
 use sill_ui_kit::links::LauncherLink;
-use sill_ui_kit::surfaces::launcher::script::{LauncherScript, Scripted, ScriptedInput};
-use sill_ui_kit::surfaces::launcher::{LauncherKey, LauncherProviders};
-use tokio::sync::watch;
+use sill_ui_kit::surfaces::launcher::LauncherProviders;
 
-/// What the test gives the root beside the surface's own contexts: the providers, the script
-/// (the keys the harness cannot press) and the search runner, which runs as a task on the
-/// harness's thread once.
-fn in_root(
-    providers: LauncherProviders,
-    script: LauncherScript,
-    runner: Runner,
-) -> impl Fn() + 'static {
+/// What the test gives the root beside the surface's own contexts: the providers and the search
+/// runner, which runs as a task on the harness's thread once.
+fn in_root(providers: LauncherProviders, runner: Runner) -> impl Fn() + 'static {
     let runner = Rc::new(RefCell::new(Some(runner)));
     move || {
         use_context_provider(|| providers.clone());
-        use_context_provider(|| script.clone());
         use_hook(|| {
             if let Some(runner) = runner.borrow_mut().take() {
                 spawn(runner.run());
@@ -48,18 +41,50 @@ pub struct Open {
     pub harness: Harness,
     pub feeds: LauncherFeeds,
     pub link: LauncherLink,
-    /// The keys the harness cannot press (Ctrl+K), as the demo scripts them.
-    pub script: watch::Sender<Scripted>,
+}
+
+/// A key a launcher test presses, by what it does to the panel.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Press {
+    Up,
+    Down,
+    Enter,
+    Escape,
+    Space,
+    Left,
+    /// → with the caret at the field's end (`End` first: the harness's field has no caret to
+    /// read until it is placed).
+    Right,
+    ShiftTab,
+    /// Ctrl+K.
+    Actions,
+    /// Ctrl+Y (⌘Y).
+    QuickLook,
+    /// Ctrl+R (⌘R).
+    Reveal,
 }
 
 impl Open {
-    /// Press `key` through the launcher's script, as `examples/launcher_demo.rs` does.
-    pub fn scripted(&mut self, key: LauncherKey) {
-        self.script.send_modify(|s| {
-            s.count += 1;
-            s.input = Some(ScriptedInput::Key(key));
-        });
-        self.harness.advance(Duration::from_millis(20));
+    /// The real key event `key` is, through the harness's keyboard.
+    pub fn press(&mut self, key: Press) {
+        let ctrl = [ShortcutKey::Ctrl];
+        let h = &mut self.harness;
+        match key {
+            Press::Up => h.key(ShortcutKey::Up),
+            Press::Down => h.key(ShortcutKey::Down),
+            Press::Enter => h.key(ShortcutKey::Enter),
+            Press::Escape => h.key(ShortcutKey::Escape),
+            Press::Space => h.key(ShortcutKey::Space),
+            Press::Left => h.key(ShortcutKey::Left),
+            Press::Right => {
+                h.key(ShortcutKey::End);
+                h.key(ShortcutKey::Right);
+            }
+            Press::ShiftTab => h.chord(&[ShortcutKey::Shift], ShortcutKey::Tab),
+            Press::Actions => h.chord(&ctrl, ShortcutKey::Char('k')),
+            Press::QuickLook => h.chord(&ctrl, ShortcutKey::Char('y')),
+            Press::Reveal => h.chord(&ctrl, ShortcutKey::Char('r')),
+        }
     }
 }
 
@@ -73,14 +98,9 @@ pub fn open(query: &str) -> Open {
     } = feeds;
     let link = LauncherLink::new();
     link.open(fake::output().id, query.to_owned());
-    let (script, script_rx) = watch::channel(Scripted::default());
     let running = SurfaceHarness::<Launcher>::setup(link.clone(), ())
         .services(services, bar)
-        .in_root(in_root(
-            launcher_support::providers(),
-            LauncherScript(script_rx),
-            runner,
-        ))
+        .in_root(in_root(launcher_support::providers(), runner))
         .start();
     let SurfaceHarness {
         mut harness,
@@ -98,7 +118,6 @@ pub fn open(query: &str) -> Open {
             searches,
         },
         link,
-        script,
     }
 }
 

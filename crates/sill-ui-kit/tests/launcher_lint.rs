@@ -92,7 +92,7 @@ fn the_panel_renders_no_raw_markup() {
 #[test]
 fn the_panel_with_its_preview_pane_and_sections_lints_clean() {
     let mut open = launcher_harness::open("m9");
-    open.link.press(sill_ui_kit::links::LinkKey::QuickLook);
+    open.press(launcher_harness::Press::QuickLook);
     open.harness.advance(std::time::Duration::from_millis(60));
     let html = open.harness.html();
     assert!(html.contains("ds-preview"), "the pane is up");

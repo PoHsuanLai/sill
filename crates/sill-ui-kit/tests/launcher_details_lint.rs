@@ -7,7 +7,6 @@ mod launcher_harness;
 use std::time::Duration;
 
 use ds::lint::{LintConfig, Profile, assert_clean, markup};
-use sill_ui_kit::links::LinkKey;
 
 const LAUNCHER_CSS: &str = include_str!("../src/style/launcher.css");
 
@@ -26,7 +25,7 @@ fn the_launcher_stylesheet_is_clean_under_details() {
 #[test]
 fn the_panel_with_its_pane_markup_is_clean_under_details() {
     let mut open = launcher_harness::open("m9");
-    open.link.press(LinkKey::QuickLook);
+    open.press(launcher_harness::Press::QuickLook);
     open.harness.advance(Duration::from_millis(60));
     let html = open.harness.html();
     assert!(html.contains("ds-preview"), "the pane is up");

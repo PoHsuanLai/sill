@@ -22,10 +22,7 @@ pub use banners::{BannerLink, BannerOutput};
 pub use control_center::{ControlCenterAsk, ControlCenterLink};
 pub use edit_widgets::{EditShown, EditWidgetsLink, WidgetsWrite, WidgetsWriter};
 pub use hot_corners::{Corner, CornerHit, CornerLink};
-pub use launcher::{
-    CLIPBOARD_TITLE, LauncherLink, LinkKey, LinkPress, Opening, PanelHit, ShownRows,
-    ShownRowsSection,
-};
+pub use launcher::{CLIPBOARD_TITLE, LauncherLink, Opening, PanelHit, ShownRows, ShownRowsSection};
 pub use lock::{LockLink, PromptOutput};
 pub use notification_center::{CenterLink, CenterShown};
 pub use osd::{ChangeSerial, Level, LevelSource, OsdChange, OsdKind, OsdLatest, OsdLink};

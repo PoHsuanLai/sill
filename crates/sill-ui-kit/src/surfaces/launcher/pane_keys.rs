@@ -1,5 +1,5 @@
 //! The pane keys: the preview pane's machine (`preview::keys::step_preview`) fed
-//! from the palette's field and from `sill debug launcher-key`, row chords run from the results
+//! from the palette's field, row chords run from the results
 //! (`action_for_chord`), and Enter on the pane's focused control.
 //!
 //! The field keeps the keyboard: the pane's focus is the machine's `PaneFocus::Pane(n)`, drawn by
@@ -14,13 +14,12 @@ use dioxus::prelude::*;
 use ds::{Claim, FieldKey};
 use sill_launcher::{Choice, Item, Preview, action_for_chord, chords, preview_for};
 
-use crate::links::LinkKey;
 use crate::surfaces::launcher::chord_keys::chord_of;
 use crate::surfaces::launcher::claim_keys::{KeyPlace, pane_key};
 use crate::surfaces::launcher::entries::RowRef;
 use crate::surfaces::launcher::events::PanelCtx;
 use crate::surfaces::launcher::keymap::launcher_key;
-use crate::surfaces::launcher::keys::{ActionsMenu, LauncherKey};
+use crate::surfaces::launcher::keys::LauncherKey;
 use crate::surfaces::launcher::pane_session::PaneSession;
 use crate::surfaces::launcher::preview::keys::{
     Caret, PaneFocus, PreviewKey, PreviewOut, PreviewState, Previewable, step_preview,
@@ -75,60 +74,6 @@ impl PanelCtx {
                 self.preview_key(PreviewKey::Moved);
             }
             _ => {}
-        }
-    }
-
-    /// `sill debug launcher-key`: `key` as if pressed in the open panel. It cannot see the
-    /// field's caret, so its → acts as → at the field's end.
-    pub fn debug_key(&self, key: LinkKey) {
-        let Some(session) = self.current() else {
-            return;
-        };
-        match key {
-            LinkKey::Up | LinkKey::Down => {
-                self.press(match key {
-                    LinkKey::Up => LauncherKey::Up,
-                    _ => LauncherKey::Down,
-                });
-                if session.keys.actions == ActionsMenu::Closed {
-                    self.preview_key(PreviewKey::Moved);
-                }
-            }
-            LinkKey::Enter => self.press(LauncherKey::Enter),
-            LinkKey::Escape if session.keys.actions != ActionsMenu::Closed => {
-                self.press(LauncherKey::Escape);
-            }
-            LinkKey::Escape => {
-                if self
-                    .preview_key(PreviewKey::Escape)
-                    .contains(&PreviewOut::CloseLauncher)
-                {
-                    self.link.close();
-                }
-            }
-            LinkKey::Tab => self.tab(LauncherKey::Tab),
-            LinkKey::ShiftTab => self.tab(LauncherKey::ShiftTab),
-            LinkKey::Actions => self.press(LauncherKey::Actions),
-            LinkKey::Space => {
-                if self
-                    .preview_key(PreviewKey::Space)
-                    .contains(&PreviewOut::PassToField)
-                {
-                    self.typed(format!("{} ", session.query));
-                }
-            }
-            LinkKey::QuickLook => {
-                self.preview_key(PreviewKey::QuickLook);
-            }
-            LinkKey::Right => {
-                self.preview_key(PreviewKey::Right(Caret::AtEnd));
-            }
-            LinkKey::Left => {
-                self.preview_key(PreviewKey::Left);
-            }
-            LinkKey::Reveal => {
-                self.chord(&chords::reveal());
-            }
         }
     }
 
@@ -203,22 +148,6 @@ impl PanelCtx {
             .row(session.keys.selected)
     }
 
-    /// Tab or Shift+Tab: the pane's controls while it has the keyboard, else the filter.
-    fn tab(&self, key: LauncherKey) {
-        let in_pane = self
-            .current_pane()
-            .is_some_and(|pane| matches!(pane.preview.focus, PaneFocus::Pane(_)));
-        match (in_pane, key) {
-            (true, LauncherKey::ShiftTab) => {
-                self.preview_key(PreviewKey::ShiftTab);
-            }
-            (true, _) => {
-                self.preview_key(PreviewKey::Tab);
-            }
-            (false, key) => self.press(key),
-        }
-    }
-
     /// A chord from the results: ⌘Y and ⌘→ are the pane's; any other runs the selected row's
     /// action that carries it (H5), and nothing else hears it.
     fn chord(&self, chord: &sill_launcher::Chord) -> Claim {
@@ -250,23 +179,6 @@ fn caret_of(caret: ds::Caret) -> Caret {
         ds::Caret::AtEnd => Caret::AtEnd,
         ds::Caret::Inside | ds::Caret::Unknown => Caret::Inside,
     }
-}
-
-/// Step every `sill debug launcher-key` press on the panel (the daemon provides the link to
-/// every root; only the panel the launcher is open on acts).
-pub(crate) fn use_link_keys(panel: PanelCtx) {
-    use_hook(move || {
-        let mut rx = panel.link.subscribe_keys();
-        rx.borrow_and_update();
-        spawn(async move {
-            while rx.changed().await.is_ok() {
-                let key = rx.borrow_and_update().key;
-                if let (Some(key), Some(_)) = (key, panel.opening()) {
-                    panel.debug_key(key);
-                }
-            }
-        });
-    });
 }
 
 #[cfg(test)]

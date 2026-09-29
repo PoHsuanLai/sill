@@ -8,8 +8,8 @@ use sill_ipc::act::{
     ActRequest, DisplayRequest, DockRequest, LevelRequest, SwitcherRequest, VolumeRequest,
 };
 use sill_ipc::debug::{
-    CornerName, DebugRequest, KeyAction, KeySpec, LauncherKey, LauncherRows, Micros, OsdTopic,
-    Point, PointerButton, RowsSection, SurfaceName, SurfaceStats,
+    CornerName, DebugRequest, KeyAction, KeySpec, LauncherRows, Micros, OsdTopic, Point,
+    PointerButton, RowsSection, SurfaceName, SurfaceStats,
 };
 use sill_ipc::error::IpcError;
 use sill_ipc::line::{MAX_LINE, decode, encode, read_message, write_message};
@@ -372,10 +372,6 @@ fn requests() -> Vec<(Request, &'static str)> {
                 apps: vec![app("foot"), app("firefox")],
             }),
             r#"{"kind":"debug","v":{"kind":"switcher","v":{"apps":["foot","firefox"]}}}"#,
-        ),
-        (
-            Request::Debug(DebugRequest::LauncherKey(LauncherKey::QuickLook)),
-            r#"{"kind":"debug","v":{"kind":"launcher_key","v":"quick_look"}}"#,
         ),
         (
             Request::Debug(DebugRequest::LauncherRows),

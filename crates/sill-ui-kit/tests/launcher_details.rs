@@ -7,12 +7,11 @@ mod launcher_harness;
 use std::time::Duration;
 
 use ds_native::harness::assert_settles_to_zero_frames;
-use launcher_harness::{Open, Seen, await_off_thread, loaded, open, settle};
-use sill_ui_kit::links::LinkKey;
+use launcher_harness::{Open, Press, Seen, await_off_thread, loaded, open, settle};
 
-/// Press `key` through the debug link (a remote change: `Touch::Remote`).
-fn press(open: &mut Open, key: LinkKey) {
-    open.link.press(key);
+/// Press `key` on the harness's keyboard.
+fn press(open: &mut Open, key: Press) {
+    open.press(key);
     open.harness.advance(Duration::from_millis(40));
 }
 
@@ -27,7 +26,7 @@ fn open_preview_hide_then_zero_frames_at_rest() {
     let mut open = open("m9");
     assert_settles_to_zero_frames(&mut open.harness);
 
-    press(&mut open, LinkKey::QuickLook);
+    press(&mut open, Press::QuickLook);
     settle(&mut open.harness, |h| h.count(".ds-preview") > 0);
     assert_eq!(open.harness.count(".ds-preview"), 1, "the pane is up");
     // The PDF's page is rasterised in wall time; until it lands the pane's pending look runs.
@@ -39,10 +38,10 @@ fn open_preview_hide_then_zero_frames_at_rest() {
     assert_settles_to_zero_frames(&mut open.harness);
 
     // Down onto the next row while it shows: the content changes in place, no entrance replays.
-    press(&mut open, LinkKey::Down);
+    press(&mut open, Press::Down);
     assert_settles_to_zero_frames(&mut open.harness);
 
-    press(&mut open, LinkKey::QuickLook);
+    press(&mut open, Press::QuickLook);
     settle(&mut open.harness, |h| h.count(".ds-preview") == 0);
     assert_eq!(open.harness.count(".ds-preview"), 0, "the pane has left");
     assert_settles_to_zero_frames(&mut open.harness);

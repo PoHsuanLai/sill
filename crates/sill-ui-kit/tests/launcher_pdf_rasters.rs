@@ -7,15 +7,14 @@ mod launcher_harness;
 
 use std::time::Duration;
 
-use launcher_harness::open;
+use launcher_harness::{Press, open};
 use sill_launcher::PreviewKind;
-use sill_ui_kit::links::LinkKey;
 
 #[test]
 fn holding_down_through_pdfs_rasterises_only_a_few() {
     let mut open = open("m9");
     // The Top Hit is a PDF; the pane shows it (and rasterises it once).
-    open.link.press(LinkKey::QuickLook);
+    open.press(Press::QuickLook);
     for _ in 0..10 {
         open.harness.advance(Duration::from_millis(20));
     }
@@ -24,7 +23,7 @@ fn holding_down_through_pdfs_rasterises_only_a_few() {
     // each press rendered at once, as a held key repeats faster than a page rasterises (the
     // fixtures are tiny: a real page takes longer, so this is the kind case).
     for _ in 0..5 {
-        open.link.press(LinkKey::Down);
+        open.press(Press::Down);
         open.harness.advance(Duration::from_millis(1));
     }
     let shown = open.link.rows().expect("the open panel publishes its rows");

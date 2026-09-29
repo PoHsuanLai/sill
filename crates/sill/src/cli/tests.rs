@@ -8,8 +8,7 @@ use sill_ipc::act::{
     ActRequest, DisplayRequest, DockRequest, LevelRequest, SwitcherRequest, VolumeRequest,
 };
 use sill_ipc::debug::{
-    CornerName, DebugRequest, KeyAction, KeySpec, LauncherKey, OsdTopic, Point, PointerButton,
-    SurfaceName,
+    CornerName, DebugRequest, KeyAction, KeySpec, OsdTopic, Point, PointerButton, SurfaceName,
 };
 use sill_ipc::request::Request;
 use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
@@ -253,10 +252,6 @@ fn every_command_line_sends_its_request() {
             debug(DebugRequest::LauncherRows),
         ),
         (&["debug", "idle-wake"], debug(DebugRequest::IdleWake)),
-        (
-            &["debug", "launcher-key", "quick-look"],
-            debug(DebugRequest::LauncherKey(LauncherKey::QuickLook)),
-        ),
         (
             &["debug", "auth", "accept"],
             debug(DebugRequest::Auth(FakeVerdict::Accept)),

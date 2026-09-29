@@ -20,7 +20,6 @@ pub mod pane_session;
 pub mod preview;
 pub mod row_icon;
 pub mod rows;
-pub mod script;
 pub mod sections_view;
 pub mod session;
 pub mod view;

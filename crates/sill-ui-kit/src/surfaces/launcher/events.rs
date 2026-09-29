@@ -1,8 +1,7 @@
 //! What the panel does on its inputs: an opening (reset, first query, `open_latency_ms`), a
 //! keystroke in the field (a new generation, filtered while Tab's filter holds), a key the
 //! palette leaves alone (the keyboard machine), a pick (activation, then close; a "Show More"
-//! line opens its section) and a dismissal. The other keys (the preview pane's, row chords, the
-//! debug link's) are `pane_keys.rs`.
+//! line opens its section) and a dismissal. The other keys (the preview pane's, row chords) are `pane_keys.rs`.
 
 use crate::services::Services;
 use dioxus::prelude::*;

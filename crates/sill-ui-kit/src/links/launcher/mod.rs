@@ -17,7 +17,7 @@ use tokio::sync::watch;
 
 use crate::links::{OpenSerial, PanelFocus, Reveal};
 
-pub use debug::{CLIPBOARD_TITLE, LinkKey, LinkPress, ShownRows, ShownRowsSection};
+pub use debug::{CLIPBOARD_TITLE, ShownRows, ShownRowsSection};
 pub use opening::Opening;
 pub use panel_hit::PanelHit;
 
@@ -47,8 +47,6 @@ fn toggle(shown: &Reveal<Opening>, output: OutputId, now: Instant) -> Reveal<Ope
 pub struct LauncherLink {
     shown: watch::Sender<Reveal<Opening>>,
     hit: watch::Sender<PanelHit>,
-    /// `sill debug launcher-key`'s presses, which the open panel steps.
-    keys: watch::Sender<LinkPress>,
     /// The rows the open panel shows, for `sill debug launcher-rows`.
     rows: watch::Sender<Option<ShownRows>>,
 }
@@ -65,7 +63,6 @@ impl LauncherLink {
         LauncherLink {
             shown: watch::Sender::new(Reveal::default()),
             hit: watch::Sender::new(PanelHit::default()),
-            keys: watch::Sender::new(LinkPress::default()),
             rows: watch::Sender::new(None),
         }
     }
@@ -130,20 +127,6 @@ impl LauncherLink {
     /// A receiver for the catcher to follow the panel's part.
     pub fn subscribe_hit(&self) -> watch::Receiver<PanelHit> {
         self.hit.subscribe()
-    }
-
-    /// Press `key` on the open panel, as if typed (`sill debug launcher-key`). A panel that is
-    /// not open ignores it.
-    pub fn press(&self, key: LinkKey) {
-        self.keys.send_modify(|press| {
-            press.count += 1;
-            press.key = Some(key);
-        });
-    }
-
-    /// A receiver for the panel to step every press from.
-    pub fn subscribe_keys(&self) -> watch::Receiver<LinkPress> {
-        self.keys.subscribe()
     }
 
     /// The panel shows `rows` (`None`: it is hidden).
