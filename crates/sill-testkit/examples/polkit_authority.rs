@@ -11,7 +11,7 @@
 //! <kind> session-id=<id> path=<path>`, `result <cookie> authorized|cancelled|failed`,
 //! `cancel-sent <cookie>`, `no-agent <cookie>`.
 //!
-//! Usage: `cargo run -p sill-services --example polkit_authority -- <bus address>`
+//! Usage: `cargo run -p sill-testkit --example polkit_authority -- <bus address>`
 
 use std::collections::HashMap;
 use std::io::Write;

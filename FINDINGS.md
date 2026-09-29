@@ -238,7 +238,7 @@ A settled item is deleted, not marked closed.
 ## Standing facts: tests never touch the real system
 
 - Live tests (`*_live.rs`) are `#[ignore]`d; every test that speaks D-Bus goes through
-  `tests/support/private_bus.rs` (`dev/private-bus.conf`). Every other test that starts
+  `sill-testkit/src/private_bus.rs` (`dev/private-bus.conf`). Every other test that starts
   services does so on `Env::isolated` (no bus, no compositor, scratch directories).
 - Every `dev/accept-*.sh` that starts a daemon gives it a private bus on both
   `DBUS_SESSION_BUS_ADDRESS` and `DBUS_SYSTEM_BUS_ADDRESS` (`dev/common.sh`:

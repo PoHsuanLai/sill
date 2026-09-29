@@ -6,6 +6,7 @@ members = [
   "crates/sill-services",
   "crates/sill-settings",
   "crates/sill-surfaces",
+  "crates/sill-testkit",
   "crates/sill",
 ]
 
@@ -24,6 +25,7 @@ sill-launcher = { path = "crates/sill-launcher" }
 sill-services = { path = "crates/sill-services" }
 sill-settings = { path = "crates/sill-settings" }
 sill-surfaces = { path = "crates/sill-surfaces" }
+sill-testkit  = { path = "crates/sill-testkit" }
 # Sibling repos, checked out next to this one.
 ds         = { path = "../quire/crates/ds" }
 ds-settings = { path = "../quire/crates/ds-settings", features = ["tokio"] }  # the shell runs zbus on tokio everywhere (quire CONSUMING §1)

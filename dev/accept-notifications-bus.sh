@@ -53,7 +53,7 @@ call() { in_env timeout 5 gdbus call --session --dest "$NAME" --object-path "$OB
 
 build() {
   (cd "$SILL_REPO" && cargo build -p sill --features debug &&
-    cargo build -p sill-services --example notifications_holder) >"$OUT_DIR/build.log" 2>&1 || {
+    cargo build -p sill-testkit --example notifications_holder) >"$OUT_DIR/build.log" 2>&1 || {
     echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
 }
 

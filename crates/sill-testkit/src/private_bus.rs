@@ -1,6 +1,6 @@
-//! A private `dbus-daemon` for the notifications tests: its own socket, no service activation
-//! (`dev/private-bus.conf`), stopped when dropped. No notifications test may reach the real
-//! session bus, whose `org.freedesktop.Notifications` belongs to the person's own daemon.
+//! A private `dbus-daemon` for the bus tests: its own socket, no service activation
+//! (`dev/private-bus.conf`), stopped when dropped. No test may reach the real session bus, whose
+//! names belong to the person's own daemons.
 
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
@@ -15,20 +15,28 @@ pub struct PrivateBus {
 }
 
 /// The config every private bus runs with.
-pub fn config() -> PathBuf {
+fn config() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../dev/private-bus.conf")
 }
 
 impl PrivateBus {
-    /// Start one; panics when `dbus-daemon` is missing (these tests are `#[ignore]`d live tests).
-    pub fn start() -> PrivateBus {
-        let mut child = Command::new("dbus-daemon")
+    /// Start one. Without a `dbus-daemon` there is no bus to test against and the answer is
+    /// `None`, announced on stderr so the skip is visible; a test never falls back to the real
+    /// session bus.
+    pub fn start() -> Option<PrivateBus> {
+        let spawned = Command::new("dbus-daemon")
             .arg(format!("--config-file={}", config().display()))
             .args(["--nofork", "--print-address=1"])
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
-            .spawn()
-            .unwrap_or_else(|e| panic!("starting dbus-daemon: {e}"));
+            .spawn();
+        let mut child = match spawned {
+            Ok(child) => child,
+            Err(e) => {
+                eprintln!("SKIPPED: no private bus, dbus-daemon did not start ({e})");
+                return None;
+            }
+        };
         let stdout = child
             .stdout
             .take()
@@ -39,7 +47,7 @@ impl PrivateBus {
             .unwrap_or_else(|e| panic!("reading the bus address: {e}"));
         let address = address.trim().to_owned();
         assert!(address.starts_with("unix:"), "bus address {address:?}");
-        PrivateBus { child, address }
+        Some(PrivateBus { child, address })
     }
 }
 

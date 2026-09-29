@@ -72,7 +72,7 @@ pub fn watch(dir: &Path) -> Result<FileTouch, ServiceError> {
 mod tests {
     use super::watch;
     use crate::pins::FILE_NAME;
-    use crate::pins::test_support::TempDir;
+    use sill_testkit::TempDir;
 
     /// A rename onto `FILE_NAME` (the atomic writer's own move) settles as exactly one touch,
     /// and a change to an unrelated sibling file is not reported at all.

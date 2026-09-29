@@ -255,8 +255,8 @@ mod tests {
     #[tokio::test]
     async fn spawn_does_not_panic_and_prepare_settles_to_a_defined_state() {
         let rt = tokio::runtime::Handle::current();
-        let scratch = crate::env::scratch::Scratch::new("wallpaper-spawn");
-        let service = spawn::<WallpaperService>(&rt, &scratch.env(), ());
+        let scratch = sill_testkit::TempDir::new("wallpaper-spawn");
+        let service = spawn::<WallpaperService>(&rt, &crate::env::Env::isolated(scratch.path()), ());
         let (mut wallpapers, control) = (service.state, service.control);
         assert_eq!(*wallpapers.borrow(), Wallpapers::default());
         control

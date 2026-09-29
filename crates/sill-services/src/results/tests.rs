@@ -14,7 +14,7 @@ use tokio::sync::watch;
 
 use super::effect::Outlets;
 use super::history::History;
-use super::test_support::TempDir;
+use sill_testkit::TempDir;
 use super::{Results, ResultsService, SearchCommand, load_frecency, runner};
 use crate::control::Control;
 use fake::{Fake, Heard, Obeys};

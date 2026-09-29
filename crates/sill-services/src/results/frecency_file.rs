@@ -33,7 +33,7 @@ pub fn save_frecency(dir: &Path, frecency: &Frecency) -> Result<(), ServiceError
 #[cfg(test)]
 mod tests {
     use super::{FILE_NAME, load_frecency, save_frecency};
-    use crate::results::test_support::TempDir;
+    use sill_testkit::TempDir;
     use sill_launcher::{Frecency, ItemId, ItemKey, ProviderKind, UnixTime};
 
     const NOW: UnixTime = UnixTime(1_790_000_000);

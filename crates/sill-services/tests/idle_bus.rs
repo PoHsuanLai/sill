@@ -2,15 +2,11 @@
 //! `SILL_NESTED_WAYLAND`; pinged by connecting, never stopped; never `wayland-0`) with
 //! `org.freedesktop.ScreenSaver` on a private bus and no logind at all (`BusRoute::Absent`), so
 //! nothing can suspend or hint. Run it with
-//! `cargo test -p sill-services --test idle_live -- --ignored --nocapture`.
-
-#[path = "support/private_bus.rs"]
-mod private_bus;
+//! `cargo test -p sill-services --test idle_bus -- --ignored --nocapture`.
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-use private_bus::PrivateBus;
 use sill_services::battery::Battery;
 use sill_services::env::{BusRoute, Buses, Env, WaylandRoute};
 use sill_services::idle::IdleService;
@@ -20,6 +16,7 @@ use sill_services::idle::{
 };
 use sill_services::service::spawn;
 use sill_services::{AuthCommand, Control, Lock, LockerCommand};
+use sill_testkit::PrivateBus;
 use tokio::sync::watch;
 
 /// The nested compositor's socket, or `None` (the test then says so and passes).
@@ -82,7 +79,10 @@ async fn idle_locks_at_screen_off_and_a_screensaver_inhibit_holds_it() {
         eprintln!("no nested compositor: skipped");
         return;
     };
-    let bus = PrivateBus::start();
+    let Some(bus) = PrivateBus::start() else {
+        eprintln!("no private bus: skipped");
+        return;
+    };
     let (_lock_tx, lock) = watch::channel(Lock::default());
     let (_battery_tx, battery) = watch::channel(Battery::default());
     let (locker, mut locker_rx) = Control::<LockerCommand>::channel();
@@ -122,7 +122,7 @@ async fn idle_locks_at_screen_off_and_a_screensaver_inhibit_holds_it() {
             "/ScreenSaver",
             Some("org.freedesktop.ScreenSaver"),
             "Inhibit",
-            &("idle_live", "a test"),
+            &("idle_bus", "a test"),
         )
         .await
         .unwrap_or_else(|e| panic!("Inhibit: {e}"));

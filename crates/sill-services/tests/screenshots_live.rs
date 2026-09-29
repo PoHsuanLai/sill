@@ -54,7 +54,6 @@ fn current_is(path: &Path) -> impl Fn(&Shots) -> bool + '_ {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[ignore = "a real inotify watch of a temp folder"]
 async fn a_renamed_screenshot_is_current_with_a_preview_and_a_part_file_is_not() {
     let dir = folder("watch");
     let dirs = Dirs::under(&dir.join("dirs"));
@@ -98,7 +97,6 @@ async fn a_renamed_screenshot_is_current_with_a_preview_and_a_part_file_is_not()
 }
 
 #[tokio::test(flavor = "multi_thread")]
-#[ignore = "a real inotify watch of a temp folder and a stand-in tool"]
 async fn a_stand_in_tool_takes_a_screenshot_that_the_watch_sees() {
     let dir = folder("take");
     let dirs = Dirs::under(&dir.join("dirs"));

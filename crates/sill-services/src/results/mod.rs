@@ -19,8 +19,6 @@ mod registry;
 mod run;
 mod sink;
 #[cfg(test)]
-mod test_support;
-#[cfg(test)]
 mod tests;
 
 pub use frecency_file::{FILE_NAME as FRECENCY_FILE, load_frecency, save_frecency};

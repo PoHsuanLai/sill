@@ -81,7 +81,7 @@ pending() { echo "step $1: PENDING - $2"; PENDING=1; }
 
 build() {
   (cd "$SILL_REPO" && cargo build -p sill --features debug &&
-    cargo build -p sill-services --example files_probe --example file_manager_stub) \
+    cargo build -p sill-testkit --example files_probe --example file_manager_stub) \
     >"$OUT_DIR/build.log" 2>&1 || { echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
 }
 

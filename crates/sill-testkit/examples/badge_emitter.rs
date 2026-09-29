@@ -1,7 +1,7 @@
 //! A `LauncherEntry` emitter for exercising badges without a real app:
 //!
 //! ```sh
-//! cargo run -p sill-services --example badge_emitter -- <desktop-id> \
+//! cargo run -p sill-testkit --example badge_emitter -- <desktop-id> \
 //!     [--count N] [--progress 0..1] [--urgent]
 //! ```
 //!

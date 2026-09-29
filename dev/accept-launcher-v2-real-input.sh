@@ -81,7 +81,7 @@ kwin_wl() { env WAYLAND_DISPLAY="$WL" "$@" 2>>"$OUT_DIR/wl.log"; }
 
 build() {
   (cd "$SILL_REPO" && cargo build -p sill --features debug &&
-    cargo build -p sill-services --example file_manager_stub) >"$OUT_DIR/build.log" 2>&1 || {
+    cargo build -p sill-testkit --example file_manager_stub) >"$OUT_DIR/build.log" 2>&1 || {
     echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
 }
 

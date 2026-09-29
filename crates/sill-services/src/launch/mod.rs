@@ -15,9 +15,6 @@ mod open;
 mod plan;
 mod run;
 mod terminal;
-#[cfg(test)]
-mod test_support;
-
 pub use model::{LaunchOutcome, LaunchedScope, Launches, ScopeUnit, step};
 pub use open::{OpenRequest, open_argv, reveal_folder};
 pub use plan::{launch_argv, scope_unit};
@@ -142,8 +139,8 @@ mod tests {
         let (_apps_tx, apps_rx) =
             tokio::sync::watch::channel(index_with("sill-launch-test", "/bin/true"));
         let rt = tokio::runtime::Handle::current();
-        let scratch = crate::env::scratch::Scratch::new("launch-scope");
-        let mut env = scratch.env();
+        let scratch = sill_testkit::TempDir::new("launch-scope");
+        let mut env = crate::env::Env::isolated(scratch.path());
         env.dirs.runtime = std::env::var_os("XDG_RUNTIME_DIR").map(std::path::PathBuf::from);
         let launch = spawn::<LaunchService>(&rt, &env, apps_rx);
         let (mut launches, control) = (launch.state, launch.control);

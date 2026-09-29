@@ -1,7 +1,7 @@
 //! A fake MPRIS player for exercising Now Playing without a real one:
 //!
 //! ```sh
-//! cargo run -p sill-services --example mpris_player -- <suffix> \
+//! cargo run -p sill-testkit --example mpris_player -- <suffix> \
 //!     [--title T] [--artist A] [--album AL] [--paused]
 //! ```
 //!

@@ -2,11 +2,8 @@
 //! runs a `FakeAuthenticator` as its `Env`'s authenticator, and `PamHelper` runs against the
 //! stand-in helper (`examples/auth_helper.rs`). The one PAM test runs only when
 //! `SILL_PAM_TEST_USER` and `SILL_PAM_TEST_SECRET` name a throwaway account, and says it skipped
-//! otherwise. `#[ignore]`d: run with
-//!
-//! ```sh
-//! cargo test -p sill-services --test auth_live -- --ignored --nocapture
-//! ```
+//! otherwise; that test is `#[ignore]`d and run with
+//! `cargo test -p sill-services --test auth_live -- --ignored --nocapture`.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -70,7 +67,6 @@ async fn wrong_once(auth: &mut watch::Receiver<Auth>, control: &Control<AuthComm
 
 /// No lockout: however many wrong secrets came before, the next one is checked at once.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "live: spawns the auth service"]
 async fn many_wrongs_never_lock_out_and_the_right_one_opens() {
     let (mut auth, control) = start(fake(20));
     send(&control, AuthCommand::Reset);
@@ -98,7 +94,6 @@ async fn many_wrongs_never_lock_out_and_the_right_one_opens() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "live: spawns the auth service"]
 async fn busy_while_checking_then_right_then_reset() {
     let (mut auth, control) = start(fake(300));
     send(&control, AuthCommand::Submit(Secret::new("nope")));
@@ -128,7 +123,6 @@ async fn busy_while_checking_then_right_then_reset() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "live: spawns the auth service"]
 async fn an_unavailable_check_counts_nothing() {
     let failing = Arc::new(FakeAuthenticator {
         rule: FakeRule::Fails(AuthFault::ServiceError),
@@ -151,7 +145,7 @@ fn stand_in() -> PathBuf {
             "build",
             "--quiet",
             "-p",
-            "sill-services",
+            "sill-testkit",
             "--example",
             "auth_helper",
         ])
@@ -182,7 +176,6 @@ fn attempt(secret: &str) -> Attempt {
 }
 
 #[test]
-#[ignore = "live: runs the stand-in helper"]
 fn the_pam_helper_against_the_stand_in() {
     let program = stand_in();
     let long = Duration::from_secs(5);

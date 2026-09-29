@@ -217,7 +217,7 @@ mod tests {
 
     /// A fresh directory under the system temp dir, holding one file named `cosmic-settings` —
     /// standing in for a `$PATH` entry, removed on drop (no `tempfile`: not in the pinned block,
-    /// `results/test_support.rs` uses the same pattern).
+    /// `sill_testkit::TempDir` is the same pattern).
     struct FakePathDir(PathBuf);
 
     impl FakePathDir {

@@ -1,11 +1,6 @@
 //! sill's polkit agent against a stand-in Authority on a private bus and the stand-in helper
-//! (`examples/polkit_helper.rs`), never polkitd, the system bus or PAM. The bus test is live (a
-//! `dbus-daemon`): run it with `cargo test -p sill-services --test polkit_live -- --ignored
-//! --nocapture`. The made-up request's test touches no bus and
-//! runs with the suite.
-
-#[path = "support/private_bus.rs"]
-mod private_bus;
+//! (`examples/polkit_helper.rs`), never polkitd, the system bus or PAM. The bus test needs a
+//! `dbus-daemon` and skips, saying so, without one.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -13,7 +8,6 @@ use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use private_bus::PrivateBus;
 use sill_services::auth::Secret;
 use sill_services::control::Control;
 use sill_services::env::{Bus, BusRoute, Env};
@@ -24,6 +18,7 @@ use sill_services::polkit_agent::{
     SessionChoice,
 };
 use sill_services::service::spawn;
+use sill_testkit::PrivateBus;
 use tokio::sync::{mpsc, watch};
 use zbus::message::Header;
 use zbus::zvariant::{OwnedValue, Value};
@@ -95,7 +90,7 @@ fn helper_program() -> PathBuf {
             "build",
             "-q",
             "-p",
-            "sill-services",
+            "sill-testkit",
             "--example",
             "polkit_helper",
         ])
@@ -187,10 +182,11 @@ fn answer(control: &sill_services::Control<PolkitCommand>, cookie: &str, text: &
 }
 
 #[test]
-#[ignore = "live: needs dbus-daemon"]
 fn the_agent_registers_answers_fails_and_cancels_on_a_private_bus() {
     let helper = helper_program();
-    let bus = PrivateBus::start();
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
     let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
     rt.block_on(async {
         let (heard_tx, mut heard_rx) = mpsc::unbounded_channel();

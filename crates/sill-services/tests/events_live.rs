@@ -1,7 +1,5 @@
 //! The events service end to end over a temp directory (never a real calendar): a file and a
 //! vdir collection are read once told, and an edit of the file is read again within a second.
-//! `#[ignore]`d because it watches the file system with real timers: run with
-//! `cargo test -p sill-services --test events_live -- --ignored`.
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -80,7 +78,6 @@ async fn wait_for(
 }
 
 #[test]
-#[ignore = "watches a temp directory with real timers"]
 fn a_file_and_a_collection_are_read_and_an_edit_is_read_again_within_a_second() {
     let scratch = Scratch::new("events-live");
     let file = scratch.0.join("personal.ics");

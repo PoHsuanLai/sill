@@ -13,7 +13,7 @@
 //! interactive=<b>`, `idle-hint <b>`, `inhibit <what> <mode>`, `lock-session <id>`, and
 //! `sent <command>`.
 //!
-//! Usage: `cargo run -p sill-services --example logind_standin -- <bus address>`
+//! Usage: `cargo run -p sill-testkit --example logind_standin -- <bus address>`
 
 use std::io::Write;
 use std::sync::{Arc, Mutex};

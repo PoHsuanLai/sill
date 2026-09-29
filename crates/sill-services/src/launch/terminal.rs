@@ -52,7 +52,7 @@ pub fn detect() -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::{candidates, resolve};
-    use crate::launch::test_support::TempDir;
+    use sill_testkit::TempDir;
 
     #[test]
     fn candidates_put_the_env_terminal_first_and_drop_blanks_and_duplicates() {

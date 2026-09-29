@@ -37,53 +37,8 @@ emojis = { workspace = true }
 mime_guess = { workspace = true }
 percent-encoding = { workspace = true }
 
-# A LauncherEntry emitter for exercising badges without a real app: the dock's acceptance runs
-# it as a child process.
-[[example]]
-name = "badge_emitter"
-
-# A fake MPRIS player for exercising Now Playing without a real one: `dev/accept-widgets.sh`
-# runs it as a child process, under its own bus name.
-[[example]]
-name = "mpris_player"
-
-# Another notification daemon on a private bus, holding org.freedesktop.Notifications first:
-# `dev/accept-notifications-bus.sh` checks that sill reports it and never replaces it.
-[[example]]
-name = "notifications_holder"
-
-# A stand-in for `sill auth-check` speaking the helper protocol without PAM:
-# `tests/auth_live.rs` drives the real `PamHelper` against it.
-[[example]]
-name = "auth_helper"
-
-# polkitd's Authority and polkit's helper, stood in for on a private bus: `tests/polkit_live.rs` and
-# `dev/accept-polkit.sh` drive sill's agent with them, never polkitd.
-[[example]]
-name = "polkit_authority"
-
-[[example]]
-name = "polkit_helper"
-
-# The launcher's files provider driven as the runner drives it, its first row opened through the
-# launch service: `dev/accept-launcher-files.sh` and `tests/files_tracker_live.rs` run it in a
-# scratch HOME on a private bus, never in the person's own.
-[[example]]
-name = "files_probe"
-
-# org.freedesktop.FileManager1 on a private bus, printing each ShowItems call:
-# `dev/accept-launcher-files.sh` checks ⌘R's reveal with it, never a real file manager.
-[[example]]
-name = "file_manager_stub"
-
-# logind, stood in for on a private bus: it only records Suspend, SetIdleHint and Inhibit, and sends
-# PrepareForSleep and Lock on command. `dev/accept-idle.sh` runs it with a video player's
-# ScreenSaver.Inhibit, never the real logind.
-[[example]]
-name = "logind_standin"
-
-[[example]]
-name = "screensaver_client"
+[dev-dependencies]
+sill-testkit = { workspace = true }
 
 [lints]
 workspace = true

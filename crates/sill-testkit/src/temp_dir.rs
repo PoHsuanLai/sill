@@ -1,32 +1,31 @@
-//! A fresh folder for one unit test, removed when dropped, and an [`Env`] inside it.
+//! A fresh folder for one test, removed when dropped: the files a test makes (a history, a
+//! cache) land here, never in the person's own directories.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
-
-use super::Env;
 
 /// A folder under the temp directory, unique to this process and call.
 #[derive(Debug)]
-pub(crate) struct Scratch(PathBuf);
+pub struct TempDir(PathBuf);
 
-impl Scratch {
+impl TempDir {
     /// A new empty folder named after `name`.
-    pub(crate) fn new(name: &str) -> Scratch {
+    pub fn new(name: &str) -> TempDir {
         static NEXT: AtomicU32 = AtomicU32::new(0);
         let n = NEXT.fetch_add(1, Ordering::Relaxed);
         let dir = std::env::temp_dir().join(format!("sill-{name}-{}-{n}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("{}: {e}", dir.display()));
-        Scratch(dir)
+        TempDir(dir)
     }
 
-    /// [`Env::isolated`] in this folder.
-    pub(crate) fn env(&self) -> Env {
-        Env::isolated(&self.0)
+    /// The folder.
+    pub fn path(&self) -> &Path {
+        &self.0
     }
 }
 
-impl Drop for Scratch {
+impl Drop for TempDir {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.0);
     }

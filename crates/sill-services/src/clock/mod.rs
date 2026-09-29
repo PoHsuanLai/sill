@@ -101,7 +101,7 @@ mod tests {
 
     use super::{ClockCommand, ClockService, ClockText, publish};
     use crate::env::FixedClock;
-    use crate::env::scratch::Scratch;
+    use sill_testkit::TempDir;
     use crate::service::spawn;
 
     #[test]
@@ -128,10 +128,10 @@ mod tests {
             .at(14, 5, 0, 0)
             .to_zoned(jiff::tz::TimeZone::UTC)
             .expect("a valid instant"); // test-only
-        let scratch = Scratch::new("clock");
+        let scratch = TempDir::new("clock");
         let env = crate::env::Env {
             clock: Arc::new(FixedClock(at)),
-            ..scratch.env()
+            ..crate::env::Env::isolated(scratch.path())
         };
         let clock = spawn::<ClockService>(rt.handle(), &env, ());
         assert_eq!(clock.state.borrow().text, "Thu 24 Sep 14:05");

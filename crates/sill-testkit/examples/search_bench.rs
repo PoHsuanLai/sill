@@ -1,7 +1,7 @@
 //! Query-to-first-batch latency of the launcher search, through the public
 //! `sill_services::results::ResultsService` given its providers.
 //!
-//! `cargo run -p sill-services --example search_bench --release`
+//! `cargo run -p sill-testkit --example search_bench --release`
 //!
 //! Two indexes: the fixture tree (`tests/fixtures/applications`, a dozen entries) and the same
 //! entries copied to 1500 apps with distinct names (a large desktop). One stand-in apps

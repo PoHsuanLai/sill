@@ -133,7 +133,7 @@ await_logind() {
 
 build() {
   (cd "$SILL_REPO" && cargo build -p sill --features debug &&
-    cargo build -p sill-services --example session_locker --example logind_standin \
+    cargo build -p sill-testkit --example session_locker --example logind_standin \
       --example screensaver_client) >"$OUT_DIR/build.log" 2>&1 \
     || { echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
 }

@@ -3,7 +3,7 @@
 # wayland-1 is reused and never stopped). Starts `sill run` from this checkout's debug build
 # (`--features debug`) with a scratch XDG_CONFIG_HOME, XDG_STATE_HOME and XDG_CACHE_HOME, under a
 # private session bus (dev/private-bus.conf: no service directories, so no UPower, BlueZ or real
-# MPRIS player is ever reached) holding one fake MPRIS player (sill-services' `mpris_player`
+# MPRIS player is ever reached) holding one fake MPRIS player (sill-testkit's `mpris_player`
 # example), and with its own XDG_RUNTIME_DIR (the nested socket as an absolute WAYLAND_DISPLAY). The
 # daemon is quit at the end.
 #
@@ -184,7 +184,7 @@ with open(sys.argv[1], "rb") as f:
 
 build() {
   (cd "$SILL_REPO" && cargo build -p sill --features debug \
-    && cargo build -p sill-services --example mpris_player) >"$OUT_DIR/build.log" 2>&1 || {
+    && cargo build -p sill-testkit --example mpris_player) >"$OUT_DIR/build.log" 2>&1 || {
     echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
   [ -x "$PROBE" ] || (cd "$HOST_REPO" && cargo build --release -p shell-host --features debug-inject \
     --example probe_toplevel >>"$OUT_DIR/build.log" 2>&1)

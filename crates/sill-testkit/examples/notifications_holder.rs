@@ -5,7 +5,7 @@
 //! The address is an argument, never `DBUS_SESSION_BUS_ADDRESS`, so this cannot reach the real
 //! session bus by accident (plasmashell holds the name there).
 //!
-//! Usage: `cargo run -p sill-services --example notifications_holder -- <bus address>`
+//! Usage: `cargo run -p sill-testkit --example notifications_holder -- <bus address>`
 
 use std::time::Duration;
 

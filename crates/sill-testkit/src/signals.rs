@@ -8,7 +8,8 @@ use zbus::export::futures_core::Stream;
 use zbus::message::Type as MessageType;
 use zbus::{MatchRule, MessageStream};
 
-use sill_services::notifications::BUS_NAME;
+/// The notifications interface's name (also its bus name).
+const INTERFACE: &str = "org.freedesktop.Notifications";
 
 /// One signal heard.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -19,6 +20,7 @@ pub enum Heard {
 }
 
 /// A subscription to the interface's signals.
+#[derive(Debug)]
 pub struct Signals {
     stream: MessageStream,
 }
@@ -28,7 +30,7 @@ impl Signals {
     pub async fn listen(connection: &zbus::Connection) -> Signals {
         let rule = MatchRule::builder()
             .msg_type(MessageType::Signal)
-            .interface(BUS_NAME)
+            .interface(INTERFACE)
             .unwrap_or_else(|e| panic!("{e}"))
             .build();
         let stream = MessageStream::for_match_rule(rule, connection, None)

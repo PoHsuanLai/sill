@@ -1,11 +1,8 @@
-//! The notifications server on a private `dbus-daemon` (`support/private_bus.rs`), never the
+//! The notifications server on a private `dbus-daemon` (`sill-testkit`), never the
 //! session bus: the person's own daemon holds `org.freedesktop.Notifications` there (on this
-//! machine, plasmashell). `#[ignore]`d because they start a bus: run with
-//! `cargo test -p sill-services --test notifications_live -- --ignored --nocapture`.
+//! machine, plasmashell). Without a `dbus-daemon` they say so and skip.
 //!
 //! The first proves the private bus itself; the rest check `notifications/live.rs`.
-
-mod support;
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -18,9 +15,7 @@ use sill_services::{
     ActionKey, Activation, ActivationToken, NameHolder, NotificationId, NotificationsCommand,
     NotificationsPolicy, ServerMode,
 };
-use support::private_bus::PrivateBus;
-use support::scratch::Scratch;
-use support::signals::{Heard, Signals};
+use sill_testkit::{Heard, PrivateBus, Signals, TempDir};
 use tokio::sync::watch;
 use zbus::Message;
 use zbus::zvariant::OwnedValue;
@@ -59,7 +54,7 @@ async fn owner(connection: &zbus::Connection) -> Option<String> {
 fn start(
     runtime: &tokio::runtime::Runtime,
     bus: &PrivateBus,
-    scratch: &Scratch,
+    scratch: &TempDir,
 ) -> (watch::Receiver<NotesState>, Control<NotificationsCommand>) {
     let env = Env {
         buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
@@ -77,10 +72,11 @@ fn own() -> NotificationsPolicy {
 }
 
 #[test]
-#[ignore = "live: starts a private dbus-daemon"]
 fn the_private_bus_starts_empty_and_activates_nothing() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
-    let bus = PrivateBus::start();
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
     runtime.block_on(async {
         let connection = connect(&bus).await;
         assert_eq!(owner(&connection).await, None, "nobody holds the name");
@@ -101,11 +97,12 @@ fn the_private_bus_starts_empty_and_activates_nothing() {
 }
 
 #[test]
-#[ignore = "live: starts a private dbus-daemon"]
 fn a_passive_service_never_asks_for_the_name_but_reports_its_holder() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
-    let bus = PrivateBus::start();
-    let scratch = Scratch::new("notes-passive");
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = TempDir::new("notes-passive");
     let (mut notes, control) = start(&runtime, &bus, &scratch);
     let seen = runtime.block_on(wait_for(&mut notes, SETTLE, |n: &NotesState| {
         n.live.server.holder == NameHolder::Nobody
@@ -123,11 +120,12 @@ fn a_passive_service_never_asks_for_the_name_but_reports_its_holder() {
 }
 
 #[test]
-#[ignore = "live: starts a private dbus-daemon"]
 fn owning_serves_notify_and_close_with_their_signal() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
-    let bus = PrivateBus::start();
-    let scratch = Scratch::new("notes-own");
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = TempDir::new("notes-own");
     let (mut notes, control) = start(&runtime, &bus, &scratch);
     control
         .send(NotificationsCommand::Policy(own()))
@@ -206,7 +204,7 @@ async fn notify(connection: &zbus::Connection, app: &str, actions: Vec<&str>) ->
 fn owning(
     runtime: &tokio::runtime::Runtime,
     bus: &PrivateBus,
-    scratch: &Scratch,
+    scratch: &TempDir,
 ) -> (watch::Receiver<NotesState>, Control<NotificationsCommand>) {
     let (mut notes, control) = start(runtime, bus, scratch);
     control
@@ -219,11 +217,12 @@ fn owning(
 }
 
 #[test]
-#[ignore = "live: starts a private dbus-daemon"]
 fn capabilities_and_server_information_answer_as_the_spec_says() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
-    let bus = PrivateBus::start();
-    let scratch = Scratch::new("notes-capabilities");
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = TempDir::new("notes-capabilities");
     let _service = owning(&runtime, &bus, &scratch);
     runtime.block_on(async {
         let connection = connect(&bus).await;
@@ -246,11 +245,12 @@ fn capabilities_and_server_information_answer_as_the_spec_says() {
 }
 
 #[test]
-#[ignore = "live: starts a private dbus-daemon"]
 fn an_action_is_invoked_then_closed_and_a_swipe_keeps_the_history() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
-    let bus = PrivateBus::start();
-    let scratch = Scratch::new("notes-action");
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = TempDir::new("notes-action");
     let (mut notes, control) = owning(&runtime, &bus, &scratch);
     runtime.block_on(async {
         let connection = connect(&bus).await;
@@ -304,11 +304,12 @@ fn an_action_is_invoked_then_closed_and_a_swipe_keeps_the_history() {
 }
 
 #[test]
-#[ignore = "live: starts a private dbus-daemon"]
 fn the_history_survives_a_restart() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
-    let bus = PrivateBus::start();
-    let scratch = Scratch::new("notes-restart");
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = TempDir::new("notes-restart");
     let (mut notes, control) = owning(&runtime, &bus, &scratch);
     let first = runtime.block_on(async {
         let connection = connect(&bus).await;
@@ -338,11 +339,12 @@ fn the_history_survives_a_restart() {
 }
 
 #[test]
-#[ignore = "live: starts a private dbus-daemon"]
 fn notify_send_and_gdbus_reach_the_server() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
-    let bus = PrivateBus::start();
-    let scratch = Scratch::new("notes-notify-send");
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = TempDir::new("notes-notify-send");
     let (mut notes, _control) = owning(&runtime, &bus, &scratch);
     // Only the child's environment names the private bus; this process never uses it.
     let run = |program: &str, args: &[&str]| {
@@ -389,10 +391,11 @@ fn notify_send_and_gdbus_reach_the_server() {
 }
 
 #[test]
-#[ignore = "live: starts a private dbus-daemon"]
 fn another_holder_is_never_replaced_and_the_name_is_taken_when_free() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
-    let bus = PrivateBus::start();
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
     let other = runtime.block_on(async {
         let other = connect(&bus).await;
         other
@@ -401,7 +404,7 @@ fn another_holder_is_never_replaced_and_the_name_is_taken_when_free() {
             .unwrap_or_else(|e| panic!("{e}"));
         other
     });
-    let scratch = Scratch::new("notes-other-holder");
+    let scratch = TempDir::new("notes-other-holder");
     let (mut notes, control) = start(&runtime, &bus, &scratch);
     control
         .send(NotificationsCommand::Policy(own()))

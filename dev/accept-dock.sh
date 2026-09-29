@@ -104,7 +104,7 @@ EOF
 
 build() {
   (cd "$SILL_REPO" && cargo build -p sill --features debug \
-    && cargo build -p sill-services --example badge_emitter) >"$OUT_DIR/build.log" 2>&1 || {
+    && cargo build -p sill-testkit --example badge_emitter) >"$OUT_DIR/build.log" 2>&1 || {
     echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
   [ -x "$PROBE" ] || (cd "$HOST_REPO" && cargo build --release -p shell-host --features debug-inject \
     --example probe_toplevel >>"$OUT_DIR/build.log" 2>&1)

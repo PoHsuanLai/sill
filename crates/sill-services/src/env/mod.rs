@@ -13,8 +13,6 @@ use crate::polkit_agent;
 
 mod buses;
 mod dirs;
-#[cfg(test)]
-pub(crate) mod scratch;
 mod session_actions;
 mod wall_clock;
 mod wayland;

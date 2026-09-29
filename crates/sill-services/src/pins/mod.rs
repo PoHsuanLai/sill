@@ -4,9 +4,6 @@
 mod fs_watch;
 mod model;
 mod run;
-#[cfg(test)]
-mod test_support;
-
 pub use model::{DockPins, PinAt, PinEvent, step};
 
 use std::path::Path;
@@ -73,7 +70,7 @@ pub fn save(dir: &Path, pins: &DockPins) -> Result<(), ServiceError> {
 #[cfg(test)]
 mod tests {
     use super::{DockPins, load, save};
-    use crate::pins::test_support::TempDir;
+    use sill_testkit::TempDir;
     use sill_launcher::AppId;
 
     #[test]

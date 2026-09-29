@@ -196,8 +196,8 @@ mod tests {
     #[test]
     fn spawn_does_not_panic_and_the_receiver_is_usable() {
         let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
-        let scratch = crate::env::scratch::Scratch::new("apps-spawn");
-        let apps = crate::service::spawn::<AppsService>(rt.handle(), &scratch.env(), ());
+        let scratch = sill_testkit::TempDir::new("apps-spawn");
+        let apps = crate::service::spawn::<AppsService>(rt.handle(), &crate::env::Env::isolated(scratch.path()), ());
         let (rx, control) = (apps.state, apps.control);
         let _: AppIndex = rx.borrow().clone();
         drop(control);

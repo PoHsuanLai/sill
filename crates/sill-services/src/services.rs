@@ -205,7 +205,7 @@ members! {
 #[cfg(test)]
 mod tests {
     use super::Services;
-    use crate::env::scratch::Scratch;
+    use sill_testkit::TempDir;
 
     /// `Services::spawn` must never panic — the daemon has to reach the host connect and the
     /// IPC server — and every passive service holds its default (a service without its bus or
@@ -216,8 +216,8 @@ mod tests {
         let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
         // No bus, no compositor, every directory in a scratch folder: nothing here reaches the
         // person's session or files.
-        let scratch = Scratch::new("services-spawn");
-        let services = Services::spawn(rt.handle(), &scratch.env());
+        let scratch = TempDir::new("services-spawn");
+        let services = Services::spawn(rt.handle(), &crate::env::Env::isolated(scratch.path()));
 
         assert_eq!(
             services

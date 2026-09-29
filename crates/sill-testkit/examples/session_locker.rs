@@ -1,7 +1,7 @@
 //! A password-free `ext-session-lock-v1` locker for tests, never for a real session:
 //!
 //! ```sh
-//! WAYLAND_DISPLAY=wayland-1 cargo run -p sill-services --example session_locker -- <hold-ms>
+//! WAYLAND_DISPLAY=wayland-1 cargo run -p sill-testkit --example session_locker -- <hold-ms>
 //! ```
 //!
 //! Locks the compositor, prints `locked` on stdout once the compositor says so, holds the lock for `hold-ms`, then unlocks and

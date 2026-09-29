@@ -6,7 +6,7 @@
 //! Commands, one per stdin line: `inhibit`, `uninhibit`, `active`. Output: `cookie <n>`,
 //! `released <n>`, `active <b>`, or `failed <why>`.
 //!
-//! Usage: `cargo run -p sill-services --example screensaver_client -- <bus address>`
+//! Usage: `cargo run -p sill-testkit --example screensaver_client -- <bus address>`
 
 use std::io::Write;
 

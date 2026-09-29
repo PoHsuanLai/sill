@@ -7,7 +7,7 @@
 //! publishing the result.
 //!
 //! Nothing here may ever touch the real session bus from a test: tests pass
-//! `BusRoute::Address` of a private `dbus-daemon` (`tests/support/private_bus.rs`).
+//! `BusRoute::Address` of a private `dbus-daemon` (`sill-testkit/src/private_bus.rs`).
 
 use std::path::PathBuf;
 use std::sync::Arc;

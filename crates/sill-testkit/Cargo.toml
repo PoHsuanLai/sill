@@ -1,0 +1,47 @@
+[package]
+name = "sill-testkit"
+description = "Dev only: a private bus, scratch folders, signal listeners and the stand-in programs the tests and dev scripts run against."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+tokio = { workspace = true }
+zbus = { workspace = true }
+
+# The stand-ins in `examples/` speak sill's own protocols and reuse its types. Only examples
+# name these: the library reaches no sill crate (scripts/check-boundary.sh).
+[dev-dependencies]
+sill-launcher = { workspace = true }
+sill-services = { workspace = true }
+cosmic-client-toolkit = { workspace = true }
+serde = { workspace = true }
+
+# Stand-ins the tests and dev scripts start as child processes, each under its own bus name or
+# socket; none touches the person's session.
+[[example]]
+name = "badge_emitter"
+[[example]]
+name = "mpris_player"
+[[example]]
+name = "notifications_holder"
+[[example]]
+name = "auth_helper"
+[[example]]
+name = "polkit_authority"
+[[example]]
+name = "polkit_helper"
+[[example]]
+name = "files_probe"
+[[example]]
+name = "file_manager_stub"
+[[example]]
+name = "logind_standin"
+[[example]]
+name = "screensaver_client"
+
+[lints]
+workspace = true

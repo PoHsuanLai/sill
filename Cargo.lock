@@ -5315,6 +5315,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sill-launcher",
+ "sill-testkit",
  "system-tray",
  "thiserror 2.0.20",
  "tokio",
@@ -5356,6 +5357,18 @@ dependencies = [
  "sill-settings",
  "thiserror 2.0.20",
  "tokio",
+]
+
+[[package]]
+name = "sill-testkit"
+version = "0.1.0"
+dependencies = [
+ "cosmic-client-toolkit",
+ "serde",
+ "sill-launcher",
+ "sill-services",
+ "tokio",
+ "zbus",
 ]
 
 [[package]]
