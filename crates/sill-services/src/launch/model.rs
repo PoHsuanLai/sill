@@ -38,7 +38,7 @@ pub enum LaunchOutcome {
 }
 
 /// `launches` after `outcome`.
-pub fn reduce_launches(launches: Launches, outcome: LaunchOutcome) -> Launches {
+pub fn step(launches: Launches, outcome: LaunchOutcome) -> Launches {
     let Launches { mut scopes } = launches;
     match outcome {
         LaunchOutcome::Started(scope) => {
@@ -54,7 +54,7 @@ pub fn reduce_launches(launches: Launches, outcome: LaunchOutcome) -> Launches {
 
 #[cfg(test)]
 mod tests {
-    use super::{LaunchOutcome, LaunchedScope, Launches, ScopeUnit, reduce_launches};
+    use super::{LaunchOutcome, LaunchedScope, Launches, ScopeUnit, step};
     use sill_launcher::AppId;
 
     fn scope(app: &str, n: u32) -> LaunchedScope {
@@ -113,7 +113,7 @@ mod tests {
             ),
         ];
         for (name, before, outcome, want) in cases {
-            assert_eq!(reduce_launches(before, outcome), want, "{name}");
+            assert_eq!(step(before, outcome), want, "{name}");
         }
     }
 }

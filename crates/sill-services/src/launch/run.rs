@@ -1,14 +1,14 @@
 //! The launch task: one `LaunchCommand` at a time, D-Bus activation or a transient
-//! `systemd-run --user --scope`, tracked through [`reduce_launches`] until the scope exits.
+//! `systemd-run --user --scope`, tracked through [`step`] until the scope exits.
 
 use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
 
 use crate::apps::{App, AppIndex, DbusActivation};
 use crate::env::Bus;
-use crate::launch::model::{LaunchOutcome, LaunchedScope, Launches, ScopeUnit, reduce_launches};
+use crate::launch::model::{LaunchOutcome, LaunchedScope, Launches, ScopeUnit, step};
 use crate::launch::plan::{launch_argv, scope_unit};
-use crate::launch::{LaunchCommand, LaunchRequest, Setup};
+use crate::launch::{LaunchCommand, LaunchRequest, Reach};
 use sill_launcher::AppId;
 
 use super::dbus;
@@ -16,12 +16,12 @@ use super::open::{Manager, user_manager};
 
 /// Run until `commands` closes (the `Control` was dropped).
 pub(super) async fn run(
-    rt: Handle,
-    setup: Setup,
+    setup: Reach,
     apps: watch::Receiver<AppIndex>,
     tx: watch::Sender<Launches>,
     mut commands: mpsc::UnboundedReceiver<LaunchCommand>,
 ) {
+    let rt = Handle::current();
     let terminal = super::terminal::detect();
     let mut nonce: u32 = 0;
     while let Some(command) = commands.recv().await {
@@ -41,7 +41,7 @@ pub(super) async fn run(
 
 async fn launch_one(
     rt: &Handle,
-    setup: &Setup,
+    setup: &Reach,
     apps: &watch::Receiver<AppIndex>,
     tx: &watch::Sender<Launches>,
     terminal: &[String],
@@ -217,7 +217,7 @@ fn failed(app: AppId, reason: &str) -> LaunchOutcome {
 }
 
 fn record(tx: &watch::Sender<Launches>, outcome: LaunchOutcome) {
-    tx.send_modify(|launches| *launches = reduce_launches(std::mem::take(launches), outcome));
+    tx.send_modify(|launches| *launches = step(std::mem::take(launches), outcome));
 }
 
 #[cfg(test)]

@@ -22,7 +22,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, OpenTarget};
 
-use super::Setup;
+use super::Reach;
 use super::model::ScopeUnit;
 use super::plan::scope_unit;
 use crate::env::Bus;
@@ -65,7 +65,7 @@ pub fn reveal_folder(path: &Path) -> PathBuf {
 
 /// Carry out `request`: a reveal through the file manager when one is on the bus, else (and
 /// for a file or an address) `xdg-open`.
-pub(super) async fn open(setup: &Setup, request: OpenRequest) {
+pub(super) async fn open(setup: &Reach, request: OpenRequest) {
     let token = request.token.as_deref();
     if let OpenTarget::Reveal(path) = &request.target
         && show_items(&setup.session, path, token).await == Shown::Yes

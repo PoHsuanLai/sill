@@ -88,8 +88,7 @@ pub use kbd_backlight::{
     KbdBacklight, KbdBacklightService, KbdCommand, KbdEvent, KbdLevel, step_for,
 };
 pub use launch::{
-    LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches, ScopeUnit,
-    reduce_launches,
+    LaunchCommand, LaunchOutcome, LaunchRequest, LaunchService, LaunchedScope, Launches, ScopeUnit,
 };
 pub use locker::{Lock, LockCause, LockPhase, LockerCommand, LockerMode, ShellLockEvent};
 pub use magnify::{Layout, MagnifyParams, TileBox, magnify, rest_centers, sizes, zoom};

@@ -18,7 +18,7 @@ mod terminal;
 #[cfg(test)]
 mod test_support;
 
-pub use model::{LaunchOutcome, LaunchedScope, Launches, ScopeUnit, reduce_launches};
+pub use model::{LaunchOutcome, LaunchedScope, Launches, ScopeUnit, step};
 pub use open::{OpenRequest, open_argv, reveal_folder};
 pub use plan::{launch_argv, scope_unit};
 
@@ -26,12 +26,12 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, DesktopAction};
-use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::apps::AppIndex;
-use crate::control::Control;
 use crate::env::{Bus, Env};
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
 /// One launch.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -63,39 +63,52 @@ pub enum LaunchCommand {
 /// What the launch service reaches: D-Bus activation and the file manager on `session`, the
 /// user's systemd manager under `runtime` (`$XDG_RUNTIME_DIR`).
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Setup {
-    pub session: Bus,
-    pub runtime: Option<PathBuf>,
+struct Reach {
+    session: Bus,
+    runtime: Option<PathBuf>,
 }
 
-impl Setup {
+impl Reach {
     /// `env`'s session bus and runtime directory.
-    pub fn of(env: &Env) -> Setup {
-        Setup {
+    fn of(env: &Env) -> Reach {
+        Reach {
             session: env.buses.session.clone(),
             runtime: env.dirs.runtime.clone(),
         }
     }
 }
 
-/// Start the launch service on `setup`; `apps` resolves ids to entries.
-pub fn spawn(
-    rt: &Handle,
-    setup: Setup,
-    apps: watch::Receiver<AppIndex>,
-) -> (watch::Receiver<Launches>, Control<LaunchCommand>) {
-    let (tx, rx) = watch::channel(Launches::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(run::run(rt.clone(), setup, apps, tx, commands));
-    (rx, control)
+/// App launching as a [`Service`]: scopes, activation tokens, opening files. Its `Deps` is the
+/// app index, which resolves ids to entries.
+#[derive(Debug)]
+pub enum LaunchService {}
+
+impl Service for LaunchService {
+    const NAME: &'static str = "launch";
+    type State = Launches;
+    type Command = LaunchCommand;
+    type Deps = watch::Receiver<AppIndex>;
+
+    fn run(
+        env: &Env,
+        deps: Self::Deps,
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let reach = Reach::of(env);
+        async move {
+            run::run(reach, deps, io.state, io.commands).await;
+            Ok(())
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{LaunchCommand, LaunchRequest, spawn};
+    use super::{LaunchCommand, LaunchRequest, LaunchService};
     use crate::apps::{
         App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal, reduce_apps,
     };
+    use crate::service::spawn;
     use sill_launcher::{AppId, DesktopAction};
     use std::path::PathBuf;
     use std::time::Duration;
@@ -131,11 +144,11 @@ mod tests {
         let (_apps_tx, apps_rx) =
             tokio::sync::watch::channel(index_with("sill-launch-test", "/bin/true"));
         let rt = tokio::runtime::Handle::current();
-        let setup = super::Setup {
-            session: crate::env::Bus::session(crate::env::BusRoute::Absent),
-            runtime: std::env::var_os("XDG_RUNTIME_DIR").map(std::path::PathBuf::from),
-        };
-        let (mut launches, control) = spawn(&rt, setup, apps_rx);
+        let scratch = crate::env::scratch::Scratch::new("launch-scope");
+        let mut env = scratch.env();
+        env.dirs.runtime = std::env::var_os("XDG_RUNTIME_DIR").map(std::path::PathBuf::from);
+        let launch = spawn::<LaunchService>(&rt, &env, apps_rx);
+        let (mut launches, control) = (launch.state, launch.control);
 
         control
             .send(LaunchCommand::Launch(LaunchRequest {

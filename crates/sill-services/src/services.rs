@@ -140,7 +140,7 @@ impl Services {
         let (badges, badges_control) = parts(spawn::<crate::badges::BadgesService>(rt, env, ()));
         let (pins, pins_control) = parts(spawn::<crate::pins::PinsService>(rt, env, ()));
         let (launches, launch) =
-            crate::launch::spawn(rt, crate::launch::Setup::of(env), apps.clone());
+            parts(spawn::<crate::launch::LaunchService>(rt, env, apps.clone()));
         let (clipboard, clipboard_control) = crate::clipboard::spawn(
             rt,
             crate::clipboard::Setup {

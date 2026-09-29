@@ -186,12 +186,13 @@ async fn choose(provider: &FilesProvider, row: &Item, args: &Args) {
         Activation::Open { target } => {
             println!("open {target:?}");
             let (_apps_tx, apps) = watch::channel(AppIndex::default());
-            let (_launches, control) = launch::spawn(
+            let launch = sill_services::service::spawn::<launch::LaunchService>(
                 &tokio::runtime::Handle::current(),
-                launch::Setup::of(&Env::from_process()),
+                &Env::from_process(),
                 apps,
             );
-            control
+            launch
+                .control
                 .send(LaunchCommand::Open(OpenRequest {
                     target,
                     token: Some(TOKEN.to_owned()),
