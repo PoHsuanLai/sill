@@ -12,7 +12,8 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
-use sill_services::{Services, Session};
+use sill_model::session::Session;
+use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::PowerMenu;
 use sill_surfaces::hooks::PinnedAppearance;

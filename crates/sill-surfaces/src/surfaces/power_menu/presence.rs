@@ -3,7 +3,7 @@
 //! transitions, each surface mirroring it onto its own visibility).
 
 use shell_host::{Focus, OutputId};
-use sill_services::SessionAction;
+use sill_model::session::SessionAction;
 use tokio::sync::watch;
 
 use crate::surfaces::launcher::presence::{OpenSerial, PanelFocus, Visible};
@@ -223,7 +223,7 @@ mod tests {
     };
     use crate::surfaces::launcher::presence::{OpenSerial, PanelFocus, Visible};
     use shell_host::{Focus, OutputId};
-    use sill_services::SessionAction;
+    use sill_model::session::SessionAction;
 
     const ONE: OutputId = OutputId(1);
     const TWO: OutputId = OutputId(2);

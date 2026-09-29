@@ -5,7 +5,7 @@
 //! polkit prompt never finds the sheet still up. Shown again while leaving, it is up again.
 
 use ds::Shown;
-use sill_services::{Session, SessionAction};
+use sill_model::session::{Session, SessionAction};
 
 use crate::surfaces::launcher::presence::OpenSerial;
 use crate::surfaces::power_menu::keys::{
@@ -131,7 +131,7 @@ mod tests {
     use crate::surfaces::launcher::presence::OpenSerial;
     use crate::surfaces::power_menu::keys::{PowerMenuKey, PowerMenuState};
     use ds::Shown;
-    use sill_services::{Offer, Session, SessionAction};
+    use sill_model::session::{Offer, Session, SessionAction};
 
     fn menu(focused: SessionAction, phase: SheetPhase) -> MenuSession {
         MenuSession {

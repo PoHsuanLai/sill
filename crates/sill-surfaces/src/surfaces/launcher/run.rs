@@ -73,7 +73,7 @@ pub async fn run_effect(
         LauncherEffect::Session(action) => services
             .session
             .control
-            .send(sill_services::SessionCommand::Run(action)),
+            .send(sill_model::session::SessionCommand::Run(action)),
         LauncherEffect::PowerMenu(action) => {
             match &from.power_menu {
                 Some(link) => link.open(from.output, Preselect::Action(action)),

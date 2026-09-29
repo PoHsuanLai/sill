@@ -7,7 +7,7 @@ use std::io::Write as _;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-use crate::session::{Session, SessionAction};
+use sill_model::session::{Session, SessionAction};
 
 /// Whether chosen actions reach logind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -133,7 +133,7 @@ mod tests {
     use super::{
         ActionReach, DryRunActions, DryRunOffers, LogindActions, SessionActions, dry_run_line,
     };
-    use crate::session::{Session, SessionAction};
+    use sill_model::session::{Session, SessionAction};
     use sill_testkit::TempDir;
 
     #[test]

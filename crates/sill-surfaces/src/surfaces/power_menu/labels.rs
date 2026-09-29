@@ -1,7 +1,7 @@
 //! The power menu's words and button variants, pure.
 
 use ds::{ButtonSize, ButtonVariant};
-use sill_services::SessionAction;
+use sill_model::session::SessionAction;
 
 /// A button's label (the launcher's row titles: "Log Out", "Restart", "Shut Down", "Suspend";
 /// "Lock" for completeness).
@@ -63,7 +63,7 @@ pub fn consequence(action: SessionAction) -> &'static str {
 mod tests {
     use super::{action_label, button_size, button_variant, consequence, prompt};
     use ds::{ButtonSize, ButtonVariant};
-    use sill_services::SessionAction;
+    use sill_model::session::SessionAction;
 
     #[test]
     fn every_button_has_its_label_and_variant() {

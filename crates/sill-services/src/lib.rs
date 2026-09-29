@@ -120,7 +120,7 @@ pub use screenshots::{
 };
 pub use service::{Handle, Service, ServiceIo};
 pub use services::{Member, Services};
-pub use session::{Offer, Session, SessionAction, SessionCommand, SessionEvent, SessionService};
+pub use session::SessionService;
 pub use switcher::{AppShown, SwitcherApp, switcher_apps};
 pub use tray::{
     Availability, Check, Pixmap, ScrollAxis, ScrollDelta, Tray, TrayCommand, TrayEvent, TrayIcon,

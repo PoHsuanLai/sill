@@ -7,7 +7,7 @@ mod power_menu_support;
 use dioxus::prelude::*;
 use ds::lint::{LintConfig, Profile, Rule, assert_clean, markup};
 use power_menu_support::{fake, opened};
-use sill_services::Session;
+use sill_model::session::Session;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::PowerMenu;
 use sill_surfaces::surfaces::power_menu::{

@@ -1,7 +1,7 @@
 //! The power menu's keyboard (design/20 §1.8: arrows move, Enter confirms, Esc closes), pure:
 //! which button has focus, and what a key does to it.
 
-use sill_services::{Offer, Session, SessionAction};
+use sill_model::session::{Offer, Session, SessionAction};
 use sill_settings::PowerMenuDefault;
 
 use crate::surfaces::power_menu::presence::Preselect;
@@ -126,8 +126,8 @@ fn moved(state: PowerMenuState, direction: Direction, session: &Session) -> Powe
 mod tests {
     use super::{PowerMenuKey, PowerMenuOut, PowerMenuState, initial, step};
     use crate::surfaces::power_menu::presence::Preselect;
+    use sill_model::session::{Offer, Session, SessionAction};
     use sill_model::units::Presence;
-    use sill_services::{Offer, Session, SessionAction};
     use sill_settings::PowerMenuDefault;
 
     fn session(suspend: Offer) -> Session {

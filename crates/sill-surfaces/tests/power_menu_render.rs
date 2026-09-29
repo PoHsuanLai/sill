@@ -8,7 +8,7 @@ mod power_menu_support;
 use std::time::Duration;
 
 use power_menu_support::{HEIGHT, VIEWPORT, WIDTH, look, nth_button, opened, start};
-use sill_services::Session;
+use sill_model::session::Session;
 use sill_settings::ShellFile;
 use sill_surfaces::surfaces::power_menu::{PANEL_ID, Preselect};
 

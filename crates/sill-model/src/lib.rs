@@ -10,5 +10,6 @@ pub mod clock;
 pub mod ids;
 pub mod kbd_backlight;
 pub mod power_profile;
+pub mod session;
 pub mod units;
 pub mod volume;

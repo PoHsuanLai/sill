@@ -8,30 +8,17 @@
 //! the provider's constructor, which the results runner and the launcher panel both call, and
 //! nothing is gained until the power menu needs the two to agree live.
 
-mod live;
-mod model;
-
-pub use model::{Offer, Session, SessionAction, SessionEvent, step};
+mod backend;
 
 use std::sync::Arc;
+
+use sill_model::session::{Session, SessionCommand};
 
 use crate::control::Control;
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::locker::LockerCommand;
 use crate::service::{Service, ServiceIo};
-
-/// What the session service can be told.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SessionCommand {
-    /// Carry out `action`: `Lock` goes to the locker service (which runs the configured
-    /// locker, or asks logind's `LockSession` for COSMIC's resident one), `LogOut`
-    /// `TerminateSession`, the rest the manager's `Suspend`/`Reboot`/`PowerOff` with
-    /// `interactive = true` (polkit may ask). An action logind does not offer is dropped.
-    Run(SessionAction),
-    /// Re-read every `Can*` (after a resume, or before the power menu opens).
-    Refresh,
-}
 
 /// logind's power actions as a [`Service`]. Without logind the state stays at
 /// `Session::default()` (absent: nothing offered), and the power menu shows every button
@@ -54,7 +41,7 @@ impl Service for SessionService {
         let bus = env.buses.system.clone();
         let actions = Arc::clone(&env.session_actions);
         async move {
-            live::run(bus, actions, io.state, io.commands, deps).await;
+            backend::run(bus, actions, io.state, io.commands, deps).await;
             Ok(())
         }
     }

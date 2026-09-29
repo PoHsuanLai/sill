@@ -327,7 +327,7 @@ pub fn services() -> (Services, Feeds) {
         power_profile,
         now_playing,
         kbd_backlight,
-        session: fixed(sill_services::Session::default(), &mut keep),
+        session: fixed(sill_model::session::Session::default(), &mut keep),
         locker: fixed(sill_services::Lock::default(), &mut keep),
         notifications,
         events,

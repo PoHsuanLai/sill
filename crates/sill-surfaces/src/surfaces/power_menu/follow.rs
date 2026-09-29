@@ -40,7 +40,7 @@ mod tests {
     use crate::surfaces::power_menu::presence::{PowerMenuOpening, Preselect, Showing};
     use crate::surfaces::power_menu::sheet::{MenuSession, SheetPhase, Then};
     use shell_host::OutputId;
-    use sill_services::SessionAction;
+    use sill_model::session::SessionAction;
 
     fn menu(focused: SessionAction, phase: SheetPhase) -> MenuSession {
         MenuSession {

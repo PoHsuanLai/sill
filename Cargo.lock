@@ -5330,6 +5330,7 @@ version = "0.1.0"
 dependencies = [
  "jiff",
  "serde",
+ "sill-launcher",
 ]
 
 [[package]]

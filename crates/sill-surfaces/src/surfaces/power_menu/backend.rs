@@ -10,8 +10,9 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+use sill_model::session::{Session, SessionAction, SessionCommand};
 use sill_services::env::ActionReach;
-use sill_services::{Control, ServiceError, Services, Session, SessionAction, SessionCommand};
+use sill_services::{Control, ServiceError, Services};
 use tokio::sync::watch;
 
 use crate::surfaces::power_menu::labels::action_label;
@@ -187,8 +188,8 @@ impl SessionBackend for DryRunSession {
 #[cfg(test)]
 mod tests {
     use super::{BackendKind, DryRunSession, SessionBackend, dry_run_line};
-    use sill_services::Session;
-    use sill_services::SessionAction;
+    use sill_model::session::Session;
+    use sill_model::session::SessionAction;
 
     #[test]
     fn a_dry_run_offers_everything_and_only_records() {

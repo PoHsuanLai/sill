@@ -9,7 +9,7 @@
 //! write one shared [`PowerMenuLink`] (`presence.rs`), which every output's surface follows onto
 //! its own visibility; the daemon also feeds it the surface's keyboard focus (a focus loss after
 //! holding focus closes it, as the launcher's does). A chosen action goes to
-//! `sill_services::SessionCommand::Run`.
+//! `sill_model::session::SessionCommand::Run`.
 
 pub mod backend;
 pub mod keymap;

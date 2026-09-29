@@ -12,13 +12,14 @@ use sill_launcher::{
 };
 use std::path::PathBuf;
 
+use sill_model::session::SessionAction;
 use sill_services::env::Buses;
 use sill_services::providers::files::IndexSource;
 use sill_services::providers::{
     AppsProvider, CalculatorProvider, ClipboardProvider, EmojiProvider, FilesProvider,
     SettingsProvider, SystemProvider, WebProvider, WindowsProvider,
 };
-use sill_services::{LauncherPolicy, Services, SessionAction};
+use sill_services::{LauncherPolicy, Services};
 use tokio::sync::watch;
 
 /// The desktop entry `SettingsTarget::Cosmic` opens.
@@ -305,7 +306,7 @@ mod tests {
     /// The session rows run through the session service or open the power menu.
     #[test]
     fn session_rows_run_or_open_the_power_menu() {
-        use sill_services::SessionAction;
+        use sill_model::session::SessionAction;
         let cases = [
             (
                 SystemCommand::Lock,

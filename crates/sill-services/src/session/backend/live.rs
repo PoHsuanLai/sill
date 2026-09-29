@@ -1,26 +1,25 @@
 //! logind over the system bus: probes `CanSuspend`, `CanReboot` and `CanPowerOff` (and this
-//! session's object for Lock and Log Out), publishes them through [`super::step`], and
+//! session's object for Lock and Log Out), publishes them through [`sill_model::session::step`], and
 //! carries out [`SessionCommand`]s.
 
 use std::sync::Arc;
 
 use logind_zbus::manager::{IsSupported, ManagerProxy};
 use logind_zbus::session::SessionProxy;
+use sill_model::session::{Offer, Session, SessionAction, SessionCommand, SessionEvent, step};
+use sill_model::units::Presence;
 use tokio::sync::{mpsc, watch};
 use zbus::Connection;
 
-use super::SessionCommand;
-use super::model::{Offer, Session, SessionAction, SessionEvent, step};
 use crate::control::Control;
 use crate::env::{ActionReach, Bus, SessionActions};
 use crate::locker::LockerCommand;
 use crate::stream::next_opt;
-use sill_model::units::Presence;
 
 /// Runs until `commands` closes. Without a bus or logind, `tx` holds what `actions` offers
 /// without it (`Session::default()` for logind's own). Every action goes through `actions`
 /// first, so a dry run never reaches logind or the locker.
-pub(super) async fn run(
+pub(crate) async fn run(
     bus: Bus,
     actions: Arc<dyn SessionActions>,
     tx: watch::Sender<Session>,
