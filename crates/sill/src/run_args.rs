@@ -61,7 +61,7 @@ pub enum DryRunOffersArg {
 /// `--idle-times`' value.
 #[cfg(feature = "debug")]
 fn idle_times(text: &str) -> Result<sill_model::idle::IdleTimes, String> {
-    crate::idle::test_times(text)
+    crate::policy::idle::test_times(text)
         .ok_or_else(|| format!("{text:?} is not <screen_off_s>,<suspend_s>"))
 }
 
@@ -177,7 +177,10 @@ mod tests {
         else {
             panic!("6,10 parses");
         };
-        assert_eq!(args.debug.idle_times, crate::idle::test_times("6,10"));
+        assert_eq!(
+            args.debug.idle_times,
+            crate::policy::idle::test_times("6,10")
+        );
         assert!(parse("6").is_err());
     }
 

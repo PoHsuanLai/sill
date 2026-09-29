@@ -1,10 +1,5 @@
 //! The daemon's notifications half: one banner column and one notification center per output,
-//! spawned warm and hidden (the OSD's and the power menu's pattern); the banners' output; and the
-//! service's policy, followed from the settings and the focus mode ([`Bridge`]).
-
-mod policy;
-
-pub use policy::{Bridge, policy_of};
+//! spawned warm and hidden (the OSD's and the power menu's pattern), and the banners' output.
 
 use shell_host::{HostCtx, OutputInfo, Root};
 use sill_settings::ShellFile;

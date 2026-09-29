@@ -23,6 +23,7 @@ use shell_host::{CloseReason, Host, HostConfig, HostCtx, HostEvent, OutputInfo, 
 use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
+use sill_model::displays::DisplaysCommand;
 use sill_model::ids::OutputName;
 use sill_model::locker::LockerCommand;
 use sill_model::polkit_agent::{AgentPolicy, PolkitCommand};
@@ -37,7 +38,11 @@ use crate::daemon::msg::ShellMsg;
 use crate::ipc::dispatch::{Reach, route};
 use crate::ipc::{latency, server};
 use crate::outputs::{OutputAction, OutputSurfaces, Outputs, reconcile};
-use crate::policy::follow;
+use crate::policy::{
+    calendar::CalendarBridge, clipboard::ClipboardBridge, displays::DisplaysBridge, follow,
+    idle::IdleBridge, notifications::NotificationsBridge, screenshots::ScreenshotsBridge,
+    search::SearchBridge,
+};
 
 /// Run the daemon until `quit` or a fatal host error, on the seams `args` make.
 pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
@@ -96,7 +101,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         follow(
             runtime.handle(),
             settings_feed.0.clone(),
-            crate::notifications::Bridge {
+            NotificationsBridge {
                 focus: links.focus.mode(),
             },
             services.notifications.control.clone(),
@@ -114,7 +119,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     follow(
         runtime.handle(),
         settings_feed.0.clone(),
-        crate::idle::Bridge {
+        IdleBridge {
             times: env.idle_times,
         },
         services.idle.control.clone(),
@@ -124,20 +129,20 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     follow(
         runtime.handle(),
         settings_feed.0.clone(),
-        crate::launcher_policy::SearchBridge,
+        SearchBridge,
         services.results.control.clone(),
     );
     follow(
         runtime.handle(),
         settings_feed.0.clone(),
-        crate::launcher_policy::ClipboardBridge,
+        ClipboardBridge,
         services.clipboard.control.clone(),
     );
     // The displays follow `display.*`; the service is inert until this first policy.
     follow(
         runtime.handle(),
         settings_feed.0.clone(),
-        crate::displays::Bridge,
+        DisplaysBridge,
         services.displays.control.clone(),
     );
 
@@ -152,7 +157,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     follow(
         runtime.handle(),
         settings_feed.0.clone(),
-        crate::calendar::Bridge {
+        CalendarBridge {
             home: env.dirs.home.clone(),
         },
         services.events.control.clone(),
@@ -160,7 +165,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     follow(
         runtime.handle(),
         settings_feed.0.clone(),
-        crate::screenshots::Bridge {
+        ScreenshotsBridge {
             home: env.dirs.home.clone(),
         },
         services.screenshots.control.clone(),
@@ -361,7 +366,7 @@ fn run_event(
             // way `dispatch_reload` does for `sill reload`; geometry follows the same event just
             // below.
             settings::publish_watched(settings_tx, &other);
-            crate::displays::on_host_event(services, &other);
+            rescan_displays(services, &other);
             on_event(ctx, outputs, other);
             spawn_missing_bars(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_wallpapers(ctx, outputs, services, settings_feed, settings_tx);
@@ -410,6 +415,19 @@ fn run_event(
                     .set(crate::notifications::banner_output(outputs));
             }
         }
+    }
+}
+
+/// Outputs coming, going or changing make the displays service rescan.
+fn rescan_displays(services: &Services, event: &HostEvent<ShellMsg>) {
+    match event {
+        HostEvent::Started
+        | HostEvent::OutputAdded(_)
+        | HostEvent::OutputChanged(_)
+        | HostEvent::OutputRemoved(_) => {
+            let _ = services.displays.control.send(DisplaysCommand::Rescan);
+        }
+        _ => {}
     }
 }
 

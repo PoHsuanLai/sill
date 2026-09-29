@@ -1,12 +1,12 @@
 //! The events service's sources from `calendar.sources`: sent at start and on every change
-//! ([`crate::policy::follow`]), the first one ending the service's passive start.
+//! ([`super::follow`]), the first one ending the service's passive start.
 
 use std::path::{Path, PathBuf};
 
 use sill_model::events::{EventSources, EventsCommand, parse_sources};
 use sill_settings::ShellFile;
 
-use crate::policy::Policy;
+use super::Policy;
 
 /// The sources `file` names (`parse_sources` against `home`).
 pub fn sources_of(file: &ShellFile, home: &Path) -> EventSources {
@@ -15,11 +15,11 @@ pub fn sources_of(file: &ShellFile, home: &Path) -> EventSources {
 
 /// The events service's sources from the settings, found against `home`.
 #[derive(Debug, Clone)]
-pub struct Bridge {
+pub struct CalendarBridge {
     pub home: PathBuf,
 }
 
-impl Policy for Bridge {
+impl Policy for CalendarBridge {
     type Command = EventsCommand;
     type Out = EventSources;
 

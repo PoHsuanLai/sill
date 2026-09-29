@@ -1,16 +1,12 @@
-//! The daemon's half of the displays service: the `display.*` settings translated into the
-//! service's [`DisplayPolicy`] (sill-services may not see sill-settings, which brings dioxus),
-//! and outputs changes forwarded as rescans.
+//! The displays service's policy: the `display.*` settings translated into the service's
+//! [`DisplayPolicy`] (sill-services may not see sill-settings, which brings dioxus).
 
-use shell_host::HostEvent;
 use sill_model::displays::{
     DisplayPolicy, DisplaysCommand, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmth,
     Ppi, ScaleMode, ScaleOverride, ScaleRounding,
 };
-use sill_surfaces::services::Services;
 
-use crate::daemon::msg::ShellMsg;
-use crate::policy::Policy;
+use super::Policy;
 use sill_settings::{
     BrightnessKeysTarget, DisplayScaleMode, DisplaySettings, FontRenderingSetting,
     HardwareVolumeMode, NightWarmthMode, ScaleRounding as ScaleRoundingSetting, ShellFile,
@@ -56,9 +52,9 @@ pub fn policy_from(settings: &DisplaySettings) -> DisplayPolicy {
 
 /// The displays service's policy from `display.*`.
 #[derive(Debug, Clone, Copy)]
-pub struct Bridge;
+pub struct DisplaysBridge;
 
-impl Policy for Bridge {
+impl Policy for DisplaysBridge {
     type Command = DisplaysCommand;
     type Out = DisplayPolicy;
 
@@ -68,19 +64,6 @@ impl Policy for Bridge {
 
     fn command(policy: DisplayPolicy) -> DisplaysCommand {
         DisplaysCommand::Policy(policy)
-    }
-}
-
-/// The host events the displays service follows: outputs coming, going or changing (a rescan).
-pub fn on_host_event(services: &Services, event: &HostEvent<ShellMsg>) {
-    match event {
-        HostEvent::Started
-        | HostEvent::OutputAdded(_)
-        | HostEvent::OutputChanged(_)
-        | HostEvent::OutputRemoved(_) => {
-            let _ = services.displays.control.send(DisplaysCommand::Rescan);
-        }
-        _ => {}
     }
 }
 

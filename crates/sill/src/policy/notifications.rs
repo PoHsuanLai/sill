@@ -10,7 +10,7 @@ use sill_settings::{
 use tokio::sync::watch;
 use tokio::sync::watch::error::RecvError;
 
-use crate::policy::Policy;
+use super::Policy;
 
 /// The policy `n` and `focus` make.
 pub fn policy_of(n: &NotificationsSettings, focus: FocusMode) -> NotificationsPolicy {
@@ -40,11 +40,11 @@ pub fn policy_of(n: &NotificationsSettings, focus: FocusMode) -> NotificationsPo
 /// the focus link rather than `notifications.dnd` in the file, so Do Not Disturb takes effect as
 /// the control center sets it, before the file round-trips.
 #[derive(Debug)]
-pub struct Bridge {
+pub struct NotificationsBridge {
     pub focus: watch::Receiver<FocusMode>,
 }
 
-impl Policy for Bridge {
+impl Policy for NotificationsBridge {
     type Command = NotificationsCommand;
     type Out = NotificationsPolicy;
 
@@ -108,7 +108,12 @@ mod tests {
         let (settings_tx, settings) = watch::channel(ShellFile::default());
         let (focus_tx, focus) = watch::channel(FocusMode::Off);
         let (control, mut commands) = Control::channel();
-        crate::policy::follow(rt.handle(), settings, super::Bridge { focus }, control);
+        crate::policy::follow(
+            rt.handle(),
+            settings,
+            super::NotificationsBridge { focus },
+            control,
+        );
         let next = |commands: &mut tokio::sync::mpsc::UnboundedReceiver<NotificationsCommand>| {
             rt.block_on(async {
                 tokio::time::timeout(std::time::Duration::from_secs(2), commands.recv())

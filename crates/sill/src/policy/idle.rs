@@ -1,5 +1,5 @@
 //! sill's own idle on the daemon's side: the idle service's config from `idle.*` and
-//! `session.lock_grace_s` ([`policy_of`]), sent now and on every change ([`Bridge`]). The
+//! `session.lock_grace_s` ([`policy_of`]), sent now and on every change ([`IdleBridge`]). The
 //! service resolves the kind of session itself and is `Off` anywhere but a sill session with no
 //! cosmic-idle running.
 //!
@@ -15,7 +15,7 @@ use sill_model::idle::{
 use sill_services::env::IdleTimesSource;
 use sill_settings::{IdleLockAt, IdleTimesFrom, Mins, Secs, ShellFile};
 
-use crate::policy::Policy;
+use super::Policy;
 
 /// The idle config `file` makes: `idle.times` `cosmic` is `TimesChoice::Cosmic`, `sill` the
 /// four `*_min` keys times 60 (0 is `Never`); the dim lead and level, the lock, the lock
@@ -77,11 +77,11 @@ pub fn test_times(text: &str) -> Option<IdleTimes> {
 /// The idle service's config from the settings, its times fixed by `times` when a dev script
 /// asked (the polkit policy's pattern). The service stays passive until the first.
 #[derive(Debug, Clone, Copy)]
-pub struct Bridge {
+pub struct IdleBridge {
     pub times: IdleTimesSource,
 }
 
-impl Policy for Bridge {
+impl Policy for IdleBridge {
     type Command = IdleCommand;
     type Out = IdleConfig;
 

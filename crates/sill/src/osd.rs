@@ -95,7 +95,7 @@ fn show(
     }
     let infos: Vec<OutputInfo> = outputs.outputs.iter().map(|(i, _)| i.clone()).collect();
     let focus = services.cosmic_wl.state.borrow().toplevels.focused_output();
-    let keys = crate::displays::policy_from(&file.display).keys_target;
+    let keys = crate::policy::displays::policy_from(&file.display).keys_target;
     let ids = osd_outputs(
         kind,
         level,

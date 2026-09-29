@@ -1,35 +1,11 @@
-//! The bridges from the settings to the services: a [`Policy`] says what one service should be
-//! told for a settings file, and [`follow`] tells it at start and again whenever the answer
-//! changes. The services that could touch the person's session stay passive until the first.
-
-use std::future::Future;
+//! [`follow`]: the one task that keeps a service told what its [`Policy`] answers.
 
 use sill_services::Control;
 use sill_settings::ShellFile;
 use tokio::runtime::Handle;
 use tokio::sync::watch;
-use tokio::sync::watch::error::RecvError;
 
-/// What one service is told for a settings file.
-pub trait Policy: Send + 'static {
-    /// The service's command.
-    type Command: Send + 'static;
-    /// What the settings decide; a new value is sent, an equal one is not.
-    type Out: PartialEq + Clone + Send + Sync + 'static;
-
-    /// What `file` decides.
-    fn of(&self, file: &ShellFile) -> Self::Out;
-
-    /// The command that carries `out`.
-    fn command(out: Self::Out) -> Self::Command;
-
-    /// Waits until something besides the settings changes what [`Policy::of`] answers (the
-    /// focus mode for notifications); an error once that source is gone. Most policies read the
-    /// settings alone and never wake here.
-    fn changed(&mut self) -> impl Future<Output = Result<(), RecvError>> + Send {
-        std::future::pending()
-    }
-}
+use super::Policy;
 
 /// Send `policy`'s answer for `settings` to `control` now and after every change that changes
 /// it, on `rt`, until the settings, the policy's other source or the service is gone.
@@ -69,7 +45,8 @@ mod tests {
     use tokio::sync::mpsc::UnboundedReceiver;
     use tokio::sync::watch;
 
-    use super::{Policy, follow};
+    use super::follow;
+    use crate::policy::Policy;
 
     /// The dock's size as a number, a stand-in service's whole policy.
     struct DockSize;
