@@ -30,8 +30,6 @@ pub struct AutoEnv {
     pub home: PathBuf,
     /// `$XDG_DATA_HOME` (else `~/.local/share`).
     pub data_home: PathBuf,
-    /// The text of `$XDG_CONFIG_HOME/akonadi_ical_resource_0rc`, when there is one.
-    pub akonadi_rc: Option<String>,
 }
 
 /// `calendar.sources`: `auto` and `off` (any case, trimmed; empty is `off`), else `;`-separated
@@ -77,47 +75,21 @@ fn place_of(path: PathBuf) -> IcsPlace {
     }
 }
 
-/// The file KOrganizer's calendar lives in, from Akonadi's iCal resource config
-/// (`[General]` `Path[$e]=$HOME/.local/share/apps/korganizer/std.ics`): `$HOME` expanded against
-/// `home`; `None` without a `Path` key.
-pub fn akonadi_ical_path(rc: &str, home: &Path) -> Option<PathBuf> {
-    let home = home.to_string_lossy();
-    rc.lines()
-        .map(str::trim)
-        .filter_map(|line| line.split_once('='))
-        .find(|(key, _)| {
-            let key = key.trim();
-            key == "Path" || key.starts_with("Path[")
-        })
-        .map(|(_, value)| value.trim())
-        .filter(|value| !value.is_empty())
-        .map(|value| PathBuf::from(value.replace("${HOME}", &home).replace("$HOME", &home)))
-}
-
-/// Where `auto` looks, in order: KOrganizer's file ([`akonadi_ical_path`]), when the rc names
-/// one; `$XDG_DATA_HOME/sill/calendars` (a directory to drop `.ics` files into); and
-/// `~/.calendars` (vdirsyncer and khal's convention). Candidates only: the caller keeps those
-/// that exist (`provider_for`).
+/// Where `auto` looks, in order: `$XDG_DATA_HOME/sill/calendars` (a directory to drop `.ics`
+/// files into) and `~/.calendars` (vdirsyncer and khal's convention). Candidates only: the
+/// caller keeps those that exist (`provider_for`).
 pub fn auto_places(env: &AutoEnv) -> Vec<IcsPlace> {
-    let korganizer = env
-        .akonadi_rc
-        .as_deref()
-        .and_then(|rc| akonadi_ical_path(rc, &env.home))
-        .map(IcsPlace::File);
-    korganizer
-        .into_iter()
-        .chain([
-            IcsPlace::Dir(env.data_home.join("sill").join("calendars")),
-            IcsPlace::Dir(env.home.join(".calendars")),
-        ])
-        .collect()
+    vec![
+        IcsPlace::Dir(env.data_home.join("sill").join("calendars")),
+        IcsPlace::Dir(env.home.join(".calendars")),
+    ]
 }
 
 #[cfg(test)]
 mod tests {
     use std::path::{Path, PathBuf};
 
-    use super::{AutoEnv, EventSources, IcsPlace, akonadi_ical_path, auto_places, parse_sources};
+    use super::{AutoEnv, EventSources, IcsPlace, auto_places, parse_sources};
 
     const HOME: &str = "/home/ada";
 
@@ -142,44 +114,17 @@ mod tests {
     }
 
     #[test]
-    fn akonadis_ical_resource_names_korganizers_file() {
-        let home = Path::new(HOME);
-        let cases = [
-            (
-                "[General]\nPath[$e]=$HOME/.local/share/apps/korganizer/std.ics\n",
-                Some(PathBuf::from(
-                    "/home/ada/.local/share/apps/korganizer/std.ics",
-                )),
-            ),
-            (
-                "[General]\nPath=/srv/cal.ics\nReadOnly=false\n",
-                Some(PathBuf::from("/srv/cal.ics")),
-            ),
-            ("[General]\nReadOnly=true\n", None),
-        ];
-        for (rc, want) in cases {
-            assert_eq!(akonadi_ical_path(rc, home), want, "{rc:?}");
-        }
-    }
-
-    #[test]
-    fn auto_looks_at_korganizer_sill_and_vdirsyncer() {
-        let korganizer = PathBuf::from("/home/ada/.local/share/apps/korganizer/std.ics");
-        let sill = IcsPlace::Dir(PathBuf::from("/home/ada/.local/share/sill/calendars"));
-        let vdir = IcsPlace::Dir(PathBuf::from("/home/ada/.calendars"));
+    fn auto_looks_at_sill_and_vdirsyncer() {
         let env = AutoEnv {
             home: PathBuf::from(HOME),
             data_home: PathBuf::from("/home/ada/.local/share"),
-            akonadi_rc: Some(format!("[General]\nPath={}\n", korganizer.display())),
         };
         assert_eq!(
             auto_places(&env),
-            vec![IcsPlace::File(korganizer), sill.clone(), vdir.clone()]
+            vec![
+                IcsPlace::Dir(PathBuf::from("/home/ada/.local/share/sill/calendars")),
+                IcsPlace::Dir(PathBuf::from("/home/ada/.calendars")),
+            ]
         );
-        let bare = AutoEnv {
-            akonadi_rc: None,
-            ..env
-        };
-        assert_eq!(auto_places(&bare), vec![sill, vdir]);
     }
 }

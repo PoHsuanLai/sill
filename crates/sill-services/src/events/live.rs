@@ -1,10 +1,9 @@
 //! The events task: waits for `Sources`, builds the provider (`provider_for`, `auto` reading
-//! `$HOME`, `$XDG_DATA_HOME` and Akonadi's rc), reads it on the blocking pool over
+//! `$HOME` and `$XDG_DATA_HOME`), reads it on the blocking pool over
 //! `held_window(today)` in the system zone, watches `watched()` with `notify` (debounced),
 //! re-reads on a change, a `Refresh` and the day's turn, and publishes through `reduce_agenda`.
 //! Ends when every receiver is gone.
 
-use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -115,19 +114,7 @@ async fn plan_for(sources: &EventSources) -> Plan {
 fn auto_env() -> AutoEnv {
     let home = dirs::home_dir().unwrap_or_default();
     let data_home = dirs::data_dir().unwrap_or_else(|| home.join(".local/share"));
-    let akonadi_rc = dirs::config_dir()
-        .map(|config| config.join("akonadi_ical_resource_0rc"))
-        .and_then(|rc| read_small(&rc));
-    AutoEnv {
-        home,
-        data_home,
-        akonadi_rc,
-    }
-}
-
-/// A config file's text, when there is one.
-fn read_small(path: &Path) -> Option<String> {
-    std::fs::read_to_string(path).ok()
+    AutoEnv { home, data_home }
 }
 
 /// Read `plan` on the blocking pool and publish what it found.

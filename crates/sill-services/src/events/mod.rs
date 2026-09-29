@@ -1,12 +1,10 @@
 //! Calendar events for the notification center's Calendar and Up Next widgets (design/20 §1.12,
-//! moved into the widgets as macOS 11 did; sill FINDINGS "M10 freeze").
+//! moved into the widgets as macOS 11 did).
 //!
-//! Where events come from (researched for the freeze, on this machine and in general):
+//! Where events come from:
 //!
 //! - **An `.ics` file or a directory of them** is the cheap, local, dependency-free source, and
-//!   it covers more than it sounds: KOrganizer's default calendar is Akonadi's iCal resource,
-//!   whose file is named in `~/.config/akonadi_ical_resource_0rc` (`Path[$e]=$HOME/.local/share/
-//!   apps/korganizer/std.ics` here); vdirsyncer syncs any CalDAV server (Nextcloud, Fastmail,
+//!   it covers more than it sounds: vdirsyncer syncs any CalDAV server (Nextcloud, Fastmail,
 //!   iCloud, Google) into a directory of one `.ics` per event per collection, the layout khal
 //!   reads (`~/.calendars/<collection>/<uid>.ics` by convention); and every calendar exports
 //!   `.ics`. [`IcsProvider`] reads them: [`ics`] parses RFC 5545 by hand (unfolding, `VEVENT`,
@@ -17,9 +15,7 @@
 //!   session bus) is what GNOME Calendar and GNOME Online Accounts feed; it answers
 //!   `GetObjectList` with iCalendar text, so the same parser would read it. It is not installed
 //!   here (nor is GOA, whose calendars reach clients only through EDS), so it is a later
-//!   provider behind the same trait, not M10's.
-//! - **Akonadi** itself (KDE's store, running on this machine) speaks a private protocol; its
-//!   iCal resource's file is read directly instead, as above.
+//!   provider behind the same trait.
 //!
 //! Dependencies: none added. `icalendar` brings chrono and expands no rule; `rrule` brings chrono
 //! and chrono-tz (a second compiled-in zone database beside jiff's). jiff is already here.
@@ -51,7 +47,7 @@ pub use model::{
 pub use provider::{
     EventsError, EventsProvider, IcsProvider, NullProvider, ProviderRead, provider_for,
 };
-pub use sources::{AutoEnv, EventSources, IcsPlace, akonadi_ical_path, auto_places, parse_sources};
+pub use sources::{AutoEnv, EventSources, IcsPlace, auto_places, parse_sources};
 
 use jiff::Zoned;
 use jiff::tz::TimeZone;

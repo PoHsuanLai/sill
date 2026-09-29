@@ -56,7 +56,7 @@ pub struct CalendarSettings {
     /// `sill_services::events::parse_sources`).
     #[settings(
         label = "Calendars",
-        help = "`auto` reads KOrganizer's calendar file, `~/.calendars` (vdirsyncer and khal) and `~/.local/share/sill/calendars`; `off` reads none; or `.ics` files and folders separated by `;`.",
+        help = "`auto` reads `~/.calendars` (vdirsyncer and khal) and `~/.local/share/sill/calendars`; `off` reads none; or `.ics` files and folders separated by `;`.",
         section = "Calendar",
         advanced
     )]
