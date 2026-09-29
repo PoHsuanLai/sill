@@ -12,11 +12,10 @@ use std::time::{Duration, Instant};
 
 use private_bus::PrivateBus;
 use sill_services::battery::Battery;
-use sill_services::env::{Bus, BusRoute};
+use sill_services::env::{Bus, BusRoute, WaylandRoute};
 use sill_services::idle::{
-    DimLevel, DimPlan, Idle, IdleCommand, IdleDisplay, IdleLinks, IdleLock, IdleMode, IdlePhase,
-    IdlePolicy, IdleSecs, IdleTimes, Inhibition, LockGrace, LockedScreenOff, PowerPair, Setup,
-    Timeout, spawn,
+    DimLevel, DimPlan, Idle, IdleCommand, IdleLinks, IdleLock, IdleMode, IdlePhase, IdlePolicy,
+    IdleSecs, IdleTimes, Inhibition, LockGrace, LockedScreenOff, PowerPair, Setup, Timeout, spawn,
 };
 use sill_services::{AuthCommand, Control, Lock, LockerCommand};
 use tokio::sync::watch;
@@ -87,7 +86,7 @@ async fn idle_locks_at_screen_off_and_a_screensaver_inhibit_holds_it() {
     let (locker, mut locker_rx) = Control::<LockerCommand>::channel();
     let (auth, _auth_rx) = Control::<AuthCommand>::channel();
     let setup = Setup {
-        display: IdleDisplay::Socket(socket),
+        display: WaylandRoute::Socket(socket),
         system: Bus::system(BusRoute::Absent),
         session: Bus::session(BusRoute::Address(bus.address.clone())),
     };

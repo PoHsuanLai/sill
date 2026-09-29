@@ -8,9 +8,10 @@ use std::time::Duration;
 
 use sill_launcher::ClipKey;
 use sill_services::clipboard::{
-    ClipContent, ClipDisplay, ClipPolicy, ClipProtocol, Clipboard, ClipboardCommand, EntryCap,
-    HistoryMode, ImageCap, Setup, spawn_with,
+    ClipContent, ClipPolicy, ClipProtocol, Clipboard, ClipboardCommand, EntryCap, HistoryMode,
+    ImageCap, Setup, spawn,
 };
+use sill_services::env::WaylandRoute;
 use tokio::runtime::Runtime;
 use tokio::sync::watch;
 
@@ -68,9 +69,9 @@ fn without_a_compositor_history_is_on_but_not_connected() {
     let rt = runtime();
     let missing = std::env::temp_dir().join("sill-clipboard-no-such-socket");
     let setup = Setup {
-        display: ClipDisplay::Socket(missing),
+        display: WaylandRoute::Socket(missing),
     };
-    let (mut history, control) = spawn_with(rt.handle(), setup);
+    let (mut history, control) = spawn(rt.handle(), setup);
     control.send(memory()).expect("the service listens");
     wait(&rt, &mut history, "history on", |h| {
         h.status.mode == HistoryMode::Memory
@@ -87,9 +88,9 @@ fn the_history_follows_the_nested_clipboard() {
     let socket = nested_socket();
     let rt = runtime();
     let setup = Setup {
-        display: ClipDisplay::Socket(socket.clone()),
+        display: WaylandRoute::Socket(socket.clone()),
     };
-    let (mut history, control) = spawn_with(rt.handle(), setup);
+    let (mut history, control) = spawn(rt.handle(), setup);
     control.send(memory()).expect("the service listens");
     wait(&rt, &mut history, "connected", |h| {
         h.status.protocol != ClipProtocol::NotConnected

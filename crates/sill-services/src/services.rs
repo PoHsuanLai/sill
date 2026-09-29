@@ -121,12 +121,17 @@ impl Services {
         let (volume, volume_control) = crate::volume::spawn(rt);
         let (displays, displays_control) = crate::displays::spawn(rt, system(), volume.clone());
         let (tray, tray_control) = crate::tray::spawn(rt, session());
-        let (workspaces, toplevels, wl) = crate::cosmic_wl::spawn();
+        let (workspaces, toplevels, wl) = crate::cosmic_wl::spawn(env.wayland.clone());
         let (apps, apps_control) = crate::apps::spawn(rt);
         let (badges, badges_control) = crate::badges::spawn(rt, session());
         let (pins, pins_control) = crate::pins::spawn(rt);
         let (launches, launch) = crate::launch::spawn(rt, session(), apps.clone());
-        let (clipboard, clipboard_control) = crate::clipboard::spawn(rt);
+        let (clipboard, clipboard_control) = crate::clipboard::spawn(
+            rt,
+            crate::clipboard::Setup {
+                display: env.wayland.clone(),
+            },
+        );
         let (results, search) = crate::results::spawn_with_providers(
             rt,
             crate::results::Wiring {
@@ -230,7 +235,7 @@ impl Services {
 #[cfg(test)]
 mod tests {
     use super::Services;
-    use crate::env::{Buses, Env};
+    use crate::env::Env;
 
     /// `Services::spawn` must never panic — the daemon has to reach the host connect and the
     /// IPC server — and every passive service holds its default (a service without its bus or
@@ -239,9 +244,9 @@ mod tests {
     #[test]
     fn spawn_does_not_panic_and_passive_services_hold_their_defaults() {
         let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
-        let env = Env {
-            buses: Buses::absent(),
-        };
+        let scratch =
+            std::env::temp_dir().join(format!("sill-services-spawn-{}", std::process::id()));
+        let env = Env::isolated(&scratch);
         let services = Services::spawn(rt.handle(), &env);
 
         assert_eq!(services.clock.borrow().text.split_whitespace().count(), 4);

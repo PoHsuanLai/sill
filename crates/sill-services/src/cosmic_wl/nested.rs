@@ -12,8 +12,8 @@ use std::time::{Duration, Instant};
 use sill_launcher::WindowKey;
 use tokio::sync::watch;
 
-use super::thread::Endpoint;
-use super::{Activity, Toplevels, WindowState, WlCommand, Workspaces, spawn, spawn_on};
+use super::{Activity, Toplevels, WindowState, WlCommand, Workspaces, spawn};
+use crate::env::WaylandRoute;
 
 const WITHIN: Duration = Duration::from_secs(2);
 
@@ -50,7 +50,7 @@ fn thread_state(name: &str) -> Option<char> {
 #[test]
 fn without_a_compositor_the_thread_parks_until_the_control_goes() {
     let missing = std::env::temp_dir().join("sill-no-such-wayland-socket");
-    let (workspaces, toplevels, control) = spawn_on(Endpoint::Socket(missing));
+    let (workspaces, toplevels, control) = spawn(WaylandRoute::Socket(missing));
     let parked = wait_for(WITHIN, || {
         (thread_state("cosmic_wl") == Some('S')).then_some(())
     });
@@ -87,7 +87,7 @@ fn without_a_compositor_the_thread_parks_until_the_control_goes() {
 #[test]
 #[ignore = "needs a Wayland session without COSMIC protocols"]
 fn without_cosmic_protocols_the_channels_stay_empty_and_the_thread_parks() {
-    let (workspaces, toplevels, control) = spawn();
+    let (workspaces, toplevels, control) = spawn(WaylandRoute::Environment);
     let parked = wait_for(WITHIN, || {
         (thread_state("cosmic_wl") == Some('S')).then_some(())
     });
@@ -202,7 +202,7 @@ fn windows_of(toplevels: &watch::Receiver<Toplevels>, app_id: &str) -> Vec<super
 fn a_client_in_nested_cosmic_is_published_and_obeys_commands() {
     let nested = Nested::start();
     let (program, app_id) = client_under_test();
-    let (workspaces, toplevels, control) = spawn_on(Endpoint::Socket(nested.socket.clone()));
+    let (workspaces, toplevels, control) = spawn(WaylandRoute::Socket(nested.socket.clone()));
 
     let groups = wait_for(WITHIN, || {
         let now = workspaces.borrow().clone();
@@ -302,7 +302,7 @@ fn the_amended_workspace_commands_take_effect_in_nested_cosmic() {
 
     let nested = Nested::start();
     let (program, app_id) = client_under_test();
-    let (workspaces, toplevels, control) = spawn_on(Endpoint::Socket(nested.socket.clone()));
+    let (workspaces, toplevels, control) = spawn(WaylandRoute::Socket(nested.socket.clone()));
     let before = windows_of(&toplevels, &app_id);
     let _client = Client(
         Command::new(&program)

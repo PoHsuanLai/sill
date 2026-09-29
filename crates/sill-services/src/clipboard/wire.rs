@@ -4,19 +4,18 @@
 //! with it the connection.
 
 use std::io;
-use std::os::unix::net::UnixStream;
 
 use cosmic_client_toolkit::sctk::reexports::calloop::channel::{self, Event};
 use cosmic_client_toolkit::sctk::reexports::calloop::{self, EventLoop};
 use cosmic_client_toolkit::sctk::reexports::calloop_wayland_source::WaylandSource;
 use cosmic_client_toolkit::wayland_client::globals::{GlobalError, registry_queue_init};
 use cosmic_client_toolkit::wayland_client::protocol::wl_seat::WlSeat;
-use cosmic_client_toolkit::wayland_client::{ConnectError, Connection};
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::model::{ClipContent, ClipDisplay, ClipEvent, ClipProtocol, ImageCap};
+use super::model::{ClipContent, ClipEvent, ClipProtocol, ImageCap};
 use super::wire_state::{Binding, WireState};
 use super::wl::{bind_manager, manager_interfaces};
+use crate::env::{WaylandRoute, WaylandUnreached};
 
 /// Which connection an event came from: the service drops what an older one says.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,7 +73,7 @@ impl Wire {
 }
 
 /// Start a thread connected to `display`.
-pub(super) fn start(display: ClipDisplay, images: ImageCap, tell: Tell) -> io::Result<Wire> {
+pub(super) fn start(display: WaylandRoute, images: ImageCap, tell: Tell) -> io::Result<Wire> {
     let (orders, from_service) = channel::channel();
     std::thread::Builder::new()
         .name("sill-clipboard".to_owned())
@@ -85,41 +84,30 @@ pub(super) fn start(display: ClipDisplay, images: ImageCap, tell: Tell) -> io::R
 /// Why the thread is not following a compositor (said by kind, never with content).
 #[derive(Debug, thiserror::Error)]
 enum Refusal {
-    #[error("no Wayland socket: {0}")]
-    Socket(io::Error),
-    #[error("no Wayland connection: {0}")]
-    Connect(#[from] ConnectError),
+    #[error("{0}")]
+    Unreached(#[from] WaylandUnreached),
     #[error("the registry: {0}")]
     Registry(#[from] GlobalError),
     #[error("the event loop: {0}")]
     Loop(#[from] calloop::Error),
 }
 
-fn run(display: &ClipDisplay, images: ImageCap, orders: channel::Channel<Order>, tell: Tell) {
+fn run(display: &WaylandRoute, images: ImageCap, orders: channel::Channel<Order>, tell: Tell) {
     if let Err(refusal) = follow(display, images, orders, tell.clone()) {
         eprintln!("sill: clipboard: {refusal}; history is not following the clipboard");
     }
     tell.say(ClipEvent::Disconnected);
 }
 
-fn connect(display: &ClipDisplay) -> Result<Connection, Refusal> {
-    Ok(match display {
-        ClipDisplay::Environment => Connection::connect_to_env()?,
-        ClipDisplay::Socket(path) => {
-            Connection::from_socket(UnixStream::connect(path).map_err(Refusal::Socket)?)?
-        }
-    })
-}
-
 /// Bind, report the protocol, and run the loop until the service drops its [`Wire`] or the
 /// compositor goes away.
 fn follow(
-    display: &ClipDisplay,
+    display: &WaylandRoute,
     images: ImageCap,
     orders: channel::Channel<Order>,
     tell: Tell,
 ) -> Result<(), Refusal> {
-    let conn = connect(display)?;
+    let conn = display.connect()?;
     let (globals, queue) = registry_queue_init::<WireState>(&conn)?;
     let qh = queue.handle();
     let seat = globals.bind::<WlSeat, _, _>(&qh, 1..=1, ()).ok();

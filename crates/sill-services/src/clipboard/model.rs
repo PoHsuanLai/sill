@@ -3,10 +3,11 @@
 //! memory only).
 
 use std::fmt;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use sill_launcher::{ClipKey, Mime, UnixTime};
+
+use crate::env::WaylandRoute;
 
 /// What the launcher and `sill clipboard status` read.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -135,20 +136,11 @@ pub enum ClipboardCommand {
     Clear,
 }
 
-/// Where the service connects.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum ClipDisplay {
-    /// `$WAYLAND_DISPLAY` (the daemon's compositor).
-    #[default]
-    Environment,
-    /// A socket path (a live test's nested compositor).
-    Socket(PathBuf),
-}
-
 /// How the service is started.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Setup {
-    pub display: ClipDisplay,
+    /// The compositor (a live test's nested one by socket).
+    pub display: WaylandRoute,
 }
 
 /// Why an offered selection was not kept.

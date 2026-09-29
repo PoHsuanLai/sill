@@ -1,13 +1,11 @@
 //! The idle service's published state, commands, wiring and set-up.
 
-use std::path::PathBuf;
-
 use tokio::sync::watch;
 
 use crate::auth::AuthCommand;
 use crate::battery::Battery;
 use crate::control::Control;
-use crate::env::{Bus, Env};
+use crate::env::{Bus, Env, WaylandRoute};
 use crate::locker::{Lock, LockerCommand};
 
 use super::inhibit::{Inhibition, LogindIdle};
@@ -83,7 +81,8 @@ pub struct IdleLinks {
 /// bus's `org.freedesktop.ScreenSaver`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Setup {
-    pub display: IdleDisplay,
+    /// The compositor to hold idle notifications and output power on.
+    pub display: WaylandRoute,
     /// logind (`Suspend`, `SetIdleHint`, `PrepareForSleep`, `BlockInhibited`).
     pub system: Bus,
     /// `org.freedesktop.ScreenSaver`.
@@ -91,22 +90,12 @@ pub struct Setup {
 }
 
 impl Setup {
-    /// The session's compositor, and `env`'s buses.
+    /// `env`'s compositor and buses.
     pub fn of(env: &Env) -> Setup {
         Setup {
-            display: IdleDisplay::Environment,
+            display: env.wayland.clone(),
             system: env.buses.system.clone(),
             session: env.buses.session.clone(),
         }
     }
-}
-
-/// The compositor to hold idle notifications and output power on.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum IdleDisplay {
-    /// `$WAYLAND_DISPLAY`.
-    #[default]
-    Environment,
-    /// A socket path (a live test's nested cosmic-comp).
-    Socket(PathBuf),
 }

@@ -6,7 +6,7 @@
 //! `Debug`), offers a password manager marks are never read ([`SECRET_HINTS`]), and with
 //! `launcher.clipboard_history = "off"` it holds no connection and no entries. It is passive
 //! until the daemon's first [`ClipboardCommand::Policy`], so a test never reads the session's
-//! clipboard. Live tests connect to a nested compositor by socket ([`ClipDisplay::Socket`])
+//! clipboard. Live tests connect to a nested compositor by socket ([`WaylandRoute::Socket`](crate::env::WaylandRoute::Socket))
 //! with their own data only.
 
 mod content;
@@ -21,9 +21,9 @@ mod wire_state;
 mod wl;
 
 pub use model::{
-    ClipContent, ClipDisplay, ClipEffect, ClipEntry, ClipEvent, ClipImage, ClipPolicy,
-    ClipProtocol, ClipState, ClipStatus, ClipText, Clipboard, ClipboardCommand, EntryCap,
-    HistoryMode, ImageCap, Setup, Skipped,
+    ClipContent, ClipEffect, ClipEntry, ClipEvent, ClipImage, ClipPolicy, ClipProtocol, ClipState,
+    ClipStatus, ClipText, Clipboard, ClipboardCommand, EntryCap, HistoryMode, ImageCap, Setup,
+    Skipped,
 };
 pub use offer::{ImagesKept, MimePick, OfferVerdict, SECRET_HINTS, offer_verdict};
 pub use reduce::reduce_clipboard;
@@ -33,16 +33,8 @@ use tokio::sync::watch;
 
 use crate::control::Control;
 
-/// Start the service on the session's compositor.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<Clipboard>, Control<ClipboardCommand>) {
-    spawn_with(rt, Setup::default())
-}
-
-/// [`spawn`] with a chosen compositor.
-pub fn spawn_with(
-    rt: &Handle,
-    setup: Setup,
-) -> (watch::Receiver<Clipboard>, Control<ClipboardCommand>) {
+/// Start the service on `setup`'s compositor.
+pub fn spawn(rt: &Handle, setup: Setup) -> (watch::Receiver<Clipboard>, Control<ClipboardCommand>) {
     let (tx, rx) = watch::channel(Clipboard::default());
     let (control, commands) = Control::channel();
     rt.spawn(live::run(setup, commands, tx));

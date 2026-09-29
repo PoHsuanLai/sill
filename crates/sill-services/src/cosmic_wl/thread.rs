@@ -3,43 +3,26 @@
 //! command channel. On a compositor without the COSMIC protocols it parks on the command
 //! channel instead, dropping commands, until every `Control` is gone.
 
-use std::os::unix::net::UnixStream;
-use std::path::PathBuf;
-
 use cosmic_client_toolkit::sctk::reexports::calloop::channel::{self, Event};
 use cosmic_client_toolkit::sctk::reexports::calloop::{self, EventLoop};
 use cosmic_client_toolkit::sctk::reexports::calloop_wayland_source::WaylandSource;
 use cosmic_client_toolkit::wayland_client::globals::{
     GlobalError, GlobalList, registry_queue_init,
 };
-use cosmic_client_toolkit::wayland_client::{ConnectError, Connection, EventQueue};
+use cosmic_client_toolkit::wayland_client::{Connection, EventQueue};
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::cosmic_wl::command::WlCommand;
 use crate::cosmic_wl::execute::execute;
 use crate::cosmic_wl::publish::Publish;
 use crate::cosmic_wl::state::{Offer, WlState};
-
-/// Which compositor to connect to.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum Endpoint {
-    /// `$WAYLAND_DISPLAY` (or `$WAYLAND_SOCKET`), as every client does.
-    Environment,
-    /// A socket by path: the nested compositor in the live test.
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "only the live tests name a socket")
-    )]
-    Socket(PathBuf),
-}
+use crate::env::{WaylandRoute, WaylandUnreached};
 
 /// Why the thread is not following a compositor.
 #[derive(Debug, thiserror::Error)]
 enum Refusal {
-    #[error("no Wayland socket: {0}")]
-    Socket(std::io::Error),
-    #[error("no Wayland connection: {0}")]
-    Connect(#[from] ConnectError),
+    #[error("{0}")]
+    Unreached(#[from] WaylandUnreached),
     #[error("the registry: {0}")]
     Registry(#[from] GlobalError),
     #[error("the compositor offers neither ext-foreign-toplevel-list nor ext-workspace")]
@@ -49,7 +32,11 @@ enum Refusal {
 }
 
 /// The thread's body.
-pub(super) fn run(endpoint: Endpoint, publish: Publish, commands: UnboundedReceiver<WlCommand>) {
+pub(super) fn run(
+    endpoint: WaylandRoute,
+    publish: Publish,
+    commands: UnboundedReceiver<WlCommand>,
+) {
     match open(&endpoint, publish) {
         Ok(session) => follow(session, commands),
         Err((refusal, publish)) => {
@@ -67,7 +54,7 @@ struct Session {
     state: WlState,
 }
 
-fn open(endpoint: &Endpoint, publish: Publish) -> Result<Session, (Refusal, Publish)> {
+fn open(endpoint: &WaylandRoute, publish: Publish) -> Result<Session, (Refusal, Publish)> {
     let (conn, globals, queue) = match connect(endpoint) {
         Ok(parts) => parts,
         Err(refusal) => return Err((refusal, publish)),
@@ -88,13 +75,8 @@ fn open(endpoint: &Endpoint, publish: Publish) -> Result<Session, (Refusal, Publ
 
 type Connected = (Connection, GlobalList, EventQueue<WlState>);
 
-fn connect(endpoint: &Endpoint) -> Result<Connected, Refusal> {
-    let conn = match endpoint {
-        Endpoint::Environment => Connection::connect_to_env()?,
-        Endpoint::Socket(path) => {
-            Connection::from_socket(UnixStream::connect(path).map_err(Refusal::Socket)?)?
-        }
-    };
+fn connect(endpoint: &WaylandRoute) -> Result<Connected, Refusal> {
+    let conn = endpoint.connect()?;
     let (globals, queue) = registry_queue_init::<WlState>(&conn)?;
     Ok((conn, globals, queue))
 }

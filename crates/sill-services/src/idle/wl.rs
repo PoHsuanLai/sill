@@ -1,4 +1,4 @@
-//! Idle's Wayland thread: its own connection to [`IdleDisplay`] (a protocol object cannot cross
+//! Idle's Wayland thread: its own connection to [`WaylandRoute`] (a protocol object cannot cross
 //! connections), `ext_idle_notifier_v1` for the watches (`get_idle_notification`, which honours
 //! the compositor's idle inhibitors; never the input form), and `zwlr_output_power_manager_v1` with
 //! one `zwlr_output_power_v1` per `wl_output` for the displays. A calloop loop runs over the
@@ -6,19 +6,17 @@
 //! connection.
 
 use std::io;
-use std::os::unix::net::UnixStream;
 
 use cosmic_client_toolkit::sctk::reexports::calloop::channel::{self, Event};
 use cosmic_client_toolkit::sctk::reexports::calloop::{self, EventLoop};
 use cosmic_client_toolkit::sctk::reexports::calloop_wayland_source::WaylandSource;
 use cosmic_client_toolkit::wayland_client::globals::{GlobalError, registry_queue_init};
-use cosmic_client_toolkit::wayland_client::{ConnectError, Connection};
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::model::IdleDisplay;
 use super::policy::{Threshold, Watch};
 use super::reduce::DisplayPower;
 use super::wl_state::WlState;
+use crate::env::{WaylandRoute, WaylandUnreached};
 
 /// Which connection an event came from: the service drops what an older one says.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -105,7 +103,7 @@ impl Wire {
 }
 
 /// Start a thread connected to `display`.
-pub(super) fn start(display: IdleDisplay, tell: Tell) -> io::Result<Wire> {
+pub(super) fn start(display: WaylandRoute, tell: Tell) -> io::Result<Wire> {
     let (orders, from_service) = channel::channel();
     std::thread::Builder::new()
         .name("sill-idle".to_owned())
@@ -116,39 +114,28 @@ pub(super) fn start(display: IdleDisplay, tell: Tell) -> io::Result<Wire> {
 /// Why the thread is not following a compositor.
 #[derive(Debug, thiserror::Error)]
 enum Refusal {
-    #[error("no Wayland socket: {0}")]
-    Socket(io::Error),
-    #[error("no Wayland connection: {0}")]
-    Connect(#[from] ConnectError),
+    #[error("{0}")]
+    Unreached(#[from] WaylandUnreached),
     #[error("the registry: {0}")]
     Registry(#[from] GlobalError),
     #[error("the event loop: {0}")]
     Loop(#[from] calloop::Error),
 }
 
-fn run(display: &IdleDisplay, orders: channel::Channel<Order>, tell: Tell) {
+fn run(display: &WaylandRoute, orders: channel::Channel<Order>, tell: Tell) {
     if let Err(refusal) = follow(display, orders, tell.clone()) {
         eprintln!("sill: idle: {refusal}; idle is not followed");
     }
     tell.say(WlEvent::Gone);
 }
 
-fn connect(display: &IdleDisplay) -> Result<Connection, Refusal> {
-    Ok(match display {
-        IdleDisplay::Environment => Connection::connect_to_env()?,
-        IdleDisplay::Socket(path) => {
-            Connection::from_socket(UnixStream::connect(path).map_err(Refusal::Socket)?)?
-        }
-    })
-}
-
 /// Bind, report, and run the loop until the service drops its [`Wire`] or the compositor goes.
 fn follow(
-    display: &IdleDisplay,
+    display: &WaylandRoute,
     orders: channel::Channel<Order>,
     tell: Tell,
 ) -> Result<(), Refusal> {
-    let conn = connect(display)?;
+    let conn = display.connect()?;
     let (globals, queue) = registry_queue_init::<WlState>(&conn)?;
     let qh = queue.handle();
     let mut state = WlState::bind(&globals, qh, tell.clone());

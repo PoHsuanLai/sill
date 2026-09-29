@@ -64,11 +64,10 @@ fn never_built() -> LockFactory {
     LockFactory(Box::new(|_| panic!("the fake host builds no surface")))
 }
 
-/// Neither bus: nothing here reaches the real logind, UPower or session bus.
+/// Nothing here reaches the real logind, UPower, session bus or compositor.
 fn test_env() -> sill_services::env::Env {
-    sill_services::env::Env {
-        buses: sill_services::env::Buses::absent(),
-    }
+    let scratch = std::env::temp_dir().join(format!("sill-lock-apply-{}", std::process::id()));
+    sill_services::env::Env::isolated(&scratch)
 }
 
 fn runtime() -> tokio::runtime::Runtime {

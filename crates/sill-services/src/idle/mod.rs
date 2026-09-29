@@ -37,7 +37,7 @@ pub use inhibit::{
     BusPeer, InhibitCookie, InhibitMsg, InhibitReply, Inhibition, Inhibitor, Inhibitors,
     LogindIdle, inhibit_step, inhibition, logind_idle,
 };
-pub use model::{DimShown, Idle, IdleCommand, IdleDisplay, IdleLinks, IdlePhase, Setup};
+pub use model::{DimShown, Idle, IdleCommand, IdleLinks, IdlePhase, Setup};
 pub use policy::{
     DimLevel, DimPlan, IdleConfig, IdleLock, IdleMode, IdlePolicy, IdleSecs, IdleTimes, LockGrace,
     LockView, LockedScreenOff, OffReason, PowerPair, PowerSource, Threshold, Timeout, TimesChoice,

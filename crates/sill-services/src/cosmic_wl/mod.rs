@@ -32,21 +32,12 @@ use tokio::sync::watch;
 
 use crate::control::Control;
 use crate::cosmic_wl::publish::Publish;
-use crate::cosmic_wl::thread::Endpoint;
+use crate::env::WaylandRoute;
 
-/// Start the `cosmic_wl` thread: connect to `$WAYLAND_DISPLAY`, bind the cctk globals, and
-/// publish toplevels and workspaces after every `done`.
-pub fn spawn() -> (
-    watch::Receiver<Workspaces>,
-    watch::Receiver<Toplevels>,
-    Control<WlCommand>,
-) {
-    spawn_on(Endpoint::Environment)
-}
-
-/// [`spawn`] against a chosen compositor.
-fn spawn_on(
-    endpoint: Endpoint,
+/// Start the `cosmic_wl` thread: connect to the compositor `route` names, bind the cctk
+/// globals, and publish toplevels and workspaces after every `done`.
+pub fn spawn(
+    route: WaylandRoute,
 ) -> (
     watch::Receiver<Workspaces>,
     watch::Receiver<Toplevels>,
@@ -56,7 +47,7 @@ fn spawn_on(
     let (control, commands) = Control::channel();
     let started = std::thread::Builder::new()
         .name("cosmic_wl".to_owned())
-        .spawn(move || thread::run(endpoint, publish, commands));
+        .spawn(move || thread::run(route, publish, commands));
     if let Err(error) = started {
         eprintln!("sill: cosmic_wl: no thread: {error}; toplevels and workspaces stay empty");
     }
