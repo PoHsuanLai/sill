@@ -58,7 +58,7 @@ pub use apps::{
     ExecError, Listing, Terminal, expand_exec, match_app, reduce_apps,
 };
 pub use attempt::{Attempt, AttemptStep, Attempts, OpStamp};
-pub use auth::{Auth, AuthCommand, AuthPhase};
+pub use auth::{Auth, AuthCommand, AuthPhase, AuthService};
 pub use badges::{
     Badge, BadgeEvent, BadgeProp, Badges, BadgesCommand, BadgesService, parse_app_uri,
 };

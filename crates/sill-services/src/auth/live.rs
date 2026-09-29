@@ -69,8 +69,8 @@ pub(super) async fn run(
     mut commands: mpsc::UnboundedReceiver<AuthCommand>,
     account: AccountPlace,
     authenticator: Arc<dyn Authenticator>,
-    rt: Handle,
 ) {
+    let rt = Handle::current();
     let (done, mut finished) = mpsc::unbounded_channel();
     let mut live = Live {
         tx,

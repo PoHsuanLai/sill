@@ -19,7 +19,7 @@
 //! `login` ([`pam::service`]).
 //!
 //! Nothing here runs PAM until a [`AuthCommand::Submit`] arrives, and every test drives a
-//! [`FakeAuthenticator`] ([`spawn_with`]); no test calls PAM with anyone's real password.
+//! [`FakeAuthenticator`] (the [`Env`]'s authenticator); no test calls PAM with anyone's real password.
 
 mod account;
 mod authenticator;
@@ -41,50 +41,45 @@ pub use types::{
 
 use std::sync::Arc;
 
-use tokio::runtime::Handle;
-use tokio::sync::watch;
-
-use crate::control::Control;
-use crate::env::{Bus, Dirs, Env};
+use crate::env::{Bus, Env};
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
 /// Where the person's name and picture are read.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AccountPlace {
+struct AccountPlace {
     /// AccountsService's bus, which may name the picture.
-    pub system: Bus,
+    system: Bus,
     /// The home folder, whose `.face` is the fallback picture.
-    pub home: std::path::PathBuf,
+    home: std::path::PathBuf,
 }
 
-impl AccountPlace {
-    /// `env`'s system bus and home.
-    pub fn of(env: &Env) -> AccountPlace {
-        AccountPlace::on(env.buses.system.clone(), &env.dirs)
-    }
+/// The lock screen's password check as a [`Service`], through `env`'s [`Authenticator`] (PAM
+/// through `sill auth-check` in the daemon, a [`FakeAuthenticator`] in every test), the account
+/// read on `env`'s system bus and home. Idle until the first `Submit`: nothing is checked, and
+/// no PAM module runs, before that.
+#[derive(Debug)]
+pub enum AuthService {}
 
-    /// AccountsService on `system`, the home in `dirs`.
-    pub fn on(system: Bus, dirs: &Dirs) -> AccountPlace {
-        AccountPlace {
-            system,
-            home: dirs.home.clone(),
+impl Service for AuthService {
+    const NAME: &'static str = "auth";
+    type State = Auth;
+    type Command = AuthCommand;
+    type Deps = ();
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let account = AccountPlace {
+            system: env.buses.system.clone(),
+            home: env.dirs.home.clone(),
+        };
+        let authenticator = Arc::clone(&env.authenticator);
+        async move {
+            live::run(io.state, io.commands, account, authenticator).await;
+            Ok(())
         }
     }
-}
-
-/// Start the auth service on `rt` with PAM through `sill auth-check` ([`PamHelper::this_exe`]).
-/// Idle until the first `Submit`: nothing is checked, and no PAM module runs, before that.
-pub fn spawn(rt: &Handle, account: AccountPlace) -> (watch::Receiver<Auth>, Control<AuthCommand>) {
-    spawn_with(rt, account, Arc::new(PamHelper::this_exe()))
-}
-
-/// [`spawn`] with any [`Authenticator`] (tests: a [`FakeAuthenticator`]).
-pub fn spawn_with(
-    rt: &Handle,
-    account: AccountPlace,
-    authenticator: Arc<dyn Authenticator>,
-) -> (watch::Receiver<Auth>, Control<AuthCommand>) {
-    let (tx, rx) = watch::channel(Auth::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands, account, authenticator, rt.clone()));
-    (rx, control)
 }

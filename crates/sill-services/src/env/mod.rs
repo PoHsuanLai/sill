@@ -5,6 +5,7 @@
 use std::path::Path;
 use std::sync::Arc;
 
+use crate::auth::{Authenticator, FakeAuthenticator, FakeRule, PamHelper};
 use crate::displays::ddc::file_bus::FileBus;
 use crate::displays::{DdcBus, I2cBuses};
 use crate::idle::IdleTimes;
@@ -44,6 +45,8 @@ pub struct Env {
     pub polkit: polkit_agent::Setup,
     /// Where the session's actions go: logind, or a dry run's record.
     pub session_actions: Arc<dyn SessionActions>,
+    /// What checks the lock screen's password: PAM through `sill auth-check`, or a stand-in.
+    pub authenticator: Arc<dyn Authenticator>,
 }
 
 /// Where idle's screen-off and suspend times come from.
@@ -58,7 +61,8 @@ pub enum IdleTimesSource {
 
 impl Env {
     /// The process's own: its buses, its compositor, its directories, the system clock, the
-    /// kernel's i2c buses, polkitd on the system bus and logind's session actions.
+    /// kernel's i2c buses, polkitd on the system bus, logind's session actions and PAM through
+    /// `sill auth-check`.
     pub fn from_process() -> Env {
         let buses = Buses::from_process();
         Env {
@@ -70,13 +74,14 @@ impl Env {
             ddc: Arc::new(I2cBuses::default()),
             idle_times: IdleTimesSource::Settings,
             session_actions: Arc::new(LogindActions),
+            authenticator: Arc::new(PamHelper::this_exe()),
         }
     }
 
     /// Nothing outside the process: no bus, a compositor socket in `scratch` that does not
     /// exist, every directory inside `scratch`, the system clock (read only), DDC monitors from
-    /// a file that is not there (none), no polkit helper, and session actions that are only
-    /// recorded. For tests that start services and must never
+    /// a file that is not there (none), no polkit helper, session actions that are only
+    /// recorded, and a password check that refuses everything. For tests that start services and must never
     /// reach the person's session or files. `scratch` must exist: the wallpaper service watches
     /// the nearest existing folder above COSMIC's record.
     pub fn isolated(scratch: &Path) -> Env {
@@ -93,6 +98,10 @@ impl Env {
                 session: polkit_agent::SessionChoice::Id("sill-test".to_owned()),
             },
             session_actions: Arc::new(DryRunActions::new(DryRunOffers::Everything, None)),
+            authenticator: Arc::new(FakeAuthenticator {
+                rule: FakeRule::RefusesAll,
+                delay: std::time::Duration::ZERO,
+            }),
         }
     }
 }

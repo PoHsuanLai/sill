@@ -1,5 +1,5 @@
 //! Live checks of the auth service. Nothing here calls PAM with anyone's real password: the service
-//! runs a `FakeAuthenticator` through `spawn_with`, and `PamHelper` runs against the stand-in
+//! runs a `FakeAuthenticator` as its `Env`'s authenticator, and `PamHelper` runs against the stand-in
 //! helper (`examples/auth_helper.rs`). The one PAM test runs only when `SILL_PAM_TEST_USER` and
 //! `SILL_PAM_TEST_SECRET` name a throwaway account, and says it skipped otherwise. `#[ignore]`d:
 //! run with
@@ -14,22 +14,26 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use sill_services::auth::{
-    self, AccountPlace, Attempt, Attempts, Auth, AuthCommand, AuthFault, AuthPhase, Authenticator,
+    Attempt, Attempts, Auth, AuthCommand, AuthFault, AuthPhase, AuthService, Authenticator,
     FakeAuthenticator, FakeRule, FakeVerdict, Outcome, PamHelper, Secret, UserName, pam,
 };
 use sill_services::control::Control;
-use sill_services::env::{Bus, BusRoute, Dirs};
+use sill_services::env::Env;
+use sill_services::service::spawn;
 use tokio::sync::watch;
 
 const RIGHT: &str = "right horse battery";
 
-/// No system bus and a home that is not there: the account's picture is never asked of the
-/// real AccountsService, nor read from the real home.
-fn no_bus() -> AccountPlace {
-    AccountPlace::on(
-        Bus::system(BusRoute::Absent),
-        &Dirs::under(Path::new("/nonexistent/sill-auth-live")),
-    )
+/// The auth service checking with `authenticator`, with no system bus and a home that is not
+/// there: the account's picture is never asked of the real AccountsService, nor read from the
+/// real home.
+fn start(authenticator: Arc<dyn Authenticator>) -> (watch::Receiver<Auth>, Control<AuthCommand>) {
+    let env = Env {
+        authenticator,
+        ..Env::isolated(Path::new("/nonexistent/sill-auth-live"))
+    };
+    let auth = spawn::<AuthService>(&tokio::runtime::Handle::current(), &env, ());
+    (auth.state, auth.control)
 }
 
 fn fake(delay_ms: u64) -> Arc<dyn Authenticator> {
@@ -68,8 +72,7 @@ async fn wrong_once(auth: &mut watch::Receiver<Auth>, control: &Control<AuthComm
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "live: spawns the auth service"]
 async fn many_wrongs_never_lock_out_and_the_right_one_opens() {
-    let (mut auth, control) =
-        auth::spawn_with(&tokio::runtime::Handle::current(), no_bus(), fake(20));
+    let (mut auth, control) = start(fake(20));
     send(&control, AuthCommand::Reset);
     let loaded = until(&mut auth, "the account", |a| !a.account.user.0.is_empty()).await;
     println!(
@@ -97,8 +100,7 @@ async fn many_wrongs_never_lock_out_and_the_right_one_opens() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "live: spawns the auth service"]
 async fn busy_while_checking_then_right_then_reset() {
-    let (mut auth, control) =
-        auth::spawn_with(&tokio::runtime::Handle::current(), no_bus(), fake(300));
+    let (mut auth, control) = start(fake(300));
     send(&control, AuthCommand::Submit(Secret::new("nope")));
     send(&control, AuthCommand::Submit(Secret::new("nope again")));
     until(&mut auth, "wrong", |a| a.phase == AuthPhase::Wrong).await;
@@ -132,8 +134,7 @@ async fn an_unavailable_check_counts_nothing() {
         rule: FakeRule::Fails(AuthFault::ServiceError),
         delay: Duration::ZERO,
     });
-    let (mut auth, control) =
-        auth::spawn_with(&tokio::runtime::Handle::current(), no_bus(), failing);
+    let (mut auth, control) = start(failing);
     send(&control, AuthCommand::Submit(Secret::new("x")));
     until(&mut auth, "unavailable", |a| {
         a.phase == AuthPhase::Unavailable(AuthFault::ServiceError)
