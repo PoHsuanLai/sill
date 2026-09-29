@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
-# The own polkit agent's acceptance, on the nested cosmic-comp (dev/nested.sh; wayland-1 is pinged
-# first, reused, and never stopped).
+# The own polkit agent's acceptance, on a private headless KWin (shell-host scripts/dev/
+# kwin-virtual.sh), started and stopped by the script.
 #
-# Nothing here reaches polkitd, the system bus, PAM or a real password. Every bus is one
-# private dbus-daemon (dev/private-bus.conf): the daemon's session and system bus addresses both
-# name it, and its polkit agent is pointed at it by `sill run --polkit-bus` (a debug build's flag,
+# Nothing here reaches polkitd, the system bus, PAM or a real password. Every bus is KWin's
+# private one (start_kwin refuses to go on if it would be the real one): the daemon's session and
+# system bus addresses both name it, and its polkit agent is pointed at it by `sill run
+# --polkit-bus` (a debug build's flag,
 # crates/sill/src/run_args.rs, with --polkit-helper and --polkit-session). There,
 # examples/polkit_authority.rs plays polkitd's Authority (records the registration, sends
 # BeginAuthentication and CancelAuthentication on command, prints each call's result), and
 # examples/polkit_helper.rs plays polkit-agent-helper-1 (the helper protocol; accepts
 # `sill-fake`, refuses anything else, runs no PAM). The daemon gets its own XDG_RUNTIME_DIR and
-# a scratch XDG_CONFIG_HOME. Keys are typed with `wtype`
-# on wayland-1's virtual keyboard, which reaches only the nested session.
+# a scratch XDG_CONFIG_HOME. Keys are `sill debug key SURFACE KEY`: shell-host's `Inject::Key`,
+# which enters the prompt where a real xkb key does, whether or not the compositor gave it the
+# keyboard.
 #
 #   1. The agent registered with the stand-in for ("unix-session", {session-id}) at sill's path,
 #      `sill polkit status` says registered, and sill-polkit-<out> exists, hidden.
-#   2. The stand-in's BeginAuthentication shows the prompt (a capture of the surface, and the
-#      screenshot dev/out/polkit-cosmic.png); `sill polkit status` shows the action.
+#   2. The stand-in's BeginAuthentication shows the prompt (a capture of the surface,
+#      also into dev/out/polkit.png); `sill polkit status` shows the action.
 #   3. A wrong password: the stand-in helper refuses, the field shakes (frames while it plays)
 #      and clears (the capture after it matches the one before typing), the request stays.
 #   4. `sill-fake`: the stand-in Authority's call returns (authorized) and the prompt hides.
@@ -25,7 +27,7 @@
 #   7. `sill debug polkit` shows a made-up request with no bus call, and Escape dismisses it.
 #   8. 5 s idle, hidden: 0 frames on the prompt surface.
 #
-# Usage: dev/nested.sh && dev/accept/polkit.sh
+# Usage: dev/accept/polkit.sh
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
@@ -38,13 +40,20 @@ AGENT_PATH=/org/sill/PolicyKit1/AuthenticationAgent
 SESSION_ID=accept-polkit
 ACTION=org.sill.test.run
 
-use_nested_socket || exit 1
 scratch_new
 mkdir -p "$CONFIG/sill"
 AUTHORITY=
 
-# Keys on the nested compositor's virtual keyboard (never wayland-0).
-keys() { WAYLAND_DISPLAY="$WL" wtype "$@"; }
+# Type "$1" into the prompt, one key event per character (`sill debug key` names: a letter, a
+# digit or `-`).
+type_text() {
+  local text="$1" i
+  for (( i = 0; i < ${#text}; i++ )); do
+    sill debug key "$PROMPT" "${text:i:1}" >>"$OUT_DIR/keys.log" 2>&1 || return 1
+  done
+}
+# Press the named key on the prompt (`Enter`, `Escape`).
+press() { sill debug key "$PROMPT" "$1" >>"$OUT_DIR/keys.log" 2>&1; }
 # A command to the stand-in Authority.
 authority() { echo "$*" >&3; }
 
@@ -80,7 +89,7 @@ cleanup() {
   stop_daemon
   exec 3>&- 2>/dev/null
   [ -n "$AUTHORITY" ] && kill "$AUTHORITY" 2>/dev/null
-  stop_private_bus
+  stop_kwin
   scratch_drop
 }
 trap cleanup EXIT
@@ -170,20 +179,19 @@ step_begin_shows() {
   await_status showing "$ACTION" || return 1
   sleep 0.6
   captured "$OUT_DIR/empty.png" || return 1
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/polkit-cosmic.png" >>"$OUT_DIR/shot.log" 2>&1 ||
-    echo "screenshot failed" >&2
+  capture "$PROMPT" "$SHOTS/polkit.png" || echo "capture failed" >&2
   echo "BeginAuthentication k1: the prompt shows $ACTION" >&2
 }
 
 # 3.
 step_wrong_shakes_and_clears() {
   local f0 f1 typed cleared
-  keys "wrong-guess"
+  type_text "wrong-guess" || return 1
   sleep 0.3
   captured "$OUT_DIR/typed.png" || return 1
   typed=$(pixels_apart "$OUT_DIR/empty.png" "$OUT_DIR/typed.png")
   f0=$(frames_of "$PROMPT")
-  keys -k Return
+  press Enter || return 1
   sleep 1.5
   f1=$(frames_of "$PROMPT")
   captured "$OUT_DIR/cleared.png" || return 1
@@ -201,8 +209,8 @@ after it $cleared px differ from the empty field" >&2
 
 # 4.
 step_right_completes() {
-  keys "sill-fake"
-  keys -k Return
+  type_text "sill-fake" || return 1
+  press Enter || return 1
   await_line "^result k1 authorized$" || {
     echo "the stand-in never saw k1 authorized: $(tail -3 "$OUT_DIR/authority.log")" >&2; return 1; }
   await_status showing "" && await_hidden || return 1
@@ -227,7 +235,7 @@ step_escape_cancels() {
   authority "begin k3 $ACTION"
   await_shown k3 || return 1
   sleep 0.4
-  keys -k Escape
+  press Escape || return 1
   await_line "^result k3 cancelled$" || { echo "Escape did not cancel k3" >&2; return 1; }
   await_hidden || return 1
   echo "Escape: k3's call failed Cancelled; the prompt hid" >&2
@@ -240,7 +248,7 @@ step_debug_polkit() {
   await_shown made-up || return 1
   await_status showing org.sill.debug.made-up || return 1
   sleep 0.4
-  keys -k Escape
+  press Escape || return 1
   await_status showing "" && await_hidden || return 1
   if grep -q "made-up" "$OUT_DIR/authority.log"; then
     echo "the made-up request reached the bus" >&2; return 1
@@ -259,13 +267,9 @@ step_idle() {
   [ "$(( f1 - f0 ))" = 0 ]
 }
 
-WAYLAND_DISPLAY="$WL" wayland-info >/dev/null 2>&1 ||
-  { echo "no nested compositor on $WL (dev/nested.sh first)" >&2; exit 1; }
-command -v wtype >/dev/null || { echo "wtype is needed to type on wayland-1" >&2; exit 1; }
 build "-p sill-testkit --example polkit_authority --example polkit_helper" || exit 1
-await_no_process "sill run$" || exit 1
-start_private_bus || exit 1
-echo "private bus $BUS (pid $BUS_PID)" >&2
+start_kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; exit 1; }
+echo "headless KWin at $WL, private bus $BUS" >&2
 start_authority || exit 1
 start_polkit_daemon || exit 1
 run_steps step_registered step_begin_shows step_wrong_shakes_and_clears step_right_completes \
@@ -274,5 +278,5 @@ status=$STATUS
 stop_daemon || status=1
 await_line "^unregistered unix-session session-id=$SESSION_ID path=$AGENT_PATH$" 3 &&
   echo "the agent unregistered as the daemon quit" >&2
-echo "logs in $OUT_DIR; screenshot $SHOTS/polkit-cosmic.png"
+echo "logs in $OUT_DIR; capture $SHOTS/polkit.png"
 exit "$status"
