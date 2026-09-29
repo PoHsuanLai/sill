@@ -274,8 +274,8 @@ fn to_ds_entry(entry: &TrayMenuEntry) -> MenuEntry<i32> {
 fn to_ds_check(check: TrayCheck) -> Option<DsCheck> {
     match check {
         TrayCheck::None => None,
-        TrayCheck::Unchecked => Some(DsCheck::Unchecked),
-        TrayCheck::Checked => Some(DsCheck::Checked),
+        TrayCheck::Unchecked => Some(DsCheck::Off),
+        TrayCheck::Checked => Some(DsCheck::On),
     }
 }
 

@@ -76,7 +76,7 @@ fn names(entries: &[MenuEntry<DockPick>]) -> Vec<String> {
         .map(|e| match e {
             MenuEntry::Header(t) => format!("# {t}"),
             MenuEntry::Item { title, check, .. } => match check {
-                Some(Check::Checked) => format!("{title} ✓"),
+                Some(Check::On) => format!("{title} ✓"),
                 _ => title.clone(),
             },
             MenuEntry::Submenu {

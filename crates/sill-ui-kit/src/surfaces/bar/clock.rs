@@ -3,7 +3,7 @@
 //! `MenuBarItem`, on while the center is open here.
 
 use dioxus::prelude::*;
-use ds::{Button, ButtonVariant, Emphasis, MenuBarItem, Switch};
+use ds::{Button, ButtonVariant, Emphasis, MenuBarItem, Shown};
 use shell_host::{OutputInfo, use_watch};
 
 use crate::hooks::{use_service, use_settings};
@@ -20,8 +20,8 @@ pub fn ClockItem(output: OutputInfo) -> Element {
     let link = use_hook(move || given.unwrap_or_default());
     let shown = use_watch(link.subscribe());
     let open = match shown().open_on(output.id) {
-        true => Switch::On,
-        false => Switch::Off,
+        true => Shown::Visible,
+        false => Shown::Hidden,
     };
     let style = format!("height:{}px", settings().bar.title_hit_height_px.0);
     rsx! {

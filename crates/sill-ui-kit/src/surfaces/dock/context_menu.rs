@@ -230,7 +230,7 @@ fn row_entry(
                 Minimized::Minimized => format!("◆ {title}"),
                 Minimized::Normal => title.clone(),
             };
-            let check = (*active == Checked::Checked).then_some(Check::Checked);
+            let check = (*active == Checked::Checked).then_some(Check::On);
             (title, DockPick::Activate(key), check)
         }
         DockMenuRow::DesktopAction { id, name } => (
@@ -282,7 +282,7 @@ fn keep_entry(
             ("Keep in Dock".to_owned(), value, None)
         }
         (DockMenuOrder::AppleOrder, Checked::Checked) => {
-            ("Keep in Dock".to_owned(), value, Some(Check::Checked))
+            ("Keep in Dock".to_owned(), value, Some(Check::On))
         }
         (DockMenuOrder::AppleOrder, Checked::Unchecked) => ("Keep in Dock".to_owned(), value, None),
     })

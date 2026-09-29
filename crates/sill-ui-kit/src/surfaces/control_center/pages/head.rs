@@ -2,7 +2,7 @@
 //! has none), the title, and the feature's switch.
 
 use dioxus::prelude::*;
-use ds::{Availability, Icon, IconButton, IconButtonVariant, ModuleState, Switch, Toggle};
+use ds::{Availability, Check, Icon, IconButton, IconButtonVariant, ModuleState, Toggle};
 
 /// `title` with its switch at `state`; a back button when `back` is given.
 #[component]
@@ -24,8 +24,8 @@ pub(crate) fn DetailHead(
         }
     });
     let value = match state {
-        ModuleState::On | ModuleState::Busy => Switch::On,
-        ModuleState::Off => Switch::Off,
+        ModuleState::On | ModuleState::Busy => Check::On,
+        ModuleState::Off => Check::Off,
     };
     rsx! {
         div { class: "sill-cc-detail-head",
@@ -35,9 +35,9 @@ pub(crate) fn DetailHead(
                 label: title.clone(),
                 value,
                 availability,
-                onchange: move |to: Switch| on_toggle.call(match to {
-                    Switch::On => ModuleState::On,
-                    Switch::Off => ModuleState::Off,
+                onchange: move |to: Check| on_toggle.call(match to {
+                    Check::On => ModuleState::On,
+                    Check::Off | Check::Mixed => ModuleState::Off,
                 }),
             }
         }

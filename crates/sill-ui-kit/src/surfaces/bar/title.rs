@@ -4,7 +4,7 @@
 //! open pill (the macOS polish pass); a status item's `IconButton{Status}` draws its own.
 
 use dioxus::prelude::*;
-use ds::{Emphasis, MenuBarItem, RectProbe, Switch};
+use ds::{Emphasis, MenuBarItem, RectProbe, Shown};
 use shell_host::Point;
 
 use super::io::MenuBar;
@@ -44,9 +44,9 @@ pub(crate) fn TitleSlot(
     let settings = use_settings();
     let style = format!("height:{}px", settings().bar.title_hit_height_px.0);
     let open = if bar.is_open(menu) {
-        Switch::On
+        Shown::Visible
     } else {
-        Switch::Off
+        Shown::Hidden
     };
     let title = move || probe.rect().map(|rect| (menu, rect));
     let send = move |input: MenuIn| {

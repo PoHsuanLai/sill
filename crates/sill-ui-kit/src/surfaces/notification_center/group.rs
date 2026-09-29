@@ -48,16 +48,16 @@ pub(super) fn row_item(
 }
 
 /// Whether the person opened `group`.
-fn opened(expanded: &Expanded, group: &AppGroup) -> ds::Expanded {
+fn opened(expanded: &Expanded, group: &AppGroup) -> ds::Shown {
     match expanded.0.contains(&group.key) {
-        true => ds::Expanded::Open,
-        false => ds::Expanded::Closed,
+        true => ds::Shown::Visible,
+        false => ds::Shown::Hidden,
     }
 }
 
 /// A group's header row.
 #[component]
-fn HeadRow(group: AppGroup, expanded: ds::Expanded, ring: Ring) -> Element {
+fn HeadRow(group: AppGroup, expanded: ds::Shown, ring: Ring) -> Element {
     let ctx = use_context::<CenterCtx>();
     let app = group.notes.first().map(|note| note.app.clone());
     let mark = use_app_mark(&app.unwrap_or_else(nobody), IconSize::Base);

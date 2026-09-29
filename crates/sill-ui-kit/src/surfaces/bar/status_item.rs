@@ -3,7 +3,7 @@
 
 use dioxus::prelude::*;
 use ds::detail::Cue;
-use ds::{IconButton, IconButtonVariant, IconSource, Px, StatusMetrics, Switch, use_rect};
+use ds::{IconButton, IconButtonVariant, IconSource, Px, Shown, StatusMetrics, use_rect};
 use sill_settings::{BarGlyphSize, BarSettings};
 
 use super::io::MenuBar;
@@ -37,9 +37,9 @@ pub(crate) fn StatusIcon(
     let bar = use_context::<MenuBar>();
     let probe = use_rect();
     let expanded = if bar.is_open(menu) {
-        Switch::On
+        Shown::Visible
     } else {
-        Switch::Off
+        Shown::Hidden
     };
     rsx! {
         TitleSlot { menu, probe, pill: SlotPill::Control,
