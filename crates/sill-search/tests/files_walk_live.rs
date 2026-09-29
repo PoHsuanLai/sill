@@ -9,11 +9,11 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use sill_launcher::{Cancel, Query};
+use sill_search::providers::files::choice::IndexState;
+use sill_search::providers::files::choice::detect;
+use sill_search::providers::files::walk::{WalkIndex, Walker};
+use sill_search::providers::files::{FileAnswer, FileAsk, FileIndex, HitLimit};
 use sill_services::env::{Bus, BusRoute};
-use sill_services::providers::files::choice::IndexState;
-use sill_services::providers::files::choice::detect;
-use sill_services::providers::files::walk::{WalkIndex, Walker};
-use sill_services::providers::files::{FileAnswer, FileAsk, FileIndex, HitLimit};
 
 fn scratch(name: &str) -> PathBuf {
     let root = PathBuf::from(env!("CARGO_TARGET_TMPDIR"))

@@ -18,7 +18,7 @@ use tokio::sync::watch;
 use super::effect::Outlets;
 use super::history::History;
 use super::{ResultsService, load_frecency, runner};
-use crate::control::Control;
+use sill_services::control::Control;
 
 /// How long a test waits for a published value before it fails.
 const PATIENCE: Duration = Duration::from_secs(5);
@@ -52,7 +52,8 @@ fn search_to(
     outlets: Outlets,
 ) -> (watch::Receiver<Results>, Control<SearchCommand>, History) {
     let history = History::default();
-    let (search, io) = crate::service::Handle::<ResultsService>::channel(Results::default());
+    let (search, io) =
+        sill_services::service::Handle::<ResultsService>::channel(Results::default());
     Handle::current().spawn(runner(
         providers,
         history.clone(),

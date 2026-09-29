@@ -15,12 +15,12 @@ use std::path::PathBuf;
 use crate::services::Services;
 use sill_model::results::LauncherPolicy;
 use sill_model::session::SessionAction;
-use sill_services::env::Buses;
-use sill_services::providers::files::IndexSource;
-use sill_services::providers::{
+use sill_search::providers::files::IndexSource;
+use sill_search::providers::{
     AppsProvider, CalculatorProvider, ClipboardProvider, EmojiProvider, FilesProvider,
     SettingsProvider, SystemProvider, WebProvider, WindowsProvider,
 };
+use sill_services::env::Buses;
 use tokio::sync::watch;
 
 /// The desktop entry `SettingsTarget::Cosmic` opens.

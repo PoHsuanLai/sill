@@ -1,5 +1,5 @@
 //! Loading what a preview names off the UI thread: a text file's head through
-//! `sill_services::preview::read_excerpt` on a thread of its own, the answer landing in a
+//! `sill_search::preview::read_excerpt` on a thread of its own, the answer landing in a
 //! signal keyed by the path it answers, so a late answer for a row the selection has left is
 //! never shown. A clipboard image comes from the clipboard service's history, already in memory.
 
@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use dioxus::prelude::*;
 use ds::ImageSize;
 use sill_launcher::{ClipKey, Excerpt, ExcerptLimit};
-use sill_services::preview::{PreviewFault, clip_image, read_excerpt};
+use sill_search::preview::{PreviewFault, clip_image, read_excerpt};
 
 use crate::hooks::use_service;
 use sill_services::ClipboardService;

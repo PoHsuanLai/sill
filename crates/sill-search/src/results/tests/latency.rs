@@ -1,4 +1,4 @@
-//! Query to first batch over the fixture app index (`tests/fixtures/applications`), through the
+//! Query to first batch over the fixture app index (`sill-services/tests/fixtures/applications`), through the
 //! whole runner: `Control::send`, a new generation, a blocking task per provider, the batch on
 //! the channel, `step`, grouping and the watch. Brief: p95 under 10 ms over 200
 //! queries on a warm index. `sill-testkit`'s `examples/search_bench.rs` measures a larger index in
@@ -17,7 +17,7 @@ use sill_model::apps::{AppIndex, AppsEvent, Listing};
 use sill_model::results::SearchCommand;
 
 use super::{TempDir, search, send};
-use crate::apps::{IconTheme, scan};
+use sill_services::apps::{IconTheme, scan};
 
 /// Every query matches at least one fixture app.
 const QUERIES: &[&str] = &[
@@ -76,7 +76,8 @@ impl Provider for IndexApps {
 }
 
 fn fixture_index() -> AppIndex {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/applications");
+    let root =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../sill-services/tests/fixtures/applications");
     let found = scan(
         &[root.join("home"), root.join("system")],
         &IconTheme("hicolor".to_owned()),

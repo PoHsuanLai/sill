@@ -41,7 +41,7 @@ use hits::{COPY_PATH_ACTION, REVEAL_ACTION};
 use sill_model::results::{FilesChoice, LauncherPolicy};
 use tracker::TrackerIndex;
 
-use crate::env::Bus;
+use sill_services::env::Bus;
 use walk::{WalkIndex, Walker};
 
 /// Where the provider's index comes from.
@@ -206,7 +206,9 @@ mod tests {
         FilesProvider {
             policy: watch::channel(LauncherPolicy::default()).1,
             frecency: Arc::new(Mutex::default()),
-            source: IndexSource::Detect(crate::env::Bus::session(crate::env::BusRoute::Absent)),
+            source: IndexSource::Detect(sill_services::env::Bus::session(
+                sill_services::env::BusRoute::Absent,
+            )),
             home: PathBuf::from("/home/p"),
         }
     }

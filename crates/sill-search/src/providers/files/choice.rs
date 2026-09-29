@@ -14,7 +14,7 @@ use sill_model::units::Presence;
 use super::index::IndexKind;
 use super::program::{FD_NAMES, on_path_any};
 use super::tracker::tracker_state;
-use crate::env::Bus;
+use sill_services::env::Bus;
 
 /// Whether an indexer is there, and whether asking it would start something.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

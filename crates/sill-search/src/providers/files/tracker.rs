@@ -23,9 +23,9 @@ use super::bus::block_on;
 use super::choice::IndexState;
 use super::cursor::{hit_of_row, parse_cursor};
 use super::index::{FileAnswer, FileAsk, FileIndex, IndexFault, IndexKind};
-use crate::env::Bus;
-use crate::env::{NameState, name_state};
-use crate::launch::file_uri;
+use sill_services::env::Bus;
+use sill_services::env::{NameState, name_state};
+use sill_services::launch::file_uri;
 
 /// The miner's bus name (localsearch keeps it beside its newer `org.freedesktop.LocalSearch3`).
 const TRACKER_BUS: &str = "org.freedesktop.Tracker3.Miner.Files";

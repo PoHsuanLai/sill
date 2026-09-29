@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regenerate crates/sill-services/data/emoji-keywords.tsv from Unicode CLDR's English emoji
+# Regenerate crates/sill-search/data/emoji-keywords.tsv from Unicode CLDR's English emoji
 # annotations (the launcher's emoji search by keyword).
 #
 # Source: CLDR common/annotations/en.xml (Fedora: cldr-emoji-annotation), Unicode-3.0. The
@@ -11,7 +11,7 @@
 set -euo pipefail
 
 src="${1:-/usr/share/unicode/cldr/common/annotations/en.xml}"
-out="$(dirname "$0")/../crates/sill-services/data/emoji-keywords.tsv"
+out="$(dirname "$0")/../crates/sill-search/data/emoji-keywords.tsv"
 
 # en.xml carries no release number; the distribution's package does.
 version="${CLDR_VERSION:-$(rpm -q --qf '%{VERSION}' cldr-emoji-annotation 2>/dev/null || true)}"

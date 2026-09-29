@@ -4,7 +4,7 @@ use std::path::Path;
 
 use sill_launcher::Frecency;
 
-use crate::error::ServiceError;
+use sill_services::error::ServiceError;
 
 /// The file's name inside `$XDG_STATE_HOME/sill`.
 pub const FILE_NAME: &str = "frecency.json";

@@ -11,7 +11,7 @@
 
 use std::sync::OnceLock;
 
-use crate::env::Bus;
+use sill_services::env::Bus;
 
 use logind_zbus::manager::{IsSupported, ManagerProxy};
 use sill_launcher::{
@@ -138,7 +138,7 @@ impl SystemProvider {
         let cell = OnceLock::new();
         let _ = cell.set(availability);
         SystemProvider {
-            system: Bus::system(crate::env::BusRoute::Absent),
+            system: Bus::system(sill_services::env::BusRoute::Absent),
             availability: cell,
         }
     }

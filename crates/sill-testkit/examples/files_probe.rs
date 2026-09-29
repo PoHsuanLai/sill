@@ -21,14 +21,14 @@ use sill_launcher::{
 use sill_model::apps::AppIndex;
 use sill_model::launch::{LaunchCommand, OpenRequest};
 use sill_model::results::{FilesChoice, LauncherPolicy};
-use sill_services::env::{Bus, BusRoute, Env};
-use sill_services::launch;
-use sill_services::providers::FilesProvider;
-use sill_services::providers::files::tracker::TrackerIndex;
-use sill_services::providers::files::walk::{WalkIndex, Walker};
-use sill_services::providers::files::{
+use sill_search::providers::FilesProvider;
+use sill_search::providers::files::tracker::TrackerIndex;
+use sill_search::providers::files::walk::{WalkIndex, Walker};
+use sill_search::providers::files::{
     FileAnswer, FileAsk, FileIndex, HitLimit, IndexSource, choice,
 };
+use sill_services::env::{Bus, BusRoute, Env};
+use sill_services::launch;
 use tokio::sync::watch;
 
 /// The token the probe hands the opener, so a stub can show it arrived.

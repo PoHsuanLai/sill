@@ -1,15 +1,14 @@
 //! Effectful services behind watch channels: power, network, Wi-Fi, Bluetooth, power profiles,
 //! Now Playing, the session, the lock screen's password check and the polkit agent, notifications,
-//! calendar events, screenshots, volume, tray, apps, launcher entries, dock pins, launcher search,
-//! wallpaper, sounds, displays and COSMIC Wayland state.
+//! calendar events, screenshots, volume, tray, apps, launching, dock pins, wallpaper, displays and
+//! COSMIC Wayland state.
 //!
 //! Every service is one module with the same shape: a marker type implementing [`Service`],
 //! started by [`service::spawn`] against [`env::Env`]'s seams into a [`Handle`] (a watch
-//! receiver of its state and a [`Control`] for its commands), and a pure `step` beside its state
-//! that is the only place the state changes, so every transition is table-tested without a bus
-//! or a socket. [`Services`] holds every running service's handle, the one `Clone` value every
-//! surface gets through `Root::context`. Shared data travels on `tokio::sync::watch`, never as a
-//! Dioxus signal.
+//! receiver of its state and a [`Control`] for its commands), and a `backend` that carries its
+//! effects. Its state, commands and the pure `step` that is the only place the state changes
+//! live in `sill-model`, so every transition is table-tested without a bus or a socket. Shared
+//! data travels on `tokio::sync::watch`, never as a Dioxus signal.
 //!
 //! This crate never reaches `dioxus` (`scripts/check-boundary.sh`): the hooks that read these
 //! channels live in `sill-surfaces::hooks`.
@@ -38,9 +37,6 @@ pub mod now_playing;
 pub mod pins;
 pub mod polkit_agent;
 pub mod power_profile;
-pub mod preview;
-pub mod providers;
-pub mod results;
 pub mod screenshots;
 pub mod service;
 pub mod session;
@@ -74,7 +70,6 @@ pub use now_playing::NowPlayingService;
 pub use pins::PinsService;
 pub use polkit_agent::PolkitAgentService;
 pub use power_profile::PowerProfileService;
-pub use results::ResultsService;
 pub use screenshots::ScreenshotsService;
 pub use service::{Handle, Service, ServiceIo};
 pub use session::SessionService;

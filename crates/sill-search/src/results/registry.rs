@@ -9,12 +9,12 @@ use tokio::sync::watch;
 
 use super::ResultsLinks;
 use super::history::History;
-use crate::env::Env;
 use crate::providers::files::IndexSource;
 use crate::providers::{
     AppsProvider, CalculatorProvider, ClipboardProvider, EmojiProvider, FilesProvider,
     SettingsProvider, SystemProvider, WebProvider, WindowsProvider,
 };
+use sill_services::env::Env;
 
 /// Every provider. Apps, files and emoji rank with `history`, so a choice counts from the next
 /// keystroke on; the settings-gated providers read `policy` (all off until the daemon's first).

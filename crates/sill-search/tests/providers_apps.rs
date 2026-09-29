@@ -1,5 +1,5 @@
 //! The apps provider's query table against the real fixture tree `tests/scan.rs` already
-//! exercises (`tests/fixtures/applications`): name, generic name and keyword matches, a
+//! exercises (`sill-services/tests/fixtures/applications`): name, generic name and keyword matches, a
 //! matching desktop action surfacing as its own row, and the visibility rules (`Hidden`,
 //! `NoDisplay`, an unresolvable `TryExec`) keeping entries out of the launcher the same way
 //! they keep them out of the dock.
@@ -9,11 +9,12 @@ use std::sync::{Arc, Mutex};
 
 use sill_launcher::{Cancel, Frecency, Provider, Query, VecSink};
 use sill_model::apps::{AppIndex, AppsEvent};
+use sill_search::providers::AppsProvider;
 use sill_services::apps::{IconTheme, scan};
-use sill_services::providers::AppsProvider;
 
 fn fixture_dirs() -> Vec<PathBuf> {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/applications");
+    let root =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../sill-services/tests/fixtures/applications");
     vec![root.join("home"), root.join("system")]
 }
 

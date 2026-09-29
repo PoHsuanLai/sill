@@ -16,6 +16,7 @@ ds = { workspace = true }
 ds-native = { workspace = true, features = ["pdf-thumb"] }
 ds-settings = { workspace = true }
 shell-host = { workspace = true }
+sill-search = { workspace = true }
 sill-services = { workspace = true }
 sill-settings = { workspace = true }
 sill-launcher = { workspace = true }

@@ -20,7 +20,7 @@ use shell_host::OutputInfo;
 use sill_launcher::{ActionId, ClipKey, Item, Preview, Section, preview_for};
 use sill_model::cosmic_wl::{Activity, Workspaces};
 use sill_model::ids::OutputName;
-use sill_services::preview::clip_image;
+use sill_search::preview::clip_image;
 use sill_settings::{PanelMaterial, SpacesSettings};
 
 use crate::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
@@ -47,7 +47,8 @@ use crate::surfaces::launcher::script::use_script;
 use crate::surfaces::launcher::sections_view::{Draw, palette_groups};
 use crate::surfaces::launcher::session::Session;
 use crate::surfaces::launcher::view::View;
-use sill_services::{ClipboardService, CosmicWlService, ResultsService};
+use sill_search::ResultsService;
+use sill_services::{ClipboardService, CosmicWlService};
 
 /// The launcher's stylesheet (lint-clean under `Profile::Strict`, `tests/launcher_lint.rs`).
 pub(crate) const LAUNCHER_CSS: &str = include_str!("../../style/launcher.css");

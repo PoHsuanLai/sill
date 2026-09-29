@@ -204,7 +204,7 @@ mod tests {
     use crate::surfaces::launcher::preview::load::Loaded;
     use ds::{PdfPage, PdfTrouble};
     use sill_launcher::Excerpt;
-    use sill_services::preview::PreviewFault;
+    use sill_search::preview::PreviewFault;
 
     #[test]
     fn a_slow_head_or_page_is_reading() {

@@ -35,7 +35,7 @@ pub struct Attempt {
 }
 
 /// `ecb-rates.xml` in sill's folder of `dirs`' cache directory.
-pub fn cache_path(dirs: &crate::env::Dirs) -> PathBuf {
+pub fn cache_path(dirs: &sill_services::env::Dirs) -> PathBuf {
     dirs.sill_cache().join("ecb-rates.xml")
 }
 

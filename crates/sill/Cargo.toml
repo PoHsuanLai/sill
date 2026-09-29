@@ -16,6 +16,7 @@ latchkey = { workspace = true }
 shell-host = { workspace = true }
 sill-ipc = { workspace = true }
 sill-launcher = { workspace = true }
+sill-search = { workspace = true }
 sill-services = { workspace = true }
 sill-settings = { workspace = true }
 sill-surfaces = { workspace = true }

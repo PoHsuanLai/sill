@@ -5299,6 +5299,7 @@ dependencies = [
  "sill-ipc",
  "sill-launcher",
  "sill-model",
+ "sill-search",
  "sill-services",
  "sill-settings",
  "sill-surfaces",
@@ -5337,6 +5338,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "sill-search"
+version = "0.1.0"
+dependencies = [
+ "emojis",
+ "fend-core",
+ "jiff",
+ "logind-zbus",
+ "mime_guess",
+ "nucleo-matcher",
+ "percent-encoding",
+ "serde",
+ "serde_json",
+ "sill-launcher",
+ "sill-model",
+ "sill-services",
+ "sill-testkit",
+ "tokio",
+ "toml",
+ "zbus",
+]
+
+[[package]]
 name = "sill-services"
 version = "0.1.0"
 dependencies = [
@@ -5345,18 +5368,14 @@ dependencies = [
  "ddc",
  "ddc-i2c",
  "dirs 6.0.0",
- "emojis",
- "fend-core",
  "freedesktop-desktop-entry",
  "freedesktop-icons",
  "image",
  "jiff",
  "libpulse-binding",
  "logind-zbus",
- "mime_guess",
  "nonstick",
  "notify",
- "nucleo-matcher",
  "percent-encoding",
  "serde",
  "serde_json",
@@ -5366,7 +5385,6 @@ dependencies = [
  "system-tray",
  "thiserror 2.0.20",
  "tokio",
- "toml",
  "upower_dbus",
  "zbus",
 ]
@@ -5401,6 +5419,7 @@ dependencies = [
  "shell-host",
  "sill-launcher",
  "sill-model",
+ "sill-search",
  "sill-services",
  "sill-settings",
  "thiserror 2.0.20",
@@ -5415,6 +5434,7 @@ dependencies = [
  "serde",
  "sill-launcher",
  "sill-model",
+ "sill-search",
  "sill-services",
  "tokio",
  "zbus",

@@ -1,5 +1,5 @@
 //! Query-to-first-batch latency of the launcher search, through the public
-//! `sill_services::results::ResultsService` given its providers.
+//! `sill_search::results::ResultsService` given its providers.
 //!
 //! `cargo run -p sill-testkit --example search_bench --release`
 //!
@@ -19,10 +19,10 @@ use sill_launcher::{
 };
 use sill_model::apps::{AppIndex, AppsEvent, Listing};
 use sill_model::results::SearchCommand;
-use sill_services::ResultsService;
+use sill_search::ResultsService;
+use sill_search::results;
 use sill_services::apps::{IconTheme, scan};
 use sill_services::env::Env;
-use sill_services::results;
 use sill_services::service::spawn;
 
 const QUERIES: &[&str] = &[

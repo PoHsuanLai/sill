@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use sill_search::results::ResultsService;
 use sill_services::apps::AppsService;
 use sill_services::auth::AuthService;
 use sill_services::badges::BadgesService;
@@ -25,7 +26,6 @@ use sill_services::now_playing::NowPlayingService;
 use sill_services::pins::PinsService;
 use sill_services::polkit_agent::PolkitAgentService;
 use sill_services::power_profile::PowerProfileService;
-use sill_services::results::ResultsService;
 use sill_services::screenshots::ScreenshotsService;
 use sill_services::service::{Handle, Service};
 use sill_services::session::SessionService;

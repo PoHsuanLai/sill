@@ -4,6 +4,7 @@ members = [
   "crates/sill-ipc",
   "crates/sill-launcher",
   "crates/sill-model",
+  "crates/sill-search",
   "crates/sill-services",
   "crates/sill-settings",
   "crates/sill-surfaces",
@@ -24,6 +25,7 @@ publish = false
 sill-ipc      = { path = "crates/sill-ipc" }
 sill-launcher = { path = "crates/sill-launcher" }
 sill-model    = { path = "crates/sill-model" }
+sill-search   = { path = "crates/sill-search" }
 sill-services = { path = "crates/sill-services" }
 sill-settings = { path = "crates/sill-settings" }
 sill-surfaces = { path = "crates/sill-surfaces" }
@@ -142,7 +144,7 @@ nonstick = "0.1.2"
 # The launcher's emoji: every fully-qualified emoji with its CLDR
 # short name, group, skin-tone variants and GitHub shortcodes; (MIT OR Apache-2.0) AND
 # Unicode-3.0 for its generated data. Keywords come from CLDR annotations bundled as
-# `crates/sill-services/data/emoji-keywords.tsv` (Unicode-3.0), not from a crate.
+# `crates/sill-search/data/emoji-keywords.tsv` (Unicode-3.0), not from a crate.
 emojis = "0.9"
 # A file's MIME type from its name, when the index gave none (fd, plocate): MIT.
 mime_guess = "2.0"

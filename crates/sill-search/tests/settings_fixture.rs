@@ -12,7 +12,7 @@
 use std::path::PathBuf;
 
 use sill_launcher::{Activation, Cancel, Choice, Provider, Query, SettingsTarget, VecSink};
-use sill_services::providers::SettingsProvider;
+use sill_search::providers::SettingsProvider;
 
 fn fixture_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/settings")

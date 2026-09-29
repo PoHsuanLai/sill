@@ -3,6 +3,7 @@
 
 use std::sync::Arc;
 
+use sill_search::results::{ResultsLinks, ResultsService, Sources};
 use sill_services::apps::AppsService;
 use sill_services::auth::AuthService;
 use sill_services::battery::BatteryService;
@@ -12,7 +13,6 @@ use sill_services::env::Env;
 use sill_services::idle::{IdleLinks, IdleService};
 use sill_services::launch::LaunchService;
 use sill_services::locker::LockerService;
-use sill_services::results::{ResultsLinks, ResultsService, Sources};
 use sill_services::service::spawn;
 use sill_services::volume::VolumeService;
 use sill_surfaces::services::Services;

@@ -1,6 +1,6 @@
 //! Fake services for the launcher's tests and `examples/launcher_demo.rs`: the bar's fakes, a
 //! search runner that answers every `SearchCommand::Query` on the frozen results `watch`
-//! channel with a new generation (as `sill_services::results::spawn` will once launcher-core
+//! channel with a new generation (as `sill_search::results::spawn` will once launcher-core
 //! lands) and carries out chosen window and app rows as the real runner does, and providers
 //! that say what a fixed set of rows does.
 

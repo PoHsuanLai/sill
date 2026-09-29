@@ -32,10 +32,10 @@ use sill_model::launch::LaunchCommand;
 use sill_model::results::{LauncherPolicy, Results, SearchCommand};
 use tokio::sync::watch;
 
-use crate::control::Control;
-use crate::env::Env;
-use crate::error::ServiceError;
-use crate::service::{Service, ServiceIo};
+use sill_services::control::Control;
+use sill_services::env::Env;
+use sill_services::error::ServiceError;
+use sill_services::service::{Service, ServiceIo};
 
 pub use frecency_file::{FILE_NAME as FRECENCY_FILE, load_frecency, save_frecency};
 

@@ -10,7 +10,7 @@ use sill_model::cosmic_wl::{
     WorkspaceGroup, Workspaces,
 };
 use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
-use sill_services::providers::WindowsProvider;
+use sill_search::providers::WindowsProvider;
 
 fn app(id: &str, name: &str) -> App {
     App {

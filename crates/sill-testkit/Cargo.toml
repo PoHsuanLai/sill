@@ -17,6 +17,7 @@ zbus = { workspace = true }
 [dev-dependencies]
 sill-launcher = { workspace = true }
 sill-model = { workspace = true }
+sill-search = { workspace = true }
 sill-services = { workspace = true }
 cosmic-client-toolkit = { workspace = true }
 serde = { workspace = true }
