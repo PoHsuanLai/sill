@@ -6,11 +6,11 @@ pub use format::{ClockText, format_clock, until_next_minute};
 
 use std::sync::Arc;
 
-use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
 
-use crate::control::Control;
-use crate::env::WallClock;
+use crate::env::{Env, WallClock};
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
 /// What the clock service can be told.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -19,17 +19,33 @@ pub enum ClockCommand {
     Refresh,
 }
 
-/// Start the clock task on `rt`: formats `clock`'s local time now, then at every minute
-/// boundary (the system clock reads the zone afresh, so a time-zone change shows at the next
-/// minute, or at once on `Refresh`).
-pub fn spawn(
-    rt: &Handle,
-    clock: Arc<dyn WallClock>,
-) -> (watch::Receiver<ClockText>, Control<ClockCommand>) {
-    let (tx, rx) = watch::channel(format_clock(clock.now().datetime()));
-    let (control, commands) = Control::channel();
-    rt.spawn(run(tx, commands, clock));
-    (rx, control)
+/// The bar clock as a [`Service`]: formats the wall clock's local time now, then at every
+/// minute boundary (the system clock reads the zone afresh, so a time-zone change shows at the
+/// next minute, or at once on `Refresh`).
+#[derive(Debug)]
+pub enum ClockService {}
+
+impl Service for ClockService {
+    const NAME: &'static str = "clock";
+    type State = ClockText;
+    type Command = ClockCommand;
+    type Deps = ();
+
+    fn initial(env: &Env, (): &()) -> ClockText {
+        format_clock(env.clock.now().datetime())
+    }
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let clock = Arc::clone(&env.clock);
+        async move {
+            run(io.state, io.commands, clock).await;
+            Ok(())
+        }
+    }
 }
 
 /// Why the task woke.
@@ -83,8 +99,10 @@ fn publish(shown: &mut ClockText, text: ClockText) -> bool {
 mod tests {
     use std::sync::Arc;
 
-    use super::{ClockCommand, ClockText, publish, spawn};
+    use super::{ClockCommand, ClockService, ClockText, publish};
     use crate::env::FixedClock;
+    use crate::env::scratch::Scratch;
+    use crate::service::spawn;
 
     #[test]
     fn only_a_new_minute_wakes_the_bar() {
@@ -110,8 +128,13 @@ mod tests {
             .at(14, 5, 0, 0)
             .to_zoned(jiff::tz::TimeZone::UTC)
             .expect("a valid instant"); // test-only
-        let (rx, control) = spawn(rt.handle(), Arc::new(FixedClock(at)));
-        assert_eq!(rx.borrow().text, "Thu 24 Sep 14:05");
-        assert!(control.send(ClockCommand::Refresh).is_ok());
+        let scratch = Scratch::new("clock");
+        let env = crate::env::Env {
+            clock: Arc::new(FixedClock(at)),
+            ..scratch.env()
+        };
+        let clock = spawn::<ClockService>(rt.handle(), &env, ());
+        assert_eq!(clock.state.borrow().text, "Thu 24 Sep 14:05");
+        assert!(clock.control.send(ClockCommand::Refresh).is_ok());
     }
 }

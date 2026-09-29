@@ -123,7 +123,10 @@ impl Services {
     pub fn spawn(rt: &Handle, env: &Env) -> Services {
         let system = || env.buses.system.clone();
         let session = || env.buses.session.clone();
-        let (clock, clock_control) = crate::clock::spawn(rt, Arc::clone(&env.clock));
+        let crate::Handle {
+            state: clock,
+            control: clock_control,
+        } = crate::service::spawn::<crate::clock::ClockService>(rt, env, ());
         let (battery, battery_control) = crate::battery::spawn(rt, system());
         let (network, network_control) = crate::network::spawn(rt, system());
         let (volume, volume_control) = crate::volume::spawn(rt);
