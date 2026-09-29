@@ -12,13 +12,13 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard};
 
 use ddc::{Ddc, Edid};
+use sill_model::displays::ddc::Endpoint;
+use sill_model::displays::ddc::matching::{bus_number, connector_for, is_display_class};
+use sill_model::displays::ddc::vcp::{Feature, Level};
+use sill_model::displays::edid;
+use sill_model::ids::{DdcId, OutputName};
 
-use super::bus::{DdcBus, DdcError, DdcId, Endpoint};
-use crate::displays::ddc::matching::{bus_number, connector_for, is_display_class};
-use crate::displays::ddc::vcp::{Feature, Level};
-use crate::displays::drm;
-use crate::displays::edid;
-use sill_model::ids::OutputName;
+use super::bus::{DdcBus, DdcError};
 
 type Device = ddc_i2c::I2cDeviceDdc;
 
@@ -59,7 +59,7 @@ impl I2cBuses {
 
 impl DdcBus for I2cBuses {
     fn probe(&self) -> Vec<Endpoint> {
-        let connectors: Vec<(OutputName, Vec<u8>)> = drm::connected(&self.drm)
+        let connectors: Vec<(OutputName, Vec<u8>)> = super::connected(&self.drm)
             .into_iter()
             .map(|c| (c.name, c.edid))
             .filter(|(_, edid)| !edid.is_empty())

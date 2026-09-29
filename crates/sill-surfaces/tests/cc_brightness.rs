@@ -12,11 +12,12 @@ use cc_support::details::{center, center_at, ms};
 use ds::{Point, Px};
 use ds_native::Harness;
 use ds_native::harness::assert_settles_to_zero_frames;
-use sill_model::{ids::OutputName, units::Percent};
-use sill_services::displays::{Controls, DdcDisplay, Level};
-use sill_services::env::ddc::DdcId;
-use sill_services::env::ddc::Endpoint;
-use sill_services::{Displays, DisplaysCommand, Following, LevelChange};
+use sill_model::displays::ddc::Endpoint;
+use sill_model::displays::{
+    Controls, DdcDisplay, Displays, DisplaysCommand, Following, Level, LevelChange,
+};
+use sill_model::ids::{DdcId, OutputName};
+use sill_model::units::Percent;
 use tokio::sync::mpsc::UnboundedReceiver;
 
 const CAPSULE: &str = ".ds-level[*|aria-label=\"Display\"]";

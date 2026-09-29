@@ -1,27 +1,9 @@
 //! The seam between the DDC worker and the wire: [`DdcBus`], implemented over `/dev/i2c-N`
 //! ([`super::I2cBuses`]) and by a fake in the tests.
 
-use serde::{Deserialize, Serialize};
-
-use crate::displays::ddc::vcp::{Feature, Level};
-use sill_model::ids::OutputName;
-
-/// A DDC display, named by the i2c bus it answers on (`5` for `/dev/i2c-5`).
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Serialize, Deserialize,
-)]
-#[serde(transparent)]
-pub struct DdcId(pub u16);
-
-/// A display a probe found answering.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Endpoint {
-    pub id: DdcId,
-    /// The DRM connector whose EDID matched the one this bus returned.
-    pub connector: Option<OutputName>,
-    /// The EDID product name.
-    pub product: String,
-}
+use sill_model::displays::ddc::Endpoint;
+use sill_model::displays::ddc::vcp::{Feature, Level};
+use sill_model::ids::DdcId;
 
 /// Why one DDC transaction did not happen. Never fatal: the capability degrades.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]

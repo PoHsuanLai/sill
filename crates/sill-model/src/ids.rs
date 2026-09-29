@@ -18,3 +18,10 @@ pub struct GroupKey(pub u64);
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct OutputName(pub String);
+
+/// A DDC display, named by the i2c bus it answers on (`5` for `/dev/i2c-5`).
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Serialize, Deserialize,
+)]
+#[serde(transparent)]
+pub struct DdcId(pub u16);

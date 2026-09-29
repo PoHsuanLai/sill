@@ -63,8 +63,8 @@ pub struct Feeds {
     /// sill's own idle service (passive, `Off(NoPolicy)`, until a test feeds it).
     pub idle: watch::Sender<sill_model::idle::Idle>,
     /// The displays (none until a test feeds some), and what the Display module sends.
-    pub displays: watch::Sender<sill_services::Displays>,
-    pub displays_commands: mpsc::UnboundedReceiver<sill_services::DisplaysCommand>,
+    pub displays: watch::Sender<sill_model::displays::Displays>,
+    pub displays_commands: mpsc::UnboundedReceiver<sill_model::displays::DisplaysCommand>,
     /// Receivers and command queues nobody reads here, kept so sends do not fail.
     keep: Vec<Box<dyn std::any::Any>>,
 }
@@ -310,7 +310,7 @@ pub fn services() -> (Services, Feeds) {
     let (events, agenda_io) = Handle::channel(sill_services::Agenda::default());
     let (screenshots, shots_io) = Handle::channel(sill_services::Shots::default());
     let (idle, idle_io) = Handle::channel(sill_model::idle::Idle::default());
-    let (displays, displays_io) = Handle::channel(sill_services::Displays::default());
+    let (displays, displays_io) = Handle::channel(sill_model::displays::Displays::default());
     keep.push(Box::new(clock_io.commands));
     keep.push(Box::new(battery_io.commands));
     keep.push(Box::new(network_io.commands));

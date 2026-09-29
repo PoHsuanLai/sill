@@ -4,8 +4,11 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
-use super::bus::{DdcBus, DdcError, DdcId, Endpoint};
-use crate::displays::ddc::vcp::{Feature, Level};
+use sill_model::displays::ddc::Endpoint;
+use sill_model::displays::ddc::vcp::{Feature, Level};
+use sill_model::ids::DdcId;
+
+use super::bus::{DdcBus, DdcError};
 
 /// The fake's state, shared with the test that made it.
 #[derive(Debug, Default)]

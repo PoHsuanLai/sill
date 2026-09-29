@@ -6,7 +6,8 @@
 //! `WAYLAND_DISPLAY=wayland-N cargo test -p sill-services --test scale_live -- --ignored
 //! --nocapture` (with `dev/nested.sh` running on wayland-N).
 
-use sill_services::displays::{CosmicRandr, DisplayScale, ScaleSink};
+use sill_model::displays::DisplayScale;
+use sill_services::displays::{CosmicRandr, ScaleSink};
 
 #[test]
 #[ignore = "changes the nested compositor's output scale"]

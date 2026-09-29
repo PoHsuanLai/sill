@@ -1,12 +1,10 @@
 use shell_host::{OutputId, OutputInfo, Rect, Scale};
 use sill_ipc::{DisplayRequest, FakeMute, FakeOsd, LevelRequest, OsdTopic, VolumeRequest};
-use sill_model::ids::OutputName;
+use sill_model::displays::ddc::Endpoint;
+use sill_model::displays::{Controls, DdcDisplay, Displays, KeysTarget, Level as DdcLevel};
+use sill_model::ids::{DdcId, OutputName};
 use sill_model::units::Percent;
 use sill_model::volume::Mute;
-use sill_services::displays::{Controls, DdcDisplay, Level as DdcLevel};
-use sill_services::env::ddc::DdcId;
-use sill_services::env::ddc::Endpoint;
-use sill_services::{Displays, KeysTarget};
 use sill_surfaces::surfaces::osd::{Level, LevelSource, OsdKind};
 
 use super::{fake_of, kind_of, osd_outputs};

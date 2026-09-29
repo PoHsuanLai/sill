@@ -5,13 +5,13 @@
 use shell_host::HostEvent;
 use sill_ipc::{DisplayRequest, LevelRequest, Response, VolumeRequest};
 use sill_model::cosmic_wl::Toplevels;
+use sill_model::displays::{
+    DisplayPolicy, DisplaysCommand, FontRenderingMode, HardwareVolume, KeysTarget, LevelChange,
+    NightWarmth, Ppi, ScaleMode, ScaleOverride, ScaleRounding,
+};
 use sill_model::ids::OutputName;
 use sill_model::volume::{Step, VolumeCommand};
-use sill_services::displays::ScaleOverride;
-use sill_services::{
-    DisplayPolicy, DisplaysCommand, FontRenderingMode, HardwareVolume, KeysTarget, LevelChange,
-    NightWarmth, Ppi, ScaleMode, ScaleRounding, Services,
-};
+use sill_services::Services;
 
 use crate::msg::ShellMsg;
 use crate::policy::Policy;
@@ -147,13 +147,13 @@ pub fn dispatch(services: &Services, request: DisplayRequest) -> Response {
 #[cfg(test)]
 mod tests {
     use sill_ipc::{LevelRequest, VolumeRequest};
-    use sill_model::units::Percent;
-    use sill_model::volume::{Mute, Step, VolumeCommand};
-    use sill_services::displays::ScaleOverride;
-    use sill_services::{
+    use sill_model::displays::ScaleOverride;
+    use sill_model::displays::{
         DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmth, Ppi, ScaleMode,
         ScaleRounding,
     };
+    use sill_model::units::Percent;
+    use sill_model::volume::{Mute, Step, VolumeCommand};
     use sill_settings::{
         BrightnessKeysTarget, DisplayScaleMode, DisplaySettings, FontRenderingSetting,
         HardwareVolumeMode, NightWarmthMode, ScaleRounding as ScaleRoundingSetting,

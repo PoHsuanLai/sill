@@ -3,12 +3,11 @@
 
 use dioxus::prelude::*;
 use ds::{Availability, Fraction};
+use sill_model::displays::{BrightnessTarget, Displays, DisplaysCommand, Following};
 use sill_model::ids::OutputName;
 use sill_model::units::{Percent, Presence};
 use sill_model::volume::{Volume, VolumeCommand};
-use sill_services::{
-    BrightnessTarget, Displays, DisplaysCommand, DisplaysService, Following, VolumeService,
-};
+use sill_services::{DisplaysService, VolumeService};
 
 use super::{DisplayModule, SoundModule};
 use crate::hooks::{use_control, use_service};
@@ -122,12 +121,12 @@ pub(crate) fn percent_of(fraction: Fraction) -> Percent {
 mod tests {
     use super::{brightness_of, fraction_of, percent_of, set_brightness, sound_of};
     use ds::{Availability, Fraction};
+    use sill_model::displays::{Displays, DisplaysCommand};
     use sill_model::volume::{Mute, Volume};
     use sill_model::{
         ids::OutputName,
         units::{Percent, Presence},
     };
-    use sill_services::{Displays, DisplaysCommand};
 
     #[test]
     fn levels_convert_both_ways() {

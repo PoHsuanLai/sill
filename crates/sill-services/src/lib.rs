@@ -64,11 +64,7 @@ pub use clipboard::{Clipboard, ClipboardCommand, ClipboardService};
 pub use clock::ClockService;
 pub use control::Control;
 pub use cosmic_wl::CosmicWlService;
-pub use displays::{
-    BrightnessTarget, DisplayOutput, DisplayPolicy, DisplayScale, Displays, DisplaysCommand,
-    DisplaysService, Following, FontRenderingMode, Gamut, HardwareVolume, IdentityKey, KeysTarget,
-    LevelChange, NightWarmth, Ppi, ScaleMode, ScaleOverride, ScaleRounding,
-};
+pub use displays::DisplaysService;
 pub use error::ServiceError;
 pub use events::{Agenda, CalEvent, EventTime, EventsCommand, EventsService, SourceStatus};
 pub use idle::{IdleLinks, IdleService};

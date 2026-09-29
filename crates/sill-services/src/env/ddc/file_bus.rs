@@ -13,10 +13,11 @@ use std::io::Write as _;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+use sill_model::displays::ddc::Endpoint;
+use sill_model::displays::ddc::vcp::{Feature, Level};
+use sill_model::ids::{DdcId, OutputName};
 
-use super::bus::{DdcBus, DdcError, DdcId, Endpoint};
-use crate::displays::ddc::vcp::{Feature, Level};
-use sill_model::ids::OutputName;
+use super::bus::{DdcBus, DdcError};
 
 /// The file's contents.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -122,8 +123,9 @@ impl DdcBus for FileBus {
 #[cfg(test)]
 mod tests {
     use super::FileBus;
-    use crate::displays::ddc::{Feature, Level};
-    use crate::env::ddc::{DdcBus, DdcId};
+    use crate::env::ddc::DdcBus;
+    use sill_model::displays::ddc::{Feature, Level};
+    use sill_model::ids::DdcId;
 
     #[test]
     fn the_file_answers_reads_and_records_writes() {
