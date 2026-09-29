@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::machine::{Cause, LockPhase, LockerEvent};
+use super::{Cause, LockPhase, LockerEvent};
 
 /// What started the current lock.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

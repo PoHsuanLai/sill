@@ -5,14 +5,14 @@ use logind_zbus::manager::{InhibitType, ManagerProxy, PrepareForSleepStream};
 use logind_zbus::session::{LockStream, SessionProxy};
 use logind_zbus::user::UserProxy;
 use zbus::Connection;
+use zbus::zvariant::{OwnedFd, OwnedObjectPath};
 
 use crate::env::Bus;
-use zbus::zvariant::{OwnedFd, OwnedObjectPath};
 
 /// What the live loop listens to and calls. Every part is optional: without a system bus sill
 /// still locks on its own Lock action.
 #[derive(Default)]
-pub(super) struct Logind {
+pub(crate) struct Logind {
     pub manager: Option<ManagerProxy<'static>>,
     pub session_id: Option<String>,
     pub sleep: Option<PrepareForSleepStream>,
@@ -28,7 +28,7 @@ impl std::fmt::Debug for Logind {
 }
 
 /// Connects and subscribes; whatever fails is left out.
-pub(super) async fn connect(bus: &Bus) -> Logind {
+pub(crate) async fn connect(bus: &Bus) -> Logind {
     let Ok(Some(connection)) = bus.connect().await else {
         return Logind::default();
     };
@@ -92,7 +92,7 @@ fn uid() -> Option<u32> {
 }
 
 /// `Inhibit("sleep", "sill", "lock before sleep", "delay")`.
-pub(super) async fn inhibit(manager: &ManagerProxy<'_>) -> Option<OwnedFd> {
+pub(crate) async fn inhibit(manager: &ManagerProxy<'_>) -> Option<OwnedFd> {
     manager
         .inhibit(InhibitType::Sleep, "sill", "lock before sleep", "delay")
         .await

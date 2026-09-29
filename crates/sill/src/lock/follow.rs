@@ -5,7 +5,8 @@
 //! again. So an `Accepted` while the locker holds latches [`Latch::Unlocking`], which only the
 //! locker's `Unlocked` (the lock ended) or `Locking` (a new lock asked for) clears.
 
-use sill_services::{Auth, AuthPhase, Lock, LockPhase};
+use sill_model::locker::{Lock, LockPhase};
+use sill_services::{Auth, AuthPhase};
 
 use super::{LockWish, lock_wish};
 
@@ -47,7 +48,8 @@ pub fn follow(latch: Latch, lock: &Lock, auth: &Auth) -> (Latch, LockWish, Send)
 
 #[cfg(test)]
 mod tests {
-    use sill_services::{Auth, AuthPhase, Lock, LockPhase};
+    use sill_model::locker::{Lock, LockPhase};
+    use sill_services::{Auth, AuthPhase};
 
     use super::{Latch, Send, follow};
     use crate::lock::LockWish;

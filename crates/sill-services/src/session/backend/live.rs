@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use logind_zbus::manager::{IsSupported, ManagerProxy};
 use logind_zbus::session::SessionProxy;
+use sill_model::locker::LockerCommand;
 use sill_model::session::{Offer, Session, SessionAction, SessionCommand, SessionEvent, step};
 use sill_model::units::Presence;
 use tokio::sync::{mpsc, watch};
@@ -14,7 +15,6 @@ use zbus::Connection;
 
 use crate::control::Control;
 use crate::env::{ActionReach, Bus, SessionActions};
-use crate::locker::LockerCommand;
 use crate::stream::next_opt;
 
 /// Runs until `commands` closes. Without a bus or logind, `tx` holds what `actions` offers

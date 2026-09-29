@@ -1,7 +1,8 @@
 //! `sill lock` on the daemon's side.
 
 use sill_ipc::{Failure, FailureKind, Response};
-use sill_services::{LockerCommand, Services};
+use sill_model::locker::LockerCommand;
+use sill_services::Services;
 
 /// `sill lock`.
 pub fn lock(services: &Services) -> Response {

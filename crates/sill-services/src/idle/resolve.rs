@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::env::Processes;
-use crate::locker::{Host, SessionManager};
+use sill_model::locker::{Host, SessionManager};
 
 use super::cosmic::{
     COSMIC_IDLE_ID, COSMIC_IDLE_VERSION, CosmicIdle, CosmicIdleTimes, CosmicKey, cosmic_times,

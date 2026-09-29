@@ -9,19 +9,19 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
 
+use sill_model::locker::{
+    Cause, Host, Lock, LockCause, Locker, LockerCommand, LockerEffect, LockerEvent, LockerMode,
+    SessionManager, ShellLockEvent, cause_after, cause_of, next_deadline, step,
+};
+use sill_model::units::Stamp;
 use tokio::sync::{mpsc, watch};
 use zbus::zvariant::OwnedFd;
 
-use super::cause::{LockCause, cause_after, cause_of};
-use super::logind::{self, Logind};
-use super::machine::{Cause, Locker, LockerEffect, LockerEvent, next_deadline, step};
+use super::logind;
+use super::logind::Logind;
 use super::marker::{LockMarker, Restore, marker_path, restore_on_start};
-use super::mode::{Host, LockerMode, SessionManager};
-use super::{Lock, LockerCommand, ShellLockEvent};
-use crate::env::Bus;
-use crate::env::Processes;
+use crate::env::{Bus, Processes};
 use crate::stream::next_opt;
-use sill_model::units::Stamp;
 
 /// Everything the loop owns besides the machine.
 struct Live {
@@ -39,7 +39,7 @@ struct Live {
 }
 
 /// Runs until `commands` closes. Inert (`LockerMode::Off`) until the first `Configure`/`Use`.
-pub(super) async fn run(
+pub(crate) async fn run(
     bus: Bus,
     runtime: Option<PathBuf>,
     processes: Arc<dyn Processes>,

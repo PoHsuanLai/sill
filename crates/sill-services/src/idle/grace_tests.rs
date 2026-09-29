@@ -1,6 +1,6 @@
 use super::{GraceCase, GraceVerdict, SleepSince, WakeDelay, grace_verdict, ticket};
 use crate::idle::policy::{IdleSecs, LockGrace};
-use crate::locker::LockCause;
+use sill_model::locker::LockCause;
 
 use GraceVerdict::{Ask, NoPassword};
 use LockCause::{Action, IdleScreenOff, Logind, Restored, Sleep};

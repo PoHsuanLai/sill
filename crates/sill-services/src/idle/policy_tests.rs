@@ -4,8 +4,8 @@ use super::{
     effective_times, power_source, resolve_mode, watches,
 };
 use crate::idle::cosmic::{CosmicIdle, CosmicIdleTimes};
-use crate::locker::Host;
 use sill_model::battery::{Battery, Charge};
+use sill_model::locker::Host;
 use sill_model::units::Presence;
 
 const fn after(s: u32) -> Timeout {

@@ -13,7 +13,7 @@
 //! The wake is the compositor's `ext_idle_notification_v1.resumed` (real input); a display
 //! turning on for any other reason (a hotplug, a resume) is not a wake.
 
-use crate::locker::LockCause;
+use sill_model::locker::LockCause;
 
 use super::policy::{IdleSecs, LockGrace};
 

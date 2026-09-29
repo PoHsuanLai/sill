@@ -4,8 +4,8 @@
 //! battery from the battery service) and [`watches`] (which `ext-idle-notify-v1` notifications
 //! to hold).
 
-use crate::locker::Host;
 use sill_model::battery::{Battery, Charge};
+use sill_model::locker::Host;
 use sill_model::units::Presence;
 
 use super::cosmic::{CosmicIdle, CosmicIdleTimes};

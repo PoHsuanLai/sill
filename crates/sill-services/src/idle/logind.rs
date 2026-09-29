@@ -11,7 +11,7 @@ use zbus::proxy::CacheProperties;
 use super::inhibit::{LogindIdle, logind_idle};
 use super::reduce::IdleHint;
 use crate::env::Bus;
-use crate::locker::logind::session_path;
+use crate::locker::session_path;
 
 /// The connected half.
 pub(super) struct IdleLogind {

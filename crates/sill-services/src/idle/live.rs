@@ -27,8 +27,8 @@ use super::screensaver::{self, Call, Served};
 use super::wl::{self, Epoch, Heard, Order, Tell, Wire, WlEvent};
 use crate::auth::AuthCommand;
 use crate::idle::grace::ticket;
-use crate::locker::{Lock, LockPhase, LockerCommand};
 use crate::stream::next_opt;
+use sill_model::locker::{Lock, LockPhase, LockerCommand};
 use sill_model::units::Stamp;
 
 /// How often logind's `BlockInhibited` is read.

@@ -78,9 +78,7 @@ pub use kbd_backlight::KbdBacklightService;
 pub use launch::{
     LaunchCommand, LaunchOutcome, LaunchRequest, LaunchService, LaunchedScope, Launches, ScopeUnit,
 };
-pub use locker::{
-    Lock, LockCause, LockPhase, LockerCommand, LockerMode, LockerService, ShellLockEvent,
-};
+pub use locker::LockerService;
 pub use magnify::{Layout, MagnifyParams, TileBox, magnify, rest_centers, sizes, zoom};
 pub use network::wifi::{
     AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi, WifiCommand, WifiEvent,

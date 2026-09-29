@@ -12,12 +12,12 @@ mod backend;
 
 use std::sync::Arc;
 
+use sill_model::locker::LockerCommand;
 use sill_model::session::{Session, SessionCommand};
 
 use crate::control::Control;
 use crate::env::Env;
 use crate::error::ServiceError;
-use crate::locker::LockerCommand;
 use crate::service::{Service, ServiceIo};
 
 /// logind's power actions as a [`Service`]. Without logind the state stays at

@@ -30,10 +30,8 @@ use shell_host::{Focus, HostEvent, HostHandle, LockId, LockState, SurfaceId};
 use sill_ipc::{
     Failure, FailureKind, FakeAuth, LockReport, ReportLockCause, ReportLockPhase, Response,
 };
-use sill_services::{
-    Auth, AuthCommand, AuthPhase, Lock, LockCause, LockPhase, LockerCommand, Services,
-    ShellLockEvent,
-};
+use sill_model::locker::{Lock, LockCause, LockPhase, LockerCommand, ShellLockEvent};
+use sill_services::{Auth, AuthCommand, AuthPhase, Services};
 use sill_surfaces::surfaces::banners::BannerOutput;
 use sill_surfaces::surfaces::lock::{LockLink, PromptOutput};
 use tokio::runtime::Handle;

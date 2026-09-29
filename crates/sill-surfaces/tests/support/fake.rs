@@ -334,7 +334,7 @@ pub fn services() -> (Services, Feeds) {
         now_playing,
         kbd_backlight,
         session: fixed(sill_model::session::Session::default(), &mut keep),
-        locker: fixed(sill_services::Lock::default(), &mut keep),
+        locker: fixed(sill_model::locker::Lock::default(), &mut keep),
         notifications,
         events,
         screenshots,

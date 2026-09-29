@@ -1,8 +1,11 @@
+use LockerEffect::{ReleaseInhibitor, TakeInhibitor};
+use Triggers::{FollowLogind, IgnoreLogind};
+
 use super::{
     Cause, Hold, Locker, LockerEffect, LockerEvent, Phase, READY_GIVE_UP_MS, Runner, SLEEP_HOLD_MS,
     Triggers, next_deadline, step,
 };
-use sill_model::units::Stamp;
+use crate::units::Stamp;
 
 const T0: Stamp = Stamp(1_000);
 
@@ -26,9 +29,6 @@ fn delaying() -> Hold {
         until: T0.after(SLEEP_HOLD_MS),
     }
 }
-
-use LockerEffect::{ReleaseInhibitor, TakeInhibitor};
-use Triggers::{FollowLogind, IgnoreLogind};
 
 #[test]
 fn every_transition() {

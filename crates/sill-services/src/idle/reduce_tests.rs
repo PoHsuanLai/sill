@@ -5,7 +5,7 @@ use crate::idle::policy::{
     DimLevel, DimPlan, IdleLock, IdleMode, IdlePolicy, IdleSecs, IdleTimes, LockGrace, LockView,
     LockedScreenOff, OffReason, PowerPair, Threshold, Timeout,
 };
-use crate::locker::LockCause;
+use sill_model::locker::LockCause;
 use sill_model::units::Stamp;
 
 fn own() -> IdlePolicy {

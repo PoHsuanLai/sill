@@ -1,6 +1,7 @@
 use sill_ipc::{LockReport, ReportLockPhase};
+use sill_model::locker::{Lock, LockPhase};
 use sill_services::auth::AuthFault;
-use sill_services::{Auth, AuthPhase, Lock, LockPhase};
+use sill_services::{Auth, AuthPhase};
 
 use super::{LockWish, lock_wish, report_of};
 
@@ -55,7 +56,7 @@ fn the_report_mirrors_the_locker() {
         }
     );
     let idle = Lock {
-        cause: Some(sill_services::LockCause::IdleScreenOff),
+        cause: Some(sill_model::locker::LockCause::IdleScreenOff),
         ..lock(LockPhase::Locked)
     };
     assert_eq!(

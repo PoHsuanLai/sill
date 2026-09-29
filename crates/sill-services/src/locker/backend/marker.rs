@@ -10,7 +10,7 @@
 
 use std::path::{Path, PathBuf};
 
-use super::mode::LockerMode;
+use sill_model::locker::LockerMode;
 
 /// Whether the marker file exists.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -45,8 +45,8 @@ mod tests {
     use std::path::{Path, PathBuf};
 
     use super::{LockMarker, Restore, marker_path, restore_on_start};
-    use crate::locker::machine::Triggers;
-    use crate::locker::mode::LockerMode;
+    use sill_model::locker::LockerMode;
+    use sill_model::locker::Triggers;
 
     #[test]
     fn a_marker_relocks_only_the_own_lock() {

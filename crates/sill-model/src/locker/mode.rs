@@ -1,7 +1,7 @@
 //! What kind of session sill runs in, and what the locker service does there: sill's own lock
 //! screen, whose logind triggers depend on the session ([`Host`]).
 
-use super::machine::{Runner, Triggers};
+use super::{Runner, Triggers};
 
 /// What kind of session sill is running in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -77,7 +77,7 @@ impl LockerMode {
 #[cfg(test)]
 mod tests {
     use super::{Host, LockerMode, SessionManager};
-    use crate::locker::machine::Triggers;
+    use crate::locker::Triggers;
 
     #[test]
     fn only_a_sill_session_follows_logind() {

@@ -12,7 +12,7 @@ pub enum IdleRequest {
     Status,
 }
 
-/// `sill_services::locker::LockCause`'s mirror.
+/// `sill_model::locker::LockCause`'s mirror.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReportLockCause {

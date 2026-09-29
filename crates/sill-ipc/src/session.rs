@@ -40,7 +40,7 @@ pub enum PolkitRequest {
     Status,
 }
 
-/// The lock screen as `sill lock status` prints it (`sill_services::Lock`'s mirror).
+/// The lock screen as `sill lock status` prints it (`sill_model::locker::Lock`'s mirror).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct LockReport {
     pub phase: ReportLockPhase,
@@ -48,7 +48,7 @@ pub struct LockReport {
     pub cause: Option<ReportLockCause>,
 }
 
-/// `sill_services::LockPhase`'s mirror.
+/// `sill_model::locker::LockPhase`'s mirror.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReportLockPhase {

@@ -20,7 +20,7 @@
 //! - `Lock` seen `Unlocked`: the kept instant and the sleep mark are forgotten.
 //! - Every event while the mode is `Off` changes nothing and emits nothing (the passive start).
 
-use crate::locker::LockCause;
+use sill_model::locker::LockCause;
 use sill_model::units::Stamp;
 
 use super::grace::{GraceCase, SleepSince};
