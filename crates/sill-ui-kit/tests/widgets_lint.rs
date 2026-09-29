@@ -13,8 +13,9 @@ use ds::lint::{LintConfig, Profile, assert_clean, markup};
 use ds::{Ds, Material, RootExtent};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
+use sill_ui_kit::harness::SurfaceHarness;
 use sill_ui_kit::hooks::PinnedAppearance;
-use sill_ui_kit::links::EditWidgetsLink;
+use sill_ui_kit::links::{EditWidgetsLink, PlacementFile};
 use sill_ui_kit::services::Services;
 use sill_ui_kit::surfaces::desktop_widgets::DESKTOP_WIDGETS_CSS;
 use sill_ui_kit::surfaces::edit_widgets::EDIT_WIDGETS_CSS;
@@ -61,7 +62,7 @@ enum Drawn {
 struct World {
     services: Services,
     settings: SettingsFeed,
-    drawn: Drawn,
+    host: WidgetHost,
 }
 
 thread_local! {
@@ -77,15 +78,7 @@ fn app() -> Element {
     use_context_provider(|| world.services.clone());
     use_context_provider(PinnedAppearance::default);
     use_context_provider(|| world.settings.clone());
-    let link = use_context_provider(EditWidgetsLink::new);
-    let host = match world.drawn {
-        Drawn::Host(host) => host,
-        Drawn::Layer => return rsx! { DesktopWidgets { output: fake::output() } },
-        Drawn::Edit => {
-            link.open(fake::output().id);
-            return rsx! { EditWidgets { output: fake::output() } };
-        }
-    };
+    let host = world.host;
     let material = match host {
         WidgetHost::Tile => Material::Popover,
         WidgetHost::Desktop => Material::Widget,
@@ -100,30 +93,76 @@ fn app() -> Element {
     }
 }
 
-fn html_of(drawn: Drawn) -> String {
-    let (services, feeds) = fake::services();
-    feeds.media.send_replace(fake::media());
+const VIEWPORT: Viewport = Viewport {
+    width: 1280,
+    height: 800,
+    scale_percent: 100,
+};
+
+/// What keeps a document's services and links from closing while it draws.
+type Alive = Box<dyn std::any::Any>;
+
+/// Every widget on `settings`, the way the layer and the gallery are asked to draw them.
+fn settings() -> ShellFile {
     let mut file = ShellFile::default();
     file.widgets.world_clocks = "Europe/London".to_owned();
     file.widgets.desktop_widgets = ALL.to_vec();
-    WORLD.with(|w| {
-        *w.borrow_mut() = Some(World {
-            services,
-            settings: SettingsFeed::fixed(file),
-            drawn,
-        });
-    });
-    let viewport = Viewport {
-        width: 1280,
-        height: 800,
-        scale_percent: 100,
+    file
+}
+
+fn html_of(drawn: Drawn) -> String {
+    // What the document is fed through stays alive until it has been drawn.
+    let (mut harness, _alive) = match drawn {
+        Drawn::Host(host) => hosted(host),
+        Drawn::Layer => layer(),
+        Drawn::Edit => edit(),
     };
-    let mut harness =
-        Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
     for _ in 0..10 {
         harness.advance(Duration::from_millis(40));
     }
     harness.html()
+}
+
+/// Every widget in `host`, on a `Ds` root.
+fn hosted(host: WidgetHost) -> (Harness, Alive) {
+    let (services, feeds) = fake::services();
+    feeds.media.send_replace(fake::media());
+    WORLD.with(|w| {
+        *w.borrow_mut() = Some(World {
+            services,
+            settings: SettingsFeed::fixed(settings()),
+            host,
+        });
+    });
+    let harness =
+        Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
+    (harness, Box::new(feeds))
+}
+
+/// The desktop layer, with its places in a file that does not exist.
+fn layer() -> (Harness, Alive) {
+    let places = PlacementFile(
+        std::env::temp_dir()
+            .join(format!("sill-widgets-lint-{}", std::process::id()))
+            .join("desktop-widgets.json"),
+    );
+    let run = SurfaceHarness::<DesktopWidgets>::setup(places, ())
+        .settings(settings())
+        .viewport(VIEWPORT)
+        .start();
+    run.feeds.media.send_replace(fake::media());
+    (run.harness, Box::new((run.feeds, run.link)))
+}
+
+/// Edit Widgets, open.
+fn edit() -> (Harness, Alive) {
+    let run = SurfaceHarness::<EditWidgets>::setup(EditWidgetsLink::new(), ())
+        .settings(settings())
+        .viewport(VIEWPORT)
+        .start();
+    run.feeds.media.send_replace(fake::media());
+    run.link.open(fake::output().id);
+    (run.harness, Box::new((run.feeds, run.link)))
 }
 
 #[test]

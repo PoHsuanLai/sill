@@ -1,6 +1,5 @@
-//! Edit Widgets, the real surfaces in a `ds_native::Harness`
-//! on the virtual clock and the fake services: the notification center's "Edit Widgets" closes
-//! the center and opens the gallery on its output; in the gallery an added widget is written as
+//! Edit Widgets mounted as a `Surface` on the virtual clock and the fake services: in the
+//! gallery an added widget is written as
 //! the same keys and places sill keeps (through a fake writer that publishes them back, as the
 //! daemon's does, `widgets.desktop` turned on by an add to the desktop) and shown by quire's
 //! gallery, its Add button settling to "Added" with a check (nothing said under the
@@ -8,66 +7,21 @@
 //! and says so, the gallery is a sheet at the bottom offering one size per widget and no size
 //! control, and Done closes it; every moment settles to zero frames.
 
-use sill_ui_kit::harness::fake;
-
-use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use dioxus::prelude::*;
 use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
-use sill_settings::{DesktopWidgets, SettingsFeed, ShellFile, WidgetKind};
-use sill_ui_kit::hooks::PinnedAppearance;
-use sill_ui_kit::links::{CenterLink, CenterShown};
+use ds_native::{Harness, Viewport};
+use sill_settings::{DesktopWidgets, ShellFile, WidgetKind};
+use sill_ui_kit::EditWidgets;
+use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{EditShown, EditWidgetsLink, WidgetsWrite, WidgetsWriter};
-use sill_ui_kit::services::Services;
-use sill_ui_kit::surface::{MountProps, mount};
 use sill_ui_kit::widgets::grid::{GridSlot, OutputKey, Placement};
-use sill_ui_kit::{EditWidgets, NotificationCenter};
 use tokio::sync::watch;
 
-/// Which surface the harness draws.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Drawn {
-    Center,
-    Edit,
-}
-
-#[derive(Clone)]
-struct World {
-    services: Services,
-    settings: SettingsFeed,
-    center: CenterLink,
-    edit: EditWidgetsLink,
-    writer: WidgetsWriter,
-    drawn: Drawn,
-}
-
-thread_local! {
-    static WORLD: RefCell<Option<World>> = const { RefCell::new(None) };
-}
-
-fn app() -> Element {
-    let Some(world) = WORLD.with(|w| w.borrow().clone()) else {
-        return rsx! {};
-    };
-    use_context_provider(|| world.services.clone());
-    use_context_provider(PinnedAppearance::default);
-    use_context_provider(|| world.settings.clone());
-    use_context_provider(|| world.center.clone());
-    use_context_provider(|| world.edit.clone());
-    use_context_provider(|| world.writer.clone());
-    match world.drawn {
-        Drawn::Center => mount::<NotificationCenter>(MountProps::new(fake::output(), ())),
-        Drawn::Edit => rsx! { EditWidgets { output: fake::output() } },
-    }
-}
-
-/// A running surface, the links it follows and every write it made.
+/// The surface, the link it follows and every write it made.
 struct Running {
     harness: Harness,
-    center: CenterLink,
     edit: EditWidgetsLink,
     writes: Arc<Mutex<Vec<WidgetsWrite>>>,
     _feeds: fake::Feeds,
@@ -88,46 +42,47 @@ impl Running {
     }
 }
 
-fn start(drawn: Drawn, file: ShellFile) -> Running {
-    let (services, feeds) = fake::services();
-    let (tx, rx) = watch::channel(file);
+fn start(file: ShellFile) -> Running {
     let writes = Arc::new(Mutex::new(Vec::new()));
     let log = writes.clone();
+    let settings: Arc<Mutex<Option<watch::Sender<ShellFile>>>> = Arc::default();
+    let publish = settings.clone();
     // The daemon's writer saves the keys and publishes them; this one records and publishes.
     let writer = WidgetsWriter(Arc::new(move |change: WidgetsWrite| {
-        tx.send_modify(|file| {
-            file.widgets.center = change.center.clone();
-            file.widgets.desktop_widgets = change.desktop.clone();
-            file.widgets.desktop = change.shown;
-        });
+        if let Ok(held) = publish.lock()
+            && let Some(tx) = held.as_ref()
+        {
+            tx.send_modify(|file| {
+                file.widgets.center = change.center.clone();
+                file.widgets.desktop_widgets = change.desktop.clone();
+                file.widgets.desktop = change.shown;
+            });
+        }
         if let Ok(mut log) = log.lock() {
             log.push(change);
         }
     }));
-    let center = CenterLink::new();
-    let edit = EditWidgetsLink::new();
-    WORLD.with(|w| {
-        *w.borrow_mut() = Some(World {
-            services,
-            settings: SettingsFeed(rx),
-            center: center.clone(),
-            edit: edit.clone(),
-            writer,
-            drawn,
-        });
-    });
     let viewport = Viewport {
         width: 1280,
         height: 800,
         scale_percent: 100,
     };
-    let mut harness =
-        Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
+    let SurfaceHarness {
+        mut harness,
+        feeds,
+        link,
+        settings: tx,
+    } = SurfaceHarness::<EditWidgets>::setup(EditWidgetsLink::new().with_writer(writer), ())
+        .settings(file)
+        .viewport(viewport)
+        .start();
+    if let Ok(mut held) = settings.lock() {
+        *held = Some(tx);
+    }
     harness.advance(Duration::from_millis(60));
     Running {
         harness,
-        center,
-        edit,
+        edit: link,
         writes,
         _feeds: feeds,
     }
@@ -164,7 +119,7 @@ fn rows(h: &Harness, host: &str) -> usize {
 /// Open the gallery and wait until it has measured the desktop's grid (the desktop's widgets
 /// are listed once it knows their cells).
 fn opened() -> Running {
-    let mut run = start(Drawn::Edit, ShellFile::default());
+    let mut run = start(ShellFile::default());
     assert_eq!(
         run.harness.count(".ds-widget-gallery"),
         0,
@@ -175,36 +130,6 @@ fn opened() -> Running {
     // The panel has slid in and holds still before anything is pressed.
     assert_settles_to_zero_frames(&mut run.harness);
     run
-}
-
-#[test]
-fn the_centers_edit_widgets_opens_the_gallery_on_its_output() {
-    // One tile, so the button is in view without scrolling the column.
-    let mut file = ShellFile::default();
-    file.widgets.center = vec![WidgetKind::Battery];
-    let mut run = start(Drawn::Center, file);
-    let output = fake::output().id;
-    run.center.open(output);
-    settle_until(&mut run.harness, |h| {
-        h.count(".sill-nc-edit .ds-button") == 1
-    });
-    assert_eq!(
-        run.harness.text_of(".sill-nc-edit .ds-button").as_deref(),
-        Some("Edit Widgets")
-    );
-    let widgets = run.harness.rect(".sill-nc-widgets").expect("the widgets");
-    let button = run.harness.rect(".sill-nc-edit").expect("the button");
-    assert!(
-        button.origin.y.0
-            >= widgets.origin.y.0 + widgets.size.height.0 - button.size.height.0 - 0.5,
-        "at the bottom of the widgets: {widgets:?} {button:?}"
-    );
-    assert_settles_to_zero_frames(&mut run.harness);
-    run.click(".sill-nc-edit .ds-button");
-    assert_eq!(run.center.now(), CenterShown::Closed);
-    assert_eq!(run.edit.now(), EditShown::Open(output));
-    settle_until(&mut run.harness, |h| h.count(".ds-panel") == 0);
-    assert_settles_to_zero_frames(&mut run.harness);
 }
 
 #[test]

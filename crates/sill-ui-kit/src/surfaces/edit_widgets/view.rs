@@ -6,7 +6,7 @@
 //! (`widgets::layout::layout_of`), one preview per widget at its one size and no size control,
 //! each edit applied with `widgets::layout::edited` against this output's desktop grid (measured
 //! from the catcher, the same box the desktop widget layer measures) and written through the
-//! root's [`WidgetsWriter`]. An add is shown by the gallery itself, its button settling to
+//! [`EditWidgetsLink`]'s writer. An add is shown by the gallery itself, its button settling to
 //! "Added" with a check; a removal, or why sill could not make an edit, is said under the gallery
 //! ([`EditStatus`]). An add to the desktop also turns `widgets.desktop` on, so the widget is
 //! seen.
@@ -22,14 +22,14 @@ use ds::{
 use shell_host::OutputInfo;
 use sill_settings::DesktopWidgets;
 
-use super::drive::{places_to_save, use_phase};
+use super::io::{places_to_save, use_phase};
 use super::layer::EDIT_PANEL_ID;
 use super::status::{EditCount, EditStatus, Outcome, outcome_of};
 use crate::hooks::use_settings;
 use crate::links::EditWidgetsLink;
-use crate::links::{WidgetsWrite, WidgetsWriter};
+use crate::links::WidgetsWrite;
 use crate::root::SurfaceRoot;
-use crate::surfaces::desktop_widgets::{PlacementFile, grid_size, place};
+use crate::surfaces::desktop_widgets::{grid_size, place};
 use crate::surfaces::notification_center::phase::Phase;
 use crate::widgets::grid::OutputKey;
 use crate::widgets::layout::{WidgetKeys, edited, layout_of};
@@ -48,7 +48,7 @@ const EDIT_WIDTH: f32 = 1040.0;
 const EDIT_HEIGHT: f32 = 400.0;
 
 /// Edit Widgets on `output`.
-pub(super) fn edit(output: OutputInfo) -> Element {
+pub(super) fn edit_widgets(output: OutputInfo) -> Element {
     provide_registry();
     rsx! {
         SurfaceRoot {
@@ -85,8 +85,8 @@ fn Stage(output: OutputInfo) -> Element {
 fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Element {
     let link = use_context::<EditWidgetsLink>();
     let mut column = use_signal(|| None::<Rc<MountedData>>);
-    let writer = try_use_context::<WidgetsWriter>();
-    let file = try_use_context::<PlacementFile>();
+    let writer = link.writer().cloned();
+    let file = link.places().cloned();
     let probe = use_rect();
     let widgets = use_settings()().widgets;
     let mut outcome = use_signal(Outcome::default);

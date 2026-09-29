@@ -10,6 +10,7 @@ use dioxus::prelude::*;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use shell_host::{LayerExtent, OutputInfo};
 use sill_settings::{SettingsFeed, ShellFile};
+use tokio::sync::watch;
 
 use super::fake;
 use crate::hooks::PinnedAppearance;
@@ -42,6 +43,8 @@ pub struct SurfaceHarness<S: Surface> {
     pub feeds: fake::Feeds,
     /// The surface's link, the daemon's end.
     pub link: S::Link,
+    /// The settings file the surface follows: send a new one to change a setting live.
+    pub settings: watch::Sender<ShellFile>,
 }
 
 impl<S: Surface> fmt::Debug for SurfaceHarness<S> {
@@ -138,7 +141,8 @@ impl<S: Surface> SurfaceSetup<S> {
         } = self;
         let viewport = viewport.unwrap_or_else(|| layer_viewport::<S>(&output, &settings, slot));
         let (services, feeds) = services.unwrap_or_else(fake::services);
-        let feed = SettingsFeed::fixed(settings);
+        let (settings, settings_rx) = watch::channel(settings);
+        let feed = SettingsFeed(settings_rx);
         let context_link = link.clone();
         let build: Build = Rc::new(move || {
             use_context_provider(|| services.clone());
@@ -157,6 +161,7 @@ impl<S: Surface> SurfaceSetup<S> {
             harness,
             feeds,
             link,
+            settings,
         }
     }
 }

@@ -5,7 +5,7 @@
 //! other). Every choice is a `WidgetEdit` applied through quire's `ds::widget::apply`
 //! (`crate::widgets::layout::edited`) and written back as the keys and places sill already keeps
 //! (`widgets.center`, `widgets.desktop_widgets`, `desktop-widgets.json`, and `widgets.desktop`
-//! turned on by an add to the desktop) through the [`crate::links::WidgetsWriter`] the daemon gives the root.
+//! turned on by an add to the desktop) through the [`crate::links::EditWidgetsLink`]'s writer the daemon gives it.
 //! An add is shown by the gallery ("Added" and a check on its button) and by the widget
 //! rising on the desktop above the sheet; a removal's words, or a refusal shaken once, are said
 //! under the gallery (`status`).
@@ -15,21 +15,11 @@
 //! `sill widgets edit`; closed by Done, Escape, a click outside the panel, or `sill widgets
 //! edit-close`. The desktop has no context menu yet, so there is no desktop entry to it.
 
-pub mod layer;
-
-mod drive;
+mod io;
+mod layer;
 mod status;
+mod surface;
 mod view;
 
-pub use layer::{EDIT_PANEL_ID, edit_widgets_layer};
+pub use surface::EditWidgets;
 pub use view::EDIT_WIDGETS_CSS;
-
-use dioxus::prelude::*;
-use shell_host::OutputInfo;
-
-/// Edit Widgets on `output`. Needs an [`EditWidgetsLink`] root context (the daemon's
-/// `surface_root` gives every surface one) and, to change anything, a [`WidgetsWriter`].
-#[component]
-pub fn EditWidgets(output: OutputInfo) -> Element {
-    view::edit(output)
-}

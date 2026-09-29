@@ -142,7 +142,7 @@ fn follow_keyboard_focus(shell: &Shell, event: &HostEvent<ShellMsg>) {
     if on(|surfaces| surfaces.surface_of::<Launcher>()) {
         shell.links.launcher.focus(*focus);
     }
-    if on(|surfaces| surfaces.spawned_id(PowerMenu::NAME)) {
+    if on(|surfaces| surfaces.surface_of::<PowerMenu>()) {
         shell.links.power_menu.focus(*focus);
     }
 }

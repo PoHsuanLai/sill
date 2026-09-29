@@ -11,6 +11,7 @@ mod launcher;
 mod lock;
 mod notification_center;
 mod osd;
+mod places;
 mod power_menu;
 mod reveal;
 mod switcher;
@@ -28,6 +29,7 @@ pub use launcher::{
 pub use lock::{LockLink, PromptOutput};
 pub use notification_center::{CenterLink, CenterShown};
 pub use osd::{ChangeSerial, Level, LevelSource, OsdChange, OsdKind, OsdLatest, OsdLink};
+pub use places::PlacementFile;
 pub use power_menu::{PowerMenuLink, PowerMenuOpening, Preselect, Showing};
 pub use reveal::{OpenSerial, Opened, PanelFocus, Reveal, Visible};
 pub use switcher::{AskSerial, Dir, SwitcherAsk, SwitcherAsked, SwitcherLink};
@@ -50,7 +52,6 @@ pub struct Links {
     pub switcher: SwitcherLink,
     pub lock: LockLink,
     /// Edit Widgets: which output shows it (the notification center's "Edit Widgets", `sill
-    /// widgets edit`), and where its changes are written.
+    /// widgets edit`), and where its changes are written and its places read.
     pub edit_widgets: EditWidgetsLink,
-    pub widgets_writer: WidgetsWriter,
 }

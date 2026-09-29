@@ -14,7 +14,7 @@ use sill_services::env::Env;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_ui_kit::links::{
     BannerLink, CenterLink, ControlCenterLink, CornerLink, EditWidgetsLink, LauncherLink, Links,
-    LockLink, OsdLink, PowerMenuLink, SwitcherLink,
+    LockLink, OsdLink, PlacementFile, PowerMenuLink, SwitcherLink,
 };
 use sill_ui_kit::services::Services;
 use tokio::runtime::Runtime;
@@ -120,6 +120,7 @@ fn build_links(
     settings: &watch::Sender<ShellFile>,
     settings_dir: Option<PathBuf>,
 ) -> Links {
+    let places = PlacementFile::in_dirs(&env.dirs);
     Links {
         focus: sill_settings::spawn_focus(
             runtime.handle(),
@@ -135,12 +136,13 @@ fn build_links(
         corners: CornerLink::new(),
         switcher: SwitcherLink::new(),
         lock: LockLink::new(),
-        edit_widgets: EditWidgetsLink::new(),
-        widgets_writer: crate::edit_widgets::writer(
-            settings_dir,
-            sill_ui_kit::surfaces::desktop_widgets::PlacementFile::in_dirs(&env.dirs),
-            settings.clone(),
-        ),
+        edit_widgets: EditWidgetsLink::new()
+            .with_places(places.clone())
+            .with_writer(crate::edit_widgets::writer(
+                settings_dir,
+                places,
+                settings.clone(),
+            )),
     }
 }
 

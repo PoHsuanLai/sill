@@ -16,7 +16,7 @@ use crate::surfaces::notification_center::{PANEL_PADDING, PANEL_RADIUS};
 pub const EDIT_PANEL_ID: &str = "edit-widgets-panel";
 
 /// Edit Widgets on `output`.
-pub fn edit_widgets_layer(output: &OutputInfo) -> LayerConfig {
+pub(super) fn layer(output: &OutputInfo) -> LayerConfig {
     LayerConfig {
         namespace: namespace("edit-widgets", output),
         layer: LayerLevel::Overlay,
@@ -40,13 +40,13 @@ pub fn edit_widgets_layer(output: &OutputInfo) -> LayerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::edit_widgets_layer;
+    use super::layer;
     use crate::surfaces::naming::tests::output;
     use shell_host::{Anchor, ExclusiveZone, KeyboardMode, LayerLevel, RegionSpec};
 
     #[test]
     fn the_sheet_covers_the_output_below_the_bar_and_takes_the_keyboard_on_demand() {
-        let config = edit_widgets_layer(&output(Some("DP-1")));
+        let config = layer(&output(Some("DP-1")));
         assert_eq!(config.namespace, "sill-edit-widgets-DP-1");
         assert_eq!(config.layer, LayerLevel::Overlay);
         assert_eq!(config.anchor, Anchor::ALL);

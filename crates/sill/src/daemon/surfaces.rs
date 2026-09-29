@@ -9,11 +9,13 @@ use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
 use sill_ui_kit::links::Links;
+use sill_ui_kit::links::PlacementFile;
 use sill_ui_kit::services::Services;
-use sill_ui_kit::surface::{LockSurface, MountLockProps, Surface, mount_lock};
+use sill_ui_kit::surface::{LockSurface, MountLockProps, mount_lock};
 use sill_ui_kit::{
-    Banners, Bar, Dock, HotCorners, IdleDim, Launcher, LauncherCatcher, Lock, NotificationCenter,
-    Osd, PolkitPrompt, PowerMenu, ScreenshotThumb, Switcher, Wallpaper,
+    Banners, Bar, DesktopWidgets, Dock, EditWidgets, HotCorners, IdleDim, Launcher,
+    LauncherCatcher, Lock, NotificationCenter, Osd, PolkitPrompt, PowerMenu, ScreenshotThumb,
+    Switcher, Wallpaper,
 };
 use tokio::sync::watch;
 
@@ -38,11 +40,10 @@ pub struct Spawn<'a> {
 pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: &Spawn) {
     let Spawn {
         services,
-        settings_feed,
         settings,
         links,
+        ..
     } = *spawn;
-    let root = |root| surface_root(root, services, settings_feed, links);
     spawn_surface::<Bar>(ctx, outputs, spawn, &links.control_center);
     prepare_wallpapers(outputs, services, &settings.borrow());
     spawn_surface::<Wallpaper>(ctx, outputs, spawn, &());
@@ -59,8 +60,8 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     // The screenshot thumbnail after the banners and before the OSD (all Overlay); the
     // desktop widgets (Bottom) and the hot corners (Overlay, never painted).
     spawn_surface::<ScreenshotThumb>(ctx, outputs, spawn, &links.banners);
-    crate::widgets::spawn_missing(ctx, outputs, settings, &services.dirs, root);
-    crate::edit_widgets::spawn_missing(ctx, outputs, &services.dirs, root);
+    spawn_surface::<DesktopWidgets>(ctx, outputs, spawn, &PlacementFile::in_dirs(&services.dirs));
+    spawn_surface::<EditWidgets>(ctx, outputs, spawn, &links.edit_widgets);
     spawn_surface::<HotCorners>(ctx, outputs, spawn, &links.corners);
     spawn_surface::<Osd>(ctx, outputs, spawn, &links.osd);
     spawn_surface::<IdleDim>(ctx, outputs, spawn, &());
@@ -78,7 +79,7 @@ fn prepare_wallpapers(outputs: &Outputs, services: &Services, settings: &ShellFi
         return;
     }
     for (info, row) in &outputs.outputs {
-        let held = row.spawned.iter().any(|s| s.name == Wallpaper::NAME);
+        let held = row.surface_of::<Wallpaper>().is_some();
         let Some(name) = info.name.clone().filter(|_| !held) else {
             continue;
         };
@@ -149,7 +150,6 @@ pub(crate) fn surface_root(
         .context(links.switcher.clone())
         .context(links.lock.clone())
         .context(links.edit_widgets.clone())
-        .context(links.widgets_writer.clone())
 }
 
 /// Each output's lock surface for shell-host's session lock: `Lock`'s root with the

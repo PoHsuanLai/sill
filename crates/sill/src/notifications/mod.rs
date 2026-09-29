@@ -3,7 +3,6 @@
 
 use sill_ui_kit::Banners;
 use sill_ui_kit::links::BannerOutput;
-use sill_ui_kit::surface::Surface;
 
 use crate::outputs::Outputs;
 
@@ -13,7 +12,7 @@ pub fn banner_output(outputs: &Outputs) -> BannerOutput {
     outputs
         .outputs
         .iter()
-        .find(|(_, s)| s.spawned.iter().any(|kind| kind.name == Banners::NAME))
+        .find(|(_, s)| s.surface_of::<Banners>().is_some())
         .map_or(BannerOutput::Nowhere, |(info, _)| BannerOutput::On(info.id))
 }
 

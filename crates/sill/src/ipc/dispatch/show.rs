@@ -5,8 +5,7 @@
 use sill_ipc::response::Response;
 use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
 use sill_ui_kit::links::Preselect;
-use sill_ui_kit::surface::Surface;
-use sill_ui_kit::{Bar, Launcher, NotificationCenter, PowerMenu};
+use sill_ui_kit::{Bar, EditWidgets, Launcher, NotificationCenter, PowerMenu};
 
 use super::reach::Reach;
 use super::reply::unsupported;
@@ -54,7 +53,7 @@ fn power_menu(reach: &Reach, reveal: Reveal) -> Response {
     let menu = &reach.links.power_menu;
     match (
         reveal,
-        first_with(reach.outputs, |s| s.spawned_id(PowerMenu::NAME).is_some()),
+        first_with(reach.outputs, |s| s.surface_of::<PowerMenu>().is_some()),
     ) {
         (Reveal::Close, _) => menu.close(),
         (Reveal::Open, Some(output)) => menu.open(output, Preselect::Default),
@@ -69,9 +68,7 @@ fn power_menu(reach: &Reach, reveal: Reveal) -> Response {
 fn notification_center(reach: &Reach, reveal: Reveal) -> Response {
     let center = &reach.links.notification_center;
     let target = first_with(reach.outputs, |s| {
-        s.spawned
-            .iter()
-            .any(|kind| kind.name == NotificationCenter::NAME)
+        s.surface_of::<NotificationCenter>().is_some()
     });
     match (reveal, target) {
         (Reveal::Close, _) => center.close(),
@@ -86,9 +83,7 @@ fn notification_center(reach: &Reach, reveal: Reveal) -> Response {
 
 /// The control center is a popup of a bar: it toggles under the first bar's item.
 fn control_center(reach: &Reach) -> Response {
-    match first_with(reach.outputs, |s| {
-        s.spawned.iter().any(|surface| surface.name == Bar::NAME)
-    }) {
+    match first_with(reach.outputs, |s| s.surface_of::<Bar>().is_some()) {
         Some(output) => {
             reach.links.control_center.toggle(output);
             Response::Done
@@ -99,7 +94,7 @@ fn control_center(reach: &Reach) -> Response {
 
 fn edit_widgets(reach: &Reach, request: EditWidgetsRequest) -> Response {
     let link = &reach.links.edit_widgets;
-    let target = first_with(reach.outputs, |s| s.edit_widgets.is_some());
+    let target = first_with(reach.outputs, |s| s.surface_of::<EditWidgets>().is_some());
     match (request, target) {
         (EditWidgetsRequest::Open, Some(output)) => link.open(output),
         (EditWidgetsRequest::Close, _) => link.close(),

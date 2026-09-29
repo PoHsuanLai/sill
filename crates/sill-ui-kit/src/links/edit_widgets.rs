@@ -3,7 +3,7 @@
 //! output's Edit Widgets surface onto its own visibility, as `CenterLink` is. It also holds where
 //! Edit Widgets' changes go: the daemon's writer saves the keys into `settings.toml` (publishing
 //! them at once, as `sill widgets toggle-desktop` does) and the output's places into
-//! `desktop-widgets.json`; a test's records them. A root without one changes nothing.
+//! `desktop-widgets.json`; a test's records them. A link without one changes nothing.
 
 use std::sync::Arc;
 
@@ -11,6 +11,7 @@ use shell_host::OutputId;
 use sill_settings::{DesktopWidgets, WidgetKind};
 use tokio::sync::watch;
 
+use super::PlacementFile;
 use crate::widgets::grid::{OutputKey, Placement};
 
 /// Edit Widgets' state.
@@ -25,6 +26,8 @@ pub enum EditShown {
 #[derive(Debug, Clone)]
 pub struct EditWidgetsLink {
     shown: watch::Sender<EditShown>,
+    writer: Option<WidgetsWriter>,
+    places: Option<PlacementFile>,
 }
 
 impl Default for EditWidgetsLink {
@@ -38,7 +41,31 @@ impl EditWidgetsLink {
     pub fn new() -> EditWidgetsLink {
         EditWidgetsLink {
             shown: watch::Sender::new(EditShown::Closed),
+            writer: None,
+            places: None,
         }
+    }
+
+    /// The same link with `writer` saving Edit Widgets' changes.
+    pub fn with_writer(mut self, writer: WidgetsWriter) -> EditWidgetsLink {
+        self.writer = Some(writer);
+        self
+    }
+
+    /// The same link with the desktop's places read from `places`.
+    pub fn with_places(mut self, places: PlacementFile) -> EditWidgetsLink {
+        self.places = Some(places);
+        self
+    }
+
+    /// The writer, when the daemon gave one; without it an edit changes nothing.
+    pub fn writer(&self) -> Option<&WidgetsWriter> {
+        self.writer.as_ref()
+    }
+
+    /// The file the desktop's places are in, when the daemon gave one.
+    pub fn places(&self) -> Option<&PlacementFile> {
+        self.places.as_ref()
     }
 
     /// Open on `output` (moving it there if it is open elsewhere).

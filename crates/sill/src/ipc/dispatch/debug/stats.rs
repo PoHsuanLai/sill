@@ -2,7 +2,7 @@
 //! `HostCtx::take_stats` (it needs neither the `debug` feature nor shell-host's `debug-inject`;
 //! draining, so each report covers only the time since the previous one).
 
-use shell_host::{HostCtx, OutputInfo, SurfaceId};
+use shell_host::{HostCtx, SurfaceId};
 use sill_ipc::debug::{Micros, SurfaceName, SurfaceStats};
 use sill_settings::ShellFile;
 use sill_ui_kit::Lock;
@@ -17,7 +17,7 @@ pub fn collect(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<SurfaceSta
     let ids: Vec<(String, SurfaceId)> = outputs
         .outputs
         .iter()
-        .flat_map(|(info, surfaces)| row_surfaces(info, surfaces))
+        .flat_map(|(_, surfaces)| row_surfaces(surfaces))
         .collect();
     let locks = lock_surfaces(ctx, outputs);
     ids.into_iter()
@@ -43,18 +43,12 @@ fn lock_surfaces(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<(String,
 }
 
 /// One output's spawned surfaces, each with its layer namespace.
-fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, SurfaceId)> {
-    let desktop = surfaces
-        .desktop_widgets
-        .map(|id| (crate::widgets::namespace(info), id));
-    let edit = surfaces
-        .edit_widgets
-        .map(|id| (crate::edit_widgets::namespace(info), id));
-    let spawned = surfaces
+fn row_surfaces(surfaces: &OutputSurfaces) -> Vec<(String, SurfaceId)> {
+    surfaces
         .spawned
         .iter()
-        .map(|surface| (surface.namespace.clone(), surface.id));
-    desktop.into_iter().chain(edit).chain(spawned).collect()
+        .map(|surface| (surface.namespace.clone(), surface.id))
+        .collect()
 }
 
 fn wire_stats(name: String, stats: shell_host::FrameStats) -> SurfaceStats {

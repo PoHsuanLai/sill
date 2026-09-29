@@ -137,5 +137,5 @@ pub fn decode(text: &str) -> Vec<SavedEntry> {
 }
 
 #[cfg(test)]
-#[path = "saved_tests.rs"]
+#[path = "places_tests.rs"]
 mod tests;

@@ -8,48 +8,18 @@
 //! The layer is 1280 x 800: seven 164 px columns from x = 20 (column `c` at 20 + 180 c), rows at
 //! 16 + 180 r. The Calendar starts at column 6 row 0 (1100, 16), the Battery under it (1100, 196).
 
-use sill_ui_kit::harness::fake;
-
-use std::cell::RefCell;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use dioxus::prelude::*;
 use ds::{Point, Px};
 use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use ds_native::{Harness, Viewport};
 use sill_model::now_playing::{MediaCommand, MediaVerb};
-use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
+use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::DesktopWidgets;
-use sill_ui_kit::hooks::PinnedAppearance;
-use sill_ui_kit::services::Services;
-use sill_ui_kit::surfaces::desktop_widgets::PlacementFile;
+use sill_ui_kit::harness::{SurfaceHarness, fake};
+use sill_ui_kit::links::PlacementFile;
 use sill_ui_kit::widgets::grid::{GridSlot, OutputKey, Placement};
-
-#[derive(Clone)]
-struct World {
-    services: Services,
-    settings: SettingsFeed,
-    file: PlacementFile,
-}
-
-thread_local! {
-    static WORLD: RefCell<Option<World>> = const { RefCell::new(None) };
-}
-
-fn app() -> Element {
-    let world = WORLD.with(|w| w.borrow().clone());
-    let Some(world) = world else {
-        return rsx! {};
-    };
-    use_context_provider(|| world.services.clone());
-    use_context_provider(PinnedAppearance::default);
-    use_context_provider(|| world.settings.clone());
-    use_context_provider(|| world.file.clone());
-    rsx! {
-        DesktopWidgets { output: fake::output() }
-    }
-}
 
 const VIEWPORT: Viewport = Viewport {
     width: 1280,
@@ -71,21 +41,17 @@ impl Drop for Running {
 }
 
 fn start(name: &str, kinds: Vec<WidgetKind>) -> Running {
-    let (services, feeds) = fake::services();
     let dir = std::env::temp_dir().join(format!("sill-dw-drag-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     let file = PlacementFile(dir.join("desktop-widgets.json"));
     let mut settings = ShellFile::default();
     settings.widgets.desktop_widgets = kinds;
-    WORLD.with(|w| {
-        *w.borrow_mut() = Some(World {
-            services,
-            settings: SettingsFeed::fixed(settings),
-            file: file.clone(),
-        });
-    });
-    let mut harness =
-        Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
+    let SurfaceHarness {
+        mut harness, feeds, ..
+    } = SurfaceHarness::<DesktopWidgets>::setup(file.clone(), ())
+        .settings(settings)
+        .viewport(VIEWPORT)
+        .start();
     for _ in 0..10 {
         harness.advance(Duration::from_millis(40));
     }

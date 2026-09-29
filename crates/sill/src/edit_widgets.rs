@@ -1,57 +1,17 @@
-//! Edit Widgets on the daemon's side: one hidden surface per output, kept warm like the
-//! notification center; and the writer its root is given, which saves the widget keys into `settings.toml` (`widgets.center`,
-//! `widgets.desktop_widgets`, and `widgets.desktop`, which an add to the desktop turns on)
-//! (publishing them at once, as `toggle-desktop` does, so the desktop layer and the center follow
-//! before the watch fires) and the output's places into `desktop-widgets.json`.
+//! Edit Widgets on the daemon's side: the writer its link holds, which saves the widget keys
+//! into `settings.toml` (`widgets.center`, `widgets.desktop_widgets`, and `widgets.desktop`,
+//! which an add to the desktop turns on) (publishing them at once, as `toggle-desktop` does, so
+//! the desktop layer and the center follow before the watch fires) and the output's places into
+//! `desktop-widgets.json`.
 
-use sill_services::env::Dirs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use shell_host::{HostCtx, HostRoot, OutputInfo};
 use sill_settings::ShellFile;
-use sill_ui_kit::links::{WidgetsWrite, WidgetsWriter};
-use sill_ui_kit::surfaces::desktop_widgets::PlacementFile;
-use sill_ui_kit::surfaces::edit_widgets::{EditWidgetsProps, edit_widgets_layer};
+use sill_ui_kit::links::{PlacementFile, WidgetsWrite, WidgetsWriter};
 use tokio::sync::watch;
 
-use crate::daemon::msg::ShellMsg;
-use crate::outputs::Outputs;
-
-/// Spawn a hidden Edit Widgets surface on every output whose row lacks one; each root is built
-/// by `root` (the daemon's `surface_root`, which adds the link and the writer) and given the
-/// places' file in `dirs`.
-pub fn spawn_missing(
-    ctx: &mut HostCtx<ShellMsg>,
-    outputs: &mut Outputs,
-    dirs: &Dirs,
-    root: impl Fn(HostRoot) -> HostRoot,
-) {
-    let missing: Vec<OutputInfo> = outputs
-        .outputs
-        .iter()
-        .filter(|(_, s)| s.edit_widgets.is_none())
-        .map(|(info, _)| info.clone())
-        .collect();
-    for info in missing {
-        let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
-        let props = EditWidgetsProps {
-            output: info.clone(),
-        };
-        let mut made = root(HostRoot::with_props(sill_ui_kit::EditWidgets, props));
-        made = made.context(PlacementFile::in_dirs(dirs));
-        surfaces.edit_widgets =
-            crate::daemon::surfaces::spawn_hidden(ctx, edit_widgets_layer(&info), made, &info);
-        outputs.set(info, surfaces);
-    }
-}
-
-/// The surface's namespace on `info`, which `debug stats` reports.
-pub fn namespace(info: &OutputInfo) -> String {
-    edit_widgets_layer(info).namespace
-}
-
-/// The writer the surfaces are given: [`write`] into `dir` (nothing but a log line without
+/// The writer the Edit Widgets link is given: [`write`] into `dir` (nothing but a log line without
 /// one) and the default places' file.
 pub fn writer(
     dir: Option<PathBuf>,
@@ -94,8 +54,8 @@ pub fn write(
 #[cfg(test)]
 mod tests {
     use sill_settings::{DesktopWidgets, ShellFile, WidgetKind};
+    use sill_ui_kit::links::PlacementFile;
     use sill_ui_kit::links::WidgetsWrite;
-    use sill_ui_kit::surfaces::desktop_widgets::PlacementFile;
     use sill_ui_kit::widgets::grid::{GridSlot, OutputKey, Placement};
     use tokio::sync::watch;
 

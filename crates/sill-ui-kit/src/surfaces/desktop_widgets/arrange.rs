@@ -28,14 +28,6 @@ impl LayerPoint {
         }
     }
 
-    /// `self + other`, per axis.
-    pub fn plus(self, other: LayerPoint) -> LayerPoint {
-        LayerPoint {
-            x: self.x + other.x,
-            y: self.y + other.y,
-        }
-    }
-
     /// `|dx| + |dy|` to `other`.
     pub fn manhattan(self, other: LayerPoint) -> u32 {
         self.x.abs_diff(other.x) + self.y.abs_diff(other.y)

@@ -16,7 +16,7 @@ use shell_host::{
 use crate::surfaces::naming::namespace;
 
 /// The desktop widgets on `output`.
-pub fn desktop_layer(output: &OutputInfo) -> LayerConfig {
+pub(super) fn layer(output: &OutputInfo) -> LayerConfig {
     LayerConfig {
         namespace: namespace("desktop-widgets", output),
         layer: LayerLevel::Bottom,
@@ -36,7 +36,7 @@ pub fn desktop_layer(output: &OutputInfo) -> LayerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::desktop_layer;
+    use super::layer;
     use crate::surfaces::naming::tests::output;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, OutputTarget,
@@ -46,7 +46,7 @@ mod tests {
     #[test]
     fn the_layer_is_under_windows_over_the_whole_output_and_takes_nothing_yet() {
         let info = output(Some("DP-1"));
-        let config = desktop_layer(&info);
+        let config = layer(&info);
         assert_eq!(config.namespace, "sill-desktop-widgets-DP-1");
         assert_eq!(config.layer, LayerLevel::Bottom);
         assert_eq!(config.anchor, Anchor::ALL);

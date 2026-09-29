@@ -1,51 +1,18 @@
-//! What the desktop widget layer draws, the real `DesktopWidgets` in a
-//! `ds_native::Harness` on the fake services: `widgets.desktop_widgets` placed on the grid from
-//! the top right, each in its Widget-material frame at its cell's box; a saved placement kept;
-//! the placements written back to the file the root was given (a temp file here: never the
-//! user's state); and nothing painted between the widgets.
+//! What the desktop widget layer draws, the real `DesktopWidgets` mounted as a `Surface` on the
+//! fake services: `widgets.desktop_widgets` placed on the grid from the top right, each in its
+//! Widget-material frame at its cell's box; a saved placement kept; the placements written back
+//! to the file the surface was given (a scratch file here: never the user's state); and nothing
+//! painted between the widgets.
 
-use sill_ui_kit::harness::fake;
-
-use std::cell::RefCell;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use dioxus::prelude::*;
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
-use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
+use ds_native::{Harness, Viewport};
+use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::DesktopWidgets;
-use sill_ui_kit::hooks::PinnedAppearance;
-use sill_ui_kit::services::Services;
-use sill_ui_kit::surfaces::desktop_widgets::PlacementFile;
+use sill_ui_kit::harness::SurfaceHarness;
+use sill_ui_kit::links::PlacementFile;
 use sill_ui_kit::widgets::grid::{GridSlot, OutputKey, Placement};
-
-/// What the harness's root provides.
-#[derive(Clone)]
-struct World {
-    services: Services,
-    settings: SettingsFeed,
-    file: Option<PlacementFile>,
-}
-
-thread_local! {
-    static WORLD: RefCell<Option<World>> = const { RefCell::new(None) };
-}
-
-fn app() -> Element {
-    let world = WORLD.with(|w| w.borrow().clone());
-    let Some(world) = world else {
-        return rsx! {};
-    };
-    use_context_provider(|| world.services.clone());
-    use_context_provider(PinnedAppearance::default);
-    use_context_provider(|| world.settings.clone());
-    if let Some(file) = world.file {
-        use_context_provider(|| file);
-    }
-    rsx! {
-        DesktopWidgets { output: fake::output() }
-    }
-}
 
 const VIEWPORT: Viewport = Viewport {
     width: 1280,
@@ -53,28 +20,55 @@ const VIEWPORT: Viewport = Viewport {
     scale_percent: 100,
 };
 
-fn start(file: ShellFile, placements: Option<PlacementFile>) -> (Harness, fake::Feeds) {
-    let (services, feeds) = fake::services();
-    WORLD.with(|w| {
-        *w.borrow_mut() = Some(World {
-            services,
-            settings: SettingsFeed::fixed(file),
-            file: placements,
-        });
-    });
-    let mut harness =
-        Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
-    for _ in 0..10 {
-        harness.advance(Duration::from_millis(40));
-    }
-    (harness, feeds)
+/// A running layer.
+struct Running {
+    harness: Harness,
+    settings: tokio::sync::watch::Sender<ShellFile>,
+    _scratch: Scratch,
 }
 
+/// A scratch directory, removed when the test ends.
+struct Scratch(PathBuf);
+
+impl Drop for Scratch {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+/// The scratch directory and places file of the test named `name`.
 fn temp_file(name: &str) -> (PathBuf, PlacementFile) {
     let dir = std::env::temp_dir().join(format!("sill-dw-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     let file = PlacementFile(dir.join("desktop-widgets.json"));
     (dir, file)
+}
+
+/// The layer on `file`'s settings with nothing saved.
+fn start(name: &str, file: ShellFile) -> Running {
+    let (dir, places) = temp_file(name);
+    start_in(dir, places, file)
+}
+
+/// The layer on `file`'s settings and the places file `places`, settled.
+fn start_in(dir: PathBuf, places: PlacementFile, file: ShellFile) -> Running {
+    let run = SurfaceHarness::<DesktopWidgets>::setup(places, ())
+        .settings(file)
+        .viewport(VIEWPORT)
+        .start();
+    let SurfaceHarness {
+        mut harness,
+        settings,
+        ..
+    } = run;
+    for _ in 0..10 {
+        harness.advance(Duration::from_millis(40));
+    }
+    Running {
+        harness,
+        settings,
+        _scratch: Scratch(dir),
+    }
 }
 
 fn at(kind: WidgetKind, column: u16, row: u16) -> Placement {
@@ -101,7 +95,7 @@ fn box_of(h: &Harness, selector: &str) -> (i32, i32, i32, i32) {
 #[test]
 fn the_default_widgets_fill_from_the_top_right_in_widget_frames() {
     // 1280 px: seven 164 px cells and eight 16 px gaps take 1276, so the grid starts at 4.
-    let (h, _feeds) = start(ShellFile::default(), None);
+    let Running { harness: h, .. } = start("default", ShellFile::default());
     assert_eq!(h.count(".ds-widget"), 2);
     assert_eq!(box_of(&h, "#widget-calendar"), (1100, 16, 164, 164));
     assert_eq!(box_of(&h, "#widget-battery"), (1100, 196, 164, 164));
@@ -123,7 +117,7 @@ fn the_default_widgets_fill_from_the_top_right_in_widget_frames() {
 fn a_medium_widget_takes_two_cells() {
     let mut file = ShellFile::default();
     file.widgets.desktop_widgets = vec![WidgetKind::NowPlaying, WidgetKind::WorldClock];
-    let (h, _feeds) = start(file, None);
+    let Running { harness: h, .. } = start("medium", file);
     assert_eq!(box_of(&h, "#widget-now-playing"), (920, 16, 344, 164));
     assert_eq!(box_of(&h, "#widget-world-clock"), (920, 196, 344, 164));
 }
@@ -136,9 +130,10 @@ fn saved_places_are_kept_and_the_placements_are_written_back() {
     placements
         .save(&dp1, &seeded)
         .unwrap_or_else(|e| panic!("seeding: {e}"));
-    let (h, _feeds) = start(ShellFile::default(), Some(placements.clone()));
-    assert_eq!(box_of(&h, "#widget-battery"), (20, 16, 164, 164));
-    assert_eq!(box_of(&h, "#widget-calendar"), (1100, 16, 164, 164));
+    let run = start_in(dir, placements.clone(), ShellFile::default());
+    let h = &run.harness;
+    assert_eq!(box_of(h, "#widget-battery"), (20, 16, 164, 164));
+    assert_eq!(box_of(h, "#widget-calendar"), (1100, 16, 164, 164));
     assert_eq!(
         placements.load(&dp1),
         vec![
@@ -148,7 +143,6 @@ fn saved_places_are_kept_and_the_placements_are_written_back() {
         ],
         "the new one saved, the hidden widget's kept"
     );
-    let _ = std::fs::remove_dir_all(dir);
 }
 
 #[test]
@@ -157,7 +151,7 @@ fn the_cell_and_the_gap_are_settings() {
     file.widgets.desktop_cell_px = ds_settings::Px(200);
     file.widgets.desktop_gap_px = ds_settings::Px(0);
     file.widgets.desktop_widgets = vec![WidgetKind::Battery];
-    let (h, _feeds) = start(file, None);
+    let Running { harness: h, .. } = start("cell", file);
     // Six 200 px cells take 1200, so the grid starts at 80.
     assert_eq!(box_of(&h, "#widget-battery"), (1080, 0, 200, 200));
 }
@@ -168,17 +162,11 @@ fn the_cell_and_the_gap_are_settings() {
 #[test]
 fn an_added_widget_rises_into_its_place_once() {
     use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
-    let (services, _feeds) = fake::services();
-    let (tx, rx) = tokio::sync::watch::channel(ShellFile::default());
-    WORLD.with(|w| {
-        *w.borrow_mut() = Some(World {
-            services,
-            settings: SettingsFeed(rx),
-            file: None,
-        });
-    });
-    let mut h = Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
-    h.advance(Duration::from_millis(40));
+    let Running {
+        harness: mut h,
+        settings: tx,
+        ..
+    } = start("rise", ShellFile::default());
     settle_until(&mut h, |h| h.count(".ds-widget") == 2);
     settle_until(&mut h, |h| {
         h.count(".sill-dw-place [*|data-reveal=play]") == 0
@@ -202,29 +190,17 @@ fn an_added_widget_rises_into_its_place_once() {
     assert_settles_to_zero_frames(&mut h);
 }
 
-/// A desktop widget's harness on a settings feed the test can change.
-fn start_live() -> (Harness, tokio::sync::watch::Sender<ShellFile>, fake::Feeds) {
-    let (services, feeds) = fake::services();
-    let (tx, rx) = tokio::sync::watch::channel(ShellFile::default());
-    WORLD.with(|w| {
-        *w.borrow_mut() = Some(World {
-            services,
-            settings: SettingsFeed(rx),
-            file: None,
-        });
-    });
-    let mut h = Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
-    h.advance(Duration::from_millis(40));
-    (h, tx, feeds)
-}
-
 /// A widget Edit Widgets takes off the desktop plays its exit where it stood (quire's
 /// `widget-out`, `data-presence="leaving"`), then is dropped, and the layer paints nothing; one
 /// added back while it leaves is placed again and never goes.
 #[test]
 fn a_removed_widget_plays_its_exit_then_goes() {
     use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
-    let (mut h, tx, _feeds) = start_live();
+    let Running {
+        harness: mut h,
+        settings: tx,
+        ..
+    } = start("leave", ShellFile::default());
     settle_until(&mut h, |h| h.count(".ds-widget") == 2);
     assert_settles_to_zero_frames(&mut h);
     let stood = box_of(&h, "#widget-battery");

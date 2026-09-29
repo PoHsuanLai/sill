@@ -1,7 +1,7 @@
 use shell_host::{BlurSpec, RegionSpec};
 use sill_settings::WidgetKind;
 
-use super::{merged, recorded, widget_regions};
+use super::model::{merged, recorded, widget_regions};
 use crate::widgets::grid::{GridSlot, Placement};
 
 fn at(kind: WidgetKind, column: u16, row: u16) -> Placement {

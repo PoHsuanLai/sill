@@ -10,7 +10,6 @@ use sill_ipc::response::Response;
 use sill_ui_kit::Switcher;
 use sill_ui_kit::links::BannerOutput;
 use sill_ui_kit::links::{Dir, SwitcherAsk};
-use sill_ui_kit::surface::Surface;
 
 use super::reach::Reach;
 use super::reply::unsupported;
@@ -38,14 +37,14 @@ fn target(outputs: &Outputs, banners: BannerOutput) -> Option<OutputId> {
     let has_switcher = |id: OutputId| {
         outputs
             .get(id)
-            .is_some_and(|s| s.spawned_id(Switcher::NAME).is_some())
+            .is_some_and(|s| s.surface_of::<Switcher>().is_some())
     };
     match banners {
         BannerOutput::On(id) if has_switcher(id) => Some(id),
         _ => outputs
             .outputs
             .iter()
-            .find(|(_, s)| s.spawned_id(Switcher::NAME).is_some())
+            .find(|(_, s)| s.surface_of::<Switcher>().is_some())
             .map(|(info, _)| info.id),
     }
 }

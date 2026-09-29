@@ -18,38 +18,21 @@ pub struct Spawned {
     pub size: LayerSize,
 }
 
-/// One output's surfaces (each `None` until spawned).
+/// One output's surfaces: every one is spawned through `Surface`.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct OutputSurfaces {
     /// Every surface spawned through `Surface`, in spawn order.
     pub spawned: Vec<Spawned>,
-    /// The desktop widget layer (while `widgets.desktop` is on).
-    pub desktop_widgets: Option<SurfaceId>,
-    /// Edit Widgets (the widget gallery), warm and hidden.
-    pub edit_widgets: Option<SurfaceId>,
 }
 
 impl OutputSurfaces {
-    /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 2] {
-        [self.desktop_widgets, self.edit_widgets]
-    }
-
-    /// The id of this row's spawned surface `name` (a `Surface::NAME`), if it has one. A slotted
-    /// kind has several; this is the first.
-    pub fn spawned_id(&self, name: &str) -> Option<SurfaceId> {
-        self.spawned
-            .iter()
-            .find(|surface| surface.name == name)
-            .map(|surface| surface.id)
-    }
-
     /// Whether any surface of this row is `id`.
     pub fn contains(&self, id: SurfaceId) -> bool {
         self.ids().any(|held| held == id)
     }
 
-    /// The id of `S`'s surface in this row, if one is spawned (a surface with one slot).
+    /// The id of `S`'s surface in this row, if one is spawned. A slotted kind has several; this
+    /// is the first.
     pub fn surface_of<S: Surface>(&self) -> Option<SurfaceId> {
         self.spawned
             .iter()
@@ -59,18 +42,12 @@ impl OutputSurfaces {
 
     /// Every surface actually spawned, for closing them all.
     pub fn ids(&self) -> impl Iterator<Item = SurfaceId> {
-        let spawned: Vec<SurfaceId> = self.spawned.iter().map(|surface| surface.id).collect();
-        self.fields().into_iter().flatten().chain(spawned)
+        self.spawned.iter().map(|surface| surface.id)
     }
 
     /// Forget `id`, whichever surface held it.
     pub fn clear(&mut self, id: SurfaceId) {
         self.spawned.retain(|surface| surface.id != id);
-        for field in [&mut self.desktop_widgets, &mut self.edit_widgets] {
-            if *field == Some(id) {
-                *field = None;
-            }
-        }
     }
 }
 
@@ -182,7 +159,6 @@ mod tests {
     fn surfaces(id: u64) -> OutputSurfaces {
         OutputSurfaces {
             spawned: vec![spawned("bar", id)],
-            ..OutputSurfaces::default()
         }
     }
 
