@@ -19,9 +19,6 @@ variants = ["system", "light", "dark"]
 [key.page]
 kind = "appearance"
 
-[key.deprecated]
-kind = "no"
-
 [[key]]
 path = "appearance.accent"
 default = "blue"
@@ -38,6 +35,3 @@ variants = ["red", "orange", "yellow", "green", "blue", "violet"]
 
 [key.page]
 kind = "appearance"
-
-[key.deprecated]
-kind = "no"

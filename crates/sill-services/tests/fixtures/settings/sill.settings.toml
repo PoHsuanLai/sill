@@ -19,9 +19,6 @@ variants = ["on", "off"]
 [key.page]
 kind = "dock"
 
-[key.deprecated]
-kind = "no"
-
 [[key]]
 path = "scroll.natural"
 default = "on"
@@ -39,9 +36,6 @@ variants = ["on", "off"]
 [key.page]
 kind = "mouse_and_gestures"
 
-[key.deprecated]
-kind = "no"
-
 [[key]]
 path = "control_center.modules"
 default = []
@@ -57,6 +51,3 @@ v = "text"
 [key.page]
 kind = "app"
 v = "sill"
-
-[key.deprecated]
-kind = "no"

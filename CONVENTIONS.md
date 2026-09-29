@@ -151,8 +151,7 @@ the behaviour, not the source line.
   time goes through `ds::time`.
 - **Every value the design docs mark "proposed" is read from a settings key** with that default.
   A new key is a design/22 row in quire first; `sill-settings/tests/keys.rs` cross-checks every
-  key against quire's rows (`RETIRING` lists keys sill has dropped whose rows quire removes
-  next).
+  key against quire's rows, both directions.
 - **No `unsafe`** (`unsafe_code = "deny"` at the workspace). No `std::env::set_var` (unsafe since
   edition 2024): make the environment read injectable instead.
 - **Dependencies** in the pinned block of the root `Cargo.toml` are copied from quire's
