@@ -5,7 +5,8 @@ use std::path::PathBuf;
 
 use clap::{Subcommand, ValueEnum};
 use sill_ipc::debug::{
-    CornerName, DebugRequest, LauncherKey, OsdTopic, Point, PointerButton, SurfaceName,
+    CornerName, DebugRequest, KeyAction, KeySpec, LauncherKey, OsdTopic, Point, PointerButton,
+    SurfaceName,
 };
 use sill_ipc::request::Request;
 
@@ -35,6 +36,15 @@ pub enum DebugAction {
         /// Which button.
         #[arg(long, value_enum, default_value_t = ClickButton::Primary)]
         button: ClickButton,
+    },
+    /// Press a key on SURFACE as if typed (`sill-power-menu-DP-1`): KEY is a W3C key name or
+    /// `Space`, then `+shift`, `+ctrl`, `+alt` or `+super` (`Tab`, `ArrowRight`, `k+ctrl`).
+    Key {
+        surface: String,
+        key: String,
+        /// Press and release (`tap`), or hold, or let go.
+        #[arg(long, value_enum, default_value_t = KeyActionArg::Tap)]
+        action: KeyActionArg,
     },
     /// Show the OSD for a made-up change, moving no real level.
     Osd {
@@ -123,6 +133,14 @@ pub enum ClickButton {
     Middle,
 }
 
+/// `sill debug key --action ...`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum KeyActionArg {
+    Tap,
+    Press,
+    Release,
+}
+
 /// `sill debug corner CORNER`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum CornerArg {
@@ -200,6 +218,19 @@ pub fn debug_request(action: &DebugAction) -> Request {
             surface: surface_name(surface),
             at: point(*x, *y),
             button: pointer_button(*button),
+        },
+        DebugAction::Key {
+            surface,
+            key,
+            action,
+        } => DebugRequest::Key {
+            surface: surface_name(surface),
+            key: KeySpec(key.clone()),
+            action: match action {
+                KeyActionArg::Tap => KeyAction::Tap,
+                KeyActionArg::Press => KeyAction::Press,
+                KeyActionArg::Release => KeyAction::Release,
+            },
         },
         DebugAction::Osd {
             topic,

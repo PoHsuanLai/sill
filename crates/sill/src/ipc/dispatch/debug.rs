@@ -41,6 +41,11 @@ pub fn dispatch(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, request: DebugReques
             at,
             button,
         } => inject::inject(ctx, surface, Injection::Release(at, button)),
+        DebugRequest::Key {
+            surface,
+            key,
+            action,
+        } => inject::inject(ctx, surface, Injection::Key(key, action)),
         DebugRequest::Osd {
             topic,
             percent,

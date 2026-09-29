@@ -8,7 +8,8 @@ use sill_ipc::act::{
     ActRequest, DisplayRequest, DockRequest, LevelRequest, SwitcherRequest, VolumeRequest,
 };
 use sill_ipc::debug::{
-    CornerName, DebugRequest, LauncherKey, OsdTopic, Point, PointerButton, SurfaceName,
+    CornerName, DebugRequest, KeyAction, KeySpec, LauncherKey, OsdTopic, Point, PointerButton,
+    SurfaceName,
 };
 use sill_ipc::request::Request;
 use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
@@ -366,6 +367,29 @@ fn every_command_line_sends_its_request() {
             debug(DebugRequest::Capture {
                 surface: surface("sill-bar-DP-1"),
                 path: PathBuf::from("/tmp/bar.png"),
+            }),
+        ),
+        (
+            &["debug", "key", "sill-power-menu-DP-1", "ArrowRight"],
+            debug(DebugRequest::Key {
+                surface: surface("sill-power-menu-DP-1"),
+                key: KeySpec("ArrowRight".to_owned()),
+                action: KeyAction::Tap,
+            }),
+        ),
+        (
+            &[
+                "debug",
+                "key",
+                "sill-launcher-DP-1",
+                "k+ctrl",
+                "--action",
+                "press",
+            ],
+            debug(DebugRequest::Key {
+                surface: surface("sill-launcher-DP-1"),
+                key: KeySpec("k+ctrl".to_owned()),
+                action: KeyAction::Press,
             }),
         ),
         (

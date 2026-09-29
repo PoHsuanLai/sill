@@ -48,6 +48,14 @@ pub enum DebugRequest {
         at: Point,
         button: PointerButton,
     },
+    /// A key on `surface`, as if typed: it enters the surface where a real key does
+    /// (shell-host's `Inject::Key`), so the surface reads it whether or not it holds the
+    /// compositor's keyboard focus.
+    Key {
+        surface: SurfaceName,
+        key: KeySpec,
+        action: KeyAction,
+    },
     /// Show the OSD for a made-up change, on the output a real one of its kind would use,
     /// moving no real level (`dev/accept-osd.sh`: the session's default sink may be somebody's
     /// headphones). `percent` is 0-100; more is taken as 100.
@@ -121,6 +129,26 @@ pub enum PointerButton {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct SurfaceName(pub String);
+
+/// A key in shell-host's spelling: a W3C key name or `Space`, then `+shift`, `+ctrl`, `+alt`
+/// or `+super` (`Tab`, `ArrowDown`, `k+ctrl`, `Tab+shift`). Parsed by the daemon, which answers a
+/// failure for a name it does not know.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct KeySpec(pub String);
+
+/// What an injected key does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum KeyAction {
+    /// Press and release: a keystroke.
+    #[default]
+    Tap,
+    /// Press and hold.
+    Press,
+    /// Let go of a held key.
+    Release,
+}
 
 /// A surface-local point in whole logical pixels.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

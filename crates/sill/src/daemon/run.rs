@@ -50,7 +50,6 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     let settings_feed = SettingsFeed(settings_rx);
     install_links(
         &runtime,
-        args,
         &env,
         &settings_feed,
         &settings,
@@ -119,7 +118,6 @@ fn host_config(first: &ShellFile) -> HostConfig {
 /// Build the shared links every surface root is given and install them.
 fn install_links(
     runtime: &Runtime,
-    args: &crate::run_args::RunArgs,
     env: &Env,
     settings_feed: &SettingsFeed,
     settings: &watch::Sender<ShellFile>,
@@ -144,7 +142,6 @@ fn install_links(
             sill_surfaces::surfaces::desktop_widgets::PlacementFile::in_dirs(&env.dirs),
             settings.clone(),
         ),
-        power_menu_keys: args.power_menu_keys(),
     });
 }
 

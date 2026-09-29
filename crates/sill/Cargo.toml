@@ -25,10 +25,12 @@ tokio = { workspace = true }
 
 [dev-dependencies]
 sill-testkit = { workspace = true }
+# The key a `debug key` request parses to (dispatch/debug/inject.rs tests).
+keyboard-types = { workspace = true }
 
 [features]
 default = []
-# `sill debug pointer|leave|capture` act on surfaces (shell-host's per-surface injection).
+# `sill debug pointer|leave|capture|key` act on surfaces (shell-host's per-surface injection).
 # Without it those requests answer `Failed(Unsupported)`; `debug stats` always works.
 debug = ["shell-host/debug-inject"]
 

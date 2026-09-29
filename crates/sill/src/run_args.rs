@@ -43,10 +43,6 @@ pub struct DebugSeams {
     /// What the dry run offers: every action, or logind's answers (read only).
     #[arg(long, value_enum, default_value_t = DryRunOffersArg::Everything, requires = "session_dry_run")]
     pub session_dry_run_offers: DryRunOffersArg,
-    /// Feed each line written to this FIFO (`right`, `enter`, ...) to every power menu as a key
-    /// (only with `--session-dry-run`, so a scripted Enter never reaches logind).
-    #[arg(long, value_name = "FIFO", requires = "session_dry_run")]
-    pub power_menu_keys: Option<std::path::PathBuf>,
 }
 
 /// `--session-dry-run-offers`' words.
@@ -66,21 +62,6 @@ fn idle_times(text: &str) -> Result<sill_model::idle::IdleTimes, String> {
 }
 
 impl RunArgs {
-    /// The scripted keys for every power menu, when this debug build was given a FIFO.
-    pub fn power_menu_keys(&self) -> Option<sill_surfaces::surfaces::power_menu::PowerMenuScript> {
-        #[cfg(feature = "debug")]
-        {
-            self.debug
-                .power_menu_keys
-                .clone()
-                .map(crate::power_menu::key_script)
-        }
-        #[cfg(not(feature = "debug"))]
-        {
-            None
-        }
-    }
-
     /// The daemon's seams: the process's own, with this build's stand-ins in place.
     pub fn env(&self) -> Env {
         #[cfg(feature = "debug")]
@@ -232,11 +213,10 @@ mod tests {
         assert!(Cli::try_parse_from(["sill", "run", "--polkit-helper", "/x/helper"]).is_err());
     }
 
-    /// Scripted keys only ever drive a dry run.
+    /// The dry run's offers only make sense with the dry run.
     #[test]
-    fn power_menu_keys_need_a_session_dry_run() {
+    fn dry_run_offers_need_a_session_dry_run() {
         let parse = |args: &[&str]| Cli::try_parse_from([&["sill", "run"], args].concat());
-        assert!(parse(&["--power-menu-keys", "/tmp/keys"]).is_err());
         assert!(parse(&["--session-dry-run-offers", "logind"]).is_err());
         let Ok(Cli {
             command: Some(Command::Run(args)),
@@ -246,11 +226,9 @@ mod tests {
             "/tmp/record",
             "--session-dry-run-offers",
             "logind",
-            "--power-menu-keys",
-            "/tmp/keys",
         ])
         else {
-            panic!("a dry run with keys parses");
+            panic!("a dry run with offers parses");
         };
         assert_eq!(
             args.env().session_actions.reach(),

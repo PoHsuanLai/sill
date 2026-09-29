@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use shell_host::HostCtx;
 #[cfg(feature = "debug")]
 use shell_host::SurfaceId;
-use sill_ipc::debug::{Point, PointerButton, SurfaceName};
+use sill_ipc::debug::{KeyAction, KeySpec, Point, PointerButton, SurfaceName};
 use sill_ipc::response::{FailureKind, Response};
 
 use super::super::reply::failed;
@@ -22,6 +22,7 @@ pub enum Injection {
     Click(Point, PointerButton),
     Press(Point, PointerButton),
     Release(Point, PointerButton),
+    Key(KeySpec, KeyAction),
 }
 
 /// Find `surface` by shell-host's own naming (`HostCtx::surface_named`, unconditional: it needs
@@ -36,21 +37,40 @@ pub fn inject(ctx: &mut HostCtx<ShellMsg>, surface: SurfaceName, injection: Inje
     apply(ctx, id, injection)
 }
 
+/// The key `spec` names as shell-host's `Inject::Key`: a name it does not know is the caller's
+/// mistake.
+#[cfg(feature = "debug")]
+fn host_key(spec: &KeySpec, action: KeyAction) -> Result<shell_host::Inject, String> {
+    let stroke = shell_host::inject::parse_key(&spec.0).map_err(|e| e.to_string())?;
+    let action = match action {
+        KeyAction::Tap => shell_host::inject::KeyAction::Tap,
+        KeyAction::Press => shell_host::inject::KeyAction::Press,
+        KeyAction::Release => shell_host::inject::KeyAction::Release,
+    };
+    Ok(shell_host::Inject::Key { stroke, action })
+}
+
 /// Through shell-host's typed `HostCtx::inject` (a capture's success and size come back directly
 /// through `Injected`, no bridging over stdout).
 #[cfg(feature = "debug")]
 fn apply(ctx: &mut HostCtx<ShellMsg>, id: SurfaceId, injection: Injection) -> Response {
-    match ctx.inject(id, to_host(injection)) {
+    let injection = match to_host(injection) {
+        Ok(injection) => injection,
+        Err(message) => return failed(FailureKind::Internal, message),
+    };
+    match ctx.inject(id, injection) {
         Ok(_injected) => Response::Done,
         Err(error) => failed(FailureKind::Internal, error.to_string()),
     }
 }
 
-/// `injection` as shell-host's; every pointer button maps through.
+/// `injection` as shell-host's; every pointer button maps through, and a key is parsed here, at
+/// the boundary.
 #[cfg(feature = "debug")]
-fn to_host(injection: Injection) -> shell_host::Inject {
+fn to_host(injection: Injection) -> Result<shell_host::Inject, String> {
     let point = |at: Point| shell_host::Point { x: at.x, y: at.y };
-    match injection {
+    Ok(match injection {
+        Injection::Key(spec, action) => return host_key(&spec, action),
         Injection::Pointer(at) => shell_host::Inject::Pointer { at: point(at) },
         Injection::Leave => shell_host::Inject::Leave,
         Injection::Capture(path) => shell_host::Inject::Capture { path },
@@ -66,7 +86,7 @@ fn to_host(injection: Injection) -> shell_host::Inject {
             at: point(at),
             button: host_button(button),
         },
-    }
+    })
 }
 
 #[cfg(feature = "debug")]
@@ -92,13 +112,14 @@ fn apply(
         Injection::Release(at, button) => format!("{button:?} release at {},{}", at.x, at.y),
         Injection::Leave => "leave".to_owned(),
         Injection::Capture(path) => format!("capture to {}", path.display()),
+        Injection::Key(spec, action) => format!("{action:?} key {}", spec.0),
     };
     unsupported(&format!("built without the debug feature ({what})"))
 }
 
 #[cfg(all(test, feature = "debug"))]
 mod tests {
-    use sill_ipc::debug::{Point, PointerButton};
+    use sill_ipc::debug::{KeyAction, KeySpec, Point, PointerButton};
 
     use super::{Injection, to_host};
 
@@ -123,28 +144,41 @@ mod tests {
         for (ours, theirs) in buttons {
             assert_eq!(
                 to_host(Injection::Click(at, ours)),
-                shell_host::Inject::Click {
+                Ok(shell_host::Inject::Click {
                     at: host_at,
                     button: theirs,
-                },
+                }),
                 "click {ours:?}"
             );
             assert_eq!(
                 to_host(Injection::Press(at, ours)),
-                shell_host::Inject::PointerDown {
+                Ok(shell_host::Inject::PointerDown {
                     at: host_at,
                     button: theirs,
-                },
+                }),
                 "press {ours:?}"
             );
             assert_eq!(
                 to_host(Injection::Release(at, ours)),
-                shell_host::Inject::PointerUp {
+                Ok(shell_host::Inject::PointerUp {
                     at: host_at,
                     button: theirs,
-                },
+                }),
                 "release {ours:?}"
             );
         }
+    }
+
+    #[test]
+    fn a_key_spec_parses_into_shell_hosts_key_and_a_bad_one_is_refused() {
+        let key = |spec: &str, action| to_host(Injection::Key(KeySpec(spec.to_owned()), action));
+        let Ok(shell_host::Inject::Key { stroke, action }) = key("Tab+shift", KeyAction::Press)
+        else {
+            panic!("Tab+shift is a key");
+        };
+        assert_eq!(stroke.key, keyboard_types::Key::Tab);
+        assert_eq!(stroke.mods, keyboard_types::Modifiers::SHIFT);
+        assert_eq!(action, shell_host::inject::KeyAction::Press);
+        assert!(key("Tabb", KeyAction::Tap).is_err());
     }
 }

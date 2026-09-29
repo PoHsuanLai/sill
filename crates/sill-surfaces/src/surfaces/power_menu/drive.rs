@@ -62,7 +62,6 @@ pub(crate) fn use_menu(output: OutputId, default: PowerMenuDefault) -> MenuCtx {
     use_follow_visibility(shown, output);
     use_openings(ctx.clone(), shown, output, default);
     use_button_focus(ctx.clone());
-    crate::surfaces::power_menu::script::use_script(ctx.clone());
     ctx
 }
 
@@ -106,7 +105,7 @@ fn use_openings(
 }
 
 /// Print `power_menu.keyboard=held` once per opening, when the surface first has the keyboard
-/// (the daemon feeds the link its focus): `dev/accept-power-menu.sh` injects keys only then.
+/// (the daemon feeds the link its focus): `dev/accept-real-input.sh` sends real keys only then.
 fn use_keyboard_line(shown: ReadSignal<PowerMenuShown>, output: OutputId) {
     let mut seen = use_hook(|| CopyValue::new(None::<(OpenSerial, PanelFocus)>));
     use_effect(move || {

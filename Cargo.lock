@@ -5289,6 +5289,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "ds-settings",
+ "keyboard-types 0.7.0",
  "latchkey",
  "shell-host",
  "sill-ipc",

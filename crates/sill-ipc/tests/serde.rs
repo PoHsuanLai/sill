@@ -8,8 +8,8 @@ use sill_ipc::act::{
     ActRequest, DisplayRequest, DockRequest, LevelRequest, SwitcherRequest, VolumeRequest,
 };
 use sill_ipc::debug::{
-    CornerName, DebugRequest, LauncherKey, LauncherRows, Micros, OsdTopic, Point, PointerButton,
-    RowsSection, SurfaceName, SurfaceStats,
+    CornerName, DebugRequest, KeyAction, KeySpec, LauncherKey, LauncherRows, Micros, OsdTopic,
+    Point, PointerButton, RowsSection, SurfaceName, SurfaceStats,
 };
 use sill_ipc::error::IpcError;
 use sill_ipc::line::{MAX_LINE, decode, encode, read_message, write_message};
@@ -272,6 +272,30 @@ fn requests() -> Vec<(Request, &'static str)> {
                 button: PointerButton::Middle,
             }),
             r#"{"kind":"debug","v":{"kind":"click","v":{"surface":"sill-dock-DP-1","at":{"x":0,"y":0},"button":"middle"}}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::Key {
+                surface: surface("sill-power-menu-DP-1"),
+                key: KeySpec("ArrowRight".to_owned()),
+                action: KeyAction::Tap,
+            }),
+            r#"{"kind":"debug","v":{"kind":"key","v":{"surface":"sill-power-menu-DP-1","key":"ArrowRight","action":"tap"}}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::Key {
+                surface: surface("sill-launcher-DP-1"),
+                key: KeySpec("k+ctrl".to_owned()),
+                action: KeyAction::Press,
+            }),
+            r#"{"kind":"debug","v":{"kind":"key","v":{"surface":"sill-launcher-DP-1","key":"k+ctrl","action":"press"}}}"#,
+        ),
+        (
+            Request::Debug(DebugRequest::Key {
+                surface: surface("sill-launcher-DP-1"),
+                key: KeySpec("Tab+shift".to_owned()),
+                action: KeyAction::Release,
+            }),
+            r#"{"kind":"debug","v":{"kind":"key","v":{"surface":"sill-launcher-DP-1","key":"Tab+shift","action":"release"}}}"#,
         ),
         (
             Request::Debug(DebugRequest::PointerPress {
