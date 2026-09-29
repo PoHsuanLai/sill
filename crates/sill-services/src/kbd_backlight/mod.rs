@@ -11,13 +11,11 @@ mod live;
 mod model;
 mod upower;
 
-pub use model::{KbdBacklight, KbdEvent, KbdLevel, reduce_kbd_backlight, step_for};
+pub use model::{KbdBacklight, KbdEvent, KbdLevel, step, step_for};
 
-use tokio::runtime::Handle;
-use tokio::sync::watch;
-
-use crate::control::Control;
-use crate::env::Bus;
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 use crate::units::Percent;
 
 /// What the keyboard backlight service can be told.
@@ -29,11 +27,22 @@ pub enum KbdCommand {
     Refresh,
 }
 
-/// Start the keyboard backlight task on `rt`. Without UPower or a backlight the receiver stays
-/// at `KbdBacklight::default()` (absent), and the control center shows no module.
-pub fn spawn(rt: &Handle, bus: Bus) -> (watch::Receiver<KbdBacklight>, Control<KbdCommand>) {
-    let (tx, rx) = watch::channel(KbdBacklight::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(live::run(bus, tx, commands));
-    (rx, control)
+/// The keyboard backlight as a [`Service`]. Without UPower or a backlight the state stays at
+/// `KbdBacklight::default()` (absent), and the control center shows no module.
+#[derive(Debug)]
+pub enum KbdBacklightService {}
+
+impl Service for KbdBacklightService {
+    const NAME: &'static str = "kbd_backlight";
+    type State = KbdBacklight;
+    type Command = KbdCommand;
+    type Deps = ();
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        live::run(env.buses.system.clone(), io.state, io.commands)
+    }
 }

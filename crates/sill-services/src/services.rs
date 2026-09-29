@@ -169,7 +169,9 @@ impl Services {
             parts(spawn::<crate::bluetooth::BluetoothService>(rt, env, ()));
         let (power_profiles, power_profile_control) = crate::power_profile::spawn(rt, system());
         let (media, media_control) = crate::now_playing::spawn(rt, session(), &env.dirs);
-        let (kbd_backlight, kbd_backlight_control) = crate::kbd_backlight::spawn(rt, system());
+        let (kbd_backlight, kbd_backlight_control) = parts(spawn::<
+            crate::kbd_backlight::KbdBacklightService,
+        >(rt, env, ()));
         let (lock, locker_control) = crate::locker::spawn(rt, system(), env.dirs.runtime.clone());
         let (session, session_control) = crate::session::spawn(
             rt,

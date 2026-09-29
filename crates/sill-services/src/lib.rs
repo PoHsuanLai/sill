@@ -85,7 +85,7 @@ pub use error::ServiceError;
 pub use events::{Agenda, CalEvent, EventTime, EventsCommand, SourceStatus};
 pub use idle::{Idle, IdleCommand, IdleLinks};
 pub use kbd_backlight::{
-    KbdBacklight, KbdCommand, KbdEvent, KbdLevel, reduce_kbd_backlight, step_for,
+    KbdBacklight, KbdBacklightService, KbdCommand, KbdEvent, KbdLevel, step_for,
 };
 pub use launch::{
     LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches, ScopeUnit,

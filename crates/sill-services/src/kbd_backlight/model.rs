@@ -46,7 +46,7 @@ pub enum KbdEvent {
 }
 
 /// `backlight` after `event`. A step while absent is dropped: `Found` always comes first.
-pub fn reduce_kbd_backlight(backlight: KbdBacklight, event: KbdEvent) -> KbdBacklight {
+pub fn step(backlight: KbdBacklight, event: KbdEvent) -> KbdBacklight {
     match (backlight.presence, event) {
         (_, KbdEvent::Found(level)) => KbdBacklight {
             presence: Presence::Present,
@@ -76,7 +76,7 @@ pub fn step_for(percent: Percent, max: u32) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use super::{KbdBacklight, KbdEvent, KbdLevel, reduce_kbd_backlight, step_for};
+    use super::{KbdBacklight, KbdEvent, KbdLevel, step, step_for};
     use crate::units::{Percent, Presence};
 
     fn at(value: u32, max: u32) -> KbdLevel {
@@ -126,7 +126,7 @@ mod tests {
             ),
         ];
         for (name, before, event, after) in cases {
-            assert_eq!(reduce_kbd_backlight(before, event), after, "{name}");
+            assert_eq!(step(before, event), after, "{name}");
         }
     }
 

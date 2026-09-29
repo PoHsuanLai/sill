@@ -1,14 +1,15 @@
 //! UPower's keyboard backlight over the system bus: seeds the step and range, then feeds every
-//! `BrightnessChanged` through [`super::reduce_kbd_backlight`], and carries out
+//! `BrightnessChanged` through [`super::step`], and carries out
 //! [`KbdCommand`]s. Only a `KbdCommand::Set` writes the backlight; tests never reach this file
 //! (they feed a fake `watch` channel).
 
 use tokio::sync::{mpsc, watch};
 
 use super::KbdCommand;
-use super::model::{KbdBacklight, KbdEvent, KbdLevel, reduce_kbd_backlight, step_for};
+use super::model::{KbdBacklight, KbdEvent, KbdLevel, step, step_for};
 use super::upower::KbdBacklightProxy;
 use crate::env::Bus;
+use crate::error::ServiceError;
 use crate::stream::next_opt;
 use crate::units::Presence;
 
@@ -17,13 +18,9 @@ pub(super) async fn run(
     bus: Bus,
     tx: watch::Sender<KbdBacklight>,
     mut commands: mpsc::UnboundedReceiver<KbdCommand>,
-) {
-    let Ok(Some(connection)) = bus.connect().await else {
-        return;
-    };
-    let Ok(proxy) = KbdBacklightProxy::new(&connection).await else {
-        return;
-    };
+) -> Result<(), ServiceError> {
+    let connection = bus.connected().await?;
+    let proxy = KbdBacklightProxy::new(&connection).await?;
     seed(&tx, &proxy).await;
     let mut changes = proxy.receive_brightness_changed().await.ok();
 
@@ -47,6 +44,7 @@ pub(super) async fn run(
             }
         }
     }
+    Ok(())
 }
 
 /// Reads the range and the step once and publishes them; a range of 0 or an error is no
@@ -56,9 +54,9 @@ async fn seed(tx: &watch::Sender<KbdBacklight>, proxy: &KbdBacklightProxy<'_>) {
         .get_max_brightness()
         .await
         .ok()
-        .and_then(step)
+        .and_then(level_of)
         .filter(|max| *max > 0);
-    let value = proxy.get_brightness().await.ok().and_then(step);
+    let value = proxy.get_brightness().await.ok().and_then(level_of);
     let event = match max {
         Some(max) => KbdEvent::Found(KbdLevel {
             value: value.unwrap_or(0),
@@ -70,12 +68,12 @@ async fn seed(tx: &watch::Sender<KbdBacklight>, proxy: &KbdBacklightProxy<'_>) {
 }
 
 /// UPower's `i32` as a step: a negative one is an error.
-fn step(value: i32) -> Option<u32> {
+fn level_of(value: i32) -> Option<u32> {
     u32::try_from(value).ok()
 }
 
 /// Reduces `event` onto the receiver's current value and publishes the result.
 fn apply(tx: &watch::Sender<KbdBacklight>, event: KbdEvent) {
-    let next = reduce_kbd_backlight(*tx.borrow(), event);
+    let next = step(*tx.borrow(), event);
     let _ = tx.send(next);
 }
