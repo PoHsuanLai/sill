@@ -22,21 +22,35 @@ mod wl;
 
 pub use model::{
     ClipContent, ClipEffect, ClipEntry, ClipEvent, ClipImage, ClipPolicy, ClipProtocol, ClipState,
-    ClipStatus, ClipText, Clipboard, ClipboardCommand, EntryCap, HistoryMode, ImageCap, Setup,
-    Skipped,
+    ClipStatus, ClipText, Clipboard, ClipboardCommand, EntryCap, HistoryMode, ImageCap, Skipped,
 };
 pub use offer::{ImagesKept, MimePick, OfferVerdict, SECRET_HINTS, offer_verdict};
-pub use reduce::reduce_clipboard;
+pub use reduce::step;
 
-use tokio::runtime::Handle;
-use tokio::sync::watch;
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
-use crate::control::Control;
+/// The clipboard history as a [`Service`], on `env`'s compositor. Passive until the daemon's
+/// first policy.
+#[derive(Debug)]
+pub enum ClipboardService {}
 
-/// Start the service on `setup`'s compositor.
-pub fn spawn(rt: &Handle, setup: Setup) -> (watch::Receiver<Clipboard>, Control<ClipboardCommand>) {
-    let (tx, rx) = watch::channel(Clipboard::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(live::run(setup, commands, tx));
-    (rx, control)
+impl Service for ClipboardService {
+    const NAME: &'static str = "clipboard";
+    type State = Clipboard;
+    type Command = ClipboardCommand;
+    type Deps = ();
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let display = env.wayland.clone();
+        async move {
+            live::run(display, io.commands, io.state).await;
+            Ok(())
+        }
+    }
 }

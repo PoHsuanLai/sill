@@ -7,8 +7,6 @@ use std::sync::Arc;
 
 use sill_launcher::{ClipKey, Mime, UnixTime};
 
-use crate::env::WaylandRoute;
-
 /// What the launcher and `sill clipboard status` read.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Clipboard {
@@ -136,13 +134,6 @@ pub enum ClipboardCommand {
     Clear,
 }
 
-/// How the service is started.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Setup {
-    /// The compositor (a live test's nested one by socket).
-    pub display: WaylandRoute,
-}
-
 /// Why an offered selection was not kept.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Skipped {
@@ -156,7 +147,7 @@ pub enum Skipped {
     Empty,
 }
 
-/// What happened, for [`reduce_clipboard`](super::reduce_clipboard).
+/// What happened, for [`step`](super::step).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ClipEvent {
     /// The connection is up with this protocol (or none).

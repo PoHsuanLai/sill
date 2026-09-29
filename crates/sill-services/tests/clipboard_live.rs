@@ -7,11 +7,14 @@ mod clipboard_support;
 use std::time::Duration;
 
 use sill_launcher::ClipKey;
+use sill_services::clipboard::ClipboardService;
 use sill_services::clipboard::{
     ClipContent, ClipPolicy, ClipProtocol, Clipboard, ClipboardCommand, EntryCap, HistoryMode,
-    ImageCap, Setup, spawn,
+    ImageCap,
 };
-use sill_services::env::WaylandRoute;
+use sill_services::control::Control;
+use sill_services::env::{Env, WaylandRoute};
+use sill_services::service::spawn;
 use tokio::runtime::Runtime;
 use tokio::sync::watch;
 
@@ -30,6 +33,19 @@ fn memory() -> ClipboardCommand {
         cap: EntryCap(10),
         images: ImageCap(8 << 20),
     })
+}
+
+/// The service on the compositor `display` names; nothing else reached.
+fn start(
+    rt: &Runtime,
+    display: WaylandRoute,
+) -> (watch::Receiver<Clipboard>, Control<ClipboardCommand>) {
+    let env = Env {
+        wayland: display,
+        ..Env::isolated(std::path::Path::new("/nonexistent/sill-clipboard-live"))
+    };
+    let service = spawn::<ClipboardService>(rt.handle(), &env, ());
+    (service.state, service.control)
 }
 
 fn runtime() -> Runtime {
@@ -68,10 +84,7 @@ fn is_text(content: &ClipContent, want: &str) -> bool {
 fn without_a_compositor_history_is_on_but_not_connected() {
     let rt = runtime();
     let missing = std::env::temp_dir().join("sill-clipboard-no-such-socket");
-    let setup = Setup {
-        display: WaylandRoute::Socket(missing),
-    };
-    let (mut history, control) = spawn(rt.handle(), setup);
+    let (mut history, control) = start(&rt, WaylandRoute::Socket(missing));
     control.send(memory()).expect("the service listens");
     wait(&rt, &mut history, "history on", |h| {
         h.status.mode == HistoryMode::Memory
@@ -87,10 +100,7 @@ fn without_a_compositor_history_is_on_but_not_connected() {
 fn the_history_follows_the_nested_clipboard() {
     let socket = nested_socket();
     let rt = runtime();
-    let setup = Setup {
-        display: WaylandRoute::Socket(socket.clone()),
-    };
-    let (mut history, control) = spawn(rt.handle(), setup);
+    let (mut history, control) = start(&rt, WaylandRoute::Socket(socket.clone()));
     control.send(memory()).expect("the service listens");
     wait(&rt, &mut history, "connected", |h| {
         h.status.protocol != ClipProtocol::NotConnected

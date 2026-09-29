@@ -20,7 +20,7 @@ use super::model::{
 };
 
 /// `state` after `event`.
-pub fn reduce_clipboard(state: ClipState, event: ClipEvent) -> (ClipState, Vec<ClipEffect>) {
+pub fn step(state: ClipState, event: ClipEvent) -> (ClipState, Vec<ClipEffect>) {
     match event {
         ClipEvent::Command(ClipboardCommand::Policy(policy)) => with_policy(state, policy),
         ClipEvent::Command(ClipboardCommand::Offer(key)) => {
@@ -131,7 +131,7 @@ mod tests {
 
     use sill_launcher::{ClipKey, Mime, UnixTime};
 
-    use super::reduce_clipboard;
+    use super::step;
     use crate::clipboard::model::{
         ClipContent, ClipEffect, ClipEvent, ClipImage, ClipPolicy, ClipProtocol, ClipState,
         ClipText, ClipboardCommand, EntryCap, HistoryMode, ImageCap, Skipped,
@@ -160,7 +160,7 @@ mod tests {
         events
             .into_iter()
             .fold((ClipState::default(), Vec::new()), |(state, _), event| {
-                reduce_clipboard(state, event)
+                step(state, event)
             })
     }
 

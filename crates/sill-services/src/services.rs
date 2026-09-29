@@ -139,12 +139,8 @@ impl Services {
         let (pins, pins_control) = parts(spawn::<crate::pins::PinsService>(rt, env, ()));
         let (launches, launch) =
             parts(spawn::<crate::launch::LaunchService>(rt, env, apps.clone()));
-        let (clipboard, clipboard_control) = crate::clipboard::spawn(
-            rt,
-            crate::clipboard::Setup {
-                display: env.wayland.clone(),
-            },
-        );
+        let (clipboard, clipboard_control) =
+            parts(spawn::<crate::clipboard::ClipboardService>(rt, env, ()));
         let (results, search) = parts(spawn::<crate::results::ResultsService>(
             rt,
             env,
