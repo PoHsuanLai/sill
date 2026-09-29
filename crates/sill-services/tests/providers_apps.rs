@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 use sill_launcher::{Cancel, Frecency, Provider, Query, VecSink};
 use sill_services::apps::{IconTheme, scan};
 use sill_services::providers::AppsProvider;
-use sill_services::{AppIndex, AppsEvent, reduce_apps};
+use sill_services::{AppIndex, AppsEvent};
 
 fn fixture_dirs() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/applications");
@@ -19,7 +19,7 @@ fn fixture_dirs() -> Vec<PathBuf> {
 
 fn provider() -> AppsProvider {
     let found = scan(&fixture_dirs(), &IconTheme("hicolor".to_owned()), &[]);
-    let index = reduce_apps(AppIndex::default(), AppsEvent::Scanned(found));
+    let index = sill_services::apps::step(AppIndex::default(), AppsEvent::Scanned(found));
     let (_tx, rx) = tokio::sync::watch::channel(index);
     AppsProvider {
         apps: rx,
@@ -71,7 +71,7 @@ fn hidden_no_display_and_an_unresolvable_try_exec_never_list() {
 #[test]
 fn firefox_home_shadows_firefox_system_the_same_way_the_dock_sees_it() {
     // `tests/scan.rs::scan_walks_every_dir_and_yields_them_in_precedence_order` proves the raw
-    // scan keeps both; this proves the provider only ever offers the one `reduce_apps` kept.
+    // scan keeps both; this proves the provider only ever offers the one `apps::step` kept.
     let provider = provider();
     assert_eq!(titles(&provider, "firefox"), vec!["Firefox (home)"]);
 }

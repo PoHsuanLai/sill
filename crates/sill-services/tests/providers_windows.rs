@@ -8,7 +8,7 @@ use sill_services::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Lis
 use sill_services::providers::WindowsProvider;
 use sill_services::{
     Activity, GroupKey, OutputName, Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState,
-    Workspace, WorkspaceGroup, WorkspaceKey, Workspaces, reduce_apps, reduce_toplevels,
+    Workspace, WorkspaceGroup, WorkspaceKey, Workspaces, reduce_toplevels,
 };
 
 fn app(id: &str, name: &str) -> App {
@@ -72,7 +72,7 @@ fn provider() -> WindowsProvider {
     let toplevels = windows.into_iter().fold(Toplevels::default(), |t, w| {
         reduce_toplevels(t, ToplevelEvent::Opened(w))
     });
-    let apps = reduce_apps(
+    let apps = sill_services::apps::step(
         AppIndex::default(),
         AppsEvent::Scanned(vec![
             app("thunderbird", "Thunderbird"),

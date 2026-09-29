@@ -223,7 +223,6 @@ mod tests {
     use super::{AppsProvider, split_id};
     use crate::apps::{
         App, AppIcon, AppIndex, AppsEvent, DbusActivation, DesktopActionEntry, Listing, Terminal,
-        reduce_apps,
     };
     use sill_launcher::{
         AppId, Cancel, Choice, DesktopAction, Frecency, IconRef, ItemId, Provider, ProviderKind,
@@ -257,8 +256,10 @@ mod tests {
     /// A provider over `apps`; the channel's sender is dropped at once — `query` only ever
     /// borrows the receiver's last value, so nothing needs to keep sending.
     fn provider(apps: Vec<App>) -> AppsProvider {
-        let (_tx, rx) =
-            tokio::sync::watch::channel(reduce_apps(AppIndex::default(), AppsEvent::Scanned(apps)));
+        let (_tx, rx) = tokio::sync::watch::channel(crate::apps::step(
+            AppIndex::default(),
+            AppsEvent::Scanned(apps),
+        ));
         AppsProvider {
             apps: rx,
             frecency: Arc::new(Mutex::new(Frecency::default())),

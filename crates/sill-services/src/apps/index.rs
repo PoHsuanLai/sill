@@ -113,7 +113,7 @@ pub enum AppsEvent {
 }
 
 /// `index` after `event`; the result is always sorted by id with no duplicate ids.
-pub fn reduce_apps(index: AppIndex, event: AppsEvent) -> AppIndex {
+pub fn step(index: AppIndex, event: AppsEvent) -> AppIndex {
     let AppIndex { mut apps } = index;
     match event {
         AppsEvent::Scanned(found) => {
@@ -135,9 +135,7 @@ pub fn reduce_apps(index: AppIndex, event: AppsEvent) -> AppIndex {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::{
-        App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal, reduce_apps,
-    };
+    use super::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal, step};
     use sill_launcher::AppId;
     use std::path::PathBuf;
 
@@ -172,7 +170,7 @@ pub(crate) mod tests {
 
     #[test]
     fn a_scan_is_sorted_and_the_first_duplicate_wins() {
-        let index = reduce_apps(
+        let index = step(
             AppIndex::default(),
             AppsEvent::Scanned(vec![
                 app("foot", "Foot (user)"),
@@ -193,7 +191,7 @@ pub(crate) mod tests {
 
     #[test]
     fn upserts_and_removals_keep_the_order() {
-        let base = reduce_apps(
+        let base = step(
             AppIndex::default(),
             AppsEvent::Scanned(vec![app("b", "B"), app("d", "D")]),
         );
@@ -226,13 +224,13 @@ pub(crate) mod tests {
             ),
         ];
         for (name, event, want) in cases {
-            assert_eq!(ids(&reduce_apps(base.clone(), event)), want, "{name}");
+            assert_eq!(ids(&step(base.clone(), event)), want, "{name}");
         }
     }
 
     #[test]
     fn get_finds_by_id() {
-        let index = reduce_apps(
+        let index = step(
             AppIndex::default(),
             AppsEvent::Scanned(vec![app("b", "B"), app("d", "D")]),
         );

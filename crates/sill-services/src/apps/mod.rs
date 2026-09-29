@@ -12,8 +12,7 @@ mod scan;
 pub use exec::{ExecArgs, ExecError, expand_exec};
 pub use icons::{IconTheme, icon_theme, pixmap_dirs, resolve_icon};
 pub use index::{
-    App, AppIcon, AppIndex, AppsEvent, DbusActivation, DesktopActionEntry, Listing, Terminal,
-    reduce_apps,
+    App, AppIcon, AppIndex, AppsEvent, DbusActivation, DesktopActionEntry, Listing, Terminal, step,
 };
 pub use match_app::match_app;
 pub use scan::{applications_dirs, parse_entry, scan};
@@ -22,11 +21,11 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
-use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
 
-use crate::control::Control;
-use crate::env::Dirs;
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
 /// How long the applications directories (and the icon theme file) must be quiet before a
 /// rescan.
@@ -39,13 +38,28 @@ pub enum AppsCommand {
     Rescan,
 }
 
-/// Scan once, publish, then watch every applications directory and rescan after
-/// [`RESCAN_DEBOUNCE`] of quiet.
-pub fn spawn(rt: &Handle, dirs: &Dirs) -> (watch::Receiver<AppIndex>, Control<AppsCommand>) {
-    let (tx, rx) = watch::channel(AppIndex::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(run(tx, commands, dirs.config.clone(), dirs.data.clone()));
-    (rx, control)
+/// The desktop entries and their icons as a [`Service`]: scanned once and published, then every
+/// applications directory watched and rescanned after [`RESCAN_DEBOUNCE`] of quiet.
+#[derive(Debug)]
+pub enum AppsService {}
+
+impl Service for AppsService {
+    const NAME: &'static str = "apps";
+    type State = AppIndex;
+    type Command = AppsCommand;
+    type Deps = ();
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let (config, data) = (env.dirs.config.clone(), env.dirs.data.clone());
+        async move {
+            run(io.state, io.commands, config, data).await;
+            Ok(())
+        }
+    }
 }
 
 /// Scan once, publish, then watch every applications directory and the CosmicTk file the icon
@@ -106,7 +120,7 @@ async fn publish(
     .await
     .unwrap_or_default();
     tx.send_if_modified(|index| {
-        let next = reduce_apps(index.clone(), AppsEvent::Scanned(found));
+        let next = step(index.clone(), AppsEvent::Scanned(found));
         if next == *index {
             false
         } else {
@@ -170,10 +184,10 @@ fn watch_dirs(
 
 #[cfg(test)]
 mod tests {
-    use super::spawn;
+    use super::AppsService;
     use crate::apps::AppIndex;
 
-    /// `spawn` must never panic (matching every other service: `services.rs`'s own test reads
+    /// Starting must never panic (matching every other service: `services.rs`'s own test reads
     /// every stub's default and this one for real). Like every other async-first-value service
     /// here (`tray`, `battery`, `network`), the real scan runs on the runtime after `spawn`
     /// returns, not before, so the receiver's value right after `spawn` is racy with `run`'s
@@ -183,7 +197,8 @@ mod tests {
     fn spawn_does_not_panic_and_the_receiver_is_usable() {
         let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
         let scratch = crate::env::scratch::Scratch::new("apps-spawn");
-        let (rx, control) = spawn(rt.handle(), &scratch.env().dirs);
+        let apps = crate::service::spawn::<AppsService>(rt.handle(), &scratch.env(), ());
+        let (rx, control) = (apps.state, apps.control);
         let _: AppIndex = rx.borrow().clone();
         drop(control);
         drop(rx);

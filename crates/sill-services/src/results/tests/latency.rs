@@ -14,7 +14,7 @@ use sill_launcher::{
 
 use super::{TempDir, search, send};
 use crate::apps::{IconTheme, scan};
-use crate::{AppIndex, AppsEvent, Listing, SearchCommand, reduce_apps};
+use crate::{AppIndex, AppsEvent, Listing, SearchCommand};
 
 /// Every query matches at least one fixture app.
 const QUERIES: &[&str] = &[
@@ -79,7 +79,7 @@ fn fixture_index() -> AppIndex {
         &IconTheme("hicolor".to_owned()),
         &[],
     );
-    reduce_apps(AppIndex::default(), AppsEvent::Scanned(found))
+    crate::apps::step(AppIndex::default(), AppsEvent::Scanned(found))
 }
 
 /// The `p`th percentile (nearest rank) of sorted `samples`.

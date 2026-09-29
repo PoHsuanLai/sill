@@ -155,9 +155,7 @@ fn window_key_of(item: &Item) -> WindowKey {
 #[cfg(test)]
 mod tests {
     use super::WindowsProvider;
-    use crate::apps::{
-        App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal, reduce_apps,
-    };
+    use crate::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
     use crate::cosmic_wl::{
         Activity, GroupKey, OutputName, Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState,
         Workspace, WorkspaceGroup, WorkspaceKey, Workspaces, reduce_toplevels,
@@ -189,8 +187,10 @@ mod tests {
 
     fn provider(windows: Vec<Toplevel>, apps: Vec<App>) -> WindowsProvider {
         let (_wtx, wrx) = tokio::sync::watch::channel(toplevels(windows));
-        let (_atx, arx) =
-            tokio::sync::watch::channel(reduce_apps(AppIndex::default(), AppsEvent::Scanned(apps)));
+        let (_atx, arx) = tokio::sync::watch::channel(crate::apps::step(
+            AppIndex::default(),
+            AppsEvent::Scanned(apps),
+        ));
         let (_stx, srx) = tokio::sync::watch::channel(Workspaces {
             groups: vec![WorkspaceGroup {
                 key: GroupKey(1),

@@ -54,14 +54,14 @@ fn is_label_suffix(id: &str, suffix: &str) -> bool {
 mod tests {
     use super::match_app;
     use crate::apps::index::tests::app;
-    use crate::apps::index::{App, AppIndex, AppsEvent, reduce_apps};
+    use crate::apps::index::{App, AppIndex, AppsEvent, step};
 
     fn index() -> AppIndex {
         let with = |mut a: App, edit: fn(&mut App)| {
             edit(&mut a);
             a
         };
-        reduce_apps(
+        step(
             AppIndex::default(),
             AppsEvent::Scanned(vec![
                 app("org.mozilla.firefox", "Firefox"),

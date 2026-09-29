@@ -54,8 +54,8 @@ pub mod volume;
 pub mod wallpaper;
 
 pub use apps::{
-    App, AppIcon, AppIndex, AppsCommand, AppsEvent, DbusActivation, DesktopActionEntry, ExecArgs,
-    ExecError, Listing, Terminal, expand_exec, match_app, reduce_apps,
+    App, AppIcon, AppIndex, AppsCommand, AppsEvent, AppsService, DbusActivation,
+    DesktopActionEntry, ExecArgs, ExecError, Listing, Terminal, expand_exec, match_app,
 };
 pub use attempt::{Attempt, AttemptStep, Attempts, OpStamp};
 pub use auth::{Auth, AuthCommand, AuthPhase, AuthService};

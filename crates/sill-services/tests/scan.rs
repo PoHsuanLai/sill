@@ -10,9 +10,7 @@
 use std::path::{Path, PathBuf};
 
 use sill_services::apps::{IconTheme, applications_dirs, scan};
-use sill_services::{
-    App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal, reduce_apps,
-};
+use sill_services::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
 
 fn fixture_dirs() -> Vec<PathBuf> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/applications");
@@ -44,9 +42,9 @@ fn scan_walks_every_dir_and_yields_them_in_precedence_order() {
     );
     assert_eq!(firefoxes[1].name, "Firefox (system)");
 
-    // Dedup itself is `reduce_apps`'s job (already frozen and tested): feeding this scan
+    // Dedup itself is `apps::step`'s job (already frozen and tested): feeding this scan
     // through it keeps whichever came first, i.e. home's.
-    let index = reduce_apps(AppIndex::default(), AppsEvent::Scanned(found.clone()));
+    let index = sill_services::apps::step(AppIndex::default(), AppsEvent::Scanned(found.clone()));
     let deduped: Vec<_> = index.apps.iter().filter(|a| a.id.0 == "firefox").collect();
     assert_eq!(deduped.len(), 1);
     assert_eq!(deduped[0].name, "Firefox (home)");

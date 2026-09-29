@@ -75,7 +75,6 @@ mod tests {
     use sill_launcher::AppId;
     use sill_services::{
         App, AppIcon, AppIndex, AppRef, AppsEvent, DbusActivation, IconRef, Listing, Terminal,
-        reduce_apps,
     };
     use std::path::PathBuf;
 
@@ -100,7 +99,7 @@ mod tests {
     }
 
     fn index() -> AppIndex {
-        reduce_apps(
+        sill_services::apps::step(
             AppIndex::default(),
             AppsEvent::Scanned(vec![
                 entry("org.gnome.Evolution", "Evolution", "/i/evolution.svg"),

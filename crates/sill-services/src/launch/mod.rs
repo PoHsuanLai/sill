@@ -105,9 +105,7 @@ impl Service for LaunchService {
 #[cfg(test)]
 mod tests {
     use super::{LaunchCommand, LaunchRequest, LaunchService};
-    use crate::apps::{
-        App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal, reduce_apps,
-    };
+    use crate::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
     use crate::service::spawn;
     use sill_launcher::{AppId, DesktopAction};
     use std::path::PathBuf;
@@ -131,7 +129,7 @@ mod tests {
             listing: Listing::Shown,
             path: PathBuf::from(format!("/usr/share/applications/{id}.desktop")),
         };
-        reduce_apps(AppIndex::default(), AppsEvent::Scanned(vec![app]))
+        crate::apps::step(AppIndex::default(), AppsEvent::Scanned(vec![app]))
     }
 
     /// Exercises the real `systemd-run --user --scope` path on this machine: `/bin/true` starts,
