@@ -8,8 +8,9 @@ mod cc_support;
 use cc_support::details::{center, ms, open};
 use cc_support::fake;
 use ds_native::Harness;
+use sill_model::now_playing::{Micros, Timeline};
 use sill_model::units::Stamp;
-use sill_services::{Bluetooth, BtPower, Micros, Radio, Timeline, Wifi};
+use sill_services::{Bluetooth, BtPower, Radio, Wifi};
 use sill_settings::{ControlCenterModule, ControlCenterSettings};
 use sill_surfaces::surfaces::control_center::{CcPage, Detail, estimate_size, place};
 

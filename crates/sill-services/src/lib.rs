@@ -100,10 +100,7 @@ pub use notifications::{
     Presented, Quiet, Residency, RunLink, RunStyle, ServerMode, ServerStatus, Slant, SoundHint,
     Transience, Underline, UnixMs, Weight, assign_id, parse_body,
 };
-pub use now_playing::{
-    Abilities, Art, ArtSource, Media, MediaCommand, MediaEvent, MediaPlayer, MediaVerb, Micros,
-    NowPlayingService, Playback, PlayerId, Timeline, Track, art_cache_name, art_source,
-};
+pub use now_playing::NowPlayingService;
 pub use pins::PinsService;
 pub use polkit_agent::{Polkit, PolkitAgentService, PolkitCommand};
 pub use power_profile::PowerProfileService;

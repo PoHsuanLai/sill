@@ -5,7 +5,8 @@
 
 use dioxus::prelude::*;
 use ds::ModulePanel;
-use sill_services::{MediaCommand, NowPlayingService, PlayerId};
+use sill_model::now_playing::{MediaCommand, PlayerId};
+use sill_services::NowPlayingService;
 
 use super::media_face::{MediaView, Transport, media_face};
 use crate::hooks::{use_control, use_service};
@@ -61,16 +62,19 @@ fn use_position_on_open(player: Option<PlayerId>) {
 mod tests {
     use super::super::media_face::{TrackTimes, playback_of, position_of};
     use ds::Playback;
+    use sill_model::now_playing::{Micros, Timeline};
     use sill_model::units::Stamp;
-    use sill_services::{Micros, Timeline};
     use std::time::Duration;
 
     #[test]
     fn a_stopped_player_offers_play() {
         let cases = [
-            (sill_services::Playback::Playing, Playback::Playing),
-            (sill_services::Playback::Paused, Playback::Paused),
-            (sill_services::Playback::Stopped, Playback::Paused),
+            (
+                sill_model::now_playing::Playback::Playing,
+                Playback::Playing,
+            ),
+            (sill_model::now_playing::Playback::Paused, Playback::Paused),
+            (sill_model::now_playing::Playback::Stopped, Playback::Paused),
         ];
         for (from, want) in cases {
             assert_eq!(playback_of(from), want, "{from:?}");

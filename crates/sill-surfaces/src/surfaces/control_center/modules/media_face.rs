@@ -14,7 +14,7 @@ use ds::{
     NowPlayingTrack, PlayPauseButton, Playback, TextLine, TrackPosition,
 };
 use serde::{Deserialize, Serialize};
-use sill_services::{Abilities, Art, MediaPlayer, MediaVerb, Micros, Timeline};
+use sill_model::now_playing::{Abilities, Art, MediaPlayer, MediaVerb, Micros, Timeline};
 
 use crate::surfaces::control_center::track_lines;
 
@@ -39,7 +39,7 @@ pub struct TrackFace {
     /// The cover.
     pub art: Art,
     /// Playing, paused or stopped.
-    pub playback: sill_services::Playback,
+    pub playback: sill_model::now_playing::Playback,
     /// Which buttons work.
     pub abilities: Abilities,
     /// Where the track is and how long it is, when both are known.
@@ -145,10 +145,12 @@ pub fn MediaView(face: MediaFace, onpress: Option<EventHandler<Transport>>) -> E
 }
 
 /// The service's playback as quire's: a stopped player offers Play, as a paused one does.
-pub(crate) fn playback_of(playback: sill_services::Playback) -> Playback {
+pub(crate) fn playback_of(playback: sill_model::now_playing::Playback) -> Playback {
     match playback {
-        sill_services::Playback::Playing => Playback::Playing,
-        sill_services::Playback::Paused | sill_services::Playback::Stopped => Playback::Paused,
+        sill_model::now_playing::Playback::Playing => Playback::Playing,
+        sill_model::now_playing::Playback::Paused | sill_model::now_playing::Playback::Stopped => {
+            Playback::Paused
+        }
     }
 }
 

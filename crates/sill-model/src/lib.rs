@@ -10,6 +10,7 @@ pub mod clock;
 pub mod cosmic_wl;
 pub mod ids;
 pub mod kbd_backlight;
+pub mod now_playing;
 pub mod pins;
 pub mod power_profile;
 pub mod session;

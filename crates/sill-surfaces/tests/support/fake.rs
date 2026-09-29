@@ -13,6 +13,7 @@ use sill_model::cosmic_wl::{
     WorkspaceCaps, WorkspaceGroup, Workspaces,
 };
 use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
+use sill_model::now_playing::{Media, MediaCommand};
 use sill_model::pins::DockPins;
 use sill_model::power_profile::{PowerProfiles, Profile, ProfileCommand, ProfileDegraded};
 use sill_model::tray::Tray;
@@ -21,8 +22,7 @@ use sill_model::volume::{Mute, Volume};
 use sill_services::{
     AccessPoint, AppIndex, Association, Badges, Bluetooth, BluetoothCommand, BtAddress, BtBattery,
     BtConnection, BtDevice, BtKind, BtPairing, BtPower, Connectivity, Handle, Launches, Link,
-    Media, MediaCommand, Network, Radio, Results, Security, Service, Services, Ssid, Wallpapers,
-    Wifi, WifiCommand,
+    Network, Radio, Results, Security, Service, Services, Ssid, Wallpapers, Wifi, WifiCommand,
 };
 use tokio::sync::{mpsc, watch};
 
@@ -248,9 +248,9 @@ pub fn power_profiles() -> PowerProfiles {
 
 /// One player, playing "So What" (no art file), every button live.
 pub fn media() -> Media {
+    use sill_model::now_playing::{Abilities, MediaPlayer, Playback, PlayerId, Timeline, Track};
     use sill_model::units::Availability;
     use sill_model::units::Stamp;
-    use sill_services::{Abilities, MediaPlayer, Playback, PlayerId, Timeline, Track};
     Media {
         players: vec![MediaPlayer {
             id: PlayerId("org.mpris.MediaPlayer2.fake".to_owned()),

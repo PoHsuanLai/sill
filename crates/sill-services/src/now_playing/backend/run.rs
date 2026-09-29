@@ -1,11 +1,16 @@
 //! MPRIS over the session bus: finds every `org.mpris.MediaPlayer2.*` name, follows their
 //! `PropertiesChanged` and `Seeked`, fetches remote art into the cache, feeds every change
-//! through [`super::step`], and carries out [`MediaCommand`]s.
+//! through [`sill_model::now_playing::step`], and carries out [`MediaCommand`]s.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+use sill_model::now_playing::{
+    Abilities, Art, Media, MediaCommand, MediaEvent, MediaPlayer, MediaVerb, Micros, Playback,
+    PlayerId, Timeline, Track, step,
+};
+use sill_model::units::{Availability, Stamp};
 use tokio::sync::{mpsc, watch};
 use zbus::fdo::{DBusProxy, NameOwnerChanged};
 use zbus::message::{Message, Type as MessageType};
@@ -13,23 +18,16 @@ use zbus::names::{BusName, OwnedUniqueName};
 use zbus::zvariant::OwnedValue;
 use zbus::{Connection, MatchRule, MessageStream};
 
-use super::MediaCommand;
-use super::art::ArtSource;
-use super::model::{
-    Abilities, Art, Media, MediaEvent, MediaPlayer, Micros, Playback, PlayerId, Timeline, Track,
-    step,
-};
+use super::art::{apply_art, resolve_art, spawn_art_fetch};
 use super::mpris::{MediaPlayer2Proxy, PLAYER_INTERFACE, PlayerProxy};
-use super::{MediaVerb, art_cache_name, art_source};
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next;
-use sill_model::units::{Availability, Stamp};
 
 const MPRIS_PREFIX: &str = "org.mpris.MediaPlayer2.";
 
 /// Runs until `commands` closes. Without a session bus, `tx` stays at its default.
-pub(super) async fn run(
+pub(crate) async fn run(
     bus: Bus,
     cache_dir: PathBuf,
     tx: watch::Sender<Media>,
@@ -365,31 +363,6 @@ fn track_of(metadata: &HashMap<String, OwnedValue>) -> Track {
     }
 }
 
-/// The art `metadata` names, resolved as far as a bus read can take it: a local file is used as
-/// it is, a remote one already in the cache is used from there, and a remote one not yet cached
-/// is a job for [`spawn_art_fetch`].
-fn resolve_art(
-    metadata: &HashMap<String, OwnedValue>,
-    cache_dir: Option<&Path>,
-) -> (Art, Option<(String, PathBuf)>) {
-    let url = metadata_string(metadata, "mpris:artUrl");
-    match art_source(&url) {
-        ArtSource::File(path) => (Art::File(path), None),
-        ArtSource::Remote(url) => match cache_dir {
-            Some(dir) => {
-                let cache_path = dir.join(art_cache_name(&url));
-                if cache_path.is_file() {
-                    (Art::File(cache_path), None)
-                } else {
-                    (Art::None, Some((url, cache_path)))
-                }
-            }
-            None => (Art::None, None),
-        },
-        ArtSource::Unusable => (Art::None, None),
-    }
-}
-
 async fn timeline_of(
     player: &PlayerProxy<'_>,
     metadata: &HashMap<String, OwnedValue>,
@@ -428,7 +401,7 @@ fn availability_of(can: bool) -> Availability {
     }
 }
 
-fn metadata_string(metadata: &HashMap<String, OwnedValue>, key: &str) -> String {
+pub(super) fn metadata_string(metadata: &HashMap<String, OwnedValue>, key: &str) -> String {
     metadata
         .get(key)
         .and_then(|v| String::try_from(v.clone()).ok())
@@ -449,49 +422,12 @@ fn metadata_micros(metadata: &HashMap<String, OwnedValue>, key: &str) -> Option<
         .map(|v| Micros(v.max(0).cast_unsigned()))
 }
 
-/// Downloads `url` into `cache_path` with `curl` (Fedora ships it) and reports success on `art_tx`.
-/// Never downloads twice: [`resolve_art`] only schedules this
-/// when the file was not already there.
-fn spawn_art_fetch(
-    id: PlayerId,
-    url: String,
-    cache_path: PathBuf,
-    art_tx: mpsc::UnboundedSender<(PlayerId, PathBuf)>,
-) {
-    tokio::spawn(async move {
-        if let Some(parent) = cache_path.parent() {
-            let _ = tokio::fs::create_dir_all(parent).await;
-        }
-        let status = tokio::process::Command::new("curl")
-            .arg("-sfL")
-            .arg("-o")
-            .arg(&cache_path)
-            .arg(&url)
-            .status()
-            .await;
-        if matches!(status, Ok(status) if status.success()) {
-            let _ = art_tx.send((id, cache_path));
-        }
-    });
-}
-
-/// A download finished: folds the cached path into whatever that player's track looks like now.
-fn apply_art(tx: &watch::Sender<Media>, id: PlayerId, path: PathBuf) {
-    let media = tx.borrow().clone();
-    let Some(player) = media.players.iter().find(|p| p.id == id) else {
-        return;
-    };
-    let mut track = player.track.clone();
-    track.art = Art::File(path);
-    apply(tx, MediaEvent::Track { id, track });
-}
-
 fn stamp(origin: Instant) -> Stamp {
     Stamp(u64::try_from(origin.elapsed().as_millis()).unwrap_or(u64::MAX))
 }
 
 /// Reduces `event` onto the receiver's current value and publishes the result.
-fn apply(tx: &watch::Sender<Media>, event: MediaEvent) {
+pub(super) fn apply(tx: &watch::Sender<Media>, event: MediaEvent) {
     let next = step(tx.borrow().clone(), event);
     let _ = tx.send(next);
 }

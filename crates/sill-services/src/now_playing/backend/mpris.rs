@@ -10,13 +10,13 @@ use zbus::zvariant::OwnedValue;
 
 /// `org.mpris.MediaPlayer2.Player`'s interface name, as it appears in a `PropertiesChanged`
 /// signal's first argument.
-pub(super) const PLAYER_INTERFACE: &str = "org.mpris.MediaPlayer2.Player";
+pub(crate) const PLAYER_INTERFACE: &str = "org.mpris.MediaPlayer2.Player";
 
 #[proxy(
     interface = "org.mpris.MediaPlayer2",
     default_path = "/org/mpris/MediaPlayer2"
 )]
-pub(super) trait MediaPlayer2 {
+pub(crate) trait MediaPlayer2 {
     #[zbus(property)]
     fn identity(&self) -> zbus::Result<String>;
 }
@@ -25,7 +25,7 @@ pub(super) trait MediaPlayer2 {
     interface = "org.mpris.MediaPlayer2.Player",
     default_path = "/org/mpris/MediaPlayer2"
 )]
-pub(super) trait Player {
+pub(crate) trait Player {
     fn play_pause(&self) -> zbus::Result<()>;
     fn next(&self) -> zbus::Result<()>;
     fn previous(&self) -> zbus::Result<()>;

@@ -12,8 +12,8 @@ use cc_support::{fake, live};
 use ds_native::Harness;
 use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
 use sill_model::kbd_backlight::{KbdBacklight, KbdCommand, KbdLevel};
+use sill_model::now_playing::{MediaCommand, MediaVerb, Micros, Playback, Timeline};
 use sill_model::units::{Percent, Presence, Stamp};
-use sill_services::{MediaCommand, MediaVerb, Micros, Playback, Timeline};
 use sill_settings::FocusMode;
 
 // ---- Focus ----------------------------------------------------------------------------------
@@ -72,7 +72,7 @@ fn the_focus_moon_fills_springing_only_under_the_tiles_press() {
 
 // ---- Now Playing ----------------------------------------------------------------------------
 
-fn playing(playback: Playback, title: &str) -> sill_services::Media {
+fn playing(playback: Playback, title: &str) -> sill_model::now_playing::Media {
     let mut media = fake::media();
     let player = &mut media.players[0];
     player.playback = playback;
