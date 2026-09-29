@@ -17,9 +17,10 @@ use shell_host::{Size, buffer_size};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_services::Control;
+use sill_settings::ShellFile;
 use sill_ui_kit::Wallpaper;
 use sill_ui_kit::services::Services;
-use sill_ui_kit::surfaces::wallpaper::{WallpaperProps, wallpaper_layer};
+use sill_ui_kit::surface::{MountProps, Surface, mount};
 
 fn main() {
     if let Err(error) = run() {
@@ -96,15 +97,13 @@ fn spawn_wallpaper(
     if let Err(error) = sent {
         eprintln!("wallpaper_demo: preparing {:?}: {error}", output.name);
     }
-    let config = wallpaper_layer(&output);
+    let config = Wallpaper::layer(&output, &ShellFile::default(), ());
     // Every root needs `MEASURE`: without it, `Ds`'s own `use_rect`
     // reads (`OverlayHost`) panic the first time the renderer polls a woken task inside its
     // own render pass.
     let root = HostRoot::with_props(
-        Wallpaper,
-        WallpaperProps {
-            output: output.clone(),
-        },
+        mount::<Wallpaper>,
+        MountProps::<Wallpaper>::new(output.clone(), ()),
     )
     .context(services.clone())
     .context(sill_ui_kit::root::MEASURE);

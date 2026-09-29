@@ -8,7 +8,7 @@ use shell_host::{
 use crate::surfaces::naming::namespace;
 
 /// The wallpaper's layer configuration on `output`.
-pub fn wallpaper_layer(output: &OutputInfo) -> LayerConfig {
+pub fn layer(output: &OutputInfo) -> LayerConfig {
     LayerConfig {
         namespace: namespace("wallpaper", output),
         layer: LayerLevel::Background,
@@ -28,13 +28,13 @@ pub fn wallpaper_layer(output: &OutputInfo) -> LayerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::wallpaper_layer;
+    use super::layer;
     use crate::surfaces::naming::tests::output;
     use shell_host::{Anchor, BlurSpec, ExclusiveZone, LayerLevel, RegionSpec};
 
     #[test]
     fn the_wallpaper_fills_the_background_and_takes_no_input() {
-        let config = wallpaper_layer(&output(Some("DP-1")));
+        let config = layer(&output(Some("DP-1")));
         assert_eq!(config.namespace, "sill-wallpaper-DP-1");
         assert_eq!(config.layer, LayerLevel::Background);
         assert_eq!(config.anchor, Anchor::ALL);

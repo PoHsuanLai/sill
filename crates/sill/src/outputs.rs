@@ -23,7 +23,6 @@ pub struct OutputSurfaces {
     /// Every surface spawned through `Surface`, in spawn order.
     pub spawned: Vec<Spawned>,
     pub bar: Option<SurfaceId>,
-    pub wallpaper: Option<SurfaceId>,
     pub dock: Option<SurfaceId>,
     pub launcher: Option<SurfaceId>,
     pub catcher: Option<SurfaceId>,
@@ -46,10 +45,9 @@ pub struct OutputSurfaces {
 
 impl OutputSurfaces {
     /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 13] {
+    fn fields(&self) -> [Option<SurfaceId>; 12] {
         [
             self.bar,
-            self.wallpaper,
             self.dock,
             self.launcher,
             self.catcher,
@@ -80,7 +78,6 @@ impl OutputSurfaces {
         self.spawned.retain(|surface| surface.id != id);
         for field in [
             &mut self.bar,
-            &mut self.wallpaper,
             &mut self.dock,
             &mut self.launcher,
             &mut self.catcher,
@@ -180,18 +177,9 @@ pub fn bar_namespace(info: &OutputInfo) -> String {
     }
 }
 
-/// The wallpaper's own namespace on `info` (mirrors `bar_namespace`; the wallpaper's own
-/// `sill_ui_kit::surfaces::wallpaper::wallpaper_layer` sets it the same way).
-pub fn wallpaper_namespace(info: &OutputInfo) -> String {
-    match &info.name {
-        Some(name) => format!("sill-wallpaper-{name}"),
-        None => format!("sill-wallpaper-{}", info.id.0),
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{OutputSurfaces, Outputs, Spawned, bar_namespace, reconcile, wallpaper_namespace};
+    use super::{OutputSurfaces, Outputs, Spawned, bar_namespace, reconcile};
     use shell_host::{LayerExtent, LayerSize, OutputId, OutputInfo, Rect, Scale, SurfaceId};
 
     fn output(id: u32, name: &str, width: i32) -> OutputInfo {
@@ -303,16 +291,5 @@ mod tests {
         let mut nameless = output(7, "unused", 1920);
         nameless.name = None;
         assert_eq!(bar_namespace(&nameless), "sill-bar-7");
-    }
-
-    #[test]
-    fn the_wallpaper_namespace_uses_the_connector_name_or_falls_back_to_the_id() {
-        assert_eq!(
-            wallpaper_namespace(&output(1, "DP-1", 1920)),
-            "sill-wallpaper-DP-1"
-        );
-        let mut nameless = output(7, "unused", 1920);
-        nameless.name = None;
-        assert_eq!(wallpaper_namespace(&nameless), "sill-wallpaper-7");
     }
 }

@@ -10,7 +10,8 @@ use sill_model::wallpaper::WallpaperCommand;
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
-use sill_ui_kit::{HotCorners, IdleDim, Osd};
+use sill_ui_kit::surface::Surface;
+use sill_ui_kit::{HotCorners, IdleDim, Osd, Wallpaper};
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
@@ -40,7 +41,8 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     } = *spawn;
     let root = |root| surface_root(root, services, settings_feed, links);
     spawn_missing_bars(ctx, outputs, services, settings_feed, links, settings);
-    spawn_missing_wallpapers(ctx, outputs, services, settings_feed, links, settings);
+    prepare_wallpapers(outputs, services, &settings.borrow());
+    spawn_surface::<Wallpaper>(ctx, outputs, spawn, &());
     spawn_missing_docks(ctx, outputs, services, settings_feed, links, settings);
     spawn_missing_launchers(ctx, outputs, services, settings_feed, links, settings);
     crate::power_menu::spawn_missing(ctx, outputs, root);
@@ -114,47 +116,20 @@ fn spawn_bar(
     }
 }
 
-/// Spawn a wallpaper for every output whose row has none yet (mirrors
-/// [`spawn_missing_bars`]), unless `spaces.wallpaper_drawer` leaves the background to
-/// `cosmic-bg`. Switching the key on takes effect at the next output event
-/// or restart, and switching it off leaves any spawned wallpaper in place until restart.
-fn spawn_missing_wallpapers(
-    ctx: &mut HostCtx<ShellMsg>,
-    outputs: &mut Outputs,
-    services: &Services,
-    settings_feed: &SettingsFeed,
-    links: &Links,
-    settings_tx: &watch::Sender<ShellFile>,
-) {
-    if settings_tx.borrow().spaces.wallpaper_drawer != WallpaperDrawer::Shell {
+/// Give the wallpaper service the buffer size of every output that is about to get a wallpaper
+/// surface: without a `Prepare` the service never hears about the output and the surface stays
+/// at `--paper` (design/20 §1.4). An unnamed output gets none (there is no
+/// `sill_model::ids::OutputName` to key it by), the same way the bar's own
+/// `on = output.name.clone().map(OutputName)` leaves an unnamed output at its default look.
+fn prepare_wallpapers(outputs: &Outputs, services: &Services, settings: &ShellFile) {
+    if settings.spaces.wallpaper_drawer != WallpaperDrawer::Shell {
         return;
     }
-    let missing: Vec<OutputInfo> = outputs
-        .outputs
-        .iter()
-        .filter(|(_, surfaces)| surfaces.wallpaper.is_none())
-        .map(|(info, _)| info.clone())
-        .collect();
-    for info in missing {
-        spawn_wallpaper(ctx, outputs, services, settings_feed, links, info);
-    }
-}
-
-/// One output's wallpaper layer (mirrors [`spawn_bar`]), and the `Prepare` that gives the
-/// service the output's buffer size to resize into — without it the service never hears about
-/// this output and the surface stays at `--paper` (design/20 §1.4). An unnamed output gets no
-/// `Prepare` (there is no `sill_model::ids::OutputName` to key it by), the same way the bar's own
-/// `on = output.name.clone().map(OutputName)` (`surfaces/bar/mod.rs`) leaves an unnamed output
-/// at its default look rather than inventing a numeric stand-in nothing else keys by.
-fn spawn_wallpaper(
-    ctx: &mut HostCtx<ShellMsg>,
-    outputs: &mut Outputs,
-    services: &Services,
-    settings_feed: &SettingsFeed,
-    links: &Links,
-    info: OutputInfo,
-) {
-    if let Some(name) = info.name.clone() {
+    for (info, row) in &outputs.outputs {
+        let held = row.spawned.iter().any(|s| s.name == Wallpaper::NAME);
+        let Some(name) = info.name.clone().filter(|_| !held) else {
+            continue;
+        };
         let buffer = buffer_size(
             BufferSize {
                 width: info.logical.width,
@@ -170,24 +145,6 @@ fn spawn_wallpaper(
         if let Err(error) = prepared {
             eprintln!("sill: preparing the wallpaper on {:?}: {error}", info.name);
         }
-    }
-    let config = sill_ui_kit::surfaces::wallpaper::wallpaper_layer(&info);
-    let props = sill_ui_kit::surfaces::wallpaper::WallpaperProps {
-        output: info.clone(),
-    };
-    let root = surface_root(
-        HostRoot::with_props(sill_ui_kit::Wallpaper, props),
-        services,
-        settings_feed,
-        links,
-    );
-    match ctx.spawn_layer(config, root) {
-        Ok(id) => {
-            let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
-            surfaces.wallpaper = Some(id);
-            outputs.set(info, surfaces);
-        }
-        Err(error) => eprintln!("sill: spawning the wallpaper on {:?}: {error}", info.name),
     }
 }
 

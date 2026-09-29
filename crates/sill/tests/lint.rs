@@ -7,9 +7,11 @@ use std::time::Duration;
 
 use ds::lint::{LintConfig, Profile, markup, stylesheet};
 use sill_model::idle::{DimLevel, DimShown, Idle, IdleMode, IdlePhase};
+use sill_model::ids::OutputName;
+use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{LevelSource, OsdKind, OsdLink};
-use sill_ui_kit::{IdleDim, Osd};
+use sill_ui_kit::{IdleDim, Osd, Wallpaper};
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
 struct SurfaceCase {
@@ -35,6 +37,11 @@ const SURFACES: &[SurfaceCase] = &[
         name: "hot_corners",
         css: sill_ui_kit::surfaces::hot_corners::HOT_CORNERS_CSS,
         states: no_states,
+    },
+    SurfaceCase {
+        name: "wallpaper",
+        css: sill_ui_kit::surfaces::wallpaper::WALLPAPER_CSS,
+        states: wallpaper_states,
     },
 ];
 
@@ -79,6 +86,24 @@ fn idle_dim_states() -> Vec<(&'static str, String)> {
     let dimmed = dim.harness.html();
     assert!(dimmed.contains("opacity:0.7"), "{dimmed}");
     vec![("awake", awake), ("dimmed", dimmed)]
+}
+
+/// The wallpaper with no image, then with this output's image.
+fn wallpaper_states() -> Vec<(&'static str, String)> {
+    let mut wallpaper = SurfaceHarness::<Wallpaper>::setup((), ()).start();
+    wallpaper.harness.advance(Duration::ZERO);
+    let bare = wallpaper.harness.html();
+    wallpaper.feeds.wallpaper.send_replace(Wallpapers {
+        outputs: vec![WallpaperImage {
+            output: OutputName("DP-1".to_owned()),
+            light: "/tmp/sill-wallpaper-lint/light.png".into(),
+            dark: "/tmp/sill-wallpaper-lint/dark.png".into(),
+        }],
+    });
+    wallpaper.harness.advance(Duration::ZERO);
+    let pictured = wallpaper.harness.html();
+    assert!(pictured.contains("<img"), "{pictured}");
+    vec![("no image", bare), ("with an image", pictured)]
 }
 
 #[test]

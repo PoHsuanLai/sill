@@ -6,7 +6,7 @@ use shell_host::{HostCtx, OutputInfo, SurfaceId};
 use sill_ipc::debug::{Micros, SurfaceName, SurfaceStats};
 
 use crate::daemon::msg::ShellMsg;
-use crate::outputs::{OutputSurfaces, Outputs, bar_namespace, wallpaper_namespace};
+use crate::outputs::{OutputSurfaces, Outputs, bar_namespace};
 
 /// The dock's layer namespace on `info` (`sill-dock-<output>`), which `debug stats` reports.
 fn dock_namespace(info: &OutputInfo) -> String {
@@ -53,7 +53,6 @@ fn lock_surfaces(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<(String,
 /// One output's spawned surfaces, each with its layer namespace.
 fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, SurfaceId)> {
     let bar = surfaces.bar.map(|id| (bar_namespace(info), id));
-    let wallpaper = surfaces.wallpaper.map(|id| (wallpaper_namespace(info), id));
     let dock = surfaces.dock.map(|id| (dock_namespace(info), id));
     let (panel, catcher) = launcher_namespaces(info);
     let launcher = surfaces.launcher.map(|id| (panel, id));
@@ -85,7 +84,6 @@ fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, Su
         .iter()
         .map(|surface| (surface.namespace.clone(), surface.id));
     bar.into_iter()
-        .chain(wallpaper)
         .chain(dock)
         .chain(launcher)
         .chain(catcher)
