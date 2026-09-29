@@ -194,7 +194,7 @@ fn script(demo: &Demo, input: ScriptedInput) {
 
 /// One `debug-inject` line.
 fn inject(ctx: &mut HostCtx<DemoMsg>, line: &str) {
-    let applied = shell_host::debug::parse_command(line)
+    let applied = shell_host::inject::parse_command(line)
         .map_err(|e| e.to_string())
         .and_then(|command| {
             shell_host::inject::stdin::apply(ctx, command).map_err(|e| e.to_string())

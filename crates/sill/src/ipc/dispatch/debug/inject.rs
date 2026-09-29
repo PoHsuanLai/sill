@@ -70,11 +70,11 @@ fn to_host(injection: Injection) -> shell_host::Inject {
 }
 
 #[cfg(feature = "debug")]
-fn host_button(button: PointerButton) -> shell_host::debug::PointerButton {
+fn host_button(button: PointerButton) -> shell_host::inject::PointerButton {
     match button {
-        PointerButton::Primary => shell_host::debug::PointerButton::Primary,
-        PointerButton::Secondary => shell_host::debug::PointerButton::Secondary,
-        PointerButton::Middle => shell_host::debug::PointerButton::Middle,
+        PointerButton::Primary => shell_host::inject::PointerButton::Primary,
+        PointerButton::Secondary => shell_host::inject::PointerButton::Secondary,
+        PointerButton::Middle => shell_host::inject::PointerButton::Middle,
     }
 }
 
@@ -109,15 +109,15 @@ mod tests {
         let buttons = [
             (
                 PointerButton::Primary,
-                shell_host::debug::PointerButton::Primary,
+                shell_host::inject::PointerButton::Primary,
             ),
             (
                 PointerButton::Secondary,
-                shell_host::debug::PointerButton::Secondary,
+                shell_host::inject::PointerButton::Secondary,
             ),
             (
                 PointerButton::Middle,
-                shell_host::debug::PointerButton::Middle,
+                shell_host::inject::PointerButton::Middle,
             ),
         ];
         for (ours, theirs) in buttons {
