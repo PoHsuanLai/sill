@@ -168,7 +168,6 @@ mod tests {
             night_warmth: NightWarmthMode::Hardware,
             night_warmth_strength: sill_settings::Percent(30),
             font_rendering: FontRenderingSetting::Off,
-            ..DisplaySettings::default()
         };
         assert_eq!(
             policy_from(&settings),

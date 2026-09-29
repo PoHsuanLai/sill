@@ -41,7 +41,7 @@ pub fn settings_dir() -> Option<PathBuf> {
 }
 
 /// Every shell domain (design/22 §4.4 `ShellFile`, with `switcher` as a table of its own).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ShellFile {
     pub bar: BarSettings,
@@ -66,33 +66,6 @@ pub struct ShellFile {
     pub hot_corners: HotCornersSettings,
     /// sill's own idle service.
     pub idle: IdleSettings,
-}
-
-impl Default for ShellFile {
-    fn default() -> Self {
-        ShellFile {
-            bar: BarSettings::default(),
-            dock: DockSettings::default(),
-            launcher: LauncherSettings::default(),
-            scroll: ScrollSettings::default(),
-            scrollbar: ScrollbarSettings::default(),
-            menus: MenusSettings::default(),
-            switcher: SwitcherSettings::default(),
-            notifications: NotificationsSettings::default(),
-            control_center: ControlCenterSettings::default(),
-            spaces: SpacesSettings::default(),
-            display: DisplaySettings::default(),
-            osd: OsdSettings::default(),
-            window: WindowSettings::default(),
-            power_menu: PowerMenuSettings::default(),
-            session: SessionSettings::default(),
-            widgets: WidgetsSettings::default(),
-            calendar: CalendarSettings::default(),
-            screenshot: ScreenshotSettings::default(),
-            hot_corners: HotCornersSettings::default(),
-            idle: IdleSettings::default(),
-        }
-    }
 }
 
 /// The stored settings in `dir`, or the defaults when there are none or they cannot be read.
