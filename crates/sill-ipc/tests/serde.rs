@@ -67,7 +67,10 @@ fn requests() -> Vec<(Request, &'static str)> {
         ),
         (Request::Reload, r#"{"kind":"reload"}"#),
         (Request::Quit, r#"{"kind":"quit"}"#),
-        (Request::Lock, r#"{"kind":"lock"}"#),
+        (
+            Request::Lock(LockRequest::Now),
+            r#"{"kind":"lock","v":{"kind":"now"}}"#,
+        ),
         (
             Request::Debug(DebugRequest::Stats),
             r#"{"kind":"debug","v":{"kind":"stats"}}"#,
@@ -280,8 +283,8 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"switcher","v":{"kind":"commit"}}"#,
         ),
         (
-            Request::LockStatus(LockRequest::Status),
-            r#"{"kind":"lock_status","v":{"kind":"status"}}"#,
+            Request::Lock(LockRequest::Status),
+            r#"{"kind":"lock","v":{"kind":"status"}}"#,
         ),
         (
             Request::Polkit(PolkitRequest::Status),

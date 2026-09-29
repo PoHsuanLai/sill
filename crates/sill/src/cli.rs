@@ -419,11 +419,11 @@ mod tests {
             (&["ping"], Some(Request::Ping)),
             (&["reload"], Some(Request::Reload)),
             (&["quit"], Some(Request::Quit)),
-            (&["lock"], Some(Request::Lock)),
-            (&["lock", "now"], Some(Request::Lock)),
+            (&["lock"], Some(Request::Lock(LockRequest::Now))),
+            (&["lock", "now"], Some(Request::Lock(LockRequest::Now))),
             (
                 &["lock", "status"],
-                Some(Request::LockStatus(LockRequest::Status)),
+                Some(Request::Lock(LockRequest::Status)),
             ),
             (&["auth-check"], None),
             (

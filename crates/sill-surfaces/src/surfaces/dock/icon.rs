@@ -1,8 +1,7 @@
 //! A tile's icon (design/08-ICONS.md §4): the app's own themed icon on quire's neutral plate
 //! (`Symbolic` for a freedesktop `*-symbolic` file, recoloured like a glyph; `Image` for the
-//! rest), quire's `Window` glyph when the app has none (§4.3), `Trash` for the Trash tile. sill
-//! ships no per-app artwork of its own (FINDINGS "App icons: shipped set removed"): every entry
-//! takes this one path.
+//! rest), quire's `Window` glyph when the app has none (§4.3), `Trash` for the Trash tile. Every
+//! entry takes this one path.
 //!
 //! The plate is quire's (`IconView { plate }`), which draws a glyph at its 56 % and an image at
 //! its 72 % (`--plate-glyph`, `--plate-inset`); an icon file is still sized at its 72 % share in

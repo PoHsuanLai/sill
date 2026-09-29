@@ -1,6 +1,6 @@
 [package]
 name = "sill-surfaces"
-description = "The shell's surfaces and hooks: bar, wallpaper, dock and launcher."
+description = "The shell's surfaces, widgets and hooks."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

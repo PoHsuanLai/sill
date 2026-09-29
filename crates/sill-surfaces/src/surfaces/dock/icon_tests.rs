@@ -55,8 +55,7 @@ fn each_entry_picks_its_art() {
         ),
         (None, TileArt::Glyph(Icon::Window)),
         (
-            // A desktop id that used to take a shipped icon now takes its own file, like any
-            // other app.
+            // COSMIC's own apps take their own file, like any other app.
             Some(file("com.system76.CosmicTerm", "/i/term.svg")),
             TileArt::Themed("/i/term.svg".into()),
         ),
@@ -146,8 +145,8 @@ fn icons_take_their_share_of_the_plate_in_whole_pixels() {
     assert_eq!(size(96.0), IconSize::Px(IconPx(56)));
 }
 
-/// Without magnification the theme icon is loaded once, at the tile's rest size (no shipped
-/// per-size files to pick between any more: the source stays whatever `app.icon` names).
+/// Without magnification the theme icon is loaded once, at the tile's rest size (the source
+/// stays whatever `app.icon` names).
 #[test]
 fn without_magnification_the_rest_size_still_shows_the_file() {
     let dock = DockSettings {

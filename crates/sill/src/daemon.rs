@@ -17,8 +17,8 @@ use std::time::{Duration, Instant};
 use shell_host::scale::{Size as BufferSize, buffer_size};
 use shell_host::{CloseReason, Host, HostConfig, HostCtx, HostEvent, OutputInfo, Root, SurfaceId};
 use sill_ipc::{
-    DebugRequest, DockRequest, Failure, FailureKind, LauncherRequest, Request, Response,
-    SurfaceName,
+    DebugRequest, DockRequest, Failure, FailureKind, LauncherRequest, LockRequest, Request,
+    Response, SurfaceName,
 };
 use sill_launcher::AppId;
 use sill_services::polkit_agent::AgentPolicy;
@@ -806,7 +806,8 @@ fn dispatch_request(
         Request::Notifications(request) => {
             crate::notifications::dispatch(outputs, crate::links::get(), services, request)
         }
-        Request::Lock => crate::session::lock(services),
+        Request::Lock(LockRequest::Now) => crate::session::lock(services),
+        Request::Lock(LockRequest::Status) => crate::lock::status(services),
         Request::Screenshot(request) => crate::screenshots::dispatch(services, request),
         Request::Widgets(request) => crate::widgets::dispatch(
             settings_dir,
@@ -818,7 +819,6 @@ fn dispatch_request(
         Request::Switcher(request) => {
             crate::switcher::dispatch(outputs, crate::links::get(), request)
         }
-        Request::LockStatus(_) => crate::lock::status(services),
         Request::Polkit(request) => crate::polkit::dispatch(services, request),
         Request::Clipboard(request) => crate::clipboard::dispatch(services, request),
         Request::Idle(request) => crate::idle::dispatch(services, request),
@@ -865,7 +865,7 @@ fn dispatch_dock(services: &Services, request: DockRequest) -> Response {
 
 /// Re-read `settings.toml` and publish it (the bar and every future surface pick it up through
 /// [`SettingsFeed`] and, for geometry, through `ShellMsg::Settings`). Dock pins are not re-read
-/// here: `sill_services::pins::load` is still `todo!()` (M2 launch); FINDINGS.md notes the gap.
+/// here: the pins service watches its own file.
 fn dispatch_reload(dir: Option<&Path>, settings_tx: &watch::Sender<ShellFile>) -> Response {
     let Some(dir) = dir else {
         return Response::Failed(Failure {

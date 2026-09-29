@@ -1,15 +1,10 @@
-//! Hot corners (design/20 §1.16; macOS's Hot Corners; M10 lane d): a transparent square of
+//! Hot corners (design/20 §1.16; macOS's Hot Corners): a transparent square of
 //! `hot_corners.size_px` in each corner whose action is not `None`, on every output. The pointer
 //! resting in one for `hot_corners.dwell_ms` fires it once; it fires again only after the
 //! pointer has left and `rearm_ms` has passed ([`machine::step`]). A firing is written to the
 //! [`CornerLink`]; the daemon carries out the action (`crates/sill/src/corners.rs`), since
 //! opening the launcher, the notification center or the control center, locking, minimising
 //! windows and running a command are its links and services, not a surface's.
-//!
-//! No modifier (`hot_corners.modifier` retired, FINDINGS G121/F61: a keyboard-`None` layer
-//! surface is never sent `wl_keyboard.modifiers`, and no compositor gives that state to one
-//! portably; `OnDemand` keyboard would steal focus, which a hot corner must never do). See
-//! `machine`'s module doc.
 //!
 //! Never painted: the root draws one transparent element that takes the pointer, no `Ds`, no
 //! material, no blur; the compositor still delivers pointer enter and leave to it.

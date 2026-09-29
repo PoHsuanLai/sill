@@ -26,6 +26,8 @@ pub enum SwitcherRequest {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum LockRequest {
+    /// Lock now: answered `Done` once asked.
+    Now,
     /// What the lock screen is doing: answered with `Response::Lock`.
     Status,
 }

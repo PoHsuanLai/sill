@@ -1,9 +1,5 @@
-//! One module per surface (design/20 §1). The four of milestones M1-M4 and the OSD are
-//! components, M5's control center (a bar popup) and power menu likewise (FINDINGS "M5
-//! freeze"), and M6's banners and notification center are frozen components sharing one
-//! notification card (FINDINGS "M6 freeze"); M10's screenshot thumbnail, hot corners and
-//! desktop widget layer are frozen components (FINDINGS "M10 freeze"); M11's own lock screen,
-//! polkit prompt and app switcher are frozen components (FINDINGS "M11 freeze").
+//! One module per surface (design/20 §1), each a component. The banners and the notification
+//! center share one notification card; the control center is a bar popup.
 
 pub mod banners;
 pub mod bar;

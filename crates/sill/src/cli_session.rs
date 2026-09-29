@@ -75,8 +75,8 @@ pub fn switcher_request(action: SwitcherAction) -> Request {
 /// The request `sill lock VERB` sends.
 pub fn lock_request(verb: LockVerb) -> Request {
     match verb {
-        LockVerb::Now => Request::Lock,
-        LockVerb::Status => Request::LockStatus(LockRequest::Status),
+        LockVerb::Now => Request::Lock(LockRequest::Now),
+        LockVerb::Status => Request::Lock(LockRequest::Status),
     }
 }
 

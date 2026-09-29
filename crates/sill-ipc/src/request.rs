@@ -1,14 +1,6 @@
-//! What a client asks the daemon (plan: `Ping, Launcher{Toggle,Open{query},Close},
-//! Dock{Pin,Unpin}, Reload, Quit, Debug{Stats,Pointer,Leave,Capture}`), plus `Debug(Click)`
-//! from the M2 freeze amendment (sill FINDINGS F76), and `Display` from the displays pass (sill
-//! FINDINGS "Displays"), `Debug(Osd)` from the OSD, `PowerMenu`/`ControlCenter` from the
-//! M5 freeze (sill FINDINGS "M5 freeze"), and `Notifications` and `Debug(Notify)` from the M6
-//! freeze (sill FINDINGS "M6 freeze"), and `Lock` from M7 (sill FINDINGS "M7"), and
-//! `Screenshot`, `Widgets`, `Debug(Screenshot)` and `Debug(Corner)` from the M10 freeze
-//! (`desktop.rs`), and `Switcher`, `LockStatus`, `Polkit`, `Debug(Auth)`, `Debug(Polkit)` and
-//! `Debug(Switcher)` from the M11 freeze (`session.rs`), and `Debug(PointerPress)` and
-//! `Debug(PointerRelease)` once shell-host's `Inject` grew a separate press and release (sill
-//! FINDINGS "Real-pointer drag", G330 closed).
+//! What a client asks the daemon: one [`Request`] per connection. The desktop's words live in
+//! `desktop.rs`, the session's (switcher, lock, polkit) in `session.rs`, the launcher's in
+//! `launcher.rs` and idle's in `idle.rs`.
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -30,7 +22,7 @@ pub enum Request {
     Launcher(LauncherRequest),
     /// Change what the dock keeps.
     Dock(DockRequest),
-    /// Re-read settings, the app index and the dock pins without restarting.
+    /// Re-read the settings without restarting.
     Reload,
     /// Close every surface and exit the daemon.
     Quit,
@@ -46,17 +38,15 @@ pub enum Request {
     ControlCenter(ControlCenterRequest),
     /// The notification center and the banners (`sill notifications ...`).
     Notifications(NotificationsRequest),
-    /// Lock the screen with the configured locker (`sill lock`; cosmic-idle's and COSMIC's
-    /// `LockScreen` system action in `dist/cosmic`). Answered `Done` once asked.
-    Lock,
+    /// Lock the screen now (`sill lock`; COSMIC's `LockScreen` system action in `dist/cosmic`),
+    /// answered `Done` once asked; or say what the lock screen is doing (`sill lock status`).
+    Lock(LockRequest),
     /// Take a screenshot with `screenshot.tool` (`sill screenshot`).
     Screenshot(ScreenshotRequest),
     /// The widgets (`sill widgets ...`).
     Widgets(WidgetsRequest),
     /// The app switcher's chord verbs (`sill switcher ...`).
     Switcher(SwitcherRequest),
-    /// The lock screen's state (`sill lock status`).
-    LockStatus(LockRequest),
     /// sill's polkit agent (`sill polkit status`).
     Polkit(PolkitRequest),
     /// The clipboard history (`sill clipboard status|clear`, M9).

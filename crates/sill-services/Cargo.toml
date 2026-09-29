@@ -1,6 +1,6 @@
 [package]
 name = "sill-services"
-description = "Effectful services behind watch channels: power, network, volume, tray, apps, COSMIC Wayland state."
+description = "Effectful services behind watch channels: power, network, displays, sessions, notifications, the launcher's search and COSMIC Wayland state."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

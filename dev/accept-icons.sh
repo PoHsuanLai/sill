@@ -6,10 +6,8 @@
 # (dev/private-bus.conf), so neither quire's appearance file nor sill's pins nor the icon cache
 # nor the real session bus are touched, and quits it at the end.
 #
-# sill ships no per-app artwork of its own any more (FINDINGS "App icons: shipped set removed"):
-# the dock holds COSMIC Terminal, COSMIC Files, Google Chrome and btop, every one on the neutral
-# plate with its own theme icon, tinted along with the plate under Muted and Monochrome (sill
-# FINDINGS Q72). With `icons.style` set in the scratch `quire/appearance.toml` to colour, then
+# The dock holds COSMIC Terminal, COSMIC Files, Google Chrome and btop, every one on the neutral
+# plate with its own theme icon, tinted along with the plate under Muted and Monochrome. With `icons.style` set in the scratch `quire/appearance.toml` to colour, then
 # muted, then monochrome (the running dock follows the file live), it checks that the Muted and
 # Monochrome runs each write re-tinted rasters into the scratch cache, one per pinned app, and
 # captures the dock surface each time: dev/out/dock-icons-{colour,muted,monochrome}.png. A last

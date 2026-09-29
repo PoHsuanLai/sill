@@ -1,6 +1,5 @@
 //! A launcher row's tile in the icon style: the row's resolved icon file, re-tinted under
-//! Muted and Monochrome; a symbolic file and a glyph as before. sill ships no per-app artwork of
-//! its own (FINDINGS "App icons: shipped set removed"): every row takes this one path.
+//! Muted and Monochrome; a symbolic file and a glyph as before. Every row takes this one path.
 //!
 //! The rows draw their icons at 48 px (`IconSize::Tile48`), so the raster is loaded at 48
 //! times the output scale. An app row's entry is its id; a window row's is the app whose

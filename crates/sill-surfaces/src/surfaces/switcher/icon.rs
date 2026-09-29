@@ -1,7 +1,6 @@
 //! A tile's icon, as the switcher picks one (design/08 §4): the entry's own icon file in the
 //! icon style (re-tinted under Muted and Monochrome), a `*-symbolic` file in the text colour,
-//! and quire's `Window` glyph for an app with no icon (or no entry). sill ships no per-app
-//! artwork of its own (FINDINGS "App icons: shipped set removed"): every entry takes this one
+//! and quire's `Window` glyph for an app with no icon (or no entry). Every entry takes this one
 //! path. quire's `AppSwitcher` stretches a file to the cell's icon square, so it is loaded at
 //! `switcher.icon_size_px` times the scale.
 

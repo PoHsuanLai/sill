@@ -1,8 +1,6 @@
 //! A dock tile for an app with its own hicolor icon (COSMIC Terminal) draws that icon on
 //! quire's neutral plate under every icon style, tinted to the same hue under Muted or
-//! Monochrome (sill FINDINGS Q72). sill ships no per-app artwork of its own any more (FINDINGS
-//! "App icons: shipped set removed"): every entry, COSMIC's own included, takes the theme's
-//! icon.
+//! Monochrome. Every entry, COSMIC's own included, takes the theme's icon.
 
 mod dock_support;
 
@@ -53,8 +51,7 @@ fn render(style: IconStyle) -> String {
     dioxus_ssr::render(&dom)
 }
 
-/// Under every style the terminal's own hicolor icon sits on the neutral plate, never bare:
-/// there is no shipped set left to draw bare over the tile.
+/// Under every style the terminal's own hicolor icon sits on the neutral plate, never bare.
 #[test]
 fn a_mapped_app_still_draws_its_own_icon_on_the_plate() {
     for style in [IconStyle::Colour, IconStyle::Muted, IconStyle::Monochrome] {

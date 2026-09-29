@@ -65,7 +65,7 @@ pub struct Services {
     pub wallpaper_control: Control<WallpaperCommand>,
     pub displays: watch::Receiver<Displays>,
     pub displays_control: Control<DisplaysCommand>,
-    /// The M5 control center's and power menu's services (FINDINGS "M5 freeze").
+    /// The control center's and power menu's services.
     pub wifi: watch::Receiver<Wifi>,
     pub wifi_control: Control<WifiCommand>,
     pub bluetooth: watch::Receiver<Bluetooth>,
@@ -79,31 +79,30 @@ pub struct Services {
     pub kbd_backlight_control: Control<KbdCommand>,
     pub session: watch::Receiver<Session>,
     pub session_control: Control<SessionCommand>,
-    /// M7: the borrowed lock screen (FINDINGS "M7"); the session's Lock goes through it.
+    /// sill's own lock screen; the session's Lock goes through it.
     pub lock: watch::Receiver<Lock>,
     pub locker_control: Control<LockerCommand>,
-    /// M6: the notifications server's live banners and name holder, and its history
-    /// (FINDINGS "M6 freeze").
+    /// The notifications server's live banners and name holder, and its history.
     pub notifications: watch::Receiver<Notifications>,
     pub notification_history: watch::Receiver<History>,
     pub notifications_control: Control<NotificationsCommand>,
-    /// M10: calendar events for the Calendar and Up Next widgets, and screenshots for the
-    /// floating thumbnail (FINDINGS "M10 freeze"). Both passive until the daemon configures them.
+    /// Calendar events for the Calendar and Up Next widgets, and screenshots for the floating
+    /// thumbnail. Both passive until the daemon configures them.
     pub agenda: watch::Receiver<Agenda>,
     pub events_control: Control<EventsCommand>,
     pub shots: watch::Receiver<Shots>,
     pub shots_control: Control<ShotCommand>,
-    /// M11: the own lock screen's password check (idle until a secret is submitted), and the
-    /// own polkit agent (passive until the daemon's policy) (FINDINGS "M11 freeze").
+    /// The lock screen's password check (idle until a secret is submitted), and the polkit
+    /// agent (passive until the daemon's policy).
     pub auth: watch::Receiver<Auth>,
     pub auth_control: Control<AuthCommand>,
     pub polkit: watch::Receiver<Polkit>,
     pub polkit_control: Control<PolkitCommand>,
-    /// The clipboard history (M9): passive until the daemon's policy.
+    /// The clipboard history: passive until the daemon's policy.
     pub clipboard: watch::Receiver<Clipboard>,
     pub clipboard_control: Control<ClipboardCommand>,
-    /// sill's own idle (Q420 B, FINDINGS "sill idle (Q420 B)"): passive until the daemon's
-    /// policy, and `Off` anywhere but a sill session.
+    /// sill's own idle: passive until the daemon's policy, and `Off` anywhere but a sill
+    /// session.
     pub idle: watch::Receiver<Idle>,
     pub idle_control: Control<IdleCommand>,
 }
@@ -112,13 +111,6 @@ impl Services {
     /// Start every service on `rt` (the `cosmic_wl` and volume threads on their own threads)
     /// and bundle them. A service whose system half is missing still yields its receiver, at
     /// its default.
-    ///
-    /// A service whose `spawn` is still a freeze stub is not called (a `todo!()` would panic
-    /// `sill run` before it ever reaches the host or the IPC server, and the daemon has to
-    /// start today): [`inert`] builds its pair locally instead, one line per service naming the
-    /// wave that replaces it. Every M1 service is real: `clock` (M1 bar-ui), `battery`,
-    /// `network`, `volume` (M1 svc-dbus), `tray` (M1 svc-tray) and `cosmic_wl` (M1 svc-cosmic);
-    /// the M2-M6 services below are still stubs.
     pub fn spawn(rt: &Handle) -> Services {
         let (clock, clock_control) = crate::clock::spawn(rt);
         let (battery, battery_control) = crate::battery::spawn(rt);
@@ -144,8 +136,6 @@ impl Services {
             },
         );
         let (wallpapers, wallpaper_control) = crate::wallpaper::spawn(rt);
-        // M5: each `live::run` is a stub that returns at once until its agent fills it, so these
-        // are inert meanwhile without an `inert()` line to swap (FINDINGS "M5 freeze").
         let (wifi, wifi_control) = crate::network::wifi::spawn(rt);
         let (bluetooth, bluetooth_control) = crate::bluetooth::spawn(rt);
         let (power_profiles, power_profile_control) = crate::power_profile::spawn(rt);
@@ -153,17 +143,13 @@ impl Services {
         let (kbd_backlight, kbd_backlight_control) = crate::kbd_backlight::spawn(rt);
         let (lock, locker_control) = crate::locker::spawn(rt);
         let (session, session_control) = crate::session::spawn(rt, locker_control.clone());
-        // M6: the live loop is a stub that returns at once until lane a fills it, and it is
-        // passive (never asks for the bus name) until the daemon sends its first policy.
+        // Passive (never asks for the bus name) until the daemon sends its first policy.
         let (notifications, notification_history, notifications_control) =
             crate::notifications::spawn(rt);
-        // M10: each `live::run` is a stub that returns at once until its lane fills it.
         let (agenda, events_control) = crate::events::spawn(rt);
         let (shots, shots_control) = crate::screenshots::spawn(rt);
-        // M11: both `live::run`s are stubs that return at once until their lanes fill them.
         let (auth, auth_control) = crate::auth::spawn(rt);
         let (polkit, polkit_control) = crate::polkit_agent::spawn(rt);
-        // Idle (Q420 B): the freeze's `live::run` returns at once until the fill.
         let (idle, idle_control) = crate::idle::spawn(
             rt,
             IdleLinks {
@@ -240,12 +226,11 @@ mod tests {
     use super::Services;
 
     /// `Services::spawn` must never panic — the daemon has to reach the host connect and the
-    /// IPC server before every milestone lands — and every receiver still stubbed out holds its
-    /// default (a service that is real, `battery`/`network`/`volume`/`tray`/`cosmic_wl`, degrades
-    /// to its own default without a bus or a compositor, per `ServiceError`'s doc); the clock
-    /// reads the time at once (`Thu 24 Sep 14:05`: four words).
+    /// IPC server — and every passive service holds its default (a service without its bus or
+    /// compositor degrades to its own default, per `ServiceError`'s doc); the clock reads the
+    /// time at once (`Thu 24 Sep 14:05`: four words).
     #[test]
-    fn spawn_does_not_panic_and_every_stub_holds_its_default() {
+    fn spawn_does_not_panic_and_passive_services_hold_their_defaults() {
         let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
         let services = Services::spawn(rt.handle());
 

@@ -8,12 +8,9 @@
 //! - `Spent`: fires nothing; it is `Armed` again once the pointer has left **and** the re-arm
 //!   has run out, in either order.
 //!
-//! No modifier: `hot_corners.modifier` (macOS's "and hold a key" option) is retired. A layer
-//! surface with keyboard `None` is never sent `wl_keyboard.modifiers` on Wayland, so the surface
-//! cannot know one is held; shell-host's answer (FINDINGS G121, F61) is that no compositor gives
-//! a keyboard-less surface that state portably (KWin happens to after an enter, cosmic-comp
-//! likely does not) and a fix would need `OnDemand` keyboard, which a hot corner must never take
-//! (it would steal focus). So the dwell fires unconditionally once it elapses.
+//! No modifier (macOS's "and hold a key"): a keyboard-`None` layer surface is never sent
+//! `wl_keyboard.modifiers`, and `OnDemand` keyboard would steal focus, so the dwell fires
+//! unconditionally once it elapses.
 
 /// A timer's identity; an elapsed timer with another token is stale.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]

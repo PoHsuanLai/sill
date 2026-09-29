@@ -65,15 +65,11 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
             2,
         ),
         (
-            "every tile on a neutral plate: sill ships no per-app artwork of its own",
+            "every tile on a neutral plate",
             "data-family=\"neutral\"",
             4,
         ),
-        (
-            "no bare art: there is no shipped set left to draw bare",
-            "class=\"sill-dock-art\"",
-            0,
-        ),
+        ("no bare art", "class=\"sill-dock-art\"", 0),
         (
             "the terminal draws its own hicolor icon",
             "CosmicTerm.svg",
