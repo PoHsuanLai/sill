@@ -3,7 +3,6 @@
 
 mod live;
 mod model;
-pub mod wifi;
 
 pub use model::{Activating, Connectivity, Link, Network, NetworkEvent, step};
 

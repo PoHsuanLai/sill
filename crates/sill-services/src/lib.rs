@@ -50,6 +50,7 @@ pub mod switcher;
 pub mod tray;
 pub mod volume;
 pub mod wallpaper;
+pub mod wifi;
 
 pub use apps::{
     App, AppIcon, AppIndex, AppsCommand, AppsEvent, AppsService, DbusActivation,
@@ -80,10 +81,6 @@ pub use launch::{
 };
 pub use locker::LockerService;
 pub use magnify::{Layout, MagnifyParams, TileBox, magnify, rest_centers, sizes, zoom};
-pub use network::wifi::{
-    AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi, WifiCommand, WifiEvent,
-    WifiService, listed_networks,
-};
 pub use network::{
     Activating, Connectivity, Link, Network, NetworkCommand, NetworkEvent, NetworkService,
 };
@@ -114,3 +111,7 @@ pub use switcher::{AppShown, SwitcherApp, switcher_apps};
 pub use tray::TrayService;
 pub use volume::VolumeService;
 pub use wallpaper::WallpaperService;
+pub use wifi::{
+    AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi, WifiCommand, WifiEvent,
+    WifiService, listed_networks,
+};

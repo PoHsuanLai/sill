@@ -3,7 +3,7 @@
 //! connections' SSIDs, and the active access point; every change through
 //! [`super::step`]; [`WifiCommand`]s carried out.
 //!
-//! Same crate and bus as [`crate::network::live`] (`cosmic_dbus_networkmanager`); the wireless
+//! Same crate and bus as the network service (`cosmic_dbus_networkmanager`); the wireless
 //! device is found once by its `DeviceType` and kept for the life of the task (a device that
 //! disappears mid-run is not re-found — `Refresh` is a later milestone's, per [`WifiCommand`]).
 

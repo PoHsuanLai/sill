@@ -21,7 +21,6 @@ use crate::kbd_backlight::KbdBacklightService;
 use crate::launch::LaunchService;
 use crate::locker::LockerService;
 use crate::network::NetworkService;
-use crate::network::wifi::WifiService;
 use crate::notifications::NotificationsService;
 use crate::now_playing::NowPlayingService;
 use crate::pins::PinsService;
@@ -34,6 +33,7 @@ use crate::session::SessionService;
 use crate::tray::TrayService;
 use crate::volume::VolumeService;
 use crate::wallpaper::WallpaperService;
+use crate::wifi::WifiService;
 
 /// Every running service, each field named after its module. Surfaces read a service through
 /// `sill-surfaces::hooks::use_service` and command it through `use_control`; nothing here is a
