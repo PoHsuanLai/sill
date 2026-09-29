@@ -1,4 +1,5 @@
 /target
 /target-*
-# Agent worktrees made by the orchestrating Claude Code session.
 .claude/
+# Script captures stay on disk, untracked.
+dev/out/*.png
