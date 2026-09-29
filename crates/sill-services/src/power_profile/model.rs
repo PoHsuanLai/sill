@@ -76,7 +76,7 @@ pub enum ProfileEvent {
 }
 
 /// `profiles` after `event`. `Found` marks the service present; `Gone` returns to the default.
-pub fn reduce_power_profiles(profiles: PowerProfiles, event: ProfileEvent) -> PowerProfiles {
+pub fn step(profiles: PowerProfiles, event: ProfileEvent) -> PowerProfiles {
     match event {
         ProfileEvent::Found => PowerProfiles {
             presence: Presence::Present,
@@ -97,7 +97,7 @@ pub fn reduce_power_profiles(profiles: PowerProfiles, event: ProfileEvent) -> Po
 
 #[cfg(test)]
 mod tests {
-    use super::{PowerProfiles, Profile, ProfileDegraded, ProfileEvent, reduce_power_profiles};
+    use super::{PowerProfiles, Profile, ProfileDegraded, ProfileEvent, step};
     use crate::units::Presence;
 
     #[test]
@@ -170,7 +170,7 @@ mod tests {
             ),
         ];
         for (name, before, event, want) in cases {
-            assert_eq!(reduce_power_profiles(before, event), want, "{name}");
+            assert_eq!(step(before, event), want, "{name}");
         }
     }
 }

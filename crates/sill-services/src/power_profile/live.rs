@@ -1,5 +1,5 @@
 //! power-profiles-daemon over the system bus: seeds the three properties, then feeds every
-//! change through [`super::reduce_power_profiles`], and carries out [`ProfileCommand`]s.
+//! change through [`super::step`], and carries out [`ProfileCommand`]s.
 
 use std::collections::HashMap;
 
@@ -9,9 +9,10 @@ use zbus::fdo::DBusProxy;
 use zbus::zvariant::OwnedValue;
 
 use super::ProfileCommand;
-use super::model::{PowerProfiles, Profile, ProfileDegraded, ProfileEvent, reduce_power_profiles};
+use super::model::{PowerProfiles, Profile, ProfileDegraded, ProfileEvent, step};
 use super::ppd::UPowerPowerProfilesProxy;
 use crate::env::Bus;
+use crate::error::ServiceError;
 use crate::stream::{next, next_opt};
 
 /// Runs until `commands` closes. Without a bus or the daemon, `tx` stays at its default.
@@ -19,12 +20,10 @@ pub(super) async fn run(
     bus: Bus,
     tx: watch::Sender<PowerProfiles>,
     mut commands: mpsc::UnboundedReceiver<ProfileCommand>,
-) {
-    let Ok(Some(connection)) = bus.connect().await else {
-        return;
-    };
+) -> Result<(), ServiceError> {
+    let connection = bus.connected().await?;
     let Some(ppd) = connect(&connection).await else {
-        return;
+        return Ok(());
     };
     seed(&tx, &ppd).await;
 
@@ -73,6 +72,7 @@ pub(super) async fn run(
             }
         }
     }
+    Ok(())
 }
 
 /// The daemon's proxy, confirmed with a real property read (building a proxy never itself
@@ -132,6 +132,6 @@ fn degraded_of(reason: String) -> ProfileDegraded {
 
 /// Reduces `event` onto the receiver's current value and publishes the result.
 fn apply(tx: &watch::Sender<PowerProfiles>, event: ProfileEvent) {
-    let next = reduce_power_profiles(tx.borrow().clone(), event);
+    let next = step(tx.borrow().clone(), event);
     let _ = tx.send(next);
 }

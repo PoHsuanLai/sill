@@ -9,13 +9,11 @@ mod live;
 mod model;
 mod ppd;
 
-pub use model::{PowerProfiles, Profile, ProfileDegraded, ProfileEvent, reduce_power_profiles};
+pub use model::{PowerProfiles, Profile, ProfileDegraded, ProfileEvent, step};
 
-use tokio::runtime::Handle;
-use tokio::sync::watch;
-
-use crate::control::Control;
-use crate::env::Bus;
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
 /// What the power profile service can be told.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -26,11 +24,22 @@ pub enum ProfileCommand {
     Refresh,
 }
 
-/// Start the power profile task on `rt`. Without power-profiles-daemon the receiver stays at
+/// power-profiles-daemon as a [`Service`]. Without it the state stays at
 /// `PowerProfiles::default()` (absent), and the control center hides the control.
-pub fn spawn(rt: &Handle, bus: Bus) -> (watch::Receiver<PowerProfiles>, Control<ProfileCommand>) {
-    let (tx, rx) = watch::channel(PowerProfiles::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(live::run(bus, tx, commands));
-    (rx, control)
+#[derive(Debug)]
+pub enum PowerProfileService {}
+
+impl Service for PowerProfileService {
+    const NAME: &'static str = "power_profile";
+    type State = PowerProfiles;
+    type Command = ProfileCommand;
+    type Deps = ();
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        live::run(env.buses.system.clone(), io.state, io.commands)
+    }
 }

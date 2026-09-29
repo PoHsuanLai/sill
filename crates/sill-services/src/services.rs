@@ -167,7 +167,9 @@ impl Services {
         let (wifi, wifi_control) = parts(spawn::<crate::network::wifi::WifiService>(rt, env, ()));
         let (bluetooth, bluetooth_control) =
             parts(spawn::<crate::bluetooth::BluetoothService>(rt, env, ()));
-        let (power_profiles, power_profile_control) = crate::power_profile::spawn(rt, system());
+        let (power_profiles, power_profile_control) = parts(spawn::<
+            crate::power_profile::PowerProfileService,
+        >(rt, env, ()));
         let (media, media_control) = crate::now_playing::spawn(rt, session(), &env.dirs);
         let (kbd_backlight, kbd_backlight_control) = parts(spawn::<
             crate::kbd_backlight::KbdBacklightService,
