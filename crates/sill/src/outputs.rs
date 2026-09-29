@@ -2,6 +2,7 @@
 //! list to spawn and close actions.
 
 use shell_host::{LayerSize, OutputId, OutputInfo, SurfaceId};
+use sill_ui_kit::surface::Surface;
 
 /// A layer surface spawned through `Surface`, as `daemon::surfaces` records it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,8 +24,6 @@ pub struct OutputSurfaces {
     /// Every surface spawned through `Surface`, in spawn order.
     pub spawned: Vec<Spawned>,
     pub bar: Option<SurfaceId>,
-    pub launcher: Option<SurfaceId>,
-    pub catcher: Option<SurfaceId>,
     /// The desktop widget layer (while `widgets.desktop` is on).
     pub desktop_widgets: Option<SurfaceId>,
     /// Edit Widgets (the widget gallery), warm and hidden.
@@ -33,14 +32,8 @@ pub struct OutputSurfaces {
 
 impl OutputSurfaces {
     /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 5] {
-        [
-            self.bar,
-            self.launcher,
-            self.catcher,
-            self.desktop_widgets,
-            self.edit_widgets,
-        ]
+    fn fields(&self) -> [Option<SurfaceId>; 3] {
+        [self.bar, self.desktop_widgets, self.edit_widgets]
     }
 
     /// The id of this row's spawned surface `name` (a `Surface::NAME`), if it has one. A slotted
@@ -57,6 +50,14 @@ impl OutputSurfaces {
         self.ids().any(|held| held == id)
     }
 
+    /// The id of `S`'s surface in this row, if one is spawned (a surface with one slot).
+    pub fn surface_of<S: Surface>(&self) -> Option<SurfaceId> {
+        self.spawned
+            .iter()
+            .find(|surface| surface.name == S::NAME)
+            .map(|surface| surface.id)
+    }
+
     /// Every surface actually spawned, for closing them all.
     pub fn ids(&self) -> impl Iterator<Item = SurfaceId> {
         let spawned: Vec<SurfaceId> = self.spawned.iter().map(|surface| surface.id).collect();
@@ -68,8 +69,6 @@ impl OutputSurfaces {
         self.spawned.retain(|surface| surface.id != id);
         for field in [
             &mut self.bar,
-            &mut self.launcher,
-            &mut self.catcher,
             &mut self.desktop_widgets,
             &mut self.edit_widgets,
         ] {
@@ -191,7 +190,7 @@ mod tests {
     #[test]
     fn spawned_surfaces_are_found_and_forgotten_like_the_rest() {
         let mut row = surfaces(1);
-        row.launcher = Some(SurfaceId(2));
+        row.desktop_widgets = Some(SurfaceId(2));
         row.spawned.push(Spawned {
             name: "hot-corner",
             slot: "BottomRight".to_owned(),

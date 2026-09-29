@@ -11,13 +11,6 @@ use sill_ui_kit::surface::LockSurface;
 use crate::daemon::msg::ShellMsg;
 use crate::outputs::{OutputSurfaces, Outputs, bar_namespace};
 
-/// The launcher panel's and catcher's namespaces on `info`, which `debug stats` reports.
-fn launcher_namespaces(info: &OutputInfo) -> (String, String) {
-    use sill_ui_kit::surfaces::launcher::{catcher_layer, panel_layer};
-    let panel = panel_layer(info, &Default::default(), &Default::default()).namespace;
-    (panel, catcher_layer(info).namespace)
-}
-
 /// Every known surface's frame statistics: the rows' surfaces, and the lock surfaces while a lock
 /// is up.
 pub fn collect(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<SurfaceStats> {
@@ -52,9 +45,6 @@ fn lock_surfaces(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<(String,
 /// One output's spawned surfaces, each with its layer namespace.
 fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, SurfaceId)> {
     let bar = surfaces.bar.map(|id| (bar_namespace(info), id));
-    let (panel, catcher) = launcher_namespaces(info);
-    let launcher = surfaces.launcher.map(|id| (panel, id));
-    let catcher = surfaces.catcher.map(|id| (catcher, id));
     let desktop = surfaces
         .desktop_widgets
         .map(|id| (crate::widgets::namespace(info), id));
@@ -66,8 +56,6 @@ fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, Su
         .iter()
         .map(|surface| (surface.namespace.clone(), surface.id));
     bar.into_iter()
-        .chain(launcher)
-        .chain(catcher)
         .chain(desktop)
         .chain(edit)
         .chain(spawned)

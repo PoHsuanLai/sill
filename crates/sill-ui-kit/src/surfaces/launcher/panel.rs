@@ -50,7 +50,7 @@ use sill_search::ResultsService;
 use sill_services::ClipboardService;
 
 /// The launcher's stylesheet (lint-clean under `Profile::Strict`, `tests/launcher_lint.rs`).
-pub(crate) const LAUNCHER_CSS: &str = include_str!("../../style/launcher.css");
+pub const LAUNCHER_CSS: &str = include_str!("../../style/launcher.css");
 
 /// Where the actions menu hangs while the palette has reported no usable rect: under the first
 /// row (its rect in the embedded palette is 6, 80.5, 668 x 45.1 in the card, which starts
@@ -285,7 +285,7 @@ fn card_key(shown: Option<&Shown>, aside: Option<&Aside>) -> CardKey {
             query: shown.session.query.clone(),
             rows: shown.view.len(),
             // While the pane widens the card, the whole room takes presses, as it does under
-            // the actions menu: the catcher's hole is the room then (`layer::catcher_input`).
+            // the actions menu: the catcher's hole is the room then (`catcher::layer::input`).
             actions: match (shown.session.keys.actions, aside) {
                 (ActionsMenu::Open { .. }, _) | (_, Some(_)) => ActionsShown::Open,
                 (ActionsMenu::Closed, None) => ActionsShown::Closed,

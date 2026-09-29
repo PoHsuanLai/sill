@@ -1,5 +1,5 @@
 //! Spawning the surfaces every output gets, each row's missing ones after every host event. The
-//! bar, wallpaper and launcher blocks live here; the other surfaces' `spawn_missing` sit in
+//! bar and wallpaper blocks live here; the other surfaces' `spawn_missing` sit in
 //! their own modules and are called in their drawing order by [`spawn_missing`].
 
 use shell_host::SurfaceId;
@@ -12,8 +12,8 @@ use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::surface::{LockSurface, MountLockProps, Surface, mount_lock};
 use sill_ui_kit::{
-    Banners, Dock, HotCorners, IdleDim, Lock, NotificationCenter, Osd, PolkitPrompt, PowerMenu,
-    ScreenshotThumb, Switcher, Wallpaper,
+    Banners, Dock, HotCorners, IdleDim, Launcher, LauncherCatcher, Lock, NotificationCenter, Osd,
+    PolkitPrompt, PowerMenu, ScreenshotThumb, Switcher, Wallpaper,
 };
 use tokio::sync::watch;
 
@@ -47,7 +47,8 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     prepare_wallpapers(outputs, services, &settings.borrow());
     spawn_surface::<Wallpaper>(ctx, outputs, spawn, &());
     spawn_surface::<Dock>(ctx, outputs, spawn, &());
-    spawn_missing_launchers(ctx, outputs, services, settings_feed, links, settings);
+    spawn_surface::<LauncherCatcher>(ctx, outputs, spawn, &links.launcher);
+    spawn_surface::<Launcher>(ctx, outputs, spawn, &links.launcher);
     spawn_surface::<PowerMenu>(ctx, outputs, spawn, &links.power_menu);
     // The polkit prompt over the power menu, and the switcher (both Overlay).
     spawn_surface::<PolkitPrompt>(ctx, outputs, spawn, &links.banners);
@@ -149,52 +150,6 @@ fn prepare_wallpapers(outputs: &Outputs, services: &Services, settings: &ShellFi
         if let Err(error) = prepared {
             eprintln!("sill: preparing the wallpaper on {:?}: {error}", info.name);
         }
-    }
-}
-
-/// Spawn the launcher's two surfaces for every output whose row has none yet, both hidden at once:
-/// they stay alive and are shown and hidden with `set_visibility`, following `launcher`. The
-/// catcher is spawned first.
-fn spawn_missing_launchers(
-    ctx: &mut HostCtx<ShellMsg>,
-    outputs: &mut Outputs,
-    services: &Services,
-    settings_feed: &SettingsFeed,
-    links: &Links,
-    settings_tx: &watch::Sender<ShellFile>,
-) {
-    use sill_ui_kit::surfaces::launcher::{
-        LauncherCatcherProps, LauncherProps, catcher_layer, panel_layer,
-    };
-    let missing: Vec<OutputInfo> = outputs
-        .outputs
-        .iter()
-        .filter(|(_, s)| s.launcher.is_none() || s.catcher.is_none())
-        .map(|(info, _)| info.clone())
-        .collect();
-    let file = settings_tx.borrow().clone();
-    for info in missing {
-        let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
-        let output = info.clone();
-        let root = |root: HostRoot| {
-            surface_root(root, services, settings_feed, links).context(links.launcher.clone())
-        };
-        if surfaces.catcher.is_none() {
-            let props = LauncherCatcherProps {
-                output: output.clone(),
-            };
-            let root = root(HostRoot::with_props(sill_ui_kit::LauncherCatcher, props));
-            surfaces.catcher = spawn_hidden(ctx, catcher_layer(&info), root, &info);
-        }
-        if surfaces.launcher.is_none() {
-            let config = panel_layer(&info, &file.bar, &file.launcher);
-            let root = root(HostRoot::with_props(
-                sill_ui_kit::Launcher,
-                LauncherProps { output },
-            ));
-            surfaces.launcher = spawn_hidden(ctx, config, root, &info);
-        }
-        outputs.set(info, surfaces);
     }
 }
 

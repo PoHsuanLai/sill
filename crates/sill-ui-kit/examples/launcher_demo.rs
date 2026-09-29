@@ -27,10 +27,9 @@ use shell_host::{
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_ui_kit::links::LauncherLink;
 use sill_ui_kit::links::LinkKey;
+use sill_ui_kit::surface::{MountProps, Surface, mount};
+use sill_ui_kit::surfaces::launcher::LauncherKey;
 use sill_ui_kit::surfaces::launcher::script::{LauncherScript, Scripted, ScriptedInput};
-use sill_ui_kit::surfaces::launcher::{
-    LauncherCatcherProps, LauncherKey, LauncherProps, catcher_layer, panel_layer,
-};
 use sill_ui_kit::{Launcher, LauncherCatcher};
 use tokio::sync::{mpsc, watch};
 
@@ -107,18 +106,14 @@ fn spawn_launcher(ctx: &mut HostCtx<DemoMsg>, output: OutputInfo, demo: &mut Dem
             .context(LauncherScript(demo.script.subscribe()))
     };
     let catcher = root(HostRoot::with_props(
-        LauncherCatcher,
-        LauncherCatcherProps {
-            output: output.clone(),
-        },
+        mount::<LauncherCatcher>,
+        MountProps::<LauncherCatcher>::new(output.clone(), ()),
     ));
-    spawn_hidden(ctx, catcher_layer(&output), catcher);
-    let config = panel_layer(&output, &file.bar, &file.launcher);
+    spawn_hidden(ctx, LauncherCatcher::layer(&output, &file, ()), catcher);
+    let config = Launcher::layer(&output, &file, ());
     let panel = root(HostRoot::with_props(
-        Launcher,
-        LauncherProps {
-            output: output.clone(),
-        },
+        mount::<Launcher>,
+        MountProps::<Launcher>::new(output.clone(), ()),
     ));
     if let Some(id) = spawn_hidden(ctx, config, panel) {
         demo.panels.push((output.id, id));

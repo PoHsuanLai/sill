@@ -1,18 +1,18 @@
-//! Coherence rules 1 and 2 for the launcher: its stylesheet under
-//! `Profile::Strict`, and renders of the real `Launcher` (open over results, and with its
-//! actions menu) and `LauncherCatcher` through the markup lint. The panel is rendered by the
-//! harness (its palette embedded, measured and focused as live) and by an SSR pass.
+//! Coherence rules 1 and 2 for the launcher's panel over results (the empty panel and the
+//! catcher are rows of `crates/sill/tests/lint.rs`): the real `Launcher` (open over results, and
+//! with its preview pane) through the markup lint, rendered by the harness (its palette
+//! embedded, measured and focused as live) and by an SSR pass.
 
 mod launcher_harness;
 
 use launcher_harness::launcher_support;
 
 use dioxus::prelude::*;
-use ds::lint::{LintConfig, Profile, Rule, assert_clean, markup};
+use ds::lint::{LintConfig, Profile, Rule, markup};
 use sill_settings::{SettingsFeed, ShellFile};
+use sill_ui_kit::Launcher;
 use sill_ui_kit::links::LauncherLink;
-use sill_ui_kit::surfaces::launcher::{LauncherCatcherProps, LauncherProps};
-use sill_ui_kit::{Launcher, LauncherCatcher};
+use sill_ui_kit::surface::{MountProps, mount};
 
 const LAUNCHER_CSS: &str = include_str!("../src/style/launcher.css");
 
@@ -56,29 +56,13 @@ fn panel_html() -> String {
 /// The SSR pass of the panel: its root and the Ds, the palette not yet mounted.
 fn panel_ssr() -> String {
     render_ssr(VirtualDom::new_with_props(
-        Launcher,
-        LauncherProps {
-            output: launcher_support::fake::output(),
-        },
-    ))
-}
-
-fn catcher_html() -> String {
-    render_ssr(VirtualDom::new_with_props(
-        LauncherCatcher,
-        LauncherCatcherProps {
-            output: launcher_support::fake::output(),
-        },
+        mount::<Launcher>,
+        MountProps::<Launcher>::new(launcher_support::fake::output(), ()),
     ))
 }
 
 fn full_css() -> String {
     format!("{}\n{}", ds::stylesheet(), LAUNCHER_CSS)
-}
-
-#[test]
-fn the_launcher_stylesheet_is_clean_under_strict() {
-    assert_clean(LAUNCHER_CSS, &strict());
 }
 
 #[test]
@@ -112,14 +96,6 @@ fn the_panel_with_its_preview_pane_and_sections_lints_clean() {
     open.harness.advance(std::time::Duration::from_millis(60));
     let html = open.harness.html();
     assert!(html.contains("ds-preview"), "the pane is up");
-    let offences = markup(&html, &full_css(), &strict());
-    assert!(offences.is_empty(), "{offences:#?}");
-}
-
-#[test]
-fn the_catcher_markup_lint_is_clean() {
-    let html = catcher_html();
-    assert!(html.contains("sill-launcher-catcher"), "{html}");
     let offences = markup(&html, &full_css(), &strict());
     assert!(offences.is_empty(), "{offences:#?}");
 }

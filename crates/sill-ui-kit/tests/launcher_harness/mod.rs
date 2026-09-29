@@ -1,4 +1,4 @@
-//! The real `Launcher` in a `ds_native::Harness` (a Blitz document, no window), opened on the
+//! The real `Launcher` surface on `SurfaceHarness`, opened on the
 //! fake services with their search runner: keys and time as a user gives them. The harness runs
 //! on the virtual clock and the runner as a task on its thread, so what a test sees
 //! depends only on what it did, never on how loaded the machine is.
@@ -9,57 +9,37 @@
 pub mod launcher_support;
 
 use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::Duration;
 
 use dioxus::prelude::*;
+use ds_native::Harness;
 use ds_native::harness::settle_until;
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use launcher_support::{LauncherFeeds, Runner, fake};
-use sill_settings::{SettingsFeed, ShellFile};
 use sill_ui_kit::Launcher;
-use sill_ui_kit::hooks::PinnedAppearance;
+use sill_ui_kit::harness::SurfaceHarness;
 use sill_ui_kit::links::LauncherLink;
-use sill_ui_kit::services::Services;
 use sill_ui_kit::surfaces::launcher::script::{LauncherScript, Scripted, ScriptedInput};
 use sill_ui_kit::surfaces::launcher::{LauncherKey, LauncherProviders};
 use tokio::sync::watch;
 
-/// What the harness's root provides.
-#[derive(Clone)]
-struct World {
-    services: Services,
-    settings: SettingsFeed,
-    link: LauncherLink,
+/// What the test gives the root beside the surface's own contexts: the providers, the script
+/// (the keys the harness cannot press) and the search runner, which runs as a task on the
+/// harness's thread once.
+fn in_root(
     providers: LauncherProviders,
     script: LauncherScript,
-}
-
-thread_local! {
-    static WORLD: RefCell<Option<World>> = const { RefCell::new(None) };
-    /// The next harness's search runner, taken by its root.
-    static RUNNER: RefCell<Option<Runner>> = const { RefCell::new(None) };
-}
-
-/// The root: the daemon's contexts (the harness provides the measurer), then the panel.
-fn app() -> Element {
-    let world = WORLD.with(|w| w.borrow().clone());
-    let Some(world) = world else {
-        return rsx! {};
-    };
-    use_context_provider(|| world.services.clone());
-    // Not the desktop's portal and appearance file: they answer off-thread.
-    use_context_provider(PinnedAppearance::default);
-    use_context_provider(|| world.settings.clone());
-    use_context_provider(|| world.link.clone());
-    use_context_provider(|| world.providers.clone());
-    use_context_provider(|| world.script.clone());
-    use_hook(|| {
-        if let Some(runner) = RUNNER.with(|r| r.borrow_mut().take()) {
-            spawn(runner.run());
-        }
-    });
-    rsx! {
-        Launcher { output: fake::output() }
+    runner: Runner,
+) -> impl Fn() + 'static {
+    let runner = Rc::new(RefCell::new(Some(runner)));
+    move || {
+        use_context_provider(|| providers.clone());
+        use_context_provider(|| script.clone());
+        use_hook(|| {
+            if let Some(runner) = runner.borrow_mut().take() {
+                spawn(runner.run());
+            }
+        });
     }
 }
 
@@ -86,39 +66,40 @@ impl Open {
 /// The launcher opened with `query` typed, once its rows (or its empty state) have drawn.
 pub fn open(query: &str) -> Open {
     let (services, feeds, runner) = launcher_support::services_with_runner();
-    RUNNER.with(|r| *r.borrow_mut() = Some(runner));
+    let LauncherFeeds {
+        bar,
+        results,
+        searches,
+    } = feeds;
     let link = LauncherLink::new();
     link.open(fake::output().id, query.to_owned());
     let (script, script_rx) = watch::channel(Scripted::default());
-    WORLD.with(|w| {
-        *w.borrow_mut() = Some(World {
-            services,
-            settings: SettingsFeed::fixed(ShellFile::default()),
-            link: link.clone(),
-            providers: launcher_support::providers(),
-            script: LauncherScript(script_rx),
-        });
-    });
-    let viewport = Viewport {
-        width: 680 + 360 + 84,
-        height: 460 + 66,
-        scale_percent: 100,
-    };
-    let mut harness = Harness::with_config(app, virtual_clock(viewport));
+    let running = SurfaceHarness::<Launcher>::setup(link.clone(), ())
+        .services(services, bar)
+        .in_root(in_root(
+            launcher_support::providers(),
+            LauncherScript(script_rx),
+            runner,
+        ))
+        .start();
+    let SurfaceHarness {
+        mut harness,
+        feeds: bar,
+        ..
+    } = running;
     settle(&mut harness, |h| {
         h.count(".ds-menu-item") > 0 || h.count(".ds-menu-empty") > 0
     });
     Open {
         harness,
-        feeds,
+        feeds: LauncherFeeds {
+            bar,
+            results,
+            searches,
+        },
         link,
         script,
     }
-}
-
-/// `viewport` on the virtual clock.
-pub fn virtual_clock(viewport: Viewport) -> HarnessConfig {
-    HarnessConfig::new(viewport).with_clock(Clock::Virtual)
 }
 
 /// Advance until `done` holds (`settle_until`, which fails with the document if it never does);

@@ -8,21 +8,21 @@
 use dioxus::prelude::*;
 use shell_host::{OutputInfo, use_watch};
 
+use super::layer::input;
 use crate::hooks::use_settings;
 use crate::links::LauncherLink;
 use crate::surfaces::launcher::card::follow_input;
 use crate::surfaces::launcher::follow::{use_follow_visibility, use_shown};
-use crate::surfaces::launcher::layer::catcher_input;
 use crate::surfaces::launcher::panel::LAUNCHER_CSS;
 
 /// The catcher on `output`.
-pub(crate) fn catcher(output: OutputInfo) -> Element {
+pub(super) fn catcher(output: OutputInfo) -> Element {
     let link = use_context::<LauncherLink>();
     let shown = use_shown(&link);
     use_follow_visibility(shown, output.id);
     let file = use_settings()();
     let hit = use_watch(link.subscribe_hit());
-    follow_input(catcher_input(&output, &file.bar, &file.launcher, hit()));
+    follow_input(input(&output, &file.bar, &file.launcher, hit()));
     rsx! {
         style { {LAUNCHER_CSS} }
         div {

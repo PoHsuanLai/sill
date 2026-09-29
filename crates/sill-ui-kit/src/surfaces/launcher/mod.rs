@@ -1,7 +1,7 @@
 //! The launcher (design/20 §1.3, design/13 §13.3.9, 06 §20.2): two surfaces kept warm with
-//! `set_visibility` — a transparent full-output catcher (painted once, never animated) and the
-//! centred 680 x 460 panel with keyboard exclusivity — closing on Escape, focus lost, a catcher
-//! click or `launcher toggle`.
+//! `set_visibility` — a transparent full-output catcher (`catcher/`, painted once, never
+//! animated) and the centred 680 x 460 panel with keyboard exclusivity — closing on Escape,
+//! focus lost, a catcher click or `launcher toggle`.
 //!
 //! Both surfaces follow one shared [`crate::links::LauncherLink`] (`links`), which the daemon writes
 //! for `sill launcher toggle|open|close` and the panel's focus, and each surface maps or
@@ -15,7 +15,6 @@ pub mod groups;
 pub mod hit;
 pub mod keymap;
 pub mod keys;
-pub mod layer;
 pub mod list_detail;
 pub mod pane_session;
 pub mod preview;
@@ -32,32 +31,18 @@ mod claim_keys;
 mod contact;
 mod events;
 mod follow;
+mod layer;
 mod pane_keys;
 pub(crate) mod panel;
 mod run;
+mod surface;
 
 pub use activate::{LauncherEffect, LauncherProviders, effect_of};
+pub use catcher::LauncherCatcher;
 pub use keys::{LauncherKey, LauncherOut, LauncherState, step};
 pub use layer::{
     CARD_BLUR_RADIUS, CARD_ID, CARD_INSET, CARD_RADIUS, PANEL_HEIGHT, PANEL_ROOM_WIDTH,
-    PANEL_WIDTH, SHADOW_BELOW, SHADOW_SIDE, catcher_input, catcher_layer, panel_layer, panel_rect,
-    panel_top,
+    PANEL_WIDTH, SHADOW_BELOW, SHADOW_SIDE, panel_rect, panel_top,
 };
-
-use dioxus::prelude::*;
-use shell_host::OutputInfo;
-
-/// The panel on `output`: quire `CommandPalette` with the search field, results grouped by
-/// provider, and the actions menu (Ctrl+K / Alt+K). Needs a [`LauncherLink`] root context
-/// beside the daemon's usual ones.
-#[component]
-pub fn Launcher(output: OutputInfo) -> Element {
-    panel::launcher(output)
-}
-
-/// The catcher on `output`: an empty, transparent, full-output surface whose click closes the
-/// launcher. Needs a [`LauncherLink`] root context.
-#[component]
-pub fn LauncherCatcher(output: OutputInfo) -> Element {
-    catcher::catcher(output)
-}
+pub use panel::LAUNCHER_CSS;
+pub use surface::Launcher;

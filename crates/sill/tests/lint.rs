@@ -24,12 +24,12 @@ use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
-    BannerLink, BannerOutput, CenterLink, Dir, LevelSource, LockLink, OsdKind, OsdLink,
-    PowerMenuLink, Preselect, PromptOutput, SwitcherAsk, SwitcherLink,
+    BannerLink, BannerOutput, CenterLink, Dir, LauncherLink, LevelSource, LockLink, OsdKind,
+    OsdLink, PowerMenuLink, Preselect, PromptOutput, SwitcherAsk, SwitcherLink,
 };
 use sill_ui_kit::{
-    Banners, Dock, IdleDim, Lock, NotificationCenter, Osd, PolkitPrompt, PowerMenu,
-    ScreenshotThumb, Switcher, Wallpaper,
+    Banners, Dock, IdleDim, Launcher, LauncherCatcher, Lock, NotificationCenter, Osd, PolkitPrompt,
+    PowerMenu, ScreenshotThumb, Switcher, Wallpaper,
 };
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
@@ -46,6 +46,16 @@ const SURFACES: &[SurfaceCase] = &[
         name: "dock",
         css: sill_ui_kit::surfaces::dock::DOCK_CSS,
         states: dock_states,
+    },
+    SurfaceCase {
+        name: "launcher",
+        css: sill_ui_kit::surfaces::launcher::LAUNCHER_CSS,
+        states: launcher_states,
+    },
+    SurfaceCase {
+        name: "launcher_catcher",
+        css: sill_ui_kit::surfaces::launcher::LAUNCHER_CSS,
+        states: launcher_catcher_states,
     },
     SurfaceCase {
         name: "osd",
@@ -139,6 +149,31 @@ fn dock_states() -> Vec<(&'static str, String)> {
     let hidden = draw(hiding);
     assert!(hidden.contains("id=\"dock-strip\""), "{hidden}");
     vec![("fixed", fixed), ("hiding", hidden)]
+}
+
+/// The panel shut, then opened on the empty query (results over fake providers are
+/// `sill-ui-kit`'s `launcher_lint`).
+fn launcher_states() -> Vec<(&'static str, String)> {
+    let mut panel = SurfaceHarness::<Launcher>::setup(LauncherLink::new(), ()).start();
+    panel.harness.advance(Duration::from_millis(40));
+    let shut = panel.harness.html();
+    panel.link.open(fake::output().id, String::new());
+    panel.harness.advance(Duration::from_millis(60));
+    let open = panel.harness.html();
+    assert!(open.contains("class=\"ds-palette\""), "{open}");
+    vec![("shut", shut), ("open", open)]
+}
+
+/// The catcher shut, then shown with the launcher.
+fn launcher_catcher_states() -> Vec<(&'static str, String)> {
+    let mut catcher = SurfaceHarness::<LauncherCatcher>::setup(LauncherLink::new(), ()).start();
+    catcher.harness.advance(Duration::from_millis(40));
+    let shut = catcher.harness.html();
+    catcher.link.open(fake::output().id, String::new());
+    catcher.harness.advance(Duration::from_millis(60));
+    let shown = catcher.harness.html();
+    assert!(shown.contains("sill-launcher-catcher"), "{shown}");
+    vec![("shut", shut), ("shown", shown)]
 }
 
 /// The indicator hidden, then shown for a volume change.

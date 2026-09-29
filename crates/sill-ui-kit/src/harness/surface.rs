@@ -13,6 +13,7 @@ use sill_settings::{SettingsFeed, ShellFile};
 
 use super::fake;
 use crate::hooks::PinnedAppearance;
+use crate::services::Services;
 use crate::surface::{MountProps, Surface, mount};
 
 /// Builds the surface's document; the harness's root runs it on every render.
@@ -61,6 +62,8 @@ pub struct SurfaceSetup<S: Surface> {
     output: OutputInfo,
     viewport: Option<Viewport>,
     appearance: PinnedAppearance,
+    services: Option<(Services, fake::Feeds)>,
+    root_hook: Option<Rc<dyn Fn()>>,
 }
 
 impl<S: Surface> fmt::Debug for SurfaceSetup<S> {
@@ -82,6 +85,8 @@ impl<S: Surface> SurfaceHarness<S> {
             output: fake::output(),
             viewport: None,
             appearance: PinnedAppearance::default(),
+            services: None,
+            root_hook: None,
         }
     }
 }
@@ -105,6 +110,20 @@ impl<S: Surface> SurfaceSetup<S> {
         self
     }
 
+    /// Services other than [`fake::services`], and the senders behind them: for a test that
+    /// answers a service itself (the launcher's search runner).
+    pub fn services(mut self, services: Services, feeds: fake::Feeds) -> Self {
+        self.services = Some((services, feeds));
+        self
+    }
+
+    /// A hook run in the root before the surface's own, on every render: for the extra contexts
+    /// (`use_context_provider`) and tasks (`use_hook` around `spawn`) a test gives it.
+    pub fn in_root(mut self, hook: impl Fn() + 'static) -> Self {
+        self.root_hook = Some(Rc::new(hook));
+        self
+    }
+
     /// Mount the surface and draw its first frame.
     pub fn start(self) -> SurfaceHarness<S> {
         let SurfaceSetup {
@@ -114,9 +133,11 @@ impl<S: Surface> SurfaceSetup<S> {
             output,
             viewport,
             appearance,
+            services,
+            root_hook,
         } = self;
         let viewport = viewport.unwrap_or_else(|| layer_viewport::<S>(&output, &settings, slot));
-        let (services, feeds) = fake::services();
+        let (services, feeds) = services.unwrap_or_else(fake::services);
         let feed = SettingsFeed::fixed(settings);
         let context_link = link.clone();
         let build: Build = Rc::new(move || {
@@ -124,6 +145,9 @@ impl<S: Surface> SurfaceSetup<S> {
             use_context_provider(|| feed.clone());
             use_context_provider(|| appearance.clone());
             use_context_provider(|| context_link.clone());
+            if let Some(hook) = &root_hook {
+                hook();
+            }
             mount::<S>(MountProps::new(output.clone(), slot))
         });
         WORLD.with(|world| *world.borrow_mut() = Some(build));

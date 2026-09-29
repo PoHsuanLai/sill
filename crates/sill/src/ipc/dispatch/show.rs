@@ -4,6 +4,7 @@
 
 use sill_ipc::response::Response;
 use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
+use sill_ui_kit::Launcher;
 use sill_ui_kit::links::Preselect;
 use sill_ui_kit::surface::Surface;
 use sill_ui_kit::{NotificationCenter, PowerMenu};
@@ -36,7 +37,10 @@ fn first_with(outputs: &Outputs, has: impl Fn(&OutputSurfaces) -> bool) -> Optio
 /// The shared launcher state, which both launcher surfaces follow.
 fn launcher(reach: &Reach, request: LauncherRequest) -> Response {
     let link = &reach.links.launcher;
-    match (request, first_with(reach.outputs, |s| s.launcher.is_some())) {
+    match (
+        request,
+        first_with(reach.outputs, |s| s.surface_of::<Launcher>().is_some()),
+    ) {
         (LauncherRequest::Close, _) => link.close(),
         (LauncherRequest::Toggle, Some(output)) => link.toggle(output),
         (LauncherRequest::Open { query }, Some(output)) => link.open(output, query),
