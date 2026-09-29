@@ -7,8 +7,11 @@
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-use sill_services::env::Dirs;
-use sill_services::screenshots::{ShotFolders, ShotPolicy, ShotTool, Taking, Watching, spawn};
+use sill_services::env::{Dirs, Env};
+use sill_services::screenshots::{
+    ScreenshotsService, ShotFolders, ShotPolicy, ShotTool, Taking, Watching,
+};
+use sill_services::service::spawn;
 use sill_services::{ShotCommand, ShotKind, ShotPreview, Shots};
 use tokio::sync::watch;
 
@@ -55,7 +58,12 @@ fn current_is(path: &Path) -> impl Fn(&Shots) -> bool + '_ {
 async fn a_renamed_screenshot_is_current_with_a_preview_and_a_part_file_is_not() {
     let dir = folder("watch");
     let dirs = Dirs::under(&dir.join("dirs"));
-    let (mut rx, control) = spawn(&tokio::runtime::Handle::current(), &dirs);
+    let env = Env {
+        dirs: dirs.clone(),
+        ..Env::isolated(&dir)
+    };
+    let shots = spawn::<ScreenshotsService>(&tokio::runtime::Handle::current(), &env, ());
+    let (mut rx, control) = (shots.state, shots.control);
     let policy = ShotPolicy {
         folders: ShotFolders::At(vec![dir.clone()]),
         tool: ShotTool::Off,
@@ -94,7 +102,12 @@ async fn a_renamed_screenshot_is_current_with_a_preview_and_a_part_file_is_not()
 async fn a_stand_in_tool_takes_a_screenshot_that_the_watch_sees() {
     let dir = folder("take");
     let dirs = Dirs::under(&dir.join("dirs"));
-    let (mut rx, control) = spawn(&tokio::runtime::Handle::current(), &dirs);
+    let env = Env {
+        dirs: dirs.clone(),
+        ..Env::isolated(&dir)
+    };
+    let shots = spawn::<ScreenshotsService>(&tokio::runtime::Handle::current(), &env, ());
+    let (mut rx, control) = (shots.state, shots.control);
     let command = format!("sleep 0.2; cp '{FIXTURE}' \"$2/Screenshot_$1.png\"");
     let policy = ShotPolicy {
         folders: ShotFolders::At(vec![dir.clone()]),

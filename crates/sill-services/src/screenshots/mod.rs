@@ -31,18 +31,14 @@ mod preview;
 
 pub use names::{ShotName, folders_of, is_screenshot_name, parse_folders, preview_name};
 pub use reduce::{
-    Shot, ShotEffect, ShotEvent, ShotId, ShotLeave, ShotPreview, Shots, Taking, Watching,
-    reduce_shots,
+    Shot, ShotEffect, ShotEvent, ShotId, ShotLeave, ShotPreview, Shots, Taking, Watching, step,
 };
 pub use tool::{CommandLine, ShotKind, ShotTool, parse_tool, save_folder, tool_command};
 
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 use std::path::PathBuf;
-
-use tokio::runtime::Handle;
-use tokio::sync::watch;
-
-use crate::control::Control;
-use crate::env::Dirs;
 
 /// Which folders are watched.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
@@ -76,10 +72,26 @@ pub enum ShotCommand {
     Leave(ShotId, ShotLeave),
 }
 
-/// Start the screenshots task on `rt`, passive until `Configure`.
-pub fn spawn(rt: &Handle, dirs: &Dirs) -> (watch::Receiver<Shots>, Control<ShotCommand>) {
-    let (tx, rx) = watch::channel(Shots::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands, dirs.clone()));
-    (rx, control)
+/// Screenshots as a [`Service`]: watching folders under `env`'s directories, its previews in their
+/// cache. Passive until `Configure`.
+#[derive(Debug)]
+pub enum ScreenshotsService {}
+
+impl Service for ScreenshotsService {
+    const NAME: &'static str = "screenshots";
+    type State = Shots;
+    type Command = ShotCommand;
+    type Deps = ();
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let dirs = env.dirs.clone();
+        async move {
+            live::run(io.state, io.commands, dirs).await;
+            Ok(())
+        }
+    }
 }

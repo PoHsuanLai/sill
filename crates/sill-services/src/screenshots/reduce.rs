@@ -110,7 +110,7 @@ pub enum ShotEffect {
 /// current is ignored (a watch sees both the create and the close). A preview answer for a shot
 /// no longer current is dropped. `Left` of the current shot clears it and asks for `Open` or
 /// `Trash` as the reason says; of any other id, nothing. `Take` while `Running` is ignored.
-pub fn reduce_shots(shots: Shots, event: ShotEvent) -> (Shots, Vec<ShotEffect>) {
+pub fn step(shots: Shots, event: ShotEvent) -> (Shots, Vec<ShotEffect>) {
     match event {
         ShotEvent::Appeared(path) => appeared(shots, path),
         ShotEvent::PreviewReady(id, preview) => (
@@ -194,9 +194,7 @@ fn left(shots: Shots, id: ShotId, why: ShotLeave) -> (Shots, Vec<ShotEffect>) {
 mod tests {
     use std::path::PathBuf;
 
-    use super::{
-        Shot, ShotEffect, ShotEvent, ShotId, ShotLeave, ShotPreview, Shots, Taking, reduce_shots,
-    };
+    use super::{Shot, ShotEffect, ShotEvent, ShotId, ShotLeave, ShotPreview, Shots, Taking, step};
     use crate::screenshots::tool::ShotKind;
 
     fn shot(id: u64, name: &str, preview: ShotPreview) -> Shot {
@@ -213,7 +211,7 @@ mod tests {
 
     #[test]
     fn a_screenshot_arrives_is_previewed_and_leaves() {
-        let (one, fx) = reduce_shots(Shots::default(), ShotEvent::Appeared(path("a.png")));
+        let (one, fx) = step(Shots::default(), ShotEvent::Appeared(path("a.png")));
         assert_eq!(one.current, Some(shot(1, "a.png", ShotPreview::Pending)));
         assert_eq!(
             fx,
@@ -222,13 +220,13 @@ mod tests {
                 from: path("a.png")
             }]
         );
-        let (again, fx) = reduce_shots(one.clone(), ShotEvent::Appeared(path("a.png")));
+        let (again, fx) = step(one.clone(), ShotEvent::Appeared(path("a.png")));
         assert_eq!(
             (again, fx),
             (one.clone(), Vec::new()),
             "the same file twice"
         );
-        let (ready, _) = reduce_shots(one, ShotEvent::PreviewReady(ShotId(1), path("p.png")));
+        let (ready, _) = step(one, ShotEvent::PreviewReady(ShotId(1), path("p.png")));
         assert_eq!(
             ready.current,
             Some(shot(1, "a.png", ShotPreview::Ready(path("p.png"))))
@@ -241,23 +239,22 @@ mod tests {
             (ShotLeave::Moved, Vec::new()),
         ];
         for (why, want) in cases {
-            let (gone, fx) = reduce_shots(ready.clone(), ShotEvent::Left(ShotId(1), why));
+            let (gone, fx) = step(ready.clone(), ShotEvent::Left(ShotId(1), why));
             assert_eq!(gone.current, None, "{why:?}");
             assert_eq!(fx, want, "{why:?}");
         }
-        let (stale, fx) =
-            reduce_shots(ready.clone(), ShotEvent::Left(ShotId(9), ShotLeave::Opened));
+        let (stale, fx) = step(ready.clone(), ShotEvent::Left(ShotId(9), ShotLeave::Opened));
         assert_eq!((stale, fx), (ready, Vec::new()));
     }
 
     #[test]
     fn a_newer_screenshot_replaces_the_current_one_and_stale_previews_drop() {
-        let (one, _) = reduce_shots(Shots::default(), ShotEvent::Appeared(path("a.png")));
-        let (two, _) = reduce_shots(one, ShotEvent::Appeared(path("b.png")));
+        let (one, _) = step(Shots::default(), ShotEvent::Appeared(path("a.png")));
+        let (two, _) = step(one, ShotEvent::Appeared(path("b.png")));
         assert_eq!(two.current, Some(shot(2, "b.png", ShotPreview::Pending)));
-        let (same, fx) = reduce_shots(two.clone(), ShotEvent::PreviewReady(ShotId(1), path("p")));
+        let (same, fx) = step(two.clone(), ShotEvent::PreviewReady(ShotId(1), path("p")));
         assert_eq!((same, fx), (two.clone(), Vec::new()));
-        let (failed, _) = reduce_shots(two, ShotEvent::PreviewFailed(ShotId(2)));
+        let (failed, _) = step(two, ShotEvent::PreviewFailed(ShotId(2)));
         assert_eq!(
             failed.current,
             Some(shot(2, "b.png", ShotPreview::Original))
@@ -266,12 +263,12 @@ mod tests {
 
     #[test]
     fn one_tool_run_at_a_time() {
-        let (running, fx) = reduce_shots(Shots::default(), ShotEvent::Take(ShotKind::Area));
+        let (running, fx) = step(Shots::default(), ShotEvent::Take(ShotKind::Area));
         assert_eq!(running.taking, Taking::Running(ShotKind::Area));
         assert_eq!(fx, vec![ShotEffect::RunTool(ShotKind::Area)]);
-        let (still, fx) = reduce_shots(running.clone(), ShotEvent::Take(ShotKind::Screen));
+        let (still, fx) = step(running.clone(), ShotEvent::Take(ShotKind::Screen));
         assert_eq!((still, fx), (running.clone(), Vec::new()));
-        let (idle, _) = reduce_shots(running, ShotEvent::TakeEnded);
+        let (idle, _) = step(running, ShotEvent::TakeEnded);
         assert_eq!(idle.taking, Taking::Idle);
     }
 }

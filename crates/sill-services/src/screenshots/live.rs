@@ -1,7 +1,7 @@
 //! The screenshots task: on `Configure`, resolve the folders (`folders_of`, the Pictures folder
 //! from the Pictures folder of [`Dirs`]), keep those that exist, watch them with `notify` (a file closed
 //! after writing, or renamed into place, whose name `is_screenshot_name`, [`super::folder_watch`]), and
-//! publish `Watching`; run each event and command through `reduce_shots` and carry out its
+//! publish `Watching`; run each event and command through `step` and carry out its
 //! effects: `MakePreview` on the blocking pool ([`super::preview`]), `Open` (`xdg-open`),
 //! `Trash` (`gio trash`), `RunTool` (`tool_command` into `save_folder`, a child whose exit is
 //! `TakeEnded`). Ends when every receiver is gone.
@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 use notify::RecommendedWatcher;
 use tokio::sync::{mpsc, watch};
 
-use super::reduce::{ShotEffect, ShotEvent, Shots, Watching, reduce_shots};
+use super::reduce::{ShotEffect, ShotEvent, Shots, Watching, step};
 use super::tool::{ShotKind, save_folder, tool_command};
 use super::{ShotCommand, ShotPolicy, folders_of};
 use crate::env::Dirs;
@@ -84,7 +84,7 @@ impl Live {
     }
 
     fn apply(&mut self, event: ShotEvent) {
-        let (next, effects) = reduce_shots(self.tx.borrow().clone(), event);
+        let (next, effects) = step(self.tx.borrow().clone(), event);
         self.tx.send_if_modified(|now| {
             let changed = *now != next;
             *now = next;
