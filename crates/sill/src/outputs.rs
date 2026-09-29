@@ -1,12 +1,28 @@
 //! Which surfaces exist on which output, and the pure reconciliation from the host's output
 //! list to spawn and close actions.
 
-use shell_host::{OutputId, OutputInfo, SurfaceId};
+use shell_host::{LayerSize, OutputId, OutputInfo, SurfaceId};
 use sill_ui_kit::links::Corner;
+
+/// A layer surface spawned through `Surface`, as `daemon::surfaces` records it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Spawned {
+    /// `Surface::NAME` of the kind.
+    pub name: &'static str,
+    /// The slot, as its `Debug` text (the row holds many kinds, so the slot type is erased).
+    pub slot: String,
+    pub id: SurfaceId,
+    /// The layer namespace, which `debug stats` reports.
+    pub namespace: String,
+    /// The size last asked of the compositor.
+    pub size: LayerSize,
+}
 
 /// One output's surfaces (each `None` until spawned).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct OutputSurfaces {
+    /// Every surface spawned through `Surface`, in spawn order.
+    pub spawned: Vec<Spawned>,
     pub bar: Option<SurfaceId>,
     pub wallpaper: Option<SurfaceId>,
     pub dock: Option<SurfaceId>,
@@ -98,18 +114,20 @@ impl OutputSurfaces {
         ]
     }
 
-    /// Whether any field of this row is `id`.
+    /// Whether any surface of this row is `id`.
     pub fn contains(&self, id: SurfaceId) -> bool {
-        self.fields().contains(&Some(id))
+        self.ids().any(|held| held == id)
     }
 
     /// Every surface actually spawned, for closing them all.
     pub fn ids(&self) -> impl Iterator<Item = SurfaceId> {
-        self.fields().into_iter().flatten()
+        let spawned: Vec<SurfaceId> = self.spawned.iter().map(|surface| surface.id).collect();
+        self.fields().into_iter().flatten().chain(spawned)
     }
 
-    /// Forget `id`, whichever field held it.
+    /// Forget `id`, whichever surface held it.
     pub fn clear(&mut self, id: SurfaceId) {
+        self.spawned.retain(|surface| surface.id != id);
         for field in [
             &mut self.bar,
             &mut self.wallpaper,
