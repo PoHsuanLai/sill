@@ -22,8 +22,8 @@ use sill_services::Control;
 
 use super::commands::action_command;
 use super::deck::{Deck, DeckIn, DeckOut, EntryKey, advance};
-use super::machine::{BannerIn, BannerParams};
 use super::stack::Card;
+use super::step::{BannerIn, BannerParams};
 use crate::clock::FrameClock;
 use crate::notification_card::CardPress;
 

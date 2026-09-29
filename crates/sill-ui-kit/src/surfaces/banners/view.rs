@@ -16,11 +16,11 @@ use sill_services::NotificationsService;
 use sill_settings::{BannerEntry, BannerPosition, NotificationsSettings};
 
 use super::deck::{DeckIn, Entry, EntryKey, Showing};
-use super::drive::{Column, use_column};
 use super::elements::{CardShape, Regions, element_regions};
+use super::io::{Column, use_column};
 use super::layer::ROOM;
-use super::machine::{BannerIn, BannerParams};
 use super::stack::stack;
+use super::step::{BannerIn, BannerParams};
 use crate::hooks::{use_control, use_service_part, use_settings};
 use crate::links::BannerLink;
 use crate::notification_card::{

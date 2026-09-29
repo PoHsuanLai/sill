@@ -11,7 +11,9 @@ use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::surface::{LockSurface, MountLockProps, Surface, mount_lock};
-use sill_ui_kit::{HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
+use sill_ui_kit::{
+    Banners, HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper,
+};
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
@@ -50,7 +52,8 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     spawn_surface::<PolkitPrompt>(ctx, outputs, spawn, &links.banners);
     spawn_surface::<Switcher>(ctx, outputs, spawn, &links.switcher);
     // Before the OSD, so the OSD draws over a banner (both on the Overlay layer).
-    crate::notifications::spawn_missing(ctx, outputs, settings, root);
+    spawn_surface::<Banners>(ctx, outputs, spawn, &links.banners);
+    crate::notifications::spawn_missing(ctx, outputs, root);
     // The screenshot thumbnail after the banners and before the OSD (all Overlay); the
     // desktop widgets (Bottom) and the hot corners (Overlay, never painted).
     crate::screenshots::spawn_missing(ctx, outputs, root);

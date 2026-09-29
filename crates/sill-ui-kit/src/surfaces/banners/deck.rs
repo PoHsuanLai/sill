@@ -1,7 +1,7 @@
 //! The column's cards over time, pure: which cards the stack lists (the [`stack`](super::stack)'s)
 //! and which are still drawn while quire's `BannerStack` plays them out, one banner
-//! [`machine`](super::machine) per card, and what the column must do next (start a hold, tell the
-//! service). The view (`drive.rs`) owns the timers; the motion is quire's. Everything it decides
+//! [`step`](super::step) per card, and what the column must do next (start a hold, tell the
+//! service). The view (`io.rs`) owns the timers; the motion is quire's. Everything it decides
 //! with is here, tested by table (`deck_tests.rs`).
 //!
 //! A card keeps its entry while its app's banners keep coming: a newer notification replaces
@@ -15,8 +15,8 @@ use sill_model::notifications::NotificationsCommand;
 use sill_model::units::Stamp;
 
 use super::commands::leave_commands;
-use super::machine::{Banner, BannerIn, BannerOut, BannerParams, Deadline, Persistence, step};
 use super::stack::Card;
+use super::step::{Banner, BannerIn, BannerOut, BannerParams, Deadline, Persistence, step};
 
 /// One drawn card's identity for its life on screen (a new one per arrival): quire's
 /// `BannerKey`.

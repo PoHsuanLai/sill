@@ -6,8 +6,8 @@
 use sill_model::units::Stamp;
 
 use super::deck::{Deck, DeckOut, Entry, Speak, arrive, feed};
-use super::machine::{Banner, BannerIn, BannerParams, Persistence, step};
 use super::stack::Card;
+use super::step::{Banner, BannerIn, BannerParams, Persistence, step};
 
 /// `deck` following `cards` at `now`.
 pub(super) fn follow(

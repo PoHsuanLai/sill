@@ -11,6 +11,10 @@ use sill_model::auth::UserName;
 use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, WindowState};
 use sill_model::idle::{DimLevel, DimShown, Idle, IdleMode, IdlePhase};
 use sill_model::ids::{OutputName, WorkspaceKey};
+use sill_model::notifications::{
+    Action, ActionKey, AppRef, BannerLife, Body, Expiry, Hints, IconRef, LiveBanner, Notification,
+    NotificationId, Notifications, UnixMs, parse_body,
+};
 use sill_model::polkit_agent::{
     ActionId, Cookie, Echo, LastTry, Polkit, PromptPhase, PromptView, Registration,
 };
@@ -21,7 +25,7 @@ use sill_ui_kit::links::{
     BannerLink, BannerOutput, Dir, LevelSource, LockLink, OsdKind, OsdLink, PowerMenuLink,
     Preselect, PromptOutput, SwitcherAsk, SwitcherLink,
 };
-use sill_ui_kit::{IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
+use sill_ui_kit::{Banners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
 struct SurfaceCase {
@@ -47,6 +51,11 @@ const SURFACES: &[SurfaceCase] = &[
         name: "lock",
         css: sill_ui_kit::surfaces::lock::LOCK_CSS,
         states: lock_states,
+    },
+    SurfaceCase {
+        name: "banners",
+        css: sill_ui_kit::surfaces::banners::BANNERS_CSS,
+        states: banners_states,
     },
     SurfaceCase {
         name: "hot_corners",
@@ -75,9 +84,13 @@ const SURFACES: &[SurfaceCase] = &[
     },
 ];
 
+/// The custom properties surfaces write on themselves.
+const OWN_VARS: &[&str] = &sill_ui_kit::surfaces::banners::BANNER_VARS;
+
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
+        own_vars: OWN_VARS.iter().map(|var| (*var).to_owned()).collect(),
         ..LintConfig::new(&ds::kits())
     }
 }
@@ -204,7 +217,57 @@ fn polkit_prompt_states() -> Vec<(&'static str, String)> {
     let shown = prompt.harness.html();
     assert!(shown.contains("ds-polkit"), "{shown}");
     vec![("hidden", hidden), ("shown", shown)]
+}
 
+/// The idle column, then a grouped card, hovered, with two actions and a body with a link.
+fn banners_states() -> Vec<(&'static str, String)> {
+    let link = BannerLink::new();
+    link.set(BannerOutput::On(fake::output().id));
+    let mut column = SurfaceHarness::<Banners>::setup(link, ()).start();
+    column.harness.advance(Duration::from_millis(60));
+    let idle = column.harness.html();
+    let note = |id: u32, summary: &str, actions: &[(&str, &str)]| Notification {
+        id: NotificationId(id),
+        arrived: UnixMs(sill_ui_kit::notification_card::wall_now().0),
+        app: AppRef {
+            name: "mail".to_owned(),
+            icon: IconRef::None,
+            desktop_entry: None,
+        },
+        summary: summary.to_owned(),
+        body: Body::plain(""),
+        actions: actions
+            .iter()
+            .map(|(key, label)| Action {
+                key: ActionKey((*key).to_owned()),
+                label: (*label).to_owned(),
+            })
+            .collect(),
+        hints: Hints::default(),
+        expiry: Expiry::Default,
+    };
+    let live = |note| LiveBanner {
+        note,
+        life: BannerLife::Expires,
+    };
+    let mut newest = note(2, "Two", &[("reply", "Reply"), ("archive", "Archive")]);
+    newest.body = parse_body("<b>Body</b> with <a href=\"https://x.org\">a link</a>");
+    column.feeds.notifications.send_modify(|n| {
+        n.live = Notifications {
+            banners: vec![live(newest), live(note(1, "One", &[]))],
+            ..Notifications::default()
+        }
+    });
+    column.harness.advance(Duration::from_millis(700));
+    let plate = column
+        .harness
+        .centre(".ds-notification-plate")
+        .expect("a card"); // test-only
+    column.harness.pointer_move(plate);
+    column.harness.advance(Duration::from_millis(60));
+    let hovered = column.harness.html();
+    assert!(hovered.contains("data-hover=\"on\""), "{hovered}");
+    vec![("idle", idle), ("hovered", hovered)]
 }
 
 /// The lock screen with the prompt on its output, then on another one (the clock alone).

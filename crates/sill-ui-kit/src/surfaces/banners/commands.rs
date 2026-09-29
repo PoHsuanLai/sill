@@ -1,12 +1,12 @@
 //! What a card's input tells the service: the one mapping from the banner machine's decisions
-//! (`machine::Leave`) and a card press (`notification_card::CardPress`) to
+//! (`step::Leave`) and a card press (`notification_card::CardPress`) to
 //! `NotificationsCommand`s. A card stands for every banner grouped under it, so leaving is said
 //! for each; an action is the newest one's.
 
 use sill_model::notifications::{ActionKey, Activation, NotificationsCommand};
 
-use super::machine::Leave;
 use super::stack::Card;
+use super::step::Leave;
 
 /// What `card` leaving for `why` sends: its hold ran out (`BannerTimedOut`), it was closed
 /// (`Dismiss`: the close button) or swiped away (`SwipeAway`: the service keeps it in the center
@@ -37,8 +37,8 @@ pub fn action_command(
 #[cfg(test)]
 mod tests {
     use super::{action_command, leave_commands};
-    use crate::surfaces::banners::machine::Leave;
     use crate::surfaces::banners::stack::Card;
+    use crate::surfaces::banners::step::Leave;
     use sill_model::notifications::{
         ActionKey, Activation, ActivationToken, AppKey, BannerLife, NotificationId,
         NotificationsCommand,

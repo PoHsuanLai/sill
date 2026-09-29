@@ -205,5 +205,5 @@ fn remaining_of(deadline: Deadline, now: Stamp) -> Remaining {
 }
 
 #[cfg(test)]
-#[path = "machine_tests.rs"]
+#[path = "step_tests.rs"]
 mod tests;

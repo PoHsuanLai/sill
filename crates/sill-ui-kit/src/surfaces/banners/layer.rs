@@ -15,7 +15,7 @@ use shell_host::{
     Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
     Margin, OutputInfo, OutputTarget, RegionSpec,
 };
-use sill_settings::NotificationsSettings;
+use sill_settings::{NotificationsSettings, ShellFile};
 
 use crate::surfaces::naming::namespace;
 
@@ -39,7 +39,8 @@ pub fn margin(n: &NotificationsSettings) -> Margin {
 }
 
 /// The banner column on `output`.
-pub fn banners_layer(output: &OutputInfo, n: &NotificationsSettings) -> LayerConfig {
+pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
+    let n = &settings.notifications;
     LayerConfig {
         namespace: namespace("banners", output),
         layer: LayerLevel::Overlay,
@@ -59,18 +60,24 @@ pub fn banners_layer(output: &OutputInfo, n: &NotificationsSettings) -> LayerCon
 
 #[cfg(test)]
 mod tests {
-    use super::{ROOM, banners_layer};
+    use super::{ROOM, layer};
     use crate::surfaces::naming::tests::output;
     use ds_settings::Px;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, Margin, RegionSpec,
     };
-    use sill_settings::NotificationsSettings;
+    use sill_settings::{NotificationsSettings, ShellFile};
 
     #[test]
     fn the_column_hangs_down_the_right_edge_and_takes_nothing_until_a_card_shows() {
         let n = NotificationsSettings::default();
-        let config = banners_layer(&output(Some("DP-1")), &n);
+        let config = layer(
+            &output(Some("DP-1")),
+            &ShellFile {
+                notifications: n.clone(),
+                ..ShellFile::default()
+            },
+        );
         assert_eq!(config.namespace, "sill-banners-DP-1");
         assert_eq!(config.layer, LayerLevel::Overlay);
         assert_eq!(config.anchor, Anchor::TOP | Anchor::RIGHT | Anchor::BOTTOM);
@@ -94,7 +101,13 @@ mod tests {
             position_right_px: Px(40),
             ..n
         };
-        let config = banners_layer(&output(Some("DP-1")), &wide);
+        let config = layer(
+            &output(Some("DP-1")),
+            &ShellFile {
+                notifications: wide,
+                ..ShellFile::default()
+            },
+        );
         assert_eq!(config.size.width, LayerExtent::Px(420 + 2 * ROOM));
         assert_eq!(config.margin.right, 0);
     }

@@ -1,8 +1,8 @@
 //! Table tests for `deck.rs` and `deck_cards.rs`.
 
 use super::{Deck, DeckIn, DeckOut, EntryKey, Showing, advance};
-use crate::surfaces::banners::machine::{Banner, BannerIn, BannerParams, Deadline, Leave};
 use crate::surfaces::banners::stack::Card;
+use crate::surfaces::banners::step::{Banner, BannerIn, BannerParams, Deadline, Leave};
 use sill_model::notifications::{AppKey, BannerLife, NotificationId, NotificationsCommand};
 use sill_model::units::Stamp;
 use sill_settings::NotificationsSettings;

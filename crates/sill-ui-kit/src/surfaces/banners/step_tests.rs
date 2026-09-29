@@ -1,4 +1,4 @@
-//! Table tests for `machine.rs`.
+//! Table tests for `step.rs`.
 
 use super::{Banner, BannerIn, BannerOut, BannerParams, Deadline, Leave, Persistence, step};
 use sill_model::units::Stamp;

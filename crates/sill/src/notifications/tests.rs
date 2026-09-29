@@ -1,8 +1,8 @@
-use shell_host::{OutputId, OutputInfo, Rect, Scale, SurfaceId};
+use shell_host::{LayerExtent, LayerSize, OutputId, OutputInfo, Rect, Scale, SurfaceId};
 use sill_ui_kit::links::BannerOutput;
 
-use super::{banner_output, namespaces};
-use crate::outputs::{OutputSurfaces, Outputs};
+use super::{banner_output, namespace};
+use crate::outputs::{OutputSurfaces, Outputs, Spawned};
 
 fn output(id: u32, name: &str) -> OutputInfo {
     OutputInfo {
@@ -22,7 +22,19 @@ fn output(id: u32, name: &str) -> OutputInfo {
 
 fn row(banners: Option<u64>) -> OutputSurfaces {
     OutputSurfaces {
-        banners: banners.map(SurfaceId),
+        spawned: banners
+            .map(|id| Spawned {
+                name: "banners",
+                slot: "()".to_owned(),
+                id: SurfaceId(id),
+                namespace: "sill-banners-DP-1".to_owned(),
+                size: LayerSize {
+                    width: LayerExtent::Px(440),
+                    height: LayerExtent::Fill,
+                },
+            })
+            .into_iter()
+            .collect(),
         ..OutputSurfaces::default()
     }
 }
@@ -54,12 +66,9 @@ fn banners_show_on_the_first_output_that_has_a_column() {
 }
 
 #[test]
-fn the_surfaces_are_named_for_debug() {
+fn the_center_is_named_for_debug() {
     assert_eq!(
-        namespaces(&output(1, "DP-1")),
-        (
-            "sill-banners-DP-1".to_owned(),
-            "sill-notification-center-DP-1".to_owned()
-        )
+        namespace(&output(1, "DP-1")),
+        "sill-notification-center-DP-1"
     );
 }
