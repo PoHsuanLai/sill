@@ -16,7 +16,7 @@ use ds_native::harness::assert_settles_to_zero_frames;
 use launcher_harness::launcher_support::m9;
 use launcher_harness::{Open, Seen, await_off_thread, loaded, open, settle, watch};
 use sill_launcher::PreviewKind;
-use sill_surfaces::surfaces::launcher::debug_link::LinkKey;
+use sill_surfaces::links::LinkKey;
 
 /// How a key reached the panel.
 #[derive(Debug, Clone, Copy)]

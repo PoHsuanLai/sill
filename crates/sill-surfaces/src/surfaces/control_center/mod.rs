@@ -19,7 +19,6 @@
 pub mod geometry;
 pub mod labels;
 pub mod level;
-pub mod link;
 pub mod menu_bar;
 pub mod modules;
 pub mod page;
@@ -41,7 +40,6 @@ pub use labels::{
     profile_label, track_lines, wifi_status,
 };
 pub use level::LevelModule;
-pub use link::{ControlCenterAsk, ControlCenterLink};
 pub use menu_bar::{MENU_BAR_ORDER, in_menu_bar, menu_bar_modules};
 pub use page::{CcPage, Detail, PageInput, PageOut, Slide, step_page};
 

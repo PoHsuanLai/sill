@@ -6,7 +6,7 @@
 
 use sill_model::units::Stamp;
 
-use crate::surfaces::launcher::presence::Visible;
+use crate::links::Visible;
 
 /// How long the indicator holds after the last change, in milliseconds (`osd.hold_ms`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,7 +66,7 @@ pub fn step(phase: OsdPhase, input: OsdInput, times: OsdTimes) -> OsdPhase {
 #[cfg(test)]
 mod tests {
     use super::{OsdInput, OsdPhase, OsdTimes, step};
-    use crate::surfaces::launcher::presence::Visible;
+    use crate::links::Visible;
     use sill_model::units::Stamp;
 
     const TIMES: OsdTimes = OsdTimes { hold_ms: 1500 };

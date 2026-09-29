@@ -12,6 +12,8 @@ use sill_launcher::{Choice, ItemKey};
 use sill_model::results::{Results, SearchCommand};
 
 use crate::hooks::use_services;
+use crate::links::PowerMenuLink;
+use crate::links::{LauncherLink, OpenSerial, Opening, Reveal};
 use crate::surfaces::launcher::activate::{
     AfterEffect, LauncherEffect, LauncherProviders, effect_of,
 };
@@ -23,12 +25,10 @@ use crate::surfaces::launcher::keys::{
     step,
 };
 use crate::surfaces::launcher::pane_session::{PaneSession, next_in_ring, ring_for};
-use crate::surfaces::launcher::presence::{LauncherLink, LauncherShown, OpenSerial, Opening};
 use crate::surfaces::launcher::preview::keys::{PreviewKey, PreviewState};
 use crate::surfaces::launcher::run::{EffectFrom, run_effect};
 use crate::surfaces::launcher::session::Session;
 use crate::surfaces::launcher::view::{Expanded, View, toggled, view};
-use crate::surfaces::power_menu::PowerMenuLink;
 
 /// The stderr line for one opening: from the request's arrival (`sill launcher toggle|open`)
 /// to the first frame the compositor showed of the panel. The daemon's
@@ -53,7 +53,7 @@ pub(crate) enum Picking {
 pub(crate) struct PanelCtx {
     pub(crate) output: OutputId,
     pub(crate) link: LauncherLink,
-    pub(crate) shown: ReadSignal<LauncherShown>,
+    pub(crate) shown: ReadSignal<Reveal<Opening>>,
     pub session: Signal<Session>,
     /// The pane state: the preview pane, "Show More", Tab's ring.
     pub pane: Signal<PaneSession>,

@@ -9,9 +9,9 @@ use shell_host::OutputInfo;
 use sill_model::auth::{Auth, AuthCommand, AuthFault, AuthPhase, PamNote, Secret};
 use sill_model::ids::OutputName;
 
-use super::link::{LockLink, PromptOutput};
 use super::{backdrop_for, clock_lines, lock_user, prompt_state};
 use crate::hooks::{use_service, use_services, use_settings};
+use crate::links::{LockLink, PromptOutput};
 use sill_services::{AuthService, ClockService, WallpaperService};
 
 /// Where shell-host's session lock is, as the surface needs it.

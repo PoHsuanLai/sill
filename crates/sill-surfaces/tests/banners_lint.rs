@@ -13,7 +13,8 @@ use ds::lint::{LintConfig, Profile, Rule, assert_clean, markup};
 use sill_model::notifications::parse_body;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Banners;
-use sill_surfaces::surfaces::banners::{BANNER_VARS, BANNERS_CSS, BannerLink, BannersProps};
+use sill_surfaces::links::BannerLink;
+use sill_surfaces::surfaces::banners::{BANNER_VARS, BANNERS_CSS, BannersProps};
 
 fn strict() -> LintConfig {
     LintConfig {

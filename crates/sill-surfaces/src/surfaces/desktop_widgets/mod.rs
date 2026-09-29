@@ -21,8 +21,8 @@ pub mod saved;
 mod view;
 
 pub use layer::desktop_layer;
-pub use placement::{GridSize, GridSlot, Placement, grid_size, place};
-pub use saved::{OutputKey, PlacementFile};
+pub use placement::{GridSize, grid_size, place};
+pub use saved::PlacementFile;
 pub use view::{WIDGET_RADIUS, widget_regions};
 
 use dioxus::prelude::*;

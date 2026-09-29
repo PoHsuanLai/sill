@@ -3,8 +3,8 @@
 
 use sill_launcher::ProviderKind;
 
+use crate::links::OpenSerial;
 use crate::surfaces::launcher::keys::{Filter, next_filter};
-use crate::surfaces::launcher::presence::OpenSerial;
 use crate::surfaces::launcher::preview::keys::PreviewState;
 use crate::surfaces::launcher::view::Expanded;
 
@@ -72,8 +72,8 @@ pub fn tab(filter: Filter, ring: &Ring) -> Filter {
 #[cfg(test)]
 mod tests {
     use super::{PaneSession, Ring, ring_for, tab};
+    use crate::links::OpenSerial;
     use crate::surfaces::launcher::keys::Filter;
-    use crate::surfaces::launcher::presence::OpenSerial;
     use sill_launcher::ProviderKind;
 
     #[test]

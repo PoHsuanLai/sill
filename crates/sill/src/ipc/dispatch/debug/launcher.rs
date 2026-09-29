@@ -5,7 +5,7 @@
 
 use sill_ipc::debug::LauncherKey;
 use sill_ipc::response::Response;
-use sill_surfaces::surfaces::launcher::LauncherLink;
+use sill_surfaces::links::LauncherLink;
 
 use super::super::reply::unsupported;
 
@@ -45,8 +45,8 @@ fn not_open() -> Response {
 
 /// `key` in the surface's words.
 #[cfg(feature = "debug")]
-fn link_key(key: LauncherKey) -> sill_surfaces::surfaces::launcher::debug_link::LinkKey {
-    use sill_surfaces::surfaces::launcher::debug_link::LinkKey;
+fn link_key(key: LauncherKey) -> sill_surfaces::links::LinkKey {
+    use sill_surfaces::links::LinkKey;
     match key {
         LauncherKey::Up => LinkKey::Up,
         LauncherKey::Down => LinkKey::Down,
@@ -65,9 +65,7 @@ fn link_key(key: LauncherKey) -> sill_surfaces::surfaces::launcher::debug_link::
 
 /// The panel's rows as the wire reports them.
 #[cfg(feature = "debug")]
-fn report(
-    rows: sill_surfaces::surfaces::launcher::debug_link::ShownRows,
-) -> sill_ipc::debug::LauncherRows {
+fn report(rows: sill_surfaces::links::ShownRows) -> sill_ipc::debug::LauncherRows {
     use sill_ipc::debug::{LauncherRows, RowsSection};
     LauncherRows {
         query: rows.query,
@@ -90,8 +88,8 @@ mod tests {
     use sill_ipc::debug::LauncherKey;
     use sill_ipc::response::Response;
     use sill_launcher::PreviewKind;
-    use sill_surfaces::surfaces::launcher::LauncherLink;
-    use sill_surfaces::surfaces::launcher::debug_link::{LinkKey, ShownRows, ShownRowsSection};
+    use sill_surfaces::links::LauncherLink;
+    use sill_surfaces::links::{LinkKey, ShownRows, ShownRowsSection};
 
     use super::{key, link_key, report, rows};
 

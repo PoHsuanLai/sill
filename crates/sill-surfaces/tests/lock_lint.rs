@@ -8,7 +8,8 @@ use dioxus::prelude::*;
 use ds::lint::{LintConfig, Profile, assert_clean, markup};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::LockScreen;
-use sill_surfaces::surfaces::lock::{LockLink, LockScreenProps, PromptOutput};
+use sill_surfaces::links::{LockLink, PromptOutput};
+use sill_surfaces::surfaces::lock::LockScreenProps;
 
 const LOCK_CSS: &str = include_str!("../src/style/lock.css");
 

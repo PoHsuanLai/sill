@@ -18,7 +18,7 @@ use sill_model::notifications::{
     ActionKey, Activation, NotificationId, NotificationsCommand, parse_body,
 };
 use sill_settings::{NotificationsSettings, ShellFile};
-use sill_surfaces::surfaces::banners::BannerOutput;
+use sill_surfaces::links::BannerOutput;
 
 const HOLD_MS: u64 = 1000;
 

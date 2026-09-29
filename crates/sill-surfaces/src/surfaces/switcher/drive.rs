@@ -17,11 +17,12 @@ use sill_services::switcher::{SwitcherApp, switcher_apps};
 
 use super::hold::{Hold, Watch, chord_input, tick_input};
 use super::keys::{Chord, chord_after_keyup, sw_key};
-use super::link::{AskSerial, SwitcherAsk, SwitcherLink};
-use super::machine::{Dir, SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
+use super::machine::{SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
 use super::session::Session;
 use super::tiles::index_of;
 use crate::FrameClock;
+use crate::links::Dir;
+use crate::links::{AskSerial, SwitcherAsk, SwitcherLink};
 
 /// One surface's switcher: its machine, its opening, and what it talks to. Copy, so every
 /// handler and task holds it.

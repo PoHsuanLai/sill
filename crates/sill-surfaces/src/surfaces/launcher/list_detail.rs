@@ -12,7 +12,7 @@
 use ds::detail::{Detail, Detailed, FirstShow, Moment, Touch, use_detail};
 use sill_launcher::{Expanded, Generation};
 
-use crate::surfaces::launcher::presence::OpenSerial;
+use crate::links::OpenSerial;
 
 /// The results as the person sees them.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -87,7 +87,7 @@ pub fn use_list_detail(state: ListState, touch: Touch) -> Detail<ListState> {
 mod tests {
     use super::ListState::{Closed, Empty, Waiting};
     use super::{ListState, Rows};
-    use crate::surfaces::launcher::presence::OpenSerial;
+    use crate::links::OpenSerial;
     use ds::detail::{Moment, first_table, moment_table};
     use sill_launcher::{Expanded, Generation, Section};
 

@@ -13,7 +13,7 @@ use ds::ShortcutKey;
 use sill_launcher::{AppId, WindowKey};
 use sill_model::cosmic_wl::WlCommand;
 use sill_settings::ShellFile;
-use sill_surfaces::surfaces::switcher::{Dir, SwitcherAsk};
+use sill_surfaces::links::{Dir, SwitcherAsk};
 use switcher_support::{Running, presence, start, tiles, windows};
 
 /// Three apps, `term` most recent; `calc` has two windows.

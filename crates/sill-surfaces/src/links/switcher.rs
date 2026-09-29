@@ -6,7 +6,12 @@ use shell_host::OutputId;
 use sill_launcher::AppId;
 use tokio::sync::watch;
 
-use super::machine::Dir;
+/// Which way a chord or key moves the selection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Dir {
+    Next,
+    Prev,
+}
 
 /// One ask.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -80,8 +85,7 @@ impl SwitcherLink {
 mod tests {
     use shell_host::OutputId;
 
-    use super::{AskSerial, SwitcherAsk, SwitcherLink};
-    use crate::surfaces::switcher::machine::Dir;
+    use crate::links::{AskSerial, Dir, SwitcherAsk, SwitcherLink};
 
     #[test]
     fn every_ask_is_numbered_and_seen_even_when_repeated() {

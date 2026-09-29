@@ -1,5 +1,5 @@
 //! Notification banners (design/20 §1.6, design/13 §13.3.6): one Overlay column per output,
-//! spawned hidden and kept warm like the OSD, shown only on the output the [`BannerLink`] names
+//! spawned hidden and kept warm like the OSD, shown only on the output the [`crate::links::BannerLink`] names
 //! while a card is up. Cards stack at the top right under the bar (or, per
 //! `notifications.banner_position`, the bottom right), newest first, macOS-style.
 //!
@@ -17,7 +17,6 @@ mod deck_cards;
 pub mod elements;
 pub mod layer;
 pub mod machine;
-pub mod placement;
 pub mod stack;
 
 mod drive;
@@ -28,7 +27,6 @@ pub use layer::{CARD_RADIUS, ROOM, banners_layer};
 pub use machine::{
     Banner, BannerIn, BannerOut, BannerParams, Deadline, Leave, Persistence, Remaining, step,
 };
-pub use placement::{BannerLink, BannerOutput};
 pub use stack::{Card, stack};
 pub use view::{BANNER_VARS, BANNERS_CSS};
 

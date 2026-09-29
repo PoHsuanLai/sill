@@ -4,7 +4,7 @@
 //! presses, hover and swipe and the stack's `on_hidden` into the deck's inputs, and send the
 //! service what a press means (`commands.rs`). Once the last card has gone, no task runs.
 //!
-//! [`BannerLink`]: super::BannerLink
+//! [`BannerLink`]: crate::links::BannerLink
 
 use std::collections::BTreeMap;
 use std::time::Duration;

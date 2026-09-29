@@ -8,7 +8,8 @@
 use sill_settings::WidgetKind;
 
 use super::geometry::GridMetrics;
-use super::placement::{Footprint, GridSize, GridSlot, Placement, clamp, nearest_free};
+use super::placement::{Footprint, GridSize, clamp, nearest_free};
+use crate::widgets::grid::{GridSlot, Placement};
 use crate::widgets::{WidgetSize, desktop_size};
 
 /// A point on the layer in whole logical px (may lie off it: a drag goes where the pointer goes).

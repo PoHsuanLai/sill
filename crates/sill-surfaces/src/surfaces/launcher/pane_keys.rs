@@ -14,9 +14,9 @@ use dioxus::prelude::*;
 use ds::{Claim, FieldKey};
 use sill_launcher::{Choice, Item, Preview, action_for_chord, chords, preview_for};
 
+use crate::links::LinkKey;
 use crate::surfaces::launcher::chord_keys::chord_of;
 use crate::surfaces::launcher::claim_keys::{KeyPlace, pane_key};
-use crate::surfaces::launcher::debug_link::LinkKey;
 use crate::surfaces::launcher::entries::RowRef;
 use crate::surfaces::launcher::events::PanelCtx;
 use crate::surfaces::launcher::keymap::launcher_key;

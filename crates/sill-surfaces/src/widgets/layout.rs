@@ -13,7 +13,7 @@
 use ds::widget::{DesktopGrid, GridCell, Order, WidgetAt, WidgetEdit, WidgetLayout, apply};
 
 use super::{WidgetHost, WidgetKind, kind_id, kind_of, size_of};
-use crate::surfaces::desktop_widgets::{GridSlot, Placement};
+use crate::widgets::grid::{GridSlot, Placement};
 
 /// What the layout is read from: the keys, and where this output's desktop widgets are now.
 #[derive(Debug, Clone, PartialEq, Eq)]

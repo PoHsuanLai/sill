@@ -18,6 +18,7 @@ use sill_services::locker::LockerService;
 use sill_services::service::spawn;
 use sill_services::volume::VolumeService;
 use sill_settings::SettingsFeed;
+use sill_surfaces::links::Links;
 use sill_surfaces::services::Services;
 use tokio::runtime::Handle as Runtime;
 
@@ -97,19 +98,23 @@ pub(crate) fn start(rt: &Runtime, env: &Env) -> Services {
 /// Tell each service that is passive until told what it should do: sill's own lock and polkit
 /// agent, and the policies the settings decide (the first one sent ends a service's passive
 /// start, and each is sent again whenever its answer changes).
-pub(crate) fn follow_settings(rt: &Runtime, feed: &SettingsFeed, services: &Services, env: &Env) {
+pub(crate) fn follow_settings(
+    rt: &Runtime,
+    feed: &SettingsFeed,
+    links: &Links,
+    services: &Services,
+    env: &Env,
+) {
     let settings = || feed.0.clone();
     // The notifications service's policy from the settings and the focus mode.
-    if let Some(links) = crate::links::get() {
-        follow(
-            rt,
-            settings(),
-            NotificationsBridge {
-                focus: links.focus.mode(),
-            },
-            services.notifications.control.clone(),
-        );
-    }
+    follow(
+        rt,
+        settings(),
+        NotificationsBridge {
+            focus: links.focus.mode(),
+        },
+        services.notifications.control.clone(),
+    );
     // The lock and the polkit agent are sill's own.
     let _ = services.locker.control.send(LockerCommand::Configure);
     let _ = services

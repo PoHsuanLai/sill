@@ -11,7 +11,7 @@ use sill_launcher::{
 };
 use sill_model::results::Results;
 
-use crate::surfaces::launcher::debug_link::{CLIPBOARD_TITLE, ShownRows, ShownRowsSection};
+use crate::links::{CLIPBOARD_TITLE, ShownRows, ShownRowsSection};
 use crate::surfaces::launcher::groups::fresh;
 use crate::surfaces::launcher::keys::Filter;
 use crate::surfaces::launcher::sections_view::HeaderAction;

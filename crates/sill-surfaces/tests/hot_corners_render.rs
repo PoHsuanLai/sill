@@ -16,7 +16,8 @@ use ds_settings::Ms;
 use shell_host::OutputId;
 use sill_settings::{CornerAction, HotCornersSettings, SettingsFeed, ShellFile};
 use sill_surfaces::HotCorner;
-use sill_surfaces::surfaces::hot_corners::{Corner, CornerLink, HOT_CORNERS_CSS};
+use sill_surfaces::links::{Corner, CornerLink};
+use sill_surfaces::surfaces::hot_corners::HOT_CORNERS_CSS;
 
 const DWELL_MS: u16 = 40;
 const REARM_MS: u16 = 60;

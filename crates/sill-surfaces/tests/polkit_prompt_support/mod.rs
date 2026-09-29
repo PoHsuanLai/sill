@@ -21,8 +21,8 @@ use sill_services::Control;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::PolkitPrompt;
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::links::{BannerLink, BannerOutput};
 use sill_surfaces::services::Services;
-use sill_surfaces::surfaces::banners::{BannerLink, BannerOutput};
 use tokio::sync::{mpsc, watch};
 
 /// What the harness's root provides.

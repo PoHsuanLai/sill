@@ -10,7 +10,8 @@ use launcher_harness::launcher_support;
 use dioxus::prelude::*;
 use ds::lint::{LintConfig, Profile, Rule, assert_clean, markup};
 use sill_settings::{SettingsFeed, ShellFile};
-use sill_surfaces::surfaces::launcher::{LauncherCatcherProps, LauncherLink, LauncherProps};
+use sill_surfaces::links::LauncherLink;
+use sill_surfaces::surfaces::launcher::{LauncherCatcherProps, LauncherProps};
 use sill_surfaces::{Launcher, LauncherCatcher};
 
 const LAUNCHER_CSS: &str = include_str!("../src/style/launcher.css");
@@ -107,8 +108,7 @@ fn the_panel_renders_no_raw_markup() {
 #[test]
 fn the_panel_with_its_preview_pane_and_sections_lints_clean() {
     let mut open = launcher_harness::open("m9");
-    open.link
-        .press(sill_surfaces::surfaces::launcher::debug_link::LinkKey::QuickLook);
+    open.link.press(sill_surfaces::links::LinkKey::QuickLook);
     open.harness.advance(std::time::Duration::from_millis(60));
     let html = open.harness.html();
     assert!(html.contains("ds-preview"), "the pane is up");

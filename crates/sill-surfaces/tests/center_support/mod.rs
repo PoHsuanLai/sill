@@ -22,8 +22,8 @@ use sill_model::notifications::{
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::NotificationCenter;
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::links::CenterLink;
 use sill_surfaces::services::Services;
-use sill_surfaces::surfaces::notification_center::CenterLink;
 
 /// What the harness's root provides.
 #[derive(Clone)]

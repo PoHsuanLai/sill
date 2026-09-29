@@ -25,10 +25,11 @@ use shell_host::{
     Host, HostCtx, HostEvent, HostRoot, LayerConfig, OutputId, OutputInfo, SurfaceId, Visibility,
 };
 use sill_settings::{SettingsFeed, ShellFile};
-use sill_surfaces::surfaces::launcher::debug_link::LinkKey;
+use sill_surfaces::links::LauncherLink;
+use sill_surfaces::links::LinkKey;
 use sill_surfaces::surfaces::launcher::script::{LauncherScript, Scripted, ScriptedInput};
 use sill_surfaces::surfaces::launcher::{
-    LauncherCatcherProps, LauncherKey, LauncherLink, LauncherProps, catcher_layer, panel_layer,
+    LauncherCatcherProps, LauncherKey, LauncherProps, catcher_layer, panel_layer,
 };
 use sill_surfaces::{Launcher, LauncherCatcher};
 use tokio::sync::{mpsc, watch};

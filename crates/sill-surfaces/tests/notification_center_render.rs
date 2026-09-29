@@ -13,7 +13,8 @@ use sill_model::notifications::{
     ServerStatus,
 };
 use sill_settings::ShellFile;
-use sill_surfaces::surfaces::notification_center::{CenterShown, PANEL_ID, PANEL_PADDING};
+use sill_surfaces::links::CenterShown;
+use sill_surfaces::surfaces::notification_center::{PANEL_ID, PANEL_PADDING};
 
 /// A group's toggle ("N more", "Show less") and Clear, in its header.
 const TOGGLE: &str = ".ds-group-header-actions .ds-button:first-child";

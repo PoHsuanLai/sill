@@ -12,7 +12,7 @@ use osd_support::{fake, label, level, look, start};
 use sill_model::units::Percent;
 use sill_model::volume::{Mute, Volume};
 use sill_settings::{OsdSettings, ShellFile};
-use sill_surfaces::surfaces::osd::{Level, LevelSource, OsdKind};
+use sill_surfaces::links::{Level, LevelSource, OsdKind};
 
 const HOLD_MS: u64 = 600;
 

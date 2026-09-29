@@ -5,7 +5,7 @@
 //! the scheme `use_appearance()` resolves (`ImageSource::file`; `None` lets quire paint its veil
 //! alone); the clock is `ds::LockClock` from [`super::clock_lines`] over the minute
 //! (`use_service::<ClockService>()` wakes it) and `session.lock_clock`; the prompt, only on the
-//! output the [`super::LockLink`] names, is `ds::LockPrompt` with [`super::lock_user`] over
+//! output the [`crate::links::LockLink`] names, is `ds::LockPrompt` with [`super::lock_user`] over
 //! `use_service::<AuthService>().account`, [`super::prompt_state`] over
 //! `use_service::<AuthService>().phase`, the Caps Lock mark from shell-host's `use_modifiers()`
 //! (published on keyboard focus, so a Caps Lock toggled before the lock shows from the first frame;

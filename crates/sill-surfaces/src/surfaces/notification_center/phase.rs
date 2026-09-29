@@ -1,4 +1,4 @@
-//! The column's life on one output, pure: the [`super::CenterLink`] says whether the center is
+//! The column's life on one output, pure: the [`crate::links::CenterLink`] says whether the center is
 //! wanted here; the column enters, stays, plays its exit and only then is the surface unmapped
 //! (the link has no "leaving" state, so the exit is the surface's own to count).
 

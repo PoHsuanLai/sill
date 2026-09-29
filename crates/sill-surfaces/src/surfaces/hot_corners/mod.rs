@@ -10,11 +10,9 @@
 //! material, no blur; the compositor still delivers pointer enter and leave to it.
 
 pub mod layer;
-pub mod link;
 pub mod machine;
 
 pub use layer::corner_layer;
-pub use link::{CornerHit, CornerLink};
 pub use machine::{CornerIn, CornerMachine, CornerOut, CornerParams, step};
 
 use std::time::Duration;
@@ -25,34 +23,7 @@ use shell_host::{OutputId, OutputInfo};
 use sill_settings::{CornerAction, HotCornersSettings};
 
 use crate::hooks::use_settings;
-
-/// A screen corner.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Corner {
-    TopLeft,
-    TopRight,
-    BottomLeft,
-    BottomRight,
-}
-
-impl Corner {
-    pub const ALL: [Corner; 4] = [
-        Corner::TopLeft,
-        Corner::TopRight,
-        Corner::BottomLeft,
-        Corner::BottomRight,
-    ];
-
-    /// `top-left`: the namespace's word.
-    pub fn word(self) -> &'static str {
-        match self {
-            Corner::TopLeft => "top-left",
-            Corner::TopRight => "top-right",
-            Corner::BottomLeft => "bottom-left",
-            Corner::BottomRight => "bottom-right",
-        }
-    }
-}
+use crate::links::{Corner, CornerLink};
 
 /// What `corner` does per `settings`.
 pub fn corner_action(settings: &HotCornersSettings, corner: Corner) -> CornerAction {
@@ -194,7 +165,8 @@ pub fn HotCorner(output: OutputInfo, corner: Corner) -> Element {
 mod tests {
     use sill_settings::{CornerAction, HotCornersSettings};
 
-    use super::{Corner, active_corners, corner_action, corner_command};
+    use super::{active_corners, corner_action, corner_command};
+    use crate::links::Corner;
 
     #[test]
     fn only_corners_with_an_action_get_a_surface() {

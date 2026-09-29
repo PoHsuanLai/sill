@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use ds_native::harness::assert_settles_to_zero_frames;
 use launcher_harness::{Open, Seen, await_off_thread, loaded, open, settle};
-use sill_surfaces::surfaces::launcher::debug_link::LinkKey;
+use sill_surfaces::links::LinkKey;
 
 /// Press `key` through the debug link (a remote change: `Touch::Remote`).
 fn press(open: &mut Open, key: LinkKey) {

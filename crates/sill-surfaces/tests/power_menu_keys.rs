@@ -11,7 +11,7 @@ use ds::ShortcutKey;
 use power_menu_support::{is_open, look, nth_button, opened, primary, ring_on_primary, settle};
 use sill_model::session::{Offer, Session, SessionAction};
 use sill_settings::{PowerMenuDefault, PowerMenuSettings, ShellFile};
-use sill_surfaces::surfaces::power_menu::Preselect;
+use sill_surfaces::links::Preselect;
 
 fn file(default_action: PowerMenuDefault) -> ShellFile {
     ShellFile {

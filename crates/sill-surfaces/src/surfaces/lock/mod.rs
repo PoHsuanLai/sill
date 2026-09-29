@@ -3,7 +3,7 @@
 //! (`crates/sill/src/lock/`), never a layer surface. Each draws quire's `LockScreen` stage in
 //! `Ds { material: Window, extent: Viewport }`: the output's pre-blurred wallpaper crop
 //! ([`backdrop::backdrop_for`]), quire's `LockClock` ([`view::clock_lines`]) and, on the output
-//! [`LockLink`] names, quire's `LockPrompt` ([`view::lock_user`], [`view::prompt_state`],
+//! [`crate::links::LockLink`] names, quire's `LockPrompt` ([`view::lock_user`], [`view::prompt_state`],
 //! [`view::caps_lock`]). quire's field holds the text and hands it over only in `onsubmit`, which
 //! the surface wraps in a `Secret` at once and sends as `AuthCommand::Submit`; it is never kept
 //! in a signal. Escape (quire's) empties the field.
@@ -14,17 +14,15 @@
 //! comes. A surface never decides a password itself.
 //!
 //! Keyboard: a lock surface always has it (the compositor gives it to one of them); the daemon
-//! moves [`LockLink`] to whichever lock surface gains focus, so the prompt is where typing goes.
+//! moves [`crate::links::LockLink`] to whichever lock surface gains focus, so the prompt is where typing goes.
 
 pub mod backdrop;
-pub mod link;
 pub mod view;
 
 mod body;
 mod screen;
 
 pub use backdrop::backdrop_for;
-pub use link::{LockLink, PromptOutput};
 pub use view::{ClockLines, caps_lock, clock_lines, lock_user, prompt_state};
 
 use dioxus::prelude::*;

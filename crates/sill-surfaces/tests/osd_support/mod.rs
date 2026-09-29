@@ -12,8 +12,9 @@ use dioxus::prelude::*;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Osd;
+use sill_surfaces::links::OsdLink;
 use sill_surfaces::services::Services;
-use sill_surfaces::surfaces::osd::{CARD_HEIGHT, CARD_WIDTH, OsdLink, ROOM};
+use sill_surfaces::surfaces::osd::{CARD_HEIGHT, CARD_WIDTH, ROOM};
 
 /// What the harness's root provides.
 #[derive(Clone)]

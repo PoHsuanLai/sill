@@ -15,8 +15,8 @@ use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState, 
 use sill_model::ids::{OutputName, WorkspaceKey};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::SwitcherPanel;
+use sill_surfaces::links::{SwitcherAsk, SwitcherLink};
 use sill_surfaces::services::Services;
-use sill_surfaces::surfaces::switcher::{SwitcherAsk, SwitcherLink};
 
 /// What the harness's root provides.
 #[derive(Clone)]

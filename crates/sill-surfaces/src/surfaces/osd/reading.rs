@@ -13,7 +13,7 @@ use sill_model::ids::OutputName;
 use sill_model::units::{Percent, Presence};
 use sill_model::volume::{Mute, Volume};
 
-use crate::surfaces::osd::link::{Level, LevelSource, OsdKind};
+use crate::links::{Level, LevelSource, OsdKind};
 
 /// A change's level on one output, if there is one to show.
 pub fn level_of(
@@ -117,7 +117,7 @@ fn monitor_name(displays: &Displays, target: &BrightnessTarget) -> Option<String
 #[cfg(test)]
 mod tests {
     use super::{card_level, level_of, title};
-    use crate::surfaces::osd::link::{Level, LevelSource, OsdKind};
+    use crate::links::{Level, LevelSource, OsdKind};
     use ds::{Fraction, LevelGlyph, Muting};
     use sill_model::displays::Displays;
     use sill_model::displays::ddc::Endpoint;

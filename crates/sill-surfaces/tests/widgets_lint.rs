@@ -15,9 +15,10 @@ use ds::{Ds, Material, RootExtent};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::links::EditWidgetsLink;
 use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::desktop_widgets::DESKTOP_WIDGETS_CSS;
-use sill_surfaces::surfaces::edit_widgets::{EDIT_WIDGETS_CSS, EditWidgetsLink};
+use sill_surfaces::surfaces::edit_widgets::EDIT_WIDGETS_CSS;
 use sill_surfaces::widgets::{Widget, WidgetHost, widgets_css};
 use sill_surfaces::{DesktopWidgets, EditWidgets};
 

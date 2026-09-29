@@ -58,7 +58,7 @@ pub fn dispatch(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, request: DebugReques
         DebugRequest::Polkit(request) => fakes::polkit(reach, request),
         DebugRequest::Switcher { apps } => fakes::switcher(reach, apps),
         DebugRequest::IdleWake => fakes::idle_wake(reach),
-        DebugRequest::LauncherKey(key) => launcher::key(reach.launcher, key),
-        DebugRequest::LauncherRows => launcher::rows(reach.launcher),
+        DebugRequest::LauncherKey(key) => launcher::key(&reach.links.launcher, key),
+        DebugRequest::LauncherRows => launcher::rows(&reach.links.launcher),
     }
 }

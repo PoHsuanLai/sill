@@ -7,7 +7,8 @@ use shell_host::{
 };
 use sill_settings::{BarSettings, LauncherSettings};
 
-use crate::surfaces::launcher::hit::{PanelHit, card_region, panel_input};
+use crate::links::PanelHit;
+use crate::surfaces::launcher::hit::{card_region, panel_input};
 use crate::surfaces::launcher::preview::PREVIEW_WIDTH_PX;
 use crate::surfaces::naming::namespace;
 
@@ -175,7 +176,7 @@ pub fn catcher_layer(output: &OutputInfo) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use super::{catcher_input, catcher_layer, panel_layer, panel_rect, panel_top};
-    use crate::surfaces::launcher::hit::PanelHit;
+    use crate::links::PanelHit;
     use crate::surfaces::naming::tests::output;
     use shell_host::{Anchor, BlurSpec, KeyboardMode, LayerExtent, LayerLevel, Rect, RegionSpec};
     use sill_settings::{BarSettings, LauncherSettings};

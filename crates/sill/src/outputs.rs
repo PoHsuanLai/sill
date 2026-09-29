@@ -2,7 +2,7 @@
 //! list to spawn and close actions.
 
 use shell_host::{OutputId, OutputInfo, SurfaceId};
-use sill_surfaces::surfaces::hot_corners::Corner;
+use sill_surfaces::links::Corner;
 
 /// One output's surfaces (each `None` until spawned).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -257,7 +257,7 @@ mod tests {
 
     #[test]
     fn m10_surfaces_are_found_and_forgotten_like_the_rest() {
-        use sill_surfaces::surfaces::hot_corners::Corner;
+        use sill_surfaces::links::Corner;
         let mut row = surfaces(1);
         row.thumbnail = Some(SurfaceId(2));
         row.corners.set(Corner::BottomRight, Some(SurfaceId(3)));

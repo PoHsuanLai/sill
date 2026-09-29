@@ -4,7 +4,7 @@
 
 use sill_ipc::response::Response;
 use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
-use sill_surfaces::surfaces::power_menu::Preselect;
+use sill_surfaces::links::Preselect;
 
 use super::reach::Reach;
 use super::reply::unsupported;
@@ -33,7 +33,7 @@ fn first_with(outputs: &Outputs, has: impl Fn(&OutputSurfaces) -> bool) -> Optio
 
 /// The shared launcher state, which both launcher surfaces follow.
 fn launcher(reach: &Reach, request: LauncherRequest) -> Response {
-    let link = reach.launcher;
+    let link = &reach.links.launcher;
     match (request, first_with(reach.outputs, |s| s.launcher.is_some())) {
         (LauncherRequest::Close, _) => link.close(),
         (LauncherRequest::Toggle, Some(output)) => link.toggle(output),
@@ -46,10 +46,7 @@ fn launcher(reach: &Reach, request: LauncherRequest) -> Response {
 }
 
 fn power_menu(reach: &Reach, reveal: Reveal) -> Response {
-    let Some(links) = reach.links else {
-        return unsupported("the power menu's link is not installed");
-    };
-    let menu = &links.power_menu;
+    let menu = &reach.links.power_menu;
     match (
         reveal,
         first_with(reach.outputs, |s| s.power_menu.is_some()),
@@ -65,13 +62,13 @@ fn power_menu(reach: &Reach, reveal: Reveal) -> Response {
 }
 
 fn notification_center(reach: &Reach, reveal: Reveal) -> Response {
-    let center = reach.links.map(|links| &links.notification_center);
+    let center = &reach.links.notification_center;
     let target = first_with(reach.outputs, |s| s.notification_center.is_some());
-    match (reveal, center, target) {
-        (Reveal::Close, Some(center), _) => center.close(),
-        (Reveal::Toggle, Some(center), Some(output)) => center.toggle(output),
-        (Reveal::Open, Some(center), Some(output)) => center.open(output),
-        (Reveal::Close, None, _) | (Reveal::Toggle | Reveal::Open, _, _) => {
+    match (reveal, target) {
+        (Reveal::Close, _) => center.close(),
+        (Reveal::Toggle, Some(output)) => center.toggle(output),
+        (Reveal::Open, Some(output)) => center.open(output),
+        (Reveal::Toggle | Reveal::Open, None) => {
             return unsupported("no output has a notification center surface");
         }
     }
@@ -80,12 +77,9 @@ fn notification_center(reach: &Reach, reveal: Reveal) -> Response {
 
 /// The control center is a popup of a bar: it toggles under the first bar's item.
 fn control_center(reach: &Reach) -> Response {
-    let Some(links) = reach.links else {
-        return unsupported("the control center's link is not installed");
-    };
     match first_with(reach.outputs, |s| s.bar.is_some()) {
         Some(output) => {
-            links.control_center.toggle(output);
+            reach.links.control_center.toggle(output);
             Response::Done
         }
         None => unsupported("no output has a bar"),
@@ -93,12 +87,12 @@ fn control_center(reach: &Reach) -> Response {
 }
 
 fn edit_widgets(reach: &Reach, request: EditWidgetsRequest) -> Response {
-    let link = reach.links.map(|links| &links.edit_widgets);
+    let link = &reach.links.edit_widgets;
     let target = first_with(reach.outputs, |s| s.edit_widgets.is_some());
-    match (request, link, target) {
-        (EditWidgetsRequest::Open, Some(link), Some(output)) => link.open(output),
-        (EditWidgetsRequest::Close, Some(link), _) => link.close(),
-        (EditWidgetsRequest::Open | EditWidgetsRequest::Close, _, _) => {
+    match (request, target) {
+        (EditWidgetsRequest::Open, Some(output)) => link.open(output),
+        (EditWidgetsRequest::Close, _) => link.close(),
+        (EditWidgetsRequest::Open, None) => {
             return unsupported("no output has an Edit Widgets surface");
         }
     }

@@ -24,7 +24,8 @@ use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
 use sill_surfaces::DesktopWidgets;
 use sill_surfaces::hooks::PinnedAppearance;
 use sill_surfaces::services::Services;
-use sill_surfaces::surfaces::desktop_widgets::{GridSlot, OutputKey, Placement, PlacementFile};
+use sill_surfaces::surfaces::desktop_widgets::PlacementFile;
+use sill_surfaces::widgets::grid::{GridSlot, OutputKey, Placement};
 
 #[derive(Clone)]
 struct World {

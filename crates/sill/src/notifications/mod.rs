@@ -3,7 +3,8 @@
 
 use shell_host::{HostCtx, HostRoot, OutputInfo};
 use sill_settings::ShellFile;
-use sill_surfaces::surfaces::banners::{BannerOutput, BannersProps, banners_layer};
+use sill_surfaces::links::BannerOutput;
+use sill_surfaces::surfaces::banners::{BannersProps, banners_layer};
 use sill_surfaces::surfaces::notification_center::{NotificationCenterProps, center_layer};
 use tokio::sync::watch;
 

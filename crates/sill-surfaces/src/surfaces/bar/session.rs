@@ -24,10 +24,10 @@ use super::pick::{BarPick, Command, commands};
 use super::plan::{BarEffect, PopupReport, effects, popup_input};
 use super::popup::menu_popup;
 use crate::clock::FrameClock;
+use crate::links::{CenterLink, CenterShown};
+use crate::links::{PowerMenuLink, Preselect};
 use crate::surfaces::control_center::fit::{Fit, device_rows, wifi_rows};
 use crate::surfaces::control_center::{CcPage, PanelCap};
-use crate::surfaces::notification_center::{CenterLink, CenterShown};
-use crate::surfaces::power_menu::{PowerMenuLink, Preselect};
 
 /// Whether a bar menu waits for the notification center to leave before its popup opens.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

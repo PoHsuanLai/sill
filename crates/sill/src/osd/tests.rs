@@ -6,7 +6,7 @@ use sill_model::displays::{Controls, DdcDisplay, Displays, KeysTarget, Level as 
 use sill_model::ids::{DdcId, OutputName};
 use sill_model::units::Percent;
 use sill_model::volume::Mute;
-use sill_surfaces::surfaces::osd::{Level, LevelSource, OsdKind};
+use sill_surfaces::links::{Level, LevelSource, OsdKind};
 
 use super::{fake_of, kind_of, osd_outputs};
 

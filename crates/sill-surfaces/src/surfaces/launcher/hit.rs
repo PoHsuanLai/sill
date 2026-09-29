@@ -6,20 +6,10 @@
 
 use shell_host::{ElementId, Rect, RegionSpec, RoundedRect};
 
+use crate::links::PanelHit;
 use crate::surfaces::launcher::layer::{
     CARD_BLUR_RADIUS, CARD_ID, PANEL_HEIGHT, PANEL_ROOM_WIDTH, SHADOW_SIDE,
 };
-
-/// The part of the panel that takes presses.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum PanelHit {
-    /// The whole panel: before the card has been measured, and while the actions menu is open
-    /// (it hangs from a row and may reach below the card).
-    #[default]
-    Whole,
-    /// The card alone, from the panel's top down `height` logical pixels.
-    Card { height: i32 },
-}
 
 /// The panel's input region for `hit`: the card element itself (the host resolves it after
 /// every layout), or the whole panel (never the shadow's room around it).
@@ -72,7 +62,8 @@ pub enum ActionsShown {
 
 #[cfg(test)]
 mod tests {
-    use super::{ActionsShown, PanelHit, card_region, hit_for, panel_input};
+    use super::{ActionsShown, card_region, hit_for, panel_input};
+    use crate::links::PanelHit;
     use shell_host::{Rect, RegionSpec};
 
     #[test]

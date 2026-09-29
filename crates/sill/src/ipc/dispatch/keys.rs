@@ -31,7 +31,7 @@ pub fn press(reach: &Reach, request: DisplayRequest) -> Response {
     };
     let file = reach.settings.borrow();
     crate::osd::after_display(
-        reach.osd,
+        &reach.links.osd,
         services,
         reach.outputs,
         &file,

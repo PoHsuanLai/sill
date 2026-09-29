@@ -3,14 +3,13 @@
 //! centred 680 x 460 panel with keyboard exclusivity — closing on Escape, focus lost, a catcher
 //! click or `launcher toggle`.
 //!
-//! Both surfaces follow one shared [`LauncherLink`] (`presence.rs`), which the daemon writes
+//! Both surfaces follow one shared [`crate::links::LauncherLink`] (`links`), which the daemon writes
 //! for `sill launcher toggle|open|close` and the panel's focus, and each surface maps or
 //! unmaps itself from. The panel also writes there which part of it takes presses
-//! ([`hit::PanelHit`]: its content-sized card), which the catcher's input leaves out.
+//! ([`crate::links::PanelHit`]: its content-sized card), which the catcher's input leaves out.
 
 pub mod activate;
 pub mod chord_keys;
-pub mod debug_link;
 pub mod entries;
 pub mod groups;
 pub mod hit;
@@ -19,7 +18,6 @@ pub mod keys;
 pub mod layer;
 pub mod list_detail;
 pub mod pane_session;
-pub mod presence;
 pub mod preview;
 pub mod row_icon;
 pub mod rows;
@@ -45,7 +43,6 @@ pub use layer::{
     PANEL_WIDTH, SHADOW_BELOW, SHADOW_SIDE, catcher_input, catcher_layer, panel_layer, panel_rect,
     panel_top,
 };
-pub use presence::{LauncherLink, LauncherShown, Opening};
 
 use dioxus::prelude::*;
 use shell_host::OutputInfo;

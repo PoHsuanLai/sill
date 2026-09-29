@@ -11,9 +11,8 @@ use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
 use sill_model::displays::DisplaysCommand;
 use sill_settings::{SettingsFeed, ShellFile};
+use sill_surfaces::links::Links;
 use sill_surfaces::services::Services;
-use sill_surfaces::surfaces::launcher::LauncherLink;
-use sill_surfaces::surfaces::osd::OsdLink;
 use tokio::sync::watch;
 
 use super::msg::ShellMsg;
@@ -33,8 +32,8 @@ pub struct Shell {
     /// `None` when neither `XDG_CONFIG_HOME` nor `HOME` is set.
     pub settings_dir: Option<PathBuf>,
     pub settings: watch::Sender<ShellFile>,
-    pub launcher: LauncherLink,
-    pub osd: OsdLink,
+    /// The links every surface root is given and the requests write.
+    pub links: Links,
 }
 
 /// Every event, handled: an IPC request (needs the services and the settings), the lock's and the
@@ -66,9 +65,7 @@ fn answer(shell: &Shell, ctx: &mut HostCtx<ShellMsg>, request: Request) -> Respo
     let reach = Reach {
         services: &shell.services,
         outputs: &shell.outputs,
-        links: crate::links::get(),
-        launcher: &shell.launcher,
-        osd: &shell.osd,
+        links: &shell.links,
         settings_dir: shell.settings_dir.as_deref(),
         settings: &shell.settings,
     };
@@ -80,21 +77,19 @@ fn answer(shell: &Shell, ctx: &mut HostCtx<ShellMsg>, request: Request) -> Respo
 }
 
 fn apply_lock(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, wish: crate::lock::LockWish) {
-    let Some(links) = crate::links::get() else {
-        return;
-    };
     let Shell {
         outputs,
         shell_lock,
         services,
         settings_feed,
+        links,
         ..
     } = shell;
     crate::lock::apply(
         ctx,
         shell_lock,
         wish,
-        || surfaces::lock_factory(services, settings_feed, &links.lock),
+        || surfaces::lock_factory(services, settings_feed, links),
         &links.lock,
         outputs,
         services,
@@ -106,15 +101,13 @@ fn apply_lock(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, wish: crate::lock:
 /// displays service rescans, the outputs' bookkeeping moves ([`on_event`]), and whatever is
 /// missing is spawned.
 fn host_event(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<ShellMsg>) {
-    if let Some(links) = crate::links::get() {
-        crate::lock::on_host_event(
-            ctx,
-            &mut shell.shell_lock,
-            &event,
-            &links.lock,
-            &shell.services,
-        );
-    }
+    crate::lock::on_host_event(
+        ctx,
+        &mut shell.shell_lock,
+        &event,
+        &shell.links.lock,
+        &shell.services,
+    );
     follow_keyboard_focus(shell, &event);
     // The engine has no config until told one; the watcher's and the reload's changes land through
     // `HostEvent::App(ShellMsg::Settings(_))` and `Request::Reload`.
@@ -143,12 +136,10 @@ fn follow_keyboard_focus(shell: &Shell, event: &HostEvent<ShellMsg>) {
             .any(|(_, surfaces)| has(surfaces) == Some(*id))
     };
     if on(|surfaces| surfaces.launcher) {
-        shell.launcher.focus(*focus);
+        shell.links.launcher.focus(*focus);
     }
-    if on(|surfaces| surfaces.power_menu)
-        && let Some(links) = crate::links::get()
-    {
-        links.power_menu.focus(*focus);
+    if on(|surfaces| surfaces.power_menu) {
+        shell.links.power_menu.focus(*focus);
     }
 }
 
@@ -159,15 +150,13 @@ fn spawn_missing(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>) {
         services: &shell.services,
         settings_feed: &shell.settings_feed,
         settings: &shell.settings,
-        launcher: &shell.launcher,
-        osd: &shell.osd,
+        links: &shell.links,
     };
     surfaces::spawn_missing(ctx, &mut shell.outputs, &spawn);
-    if let Some(links) = crate::links::get() {
-        links
-            .banners
-            .set(crate::notifications::banner_output(&shell.outputs));
-    }
+    shell
+        .links
+        .banners
+        .set(crate::notifications::banner_output(&shell.outputs));
 }
 
 /// Outputs coming, going or changing make the displays service rescan.

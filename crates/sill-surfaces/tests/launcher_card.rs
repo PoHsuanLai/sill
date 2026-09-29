@@ -6,7 +6,7 @@ mod launcher_harness;
 
 use ds::ShortcutKey;
 use launcher_harness::{open, settle};
-use sill_surfaces::surfaces::launcher::hit::PanelHit;
+use sill_surfaces::links::PanelHit;
 use sill_surfaces::surfaces::launcher::{CARD_ID, LauncherKey, PANEL_HEIGHT};
 
 /// Advance until the panel has published its card (at most two seconds).

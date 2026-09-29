@@ -1,110 +1,29 @@
-//! Whether the launcher is showing, shared by its two surfaces and the daemon (plan "Launcher
-//! v1": two surfaces kept warm, shown and hidden with `set_visibility`).
+//! Whether the launcher is showing, shared by its two surfaces and the daemon (two surfaces kept
+//! warm, shown and hidden with `set_visibility`).
 //!
-//! One `watch` channel holds a [`LauncherShown`]. The daemon writes it for `sill launcher
+//! One `watch` channel holds a [`Reveal<Opening>`]. The daemon writes it for `sill launcher
 //! toggle|open|close` and for the panel's `Focus::Lost`; the panel writes it for Escape and an
 //! activation, the catcher for a click. Each surface mirrors it onto its own visibility, so no
 //! surface needs another's id. The transitions are pure functions of the value.
+
+mod debug;
+mod opening;
+mod panel_hit;
 
 use std::time::Instant;
 
 use shell_host::{KeyboardFocus, OutputId};
 use tokio::sync::watch;
 
-use crate::surfaces::launcher::debug_link::{LinkKey, LinkPress, ShownRows};
-use crate::surfaces::launcher::hit::PanelHit;
+use crate::links::{OpenSerial, PanelFocus, Reveal};
 
-/// The launcher's one piece of shared state.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum LauncherShown {
-    /// Hidden, remembering the last opening's serial so the next one counts on.
-    Hidden {
-        last: OpenSerial,
-    },
-    Shown(Opening),
-}
-
-impl Default for LauncherShown {
-    fn default() -> Self {
-        LauncherShown::Hidden {
-            last: OpenSerial::default(),
-        }
-    }
-}
-
-/// One opening of the launcher: where, with what already typed, and since when.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Opening {
-    /// The output whose panel shows.
-    pub output: OutputId,
-    /// The query the field starts with (`sill launcher open --query`).
-    pub query: String,
-    /// Which opening this is: a new one remounts the panel's contents (the entrance plays,
-    /// the field is focused and the selection starts at the top).
-    pub serial: OpenSerial,
-    /// When the request arrived, for `open_latency_ms`.
-    pub requested: Instant,
-    /// Whether the panel has had keyboard focus since it opened.
-    pub focus: PanelFocus,
-}
-
-/// Counts openings; each is one more than the last.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
-pub struct OpenSerial(pub u64);
-
-/// A focus loss only closes a panel that had focus: the leave the compositor sends for the
-/// previous opening's unmap can arrive after the next opening began.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PanelFocus {
-    /// Opened, no keyboard focus yet.
-    Awaited,
-    /// The panel has held keyboard focus.
-    Held,
-}
-
-impl LauncherShown {
-    /// The opening, while shown.
-    pub fn opening(&self) -> Option<&Opening> {
-        match self {
-            LauncherShown::Shown(opening) => Some(opening),
-            LauncherShown::Hidden { .. } => None,
-        }
-    }
-
-    /// Whether the launcher shows on `output`.
-    pub fn shows_on(&self, output: OutputId) -> Visible {
-        match self.opening() {
-            Some(opening) if opening.output == output => Visible::Yes,
-            _ => Visible::No,
-        }
-    }
-
-    /// The current or last opening's serial.
-    pub fn serial(&self) -> OpenSerial {
-        match self {
-            LauncherShown::Shown(opening) => opening.serial,
-            LauncherShown::Hidden { last } => *last,
-        }
-    }
-
-    /// Hidden, keeping the serial.
-    pub fn hidden(&self) -> LauncherShown {
-        LauncherShown::Hidden {
-            last: self.serial(),
-        }
-    }
-}
-
-/// Whether a surface should be mapped.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Visible {
-    Yes,
-    No,
-}
+pub use debug::{CLIPBOARD_TITLE, LinkKey, LinkPress, ShownRows, ShownRowsSection};
+pub use opening::Opening;
+pub use panel_hit::PanelHit;
 
 /// `shown` opened on `output` with `query`, as a new opening.
-pub fn open(shown: &LauncherShown, output: OutputId, query: String, now: Instant) -> LauncherShown {
-    LauncherShown::Shown(Opening {
+fn open(shown: &Reveal<Opening>, output: OutputId, query: String, now: Instant) -> Reveal<Opening> {
+    Reveal::Revealed(Opening {
         output,
         query,
         serial: OpenSerial(shown.serial().0 + 1),
@@ -114,27 +33,10 @@ pub fn open(shown: &LauncherShown, output: OutputId, query: String, now: Instant
 }
 
 /// `launcher toggle`: open when hidden (with an empty query), hide when shown.
-pub fn toggle(shown: &LauncherShown, output: OutputId, now: Instant) -> LauncherShown {
+fn toggle(shown: &Reveal<Opening>, output: OutputId, now: Instant) -> Reveal<Opening> {
     match shown {
-        LauncherShown::Hidden { .. } => open(shown, output, String::new(), now),
-        LauncherShown::Shown(_) => shown.hidden(),
-    }
-}
-
-/// The panel's keyboard focus changed: gaining it is noted, losing it after holding it closes
-/// the launcher (design/06 §20.2 "focus lost").
-pub fn after_focus(shown: &LauncherShown, focus: KeyboardFocus) -> LauncherShown {
-    match (shown, focus) {
-        (LauncherShown::Shown(opening), KeyboardFocus::Gained) => LauncherShown::Shown(Opening {
-            focus: PanelFocus::Held,
-            ..opening.clone()
-        }),
-        (LauncherShown::Shown(opening), KeyboardFocus::Lost)
-            if opening.focus == PanelFocus::Held =>
-        {
-            shown.hidden()
-        }
-        _ => shown.clone(),
+        Reveal::Hidden { .. } => open(shown, output, String::new(), now),
+        Reveal::Revealed(_) => shown.hidden(),
     }
 }
 
@@ -143,7 +45,7 @@ pub fn after_focus(shown: &LauncherShown, focus: KeyboardFocus) -> LauncherShown
 /// cheap.
 #[derive(Debug, Clone)]
 pub struct LauncherLink {
-    shown: watch::Sender<LauncherShown>,
+    shown: watch::Sender<Reveal<Opening>>,
     hit: watch::Sender<PanelHit>,
     /// `sill debug launcher-key`'s presses, which the open panel steps.
     keys: watch::Sender<LinkPress>,
@@ -161,7 +63,7 @@ impl LauncherLink {
     /// A hidden launcher.
     pub fn new() -> LauncherLink {
         LauncherLink {
-            shown: watch::Sender::new(LauncherShown::default()),
+            shown: watch::Sender::new(Reveal::default()),
             hit: watch::Sender::new(PanelHit::default()),
             keys: watch::Sender::new(LinkPress::default()),
             rows: watch::Sender::new(None),
@@ -169,7 +71,7 @@ impl LauncherLink {
     }
 
     /// The current value.
-    pub fn now(&self) -> LauncherShown {
+    pub fn now(&self) -> Reveal<Opening> {
         self.shown.borrow().clone()
     }
 
@@ -199,7 +101,7 @@ impl LauncherLink {
     /// The panel's keyboard focus changed.
     pub fn focus(&self, focus: KeyboardFocus) {
         self.shown.send_if_modified(|shown| {
-            let next = after_focus(shown, focus);
+            let next = shown.after_focus(focus);
             let changed = next != *shown;
             *shown = next;
             changed
@@ -207,7 +109,7 @@ impl LauncherLink {
     }
 
     /// A receiver for a surface to follow.
-    pub fn subscribe(&self) -> watch::Receiver<LauncherShown> {
+    pub fn subscribe(&self) -> watch::Receiver<Reveal<Opening>> {
         self.shown.subscribe()
     }
 
@@ -261,9 +163,8 @@ impl LauncherLink {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        LauncherLink, LauncherShown, OpenSerial, PanelFocus, Visible, after_focus, open, toggle,
-    };
+    use super::{open, toggle};
+    use crate::links::{LauncherLink, OpenSerial, Opening, PanelFocus, Reveal, Visible};
     use shell_host::{KeyboardFocus, OutputId};
     use std::time::Instant;
 
@@ -272,7 +173,7 @@ mod tests {
     #[test]
     fn toggle_opens_fresh_and_closes() {
         let now = Instant::now();
-        let first = toggle(&LauncherShown::default(), ONE, now);
+        let first = toggle(&Reveal::default(), ONE, now);
         let opening = first
             .opening()
             .cloned()
@@ -283,7 +184,7 @@ mod tests {
         let closed = toggle(&first, ONE, now);
         assert_eq!(
             closed,
-            LauncherShown::Hidden {
+            Reveal::Hidden {
                 last: OpenSerial(1)
             }
         );
@@ -298,24 +199,19 @@ mod tests {
     #[test]
     fn a_focus_loss_closes_only_a_panel_that_held_focus() {
         let now = Instant::now();
-        let shown = open(&LauncherShown::default(), ONE, String::new(), now);
+        let shown = open(&Reveal::default(), ONE, String::new(), now);
         // The late leave from the previous opening's unmap: ignored.
-        assert_eq!(after_focus(&shown, KeyboardFocus::Lost), shown);
-        let held = after_focus(&shown, KeyboardFocus::Gained);
+        assert_eq!(shown.after_focus(KeyboardFocus::Lost), shown);
+        let held = shown.after_focus(KeyboardFocus::Gained);
         assert_eq!(held.opening().map(|o| o.focus), Some(PanelFocus::Held));
-        assert_eq!(after_focus(&held, KeyboardFocus::Lost), shown.hidden());
-        let hidden = LauncherShown::default();
-        assert_eq!(after_focus(&hidden, KeyboardFocus::Gained), hidden);
+        assert_eq!(held.after_focus(KeyboardFocus::Lost), shown.hidden());
+        let hidden = Reveal::<Opening>::default();
+        assert_eq!(hidden.after_focus(KeyboardFocus::Gained), hidden);
     }
 
     #[test]
     fn the_launcher_shows_on_its_output_only() {
-        let shown = open(
-            &LauncherShown::default(),
-            ONE,
-            String::new(),
-            Instant::now(),
-        );
+        let shown = open(&Reveal::default(), ONE, String::new(), Instant::now());
         assert_eq!(shown.shows_on(ONE), Visible::Yes);
         assert_eq!(shown.shows_on(OutputId(2)), Visible::No);
         assert_eq!(shown.hidden().shows_on(ONE), Visible::No);

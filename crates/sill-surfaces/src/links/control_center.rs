@@ -57,7 +57,7 @@ impl ControlCenterLink {
 
 #[cfg(test)]
 mod tests {
-    use super::{ControlCenterAsk, ControlCenterLink};
+    use crate::links::{ControlCenterAsk, ControlCenterLink};
     use shell_host::OutputId;
 
     #[test]

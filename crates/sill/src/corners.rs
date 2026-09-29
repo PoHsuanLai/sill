@@ -17,9 +17,9 @@ use sill_model::cosmic_wl::{Activity, Toplevel, WindowState, WlCommand};
 use sill_model::ids::WorkspaceKey;
 use sill_model::locker::LockerCommand;
 use sill_settings::{CornerAction, ShellFile};
+use sill_surfaces::links::{Corner, Links};
 use sill_surfaces::services::Services;
-use sill_surfaces::surfaces::hot_corners::{Corner, CornerLink, HotCornerProps, corner_layer};
-use sill_surfaces::surfaces::launcher::LauncherLink;
+use sill_surfaces::surfaces::hot_corners::{HotCornerProps, corner_layer};
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
@@ -156,15 +156,14 @@ pub fn spawn_missing(
 }
 
 /// Follow `link` on `rt` and carry out each hit's action (read from `settings` at the hit)
-/// through `services`, `links` and `launcher`.
+/// through `services` and `links`.
 pub fn spawn_hits(
     rt: &Handle,
-    link: &CornerLink,
+    links: Links,
     settings: watch::Receiver<ShellFile>,
     services: Services,
-    launcher: LauncherLink,
 ) {
-    let mut hits = link.subscribe();
+    let mut hits = links.corners.subscribe();
     rt.spawn(async move {
         let mut stash = Stash::default();
         loop {
@@ -181,7 +180,7 @@ pub fn spawn_hits(
                 sill_surfaces::surfaces::hot_corners::corner_command(&file.hot_corners, hit.corner)
                     .to_owned();
             let effect = corner_effect(action, &command);
-            act(effect, hit.output, &services, &launcher, &mut stash).await;
+            act(effect, hit.output, &services, &links, &mut stash).await;
         }
     });
 }
@@ -193,21 +192,17 @@ async fn act(
     effect: CornerEffect,
     output: OutputId,
     services: &Services,
-    launcher: &LauncherLink,
+    links: &Links,
     stash: &mut Stash,
 ) {
     match effect {
         CornerEffect::Nothing => {}
-        CornerEffect::Launcher => launcher.toggle(output),
+        CornerEffect::Launcher => links.launcher.toggle(output),
         CornerEffect::NotificationCenter => {
-            if let Some(links) = crate::links::get() {
-                links.notification_center.toggle(output);
-            }
+            links.notification_center.toggle(output);
         }
         CornerEffect::ControlCenter => {
-            if let Some(links) = crate::links::get() {
-                links.control_center.toggle(output);
-            }
+            links.control_center.toggle(output);
         }
         CornerEffect::ShowDesktop => {
             let wl = services.cosmic_wl.state.borrow().clone();
@@ -258,7 +253,7 @@ pub fn namespaces(info: &shell_host::OutputInfo) -> Vec<(Corner, String)> {
 mod tests {
     use sill_ipc::debug::CornerName;
     use sill_settings::CornerAction;
-    use sill_surfaces::surfaces::hot_corners::Corner;
+    use sill_surfaces::links::Corner;
 
     use sill_launcher::WindowKey;
     use sill_model::cosmic_wl::{Activity, Sizing, WindowState};

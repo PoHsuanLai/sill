@@ -11,8 +11,9 @@ use dioxus::prelude::*;
 use ds::{FRAME_SLACK, HostMeasure, Measured, sleep};
 use shell_host::{RegionSpec, SurfaceHandle, use_watch};
 
-use crate::surfaces::launcher::hit::{ActionsShown, PanelHit, hit_for, panel_input};
-use crate::surfaces::launcher::presence::{LauncherLink, OpenSerial};
+use crate::links::PanelHit;
+use crate::links::{LauncherLink, OpenSerial};
+use crate::surfaces::launcher::hit::{ActionsShown, hit_for, panel_input};
 
 /// How many frames a read waits for a busy or not yet laid out document.
 const ATTEMPTS: usize = 8;

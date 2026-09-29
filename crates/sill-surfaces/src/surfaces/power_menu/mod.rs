@@ -6,7 +6,7 @@
 //!
 //! Opened by `sill power-menu {open,toggle}`, the bar's app menu ("Shut Down…"), and the
 //! launcher's Log Out, Restart and Shut Down rows (focused on that row's action). All of them
-//! write one shared [`PowerMenuLink`] (`presence.rs`), which every output's surface follows onto
+//! write one shared [`crate::links::PowerMenuLink`] (`links`), which every output's surface follows onto
 //! its own visibility; the daemon also feeds it the surface's keyboard focus (a focus loss after
 //! holding focus closes it, as the launcher's does). A chosen action goes to
 //! `sill_model::session::SessionCommand::Run`.
@@ -16,7 +16,6 @@ pub mod keymap;
 pub mod keys;
 pub mod labels;
 pub mod layer;
-pub mod presence;
 pub mod sheet;
 
 mod drive;
@@ -27,7 +26,6 @@ pub use backend::{BackendKind, DryRunSession, PowerMenuBackend, SessionBackend, 
 pub use keys::{PowerMenuKey, PowerMenuOut, PowerMenuState, initial, step};
 pub use labels::{action_label, button_variant};
 pub use layer::{PANEL_BLUR_RADIUS, PANEL_ID, panel_region, power_menu_layer};
-pub use presence::{PowerMenuLink, PowerMenuOpening, PowerMenuShown, Preselect};
 
 use dioxus::prelude::*;
 use shell_host::OutputInfo;

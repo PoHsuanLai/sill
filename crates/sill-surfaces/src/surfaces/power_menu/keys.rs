@@ -4,7 +4,7 @@
 use sill_model::session::{Offer, Session, SessionAction};
 use sill_settings::PowerMenuDefault;
 
-use crate::surfaces::power_menu::presence::Preselect;
+use crate::links::Preselect;
 
 /// A key the menu handles; every other key is ignored.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -125,7 +125,7 @@ fn moved(state: PowerMenuState, direction: Direction, session: &Session) -> Powe
 #[cfg(test)]
 mod tests {
     use super::{PowerMenuKey, PowerMenuOut, PowerMenuState, initial, step};
-    use crate::surfaces::power_menu::presence::Preselect;
+    use crate::links::Preselect;
     use sill_model::session::{Offer, Session, SessionAction};
     use sill_model::units::Presence;
     use sill_settings::PowerMenuDefault;

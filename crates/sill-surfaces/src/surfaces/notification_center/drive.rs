@@ -13,10 +13,10 @@ use sill_model::notifications::{
 use sill_services::{Control, NotificationsService};
 
 use super::groups::{Expanded, toggle_group};
-use super::link::CenterLink;
 use super::phase::{Phase, PhaseInput, PhaseOut, Wanted, step_phase};
 use super::rows::RowAct;
 use crate::hooks::use_control;
+use crate::links::CenterLink;
 
 /// The column's phase on one output, and the surface it maps. Clone is cheap.
 #[derive(Clone)]

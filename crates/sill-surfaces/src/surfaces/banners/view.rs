@@ -6,7 +6,7 @@
 //! drawn and unmaps it once the stack has played the last one out (`on_hidden`), and keeps the
 //! input and blur regions on the cards (`elements.rs`).
 //!
-//! [`BannerLink`]: super::BannerLink
+//! [`BannerLink`]: crate::links::BannerLink
 
 use dioxus::prelude::*;
 use ds::{
@@ -23,9 +23,9 @@ use super::drive::{Column, use_column};
 use super::elements::{CardShape, Regions, element_regions};
 use super::layer::ROOM;
 use super::machine::{BannerIn, BannerParams};
-use super::placement::BannerLink;
 use super::stack::stack;
 use crate::hooks::{use_appearance, use_control, use_ds_scale, use_service_part, use_settings};
+use crate::links::BannerLink;
 use crate::look::use_active_look;
 use crate::surfaces::notification_card::{
     CardPart, CardPlace, CardPress, NoteCard, notification_metrics, part_id, wall_now,
@@ -178,7 +178,7 @@ fn corner_slug(corner: BannerPosition) -> &'static str {
 fn use_follow_stack(
     column: Column,
     live: ReadSignal<Notifications>,
-    shows: ReadSignal<super::BannerOutput>,
+    shows: ReadSignal<crate::links::BannerOutput>,
     output: shell_host::OutputId,
     max: usize,
 ) {

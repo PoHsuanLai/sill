@@ -8,25 +8,21 @@ use shell_host::{Size as BufferSize, buffer_size};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
+use sill_surfaces::links::Links;
 use sill_surfaces::services::Services;
-use sill_surfaces::surfaces::launcher::LauncherLink;
-use sill_surfaces::surfaces::osd::OsdLink;
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
 use crate::outputs::Outputs;
 
-/// What spawning a surface needs beside the outputs: the services and the settings every root
-/// is given, and the links only some surfaces follow.
+/// What spawning a surface needs beside the outputs: the services, the settings and the links
+/// every root is given.
 #[derive(Debug)]
 pub struct Spawn<'a> {
     pub services: &'a Services,
     pub settings_feed: &'a SettingsFeed,
     pub settings: &'a watch::Sender<ShellFile>,
-    /// The launcher's shared state; the panel's keyboard focus goes to it.
-    pub launcher: &'a LauncherLink,
-    /// What every output's OSD follows.
-    pub osd: &'a OsdLink,
+    pub links: &'a Links,
 }
 
 /// Spawn whatever `outputs` lacks, in drawing order: the bar, wallpaper, dock and launcher, then
@@ -38,14 +34,13 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
         services,
         settings_feed,
         settings,
-        launcher,
-        osd,
+        links,
     } = *spawn;
-    let root = |root| surface_root(root, services, settings_feed);
-    spawn_missing_bars(ctx, outputs, services, settings_feed, settings);
-    spawn_missing_wallpapers(ctx, outputs, services, settings_feed, settings);
-    spawn_missing_docks(ctx, outputs, services, settings_feed, settings);
-    spawn_missing_launchers(ctx, outputs, services, settings_feed, settings, launcher);
+    let root = |root| surface_root(root, services, settings_feed, links);
+    spawn_missing_bars(ctx, outputs, services, settings_feed, links, settings);
+    spawn_missing_wallpapers(ctx, outputs, services, settings_feed, links, settings);
+    spawn_missing_docks(ctx, outputs, services, settings_feed, links, settings);
+    spawn_missing_launchers(ctx, outputs, services, settings_feed, links, settings);
     crate::power_menu::spawn_missing(ctx, outputs, root);
     // The polkit prompt over the power menu, and the switcher (both Overlay).
     crate::polkit::spawn_missing(ctx, outputs, root);
@@ -58,7 +53,7 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     crate::widgets::spawn_missing(ctx, outputs, settings, &services.dirs, root);
     crate::edit_widgets::spawn_missing(ctx, outputs, &services.dirs, root);
     crate::corners::spawn_missing(ctx, outputs, settings, root);
-    crate::osd::spawn_missing(ctx, outputs, settings, osd, root);
+    crate::osd::spawn_missing(ctx, outputs, settings, &links.osd, root);
     let dim = services.idle.state.borrow().dim;
     crate::idle_dim::spawn_missing(ctx, outputs, dim, root);
 }
@@ -69,6 +64,7 @@ fn spawn_missing_bars(
     outputs: &mut Outputs,
     services: &Services,
     settings_feed: &SettingsFeed,
+    links: &Links,
     settings_tx: &watch::Sender<ShellFile>,
 ) {
     let missing: Vec<OutputInfo> = outputs
@@ -82,7 +78,7 @@ fn spawn_missing_bars(
     }
     let file = settings_tx.borrow().clone();
     for info in missing {
-        spawn_bar(ctx, outputs, services, settings_feed, &file, info);
+        spawn_bar(ctx, outputs, services, settings_feed, links, &file, info);
     }
 }
 
@@ -91,6 +87,7 @@ fn spawn_bar(
     outputs: &mut Outputs,
     services: &Services,
     settings_feed: &SettingsFeed,
+    links: &Links,
     file: &ShellFile,
     info: OutputInfo,
 ) {
@@ -102,6 +99,7 @@ fn spawn_bar(
         HostRoot::with_props(sill_surfaces::Bar, props),
         services,
         settings_feed,
+        links,
     );
     match ctx.spawn_layer(config, root) {
         Ok(id) => {
@@ -122,6 +120,7 @@ fn spawn_missing_wallpapers(
     outputs: &mut Outputs,
     services: &Services,
     settings_feed: &SettingsFeed,
+    links: &Links,
     settings_tx: &watch::Sender<ShellFile>,
 ) {
     if settings_tx.borrow().spaces.wallpaper_drawer != WallpaperDrawer::Shell {
@@ -134,7 +133,7 @@ fn spawn_missing_wallpapers(
         .map(|(info, _)| info.clone())
         .collect();
     for info in missing {
-        spawn_wallpaper(ctx, outputs, services, settings_feed, info);
+        spawn_wallpaper(ctx, outputs, services, settings_feed, links, info);
     }
 }
 
@@ -149,6 +148,7 @@ fn spawn_wallpaper(
     outputs: &mut Outputs,
     services: &Services,
     settings_feed: &SettingsFeed,
+    links: &Links,
     info: OutputInfo,
 ) {
     if let Some(name) = info.name.clone() {
@@ -176,6 +176,7 @@ fn spawn_wallpaper(
         HostRoot::with_props(sill_surfaces::Wallpaper, props),
         services,
         settings_feed,
+        links,
     );
     match ctx.spawn_layer(config, root) {
         Ok(id) => {
@@ -194,6 +195,7 @@ fn spawn_missing_docks(
     outputs: &mut Outputs,
     services: &Services,
     settings_feed: &SettingsFeed,
+    links: &Links,
     settings_tx: &watch::Sender<ShellFile>,
 ) {
     let missing: Vec<OutputInfo> = outputs
@@ -212,6 +214,7 @@ fn spawn_missing_docks(
             HostRoot::with_props(sill_surfaces::Dock, props),
             services,
             settings_feed,
+            links,
         );
         match ctx.spawn_layer(config, root) {
             Ok(id) => {
@@ -232,8 +235,8 @@ fn spawn_missing_launchers(
     outputs: &mut Outputs,
     services: &Services,
     settings_feed: &SettingsFeed,
+    links: &Links,
     settings_tx: &watch::Sender<ShellFile>,
-    launcher: &LauncherLink,
 ) {
     use sill_surfaces::surfaces::launcher::{
         LauncherCatcherProps, LauncherProps, catcher_layer, panel_layer,
@@ -248,8 +251,9 @@ fn spawn_missing_launchers(
     for info in missing {
         let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
         let output = info.clone();
-        let root =
-            |root: HostRoot| surface_root(root, services, settings_feed).context(launcher.clone());
+        let root = |root: HostRoot| {
+            surface_root(root, services, settings_feed, links).context(links.launcher.clone())
+        };
         if surfaces.catcher.is_none() {
             let props = LauncherCatcherProps {
                 output: output.clone(),
@@ -300,6 +304,7 @@ pub(crate) fn surface_root(
     root: HostRoot,
     services: &Services,
     settings_feed: &SettingsFeed,
+    links: &Links,
 ) -> HostRoot {
     let root = root
         .context(services.clone())
@@ -309,40 +314,36 @@ pub(crate) fn surface_root(
         .context(sill_surfaces::CARET);
     // The focus mode, the power menu and the control center's asks; the notification center and
     // the banners' output; the hot corners' firings; the switcher's asks and the lock prompt's
-    // output (`crate::links`).
-    match crate::links::get() {
-        Some(links) => root
-            .context(links.focus.clone())
-            .context(links.power_menu.clone())
-            .context(links.control_center.clone())
-            .context(links.notification_center.clone())
-            .context(links.banners.clone())
-            .context(links.corners.clone())
-            .context(links.switcher.clone())
-            .context(links.lock.clone())
-            .context(links.edit_widgets.clone())
-            .context(links.widgets_writer.clone()),
-        None => root,
-    }
+    // output (`sill_surfaces::links`).
+    root.context(links.focus.clone())
+        .context(links.power_menu.clone())
+        .context(links.control_center.clone())
+        .context(links.notification_center.clone())
+        .context(links.banners.clone())
+        .context(links.corners.clone())
+        .context(links.switcher.clone())
+        .context(links.lock.clone())
+        .context(links.edit_widgets.clone())
+        .context(links.widgets_writer.clone())
 }
 
 /// Each output's lock surface for shell-host's session lock: `LockScreen` with the
-/// daemon's usual contexts and the lock prompt's link.
+/// daemon's usual contexts, which include the lock prompt's link.
 pub(crate) fn lock_factory(
     services: &Services,
     settings_feed: &SettingsFeed,
-    link: &sill_surfaces::surfaces::lock::LockLink,
+    links: &Links,
 ) -> crate::lock::host::LockFactory {
     let services = services.clone();
     let settings_feed = settings_feed.clone();
-    let link = link.clone();
+    let links = links.clone();
     crate::lock::host::LockFactory(Box::new(move |info: OutputInfo| {
         let props = sill_surfaces::surfaces::lock::LockScreenProps { output: info };
         surface_root(
             HostRoot::with_props(sill_surfaces::LockScreen, props),
             &services,
             &settings_feed,
+            &links,
         )
-        .context(link.clone())
     }))
 }

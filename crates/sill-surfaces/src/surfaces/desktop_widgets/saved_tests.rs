@@ -1,7 +1,8 @@
 use sill_settings::WidgetKind;
 
-use super::{OutputKey, PlacementFile, SavedEntry, decode, encode, for_output, with_output};
-use crate::surfaces::desktop_widgets::placement::{GridSlot, Placement};
+use super::{PlacementFile, SavedEntry, decode, encode, for_output, with_output};
+use crate::widgets::grid::OutputKey;
+use crate::widgets::grid::{GridSlot, Placement};
 
 fn at(kind: WidgetKind, column: u16, row: u16) -> Placement {
     Placement {

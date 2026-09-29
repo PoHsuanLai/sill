@@ -81,7 +81,7 @@ impl CenterLink {
 
 #[cfg(test)]
 mod tests {
-    use super::{CenterLink, CenterShown};
+    use crate::links::{CenterLink, CenterShown};
     use shell_host::OutputId;
 
     const ONE: OutputId = OutputId(1);

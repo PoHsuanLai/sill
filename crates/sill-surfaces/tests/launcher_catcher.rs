@@ -12,8 +12,8 @@ use launcher_harness::launcher_support::{self, fake};
 use launcher_harness::virtual_clock;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::LauncherCatcher;
+use sill_surfaces::links::LauncherLink;
 use sill_surfaces::services::Services;
-use sill_surfaces::surfaces::launcher::LauncherLink;
 
 thread_local! {
     static WORLD: RefCell<Option<(Services, LauncherLink)>> = const { RefCell::new(None) };

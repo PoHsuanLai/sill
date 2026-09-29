@@ -17,8 +17,8 @@ use std::time::Instant;
 
 use shell_host::{Host, HostCtx, HostEvent, HostRoot, OutputId, OutputInfo};
 use sill_settings::{SettingsFeed, ShellFile};
+use sill_surfaces::links::CenterLink;
 use sill_surfaces::surfaces::bar::{BarProps, bar_layer};
-use sill_surfaces::surfaces::notification_center::CenterLink;
 use sill_surfaces::{Bar, FrameClock};
 use tokio::sync::mpsc;
 

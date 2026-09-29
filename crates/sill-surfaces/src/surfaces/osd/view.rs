@@ -9,11 +9,11 @@ use shell_host::OutputInfo;
 use sill_model::ids::OutputName;
 
 use crate::hooks::{use_appearance, use_ds_scale, use_service, use_settings};
+use crate::links::Visible;
+use crate::links::{OsdKind, OsdLink};
 use crate::look::use_active_look;
-use crate::surfaces::launcher::presence::Visible;
 use crate::surfaces::osd::drive::{times, use_follow_position, use_osd};
 use crate::surfaces::osd::layer::CARD_ID;
-use crate::surfaces::osd::link::{OsdKind, OsdLink};
 use crate::surfaces::osd::reading::{card_level, level_of, title};
 use sill_services::{DisplaysService, VolumeService};
 

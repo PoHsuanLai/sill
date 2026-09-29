@@ -3,7 +3,7 @@
 //! (`set_visibility`, as the launcher's), mapped for a change and unmapped once quire's `Osd`
 //! card says its exit has faded out (`on_hidden`).
 //!
-//! The daemon writes each change to the shared [`OsdLink`] (`link.rs`): what moved, on which
+//! The daemon writes each change to the shared [`crate::links::OsdLink`] (`links`): what moved, on which
 //! outputs, and where the level comes from. Each surface runs its own show-and-hold machine
 //! (`machine.rs`) from it (`drive.rs`), reads the level and title from the services
 //! (`reading.rs`), and hands both to quire's `Osd` card (`view.rs`), which owns its own entrance
@@ -14,14 +14,12 @@
 
 pub mod drive;
 pub mod layer;
-pub mod link;
 pub mod machine;
 pub mod reading;
 
 mod view;
 
 pub use layer::{CARD_HEIGHT, CARD_ID, CARD_WIDTH, ROOM, osd_layer};
-pub use link::{ChangeSerial, Level, LevelSource, OsdChange, OsdKind, OsdLatest, OsdLink};
 pub use machine::{OsdInput, OsdPhase, OsdTimes, step};
 
 use dioxus::prelude::*;

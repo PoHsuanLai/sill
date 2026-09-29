@@ -5,27 +5,14 @@
 
 use sill_settings::WidgetKind;
 
+use crate::widgets::grid::{GridSlot, Placement};
 use crate::widgets::{WidgetSize, cells};
-
-/// A cell: column 0 is the leftmost, row 0 the top.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct GridSlot {
-    pub column: u16,
-    pub row: u16,
-}
 
 /// How many cells fit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GridSize {
     pub columns: u16,
     pub rows: u16,
-}
-
-/// One widget's place: its top-left cell.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Placement {
-    pub kind: WidgetKind,
-    pub slot: GridSlot,
 }
 
 /// The grid that fits `width` x `height` logical px (the layer's size, inside the reserves):
@@ -171,8 +158,9 @@ pub(super) fn nearest_free(
 mod tests {
     use sill_settings::WidgetKind;
 
-    use super::{GridSize, GridSlot, Placement, clamp, grid_size, place};
+    use super::{GridSize, clamp, grid_size, place};
     use crate::widgets::WidgetSize;
+    use crate::widgets::grid::{GridSlot, Placement};
 
     #[test]
     fn the_grid_counts_cells_and_gaps() {

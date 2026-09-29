@@ -7,7 +7,7 @@ use shell_host::{
     Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
-use super::Corner;
+use crate::links::Corner;
 use crate::surfaces::naming::namespace;
 
 /// `corner` of `output`, `size` logical px square.
@@ -39,7 +39,7 @@ pub fn corner_layer(output: &OutputInfo, corner: Corner, size: u16) -> LayerConf
 #[cfg(test)]
 mod tests {
     use super::corner_layer;
-    use crate::surfaces::hot_corners::Corner;
+    use crate::links::Corner;
     use crate::surfaces::naming::tests::output;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, RegionSpec,

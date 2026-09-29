@@ -20,12 +20,10 @@ use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_settings::{DesktopWidgets, SettingsFeed, ShellFile, WidgetKind};
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::links::{CenterLink, CenterShown};
+use sill_surfaces::links::{EditShown, EditWidgetsLink, WidgetsWrite, WidgetsWriter};
 use sill_surfaces::services::Services;
-use sill_surfaces::surfaces::desktop_widgets::{GridSlot, OutputKey, Placement};
-use sill_surfaces::surfaces::edit_widgets::{
-    EditShown, EditWidgetsLink, WidgetsWrite, WidgetsWriter,
-};
-use sill_surfaces::surfaces::notification_center::{CenterLink, CenterShown};
+use sill_surfaces::widgets::grid::{GridSlot, OutputKey, Placement};
 use sill_surfaces::{EditWidgets, NotificationCenter};
 use tokio::sync::watch;
 

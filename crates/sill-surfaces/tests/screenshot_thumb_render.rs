@@ -15,7 +15,7 @@ use screenshot_thumb_support::{Done, Running, start};
 use shell_host::OutputId;
 use sill_model::screenshots::{ShotCommand, ShotId, ShotLeave, ShotPreview};
 use sill_settings::{ScreenshotSettings, ShellFile, ShotThumbnail};
-use sill_surfaces::surfaces::banners::BannerOutput;
+use sill_surfaces::links::BannerOutput;
 
 const HOLD_MS: u64 = 1000;
 

@@ -1,6 +1,6 @@
 //! The app switcher (design/13 §13.3.5, design/20 §1.11): Cmd+Tab over applications, not windows.
 //! COSMIC's `WindowSwitcher` / `WindowSwitcherPrevious` shortcuts run `sill switcher next|prev`,
-//! which the daemon writes to the [`SwitcherLink`]; the switcher surface on the chosen output takes
+//! which the daemon writes to the [`crate::links::SwitcherLink`]; the switcher surface on the chosen output takes
 //! the keyboard (`Exclusive`) at once, so it sees the chord's modifier go up (Alt's or Super's
 //! key-up, or shell-host's modifiers on focus: `hold.rs`, `watch.rs`), and runs the pure
 //! [`machine`]: a quick tap switches to the previous app with no panel, a hold past
@@ -15,7 +15,6 @@
 
 pub mod keys;
 pub mod layer;
-pub mod link;
 pub mod machine;
 
 pub mod tiles;
@@ -29,8 +28,7 @@ mod watch;
 
 pub use keys::{Chord, chord_after_keyup, sw_key};
 pub use layer::{PANEL_ID, PANEL_RADIUS, switcher_layer};
-pub use link::{AskSerial, SwitcherAsk, SwitcherAsked, SwitcherLink};
-pub use machine::{Dir, SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
+pub use machine::{SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
 pub use tiles::{index_of, key_of, metrics_of, output_width, tiles};
 
 use dioxus::prelude::*;

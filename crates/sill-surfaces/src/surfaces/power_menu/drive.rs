@@ -12,13 +12,13 @@ use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_model::session::{Session, SessionAction};
 use sill_settings::PowerMenuDefault;
 
-use crate::surfaces::launcher::presence::{OpenSerial, PanelFocus, Visible};
+use crate::links::{OpenSerial, PanelFocus, Visible};
+use crate::links::{PowerMenuLink, PowerMenuOpening, Reveal};
 use crate::surfaces::power_menu::backend::{DryRunSession, PowerMenuBackend};
 use crate::surfaces::power_menu::follow::{Follow, follow};
 use crate::surfaces::power_menu::keymap::power_menu_key;
 use crate::surfaces::power_menu::keys::{initial, offered};
 use crate::surfaces::power_menu::labels::action_label;
-use crate::surfaces::power_menu::presence::{PowerMenuLink, PowerMenuShown};
 use crate::surfaces::power_menu::sheet::{MenuSession, SheetEffect, SheetInput, Then, advance};
 
 /// The buttons' elements, for moving the keyboard focus.
@@ -69,7 +69,7 @@ pub(crate) fn use_menu(output: OutputId, default: PowerMenuDefault) -> MenuCtx {
 /// it is opened again, and drop the session once hidden.
 fn use_openings(
     ctx: MenuCtx,
-    shown: ReadSignal<PowerMenuShown>,
+    shown: ReadSignal<Reveal<PowerMenuOpening>>,
     output: OutputId,
     default: PowerMenuDefault,
 ) {
@@ -106,7 +106,7 @@ fn use_openings(
 
 /// Print `power_menu.keyboard=held` once per opening, when the surface first has the keyboard
 /// (the daemon feeds the link its focus): `dev/accept-real-input.sh` sends real keys only then.
-fn use_keyboard_line(shown: ReadSignal<PowerMenuShown>, output: OutputId) {
+fn use_keyboard_line(shown: ReadSignal<Reveal<PowerMenuOpening>>, output: OutputId) {
     let mut seen = use_hook(|| CopyValue::new(None::<(OpenSerial, PanelFocus)>));
     use_effect(move || {
         let now = shown
@@ -144,7 +144,7 @@ fn use_button_focus(ctx: MenuCtx) {
 
 /// Map this surface while the menu shows on `output`, unmap it otherwise. Nothing to do without
 /// a host (a test, an SSR render).
-fn use_follow_visibility(shown: ReadSignal<PowerMenuShown>, output: OutputId) {
+fn use_follow_visibility(shown: ReadSignal<Reveal<PowerMenuOpening>>, output: OutputId) {
     let surface = try_use_context::<SurfaceHandle>();
     let mut applied = use_hook(|| CopyValue::new(None::<Visible>));
     use_effect(move || {

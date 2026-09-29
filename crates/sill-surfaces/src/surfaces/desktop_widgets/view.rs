@@ -28,10 +28,12 @@ use super::geometry::{GridMetrics, PlaceBox, place_box};
 use super::glide::{Glide, PointMeter, Pose};
 use super::leaving::{Leaving, use_leaving};
 use super::placed::Placed;
-use super::placement::{Placement, grid_size, place};
-use super::saved::{OutputKey, PlacementFile};
+use super::placement::{grid_size, place};
+use super::saved::PlacementFile;
 use crate::hooks::{use_appearance, use_ds_scale, use_settings};
 use crate::look::use_active_look;
+use crate::widgets::grid::OutputKey;
+use crate::widgets::grid::Placement;
 use crate::widgets::{
     CardPresence, WidgetHost, WidgetSize, desktop_size, provide_registry, provide_widget_wake,
     widget_element_id, widgets_css,

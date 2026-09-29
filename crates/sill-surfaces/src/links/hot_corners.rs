@@ -4,7 +4,33 @@
 use shell_host::OutputId;
 use tokio::sync::watch;
 
-use super::Corner;
+/// A screen corner.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Corner {
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
+}
+
+impl Corner {
+    pub const ALL: [Corner; 4] = [
+        Corner::TopLeft,
+        Corner::TopRight,
+        Corner::BottomLeft,
+        Corner::BottomRight,
+    ];
+
+    /// `top-left`: the namespace's word.
+    pub fn word(self) -> &'static str {
+        match self {
+            Corner::TopLeft => "top-left",
+            Corner::TopRight => "top-right",
+            Corner::BottomLeft => "bottom-left",
+            Corner::BottomRight => "bottom-right",
+        }
+    }
+}
 
 /// One firing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -62,8 +88,7 @@ impl CornerLink {
 mod tests {
     use shell_host::OutputId;
 
-    use super::{CornerHit, CornerLink};
-    use crate::surfaces::hot_corners::Corner;
+    use crate::links::{Corner, CornerHit, CornerLink};
 
     #[test]
     fn every_hit_is_news_even_the_same_corner_twice() {

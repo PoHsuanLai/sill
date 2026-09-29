@@ -22,8 +22,8 @@ use super::layer::ROOM;
 use super::machine::{ThumbExit, ThumbIn, ThumbParams, ThumbState};
 use super::picture::{ThumbPicture, picture_of};
 use crate::hooks::{use_appearance, use_control, use_ds_scale, use_service, use_settings};
+use crate::links::BannerLink;
 use crate::look::use_active_look;
-use crate::surfaces::banners::BannerLink;
 use crate::surfaces::notification_card::swipe_metrics;
 
 /// The thumbnail on `output`.

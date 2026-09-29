@@ -12,7 +12,7 @@ use sill_model::polkit_agent::{FakeRequest, PolkitCommand};
 use sill_model::screenshots::ShotCommand;
 use sill_model::units::Percent;
 use sill_model::volume::Mute;
-use sill_surfaces::surfaces::switcher::SwitcherAsk;
+use sill_surfaces::links::SwitcherAsk;
 
 use super::super::reach::Reach;
 use super::super::reply::{sent, unsupported};
@@ -23,7 +23,7 @@ use super::super::switcher;
 pub fn osd(reach: &Reach, topic: OsdTopic, percent: Percent, mute: Mute) -> Response {
     let (kind, level) = crate::osd::fake_of(topic, percent, mute);
     crate::osd::fake(
-        reach.osd,
+        &reach.links.osd,
         reach.services,
         reach.outputs,
         &reach.settings.borrow(),
@@ -61,12 +61,15 @@ pub fn screenshot(reach: &Reach, path: PathBuf) -> Response {
 /// `sill debug corner`: a hit of `corner` on the first output, as if its dwell had run out.
 pub fn corner(reach: &Reach, corner: CornerName) -> Response {
     let first = reach.outputs.outputs.first().map(|(info, _)| info.id);
-    match (reach.links, first) {
-        (Some(links), Some(output)) => {
-            links.corners.hit(crate::corners::corner_of(corner), output);
+    match first {
+        Some(output) => {
+            reach
+                .links
+                .corners
+                .hit(crate::corners::corner_of(corner), output);
             Response::Done
         }
-        (None, _) | (_, None) => unsupported("no output to fire a corner on"),
+        None => unsupported("no output to fire a corner on"),
     }
 }
 

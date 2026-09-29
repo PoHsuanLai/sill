@@ -16,6 +16,8 @@ use sill_launcher::AppId;
 use sill_model::units::Stamp;
 use sill_settings::SwitcherSettings;
 
+use crate::links::Dir;
+
 /// The switcher's phase. `sel` indexes the MRU app list passed to every [`step`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Switcher {
@@ -29,13 +31,6 @@ pub enum Switcher {
     Shown {
         sel: usize,
     },
-}
-
-/// Which way a chord or key moves the selection.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Dir {
-    Next,
-    Prev,
 }
 
 /// Keys while the switcher is up.
@@ -192,7 +187,8 @@ fn select(sel: usize) -> (Switcher, Vec<SwOut>) {
 
 #[cfg(test)]
 mod tests {
-    use super::{Dir, SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
+    use super::{SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
+    use crate::links::Dir;
     use sill_launcher::AppId;
     use sill_model::units::Stamp;
 

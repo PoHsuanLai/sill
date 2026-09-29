@@ -10,10 +10,9 @@ use std::sync::Arc;
 
 use shell_host::{HostCtx, HostRoot, OutputInfo};
 use sill_settings::ShellFile;
+use sill_surfaces::links::{WidgetsWrite, WidgetsWriter};
 use sill_surfaces::surfaces::desktop_widgets::PlacementFile;
-use sill_surfaces::surfaces::edit_widgets::{
-    EditWidgetsProps, WidgetsWrite, WidgetsWriter, edit_widgets_layer,
-};
+use sill_surfaces::surfaces::edit_widgets::{EditWidgetsProps, edit_widgets_layer};
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
@@ -95,8 +94,9 @@ pub fn write(
 #[cfg(test)]
 mod tests {
     use sill_settings::{DesktopWidgets, ShellFile, WidgetKind};
-    use sill_surfaces::surfaces::desktop_widgets::{GridSlot, OutputKey, Placement, PlacementFile};
-    use sill_surfaces::surfaces::edit_widgets::WidgetsWrite;
+    use sill_surfaces::links::WidgetsWrite;
+    use sill_surfaces::surfaces::desktop_widgets::PlacementFile;
+    use sill_surfaces::widgets::grid::{GridSlot, OutputKey, Placement};
     use tokio::sync::watch;
 
     use super::write;

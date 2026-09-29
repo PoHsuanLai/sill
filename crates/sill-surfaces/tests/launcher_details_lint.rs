@@ -7,7 +7,7 @@ mod launcher_harness;
 use std::time::Duration;
 
 use ds::lint::{LintConfig, Profile, assert_clean, markup};
-use sill_surfaces::surfaces::launcher::debug_link::LinkKey;
+use sill_surfaces::links::LinkKey;
 
 const LAUNCHER_CSS: &str = include_str!("../src/style/launcher.css");
 

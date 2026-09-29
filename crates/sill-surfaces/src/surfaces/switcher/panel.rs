@@ -3,7 +3,7 @@
 //! the focused element, else to `<html>`) and, while the machine is `Shown`, quire's
 //! `AppSwitcher` centred in it.
 //!
-//! [`super::drive`] follows the [`super::SwitcherLink`] for this output and runs the machine;
+//! [`super::drive`] follows the [`crate::links::SwitcherLink`] for this output and runs the machine;
 //! this file only draws: the tiles from [`super::tiles`] over the opening's apps (a quit tile
 //! `TilePresence::Leaving` until its fold settles), `selected` the machine's selection as
 //! [`super::key_of`], `metrics` [`super::metrics_of`], `output` [`super::output_width`], and
@@ -16,13 +16,13 @@ use shell_host::{OutputInfo, SurfaceHandle};
 use super::drive::{SwitcherCtx, use_switcher};
 use super::icon::SwitcherIcons;
 use super::layer::PANEL_ID;
-use super::link::SwitcherLink;
 use super::machine::{Switcher, SwitcherParams};
 use super::session::{Session, Windows};
 use super::tiles::{key_of, metrics_of, output_width, tiles};
 use super::watch::ChordWatch;
 use crate::app_icons::{IconContext, LogicalPx, icon_look, use_icon_resolver};
 use crate::hooks::{use_appearance, use_ds_scale, use_service, use_settings};
+use crate::links::SwitcherLink;
 use crate::look::use_active_look;
 use sill_services::AppsService;
 

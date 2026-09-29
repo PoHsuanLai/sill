@@ -12,7 +12,8 @@ use sill_model::ids::OutputName;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::LockScreen;
-use sill_surfaces::surfaces::lock::{LockLink, LockScreenProps, PromptOutput};
+use sill_surfaces::links::{LockLink, PromptOutput};
+use sill_surfaces::surfaces::lock::LockScreenProps;
 use tokio::sync::watch;
 
 fn ada(phase: AuthPhase) -> Auth {

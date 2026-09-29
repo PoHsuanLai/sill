@@ -11,7 +11,7 @@ use ds::ShortcutKey;
 use sill_model::notifications::{
     ActionKey, Activation, AppKey, Clear, NotificationId, NotificationsCommand,
 };
-use sill_surfaces::surfaces::notification_center::CenterShown;
+use sill_surfaces::links::CenterShown;
 
 #[test]
 fn the_column_holds_the_keyboard_and_the_arrows_move_the_ring() {

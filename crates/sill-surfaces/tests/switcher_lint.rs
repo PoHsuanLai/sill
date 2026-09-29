@@ -10,7 +10,8 @@ use dioxus::prelude::*;
 use ds::lint::{LintConfig, Profile, Rule, assert_clean, markup};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::SwitcherPanel;
-use sill_surfaces::surfaces::switcher::{Dir, SwitcherAsk, SwitcherLink, SwitcherPanelProps};
+use sill_surfaces::links::{Dir, SwitcherAsk, SwitcherLink};
+use sill_surfaces::surfaces::switcher::SwitcherPanelProps;
 use switcher_support::{fake, start, windows};
 
 const SWITCHER_CSS: &str = include_str!("../src/style/switcher.css");

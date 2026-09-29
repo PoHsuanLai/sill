@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use launcher_harness::open;
 use sill_launcher::PreviewKind;
-use sill_surfaces::surfaces::launcher::debug_link::LinkKey;
+use sill_surfaces::links::LinkKey;
 
 #[test]
 fn holding_down_through_pdfs_rasterises_only_a_few() {

@@ -7,7 +7,7 @@ use ds::{Button, ButtonVariant, Emphasis, MenuBarItem, Switch};
 use shell_host::{OutputInfo, use_watch};
 
 use crate::hooks::{use_service, use_settings};
-use crate::surfaces::notification_center::CenterLink;
+use crate::links::CenterLink;
 use sill_services::ClockService;
 
 /// The clock status item.

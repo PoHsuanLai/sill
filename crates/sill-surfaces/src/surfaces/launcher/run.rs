@@ -9,8 +9,8 @@ use sill_model::clipboard::ClipboardCommand;
 use sill_model::launch::{LaunchCommand, LaunchRequest, OpenRequest};
 use sill_services::ServiceError;
 
+use crate::links::{PowerMenuLink, Preselect};
 use crate::surfaces::launcher::activate::{LauncherEffect, Unreachable};
-use crate::surfaces::power_menu::{PowerMenuLink, Preselect};
 
 /// Where an effect is carried out from: the panel's surface (a launch's token), its output
 /// and the power menu's link (a Log Out, Restart or Shut Down row opens it there).

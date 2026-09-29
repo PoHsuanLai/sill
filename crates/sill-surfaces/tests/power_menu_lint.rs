@@ -10,9 +10,8 @@ use power_menu_support::{fake, opened};
 use sill_model::session::Session;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::PowerMenu;
-use sill_surfaces::surfaces::power_menu::{
-    DryRunSession, PowerMenuBackend, PowerMenuLink, PowerMenuProps, Preselect,
-};
+use sill_surfaces::links::{PowerMenuLink, Preselect};
+use sill_surfaces::surfaces::power_menu::{DryRunSession, PowerMenuBackend, PowerMenuProps};
 
 const POWER_MENU_CSS: &str = include_str!("../src/style/power_menu.css");
 

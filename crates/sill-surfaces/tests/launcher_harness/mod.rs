@@ -18,9 +18,10 @@ use launcher_support::{LauncherFeeds, Runner, fake};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Launcher;
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::links::LauncherLink;
 use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::launcher::script::{LauncherScript, Scripted, ScriptedInput};
-use sill_surfaces::surfaces::launcher::{LauncherKey, LauncherLink, LauncherProviders};
+use sill_surfaces::surfaces::launcher::{LauncherKey, LauncherProviders};
 use tokio::sync::watch;
 
 /// What the harness's root provides.

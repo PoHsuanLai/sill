@@ -1,8 +1,8 @@
-//! What a change on the [`super::PowerMenuLink`] asks of the panel's current session, pure: a
+//! What a change on the [`crate::links::PowerMenuLink`] asks of the panel's current session, pure: a
 //! new opening starts one, the same opening shown again while its sheet leaves brings the sheet
 //! back, and a hidden menu drops it.
 
-use crate::surfaces::power_menu::presence::{PowerMenuOpening, Showing};
+use crate::links::{PowerMenuOpening, Showing};
 use crate::surfaces::power_menu::sheet::{MenuSession, SheetPhase};
 
 /// What the panel does when the link changes.
@@ -35,9 +35,9 @@ pub fn follow(opening: Option<&PowerMenuOpening>, menu: Option<MenuSession>) -> 
 #[cfg(test)]
 mod tests {
     use super::{Follow, follow};
-    use crate::surfaces::launcher::presence::{OpenSerial, PanelFocus};
+    use crate::links::{OpenSerial, PanelFocus};
+    use crate::links::{PowerMenuOpening, Preselect, Showing};
     use crate::surfaces::power_menu::keys::PowerMenuState;
-    use crate::surfaces::power_menu::presence::{PowerMenuOpening, Preselect, Showing};
     use crate::surfaces::power_menu::sheet::{MenuSession, SheetPhase, Then};
     use shell_host::OutputId;
     use sill_model::session::SessionAction;

@@ -13,6 +13,7 @@ pub mod app_icons;
 pub mod clock;
 pub mod hooks;
 pub mod host_modality;
+pub mod links;
 pub mod look;
 pub mod services;
 pub mod status;

@@ -7,8 +7,8 @@ use sill_launcher::AppId;
 use sill_model::cosmic_wl::WlCommand;
 use sill_services::switcher::{AppShown, SwitcherApp, activate, hide, quit};
 
-use super::link::AskSerial;
 use super::machine::SwOut;
+use crate::links::AskSerial;
 
 /// Whose windows a session's verbs touch.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -119,7 +119,7 @@ mod tests {
     use sill_services::switcher::{AppShown, SwitcherApp};
 
     use super::Session;
-    use crate::surfaces::switcher::link::AskSerial;
+    use crate::links::AskSerial;
     use crate::surfaces::switcher::machine::SwOut;
 
     fn app(id: &str, windows: &[u64], shown: AppShown) -> SwitcherApp {

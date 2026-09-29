@@ -11,7 +11,8 @@ use ds::lint::{LintConfig, Profile, Rule, assert_clean, markup};
 use osd_support::{fake, look, start};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Osd;
-use sill_surfaces::surfaces::osd::{LevelSource, OsdKind, OsdLink, OsdProps};
+use sill_surfaces::links::{LevelSource, OsdKind, OsdLink};
+use sill_surfaces::surfaces::osd::OsdProps;
 
 const OSD_CSS: &str = include_str!("../src/style/osd.css");
 

@@ -4,7 +4,7 @@ use ds::widget::{DesktopGrid, GridCell, LayoutError, Order, WidgetAt, WidgetEdit
 use ds::{WidgetHost, WidgetSize};
 
 use super::{Refused, WidgetKeys, edited, layout_of};
-use crate::surfaces::desktop_widgets::{GridSlot, Placement};
+use crate::widgets::grid::{GridSlot, Placement};
 use crate::widgets::{WidgetKind, kind_id};
 
 const GRID: DesktopGrid = DesktopGrid {

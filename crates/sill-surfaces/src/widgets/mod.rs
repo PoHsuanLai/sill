@@ -14,6 +14,7 @@
 
 pub mod battery;
 pub mod calendar;
+pub mod grid;
 pub mod layout;
 pub mod now_playing;
 pub mod up_next;

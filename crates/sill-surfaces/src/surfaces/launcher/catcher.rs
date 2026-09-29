@@ -9,11 +9,11 @@ use dioxus::prelude::*;
 use shell_host::{OutputInfo, use_watch};
 
 use crate::hooks::use_settings;
+use crate::links::LauncherLink;
 use crate::surfaces::launcher::card::follow_input;
 use crate::surfaces::launcher::follow::{use_follow_visibility, use_shown};
 use crate::surfaces::launcher::layer::catcher_input;
 use crate::surfaces::launcher::panel::LAUNCHER_CSS;
-use crate::surfaces::launcher::presence::LauncherLink;
 
 /// The catcher on `output`.
 pub(crate) fn catcher(output: OutputInfo) -> Element {

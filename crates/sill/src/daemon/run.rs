@@ -2,8 +2,8 @@
 //! host, and keep one set of surfaces per output. The lock is
 //! `latchkey::Agent::new("sill").listen()`; `AlreadyRunning` exits 0.
 //!
-//! `Links` is built once here and installed for the surfaces and the IPC dispatch to read
-//! (`crate::links`).
+//! `Links` is built once here and handed to the shell state, which gives it to every surface
+//! root and to the IPC dispatch.
 
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -12,9 +12,11 @@ use std::time::{Duration, Instant};
 use shell_host::{Host, HostConfig, HostHandle};
 use sill_services::env::Env;
 use sill_settings::{SettingsFeed, ShellFile};
+use sill_surfaces::links::{
+    BannerLink, CenterLink, ControlCenterLink, CornerLink, EditWidgetsLink, LauncherLink, Links,
+    LockLink, OsdLink, PowerMenuLink, SwitcherLink,
+};
 use sill_surfaces::services::Services;
-use sill_surfaces::surfaces::launcher::LauncherLink;
-use sill_surfaces::surfaces::osd::OsdLink;
 use tokio::runtime::Runtime;
 use tokio::sync::watch;
 
@@ -22,7 +24,6 @@ use super::events::{Shell, handle};
 use super::msg::ShellMsg;
 use super::{services, settings};
 use crate::ipc::server;
-use crate::links::Links;
 use crate::outputs::Outputs;
 
 /// Run the daemon until `quit` or a fatal host error, on the seams `args` make.
@@ -48,14 +49,14 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         .unwrap_or_default();
     let (settings, settings_rx) = watch::channel(first.clone());
     let settings_feed = SettingsFeed(settings_rx);
-    install_links(
+    let links = build_links(
         &runtime,
         &env,
         &settings_feed,
         &settings,
         settings_dir.clone(),
     );
-    services::follow_settings(runtime.handle(), &settings_feed, &services, &env);
+    services::follow_settings(runtime.handle(), &settings_feed, &links, &services, &env);
 
     let host = match Host::<ShellMsg>::connect(host_config(&first)) {
         Ok(host) => host,
@@ -66,13 +67,12 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     // `ipc::server::spawn`).
     let _ipc_thread = server::spawn(door, host_handle.clone());
 
-    let launcher = LauncherLink::new();
     spawn_followers(
         &runtime,
         &services,
         &settings_feed,
         &host_handle,
-        &launcher,
+        &links,
         settings_dir.clone(),
     );
     let mut shell = Shell {
@@ -82,8 +82,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         settings_feed,
         settings_dir,
         settings,
-        launcher,
-        osd: OsdLink::new(),
+        links,
     };
     let result = host.run(move |ctx, event| handle(&mut shell, ctx, event));
 
@@ -113,34 +112,36 @@ fn host_config(first: &ShellFile) -> HostConfig {
     }
 }
 
-/// Build the shared links every surface root is given and install them.
-fn install_links(
+/// Build the shared links every surface root is given.
+fn build_links(
     runtime: &Runtime,
     env: &Env,
     settings_feed: &SettingsFeed,
     settings: &watch::Sender<ShellFile>,
     settings_dir: Option<PathBuf>,
-) {
-    crate::links::install(Links {
+) -> Links {
+    Links {
         focus: sill_settings::spawn_focus(
             runtime.handle(),
             settings_feed.0.clone(),
             settings_dir.clone(),
         ),
-        power_menu: sill_surfaces::surfaces::power_menu::PowerMenuLink::new(),
-        control_center: sill_surfaces::surfaces::control_center::ControlCenterLink::new(),
-        notification_center: sill_surfaces::surfaces::notification_center::CenterLink::new(),
-        banners: sill_surfaces::surfaces::banners::BannerLink::new(),
-        corners: sill_surfaces::surfaces::hot_corners::CornerLink::new(),
-        switcher: sill_surfaces::surfaces::switcher::SwitcherLink::new(),
-        lock: sill_surfaces::surfaces::lock::LockLink::new(),
-        edit_widgets: sill_surfaces::surfaces::edit_widgets::EditWidgetsLink::new(),
+        launcher: LauncherLink::new(),
+        osd: OsdLink::new(),
+        power_menu: PowerMenuLink::new(),
+        control_center: ControlCenterLink::new(),
+        notification_center: CenterLink::new(),
+        banners: BannerLink::new(),
+        corners: CornerLink::new(),
+        switcher: SwitcherLink::new(),
+        lock: LockLink::new(),
+        edit_widgets: EditWidgetsLink::new(),
         widgets_writer: crate::edit_widgets::writer(
             settings_dir,
             sill_surfaces::surfaces::desktop_widgets::PlacementFile::in_dirs(&env.dirs),
             settings.clone(),
         ),
-    });
+    }
 }
 
 /// The tasks that act on the host from a service or a setting: the own lock screen's wish to hold
@@ -151,7 +152,7 @@ fn spawn_followers(
     services: &Services,
     settings_feed: &SettingsFeed,
     host: &HostHandle<ShellMsg>,
-    launcher: &LauncherLink,
+    links: &Links,
     settings_dir: Option<PathBuf>,
 ) {
     crate::lock::spawn_follower(runtime.handle(), services, host.clone());
@@ -159,15 +160,12 @@ fn spawn_followers(
     if let Some(dir) = settings_dir {
         settings::spawn_watch(runtime, dir, host.clone());
     }
-    if let Some(links) = crate::links::get() {
-        crate::corners::spawn_hits(
-            runtime.handle(),
-            &links.corners,
-            settings_feed.0.clone(),
-            services.clone(),
-            launcher.clone(),
-        );
-    }
+    crate::corners::spawn_hits(
+        runtime.handle(),
+        links.clone(),
+        settings_feed.0.clone(),
+        services.clone(),
+    );
 }
 
 /// The bound [`shutdown_runtime`] gives every service's blocking-pool thread to finish once

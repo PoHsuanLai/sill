@@ -64,7 +64,7 @@ impl BannerLink {
 
 #[cfg(test)]
 mod tests {
-    use super::{BannerLink, BannerOutput};
+    use crate::links::{BannerLink, BannerOutput};
     use shell_host::OutputId;
 
     #[test]

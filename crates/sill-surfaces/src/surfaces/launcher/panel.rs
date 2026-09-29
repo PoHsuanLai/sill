@@ -23,6 +23,7 @@ use sill_settings::PanelMaterial;
 
 use crate::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
 use crate::hooks::{use_appearance, use_service, use_settings};
+use crate::links::LauncherLink;
 use crate::look::use_active_look;
 use crate::surfaces::bar::shell_style::shell_metrics;
 use crate::surfaces::launcher::card::{CardKey, Foot, use_card_hit};
@@ -37,7 +38,6 @@ use crate::surfaces::launcher::layer::{
 use crate::surfaces::launcher::list_detail::{ListState, Rows, use_list_detail};
 use crate::surfaces::launcher::pane_keys::use_link_keys;
 use crate::surfaces::launcher::pane_session::PaneSession;
-use crate::surfaces::launcher::presence::LauncherLink;
 use crate::surfaces::launcher::preview::keys::{Pane, PaneFocus};
 use crate::surfaces::launcher::preview::{LauncherPane, PREVIEW_WIDTH_PX};
 use crate::surfaces::launcher::row_icon::{row_art, row_tile};
@@ -188,7 +188,7 @@ pub(crate) struct Aside {
     icon: Option<IconSource>,
     focused: Option<usize>,
     shown: ds::Shown,
-    serial: crate::surfaces::launcher::presence::OpenSerial,
+    serial: crate::links::OpenSerial,
     touch: ds::detail::Touch,
 }
 

@@ -49,9 +49,10 @@ use tray::Tray;
 use workspaces::WorkspaceIndicator;
 
 use crate::hooks::{use_appearance, use_service, use_service_part, use_services, use_settings};
+use crate::links::CenterLink;
+use crate::links::ControlCenterLink;
 use crate::look::use_active_look;
-use crate::surfaces::control_center::{ControlCenterLink, height_cap, menu_bar_modules};
-use crate::surfaces::notification_center::CenterLink;
+use crate::surfaces::control_center::{height_cap, menu_bar_modules};
 use sill_services::{AppsService, CosmicWlService, TrayService};
 
 /// The bar's own stylesheet (lint-clean under `Profile::Strict`, `tests/bar_lint.rs`).
@@ -95,7 +96,7 @@ pub fn Bar(output: OutputInfo) -> Element {
         look: popup_look,
         namespace: bar_layer(&output, &file.bar).namespace,
         output: output.id,
-        power_menu: try_use_context::<crate::surfaces::power_menu::PowerMenuLink>(),
+        power_menu: try_use_context::<crate::links::PowerMenuLink>(),
         settings: use_context::<SettingsFeed>(),
         focus,
         output_name: on.clone(),

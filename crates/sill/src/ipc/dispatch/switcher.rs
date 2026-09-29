@@ -7,8 +7,8 @@
 use shell_host::OutputId;
 use sill_ipc::act::SwitcherRequest;
 use sill_ipc::response::Response;
-use sill_surfaces::surfaces::banners::BannerOutput;
-use sill_surfaces::surfaces::switcher::{Dir, SwitcherAsk};
+use sill_surfaces::links::BannerOutput;
+use sill_surfaces::links::{Dir, SwitcherAsk};
 
 use super::reach::Reach;
 use super::reply::unsupported;
@@ -21,12 +21,9 @@ pub fn chord(reach: &Reach, request: SwitcherRequest) -> Response {
 
 /// Write `ask` for the switcher's output.
 pub fn ask(reach: &Reach, ask: SwitcherAsk) -> Response {
-    let Some(links) = reach.links else {
-        return unsupported("the daemon's links are not installed");
-    };
-    match target(reach.outputs, links.banners.now()) {
+    match target(reach.outputs, reach.links.banners.now()) {
         Some(output) => {
-            links.switcher.ask(output, ask);
+            reach.links.switcher.ask(output, ask);
             Response::Done
         }
         None => unsupported("no output has a switcher surface"),
@@ -59,7 +56,7 @@ fn ask_of(request: SwitcherRequest) -> SwitcherAsk {
 #[cfg(test)]
 mod tests {
     use sill_ipc::act::SwitcherRequest;
-    use sill_surfaces::surfaces::switcher::{Dir, SwitcherAsk};
+    use sill_surfaces::links::{Dir, SwitcherAsk};
 
     use super::ask_of;
 

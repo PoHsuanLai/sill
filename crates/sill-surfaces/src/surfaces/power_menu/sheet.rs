@@ -7,7 +7,7 @@
 use ds::Shown;
 use sill_model::session::{Session, SessionAction};
 
-use crate::surfaces::launcher::presence::OpenSerial;
+use crate::links::OpenSerial;
 use crate::surfaces::power_menu::keys::{
     PowerMenuKey, PowerMenuOut, PowerMenuState, offered, step,
 };
@@ -128,7 +128,7 @@ pub fn advance(
 #[cfg(test)]
 mod tests {
     use super::{MenuSession, SheetEffect, SheetInput, SheetPhase, Then, advance};
-    use crate::surfaces::launcher::presence::OpenSerial;
+    use crate::links::OpenSerial;
     use crate::surfaces::power_menu::keys::{PowerMenuKey, PowerMenuState};
     use ds::Shown;
     use sill_model::session::{Offer, Session, SessionAction};

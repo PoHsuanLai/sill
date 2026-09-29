@@ -13,7 +13,7 @@ use launcher_harness::{Open, is_open, open, settle};
 use sill_launcher::{OpenTarget, PreviewKind};
 use sill_model::launch::LaunchCommand;
 use sill_model::results::SearchCommand;
-use sill_surfaces::surfaces::launcher::debug_link::{LinkKey, ShownRows};
+use sill_surfaces::links::{LinkKey, ShownRows};
 
 fn rows(open: &Open) -> ShownRows {
     open.link.rows().expect("the open panel publishes its rows")

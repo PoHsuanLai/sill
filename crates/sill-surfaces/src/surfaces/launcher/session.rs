@@ -3,8 +3,8 @@
 
 use sill_launcher::Generation;
 
+use crate::links::{OpenSerial, Opening};
 use crate::surfaces::launcher::keys::LauncherState;
-use crate::surfaces::launcher::presence::{OpenSerial, Opening};
 
 /// The panel's state for one opening.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -53,8 +53,8 @@ impl Session {
 #[cfg(test)]
 mod tests {
     use super::Session;
+    use crate::links::{OpenSerial, Opening, PanelFocus};
     use crate::surfaces::launcher::keys::{Filter, LauncherState};
-    use crate::surfaces::launcher::presence::{OpenSerial, Opening, PanelFocus};
     use shell_host::OutputId;
     use sill_launcher::{Generation, ProviderKind};
     use std::time::Instant;

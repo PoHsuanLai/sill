@@ -141,7 +141,8 @@ impl OsdLink {
 
 #[cfg(test)]
 mod tests {
-    use super::{ChangeSerial, LevelSource, OsdKind, OsdLatest, OsdLink, next};
+    use super::next;
+    use crate::links::{ChangeSerial, LevelSource, OsdKind, OsdLatest, OsdLink};
     use shell_host::OutputId;
 
     const ONE: OutputId = OutputId(1);

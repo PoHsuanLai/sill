@@ -2,7 +2,8 @@
 //! layer's right edge (new widgets fill from the top right, `placement::place`), `gap` around it
 //! and between its cells. Pure.
 
-use super::placement::{GridSize, GridSlot};
+use super::placement::GridSize;
+use crate::widgets::grid::GridSlot;
 use crate::widgets::{WidgetSize, cells};
 
 /// A widget's box on the layer.
@@ -53,8 +54,9 @@ pub fn place_box(slot: GridSlot, size: WidgetSize, metrics: GridMetrics) -> Plac
 #[cfg(test)]
 mod tests {
     use super::{GridMetrics, PlaceBox, place_box};
-    use crate::surfaces::desktop_widgets::placement::{GridSize, GridSlot};
+    use crate::surfaces::desktop_widgets::placement::GridSize;
     use crate::widgets::WidgetSize;
+    use crate::widgets::grid::GridSlot;
 
     #[test]
     fn boxes_sit_on_a_grid_flush_with_the_right_edge() {

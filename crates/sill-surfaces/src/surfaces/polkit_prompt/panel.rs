@@ -20,8 +20,8 @@ use sill_services::{Control, PolkitAgentService};
 use super::stage::{Mapped, Stage, StageIn, advance};
 use super::view::{PolkitPromptView, prompt_view};
 use crate::hooks::{use_appearance, use_control, use_ds_scale, use_service};
+use crate::links::BannerLink;
 use crate::look::use_active_look;
-use crate::surfaces::banners::BannerLink;
 
 pub(super) fn polkit_prompt(output: OutputInfo) -> Element {
     let ds_scale = use_ds_scale();

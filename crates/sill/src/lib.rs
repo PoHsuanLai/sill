@@ -8,7 +8,6 @@ pub mod edit_widgets;
 pub mod idle_dim;
 pub mod ipc;
 pub mod launch;
-pub mod links;
 pub mod lock;
 pub mod notifications;
 pub mod osd;

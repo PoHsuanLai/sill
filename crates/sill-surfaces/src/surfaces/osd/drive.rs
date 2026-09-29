@@ -12,9 +12,9 @@ use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_settings::OsdSettings;
 
 use crate::FrameClock;
-use crate::surfaces::launcher::presence::Visible;
+use crate::links::Visible;
+use crate::links::{OsdChange, OsdLatest, OsdLink};
 use crate::surfaces::osd::layer::{anchor, margin};
-use crate::surfaces::osd::link::{OsdChange, OsdLatest, OsdLink};
 use crate::surfaces::osd::machine::{OsdInput, OsdPhase, OsdTimes, step};
 
 /// The machine's times from `osd`'s hold.

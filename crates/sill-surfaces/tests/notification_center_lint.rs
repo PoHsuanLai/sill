@@ -9,8 +9,9 @@ use dioxus::prelude::*;
 use ds::lint::{LintConfig, Profile, Rule, assert_clean, markup};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::NotificationCenter;
+use sill_surfaces::links::CenterLink;
 use sill_surfaces::surfaces::notification_center::{
-    CenterLink, NOTIFICATION_CENTER_CSS, NotificationCenterProps,
+    NOTIFICATION_CENTER_CSS, NotificationCenterProps,
 };
 
 fn strict() -> LintConfig {

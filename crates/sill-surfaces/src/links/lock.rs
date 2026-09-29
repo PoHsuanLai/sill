@@ -54,7 +54,7 @@ impl LockLink {
 mod tests {
     use shell_host::OutputId;
 
-    use super::{LockLink, PromptOutput};
+    use crate::links::{LockLink, PromptOutput};
 
     #[test]
     fn the_prompt_moves_and_a_repeat_is_silent() {

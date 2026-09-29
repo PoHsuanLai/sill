@@ -16,10 +16,9 @@ use sill_model::session::Session;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::PowerMenu;
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::links::{PowerMenuLink, Preselect};
 use sill_surfaces::services::Services;
-use sill_surfaces::surfaces::power_menu::{
-    DryRunSession, PowerMenuBackend, PowerMenuLink, Preselect,
-};
+use sill_surfaces::surfaces::power_menu::{DryRunSession, PowerMenuBackend};
 
 /// What the harness's root provides.
 #[derive(Clone)]

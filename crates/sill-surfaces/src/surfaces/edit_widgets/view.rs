@@ -24,13 +24,14 @@ use sill_settings::DesktopWidgets;
 
 use super::drive::{places_to_save, use_phase};
 use super::layer::EDIT_PANEL_ID;
-use super::link::EditWidgetsLink;
 use super::status::{EditCount, EditStatus, Outcome, outcome_of};
-use super::writer::{WidgetsWrite, WidgetsWriter};
 use crate::hooks::{use_appearance, use_ds_scale, use_settings};
+use crate::links::EditWidgetsLink;
+use crate::links::{WidgetsWrite, WidgetsWriter};
 use crate::look::use_active_look;
-use crate::surfaces::desktop_widgets::{OutputKey, PlacementFile, grid_size, place};
+use crate::surfaces::desktop_widgets::{PlacementFile, grid_size, place};
 use crate::surfaces::notification_center::phase::Phase;
+use crate::widgets::grid::OutputKey;
 use crate::widgets::layout::{WidgetKeys, edited, layout_of};
 use crate::widgets::{WidgetHost, desktop_size, provide_registry, widgets_css};
 

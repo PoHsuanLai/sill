@@ -14,7 +14,8 @@
 use shell_host::{Modifier, Modifiers};
 
 use super::keys::Chord;
-use super::machine::{Dir, SwIn, SwKey, Switcher};
+use super::machine::{SwIn, SwKey, Switcher};
+use crate::links::Dir;
 
 /// Whether an opening follows the modifiers: on a host surface, for the compositor's apps
 /// (`watch.rs`).
@@ -68,8 +69,9 @@ mod tests {
     use sill_model::units::Stamp;
 
     use super::{Hold, Watch, chord_input, chord_of, tick_input};
+    use crate::links::Dir;
     use crate::surfaces::switcher::keys::Chord;
-    use crate::surfaces::switcher::machine::{Dir, SwIn, SwKey, Switcher};
+    use crate::surfaces::switcher::machine::{SwIn, SwKey, Switcher};
 
     #[test]
     fn alt_or_logo_holds_the_chord() {
