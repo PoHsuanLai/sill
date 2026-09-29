@@ -89,3 +89,12 @@ pub enum Visibility {
     Hidden,
     Shown,
 }
+
+/// Whether a control can be used: a menu row that can be picked, a media button that works.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Availability {
+    #[default]
+    Enabled,
+    Disabled,
+}

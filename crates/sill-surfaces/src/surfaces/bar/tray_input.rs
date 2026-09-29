@@ -6,8 +6,8 @@ use dioxus::html::geometry::WheelDelta;
 use ds::ChromaLimit;
 use ds::icon::{IconKind, classify_with};
 use ds::{ExternalIcon, Icon, IconSize, IconSource, IconUrl, PointerButton, Press};
+use sill_model::tray::{ScrollAxis, ScrollDelta, TrayCommand, TrayItemId};
 use sill_services::tray::IconArt;
-use sill_services::{ScrollAxis, ScrollDelta, TrayCommand, TrayItemId};
 
 /// The top-left corner of the bar's surface in the compositor's logical space: its output's
 /// origin (the bar is anchored to the output's top-left).
@@ -130,8 +130,8 @@ mod tests {
     use dioxus::html::geometry::WheelDelta;
     use dioxus::prelude::Modifiers;
     use ds::{Icon, IconSource, PointerButton, Press, Px};
+    use sill_model::tray::{ScrollAxis, ScrollDelta, TrayCommand, TrayItemId};
     use sill_services::tray::IconArt;
-    use sill_services::{ScrollAxis, ScrollDelta, TrayCommand, TrayItemId};
     use std::path::PathBuf;
 
     fn png(pixel: [u8; 4]) -> Vec<u8> {

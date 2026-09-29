@@ -118,10 +118,7 @@ pub use service::{Handle, Service, ServiceIo};
 pub use services::{Member, Services};
 pub use session::SessionService;
 pub use switcher::{AppShown, SwitcherApp, switcher_apps};
-pub use tray::{
-    Availability, Check, Pixmap, ScrollAxis, ScrollDelta, Tray, TrayCommand, TrayEvent, TrayIcon,
-    TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind, TrayService, TrayStatus,
-};
+pub use tray::TrayService;
 pub use volume::VolumeService;
 pub use wallpaper::{
     WallpaperCommand, WallpaperImage, WallpaperService, WallpaperSource, Wallpapers,

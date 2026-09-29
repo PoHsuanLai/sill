@@ -24,12 +24,13 @@ use shell_host::{
     OutputInfo, PopupConfig, PopupPlacement, PopupSize, Rect, Root, Size, SurfaceHandle,
     use_surface,
 };
-use sill_model::units::Visibility;
-use sill_services::tray::icon_art;
-use sill_services::{
-    Availability as TrayAvailability, Check as TrayCheck, Control, TrayCommand, TrayIcon, TrayItem,
-    TrayItemId, TrayMenuEntry, TrayMenuKind, TrayService, TrayStatus,
+use sill_model::tray::{
+    Check as TrayCheck, TrayCommand, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind,
+    TrayStatus,
 };
+use sill_model::units::{Availability as TrayAvailability, Visibility};
+use sill_services::tray::icon_art;
+use sill_services::{Control, TrayService};
 
 use super::geometry::menu_size;
 use super::popup::{MenuSide, menu_popup};
@@ -284,7 +285,7 @@ mod tests {
     use dioxus::core::VirtualDom;
     use dioxus::prelude::*;
     use ds::lint::{LintConfig, Profile, Rule, markup};
-    use sill_services::{TrayIcon, TrayItem, TrayItemId, TrayStatus};
+    use sill_model::tray::{TrayIcon, TrayItem, TrayItemId, TrayStatus};
 
     fn fake_item(name: &str) -> TrayItem {
         TrayItem {

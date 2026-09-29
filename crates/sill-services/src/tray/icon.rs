@@ -8,8 +8,7 @@
 use std::path::{Path, PathBuf};
 
 use image::{ExtendedColorType, ImageEncoder};
-
-use super::model::{Pixmap, TrayIcon};
+use sill_model::tray::{Pixmap, TrayIcon};
 
 /// What a status item's icon is, as far as this side can tell.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -88,7 +87,7 @@ fn pixmap_png(pixmap: &Pixmap) -> Option<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::{IconArt, icon_art, named_art, pixmap_png, symbolic_name};
-    use crate::tray::model::{Pixmap, TrayIcon};
+    use sill_model::tray::{Pixmap, TrayIcon};
     use std::path::PathBuf;
 
     #[test]

@@ -13,5 +13,6 @@ pub mod kbd_backlight;
 pub mod pins;
 pub mod power_profile;
 pub mod session;
+pub mod tray;
 pub mod units;
 pub mod volume;

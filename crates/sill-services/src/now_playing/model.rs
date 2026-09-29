@@ -4,8 +4,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::tray::Availability;
-use sill_model::units::Stamp;
+use sill_model::units::{Availability, Stamp};
 
 /// Every MPRIS player on the bus, in the order they appeared.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
