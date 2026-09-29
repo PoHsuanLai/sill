@@ -729,8 +729,9 @@ where noted, and sill compiles against each.
 12. Split the surface crates out of `sill-ui-kit`'s host: `sill-overlays`, `sill-notify-ui`,
     `sill-widgets-ui`, `sill-dock`, `sill-launcher-ui`, `sill-bar`; magnify to `sill-dock`,
     switcher derivation to `sill-overlays`; delete `sill-surfaces`.
-13. shell-host `Inject::Key`: delete the script stand-ins, `launcher_debug`, `DryRunSession`
-    key paths and `key-sink.py`.
+13. (done) shell-host `Inject::Key`: delete the script stand-ins, `launcher_debug` and the
+    `DryRunSession` key paths. `dev/key-sink.py` stays: a focus-holding test client for
+    `bar.sh --real-input`, not a key stand-in.
 14. (done) `dev/lib/*.sh` and one script per surface with `--real-input`; untrack `dev/out/*.png`.
 15. Update `check-boundary.sh` to section 1's table; prune FINDINGS to open items and standing
     facts.

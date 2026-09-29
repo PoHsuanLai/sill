@@ -12,24 +12,20 @@
 # is killed at the end.
 #
 # The chord is `sill switcher next|prev`, as COSMIC's WindowSwitcher runs it under dist/cosmic.
-# Its modifier is Alt on the nested compositor's own virtual keyboard (`wtype -M alt`, no key
-# typed: zwp_virtual_keyboard_v1; WAYLAND_DISPLAY is the nested socket's absolute path, so nothing
-# reaches the user's session), which the switcher reads through shell-host's modifiers
-# (`use_modifiers`); its release is the release. `sill debug key` cannot stand in for it: an
-# injected key never changes the seat's modifiers. A virtual keyboard's modifiers reach only the
-# client focused when it sends them, so Alt goes down once the switcher has the keyboard, inside
-# the show delay, which this run sets to 400 ms (`switcher.show_delay_ms`) to leave room for
-# `wtype` to start. The keys pressed while Alt is held are `sill debug key SURFACE KEY`:
-# shell-host's `Inject::Key`. Never Tab: the nested compositor binds Alt+Tab to cosmic-launcher;
-# Right and Left step as Tab and Shift+Tab do. The script needs the nested cosmic-comp for the
-# windows (toplevel activation), which the headless KWin does not offer.
+# Its modifier is Alt, injected with `sill debug key SURFACE Alt --action press|release`
+# (shell-host's `Inject::Key`, which moves the seat modifiers the switcher reads through
+# `use_modifiers`); its release is the release. The keys pressed while Alt is held are `sill debug
+# key SURFACE KEY` too, and nothing reaches the user's session: every key goes to the switcher
+# surface of this run's own daemon. The show delay is 400 ms (`switcher.show_delay_ms`). Right and
+# Left step as Tab and Shift+Tab do. The script needs the nested cosmic-comp for the windows
+# (toplevel activation), which the headless KWin does not offer.
 #
 #   1. Warm: `sill-switcher-<out>` exists from the start, hidden (its capture fails).
 #   2. The quick tap: `next` + `commit` inside the delay switches to the previous app (demo goes
 #      Active, then, again, Inactive) with no panel frames; `next` alone with nothing held (the
 #      release came before the focus) switches too, with no panel, unless the nested seat
 #      reports a modifier held at the focus (the host session can leave it with Alt down; the
-#      line then says NOT PROVEN and the virtual keyboard's release commits it).
+#      line then says NOT PROVEN and the injected Alt's release commits it).
 #   3. Alt held, `next` shows the panel after the show delay, not before, on the three apps
 #      (screenshot dev/out/switcher-cosmic.png); `next` and `prev` move the selection (the
 #      panel's pixels change, and come back); `cancel` hides it, and no window's activation
@@ -59,9 +55,13 @@ mkdir -p "$CONFIG/sill"
 PIDS=()
 HOLD=
 
-# Alt held on the nested virtual keyboard around `wtype`'s own arguments "$@" (only `-s MS`
-# sleeps: no key is typed, the modifier is what the switcher reads).
-alt_held() { WAYLAND_DISPLAY="$WL" wtype -M alt "$@" -m alt; }
+# Alt down on the switcher, held for $1 ms (none: a bare tap of Alt), then up: the modifier the
+# switcher reads through `use_modifiers`.
+alt_held() {
+  sill debug key "$SWITCHER" Alt --action press >>"$OUT_DIR/keys.log" 2>&1
+  [ -n "${1:-}" ] && sleep "$(python3 -c "print($1 / 1000)")"
+  sill debug key "$SWITCHER" Alt --action release >>"$OUT_DIR/keys.log" 2>&1
+}
 # Press the named key (`sill debug key` names) on the switcher.
 press() { sill debug key "$SWITCHER" "$1" >>"$OUT_DIR/keys.log" 2>&1; }
 
@@ -184,14 +184,11 @@ stop_windows() {
   done
 }
 
-# The chord `sill switcher next`, then Alt held for $1 ms on the nested virtual keyboard (in the
-# background, its pid in HOLD). The virtual keyboard's modifiers reach only the
-# client focused when it sends them, so Alt goes down once the switcher has the keyboard (the
-# focus lands 50-90 ms after the chord here), inside the show delay.
+# The chord `sill switcher next`, then Alt held for $1 ms (in the background, its pid in HOLD),
+# down inside the show delay.
 chord_held() {
   sill switcher next >>"$OUT_DIR/chords.log" 2>&1
-  sleep 0.15
-  alt_held -s "$1" >>"$OUT_DIR/keys.log" 2>&1 &
+  alt_held "$1" &
   HOLD=$!
   sleep 0.05
 }
@@ -236,8 +233,8 @@ step_quick_tap() {
   sleep "$(python3 -c "print(($SHOW_DELAY_MS + 300) / 1000)")"
   if panel_to "$OUT_DIR/stuck.png"; then
     # The seat told the switcher a modifier is held (the host session can leave the nested seat
-    # with Alt down after an Alt+Tab away from its window, and the virtual keyboard cannot lift
-    # it): a held chord waits for its release, as it should. The virtual keyboard's release
+    # with Alt down after an Alt+Tab away from its window, and the injected Alt cannot lift
+    # it): a held chord waits for its release, as it should. The injected Alt's release
     # commits it; the tap without a commit is then not proven here.
     seat=held
     alt_held >>"$OUT_DIR/keys.log" 2>&1
@@ -248,7 +245,7 @@ step_quick_tap() {
   case "$seat" in
     none) echo "next alone, nothing held (the release came before the focus): demo $(demo_state) (the previous app), no panel; switcher frames $(( f1 - f0 ))" | tee -a "$log" >&2
       [ $(( f1 - f0 )) -le 2 ] || ok=no ;;
-    *) echo "NOT PROVEN next alone: the nested seat reported Alt held at the focus, so the panel waited for the release (demo $(demo_state) after the virtual keyboard's release)" | tee -a "$log" >&2 ;;
+    *) echo "NOT PROVEN next alone: the nested seat reported Alt held at the focus, so the panel waited for the release (demo $(demo_state) after the injected Alt's release)" | tee -a "$log" >&2 ;;
   esac
   [ "$ok" = yes ]
 }
@@ -357,7 +354,6 @@ cleanup() {
 trap cleanup EXIT
 
 nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
-command -v wtype >/dev/null || { echo "wtype not found (the Alt hold)" >&2; exit 1; }
 build_switcher || exit 1
 if pgrep -x sill >/dev/null; then
   echo "another sill daemon is running; wait for it to quit" >&2
