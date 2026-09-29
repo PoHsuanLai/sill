@@ -8,8 +8,7 @@
 //!
 //! `cargo run -p sill-surfaces --example wallpaper_demo`
 
-#[path = "../tests/support/fake.rs"]
-mod fake;
+use sill_surfaces::harness::fake;
 
 use std::collections::HashSet;
 

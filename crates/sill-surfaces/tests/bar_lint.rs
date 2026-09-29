@@ -1,7 +1,7 @@
 //! Coherence rules 1 and 2 for the bar: its stylesheet under
 //! `Profile::Strict`, and an SSR render of the real `Bar` through the markup lint.
 
-mod support;
+use sill_surfaces::harness::fake;
 
 use dioxus::prelude::*;
 use ds::lint::{LintConfig, Profile, Rule, assert_clean, markup};
@@ -28,11 +28,11 @@ fn render_ssr() -> String {
         .build()
         .expect("a runtime builds"); // test-only
     let _entered = rt.enter();
-    let (services, _feeds) = support::fake::services();
+    let (services, _feeds) = fake::services();
     let mut dom = VirtualDom::new_with_props(
         Bar,
         BarProps {
-            output: support::fake::output(),
+            output: fake::output(),
         },
     );
     dom.provide_root_context(services);

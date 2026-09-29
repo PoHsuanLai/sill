@@ -11,6 +11,8 @@
 
 pub mod app_icons;
 pub mod clock;
+#[cfg(feature = "harness")]
+pub mod harness;
 pub mod hooks;
 pub mod links;
 pub mod look;

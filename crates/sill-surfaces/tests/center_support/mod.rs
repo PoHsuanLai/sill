@@ -6,8 +6,7 @@
 
 #![allow(dead_code)] // Each test binary uses its own subset.
 
-#[path = "../support/fake.rs"]
-pub mod fake;
+pub use sill_surfaces::harness::fake;
 
 use std::cell::RefCell;
 use std::time::Duration;

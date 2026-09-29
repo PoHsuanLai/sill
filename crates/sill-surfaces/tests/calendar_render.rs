@@ -6,8 +6,7 @@
 //! colour, its empty and quiet lines, and all through quire's markup lint (coherence rules 1
 //! and 2).
 
-#[path = "support/fake.rs"]
-mod fake;
+use sill_surfaces::harness::fake;
 
 use std::cell::RefCell;
 use std::time::Duration;

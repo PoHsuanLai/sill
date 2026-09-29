@@ -3,7 +3,7 @@
 //! with no image the `--paper` ground must, so neither leaves the surface transparent (the live
 //! capture that showed the compositor's grey through the wallpaper).
 
-mod support;
+use sill_surfaces::harness::fake;
 
 use std::cell::RefCell;
 use std::path::PathBuf;
@@ -39,7 +39,7 @@ fn app() -> Element {
     };
     use_context_provider(|| services);
     rsx! {
-        Wallpaper { output: support::fake::output() }
+        Wallpaper { output: fake::output() }
     }
 }
 
@@ -59,7 +59,7 @@ fn fixture(tag: &str) -> PathBuf {
 /// The wallpaper fed `fed`, advanced until `done` holds (at most two seconds), then painted
 /// over a transparent backdrop.
 fn paint(fed: Wallpapers, done: impl Fn(&image::RgbaImage) -> bool) -> image::RgbaImage {
-    let (mut services, _feeds) = support::fake::services();
+    let (mut services, _feeds) = fake::services();
     let (_tx, rx) = watch::channel(fed);
     services.wallpaper.state = rx;
     SERVICES.with(|s| *s.borrow_mut() = Some(services));

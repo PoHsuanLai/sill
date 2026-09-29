@@ -9,8 +9,7 @@
 //! a live capture. Review material only, never a gate (as `ds_native::snapshot`'s own doc
 //! comment says): the rasteriser changes with Blitz revisions.
 
-#[path = "support/fake.rs"]
-mod fake;
+use sill_surfaces::harness::fake;
 
 use std::cell::RefCell;
 use std::path::PathBuf;

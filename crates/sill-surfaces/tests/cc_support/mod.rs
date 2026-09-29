@@ -4,8 +4,7 @@
 #![allow(dead_code)] // Each test binary uses its own subset.
 
 pub mod details;
-#[path = "../support/fake.rs"]
-pub mod fake;
+pub use sill_surfaces::harness::fake;
 pub mod live;
 
 use dioxus::prelude::*;

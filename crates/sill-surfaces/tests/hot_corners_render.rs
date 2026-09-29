@@ -4,7 +4,7 @@
 //! rule 1). On the virtual clock, so the dwell and the re-arm
 //! are checked to the millisecond.
 
-mod support;
+use sill_surfaces::harness::fake;
 
 use std::cell::RefCell;
 use std::time::Duration;
@@ -43,7 +43,7 @@ fn app() -> Element {
     use_context_provider(|| SettingsFeed::fixed(file));
     rsx! {
         HotCorner {
-            output: support::fake::output(),
+            output: fake::output(),
             corner: Corner::TopLeft,
         }
     }
@@ -99,7 +99,7 @@ fn a_dwell_fires_once_and_not_before() {
     harness.advance(MS);
     let first = link.last().expect("fired at the dwell");
     assert_eq!(first.corner, Corner::TopLeft);
-    assert_eq!(first.output, OutputId(support::fake::output().id.0));
+    assert_eq!(first.output, OutputId(fake::output().id.0));
     // Staying inside fires nothing more.
     harness.advance(Duration::from_millis(DWELL_MS as u64 * 3));
     assert_eq!(

@@ -3,8 +3,7 @@
 //! `Profile::Strict` with no keyframes of their own, and the markup of every widget in both
 //! hosts, of the desktop layer and of Edit Widgets through the markup lint.
 
-#[path = "support/fake.rs"]
-mod fake;
+use sill_surfaces::harness::fake;
 
 use std::cell::RefCell;
 use std::time::Duration;

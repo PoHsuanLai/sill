@@ -8,8 +8,7 @@
 //! and says so, the gallery is a sheet at the bottom offering one size per widget and no size
 //! control, and Done closes it; every moment settles to zero frames.
 
-#[path = "support/fake.rs"]
-mod fake;
+use sill_surfaces::harness::fake;
 
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};

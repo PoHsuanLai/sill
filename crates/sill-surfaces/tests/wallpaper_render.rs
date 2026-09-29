@@ -3,7 +3,7 @@
 //! environment resolves to the light scheme, `ds-settings`' own default), an entry for another
 //! output is ignored, and no entry paints no image at all (`--paper` shows through instead).
 
-mod support;
+use sill_surfaces::harness::fake;
 
 use dioxus::prelude::*;
 use sill_model::ids::OutputName;
@@ -19,13 +19,13 @@ fn render(fed: Wallpapers) -> String {
         .build()
         .expect("a runtime builds"); // test-only
     let _entered = rt.enter();
-    let (mut services, _feeds) = support::fake::services();
+    let (mut services, _feeds) = fake::services();
     let (_tx, rx) = watch::channel(fed);
     services.wallpaper.state = rx;
     let mut dom = VirtualDom::new_with_props(
         Wallpaper,
         WallpaperProps {
-            output: support::fake::output(),
+            output: fake::output(),
         },
     );
     dom.provide_root_context(services);

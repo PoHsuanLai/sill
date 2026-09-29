@@ -3,7 +3,7 @@
 //! auth service, the unlock fade's mark on `Accepted`, and the blurred backdrop as the stage's
 //! picture. Outside a lock document (no `LockHandle`), as every test is.
 
-mod support;
+use sill_surfaces::harness::fake;
 
 use dioxus::prelude::*;
 use shell_host::OutputId;
@@ -35,7 +35,7 @@ fn render(auth: Auth, prompt: PromptOutput, wallpapers: Wallpapers) -> String {
         .build()
         .expect("a runtime builds"); // test-only
     let _entered = rt.enter();
-    let (mut services, _feeds) = support::fake::services();
+    let (mut services, _feeds) = fake::services();
     let (_auth_tx, auth_rx) = watch::channel(auth);
     services.auth.state = auth_rx;
     let (_wallpaper_tx, wallpaper_rx) = watch::channel(wallpapers);
@@ -45,7 +45,7 @@ fn render(auth: Auth, prompt: PromptOutput, wallpapers: Wallpapers) -> String {
     let mut dom = VirtualDom::new_with_props(
         LockScreen,
         LockScreenProps {
-            output: support::fake::output(),
+            output: fake::output(),
         },
     );
     dom.provide_root_context(services);
@@ -68,7 +68,7 @@ fn markup_only(html: &str) -> String {
 }
 
 fn here() -> PromptOutput {
-    PromptOutput::On(support::fake::output().id)
+    PromptOutput::On(fake::output().id)
 }
 
 #[test]

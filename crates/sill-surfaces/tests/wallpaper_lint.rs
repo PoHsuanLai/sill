@@ -2,7 +2,7 @@
 //! `Profile::Strict`, and an SSR render of the real `Wallpaper` through the markup lint, with
 //! and without a prepared image.
 
-mod support;
+use sill_surfaces::harness::fake;
 
 use dioxus::prelude::*;
 use ds::lint::{LintConfig, Profile, Rule, assert_clean, markup};
@@ -30,13 +30,13 @@ fn render_ssr(fed: Wallpapers) -> String {
         .build()
         .expect("a runtime builds"); // test-only
     let _entered = rt.enter();
-    let (mut services, _feeds) = support::fake::services();
+    let (mut services, _feeds) = fake::services();
     let (_tx, rx) = watch::channel(fed);
     services.wallpaper.state = rx;
     let mut dom = VirtualDom::new_with_props(
         Wallpaper,
         WallpaperProps {
-            output: support::fake::output(),
+            output: fake::output(),
         },
     );
     dom.provide_root_context(services);

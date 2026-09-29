@@ -8,8 +8,7 @@
 //! The layer is 1280 x 800: seven 164 px columns from x = 20 (column `c` at 20 + 180 c), rows at
 //! 16 + 180 r. The Calendar starts at column 6 row 0 (1100, 16), the Battery under it (1100, 196).
 
-#[path = "support/fake.rs"]
-mod fake;
+use sill_surfaces::harness::fake;
 
 use std::cell::RefCell;
 use std::path::PathBuf;

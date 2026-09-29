@@ -4,8 +4,7 @@
 //! and layers, the plate's id; a center row paints the Popover material, and an inverse banner
 //! the other scheme.
 
-#[path = "support/fake.rs"]
-mod fake;
+use sill_surfaces::harness::fake;
 
 use dioxus::prelude::*;
 use ds::{Ds, Material};

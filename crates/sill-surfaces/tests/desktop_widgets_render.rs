@@ -4,8 +4,7 @@
 //! the placements written back to the file the root was given (a temp file here: never the
 //! user's state); and nothing painted between the widgets.
 
-#[path = "support/fake.rs"]
-mod fake;
+use sill_surfaces::harness::fake;
 
 use std::cell::RefCell;
 use std::path::PathBuf;

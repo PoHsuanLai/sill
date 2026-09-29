@@ -35,7 +35,13 @@ thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
+[features]
+# Fake services and the values they start at, for tests and demos (`harness`).
+harness = []
+
 [dev-dependencies]
+# The crate's own tests, demos and integration tests drive surfaces through `harness`.
+sill-surfaces = { workspace = true, features = ["harness"] }
 # `lint` is off by default: only test builds need `ds::lint::markup`.
 ds = { workspace = true, features = ["lint"] }
 dioxus-ssr = { workspace = true }

@@ -2,7 +2,7 @@
 //! `Profile::Strict`, and the real `LockScreen` markup (with the prompt, and without) through
 //! the markup lint.
 
-mod support;
+use sill_surfaces::harness::fake;
 
 use dioxus::prelude::*;
 use ds::lint::{LintConfig, Profile, assert_clean, markup};
@@ -31,13 +31,13 @@ fn render_ssr(prompt: PromptOutput) -> String {
         .build()
         .expect("a runtime builds"); // test-only
     let _entered = rt.enter();
-    let (services, _feeds) = support::fake::services();
+    let (services, _feeds) = fake::services();
     let link = LockLink::new();
     link.set(prompt);
     let mut dom = VirtualDom::new_with_props(
         LockScreen,
         LockScreenProps {
-            output: support::fake::output(),
+            output: fake::output(),
         },
     );
     dom.provide_root_context(services);
@@ -54,7 +54,7 @@ fn the_lock_stylesheet_is_clean_under_strict() {
 
 #[test]
 fn the_lock_markup_is_clean_with_and_without_the_prompt() {
-    let with = render_ssr(PromptOutput::On(support::fake::output().id));
+    let with = render_ssr(PromptOutput::On(fake::output().id));
     let without = render_ssr(PromptOutput::Nowhere);
     for html in [with, without] {
         let offences = markup(&html, &full_css(), &strict());

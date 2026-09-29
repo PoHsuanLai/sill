@@ -5,7 +5,7 @@
 //! level edit while dimmed does not animate; Reduced motion shows the level at once. On the
 //! virtual clock with the appearance pinned, and every change ends at 0 frames.
 
-mod support;
+use sill_surfaces::harness::fake;
 
 use std::cell::RefCell;
 use std::time::Duration;
@@ -32,7 +32,7 @@ fn app() -> Element {
     // Not the desktop's portal and appearance file: they answer off-thread.
     use_context_provider(|| appearance);
     use_context_provider(|| SettingsFeed::fixed(ShellFile::default()));
-    rsx! { IdleDimOverlay { output: support::fake::output() } }
+    rsx! { IdleDimOverlay { output: fake::output() } }
 }
 
 const VIEW: Viewport = Viewport {
@@ -46,11 +46,11 @@ const SCRIM: &str = ".ds-idle-dim";
 /// The feed, and the harness on it.
 struct Running {
     harness: Harness,
-    feeds: support::fake::Feeds,
+    feeds: fake::Feeds,
 }
 
 fn start(appearance: PinnedAppearance) -> Running {
-    let (services, feeds) = support::fake::services();
+    let (services, feeds) = fake::services();
     WORLD.with(|w| *w.borrow_mut() = Some((services, appearance)));
     let mut harness =
         Harness::with_config(app, HarnessConfig::new(VIEW).with_clock(Clock::Virtual));

@@ -1,7 +1,7 @@
 //! The bar's SSR render reads the frozen channels: what the fake services hold is what the bar
 //! shows, and a value fed before the render changes what it shows.
 
-mod support;
+use sill_surfaces::harness::fake;
 
 use dioxus::prelude::*;
 use sill_model::battery::Battery;
@@ -23,7 +23,7 @@ fn render(services: Services) -> String {
     let mut dom = VirtualDom::new_with_props(
         Bar,
         BarProps {
-            output: support::fake::output(),
+            output: fake::output(),
         },
     );
     dom.provide_root_context(services);
@@ -39,7 +39,7 @@ fn count(html: &str, needle: &str) -> usize {
 
 #[test]
 fn the_bar_shows_what_the_services_hold() {
-    let (services, _feeds) = support::fake::services();
+    let (services, _feeds) = fake::services();
     let html = render(services);
     let cases = [
         ("the clock", "Thu 24 Sep 14:05", 1),
@@ -89,7 +89,7 @@ fn the_bar_shows_what_the_services_hold() {
 
 #[test]
 fn fed_values_replace_the_defaults() {
-    let (services, feeds) = support::fake::services();
+    let (services, feeds) = fake::services();
     let before = render(services.clone());
     feeds.clock.send_replace(ClockText {
         text: "Fri 25 Sep 09:00".to_owned(),
