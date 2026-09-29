@@ -6,9 +6,10 @@
 use std::time::Duration;
 
 use ds::lint::{LintConfig, Profile, markup, stylesheet};
-use sill_ui_kit::Osd;
+use sill_model::idle::{DimLevel, DimShown, Idle, IdleMode, IdlePhase};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{LevelSource, OsdKind, OsdLink};
+use sill_ui_kit::{IdleDim, Osd};
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
 struct SurfaceCase {
@@ -24,6 +25,11 @@ const SURFACES: &[SurfaceCase] = &[
         name: "osd",
         css: sill_ui_kit::surfaces::osd::OSD_CSS,
         states: osd_states,
+    },
+    SurfaceCase {
+        name: "idle_dim",
+        css: "",
+        states: idle_dim_states,
     },
     SurfaceCase {
         name: "hot_corners",
@@ -56,6 +62,23 @@ fn osd_states() -> Vec<(&'static str, String)> {
     let shown = osd.harness.html();
     assert!(shown.contains("data-presence=\"entering\""), "{shown}");
     vec![("hidden", hidden), ("shown", shown)]
+}
+
+/// The scrim awake, then dimmed and settled.
+fn idle_dim_states() -> Vec<(&'static str, String)> {
+    let mut dim = SurfaceHarness::<IdleDim>::setup((), ()).start();
+    dim.harness.advance(Duration::ZERO);
+    let awake = dim.harness.html();
+    dim.feeds.idle.send_replace(Idle {
+        mode: IdleMode::Own,
+        phase: IdlePhase::Dimmed,
+        dim: DimShown::Dimmed(DimLevel(30)),
+        ..Idle::default()
+    });
+    dim.harness.advance(Duration::from_millis(2_500));
+    let dimmed = dim.harness.html();
+    assert!(dimmed.contains("opacity:0.7"), "{dimmed}");
+    vec![("awake", awake), ("dimmed", dimmed)]
 }
 
 #[test]

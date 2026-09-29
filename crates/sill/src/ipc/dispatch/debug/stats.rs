@@ -80,9 +80,6 @@ fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, Su
     let switcher = surfaces
         .switcher
         .map(|id| (crate::switcher::namespace(info), id));
-    let idle_dim = surfaces
-        .idle_dim
-        .map(|id| (crate::idle_dim::namespace(info), id));
     let spawned = surfaces
         .spawned
         .iter()
@@ -100,7 +97,6 @@ fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, Su
         .chain(edit)
         .chain(polkit)
         .chain(switcher)
-        .chain(idle_dim)
         .chain(spawned)
         .collect()
 }

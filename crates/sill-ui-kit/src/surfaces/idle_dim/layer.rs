@@ -12,7 +12,7 @@ use shell_host::{
 use crate::surfaces::naming::namespace;
 
 /// The dim's layer configuration on `output`.
-pub fn idle_dim_layer(output: &OutputInfo) -> LayerConfig {
+pub fn layer(output: &OutputInfo) -> LayerConfig {
     LayerConfig {
         namespace: namespace("idle-dim", output),
         layer: LayerLevel::Overlay,
@@ -37,13 +37,13 @@ mod tests {
         RegionSpec,
     };
 
-    use super::idle_dim_layer;
+    use super::layer;
     use crate::surfaces::naming::tests::output;
 
     #[test]
     fn the_dim_covers_the_output_and_takes_nothing() {
         let info = output(Some("DP-1"));
-        let config = idle_dim_layer(&info);
+        let config = layer(&info);
         assert_eq!(config.namespace, "sill-idle-dim-DP-1");
         assert_eq!(config.layer, LayerLevel::Overlay);
         assert_eq!(

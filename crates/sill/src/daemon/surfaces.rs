@@ -10,7 +10,7 @@ use sill_model::wallpaper::WallpaperCommand;
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
-use sill_ui_kit::{HotCorners, Osd};
+use sill_ui_kit::{HotCorners, IdleDim, Osd};
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
@@ -56,8 +56,9 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     crate::edit_widgets::spawn_missing(ctx, outputs, &services.dirs, root);
     spawn_surface::<HotCorners>(ctx, outputs, spawn, &links.corners);
     spawn_surface::<Osd>(ctx, outputs, spawn, &links.osd);
-    let dim = services.idle.state.borrow().dim;
-    crate::idle_dim::spawn_missing(ctx, outputs, dim, root);
+    spawn_surface::<IdleDim>(ctx, outputs, spawn, &());
+    // A surface spawned while the service dims is mapped at once.
+    crate::idle_dim::apply(ctx, outputs, services.idle.state.borrow().dim);
 }
 
 /// Spawn a bar for every output whose row has none yet.
