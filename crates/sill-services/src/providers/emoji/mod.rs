@@ -20,7 +20,7 @@ use sill_launcher::{
 };
 use tokio::sync::watch;
 
-use crate::results::LauncherPolicy;
+use sill_model::results::LauncherPolicy;
 
 /// The emoji provider.
 #[derive(Debug, Clone)]

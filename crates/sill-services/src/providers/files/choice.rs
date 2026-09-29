@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use crate::results::FilesChoice;
+use sill_model::results::FilesChoice;
 use sill_model::units::Presence;
 
 use super::index::IndexKind;
@@ -98,7 +98,7 @@ mod tests {
     use super::IndexState::{self, Absent, Dormant, Running};
     use super::{Detected, pick};
     use crate::providers::files::index::IndexKind;
-    use crate::results::FilesChoice;
+    use sill_model::results::FilesChoice;
     use sill_model::units::Presence::{self, Absent as No, Present as Yes};
 
     fn machine(tracker: IndexState, fd: Presence, plocate: Presence) -> Detected {

@@ -9,14 +9,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use sill_launcher::{
     Cancel, Choice, Counting, ItemKey, Provider, Query, Scope, SectionPlan, UnixTime,
 };
+use sill_model::results::{
+    Asked, LauncherPolicy, Results, ResultsEvent, SearchCommand, Typed, arranged, step,
+};
 use tokio::sync::{mpsc, watch};
 
-use super::SearchCommand;
-use super::arrange::{Asked, Typed, arranged};
 use super::effect::{Outlets, effect};
 use super::history::{History, Persist};
-use super::model::{Results, ResultsEvent, step};
-use super::policy::LauncherPolicy;
 use super::sink::{Arrival, ChannelSink, FinishedOnDrop};
 
 /// Everything the task holds between events.

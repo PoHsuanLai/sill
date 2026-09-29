@@ -9,59 +9,35 @@
 //! typed, the System rows then Recent). Batches of an older generation are dropped however
 //! late they arrive.
 
-mod arrange;
 mod effect;
 mod frecency_file;
 mod history;
-mod model;
-mod policy;
 mod registry;
 mod run;
 mod sink;
 #[cfg(test)]
 mod tests;
 
-pub use frecency_file::{FILE_NAME as FRECENCY_FILE, load_frecency, save_frecency};
-pub use model::{Results, ResultsEvent, step};
-pub use policy::{CurrencyPolicy, FilesChoice, LauncherPolicy, WebPolicy};
-
 use std::fmt;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use sill_launcher::{Choice, ItemKey, Provider, ProviderKind};
+use effect::Outlets;
+use history::{History, Persist};
+use sill_launcher::Provider;
+use sill_model::apps::AppIndex;
+use sill_model::clipboard::Clipboard;
+use sill_model::cosmic_wl::{CosmicWl, WlCommand};
+use sill_model::launch::LaunchCommand;
+use sill_model::results::{LauncherPolicy, Results, SearchCommand};
 use tokio::sync::watch;
 
 use crate::control::Control;
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
-use effect::Outlets;
-use history::{History, Persist};
-use sill_model::apps::AppIndex;
-use sill_model::clipboard::Clipboard;
-use sill_model::cosmic_wl::{CosmicWl, WlCommand};
-use sill_model::launch::LaunchCommand;
 
-/// What the search can be told.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SearchCommand {
-    /// The text changed: begin a generation and query every provider.
-    Query(String),
-    /// The text changed under the Tab filter: begin a generation and query `provider` alone
-    /// (`Scope::Only`), so its rows are not capped by the other providers'.
-    Filtered {
-        text: String,
-        provider: ProviderKind,
-    },
-    /// A row was chosen: count it for frecency.
-    Chosen { key: ItemKey, choice: Choice },
-    /// The launcher closed: cancel the running generation.
-    Cancel,
-    /// The settings changed what the settings-gated providers may do; the daemon sends it at start,
-    /// and until then every one of them is off.
-    Policy(LauncherPolicy),
-}
+pub use frecency_file::{FILE_NAME as FRECENCY_FILE, load_frecency, save_frecency};
 
 /// What the search runs over.
 pub enum Sources {

@@ -12,7 +12,7 @@ use super::{
     FakeIndex, FileAnswer, FileAsk, FileHit, FileIndex, FilesProvider, HitLimit, IndexFault,
     IndexKind, IndexSource,
 };
-use crate::results::{FilesChoice, LauncherPolicy};
+use sill_model::results::{FilesChoice, LauncherPolicy};
 
 /// An index that records every ask and answers a fixed answer.
 #[derive(Debug)]

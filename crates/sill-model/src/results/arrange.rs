@@ -18,14 +18,14 @@ use sill_launcher::{
 /// Whether anything was typed. Whitespace alone is nothing (the same rule as
 /// [`Needle::is_empty`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Typed {
+pub enum Typed {
     Nothing,
     Text,
 }
 
 impl Typed {
     /// What `text` counts as.
-    pub(crate) fn of(text: &str) -> Typed {
+    pub fn of(text: &str) -> Typed {
         if Needle::parse(text).is_empty() {
             Typed::Nothing
         } else {
@@ -43,21 +43,21 @@ impl Typed {
 
 /// What the runner asked: the text's shape and the scope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct Asked {
-    pub(crate) typed: Typed,
-    pub(crate) scope: Scope,
+pub struct Asked {
+    pub typed: Typed,
+    pub scope: Scope,
 }
 
 impl Asked {
     /// Nothing asked yet, or the launcher closed.
-    pub(crate) const IDLE: Asked = Asked {
+    pub const IDLE: Asked = Asked {
         typed: Typed::Nothing,
         scope: Scope::All,
     };
 }
 
 /// `merged` (best first) as published under `asked`.
-pub(crate) fn arranged(
+pub fn arranged(
     merged: &[Item],
     plan: &SectionPlan,
     asked: Asked,

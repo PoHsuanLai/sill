@@ -8,15 +8,16 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use sill_launcher::matching::matcher;
 use sill_launcher::{
     Activation, Batch, Choice, FrecencyScore, IconRef, Item, ItemId, Needle, Provider,
-    ProviderKind, Query, RankWeights, ResultSink, Score, matching::matcher, rank_text,
+    ProviderKind, Query, RankWeights, ResultSink, Score, rank_text,
 };
+use sill_model::apps::{AppIndex, AppsEvent, Listing};
+use sill_model::results::SearchCommand;
 
 use super::{TempDir, search, send};
-use crate::SearchCommand;
 use crate::apps::{IconTheme, scan};
-use sill_model::apps::{AppIndex, AppsEvent, Listing};
 
 /// Every query matches at least one fixture app.
 const QUERIES: &[&str] = &[

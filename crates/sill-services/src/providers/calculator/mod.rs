@@ -17,7 +17,7 @@ use eval::{EvalOutcome, evaluate};
 use rates::{Rates, SharedRates};
 use tokio::sync::watch;
 
-use crate::results::{CurrencyPolicy, LauncherPolicy};
+use sill_model::results::{CurrencyPolicy, LauncherPolicy};
 
 /// How long one evaluation may run before it is abandoned.
 pub const CALCULATOR_BUDGET: Duration = Duration::from_millis(50);

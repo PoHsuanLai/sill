@@ -12,14 +12,15 @@ use sill_launcher::{
 };
 use std::path::PathBuf;
 
+use sill_model::results::LauncherPolicy;
 use sill_model::session::SessionAction;
+use sill_services::Services;
 use sill_services::env::Buses;
 use sill_services::providers::files::IndexSource;
 use sill_services::providers::{
     AppsProvider, CalculatorProvider, ClipboardProvider, EmojiProvider, FilesProvider,
     SettingsProvider, SystemProvider, WebProvider, WindowsProvider,
 };
-use sill_services::{LauncherPolicy, Services};
 use tokio::sync::watch;
 
 /// The desktop entry `SettingsTarget::Cosmic` opens.

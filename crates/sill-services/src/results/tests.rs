@@ -8,16 +8,17 @@ mod latency;
 use std::sync::Arc;
 use std::time::Duration;
 
+use fake::{Fake, Heard, Obeys};
 use sill_launcher::{Choice, ItemId, ItemKey, Provider, ProviderKind};
+use sill_model::results::{Results, SearchCommand};
+use sill_testkit::TempDir;
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use super::effect::Outlets;
 use super::history::History;
-use super::{Results, ResultsService, SearchCommand, load_frecency, runner};
+use super::{ResultsService, load_frecency, runner};
 use crate::control::Control;
-use fake::{Fake, Heard, Obeys};
-use sill_testkit::TempDir;
 
 /// How long a test waits for a published value before it fails.
 const PATIENCE: Duration = Duration::from_secs(5);

@@ -30,7 +30,7 @@ pub enum ProviderKind {
 impl ProviderKind {
     /// Every provider, in Tab order. Files, Clipboard, Emoji and Web follow the first five, so a
     /// tie between rows of equal score still goes to the older kinds first
-    /// (`sill_services::results::step`).
+    /// (`sill_model::results::step`).
     pub const ALL: [ProviderKind; 9] = [
         ProviderKind::Apps,
         ProviderKind::Windows,

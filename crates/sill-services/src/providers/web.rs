@@ -13,7 +13,7 @@ use sill_launcher::{
 };
 use tokio::sync::watch;
 
-use crate::results::{LauncherPolicy, WebPolicy};
+use sill_model::results::{LauncherPolicy, WebPolicy};
 
 /// The fallback row's id.
 pub const WEB_ROW_ID: &str = "web:search";

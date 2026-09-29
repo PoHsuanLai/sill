@@ -2,7 +2,7 @@ use sill_launcher::{
     Generation, IconRef, Item, ItemId, More, ProviderKind, Score, Section, SectionSpan,
     ShownSection, Subject,
 };
-use sill_services::Results;
+use sill_model::results::Results;
 
 use super::{Expanded, Layout, Line, View, toggled, view};
 use crate::surfaces::launcher::keys::Filter;

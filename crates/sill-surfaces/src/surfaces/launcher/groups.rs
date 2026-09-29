@@ -1,7 +1,7 @@
 //! Which rows belong to this opening, and whether a group mixes providers. Pure.
 
 use sill_launcher::{Generation, Item};
-use sill_services::Results;
+use sill_model::results::Results;
 
 /// Whether a group holds one provider's rows or several providers'.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -25,7 +25,7 @@ pub fn fresh(results: &Results, opened_over: Generation) -> &[Item] {
 mod tests {
     use super::fresh;
     use sill_launcher::{Generation, IconRef, Item, ItemId, ProviderKind, Score};
-    use sill_services::Results;
+    use sill_model::results::Results;
 
     fn item(provider: ProviderKind, title: &str, score: u32) -> Item {
         Item {

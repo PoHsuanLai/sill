@@ -75,10 +75,7 @@ pub use now_playing::NowPlayingService;
 pub use pins::PinsService;
 pub use polkit_agent::PolkitAgentService;
 pub use power_profile::PowerProfileService;
-pub use results::{
-    CurrencyPolicy, FilesChoice, LauncherPolicy, Results, ResultsEvent, ResultsService,
-    SearchCommand, WebPolicy,
-};
+pub use results::ResultsService;
 pub use screenshots::ScreenshotsService;
 pub use service::{Handle, Service, ServiceIo};
 pub use services::{Member, Services};

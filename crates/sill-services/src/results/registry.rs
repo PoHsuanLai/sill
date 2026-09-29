@@ -4,11 +4,11 @@
 use std::sync::Arc;
 
 use sill_launcher::Provider;
+use sill_model::results::LauncherPolicy;
 use tokio::sync::watch;
 
 use super::ResultsLinks;
 use super::history::History;
-use super::policy::LauncherPolicy;
 use crate::env::Env;
 use crate::providers::files::IndexSource;
 use crate::providers::{

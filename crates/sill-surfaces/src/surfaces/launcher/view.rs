@@ -9,7 +9,7 @@ use sill_launcher::{
     Frecency, Generation, Item, More, Placement, ProviderKind, QueryShape, Section, SectionPlan,
     ShownSection, UnixTime, place, shown,
 };
-use sill_services::Results;
+use sill_model::results::Results;
 
 use crate::surfaces::launcher::debug_link::{CLIPBOARD_TITLE, ShownRows, ShownRowsSection};
 use crate::surfaces::launcher::groups::fresh;

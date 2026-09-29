@@ -23,7 +23,8 @@ use sill_launcher::{
 };
 use sill_model::cosmic_wl::WlCommand;
 use sill_model::launch::{LaunchCommand, LaunchRequest};
-use sill_services::{Control, Results, SearchCommand, Services};
+use sill_model::results::{Results, SearchCommand};
+use sill_services::{Control, Services};
 use sill_surfaces::surfaces::launcher::LauncherProviders;
 use tokio::sync::watch;
 

@@ -18,11 +18,12 @@ use sill_launcher::{
     ProviderKind, Query, RankWeights, ResultSink, Score, matching::matcher, rank_text,
 };
 use sill_model::apps::{AppIndex, AppsEvent, Listing};
+use sill_model::results::SearchCommand;
+use sill_services::ResultsService;
 use sill_services::apps::{IconTheme, scan};
 use sill_services::env::Env;
 use sill_services::results;
 use sill_services::service::spawn;
-use sill_services::{ResultsService, SearchCommand};
 
 const QUERIES: &[&str] = &[
     "fi", "firefox", "rich", "act", "only", "o", "fx", "ric", "ff", "fire", "app", "ac",

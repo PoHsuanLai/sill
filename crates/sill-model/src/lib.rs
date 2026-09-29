@@ -26,6 +26,7 @@ pub mod now_playing;
 pub mod pins;
 pub mod polkit_agent;
 pub mod power_profile;
+pub mod results;
 pub mod screenshots;
 pub mod session;
 pub mod tray;

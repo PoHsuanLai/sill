@@ -37,8 +37,8 @@ use sill_launcher::{
 };
 use tokio::sync::watch;
 
-use crate::results::{FilesChoice, LauncherPolicy};
 use hits::{COPY_PATH_ACTION, REVEAL_ACTION};
+use sill_model::results::{FilesChoice, LauncherPolicy};
 use tracker::TrackerIndex;
 
 use crate::env::Bus;
@@ -200,7 +200,7 @@ mod tests {
     use tokio::sync::watch;
 
     use super::{FilesProvider, IndexSource};
-    use crate::results::LauncherPolicy;
+    use sill_model::results::LauncherPolicy;
 
     fn provider() -> FilesProvider {
         FilesProvider {

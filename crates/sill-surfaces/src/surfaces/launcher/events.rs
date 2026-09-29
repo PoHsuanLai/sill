@@ -8,7 +8,8 @@ use dioxus::prelude::*;
 use ds::{FocusRequest, Rect, use_focus_request};
 use shell_host::{OutputId, SurfaceHandle};
 use sill_launcher::{Choice, ItemKey};
-use sill_services::{Results, SearchCommand, Services};
+use sill_model::results::{Results, SearchCommand};
+use sill_services::Services;
 
 use crate::hooks::use_services;
 use crate::surfaces::launcher::activate::{

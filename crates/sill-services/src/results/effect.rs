@@ -3,10 +3,10 @@
 //! launcher surface or the daemon. Pure mapping, table-tested; the sending is [`Outlets::carry`].
 
 use sill_launcher::Activation;
-
-use crate::control::Control;
 use sill_model::cosmic_wl::WlCommand;
 use sill_model::launch::{LaunchCommand, LaunchRequest};
+
+use crate::control::Control;
 
 /// What carrying out an activation takes.
 #[derive(Debug, Clone, PartialEq, Eq)]

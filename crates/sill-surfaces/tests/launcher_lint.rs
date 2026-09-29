@@ -32,7 +32,7 @@ fn render_ssr(root: VirtualDom) -> String {
         .expect("a runtime builds"); // test-only
     let _entered = rt.enter();
     let (services, feeds) = launcher_support::services();
-    feeds.results.send_replace(sill_services::Results {
+    feeds.results.send_replace(sill_model::results::Results {
         generation: sill_launcher::Generation(1),
         items: launcher_support::search("fi"),
         sections: Vec::new(),

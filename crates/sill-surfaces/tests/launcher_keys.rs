@@ -12,7 +12,7 @@ use launcher_harness::launcher_support::{self, FIREFOX_WINDOW};
 use launcher_harness::{is_open, open, settle, titles};
 use sill_launcher::WindowKey;
 use sill_model::cosmic_wl::WlCommand;
-use sill_services::SearchCommand;
+use sill_model::results::SearchCommand;
 
 #[test]
 fn down_down_enter_runs_the_third_row() {
