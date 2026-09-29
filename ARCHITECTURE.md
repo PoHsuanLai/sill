@@ -263,7 +263,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 | Keymaps | `<surface>/keys.rs` table; key claims are `ds`'s |
 | Stylesheets | `<concept>/style.css` |
 | Session lock: service, surface, host half | `sill_services::locker`, `sill_overlays::lock`, `sill::daemon::followers::lock` |
-| Errors | `sill_services::ServiceError`, `sill_ipc::IpcError`, one `thiserror` enum per crate |
+| Errors | `sill_services::ServiceError`, `sill_ipc::error::IpcError`, one `thiserror` enum per crate |
 | Private bus, scratch dirs, stand-in programs | `sill_testkit` |
 | Surface test driver | `sill_ui_kit::harness::SurfaceHarness<S>` |
 | Lint of surface markup | `crates/sill/tests/lint.rs`, one table |
@@ -464,9 +464,9 @@ Each ends with its tests. Name the concept once and use it in every file name be
 ### Add a policy (a service told by settings)
 
 1. `sill-settings/src/<domain>.rs` holds typed fields (recipe: settings key).
-2. `sill/src/policy/<x>.rs`: `struct XPolicy`, `impl Policy` (`of` builds typed values,
+2. `sill/src/policy/<x>.rs`: `struct XBridge`, `impl Policy` (`of` builds typed values,
    `command` wraps them); add `mod`.
-3. `daemon/services.rs::start`: `follow(rt, settings.clone(), XPolicy, handle.control.clone())`.
+3. `daemon/services.rs::start`: `follow(rt, settings.clone(), XBridge, handle.control.clone())`.
 4. Tests: `of` table in the same file over `ShellFile` values; `follow` is tested once, in
    `policy/follow.rs`.
 
