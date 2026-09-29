@@ -30,13 +30,9 @@ pub use layer::{PANEL_BLUR_RADIUS, PANEL_ID, panel_region, power_menu_layer};
 use dioxus::prelude::*;
 use shell_host::OutputInfo;
 
-use crate::host_modality::HostModalityBridge;
-
 /// The power menu on `output`. Needs a [`PowerMenuLink`] root context beside the daemon's usual
 /// ones (the daemon's `surface_root` gives every surface one).
 #[component]
 pub fn PowerMenu(output: OutputInfo) -> Element {
-    rsx! {
-        HostModalityBridge { {panel::power_menu(output)} }
-    }
+    panel::power_menu(output)
 }

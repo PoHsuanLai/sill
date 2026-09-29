@@ -10,7 +10,7 @@
 //! `onhover` / `onactivate` as `Hover` / `Click`. Style nothing under `.ds-switcher*`.
 
 use dioxus::prelude::*;
-use ds::{AppKey, BlurState, Ds, Material, RootChrome, RootExtent, SwitcherApp as Tile};
+use ds::{AppKey, Material, RootChrome, RootExtent, SwitcherApp as Tile};
 use shell_host::{OutputInfo, SurfaceHandle};
 
 use super::drive::{SwitcherCtx, use_switcher};
@@ -24,6 +24,7 @@ use crate::app_icons::{IconContext, LogicalPx, icon_look, use_icon_resolver};
 use crate::hooks::{use_appearance, use_ds_scale, use_service, use_settings};
 use crate::links::SwitcherLink;
 use crate::look::use_active_look;
+use crate::root::SurfaceRoot;
 use sill_services::AppsService;
 
 /// The switcher's stylesheet (lint-clean under `Profile::Strict`, `tests/switcher_lint.rs`).
@@ -63,17 +64,11 @@ pub(super) fn switcher_panel(output: OutputInfo) -> Element {
     let metrics = metrics_of(&file.switcher);
     let width = output_width(output.logical.width);
     rsx! {
-        Ds {
-            scale: ds_scale,
-            appearance,
-            system: environment.system,
-            look,
+        SurfaceRoot {
+            output: output.clone(),
             material: Material::Osd,
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,
-            blur: BlurState::Available,
-            tint_alpha: Some(environment.tint_alpha()),
-            stack: Some(environment.material_stack()),
             style { {SWITCHER_CSS} }
             if let Some(session) = &session {
                 div {

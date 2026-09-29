@@ -13,8 +13,8 @@
 use dioxus::prelude::*;
 use ds::detail::RevealCue;
 use ds::{
-    Anchor, BlurState, CommandPalette, CommandPaletteHost, Corner, Ds, FieldKey, IconSource,
-    ImageSource, Material, Menu, MenuKind, PaletteEntrance, Point, Px, Rect,
+    Anchor, CommandPalette, CommandPaletteHost, Corner, FieldKey, IconSource, ImageSource,
+    Material, Menu, MenuKind, PaletteEntrance, Point, Px, Rect,
 };
 use shell_host::OutputInfo;
 use sill_launcher::{ActionId, ClipKey, Item, Preview, Section, preview_for};
@@ -25,6 +25,7 @@ use crate::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
 use crate::hooks::{use_appearance, use_service, use_settings};
 use crate::links::LauncherLink;
 use crate::look::use_active_look;
+use crate::root::SurfaceRoot;
 use crate::surfaces::bar::shell_style::shell_metrics;
 use crate::surfaces::launcher::card::{CardKey, Foot, use_card_hit};
 use crate::surfaces::launcher::contact::use_contacts;
@@ -157,15 +158,9 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
                 PanelCtx::root_key(&event);
             },
             onmousedown: move |event| contacts.heard(&event),
-            Ds {
-                scale: ds_scale,
-                appearance,
-                system: environment.system,
-                look,
+            SurfaceRoot {
+                output: output.clone(),
                 material: material(file.launcher.material),
-                blur: BlurState::Available,
-                tint_alpha: Some(environment.tint_alpha()),
-                stack: Some(environment.material_stack()),
                 style { {LAUNCHER_CSS} }
                 div {
                     class: "sill-launcher-body",

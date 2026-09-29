@@ -27,13 +27,9 @@ pub use view::EDIT_WIDGETS_CSS;
 use dioxus::prelude::*;
 use shell_host::OutputInfo;
 
-use crate::host_modality::HostModalityBridge;
-
 /// Edit Widgets on `output`. Needs an [`EditWidgetsLink`] root context (the daemon's
 /// `surface_root` gives every surface one) and, to change anything, a [`WidgetsWriter`].
 #[component]
 pub fn EditWidgets(output: OutputInfo) -> Element {
-    rsx! {
-        HostModalityBridge { {view::edit(output)} }
-    }
+    view::edit(output)
 }

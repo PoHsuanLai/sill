@@ -20,7 +20,7 @@ use super::keys::{Chord, chord_after_keyup, sw_key};
 use super::machine::{SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
 use super::session::Session;
 use super::tiles::index_of;
-use crate::FrameClock;
+use crate::clock::FrameClock;
 use crate::links::Dir;
 use crate::links::{AskSerial, SwitcherAsk, SwitcherLink};
 

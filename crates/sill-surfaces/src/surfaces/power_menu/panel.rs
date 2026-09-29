@@ -8,14 +8,14 @@
 
 use dioxus::prelude::*;
 use ds::{
-    Availability, BlurState, Button, Ds, Glyph, Icon, IconSize, Kbd, KbdSize, RootExtent,
-    ScrimStrength, Sheet, SheetPlacement, Shortcut,
+    Availability, Button, Glyph, Icon, IconSize, Kbd, KbdSize, RootExtent, ScrimStrength, Sheet,
+    SheetPlacement, Shortcut,
 };
 use shell_host::OutputInfo;
 use sill_model::session::{Session, SessionAction};
 
-use crate::hooks::{use_appearance, use_ds_scale, use_settings};
-use crate::look::use_active_look;
+use crate::hooks::use_settings;
+use crate::root::SurfaceRoot;
 use crate::surfaces::launcher::panel::material;
 use crate::surfaces::power_menu::drive::{MenuCtx, use_menu};
 use crate::surfaces::power_menu::keys::offered;
@@ -31,24 +31,15 @@ pub(crate) const POWER_MENU_CSS: &str = include_str!("../../style/power_menu.css
 
 /// The panel on `output`.
 pub(crate) fn power_menu(output: OutputInfo) -> Element {
-    let ds_scale = use_ds_scale();
     let file = use_settings()();
-    let environment = use_appearance()();
-    let look = use_active_look(&output);
     let ctx = use_menu(output.id, file.power_menu.default_action);
     let menu = (ctx.menu)();
     let offers = (ctx.offers)();
     rsx! {
-        Ds {
-            scale: ds_scale,
-            appearance: environment.settings.appearance.appearance(),
-            system: environment.system,
-            look,
+        SurfaceRoot {
+            output: output.clone(),
             material: material(file.power_menu.material),
             extent: RootExtent::Viewport,
-            blur: BlurState::Available,
-            tint_alpha: Some(environment.tint_alpha()),
-            stack: Some(environment.material_stack()),
             style { {POWER_MENU_CSS} }
             if let Some(menu) = menu {
                 {sheet(&ctx, menu, &offers)}

@@ -17,9 +17,10 @@ use std::time::Instant;
 
 use shell_host::{Host, HostCtx, HostEvent, HostRoot, OutputId, OutputInfo};
 use sill_settings::{SettingsFeed, ShellFile};
+use sill_surfaces::Bar;
+use sill_surfaces::clock::FrameClock;
 use sill_surfaces::links::CenterLink;
 use sill_surfaces::surfaces::bar::{BarProps, bar_layer};
-use sill_surfaces::{Bar, FrameClock};
 use tokio::sync::mpsc;
 
 fn main() {
@@ -55,7 +56,8 @@ fn run() -> Result<(), String> {
     media.send_replace(fake::media());
     let settings = SettingsFeed::fixed(ShellFile::default());
     let clock = FrameClock::new(Instant::now());
-    let host = Host::<()>::connect(sill_surfaces::host_config()).map_err(|e| e.to_string())?;
+    let host =
+        Host::<()>::connect(sill_surfaces::root::host_config()).map_err(|e| e.to_string())?;
     // `Started` sees the initial outputs, which may also arrive as `OutputAdded`: one bar each.
     let mut barred = HashSet::<OutputId>::new();
     host.run(move |ctx, event| match event {
@@ -101,7 +103,7 @@ fn spawn_bar(
         .context(settings.clone())
         .context(clock)
         .context(CenterLink::new())
-        .context(sill_surfaces::MEASURE);
+        .context(sill_surfaces::root::MEASURE);
     if let Err(error) = ctx.spawn_layer(config, root) {
         eprintln!("bar: {error}");
     }

@@ -6,7 +6,7 @@
 //! `BannerLink` through [`super::follow`] and [`super::machine::step`].
 
 use dioxus::prelude::*;
-use ds::{Banner, BannerEntry, BannerKey, BannerPosition, BannerStack, BlurState, Ds, Material};
+use ds::{Banner, BannerEntry, BannerKey, BannerPosition, BannerStack, Material};
 use ds::{RootChrome, RootExtent, Shown};
 use shell_host::{OutputId, OutputInfo, use_watch};
 use sill_model::screenshots::ShotId;
@@ -21,14 +21,14 @@ use super::ghost::GhostLook;
 use super::layer::ROOM;
 use super::machine::{ThumbExit, ThumbIn, ThumbParams, ThumbState};
 use super::picture::{ThumbPicture, picture_of};
-use crate::hooks::{use_appearance, use_control, use_ds_scale, use_service, use_settings};
+use crate::hooks::{use_appearance, use_control, use_service, use_settings};
 use crate::links::BannerLink;
 use crate::look::use_active_look;
+use crate::root::SurfaceRoot;
 use crate::surfaces::notification_card::swipe_metrics;
 
 /// The thumbnail on `output`.
 pub(super) fn thumb(output: OutputInfo) -> Element {
-    let ds_scale = use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
     let look = use_active_look(&output);
@@ -38,17 +38,11 @@ pub(super) fn thumb(output: OutputInfo) -> Element {
     };
     let ghost = GhostLook::of(&environment, look.clone());
     rsx! {
-        Ds {
-            scale: ds_scale,
-            appearance: environment.settings.appearance.appearance(),
-            system: environment.system,
-            look,
+        SurfaceRoot {
+            output: output.clone(),
             material: Material::Toast,
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,
-            blur: BlurState::Available,
-            tint_alpha: Some(environment.tint_alpha()),
-            stack: Some(environment.material_stack()),
             style { {SCREENSHOT_THUMB_CSS} }
             Column {
                 output: output.id,

@@ -34,13 +34,9 @@ pub use tiles::{index_of, key_of, metrics_of, output_width, tiles};
 use dioxus::prelude::*;
 use shell_host::OutputInfo;
 
-use crate::host_modality::HostModalityBridge;
-
 /// The switcher on `output`. Needs a [`SwitcherLink`] root context beside the daemon's usual
 /// ones (the daemon's `surface_root` gives every surface one).
 #[component]
 pub fn SwitcherPanel(output: OutputInfo) -> Element {
-    rsx! {
-        HostModalityBridge { {panel::switcher_panel(output)} }
-    }
+    panel::switcher_panel(output)
 }

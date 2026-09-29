@@ -49,7 +49,8 @@ fn run() -> Result<(), String> {
     services.wallpaper.state = wallpaper.state;
     services.wallpaper.control = wallpaper.control;
 
-    let host = Host::<()>::connect(sill_surfaces::host_config()).map_err(|e| e.to_string())?;
+    let host =
+        Host::<()>::connect(sill_surfaces::root::host_config()).map_err(|e| e.to_string())?;
     let mut done = HashSet::<OutputId>::new();
     host.run(move |ctx, event| match event {
         HostEvent::Started => {
@@ -108,7 +109,7 @@ fn spawn_wallpaper(
         },
     )
     .context(services.clone())
-    .context(sill_surfaces::MEASURE);
+    .context(sill_surfaces::root::MEASURE);
     if let Err(error) = ctx.spawn_layer(config, root) {
         eprintln!("wallpaper: {error}");
     }

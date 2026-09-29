@@ -23,13 +23,9 @@ pub use view::{PolkitPromptView, detail_of, prompt_view};
 use dioxus::prelude::*;
 use shell_host::OutputInfo;
 
-use crate::host_modality::HostModalityBridge;
-
 /// The polkit prompt on `output`. Needs the daemon's `BannerLink` root context (only the output
 /// it names shows the prompt).
 #[component]
 pub fn PolkitPrompt(output: OutputInfo) -> Element {
-    rsx! {
-        HostModalityBridge { {panel::polkit_prompt(output)} }
-    }
+    panel::polkit_prompt(output)
 }

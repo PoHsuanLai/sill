@@ -11,7 +11,7 @@ use dioxus::prelude::*;
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_settings::OsdSettings;
 
-use crate::FrameClock;
+use crate::clock::FrameClock;
 use crate::links::Visible;
 use crate::links::{OsdChange, OsdLatest, OsdLink};
 use crate::surfaces::osd::layer::{anchor, margin};

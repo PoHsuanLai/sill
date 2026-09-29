@@ -70,7 +70,8 @@ fn run() -> Result<(), String> {
         providers: launcher_support::providers(),
         panels: Vec::new(),
     };
-    let host = Host::<DemoMsg>::connect(sill_surfaces::host_config()).map_err(|e| e.to_string())?;
+    let host =
+        Host::<DemoMsg>::connect(sill_surfaces::root::host_config()).map_err(|e| e.to_string())?;
     read_stdin(host.handle());
     let _keep_results = feeds.results;
     host.run(move |ctx, event| match event {
@@ -99,8 +100,8 @@ fn spawn_launcher(ctx: &mut HostCtx<DemoMsg>, output: OutputInfo, demo: &mut Dem
     let root = |root: HostRoot| {
         root.context(demo.services.clone())
             .context(demo.settings.clone())
-            .context(sill_surfaces::MEASURE)
-            .context(sill_surfaces::FOCUS)
+            .context(sill_surfaces::root::MEASURE)
+            .context(sill_surfaces::root::FOCUS)
             .context(demo.link.clone())
             .context(demo.providers.clone())
             .context(LauncherScript(demo.script.subscribe()))

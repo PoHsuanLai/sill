@@ -15,8 +15,7 @@ use dioxus::prelude::*;
 use ds::detail::Touch;
 use ds::motion::Release;
 use ds::{
-    BlurState, Ds, Material, Px, RootChrome, RootExtent, WakeStamp, WidgetMetrics, WidgetSlotGuide,
-    use_rect,
+    Material, Px, RootChrome, RootExtent, WakeStamp, WidgetMetrics, WidgetSlotGuide, use_rect,
 };
 use shell_host::{BlurSpec, ElementId, ElementRegion, OutputInfo, RegionSpec, SurfaceHandle};
 use sill_settings::WidgetKind;
@@ -30,8 +29,8 @@ use super::leaving::{Leaving, use_leaving};
 use super::placed::Placed;
 use super::placement::{grid_size, place};
 use super::saved::PlacementFile;
-use crate::hooks::{use_appearance, use_ds_scale, use_settings};
-use crate::look::use_active_look;
+use crate::hooks::use_settings;
+use crate::root::SurfaceRoot;
 use crate::widgets::grid::OutputKey;
 use crate::widgets::grid::Placement;
 use crate::widgets::{
@@ -50,23 +49,14 @@ pub const WIDGET_RADIUS: i32 = 20;
 pub(super) fn desktop(output: OutputInfo) -> Element {
     provide_widget_wake(WakeStamp::default());
     provide_registry();
-    let ds_scale = use_ds_scale();
     let file = use_settings()();
-    let environment = use_appearance()();
-    let look = use_active_look(&output);
     let widgets = file.widgets;
     rsx! {
-        Ds {
-            scale: ds_scale,
-            appearance: environment.settings.appearance.appearance(),
-            system: environment.system,
-            look,
+        SurfaceRoot {
+            output: output.clone(),
             material: Material::Widget,
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,
-            blur: BlurState::Available,
-            tint_alpha: Some(environment.tint_alpha()),
-            stack: Some(environment.material_stack()),
             style { {DESKTOP_WIDGETS_CSS} }
             style { {widgets_css()} }
             Grid {

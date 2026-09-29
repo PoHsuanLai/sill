@@ -4,14 +4,14 @@
 //! hold machine (`machine.rs`) only decides when the card is shown.
 
 use dioxus::prelude::*;
-use ds::{BlurState, Ds, LevelLook, Material, Osd, OsdMetrics, OsdPosition, Px, RootChrome, Shown};
+use ds::{LevelLook, Material, Osd, OsdMetrics, OsdPosition, Px, RootChrome, Shown};
 use shell_host::OutputInfo;
 use sill_model::ids::OutputName;
 
-use crate::hooks::{use_appearance, use_ds_scale, use_service, use_settings};
+use crate::hooks::{use_service, use_settings};
 use crate::links::Visible;
 use crate::links::{OsdKind, OsdLink};
-use crate::look::use_active_look;
+use crate::root::SurfaceRoot;
 use crate::surfaces::osd::drive::{times, use_follow_position, use_osd};
 use crate::surfaces::osd::layer::CARD_ID;
 use crate::surfaces::osd::reading::{card_level, level_of, title};
@@ -34,12 +34,8 @@ fn position_of(position: sill_settings::OsdPosition) -> OsdPosition {
 
 /// The indicator on `output`.
 pub(crate) fn osd(output: OutputInfo) -> Element {
-    let ds_scale = use_ds_scale();
     let file = use_settings()();
-    let environment = use_appearance()();
     let on = output.name.clone().map(OutputName);
-    let look = use_active_look(&output);
-    let appearance = environment.settings.appearance.appearance();
     let link = use_context::<OsdLink>();
     use_follow_position(&file.osd);
     let drawn = use_osd(&link, output.id, times(&file.osd));
@@ -54,19 +50,11 @@ pub(crate) fn osd(output: OutputInfo) -> Element {
         Visible::Yes => Shown::Visible,
         Visible::No => Shown::Hidden,
     };
-    let tint = environment.tint_alpha();
-    let stack = environment.material_stack();
     rsx! {
-        Ds {
-            scale: ds_scale,
-            appearance,
-            system: environment.system,
-            look,
+        SurfaceRoot {
+            output: output.clone(),
             material: Material::Osd,
             chrome: Some(RootChrome::Transparent),
-            blur: BlurState::Available,
-            tint_alpha: Some(tint),
-            stack: Some(stack),
             style { {OSD_CSS} }
             div {
                 style: OsdMetrics { margin: Px(f32::from(file.osd.margin_px.0)) }.style_attr(),

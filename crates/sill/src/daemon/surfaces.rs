@@ -294,8 +294,8 @@ pub(crate) fn spawn_hidden(
 }
 
 /// `root` with the contexts every surface the daemon spawns is given: the services, the settings,
-/// quire's rect measurer, `ds_native::measure::MEASURE` (re-exported as `sill_surfaces::MEASURE`),
-/// and its focus write, `ds_native::focus::FOCUS` (re-exported as `sill_surfaces::FOCUS`), and the
+/// quire's rect measurer, `ds_native::measure::MEASURE` (re-exported as `sill_surfaces::root::MEASURE`),
+/// and its focus write, `ds_native::focus::FOCUS` (re-exported as `sill_surfaces::root::FOCUS`), and the
 /// field caret, `ds_native::focus::CARET`, which are what `ds_native::measure::provide()` and
 /// `ds_native::focus::provide()` provide from inside a root component. Without them a rect read or
 /// a focus waits a frame and the panic hook prints the collision. Every spawn goes through here, so
@@ -309,9 +309,9 @@ pub(crate) fn surface_root(
     let root = root
         .context(services.clone())
         .context(settings_feed.clone())
-        .context(sill_surfaces::MEASURE)
-        .context(sill_surfaces::FOCUS)
-        .context(sill_surfaces::CARET);
+        .context(sill_surfaces::root::MEASURE)
+        .context(sill_surfaces::root::FOCUS)
+        .context(sill_surfaces::root::CARET);
     // The focus mode, the power menu and the control center's asks; the notification center and
     // the banners' output; the hot corners' firings; the switcher's asks and the lock prompt's
     // output (`sill_surfaces::links`).

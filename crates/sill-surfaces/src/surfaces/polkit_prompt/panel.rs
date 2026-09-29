@@ -11,7 +11,7 @@
 //! wrapper that hears the keys' modifiers, since quire's sheet floats in the root's overlay host.
 
 use dioxus::prelude::*;
-use ds::{BlurState, CapsLock, Ds, Material, PolkitPrompt, RootExtent, TextLine};
+use ds::{CapsLock, Material, PolkitPrompt, RootExtent, TextLine};
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_model::auth::Secret;
 use sill_model::polkit_agent::{Cookie, PolkitCommand};
@@ -19,31 +19,22 @@ use sill_services::{Control, PolkitAgentService};
 
 use super::stage::{Mapped, Stage, StageIn, advance};
 use super::view::{PolkitPromptView, prompt_view};
-use crate::hooks::{use_appearance, use_control, use_ds_scale, use_service};
+use crate::hooks::{use_control, use_service};
 use crate::links::BannerLink;
-use crate::look::use_active_look;
+use crate::root::SurfaceRoot;
 
 pub(super) fn polkit_prompt(output: OutputInfo) -> Element {
-    let ds_scale = use_ds_scale();
-    let environment = use_appearance()();
-    let look = use_active_look(&output);
-    let stage = use_stage(output);
+    let stage = use_stage(output.clone());
     let control = use_control::<PolkitAgentService>();
     let mut caps = use_signal(|| CapsLock::Off);
     let drawn = stage().drawn().map(|(view, shown)| (view.clone(), shown));
     rsx! {
         div {
             onkeydown: move |event: KeyboardEvent| caps.set(caps_of(event.modifiers())),
-            Ds {
-                scale: ds_scale,
-                appearance: environment.settings.appearance.appearance(),
-                system: environment.system,
-                look,
+            SurfaceRoot {
+                output: output.clone(),
                 material: Material::Sheet,
                 extent: RootExtent::Viewport,
-                blur: BlurState::Available,
-                tint_alpha: Some(environment.tint_alpha()),
-                stack: Some(environment.material_stack()),
                 if let Some((view, shown)) = drawn {
                     {prompt(view, shown, caps(), stage, control.clone())}
                 }

@@ -16,8 +16,8 @@ use std::rc::Rc;
 use dioxus::prelude::*;
 use ds::widget::{DesktopGrid, WidgetEdit};
 use ds::{
-    BlurState, Button, ButtonVariant, Ds, Material, Panel, PanelEdge, PanelScrim, Px, RootExtent,
-    Shown, WidgetGallery, use_rect,
+    Button, ButtonVariant, Material, Panel, PanelEdge, PanelScrim, Px, RootExtent, Shown,
+    WidgetGallery, use_rect,
 };
 use shell_host::OutputInfo;
 use sill_settings::DesktopWidgets;
@@ -25,10 +25,10 @@ use sill_settings::DesktopWidgets;
 use super::drive::{places_to_save, use_phase};
 use super::layer::EDIT_PANEL_ID;
 use super::status::{EditCount, EditStatus, Outcome, outcome_of};
-use crate::hooks::{use_appearance, use_ds_scale, use_settings};
+use crate::hooks::use_settings;
 use crate::links::EditWidgetsLink;
 use crate::links::{WidgetsWrite, WidgetsWriter};
-use crate::look::use_active_look;
+use crate::root::SurfaceRoot;
 use crate::surfaces::desktop_widgets::{PlacementFile, grid_size, place};
 use crate::surfaces::notification_center::phase::Phase;
 use crate::widgets::grid::OutputKey;
@@ -50,20 +50,11 @@ const EDIT_HEIGHT: f32 = 400.0;
 /// Edit Widgets on `output`.
 pub(super) fn edit(output: OutputInfo) -> Element {
     provide_registry();
-    let ds_scale = use_ds_scale();
-    let environment = use_appearance()();
-    let look = use_active_look(&output);
     rsx! {
-        Ds {
-            scale: ds_scale,
-            appearance: environment.settings.appearance.appearance(),
-            system: environment.system,
-            look,
+        SurfaceRoot {
+            output: output.clone(),
             material: Material::Sheet,
             extent: RootExtent::Viewport,
-            blur: BlurState::Available,
-            tint_alpha: Some(environment.tint_alpha()),
-            stack: Some(environment.material_stack()),
             style { {EDIT_WIDGETS_CSS} }
             style { {widgets_css()} }
             Stage { output }

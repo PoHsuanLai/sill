@@ -17,8 +17,9 @@ use std::time::Instant;
 
 use shell_host::{Host, HostCtx, HostEvent, HostRoot, OutputId, OutputInfo};
 use sill_settings::{SettingsFeed, ShellFile};
+use sill_surfaces::Dock;
+use sill_surfaces::clock::FrameClock;
 use sill_surfaces::surfaces::dock::{DockProps, dock_layer};
-use sill_surfaces::{Dock, FrameClock};
 use tokio::sync::mpsc;
 
 /// A line from stdin, or its end.
@@ -45,7 +46,8 @@ fn run() -> Result<(), String> {
     let cosmic_wl = bar.cosmic_wl;
     let settings = SettingsFeed::fixed(ShellFile::default());
     let clock = FrameClock::new(Instant::now());
-    let host = Host::<DemoMsg>::connect(sill_surfaces::host_config()).map_err(|e| e.to_string())?;
+    let host =
+        Host::<DemoMsg>::connect(sill_surfaces::root::host_config()).map_err(|e| e.to_string())?;
     read_stdin(host.handle());
     let mut docks = HashSet::<OutputId>::new();
     host.run(move |ctx, event| match event {
@@ -86,8 +88,8 @@ fn spawn_dock(
         .context(services.clone())
         .context(settings.clone())
         .context(clock)
-        .context(sill_surfaces::MEASURE)
-        .context(sill_surfaces::FOCUS);
+        .context(sill_surfaces::root::MEASURE)
+        .context(sill_surfaces::root::FOCUS);
     if let Err(error) = ctx.spawn_layer(config, root) {
         eprintln!("dock: {error}");
     }

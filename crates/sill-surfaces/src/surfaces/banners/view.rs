@@ -9,10 +9,7 @@
 //! [`BannerLink`]: crate::links::BannerLink
 
 use dioxus::prelude::*;
-use ds::{
-    BannerKey, BannerStack, BlurState, Ds, Hover, Material, NotificationSwipe, RootChrome,
-    RootExtent,
-};
+use ds::{BannerKey, BannerStack, Hover, Material, NotificationSwipe, RootChrome, RootExtent};
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_model::notifications::{NotificationId, Notifications};
 use sill_services::NotificationsService;
@@ -24,9 +21,9 @@ use super::elements::{CardShape, Regions, element_regions};
 use super::layer::ROOM;
 use super::machine::{BannerIn, BannerParams};
 use super::stack::stack;
-use crate::hooks::{use_appearance, use_control, use_ds_scale, use_service_part, use_settings};
+use crate::hooks::{use_control, use_service_part, use_settings};
 use crate::links::BannerLink;
-use crate::look::use_active_look;
+use crate::root::SurfaceRoot;
 use crate::surfaces::notification_card::{
     CardPart, CardPlace, CardPress, NoteCard, notification_metrics, part_id, wall_now,
 };
@@ -39,22 +36,13 @@ pub const BANNER_VARS: [&str; 1] = ["--sill-banner-room"];
 
 /// The column on `output`.
 pub(super) fn banners(output: OutputInfo) -> Element {
-    let ds_scale = use_ds_scale();
     let file = use_settings()();
-    let environment = use_appearance()();
-    let look = use_active_look(&output);
     rsx! {
-        Ds {
-            scale: ds_scale,
-            appearance: environment.settings.appearance.appearance(),
-            system: environment.system,
-            look,
+        SurfaceRoot {
+            output: output.clone(),
             material: Material::Toast,
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,
-            blur: BlurState::Available,
-            tint_alpha: Some(environment.tint_alpha()),
-            stack: Some(environment.material_stack()),
             style { {BANNERS_CSS} }
             ColumnView { output: output.id, settings: file.notifications.clone() }
         }

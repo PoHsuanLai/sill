@@ -22,7 +22,7 @@ use super::geometry::{MARGIN, frame_style};
 use super::pick::BarPick;
 use super::plan::{PopupReport, choice};
 use super::session::PopupView;
-use crate::host_modality::HostModalityBridge;
+use crate::root::HostModalityBridge;
 use crate::surfaces::control_center::{CcPage, ControlCenter, ModuleDropdown};
 
 /// The popup's link to its bar, provided as its root context.

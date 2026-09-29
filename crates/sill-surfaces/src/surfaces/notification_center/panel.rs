@@ -4,12 +4,11 @@
 //! widgets under the history bring their own stylesheets (`widgets_css`), injected beside it.
 
 use dioxus::prelude::*;
-use ds::{BlurState, Ds, Material, RootExtent};
+use ds::{Material, RootExtent};
 use shell_host::OutputInfo;
 
 use super::column::Column;
-use crate::hooks::{use_appearance, use_ds_scale};
-use crate::look::use_active_look;
+use crate::root::SurfaceRoot;
 use crate::widgets::{provide_registry, widgets_css};
 
 /// The center's stylesheet (lint-clean under `Profile::Strict`,
@@ -19,20 +18,11 @@ pub const NOTIFICATION_CENTER_CSS: &str = include_str!("../../style/notification
 /// The center on `output`.
 pub(super) fn center(output: OutputInfo) -> Element {
     provide_registry();
-    let ds_scale = use_ds_scale();
-    let environment = use_appearance()();
-    let look = use_active_look(&output);
     rsx! {
-        Ds {
-            scale: ds_scale,
-            appearance: environment.settings.appearance.appearance(),
-            system: environment.system,
-            look,
+        SurfaceRoot {
+            output: output.clone(),
             material: Material::Popover,
             extent: RootExtent::Viewport,
-            blur: BlurState::Available,
-            tint_alpha: Some(environment.tint_alpha()),
-            stack: Some(environment.material_stack()),
             style { {NOTIFICATION_CENTER_CSS} }
             style { {widgets_css()} }
             Column { output: output.id }
