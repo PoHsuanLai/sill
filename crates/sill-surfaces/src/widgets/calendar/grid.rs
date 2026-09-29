@@ -4,7 +4,7 @@
 use jiff::ToSpan;
 use jiff::civil::{Date, Weekday};
 use jiff::tz::TimeZone;
-use sill_services::{CalEvent, EventTime};
+use sill_model::events::{CalEvent, EventTime};
 use sill_settings::FirstWeekday;
 
 /// A calendar month.

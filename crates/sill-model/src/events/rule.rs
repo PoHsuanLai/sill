@@ -8,9 +8,9 @@ use jiff::civil::{Date, Weekday};
 use jiff::tz::TimeZone;
 
 use super::ics::{IcsEvent, IcsStatus, IcsTime};
-use super::model::{CalEvent, CalendarName, EventUid, Window};
 use super::occur::{Exclusions, Shape, overlaps};
 use super::rule_expand::{expand, plan};
+use super::{CalEvent, CalendarName, EventUid, Window};
 
 /// `FREQ`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -188,8 +188,8 @@ mod tests {
     use jiff::tz::TimeZone;
 
     use super::{Freq, Rule, RuleEnd, occurrences, parse_rule, week_start};
-    use crate::events::ics::{IcsEnd, IcsEvent, IcsStatus, IcsTime};
-    use crate::events::model::{CalendarName, EventTime, Window};
+    use crate::events::{CalendarName, EventTime, Window};
+    use crate::events::{IcsEnd, IcsEvent, IcsStatus, IcsTime};
 
     #[test]
     fn a_week_starts_on_monday() {

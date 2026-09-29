@@ -462,15 +462,15 @@ fn up_next_never_clips_a_row_past_the_tiles_body() {
         let mut running = start(WidgetKind::UpNext, host, file.clone());
         let at = jiff::Timestamp::now();
         let hour = |h: i64| at.checked_add(jiff::ToSpan::hours(h)).unwrap_or(at);
-        let event = |uid: &str, hours_ahead: i64| sill_services::CalEvent {
-            uid: sill_services::events::EventUid(uid.to_owned()),
+        let event = |uid: &str, hours_ahead: i64| sill_model::events::CalEvent {
+            uid: sill_model::events::EventUid(uid.to_owned()),
             title: uid.to_owned(),
-            when: sill_services::EventTime::Timed {
+            when: sill_model::events::EventTime::Timed {
                 start: hour(hours_ahead),
                 end: hour(hours_ahead),
             },
             location: None,
-            calendar: sill_services::events::CalendarName("home".to_owned()),
+            calendar: sill_model::events::CalendarName("home".to_owned()),
         };
         let events = vec![
             event("one", 1),
@@ -481,14 +481,17 @@ fn up_next_never_clips_a_row_past_the_tiles_body() {
             event("six", 6),
             event("seven", 7),
         ];
-        running.feeds.agenda.send_replace(sill_services::Agenda {
-            today: at.to_zoned(jiff::tz::TimeZone::UTC).date(),
-            events,
-            status: sill_services::SourceStatus::Read {
-                calendars: 1,
-                problems: Vec::new(),
-            },
-        });
+        running
+            .feeds
+            .agenda
+            .send_replace(sill_model::events::Agenda {
+                today: at.to_zoned(jiff::tz::TimeZone::UTC).date(),
+                events,
+                status: sill_model::events::SourceStatus::Read {
+                    calendars: 1,
+                    problems: Vec::new(),
+                },
+            });
         running.harness.advance(Duration::from_millis(60));
         let h = &running.harness;
         let body = h

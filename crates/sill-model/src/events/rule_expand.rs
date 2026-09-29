@@ -66,7 +66,7 @@ pub(super) fn plan(rule: &Rule) -> Result<Pattern, Vec<String>> {
 }
 
 /// The parts of `rule` an expansion leaves out (the event then shows once).
-pub(super) fn unsupported_parts(rule: &Rule) -> Vec<String> {
+pub fn unsupported_parts(rule: &Rule) -> Vec<String> {
     plan(rule).err().unwrap_or_default()
 }
 
@@ -286,5 +286,4 @@ fn weekdays_in(year: i16, month: i8, n: Option<i8>, weekday: Weekday) -> Vec<Dat
 }
 
 #[cfg(test)]
-#[path = "rule_expand_tests.rs"]
 mod tests;

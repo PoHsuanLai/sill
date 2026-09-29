@@ -32,16 +32,6 @@ pub struct AutoEnv {
     pub data_home: PathBuf,
 }
 
-impl AutoEnv {
-    /// What `auto` looks at among `dirs`.
-    pub fn of(dirs: &crate::env::Dirs) -> AutoEnv {
-        AutoEnv {
-            home: dirs.home.clone(),
-            data_home: dirs.data.clone(),
-        }
-    }
-}
-
 /// `calendar.sources`: `auto` and `off` (any case, trimmed; empty is `off`), else `;`-separated
 /// paths, each trimmed, `~/` expanded against `home`, a path ending in `.ics` a file and any
 /// other a directory; empty entries skipped.

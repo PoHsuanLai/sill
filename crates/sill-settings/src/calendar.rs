@@ -52,7 +52,7 @@ pub enum WeekNumbers {
 #[settings(file = "sill/settings.toml", domain = "calendar", page = Page::Notifications)]
 pub struct CalendarSettings {
     /// `auto`, `off`, or `;`-separated `.ics` files and directories (parsed by
-    /// `sill_services::events::parse_sources`).
+    /// `sill_model::events::parse_sources`).
     #[settings(
         label = "Calendars",
         help = "`auto` reads `~/.calendars` (vdirsyncer and khal) and `~/.local/share/sill/calendars`; `off` reads none; or `.ics` files and folders separated by `;`.",

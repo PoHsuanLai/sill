@@ -242,7 +242,7 @@ mod tests {
         );
         assert_eq!(
             services.events.state.borrow().status,
-            crate::SourceStatus::Off,
+            sill_model::events::SourceStatus::Off,
             "no calendar read until the daemon names the sources"
         );
         assert_eq!(

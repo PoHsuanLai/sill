@@ -10,13 +10,14 @@ use std::time::Duration;
 use jiff::civil::Date;
 use jiff::tz::TimeZone;
 use jiff::{ToSpan, Zoned};
+use sill_model::events::{
+    Agenda, AgendaEvent, AutoEnv, EventSources, EventsCommand, IcsPlace, auto_places, held_window,
+    step,
+};
 use tokio::sync::{mpsc, watch};
 
-use super::EventsCommand;
 use super::live_watch::Touches;
-use super::model::{Agenda, AgendaEvent, held_window, step};
 use super::provider::{EventsProvider, provider_for};
-use super::sources::{AutoEnv, EventSources, IcsPlace, auto_places};
 use crate::env::WallClock;
 
 /// The longest the task sleeps without looking at the date: a resume or a zone change shows
@@ -24,12 +25,12 @@ use crate::env::WallClock;
 const DAY_CHECK: Duration = Duration::from_secs(60);
 
 /// What the task reads besides its commands: the places `auto` looks, and the wall clock.
-pub(super) struct Reach {
-    pub(super) auto: AutoEnv,
-    pub(super) clock: Arc<dyn WallClock>,
+pub(crate) struct Reach {
+    pub(crate) auto: AutoEnv,
+    pub(crate) clock: Arc<dyn WallClock>,
 }
 
-pub(super) async fn run(
+pub(crate) async fn run(
     tx: watch::Sender<Agenda>,
     mut commands: mpsc::UnboundedReceiver<EventsCommand>,
     reach: Reach,

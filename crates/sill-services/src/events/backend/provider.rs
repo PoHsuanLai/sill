@@ -6,25 +6,9 @@ use std::fmt::Debug;
 use std::path::PathBuf;
 
 use jiff::tz::TimeZone;
-
-use super::model::{CalEvent, Window};
-use super::sources::{AutoEnv, EventSources, IcsPlace, auto_places};
-
-/// Why one calendar could not be read. Its events are left out; the others are kept.
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-pub enum EventsError {
-    /// The file or directory could not be read (missing, unreadable, not UTF-8).
-    #[error("reading {path}: {reason}")]
-    Unreadable { path: PathBuf, reason: String },
-    /// The text is not an iCalendar stream (no `BEGIN:VCALENDAR`, an unclosed component, a
-    /// property line without `:`) at `line` (1-based, after unfolding).
-    #[error("{path}, line {line}: {reason}")]
-    Malformed {
-        path: PathBuf,
-        line: u32,
-        reason: String,
-    },
-}
+use sill_model::events::{
+    AutoEnv, CalEvent, EventSources, EventsError, IcsPlace, Window, auto_places,
+};
 
 /// Somewhere events can be read from. Blocking: the service calls it on the blocking pool.
 pub trait EventsProvider: Send + Sync + Debug {
@@ -111,8 +95,8 @@ mod tests {
     use jiff::tz::TimeZone;
 
     use super::{EventsProvider, IcsProvider, NullProvider, ProviderRead};
-    use crate::events::model::Window;
-    use crate::events::sources::IcsPlace;
+    use sill_model::events::IcsPlace;
+    use sill_model::events::Window;
 
     fn window() -> Window {
         Window {

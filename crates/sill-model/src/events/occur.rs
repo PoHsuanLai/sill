@@ -7,9 +7,9 @@ use jiff::tz::TimeZone;
 use jiff::{Timestamp, ToSpan};
 
 use super::ics::{IcsEnd, IcsEvent, IcsTime};
-use super::model::{EventTime, Window};
 use super::rule::RuleEnd;
 use super::rule_expand::{Bounds, Until};
+use super::{EventTime, Window};
 
 /// When each occurrence happens, less its day.
 #[derive(Debug, Clone)]
@@ -242,5 +242,4 @@ fn whole_days(first: Date, end: &IcsEnd, viewer: &TimeZone) -> i64 {
 }
 
 #[cfg(test)]
-#[path = "occur_tests.rs"]
 mod tests;

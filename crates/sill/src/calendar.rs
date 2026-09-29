@@ -3,8 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use sill_services::EventsCommand;
-use sill_services::events::{EventSources, parse_sources};
+use sill_model::events::{EventSources, EventsCommand, parse_sources};
 use sill_settings::ShellFile;
 
 use crate::policy::Policy;
@@ -35,7 +34,7 @@ impl Policy for Bridge {
 
 #[cfg(test)]
 mod tests {
-    use sill_services::events::EventSources;
+    use sill_model::events::EventSources;
     use sill_settings::ShellFile;
 
     use std::path::Path;

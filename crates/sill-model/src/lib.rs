@@ -14,6 +14,7 @@ pub mod clipboard;
 pub mod clock;
 pub mod cosmic_wl;
 pub mod displays;
+pub mod events;
 pub mod idle;
 pub mod ids;
 pub mod kbd_backlight;

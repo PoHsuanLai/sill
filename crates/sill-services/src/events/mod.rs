@@ -22,48 +22,20 @@
 //!
 //! The service is passive until the daemon's first [`EventsCommand::Sources`] (from
 //! `calendar.sources`), so a test or a headless render never reads a calendar. It publishes an
-//! [`Agenda`]: today's date (republished at each local midnight, so the month grid moves on),
-//! the events in [`held_window`] around today, and how the sources read.
+//! `Agenda`: today's date (republished at each local midnight, so the month grid moves on),
+//! the events in `held_window` around today, and how the sources read.
 
-pub mod agenda;
-pub mod ics;
-mod ics_line;
-mod ics_value;
-mod live;
-mod live_watch;
-pub mod model;
-mod occur;
-pub mod provider;
-mod read;
-pub mod rule;
-mod rule_expand;
-pub mod sources;
-
-pub use agenda::{Days, up_next};
-pub use model::{
-    Agenda, AgendaEvent, CalEvent, CalendarName, EventTime, EventUid, SourceStatus, Window,
-    held_window, step,
-};
-pub use provider::{
-    EventsError, EventsProvider, IcsProvider, NullProvider, ProviderRead, provider_for,
-};
-pub use sources::{AutoEnv, EventSources, IcsPlace, auto_places, parse_sources};
+mod backend;
 
 use std::sync::Arc;
+
+use sill_model::events::{Agenda, AutoEnv, EventsCommand};
 
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
-/// What the events service can be told.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum EventsCommand {
-    /// Read from these sources from now on (the daemon sends `calendar.sources` at start and on
-    /// every change; the first one ends the passive start).
-    Sources(EventSources),
-    /// Read every source again now (after a resume).
-    Refresh,
-}
+pub use backend::{EventsProvider, IcsProvider, NullProvider, ProviderRead, provider_for};
 
 /// Calendar events as a [`Service`], found under `env`'s directories and dated by its clock.
 /// Until the first `Sources` the agenda holds today only, with `SourceStatus::Off`.
@@ -85,12 +57,15 @@ impl Service for EventsService {
         (): (),
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
-        let reach = live::Reach {
-            auto: sources::AutoEnv::of(&env.dirs),
+        let reach = backend::Reach {
+            auto: AutoEnv {
+                home: env.dirs.home.clone(),
+                data_home: env.dirs.data.clone(),
+            },
             clock: Arc::clone(&env.clock),
         };
         async move {
-            live::run(io.state, io.commands, reach).await;
+            backend::run(io.state, io.commands, reach).await;
             Ok(())
         }
     }

@@ -19,8 +19,10 @@ use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use jiff::civil::Date;
 use jiff::tz::TimeZone;
 use jiff::{Timestamp, ToSpan, Zoned};
-use sill_services::events::{CalendarName, EventUid, EventsError};
-use sill_services::{Agenda, CalEvent, EventTime, Services, SourceStatus};
+use sill_model::events::{
+    Agenda, CalEvent, CalendarName, EventTime, EventUid, EventsError, SourceStatus,
+};
+use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::hooks::PinnedAppearance;
 use sill_surfaces::widgets::{Widget, WidgetHost, WidgetKind, widgets_css};

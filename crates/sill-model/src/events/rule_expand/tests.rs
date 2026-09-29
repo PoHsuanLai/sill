@@ -1,7 +1,7 @@
 use jiff::civil::{Date, date};
 
 use super::{Bounds, Until, expand, plan, unsupported_parts};
-use crate::events::rule::parse_rule;
+use crate::events::parse_rule;
 
 fn bounds(from: Date, to: Date) -> Bounds {
     Bounds {

@@ -7,10 +7,9 @@ use std::time::Duration;
 use jiff::Zoned;
 use jiff::civil::Date;
 use jiff::tz::TimeZone;
+use sill_model::events::{Agenda, EventSources, EventsCommand, IcsPlace, SourceStatus};
 use sill_services::env::Env;
-use sill_services::events::{
-    Agenda, EventSources, EventsCommand, EventsService, IcsPlace, SourceStatus,
-};
+use sill_services::events::EventsService;
 use sill_services::service::spawn;
 use tokio::sync::watch;
 

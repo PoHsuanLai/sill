@@ -1,4 +1,4 @@
-//! The Up Next widget's provider: the next events (`sill_services::events::up_next`
+//! The Up Next widget's provider: the next events (`sill_model::events::up_next`
 //! over `calendar.up_next_days` and `calendar.up_next_max`), each a title and a time line, as
 //! [`UpNextEntry`]; "No upcoming events" when there are none, and a quiet line naming the source
 //! state when the calendars are off or unreadable. A new entry on the clock's minute tick. The
@@ -17,8 +17,7 @@ use ds::{EventLine, LabelHue, WidgetCard};
 use jiff::Timestamp;
 use jiff::civil::Date;
 use jiff::tz::TimeZone;
-use sill_services::events::{CalendarName, Days, up_next};
-use sill_services::{Agenda, CalEvent, EventTime, SourceStatus};
+use sill_model::events::{Agenda, CalEvent, CalendarName, Days, EventTime, SourceStatus, up_next};
 
 pub use super::up_next_view::{DayLine, UpNext, UpNextEntry, UpNextFace, UpNextRow};
 use super::{Place, WidgetKind, widget_element_id};
@@ -203,8 +202,8 @@ pub fn UpNextCard(place: Place) -> Element {
 mod tests {
     use jiff::civil::date;
     use jiff::tz::TimeZone;
-    use sill_services::events::{CalendarName, EventUid};
-    use sill_services::{CalEvent, EventTime};
+    use sill_model::events::{CalEvent, EventTime};
+    use sill_model::events::{CalendarName, EventUid};
 
     use super::{EventLines, calendar_hue, event_lines};
     use ds::LabelHue;

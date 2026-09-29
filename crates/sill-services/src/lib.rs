@@ -63,7 +63,7 @@ pub use control::Control;
 pub use cosmic_wl::CosmicWlService;
 pub use displays::DisplaysService;
 pub use error::ServiceError;
-pub use events::{Agenda, CalEvent, EventTime, EventsCommand, EventsService, SourceStatus};
+pub use events::EventsService;
 pub use idle::{IdleLinks, IdleService};
 pub use kbd_backlight::KbdBacklightService;
 pub use launch::LaunchService;

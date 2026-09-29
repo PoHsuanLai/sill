@@ -2,8 +2,7 @@ use jiff::civil::date;
 use jiff::tz::TimeZone;
 
 use super::{Exclusions, Shape, overlaps, resolve, zone_named};
-use crate::events::ics::{IcsEnd, IcsEvent, IcsStatus, IcsTime};
-use crate::events::model::{EventTime, Window};
+use crate::events::{EventTime, IcsEnd, IcsEvent, IcsStatus, IcsTime, Window};
 
 fn taipei() -> TimeZone {
     TimeZone::get("Asia/Taipei").unwrap_or_else(|e| panic!("{e}"))

@@ -4,7 +4,7 @@ use jiff::civil::Date;
 use jiff::tz::TimeZone;
 use jiff::{Timestamp, ToSpan};
 
-use super::model::{CalEvent, EventTime};
+use super::{CalEvent, EventTime};
 
 /// A number of days.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -67,7 +67,7 @@ mod tests {
     use jiff::tz::TimeZone;
 
     use super::{Days, up_next};
-    use crate::events::model::{CalEvent, CalendarName, EventTime, EventUid};
+    use crate::events::{CalEvent, CalendarName, EventTime, EventUid};
 
     fn event(uid: &str, when: EventTime) -> CalEvent {
         CalEvent {

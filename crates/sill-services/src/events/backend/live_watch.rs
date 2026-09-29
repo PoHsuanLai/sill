@@ -10,10 +10,10 @@ use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use tokio::sync::mpsc;
 
 /// How long the places must be quiet before a change is reported settled.
-pub(super) const DEBOUNCE: Duration = Duration::from_millis(150);
+pub(crate) const DEBOUNCE: Duration = Duration::from_millis(150);
 
 /// A running watch; dropping it stops watching.
-pub(super) struct Touches {
+pub(crate) struct Touches {
     signals: mpsc::UnboundedReceiver<()>,
     _watcher: Option<RecommendedWatcher>,
 }

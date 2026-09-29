@@ -5,13 +5,12 @@ use std::path::PathBuf;
 
 use jiff::civil::{Date, date};
 use jiff::tz::TimeZone;
+use sill_model::events::{CalEvent, CalendarName, EventTime, IcsPlace, Window};
 
 use super::{calendars_in, occurrences_of, read_places};
-use crate::events::model::{CalEvent, CalendarName, EventTime, Window};
-use crate::events::sources::IcsPlace;
 
-const KORGANIZER: &str = include_str!("../../tests/fixtures/calendars/korganizer-std.ics");
-const GOOGLE: &str = include_str!("../../tests/fixtures/calendars/google-export.ics");
+const KORGANIZER: &str = include_str!("../../../../tests/fixtures/calendars/korganizer-std.ics");
+const GOOGLE: &str = include_str!("../../../../tests/fixtures/calendars/google-export.ics");
 
 fn taipei() -> TimeZone {
     TimeZone::get("Asia/Taipei").unwrap_or_else(|e| panic!("{e}"))

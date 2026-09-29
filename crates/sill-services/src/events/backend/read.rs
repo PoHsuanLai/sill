@@ -1,4 +1,4 @@
-//! What [`super::IcsProvider`] reads: its places as calendars (a file; a vdir collection; a
+//! What [`crate::events::IcsProvider`] reads: its places as calendars (a file; a vdir collection; a
 //! directory of collections), each calendar's files parsed, overrides merged into their series,
 //! and every occurrence in the window. Blocking: the service runs it on the blocking pool.
 
@@ -7,23 +7,22 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, PoisonError};
 
 use jiff::tz::TimeZone;
+use sill_model::events::{
+    CalendarName, EventsError, IcsError, IcsEvent, IcsPlace, Window, occurrences, parse_ics,
+    unsupported_parts,
+};
 
-use super::ics::{IcsError, IcsEvent, parse_ics};
-use super::model::{CalendarName, Window};
-use super::provider::{EventsError, ProviderRead};
-use super::rule::occurrences;
-use super::rule_expand::unsupported_parts;
-use super::sources::IcsPlace;
+use super::provider::ProviderRead;
 
 /// One calendar: its name and its files.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct Calendar {
+pub(crate) struct Calendar {
     pub name: CalendarName,
     pub files: Vec<PathBuf>,
 }
 
 /// Read every place in `places` over `window`.
-pub(super) fn read_places(places: &[IcsPlace], window: Window, zone: &TimeZone) -> ProviderRead {
+pub(crate) fn read_places(places: &[IcsPlace], window: Window, zone: &TimeZone) -> ProviderRead {
     let mut out = ProviderRead::default();
     for place in places {
         match calendars_in(place) {
@@ -39,7 +38,7 @@ pub(super) fn read_places(places: &[IcsPlace], window: Window, zone: &TimeZone) 
 }
 
 /// The calendars one place holds.
-pub(super) fn calendars_in(place: &IcsPlace) -> Result<Vec<Calendar>, EventsError> {
+pub(crate) fn calendars_in(place: &IcsPlace) -> Result<Vec<Calendar>, EventsError> {
     match place {
         IcsPlace::File(path) => Ok(vec![Calendar {
             name: name_of(path),
@@ -151,7 +150,7 @@ fn unreadable(path: &Path, error: &std::io::Error) -> EventsError {
 
 /// Every event with its overrides merged: an override's `RECURRENCE-ID` becomes an `EXDATE` of
 /// its series (in the same calendar, any file), and the override stands as a single event.
-pub(super) fn merge_overrides(parsed: Vec<(PathBuf, IcsEvent)>) -> Vec<(PathBuf, IcsEvent)> {
+pub(crate) fn merge_overrides(parsed: Vec<(PathBuf, IcsEvent)>) -> Vec<(PathBuf, IcsEvent)> {
     let (mut series, overrides): (Vec<_>, Vec<_>) = parsed
         .into_iter()
         .partition(|(_, event)| event.recurrence_id.is_none());
@@ -194,12 +193,12 @@ fn note_unsupported(path: &Path, event: &IcsEvent) {
 
 /// Every occurrence the events hold, for a test that reads text rather than files.
 #[cfg(test)]
-pub(super) fn occurrences_of(
+pub(crate) fn occurrences_of(
     text: &str,
     calendar: &str,
     window: Window,
     zone: &TimeZone,
-) -> Result<Vec<super::model::CalEvent>, IcsError> {
+) -> Result<Vec<sill_model::events::CalEvent>, IcsError> {
     let events = parse_ics(text)?;
     let merged = merge_overrides(
         events
@@ -215,5 +214,4 @@ pub(super) fn occurrences_of(
 }
 
 #[cfg(test)]
-#[path = "read_tests.rs"]
 mod tests;
