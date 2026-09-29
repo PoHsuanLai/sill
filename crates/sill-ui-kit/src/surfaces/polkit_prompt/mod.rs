@@ -4,28 +4,22 @@
 //! `PolkitPrompt` (a narrow `Sheet` over the modal scrim, `peek-in` in and `sheet-out` out: the
 //! avatar and name of the identity asked for, the action's sentence, the details as a hover
 //! card, a secret field, Cancel and Authenticate; `Wrong` shakes once) in `Ds { material: Sheet,
-//! extent: Viewport }` ([`view::prompt_view`]). Keyboard `Exclusive`; Enter submits and Escape
+//! extent: Viewport }` (`view.rs`). Keyboard `Exclusive`; Enter submits and Escape
 //! and the scrim cancel, all inside quire's component.
 //!
 //! An answer goes to the agent as `PolkitCommand::Answer` (the text wrapped in a `Secret` at
 //! once, never kept), a cancel as `Dismiss`; the surface never talks to polkit.
+//!
+//! The daemon tells the service to register at start; it stays passive until then. Registering an
+//! agent is per logind session: nested in another desktop's session, the daemon shares that
+//! session, whose own agent already holds it, so polkitd refuses sill's
+//! (`Registration::Refused`), and that is the right outcome there. Acceptance runs the agent on
+//! a private bus with a stand-in Authority, never on the system bus.
 
-pub mod layer;
-pub mod stage;
-pub mod view;
+mod layer;
+mod model;
+mod step;
+mod surface;
+mod view;
 
-mod panel;
-
-pub use layer::{PANEL_ID, polkit_layer};
-pub use stage::{Mapped, Stage, StageIn, advance};
-pub use view::{PolkitPromptView, detail_of, prompt_view};
-
-use dioxus::prelude::*;
-use shell_host::OutputInfo;
-
-/// The polkit prompt on `output`. Needs the daemon's `BannerLink` root context (only the output
-/// it names shows the prompt).
-#[component]
-pub fn PolkitPrompt(output: OutputInfo) -> Element {
-    panel::polkit_prompt(output)
-}
+pub use surface::PolkitPrompt;

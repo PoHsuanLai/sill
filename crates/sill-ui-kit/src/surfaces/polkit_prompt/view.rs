@@ -1,139 +1,135 @@
-//! What the polkit prompt hands quire's `PolkitPrompt`: pure.
+//! The polkit prompt's root.
+//!
+//! While `use_service::<PolkitAgentService>().current` is a request and the `BannerLink` names this
+//! output, the surface maps itself (`SurfaceOp::SetVisibility`), and a `Ds { material: Sheet,
+//! extent: Viewport }` holds `ds::PolkitPrompt` from [`super::model::prompt_view`] (keyed by the cookie,
+//! so a new request enters again), `caps` from the last key event's modifiers, `onsubmit` sending
+//! `PolkitCommand::Answer { cookie, secret: Secret::new(text) }` (the text moves into the `Secret`
+//! at once and is never kept in a signal), `oncancel` sending `PolkitCommand::Dismiss(cookie)`;
+//! when the request goes away `shown` turns `Hidden` and the surface unmaps at `on_hidden`
+//! ([`super::step`]). Nothing is styled under `.ds-polkit*`; the only markup of sill's own is the
+//! wrapper that hears the keys' modifiers, since quire's sheet floats in the root's overlay host.
 
-use ds::{AvatarFace, AvatarShape, AvatarSize, AvatarTone, LockUser, PromptState, person_hue};
-use sill_model::polkit_agent::{Cookie, LastTry, Polkit, PromptPhase, PromptView};
+use dioxus::prelude::*;
+use ds::{CapsLock, Material, PolkitPrompt, RootExtent, TextLine};
+use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
+use sill_model::auth::Secret;
+use sill_model::polkit_agent::{Cookie, PolkitCommand};
+use sill_services::{Control, PolkitAgentService};
 
-/// quire's `PolkitPrompt` props that follow the request (the rest are the surface's handlers).
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PolkitPromptView {
-    /// A new cookie remounts the prompt (its entrance plays again).
-    pub cookie: Cookie,
-    /// `action`: the action's own sentence.
-    pub action: String,
-    /// `detail`: the action id, then polkitd's details as `key: value` lines; `None` with none.
-    pub detail: Option<String>,
-    /// `user`: the identity asked for, an initials face at 48.
-    pub user: LockUser,
-    /// `state`: `Starting` and `Checking` are `Checking` (the field closed); `Asking` is `Idle`,
-    /// or `Wrong` right after a failed try (`LastTry::Wrong`: it shakes once and empties).
-    pub state: PromptState,
-}
+use super::layer::PANEL_ID;
+use super::model::{PolkitPromptView, prompt_view};
+use super::step::{Mapped, Stage, StageIn, advance};
+use crate::hooks::{use_control, use_service};
+use crate::links::BannerLink;
+use crate::root::SurfaceRoot;
 
-/// The view of the request on screen; `None` when there is none.
-pub fn prompt_view(polkit: &Polkit) -> Option<PolkitPromptView> {
-    let view = polkit.current.as_ref()?;
-    Some(PolkitPromptView {
-        cookie: view.cookie.clone(),
-        action: view.message.clone(),
-        detail: detail_of(view),
-        user: user_of(&view.user.0),
-        state: state_of(&view.phase, view.last),
-    })
-}
-
-/// The detail line block for `view` (see [`PolkitPromptView::detail`]).
-pub fn detail_of(view: &PromptView) -> Option<String> {
-    let lines: Vec<String> = std::iter::once(view.action_id.0.clone())
-        .filter(|id| !id.is_empty())
-        .chain(
-            view.details
-                .iter()
-                .map(|(key, value)| format!("{key}: {value}")),
-        )
-        .collect();
-    (!lines.is_empty()).then(|| lines.join("\n"))
-}
-
-fn state_of(phase: &PromptPhase, last: LastTry) -> PromptState {
-    match (phase, last) {
-        (PromptPhase::Starting | PromptPhase::Checking, _) => PromptState::Checking,
-        (PromptPhase::Asking { .. }, LastTry::None) => PromptState::Idle,
-        (PromptPhase::Asking { .. }, LastTry::Wrong) => PromptState::Wrong,
-    }
-}
-
-/// The identity asked for: the login name and an initials face (quire draws it at 48).
-fn user_of(name: &str) -> LockUser {
-    let initial = name
-        .chars()
-        .next()
-        .map_or('?', |c| c.to_uppercase().next().unwrap_or(c));
-    LockUser::new(
-        name.to_owned(),
-        AvatarFace {
-            initial,
-            size: AvatarSize::Size48,
-            tone: AvatarTone::Person(person_hue(name)),
-            shape: AvatarShape::Round,
-        },
-    )
-}
-
-#[cfg(test)]
-mod tests {
-    use ds::PromptState;
-    use sill_model::auth::UserName;
-    use sill_model::polkit_agent::Polkit;
-    use sill_model::polkit_agent::{
-        ActionId, Cookie, Echo, LastTry, PromptPhase, PromptView, Registration,
-    };
-
-    use super::{detail_of, prompt_view};
-    use crate::surfaces::user_picture::initial_of;
-
-    fn view(phase: PromptPhase, last: LastTry) -> PromptView {
-        PromptView {
-            cookie: Cookie("c1".to_owned()),
-            action_id: ActionId("org.example.run".to_owned()),
-            message: "Run it?".to_owned(),
-            icon: String::new(),
-            details: vec![("program".to_owned(), "/usr/bin/true".to_owned())],
-            user: UserName("ada".to_owned()),
-            phase,
-            last,
-            notes: Vec::new(),
+pub(super) fn polkit_prompt(output: OutputInfo) -> Element {
+    let stage = use_stage(output.clone());
+    let control = use_control::<PolkitAgentService>();
+    let mut caps = use_signal(|| CapsLock::Off);
+    let drawn = stage().drawn().map(|(view, shown)| (view.clone(), shown));
+    rsx! {
+        div {
+            onkeydown: move |event: KeyboardEvent| caps.set(caps_of(event.modifiers())),
+            SurfaceRoot {
+                output: output.clone(),
+                material: Material::Sheet,
+                extent: RootExtent::Viewport,
+                if let Some((view, shown)) = drawn {
+                    {prompt(view, shown, caps(), stage, control.clone())}
+                }
+            }
         }
     }
+}
 
-    fn polkit(view: PromptView) -> Polkit {
-        Polkit {
-            registration: Registration::Registered,
-            current: Some(view),
-            waiting: 0,
+/// Caps Lock from a key event's modifiers (xkb's locked state, through shell-host).
+fn caps_of(modifiers: Modifiers) -> CapsLock {
+    if modifiers.contains(Modifiers::CAPS_LOCK) {
+        CapsLock::On
+    } else {
+        CapsLock::Off
+    }
+}
+
+/// quire's prompt for `view`.
+fn prompt(
+    view: PolkitPromptView,
+    shown: ds::Shown,
+    caps: CapsLock,
+    stage: Signal<Stage>,
+    control: Control<PolkitCommand>,
+) -> Element {
+    let (submit, cancel) = (control.clone(), control);
+    let (answer_to, dismiss) = (view.cookie.clone(), view.cookie.clone());
+    let key = view.cookie.0.clone();
+    rsx! {
+        PolkitPrompt {
+            key: "{key}",
+            action: TextLine::from(view.action),
+            detail: view.detail.map(TextLine::from),
+            user: view.user,
+            state: view.state,
+            caps,
+            // The sheet carries the blur region's id, so `layer.rs`'s
+            // `RegionSpec::Element(PANEL_ID)` resolves.
+            panel_id: Some(PANEL_ID.to_owned()),
+            oninput: move |_: String| {},
+            onsubmit: move |text: String| {
+                let secret = Secret::new(text);
+                let cookie: Cookie = answer_to.clone();
+                // A stopped agent has no request to answer; the prompt goes with it.
+                let _ = submit.send(PolkitCommand::Answer { cookie, secret });
+            },
+            oncancel: move |()| {
+                let _ = cancel.send(PolkitCommand::Dismiss(dismiss.clone()));
+            },
+            shown: Some(shown),
+            on_hidden: move |()| settle(stage),
         }
     }
+}
 
-    #[test]
-    fn the_view_follows_the_phase() {
-        assert_eq!(prompt_view(&Polkit::default()), None);
-        let asking = || PromptPhase::Asking {
-            prompt: "Password: ".to_owned(),
-            echo: Echo::Hidden,
-        };
-        let cases = [
-            (asking(), LastTry::None, PromptState::Idle),
-            (asking(), LastTry::Wrong, PromptState::Wrong),
-            (PromptPhase::Starting, LastTry::Wrong, PromptState::Checking),
-            (PromptPhase::Checking, LastTry::None, PromptState::Checking),
-        ];
-        for (phase, last, want) in cases {
-            let shown =
-                prompt_view(&polkit(view(phase.clone(), last))).unwrap_or_else(|| panic!("shown"));
-            assert_eq!(shown.state, want, "{phase:?} {last:?}");
-            assert_eq!(shown.action, "Run it?");
-            assert_eq!(shown.user.name, "ada");
-            assert_eq!(initial_of(&shown.user), Some('A'));
+fn settle(mut stage: Signal<Stage>) {
+    let next = advance(stage.peek().clone(), StageIn::Settled);
+    if *stage.peek() != next {
+        stage.set(next);
+    }
+}
+
+/// The stage on `output`, following the agent and the banners' output, and the surface's
+/// mapping following the stage. Nothing to map without a host (a test, an SSR render).
+fn use_stage(output: OutputInfo) -> Signal<Stage> {
+    let polkit = use_service::<PolkitAgentService>();
+    let link = use_hook(|| try_consume_context::<BannerLink>().unwrap_or_default());
+    let shows = use_watch(link.subscribe());
+    let mut stage = use_signal(Stage::default);
+    use_effect(move || {
+        let wanted = shows
+            .read()
+            .shows_on(output.id)
+            .then(|| prompt_view(&polkit.read()))
+            .flatten();
+        let next = advance(stage.peek().clone(), StageIn::Want(wanted));
+        if *stage.peek() != next {
+            stage.set(next);
         }
-    }
-
-    #[test]
-    fn the_details() {
-        assert_eq!(
-            detail_of(&view(PromptPhase::Starting, LastTry::None)).as_deref(),
-            Some("org.example.run\nprogram: /usr/bin/true")
-        );
-        let mut bare = view(PromptPhase::Starting, LastTry::None);
-        bare.details.clear();
-        assert_eq!(detail_of(&bare).as_deref(), Some("org.example.run"));
-    }
+    });
+    let surface = try_use_context::<SurfaceHandle>();
+    let mut applied = use_hook(|| CopyValue::new(Mapped::No));
+    use_effect(move || {
+        let mapped = stage.read().mapped();
+        if *applied.peek() == mapped {
+            return;
+        }
+        applied.set(mapped);
+        if let Some(surface) = &surface {
+            surface.apply(SurfaceOp::SetVisibility(match mapped {
+                Mapped::Yes => Visibility::Shown,
+                Mapped::No => Visibility::Hidden,
+            }));
+        }
+    });
+    stage
 }

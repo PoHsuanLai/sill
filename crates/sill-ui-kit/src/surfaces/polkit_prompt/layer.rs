@@ -7,16 +7,18 @@ use shell_host::{
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
+use sill_settings::ShellFile;
+
 use crate::surfaces::naming::namespace;
 
 /// The sheet's element id: the surface's blur region.
-pub const PANEL_ID: &str = "polkit-panel";
+pub(super) const PANEL_ID: &str = "polkit-panel";
 
 /// The sheet's corner: quire's `.ds-sheet` rounds with `--r-panel` (14), as the power menu's.
-pub const PANEL_BLUR_RADIUS: i32 = 14;
+const PANEL_BLUR_RADIUS: i32 = 14;
 
 /// The polkit prompt on `output`.
-pub fn polkit_layer(output: &OutputInfo) -> LayerConfig {
+pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
     LayerConfig {
         namespace: namespace("polkit", output),
         layer: LayerLevel::Overlay,
@@ -40,13 +42,14 @@ pub fn polkit_layer(output: &OutputInfo) -> LayerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::polkit_layer;
+    use super::layer as polkit_layer;
     use crate::surfaces::naming::tests::output;
     use shell_host::{Anchor, ExclusiveZone, KeyboardMode, LayerLevel, RegionSpec};
+    use sill_settings::ShellFile;
 
     #[test]
     fn the_prompt_is_a_keyboard_exclusive_full_output_overlay() {
-        let layer = polkit_layer(&output(Some("DP-1")));
+        let layer = polkit_layer(&output(Some("DP-1")), &ShellFile::default());
         assert_eq!(layer.namespace, "sill-polkit-DP-1");
         assert_eq!(layer.layer, LayerLevel::Overlay);
         assert_eq!(layer.anchor, Anchor::ALL);

@@ -4,7 +4,7 @@
 
 use ds::Shown;
 
-use super::view::PolkitPromptView;
+use super::model::PolkitPromptView;
 
 /// The surface's stage.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -71,7 +71,7 @@ mod tests {
     use sill_model::polkit_agent::Cookie;
 
     use super::{Mapped, Stage, StageIn, advance};
-    use crate::surfaces::polkit_prompt::view::PolkitPromptView;
+    use crate::surfaces::polkit_prompt::model::PolkitPromptView;
 
     fn view(cookie: &str, state: PromptState) -> PolkitPromptView {
         PolkitPromptView {

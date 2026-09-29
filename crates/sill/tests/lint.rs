@@ -7,16 +7,21 @@ use std::time::Duration;
 
 use ds::lint::{LintConfig, Profile, markup, stylesheet};
 use sill_launcher::WindowKey;
+use sill_model::auth::UserName;
 use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, WindowState};
 use sill_model::idle::{DimLevel, DimShown, Idle, IdleMode, IdlePhase};
 use sill_model::ids::{OutputName, WorkspaceKey};
+use sill_model::polkit_agent::{
+    ActionId, Cookie, Echo, LastTry, Polkit, PromptPhase, PromptView, Registration,
+};
 use sill_model::session::Session;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{
-    Dir, LevelSource, OsdKind, OsdLink, PowerMenuLink, Preselect, SwitcherAsk, SwitcherLink,
+    BannerLink, BannerOutput, Dir, LevelSource, OsdKind, OsdLink, PowerMenuLink, Preselect,
+    SwitcherAsk, SwitcherLink,
 };
-use sill_ui_kit::{IdleDim, Osd, PowerMenu, Switcher, Wallpaper};
+use sill_ui_kit::{IdleDim, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
 struct SurfaceCase {
@@ -57,6 +62,11 @@ const SURFACES: &[SurfaceCase] = &[
         name: "switcher",
         css: sill_ui_kit::surfaces::switcher::SWITCHER_CSS,
         states: switcher_states,
+    },
+    SurfaceCase {
+        name: "polkit_prompt",
+        css: "",
+        states: polkit_prompt_states,
     },
 ];
 
@@ -158,6 +168,37 @@ fn switcher_states() -> Vec<(&'static str, String)> {
     switcher.harness.advance(Duration::from_millis(260));
     assert_eq!(switcher.harness.count(".ds-switcher"), 1);
     vec![("hidden", hidden), ("shown", switcher.harness.html())]
+}
+
+/// The prompt hidden, then showing a request for a password once its sheet has settled.
+fn polkit_prompt_states() -> Vec<(&'static str, String)> {
+    let link = BannerLink::new();
+    link.set(BannerOutput::On(fake::output().id));
+    let mut prompt = SurfaceHarness::<PolkitPrompt>::setup(link, ()).start();
+    prompt.harness.advance(Duration::from_millis(40));
+    let hidden = prompt.harness.html();
+    prompt.feeds.polkit.send_replace(Polkit {
+        registration: Registration::Registered,
+        current: Some(PromptView {
+            cookie: Cookie("c1".to_owned()),
+            action_id: ActionId("org.freedesktop.systemd1.manage-units".to_owned()),
+            message: "Authentication is required to start 'sshd.service'.".to_owned(),
+            icon: String::new(),
+            details: vec![("unit".to_owned(), "sshd.service".to_owned())],
+            user: UserName("ada".to_owned()),
+            phase: PromptPhase::Asking {
+                prompt: "Password: ".to_owned(),
+                echo: Echo::Hidden,
+            },
+            last: LastTry::None,
+            notes: Vec::new(),
+        }),
+        waiting: 0,
+    });
+    prompt.harness.advance(Duration::from_millis(700));
+    let shown = prompt.harness.html();
+    assert!(shown.contains("ds-polkit"), "{shown}");
+    vec![("hidden", hidden), ("shown", shown)]
 }
 
 #[test]

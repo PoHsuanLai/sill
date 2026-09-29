@@ -69,9 +69,6 @@ fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, Su
     let edit = surfaces
         .edit_widgets
         .map(|id| (crate::edit_widgets::namespace(info), id));
-    let polkit = surfaces
-        .polkit_prompt
-        .map(|id| (crate::polkit::namespace(info), id));
     let spawned = surfaces
         .spawned
         .iter()
@@ -85,7 +82,6 @@ fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, Su
         .chain(thumbnail)
         .chain(desktop)
         .chain(edit)
-        .chain(polkit)
         .chain(spawned)
         .collect()
 }

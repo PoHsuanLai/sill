@@ -4,14 +4,97 @@
 //! sends the typed text as the answer and Escape a dismissal; a wrong try shakes; a request
 //! that goes plays the sheet out and draws nothing once it has settled.
 
-mod polkit_prompt_support;
-
 use std::time::Duration;
 
 use ds::ShortcutKey;
-use polkit_prompt_support::{HEIGHT, WIDTH, asking, fake, request, settle, shown, start};
+use ds_native::{Harness, Viewport};
 use shell_host::OutputId;
-use sill_model::polkit_agent::{Cookie, LastTry, PolkitCommand, PromptPhase};
+use sill_model::auth::UserName;
+use sill_model::polkit_agent::{
+    ActionId, Cookie, Echo, LastTry, Polkit, PolkitCommand, PromptPhase, PromptView, Registration,
+};
+use sill_ui_kit::PolkitPrompt;
+use sill_ui_kit::harness::{SurfaceHarness, fake};
+use sill_ui_kit::links::{BannerLink, BannerOutput};
+
+type Running = SurfaceHarness<PolkitPrompt>;
+
+const WIDTH: f32 = 1280.0;
+const HEIGHT: f32 = 800.0;
+
+const VIEWPORT: Viewport = Viewport {
+    width: 1280,
+    height: 800,
+    scale_percent: 100,
+};
+
+/// The prompt, hidden, with the banners on `on` (the test output is `OutputId(1)`).
+fn start(on: OutputId) -> Running {
+    let link = BannerLink::new();
+    link.set(BannerOutput::On(on));
+    SurfaceHarness::<PolkitPrompt>::setup(link, ())
+        .viewport(VIEWPORT)
+        .start()
+}
+
+/// Show `view` as the agent's current request.
+fn show(running: &mut Running, view: PromptView) {
+    running.feeds.polkit.send_replace(Polkit {
+        registration: Registration::Registered,
+        current: Some(view),
+        waiting: 0,
+    });
+}
+
+/// The agent has no request.
+fn clear(running: &mut Running) {
+    running.feeds.polkit.send_replace(Polkit::default());
+}
+
+/// The commands the prompt has sent so far.
+fn sent(running: &mut Running) -> Vec<PolkitCommand> {
+    std::iter::from_fn(|| running.feeds.polkit_commands.try_recv().ok()).collect()
+}
+
+/// A request asking for ada's password.
+fn request(cookie: &str, phase: PromptPhase, last: LastTry) -> PromptView {
+    PromptView {
+        cookie: Cookie(cookie.to_owned()),
+        action_id: ActionId("org.freedesktop.systemd1.manage-units".to_owned()),
+        message: "Authentication is required to start 'sshd.service'.".to_owned(),
+        icon: String::new(),
+        details: vec![("unit".to_owned(), "sshd.service".to_owned())],
+        user: UserName("ada".to_owned()),
+        phase,
+        last,
+        notes: Vec::new(),
+    }
+}
+
+/// The helper's password prompt.
+fn asking() -> PromptPhase {
+    PromptPhase::Asking {
+        prompt: "Password: ".to_owned(),
+        echo: Echo::Hidden,
+    }
+}
+
+/// The prompt showing `view`, once its sheet has settled.
+fn shown(view: PromptView) -> Running {
+    let mut running = start(fake::output().id);
+    running.harness.advance(Duration::from_millis(40));
+    show(&mut running, view);
+    settle(&mut running.harness, |h| h.count(".ds-polkit") == 1);
+    running.harness.advance(Duration::from_millis(600));
+    running
+}
+
+/// Advance until `done` holds (`settle_until`, which fails with the document if it never does);
+/// then one more frame's worth.
+fn settle(harness: &mut Harness, done: impl Fn(&Harness) -> bool) {
+    ds_native::harness::settle_until(harness, done);
+    harness.advance(Duration::from_millis(20));
+}
 
 #[test]
 fn with_no_request_it_draws_nothing() {
@@ -26,7 +109,7 @@ fn with_no_request_it_draws_nothing() {
 fn a_request_for_another_output_draws_nothing_here() {
     let mut running = start(OutputId(99));
     running.harness.advance(Duration::from_millis(40));
-    running.show(request("c1", asking(), LastTry::None));
+    show(&mut running, request("c1", asking(), LastTry::None));
     running.harness.advance(Duration::from_millis(400));
     assert_eq!(running.harness.count(".ds-polkit"), 0);
 }
@@ -38,10 +121,7 @@ fn a_request_draws_quires_prompt_on_a_narrow_sheet_over_the_scrim() {
     assert_eq!(h.count(".ds-sheet"), 1);
     assert_eq!(h.attr(".ds-sheet", "data-width").as_deref(), Some("narrow"));
     assert_eq!(
-        h.count(&format!(
-            ".ds-sheet#{}",
-            sill_ui_kit::surfaces::polkit_prompt::PANEL_ID
-        )),
+        h.count(".ds-sheet#polkit-panel"),
         1,
         "the sheet carries the blur region's id"
     );
@@ -84,9 +164,9 @@ fn enter_answers_with_what_was_typed_and_escape_dismisses() {
     }
     running.harness.key(ShortcutKey::Enter);
     running.harness.advance(Duration::from_millis(40));
-    let sent = running.sent();
-    let [PolkitCommand::Answer { cookie, secret }] = sent.as_slice() else {
-        panic!("one answer: {sent:?}");
+    let asked = sent(&mut running);
+    let [PolkitCommand::Answer { cookie, secret }] = asked.as_slice() else {
+        panic!("one answer: {asked:?}");
     };
     assert_eq!(cookie, &Cookie("c1".to_owned()));
     assert_eq!(secret.expose(), "sill-fake");
@@ -98,7 +178,7 @@ fn enter_answers_with_what_was_typed_and_escape_dismisses() {
     running.harness.key(ShortcutKey::Escape);
     running.harness.advance(Duration::from_millis(40));
     assert_eq!(
-        running.sent(),
+        sent(&mut running),
         vec![PolkitCommand::Dismiss(Cookie("c1".to_owned()))]
     );
 }
@@ -110,7 +190,7 @@ fn checking_closes_the_field_and_a_wrong_try_shakes() {
         running.harness.attr(".ds-polkit", "data-state").as_deref(),
         Some("checking")
     );
-    running.show(request("c1", asking(), LastTry::Wrong));
+    show(&mut running, request("c1", asking(), LastTry::Wrong));
     running.harness.advance(Duration::from_millis(40));
     assert_eq!(
         running.harness.attr(".ds-polkit", "data-state").as_deref(),
@@ -126,7 +206,7 @@ fn checking_closes_the_field_and_a_wrong_try_shakes() {
 #[test]
 fn a_request_that_goes_plays_the_sheet_out_then_draws_nothing() {
     let mut running = shown(request("c1", asking(), LastTry::None));
-    running.clear();
+    clear(&mut running);
     running.harness.advance(Duration::from_millis(40));
     assert_eq!(
         running
@@ -137,7 +217,7 @@ fn a_request_that_goes_plays_the_sheet_out_then_draws_nothing() {
     );
     settle(&mut running.harness, |h| h.count(".ds-sheet") == 0);
     assert_eq!(running.harness.count(".ds-polkit"), 0);
-    running.show(request("c2", asking(), LastTry::None));
+    show(&mut running, request("c2", asking(), LastTry::None));
     settle(&mut running.harness, |h| h.count(".ds-polkit") == 1);
     assert_eq!(
         running.harness.count(".ds-polkit"),

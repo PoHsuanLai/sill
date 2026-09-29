@@ -63,6 +63,9 @@ pub struct Feeds {
     /// What the session service offers (nothing until a test feeds it), and what it is asked.
     pub session: watch::Sender<sill_model::session::Session>,
     pub session_commands: mpsc::UnboundedReceiver<sill_model::session::SessionCommand>,
+    /// The polkit agent's request (none until a test feeds one), and what the prompt sends it.
+    pub polkit: watch::Sender<sill_model::polkit_agent::Polkit>,
+    pub polkit_commands: mpsc::UnboundedReceiver<sill_model::polkit_agent::PolkitCommand>,
     /// The prepared wallpapers (none until a test feeds some).
     pub wallpaper: watch::Sender<Wallpapers>,
     /// Receivers and command queues nobody reads here, kept so sends do not fail.
@@ -104,6 +107,7 @@ pub fn services() -> (Services, Feeds) {
     let (idle, idle_io) = Handle::channel(sill_model::idle::Idle::default());
     let (displays, displays_io) = Handle::channel(sill_model::displays::Displays::default());
     let (session, session_io) = Handle::channel(sill_model::session::Session::default());
+    let (polkit_agent, polkit_io) = Handle::channel(sill_model::polkit_agent::Polkit::default());
     let (wallpaper, wallpaper_io) = Handle::channel(Wallpapers::default());
     keep.push(Box::new(wallpaper_io.commands));
     keep.push(Box::new(clock_io.commands));
@@ -136,7 +140,7 @@ pub fn services() -> (Services, Feeds) {
         events,
         screenshots,
         auth: fixed(sill_model::auth::Auth::default(), &mut keep),
-        polkit_agent: fixed(sill_model::polkit_agent::Polkit::default(), &mut keep),
+        polkit_agent,
         clipboard: fixed(sill_model::clipboard::Clipboard::default(), &mut keep),
         idle,
         // Nowhere real: a surface that reads a file under these finds nothing.
@@ -178,6 +182,8 @@ pub fn services() -> (Services, Feeds) {
         displays_commands: displays_io.commands,
         session: session_io.state,
         session_commands: session_io.commands,
+        polkit: polkit_io.state,
+        polkit_commands: polkit_io.commands,
         wallpaper: wallpaper_io.state,
         _keep: keep,
     };
