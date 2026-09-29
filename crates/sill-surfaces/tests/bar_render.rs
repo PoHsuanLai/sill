@@ -94,7 +94,9 @@ fn fed_values_replace_the_defaults() {
         presence: Presence::Absent,
         ..Battery::default()
     });
-    feeds.toplevels.send_replace(Toplevels::default());
+    feeds
+        .cosmic_wl
+        .send_modify(|wl| wl.toplevels = Toplevels::default());
     let after = render(services);
     let cases = [
         ("the old time", "Thu 24 Sep 14:05", 1, 0),

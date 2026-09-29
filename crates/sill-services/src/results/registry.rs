@@ -30,9 +30,8 @@ pub(crate) fn providers(
             frecency: history.shared(),
         }),
         Arc::new(WindowsProvider {
-            toplevels: links.toplevels.clone(),
+            cosmic_wl: links.cosmic_wl.clone(),
             apps: links.apps.clone(),
-            workspaces: links.workspaces.clone(),
         }),
         Arc::new(CalculatorProvider {
             policy: policy.clone(),

@@ -50,9 +50,8 @@ impl LauncherProviders {
                 frecency: Arc::new(Mutex::default()),
             }),
             Arc::new(WindowsProvider {
-                toplevels: services.toplevels.clone(),
+                cosmic_wl: services.cosmic_wl.clone(),
                 apps: services.apps.clone(),
-                workspaces: services.workspaces.clone(),
             }),
             Arc::new(CalculatorProvider::default()),
             Arc::new(SettingsProvider::default()),

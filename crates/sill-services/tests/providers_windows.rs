@@ -1,5 +1,5 @@
 //! The windows provider's query table against a fake toplevel list (no compositor, no thread —
-//! just the reducer's own public surface, the same one `cosmic_wl::spawn` publishes through).
+//! just the reducer's own public surface, the same one `CosmicWlService` publishes through).
 
 use std::path::PathBuf;
 
@@ -7,8 +7,8 @@ use sill_launcher::{AppId, Cancel, Provider, Query, VecSink, WindowKey};
 use sill_services::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
 use sill_services::providers::WindowsProvider;
 use sill_services::{
-    Activity, GroupKey, OutputName, Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState,
-    Workspace, WorkspaceGroup, WorkspaceKey, Workspaces, reduce_toplevels,
+    Activity, CosmicWl, GroupKey, OutputName, Sizing, Toplevel, ToplevelEvent, Toplevels,
+    WindowState, Workspace, WorkspaceGroup, WorkspaceKey, Workspaces,
 };
 
 fn app(id: &str, name: &str) -> App {
@@ -70,7 +70,7 @@ fn provider() -> WindowsProvider {
         window(3, "", "cosmic-term", None),
     ];
     let toplevels = windows.into_iter().fold(Toplevels::default(), |t, w| {
-        reduce_toplevels(t, ToplevelEvent::Opened(w))
+        sill_services::cosmic_wl::toplevels::step(t, ToplevelEvent::Opened(w))
     });
     let apps = sill_services::apps::step(
         AppIndex::default(),
@@ -87,13 +87,14 @@ fn provider() -> WindowsProvider {
             workspaces: vec![workspace(1, "Mail"), workspace(2, "Web")],
         }],
     };
-    let (_wtx, wrx) = tokio::sync::watch::channel(toplevels);
+    let (_wtx, wrx) = tokio::sync::watch::channel(CosmicWl {
+        workspaces,
+        toplevels,
+    });
     let (_atx, arx) = tokio::sync::watch::channel(apps);
-    let (_stx, srx) = tokio::sync::watch::channel(workspaces);
     WindowsProvider {
-        toplevels: wrx,
+        cosmic_wl: wrx,
         apps: arx,
-        workspaces: srx,
     }
 }
 

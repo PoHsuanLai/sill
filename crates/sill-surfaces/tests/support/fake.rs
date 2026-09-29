@@ -9,8 +9,8 @@ use sill_launcher::WindowKey;
 use sill_services::{
     AccessPoint, Activity, AppIndex, Association, Badges, Battery, Bluetooth, BluetoothCommand,
     BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower, Charge, ClockText,
-    Connectivity, Control, DockPins, GroupKey, Launches, Link, Media, MediaCommand, Mute, Network,
-    OutputName, Percent, Pinning, PowerProfiles, Presence, Profile, ProfileCommand,
+    Connectivity, Control, CosmicWl, DockPins, GroupKey, Launches, Link, Media, MediaCommand, Mute,
+    Network, OutputName, Percent, Pinning, PowerProfiles, Presence, Profile, ProfileCommand,
     ProfileDegraded, Radio, Results, Seconds, Security, Services, Sizing, Ssid, Toplevel,
     Toplevels, Tray, Urgency, Visibility, Volume, Wallpapers, Wifi, WifiCommand, WindowState,
     Workspace, WorkspaceCaps, WorkspaceGroup, WorkspaceKey, Workspaces,
@@ -25,8 +25,7 @@ pub struct Feeds {
     pub network: watch::Sender<Network>,
     pub volume: watch::Sender<Volume>,
     pub tray: watch::Sender<Tray>,
-    pub workspaces: watch::Sender<Workspaces>,
-    pub toplevels: watch::Sender<Toplevels>,
+    pub cosmic_wl: watch::Sender<CosmicWl>,
     pub wifi: watch::Sender<Wifi>,
     pub bluetooth: watch::Sender<Bluetooth>,
     pub power_profiles: watch::Sender<PowerProfiles>,
@@ -287,8 +286,10 @@ pub fn services() -> (Services, Feeds) {
     let (network_tx, network) = watch::channel(network());
     let (volume_tx, volume) = watch::channel(volume());
     let (tray_tx, tray) = watch::channel(Tray::default());
-    let (workspaces_tx, workspaces) = watch::channel(workspaces());
-    let (toplevels_tx, toplevels) = watch::channel(toplevels());
+    let (cosmic_wl_tx, cosmic_wl) = watch::channel(CosmicWl {
+        workspaces: workspaces(),
+        toplevels: toplevels(),
+    });
     let (wifi_tx, wifi) = watch::channel(wifi());
     let (bluetooth_tx, bluetooth) = watch::channel(bluetooth());
     let (profiles_tx, power_profiles) = watch::channel(power_profiles());
@@ -324,8 +325,7 @@ pub fn services() -> (Services, Feeds) {
         volume_control,
         tray,
         tray_control: control(&mut keep),
-        workspaces,
-        toplevels,
+        cosmic_wl,
         wl,
         apps: fixed(AppIndex::default(), &mut keep),
         apps_control: control(&mut keep),
@@ -384,8 +384,7 @@ pub fn services() -> (Services, Feeds) {
         network: network_tx,
         volume: volume_tx,
         tray: tray_tx,
-        workspaces: workspaces_tx,
-        toplevels: toplevels_tx,
+        cosmic_wl: cosmic_wl_tx,
         wifi: wifi_tx,
         bluetooth: bluetooth_tx,
         power_profiles: profiles_tx,

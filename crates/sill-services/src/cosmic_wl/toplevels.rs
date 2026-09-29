@@ -58,7 +58,7 @@ pub enum ToplevelEvent {
 /// `toplevels` after `event`. A toplevel that is (or becomes) active moves to the front; one
 /// that opens inactive goes to the back. A change for an unknown key is treated as an open (the
 /// thread may coalesce an open and a change into one `done`).
-pub fn reduce_toplevels(toplevels: Toplevels, event: ToplevelEvent) -> Toplevels {
+pub fn step(toplevels: Toplevels, event: ToplevelEvent) -> Toplevels {
     let Toplevels { mut windows } = toplevels;
     match event {
         ToplevelEvent::Opened(window) | ToplevelEvent::Changed(window) => {
@@ -79,7 +79,7 @@ pub fn reduce_toplevels(toplevels: Toplevels, event: ToplevelEvent) -> Toplevels
 
 #[cfg(test)]
 mod tests {
-    use super::{Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, reduce_toplevels};
+    use super::{Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, step};
     use crate::cosmic_wl::ids::Activity;
     use sill_launcher::WindowKey;
 
@@ -167,7 +167,7 @@ mod tests {
             ),
         ];
         for (name, before, event, want) in cases {
-            assert_eq!(order(&reduce_toplevels(before, event)), want, "{name}");
+            assert_eq!(order(&step(before, event)), want, "{name}");
         }
     }
 
@@ -176,7 +176,7 @@ mod tests {
         let before = Toplevels {
             windows: vec![window(2, Activity::Inactive), window(1, Activity::Active)],
         };
-        let after = reduce_toplevels(
+        let after = step(
             before,
             ToplevelEvent::Changed(Toplevel {
                 title: "new".to_owned(),

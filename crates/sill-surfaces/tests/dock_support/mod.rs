@@ -122,7 +122,8 @@ pub fn badges() -> Badges {
 /// The bar's fakes with the dock's index, pins, badges and windows.
 pub fn services() -> (Services, DockFeeds) {
     let (mut services, bar) = fake::services();
-    bar.toplevels.send_replace(toplevels_on("DP-1"));
+    bar.cosmic_wl
+        .send_modify(|wl| wl.toplevels = toplevels_on("DP-1"));
     let (apps_tx, apps) = watch::channel(index());
     let (pins_tx, pins) = watch::channel(pins());
     let (badges_tx, badges) = watch::channel(badges());

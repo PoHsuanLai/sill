@@ -58,7 +58,7 @@ pub enum WorkspaceEvent {
 }
 
 /// `workspaces` after `event`. Activating an unknown key changes nothing.
-pub fn reduce_workspaces(workspaces: Workspaces, event: WorkspaceEvent) -> Workspaces {
+pub fn step(workspaces: Workspaces, event: WorkspaceEvent) -> Workspaces {
     match event {
         WorkspaceEvent::Replaced(all) => all,
         WorkspaceEvent::Activated(key) => Workspaces {
@@ -110,7 +110,7 @@ impl Workspaces {
 
 #[cfg(test)]
 mod tests {
-    use super::{Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces, reduce_workspaces};
+    use super::{Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces, step};
     use crate::cosmic_wl::caps::{WorkspaceCap, WorkspaceCaps};
     use crate::cosmic_wl::ids::{Activity, GroupKey, OutputName, Pinning, Urgency, WorkspaceKey};
     use crate::units::Visibility;
@@ -186,14 +186,14 @@ mod tests {
             ),
         ];
         for (name, before, event, want) in cases {
-            assert_eq!(reduce_workspaces(before, event), want, "{name}");
+            assert_eq!(step(before, event), want, "{name}");
         }
     }
 
     #[test]
     fn activation_keeps_coordinates_capabilities_and_pinning() {
         let before = two_outputs(1, 3);
-        let after = reduce_workspaces(before.clone(), WorkspaceEvent::Activated(WorkspaceKey(2)));
+        let after = step(before.clone(), WorkspaceEvent::Activated(WorkspaceKey(2)));
         let facts = |all: &Workspaces| -> Vec<_> {
             all.groups
                 .iter()

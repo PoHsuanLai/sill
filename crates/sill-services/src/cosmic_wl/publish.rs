@@ -1,59 +1,51 @@
-//! The two watch channels, fed only through the pure reducers.
+//! What the `cosmic_wl` thread publishes, fed only through the pure `step`s.
 
 use tokio::sync::watch;
 
-use crate::cosmic_wl::toplevels::{ToplevelEvent, Toplevels, reduce_toplevels};
-use crate::cosmic_wl::workspaces::{WorkspaceEvent, Workspaces, reduce_workspaces};
+use crate::cosmic_wl::toplevels::{self, ToplevelEvent, Toplevels};
+use crate::cosmic_wl::workspaces::{self, WorkspaceEvent, Workspaces};
 
-/// The sending halves of `spawn`'s receivers. Receivers wake only when a reduction changed
-/// something.
+/// The compositor's workspaces and windows: one Wayland connection's state, published together
+/// (a reader that wants one of them projects it).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct CosmicWl {
+    pub workspaces: Workspaces,
+    pub toplevels: Toplevels,
+}
+
+/// The sending half of the service's state. Receivers wake only when a step changed something.
 #[derive(Debug)]
 pub(crate) struct Publish {
-    toplevels: watch::Sender<Toplevels>,
-    workspaces: watch::Sender<Workspaces>,
+    tx: watch::Sender<CosmicWl>,
 }
 
 impl Publish {
-    /// The publisher and the two receivers `spawn` hands out, both empty.
-    pub(super) fn channels() -> (
-        Publish,
-        watch::Receiver<Workspaces>,
-        watch::Receiver<Toplevels>,
-    ) {
-        let (toplevels, toplevels_rx) = watch::channel(Toplevels::default());
-        let (workspaces, workspaces_rx) = watch::channel(Workspaces::default());
-        (
-            Publish {
-                toplevels,
-                workspaces,
-            },
-            workspaces_rx,
-            toplevels_rx,
-        )
+    pub(super) fn new(tx: watch::Sender<CosmicWl>) -> Publish {
+        Publish { tx }
     }
 
     pub(super) fn toplevel(&self, event: ToplevelEvent) {
-        self.toplevels
-            .send_if_modified(|now| replace_if_changed(now, |t| reduce_toplevels(t, event)));
+        self.tx.send_if_modified(|now| {
+            replace_if_changed(&mut now.toplevels, |t| toplevels::step(t, event))
+        });
     }
 
     pub(super) fn workspace(&self, event: WorkspaceEvent) {
-        self.workspaces
-            .send_if_modified(|now| replace_if_changed(now, |w| reduce_workspaces(w, event)));
+        self.tx.send_if_modified(|now| {
+            replace_if_changed(&mut now.workspaces, |w| workspaces::step(w, event))
+        });
     }
 
     /// Back to empty: the compositor has gone, and its windows and workspaces with it.
     pub(super) fn clear(&self) {
-        self.toplevels
-            .send_if_modified(|now| replace_if_changed(now, |_| Toplevels::default()));
-        self.workspaces
-            .send_if_modified(|now| replace_if_changed(now, |_| Workspaces::default()));
+        self.tx
+            .send_if_modified(|now| replace_if_changed(now, |_| CosmicWl::default()));
     }
 }
 
-/// Put `reduce(now)` into `now`; whether that changed it (the `send_if_modified` contract).
-fn replace_if_changed<T: Clone + PartialEq>(now: &mut T, reduce: impl FnOnce(T) -> T) -> bool {
-    let next = reduce(now.clone());
+/// Put `step(now)` into `now`; whether that changed it (the `send_if_modified` contract).
+fn replace_if_changed<T: Clone + PartialEq>(now: &mut T, step: impl FnOnce(T) -> T) -> bool {
+    let next = step(now.clone());
     let changed = next != *now;
     *now = next;
     changed

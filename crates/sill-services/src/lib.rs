@@ -71,9 +71,9 @@ pub use clipboard::{Clipboard, ClipboardCommand, ClipboardService};
 pub use clock::{ClockCommand, ClockService, ClockText, format_clock, until_next_minute};
 pub use control::Control;
 pub use cosmic_wl::{
-    Activity, GroupKey, OutputName, Pinning, Relative, Sizing, Toplevel, ToplevelEvent, Toplevels,
-    Urgency, WindowState, WlCommand, Workspace, WorkspaceCap, WorkspaceCaps, WorkspaceEvent,
-    WorkspaceGroup, WorkspaceKey, Workspaces, reduce_toplevels, reduce_workspaces,
+    Activity, CosmicWl, CosmicWlService, GroupKey, OutputName, Pinning, Relative, Sizing, Toplevel,
+    ToplevelEvent, Toplevels, Urgency, WindowState, WlCommand, Workspace, WorkspaceCap,
+    WorkspaceCaps, WorkspaceEvent, WorkspaceGroup, WorkspaceKey, Workspaces,
 };
 pub use curve::ease;
 pub use displays::{

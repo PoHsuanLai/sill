@@ -3,7 +3,7 @@
 //!
 //! The sctk/cctk delegate macros live in `state.rs` only, the handler impls in `handlers.rs`,
 //! so an sctk major bump touches those two files. On a compositor without the COSMIC protocols
-//! both receivers stay empty, the thread parks on the command channel and commands are
+//! the state stays empty, the thread parks on the command channel and commands are
 //! dropped: the dock degrades quietly (design/10 §10.7).
 
 mod caps;
@@ -16,8 +16,8 @@ mod keys;
 mod publish;
 mod state;
 mod thread;
-mod toplevels;
-mod workspaces;
+pub mod toplevels;
+pub mod workspaces;
 
 #[cfg(test)]
 mod nested;
@@ -25,31 +25,37 @@ mod nested;
 pub use caps::{WorkspaceCap, WorkspaceCaps};
 pub use command::{Relative, WlCommand};
 pub use ids::{Activity, GroupKey, OutputName, Pinning, Urgency, WorkspaceKey};
-pub use toplevels::{Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, reduce_toplevels};
-pub use workspaces::{Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces, reduce_workspaces};
+pub use publish::CosmicWl;
+pub use toplevels::{Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState};
+pub use workspaces::{Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces};
 
-use tokio::sync::watch;
-
-use crate::control::Control;
 use crate::cosmic_wl::publish::Publish;
-use crate::env::WaylandRoute;
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
-/// Start the `cosmic_wl` thread: connect to the compositor `route` names, bind the cctk
-/// globals, and publish toplevels and workspaces after every `done`.
-pub fn spawn(
-    route: WaylandRoute,
-) -> (
-    watch::Receiver<Workspaces>,
-    watch::Receiver<Toplevels>,
-    Control<WlCommand>,
-) {
-    let (publish, workspaces, toplevels) = Publish::channels();
-    let (control, commands) = Control::channel();
-    let started = std::thread::Builder::new()
-        .name("cosmic_wl".to_owned())
-        .spawn(move || thread::run(route, publish, commands));
-    if let Err(error) = started {
-        eprintln!("sill: cosmic_wl: no thread: {error}; toplevels and workspaces stay empty");
+/// COSMIC's toplevels and workspaces as a [`Service`], on a thread of its own (started by `run`)
+/// with its own Wayland connection to `env`'s compositor: it binds the cctk globals and
+/// publishes after every `done`.
+#[derive(Debug)]
+pub enum CosmicWlService {}
+
+impl Service for CosmicWlService {
+    const NAME: &'static str = "cosmic_wl";
+    type State = CosmicWl;
+    type Command = WlCommand;
+    type Deps = ();
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let route = env.wayland.clone();
+        let ServiceIo { state, commands } = io;
+        let started = std::thread::Builder::new()
+            .name("cosmic_wl".to_owned())
+            .spawn(move || thread::run(route, Publish::new(state), commands));
+        std::future::ready(started.map(drop).map_err(ServiceError::Thread))
     }
-    (workspaces, toplevels, control)
 }

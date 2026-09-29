@@ -117,7 +117,10 @@ fn fed_values_replace_the_defaults() {
     feeds.pins.send_replace(DockPins {
         pinned: vec![AppId(dock_support::FIREFOX.to_owned())],
     });
-    feeds.bar.toplevels.send_replace(Toplevels::default());
+    feeds
+        .bar
+        .cosmic_wl
+        .send_modify(|wl| wl.toplevels = Toplevels::default());
     feeds.badges.send_replace(Badges::default());
     let after = render(services);
     assert_eq!(labels(&after), ["Firefox", "Trash"]);

@@ -40,8 +40,7 @@ fn run() -> Result<(), String> {
         profile_commands,
         media_commands,
         media,
-        workspaces,
-        toplevels,
+        cosmic_wl,
         ..
     } = feeds;
     print_commands("wl", wl);
@@ -67,8 +66,10 @@ fn run() -> Result<(), String> {
             }
             // The fake windows and workspaces live on the first real output.
             if let Some(name) = ctx.outputs().first().and_then(|o| o.name.clone()) {
-                workspaces.send_replace(fake::workspaces_on(&name));
-                toplevels.send_replace(fake::toplevels_on(&name));
+                cosmic_wl.send_replace(sill_services::CosmicWl {
+                    workspaces: fake::workspaces_on(&name),
+                    toplevels: fake::toplevels_on(&name),
+                });
             }
             for output in ctx.outputs() {
                 if barred.insert(output.id) {

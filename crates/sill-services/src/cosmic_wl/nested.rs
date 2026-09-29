@@ -12,8 +12,30 @@ use std::time::{Duration, Instant};
 use sill_launcher::WindowKey;
 use tokio::sync::watch;
 
-use super::{Activity, Toplevels, WindowState, WlCommand, Workspaces, spawn};
-use crate::env::WaylandRoute;
+use super::{Activity, CosmicWl, CosmicWlService, Toplevels, WindowState, WlCommand, Workspaces};
+use crate::control::Control;
+use crate::env::{Env, WaylandRoute};
+
+/// The service on the compositor `route` names, its state twice (a workspaces reader and a
+/// toplevels reader) and its control. The thread starts at once; the runtime only runs the
+/// finished start.
+fn spawn(
+    route: WaylandRoute,
+) -> (
+    watch::Receiver<CosmicWl>,
+    watch::Receiver<CosmicWl>,
+    Control<WlCommand>,
+) {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .build()
+        .unwrap_or_else(|e| panic!("{e}"));
+    let env = Env {
+        wayland: route,
+        ..Env::isolated(Path::new("/nonexistent/sill-cosmic-wl"))
+    };
+    let service = crate::service::spawn::<CosmicWlService>(rt.handle(), &env, ());
+    (service.state.clone(), service.state, service.control)
+}
 
 const WITHIN: Duration = Duration::from_secs(2);
 
@@ -105,8 +127,8 @@ fn without_cosmic_protocols_the_channels_stay_empty_and_the_thread_parks() {
     assert!(control.send(WlCommand::Close(WindowKey(1))).is_ok());
     assert_eq!(workspaces.has_changed().ok(), Some(false));
     assert_eq!(toplevels.has_changed().ok(), Some(false));
-    assert_eq!(*workspaces.borrow(), Workspaces::default());
-    assert_eq!(*toplevels.borrow(), Toplevels::default());
+    assert_eq!(workspaces.borrow().workspaces, Workspaces::default());
+    assert_eq!(toplevels.borrow().toplevels, Toplevels::default());
 }
 
 /// The nested compositor: started by this test, or one already running (then left running).
@@ -187,9 +209,10 @@ fn client_under_test() -> (String, String) {
     (program.to_owned(), app_id.to_owned())
 }
 
-fn windows_of(toplevels: &watch::Receiver<Toplevels>, app_id: &str) -> Vec<super::Toplevel> {
+fn windows_of(toplevels: &watch::Receiver<CosmicWl>, app_id: &str) -> Vec<super::Toplevel> {
     toplevels
         .borrow()
+        .toplevels
         .windows
         .iter()
         .filter(|w| w.app_id == app_id)
@@ -205,7 +228,7 @@ fn a_client_in_nested_cosmic_is_published_and_obeys_commands() {
     let (workspaces, toplevels, control) = spawn(WaylandRoute::Socket(nested.socket.clone()));
 
     let groups = wait_for(WITHIN, || {
-        let now = workspaces.borrow().clone();
+        let now = workspaces.borrow().workspaces.clone();
         now.groups
             .iter()
             .any(|g| !g.workspaces.is_empty())
@@ -234,7 +257,7 @@ fn a_client_in_nested_cosmic_is_published_and_obeys_commands() {
     .unwrap_or_else(|| {
         panic!(
             "one new {app_id} toplevel within {WITHIN:?}: {:?}",
-            toplevels.borrow()
+            toplevels.borrow().toplevels
         )
     });
     eprintln!(
@@ -253,6 +276,7 @@ fn a_client_in_nested_cosmic_is_published_and_obeys_commands() {
         .collect();
     let now_known: Vec<_> = workspaces
         .borrow()
+        .workspaces
         .groups
         .iter()
         .flat_map(|g| g.workspaces.iter().map(|w| w.key))
@@ -268,6 +292,7 @@ fn a_client_in_nested_cosmic_is_published_and_obeys_commands() {
     let state_of = |key| {
         toplevels
             .borrow()
+            .toplevels
             .windows
             .iter()
             .find(|w| w.key == key)
@@ -284,7 +309,7 @@ fn a_client_in_nested_cosmic_is_published_and_obeys_commands() {
     })
     .expect("Activate restores and focuses");
     assert_eq!(
-        toplevels.borrow().windows[0].key,
+        toplevels.borrow().toplevels.windows[0].key,
         window.key,
         "and it is first in MRU order"
     );
@@ -317,13 +342,13 @@ fn the_amended_workspace_commands_take_effect_in_nested_cosmic() {
     })
     .expect("a new toplevel on a workspace");
     let all = wait_for(WITHIN, || {
-        let now = workspaces.borrow().clone();
+        let now = workspaces.borrow().workspaces.clone();
         now.groups
             .iter()
             .any(|g| g.workspaces.len() >= 2)
             .then_some(now)
     })
-    .unwrap_or_else(|| workspaces.borrow().clone());
+    .unwrap_or_else(|| workspaces.borrow().workspaces.clone());
     eprintln!("workspaces: {all:?}");
     let spaces: Vec<_> = all
         .groups
@@ -345,6 +370,7 @@ fn the_amended_workspace_commands_take_effect_in_nested_cosmic() {
     let pinning_of = |key: WorkspaceKey| {
         workspaces
             .borrow()
+            .workspaces
             .groups
             .iter()
             .flat_map(|g| g.workspaces.iter())
@@ -391,7 +417,12 @@ fn the_amended_workspace_commands_take_effect_in_nested_cosmic() {
                 .is_some_and(|w| w.workspaces == vec![other])
                 .then_some(())
         })
-        .unwrap_or_else(|| panic!("the window moves to {other:?}: {:?}", toplevels.borrow()));
+        .unwrap_or_else(|| {
+            panic!(
+                "the window moves to {other:?}: {:?}",
+                toplevels.borrow().toplevels
+            )
+        });
         eprintln!("the window moved from {home:?} to {other:?}");
     } else {
         eprintln!("one workspace only; move-to-workspace not exercised");

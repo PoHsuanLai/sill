@@ -42,7 +42,7 @@ fn run() -> Result<(), String> {
     print_commands("pins", pin_events);
     print_commands("wl", bar.wl);
     print_commands("launch", bar.launch);
-    let toplevels = bar.toplevels;
+    let cosmic_wl = bar.cosmic_wl;
     let settings = SettingsFeed::fixed(ShellFile::default());
     let clock = FrameClock::new(Instant::now());
     let host = Host::<DemoMsg>::connect(sill_surfaces::host_config()).map_err(|e| e.to_string())?;
@@ -52,7 +52,7 @@ fn run() -> Result<(), String> {
         HostEvent::Started => {
             // The fake windows live on the first real output.
             if let Some(name) = ctx.outputs().first().and_then(|o| o.name.clone()) {
-                toplevels.send_replace(dock_support::toplevels_on(&name));
+                cosmic_wl.send_modify(|wl| wl.toplevels = dock_support::toplevels_on(&name));
             }
             for output in ctx.outputs() {
                 spawn_dock(ctx, output, &services, &settings, clock, &mut docks);

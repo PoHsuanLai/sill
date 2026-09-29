@@ -116,7 +116,7 @@ pub fn volume_command(request: VolumeRequest) -> VolumeCommand {
 pub fn dispatch(services: &Services, request: DisplayRequest) -> Response {
     let sent = match request {
         DisplayRequest::Brightness(level) => {
-            let at = focused_output(&services.toplevels.borrow());
+            let at = focused_output(&services.cosmic_wl.borrow().toplevels);
             services.displays_control.send(DisplaysCommand::Brightness {
                 at,
                 change: change(level),

@@ -14,7 +14,7 @@ use crate::bluetooth::{Bluetooth, BluetoothCommand};
 use crate::clipboard::{Clipboard, ClipboardCommand};
 use crate::clock::{ClockCommand, ClockText};
 use crate::control::Control;
-use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
+use crate::cosmic_wl::{CosmicWl, WlCommand};
 use crate::displays::{Displays, DisplaysCommand};
 use crate::env::{Dirs, Env, SessionActions};
 use crate::events::{Agenda, EventsCommand};
@@ -52,8 +52,7 @@ pub struct Services {
     pub volume_control: Control<VolumeCommand>,
     pub tray: watch::Receiver<Tray>,
     pub tray_control: Control<TrayCommand>,
-    pub workspaces: watch::Receiver<Workspaces>,
-    pub toplevels: watch::Receiver<Toplevels>,
+    pub cosmic_wl: watch::Receiver<CosmicWl>,
     pub wl: Control<WlCommand>,
     pub apps: watch::Receiver<AppIndex>,
     pub apps_control: Control<AppsCommand>,
@@ -133,7 +132,7 @@ impl Services {
             volume.clone(),
         ));
         let (tray, tray_control) = parts(spawn::<crate::tray::TrayService>(rt, env, ()));
-        let (workspaces, toplevels, wl) = crate::cosmic_wl::spawn(env.wayland.clone());
+        let (cosmic_wl, wl) = parts(spawn::<crate::cosmic_wl::CosmicWlService>(rt, env, ()));
         let (apps, apps_control) = parts(spawn::<crate::apps::AppsService>(rt, env, ()));
         let (badges, badges_control) = parts(spawn::<crate::badges::BadgesService>(rt, env, ()));
         let (pins, pins_control) = parts(spawn::<crate::pins::PinsService>(rt, env, ()));
@@ -146,8 +145,7 @@ impl Services {
             env,
             crate::results::Sources::Services(crate::results::ResultsLinks {
                 apps: apps.clone(),
-                toplevels: toplevels.clone(),
-                workspaces: workspaces.clone(),
+                cosmic_wl: cosmic_wl.clone(),
                 clipboard: clipboard.clone(),
                 wl: wl.clone(),
                 launch: launch.clone(),
@@ -207,8 +205,7 @@ impl Services {
             volume_control,
             tray,
             tray_control,
-            workspaces,
-            toplevels,
+            cosmic_wl,
             wl,
             apps,
             apps_control,

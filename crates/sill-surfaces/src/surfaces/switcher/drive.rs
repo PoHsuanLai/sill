@@ -233,7 +233,7 @@ impl SwitcherCtx {
     /// The compositor's apps now.
     fn live(self) -> Vec<SwitcherApp> {
         let services = self.services.peek();
-        let toplevels = services.toplevels.borrow().clone();
+        let toplevels = services.cosmic_wl.borrow().toplevels.clone();
         let index = services.apps.borrow().clone();
         switcher_apps(&toplevels, &index)
     }

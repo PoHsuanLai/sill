@@ -8,18 +8,17 @@ use sill_launcher::{
 use tokio::sync::watch;
 
 use crate::apps::{AppIcon, AppIndex, match_app};
-use crate::cosmic_wl::{Toplevels, Workspaces};
+use crate::cosmic_wl::{CosmicWl, Workspaces};
 
 /// The id of a window row's one action: asks the daemon to close it (`Activation::CloseWindow`).
 const CLOSE_ACTION: &str = "close";
 
 /// Rows for every toplevel matching the query, most recent first on ties (the order
-/// [`Toplevels`] already keeps).
+/// [`Toplevels`](crate::cosmic_wl::Toplevels) already keeps).
 #[derive(Debug)]
 pub struct WindowsProvider {
-    pub toplevels: watch::Receiver<Toplevels>,
+    pub cosmic_wl: watch::Receiver<CosmicWl>,
     pub apps: watch::Receiver<AppIndex>,
-    pub workspaces: watch::Receiver<Workspaces>,
 }
 
 impl Provider for WindowsProvider {
@@ -34,9 +33,11 @@ impl Provider for WindowsProvider {
         let needle = Needle::parse(&query.text);
         let weights = RankWeights::DEFAULT;
         let mut matcher = matching::matcher();
-        let toplevels = self.toplevels.borrow().clone();
+        let CosmicWl {
+            workspaces,
+            toplevels,
+        } = self.cosmic_wl.borrow().clone();
         let apps = self.apps.borrow().clone();
-        let workspaces = self.workspaces.borrow().clone();
 
         let mut items = Vec::new();
         for window in &toplevels.windows {
@@ -157,8 +158,8 @@ mod tests {
     use super::WindowsProvider;
     use crate::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
     use crate::cosmic_wl::{
-        Activity, GroupKey, OutputName, Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState,
-        Workspace, WorkspaceGroup, WorkspaceKey, Workspaces, reduce_toplevels,
+        Activity, CosmicWl, GroupKey, OutputName, Sizing, Toplevel, ToplevelEvent, Toplevels,
+        WindowState, Workspace, WorkspaceGroup, WorkspaceKey, Workspaces, toplevels::step,
     };
     use sill_launcher::{
         AppId, Cancel, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, Score,
@@ -181,30 +182,31 @@ mod tests {
 
     fn toplevels(windows: Vec<Toplevel>) -> Toplevels {
         windows.into_iter().fold(Toplevels::default(), |t, w| {
-            reduce_toplevels(t, ToplevelEvent::Opened(w))
+            step(t, ToplevelEvent::Opened(w))
         })
     }
 
     fn provider(windows: Vec<Toplevel>, apps: Vec<App>) -> WindowsProvider {
-        let (_wtx, wrx) = tokio::sync::watch::channel(toplevels(windows));
         let (_atx, arx) = tokio::sync::watch::channel(crate::apps::step(
             AppIndex::default(),
             AppsEvent::Scanned(apps),
         ));
-        let (_stx, srx) = tokio::sync::watch::channel(Workspaces {
-            groups: vec![WorkspaceGroup {
-                key: GroupKey(1),
-                outputs: vec![OutputName("DP-1".to_owned())],
-                workspaces: vec![
-                    workspace(WorkspaceKey(1), "1"),
-                    workspace(WorkspaceKey(2), "2"),
-                ],
-            }],
+        let (_stx, srx) = tokio::sync::watch::channel(CosmicWl {
+            workspaces: Workspaces {
+                groups: vec![WorkspaceGroup {
+                    key: GroupKey(1),
+                    outputs: vec![OutputName("DP-1".to_owned())],
+                    workspaces: vec![
+                        workspace(WorkspaceKey(1), "1"),
+                        workspace(WorkspaceKey(2), "2"),
+                    ],
+                }],
+            },
+            toplevels: toplevels(windows),
         });
         WindowsProvider {
-            toplevels: wrx,
+            cosmic_wl: srx,
             apps: arx,
-            workspaces: srx,
         }
     }
 

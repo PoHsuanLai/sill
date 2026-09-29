@@ -85,7 +85,7 @@ pub fn windows(apps: &[(&str, u64)]) -> Toplevels {
 /// The switcher on `file`'s settings over `toplevels`, nothing shown yet.
 pub fn start(file: ShellFile, toplevels: Toplevels) -> Running {
     let (services, feeds) = fake::services();
-    feeds.toplevels.send_replace(toplevels);
+    feeds.cosmic_wl.send_modify(|wl| wl.toplevels = toplevels);
     let link = SwitcherLink::new();
     WORLD.with(|w| {
         *w.borrow_mut() = Some(World {

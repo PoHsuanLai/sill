@@ -37,7 +37,7 @@ use tokio::sync::watch;
 use crate::apps::AppIndex;
 use crate::clipboard::Clipboard;
 use crate::control::Control;
-use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
+use crate::cosmic_wl::{CosmicWl, WlCommand};
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::launch::LaunchCommand;
@@ -91,8 +91,7 @@ impl fmt::Debug for Sources {
 #[derive(Debug, Clone)]
 pub struct ResultsLinks {
     pub apps: watch::Receiver<AppIndex>,
-    pub toplevels: watch::Receiver<Toplevels>,
-    pub workspaces: watch::Receiver<Workspaces>,
+    pub cosmic_wl: watch::Receiver<CosmicWl>,
     pub clipboard: watch::Receiver<Clipboard>,
     pub wl: Control<WlCommand>,
     pub launch: Control<LaunchCommand>,

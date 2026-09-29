@@ -209,10 +209,10 @@ async fn act(
             }
         }
         CornerEffect::ShowDesktop => {
-            let windows = services.toplevels.borrow().windows.clone();
-            let active: Vec<WorkspaceKey> = services
+            let wl = services.cosmic_wl.borrow().clone();
+            let windows = wl.toplevels.windows;
+            let active: Vec<WorkspaceKey> = wl
                 .workspaces
-                .borrow()
                 .groups
                 .iter()
                 .filter_map(|group| {
