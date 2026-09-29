@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::volume::Mute;
+use sill_model::volume::Mute;
 
 /// One VCP feature.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]

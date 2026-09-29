@@ -10,9 +10,9 @@ use crate::displays::policy::{KeysTarget, NightWarmth};
 use crate::displays::randr::Head;
 use crate::displays::scale::{Ppi, ScaleRounding};
 use crate::env::ddc::{DdcId, Endpoint};
-use crate::volume::Step;
 use sill_model::ids::OutputName;
 use sill_model::units::Percent;
+use sill_model::volume::Step;
 
 fn head(name: &str) -> Head {
     Head {

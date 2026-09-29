@@ -66,7 +66,7 @@ use tokio::sync::watch;
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
-use crate::volume::Volume;
+use sill_model::volume::Volume;
 
 /// The displays as a [`Service`], following the volume service (its `Deps`) for the
 /// monitor-speaker path and talking DDC on `env`'s buses. Until the first `Policy` command it does

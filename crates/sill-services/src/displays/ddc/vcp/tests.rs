@@ -1,5 +1,5 @@
 use super::{ColorPreset, Controls, Feature, InputSource, Level, RgbGain, mute_value};
-use crate::volume::Mute;
+use sill_model::volume::Mute;
 
 fn level(value: u16, max: u16) -> Option<Level> {
     Some(Level { value, max })

@@ -29,7 +29,7 @@ use super::seen;
 use super::sink::CosmicRandr;
 use crate::env::ddc::DdcBus;
 use crate::env::{Bus, Dirs};
-use crate::volume::Volume;
+use sill_model::volume::Volume;
 
 /// Where the service looks and writes.
 #[derive(Debug, Clone)]

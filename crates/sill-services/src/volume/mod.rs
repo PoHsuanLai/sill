@@ -1,10 +1,9 @@
 //! The output volume: libpulse over pipewire-pulse on a threaded mainloop, following the
 //! default sink.
 
-mod live;
-mod model;
+mod backend;
 
-pub use model::{Mute, Step, Volume, VolumeCommand, VolumeEvent, step, stepped};
+use sill_model::volume::{Volume, VolumeCommand};
 
 use crate::env::Env;
 use crate::error::ServiceError;
@@ -32,7 +31,7 @@ impl Service for VolumeService {
             // libpulse's threaded mainloop blocks: it runs on the blocking pool until `commands`
             // closes, which happens when every clone of the `Control` has dropped.
             let ServiceIo { state, commands } = io;
-            let _ = tokio::task::spawn_blocking(move || live::run(state, commands)).await;
+            let _ = tokio::task::spawn_blocking(move || backend::run(state, commands)).await;
             Ok(())
         }
     }

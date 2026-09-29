@@ -126,7 +126,7 @@ pub use tray::{
     Availability, Check, Pixmap, ScrollAxis, ScrollDelta, Tray, TrayCommand, TrayEvent, TrayIcon,
     TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind, TrayService, TrayStatus,
 };
-pub use volume::{Mute, Step, Volume, VolumeCommand, VolumeEvent, VolumeService, stepped};
+pub use volume::VolumeService;
 pub use wallpaper::{
     WallpaperCommand, WallpaperImage, WallpaperService, WallpaperSource, Wallpapers,
     cache_file_name,

@@ -2,9 +2,9 @@ use super::{follow, monitor_for_sink, monitor_in_sink};
 use crate::displays::ddc::{Controls, DdcDisplay, Feature, Level, Write};
 use crate::displays::policy::HardwareVolume;
 use crate::env::ddc::{DdcId, Endpoint};
-use crate::volume::{Mute, Volume};
 use sill_model::ids::OutputName;
 use sill_model::units::{Percent, Presence};
+use sill_model::volume::{Mute, Volume};
 
 /// The MA270U's speaker volume as it answers VCP 0x62.
 const SPEAKERS: Option<Level> = Some(Level { value: 20, max: 50 });

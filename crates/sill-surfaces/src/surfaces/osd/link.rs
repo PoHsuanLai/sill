@@ -8,7 +8,7 @@
 
 use shell_host::OutputId;
 use sill_model::units::Percent;
-use sill_services::Mute;
+use sill_model::volume::Mute;
 use tokio::sync::watch;
 
 /// What the indicator shows.

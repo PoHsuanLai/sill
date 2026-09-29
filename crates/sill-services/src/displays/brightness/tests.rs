@@ -5,9 +5,9 @@ use super::{
 use crate::displays::drm::Placement;
 use crate::displays::policy::KeysTarget;
 use crate::env::ddc::DdcId;
-use crate::volume::Step;
 use sill_model::ids::OutputName;
 use sill_model::units::Percent;
+use sill_model::volume::Step;
 
 fn name(n: &str) -> OutputName {
     OutputName(n.to_owned())

@@ -17,11 +17,10 @@ use libpulse_binding::context::subscribe::InterestMaskSet;
 use libpulse_binding::context::{Context, FlagSet as ContextFlagSet, State as ContextState};
 use libpulse_binding::mainloop::standard::{IterateResult, Mainloop};
 use libpulse_binding::volume::{ChannelVolumes, Volume as PaVolume};
+use sill_model::units::Percent;
+use sill_model::volume::{Mute, Volume, VolumeCommand, VolumeEvent, step, stepped};
 use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::{mpsc, watch};
-
-use super::model::{Mute, Volume, VolumeCommand, VolumeEvent, step, stepped};
-use sill_model::units::Percent;
 
 /// The default sink this service last saw: enough to address a volume or mute change back to
 /// it. Zero channels means "no sink": commands are dropped, matching `step`.
@@ -37,7 +36,7 @@ const POLL: Duration = Duration::from_millis(10);
 
 /// Runs until `commands` closes (the `Control` was dropped), then disconnects. Blocking
 /// throughout: call from a dedicated thread (`Handle::spawn_blocking`).
-pub(super) fn run(tx: watch::Sender<Volume>, mut commands: mpsc::UnboundedReceiver<VolumeCommand>) {
+pub(crate) fn run(tx: watch::Sender<Volume>, mut commands: mpsc::UnboundedReceiver<VolumeCommand>) {
     let Some(mut mainloop) = Mainloop::new() else {
         return;
     };

@@ -6,9 +6,9 @@ use serde::{Deserialize, Serialize};
 use super::drm::Placement;
 use super::policy::KeysTarget;
 use crate::env::ddc::DdcId;
-use crate::volume::Step;
 use sill_model::ids::OutputName;
 use sill_model::units::Percent;
+use sill_model::volume::Step;
 
 /// A backlight device: the name under `/sys/class/backlight` (`intel_backlight`,
 /// `amdgpu_bl1`), which is also what logind's `SetBrightness` takes.

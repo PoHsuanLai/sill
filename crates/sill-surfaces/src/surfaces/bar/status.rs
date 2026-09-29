@@ -2,7 +2,8 @@
 
 use sill_model::battery::{Battery, Charge, Remaining};
 use sill_model::units::{Minutes, Presence};
-use sill_services::{Connectivity, Link, Network, Volume};
+use sill_model::volume::Volume;
+use sill_services::{Connectivity, Link, Network};
 
 /// The volume menu's heading: the sink, or that there is none.
 pub(crate) fn volume_heading(volume: &Volume) -> String {
@@ -60,7 +61,8 @@ mod tests {
     use super::{battery_lines, network_lines, volume_heading};
     use sill_model::battery::{Battery, Charge};
     use sill_model::units::{Percent, Presence, Seconds};
-    use sill_services::{Connectivity, Link, Mute, Network, Volume};
+    use sill_model::volume::{Mute, Volume};
+    use sill_services::{Connectivity, Link, Network};
 
     fn volume(level: u16, mute: Mute) -> Volume {
         Volume {

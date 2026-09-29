@@ -5,10 +5,11 @@
 use shell_host::HostEvent;
 use sill_ipc::{DisplayRequest, LevelRequest, Response, VolumeRequest};
 use sill_model::ids::OutputName;
+use sill_model::volume::{Step, VolumeCommand};
 use sill_services::displays::ScaleOverride;
 use sill_services::{
     DisplayPolicy, DisplaysCommand, FontRenderingMode, HardwareVolume, KeysTarget, LevelChange,
-    NightWarmth, Ppi, ScaleMode, ScaleRounding, Services, Step, Toplevels, VolumeCommand,
+    NightWarmth, Ppi, ScaleMode, ScaleRounding, Services, Toplevels,
 };
 
 use crate::msg::ShellMsg;
@@ -115,8 +116,8 @@ pub fn volume_command(request: VolumeRequest) -> VolumeCommand {
         VolumeRequest::Level(LevelRequest::Set { percent }) => {
             VolumeCommand::SetLevel(sill_model::units::Percent(u16::from(percent.min(100))))
         }
-        VolumeRequest::Mute => VolumeCommand::SetMute(sill_services::Mute::Muted),
-        VolumeRequest::Unmute => VolumeCommand::SetMute(sill_services::Mute::Audible),
+        VolumeRequest::Mute => VolumeCommand::SetMute(sill_model::volume::Mute::Muted),
+        VolumeRequest::Unmute => VolumeCommand::SetMute(sill_model::volume::Mute::Audible),
         VolumeRequest::ToggleMute => VolumeCommand::ToggleMute,
     }
 }
@@ -146,10 +147,11 @@ pub fn dispatch(services: &Services, request: DisplayRequest) -> Response {
 mod tests {
     use sill_ipc::{LevelRequest, VolumeRequest};
     use sill_model::units::Percent;
+    use sill_model::volume::{Mute, Step, VolumeCommand};
     use sill_services::displays::ScaleOverride;
     use sill_services::{
-        DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, Mute, NightWarmth, Ppi,
-        ScaleMode, ScaleRounding, Step, VolumeCommand,
+        DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmth, Ppi, ScaleMode,
+        ScaleRounding,
     };
     use sill_settings::{
         BrightnessKeysTarget, DisplayScaleMode, DisplaySettings, FontRenderingSetting,
