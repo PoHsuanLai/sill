@@ -8,7 +8,7 @@ use sill_launcher::{
     SkinTone, Subject, UnixTime, chords,
 };
 
-use super::{Draw, HeaderAction, palette_groups, palette_sections};
+use super::{Draw, HeaderAction, palette_groups};
 use crate::surfaces::launcher::chord_keys::shortcut;
 use crate::surfaces::launcher::entries::tile;
 
@@ -202,29 +202,5 @@ fn each_row_carries_its_chord_for_the_selection() {
     assert!(
         rows.iter()
             .all(|(chord, _)| chord.shown == ChordShown::Selected)
-    );
-}
-
-#[test]
-fn plain_sections_are_lists_with_the_m4_trails() {
-    let got = palette_sections(&sample(), &tile);
-    assert_eq!(got.len(), 4);
-    let trails: Vec<Trail> = got
-        .iter()
-        .flat_map(|(_, entries)| entries.iter())
-        .filter_map(|entry| match entry {
-            MenuEntry::Row(row) => Some(row.trail.clone()),
-            _ => None,
-        })
-        .collect();
-    assert!(
-        matches!(&trails[0], Trail::Note(_)),
-        "a date, not a chord: {:?}",
-        trails[0]
-    );
-    assert!(
-        matches!(&trails[1], Trail::Note(_)),
-        "a date: {:?}",
-        trails[1]
     );
 }

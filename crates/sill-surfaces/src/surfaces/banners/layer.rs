@@ -3,11 +3,11 @@
 //! `notifications.banner_position` only moves the cards inside it), exclusive zone `Auto` (clear
 //! of the bar's reserve above and the dock's below, as the OSD), no keyboard.
 //!
-//! Input and blur start empty: the surface sets both to its cards' rounded rects
-//! (`regions::card_regions`, through `shell_host::use_surface`) as they enter and leave, so the
+//! Input and blur start empty: the surface sets both to its cards' element regions
+//! (`elements.rs`, through `shell_host::use_surface`) as they enter and leave, so the
 //! transparent rest of the column never takes a click or blurs what is under it (design/20:
 //! "per toast `Element("toast-<id>")`; input same", which a single `RegionSpec::Element` cannot
-//! say for several cards: sill FINDINGS G60).
+//! say for several cards).
 //!
 //! Spawned before the OSD, so on the same Overlay layer the OSD draws over a banner.
 

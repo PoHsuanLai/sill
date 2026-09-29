@@ -1,10 +1,9 @@
 //! The column's input and blur regions as element regions (shell-host's `RegionSpec::Elements`,
-//! resolved after every layout, G60): each drawn card's quire plate by its id (`toast-<id>`,
+//! resolved after every layout): each drawn card's quire plate by its id (`toast-<id>`,
 //! design/20 §1.6), and for a group the whole card, whose layers reach below the plate, so a
 //! press in the gap between cards passes through to the window below and nothing but the cards
 //! is blurred. A card sliding out is still drawn, so it keeps its regions until the stack says
-//! it has gone. (`regions::card_regions`, the freeze's measured-rects form, is kept for its
-//! callers' sake but no longer drawn from.)
+//! it has gone.
 
 use shell_host::{BlurSpec, ElementId, ElementRegion, RegionSpec};
 use sill_services::NotificationId;

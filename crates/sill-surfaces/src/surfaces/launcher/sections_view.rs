@@ -1,12 +1,10 @@
-//! The published sections as the palette's groups (M9 lane d, FINDINGS "M9 freeze" F645,
-//! F656): `sill_launcher::shown` decides which rows each section shows; this names them for
+//! The published sections as the palette's groups: `sill_launcher::shown` decides which rows each section shows; this names them for
 //! quire's `CommandPalette` and says what each header's trailing action is ("Show More" or
-//! "Show Less", quire's `PaletteGroup::with_action`, Q294).
+//! "Show Less", quire's `PaletteGroup::with_action`).
 //!
 //! [`palette_groups`] is what the panel draws: each section a `PaletteGroup` with its header's
-//! action, the Emoji section quire's emoji grid (Q291), a file row quire's `RowShape::File` and a
-//! clipboard row `RowShape::Clip` (Q290). [`palette_sections`] (the freeze's) is the same rows
-//! as plain lists, for a picture of the results without handlers.
+//! action, the Emoji section quire's emoji grid, a file row quire's `RowShape::File` and a
+//! clipboard row `RowShape::Clip`.
 
 use dioxus::prelude::*;
 use ds::{
@@ -45,31 +43,6 @@ impl HeaderAction {
             HeaderAction::ShowLess => Some("Show Less"),
         }
     }
-}
-
-/// `shown` as the palette's groups (title, rows), each row's tile from `tile_of`, its chord for
-/// quire to show while it is the selection (`entries::row_chord`), file and clipboard rows their
-/// `rows::row_detail` trail. No header actions and no grid: the panel draws [`palette_groups`].
-pub fn palette_sections(
-    shown: &[ShownSection],
-    tile_of: &dyn Fn(&Item) -> Tile,
-) -> Vec<(String, Vec<MenuEntry<RowRef>>)> {
-    let draw = Draw {
-        tile_of,
-        clip_image: &|_| None,
-        now: now(),
-    };
-    shown
-        .iter()
-        .map(|section| {
-            let entries = section
-                .rows
-                .iter()
-                .map(|item| draw.plain(item, mix_of(section.section)))
-                .collect();
-            (section.section.title().to_owned(), entries)
-        })
-        .collect()
 }
 
 /// What the rows are drawn with: each row's tile, a clipboard image's pixels and the clock.
@@ -144,7 +117,7 @@ fn emoji_cells(rows: &[Item]) -> EmojiCells<RowRef> {
 }
 
 impl Draw<'_> {
-    /// `item` as a plain row: title, detail, the M4 trail (a file's date, a clip's age, else a
+    /// `item` as a plain row: title, detail, the trail (a file's date, a clip's age, else a
     /// mixed section's kind) and its chord, which quire shows while it is the selection.
     fn plain(&self, item: &Item, mix: Mix) -> MenuEntry<RowRef> {
         let words = row_detail(item, self.now);
@@ -228,14 +201,6 @@ fn mix_of(section: Section) -> Mix {
         Section::TopHit | Section::Recent => Mix::Mixed,
         _ => Mix::Single,
     }
-}
-
-fn now() -> UnixTime {
-    UnixTime(
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map_or(0, |since| since.as_secs()),
-    )
 }
 
 #[cfg(test)]

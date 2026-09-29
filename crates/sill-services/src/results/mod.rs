@@ -71,7 +71,7 @@ pub fn spawn(
 ) -> (watch::Receiver<Results>, Control<SearchCommand>) {
     let dir = state_dir();
     let history = History::new(dir.as_deref().map(load_frecency).unwrap_or_default());
-    let (policy, _unused) = watch::channel(LauncherPolicy::default());
+    let policy = watch::Sender::new(LauncherPolicy::default());
     start(rt, providers, history, dir, Outlets::default(), policy)
 }
 

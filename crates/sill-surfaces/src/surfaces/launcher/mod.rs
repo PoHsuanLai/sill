@@ -8,11 +8,9 @@
 //! unmaps itself from. The panel also writes there which part of it takes presses
 //! ([`hit::PanelHit`]: its content-sized card), which the catcher's input leaves out.
 
-pub mod actions;
 pub mod activate;
 pub mod chord_keys;
 pub mod debug_link;
-pub mod emoji_grid;
 pub mod entries;
 pub mod groups;
 pub mod hit;
@@ -23,7 +21,6 @@ pub mod list_detail;
 pub mod pane_session;
 pub mod presence;
 pub mod preview;
-pub mod results;
 pub mod row_icon;
 pub mod rows;
 pub mod script;

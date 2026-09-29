@@ -18,7 +18,6 @@ pub mod elements;
 pub mod layer;
 pub mod machine;
 pub mod placement;
-pub mod regions;
 pub mod stack;
 
 mod drive;
@@ -30,7 +29,6 @@ pub use machine::{
     Banner, BannerIn, BannerOut, BannerParams, Deadline, Leave, Persistence, Remaining, step,
 };
 pub use placement::{BannerLink, BannerOutput};
-pub use regions::{CardBox, card_regions};
 pub use stack::{Card, stack};
 pub use view::{BANNER_VARS, BANNERS_CSS};
 

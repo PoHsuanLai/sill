@@ -1,7 +1,5 @@
 //! The daemon's host message: what reaches `Host::run`'s event handler from other threads.
 
-#![allow(unused_variables, dead_code)] // Freeze stubs
-
 use std::sync::mpsc::SyncSender;
 
 use sill_ipc::{Request, Response};
