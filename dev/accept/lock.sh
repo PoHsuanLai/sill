@@ -35,41 +35,24 @@
 # Exit 0 when every step passed, 1 on a failure. Another sill daemon started from a
 # `target/*/sill run` is waited for (up to 10 minutes).
 #
-# Usage: dev/nested.sh && dev/accept-lock.sh
+# Usage: dev/nested.sh && dev/accept/lock.sh
 set -uo pipefail
-# shellcheck source=dev/common.sh
-source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
-# shellcheck source=dev/backdrop.sh
-source "$(dirname "${BASH_SOURCE[0]}")/backdrop.sh"
+# shellcheck source=dev/lib/all.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 OUT_DIR="$SILL_REPO/target/accept-lock"
 SHOTS="$SILL_REPO/dev/out"
 LOCKER="$SILL_REPO/target/debug/examples/session_locker"
 NODEBUG_BIN="$OUT_DIR/sill-nodebug"
 mkdir -p "$OUT_DIR" "$SHOTS"
 
-source "$SHELL_HOST_DEV/.nested-env"
-HOST_RUNTIME="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-NESTED_SOCKET="$HOST_RUNTIME/$WAYLAND_DISPLAY"
-case "$(basename "$NESTED_SOCKET")" in
+use_nested_socket || exit 1
+case "$(basename "$WL")" in
   wayland-0) echo "the nested socket is wayland-0 (the real session): refusing" >&2; exit 1 ;;
 esac
-RUNTIME=$(mktemp -d)
-chmod 700 "$RUNTIME"
-CONFIG=$(mktemp -d)
-STATE=$(mktemp -d)
-CACHE=$(mktemp -d)
+scratch_new
 MARKER="$RUNTIME/sill/locked"
-BIN="$SILL_BIN"
-DAEMON=
 
-# Every `sill` call carries the daemon's whole environment: a request that starts a daemon when
-# none runs (anything but ping and quit) must never start one anywhere but the nested session.
-sill() {
-  XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$NESTED_SOCKET" XDG_CONFIG_HOME="$CONFIG" \
-    XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" "$BIN" "$@"
-}
-nested_locker() { WAYLAND_DISPLAY="$NESTED_SOCKET" "$LOCKER" "$@"; }
-now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
+nested_locker() { WAYLAND_DISPLAY="$WL" "$LOCKER" "$@"; }
 
 output_names() {
   sill debug stats | python3 -c '
@@ -99,7 +82,7 @@ until_phase() {
 
 # A capture of output $1's lock surface into $2, tried three times (a 2560 px capture on a busy
 # machine can pass the client's 2 s wait).
-capture() {
+capture_lock() {
   local _
   for _ in 1 2 3; do
     sill debug capture "sill-lock/$1" "$2" >>"$OUT_DIR/capture.log" 2>&1 && return 0
@@ -125,28 +108,29 @@ print(sum(1 for v in d.tobytes() if v))
 EOF
 }
 
-build() {
+# Builds a daemon without the `debug` feature into NODEBUG_BIN for the last step (the plain build
+# comes first: the debug build replaces target/debug/sill), then the debug daemon and the stand-in
+# locker.
+build_all() {
   (cd "$SILL_REPO" && cargo build -p sill) >"$OUT_DIR/build.log" 2>&1 \
     && cp "$SILL_REPO/target/debug/sill" "$NODEBUG_BIN" \
-    && (cd "$SILL_REPO" && cargo build -p sill --features debug \
-      && cargo build -p sill-testkit --example session_locker) >>"$OUT_DIR/build.log" 2>&1 || {
-    echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
+    && build "-p sill-testkit --example session_locker" || return 1
 }
 
-start_daemon() {
+# The daemon's PID: the daemon itself, or the child of the shell that started it.
+daemon_pid() { pgrep -P "$DAEMON" -x sill || echo "$DAEMON"; }
+
+# Starts the daemon with the daemon.log renamed to $1 (relative to OUT_DIR) once it is up, and
+# with the Wayland protocol log in it when $2 is wayland-debug. Fills NAMES and FIRST.
+start_lock_daemon() {
   local log="$1"
   mkdir -p "$CONFIG/sill"
   : >"$CONFIG/sill/settings.toml"
   backdrop_seed "$CONFIG" || return 1
-  use_fake_ddc "$CONFIG" >/dev/null
-  require_fake_ddc || return 1
-  WAYLAND_DEBUG="${WDEBUG:-}" XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" \
-    XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$NESTED_SOCKET" \
-    dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- \
-    sh -c "$PRIVATE_BOTH_BUSES" "$BIN" "${FAKE_DDC_FLAGS[@]}" \
-    >"$log" 2>&1 &
-  DAEMON=$!
-  for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
+  [ "${2:-}" != wayland-debug ] || IN_ENV_EXTRA=(WAYLAND_DEBUG=client)
+  launch_daemon
+  IN_ENV_EXTRA=()
+  [ "$log" = daemon.log ] || mv "$OUT_DIR/daemon.log" "$OUT_DIR/$log"
   NAMES=
   for _ in $(seq 50); do NAMES=$(output_names); [ -n "$NAMES" ] && break; sleep 0.1; done
   [ -n "$NAMES" ] || { echo "no bar in 'sill debug stats'" >&2; return 1; }
@@ -158,13 +142,6 @@ start_daemon() {
     sleep 0.1
   done
   sleep 1.5
-}
-
-stop_daemon() {
-  [ -n "${DAEMON:-}" ] || return 0
-  sill quit >/dev/null 2>&1
-  wait "$DAEMON" 2>/dev/null
-  DAEMON=
 }
 
 # The one output whose lock surface draws the prompt: its capture's prompt band holds the most
@@ -190,7 +167,7 @@ step_surfaces() {
   : >"$log"
   sleep 0.8
   for name in $NAMES; do
-    if capture "$name" "$OUT_DIR/lock-$name.png"; then
+    if capture_lock "$name" "$OUT_DIR/lock-$name.png"; then
       ink=$(python3 - "$OUT_DIR/lock-$name.png" <<'EOF'
 import sys
 from PIL import Image
@@ -230,7 +207,7 @@ step_refuse_shakes() {
     fi
   done
   sleep 0.6
-  capture "$PROMPT_OUT" "$OUT_DIR/refuse-after.png"
+  capture_lock "$PROMPT_OUT" "$OUT_DIR/refuse-after.png"
   last=$(band_diff "$OUT_DIR/idle.png" "$OUT_DIR/refuse-after.png" 70 97)
   echo "refuse: $moved captures moved (spinner, shake); after it settled $last pixels differ; status $(lock_phase)" \
     | tee -a "$log" >&2
@@ -246,7 +223,7 @@ step_no_lockout() {
     sleep 0.9
   done
   sleep 0.5
-  capture "$PROMPT_OUT" "$SHOTS/lock-sixwrong-cosmic.png"
+  capture_lock "$PROMPT_OUT" "$SHOTS/lock-sixwrong-cosmic.png"
   diff=$(band_diff "$OUT_DIR/idle.png" "$SHOTS/lock-sixwrong-cosmic.png" 70 97)
   echo "six wrongs: $diff pixels differ from the idle prompt (no 'Try again at' line: no lockout); status $(lock_phase); $SHOTS/lock-sixwrong-cosmic.png" \
     | tee -a "$log" >&2
@@ -258,8 +235,8 @@ step_idle() {
   local log="$OUT_DIR/idle.log" wlog="$OUT_DIR/daemon-wayland-debug.log" from to commits start
   # A daemon logging its Wayland requests (WAYLAND_DEBUG=client), for this step only: the log
   # slows a capture past the client's 2 s wait, and `debug stats` has no lock rows.
-  stop_daemon
-  WDEBUG=client start_daemon "$wlog" || return 1
+  stop_daemon || return 1
+  start_lock_daemon daemon-wayland-debug.log wayland-debug || return 1
   start=$(now_ms)
   sill lock >"$log" 2>&1
   [ "$(until_phase "$start" "locked" 2000)" -ge 0 ] || { echo "not locked" | tee -a "$log" >&2; return 1; }
@@ -290,8 +267,8 @@ EOF
   start=$(now_ms)
   sill debug auth accept >>"$log" 2>&1
   until_phase "$start" "unlocked" 3000 >/dev/null
-  stop_daemon
-  start_daemon "$OUT_DIR/daemon.log" || return 1
+  stop_daemon || return 1
+  start_lock_daemon daemon.log || return 1
   [ "$(echo "$commits" | cut -d' ' -f1)" -ge 1 ] && [ "$(echo "$commits" | cut -d' ' -f2)" = 0 ]
 }
 
@@ -302,7 +279,7 @@ step_accept() {
   start=$(now_ms)
   sill debug auth accept >>"$log" 2>&1 || { cat "$log" >&2; return 1; }
   took=$(until_phase "$start" "unlocked" 3000)
-  if capture "$PROMPT_OUT" "$OUT_DIR/after-unlock.png"; then gone=no; else gone=yes; fi
+  if capture_lock "$PROMPT_OUT" "$OUT_DIR/after-unlock.png"; then gone=no; else gone=yes; fi
   nested_locker 200 >>"$log" 2>&1
   free=$?
   echo "unlocked ${took} ms after 'sill debug auth accept' (limit 250 + 454 + 500: the check, the accepted beat, slack); lock surface gone: $gone; marker: $(test -e "$MARKER" && echo present || echo removed); a stand-in locker then locked and unlocked: exit $free" \
@@ -318,15 +295,15 @@ step_crash_relocks() {
   sill lock >>"$log" 2>&1
   took=$(until_phase "$start" "locked" 1000)
   [ -e "$MARKER" ] || { echo "no marker at $MARKER while locked" | tee -a "$log" >&2; return 1; }
-  pid=$(pgrep -P "$DAEMON" -x sill)
+  pid=$(daemon_pid)
   echo "locked in ${took} ms, marker written; killing sill ($pid) with SIGKILL" | tee -a "$log" >&2
   kill -9 "$pid"
   wait "$DAEMON" 2>/dev/null
   DAEMON=
-  start_daemon "$OUT_DIR/daemon-restarted.log" || return 1
+  start_lock_daemon daemon-restarted.log || return 1
   start=$(now_ms)
   again=$(until_phase "$start" "locked" 3000)
-  capture "$FIRST" "$OUT_DIR/relocked.png" && cp "$OUT_DIR/relocked.png" "$SHOTS/lock-relocked-cosmic.png"
+  capture_lock "$FIRST" "$OUT_DIR/relocked.png" && cp "$OUT_DIR/relocked.png" "$SHOTS/lock-relocked-cosmic.png"
   start=$(now_ms)
   sill debug auth accept >>"$log" 2>&1
   took=$(until_phase "$start" "unlocked" 3000)
@@ -335,26 +312,24 @@ step_crash_relocks() {
   [ "$again" -ge 0 ] && [ "$took" -ge 0 ] && [ ! -e "$MARKER" ]
 }
 
-# 8. NODEBUG_BIN is built without the `debug` feature (build(), above), so `sill run` takes no
+# 8. NODEBUG_BIN is built without the `debug` feature (build_all, above), so `sill run` takes no
 # `--fake-ddc` (nor any other stand-in flag) there, and its DDC worker opens the real
 # /dev/i2c-* on startup exactly as a release build would, a read-only probe this step cannot avoid
-# without a stand-in i2c device, unlike every other daemon start in this suite.
+# without a stand-in i2c device, unlike every other daemon start in this suite (launch_daemon
+# cannot be used: it passes --fake-ddc). It still runs on the private bus, in the scratch tree.
 step_release_refuses_fake() {
   local log="$OUT_DIR/nodebug.log" answer
-  stop_daemon
-  BIN="$NODEBUG_BIN"
+  stop_daemon || return 1
+  SILL_BIN="$NODEBUG_BIN"
   : >"$CONFIG/sill/settings.toml"
-  XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" \
-    XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$NESTED_SOCKET" \
-    dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- \
-    sh -c "$PRIVATE_BOTH_BUSES" "$BIN" \
-    >"$log" 2>&1 &
+  require_private_system_bus "$BUS" || return 1
+  in_env "$SILL_BIN" run >"$log" 2>&1 &
   DAEMON=$!
-  for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
+  wait_ping
   answer=$(sill debug auth accept 2>&1)
   echo "a build without debug answers 'sill debug auth accept': $answer" | tee -a "$log" >&2
   stop_daemon
-  BIN="$SILL_BIN"
+  SILL_BIN="$SILL_REPO/target/debug/sill"
   echo "$answer" | grep -q "without the debug feature"
 }
 
@@ -373,28 +348,25 @@ recover() {
   else
     echo "recovery: the stand-in exited $? (see $OUT_DIR/recovery.log)" >&2
   fi
+  stop_private_bus
 }
 
-WAYLAND_DISPLAY="$NESTED_SOCKET" wayland-info >/dev/null 2>&1 || {
-  echo "no nested compositor at $NESTED_SOCKET (dev/nested.sh first)" >&2; exit 1; }
-build || exit 1
-for _ in $(seq 600); do
-  pgrep -f 'target/[a-z]*/sill run' >/dev/null || break
-  [ -n "${WAITED:-}" ] || { echo "another sill daemon is running; waiting for it to quit" >&2; WAITED=1; }
-  sleep 1
-done
+WAYLAND_DISPLAY="$WL" wayland-info >/dev/null 2>&1 || {
+  echo "no nested compositor at $WL (dev/nested.sh first)" >&2; exit 1; }
+build_all || exit 1
+await_no_process 'target/[a-z]*/sill run' || exit 1
+start_private_bus || exit 1
 trap recover EXIT
 status=0
-if start_daemon "$OUT_DIR/daemon.log"; then
-  for step in ${STEPS:-step_lock step_surfaces step_refuse_shakes step_no_lockout step_accept \
-    step_idle step_crash_relocks step_release_refuses_fake}; do
-    if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; fi
-  done
+if start_lock_daemon daemon.log; then
+  run_steps ${STEPS:-step_lock step_surfaces step_refuse_shakes step_no_lockout step_accept \
+    step_idle step_crash_relocks step_release_refuses_fake}
+  status=$STATUS
 else
   status=1
 fi
 recover
 trap - EXIT
-rm -rf "$RUNTIME" "$CONFIG" "$STATE" "$CACHE"
+scratch_drop
 echo "logs in $OUT_DIR; screenshots $SHOTS/lock-cosmic.png, $SHOTS/lock-sixwrong-cosmic.png"
 exit "$status"
