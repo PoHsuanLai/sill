@@ -12,6 +12,7 @@
 //! than guessed.
 
 use dioxus::prelude::*;
+use ds::Word;
 use ds::{EventLine, LabelHue, WidgetCard};
 use jiff::Timestamp;
 use jiff::civil::Date;

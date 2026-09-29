@@ -5,6 +5,7 @@
 //! builds it); it has no controls.
 
 use dioxus::prelude::*;
+use ds::Word;
 use ds::{Icon, LabelHue, NoIntent, TextLine, WidgetContext, WidgetHost, WidgetSize, WidgetTitle};
 use serde::{Deserialize, Serialize};
 

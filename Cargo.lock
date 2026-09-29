@@ -1820,11 +1820,21 @@ version = "0.1.0"
 dependencies = [
  "cssparser",
  "dioxus",
+ "ds-core-derive",
  "futures-timer",
  "image",
  "serde",
  "serde_json",
  "thiserror 2.0.20",
+]
+
+[[package]]
+name = "ds-core-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]

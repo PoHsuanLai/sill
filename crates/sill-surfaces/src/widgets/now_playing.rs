@@ -7,6 +7,7 @@
 //! classes.
 
 use dioxus::prelude::*;
+use ds::Word;
 use ds::{Icon, TextLine, WidgetCard, WidgetContext, WidgetSize, WidgetTitle};
 use sill_services::{Abilities, Art, Availability, Micros, Playback, Stamp, Timeline};
 

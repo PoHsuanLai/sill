@@ -51,6 +51,7 @@ fn with_appearance(file: AppearanceFile, next: Appearance) -> AppearanceFile {
 #[cfg(test)]
 mod tests {
     use super::with_appearance;
+    use ds::Word;
     use ds::{Accent, Appearance, Motion, Theme};
     use ds_settings::AppearanceFile;
 
