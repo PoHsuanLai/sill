@@ -42,33 +42,6 @@ pub struct LauncherSettings {
         advanced
     )]
     pub top_vertical_fraction: Fraction,
-    #[settings(
-        label = "Search row height",
-        help = "The height of the search field row.",
-        section = "Launcher",
-        range = "32..=96",
-        unit = "px",
-        advanced
-    )]
-    pub input_row_height_px: Px,
-    #[settings(
-        label = "Result row height",
-        help = "The height of one result row.",
-        section = "Launcher",
-        range = "24..=96",
-        unit = "px",
-        advanced
-    )]
-    pub result_row_height_px: Px,
-    #[settings(
-        label = "Open latency budget",
-        help = "The p95 open time the acceptance script holds the launcher to.",
-        section = "Launcher",
-        range = "10..=1000",
-        unit = "ms",
-        advanced
-    )]
-    pub open_latency_budget_ms: Ms,
     /// `launcher.material` (§3.1 row, owned by sill: quire FINDINGS F15).
     #[settings(
         label = "Panel material",
@@ -211,9 +184,6 @@ impl Default for LauncherSettings {
             top_bar_gap_px: Px(24),
             top_centre_bias_px: Px(230),
             top_vertical_fraction: Fraction(400),
-            input_row_height_px: Px(56),
-            result_row_height_px: Px(44),
-            open_latency_budget_ms: Ms(100),
             material: PanelMaterial::Sheet,
             field_font_px: Px(22),
             field_font_weight: Count(500),

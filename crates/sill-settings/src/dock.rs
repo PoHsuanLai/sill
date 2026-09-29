@@ -150,15 +150,6 @@ pub struct DockSettings {
     )]
     pub edge_clamp_px: Px,
     #[settings(
-        label = "Smallest icon",
-        help = "How small icons may shrink when the dock is full.",
-        section = "Size",
-        range = "16..=48",
-        unit = "px",
-        advanced
-    )]
-    pub overflow_min_tile_px: Px,
-    #[settings(
         label = "Indicator dot",
         help = "The diameter of the open-app dot.",
         section = "Indicators",
@@ -231,15 +222,6 @@ pub struct DockSettings {
     )]
     pub magnify_leave_ms: Ms,
     #[settings(
-        label = "Label offset",
-        help = "The gap between an icon and its name label.",
-        section = "Labels",
-        range = "0..=32",
-        unit = "px",
-        advanced
-    )]
-    pub hover_label_offset_px: Px,
-    #[settings(
         label = "Label warm time",
         help = "How long after leaving the dock the next label shows at once.",
         section = "Labels",
@@ -302,15 +284,6 @@ pub struct DockSettings {
         advanced
     )]
     pub spring_load_ms: Ms,
-    #[settings(
-        label = "Minimize target delay",
-        help = "How long after the dock changes its layout the minimize targets are updated.",
-        section = "Items",
-        range = "0..=1000",
-        unit = "ms",
-        advanced
-    )]
-    pub minimize_debounce_ms: Ms,
     #[settings(
         label = "Menu order",
         help = "Windows first, or Apple's order.",
@@ -376,7 +349,6 @@ impl Default for DockSettings {
             trash: TrashTile::On,
             pill_radius_px: Px(22),
             edge_clamp_px: Px(8),
-            overflow_min_tile_px: Px(24),
             running_dot_diameter_px: Px(4),
             badge_size_px: Px(18),
             badge_radius_px: Px(9),
@@ -385,7 +357,6 @@ impl Default for DockSettings {
             separator_height_px: Px(36),
             magnify_enter_ms: Ms(120),
             magnify_leave_ms: Ms(200),
-            hover_label_offset_px: Px(7),
             hover_label_warm_ms: Ms(400),
             bounce_period_ms: Ms(500),
             bounce_launch_cap_ms: Ms(10_000),
@@ -393,7 +364,6 @@ impl Default for DockSettings {
             hold_to_menu_move_px: Px(8),
             remove_threshold_px: Px(64),
             spring_load_ms: Ms(500),
-            minimize_debounce_ms: Ms(100),
             context_menu_order: DockMenuOrder::WindowsFirst,
             modifier_clicks: DockModifierClicks::AppleMapping,
             pill_padding_px: Px(6),

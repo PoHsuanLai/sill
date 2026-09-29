@@ -47,8 +47,6 @@ const BASIC: &[&str] = &[
     "scroll.natural",
     "notifications.dnd",
     "notifications.banner_style",
-    "spaces.mail_frame_policy",
-    "spaces.wallpaper_follows_space",
 ];
 
 #[test]

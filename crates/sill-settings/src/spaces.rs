@@ -1,8 +1,6 @@
 //! `spaces.*` (design/22 §3.14; design/21): the defaults a workspace without a stored
-//! `SpaceLook` gets. The per-workspace looks are state in `quire/spaces.json`, not here. The
-//! mail frame and wallpaper policies are on the Spaces page (§5); the rest are Advanced.
-//! `spaces.material_tint_alpha` is an alias of `appearance.material_tint_alpha` (quire's file),
-//! not a second key.
+//! `SpaceLook` gets. The per-workspace looks are state in `quire/spaces.json`, not here. All
+//! Advanced.
 
 use ds_settings::Count;
 use ds_settings::schema::Page;
@@ -28,67 +26,6 @@ pub enum DefaultCardAccent {
     SpaceHue,
 }
 
-/// `spaces.overlay_tint`: whether notifications, OSD, power menu, lock and polkit take the tint.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
-#[serde(rename_all = "snake_case")]
-pub enum OverlayTint {
-    #[default]
-    Off,
-    On,
-}
-
-/// `spaces.mail_frame_policy` (design/21 §11 open decision 1).
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
-#[serde(rename_all = "snake_case")]
-pub enum MailSpacePolicy {
-    Own,
-    Workspace,
-    #[default]
-    OwnFallbackWorkspace,
-}
-
-/// `spaces.wallpaper_follows_space` (design/21 §8).
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
-#[serde(rename_all = "snake_case")]
-pub enum WallpaperPolicy {
-    #[default]
-    Independent,
-    PerWorkspace,
-}
-
 /// `spaces.wallpaper_drawer`: who paints the desktop background. `Shell` (default) spawns sill's
 /// own wallpaper surface on every output; `Cosmic` leaves it to COSMIC's own `cosmic-bg`.
 #[derive(
@@ -108,26 +45,6 @@ pub enum WallpaperDrawer {
     Cosmic,
     #[default]
     Shell,
-}
-
-/// `spaces.dock_look_source` (design/21 §11 open decision 5).
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
-#[serde(rename_all = "snake_case")]
-pub enum DockLookSource {
-    #[default]
-    OwnOutput,
-    FocusedWindow,
 }
 
 /// `spaces.lookup_order`. design/22 lists one variant and names `ByIndexOnly` as the future
@@ -174,38 +91,12 @@ pub struct SpacesSettings {
     )]
     pub default_card_accent: DefaultCardAccent,
     #[settings(
-        label = "Tint overlays",
-        help = "Whether notifications, the OSD and system prompts take the Space's colour.",
-        section = "Defaults",
-        advanced
-    )]
-    pub overlay_tint: OverlayTint,
-    #[settings(
-        label = "Mail's frame",
-        help = "Mail's own Space, the workspace's, or its own unless it has none.",
-        section = "Apps"
-    )]
-    pub mail_frame_policy: MailSpacePolicy,
-    #[settings(
-        label = "Wallpaper",
-        help = "One wallpaper for every Space, or one per workspace.",
-        section = "Desktop"
-    )]
-    pub wallpaper_follows_space: WallpaperPolicy,
-    #[settings(
         label = "Wallpaper drawn by",
         help = "COSMIC's own background service, or the shell's wallpaper, which cross-fades with light and dark.",
         section = "Desktop",
         advanced
     )]
     pub wallpaper_drawer: WallpaperDrawer,
-    #[settings(
-        label = "Dock colour source",
-        help = "The dock's own screen's Space, or the focused window's.",
-        section = "Desktop",
-        advanced
-    )]
-    pub dock_look_source: DockLookSource,
     #[settings(
         label = "Look lookup",
         help = "Find a workspace's look by its id, then its position; or by position only.",
@@ -220,11 +111,7 @@ impl Default for SpacesSettings {
         SpacesSettings {
             default_grain: Count(40),
             default_card_accent: DefaultCardAccent::Postmark,
-            overlay_tint: OverlayTint::Off,
-            mail_frame_policy: MailSpacePolicy::OwnFallbackWorkspace,
-            wallpaper_follows_space: WallpaperPolicy::Independent,
             wallpaper_drawer: WallpaperDrawer::Shell,
-            dock_look_source: DockLookSource::OwnOutput,
             lookup_order: SpaceLookLookup::ByIdThenIndex,
         }
     }

@@ -17,8 +17,7 @@ use sill_settings::{
     HardwareVolumeMode, NightWarmthMode, ScaleRounding as ScaleRoundingSetting, ShellFile,
 };
 
-/// `display.*` as the service's policy. `color_management` is stored only; the service has
-/// nothing to do with it yet (FINDINGS "Displays").
+/// `display.*` as the service's policy.
 pub fn policy_from(settings: &DisplaySettings) -> DisplayPolicy {
     DisplayPolicy {
         scale: match settings.scale {

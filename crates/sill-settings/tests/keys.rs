@@ -29,11 +29,6 @@ const FROM_APPEARANCE: &[&str] = &[
     "launcher.material",
 ];
 
-/// Rows that are aliases of another file's key, not keys of their own: §3.14 says
-/// `spaces.material_tint_alpha` is "alias of `appearance.material_tint_alpha` (3.1) kept in this
-/// domain's table for discoverability". The mirror of ds-settings' `DOC_ALIASES` (`motion.level`).
-const DOC_ALIASES: &[&str] = &["spaces.material_tint_alpha"];
-
 /// Keys registered in sill whose §3 rows quire's design/22 has not gained yet: quire's owner adds
 /// them (sill FINDINGS lists each row). A key here needs no row until it has one; once the row
 /// lands it is checked like every other key, and the entry can go.
@@ -56,6 +51,23 @@ const RETIRING: &[&str] = &[
     "sound.event_notification",
     "sound.event_critical_alert",
     "sound.event_invalid_key",
+    "dock.overflow_min_tile_px",
+    "dock.hover_label_offset_px",
+    "dock.minimize_debounce_ms",
+    "launcher.input_row_height_px",
+    "launcher.result_row_height_px",
+    "launcher.open_latency_budget_ms",
+    "menus.max_width_px",
+    "menus.section_header_height_px",
+    "menus.pick_feedback",
+    "spaces.overlay_tint",
+    "spaces.mail_frame_policy",
+    "spaces.wallpaper_follows_space",
+    "spaces.dock_look_source",
+    "spaces.material_tint_alpha",
+    "window.tile_menu_press_ms",
+    "window.tile_menu_hover_ms",
+    "display.color_management",
 ];
 
 fn doc_keys() -> Vec<String> {
@@ -63,7 +75,6 @@ fn doc_keys() -> Vec<String> {
     let mut keys: Vec<String> = SECTIONS
         .iter()
         .flat_map(|(from, to)| keys_in_section(&doc, from, to))
-        .filter(|key| !DOC_ALIASES.contains(&key.as_str()))
         .collect();
     let appearance = keys_in_section(&doc, "### 3.1 `appearance`", "### 3.2 `motion`");
     for key in FROM_APPEARANCE {
@@ -134,16 +145,4 @@ fn no_path_is_described_twice() {
     paths.sort();
     paths.dedup();
     assert_eq!(paths.len(), count, "a key path appears in two domains");
-}
-
-#[test]
-fn every_alias_row_named_here_is_still_in_the_doc() {
-    let doc = doc();
-    let spaces = keys_in_section(&doc, "### 3.14 `spaces`", "## 4. Rust shape");
-    for alias in DOC_ALIASES {
-        assert!(
-            spaces.iter().any(|k| k == alias),
-            "{alias} is not a §3.14 row"
-        );
-    }
 }

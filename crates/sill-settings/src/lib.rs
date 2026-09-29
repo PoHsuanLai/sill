@@ -42,7 +42,7 @@ pub use bar::{BarGlyphSize, BarSettings};
 pub use calendar::{CalendarSettings, FirstWeekday, WeekNumbers};
 pub use control_center::{ControlCenterModule, ControlCenterSettings, InMenuBar, PanelMaterial};
 pub use display::{
-    BrightnessKeysTarget, ColorManagement, DisplayScaleMode, DisplaySettings, FontRenderingSetting,
+    BrightnessKeysTarget, DisplayScaleMode, DisplaySettings, FontRenderingSetting,
     HardwareVolumeMode, NightWarmthMode, ScaleRounding,
 };
 pub use dock::{
@@ -60,7 +60,7 @@ pub use hot_corners::{CornerAction, HotCornersSettings};
 pub use idle::{IdleLockAt, IdleSettings, IdleTimesFrom};
 pub use launcher::LauncherSettings;
 pub use launcher_kinds::{ClipboardHistory, CurrencyRates, EmojiSkinTone, FilesBackend, WebSearch};
-pub use menus::{MenusSettings, PickFeedback};
+pub use menus::MenusSettings;
 pub use notifications::{
     BannerEntry, BannerMaterial, BannerPosition, BannerStyle, Dnd, NotificationServer,
     NotificationSwipe, NotificationsSettings,
@@ -74,10 +74,7 @@ pub use scroll::{
 };
 pub use scrollbar::{ScrollbarSettings, TrackClick};
 pub use session::{LockClock, SessionSettings};
-pub use spaces::{
-    DefaultCardAccent, DockLookSource, MailSpacePolicy, OverlayTint, SpaceLookLookup,
-    SpacesSettings, WallpaperDrawer, WallpaperPolicy,
-};
+pub use spaces::{DefaultCardAccent, SpaceLookLookup, SpacesSettings, WallpaperDrawer};
 pub use switcher::SwitcherSettings;
 pub use watch::{ShellWatch, watch};
 pub use widgets::{DesktopWidgets, WidgetKind, WidgetsSettings};

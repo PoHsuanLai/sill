@@ -133,26 +133,6 @@ pub enum FontRenderingSetting {
     Off,
 }
 
-/// `display.color_management`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
-#[serde(rename_all = "snake_case")]
-pub enum ColorManagement {
-    #[default]
-    Auto,
-    Off,
-}
-
 /// Displays.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
 #[serde(default)]
@@ -225,13 +205,6 @@ pub struct DisplaySettings {
         advanced
     )]
     pub font_rendering: FontRenderingSetting,
-    #[settings(
-        label = "Colour management",
-        help = "Auto: use each display's reported gamut once the compositor supports colour management. Stored only for now.",
-        section = "Colour",
-        advanced
-    )]
-    pub color_management: ColorManagement,
 }
 
 impl Default for DisplaySettings {
@@ -246,7 +219,6 @@ impl Default for DisplaySettings {
             night_warmth: NightWarmthMode::Off,
             night_warmth_strength: Percent(50),
             font_rendering: FontRenderingSetting::Auto,
-            color_management: ColorManagement::Auto,
         }
     }
 }

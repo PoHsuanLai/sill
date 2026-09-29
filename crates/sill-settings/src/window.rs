@@ -1,9 +1,8 @@
-//! `window.*`: how the shell's own app windows handle a titlebar drag and the green light's
-//! tile menu (quire CONSUMING "Window frame"). The rows are design/22's `window` section;
-//! `tests/keys.rs` lists them in `AWAITING_ROWS` until it lands. All Advanced.
+//! `window.*`: how the shell's own app windows handle a titlebar drag. The rows are design/22's
+//! `window` section. All Advanced.
 
+use ds_settings::Px;
 use ds_settings::schema::Page;
-use ds_settings::{Ms, Px};
 use serde::{Deserialize, Serialize};
 
 /// The shell's app windows.
@@ -20,32 +19,12 @@ pub struct WindowSettings {
         advanced
     )]
     pub move_threshold_px: Px,
-    #[settings(
-        label = "Hold to show the tile menu",
-        help = "How long a press on the green light waits before it shows the tile menu instead of zooming.",
-        section = "Windows",
-        range = "100..=3000",
-        unit = "ms",
-        advanced
-    )]
-    pub tile_menu_press_ms: Ms,
-    #[settings(
-        label = "Hover to show the tile menu",
-        help = "How long the pointer rests on the green light before the tile menu shows.",
-        section = "Windows",
-        range = "100..=5000",
-        unit = "ms",
-        advanced
-    )]
-    pub tile_menu_hover_ms: Ms,
 }
 
 impl Default for WindowSettings {
     fn default() -> Self {
         WindowSettings {
             move_threshold_px: Px(4),
-            tile_menu_press_ms: Ms(500),
-            tile_menu_hover_ms: Ms(800),
         }
     }
 }

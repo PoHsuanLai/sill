@@ -6,28 +6,6 @@ use ds_settings::schema::Page;
 use ds_settings::{Ms, Px};
 use serde::{Deserialize, Serialize};
 
-/// `menus.pick_feedback` (design/13 §13.9 open decision 3).
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
-#[serde(rename_all = "snake_case")]
-pub enum PickFeedback {
-    /// Close, then pick (the design).
-    #[default]
-    None,
-    /// Blink the chosen item once, then close (macOS).
-    BlinkOnce,
-}
-
 /// Every text menu's tracking and geometry.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ds_settings::SettingsSchema)]
 #[serde(default)]
@@ -52,15 +30,6 @@ pub struct MenusSettings {
     )]
     pub item_height_px: Px,
     #[settings(
-        label = "Widest menu",
-        help = "Menus never grow wider than this.",
-        section = "Menus",
-        range = "220..=800",
-        unit = "px",
-        advanced
-    )]
-    pub max_width_px: Px,
-    #[settings(
         label = "Separator margin",
         help = "Space above and below a separator.",
         section = "Menus",
@@ -70,15 +39,6 @@ pub struct MenusSettings {
     )]
     pub separator_margin_px: Px,
     #[settings(
-        label = "Header height",
-        help = "The height of a section header.",
-        section = "Menus",
-        range = "12..=40",
-        unit = "px",
-        advanced
-    )]
-    pub section_header_height_px: Px,
-    #[settings(
         label = "Safe triangle timeout",
         help = "Resting inside the path to a submenu this long selects what is under the pointer.",
         section = "Menus",
@@ -87,13 +47,6 @@ pub struct MenusSettings {
         advanced
     )]
     pub submenu_triangle_timeout_ms: Ms,
-    #[settings(
-        label = "Pick feedback",
-        help = "Blink the chosen item before the menu closes.",
-        section = "Menus",
-        advanced
-    )]
-    pub pick_feedback: PickFeedback,
     #[settings(
         label = "First click window",
         help = "A click this soon after a window activates only activates it.",
@@ -140,11 +93,8 @@ impl Default for MenusSettings {
         MenusSettings {
             submenu_delay_ms: Ms(200),
             item_height_px: Px(22),
-            max_width_px: Px(420),
             separator_margin_px: Px(5),
-            section_header_height_px: Px(22),
             submenu_triangle_timeout_ms: Ms(300),
-            pick_feedback: PickFeedback::None,
             first_mouse_window_ms: Ms(100),
             font_px: Px(13),
             highlight_radius_px: Px(5),
