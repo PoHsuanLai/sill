@@ -56,7 +56,8 @@ pub fn run() -> ExitCode {
         Err(error) => return fatal(&format!("starting the async runtime: {error}")),
     };
 
-    let services = sill_services::Services::spawn(runtime.handle());
+    let env = sill_services::env::Env::from_process();
+    let services = sill_services::Services::spawn(runtime.handle(), &env);
 
     let settings_dir = sill_settings::settings_dir();
     let initial_settings = settings_dir

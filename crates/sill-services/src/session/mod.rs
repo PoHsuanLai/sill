@@ -17,6 +17,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
+use crate::env::Bus;
 use crate::locker::LockerCommand;
 
 /// What the session service can be told.
@@ -36,10 +37,11 @@ pub enum SessionCommand {
 /// where `Run(Lock)` goes.
 pub fn spawn(
     rt: &Handle,
+    bus: Bus,
     locker: Control<LockerCommand>,
 ) -> (watch::Receiver<Session>, Control<SessionCommand>) {
     let (tx, rx) = watch::channel(Session::default());
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands, locker));
+    rt.spawn(live::run(bus, tx, commands, locker));
     (rx, control)
 }

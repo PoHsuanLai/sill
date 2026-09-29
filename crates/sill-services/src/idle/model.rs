@@ -7,6 +7,7 @@ use tokio::sync::watch;
 use crate::auth::AuthCommand;
 use crate::battery::Battery;
 use crate::control::Control;
+use crate::env::{Bus, Env};
 use crate::locker::{Lock, LockerCommand};
 
 use super::inhibit::{Inhibition, LogindIdle};
@@ -80,13 +81,24 @@ pub struct IdleLinks {
 /// Where the service connects. The default is the session's own; live tests name a nested
 /// compositor and private buses so nothing reaches the real displays, logind or the session
 /// bus's `org.freedesktop.ScreenSaver`.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Setup {
     pub display: IdleDisplay,
     /// logind (`Suspend`, `SetIdleHint`, `PrepareForSleep`, `BlockInhibited`).
-    pub system: BusRoute,
+    pub system: Bus,
     /// `org.freedesktop.ScreenSaver`.
-    pub session: BusRoute,
+    pub session: Bus,
+}
+
+impl Setup {
+    /// The session's compositor, and `env`'s buses.
+    pub fn of(env: &Env) -> Setup {
+        Setup {
+            display: IdleDisplay::Environment,
+            system: env.buses.system.clone(),
+            session: env.buses.session.clone(),
+        }
+    }
 }
 
 /// The compositor to hold idle notifications and output power on.
@@ -97,16 +109,4 @@ pub enum IdleDisplay {
     Environment,
     /// A socket path (a live test's nested cosmic-comp).
     Socket(PathBuf),
-}
-
-/// Which bus a half of the service talks to.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum BusRoute {
-    /// The usual system or session bus.
-    #[default]
-    Usual,
-    /// A private bus (`tests/support/private_bus.rs`) with stand-ins.
-    Address(String),
-    /// None: that half is skipped (no suspend, no `ScreenSaver` name).
-    Absent,
 }

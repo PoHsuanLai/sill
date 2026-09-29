@@ -29,6 +29,7 @@ use super::policy::DisplayPolicy;
 use super::scale_pass::scale_pass;
 use super::seen;
 use super::sink::CosmicRandr;
+use crate::env::Bus;
 use crate::volume::Volume;
 
 /// Where the service looks and writes.
@@ -44,16 +45,20 @@ pub struct Paths {
     pub fontconfig: Option<PathBuf>,
     /// The DDC buses: the real ones, or (a debug build's acceptance runs) a fake.
     pub ddc: DdcSource,
+    /// logind, which sets a backlight as this session.
+    pub system: Bus,
 }
 
-impl Default for Paths {
-    fn default() -> Self {
+impl Paths {
+    /// The usual places, logind on `system`.
+    pub fn of(system: Bus) -> Self {
         Paths {
             drm: PathBuf::from("/sys/class/drm"),
             backlight: PathBuf::from("/sys/class/backlight"),
             seen: seen::default_path(),
             fontconfig: fontconfig_file::default_dir(),
             ddc: DdcSource::from_env(),
+            system,
         }
     }
 }
@@ -235,7 +240,7 @@ impl Service {
         match action {
             BrightnessAction::Ddc(write) => self.write(write),
             BrightnessAction::Backlight { name, value } => {
-                if let Err(error) = backlight::set(&name, value).await {
+                if let Err(error) = backlight::set(&self.paths.system, &name, value).await {
                     self.warn(format!("backlight {}: {error}", name.0));
                 }
                 let backlights = backlight::read_all(&self.paths.backlight);

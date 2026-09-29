@@ -17,6 +17,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
+use crate::env::Bus;
 use crate::units::Percent;
 
 /// What the keyboard backlight service can be told.
@@ -30,9 +31,9 @@ pub enum KbdCommand {
 
 /// Start the keyboard backlight task on `rt`. Without UPower or a backlight the receiver stays
 /// at `KbdBacklight::default()` (absent), and the control center shows no module.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<KbdBacklight>, Control<KbdCommand>) {
+pub fn spawn(rt: &Handle, bus: Bus) -> (watch::Receiver<KbdBacklight>, Control<KbdCommand>) {
     let (tx, rx) = watch::channel(KbdBacklight::default());
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands));
+    rt.spawn(live::run(bus, tx, commands));
     (rx, control)
 }

@@ -9,15 +9,17 @@ use zbus::export::futures_core::Stream;
 
 use super::BatteryCommand;
 use super::model::{Battery, BatteryEvent, Charge, reduce_battery};
+use crate::env::Bus;
 use crate::units::{Percent, Presence, Seconds};
 
 /// Connects to UPower's display device and runs until `commands` closes (the `Control` was
 /// dropped). If the bus or UPower is unreachable, `tx` is left at its seeded default (absent).
 pub(super) async fn run(
+    bus: Bus,
     tx: watch::Sender<Battery>,
     mut commands: mpsc::UnboundedReceiver<BatteryCommand>,
 ) {
-    let Ok(connection) = zbus::Connection::system().await else {
+    let Ok(Some(connection)) = bus.connect().await else {
         return;
     };
     let Ok(upower) = UPowerProxy::new(&connection).await else {

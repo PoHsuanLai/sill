@@ -7,7 +7,7 @@
 //! publishing both receivers.
 //!
 //! Nothing here may ever touch the real session bus from a test: tests pass
-//! `BusChoice::Address` of a private `dbus-daemon` (`tests/support/private_bus.rs`).
+//! `BusRoute::Address` of a private `dbus-daemon` (`tests/support/private_bus.rs`).
 
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};

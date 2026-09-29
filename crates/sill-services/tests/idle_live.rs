@@ -12,10 +12,11 @@ use std::time::{Duration, Instant};
 
 use private_bus::PrivateBus;
 use sill_services::battery::Battery;
+use sill_services::env::{Bus, BusRoute};
 use sill_services::idle::{
-    BusRoute, DimLevel, DimPlan, Idle, IdleCommand, IdleDisplay, IdleLinks, IdleLock, IdleMode,
-    IdlePhase, IdlePolicy, IdleSecs, IdleTimes, Inhibition, LockGrace, LockedScreenOff, PowerPair,
-    Setup, Timeout, spawn_with,
+    DimLevel, DimPlan, Idle, IdleCommand, IdleDisplay, IdleLinks, IdleLock, IdleMode, IdlePhase,
+    IdlePolicy, IdleSecs, IdleTimes, Inhibition, LockGrace, LockedScreenOff, PowerPair, Setup,
+    Timeout, spawn,
 };
 use sill_services::{AuthCommand, Control, Lock, LockerCommand};
 use tokio::sync::watch;
@@ -87,8 +88,8 @@ async fn idle_locks_at_screen_off_and_a_screensaver_inhibit_holds_it() {
     let (auth, _auth_rx) = Control::<AuthCommand>::channel();
     let setup = Setup {
         display: IdleDisplay::Socket(socket),
-        system: BusRoute::Absent,
-        session: BusRoute::Address(bus.address.clone()),
+        system: Bus::system(BusRoute::Absent),
+        session: Bus::session(BusRoute::Address(bus.address.clone())),
     };
     let links = IdleLinks {
         lock,
@@ -96,7 +97,7 @@ async fn idle_locks_at_screen_off_and_a_screensaver_inhibit_holds_it() {
         locker,
         auth,
     };
-    let (mut idle, control) = spawn_with(&tokio::runtime::Handle::current(), links, setup);
+    let (mut idle, control) = spawn(&tokio::runtime::Handle::current(), links, setup);
     assert_eq!(idle.borrow().mode, IdleMode::default(), "passive at first");
     control
         .send(IdleCommand::Use(policy()))

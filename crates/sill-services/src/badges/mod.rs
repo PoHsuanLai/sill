@@ -15,6 +15,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
+use crate::env::Bus;
 
 /// What the badges service can be told.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,9 +27,9 @@ pub enum BadgesCommand {
 /// Subscribe to `LauncherEntry.Update` on the session bus and follow senders leaving it
 /// (`NameOwnerChanged` clears their apps' badges). A missing session bus leaves the receiver at
 /// `Badges::default()` — starting a service never fails the shell (`error.rs`).
-pub fn spawn(rt: &Handle) -> (watch::Receiver<Badges>, Control<BadgesCommand>) {
+pub fn spawn(rt: &Handle, bus: Bus) -> (watch::Receiver<Badges>, Control<BadgesCommand>) {
     let (tx, rx) = watch::channel(Badges::default());
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands));
+    rt.spawn(live::run(bus, tx, commands));
     (rx, control)
 }

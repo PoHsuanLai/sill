@@ -7,6 +7,8 @@ use logind_zbus::manager::{InhibitType, ManagerProxy, PrepareForSleepStream};
 use logind_zbus::session::{LockStream, SessionProxy};
 use logind_zbus::user::UserProxy;
 use zbus::Connection;
+
+use crate::env::Bus;
 use zbus::export::futures_core::Stream;
 use zbus::zvariant::{OwnedFd, OwnedObjectPath};
 
@@ -29,8 +31,8 @@ impl std::fmt::Debug for Logind {
 }
 
 /// Connects and subscribes; whatever fails is left out.
-pub(super) async fn connect() -> Logind {
-    let Ok(connection) = Connection::system().await else {
+pub(super) async fn connect(bus: &Bus) -> Logind {
+    let Ok(Some(connection)) = bus.connect().await else {
         return Logind::default();
     };
     let Ok(manager) = ManagerProxy::new(&connection).await else {

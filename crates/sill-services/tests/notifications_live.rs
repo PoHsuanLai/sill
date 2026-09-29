@@ -10,9 +10,8 @@ mod support;
 use std::collections::HashMap;
 use std::time::Duration;
 
-use sill_services::notifications::{
-    self, BUS_NAME, BusChoice, HistoryPlace, NotificationsHandles, Setup,
-};
+use sill_services::env::{Bus, BusRoute};
+use sill_services::notifications::{self, BUS_NAME, HistoryPlace, NotificationsHandles, Setup};
 use sill_services::{
     ActionKey, Activation, ActivationToken, NameHolder, NotificationId, Notifications,
     NotificationsCommand, NotificationsPolicy, ServerMode,
@@ -55,7 +54,7 @@ async fn owner(connection: &zbus::Connection) -> Option<String> {
 
 fn setup(bus: &PrivateBus) -> Setup {
     Setup {
-        bus: BusChoice::Address(bus.address.clone()),
+        bus: Bus::session(BusRoute::Address(bus.address.clone())),
         history: HistoryPlace::NotKept,
     }
 }
@@ -96,7 +95,7 @@ fn the_private_bus_starts_empty_and_activates_nothing() {
 fn a_passive_service_never_asks_for_the_name_but_reports_its_holder() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
     let bus = PrivateBus::start();
-    let (mut live, _history, control) = notifications::spawn_with(runtime.handle(), setup(&bus));
+    let (mut live, _history, control) = notifications::spawn(runtime.handle(), setup(&bus));
     let seen = runtime.block_on(wait_for(&mut live, SETTLE, |n: &Notifications| {
         n.server.holder == NameHolder::Nobody
     }));
@@ -117,7 +116,7 @@ fn a_passive_service_never_asks_for_the_name_but_reports_its_holder() {
 fn owning_serves_notify_and_close_with_their_signal() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
     let bus = PrivateBus::start();
-    let (mut live, _history, control) = notifications::spawn_with(runtime.handle(), setup(&bus));
+    let (mut live, _history, control) = notifications::spawn(runtime.handle(), setup(&bus));
     control
         .send(NotificationsCommand::Policy(own()))
         .unwrap_or_else(|e| panic!("{e}"));
@@ -201,7 +200,7 @@ fn owning(
         history,
         ..setup(bus)
     };
-    let (mut live, history, control) = notifications::spawn_with(runtime.handle(), setup);
+    let (mut live, history, control) = notifications::spawn(runtime.handle(), setup);
     control
         .send(NotificationsCommand::Policy(own()))
         .unwrap_or_else(|e| panic!("{e}"));
@@ -393,7 +392,7 @@ fn another_holder_is_never_replaced_and_the_name_is_taken_when_free() {
             .unwrap_or_else(|e| panic!("{e}"));
         other
     });
-    let (mut live, _history, control) = notifications::spawn_with(runtime.handle(), setup(&bus));
+    let (mut live, _history, control) = notifications::spawn(runtime.handle(), setup(&bus));
     control
         .send(NotificationsCommand::Policy(own()))
         .unwrap_or_else(|e| panic!("{e}"));

@@ -27,6 +27,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
+use crate::env::Bus;
 
 /// What the lock screen is doing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -71,9 +72,9 @@ pub enum LockerCommand {
 }
 
 /// Start the locker service on `rt`. Inert until the first `Configure` or `Use`.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<Lock>, Control<LockerCommand>) {
+pub fn spawn(rt: &Handle, bus: Bus) -> (watch::Receiver<Lock>, Control<LockerCommand>) {
     let (tx, rx) = watch::channel(Lock::default());
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands));
+    rt.spawn(live::run(bus, tx, commands));
     (rx, control)
 }

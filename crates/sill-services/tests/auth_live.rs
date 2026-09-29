@@ -18,9 +18,15 @@ use sill_services::auth::{
     FakeAuthenticator, FakeRule, FakeVerdict, Outcome, PamHelper, Secret, UserName, pam,
 };
 use sill_services::control::Control;
+use sill_services::env::{Bus, BusRoute};
 use tokio::sync::watch;
 
 const RIGHT: &str = "right horse battery";
+
+/// No system bus: the account's picture is never asked of the real AccountsService.
+fn no_bus() -> Bus {
+    Bus::system(BusRoute::Absent)
+}
 
 fn fake(delay_ms: u64) -> Arc<dyn Authenticator> {
     Arc::new(FakeAuthenticator {
@@ -58,7 +64,8 @@ async fn wrong_once(auth: &mut watch::Receiver<Auth>, control: &Control<AuthComm
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "live: spawns the auth service"]
 async fn many_wrongs_never_lock_out_and_the_right_one_opens() {
-    let (mut auth, control) = auth::spawn_with(&tokio::runtime::Handle::current(), fake(20));
+    let (mut auth, control) =
+        auth::spawn_with(&tokio::runtime::Handle::current(), no_bus(), fake(20));
     send(&control, AuthCommand::Reset);
     let loaded = until(&mut auth, "the account", |a| !a.account.user.0.is_empty()).await;
     println!(
@@ -86,7 +93,8 @@ async fn many_wrongs_never_lock_out_and_the_right_one_opens() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "live: spawns the auth service"]
 async fn busy_while_checking_then_right_then_reset() {
-    let (mut auth, control) = auth::spawn_with(&tokio::runtime::Handle::current(), fake(300));
+    let (mut auth, control) =
+        auth::spawn_with(&tokio::runtime::Handle::current(), no_bus(), fake(300));
     send(&control, AuthCommand::Submit(Secret::new("nope")));
     send(&control, AuthCommand::Submit(Secret::new("nope again")));
     until(&mut auth, "wrong", |a| a.phase == AuthPhase::Wrong).await;
@@ -120,7 +128,8 @@ async fn an_unavailable_check_counts_nothing() {
         rule: FakeRule::Fails(AuthFault::ServiceError),
         delay: Duration::ZERO,
     });
-    let (mut auth, control) = auth::spawn_with(&tokio::runtime::Handle::current(), failing);
+    let (mut auth, control) =
+        auth::spawn_with(&tokio::runtime::Handle::current(), no_bus(), failing);
     send(&control, AuthCommand::Submit(Secret::new("x")));
     until(&mut auth, "unavailable", |a| {
         a.phase == AuthPhase::Unavailable(AuthFault::ServiceError)

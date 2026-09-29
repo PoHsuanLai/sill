@@ -14,6 +14,7 @@ use crate::units::Presence;
 use super::index::IndexKind;
 use super::program::{FD_NAMES, on_path_any};
 use super::tracker::tracker_state;
+use crate::env::Bus;
 
 /// Whether an indexer is there, and whether asking it would start something.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -52,11 +53,11 @@ pub fn pick(choice: FilesChoice, detected: &Detected) -> Option<IndexKind> {
 
 /// What this machine has. Blocking (a bus call, `PATH` lookups): the
 /// provider asks once, off the UI thread, and caches it.
-pub fn detect() -> Detected {
+pub fn detect(session: &Bus) -> Detected {
     let search_path = std::env::var_os("PATH").unwrap_or_default();
     let program = |names: &[&str]| on_path_any(names, &search_path, Path::is_file);
     Detected {
-        tracker: tracker_state(),
+        tracker: tracker_state(session),
         fd: program(FD_NAMES),
         plocate: program(&["plocate"]),
     }

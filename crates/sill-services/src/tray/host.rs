@@ -23,6 +23,7 @@ use super::model::{
     Availability, Check, Pixmap, ScrollAxis, ScrollDelta, Tray, TrayCommand, TrayEvent, TrayIcon,
     TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind, TrayStatus, reduce_tray,
 };
+use crate::env::{Bus, BusRoute};
 use crate::units::Visibility;
 
 const ITEM_PATH: &str = "/StatusNotifierItem";
@@ -35,9 +36,19 @@ const ITEM_INTERFACE: &str = "org.kde.StatusNotifierItem";
 /// `Client::new()` leaves the watch at its `Tray::default()` seed (`ServiceError` doc,
 /// `error.rs`: "a missing bus... leaves that service's receiver at its default").
 pub(super) async fn run(
+    bus: Bus,
     tray_tx: watch::Sender<Tray>,
     mut commands: mpsc::UnboundedReceiver<TrayCommand>,
 ) {
+    match bus.route() {
+        BusRoute::Usual => {}
+        BusRoute::Absent => return,
+        // `Client::new()` reaches only the process's own session bus.
+        BusRoute::Address(_) => {
+            eprintln!("sill-services: tray: the SNI host runs only on the usual session bus");
+            return;
+        }
+    }
     let client = match Client::new().await {
         Ok(client) => client,
         Err(error) => {
@@ -47,7 +58,7 @@ pub(super) async fn run(
     };
     // `Client` keeps its connection private and has no scroll call, so `Scroll` goes over a
     // second session connection of our own; without one, scrolls are dropped.
-    let bus = zbus::Connection::session().await.ok();
+    let bus = bus.connect().await.ok().flatten();
     let mut events = client.subscribe();
     let mut state = seed(&client);
     let _ = tray_tx.send(state.clone());

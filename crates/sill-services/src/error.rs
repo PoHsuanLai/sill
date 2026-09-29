@@ -12,6 +12,9 @@ pub enum ServiceError {
     /// The session bus could not be reached or refused a call.
     #[error("d-bus: {0}")]
     Bus(#[from] zbus::Error),
+    /// The bus a call needs is absent by choice ([`BusRoute::Absent`](crate::env::BusRoute)).
+    #[error("no {0:?} bus")]
+    NoBus(crate::env::BusKind),
     /// A file could not be read, written or watched.
     #[error("{path}: {source}")]
     Io {

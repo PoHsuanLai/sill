@@ -11,6 +11,8 @@
 
 use std::sync::OnceLock;
 
+use crate::env::Bus;
+
 use logind_zbus::manager::{IsSupported, ManagerProxy};
 use sill_launcher::{
     Activation, Batch, Choice, FrecencyScore, IconRef, Item, ItemId, Needle, Provider,
@@ -112,14 +114,20 @@ impl Availability {
 }
 
 /// Rows for the session commands whose names match the query.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct SystemProvider {
+    /// logind's bus, asked what it allows (read only).
+    system: Bus,
     availability: OnceLock<Availability>,
 }
 
 impl SystemProvider {
-    pub fn new() -> SystemProvider {
-        SystemProvider::default()
+    /// Rows whose availability logind on `system` answers, asked once.
+    pub fn new(system: Bus) -> SystemProvider {
+        SystemProvider {
+            system,
+            availability: OnceLock::new(),
+        }
     }
 
     /// A provider whose availability is fixed, never touching logind — for tests of the
@@ -129,11 +137,16 @@ impl SystemProvider {
     fn with_availability(availability: Availability) -> SystemProvider {
         let cell = OnceLock::new();
         let _ = cell.set(availability);
-        SystemProvider { availability: cell }
+        SystemProvider {
+            system: Bus::system(crate::env::BusRoute::Absent),
+            availability: cell,
+        }
     }
 
     fn availability(&self) -> Availability {
-        *self.availability.get_or_init(probe_availability)
+        *self
+            .availability
+            .get_or_init(|| probe_availability(&self.system))
     }
 }
 
@@ -221,18 +234,21 @@ fn offer_of(supported: IsSupported) -> Offer {
 /// runs every provider's `query` inside `tokio::task::spawn_blocking`, and `Handle::block_on` from
 /// inside a blocking-pool task is the documented way back into async code there — this panics only
 /// if called directly from an async task instead (never done here).
-fn probe_availability() -> Availability {
+fn probe_availability(system: &Bus) -> Availability {
     tokio::runtime::Handle::try_current()
         .ok()
-        .and_then(|handle| handle.block_on(probe_logind()).ok())
+        .and_then(|handle| handle.block_on(probe_logind(system)).ok())
         .unwrap_or(Availability::NONE)
 }
 
 /// `CanSuspend`/`CanReboot`/`CanPowerOff` only: read-only properties, never `Suspend`,
 /// `Reboot`, `PowerOff` or `TerminateSession` themselves (those are the daemon's call, once it
 /// receives the `Activation` this provider produced).
-async fn probe_logind() -> zbus::Result<Availability> {
-    let connection = zbus::Connection::system().await?;
+async fn probe_logind(system: &Bus) -> zbus::Result<Availability> {
+    let connection = system
+        .connect()
+        .await?
+        .ok_or_else(|| zbus::Error::Failure("no system bus".to_owned()))?;
     let manager = ManagerProxy::new(&connection).await?;
     Ok(Availability {
         suspend: offer_of(manager.can_suspend().await?),

@@ -9,8 +9,8 @@ use zbus::Connection;
 use zbus::proxy::CacheProperties;
 
 use super::inhibit::{LogindIdle, logind_idle};
-use super::model::BusRoute;
 use super::reduce::IdleHint;
+use crate::env::Bus;
 use crate::locker::logind::session_path;
 
 /// The connected half.
@@ -26,38 +26,20 @@ impl std::fmt::Debug for IdleLogind {
     }
 }
 
-/// A connection to `route`'s bus; `None` for `Absent` or when it cannot be reached.
-pub(super) async fn bus(route: &BusRoute, system: SystemBus) -> Option<Connection> {
-    let connection = match (route, system) {
-        (BusRoute::Absent, _) => return None,
-        (BusRoute::Usual, SystemBus::System) => Connection::system().await,
-        (BusRoute::Usual, SystemBus::Session) => Connection::session().await,
-        (BusRoute::Address(address), _) => {
-            match zbus::connection::Builder::address(address.as_str()) {
-                Ok(builder) => builder.build().await,
-                Err(error) => Err(error),
-            }
-        }
-    };
-    match connection {
-        Ok(connection) => Some(connection),
+/// A connection to `bus`; `None` when it is absent or cannot be reached.
+pub(super) async fn bus(bus: &Bus) -> Option<Connection> {
+    match bus.connect().await {
+        Ok(connection) => connection,
         Err(error) => {
-            eprintln!("sill: idle: no bus at {route:?}: {error}");
+            eprintln!("sill: idle: no bus at {:?}: {error}", bus.route());
             None
         }
     }
 }
 
-/// Which usual bus a route means.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum SystemBus {
-    System,
-    Session,
-}
-
-/// Connect to logind on `route`.
-pub(super) async fn connect(route: &BusRoute) -> Option<IdleLogind> {
-    let connection = bus(route, SystemBus::System).await?;
+/// Connect to logind on `system`.
+pub(super) async fn connect(system: &Bus) -> Option<IdleLogind> {
+    let connection = bus(system).await?;
     let manager = match ManagerProxy::builder(&connection)
         .cache_properties(CacheProperties::No)
         .build()

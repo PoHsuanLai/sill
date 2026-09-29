@@ -21,10 +21,10 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, OpenTarget};
-use zbus::Connection;
 
 use super::model::ScopeUnit;
 use super::plan::scope_unit;
+use crate::env::Bus;
 use crate::providers::files::bus::{NameState, name_state};
 use crate::providers::files::tracker::file_uri;
 
@@ -64,10 +64,10 @@ pub fn reveal_folder(path: &Path) -> PathBuf {
 
 /// Carry out `request`: a reveal through the file manager when one is on the bus, else (and
 /// for a file or an address) `xdg-open`.
-pub(super) async fn open(request: OpenRequest) {
+pub(super) async fn open(session: &Bus, request: OpenRequest) {
     let token = request.token.as_deref();
     if let OpenTarget::Reveal(path) = &request.target
-        && show_items(path, token).await == Shown::Yes
+        && show_items(session, path, token).await == Shown::Yes
     {
         return;
     }
@@ -104,9 +104,11 @@ enum Wrapper {
 
 /// `FileManager1.ShowItems([uri], token)` when a file manager holds the name or can be
 /// started for it.
-async fn show_items(path: &Path, token: Option<&str>) -> Shown {
+async fn show_items(session: &Bus, path: &Path, token: Option<&str>) -> Shown {
     let shown = async {
-        let connection = Connection::session().await?;
+        let Some(connection) = session.connect().await? else {
+            return Ok(Shown::No);
+        };
         if asks_file_manager(name_state(&connection, FILE_MANAGER).await?) == Shown::No {
             return Ok::<Shown, zbus::Error>(Shown::No);
         }

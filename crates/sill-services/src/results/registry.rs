@@ -38,11 +38,11 @@ pub(crate) fn providers(
             ..CalculatorProvider::default()
         }),
         Arc::new(SettingsProvider::new()),
-        Arc::new(SystemProvider::new()),
+        Arc::new(SystemProvider::new(wiring.buses.system.clone())),
         Arc::new(FilesProvider {
             policy: policy.clone(),
             frecency: history.shared(),
-            source: IndexSource::Detect,
+            source: IndexSource::Detect(wiring.buses.session.clone()),
             home: dirs::home_dir().unwrap_or_else(|| PathBuf::from("/")),
         }),
         Arc::new(ClipboardProvider {

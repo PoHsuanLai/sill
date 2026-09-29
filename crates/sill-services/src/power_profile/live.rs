@@ -13,13 +13,15 @@ use zbus::zvariant::OwnedValue;
 use super::ProfileCommand;
 use super::model::{PowerProfiles, Profile, ProfileDegraded, ProfileEvent, reduce_power_profiles};
 use super::ppd::UPowerPowerProfilesProxy;
+use crate::env::Bus;
 
 /// Runs until `commands` closes. Without a bus or the daemon, `tx` stays at its default.
 pub(super) async fn run(
+    bus: Bus,
     tx: watch::Sender<PowerProfiles>,
     mut commands: mpsc::UnboundedReceiver<ProfileCommand>,
 ) {
-    let Ok(connection) = Connection::system().await else {
+    let Ok(Some(connection)) = bus.connect().await else {
         return;
     };
     let Some(ppd) = connect(&connection).await else {

@@ -45,20 +45,23 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
+use crate::env::Bus;
 
 /// Start the auth service on `rt` with PAM through `sill auth-check` ([`PamHelper::this_exe`]).
 /// Idle until the first `Submit`: nothing is checked, and no PAM module runs, before that.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<Auth>, Control<AuthCommand>) {
-    spawn_with(rt, Arc::new(PamHelper::this_exe()))
+pub fn spawn(rt: &Handle, system: Bus) -> (watch::Receiver<Auth>, Control<AuthCommand>) {
+    spawn_with(rt, system, Arc::new(PamHelper::this_exe()))
 }
 
-/// [`spawn`] with any [`Authenticator`] (tests: a [`FakeAuthenticator`]).
+/// [`spawn`] with any [`Authenticator`] (tests: a [`FakeAuthenticator`]). `system` is where
+/// AccountsService names the person's picture.
 pub fn spawn_with(
     rt: &Handle,
+    system: Bus,
     authenticator: Arc<dyn Authenticator>,
 ) -> (watch::Receiver<Auth>, Control<AuthCommand>) {
     let (tx, rx) = watch::channel(Auth::default());
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands, authenticator, rt.clone()));
+    rt.spawn(live::run(tx, commands, system, authenticator, rt.clone()));
     (rx, control)
 }

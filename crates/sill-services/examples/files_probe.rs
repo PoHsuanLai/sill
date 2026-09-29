@@ -19,6 +19,7 @@ use sill_launcher::{
     ActionId, Activation, Cancel, Choice, Item, Provider, Query, Subject, VecSink,
 };
 use sill_services::apps::AppIndex;
+use sill_services::env::{Bus, BusRoute};
 use sill_services::launch::{self, LaunchCommand, OpenRequest};
 use sill_services::providers::FilesProvider;
 use sill_services::providers::files::tracker::TrackerIndex;
@@ -67,7 +68,7 @@ fn main() {
 
 async fn run(args: Args) {
     if args.detect == Detect::Ask {
-        let found = tokio::task::spawn_blocking(choice::detect)
+        let found = tokio::task::spawn_blocking(|| choice::detect(&session()))
             .await
             .unwrap_or_else(|e| panic!("{e}"));
         println!(
@@ -99,7 +100,7 @@ async fn run(args: Args) {
 /// What the chosen index itself answered, as its kind and a count (no paths): why no row came.
 async fn raw_answer(args: &Args) -> String {
     let index: Arc<dyn FileIndex> = match args.backend {
-        Backend::Tracker => Arc::new(TrackerIndex),
+        Backend::Tracker => Arc::new(TrackerIndex { session: session() }),
         Backend::Fd | Backend::Auto => Arc::new(WalkIndex { walker: Walker::Fd }),
         Backend::Plocate => Arc::new(WalkIndex {
             walker: Walker::Plocate,
@@ -123,18 +124,23 @@ async fn raw_answer(args: &Args) -> String {
     .unwrap_or_else(|e| panic!("{e}"))
 }
 
+/// The process's own session bus: the script runs this probe on a private one.
+fn session() -> Bus {
+    Bus::session(BusRoute::Usual)
+}
+
 fn provider(args: &Args) -> FilesProvider {
     let (files, source) = match args.backend {
-        Backend::Auto => (FilesChoice::Auto, IndexSource::Detect),
-        Backend::Tracker => (FilesChoice::Tracker, IndexSource::Detect),
-        Backend::Fd => (FilesChoice::Walk, IndexSource::Detect),
+        Backend::Auto => (FilesChoice::Auto, IndexSource::Detect(session())),
+        Backend::Tracker => (FilesChoice::Tracker, IndexSource::Detect(session())),
+        Backend::Fd => (FilesChoice::Walk, IndexSource::Detect(session())),
         Backend::Plocate => (
             FilesChoice::Walk,
             IndexSource::Given(Arc::new(WalkIndex {
                 walker: Walker::Plocate,
             })),
         ),
-        Backend::Off => (FilesChoice::Off, IndexSource::Detect),
+        Backend::Off => (FilesChoice::Off, IndexSource::Detect(session())),
     };
     let policy = LauncherPolicy {
         files,
@@ -180,7 +186,8 @@ async fn choose(provider: &FilesProvider, row: &Item, args: &Args) {
         Activation::Open { target } => {
             println!("open {target:?}");
             let (_apps_tx, apps) = watch::channel(AppIndex::default());
-            let (_launches, control) = launch::spawn(&tokio::runtime::Handle::current(), apps);
+            let (_launches, control) =
+                launch::spawn(&tokio::runtime::Handle::current(), session(), apps);
             control
                 .send(LaunchCommand::Open(OpenRequest {
                     target,

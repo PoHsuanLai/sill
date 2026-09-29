@@ -37,7 +37,7 @@ pub use inhibit::{
     BusPeer, InhibitCookie, InhibitMsg, InhibitReply, Inhibition, Inhibitor, Inhibitors,
     LogindIdle, inhibit_step, inhibition, logind_idle,
 };
-pub use model::{BusRoute, DimShown, Idle, IdleCommand, IdleDisplay, IdleLinks, IdlePhase, Setup};
+pub use model::{DimShown, Idle, IdleCommand, IdleDisplay, IdleLinks, IdlePhase, Setup};
 pub use policy::{
     DimLevel, DimPlan, IdleConfig, IdleLock, IdleMode, IdlePolicy, IdleSecs, IdleTimes, LockGrace,
     LockView, LockedScreenOff, OffReason, PowerPair, PowerSource, Threshold, Timeout, TimesChoice,
@@ -52,14 +52,9 @@ use tokio::sync::watch;
 
 use crate::control::Control;
 
-/// Start the idle service on `rt` on the session's compositor and buses. Passive until the
-/// first command.
-pub fn spawn(rt: &Handle, links: IdleLinks) -> (watch::Receiver<Idle>, Control<IdleCommand>) {
-    spawn_with(rt, links, Setup::default())
-}
-
-/// [`spawn`] with a chosen compositor and buses (live tests).
-pub fn spawn_with(
+/// Start the idle service on `rt` on `setup`'s compositor and buses. Passive until the first
+/// command.
+pub fn spawn(
     rt: &Handle,
     links: IdleLinks,
     setup: Setup,

@@ -5,6 +5,7 @@ use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
 
 use crate::apps::{App, AppIndex, DbusActivation};
+use crate::env::Bus;
 use crate::launch::model::{LaunchOutcome, LaunchedScope, Launches, ScopeUnit, reduce_launches};
 use crate::launch::plan::{launch_argv, scope_unit};
 use crate::launch::{LaunchCommand, LaunchRequest};
@@ -16,6 +17,7 @@ use super::open::{Manager, user_manager};
 /// Run until `commands` closes (the `Control` was dropped).
 pub(super) async fn run(
     rt: Handle,
+    session: Bus,
     apps: watch::Receiver<AppIndex>,
     tx: watch::Sender<Launches>,
     mut commands: mpsc::UnboundedReceiver<LaunchCommand>,
@@ -26,17 +28,18 @@ pub(super) async fn run(
         match command {
             LaunchCommand::Launch(request) => {
                 nonce += 1;
-                launch_one(&rt, &apps, &tx, &terminal, request, nonce).await;
+                launch_one(&rt, &session, &apps, &tx, &terminal, request, nonce).await;
             }
-            LaunchCommand::ShowInFiles(app_id) => show_in_files(&apps, &app_id).await,
+            LaunchCommand::ShowInFiles(app_id) => show_in_files(&session, &apps, &app_id).await,
             LaunchCommand::ForceQuit(app_id) => force_quit(&tx, &app_id).await,
-            LaunchCommand::Open(request) => super::open::open(request).await,
+            LaunchCommand::Open(request) => super::open::open(&session, request).await,
         }
     }
 }
 
 async fn launch_one(
     rt: &Handle,
+    session: &Bus,
     apps: &watch::Receiver<AppIndex>,
     tx: &watch::Sender<Launches>,
     terminal: &[String],
@@ -49,18 +52,27 @@ async fn launch_one(
         return;
     };
     if app.activation == DbusActivation::DBus {
-        record(tx, activate_over_dbus(&app, &request, app_id).await);
+        record(
+            tx,
+            activate_over_dbus(session, &app, &request, app_id).await,
+        );
         return;
     }
     spawn_scope(rt, tx, &app, terminal, &request, app_id, nonce).await;
 }
 
-async fn activate_over_dbus(app: &App, request: &LaunchRequest, app_id: AppId) -> LaunchOutcome {
-    match zbus::Connection::session().await {
-        Ok(connection) => match dbus::activate(&connection, app, request).await {
+async fn activate_over_dbus(
+    session: &Bus,
+    app: &App,
+    request: &LaunchRequest,
+    app_id: AppId,
+) -> LaunchOutcome {
+    match session.connect().await {
+        Ok(Some(connection)) => match dbus::activate(&connection, app, request).await {
             Ok(()) => LaunchOutcome::Activated(app_id),
             Err(error) => failed(app_id, &error.to_string()),
         },
+        Ok(None) => failed(app_id, "no session bus"),
         Err(error) => failed(app_id, &error.to_string()),
     }
 }
@@ -170,11 +182,11 @@ async fn wait_for_exit(
     record(&tx, LaunchOutcome::Exited(unit));
 }
 
-async fn show_in_files(apps: &watch::Receiver<AppIndex>, app_id: &AppId) {
+async fn show_in_files(session: &Bus, apps: &watch::Receiver<AppIndex>, app_id: &AppId) {
     let Some(app) = apps.borrow().get(app_id).cloned() else {
         return;
     };
-    if let Ok(connection) = zbus::Connection::session().await {
+    if let Ok(Some(connection)) = session.connect().await {
         let _ = dbus::show_in_files(&connection, &app).await;
     }
 }

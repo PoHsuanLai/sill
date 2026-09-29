@@ -18,6 +18,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
+use crate::env::Bus;
 
 /// What the Wi-Fi service can be told.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,9 +37,9 @@ pub enum WifiCommand {
 
 /// Start the Wi-Fi task on `rt`. Without NetworkManager or a wireless device the receiver stays
 /// at `Wifi::default()` (absent), and the control center hides the module's list.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<Wifi>, Control<WifiCommand>) {
+pub fn spawn(rt: &Handle, bus: Bus) -> (watch::Receiver<Wifi>, Control<WifiCommand>) {
     let (tx, rx) = watch::channel(Wifi::default());
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands));
+    rt.spawn(live::run(bus, tx, commands));
     (rx, control)
 }

@@ -17,6 +17,7 @@ use super::machine::{Cause, Locker, LockerEffect, LockerEvent, next_deadline, st
 use super::marker::{LockMarker, Restore, marker_path, restore_on_start};
 use super::mode::{Host, LockerMode, SessionManager};
 use super::{Lock, LockerCommand, ShellLockEvent};
+use crate::env::Bus;
 use crate::programs;
 use crate::units::Stamp;
 
@@ -34,6 +35,7 @@ struct Live {
 
 /// Runs until `commands` closes. Inert (`LockerMode::Off`) until the first `Configure`/`Use`.
 pub(super) async fn run(
+    bus: Bus,
     tx: watch::Sender<Lock>,
     mut commands: mpsc::UnboundedReceiver<LockerCommand>,
 ) {
@@ -42,7 +44,7 @@ pub(super) async fn run(
         machine: Locker::default(),
         mode: LockerMode::Off,
         epoch: Instant::now(),
-        logind: logind::connect().await,
+        logind: logind::connect(&bus).await,
         inhibitor: None,
         cause: None,
     };

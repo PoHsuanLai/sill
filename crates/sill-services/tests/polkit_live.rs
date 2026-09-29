@@ -15,10 +15,11 @@ use std::time::Duration;
 
 use private_bus::PrivateBus;
 use sill_services::auth::Secret;
+use sill_services::env::{Bus, BusRoute};
 use sill_services::polkit_agent::machine::MAX_TRIES;
 use sill_services::polkit_agent::{
     AGENT_PATH, ActionId, Cookie, FAKE_SECRET, FakeRequest, HelperChoice, HelperRoute, LastTry,
-    Polkit, PolkitBus, PolkitCommand, PromptPhase, Registration, SessionChoice, Setup,
+    Polkit, PolkitCommand, PromptPhase, Registration, SessionChoice, Setup,
 };
 use tokio::sync::{mpsc, watch};
 use zbus::message::Header;
@@ -203,7 +204,7 @@ fn the_agent_registers_answers_fails_and_cancels_on_a_private_bus() {
             .await
             .unwrap_or_else(|e| panic!("{e}"));
         let setup = Setup {
-            bus: PolkitBus::Address(bus.address.clone()),
+            bus: Bus::system(BusRoute::Address(bus.address.clone())),
             helper: HelperChoice::Use(HelperRoute::Setuid(helper)),
             session: SessionChoice::Id("c42".to_owned()),
         };
@@ -317,7 +318,9 @@ fn a_made_up_request_takes_the_fake_secret_and_nothing_else() {
         let (mut rx, control) = sill_services::polkit_agent::spawn_with(
             &rt_handle(),
             Setup {
-                bus: PolkitBus::Address("unix:path=/nonexistent/sill-test".to_owned()),
+                bus: Bus::system(BusRoute::Address(
+                    "unix:path=/nonexistent/sill-test".to_owned(),
+                )),
                 helper: HelperChoice::Use(HelperRoute::Missing),
                 session: SessionChoice::Id("never".to_owned()),
             },

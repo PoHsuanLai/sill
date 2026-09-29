@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use sill_launcher::{Cancel, Query};
+use sill_services::env::{Bus, BusRoute};
 use sill_services::providers::files::choice::IndexState;
 use sill_services::providers::files::choice::detect;
 use sill_services::providers::files::walk::{WalkIndex, Walker};
@@ -84,7 +85,7 @@ fn a_budget_of_nothing_is_a_partial_answer() {
 #[test]
 #[ignore = "needs tracker"]
 fn this_machine_has_tracker() {
-    let found = detect();
+    let found = detect(&Bus::session(BusRoute::Usual));
     eprintln!(
         "sill: files detect: tracker={:?} fd={:?} plocate={:?}",
         found.tracker, found.fd, found.plocate

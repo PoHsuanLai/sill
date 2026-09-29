@@ -26,6 +26,7 @@ use super::types::{
     UserName, Verdict,
 };
 use super::{avatar_source, user_name_in_passwd};
+use crate::env::Bus;
 
 /// How long a made-up verdict (`sill debug auth`) takes, so the surface sees `Checking` and the
 /// field shakes again on every wrong one.
@@ -57,6 +58,7 @@ struct Live {
     checks: Checks,
     round: Round,
     loaded: Loaded,
+    system: Bus,
     authenticator: Arc<dyn Authenticator>,
     rt: Handle,
     done: mpsc::UnboundedSender<Finished>,
@@ -65,6 +67,7 @@ struct Live {
 pub(super) async fn run(
     tx: watch::Sender<Auth>,
     mut commands: mpsc::UnboundedReceiver<AuthCommand>,
+    system: Bus,
     authenticator: Arc<dyn Authenticator>,
     rt: Handle,
 ) {
@@ -74,6 +77,7 @@ pub(super) async fn run(
         checks: Checks::default(),
         round: Round::default(),
         loaded: Loaded::Not,
+        system,
         authenticator,
         rt,
         done,
@@ -93,7 +97,7 @@ impl Live {
     async fn command(&mut self, command: AuthCommand) {
         if self.loaded == Loaded::Not {
             self.loaded = Loaded::Yes;
-            let account = load_account().await;
+            let account = load_account(&self.system).await;
             self.tx.send_modify(|auth| auth.account = account);
         }
         match command {
@@ -228,7 +232,7 @@ fn phase_of(said: GateOut, verdict: &Verdict) -> Option<AuthPhase> {
 }
 
 /// This session's person: the owner of this process, from `/etc/passwd`, with their picture.
-async fn load_account() -> Account {
+async fn load_account(system: &Bus) -> Account {
     use std::os::unix::fs::MetadataExt;
     let Ok(uid) = std::fs::metadata("/proc/self").map(|meta| meta.uid()) else {
         return Account::default();
@@ -238,7 +242,7 @@ async fn load_account() -> Account {
         let user = std::env::var("USER").unwrap_or_default();
         (UserName(user.clone()), RealName(user))
     });
-    let icon = tokio::time::timeout(ACCOUNTS_TIMEOUT, accounts_icon(uid))
+    let icon = tokio::time::timeout(ACCOUNTS_TIMEOUT, accounts_icon(system, uid))
         .await
         .ok()
         .flatten();
@@ -251,9 +255,9 @@ async fn load_account() -> Account {
 }
 
 /// AccountsService's `IconFile` for `uid`, when it has one.
-async fn accounts_icon(uid: u32) -> Option<PathBuf> {
+async fn accounts_icon(system: &Bus, uid: u32) -> Option<PathBuf> {
     const ACCOUNTS: &str = "org.freedesktop.Accounts";
-    let bus = zbus::Connection::system().await.ok()?;
+    let bus = system.connect().await.ok()??;
     let reply = bus
         .call_method(
             Some(ACCOUNTS),

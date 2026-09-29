@@ -13,16 +13,18 @@ use zbus::export::futures_core::Stream;
 use super::SessionCommand;
 use super::model::{Offer, Session, SessionAction, SessionEvent, reduce_session};
 use crate::control::Control;
+use crate::env::Bus;
 use crate::locker::LockerCommand;
 use crate::units::Presence;
 
 /// Runs until `commands` closes. Without a bus or logind, `tx` stays at `Session::default()`.
 pub(super) async fn run(
+    bus: Bus,
     tx: watch::Sender<Session>,
     mut commands: mpsc::UnboundedReceiver<SessionCommand>,
     locker: Control<LockerCommand>,
 ) {
-    let Ok(connection) = Connection::system().await else {
+    let Ok(Some(connection)) = bus.connect().await else {
         return;
     };
     let Ok(manager) = ManagerProxy::new(&connection).await else {

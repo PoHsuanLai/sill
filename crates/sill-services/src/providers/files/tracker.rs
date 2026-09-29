@@ -19,13 +19,13 @@ use std::time::{Duration, Instant};
 
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, percent_encode};
 use sill_launcher::Query;
-use zbus::Connection;
 use zbus::zvariant::{Fd, Value};
 
 use super::bus::{NameState, block_on, name_state};
 use super::choice::IndexState;
 use super::cursor::{hit_of_row, parse_cursor};
 use super::index::{FileAnswer, FileAsk, FileIndex, IndexFault, IndexKind};
+use crate::env::Bus;
 
 /// The miner's bus name (localsearch keeps it beside its newer `org.freedesktop.LocalSearch3`).
 const TRACKER_BUS: &str = "org.freedesktop.Tracker3.Miner.Files";
@@ -58,9 +58,11 @@ const URI_PATH: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'@')
     .remove(b'/');
 
-/// The Tracker 3 index. Holds no connection until the first ask.
-#[derive(Debug, Default)]
-pub struct TrackerIndex;
+/// The Tracker 3 index on `session`. Holds no connection until the first ask.
+#[derive(Debug)]
+pub struct TrackerIndex {
+    pub session: Bus,
+}
 
 impl FileIndex for TrackerIndex {
     fn kind(&self) -> IndexKind {
@@ -81,7 +83,7 @@ impl FileIndex for TrackerIndex {
         let sparql = sparql_for(ask);
         let called = block_on(tokio::time::timeout(
             ask.budget,
-            ask_endpoint(&sparql, &writer),
+            ask_endpoint(&self.session, &sparql, &writer),
         ));
         drop(writer);
         match called {
@@ -95,8 +97,8 @@ impl FileIndex for TrackerIndex {
 
 /// Whether the miner is running (has an owner) or only activatable; asks the bus only, never
 /// the index, and starts nothing.
-pub(super) fn tracker_state() -> IndexState {
-    block_on(miner_state())
+pub(super) fn tracker_state(session: &Bus) -> IndexState {
+    block_on(miner_state(session))
         .and_then(Result::ok)
         .unwrap_or(IndexState::Absent)
 }
@@ -144,8 +146,10 @@ pub(crate) fn file_uri(path: &Path) -> String {
     )
 }
 
-async fn miner_state() -> zbus::Result<IndexState> {
-    let connection = Connection::session().await?;
+async fn miner_state(session: &Bus) -> zbus::Result<IndexState> {
+    let Some(connection) = session.connect().await? else {
+        return Ok(IndexState::Absent);
+    };
     Ok(match name_state(&connection, TRACKER_BUS).await? {
         NameState::Owned => IndexState::Running,
         NameState::Activatable => IndexState::Dormant,
@@ -154,8 +158,13 @@ async fn miner_state() -> zbus::Result<IndexState> {
 }
 
 /// `Endpoint.Query(sparql, the pipe's write end, {})`; the cursor arrives on the pipe.
-async fn ask_endpoint(sparql: &str, writer: &PipeWriter) -> Result<(), IndexFault> {
-    let connection = Connection::session().await.map_err(|_| IndexFault::NoBus)?;
+async fn ask_endpoint(session: &Bus, sparql: &str, writer: &PipeWriter) -> Result<(), IndexFault> {
+    let connection = session
+        .connect()
+        .await
+        .ok()
+        .flatten()
+        .ok_or(IndexFault::NoBus)?;
     let arguments: HashMap<&str, Value<'_>> = HashMap::new();
     connection
         .call_method(

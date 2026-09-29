@@ -14,6 +14,7 @@ use crate::clock::{ClockCommand, ClockText};
 use crate::control::Control;
 use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
 use crate::displays::{Displays, DisplaysCommand};
+use crate::env::Env;
 use crate::events::{Agenda, EventsCommand};
 use crate::idle::{Idle, IdleCommand, IdleLinks};
 use crate::kbd_backlight::{KbdBacklight, KbdCommand};
@@ -109,20 +110,22 @@ pub struct Services {
 
 impl Services {
     /// Start every service on `rt` (the `cosmic_wl` and volume threads on their own threads)
-    /// and bundle them. A service whose system half is missing still yields its receiver, at
-    /// its default.
-    pub fn spawn(rt: &Handle) -> Services {
+    /// against `env`'s seams, and bundle them. A service whose system half is missing still
+    /// yields its receiver, at its default.
+    pub fn spawn(rt: &Handle, env: &Env) -> Services {
+        let system = || env.buses.system.clone();
+        let session = || env.buses.session.clone();
         let (clock, clock_control) = crate::clock::spawn(rt);
-        let (battery, battery_control) = crate::battery::spawn(rt);
-        let (network, network_control) = crate::network::spawn(rt);
+        let (battery, battery_control) = crate::battery::spawn(rt, system());
+        let (network, network_control) = crate::network::spawn(rt, system());
         let (volume, volume_control) = crate::volume::spawn(rt);
-        let (displays, displays_control) = crate::displays::spawn(rt, volume.clone());
-        let (tray, tray_control) = crate::tray::spawn(rt);
+        let (displays, displays_control) = crate::displays::spawn(rt, system(), volume.clone());
+        let (tray, tray_control) = crate::tray::spawn(rt, session());
         let (workspaces, toplevels, wl) = crate::cosmic_wl::spawn();
         let (apps, apps_control) = crate::apps::spawn(rt);
-        let (badges, badges_control) = crate::badges::spawn(rt);
+        let (badges, badges_control) = crate::badges::spawn(rt, session());
         let (pins, pins_control) = crate::pins::spawn(rt);
-        let (launches, launch) = crate::launch::spawn(rt, apps.clone());
+        let (launches, launch) = crate::launch::spawn(rt, session(), apps.clone());
         let (clipboard, clipboard_control) = crate::clipboard::spawn(rt);
         let (results, search) = crate::results::spawn_with_providers(
             rt,
@@ -133,23 +136,25 @@ impl Services {
                 clipboard: &clipboard,
                 wl: &wl,
                 launch: &launch,
+                buses: &env.buses,
             },
         );
         let (wallpapers, wallpaper_control) = crate::wallpaper::spawn(rt);
-        let (wifi, wifi_control) = crate::network::wifi::spawn(rt);
-        let (bluetooth, bluetooth_control) = crate::bluetooth::spawn(rt);
-        let (power_profiles, power_profile_control) = crate::power_profile::spawn(rt);
-        let (media, media_control) = crate::now_playing::spawn(rt);
-        let (kbd_backlight, kbd_backlight_control) = crate::kbd_backlight::spawn(rt);
-        let (lock, locker_control) = crate::locker::spawn(rt);
-        let (session, session_control) = crate::session::spawn(rt, locker_control.clone());
+        let (wifi, wifi_control) = crate::network::wifi::spawn(rt, system());
+        let (bluetooth, bluetooth_control) = crate::bluetooth::spawn(rt, system());
+        let (power_profiles, power_profile_control) = crate::power_profile::spawn(rt, system());
+        let (media, media_control) = crate::now_playing::spawn(rt, session());
+        let (kbd_backlight, kbd_backlight_control) = crate::kbd_backlight::spawn(rt, system());
+        let (lock, locker_control) = crate::locker::spawn(rt, system());
+        let (session, session_control) =
+            crate::session::spawn(rt, system(), locker_control.clone());
         // Passive (never asks for the bus name) until the daemon sends its first policy.
         let (notifications, notification_history, notifications_control) =
-            crate::notifications::spawn(rt);
+            crate::notifications::spawn(rt, crate::notifications::Setup::of(env));
         let (agenda, events_control) = crate::events::spawn(rt);
         let (shots, shots_control) = crate::screenshots::spawn(rt);
-        let (auth, auth_control) = crate::auth::spawn(rt);
-        let (polkit, polkit_control) = crate::polkit_agent::spawn(rt);
+        let (auth, auth_control) = crate::auth::spawn(rt, system());
+        let (polkit, polkit_control) = crate::polkit_agent::spawn(rt, system());
         let (idle, idle_control) = crate::idle::spawn(
             rt,
             IdleLinks {
@@ -158,6 +163,7 @@ impl Services {
                 locker: locker_control.clone(),
                 auth: auth_control.clone(),
             },
+            crate::idle::Setup::of(env),
         );
 
         Services {
@@ -224,6 +230,7 @@ impl Services {
 #[cfg(test)]
 mod tests {
     use super::Services;
+    use crate::env::{Buses, Env};
 
     /// `Services::spawn` must never panic — the daemon has to reach the host connect and the
     /// IPC server — and every passive service holds its default (a service without its bus or
@@ -232,7 +239,10 @@ mod tests {
     #[test]
     fn spawn_does_not_panic_and_passive_services_hold_their_defaults() {
         let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
-        let services = Services::spawn(rt.handle());
+        let env = Env {
+            buses: Buses::absent(),
+        };
+        let services = Services::spawn(rt.handle(), &env);
 
         assert_eq!(services.clock.borrow().text.split_whitespace().count(), 4);
         assert_eq!(*services.apps.borrow(), Default::default());

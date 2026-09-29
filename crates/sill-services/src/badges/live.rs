@@ -12,11 +12,12 @@ use zbus::fdo::{DBusProxy, NameOwnerChanged};
 use zbus::message::{Message, Type as MessageType};
 use zbus::names::OwnedUniqueName;
 use zbus::zvariant::OwnedValue;
-use zbus::{Connection, MatchRule, MessageStream};
+use zbus::{MatchRule, MessageStream};
 
 use super::BadgesCommand;
 use super::model::{BadgeEvent, BadgeProp, Badges, parse_app_uri, reduce_badges};
 use crate::cosmic_wl::Urgency;
+use crate::env::Bus;
 use crate::units::{Permille, Visibility};
 
 const INTERFACE: &str = "com.canonical.Unity.LauncherEntry";
@@ -26,10 +27,11 @@ const MEMBER: &str = "Update";
 /// If the bus is unreachable, `tx` is left at `Badges::default()` — starting a service never
 /// fails the shell (`error.rs`).
 pub(super) async fn run(
+    bus: Bus,
     tx: watch::Sender<Badges>,
     mut commands: mpsc::UnboundedReceiver<BadgesCommand>,
 ) {
-    let Ok(connection) = Connection::session().await else {
+    let Ok(Some(connection)) = bus.connect().await else {
         return;
     };
     let Ok(rule) = update_rule() else {

@@ -91,16 +91,6 @@ pub enum NotificationsCommand {
     ClearHistory(Clear),
 }
 
-/// Which bus the service speaks on.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum BusChoice {
-    /// `DBUS_SESSION_BUS_ADDRESS`: the daemon's.
-    #[default]
-    Session,
-    /// A private bus at this address: every test (a private `dbus-daemon`), never the session's.
-    Address(String),
-}
-
 /// Where the history is kept.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum HistoryPlace {
@@ -114,10 +104,21 @@ pub enum HistoryPlace {
 }
 
 /// How the service is started.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Setup {
-    pub bus: BusChoice,
+    /// The session bus the server speaks on (a private `dbus-daemon` in every test).
+    pub bus: crate::env::Bus,
     pub history: HistoryPlace,
+}
+
+impl Setup {
+    /// On `env`'s session bus, the history in `$XDG_STATE_HOME`.
+    pub fn of(env: &crate::env::Env) -> Setup {
+        Setup {
+            bus: env.buses.session.clone(),
+            history: HistoryPlace::State,
+        }
+    }
 }
 
 /// The service's two receivers and its control.
@@ -127,14 +128,9 @@ pub type NotificationsHandles = (
     Control<NotificationsCommand>,
 );
 
-/// Start the service on `rt` on the session bus with the history in `$XDG_STATE_HOME`. Passive
-/// until the daemon's first policy (module doc).
-pub fn spawn(rt: &Handle) -> NotificationsHandles {
-    spawn_with(rt, Setup::default())
-}
-
-/// Start the service on `rt` as `setup` says.
-pub fn spawn_with(rt: &Handle, setup: Setup) -> NotificationsHandles {
+/// Start the service on `rt` as `setup` says. Passive until the daemon's first policy (module
+/// doc).
+pub fn spawn(rt: &Handle, setup: Setup) -> NotificationsHandles {
     let (live_tx, live) = watch::channel(Notifications::default());
     let (history_tx, history) = watch::channel(History::default());
     let (control, commands) = Control::channel();

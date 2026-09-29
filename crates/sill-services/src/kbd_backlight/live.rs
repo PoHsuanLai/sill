@@ -6,20 +6,21 @@
 use std::pin::Pin;
 
 use tokio::sync::{mpsc, watch};
-use zbus::Connection;
 use zbus::export::futures_core::Stream;
 
 use super::KbdCommand;
 use super::model::{KbdBacklight, KbdEvent, KbdLevel, reduce_kbd_backlight, step_for};
 use super::upower::KbdBacklightProxy;
+use crate::env::Bus;
 use crate::units::Presence;
 
 /// Runs until `commands` closes. Without a bus or UPower, `tx` stays at its default.
 pub(super) async fn run(
+    bus: Bus,
     tx: watch::Sender<KbdBacklight>,
     mut commands: mpsc::UnboundedReceiver<KbdCommand>,
 ) {
-    let Ok(connection) = Connection::system().await else {
+    let Ok(Some(connection)) = bus.connect().await else {
         return;
     };
     let Ok(proxy) = KbdBacklightProxy::new(&connection).await else {

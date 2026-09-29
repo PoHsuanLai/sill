@@ -49,15 +49,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
-
-/// Which bus polkitd is on.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum PolkitBus {
-    /// The system bus (the daemon).
-    System,
-    /// A private bus by address (tests: a stand-in Authority on it).
-    Address(String),
-}
+use crate::env::Bus;
 
 /// How to reach polkit's helper.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -80,26 +72,27 @@ pub enum SessionChoice {
 /// Where the agent lives.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Setup {
-    pub bus: PolkitBus,
+    /// polkitd's bus: the system bus, or a private one with a stand-in Authority (tests).
+    pub bus: Bus,
     pub helper: HelperChoice,
     pub session: SessionChoice,
 }
 
 impl Setup {
-    /// The daemon's: the system bus, polkit's helper, this session.
-    pub fn system() -> Setup {
+    /// The daemon's: polkitd on `system`, polkit's helper, this session.
+    pub fn system(system: Bus) -> Setup {
         Setup {
-            bus: PolkitBus::System,
+            bus: system,
             helper: HelperChoice::System,
             session: SessionChoice::Ours,
         }
     }
 }
 
-/// Start the agent service on `rt` for the daemon ([`Setup::system`]); passive until a
-/// `Policy(Own)`.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<Polkit>, Control<PolkitCommand>) {
-    spawn_with(rt, daemon_setup::daemon_setup())
+/// Start the agent service on `rt` for the daemon ([`Setup::system`] on `system`); passive
+/// until a `Policy(Own)`.
+pub fn spawn(rt: &Handle, system: Bus) -> (watch::Receiver<Polkit>, Control<PolkitCommand>) {
+    spawn_with(rt, daemon_setup::daemon_setup(system))
 }
 
 /// [`spawn`] against `setup`.

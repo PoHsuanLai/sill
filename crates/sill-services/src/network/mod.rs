@@ -11,6 +11,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
+use crate::env::Bus;
 
 /// What the network service can be told.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -21,9 +22,9 @@ pub enum NetworkCommand {
 
 /// Start the network task on `rt`. Without NetworkManager the receiver stays at
 /// `Network::default()` (disconnected, connectivity unknown).
-pub fn spawn(rt: &Handle) -> (watch::Receiver<Network>, Control<NetworkCommand>) {
+pub fn spawn(rt: &Handle, bus: Bus) -> (watch::Receiver<Network>, Control<NetworkCommand>) {
     let (tx, rx) = watch::channel(Network::default());
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands));
+    rt.spawn(live::run(bus, tx, commands));
     (rx, control)
 }

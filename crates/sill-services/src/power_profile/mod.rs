@@ -15,6 +15,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
+use crate::env::Bus;
 
 /// What the power profile service can be told.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,9 +28,9 @@ pub enum ProfileCommand {
 
 /// Start the power profile task on `rt`. Without power-profiles-daemon the receiver stays at
 /// `PowerProfiles::default()` (absent), and the control center hides the control.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<PowerProfiles>, Control<ProfileCommand>) {
+pub fn spawn(rt: &Handle, bus: Bus) -> (watch::Receiver<PowerProfiles>, Control<ProfileCommand>) {
     let (tx, rx) = watch::channel(PowerProfiles::default());
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands));
+    rt.spawn(live::run(bus, tx, commands));
     (rx, control)
 }

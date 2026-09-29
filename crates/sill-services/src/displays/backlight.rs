@@ -7,6 +7,7 @@ use std::path::Path;
 use logind_zbus::session::SessionProxy;
 
 use super::brightness::{Backlight, BacklightKind, BacklightName};
+use crate::env::Bus;
 use crate::error::ServiceError;
 
 /// Every backlight under `root` (`/sys/class/backlight`) that reads whole, in name order.
@@ -36,8 +37,11 @@ pub fn read_all(root: &Path) -> Vec<Backlight> {
 }
 
 /// Set backlight `name` to the raw `value` through logind, as the caller's own session.
-pub async fn set(name: &BacklightName, value: u32) -> Result<(), ServiceError> {
-    let connection = zbus::Connection::system().await?;
+pub async fn set(system: &Bus, name: &BacklightName, value: u32) -> Result<(), ServiceError> {
+    let connection = system
+        .connect()
+        .await?
+        .ok_or(ServiceError::NoBus(system.kind()))?;
     let session = SessionProxy::builder(&connection)
         .path("/org/freedesktop/login1/session/auto")?
         .build()

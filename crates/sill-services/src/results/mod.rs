@@ -38,6 +38,7 @@ use crate::apps::AppIndex;
 use crate::clipboard::Clipboard;
 use crate::control::Control;
 use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
+use crate::env::Buses;
 use crate::launch::LaunchCommand;
 use effect::Outlets;
 use history::{History, Persist};
@@ -84,6 +85,8 @@ pub(crate) struct Wiring<'a> {
     pub(crate) clipboard: &'a watch::Receiver<Clipboard>,
     pub(crate) wl: &'a Control<WlCommand>,
     pub(crate) launch: &'a Control<LaunchCommand>,
+    /// logind (the system rows' offers) and Tracker (the files index).
+    pub(crate) buses: &'a Buses,
 }
 
 /// The daemon's search: the five providers, the apps provider ranking with the same history

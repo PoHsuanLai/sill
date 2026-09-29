@@ -31,6 +31,7 @@ use tokio::sync::watch;
 
 use crate::apps::AppIndex;
 use crate::control::Control;
+use crate::env::Bus;
 
 /// One launch.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -59,14 +60,16 @@ pub enum LaunchCommand {
     Open(OpenRequest),
 }
 
-/// Start the launch service; `apps` resolves ids to entries.
+/// Start the launch service; `apps` resolves ids to entries, D-Bus activation and the file
+/// manager are on `session`.
 pub fn spawn(
     rt: &Handle,
+    session: Bus,
     apps: watch::Receiver<AppIndex>,
 ) -> (watch::Receiver<Launches>, Control<LaunchCommand>) {
     let (tx, rx) = watch::channel(Launches::default());
     let (control, commands) = Control::channel();
-    rt.spawn(run::run(rt.clone(), apps, tx, commands));
+    rt.spawn(run::run(rt.clone(), session, apps, tx, commands));
     (rx, control)
 }
 
@@ -111,7 +114,8 @@ mod tests {
         let (_apps_tx, apps_rx) =
             tokio::sync::watch::channel(index_with("sill-launch-test", "/bin/true"));
         let rt = tokio::runtime::Handle::current();
-        let (mut launches, control) = spawn(&rt, apps_rx);
+        let session = crate::env::Bus::session(crate::env::BusRoute::Absent);
+        let (mut launches, control) = spawn(&rt, session, apps_rx);
 
         control
             .send(LaunchCommand::Launch(LaunchRequest {

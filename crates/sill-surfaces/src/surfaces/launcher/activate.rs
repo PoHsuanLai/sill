@@ -12,6 +12,7 @@ use sill_launcher::{
 };
 use std::path::PathBuf;
 
+use sill_services::env::Buses;
 use sill_services::providers::files::IndexSource;
 use sill_services::providers::{
     AppsProvider, CalculatorProvider, ClipboardProvider, EmojiProvider, FilesProvider,
@@ -38,9 +39,11 @@ impl fmt::Debug for LauncherProviders {
 
 impl LauncherProviders {
     /// The real providers over `services`' receivers (the first five, then the four whose
-    /// `activate` reads the row alone: their policy here is the default, never queried).
+    /// `activate` reads the row alone: their policy here is the default, and they are never
+    /// queried, so they reach no bus).
     pub fn from_services(services: &Services) -> LauncherProviders {
         let (_, policy) = watch::channel(LauncherPolicy::default());
+        let buses = Buses::absent();
         LauncherProviders(vec![
             Arc::new(AppsProvider {
                 apps: services.apps.clone(),
@@ -53,11 +56,11 @@ impl LauncherProviders {
             }),
             Arc::new(CalculatorProvider::default()),
             Arc::new(SettingsProvider::default()),
-            Arc::new(SystemProvider::new()),
+            Arc::new(SystemProvider::new(buses.system)),
             Arc::new(FilesProvider {
                 policy: policy.clone(),
                 frecency: Arc::new(Mutex::default()),
-                source: IndexSource::Detect,
+                source: IndexSource::Detect(buses.session),
                 home: PathBuf::from("/"),
             }),
             Arc::new(ClipboardProvider {

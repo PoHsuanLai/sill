@@ -64,6 +64,13 @@ fn never_built() -> LockFactory {
     LockFactory(Box::new(|_| panic!("the fake host builds no surface")))
 }
 
+/// Neither bus: nothing here reaches the real logind, UPower or session bus.
+fn test_env() -> sill_services::env::Env {
+    sill_services::env::Env {
+        buses: sill_services::env::Buses::absent(),
+    }
+}
+
 fn runtime() -> tokio::runtime::Runtime {
     tokio::runtime::Builder::new_multi_thread()
         .worker_threads(1)
@@ -75,7 +82,7 @@ fn runtime() -> tokio::runtime::Runtime {
 #[test]
 fn a_wish_takes_and_drops_the_lock_once() {
     let rt = runtime();
-    let services = Services::spawn(rt.handle());
+    let services = Services::spawn(rt.handle(), &test_env());
     let (mut host, mut held, link) = (FakeHost::default(), ShellLock::default(), LockLink::new());
     let outputs = outputs();
     let wish = |host: &mut FakeHost, held: &mut ShellLock, wish| {
@@ -141,7 +148,7 @@ fn a_wish_takes_and_drops_the_lock_once() {
 #[test]
 fn a_refusal_is_not_held_and_a_lock_in_progress_is_adopted() {
     let rt = runtime();
-    let services = Services::spawn(rt.handle());
+    let services = Services::spawn(rt.handle(), &test_env());
     let link = LockLink::new();
     let outputs = outputs();
     let mut refused = FakeHost {

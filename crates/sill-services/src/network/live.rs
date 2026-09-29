@@ -14,15 +14,17 @@ use zbus::zvariant::OwnedObjectPath;
 
 use super::NetworkCommand;
 use super::model::{Activating, Connectivity, Link, Network, NetworkEvent, reduce_network};
+use crate::env::Bus;
 use crate::units::Percent;
 
 /// Connects to NetworkManager and runs until `commands` closes (the `Control` was dropped). If
 /// the bus or NetworkManager is unreachable, `tx` is left at its seeded default (disconnected).
 pub(super) async fn run(
+    bus: Bus,
     tx: watch::Sender<Network>,
     mut commands: mpsc::UnboundedReceiver<NetworkCommand>,
 ) {
-    let Ok(connection) = zbus::Connection::system().await else {
+    let Ok(Some(connection)) = bus.connect().await else {
         return;
     };
     let Ok(nm) = NetworkManagerProxy::new(&connection).await else {

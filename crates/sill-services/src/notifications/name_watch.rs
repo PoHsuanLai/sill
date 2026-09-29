@@ -15,7 +15,6 @@ use zbus::names::BusName;
 use zbus::object_server::SignalEmitter;
 use zbus::{Connection, fdo};
 
-use super::BusChoice;
 use super::dbus::{BUS_NAME, Call, OBJECT_PATH, Server};
 use super::ids::ActionKey;
 use super::ids::{Activation, NotificationId};
@@ -32,23 +31,15 @@ pub(super) struct Bus {
 }
 
 impl Bus {
-    /// Connect as `choice` says, with the `NameOwnerChanged` stream for the name; `None` when
-    /// the bus is unreachable (the service then runs without one: `sill debug notify` works).
+    /// Connect to `bus`, with the `NameOwnerChanged` stream for the name; `None` when the bus
+    /// is absent or unreachable (the service then runs without one: `sill debug notify` works).
     pub(super) async fn connect(
-        choice: &BusChoice,
+        bus: &crate::env::Bus,
         calls: mpsc::UnboundedSender<Call>,
     ) -> Option<(Bus, Option<NameOwnerChangedStream>)> {
-        let connection = match choice {
-            BusChoice::Session => Connection::session().await,
-            BusChoice::Address(address) => {
-                match zbus::connection::Builder::address(address.as_str()) {
-                    Ok(builder) => builder.build().await,
-                    Err(error) => Err(error),
-                }
-            }
-        };
-        let connection = match connection {
-            Ok(connection) => connection,
+        let connection = match bus.connect().await {
+            Ok(Some(connection)) => connection,
+            Ok(None) => return None,
             Err(error) => {
                 eprintln!("sill: notifications: no bus: {error}");
                 return None;

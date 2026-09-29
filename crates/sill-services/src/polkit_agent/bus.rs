@@ -9,7 +9,8 @@ use zbus::Connection;
 use zbus::zvariant::{OwnedValue, Value};
 
 use super::dbus::{AGENT_PATH, Agent, AuthorityProxy, Call};
-use super::{PolkitBus, SessionChoice, Setup};
+use super::{SessionChoice, Setup};
+use crate::env::Bus;
 
 /// A polkit subject: `(kind, details)`.
 pub(super) type Subject = (String, HashMap<String, OwnedValue>);
@@ -35,7 +36,7 @@ pub(super) async fn connect(
     setup: &Setup,
     calls: mpsc::UnboundedSender<Call>,
 ) -> Result<BusLink, BusTrouble> {
-    let connection = open(&setup.bus).await.map_err(|_| BusTrouble::NoBus)?;
+    let connection = open(&setup.bus).await.ok_or(BusTrouble::NoBus)?;
     connection
         .object_server()
         .at(AGENT_PATH, Agent { calls })
@@ -50,15 +51,8 @@ pub(super) async fn connect(
     })
 }
 
-async fn open(bus: &PolkitBus) -> zbus::Result<Connection> {
-    match bus {
-        PolkitBus::System => Connection::system().await,
-        PolkitBus::Address(address) => {
-            zbus::connection::Builder::address(address.as_str())?
-                .build()
-                .await
-        }
-    }
+async fn open(bus: &Bus) -> Option<Connection> {
+    bus.connect().await.ok().flatten()
 }
 
 async fn session_id(choice: &SessionChoice, connection: &Connection) -> zbus::Result<String> {

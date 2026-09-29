@@ -22,6 +22,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
+use crate::env::Bus;
 
 /// What the Bluetooth service can be told.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -38,9 +39,9 @@ pub enum BluetoothCommand {
 
 /// Start the Bluetooth task on `rt`. Without BlueZ or an adapter the receiver stays at
 /// `Bluetooth::default()` (absent), and the control center shows the module unavailable.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<Bluetooth>, Control<BluetoothCommand>) {
+pub fn spawn(rt: &Handle, bus: Bus) -> (watch::Receiver<Bluetooth>, Control<BluetoothCommand>) {
     let (tx, rx) = watch::channel(Bluetooth::default());
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands));
+    rt.spawn(live::run(bus, tx, commands));
     (rx, control)
 }

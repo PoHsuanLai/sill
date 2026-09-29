@@ -65,16 +65,18 @@ use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
+use crate::env::Bus;
 use crate::volume::Volume;
 
 /// Start the displays task on `rt`, following `volume` for the monitor-speaker path. Until the
 /// first `Policy` command it does nothing at all: no bus probe, no `cosmic-randr`, no file.
 pub fn spawn(
     rt: &Handle,
+    system: Bus,
     volume: watch::Receiver<Volume>,
 ) -> (watch::Receiver<Displays>, Control<DisplaysCommand>) {
     let (tx, rx) = watch::channel(Displays::default());
     let (control, commands) = Control::channel();
-    rt.spawn(run::run(tx, commands, volume, run::Paths::default()));
+    rt.spawn(run::run(tx, commands, volume, run::Paths::of(system)));
     (rx, control)
 }

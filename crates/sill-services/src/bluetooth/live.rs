@@ -25,6 +25,7 @@ use super::model::{
     Bluetooth, BluetoothEvent, BtAddress, BtBattery, BtConnection, BtDevice, BtPairing, BtPower,
     reduce_bluetooth,
 };
+use crate::env::Bus;
 use crate::units::Percent;
 
 const SERVICE: &str = "org.bluez";
@@ -62,10 +63,11 @@ impl Tracked {
 
 /// Runs until `commands` closes. Without a bus, BlueZ or an adapter, `tx` stays at its default.
 pub(super) async fn run(
+    bus: Bus,
     tx: watch::Sender<Bluetooth>,
     mut commands: mpsc::UnboundedReceiver<BluetoothCommand>,
 ) {
-    let Ok(connection) = Connection::system().await else {
+    let Ok(Some(connection)) = bus.connect().await else {
         return;
     };
     let Ok(builder) = ObjectManagerProxy::builder(&connection).destination(SERVICE) else {

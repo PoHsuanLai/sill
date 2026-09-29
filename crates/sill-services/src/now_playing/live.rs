@@ -23,6 +23,7 @@ use super::model::{
 };
 use super::mpris::{MediaPlayer2Proxy, PLAYER_INTERFACE, PlayerProxy};
 use super::{MediaVerb, art_cache_name, art_source};
+use crate::env::Bus;
 use crate::tray::Availability;
 use crate::units::Stamp;
 
@@ -30,10 +31,11 @@ const MPRIS_PREFIX: &str = "org.mpris.MediaPlayer2.";
 
 /// Runs until `commands` closes. Without a session bus, `tx` stays at its default.
 pub(super) async fn run(
+    bus: Bus,
     tx: watch::Sender<Media>,
     mut commands: mpsc::UnboundedReceiver<MediaCommand>,
 ) {
-    let Ok(connection) = Connection::session().await else {
+    let Ok(Some(connection)) = bus.connect().await else {
         return;
     };
     let Ok(dbus) = DBusProxy::new(&connection).await else {

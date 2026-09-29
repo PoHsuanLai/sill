@@ -11,8 +11,9 @@ use zbus::message::Header;
 use zbus::{Connection, fdo, interface};
 
 use super::inhibit::{BusPeer, InhibitCookie, InhibitMsg, InhibitReply};
-use super::logind::{SystemBus, bus};
-use super::model::{BusRoute, Idle, IdlePhase};
+use super::logind::bus;
+use super::model::{Idle, IdlePhase};
+use crate::env::Bus;
 
 /// The well-known name.
 pub(super) const BUS_NAME: &str = "org.freedesktop.ScreenSaver";
@@ -105,13 +106,13 @@ impl std::fmt::Debug for Served {
     }
 }
 
-/// Serve the object on `route`'s bus and ask for the name.
+/// Serve the object on `session` and ask for the name.
 pub(super) async fn serve(
-    route: &BusRoute,
+    session: &Bus,
     calls: mpsc::UnboundedSender<Call>,
     idle: watch::Receiver<Idle>,
 ) -> Option<Served> {
-    let connection = bus(route, SystemBus::Session).await?;
+    let connection = bus(session).await?;
     let saver = Saver { calls, idle };
     for path in PATHS {
         if let Err(error) = connection.object_server().at(path, saver.clone()).await {

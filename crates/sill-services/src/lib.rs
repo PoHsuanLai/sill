@@ -24,6 +24,7 @@ pub mod control;
 pub mod cosmic_wl;
 pub mod curve;
 pub mod displays;
+pub mod env;
 pub mod error;
 pub mod events;
 pub mod idle;
@@ -99,12 +100,12 @@ pub use network::{
 };
 pub use notifications::{
     Action, ActionKey, Activation, ActivationToken, AppGroup, AppKey, AppRef, BannerLife, Body,
-    BodyRun, BusChoice, Chime, Clear, CloseReason, Expiry, Hints, History, HistoryCap,
-    HistoryPlace, Href, IconRef, LiveBanner, NameHolder, NameOwner, NoteImage, NotesState,
-    Notification, NotificationId, Notifications, NotificationsCommand, NotificationsEffect,
-    NotificationsEvent, NotificationsPolicy, NotifyUrgency, Pixels, Posting, Presentation,
-    Presented, Quiet, Residency, RunLink, RunStyle, ServerMode, ServerStatus, Setup, Slant,
-    SoundHint, Transience, Underline, UnixMs, Weight, assign_id, parse_body, reduce_notifications,
+    BodyRun, Chime, Clear, CloseReason, Expiry, Hints, History, HistoryCap, HistoryPlace, Href,
+    IconRef, LiveBanner, NameHolder, NameOwner, NoteImage, NotesState, Notification,
+    NotificationId, Notifications, NotificationsCommand, NotificationsEffect, NotificationsEvent,
+    NotificationsPolicy, NotifyUrgency, Pixels, Posting, Presentation, Presented, Quiet, Residency,
+    RunLink, RunStyle, ServerMode, ServerStatus, Setup, Slant, SoundHint, Transience, Underline,
+    UnixMs, Weight, assign_id, parse_body, reduce_notifications,
 };
 pub use now_playing::{
     Abilities, Art, ArtSource, Media, MediaCommand, MediaEvent, MediaPlayer, MediaVerb, Micros,

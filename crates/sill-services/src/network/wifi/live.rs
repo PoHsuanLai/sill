@@ -24,15 +24,17 @@ use zbus::zvariant::{ObjectPath, OwnedObjectPath};
 
 use super::WifiCommand;
 use super::model::{AccessPoint, Association, Radio, Security, Ssid, Wifi, WifiEvent, reduce_wifi};
+use crate::env::Bus;
 use crate::units::{Percent, Presence};
 
 /// Runs until `commands` closes. Without a bus, NetworkManager or a wireless device, `tx` stays
 /// at its default.
 pub(super) async fn run(
+    bus: Bus,
     tx: watch::Sender<Wifi>,
     mut commands: mpsc::UnboundedReceiver<WifiCommand>,
 ) {
-    let Ok(connection) = Connection::system().await else {
+    let Ok(Some(connection)) = bus.connect().await else {
         return;
     };
     let Ok(nm) = NetworkManagerProxy::new(&connection).await else {
