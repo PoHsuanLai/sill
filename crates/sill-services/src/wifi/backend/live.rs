@@ -1,7 +1,7 @@
 //! NetworkManager's wireless side over the system bus: `WirelessEnabled` and
 //! `WirelessHardwareEnabled`, the wireless device's access points and `LastScan`, the saved
 //! connections' SSIDs, and the active access point; every change through
-//! [`super::step`]; [`WifiCommand`]s carried out.
+//! [`sill_model::wifi::step`]; [`WifiCommand`]s carried out.
 //!
 //! Same crate and bus as the network service (`cosmic_dbus_networkmanager`); the wireless
 //! device is found once by its `DeviceType` and kept for the life of the task (a device that
@@ -16,20 +16,21 @@ use cosmic_dbus_networkmanager::interface::device::wireless::WirelessDeviceProxy
 use cosmic_dbus_networkmanager::interface::enums::{DeviceState, DeviceType};
 use cosmic_dbus_networkmanager::interface::settings::SettingsProxy;
 use cosmic_dbus_networkmanager::interface::settings::connection::ConnectionSettingsProxy;
+use sill_model::units::{Percent, Presence};
+use sill_model::wifi::{
+    AccessPoint, Association, Radio, Security, Ssid, Wifi, WifiCommand, WifiEvent, step,
+};
 use tokio::sync::{mpsc, watch};
 use zbus::Connection;
 use zbus::zvariant::{ObjectPath, OwnedObjectPath};
 
-use super::WifiCommand;
-use super::model::{AccessPoint, Association, Radio, Security, Ssid, Wifi, WifiEvent, step};
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next;
-use sill_model::units::{Percent, Presence};
 
 /// Runs until `commands` closes. Without a bus, NetworkManager or a wireless device, `tx` stays
 /// at its default.
-pub(super) async fn run(
+pub(crate) async fn run(
     bus: Bus,
     tx: watch::Sender<Wifi>,
     mut commands: mpsc::UnboundedReceiver<WifiCommand>,

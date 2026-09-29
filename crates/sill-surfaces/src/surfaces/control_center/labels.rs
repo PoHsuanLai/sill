@@ -5,10 +5,8 @@ use sill_model::network::{Link, Network};
 use sill_model::now_playing::MediaPlayer;
 use sill_model::power_profile::Profile;
 use sill_model::units::Presence;
-use sill_services::{
-    AccessPoint, Association, Bluetooth, BtBattery, BtConnection, BtDevice, BtPairing, BtPower,
-    Radio, Saved, Wifi,
-};
+use sill_model::wifi::{AccessPoint, Association, Radio, Saved, Wifi};
+use sill_services::{Bluetooth, BtBattery, BtConnection, BtDevice, BtPairing, BtPower};
 use sill_settings::FocusMode;
 
 /// The Wi-Fi tile's status line: "Off", "Unavailable" (no device, or blocked in hardware),
@@ -130,9 +128,9 @@ mod tests {
     use sill_model::now_playing::{Abilities, MediaPlayer, Playback, PlayerId, Timeline, Track};
     use sill_model::power_profile::Profile;
     use sill_model::units::{Percent, Presence, Stamp};
+    use sill_model::wifi::{AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi};
     use sill_services::{
-        AccessPoint, Association, Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind,
-        BtPairing, BtPower, Radio, Saved, Security, Ssid, Wifi,
+        Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower,
     };
     use sill_settings::FocusMode;
 

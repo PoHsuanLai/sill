@@ -6,31 +6,13 @@
 //! bus. Same crate as the rest of the network (`cosmic-dbus-networkmanager`, MPL-2.0, linked, never
 //! pasted from).
 
-mod live;
-mod model;
+mod backend;
 
-pub use model::{
-    AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi, WifiEvent, listed_networks, step,
-};
+use sill_model::wifi::{Wifi, WifiCommand};
 
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
-
-/// What the Wi-Fi service can be told.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum WifiCommand {
-    /// `WirelessEnabled` on or off.
-    Radio(Radio),
-    /// `RequestScan` on the wireless device (the control center's list opening).
-    Scan,
-    /// Activate the saved connection for `ssid` on the wireless device. A network with no saved
-    /// connection is dropped: joining a new network needs a password prompt, which is a later
-    /// milestone's (it opens COSMIC Settings' Wi-Fi page meanwhile).
-    Connect(Ssid),
-    /// Deactivate the wireless device's active connection.
-    Disconnect,
-}
 
 /// NetworkManager's wireless radio as a [`Service`]. Without NetworkManager or a wireless device
 /// the state stays at `Wifi::default()` (absent), and the control center hides the module's list.
@@ -48,6 +30,6 @@ impl Service for WifiService {
         (): (),
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
-        live::run(env.buses.system.clone(), io.state, io.commands)
+        backend::run(env.buses.system.clone(), io.state, io.commands)
     }
 }

@@ -24,3 +24,4 @@ pub mod tray;
 pub mod units;
 pub mod volume;
 pub mod wallpaper;
+pub mod wifi;

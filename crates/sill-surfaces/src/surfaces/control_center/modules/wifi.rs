@@ -7,7 +7,8 @@ use dioxus::prelude::*;
 use ds::{Availability, Chevron, ModuleState, ModuleTile, StatusState, TextLine, WifiState};
 use sill_model::network::Network;
 use sill_model::units::Presence;
-use sill_services::{Radio, Wifi, WifiCommand, WifiService};
+use sill_model::wifi::{Radio, Wifi, WifiCommand};
+use sill_services::WifiService;
 
 use crate::hooks::{use_control, use_service};
 use crate::surfaces::bar::glyph_state::{NetworkGlyph, network_glyph};
@@ -81,11 +82,11 @@ mod tests {
     use ds::detail::EventStamp;
     use ds::{Availability, ModuleState, WifiBars, WifiReach, WifiState};
     use sill_model::network::{Connectivity, Link, Network};
+    use sill_model::wifi::{Radio, Wifi};
     use sill_model::{
         attempt::{Attempt, Attempts, OpStamp},
         units::{Percent, Presence},
     };
-    use sill_services::{Radio, Wifi};
 
     fn wifi(device: Presence, radio: Radio) -> Wifi {
         Wifi {

@@ -9,8 +9,9 @@
 
 use dioxus::prelude::*;
 use ds::{Availability, Icon, ModuleState, RowDisc, RowPhase, RowWork};
-use sill_model::{attempt::Attempts, units::Presence};
-use sill_services::{
+use sill_model::attempt::Attempts;
+use sill_model::units::Presence;
+use sill_model::wifi::{
     AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi, WifiCommand, listed_networks,
 };
 
@@ -208,11 +209,11 @@ mod tests {
     use crate::surfaces::control_center::rows::RowMark;
     use ds::detail::EventStamp;
     use ds::{Icon, RowDisc, RowPhase, RowWork};
+    use sill_model::wifi::{AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi};
     use sill_model::{
         attempt::{Attempt, Attempts, OpStamp},
         units::{Percent, Presence},
     };
-    use sill_services::{AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi};
 
     fn ap(ssid: &str, strength: u16, association: Association, security: Security) -> AccessPoint {
         AccessPoint {
@@ -290,7 +291,7 @@ mod tests {
 
     #[test]
     fn the_joining_row_takes_the_joins_stamp_and_keeps_it_when_it_lands() {
-        let mut wifi = sill_services::Wifi {
+        let mut wifi = sill_model::wifi::Wifi {
             device: Presence::Present,
             radio: Radio::On,
             access_points: vec![

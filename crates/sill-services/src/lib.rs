@@ -109,7 +109,4 @@ pub use switcher::{AppShown, SwitcherApp, switcher_apps};
 pub use tray::TrayService;
 pub use volume::VolumeService;
 pub use wallpaper::WallpaperService;
-pub use wifi::{
-    AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi, WifiCommand, WifiEvent,
-    WifiService, listed_networks,
-};
+pub use wifi::WifiService;

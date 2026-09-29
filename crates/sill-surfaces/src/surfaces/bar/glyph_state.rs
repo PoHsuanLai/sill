@@ -12,7 +12,8 @@ use sill_model::battery::{Battery, Charge};
 use sill_model::network::{Connectivity, Link, Network};
 use sill_model::units::Presence;
 use sill_model::volume::{Mute, Volume};
-use sill_services::{Bluetooth, BtConnection, BtPower, Radio};
+use sill_model::wifi::Radio;
+use sill_services::{Bluetooth, BtConnection, BtPower};
 use sill_settings::Percent as KeyPercent;
 
 /// What the network item draws: the Wi-Fi glyph, or a plain glyph for a link that is not Wi-Fi.

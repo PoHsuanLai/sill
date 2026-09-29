@@ -3,7 +3,8 @@
 
 use shell_host::Size;
 use sill_model::units::Presence;
-use sill_services::{Bluetooth, BtPower, Radio, Wifi};
+use sill_model::wifi::{Radio, Wifi};
+use sill_services::{Bluetooth, BtPower};
 use sill_settings::{ControlCenterModule, ControlCenterSettings};
 
 use super::geometry::{estimate_size, place};
@@ -115,7 +116,8 @@ mod tests {
     use super::{Fit, device_rows, drawn_modules, dropdown_size, panel_size, wifi_rows};
     use crate::surfaces::control_center::{CcPage, Detail};
     use sill_model::units::{Percent, Presence};
-    use sill_services::{AccessPoint, Association, Bluetooth, Radio, Security, Ssid, Wifi};
+    use sill_model::wifi::{AccessPoint, Association, Radio, Security, Ssid, Wifi};
+    use sill_services::Bluetooth;
     use sill_settings::{ControlCenterModule, ControlCenterSettings};
 
     #[test]

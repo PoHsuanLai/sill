@@ -12,7 +12,8 @@ use cc_support::live::{self, Report};
 use cc_support::{count, fake, render, render_dropdown};
 use ds::ShortcutKey;
 use ds_settings::{Count, Px};
-use sill_services::{Bluetooth, Radio, Ssid, Wifi, WifiCommand};
+use sill_model::wifi::{Radio, Ssid, Wifi, WifiCommand};
+use sill_services::Bluetooth;
 use sill_settings::{ControlCenterModule, ControlCenterSettings, ShellFile};
 use sill_surfaces::surfaces::control_center::{CcPage, Detail};
 

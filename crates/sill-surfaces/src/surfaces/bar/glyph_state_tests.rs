@@ -11,9 +11,8 @@ use sill_model::battery::{Battery, Charge};
 use sill_model::network::{Connectivity, Link, Network};
 use sill_model::units::{Percent, Presence, Seconds};
 use sill_model::volume::{Mute, Volume};
-use sill_services::{
-    BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower, Radio,
-};
+use sill_model::wifi::Radio;
+use sill_services::{BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower};
 use sill_settings::Percent as KeyPercent;
 
 fn net(link: Link, connectivity: Connectivity, now: Attempt) -> Network {

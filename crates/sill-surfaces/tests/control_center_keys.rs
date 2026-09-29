@@ -9,7 +9,7 @@ use std::time::Duration;
 use cc_support::fake;
 use cc_support::live::{self, Report};
 use ds::ShortcutKey;
-use sill_services::{Radio, WifiCommand};
+use sill_model::wifi::{Radio, WifiCommand};
 
 #[test]
 fn tab_walks_the_tiles_and_space_toggles_the_focused_one() {

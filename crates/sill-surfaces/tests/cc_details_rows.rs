@@ -13,7 +13,8 @@ use ds_native::harness::assert_settles_to_zero_frames;
 use sill_model::attempt::{Attempt, Attempts, OpStamp};
 use sill_model::network::{Connectivity, Link, Network};
 use sill_model::units::Percent;
-use sill_services::{AccessPoint, Association, BtBattery, BtConnection, Security, Ssid, Wifi};
+use sill_model::wifi::{AccessPoint, Association, Security, Ssid, Wifi};
+use sill_services::{BtBattery, BtConnection};
 
 // ---- Wi-Fi networks -------------------------------------------------------------------------
 
