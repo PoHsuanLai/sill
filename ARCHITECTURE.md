@@ -36,7 +36,7 @@ blitz, shell-host, ds or ds-settings.
 Each service in `sill-services` is a module with the same shape:
 
 ```rust
-pub fn spawn(rt: &Handle) -> (watch::Receiver<State>, Control<Command>)
+pub fn spawn(rt: &Handle, /* its seams from Env */) -> (watch::Receiver<State>, Control<Command>)
 ```
 
 - `State` is plain data (`Battery`, `Network`, `Volume`, `Displays`, `Notifications`, ...) with a
@@ -47,13 +47,19 @@ pub fn spawn(rt: &Handle) -> (watch::Receiver<State>, Control<Command>)
 - The logic is a pure reducer, `reduce_*(state, event) -> state` (or `(state, effects)` where
   the service must act), table-tested. A `live.rs` does the I/O: it seeds, follows D-Bus
   signals or Wayland events, feeds the reducer, publishes with `send_if_modified` and carries out
-  effects. Many also have `spawn_with(rt, Setup { .. })`, so a live test can point them at a
-  private bus, a nested socket or a fake.
+  effects. A service reaches nothing outside the process except through what it is started
+  with, taken from `sill_services::env::Env`: the buses (`Buses`, each a `BusRoute`: `Usual`,
+  `Address`, `Absent`), the compositor (`WaylandRoute`), the person's directories (`Dirs`), the
+  wall clock (`WallClock`), the DDC buses (`DdcBus`), where session actions go
+  (`SessionActions`), idle's times and the polkit agent's setup. The daemon builds
+  `Env::from_process()` (a `debug` build swaps single seams for stand-ins with `sill run` flags,
+  `crates/sill/src/run_args.rs`); a live test points a service at a private bus, a nested
+  socket or a fake, and `Env::isolated(scratch)` reaches nothing at all.
 - Services that could touch the person's session (notifications, idle, polkit agent, clipboard,
   calendar events, screenshots) are passive until the daemon sends their first policy, which
   the daemon derives from the settings (`crates/sill/src/*::spawn_policy`).
 - `Services` (`services.rs`) is one `Clone` struct of every receiver and control, built by
-  `Services::spawn` and given to every surface root as a context.
+  `Services::spawn(rt, &env)` and given to every surface root as a context.
 
 The services: clock, battery, network (and Wi-Fi), volume, displays (scale policy, EDID,
 DDC/CI, backlights, warmth, fontconfig), tray, `cosmic_wl` (toplevels and workspaces on its own

@@ -135,11 +135,14 @@ the behaviour, not the source line.
   (no dioxus, zbus, wayland-client, tokio or libpulse); `sill-services` is effectful but UI-free
   (no dioxus, blitz, shell-host, ds or ds-settings). UI reaches services only through watch
   channels read by `sill-surfaces`' hooks.
-- **A service** is `spawn(rt) -> (watch::Receiver<State>, Control<Command>)` plus a pure
-  reducer. A service whose system half is missing still yields its receiver, at its default. A
-  service that could touch the person's session (notifications, idle, polkit, clipboard,
-  calendar, screenshots) is passive until the daemon sends its first policy, so
-  `Services::spawn` in a test touches nothing.
+- **A service** is `spawn(rt, seams) -> (watch::Receiver<State>, Control<Command>)` plus a
+  pure reducer; its seams (buses, compositor, directories, clock, DDC, session actions) come
+  from `sill_services::env::Env` and nothing else: no environment variable, `dirs::*` call or
+  hard-coded bus inside a service. A service whose system half is missing still yields its
+  receiver, at its default. A service that could touch the person's session (notifications,
+  idle, polkit, clipboard, calendar, screenshots) is passive until the daemon sends its first
+  policy, and a test's `Services::spawn(rt, &Env::isolated(scratch))` reaches no bus,
+  compositor or real file.
 - **Never pass a Dioxus signal through `Root::context`**; roots get `Services`, `SettingsFeed`
   and plain links (watch channels).
 - **Design system rules** (quire): every class is `ds-`; consumers never style `.ds-*` or
