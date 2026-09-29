@@ -3,11 +3,13 @@
 //! calendar events, screenshots, volume, tray, apps, launcher entries, dock pins, launcher search,
 //! wallpaper, sounds, displays and COSMIC Wayland state.
 //!
-//! Every service is one module with the same shape: `spawn(rt) -> (watch::Receiver<T>,
-//! Control<C>)` starts the effect, and a pure `reduce_*(T, Event) -> T` is the only place its
-//! state changes, so every transition is table-tested without a bus or a socket. [`Services`]
-//! bundles the receivers and controls into the one `Clone` value every surface gets through
-//! `Root::context`. Shared data travels on `tokio::sync::watch`, never as a Dioxus signal.
+//! Every service is one module with the same shape: a marker type implementing [`Service`],
+//! started by [`service::spawn`] against [`env::Env`]'s seams into a [`Handle`] (a watch
+//! receiver of its state and a [`Control`] for its commands), and a pure `step` beside its state
+//! that is the only place the state changes, so every transition is table-tested without a bus
+//! or a socket. [`Services`] holds every running service's handle, the one `Clone` value every
+//! surface gets through `Root::context`. Shared data travels on `tokio::sync::watch`, never as a
+//! Dioxus signal.
 //!
 //! This crate never reaches `dioxus` (`scripts/check-boundary.sh`): the hooks that read these
 //! channels live in `sill-surfaces::hooks`.

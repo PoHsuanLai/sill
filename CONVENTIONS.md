@@ -9,9 +9,9 @@ says how to write them. If a rule here blocks you, say so rather than deviating 
 
 A function that takes values and returns values can be tested with a table, reasoned about in
 isolation, and reused from a context its author never imagined. One that reaches for a socket,
-a clock or a global cannot. Push effects to the edges: a reducer returns the effects it wants
-(`reduce_*` returns state and a list of effects; the service's live loop carries them out), and
-a machine returns what the component should do next rather than doing it.
+a clock or a global cannot. Push effects to the edges: a service's `step` returns the effects it
+wants (state and a list of effects; the service's live loop carries them out), and a machine
+returns what the component should do next rather than doing it.
 
 Effects belong in the signature. `&mut self`, `Result`, or living in a module allowed to do I/O
 are how a reader sees that something happens; a function that looks pure and is not is worse
@@ -133,12 +133,14 @@ the behaviour, not the source line.
 
 - **Crate boundaries** (`scripts/check-boundary.sh`): `sill-ipc` and `sill-launcher` are pure
   (no dioxus, zbus, wayland-client, tokio or libpulse); `sill-services` is effectful but UI-free
-  (no dioxus, blitz, shell-host, ds or ds-settings). UI reaches services only through watch
-  channels read by `sill-surfaces`' hooks.
-- **A service** is `spawn(rt, seams) -> (watch::Receiver<State>, Control<Command>)` plus a
-  pure reducer; its seams (buses, compositor, directories, clock, DDC, session actions) come
-  from `sill_services::env::Env` and nothing else: no environment variable, `dirs::*` call or
-  hard-coded bus inside a service. A service whose system half is missing still yields its
+  (no dioxus, blitz, shell-host, ds or ds-settings). UI reaches services only through
+  `sill-surfaces`' `use_service`, `use_service_part` and `use_control`.
+- **A service** is a marker type implementing `sill_services::Service` (`<Module>Service`),
+  started by `service::spawn::<S>(rt, &env, deps)` into a `Handle { state, control }`, plus a
+  pure free function named `step` beside the state it steps; its seams (buses, compositor,
+  directories, clock, DDC, session actions, the password check) come from
+  `sill_services::env::Env` and nothing else: no environment variable, `dirs::*` call or
+  hard-coded bus inside a service. Other services it reads or drives are its `Deps`. A service whose system half is missing still yields its
   receiver, at its default. A service that could touch the person's session (notifications,
   idle, polkit, clipboard, calendar, screenshots) is passive until the daemon sends its first
   policy, and a test's `Services::spawn(rt, &Env::isolated(scratch))` reaches no bus,
