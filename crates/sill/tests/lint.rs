@@ -6,13 +6,17 @@
 use std::time::Duration;
 
 use ds::lint::{LintConfig, Profile, markup, stylesheet};
+use sill_launcher::WindowKey;
+use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, WindowState};
 use sill_model::idle::{DimLevel, DimShown, Idle, IdleMode, IdlePhase};
-use sill_model::ids::OutputName;
+use sill_model::ids::{OutputName, WorkspaceKey};
 use sill_model::session::Session;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
-use sill_ui_kit::links::{LevelSource, OsdKind, OsdLink, PowerMenuLink, Preselect};
-use sill_ui_kit::{IdleDim, Osd, PowerMenu, Wallpaper};
+use sill_ui_kit::links::{
+    Dir, LevelSource, OsdKind, OsdLink, PowerMenuLink, Preselect, SwitcherAsk, SwitcherLink,
+};
+use sill_ui_kit::{IdleDim, Osd, PowerMenu, Switcher, Wallpaper};
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
 struct SurfaceCase {
@@ -48,6 +52,11 @@ const SURFACES: &[SurfaceCase] = &[
         name: "power_menu",
         css: sill_ui_kit::surfaces::power_menu::POWER_MENU_CSS,
         states: power_menu_states,
+    },
+    SurfaceCase {
+        name: "switcher",
+        css: sill_ui_kit::surfaces::switcher::SWITCHER_CSS,
+        states: switcher_states,
     },
 ];
 
@@ -123,6 +132,32 @@ fn power_menu_states() -> Vec<(&'static str, String)> {
     let open = menu.harness.html();
     assert!(open.contains("sill-power-menu-panel"), "{open}");
     vec![("hidden", hidden), ("open", open)]
+}
+
+/// The switcher hidden, then shown on three apps past the show delay.
+fn switcher_states() -> Vec<(&'static str, String)> {
+    let mut switcher = SurfaceHarness::<Switcher>::setup(SwitcherLink::new(), ()).start();
+    let window = |key: u64, app: &str| Toplevel {
+        key: WindowKey(key),
+        app_id: app.to_owned(),
+        title: format!("{app} {key}"),
+        activity: Activity::Inactive,
+        window: WindowState::Normal,
+        sizing: Sizing::Floating,
+        workspaces: vec![WorkspaceKey(2)],
+        outputs: vec![OutputName("DP-1".to_owned())],
+    };
+    switcher.feeds.cosmic_wl.send_modify(|wl| {
+        wl.toplevels.windows = vec![window(1, "term"), window(2, "calc"), window(3, "edit")];
+    });
+    switcher.harness.advance(Duration::from_millis(40));
+    let hidden = switcher.harness.html();
+    switcher
+        .link
+        .ask(fake::output().id, SwitcherAsk::Chord(Dir::Next));
+    switcher.harness.advance(Duration::from_millis(260));
+    assert_eq!(switcher.harness.count(".ds-switcher"), 1);
+    vec![("hidden", hidden), ("shown", switcher.harness.html())]
 }
 
 #[test]

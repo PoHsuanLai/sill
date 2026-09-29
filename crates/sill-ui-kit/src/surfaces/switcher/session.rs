@@ -1,13 +1,13 @@
 //! One opening of the switcher, from its chord to its close: the apps as they were at the chord
 //! (macOS's switcher keeps its row while it is up), whose windows its verbs touch, and the tiles
-//! leaving after a Q. Pure: `drive.rs` holds it and carries out what it says.
+//! leaving after a Q. Pure: `io.rs` holds it and carries out what it says.
 
 use ds::TilePresence;
 use sill_launcher::AppId;
 use sill_model::cosmic_wl::WlCommand;
 use sill_services::switcher::{AppShown, SwitcherApp, activate, hide, quit};
 
-use super::machine::SwOut;
+use super::step::SwOut;
 use crate::links::AskSerial;
 
 /// Whose windows a session's verbs touch.
@@ -120,7 +120,7 @@ mod tests {
 
     use super::Session;
     use crate::links::AskSerial;
-    use crate::surfaces::switcher::machine::SwOut;
+    use crate::surfaces::switcher::step::SwOut;
 
     fn app(id: &str, windows: &[u64], shown: AppShown) -> SwitcherApp {
         SwitcherApp {

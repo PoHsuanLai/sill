@@ -36,14 +36,13 @@ pub struct OutputSurfaces {
     /// The polkit prompt and the app switcher, warm and hidden. The lock surfaces are
     /// shell-host's session lock's, not a row's.
     pub polkit_prompt: Option<SurfaceId>,
-    pub switcher: Option<SurfaceId>,
     /// Edit Widgets (the widget gallery), warm and hidden.
     pub edit_widgets: Option<SurfaceId>,
 }
 
 impl OutputSurfaces {
     /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 11] {
+    fn fields(&self) -> [Option<SurfaceId>; 10] {
         [
             self.bar,
             self.dock,
@@ -54,7 +53,6 @@ impl OutputSurfaces {
             self.thumbnail,
             self.desktop_widgets,
             self.polkit_prompt,
-            self.switcher,
             self.edit_widgets,
         ]
     }
@@ -92,7 +90,6 @@ impl OutputSurfaces {
             &mut self.thumbnail,
             &mut self.desktop_widgets,
             &mut self.polkit_prompt,
-            &mut self.switcher,
             &mut self.edit_widgets,
         ] {
             if *field == Some(id) {

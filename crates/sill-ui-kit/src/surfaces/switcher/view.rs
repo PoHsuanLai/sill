@@ -3,7 +3,7 @@
 //! the focused element, else to `<html>`) and, while the machine is `Shown`, quire's
 //! `AppSwitcher` centred in it.
 //!
-//! [`super::drive`] follows the [`crate::links::SwitcherLink`] for this output and runs the machine;
+//! [`super::io`] follows the [`crate::links::SwitcherLink`] for this output and runs the machine;
 //! this file only draws: the tiles from [`super::tiles`] over the opening's apps (a quit tile
 //! `TilePresence::Leaving` until its fold settles), `selected` the machine's selection as
 //! [`super::key_of`], `metrics` [`super::metrics_of`], `output` [`super::output_width`], and
@@ -13,11 +13,11 @@ use dioxus::prelude::*;
 use ds::{AppKey, Material, RootChrome, RootExtent, SwitcherApp as Tile};
 use shell_host::{OutputInfo, SurfaceHandle};
 
-use super::drive::{SwitcherCtx, use_switcher};
 use super::icon::SwitcherIcons;
+use super::io::{SwitcherCtx, use_switcher};
 use super::layer::PANEL_ID;
-use super::machine::{Switcher, SwitcherParams};
 use super::session::{Session, Windows};
+use super::step::{Switcher, SwitcherParams};
 use super::tiles::{key_of, metrics_of, output_width, tiles};
 use super::watch::ChordWatch;
 use crate::app_icons::{IconContext, LogicalPx, icon_look, use_icon_resolver};
@@ -27,10 +27,10 @@ use crate::look::use_active_look;
 use crate::root::SurfaceRoot;
 use sill_services::AppsService;
 
-/// The switcher's stylesheet (lint-clean under `Profile::Strict`, `tests/switcher_lint.rs`).
-pub(crate) const SWITCHER_CSS: &str = include_str!("../../style/switcher.css");
+/// The switcher's stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
+pub const SWITCHER_CSS: &str = include_str!("../../style/switcher.css");
 
-pub(super) fn switcher_panel(output: OutputInfo) -> Element {
+pub(super) fn switcher(output: OutputInfo) -> Element {
     let ds_scale = use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();

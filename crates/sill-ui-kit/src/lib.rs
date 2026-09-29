@@ -42,5 +42,5 @@ pub use surfaces::osd::Osd;
 pub use surfaces::polkit_prompt::PolkitPrompt;
 pub use surfaces::power_menu::PowerMenu;
 pub use surfaces::screenshot_thumb::ScreenshotThumb;
-pub use surfaces::switcher::SwitcherPanel;
+pub use surfaces::switcher::Switcher;
 pub use surfaces::wallpaper::Wallpaper;

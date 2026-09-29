@@ -7,8 +7,10 @@
 use shell_host::OutputId;
 use sill_ipc::act::SwitcherRequest;
 use sill_ipc::response::Response;
+use sill_ui_kit::Switcher;
 use sill_ui_kit::links::BannerOutput;
 use sill_ui_kit::links::{Dir, SwitcherAsk};
+use sill_ui_kit::surface::Surface;
 
 use super::reach::Reach;
 use super::reply::unsupported;
@@ -33,13 +35,17 @@ pub fn ask(reach: &Reach, ask: SwitcherAsk) -> Response {
 /// The output the switcher opens on: the banners' (the main display), else the first with a
 /// switcher surface.
 fn target(outputs: &Outputs, banners: BannerOutput) -> Option<OutputId> {
-    let has_switcher = |id: OutputId| outputs.get(id).is_some_and(|s| s.switcher.is_some());
+    let has_switcher = |id: OutputId| {
+        outputs
+            .get(id)
+            .is_some_and(|s| s.spawned_id(Switcher::NAME).is_some())
+    };
     match banners {
         BannerOutput::On(id) if has_switcher(id) => Some(id),
         _ => outputs
             .outputs
             .iter()
-            .find(|(_, s)| s.switcher.is_some())
+            .find(|(_, s)| s.spawned_id(Switcher::NAME).is_some())
             .map(|(info, _)| info.id),
     }
 }

@@ -13,8 +13,8 @@
 use dioxus::prelude::*;
 use shell_host::use_modifiers;
 
-use super::drive::SwitcherCtx;
 use super::hold::chord_of;
+use super::io::SwitcherCtx;
 use super::keys::Chord;
 
 /// Whether the modifiers read so far are this opening's baseline or a publish after it.

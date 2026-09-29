@@ -7,13 +7,15 @@ use shell_host::{
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
+use sill_settings::ShellFile;
+
 use crate::surfaces::naming::namespace;
 
 /// The panel's element id: the surface's input and blur region.
-pub const PANEL_ID: &str = "switcher-panel";
+pub(super) const PANEL_ID: &str = "switcher-panel";
 
 /// The panel's corner: `Material::Osd`'s radius (design/13 §13.3.5: 18).
-pub const PANEL_RADIUS: i32 = 18;
+const PANEL_RADIUS: i32 = 18;
 
 fn panel_region() -> RegionSpec {
     RegionSpec::Element {
@@ -24,7 +26,7 @@ fn panel_region() -> RegionSpec {
 }
 
 /// The switcher on `output`.
-pub fn switcher_layer(output: &OutputInfo) -> LayerConfig {
+pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
     LayerConfig {
         namespace: namespace("switcher", output),
         layer: LayerLevel::Overlay,
@@ -44,13 +46,14 @@ pub fn switcher_layer(output: &OutputInfo) -> LayerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::{panel_region, switcher_layer};
+    use super::{layer as switcher_layer, panel_region};
     use crate::surfaces::naming::tests::output;
     use shell_host::{Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerLevel};
+    use sill_settings::ShellFile;
 
     #[test]
     fn the_switcher_is_a_keyboard_exclusive_overlay_taking_input_on_its_panel() {
-        let layer = switcher_layer(&output(Some("DP-1")));
+        let layer = switcher_layer(&output(Some("DP-1")), &ShellFile::default());
         assert_eq!(layer.namespace, "sill-switcher-DP-1");
         assert_eq!(layer.layer, LayerLevel::Overlay);
         assert_eq!(layer.anchor, Anchor::ALL);

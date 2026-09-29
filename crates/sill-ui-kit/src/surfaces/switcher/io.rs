@@ -17,8 +17,8 @@ use sill_services::switcher::{SwitcherApp, switcher_apps};
 
 use super::hold::{Hold, Watch, chord_input, tick_input};
 use super::keys::{Chord, chord_after_keyup, sw_key};
-use super::machine::{SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
 use super::session::Session;
+use super::step::{SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
 use super::tiles::index_of;
 use crate::clock::FrameClock;
 use crate::links::Dir;
@@ -27,7 +27,7 @@ use crate::links::{AskSerial, SwitcherAsk, SwitcherLink};
 /// One surface's switcher: its machine, its opening, and what it talks to. Copy, so every
 /// handler and task holds it.
 #[derive(Clone, Copy, PartialEq)]
-pub(crate) struct SwitcherCtx {
+pub(super) struct SwitcherCtx {
     pub state: Signal<Switcher>,
     pub session: Signal<Option<Session>>,
     params: CopyValue<SwitcherParams>,
@@ -42,7 +42,7 @@ pub(crate) struct SwitcherCtx {
 
 /// Run `output`'s switcher from `link` with `params` (read at each input) and `level` (for the
 /// fold's settle).
-pub(crate) fn use_switcher(
+pub(super) fn use_switcher(
     link: &SwitcherLink,
     output: OutputId,
     params: SwitcherParams,

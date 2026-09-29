@@ -17,5 +17,4 @@ pub mod polkit;
 pub mod run_args;
 pub mod screenshots;
 pub mod scroll;
-pub mod switcher;
 pub mod widgets;
