@@ -6,19 +6,19 @@ use ds::{Icon, StatusState};
 use shell_host::OutputInfo;
 use sill_settings::ControlCenterModule;
 
-use super::glyph_state::{battery_glyph, bluetooth_glyph_state, network_glyph, volume_glyph};
-use super::low_battery::use_low_cue;
 use super::menus::BarMenu;
-use super::status::{battery_lines, network_lines, volume_heading};
 use super::status_item::StatusIcon;
 use crate::hooks::{use_service, use_settings};
+use crate::status::glyph::{battery_glyph, bluetooth_glyph_state, network_glyph, volume_glyph};
+use crate::status::lines::{battery_lines, network_lines, volume_heading};
+use crate::status::low_battery::use_low_cue;
 use crate::surfaces::control_center::bluetooth_status;
 use sill_services::{
     BatteryService, BluetoothService, NetworkService, NowPlayingService, VolumeService, WifiService,
 };
 
 /// `module`'s bar item on `output` (its glyph is the module's status glyph: quire's Wi-Fi,
-/// battery, volume and Bluetooth glyphs through `glyph_state`).
+/// battery, volume and Bluetooth glyphs through `status::glyph`).
 #[component]
 pub fn ModuleItem(output: OutputInfo, module: ControlCenterModule) -> Element {
     // Every bar item is told its output (the frozen signature); these read the same on all.

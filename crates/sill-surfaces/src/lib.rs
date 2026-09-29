@@ -15,6 +15,7 @@ pub mod hooks;
 pub mod host_modality;
 pub mod look;
 pub mod services;
+pub mod status;
 pub mod surfaces;
 pub mod widgets;
 

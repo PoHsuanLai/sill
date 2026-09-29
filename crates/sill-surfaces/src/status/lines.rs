@@ -6,7 +6,7 @@ use sill_model::units::{Minutes, Presence};
 use sill_model::volume::Volume;
 
 /// The volume menu's heading: the sink, or that there is none.
-pub(crate) fn volume_heading(volume: &Volume) -> String {
+pub fn volume_heading(volume: &Volume) -> String {
     match volume.presence {
         Presence::Present if volume.sink.is_empty() => "Output".to_owned(),
         Presence::Present => volume.sink.clone(),
@@ -15,7 +15,7 @@ pub(crate) fn volume_heading(volume: &Volume) -> String {
 }
 
 /// The network menu's two lines: the connection and the connectivity.
-pub(crate) fn network_lines(network: &Network) -> [String; 2] {
+pub fn network_lines(network: &Network) -> [String; 2] {
     let link = match &network.link {
         Link::Disconnected => "Not connected".to_owned(),
         Link::Connecting => "Connecting…".to_owned(),
@@ -34,7 +34,7 @@ pub(crate) fn network_lines(network: &Network) -> [String; 2] {
 }
 
 /// The battery menu's two lines: the level and state, and the time left.
-pub(crate) fn battery_lines(battery: &Battery) -> [String; 2] {
+pub fn battery_lines(battery: &Battery) -> [String; 2] {
     let state = match battery.charge {
         Charge::Charging => "charging",
         Charge::Discharging => "on battery",

@@ -15,8 +15,6 @@ pub mod workspaces;
 
 mod content;
 mod geometry;
-pub mod glyph_state;
-mod low_battery;
 mod menu_popup;
 mod menus;
 mod pick;
@@ -24,7 +22,6 @@ mod plan;
 mod reorder;
 mod session;
 pub(crate) mod shell_style;
-pub(crate) mod status;
 mod status_item;
 mod title;
 mod tray_input;

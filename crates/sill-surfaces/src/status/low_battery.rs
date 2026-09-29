@@ -52,7 +52,7 @@ impl Detailed for LowWatch {
 
 /// The nudge's cue for the battery item showing `state`: an Attention once per crossing, which
 /// the item's `IconButton` plays as `nudge-up` on its glyph.
-pub(crate) fn use_low_cue(state: Option<BatteryState>) -> Cue {
+pub fn use_low_cue(state: Option<BatteryState>) -> Cue {
     let mut watch = use_hook(|| CopyValue::new(LowWatch::Clear.next(state)));
     let now = watch.peek().next(state);
     if now != *watch.peek() {

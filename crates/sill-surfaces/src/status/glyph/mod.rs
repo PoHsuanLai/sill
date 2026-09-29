@@ -145,5 +145,4 @@ pub fn bluetooth_glyph_state(bluetooth: &Bluetooth) -> BluetoothState {
 }
 
 #[cfg(test)]
-#[path = "glyph_state_tests.rs"]
 mod tests;

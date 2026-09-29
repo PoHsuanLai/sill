@@ -1,4 +1,4 @@
-//! Table tests for `glyph_state`: every row of quire's status glyph table.
+//! Table tests for the glyph states: every row of quire's status glyph table.
 
 use super::{NetworkGlyph, battery_glyph, bluetooth_glyph_state, network_glyph, volume_glyph};
 use ds::detail::EventStamp;

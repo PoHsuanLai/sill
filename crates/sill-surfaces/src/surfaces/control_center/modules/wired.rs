@@ -11,8 +11,8 @@ use sill_services::{DisplaysService, VolumeService};
 
 use super::{DisplayModule, SoundModule};
 use crate::hooks::{use_control, use_service};
-use crate::surfaces::bar::glyph_state::volume_glyph;
-use crate::surfaces::bar::status::volume_heading;
+use crate::status::glyph::volume_glyph;
+use crate::status::lines::volume_heading;
 
 /// The Sound module on the default sink.
 #[component]

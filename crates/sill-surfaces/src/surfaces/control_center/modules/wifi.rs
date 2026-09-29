@@ -11,7 +11,7 @@ use sill_model::wifi::{Radio, Wifi, WifiCommand};
 use sill_services::WifiService;
 
 use crate::hooks::{use_control, use_service};
-use crate::surfaces::bar::glyph_state::{NetworkGlyph, network_glyph};
+use crate::status::glyph::{NetworkGlyph, network_glyph};
 use crate::surfaces::control_center::modules::flipped;
 use crate::surfaces::control_center::page::Detail;
 use crate::surfaces::control_center::wifi_status;

@@ -1,4 +1,4 @@
-//! The status glyphs on the real surfaces: the fake services, mapped by `glyph_state`, drive
+//! The status glyphs on the real surfaces: the fake services, mapped by `status::glyph`, drive
 //! the status glyphs in the real `Bar`'s Wi-Fi, battery, volume and Bluetooth items and in the
 //! real `ControlCenter`'s Wi-Fi and Bluetooth discs, Battery header and Sound level. Each change
 //! ends at 0 frames (design/26 R3), on the virtual clock.

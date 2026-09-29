@@ -9,7 +9,7 @@ use sill_model::bluetooth::{Bluetooth, BtPower};
 use sill_model::units::Presence;
 
 use crate::hooks::use_service;
-use crate::surfaces::bar::glyph_state::bluetooth_glyph_state;
+use crate::status::glyph::bluetooth_glyph_state;
 use crate::surfaces::control_center::bluetooth_tile_status;
 use crate::surfaces::control_center::modules::bluetooth_ask::use_power_request;
 use crate::surfaces::control_center::modules::flipped;
