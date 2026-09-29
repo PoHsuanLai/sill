@@ -1,6 +1,5 @@
-//! The file-index seam: Tracker 3, Baloo and a walk under the home directory are three
-//! implementations behind [`FileIndex`] (CONVENTIONS §0 "traits are seams"), and a test's
-//! [`FakeIndex`](super::fake::FakeIndex) is a fourth. Each answers one [`FileAsk`] within its
+//! The file-index seam: Tracker 3 and a walk under the home directory are two implementations
+//! behind [`FileIndex`], and a test's [`FakeIndex`](super::fake::FakeIndex) is a third. Each answers one [`FileAsk`] within its
 //! budget; the provider ranks the hits itself (`hits.rs`), so every backend ranks alike.
 
 use std::path::PathBuf;
@@ -12,7 +11,6 @@ use sill_launcher::{Mime, Query, UnixTime};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum IndexKind {
     Tracker,
-    Baloo,
     Fd,
     Plocate,
     Fake,

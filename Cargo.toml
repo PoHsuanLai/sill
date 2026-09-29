@@ -140,7 +140,7 @@ nonstick = "0.1.2"
 # Unicode-3.0 for its generated data. Keywords come from CLDR annotations bundled as
 # `crates/sill-services/data/emoji-keywords.tsv` (Unicode-3.0), not from a crate.
 emojis = "0.9"
-# A file's MIME type from its name, when the index gave none (fd, plocate, Baloo): MIT.
+# A file's MIME type from its name, when the index gave none (fd, plocate): MIT.
 mime_guess = "2.0"
 # The web fallback's `{query}` escaping (RFC 3986): MIT OR Apache-2.0, already in the tree.
 percent-encoding = "2.3"

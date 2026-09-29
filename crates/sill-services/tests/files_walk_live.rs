@@ -1,6 +1,6 @@
 //! The walking index and detection for real, on this machine, never over the person's files:
 //! `fd` walks a scratch folder under the target directory, and `detect` only asks whether each
-//! backend exists (a bus name, a program on `PATH`, `balooctl6 status`).
+//! backend exists (a bus name, a program on `PATH`).
 //!
 //! Run explicitly: `cargo test -p sill-services --test files_walk_live -- --ignored
 //! --nocapture`.
@@ -86,8 +86,8 @@ fn a_budget_of_nothing_is_a_partial_answer() {
 fn this_machine_has_tracker() {
     let found = detect();
     eprintln!(
-        "sill: files detect: tracker={:?} baloo={:?} fd={:?} plocate={:?}",
-        found.tracker, found.baloo, found.fd, found.plocate
+        "sill: files detect: tracker={:?} fd={:?} plocate={:?}",
+        found.tracker, found.fd, found.plocate
     );
     assert_ne!(found.tracker, IndexState::Absent);
 }

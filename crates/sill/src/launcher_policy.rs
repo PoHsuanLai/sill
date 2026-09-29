@@ -23,7 +23,6 @@ pub fn search_policy_of(l: &LauncherSettings) -> LauncherPolicy {
         files: match l.files_backend {
             FilesBackend::Auto => FilesChoice::Auto,
             FilesBackend::Tracker => FilesChoice::Tracker,
-            FilesBackend::Baloo => FilesChoice::Baloo,
             FilesBackend::Fd => FilesChoice::Walk,
             FilesBackend::Off => FilesChoice::Off,
         },

@@ -129,7 +129,7 @@ pub struct LauncherSettings {
     /// `launcher.files_backend` (M9).
     #[settings(
         label = "File search",
-        help = "Where the launcher finds documents: `auto` asks Tracker, else Baloo, else searches your home folder with fd; or name one; `off` searches no files.",
+        help = "Where the launcher finds documents: `auto` asks Tracker, else searches your home folder with fd; or name one; `off` searches no files.",
         section = "Launcher",
         advanced
     )]

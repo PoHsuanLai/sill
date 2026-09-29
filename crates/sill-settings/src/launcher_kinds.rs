@@ -17,13 +17,11 @@ use serde::{Deserialize, Serialize};
 )]
 #[serde(rename_all = "snake_case")]
 pub enum FilesBackend {
-    /// Tracker 3 (localsearch) when it runs, else Baloo, else `fd` or `plocate`.
+    /// Tracker 3 (localsearch) when it runs, else `fd` or `plocate`.
     #[default]
     Auto,
     /// Tracker 3 only.
     Tracker,
-    /// KDE's Baloo only.
-    Baloo,
     /// No index: `fd` (else `plocate`) under the home folder, within the time budget.
     Fd,
     /// No file search.

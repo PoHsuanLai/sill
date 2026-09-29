@@ -1,8 +1,8 @@
-//! Documents and folders under the home directory (M9 lane a, FINDINGS "M9 freeze" F648;
-//! Spotlight's "Documents"), from whichever index `launcher.files_backend` picks
-//! ([`choice::pick`]): Tracker 3, Baloo, or `fd`/`plocate` within a time budget.
+//! Documents and folders under the home directory (Spotlight's "Documents"), from whichever
+//! index `launcher.files_backend` picks ([`choice::pick`]): Tracker 3, or `fd`/`plocate` within
+//! a time budget.
 //!
-//! The freeze's `query` answers nothing; lane a fills it: nothing typed asks no index; with
+//! Nothing typed asks no index; with
 //! the policy's `FilesChoice::Off` or no index picked, nothing; otherwise one [`FileAsk`] with
 //! the policy's budget under `$HOME`, its hits ranked by [`hits::file_items`] and pushed as
 //! one batch (a `Partial` answer is pushed too). Enter opens the file (`Activation::Open`),
@@ -11,7 +11,6 @@
 //! Tests never read the person's index or home directory: they use [`FakeIndex`] and temp
 //! directories; a live backend test only checks that the backend exists (`choice::detect`).
 
-pub mod baloo;
 pub(crate) mod bus;
 pub mod choice;
 mod cursor;
@@ -39,7 +38,6 @@ use sill_launcher::{
 use tokio::sync::watch;
 
 use crate::results::{FilesChoice, LauncherPolicy};
-use baloo::BalooIndex;
 use hits::{COPY_PATH_ACTION, REVEAL_ACTION};
 use tracker::TrackerIndex;
 use walk::{WalkIndex, Walker};
@@ -139,9 +137,9 @@ impl Provider for FilesProvider {
 /// the name match drops leaves room for another.
 const ASK_LIMIT: HitLimit = HitLimit(40);
 
-/// What this machine has, asked once per process ([`choice::detect`] makes a bus call and
-/// spawns `balooctl6`): `FilesProvider`'s frozen fields have no slot for a cache, and the daemon
-/// builds one provider, so once per process is once per provider (FINDINGS "M9 lane a").
+/// What this machine has, asked once per process ([`choice::detect`] makes a bus call):
+/// `FilesProvider`'s fields have no slot for a cache, and the daemon builds one provider, so
+/// once per process is once per provider.
 static DETECTED: OnceLock<choice::Detected> = OnceLock::new();
 
 /// The index `source` and `files` name, or none (`Off`, or nothing on this machine fits).
@@ -161,7 +159,6 @@ fn index_for(source: &IndexSource, files: FilesChoice) -> Option<Arc<dyn FileInd
 fn index_of(kind: IndexKind) -> Option<Arc<dyn FileIndex>> {
     match kind {
         IndexKind::Tracker => Some(Arc::new(TrackerIndex)),
-        IndexKind::Baloo => Some(Arc::new(BalooIndex)),
         IndexKind::Fd => Some(Arc::new(WalkIndex { walker: Walker::Fd })),
         IndexKind::Plocate => Some(Arc::new(WalkIndex {
             walker: Walker::Plocate,

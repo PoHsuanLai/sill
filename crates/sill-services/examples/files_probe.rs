@@ -4,10 +4,10 @@
 //! `tests/files_tracker_live.rs` run it in a scratch environment (a scratch `HOME`, a private
 //! bus, a stub opener), never in the person's own.
 //!
-//! Usage: `files_probe --home DIR [--backend auto|tracker|baloo|fd|plocate|off] [--query TEXT]
+//! Usage: `files_probe --home DIR [--backend auto|tracker|fd|plocate|off] [--query TEXT]
 //! [--budget-ms N] [--retry-ms N] [--choose primary|reveal|copy] [--settle-ms N] [--detect]`
 //!
-//! Prints `detect tracker=… baloo=… fd=… plocate=…` for `--detect`, one `row\t<title>\t<folder>
+//! Prints `detect tracker=… fd=… plocate=…` for `--detect`, one `row\t<title>\t<folder>
 //! \t<mime>` line per row, `rows <n>`, and for `--choose` what was done (`open <target>` or
 //! `copy <text>`). `--retry-ms` asks again until a row comes back (an index still indexing).
 
@@ -21,7 +21,6 @@ use sill_launcher::{
 use sill_services::apps::AppIndex;
 use sill_services::launch::{self, LaunchCommand, OpenRequest};
 use sill_services::providers::FilesProvider;
-use sill_services::providers::files::baloo::BalooIndex;
 use sill_services::providers::files::tracker::TrackerIndex;
 use sill_services::providers::files::walk::{WalkIndex, Walker};
 use sill_services::providers::files::{
@@ -49,7 +48,6 @@ struct Args {
 enum Backend {
     Auto,
     Tracker,
-    Baloo,
     Fd,
     Plocate,
     Off,
@@ -73,8 +71,8 @@ async fn run(args: Args) {
             .await
             .unwrap_or_else(|e| panic!("{e}"));
         println!(
-            "detect tracker={:?} baloo={:?} fd={:?} plocate={:?}",
-            found.tracker, found.baloo, found.fd, found.plocate
+            "detect tracker={:?} fd={:?} plocate={:?}",
+            found.tracker, found.fd, found.plocate
         );
     }
     if args.query.is_empty() {
@@ -102,7 +100,6 @@ async fn run(args: Args) {
 async fn raw_answer(args: &Args) -> String {
     let index: Arc<dyn FileIndex> = match args.backend {
         Backend::Tracker => Arc::new(TrackerIndex),
-        Backend::Baloo => Arc::new(BalooIndex),
         Backend::Fd | Backend::Auto => Arc::new(WalkIndex { walker: Walker::Fd }),
         Backend::Plocate => Arc::new(WalkIndex {
             walker: Walker::Plocate,
@@ -130,7 +127,6 @@ fn provider(args: &Args) -> FilesProvider {
     let (files, source) = match args.backend {
         Backend::Auto => (FilesChoice::Auto, IndexSource::Detect),
         Backend::Tracker => (FilesChoice::Tracker, IndexSource::Detect),
-        Backend::Baloo => (FilesChoice::Baloo, IndexSource::Detect),
         Backend::Fd => (FilesChoice::Walk, IndexSource::Detect),
         Backend::Plocate => (
             FilesChoice::Walk,
@@ -240,7 +236,6 @@ fn backend(name: &str) -> Backend {
     match name {
         "auto" => Backend::Auto,
         "tracker" => Backend::Tracker,
-        "baloo" => Backend::Baloo,
         "fd" => Backend::Fd,
         "plocate" => Backend::Plocate,
         "off" => Backend::Off,
@@ -260,7 +255,7 @@ fn choice_of(name: &str) -> Choice {
 fn usage(problem: &str) -> ! {
     eprintln!("files_probe: {problem}");
     eprintln!(
-        "usage: files_probe --home DIR [--backend auto|tracker|baloo|fd|plocate|off] \
+        "usage: files_probe --home DIR [--backend auto|tracker|fd|plocate|off] \
          [--query TEXT] [--budget-ms N] [--retry-ms N] [--choose primary|reveal|copy] \
          [--settle-ms N] [--detect]"
     );

@@ -10,11 +10,10 @@ use sill_launcher::SkinTone;
 /// Which file index the files provider asks (`launcher.files_backend`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum FilesChoice {
-    /// Tracker 3 when its miner answers on the session bus, else Baloo when `baloosearch6` is
-    /// installed, else `fd` (or `plocate`) under the home directory.
+    /// Tracker 3 when its miner answers on the session bus, else `fd` (or `plocate`) under the
+    /// home directory.
     Auto,
     Tracker,
-    Baloo,
     /// `fd`, else `plocate`, under the home directory, within the time budget.
     Walk,
     /// No file search.
