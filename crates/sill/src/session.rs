@@ -2,7 +2,7 @@
 
 use sill_ipc::{Failure, FailureKind, Response};
 use sill_model::locker::LockerCommand;
-use sill_services::Services;
+use sill_surfaces::services::Services;
 
 /// `sill lock`.
 pub fn lock(services: &Services) -> Response {

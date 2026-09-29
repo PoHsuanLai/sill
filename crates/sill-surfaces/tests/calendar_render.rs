@@ -22,9 +22,9 @@ use jiff::{Timestamp, ToSpan, Zoned};
 use sill_model::events::{
     Agenda, CalEvent, CalendarName, EventTime, EventUid, EventsError, SourceStatus,
 };
-use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::services::Services;
 use sill_surfaces::widgets::{Widget, WidgetHost, WidgetKind, widgets_css};
 
 /// Today's number, on the accent disc.

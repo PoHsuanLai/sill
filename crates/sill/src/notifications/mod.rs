@@ -17,8 +17,8 @@ use sill_ipc::{
 use sill_model::notifications::{
     History, NameHolder, Notifications, NotificationsCommand, ServerMode,
 };
-use sill_services::Services;
 use sill_settings::ShellFile;
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::banners::{BannerOutput, BannersProps, banners_layer};
 use sill_surfaces::surfaces::notification_center::{NotificationCenterProps, center_layer};
 use tokio::sync::watch;

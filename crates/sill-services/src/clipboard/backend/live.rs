@@ -2,7 +2,7 @@
 //! Wayland thread ([`super::wire`]) through [`step`], publishes the result, and
 //! carries out the effects: `Connect` starts a thread (its own connection, `ext` else `wlr` on
 //! the first seat), `Disconnect` drops it, `OfferSelection` hands the entry to it. Nothing
-//! connects until a policy turns history on, so `Services::spawn` in a test touches no
+//! connects until a policy turns history on, so the daemon's `start` in a test touches no
 //! compositor. Only counts and fault kinds are ever printed.
 
 use sill_model::clipboard::{ClipEffect, ClipEvent, ClipState, Clipboard, ClipboardCommand, step};

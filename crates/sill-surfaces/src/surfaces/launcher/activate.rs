@@ -12,9 +12,9 @@ use sill_launcher::{
 };
 use std::path::PathBuf;
 
+use crate::services::Services;
 use sill_model::results::LauncherPolicy;
 use sill_model::session::SessionAction;
-use sill_services::Services;
 use sill_services::env::Buses;
 use sill_services::providers::files::IndexSource;
 use sill_services::providers::{

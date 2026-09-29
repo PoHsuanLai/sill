@@ -10,9 +10,9 @@ use dioxus::prelude::*;
 use ds_native::{Harness, Viewport};
 use launcher_harness::launcher_support::{self, fake};
 use launcher_harness::virtual_clock;
-use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::LauncherCatcher;
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::launcher::LauncherLink;
 
 thread_local! {

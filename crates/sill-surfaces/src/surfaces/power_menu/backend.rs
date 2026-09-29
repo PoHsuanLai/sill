@@ -10,9 +10,10 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+use crate::services::Services;
 use sill_model::session::{Session, SessionAction, SessionCommand};
 use sill_services::env::ActionReach;
-use sill_services::{Control, ServiceError, Services};
+use sill_services::{Control, ServiceError};
 use tokio::sync::watch;
 
 use crate::surfaces::power_menu::labels::action_label;

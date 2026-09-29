@@ -19,10 +19,10 @@ use sill_model::network::{Connectivity, Link, Network};
 use sill_model::units::{Percent, Presence};
 use sill_model::volume::{Mute, Volume};
 use sill_model::wifi::Radio;
-use sill_services::Services;
 use sill_settings::{InMenuBar, SettingsFeed, ShellFile};
 use sill_surfaces::Bar;
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::services::Services;
 
 thread_local! {
     static SERVICES: RefCell<Option<Services>> = const { RefCell::new(None) };

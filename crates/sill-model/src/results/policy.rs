@@ -1,6 +1,6 @@
 //! What the settings-gated providers (files, web, emoji, currency) are allowed to do, from the
 //! settings. The daemon sends it with `SearchCommand::Policy` at start and on every change; until
-//! then everything is off, so `Services::spawn` in a test never reads a file index, never offers a
+//! then everything is off, so the daemon's `start` in a test never reads a file index, never offers a
 //! web search and never converts a currency.
 
 use std::time::Duration;

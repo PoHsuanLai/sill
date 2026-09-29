@@ -17,8 +17,9 @@ use shell_host::scale::{Size, buffer_size};
 use shell_host::{Host, HostCtx, HostEvent, OutputId, OutputInfo, Root};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
-use sill_services::{Control, Services};
+use sill_services::Control;
 use sill_surfaces::Wallpaper;
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::wallpaper::{WallpaperProps, wallpaper_layer};
 
 fn main() {
@@ -32,7 +33,7 @@ fn run() -> Result<(), String> {
     // The wallpaper service's own task needs an entered multi-thread runtime for its whole
     // life, independent of whatever shell-host's `Host` enters for its own event loop (the same
     // split the real daemon makes: `crates/sill/src/daemon.rs::run` builds its own runtime for
-    // `Services::spawn` before `Host::connect`). Kept alive by staying in scope for the rest of
+    // the daemon's `start` before `Host::connect`). Kept alive by staying in scope for the rest of
     // this function, which does not return until `host.run` does.
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()

@@ -17,7 +17,7 @@ use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
 use sill_model::ids::{OutputName, WorkspaceKey};
 use sill_model::pins::DockPins;
 use sill_model::units::{Permille, Visibility};
-use sill_services::Services;
+use sill_surfaces::services::Services;
 use tokio::sync::{mpsc, watch};
 
 pub const TERM: &str = "com.system76.CosmicTerm";

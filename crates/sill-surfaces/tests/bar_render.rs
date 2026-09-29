@@ -8,9 +8,9 @@ use sill_model::battery::Battery;
 use sill_model::clock::ClockText;
 use sill_model::cosmic_wl::Toplevels;
 use sill_model::units::Presence;
-use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Bar;
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::bar::BarProps;
 
 fn render(services: Services) -> String {

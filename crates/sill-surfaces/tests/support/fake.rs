@@ -30,7 +30,8 @@ use sill_model::units::{Percent, Presence, Seconds, Urgency, Visibility};
 use sill_model::volume::{Mute, Volume};
 use sill_model::wallpaper::Wallpapers;
 use sill_model::wifi::{AccessPoint, Association, Radio, Security, Ssid, Wifi, WifiCommand};
-use sill_services::{Handle, Service, Services};
+use sill_services::{Handle, Service};
+use sill_surfaces::services::Services;
 use tokio::sync::{mpsc, watch};
 
 /// The senders behind a fake [`Services`], and the command queues the bar writes to.

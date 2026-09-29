@@ -15,10 +15,10 @@ use sill_model::notifications::{
     Action, ActionKey, AppRef, BannerLife, Body, Expiry, Hints, IconRef, LiveBanner, Notification,
     NotificationId, Notifications, NotificationsCommand, UnixMs,
 };
-use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Banners;
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::banners::{BannerLink, BannerOutput, ROOM};
 
 /// What the harness's root provides.

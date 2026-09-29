@@ -11,9 +11,9 @@ use dioxus::prelude::*;
 use ds::{Align, Anchor, Appearance, Ds, Material, Placement, Point, Popover, Px, Side};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_model::ids::OutputName;
-use sill_services::Services;
 use sill_settings::{FocusLink, FocusMode, SettingsFeed, ShellFile};
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::control_center::{CcPage, ControlCenter};
 
 use super::fake;

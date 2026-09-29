@@ -12,7 +12,7 @@ use sill_ipc::{
     Failure, FailureKind, FakePolkit, PolkitReport, PolkitRequest, ReportRegistration, Response,
 };
 use sill_model::polkit_agent::{ActionId, FakeRequest, Polkit, PolkitCommand, Registration};
-use sill_services::Services;
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::polkit_prompt::{PolkitPromptProps, polkit_layer};
 
 use crate::msg::ShellMsg;

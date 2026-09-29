@@ -15,10 +15,10 @@ use ds_native::harness::assert_settles_to_zero_frames;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use ds_settings::Environment;
 use sill_model::idle::{DimLevel, DimShown, Idle, IdleMode, IdlePhase};
-use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::IdleDimOverlay;
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::services::Services;
 
 thread_local! {
     static WORLD: RefCell<Option<(Services, PinnedAppearance)>> = const { RefCell::new(None) };

@@ -11,7 +11,7 @@ use sill_model::displays::{
 };
 use sill_model::ids::OutputName;
 use sill_model::volume::{Step, VolumeCommand};
-use sill_services::Services;
+use sill_surfaces::services::Services;
 
 use crate::msg::ShellMsg;
 use crate::policy::Policy;

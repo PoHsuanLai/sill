@@ -3,10 +3,11 @@
 //! so the app can take focus (the same two steps as the daemon's `sill::launch`, which a
 //! surface cannot reach). The insertion into the field is the panel's own (`events.rs`).
 
+use crate::services::Services;
 use shell_host::{OutputId, SurfaceHandle};
 use sill_model::clipboard::ClipboardCommand;
 use sill_model::launch::{LaunchCommand, LaunchRequest, OpenRequest};
-use sill_services::{ServiceError, Services};
+use sill_services::ServiceError;
 
 use crate::surfaces::launcher::activate::{LauncherEffect, Unreachable};
 use crate::surfaces::power_menu::{PowerMenuLink, Preselect};

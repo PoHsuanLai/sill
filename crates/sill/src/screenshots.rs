@@ -8,8 +8,8 @@ use std::path::{Path, PathBuf};
 use shell_host::{HostCtx, OutputInfo, Root};
 use sill_ipc::{FakeScreenshot, Response, ScreenshotRequest, ShotArea};
 use sill_model::screenshots::{ShotCommand, ShotKind, ShotPolicy, parse_folders, parse_tool};
-use sill_services::Services;
 use sill_settings::ShellFile;
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::screenshot_thumb::ScreenshotThumbProps;
 use sill_surfaces::surfaces::screenshot_thumb::thumb_layer;
 

@@ -7,12 +7,12 @@
 
 use std::time::Duration;
 
+use crate::services::Services;
 use dioxus::core::Task;
 use dioxus::prelude::*;
 use ds::{Anim, AppKey, MotionLevel, StaggerIndex};
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_launcher::AppId;
-use sill_services::Services;
 use sill_services::switcher::{SwitcherApp, switcher_apps};
 
 use super::hold::{Hold, Watch, chord_input, tick_input};

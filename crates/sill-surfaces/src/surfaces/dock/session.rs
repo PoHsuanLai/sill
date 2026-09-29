@@ -6,13 +6,13 @@
 //! `FrameDrive`, every frame tick of the surface feeds `Frame`, and `StopFrames` drops the drive,
 //! so an idle dock renders nothing. A `Redraw` stamps the time the next render draws at.
 
+use crate::services::Services;
 use dioxus::prelude::*;
 use shell_host::{FrameDrive, Root, SurfaceHandle};
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::badges::Badges;
 use sill_model::launch::{LaunchCommand, LaunchRequest};
 use sill_model::units::Stamp;
-use sill_services::Services;
 use sill_settings::DockMenuOrder;
 use tokio::sync::mpsc;
 

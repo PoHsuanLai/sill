@@ -4,13 +4,13 @@
 
 use std::collections::HashMap;
 
+use crate::services::Services;
 use dioxus::prelude::*;
 use ds::{Alpha, Appearance, MaterialStack, ShellMetrics, SystemPrefs};
 use shell_host::{
     OutputId, PopupAnchor, PopupConfig, PopupPlacement, PopupSize, Root, SurfaceHandle,
 };
 use sill_model::ids::OutputName;
-use sill_services::Services;
 use sill_settings::{FocusLink, SettingsFeed};
 use tokio::sync::{mpsc, watch};
 

@@ -73,7 +73,7 @@ fn run() -> Result<(), String> {
 fn spawn_dock(
     ctx: &mut HostCtx<DemoMsg>,
     output: OutputInfo,
-    services: &sill_services::Services,
+    services: &sill_surfaces::services::Services,
     settings: &SettingsFeed,
     clock: FrameClock,
     docks: &mut HashSet<OutputId>,

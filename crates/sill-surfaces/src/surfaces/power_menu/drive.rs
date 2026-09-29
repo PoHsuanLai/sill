@@ -6,10 +6,10 @@
 
 use std::rc::Rc;
 
+use crate::services::Services;
 use dioxus::prelude::*;
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_model::session::{Session, SessionAction};
-use sill_services::Services;
 use sill_settings::PowerMenuDefault;
 
 use crate::surfaces::launcher::presence::{OpenSerial, PanelFocus, Visible};

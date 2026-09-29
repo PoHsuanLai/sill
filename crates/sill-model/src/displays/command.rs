@@ -12,7 +12,7 @@ use crate::units::Percent;
 
 /// What the displays service can be told. Nothing happens until the first `Policy` arrives:
 /// the service only acts for a running daemon that has read its settings, never merely because
-/// `Services::spawn` ran (a test, a headless render).
+/// the daemon's `start` ran (a test, a headless render).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum DisplaysCommand {

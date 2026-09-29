@@ -4,7 +4,7 @@
 //! [`widgets`] both the notification center and the desktop draw, plus the pure machines
 //! design/10 and design/13 specify for them.
 //!
-//! Surfaces read shared state only through [`hooks`], which read `sill_services::Services` and
+//! Surfaces read shared state only through [`hooks`], which read `crate::services::Services` and
 //! `sill_settings::SettingsFeed` from the root context with `shell_host::use_watch`. Nothing
 //! here passes a Dioxus signal through `Root::context` (a review rule), styles a
 //! `.ds-*` class, or writes raw `button`/`input`/menu markup (coherence rules 1-2).
@@ -13,6 +13,7 @@ pub mod app_icons;
 pub mod clock;
 pub mod hooks;
 pub mod host_modality;
+pub mod services;
 pub mod surfaces;
 pub mod widgets;
 

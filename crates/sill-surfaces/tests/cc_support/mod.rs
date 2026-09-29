@@ -11,9 +11,9 @@ pub mod live;
 use dioxus::prelude::*;
 use ds::{Appearance, Ds, Material};
 use sill_model::ids::OutputName;
-use sill_services::Services;
 use sill_settings::ControlCenterModule;
 use sill_settings::{FocusLink, FocusMode, SettingsFeed, ShellFile};
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::control_center::{ControlCenter, ModuleDropdown};
 
 /// The panel's root: a Popover `Ds`, the control center on the bar output `DP-1`.

@@ -32,7 +32,7 @@ use sill_ipc::{
 };
 use sill_model::auth::{Auth, AuthCommand, AuthPhase};
 use sill_model::locker::{Lock, LockCause, LockPhase, LockerCommand, ShellLockEvent};
-use sill_services::Services;
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::banners::BannerOutput;
 use sill_surfaces::surfaces::lock::{LockLink, PromptOutput};
 use tokio::runtime::Handle;

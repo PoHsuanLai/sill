@@ -10,9 +10,9 @@ use std::cell::RefCell;
 
 use dioxus::prelude::*;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
-use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Osd;
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::osd::{CARD_HEIGHT, CARD_WIDTH, OsdLink, ROOM};
 
 /// What the harness's root provides.

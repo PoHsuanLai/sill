@@ -19,10 +19,10 @@ use sill_model::notifications::{
     AppGroup, AppKey, AppRef, Body, Expiry, Hints, History, IconRef, Notification, NotificationId,
     NotificationsCommand, UnixMs,
 };
-use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::NotificationCenter;
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::notification_center::CenterLink;
 
 /// What the harness's root provides.

@@ -14,10 +14,10 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_model::screenshots::{Shot, ShotCommand, ShotId, ShotPreview, Shots};
-use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::ScreenshotThumb;
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::banners::{BannerLink, BannerOutput};
 use sill_surfaces::surfaces::screenshot_thumb::layer::thumb_layer;
 

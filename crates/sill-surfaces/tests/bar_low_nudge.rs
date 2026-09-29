@@ -14,10 +14,10 @@ use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_model::battery::{Battery, Charge};
 use sill_model::units::{Percent, Presence};
-use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Bar;
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::services::Services;
 
 thread_local! {
     static SERVICES: RefCell<Option<Services>> = const { RefCell::new(None) };

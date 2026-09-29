@@ -91,7 +91,7 @@ fn run() -> Result<(), String> {
 fn spawn_bar(
     ctx: &mut HostCtx<()>,
     output: OutputInfo,
-    services: &sill_services::Services,
+    services: &sill_surfaces::services::Services,
     settings: &SettingsFeed,
     clock: FrameClock,
 ) {

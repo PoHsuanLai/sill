@@ -41,7 +41,7 @@ enum DemoMsg {
 
 /// What the demo's roots share.
 struct Demo {
-    services: sill_services::Services,
+    services: sill_surfaces::services::Services,
     settings: SettingsFeed,
     link: LauncherLink,
     script: watch::Sender<Scripted>,

@@ -22,7 +22,7 @@
 //! pick). Registration: `RegisterAuthenticationAgent((unix-session, {session-id}), locale,
 //! object_path)` on `org.freedesktop.PolicyKit1.Authority`, the session id from logind.
 //!
-//! **Passive until the daemon's first [`PolkitCommand::Policy`]**: `Services::spawn` in a test
+//! **Passive until the daemon's first [`PolkitCommand::Policy`]**: the daemon's `start` in a test
 //! never touches the system bus; every live test runs on a private bus with a stand-in
 //! Authority and a stand-in helper ([`PolkitRoute`]), never polkitd.
 

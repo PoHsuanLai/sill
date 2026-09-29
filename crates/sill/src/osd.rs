@@ -20,8 +20,8 @@ use sill_model::displays::{Displays, KeysTarget};
 use sill_model::ids::OutputName;
 use sill_model::units::Percent;
 use sill_model::volume::Mute;
-use sill_services::Services;
 use sill_settings::{OsdEnabled, ShellFile};
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::osd::{Level, LevelSource, OsdKind, OsdLink, OsdProps, osd_layer};
 use tokio::sync::watch;
 

@@ -22,6 +22,9 @@ sill-surfaces = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 
+[dev-dependencies]
+sill-testkit = { workspace = true }
+
 [features]
 default = []
 # `sill debug pointer|leave|capture` act on surfaces (shell-host's per-surface injection).

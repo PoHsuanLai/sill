@@ -17,10 +17,11 @@ use sill_model::auth::UserName;
 use sill_model::polkit_agent::{
     ActionId, Cookie, Echo, LastTry, Polkit, PolkitCommand, PromptPhase, PromptView, Registration,
 };
-use sill_services::{Control, Services};
+use sill_services::Control;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::PolkitPrompt;
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::banners::{BannerLink, BannerOutput};
 use tokio::sync::{mpsc, watch};
 

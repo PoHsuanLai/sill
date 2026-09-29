@@ -6,7 +6,7 @@ use sill_ipc::{
     Response,
 };
 use sill_model::clipboard::{ClipProtocol, Clipboard, ClipboardCommand, HistoryMode};
-use sill_services::Services;
+use sill_surfaces::services::Services;
 
 /// The report for `history`.
 pub fn report_of(history: &Clipboard) -> ClipboardReport {

@@ -1,9 +1,10 @@
 //! `use_service`, `use_service_part` and `use_control`: any service in the root's [`Services`],
 //! named by its type.
 
+use crate::services::Member;
 use dioxus::prelude::{ReadSignal, ReadableExt, use_memo};
 use shell_host::use_watch;
-use sill_services::{Control, Member};
+use sill_services::Control;
 
 use super::use_services;
 

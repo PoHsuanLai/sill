@@ -4,12 +4,12 @@
 //! line opens its section) and a dismissal. The other keys (the preview pane's, row chords, the
 //! debug link's) are `pane_keys.rs`.
 
+use crate::services::Services;
 use dioxus::prelude::*;
 use ds::{FocusRequest, Rect, use_focus_request};
 use shell_host::{OutputId, SurfaceHandle};
 use sill_launcher::{Choice, ItemKey};
 use sill_model::results::{Results, SearchCommand};
-use sill_services::Services;
 
 use crate::hooks::use_services;
 use crate::surfaces::launcher::activate::{

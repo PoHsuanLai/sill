@@ -23,9 +23,9 @@ use sill_model::bluetooth::{
     Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,
 };
 use sill_model::units::{Percent, Presence};
-use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::hooks::PinnedAppearance;
+use sill_surfaces::services::Services;
 use sill_surfaces::widgets::{Widget, WidgetHost, WidgetKind, widgets_css};
 
 /// What the snapshot's root provides.

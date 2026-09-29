@@ -17,9 +17,9 @@ use sill_model::idle::{
     IdleSecs, IdleTimes, Inhibition, LockGrace, LockedScreenOff, LogindIdle, OffReason, PowerPair,
     PowerSource, Timeout, TimesChoice,
 };
-use sill_services::Services;
 use sill_services::env::IdleTimesSource;
 use sill_settings::{IdleLockAt, IdleTimesFrom, Mins, Secs, ShellFile};
+use sill_surfaces::services::Services;
 
 use crate::policy::Policy;
 

@@ -5,11 +5,12 @@
 //! [`on_event`] is the frozen event handler; it owns the parts that need only `HostCtx` and
 //! [`Outputs`] (output bookkeeping via [`crate::outputs::reconcile`], closing a surface the
 //! compositor took away, resizing the bar when settled settings say to). Spawning a surface
-//! needs [`sill_services::Services`] and the live settings, neither of which fits `on_event`'s
+//! needs [`sill_surfaces::services::Services`] and the live settings, neither of which fits `on_event`'s
 //! signature, so [`run`] wraps it: [`run_event`] answers IPC requests (which also need
 //! `Services`) and, after delegating every other event to `on_event`, spawns whatever `on_event`
 //! marked as missing (an `OutputSurfaces` row with `bar: None`).
 
+pub(crate) mod services;
 use std::path::Path;
 use std::process::ExitCode;
 use std::time::{Duration, Instant};
@@ -26,8 +27,8 @@ use sill_model::locker::LockerCommand;
 use sill_model::pins::{PinAt, PinEvent};
 use sill_model::polkit_agent::{AgentPolicy, PolkitCommand};
 use sill_model::wallpaper::WallpaperCommand;
-use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
+use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::launcher::LauncherLink;
 use sill_surfaces::surfaces::osd::OsdLink;
 use tokio::sync::watch;
@@ -60,7 +61,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     };
 
     let env = args.env();
-    let services = sill_services::Services::spawn(runtime.handle(), &env);
+    let services = services::start(runtime.handle(), &env);
 
     let settings_dir = Some(env.dirs.sill_config());
     let initial_settings = settings_dir
