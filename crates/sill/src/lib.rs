@@ -27,6 +27,7 @@ pub mod msg;
 pub mod notifications;
 pub mod osd;
 pub mod outputs;
+pub mod policy;
 pub mod polkit;
 pub mod power_menu;
 pub mod run_args;

@@ -12,6 +12,7 @@ use sill_services::{
 };
 
 use crate::msg::ShellMsg;
+use crate::policy::Policy;
 use sill_settings::{
     BrightnessKeysTarget, DisplayScaleMode, DisplaySettings, FontRenderingSetting,
     HardwareVolumeMode, NightWarmthMode, ScaleRounding as ScaleRoundingSetting, ShellFile,
@@ -55,16 +56,24 @@ pub fn policy_from(settings: &DisplaySettings) -> DisplayPolicy {
     }
 }
 
-/// Send the settings' policy (at start, and on every settled settings change).
-pub fn send_policy(services: &Services, file: &ShellFile) {
-    let _ = services
-        .displays
-        .control
-        .send(DisplaysCommand::Policy(policy_from(&file.display)));
+/// The displays service's policy from `display.*`.
+#[derive(Debug, Clone, Copy)]
+pub struct Bridge;
+
+impl Policy for Bridge {
+    type Command = DisplaysCommand;
+    type Out = DisplayPolicy;
+
+    fn of(&self, file: &ShellFile) -> DisplayPolicy {
+        policy_from(&file.display)
+    }
+
+    fn command(policy: DisplayPolicy) -> DisplaysCommand {
+        DisplaysCommand::Policy(policy)
+    }
 }
 
-/// The host events the displays service follows: outputs coming, going or changing (a rescan)
-/// and a settled settings file (a new policy).
+/// The host events the displays service follows: outputs coming, going or changing (a rescan).
 pub fn on_host_event(services: &Services, event: &HostEvent<ShellMsg>) {
     match event {
         HostEvent::Started
@@ -73,7 +82,6 @@ pub fn on_host_event(services: &Services, event: &HostEvent<ShellMsg>) {
         | HostEvent::OutputRemoved(_) => {
             let _ = services.displays.control.send(DisplaysCommand::Rescan);
         }
-        HostEvent::App(ShellMsg::Settings(file)) => send_policy(services, file),
         _ => {}
     }
 }

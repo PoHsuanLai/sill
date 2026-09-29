@@ -7,15 +7,13 @@ use std::time::Duration;
 
 use sill_launcher::SkinTone;
 use sill_services::clipboard::{ClipPolicy, ClipboardCommand, EntryCap, HistoryMode, ImageCap};
-use sill_services::{
-    Control, CurrencyPolicy, FilesChoice, LauncherPolicy, SearchCommand, WebPolicy,
-};
+use sill_services::{CurrencyPolicy, FilesChoice, LauncherPolicy, SearchCommand, WebPolicy};
 use sill_settings::{
     ClipboardHistory, CurrencyRates, EmojiSkinTone, FilesBackend, LauncherSettings, ShellFile,
     WebSearch,
 };
-use tokio::runtime::Handle;
-use tokio::sync::watch;
+
+use crate::policy::Policy;
 
 /// The search runner's policy `l` makes.
 pub fn search_policy_of(l: &LauncherSettings) -> LauncherPolicy {
@@ -60,37 +58,38 @@ pub fn clip_policy_of(l: &LauncherSettings) -> ClipPolicy {
     }
 }
 
-/// Send both policies now and after every change of `settings` that changes one, until the
-/// settings or both services are gone.
-pub fn spawn_policy(
-    rt: &Handle,
-    mut settings: watch::Receiver<ShellFile>,
-    search: Control<SearchCommand>,
-    clipboard: Control<ClipboardCommand>,
-) {
-    rt.spawn(async move {
-        let (mut sent_search, mut sent_clip) = (None, None);
-        loop {
-            let (next_search, next_clip) = {
-                let file = settings.borrow_and_update();
-                (
-                    search_policy_of(&file.launcher),
-                    clip_policy_of(&file.launcher),
-                )
-            };
-            if sent_search.as_ref() != Some(&next_search) {
-                let _ = search.send(SearchCommand::Policy(next_search.clone()));
-                sent_search = Some(next_search);
-            }
-            if sent_clip != Some(next_clip) {
-                let _ = clipboard.send(ClipboardCommand::Policy(next_clip));
-                sent_clip = Some(next_clip);
-            }
-            if settings.changed().await.is_err() {
-                return;
-            }
-        }
-    });
+/// The search runner's policy from `launcher.*`.
+#[derive(Debug, Clone, Copy)]
+pub struct SearchBridge;
+
+impl Policy for SearchBridge {
+    type Command = SearchCommand;
+    type Out = LauncherPolicy;
+
+    fn of(&self, file: &ShellFile) -> LauncherPolicy {
+        search_policy_of(&file.launcher)
+    }
+
+    fn command(policy: LauncherPolicy) -> SearchCommand {
+        SearchCommand::Policy(policy)
+    }
+}
+
+/// The clipboard service's policy from `launcher.*`.
+#[derive(Debug, Clone, Copy)]
+pub struct ClipboardBridge;
+
+impl Policy for ClipboardBridge {
+    type Command = ClipboardCommand;
+    type Out = ClipPolicy;
+
+    fn of(&self, file: &ShellFile) -> ClipPolicy {
+        clip_policy_of(&file.launcher)
+    }
+
+    fn command(policy: ClipPolicy) -> ClipboardCommand {
+        ClipboardCommand::Policy(policy)
+    }
 }
 
 #[cfg(test)]

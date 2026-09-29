@@ -1,6 +1,6 @@
 //! Screenshots on the daemon's side: one warm, hidden thumbnail surface per output (the banners'
 //! pattern), `sill screenshot`, `sill debug screenshot`, and the service's policy from
-//! `screenshot.folders` and `screenshot.tool` ([`spawn_policy`]; until it is sent the service stays
+//! `screenshot.folders` and `screenshot.tool` ([`Bridge`]; until it is sent the service stays
 //! passive and watches nothing).
 
 use std::path::{Path, PathBuf};
@@ -8,15 +8,14 @@ use std::path::{Path, PathBuf};
 use shell_host::{HostCtx, OutputInfo, Root};
 use sill_ipc::{FakeScreenshot, Response, ScreenshotRequest, ShotArea};
 use sill_services::screenshots::{ShotPolicy, parse_folders, parse_tool};
-use sill_services::{Control, Services, ShotCommand, ShotKind};
+use sill_services::{Services, ShotCommand, ShotKind};
 use sill_settings::ShellFile;
 use sill_surfaces::surfaces::screenshot_thumb::ScreenshotThumbProps;
 use sill_surfaces::surfaces::screenshot_thumb::thumb_layer;
-use tokio::runtime::Handle;
-use tokio::sync::watch;
 
 use crate::msg::ShellMsg;
 use crate::outputs::Outputs;
+use crate::policy::Policy;
 
 /// Spawn a hidden thumbnail surface for every output whose row lacks one, its root built by
 /// `root` (the daemon's `surface_root`). Called after the banners' and before the OSD's, so on
@@ -72,32 +71,23 @@ pub fn policy_of(file: &ShellFile, home: &Path) -> ShotPolicy {
     }
 }
 
-/// Send [`policy_of`] now and on every settings change, on `rt`, until either side is gone (the
-/// notifications policy's pattern); a change elsewhere in the file sends nothing.
-pub fn spawn_policy(
-    rt: &Handle,
-    mut settings: watch::Receiver<ShellFile>,
-    control: Control<ShotCommand>,
-    home: PathBuf,
-) {
-    rt.spawn(async move {
-        let mut sent = None;
-        loop {
-            let policy = policy_of(&settings.borrow_and_update(), &home);
-            if sent.as_ref() != Some(&policy) {
-                if control
-                    .send(ShotCommand::Configure(policy.clone()))
-                    .is_err()
-                {
-                    return;
-                }
-                sent = Some(policy);
-            }
-            if settings.changed().await.is_err() {
-                return;
-            }
-        }
-    });
+/// The screenshots service's policy from the settings, its folders found against `home`.
+#[derive(Debug, Clone)]
+pub struct Bridge {
+    pub home: PathBuf,
+}
+
+impl Policy for Bridge {
+    type Command = ShotCommand;
+    type Out = ShotPolicy;
+
+    fn of(&self, file: &ShellFile) -> ShotPolicy {
+        policy_of(file, &self.home)
+    }
+
+    fn command(policy: ShotPolicy) -> ShotCommand {
+        ShotCommand::Configure(policy)
+    }
 }
 
 /// The thumbnail surface's namespace on `info`, which `debug stats` reports.

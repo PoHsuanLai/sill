@@ -2,13 +2,13 @@
 //! spawned warm and hidden (the OSD's and the power menu's pattern); the banners' output; the
 //! `notifications` requests, which write the shared [`crate::links`] or tell the service; `sill
 //! debug notify`; and the service's policy, followed from the settings and the focus mode
-//! ([`spawn_policy`]).
+//! ([`Bridge`]).
 
 mod fake;
 mod policy;
 
 pub use fake::posting_of;
-pub use policy::{policy_of, spawn_policy};
+pub use policy::{Bridge, policy_of};
 
 use shell_host::{HostCtx, OutputInfo, Root};
 use sill_ipc::{

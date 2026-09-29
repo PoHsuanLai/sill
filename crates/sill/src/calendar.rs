@@ -1,44 +1,36 @@
-//! The events service's sources from `calendar.sources`: sent at start and on every change, the
-//! first one ending the service's passive start.
+//! The events service's sources from `calendar.sources`: sent at start and on every change
+//! ([`crate::policy::follow`]), the first one ending the service's passive start.
 
 use std::path::{Path, PathBuf};
 
+use sill_services::EventsCommand;
 use sill_services::events::{EventSources, parse_sources};
-use sill_services::{Control, EventsCommand};
 use sill_settings::ShellFile;
-use tokio::runtime::Handle;
-use tokio::sync::watch;
+
+use crate::policy::Policy;
 
 /// The sources `file` names (`parse_sources` against `home`).
 pub fn sources_of(file: &ShellFile, home: &Path) -> EventSources {
     parse_sources(&file.calendar.sources, home)
 }
 
-/// Send [`sources_of`] now and whenever it changes, on `rt`, until either side is gone.
-pub fn spawn_policy(
-    rt: &Handle,
-    mut settings: watch::Receiver<ShellFile>,
-    control: Control<EventsCommand>,
-    home: PathBuf,
-) {
-    rt.spawn(async move {
-        let mut sent = None;
-        loop {
-            let sources = sources_of(&settings.borrow_and_update(), &home);
-            if sent.as_ref() != Some(&sources) {
-                if control
-                    .send(EventsCommand::Sources(sources.clone()))
-                    .is_err()
-                {
-                    return;
-                }
-                sent = Some(sources);
-            }
-            if settings.changed().await.is_err() {
-                return;
-            }
-        }
-    });
+/// The events service's sources from the settings, found against `home`.
+#[derive(Debug, Clone)]
+pub struct Bridge {
+    pub home: PathBuf,
+}
+
+impl Policy for Bridge {
+    type Command = EventsCommand;
+    type Out = EventSources;
+
+    fn of(&self, file: &ShellFile) -> EventSources {
+        sources_of(file, &self.home)
+    }
+
+    fn command(sources: EventSources) -> EventsCommand {
+        EventsCommand::Sources(sources)
+    }
 }
 
 #[cfg(test)]

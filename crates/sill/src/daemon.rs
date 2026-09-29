@@ -35,6 +35,7 @@ use crate::msg::ShellMsg;
 use crate::outputs::{
     OutputAction, OutputSurfaces, Outputs, bar_namespace, reconcile, wallpaper_namespace,
 };
+use crate::policy::follow;
 
 /// Run the daemon until `quit` or a fatal host error, on the seams `args` make.
 pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
@@ -66,7 +67,6 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         .unwrap_or_default();
     let (settings_tx, settings_rx) = watch::channel(initial_settings.clone());
     let settings_feed = SettingsFeed(settings_rx);
-    crate::displays::send_policy(&services, &initial_settings);
     crate::links::install(crate::links::Links {
         focus: sill_settings::spawn_focus(
             runtime.handle(),
@@ -91,10 +91,12 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     // The notifications service's policy from the settings and the focus mode; the first one
     // sent ends its passive start.
     if let Some(links) = crate::links::get() {
-        crate::notifications::spawn_policy(
+        follow(
             runtime.handle(),
             settings_feed.0.clone(),
-            links.focus.mode(),
+            crate::notifications::Bridge {
+                focus: links.focus.mode(),
+            },
             services.notifications.control.clone(),
         );
     }
@@ -107,19 +109,34 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         .send(PolkitCommand::Policy(AgentPolicy::Own));
     // sill's own idle follows `idle.*` and `session.lock_grace_s`; the service is passive until
     // this first policy, and `Off` anywhere but a sill session with no cosmic-idle.
-    crate::idle::spawn_policy(
+    follow(
         runtime.handle(),
         settings_feed.0.clone(),
+        crate::idle::Bridge {
+            times: env.idle_times,
+        },
         services.idle.control.clone(),
-        env.idle_times,
     );
     // The launcher v2 providers and the clipboard history follow `launcher.*`; both are passive
     // until this first policy.
-    crate::launcher_policy::spawn_policy(
+    follow(
         runtime.handle(),
         settings_feed.0.clone(),
+        crate::launcher_policy::SearchBridge,
         services.results.control.clone(),
+    );
+    follow(
+        runtime.handle(),
+        settings_feed.0.clone(),
+        crate::launcher_policy::ClipboardBridge,
         services.clipboard.control.clone(),
+    );
+    // The displays follow `display.*`; the service is inert until this first policy.
+    follow(
+        runtime.handle(),
+        settings_feed.0.clone(),
+        crate::displays::Bridge,
+        services.displays.control.clone(),
     );
 
     let config = HostConfig {
@@ -130,17 +147,21 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     };
     // The calendar's sources and the screenshots' folders and tool, from the settings (both
     // services passive until then).
-    crate::calendar::spawn_policy(
+    follow(
         runtime.handle(),
         settings_feed.0.clone(),
+        crate::calendar::Bridge {
+            home: env.dirs.home.clone(),
+        },
         services.events.control.clone(),
-        env.dirs.home.clone(),
     );
-    crate::screenshots::spawn_policy(
+    follow(
         runtime.handle(),
         settings_feed.0.clone(),
+        crate::screenshots::Bridge {
+            home: env.dirs.home.clone(),
+        },
         services.screenshots.control.clone(),
-        env.dirs.home.clone(),
     );
 
     let host = match Host::<ShellMsg>::connect(config) {
@@ -330,10 +351,10 @@ fn run_event(
             if matches!(other, HostEvent::Started) {
                 ctx.set_scroll_config(crate::scroll::config(&settings_tx.borrow()));
             }
-            // The watch's re-read reaches `settings_tx` (every `SettingsFeed` follower: idle,
-            // launcher, notifications, the locker, polkit, calendar, screenshots, corners, the
-            // focus mode) the same way `dispatch_reload` does for `sill reload`; geometry and the
-            // display policy already follow the same event just below.
+            // The watch's re-read reaches `settings_tx` (every `SettingsFeed` follower: the
+            // policies, `crate::policy::follow`, the locker, corners, the focus mode) the same
+            // way `dispatch_reload` does for `sill reload`; geometry follows the same event just
+            // below.
             publish_watched_settings(settings_tx, &other);
             crate::displays::on_host_event(services, &other);
             on_event(ctx, outputs, other);
@@ -773,7 +794,6 @@ fn dispatch_request(
         Request::Dock(request) => dispatch_dock(services, request),
         Request::Reload => {
             let response = dispatch_reload(settings_dir, settings_tx);
-            crate::displays::send_policy(services, &settings_tx.borrow());
             ctx.set_scroll_config(crate::scroll::config(&settings_tx.borrow()));
             response
         }

@@ -1,5 +1,5 @@
 //! sill's own idle on the daemon's side: the idle service's config from `idle.*` and
-//! `session.lock_grace_s` ([`policy_of`]), sent now and on every change ([`spawn_policy`]). The
+//! `session.lock_grace_s` ([`policy_of`]), sent now and on every change ([`Bridge`]). The
 //! service resolves the kind of session itself and is `Off` anywhere but a sill session with no
 //! cosmic-idle running.
 //!
@@ -12,16 +12,16 @@ use sill_ipc::{
     IdleReport, IdleRequest, ReportDim, ReportIdleMode, ReportIdlePhase, ReportInhibition,
     ReportOffReason, ReportPower, Response,
 };
+use sill_services::Services;
 use sill_services::env::IdleTimesSource;
 use sill_services::idle::{
     DimLevel, DimPlan, DimShown, Idle, IdleCommand, IdleConfig, IdleLock, IdleMode, IdlePhase,
     IdleSecs, IdleTimes, Inhibition, LockGrace, LockedScreenOff, LogindIdle, OffReason, PowerPair,
     PowerSource, Timeout, TimesChoice,
 };
-use sill_services::{Control, Services};
 use sill_settings::{IdleLockAt, IdleTimesFrom, Mins, Secs, ShellFile};
-use tokio::runtime::Handle;
-use tokio::sync::watch;
+
+use crate::policy::Policy;
 
 /// The idle config `file` makes: `idle.times` `cosmic` is `TimesChoice::Cosmic`, `sill` the
 /// four `*_min` keys times 60 (0 is `Never`); the dim lead and level, the lock, the lock
@@ -80,32 +80,31 @@ pub fn test_times(text: &str) -> Option<IdleTimes> {
     })
 }
 
-/// Send [`policy_of`] now and on every settings change that changes it (the polkit policy's
-/// pattern), its times from `times`. The service stays passive until the first.
-pub fn spawn_policy(
-    rt: &Handle,
-    mut settings: watch::Receiver<ShellFile>,
-    control: Control<IdleCommand>,
-    times: IdleTimesSource,
-) {
-    rt.spawn(async move {
-        let mut sent = None;
-        loop {
-            let mut config = policy_of(&settings.borrow_and_update());
-            if let IdleTimesSource::Fixed(fixed) = times {
-                config.times = TimesChoice::Own(fixed);
-            }
-            if sent != Some(config) {
-                if control.send(IdleCommand::Configure(config)).is_err() {
-                    return;
-                }
-                sent = Some(config);
-            }
-            if settings.changed().await.is_err() {
-                return;
-            }
+/// The idle service's config from the settings, its times fixed by `times` when a dev script
+/// asked (the polkit policy's pattern). The service stays passive until the first.
+#[derive(Debug, Clone, Copy)]
+pub struct Bridge {
+    pub times: IdleTimesSource,
+}
+
+impl Policy for Bridge {
+    type Command = IdleCommand;
+    type Out = IdleConfig;
+
+    fn of(&self, file: &ShellFile) -> IdleConfig {
+        let config = policy_of(file);
+        match self.times {
+            IdleTimesSource::Fixed(fixed) => IdleConfig {
+                times: TimesChoice::Own(fixed),
+                ..config
+            },
+            IdleTimesSource::Settings => config,
         }
-    });
+    }
+
+    fn command(config: IdleConfig) -> IdleCommand {
+        IdleCommand::Configure(config)
+    }
 }
 
 /// `sill idle status`.

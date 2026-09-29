@@ -3,13 +3,15 @@
 
 use sill_services::notifications::Swipe;
 use sill_services::{
-    Control, HistoryCap, NotificationsCommand, NotificationsPolicy, Presentation, Quiet, ServerMode,
+    HistoryCap, NotificationsCommand, NotificationsPolicy, Presentation, Quiet, ServerMode,
 };
 use sill_settings::{
     BannerStyle, FocusMode, NotificationServer, NotificationSwipe, NotificationsSettings, ShellFile,
 };
-use tokio::runtime::Handle;
 use tokio::sync::watch;
+use tokio::sync::watch::error::RecvError;
+
+use crate::policy::Policy;
 
 /// The policy `n` and `focus` make.
 pub fn policy_of(n: &NotificationsSettings, focus: FocusMode) -> NotificationsPolicy {
@@ -35,37 +37,29 @@ pub fn policy_of(n: &NotificationsSettings, focus: FocusMode) -> NotificationsPo
     }
 }
 
-/// Send the policy now and after every change of `settings` or `focus`, on `rt`, until either
-/// source or the service is gone. The focus mode comes from the focus link rather than
-/// `notifications.dnd` in the file, so Do Not Disturb takes effect as the control center sets
-/// it, before the file round-trips.
-pub fn spawn_policy(
-    rt: &Handle,
-    mut settings: watch::Receiver<ShellFile>,
-    mut focus: watch::Receiver<FocusMode>,
-    control: Control<NotificationsCommand>,
-) {
-    rt.spawn(async move {
-        let mut sent = None;
-        loop {
-            let policy = policy_of(&settings.borrow_and_update().notifications, {
-                *focus.borrow_and_update()
-            });
-            if sent != Some(policy) {
-                if control.send(NotificationsCommand::Policy(policy)).is_err() {
-                    return;
-                }
-                sent = Some(policy);
-            }
-            let changed = tokio::select! {
-                changed = settings.changed() => changed,
-                changed = focus.changed() => changed,
-            };
-            if changed.is_err() {
-                return;
-            }
-        }
-    });
+/// The notifications service's policy from the settings and `focus`. The focus mode comes from
+/// the focus link rather than `notifications.dnd` in the file, so Do Not Disturb takes effect as
+/// the control center sets it, before the file round-trips.
+#[derive(Debug)]
+pub struct Bridge {
+    pub focus: watch::Receiver<FocusMode>,
+}
+
+impl Policy for Bridge {
+    type Command = NotificationsCommand;
+    type Out = NotificationsPolicy;
+
+    fn of(&self, file: &ShellFile) -> NotificationsPolicy {
+        policy_of(&file.notifications, *self.focus.borrow())
+    }
+
+    fn command(policy: NotificationsPolicy) -> NotificationsCommand {
+        NotificationsCommand::Policy(policy)
+    }
+
+    fn changed(&mut self) -> impl Future<Output = Result<(), RecvError>> + Send {
+        self.focus.changed()
+    }
 }
 
 #[cfg(test)]
@@ -114,7 +108,7 @@ mod tests {
         let (settings_tx, settings) = watch::channel(ShellFile::default());
         let (focus_tx, focus) = watch::channel(FocusMode::Off);
         let (control, mut commands) = Control::channel();
-        super::spawn_policy(rt.handle(), settings, focus, control);
+        crate::policy::follow(rt.handle(), settings, super::Bridge { focus }, control);
         let next = |commands: &mut tokio::sync::mpsc::UnboundedReceiver<NotificationsCommand>| {
             rt.block_on(async {
                 tokio::time::timeout(std::time::Duration::from_secs(2), commands.recv())
