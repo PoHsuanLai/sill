@@ -56,7 +56,73 @@ print(json.load(sys.stdin)["outputs"][0]["name"])') || return 1
   in_env kscreen-doctor "output.$output.scale.$1" >>"$OUT_DIR/kwin.log" 2>&1
 }
 
+# The headless KWin's scale of its one output, from kscreen-doctor's JSON.
+kwin_scale() {
+  in_env kscreen-doctor -j 2>/dev/null | python3 -c '
+import json, sys
+print(json.load(sys.stdin)["outputs"][0].get("scale"))'
+}
+
+# Sets scale $1 (set_kwin_scale) and waits up to 3 s for kscreen-doctor to read it back; fails
+# when the output does not end up at that scale.
+require_kwin_scale() {
+  set_kwin_scale "$1" || return 1
+  for _ in $(seq 30); do
+    python3 -c 'import sys; sys.exit(0 if abs(float(sys.argv[1]) - float(sys.argv[2])) < 0.01 else 1)' \
+      "$(kwin_scale)" "$1" 2>/dev/null && return 0
+    sleep 0.1
+  done
+  echo "the output's scale is $(kwin_scale), not $1" >&2
+  return 1
+}
+
 # The nested output's logical size, "W H".
 nested_output_size() {
   nested wayland-info | sed -n 's/.*logical_width: \([0-9]*\), logical_height: \([0-9]*\).*/\1 \2/p' | head -1
+}
+
+# Sets WL to the running nested cosmic-comp's socket (absolute), from the env file dev/nested.sh
+# wrote, read in a subshell so nothing of it reaches this shell. Fails when no such socket exists.
+# A script on the nested compositor then starts its own private bus (start_private_bus) and its
+# scratch tree (scratch_new); it never stops the compositor.
+use_nested_socket() {
+  local env_file="$SHELL_HOST_DEV/.nested-env" display
+  [ -f "$env_file" ] || { echo "no nested compositor (dev/nested.sh first)" >&2; return 1; }
+  display=$(source "$env_file" && echo "$WAYLAND_DISPLAY")
+  case "$display" in
+    /*) WL="$display" ;;
+    *) WL="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/$display" ;;
+  esac
+  [ -S "$WL" ] || { echo "no nested compositor at $WL (dev/nested.sh first)" >&2; return 1; }
+}
+
+# Waits up to 10 minutes for no process of the person's to match pgrep pattern $1: another sill
+# daemon on the nested output would be in the screenshots. Fails when one is still there.
+await_no_process() {
+  local waited=0
+  while pgrep -u "$USER" -f "$1" >/dev/null; do
+    [ "$waited" = 0 ] && echo "another sill daemon is running; waiting for it to finish" >&2
+    waited=$((waited + 1))
+    [ "$waited" -gt 600 ] && { echo "it is still running after 10 min" >&2; return 1; }
+    sleep 1
+  done
+}
+
+# The height of a window that asks to be maximised on the nested output: shell-host's
+# `probe_toplevel` (built on first use) stands in for foot, asks to be maximised and prints each
+# configure as JSON into $OUT_DIR/probe.log. Prints the last maximised configure's height.
+PROBE="$HOST_REPO/target/release/examples/probe_toplevel"
+maximised_height() {
+  [ -x "$PROBE" ] || (cd "$HOST_REPO" && cargo build --release -p shell-host --features debug-inject \
+    --example probe_toplevel >&2) || return 1
+  local log="$OUT_DIR/probe.log" probe
+  # The probe reads commands on stdin, which must be pollable: a pipe, not /dev/null.
+  sleep 20 | nested "$PROBE" >"$log" 2>&1 &
+  probe=$!
+  for _ in $(seq 100); do
+    grep -q '"maximized":true' "$log" && break
+    sleep 0.1
+  done
+  kill "$probe" 2>/dev/null; wait "$probe" 2>/dev/null
+  grep '"maximized":true' "$log" | tail -1 | python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["height"])'
 }

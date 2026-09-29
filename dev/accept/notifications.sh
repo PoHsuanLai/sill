@@ -1,17 +1,57 @@
 #!/usr/bin/env bash
-# Real input acceptance for the banners and the notification center, on shell-host's private
-# headless KWin (scripts/dev/kwin-virtual.sh) driven by shell-host's scripts/dev/fake-input.sh:
-# every hover, press, drag and key is a real Wayland event with a real serial and keyboard focus.
+# The notifications acceptance: the banners, the notifications server on the bus, and the real
+# input the banners and the notification center take. One script; the flag picks the run.
 #
-# The daemon runs from this checkout's debug build (`--features debug`) on the headless KWin and
-# its private D-Bus bus (shell-host's private-bus.conf: nothing activatable), with
-# its own XDG_RUNTIME_DIR (WAYLAND_DISPLAY an absolute socket path) and a scratch
-# XDG_CONFIG_HOME, XDG_STATE_HOME and XDG_CACHE_HOME, `notifications.server = "own"`. It is
-# checked to hold org.freedesktop.Notifications on that bus before anything is posted. Every
-# notification comes from `sill debug notify`; nothing here reaches the real session bus, the
-# user's session (wayland-0) or the nested compositor (wayland-1). ONE fake-input client serves
-# the whole run (each client is a new input device, and KWin re-announces the seat's pointer
-# for each).
+# Every daemon runs from this checkout's debug build (`--features debug`) on a private D-Bus bus
+# (dev/private-bus.conf: no service directories, so nothing is activated) that stands in as BOTH
+# its session and its system bus, with its own XDG_RUNTIME_DIR (WAYLAND_DISPLAY an absolute
+# socket path), scratch HOME and XDG directories and a fake DDC fixture. Nothing here reaches the
+# real session bus's org.freedesktop.Notifications (the person's own daemon), another sill's IPC
+# socket, the real ~/.config or ~/.cache, or the user's session (wayland-0).
+#
+# Default: the banners, on the nested cosmic-comp (dev/nested.sh; a running wayland-1 is reused
+# and never stopped). Every notification comes from `sill debug notify` (the service's own
+# reducer, no D-Bus). Another sill daemon drawing on the same nested output would be in the
+# screenshots, so the script waits for it to finish first.
+#
+#   1. Warm: `sill-banners-<out>` exists from the start, hidden (no capture).
+#   2. A notification shows it within 300 ms (a capture with the card's pixels);
+#      dev/out/banners-cosmic.png.
+#   3. It hides between the hold (notifications.banner_hold_ms, 5200) and the hold plus the exit
+#      (--t-move) plus 400 ms; `status` then says banners 0, kept 1.
+#   4. Hovered at 4000 ms (`sill debug pointer` on the card) it is still up at 7000, and gone by
+#      1500 ms plus the exit plus 400 ms after `sill debug leave`.
+#   5. Three from one app within 2 s make one card (one card's height, `status` banners 3); five
+#      from five apps make three cards (three cards' height). Then three from one app and two
+#      others: dev/out/banners-stack-cosmic.png, a stack with a group.
+#   6. notifications.dnd = "on" and `sill reload`: a normal one shows no banner but kept rises;
+#      a critical one shows and is still up after 10 s.
+#   7. `sill debug click` on the body of one sent with `--action default=Open`: the card leaves
+#      and kept falls by one.
+#   8. 5 s after the last card leaves: 0 frames on the column.
+#
+# --bus: the notifications server, on the nested cosmic-comp. The daemon, notify-send, gdbus and
+# the holder example (examples/notifications_holder.rs) get the private bus's address.
+#
+#   1. `sill notifications status` says holder sill, mode own.
+#   2. GetServerInformation answers ('sill', 'sill', <version>, '1.2'); GetCapabilities the six
+#      words.
+#   3. `notify-send -a accept Hello`: status counts 1 banner and 1 kept.
+#   4. CloseNotification <id>: `gdbus monitor` beside it records NotificationClosed (<id>, 3).
+#   5. notifications.server = "passive" and `sill reload`: the name is released (holder nobody)
+#      and nothing answers Notify.
+#   6. With another holder started first, mode own reports holder other with that pid, and the
+#      holder keeps the name; when it leaves, sill takes it.
+#   7. The history file under the scratch XDG_STATE_HOME survives a daemon restart (status kept
+#      is the same).
+#
+# --real-input [ghost|clear|exit|repro]: real Wayland input for the banners and the notification
+# center, on shell-host's private headless KWin (scripts/dev/kwin-virtual.sh) driven by shell-host's
+# scripts/dev/fake-input.sh: every hover, press, drag and key is a real Wayland event with a real
+# serial and keyboard focus. `notifications.server = "own"`; the daemon is checked to hold
+# org.freedesktop.Notifications on the bus before anything is posted. ONE fake-input client
+# serves the whole run (each client is a new input device, and KWin re-announces the seat's
+# pointer for each). The drag and the swipe are only here: debug injection has no drag.
 #
 #   1. `sill notifications status`: holder sill, mode own.
 #   2. Hover: a real pointer on the card at 4000 ms keeps it past the hold (5200) at 7000 ms; it
@@ -45,31 +85,45 @@
 #  11. 5 s idle: 0 frames on the banners and the center.
 #  12. `status` afterwards: holder still sill.
 #
-# Then the input client, the daemon (`sill quit`) and the headless KWin are stopped.
-#
 # In shell-host an enter moves the document's pointer and an unmap withdraws it, so a "move onto"
 # is one motion and the steps run in their natural order. `repro` keeps both as regression checks.
+# The wallpaper is a fine checkerboard (`seed_checks`) so blur shows as grey. KWIN_SCALE=2 runs
+# the output at 3840 x 2160 and scale 2, the user's KDE setup. ACCEPT_STEPS="step_a step_b" runs
+# just those steps.
 #
 # Exit 0 only when every step passed; 1 on a failure.
 #
-# The wallpaper is a fine checkerboard (`seed_checks`) so blur shows as grey. KWIN_SCALE=2 runs
-# the output at 3840 x 2160 and scale 2, the user's KDE setup. ACCEPT_STEPS="step_a
-# step_b" runs just those steps.
-#
-# Usage: dev/accept-notifications-real-input.sh           (the acceptance)
-#        dev/accept-notifications-real-input.sh ghost     (the blur left behind mid-drag; FAILS
-#                                                          while shell-host leaves it)
-#        dev/accept-notifications-real-input.sh clear     (9b alone)
-#        dev/accept-notifications-real-input.sh exit      (9c alone)
-#        dev/accept-notifications-real-input.sh repro     (the enter and unmap regression checks;
-#                                                          the resting-pointer one FAILS while
-#                                                          Blitz skips the enter)
+# Usage: dev/accept/notifications.sh                          (the banners, nested)
+#        dev/accept/notifications.sh --bus                    (the server on the bus, nested)
+#        dev/accept/notifications.sh --real-input             (the real-input acceptance)
+#        dev/accept/notifications.sh --real-input ghost       (the blur left behind mid-drag; FAILS
+#                                                              while shell-host leaves it)
+#        dev/accept/notifications.sh --real-input clear       (9b alone)
+#        dev/accept/notifications.sh --real-input exit        (9c alone)
+#        dev/accept/notifications.sh --real-input repro       (the enter and unmap regression
+#                                                              checks; the resting-pointer one
+#                                                              FAILS while Blitz skips the enter)
 set -uo pipefail
-# shellcheck source=dev/common.sh
-source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
-OUT_DIR="$SILL_REPO/target/accept-notifications-real-input"
-mkdir -p "$OUT_DIR"
-KWIN_ENV="$SHELL_HOST_DEV/.kwin-env"
+# shellcheck source=dev/lib/all.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
+USAGE="usage: dev/accept/notifications.sh [--bus | --real-input [ghost|clear|exit|repro]]"
+MODE=banners
+ONLY=
+case "${1:-}" in
+  "") ;;
+  --bus) MODE=bus ;;
+  --real-input)
+    MODE=real
+    ONLY="${2:-}"
+    case "$ONLY" in ""|ghost|clear|exit|repro) ;; *) echo "$USAGE" >&2; exit 2 ;; esac ;;
+  *) echo "$USAGE" >&2; exit 2 ;;
+esac
+case "$MODE" in
+  banners) OUT_DIR="$SILL_REPO/target/accept-notifications" ;;
+  bus) OUT_DIR="$SILL_REPO/target/accept-notifications-bus" ;;
+  real) OUT_DIR="$SILL_REPO/target/accept-notifications-real-input" ;;
+esac
+SHOTS="$SILL_REPO/dev/out"
 SIZE=1920x1080
 WIDTH=${SIZE%x*}
 HEIGHT=${SIZE#*x}
@@ -79,57 +133,400 @@ SCALE=${KWIN_SCALE:-1}
 HOLD_MS=5200
 EXIT_MS=250
 SLACK_MS=400
-# Somewhere on the desktop, away from every sill surface but the wallpaper.
+# The banners' column: the card's centre in it (surface-local), layer::ROOM plus half a 360 x 72
+# card; the capture's drawn height, the cards' shadows included: one card (a group adds its
+# layers) stays under 170; three stack to 240-360 (a card and its gap are about 80 px).
+BANNER_CARD_X=220
+BANNER_CARD_Y=76
+ONE_CARD_MAX=170
+THREE_CARDS_MIN=240
+# The real-input run's resting pointer: somewhere on the desktop, away from every sill surface
+# but the wallpaper.
 REST_X=$(( WIDTH / 3 ))
 REST_Y=$(( HEIGHT / 2 ))
-
-SCRATCH=$(mktemp -d)
-RUNTIME="$SCRATCH/run"
-CONFIG="$SCRATCH/config"
-STATE="$SCRATCH/state"
-CACHE="$SCRATCH/cache"
-mkdir -p "$RUNTIME" "$CONFIG/sill" "$STATE"
-chmod 700 "$RUNTIME"
-DAEMON=
-INPUT=
+DBUS_NAME=org.freedesktop.Notifications
+OBJECT=/org/freedesktop/Notifications
+HOLDER_BIN="$SILL_REPO/target/debug/examples/notifications_holder"
+HOLDER=
 MONITOR=
-WL=
-BUS=
+KWIN_UP=no
+mkdir -p "$OUT_DIR" "$SHOTS"
+scratch_new
+mkdir -p "$CONFIG/sill"
 
-in_env() {
-  env XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$WL" DBUS_SESSION_BUS_ADDRESS="$BUS" \
-    DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
-    XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" "$@"
-}
-sill() { in_env "$SILL_BIN" "$@"; }
-now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
 since() { echo $(( $(now_ms) - $1 )); }
 notify() { sill debug notify "$@" >>"$OUT_DIR/notify.log" 2>&1; }
 
-build() {
-  (cd "$SILL_REPO" && cargo build -p sill --features debug) >"$OUT_DIR/build.log" 2>&1 || {
-    echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
+# One field of `sill notifications status`: mode, holder (its kind), pid, banners or kept.
+status_field() {
+  sill notifications status 2>/dev/null | python3 -c '
+import json, sys
+def find(v):
+    if isinstance(v, dict):
+        if "server" in v and "kept" in v:
+            return v
+        for x in v.values():
+            r = find(x)
+            if r: return r
+    return None
+r = find(json.loads(sys.stdin.read())) or {}
+f = sys.argv[1]
+server = r.get("server", {})
+if f == "holder": print(server.get("holder", {}).get("kind", ""))
+elif f == "pid": print((server.get("holder", {}).get("v") or {}).get("pid", ""))
+elif f == "mode": print(server.get("mode", ""))
+else: print(r.get(f, ""))' "$1"
 }
 
-# The headless KWin, and its socket (absolute) and bus from its env file, read without sourcing
-# it into this shell: `kwin-virtual.sh stop` must never find this script naming the bus.
-start_kwin() {
-  "$SHELL_HOST_DEV/kwin-virtual.sh" start "$(( WIDTH * SCALE ))x$(( HEIGHT * SCALE ))" \
-    >"$OUT_DIR/kwin.log" 2>&1 || return 1
-  local runtime socket
-  runtime=$(sed -n 's/^export XDG_RUNTIME_DIR=//p' "$KWIN_ENV")
-  socket=$(sed -n 's/^export WAYLAND_DISPLAY=//p' "$KWIN_ENV")
-  BUS=$(sed -n "s/^export DBUS_SESSION_BUS_ADDRESS='\\(.*\\)'$/\\1/p" "$KWIN_ENV")
-  WL="$runtime/$socket"
-  [ -S "$WL" ] && [ -n "$BUS" ] || { echo "no socket or bus in $KWIN_ENV" >&2; return 1; }
-  [ "$BUS" != "${DBUS_SESSION_BUS_ADDRESS:-}" ] || { echo "KWin's bus is the session's" >&2; return 1; }
-  require_private_system_bus "$BUS" || return 1
-  [ "$SCALE" = 1 ] && return 0
-  local output
-  output=$(in_env kscreen-doctor -j 2>/dev/null | python3 -c '
-import json, sys
-print(json.load(sys.stdin)["outputs"][0]["name"])')
-  in_env kscreen-doctor "output.$output.scale.$SCALE" >>"$OUT_DIR/kwin.log" 2>&1 || return 1
+# Waits up to 5 s for status field $1 to read $2.
+await_status() {
+  local got=
+  for _ in $(seq 50); do
+    got=$(status_field "$1")
+    [ "$got" = "$2" ] && return 0
+    sleep 0.1
+  done
+  echo "status $1 is '$got', wanted '$2'" >&2
+  return 1
+}
+
+# Waits up to $1 ms for the banner column to unmap; prints the ms it took (or -1).
+await_hidden() {
+  local start
+  start=$(now_ms)
+  while [ "$(since "$start")" -lt "$1" ]; do
+    mapped "$BANNERS" || { since "$start"; return 0; }
+    sleep 0.05
+  done
+  echo -1
+}
+
+# Clears the banners and waits for the column to unmap.
+clear_banners() {
+  sill notifications dismiss-all >>"$OUT_DIR/notify.log" 2>&1
+  wait_surface "$BANNERS" 30 down
+}
+
+# Runs each step named in "$@" as run_steps does, but a failing step is followed by the function
+# named in $1 (which puts the surfaces back to rest for the next one). Sets STATUS.
+run_recovering() {
+  local recover="$1" step
+  shift
+  STATUS=0
+  for step in "$@"; do
+    if "$step"; then echo "PASS $step"; else echo "FAIL $step"; STATUS=1; "$recover"; fi
+  done
+}
+
+# --- the banners (default mode) ---
+
+dnd_setting() {
+  printf '[notifications]\nserver = "own"\ndnd = "%s"\n' "$1" >"$CONFIG/sill/settings.toml"
+}
+
+# The height of the capture $1's drawn part (rows with any opaque pixel), 0 for none.
+drawn_height() {
+  python3 - "$1" <<'PY'
+import sys
+from PIL import Image
+img = Image.open(sys.argv[1]).convert("RGBA")
+box = img.getchannel("A").point(lambda a: 255 if a > 8 else 0).getbbox()
+print(0 if box is None else box[3] - box[1])
+PY
+}
+
+# Whether the column captures (it is mapped) with a card's pixels; the capture is $1.
+# A capture right after the surface maps can answer before its first frame is presented and
+# write nothing, so a missing file is asked again for up to half a second.
+shows() {
+  local png="${1:-$OUT_DIR/banners.png}"
+  for _ in $(seq 10); do
+    rm -f "$png"
+    sill debug capture "$BANNERS" "$png" >>"$OUT_DIR/capture.log" 2>&1 || return 1
+    [ -s "$png" ] && break
+    sleep 0.05
+  done
+  [ -s "$png" ] && [ "$(opaque_pixels "$png")" -gt 1000 ]
+}
+
+recover_banners() { clear_banners; }
+
+# --- the banners: steps ---
+
+# 1.
+step_warm() {
+  sill debug stats >"$OUT_DIR/warm.log" 2>&1
+  grep -q "\"$BANNERS\"" "$OUT_DIR/warm.log" || { echo "$BANNERS is not in 'sill debug stats'" >&2; return 1; }
+  if sill debug capture "$BANNERS" "$OUT_DIR/hidden.png" >>"$OUT_DIR/warm.log" 2>&1; then
+    echo "the column is mapped before any notification" >&2; return 1
+  fi
+  echo "$BANNERS spawned at start, hidden" >&2
+}
+
+# 2. and 3.
+step_shows_holds_hides() {
+  local start shown=-1 gone t
+  start=$(now_ms)
+  notify "Lunch on Thursday?" --app accept \
+    --body "Are you free at noon on Thursday? The new place on the corner has a table for four." \
+    || return 1
+  for _ in $(seq 60); do
+    if shows; then shown=$(since "$start"); break; fi
+    sleep 0.01
+  done
+  sleep 0.6
+  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/banners-cosmic.png" >>"$OUT_DIR/shot.log" 2>&1 \
+    || echo "screenshot failed" >&2
+  while [ "$(since "$start")" -lt $((HOLD_MS - 300)) ]; do sleep 0.05; done
+  t=$(await_hidden 3000)
+  gone=$(( t < 0 ? -1 : $(since "$start") ))
+  local limit=$((HOLD_MS + EXIT_MS + SLACK_MS))
+  echo "shown ${shown} ms after the notification; hidden at ${gone} ms (hold ${HOLD_MS}, limit ${limit})" >&2
+  [ "$shown" -ge 0 ] && [ "$shown" -le 300 ] && [ "$gone" -ge "$HOLD_MS" ] && [ "$gone" -le "$limit" ] \
+    || return 1
+  await_status banners 0 && await_status kept 1 || return 1
+  echo "status: banners 0, kept 1" >&2
+}
+
+# 4.
+step_hover() {
+  local start up=no gone
+  start=$(now_ms)
+  notify "Hover me" --app accept --body "Held while the pointer rests on it." || return 1
+  while [ "$(since "$start")" -lt 4000 ]; do sleep 0.02; done
+  sill debug pointer "$BANNERS" "$BANNER_CARD_X" "$BANNER_CARD_Y" >>"$OUT_DIR/pointer.log" 2>&1 || return 1
+  while [ "$(since "$start")" -lt 7000 ]; do sleep 0.02; done
+  shows && up=yes
+  sill debug leave "$BANNERS" >>"$OUT_DIR/pointer.log" 2>&1 || return 1
+  local left
+  left=$(now_ms)
+  gone=$(await_hidden 4000)
+  local limit=$((1500 + EXIT_MS + SLACK_MS))
+  echo "hovered at 4000 ms: still up at 7000 ms: $up; gone ${gone} ms after the pointer left (limit ${limit})" >&2
+  [ "$up" = yes ] && [ "$gone" -ge 1500 ] && [ "$gone" -le "$limit" ]
+}
+
+# 5.
+step_grouping() {
+  local h1 h3
+  notify "One" --app chat || return 1
+  sleep 0.5
+  notify "Two" --app chat || return 1
+  sleep 0.5
+  notify "Three" --app chat || return 1
+  sleep 0.8
+  shows "$OUT_DIR/group.png" || { echo "no card for the group" >&2; return 1; }
+  h1=$(drawn_height "$OUT_DIR/group.png")
+  await_status banners 3 || return 1
+  echo "three from one app: drawn ${h1} px tall (one card under ${ONE_CARD_MAX}), status banners 3" >&2
+  [ "$h1" -gt 0 ] && [ "$h1" -le "$ONE_CARD_MAX" ] || return 1
+  clear_banners || return 1
+  for app in alpha bravo charlie delta echo; do notify "From $app" --app "$app" || return 1; done
+  sleep 0.8
+  shows "$OUT_DIR/five.png" || return 1
+  h3=$(drawn_height "$OUT_DIR/five.png")
+  echo "five from five apps: drawn ${h3} px tall (three cards past ${THREE_CARDS_MIN}, under four)" >&2
+  [ "$h3" -ge "$THREE_CARDS_MIN" ] && [ "$h3" -le $((THREE_CARDS_MIN + 120)) ] || return 1
+  clear_banners || return 1
+  notify "Ada Lovelace" --app chat --body "Hi" || return 1
+  notify "Ada Lovelace" --app chat --body "Are you there?" || return 1
+  notify "Ada Lovelace" --app chat --body "The engine is running again." || return 1
+  notify "Build finished" --app builder --body "sill: 0 warnings, all tests passed." || return 1
+  notify "Lunch on Thursday?" --app mail --body "Are you free at noon on Thursday?" \
+    --action default=Open --action reply=Reply || return 1
+  sleep 0.8
+  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/banners-stack-cosmic.png" >>"$OUT_DIR/shot.log" 2>&1 \
+    || echo "stack screenshot failed" >&2
+  clear_banners
+}
+
+# 6.
+step_dnd() {
+  local kept up=no
+  settings on
+  sill reload >>"$OUT_DIR/notify.log" 2>&1 || return 1
+  sleep 0.5
+  kept=$(status_field kept)
+  notify "Quiet" --app accept || return 1
+  sleep 1
+  if shows; then echo "a banner showed under Do Not Disturb" >&2; return 1; fi
+  await_status kept $((kept + 1)) || return 1
+  notify "Critical" --app accept --urgency critical --body "Shows through Do Not Disturb." || return 1
+  sleep 0.8
+  shows || { echo "the critical one did not show" >&2; return 1; }
+  sleep 10
+  shows && up=yes
+  echo "DND: a normal one kept without a banner (kept $kept -> $((kept + 1))); a critical one up after 10 s: $up" >&2
+  settings off
+  sill reload >>"$OUT_DIR/notify.log" 2>&1
+  [ "$up" = yes ] && clear_banners
+}
+
+# 7.
+step_click() {
+  local kept after gone
+  notify "Open me" --app accept --body "A click opens it." --action default=Open || return 1
+  sleep 0.8
+  shows || return 1
+  kept=$(status_field kept)
+  sill debug click "$BANNERS" "$BANNER_CARD_X" "$BANNER_CARD_Y" >>"$OUT_DIR/pointer.log" 2>&1 || return 1
+  gone=$(await_hidden 2000)
+  await_status kept $((kept - 1)) || return 1
+  after=$(status_field kept)
+  echo "a click on the body: the card left in ${gone} ms, kept $kept -> $after" >&2
+  [ "$gone" -ge 0 ]
+}
+
+# 8.
+step_idle() {
+  local f0 f1
+  sleep 5
+  f0=$(frames_of "$BANNERS")
+  sleep 5
+  f1=$(frames_of "$BANNERS")
+  echo "5 s idle after the last card left: $BANNERS $((f1 - f0)) frames" >&2
+  [ "$((f1 - f0))" = 0 ]
+}
+
+# --- the notifications server on the bus (--bus) ---
+
+# Calls the notifications service's method "$@" with gdbus, on the private bus.
+call() { in_env timeout 5 gdbus call --session --dest "$DBUS_NAME" --object-path "$OBJECT" "$@"; }
+
+server_setting() {
+  printf '[notifications]\nserver = "%s"\n' "$1" >"$CONFIG/sill/settings.toml"
+}
+
+# The pid the bus says holds the name, empty when nobody does.
+bus_holder_pid() {
+  in_env timeout 5 gdbus call --session --dest org.freedesktop.DBus \
+    --object-path /org/freedesktop/DBus \
+    --method org.freedesktop.DBus.GetConnectionUnixProcessID "$DBUS_NAME" 2>/dev/null |
+    sed -E 's/^\(uint32 ([0-9]+),\)$/\1/'
+}
+
+# 1.
+step_owns() {
+  await_status mode own && await_status holder sill || return 1
+  echo "status: mode own, holder sill" >&2
+}
+
+# 2.
+step_information() {
+  local info caps
+  info=$(call --method "$DBUS_NAME.GetServerInformation") || return 1
+  caps=$(call --method "$DBUS_NAME.GetCapabilities") || return 1
+  echo "GetServerInformation $info; GetCapabilities $caps" | tee "$OUT_DIR/information.log" >&2
+  [[ "$info" =~ ^\(\'sill\',\ \'sill\',\ \'[^\']+\',\ \'1\.2\'\)$ ]] || return 1
+  [ "$caps" = "(['actions', 'body', 'body-hyperlinks', 'body-markup', 'icon-static', 'persistence'],)" ]
+}
+
+# 3.
+step_notify_send() {
+  ID=$(in_env timeout 5 notify-send -p -a accept "Hello") || return 1
+  echo "notify-send answered id $ID" >&2
+  await_status banners 1 && await_status kept 1
+}
+
+# 4.
+step_close() {
+  local monitor="$OUT_DIR/monitor.log"
+  in_env gdbus monitor --session --dest "$DBUS_NAME" >"$monitor" 2>&1 &
+  local watcher=$!
+  sleep 0.5
+  call --method "$DBUS_NAME.CloseNotification" "$ID" >/dev/null || { kill "$watcher"; return 1; }
+  local heard=no
+  for _ in $(seq 30); do
+    grep -q "NotificationClosed (uint32 $ID, uint32 3)" "$monitor" && { heard=yes; break; }
+    sleep 0.1
+  done
+  kill "$watcher" 2>/dev/null
+  wait "$watcher" 2>/dev/null
+  echo "gdbus monitor heard NotificationClosed ($ID, 3): $heard" >&2
+  [ "$heard" = yes ] && await_status banners 0 && await_status kept 0
+}
+
+# 5.
+step_passive() {
+  server_setting passive
+  sill reload >/dev/null || return 1
+  await_status mode passive && await_status holder nobody || return 1
+  if call --method "$DBUS_NAME.Notify" -- accept 0 '' Nobody '' '@as []' '@a{sv} {}' -1 \
+    >"$OUT_DIR/passive.log" 2>&1; then
+    echo "something answered Notify while passive" >&2; return 1
+  fi
+  # Unanswered because nobody holds the name, not because the call was malformed.
+  grep -qE "ServiceUnknown|NameHasNoOwner" "$OUT_DIR/passive.log" || {
+    echo "Notify failed for another reason: $(cat "$OUT_DIR/passive.log")" >&2; return 1; }
+  echo "passive: holder nobody, Notify unanswered ($(tr -d '\n' <"$OUT_DIR/passive.log"))" >&2
+}
+
+# 6.
+step_other_holder() {
+  stop_daemon
+  "$HOLDER_BIN" "$BUS" >"$OUT_DIR/holder.log" 2>&1 &
+  HOLDER=$!
+  for _ in $(seq 50); do [ "$(bus_holder_pid)" = "$HOLDER" ] && break; sleep 0.1; done
+  [ "$(bus_holder_pid)" = "$HOLDER" ] || { echo "the holder never took the name" >&2; return 1; }
+  server_setting own
+  launch_daemon || return 1
+  await_status mode own && await_status holder other && await_status pid "$HOLDER" || return 1
+  sleep 1
+  [ "$(bus_holder_pid)" = "$HOLDER" ] || { echo "sill replaced the holder" >&2; return 1; }
+  echo "holder pid $HOLDER kept the name; status holder other, pid $HOLDER" >&2
+  kill "$HOLDER"; wait "$HOLDER" 2>/dev/null; HOLDER=
+  await_status holder sill || return 1
+  echo "the holder left; sill took the name" >&2
+}
+
+# 7.
+step_history_survives() {
+  in_env timeout 5 notify-send -a accept "Kept" || return 1
+  # The same Notify step 5 sent, answered now that sill holds the name.
+  call --method "$DBUS_NAME.Notify" -- other 0 '' 'Also kept' '' '@as []' '@a{sv} {}' -1 \
+    >"$OUT_DIR/notify.log" 2>&1 || { cat "$OUT_DIR/notify.log" >&2; return 1; }
+  await_status kept 2 || return 1
+  local file="$STATE/sill/notifications.json"
+  [ -s "$file" ] || { echo "no history file at $file" >&2; return 1; }
+  stop_daemon
+  launch_daemon || return 1
+  await_status kept 2 || return 1
+  echo "kept 2 before and after a restart ($file)" >&2
+}
+
+# --- the real-input run (--real-input) ---
+
+# A move onto $1 $2: one motion (the enter hovers).
+point() { input "move $1 $2" "sleep 80"; }
+# A real left click at $1 $2: one motion onto it first (so the enter hovers), then the press.
+tap() { point "$1" "$2"; input "press left" "sleep 40" "release left" "sleep 200"; }
+rest() { point "$REST_X" "$REST_Y"; }
+
+# A drag from $1 $2, $3 px to the right in steps of $4 px every $5 ms, held $6 ms before the
+# release (a pause makes the release slow: the card springs back).
+drag() {
+  local x="$1" y="$2" dx="$3" step="$4" every="$5" hold="$6" moved=0 lines=()
+  lines+=("press left" "sleep 60")
+  while [ "$moved" -lt "$dx" ]; do
+    moved=$(( moved + step > dx ? dx : moved + step ))
+    lines+=("move $(( x + moved )) $y" "sleep $every")
+  done
+  lines+=("sleep $hold" "release left" "sleep 200")
+  point "$x" "$y" && input "${lines[@]}"
+}
+
+# The bus's signals from org.freedesktop.Notifications, for the whole run.
+start_monitor() {
+  in_env gdbus monitor --session --dest org.freedesktop.Notifications \
+    >"$OUT_DIR/monitor.log" 2>&1 &
+  MONITOR=$!
+}
+
+stop_monitor() {
+  [ -n "$MONITOR" ] || return 0
+  kill "$MONITOR" 2>/dev/null
+  wait "$MONITOR" 2>/dev/null
+  MONITOR=
 }
 
 # A wallpaper of fine checks (2 px), seeded as the COSMIC background record sill's wallpaper reads:
@@ -161,180 +558,7 @@ RON
   echo true >"$record/same-on-all"
 }
 
-stop_kwin() {
-  "$SHELL_HOST_DEV/kwin-virtual.sh" stop >>"$OUT_DIR/kwin.log" 2>&1
-}
 
-# Real input through ONE fake-input client for the whole run.
-start_input() {
-  rm -f "$OUT_DIR/input.fifo"; mkfifo "$OUT_DIR/input.fifo" || return 1
-  "$SHELL_HOST_DEV/fake-input.sh" <"$OUT_DIR/input.fifo" >"$OUT_DIR/input.log" 2>&1 &
-  INPUT=$!
-  exec 3>"$OUT_DIR/input.fifo"
-}
-
-# Wait up to 5 s for process $1 (named $2) to end, then end it.
-reap() {
-  for _ in $(seq 50); do kill -0 "$1" 2>/dev/null || return 0; sleep 0.1; done
-  echo "the $2 ($1) did not end; killing it" >&2
-  kill "$1" 2>/dev/null
-  sleep 0.5
-  kill -9 "$1" 2>/dev/null
-  return 0
-}
-
-stop_input() {
-  [ -n "$INPUT" ] || return 0
-  exec 3>&-
-  reap "$INPUT" input
-  INPUT=
-  rm -f "$OUT_DIR/input.fifo"
-}
-
-# The fake-input commands "$@", one per line; returns once each has been answered (`ok <line>`).
-input() {
-  local before
-  before=$(grep -c '^ok ' "$OUT_DIR/input.log")
-  printf '%s\n' "$@" >&3
-  for _ in $(seq 200); do
-    [ "$(grep -c '^ok ' "$OUT_DIR/input.log")" -ge $(( before + $# )) ] && return 0
-    sleep 0.05
-  done
-  echo "fake input did not answer: $*" >&2
-  return 1
-}
-key() { input "key $1 down" "sleep 30" "key $1 up" "sleep 150"; }
-# A move onto $1 $2: one motion (the enter hovers).
-point() { input "move $1 $2" "sleep 80"; }
-click() { point "$1" "$2"; input "press left" "sleep 40" "release left" "sleep 200"; }
-rest() { point "$REST_X" "$REST_Y"; }
-
-# A drag from $1 $2, $3 px to the right in steps of $4 px every $5 ms, held $6 ms before the
-# release (a pause makes the release slow: the card springs back).
-drag() {
-  local x="$1" y="$2" dx="$3" step="$4" every="$5" hold="$6" moved=0 lines=()
-  lines+=("press left" "sleep 60")
-  while [ "$moved" -lt "$dx" ]; do
-    moved=$(( moved + step > dx ? dx : moved + step ))
-    lines+=("move $(( x + moved )) $y" "sleep $every")
-  done
-  lines+=("sleep $hold" "release left" "sleep 200")
-  point "$x" "$y" && input "${lines[@]}"
-}
-
-# The bus's signals from org.freedesktop.Notifications, for the whole run.
-start_monitor() {
-  in_env gdbus monitor --session --dest org.freedesktop.Notifications \
-    >"$OUT_DIR/monitor.log" 2>&1 &
-  MONITOR=$!
-}
-
-stop_monitor() {
-  [ -n "$MONITOR" ] || return 0
-  kill "$MONITOR" 2>/dev/null
-  wait "$MONITOR" 2>/dev/null
-  MONITOR=
-}
-
-start_daemon() {
-  printf '[notifications]\nserver = "own"\n[control_center]\nmenu_bar_sound = "hide"\nmenu_bar_battery = "hide"\n' \
-    >"$CONFIG/sill/settings.toml"
-  seed_checks || { echo "no checks wallpaper" >&2; return 1; }
-  use_fake_ddc "$SCRATCH" >/dev/null
-  require_fake_ddc || return 1
-  in_env "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" >"$OUT_DIR/daemon.log" 2>&1 &
-  DAEMON=$!
-  for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
-  for _ in $(seq 50); do NAME=$(output_name); [ -n "$NAME" ] && break; sleep 0.1; done
-  [ -n "${NAME:-}" ] || { echo "no bar in 'sill debug stats'" >&2; return 1; }
-  BAR="sill-bar-$NAME"
-  BANNERS="sill-banners-$NAME"
-  CENTER="sill-notification-center-$NAME"
-  sleep 1.5
-}
-
-# Ask the daemon to quit and wait up to 10 s; never kill it.
-stop_daemon() {
-  [ -n "$DAEMON" ] || return 0
-  in_env timeout 10 "$SILL_BIN" quit >/dev/null 2>&1
-  local result=1
-  for _ in $(seq 100); do kill -0 "$DAEMON" 2>/dev/null || { result=0; break; }; sleep 0.1; done
-  [ "$result" = 0 ] || echo "the daemon ($DAEMON) did not end after quit" >&2
-  DAEMON=
-  return "$result"
-}
-
-output_name() {
-  sill debug stats 2>/dev/null | python3 -c '
-import json, sys
-for row in json.loads(sys.stdin.read())["v"]:
-    s = row["surface"]
-    if s.startswith("sill-bar-") and "/" not in s:
-        print(s[len("sill-bar-"):]); break'
-}
-
-frames_of() {
-  sill debug stats | python3 -c '
-import json, sys
-for row in json.loads(sys.stdin.read())["v"]:
-    if row["surface"] == sys.argv[1]:
-        print(row["frames"])' "$1"
-}
-
-status_field() {
-  sill notifications status 2>/dev/null | python3 -c '
-import json, sys
-def find(v):
-    if isinstance(v, dict):
-        if "server" in v and "kept" in v:
-            return v
-        for x in v.values():
-            r = find(x)
-            if r: return r
-    return None
-r = find(json.loads(sys.stdin.read())) or {}
-v = r.get(sys.argv[1], r.get("server", {}).get(sys.argv[1], ""))
-print(v.get("kind", "") if isinstance(v, dict) else v)' "$1"
-}
-
-await_status() {
-  local got=
-  for _ in $(seq 50); do
-    got=$(status_field "$1")
-    [ "$got" = "$2" ] && return 0
-    sleep 0.1
-  done
-  echo "status $1 is '$got', wanted '$2'" >&2
-  return 1
-}
-
-# Whether SURFACE is mapped (it captures), the capture in $2.
-mapped() { sill debug capture "$1" "${2:-$OUT_DIR/probe.png}" >/dev/null 2>&1; }
-
-# Wait up to $2 tenths of a second for SURFACE $1 to be up (or, with $3 = down, gone).
-wait_surface() {
-  local surface="$1" tenths="$2" want="${3:-up}"
-  for _ in $(seq "$tenths"); do
-    if mapped "$surface"; then [ "$want" = up ] && return 0
-    else [ "$want" = down ] && return 0; fi
-    sleep 0.1
-  done
-  return 1
-}
-
-# Wait up to $1 ms for the column to unmap; prints the ms it took (or -1).
-await_hidden() {
-  local start
-  start=$(now_ms)
-  while [ "$(since "$start")" -lt "$1" ]; do
-    mapped "$BANNERS" || { since "$start"; return 0; }
-    sleep 0.05
-  done
-  echo -1
-}
-
-# The banner column's origin on the output, "x y", from KWin's window list: the sill window as
-# wide as the column (notifications.banner_width_px, 360, plus layer::ROOM each side).
 column_origin() {
   "$SHELL_HOST_DEV/kwin-windows.sh" --class sill 2>/dev/null | python3 -c '
 import json, sys
@@ -430,23 +654,21 @@ clock_click() {
   mapfile -t items < <(status_items)
   [ "${#items[@]}" -ge 1 ] || { echo "no clock on the bar" >&2; return 1; }
   CLOCK_X=${items[0]}
-  click "$CLOCK_X" 16
+  tap "$CLOCK_X" 16
 }
 
-clear_all() {
-  sill notifications dismiss-all >>"$OUT_DIR/notify.log" 2>&1
-  wait_surface "$BANNERS" 30 down
-}
+
+recover_real() { clear_banners; rest; }
 
 # 1. and 12.
-step_holder() {
+step_real_holder() {
   await_status holder sill || return 1
   await_status mode own || return 1
   echo "status: holder sill, mode own" >&2
 }
 
 # 2.
-step_hover() {
+step_real_hover() {
   local start kept up=no gone left limit
   rest || return 1
   kept=$(status_field kept)
@@ -467,13 +689,13 @@ step_hover() {
 }
 
 # 3.
-step_click_default() {
+step_real_click_default() {
   local kept gone id
   rest || return 1
   post_card "Open me" --app accept --body "A click opens it." --action default=Open \
     --expire never || return 1
   kept=$(status_field kept)
-  click "$CARD_X" "$CARD_Y" || return 1
+  tap "$CARD_X" "$CARD_Y" || return 1
   gone=$(await_hidden 3000)
   await_status kept $((kept - 1)) || return 1
   sleep 0.3
@@ -484,7 +706,7 @@ step_click_default() {
 }
 
 # 4.
-step_close_button() {
+step_real_close_button() {
   local kept gone cx cy shown
   rest || return 1
   post_card "Close me" --app accept --body "Its close button dismisses it." --expire never \
@@ -493,7 +715,7 @@ step_close_button() {
   point "$CARD_X" "$CARD_Y" || return 1
   shown=$(close_shown close-hover)
   cx=$(( CARD_X0 + 3 )); cy=$(( CARD_Y0 + 3 ))
-  click "$cx" "$cy" || return 1
+  tap "$cx" "$cy" || return 1
   gone=$(await_hidden 3000)
   await_status kept $((kept - 1)) || return 1
   echo "hovered, the close button shows: $shown; a real click on it at $cx,$cy: gone in ${gone} ms," \
@@ -503,7 +725,7 @@ step_close_button() {
 }
 
 # 5.
-step_swipe() {
+step_real_swipe() {
   local kept gone
   rest || return 1
   post_card "Swipe me" --app accept --body "A drag to the right sends it to the center." \
@@ -520,7 +742,7 @@ step_swipe() {
 }
 
 # 6.
-step_spring_back() {
+step_real_spring_back() {
   local x0 banners
   rest || return 1
   post_card "Spring back" --app accept --body "A short drag lets it go back." --expire never \
@@ -535,12 +757,12 @@ step_spring_back() {
   card_box >>"$OUT_DIR/cards.log" || return 1
   banners=$(status_field banners)
   echo "a real 50 px drag, slowed: the card is back at x $CARD_X0 (was $x0), banners $banners" >&2
-  clear_all
+  clear_banners
   [ "$CARD_X0" = "$x0" ] && [ "$banners" = 1 ]
 }
 
 # 7.
-step_center_clock_escape() {
+step_real_center_clock_escape() {
   clock_click || return 1
   wait_surface "$CENTER" 20 up || { echo "a click on the clock ($CLOCK_X) opened nothing" >&2; return 1; }
   sleep 0.6
@@ -551,17 +773,17 @@ step_center_clock_escape() {
 }
 
 # 8.
-step_center_outside() {
+step_real_center_outside() {
   clock_click || return 1
   wait_surface "$CENTER" 20 up || { echo "the second clock click opened nothing" >&2; return 1; }
   sleep 0.6
-  click 200 "$REST_Y" || return 1
+  tap 200 "$REST_Y" || return 1
   wait_surface "$CENTER" 20 down || { echo "a click outside left the center up" >&2; return 1; }
   echo "a real click outside the column (200 $REST_Y) closed the center" >&2
 }
 
 # 9.
-step_center_delete() {
+step_real_center_delete() {
   local kept
   notify "Ada" --app chat --body "Hi" || return 1
   notify "Ada" --app chat --body "Are you there?" || return 1
@@ -597,7 +819,7 @@ EOF
 }
 
 # 10.
-step_center_scroll() {
+step_real_center_scroll() {
   local i before after cx cy
   cx=$(( WIDTH - 100 )); cy=$(( HEIGHT / 2 ))
   for i in $(seq 1 15); do
@@ -621,12 +843,12 @@ step_center_scroll() {
     "no finger source" >&2
   key Escape
   wait_surface "$CENTER" 20 down
-  clear_all
+  clear_banners
   [ "$before" != "$after" ]
 }
 
 # 11.
-step_idle() {
+step_real_idle() {
   local b0 b1 c0 c1
   rest
   sleep 2
@@ -652,7 +874,7 @@ repro_enter_one_motion() {
   input "move $(( CARD_X + 1 )) $CARD_Y" "sleep 80" || return 1
   two=$(close_shown repro-two-motions)
   echo "enter: one motion onto the card: hovered $one; after a second motion: $two" >&2
-  rest; clear_all
+  rest; clear_banners
   [ "$one" = yes ]
 }
 
@@ -665,7 +887,7 @@ repro_hover_after_unmap() {
   local hovered
   rest || return 1
   post_card "First" --app accept --action default=Open --expire never || return 1
-  click "$CARD_X" "$CARD_Y" || return 1
+  tap "$CARD_X" "$CARD_Y" || return 1
   wait_surface "$BANNERS" 30 down || return 1
   rest || return 1
   post_card "After the unmap" --app accept --expire never || return 1
@@ -673,7 +895,7 @@ repro_hover_after_unmap() {
   hovered=$(close_shown repro-after-unmap)
   echo "unmap: a card after the column unmapped under the pointer, one motion onto it:" \
     "hovered $hovered" >&2
-  rest; clear_all
+  rest; clear_banners
   [ "$hovered" = yes ]
 }
 
@@ -687,7 +909,7 @@ repro_card_under_resting_pointer() {
   local moved back
   rest || return 1
   post_card "First" --app accept --action default=Open --expire never || return 1
-  click "$CARD_X" "$CARD_Y" || return 1
+  tap "$CARD_X" "$CARD_Y" || return 1
   wait_surface "$BANNERS" 30 down || return 1
   post_card "Under the pointer" --app accept --expire never || return 1
   point $(( CARD_X - 20 )) "$CARD_Y" || return 1
@@ -696,7 +918,7 @@ repro_card_under_resting_pointer() {
   back=$(close_shown repro-back)
   echo "resting pointer: a card slid in under the resting pointer, moved on: hovered $moved;" \
     "out and back: $back" >&2
-  rest; clear_all
+  rest; clear_banners
   [ "$moved" = yes ]
 }
 
@@ -762,7 +984,7 @@ ghost_check() {
   screen_shot "$OUT_DIR/$name-up.png"
   box="$(( CARD_X0 - 8 )) $(( CARD_Y0 - 8 )) $(( CARD_X1 + 8 )) $(( CARD_Y1 + 8 ))"
   case "$how" in
-    click) click "$CARD_X" "$CARD_Y" || return 1 ;;
+    click) tap "$CARD_X" "$CARD_Y" || return 1 ;;
     swipe) drag $(( CARD_X - 60 )) "$CARD_Y" 90 15 30 0 || return 1 ;;
   esac
   [ "$(await_hidden 3000)" -ge 0 ] || { echo "the column stayed up after the $how" >&2; return 1; }
@@ -778,7 +1000,7 @@ ghost_check() {
 # Ghosts, mid-drag: with a real press held 60 px right of where it went down, nothing but the card
 # is grey. The band the card has moved off (its old left 60 px, from its top to its bottom)
 # must show the wallpaper as it was before the card came.
-step_ghost_held() {
+step_real_ghost_held() {
   local box worst count x y
   rest || return 1
   await_checks || return 1
@@ -794,7 +1016,7 @@ step_ghost_held() {
   read -r worst count <<<"$(shot_diff "$OUT_DIR/ghost-held-before.png" "$OUT_DIR/ghost-held-mid.png" "$box")"
   echo "ghost held: the band the card moved off ($box) mid-drag vs before it came: worst $worst," \
     "$count px off (ghost-held-{before,mid}.png)" >&2
-  rest; clear_all
+  rest; clear_banners
   [ "$count" = 0 ]
 }
 
@@ -850,7 +1072,7 @@ sys.exit(1)' "$1" "$WIDTH"
 
 # 9b. Clear All with a real click in the center: the history empties and the center then rests
 # at 0 frames.
-step_center_clear_all() {
+step_real_center_clear_all() {
   local at x y bar c0 c1
   notify "Ada" --app chat --body "Hi" || return 1
   notify "Build" --app ci --body "Passed" || return 1
@@ -863,7 +1085,7 @@ step_center_clear_all() {
   at=$(clear_all_at "$OUT_DIR/clear-all-before.png") || { echo "no Clear All found" >&2; return 1; }
   read -r x y <<<"$at"
   bar=$(surface_top "$OUT_DIR/clear-all-before.png") || { echo "no center in KWin's list" >&2; return 1; }
-  click "$x" $(( y + bar )) || return 1
+  tap "$x" $(( y + bar )) || return 1
   await_status kept 0 || { echo "a click at $x $(( y + bar )) cleared nothing" >&2; return 1; }
   sleep 1
   mapped "$CENTER" "$OUT_DIR/clear-all-after.png"
@@ -933,7 +1155,7 @@ exit_plays() {
   local x="$1" y="$2" top="$3" kept="$4" rows="$5" name="$6" s0 c0 c1 c2 start dropped settled
   s0=$(settles); c0=$(frames_of "$CENTER")
   start=$(now_ms)
-  click "$x" $(( y + top )) || return 1
+  tap "$x" $(( y + top )) || return 1
   await_status kept "$kept" || { echo "a click at $x $(( y + top )) cleared nothing" >&2; return 1; }
   dropped=$(since "$start")
   mapped "$CENTER" "$OUT_DIR/$name-mid.png"
@@ -955,7 +1177,7 @@ exit_plays() {
 # 9c. Clear and Clear All play their exit: two groups posted, the center opened
 # by a real click on the clock, a real click on the first group's Clear folds its head and card
 # and the group below heals up; a real click on Clear All folds the rest; the center then rests.
-step_center_clear_exit() {
+step_real_center_clear_exit() {
   local at x y bar before after
   [ "$(status_field kept)" = 0 ] || { echo "the history is not empty before the step" >&2; return 1; }
   notify "Build" --app ci --body "Passed" || return 1
@@ -988,43 +1210,117 @@ step_center_clear_exit() {
 }
 
 # 5b, 5c.
-step_ghost_click() { ghost_check click ghost-click; }
-step_ghost_swipe() { ghost_check swipe ghost-swipe; }
+step_real_ghost_click() { ghost_check click ghost-click; }
+step_real_ghost_swipe() { ghost_check swipe ghost-swipe; }
 
+# Ends everything the run started, in the order it was started backwards; safe to call twice.
 cleanup() {
+  local result=0
   stop_input
   stop_monitor
-  stop_daemon
-  stop_kwin
-  rm -rf "$SCRATCH"
+  stop_daemon || result=1
+  [ -z "$HOLDER" ] || { kill "$HOLDER" 2>/dev/null; HOLDER=; }
+  if [ "$KWIN_UP" = yes ]; then stop_kwin; KWIN_UP=no; fi
+  stop_private_bus
+  scratch_drop
+  return "$result"
 }
 
-build || exit 1
-: >"$OUT_DIR/notify.log"
-: >"$OUT_DIR/cards.log"
-start_kwin || { echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2; stop_kwin; exit 1; }
-trap cleanup EXIT
-start_daemon || exit 1
-start_monitor
-start_input || { echo "no fake input client" >&2; exit 1; }
-# The seat's pointer is announced with the input client's device: the first motion only makes
-# it known. Rest it on the desktop.
-rest; rest
-STEPS="step_holder step_hover step_click_default step_close_button step_swipe step_spring_back
-  step_ghost_click step_ghost_swipe step_center_clock_escape step_center_outside
-  step_center_delete step_center_clear_all step_center_clear_exit step_center_scroll step_idle
-  step_holder"
-[ "${1:-}" = ghost ] && STEPS="step_holder step_ghost_held step_ghost_click step_ghost_swipe"
-[ "${1:-}" = clear ] && STEPS="step_holder step_center_clear_all"
-[ "${1:-}" = exit ] && STEPS="step_holder step_center_clear_exit step_idle"
-[ -n "${ACCEPT_STEPS:-}" ] && STEPS="$ACCEPT_STEPS"
-[ "${1:-}" = repro ] && STEPS="step_holder repro_enter_one_motion repro_hover_after_unmap repro_card_under_resting_pointer"
-status=0
-for step in $STEPS; do
-  if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; clear_all; rest; fi
-done
-echo "stopping the input client, the daemon and the headless KWin" >&2
-cleanup
-trap - EXIT
-echo "logs in $OUT_DIR"
-exit "$status"
+# The banners' daemon on the nested compositor, its wallpaper the backdrop.
+setup_banners() {
+  use_nested_socket || return 1
+  build || return 1
+  await_no_process '/sill run$' || return 1
+  start_private_bus || return 1
+  : >"$OUT_DIR/notify.log"
+  dnd_setting off
+  backdrop_seed "$CONFIG" || return 1
+  launch_daemon || return 1
+  NAME=$(output_name) || return 1
+  BANNERS="sill-banners-$NAME"
+  sleep 1
+}
+
+# The server's daemon on the nested compositor, holding the bus name in mode own.
+setup_bus() {
+  use_nested_socket || return 1
+  build "-p sill-testkit --example notifications_holder" || return 1
+  start_private_bus || return 1
+  echo "private bus $BUS (pid $BUS_PID)" >&2
+  server_setting own
+  launch_daemon
+}
+
+# The headless KWin at $SCALE, its daemon on a checkerboard wallpaper, the bus monitor and ONE
+# fake-input client.
+setup_real() {
+  build || return 1
+  : >"$OUT_DIR/notify.log"
+  : >"$OUT_DIR/cards.log"
+  if ! start_kwin "$(( WIDTH * SCALE ))x$(( HEIGHT * SCALE ))"; then
+    echo "the headless KWin did not start (see $OUT_DIR/kwin.log)" >&2
+    return 1
+  fi
+  KWIN_UP=yes
+  [ "$SCALE" = 1 ] || set_kwin_scale "$SCALE" || return 1
+  printf '[notifications]\nserver = "own"\n[control_center]\nmenu_bar_sound = "hide"\nmenu_bar_battery = "hide"\n' \
+    >"$CONFIG/sill/settings.toml"
+  seed_checks || { echo "no checks wallpaper" >&2; return 1; }
+  launch_daemon || return 1
+  NAME=$(output_name) || return 1
+  BAR="sill-bar-$NAME"
+  BANNERS="sill-banners-$NAME"
+  CENTER="sill-notification-center-$NAME"
+  sleep 1.5
+  start_monitor
+  start_input || { echo "no fake input client" >&2; return 1; }
+  # The seat's pointer is announced with the input client's device: the first motion only makes
+  # it known. Rest it on the desktop.
+  rest; rest
+}
+
+# The real-input steps to run: all of them, or the subset $ONLY names; ACCEPT_STEPS overrides.
+real_steps() {
+  local steps="step_real_holder step_real_hover step_real_click_default step_real_close_button
+  step_real_swipe step_real_spring_back step_real_ghost_click step_real_ghost_swipe
+  step_real_center_clock_escape step_real_center_outside step_real_center_delete
+  step_real_center_clear_all step_real_center_clear_exit step_real_center_scroll step_real_idle
+  step_real_holder"
+  case "$ONLY" in
+    ghost) steps="step_real_holder step_real_ghost_held step_real_ghost_click step_real_ghost_swipe" ;;
+    clear) steps="step_real_holder step_real_center_clear_all" ;;
+    exit) steps="step_real_holder step_real_center_clear_exit step_real_idle" ;;
+    repro) steps="step_real_holder repro_enter_one_motion repro_hover_after_unmap repro_card_under_resting_pointer" ;;
+  esac
+  echo "${ACCEPT_STEPS:-$steps}"
+}
+
+main() {
+  local status
+  trap cleanup EXIT
+  case "$MODE" in
+    banners) setup_banners || exit 1 ;;
+    bus) setup_bus || exit 1 ;;
+    real) setup_real || exit 1 ;;
+  esac
+  case "$MODE" in
+    banners)
+      run_recovering recover_banners step_warm step_shows_holds_hides step_hover step_grouping \
+        step_dnd step_click step_idle ;;
+    bus)
+      run_steps step_owns step_information step_notify_send step_close step_passive \
+        step_other_holder step_history_survives ;;
+    real)
+      # shellcheck disable=SC2046 # one word per step name
+      run_recovering recover_real $(real_steps) ;;
+  esac
+  status=$STATUS
+  [ "$MODE" != real ] || echo "stopping the input client, the daemon and the headless KWin" >&2
+  cleanup || status=1
+  trap - EXIT
+  echo "logs in $OUT_DIR"
+  [ "$MODE" != banners ] || echo "screenshots $SHOTS/banners-cosmic.png, $SHOTS/banners-stack-cosmic.png"
+  exit "$status"
+}
+
+main
