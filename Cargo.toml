@@ -39,7 +39,7 @@ shell-host = { path = "../shell-host/crates/shell-host" }
 
 # Blitz: git main, pinned by rev (crates.io dioxus-native 0.8 alpha does not build with
 # blitz 0.3.0-beta.2). The in-tree dioxus-native-dom targets dioxus 0.7.x.
-# Blitz comes from our fork (github.com/PoHsuanLai/blitz): upstream e99fbdbd plus the G295 restyle
+# Blitz comes from our fork (github.com/PoHsuanLai/blitz): upstream e99fbdbd plus the restyle fix
 # (a cancelled animation's last value no longer sticks), the same rev as quire and shell-host.
 blitz-dom = { git = "https://github.com/PoHsuanLai/blitz", rev = "bf58814298b829bb42673424e86926cbd2af8f07", default-features = false, features = ["svg", "system-fonts", "custom-widget", "accessibility"] }
 blitz-paint = { git = "https://github.com/PoHsuanLai/blitz", rev = "bf58814298b829bb42673424e86926cbd2af8f07", features = ["custom-widget"] }
@@ -69,7 +69,7 @@ anyrender_vello_cpu = { version = "0.17", features = ["multithreading"] }
 vello_hybrid = "0.1"
 wgpu = "29"
 wgpu_context = "0.9"
-# Per-device image cache for the shared hybrid renderer (SPIKE.md S1 finding 5).
+# Per-device image cache for the shared hybrid renderer (anyrender_vello_hybrid names both).
 rustc-hash = "2"
 vello_common = "0.1"
 parley = { version = "0.11.1", default-features = false, features = ["std"] }
