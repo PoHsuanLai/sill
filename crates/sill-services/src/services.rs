@@ -137,7 +137,7 @@ impl Services {
             Arc::clone(&env.ddc),
             volume.clone(),
         );
-        let (tray, tray_control) = crate::tray::spawn(rt, session());
+        let (tray, tray_control) = parts(spawn::<crate::tray::TrayService>(rt, env, ()));
         let (workspaces, toplevels, wl) = crate::cosmic_wl::spawn(env.wayland.clone());
         let (apps, apps_control) = crate::apps::spawn(rt, &env.dirs);
         let (badges, badges_control) = parts(spawn::<crate::badges::BadgesService>(rt, env, ()));

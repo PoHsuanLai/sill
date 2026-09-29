@@ -165,7 +165,7 @@ pub enum TrayEvent {
 }
 
 /// `tray` after `event`. A change for an unknown item is dropped (it raced its removal).
-pub fn reduce_tray(tray: Tray, event: TrayEvent) -> Tray {
+pub fn step(tray: Tray, event: TrayEvent) -> Tray {
     let Tray { mut items } = tray;
     match event {
         TrayEvent::Registered(item) => match items.iter_mut().find(|i| i.id == item.id) {
@@ -191,7 +191,7 @@ fn edit(items: &mut [TrayItem], id: &TrayItemId, change: impl FnOnce(&mut TrayIt
 mod tests {
     use super::{
         Availability, Check, Tray, TrayEvent, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry,
-        TrayMenuKind, TrayStatus, reduce_tray,
+        TrayMenuKind, TrayStatus, step,
     };
     use crate::units::Visibility;
 
@@ -316,7 +316,7 @@ mod tests {
             ),
         ];
         for (name, before, event, want) in cases {
-            assert_eq!(reduce_tray(before, event), want, "{name}");
+            assert_eq!(step(before, event), want, "{name}");
         }
     }
 

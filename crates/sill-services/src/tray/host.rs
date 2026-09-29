@@ -21,7 +21,7 @@ use tokio::sync::{broadcast, mpsc, watch};
 
 use super::model::{
     Availability, Check, Pixmap, ScrollAxis, ScrollDelta, Tray, TrayCommand, TrayEvent, TrayIcon,
-    TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind, TrayStatus, reduce_tray,
+    TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind, TrayStatus, step,
 };
 use crate::env::{Bus, BusRoute};
 use crate::units::Visibility;
@@ -69,7 +69,7 @@ pub(super) async fn run(
             event = events.recv() => match event {
                 Ok(event) => {
                     if let Some(tray_event) = map_event(&client, event) {
-                        state = reduce_tray(state, tray_event);
+                        state = step(state, tray_event);
                         let _ = tray_tx.send(state.clone());
                     }
                 }
@@ -93,7 +93,7 @@ fn seed(client: &Client) -> Tray {
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     for (destination, (item, _menu)) in items.iter() {
-        state = reduce_tray(
+        state = step(
             state,
             TrayEvent::Registered(to_tray_item(destination, item)),
         );

@@ -129,7 +129,7 @@ pub use session::{Offer, Session, SessionAction, SessionCommand, SessionEvent, r
 pub use switcher::{AppShown, SwitcherApp, switcher_apps};
 pub use tray::{
     Availability, Check, Pixmap, ScrollAxis, ScrollDelta, Tray, TrayCommand, TrayEvent, TrayIcon,
-    TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind, TrayStatus, reduce_tray,
+    TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind, TrayService, TrayStatus,
 };
 pub use units::{Cpx, Minutes, Percent, Permille, Presence, Seconds, Stamp, Visibility};
 pub use volume::{Mute, Step, Volume, VolumeCommand, VolumeEvent, reduce_volume, stepped};
