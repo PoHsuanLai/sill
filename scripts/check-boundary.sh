@@ -10,14 +10,17 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-# sill-ipc and sill-launcher are pure: no UI, no D-Bus, no Wayland, no runtime, no audio.
-# sill-services is effectful but UI-free: its state reaches surfaces only through watch
-# channels read by sill-surfaces' hooks (DESIGN.md "Crates"), so it never links a
+# sill-ipc, sill-launcher and sill-model are pure: no UI, no D-Bus, no Wayland, no runtime, no
+# audio, no design system.
+# sill-services and sill-search are effectful but UI-free: their state reaches surfaces only
+# through watch channels read by sill-surfaces' hooks (DESIGN.md "Crates"), so neither links a
 # renderer. That is also why sill's settings are a crate of their own: ds-settings brings dioxus.
 RULES=(
   "sill-ipc: dioxus dioxus-core zbus wayland-client tokio libpulse-binding"
   "sill-launcher: dioxus dioxus-core zbus wayland-client tokio libpulse-binding"
+  "sill-model: dioxus dioxus-core zbus wayland-client tokio libpulse-binding shell-host ds blitz-dom"
   "sill-services: dioxus dioxus-core blitz-dom shell-host ds ds-settings"
+  "sill-search: dioxus dioxus-core blitz-dom shell-host ds ds-settings"
 )
 fail=0
 
