@@ -172,7 +172,7 @@ impl Services {
         let (agenda, events_control) = crate::events::spawn(rt, &env.dirs, Arc::clone(&env.clock));
         let (shots, shots_control) = crate::screenshots::spawn(rt, &env.dirs);
         let (auth, auth_control) = crate::auth::spawn(rt, crate::auth::AccountPlace::of(env));
-        let (polkit, polkit_control) = crate::polkit_agent::spawn(rt, system());
+        let (polkit, polkit_control) = crate::polkit_agent::spawn(rt, env.polkit.clone());
         let (idle, idle_control) = crate::idle::spawn(
             rt,
             IdleLinks {

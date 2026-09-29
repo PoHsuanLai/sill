@@ -4,8 +4,8 @@
 #
 # Nothing here reaches polkitd, the system bus, PAM or a real password. Every bus is one
 # private dbus-daemon (dev/private-bus.conf): the daemon's session and system bus addresses both
-# name it, and its polkit agent is pointed at it by SILL_POLKIT_BUS (read only by a build with
-# debug assertions, crates/sill-services/src/polkit_agent/daemon_setup.rs). There,
+# name it, and its polkit agent is pointed at it by `sill run --polkit-bus` (a debug build's flag,
+# crates/sill/src/run_args.rs, with --polkit-helper and --polkit-session). There,
 # examples/polkit_authority.rs plays polkitd's Authority (records the registration, sends
 # BeginAuthentication and CancelAuthentication on command, prints each call's result), and
 # examples/polkit_helper.rs plays polkit-agent-helper-1 (the helper protocol; accepts
@@ -59,7 +59,6 @@ esac
 in_env() {
   env XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$WL" XDG_CONFIG_HOME="$CONFIG" \
     DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
-    SILL_POLKIT_BUS="$BUS" SILL_POLKIT_HELPER="$HELPER_BIN" SILL_POLKIT_SESSION="$SESSION_ID" \
     "$@"
 }
 sill() { in_env "$SILL_BIN" "$@"; }
@@ -110,7 +109,9 @@ start_daemon() {
   : >"$CONFIG/sill/settings.toml"
   use_fake_ddc "$SCRATCH" >/dev/null
   require_fake_ddc || return 1
-  in_env "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" >"$OUT_DIR/daemon.log" 2>&1 &
+  in_env "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" \
+    --polkit-bus "$BUS" --polkit-helper "$HELPER_BIN" --polkit-session "$SESSION_ID" \
+    >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
   sill ping >/dev/null 2>&1 || { echo "the daemon never answered (see daemon.log)" >&2; return 1; }

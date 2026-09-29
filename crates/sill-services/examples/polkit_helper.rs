@@ -7,7 +7,7 @@
 //! `PAM_TEXT_INFO`, then `PAM_PROMPT_ECHO_OFF Password: `, reads one line, and ends with
 //! `SUCCESS` or with `PAM_ERROR_MSG` and `FAILURE`. What was typed is never printed.
 //!
-//! Usage: `polkit_helper <user>` (the agent runs it; `SILL_POLKIT_HELPER` names it).
+//! Usage: `polkit_helper <user>` (the agent runs it; `sill run --polkit-helper` names it).
 
 use std::io::{BufRead, Write};
 

@@ -27,7 +27,6 @@
 //! Authority and a stand-in helper ([`Setup`]), never polkitd.
 
 mod bus;
-mod daemon_setup;
 mod dbus;
 pub mod helper;
 pub mod identity;
@@ -89,14 +88,9 @@ impl Setup {
     }
 }
 
-/// Start the agent service on `rt` for the daemon ([`Setup::system`] on `system`); passive
+/// Start the agent service on `rt` against `setup` (the daemon's: [`Setup::system`]); passive
 /// until a `Policy(Own)`.
-pub fn spawn(rt: &Handle, system: Bus) -> (watch::Receiver<Polkit>, Control<PolkitCommand>) {
-    spawn_with(rt, daemon_setup::daemon_setup(system))
-}
-
-/// [`spawn`] against `setup`.
-pub fn spawn_with(rt: &Handle, setup: Setup) -> (watch::Receiver<Polkit>, Control<PolkitCommand>) {
+pub fn spawn(rt: &Handle, setup: Setup) -> (watch::Receiver<Polkit>, Control<PolkitCommand>) {
     let (tx, rx) = watch::channel(Polkit::default());
     let (control, commands) = Control::channel();
     rt.spawn(live::run(tx, commands, setup));

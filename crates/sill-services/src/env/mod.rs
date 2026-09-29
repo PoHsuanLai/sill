@@ -8,6 +8,7 @@ use std::sync::Arc;
 use crate::displays::ddc::file_bus::FileBus;
 use crate::displays::{DdcBus, I2cBuses};
 use crate::idle::IdleTimes;
+use crate::polkit_agent;
 
 mod buses;
 mod dirs;
@@ -35,6 +36,8 @@ pub struct Env {
     pub ddc: Arc<dyn DdcBus>,
     /// Where idle's screen-off and suspend times come from.
     pub idle_times: IdleTimesSource,
+    /// Where the polkit agent registers: polkitd's bus, polkit's helper, the session.
+    pub polkit: polkit_agent::Setup,
 }
 
 /// Where idle's screen-off and suspend times come from.
@@ -48,11 +51,13 @@ pub enum IdleTimesSource {
 }
 
 impl Env {
-    /// The process's own: its buses, its compositor, its directories, the system clock and the
-    /// kernel's i2c buses.
+    /// The process's own: its buses, its compositor, its directories, the system clock, the
+    /// kernel's i2c buses and polkitd on the system bus.
     pub fn from_process() -> Env {
+        let buses = Buses::from_process();
         Env {
-            buses: Buses::from_process(),
+            polkit: polkit_agent::Setup::system(buses.system.clone()),
+            buses,
             wayland: WaylandRoute::Environment,
             dirs: Dirs::from_process(),
             clock: Arc::new(SystemClock),
@@ -62,8 +67,8 @@ impl Env {
     }
 
     /// Nothing outside the process: no bus, a compositor socket in `scratch` that does not
-    /// exist, every directory inside `scratch`, the system clock (read only) and DDC monitors
-    /// from a file that is not there (none). For tests that start services and must never
+    /// exist, every directory inside `scratch`, the system clock (read only), DDC monitors from
+    /// a file that is not there (none), and no polkit helper. For tests that start services and must never
     /// reach the person's session or files. `scratch` must exist: the wallpaper service watches
     /// the nearest existing folder above COSMIC's record.
     pub fn isolated(scratch: &Path) -> Env {
@@ -74,6 +79,11 @@ impl Env {
             clock: Arc::new(SystemClock),
             ddc: Arc::new(FileBus::new(scratch.join("no-ddc-monitors.json"))),
             idle_times: IdleTimesSource::Settings,
+            polkit: polkit_agent::Setup {
+                bus: Bus::system(BusRoute::Absent),
+                helper: polkit_agent::HelperChoice::Use(polkit_agent::HelperRoute::Missing),
+                session: polkit_agent::SessionChoice::Id("sill-test".to_owned()),
+            },
         }
     }
 }

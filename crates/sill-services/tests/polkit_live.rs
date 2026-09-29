@@ -208,7 +208,7 @@ fn the_agent_registers_answers_fails_and_cancels_on_a_private_bus() {
             helper: HelperChoice::Use(HelperRoute::Setuid(helper)),
             session: SessionChoice::Id("c42".to_owned()),
         };
-        let (mut rx, control) = sill_services::polkit_agent::spawn_with(&rt_handle(), setup);
+        let (mut rx, control) = sill_services::polkit_agent::spawn(&rt_handle(), setup);
 
         // (1) Own registers for the session at AGENT_PATH.
         control
@@ -315,7 +315,7 @@ fn rt_handle() -> tokio::runtime::Handle {
 fn a_made_up_request_takes_the_fake_secret_and_nothing_else() {
     let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
     rt.block_on(async {
-        let (mut rx, control) = sill_services::polkit_agent::spawn_with(
+        let (mut rx, control) = sill_services::polkit_agent::spawn(
             &rt_handle(),
             Setup {
                 bus: Bus::system(BusRoute::Address(
