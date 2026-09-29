@@ -10,7 +10,7 @@ pub mod workspaces;
 
 pub use caps::{WorkspaceCap, WorkspaceCaps};
 pub use command::{Relative, WlCommand};
-pub use ids::{Activity, Pinning, Urgency};
+pub use ids::{Activity, Pinning};
 pub use model::CosmicWl;
 pub use toplevels::{Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState};
 pub use workspaces::{Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces};

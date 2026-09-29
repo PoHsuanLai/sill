@@ -2,8 +2,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{Activity, Pinning, Urgency, WorkspaceCaps};
+use super::{Activity, Pinning, WorkspaceCaps};
 use crate::ids::{GroupKey, OutputName, WorkspaceKey};
+use crate::units::Urgency;
 use crate::units::Visibility;
 
 /// Every workspace group and its workspaces, in the compositor's order.
@@ -111,9 +112,10 @@ impl Workspaces {
 #[cfg(test)]
 mod tests {
     use super::{Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces, step};
-    use crate::cosmic_wl::{Activity, Pinning, Urgency};
+    use crate::cosmic_wl::{Activity, Pinning};
     use crate::cosmic_wl::{WorkspaceCap, WorkspaceCaps};
     use crate::ids::{GroupKey, OutputName, WorkspaceKey};
+    use crate::units::Urgency;
     use crate::units::Visibility;
 
     fn ws(key: u64, activity: Activity) -> Workspace {

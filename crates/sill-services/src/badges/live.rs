@@ -17,7 +17,7 @@ use super::model::{BadgeEvent, BadgeProp, Badges, parse_app_uri, step};
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next;
-use sill_model::cosmic_wl::Urgency;
+use sill_model::units::Urgency;
 use sill_model::units::{Permille, Visibility};
 
 const INTERFACE: &str = "com.canonical.Unity.LauncherEntry";
@@ -238,7 +238,7 @@ mod tests {
                     BadgeProp::CountVisibility(Visibility::Shown),
                     BadgeProp::Progress(Permille(500)),
                     BadgeProp::ProgressVisibility(Visibility::Shown),
-                    BadgeProp::Urgency(sill_model::cosmic_wl::Urgency::Urgent),
+                    BadgeProp::Urgency(sill_model::units::Urgency::Urgent),
                 ],
             },
             Case {
@@ -260,7 +260,7 @@ mod tests {
                     ("count", Value::from("not a number")),
                     ("urgent", Value::from(true)),
                 ]),
-                want: vec![BadgeProp::Urgency(sill_model::cosmic_wl::Urgency::Urgent)],
+                want: vec![BadgeProp::Urgency(sill_model::units::Urgency::Urgent)],
             },
             Case {
                 name: "a bool where a double is expected is dropped",

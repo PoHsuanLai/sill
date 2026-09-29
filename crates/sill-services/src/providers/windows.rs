@@ -217,7 +217,7 @@ mod tests {
             name: name.to_owned(),
             stable_id: String::new(),
             activity: sill_model::cosmic_wl::Activity::Inactive,
-            urgency: sill_model::cosmic_wl::Urgency::Calm,
+            urgency: sill_model::units::Urgency::Calm,
             visibility: sill_model::units::Visibility::Shown,
             coordinates: Vec::new(),
             capabilities: Default::default(),

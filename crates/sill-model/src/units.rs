@@ -98,3 +98,12 @@ pub enum Availability {
     Enabled,
     Disabled,
 }
+
+/// Whether something wants attention: a workspace, an app badge.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Urgency {
+    Urgent,
+    #[default]
+    Calm,
+}

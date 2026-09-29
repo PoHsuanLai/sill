@@ -9,7 +9,8 @@ use cosmic_client_toolkit::toplevel_info::ToplevelInfo;
 use cosmic_client_toolkit::wayland_protocols::ext::workspace::v1::client::ext_workspace_handle_v1::{State as WorkspaceFlags, WorkspaceCapabilities as Abilities};
 use cosmic_client_toolkit::workspace::Workspace as WorkspaceInfo;
 use sill_launcher::WindowKey;
-use sill_model::cosmic_wl::{WorkspaceCap, WorkspaceCaps, Activity, Pinning, Urgency};
+use sill_model::cosmic_wl::{WorkspaceCap, WorkspaceCaps, Activity, Pinning};
+use sill_model::units::Urgency;
 use sill_model::cosmic_wl::toplevels::{Sizing, Toplevel, WindowState};
 use sill_model::cosmic_wl::workspaces::Workspace;
 use sill_model::ids::{OutputName, WorkspaceKey};
@@ -144,7 +145,8 @@ mod tests {
     };
     use sill_model::cosmic_wl::WorkspaceCap;
     use sill_model::cosmic_wl::toplevels::{Sizing, WindowState};
-    use sill_model::cosmic_wl::{Activity, Pinning, Urgency};
+    use sill_model::cosmic_wl::{Activity, Pinning};
+    use sill_model::units::Urgency;
     use sill_model::units::Visibility;
 
     fn flags(of: &[WindowFlag]) -> HashSet<WindowFlag> {
