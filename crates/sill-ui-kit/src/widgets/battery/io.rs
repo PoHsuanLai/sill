@@ -1,34 +1,29 @@
-//! The Batteries widget on quire's card, fed from the services.
-
-use dioxus::prelude::*;
-use ds::WidgetCard;
-use sill_services::{BatteryService, BluetoothService};
+//! The Batteries widget's feed, from the services.
 
 use super::provider::{battery_entry, battery_rows, machine_name};
 use crate::hooks::use_service;
-use crate::widgets::{Place, WidgetKind, use_widget_wake, widget_element_id};
+use crate::widgets::{Feed, WidgetKind, WidgetProvider};
+use dioxus::prelude::*;
+use sill_services::{BatteryService, BluetoothService};
 
-/// The batteries on quire's card: a new entry each time a level changes.
-#[component]
-pub fn BatteryCard(place: Place) -> Element {
-    let battery = use_service::<BatteryService>()();
-    let bluetooth = use_service::<BluetoothService>()();
-    let machine = use_hook(|| {
-        let host = std::fs::read_to_string("/proc/sys/kernel/hostname").unwrap_or_default();
-        machine_name(&host)
-    });
-    let entry = battery_entry(&battery_rows(&battery, &bluetooth, &machine));
-    rsx! {
-        WidgetCard {
-            widget: ds::BatteryWidget,
-            timeline: ds::Timeline::now(entry),
-            size: place.size,
-            host: place.host,
-            wake: use_widget_wake(),
-            id: widget_element_id(WidgetKind::Battery),
-            lift: place.lift,
-            presence: place.presence,
-            on_gone: place.on_gone,
+/// The batteries: a new entry each time a level changes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BatteryProvider;
+
+impl WidgetProvider for BatteryProvider {
+    type W = ds::BatteryWidget;
+    const KIND: WidgetKind = WidgetKind::Battery;
+
+    fn use_feed() -> Feed<ds::BatteryWidget> {
+        let battery = use_service::<BatteryService>()();
+        let bluetooth = use_service::<BluetoothService>()();
+        let machine = use_hook(|| {
+            let host = std::fs::read_to_string("/proc/sys/kernel/hostname").unwrap_or_default();
+            machine_name(&host)
+        });
+        Feed {
+            entry: battery_entry(&battery_rows(&battery, &bluetooth, &machine)),
+            onintent: None,
         }
     }
 }

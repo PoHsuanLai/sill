@@ -9,4 +9,4 @@ mod io;
 mod shown;
 
 pub use grid::{DayMark, DayPlace, Eventful, GridDay, GridWeek, IsoWeek, Month, MonthGrid, Step};
-pub use io::CalendarCard;
+pub use io::CalendarProvider;

@@ -9,5 +9,5 @@ mod provider;
 #[cfg(test)]
 mod tests;
 
-pub use io::WorldClockCard;
+pub use io::WorldClockProvider;
 pub use provider::{ClockRow, ZoneName, clock_entry, clock_rows, parse_zones, phase_of};

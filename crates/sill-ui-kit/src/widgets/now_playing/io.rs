@@ -2,31 +2,27 @@
 //! control center's module reads the same one.
 
 use dioxus::prelude::*;
-use ds::WidgetCard;
 use sill_model::now_playing::{MediaCommand, PlayerId};
 use sill_services::NowPlayingService;
 
 use super::face::{MediaFace, Transport, media_face};
 use super::widget::NowPlaying;
 use crate::hooks::{use_control, use_service};
-use crate::widgets::{Place, WidgetKind, use_widget_wake, widget_element_id};
+use crate::widgets::{Feed, WidgetKind, WidgetProvider};
 
 /// The current player on quire's card; a press goes to that player.
-#[component]
-pub fn NowPlayingCard(place: Place) -> Element {
-    let (face, onintent) = use_media();
-    rsx! {
-        WidgetCard {
-            widget: NowPlaying,
-            timeline: ds::Timeline::now(face),
-            size: place.size,
-            host: place.host,
-            wake: use_widget_wake(),
-            id: widget_element_id(WidgetKind::NowPlaying),
-            onintent,
-            lift: place.lift,
-            presence: place.presence,
-            on_gone: place.on_gone,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct NowPlayingProvider;
+
+impl WidgetProvider for NowPlayingProvider {
+    type W = NowPlaying;
+    const KIND: WidgetKind = WidgetKind::NowPlaying;
+
+    fn use_feed() -> Feed<NowPlaying> {
+        let (entry, onintent) = use_media();
+        Feed {
+            entry,
+            onintent: Some(onintent),
         }
     }
 }

@@ -14,5 +14,5 @@ mod widget;
 pub const CSS: &str = include_str!("style.css");
 
 pub use face::{MediaFace, MediaView, TrackFace, TrackTimes, Transport, media_face, position_of};
-pub use io::{NowPlayingCard, use_media};
+pub use io::{NowPlayingProvider, use_media};
 pub use widget::NowPlaying;

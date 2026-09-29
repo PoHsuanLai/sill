@@ -28,7 +28,7 @@ pub mod world_clock;
 #[cfg(test)]
 mod tests;
 
-pub use card::Widget;
+pub use card::{Card, Feed, Widget, WidgetProvider, card};
 pub use ds::widget::cells;
 pub use ds::{CardPresence, Lift, WidgetHost, WidgetSize};
 pub use place::{Place, desktop_size, size_of};

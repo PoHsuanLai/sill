@@ -20,7 +20,7 @@ mod provider;
 mod tests;
 mod widget;
 
-pub use io::UpNextCard;
+pub use io::UpNextProvider;
 pub use provider::{
     EVENT_ROWS, EventLines, calendar_hue, event_lines, today_events, up_next_entry,
 };

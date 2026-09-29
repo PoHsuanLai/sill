@@ -10,5 +10,5 @@ mod provider;
 #[cfg(test)]
 mod tests;
 
-pub use io::BatteryCard;
+pub use io::BatteryProvider;
 pub use provider::{BatteryOwner, BatteryRow, battery_entry, battery_rows, cell_of, device_of};
