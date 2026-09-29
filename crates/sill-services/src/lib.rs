@@ -43,6 +43,7 @@ pub mod programs;
 pub mod providers;
 pub mod results;
 pub mod screenshots;
+pub mod service;
 pub mod services;
 pub mod session;
 mod stream;
@@ -122,6 +123,7 @@ pub use results::{
     reduce_results,
 };
 pub use screenshots::{Shot, ShotCommand, ShotId, ShotKind, ShotLeave, ShotPreview, Shots};
+pub use service::{Handle, Service, ServiceIo};
 pub use services::Services;
 pub use session::{Offer, Session, SessionAction, SessionCommand, SessionEvent, reduce_session};
 pub use switcher::{AppShown, SwitcherApp, switcher_apps};
