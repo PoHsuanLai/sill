@@ -403,15 +403,23 @@ Bluetooth, Focus, Display, Keyboard, Sound, Now Playing, Appearance, Battery.
 ### `WidgetProvider` (`sill_ui_kit::widgets`)
 
 ```rust
-pub trait WidgetProvider {
-    type W: ds_shell::Widget;
+pub trait WidgetProvider: Clone + PartialEq + 'static {
+    type W: ds::Widget;                       // a value: `ds::Widget: Default`
     const KIND: WidgetKind;
-    fn size(host: WidgetHost) -> WidgetSize;
-    fn use_entry(place: &Place) -> ReadSignal<<Self::W as ds_shell::Widget>::Entry>;
+    fn use_feed() -> Feed<Self::W>;           // reads the services; one hook, one shape
 }
-#[component] pub fn Card<P: WidgetProvider>(place: Place) -> Element;
+pub struct Feed<W: ds::Widget> {
+    pub entry: W::Entry,                                   // the entry now
+    pub onintent: Option<EventHandler<W::Intent>>,         // the card's controls; none without any
+}
+#[component] pub fn Card<P: WidgetProvider>(provider: P, place: Place) -> Element;  // quire's WidgetCard
 pub fn card(kind: WidgetKind, place: Place) -> Element;             // the only match on the kind
 ```
+
+The size is `size_of(kind, host)` (in `Place`), not the provider's. A provider is a unit struct
+(`CalendarProvider`), passed to `Card` only to name the type. Calendar's `use_feed` keeps the
+shown month in a signal and returns the `MonthIntent` handler; Now Playing's returns the
+`Transport` handler (`use_media`, shared with the control center).
 
 Implementors: calendar, up next, batteries, now playing, world clock.
 
@@ -518,8 +526,8 @@ Each ends with its tests. Name the concept once and use it in every file name be
 1. The `ds_shell::Widget` (quire's recipe), then a `WidgetKind` variant in
    `sill-settings/src/widgets.rs`.
 2. `sill-ui-kit/src/widgets/<kind>/{mod,provider,io,tests}.rs` (+ `style.css` if it has one):
-   `impl WidgetProvider` and `use_entry` over services.
-3. The one arm in `widgets/registry.rs::card`, and `WidgetKind::ALL` follows.
+   `impl WidgetProvider` (`use_feed` over services) on a unit struct in `io.rs`.
+3. The one arm in `widgets/card.rs::card`, and `WidgetKind::ALL` follows.
 4. Tests: entry table in `tests.rs`; a row in `sill-widgets-ui/tests/desktop.rs` and in
    `sill-notify-ui/tests/center.rs` render loops (both hosts).
 
