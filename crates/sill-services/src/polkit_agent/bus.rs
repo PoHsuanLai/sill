@@ -9,7 +9,7 @@ use zbus::Connection;
 use zbus::zvariant::{OwnedValue, Value};
 
 use super::dbus::{AGENT_PATH, Agent, AuthorityProxy, Call};
-use super::{SessionChoice, Setup};
+use super::{PolkitRoute, SessionChoice};
 use crate::env::Bus;
 
 /// A polkit subject: `(kind, details)`.
@@ -33,7 +33,7 @@ pub(super) enum BusTrouble {
 
 /// Connect per `setup`, serve the agent object handing calls to `calls`, and find the subject.
 pub(super) async fn connect(
-    setup: &Setup,
+    setup: &PolkitRoute,
     calls: mpsc::UnboundedSender<Call>,
 ) -> Result<BusLink, BusTrouble> {
     let connection = open(&setup.bus).await.ok_or(BusTrouble::NoBus)?;

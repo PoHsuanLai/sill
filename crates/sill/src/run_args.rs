@@ -121,7 +121,7 @@ impl DebugSeams {
             None => env.idle_times,
         };
         let polkit = match &self.polkit_bus {
-            Some(address) => polkit_agent::Setup {
+            Some(address) => polkit_agent::PolkitRoute {
                 bus: Bus::system(BusRoute::Address(address.clone())),
                 helper: HelperChoice::Use(
                     self.polkit_helper
@@ -184,7 +184,7 @@ mod tests {
     #[test]
     fn a_polkit_bus_brings_a_stand_in_helper_or_none() {
         use sill_services::env::{Bus, BusRoute};
-        use sill_services::polkit_agent::{HelperChoice, HelperRoute, SessionChoice, Setup};
+        use sill_services::polkit_agent::{HelperChoice, HelperRoute, PolkitRoute, SessionChoice};
 
         let setup = |args: &[&str]| {
             let cli = Cli::try_parse_from([&["sill", "run"], args].concat())
@@ -196,10 +196,10 @@ mod tests {
         };
         let bus = || Bus::system(BusRoute::Address("unix:path=/tmp/b".to_owned()));
         let cases = [
-            (vec![], Setup::system(Bus::system(BusRoute::Usual))),
+            (vec![], PolkitRoute::system(Bus::system(BusRoute::Usual))),
             (
                 vec!["--polkit-bus", "unix:path=/tmp/b"],
-                Setup {
+                PolkitRoute {
                     bus: bus(),
                     helper: HelperChoice::Use(HelperRoute::Missing),
                     session: SessionChoice::Id("sill-test".to_owned()),
@@ -214,7 +214,7 @@ mod tests {
                     "--polkit-session",
                     "c7",
                 ],
-                Setup {
+                PolkitRoute {
                     bus: bus(),
                     helper: HelperChoice::Use(HelperRoute::Setuid("/x/helper".into())),
                     session: SessionChoice::Id("c7".to_owned()),

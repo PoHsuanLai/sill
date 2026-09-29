@@ -1,5 +1,5 @@
 use super::{
-    Completion, MAX_TRIES, Origin, PolkitEffect, PolkitEvent, PolkitState, polkit_of, reduce,
+    Completion, MAX_TRIES, Origin, PolkitEffect, PolkitEvent, PolkitState, polkit_of, step,
 };
 use crate::auth::{PamNote, UserName};
 use crate::polkit_agent::helper::HelperLine;
@@ -71,7 +71,7 @@ fn run(start: PolkitState, events: Vec<PolkitEvent>) -> (PolkitState, Vec<Polkit
     events
         .into_iter()
         .fold((start, Vec::new()), |(state, mut all), event| {
-            let (state, effects) = reduce(state, event);
+            let (state, effects) = step(state, event);
             all.extend(effects);
             (state, all)
         })

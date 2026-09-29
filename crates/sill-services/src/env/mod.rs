@@ -42,7 +42,7 @@ pub struct Env {
     /// Where idle's screen-off and suspend times come from.
     pub idle_times: IdleTimesSource,
     /// Where the polkit agent registers: polkitd's bus, polkit's helper, the session.
-    pub polkit: polkit_agent::Setup,
+    pub polkit: polkit_agent::PolkitRoute,
     /// Where the session's actions go: logind, or a dry run's record.
     pub session_actions: Arc<dyn SessionActions>,
     /// What checks the lock screen's password: PAM through `sill auth-check`, or a stand-in.
@@ -66,7 +66,7 @@ impl Env {
     pub fn from_process() -> Env {
         let buses = Buses::from_process();
         Env {
-            polkit: polkit_agent::Setup::system(buses.system.clone()),
+            polkit: polkit_agent::PolkitRoute::system(buses.system.clone()),
             buses,
             wayland: WaylandRoute::Environment,
             dirs: Dirs::from_process(),
@@ -92,7 +92,7 @@ impl Env {
             clock: Arc::new(SystemClock),
             ddc: Arc::new(FileBus::new(scratch.join("no-ddc-monitors.json"))),
             idle_times: IdleTimesSource::Settings,
-            polkit: polkit_agent::Setup {
+            polkit: polkit_agent::PolkitRoute {
                 bus: Bus::system(BusRoute::Absent),
                 helper: polkit_agent::HelperChoice::Use(polkit_agent::HelperRoute::Missing),
                 session: polkit_agent::SessionChoice::Id("sill-test".to_owned()),

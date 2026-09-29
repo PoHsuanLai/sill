@@ -2,7 +2,7 @@
 //! the request on screen, and how each request completes. The live side performs the
 //! [`PolkitEffect`]s and feeds back what happened.
 //!
-//! Rules ([`reduce`] follows these; `machine_tests.rs` is their table):
+//! Rules ([`step`] follows these; `machine_tests.rs` is their table):
 //!
 //! - `Policy(Own)` while not registered: `Register`. `Policy(Off)` while registered:
 //!   `Unregister`, every request completes `Cancelled`, registration `Passive`.
@@ -111,7 +111,7 @@ pub enum PolkitEffect {
 }
 
 /// `state` after `event`.
-pub fn reduce(state: PolkitState, event: PolkitEvent) -> (PolkitState, Vec<PolkitEffect>) {
+pub fn step(state: PolkitState, event: PolkitEvent) -> (PolkitState, Vec<PolkitEffect>) {
     match event {
         PolkitEvent::Policy(policy) => on_policy(state, policy),
         PolkitEvent::Registered => on_registered(state),

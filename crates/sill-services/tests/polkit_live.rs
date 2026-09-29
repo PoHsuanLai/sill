@@ -8,19 +8,22 @@
 mod private_bus;
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use private_bus::PrivateBus;
 use sill_services::auth::Secret;
-use sill_services::env::{Bus, BusRoute};
+use sill_services::control::Control;
+use sill_services::env::{Bus, BusRoute, Env};
 use sill_services::polkit_agent::machine::MAX_TRIES;
 use sill_services::polkit_agent::{
     AGENT_PATH, ActionId, Cookie, FAKE_SECRET, FakeRequest, HelperChoice, HelperRoute, LastTry,
-    Polkit, PolkitCommand, PromptPhase, Registration, SessionChoice, Setup,
+    Polkit, PolkitAgentService, PolkitCommand, PolkitRoute, PromptPhase, Registration,
+    SessionChoice,
 };
+use sill_services::service::spawn;
 use tokio::sync::{mpsc, watch};
 use zbus::message::Header;
 use zbus::zvariant::{OwnedValue, Value};
@@ -203,12 +206,11 @@ fn the_agent_registers_answers_fails_and_cancels_on_a_private_bus() {
             .build()
             .await
             .unwrap_or_else(|e| panic!("{e}"));
-        let setup = Setup {
+        let (mut rx, control) = start(PolkitRoute {
             bus: Bus::system(BusRoute::Address(bus.address.clone())),
             helper: HelperChoice::Use(HelperRoute::Setuid(helper)),
             session: SessionChoice::Id("c42".to_owned()),
-        };
-        let (mut rx, control) = sill_services::polkit_agent::spawn(&rt_handle(), setup);
+        });
 
         // (1) Own registers for the session at AGENT_PATH.
         control
@@ -307,24 +309,27 @@ fn the_agent_registers_answers_fails_and_cancels_on_a_private_bus() {
     });
 }
 
-fn rt_handle() -> tokio::runtime::Handle {
-    tokio::runtime::Handle::current()
+/// The agent registering where `route` says, on the current runtime; nothing else reached.
+fn start(route: PolkitRoute) -> (watch::Receiver<Polkit>, Control<PolkitCommand>) {
+    let env = Env {
+        polkit: route,
+        ..Env::isolated(Path::new("/nonexistent/sill-polkit-live"))
+    };
+    let agent = spawn::<PolkitAgentService>(&tokio::runtime::Handle::current(), &env, ());
+    (agent.state, agent.control)
 }
 
 #[test]
 fn a_made_up_request_takes_the_fake_secret_and_nothing_else() {
     let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
     rt.block_on(async {
-        let (mut rx, control) = sill_services::polkit_agent::spawn(
-            &rt_handle(),
-            Setup {
-                bus: Bus::system(BusRoute::Address(
-                    "unix:path=/nonexistent/sill-test".to_owned(),
-                )),
-                helper: HelperChoice::Use(HelperRoute::Missing),
-                session: SessionChoice::Id("never".to_owned()),
-            },
-        );
+        let (mut rx, control) = start(PolkitRoute {
+            bus: Bus::system(BusRoute::Address(
+                "unix:path=/nonexistent/sill-test".to_owned(),
+            )),
+            helper: HelperChoice::Use(HelperRoute::Missing),
+            session: SessionChoice::Id("never".to_owned()),
+        });
         control
             .send(PolkitCommand::Fake(FakeRequest {
                 action_id: ActionId("org.sill.debug".to_owned()),

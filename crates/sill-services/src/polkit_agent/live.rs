@@ -25,17 +25,15 @@ use super::bus::{self, BusLink, BusTrouble};
 use super::dbus::Call;
 use super::helper::{HelperRoute, helper_route};
 use super::identity::{name_in_passwd, pick_identity};
-use super::machine::{
-    Completion, Origin, PolkitEffect, PolkitEvent, PolkitState, polkit_of, reduce,
-};
+use super::machine::{Completion, Origin, PolkitEffect, PolkitEvent, PolkitState, polkit_of, step};
 use super::run::{self, Driver, Run, RunEvent, RunId, RunSaid};
 use super::types::{AuthRequest, Cookie, FakeRequest, Identity, Polkit, PolkitCommand, Uid};
-use super::{HelperChoice, Setup};
+use super::{HelperChoice, PolkitRoute};
 
 pub(super) async fn run(
     tx: watch::Sender<Polkit>,
     mut commands: mpsc::UnboundedReceiver<PolkitCommand>,
-    setup: Setup,
+    setup: PolkitRoute,
 ) {
     let (calls_tx, mut calls) = mpsc::unbounded_channel();
     let (events_tx, mut events) = mpsc::unbounded_channel();
@@ -65,7 +63,7 @@ struct Own {
 struct Live {
     state: PolkitState,
     tx: watch::Sender<Polkit>,
-    setup: Setup,
+    setup: PolkitRoute,
     own: Own,
     route: Option<HelperRoute>,
     bus: Option<BusLink>,
@@ -79,7 +77,7 @@ struct Live {
 impl Live {
     fn new(
         tx: watch::Sender<Polkit>,
-        setup: Setup,
+        setup: PolkitRoute,
         calls: mpsc::UnboundedSender<Call>,
         events: mpsc::UnboundedSender<RunEvent>,
     ) -> Live {
@@ -172,7 +170,7 @@ impl Live {
     async fn feed(&mut self, first: PolkitEvent, mut held: Option<Secret>) {
         let mut pending = VecDeque::from([first]);
         while let Some(event) = pending.pop_front() {
-            let (state, effects) = reduce(std::mem::take(&mut self.state), event);
+            let (state, effects) = step(std::mem::take(&mut self.state), event);
             self.state = state;
             for effect in effects {
                 pending.extend(self.perform(effect, &mut held).await);

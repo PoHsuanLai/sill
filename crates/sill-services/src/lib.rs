@@ -115,7 +115,7 @@ pub use now_playing::{
     NowPlayingService, Playback, PlayerId, Timeline, Track, art_cache_name, art_source,
 };
 pub use pins::{DockPins, PinAt, PinEvent, PinsService};
-pub use polkit_agent::{Polkit, PolkitCommand};
+pub use polkit_agent::{Polkit, PolkitAgentService, PolkitCommand};
 pub use power_profile::{
     PowerProfileService, PowerProfiles, Profile, ProfileCommand, ProfileDegraded, ProfileEvent,
 };

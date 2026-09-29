@@ -24,7 +24,7 @@
 //!
 //! **Passive until the daemon's first [`PolkitCommand::Policy`]**: `Services::spawn` in a test
 //! never touches the system bus; every live test runs on a private bus with a stand-in
-//! Authority and a stand-in helper ([`Setup`]), never polkitd.
+//! Authority and a stand-in helper ([`PolkitRoute`]), never polkitd.
 
 mod bus;
 mod dbus;
@@ -38,17 +38,16 @@ mod types;
 pub use dbus::{AGENT_PATH, AUTHORITY_NAME, AUTHORITY_PATH};
 pub use helper::{HelperLine, HelperOpening, HelperRoute, opening, parse_helper_line};
 pub use identity::pick_identity;
-pub use machine::{Completion, Origin, PolkitEffect, PolkitEvent, PolkitState, polkit_of, reduce};
+pub use machine::{Completion, Origin, PolkitEffect, PolkitEvent, PolkitState, polkit_of, step};
 pub use types::{
     ActionId, AgentPolicy, AuthRequest, Cookie, Echo, FAKE_SECRET, FakeRequest, Gid, Identity,
     LastTry, Polkit, PolkitCommand, PromptPhase, PromptView, Registration, Uid,
 };
 
-use tokio::runtime::Handle;
-use tokio::sync::watch;
-
-use crate::control::Control;
 use crate::env::Bus;
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
 /// How to reach polkit's helper.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -70,17 +69,17 @@ pub enum SessionChoice {
 
 /// Where the agent lives.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Setup {
+pub struct PolkitRoute {
     /// polkitd's bus: the system bus, or a private one with a stand-in Authority (tests).
     pub bus: Bus,
     pub helper: HelperChoice,
     pub session: SessionChoice,
 }
 
-impl Setup {
+impl PolkitRoute {
     /// The daemon's: polkitd on `system`, polkit's helper, this session.
-    pub fn system(system: Bus) -> Setup {
-        Setup {
+    pub fn system(system: Bus) -> PolkitRoute {
+        PolkitRoute {
             bus: system,
             helper: HelperChoice::System,
             session: SessionChoice::Ours,
@@ -88,11 +87,26 @@ impl Setup {
     }
 }
 
-/// Start the agent service on `rt` against `setup` (the daemon's: [`Setup::system`]); passive
-/// until a `Policy(Own)`.
-pub fn spawn(rt: &Handle, setup: Setup) -> (watch::Receiver<Polkit>, Control<PolkitCommand>) {
-    let (tx, rx) = watch::channel(Polkit::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands, setup));
-    (rx, control)
+/// sill's polkit agent as a [`Service`], registering where `env`'s [`PolkitRoute`] says (the
+/// daemon's: [`PolkitRoute::system`]); passive until a `Policy(Own)`.
+#[derive(Debug)]
+pub enum PolkitAgentService {}
+
+impl Service for PolkitAgentService {
+    const NAME: &'static str = "polkit_agent";
+    type State = Polkit;
+    type Command = PolkitCommand;
+    type Deps = ();
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let route = env.polkit.clone();
+        async move {
+            live::run(io.state, io.commands, route).await;
+            Ok(())
+        }
+    }
 }
