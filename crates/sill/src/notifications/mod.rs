@@ -92,10 +92,10 @@ pub fn dispatch(
         (NotificationsRequest::DismissAll, _, _) => {
             send(services, NotificationsCommand::DismissAll)
         }
-        (NotificationsRequest::Status, _, _) => Response::Notifications(report_of(
-            &services.notifications.borrow(),
-            &services.notification_history.borrow(),
-        )),
+        (NotificationsRequest::Status, _, _) => {
+            let notes = services.notifications.borrow();
+            Response::Notifications(report_of(&notes.live, &notes.history))
+        }
         (NotificationsRequest::Close, Some(center), _) => {
             center.close();
             Response::Done

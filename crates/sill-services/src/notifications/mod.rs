@@ -18,8 +18,9 @@
 //! ([`NotificationsCommand::Post`]), through the same reducer, so the banners and the center can
 //! be accepted without a bus (and on a machine whose session already has a notification daemon).
 //!
-//! The shape is every service's: [`spawn`] returns the receivers and a control, and
-//! [`reduce_notifications`] is the only place the state changes.
+//! The shape is every service's: [`NotificationsService`] publishes [`NotesState`] (the live
+//! banners and name holder, and the history: one server's state, stepped together), and [`step`]
+//! is the only place it changes.
 
 mod capabilities;
 mod content;
@@ -49,20 +50,16 @@ pub use policy::{
     Chime, HistoryCap, NotificationsPolicy, Presentation, Presented, Quiet, Swipe, chime, presented,
 };
 pub use reduce::{
-    Clear, CloseReason, NotesState, NotificationsEffect, NotificationsEvent, assign_id,
-    reduce_notifications,
+    Clear, CloseReason, NotesState, NotificationsEffect, NotificationsEvent, assign_id, step,
 };
 pub use state::{
     AppGroup, BannerLife, History, LiveBanner, NameHolder, NameOwner, Notifications, ServerMode,
     ServerStatus,
 };
 
-use std::path::PathBuf;
-
-use tokio::runtime::Handle;
-use tokio::sync::watch;
-
-use crate::control::Control;
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
 /// What the notifications service can be told: by the daemon (the policy, a debug post), by the
 /// banners and the center (the person's actions), and by `sill notifications`.
@@ -91,49 +88,29 @@ pub enum NotificationsCommand {
     ClearHistory(Clear),
 }
 
-/// Where the history is kept.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum HistoryPlace {
-    /// This file: the daemon's is [`history_file::path_in`] of the state directory.
-    At(PathBuf),
-    /// Nowhere: nothing read, nothing written.
-    NotKept,
-}
+/// The notifications server as a [`Service`]: on `env`'s session bus with its clock, the
+/// history in its state directory ([`history_file::path_in`]). Passive until the daemon's first
+/// policy (module doc).
+#[derive(Debug)]
+pub enum NotificationsService {}
 
-/// How the service is started.
-#[derive(Debug, Clone)]
-pub struct Setup {
-    /// The session bus the server speaks on (a private `dbus-daemon` in every test).
-    pub bus: crate::env::Bus,
-    pub history: HistoryPlace,
-    /// What stamps a posting's arrival.
-    pub clock: std::sync::Arc<dyn crate::env::WallClock>,
-}
+impl Service for NotificationsService {
+    const NAME: &'static str = "notifications";
+    type State = NotesState;
+    type Command = NotificationsCommand;
+    type Deps = ();
 
-impl Setup {
-    /// On `env`'s session bus with its clock, the history in its state directory.
-    pub fn of(env: &crate::env::Env) -> Setup {
-        Setup {
-            bus: env.buses.session.clone(),
-            history: HistoryPlace::At(history_file::path_in(&env.dirs)),
-            clock: std::sync::Arc::clone(&env.clock),
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let bus = env.buses.session.clone();
+        let file = history_file::path_in(&env.dirs);
+        let clock = std::sync::Arc::clone(&env.clock);
+        async move {
+            live::run(bus, file, clock, io.state, io.commands).await;
+            Ok(())
         }
     }
-}
-
-/// The service's two receivers and its control.
-pub type NotificationsHandles = (
-    watch::Receiver<Notifications>,
-    watch::Receiver<History>,
-    Control<NotificationsCommand>,
-);
-
-/// Start the service on `rt` as `setup` says. Passive until the daemon's first policy (module
-/// doc).
-pub fn spawn(rt: &Handle, setup: Setup) -> NotificationsHandles {
-    let (live_tx, live) = watch::channel(Notifications::default());
-    let (history_tx, history) = watch::channel(History::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(live::run(setup, live_tx, history_tx, commands));
-    (live, history, control)
 }

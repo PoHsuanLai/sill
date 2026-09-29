@@ -35,8 +35,7 @@ pub struct Feeds {
     pub kbd_backlight: watch::Sender<sill_services::KbdBacklight>,
     pub kbd_commands: mpsc::UnboundedReceiver<sill_services::KbdCommand>,
     /// The live banners and the history (both empty until a test feeds them).
-    pub notifications: watch::Sender<sill_services::Notifications>,
-    pub notification_history: watch::Sender<sill_services::History>,
+    pub notifications: watch::Sender<sill_services::notifications::NotesState>,
     pub wl: mpsc::UnboundedReceiver<sill_services::WlCommand>,
     pub volume_commands: mpsc::UnboundedReceiver<sill_services::VolumeCommand>,
     pub launch: mpsc::UnboundedReceiver<sill_services::LaunchCommand>,
@@ -304,8 +303,8 @@ pub fn services() -> (Services, Feeds) {
     let (media_control, media_rx) = Control::channel();
     let (kbd_tx, kbd_backlight) = watch::channel(sill_services::KbdBacklight::default());
     let (kbd_backlight_control, kbd_rx) = Control::channel();
-    let (notifications_tx, notifications) = watch::channel(sill_services::Notifications::default());
-    let (history_tx, notification_history) = watch::channel(sill_services::History::default());
+    let (notifications_tx, notifications) =
+        watch::channel(sill_services::notifications::NotesState::default());
     let (notifications_control, notification_rx) = Control::channel();
     // A feed for the calendar widgets and one for the screenshot thumbnail.
     let (agenda_tx, agenda) = watch::channel(sill_services::Agenda::default());
@@ -357,7 +356,6 @@ pub fn services() -> (Services, Feeds) {
         lock: fixed(sill_services::Lock::default(), &mut keep),
         locker_control: control(&mut keep),
         notifications,
-        notification_history,
         notifications_control,
         agenda,
         events_control: control(&mut keep),
@@ -395,7 +393,6 @@ pub fn services() -> (Services, Feeds) {
         kbd_backlight: kbd_tx,
         kbd_commands: kbd_rx,
         notifications: notifications_tx,
-        notification_history: history_tx,
         wl: wl_rx,
         volume_commands: volume_rx,
         launch: launch_rx,

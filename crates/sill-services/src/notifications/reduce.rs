@@ -1,4 +1,4 @@
-//! The one place the service's state changes: [`reduce_notifications`], pure, with the D-Bus
+//! The one place the service's state changes: [`step`], pure, with the D-Bus
 //! signals, sounds and history writes it implies returned as [`NotificationsEffect`]s for the
 //! live loop to carry out (CONVENTIONS §0: an effect is returned, not performed).
 //!
@@ -159,7 +159,7 @@ pub fn assign_id(state: &NotesState, replaces: Option<NotificationId>) -> Notifi
 }
 
 /// `state` after `event` under `policy`, and what must happen because of it (module doc).
-pub fn reduce_notifications(
+pub fn step(
     state: NotesState,
     event: NotificationsEvent,
     policy: &NotificationsPolicy,

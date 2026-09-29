@@ -101,7 +101,7 @@ impl Running {
 /// The center on `file`'s settings over `history`, closed.
 pub fn start(file: ShellFile, history: History) -> Running {
     let (services, feeds) = fake::services();
-    feeds.notification_history.send_replace(history);
+    feeds.notifications.send_modify(|n| n.history = history);
     let link = CenterLink::new();
     WORLD.with(|w| {
         *w.borrow_mut() = Some(World {

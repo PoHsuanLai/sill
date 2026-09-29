@@ -1,10 +1,10 @@
-//! The live loop: connect to the bus `setup` names, follow
+//! The live loop: connect to the session bus it is given, follow
 //! who holds `org.freedesktop.Notifications`, own it only while the policy says `Own` (never
 //! replacing a holder: `AllowReplacement | DoNotQueue`, and ask again when the name falls
 //! free), serve [`super::dbus::Server`] while owned, load the history, and run every call and
-//! command through [`super::reduce_notifications`], carrying out its effects (signals,
+//! command through [`super::step`], carrying out its effects (signals,
 //! `history_file::save`; a `Sound` is dropped, as sill plays no sounds yet) and
-//! publishing both receivers.
+//! publishing the result.
 //!
 //! Nothing here may ever touch the real session bus from a test: tests pass
 //! `BusRoute::Address` of a private `dbus-daemon` (`tests/support/private_bus.rs`).
@@ -22,34 +22,35 @@ use super::name_watch::Bus;
 use super::policy::NotificationsPolicy;
 use super::reduce::{NotesState, NotificationsEffect, NotificationsEvent, assign_id};
 use super::rules;
-use super::state::{History, NameHolder, Notifications, ServerMode, ServerStatus};
-use super::{HistoryPlace, NotificationsCommand, Setup, reduce_notifications};
-use crate::env::WallClock;
+use super::state::{NameHolder, ServerMode, ServerStatus};
+use super::{NotificationsCommand, step};
+use crate::env::{Bus as BusRoute, WallClock};
 use crate::stream::next_opt;
 
 /// Run the service until every control is dropped.
 pub(super) async fn run(
-    setup: Setup,
-    live: watch::Sender<Notifications>,
-    history: watch::Sender<History>,
+    route: BusRoute,
+    file: PathBuf,
+    clock: Arc<dyn WallClock>,
+    published: watch::Sender<NotesState>,
     mut commands: mpsc::UnboundedReceiver<NotificationsCommand>,
 ) {
     let mut core = Core {
         state: NotesState::default(),
         policy: NotificationsPolicy::default(),
-        file: file_of(&setup.history),
-        live,
-        history,
-        clock: Arc::clone(&setup.clock),
+        file,
+        published,
+        clock,
     };
-    if let Some(path) = &core.file {
-        core.apply(NotificationsEvent::Loaded(history_file::load(path)), None)
-            .await;
-    }
+    core.apply(
+        NotificationsEvent::Loaded(history_file::load(&core.file)),
+        None,
+    )
+    .await;
     // Held for the whole run, so `calls` never closes (a closed channel would wake the select
     // forever) even when there is no bus.
     let (calls_tx, mut calls) = mpsc::unbounded_channel();
-    let (bus, mut owner_changes) = match Bus::connect(&setup.bus, calls_tx.clone()).await {
+    let (bus, mut owner_changes) = match Bus::connect(&route, calls_tx.clone()).await {
         Some((bus, changes)) => (Some(bus), changes),
         None => (None, None),
     };
@@ -72,21 +73,13 @@ pub(super) async fn run(
     drop(calls_tx);
 }
 
-/// The file the history lives in, if any.
-fn file_of(place: &HistoryPlace) -> Option<PathBuf> {
-    match place {
-        HistoryPlace::At(path) => Some(path.clone()),
-        HistoryPlace::NotKept => None,
-    }
-}
-
 /// The loop's state and where it publishes.
 struct Core {
     state: NotesState,
     policy: NotificationsPolicy,
-    file: Option<PathBuf>,
-    live: watch::Sender<Notifications>,
-    history: watch::Sender<History>,
+    /// Where the history is kept.
+    file: PathBuf,
+    published: watch::Sender<NotesState>,
     /// What stamps a posting's arrival.
     clock: Arc<dyn WallClock>,
 }
@@ -158,10 +151,9 @@ impl Core {
 
     async fn apply(&mut self, event: NotificationsEvent, bus: Option<&Bus>) {
         let state = std::mem::take(&mut self.state);
-        let (state, effects) = reduce_notifications(state, event, &self.policy);
+        let (state, effects) = step(state, event, &self.policy);
         self.state = state;
-        publish(&self.live, &self.state.live);
-        publish(&self.history, &self.state.history);
+        publish(&self.published, &self.state);
         for effect in effects {
             self.perform(effect, bus).await;
         }
@@ -195,10 +187,7 @@ impl Core {
     }
 
     fn save(&self) {
-        let Some(path) = &self.file else {
-            return;
-        };
-        if let Err(error) = history_file::save(path, &history_file::for_disk(&self.state)) {
+        if let Err(error) = history_file::save(&self.file, &history_file::for_disk(&self.state)) {
             eprintln!("sill: notifications: saving the history: {error}");
         }
     }

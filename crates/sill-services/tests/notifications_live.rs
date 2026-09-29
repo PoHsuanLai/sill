@@ -10,13 +10,16 @@ mod support;
 use std::collections::HashMap;
 use std::time::Duration;
 
-use sill_services::env::{Bus, BusRoute, SystemClock};
-use sill_services::notifications::{self, BUS_NAME, HistoryPlace, NotificationsHandles, Setup};
+use sill_services::control::Control;
+use sill_services::env::{BusRoute, Buses, Env};
+use sill_services::notifications::{self, BUS_NAME, NotesState, NotificationsService};
+use sill_services::service::spawn;
 use sill_services::{
-    ActionKey, Activation, ActivationToken, NameHolder, NotificationId, Notifications,
-    NotificationsCommand, NotificationsPolicy, ServerMode,
+    ActionKey, Activation, ActivationToken, NameHolder, NotificationId, NotificationsCommand,
+    NotificationsPolicy, ServerMode,
 };
 use support::private_bus::PrivateBus;
+use support::scratch::Scratch;
 use support::signals::{Heard, Signals};
 use tokio::sync::watch;
 use zbus::Message;
@@ -52,12 +55,18 @@ async fn owner(connection: &zbus::Connection) -> Option<String> {
     dbus.get_name_owner(name).await.ok().map(|o| o.to_string())
 }
 
-fn setup(bus: &PrivateBus) -> Setup {
-    Setup {
-        bus: Bus::session(BusRoute::Address(bus.address.clone())),
-        history: HistoryPlace::NotKept,
-        clock: std::sync::Arc::new(SystemClock),
-    }
+/// The service on `bus`, its history kept under `scratch`; nothing else reached.
+fn start(
+    runtime: &tokio::runtime::Runtime,
+    bus: &PrivateBus,
+    scratch: &Scratch,
+) -> (watch::Receiver<NotesState>, Control<NotificationsCommand>) {
+    let env = Env {
+        buses: Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone())),
+        ..Env::isolated(scratch.path())
+    };
+    let service = spawn::<NotificationsService>(runtime.handle(), &env, ());
+    (service.state, service.control)
 }
 
 fn own() -> NotificationsPolicy {
@@ -96,11 +105,12 @@ fn the_private_bus_starts_empty_and_activates_nothing() {
 fn a_passive_service_never_asks_for_the_name_but_reports_its_holder() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
     let bus = PrivateBus::start();
-    let (mut live, _history, control) = notifications::spawn(runtime.handle(), setup(&bus));
-    let seen = runtime.block_on(wait_for(&mut live, SETTLE, |n: &Notifications| {
-        n.server.holder == NameHolder::Nobody
+    let scratch = Scratch::new("notes-passive");
+    let (mut notes, control) = start(&runtime, &bus, &scratch);
+    let seen = runtime.block_on(wait_for(&mut notes, SETTLE, |n: &NotesState| {
+        n.live.server.holder == NameHolder::Nobody
     }));
-    assert!(seen, "{:?}", live.borrow().server);
+    assert!(seen, "{:?}", notes.borrow().live.server);
     let _ = control.send(NotificationsCommand::Policy(NotificationsPolicy::default()));
     runtime.block_on(async {
         tokio::time::sleep(Duration::from_millis(500)).await;
@@ -117,12 +127,13 @@ fn a_passive_service_never_asks_for_the_name_but_reports_its_holder() {
 fn owning_serves_notify_and_close_with_their_signal() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
     let bus = PrivateBus::start();
-    let (mut live, _history, control) = notifications::spawn(runtime.handle(), setup(&bus));
+    let scratch = Scratch::new("notes-own");
+    let (mut notes, control) = start(&runtime, &bus, &scratch);
     control
         .send(NotificationsCommand::Policy(own()))
         .unwrap_or_else(|e| panic!("{e}"));
-    assert!(runtime.block_on(wait_for(&mut live, SETTLE, |n| {
-        n.server.holder == NameHolder::Sill
+    assert!(runtime.block_on(wait_for(&mut notes, SETTLE, |n| {
+        n.live.server.holder == NameHolder::Sill
     })));
     runtime.block_on(async {
         let connection = connect(&bus).await;
@@ -148,12 +159,12 @@ fn owning_serves_notify_and_close_with_their_signal() {
             .unwrap_or_else(|e| panic!("Notify: {e}"));
         let id: u32 = reply.body().deserialize().unwrap_or_else(|e| panic!("{e}"));
         assert_ne!(id, 0);
-        assert!(wait_for(&mut live, SETTLE, |n| n.banners.len() == 1).await);
+        assert!(wait_for(&mut notes, SETTLE, |n| n.live.banners.len() == 1).await);
         let mut signals = Signals::listen(&connection).await;
         call(&connection, "CloseNotification", &(id,))
             .await
             .unwrap_or_else(|e| panic!("CloseNotification: {e}"));
-        assert!(wait_for(&mut live, SETTLE, |n| n.banners.is_empty()).await);
+        assert!(wait_for(&mut notes, SETTLE, |n| n.live.banners.is_empty()).await);
         assert_eq!(
             signals.next(SETTLE).await,
             Some(Heard::Closed { id, reason: 3 })
@@ -191,24 +202,20 @@ async fn notify(connection: &zbus::Connection, app: &str, actions: Vec<&str>) ->
         .unwrap_or_else(|e| panic!("{e}"))
 }
 
-/// A service owning the name on `bus` with `history`.
+/// A service owning the name on `bus`, its history kept under `scratch`.
 fn owning(
     runtime: &tokio::runtime::Runtime,
     bus: &PrivateBus,
-    history: HistoryPlace,
-) -> NotificationsHandles {
-    let setup = Setup {
-        history,
-        ..setup(bus)
-    };
-    let (mut live, history, control) = notifications::spawn(runtime.handle(), setup);
+    scratch: &Scratch,
+) -> (watch::Receiver<NotesState>, Control<NotificationsCommand>) {
+    let (mut notes, control) = start(runtime, bus, scratch);
     control
         .send(NotificationsCommand::Policy(own()))
         .unwrap_or_else(|e| panic!("{e}"));
-    assert!(runtime.block_on(wait_for(&mut live, SETTLE, |n| {
-        n.server.holder == NameHolder::Sill
+    assert!(runtime.block_on(wait_for(&mut notes, SETTLE, |n| {
+        n.live.server.holder == NameHolder::Sill
     })));
-    (live, history, control)
+    (notes, control)
 }
 
 #[test]
@@ -216,7 +223,8 @@ fn owning(
 fn capabilities_and_server_information_answer_as_the_spec_says() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
     let bus = PrivateBus::start();
-    let _service = owning(&runtime, &bus, HistoryPlace::NotKept);
+    let scratch = Scratch::new("notes-capabilities");
+    let _service = owning(&runtime, &bus, &scratch);
     runtime.block_on(async {
         let connection = connect(&bus).await;
         let words: Vec<String> = call(&connection, "GetCapabilities", &())
@@ -242,12 +250,13 @@ fn capabilities_and_server_information_answer_as_the_spec_says() {
 fn an_action_is_invoked_then_closed_and_a_swipe_keeps_the_history() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
     let bus = PrivateBus::start();
-    let (mut live, mut history, control) = owning(&runtime, &bus, HistoryPlace::NotKept);
+    let scratch = Scratch::new("notes-action");
+    let (mut notes, control) = owning(&runtime, &bus, &scratch);
     runtime.block_on(async {
         let connection = connect(&bus).await;
         let mut signals = Signals::listen(&connection).await;
         let id = notify(&connection, "act", vec!["default", "Open"]).await;
-        assert!(wait_for(&mut live, SETTLE, |n| n.banners.len() == 1).await);
+        assert!(wait_for(&mut notes, SETTLE, |n| n.live.banners.len() == 1).await);
         let token = Activation::Token(ActivationToken("tok".to_owned()));
         control
             .send(NotificationsCommand::InvokeAction {
@@ -273,18 +282,19 @@ fn an_action_is_invoked_then_closed_and_a_swipe_keeps_the_history() {
         assert_eq!(heard, [Some(token), Some(action), Some(closed)]);
 
         let swiped = notify(&connection, "swipe", vec![]).await;
-        assert!(wait_for(&mut live, SETTLE, |n| n.banners.len() == 1).await);
+        assert!(wait_for(&mut notes, SETTLE, |n| n.live.banners.len() == 1).await);
         control
             .send(NotificationsCommand::SwipeAway(NotificationId(swiped)))
             .unwrap_or_else(|e| panic!("{e}"));
-        assert!(wait_for(&mut live, SETTLE, |n| n.banners.is_empty()).await);
+        assert!(wait_for(&mut notes, SETTLE, |n| n.live.banners.is_empty()).await);
         assert_eq!(
             signals.next(SETTLE).await,
             None,
             "a kept swipe tells the app nothing: the notification is still live in the center"
         );
         assert!(
-            wait_for(&mut history, SETTLE, |h| h
+            wait_for(&mut notes, SETTLE, |n| n
+                .history
                 .find(NotificationId(swiped))
                 .is_some())
             .await,
@@ -298,17 +308,15 @@ fn an_action_is_invoked_then_closed_and_a_swipe_keeps_the_history() {
 fn the_history_survives_a_restart() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
     let bus = PrivateBus::start();
-    let dir = std::env::temp_dir().join(format!("sill-notes-live-{}", std::process::id()));
-    let file = dir.join("notifications.json");
-    let _ = std::fs::remove_dir_all(&dir);
-    let (live, mut history, control) = owning(&runtime, &bus, HistoryPlace::At(file.clone()));
+    let scratch = Scratch::new("notes-restart");
+    let (mut notes, control) = owning(&runtime, &bus, &scratch);
     let first = runtime.block_on(async {
         let connection = connect(&bus).await;
         let id = notify(&connection, "keep", vec![]).await;
-        assert!(wait_for(&mut history, SETTLE, |h| h.len() == 1).await);
+        assert!(wait_for(&mut notes, SETTLE, |n| n.history.len() == 1).await);
         id
     });
-    drop((live, history, control));
+    drop((notes, control));
     // The first service gives the name back once its control is gone.
     runtime.block_on(async {
         let connection = connect(&bus).await;
@@ -320,14 +328,13 @@ fn the_history_survives_a_restart() {
         }
         assert_eq!(owner(&connection).await, None, "released on exit");
     });
-    let (_live, mut history, _control) = owning(&runtime, &bus, HistoryPlace::At(file));
-    assert!(runtime.block_on(wait_for(&mut history, SETTLE, |h| h.len() == 1)));
+    let (mut notes, _control) = owning(&runtime, &bus, &scratch);
+    assert!(runtime.block_on(wait_for(&mut notes, SETTLE, |n| n.history.len() == 1)));
     let next = runtime.block_on(async { notify(&connect(&bus).await, "keep", vec![]).await });
     assert!(
         next > first,
         "ids continue after a restart: {first} then {next}"
     );
-    let _ = std::fs::remove_dir_all(&dir);
 }
 
 #[test]
@@ -335,7 +342,8 @@ fn the_history_survives_a_restart() {
 fn notify_send_and_gdbus_reach_the_server() {
     let runtime = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));
     let bus = PrivateBus::start();
-    let (mut live, _history, _control) = owning(&runtime, &bus, HistoryPlace::NotKept);
+    let scratch = Scratch::new("notes-notify-send");
+    let (mut notes, _control) = owning(&runtime, &bus, &scratch);
     // Only the child's environment names the private bus; this process never uses it.
     let run = |program: &str, args: &[&str]| {
         let out = std::process::Command::new(program)
@@ -347,7 +355,7 @@ fn notify_send_and_gdbus_reach_the_server() {
         String::from_utf8_lossy(&out.stdout).trim().to_owned()
     };
     let id = run("notify-send", &["-p", "-a", "accept", "Hello"]);
-    assert!(runtime.block_on(wait_for(&mut live, SETTLE, |n| n.banners.len() == 1)));
+    assert!(runtime.block_on(wait_for(&mut notes, SETTLE, |n| n.live.banners.len() == 1)));
     let dest = ["call", "--session", "--dest", BUS_NAME];
     let path = ["--object-path", notifications::OBJECT_PATH];
     let info = run(
@@ -377,7 +385,7 @@ fn notify_send_and_gdbus_reach_the_server() {
         ]
         .concat(),
     );
-    assert!(runtime.block_on(wait_for(&mut live, SETTLE, |n| n.banners.is_empty())));
+    assert!(runtime.block_on(wait_for(&mut notes, SETTLE, |n| n.live.banners.is_empty())));
 }
 
 #[test]
@@ -393,13 +401,14 @@ fn another_holder_is_never_replaced_and_the_name_is_taken_when_free() {
             .unwrap_or_else(|e| panic!("{e}"));
         other
     });
-    let (mut live, _history, control) = notifications::spawn(runtime.handle(), setup(&bus));
+    let scratch = Scratch::new("notes-other-holder");
+    let (mut notes, control) = start(&runtime, &bus, &scratch);
     control
         .send(NotificationsCommand::Policy(own()))
         .unwrap_or_else(|e| panic!("{e}"));
     let pid = std::process::id();
-    assert!(runtime.block_on(wait_for(&mut live, SETTLE, |n| matches!(
-        &n.server.holder,
+    assert!(runtime.block_on(wait_for(&mut notes, SETTLE, |n| matches!(
+        &n.live.server.holder,
         NameHolder::Other(owner) if owner.pid == Some(pid)
     ))));
     runtime.block_on(async {
@@ -408,7 +417,7 @@ fn another_holder_is_never_replaced_and_the_name_is_taken_when_free() {
             .await
             .unwrap_or_else(|e| panic!("{e}"));
     });
-    assert!(runtime.block_on(wait_for(&mut live, SETTLE, |n| {
-        n.server.holder == NameHolder::Sill
+    assert!(runtime.block_on(wait_for(&mut notes, SETTLE, |n| {
+        n.live.server.holder == NameHolder::Sill
     })));
 }

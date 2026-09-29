@@ -58,9 +58,11 @@ impl Running {
     /// Publish `banners` (newest first) as the service would, taken at this instant (the next
     /// `advance` runs the woken column first).
     pub fn show(&mut self, banners: Vec<LiveBanner>) {
-        self.feeds.notifications.send_replace(Notifications {
-            banners,
-            ..Notifications::default()
+        self.feeds.notifications.send_modify(|n| {
+            n.live = Notifications {
+                banners,
+                ..Notifications::default()
+            }
         });
     }
 

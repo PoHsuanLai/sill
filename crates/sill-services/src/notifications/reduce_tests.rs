@@ -1,8 +1,7 @@
 //! Table tests for `reduce.rs` (its module doc is the rule list).
 
 use super::{
-    Clear, CloseReason, NotesState, NotificationsEffect, NotificationsEvent, assign_id,
-    reduce_notifications,
+    Clear, CloseReason, NotesState, NotificationsEffect, NotificationsEvent, assign_id, step,
 };
 use crate::notifications::content::{
     Action, AppRef, Expiry, Hints, IconRef, Notification, NotifyUrgency, Residency, SoundHint,
@@ -59,9 +58,9 @@ fn run(
     events: Vec<NotificationsEvent>,
     policy: &NotificationsPolicy,
 ) -> (NotesState, Vec<NotificationsEffect>) {
-    events.into_iter().fold((state, Vec::new()), |(s, _), e| {
-        reduce_notifications(s, e, policy)
-    })
+    events
+        .into_iter()
+        .fold((state, Vec::new()), |(s, _), e| step(s, e, policy))
 }
 
 /// The live banners' ids and each group's key and ids, in order.

@@ -239,28 +239,32 @@ fn the_footer_names_the_daemon_holding_the_name() {
         1,
         "passive until the daemon's policy"
     );
-    running.feeds.notifications.send_replace(Notifications {
-        server: ServerStatus {
-            mode: ServerMode::Own,
-            holder: NameHolder::Other(NameOwner {
-                unique: ":1.7".to_owned(),
-                pid: Some(7),
-                command: Some("plasmashell".to_owned()),
-            }),
-        },
-        banners: Vec::new(),
+    running.feeds.notifications.send_modify(|n| {
+        n.live = Notifications {
+            server: ServerStatus {
+                mode: ServerMode::Own,
+                holder: NameHolder::Other(NameOwner {
+                    unique: ":1.7".to_owned(),
+                    pid: Some(7),
+                    command: Some("plasmashell".to_owned()),
+                }),
+            },
+            banners: Vec::new(),
+        }
     });
     running.advance(40);
     assert_eq!(
         running.harness.text_of(".sill-nc-foot").as_deref(),
         Some("Notifications are shown by plasmashell")
     );
-    running.feeds.notifications.send_replace(Notifications {
-        server: ServerStatus {
-            mode: ServerMode::Own,
-            holder: NameHolder::Sill,
-        },
-        banners: Vec::new(),
+    running.feeds.notifications.send_modify(|n| {
+        n.live = Notifications {
+            server: ServerStatus {
+                mode: ServerMode::Own,
+                holder: NameHolder::Sill,
+            },
+            banners: Vec::new(),
+        }
     });
     running.advance(40);
     assert_eq!(running.harness.count(".sill-nc-foot"), 0);

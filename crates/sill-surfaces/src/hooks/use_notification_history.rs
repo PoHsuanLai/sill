@@ -1,6 +1,6 @@
 //! `use_notification_history`: every kept notification, grouped by app.
 
-use dioxus::prelude::ReadSignal;
+use dioxus::prelude::{ReadSignal, ReadableExt, use_memo};
 use shell_host::use_watch;
 use sill_services::History;
 
@@ -10,5 +10,6 @@ use super::use_services;
 /// draws. A separate receiver from [`super::use_notifications`], so a banner coming and going
 /// does not repaint a closed center.
 pub fn use_notification_history() -> ReadSignal<History> {
-    use_watch(use_services().notification_history)
+    let notes = use_watch(use_services().notifications);
+    ReadSignal::from(use_memo(move || notes.read().history.clone()))
 }

@@ -65,7 +65,10 @@ fn opening_rises_the_rows_once_then_rests() {
     assert_settles_to_zero_frames(&mut running.harness);
     assert_eq!(rows_in(&running.harness, "present"), 4);
     // A re-render (the same history again) replays nothing.
-    running.feeds.notification_history.send_replace(two_apps());
+    running
+        .feeds
+        .notifications
+        .send_modify(|n| n.history = two_apps());
     running.advance(40);
     assert_eq!(rows_in(&running.harness, "entering"), 0);
     assert_settles_to_zero_frames(&mut running.harness);
@@ -159,7 +162,10 @@ fn clear_folds_the_group_and_the_groups_below_heal() {
     // The service's one update: Mail's group is gone.
     let mut left = two_apps();
     left.groups.remove(0);
-    running.feeds.notification_history.send_replace(left);
+    running
+        .feeds
+        .notifications
+        .send_modify(|n| n.history = left);
     running.until(|h| rows_in(h, "leaving") == 2);
     let h = &running.harness;
     assert_eq!(rows(h), 4, "Mail's head and stack fold where they stood");
@@ -189,8 +195,8 @@ fn clear_all_folds_every_row_then_says_the_list_is_empty() {
     );
     running
         .feeds
-        .notification_history
-        .send_replace(History::default());
+        .notifications
+        .send_modify(|n| n.history = History::default());
     running.until(|h| rows_in(h, "leaving") == 4);
     let h = &running.harness;
     assert_eq!(h.count(".sill-nc-empty"), 0, "not under the folding rows");
@@ -219,7 +225,10 @@ fn a_clear_gives_the_column_the_keyboard_back() {
     running.harness.click(clear);
     let mut left = two_apps();
     left.groups.truncate(1);
-    running.feeds.notification_history.send_replace(left);
+    running
+        .feeds
+        .notifications
+        .send_modify(|n| n.history = left);
     running.until(|h| rows(h) == 2);
     assert_settles_to_zero_frames(&mut running.harness);
     assert!(
@@ -239,7 +248,10 @@ fn an_arrival_while_open_enters() {
             notes: vec![note(9, "CI", "Passed")],
         },
     );
-    running.feeds.notification_history.send_replace(more);
+    running
+        .feeds
+        .notifications
+        .send_modify(|n| n.history = more);
     running.until(|h| rows(h) == 6);
     let h = &running.harness;
     assert_eq!(h.attr(LIST, "data-presence").as_deref(), Some("present"));

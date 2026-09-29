@@ -24,7 +24,7 @@ use crate::launch::{LaunchCommand, Launches};
 use crate::locker::{Lock, LockerCommand};
 use crate::network::wifi::{Wifi, WifiCommand};
 use crate::network::{Network, NetworkCommand};
-use crate::notifications::{History, Notifications, NotificationsCommand};
+use crate::notifications::{NotesState, NotificationsCommand};
 use crate::now_playing::{Media, MediaCommand};
 use crate::pins::{DockPins, PinEvent};
 use crate::polkit_agent::{Polkit, PolkitCommand};
@@ -87,8 +87,7 @@ pub struct Services {
     pub lock: watch::Receiver<Lock>,
     pub locker_control: Control<LockerCommand>,
     /// The notifications server's live banners and name holder, and its history.
-    pub notifications: watch::Receiver<Notifications>,
-    pub notification_history: watch::Receiver<History>,
+    pub notifications: watch::Receiver<NotesState>,
     pub notifications_control: Control<NotificationsCommand>,
     /// Calendar events for the Calendar and Up Next widgets, and screenshots for the floating
     /// thumbnail. Both passive until the daemon configures them.
@@ -177,8 +176,9 @@ impl Services {
             locker_control.clone(),
         ));
         // Passive (never asks for the bus name) until the daemon sends its first policy.
-        let (notifications, notification_history, notifications_control) =
-            crate::notifications::spawn(rt, crate::notifications::Setup::of(env));
+        let (notifications, notifications_control) = parts(spawn::<
+            crate::notifications::NotificationsService,
+        >(rt, env, ()));
         let (agenda, events_control) = crate::events::spawn(rt, &env.dirs, Arc::clone(&env.clock));
         let (shots, shots_control) = crate::screenshots::spawn(rt, &env.dirs);
         let (auth, auth_control) = parts(spawn::<crate::auth::AuthService>(rt, env, ()));
@@ -241,7 +241,6 @@ impl Services {
             lock,
             locker_control,
             notifications,
-            notification_history,
             notifications_control,
             agenda,
             events_control,
@@ -291,7 +290,7 @@ mod tests {
         assert_eq!(*services.results.borrow(), Default::default());
         assert_eq!(*services.wallpapers.borrow(), Default::default());
         assert_eq!(
-            services.notifications.borrow().server.mode,
+            services.notifications.borrow().live.server.mode,
             crate::ServerMode::Passive,
             "passive until the daemon's policy"
         );
