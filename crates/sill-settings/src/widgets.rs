@@ -14,16 +14,7 @@ use serde::{Deserialize, Serialize};
 /// One widget. The same component draws it in the notification center and on the desktop. Weather
 /// is not a variant yet: it needs a weather source nothing provides; adding it later is additive.
 #[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-    ds::Word,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ds_settings::SettingsSchema,
 )]
 #[serde(rename_all = "snake_case")]
 pub enum WidgetKind {
@@ -37,6 +28,34 @@ pub enum WidgetKind {
     NowPlaying,
     /// The time in the zones `widgets.world_clocks` names.
     WorldClock,
+}
+
+impl WidgetKind {
+    /// Every kind and its kebab-case slug (the element id's suffix), in declaration order.
+    // TODO: becomes `derive(ds_core::Word)` once quire step 8 splits ds-core out of ds.
+    const TABLE: [(WidgetKind, &'static str); 5] = [
+        (WidgetKind::Calendar, "calendar"),
+        (WidgetKind::UpNext, "up-next"),
+        (WidgetKind::Battery, "battery"),
+        (WidgetKind::NowPlaying, "now-playing"),
+        (WidgetKind::WorldClock, "world-clock"),
+    ];
+
+    /// Every kind, in declaration order.
+    pub const ALL: [WidgetKind; 5] = {
+        let mut all = [WidgetKind::Calendar; 5];
+        let mut at = 0;
+        while at < 5 {
+            all[at] = Self::TABLE[at].0;
+            at += 1;
+        }
+        all
+    };
+
+    /// The kind's kebab-case slug.
+    pub const fn slug(self) -> &'static str {
+        Self::TABLE[self as usize].1
+    }
 }
 
 /// `widgets.desktop`: whether the desktop widget layer is shown.
@@ -131,7 +150,6 @@ impl Default for WidgetsSettings {
 #[cfg(test)]
 mod tests {
     use super::WidgetKind;
-    use ds::Word as _;
 
     #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
     struct Keys {
