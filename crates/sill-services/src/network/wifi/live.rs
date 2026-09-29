@@ -1,7 +1,7 @@
 //! NetworkManager's wireless side over the system bus: `WirelessEnabled` and
 //! `WirelessHardwareEnabled`, the wireless device's access points and `LastScan`, the saved
 //! connections' SSIDs, and the active access point; every change through
-//! [`super::reduce_wifi`]; [`WifiCommand`]s carried out.
+//! [`super::step`]; [`WifiCommand`]s carried out.
 //!
 //! Same crate and bus as [`crate::network::live`] (`cosmic_dbus_networkmanager`); the wireless
 //! device is found once by its `DeviceType` and kept for the life of the task (a device that
@@ -21,8 +21,9 @@ use zbus::Connection;
 use zbus::zvariant::{ObjectPath, OwnedObjectPath};
 
 use super::WifiCommand;
-use super::model::{AccessPoint, Association, Radio, Security, Ssid, Wifi, WifiEvent, reduce_wifi};
+use super::model::{AccessPoint, Association, Radio, Security, Ssid, Wifi, WifiEvent, step};
 use crate::env::Bus;
+use crate::error::ServiceError;
 use crate::stream::next;
 use crate::units::{Percent, Presence};
 
@@ -32,37 +33,23 @@ pub(super) async fn run(
     bus: Bus,
     tx: watch::Sender<Wifi>,
     mut commands: mpsc::UnboundedReceiver<WifiCommand>,
-) {
-    let Ok(Some(connection)) = bus.connect().await else {
-        return;
-    };
-    let Ok(nm) = NetworkManagerProxy::new(&connection).await else {
-        return;
-    };
-    let Ok(settings) = SettingsProxy::new(&connection).await else {
-        return;
-    };
+) -> Result<(), ServiceError> {
+    let connection = bus.connected().await?;
+    let nm = NetworkManagerProxy::new(&connection).await?;
+    let settings = SettingsProxy::new(&connection).await?;
     let Some(device_path) = find_wireless_device(&connection, &nm).await else {
-        return;
+        return Ok(());
     };
     let Some(wireless) = wireless_proxy(&connection, &device_path).await else {
-        return;
+        return Ok(());
     };
     let Some(device) = device_proxy(&connection, &device_path).await else {
-        return;
+        return Ok(());
     };
-    let Ok(mut ap_added) = wireless.receive_access_point_added().await else {
-        return;
-    };
-    let Ok(mut ap_removed) = wireless.receive_access_point_removed().await else {
-        return;
-    };
-    let Ok(mut new_connection) = settings.receive_new_connection().await else {
-        return;
-    };
-    let Ok(mut connection_removed) = settings.receive_connection_removed().await else {
-        return;
-    };
+    let mut ap_added = wireless.receive_access_point_added().await?;
+    let mut ap_removed = wireless.receive_access_point_removed().await?;
+    let mut new_connection = settings.receive_new_connection().await?;
+    let mut connection_removed = settings.receive_connection_removed().await?;
 
     apply(&tx, WifiEvent::Device(Presence::Present));
     refresh_radio(&nm, &tx).await;
@@ -101,6 +88,7 @@ pub(super) async fn run(
             }
         }
     }
+    Ok(())
 }
 
 /// The path of NetworkManager's first Wi-Fi device, or `None` without one.
@@ -301,6 +289,6 @@ async fn connect(
 
 /// Reduces `event` onto the receiver's current value and publishes the result.
 fn apply(tx: &watch::Sender<Wifi>, event: WifiEvent) {
-    let next = reduce_wifi(tx.borrow().clone(), event);
+    let next = step(tx.borrow().clone(), event);
     let _ = tx.send(next);
 }

@@ -164,7 +164,7 @@ impl Services {
             },
         );
         let (wallpapers, wallpaper_control) = crate::wallpaper::spawn(rt, &env.dirs);
-        let (wifi, wifi_control) = crate::network::wifi::spawn(rt, system());
+        let (wifi, wifi_control) = parts(spawn::<crate::network::wifi::WifiService>(rt, env, ()));
         let (bluetooth, bluetooth_control) = crate::bluetooth::spawn(rt, system());
         let (power_profiles, power_profile_control) = crate::power_profile::spawn(rt, system());
         let (media, media_control) = crate::now_playing::spawn(rt, session(), &env.dirs);

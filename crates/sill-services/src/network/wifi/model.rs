@@ -96,7 +96,7 @@ pub enum WifiEvent {
 
 /// `wifi` after `event`. Radio `Off` or `Blocked` empties the access points (NetworkManager
 /// keeps stale ones for a while).
-pub fn reduce_wifi(wifi: Wifi, event: WifiEvent) -> Wifi {
+pub fn step(wifi: Wifi, event: WifiEvent) -> Wifi {
     match event {
         WifiEvent::Device(device) => Wifi { device, ..wifi },
         WifiEvent::Radio(radio) => {
@@ -180,7 +180,7 @@ fn rank(ap: &AccessPoint, saved: &Saved) -> (u8, u8) {
 mod tests {
     use super::{
         AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi, WifiEvent, listed_networks,
-        reduce_wifi,
+        step,
     };
     use crate::units::{Percent, Presence};
 
@@ -264,7 +264,7 @@ mod tests {
             ),
         ];
         for (name, before, event, want) in cases {
-            assert_eq!(reduce_wifi(before, event), want, "{name}");
+            assert_eq!(step(before, event), want, "{name}");
         }
     }
 }

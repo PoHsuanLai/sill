@@ -95,7 +95,7 @@ pub use locker::{Lock, LockCause, LockPhase, LockerCommand, LockerMode, ShellLoc
 pub use magnify::{Layout, MagnifyParams, TileBox, magnify, rest_centers, sizes, zoom};
 pub use network::wifi::{
     AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi, WifiCommand, WifiEvent,
-    listed_networks, reduce_wifi,
+    WifiService, listed_networks,
 };
 pub use network::{
     Activating, Connectivity, Link, Network, NetworkCommand, NetworkEvent, NetworkService,
