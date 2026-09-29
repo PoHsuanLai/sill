@@ -359,7 +359,13 @@ pub trait LockSurface: 'static {
 
 Implementors: the 16 layer surfaces and `lock`. A new visible thing on its own layer surface
 is a new `Surface`. A popup of an existing surface is a `MenuPopup` or a component, not a
-`Surface`. `SurfaceRoot<S>` wraps every `root`.
+`Surface`. `root` runs inside `surface::mount::<S>`, the one root component every spawned surface
+has, so a `root` may call hooks. `SurfaceRoot` stays a plain component that each view wraps its
+content in: the material, chrome and extent it takes are the surface's own, which a wrapper
+generic over `S` could not know. The daemon gives every root its `S::Link` as a root context; a
+slot is erased to its `Debug` text in the output's row (`OutputSurfaces::spawned`), which also
+keeps the layer namespace `debug stats` reports. A slot the settings drop is closed, and a layer
+size that changed is re-applied, by `daemon/spawn.rs`.
 
 ### `Machine` (`sill_ui_kit::machine`)
 
@@ -483,11 +489,18 @@ Each ends with its tests. Name the concept once and use it in every file name be
    `links/mod.rs`. A surface never imports another surface.
 4. Settings keys: recipe below. Services it reads: `use_service` in `io.rs` only.
 5. Timed state: `impl Machine` in `step.rs`, run by `use_machine` in `io.rs`.
-6. `sill/src/daemon/surfaces.rs`: add the marker to the `surfaces!` list; the macro generates
-   spawn, close and reconcile for each. No per-surface spawn code.
+6. `sill/src/daemon/surfaces.rs`: in `spawn_missing`, at the surface's place in the drawing order
+   (later spawns draw over earlier ones on one layer), add
+   `spawn_surface::<Name>(ctx, outputs, spawn, &links.name)` (`&()` when `Link = ()`); the
+   generic `daemon/spawn.rs` spawns, resizes and closes. No per-surface spawn code: delete the
+   surface's `spawn_missing`, its `Option<SurfaceId>` field in `outputs.rs` (declaration,
+   `fields`, `clear`) and its namespace helper (`debug stats` reads `OutputSurfaces::spawned`),
+   and its link's `.context(..)` line in `surface_root`.
 7. IPC verb if it opens from the command line (recipe below).
-8. Tests: `crates/<crate>/tests/<name>.rs` on `SurfaceHarness::<Name>` (render, keys, motion on
-   the virtual clock); a `SurfaceCase` row in `crates/sill/tests/lint.rs`; `dev/accept/<name>.sh`.
+8. Tests: `crates/<crate>/tests/<name>.rs` on `SurfaceHarness::<Name>::setup(link, slot)
+   .settings(..).viewport(..).appearance(..).start()` (render, keys, motion on the virtual clock);
+   a `SurfaceCase` row in `SURFACES` in `crates/sill/tests/lint.rs` (its stylesheet const and a
+   function drawing each state to lint); `dev/accept/<name>.sh`.
 9. Add the row to the surfaces table in this file.
 
 ### Add a control-center module
@@ -612,7 +625,7 @@ installs them.
 | Pure (`sill-model` steps, `sill-launcher`, `sill-settings` parse, `sill-ipc` words) | `CASES` tables beside the code; serde round trips against exact bytes |
 | Service backend | `sill-services/tests/<x>_bus.rs`: `Env::isolated(tmp)` with `Buses` set to a `PrivateBus` address; peers are `sill-testkit` stand-ins. Runs in the gate. Only a test that needs a compositor is `#[ignore]`d and run from a dev script |
 | Providers, runner | `VecSink` and a fake `Sources::Providers`; the runner's latency test |
-| Surface | `SurfaceHarness<S: Surface>` (`sill-ui-kit`, feature `harness`) over `ds-harness`'s `Driver`: fake `Services` from `Handle::channel` (state set, commands read), a `PinnedAppearance`, `Clock::Virtual`, the surface's link, fixed `ShellFile`; `press`, `advance`, `render`, `query`. Real-input checks are dev scripts on shell-host's headless KWin |
+| Surface | `SurfaceHarness<S: Surface>` (`sill-ui-kit`, feature `harness`) over quire's `ds_native::Harness` (no `ds-harness` crate exists): `SurfaceHarness::<S>::setup(link, slot)` then `.settings(ShellFile)`, `.viewport(..)`, `.appearance(..)`, `.start()`. It mounts `surface::mount::<S>` on fake `Services` (`fake::services()`; state set through `run.feeds`, commands read), a `PinnedAppearance`, `Clock::Virtual`, the surface's link (`run.link`) and the settings; the viewport is the surface's layer size unless overridden. `run.harness` is the `Harness` (`advance`, `html`, `pointer_move`, `count`). One live harness per thread. Real-input checks are dev scripts on shell-host's headless KWin |
 | Machines | table tests of `step`; `use_machine` is tested once in `sill-ui-kit` |
 | Markup lint | `crates/sill/tests/lint.rs`: `const SURFACES: &[SurfaceCase]`, one loop over all 17, each row names its surface |
 | IPC and CLI | `crates/sill/tests/ipc.rs` (fake dispatcher, cap, timeout), `cli/request.rs` table |
