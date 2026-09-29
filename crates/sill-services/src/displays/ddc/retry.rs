@@ -11,11 +11,7 @@ use super::vcp::{Feature, Level};
 pub const ATTEMPTS: usize = 3;
 
 /// `feature`'s level, retrying a failed read.
-pub fn read<B: DdcBus + ?Sized>(
-    bus: &mut B,
-    id: DdcId,
-    feature: Feature,
-) -> Result<Level, DdcError> {
+pub fn read<B: DdcBus + ?Sized>(bus: &B, id: DdcId, feature: Feature) -> Result<Level, DdcError> {
     let mut last = Err(DdcError::Unknown(id));
     for _ in 0..ATTEMPTS {
         last = bus.read(id, feature);
@@ -29,7 +25,7 @@ pub fn read<B: DdcBus + ?Sized>(
 /// Write `value` until a read-back shows it. A feature that cannot be read back (a
 /// write-only control) counts as written once the write itself succeeded.
 pub fn write_verified<B: DdcBus + ?Sized>(
-    bus: &mut B,
+    bus: &B,
     id: DdcId,
     feature: Feature,
     value: u16,
@@ -76,9 +72,9 @@ mod tests {
     #[test]
     fn reads_retry_up_to_three_times() {
         let want = Ok(Level { value: 20, max: 50 });
-        assert_eq!(read(&mut bus(0, 0), DdcId(5), Feature::SpeakerVolume), want);
-        assert_eq!(read(&mut bus(2, 0), DdcId(5), Feature::SpeakerVolume), want);
-        assert!(read(&mut bus(3, 0), DdcId(5), Feature::SpeakerVolume).is_err());
+        assert_eq!(read(&bus(0, 0), DdcId(5), Feature::SpeakerVolume), want);
+        assert_eq!(read(&bus(2, 0), DdcId(5), Feature::SpeakerVolume), want);
+        assert!(read(&bus(3, 0), DdcId(5), Feature::SpeakerVolume).is_err());
     }
 
     #[test]
@@ -90,8 +86,8 @@ mod tests {
             (3, Err(()), 20),
         ];
         for &(drop_writes, want, left_at) in cases {
-            let mut fake = bus(0, drop_writes);
-            let result = write_verified(&mut fake, DdcId(5), Feature::SpeakerVolume, 18);
+            let fake = bus(0, drop_writes);
+            let result = write_verified(&fake, DdcId(5), Feature::SpeakerVolume, 18);
             assert_eq!(result.map_err(|_| ()), want, "{drop_writes} dropped");
             let now = fake
                 .0

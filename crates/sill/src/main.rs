@@ -24,7 +24,7 @@ fn main() -> ExitCode {
         };
     }
     match cli.command {
-        Some(cli::Command::Run) => sill::daemon::run(),
+        Some(cli::Command::Run(args)) => sill::daemon::run(&args),
         Some(cli::Command::AuthCheck) => sill::auth_check::main(),
         Some(command) => match cli::request(&command) {
             Some(request) => sill::client::main(&request),

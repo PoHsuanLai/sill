@@ -29,9 +29,10 @@ require_private_system_bus() {
 # which is then whatever the script's own ambient environment had (often the real system bus). This
 # shell fragment, run as the command dbus-run-session execs, copies its fresh private session bus
 # onto DBUS_SYSTEM_BUS_ADDRESS too before starting the daemon (one private bus standing in for
-# both), and refuses outright if dbus-run-session somehow left it real. Usage:
+# both), and refuses outright if dbus-run-session somehow left it real. Arguments after the
+# binary go to `sill run` (the stand-in flags). Usage:
 #   dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- \
-#     sh -c "$PRIVATE_BOTH_BUSES" "$SILL_BIN"
+#     sh -c "$PRIVATE_BOTH_BUSES" "$SILL_BIN" "${FAKE_DDC_FLAGS[@]}"
 read -r -d '' PRIVATE_BOTH_BUSES <<'SH' || true
 case "$DBUS_SESSION_BUS_ADDRESS" in
   ""|unix:path=/run/dbus/system_bus_socket)
@@ -39,7 +40,7 @@ case "$DBUS_SESSION_BUS_ADDRESS" in
     exit 1 ;;
 esac
 export DBUS_SYSTEM_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS"
-exec "$0" run
+exec "$0" run "$@"
 SH
 
 # For the `dev/nested.sh` scripts (dev/run.sh's `nested "$SILL_BIN" run`, which by itself passes
@@ -65,30 +66,32 @@ stop_private_bus() {
 }
 
 # Writes a scratch DDC fixture naming no monitor (`{"displays":[]}`, the fixture format
-# dev/accept-cc-real-input.sh's fake_monitor writes, only static) and exports SILL_FAKE_DDC to
-# it, so a debug build's DDC worker (sill-services' `fake-ddc` feature) talks to it instead of
-# opening the real /dev/i2c-* at startup. $1: the scratch directory to write ddc.json into (a fresh
-# mktemp -d if omitted, not cleaned up here). Prints the fixture's path. Call once before
-# start_daemon/step_start, before backgrounding the daemon (without it, every `--features debug`
-# script but accept-cc-real-input.sh let the DDC worker probe the user's real BenQ MA270U).
+# dev/accept-cc-real-input.sh's fake_monitor writes, only static) and sets FAKE_DDC to it and
+# FAKE_DDC_FLAGS to `--fake-ddc FILE`, the `sill run` option that makes a debug build's DDC
+# worker talk to the file instead of opening the real /dev/i2c-*. Every daemon launch line passes
+# "${FAKE_DDC_FLAGS[@]}" right after `run` (or after the binary, through PRIVATE_BOTH_BUSES).
+# $1: the scratch directory to write ddc.json into (a fresh mktemp -d if omitted, not cleaned up
+# here). Prints the fixture's path. Call before start_daemon/step_start, in the script's own
+# shell (never in a command substitution, which would lose the variables).
+FAKE_DDC_FLAGS=()
 use_fake_ddc() {
   local dir="${1:-$(mktemp -d)}"
-  SILL_FAKE_DDC="$dir/ddc.json"
-  printf '{"displays":[]}\n' >"$SILL_FAKE_DDC"
-  export SILL_FAKE_DDC
-  echo "$SILL_FAKE_DDC"
+  FAKE_DDC="$dir/ddc.json"
+  printf '{"displays":[]}\n' >"$FAKE_DDC"
+  FAKE_DDC_FLAGS=(--fake-ddc "$FAKE_DDC")
+  echo "$FAKE_DDC"
 }
 
-# Refuses to let the daemon start unless SILL_FAKE_DDC is already set (by use_fake_ddc, or a
-# script's own fixture as accept-cc-real-input.sh writes): the same pattern as
-# require_private_system_bus, closing the DDC gap. A release (non-debug) build ignores SILL_FAKE_DDC
-# entirely (the `fake-ddc` feature is debug-only) and always opens the real bus; this guard cannot
-# see the build kind, so no dev script may start a release build against a compositor a person is
-# not directly watching. Call immediately before backgrounding the daemon.
+# Refuses to let the daemon start unless use_fake_ddc has made FAKE_DDC_FLAGS and its fixture
+# exists: the same pattern as require_private_system_bus, closing the DDC gap. A release
+# (non-debug) build has no `--fake-ddc` and always opens the real bus; this guard cannot see the
+# build kind, so no dev script may start a release build against a compositor a person is not
+# directly watching. Call immediately before backgrounding the daemon, whose launch line must
+# pass "${FAKE_DDC_FLAGS[@]}".
 require_fake_ddc() {
-  [ -n "${SILL_FAKE_DDC:-}" ] || {
-    echo "refusing to start the daemon: SILL_FAKE_DDC is not set; a debug build's DDC worker" \
-      "would open the real /dev/i2c-*" >&2
+  [ "${FAKE_DDC_FLAGS[0]:-}" = --fake-ddc ] && [ -f "${FAKE_DDC_FLAGS[1]:-}" ] || {
+    echo "refusing to start the daemon: no --fake-ddc fixture (use_fake_ddc); a debug build's" \
+      "DDC worker would open the real /dev/i2c-*" >&2
     return 1
   }
 }

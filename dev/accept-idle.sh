@@ -165,7 +165,7 @@ start_daemon() {
     >"$CONFIG/sill/settings.toml"
   use_fake_ddc "$SCRATCH" >/dev/null
   require_fake_ddc || return 1
-  in_env WAYLAND_DEBUG="${WDEBUG:-}" SILL_IDLE_TIMES="$TIMES" "$SILL_BIN" run >"$log" 2>&1 &
+  in_env WAYLAND_DEBUG="${WDEBUG:-}" SILL_IDLE_TIMES="$TIMES" "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" >"$log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
   sill ping >/dev/null 2>&1 || { echo "the daemon never answered (see $log)" >&2; return 1; }

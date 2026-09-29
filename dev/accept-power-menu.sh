@@ -137,7 +137,7 @@ start_daemon() {
   XDG_CONFIG_HOME="$CONFIG" SILL_POWER_MENU_DRY_RUN="$RECORD" SILL_POWER_MENU_KEYS="$KEYS" \
     SILL_POWER_MENU_DRY_RUN_OFFERS=logind \
     DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
-    nested "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
+    nested "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
   for _ in $(seq 50); do NAME=$(output_name); [ -n "$NAME" ] && break; sleep 0.1; done

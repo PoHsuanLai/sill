@@ -198,7 +198,7 @@ server = "own"
 EOF
   use_fake_ddc "$SCRATCH" >/dev/null
   require_fake_ddc || return 1
-  in_env "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
+  in_env "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
   for _ in $(seq 50); do NAME=$(output_name); [ -n "$NAME" ] && break; sleep 0.1; done

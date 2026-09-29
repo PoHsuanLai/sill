@@ -124,8 +124,13 @@ impl Services {
         let (battery, battery_control) = crate::battery::spawn(rt, system());
         let (network, network_control) = crate::network::spawn(rt, system());
         let (volume, volume_control) = crate::volume::spawn(rt);
-        let (displays, displays_control) =
-            crate::displays::spawn(rt, system(), &env.dirs, volume.clone());
+        let (displays, displays_control) = crate::displays::spawn(
+            rt,
+            system(),
+            &env.dirs,
+            Arc::clone(&env.ddc),
+            volume.clone(),
+        );
         let (tray, tray_control) = crate::tray::spawn(rt, session());
         let (workspaces, toplevels, wl) = crate::cosmic_wl::spawn(env.wayland.clone());
         let (apps, apps_control) = crate::apps::spawn(rt, &env.dirs);

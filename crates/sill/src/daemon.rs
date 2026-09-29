@@ -36,8 +36,8 @@ use crate::outputs::{
     OutputAction, OutputSurfaces, Outputs, bar_namespace, reconcile, wallpaper_namespace,
 };
 
-/// Run the daemon until `quit` or a fatal host error.
-pub fn run() -> ExitCode {
+/// Run the daemon until `quit` or a fatal host error, on the seams `args` make.
+pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     let agent = match latchkey::Agent::new("sill") {
         Ok(agent) => agent,
         Err(error) => return fatal(&format!("naming this agent: {error}")),
@@ -56,7 +56,7 @@ pub fn run() -> ExitCode {
         Err(error) => return fatal(&format!("starting the async runtime: {error}")),
     };
 
-    let env = sill_services::env::Env::from_process();
+    let env = args.env();
     let services = sill_services::Services::spawn(runtime.handle(), &env);
 
     let settings_dir = Some(env.dirs.sill_config());

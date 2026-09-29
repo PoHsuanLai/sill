@@ -4,6 +4,7 @@
 
 use std::collections::BTreeSet;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::mpsc as std_mpsc;
 use std::time::Duration;
 
@@ -11,8 +12,7 @@ use tokio::sync::{mpsc, watch};
 
 use super::backlight;
 use super::brightness::Backlight;
-use super::ddc::source::DdcSource;
-use super::ddc::{DdcDisplay, DdcJob, Feature, Write};
+use super::ddc::{DdcBus, DdcDisplay, DdcJob, Feature, Write, worker};
 use super::drm;
 use super::font::font_rendering_for;
 use super::fontconfig_file;
@@ -43,21 +43,21 @@ pub struct Paths {
     pub seen: Option<PathBuf>,
     /// `~/.config/fontconfig`; `None` without a config directory (no snippet).
     pub fontconfig: Option<PathBuf>,
-    /// The DDC buses: the real ones, or (a debug build's acceptance runs) a fake.
-    pub ddc: DdcSource,
+    /// The DDC buses: the real ones, or (a debug build's dev scripts, tests) made-up monitors.
+    pub ddc: Arc<dyn DdcBus>,
     /// logind, which sets a backlight as this session.
     pub system: Bus,
 }
 
 impl Paths {
-    /// The kernel's usual places, the files in `dirs`, logind on `system`.
-    pub fn of(system: Bus, dirs: &Dirs) -> Self {
+    /// The kernel's usual places, the files in `dirs`, logind on `system`, DDC on `ddc`.
+    pub fn of(system: Bus, dirs: &Dirs, ddc: Arc<dyn DdcBus>) -> Self {
         Paths {
             drm: PathBuf::from("/sys/class/drm"),
             backlight: PathBuf::from("/sys/class/backlight"),
             seen: Some(seen::path_in(dirs)),
             fontconfig: Some(fontconfig_file::dir_in(dirs)),
-            ddc: DdcSource::from_env(),
+            ddc,
             system,
         }
     }
@@ -196,7 +196,7 @@ impl Service {
         let (jobs, rx) = std_mpsc::channel();
         let (tx, displays) = watch::channel(Vec::new());
         let bus = self.paths.ddc.clone();
-        tokio::task::spawn_blocking(move || bus.serve(rx, tx));
+        tokio::task::spawn_blocking(move || worker::run(bus, rx, tx));
         let _ = jobs.send(DdcJob::Probe);
         self.ddc = Some(Ddc { jobs, displays });
     }

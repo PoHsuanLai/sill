@@ -1,5 +1,5 @@
-//! A [`DdcBus`] of made-up monitors kept in a JSON file, for the acceptance scripts (a
-//! `fake-ddc` build, `SILL_FAKE_DDC`): every read reads the file again, so a script that
+//! A [`DdcBus`] of made-up monitors kept in a JSON file, for the acceptance scripts (a `debug`
+//! build's `sill run --fake-ddc FILE`) and tests: every read reads the file again, so a script that
 //! rewrites a level plays a change made on the monitor's own buttons; every write sets the
 //! level in the file and appends `write <id> <feature> <value>` to `<file>.writes`, which the
 //! script checks. Nothing here opens a device.
@@ -72,7 +72,7 @@ impl FileBus {
 }
 
 impl DdcBus for FileBus {
-    fn probe(&mut self) -> Vec<Endpoint> {
+    fn probe(&self) -> Vec<Endpoint> {
         self.load()
             .map(|monitors| {
                 monitors
@@ -88,7 +88,7 @@ impl DdcBus for FileBus {
             .unwrap_or_default()
     }
 
-    fn read(&mut self, id: DdcId, feature: Feature) -> Result<Level, DdcError> {
+    fn read(&self, id: DdcId, feature: Feature) -> Result<Level, DdcError> {
         let monitors = self.load()?;
         let monitor = monitors
             .displays
@@ -101,7 +101,7 @@ impl DdcBus for FileBus {
         }
     }
 
-    fn write(&mut self, id: DdcId, feature: Feature, value: u16) -> Result<(), DdcError> {
+    fn write(&self, id: DdcId, feature: Feature, value: u16) -> Result<(), DdcError> {
         match feature {
             Feature::Brightness => {}
             _ => return Err(DdcError::Protocol("unsupported VCP code".to_owned())),
@@ -135,7 +135,7 @@ mod tests {
                 "brightness":{"value":40,"max":100}}]}"#,
         )
         .expect("the fixture writes"); // test-only
-        let mut bus = FileBus::new(path);
+        let bus = FileBus::new(path);
         let found = bus.probe();
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].id, DdcId(7));

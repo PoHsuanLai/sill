@@ -61,6 +61,8 @@ pub use seen::decide_scale;
 pub use sink::{CosmicRandr, ScaleSink};
 pub use warmth::warmth_gains;
 
+use std::sync::Arc;
+
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
@@ -68,16 +70,23 @@ use crate::control::Control;
 use crate::env::{Bus, Dirs};
 use crate::volume::Volume;
 
-/// Start the displays task on `rt`, following `volume` for the monitor-speaker path. Until the
+/// Start the displays task on `rt`, following `volume` for the monitor-speaker path, talking DDC
+/// on `ddc`. Until the
 /// first `Policy` command it does nothing at all: no bus probe, no `cosmic-randr`, no file.
 pub fn spawn(
     rt: &Handle,
     system: Bus,
     dirs: &Dirs,
+    ddc: Arc<dyn DdcBus>,
     volume: watch::Receiver<Volume>,
 ) -> (watch::Receiver<Displays>, Control<DisplaysCommand>) {
     let (tx, rx) = watch::channel(Displays::default());
     let (control, commands) = Control::channel();
-    rt.spawn(run::run(tx, commands, volume, run::Paths::of(system, dirs)));
+    rt.spawn(run::run(
+        tx,
+        commands,
+        volume,
+        run::Paths::of(system, dirs, ddc),
+    ));
     (rx, control)
 }

@@ -201,9 +201,10 @@ A settled item is deleted, not marked closed.
   `dist/udev/60-sill-ddc.rules` (any `0x03????` class, which also covers the `0x0302xx` discrete
   GPU of hybrid laptops) and `dist/modules-load.d/sill-ddc.conf` do the same. `uaccess` reaches
   only the active local session.
-- **The fake DDC** (`sill-services` feature `fake-ddc`, on in sill's `debug` build):
-  `SILL_FAKE_DDC=<file>` makes the worker talk to monitors in a JSON file, never `/dev/i2c-*`. A
-  release build cannot select it.
+- **The fake DDC** (`displays::ddc::file_bus::FileBus`): a `debug` build's `sill run
+  --fake-ddc FILE` puts it in the daemon's `Env` in place of the kernel's buses, so the worker
+  talks to monitors in a JSON file, never `/dev/i2c-*`. A build without `debug` takes no such
+  flag.
 
 ## Standing facts: shell-host, Blitz and the harness
 

@@ -94,7 +94,7 @@ start_daemon() {
   XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_RUNTIME_DIR="$RUNTIME" \
     WAYLAND_DISPLAY="$NESTED_SOCKET" \
     dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- \
-    sh -c "$PRIVATE_BOTH_BUSES" "$SILL_BIN" \
+    sh -c "$PRIVATE_BOTH_BUSES" "$SILL_BIN" "${FAKE_DDC_FLAGS[@]}" \
     >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && return 0; sleep 0.1; done

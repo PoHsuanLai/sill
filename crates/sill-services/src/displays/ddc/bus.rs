@@ -37,12 +37,13 @@ pub enum DdcError {
     Unknown(DdcId),
 }
 
-/// Every DDC transaction the worker makes. Blocking: each call is a bus transaction of tens of
-/// milliseconds, and only the worker thread calls them (one at a time, which is also what the
-/// bus needs).
-pub trait DdcBus: Send {
+/// Every DDC transaction the worker makes: the kernel's buses ([`super::I2cBuses`]) or made-up
+/// monitors in a file ([`super::file_bus::FileBus`], the dev scripts'). Blocking: each call is a
+/// bus transaction of tens of milliseconds, and only the worker thread calls them (one at a
+/// time, which is also what the bus needs).
+pub trait DdcBus: Send + Sync + std::fmt::Debug {
     /// The displays that answer now. Re-probing replaces what an earlier probe found.
-    fn probe(&mut self) -> Vec<Endpoint>;
-    fn read(&mut self, id: DdcId, feature: Feature) -> Result<Level, DdcError>;
-    fn write(&mut self, id: DdcId, feature: Feature, value: u16) -> Result<(), DdcError>;
+    fn probe(&self) -> Vec<Endpoint>;
+    fn read(&self, id: DdcId, feature: Feature) -> Result<Level, DdcError>;
+    fn write(&self, id: DdcId, feature: Feature, value: u16) -> Result<(), DdcError>;
 }

@@ -13,10 +13,10 @@
 # - Bluetooth is a FAKE: dev/fake-bluez.py owns org.bluez on KWin's private bus (never the
 #   system bus; it refuses one) with a made-up adapter and keyboard, and logs every Powered set
 #   to a scratch file. The daemon's Bluetooth service reads it as its system bus.
-# - DDC is a FAKE: the daemon is this checkout's debug build (`--features debug`, which turns on
-#   sill-services' `fake-ddc`) started with SILL_FAKE_DDC naming a JSON file of one made-up
-#   monitor on the headless output. The daemon's log must say so ("DDC is the fake in ...")
-#   before any input is sent; otherwise the script stops. The fake never opens /dev/i2c-*.
+# - DDC is a FAKE: the daemon is this checkout's debug build (`--features debug`) started with
+#   `sill run --fake-ddc FILE` naming a JSON file of one made-up monitor on the headless output.
+#   The daemon's log must say so ("DDC is the fake in ...") before any input is sent; otherwise
+#   the script stops. The fake never opens /dev/i2c-*.
 # - The outputs list is FAKE: a stand-in `cosmic-randr` that never answers and a stand-in
 #   `kscreen-doctor` that prints the headless output are first on the daemon's PATH.
 # - KWin's private bus is the daemon's session AND system bus, so the real BlueZ,
@@ -189,8 +189,8 @@ start_daemon() {
   printf '[control_center]\nmenu_bar_sound = "hide"\nmenu_bar_battery = "hide"\n' \
     >"$CONFIG/sill/settings.toml"
   : >"$RECORD"
-  in_env PATH="$STANDINS:$PATH" SILL_FAKE_DDC="$DDC" SILL_POWER_MENU_DRY_RUN="$RECORD" \
-    "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
+  in_env PATH="$STANDINS:$PATH" SILL_POWER_MENU_DRY_RUN="$RECORD" \
+    "$SILL_BIN" run --fake-ddc "$DDC" >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
   local bar=

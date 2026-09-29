@@ -40,11 +40,11 @@ impl FakeBus {
 }
 
 impl DdcBus for FakeBus {
-    fn probe(&mut self) -> Vec<Endpoint> {
+    fn probe(&self) -> Vec<Endpoint> {
         self.with(|s| s.endpoints.clone())
     }
 
-    fn read(&mut self, id: DdcId, feature: Feature) -> Result<Level, DdcError> {
+    fn read(&self, id: DdcId, feature: Feature) -> Result<Level, DdcError> {
         self.with(|s| {
             s.reads += 1;
             if s.fail_reads > 0 {
@@ -58,7 +58,7 @@ impl DdcBus for FakeBus {
         })
     }
 
-    fn write(&mut self, id: DdcId, feature: Feature, value: u16) -> Result<(), DdcError> {
+    fn write(&self, id: DdcId, feature: Feature, value: u16) -> Result<(), DdcError> {
         self.with(|s| {
             let level = s
                 .values

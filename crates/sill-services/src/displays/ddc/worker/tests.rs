@@ -46,7 +46,7 @@ fn start(
 ) {
     let (jobs, rx) = mpsc::channel();
     let (tx, displays) = watch::channel(Vec::new());
-    let thread = std::thread::spawn(move || run(bus, rx, tx));
+    let thread = std::thread::spawn(move || run(std::sync::Arc::new(bus), rx, tx));
     (jobs, displays, thread)
 }
 

@@ -40,7 +40,7 @@ pub struct Cli {
 #[derive(Debug, Clone, PartialEq, Eq, Subcommand)]
 pub enum Command {
     /// Run the shell (the daemon); exits 0 if one is already running.
-    Run,
+    Run(crate::run_args::RunArgs),
     /// Show, hide or seed the launcher.
     Launcher {
         #[command(subcommand)]
@@ -296,7 +296,7 @@ impl From<ClickButton> for PointerButton {
 /// The request `command` sends; `None` for `run`, which is not a request.
 pub fn request(command: &Command) -> Option<Request> {
     Some(match command {
-        Command::Run | Command::AuthCheck => return None,
+        Command::Run(_) | Command::AuthCheck => return None,
         Command::Lock { verb } => lock_request(*verb),
         Command::Switcher { action } => switcher_request(*action),
         Command::Polkit { action } => polkit_request(*action),

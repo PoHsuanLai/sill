@@ -9,6 +9,7 @@
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, MutexGuard};
 
 use ddc::{Ddc, Edid};
 
@@ -25,13 +26,14 @@ type Device = ddc_i2c::I2cDeviceDdc;
 pub struct I2cBuses {
     i2c_dev: PathBuf,
     drm: PathBuf,
-    open: BTreeMap<DdcId, Device>,
+    /// The devices the last probe found answering; only the worker thread takes the lock.
+    open: Mutex<BTreeMap<DdcId, Device>>,
 }
 
 impl std::fmt::Debug for I2cBuses {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("I2cBuses")
-            .field("open", &self.open.keys().collect::<Vec<_>>())
+            .field("open", &self.devices().keys().copied().collect::<Vec<_>>())
             .finish()
     }
 }
@@ -41,19 +43,29 @@ impl Default for I2cBuses {
         I2cBuses {
             i2c_dev: PathBuf::from("/sys/class/i2c-dev"),
             drm: PathBuf::from("/sys/class/drm"),
-            open: BTreeMap::new(),
+            open: Mutex::new(BTreeMap::new()),
         }
     }
 }
 
+impl I2cBuses {
+    /// The open devices; a poisoned lock still yields them.
+    fn devices(&self) -> MutexGuard<'_, BTreeMap<DdcId, Device>> {
+        self.open
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+}
+
 impl DdcBus for I2cBuses {
-    fn probe(&mut self) -> Vec<Endpoint> {
+    fn probe(&self) -> Vec<Endpoint> {
         let connectors: Vec<(OutputName, Vec<u8>)> = drm::connected(&self.drm)
             .into_iter()
             .map(|c| (c.name, c.edid))
             .filter(|(_, edid)| !edid.is_empty())
             .collect();
-        self.open.clear();
+        let mut open = self.devices();
+        open.clear();
         let mut found = Vec::new();
         for id in display_buses(&self.i2c_dev) {
             let Ok(mut device) = ddc_i2c::from_i2c_device(format!("/dev/i2c-{}", id.0)) else {
@@ -76,13 +88,14 @@ impl DdcBus for I2cBuses {
                 connector: Some(connector),
                 product: edid::parse(&block).map(|e| e.name).unwrap_or_default(),
             });
-            self.open.insert(id, device);
+            open.insert(id, device);
         }
         found
     }
 
-    fn read(&mut self, id: DdcId, feature: Feature) -> Result<Level, DdcError> {
-        let device = self.open.get_mut(&id).ok_or(DdcError::Unknown(id))?;
+    fn read(&self, id: DdcId, feature: Feature) -> Result<Level, DdcError> {
+        let mut open = self.devices();
+        let device = open.get_mut(&id).ok_or(DdcError::Unknown(id))?;
         device
             .get_vcp_feature(feature.code())
             .map(|v| Level {
@@ -92,8 +105,9 @@ impl DdcBus for I2cBuses {
             .map_err(classify)
     }
 
-    fn write(&mut self, id: DdcId, feature: Feature, value: u16) -> Result<(), DdcError> {
-        let device = self.open.get_mut(&id).ok_or(DdcError::Unknown(id))?;
+    fn write(&self, id: DdcId, feature: Feature, value: u16) -> Result<(), DdcError> {
+        let mut open = self.devices();
+        let device = open.get_mut(&id).ok_or(DdcError::Unknown(id))?;
         device
             .set_vcp_feature(feature.code(), value)
             .map_err(classify)

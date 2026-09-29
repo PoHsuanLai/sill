@@ -37,13 +37,6 @@ emojis = { workspace = true }
 mime_guess = { workspace = true }
 percent-encoding = { workspace = true }
 
-[features]
-default = []
-# `SILL_FAKE_DDC=<file>` makes the displays service's DDC worker talk to made-up monitors in a
-# JSON file (`displays::ddc::file_bus`) instead of `/dev/i2c-N`: sill's `debug` build turns it
-# on for the acceptance scripts, so no script can reach a real monitor.
-fake-ddc = []
-
 # A LauncherEntry emitter for exercising badges without a real app: the dock's acceptance runs
 # it as a child process.
 [[example]]

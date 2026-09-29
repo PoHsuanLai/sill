@@ -5,6 +5,9 @@
 use std::path::Path;
 use std::sync::Arc;
 
+use crate::displays::ddc::file_bus::FileBus;
+use crate::displays::{DdcBus, I2cBuses};
+
 mod buses;
 mod dirs;
 #[cfg(test)]
@@ -27,21 +30,26 @@ pub struct Env {
     pub dirs: Dirs,
     /// The wall clock the services read.
     pub clock: Arc<dyn WallClock>,
+    /// The DDC/CI buses external monitors answer on.
+    pub ddc: Arc<dyn DdcBus>,
 }
 
 impl Env {
-    /// The process's own: its buses, its compositor, its directories and the system clock.
+    /// The process's own: its buses, its compositor, its directories, the system clock and the
+    /// kernel's i2c buses.
     pub fn from_process() -> Env {
         Env {
             buses: Buses::from_process(),
             wayland: WaylandRoute::Environment,
             dirs: Dirs::from_process(),
             clock: Arc::new(SystemClock),
+            ddc: Arc::new(I2cBuses::default()),
         }
     }
 
     /// Nothing outside the process: no bus, a compositor socket in `scratch` that does not
-    /// exist, every directory inside `scratch`, and the system clock (read only). For tests that start services and must never
+    /// exist, every directory inside `scratch`, the system clock (read only) and DDC monitors
+    /// from a file that is not there (none). For tests that start services and must never
     /// reach the person's session or files. `scratch` must exist: the wallpaper service watches
     /// the nearest existing folder above COSMIC's record.
     pub fn isolated(scratch: &Path) -> Env {
@@ -50,6 +58,7 @@ impl Env {
             wayland: WaylandRoute::Socket(scratch.join("no-wayland-socket")),
             dirs: Dirs::under(scratch),
             clock: Arc::new(SystemClock),
+            ddc: Arc::new(FileBus::new(scratch.join("no-ddc-monitors.json"))),
         }
     }
 }

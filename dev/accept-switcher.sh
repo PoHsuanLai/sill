@@ -182,7 +182,7 @@ start_daemon() {
   require_fake_ddc || return 1
   XDG_RUNTIME_DIR="$RUN_DIR" WAYLAND_DISPLAY="$NESTED_SOCKET" DBUS_SESSION_BUS_ADDRESS="$BUS" \
     DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
-    XDG_CONFIG_HOME="$CONFIG" "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &
+    XDG_CONFIG_HOME="$CONFIG" "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
   for _ in $(seq 50); do NAME=$(output_name); [ -n "$NAME" ] && break; sleep 0.1; done

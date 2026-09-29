@@ -4,6 +4,7 @@
 //! never waits on the bus).
 
 use std::collections::BTreeSet;
+use std::sync::Arc;
 use std::sync::mpsc::{Receiver, RecvTimeoutError};
 use std::time::{Duration, Instant};
 
@@ -49,8 +50,8 @@ enum Changed {
     Different,
 }
 
-struct Worker<B> {
-    bus: B,
+struct Worker {
+    bus: Arc<dyn DdcBus>,
     displays: Vec<DdcDisplay>,
     debounce: Debounce,
     warned: BTreeSet<(DdcId, Feature, Op)>,
@@ -62,7 +63,7 @@ struct Worker<B> {
 
 /// Serve `jobs` until every sender is gone, then write whatever is still pending (a restore
 /// sent just before shutdown still reaches the monitor). Blocking: run it on its own thread.
-pub fn run<B: DdcBus>(bus: B, jobs: Receiver<DdcJob>, tx: watch::Sender<Vec<DdcDisplay>>) {
+pub fn run(bus: Arc<dyn DdcBus>, jobs: Receiver<DdcJob>, tx: watch::Sender<Vec<DdcDisplay>>) {
     let mut worker = Worker {
         bus,
         displays: Vec::new(),
@@ -88,7 +89,7 @@ pub fn run<B: DdcBus>(bus: B, jobs: Receiver<DdcJob>, tx: watch::Sender<Vec<DdcD
     worker.flush(Stamp(u64::MAX));
 }
 
-impl<B: DdcBus> Worker<B> {
+impl Worker {
     fn now(&self) -> Stamp {
         Stamp(u64::try_from(self.origin.elapsed().as_millis()).unwrap_or(u64::MAX))
     }
@@ -119,7 +120,7 @@ impl<B: DdcBus> Worker<B> {
             .collect();
         let mut changed = Changed::Same;
         for id in ids {
-            let read = retry::read(&mut self.bus, id, feature);
+            let read = retry::read(self.bus.as_ref(), id, feature);
             let Some(level) = self.quietly(id, feature, Op::Read, read) else {
                 continue;
             };
@@ -145,7 +146,7 @@ impl<B: DdcBus> Worker<B> {
                 let readings: Vec<_> = Feature::ALL
                     .iter()
                     .map(|&feature| {
-                        let read = retry::read(&mut self.bus, endpoint.id, feature);
+                        let read = retry::read(self.bus.as_ref(), endpoint.id, feature);
                         (feature, self.quietly(endpoint.id, feature, Op::Read, read))
                     })
                     .collect();
@@ -168,7 +169,8 @@ impl<B: DdcBus> Worker<B> {
         let (rest, due) = std::mem::take(&mut self.debounce).take_due(now);
         self.debounce = rest;
         for write in due {
-            let done = retry::write_verified(&mut self.bus, write.id, write.feature, write.value);
+            let done =
+                retry::write_verified(self.bus.as_ref(), write.id, write.feature, write.value);
             let _ = self.quietly(write.id, write.feature, Op::Write, done);
         }
     }

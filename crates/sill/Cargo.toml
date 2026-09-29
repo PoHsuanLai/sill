@@ -25,7 +25,7 @@ tokio = { workspace = true }
 default = []
 # `sill debug pointer|leave|capture` act on surfaces (shell-host's per-surface injection).
 # Without it those requests answer `Failed(Unsupported)`; `debug stats` always works.
-debug = ["shell-host/debug-inject", "sill-services/fake-ddc"]
+debug = ["shell-host/debug-inject"]
 
 [lints]
 workspace = true

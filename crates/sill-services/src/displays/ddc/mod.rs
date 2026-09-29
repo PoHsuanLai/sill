@@ -7,12 +7,10 @@ pub mod bus;
 pub mod debounce;
 #[cfg(test)]
 pub(crate) mod fake;
-#[cfg(any(test, feature = "fake-ddc"))]
 pub mod file_bus;
 pub mod i2c;
 pub mod matching;
 pub mod retry;
-pub mod source;
 pub mod vcp;
 pub mod worker;
 
