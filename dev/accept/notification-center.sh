@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 # Notification center acceptance (design/20 §1.6), on the nested cosmic-comp (dev/nested.sh; a
-# running wayland-1 is reused and never stopped). Starts
-# `sill run` from this checkout's debug build (`--features debug`) with a scratch
-# XDG_CONFIG_HOME and XDG_STATE_HOME, under a private session bus (dev/private-bus.conf: no
-# service directories, so nothing is activated and the real session's
-# org.freedesktop.Notifications is never touched), and with its own XDG_RUNTIME_DIR (the
-# nested socket given as an absolute WAYLAND_DISPLAY), so another sill running meanwhile keeps
-# its own single-instance lock and IPC socket. Every notification comes from `sill debug
-# notify`. The daemon is quit at the end.
+# running wayland-1 is reused and never stopped). Starts `sill run` from this checkout's debug
+# build (`--features debug`) on a private bus (dev/private-bus.conf: no service directories, so
+# nothing is activated and the real session's org.freedesktop.Notifications is never touched) as
+# both its session and its system bus, with scratch HOME and XDG directories, a fake DDC fixture
+# and its own XDG_RUNTIME_DIR (the nested socket given as an absolute WAYLAND_DISPLAY), so another
+# sill running meanwhile keeps its own single-instance lock and IPC socket. Every notification
+# comes from `sill debug notify`. The daemon is quit at the end.
 #
 #   1. `sill-notification-center-<out>` exists from the start, hidden (no capture).
 #   2. `sill notifications toggle` shows it (a capture with the column's pixels; the empty state
@@ -29,59 +28,19 @@
 # The panel, the group headers and the cards are quire's (`Panel`, `GroupHeader`,
 # `NotificationCard`); a group's "N more" and Clear are found in its header's ink.
 #
-# Usage: dev/nested.sh && dev/accept-notification-center.sh
+# Usage: dev/accept/notification-center.sh
 set -uo pipefail
-# shellcheck source=dev/common.sh
-source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
-# shellcheck source=dev/backdrop.sh
-source "$(dirname "${BASH_SOURCE[0]}")/backdrop.sh"
+# shellcheck source=dev/lib/all.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
+[ "$#" = 0 ] || { echo "usage: dev/accept/notification-center.sh" >&2; exit 2; }
 OUT_DIR="$SILL_REPO/target/accept-notification-center"
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
-
-source "$SHELL_HOST_DEV/.nested-env"
-HOST_RUNTIME="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-NESTED_SOCKET="$HOST_RUNTIME/$WAYLAND_DISPLAY"
-RUNTIME=$(mktemp -d)
-chmod 700 "$RUNTIME"
-
-sill() { XDG_RUNTIME_DIR="$RUNTIME" "$SILL_BIN" "$@"; }
-
-# The nested output's connector name (the surfaces' namespace suffix).
-output_name() {
-  sill debug stats | python3 -c '
-import json, sys
-for row in json.loads(sys.stdin.read())["v"]:
-    s = row["surface"]
-    if s.startswith("sill-bar-") and "/" not in s:
-        print(s[len("sill-bar-"):]); break'
-}
-
-# SURFACE's cumulative frame counter from `sill debug stats`.
-frames_of() {
-  sill debug stats | python3 -c '
-import json, sys
-for row in json.loads(sys.stdin.read())["v"]:
-    if row["surface"] == sys.argv[1]:
-        print(row["frames"])' "$1"
-}
+scratch_new
 
 # `sill notifications status`'s kept count.
 kept() {
   sill notifications status | python3 -c 'import json, sys; print(json.loads(sys.stdin.read())["v"]["v"]["kept"])'
-}
-
-center_up() { sill debug capture "$CENTER" "$OUT_DIR/probe.png" >/dev/null 2>&1; }
-
-# Wait up to 2 s for the center to be mapped (`up`) or not (`down`); `down` allows for quire's
-# exit, which plays before the surface unmaps.
-wait_center() {
-  for _ in $(seq 40); do
-    if [ "$1" = up ] && center_up; then return 0; fi
-    if [ "$1" = down ] && ! center_up; then return 0; fi
-    sleep 0.05
-  done
-  return 1
 }
 
 # The column's box in a capture of the center: "LEFT TOP RIGHT BOTTOM" of the pixels that are
@@ -194,43 +153,29 @@ print((run[0] + run[1]) // 2, h // 2)
 EOF
 }
 
-build() {
-  (cd "$SILL_REPO" && cargo build -p sill --features debug) >"$OUT_DIR/build.log" 2>&1 || {
-    echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
-}
-
-start_daemon() {
-  CONFIG=$(mktemp -d)
-  STATE=$(mktemp -d)
+# Starts the daemon on the nested compositor, its wallpaper the backdrop: cosmic-bg draws it when
+# the daemon does not.
+start_center_daemon() {
   backdrop_seed "$CONFIG" || return 1
-  use_fake_ddc "$CONFIG" >/dev/null
-  require_fake_ddc || return 1
-  XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_RUNTIME_DIR="$RUNTIME" \
-    WAYLAND_DISPLAY="$NESTED_SOCKET" \
-    dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- \
-    sh -c "$PRIVATE_BOTH_BUSES" "$SILL_BIN" "${FAKE_DDC_FLAGS[@]}" \
-    >"$OUT_DIR/daemon.log" 2>&1 &
-  DAEMON=$!
-  for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
-  for _ in $(seq 50); do NAME=$(output_name); [ -n "$NAME" ] && break; sleep 0.1; done
-  [ -n "${NAME:-}" ] || { echo "no bar in 'sill debug stats'" >&2; return 1; }
+  launch_daemon || return 1
+  NAME=$(output_name) || return 1
   BAR="sill-bar-$NAME"
   CENTER="sill-notification-center-$NAME"
   sleep 1.5
-  if ! sill debug stats | grep -q '"sill-wallpaper-'; then
-    XDG_CONFIG_HOME="$CONFIG" WAYLAND_DISPLAY="$WAYLAND_DISPLAY" cosmic-bg >/dev/null 2>&1 &
+  if [[ "$(sill debug stats)" != *'"sill-wallpaper-'* ]]; then
+    in_env cosmic-bg >/dev/null 2>&1 &
     BACKDROP_PID=$!
   fi
   echo "daemon on a private bus and runtime dir $RUNTIME; $BAR, $CENTER" >&2
 }
 
-stop_daemon() {
-  [ -n "${DAEMON:-}" ] || return 0
-  sill quit >/dev/null 2>&1
-  wait "$DAEMON" 2>/dev/null
-  DAEMON=
+cleanup() {
+  local result=0
+  stop_daemon || result=1
   backdrop_down
-  rm -rf "$CONFIG" "$STATE"
+  stop_private_bus
+  scratch_drop
+  return "$result"
 }
 
 # 1.
@@ -238,7 +183,7 @@ step_warm() {
   local log="$OUT_DIR/warm.log"
   sill debug stats >"$log" 2>&1
   grep -q "\"$CENTER\"" "$log" || { echo "$CENTER is not in 'sill debug stats'" >&2; return 1; }
-  if center_up; then echo "the center is mapped before any open" >&2; return 1; fi
+  if mapped "$CENTER"; then echo "the center is mapped before any open" >&2; return 1; fi
   echo "$CENTER spawned at start, hidden" | tee -a "$log" >&2
 }
 
@@ -247,7 +192,7 @@ step_toggle_open_close() {
   local log="$OUT_DIR/toggle.log" box size shot
   : >"$log"
   sill notifications toggle >>"$log" 2>&1 || return 1
-  wait_center up || { echo "toggle: never mapped" >&2; return 1; }
+  wait_surface "$CENTER" 20 up || { echo "toggle: never mapped" >&2; return 1; }
   sleep 0.6
   sill debug capture "$CENTER" "$OUT_DIR/toggled.png" >>"$log" 2>&1 || return 1
   box=$(column_box "$OUT_DIR/toggled.png") || { echo "toggle: no column drawn" >&2; return 1; }
@@ -258,14 +203,14 @@ step_toggle_open_close() {
   shot=$(python3 -c 'import sys; from PIL import Image; print(*Image.open(sys.argv[1]).size)' \
     "$SHOTS/notification-center-empty-cosmic.png")
   sill notifications toggle >>"$log" 2>&1 || return 1
-  wait_center down || { echo "toggle: still mapped" >&2; return 1; }
+  wait_surface "$CENTER" 20 down || { echo "toggle: still mapped" >&2; return 1; }
   sill notifications open >>"$log" 2>&1 || return 1
   sill notifications open >>"$log" 2>&1 || return 1
-  wait_center up || { echo "open: never mapped" >&2; return 1; }
+  wait_surface "$CENTER" 20 up || { echo "open: never mapped" >&2; return 1; }
   sleep 0.6
-  center_up || { echo "open twice: not open" >&2; return 1; }
+  mapped "$CENTER" || { echo "open twice: not open" >&2; return 1; }
   sill notifications close >>"$log" 2>&1 || return 1
-  wait_center down || { echo "close: still mapped" >&2; return 1; }
+  wait_surface "$CENTER" 20 down || { echo "close: still mapped" >&2; return 1; }
   echo "toggle shows the column (box $box in a $size surface, the output shot $shot: the surface keeps clear of the bar's reserve) and hides it; open twice stays open; close hides it" \
     | tee -a "$log" >&2
 }
@@ -277,11 +222,11 @@ step_clock() {
   at=$(clock_centre) || { echo "no clock found in the bar" >&2; return 1; }
   # shellcheck disable=SC2086
   sill debug click "$BAR" $at >>"$log" 2>&1
-  wait_center up || { echo "a click on the clock ($at) opened nothing" | tee -a "$log" >&2; return 1; }
+  wait_surface "$CENTER" 20 up || { echo "a click on the clock ($at) opened nothing" | tee -a "$log" >&2; return 1; }
   sleep 0.6
   # shellcheck disable=SC2086
   sill debug click "$BAR" $at >>"$log" 2>&1
-  wait_center down || { echo "a second click on the clock left it open" | tee -a "$log" >&2; return 1; }
+  wait_surface "$CENTER" 20 down || { echo "a second click on the clock left it open" | tee -a "$log" >&2; return 1; }
   echo "a click on the clock at $at opens the center; a second closes it" | tee -a "$log" >&2
 }
 
@@ -298,7 +243,7 @@ step_groups() {
   sleep 0.3
   before=$(kept)
   sill notifications open >>"$log" 2>&1 || return 1
-  wait_center up || return 1
+  wait_surface "$CENTER" 20 up || return 1
   sleep 0.8
   sill debug capture "$CENTER" "$OUT_DIR/groups.png" >>"$log" 2>&1 || return 1
   "$SHELL_HOST_DEV/shot.sh" "$SHOTS/notification-center-cosmic.png" >>"$log" 2>&1 \
@@ -336,9 +281,9 @@ step_groups() {
 step_outside() {
   local log="$OUT_DIR/outside.log"
   : >"$log"
-  center_up || { sill notifications open >>"$log" 2>&1; wait_center up || return 1; sleep 0.6; }
+  mapped "$CENTER" || { sill notifications open >>"$log" 2>&1; wait_surface "$CENTER" 20 up || return 1; sleep 0.6; }
   sill debug click "$CENTER" 100 300 >>"$log" 2>&1
-  wait_center down || { echo "a click outside the column left it open" | tee -a "$log" >&2; return 1; }
+  wait_surface "$CENTER" 20 down || { echo "a click outside the column left it open" | tee -a "$log" >&2; return 1; }
   echo "a click left of the column closes it" | tee -a "$log" >&2
 }
 
@@ -346,7 +291,7 @@ step_outside() {
 step_idle() {
   local log="$OUT_DIR/idle.log" f0 f1 f2 f3
   sill notifications open >"$log" 2>&1
-  wait_center up || return 1
+  wait_surface "$CENTER" 20 up || return 1
   sleep 1
   # The clock redraws the ages once a minute: keep the windows clear of the minute's turn.
   if [ "$((10#$(date +%S)))" -ge 45 ]; then sleep $((62 - 10#$(date +%S))); fi
@@ -354,7 +299,7 @@ step_idle() {
   sleep 5
   f1=$(frames_of "$CENTER")
   sill notifications close >>"$log" 2>&1
-  wait_center down || return 1
+  wait_surface "$CENTER" 20 down || return 1
   sleep 1
   f2=$(frames_of "$CENTER")
   sleep 5
@@ -364,25 +309,20 @@ step_idle() {
   [ "$(( f1 - f0 ))" = 0 ] && [ "$(( f3 - f2 ))" = 0 ]
 }
 
-"$SHELL_HOST_DEV/run.sh" wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
-build || exit 1
-for _ in $(seq 600); do
-  pgrep -f 'target/[a-z]*/sill run' >/dev/null || break
-  [ -n "${WAITED:-}" ] || { echo "another sill daemon is running; waiting for it to quit" >&2; WAITED=1; }
-  sleep 1
-done
-start_daemon || { stop_daemon; exit 1; }
-status=0
-for step in step_warm step_toggle_open_close step_clock step_groups step_outside step_idle; do
-  "$step"
-  code=$?
-  case "$code" in
-    0) echo "PASS $step" ;;
-    2) echo "SKIP $step (see above)"; [ "$status" = 0 ] && status=2 ;;
-    *) echo "FAIL $step"; status=1 ;;
-  esac
-done
-stop_daemon
-rm -rf "$RUNTIME"
-echo "logs in $OUT_DIR; screenshots $SHOTS/notification-center-cosmic.png, $SHOTS/notification-center-open-cosmic.png"
-exit "$status"
+main() {
+  local status
+  trap cleanup EXIT
+  use_nested_socket || exit 1
+  build || exit 1
+  await_no_process 'target/[a-z]*/sill run' || echo "going on with it still running" >&2
+  start_private_bus || exit 1
+  start_center_daemon || exit 1
+  run_steps step_warm step_toggle_open_close step_clock step_groups step_outside step_idle
+  status=$STATUS
+  cleanup || status=1
+  trap - EXIT
+  echo "logs in $OUT_DIR; screenshots $SHOTS/notification-center-cosmic.png, $SHOTS/notification-center-open-cosmic.png"
+  exit "$status"
+}
+
+main
