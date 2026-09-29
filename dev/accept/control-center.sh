@@ -559,11 +559,11 @@ right = x1 + 4
 while right < high.size[0] - 1 and not far(high.getpixel((right + 1, y)), well, 24):
     right += 1
 # The module's plate just past the rail's end; the rail starts where the plate stops, left of
-# the fill (and the glyph inside it).
+# the fill (and the glyph inside it). The knob's soft shadow at the fill's end is plate-coloured
+# for a pixel or two, so the plate must run for 8 pixels before it counts as the rail's end.
 plate = high.getpixel((right + 3, y))
 left = x0
-while left > 1 and not (not far(low.getpixel((left - 1, y)), plate, 8)
-                        and not far(low.getpixel((left - 2, y)), plate, 8)):
+while left > 8 and any(far(low.getpixel((left - k, y)), plate, 8) for k in range(1, 9)):
     left -= 1
 print(left, right + 1)
 EOF
