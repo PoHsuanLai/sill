@@ -90,6 +90,9 @@ pub enum Command {
         #[arg(value_enum, default_value_t = ShotArg::Area)]
         kind: ShotArg,
     },
+    /// Give the keyboard to the newest transient card (the screenshot thumbnail): Enter opens it,
+    /// Delete trashes it, Escape dismisses it. Bind it in COSMIC's shortcuts.
+    FocusLatest,
     /// The widgets.
     Widgets {
         #[command(subcommand)]

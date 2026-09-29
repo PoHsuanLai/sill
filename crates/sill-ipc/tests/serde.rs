@@ -226,6 +226,10 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"act","v":{"kind":"dismiss_notifications"}}"#,
         ),
         (
+            Request::Act(ActRequest::FocusLatest),
+            r#"{"kind":"act","v":{"kind":"focus_latest"}}"#,
+        ),
+        (
             Request::Debug(DebugRequest::Stats),
             r#"{"kind":"debug","v":{"kind":"stats"}}"#,
         ),

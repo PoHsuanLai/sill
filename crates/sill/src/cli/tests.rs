@@ -110,6 +110,7 @@ fn every_command_line_sends_its_request() {
         (&["auth-check"], None),
         (&["ping"], Some(Request::Ping)),
         (&["reload"], Some(Request::Reload)),
+        (&["focus-latest"], act(ActRequest::FocusLatest)),
         (&["quit"], Some(Request::Quit)),
         (&["lock"], act(ActRequest::Lock)),
         (&["lock", "now"], act(ActRequest::Lock)),

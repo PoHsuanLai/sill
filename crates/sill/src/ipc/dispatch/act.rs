@@ -37,6 +37,10 @@ pub fn dispatch(reach: &Reach, request: ActRequest) -> Response {
                 .send(NotificationsCommand::DismissAll),
             "notifications",
         ),
+        ActRequest::FocusLatest => {
+            reach.links.banners.ask_keyboard();
+            Response::Done
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 //! The one pure mapping from a parsed command to the request it sends. Each verb group's file
 //! maps its own verbs; this file only picks the group.
 
+use sill_ipc::act::ActRequest;
 use sill_ipc::request::Request;
 
 use super::Command;
@@ -20,6 +21,7 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::Ping => Request::Ping,
         Command::Quit => Request::Quit,
         Command::Reload => Request::Reload,
+        Command::FocusLatest => Request::Act(ActRequest::FocusLatest),
         Command::Launcher { action } => launcher_request(action),
         Command::Dock { action } => dock_request(action),
         Command::PowerMenu { action } => power_menu_request(*action),
