@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # Wallpaper acceptance (design/20 §1.4), against the running nested cosmic-comp
-# (`dev/nested.sh`; this script reuses `WAYLAND_DISPLAY` from shell-host's `.nested-env` and
-# never stops the compositor) with a real `sill run`: `crates/sill/src/daemon.rs` now spawns a
-# `Wallpaper` per output (`spawn_missing_wallpapers`/`spawn_wallpaper`, mirroring the bar's own,
-# wired next to `spawn_missing_bars`) and sends the wallpaper service a `Prepare` at the
-# output's buffer size, so this script starts its own `sill run`.
+# (`dev/nested.sh`; this script takes its socket from shell-host's `.nested-env` and never stops
+# the compositor) with a real `sill run`, which spawns a `Wallpaper` per output
+# (`spawn_missing_wallpapers`/`spawn_wallpaper`, next to `spawn_missing_bars`) and sends the
+# wallpaper service a `Prepare` at the output's buffer size, so this script starts its own
+# `sill run`.
 #
 # The COSMIC background config and sill's own settings live under a scratch XDG_CONFIG_HOME (never
-# the real ~/.config), so there is nothing to back up or restore. A private dbus-daemon
-# (dev/private-bus.conf) is the daemon's session AND system bus, refused if it would be the real
-# one.
+# the real ~/.config), so there is nothing to back up or restore. The daemon runs in its own
+# XDG_RUNTIME_DIR and scratch HOME, and a private dbus-daemon (dev/private-bus.conf) is its
+# session AND system bus, refused if it would be the real one.
 #
 # Checks: a wallpaper surface exists per output and presents at least one frame; its capture's
 # centre pixel matches the marked source image's own centre pixel (cover-fit keeps the crop
@@ -17,49 +17,31 @@
 # `dev/out/wallpaper-cosmic.png` (the nested screen, `shot.sh`); the pixel check itself reads
 # `sill debug capture`'s own file, not the screenshot.
 #
-# Usage: dev/nested.sh start && dev/accept-wallpaper.sh
+# Usage: dev/nested.sh start && dev/accept/wallpaper.sh
 set -uo pipefail
-# shellcheck source=dev/common.sh
-source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+# shellcheck source=dev/lib/all.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 OUT_DIR="$SILL_REPO/target/accept-wallpaper"
 mkdir -p "$OUT_DIR" "$SILL_REPO/dev/out"
 
-# shellcheck disable=SC1091
-source "$SHELL_HOST_DEV/.nested-env"
-export WAYLAND_DISPLAY
+use_nested_socket || exit 1
+scratch_new
 
-# A scratch XDG_CONFIG_HOME: the COSMIC background config and sill's own settings below are written
-# under it, never under the real ~/.config. A private dbus-daemon (dev/private-bus.conf) stands in
-# as both the daemon's session and system bus, refused if it would be the real one.
-SCRATCH=$(mktemp -d)
-export XDG_CONFIG_HOME="$SCRATCH/config"
-mkdir -p "$XDG_CONFIG_HOME"
-BUS=
-BUS_PID=
-
-sill() { DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" "$SHELL_HOST_DEV/run.sh" "$SILL_BIN" "$@"; }
-
-# --- A marked source image and a COSMIC background config pointing at it (all under the ------
-# --- scratch XDG_CONFIG_HOME above, so nothing here is restored: it never touched the real one)
-
-CONFIG_DIR="$XDG_CONFIG_HOME/cosmic/com.system76.CosmicBackground/v1"
+# A marked source image and a COSMIC background config pointing at it, all under the scratch
+# XDG_CONFIG_HOME.
+CONFIG_DIR="$CONFIG/cosmic/com.system76.CosmicBackground/v1"
 CONFIG_FILE="$CONFIG_DIR/all"
 SOURCE_PNG="$OUT_DIR/source.png"
-SILL_PID=""
 # The shell draws the background only when `spaces.wallpaper_drawer` is "shell" (cosmic-bg by
 # default), so this script sets it in sill's (scratch) settings file for the run.
-SETTINGS_FILE="$XDG_CONFIG_HOME/sill/settings.toml"
+SETTINGS_FILE="$CONFIG/sill/settings.toml"
 
 cleanup() {
   # Stop the daemon this script started (never the compositor), the private bus, and the scratch
-  # config dir.
-  if [ -n "$SILL_PID" ] && kill -0 "$SILL_PID" 2>/dev/null; then
-    sill quit >/dev/null 2>&1 || true
-    for _ in $(seq 20); do kill -0 "$SILL_PID" 2>/dev/null || break; sleep 0.1; done
-    kill -0 "$SILL_PID" 2>/dev/null && kill "$SILL_PID" 2>/dev/null || true
-  fi
+  # tree.
+  stop_daemon
   stop_private_bus
-  rm -rf "$SCRATCH"
+  scratch_drop
 }
 trap cleanup EXIT
 
@@ -116,21 +98,13 @@ RON
 
 # --- Start the daemon ---------------------------------------------------------------------
 
-(cd "$SILL_REPO" && cargo build -p sill --features debug >&2) || exit 1
+build || exit 1
 start_private_bus || exit 1
-use_fake_ddc "$SCRATCH" >/dev/null
-require_fake_ddc || exit 1
-DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
-  "$SHELL_HOST_DEV/run.sh" "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" >"$OUT_DIR/sill-run.log" 2>&1 &
-SILL_PID=$!
+launch_daemon
 
 step_ping() {
-  for _ in $(seq 100); do
-    sill ping >"$OUT_DIR/ping.log" 2>&1 && return 0
-    kill -0 "$SILL_PID" 2>/dev/null || { echo "sill run exited early (see $OUT_DIR/sill-run.log)" >&2; return 1; }
-    sleep 0.1
-  done
-  echo "sill never answered ping" >&2
+  sill ping >"$OUT_DIR/ping.log" 2>&1 && kill -0 "$DAEMON" 2>/dev/null && return 0
+  echo "sill never answered ping (see $OUT_DIR/daemon.log)" >&2
   return 1
 }
 
@@ -201,15 +175,6 @@ step_idle() {
   [ "$before" = "$after" ]
 }
 
-status=0
-for step in step_ping step_surfaces_exist step_centre_pixel step_idle; do
-  if "$step"; then
-    echo "PASS $step"
-  else
-    rc=$?
-    echo "FAIL $step (exit $rc)"
-    status=$(( rc > status ? rc : status ))
-  fi
-done
+run_steps step_ping step_surfaces_exist step_centre_pixel step_idle
 echo "output dir: $OUT_DIR; screenshot: $SILL_REPO/dev/out/wallpaper-cosmic.png" >&2
-exit "$status"
+exit "$STATUS"
