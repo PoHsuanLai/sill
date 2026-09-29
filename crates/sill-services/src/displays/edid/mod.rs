@@ -8,6 +8,8 @@
 
 mod chroma;
 mod descriptors;
+#[cfg(test)]
+pub(crate) mod tests;
 
 pub use chroma::{Chromaticity, Primaries};
 pub use descriptors::{Millimetres, Mode, Pixels};
@@ -132,6 +134,3 @@ fn centimetres(width: u8, height: u8) -> Option<Millimetres> {
         height: u32::from(height) * 10,
     })
 }
-
-#[cfg(test)]
-pub(crate) mod tests;

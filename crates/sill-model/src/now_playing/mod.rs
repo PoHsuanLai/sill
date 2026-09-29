@@ -1,4 +1,5 @@
-//! Now Playing: the MPRIS players, their tracks, art and transport, as the control center draws them.
+//! Now Playing: the MPRIS players, their tracks, art and transport, as the control center draws
+//! them.
 
 mod art;
 mod command;

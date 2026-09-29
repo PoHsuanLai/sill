@@ -12,7 +12,8 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds_native::{Backdrop, Clock, Harness, HarnessConfig, Viewport};
 use sill_model::ids::OutputName;
-use sill_services::{Services, WallpaperImage, Wallpapers};
+use sill_model::wallpaper::{WallpaperImage, Wallpapers};
+use sill_services::Services;
 use sill_surfaces::Wallpaper;
 use tokio::sync::watch;
 

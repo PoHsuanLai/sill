@@ -1,6 +1,8 @@
 //! The screenshots task: on `Configure`, resolve the folders (`folders_of`, the Pictures folder
-//! from the Pictures folder of [`Dirs`]), keep those that exist, watch them with `notify` (a file closed
-//! after writing, or renamed into place, whose name `is_screenshot_name`, [`super::folder_watch`]), and
+//! from the Pictures folder of [`Dirs`]), keep those that exist, watch them with `notify` (a file
+//! closed
+//! after writing, or renamed into place, whose name `is_screenshot_name`, [`super::folder_watch`]),
+//! and
 //! publish `Watching`; run each event and command through `step` and carry out its
 //! effects: `MakePreview` on the blocking pool ([`super::preview`]), `Open` (`xdg-open`),
 //! `Trash` (`gio trash`), `RunTool` (`tool_command` into `save_folder`, a child whose exit is

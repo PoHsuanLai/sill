@@ -115,7 +115,4 @@ pub use session::SessionService;
 pub use switcher::{AppShown, SwitcherApp, switcher_apps};
 pub use tray::TrayService;
 pub use volume::VolumeService;
-pub use wallpaper::{
-    WallpaperCommand, WallpaperImage, WallpaperService, WallpaperSource, Wallpapers,
-    cache_file_name,
-};
+pub use wallpaper::WallpaperService;

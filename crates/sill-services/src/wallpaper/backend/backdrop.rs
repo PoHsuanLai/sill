@@ -5,28 +5,15 @@
 
 use std::path::{Path, PathBuf};
 
-use image::RgbaImage;
-use image::imageops::{self, FilterType};
+use image::imageops::FilterType;
+use image::{RgbaImage, imageops};
+use sill_model::wallpaper::backdrop_file;
 
 use crate::error::ServiceError;
 
 /// The blur's standard deviation in buffer pixels at a 1920 px wide image, scaled with the
 /// width: macOS's lock screen reads as a heavy, even blur with no shapes left.
 pub const BACKDROP_SIGMA_AT_1920: f32 = 40.0;
-
-/// Where the blurred copy of the cached `image` lives: the same directory, `-backdrop` before
-/// the extension (`<hash>-<w>x<h>-backdrop.png`), so it follows the image's own cache key.
-pub fn backdrop_file(image: &Path) -> PathBuf {
-    let stem = image
-        .file_stem()
-        .map(|stem| stem.to_string_lossy().into_owned())
-        .unwrap_or_default();
-    let name = match image.extension() {
-        Some(extension) => format!("{stem}-backdrop.{}", extension.to_string_lossy()),
-        None => format!("{stem}-backdrop"),
-    };
-    image.with_file_name(name)
-}
 
 /// Write [`backdrop_file`] for `image` unless it already exists (blocking; the service runs it
 /// on its blocking pool right after `ensure_cached`).
@@ -71,6 +58,7 @@ fn blur(source: &RgbaImage) -> RgbaImage {
 
 /// How much the blur shrinks the image first.
 const SHRINK: u32 = 8;
+
 const SHRINK_F: f32 = 8.0;
 
 /// The blur's sigma for an image `width` pixels wide: [`BACKDROP_SIGMA_AT_1920`] scaled.
@@ -83,7 +71,8 @@ fn sigma_for(width: u32) -> f32 {
 mod tests {
     use std::path::{Path, PathBuf};
 
-    use super::{backdrop_file, ensure_backdrop};
+    use super::ensure_backdrop;
+    use sill_model::wallpaper::backdrop_file;
 
     #[test]
     fn the_backdrop_sits_beside_its_image() {

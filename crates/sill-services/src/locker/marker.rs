@@ -1,5 +1,6 @@
 //! Re-locking after a crash: the lock surfaces are the shell's own, and a compositor keeps a
-//! session locked when its locker dies (cosmic-comp does), so a sill that dies while locked leaves a locked, blank session.
+//! session locked when its locker dies (cosmic-comp does), so a sill that dies while locked leaves
+//! a locked, blank session.
 //! `dist/sill-session` restarts `sill run`; the new daemon must then lock again at once so the
 //! person gets a prompt. No protocol lets a client ask whether the session is locked, so the
 //! service keeps a marker file while its own lock is held: written when the lock is `Locked`,

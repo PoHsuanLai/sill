@@ -20,7 +20,7 @@ use dioxus::prelude::*;
 use ds::{BlurState, Ds, Material, RootExtent};
 use shell_host::OutputInfo;
 use sill_model::ids::OutputName;
-use sill_services::{WallpaperImage, Wallpapers};
+use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 
 use crate::hooks::{use_appearance, use_service};
 use crossfade::Layers;

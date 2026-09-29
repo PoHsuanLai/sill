@@ -1,5 +1,6 @@
 //! logind over the system bus: probes `CanSuspend`, `CanReboot` and `CanPowerOff` (and this
-//! session's object for Lock and Log Out), publishes them through [`sill_model::session::step`], and
+//! session's object for Lock and Log Out), publishes them through [`sill_model::session::step`],
+//! and
 //! carries out [`SessionCommand`]s.
 
 use std::sync::Arc;

@@ -20,11 +20,12 @@
 //! `ron` is not in the pinned dependency block, so [`parse_source_path`] reads the one field it
 //! needs by hand rather than deserialising the record: the `source: Path("...")` value, RON's
 //! own string-escaping unquoted. A `source: Color(...)` (or any shape this does not recognise)
-//! answers `None`, which [`resolve_source`] turns into [`crate::wallpaper::WallpaperSource::None`].
+//! answers `None`, which [`resolve_source`] turns into
+//! [`sill_model::wallpaper::WallpaperSource::None`].
 
 use std::path::{Path, PathBuf};
 
-use crate::wallpaper::WallpaperSource;
+use sill_model::wallpaper::WallpaperSource;
 
 /// The file this reads: `all`, cosmic-bg's fallback record for every output.
 const RELATIVE_PATH: &str = "cosmic/com.system76.CosmicBackground/v1/all";

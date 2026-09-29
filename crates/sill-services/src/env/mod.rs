@@ -2,14 +2,6 @@
 //! [`Env::from_process`], a test builds its own. No service reads an environment variable or
 //! other ambient state to decide where to connect.
 
-use std::path::Path;
-use std::sync::Arc;
-
-use crate::auth::PamHelper;
-use crate::idle::IdleTimes;
-use crate::polkit_agent;
-use ddc::{DdcBus, FileBus, I2cBuses};
-
 mod authenticator;
 mod buses;
 pub mod ddc;
@@ -18,6 +10,14 @@ mod processes;
 mod session_actions;
 mod wall_clock;
 mod wayland;
+
+use std::path::Path;
+use std::sync::Arc;
+
+use crate::auth::PamHelper;
+use crate::idle::IdleTimes;
+use crate::polkit_agent;
+use ddc::{DdcBus, FileBus, I2cBuses};
 
 pub use authenticator::{Authenticator, FakeAuthenticator, FakeRule};
 pub use buses::{Bus, BusKind, BusRoute, Buses};

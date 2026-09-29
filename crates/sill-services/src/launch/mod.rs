@@ -15,6 +15,7 @@ mod open;
 mod plan;
 mod run;
 mod terminal;
+
 pub use model::{LaunchOutcome, LaunchedScope, Launches, ScopeUnit, step};
 pub use open::{OpenRequest, open_argv, reveal_folder};
 pub use plan::{launch_argv, scope_unit};

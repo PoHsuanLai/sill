@@ -1,5 +1,6 @@
 //! Running a search program within a budget (`fd`, `plocate`): its output is read on a thread
-//! of its own while this one watches the clock and the query's generation, and the program is killed at the budget with whatever it printed by then.
+//! of its own while this one watches the clock and the query's generation, and the program is
+//! killed at the budget with whatever it printed by then.
 
 use std::ffi::{OsStr, OsString};
 use std::io::Read;

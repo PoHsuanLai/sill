@@ -1,11 +1,10 @@
 //! The lock screen's backdrop: the blurred copy the wallpaper service writes beside each
-//! prepared image (`sill_services::wallpaper::backdrop_file`). Pure.
+//! prepared image (`sill_model::wallpaper::backdrop_file`). Pure.
 
 use std::path::PathBuf;
 
 use sill_model::ids::OutputName;
-use sill_services::Wallpapers;
-use sill_services::wallpaper::backdrop_file;
+use sill_model::wallpaper::{Wallpapers, backdrop_file};
 
 /// The backdrop file for `output` in `scheme`: the blurred copy of that output's prepared light
 /// or dark image; `None` when the output has no prepared image (the surface paints `--paper`).
@@ -29,7 +28,7 @@ mod tests {
     use std::path::PathBuf;
 
     use sill_model::ids::OutputName;
-    use sill_services::{WallpaperImage, Wallpapers};
+    use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 
     use super::backdrop_for;
 

@@ -7,7 +7,7 @@ mod support;
 
 use dioxus::prelude::*;
 use sill_model::ids::OutputName;
-use sill_services::{WallpaperImage, Wallpapers};
+use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_surfaces::Wallpaper;
 use sill_surfaces::surfaces::wallpaper::WallpaperProps;
 use tokio::sync::watch;

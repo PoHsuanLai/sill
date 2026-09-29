@@ -2,7 +2,7 @@
 //! file is never reused.
 
 use std::os::unix::ffi::OsStrExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// The cache directory's name inside `$XDG_CACHE_HOME/sill`.
 pub const CACHE_DIR: &str = "wallpaper";
@@ -31,6 +31,20 @@ pub fn source_hash(path: &Path, len: u64, modified_unix_nanos: u128) -> u64 {
     let hash = fnv1a(FNV_OFFSET_BASIS, path.as_os_str().as_bytes());
     let hash = fnv1a(hash, &len.to_le_bytes());
     fnv1a(hash, &modified_unix_nanos.to_le_bytes())
+}
+
+/// Where the blurred copy of the cached `image` lives: the same directory, `-backdrop` before
+/// the extension (`<hash>-<w>x<h>-backdrop.png`), so it follows the image's own cache key.
+pub fn backdrop_file(image: &Path) -> PathBuf {
+    let stem = image
+        .file_stem()
+        .map(|stem| stem.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let name = match image.extension() {
+        Some(extension) => format!("{stem}-backdrop.{}", extension.to_string_lossy()),
+        None => format!("{stem}-backdrop"),
+    };
+    image.with_file_name(name)
 }
 
 #[cfg(test)]

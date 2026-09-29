@@ -1,4 +1,5 @@
-//! The lock grace (`session.lock_grace_s`): the one pure rule that may open sill's lock screen without a password, and the ticket that carries
+//! The lock grace (`session.lock_grace_s`): the one pure rule that may open sill's lock screen
+//! without a password, and the ticket that carries
 //! its answer to the auth service.
 //!
 //! The rule: `NoPassword` exactly when **all** hold, else `Ask`:

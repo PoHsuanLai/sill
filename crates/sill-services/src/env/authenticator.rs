@@ -1,4 +1,5 @@
-//! The seam between the service and PAM: [`Authenticator`], implemented by [`crate::auth::PamHelper`]
+//! The seam between the service and PAM: [`Authenticator`], implemented by
+//! [`crate::auth::PamHelper`]
 //! (the real one) and [`FakeAuthenticator`] (every test).
 
 use std::fmt;

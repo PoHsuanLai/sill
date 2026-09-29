@@ -6,10 +6,8 @@ use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
 use image::imageops::FilterType;
+use sill_model::wallpaper::{WallpaperSource, cache_file_name, cover_fit, source_hash};
 
-use super::WallpaperSource;
-use super::cache::{cache_file_name, source_hash};
-use super::geometry::cover_fit;
 use crate::error::ServiceError;
 
 /// `path`'s cache entry at `width` x `height` in `cache_dir`, resizing it there first if no
@@ -74,7 +72,7 @@ fn resize_into(source: &Path, width: u32, height: u32, dest: &Path) -> Result<()
 /// The light and dark source paths `source` names, resized into `cache_dir` at `width` x
 /// `height` and cached there. `None` for [`WallpaperSource::None`], or when either resize
 /// fails (a missing file, or a format this crate's `image` build cannot decode — `config.rs`'s
-/// module doc): a partial pair is never published, since [`super::WallpaperImage`] requires
+/// module doc): a partial pair is never published, since [`sill_model::wallpaper::WallpaperImage`] requires
 /// both.
 pub fn prepare(
     source: &WallpaperSource,
@@ -100,7 +98,8 @@ pub fn prepare(
 mod tests {
     use image::{ImageBuffer, Rgba};
 
-    use super::{WallpaperSource, ensure_cached, prepare};
+    use super::{ensure_cached, prepare};
+    use sill_model::wallpaper::WallpaperSource;
 
     /// A 100 x 100 source: a 40 x 40 opaque-red block centred in an opaque-blue field, large
     /// enough (and far enough from every edge) that Lanczos3's ringing near a resize never

@@ -20,14 +20,13 @@
 //! `screenshot.folders` and `screenshot.tool`): a test or a headless render never watches
 //! `~/Pictures` or runs a tool. Tests configure temp folders and a stand-in tool.
 
-pub mod names;
-pub mod reduce;
-pub mod tool;
-
 mod child;
 mod folder_watch;
 mod live;
+pub mod names;
 mod preview;
+pub mod reduce;
+pub mod tool;
 
 pub use names::{ShotName, folders_of, is_screenshot_name, parse_folders, preview_name};
 pub use reduce::{

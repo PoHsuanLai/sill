@@ -5,7 +5,8 @@
 //! `org.mpris.MediaPlayer2.Player`, found by `ListNames` and followed by `NameOwnerChanged`
 //! (the `mpris` crate runs on the `dbus` crate and libdbus). Album art reaches the surface only as
 //! a local file: a `file://` URL is used as it is, an `http(s)://`
-//! one is downloaded once into `$XDG_CACHE_HOME/sill/art/` (`sill_model::now_playing::art_source`), since quire's `IconUrl`
+//! one is downloaded once into `$XDG_CACHE_HOME/sill/art/` (`sill_model::now_playing::art_source`),
+//! since quire's `IconUrl`
 //! takes `file:` and `data:` only.
 
 mod backend;
