@@ -17,9 +17,7 @@ use super::drm;
 use super::font::font_rendering_for;
 use super::fontconfig_file;
 use super::hw_volume::follow;
-use super::model::{
-    Displays, DisplaysCommand, DisplaysEvent, FOLLOW_EVERY_MS, Following, reduce_displays,
-};
+use super::model::{Displays, DisplaysCommand, DisplaysEvent, FOLLOW_EVERY_MS, Following, step};
 use super::output::{DisplayOutput, max_density};
 use super::plan::{
     BrightnessAction, Originals, Probe, brightness_actions, probe_needed, set_brightness_action,
@@ -323,7 +321,7 @@ impl Service {
 
     fn publish(&self, event: DisplaysEvent) {
         self.tx.send_modify(|displays| {
-            *displays = reduce_displays(std::mem::take(displays), event);
+            *displays = step(std::mem::take(displays), event);
         });
     }
 

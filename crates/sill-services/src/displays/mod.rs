@@ -48,9 +48,7 @@ pub use edid::{Edid, Millimetres, Mode, Pixels, Primaries};
 pub use font::{FontRendering, Hinting, font_rendering_for};
 pub use gamut::{Gamut, classify};
 pub use identity::IdentityKey;
-pub use model::{
-    Displays, DisplaysCommand, DisplaysEvent, FOLLOW_EVERY_MS, Following, reduce_displays,
-};
+pub use model::{Displays, DisplaysCommand, DisplaysEvent, FOLLOW_EVERY_MS, Following, step};
 pub use output::DisplayOutput;
 pub use policy::{
     DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, NightWarmth, ScaleMode,
@@ -63,30 +61,34 @@ pub use warmth::warmth_gains;
 
 use std::sync::Arc;
 
-use tokio::runtime::Handle;
 use tokio::sync::watch;
 
-use crate::control::Control;
-use crate::env::{Bus, Dirs};
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 use crate::volume::Volume;
 
-/// Start the displays task on `rt`, following `volume` for the monitor-speaker path, talking DDC
-/// on `ddc`. Until the
-/// first `Policy` command it does nothing at all: no bus probe, no `cosmic-randr`, no file.
-pub fn spawn(
-    rt: &Handle,
-    system: Bus,
-    dirs: &Dirs,
-    ddc: Arc<dyn DdcBus>,
-    volume: watch::Receiver<Volume>,
-) -> (watch::Receiver<Displays>, Control<DisplaysCommand>) {
-    let (tx, rx) = watch::channel(Displays::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(run::run(
-        tx,
-        commands,
-        volume,
-        run::Paths::of(system, dirs, ddc),
-    ));
-    (rx, control)
+/// The displays as a [`Service`], following the volume service (its `Deps`) for the
+/// monitor-speaker path and talking DDC on `env`'s buses. Until the first `Policy` command it does
+/// nothing at all: no bus probe, no `cosmic-randr`, no file.
+#[derive(Debug)]
+pub enum DisplaysService {}
+
+impl Service for DisplaysService {
+    const NAME: &'static str = "displays";
+    type State = Displays;
+    type Command = DisplaysCommand;
+    type Deps = watch::Receiver<Volume>;
+
+    fn run(
+        env: &Env,
+        deps: Self::Deps,
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let paths = run::Paths::of(env.buses.system.clone(), &env.dirs, Arc::clone(&env.ddc));
+        async move {
+            run::run(io.state, io.commands, deps, paths).await;
+            Ok(())
+        }
+    }
 }

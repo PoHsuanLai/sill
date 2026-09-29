@@ -112,7 +112,7 @@ pub enum DisplaysEvent {
 }
 
 /// `displays` after `event`: each source replaces its own part.
-pub fn reduce_displays(displays: Displays, event: DisplaysEvent) -> Displays {
+pub fn step(displays: Displays, event: DisplaysEvent) -> Displays {
     match event {
         DisplaysEvent::Outputs(outputs) => Displays {
             outputs,
@@ -128,7 +128,7 @@ pub fn reduce_displays(displays: Displays, event: DisplaysEvent) -> Displays {
 
 #[cfg(test)]
 mod tests {
-    use super::{Displays, DisplaysEvent, reduce_displays};
+    use super::{Displays, DisplaysEvent, step};
     use crate::cosmic_wl::OutputName;
     use crate::displays::brightness::{Backlight, BacklightKind, BacklightName, BrightnessTarget};
     use crate::displays::ddc::{Controls, DdcDisplay, DdcId, Endpoint, Level};
@@ -162,11 +162,11 @@ mod tests {
 
     #[test]
     fn each_source_replaces_its_own_part() {
-        let with_ddc = reduce_displays(Displays::default(), DisplaysEvent::Ddc(vec![monitor()]));
-        let both = reduce_displays(with_ddc.clone(), DisplaysEvent::Backlights(vec![panel()]));
+        let with_ddc = step(Displays::default(), DisplaysEvent::Ddc(vec![monitor()]));
+        let both = step(with_ddc.clone(), DisplaysEvent::Backlights(vec![panel()]));
         assert_eq!(both.ddc, with_ddc.ddc);
         assert_eq!(both.backlights, vec![panel()]);
-        let cleared = reduce_displays(both, DisplaysEvent::Ddc(Vec::new()));
+        let cleared = step(both, DisplaysEvent::Ddc(Vec::new()));
         assert_eq!(cleared.ddc, vec![]);
         assert_eq!(cleared.backlights, vec![panel()]);
     }

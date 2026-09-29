@@ -129,13 +129,11 @@ impl Services {
         let (network, network_control) =
             parts(spawn::<crate::network::NetworkService>(rt, env, ()));
         let (volume, volume_control) = parts(spawn::<crate::volume::VolumeService>(rt, env, ()));
-        let (displays, displays_control) = crate::displays::spawn(
+        let (displays, displays_control) = parts(spawn::<crate::displays::DisplaysService>(
             rt,
-            system(),
-            &env.dirs,
-            Arc::clone(&env.ddc),
+            env,
             volume.clone(),
-        );
+        ));
         let (tray, tray_control) = parts(spawn::<crate::tray::TrayService>(rt, env, ()));
         let (workspaces, toplevels, wl) = crate::cosmic_wl::spawn(env.wayland.clone());
         let (apps, apps_control) = crate::apps::spawn(rt, &env.dirs);
