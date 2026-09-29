@@ -85,13 +85,14 @@ fn apply_lock(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, wish: crate::lock:
         services,
         settings_feed,
         links,
+        settings,
         ..
     } = shell;
     crate::lock::apply(
         ctx,
         shell_lock,
         wish,
-        || surfaces::lock_factory(services, settings_feed, links),
+        || surfaces::lock_factory(services, settings_feed, links, &settings.borrow()),
         &links.lock,
         outputs,
         services,

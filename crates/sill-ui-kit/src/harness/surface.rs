@@ -16,16 +16,16 @@ use crate::hooks::PinnedAppearance;
 use crate::surface::{MountProps, Surface, mount};
 
 /// Builds the surface's document; the harness's root runs it on every render.
-type Build = Rc<dyn Fn() -> Element>;
+pub(super) type Build = Rc<dyn Fn() -> Element>;
 
 thread_local! {
     /// The document the thread's live harness draws. One harness is live per thread (a test
     /// runs on its own thread), so a second one started while the first is still driven would
     /// replace what the first draws.
-    static WORLD: RefCell<Option<Build>> = const { RefCell::new(None) };
+    pub(super) static WORLD: RefCell<Option<Build>> = const { RefCell::new(None) };
 }
 
-fn app() -> Element {
+pub(super) fn app() -> Element {
     match WORLD.with(|world| world.borrow().clone()) {
         Some(build) => build(),
         None => rsx! {},

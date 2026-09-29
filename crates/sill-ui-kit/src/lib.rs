@@ -36,7 +36,7 @@ pub use surfaces::edit_widgets::EditWidgets;
 pub use surfaces::hot_corners::HotCorners;
 pub use surfaces::idle_dim::IdleDim;
 pub use surfaces::launcher::{Launcher, LauncherCatcher};
-pub use surfaces::lock::LockScreen;
+pub use surfaces::lock::Lock;
 pub use surfaces::notification_center::NotificationCenter;
 pub use surfaces::osd::Osd;
 pub use surfaces::polkit_prompt::PolkitPrompt;

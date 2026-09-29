@@ -2,9 +2,9 @@
 //! `ext-session-lock-v1` surface per output, which shell-host creates when the daemon locks
 //! (`crates/sill/src/lock/`), never a layer surface. Each draws quire's `LockScreen` stage in
 //! `Ds { material: Window, extent: Viewport }`: the output's pre-blurred wallpaper crop
-//! ([`backdrop::backdrop_for`]), quire's `LockClock` ([`view::clock_lines`]) and, on the output
-//! [`crate::links::LockLink`] names, quire's `LockPrompt` ([`view::lock_user`], [`view::prompt_state`],
-//! [`view::caps_lock`]). quire's field holds the text and hands it over only in `onsubmit`, which
+//! ([`backdrop::backdrop_for`]), quire's `LockClock` ([`model::clock_lines`]) and, on the output
+//! [`crate::links::LockLink`] names, quire's `LockPrompt` ([`model::lock_user`], [`model::prompt_state`],
+//! [`model::caps_lock`]). quire's field holds the text and hands it over only in `onsubmit`, which
 //! the surface wraps in a `Secret` at once and sends as `AuthCommand::Submit`; it is never kept
 //! in a signal. Escape (quire's) empties the field.
 //!
@@ -16,26 +16,12 @@
 //! Keyboard: a lock surface always has it (the compositor gives it to one of them); the daemon
 //! moves [`crate::links::LockLink`] to whichever lock surface gains focus, so the prompt is where typing goes.
 
-pub mod backdrop;
-pub mod view;
-
+mod backdrop;
 mod body;
-mod screen;
+mod layer;
+mod model;
+mod surface;
+mod view;
 
-pub use backdrop::backdrop_for;
-pub use view::{ClockLines, caps_lock, clock_lines, lock_user, prompt_state};
-
-use dioxus::prelude::*;
-use shell_host::OutputInfo;
-
-use crate::root::HostModalityBridge;
-
-/// The lock screen on `output`. Needs a [`LockLink`] root context beside the daemon's usual
-/// ones (the daemon's lock factory gives it one) and shell-host's lock handle (shell-host gives
-/// every lock document one).
-#[component]
-pub fn LockScreen(output: OutputInfo) -> Element {
-    rsx! {
-        HostModalityBridge { {screen::lock_screen(output)} }
-    }
-}
+pub use surface::Lock;
+pub use view::LOCK_CSS;

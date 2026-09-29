@@ -1,19 +1,17 @@
-//! The lock surface's SSR render (design/20 §1.9): the clock on
+//! The lock surface (design/20 §1.9) on `LockHarness`: the clock on
 //! every output, the prompt only on the output the `LockLink` names, the prompt's state from the
 //! auth service, the unlock fade's mark on `Accepted`, and the blurred backdrop as the stage's
 //! picture. Outside a lock document (no `LockHandle`), as every test is.
 
-use sill_ui_kit::harness::fake;
+use std::time::Duration;
 
-use dioxus::prelude::*;
 use shell_host::OutputId;
 use sill_model::auth::{Account, Auth, AuthPhase, RealName, UserName};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
-use sill_settings::{SettingsFeed, ShellFile};
-use sill_ui_kit::LockScreen;
+use sill_ui_kit::Lock;
+use sill_ui_kit::harness::{LockHarness, fake};
 use sill_ui_kit::links::{LockLink, PromptOutput};
-use sill_ui_kit::surfaces::lock::LockScreenProps;
 use tokio::sync::watch;
 
 fn ada(phase: AuthPhase) -> Auth {
@@ -29,30 +27,19 @@ fn ada(phase: AuthPhase) -> Auth {
 }
 
 fn render(auth: Auth, prompt: PromptOutput, wallpapers: Wallpapers) -> String {
-    let rt = tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(1)
-        .enable_all()
-        .build()
-        .expect("a runtime builds"); // test-only
-    let _entered = rt.enter();
-    let (mut services, _feeds) = fake::services();
-    let (_auth_tx, auth_rx) = watch::channel(auth);
-    services.auth.state = auth_rx;
-    let (_wallpaper_tx, wallpaper_rx) = watch::channel(wallpapers);
-    services.wallpaper.state = wallpaper_rx;
     let link = LockLink::new();
     link.set(prompt);
-    let mut dom = VirtualDom::new_with_props(
-        LockScreen,
-        LockScreenProps {
-            output: fake::output(),
-        },
-    );
-    dom.provide_root_context(services);
-    dom.provide_root_context(SettingsFeed::fixed(ShellFile::default()));
-    dom.provide_root_context(link);
-    dom.rebuild_in_place();
-    markup_only(&dioxus_ssr::render(&dom))
+    // The senders outlive the render; the services only hold the receivers.
+    let (_auth_tx, auth_rx) = watch::channel(auth);
+    let (_wallpaper_tx, wallpaper_rx) = watch::channel(wallpapers);
+    let mut run = LockHarness::<Lock>::setup(link)
+        .services(move |services| {
+            services.auth.state = auth_rx;
+            services.wallpaper.state = wallpaper_rx;
+        })
+        .start();
+    run.harness.advance(Duration::ZERO);
+    markup_only(&run.harness.html())
 }
 
 /// The markup without its `<style>` blocks (quire's stylesheet names every class).

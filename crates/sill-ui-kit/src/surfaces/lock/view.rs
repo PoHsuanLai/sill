@@ -1,219 +1,103 @@
-//! What the lock screen hands quire's `LockClock` and `LockPrompt`, from the auth service's
-//! state, the keyboard and the clock: pure.
+//! The lock surface's view.
+//!
+//! It draws `Ds { material: Window, extent: Viewport }` holding `ds::LockScreen { wallpaper, clock,
+//! prompt }`: the wallpaper is [`super::backdrop::backdrop_for`] over `use_service::<WallpaperService>()` in
+//! the scheme `use_appearance()` resolves (`ImageSource::file`; `None` lets quire paint its veil
+//! alone); the clock is `ds::LockClock` from [`super::model::clock_lines`] over the minute
+//! (`use_service::<ClockService>()` wakes it) and `session.lock_clock`; the prompt, only on the
+//! output the [`crate::links::LockLink`] names, is `ds::LockPrompt` with [`super::model::lock_user`] over
+//! `use_service::<AuthService>().account`, [`super::model::prompt_state`] over
+//! `use_service::<AuthService>().phase`, the Caps Lock mark from shell-host's `use_modifiers()`
+//! (published on keyboard focus, so a Caps Lock toggled before the lock shows from the first frame;
+//! [`super::model::caps_of`]), and `onsubmit` sending `AuthCommand::Submit(Secret::new(text))` on
+//! the auth service's control (the text is moved into the `Secret` there, never stored or logged).
+//! On `Accepted` it fades and, on the prompt's output, calls `shell_host::use_lock().unlock()` when
+//! the fade settles; `shell_host::use_lock_phase()` saying `Unlocking` first (the daemon's
+//! backstop) skips the fade. A click on a lock surface moves the prompt there (macOS: the prompt
+//! follows the display you click), as the keyboard's focus does (the daemon). Style nothing under
+//! `.ds-lock*`: the fade is sill's own wrapper's.
+//!
+//! Outside a lock document (a test's SSR, a harness) there is no `LockHandle`: the stage draws
+//! the same and the unlock is the daemon's backstop alone.
 
-use dioxus::prelude::Modifiers;
-use ds::{
-    AvatarFace, AvatarShape, AvatarSize, AvatarTone, CapsLock, ImageSource, LockUser, PromptState,
-    UserPicture, person_hue,
-};
-use sill_model::auth::{Account, AuthPhase, AvatarSource, UserName};
-use sill_settings::LockClock;
+use dioxus::prelude::*;
+use ds::{BlurState, CapsLock, Ds, Material, RootExtent};
+use shell_host::{LockHandle, LockPhase, OutputInfo, use_lock, use_lock_phase, use_modifiers};
 
-/// Caps Lock from the modifiers of the last key event the surface saw (a lock surface has the
-/// keyboard, so it sees them; shell-host's `modifiers_from` sets `CAPS_LOCK` from xkb's locked
-/// state). The surface itself follows [`caps_of`], which knows the state before the first key.
-pub fn caps_lock(modifiers: Modifiers) -> CapsLock {
-    if modifiers.contains(Modifiers::CAPS_LOCK) {
-        CapsLock::On
-    } else {
-        CapsLock::Off
+use super::body::{HostLock, LockBody};
+use super::model::caps_of;
+use crate::hooks::{use_appearance, use_ds_scale};
+use crate::root::HostModalityBridge;
+
+/// The lock screen's stylesheet (lint-clean under `Profile::Strict`, `tests/lock_lint.rs`).
+pub const LOCK_CSS: &str = include_str!("../../style/lock.css");
+
+/// Whether this document belongs to a session lock (fixed for a document's life).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Hosted {
+    Yes,
+    No,
+}
+
+pub(super) fn lock(output: OutputInfo) -> Element {
+    let hosted =
+        use_hook(|| try_consume_context::<LockHandle>().map_or(Hosted::No, |_| Hosted::Yes));
+    rsx! {
+        HostModalityBridge {
+            match hosted {
+                Hosted::Yes => rsx! {
+                    HostedStage { output }
+                },
+                Hosted::No => rsx! {
+                    Stage { output, host: HostLock::Holding, caps: CapsLock::Off, on_unlock: None }
+                },
+            }
+        }
     }
 }
 
-/// Caps Lock from shell-host's live modifiers (`use_modifiers()`, published on keyboard focus
-/// and on every change, so it is known before the first key). The surface
-/// uses this; [`caps_lock`] reads a key event's modifiers.
-pub fn caps_of(key: shell_host::LockKey) -> CapsLock {
-    match key {
-        shell_host::LockKey::Locked => CapsLock::On,
-        shell_host::LockKey::Unlocked => CapsLock::Off,
-    }
-}
-
-/// quire's prompt state for `phase`: `Accepted` is quire's `Accepted` (its beat plays before the
-/// unlock), and `Unavailable` is `Idle` (the service's notes are the hint line). quire's
-/// `LockedOut` is never shown: there is no lockout.
-pub fn prompt_state(phase: &AuthPhase) -> PromptState {
-    match phase {
-        AuthPhase::Idle | AuthPhase::Unavailable(_) => PromptState::Idle,
-        AuthPhase::Checking => PromptState::Checking,
-        AuthPhase::Accepted => PromptState::Accepted,
-        AuthPhase::Wrong => PromptState::Wrong,
-    }
-}
-
-/// The person as quire's prompt shows them: the real name (the login name when it is empty),
-/// and their picture ([`picture_of`]).
-pub fn lock_user(account: &Account) -> LockUser {
-    let name = if account.name.0.trim().is_empty() {
-        account.user.0.clone()
-    } else {
-        account.name.0.clone()
+/// The stage inside a session lock's document: it follows the lock's phase and unlocks it.
+#[component]
+fn HostedStage(output: OutputInfo) -> Element {
+    let handle = use_lock();
+    let host = match use_lock_phase()() {
+        LockPhase::Requested | LockPhase::Locked => HostLock::Holding,
+        LockPhase::Unlocking | LockPhase::Unlocked | LockPhase::Finished => HostLock::Ending,
     };
-    let picture = picture_of(account, &name);
-    LockUser::new(name, picture)
-}
-
-/// The person's picture: their photo when the account has one (AccountsService's icon, else
-/// `$HOME/.face`, read by the auth service: `sill_services::auth::avatar_source`), which quire
-/// crops round; else the initial of `name` on their hue, at 64. The one place a picture is
-/// chosen; `session.user_picture` (an emoji, the letter or the photo) is wired through quire's
-/// `resolve_picture` next.
-fn picture_of(account: &Account, name: &str) -> UserPicture {
-    match &account.avatar {
-        AvatarSource::File(path) => ImageSource::file(path).map_or_else(
-            |_| UserPicture::from(face_of(name, &account.user)),
-            UserPicture::Photo,
-        ),
-        AvatarSource::Initials => UserPicture::from(face_of(name, &account.user)),
+    let caps = caps_of(use_modifiers()().caps_lock);
+    let on_unlock = use_callback(move |()| handle.unlock());
+    rsx! {
+        Stage { output, host, caps, on_unlock: Some(on_unlock) }
     }
 }
 
-/// The initial on the person's hue.
-fn face_of(name: &str, user: &UserName) -> AvatarFace {
-    AvatarFace {
-        initial: name
-            .chars()
-            .next()
-            .map_or('?', |first| first.to_uppercase().next().unwrap_or(first)),
-        size: AvatarSize::Size64,
-        tone: AvatarTone::Person(person_hue(&user.0)),
-        shape: AvatarShape::Round,
-    }
-}
-
-/// The clock's two lines, for quire's `LockClock`.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
-pub struct ClockLines {
-    /// `14:05` (`H24`) or `2:05` (`H12`, no AM/PM, macOS's lock screen).
-    pub time: String,
-    /// `Saturday, 26 September` (macOS: the weekday and the date above the time).
-    pub date: String,
-}
-
-/// `now` as the lock screen's clock.
-pub fn clock_lines(now: &jiff::Zoned, format: LockClock) -> ClockLines {
-    ClockLines {
-        time: time_text(now, format),
-        date: format!(
-            "{}, {} {}",
-            now.strftime("%A"),
-            now.day(),
-            now.strftime("%B")
-        ),
-    }
-}
-
-/// The time as the lock clock words it: `14:05`, or `2:05` (no AM/PM).
-fn time_text(at: &jiff::Zoned, format: LockClock) -> String {
-    let hour = at.hour();
-    match format {
-        LockClock::H24 => format!("{hour:02}:{:02}", at.minute()),
-        LockClock::H12 => format!("{}:{:02}", (hour + 11) % 12 + 1, at.minute()),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use dioxus::prelude::Modifiers;
-    use ds::UserPicture;
-    use ds::{CapsLock, PromptState};
-    use sill_model::auth::AuthPhase;
-    use sill_model::auth::{Account, AuthFault, AvatarSource, RealName, UserName};
-    use sill_settings::LockClock;
-
-    use super::{ClockLines, caps_lock, caps_of, clock_lines, lock_user, prompt_state};
-
-    fn at(text: &str) -> jiff::Zoned {
-        text.parse::<jiff::Zoned>()
-            .unwrap_or_else(|e| panic!("{text}: {e}"))
-    }
-
-    #[test]
-    fn caps_lock_from_the_modifiers() {
-        let cases = [
-            (Modifiers::empty(), CapsLock::Off),
-            (Modifiers::SHIFT, CapsLock::Off),
-            (Modifiers::CAPS_LOCK, CapsLock::On),
-            (Modifiers::CAPS_LOCK | Modifiers::SHIFT, CapsLock::On),
-        ];
-        for (modifiers, want) in cases {
-            assert_eq!(caps_lock(modifiers), want, "{modifiers:?}");
-        }
-        assert_eq!(caps_of(shell_host::LockKey::Locked), CapsLock::On);
-        assert_eq!(caps_of(shell_host::LockKey::Unlocked), CapsLock::Off);
-    }
-
-    #[test]
-    fn prompt_states() {
-        let cases = [
-            (AuthPhase::Idle, PromptState::Idle),
-            (AuthPhase::Checking, PromptState::Checking),
-            (AuthPhase::Wrong, PromptState::Wrong),
-            (AuthPhase::Accepted, PromptState::Accepted),
-            (
-                AuthPhase::Unavailable(AuthFault::TimedOut),
-                PromptState::Idle,
-            ),
-        ];
-        for (phase, want) in cases {
-            assert_eq!(prompt_state(&phase), want, "{phase:?}");
-        }
-    }
-
-    #[test]
-    fn the_user_is_named_and_initialled() {
-        let account = |user: &str, name: &str| Account {
-            user: UserName(user.to_owned()),
-            name: RealName(name.to_owned()),
-            ..Account::default()
-        };
-        let ada = lock_user(&account("ada", "Ada Lovelace"));
-        assert_eq!(ada.name, "Ada Lovelace");
-        assert_eq!(crate::surfaces::user_picture::initial_of(&ada), Some('A'));
-        let bob = lock_user(&account("bob", ""));
-        assert_eq!(bob.name, "bob");
-        assert_eq!(crate::surfaces::user_picture::initial_of(&bob), Some('B'));
-        let photo = lock_user(&Account {
-            avatar: AvatarSource::File("/home/ada/.face".into()),
-            ..account("ada", "Ada Lovelace")
-        });
-        assert_eq!(
-            photo.picture,
-            UserPicture::Photo(ds::ImageSource("file:///home/ada/.face".to_owned()))
-        );
-    }
-
-    #[test]
-    fn clock_lines_in_both_formats() {
-        let lines = |time: &str, date: &str| ClockLines {
-            time: time.to_owned(),
-            date: date.to_owned(),
-        };
-        let cases = [
-            (
-                "2026-09-26T14:05:00+08:00[Asia/Taipei]",
-                LockClock::H24,
-                lines("14:05", "Saturday, 26 September"),
-            ),
-            (
-                "2026-09-26T14:05:00+08:00[Asia/Taipei]",
-                LockClock::H12,
-                lines("2:05", "Saturday, 26 September"),
-            ),
-            (
-                "2026-01-01T00:07:00+00:00[UTC]",
-                LockClock::H12,
-                lines("12:07", "Thursday, 1 January"),
-            ),
-            (
-                "2026-01-01T09:07:00+00:00[UTC]",
-                LockClock::H24,
-                lines("09:07", "Thursday, 1 January"),
-            ),
-        ];
-        for (text, format, want) in cases {
-            assert_eq!(clock_lines(&at(text), format), want, "{text} {format:?}");
+/// The `Ds` root; everything that needs quire's environment is [`LockBody`].
+#[component]
+fn Stage(
+    output: OutputInfo,
+    host: HostLock,
+    caps: CapsLock,
+    on_unlock: Option<Callback<()>>,
+) -> Element {
+    let ds_scale = use_ds_scale();
+    let environment = use_appearance()();
+    let appearance = environment.settings.appearance.appearance();
+    let scheme = ds::resolve(
+        appearance,
+        ds::SpaceLook::default().theme,
+        environment.system,
+    )
+    .scheme;
+    rsx! {
+        Ds {
+            scale: ds_scale,
+            appearance,
+            system: environment.system,
+            material: Material::Window,
+            extent: RootExtent::Viewport,
+            blur: BlurState::Unavailable,
+            style { {LOCK_CSS} }
+            LockBody { output, scheme, host, caps, on_unlock }
         }
     }
 }

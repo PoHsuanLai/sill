@@ -10,8 +10,8 @@ use sill_model::wallpaper::WallpaperCommand;
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
-use sill_ui_kit::surface::Surface;
-use sill_ui_kit::{HotCorners, IdleDim, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
+use sill_ui_kit::surface::{LockSurface, MountLockProps, Surface, mount_lock};
+use sill_ui_kit::{HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
@@ -286,23 +286,26 @@ pub(crate) fn surface_root(
         .context(links.widgets_writer.clone())
 }
 
-/// Each output's lock surface for shell-host's session lock: `LockScreen` with the
+/// Each output's lock surface for shell-host's session lock: `Lock`'s root with the
 /// daemon's usual contexts, which include the lock prompt's link.
 pub(crate) fn lock_factory(
     services: &Services,
     settings_feed: &SettingsFeed,
     links: &Links,
+    settings: &ShellFile,
 ) -> crate::lock::host::LockFactory {
     let services = services.clone();
     let settings_feed = settings_feed.clone();
     let links = links.clone();
-    crate::lock::host::LockFactory(Box::new(move |info: OutputInfo| {
-        let props = sill_ui_kit::surfaces::lock::LockScreenProps { output: info };
-        surface_root(
-            HostRoot::with_props(sill_ui_kit::LockScreen, props),
-            &services,
-            &settings_feed,
-            &links,
-        )
-    }))
+    crate::lock::host::LockFactory {
+        config: Lock::config(settings),
+        build: Box::new(move |info: OutputInfo| {
+            surface_root(
+                HostRoot::with_props(mount_lock::<Lock>, MountLockProps::new(info)),
+                &services,
+                &settings_feed,
+                &links,
+            )
+        }),
+    }
 }

@@ -12,7 +12,7 @@ mod mount;
 mod place;
 mod start;
 
-pub use lock::LockSurface;
+pub use lock::{LockSurface, MountLockProps, mount_lock};
 pub use mount::{MountProps, mount};
 pub use place::{OutputRank, Place};
 pub use start::Start;

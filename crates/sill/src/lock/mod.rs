@@ -6,7 +6,7 @@
 //! that died locked) steps the locker service to `Locking`;
 //! [`spawn_follower`] sees [`LockWish::Held`] and sends `ShellMsg::Lock`; [`apply`] resets the
 //! auth service, points the [`LockLink`] at the main display and locks with a
-//! [`host::LockFactory`] of `LockScreen`s; `HostEvent::Lock(Locked)` becomes
+//! [`host::LockFactory`] of `Lock` surfaces; `HostEvent::Lock(Locked)` becomes
 //! `LockerCommand::Shell(Locked)` ([`on_host_event`]). A right password makes the auth service
 //! `Accepted`: every lock surface plays its fade, and the prompt's surface calls
 //! `shell_host::use_lock().unlock()` when its fade settles (shell-host sends `unlock_and_destroy`

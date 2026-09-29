@@ -16,12 +16,12 @@ use sill_model::polkit_agent::{
 };
 use sill_model::session::Session;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
-use sill_ui_kit::harness::{SurfaceHarness, fake};
+use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
-    BannerLink, BannerOutput, Dir, LevelSource, OsdKind, OsdLink, PowerMenuLink, Preselect,
-    SwitcherAsk, SwitcherLink,
+    BannerLink, BannerOutput, Dir, LevelSource, LockLink, OsdKind, OsdLink, PowerMenuLink,
+    Preselect, PromptOutput, SwitcherAsk, SwitcherLink,
 };
-use sill_ui_kit::{IdleDim, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
+use sill_ui_kit::{IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
 struct SurfaceCase {
@@ -42,6 +42,11 @@ const SURFACES: &[SurfaceCase] = &[
         name: "idle_dim",
         css: "",
         states: idle_dim_states,
+    },
+    SurfaceCase {
+        name: "lock",
+        css: sill_ui_kit::surfaces::lock::LOCK_CSS,
+        states: lock_states,
     },
     SurfaceCase {
         name: "hot_corners",
@@ -199,6 +204,28 @@ fn polkit_prompt_states() -> Vec<(&'static str, String)> {
     let shown = prompt.harness.html();
     assert!(shown.contains("ds-polkit"), "{shown}");
     vec![("hidden", hidden), ("shown", shown)]
+
+}
+
+/// The lock screen with the prompt on its output, then on another one (the clock alone).
+fn lock_states() -> Vec<(&'static str, String)> {
+    let draw = |prompt| {
+        let link = LockLink::new();
+        link.set(prompt);
+        let mut lock = LockHarness::<Lock>::setup(link).start();
+        lock.harness.advance(Duration::ZERO);
+        lock.harness.html()
+    };
+    // The document carries quire's stylesheet, which names every class; the markup follows it.
+    let drawn = |html: &str| {
+        html.rsplit_once("</style>")
+            .map_or(0, |(_, markup)| markup.matches("ds-lock-prompt").count())
+    };
+    let prompt = draw(PromptOutput::On(fake::output().id));
+    assert!(drawn(&prompt) > 0, "{prompt}");
+    let clock = draw(PromptOutput::Nowhere);
+    assert_eq!(drawn(&clock), 0, "{clock}");
+    vec![("prompt", prompt), ("clock", clock)]
 }
 
 #[test]

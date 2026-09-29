@@ -60,7 +60,10 @@ fn outputs() -> Outputs {
 }
 
 fn never_built() -> LockFactory {
-    LockFactory(Box::new(|_| panic!("the fake host builds no surface")))
+    LockFactory {
+        config: shell_host::LockConfig::default(),
+        build: Box::new(|_| panic!("the fake host builds no surface")),
+    }
 }
 
 /// A folder of this test's own, removed when dropped.

@@ -1,5 +1,8 @@
 //! The session lock's surface: one document per output, made by shell-host's session lock.
 
+use std::fmt;
+use std::marker::PhantomData;
+
 use dioxus::prelude::Element;
 use shell_host::{LockConfig, OutputInfo};
 use sill_settings::ShellFile;
@@ -14,4 +17,42 @@ pub trait LockSurface: 'static {
     fn config(settings: &ShellFile) -> LockConfig;
     /// The document on `output`; it runs as a root component, so it may call hooks.
     fn root(output: OutputInfo) -> Element;
+}
+
+/// What [`mount_lock`] is given: the output whose lock surface it draws.
+pub struct MountLockProps<S: LockSurface> {
+    pub output: OutputInfo,
+    surface: PhantomData<fn() -> S>,
+}
+
+impl<S: LockSurface> MountLockProps<S> {
+    /// The props for the lock surface of `S` on `output`.
+    pub fn new(output: OutputInfo) -> MountLockProps<S> {
+        MountLockProps {
+            output,
+            surface: PhantomData,
+        }
+    }
+}
+
+// By hand: a derive would ask `S` itself to be `Clone`.
+impl<S: LockSurface> Clone for MountLockProps<S> {
+    fn clone(&self) -> Self {
+        MountLockProps::new(self.output.clone())
+    }
+}
+
+// By hand: a derive would ask `S` itself to be `Debug`.
+impl<S: LockSurface> fmt::Debug for MountLockProps<S> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MountLockProps")
+            .field("surface", &S::NAME)
+            .field("output", &self.output)
+            .finish()
+    }
+}
+
+/// The root component of a lock surface `S`: its `root`, in the component's scope.
+pub fn mount_lock<S: LockSurface>(props: MountLockProps<S>) -> Element {
+    S::root(props.output)
 }

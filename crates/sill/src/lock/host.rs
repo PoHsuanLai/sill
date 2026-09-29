@@ -18,13 +18,12 @@ use shell_host::{
 
 use crate::daemon::msg::ShellMsg;
 
-/// The lock surfaces' name prefix: each is `sill-lock/<output>` (shell-host's naming), which
-/// `sill debug capture` and `debug stats` address.
-pub const LOCK_NAMESPACE: &str = "sill-lock";
-
-/// Builds each output's lock surface root (the daemon's `surface_root` around
-/// `sill_ui_kit::LockScreen`).
-pub struct LockFactory(pub Box<dyn Fn(OutputInfo) -> HostRoot>);
+/// How a session lock is taken: shell-host's setup (from `Lock::config`) and what builds each
+/// output's lock surface root (the daemon's `surface_root` around `mount_lock::<Lock>`).
+pub struct LockFactory {
+    pub config: LockConfig,
+    pub build: Box<dyn Fn(OutputInfo) -> HostRoot>,
+}
 
 impl fmt::Debug for LockFactory {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -54,10 +53,7 @@ pub trait SessionLockHost {
 
 impl SessionLockHost for HostCtx<ShellMsg> {
     fn lock_session(&mut self, factory: LockFactory) -> Result<LockId, LockRefusal> {
-        let config = LockConfig {
-            namespace: LOCK_NAMESPACE.to_owned(),
-        };
-        let LockFactory(build) = factory;
+        let LockFactory { config, build } = factory;
         HostCtx::lock_session(self, config, build).map_err(refusal_of)
     }
 
