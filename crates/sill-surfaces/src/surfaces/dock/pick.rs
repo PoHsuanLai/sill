@@ -4,8 +4,8 @@
 
 use sill_launcher::{AppId, DesktopAction, WindowKey};
 use sill_model::cosmic_wl::WlCommand;
+use sill_model::launch::LaunchCommand;
 use sill_model::pins::{PinAt, PinEvent};
-use sill_services::LaunchCommand;
 
 /// One context menu action (design/10 §10.3.7).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -82,8 +82,8 @@ mod tests {
     use super::{DockCommand, DockPick, pick_commands};
     use sill_launcher::{AppId, DesktopAction, WindowKey};
     use sill_model::cosmic_wl::WlCommand;
+    use sill_model::launch::LaunchCommand;
     use sill_model::pins::{PinAt, PinEvent};
-    use sill_services::LaunchCommand;
 
     #[test]
     fn each_pick_becomes_its_commands() {

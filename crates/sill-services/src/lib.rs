@@ -66,9 +66,7 @@ pub use error::ServiceError;
 pub use events::{Agenda, CalEvent, EventTime, EventsCommand, EventsService, SourceStatus};
 pub use idle::{IdleLinks, IdleService};
 pub use kbd_backlight::KbdBacklightService;
-pub use launch::{
-    LaunchCommand, LaunchOutcome, LaunchRequest, LaunchService, LaunchedScope, Launches, ScopeUnit,
-};
+pub use launch::LaunchService;
 pub use locker::LockerService;
 pub use magnify::{Layout, MagnifyParams, TileBox, magnify, rest_centers, sizes, zoom};
 pub use network::NetworkService;

@@ -3,7 +3,7 @@
 
 use sill_launcher::{AppId, DesktopAction, WindowKey};
 use sill_model::cosmic_wl::WlCommand;
-use sill_services::{LaunchCommand, LaunchRequest};
+use sill_model::launch::{LaunchCommand, LaunchRequest};
 
 /// One bar menu action.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -54,7 +54,7 @@ mod tests {
     use super::{BarPick, Command, commands};
     use sill_launcher::WindowKey;
     use sill_model::cosmic_wl::WlCommand;
-    use sill_services::LaunchCommand;
+    use sill_model::launch::LaunchCommand;
 
     #[test]
     fn each_pick_becomes_its_commands() {

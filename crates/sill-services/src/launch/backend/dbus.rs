@@ -3,12 +3,12 @@
 
 use std::collections::HashMap;
 
+use sill_model::apps::App;
+use sill_model::launch::LaunchRequest;
 use zbus::Connection;
 use zbus::zvariant::Value;
 
-use crate::launch::LaunchRequest;
 use crate::providers::files::tracker::file_uri;
-use sill_model::apps::App;
 
 /// `org.freedesktop.Application.Activate` on the bus name `app.id`, object path derived from it
 /// (GApplication's own convention: each `.` becomes `/`, each `-` becomes `_`, prefixed with

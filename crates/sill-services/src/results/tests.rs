@@ -280,9 +280,9 @@ async fn next<T>(rx: &mut tokio::sync::mpsc::UnboundedReceiver<T>) -> Option<T> 
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_chosen_row_focuses_closes_or_launches_through_its_service() {
-    use crate::launch::{LaunchCommand, LaunchRequest};
     use sill_launcher::{ActionId, AppId, DesktopAction, WindowKey};
     use sill_model::cosmic_wl::WlCommand;
+    use sill_model::launch::{LaunchCommand, LaunchRequest};
 
     let dir = TempDir::new("runner-activate");
     let windows = Fake::new(ProviderKind::Windows).first(&[("7", 800)]);

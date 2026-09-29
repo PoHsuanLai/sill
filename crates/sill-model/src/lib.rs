@@ -16,6 +16,7 @@ pub mod displays;
 pub mod idle;
 pub mod ids;
 pub mod kbd_backlight;
+pub mod launch;
 pub mod locker;
 pub mod network;
 pub mod now_playing;

@@ -3,7 +3,8 @@
 
 use shell_host::SurfaceHandle;
 use sill_launcher::{AppId, DesktopAction};
-use sill_services::{Control, LaunchCommand, LaunchRequest, ServiceError};
+use sill_model::launch::{LaunchCommand, LaunchRequest};
+use sill_services::{Control, ServiceError};
 
 /// Launch `app` (its `action`) from `surface`, with a fresh activation token when the
 /// compositor grants one. Dropped files and URIs are the dock and launcher's own concern

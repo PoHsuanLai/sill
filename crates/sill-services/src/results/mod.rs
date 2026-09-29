@@ -36,12 +36,12 @@ use crate::clipboard::Clipboard;
 use crate::control::Control;
 use crate::env::Env;
 use crate::error::ServiceError;
-use crate::launch::LaunchCommand;
 use crate::service::{Service, ServiceIo};
 use effect::Outlets;
 use history::{History, Persist};
 use sill_model::apps::AppIndex;
 use sill_model::cosmic_wl::{CosmicWl, WlCommand};
+use sill_model::launch::LaunchCommand;
 
 /// What the search can be told.
 #[derive(Debug, Clone, PartialEq, Eq)]

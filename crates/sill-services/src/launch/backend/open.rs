@@ -19,29 +19,20 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, OpenTarget};
+use sill_model::launch::{OpenRequest, ScopeUnit, scope_unit};
 
 use super::Reach;
-use super::model::ScopeUnit;
-use super::plan::scope_unit;
 use crate::env::Bus;
 use crate::providers::files::bus::{NameState, name_state};
 use crate::providers::files::tracker::file_uri;
 
 const FILE_MANAGER: &str = "org.freedesktop.FileManager1";
+
 const FILE_MANAGER_PATH: &str = "/org/freedesktop/FileManager1";
 
 /// Tells one open's scope from the next within this process.
 static OPENS: AtomicU32 = AtomicU32::new(0);
-
-/// One open.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct OpenRequest {
-    pub target: OpenTarget,
-    /// The xdg-activation token the launcher's surface got before it hid.
-    pub token: Option<String>,
-}
 
 /// The argument vector that opens `target` with the default handler (`xdg-open`, then the
 /// path, the folder for a reveal, or the address), before the scope wrapper.
@@ -65,7 +56,7 @@ pub fn reveal_folder(path: &Path) -> PathBuf {
 
 /// Carry out `request`: a reveal through the file manager when one is on the bus, else (and
 /// for a file or an address) `xdg-open`.
-pub(super) async fn open(setup: &Reach, request: OpenRequest) {
+pub(crate) async fn open(setup: &Reach, request: OpenRequest) {
     let token = request.token.as_deref();
     if let OpenTarget::Reveal(path) = &request.target
         && show_items(&setup.session, path, token).await == Shown::Yes
@@ -90,7 +81,7 @@ enum Shown {
 
 /// Whether the user's systemd manager can be asked for a scope (shared with `run.rs`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Manager {
+pub(crate) enum Manager {
     Reachable,
     Missing,
 }
@@ -139,7 +130,7 @@ fn asks_file_manager(state: NameState) -> Shown {
 /// Whether the user's systemd manager is reachable: `systemd-run --user` connects to
 /// `$XDG_RUNTIME_DIR/systemd/private`, and without it exits 1 as the command it wraps might,
 /// so the failure could not be told apart afterwards.
-pub(super) fn user_manager(runtime: Option<&Path>) -> Manager {
+pub(crate) fn user_manager(runtime: Option<&Path>) -> Manager {
     let socket = runtime.map(|dir| dir.join("systemd/private"));
     match socket {
         Some(socket) if socket.exists() => Manager::Reachable,
@@ -213,8 +204,8 @@ mod tests {
     use sill_launcher::OpenTarget;
 
     use super::{Shown, Wrapper, asks_file_manager, open_argv, reveal_folder, wrapped};
-    use crate::launch::model::ScopeUnit;
     use crate::providers::files::bus::NameState;
+    use sill_model::launch::ScopeUnit;
 
     #[test]
     fn every_target_opens_with_xdg_open() {

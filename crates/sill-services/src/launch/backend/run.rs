@@ -1,21 +1,21 @@
 //! The launch task: one `LaunchCommand` at a time, D-Bus activation or a transient
 //! `systemd-run --user --scope`, tracked through [`step`] until the scope exits.
 
+use sill_launcher::AppId;
+use sill_model::apps::{App, AppIndex, DbusActivation};
+use sill_model::launch::{
+    LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches, ScopeUnit, launch_argv,
+    scope_unit, step,
+};
 use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
 
-use crate::env::Bus;
-use crate::launch::model::{LaunchOutcome, LaunchedScope, Launches, ScopeUnit, step};
-use crate::launch::plan::{launch_argv, scope_unit};
-use crate::launch::{LaunchCommand, LaunchRequest, Reach};
-use sill_launcher::AppId;
-use sill_model::apps::{App, AppIndex, DbusActivation};
-
-use super::dbus;
 use super::open::{Manager, user_manager};
+use super::{Reach, dbus};
+use crate::env::Bus;
 
 /// Run until `commands` closes (the `Control` was dropped).
-pub(super) async fn run(
+pub(crate) async fn run(
     setup: Reach,
     apps: watch::Receiver<AppIndex>,
     tx: watch::Sender<Launches>,

@@ -5,7 +5,8 @@
 use dioxus::prelude::*;
 use ds::{Button, ButtonVariant};
 use sill_launcher::{AppId, DesktopAction};
-use sill_services::{LaunchCommand, LaunchRequest, LaunchService};
+use sill_model::launch::{LaunchCommand, LaunchRequest};
+use sill_services::LaunchService;
 
 use crate::hooks::use_control;
 

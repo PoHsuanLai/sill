@@ -13,7 +13,7 @@ use launcher_harness::launcher_support::{self, FIREFOX_WINDOW};
 use launcher_harness::{is_open, open, selected_title, settle};
 use sill_launcher::WindowKey;
 use sill_model::cosmic_wl::WlCommand;
-use sill_services::LaunchCommand;
+use sill_model::launch::LaunchCommand;
 use sill_surfaces::surfaces::launcher::LauncherKey;
 
 /// The selected row (attribute selectors need the namespace wildcard on Blitz).

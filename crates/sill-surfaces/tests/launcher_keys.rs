@@ -96,7 +96,7 @@ fn enter_on_the_top_hit_launches_it() {
     let link = open.link.clone();
     settle(&mut open.harness, |_| !is_open(&link));
     match open.feeds.bar.launch.try_recv() {
-        Ok(sill_services::LaunchCommand::Launch(request)) => {
+        Ok(sill_model::launch::LaunchCommand::Launch(request)) => {
             assert_eq!(request.app.0, launcher_support::FIREFOX);
         }
         other => panic!("no launch: {other:?}"),

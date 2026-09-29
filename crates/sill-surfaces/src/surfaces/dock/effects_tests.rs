@@ -9,8 +9,8 @@ use sill_model::apps::{
     App, AppIcon, AppIndex, DbusActivation, DesktopActionEntry, Listing, Terminal,
 };
 use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
+use sill_model::launch::LaunchCommand;
 use sill_model::pins::{DockPins, PinAt, PinEvent};
-use sill_services::LaunchCommand;
 use std::path::PathBuf;
 
 fn app(id: &str, actions: &[&str]) -> App {

@@ -11,7 +11,8 @@ use ds::ShortcutKey;
 use launcher_harness::launcher_support::m9;
 use launcher_harness::{Open, is_open, open, settle};
 use sill_launcher::{OpenTarget, PreviewKind};
-use sill_services::{LaunchCommand, SearchCommand};
+use sill_model::launch::LaunchCommand;
+use sill_services::SearchCommand;
 use sill_surfaces::surfaces::launcher::debug_link::{LinkKey, ShownRows};
 
 fn rows(open: &Open) -> ShownRows {

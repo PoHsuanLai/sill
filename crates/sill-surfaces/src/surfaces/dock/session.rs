@@ -10,8 +10,9 @@ use dioxus::prelude::*;
 use shell_host::{FrameDrive, Root, SurfaceHandle};
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::badges::Badges;
+use sill_model::launch::{LaunchCommand, LaunchRequest};
 use sill_model::units::Stamp;
-use sill_services::{LaunchCommand, LaunchRequest, Services};
+use sill_services::Services;
 use sill_settings::DockMenuOrder;
 use tokio::sync::mpsc;
 
