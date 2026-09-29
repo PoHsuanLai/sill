@@ -15,8 +15,7 @@
 #      of its drop shadow, alpha about 10; an opaque ground would be 255);
 #   5. a screenshot with the control center open, dev/out/bar.png (reviewed by eye).
 #
-# The fuller `dev/accept-bar.sh` (daemon-owned) runs the same steps through `sill` once the
-# daemon lands. Logs and the result JSON: target/accept-bar-ui/. Exit 0 only when 1-4 pass.
+# The fuller `dev/accept-bar.sh` runs the same steps through the daemon. Logs and the result JSON: target/accept-bar-ui/. Exit 0 only when 1-4 pass.
 #
 # Usage: dev/accept-bar-ui.sh            (nested KWin: every step; screenshot dev/out/bar.png)
 #        dev/accept-bar-ui.sh cosmic     (the running nested cosmic-comp, dev/nested.sh: steps 3-4

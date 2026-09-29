@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-# Milestone 1 acceptance for the bar (plan: "`accept-bar.sh` (exclusive zone, idle 0 frames,
-# menus open/dismiss)"). M1 daemon fills every step it can without the bar component (ping,
-# quit, single instance, IPC timeout, reload); the bar-specific steps stay `exit 2` naming
-# bar-ui, which owns them.
-# Exit 0 only when every step passed; a step not filled yet exits 2, never 0.
+# The bar's acceptance: the daemon's basics (ping, single instance, reload, IPC latency, quit)
+# and the bar's own (exclusive zone, idle 0 frames, menus open and dismiss, the clock).
+# Exit 0 only when every step passed.
 #
 # Usage: dev/nested.sh && dev/accept-bar.sh [OUTPUT]      (OUTPUT defaults to the first one)
 #

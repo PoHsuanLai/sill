@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The launcher's Documents (M9 lane a, FINDINGS "The M9 fill-in"), on the nested cosmic-comp
+# The launcher's Documents, on the nested cosmic-comp
 # (dev/nested.sh; wayland-1 is pinged first, reused, and never stopped).
 #
 # Nothing here reads the person's files, index or settings, or opens anything in their apps.
@@ -173,15 +173,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# `sill debug launcher-rows` after opening the launcher on $1: "pending" while lane d has not
-# filled it, else the rows.
+# `sill debug launcher-rows` after opening the launcher on $1.
 daemon_rows() {
   sill launcher open --query "$1" >/dev/null 2>&1
   sleep 1
   local rows
   rows=$(sill debug launcher-rows 2>&1)
   sill launcher close >/dev/null 2>&1
-  case "$rows" in *"not filled yet"*) echo pending ;; *) echo "$rows" ;; esac
+  echo "$rows"
 }
 
 # The count of lines of $2 matching $1.
@@ -202,10 +201,6 @@ step1() {
   fi
   local rows under
   rows=$(daemon_rows m9-rep)
-  if [ "$rows" = pending ]; then
-    pending 1 "the daemon's launcher-rows is not filled yet (M9 lane d)"
-    return
-  fi
   under=$(section_of m9-report.pdf <<<"$rows")
   case "$under" in
     "Top Hit" | Documents) pass 1 "the daemon lists m9-report.pdf under $under" ;;
@@ -315,10 +310,6 @@ step4() {
   sill reload >/dev/null 2>&1
   local rows held
   rows=$(daemon_rows m9-rep)
-  if [ "$rows" = pending ]; then
-    pending 4 "the daemon's launcher-rows is not filled yet (M9 lane d)"
-    return
-  fi
   held=$(file_rows <<<"$rows")
   case "$held" in
     none) pass 4 "after reload no file row anywhere (Top Hit included), no Documents section" ;;

@@ -1,21 +1,14 @@
 #!/usr/bin/env bash
-# Milestone 4 acceptance for the launcher (plan: "`dev/accept-launcher.sh` gates p95 < 100 ms
-# over 20 toggles"), on the nested cosmic-comp (dev/nested.sh; a running `wayland-1` is reused
+# Launcher acceptance (p95 < 100 ms over 20 toggles), on the nested cosmic-comp (dev/nested.sh; a running `wayland-1` is reused
 # and never stopped). Starts `sill run --features debug` from this checkout with a scratch
 # `XDG_CONFIG_HOME`, so nothing it does touches the real `~/.config/sill`, and quits it at the
 # end.
 #
-#   1. 20 `sill launcher toggle` round trips. Every one is timed on the daemon's own side
-#      regardless of what `Request::Launcher` does with it (`crates/sill/src/daemon.rs`'s
-#      `launcher.open_latency_ms` line, M4 perf-ime; FINDINGS.md "M4 perf-ime"), so this step
-#      runs for real today even though M4 launcher-ui has not landed: it measures IPC-only
-#      overhead now (a stub), and will measure real open latency, unchanged, once the launcher
-#      spawns and shows a panel for that same request. Asserts p95 < 100 ms; prints p50/p95/max.
+#   1. 20 `sill launcher toggle` round trips, each timed on the daemon's own side
+#      (`crates/sill/src/daemon.rs`'s `launcher.open_latency_ms` line). Asserts p95 < 100 ms;
+#      prints p50/p95/max.
 #   2. The panel exists after a toggle (`sill debug capture <launcher panel>`), and after the
-#      closing toggle, 5 s idle adds 0 frames to every launcher surface. Exits 2, naming "M4
-#      launcher-ui", while no `sill-launcher-*` surface is in `sill debug stats` (true until
-#      that wave lands; re-checked here rather than assumed, so this step starts passing for
-#      real the moment it does).
+#      closing toggle, 5 s idle adds 0 frames to every launcher surface.
 #   3. The nested `custom` shortcut Ctrl+Alt+Space (seeded by shell-host's own
 #      `scripts/dev/xdg-config`, already loaded when the running `cosmic-comp` started) sends
 #      `Spawn("sill launcher toggle")`. Exercised through `wtype` (present on this machine) or
@@ -24,11 +17,9 @@
 #      distinguished here (`comp.log` logs neither): `cosmic-comp`'s `Spawn` resolves `sill` on
 #      ITS OWN inherited `PATH`, fixed when `dev/nested.sh` started it, before this script ever
 #      built one; or a `wtype`-injected key (the virtual-keyboard protocol) never reaches
-#      `cosmic-comp`'s global-shortcut matcher the way a real keyboard's does. See FINDINGS.md
-#      "M4 perf-ime".
+#      `cosmic-comp`'s global-shortcut matcher the way a real keyboard's does.
 #
-# Exit 0 only when every step passed; a launcher-dependent step not yet reachable exits 2 (never
-# 0), same convention as `dev/accept-bar.sh`'s early steps.
+# Exit 0 only when every step passed; a skipped step exits 2 (never 0).
 #
 # Usage: dev/nested.sh && dev/accept-launcher.sh
 set -uo pipefail
@@ -107,9 +98,7 @@ step_toggle_latency() {
   : >"$log"
   before=$(open_latencies | wc -l)
   for _ in $(seq "$TOGGLES"); do
-    # `launcher toggle` answers `Failed(Unsupported)` until M4 launcher-ui lands (`daemon.rs`'s
-    # `dispatch_launcher`), which is a nonzero client exit — expected, and irrelevant to this
-    # step: the daemon times and logs the round trip before it even looks at the request.
+    # The daemon times and logs the round trip before it even looks at the request.
     sill launcher toggle >>"$log" 2>&1 || true
   done
   after=$(open_latencies | wc -l)
@@ -140,8 +129,8 @@ step_panel_and_idle() {
   sill launcher toggle >>"$log" 2>&1 || true
   surface=$(launcher_counters | awk 'NR==1 {print $1}')
   if [ -z "$surface" ]; then
-    echo "no sill-launcher-* surface in 'sill debug stats' yet (M4 launcher-ui)" | tee -a "$log" >&2
-    return 2
+    echo "no sill-launcher-* surface in 'sill debug stats'" | tee -a "$log" >&2
+    return 1
   fi
   sill debug capture "$surface" "$OUT_DIR/panel.png" >>"$log" 2>&1 || {
     echo "the launcher surface is listed but would not capture" >&2

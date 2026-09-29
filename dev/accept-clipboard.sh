@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Clipboard history acceptance (M9 lane b; FINDINGS "M9 freeze" F647, "M9 lane b"), on the nested
+# Clipboard history acceptance, on the nested
 # cosmic-comp (dev/nested.sh; a running wayland-1 is pinged first, reused and never stopped).
 # Starts `sill run` from this checkout's debug build (`--features debug`) with a scratch
 # XDG_CONFIG_HOME and XDG_STATE_HOME, under a private session bus (dev/private-bus.conf), with
@@ -13,16 +13,14 @@
 #   2. `wl-copy` of a made-up string: 1 entry.
 #   3. `secret_source` (text marked with x-kde-passwordManagerHint) takes the selection: still 1.
 #   4. `sill launcher open --query lantern`: one clipboard row (`sill debug launcher-rows`),
-#      under Top Hit (a single match, never repeated below it: F645, G272) or Clipboard;
+#      under Top Hit (a single match, never repeated below it) or Clipboard;
 #      `launcher-key down` onto it (the emoji 🏮 can be the Top Hit for "lantern"),
-#      `sill debug launcher-key enter`, then `wl-paste` answers the string. The rows and keys
-#      are lane d's; until they answer, the step reports PENDING (exit 2), never PASS.
+#      `sill debug launcher-key enter`, then `wl-paste` answers the string.
 #   5. `launcher.clipboard_history = "off"`, `sill reload`: off, not_connected, 0 entries.
 #   6. Back on (the nested selection cleared first: turning history on keeps the selection
 #      there is), two copies, `sill clipboard clear`: 0 entries.
 #
-# Exit 0 when every step passed, 2 when the only ones not passed are pending on another lane,
-# 1 on a failure.
+# Exit 0 when every step passed, 1 on a failure.
 #
 # Usage: dev/nested.sh && dev/accept-clipboard.sh
 set -uo pipefail
@@ -169,11 +167,6 @@ step_launcher() {
   sill launcher open --query "$WORD" >/dev/null 2>&1 || { echo "launcher open failed" >&2; return 1; }
   sleep 0.5
   sill debug launcher-rows >"$rows" 2>&1
-  if grep -q "not filled yet" "$rows"; then
-    echo "launcher rows are lane d's and not filled yet" >&2
-    sill launcher close >/dev/null 2>&1
-    return 2
-  fi
   local at
   at=$(clip_row "$rows") || return 1
   # Enter runs the selected row: another provider's row (the emoji 🏮 for "lantern") may be the
@@ -236,7 +229,6 @@ for step in step_status step_copy step_secret step_launcher step_off step_clear;
   code=$?
   case "$code" in
     0) echo "PASS $step" ;;
-    2) echo "PENDING $step"; [ "$status" = 1 ] || status=2 ;;
     *) echo "FAIL $step"; status=1 ;;
   esac
 done
