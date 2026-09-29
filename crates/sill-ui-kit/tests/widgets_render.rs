@@ -16,9 +16,10 @@ use ds::{Ds, Material, RootExtent};
 use ds_native::harness::settle_until;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_model::now_playing::{MediaCommand, MediaVerb};
-use sill_settings::{SettingsFeed, ShellFile, WidgetKind};
+use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::hooks::PinnedAppearance;
 use sill_ui_kit::services::Services;
+use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::widgets::{Widget, WidgetHost, widgets_css};
 
 /// What the harness's root provides.

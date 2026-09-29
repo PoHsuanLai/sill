@@ -12,8 +12,9 @@ use sill_model::notifications::{
     Action, ActionKey, AppRef, Expiry, Hints, IconRef, Notification, NotificationId, UnixMs,
     parse_body,
 };
-use sill_settings::{BannerMaterial, NotificationsSettings, SettingsFeed, ShellFile};
+use sill_settings::{BannerMaterial, NotificationsSettings, ShellFile};
 use sill_ui_kit::notification_card::{CardPlace, CardPress, NoteCard};
+use sill_ui_kit::settings::SettingsFeed;
 
 const NOW: UnixMs = UnixMs(1_000_000_000);
 

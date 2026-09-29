@@ -9,11 +9,11 @@ use dioxus::prelude::*;
 use ds::{MonthEntry, MonthFace, MonthIntent, TodayLine};
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
-use sill_settings::WeekNumbers;
+use sill_settings::{CalendarSettings, WeekNumbers};
 
 use super::grid::{Step, busy_days, month_grid};
 use super::shown::{Shown, grid_data, weekday_name};
-use crate::hooks::{use_service, use_settings};
+use crate::hooks::{use_section, use_service};
 use crate::widgets::up_next::today_events;
 use crate::widgets::{Feed, WidgetKind, WidgetProvider, WidgetSize};
 use sill_services::{ClockService, EventsService};
@@ -30,7 +30,7 @@ impl WidgetProvider for CalendarProvider {
     fn use_feed() -> Feed<ds::MonthWidget> {
         let _minute = use_service::<ClockService>()();
         let agenda = use_service::<EventsService>()();
-        let calendar = use_settings()().calendar;
+        let calendar = use_section::<CalendarSettings>()();
         let today = agenda.today;
         let mut shown = use_signal(|| Shown::today(today));
         let month = shown().month(today);

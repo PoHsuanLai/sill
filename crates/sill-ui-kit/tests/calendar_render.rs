@@ -21,9 +21,10 @@ use jiff::{Timestamp, ToSpan, Zoned};
 use sill_model::events::{
     Agenda, CalEvent, CalendarName, EventTime, EventUid, EventsError, SourceStatus,
 };
-use sill_settings::{SettingsFeed, ShellFile};
+use sill_settings::ShellFile;
 use sill_ui_kit::hooks::PinnedAppearance;
 use sill_ui_kit::services::Services;
+use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::widgets::{Widget, WidgetHost, WidgetKind, widgets_css};
 
 /// Today's number, on the accent disc.

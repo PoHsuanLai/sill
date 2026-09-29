@@ -9,9 +9,10 @@ use launcher_harness::launcher_support;
 
 use dioxus::prelude::*;
 use ds::lint::{LintConfig, Profile, Rule, markup};
-use sill_settings::{SettingsFeed, ShellFile};
+use sill_settings::ShellFile;
 use sill_ui_kit::Launcher;
 use sill_ui_kit::links::LauncherLink;
+use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::surface::{MountProps, mount};
 
 const LAUNCHER_CSS: &str = include_str!("../src/style/launcher.css");

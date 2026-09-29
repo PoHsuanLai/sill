@@ -15,4 +15,4 @@ pub use use_ds_scale::use_ds_scale;
 pub use use_focus_mode::use_focus_mode;
 pub use use_service::{use_control, use_service, use_service_part};
 pub use use_services::use_services;
-pub use use_settings::use_settings;
+pub use use_settings::{use_section, use_settings};

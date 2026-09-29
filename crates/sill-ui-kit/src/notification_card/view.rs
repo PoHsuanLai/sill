@@ -14,7 +14,7 @@ use ds::{
 use sill_model::apps::AppIcon;
 use sill_model::notifications::{AppRef, Href, Notification, UnixMs};
 use sill_services::apps::{icon_theme, resolve_icon};
-use sill_settings::BannerMaterial;
+use sill_settings::{BannerMaterial, NotificationsSettings};
 
 use super::actions::card_actions;
 use super::body::rich_body;
@@ -22,7 +22,7 @@ use super::icon::{CardArt, card_art, entry_for};
 use super::labels::{age, age_label, app_label, group_count};
 use super::metrics::icon_size;
 use super::{CardPlace, CardPress};
-use crate::hooks::{use_service, use_services, use_settings};
+use crate::hooks::{use_section, use_service, use_services};
 use sill_services::AppsService;
 
 /// Now, as the cards' ages count it.
@@ -50,7 +50,7 @@ pub(super) fn card(
     now: UnixMs,
     wiring: CardWiring,
 ) -> Element {
-    let settings = use_settings()().notifications;
+    let settings = use_section::<NotificationsSettings>()();
     let side = icon_size(&settings);
     let app = use_app_mark(&note.app, IconSize::Px(side));
     let on_press = wiring.on_press;

@@ -1,5 +1,7 @@
 //! `switcher.*` (design/22 §3.11; design/13 §13.3.5): the app switcher. All Advanced (§5).
 
+use crate::file::ShellFile;
+use crate::section::Section;
 use ds_settings::schema::Page;
 use ds_settings::{Ms, Px};
 use serde::{Deserialize, Serialize};
@@ -65,5 +67,13 @@ impl Default for SwitcherSettings {
             cell_gap_px: Px(8),
             overflow_min_icon_px: Px(48),
         }
+    }
+}
+
+impl Section for SwitcherSettings {
+    const KEY: &'static str = "switcher";
+
+    fn of(file: &ShellFile) -> &Self {
+        &file.switcher
     }
 }

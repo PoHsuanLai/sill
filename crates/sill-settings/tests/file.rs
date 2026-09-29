@@ -4,14 +4,31 @@
 mod common;
 
 use common::TempDir;
-use ds_settings::{Count, Px};
+use ds_settings::{ConfigRoot, Count, Px, Store};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use sill_model::screenshots::ShotTool;
 use sill_settings::{
-    BarSettings, Bounce, ControlCenterSettings, Dnd, DockSettings, FILE_NAME, LauncherSettings,
-    LoadOutcome, MenusSettings, NotificationsSettings, ScrollSettings, ScrollbarSettings,
-    ShellFile, SpacesSettings, SwitcherSettings, load, save, try_load, unknown_keys,
+    APP, BarSettings, Bounce, ControlCenterSettings, Dnd, DockSettings, LauncherSettings,
+    MenusSettings, NotificationsSettings, ScrollSettings, ScrollbarSettings, ShellFile,
+    SpacesSettings, SwitcherSettings,
 };
+
+/// The store whose `sill` directory is inside `dir`.
+fn store(dir: &TempDir) -> Store {
+    Store::new(ConfigRoot::Scratch(dir.path().to_owned()), APP)
+}
+
+/// Write `settings.toml` (raw bytes) into the store's directory.
+fn write(dir: &TempDir, bytes: &[u8]) {
+    let app = dir.path().join("sill");
+    std::fs::create_dir_all(&app).unwrap_or_else(|e| panic!("{e}"));
+    std::fs::write(app.join("settings.toml"), bytes).unwrap_or_else(|e| panic!("{e}"));
+}
+
+fn load(dir: &TempDir) -> ShellFile {
+    store(dir).load::<ShellFile>().value
+}
 
 fn round_trips<T: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Default>() {
     let default = T::default();
@@ -74,8 +91,8 @@ fn a_bad_value_costs_only_its_own_key() {
     ];
     let dir = TempDir::new("lenient");
     for (name, text, want) in cases {
-        std::fs::write(dir.path().join(FILE_NAME), text).unwrap_or_else(|e| panic!("{e}"));
-        let got = load(dir.path());
+        write(&dir, text.as_bytes());
+        let got = load(&dir);
         assert_eq!(got, want, "{name}");
         assert_eq!(got.dock.bounce, Bounce::On, "{name}");
     }
@@ -84,10 +101,10 @@ fn a_bad_value_costs_only_its_own_key() {
 #[test]
 fn missing_or_garbage_files_are_the_defaults() {
     let dir = TempDir::new("garbage");
-    assert_eq!(load(dir.path()), ShellFile::default(), "missing");
+    assert_eq!(load(&dir), ShellFile::default(), "missing");
     for bytes in [&b""[..], b"not toml [[[", &[0xff, 0xfe]] {
-        std::fs::write(dir.path().join(FILE_NAME), bytes).unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(load(dir.path()), ShellFile::default(), "{bytes:?}");
+        write(&dir, bytes);
+        assert_eq!(load(&dir), ShellFile::default(), "{bytes:?}");
     }
 }
 
@@ -99,15 +116,16 @@ fn a_save_is_one_file_and_reads_back() {
         f.dock.autohide = sill_settings::AutoHide::On;
         f.bar.height_px = Px(28);
         f.launcher.web_engine_url = "https://example.org/?q={query}".to_owned();
+        f.screenshot.tool = ShotTool::Command("shoot \"$1\"".to_owned());
     });
-    save(&target, &file).unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(load(&target), file);
+    store(&dir).save(&file).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(load(&dir), file);
     let names: Vec<String> = std::fs::read_dir(&target)
         .unwrap_or_else(|e| panic!("{e}"))
         .filter_map(|e| e.ok())
         .map(|e| e.file_name().to_string_lossy().into_owned())
         .collect();
-    assert_eq!(names, [FILE_NAME], "the temp file was renamed away");
+    assert_eq!(names, ["settings.toml"], "the temp file was renamed away");
 }
 
 #[test]
@@ -115,19 +133,60 @@ fn unknown_keys_are_reported_and_dropped() {
     let dir = TempDir::new("unknown");
     let text = "version = 1\nfuture = \"x\"\n[dock]\npuppy = true\ntile_size_px = 40\n\
                 [later]\nanswer = 42\n[control_center]\nmodules = [\"wifi\"]\n";
-    let given: toml::Table = toml::from_str(text).unwrap_or_else(|e| panic!("{e}"));
-    let mut unknown: Vec<String> = unknown_keys(&given).into_iter().map(|k| k.0).collect();
-    unknown.sort();
+    write(&dir, text.as_bytes());
+    let loaded = store(&dir).load::<ShellFile>();
+    let unknown: Vec<&str> = loaded.unknown.iter().map(|k| k.0.as_str()).collect();
     assert_eq!(unknown, ["dock.puppy", "future", "later", "version"]);
+    assert!(loaded.invalid.is_empty(), "{:?}", loaded.invalid);
+    assert_eq!(loaded.value.dock.tile_size_px, Px(40));
 
-    std::fs::write(dir.path().join(FILE_NAME), text).unwrap_or_else(|e| panic!("{e}"));
-    let read = load(dir.path());
-    assert_eq!(read.dock.tile_size_px, Px(40));
-    save(dir.path(), &read).unwrap_or_else(|e| panic!("{e}"));
-    let written =
-        std::fs::read_to_string(dir.path().join(FILE_NAME)).unwrap_or_else(|e| panic!("{e}"));
-    let tree: toml::Table = toml::from_str(&written).unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(unknown_keys(&tree), [], "{written}");
+    store(&dir)
+        .save(&loaded.value)
+        .unwrap_or_else(|e| panic!("{e}"));
+    let again = store(&dir).load::<ShellFile>();
+    assert!(again.unknown.is_empty(), "{:?}", again.unknown);
+    assert_eq!(again.value, loaded.value);
+}
+
+/// A retired key is a key nobody reads: the file that still sets it is told so.
+#[test]
+fn a_retired_key_is_reported_unknown() {
+    let dir = TempDir::new("retired");
+    write(
+        &dir,
+        b"[dock]\nposition = \"bottom\"\n[session]\nuser_picture = \"auto\"\n\
+          [spaces]\nlookup_order = \"by_id_then_index\"\n[control_center]\nmaterial = \"sheet\"\n",
+    );
+    let loaded = store(&dir).load::<ShellFile>();
+    let unknown: Vec<&str> = loaded.unknown.iter().map(|k| k.0.as_str()).collect();
+    assert_eq!(
+        unknown,
+        [
+            "control_center.material",
+            "dock.position",
+            "session.user_picture",
+            "spaces.lookup_order"
+        ]
+    );
+}
+
+/// `screenshot.tool` is parsed at load: `auto` and `off` are words, anything else is the command.
+#[test]
+fn the_screenshot_tool_is_typed_at_load_and_stored_as_its_text() {
+    let dir = TempDir::new("tool");
+    let cases: &[(&str, ShotTool)] = &[
+        ("auto", ShotTool::Cosmic),
+        (" OFF ", ShotTool::Off),
+        ("", ShotTool::Off),
+        (
+            "grim \"$2/a.png\"",
+            ShotTool::Command("grim \"$2/a.png\"".to_owned()),
+        ),
+    ];
+    for (text, want) in cases {
+        write(&dir, format!("[screenshot]\ntool = {text:?}\n").as_bytes());
+        assert_eq!(load(&dir).screenshot.tool, *want, "{text:?}");
+    }
 }
 
 /// The idle times are `Secs` and `Mins`: plain integers in the file both ways; a negative one is
@@ -140,8 +199,8 @@ fn idle_seconds_and_minutes_are_plain_integers_both_ways() {
                 [idle]\ntimes = \"sill\"\nscreen_off_ac_min = 20\nscreen_off_battery_min = 3\n\
                 suspend_ac_min = 0\nsuspend_battery_min = 45\ndim_s = 9\n\
                 locked_screen_off_s = 120\n";
-    std::fs::write(dir.path().join(FILE_NAME), text).unwrap_or_else(|e| panic!("{e}"));
-    let read = load(dir.path());
+    write(&dir, text.as_bytes());
+    let read = load(&dir);
     let want = with(|f| {
         f.session.lock_grace_s = Secs(12);
         f.idle.times = IdleTimesFrom::Sill;
@@ -154,9 +213,9 @@ fn idle_seconds_and_minutes_are_plain_integers_both_ways() {
     });
     assert_eq!(read, want);
 
-    save(dir.path(), &read).unwrap_or_else(|e| panic!("{e}"));
-    let written =
-        std::fs::read_to_string(dir.path().join(FILE_NAME)).unwrap_or_else(|e| panic!("{e}"));
+    store(&dir).save(&read).unwrap_or_else(|e| panic!("{e}"));
+    let written = std::fs::read_to_string(dir.path().join("sill").join("settings.toml"))
+        .unwrap_or_else(|e| panic!("{e}"));
     let tree: toml::Table = toml::from_str(&written).unwrap_or_else(|e| panic!("{e}"));
     let at = |table: &str, key: &str| tree.get(table).and_then(|t| t.get(key)).cloned();
     const WRITTEN: &[(&str, &str, i64)] = &[
@@ -175,14 +234,10 @@ fn idle_seconds_and_minutes_are_plain_integers_both_ways() {
             "{table}.{key}: {written}"
         );
     }
-    assert_eq!(load(dir.path()), want, "{written}");
+    assert_eq!(load(&dir), want, "{written}");
 
-    std::fs::write(
-        dir.path().join(FILE_NAME),
-        "[idle]\ndim_s = -4\nsuspend_ac_min = 50\n",
-    )
-    .unwrap_or_else(|e| panic!("{e}"));
-    let lenient = load(dir.path());
+    write(&dir, b"[idle]\ndim_s = -4\nsuspend_ac_min = 50\n");
+    let lenient = load(&dir);
     assert_eq!(
         lenient.idle.dim_s,
         Secs(5),
@@ -193,46 +248,4 @@ fn idle_seconds_and_minutes_are_plain_integers_both_ways() {
         Mins(50),
         "and keeps its sibling"
     );
-}
-
-/// [`try_load`]'s change-to-dispatch mapping for the watch: a bad value
-/// inside a table is still only that key ([`LoadOutcome::Read`], as [`load`] treats it — the
-/// watch may still publish it), text that is not TOML at all is [`LoadOutcome::Unparseable`]
-/// (the watch must keep the last good file rather than publish this), and a missing file is
-/// still every setting's default (nothing was ever good to keep).
-#[test]
-fn try_load_tells_a_bad_value_from_a_file_that_is_not_toml_at_all() {
-    let dir = TempDir::new("try-load");
-    assert_eq!(
-        try_load(dir.path()),
-        LoadOutcome::Read(Box::default()),
-        "missing file"
-    );
-
-    std::fs::write(
-        dir.path().join(FILE_NAME),
-        "[notifications]\ndnd = \"on\"\n",
-    )
-    .unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(
-        try_load(dir.path()),
-        LoadOutcome::Read(Box::new(with(|f| f.notifications.dnd = Dnd::On))),
-        "a valid table with a good value"
-    );
-
-    std::fs::write(
-        dir.path().join(FILE_NAME),
-        "[dock]\nbounce = \"bounceyy\"\ntile_size_px = 64\n",
-    )
-    .unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(
-        try_load(dir.path()),
-        LoadOutcome::Read(Box::new(with(|f| f.dock.tile_size_px = Px(64)))),
-        "a bad value costs only its own key, same as `load`"
-    );
-
-    for text in ["not toml [[[ = =", "\u{0}\u{1}garbage"] {
-        std::fs::write(dir.path().join(FILE_NAME), text).unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(try_load(dir.path()), LoadOutcome::Unparseable, "{text:?}");
-    }
 }

@@ -5,18 +5,19 @@
 //! `Links` is built once here and handed to the shell state, which gives it to every surface
 //! root and to the IPC dispatch.
 
-use std::path::PathBuf;
 use std::process::ExitCode;
 use std::time::{Duration, Instant};
 
+use ds_settings::Store;
 use shell_host::{Host, HostConfig, HostHandle};
 use sill_services::env::Env;
-use sill_settings::{SettingsFeed, ShellFile};
+use sill_settings::ShellFile;
 use sill_ui_kit::links::{
     BannerLink, CenterLink, ControlCenterLink, CornerLink, EditWidgetsLink, LauncherLink, Links,
     LockLink, OsdLink, PlacementFile, PowerMenuLink, SwitcherLink,
 };
 use sill_ui_kit::services::Services;
+use sill_ui_kit::settings::SettingsFeed;
 use tokio::runtime::Runtime;
 use tokio::sync::watch;
 
@@ -42,20 +43,11 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
 
     let env = args.env();
     let services = services::start(runtime.handle(), &env);
-    let settings_dir = Some(env.dirs.sill_config());
-    let first = settings_dir
-        .as_deref()
-        .map(sill_settings::load)
-        .unwrap_or_default();
+    let store = settings::store(&env.dirs.config);
+    let first = settings::load(&store);
     let (settings, settings_rx) = watch::channel(first.clone());
     let settings_feed = SettingsFeed(settings_rx);
-    let links = build_links(
-        &runtime,
-        &env,
-        &settings_feed,
-        &settings,
-        settings_dir.clone(),
-    );
+    let links = build_links(&runtime, &env, &settings_feed, &settings, &store);
     services::follow_settings(runtime.handle(), &settings_feed, &links, &services, &env);
 
     let host = match Host::<ShellMsg>::connect(host_config(&first)) {
@@ -73,14 +65,14 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         &settings_feed,
         &host_handle,
         &links,
-        settings_dir.clone(),
+        &store,
     );
     let mut shell = Shell {
         outputs: Outputs::default(),
         shell_lock: crate::lock::ShellLock::default(),
         services,
         settings_feed,
-        settings_dir,
+        store,
         settings,
         links,
     };
@@ -118,15 +110,11 @@ fn build_links(
     env: &Env,
     settings_feed: &SettingsFeed,
     settings: &watch::Sender<ShellFile>,
-    settings_dir: Option<PathBuf>,
+    store: &Store,
 ) -> Links {
     let places = PlacementFile::in_dirs(&env.dirs);
     Links {
-        focus: sill_settings::spawn_focus(
-            runtime.handle(),
-            settings_feed.0.clone(),
-            settings_dir.clone(),
-        ),
+        focus: settings::spawn_focus(runtime.handle(), settings_feed.0.clone(), store.clone()),
         launcher: LauncherLink::new(),
         osd: OsdLink::new(),
         power_menu: PowerMenuLink::new(),
@@ -139,7 +127,7 @@ fn build_links(
         edit_widgets: EditWidgetsLink::new()
             .with_places(places.clone())
             .with_writer(crate::edit_widgets::writer(
-                settings_dir,
+                store.clone(),
                 places,
                 settings.clone(),
             )),
@@ -155,13 +143,11 @@ fn spawn_followers(
     settings_feed: &SettingsFeed,
     host: &HostHandle<ShellMsg>,
     links: &Links,
-    settings_dir: Option<PathBuf>,
+    store: &Store,
 ) {
     crate::lock::spawn_follower(runtime.handle(), services, host.clone());
     crate::idle_dim::spawn_follower(runtime.handle(), services, host.clone());
-    if let Some(dir) = settings_dir {
-        settings::spawn_watch(runtime, dir, host.clone());
-    }
+    settings::spawn_watch(runtime, store, host.clone());
     crate::corners::spawn_hits(
         runtime.handle(),
         links.clone(),

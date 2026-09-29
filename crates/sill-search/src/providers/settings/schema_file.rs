@@ -2,13 +2,14 @@
 //!
 //! design/22-SETTINGS.md §9 makes the schema a plain data file: "a program does not register
 //! its settings with a Settings app at runtime... it ships a schema file". `ds_settings::schema`
-//! is the typed reader for that file, but `ds-settings` depends on `dioxus` unconditionally, and
-//! `scripts/check-boundary.sh` forbids `sill-services` from reaching `ds-settings` at all
-//! (`sill-services` stays UI-free), so this module re-reads the same on-disk TOML shape
-//! (`crates/ds-settings/src/schema/key.rs`, `program.rs`) independently, taking only the fields the
-//! launcher's settings search needs (path, label, help, page) and leaving every
-//! other field (`kind`, `default`, `deprecated`) untouched by not naming it — the same
-//! forward-compatible reading every lenient settings load in this workspace does.
+//! is the typed reader for that file, but `ds-settings` still depends on `ds`, which brings
+//! `dioxus`, and `scripts/check-boundary.sh` forbids `sill-services` and `sill-search` from
+//! reaching either (FINDINGS "The settings provider reads schema files itself"). So this module
+//! re-reads the same on-disk TOML shape (`crates/ds-settings/src/schema/key.rs`, `program.rs`)
+//! independently, taking only the fields the launcher's settings search needs (path, label,
+//! help, page) and leaving every other field (`kind`, `default`, `deprecated`) untouched by not
+//! naming it — the same forward-compatible reading every lenient settings load in this
+//! workspace does.
 
 use std::path::{Path, PathBuf};
 use std::{env, fs};

@@ -1,8 +1,7 @@
 //! `Act`: change something by telling a service or writing a file. Every arm answers `Done` once
 //! the change is asked for; the change itself happens in the service or the settings watch.
 
-use std::path::Path;
-
+use ds_settings::Store;
 use sill_ipc::act::{ActRequest, DockRequest};
 use sill_ipc::response::{FailureKind, Response};
 use sill_model::clipboard::ClipboardCommand;
@@ -25,9 +24,7 @@ pub fn dispatch(reach: &Reach, request: ActRequest) -> Response {
         ActRequest::Display(request) => keys::press(reach, request),
         ActRequest::Lock => sent(services.locker.control.send(LockerCommand::Lock), "locker"),
         ActRequest::Screenshot(kind) => screenshot(reach, kind),
-        ActRequest::ToggleDesktopWidgets => {
-            toggle_desktop_widgets(reach.settings_dir, reach.settings)
-        }
+        ActRequest::ToggleDesktopWidgets => toggle_desktop_widgets(reach.store, reach.settings),
         ActRequest::Switcher(request) => switcher::chord(reach, request),
         ActRequest::ClearClipboard => sent(
             services.clipboard.control.send(ClipboardCommand::Clear),
@@ -67,16 +64,10 @@ fn screenshot(reach: &Reach, kind: ShotKind) -> Response {
 
 /// Flip `widgets.desktop` in `settings.toml`, and publish the file at once so the layer follows
 /// before the watch has fired. The file stays the one truth.
-fn toggle_desktop_widgets(dir: Option<&Path>, settings: &watch::Sender<ShellFile>) -> Response {
-    let Some(dir) = dir else {
-        return failed(
-            FailureKind::Internal,
-            "no settings directory (XDG_CONFIG_HOME and HOME are both unset)".to_owned(),
-        );
-    };
-    let mut file = sill_settings::load(dir);
+fn toggle_desktop_widgets(store: &Store, settings: &watch::Sender<ShellFile>) -> Response {
+    let mut file = crate::daemon::settings::load(store);
     file.widgets.desktop = flipped(file.widgets.desktop);
-    if let Err(error) = sill_settings::save(dir, &file) {
+    if let Err(error) = crate::daemon::settings::save(store, &file) {
         return failed(
             FailureKind::Internal,
             format!("saving the settings: {error}"),
@@ -110,16 +101,13 @@ mod tests {
     #[test]
     fn toggle_desktop_flips_saves_and_publishes() {
         let dir = std::env::temp_dir().join(format!("sill-widgets-toggle-{}", std::process::id()));
+        let store = crate::daemon::settings::store(&dir);
         let (tx, rx) = watch::channel(ShellFile::default());
         for want in [DesktopWidgets::On, DesktopWidgets::Off] {
-            assert_eq!(toggle_desktop_widgets(Some(&dir), &tx), Response::Done);
-            assert_eq!(sill_settings::load(&dir).widgets.desktop, want);
+            assert_eq!(toggle_desktop_widgets(&store, &tx), Response::Done);
+            assert_eq!(crate::daemon::settings::load(&store).widgets.desktop, want);
             assert_eq!(rx.borrow().widgets.desktop, want);
         }
         let _ = std::fs::remove_dir_all(dir);
-        assert!(matches!(
-            toggle_desktop_widgets(None, &tx),
-            Response::Failed(_)
-        ));
     }
 }

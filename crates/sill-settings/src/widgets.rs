@@ -7,15 +7,15 @@
 //! Where a widget sits on the desktop is saved state (like the dock's pins), not a setting:
 //! `$XDG_STATE_HOME/sill/desktop-widgets.json`, owned by the desktop layer.
 
+use crate::file::ShellFile;
+use crate::section::Section;
 use ds_settings::Px;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
 
 /// One widget. The same component draws it in the notification center and on the desktop. Weather
 /// is not a variant yet: it needs a weather source nothing provides; adding it later is additive.
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
 pub enum WidgetKind {
     /// The month, today marked (macOS's Calendar widget, month size).
@@ -30,48 +30,10 @@ pub enum WidgetKind {
     WorldClock,
 }
 
-impl WidgetKind {
-    /// Every kind and its kebab-case slug (the element id's suffix), in declaration order.
-    // TODO: becomes `derive(ds_core::Word)` once quire step 8 splits ds-core out of ds.
-    const TABLE: [(WidgetKind, &'static str); 5] = [
-        (WidgetKind::Calendar, "calendar"),
-        (WidgetKind::UpNext, "up-next"),
-        (WidgetKind::Battery, "battery"),
-        (WidgetKind::NowPlaying, "now-playing"),
-        (WidgetKind::WorldClock, "world-clock"),
-    ];
-
-    /// Every kind, in declaration order.
-    pub const ALL: [WidgetKind; 5] = {
-        let mut all = [WidgetKind::Calendar; 5];
-        let mut at = 0;
-        while at < 5 {
-            all[at] = Self::TABLE[at].0;
-            at += 1;
-        }
-        all
-    };
-
-    /// The kind's kebab-case slug.
-    pub const fn slug(self) -> &'static str {
-        Self::TABLE[self as usize].1
-    }
-}
-
 /// `widgets.desktop`: whether the desktop widget layer is shown.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum DesktopWidgets {
     #[default]
     Off,
@@ -147,9 +109,18 @@ impl Default for WidgetsSettings {
     }
 }
 
+impl Section for WidgetsSettings {
+    const KEY: &'static str = "widgets";
+
+    fn of(file: &ShellFile) -> &Self {
+        &file.widgets
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::WidgetKind;
+    use ds::Word;
 
     #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
     struct Keys {
@@ -167,5 +138,20 @@ mod tests {
             r#"kinds = ["calendar", "up_next", "battery", "now_playing", "world_clock"]"#
         );
         assert_eq!(toml::from_str::<Keys>(&text).unwrap(), keys);
+    }
+
+    #[test]
+    fn slugs_are_the_kebab_case_element_id_suffixes() {
+        let slugs: Vec<&str> = WidgetKind::ALL.iter().map(|kind| kind.slug()).collect();
+        assert_eq!(
+            slugs,
+            [
+                "calendar",
+                "up-next",
+                "battery",
+                "now-playing",
+                "world-clock"
+            ]
+        );
     }
 }

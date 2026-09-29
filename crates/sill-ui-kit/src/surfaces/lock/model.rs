@@ -44,8 +44,7 @@ pub fn lock_user(account: &Account) -> LockUser {
 /// The person's picture: their photo when the account has one (AccountsService's icon, else
 /// `$HOME/.face`, read by the auth service: `sill_services::auth::avatar_source`), which quire
 /// crops round; else the initial of `name` on their hue, at 64. The one place a picture is
-/// chosen; `session.user_picture` (an emoji, the letter or the photo) is wired through quire's
-/// `resolve_picture` next.
+/// chosen.
 fn picture_of(account: &Account, name: &str) -> UserPicture {
     match &account.avatar {
         AvatarSource::File(path) => ImageSource::file(path).map_or_else(

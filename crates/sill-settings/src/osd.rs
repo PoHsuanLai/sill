@@ -1,24 +1,16 @@
 //! `osd.*`: the volume and brightness indicator (design/20 §1.7). All Advanced until design/22 §5
 //! places them on a page.
 
+use crate::file::ShellFile;
+use crate::section::Section;
 use ds_settings::schema::Page;
 use ds_settings::{Ms, Px};
 use serde::{Deserialize, Serialize};
 
 /// `osd.enabled`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum OsdEnabled {
     #[default]
     On,
@@ -26,19 +18,9 @@ pub enum OsdEnabled {
 }
 
 /// `osd.position`: the output edge the indicator sits on, centred along it.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum OsdPosition {
     /// Top right under the bar, as current macOS shows its volume and brightness panel.
     #[default]
@@ -94,5 +76,13 @@ impl Default for OsdSettings {
             position: OsdPosition::TopRight,
             margin_px: Px(24),
         }
+    }
+}
+
+impl Section for OsdSettings {
+    const KEY: &'static str = "osd";
+
+    fn of(file: &ShellFile) -> &Self {
+        &file.osd
     }
 }

@@ -52,7 +52,7 @@ use sill_model::ids::OutputName;
 /// panel, calls `on_close`; every page change calls `on_page` so the popup can resize to
 /// [`estimate_size`] (shell-host's content fit does not measure).
 ///
-/// Needs `crate::services::Services`, `sill_settings::SettingsFeed` and `sill_settings::FocusLink`
+/// Needs `crate::services::Services`, `crate::settings::SettingsFeed` and `crate::links::FocusLink`
 /// in the popup root's context.
 #[component]
 pub fn ControlCenter(

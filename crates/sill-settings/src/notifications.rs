@@ -2,24 +2,16 @@
 //! §13.3.6). Do Not Disturb and the banner style are on the Notifications page (§5); the rest
 //! are Advanced.
 
+use crate::file::ShellFile;
+use crate::section::Section;
 use ds_settings::schema::Page;
 use ds_settings::{Count, Fraction, Ms, Px, Scalar};
 use serde::{Deserialize, Serialize};
 
 /// `notifications.dnd`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum Dnd {
     On,
     #[default]
@@ -27,19 +19,9 @@ pub enum Dnd {
 }
 
 /// `notifications.banner_style`: the default for apps without their own choice.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum BannerStyle {
     /// Shows, then leaves by itself.
     #[default]
@@ -51,19 +33,9 @@ pub enum BannerStyle {
 }
 
 /// `notifications.banner_entry_direction` (design/05 §12 open decision 7).
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum BannerEntry {
     #[default]
     FromRight,
@@ -71,19 +43,9 @@ pub enum BannerEntry {
 }
 
 /// `notifications.banner_material` (design/13 §13.9 open decision 7).
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum BannerMaterial {
     /// quire `Material::Toast`.
     #[default]
@@ -94,19 +56,9 @@ pub enum BannerMaterial {
 
 /// `notifications.swipe`: what swiping a banner away does. macOS keeps it in Notification
 /// Center; only its close button, `CloseNotification` or Clear removes it.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum NotificationSwipe {
     /// The banner leaves; the notification stays in the notification center.
     #[default]
@@ -116,19 +68,9 @@ pub enum NotificationSwipe {
 }
 
 /// `notifications.server`: whether sill serves `org.freedesktop.Notifications`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum NotificationServer {
     /// Ask for the name, never replacing another daemon that holds it.
     #[default]
@@ -140,19 +82,9 @@ pub enum NotificationServer {
 
 /// `notifications.banner_position`: the output corner banners stack in (design/20 §3 open
 /// decision 2: top right as macOS, or bottom right nearer mail's toast).
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum BannerPosition {
     /// Under the bar, newest on top (macOS).
     #[default]
@@ -394,5 +326,13 @@ impl Default for NotificationsSettings {
             history_cap: Count(100),
             center_width_px: Px(384),
         }
+    }
+}
+
+impl Section for NotificationsSettings {
+    const KEY: &'static str = "notifications";
+
+    fn of(file: &ShellFile) -> &Self {
+        &file.notifications
     }
 }

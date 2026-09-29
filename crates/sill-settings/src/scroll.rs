@@ -3,24 +3,16 @@
 //! page; the rest are Advanced (§5). `scroll.speed`, `scroll.lock_*` and the gains are
 //! palmrest's (`palmrest/gestures.toml`, §3.9), not here.
 
+use crate::file::ShellFile;
+use crate::section::Section;
 use ds_settings::schema::Page;
 use ds_settings::{Fraction, Ms, Px, Scalar};
 use serde::{Deserialize, Serialize};
 
 /// `scroll.natural`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum NaturalScroll {
     /// Content follows the fingers.
     #[default]
@@ -29,19 +21,9 @@ pub enum NaturalScroll {
 }
 
 /// `scroll.momentum`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum Momentum {
     #[default]
     On,
@@ -49,19 +31,9 @@ pub enum Momentum {
 }
 
 /// `scroll.momentum_model` (design/11 §11.9 open decision 1).
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum MomentumModel {
     /// Mac Mouse Fix's drag model `v' = -a v^b`.
     #[default]
@@ -71,19 +43,9 @@ pub enum MomentumModel {
 }
 
 /// `scroll.rubber_band`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum RubberBand {
     /// iOS's bounded stretch.
     #[default]
@@ -94,19 +56,9 @@ pub enum RubberBand {
 }
 
 /// `scroll.scrollbars`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum ScrollbarVisibility {
     /// Overlay thumbs that fade after scrolling stops.
     #[default]
@@ -320,5 +272,13 @@ impl Default for ScrollSettings {
             double_scroll_grace_ms: Ms(150),
             scrollbars: ScrollbarVisibility::WhenScrolling,
         }
+    }
+}
+
+impl Section for ScrollSettings {
+    const KEY: &'static str = "scroll";
+
+    fn of(file: &ShellFile) -> &Self {
+        &file.scroll
     }
 }

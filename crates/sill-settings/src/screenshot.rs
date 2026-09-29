@@ -2,24 +2,17 @@
 //! watched for new screenshots, and what `sill screenshot` runs. macOS keeps its screenshot
 //! shortcuts under Keyboard, hence `Page::KeyboardAndShortcuts`. All Advanced.
 
+use crate::file::ShellFile;
+use crate::section::Section;
 use ds_settings::Ms;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
+use sill_model::screenshots::ShotTool;
 
 /// Whether a new screenshot shows its floating thumbnail.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum ShotThumbnail {
     #[default]
     Show,
@@ -55,14 +48,15 @@ pub struct ScreenshotSettings {
         advanced
     )]
     pub folders: String,
-    /// `auto`, `off`, or a command line (`sill_model::screenshots::parse_tool`).
+    /// `auto`, `off`, or a command line, parsed at load (`sill_model::screenshots::parse_tool`).
     #[settings(
         label = "Screenshot program",
         help = "What `sill screenshot` runs: `auto` is COSMIC's (cosmic-screenshot), `off` runs nothing, or a command line run by `/bin/sh -c` with the kind (`area`, `window`, `screen`) as $1 and the folder as $2.",
         section = "Screenshots",
+        text,
         advanced
     )]
-    pub tool: String,
+    pub tool: ShotTool,
 }
 
 impl Default for ScreenshotSettings {
@@ -71,7 +65,15 @@ impl Default for ScreenshotSettings {
             thumbnail: ShotThumbnail::Show,
             thumbnail_hold_ms: Ms(5200),
             folders: "auto".to_owned(),
-            tool: "auto".to_owned(),
+            tool: ShotTool::Cosmic,
         }
+    }
+}
+
+impl Section for ScreenshotSettings {
+    const KEY: &'static str = "screenshot";
+
+    fn of(file: &ShellFile) -> &Self {
+        &file.screenshot
     }
 }

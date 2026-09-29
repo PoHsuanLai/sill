@@ -2,11 +2,11 @@
 //! §3.4-3.8 and §3.11-3.14: bar, dock, launcher, scroll, scrollbar, menus, switcher, sound,
 //! notifications, control center, spaces; `display`, `osd`, `power_menu` and `session`; and
 //! `widgets`, `calendar`, `screenshot` and `hot_corners`), their schema (§9,
-//! `#[derive(SettingsSchema)]` with `file = "sill/settings.toml"`), lenient load and atomic save
-//! through `ds-settings`, a directory watch, and the per-domain diff (§4.4).
+//! `#[derive(SettingsSchema)]` with `file = "sill/settings.toml"`), and [`Section`], each
+//! domain as a reader finds it in a [`ShellFile`].
 //!
-//! A crate of its own rather than a module of `sill-services`, because `ds-settings` brings
-//! `dioxus` with it and `sill-services` stays UI-free (`scripts/check-boundary.sh`).
+//! Pure data: no I/O, no runtime, no dioxus. `ShellFile` is a `ds_settings::SettingsDoc`, and
+//! reading, saving, watching and publishing it belong to the daemon (`sill::daemon::settings`).
 
 pub mod bar;
 pub mod calendar;
@@ -14,10 +14,8 @@ pub mod control_center;
 pub mod display;
 pub mod dock;
 mod dock_words;
-pub mod feed;
 pub mod file;
 pub mod focus;
-pub mod focus_link;
 pub mod hot_corners;
 pub mod idle;
 pub mod launcher;
@@ -30,10 +28,10 @@ pub mod schema;
 pub mod screenshot;
 pub mod scroll;
 pub mod scrollbar;
+mod section;
 pub mod session;
 pub mod spaces;
 pub mod switcher;
-pub mod watch;
 pub mod widgets;
 pub mod window;
 
@@ -45,16 +43,11 @@ pub use display::{
     HardwareVolumeMode, NightWarmthMode, ScaleRounding,
 };
 pub use dock::{
-    ActiveClick, AutoHide, Bounce, DockFloor, DockMenuOrder, DockModifierClicks, DockPosition,
-    DockSettings, Indicators, LaunchAnim, Magnification, ProgressStyle, TrashTile,
+    ActiveClick, AutoHide, Bounce, DockFloor, DockMenuOrder, DockModifierClicks, DockSettings,
+    Indicators, LaunchAnim, Magnification, ProgressStyle, TrashTile,
 };
-pub use feed::SettingsFeed;
-pub use file::{
-    APP, FILE_NAME, LoadOutcome, ShellFile, UnknownKey, load, save, settings_dir, try_load,
-    unknown_keys,
-};
+pub use file::{APP, ShellFile};
 pub use focus::{FocusMode, focus_mode, with_focus_mode};
-pub use focus_link::{Delivery, FocusLink, spawn_focus};
 pub use hot_corners::{CornerAction, HotCornersSettings};
 pub use idle::{IdleLockAt, IdleSettings, IdleTimesFrom};
 pub use launcher::LauncherSettings;
@@ -72,10 +65,10 @@ pub use scroll::{
     Momentum, MomentumModel, NaturalScroll, RubberBand, ScrollSettings, ScrollbarVisibility,
 };
 pub use scrollbar::{ScrollbarSettings, TrackClick};
+pub use section::Section;
 pub use session::{LockClock, SessionSettings};
-pub use spaces::{DefaultCardAccent, SpaceLookLookup, SpacesSettings, WallpaperDrawer};
+pub use spaces::{DefaultCardAccent, SpacesSettings, WallpaperDrawer};
 pub use switcher::SwitcherSettings;
-pub use watch::{ShellWatch, watch};
 pub use widgets::{DesktopWidgets, WidgetKind, WidgetsSettings};
 pub use window::WindowSettings;
 

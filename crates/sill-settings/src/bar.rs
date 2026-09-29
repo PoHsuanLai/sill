@@ -1,23 +1,15 @@
 //! `bar.*` (design/22 §3.4; design/13 §13.3.1). All Advanced (§5).
 
+use crate::file::ShellFile;
+use crate::section::Section;
 use ds_settings::schema::Page;
 use ds_settings::{Count, Percent, Px};
 use serde::{Deserialize, Serialize};
 
 /// Which box a bar status glyph is drawn at (design/13 §13.9 open decision 8).
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum BarGlyphSize {
     /// A 16 px glyph in a 22 px box (macOS status icons).
     #[default]
@@ -167,5 +159,13 @@ impl Default for BarSettings {
             item_radius_px: Px(5),
             battery_low_percent: Percent(20),
         }
+    }
+}
+
+impl Section for BarSettings {
+    const KEY: &'static str = "bar";
+
+    fn of(file: &ShellFile) -> &Self {
+        &file.bar
     }
 }

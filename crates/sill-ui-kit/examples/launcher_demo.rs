@@ -22,8 +22,9 @@ use std::io::BufRead;
 use shell_host::{
     Host, HostCtx, HostEvent, HostRoot, LayerConfig, OutputId, OutputInfo, SurfaceId, Visibility,
 };
-use sill_settings::{SettingsFeed, ShellFile};
+use sill_settings::ShellFile;
 use sill_ui_kit::links::LauncherLink;
+use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::surface::{MountProps, Surface, mount};
 use sill_ui_kit::{Launcher, LauncherCatcher};
 use tokio::sync::mpsc;

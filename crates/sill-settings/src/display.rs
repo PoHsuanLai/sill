@@ -8,24 +8,16 @@
 //! `;`-separated, because the derive's `Vec<_>` shape needs an enum element and has no list-of-text
 //! kind yet (a quire gap).
 
+use crate::file::ShellFile;
+use crate::section::Section;
 use ds_settings::schema::Page;
 use ds_settings::{Count, Percent};
 use serde::{Deserialize, Serialize};
 
 /// `display.scale`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum DisplayScaleMode {
     #[default]
     Auto,
@@ -33,19 +25,9 @@ pub enum DisplayScaleMode {
 }
 
 /// `display.scale_rounding`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum ScaleRounding {
     #[default]
     PreferWhole,
@@ -53,19 +35,9 @@ pub enum ScaleRounding {
 }
 
 /// `display.brightness_keys_target`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum BrightnessKeysTarget {
     #[default]
     PointerOutput,
@@ -73,19 +45,9 @@ pub enum BrightnessKeysTarget {
 }
 
 /// `display.hardware_volume`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum HardwareVolumeMode {
     Off,
     #[default]
@@ -93,19 +55,9 @@ pub enum HardwareVolumeMode {
 }
 
 /// `display.night_warmth`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum NightWarmthMode {
     #[default]
     Off,
@@ -113,19 +65,9 @@ pub enum NightWarmthMode {
 }
 
 /// `display.font_rendering`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum FontRenderingSetting {
     #[default]
     Auto,
@@ -219,5 +161,13 @@ impl Default for DisplaySettings {
             night_warmth_strength: Percent(50),
             font_rendering: FontRenderingSetting::Auto,
         }
+    }
+}
+
+impl Section for DisplaySettings {
+    const KEY: &'static str = "display";
+
+    fn of(file: &ShellFile) -> &Self {
+        &file.display
     }
 }

@@ -1,6 +1,8 @@
-//! `control_center.*` (design/22 §3.13 and `control_center.material` from §3.1; design/13
+//! `control_center.*` (design/22 §3.13; design/13
 //! §13.3.7). All Advanced (§5).
 
+use crate::file::ShellFile;
+use crate::section::Section;
 use ds_settings::schema::Page;
 use ds_settings::{Count, Px};
 use serde::{Deserialize, Serialize};
@@ -8,19 +10,9 @@ use serde::{Deserialize, Serialize};
 /// Which quire material a panel uses. design/22 fixes Sheet for v1, but a one-variant enum
 /// cannot be a settings key (the schema needs at least two words to pick a widget), and
 /// design/20 §1.3 and §1.5 name Popover for the same panels, so both are offered.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum PanelMaterial {
     /// quire `Material::Sheet` (design/03 §17.3).
     #[default]
@@ -31,19 +23,9 @@ pub enum PanelMaterial {
 
 /// Whether a module also shows as its own bar item with its own dropdown (macOS's "Show in Menu
 /// Bar"), beside the control center's own item.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum InMenuBar {
     Show,
     #[default]
@@ -51,10 +33,9 @@ pub enum InMenuBar {
 }
 
 /// One control center module, in `control_center.modules` order.
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum ControlCenterModule {
     Wifi,
     Bluetooth,
@@ -126,14 +107,6 @@ pub struct ControlCenterSettings {
         advanced
     )]
     pub modules: Vec<ControlCenterModule>,
-    /// `control_center.material` (§3.1 row, owned by sill).
-    #[settings(
-        label = "Material",
-        help = "The control center's material.",
-        section = "Control center",
-        advanced
-    )]
-    pub material: PanelMaterial,
     /// Whether Wi-Fi also has its own bar item and dropdown (macOS's "Show in Menu Bar").
     #[settings(
         label = "Wi-Fi in the menu bar",
@@ -207,7 +180,6 @@ impl Default for ControlCenterSettings {
                 Appearance,
                 Battery,
             ],
-            material: PanelMaterial::Sheet,
             menu_bar_wifi: InMenuBar::Show,
             menu_bar_bluetooth: InMenuBar::Hide,
             menu_bar_sound: InMenuBar::Show,
@@ -215,5 +187,13 @@ impl Default for ControlCenterSettings {
             menu_bar_battery: InMenuBar::Show,
             menu_bar_now_playing: InMenuBar::Hide,
         }
+    }
+}
+
+impl Section for ControlCenterSettings {
+    const KEY: &'static str = "control_center";
+
+    fn of(file: &ShellFile) -> &Self {
+        &file.control_center
     }
 }

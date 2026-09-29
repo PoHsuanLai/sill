@@ -1,10 +1,11 @@
 //! The Focus tile: Do Not Disturb as a quire `ModuleTile` (the `Moon` glyph),
 //! [`crate::surfaces::control_center::focus_status`] as its line. Reads `use_focus_mode`; sets
-//! through the root context's `sill_settings::FocusLink`.
+//! through the root context's `crate::links::FocusLink`.
 
+use crate::links::FocusLink;
 use dioxus::prelude::*;
 use ds::{DiscMotion, Icon, ModuleState, ModuleTile, TextLine};
-use sill_settings::{FocusLink, FocusMode};
+use sill_settings::FocusMode;
 
 use super::cc_module::{CcCx, CcModule, Span};
 use crate::hooks::use_focus_mode;

@@ -2,24 +2,16 @@
 //! `SpaceLook` gets. The per-workspace looks are state in `quire/spaces.json`, not here. All
 //! Advanced.
 
+use crate::file::ShellFile;
+use crate::section::Section;
 use ds_settings::Count;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
 
 /// `spaces.default_card_accent`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum DefaultCardAccent {
     #[default]
     Postmark,
@@ -28,46 +20,13 @@ pub enum DefaultCardAccent {
 
 /// `spaces.wallpaper_drawer`: who paints the desktop background. `Shell` (default) spawns sill's
 /// own wallpaper surface on every output; `Cosmic` leaves it to COSMIC's own `cosmic-bg`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum WallpaperDrawer {
     Cosmic,
     #[default]
     Shell,
-}
-
-/// `spaces.lookup_order`. design/22 lists one variant and names `ByIndexOnly` as the future
-/// second; a settings enum needs two, so it is here now.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
-#[serde(rename_all = "snake_case")]
-pub enum SpaceLookLookup {
-    /// `by_id[workspace id]`, else `by_index[position]`, else the default (design/21 §10).
-    #[default]
-    ByIdThenIndex,
-    /// `by_index[position]` only, for a compositor whose ids are not stable.
-    ByIndexOnly,
 }
 
 /// Space defaults.
@@ -97,13 +56,6 @@ pub struct SpacesSettings {
         advanced
     )]
     pub wallpaper_drawer: WallpaperDrawer,
-    #[settings(
-        label = "Look lookup",
-        help = "Find a workspace's look by its id, then its position; or by position only.",
-        section = "Defaults",
-        advanced
-    )]
-    pub lookup_order: SpaceLookLookup,
 }
 
 impl Default for SpacesSettings {
@@ -112,7 +64,14 @@ impl Default for SpacesSettings {
             default_grain: Count(40),
             default_card_accent: DefaultCardAccent::Postmark,
             wallpaper_drawer: WallpaperDrawer::Shell,
-            lookup_order: SpaceLookLookup::ByIdThenIndex,
         }
+    }
+}
+
+impl Section for SpacesSettings {
+    const KEY: &'static str = "spaces";
+
+    fn of(file: &ShellFile) -> &Self {
+        &file.spaces
     }
 }

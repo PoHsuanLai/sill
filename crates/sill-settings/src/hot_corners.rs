@@ -2,24 +2,16 @@
 //! macOS "Desktop & Dock" > Hot Corners, hence `Page::Dock`). design/13 has no dwell or action
 //! table yet. All Advanced.
 
+use crate::file::ShellFile;
+use crate::section::Section;
 use ds_settings::schema::Page;
 use ds_settings::{Ms, Px};
 use serde::{Deserialize, Serialize};
 
 /// What a corner does.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum CornerAction {
     /// Nothing, and no surface in that corner.
     #[default]
@@ -142,5 +134,13 @@ impl Default for HotCornersSettings {
             rearm_ms: Ms(500),
             size_px: Px(2),
         }
+    }
+}
+
+impl Section for HotCornersSettings {
+    const KEY: &'static str = "hot_corners";
+
+    fn of(file: &ShellFile) -> &Self {
+        &file.hot_corners
     }
 }

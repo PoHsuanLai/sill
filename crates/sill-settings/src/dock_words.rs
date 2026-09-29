@@ -7,10 +7,10 @@ macro_rules! words {
     ($(#[$doc:meta] $name:ident { #[default] $first:ident $(, $rest:ident)* $(,)? })*) => {$(
         #[$doc]
         #[derive(
-            Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize,
-            ds_settings::SettingsSchema,
+            Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word,
         )]
         #[serde(rename_all = "snake_case")]
+        #[word(case = snake)]
         pub enum $name {
             #[default]
             $first,
@@ -24,8 +24,6 @@ words! {
     Magnification { #[default] On, Off }
     /// `dock.autohide`.
     AutoHide { #[default] Off, On }
-    /// `dock.position`; Left and Right are deferred (design/10 §10.6), never Top.
-    DockPosition { #[default] Bottom, Left, Right }
     /// `dock.indicators`.
     Indicators { #[default] On, Off }
     /// `dock.bounce`: gates Informational and Critical bounces.

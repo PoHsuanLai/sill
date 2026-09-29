@@ -47,8 +47,8 @@ pub fn active_look(
     output: Option<&OutputName>,
     spaces: &SpacesSettings,
 ) -> SpaceLook {
-    let (key, index) = active_workspace(workspaces, output).unwrap_or((WorkspaceKey(0), 0));
-    use_space_look(key, index, spaces)
+    let (_, index) = active_workspace(workspaces, output).unwrap_or((WorkspaceKey(0), 0));
+    use_space_look(index, spaces)
 }
 
 /// The look of the active workspace on `output`, live.
@@ -59,11 +59,9 @@ pub fn use_active_look(output: &OutputInfo) -> SpaceLook {
     active_look(&workspaces(), on.as_ref(), &settings().spaces)
 }
 
-/// The look of `workspace` at position `index` in its group, with `spaces` defaults. The key
-/// is the future `by_id` lookup (`spaces.lookup_order`); with no store every workspace falls
-/// through to its index.
-pub fn use_space_look(workspace: WorkspaceKey, index: usize, spaces: &SpacesSettings) -> SpaceLook {
-    let _stored_by = (workspace, spaces.lookup_order);
+/// The look of the workspace at position `index` in its group, with `spaces` defaults. With no
+/// store every workspace gets the look of its index.
+pub fn use_space_look(index: usize, spaces: &SpacesSettings) -> SpaceLook {
     default_look(
         index,
         Grain(u8::try_from(spaces.default_grain.0.min(100)).unwrap_or(100)),
@@ -84,7 +82,6 @@ mod tests {
     use super::use_space_look;
     use ds::{CardAccent, Grain, PRESETS, Theme};
     use ds_settings::Count;
-    use sill_model::ids::WorkspaceKey;
     use sill_settings::{DefaultCardAccent, SpacesSettings};
 
     #[test]
@@ -97,7 +94,7 @@ mod tests {
         // (index, preset, grain): presets 1 and 2 keep 35 and 55, the rest take the key.
         const CASES: &[(usize, usize, u8)] = &[(0, 0, 35), (1, 1, 55), (2, 2, 20), (9, 1, 55)];
         for &(index, preset, grain) in CASES {
-            let look = use_space_look(WorkspaceKey(40 + index as u64), index, &spaces);
+            let look = use_space_look(index, &spaces);
             assert_eq!(look.dots, PRESETS[preset].dots.to_vec(), "index {index}");
             assert_eq!(look.grain, Grain(grain), "index {index}");
             assert_eq!(look.theme, Theme::System, "index {index}");

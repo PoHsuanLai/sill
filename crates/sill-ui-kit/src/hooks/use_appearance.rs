@@ -1,7 +1,11 @@
 //! `use_appearance`: quire's appearance, from `ds-settings`, unless the root pins one.
 
+use std::sync::Arc;
+
 use dioxus::prelude::{ReadSignal, try_consume_context, use_hook, use_signal};
-use ds_settings::{AppName, Environment, use_environment};
+use ds::Spawner;
+use ds_native::TokioSpawner;
+use ds_settings::{AppName, ConfigRoot, Environment, Store, SystemPrefsSource, use_environment};
 
 /// An appearance a root pins in place of the desktop's: a test or a headless render provides it
 /// as a root context so its surfaces never read the settings portal or `quire/appearance.toml`.
@@ -17,6 +21,11 @@ pub fn use_appearance() -> ReadSignal<Environment> {
     let pinned = use_hook(try_consume_context::<PinnedAppearance>);
     match pinned {
         Some(PinnedAppearance(environment)) => ReadSignal::new(use_signal(move || environment)),
-        None => use_environment(AppName::QUIRE),
+        None => {
+            // The runtime the host entered on this thread runs the file and portal watches.
+            let spawner: Arc<dyn Spawner> = use_hook(|| Arc::new(TokioSpawner::current()));
+            let store = Store::new(ConfigRoot::Xdg, AppName::QUIRE);
+            use_environment(store, SystemPrefsSource::Portal, spawner)
+        }
     }
 }

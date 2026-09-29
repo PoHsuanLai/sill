@@ -5,7 +5,7 @@
 
 use dioxus::prelude::*;
 use ds::{Appearance, AppearancePicker, ModulePanel, PickerLayout};
-use ds_settings::{AppName, AppearanceFile, config_dir};
+use ds_settings::{AppName, AppearanceFile, ConfigRoot, Store};
 
 use super::cc_module::{CcCx, CcModule, Span};
 use crate::hooks::use_appearance;
@@ -30,12 +30,9 @@ pub fn AppearanceModule() -> Element {
 /// Write `next` into `quire/appearance.toml`, keeping everything else in the file. A file that
 /// cannot be written leaves the appearance as it was, which the picker then shows.
 fn save(next: Appearance) {
-    let Some(dir) = config_dir(AppName::QUIRE) else {
-        eprintln!("sill: no config directory for quire's appearance");
-        return;
-    };
-    let file = with_appearance(ds_settings::appearance_file::load(&dir), next);
-    if let Err(error) = ds_settings::appearance_file::save(&dir, &file) {
+    let store = Store::new(ConfigRoot::Xdg, AppName::QUIRE);
+    let file = with_appearance(store.load::<AppearanceFile>().value, next);
+    if let Err(error) = store.save(&file) {
         eprintln!("sill: writing the appearance: {error}");
     }
 }

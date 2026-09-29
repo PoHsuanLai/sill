@@ -1,6 +1,8 @@
 //! `window.*`: how the shell's own app windows handle a titlebar drag. The rows are design/22's
 //! `window` section. All Advanced.
 
+use crate::file::ShellFile;
+use crate::section::Section;
 use ds_settings::Px;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
@@ -26,5 +28,13 @@ impl Default for WindowSettings {
         WindowSettings {
             move_threshold_px: Px(4),
         }
+    }
+}
+
+impl Section for WindowSettings {
+    const KEY: &'static str = "window";
+
+    fn of(file: &ShellFile) -> &Self {
+        &file.window
     }
 }

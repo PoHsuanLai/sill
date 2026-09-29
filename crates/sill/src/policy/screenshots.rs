@@ -3,16 +3,16 @@
 
 use std::path::{Path, PathBuf};
 
-use sill_model::screenshots::{ShotCommand, ShotPolicy, parse_folders, parse_tool};
+use sill_model::screenshots::{ShotCommand, ShotPolicy, parse_folders};
 use sill_settings::ShellFile;
 
 use super::Policy;
 
-/// The service's policy `file` makes (`parse_folders` against `home`, `parse_tool`).
+/// The service's policy `file` makes (`parse_folders` against `home`; the tool is parsed at load).
 pub fn policy_of(file: &ShellFile, home: &Path) -> ShotPolicy {
     ShotPolicy {
         folders: parse_folders(&file.screenshot.folders, home),
-        tool: parse_tool(&file.screenshot.tool),
+        tool: file.screenshot.tool.clone(),
     }
 }
 

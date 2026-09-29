@@ -1,8 +1,7 @@
 //! What a request can reach: the services, the outputs' surfaces, the links the surfaces follow
 //! and the settings the daemon holds.
 
-use std::path::Path;
-
+use ds_settings::Store;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
@@ -17,7 +16,7 @@ pub struct Reach<'a> {
     pub outputs: &'a Outputs,
     /// The shared links.
     pub links: &'a Links,
-    /// The settings directory; `None` when neither `XDG_CONFIG_HOME` nor `HOME` is set.
-    pub settings_dir: Option<&'a Path>,
+    /// The settings file's store.
+    pub store: &'a Store,
     pub settings: &'a watch::Sender<ShellFile>,
 }

@@ -2,18 +2,19 @@
 //! host, and every other event moves the outputs' bookkeeping (a surface the compositor took away,
 //! a bar resized by a settled settings change) and then spawns whatever is missing.
 
-use std::path::PathBuf;
 use std::time::Instant;
 
+use ds_settings::Store;
 use shell_host::{CloseReason, HostCtx, HostEvent, SurfaceId, SurfaceOp};
 use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
 use sill_model::displays::DisplaysCommand;
-use sill_settings::{SettingsFeed, ShellFile};
+use sill_settings::ShellFile;
 use sill_ui_kit::Bar;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
+use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::surface::Surface;
 use sill_ui_kit::{Launcher, PowerMenu};
 use tokio::sync::watch;
@@ -32,8 +33,8 @@ pub struct Shell {
     pub shell_lock: crate::lock::ShellLock,
     pub services: Services,
     pub settings_feed: SettingsFeed,
-    /// `None` when neither `XDG_CONFIG_HOME` nor `HOME` is set.
-    pub settings_dir: Option<PathBuf>,
+    /// The settings file's store.
+    pub store: Store,
     pub settings: watch::Sender<ShellFile>,
     /// The links every surface root is given and the requests write.
     pub links: Links,
@@ -69,7 +70,7 @@ fn answer(shell: &Shell, ctx: &mut HostCtx<ShellMsg>, request: Request) -> Respo
         services: &shell.services,
         outputs: &shell.outputs,
         links: &shell.links,
-        settings_dir: shell.settings_dir.as_deref(),
+        store: &shell.store,
         settings: &shell.settings,
     };
     let response = route(ctx, &reach, request);

@@ -83,7 +83,7 @@ async fn publish(
 }
 
 /// Wait for the first signal, then coalesce the rest of the burst for [`RESCAN_DEBOUNCE`] (the
-/// same shape as `sill_settings::watch`'s debounce); `false` once every watcher has dropped, so
+/// same shape as `ds_settings::Store::watch`'s debounce); `false` once every watcher has dropped, so
 /// nothing is left to ever signal again.
 async fn settle(signals: &mut mpsc::UnboundedReceiver<()>) -> bool {
     if signals.recv().await.is_none() {

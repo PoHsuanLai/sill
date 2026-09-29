@@ -52,9 +52,17 @@ pub fn keys_in_section(doc: &str, heading: &str, next_heading: &str) -> Vec<Stri
     after[..end]
         .lines()
         .filter_map(|line| {
-            let first_cell = line.split('|').nth(1)?.trim();
+            let mut cells = line.split('|').map(str::trim);
+            let first_cell = cells.nth(1)?;
             let key = first_cell.strip_prefix('`')?.strip_suffix('`')?;
-            Some(key.to_owned())
+            // A retiring key has no field on purpose (its row says why).
+            let status = line
+                .trim_end_matches('|')
+                .rsplit('|')
+                .next()
+                .unwrap_or("")
+                .trim();
+            (!status.starts_with("RETIRING")).then(|| key.to_owned())
         })
         .collect()
 }

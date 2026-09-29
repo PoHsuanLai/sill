@@ -29,8 +29,10 @@ impl ShotKind {
     }
 }
 
-/// What takes a screenshot.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+/// What takes a screenshot. Stored as `screenshot.tool`'s text (`auto`, `off` or the command),
+/// read through [`parse_tool`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(from = "String", into = "String")]
 pub enum ShotTool {
     /// Nothing: `off`, and the passive start.
     #[default]
@@ -39,6 +41,22 @@ pub enum ShotTool {
     Cosmic,
     /// A command line for `/bin/sh -c`, given the kind as `$1` and the folder as `$2`.
     Command(String),
+}
+
+impl From<String> for ShotTool {
+    fn from(text: String) -> Self {
+        parse_tool(&text)
+    }
+}
+
+impl From<ShotTool> for String {
+    fn from(tool: ShotTool) -> Self {
+        match tool {
+            ShotTool::Off => "off".to_owned(),
+            ShotTool::Cosmic => "auto".to_owned(),
+            ShotTool::Command(command) => command,
+        }
+    }
 }
 
 /// A program and its arguments.
@@ -131,6 +149,34 @@ mod tests {
         assert_eq!(
             parse_tool("grim -g \"$(slurp)\" \"$2/Screenshot_$(date +%s).png\""),
             ShotTool::Command("grim -g \"$(slurp)\" \"$2/Screenshot_$(date +%s).png\"".to_owned())
+        );
+    }
+
+    #[test]
+    fn a_tool_is_stored_as_the_settings_text_and_reads_back() {
+        const CASES: &[(&str, ShotTool, &str)] = &[
+            ("off", ShotTool::Off, "\"off\""),
+            ("auto", ShotTool::Cosmic, "\"auto\""),
+        ];
+        for (name, tool, text) in CASES {
+            assert_eq!(
+                serde_json::to_string(tool).as_deref().ok(),
+                Some(*text),
+                "{name}"
+            );
+            assert_eq!(
+                serde_json::from_str::<ShotTool>(text).ok().as_ref(),
+                Some(tool),
+                "{name}"
+            );
+        }
+        let command = ShotTool::Command("shoot \"$1\"".to_owned());
+        let text = serde_json::to_string(&command).unwrap_or_else(|e| panic!("{e}"));
+        assert_eq!(serde_json::from_str::<ShotTool>(&text).ok(), Some(command));
+        assert_eq!(
+            serde_json::from_str::<ShotTool>("\"  \"").ok(),
+            Some(ShotTool::Off),
+            "an empty text is off, as the setting always read it"
         );
     }
 

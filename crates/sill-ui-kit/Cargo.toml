@@ -14,7 +14,7 @@ dioxus = { workspace = true }
 ds = { workspace = true }
 # `pdf-thumb`: the preview pane's PDF page through `ds_native::PdfFileThumb`.
 ds-native = { workspace = true, features = ["pdf-thumb"] }
-ds-settings = { workspace = true }
+ds-settings = { workspace = true, features = ["dioxus"] }
 shell-host = { workspace = true }
 sill-search = { workspace = true }
 sill-services = { workspace = true }

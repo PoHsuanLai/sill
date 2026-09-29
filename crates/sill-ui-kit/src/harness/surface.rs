@@ -6,10 +6,11 @@ use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
 
+use crate::settings::SettingsFeed;
 use dioxus::prelude::*;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use shell_host::{LayerExtent, OutputInfo};
-use sill_settings::{SettingsFeed, ShellFile};
+use sill_settings::ShellFile;
 use tokio::sync::watch;
 
 use super::fake;

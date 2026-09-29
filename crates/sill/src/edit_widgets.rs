@@ -4,44 +4,40 @@
 //! the desktop layer and the center follow before the watch fires) and the output's places into
 //! `desktop-widgets.json`.
 
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use ds_settings::Store;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::{PlacementFile, WidgetsWrite, WidgetsWriter};
 use tokio::sync::watch;
 
-/// The writer the Edit Widgets link is given: [`write`] into `dir` (nothing but a log line without
-/// one) and the default places' file.
+/// The writer the Edit Widgets link is given: [`write`] into `store` and the default places' file.
 pub fn writer(
-    dir: Option<PathBuf>,
+    store: Store,
     places: PlacementFile,
     settings: watch::Sender<ShellFile>,
 ) -> WidgetsWriter {
     WidgetsWriter(Arc::new(move |change: WidgetsWrite| {
-        let Some(dir) = dir.as_deref() else {
-            eprintln!("sill: no settings directory; Edit Widgets saved nothing");
-            return;
-        };
-        if let Err(error) = write(dir, &settings, Some(&places), change) {
+        if let Err(error) = write(&store, &settings, Some(&places), change) {
             eprintln!("sill: Edit Widgets: {error}");
         }
     }))
 }
 
-/// Save `change`'s keys into `dir`'s `settings.toml`, keeping every other key, publish the
+/// Save `change`'s keys into `store`'s `settings.toml`, keeping every other key, publish the
 /// file on `settings`, and save its places in `places` when there is a file.
 pub fn write(
-    dir: &Path,
+    store: &Store,
     settings: &watch::Sender<ShellFile>,
     places: Option<&PlacementFile>,
     change: WidgetsWrite,
 ) -> Result<(), String> {
-    let mut file = sill_settings::load(dir);
+    let mut file = crate::daemon::settings::load(store);
     file.widgets.center = change.center;
     file.widgets.desktop_widgets = change.desktop;
     file.widgets.desktop = change.shown;
-    sill_settings::save(dir, &file).map_err(|error| format!("saving the settings: {error}"))?;
+    crate::daemon::settings::save(store, &file)
+        .map_err(|error| format!("saving the settings: {error}"))?;
     settings.send_replace(file);
     if let Some(places) = places {
         places
@@ -69,7 +65,8 @@ mod tests {
         let (tx, rx) = watch::channel(ShellFile::default());
         let mut before = ShellFile::default();
         before.widgets.world_clocks = "Europe/London".to_owned();
-        sill_settings::save(&dir, &before).unwrap_or_else(|e| panic!("{e}"));
+        let store = crate::daemon::settings::store(&dir);
+        crate::daemon::settings::save(&store, &before).unwrap_or_else(|e| panic!("{e}"));
         let clock = Placement {
             kind: WidgetKind::WorldClock,
             slot: GridSlot { column: 2, row: 0 },
@@ -81,8 +78,8 @@ mod tests {
             output: OutputKey::Named("DP-1".to_owned()),
             places: vec![clock],
         };
-        write(&dir, &tx, Some(&places), change).unwrap_or_else(|e| panic!("{e}"));
-        let saved = sill_settings::load(&dir).widgets;
+        write(&store, &tx, Some(&places), change).unwrap_or_else(|e| panic!("{e}"));
+        let saved = crate::daemon::settings::load(&store).widgets;
         assert_eq!(saved.center, vec![WidgetKind::UpNext]);
         assert_eq!(
             saved.desktop_widgets,

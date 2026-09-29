@@ -23,11 +23,7 @@ const SECTIONS: &[(&str, &str)] = &[
 
 /// §3.1 rows that are sill's, not `AppearanceSettings`': the mirror image of ds-settings'
 /// `SILL_OWNED` list (its `tests/keys.rs`).
-const FROM_APPEARANCE: &[&str] = &[
-    "notifications.banner_material",
-    "control_center.material",
-    "launcher.material",
-];
+const FROM_APPEARANCE: &[&str] = &["notifications.banner_material", "launcher.material"];
 
 fn doc_keys() -> Vec<String> {
     let doc = doc();

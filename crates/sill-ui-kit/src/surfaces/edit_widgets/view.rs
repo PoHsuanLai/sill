@@ -20,12 +20,12 @@ use ds::{
     WidgetGallery, use_rect,
 };
 use shell_host::OutputInfo;
-use sill_settings::DesktopWidgets;
+use sill_settings::{DesktopWidgets, WidgetsSettings};
 
 use super::io::{places_to_save, use_phase};
 use super::layer::EDIT_PANEL_ID;
 use super::status::{EditCount, EditStatus, Outcome, outcome_of};
-use crate::hooks::use_settings;
+use crate::hooks::use_section;
 use crate::links::EditWidgetsLink;
 use crate::links::WidgetsWrite;
 use crate::root::SurfaceRoot;
@@ -88,7 +88,7 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
     let writer = link.writer().cloned();
     let file = link.places().cloned();
     let probe = use_rect();
-    let widgets = use_settings()().widgets;
+    let widgets = use_section::<WidgetsSettings>()();
     let mut outcome = use_signal(Outcome::default);
     let mut count = use_hook(|| CopyValue::new(EditCount::default()));
     let grid = probe.rect().map(|rect| {

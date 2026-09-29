@@ -2,10 +2,9 @@
 
 use shell_host::HostCtx;
 use sill_ipc::request::Request;
-use sill_ipc::response::{FailureKind, Response};
+use sill_ipc::response::Response;
 
 use super::reach::Reach;
-use super::reply::failed;
 use super::{act, debug, show, status};
 use crate::daemon::msg::ShellMsg;
 
@@ -30,16 +29,7 @@ pub fn route(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, request: Request) -> Re
 /// settings feed, the scroll engine through `ctx`. Dock pins are not re-read here: the pins
 /// service watches its own file.
 fn reload(ctx: &mut HostCtx<ShellMsg>, reach: &Reach) -> Response {
-    let response = match reach.settings_dir {
-        Some(dir) => {
-            crate::daemon::settings::reload(dir, reach.settings);
-            Response::Done
-        }
-        None => failed(
-            FailureKind::Internal,
-            "no settings directory (XDG_CONFIG_HOME and HOME are both unset)".to_owned(),
-        ),
-    };
+    crate::daemon::settings::reload(reach.store, reach.settings);
     ctx.set_scroll_config(crate::scroll::config(&reach.settings.borrow()));
-    response
+    Response::Done
 }

@@ -1,24 +1,16 @@
 //! `scrollbar.*` (design/22 §3.8; design/11 §11.3.12): the overlay thumb shell-host paints.
 //! All Advanced (§5).
 
+use crate::file::ShellFile;
+use crate::section::Section;
 use ds_settings::schema::Page;
 use ds_settings::{Ms, Px};
 use serde::{Deserialize, Serialize};
 
 /// `scrollbar.track_click_mode`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum TrackClick {
     /// A click on the track pages toward it (macOS default).
     #[default]
@@ -156,5 +148,13 @@ impl Default for ScrollbarSettings {
             other_axis_offset_px: Px(12),
             track_click_mode: TrackClick::PageTowardClick,
         }
+    }
+}
+
+impl Section for ScrollbarSettings {
+    const KEY: &'static str = "scrollbar";
+
+    fn of(file: &ShellFile) -> &Self {
+        &file.scrollbar
     }
 }

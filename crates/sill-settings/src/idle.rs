@@ -5,24 +5,16 @@
 //! `Secs` and minutes `Mins`, plain integers in the file as before; every key is on the Power page,
 //! Advanced, with `session.lock_grace_s` (`crate::schema` moves that one key).
 
+use crate::file::ShellFile;
+use crate::section::Section;
 use ds_settings::schema::Page;
 use ds_settings::{Mins, Percent, Secs};
 use serde::{Deserialize, Serialize};
 
 /// `idle.times`: where the screen-off and suspend times come from.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum IdleTimesFrom {
     /// COSMIC's `com.system76.CosmicIdle` (COSMIC Settings' Power page): one screen-off time for
     /// both power sources, and suspend on AC and on battery.
@@ -33,19 +25,9 @@ pub enum IdleTimesFrom {
 }
 
 /// `idle.lock`: whether turning the screens off for idleness locks the session.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    ds_settings::SettingsSchema,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum IdleLockAt {
     /// Lock as the screens go off (what cosmic-idle did; macOS's "require password").
     #[default]
@@ -153,5 +135,13 @@ impl Default for IdleSettings {
             lock: IdleLockAt::ScreenOff,
             locked_screen_off_s: Secs(60),
         }
+    }
+}
+
+impl Section for IdleSettings {
+    const KEY: &'static str = "idle";
+
+    fn of(file: &ShellFile) -> &Self {
+        &file.idle
     }
 }

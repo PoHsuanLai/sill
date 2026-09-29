@@ -3,6 +3,7 @@ use super::{
     WidgetHost, WidgetKind, WidgetSize, cells, kind_id, kind_of, registry, size_of,
     widget_element_id,
 };
+use ds::Word;
 
 #[test]
 fn each_widget_has_its_footprint_in_each_host() {
@@ -99,7 +100,7 @@ fn every_slug_and_desktop_size_is_pinned() {
         ),
     ];
     let kinds: Vec<_> = table.iter().map(|row| row.0).collect();
-    assert_eq!(kinds, WidgetKind::ALL);
+    assert_eq!(kinds, WidgetKind::ALL.to_vec());
     for (kind, slug, element, desktop) in table {
         assert_eq!(kind.slug(), slug);
         assert_eq!(widget_element_id(kind), element);

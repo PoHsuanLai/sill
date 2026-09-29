@@ -1,10 +1,12 @@
 //! The bar's menu session as data: what its popup shows, what it is fed, what it needs from the
 //! bar each render, and the notification-center handoff it waits on.
 
+use crate::links::FocusLink;
+use crate::settings::SettingsFeed;
 use ds::{Point, Px, Rect, Size};
 use shell_host::{OutputId, PopupPlacement, SurfaceHandle};
 use sill_model::ids::OutputName;
-use sill_settings::{BarSettings, FocusLink, SettingsFeed};
+use sill_settings::BarSettings;
 
 use super::content::{BarState, PopupBody};
 use super::menu_track::{MenuIn, MenuParams};

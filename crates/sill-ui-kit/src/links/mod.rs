@@ -6,6 +6,7 @@
 mod banners;
 mod control_center;
 mod edit_widgets;
+mod focus;
 mod hot_corners;
 mod launcher;
 mod lock;
@@ -16,11 +17,10 @@ mod power_menu;
 mod reveal;
 mod switcher;
 
-use sill_settings::FocusLink;
-
 pub use banners::{BannerLink, BannerOutput};
 pub use control_center::{ControlCenterAsk, ControlCenterLink};
 pub use edit_widgets::{EditShown, EditWidgetsLink, WidgetsWrite, WidgetsWriter};
+pub use focus::{Delivery, FocusLink};
 pub use hot_corners::{Corner, CornerHit, CornerLink};
 pub use launcher::{CLIPBOARD_TITLE, LauncherLink, Opening, PanelHit, ShownRows, ShownRowsSection};
 pub use lock::{LockLink, PromptOutput};

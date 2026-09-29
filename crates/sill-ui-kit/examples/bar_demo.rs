@@ -15,10 +15,11 @@ use std::fmt::Debug;
 use std::time::Instant;
 
 use shell_host::{Host, HostCtx, HostEvent, HostRoot, OutputId, OutputInfo};
-use sill_settings::{SettingsFeed, ShellFile};
+use sill_settings::ShellFile;
 use sill_ui_kit::Bar;
 use sill_ui_kit::clock::FrameClock;
 use sill_ui_kit::links::CenterLink;
+use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::surface::{MountProps, Surface, mount};
 use tokio::sync::mpsc;
 

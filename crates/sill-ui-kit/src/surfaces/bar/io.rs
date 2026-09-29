@@ -4,12 +4,14 @@
 
 use std::collections::HashMap;
 
+use crate::links::FocusLink;
+use crate::settings::SettingsFeed;
 use dioxus::prelude::*;
 use shell_host::{
     HostRoot, OutputId, OutputInfo, PopupAnchor, PopupConfig, PopupSize, SurfaceHandle,
 };
 use sill_model::ids::OutputName;
-use sill_settings::{FocusLink, FocusMode, SettingsFeed};
+use sill_settings::FocusMode;
 use tokio::sync::{mpsc, watch};
 
 use super::content::{BarState, body, front_app};

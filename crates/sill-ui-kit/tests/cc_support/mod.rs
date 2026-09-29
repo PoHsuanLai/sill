@@ -11,8 +11,10 @@ use dioxus::prelude::*;
 use ds::{Appearance, Ds, Material};
 use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
-use sill_settings::{FocusLink, FocusMode, SettingsFeed, ShellFile};
+use sill_settings::{FocusMode, ShellFile};
+use sill_ui_kit::links::FocusLink;
 use sill_ui_kit::services::Services;
+use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::surfaces::control_center::{ControlCenter, ModuleDropdown};
 
 /// The panel's root: a Popover `Ds`, the control center on the bar output `DP-1`.

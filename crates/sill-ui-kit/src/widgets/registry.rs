@@ -2,7 +2,7 @@
 //! names it, the registry with sill's two widgets added and every kind held to its one size in
 //! each host, and the stylesheets sill's own widgets need.
 
-use ds::WidgetHost;
+use ds::{WidgetHost, Word};
 use sill_settings::WidgetKind;
 
 use super::{OnProvider, WidgetProvider, now_playing, size_of, up_next, with_provider};

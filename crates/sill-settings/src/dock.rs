@@ -2,13 +2,15 @@
 //! lists; the geometry and timing keys are Advanced. Pinned apps are state in `dock.json`, not
 //! here.
 
+use crate::file::ShellFile;
+use crate::section::Section;
 use ds_settings::schema::Page;
 use ds_settings::{Ms, Px};
 use serde::{Deserialize, Serialize};
 
 pub use crate::dock_words::{
-    ActiveClick, AutoHide, Bounce, DockFloor, DockMenuOrder, DockModifierClicks, DockPosition,
-    Indicators, LaunchAnim, Magnification, ProgressStyle, TrashTile,
+    ActiveClick, AutoHide, Bounce, DockFloor, DockMenuOrder, DockModifierClicks, Indicators,
+    LaunchAnim, Magnification, ProgressStyle, TrashTile,
 };
 
 /// The dock's settings.
@@ -95,12 +97,6 @@ pub struct DockSettings {
         advanced
     )]
     pub autohide_trigger_strip_px: Px,
-    #[settings(
-        label = "Position",
-        help = "Which screen edge the dock sits on.",
-        section = "Position"
-    )]
-    pub position: DockPosition,
     #[settings(
         label = "Show indicators for open apps",
         help = "A dot under each app that has a window.",
@@ -341,7 +337,6 @@ impl Default for DockSettings {
             autohide_delay_ms: Ms(200),
             autohide_slide_ms: Ms(500),
             autohide_trigger_strip_px: Px(4),
-            position: DockPosition::Bottom,
             indicators: Indicators::On,
             bounce: Bounce::On,
             launch_animation: LaunchAnim::On,
@@ -370,5 +365,13 @@ impl Default for DockSettings {
             running_dot_gap_px: Px(3),
             floor: DockFloor::Off,
         }
+    }
+}
+
+impl Section for DockSettings {
+    const KEY: &'static str = "dock";
+
+    fn of(file: &ShellFile) -> &Self {
+        &file.dock
     }
 }
