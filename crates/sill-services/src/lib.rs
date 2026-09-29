@@ -60,7 +60,7 @@ pub use apps::{
 pub use attempt::{Attempt, AttemptStep, Attempts, OpStamp};
 pub use auth::{Auth, AuthCommand, AuthPhase};
 pub use badges::{
-    Badge, BadgeEvent, BadgeProp, Badges, BadgesCommand, parse_app_uri, reduce_badges,
+    Badge, BadgeEvent, BadgeProp, Badges, BadgesCommand, BadgesService, parse_app_uri,
 };
 pub use battery::{Battery, BatteryCommand, BatteryEvent, BatteryService, Charge, Remaining};
 pub use bluetooth::{

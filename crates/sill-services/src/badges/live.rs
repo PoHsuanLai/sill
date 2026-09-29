@@ -13,9 +13,10 @@ use zbus::zvariant::OwnedValue;
 use zbus::{MatchRule, MessageStream};
 
 use super::BadgesCommand;
-use super::model::{BadgeEvent, BadgeProp, Badges, parse_app_uri, reduce_badges};
+use super::model::{BadgeEvent, BadgeProp, Badges, parse_app_uri, step};
 use crate::cosmic_wl::Urgency;
 use crate::env::Bus;
+use crate::error::ServiceError;
 use crate::stream::next;
 use crate::units::{Permille, Visibility};
 
@@ -29,22 +30,12 @@ pub(super) async fn run(
     bus: Bus,
     tx: watch::Sender<Badges>,
     mut commands: mpsc::UnboundedReceiver<BadgesCommand>,
-) {
-    let Ok(Some(connection)) = bus.connect().await else {
-        return;
-    };
-    let Ok(rule) = update_rule() else {
-        return;
-    };
-    let Ok(mut updates) = MessageStream::for_match_rule(rule, &connection, None).await else {
-        return;
-    };
-    let Ok(dbus) = DBusProxy::new(&connection).await else {
-        return;
-    };
-    let Ok(mut departures) = dbus.receive_name_owner_changed().await else {
-        return;
-    };
+) -> Result<(), ServiceError> {
+    let connection = bus.connected().await?;
+    let rule = update_rule()?;
+    let mut updates = MessageStream::for_match_rule(rule, &connection, None).await?;
+    let dbus = DBusProxy::new(&connection).await?;
+    let mut departures = dbus.receive_name_owner_changed().await?;
 
     // The sender that last published each app's badge, so its departure can clear it. Badges
     // itself only remembers app -> properties; which connection is currently speaking for an app is
@@ -70,6 +61,7 @@ pub(super) async fn run(
             }
         }
     }
+    Ok(())
 }
 
 /// A bus-wide match on every `Update` signal of the interface, whoever sends it (a zbus 5 match
@@ -118,7 +110,7 @@ fn decode_update(message: &Message) -> Option<BadgeEvent> {
 
 /// Every property whose value matched the type the interface promises for its key. A key that
 /// is unknown, or holds the wrong type, is dropped rather than failing the whole message —
-/// `reduce_badges` already treats an absent key as "unchanged", which is what a dropped one
+/// `step` already treats an absent key as "unchanged", which is what a dropped one
 /// becomes here.
 fn decode_props(dict: HashMap<String, OwnedValue>) -> Vec<BadgeProp> {
     dict.into_iter()
@@ -162,7 +154,7 @@ fn urgency_of(urgent: bool) -> Urgency {
 }
 
 /// `progress` 0..1 as thousandths; a negative or NaN value floors to zero the same way the
-/// round-then-cast already does (`reduce_badges`'s `apply` still clamps the top end).
+/// round-then-cast already does (`step`'s `apply` still clamps the top end).
 fn permille_of(progress: f64) -> Permille {
     Permille((progress * 1000.0).round() as u32)
 }
@@ -195,7 +187,7 @@ fn handle_departure(
 
 /// Reduces `event` onto the receiver's current value and publishes the result.
 fn apply(tx: &watch::Sender<Badges>, event: BadgeEvent) {
-    let next = reduce_badges(tx.borrow().clone(), event);
+    let next = step(tx.borrow().clone(), event);
     let _ = tx.send(next);
 }
 

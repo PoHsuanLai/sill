@@ -69,7 +69,7 @@ pub enum BadgeEvent {
 
 /// `badges` after `event`. An app whose badge returns to showing nothing (hidden count, hidden
 /// progress, calm) is dropped from the map.
-pub fn reduce_badges(badges: Badges, event: BadgeEvent) -> Badges {
+pub fn step(badges: Badges, event: BadgeEvent) -> Badges {
     let Badges { mut apps } = badges;
     match event {
         BadgeEvent::Update { app, props } => {
@@ -122,7 +122,7 @@ pub fn parse_app_uri(uri: &str) -> Option<AppId> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Badge, BadgeEvent, BadgeProp, Badges, parse_app_uri, reduce_badges};
+    use super::{Badge, BadgeEvent, BadgeProp, Badges, parse_app_uri, step};
     use crate::cosmic_wl::Urgency;
     use crate::units::{Permille, Visibility};
     use sill_launcher::AppId;
@@ -248,7 +248,7 @@ mod tests {
             ),
         ];
         for (name, before, event, want) in cases {
-            assert_eq!(reduce_badges(before, event), want, "{name}");
+            assert_eq!(step(before, event), want, "{name}");
         }
     }
 

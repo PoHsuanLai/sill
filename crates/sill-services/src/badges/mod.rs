@@ -9,13 +9,11 @@
 mod live;
 mod model;
 
-pub use model::{Badge, BadgeEvent, BadgeProp, Badges, parse_app_uri, reduce_badges};
+pub use model::{Badge, BadgeEvent, BadgeProp, Badges, parse_app_uri, step};
 
-use tokio::runtime::Handle;
-use tokio::sync::watch;
-
-use crate::control::Control;
-use crate::env::Bus;
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
 /// What the badges service can be told.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,12 +22,23 @@ pub enum BadgesCommand {
     Clear,
 }
 
-/// Subscribe to `LauncherEntry.Update` on the session bus and follow senders leaving it
-/// (`NameOwnerChanged` clears their apps' badges). A missing session bus leaves the receiver at
-/// `Badges::default()` — starting a service never fails the shell (`error.rs`).
-pub fn spawn(rt: &Handle, bus: Bus) -> (watch::Receiver<Badges>, Control<BadgesCommand>) {
-    let (tx, rx) = watch::channel(Badges::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(live::run(bus, tx, commands));
-    (rx, control)
+/// LauncherEntry badges as a [`Service`]: follows `LauncherEntry.Update` on the session bus and
+/// senders leaving it (`NameOwnerChanged` clears their apps' badges). Without a session bus the
+/// state stays at `Badges::default()`.
+#[derive(Debug)]
+pub enum BadgesService {}
+
+impl Service for BadgesService {
+    const NAME: &'static str = "badges";
+    type State = Badges;
+    type Command = BadgesCommand;
+    type Deps = ();
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        live::run(env.buses.session.clone(), io.state, io.commands)
+    }
 }

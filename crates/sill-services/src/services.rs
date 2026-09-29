@@ -140,7 +140,7 @@ impl Services {
         let (tray, tray_control) = crate::tray::spawn(rt, session());
         let (workspaces, toplevels, wl) = crate::cosmic_wl::spawn(env.wayland.clone());
         let (apps, apps_control) = crate::apps::spawn(rt, &env.dirs);
-        let (badges, badges_control) = crate::badges::spawn(rt, session());
+        let (badges, badges_control) = parts(spawn::<crate::badges::BadgesService>(rt, env, ()));
         let (pins, pins_control) = crate::pins::spawn(rt, &env.dirs);
         let (launches, launch) =
             crate::launch::spawn(rt, crate::launch::Setup::of(env), apps.clone());
