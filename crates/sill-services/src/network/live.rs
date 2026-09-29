@@ -1,5 +1,5 @@
 //! NetworkManager's primary connection over the system bus: seeds a real first value, then
-//! feeds every property change through [`reduce_network`].
+//! feeds every property change through [`step`].
 
 use cosmic_dbus_networkmanager::interface::NetworkManagerProxy;
 use cosmic_dbus_networkmanager::interface::access_point::AccessPointProxy;
@@ -10,8 +10,9 @@ use zbus::Connection;
 use zbus::zvariant::OwnedObjectPath;
 
 use super::NetworkCommand;
-use super::model::{Activating, Connectivity, Link, Network, NetworkEvent, reduce_network};
+use super::model::{Activating, Connectivity, Link, Network, NetworkEvent, step};
 use crate::env::Bus;
+use crate::error::ServiceError;
 use crate::stream::next;
 use crate::units::Percent;
 
@@ -21,13 +22,9 @@ pub(super) async fn run(
     bus: Bus,
     tx: watch::Sender<Network>,
     mut commands: mpsc::UnboundedReceiver<NetworkCommand>,
-) {
-    let Ok(Some(connection)) = bus.connect().await else {
-        return;
-    };
-    let Ok(nm) = NetworkManagerProxy::new(&connection).await else {
-        return;
-    };
+) -> Result<(), ServiceError> {
+    let connection = bus.connected().await?;
+    let nm = NetworkManagerProxy::new(&connection).await?;
 
     refresh(&connection, &nm, &tx).await;
 
@@ -54,6 +51,7 @@ pub(super) async fn run(
             }
         }
     }
+    Ok(())
 }
 
 /// Reads the primary connection, `ActivatingConnection` and connectivity once and sends the
@@ -75,7 +73,7 @@ async fn refresh(
 
 /// Reduces `event` onto the receiver's current value and publishes the result.
 fn apply(tx: &watch::Sender<Network>, event: NetworkEvent) {
-    let next = reduce_network(tx.borrow().clone(), event);
+    let next = step(tx.borrow().clone(), event);
     let _ = tx.send(next);
 }
 

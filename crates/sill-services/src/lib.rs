@@ -98,7 +98,7 @@ pub use network::wifi::{
     listed_networks, reduce_wifi,
 };
 pub use network::{
-    Activating, Connectivity, Link, Network, NetworkCommand, NetworkEvent, reduce_network,
+    Activating, Connectivity, Link, Network, NetworkCommand, NetworkEvent, NetworkService,
 };
 pub use notifications::{
     Action, ActionKey, Activation, ActivationToken, AppGroup, AppKey, AppRef, BannerLife, Body,

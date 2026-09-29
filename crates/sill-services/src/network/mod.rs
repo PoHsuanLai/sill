@@ -5,13 +5,11 @@ mod live;
 mod model;
 pub mod wifi;
 
-pub use model::{Activating, Connectivity, Link, Network, NetworkEvent, reduce_network};
+pub use model::{Activating, Connectivity, Link, Network, NetworkEvent, step};
 
-use tokio::runtime::Handle;
-use tokio::sync::watch;
-
-use crate::control::Control;
-use crate::env::Bus;
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
 /// What the network service can be told.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -20,11 +18,22 @@ pub enum NetworkCommand {
     Refresh,
 }
 
-/// Start the network task on `rt`. Without NetworkManager the receiver stays at
-/// `Network::default()` (disconnected, connectivity unknown).
-pub fn spawn(rt: &Handle, bus: Bus) -> (watch::Receiver<Network>, Control<NetworkCommand>) {
-    let (tx, rx) = watch::channel(Network::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(live::run(bus, tx, commands));
-    (rx, control)
+/// NetworkManager's primary connection as a [`Service`]. Without NetworkManager the state
+/// stays at `Network::default()` (disconnected, connectivity unknown).
+#[derive(Debug)]
+pub enum NetworkService {}
+
+impl Service for NetworkService {
+    const NAME: &'static str = "network";
+    type State = Network;
+    type Command = NetworkCommand;
+    type Deps = ();
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        live::run(env.buses.system.clone(), io.state, io.commands)
+    }
 }

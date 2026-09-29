@@ -31,6 +31,7 @@ use crate::polkit_agent::{Polkit, PolkitCommand};
 use crate::power_profile::{PowerProfiles, ProfileCommand};
 use crate::results::{Results, SearchCommand};
 use crate::screenshots::{ShotCommand, Shots};
+use crate::service::{Handle as ServiceHandle, Service, spawn};
 use crate::session::{Session, SessionCommand};
 use crate::tray::{Tray, TrayCommand};
 use crate::volume::{Volume, VolumeCommand};
@@ -123,15 +124,11 @@ impl Services {
     pub fn spawn(rt: &Handle, env: &Env) -> Services {
         let system = || env.buses.system.clone();
         let session = || env.buses.session.clone();
-        let crate::Handle {
-            state: clock,
-            control: clock_control,
-        } = crate::service::spawn::<crate::clock::ClockService>(rt, env, ());
-        let crate::Handle {
-            state: battery,
-            control: battery_control,
-        } = crate::service::spawn::<crate::battery::BatteryService>(rt, env, ());
-        let (network, network_control) = crate::network::spawn(rt, system());
+        let (clock, clock_control) = parts(spawn::<crate::clock::ClockService>(rt, env, ()));
+        let (battery, battery_control) =
+            parts(spawn::<crate::battery::BatteryService>(rt, env, ()));
+        let (network, network_control) =
+            parts(spawn::<crate::network::NetworkService>(rt, env, ()));
         let (volume, volume_control) = crate::volume::spawn(rt);
         let (displays, displays_control) = crate::displays::spawn(
             rt,
@@ -258,6 +255,11 @@ impl Services {
             session_actions: Arc::clone(&env.session_actions),
         }
     }
+}
+
+/// A handle's two halves, for the fields above.
+fn parts<S: Service>(handle: ServiceHandle<S>) -> (watch::Receiver<S::State>, Control<S::Command>) {
+    (handle.state, handle.control)
 }
 
 #[cfg(test)]

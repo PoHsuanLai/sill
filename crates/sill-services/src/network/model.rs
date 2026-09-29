@@ -116,7 +116,7 @@ fn activating_step(now: Attempt, state: Activating) -> Step {
 }
 
 /// `network` after `event`.
-pub fn reduce_network(network: Network, event: NetworkEvent) -> Network {
+pub fn step(network: Network, event: NetworkEvent) -> Network {
     match event {
         NetworkEvent::Link(link) => Network {
             join: network.join.next(join_step(&network.link, &link)),
@@ -153,7 +153,7 @@ pub fn reduce_network(network: Network, event: NetworkEvent) -> Network {
 
 #[cfg(test)]
 mod tests {
-    use super::{Activating, Connectivity, Link, Network, NetworkEvent, reduce_network};
+    use super::{Activating, Connectivity, Link, Network, NetworkEvent, step};
     use crate::attempt::{Attempt, Attempts, OpStamp};
     use crate::units::Percent;
 
@@ -238,14 +238,10 @@ mod tests {
             ),
         ];
         for (name, before, link, want) in cases {
-            assert_eq!(
-                reduce_network(before, NetworkEvent::Link(link)),
-                want,
-                "{name}"
-            );
+            assert_eq!(step(before, NetworkEvent::Link(link)), want, "{name}");
         }
         assert_eq!(
-            reduce_network(
+            step(
                 joining(Link::Connecting, Running(s(5)), 5),
                 NetworkEvent::Gone
             ),
@@ -318,7 +314,7 @@ mod tests {
         ];
         for (name, before, state, want) in cases {
             assert_eq!(
-                reduce_network(before, NetworkEvent::Activating(state)),
+                step(before, NetworkEvent::Activating(state)),
                 want,
                 "{name}"
             );
@@ -330,13 +326,13 @@ mod tests {
         // idle -> activating (ActivatingConnection, State 1) -> activated (PrimaryConnection
         // catches up once NetworkManager flips it over): the same stamp throughout.
         let idle = Network::default();
-        let activating = reduce_network(idle, NetworkEvent::Activating(Activating::Joining));
+        let activating = step(idle, NetworkEvent::Activating(Activating::Joining));
         assert_eq!(
             activating,
             joining(Link::Disconnected, Attempt::Running(OpStamp(1)), 1),
             "activating"
         );
-        let activated = reduce_network(activating, NetworkEvent::Link(wifi(80)));
+        let activated = step(activating, NetworkEvent::Link(wifi(80)));
         assert_eq!(
             activated,
             joining(wifi(80), Attempt::Quiet, 1),
@@ -391,7 +387,7 @@ mod tests {
             ),
         ];
         for (name, before, event, want) in cases {
-            assert_eq!(reduce_network(before, event), want, "{name}");
+            assert_eq!(step(before, event), want, "{name}");
         }
     }
 
