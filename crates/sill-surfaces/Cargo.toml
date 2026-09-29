@@ -9,6 +9,7 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+sill-model = { workspace = true }
 dioxus = { workspace = true }
 ds = { workspace = true }
 # `pdf-thumb`: the preview pane's PDF page through `ds_native::PdfFileThumb`.

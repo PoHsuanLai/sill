@@ -18,7 +18,7 @@ use crate::cosmic_wl::Urgency;
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next;
-use crate::units::{Permille, Visibility};
+use sill_model::units::{Permille, Visibility};
 
 const INTERFACE: &str = "com.canonical.Unity.LauncherEntry";
 const MEMBER: &str = "Update";
@@ -199,7 +199,7 @@ mod tests {
 
     use super::{decode_props, permille_of};
     use crate::badges::model::BadgeProp;
-    use crate::units::{Permille, Visibility};
+    use sill_model::units::{Permille, Visibility};
 
     fn dict(pairs: Vec<(&str, Value<'static>)>) -> HashMap<String, OwnedValue> {
         pairs

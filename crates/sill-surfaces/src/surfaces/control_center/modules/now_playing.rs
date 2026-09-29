@@ -61,7 +61,8 @@ fn use_position_on_open(player: Option<PlayerId>) {
 mod tests {
     use super::super::media_face::{TrackTimes, playback_of, position_of};
     use ds::Playback;
-    use sill_services::{Micros, Stamp, Timeline};
+    use sill_model::units::Stamp;
+    use sill_services::{Micros, Timeline};
     use std::time::Duration;
 
     #[test]

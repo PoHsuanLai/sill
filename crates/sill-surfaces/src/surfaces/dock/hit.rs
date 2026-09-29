@@ -1,7 +1,7 @@
 //! What the pointer is over, from the frame on screen (design/10 §10.3.3: x picks the tile, y
 //! only decides inside or out), and where a dragged tile would land (§10.3.8).
 
-use sill_services::Cpx;
+use sill_model::units::Cpx;
 
 use crate::surfaces::dock::frame::Frame;
 use crate::surfaces::dock::items::{DockItem, ItemKind};
@@ -75,7 +75,7 @@ mod tests {
     use crate::surfaces::dock::items::{DockItem, ItemKind};
     use crate::surfaces::dock::machine::{DropZone, Hit, Point, TileApp, TileId};
     use sill_launcher::AppId;
-    use sill_services::{Cpx, Permille};
+    use sill_model::units::{Cpx, Permille};
     use sill_settings::DockSettings;
 
     fn items() -> Vec<DockItem> {

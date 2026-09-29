@@ -155,7 +155,7 @@ mod tests {
     use ds::{Availability, MenuEntry, MenuTrail};
     use shell_host::popup::offset_rect;
     use sill_launcher::WindowKey;
-    use sill_services::Cpx;
+    use sill_model::units::Cpx;
 
     fn item() -> MenuEntry<DockPick> {
         MenuEntry::Item {

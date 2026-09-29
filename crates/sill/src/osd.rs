@@ -15,8 +15,9 @@
 
 use shell_host::{HostCtx, OutputId, OutputInfo, Root};
 use sill_ipc::{DisplayRequest, FakeMute, FakeOsd, OsdTopic, Response};
+use sill_model::{ids::OutputName, units::Percent};
 use sill_services::displays::brightness::targets;
-use sill_services::{Displays, KeysTarget, Mute, OutputName, Percent, Services};
+use sill_services::{Displays, KeysTarget, Mute, Services};
 use sill_settings::{OsdEnabled, ShellFile};
 use sill_surfaces::surfaces::osd::{Level, LevelSource, OsdKind, OsdLink, OsdProps, osd_layer};
 use tokio::sync::watch;

@@ -7,7 +7,7 @@
 //! `spaces.default_grain`, and `spaces.default_card_accent`.
 
 use ds::{CardAccent, Grain, SpaceLook, default_look};
-use sill_services::WorkspaceKey;
+use sill_model::ids::WorkspaceKey;
 use sill_settings::{DefaultCardAccent, SpacesSettings};
 
 /// The look of `workspace` at position `index` in its group, with `spaces` defaults. The key
@@ -35,7 +35,7 @@ mod tests {
     use super::use_space_look;
     use ds::{CardAccent, Grain, PRESETS, Theme};
     use ds_settings::Count;
-    use sill_services::WorkspaceKey;
+    use sill_model::ids::WorkspaceKey;
     use sill_settings::{DefaultCardAccent, SpacesSettings};
 
     #[test]

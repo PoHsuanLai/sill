@@ -7,9 +7,8 @@
 
 use dioxus::prelude::*;
 use ds::{BatteryCell, BatteryEntry, Device, Fraction, RingMark, WidgetCard};
-use sill_services::{
-    Battery, Bluetooth, BtBattery, BtConnection, BtKind, Charge, Percent, Presence,
-};
+use sill_model::units::{Percent, Presence};
+use sill_services::{Battery, Bluetooth, BtBattery, BtConnection, BtKind, Charge};
 
 use super::{Place, WidgetKind, widget_element_id};
 use crate::hooks::use_service;
@@ -135,9 +134,9 @@ pub fn BatteryCard(place: Place) -> Element {
 
 #[cfg(test)]
 mod tests {
+    use sill_model::units::{Percent, Presence};
     use sill_services::{
-        Battery, Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,
-        Charge, Percent, Presence,
+        Battery, Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, Charge,
     };
 
     use ds::{BatteryCell, BatteryEntry, Device, Fraction, RingMark};

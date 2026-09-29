@@ -1,7 +1,7 @@
 //! The tracker's transitions (design/13 §13.4 table).
 
 use shell_host::Point;
-use sill_services::Stamp;
+use sill_model::units::Stamp;
 
 use super::triangle::guarded;
 use super::types::{

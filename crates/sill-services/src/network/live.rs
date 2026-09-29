@@ -14,7 +14,7 @@ use super::model::{Activating, Connectivity, Link, Network, NetworkEvent, step};
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next;
-use crate::units::Percent;
+use sill_model::units::Percent;
 
 /// Connects to NetworkManager and runs until `commands` closes (the `Control` was dropped). If
 /// the bus or NetworkManager is unreachable, `tx` is left at its seeded default (disconnected).

@@ -3,8 +3,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::cosmic_wl::OutputName;
 use crate::displays::ddc::vcp::{Feature, Level};
+use sill_model::ids::OutputName;
 
 /// A DDC display, named by the i2c bus it answers on (`5` for `/dev/i2c-5`).
 #[derive(

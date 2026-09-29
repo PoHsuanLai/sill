@@ -3,8 +3,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::cosmic_wl::caps::WorkspaceCaps;
-use crate::cosmic_wl::ids::{Activity, GroupKey, OutputName, Pinning, Urgency, WorkspaceKey};
-use crate::units::Visibility;
+use crate::cosmic_wl::ids::{Activity, Pinning, Urgency};
+use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
+use sill_model::units::Visibility;
 
 /// Every workspace group and its workspaces, in the compositor's order.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -112,8 +113,9 @@ impl Workspaces {
 mod tests {
     use super::{Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces, step};
     use crate::cosmic_wl::caps::{WorkspaceCap, WorkspaceCaps};
-    use crate::cosmic_wl::ids::{Activity, GroupKey, OutputName, Pinning, Urgency, WorkspaceKey};
-    use crate::units::Visibility;
+    use crate::cosmic_wl::ids::{Activity, Pinning, Urgency};
+    use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
+    use sill_model::units::Visibility;
 
     fn ws(key: u64, activity: Activity) -> Workspace {
         Workspace {

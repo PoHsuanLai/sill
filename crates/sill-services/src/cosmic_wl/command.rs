@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use sill_launcher::WindowKey;
 
-use crate::cosmic_wl::ids::WorkspaceKey;
+use sill_model::ids::WorkspaceKey;
 
 /// A request to the compositor, carried out on the thread's own connection.
 ///
@@ -51,7 +51,7 @@ mod tests {
     use sill_launcher::WindowKey;
 
     use super::WlCommand;
-    use crate::cosmic_wl::ids::WorkspaceKey;
+    use sill_model::ids::WorkspaceKey;
 
     #[test]
     fn the_amended_commands_have_pinned_wire_lines() {

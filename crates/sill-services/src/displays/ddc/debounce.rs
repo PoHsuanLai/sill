@@ -7,7 +7,7 @@
 
 use super::vcp::Feature;
 use crate::env::ddc::DdcId;
-use crate::units::Stamp;
+use sill_model::units::Stamp;
 
 /// How long a value must stand before it is written.
 pub const QUIET: u64 = 120;
@@ -90,7 +90,7 @@ mod tests {
     use super::{Debounce, HOLD_MAX, Write};
     use crate::displays::ddc::Feature;
     use crate::env::ddc::DdcId;
-    use crate::units::Stamp;
+    use sill_model::units::Stamp;
 
     fn brightness(value: u16) -> Write {
         Write {

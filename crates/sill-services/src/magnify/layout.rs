@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::magnify::MagnifyParams;
 use crate::magnify::zoom::factor;
-use crate::units::{Cpx, Permille};
+use sill_model::units::{Cpx, Permille};
 
 /// One tile's magnified box: left edge and size (it is square, bottom on the baseline).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -154,7 +154,7 @@ fn clamp_shift(pill_left: f64, pill_right: f64, p: &MagnifyParams) -> f64 {
 mod tests {
     use super::{Layout, magnify, rest_centers};
     use crate::magnify::MagnifyParams;
-    use crate::units::{Cpx, Permille};
+    use sill_model::units::{Cpx, Permille};
 
     /// An output wide enough that no clamp is active for up to 30 tiles at full zoom.
     fn wide() -> MagnifyParams {

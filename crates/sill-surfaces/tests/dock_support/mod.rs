@@ -9,10 +9,13 @@ pub mod fake;
 use std::path::PathBuf;
 
 use sill_launcher::{AppId, WindowKey};
+use sill_model::{
+    ids::{OutputName, WorkspaceKey},
+    units::{Permille, Visibility},
+};
 use sill_services::{
     Activity, App, AppIcon, AppIndex, Badge, Badges, DbusActivation, DesktopActionEntry, DockPins,
-    Listing, OutputName, Permille, Services, Sizing, Terminal, Toplevel, Toplevels, Visibility,
-    WindowState, WorkspaceKey,
+    Listing, Services, Sizing, Terminal, Toplevel, Toplevels, WindowState,
 };
 use tokio::sync::{mpsc, watch};
 

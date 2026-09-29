@@ -18,9 +18,10 @@ use cosmic_client_toolkit::workspace::Workspace as WorkspaceInfo;
 use sill_launcher::WindowKey;
 
 use crate::cosmic_wl::command::{Relative, WlCommand};
-use crate::cosmic_wl::ids::{Pinning, WorkspaceKey};
+use crate::cosmic_wl::ids::Pinning;
 use crate::cosmic_wl::state::WlState;
 use crate::cosmic_wl::workspaces::WorkspaceEvent;
+use sill_model::ids::WorkspaceKey;
 
 /// The coordinate a workspace move is measured along. COSMIC's groups are one row, so their
 /// coordinates have one component.

@@ -10,7 +10,7 @@ pub use zoom::{sizes, zoom};
 
 use serde::{Deserialize, Serialize};
 
-use crate::units::Cpx;
+use sill_model::units::Cpx;
 
 /// The geometry the curve and the layout need, from `DockSettings` (`tile_size_px`,
 /// `magnified_size_px`, `influence_radius_px`, `tile_gap_px`, `edge_clamp_px`), the pill

@@ -3,8 +3,9 @@
 
 use std::path::PathBuf;
 
+use sill_model::ids::OutputName;
+use sill_services::Wallpapers;
 use sill_services::wallpaper::backdrop_file;
-use sill_services::{OutputName, Wallpapers};
 
 /// The backdrop file for `output` in `scheme`: the blurred copy of that output's prepared light
 /// or dark image; `None` when the output has no prepared image (the surface paints `--paper`).
@@ -27,7 +28,8 @@ pub fn backdrop_for(
 mod tests {
     use std::path::PathBuf;
 
-    use sill_services::{OutputName, WallpaperImage, Wallpapers};
+    use sill_model::ids::OutputName;
+    use sill_services::{WallpaperImage, Wallpapers};
 
     use super::backdrop_for;
 

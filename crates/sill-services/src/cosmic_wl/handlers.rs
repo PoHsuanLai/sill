@@ -14,10 +14,10 @@ use cosmic_client_toolkit::workspace::{WorkspaceHandler, WorkspaceState};
 use sill_launcher::WindowKey;
 
 use crate::cosmic_wl::describe;
-use crate::cosmic_wl::ids::{GroupKey, OutputName, WorkspaceKey};
 use crate::cosmic_wl::state::{Keys, WlState};
 use crate::cosmic_wl::toplevels::{Toplevel, ToplevelEvent};
 use crate::cosmic_wl::workspaces::{WorkspaceEvent, WorkspaceGroup, Workspaces};
+use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
 
 impl WlState {
     /// The toplevel behind `handle` as it stands after its latest `done`.

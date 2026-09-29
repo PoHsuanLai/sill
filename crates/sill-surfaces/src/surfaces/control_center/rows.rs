@@ -8,7 +8,7 @@ use ds::detail::FirstShow;
 use ds::{
     Availability, Fraction, Icon, RowDisc, RowPhase, RowTrailing, RowWork, SettingsRow, TextLine,
 };
-use sill_services::Percent;
+use sill_model::units::Percent;
 
 /// What a row ends in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

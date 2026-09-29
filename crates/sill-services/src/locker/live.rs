@@ -21,7 +21,7 @@ use super::{Lock, LockerCommand, ShellLockEvent};
 use crate::env::Bus;
 use crate::env::Processes;
 use crate::stream::next_opt;
-use crate::units::Stamp;
+use sill_model::units::Stamp;
 
 /// Everything the loop owns besides the machine.
 struct Live {

@@ -6,7 +6,7 @@
 
 use crate::battery::{Battery, Charge};
 use crate::locker::Host;
-use crate::units::Presence;
+use sill_model::units::Presence;
 
 use super::cosmic::{CosmicIdle, CosmicIdleTimes};
 

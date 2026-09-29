@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use super::identity::IdentityKey;
 use super::scale::{DisplayScale, Ppi, ScaleRounding};
-use crate::units::Percent;
+use sill_model::units::Percent;
 
 /// Whether sill picks a new display's scale.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]

@@ -1,7 +1,7 @@
 //! Table tests for `machine.rs`.
 
 use super::{Banner, BannerIn, BannerOut, BannerParams, Deadline, Leave, Persistence, step};
-use sill_services::Stamp;
+use sill_model::units::Stamp;
 use sill_settings::NotificationsSettings;
 
 fn p() -> BannerParams {

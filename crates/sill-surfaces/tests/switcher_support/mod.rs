@@ -11,10 +11,8 @@ use std::cell::RefCell;
 use dioxus::prelude::*;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_launcher::WindowKey;
-use sill_services::{
-    Activity, OutputName, Services, Sizing, Toplevel, Toplevels, WindowState, WlCommand,
-    WorkspaceKey,
-};
+use sill_model::ids::{OutputName, WorkspaceKey};
+use sill_services::{Activity, Services, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::SwitcherPanel;
 use sill_surfaces::surfaces::switcher::{SwitcherAsk, SwitcherLink};

@@ -6,7 +6,7 @@
 use dioxus::prelude::*;
 use ds::{BlurState, Ds, LevelLook, Material, Osd, OsdMetrics, OsdPosition, Px, RootChrome, Shown};
 use shell_host::OutputInfo;
-use sill_services::OutputName;
+use sill_model::ids::OutputName;
 
 use crate::hooks::{use_appearance, use_ds_scale, use_service, use_service_part, use_settings};
 use crate::surfaces::launcher::panel::active_look;

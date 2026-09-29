@@ -15,7 +15,11 @@
 use dioxus::prelude::*;
 use ds::{BlurState, DockFloor, Ds, Ground, Material, SpaceLook};
 use shell_host::{LayerConfig, OutputInfo, SurfaceHandle};
-use sill_services::{Activity, Cpx, OutputName, WorkspaceKey, Workspaces};
+use sill_model::{
+    ids::{OutputName, WorkspaceKey},
+    units::Cpx,
+};
+use sill_services::{Activity, Workspaces};
 use sill_settings::{AutoHide, SpacesSettings};
 
 use crate::app_icons::icon_look;
@@ -122,7 +126,13 @@ pub(crate) fn dock(output: OutputInfo) -> Element {
         })
         .collect();
     let slide = slide_offset(&machine.reveal, at, &params);
-    let rest = frame(&items, &file.dock, width, sill_services::Permille::ZERO, x);
+    let rest = frame(
+        &items,
+        &file.dock,
+        width,
+        sill_model::units::Permille::ZERO,
+        x,
+    );
     session.update(SessionDeps {
         items: items.clone(),
         frame: shown.clone(),

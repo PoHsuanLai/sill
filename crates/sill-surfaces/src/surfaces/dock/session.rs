@@ -9,7 +9,8 @@
 use dioxus::prelude::*;
 use shell_host::{FrameDrive, Root, SurfaceHandle};
 use sill_launcher::{AppId, DesktopAction};
-use sill_services::{Badges, LaunchCommand, LaunchRequest, Services, Stamp};
+use sill_model::units::Stamp;
+use sill_services::{Badges, LaunchCommand, LaunchRequest, Services};
 use sill_settings::DockMenuOrder;
 use tokio::sync::mpsc;
 
@@ -37,7 +38,7 @@ pub(crate) struct SessionDeps {
     pub order: DockMenuOrder,
     pub look: PopupLook,
     /// `dock.remove_threshold_px`.
-    pub remove: sill_services::Cpx,
+    pub remove: sill_model::units::Cpx,
 }
 
 /// What the services said, as the effects read it.
@@ -47,7 +48,7 @@ pub(crate) struct World {
     pub index: sill_services::AppIndex,
     pub pins: sill_services::DockPins,
     pub badges: Badges,
-    pub workspace: Option<sill_services::WorkspaceKey>,
+    pub workspace: Option<sill_model::ids::WorkspaceKey>,
 }
 
 /// The session as the dock's render sees it.

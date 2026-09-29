@@ -1,8 +1,7 @@
 //! What each status item shows: its glyph and its words, pure over the service values.
 
-use sill_services::{
-    Battery, Charge, Connectivity, Link, Minutes, Network, Presence, Remaining, Volume,
-};
+use sill_model::units::{Minutes, Presence};
+use sill_services::{Battery, Charge, Connectivity, Link, Network, Remaining, Volume};
 
 /// The volume menu's heading: the sink, or that there is none.
 pub(crate) fn volume_heading(volume: &Volume) -> String {
@@ -58,9 +57,8 @@ fn hours(minutes: Minutes) -> String {
 #[cfg(test)]
 mod tests {
     use super::{battery_lines, network_lines, volume_heading};
-    use sill_services::{
-        Battery, Charge, Connectivity, Link, Mute, Network, Percent, Presence, Seconds, Volume,
-    };
+    use sill_model::units::{Percent, Presence, Seconds};
+    use sill_services::{Battery, Charge, Connectivity, Link, Mute, Network, Volume};
 
     fn volume(level: u16, mute: Mute) -> Volume {
         Volume {

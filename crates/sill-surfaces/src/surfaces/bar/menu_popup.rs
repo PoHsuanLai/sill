@@ -13,7 +13,7 @@ use ds::{
     Point, Popover, Press, Px, Side,
 };
 use shell_host::{PopupPlacement, SurfaceOp, use_surface, use_watch};
-use sill_services::OutputName;
+use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
 use tokio::sync::{mpsc, watch};
 

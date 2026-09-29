@@ -25,7 +25,7 @@ use super::model::{AccessPoint, Association, Radio, Security, Ssid, Wifi, WifiEv
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next;
-use crate::units::{Percent, Presence};
+use sill_model::units::{Percent, Presence};
 
 /// Runs until `commands` closes. Without a bus, NetworkManager or a wireless device, `tx` stays
 /// at its default.

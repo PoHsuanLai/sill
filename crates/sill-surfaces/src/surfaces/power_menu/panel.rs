@@ -12,7 +12,8 @@ use ds::{
     ScrimStrength, Sheet, SheetPlacement, Shortcut,
 };
 use shell_host::OutputInfo;
-use sill_services::{OutputName, Session, SessionAction};
+use sill_model::ids::OutputName;
+use sill_services::{Session, SessionAction};
 
 use crate::hooks::{use_appearance, use_ds_scale, use_service_part, use_settings};
 use crate::surfaces::launcher::panel::{active_look, material};

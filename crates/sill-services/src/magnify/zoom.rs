@@ -4,7 +4,7 @@
 //! the doc's form (used here) gives exactly 1 at `P = 0`.
 
 use crate::magnify::MagnifyParams;
-use crate::units::{Cpx, Permille};
+use sill_model::units::{Cpx, Permille};
 
 /// The zoom of the tile centred at `center` for pointer `x` at progress `progress`, in
 /// thousandths (1000 = rest).
@@ -37,7 +37,7 @@ pub(crate) fn factor(center: Cpx, x: Cpx, progress: Permille, p: &MagnifyParams)
 mod tests {
     use super::{sizes, zoom};
     use crate::magnify::MagnifyParams;
-    use crate::units::{Cpx, Permille};
+    use sill_model::units::{Cpx, Permille};
 
     fn p() -> MagnifyParams {
         MagnifyParams::design_defaults(Cpx::px(1920))

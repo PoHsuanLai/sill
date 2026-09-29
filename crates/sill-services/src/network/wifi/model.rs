@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::units::{Percent, Presence};
+use sill_model::units::{Percent, Presence};
 
 /// The wireless radio and what it can see.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -182,7 +182,7 @@ mod tests {
         AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi, WifiEvent, listed_networks,
         step,
     };
-    use crate::units::{Percent, Presence};
+    use sill_model::units::{Percent, Presence};
 
     fn ap(ssid: &str, strength: u16, association: Association) -> AccessPoint {
         AccessPoint {

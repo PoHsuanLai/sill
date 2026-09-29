@@ -11,7 +11,7 @@
 
 use ds::RowPhase;
 use ds::detail::EventStamp;
-use sill_services::{Attempt, Attempts, OpStamp};
+use sill_model::attempt::{Attempt, Attempts, OpStamp};
 
 /// Where a row's item stands with the device.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -67,7 +67,7 @@ mod tests {
     use super::{Aim, Item, aim_after, row_phase};
     use ds::RowPhase;
     use ds::detail::EventStamp;
-    use sill_services::{Attempt, Attempts, OpStamp};
+    use sill_model::attempt::{Attempt, Attempts, OpStamp};
 
     fn at(now: Attempt, minted: u32) -> Attempts {
         Attempts {

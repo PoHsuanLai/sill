@@ -20,7 +20,7 @@ use ds::{
     Shown, WidgetGallery, use_rect,
 };
 use shell_host::OutputInfo;
-use sill_services::OutputName;
+use sill_model::ids::OutputName;
 use sill_settings::DesktopWidgets;
 
 use super::drive::{places_to_save, use_phase};

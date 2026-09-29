@@ -7,7 +7,7 @@ mod dock_support;
 use dioxus::prelude::*;
 use ds::icon::{IconStyle, Tint};
 use sill_launcher::AppId;
-use sill_services::Cpx;
+use sill_model::units::Cpx;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::app_icons::IconLook;
 use sill_surfaces::surfaces::dock::machine::{TileApp, TileId};

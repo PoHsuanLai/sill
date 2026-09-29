@@ -1,7 +1,7 @@
 //! design/13 §13.4's table and §13.8 tests 1-5 as input sequences.
 
 use shell_host::Point;
-use sill_services::Stamp;
+use sill_model::units::Stamp;
 
 use super::{
     Anim, Branch, Guard, Held, ItemPath, MenuId, MenuIn, MenuKey, MenuOut, MenuParams, MenuTrack,

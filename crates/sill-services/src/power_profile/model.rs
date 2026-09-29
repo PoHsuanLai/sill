@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::units::Presence;
+use sill_model::units::Presence;
 
 /// What power-profiles-daemon says, as the control center draws it.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -98,7 +98,7 @@ pub fn step(profiles: PowerProfiles, event: ProfileEvent) -> PowerProfiles {
 #[cfg(test)]
 mod tests {
     use super::{PowerProfiles, Profile, ProfileDegraded, ProfileEvent, step};
-    use crate::units::Presence;
+    use sill_model::units::Presence;
 
     #[test]
     fn the_daemons_words_round_trip() {

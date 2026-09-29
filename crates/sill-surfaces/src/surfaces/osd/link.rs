@@ -7,7 +7,8 @@
 //! serial than the last, so a surface restarts its hold even when the same key is pressed again.
 
 use shell_host::OutputId;
-use sill_services::{Mute, Percent};
+use sill_model::units::Percent;
+use sill_services::Mute;
 use tokio::sync::watch;
 
 /// What the indicator shows.

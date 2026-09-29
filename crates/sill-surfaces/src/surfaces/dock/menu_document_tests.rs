@@ -9,7 +9,7 @@ use dioxus::prelude::*;
 use ds::{Alpha, Appearance, Availability, MaterialStack, MenuEntry, MenuTrail, ShellMetrics};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_launcher::WindowKey;
-use sill_services::Cpx;
+use sill_model::units::Cpx;
 use tokio::sync::mpsc;
 
 use super::MenuDocument;

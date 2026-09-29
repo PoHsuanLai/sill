@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::units::{Percent, Presence};
+use sill_model::units::{Percent, Presence};
 
 /// The default sink, as the bar's volume item and the OSD draw it.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -92,7 +92,7 @@ pub fn stepped(level: Percent, step: Step) -> Percent {
 #[cfg(test)]
 mod tests {
     use super::{Mute, Step, Volume, VolumeEvent, step, stepped};
-    use crate::units::{Percent, Presence};
+    use sill_model::units::{Percent, Presence};
 
     fn sink(level: u16, mute: Mute) -> Volume {
         Volume {

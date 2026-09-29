@@ -18,9 +18,10 @@ use std::path::PathBuf;
 use dioxus::prelude::*;
 use ds::{Ds, Material, RootExtent};
 use ds_native::{Viewport, snapshot};
+use sill_model::units::{Percent, Presence};
 use sill_services::{
     Battery, Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, Charge,
-    Percent, Presence, Services,
+    Services,
 };
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::hooks::PinnedAppearance;

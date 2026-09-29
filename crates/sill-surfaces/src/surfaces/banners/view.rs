@@ -42,7 +42,7 @@ pub(super) fn banners(output: OutputInfo) -> Element {
     let ds_scale = use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
-    let on = output.name.clone().map(sill_services::OutputName);
+    let on = output.name.clone().map(sill_model::ids::OutputName);
     let look = active_look(
         &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
         on.as_ref(),

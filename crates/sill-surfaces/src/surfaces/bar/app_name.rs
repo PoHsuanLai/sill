@@ -3,7 +3,7 @@
 use dioxus::prelude::*;
 use ds::{Button, ButtonVariant, Emphasis, use_rect};
 use shell_host::OutputInfo;
-use sill_services::OutputName;
+use sill_model::ids::OutputName;
 
 use super::content::front_app;
 use super::menus::BarMenu;

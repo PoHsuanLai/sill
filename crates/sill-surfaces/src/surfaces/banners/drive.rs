@@ -13,9 +13,10 @@ use dioxus::core::Task;
 use dioxus::prelude::*;
 use ds::{FRAME_SLACK, Hover};
 use shell_host::SurfaceHandle;
+use sill_model::units::Stamp;
 use sill_services::{
     ActionKey, Activation, ActivationToken, Control, LiveBanner, Notification, NotificationId,
-    NotificationsCommand, Stamp,
+    NotificationsCommand,
 };
 
 use super::commands::action_command;

@@ -18,8 +18,9 @@ use ds::{
 };
 use shell_host::OutputInfo;
 use sill_launcher::{ActionId, ClipKey, Item, Preview, Section, preview_for};
+use sill_model::ids::OutputName;
 use sill_services::preview::clip_image;
-use sill_services::{Activity, OutputName, Workspaces};
+use sill_services::{Activity, Workspaces};
 use sill_settings::{PanelMaterial, SpacesSettings};
 
 use crate::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
@@ -466,7 +467,7 @@ pub(crate) fn active_look(
             .position(|w| w.activity == Activity::Active)
             .map(|index| (group.workspaces[index].key, index))
     });
-    let (key, index) = active.unwrap_or((sill_services::WorkspaceKey(0), 0));
+    let (key, index) = active.unwrap_or((sill_model::ids::WorkspaceKey(0), 0));
     use_space_look(key, index, spaces)
 }
 

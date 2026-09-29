@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use crate::tray::Availability;
-use crate::units::Stamp;
+use sill_model::units::Stamp;
 
 /// Every MPRIS player on the bus, in the order they appeared.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -195,7 +195,7 @@ mod tests {
     use super::{
         Abilities, Media, MediaEvent, MediaPlayer, Playback, PlayerId, Timeline, Track, step,
     };
-    use crate::units::Stamp;
+    use sill_model::units::Stamp;
 
     fn player(name: &str, playback: Playback, changed: u64) -> MediaPlayer {
         MediaPlayer {

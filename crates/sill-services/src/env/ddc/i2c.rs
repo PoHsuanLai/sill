@@ -14,11 +14,11 @@ use std::sync::{Mutex, MutexGuard};
 use ddc::{Ddc, Edid};
 
 use super::bus::{DdcBus, DdcError, DdcId, Endpoint};
-use crate::cosmic_wl::OutputName;
 use crate::displays::ddc::matching::{bus_number, connector_for, is_display_class};
 use crate::displays::ddc::vcp::{Feature, Level};
 use crate::displays::drm;
 use crate::displays::edid;
+use sill_model::ids::OutputName;
 
 type Device = ddc_i2c::I2cDeviceDdc;
 

@@ -254,7 +254,7 @@ mod tests {
                 page: CcPage::Modules,
                 wifi_rows: 0,
                 device_rows: 0,
-                keyboard: sill_services::Presence::Absent,
+                keyboard: sill_model::units::Presence::Absent,
                 cap: 1032,
             },
         }

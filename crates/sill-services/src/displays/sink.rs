@@ -142,10 +142,10 @@ mod tests {
     use std::time::{Duration, Instant};
 
     use super::{mode_args, wait_bounded};
-    use crate::cosmic_wl::OutputName;
     use crate::displays::edid::{Mode, Pixels};
     use crate::displays::randr::Head;
     use crate::displays::scale::DisplayScale;
+    use sill_model::ids::OutputName;
 
     /// A child that answers well inside the bound is waited for and read normally, the way a
     /// real `cosmic-randr` does on cosmic-comp.

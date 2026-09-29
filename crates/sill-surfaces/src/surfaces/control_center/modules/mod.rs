@@ -30,7 +30,7 @@ pub use sound::SoundModule;
 pub use wifi::WifiModule;
 
 use dioxus::prelude::*;
-use sill_services::OutputName;
+use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
 
 use ds::{ModuleState, PanelPlate};

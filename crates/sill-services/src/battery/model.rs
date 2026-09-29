@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::units::{Minutes, Percent, Presence, Seconds};
+use sill_model::units::{Minutes, Percent, Presence, Seconds};
 
 /// UPower's display device, as the bar draws it.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -113,7 +113,7 @@ pub fn step(battery: Battery, event: BatteryEvent) -> Battery {
 #[cfg(test)]
 mod tests {
     use super::{Battery, BatteryEvent, Charge, Remaining, step};
-    use crate::units::{Minutes, Percent, Presence, Seconds};
+    use sill_model::units::{Minutes, Percent, Presence, Seconds};
 
     fn present(level: u16, charge: Charge) -> Battery {
         Battery {

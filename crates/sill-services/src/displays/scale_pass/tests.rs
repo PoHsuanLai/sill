@@ -1,5 +1,4 @@
 use super::scale_pass;
-use crate::cosmic_wl::OutputName;
 use crate::displays::drm::Connector;
 use crate::displays::edid::tests::MA270U;
 use crate::displays::edid::{Mode, Pixels};
@@ -9,6 +8,7 @@ use crate::displays::scale::DisplayScale;
 use crate::displays::seen::SeenDisplays;
 use crate::displays::sink::ScaleSink;
 use crate::error::ServiceError;
+use sill_model::ids::OutputName;
 
 /// A compositor made of a list: `set_scale` changes the head's scale and is logged; `broken`
 /// makes every set fail; `listing` `Silent` makes the list itself fail, as `cosmic-randr list

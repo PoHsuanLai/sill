@@ -29,10 +29,10 @@ use serde::{Deserialize, Serialize};
 use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch as channel};
 
-use crate::cosmic_wl::OutputName;
 use crate::env::{Dirs, Env};
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
+use sill_model::ids::OutputName;
 
 /// Where a wallpaper comes from.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -246,8 +246,8 @@ fn forget(tx: &channel::Sender<Wallpapers>, output: &OutputName) {
 #[cfg(test)]
 mod tests {
     use super::{WallpaperCommand, WallpaperService, Wallpapers};
-    use crate::cosmic_wl::OutputName;
     use crate::service::spawn;
+    use sill_model::ids::OutputName;
 
     /// Starting never panics (no compositor or config directory needed to start), and a
     /// `Prepare` in a scratch home with no COSMIC background config settles to no entry at

@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 use sill_launcher::Query;
 
 use super::index::IndexFault;
-use crate::units::Presence;
+use sill_model::units::Presence;
 
 /// How often a running search looks at the clock and the query's generation.
 const TICK: Duration = Duration::from_millis(10);
@@ -167,7 +167,7 @@ mod tests {
 
     use super::{Ended, FD_NAMES, complete_lines, first_on_path, on_path_any, run_within};
     use crate::providers::files::index::IndexFault;
-    use crate::units::Presence::{self, Absent, Present};
+    use sill_model::units::Presence::{self, Absent, Present};
 
     #[test]
     fn a_program_is_found_in_any_folder_of_the_path() {

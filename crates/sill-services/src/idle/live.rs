@@ -29,7 +29,7 @@ use crate::auth::AuthCommand;
 use crate::idle::grace::ticket;
 use crate::locker::{Lock, LockPhase, LockerCommand};
 use crate::stream::next_opt;
-use crate::units::Stamp;
+use sill_model::units::Stamp;
 
 /// How often logind's `BlockInhibited` is read.
 const POLL_S: u64 = 5;

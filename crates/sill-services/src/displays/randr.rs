@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use super::edid::{Millimetres, Mode, Pixels};
 use super::scale::DisplayScale;
-use crate::cosmic_wl::OutputName;
+use sill_model::ids::OutputName;
 
 /// Whether the compositor is driving an output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
@@ -147,9 +147,9 @@ fn tokens(line: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::{Enablement, Head, parse_heads};
-    use crate::cosmic_wl::OutputName;
     use crate::displays::edid::{Millimetres, Mode, Pixels};
     use crate::displays::scale::DisplayScale;
+    use sill_model::ids::OutputName;
 
     /// What the nested cosmic-comp 1.8 printed (dev/nested.sh), plus a second, real-looking head.
     const LIST: &str = r#"output "WINIT-0" enabled=#true {

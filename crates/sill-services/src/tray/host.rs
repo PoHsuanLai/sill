@@ -24,7 +24,7 @@ use super::model::{
     TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind, TrayStatus, step,
 };
 use crate::env::{Bus, BusRoute};
-use crate::units::Visibility;
+use sill_model::units::Visibility;
 
 const ITEM_PATH: &str = "/StatusNotifierItem";
 
@@ -338,7 +338,7 @@ mod tests {
     };
     use crate::tray::model::{Availability, Check, TrayIcon, TrayItemId, TrayMenuKind, TrayStatus};
     use crate::tray::model::{ScrollAxis, ScrollDelta};
-    use crate::units::Visibility;
+    use sill_model::units::Visibility;
     use system_tray::item::{IconPixmap as SniPixmap, Status as SniStatus};
     use system_tray::menu::{MenuItem, MenuType, ToggleState, ToggleType};
 

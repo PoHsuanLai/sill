@@ -4,11 +4,11 @@
 
 use shell_host::HostEvent;
 use sill_ipc::{DisplayRequest, LevelRequest, Response, VolumeRequest};
+use sill_model::ids::OutputName;
 use sill_services::displays::ScaleOverride;
 use sill_services::{
     DisplayPolicy, DisplaysCommand, FontRenderingMode, HardwareVolume, KeysTarget, LevelChange,
-    NightWarmth, OutputName, Ppi, ScaleMode, ScaleRounding, Services, Step, Toplevels,
-    VolumeCommand,
+    NightWarmth, Ppi, ScaleMode, ScaleRounding, Services, Step, Toplevels, VolumeCommand,
 };
 
 use crate::msg::ShellMsg;
@@ -45,9 +45,9 @@ pub fn policy_from(settings: &DisplaySettings) -> DisplayPolicy {
         },
         night_warmth: match settings.night_warmth {
             NightWarmthMode::Off => NightWarmth::Off,
-            NightWarmthMode::Hardware => NightWarmth::Hardware(sill_services::Percent(u16::from(
-                settings.night_warmth_strength.0,
-            ))),
+            NightWarmthMode::Hardware => NightWarmth::Hardware(sill_model::units::Percent(
+                u16::from(settings.night_warmth_strength.0),
+            )),
         },
         font_rendering: match settings.font_rendering {
             FontRenderingSetting::Auto => FontRenderingMode::Auto,
@@ -101,7 +101,7 @@ fn change(level: LevelRequest) -> LevelChange {
         LevelRequest::Up => LevelChange::Step(Step::Up),
         LevelRequest::Down => LevelChange::Step(Step::Down),
         LevelRequest::Set { percent } => {
-            LevelChange::Set(sill_services::Percent(u16::from(percent.min(100))))
+            LevelChange::Set(sill_model::units::Percent(u16::from(percent.min(100))))
         }
     }
 }
@@ -113,7 +113,7 @@ pub fn volume_command(request: VolumeRequest) -> VolumeCommand {
         VolumeRequest::Level(LevelRequest::Up) => VolumeCommand::Step(Step::Up),
         VolumeRequest::Level(LevelRequest::Down) => VolumeCommand::Step(Step::Down),
         VolumeRequest::Level(LevelRequest::Set { percent }) => {
-            VolumeCommand::SetLevel(sill_services::Percent(u16::from(percent.min(100))))
+            VolumeCommand::SetLevel(sill_model::units::Percent(u16::from(percent.min(100))))
         }
         VolumeRequest::Mute => VolumeCommand::SetMute(sill_services::Mute::Muted),
         VolumeRequest::Unmute => VolumeCommand::SetMute(sill_services::Mute::Audible),
@@ -145,10 +145,11 @@ pub fn dispatch(services: &Services, request: DisplayRequest) -> Response {
 #[cfg(test)]
 mod tests {
     use sill_ipc::{LevelRequest, VolumeRequest};
+    use sill_model::units::Percent;
     use sill_services::displays::ScaleOverride;
     use sill_services::{
-        DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, Mute, NightWarmth, Percent,
-        Ppi, ScaleMode, ScaleRounding, Step, VolumeCommand,
+        DisplayPolicy, FontRenderingMode, HardwareVolume, KeysTarget, Mute, NightWarmth, Ppi,
+        ScaleMode, ScaleRounding, Step, VolumeCommand,
     };
     use sill_settings::{
         BrightnessKeysTarget, DisplayScaleMode, DisplaySettings, FontRenderingSetting,
@@ -198,7 +199,8 @@ mod tests {
 
     #[test]
     fn the_focused_output_is_the_active_windows_first() {
-        use sill_services::{Activity, OutputName, Toplevel, Toplevels};
+        use sill_model::ids::OutputName;
+        use sill_services::{Activity, Toplevel, Toplevels};
         let window = |key, activity, outputs: &[&str]| Toplevel {
             key: sill_launcher::WindowKey(key),
             app_id: "foot".to_owned(),

@@ -11,8 +11,8 @@
 use super::brightness::value_of;
 use super::ddc::{DdcDisplay, Feature, Write, mute_value};
 use super::policy::HardwareVolume;
-use crate::units::Presence;
 use crate::volume::Volume;
+use sill_model::units::Presence;
 
 /// The monitor name a sink description ends with, in square brackets.
 pub fn monitor_in_sink(description: &str) -> Option<&str> {

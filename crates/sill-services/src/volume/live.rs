@@ -21,7 +21,7 @@ use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::{mpsc, watch};
 
 use super::model::{Mute, Volume, VolumeCommand, VolumeEvent, step, stepped};
-use crate::units::Percent;
+use sill_model::units::Percent;
 
 /// The default sink this service last saw: enough to address a volume or mute change back to
 /// it. Zero channels means "no sink": commands are dropped, matching `step`.
@@ -231,7 +231,7 @@ fn channel_volumes(level: Percent, channels: u8) -> ChannelVolumes {
 #[cfg(test)]
 mod tests {
     use super::{PaVolume, channel_volumes, percent_of};
-    use crate::units::Percent;
+    use sill_model::units::Percent;
 
     #[test]
     fn percent_and_channel_volumes_round_trip_through_pa_normal() {

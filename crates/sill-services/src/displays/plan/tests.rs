@@ -2,7 +2,6 @@ use super::{
     BrightnessAction, Originals, Probe, brightness_actions, probe_needed, set_brightness_action,
     warmth_writes,
 };
-use crate::cosmic_wl::OutputName;
 use crate::displays::brightness::{Backlight, BacklightKind, BacklightName, LevelChange};
 use crate::displays::ddc::{Controls, DdcDisplay, Feature, Level, RgbGain, Write};
 use crate::displays::model::Displays;
@@ -11,8 +10,9 @@ use crate::displays::policy::{KeysTarget, NightWarmth};
 use crate::displays::randr::Head;
 use crate::displays::scale::{Ppi, ScaleRounding};
 use crate::env::ddc::{DdcId, Endpoint};
-use crate::units::Percent;
 use crate::volume::Step;
+use sill_model::ids::OutputName;
+use sill_model::units::Percent;
 
 fn head(name: &str) -> Head {
     Head {

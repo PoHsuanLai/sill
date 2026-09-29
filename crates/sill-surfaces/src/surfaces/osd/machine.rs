@@ -4,7 +4,7 @@
 //! settled, so the surface unmaps then, not when this machine's hold ends. Pure: time is a
 //! [`Stamp`] argument, and the surface wakes the machine at [`OsdPhase::wake`].
 
-use sill_services::Stamp;
+use sill_model::units::Stamp;
 
 use crate::surfaces::launcher::presence::Visible;
 
@@ -67,7 +67,7 @@ pub fn step(phase: OsdPhase, input: OsdInput, times: OsdTimes) -> OsdPhase {
 mod tests {
     use super::{OsdInput, OsdPhase, OsdTimes, step};
     use crate::surfaces::launcher::presence::Visible;
-    use sill_services::Stamp;
+    use sill_model::units::Stamp;
 
     const TIMES: OsdTimes = OsdTimes { hold_ms: 1500 };
 

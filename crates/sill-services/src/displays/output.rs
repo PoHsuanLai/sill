@@ -9,7 +9,7 @@ use super::gamut::{Gamut, classify};
 use super::identity::IdentityKey;
 use super::randr::Head;
 use super::scale::{DisplayScale, Ppi, ScaleRounding, default_scale, density};
-use crate::cosmic_wl::OutputName;
+use sill_model::ids::OutputName;
 
 /// One output and everything sill derives from it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -77,13 +77,13 @@ pub fn max_density(outputs: &[DisplayOutput]) -> Option<Ppi> {
 #[cfg(test)]
 mod tests {
     use super::{describe, max_density};
-    use crate::cosmic_wl::OutputName;
     use crate::displays::drm::{Connector, Placement};
     use crate::displays::edid::tests::MA270U;
     use crate::displays::edid::{Millimetres, Mode, Pixels};
     use crate::displays::gamut::Gamut;
     use crate::displays::randr::Head;
     use crate::displays::scale::{DisplayScale, Ppi, ScaleRounding};
+    use sill_model::ids::OutputName;
 
     fn head(name: &str, width: u32, height: u32) -> Head {
         Head {

@@ -6,7 +6,7 @@ use dioxus::html::point_interaction::{
     InteractionLocation, ModifiersInteraction, PointerInteraction,
 };
 use dioxus::prelude::{Modifiers, MouseData};
-use sill_services::Cpx;
+use sill_model::units::Cpx;
 
 use crate::surfaces::dock::frame::Frame;
 use crate::surfaces::dock::hit::{drop_zone, hit};

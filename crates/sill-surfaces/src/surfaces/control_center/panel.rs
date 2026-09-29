@@ -7,7 +7,7 @@ use std::rc::Rc;
 
 use dioxus::prelude::*;
 use ds::{GridColumns, ModuleGrid, Pane, PaneSwitcher, Px};
-use sill_services::OutputName;
+use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
 
 use super::modules::Module;

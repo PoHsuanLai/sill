@@ -25,7 +25,7 @@ use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next;
 use crate::tray::Availability;
-use crate::units::Stamp;
+use sill_model::units::Stamp;
 
 const MPRIS_PREFIX: &str = "org.mpris.MediaPlayer2.";
 

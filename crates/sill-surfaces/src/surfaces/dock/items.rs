@@ -157,9 +157,10 @@ mod tests {
     use super::{DockItem, ItemKind, dock_items};
     use crate::surfaces::dock::machine::TileApp;
     use sill_launcher::{AppId, WindowKey};
+    use sill_model::ids::OutputName;
     use sill_services::{
-        Activity, App, AppIcon, AppIndex, DbusActivation, DockPins, Listing, OutputName, Sizing,
-        Terminal, Toplevel, Toplevels, WindowState,
+        Activity, App, AppIcon, AppIndex, DbusActivation, DockPins, Listing, Sizing, Terminal,
+        Toplevel, Toplevels, WindowState,
     };
     use sill_settings::TrashTile;
     use std::path::PathBuf;

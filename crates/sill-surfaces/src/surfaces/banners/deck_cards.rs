@@ -3,7 +3,7 @@
 //! longer has leaves without a word to the service. A stack card whose newest notification is
 //! one a leaving card already stood for is the service not having caught up yet, not news.
 
-use sill_services::Stamp;
+use sill_model::units::Stamp;
 
 use super::deck::{Deck, DeckOut, Entry, Speak, arrive, feed};
 use super::machine::{Banner, BannerIn, BannerParams, Persistence, step};

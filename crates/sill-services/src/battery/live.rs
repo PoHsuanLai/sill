@@ -9,7 +9,7 @@ use super::model::{Battery, BatteryEvent, Charge, step};
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next;
-use crate::units::{Percent, Presence, Seconds};
+use sill_model::units::{Percent, Presence, Seconds};
 
 /// Connects to UPower's display device and runs until `commands` closes (the `Control` was
 /// dropped). If the bus or UPower is unreachable, `tx` is left at its seeded default (absent).

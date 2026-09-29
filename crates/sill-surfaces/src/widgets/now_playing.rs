@@ -9,7 +9,8 @@
 use dioxus::prelude::*;
 use ds::Word;
 use ds::{Icon, TextLine, WidgetCard, WidgetContext, WidgetSize, WidgetTitle};
-use sill_services::{Abilities, Art, Availability, Micros, Playback, Stamp, Timeline};
+use sill_model::units::Stamp;
+use sill_services::{Abilities, Art, Availability, Micros, Playback, Timeline};
 
 use super::{Place, WidgetKind, use_widget_wake, widget_element_id};
 use crate::surfaces::control_center::modules::media_face::{

@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::units::Visibility;
+use sill_model::units::Visibility;
 
 /// Every registered status item, in registration order (the bar draws them right to left
 /// from the clock in this order).
@@ -193,7 +193,7 @@ mod tests {
         Availability, Check, Tray, TrayEvent, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry,
         TrayMenuKind, TrayStatus, step,
     };
-    use crate::units::Visibility;
+    use sill_model::units::Visibility;
 
     fn id(name: &str) -> TrayItemId {
         TrayItemId(format!(":1.{name}/StatusNotifierItem"))

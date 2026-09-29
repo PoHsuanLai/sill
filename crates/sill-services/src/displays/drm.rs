@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use crate::cosmic_wl::OutputName;
+use sill_model::ids::OutputName;
 
 /// One connected connector and its raw EDID (possibly empty: a panel that sends none).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,7 +68,7 @@ pub fn connected(root: &Path) -> Vec<Connector> {
 #[cfg(test)]
 mod tests {
     use super::{Placement, connector_name, placement};
-    use crate::cosmic_wl::OutputName;
+    use sill_model::ids::OutputName;
 
     #[test]
     fn sysfs_entries_name_their_connector() {

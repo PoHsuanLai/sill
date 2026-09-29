@@ -1,6 +1,6 @@
 //! The machine's rules, one function per event (the module doc of `reduce.rs` lists them).
 
-use crate::units::Stamp;
+use sill_model::units::Stamp;
 
 use super::super::grace::{GraceCase, SleepSince, WakeDelay};
 use super::super::inhibit::Inhibition;

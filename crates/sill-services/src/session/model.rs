@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use sill_launcher::SystemCommand;
 
-use crate::units::Presence;
+use sill_model::units::Presence;
 
 /// One power action, in the power menu's order (design/20 §1.8: Log Out, Restart, Shut Down,
 /// Suspend; Lock is the launcher's and the bar's, not a power-menu button).
@@ -127,8 +127,8 @@ pub fn step(session: Session, event: SessionEvent) -> Session {
 #[cfg(test)]
 mod tests {
     use super::{Offer, Session, SessionAction, SessionEvent, step};
-    use crate::units::Presence;
     use sill_launcher::SystemCommand;
+    use sill_model::units::Presence;
 
     #[test]
     fn launcher_rows_name_their_session_actions() {

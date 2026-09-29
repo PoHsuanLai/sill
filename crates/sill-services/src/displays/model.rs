@@ -6,9 +6,9 @@ use super::brightness::{Backlight, BrightnessTarget, LevelChange, percent_of, ro
 use super::ddc::{DdcDisplay, Feature};
 use super::output::DisplayOutput;
 use super::policy::DisplayPolicy;
-use crate::cosmic_wl::OutputName;
 use crate::env::ddc::DdcId;
-use crate::units::Percent;
+use sill_model::ids::OutputName;
+use sill_model::units::Percent;
 
 /// Every display, as the control center, the OSD and the settings read them.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -130,11 +130,11 @@ pub fn step(displays: Displays, event: DisplaysEvent) -> Displays {
 #[cfg(test)]
 mod tests {
     use super::{Displays, DisplaysEvent, step};
-    use crate::cosmic_wl::OutputName;
     use crate::displays::brightness::{Backlight, BacklightKind, BacklightName, BrightnessTarget};
     use crate::displays::ddc::{Controls, DdcDisplay, Level};
     use crate::env::ddc::{DdcId, Endpoint};
-    use crate::units::Percent;
+    use sill_model::ids::OutputName;
+    use sill_model::units::Percent;
 
     fn monitor() -> DdcDisplay {
         DdcDisplay {

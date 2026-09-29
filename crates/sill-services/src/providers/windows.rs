@@ -128,7 +128,7 @@ fn best_score(
 
 /// The name of the workspace `key`, if any group still has it (21-SPACES; a window's workspace
 /// can outlive its own `Toplevel` update by one `done`).
-fn workspace_name(workspaces: &Workspaces, key: crate::cosmic_wl::WorkspaceKey) -> Option<String> {
+fn workspace_name(workspaces: &Workspaces, key: sill_model::ids::WorkspaceKey) -> Option<String> {
     workspaces
         .groups
         .iter()
@@ -158,13 +158,14 @@ mod tests {
     use super::WindowsProvider;
     use crate::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
     use crate::cosmic_wl::{
-        Activity, CosmicWl, GroupKey, OutputName, Sizing, Toplevel, ToplevelEvent, Toplevels,
-        WindowState, Workspace, WorkspaceGroup, WorkspaceKey, Workspaces, toplevels::step,
+        Activity, CosmicWl, Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, Workspace,
+        WorkspaceGroup, Workspaces, toplevels::step,
     };
     use sill_launcher::{
         AppId, Cancel, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, Score,
         VecSink, WindowKey,
     };
+    use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
     use std::path::PathBuf;
 
     fn window(key: u64, title: &str, app_id: &str, workspaces: Vec<WorkspaceKey>) -> Toplevel {
@@ -217,7 +218,7 @@ mod tests {
             stable_id: String::new(),
             activity: crate::cosmic_wl::Activity::Inactive,
             urgency: crate::cosmic_wl::Urgency::Calm,
-            visibility: crate::units::Visibility::Shown,
+            visibility: sill_model::units::Visibility::Shown,
             coordinates: Vec::new(),
             capabilities: Default::default(),
             pinning: Default::default(),

@@ -4,7 +4,7 @@ use super::{FreezeCause, Hover, Moved, displayed, freeze, linear};
 use crate::surfaces::dock::machine::params::tests::params;
 use crate::surfaces::dock::machine::types::{DockEffect, DockEvent, DockState, Hit, Point};
 use crate::surfaces::dock::machine::{DropZone, step};
-use sill_services::{Cpx, Permille, Stamp};
+use sill_model::units::{Cpx, Permille, Stamp};
 
 /// One scripted input sequence: `(ms, input)` pairs.
 type Script = Vec<(u64, DockEvent)>;

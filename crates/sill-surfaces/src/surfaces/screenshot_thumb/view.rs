@@ -9,7 +9,8 @@ use dioxus::prelude::*;
 use ds::{Banner, BannerEntry, BannerKey, BannerPosition, BannerStack, BlurState, Ds, Material};
 use ds::{RootChrome, RootExtent, Shown};
 use shell_host::{OutputId, OutputInfo, use_watch};
-use sill_services::{OutputName, ScreenshotsService, ShotId};
+use sill_model::ids::OutputName;
+use sill_services::{ScreenshotsService, ShotId};
 use sill_settings::ShotThumbnail;
 
 use super::SCREENSHOT_THUMB_CSS;

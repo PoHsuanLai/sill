@@ -15,7 +15,6 @@
 //! channels live in `sill-surfaces::hooks`.
 
 pub mod apps;
-pub mod attempt;
 pub mod auth;
 pub mod badges;
 pub mod battery;
@@ -49,7 +48,6 @@ pub mod session;
 mod stream;
 pub mod switcher;
 pub mod tray;
-pub mod units;
 pub mod volume;
 pub mod wallpaper;
 
@@ -57,7 +55,6 @@ pub use apps::{
     App, AppIcon, AppIndex, AppsCommand, AppsEvent, AppsService, DbusActivation,
     DesktopActionEntry, ExecArgs, ExecError, Listing, Terminal, expand_exec, match_app,
 };
-pub use attempt::{Attempt, AttemptStep, Attempts, OpStamp};
 pub use auth::{Auth, AuthCommand, AuthPhase, AuthService};
 pub use badges::{
     Badge, BadgeEvent, BadgeProp, Badges, BadgesCommand, BadgesService, parse_app_uri,
@@ -71,9 +68,9 @@ pub use clipboard::{Clipboard, ClipboardCommand, ClipboardService};
 pub use clock::{ClockCommand, ClockService, ClockText, format_clock, until_next_minute};
 pub use control::Control;
 pub use cosmic_wl::{
-    Activity, CosmicWl, CosmicWlService, GroupKey, OutputName, Pinning, Relative, Sizing, Toplevel,
-    ToplevelEvent, Toplevels, Urgency, WindowState, WlCommand, Workspace, WorkspaceCap,
-    WorkspaceCaps, WorkspaceEvent, WorkspaceGroup, WorkspaceKey, Workspaces,
+    Activity, CosmicWl, CosmicWlService, Pinning, Relative, Sizing, Toplevel, ToplevelEvent,
+    Toplevels, Urgency, WindowState, WlCommand, Workspace, WorkspaceCap, WorkspaceCaps,
+    WorkspaceEvent, WorkspaceGroup, Workspaces,
 };
 pub use displays::{
     BrightnessTarget, DisplayOutput, DisplayPolicy, DisplayScale, Displays, DisplaysCommand,
@@ -133,7 +130,6 @@ pub use tray::{
     Availability, Check, Pixmap, ScrollAxis, ScrollDelta, Tray, TrayCommand, TrayEvent, TrayIcon,
     TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind, TrayService, TrayStatus,
 };
-pub use units::{Cpx, Minutes, Percent, Permille, Presence, Seconds, Stamp, Visibility};
 pub use volume::{Mute, Step, Volume, VolumeCommand, VolumeEvent, VolumeService, stepped};
 pub use wallpaper::{
     WallpaperCommand, WallpaperImage, WallpaperService, WallpaperSource, Wallpapers,

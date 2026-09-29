@@ -15,8 +15,8 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use super::bus::{DdcBus, DdcError, DdcId, Endpoint};
-use crate::cosmic_wl::OutputName;
 use crate::displays::ddc::vcp::{Feature, Level};
+use sill_model::ids::OutputName;
 
 /// The file's contents.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

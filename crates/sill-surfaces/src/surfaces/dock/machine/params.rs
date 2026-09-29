@@ -2,7 +2,7 @@
 //! at the active motion level. Built once per settings change, never hard-coded.
 
 use ds::{DelayToken, Easing, EasingToken, MotionLevel};
-use sill_services::Cpx;
+use sill_model::units::Cpx;
 use sill_settings::{
     ActiveClick, Bounce as BounceSetting, DockModifierClicks, DockSettings, LaunchAnim,
     Magnification,
@@ -91,7 +91,7 @@ impl DockParams {
 pub(crate) mod tests {
     use super::DockParams;
     use ds::MotionLevel;
-    use sill_services::Cpx;
+    use sill_model::units::Cpx;
     use sill_settings::DockSettings;
 
     /// The design defaults at the standard level: what every machine test runs on.

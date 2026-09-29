@@ -5,7 +5,8 @@
 
 use dioxus::prelude::*;
 use ds::{HeaderKind, SectionHeader, SegSize, SegmentedControl};
-use sill_services::{PowerProfileService, Presence, Profile, ProfileCommand, ProfileDegraded};
+use sill_model::units::Presence;
+use sill_services::{PowerProfileService, Profile, ProfileCommand, ProfileDegraded};
 
 use crate::hooks::{use_control, use_service};
 use crate::surfaces::control_center::profile_label;

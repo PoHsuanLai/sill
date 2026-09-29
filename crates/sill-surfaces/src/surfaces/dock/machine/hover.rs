@@ -1,7 +1,7 @@
 //! Magnification progress (design/10 §10.3.3 table, §10.4 hover transitions, §10.5.4).
 //! States hold the *linear* progress; [`displayed`] eases it for drawing.
 
-use sill_services::{Cpx, Permille, Stamp};
+use sill_model::units::{Cpx, Permille, Stamp};
 use sill_settings::Magnification;
 
 use super::easing::ease;

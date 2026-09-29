@@ -9,9 +9,10 @@
 
 use dioxus::prelude::*;
 use ds::{Availability, Icon, ModuleState, RowDisc, RowPhase, RowWork};
+use sill_model::{attempt::Attempts, units::Presence};
 use sill_services::{
-    Attempts, Bluetooth, BluetoothCommand, BluetoothService, BtAddress, BtBattery, BtConnection,
-    BtDevice, BtKind, BtPairing, BtPower, Presence, listed_devices,
+    Bluetooth, BluetoothCommand, BluetoothService, BtAddress, BtBattery, BtConnection, BtDevice,
+    BtKind, BtPairing, BtPower, listed_devices,
 };
 
 use super::foot::{EmptyLine, SettingsFoot};
@@ -203,9 +204,13 @@ mod tests {
     use crate::surfaces::control_center::rows::RowMark;
     use ds::detail::EventStamp;
     use ds::{Availability, RowDisc, RowPhase};
+    use sill_model::{
+        attempt::{Attempt, Attempts, OpStamp},
+        units::{Percent, Presence},
+    };
     use sill_services::{
-        Attempt, Attempts, Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection,
-        BtDevice, BtKind, BtPairing, BtPower, OpStamp, Percent, Presence,
+        Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection, BtDevice, BtKind,
+        BtPairing, BtPower,
     };
 
     fn device(connection: BtConnection, pairing: BtPairing, battery: BtBattery) -> BtDevice {

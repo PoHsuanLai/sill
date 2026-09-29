@@ -9,7 +9,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::units::Stamp;
+use sill_model::units::Stamp;
 
 /// How long the lock may take to report locked before it is taken as locked anyway.
 pub const READY_GIVE_UP_MS: u64 = 10_000;

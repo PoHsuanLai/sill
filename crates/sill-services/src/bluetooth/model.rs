@@ -2,8 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::attempt::{AttemptStep as Step, Attempts};
-use crate::units::{Percent, Presence};
+use sill_model::attempt::{AttemptStep as Step, Attempts};
+use sill_model::units::{Percent, Presence};
 
 /// The first BlueZ adapter and its devices, as the control center draws them.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -259,8 +259,8 @@ mod tests {
         Bluetooth, BluetoothEvent, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,
         BtPower, listed_devices, step,
     };
-    use crate::attempt::{Attempt, Attempts, OpStamp};
-    use crate::units::{Percent, Presence};
+    use sill_model::attempt::{Attempt, Attempts, OpStamp};
+    use sill_model::units::{Percent, Presence};
 
     fn device(address: &str, name: &str, connection: BtConnection, pairing: BtPairing) -> BtDevice {
         BtDevice {

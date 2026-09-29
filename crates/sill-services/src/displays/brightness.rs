@@ -5,10 +5,10 @@ use serde::{Deserialize, Serialize};
 
 use super::drm::Placement;
 use super::policy::KeysTarget;
-use crate::cosmic_wl::OutputName;
 use crate::env::ddc::DdcId;
-use crate::units::Percent;
 use crate::volume::Step;
+use sill_model::ids::OutputName;
+use sill_model::units::Percent;
 
 /// A backlight device: the name under `/sys/class/backlight` (`intel_backlight`,
 /// `amdgpu_bl1`), which is also what logind's `SetBrightness` takes.

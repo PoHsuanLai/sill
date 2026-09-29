@@ -7,7 +7,7 @@ use crate::Charge;
 use crate::battery::Battery;
 use crate::idle::cosmic::{CosmicIdle, CosmicIdleTimes};
 use crate::locker::Host;
-use crate::units::Presence;
+use sill_model::units::Presence;
 
 const fn after(s: u32) -> Timeout {
     Timeout::After(IdleSecs(s))

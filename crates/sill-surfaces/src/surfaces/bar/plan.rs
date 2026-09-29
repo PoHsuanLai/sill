@@ -126,7 +126,7 @@ mod tests {
     use crate::surfaces::bar::menus::BarMenu;
     use crate::surfaces::bar::pick::BarPick;
     use shell_host::Point;
-    use sill_services::Stamp;
+    use sill_model::units::Stamp;
 
     /// A bar input: a pointer event on a title or the bar, or what the popup reported.
     enum Input {

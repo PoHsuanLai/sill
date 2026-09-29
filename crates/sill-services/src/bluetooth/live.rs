@@ -26,7 +26,7 @@ use super::model::{
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next;
-use crate::units::Percent;
+use sill_model::units::Percent;
 
 const SERVICE: &str = "org.bluez";
 const ADAPTER_IFACE: &str = "org.bluez.Adapter1";

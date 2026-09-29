@@ -2,12 +2,12 @@ use super::{
     Backlight, BacklightKind, BacklightName, BrightnessTarget, LevelChange, backlight_value,
     percent_of, route, stepped, targets, value_of,
 };
-use crate::cosmic_wl::OutputName;
 use crate::displays::drm::Placement;
 use crate::displays::policy::KeysTarget;
 use crate::env::ddc::DdcId;
-use crate::units::Percent;
 use crate::volume::Step;
+use sill_model::ids::OutputName;
+use sill_model::units::Percent;
 
 fn name(n: &str) -> OutputName {
     OutputName(n.to_owned())

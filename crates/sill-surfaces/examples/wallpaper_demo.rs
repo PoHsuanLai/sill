@@ -15,7 +15,8 @@ use std::collections::HashSet;
 
 use shell_host::scale::{Size, buffer_size};
 use shell_host::{Host, HostCtx, HostEvent, OutputId, OutputInfo, Root};
-use sill_services::{Control, OutputName, Services, WallpaperCommand};
+use sill_model::ids::OutputName;
+use sill_services::{Control, Services, WallpaperCommand};
 use sill_surfaces::Wallpaper;
 use sill_surfaces::surfaces::wallpaper::{WallpaperProps, wallpaper_layer};
 

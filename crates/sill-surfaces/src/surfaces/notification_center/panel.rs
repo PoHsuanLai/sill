@@ -6,7 +6,7 @@
 use dioxus::prelude::*;
 use ds::{BlurState, Ds, Material, RootExtent};
 use shell_host::OutputInfo;
-use sill_services::OutputName;
+use sill_model::ids::OutputName;
 
 use super::column::Column;
 use crate::hooks::{use_appearance, use_ds_scale, use_service_part, use_settings};

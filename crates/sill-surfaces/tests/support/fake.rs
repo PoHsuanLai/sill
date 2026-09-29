@@ -6,14 +6,17 @@
 
 use shell_host::{OutputId, OutputInfo, Rect, Scale};
 use sill_launcher::WindowKey;
+use sill_model::{
+    ids::{GroupKey, OutputName, WorkspaceKey},
+    units::{Percent, Presence, Seconds, Visibility},
+};
 use sill_services::{
     AccessPoint, Activity, AppIndex, Association, Badges, Battery, Bluetooth, BluetoothCommand,
     BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower, Charge, ClockText,
-    Connectivity, CosmicWl, DockPins, GroupKey, Handle, Launches, Link, Media, MediaCommand, Mute,
-    Network, OutputName, Percent, Pinning, PowerProfiles, Presence, Profile, ProfileCommand,
-    ProfileDegraded, Radio, Results, Seconds, Security, Service, Services, Sizing, Ssid, Toplevel,
-    Toplevels, Tray, Urgency, Visibility, Volume, Wallpapers, Wifi, WifiCommand, WindowState,
-    Workspace, WorkspaceCaps, WorkspaceGroup, WorkspaceKey, Workspaces,
+    Connectivity, CosmicWl, DockPins, Handle, Launches, Link, Media, MediaCommand, Mute, Network,
+    Pinning, PowerProfiles, Profile, ProfileCommand, ProfileDegraded, Radio, Results, Security,
+    Service, Services, Sizing, Ssid, Toplevel, Toplevels, Tray, Urgency, Volume, Wallpapers, Wifi,
+    WifiCommand, WindowState, Workspace, WorkspaceCaps, WorkspaceGroup, Workspaces,
 };
 use tokio::sync::{mpsc, watch};
 
@@ -239,8 +242,9 @@ pub fn power_profiles() -> PowerProfiles {
 
 /// One player, playing "So What" (no art file), every button live.
 pub fn media() -> Media {
+    use sill_model::units::Stamp;
     use sill_services::{
-        Abilities, Availability, MediaPlayer, Playback, PlayerId, Stamp, Timeline, Track,
+        Abilities, Availability, MediaPlayer, Playback, PlayerId, Timeline, Track,
     };
     Media {
         players: vec![MediaPlayer {

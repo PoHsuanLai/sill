@@ -8,7 +8,8 @@
 
 use ds::{Check, MenuEntry, MenuTrail};
 use sill_launcher::WindowKey;
-use sill_services::{AppIndex, OutputName, Toplevels, match_app};
+use sill_model::ids::OutputName;
+use sill_services::{AppIndex, Toplevels, match_app};
 
 use sill_settings::{ControlCenterModule, ControlCenterSettings};
 
@@ -145,7 +146,8 @@ mod tests {
     use crate::surfaces::bar::pick::BarPick;
     use ds::MenuEntry;
     use sill_launcher::WindowKey;
-    use sill_services::{Activity, AppIndex, OutputName, Sizing, Toplevel, Toplevels, WindowState};
+    use sill_model::ids::OutputName;
+    use sill_services::{Activity, AppIndex, Sizing, Toplevel, Toplevels, WindowState};
     use sill_settings::ControlCenterModule;
 
     fn window(key: u64, app: &str, output: &str) -> Toplevel {

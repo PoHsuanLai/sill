@@ -4,7 +4,7 @@
 
 use std::time::Instant;
 
-use sill_services::Stamp;
+use sill_model::units::Stamp;
 
 /// Milliseconds since the daemon's start, as every machine's `now`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,7 +40,7 @@ impl FrameClock {
 #[cfg(test)]
 mod tests {
     use super::FrameClock;
-    use sill_services::Stamp;
+    use sill_model::units::Stamp;
     use std::time::{Duration, Instant};
 
     #[test]

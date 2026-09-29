@@ -9,7 +9,8 @@ use std::time::{Duration, Instant};
 
 use ds_settings::Ms;
 use osd_support::{fake, label, level, look, start};
-use sill_services::{Mute, Percent, Volume};
+use sill_model::units::Percent;
+use sill_services::{Mute, Volume};
 use sill_settings::{OsdSettings, ShellFile};
 use sill_surfaces::surfaces::osd::{Level, LevelSource, OsdKind};
 

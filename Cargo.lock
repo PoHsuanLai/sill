@@ -5298,6 +5298,7 @@ dependencies = [
  "shell-host",
  "sill-ipc",
  "sill-launcher",
+ "sill-model",
  "sill-services",
  "sill-settings",
  "sill-surfaces",
@@ -5321,6 +5322,13 @@ dependencies = [
  "nucleo-matcher",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "sill-model"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -5348,6 +5356,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sill-launcher",
+ "sill-model",
  "sill-testkit",
  "system-tray",
  "thiserror 2.0.20",
@@ -5386,6 +5395,7 @@ dependencies = [
  "serde_json",
  "shell-host",
  "sill-launcher",
+ "sill-model",
  "sill-services",
  "sill-settings",
  "thiserror 2.0.20",

@@ -9,9 +9,9 @@
 
 use dioxus::prelude::*;
 use ds::{Availability, Icon, ModuleState, RowDisc, RowPhase, RowWork};
+use sill_model::{attempt::Attempts, units::Presence};
 use sill_services::{
-    AccessPoint, Association, Attempts, Presence, Radio, Saved, Security, Ssid, Wifi, WifiCommand,
-    listed_networks,
+    AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi, WifiCommand, listed_networks,
 };
 
 use super::foot::{ClosePanel, EmptyLine, SettingsFoot, open_settings};
@@ -208,10 +208,11 @@ mod tests {
     use crate::surfaces::control_center::rows::RowMark;
     use ds::detail::EventStamp;
     use ds::{Icon, RowDisc, RowPhase, RowWork};
-    use sill_services::{
-        AccessPoint, Association, Attempt, Attempts, OpStamp, Percent, Presence, Radio, Saved,
-        Security, Ssid, Wifi,
+    use sill_model::{
+        attempt::{Attempt, Attempts, OpStamp},
+        units::{Percent, Presence},
     };
+    use sill_services::{AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi};
 
     fn ap(ssid: &str, strength: u16, association: Association, security: Security) -> AccessPoint {
         AccessPoint {

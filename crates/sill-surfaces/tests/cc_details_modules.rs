@@ -11,9 +11,9 @@ use cc_support::{fake, live};
 
 use ds_native::Harness;
 use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
+use sill_model::units::{Percent, Presence, Stamp};
 use sill_services::{
-    KbdBacklight, KbdCommand, KbdLevel, MediaCommand, MediaVerb, Micros, Percent, Playback,
-    Presence, Stamp, Timeline,
+    KbdBacklight, KbdCommand, KbdLevel, MediaCommand, MediaVerb, Micros, Playback, Timeline,
 };
 use sill_settings::FocusMode;
 

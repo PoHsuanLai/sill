@@ -1,7 +1,7 @@
 //! The dock machine's vocabulary: its whole state, its events and its effects.
 
 use shell_host::{BlurSpec, ExclusiveZone, RegionSpec};
-use sill_services::{Cpx, Stamp};
+use sill_model::units::{Cpx, Stamp};
 
 use super::bounce::Bounce;
 use super::hover::Hover;

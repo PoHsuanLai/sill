@@ -3,7 +3,7 @@
 //! auto-hide slide (§10.5.5). quire's `ds::CubicBezier` is token data with no evaluator; its
 //! control points in thousandths are what [`ease`] takes.
 
-use sill_services::Permille;
+use sill_model::units::Permille;
 
 /// The curve with control points `[x1, y1, x2, y2]` (thousandths, as `ds::CubicBezier.0`) at
 /// time `t` (thousandths, clamped to 0..=1000). The result is in thousandths; a spring's
@@ -53,7 +53,7 @@ fn solve_x(x1: f64, x2: f64, x: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::ease;
-    use sill_services::Permille;
+    use sill_model::units::Permille;
 
     /// `--e-out` as design/10 §10.5.4 names it: `bezier(.22, .9, .30, 1)`.
     const OUT: [i16; 4] = [220, 900, 300, 1000];

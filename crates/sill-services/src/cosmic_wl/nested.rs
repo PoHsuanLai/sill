@@ -323,7 +323,8 @@ fn a_client_in_nested_cosmic_is_published_and_obeys_commands() {
 #[test]
 #[ignore = "needs a nested cosmic-comp"]
 fn the_amended_workspace_commands_take_effect_in_nested_cosmic() {
-    use super::{Pinning, WorkspaceCap, WorkspaceKey};
+    use super::{Pinning, WorkspaceCap};
+    use sill_model::ids::WorkspaceKey;
 
     let nested = Nested::start();
     let (program, app_id) = client_under_test();

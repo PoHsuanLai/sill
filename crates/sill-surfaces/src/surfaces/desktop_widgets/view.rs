@@ -19,7 +19,7 @@ use ds::{
     use_rect,
 };
 use shell_host::{BlurSpec, ElementId, ElementRegion, OutputInfo, RegionSpec, SurfaceHandle};
-use sill_services::OutputName;
+use sill_model::ids::OutputName;
 use sill_settings::WidgetKind;
 
 use super::DESKTOP_WIDGETS_CSS;

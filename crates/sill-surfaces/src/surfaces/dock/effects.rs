@@ -2,7 +2,8 @@
 //! §10.3.8, §10.3.9): pure over what the services said when the effect came.
 
 use sill_launcher::{AppId, DesktopAction};
-use sill_services::{AppIndex, DockPins, PinAt, PinEvent, Toplevels, WorkspaceKey};
+use sill_model::ids::WorkspaceKey;
+use sill_services::{AppIndex, DockPins, PinAt, PinEvent, Toplevels};
 
 use crate::surfaces::dock::activate::activation;
 use crate::surfaces::dock::items::{DockItem, ItemKind, item_windows};

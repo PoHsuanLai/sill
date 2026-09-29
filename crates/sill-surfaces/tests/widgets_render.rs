@@ -394,7 +394,7 @@ fn a_battery_level_that_changes_bumps_the_ring_again() {
     let moving = "#widget-battery .ds-battery[*|data-pulse=a]";
     settle_until(&mut running.harness, |h| h.count(moving) == 0);
     let mut battery = running.feeds.battery.borrow().clone();
-    battery.level = sill_services::Percent(65);
+    battery.level = sill_model::units::Percent(65);
     running.feeds.battery.send_replace(battery);
     running.harness.advance(Duration::from_millis(30));
     assert!(

@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::units::{Percent, Presence};
+use sill_model::units::{Percent, Presence};
 
 /// The keyboard backlight, as the control center draws it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
@@ -77,7 +77,7 @@ pub fn step_for(percent: Percent, max: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::{KbdBacklight, KbdEvent, KbdLevel, step, step_for};
-    use crate::units::{Percent, Presence};
+    use sill_model::units::{Percent, Presence};
 
     fn at(value: u32, max: u32) -> KbdLevel {
         KbdLevel { value, max }

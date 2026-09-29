@@ -1,7 +1,7 @@
 //! The menu tracker's vocabulary.
 
 use shell_host::Point;
-use sill_services::Stamp;
+use sill_model::units::Stamp;
 use sill_settings::MenusSettings;
 
 /// A bar menu: one per title and status item.

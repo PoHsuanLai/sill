@@ -11,7 +11,7 @@ use super::upower::KbdBacklightProxy;
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next_opt;
-use crate::units::Presence;
+use sill_model::units::Presence;
 
 /// Runs until `commands` closes. Without a bus or UPower, `tx` stays at its default.
 pub(super) async fn run(

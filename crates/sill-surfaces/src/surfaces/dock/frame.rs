@@ -4,7 +4,8 @@
 //! the output's width and `gut + pad + S + T` tall, the tiles' bottoms on the baseline
 //! `gut + pad` above its bottom edge.
 
-use sill_services::{Cpx, Layout, MagnifyParams, Permille, magnify, rest_centers};
+use sill_model::units::{Cpx, Permille};
+use sill_services::{Layout, MagnifyParams, magnify, rest_centers};
 use sill_settings::DockSettings;
 
 use crate::surfaces::dock::geometry::magnify_params;
@@ -177,7 +178,7 @@ mod tests {
     use crate::surfaces::dock::items::{DockItem, ItemKind};
     use crate::surfaces::dock::machine::{TileApp, TileId};
     use sill_launcher::AppId;
-    use sill_services::{Cpx, Permille};
+    use sill_model::units::{Cpx, Permille};
     use sill_settings::DockSettings;
 
     fn items(apps: usize, trash: bool) -> Vec<DockItem> {

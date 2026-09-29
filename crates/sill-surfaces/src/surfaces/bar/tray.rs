@@ -24,10 +24,11 @@ use shell_host::{
     OutputInfo, PopupConfig, PopupPlacement, PopupSize, Rect, Root, Size, SurfaceHandle,
     use_surface,
 };
+use sill_model::units::Visibility;
 use sill_services::tray::icon_art;
 use sill_services::{
     Availability as TrayAvailability, Check as TrayCheck, Control, TrayCommand, TrayIcon, TrayItem,
-    TrayItemId, TrayMenuEntry, TrayMenuKind, TrayService, TrayStatus, Visibility,
+    TrayItemId, TrayMenuEntry, TrayMenuKind, TrayService, TrayStatus,
 };
 
 use super::geometry::menu_size;

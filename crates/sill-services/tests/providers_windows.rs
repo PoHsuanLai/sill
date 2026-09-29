@@ -4,11 +4,12 @@
 use std::path::PathBuf;
 
 use sill_launcher::{AppId, Cancel, Provider, Query, VecSink, WindowKey};
+use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
 use sill_services::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
 use sill_services::providers::WindowsProvider;
 use sill_services::{
-    Activity, CosmicWl, GroupKey, OutputName, Sizing, Toplevel, ToplevelEvent, Toplevels,
-    WindowState, Workspace, WorkspaceGroup, WorkspaceKey, Workspaces,
+    Activity, CosmicWl, Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, Workspace,
+    WorkspaceGroup, Workspaces,
 };
 
 fn app(id: &str, name: &str) -> App {
@@ -51,7 +52,7 @@ fn workspace(key: u64, name: &str) -> Workspace {
         stable_id: String::new(),
         activity: Activity::Inactive,
         urgency: sill_services::Urgency::Calm,
-        visibility: sill_services::Visibility::Shown,
+        visibility: sill_model::units::Visibility::Shown,
         coordinates: Vec::new(),
         capabilities: Default::default(),
         pinning: Default::default(),

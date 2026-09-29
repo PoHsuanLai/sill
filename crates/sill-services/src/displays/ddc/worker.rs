@@ -15,7 +15,7 @@ use super::debounce::{Debounce, Write};
 use super::retry;
 use super::vcp::{Controls, Feature};
 use crate::env::ddc::{DdcBus, DdcError, DdcId, Endpoint};
-use crate::units::Stamp;
+use sill_model::units::Stamp;
 
 /// One DDC display and its cached controls.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

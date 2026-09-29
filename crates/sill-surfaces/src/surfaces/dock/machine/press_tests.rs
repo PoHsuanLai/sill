@@ -7,7 +7,7 @@ use crate::surfaces::dock::machine::types::{
     TileId,
 };
 use crate::surfaces::dock::machine::{DockParams, step};
-use sill_services::{Cpx, Stamp};
+use sill_model::units::{Cpx, Stamp};
 use sill_settings::{ActiveClick, DockModifierClicks};
 
 /// One scripted input sequence: `(ms, input)` pairs.

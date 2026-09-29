@@ -4,11 +4,11 @@ use std::time::Duration;
 use tokio::sync::watch;
 
 use super::{DdcDisplay, DdcJob, run};
-use crate::cosmic_wl::OutputName;
 use crate::displays::ddc::debounce::Write;
 use crate::displays::ddc::{Feature, Level};
 use crate::env::ddc::{DdcId, Endpoint};
 use crate::env::ddc::{FakeBus, FakeState};
+use sill_model::ids::OutputName;
 
 /// One MA270U-like display on bus 5 that answers brightness and volume only.
 fn bus() -> FakeBus {

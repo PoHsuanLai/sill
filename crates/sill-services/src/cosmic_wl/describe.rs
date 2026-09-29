@@ -15,10 +15,11 @@ use cosmic_client_toolkit::workspace::Workspace as WorkspaceInfo;
 use sill_launcher::WindowKey;
 
 use crate::cosmic_wl::caps::{WorkspaceCap, WorkspaceCaps};
-use crate::cosmic_wl::ids::{Activity, OutputName, Pinning, Urgency, WorkspaceKey};
+use crate::cosmic_wl::ids::{Activity, Pinning, Urgency};
 use crate::cosmic_wl::toplevels::{Sizing, Toplevel, WindowState};
 use crate::cosmic_wl::workspaces::Workspace;
-use crate::units::Visibility;
+use sill_model::ids::{OutputName, WorkspaceKey};
+use sill_model::units::Visibility;
 
 /// The toplevel `info` describes, under `key`, on `workspaces` and `outputs`.
 pub(super) fn toplevel(
@@ -150,7 +151,7 @@ mod tests {
     use crate::cosmic_wl::caps::WorkspaceCap;
     use crate::cosmic_wl::ids::{Activity, Pinning, Urgency};
     use crate::cosmic_wl::toplevels::{Sizing, WindowState};
-    use crate::units::Visibility;
+    use sill_model::units::Visibility;
 
     fn flags(of: &[WindowFlag]) -> HashSet<WindowFlag> {
         of.iter().copied().collect()

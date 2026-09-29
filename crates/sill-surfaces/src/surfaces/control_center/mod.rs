@@ -46,7 +46,7 @@ pub use menu_bar::{MENU_BAR_ORDER, in_menu_bar, menu_bar_modules};
 pub use page::{CcPage, Detail, PageInput, PageOut, Slide, step_page};
 
 use dioxus::prelude::*;
-use sill_services::OutputName;
+use sill_model::ids::OutputName;
 
 /// The control center's contents, inside the bar popup's `Ds` root. `output` is the bar's
 /// (the Display module's brightness target). Escape on the module page, or a pick that ends the

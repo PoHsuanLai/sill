@@ -24,7 +24,7 @@ mod nested;
 
 pub use caps::{WorkspaceCap, WorkspaceCaps};
 pub use command::{Relative, WlCommand};
-pub use ids::{Activity, GroupKey, OutputName, Pinning, Urgency, WorkspaceKey};
+pub use ids::{Activity, Pinning, Urgency};
 pub use publish::CosmicWl;
 pub use toplevels::{Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState};
 pub use workspaces::{Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces};

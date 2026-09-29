@@ -1,0 +1,15 @@
+[package]
+name = "sill-model"
+description = "The shell's pure vocabulary: units, ids, attempts, and every service's state, commands, events and pure step."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+
+[lints]
+workspace = true

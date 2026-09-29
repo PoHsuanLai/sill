@@ -1,7 +1,7 @@
 //! The hover label (design/10 §10.3.4, §10.4 "Label"): a first delay (`--d-fly`), then warm —
 //! the next tile's label shows at once until the pointer has been out for `warm_ms`.
 
-use sill_services::Stamp;
+use sill_model::units::Stamp;
 
 use super::params::DockParams;
 use super::press::Press;
@@ -130,7 +130,7 @@ mod tests {
         Button, DockEffect, DockEvent, DockState, Hit, Point, TileApp, TileId,
     };
     use crate::surfaces::dock::machine::{DropZone, step};
-    use sill_services::{Cpx, Stamp};
+    use sill_model::units::{Cpx, Stamp};
 
     /// One scripted input sequence: `(ms, input)` pairs.
     type Script = Vec<(u64, DockEvent)>;

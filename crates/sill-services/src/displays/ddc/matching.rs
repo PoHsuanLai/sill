@@ -3,8 +3,8 @@
 //! bus returns from address 0x50 are the bytes the kernel shows for exactly one connector.
 //! Pure.
 
-use crate::cosmic_wl::OutputName;
 use crate::env::ddc::DdcId;
+use sill_model::ids::OutputName;
 
 /// `i2c-5` is bus 5.
 pub fn bus_number(entry: &str) -> Option<DdcId> {
@@ -37,9 +37,9 @@ pub fn connector_for<'a>(
 #[cfg(test)]
 mod tests {
     use super::{bus_number, connector_for, is_display_class};
-    use crate::cosmic_wl::OutputName;
     use crate::displays::edid::tests::MA270U;
     use crate::env::ddc::DdcId;
+    use sill_model::ids::OutputName;
 
     #[test]
     fn names_and_classes_parse_at_their_boundaries() {

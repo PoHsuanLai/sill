@@ -3,7 +3,8 @@
 use serde::{Deserialize, Serialize};
 use sill_launcher::WindowKey;
 
-use crate::cosmic_wl::ids::{Activity, OutputName, WorkspaceKey};
+use crate::cosmic_wl::ids::Activity;
+use sill_model::ids::{OutputName, WorkspaceKey};
 
 /// Every toplevel, most recently activated first (the dock's cycle order, the switcher's
 /// order, the context menu's window list).

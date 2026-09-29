@@ -8,7 +8,11 @@
 //! volume shown is the sink's level whichever of the two is playing.
 
 use ds::{Fraction, LevelGlyph, Muting};
-use sill_services::{BrightnessTarget, Displays, Mute, OutputName, Percent, Presence, Volume};
+use sill_model::{
+    ids::OutputName,
+    units::{Percent, Presence},
+};
+use sill_services::{BrightnessTarget, Displays, Mute, Volume};
 
 use crate::surfaces::osd::link::{Level, LevelSource, OsdKind};
 
@@ -116,10 +120,14 @@ mod tests {
     use super::{card_level, level_of, title};
     use crate::surfaces::osd::link::{Level, LevelSource, OsdKind};
     use ds::{Fraction, LevelGlyph, Muting};
+    use sill_model::{
+        ids::OutputName,
+        units::{Percent, Presence},
+    };
     use sill_services::displays::{Controls, DdcDisplay, Level as DdcLevel};
     use sill_services::env::ddc::DdcId;
     use sill_services::env::ddc::Endpoint;
-    use sill_services::{Displays, Mute, OutputName, Percent, Presence, Volume};
+    use sill_services::{Displays, Mute, Volume};
 
     fn level(percent: u16, mute: Mute) -> Option<Level> {
         Some(Level {

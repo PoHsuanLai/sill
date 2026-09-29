@@ -8,7 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::units::{Percent, Permille};
+use sill_model::units::{Percent, Permille};
 
 /// A colour temperature in kelvin.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -85,7 +85,7 @@ fn blackbody(kelvin: f64) -> (f64, f64, f64) {
 #[cfg(test)]
 mod tests {
     use super::{Gains, Kelvin, gains, scaled, temperature, warmth_gains};
-    use crate::units::{Percent, Permille};
+    use sill_model::units::{Percent, Permille};
 
     #[test]
     fn strength_maps_evenly_in_mireds() {

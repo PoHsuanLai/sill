@@ -10,9 +10,9 @@ use super::ddc::{Feature, Level, RgbGain, Write};
 use super::model::Displays;
 use super::policy::{KeysTarget, NightWarmth};
 use super::warmth::{scaled, warmth_gains};
-use crate::cosmic_wl::OutputName;
 use crate::env::ddc::DdcId;
-use crate::units::Percent;
+use sill_model::ids::OutputName;
+use sill_model::units::Percent;
 
 /// One effect of a brightness change.
 #[derive(Debug, Clone, PartialEq, Eq)]

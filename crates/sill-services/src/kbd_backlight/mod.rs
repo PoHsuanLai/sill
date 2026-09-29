@@ -16,7 +16,7 @@ pub use model::{KbdBacklight, KbdEvent, KbdLevel, step, step_for};
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
-use crate::units::Percent;
+use sill_model::units::Percent;
 
 /// What the keyboard backlight service can be told.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

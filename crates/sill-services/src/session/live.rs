@@ -15,7 +15,7 @@ use crate::control::Control;
 use crate::env::{ActionReach, Bus, SessionActions};
 use crate::locker::LockerCommand;
 use crate::stream::next_opt;
-use crate::units::Presence;
+use sill_model::units::Presence;
 
 /// Runs until `commands` closes. Without a bus or logind, `tx` holds what `actions` offers
 /// without it (`Session::default()` for logind's own). Every action goes through `actions`

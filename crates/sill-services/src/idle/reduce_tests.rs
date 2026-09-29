@@ -6,7 +6,7 @@ use crate::idle::policy::{
     LockedScreenOff, OffReason, PowerPair, Threshold, Timeout,
 };
 use crate::locker::LockCause;
-use crate::units::Stamp;
+use sill_model::units::Stamp;
 
 fn own() -> IdlePolicy {
     let after = |s| Timeout::After(IdleSecs(s));

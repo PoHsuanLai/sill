@@ -2,8 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::attempt::{Attempt, AttemptStep as Step, Attempts};
-use crate::units::Percent;
+use sill_model::attempt::{Attempt, AttemptStep as Step, Attempts};
+use sill_model::units::Percent;
 
 /// What the bar's network item draws.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -154,8 +154,8 @@ pub fn step(network: Network, event: NetworkEvent) -> Network {
 #[cfg(test)]
 mod tests {
     use super::{Activating, Connectivity, Link, Network, NetworkEvent, step};
-    use crate::attempt::{Attempt, Attempts, OpStamp};
-    use crate::units::Percent;
+    use sill_model::attempt::{Attempt, Attempts, OpStamp};
+    use sill_model::units::Percent;
 
     fn wifi(strength: u16) -> Link {
         Link::Wifi {

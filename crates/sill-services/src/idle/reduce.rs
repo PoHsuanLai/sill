@@ -21,7 +21,7 @@
 //! - Every event while the mode is `Off` changes nothing and emits nothing (the passive start).
 
 use crate::locker::LockCause;
-use crate::units::Stamp;
+use sill_model::units::Stamp;
 
 use super::grace::{GraceCase, SleepSince};
 use super::inhibit::Inhibition;

@@ -3,6 +3,7 @@ resolver = "3"
 members = [
   "crates/sill-ipc",
   "crates/sill-launcher",
+  "crates/sill-model",
   "crates/sill-services",
   "crates/sill-settings",
   "crates/sill-surfaces",
@@ -22,6 +23,7 @@ publish = false
 [workspace.dependencies]
 sill-ipc      = { path = "crates/sill-ipc" }
 sill-launcher = { path = "crates/sill-launcher" }
+sill-model    = { path = "crates/sill-model" }
 sill-services = { path = "crates/sill-services" }
 sill-settings = { path = "crates/sill-settings" }
 sill-surfaces = { path = "crates/sill-surfaces" }

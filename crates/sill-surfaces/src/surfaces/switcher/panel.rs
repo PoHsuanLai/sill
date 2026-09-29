@@ -12,7 +12,7 @@
 use dioxus::prelude::*;
 use ds::{AppKey, BlurState, Ds, Material, RootChrome, RootExtent, SwitcherApp as Tile};
 use shell_host::{OutputInfo, SurfaceHandle};
-use sill_services::OutputName;
+use sill_model::ids::OutputName;
 
 use super::drive::{SwitcherCtx, use_switcher};
 use super::icon::SwitcherIcons;

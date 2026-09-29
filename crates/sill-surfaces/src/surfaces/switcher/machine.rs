@@ -13,7 +13,7 @@
 //! instead of its `Tick`.
 
 use sill_launcher::AppId;
-use sill_services::Stamp;
+use sill_model::units::Stamp;
 use sill_settings::SwitcherSettings;
 
 /// The switcher's phase. `sel` indexes the MRU app list passed to every [`step`].
@@ -194,7 +194,7 @@ fn select(sel: usize) -> (Switcher, Vec<SwOut>) {
 mod tests {
     use super::{Dir, SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
     use sill_launcher::AppId;
-    use sill_services::Stamp;
+    use sill_model::units::Stamp;
 
     /// One scripted input sequence: `(ms, input)` pairs.
     type Script = Vec<(u64, SwIn)>;

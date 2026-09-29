@@ -1,6 +1,6 @@
 //! Presses, clicks, drags and spring-loading (design/10 §10.3.6-10.3.8, §10.4 "Press").
 
-use sill_services::Stamp;
+use sill_model::units::Stamp;
 use sill_settings::{ActiveClick, DockModifierClicks, LaunchAnim};
 
 use super::bounce::{self, BounceKind};

@@ -126,7 +126,7 @@ fn moved(state: PowerMenuState, direction: Direction, session: &Session) -> Powe
 mod tests {
     use super::{PowerMenuKey, PowerMenuOut, PowerMenuState, initial, step};
     use crate::surfaces::power_menu::presence::Preselect;
-    use sill_services::units::Presence;
+    use sill_model::units::Presence;
     use sill_services::{Offer, Session, SessionAction};
     use sill_settings::PowerMenuDefault;
 

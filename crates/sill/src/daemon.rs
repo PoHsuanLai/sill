@@ -21,10 +21,9 @@ use sill_ipc::{
     Response, SurfaceName,
 };
 use sill_launcher::AppId;
+use sill_model::ids::OutputName;
 use sill_services::polkit_agent::AgentPolicy;
-use sill_services::{
-    LockerCommand, OutputName, PinAt, PinEvent, PolkitCommand, Services, WallpaperCommand,
-};
+use sill_services::{LockerCommand, PinAt, PinEvent, PolkitCommand, Services, WallpaperCommand};
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
 use sill_surfaces::surfaces::launcher::LauncherLink;
 use sill_surfaces::surfaces::osd::OsdLink;
@@ -574,7 +573,7 @@ fn spawn_missing_wallpapers(
 /// One output's wallpaper layer (mirrors [`spawn_bar`]), and the `Prepare` that gives the
 /// service the output's buffer size to resize into — without it the service never hears about
 /// this output and the surface stays at `--paper` (design/20 §1.4). An unnamed output gets no
-/// `Prepare` (there is no `sill_services::OutputName` to key it by), the same way the bar's own
+/// `Prepare` (there is no `sill_model::ids::OutputName` to key it by), the same way the bar's own
 /// `on = output.name.clone().map(OutputName)` (`surfaces/bar/mod.rs`) leaves an unnamed output
 /// at its default look rather than inventing a numeric stand-in nothing else keys by.
 fn spawn_wallpaper(

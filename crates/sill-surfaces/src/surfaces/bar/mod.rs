@@ -35,7 +35,8 @@ pub use layer::bar_layer;
 use dioxus::prelude::*;
 use ds::{BlurState, Ds, Material, Point, Px, Rect, Size, SpaceLook};
 use shell_host::{OutputInfo, SurfaceHandle};
-use sill_services::{OutputName, WorkspaceKey, Workspaces};
+use sill_model::ids::{OutputName, WorkspaceKey};
+use sill_services::Workspaces;
 use sill_settings::{BarSettings, FocusLink, FocusMode, SettingsFeed, SpacesSettings};
 
 use app_name::AppName;
