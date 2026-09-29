@@ -24,6 +24,7 @@ pub mod notification_card;
 pub mod root;
 pub mod services;
 pub mod status;
+pub mod surface;
 pub mod surfaces;
 pub mod widgets;
 
