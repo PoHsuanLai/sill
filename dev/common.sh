@@ -66,7 +66,7 @@ stop_private_bus() {
 }
 
 # Writes a scratch DDC fixture naming no monitor (`{"displays":[]}`, the fixture format
-# dev/accept-cc-real-input.sh's fake_monitor writes, only static) and sets FAKE_DDC to it and
+# dev/accept/control-center.sh's fake_monitor writes, only static) and sets FAKE_DDC to it and
 # FAKE_DDC_FLAGS to `--fake-ddc FILE`, the `sill run` option that makes a debug build's DDC
 # worker talk to the file instead of opening the real /dev/i2c-*. Every daemon launch line passes
 # "${FAKE_DDC_FLAGS[@]}" right after `run` (or after the binary, through PRIVATE_BOTH_BUSES).

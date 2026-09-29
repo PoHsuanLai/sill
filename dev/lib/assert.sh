@@ -30,3 +30,9 @@ run_steps() {
     esac
   done
 }
+
+# Sleeps past the minute's turn when it is within 10 s: the clock redraws the bar and the widgets
+# once a minute, which a frame count over a few idle seconds must not include.
+clear_of_the_minute() {
+  if [ "$((10#$(date +%S)))" -ge 50 ]; then sleep $((62 - 10#$(date +%S))); fi
+}
