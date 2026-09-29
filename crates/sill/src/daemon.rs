@@ -109,6 +109,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         runtime.handle(),
         settings_feed.0.clone(),
         services.idle_control.clone(),
+        env.idle_times,
     );
     // The launcher v2 providers and the clipboard history follow `launcher.*`; both are passive
     // until this first policy.

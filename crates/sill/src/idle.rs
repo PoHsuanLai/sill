@@ -3,15 +3,16 @@
 //! service resolves the kind of session itself and is `Off` anywhere but a sill session with no
 //! cosmic-idle running.
 //!
-//! A build with debug assertions also reads `SILL_IDLE_TIMES` (`<screen_off_s>,<suspend_s>`,
-//! 0 never) and, when it is set, uses those seconds for both power sources instead of the
-//! settings' times ([`test_times`]): `dev/accept-idle.sh` needs seconds, and the keys count
-//! minutes. A release build never reads it.
+//! The daemon's [`IdleTimesSource`] can fix the times instead of the settings: a `debug` build's
+//! `sill run --idle-times <screen_off_s>,<suspend_s>` (0 never, [`test_times`]) uses those
+//! seconds for both power sources, since `dev/accept-idle.sh` needs seconds and the keys count
+//! minutes.
 
 use sill_ipc::{
     IdleReport, IdleRequest, ReportDim, ReportIdleMode, ReportIdlePhase, ReportInhibition,
     ReportOffReason, ReportPower, Response,
 };
+use sill_services::env::IdleTimesSource;
 use sill_services::idle::{
     DimLevel, DimPlan, DimShown, Idle, IdleCommand, IdleConfig, IdleLock, IdleMode, IdlePhase,
     IdleSecs, IdleTimes, Inhibition, LockGrace, LockedScreenOff, LogindIdle, OffReason, PowerPair,
@@ -61,9 +62,10 @@ pub fn policy_of(file: &ShellFile) -> IdleConfig {
     }
 }
 
-/// `SILL_IDLE_TIMES`' text as times in seconds for both sources: `<screen_off_s>,<suspend_s>`
-/// (0 never); anything else is `None` (the settings' times stand).
-pub fn test_times(text: &str) -> Option<TimesChoice> {
+/// `--idle-times`' text as times in seconds for both sources: `<screen_off_s>,<suspend_s>`
+/// (0 never); anything else is `None`.
+#[cfg(feature = "debug")]
+pub fn test_times(text: &str) -> Option<IdleTimes> {
     let (off, suspend) = text.trim().split_once(',')?;
     let secs = |part: &str| {
         part.trim().parse::<u32>().ok().map(|s| match s {
@@ -72,40 +74,26 @@ pub fn test_times(text: &str) -> Option<TimesChoice> {
         })
     };
     let both = |t: Timeout| PowerPair { ac: t, battery: t };
-    Some(TimesChoice::Own(IdleTimes {
+    Some(IdleTimes {
         screen_off: both(secs(off)?),
         suspend: both(secs(suspend)?),
-    }))
-}
-
-/// The environment's test times (module doc).
-#[cfg(debug_assertions)]
-fn env_times() -> Option<TimesChoice> {
-    std::env::var("SILL_IDLE_TIMES")
-        .ok()
-        .and_then(|text| test_times(&text))
-}
-
-/// Never in a release build.
-#[cfg(not(debug_assertions))]
-fn env_times() -> Option<TimesChoice> {
-    None
+    })
 }
 
 /// Send [`policy_of`] now and on every settings change that changes it (the polkit policy's
-/// pattern). The service stays passive until the first.
+/// pattern), its times from `times`. The service stays passive until the first.
 pub fn spawn_policy(
     rt: &Handle,
     mut settings: watch::Receiver<ShellFile>,
     control: Control<IdleCommand>,
+    times: IdleTimesSource,
 ) {
-    let times = env_times();
     rt.spawn(async move {
         let mut sent = None;
         loop {
             let mut config = policy_of(&settings.borrow_and_update());
-            if let Some(times) = times {
-                config.times = times;
+            if let IdleTimesSource::Fixed(fixed) = times {
+                config.times = TimesChoice::Own(fixed);
             }
             if sent != Some(config) {
                 if control.send(IdleCommand::Configure(config)).is_err() {
@@ -258,6 +246,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "debug")]
     #[test]
     fn the_test_times_are_two_counts_of_seconds() {
         use super::test_times;
@@ -266,17 +255,17 @@ mod tests {
         let cases = [
             (
                 "6,40",
-                Some(TimesChoice::Own(IdleTimes {
+                Some(IdleTimes {
                     screen_off: both(after(6)),
                     suspend: both(after(40)),
-                })),
+                }),
             ),
             (
                 " 8 , 0 ",
-                Some(TimesChoice::Own(IdleTimes {
+                Some(IdleTimes {
                     screen_off: both(after(8)),
                     suspend: both(Timeout::Never),
-                })),
+                }),
             ),
             ("", None),
             ("6", None),

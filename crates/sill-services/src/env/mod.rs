@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use crate::displays::ddc::file_bus::FileBus;
 use crate::displays::{DdcBus, I2cBuses};
+use crate::idle::IdleTimes;
 
 mod buses;
 mod dirs;
@@ -32,6 +33,18 @@ pub struct Env {
     pub clock: Arc<dyn WallClock>,
     /// The DDC/CI buses external monitors answer on.
     pub ddc: Arc<dyn DdcBus>,
+    /// Where idle's screen-off and suspend times come from.
+    pub idle_times: IdleTimesSource,
+}
+
+/// Where idle's screen-off and suspend times come from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum IdleTimesSource {
+    /// The settings (`idle.times` and its keys, in minutes).
+    #[default]
+    Settings,
+    /// These, for both power sources, whatever the settings say (a dev script's seconds).
+    Fixed(IdleTimes),
 }
 
 impl Env {
@@ -44,6 +57,7 @@ impl Env {
             dirs: Dirs::from_process(),
             clock: Arc::new(SystemClock),
             ddc: Arc::new(I2cBuses::default()),
+            idle_times: IdleTimesSource::Settings,
         }
     }
 
@@ -59,6 +73,7 @@ impl Env {
             dirs: Dirs::under(scratch),
             clock: Arc::new(SystemClock),
             ddc: Arc::new(FileBus::new(scratch.join("no-ddc-monitors.json"))),
+            idle_times: IdleTimesSource::Settings,
         }
     }
 }

@@ -11,7 +11,7 @@
 # - the daemon gets its own XDG_RUNTIME_DIR, XDG_CONFIG_HOME, XDG_STATE_HOME and XDG_CACHE_HOME,
 #   the nested socket as an absolute WAYLAND_DISPLAY (the script refuses wayland-0), and
 #   XDG_CURRENT_DESKTOP=COSMIC so it resolves a sill session (Host::SillSession) and owns idle;
-# - short idle times come from SILL_IDLE_TIMES, which only a debug build reads;
+# - short idle times come from `sill run --idle-times`, which only a debug build takes;
 # - no password is typed: an asked lock is opened with `sill debug auth accept` (debug build);
 # - no input is typed anywhere: a wake is `sill debug idle-wake` (debug build), a made-up
 #   `resumed` (the nested cosmic-comp counts no synthetic input as activity);
@@ -40,7 +40,7 @@
 #      ends when its client leaves the bus.
 #   6. PrepareForSleep(true) from the stand-in locks with cause sleep; after the wake, a made-up wake:
 #      still locked.
-#   7. SILL_IDLE_TIMES=6,10: off and lock at 6 s, logind Suspend(false) recorded at about 10 s
+#   7. --idle-times 6,10: off and lock at 6 s, logind Suspend(false) recorded at about 10 s
 #      from the last wake (the lock's new watches do not restart the suspend watch), the
 #      idle hint set true then false; after PrepareForSleep true/false and a wake: still locked.
 #
@@ -165,7 +165,8 @@ start_daemon() {
     >"$CONFIG/sill/settings.toml"
   use_fake_ddc "$SCRATCH" >/dev/null
   require_fake_ddc || return 1
-  in_env WAYLAND_DEBUG="${WDEBUG:-}" SILL_IDLE_TIMES="$TIMES" "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" >"$log" 2>&1 &
+  in_env WAYLAND_DEBUG="${WDEBUG:-}" "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" --idle-times "$TIMES" \
+    >"$log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
   sill ping >/dev/null 2>&1 || { echo "the daemon never answered (see $log)" >&2; return 1; }
