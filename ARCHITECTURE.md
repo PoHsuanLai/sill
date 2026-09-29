@@ -662,9 +662,9 @@ installs them.
 Each step lands through the gate worktree and keeps master green; quire's own steps land first
 where noted, and sill compiles against each.
 
-1. `sill-testkit`: move `env/scratch.rs`, `tests/support/*`, the 13 examples and both
+1. `sill-testkit` (done): move `env/scratch.rs`, `tests/support/*`, the 13 examples and both
    `test_support.rs`; services tests use it. `_live` tests move to private buses.
-2. `Env` completion: `Processes` seam (from `programs.rs`), `DdcBus` files into `env/`,
+2. `Env` completion (done): `Processes` seam (from `programs.rs`), `DdcBus` files into `env/`,
    `Authenticator` into `env/`; delete `curve.rs`.
 3. `sill-model`: `units`, `ids`, `attempt` first, then one service per commit (state, command,
    step out; effect files into `backend/`), keeping `sill-services` re-exports off: callers

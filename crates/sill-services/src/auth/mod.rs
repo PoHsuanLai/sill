@@ -23,7 +23,6 @@
 //! password.
 
 mod account;
-mod authenticator;
 pub mod gate;
 mod helper;
 mod live;
@@ -32,7 +31,6 @@ pub mod protocol;
 mod types;
 
 pub use account::{avatar_source, user_name_in_passwd};
-pub use authenticator::{Authenticator, FakeAuthenticator, FakeRule};
 pub use gate::{Checks, Gate, GateIn, GateOut};
 pub use helper::PamHelper;
 pub use types::{

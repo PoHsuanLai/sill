@@ -19,13 +19,13 @@ use std::time::Duration;
 use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
 
-use super::authenticator::Authenticator;
 use super::gate::{Checks, Gate, GateIn, GateOut, step};
 use super::types::{
     Account, Attempt, Auth, AuthCommand, AuthPhase, FakeVerdict, Outcome, RealName, Secret,
     UserName, Verdict,
 };
 use super::{AccountPlace, avatar_source, user_name_in_passwd};
+use crate::env::Authenticator;
 use crate::env::Bus;
 
 /// How long a made-up verdict (`sill debug auth`) takes, so the surface sees `Checking` and the

@@ -7,10 +7,10 @@ use std::process::{Child, ChildStdout, Command, Stdio};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
 use std::time::{Duration, Instant};
 
-use super::authenticator::Authenticator;
 use super::pam;
 use super::protocol::{self, HelperLine, HelperRequest, ProtocolError};
 use super::types::{Attempt, AuthFault, Outcome, Verdict};
+use crate::env::Authenticator;
 
 /// How long one check may run before its child is killed (`Unavailable(TimedOut)`): past
 /// `pam_unix`'s 2 s fail delay and a slow directory lookup, short of a person giving up.

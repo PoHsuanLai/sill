@@ -5,11 +5,12 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use crate::auth::{Authenticator, FakeAuthenticator, FakeRule, PamHelper};
+use crate::auth::PamHelper;
 use crate::idle::IdleTimes;
 use crate::polkit_agent;
 use ddc::{DdcBus, FileBus, I2cBuses};
 
+mod authenticator;
 mod buses;
 pub mod ddc;
 mod dirs;
@@ -18,6 +19,7 @@ mod session_actions;
 mod wall_clock;
 mod wayland;
 
+pub use authenticator::{Authenticator, FakeAuthenticator, FakeRule};
 pub use buses::{Bus, BusKind, BusRoute, Buses};
 pub use dirs::Dirs;
 pub use processes::{NoProcesses, Pid, ProcScan, Processes};

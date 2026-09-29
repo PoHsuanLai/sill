@@ -1,10 +1,10 @@
-//! The seam between the service and PAM: [`Authenticator`], implemented by [`super::PamHelper`]
+//! The seam between the service and PAM: [`Authenticator`], implemented by [`crate::auth::PamHelper`]
 //! (the real one) and [`FakeAuthenticator`] (every test).
 
 use std::fmt;
 use std::time::Duration;
 
-use super::types::{Attempt, AuthFault, Outcome, Verdict};
+use crate::auth::{Attempt, AuthFault, Outcome, Verdict};
 
 /// Checks one attempt. Blocking: the service calls it on tokio's blocking pool, never on a
 /// surface's thread.
@@ -55,7 +55,7 @@ impl Authenticator for FakeAuthenticator {
 #[cfg(test)]
 mod tests {
     use super::{Authenticator, FakeAuthenticator, FakeRule};
-    use crate::auth::types::{Attempt, AuthFault, Outcome, Secret, UserName};
+    use crate::auth::{Attempt, AuthFault, Outcome, Secret, UserName};
     use std::time::Duration;
 
     #[test]

@@ -11,11 +11,11 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use sill_services::auth::{
-    Attempt, Attempts, Auth, AuthCommand, AuthFault, AuthPhase, AuthService, Authenticator,
-    FakeAuthenticator, FakeRule, FakeVerdict, Outcome, PamHelper, Secret, UserName, pam,
+    Attempt, Attempts, Auth, AuthCommand, AuthFault, AuthPhase, AuthService, FakeVerdict, Outcome,
+    PamHelper, Secret, UserName, pam,
 };
 use sill_services::control::Control;
-use sill_services::env::Env;
+use sill_services::env::{Authenticator, Env, FakeAuthenticator, FakeRule};
 use sill_services::service::spawn;
 use tokio::sync::watch;
 
