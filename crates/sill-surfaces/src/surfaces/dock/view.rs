@@ -13,17 +13,16 @@
 //! itself.
 
 use dioxus::prelude::*;
-use ds::{BlurState, DockFloor, Ds, Ground, Material, SpaceLook};
+use ds::{BlurState, DockFloor, Ds, Ground, Material};
 use shell_host::{LayerConfig, OutputInfo, SurfaceHandle};
-use sill_model::cosmic_wl::{Activity, Workspaces};
-use sill_model::ids::{OutputName, WorkspaceKey};
+use sill_model::ids::OutputName;
 use sill_model::units::Cpx;
-use sill_settings::{AutoHide, SpacesSettings};
+use sill_settings::AutoHide;
 
 use crate::app_icons::icon_look;
-use crate::hooks::{use_appearance, use_service, use_service_part, use_settings, use_space_look};
+use crate::hooks::{use_appearance, use_service, use_service_part, use_settings};
+use crate::look::{active_workspace, use_active_look};
 use crate::surfaces::bar::shell_style::shell_metrics;
-use crate::surfaces::bar::workspaces::group_for;
 use crate::surfaces::dock::frame::{Area, Frame, Rows, frame};
 use crate::surfaces::dock::geometry::{dock_metrics, pill_corner};
 use crate::surfaces::dock::items::dock_items;
@@ -40,35 +39,18 @@ use sill_services::{AppsService, BadgesService, CosmicWlService, PinsService};
 /// The dock's own stylesheet (lint-clean under `Profile::Strict`, `tests/dock_lint.rs`).
 pub(crate) const DOCK_CSS: &str = include_str!("../../style/dock.css");
 
-/// The look and key of the active workspace on `output` (design/21 §5 rule 6), the first
-/// preset while there is none.
-fn active(
-    workspaces: &Workspaces,
-    output: Option<&OutputName>,
-    spaces: &SpacesSettings,
-) -> (SpaceLook, Option<WorkspaceKey>) {
-    let active = group_for(&workspaces.groups, output).and_then(|group| {
-        group
-            .workspaces
-            .iter()
-            .position(|w| w.activity == Activity::Active)
-            .map(|index| (group.workspaces[index].key, index))
-    });
-    let (key, index) = active.unwrap_or((WorkspaceKey(0), 0));
-    (use_space_look(key, index, spaces), active.map(|(k, _)| k))
-}
-
 /// The dock on `output`.
 pub(crate) fn dock(output: OutputInfo) -> Element {
     let ds_scale = crate::hooks::use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
     let on = output.name.clone().map(OutputName);
-    let (look, workspace) = active(
+    let look = use_active_look(&output);
+    let workspace = active_workspace(
         &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
         on.as_ref(),
-        &file.spaces,
-    );
+    )
+    .map(|(key, _)| key);
     let appearance = environment.settings.appearance.appearance();
     let level = ds::resolve(appearance, look.theme, environment.system).motion;
     let params = DockParams::new(&file.dock, level);

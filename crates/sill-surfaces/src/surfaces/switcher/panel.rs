@@ -12,7 +12,6 @@
 use dioxus::prelude::*;
 use ds::{AppKey, BlurState, Ds, Material, RootChrome, RootExtent, SwitcherApp as Tile};
 use shell_host::{OutputInfo, SurfaceHandle};
-use sill_model::ids::OutputName;
 
 use super::drive::{SwitcherCtx, use_switcher};
 use super::icon::SwitcherIcons;
@@ -23,9 +22,9 @@ use super::session::{Session, Windows};
 use super::tiles::{key_of, metrics_of, output_width, tiles};
 use super::watch::ChordWatch;
 use crate::app_icons::{IconContext, LogicalPx, icon_look, use_icon_resolver};
-use crate::hooks::{use_appearance, use_ds_scale, use_service, use_service_part, use_settings};
-use crate::surfaces::launcher::panel::active_look;
-use sill_services::{AppsService, CosmicWlService};
+use crate::hooks::{use_appearance, use_ds_scale, use_service, use_settings};
+use crate::look::use_active_look;
+use sill_services::AppsService;
 
 /// The switcher's stylesheet (lint-clean under `Profile::Strict`, `tests/switcher_lint.rs`).
 pub(crate) const SWITCHER_CSS: &str = include_str!("../../style/switcher.css");
@@ -34,12 +33,7 @@ pub(super) fn switcher_panel(output: OutputInfo) -> Element {
     let ds_scale = use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
-    let on = output.name.clone().map(OutputName);
-    let look = active_look(
-        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
-        on.as_ref(),
-        &file.spaces,
-    );
+    let look = use_active_look(&output);
     let appearance = environment.settings.appearance.appearance();
     let resolved = ds::resolve(appearance, look.theme, environment.system);
     let level = resolved.motion;

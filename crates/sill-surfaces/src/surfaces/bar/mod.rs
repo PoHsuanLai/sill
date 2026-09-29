@@ -33,11 +33,10 @@ mod tray_menu;
 pub use layer::bar_layer;
 
 use dioxus::prelude::*;
-use ds::{BlurState, Ds, Material, Point, Px, Rect, Size, SpaceLook};
+use ds::{BlurState, Ds, Material, Point, Px, Rect, Size};
 use shell_host::{OutputInfo, SurfaceHandle};
-use sill_model::cosmic_wl::Workspaces;
-use sill_model::ids::{OutputName, WorkspaceKey};
-use sill_settings::{BarSettings, FocusLink, FocusMode, SettingsFeed, SpacesSettings};
+use sill_model::ids::OutputName;
+use sill_settings::{BarSettings, FocusLink, FocusMode, SettingsFeed};
 
 use app_name::AppName;
 use clock::ClockItem;
@@ -50,35 +49,16 @@ use session::{BarInput, MenuBar, PopupLook, SessionDeps, use_menu_session};
 use shell_style::shell_metrics;
 use status_item::status_metrics;
 use tray::Tray;
-use workspaces::{WorkspaceIndicator, group_for};
+use workspaces::WorkspaceIndicator;
 
-use crate::hooks::{
-    use_appearance, use_service, use_service_part, use_services, use_settings, use_space_look,
-};
+use crate::hooks::{use_appearance, use_service, use_service_part, use_services, use_settings};
+use crate::look::use_active_look;
 use crate::surfaces::control_center::{ControlCenterLink, height_cap, menu_bar_modules};
 use crate::surfaces::notification_center::CenterLink;
 use sill_services::{AppsService, CosmicWlService, TrayService};
 
 /// The bar's own stylesheet (lint-clean under `Profile::Strict`, `tests/bar_lint.rs`).
 pub(crate) const BAR_CSS: &str = include_str!("../../style/bar.css");
-
-/// The look of the active workspace on `output` (design/21 §5 rule 6: each output's bar follows
-/// that output's active workspace); the first preset while there is none (KWin).
-fn active_look(
-    workspaces: &Workspaces,
-    output: Option<&OutputName>,
-    spaces: &SpacesSettings,
-) -> SpaceLook {
-    let active = group_for(&workspaces.groups, output).and_then(|group| {
-        group
-            .workspaces
-            .iter()
-            .position(|w| w.activity == sill_model::cosmic_wl::Activity::Active)
-            .map(|index| (group.workspaces[index].key, index))
-    });
-    let (key, index) = active.unwrap_or((WorkspaceKey(0), 0));
-    use_space_look(key, index, spaces)
-}
 
 /// The bar on `output`: `Ds` root with the workspace's SpaceLook, `Material::Bar`, the left
 /// and right groups, and the one reusable menu popup. The root draws the Space gradient at the
@@ -89,10 +69,10 @@ pub fn Bar(output: OutputInfo) -> Element {
     let ds_scale = crate::hooks::use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
-    let workspaces = use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())();
+    let _workspaces = use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())();
     let tray = use_service::<TrayService>()();
     let on = output.name.clone().map(OutputName);
-    let look = active_look(&workspaces, on.as_ref(), &file.spaces);
+    let look = use_active_look(&output);
     let metrics = shell_metrics(&file);
     let popup_look = PopupLook {
         appearance: environment.settings.appearance.appearance(),

@@ -14,19 +14,17 @@ use dioxus::prelude::*;
 use ds::detail::RevealCue;
 use ds::{
     Anchor, BlurState, CommandPalette, CommandPaletteHost, Corner, Ds, FieldKey, IconSource,
-    ImageSource, Material, Menu, MenuKind, PaletteEntrance, Point, Px, Rect, SpaceLook,
+    ImageSource, Material, Menu, MenuKind, PaletteEntrance, Point, Px, Rect,
 };
 use shell_host::OutputInfo;
 use sill_launcher::{ActionId, ClipKey, Item, Preview, Section, preview_for};
-use sill_model::cosmic_wl::{Activity, Workspaces};
-use sill_model::ids::OutputName;
 use sill_search::preview::clip_image;
-use sill_settings::{PanelMaterial, SpacesSettings};
+use sill_settings::PanelMaterial;
 
 use crate::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
-use crate::hooks::{use_appearance, use_service, use_service_part, use_settings, use_space_look};
+use crate::hooks::{use_appearance, use_service, use_settings};
+use crate::look::use_active_look;
 use crate::surfaces::bar::shell_style::shell_metrics;
-use crate::surfaces::bar::workspaces::group_for;
 use crate::surfaces::launcher::card::{CardKey, Foot, use_card_hit};
 use crate::surfaces::launcher::contact::use_contacts;
 use crate::surfaces::launcher::entries::{RowRef, action_entries};
@@ -48,7 +46,7 @@ use crate::surfaces::launcher::sections_view::{Draw, palette_groups};
 use crate::surfaces::launcher::session::Session;
 use crate::surfaces::launcher::view::View;
 use sill_search::ResultsService;
-use sill_services::{ClipboardService, CosmicWlService};
+use sill_services::ClipboardService;
 
 /// The launcher's stylesheet (lint-clean under `Profile::Strict`, `tests/launcher_lint.rs`).
 pub(crate) const LAUNCHER_CSS: &str = include_str!("../../style/launcher.css");
@@ -100,12 +98,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
     let ds_scale = crate::hooks::use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
-    let on = output.name.clone().map(OutputName);
-    let look = active_look(
-        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
-        on.as_ref(),
-        &file.spaces,
-    );
+    let look = use_active_look(&output);
     let appearance = environment.settings.appearance.appearance();
     let icons = RowIcons {
         look: icon_look(
@@ -452,24 +445,6 @@ pub fn material(material: PanelMaterial) -> Material {
         PanelMaterial::Sheet => Material::Sheet,
         PanelMaterial::Popover => Material::Popover,
     }
-}
-
-/// The look of the active workspace on `output` (design/21 §5 rule 6), the first preset while
-/// there is none. The OSD tints the same way.
-pub(crate) fn active_look(
-    workspaces: &Workspaces,
-    output: Option<&OutputName>,
-    spaces: &SpacesSettings,
-) -> SpaceLook {
-    let active = group_for(&workspaces.groups, output).and_then(|group| {
-        group
-            .workspaces
-            .iter()
-            .position(|w| w.activity == Activity::Active)
-            .map(|index| (group.workspaces[index].key, index))
-    });
-    let (key, index) = active.unwrap_or((sill_model::ids::WorkspaceKey(0), 0));
-    use_space_look(key, index, spaces)
 }
 
 #[cfg(test)]

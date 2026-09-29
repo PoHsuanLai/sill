@@ -6,13 +6,11 @@
 use dioxus::prelude::*;
 use ds::{BlurState, Ds, Material, RootExtent};
 use shell_host::OutputInfo;
-use sill_model::ids::OutputName;
 
 use super::column::Column;
-use crate::hooks::{use_appearance, use_ds_scale, use_service_part, use_settings};
-use crate::surfaces::launcher::panel::active_look;
+use crate::hooks::{use_appearance, use_ds_scale};
+use crate::look::use_active_look;
 use crate::widgets::{provide_registry, widgets_css};
-use sill_services::CosmicWlService;
 
 /// The center's stylesheet (lint-clean under `Profile::Strict`,
 /// `tests/notification_center_lint.rs`).
@@ -22,14 +20,8 @@ pub const NOTIFICATION_CENTER_CSS: &str = include_str!("../../style/notification
 pub(super) fn center(output: OutputInfo) -> Element {
     provide_registry();
     let ds_scale = use_ds_scale();
-    let file = use_settings()();
     let environment = use_appearance()();
-    let on = output.name.clone().map(OutputName);
-    let look = active_look(
-        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
-        on.as_ref(),
-        &file.spaces,
-    );
+    let look = use_active_look(&output);
     rsx! {
         Ds {
             scale: ds_scale,

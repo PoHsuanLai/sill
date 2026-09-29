@@ -14,29 +14,19 @@ use dioxus::prelude::*;
 use ds::{BlurState, CapsLock, Ds, Material, PolkitPrompt, RootExtent, TextLine};
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_model::auth::Secret;
-use sill_model::ids::OutputName;
 use sill_model::polkit_agent::{Cookie, PolkitCommand};
 use sill_services::{Control, PolkitAgentService};
 
 use super::stage::{Mapped, Stage, StageIn, advance};
 use super::view::{PolkitPromptView, prompt_view};
-use crate::hooks::{
-    use_appearance, use_control, use_ds_scale, use_service, use_service_part, use_settings,
-};
+use crate::hooks::{use_appearance, use_control, use_ds_scale, use_service};
+use crate::look::use_active_look;
 use crate::surfaces::banners::BannerLink;
-use crate::surfaces::launcher::panel::active_look;
-use sill_services::CosmicWlService;
 
 pub(super) fn polkit_prompt(output: OutputInfo) -> Element {
     let ds_scale = use_ds_scale();
-    let file = use_settings()();
     let environment = use_appearance()();
-    let on = output.name.clone().map(OutputName);
-    let look = active_look(
-        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
-        on.as_ref(),
-        &file.spaces,
-    );
+    let look = use_active_look(&output);
     let stage = use_stage(output);
     let control = use_control::<PolkitAgentService>();
     let mut caps = use_signal(|| CapsLock::Off);

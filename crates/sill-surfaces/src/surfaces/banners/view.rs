@@ -26,11 +26,10 @@ use super::machine::{BannerIn, BannerParams};
 use super::placement::BannerLink;
 use super::stack::stack;
 use crate::hooks::{use_appearance, use_control, use_ds_scale, use_service_part, use_settings};
-use crate::surfaces::launcher::panel::active_look;
+use crate::look::use_active_look;
 use crate::surfaces::notification_card::{
     CardPart, CardPlace, CardPress, NoteCard, notification_metrics, part_id, wall_now,
 };
-use sill_services::CosmicWlService;
 
 /// The column's stylesheet (lint-clean under `Profile::Strict`, `tests/banners_lint.rs`).
 pub const BANNERS_CSS: &str = include_str!("../../style/banners.css");
@@ -43,12 +42,7 @@ pub(super) fn banners(output: OutputInfo) -> Element {
     let ds_scale = use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
-    let on = output.name.clone().map(sill_model::ids::OutputName);
-    let look = active_look(
-        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
-        on.as_ref(),
-        &file.spaces,
-    );
+    let look = use_active_look(&output);
     rsx! {
         Ds {
             scale: ds_scale,

@@ -8,25 +8,14 @@
 use dioxus::prelude::*;
 use ds::{Here, PointerButton, Press, WorkspacePill, WorkspacePills};
 use shell_host::OutputInfo;
-use sill_model::cosmic_wl::{Activity, WlCommand, Workspace, WorkspaceGroup};
+use sill_model::cosmic_wl::{Activity, WlCommand, Workspace};
 use sill_model::ids::OutputName;
 use sill_services::CosmicWlService;
 
 use super::reorder::{Dropped, Pressed, reorder};
 use super::title::pointer_at;
 use crate::hooks::{use_control, use_service_part, use_settings};
-
-/// The group this output shows: the one naming it, or the first when the output has no name.
-pub(crate) fn group_for(
-    groups: &[WorkspaceGroup],
-    output: Option<&OutputName>,
-) -> Option<WorkspaceGroup> {
-    match output {
-        Some(name) => groups.iter().find(|g| g.outputs.contains(name)),
-        None => groups.first(),
-    }
-    .cloned()
-}
+use crate::look::group_for;
 
 /// A pill's label: the workspace's name, or its position.
 fn label(workspace: &Workspace, index: usize) -> String {
