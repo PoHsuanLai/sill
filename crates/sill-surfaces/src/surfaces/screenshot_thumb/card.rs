@@ -8,9 +8,7 @@
 
 use dioxus::prelude::*;
 use ds::{
-    DragStart, Hover, Icon, NotificationSwipe, Px, ShotThumbnail, Shown, SwipeMetrics, ThumbAction,
-};
-use sill_services::ShotId;
+use sill_model::screenshots::ShotId;
 
 use super::drive::Thumb;
 use super::ghost::GhostLook;

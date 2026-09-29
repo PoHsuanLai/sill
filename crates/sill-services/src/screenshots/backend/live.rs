@@ -13,11 +13,12 @@
 use std::path::{Path, PathBuf};
 
 use notify::RecommendedWatcher;
+use sill_model::screenshots::{
+    ShotCommand, ShotEffect, ShotEvent, ShotKind, ShotPolicy, Shots, Watching, folders_of,
+    save_folder, step, tool_command,
+};
 use tokio::sync::{mpsc, watch};
 
-use super::reduce::{ShotEffect, ShotEvent, Shots, Watching, step};
-use super::tool::{ShotKind, save_folder, tool_command};
-use super::{ShotCommand, ShotPolicy, folders_of};
 use crate::env::Dirs;
 
 /// The task's own state beside the published [`Shots`].
@@ -32,7 +33,7 @@ struct Live {
     dirs: Dirs,
 }
 
-pub(super) async fn run(
+pub(crate) async fn run(
     tx: watch::Sender<Shots>,
     mut commands: mpsc::UnboundedReceiver<ShotCommand>,
     dirs: Dirs,
@@ -142,7 +143,7 @@ impl Live {
 }
 
 /// What a `Watching` says for `folders` that exist (none: `Off`).
-pub(super) fn watching_of(folders: Vec<PathBuf>) -> Watching {
+pub(crate) fn watching_of(folders: Vec<PathBuf>) -> Watching {
     match folders.is_empty() {
         true => Watching::Off,
         false => Watching::Folders(folders),

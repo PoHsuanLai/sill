@@ -4,7 +4,7 @@
 //! slides in empty; the output the banners' link does not name, and `screenshot.thumbnail =
 //! "hide"`, show nothing.
 
-use sill_services::{ShotPreview, Shots};
+use sill_model::screenshots::{ShotPreview, Shots};
 use sill_settings::ShotThumbnail;
 
 use super::machine::ThumbIn;
@@ -33,7 +33,7 @@ pub fn follow(shots: &Shots, here: Here, setting: ShotThumbnail) -> Option<Thumb
 mod tests {
     use std::path::PathBuf;
 
-    use sill_services::{Shot, ShotId, ShotPreview, Shots};
+    use sill_model::screenshots::{Shot, ShotId, ShotPreview, Shots};
     use sill_settings::ShotThumbnail;
 
     use super::{Here, follow};

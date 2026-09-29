@@ -20,56 +20,13 @@
 //! `screenshot.folders` and `screenshot.tool`): a test or a headless render never watches
 //! `~/Pictures` or runs a tool. Tests configure temp folders and a stand-in tool.
 
-mod child;
-mod folder_watch;
-mod live;
-pub mod names;
-mod preview;
-pub mod reduce;
-pub mod tool;
+mod backend;
 
-pub use names::{ShotName, folders_of, is_screenshot_name, parse_folders, preview_name};
-pub use reduce::{
-    Shot, ShotEffect, ShotEvent, ShotId, ShotLeave, ShotPreview, Shots, Taking, Watching, step,
-};
-pub use tool::{CommandLine, ShotKind, ShotTool, parse_tool, save_folder, tool_command};
+use sill_model::screenshots::{ShotCommand, Shots};
 
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
-use std::path::PathBuf;
-
-/// Which folders are watched.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
-pub enum ShotFolders {
-    /// None: `screenshot.folders = "off"`, and the passive start.
-    #[default]
-    Off,
-    /// The Pictures folder (`$XDG_PICTURES_DIR`, else `~/Pictures`) and its `Screenshots`.
-    Auto,
-    /// These folders.
-    At(Vec<PathBuf>),
-}
-
-/// What the daemon tells the service from the settings.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
-pub struct ShotPolicy {
-    pub folders: ShotFolders,
-    pub tool: ShotTool,
-}
-
-/// What the screenshots service can be told.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ShotCommand {
-    /// Watch and take per `policy` from now on; the first one ends the passive start.
-    Configure(ShotPolicy),
-    /// `sill screenshot KIND`: run the tool (ignored while one is still running).
-    Take(ShotKind),
-    /// `sill debug screenshot PATH`: as if the watch had just seen `PATH` (any name, any folder).
-    Announce(PathBuf),
-    /// The thumbnail went away, and why: opened, kept, trashed or dragged out.
-    Leave(ShotId, ShotLeave),
-}
 
 /// Screenshots as a [`Service`]: watching folders under `env`'s directories, its previews in their
 /// cache. Passive until `Configure`.
@@ -89,7 +46,7 @@ impl Service for ScreenshotsService {
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let dirs = env.dirs.clone();
         async move {
-            live::run(io.state, io.commands, dirs).await;
+            backend::run(io.state, io.commands, dirs).await;
             Ok(())
         }
     }

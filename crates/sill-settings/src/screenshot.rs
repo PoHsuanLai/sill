@@ -47,7 +47,7 @@ pub struct ScreenshotSettings {
         advanced
     )]
     pub thumbnail_hold_ms: Ms,
-    /// `auto`, `off`, or `;`-separated folders (`sill_services::screenshots::parse_folders`).
+    /// `auto`, `off`, or `;`-separated folders (`sill_model::screenshots::parse_folders`).
     #[settings(
         label = "Screenshot folders",
         help = "Where new screenshots are noticed: `auto` is the Pictures folder and its Screenshots folder, `off` notices none, or folders separated by `;`.",
@@ -55,7 +55,7 @@ pub struct ScreenshotSettings {
         advanced
     )]
     pub folders: String,
-    /// `auto`, `off`, or a command line (`sill_services::screenshots::parse_tool`).
+    /// `auto`, `off`, or a command line (`sill_model::screenshots::parse_tool`).
     #[settings(
         label = "Screenshot program",
         help = "What `sill screenshot` runs: `auto` is COSMIC's (cosmic-screenshot), `off` runs nothing, or a command line run by `/bin/sh -c` with the kind (`area`, `window`, `screen`) as $1 and the folder as $2.",

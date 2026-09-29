@@ -5,7 +5,8 @@
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
-use super::names::preview_name;
+use sill_model::screenshots::preview_name;
+
 use crate::env::Dirs;
 use crate::error::ServiceError;
 
@@ -13,12 +14,12 @@ use crate::error::ServiceError;
 pub const PREVIEW_MAX: u32 = 480;
 
 /// Where previews go: `shots` in sill's folder of `dirs`' cache directory.
-pub(super) fn cache_in(dirs: &Dirs) -> PathBuf {
+pub(crate) fn cache_in(dirs: &Dirs) -> PathBuf {
     dirs.sill_cache().join("shots")
 }
 
 /// `from`'s preview in `cache`.
-pub(super) fn make_in(from: &Path, cache: &Path) -> Result<PathBuf, ServiceError> {
+pub(crate) fn make_in(from: &Path, cache: &Path) -> Result<PathBuf, ServiceError> {
     let metadata = std::fs::metadata(from).map_err(|e| io(from, e))?;
     let modified_ms = metadata
         .modified()

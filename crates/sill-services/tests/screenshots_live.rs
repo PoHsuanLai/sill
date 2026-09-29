@@ -7,12 +7,12 @@
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-use sill_services::env::{Dirs, Env};
-use sill_services::screenshots::{
-    ScreenshotsService, ShotFolders, ShotPolicy, ShotTool, Taking, Watching,
+use sill_model::screenshots::{
+    ShotCommand, ShotFolders, ShotKind, ShotPolicy, ShotPreview, ShotTool, Shots, Taking, Watching,
 };
+use sill_services::env::{Dirs, Env};
+use sill_services::screenshots::ScreenshotsService;
 use sill_services::service::spawn;
-use sill_services::{ShotCommand, ShotKind, ShotPreview, Shots};
 use tokio::sync::watch;
 
 const FIXTURE: &str = concat!(

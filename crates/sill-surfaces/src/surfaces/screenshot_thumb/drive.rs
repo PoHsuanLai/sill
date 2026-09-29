@@ -9,7 +9,8 @@ use std::time::Duration;
 use dioxus::core::{Runtime, ScopeId, Task, current_scope_id};
 use dioxus::prelude::*;
 use shell_host::{SurfaceHandle, SurfaceOp, Visibility};
-use sill_services::{Control, ShotCommand, ShotId};
+use sill_model::screenshots::{ShotCommand, ShotId};
+use sill_services::Control;
 
 use super::drag::{drag_end, file_drag};
 use super::ghost::GhostLook;

@@ -13,7 +13,7 @@ use ds::{Point, Px};
 use ds_settings::Ms;
 use screenshot_thumb_support::{Done, Running, start};
 use shell_host::OutputId;
-use sill_services::{ShotCommand, ShotId, ShotLeave, ShotPreview};
+use sill_model::screenshots::{ShotCommand, ShotId, ShotLeave, ShotPreview};
 use sill_settings::{ScreenshotSettings, ShellFile, ShotThumbnail};
 use sill_surfaces::surfaces::banners::BannerOutput;
 

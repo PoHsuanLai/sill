@@ -7,7 +7,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use ds::{ImageSize, ImageSource};
-use sill_services::{Shot, ShotPreview};
+use sill_model::screenshots::{Shot, ShotPreview};
 
 /// The shape a picture is drawn in when its header says nothing: the surface's 16:10.
 const UNKNOWN: ImageSize = ImageSize {

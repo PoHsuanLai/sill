@@ -79,9 +79,7 @@ pub use results::{
     CurrencyPolicy, FilesChoice, LauncherPolicy, Results, ResultsEvent, ResultsService,
     SearchCommand, WebPolicy,
 };
-pub use screenshots::{
-    ScreenshotsService, Shot, ShotCommand, ShotId, ShotKind, ShotLeave, ShotPreview, Shots,
-};
+pub use screenshots::ScreenshotsService;
 pub use service::{Handle, Service, ServiceIo};
 pub use services::{Member, Services};
 pub use session::SessionService;

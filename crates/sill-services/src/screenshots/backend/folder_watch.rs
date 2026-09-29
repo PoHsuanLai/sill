@@ -7,14 +7,13 @@ use std::path::{Path, PathBuf};
 
 use notify::event::{AccessKind, AccessMode, ModifyKind, RenameMode};
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use sill_model::screenshots::{ShotEvent, ShotName, Watching, is_screenshot_name};
 use tokio::sync::mpsc;
 
 use super::live::watching_of;
-use super::names::{ShotName, is_screenshot_name};
-use super::reduce::{ShotEvent, Watching};
 
 /// Watch the folders of `folders` that exist, sending each screenshot that lands in one.
-pub(super) fn start(
+pub(crate) fn start(
     folders: &[PathBuf],
     events: mpsc::UnboundedSender<ShotEvent>,
 ) -> (Option<RecommendedWatcher>, Watching) {

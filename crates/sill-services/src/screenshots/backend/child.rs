@@ -5,19 +5,18 @@
 use std::ffi::OsStr;
 use std::process::Stdio;
 
+use sill_model::screenshots::CommandLine;
 use tokio::process::Command;
 
-use super::tool::CommandLine;
-
 /// Start `program` with `args` and reap it in the background; a failure to start is logged.
-pub(super) fn detach(program: &str, args: &[&OsStr]) {
+pub(crate) fn detach(program: &str, args: &[&OsStr]) {
     let mut command = Command::new(program);
     command.args(args);
     wait_then(command, program, || {});
 }
 
 /// Run `line` and call `ended` once it exits (or could not start).
-pub(super) fn run_then(line: CommandLine, ended: impl FnOnce() + Send + 'static) {
+pub(crate) fn run_then(line: CommandLine, ended: impl FnOnce() + Send + 'static) {
     let mut command = Command::new(&line.program);
     command.args(&line.args);
     wait_then(command, &line.program, ended);

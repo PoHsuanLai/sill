@@ -1,6 +1,6 @@
 //! The thumbnail machine's table.
 
-use sill_services::{ShotId, ShotLeave};
+use sill_model::screenshots::{ShotId, ShotLeave};
 
 use super::{
     DragEnd, HoldToken, Pointer, ThumbExit, ThumbIn, ThumbOut, ThumbParams, ThumbState, step,

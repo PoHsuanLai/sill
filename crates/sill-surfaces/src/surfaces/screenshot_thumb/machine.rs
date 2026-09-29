@@ -16,7 +16,7 @@
 //! - The service dropping the current shot (`Current(None)`) while shown leaves without a
 //!   `Leave`: it already knows.
 
-use sill_services::{ShotId, ShotLeave};
+use sill_model::screenshots::{ShotId, ShotLeave};
 
 /// A hold timer's identity: a `HoldElapsed` with another token is stale.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
