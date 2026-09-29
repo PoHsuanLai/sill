@@ -4,13 +4,8 @@
 use std::time::Duration;
 
 use jiff::civil::{DateTime, Time, Weekday};
-use serde::{Deserialize, Serialize};
 
-/// The clock's text as the bar shows it: `Thu 24 Sep 14:05`.
-#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub struct ClockText {
-    pub text: String,
-}
+use super::ClockText;
 
 /// `now` as `<weekday> <day> <month> <HH>:<MM>`, English abbreviations, 24-hour. Locale and a
 /// 12-hour form have no settings key in design/22 yet.

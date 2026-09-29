@@ -7,15 +7,16 @@
 use shell_host::{OutputId, OutputInfo, Rect, Scale};
 use sill_launcher::WindowKey;
 use sill_model::battery::{Battery, Charge};
+use sill_model::clock::ClockText;
 use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
 use sill_model::units::{Percent, Presence, Seconds, Visibility};
 use sill_services::{
     AccessPoint, Activity, AppIndex, Association, Badges, Bluetooth, BluetoothCommand, BtAddress,
-    BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower, ClockText, Connectivity,
-    CosmicWl, DockPins, Handle, Launches, Link, Media, MediaCommand, Mute, Network, Pinning,
-    PowerProfiles, Profile, ProfileCommand, ProfileDegraded, Radio, Results, Security, Service,
-    Services, Sizing, Ssid, Toplevel, Toplevels, Tray, Urgency, Volume, Wallpapers, Wifi,
-    WifiCommand, WindowState, Workspace, WorkspaceCaps, WorkspaceGroup, Workspaces,
+    BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower, Connectivity, CosmicWl,
+    DockPins, Handle, Launches, Link, Media, MediaCommand, Mute, Network, Pinning, PowerProfiles,
+    Profile, ProfileCommand, ProfileDegraded, Radio, Results, Security, Service, Services, Sizing,
+    Ssid, Toplevel, Toplevels, Tray, Urgency, Volume, Wallpapers, Wifi, WifiCommand, WindowState,
+    Workspace, WorkspaceCaps, WorkspaceGroup, Workspaces,
 };
 use tokio::sync::{mpsc, watch};
 

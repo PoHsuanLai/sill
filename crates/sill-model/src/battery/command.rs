@@ -1,8 +1,9 @@
 //! What the battery service hears and what it can be told.
 
+use serde::{Deserialize, Serialize};
+
 use super::Charge;
 use crate::units::{Percent, Presence, Seconds};
-use serde::{Deserialize, Serialize};
 
 /// One change UPower reported.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

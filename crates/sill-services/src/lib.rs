@@ -65,7 +65,7 @@ pub use bluetooth::{
     BtConnection, BtDevice, BtKind, BtPairing, BtPower, device_kind, listed_devices,
 };
 pub use clipboard::{Clipboard, ClipboardCommand, ClipboardService};
-pub use clock::{ClockCommand, ClockService, ClockText, format_clock, until_next_minute};
+pub use clock::ClockService;
 pub use control::Control;
 pub use cosmic_wl::{
     Activity, CosmicWl, CosmicWlService, Pinning, Relative, Sizing, Toplevel, ToplevelEvent,

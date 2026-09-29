@@ -1,14 +1,14 @@
 //! UPower's display device over the system bus: seeds a real first value, then feeds every
 //! property change through [`step`].
 
+use sill_model::battery::{Battery, BatteryCommand, BatteryEvent, Charge, step};
+use sill_model::units::{Percent, Presence, Seconds};
 use tokio::sync::{mpsc, watch};
 use upower_dbus::{BatteryState, DeviceProxy, UPowerProxy};
 
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next;
-use sill_model::battery::{Battery, BatteryCommand, BatteryEvent, Charge, step};
-use sill_model::units::{Percent, Presence, Seconds};
 
 /// Connects to UPower's display device and runs until `commands` closes (the `Control` was
 /// dropped). If the bus or UPower is unreachable, `tx` is left at its seeded default (absent).

@@ -1,7 +1,8 @@
 //! The battery's state.
 
-use crate::units::{Minutes, Percent, Presence, Seconds};
 use serde::{Deserialize, Serialize};
+
+use crate::units::{Minutes, Percent, Presence, Seconds};
 
 /// UPower's display device, as the bar draws it.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
