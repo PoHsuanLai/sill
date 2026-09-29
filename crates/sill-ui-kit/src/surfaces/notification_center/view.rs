@@ -12,11 +12,11 @@ use crate::root::SurfaceRoot;
 use crate::widgets::{provide_registry, widgets_css};
 
 /// The center's stylesheet (lint-clean under `Profile::Strict`,
-/// `tests/notification_center_lint.rs`).
+/// `crates/sill/tests/lint.rs`).
 pub const NOTIFICATION_CENTER_CSS: &str = include_str!("../../style/notification_center.css");
 
 /// The center on `output`.
-pub(super) fn center(output: OutputInfo) -> Element {
+pub(super) fn notification_center(output: OutputInfo) -> Element {
     provide_registry();
     rsx! {
         SurfaceRoot {

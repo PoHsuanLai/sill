@@ -22,6 +22,7 @@ use sill_ui_kit::hooks::PinnedAppearance;
 use sill_ui_kit::links::{CenterLink, CenterShown};
 use sill_ui_kit::links::{EditShown, EditWidgetsLink, WidgetsWrite, WidgetsWriter};
 use sill_ui_kit::services::Services;
+use sill_ui_kit::surface::{MountProps, mount};
 use sill_ui_kit::widgets::grid::{GridSlot, OutputKey, Placement};
 use sill_ui_kit::{EditWidgets, NotificationCenter};
 use tokio::sync::watch;
@@ -58,7 +59,7 @@ fn app() -> Element {
     use_context_provider(|| world.edit.clone());
     use_context_provider(|| world.writer.clone());
     match world.drawn {
-        Drawn::Center => rsx! { NotificationCenter { output: fake::output() } },
+        Drawn::Center => mount::<NotificationCenter>(MountProps::new(fake::output(), ())),
         Drawn::Edit => rsx! { EditWidgets { output: fake::output() } },
     }
 }

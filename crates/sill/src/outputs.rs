@@ -26,8 +26,6 @@ pub struct OutputSurfaces {
     pub dock: Option<SurfaceId>,
     pub launcher: Option<SurfaceId>,
     pub catcher: Option<SurfaceId>,
-    /// The notification center, warm and hidden.
-    pub notification_center: Option<SurfaceId>,
     /// The screenshot thumbnail (warm and hidden) and the desktop widget layer (while
     /// `widgets.desktop` is on).
     pub thumbnail: Option<SurfaceId>,
@@ -38,13 +36,12 @@ pub struct OutputSurfaces {
 
 impl OutputSurfaces {
     /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 8] {
+    fn fields(&self) -> [Option<SurfaceId>; 7] {
         [
             self.bar,
             self.dock,
             self.launcher,
             self.catcher,
-            self.notification_center,
             self.thumbnail,
             self.desktop_widgets,
             self.edit_widgets,
@@ -79,7 +76,6 @@ impl OutputSurfaces {
             &mut self.dock,
             &mut self.launcher,
             &mut self.catcher,
-            &mut self.notification_center,
             &mut self.thumbnail,
             &mut self.desktop_widgets,
             &mut self.edit_widgets,

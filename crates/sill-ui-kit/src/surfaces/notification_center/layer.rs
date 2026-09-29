@@ -17,6 +17,8 @@ use shell_host::{
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
+use sill_settings::ShellFile;
+
 use crate::surfaces::naming::namespace;
 
 /// The element id of the column inside quire's `Panel` (which takes no id of its own): the blur
@@ -30,7 +32,7 @@ pub const PANEL_RADIUS: i32 = 14;
 pub const PANEL_PADDING: i32 = 12;
 
 /// The panel's blur region.
-pub fn panel_region() -> RegionSpec {
+fn panel_region() -> RegionSpec {
     RegionSpec::Element {
         id: ElementId::new(PANEL_ID),
         radius: PANEL_RADIUS,
@@ -39,7 +41,7 @@ pub fn panel_region() -> RegionSpec {
 }
 
 /// The notification center on `output`.
-pub fn center_layer(output: &OutputInfo) -> LayerConfig {
+pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
     LayerConfig {
         namespace: namespace("notification-center", output),
         layer: LayerLevel::Overlay,
@@ -59,7 +61,9 @@ pub fn center_layer(output: &OutputInfo) -> LayerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::{center_layer, panel_region};
+    use super::{layer, panel_region};
+    use sill_settings::ShellFile;
+
     use crate::surfaces::naming::tests::output;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, RegionSpec,
@@ -67,7 +71,7 @@ mod tests {
 
     #[test]
     fn the_center_covers_the_output_below_the_bar_and_takes_the_keyboard_on_demand() {
-        let config = center_layer(&output(Some("DP-1")));
+        let config = layer(&output(Some("DP-1")), &ShellFile::default());
         assert_eq!(config.namespace, "sill-notification-center-DP-1");
         assert_eq!(config.layer, LayerLevel::Overlay);
         assert_eq!(config.anchor, Anchor::ALL);

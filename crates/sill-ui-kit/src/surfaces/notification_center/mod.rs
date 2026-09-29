@@ -10,7 +10,6 @@ pub mod groups;
 pub mod keymap;
 pub mod keys;
 pub mod labels;
-pub mod layer;
 pub mod phase;
 pub mod rows;
 pub mod widgets;
@@ -18,22 +17,15 @@ pub mod widgets;
 mod column;
 mod contents;
 mod drawn;
-mod drive;
 mod group;
-mod panel;
+mod io;
+mod layer;
+mod surface;
+mod view;
 
 pub use groups::{Expanded, GroupView, group_views, toggle_group};
 pub use keys::{CenterKey, CenterOut, RowFocus, step_keys};
-pub use layer::{PANEL_ID, PANEL_PADDING, PANEL_RADIUS, center_layer, panel_region};
-pub use panel::NOTIFICATION_CENTER_CSS;
+pub use layer::{PANEL_ID, PANEL_PADDING, PANEL_RADIUS};
+pub use surface::NotificationCenter;
+pub use view::NOTIFICATION_CENTER_CSS;
 pub use widgets::CenterWidgets;
-
-use dioxus::prelude::*;
-use shell_host::OutputInfo;
-
-/// The notification center on `output`. Needs a [`CenterLink`] root context beside the daemon's
-/// usual ones (the daemon's `surface_root` gives every surface one).
-#[component]
-pub fn NotificationCenter(output: OutputInfo) -> Element {
-    panel::center(output)
-}

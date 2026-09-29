@@ -10,7 +10,7 @@ use ds::{Material, Panel, PanelEdge, PanelScrim, Px, Shown, WakeStamp};
 use shell_host::OutputId;
 
 use super::contents::Contents;
-use super::drive::{use_center_ctx, use_phase};
+use super::io::{use_center_ctx, use_phase};
 use super::labels::TITLE;
 use super::phase::{Opening, Phase};
 use crate::hooks::use_settings;

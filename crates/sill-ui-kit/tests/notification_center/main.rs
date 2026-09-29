@@ -1,55 +1,30 @@
-//! The real `NotificationCenter` in a `ds_native::Harness` (a Blitz document, no window) on the
-//! fake services, following a `CenterLink` the test writes, as the daemon's surfaces do. The
+//! The notification center on `SurfaceHarness`, in four files: what it draws (`render`), its keys
+//! (`keys`), its list motion (`motion`) and the focus ring under the keyboard (`modality`). The
 //! history is fed through the fake's `watch` channel and the commands the center sends are read
-//! back from its queue: nothing here reaches a bus. On the virtual clock: every
-//! timer and every frame's CSS move only with the test's `advance`.
+//! back from its queue: nothing here reaches a bus. On the virtual clock: every timer and every
+//! frame's CSS move only with the test's `advance`.
 
-#![allow(dead_code)] // Each test binary uses its own subset.
+#![allow(dead_code)] // Each file uses its own subset.
+
+mod keys;
+mod modality;
+mod motion;
+mod render;
 
 pub use sill_ui_kit::harness::fake;
 
-use std::cell::RefCell;
 use std::time::Duration;
 
-use dioxus::prelude::*;
 use ds_native::harness::settle_until;
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use ds_native::{Harness, Viewport};
 use sill_model::notifications::{
     AppGroup, AppKey, AppRef, Body, Expiry, Hints, History, IconRef, Notification, NotificationId,
     NotificationsCommand, UnixMs,
 };
-use sill_settings::{SettingsFeed, ShellFile};
+use sill_settings::ShellFile;
 use sill_ui_kit::NotificationCenter;
-use sill_ui_kit::hooks::PinnedAppearance;
+use sill_ui_kit::harness::SurfaceHarness;
 use sill_ui_kit::links::CenterLink;
-use sill_ui_kit::services::Services;
-
-/// What the harness's root provides.
-#[derive(Clone)]
-struct World {
-    services: Services,
-    settings: SettingsFeed,
-    link: CenterLink,
-}
-
-thread_local! {
-    static WORLD: RefCell<Option<World>> = const { RefCell::new(None) };
-}
-
-fn app() -> Element {
-    let world = WORLD.with(|w| w.borrow().clone());
-    let Some(world) = world else {
-        return rsx! {};
-    };
-    use_context_provider(|| world.services.clone());
-    // Not the desktop's portal and appearance file: they answer off-thread.
-    use_context_provider(PinnedAppearance::default);
-    use_context_provider(|| world.settings.clone());
-    use_context_provider(|| world.link.clone());
-    rsx! {
-        NotificationCenter { output: fake::output() }
-    }
-}
 
 /// The viewport's size, as the rects report it.
 pub const WIDTH: f32 = 1280.0;
@@ -62,70 +37,56 @@ pub const VIEWPORT: Viewport = Viewport {
 };
 
 /// A running center and what it talks to.
-pub struct Running {
-    pub harness: Harness,
-    pub feeds: fake::Feeds,
-    pub link: CenterLink,
+pub type Running = SurfaceHarness<NotificationCenter>;
+
+/// Every command the center has sent since the last call.
+pub fn commands(running: &mut Running) -> Vec<NotificationsCommand> {
+    std::iter::from_fn(|| running.feeds.notification_commands.try_recv().ok()).collect()
 }
 
-impl Running {
-    /// Every command the center has sent since the last call.
-    pub fn commands(&mut self) -> Vec<NotificationsCommand> {
-        std::iter::from_fn(|| self.feeds.notification_commands.try_recv().ok()).collect()
-    }
+/// Let `time` pass.
+pub fn advance(running: &mut Running, ms: u64) {
+    running.harness.advance(Duration::from_millis(ms));
+}
 
-    /// Let `time` pass.
-    pub fn advance(&mut self, ms: u64) {
-        self.harness.advance(Duration::from_millis(ms));
-    }
+/// Advance until `done` holds ([`settle`]): what a click test waits on.
+pub fn until(running: &mut Running, done: impl Fn(&Harness) -> bool) {
+    settle(&mut running.harness, done);
+}
 
-    /// Advance until `done` holds ([`settle`]): what a click test waits on.
-    pub fn until(&mut self, done: impl Fn(&Harness) -> bool) {
-        settle(&mut self.harness, done);
-    }
-
-    /// The commands sent, advancing until `count` have come, at most [`STEPS`] frames.
-    pub fn commands_until(&mut self, count: usize) -> Vec<NotificationsCommand> {
-        let mut sent = self.commands();
-        for _ in 0..STEPS {
-            if sent.len() >= count {
-                break;
-            }
-            self.harness.advance(Duration::from_millis(20));
-            sent.extend(self.commands());
+/// The commands sent, advancing until `count` have come, at most [`STEPS`] frames.
+pub fn commands_until(running: &mut Running, count: usize) -> Vec<NotificationsCommand> {
+    let mut sent = commands(running);
+    for _ in 0..STEPS {
+        if sent.len() >= count {
+            break;
         }
-        sent
+        running.harness.advance(Duration::from_millis(20));
+        sent.extend(commands(running));
     }
+    sent
 }
 
 /// The center on `file`'s settings over `history`, closed.
 pub fn start(file: ShellFile, history: History) -> Running {
-    let (services, feeds) = fake::services();
-    feeds.notifications.send_modify(|n| n.history = history);
-    let link = CenterLink::new();
-    WORLD.with(|w| {
-        *w.borrow_mut() = Some(World {
-            services,
-            settings: SettingsFeed::fixed(file),
-            link: link.clone(),
-        });
-    });
-    let harness =
-        Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
-    Running {
-        harness,
-        feeds,
-        link,
-    }
+    let running = SurfaceHarness::<NotificationCenter>::setup(CenterLink::new(), ())
+        .settings(file)
+        .viewport(VIEWPORT)
+        .start();
+    running
+        .feeds
+        .notifications
+        .send_modify(|n| n.history = history);
+    running
 }
 
 /// The center opened over `history`, once its entrance has played.
 pub fn opened(history: History) -> Running {
     let mut running = start(ShellFile::default(), history);
-    running.advance(40);
+    advance(&mut running, 40);
     running.link.open(fake::output().id);
     settle(&mut running.harness, |h| h.count(".ds-panel") == 1);
-    running.advance(600);
+    advance(&mut running, 600);
     running
 }
 

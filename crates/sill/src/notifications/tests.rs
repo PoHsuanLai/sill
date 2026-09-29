@@ -1,7 +1,7 @@
 use shell_host::{LayerExtent, LayerSize, OutputId, OutputInfo, Rect, Scale, SurfaceId};
 use sill_ui_kit::links::BannerOutput;
 
-use super::{banner_output, namespace};
+use super::banner_output;
 use crate::outputs::{OutputSurfaces, Outputs, Spawned};
 
 fn output(id: u32, name: &str) -> OutputInfo {
@@ -63,12 +63,4 @@ fn banners_show_on_the_first_output_that_has_a_column() {
         let outputs = Outputs { outputs: rows };
         assert_eq!(banner_output(&outputs), want, "{outputs:?}");
     }
-}
-
-#[test]
-fn the_center_is_named_for_debug() {
-    assert_eq!(
-        namespace(&output(1, "DP-1")),
-        "sill-notification-center-DP-1"
-    );
 }

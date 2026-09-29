@@ -9,7 +9,7 @@ use dioxus::prelude::*;
 use ds::{Button, ButtonVariant};
 use shell_host::OutputId;
 
-use super::drive::CenterCtx;
+use super::io::CenterCtx;
 use crate::hooks::use_settings;
 use crate::links::EditWidgetsLink;
 use crate::widgets::{Widget, WidgetHost};

@@ -4,9 +4,7 @@
 //! Clear All fold the rows the model dropped, staggered, and the rows below heal up; an arrival
 //! while the center is open enters. Every one of them ends at rest, asking for no frame.
 
-mod center_support;
-
-use center_support::{fake, note, settle, start, two_apps};
+use super::{Running, advance, commands_until, fake, note, settle, start, two_apps, until};
 use ds_native::Harness;
 use ds_native::harness::assert_settles_to_zero_frames;
 use sill_model::notifications::{AppGroup, AppKey, Clear, History, NotificationsCommand};
@@ -21,9 +19,9 @@ const LIST: &str = ".sill-nc-list > .ds-leaving-list";
 const ROW: &str = ".ds-leaving-row";
 
 /// The center opened over `history`, as soon as its panel is drawn.
-fn opening(history: History) -> center_support::Running {
+fn opening(history: History) -> Running {
     let mut running = start(ShellFile::default(), history);
-    running.advance(40);
+    advance(&mut running, 40);
     running.link.open(fake::output().id);
     settle(&mut running.harness, |h| h.count(".ds-panel") == 1);
     running
@@ -40,7 +38,7 @@ fn rows(h: &Harness) -> usize {
 }
 
 /// Opened over [`two_apps`], at rest: Mail's head and stack, Chat's head and card.
-fn at_rest() -> center_support::Running {
+fn at_rest() -> Running {
     let mut running = opening(two_apps());
     assert_settles_to_zero_frames(&mut running.harness);
     assert_eq!(rows(&running.harness), 4);
@@ -69,7 +67,7 @@ fn opening_rises_the_rows_once_then_rests() {
         .feeds
         .notifications
         .send_modify(|n| n.history = two_apps());
-    running.advance(40);
+    advance(&mut running, 40);
     assert_eq!(rows_in(&running.harness, "entering"), 0);
     assert_settles_to_zero_frames(&mut running.harness);
 }
@@ -80,7 +78,7 @@ fn opening_a_group_enters_the_cards_it_adds_and_show_less_folds_and_heals() {
     let toggle = in_head("mail", TOGGLE);
     let more = running.harness.centre(&toggle).expect("N more");
     running.harness.click(more);
-    running.until(|h| rows(h) == 6);
+    until(&mut running, |h| rows(h) == 6);
     let h = &running.harness;
     assert_eq!(h.attr(LIST, "data-presence").as_deref(), Some("present"));
     assert_eq!(rows_in(h, "entering"), 2, "Mail's two older cards enter");
@@ -89,7 +87,7 @@ fn opening_a_group_enters_the_cards_it_adds_and_show_less_folds_and_heals() {
     // "Show less": the two cards it hides fold as one batch; Chat's rows then heal up.
     let less = running.harness.centre(&toggle).expect("Show less");
     running.harness.click(less);
-    running.until(|h| rows_in(h, "leaving") == 2);
+    until(&mut running, |h| rows_in(h, "leaving") == 2);
     assert_eq!(
         running
             .harness
@@ -98,7 +96,7 @@ fn opening_a_group_enters_the_cards_it_adds_and_show_less_folds_and_heals() {
         "they fold"
     );
     assert_eq!(rows(&running.harness), 6, "still drawn while they fold");
-    running.until(|h| rows_in(h, "healing") == 2);
+    until(&mut running, |h| rows_in(h, "healing") == 2);
     assert_eq!(rows(&running.harness), 4, "dropped together");
     let dy = heal_distance(&running.harness);
     assert!(dy > 100.0, "Chat heals by the two cards' height: {dy}");
@@ -126,7 +124,7 @@ fn the_rows_keep_one_gap_inside_themselves() {
         .centre(&in_head("mail", TOGGLE))
         .expect("N more");
     running.harness.click(more);
-    running.until(|h| rows(h) == 6);
+    until(&mut running, |h| rows(h) == 6);
     assert_settles_to_zero_frames(&mut running.harness);
     let h = &running.harness;
     let tops: Vec<(f32, f32)> = (1..=6)
@@ -154,7 +152,7 @@ fn clear_folds_the_group_and_the_groups_below_heal() {
         .expect("Mail's Clear");
     running.harness.click(clear);
     assert_eq!(
-        running.commands_until(1),
+        commands_until(&mut running, 1),
         vec![NotificationsCommand::ClearHistory(Clear::App(AppKey(
             "mail".to_owned()
         )))]
@@ -166,7 +164,7 @@ fn clear_folds_the_group_and_the_groups_below_heal() {
         .feeds
         .notifications
         .send_modify(|n| n.history = left);
-    running.until(|h| rows_in(h, "leaving") == 2);
+    until(&mut running, |h| rows_in(h, "leaving") == 2);
     let h = &running.harness;
     assert_eq!(rows(h), 4, "Mail's head and stack fold where they stood");
     assert_eq!(
@@ -174,7 +172,7 @@ fn clear_folds_the_group_and_the_groups_below_heal() {
             .as_deref(),
         Some("fold")
     );
-    running.until(|h| rows_in(h, "healing") == 2);
+    until(&mut running, |h| rows_in(h, "healing") == 2);
     assert_eq!(rows(&running.harness), 2);
     assert!(heal_distance(&running.harness) > 60.0, "Chat heals up");
     assert_settles_to_zero_frames(&mut running.harness);
@@ -190,14 +188,14 @@ fn clear_all_folds_every_row_then_says_the_list_is_empty() {
         .expect("Clear All");
     running.harness.click(all);
     assert_eq!(
-        running.commands_until(1),
+        commands_until(&mut running, 1),
         vec![NotificationsCommand::ClearHistory(Clear::All)]
     );
     running
         .feeds
         .notifications
         .send_modify(|n| n.history = History::default());
-    running.until(|h| rows_in(h, "leaving") == 4);
+    until(&mut running, |h| rows_in(h, "leaving") == 4);
     let h = &running.harness;
     assert_eq!(h.count(".sill-nc-empty"), 0, "not under the folding rows");
     let staggered: Vec<Option<String>> = (1..=4)
@@ -208,7 +206,7 @@ fn clear_all_folds_every_row_then_says_the_list_is_empty() {
         (0..4).map(|i| Some(format!("--i:{i}"))).collect::<Vec<_>>(),
         "one after another"
     );
-    running.until(|h| h.count(".sill-nc-empty") == 1);
+    until(&mut running, |h| h.count(".sill-nc-empty") == 1);
     assert_eq!(rows(&running.harness), 0);
     assert_settles_to_zero_frames(&mut running.harness);
     // Clear All went with the history; the column has the keyboard again.
@@ -229,7 +227,7 @@ fn a_clear_gives_the_column_the_keyboard_back() {
         .feeds
         .notifications
         .send_modify(|n| n.history = left);
-    running.until(|h| rows(h) == 2);
+    until(&mut running, |h| rows(h) == 2);
     assert_settles_to_zero_frames(&mut running.harness);
     assert!(
         running.harness.is_focused(".sill-nc-column"),
@@ -252,7 +250,7 @@ fn an_arrival_while_open_enters() {
         .feeds
         .notifications
         .send_modify(|n| n.history = more);
-    running.until(|h| rows(h) == 6);
+    until(&mut running, |h| rows(h) == 6);
     let h = &running.harness;
     assert_eq!(h.attr(LIST, "data-presence").as_deref(), Some("present"));
     assert_eq!(rows_in(h, "entering"), 2, "CI's head and card enter");

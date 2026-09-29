@@ -5,9 +5,7 @@
 //! `HostModality` (driven by its `key`/`click`, `ds_native::launch`'s own mechanism) is what
 //! `Ds` reads instead: the harness's way of driving modality, not shell-host's.
 
-mod center_support;
-
-use center_support::{opened, two_apps};
+use super::{advance, opened, two_apps};
 use ds::ShortcutKey;
 use ds_native::Harness;
 
@@ -24,7 +22,7 @@ fn a_key_turns_the_centers_ring_on_and_a_press_turns_it_off() {
         "at first"
     );
     running.harness.key(ShortcutKey::Tab);
-    running.advance(20);
+    advance(&mut running, 20);
     assert!(
         running.harness.is_focused(".ds-button"),
         "Tab reaches Clear All"
@@ -39,7 +37,7 @@ fn a_key_turns_the_centers_ring_on_and_a_press_turns_it_off() {
         .centre(".sill-nc-title")
         .expect("the title is laid out"); // test-only
     running.harness.click(title);
-    running.advance(20);
+    advance(&mut running, 20);
     assert_eq!(
         modality(&running.harness).as_deref(),
         Some("pointer"),

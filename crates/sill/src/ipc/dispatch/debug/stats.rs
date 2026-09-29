@@ -61,9 +61,6 @@ fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, Su
     let (panel, catcher) = launcher_namespaces(info);
     let launcher = surfaces.launcher.map(|id| (panel, id));
     let catcher = surfaces.catcher.map(|id| (catcher, id));
-    let center = surfaces
-        .notification_center
-        .map(|id| (crate::notifications::namespace(info), id));
     let thumbnail = surfaces
         .thumbnail
         .map(|id| (crate::screenshots::namespace(info), id));
@@ -81,7 +78,6 @@ fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, Su
         .chain(dock)
         .chain(launcher)
         .chain(catcher)
-        .chain(center)
         .chain(thumbnail)
         .chain(desktop)
         .chain(edit)

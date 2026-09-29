@@ -4,9 +4,9 @@
 
 use sill_ipc::response::Response;
 use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
-use sill_ui_kit::PowerMenu;
 use sill_ui_kit::links::Preselect;
 use sill_ui_kit::surface::Surface;
+use sill_ui_kit::{NotificationCenter, PowerMenu};
 
 use super::reach::Reach;
 use super::reply::unsupported;
@@ -65,7 +65,11 @@ fn power_menu(reach: &Reach, reveal: Reveal) -> Response {
 
 fn notification_center(reach: &Reach, reveal: Reveal) -> Response {
     let center = &reach.links.notification_center;
-    let target = first_with(reach.outputs, |s| s.notification_center.is_some());
+    let target = first_with(reach.outputs, |s| {
+        s.spawned
+            .iter()
+            .any(|kind| kind.name == NotificationCenter::NAME)
+    });
     match (reveal, target) {
         (Reveal::Close, _) => center.close(),
         (Reveal::Toggle, Some(output)) => center.toggle(output),

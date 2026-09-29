@@ -17,9 +17,9 @@ use shell_host::OutputId;
 use sill_model::notifications::{History, UnixMs};
 
 use super::drawn::{Rows, use_drawn};
-use super::drive::CenterCtx;
 use super::group::row_item;
 use super::groups::group_views;
+use super::io::CenterCtx;
 use super::keymap::center_key;
 use super::keys::{CenterOut, RowFocus, step_keys};
 use super::labels::{EMPTY, TITLE, server_line};

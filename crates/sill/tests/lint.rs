@@ -12,8 +12,8 @@ use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, WindowState};
 use sill_model::idle::{DimLevel, DimShown, Idle, IdleMode, IdlePhase};
 use sill_model::ids::{OutputName, WorkspaceKey};
 use sill_model::notifications::{
-    Action, ActionKey, AppRef, BannerLife, Body, Expiry, Hints, IconRef, LiveBanner, Notification,
-    NotificationId, Notifications, UnixMs, parse_body,
+    Action, ActionKey, AppGroup, AppKey, AppRef, BannerLife, Body, Expiry, Hints, History, IconRef,
+    LiveBanner, Notification, NotificationId, Notifications, UnixMs, parse_body,
 };
 use sill_model::polkit_agent::{
     ActionId, Cookie, Echo, LastTry, Polkit, PromptPhase, PromptView, Registration,
@@ -22,10 +22,12 @@ use sill_model::session::Session;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
-    BannerLink, BannerOutput, Dir, LevelSource, LockLink, OsdKind, OsdLink, PowerMenuLink,
-    Preselect, PromptOutput, SwitcherAsk, SwitcherLink,
+    BannerLink, BannerOutput, CenterLink, Dir, LevelSource, LockLink, OsdKind, OsdLink,
+    PowerMenuLink, Preselect, PromptOutput, SwitcherAsk, SwitcherLink,
 };
-use sill_ui_kit::{Banners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
+use sill_ui_kit::{
+    Banners, IdleDim, Lock, NotificationCenter, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper,
+};
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
 struct SurfaceCase {
@@ -56,6 +58,11 @@ const SURFACES: &[SurfaceCase] = &[
         name: "banners",
         css: sill_ui_kit::surfaces::banners::BANNERS_CSS,
         states: banners_states,
+    },
+    SurfaceCase {
+        name: "notification_center",
+        css: sill_ui_kit::surfaces::notification_center::NOTIFICATION_CENTER_CSS,
+        states: notification_center_states,
     },
     SurfaceCase {
         name: "hot_corners",
@@ -270,6 +277,46 @@ fn banners_states() -> Vec<(&'static str, String)> {
     vec![("idle", idle), ("hovered", hovered)]
 }
 
+/// The center closed, then open over a history of two apps.
+fn notification_center_states() -> Vec<(&'static str, String)> {
+    let note = |id: u32, app: &str, summary: &str| Notification {
+        id: NotificationId(id),
+        arrived: UnixMs(1_000 * i64::from(id)),
+        app: AppRef {
+            name: app.to_owned(),
+            icon: IconRef::None,
+            desktop_entry: None,
+        },
+        summary: summary.to_owned(),
+        body: Body::default(),
+        actions: Vec::new(),
+        hints: Hints::default(),
+        expiry: Expiry::Default,
+    };
+    let mut center = SurfaceHarness::<NotificationCenter>::setup(CenterLink::new(), ()).start();
+    center.feeds.notifications.send_modify(|n| {
+        n.history = History {
+            groups: vec![
+                AppGroup {
+                    key: AppKey("mail".to_owned()),
+                    notes: vec![note(3, "Mail", "Re: plans"), note(1, "Mail", "Hello")],
+                },
+                AppGroup {
+                    key: AppKey("chat".to_owned()),
+                    notes: vec![note(4, "Chat", "ping")],
+                },
+            ],
+        }
+    });
+    center.harness.advance(Duration::from_millis(40));
+    let closed = center.harness.html();
+    center.link.open(fake::output().id);
+    center.harness.advance(Duration::from_millis(700));
+    let open = center.harness.html();
+    assert!(open.contains("sill-nc-row"), "{open}");
+    vec![("closed", closed), ("open", open)]
+}
+
 /// The lock screen with the prompt on its output, then on another one (the clock alone).
 fn lock_states() -> Vec<(&'static str, String)> {
     let draw = |prompt| {
@@ -291,6 +338,14 @@ fn lock_states() -> Vec<(&'static str, String)> {
     vec![("prompt", prompt), ("clock", clock)]
 }
 
+/// What a surface injects beside its own sheet: the widgets' sheets under the center's history.
+fn injected_css(name: &str) -> String {
+    match name {
+        "notification_center" => sill_ui_kit::widgets::widgets_css(),
+        _ => String::new(),
+    }
+}
+
 #[test]
 fn every_surface_stylesheet_is_clean_under_strict() {
     for case in SURFACES {
@@ -302,7 +357,12 @@ fn every_surface_stylesheet_is_clean_under_strict() {
 #[test]
 fn every_surface_draws_clean_markup_in_each_state() {
     for case in SURFACES {
-        let css = format!("{}\n{}", ds::stylesheet(), case.css);
+        let css = format!(
+            "{}\n{}\n{}",
+            ds::stylesheet(),
+            case.css,
+            injected_css(case.name)
+        );
         for (state, html) in (case.states)() {
             let offences = markup(&html, &css, &strict());
             assert!(

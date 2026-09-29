@@ -3,9 +3,7 @@
 //! when a discharging battery crosses `bar.battery_low_percent`, never for a wobble back over
 //! it, again only after it was plugged in, and the bar paints 0 frames after each change.
 
-mod center_support;
-
-use center_support::fake;
+use sill_ui_kit::harness::fake;
 use std::cell::RefCell;
 use std::time::Duration;
 
