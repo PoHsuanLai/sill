@@ -91,9 +91,6 @@ impl Shown {
 
 /// The panel on `output`.
 pub(crate) fn launcher(output: OutputInfo) -> Element {
-    // The field's caret for quire's key claim: the daemon's roots carry quire's focus
-    // write, not its caret read, so the panel provides both for what it mounts.
-    ds_native::focus::provide();
     let ds_scale = crate::hooks::use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();

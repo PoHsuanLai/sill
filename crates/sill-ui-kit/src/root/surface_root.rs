@@ -8,7 +8,7 @@ use dioxus::prelude::*;
 use ds::{BlurState, Ds, Material, RootChrome, RootExtent};
 use shell_host::OutputInfo;
 
-use super::modality::HostModalityBridge;
+use super::signals::HostSignalsBridge;
 use crate::hooks::{use_appearance, use_ds_scale};
 use crate::look::use_active_look;
 
@@ -26,7 +26,7 @@ pub fn SurfaceRoot(
     let environment = use_appearance()();
     let look = use_active_look(&output);
     rsx! {
-        HostModalityBridge {
+        HostSignalsBridge {
             Ds {
                 scale,
                 appearance: environment.settings.appearance.appearance(),

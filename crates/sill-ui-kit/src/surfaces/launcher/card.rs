@@ -8,7 +8,7 @@
 use std::rc::Rc;
 
 use dioxus::prelude::*;
-use ds::{FRAME_SLACK, HostMeasure, Measured, sleep};
+use ds::{DocumentHost, FRAME_SLACK, Measured, sleep, use_document_host};
 use shell_host::{RegionSpec, SurfaceHandle, use_watch};
 
 use crate::links::PanelHit;
@@ -46,23 +46,19 @@ impl Foot {
 /// keep this surface's input region on it.
 pub(crate) fn use_card_hit(link: &LauncherLink, key: CardKey) -> Foot {
     let foot = Foot(use_signal(|| None));
-    let measure = try_use_context::<HostMeasure>();
+    let host = use_hook(use_document_host);
     let mut last = use_hook(|| CopyValue::new(None::<CardKey>));
     if last.peek().as_ref() != Some(&key) {
         last.set(Some(key.clone()));
-        match (key, measure) {
-            (
-                CardKey::Hidden
-                | CardKey::Shown {
-                    actions: ActionsShown::Open,
-                    ..
-                },
-                _,
-            ) => link.set_hit(PanelHit::Whole),
-            (CardKey::Shown { .. }, Some(HostMeasure(read))) => {
-                spawn(publish(foot, read, link.clone()));
+        match key {
+            CardKey::Hidden
+            | CardKey::Shown {
+                actions: ActionsShown::Open,
+                ..
+            } => link.set_hit(PanelHit::Whole),
+            CardKey::Shown { .. } => {
+                spawn(publish(foot, Rc::clone(&host), link.clone()));
             }
-            (CardKey::Shown { .. }, None) => {}
         }
     }
     follow_hit(link);
@@ -71,13 +67,13 @@ pub(crate) fn use_card_hit(link: &LauncherLink, key: CardKey) -> Foot {
 
 /// Read the foot a frame from now (and again while the document is busy or not laid out), then
 /// publish the card's part.
-async fn publish(foot: Foot, read: fn(&MountedData) -> Measured, link: LauncherLink) {
+async fn publish(foot: Foot, host: Rc<dyn DocumentHost>, link: LauncherLink) {
     for _ in 0..ATTEMPTS {
         sleep(FRAME_SLACK).await;
         let Some(element) = foot.0.peek().clone() else {
             continue;
         };
-        match read(&element) {
+        match host.geometry().measure(&element) {
             Measured::At(rect) if rect.origin.y.0 >= 1.0 => {
                 link.set_hit(hit_for(rect.origin.y.0, ActionsShown::Closed));
                 return;

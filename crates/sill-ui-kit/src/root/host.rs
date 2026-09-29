@@ -1,11 +1,4 @@
-//! The seams a surface root shares with the host: the rect measurer, the focus write and the
-//! caret read every root is given, quire's faces, and the pre-paint pass. A popup's root
-//! component calls `ds_native::measure::provide()` and `ds_native::focus::provide()` instead.
-
-/// The rect measurer every root the daemon spawns is given (`Root::context(MEASURE)`): quire's
-/// own, `ds_native::measure::MEASURE`. A popup's root
-/// component calls `ds_native::measure::provide()` instead.
-pub use ds_native::measure::MEASURE;
+//! What a sill process hands shell-host: quire's faces and the pre-paint pass.
 
 /// The pre-paint pass the daemon installs on its host (`HostConfig::prepaint`): quire's
 /// device-pixel layout snap, a no-op at whole scales.
@@ -29,13 +22,3 @@ pub fn host_config() -> shell_host::HostConfig {
         ..shell_host::HostConfig::default()
     }
 }
-
-/// quire's caret read (`HostCaret`), for a root to carry beside [`FOCUS`] so a palette's
-/// key claim sees where the caret is. The launcher's panel provides it itself
-/// (`ds_native::focus::provide()`), so it does not wait on the daemon's roots.
-pub use ds_native::focus::CARET;
-/// quire's focus write every root the daemon spawns is given beside [`MEASURE`]
-/// (`Root::context(FOCUS)`), so a field's or a menu's focus waits out a busy document instead
-/// of printing a caught panic. A popup's root
-/// component calls `ds_native::focus::provide()` instead.
-pub use ds_native::focus::FOCUS;

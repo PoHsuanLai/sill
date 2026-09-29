@@ -52,7 +52,9 @@ impl<S: LockSurface> fmt::Debug for MountLockProps<S> {
     }
 }
 
-/// The root component of a lock surface `S`: its `root`, in the component's scope.
+/// The root component of a lock surface `S`: quire's document host, then its `root`, in the
+/// component's scope.
 pub fn mount_lock<S: LockSurface>(props: MountLockProps<S>) -> Element {
+    ds_native::provide_host();
     S::root(props.output)
 }

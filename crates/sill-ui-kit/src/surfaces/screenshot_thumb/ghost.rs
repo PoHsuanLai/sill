@@ -74,6 +74,7 @@ pub fn ghost_icon(picture: &ThumbPicture, look: GhostLook) -> DragIcon {
 
 /// The icon document: a transparent Toast root holding the ghost.
 fn ghost_root(ghost: Ghost) -> Element {
+    ds_native::provide_host();
     let look = ghost.look;
     rsx! {
         Ds {

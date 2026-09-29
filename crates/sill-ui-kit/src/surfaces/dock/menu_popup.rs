@@ -9,7 +9,7 @@ use shell_host::use_surface;
 use tokio::sync::mpsc;
 
 use crate::menu::{MenuPopup, PopupLook};
-use crate::root::HostModalityBridge;
+use crate::root::HostSignalsBridge;
 use crate::surfaces::dock::menu::DockMenu;
 use crate::surfaces::dock::menu_geometry::room;
 use crate::surfaces::dock::pick::DockPick;
@@ -34,8 +34,7 @@ pub(crate) struct MenuLink {
 /// The popup root.
 #[component]
 pub(crate) fn DockMenuPopup() -> Element {
-    ds_native::measure::provide();
-    ds_native::focus::provide();
+    ds_native::provide_host();
     let link = use_context::<MenuLink>();
     let surface = use_surface();
     let gone = link.reports.clone();
@@ -70,7 +69,7 @@ pub(crate) fn DockMenuPopup() -> Element {
     use_context_provider(|| link.look);
     use_context_provider(room);
     rsx! {
-        HostModalityBridge {
+        HostSignalsBridge {
             MenuPopup {
                 model: DockMenu { entries: link.entries.clone() },
                 on_pick,

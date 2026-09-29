@@ -101,8 +101,7 @@ fn spawn_bar(
         .context(services.clone())
         .context(settings.clone())
         .context(clock)
-        .context(CenterLink::new())
-        .context(sill_ui_kit::root::MEASURE);
+        .context(CenterLink::new());
     if let Err(error) = ctx.spawn_layer(config, root) {
         eprintln!("bar: {error}");
     }

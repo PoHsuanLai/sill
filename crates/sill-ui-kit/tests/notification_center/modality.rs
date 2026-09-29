@@ -1,8 +1,8 @@
 //! The center's own quire controls (Clear All) show quire's focus ring
 //! under the keyboard. The center runs the real `NotificationCenter`, whose root wraps quire's
-//! `Ds` in `HostModalityBridge`; with no shell-host `SurfaceHandle` (`ds_native::Harness` has no
+//! `Ds` in `HostSignalsBridge`; with no shell-host `SurfaceHandle` (`ds_native::Harness` has no
 //! seat) the bridge no-ops, same as `use_ds_scale`'s fallback, and the harness's own root
-//! `HostModality` (driven by its `key`/`click`, `ds_native::launch`'s own mechanism) is what
+//! `HostSignals` (driven by its `key`/`click`, `ds_native::launch`'s own mechanism) is what
 //! `Ds` reads instead: the harness's way of driving modality, not shell-host's.
 
 use super::{advance, opened, two_apps};

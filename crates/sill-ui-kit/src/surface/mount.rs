@@ -44,7 +44,8 @@ impl<S: Surface> fmt::Debug for MountProps<S> {
     }
 }
 
-/// The root component of `S`: its `root`, in the component's scope.
+/// The root component of `S`: quire's document host, then its `root`, in the component's scope.
 pub fn mount<S: Surface>(props: MountProps<S>) -> Element {
+    ds_native::provide_host();
     S::root(props.output, props.slot)
 }

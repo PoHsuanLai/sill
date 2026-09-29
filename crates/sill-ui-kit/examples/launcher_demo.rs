@@ -92,8 +92,6 @@ fn spawn_launcher(ctx: &mut HostCtx<DemoMsg>, output: OutputInfo, demo: &mut Dem
     let root = |root: HostRoot| {
         root.context(demo.services.clone())
             .context(demo.settings.clone())
-            .context(sill_ui_kit::root::MEASURE)
-            .context(sill_ui_kit::root::FOCUS)
             .context(demo.link.clone())
             .context(demo.providers.clone())
     };

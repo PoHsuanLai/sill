@@ -24,7 +24,7 @@ use super::pick::BarPick;
 use super::plan::{PopupReport, choice};
 use super::popup::{MAX_PX, room};
 use crate::menu::PopupFrame;
-use crate::root::HostModalityBridge;
+use crate::root::HostSignalsBridge;
 use crate::surfaces::control_center::{ControlCenter, ModuleDropdown};
 
 /// The popup's link to its bar, provided as its root context.
@@ -50,12 +50,11 @@ pub(crate) const CONTROL_CENTER_CSS: &str = include_str!("../../style/control_ce
 const GAP: Px = Px(7.0);
 
 /// The popup root. A popup is a `VirtualDom` of its own and inherits nothing from the bar, so
-/// it provides quire's rect measurer itself.
+/// it provides quire's document host itself.
 #[component]
 pub(crate) fn BarPopup() -> Element {
     let ds_scale = crate::hooks::use_ds_scale();
-    ds_native::measure::provide();
-    ds_native::focus::provide();
+    ds_native::provide_host();
     let link = use_context::<PopupLink>();
     let surface = use_surface();
     let view = use_watch(link.view.clone());
@@ -102,7 +101,7 @@ pub(crate) fn BarPopup() -> Element {
     };
     rsx! {
         style { {CONTROL_CENTER_CSS} }
-        HostModalityBridge {
+        HostSignalsBridge {
             PopupFrame { room: room(), widest, style: look.metrics.style_attr(),
                 Ds {
                     scale: ds_scale,

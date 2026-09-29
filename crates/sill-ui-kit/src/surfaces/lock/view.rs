@@ -27,7 +27,7 @@ use shell_host::{LockHandle, LockPhase, OutputInfo, use_lock, use_lock_phase, us
 use super::body::{HostLock, LockBody};
 use super::model::caps_of;
 use crate::hooks::{use_appearance, use_ds_scale};
-use crate::root::HostModalityBridge;
+use crate::root::HostSignalsBridge;
 
 /// The lock screen's stylesheet (lint-clean under `Profile::Strict`, `tests/lock_lint.rs`).
 pub const LOCK_CSS: &str = include_str!("../../style/lock.css");
@@ -43,7 +43,7 @@ pub(super) fn lock(output: OutputInfo) -> Element {
     let hosted =
         use_hook(|| try_consume_context::<LockHandle>().map_or(Hosted::No, |_| Hosted::Yes));
     rsx! {
-        HostModalityBridge {
+        HostSignalsBridge {
             match hosted {
                 Hosted::Yes => rsx! {
                     HostedStage { output }

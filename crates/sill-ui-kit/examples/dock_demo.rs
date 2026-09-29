@@ -86,9 +86,7 @@ fn spawn_dock(
     let root = HostRoot::with_props(mount::<Dock>, MountProps::<Dock>::new(output, ()))
         .context(services.clone())
         .context(settings.clone())
-        .context(clock)
-        .context(sill_ui_kit::root::MEASURE)
-        .context(sill_ui_kit::root::FOCUS);
+        .context(clock);
     if let Err(error) = ctx.spawn_layer(config, root) {
         eprintln!("dock: {error}");
     }
