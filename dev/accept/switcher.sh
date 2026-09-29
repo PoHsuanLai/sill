@@ -12,15 +12,17 @@
 # is killed at the end.
 #
 # The chord is `sill switcher next|prev`, as COSMIC's WindowSwitcher runs it under dist/cosmic.
-# Its modifier is Alt on the nested compositor's own virtual keyboard (`wtype -M alt`,
-# zwp_virtual_keyboard_v1; WAYLAND_DISPLAY is the nested socket's absolute path, so nothing
+# Its modifier is Alt on the nested compositor's own virtual keyboard (`wtype -M alt`, no key
+# typed: zwp_virtual_keyboard_v1; WAYLAND_DISPLAY is the nested socket's absolute path, so nothing
 # reaches the user's session), which the switcher reads through shell-host's modifiers
-# (`use_modifiers`); its release is the release. A virtual keyboard's modifiers reach only the
+# (`use_modifiers`); its release is the release. `sill debug key` cannot stand in for it: an
+# injected key never changes the seat's modifiers. A virtual keyboard's modifiers reach only the
 # client focused when it sends them, so Alt goes down once the switcher has the keyboard, inside
 # the show delay, which this run sets to 400 ms (`switcher.show_delay_ms`) to leave room for
-# `wtype` to start. Keys typed while Alt is held come from the same `wtype` (a second virtual
-# keyboard carries its own, empty, modifiers). Never Tab: the nested compositor binds Alt+Tab
-# to cosmic-launcher; Right and Left step as Tab and Shift+Tab do.
+# `wtype` to start. The keys pressed while Alt is held are `sill debug key SURFACE KEY`:
+# shell-host's `Inject::Key`. Never Tab: the nested compositor binds Alt+Tab to cosmic-launcher;
+# Right and Left step as Tab and Shift+Tab do. The script needs the nested cosmic-comp for the
+# windows (toplevel activation), which the headless KWin does not offer.
 #
 #   1. Warm: `sill-switcher-<out>` exists from the start, hidden (its capture fails).
 #   2. The quick tap: `next` + `commit` inside the delay switches to the previous app (demo goes
@@ -34,9 +36,9 @@
 #      changed, then or at Alt's release.
 #   4. Alt held, `next`, then past the delay `next` and `commit`: the third app in MRU order is
 #      activated (term: demo goes Inactive).
-#   5. Alt held, `next`, a real Right (the ring moves), a real Left, Alt's release: the release
+#   5. Alt held, `next`, a Right (the ring moves), a Left, Alt's release: the release
 #      activates the selection (demo goes Active).
-#   6. Alt held, `next`, Right, a real `q` on calc: it closes and the panel stays; Escape hides
+#   6. Alt held, `next`, Right, a `q` on calc: it closes and the panel stays; Escape hides
 #      it, and no window's activation changed.
 #   7. 5 s idle after it hides: 0 frames on the switcher surface.
 #
@@ -57,7 +59,11 @@ mkdir -p "$CONFIG/sill"
 PIDS=()
 HOLD=
 
-keys() { WAYLAND_DISPLAY="$WL" wtype "$@"; }
+# Alt held on the nested virtual keyboard around `wtype`'s own arguments "$@" (only `-s MS`
+# sleeps: no key is typed, the modifier is what the switcher reads).
+alt_held() { WAYLAND_DISPLAY="$WL" wtype -M alt "$@" -m alt; }
+# Press the named key (`sill debug key` names) on the switcher.
+press() { sill debug key "$SWITCHER" "$1" >>"$OUT_DIR/keys.log" 2>&1; }
 
 # The mean absolute difference of two PNGs' RGBA bytes (0-255).
 diff_of() {
@@ -178,14 +184,14 @@ stop_windows() {
   done
 }
 
-# The chord `sill switcher next`, then Alt held on the nested virtual keyboard around the `wtype`
-# script $@ (in the background, its pid in HOLD). The virtual keyboard's modifiers reach only the
+# The chord `sill switcher next`, then Alt held for $1 ms on the nested virtual keyboard (in the
+# background, its pid in HOLD). The virtual keyboard's modifiers reach only the
 # client focused when it sends them, so Alt goes down once the switcher has the keyboard (the
 # focus lands 50-90 ms after the chord here), inside the show delay.
 chord_held() {
   sill switcher next >>"$OUT_DIR/chords.log" 2>&1
   sleep 0.15
-  keys -M alt "$@" -m alt >>"$OUT_DIR/keys.log" 2>&1 &
+  alt_held -s "$1" >>"$OUT_DIR/keys.log" 2>&1 &
   HOLD=$!
   sleep 0.05
 }
@@ -234,7 +240,7 @@ step_quick_tap() {
     # it): a held chord waits for its release, as it should. The virtual keyboard's release
     # commits it; the tap without a commit is then not proven here.
     seat=held
-    keys -M alt -m alt >>"$OUT_DIR/keys.log" 2>&1
+    alt_held >>"$OUT_DIR/keys.log" 2>&1
     wait_hidden 1500
   fi
   wait_demo Active 2000 || ok=no
@@ -252,7 +258,7 @@ step_show_move_cancel() {
   local log="$OUT_DIR/show.log" early=none shown ab ac before
   : >"$log"
   before=$(demo_lines)
-  chord_held -s 5000
+  chord_held 5000
   panel_to "$OUT_DIR/early.png" && early=panel
   shown=$(wait_panel 2000) || { echo "the panel never showed" >&2; wait "$HOLD"; return 1; }
   sleep 0.3
@@ -278,7 +284,7 @@ step_show_move_cancel() {
 step_commit_third() {
   local log="$OUT_DIR/commit.log"
   : >"$log"
-  chord_held -s 2500
+  chord_held 2500
   sleep 0.5
   sill switcher next >>"$log" 2>&1
   sleep 0.1
@@ -295,16 +301,18 @@ step_commit_third() {
 step_real_keys() {
   local log="$OUT_DIR/keys-step.log" moved
   : >"$log"
-  chord_held -s 900 -k Right -s 900 -k Left -s 700
+  chord_held 2000
   sleep 0.35
   panel_to "$OUT_DIR/k1.png" || { echo "no panel while Alt is held" >&2; wait "$HOLD"; return 1; }
-  sleep 0.7
+  press ArrowRight || { wait "$HOLD"; return 1; }
+  sleep 0.5
   panel_to "$OUT_DIR/k2.png" || { echo "the panel closed at Right" >&2; wait "$HOLD"; return 1; }
   moved=$(diff_of "$OUT_DIR/k1.png" "$OUT_DIR/k2.png")
+  press ArrowLeft || { wait "$HOLD"; return 1; }
   wait "$HOLD"
   wait_hidden 1500 || { echo "Alt's release did not close it" >&2; return 1; }
   wait_demo Active 2000 || { echo "the release did not activate demo" >&2; return 1; }
-  echo "Alt held: a real Right moved the ring (diff ${moved}), Left brought it back; Alt's release closed it and activated demo ($(demo_state))" | tee -a "$log" >&2
+  echo "Alt held: a Right moved the ring (diff ${moved}), Left brought it back; Alt's release closed it and activated demo ($(demo_state))" | tee -a "$log" >&2
   python3 -c "import sys; sys.exit(0 if $moved > 0.05 else 1)"
 }
 
@@ -313,14 +321,19 @@ step_quit() {
   local log="$OUT_DIR/quit.log" gone=no stayed=no lines
   : >"$log"
   lines=$(demo_lines)
-  chord_held -s 800 -k Right -s 400 -k q -s 1600 -k Escape -s 500
+  chord_held 3000
+  sleep 0.75
+  press ArrowRight || { wait "$HOLD"; return 1; }
+  sleep 0.4
+  press q || { wait "$HOLD"; return 1; }
   for _ in $(seq 60); do kill -0 "$CALC_PID" 2>/dev/null || { gone=yes; break; }; sleep 0.05; done
   sleep 0.6
   panel_to "$OUT_DIR/after-quit.png" && stayed=yes
+  press Escape || { wait "$HOLD"; return 1; }
   wait "$HOLD"
   wait_hidden 1500 || { echo "Escape left it up" >&2; return 1; }
   sleep 0.3
-  echo "a real q on calc: closed ${gone}; the panel stayed ${stayed}; Escape hid it; demo's state lines ${lines} -> $(demo_lines) ($(demo_state))" | tee -a "$log" >&2
+  echo "a q on calc: closed ${gone}; the panel stayed ${stayed}; Escape hid it; demo's state lines ${lines} -> $(demo_lines) ($(demo_state))" | tee -a "$log" >&2
   [ "$gone" = yes ] && [ "$stayed" = yes ] && [ "$(demo_lines)" = "$lines" ]
 }
 
@@ -344,7 +357,7 @@ cleanup() {
 trap cleanup EXIT
 
 nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
-command -v wtype >/dev/null || { echo "wtype not found (the keys)" >&2; exit 1; }
+command -v wtype >/dev/null || { echo "wtype not found (the Alt hold)" >&2; exit 1; }
 build_switcher || exit 1
 if pgrep -x sill >/dev/null; then
   echo "another sill daemon is running; wait for it to quit" >&2
