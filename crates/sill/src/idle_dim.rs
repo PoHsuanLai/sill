@@ -7,7 +7,7 @@
 //! changes; [`apply`] sets every dim surface's visibility from it ([`visibility_of`]). A new
 //! output's surface is spawned already mapped when the service is dimming.
 
-use shell_host::{HostCtx, HostHandle, OutputInfo, Root, Visibility};
+use shell_host::{HostCtx, HostHandle, HostRoot, OutputInfo, Visibility};
 use sill_model::idle::DimShown;
 use sill_surfaces::services::Services;
 use sill_surfaces::surfaces::idle_dim::{IdleDimOverlayProps, idle_dim_layer, visibility_of};
@@ -22,7 +22,7 @@ pub fn spawn_missing(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &mut Outputs,
     dim: DimShown,
-    root: impl Fn(Root) -> Root,
+    root: impl Fn(HostRoot) -> HostRoot,
 ) {
     let missing: Vec<OutputInfo> = outputs
         .outputs
@@ -34,7 +34,7 @@ pub fn spawn_missing(
         let props = IdleDimOverlayProps {
             output: info.clone(),
         };
-        let surface = root(Root::with_props(sill_surfaces::IdleDimOverlay, props));
+        let surface = root(HostRoot::with_props(sill_surfaces::IdleDimOverlay, props));
         let id = crate::daemon::surfaces::spawn_hidden(ctx, idle_dim_layer(&info), surface, &info);
         if let Some(id) = id {
             ctx.set_visibility(id, visibility_of(dim));

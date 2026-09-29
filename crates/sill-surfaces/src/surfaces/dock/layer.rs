@@ -8,8 +8,8 @@
 //! an element input region does not.
 
 use shell_host::{
-    Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig, LayerSize, Margin,
-    OutputInfo, OutputTarget,
+    Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
+    Margin, OutputInfo, OutputTarget,
 };
 use sill_settings::{AutoHide, DockSettings};
 
@@ -32,11 +32,11 @@ pub fn dock_layer(output: &OutputInfo, dock: &DockSettings) -> LayerConfig {
     let reserve = GUTTER_PX + tile + 2 * pad;
     LayerConfig {
         namespace: namespace("dock", output),
-        layer: Layer::Top,
+        layer: LayerLevel::Top,
         anchor: Anchor::BOTTOM | Anchor::LEFT | Anchor::RIGHT,
         size: LayerSize {
-            width: Extent::Fill,
-            height: Extent::Px(GUTTER_PX + pad + magnified + tile),
+            width: LayerExtent::Fill,
+            height: LayerExtent::Px(GUTTER_PX + pad + magnified + tile),
         },
         exclusive: match reveal {
             Reveal::Fixed => ExclusiveZone::Reserve(reserve),
@@ -62,7 +62,7 @@ pub fn dock_layer(output: &OutputInfo, dock: &DockSettings) -> LayerConfig {
 mod tests {
     use super::dock_layer;
     use crate::surfaces::naming::tests::output;
-    use shell_host::{Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer};
+    use shell_host::{Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel};
     use sill_settings::{AutoHide, DockSettings};
 
     #[test]
@@ -70,9 +70,9 @@ mod tests {
         // gut 8 + pad 6 + magnified 96 + tile 48; gut 8 + tile 48 + 2 x pad 6.
         let config = dock_layer(&output(Some("DP-1")), &DockSettings::default());
         assert_eq!(config.namespace, "sill-dock-DP-1");
-        assert_eq!(config.layer, Layer::Top);
+        assert_eq!(config.layer, LayerLevel::Top);
         assert_eq!(config.anchor, Anchor::BOTTOM | Anchor::LEFT | Anchor::RIGHT);
-        assert_eq!(config.size.height, Extent::Px(158));
+        assert_eq!(config.size.height, LayerExtent::Px(158));
         assert_eq!(config.exclusive, ExclusiveZone::Reserve(68));
         assert_eq!(config.keyboard, KeyboardMode::None);
         assert!(matches!(config.blur, BlurSpec::Region(_)));

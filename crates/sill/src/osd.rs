@@ -13,7 +13,7 @@
 //! displays service chooses them (`display.brightness_keys_target`: that same output, or every
 //! output), less those with no brightness to show.
 
-use shell_host::{HostCtx, OutputId, OutputInfo, Root};
+use shell_host::{HostCtx, HostRoot, OutputId, OutputInfo};
 use sill_ipc::act::DisplayRequest;
 use sill_ipc::debug::OsdTopic;
 use sill_ipc::response::Response;
@@ -154,7 +154,7 @@ pub fn spawn_missing(
     outputs: &mut Outputs,
     settings: &watch::Sender<ShellFile>,
     link: &OsdLink,
-    root: impl Fn(Root) -> Root,
+    root: impl Fn(HostRoot) -> HostRoot,
 ) {
     let missing: Vec<OutputInfo> = outputs
         .outputs
@@ -167,7 +167,7 @@ pub fn spawn_missing(
         let props = OsdProps {
             output: info.clone(),
         };
-        let root = root(Root::with_props(sill_surfaces::Osd, props)).context(link.clone());
+        let root = root(HostRoot::with_props(sill_surfaces::Osd, props)).context(link.clone());
         let config = osd_layer(&info, &file.osd);
         let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
         surfaces.osd = crate::daemon::surfaces::spawn_hidden(ctx, config, root, &info);

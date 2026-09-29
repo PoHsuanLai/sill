@@ -10,7 +10,7 @@
 
 use std::process::Stdio;
 
-use shell_host::{HostCtx, OutputId, Root, SurfaceOp};
+use shell_host::{HostCtx, HostRoot, OutputId, SurfaceOp};
 use sill_ipc::debug::CornerName;
 use sill_launcher::WindowKey;
 use sill_model::cosmic_wl::{Activity, Toplevel, WindowState, WlCommand};
@@ -118,7 +118,7 @@ pub fn spawn_missing(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &mut Outputs,
     settings: &watch::Sender<ShellFile>,
-    root: impl Fn(Root) -> Root,
+    root: impl Fn(HostRoot) -> HostRoot,
 ) {
     let file = settings.borrow().clone();
     let wanted = sill_surfaces::surfaces::hot_corners::active_corners(&file.hot_corners);
@@ -137,7 +137,7 @@ pub fn spawn_missing(
                         output: info.clone(),
                         corner,
                     };
-                    let surface = root(Root::with_props(sill_surfaces::HotCorner, props));
+                    let surface = root(HostRoot::with_props(sill_surfaces::HotCorner, props));
                     match ctx.spawn_layer(config, surface) {
                         Ok(id) => surfaces.corners.set(corner, Some(id)),
                         Err(error) => {

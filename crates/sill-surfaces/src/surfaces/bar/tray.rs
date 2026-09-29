@@ -21,7 +21,7 @@ use ds::{
     Press,
 };
 use shell_host::{
-    OutputInfo, PopupConfig, PopupPlacement, PopupSize, Rect, Root, Size, SurfaceHandle,
+    HostRoot, OutputInfo, PopupConfig, PopupPlacement, PopupSize, Rect, Size, SurfaceHandle,
     use_surface,
 };
 use sill_model::tray::{
@@ -194,7 +194,7 @@ fn open_menu(
             height,
         },
     };
-    let root = Root::with_props(
+    let root = HostRoot::with_props(
         tray_menu_popup,
         TrayMenuProps {
             entries,

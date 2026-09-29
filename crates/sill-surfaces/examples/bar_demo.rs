@@ -15,7 +15,7 @@ use std::collections::HashSet;
 use std::fmt::Debug;
 use std::time::Instant;
 
-use shell_host::{Host, HostCtx, HostEvent, OutputId, OutputInfo, Root};
+use shell_host::{Host, HostCtx, HostEvent, HostRoot, OutputId, OutputInfo};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::surfaces::bar::{BarProps, bar_layer};
 use sill_surfaces::surfaces::notification_center::CenterLink;
@@ -96,7 +96,7 @@ fn spawn_bar(
     clock: FrameClock,
 ) {
     let config = bar_layer(&output, &ShellFile::default().bar);
-    let root = Root::with_props(Bar, BarProps { output })
+    let root = HostRoot::with_props(Bar, BarProps { output })
         .context(services.clone())
         .context(settings.clone())
         .context(clock)

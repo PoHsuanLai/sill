@@ -14,7 +14,7 @@ mod fake;
 use std::collections::HashSet;
 
 use shell_host::scale::{Size, buffer_size};
-use shell_host::{Host, HostCtx, HostEvent, OutputId, OutputInfo, Root};
+use shell_host::{Host, HostCtx, HostEvent, HostRoot, OutputId, OutputInfo};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_services::Control;
@@ -101,7 +101,7 @@ fn spawn_wallpaper(
     // Every root needs `MEASURE`: without it, `Ds`'s own `use_rect`
     // reads (`OverlayHost`) panic the first time the renderer polls a woken task inside its
     // own render pass.
-    let root = Root::with_props(
+    let root = HostRoot::with_props(
         Wallpaper,
         WallpaperProps {
             output: output.clone(),

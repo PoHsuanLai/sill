@@ -5,8 +5,8 @@
 //! above every layer surface, so a lock taken while dimmed covers it.
 
 use shell_host::{
-    Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig, LayerSize, Margin,
-    OutputInfo, OutputTarget, RegionSpec,
+    Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
+    Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
 use crate::surfaces::naming::namespace;
@@ -15,11 +15,11 @@ use crate::surfaces::naming::namespace;
 pub fn idle_dim_layer(output: &OutputInfo) -> LayerConfig {
     LayerConfig {
         namespace: namespace("idle-dim", output),
-        layer: Layer::Overlay,
+        layer: LayerLevel::Overlay,
         anchor: Anchor::TOP | Anchor::BOTTOM | Anchor::LEFT | Anchor::RIGHT,
         size: LayerSize {
-            width: Extent::Fill,
-            height: Extent::Fill,
+            width: LayerExtent::Fill,
+            height: LayerExtent::Fill,
         },
         exclusive: ExclusiveZone::Ignore,
         margin: Margin::ZERO,
@@ -33,7 +33,8 @@ pub fn idle_dim_layer(output: &OutputInfo) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use shell_host::{
-        Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer, OutputTarget, RegionSpec,
+        Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, OutputTarget,
+        RegionSpec,
     };
 
     use super::idle_dim_layer;
@@ -44,13 +45,13 @@ mod tests {
         let info = output(Some("DP-1"));
         let config = idle_dim_layer(&info);
         assert_eq!(config.namespace, "sill-idle-dim-DP-1");
-        assert_eq!(config.layer, Layer::Overlay);
+        assert_eq!(config.layer, LayerLevel::Overlay);
         assert_eq!(
             config.anchor,
             Anchor::TOP | Anchor::BOTTOM | Anchor::LEFT | Anchor::RIGHT
         );
-        assert_eq!(config.size.width, Extent::Fill);
-        assert_eq!(config.size.height, Extent::Fill);
+        assert_eq!(config.size.width, LayerExtent::Fill);
+        assert_eq!(config.size.height, LayerExtent::Fill);
         assert_eq!(config.exclusive, ExclusiveZone::Ignore);
         assert_eq!(config.keyboard, KeyboardMode::None);
         assert_eq!(config.blur, BlurSpec::None);

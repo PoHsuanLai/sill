@@ -2,8 +2,8 @@
 //! height, reserving it, no keyboard, blurred and hit-tested whole.
 
 use shell_host::{
-    Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig, LayerSize, Margin,
-    OutputInfo, OutputTarget, RegionSpec,
+    Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
+    Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 use sill_settings::BarSettings;
 
@@ -14,11 +14,11 @@ pub fn bar_layer(output: &OutputInfo, bar: &BarSettings) -> LayerConfig {
     let height = u32::from(bar.height_px.0);
     LayerConfig {
         namespace: namespace("bar", output),
-        layer: Layer::Top,
+        layer: LayerLevel::Top,
         anchor: Anchor::TOP | Anchor::LEFT | Anchor::RIGHT,
         size: LayerSize {
-            width: Extent::Fill,
-            height: Extent::Px(height),
+            width: LayerExtent::Fill,
+            height: LayerExtent::Px(height),
         },
         exclusive: ExclusiveZone::Reserve(height),
         margin: Margin::ZERO,
@@ -35,7 +35,8 @@ mod tests {
     use crate::surfaces::naming::tests::output;
     use ds_settings::Px;
     use shell_host::{
-        Anchor, ExclusiveZone, Extent, KeyboardMode, Layer, OutputId, OutputTarget, RegionSpec,
+        Anchor, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, OutputId, OutputTarget,
+        RegionSpec,
     };
     use sill_settings::BarSettings;
 
@@ -48,10 +49,10 @@ mod tests {
             };
             let config = bar_layer(&output(Some("DP-1")), &bar);
             assert_eq!(config.namespace, "sill-bar-DP-1");
-            assert_eq!(config.layer, Layer::Top);
+            assert_eq!(config.layer, LayerLevel::Top);
             assert_eq!(config.anchor, Anchor::TOP | Anchor::LEFT | Anchor::RIGHT);
-            assert_eq!(config.size.width, Extent::Fill);
-            assert_eq!(config.size.height, Extent::Px(u32::from(height)));
+            assert_eq!(config.size.width, LayerExtent::Fill);
+            assert_eq!(config.size.height, LayerExtent::Px(u32::from(height)));
             assert_eq!(config.exclusive, ExclusiveZone::Reserve(u32::from(height)));
             assert_eq!(config.keyboard, KeyboardMode::None);
             assert_eq!(config.output, OutputTarget::Output(OutputId(7)));

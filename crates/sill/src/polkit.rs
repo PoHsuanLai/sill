@@ -6,7 +6,7 @@
 //! (`Registration::Refused`), and that is the right outcome there. Acceptance runs the agent on
 //! a private bus with a stand-in Authority, never on the system bus.
 
-use shell_host::{HostCtx, OutputInfo, Root};
+use shell_host::{HostCtx, HostRoot, OutputInfo};
 use sill_surfaces::surfaces::polkit_prompt::{PolkitPromptProps, polkit_layer};
 
 use crate::daemon::msg::ShellMsg;
@@ -17,7 +17,7 @@ use crate::outputs::Outputs;
 pub fn spawn_missing(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &mut Outputs,
-    root: impl Fn(Root) -> Root,
+    root: impl Fn(HostRoot) -> HostRoot,
 ) {
     let missing: Vec<OutputInfo> = outputs
         .outputs
@@ -30,7 +30,7 @@ pub fn spawn_missing(
         let props = PolkitPromptProps {
             output: info.clone(),
         };
-        let root = root(Root::with_props(sill_surfaces::PolkitPrompt, props));
+        let root = root(HostRoot::with_props(sill_surfaces::PolkitPrompt, props));
         surfaces.polkit_prompt =
             crate::daemon::surfaces::spawn_hidden(ctx, polkit_layer(&info), root, &info);
         outputs.set(info, surfaces);

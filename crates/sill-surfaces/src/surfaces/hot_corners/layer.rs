@@ -3,8 +3,8 @@
 //! keyboard, no blur, input the whole square.
 
 use shell_host::{
-    Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig, LayerSize, Margin,
-    OutputInfo, OutputTarget, RegionSpec,
+    Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
+    Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
 use super::Corner;
@@ -21,11 +21,11 @@ pub fn corner_layer(output: &OutputInfo, corner: Corner, size: u16) -> LayerConf
     let side = u32::from(size.max(1));
     LayerConfig {
         namespace: namespace(&format!("hot-corner-{}", corner.word()), output),
-        layer: Layer::Overlay,
+        layer: LayerLevel::Overlay,
         anchor,
         size: LayerSize {
-            width: Extent::Px(side),
-            height: Extent::Px(side),
+            width: LayerExtent::Px(side),
+            height: LayerExtent::Px(side),
         },
         exclusive: ExclusiveZone::Ignore,
         margin: Margin::ZERO,
@@ -41,7 +41,9 @@ mod tests {
     use super::corner_layer;
     use crate::surfaces::hot_corners::Corner;
     use crate::surfaces::naming::tests::output;
-    use shell_host::{Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer, RegionSpec};
+    use shell_host::{
+        Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, RegionSpec,
+    };
 
     #[test]
     fn each_corner_is_a_tiny_square_at_its_corner_over_everything() {
@@ -72,9 +74,9 @@ mod tests {
             let config = corner_layer(&info, corner, 2);
             assert_eq!(config.namespace, name);
             assert_eq!(config.anchor, anchor, "{corner:?}");
-            assert_eq!(config.layer, Layer::Overlay);
-            assert_eq!(config.size.width, Extent::Px(2));
-            assert_eq!(config.size.height, Extent::Px(2));
+            assert_eq!(config.layer, LayerLevel::Overlay);
+            assert_eq!(config.size.width, LayerExtent::Px(2));
+            assert_eq!(config.size.height, LayerExtent::Px(2));
             assert_eq!(config.exclusive, ExclusiveZone::Ignore);
             assert_eq!(config.keyboard, KeyboardMode::None);
             assert_eq!(config.blur, BlurSpec::None);
@@ -82,7 +84,7 @@ mod tests {
         }
         assert_eq!(
             corner_layer(&info, Corner::TopLeft, 0).size.width,
-            Extent::Px(1),
+            LayerExtent::Px(1),
             "never zero"
         );
     }

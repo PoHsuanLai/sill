@@ -1,7 +1,7 @@
 //! `apply` and `on_host_event` against a fake host: nothing here locks a session.
 
 use shell_host::{
-    Focus, HostEvent, LockId, LockState, OutputId, OutputInfo, Rect, Scale, SurfaceId,
+    HostEvent, KeyboardFocus, LockId, LockState, OutputId, OutputInfo, Rect, Scale, SurfaceId,
 };
 use sill_surfaces::surfaces::lock::{LockLink, PromptOutput};
 
@@ -123,7 +123,7 @@ fn a_wish_takes_and_drops_the_lock_once() {
     };
     let focus = HostEvent::<ShellMsg>::KeyboardFocus {
         id: SurfaceId(22),
-        focus: Focus::Gained,
+        focus: KeyboardFocus::Gained,
     };
     on_host_event(
         &host,

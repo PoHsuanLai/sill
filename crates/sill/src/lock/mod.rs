@@ -25,7 +25,7 @@ pub mod host;
 
 use std::time::Duration;
 
-use shell_host::{Focus, HostEvent, HostHandle, LockId, LockState, SurfaceId};
+use shell_host::{HostEvent, HostHandle, KeyboardFocus, LockId, LockState, SurfaceId};
 use sill_model::auth::{Auth, AuthCommand, AuthPhase};
 use sill_model::locker::{Lock, LockPhase, LockerCommand, ShellLockEvent};
 use sill_surfaces::services::Services;
@@ -201,7 +201,7 @@ fn lock_focus(event: &HostEvent<ShellMsg>) -> Option<SurfaceId> {
     match event {
         HostEvent::KeyboardFocus {
             id,
-            focus: Focus::Gained,
+            focus: KeyboardFocus::Gained,
         } => Some(*id),
         _ => None,
     }

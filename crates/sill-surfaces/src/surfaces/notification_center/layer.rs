@@ -13,7 +13,7 @@
 //! would join the bar's hover switch, which Notification Center does not.
 
 use shell_host::{
-    Anchor, BlurSpec, ElementId, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig,
+    Anchor, BlurSpec, ElementId, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel,
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
@@ -42,11 +42,11 @@ pub fn panel_region() -> RegionSpec {
 pub fn center_layer(output: &OutputInfo) -> LayerConfig {
     LayerConfig {
         namespace: namespace("notification-center", output),
-        layer: Layer::Overlay,
+        layer: LayerLevel::Overlay,
         anchor: Anchor::ALL,
         size: LayerSize {
-            width: Extent::Fill,
-            height: Extent::Fill,
+            width: LayerExtent::Fill,
+            height: LayerExtent::Fill,
         },
         exclusive: ExclusiveZone::Auto,
         margin: Margin::ZERO,
@@ -61,16 +61,18 @@ pub fn center_layer(output: &OutputInfo) -> LayerConfig {
 mod tests {
     use super::{center_layer, panel_region};
     use crate::surfaces::naming::tests::output;
-    use shell_host::{Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer, RegionSpec};
+    use shell_host::{
+        Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, RegionSpec,
+    };
 
     #[test]
     fn the_center_covers_the_output_below_the_bar_and_takes_the_keyboard_on_demand() {
         let config = center_layer(&output(Some("DP-1")));
         assert_eq!(config.namespace, "sill-notification-center-DP-1");
-        assert_eq!(config.layer, Layer::Overlay);
+        assert_eq!(config.layer, LayerLevel::Overlay);
         assert_eq!(config.anchor, Anchor::ALL);
-        assert_eq!(config.size.width, Extent::Fill);
-        assert_eq!(config.size.height, Extent::Fill);
+        assert_eq!(config.size.width, LayerExtent::Fill);
+        assert_eq!(config.size.height, LayerExtent::Fill);
         assert_eq!(config.exclusive, ExclusiveZone::Auto);
         assert_eq!(config.keyboard, KeyboardMode::OnDemand);
         assert_eq!(config.input, RegionSpec::Whole);

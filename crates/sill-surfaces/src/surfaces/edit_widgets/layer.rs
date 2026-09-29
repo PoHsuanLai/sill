@@ -4,7 +4,7 @@
 //! part outside the panel is the click-outside catcher. The blur is the panel's.
 
 use shell_host::{
-    Anchor, BlurSpec, ElementId, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig,
+    Anchor, BlurSpec, ElementId, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel,
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
@@ -19,11 +19,11 @@ pub const EDIT_PANEL_ID: &str = "edit-widgets-panel";
 pub fn edit_widgets_layer(output: &OutputInfo) -> LayerConfig {
     LayerConfig {
         namespace: namespace("edit-widgets", output),
-        layer: Layer::Overlay,
+        layer: LayerLevel::Overlay,
         anchor: Anchor::ALL,
         size: LayerSize {
-            width: Extent::Fill,
-            height: Extent::Fill,
+            width: LayerExtent::Fill,
+            height: LayerExtent::Fill,
         },
         exclusive: ExclusiveZone::Auto,
         margin: Margin::ZERO,
@@ -42,13 +42,13 @@ pub fn edit_widgets_layer(output: &OutputInfo) -> LayerConfig {
 mod tests {
     use super::edit_widgets_layer;
     use crate::surfaces::naming::tests::output;
-    use shell_host::{Anchor, ExclusiveZone, KeyboardMode, Layer, RegionSpec};
+    use shell_host::{Anchor, ExclusiveZone, KeyboardMode, LayerLevel, RegionSpec};
 
     #[test]
     fn the_sheet_covers_the_output_below_the_bar_and_takes_the_keyboard_on_demand() {
         let config = edit_widgets_layer(&output(Some("DP-1")));
         assert_eq!(config.namespace, "sill-edit-widgets-DP-1");
-        assert_eq!(config.layer, Layer::Overlay);
+        assert_eq!(config.layer, LayerLevel::Overlay);
         assert_eq!(config.anchor, Anchor::ALL);
         assert_eq!(config.exclusive, ExclusiveZone::Auto);
         assert_eq!(config.keyboard, KeyboardMode::OnDemand);

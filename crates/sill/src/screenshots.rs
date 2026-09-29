@@ -1,7 +1,7 @@
 //! Screenshots on the daemon's side: one warm, hidden thumbnail surface per output (the banners'
 //! pattern).
 
-use shell_host::{HostCtx, OutputInfo, Root};
+use shell_host::{HostCtx, HostRoot, OutputInfo};
 use sill_surfaces::surfaces::screenshot_thumb::ScreenshotThumbProps;
 use sill_surfaces::surfaces::screenshot_thumb::thumb_layer;
 
@@ -14,7 +14,7 @@ use crate::outputs::Outputs;
 pub fn spawn_missing(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &mut Outputs,
-    root: impl Fn(Root) -> Root,
+    root: impl Fn(HostRoot) -> HostRoot,
 ) {
     let missing: Vec<OutputInfo> = outputs
         .outputs
@@ -27,7 +27,7 @@ pub fn spawn_missing(
         let props = ScreenshotThumbProps {
             output: info.clone(),
         };
-        let root = root(Root::with_props(sill_surfaces::ScreenshotThumb, props));
+        let root = root(HostRoot::with_props(sill_surfaces::ScreenshotThumb, props));
         surfaces.thumbnail =
             crate::daemon::surfaces::spawn_hidden(ctx, thumb_layer(&info), root, &info);
         outputs.set(info, surfaces);

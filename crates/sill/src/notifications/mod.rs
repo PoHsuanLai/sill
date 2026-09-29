@@ -1,7 +1,7 @@
 //! The daemon's notifications half: one banner column and one notification center per output,
 //! spawned warm and hidden (the OSD's and the power menu's pattern), and the banners' output.
 
-use shell_host::{HostCtx, OutputInfo, Root};
+use shell_host::{HostCtx, HostRoot, OutputInfo};
 use sill_settings::ShellFile;
 use sill_surfaces::surfaces::banners::{BannerOutput, BannersProps, banners_layer};
 use sill_surfaces::surfaces::notification_center::{NotificationCenterProps, center_layer};
@@ -17,7 +17,7 @@ pub fn spawn_missing(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &mut Outputs,
     settings: &watch::Sender<ShellFile>,
-    root: impl Fn(Root) -> Root,
+    root: impl Fn(HostRoot) -> HostRoot,
 ) {
     let missing: Vec<OutputInfo> = outputs
         .outputs
@@ -32,7 +32,7 @@ pub fn spawn_missing(
             let props = BannersProps {
                 output: info.clone(),
             };
-            let root = root(Root::with_props(sill_surfaces::Banners, props));
+            let root = root(HostRoot::with_props(sill_surfaces::Banners, props));
             let config = banners_layer(&info, &file.notifications);
             surfaces.banners = crate::daemon::surfaces::spawn_hidden(ctx, config, root, &info);
         }
@@ -40,7 +40,10 @@ pub fn spawn_missing(
             let props = NotificationCenterProps {
                 output: info.clone(),
             };
-            let root = root(Root::with_props(sill_surfaces::NotificationCenter, props));
+            let root = root(HostRoot::with_props(
+                sill_surfaces::NotificationCenter,
+                props,
+            ));
             surfaces.notification_center =
                 crate::daemon::surfaces::spawn_hidden(ctx, center_layer(&info), root, &info);
         }

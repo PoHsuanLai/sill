@@ -9,8 +9,8 @@
 //! `spaces.wallpaper_drawer = "cosmic"` the wallpaper is cosmic-bg's, on `Background` too.
 
 use shell_host::{
-    Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig, LayerSize, Margin,
-    OutputInfo, OutputTarget, RegionSpec,
+    Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
+    Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
 use crate::surfaces::naming::namespace;
@@ -19,11 +19,11 @@ use crate::surfaces::naming::namespace;
 pub fn desktop_layer(output: &OutputInfo) -> LayerConfig {
     LayerConfig {
         namespace: namespace("desktop-widgets", output),
-        layer: Layer::Bottom,
+        layer: LayerLevel::Bottom,
         anchor: Anchor::ALL,
         size: LayerSize {
-            width: Extent::Fill,
-            height: Extent::Fill,
+            width: LayerExtent::Fill,
+            height: LayerExtent::Fill,
         },
         exclusive: ExclusiveZone::Auto,
         margin: Margin::ZERO,
@@ -39,7 +39,8 @@ mod tests {
     use super::desktop_layer;
     use crate::surfaces::naming::tests::output;
     use shell_host::{
-        Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer, OutputTarget, RegionSpec,
+        Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, OutputTarget,
+        RegionSpec,
     };
 
     #[test]
@@ -47,10 +48,10 @@ mod tests {
         let info = output(Some("DP-1"));
         let config = desktop_layer(&info);
         assert_eq!(config.namespace, "sill-desktop-widgets-DP-1");
-        assert_eq!(config.layer, Layer::Bottom);
+        assert_eq!(config.layer, LayerLevel::Bottom);
         assert_eq!(config.anchor, Anchor::ALL);
-        assert_eq!(config.size.width, Extent::Fill);
-        assert_eq!(config.size.height, Extent::Fill);
+        assert_eq!(config.size.width, LayerExtent::Fill);
+        assert_eq!(config.size.height, LayerExtent::Fill);
         assert_eq!(config.exclusive, ExclusiveZone::Auto);
         assert_eq!(config.keyboard, KeyboardMode::None);
         assert_eq!(config.output, OutputTarget::Output(info.id));

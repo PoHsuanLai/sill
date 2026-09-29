@@ -8,7 +8,7 @@ use crate::services::Services;
 use dioxus::prelude::*;
 use ds::{Alpha, Appearance, MaterialStack, ShellMetrics, SystemPrefs};
 use shell_host::{
-    OutputId, PopupAnchor, PopupConfig, PopupPlacement, PopupSize, Root, SurfaceHandle,
+    HostRoot, OutputId, PopupAnchor, PopupConfig, PopupPlacement, PopupSize, SurfaceHandle,
 };
 use sill_model::ids::OutputName;
 use sill_settings::{FocusLink, SettingsFeed};
@@ -350,7 +350,7 @@ fn show(slots: Slots, deps: &SessionDeps, menu: BarMenu) {
     surface.open_popup(
         config,
         first,
-        Root::new(MenuPopup)
+        HostRoot::new(MenuPopup)
             .context(PopupLink {
                 view: rx,
                 reports,

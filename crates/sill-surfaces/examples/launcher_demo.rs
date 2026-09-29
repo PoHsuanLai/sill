@@ -22,7 +22,7 @@ use std::fmt::Debug;
 use std::io::BufRead;
 
 use shell_host::{
-    Host, HostCtx, HostEvent, LayerConfig, OutputId, OutputInfo, Root, SurfaceId, Visibility,
+    Host, HostCtx, HostEvent, HostRoot, LayerConfig, OutputId, OutputInfo, SurfaceId, Visibility,
 };
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::surfaces::launcher::debug_link::LinkKey;
@@ -95,7 +95,7 @@ fn spawn_launcher(ctx: &mut HostCtx<DemoMsg>, output: OutputInfo, demo: &mut Dem
         return;
     }
     let file = ShellFile::default();
-    let root = |root: Root| {
+    let root = |root: HostRoot| {
         root.context(demo.services.clone())
             .context(demo.settings.clone())
             .context(sill_surfaces::MEASURE)
@@ -104,7 +104,7 @@ fn spawn_launcher(ctx: &mut HostCtx<DemoMsg>, output: OutputInfo, demo: &mut Dem
             .context(demo.providers.clone())
             .context(LauncherScript(demo.script.subscribe()))
     };
-    let catcher = root(Root::with_props(
+    let catcher = root(HostRoot::with_props(
         LauncherCatcher,
         LauncherCatcherProps {
             output: output.clone(),
@@ -112,7 +112,7 @@ fn spawn_launcher(ctx: &mut HostCtx<DemoMsg>, output: OutputInfo, demo: &mut Dem
     ));
     spawn_hidden(ctx, catcher_layer(&output), catcher);
     let config = panel_layer(&output, &file.bar, &file.launcher);
-    let panel = root(Root::with_props(
+    let panel = root(HostRoot::with_props(
         Launcher,
         LauncherProps {
             output: output.clone(),
@@ -123,7 +123,11 @@ fn spawn_launcher(ctx: &mut HostCtx<DemoMsg>, output: OutputInfo, demo: &mut Dem
     }
 }
 
-fn spawn_hidden(ctx: &mut HostCtx<DemoMsg>, config: LayerConfig, root: Root) -> Option<SurfaceId> {
+fn spawn_hidden(
+    ctx: &mut HostCtx<DemoMsg>,
+    config: LayerConfig,
+    root: HostRoot,
+) -> Option<SurfaceId> {
     match ctx.spawn_layer(config, root) {
         Ok(id) => {
             ctx.set_visibility(id, Visibility::Hidden);

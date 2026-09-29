@@ -3,7 +3,7 @@
 //! blur behind the sheet only. The power menu's shape.
 
 use shell_host::{
-    Anchor, BlurSpec, ElementId, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig,
+    Anchor, BlurSpec, ElementId, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel,
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
@@ -19,11 +19,11 @@ pub const PANEL_BLUR_RADIUS: i32 = 14;
 pub fn polkit_layer(output: &OutputInfo) -> LayerConfig {
     LayerConfig {
         namespace: namespace("polkit", output),
-        layer: Layer::Overlay,
+        layer: LayerLevel::Overlay,
         anchor: Anchor::ALL,
         size: LayerSize {
-            width: Extent::Fill,
-            height: Extent::Fill,
+            width: LayerExtent::Fill,
+            height: LayerExtent::Fill,
         },
         exclusive: ExclusiveZone::Ignore,
         margin: Margin::ZERO,
@@ -42,13 +42,13 @@ pub fn polkit_layer(output: &OutputInfo) -> LayerConfig {
 mod tests {
     use super::polkit_layer;
     use crate::surfaces::naming::tests::output;
-    use shell_host::{Anchor, ExclusiveZone, KeyboardMode, Layer, RegionSpec};
+    use shell_host::{Anchor, ExclusiveZone, KeyboardMode, LayerLevel, RegionSpec};
 
     #[test]
     fn the_prompt_is_a_keyboard_exclusive_full_output_overlay() {
         let layer = polkit_layer(&output(Some("DP-1")));
         assert_eq!(layer.namespace, "sill-polkit-DP-1");
-        assert_eq!(layer.layer, Layer::Overlay);
+        assert_eq!(layer.layer, LayerLevel::Overlay);
         assert_eq!(layer.anchor, Anchor::ALL);
         assert_eq!(layer.exclusive, ExclusiveZone::Ignore);
         assert_eq!(layer.keyboard, KeyboardMode::Exclusive);

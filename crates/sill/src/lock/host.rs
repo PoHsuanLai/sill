@@ -12,7 +12,7 @@
 use std::fmt;
 
 use shell_host::{
-    HostCtx, HostEvent, LockConfig, LockError, LockId, LockState, OutputId, OutputInfo, Root,
+    HostCtx, HostEvent, HostRoot, LockConfig, LockError, LockId, LockState, OutputId, OutputInfo,
     SurfaceId,
 };
 
@@ -24,7 +24,7 @@ pub const LOCK_NAMESPACE: &str = "sill-lock";
 
 /// Builds each output's lock surface root (the daemon's `surface_root` around
 /// `sill_surfaces::LockScreen`).
-pub struct LockFactory(pub Box<dyn Fn(OutputInfo) -> Root>);
+pub struct LockFactory(pub Box<dyn Fn(OutputInfo) -> HostRoot>);
 
 impl fmt::Debug for LockFactory {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

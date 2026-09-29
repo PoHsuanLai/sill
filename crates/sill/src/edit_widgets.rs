@@ -8,7 +8,7 @@ use sill_services::env::Dirs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use shell_host::{HostCtx, OutputInfo, Root};
+use shell_host::{HostCtx, HostRoot, OutputInfo};
 use sill_settings::ShellFile;
 use sill_surfaces::surfaces::desktop_widgets::PlacementFile;
 use sill_surfaces::surfaces::edit_widgets::{
@@ -26,7 +26,7 @@ pub fn spawn_missing(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &mut Outputs,
     dirs: &Dirs,
-    root: impl Fn(Root) -> Root,
+    root: impl Fn(HostRoot) -> HostRoot,
 ) {
     let missing: Vec<OutputInfo> = outputs
         .outputs
@@ -39,7 +39,7 @@ pub fn spawn_missing(
         let props = EditWidgetsProps {
             output: info.clone(),
         };
-        let mut made = root(Root::with_props(sill_surfaces::EditWidgets, props));
+        let mut made = root(HostRoot::with_props(sill_surfaces::EditWidgets, props));
         made = made.context(PlacementFile::in_dirs(dirs));
         surfaces.edit_widgets =
             crate::daemon::surfaces::spawn_hidden(ctx, edit_widgets_layer(&info), made, &info);

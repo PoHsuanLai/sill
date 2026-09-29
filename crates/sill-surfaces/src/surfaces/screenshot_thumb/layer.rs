@@ -4,7 +4,7 @@
 //! the card for the Toast material's shadow and the swipe's travel.
 
 use shell_host::{
-    Anchor, BlurSpec, ElementId, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig,
+    Anchor, BlurSpec, ElementId, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel,
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
@@ -44,11 +44,11 @@ pub fn thumb_region() -> RegionSpec {
 pub fn thumb_layer(output: &OutputInfo) -> LayerConfig {
     LayerConfig {
         namespace: namespace("screenshot-thumb", output),
-        layer: Layer::Overlay,
+        layer: LayerLevel::Overlay,
         anchor: Anchor::BOTTOM | Anchor::RIGHT,
         size: LayerSize {
-            width: Extent::Px(THUMB_WIDTH + 2 * ROOM),
-            height: Extent::Px(THUMB_HEIGHT + 2 * ROOM),
+            width: LayerExtent::Px(THUMB_WIDTH + 2 * ROOM),
+            height: LayerExtent::Px(THUMB_HEIGHT + 2 * ROOM),
         },
         exclusive: ExclusiveZone::Auto,
         margin: Margin::ZERO,
@@ -63,16 +63,16 @@ pub fn thumb_layer(output: &OutputInfo) -> LayerConfig {
 mod tests {
     use super::{ROOM, THUMB_WIDTH, thumb_layer, thumb_region};
     use crate::surfaces::naming::tests::output;
-    use shell_host::{Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer};
+    use shell_host::{Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel};
 
     #[test]
     fn the_thumbnail_sits_at_the_bottom_right_and_takes_its_card_only() {
         let config = thumb_layer(&output(Some("DP-1")));
         assert_eq!(config.namespace, "sill-screenshot-thumb-DP-1");
-        assert_eq!(config.layer, Layer::Overlay);
+        assert_eq!(config.layer, LayerLevel::Overlay);
         assert_eq!(config.anchor, Anchor::BOTTOM | Anchor::RIGHT);
-        assert_eq!(config.size.width, Extent::Px(THUMB_WIDTH + 2 * ROOM));
-        assert_eq!(config.size.height, Extent::Px(153 + 2 * ROOM));
+        assert_eq!(config.size.width, LayerExtent::Px(THUMB_WIDTH + 2 * ROOM));
+        assert_eq!(config.size.height, LayerExtent::Px(153 + 2 * ROOM));
         assert_eq!(config.exclusive, ExclusiveZone::Auto);
         assert_eq!(config.keyboard, KeyboardMode::None);
         assert_eq!(config.input, thumb_region());

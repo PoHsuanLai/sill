@@ -152,7 +152,7 @@ pub fn start(file: ShellFile) -> Running {
     });
     let size = thumb_layer(&fake::output()).size;
     let px = |extent| match extent {
-        shell_host::Extent::Px(px) => px,
+        shell_host::LayerExtent::Px(px) => px,
         _ => 400,
     };
     let viewport = Viewport {

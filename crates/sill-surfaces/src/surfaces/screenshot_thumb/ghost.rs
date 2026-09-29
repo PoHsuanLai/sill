@@ -8,7 +8,7 @@ use ds::{
     ShotGhost, SpaceLook, SystemPrefs,
 };
 use ds_settings::Environment;
-use shell_host::{DragIcon, Root, Size};
+use shell_host::{DragIcon, HostRoot, Size};
 
 use super::picture::ThumbPicture;
 
@@ -67,7 +67,7 @@ pub fn ghost_icon(picture: &ThumbPicture, look: GhostLook) -> DragIcon {
         look,
     };
     DragIcon::Root {
-        root: Root::with_props(ghost_root, ghost),
+        root: HostRoot::with_props(ghost_root, ghost),
         size: ghost_size(),
     }
 }

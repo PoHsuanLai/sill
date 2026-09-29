@@ -4,7 +4,7 @@
 
 use shell_host::SurfaceId;
 use shell_host::scale::{Size as BufferSize, buffer_size};
-use shell_host::{HostCtx, OutputInfo, Root};
+use shell_host::{HostCtx, HostRoot, OutputInfo};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
@@ -99,7 +99,7 @@ fn spawn_bar(
         output: info.clone(),
     };
     let root = surface_root(
-        Root::with_props(sill_surfaces::Bar, props),
+        HostRoot::with_props(sill_surfaces::Bar, props),
         services,
         settings_feed,
     );
@@ -173,7 +173,7 @@ fn spawn_wallpaper(
         output: info.clone(),
     };
     let root = surface_root(
-        Root::with_props(sill_surfaces::Wallpaper, props),
+        HostRoot::with_props(sill_surfaces::Wallpaper, props),
         services,
         settings_feed,
     );
@@ -209,7 +209,7 @@ fn spawn_missing_docks(
             output: info.clone(),
         };
         let root = surface_root(
-            Root::with_props(sill_surfaces::Dock, props),
+            HostRoot::with_props(sill_surfaces::Dock, props),
             services,
             settings_feed,
         );
@@ -249,17 +249,17 @@ fn spawn_missing_launchers(
         let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
         let output = info.clone();
         let root =
-            |root: Root| surface_root(root, services, settings_feed).context(launcher.clone());
+            |root: HostRoot| surface_root(root, services, settings_feed).context(launcher.clone());
         if surfaces.catcher.is_none() {
             let props = LauncherCatcherProps {
                 output: output.clone(),
             };
-            let root = root(Root::with_props(sill_surfaces::LauncherCatcher, props));
+            let root = root(HostRoot::with_props(sill_surfaces::LauncherCatcher, props));
             surfaces.catcher = spawn_hidden(ctx, catcher_layer(&info), root, &info);
         }
         if surfaces.launcher.is_none() {
             let config = panel_layer(&info, &file.bar, &file.launcher);
-            let root = root(Root::with_props(
+            let root = root(HostRoot::with_props(
                 sill_surfaces::Launcher,
                 LauncherProps { output },
             ));
@@ -273,7 +273,7 @@ fn spawn_missing_launchers(
 pub(crate) fn spawn_hidden(
     ctx: &mut HostCtx<ShellMsg>,
     config: shell_host::LayerConfig,
-    root: Root,
+    root: HostRoot,
     info: &OutputInfo,
 ) -> Option<SurfaceId> {
     let namespace = config.namespace.clone();
@@ -296,7 +296,11 @@ pub(crate) fn spawn_hidden(
 /// `ds_native::focus::provide()` provide from inside a root component. Without them a rect read or
 /// a focus waits a frame and the panic hook prints the collision. Every spawn goes through here, so
 /// a new surface cannot forget them.
-pub(crate) fn surface_root(root: Root, services: &Services, settings_feed: &SettingsFeed) -> Root {
+pub(crate) fn surface_root(
+    root: HostRoot,
+    services: &Services,
+    settings_feed: &SettingsFeed,
+) -> HostRoot {
     let root = root
         .context(services.clone())
         .context(settings_feed.clone())
@@ -335,7 +339,7 @@ pub(crate) fn lock_factory(
     crate::lock::host::LockFactory(Box::new(move |info: OutputInfo| {
         let props = sill_surfaces::surfaces::lock::LockScreenProps { output: info };
         surface_root(
-            Root::with_props(sill_surfaces::LockScreen, props),
+            HostRoot::with_props(sill_surfaces::LockScreen, props),
             &services,
             &settings_feed,
         )

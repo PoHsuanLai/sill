@@ -12,8 +12,8 @@
 //! Spawned before the OSD, so on the same Overlay layer the OSD draws over a banner.
 
 use shell_host::{
-    Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig, LayerSize, Margin,
-    OutputInfo, OutputTarget, RegionSpec,
+    Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
+    Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 use sill_settings::NotificationsSettings;
 
@@ -42,11 +42,11 @@ pub fn margin(n: &NotificationsSettings) -> Margin {
 pub fn banners_layer(output: &OutputInfo, n: &NotificationsSettings) -> LayerConfig {
     LayerConfig {
         namespace: namespace("banners", output),
-        layer: Layer::Overlay,
+        layer: LayerLevel::Overlay,
         anchor: Anchor::TOP | Anchor::RIGHT | Anchor::BOTTOM,
         size: LayerSize {
-            width: Extent::Px(u32::from(n.banner_width_px.0) + 2 * ROOM),
-            height: Extent::Fill,
+            width: LayerExtent::Px(u32::from(n.banner_width_px.0) + 2 * ROOM),
+            height: LayerExtent::Fill,
         },
         exclusive: ExclusiveZone::Auto,
         margin: margin(n),
@@ -63,7 +63,7 @@ mod tests {
     use crate::surfaces::naming::tests::output;
     use ds_settings::Px;
     use shell_host::{
-        Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer, Margin, RegionSpec,
+        Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, Margin, RegionSpec,
     };
     use sill_settings::NotificationsSettings;
 
@@ -72,10 +72,10 @@ mod tests {
         let n = NotificationsSettings::default();
         let config = banners_layer(&output(Some("DP-1")), &n);
         assert_eq!(config.namespace, "sill-banners-DP-1");
-        assert_eq!(config.layer, Layer::Overlay);
+        assert_eq!(config.layer, LayerLevel::Overlay);
         assert_eq!(config.anchor, Anchor::TOP | Anchor::RIGHT | Anchor::BOTTOM);
-        assert_eq!(config.size.width, Extent::Px(360 + 2 * ROOM));
-        assert_eq!(config.size.height, Extent::Fill);
+        assert_eq!(config.size.width, LayerExtent::Px(360 + 2 * ROOM));
+        assert_eq!(config.size.height, LayerExtent::Fill);
         assert_eq!(config.exclusive, ExclusiveZone::Auto);
         assert_eq!(config.keyboard, KeyboardMode::None);
         assert_eq!(config.input, RegionSpec::Empty);
@@ -95,7 +95,7 @@ mod tests {
             ..n
         };
         let config = banners_layer(&output(Some("DP-1")), &wide);
-        assert_eq!(config.size.width, Extent::Px(420 + 2 * ROOM));
+        assert_eq!(config.size.width, LayerExtent::Px(420 + 2 * ROOM));
         assert_eq!(config.margin.right, 0);
     }
 }

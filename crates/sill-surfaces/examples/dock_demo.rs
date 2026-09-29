@@ -15,7 +15,7 @@ use std::fmt::Debug;
 use std::io::BufRead;
 use std::time::Instant;
 
-use shell_host::{Host, HostCtx, HostEvent, OutputId, OutputInfo, Root};
+use shell_host::{Host, HostCtx, HostEvent, HostRoot, OutputId, OutputInfo};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::surfaces::dock::{DockProps, dock_layer};
 use sill_surfaces::{Dock, FrameClock};
@@ -82,7 +82,7 @@ fn spawn_dock(
         return;
     }
     let config = dock_layer(&output, &ShellFile::default().dock);
-    let root = Root::with_props(Dock, DockProps { output })
+    let root = HostRoot::with_props(Dock, DockProps { output })
         .context(services.clone())
         .context(settings.clone())
         .context(clock)

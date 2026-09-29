@@ -8,7 +8,7 @@
 
 use crate::services::Services;
 use dioxus::prelude::*;
-use shell_host::{FrameDrive, Root, SurfaceHandle};
+use shell_host::{FrameDrive, HostRoot, SurfaceHandle};
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::badges::Badges;
 use sill_model::launch::{LaunchCommand, LaunchRequest};
@@ -338,7 +338,7 @@ fn open_menu(slots: Slots, deps: &SessionDeps, outward: &Outward, tile: TileId) 
     surface.open_popup(
         menu_config(&entries),
         placement,
-        Root::new(DockMenuPopup).context(link),
+        HostRoot::new(DockMenuPopup).context(link),
     );
 }
 

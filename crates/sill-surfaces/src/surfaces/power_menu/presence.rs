@@ -2,7 +2,7 @@
 //! the bar and the launcher (the launcher's `presence.rs` pattern: one `watch` channel, pure
 //! transitions, each surface mirroring it onto its own visibility).
 
-use shell_host::{Focus, OutputId};
+use shell_host::{KeyboardFocus, OutputId};
 use sill_model::session::SessionAction;
 use tokio::sync::watch;
 
@@ -132,15 +132,17 @@ pub fn leaving(shown: &PowerMenuShown) -> PowerMenuShown {
 
 /// The surface's keyboard focus changed: gaining it is noted, losing it after holding it
 /// closes the menu.
-pub fn after_focus(shown: &PowerMenuShown, focus: Focus) -> PowerMenuShown {
+pub fn after_focus(shown: &PowerMenuShown, focus: KeyboardFocus) -> PowerMenuShown {
     match (shown, focus) {
-        (PowerMenuShown::Shown(opening), Focus::Gained) => {
+        (PowerMenuShown::Shown(opening), KeyboardFocus::Gained) => {
             PowerMenuShown::Shown(PowerMenuOpening {
                 focus: PanelFocus::Held,
                 ..opening.clone()
             })
         }
-        (PowerMenuShown::Shown(opening), Focus::Lost) if opening.focus == PanelFocus::Held => {
+        (PowerMenuShown::Shown(opening), KeyboardFocus::Lost)
+            if opening.focus == PanelFocus::Held =>
+        {
             shown.hidden()
         }
         _ => shown.clone(),
@@ -198,7 +200,7 @@ impl PowerMenuLink {
     }
 
     /// The surface's keyboard focus changed.
-    pub fn focus(&self, focus: Focus) {
+    pub fn focus(&self, focus: KeyboardFocus) {
         self.shown
             .send_if_modified(|shown| replace(shown, after_focus(shown, focus)));
     }
@@ -222,7 +224,7 @@ mod tests {
         PowerMenuLink, PowerMenuShown, Preselect, Showing, after_focus, leaving, open, toggle,
     };
     use crate::surfaces::launcher::presence::{OpenSerial, PanelFocus, Visible};
-    use shell_host::{Focus, OutputId};
+    use shell_host::{KeyboardFocus, OutputId};
     use sill_model::session::SessionAction;
 
     const ONE: OutputId = OutputId(1);
@@ -305,9 +307,9 @@ mod tests {
     #[test]
     fn a_focus_loss_closes_only_a_menu_that_held_focus() {
         let shown = open(&PowerMenuShown::default(), ONE, Preselect::Default);
-        assert_eq!(after_focus(&shown, Focus::Lost), shown);
-        let held = after_focus(&shown, Focus::Gained);
-        assert_eq!(after_focus(&held, Focus::Lost), shown.hidden());
+        assert_eq!(after_focus(&shown, KeyboardFocus::Lost), shown);
+        let held = after_focus(&shown, KeyboardFocus::Gained);
+        assert_eq!(after_focus(&held, KeyboardFocus::Lost), shown.hidden());
     }
 
     #[test]

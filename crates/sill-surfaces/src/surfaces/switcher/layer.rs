@@ -3,7 +3,7 @@
 //! input and blur on the panel only, so a click beside it reaches the window below.
 
 use shell_host::{
-    Anchor, BlurSpec, ElementId, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig,
+    Anchor, BlurSpec, ElementId, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel,
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
@@ -27,11 +27,11 @@ fn panel_region() -> RegionSpec {
 pub fn switcher_layer(output: &OutputInfo) -> LayerConfig {
     LayerConfig {
         namespace: namespace("switcher", output),
-        layer: Layer::Overlay,
+        layer: LayerLevel::Overlay,
         anchor: Anchor::ALL,
         size: LayerSize {
-            width: Extent::Fill,
-            height: Extent::Fill,
+            width: LayerExtent::Fill,
+            height: LayerExtent::Fill,
         },
         exclusive: ExclusiveZone::Ignore,
         margin: Margin::ZERO,
@@ -46,13 +46,13 @@ pub fn switcher_layer(output: &OutputInfo) -> LayerConfig {
 mod tests {
     use super::{panel_region, switcher_layer};
     use crate::surfaces::naming::tests::output;
-    use shell_host::{Anchor, BlurSpec, ExclusiveZone, KeyboardMode, Layer};
+    use shell_host::{Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerLevel};
 
     #[test]
     fn the_switcher_is_a_keyboard_exclusive_overlay_taking_input_on_its_panel() {
         let layer = switcher_layer(&output(Some("DP-1")));
         assert_eq!(layer.namespace, "sill-switcher-DP-1");
-        assert_eq!(layer.layer, Layer::Overlay);
+        assert_eq!(layer.layer, LayerLevel::Overlay);
         assert_eq!(layer.anchor, Anchor::ALL);
         assert_eq!(layer.exclusive, ExclusiveZone::Ignore);
         assert_eq!(layer.keyboard, KeyboardMode::Exclusive);

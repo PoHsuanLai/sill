@@ -10,7 +10,7 @@
 //! gap is smaller: the transparent room may overlap the reserve).
 
 use shell_host::{
-    Anchor, BlurSpec, ElementId, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig,
+    Anchor, BlurSpec, ElementId, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel,
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 use sill_settings::{OsdPosition, OsdSettings};
@@ -63,11 +63,11 @@ pub fn margin(osd: &OsdSettings) -> Margin {
 pub fn osd_layer(output: &OutputInfo, osd: &OsdSettings) -> LayerConfig {
     LayerConfig {
         namespace: namespace("osd", output),
-        layer: Layer::Overlay,
+        layer: LayerLevel::Overlay,
         anchor: anchor(osd.position),
         size: LayerSize {
-            width: Extent::Px(CARD_WIDTH + 2 * ROOM),
-            height: Extent::Px(CARD_HEIGHT + 2 * ROOM),
+            width: LayerExtent::Px(CARD_WIDTH + 2 * ROOM),
+            height: LayerExtent::Px(CARD_HEIGHT + 2 * ROOM),
         },
         exclusive: ExclusiveZone::Auto,
         margin: margin(osd),
@@ -88,7 +88,7 @@ mod tests {
     use crate::surfaces::naming::tests::output;
     use ds_settings::Px;
     use shell_host::{
-        Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer, Margin, RegionSpec,
+        Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, Margin, RegionSpec,
     };
     use sill_settings::{OsdPosition, OsdSettings};
 
@@ -96,7 +96,7 @@ mod tests {
     fn the_indicator_floats_over_its_edge_and_takes_nothing() {
         let config = osd_layer(&output(Some("DP-1")), &OsdSettings::default());
         assert_eq!(config.namespace, "sill-osd-DP-1");
-        assert_eq!(config.layer, Layer::Overlay);
+        assert_eq!(config.layer, LayerLevel::Overlay);
         assert_eq!(config.exclusive, ExclusiveZone::Auto);
         assert_eq!(config.keyboard, KeyboardMode::None);
         assert_eq!(config.input, RegionSpec::Empty);
@@ -104,8 +104,8 @@ mod tests {
             config.blur,
             BlurSpec::Region(RegionSpec::Element { .. })
         ));
-        assert_eq!(config.size.width, Extent::Px(CARD_WIDTH + 2 * ROOM));
-        assert_eq!(config.size.height, Extent::Px(CARD_HEIGHT + 2 * ROOM));
+        assert_eq!(config.size.width, LayerExtent::Px(CARD_WIDTH + 2 * ROOM));
+        assert_eq!(config.size.height, LayerExtent::Px(CARD_HEIGHT + 2 * ROOM));
     }
 
     #[test]

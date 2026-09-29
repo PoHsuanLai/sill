@@ -84,25 +84,25 @@ fn natural_scroll(v: NaturalScroll) -> host::NaturalScroll {
     }
 }
 
-fn momentum(v: Momentum) -> host::Momentum {
+fn momentum(v: Momentum) -> host::ScrollMomentum {
     match v {
-        Momentum::On => host::Momentum::On,
-        Momentum::Off => host::Momentum::Off,
+        Momentum::On => host::ScrollMomentum::On,
+        Momentum::Off => host::ScrollMomentum::Off,
     }
 }
 
-fn momentum_model(v: MomentumModel) -> host::MomentumModel {
+fn momentum_model(v: MomentumModel) -> host::ScrollMomentumModel {
     match v {
-        MomentumModel::MacMouseFix => host::MomentumModel::MacMouseFix,
-        MomentumModel::Ios => host::MomentumModel::Ios,
+        MomentumModel::MacMouseFix => host::ScrollMomentumModel::MacMouseFix,
+        MomentumModel::Ios => host::ScrollMomentumModel::Ios,
     }
 }
 
-fn rubber_band(v: RubberBand) -> host::RubberBand {
+fn rubber_band(v: RubberBand) -> host::ScrollRubberBand {
     match v {
-        RubberBand::Bounded => host::RubberBand::Bounded,
-        RubberBand::Linear => host::RubberBand::Linear,
-        RubberBand::Off => host::RubberBand::Off,
+        RubberBand::Bounded => host::ScrollRubberBand::Bounded,
+        RubberBand::Linear => host::ScrollRubberBand::Linear,
+        RubberBand::Off => host::ScrollRubberBand::Off,
     }
 }
 
@@ -113,10 +113,10 @@ fn scrollbar_visibility(v: ScrollbarVisibility) -> host::ScrollbarVisibility {
     }
 }
 
-fn track_click(v: TrackClick) -> host::TrackClick {
+fn track_click(v: TrackClick) -> host::ScrollTrackClick {
     match v {
-        TrackClick::PageTowardClick => host::TrackClick::PageTowardClick,
-        TrackClick::JumpToClick => host::TrackClick::JumpToClick,
+        TrackClick::PageTowardClick => host::ScrollTrackClick::PageTowardClick,
+        TrackClick::JumpToClick => host::ScrollTrackClick::JumpToClick,
     }
 }
 
@@ -142,19 +142,19 @@ mod tests {
             ),
             (
                 |f| f.scroll.momentum = Momentum::Off,
-                |c| c.scroll.momentum == host::Momentum::Off,
+                |c| c.scroll.momentum == host::ScrollMomentum::Off,
             ),
             (
                 |f| f.scroll.momentum_model = MomentumModel::Ios,
-                |c| c.scroll.momentum_model == host::MomentumModel::Ios,
+                |c| c.scroll.momentum_model == host::ScrollMomentumModel::Ios,
             ),
             (
                 |f| f.scroll.rubber_band = RubberBand::Linear,
-                |c| c.scroll.rubber_band == host::RubberBand::Linear,
+                |c| c.scroll.rubber_band == host::ScrollRubberBand::Linear,
             ),
             (
                 |f| f.scroll.rubber_band = RubberBand::Off,
-                |c| c.scroll.rubber_band == host::RubberBand::Off,
+                |c| c.scroll.rubber_band == host::ScrollRubberBand::Off,
             ),
             (
                 |f| f.scroll.scrollbars = ScrollbarVisibility::Always,
@@ -162,7 +162,7 @@ mod tests {
             ),
             (
                 |f| f.scrollbar.track_click_mode = TrackClick::JumpToClick,
-                |c| c.scrollbar.track_click_mode == host::TrackClick::JumpToClick,
+                |c| c.scrollbar.track_click_mode == host::ScrollTrackClick::JumpToClick,
             ),
         ];
         for (mutate, holds) in cases {

@@ -14,8 +14,8 @@
 
 use ds::MenuEntry;
 use shell_host::{
-    Adjust, Edge, Grab, Offset, PopupAnchor, PopupConfig, PopupPlacement, PopupSize, Rect, Size,
-    Toggle,
+    PopupAdjust, PopupAnchor, PopupConfig, PopupEdge, PopupGrab, PopupOffset, PopupPlacement,
+    PopupSize, PopupToggle, Rect, Size,
 };
 
 use crate::surfaces::dock::frame::Area;
@@ -94,14 +94,14 @@ pub(crate) fn menu_config<T>(entries: &[MenuEntry<T>]) -> PopupConfig {
     PopupConfig {
         anchor: PopupAnchor::Rect,
         size: PopupSize::Fixed,
-        edge: Edge::Top,
-        gravity: Edge::Top,
-        adjust: Adjust {
-            slide_x: Toggle::On,
-            ..Adjust::NONE
+        edge: PopupEdge::Top,
+        gravity: PopupEdge::Top,
+        adjust: PopupAdjust {
+            slide_x: PopupToggle::On,
+            ..PopupAdjust::NONE
         },
-        grab: Grab::Grabbed,
-        offset: Offset {
+        grab: PopupGrab::Grabbed,
+        offset: PopupOffset {
             dx,
             dy: BOTTOM - GAP,
         },

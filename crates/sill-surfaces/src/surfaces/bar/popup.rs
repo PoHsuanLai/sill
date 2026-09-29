@@ -2,7 +2,9 @@
 //! Seat)`; design/13 §13.3.2 position: `x = title.left - 8`, `y = title.bottom + 6`, status
 //! menus right-aligned to `item.right + 8`, one reusable popup repositioned on hover switch).
 
-use shell_host::{Adjust, Edge, ElementId, Grab, Offset, PopupAnchor, PopupConfig, PopupSize};
+use shell_host::{
+    ElementId, PopupAdjust, PopupAnchor, PopupConfig, PopupEdge, PopupGrab, PopupOffset, PopupSize,
+};
 
 use super::geometry::{EDGE_GAP, SIDE};
 
@@ -22,8 +24,8 @@ pub enum MenuSide {
 /// in each direction, offset from the anchor corner by [`menu_offset`].
 pub fn menu_popup(button: &str, side: MenuSide, max_px: i32) -> PopupConfig {
     let (edge, gravity) = match side {
-        MenuSide::Title => (Edge::BottomLeft, Edge::BottomRight),
-        MenuSide::Status | MenuSide::OutputEdge => (Edge::BottomRight, Edge::BottomLeft),
+        MenuSide::Title => (PopupEdge::BottomLeft, PopupEdge::BottomRight),
+        MenuSide::Status | MenuSide::OutputEdge => (PopupEdge::BottomRight, PopupEdge::BottomLeft),
     };
     PopupConfig {
         anchor: PopupAnchor::Element(ElementId::new(button)),
@@ -31,10 +33,10 @@ pub fn menu_popup(button: &str, side: MenuSide, max_px: i32) -> PopupConfig {
         edge,
         gravity,
         adjust: adjust(side),
-        grab: Grab::Grabbed,
+        grab: PopupGrab::Grabbed,
         offset: {
             let (dx, dy) = menu_offset(side);
-            Offset { dx, dy }
+            PopupOffset { dx, dy }
         },
     }
 }
@@ -55,17 +57,17 @@ pub fn menu_offset(side: MenuSide) -> (i32, i32) {
 /// bottom when the panel is at its cap, on purpose (the panel itself stays [`EDGE_GAP`] inside
 /// and `control_center.bottom_margin_px` above), and sliding it back would pull the panel in by
 /// the room.
-pub fn adjust(side: MenuSide) -> Adjust {
+pub fn adjust(side: MenuSide) -> PopupAdjust {
     match side {
-        MenuSide::Title | MenuSide::Status => Adjust::SLIDE_AND_FLIP,
-        MenuSide::OutputEdge => Adjust::NONE,
+        MenuSide::Title | MenuSide::Status => PopupAdjust::SLIDE_AND_FLIP,
+        MenuSide::OutputEdge => PopupAdjust::NONE,
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{MenuSide, menu_offset, menu_popup};
-    use shell_host::{Edge, ElementId, Grab, Offset, PopupAnchor, PopupSize};
+    use shell_host::{ElementId, PopupAnchor, PopupEdge, PopupGrab, PopupOffset, PopupSize};
 
     #[test]
     fn titles_hang_right_and_status_items_hang_left() {
@@ -76,26 +78,26 @@ mod tests {
         );
         assert_eq!(
             (title.edge, title.gravity),
-            (Edge::BottomLeft, Edge::BottomRight)
+            (PopupEdge::BottomLeft, PopupEdge::BottomRight)
         );
         assert_eq!(title.size, PopupSize::FitContent { max: 600 });
-        assert_eq!(title.grab, Grab::Grabbed);
-        assert_eq!(title.offset, Offset { dx: -8, dy: 6 });
+        assert_eq!(title.grab, PopupGrab::Grabbed);
+        assert_eq!(title.offset, PopupOffset { dx: -8, dy: 6 });
         let status = menu_popup("bar-status-clock", MenuSide::Status, 600);
         assert_eq!(
             (status.edge, status.gravity),
-            (Edge::BottomRight, Edge::BottomLeft)
+            (PopupEdge::BottomRight, PopupEdge::BottomLeft)
         );
-        assert_eq!(status.offset, Offset { dx: 8, dy: 6 });
+        assert_eq!(status.offset, PopupOffset { dx: 8, dy: 6 });
         assert_eq!(menu_offset(MenuSide::Title), (-8, 6));
         assert_eq!(menu_offset(MenuSide::Status), (8, 6));
         let edge = menu_popup("bar-status-cc", MenuSide::OutputEdge, 600);
         assert_eq!(
             (edge.edge, edge.gravity),
-            (Edge::BottomRight, Edge::BottomLeft)
+            (PopupEdge::BottomRight, PopupEdge::BottomLeft)
         );
-        assert_eq!(edge.offset, Offset { dx: 20, dy: 6 });
-        assert_eq!(edge.adjust, shell_host::Adjust::NONE);
-        assert_eq!(status.adjust, shell_host::Adjust::SLIDE_AND_FLIP);
+        assert_eq!(edge.offset, PopupOffset { dx: 20, dy: 6 });
+        assert_eq!(edge.adjust, shell_host::PopupAdjust::NONE);
+        assert_eq!(status.adjust, shell_host::PopupAdjust::SLIDE_AND_FLIP);
     }
 }

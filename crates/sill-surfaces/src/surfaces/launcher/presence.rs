@@ -8,7 +8,7 @@
 
 use std::time::Instant;
 
-use shell_host::{Focus, OutputId};
+use shell_host::{KeyboardFocus, OutputId};
 use tokio::sync::watch;
 
 use crate::surfaces::launcher::debug_link::{LinkKey, LinkPress, ShownRows};
@@ -123,13 +123,15 @@ pub fn toggle(shown: &LauncherShown, output: OutputId, now: Instant) -> Launcher
 
 /// The panel's keyboard focus changed: gaining it is noted, losing it after holding it closes
 /// the launcher (design/06 §20.2 "focus lost").
-pub fn after_focus(shown: &LauncherShown, focus: Focus) -> LauncherShown {
+pub fn after_focus(shown: &LauncherShown, focus: KeyboardFocus) -> LauncherShown {
     match (shown, focus) {
-        (LauncherShown::Shown(opening), Focus::Gained) => LauncherShown::Shown(Opening {
+        (LauncherShown::Shown(opening), KeyboardFocus::Gained) => LauncherShown::Shown(Opening {
             focus: PanelFocus::Held,
             ..opening.clone()
         }),
-        (LauncherShown::Shown(opening), Focus::Lost) if opening.focus == PanelFocus::Held => {
+        (LauncherShown::Shown(opening), KeyboardFocus::Lost)
+            if opening.focus == PanelFocus::Held =>
+        {
             shown.hidden()
         }
         _ => shown.clone(),
@@ -195,7 +197,7 @@ impl LauncherLink {
     }
 
     /// The panel's keyboard focus changed.
-    pub fn focus(&self, focus: Focus) {
+    pub fn focus(&self, focus: KeyboardFocus) {
         self.shown.send_if_modified(|shown| {
             let next = after_focus(shown, focus);
             let changed = next != *shown;
@@ -262,7 +264,7 @@ mod tests {
     use super::{
         LauncherLink, LauncherShown, OpenSerial, PanelFocus, Visible, after_focus, open, toggle,
     };
-    use shell_host::{Focus, OutputId};
+    use shell_host::{KeyboardFocus, OutputId};
     use std::time::Instant;
 
     const ONE: OutputId = OutputId(1);
@@ -298,12 +300,12 @@ mod tests {
         let now = Instant::now();
         let shown = open(&LauncherShown::default(), ONE, String::new(), now);
         // The late leave from the previous opening's unmap: ignored.
-        assert_eq!(after_focus(&shown, Focus::Lost), shown);
-        let held = after_focus(&shown, Focus::Gained);
+        assert_eq!(after_focus(&shown, KeyboardFocus::Lost), shown);
+        let held = after_focus(&shown, KeyboardFocus::Gained);
         assert_eq!(held.opening().map(|o| o.focus), Some(PanelFocus::Held));
-        assert_eq!(after_focus(&held, Focus::Lost), shown.hidden());
+        assert_eq!(after_focus(&held, KeyboardFocus::Lost), shown.hidden());
         let hidden = LauncherShown::default();
-        assert_eq!(after_focus(&hidden, Focus::Gained), hidden);
+        assert_eq!(after_focus(&hidden, KeyboardFocus::Gained), hidden);
     }
 
     #[test]
@@ -331,7 +333,7 @@ mod tests {
         link.toggle(ONE);
         assert!(rx.has_changed().unwrap_or(false));
         let _ = rx.borrow_and_update();
-        link.focus(Focus::Lost);
+        link.focus(KeyboardFocus::Lost);
         assert!(!rx.has_changed().unwrap_or(true), "a loss before any gain");
         link.close();
         assert_eq!(rx.borrow_and_update().opening(), None);

@@ -2,8 +2,8 @@
 //! `top = max(bar_h + 24, round(0.4 H - 230))`, every number a `launcher.*` key).
 
 use shell_host::{
-    Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig, LayerSize, Margin,
-    OutputInfo, OutputTarget, Rect, RegionSpec, RoundedRect,
+    Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
+    Margin, OutputInfo, OutputTarget, Rect, RegionSpec, RoundedRect,
 };
 use sill_settings::{BarSettings, LauncherSettings};
 
@@ -64,11 +64,11 @@ pub fn panel_layer(
 ) -> LayerConfig {
     LayerConfig {
         namespace: namespace("launcher", output),
-        layer: Layer::Overlay,
+        layer: LayerLevel::Overlay,
         anchor: Anchor::TOP,
         size: LayerSize {
-            width: Extent::Px(PANEL_ROOM_WIDTH + 2 * SHADOW_SIDE),
-            height: Extent::Px(PANEL_HEIGHT + SHADOW_BELOW),
+            width: LayerExtent::Px(PANEL_ROOM_WIDTH + 2 * SHADOW_SIDE),
+            height: LayerExtent::Px(PANEL_HEIGHT + SHADOW_BELOW),
         },
         exclusive: ExclusiveZone::Ignore,
         margin: Margin {
@@ -157,11 +157,11 @@ pub fn catcher_input(
 pub fn catcher_layer(output: &OutputInfo) -> LayerConfig {
     LayerConfig {
         namespace: namespace("launcher-catcher", output),
-        layer: Layer::Overlay,
+        layer: LayerLevel::Overlay,
         anchor: Anchor::ALL,
         size: LayerSize {
-            width: Extent::Fill,
-            height: Extent::Fill,
+            width: LayerExtent::Fill,
+            height: LayerExtent::Fill,
         },
         exclusive: ExclusiveZone::Ignore,
         margin: Margin::ZERO,
@@ -177,7 +177,7 @@ mod tests {
     use super::{catcher_input, catcher_layer, panel_layer, panel_rect, panel_top};
     use crate::surfaces::launcher::hit::PanelHit;
     use crate::surfaces::naming::tests::output;
-    use shell_host::{Anchor, BlurSpec, Extent, KeyboardMode, Layer, Rect, RegionSpec};
+    use shell_host::{Anchor, BlurSpec, KeyboardMode, LayerExtent, LayerLevel, Rect, RegionSpec};
     use sill_settings::{BarSettings, LauncherSettings};
 
     #[test]
@@ -203,11 +203,11 @@ mod tests {
         let out = output(Some("DP-1"));
         let panel = panel_layer(&out, &BarSettings::default(), &LauncherSettings::default());
         assert_eq!(panel.namespace, "sill-launcher-DP-1");
-        assert_eq!(panel.layer, Layer::Overlay);
+        assert_eq!(panel.layer, LayerLevel::Overlay);
         assert_eq!(panel.anchor, Anchor::TOP);
         assert_eq!(
             (panel.size.width, panel.size.height),
-            (Extent::Px(680 + 360 + 84), Extent::Px(460 + 66)),
+            (LayerExtent::Px(680 + 360 + 84), LayerExtent::Px(460 + 66)),
             "the card, the pane's room beside it and the shadow's room"
         );
         assert_eq!(panel.margin.top, 202);
