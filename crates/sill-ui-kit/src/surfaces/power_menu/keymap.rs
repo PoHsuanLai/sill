@@ -3,7 +3,7 @@
 
 use dioxus::prelude::{Key, Modifiers};
 
-use crate::surfaces::power_menu::keys::PowerMenuKey;
+use super::keys::PowerMenuKey;
 
 /// `key` with `modifiers` held, when the menu handles it.
 pub fn power_menu_key(key: &Key, modifiers: Modifiers) -> Option<PowerMenuKey> {

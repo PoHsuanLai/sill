@@ -12,21 +12,21 @@ use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_model::session::{Session, SessionAction};
 use sill_settings::PowerMenuDefault;
 
+use super::backend::{DryRunSession, PowerMenuBackend};
+use super::follow::{Follow, follow};
+use super::keymap::power_menu_key;
+use super::keys::{initial, offered};
+use super::labels::action_label;
+use super::sheet::{MenuSession, SheetEffect, SheetInput, Then, advance};
 use crate::links::{OpenSerial, PanelFocus, Visible};
 use crate::links::{PowerMenuLink, PowerMenuOpening, Reveal};
-use crate::surfaces::power_menu::backend::{DryRunSession, PowerMenuBackend};
-use crate::surfaces::power_menu::follow::{Follow, follow};
-use crate::surfaces::power_menu::keymap::power_menu_key;
-use crate::surfaces::power_menu::keys::{initial, offered};
-use crate::surfaces::power_menu::labels::action_label;
-use crate::surfaces::power_menu::sheet::{MenuSession, SheetEffect, SheetInput, Then, advance};
 
 /// The buttons' elements, for moving the keyboard focus.
 type Buttons = Vec<(SessionAction, Rc<MountedData>)>;
 
 /// Everything the menu's handlers reach. Clone is cheap.
 #[derive(Clone)]
-pub(crate) struct MenuCtx {
+pub(super) struct MenuCtx {
     link: PowerMenuLink,
     backend: PowerMenuBackend,
     pub offers: ReadSignal<Session>,
@@ -35,7 +35,7 @@ pub(crate) struct MenuCtx {
 }
 
 /// The menu on `output`, opening focused per `default`.
-pub(crate) fn use_menu(output: OutputId, default: PowerMenuDefault) -> MenuCtx {
+pub(super) fn use_menu(output: OutputId, default: PowerMenuDefault) -> MenuCtx {
     let link = use_context::<PowerMenuLink>();
     let services = try_use_context::<Services>();
     let backend = use_hook(|| {

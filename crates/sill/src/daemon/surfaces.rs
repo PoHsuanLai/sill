@@ -11,7 +11,7 @@ use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::surface::Surface;
-use sill_ui_kit::{HotCorners, IdleDim, Osd, Wallpaper};
+use sill_ui_kit::{HotCorners, IdleDim, Osd, PowerMenu, Wallpaper};
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
@@ -45,7 +45,7 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     spawn_surface::<Wallpaper>(ctx, outputs, spawn, &());
     spawn_missing_docks(ctx, outputs, services, settings_feed, links, settings);
     spawn_missing_launchers(ctx, outputs, services, settings_feed, links, settings);
-    crate::power_menu::spawn_missing(ctx, outputs, root);
+    spawn_surface::<PowerMenu>(ctx, outputs, spawn, &links.power_menu);
     // The polkit prompt over the power menu, and the switcher (both Overlay).
     crate::polkit::spawn_missing(ctx, outputs, root);
     crate::switcher::spawn_missing(ctx, outputs, root);

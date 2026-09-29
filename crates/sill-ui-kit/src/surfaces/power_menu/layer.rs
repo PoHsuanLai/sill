@@ -7,18 +7,20 @@ use shell_host::{
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
+use sill_settings::ShellFile;
+
 use crate::surfaces::naming::namespace;
 
 /// The sheet's element id: the surface's blur region.
-pub const PANEL_ID: &str = "power-menu-panel";
+pub(super) const PANEL_ID: &str = "power-menu-panel";
 
 /// The blur region's corner under the sheet: quire's `.ds-sheet` rounds with a plain
 /// `border-radius: var(--r-panel)`, a circle of 14 (not the launcher card's squircle, whose
 /// shadow circle is 12), and the panel element is the sheet's whole box.
-pub const PANEL_BLUR_RADIUS: i32 = 14;
+const PANEL_BLUR_RADIUS: i32 = 14;
 
 /// The sheet's blur region.
-pub fn panel_region() -> RegionSpec {
+fn panel_region() -> RegionSpec {
     RegionSpec::Element {
         id: ElementId::new(PANEL_ID),
         radius: PANEL_BLUR_RADIUS,
@@ -27,7 +29,7 @@ pub fn panel_region() -> RegionSpec {
 }
 
 /// The power menu on `output`.
-pub fn power_menu_layer(output: &OutputInfo) -> LayerConfig {
+pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
     LayerConfig {
         namespace: namespace("power-menu", output),
         layer: LayerLevel::Overlay,
@@ -47,15 +49,16 @@ pub fn power_menu_layer(output: &OutputInfo) -> LayerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::{panel_region, power_menu_layer};
+    use super::{layer as power_menu_layer, panel_region};
     use crate::surfaces::naming::tests::output;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, RegionSpec,
     };
+    use sill_settings::ShellFile;
 
     #[test]
     fn the_power_menu_is_a_keyboard_exclusive_full_output_overlay() {
-        let layer = power_menu_layer(&output(Some("DP-1")));
+        let layer = power_menu_layer(&output(Some("DP-1")), &ShellFile::default());
         assert_eq!(layer.namespace, "sill-power-menu-DP-1");
         assert_eq!(layer.layer, LayerLevel::Overlay);
         assert_eq!(layer.anchor, Anchor::ALL);

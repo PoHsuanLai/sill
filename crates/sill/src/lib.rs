@@ -14,7 +14,6 @@ pub mod osd;
 pub mod outputs;
 pub mod policy;
 pub mod polkit;
-pub mod power_menu;
 pub mod run_args;
 pub mod screenshots;
 pub mod scroll;

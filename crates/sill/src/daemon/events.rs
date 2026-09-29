@@ -11,8 +11,10 @@ use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
 use sill_model::displays::DisplaysCommand;
 use sill_settings::{SettingsFeed, ShellFile};
+use sill_ui_kit::PowerMenu;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
+use sill_ui_kit::surface::Surface;
 use tokio::sync::watch;
 
 use super::msg::ShellMsg;
@@ -138,7 +140,7 @@ fn follow_keyboard_focus(shell: &Shell, event: &HostEvent<ShellMsg>) {
     if on(|surfaces| surfaces.launcher) {
         shell.links.launcher.focus(*focus);
     }
-    if on(|surfaces| surfaces.power_menu) {
+    if on(|surfaces| surfaces.spawned_id(PowerMenu::NAME)) {
         shell.links.power_menu.focus(*focus);
     }
 }

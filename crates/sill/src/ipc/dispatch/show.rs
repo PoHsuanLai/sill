@@ -4,7 +4,9 @@
 
 use sill_ipc::response::Response;
 use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
+use sill_ui_kit::PowerMenu;
 use sill_ui_kit::links::Preselect;
+use sill_ui_kit::surface::Surface;
 
 use super::reach::Reach;
 use super::reply::unsupported;
@@ -49,7 +51,7 @@ fn power_menu(reach: &Reach, reveal: Reveal) -> Response {
     let menu = &reach.links.power_menu;
     match (
         reveal,
-        first_with(reach.outputs, |s| s.power_menu.is_some()),
+        first_with(reach.outputs, |s| s.spawned_id(PowerMenu::NAME).is_some()),
     ) {
         (Reveal::Close, _) => menu.close(),
         (Reveal::Open, Some(output)) => menu.open(output, Preselect::Default),

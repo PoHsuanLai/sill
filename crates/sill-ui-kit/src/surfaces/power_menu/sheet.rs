@@ -7,10 +7,8 @@
 use ds::Shown;
 use sill_model::session::{Session, SessionAction};
 
+use super::keys::{PowerMenuKey, PowerMenuOut, PowerMenuState, offered, step};
 use crate::links::OpenSerial;
-use crate::surfaces::power_menu::keys::{
-    PowerMenuKey, PowerMenuOut, PowerMenuState, offered, step,
-};
 
 /// What happens once the sheet has left.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

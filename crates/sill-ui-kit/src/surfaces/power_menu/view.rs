@@ -14,23 +14,21 @@ use ds::{
 use shell_host::OutputInfo;
 use sill_model::session::{Session, SessionAction};
 
+use super::io::{MenuCtx, use_menu};
+use super::keys::offered;
+use super::labels::{action_label, button_size, button_variant, consequence, prompt};
+use super::layer::PANEL_ID;
+use super::sheet::{MenuSession, SheetInput};
 use crate::hooks::use_settings;
 use crate::root::SurfaceRoot;
 use crate::surfaces::launcher::panel::material;
-use crate::surfaces::power_menu::drive::{MenuCtx, use_menu};
-use crate::surfaces::power_menu::keys::offered;
-use crate::surfaces::power_menu::labels::{
-    action_label, button_size, button_variant, consequence, prompt,
-};
-use crate::surfaces::power_menu::layer::PANEL_ID;
-use crate::surfaces::power_menu::sheet::{MenuSession, SheetInput};
 
 /// The power menu's stylesheet (lint-clean under `Profile::Strict`,
-/// `tests/power_menu_lint.rs`).
-pub(crate) const POWER_MENU_CSS: &str = include_str!("../../style/power_menu.css");
+/// `crates/sill/tests/lint.rs`).
+pub const POWER_MENU_CSS: &str = include_str!("../../style/power_menu.css");
 
 /// The panel on `output`.
-pub(crate) fn power_menu(output: OutputInfo) -> Element {
+pub(super) fn power_menu(output: OutputInfo) -> Element {
     let file = use_settings()();
     let ctx = use_menu(output.id, file.power_menu.default_action);
     let menu = (ctx.menu)();

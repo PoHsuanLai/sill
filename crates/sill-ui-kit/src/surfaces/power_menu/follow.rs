@@ -2,8 +2,8 @@
 //! new opening starts one, the same opening shown again while its sheet leaves brings the sheet
 //! back, and a hidden menu drops it.
 
+use super::sheet::{MenuSession, SheetPhase};
 use crate::links::{PowerMenuOpening, Showing};
-use crate::surfaces::power_menu::sheet::{MenuSession, SheetPhase};
 
 /// What the panel does when the link changes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

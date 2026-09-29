@@ -8,10 +8,11 @@ use std::time::Duration;
 use ds::lint::{LintConfig, Profile, markup, stylesheet};
 use sill_model::idle::{DimLevel, DimShown, Idle, IdleMode, IdlePhase};
 use sill_model::ids::OutputName;
+use sill_model::session::Session;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
-use sill_ui_kit::links::{LevelSource, OsdKind, OsdLink};
-use sill_ui_kit::{IdleDim, Osd, Wallpaper};
+use sill_ui_kit::links::{LevelSource, OsdKind, OsdLink, PowerMenuLink, Preselect};
+use sill_ui_kit::{IdleDim, Osd, PowerMenu, Wallpaper};
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
 struct SurfaceCase {
@@ -42,6 +43,11 @@ const SURFACES: &[SurfaceCase] = &[
         name: "wallpaper",
         css: sill_ui_kit::surfaces::wallpaper::WALLPAPER_CSS,
         states: wallpaper_states,
+    },
+    SurfaceCase {
+        name: "power_menu",
+        css: sill_ui_kit::surfaces::power_menu::POWER_MENU_CSS,
+        states: power_menu_states,
     },
 ];
 
@@ -104,6 +110,19 @@ fn wallpaper_states() -> Vec<(&'static str, String)> {
     let pictured = wallpaper.harness.html();
     assert!(pictured.contains("<img"), "{pictured}");
     vec![("no image", bare), ("with an image", pictured)]
+}
+
+/// The menu hidden, then open on the default button once its sheet has settled.
+fn power_menu_states() -> Vec<(&'static str, String)> {
+    let mut menu = SurfaceHarness::<PowerMenu>::setup(PowerMenuLink::new(), ()).start();
+    menu.feeds.session.send_replace(Session::everything());
+    menu.harness.advance(Duration::from_millis(40));
+    let hidden = menu.harness.html();
+    menu.link.open(fake::output().id, Preselect::Default);
+    menu.harness.advance(Duration::from_millis(700));
+    let open = menu.harness.html();
+    assert!(open.contains("sill-power-menu-panel"), "{open}");
+    vec![("hidden", hidden), ("open", open)]
 }
 
 #[test]

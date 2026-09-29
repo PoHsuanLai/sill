@@ -11,28 +11,16 @@
 //! holding focus closes it, as the launcher's does). A chosen action goes to
 //! `sill_model::session::SessionCommand::Run`.
 
-pub mod backend;
-pub mod keymap;
-pub mod keys;
-pub mod labels;
-pub mod layer;
-pub mod sheet;
-
-mod drive;
+mod backend;
 mod follow;
-mod panel;
+mod io;
+mod keymap;
+mod keys;
+mod labels;
+mod layer;
+mod sheet;
+mod surface;
+mod view;
 
-pub use backend::{BackendKind, DryRunSession, PowerMenuBackend, SessionBackend, dry_run_line};
-pub use keys::{PowerMenuKey, PowerMenuOut, PowerMenuState, initial, step};
-pub use labels::{action_label, button_variant};
-pub use layer::{PANEL_BLUR_RADIUS, PANEL_ID, panel_region, power_menu_layer};
-
-use dioxus::prelude::*;
-use shell_host::OutputInfo;
-
-/// The power menu on `output`. Needs a [`PowerMenuLink`] root context beside the daemon's usual
-/// ones (the daemon's `surface_root` gives every surface one).
-#[component]
-pub fn PowerMenu(output: OutputInfo) -> Element {
-    panel::power_menu(output)
-}
+pub use surface::PowerMenu;
+pub use view::POWER_MENU_CSS;

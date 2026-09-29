@@ -26,8 +26,6 @@ pub struct OutputSurfaces {
     pub dock: Option<SurfaceId>,
     pub launcher: Option<SurfaceId>,
     pub catcher: Option<SurfaceId>,
-    /// The power menu, warm and hidden.
-    pub power_menu: Option<SurfaceId>,
     /// The banner column and the notification center, warm and hidden.
     pub banners: Option<SurfaceId>,
     pub notification_center: Option<SurfaceId>,
@@ -45,13 +43,12 @@ pub struct OutputSurfaces {
 
 impl OutputSurfaces {
     /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 12] {
+    fn fields(&self) -> [Option<SurfaceId>; 11] {
         [
             self.bar,
             self.dock,
             self.launcher,
             self.catcher,
-            self.power_menu,
             self.banners,
             self.notification_center,
             self.thumbnail,
@@ -60,6 +57,15 @@ impl OutputSurfaces {
             self.switcher,
             self.edit_widgets,
         ]
+    }
+
+    /// The id of this row's spawned surface `name` (a `Surface::NAME`), if it has one. A slotted
+    /// kind has several; this is the first.
+    pub fn spawned_id(&self, name: &str) -> Option<SurfaceId> {
+        self.spawned
+            .iter()
+            .find(|surface| surface.name == name)
+            .map(|surface| surface.id)
     }
 
     /// Whether any surface of this row is `id`.
@@ -81,7 +87,6 @@ impl OutputSurfaces {
             &mut self.dock,
             &mut self.launcher,
             &mut self.catcher,
-            &mut self.power_menu,
             &mut self.banners,
             &mut self.notification_center,
             &mut self.thumbnail,

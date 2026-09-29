@@ -60,6 +60,9 @@ pub struct Feeds {
     /// The displays (none until a test feeds some), and what the Display module sends.
     pub displays: watch::Sender<sill_model::displays::Displays>,
     pub displays_commands: mpsc::UnboundedReceiver<sill_model::displays::DisplaysCommand>,
+    /// What the session service offers (nothing until a test feeds it), and what it is asked.
+    pub session: watch::Sender<sill_model::session::Session>,
+    pub session_commands: mpsc::UnboundedReceiver<sill_model::session::SessionCommand>,
     /// The prepared wallpapers (none until a test feeds some).
     pub wallpaper: watch::Sender<Wallpapers>,
     /// Receivers and command queues nobody reads here, kept so sends do not fail.
@@ -100,6 +103,7 @@ pub fn services() -> (Services, Feeds) {
     let (screenshots, shots_io) = Handle::channel(sill_model::screenshots::Shots::default());
     let (idle, idle_io) = Handle::channel(sill_model::idle::Idle::default());
     let (displays, displays_io) = Handle::channel(sill_model::displays::Displays::default());
+    let (session, session_io) = Handle::channel(sill_model::session::Session::default());
     let (wallpaper, wallpaper_io) = Handle::channel(Wallpapers::default());
     keep.push(Box::new(wallpaper_io.commands));
     keep.push(Box::new(clock_io.commands));
@@ -126,7 +130,7 @@ pub fn services() -> (Services, Feeds) {
         power_profile,
         now_playing,
         kbd_backlight,
-        session: fixed(sill_model::session::Session::default(), &mut keep),
+        session,
         locker: fixed(sill_model::locker::Lock::default(), &mut keep),
         notifications,
         events,
@@ -172,6 +176,8 @@ pub fn services() -> (Services, Feeds) {
         idle: idle_io.state,
         displays: displays_io.state,
         displays_commands: displays_io.commands,
+        session: session_io.state,
+        session_commands: session_io.commands,
         wallpaper: wallpaper_io.state,
         _keep: keep,
     };

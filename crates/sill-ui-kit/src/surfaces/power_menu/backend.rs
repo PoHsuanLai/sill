@@ -16,7 +16,7 @@ use sill_services::env::ActionReach;
 use sill_services::{Control, ServiceError};
 use tokio::sync::watch;
 
-use crate::surfaces::power_menu::labels::action_label;
+use super::labels::action_label;
 
 /// Which backend a surface runs on, for its log line (`power_menu.backend=<name>`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -134,17 +134,8 @@ impl DryRunSession {
         }
     }
 
-    /// A dry run offering whatever `offers` holds (the session service's, read only: logind's
-    /// answers), recording to `record` when given. It holds no way to reach logind's actions.
-    pub fn following(offers: watch::Receiver<Session>, record: Option<PathBuf>) -> DryRunSession {
-        DryRunSession {
-            offers,
-            ran: Arc::default(),
-            record,
-        }
-    }
-
     /// The actions chosen so far, oldest first.
+    #[cfg(test)]
     pub fn ran(&self) -> Vec<SessionAction> {
         self.ran.lock().map(|ran| ran.clone()).unwrap_or_default()
     }
