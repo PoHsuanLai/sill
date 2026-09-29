@@ -14,7 +14,7 @@ const LAUNCHER_CSS: &str = include_str!("../src/style/launcher.css");
 fn details() -> LintConfig {
     LintConfig {
         profile: Profile::Details,
-        ..LintConfig::default()
+        ..LintConfig::new(&ds::kits())
     }
 }
 

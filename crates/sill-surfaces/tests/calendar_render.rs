@@ -155,7 +155,7 @@ fn clean(html: &str) {
     let css = format!("{}\n{}", ds::stylesheet(), widgets_css());
     let strict = LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::default()
+        ..LintConfig::new(&ds::kits())
     };
     let offences = markup(html, &css, &strict);
     assert!(offences.is_empty(), "{offences:#?}");

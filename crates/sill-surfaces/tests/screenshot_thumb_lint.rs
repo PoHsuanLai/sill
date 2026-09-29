@@ -15,7 +15,7 @@ use sill_surfaces::surfaces::screenshot_thumb::SCREENSHOT_THUMB_CSS;
 fn the_thumbnail_stylesheet_is_clean_under_strict() {
     let strict = LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::default()
+        ..LintConfig::new(&ds::kits())
     };
     assert_clean(SCREENSHOT_THUMB_CSS, &strict);
 }
@@ -35,7 +35,7 @@ fn the_shown_card_is_quire_markup_only() {
     let css = format!("{}\n{}", ds::stylesheet(), SCREENSHOT_THUMB_CSS);
     let html = shown_html();
     assert!(html.contains("ds-shot-image"), "{html}");
-    let offences = markup(&html, &css, &LintConfig::default());
+    let offences = markup(&html, &css, &LintConfig::new(&ds::kits()));
     let raw: Vec<_> = offences
         .iter()
         .filter(|o| o.rule == Rule::RawMarkup)

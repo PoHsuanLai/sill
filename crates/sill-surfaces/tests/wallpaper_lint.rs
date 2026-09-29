@@ -17,7 +17,7 @@ const WALLPAPER_CSS: &str = include_str!("../src/style/wallpaper.css");
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::default()
+        ..LintConfig::new(&ds::kits())
     }
 }
 

@@ -19,7 +19,7 @@ const POWER_MENU_CSS: &str = include_str!("../src/style/power_menu.css");
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::default()
+        ..LintConfig::new(&ds::kits())
     }
 }
 

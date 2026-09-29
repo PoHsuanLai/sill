@@ -1,7 +1,7 @@
 //! The numbers the machine runs on: `dock.*` settings plus quire's motion tokens
 //! at the active motion level. Built once per settings change, never hard-coded.
 
-use ds::{DelayToken, Easing, EasingToken, MotionLevel};
+use ds::{StyleDelay, Easing, EasingToken, MotionLevel};
 use sill_model::units::Cpx;
 use sill_settings::{
     ActiveClick, Bounce as BounceSetting, DockModifierClicks, DockSettings, LaunchAnim,
@@ -67,7 +67,7 @@ impl DockParams {
             leave_ms: u64::from(dock.magnify_leave_ms.0),
             ease_out: curve(EasingToken::Out),
             ease_exit: curve(EasingToken::Exit),
-            fly_delay_ms: u64::try_from(DelayToken::Fly.delay(level).as_millis()).unwrap_or(350),
+            fly_delay_ms: u64::try_from(StyleDelay::Fly.delay(level).as_millis()).unwrap_or(350),
             warm_ms: u64::from(dock.hover_label_warm_ms.0),
             hold_ms: u64::from(dock.hold_to_menu_ms.0),
             drag_threshold: px(dock.hold_to_menu_move_px.0),

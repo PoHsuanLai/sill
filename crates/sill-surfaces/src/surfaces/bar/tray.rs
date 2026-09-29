@@ -325,7 +325,7 @@ mod tests {
             full_css(),
             &LintConfig {
                 profile: Profile::Strict,
-                ..LintConfig::default()
+                ..LintConfig::new(&ds::kits())
             },
         );
         assert!(offences.is_empty(), "{offences:#?}");
@@ -334,7 +334,7 @@ mod tests {
     #[test]
     fn no_raw_button_or_img_outside_ds_components() {
         let html = render_ssr();
-        let offences = markup(&html, full_css(), &LintConfig::default());
+        let offences = markup(&html, full_css(), &LintConfig::new(&ds::kits()));
         assert!(
             offences.iter().all(|o| o.rule != Rule::RawMarkup),
             "{offences:#?}"

@@ -19,7 +19,7 @@ fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
         own_vars: BANNER_VARS.iter().map(|v| (*v).to_owned()).collect(),
-        ..LintConfig::default()
+        ..LintConfig::new(&ds::kits())
     }
 }
 

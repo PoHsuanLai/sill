@@ -179,7 +179,7 @@ const MS: Duration = Duration::from_millis(1);
 fn the_stylesheet_is_clean_under_strict() {
     let strict = LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::default()
+        ..LintConfig::new(&ds::kits())
     };
     assert_clean(HOT_CORNERS_CSS, &strict);
 }

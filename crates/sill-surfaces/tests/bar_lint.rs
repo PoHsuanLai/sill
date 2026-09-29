@@ -15,7 +15,7 @@ const POPUP_CSS: &str = include_str!("../src/style/bar_popup.css");
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::default()
+        ..LintConfig::new(&ds::kits())
     }
 }
 

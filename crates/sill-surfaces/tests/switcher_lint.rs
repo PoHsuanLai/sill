@@ -18,7 +18,7 @@ const SWITCHER_CSS: &str = include_str!("../src/style/switcher.css");
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::default()
+        ..LintConfig::new(&ds::kits())
     }
 }
 

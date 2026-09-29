@@ -32,7 +32,7 @@ const ALL: [WidgetKind; 5] = [
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::default()
+        ..LintConfig::new(&ds::kits())
     }
 }
 

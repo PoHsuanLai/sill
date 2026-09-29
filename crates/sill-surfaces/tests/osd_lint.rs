@@ -18,7 +18,7 @@ const OSD_CSS: &str = include_str!("../src/style/osd.css");
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::default()
+        ..LintConfig::new(&ds::kits())
     }
 }
 

@@ -13,7 +13,7 @@ use sill_model::polkit_agent::LastTry;
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::default()
+        ..LintConfig::new(&ds::kits())
     }
 }
 

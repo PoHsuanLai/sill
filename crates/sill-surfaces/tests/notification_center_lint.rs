@@ -16,7 +16,7 @@ use sill_surfaces::surfaces::notification_center::{
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::default()
+        ..LintConfig::new(&ds::kits())
     }
 }
 
