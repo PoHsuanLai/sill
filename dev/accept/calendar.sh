@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Calendar acceptance (design/20 §1.12 and §1.14), on the nested cosmic-comp (dev/nested.sh; a
-# running wayland-1 is reused and never stopped).
-# Starts `sill run` from this checkout's debug build (`--features debug`) with a scratch
-# XDG_CONFIG_HOME, XDG_STATE_HOME, XDG_CACHE_HOME and XDG_DATA_HOME, under a private session bus
-# (dev/private-bus.conf), and with its own XDG_RUNTIME_DIR (the nested socket as an absolute
-# WAYLAND_DISPLAY). `calendar.sources` names three temp `.ics` files written here (never a real
+# Calendar acceptance (design/20 §1.12 and §1.14), on the nested cosmic-comp (dev/nested.sh; its
+# socket is reused and never stopped).
+# Starts `sill run` from this checkout's debug build (`--features debug`) on a private bus (the
+# daemon's session AND system bus), with a scratch HOME and XDG directories, its own
+# XDG_RUNTIME_DIR (the nested socket as an absolute WAYLAND_DISPLAY) and a fake DDC.
+# `calendar.sources` names three temp `.ics` files written here (never a real
 # calendar: `auto` is not used), each its own calendar so Up Next's colour bars tell them apart:
 # work.ics "Design review" today in an hour, team.ics a weekly "Yoga" (a week ago and today, in
 # three hours), personal.ics "Dentist" tomorrow at 09:00. `widgets.center = ["calendar",
@@ -30,57 +30,23 @@
 # slot is not in this build), 1 on a failure. Another sill daemon started from a
 # `target/*/sill run` is waited for (up to 10 minutes).
 #
-# Usage: dev/nested.sh && dev/accept-calendar.sh
+# Usage: dev/nested.sh && dev/accept/calendar.sh
 set -uo pipefail
-# shellcheck source=dev/common.sh
-source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
-# shellcheck source=dev/backdrop.sh
-source "$(dirname "${BASH_SOURCE[0]}")/backdrop.sh"
+# shellcheck source=dev/lib/all.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 OUT_DIR="$SILL_REPO/target/accept-calendar"
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
 
-source "$SHELL_HOST_DEV/.nested-env"
-HOST_RUNTIME="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-NESTED_SOCKET="$HOST_RUNTIME/$WAYLAND_DISPLAY"
-RUNTIME=$(mktemp -d)
-chmod 700 "$RUNTIME"
-
-sill() { XDG_RUNTIME_DIR="$RUNTIME" "$SILL_BIN" "$@"; }
+scratch_new
+CAL="$SCRATCH/calendars"
+mkdir -p "$CAL"
 
 # A screenshot of the nested output only (shot.sh falls back to the host's session when no
 # nested compositor answers, so it is never called without one).
 shot() {
   "$SHELL_HOST_DEV/run.sh" wayland-info >/dev/null 2>&1 || { echo "no nested compositor" >&2; return 1; }
   "$SHELL_HOST_DEV/shot.sh" "$1" >/dev/null 2>&1
-}
-
-output_name() {
-  sill debug stats | python3 -c '
-import json, sys
-for row in json.loads(sys.stdin.read())["v"]:
-    s = row["surface"]
-    if s.startswith("sill-bar-") and "/" not in s:
-        print(s[len("sill-bar-"):]); break'
-}
-
-frames_of() {
-  sill debug stats | python3 -c '
-import json, sys
-for row in json.loads(sys.stdin.read())["v"]:
-    if row["surface"] == sys.argv[1]:
-        print(row["frames"])' "$1"
-}
-
-center_up() { sill debug capture "$CENTER" "$OUT_DIR/probe.png" >/dev/null 2>&1; }
-
-wait_center() {
-  for _ in $(seq 40); do
-    if [ "$1" = up ] && center_up; then return 0; fi
-    if [ "$1" = down ] && ! center_up; then return 0; fi
-    sleep 0.05
-  done
-  return 1
 }
 
 # The calendar files: one event each, in local (floating) time, from now.
@@ -191,11 +157,6 @@ EOF
 bars_of() { sed -e 's/^BARS *//' -e 's/ *;.*$//' <<<"$1"; }
 disc_of() { sed -e 's/^.*DISC //' <<<"$1"; }
 
-build() {
-  (cd "$SILL_REPO" && cargo build -p sill --features debug) >"$OUT_DIR/build.log" 2>&1 || {
-    echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
-}
-
 write_settings() {
   mkdir -p "$CONFIG/sill"
   cat >"$CONFIG/sill/settings.toml" <<TOML
@@ -209,41 +170,24 @@ TOML
 }
 
 start_daemon() {
-  CONFIG=$(mktemp -d)
-  STATE=$(mktemp -d)
-  CACHE=$(mktemp -d)
-  DATA=$(mktemp -d)
-  CAL=$(mktemp -d)
   backdrop_seed "$CONFIG" || return 1
   write_fixture
   write_settings hide
-  use_fake_ddc "$CONFIG" >/dev/null
-  require_fake_ddc || return 1
-  XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" \
-    XDG_DATA_HOME="$DATA" XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$NESTED_SOCKET" \
-    dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- \
-    sh -c "$PRIVATE_BOTH_BUSES" "$SILL_BIN" "${FAKE_DDC_FLAGS[@]}" \
-    >"$OUT_DIR/daemon.log" 2>&1 &
-  DAEMON=$!
-  for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
-  for _ in $(seq 50); do NAME=$(output_name); [ -n "$NAME" ] && break; sleep 0.1; done
-  [ -n "${NAME:-}" ] || { echo "no bar in 'sill debug stats'" >&2; return 1; }
+  launch_daemon || return 1
+  NAME=$(output_name) || return 1
   CENTER="sill-notification-center-$NAME"
   sleep 1.5
-  if ! sill debug stats | grep -q '"sill-wallpaper-'; then
-    XDG_CONFIG_HOME="$CONFIG" WAYLAND_DISPLAY="$WAYLAND_DISPLAY" cosmic-bg >/dev/null 2>&1 &
-    BACKDROP_PID=$!
-  fi
+  backdrop_up "$CONFIG" || echo "backdrop: none (the shots show the bare compositor)" >&2
   echo "daemon on a private bus and runtime dir $RUNTIME; calendars in $CAL; $CENTER" >&2
 }
 
-stop_daemon() {
-  [ -n "${DAEMON:-}" ] || return 0
-  sill quit >/dev/null 2>&1
-  wait "$DAEMON" 2>/dev/null
-  DAEMON=
+cleanup() {
+  local result=0
   backdrop_down
-  rm -rf "$CONFIG" "$STATE" "$CACHE" "$DATA" "$CAL"
+  stop_daemon || result=1
+  stop_private_bus
+  scratch_drop
+  return "$result"
 }
 
 WORK=$(hue_of work)
@@ -255,7 +199,7 @@ step_month_and_up_next() {
   local log="$OUT_DIR/open.log" seen
   : >"$log"
   sill notifications open >>"$log" 2>&1 || return 1
-  wait_center up || { echo "the center never mapped" >&2; return 1; }
+  wait_surface "$CENTER" 20 up || { echo "the center never mapped" >&2; return 1; }
   sleep 1
   sill debug capture "$CENTER" "$SHOTS/calendar-cosmic.png" >>"$log" 2>&1 || return 1
   shot "$SHOTS/calendar-widget-cosmic.png" || echo "screenshot failed" >&2
@@ -310,7 +254,7 @@ step_idle() {
   local log="$OUT_DIR/idle.log" f0 f1
   : >"$log"
   sleep 2
-  if [ "$((10#$(date +%S)))" -ge 50 ]; then sleep $((62 - 10#$(date +%S))); fi
+  clear_of_the_minute
   f0=$(frames_of "$CENTER")
   sleep 5
   f1=$(frames_of "$CENTER")
@@ -319,14 +263,12 @@ step_idle() {
   [ "$(( f1 - f0 ))" = 0 ]
 }
 
-"$SHELL_HOST_DEV/run.sh" wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
+use_nested_socket || exit 1
+nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
 build || exit 1
-for _ in $(seq 600); do
-  pgrep -f 'target/[a-z]*/sill run' >/dev/null || break
-  [ -n "${WAITED:-}" ] || { echo "another sill daemon is running; waiting for it to quit" >&2; WAITED=1; }
-  sleep 1
-done
-start_daemon || { stop_daemon; exit 1; }
+await_no_process 'target/[a-z]*/sill run' || exit 1
+start_private_bus || exit 1
+start_daemon || { cleanup; exit 1; }
 status=0
 for step in step_month_and_up_next step_edit step_week_numbers step_idle; do
   "$step"
@@ -337,7 +279,6 @@ for step in step_month_and_up_next step_edit step_week_numbers step_idle; do
     *) echo "FAIL $step"; status=1 ;;
   esac
 done
-stop_daemon
-rm -rf "$RUNTIME"
+cleanup || status=1
 echo "logs in $OUT_DIR; screenshots $SHOTS/calendar-cosmic.png, $SHOTS/calendar-widget-cosmic.png"
 exit "$status"
