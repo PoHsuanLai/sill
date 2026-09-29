@@ -14,8 +14,7 @@ pub mod layer;
 pub use layer::idle_dim_layer;
 
 use dioxus::prelude::*;
-use ds::detail::IdleDimPhase;
-use ds::{Ds, IdleDim, Material, RootChrome, RootExtent};
+use ds::{Ds, IdleDim, IdleDimPhase, Material, RootChrome, RootExtent};
 use shell_host::{OutputInfo, Visibility};
 use sill_model::idle::{DimLevel, DimShown};
 
@@ -88,7 +87,7 @@ pub fn IdleDimOverlay(output: OutputInfo) -> Element {
 
 #[cfg(test)]
 mod tests {
-    use ds::detail::IdleDimPhase;
+    use ds::IdleDimPhase;
     use shell_host::Visibility;
     use sill_model::idle::{DimLevel, DimShown};
 
