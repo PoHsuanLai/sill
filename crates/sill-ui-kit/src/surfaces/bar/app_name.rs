@@ -1,7 +1,7 @@
 //! The frontmost app's name, the first bar title (ui 13/700): its menu lists the app's windows and Quit.
 
 use dioxus::prelude::*;
-use ds::{Button, ButtonVariant, Emphasis, use_rect};
+use ds::{Button, ButtonVariant, Common, Emphasis, use_rect};
 use shell_host::OutputInfo;
 use sill_model::ids::OutputName;
 
@@ -26,10 +26,10 @@ pub fn AppName(output: OutputInfo) -> Element {
     rsx! {
         TitleSlot { menu: BarMenu::App, probe, pill: SlotPill::Item(Emphasis::Strong),
             Button {
+                common: Common { mounted: Some(EventHandler::new(move |event| probe.on_mounted(event))), ..Common::default() },
                 variant: ButtonVariant::Quiet,
                 label: name,
                 onclick: move |_| {},
-                mounted: move |event| probe.on_mounted(event),
             }
         }
     }

@@ -17,8 +17,8 @@
 
 use dioxus::prelude::*;
 use ds::{
-    Check as DsCheck, ChromaLimit, IconButton, IconButtonVariant, IconSource, MenuEntry, MenuTrail,
-    Press,
+    Check as DsCheck, ChromaLimit, Common, IconButton, IconButtonVariant, IconSource, MenuEntry,
+    MenuTrail, Press,
 };
 use shell_host::{
     HostRoot, OutputInfo, PopupConfig, PopupPlacement, PopupSize, Rect, Size, SurfaceHandle,
@@ -154,11 +154,11 @@ fn TrayButtonView(
         // the item (TrayCommand::Scroll).
         span { "data-wheel": "capture", onwheel: move |event| onwheel.call(event),
             IconButton {
+                common: Common { id: Some(popup_element_id(index)), ..Common::default() },
                 variant: IconButtonVariant::Status,
                 icon,
                 label: title,
                 tooltip: Some(tooltip),
-                id: Some(popup_element_id(index)),
                 onclick,
             }
         }

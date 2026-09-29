@@ -8,8 +8,8 @@
 
 use dioxus::prelude::*;
 use ds::{
-    Availability, Button, Glyph, Icon, IconSize, Kbd, KbdSize, RootExtent, ScrimStrength, Sheet,
-    SheetPlacement, Shortcut,
+    Availability, Button, Common, Glyph, Icon, IconSize, Kbd, KbdSize, RootExtent, ScrimStrength,
+    Sheet, SheetPlacement, Shortcut,
 };
 use shell_host::OutputInfo;
 use sill_model::session::{Session, SessionAction};
@@ -100,12 +100,12 @@ fn button(
     let variant = button_variant(action, focused);
     rsx! {
         Button {
+            common: Common { mounted: Some(EventHandler::new(move |event: MountedEvent| mount.mounted(action, event.data()))), ..Common::default() },
             key: "{action_label(action)}",
             variant,
             size: button_size(variant),
             label: action_label(action),
             availability,
-            mounted: move |event: MountedEvent| mount.mounted(action, event.data()),
             onclick: move |_| press.input(SheetInput::Pressed(action)),
         }
     }

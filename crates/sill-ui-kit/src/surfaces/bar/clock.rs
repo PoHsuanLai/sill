@@ -3,7 +3,7 @@
 //! `MenuBarItem`, on while the center is open here.
 
 use dioxus::prelude::*;
-use ds::{Button, ButtonVariant, Emphasis, MenuBarItem, Shown};
+use ds::{Button, ButtonVariant, Common, Emphasis, MenuBarItem, Shown};
 use shell_host::{OutputInfo, use_watch};
 
 use crate::hooks::{use_service, use_settings};
@@ -29,9 +29,9 @@ pub fn ClockItem(output: OutputInfo) -> Element {
             MenuBarItem { open, emphasis: Emphasis::Plain,
                 div { class: "sill-bar-clock",
                     Button {
+                        common: Common { aria_label: Some("Notification Center".to_owned()), ..Common::default() },
                         variant: ButtonVariant::Quiet,
                         label: clock.text,
-                        aria_label: "Notification Center".to_owned(),
                         onclick: move |_| link.toggle(output.id),
                     }
                 }

@@ -3,7 +3,7 @@
 
 use dioxus::prelude::*;
 use ds::detail::Cue;
-use ds::{IconButton, IconButtonVariant, IconSource, Px, Shown, StatusMetrics, use_rect};
+use ds::{Common, IconButton, IconButtonVariant, IconSource, Px, Shown, StatusMetrics, use_rect};
 use sill_settings::{BarGlyphSize, BarSettings};
 
 use super::io::MenuBar;
@@ -44,6 +44,7 @@ pub(crate) fn StatusIcon(
     rsx! {
         TitleSlot { menu, probe, pill: SlotPill::Control,
             IconButton {
+                common: Common { mounted: Some(EventHandler::new(move |event| probe.on_mounted(event))), ..Common::default() },
                 variant: IconButtonVariant::Status,
                 icon,
                 label: menu.label().to_owned(),
@@ -51,7 +52,6 @@ pub(crate) fn StatusIcon(
                 expanded: Some(expanded),
                 nudge,
                 onclick: move |_| {},
-                mounted: move |event| probe.on_mounted(event),
             }
         }
     }
