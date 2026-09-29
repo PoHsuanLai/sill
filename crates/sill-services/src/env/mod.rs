@@ -6,12 +6,12 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::auth::{Authenticator, FakeAuthenticator, FakeRule, PamHelper};
-use crate::displays::ddc::file_bus::FileBus;
-use crate::displays::{DdcBus, I2cBuses};
 use crate::idle::IdleTimes;
 use crate::polkit_agent;
+use ddc::{DdcBus, FileBus, I2cBuses};
 
 mod buses;
+pub mod ddc;
 mod dirs;
 mod processes;
 mod session_actions;

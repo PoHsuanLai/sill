@@ -6,11 +6,12 @@ use std::collections::BTreeMap;
 use super::brightness::{
     BacklightName, BrightnessTarget, LevelChange, backlight_value, stepped, targets, value_of,
 };
-use super::ddc::{DdcId, Feature, Level, RgbGain, Write};
+use super::ddc::{Feature, Level, RgbGain, Write};
 use super::model::Displays;
 use super::policy::{KeysTarget, NightWarmth};
 use super::warmth::{scaled, warmth_gains};
 use crate::cosmic_wl::OutputName;
+use crate::env::ddc::DdcId;
 use crate::units::Percent;
 
 /// One effect of a brightness change.

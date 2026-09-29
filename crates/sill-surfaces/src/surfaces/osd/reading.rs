@@ -116,8 +116,9 @@ mod tests {
     use super::{card_level, level_of, title};
     use crate::surfaces::osd::link::{Level, LevelSource, OsdKind};
     use ds::{Fraction, LevelGlyph, Muting};
-    use sill_services::displays::ddc::Endpoint;
-    use sill_services::displays::{Controls, DdcDisplay, DdcId, Level as DdcLevel};
+    use sill_services::displays::{Controls, DdcDisplay, Level as DdcLevel};
+    use sill_services::env::ddc::DdcId;
+    use sill_services::env::ddc::Endpoint;
     use sill_services::{Displays, Mute, OutputName, Percent, Presence, Volume};
 
     fn level(percent: u16, mute: Mute) -> Option<Level> {

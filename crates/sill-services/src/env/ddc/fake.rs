@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use super::bus::{DdcBus, DdcError, DdcId, Endpoint};
-use super::vcp::{Feature, Level};
+use crate::displays::ddc::vcp::{Feature, Level};
 
 /// The fake's state, shared with the test that made it.
 #[derive(Debug, Default)]

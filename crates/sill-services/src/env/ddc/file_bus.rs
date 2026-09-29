@@ -15,8 +15,8 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use super::bus::{DdcBus, DdcError, DdcId, Endpoint};
-use super::vcp::{Feature, Level};
 use crate::cosmic_wl::OutputName;
+use crate::displays::ddc::vcp::{Feature, Level};
 
 /// The file's contents.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -122,7 +122,8 @@ impl DdcBus for FileBus {
 #[cfg(test)]
 mod tests {
     use super::FileBus;
-    use crate::displays::ddc::{DdcBus, DdcId, Feature, Level};
+    use crate::displays::ddc::{Feature, Level};
+    use crate::env::ddc::{DdcBus, DdcId};
 
     #[test]
     fn the_file_answers_reads_and_records_writes() {

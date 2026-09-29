@@ -4,12 +4,13 @@ use super::{
 };
 use crate::cosmic_wl::OutputName;
 use crate::displays::brightness::{Backlight, BacklightKind, BacklightName, LevelChange};
-use crate::displays::ddc::{Controls, DdcDisplay, DdcId, Endpoint, Feature, Level, RgbGain, Write};
+use crate::displays::ddc::{Controls, DdcDisplay, Feature, Level, RgbGain, Write};
 use crate::displays::model::Displays;
 use crate::displays::output::describe;
 use crate::displays::policy::{KeysTarget, NightWarmth};
 use crate::displays::randr::Head;
 use crate::displays::scale::{Ppi, ScaleRounding};
+use crate::env::ddc::{DdcId, Endpoint};
 use crate::units::Percent;
 use crate::volume::Step;
 

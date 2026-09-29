@@ -201,7 +201,7 @@ A settled item is deleted, not marked closed.
   `dist/udev/60-sill-ddc.rules` (any `0x03????` class, which also covers the `0x0302xx` discrete
   GPU of hybrid laptops) and `dist/modules-load.d/sill-ddc.conf` do the same. `uaccess` reaches
   only the active local session.
-- **The fake DDC** (`displays::ddc::file_bus::FileBus`): a `debug` build's `sill run
+- **The fake DDC** (`env::ddc::FileBus`): a `debug` build's `sill run
   --fake-ddc FILE` puts it in the daemon's `Env` in place of the kernel's buses, so the worker
   talks to monitors in a JSON file, never `/dev/i2c-*`. A build without `debug` takes no such
   flag.

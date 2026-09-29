@@ -1,10 +1,10 @@
 //! The seam between the DDC worker and the wire: [`DdcBus`], implemented over `/dev/i2c-N`
-//! (`super::i2c`) and by a fake in the tests.
+//! ([`super::I2cBuses`]) and by a fake in the tests.
 
 use serde::{Deserialize, Serialize};
 
-use super::vcp::{Feature, Level};
 use crate::cosmic_wl::OutputName;
+use crate::displays::ddc::vcp::{Feature, Level};
 
 /// A DDC display, named by the i2c bus it answers on (`5` for `/dev/i2c-5`).
 #[derive(
@@ -38,7 +38,7 @@ pub enum DdcError {
 }
 
 /// Every DDC transaction the worker makes: the kernel's buses ([`super::I2cBuses`]) or made-up
-/// monitors in a file ([`super::file_bus::FileBus`], the dev scripts'). Blocking: each call is a
+/// monitors in a file ([`super::FileBus`], the dev scripts'). Blocking: each call is a
 /// bus transaction of tens of milliseconds, and only the worker thread calls them (one at a
 /// time, which is also what the bus needs).
 pub trait DdcBus: Send + Sync + std::fmt::Debug {

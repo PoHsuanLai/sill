@@ -12,8 +12,9 @@ use cc_support::details::{center, center_at, ms};
 use ds::{Point, Px};
 use ds_native::Harness;
 use ds_native::harness::assert_settles_to_zero_frames;
-use sill_services::displays::ddc::Endpoint;
-use sill_services::displays::{Controls, DdcDisplay, DdcId, Level};
+use sill_services::displays::{Controls, DdcDisplay, Level};
+use sill_services::env::ddc::DdcId;
+use sill_services::env::ddc::Endpoint;
 use sill_services::{Displays, DisplaysCommand, Following, LevelChange, OutputName, Percent};
 use tokio::sync::mpsc::UnboundedReceiver;
 

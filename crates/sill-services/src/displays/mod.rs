@@ -42,7 +42,7 @@ pub mod warmth;
 pub use brightness::{
     Backlight, BacklightKind, BacklightName, BrightnessTarget, LevelChange, stepped,
 };
-pub use ddc::{Controls, DdcBus, DdcDisplay, DdcError, DdcId, Feature, I2cBuses, Level};
+pub use ddc::{Controls, DdcDisplay, Feature, Level};
 pub use drm::Placement;
 pub use edid::{Edid, Millimetres, Mode, Pixels, Primaries};
 pub use font::{FontRendering, Hinting, font_rendering_for};

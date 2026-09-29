@@ -11,10 +11,10 @@ use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 use tokio::sync::watch;
 
-use super::bus::{DdcBus, DdcError, DdcId, Endpoint};
 use super::debounce::{Debounce, Write};
 use super::retry;
 use super::vcp::{Controls, Feature};
+use crate::env::ddc::{DdcBus, DdcError, DdcId, Endpoint};
 use crate::units::Stamp;
 
 /// One DDC display and its cached controls.

@@ -3,9 +3,9 @@ use super::{
     percent_of, route, stepped, targets, value_of,
 };
 use crate::cosmic_wl::OutputName;
-use crate::displays::ddc::DdcId;
 use crate::displays::drm::Placement;
 use crate::displays::policy::KeysTarget;
+use crate::env::ddc::DdcId;
 use crate::units::Percent;
 use crate::volume::Step;
 

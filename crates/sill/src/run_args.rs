@@ -17,7 +17,7 @@ pub struct RunArgs {
 #[derive(Debug, Clone, PartialEq, Eq, Default, clap::Args)]
 pub struct DebugSeams {
     /// Talk DDC/CI to the made-up monitors in this JSON file instead of `/dev/i2c-*`
-    /// (`sill_services::displays::ddc::file_bus`), so no real monitor is touched.
+    /// (`sill_services::env::ddc::FileBus`), so no real monitor is touched.
     #[arg(long, value_name = "FILE")]
     pub fake_ddc: Option<std::path::PathBuf>,
     /// Idle's screen-off and suspend times in seconds for both power sources (`<screen_off_s>,
@@ -100,13 +100,13 @@ impl DebugSeams {
     fn apply(&self, env: Env) -> Env {
         use std::sync::Arc;
 
-        use sill_services::displays::ddc::file_bus::FileBus;
+        use sill_services::env::ddc::FileBus;
         use sill_services::env::{
             Bus, BusRoute, DryRunActions, DryRunOffers, IdleTimesSource, SessionActions,
         };
         use sill_services::polkit_agent::{self, HelperChoice, HelperRoute, SessionChoice};
 
-        let ddc: Arc<dyn sill_services::displays::DdcBus> = match &self.fake_ddc {
+        let ddc: Arc<dyn sill_services::env::ddc::DdcBus> = match &self.fake_ddc {
             Some(path) => {
                 eprintln!(
                     "sill: displays: DDC is the fake in {} (--fake-ddc): no real monitor is touched",

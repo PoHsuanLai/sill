@@ -1,7 +1,8 @@
 use super::{follow, monitor_for_sink, monitor_in_sink};
 use crate::cosmic_wl::OutputName;
-use crate::displays::ddc::{Controls, DdcDisplay, DdcId, Endpoint, Feature, Level, Write};
+use crate::displays::ddc::{Controls, DdcDisplay, Feature, Level, Write};
 use crate::displays::policy::HardwareVolume;
+use crate::env::ddc::{DdcId, Endpoint};
 use crate::units::{Percent, Presence};
 use crate::volume::{Mute, Volume};
 

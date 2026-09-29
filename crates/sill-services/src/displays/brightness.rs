@@ -3,10 +3,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::ddc::DdcId;
 use super::drm::Placement;
 use super::policy::KeysTarget;
 use crate::cosmic_wl::OutputName;
+use crate::env::ddc::DdcId;
 use crate::units::Percent;
 use crate::volume::Step;
 

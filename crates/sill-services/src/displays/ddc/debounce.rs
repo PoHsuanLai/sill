@@ -5,8 +5,8 @@
 //! follows a drag that never pauses instead of waiting for the release. Pure: time is a
 //! [`Stamp`] argument.
 
-use super::bus::DdcId;
 use super::vcp::Feature;
+use crate::env::ddc::DdcId;
 use crate::units::Stamp;
 
 /// How long a value must stand before it is written.
@@ -88,7 +88,8 @@ impl Debounce {
 #[cfg(test)]
 mod tests {
     use super::{Debounce, HOLD_MAX, Write};
-    use crate::displays::ddc::{DdcId, Feature};
+    use crate::displays::ddc::Feature;
+    use crate::env::ddc::DdcId;
     use crate::units::Stamp;
 
     fn brightness(value: u16) -> Write {

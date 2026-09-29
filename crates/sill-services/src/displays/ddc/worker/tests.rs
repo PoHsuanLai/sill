@@ -6,8 +6,9 @@ use tokio::sync::watch;
 use super::{DdcDisplay, DdcJob, run};
 use crate::cosmic_wl::OutputName;
 use crate::displays::ddc::debounce::Write;
-use crate::displays::ddc::fake::{FakeBus, FakeState};
-use crate::displays::ddc::{DdcId, Endpoint, Feature, Level};
+use crate::displays::ddc::{Feature, Level};
+use crate::env::ddc::{DdcId, Endpoint};
+use crate::env::ddc::{FakeBus, FakeState};
 
 /// One MA270U-like display on bus 5 that answers brightness and volume only.
 fn bus() -> FakeBus {

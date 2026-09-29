@@ -1,7 +1,8 @@
 use shell_host::{OutputId, OutputInfo, Rect, Scale};
 use sill_ipc::{DisplayRequest, FakeMute, FakeOsd, LevelRequest, OsdTopic, VolumeRequest};
-use sill_services::displays::ddc::Endpoint;
-use sill_services::displays::{Controls, DdcDisplay, DdcId, Level as DdcLevel};
+use sill_services::displays::{Controls, DdcDisplay, Level as DdcLevel};
+use sill_services::env::ddc::DdcId;
+use sill_services::env::ddc::Endpoint;
 use sill_services::{Displays, KeysTarget, Mute, OutputName, Percent};
 use sill_surfaces::surfaces::osd::{Level, LevelSource, OsdKind};
 

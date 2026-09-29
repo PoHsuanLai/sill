@@ -12,7 +12,7 @@ use tokio::sync::{mpsc, watch};
 
 use super::backlight;
 use super::brightness::Backlight;
-use super::ddc::{DdcBus, DdcDisplay, DdcJob, Feature, Write, worker};
+use super::ddc::{DdcDisplay, DdcJob, Feature, Write, worker};
 use super::drm;
 use super::font::font_rendering_for;
 use super::fontconfig_file;
@@ -27,6 +27,7 @@ use super::policy::DisplayPolicy;
 use super::scale_pass::scale_pass;
 use super::seen;
 use super::sink::CosmicRandr;
+use crate::env::ddc::DdcBus;
 use crate::env::{Bus, Dirs};
 use crate::volume::Volume;
 

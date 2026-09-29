@@ -4,8 +4,8 @@
 //! and a write is read back and repeated until the monitor reports the value (what ddcutil's
 //! default verification does too).
 
-use super::bus::{DdcBus, DdcError, DdcId};
 use super::vcp::{Feature, Level};
+use crate::env::ddc::{DdcBus, DdcError, DdcId};
 
 /// Tries per read, and write-and-verify rounds per write.
 pub const ATTEMPTS: usize = 3;
@@ -53,8 +53,9 @@ pub fn write_verified<B: DdcBus + ?Sized>(
 #[cfg(test)]
 mod tests {
     use super::{read, write_verified};
-    use crate::displays::ddc::fake::FakeBus;
-    use crate::displays::ddc::{DdcId, Feature, Level};
+    use crate::displays::ddc::{Feature, Level};
+    use crate::env::ddc::DdcId;
+    use crate::env::ddc::FakeBus;
 
     fn bus(fail_reads: usize, drop_writes: usize) -> FakeBus {
         let bus = FakeBus::default();

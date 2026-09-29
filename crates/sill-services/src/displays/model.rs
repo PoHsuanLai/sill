@@ -3,10 +3,11 @@
 use serde::{Deserialize, Serialize};
 
 use super::brightness::{Backlight, BrightnessTarget, LevelChange, percent_of, route};
-use super::ddc::{DdcDisplay, DdcId, Feature};
+use super::ddc::{DdcDisplay, Feature};
 use super::output::DisplayOutput;
 use super::policy::DisplayPolicy;
 use crate::cosmic_wl::OutputName;
+use crate::env::ddc::DdcId;
 use crate::units::Percent;
 
 /// Every display, as the control center, the OSD and the settings read them.
@@ -131,7 +132,8 @@ mod tests {
     use super::{Displays, DisplaysEvent, step};
     use crate::cosmic_wl::OutputName;
     use crate::displays::brightness::{Backlight, BacklightKind, BacklightName, BrightnessTarget};
-    use crate::displays::ddc::{Controls, DdcDisplay, DdcId, Endpoint, Level};
+    use crate::displays::ddc::{Controls, DdcDisplay, Level};
+    use crate::env::ddc::{DdcId, Endpoint};
     use crate::units::Percent;
 
     fn monitor() -> DdcDisplay {

@@ -14,9 +14,9 @@ use std::sync::{Mutex, MutexGuard};
 use ddc::{Ddc, Edid};
 
 use super::bus::{DdcBus, DdcError, DdcId, Endpoint};
-use super::matching::{bus_number, connector_for, is_display_class};
-use super::vcp::{Feature, Level};
 use crate::cosmic_wl::OutputName;
+use crate::displays::ddc::matching::{bus_number, connector_for, is_display_class};
+use crate::displays::ddc::vcp::{Feature, Level};
 use crate::displays::drm;
 use crate::displays::edid;
 
