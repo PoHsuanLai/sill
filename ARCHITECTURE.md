@@ -676,9 +676,9 @@ where noted, and sill compiles against each.
    `ds::prelude`); mechanical sill import rewrite in one commit per crate.
 6. `sill-settings` pure: `Section`, typed values at load, mirrors and `schema_file.rs` gone,
    `focus_link`, `watch`, `feed`, `load`/`save` to their new homes, dead keys retired.
-7. `sill-ipc` regrouped, mirrors removed, `sill` `cli/` and `ipc/dispatch/` split, `policy/`
+7. `sill-ipc` (done): regrouped, mirrors removed, `sill` `cli/` and `ipc/dispatch/` split, `policy/`
    dir, `Policy` bridges moved.
-8. `daemon.rs` split into `daemon/{run,events,surfaces,services,settings,msg}`; per-surface
+8. `daemon.rs` (done): split into `daemon/{run,events,surfaces,services,settings,msg}`; per-surface
    spawn blocks wait for step 10.
 9. `sill-ui-kit` inside `sill-surfaces` first: `hooks`, `links/` (all links as types, the global
    `links.rs` gone), `Reveal<O>`, `SurfaceRoot`, `look`, `Machine` and `use_machine`,
