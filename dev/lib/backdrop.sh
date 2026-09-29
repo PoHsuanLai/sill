@@ -1,4 +1,4 @@
-# Sourced by the acceptance scripts (after common.sh): a wallpaper behind the shell, so the
+# Sourced through dev/lib/all.sh: a wallpaper behind the shell, so the
 # bar's and the dock's blur and tint have something to show. `backdrop_seed DIR` writes the
 # test wallpaper (dev/backdrop.py) into COSMIC's background record under the config dir DIR
 # (`cosmic/com.system76.CosmicBackground/v1/all`), which `sill run` reads when it draws the

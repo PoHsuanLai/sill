@@ -2,4 +2,4 @@
 /target-*
 .claude/
 # Script captures stay on disk, untracked.
-dev/out/*.png
+dev/out/
