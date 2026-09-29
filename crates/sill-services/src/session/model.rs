@@ -81,6 +81,18 @@ pub struct Session {
 }
 
 impl Session {
+    /// Every action offered (a dry run's session).
+    pub fn everything() -> Session {
+        Session {
+            presence: Presence::Present,
+            lock: Offer::Available,
+            log_out: Offer::Available,
+            restart: Offer::Available,
+            power_off: Offer::Available,
+            suspend: Offer::Available,
+        }
+    }
+
     /// What logind says about `action`.
     pub fn offer(&self, action: SessionAction) -> Offer {
         match action {

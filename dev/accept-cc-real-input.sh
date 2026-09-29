@@ -189,8 +189,8 @@ start_daemon() {
   printf '[control_center]\nmenu_bar_sound = "hide"\nmenu_bar_battery = "hide"\n' \
     >"$CONFIG/sill/settings.toml"
   : >"$RECORD"
-  in_env PATH="$STANDINS:$PATH" SILL_POWER_MENU_DRY_RUN="$RECORD" \
-    "$SILL_BIN" run --fake-ddc "$DDC" >"$OUT_DIR/daemon.log" 2>&1 &
+  in_env PATH="$STANDINS:$PATH" \
+    "$SILL_BIN" run --fake-ddc "$DDC" --session-dry-run "$RECORD" >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
   local bar=

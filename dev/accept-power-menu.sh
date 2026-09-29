@@ -4,15 +4,15 @@
 # (`--features debug`) with a scratch XDG_CONFIG_HOME and quits it at the end.
 #
 # SAFETY. The nested session shares logind with the machine, so a confirmed action would really
-# log out, restart, shut down or suspend it. The daemon is started with SILL_POWER_MENU_DRY_RUN
-# naming a record file: a debug build then gives every power menu a dry-run backend that offers
-# every action and only prints and records the chosen one (crates/sill/src/power_menu.rs,
-# crates/sill-surfaces/src/surfaces/power_menu/backend.rs). Before Enter is ever pressed, the
+# log out, restart, shut down or suspend it. The daemon is started with `sill run
+# --session-dry-run RECORD`: a debug build then takes every session action through a dry run
+# that only prints and records the chosen one, never logind (crates/sill/src/run_args.rs,
+# crates/sill-services/src/env/session_actions.rs). Before Enter is ever pressed, the
 # script proves the dry run is in force from the daemon's own log (the "dry run, recording to"
 # line, and `power_menu.backend=dry-run` with no `power_menu.backend=live`); without that proof
 # the Enter step is skipped (exit 2), never run.
 #
-# OFFERS. The dry run is also started with SILL_POWER_MENU_DRY_RUN_OFFERS=logind: it offers what
+# OFFERS. The dry run is also started with --session-dry-run-offers logind: it offers what
 # logind answers (the session service's read-only `Can*` calls), so an action this machine
 # refuses (Suspend here) is drawn disabled and skipped by the arrows, while a chosen action is
 # still only recorded. The panel logs the offers on each opening (`power_menu.offers=`), and the
@@ -20,7 +20,7 @@
 #
 # KEYS. On the nested cosmic-comp the power menu gets no keyboard focus (no
 # `power_menu.keyboard=held`) and `wtype` keys never reach it, and shell-host injects no keys. So
-# the keys go through the debug key path: the daemon is also started with SILL_POWER_MENU_KEYS
+# the keys go through the debug key path: the daemon is also started with --power-menu-keys
 # naming a FIFO, and each word written to it (`right`, `enter`, ...) is fed to the power menu as
 # that key, through the same machine a real key drives. The daemon refuses the key path without the
 # dry run, so a scripted Enter can never reach logind; the script also writes a key only while the
@@ -33,7 +33,7 @@
 #   3. The arrows move the focus: Right from Shut Down is the next offered button (Suspend, or
 #      Log Out when logind refuses Suspend), Left twice is Restart (the panel's
 #      `power_menu.focus=` lines), screenshot dev/out/power-menu-cosmic-restart.png.
-#   4. Enter on the dry run records Restart (`power_menu.dry_run would=Restart` in the record
+#   4. Enter on the dry run records Restart (`session.dry_run would=Restart` in the record
 #      file) and the menu closes; nothing else is recorded.
 #   5. Escape closes it, recording nothing.
 #   6. 5 s idle after it hides: 0 frames on the power menu surface.
@@ -134,10 +134,9 @@ start_daemon() {
   rm -f "$KEYS"; mkfifo "$KEYS" || return 1
   use_fake_ddc "$CONFIG" >/dev/null
   require_fake_ddc || return 1
-  XDG_CONFIG_HOME="$CONFIG" SILL_POWER_MENU_DRY_RUN="$RECORD" SILL_POWER_MENU_KEYS="$KEYS" \
-    SILL_POWER_MENU_DRY_RUN_OFFERS=logind \
-    DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
-    nested "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" >"$OUT_DIR/daemon.log" 2>&1 &
+  XDG_CONFIG_HOME="$CONFIG" DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
+    nested "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" --session-dry-run "$RECORD" \
+    --session-dry-run-offers logind --power-menu-keys "$KEYS" >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
   for _ in $(seq 50); do NAME=$(output_name); [ -n "$NAME" ] && break; sleep 0.1; done
@@ -161,7 +160,7 @@ prove_dry_run() {
   local log="$OUT_DIR/dry-run.log"
   DRY_RUN=unproven
   {
-    grep "sill: power menu: dry run, recording to $RECORD" "$OUT_DIR/daemon.log" || return 1
+    grep "sill: session: dry run, recording to $RECORD" "$OUT_DIR/daemon.log" || return 1
     grep "sill: power menu: scripted keys from $KEYS" "$OUT_DIR/daemon.log" || return 1
     grep "power_menu.backend=dry-run" "$OUT_DIR/daemon.log" || return 1
     if grep "power_menu.backend=live" "$OUT_DIR/daemon.log"; then return 1; fi
@@ -276,9 +275,9 @@ step_enter_records() {
   for _ in $(seq 30); do grep -q 'would=Restart' "$RECORD" && break; sleep 0.1; done
   wait_for "$log" 20 hidden || { echo "Enter: the menu stayed up" >&2; return 1; }
   echo "record file after Enter:" >>"$log"; cat "$RECORD" >>"$log"
-  [ "$(cat "$RECORD")" = "power_menu.dry_run would=Restart" ] || {
+  [ "$(cat "$RECORD")" = "session.dry_run would=Restart" ] || {
     echo "the record is not exactly one Restart: $(cat "$RECORD")" >&2; return 1; }
-  grep -q 'power_menu.dry_run would=Restart' "$OUT_DIR/daemon.log" || return 1
+  grep -q 'session.dry_run would=Restart' "$OUT_DIR/daemon.log" || return 1
   echo "Enter recorded 'would=Restart' on the dry run and closed the menu" | tee -a "$log" >&2
 }
 

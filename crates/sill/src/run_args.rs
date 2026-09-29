@@ -36,6 +36,26 @@ pub struct DebugSeams {
     /// The session id the agent registers for (with `--polkit-bus`; default `sill-test`).
     #[arg(long, value_name = "ID", requires = "polkit_bus")]
     pub polkit_session: Option<String>,
+    /// Carry out no session action (power menu, launcher rows): each chosen one is only printed
+    /// (`session.dry_run would=<Action>`) and appended to RECORD.
+    #[arg(long, value_name = "RECORD")]
+    pub session_dry_run: Option<std::path::PathBuf>,
+    /// What the dry run offers: every action, or logind's answers (read only).
+    #[arg(long, value_enum, default_value_t = DryRunOffersArg::Everything, requires = "session_dry_run")]
+    pub session_dry_run_offers: DryRunOffersArg,
+    /// Feed each line written to this FIFO (`right`, `enter`, ...) to every power menu as a key
+    /// (only with `--session-dry-run`, so a scripted Enter never reaches logind).
+    #[arg(long, value_name = "FIFO", requires = "session_dry_run")]
+    pub power_menu_keys: Option<std::path::PathBuf>,
+}
+
+/// `--session-dry-run-offers`' words.
+#[cfg(feature = "debug")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
+pub enum DryRunOffersArg {
+    #[default]
+    Everything,
+    Logind,
 }
 
 /// `--idle-times`' value.
@@ -46,6 +66,21 @@ fn idle_times(text: &str) -> Result<sill_services::idle::IdleTimes, String> {
 }
 
 impl RunArgs {
+    /// The scripted keys for every power menu, when this debug build was given a FIFO.
+    pub fn power_menu_keys(&self) -> Option<sill_surfaces::surfaces::power_menu::PowerMenuScript> {
+        #[cfg(feature = "debug")]
+        {
+            self.debug
+                .power_menu_keys
+                .clone()
+                .map(crate::power_menu::key_script)
+        }
+        #[cfg(not(feature = "debug"))]
+        {
+            None
+        }
+    }
+
     /// The daemon's seams: the process's own, with this build's stand-ins in place.
     pub fn env(&self) -> Env {
         #[cfg(feature = "debug")]
@@ -66,7 +101,9 @@ impl DebugSeams {
         use std::sync::Arc;
 
         use sill_services::displays::ddc::file_bus::FileBus;
-        use sill_services::env::{Bus, BusRoute, IdleTimesSource};
+        use sill_services::env::{
+            Bus, BusRoute, DryRunActions, DryRunOffers, IdleTimesSource, SessionActions,
+        };
         use sill_services::polkit_agent::{self, HelperChoice, HelperRoute, SessionChoice};
 
         let ddc: Arc<dyn sill_services::displays::DdcBus> = match &self.fake_ddc {
@@ -99,10 +136,25 @@ impl DebugSeams {
             },
             None => env.polkit,
         };
+        let session_actions: Arc<dyn SessionActions> = match &self.session_dry_run {
+            Some(record) => {
+                let offers = match self.session_dry_run_offers {
+                    DryRunOffersArg::Everything => DryRunOffers::Everything,
+                    DryRunOffersArg::Logind => DryRunOffers::Logind,
+                };
+                eprintln!(
+                    "sill: session: dry run, recording to {}, offering {offers:?}",
+                    record.display()
+                );
+                Arc::new(DryRunActions::new(offers, Some(record.clone())))
+            }
+            None => env.session_actions,
+        };
         Env {
             ddc,
             idle_times,
             polkit,
+            session_actions,
             ..env
         }
     }
@@ -173,6 +225,32 @@ mod tests {
             assert_eq!(setup(&args), want, "{args:?}");
         }
         assert!(Cli::try_parse_from(["sill", "run", "--polkit-helper", "/x/helper"]).is_err());
+    }
+
+    /// Scripted keys only ever drive a dry run.
+    #[test]
+    fn power_menu_keys_need_a_session_dry_run() {
+        let parse = |args: &[&str]| Cli::try_parse_from([&["sill", "run"], args].concat());
+        assert!(parse(&["--power-menu-keys", "/tmp/keys"]).is_err());
+        assert!(parse(&["--session-dry-run-offers", "logind"]).is_err());
+        let Ok(Cli {
+            command: Some(Command::Run(args)),
+            ..
+        }) = parse(&[
+            "--session-dry-run",
+            "/tmp/record",
+            "--session-dry-run-offers",
+            "logind",
+            "--power-menu-keys",
+            "/tmp/keys",
+        ])
+        else {
+            panic!("a dry run with keys parses");
+        };
+        assert_eq!(
+            args.env().session_actions.reach(),
+            sill_services::env::ActionReach::DryRun
+        );
     }
 
     #[test]

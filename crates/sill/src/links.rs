@@ -18,7 +18,7 @@ use sill_surfaces::surfaces::edit_widgets::{EditWidgetsLink, WidgetsWriter};
 use sill_surfaces::surfaces::hot_corners::CornerLink;
 use sill_surfaces::surfaces::lock::LockLink;
 use sill_surfaces::surfaces::notification_center::CenterLink;
-use sill_surfaces::surfaces::power_menu::PowerMenuLink;
+use sill_surfaces::surfaces::power_menu::{PowerMenuLink, PowerMenuScript};
 use sill_surfaces::surfaces::switcher::SwitcherLink;
 
 /// The daemon's links.
@@ -40,6 +40,9 @@ pub struct Links {
     /// widgets edit`), and where its changes are written (`crate::widgets::writer`).
     pub edit_widgets: EditWidgetsLink,
     pub widgets_writer: WidgetsWriter,
+    /// Keys a debug build's dev script feeds every power menu (`sill run --power-menu-keys`,
+    /// only beside a session dry run); none otherwise.
+    pub power_menu_keys: Option<PowerMenuScript>,
 }
 
 static LINKS: OnceLock<Links> = OnceLock::new();

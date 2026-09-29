@@ -24,9 +24,7 @@ mod drive;
 mod follow;
 mod panel;
 
-pub use backend::{
-    BackendKind, DryRunSession, PowerMenuBackend, SessionBackend, dry_run_line, everything_offered,
-};
+pub use backend::{BackendKind, DryRunSession, PowerMenuBackend, SessionBackend, dry_run_line};
 pub use keys::{PowerMenuKey, PowerMenuOut, PowerMenuState, initial, step};
 pub use labels::{action_label, button_variant};
 pub use layer::{PANEL_BLUR_RADIUS, PANEL_ID, panel_region, power_menu_layer};

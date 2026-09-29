@@ -3,6 +3,7 @@
 //! carries out [`SessionCommand`]s.
 
 use std::pin::Pin;
+use std::sync::Arc;
 
 use logind_zbus::manager::{IsSupported, ManagerProxy};
 use logind_zbus::session::SessionProxy;
@@ -13,26 +14,28 @@ use zbus::export::futures_core::Stream;
 use super::SessionCommand;
 use super::model::{Offer, Session, SessionAction, SessionEvent, reduce_session};
 use crate::control::Control;
-use crate::env::Bus;
+use crate::env::{ActionReach, Bus, SessionActions};
 use crate::locker::LockerCommand;
 use crate::units::Presence;
 
-/// Runs until `commands` closes. Without a bus or logind, `tx` stays at `Session::default()`.
+/// Runs until `commands` closes. Without a bus or logind, `tx` holds what `actions` offers
+/// without it (`Session::default()` for logind's own). Every action goes through `actions`
+/// first, so a dry run never reaches logind or the locker.
 pub(super) async fn run(
     bus: Bus,
+    actions: Arc<dyn SessionActions>,
     tx: watch::Sender<Session>,
     mut commands: mpsc::UnboundedReceiver<SessionCommand>,
     locker: Control<LockerCommand>,
 ) {
-    let Ok(Some(connection)) = bus.connect().await else {
-        return;
+    let logind = connect(&bus).await;
+    let logind = logind.as_ref();
+    let actions = actions.as_ref();
+    let mut session_id = refresh(logind, &tx, actions).await;
+    let mut sleeping = match logind {
+        Some(logind) => logind.manager.receive_prepare_for_sleep().await.ok(),
+        None => None,
     };
-    let Ok(manager) = ManagerProxy::new(&connection).await else {
-        return;
-    };
-
-    let mut session_id = probe(&connection, &tx, &manager).await;
-    let mut sleeping = manager.receive_prepare_for_sleep().await.ok();
 
     loop {
         tokio::select! {
@@ -42,22 +45,32 @@ pub(super) async fn run(
                 {
                     // Resuming: what logind allows can have changed (a lid-close policy, a
                     // fresh inhibitor) since it was last asked.
-                    session_id = probe(&connection, &tx, &manager).await;
+                    session_id = refresh(logind, &tx, actions).await;
                 }
             }
             command = commands.recv() => match command {
                 Some(SessionCommand::Refresh) => {
-                    session_id = probe(&connection, &tx, &manager).await;
+                    session_id = refresh(logind, &tx, actions).await;
                 }
                 Some(SessionCommand::Run(SessionAction::Lock)) => {
                     // The locker service decides (its own locker, or logind's LockSession for
                     // COSMIC's resident one); never logind here, so sill nested in another
                     // desktop's session cannot lock that desktop.
-                    let _gone_is_inert = locker.send(LockerCommand::Lock);
+                    if actions.act(SessionAction::Lock) == ActionReach::Logind {
+                        let _gone_is_inert = locker.send(LockerCommand::Lock);
+                    }
                 }
                 Some(SessionCommand::Run(action)) => {
                     let offer = tx.borrow().offer(action);
-                    run_action(&manager, session_id.as_deref(), offer, action).await;
+                    // An action not offered is dropped (matching what the launcher and the
+                    // power menu show), same as a `Set` the daemon does not offer in the power
+                    // profile service.
+                    if offer != Offer::Unavailable
+                        && actions.act(action) == ActionReach::Logind
+                        && let Some(logind) = logind
+                    {
+                        run_action(&logind.manager, session_id.as_deref(), action).await;
+                    }
                 }
                 None => break,
             }
@@ -65,22 +78,56 @@ pub(super) async fn run(
     }
 }
 
-/// Re-reads every `Can*` and this process's session, publishes the result, and returns the
-/// session id [`run_action`] needs for `Lock` and `LogOut`. `Gone` (and `None`) only when logind
+/// logind's manager on its bus.
+struct Logind {
+    connection: Connection,
+    manager: ManagerProxy<'static>,
+}
+
+/// logind on `bus`, when the bus is there.
+async fn connect(bus: &Bus) -> Option<Logind> {
+    let connection = bus.connect().await.ok().flatten()?;
+    let manager = ManagerProxy::new(&connection).await.ok()?;
+    Some(Logind {
+        connection,
+        manager,
+    })
+}
+
+/// Publish what `actions` offers given logind's answers now (none without logind), and return
+/// this process's session id when logind knows it.
+async fn refresh(
+    logind: Option<&Logind>,
+    tx: &watch::Sender<Session>,
+    actions: &dyn SessionActions,
+) -> Option<String> {
+    let (event, session_id) = match logind {
+        Some(logind) => probe(&logind.connection, &logind.manager).await,
+        None => (SessionEvent::Gone, None),
+    };
+    let next = actions.offers(reduce_session(*tx.borrow(), event));
+    tx.send_if_modified(|shown| {
+        let changed = *shown != next;
+        *shown = next;
+        changed
+    });
+    session_id
+}
+
+/// Re-reads every `Can*` and this process's session: the event it makes, and the session id
+/// [`run_action`] needs for `LogOut`. `Gone` (and `None`) only when logind
 /// answered none of the three `Can*` calls at all; one session object this process cannot find
 /// (common outside a real login session, e.g. under a build sandbox) is a legitimate `Session`
 /// with `lock`/`log_out` left `Unavailable`, not an unreachable daemon.
 async fn probe(
     connection: &Connection,
-    tx: &watch::Sender<Session>,
     manager: &ManagerProxy<'_>,
-) -> Option<String> {
+) -> (SessionEvent, Option<String>) {
     let suspend = manager.can_suspend().await;
     let restart = manager.can_reboot().await;
     let power_off = manager.can_power_off().await;
     if suspend.is_err() && restart.is_err() && power_off.is_err() {
-        apply(tx, SessionEvent::Gone);
-        return None;
+        return (SessionEvent::Gone, None);
     }
 
     let session_id = current_session_id(connection, manager).await;
@@ -89,18 +136,15 @@ async fn probe(
     } else {
         Offer::Unavailable
     };
-    apply(
-        tx,
-        SessionEvent::Probed(Session {
-            presence: Presence::Present,
-            lock: lock_log_out,
-            log_out: lock_log_out,
-            restart: offer_of(restart),
-            power_off: offer_of(power_off),
-            suspend: offer_of(suspend),
-        }),
-    );
-    session_id
+    let probed = Session {
+        presence: Presence::Present,
+        lock: lock_log_out,
+        log_out: lock_log_out,
+        restart: offer_of(restart),
+        power_off: offer_of(power_off),
+        suspend: offer_of(suspend),
+    };
+    (SessionEvent::Probed(probed), session_id)
 }
 
 /// This process's own session id (`Session.Id`, e.g. `"3"`), by way of `GetSessionByPID` and the
@@ -116,18 +160,8 @@ async fn current_session_id(connection: &Connection, manager: &ManagerProxy<'_>)
     session.id().await.ok()
 }
 
-/// Carries out `action` if `offer` allows it (matching what the launcher and the power menu
-/// would show); an action logind does not offer is silently dropped, same as a `Set` the daemon
-/// does not offer in the power profile service.
-async fn run_action(
-    manager: &ManagerProxy<'_>,
-    session_id: Option<&str>,
-    offer: Offer,
-    action: SessionAction,
-) {
-    if offer == Offer::Unavailable {
-        return;
-    }
+/// Carries out `action` through logind.
+async fn run_action(manager: &ManagerProxy<'_>, session_id: Option<&str>, action: SessionAction) {
     let _ = match action {
         // Routed to the locker service before this point.
         SessionAction::Lock => return,
@@ -148,12 +182,6 @@ fn offer_of(result: zbus::Result<IsSupported>) -> Offer {
         Ok(supported) => Offer::from_logind(<&str>::from(supported)),
         Err(_) => Offer::Unavailable,
     }
-}
-
-/// Reduces `event` onto the receiver's current value and publishes the result.
-fn apply(tx: &watch::Sender<Session>, event: SessionEvent) {
-    let next = reduce_session(*tx.borrow(), event);
-    let _ = tx.send(next);
 }
 
 /// Polls one `Unpin` stream for its next item, for use as a `tokio::select!` branch.

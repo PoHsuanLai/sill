@@ -129,7 +129,6 @@ pub fn advance(
 mod tests {
     use super::{MenuSession, SheetEffect, SheetInput, SheetPhase, Then, advance};
     use crate::surfaces::launcher::presence::OpenSerial;
-    use crate::surfaces::power_menu::backend::everything_offered;
     use crate::surfaces::power_menu::keys::{PowerMenuKey, PowerMenuState};
     use ds::Shown;
     use sill_services::{Offer, Session, SessionAction};
@@ -146,7 +145,7 @@ mod tests {
     fn every_way_out_leaves_first_and_acts_once_settled() {
         use SessionAction::{LogOut, PowerOff, Restart, Suspend};
         use SheetPhase::{Leaving, Open};
-        let all = everything_offered();
+        let all = Session::everything();
         let no_suspend = Session {
             suspend: Offer::Unavailable,
             ..all

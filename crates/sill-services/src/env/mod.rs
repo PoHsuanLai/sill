@@ -14,11 +14,15 @@ mod buses;
 mod dirs;
 #[cfg(test)]
 pub(crate) mod scratch;
+mod session_actions;
 mod wall_clock;
 mod wayland;
 
 pub use buses::{Bus, BusKind, BusRoute, Buses};
 pub use dirs::Dirs;
+pub use session_actions::{
+    ActionReach, DryRunActions, DryRunOffers, LogindActions, SessionActions, dry_run_line,
+};
 pub use wall_clock::{FixedClock, SystemClock, WallClock};
 pub use wayland::{WaylandRoute, WaylandUnreached};
 
@@ -38,6 +42,8 @@ pub struct Env {
     pub idle_times: IdleTimesSource,
     /// Where the polkit agent registers: polkitd's bus, polkit's helper, the session.
     pub polkit: polkit_agent::Setup,
+    /// Where the session's actions go: logind, or a dry run's record.
+    pub session_actions: Arc<dyn SessionActions>,
 }
 
 /// Where idle's screen-off and suspend times come from.
@@ -52,7 +58,7 @@ pub enum IdleTimesSource {
 
 impl Env {
     /// The process's own: its buses, its compositor, its directories, the system clock, the
-    /// kernel's i2c buses and polkitd on the system bus.
+    /// kernel's i2c buses, polkitd on the system bus and logind's session actions.
     pub fn from_process() -> Env {
         let buses = Buses::from_process();
         Env {
@@ -63,12 +69,14 @@ impl Env {
             clock: Arc::new(SystemClock),
             ddc: Arc::new(I2cBuses::default()),
             idle_times: IdleTimesSource::Settings,
+            session_actions: Arc::new(LogindActions),
         }
     }
 
     /// Nothing outside the process: no bus, a compositor socket in `scratch` that does not
     /// exist, every directory inside `scratch`, the system clock (read only), DDC monitors from
-    /// a file that is not there (none), and no polkit helper. For tests that start services and must never
+    /// a file that is not there (none), no polkit helper, and session actions that are only
+    /// recorded. For tests that start services and must never
     /// reach the person's session or files. `scratch` must exist: the wallpaper service watches
     /// the nearest existing folder above COSMIC's record.
     pub fn isolated(scratch: &Path) -> Env {
@@ -84,6 +92,7 @@ impl Env {
                 helper: polkit_agent::HelperChoice::Use(polkit_agent::HelperRoute::Missing),
                 session: polkit_agent::SessionChoice::Id("sill-test".to_owned()),
             },
+            session_actions: Arc::new(DryRunActions::new(DryRunOffers::Everything, None)),
         }
     }
 }

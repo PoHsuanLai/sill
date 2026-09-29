@@ -12,8 +12,8 @@
 # (NetworkManager, BlueZ, UPower, logind), or the user's own sill IPC socket. Quits
 # the daemon and stops the headless KWin at the end.
 #
-# SAFETY. The daemon is started with SILL_POWER_MENU_DRY_RUN naming a record file, so every power
-# menu has the dry-run backend (a chosen action is only recorded, never sent to logind), and the
+# SAFETY. The daemon is started with `sill run --session-dry-run RECORD`, so every session action
+# goes through the dry run (a chosen action is only recorded, never sent to logind), and the
 # script proves that from the daemon's log before it sends any key. Enter is never pressed and no
 # button of the menu is clicked: the keys are arrows and Escape, the click is on the scrim.
 #
@@ -193,7 +193,8 @@ start_daemon() {
   : >"$RECORD"
   use_fake_ddc "$CONFIG" >/dev/null
   require_fake_ddc || return 1
-  in_env env XDG_CONFIG_HOME="$CONFIG" SILL_POWER_MENU_DRY_RUN="$RECORD" "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" \
+  in_env env XDG_CONFIG_HOME="$CONFIG" \
+    "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" --session-dry-run "$RECORD" \
     >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
@@ -228,7 +229,7 @@ await_exit() {
 prove_dry_run() {
   local log="$OUT_DIR/dry-run.log"
   {
-    grep "sill: power menu: dry run, recording to $RECORD" "$OUT_DIR/daemon.log" || return 1
+    grep "sill: session: dry run, recording to $RECORD" "$OUT_DIR/daemon.log" || return 1
     grep "power_menu.backend=dry-run" "$OUT_DIR/daemon.log" || return 1
     if grep "power_menu.backend=live" "$OUT_DIR/daemon.log"; then return 1; fi
   } >"$log" 2>&1

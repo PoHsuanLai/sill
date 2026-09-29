@@ -16,7 +16,7 @@ use crate::clock::{ClockCommand, ClockText};
 use crate::control::Control;
 use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
 use crate::displays::{Displays, DisplaysCommand};
-use crate::env::{Dirs, Env};
+use crate::env::{Dirs, Env, SessionActions};
 use crate::events::{Agenda, EventsCommand};
 use crate::idle::{Idle, IdleCommand, IdleLinks};
 use crate::kbd_backlight::{KbdBacklight, KbdCommand};
@@ -111,6 +111,9 @@ pub struct Services {
     /// The person's directories the services were started with (the icon theme's config, the
     /// widget placements' state folder).
     pub dirs: Dirs,
+    /// Where the session service sends chosen actions (logind, or a dry run's record), for the
+    /// surfaces' log lines.
+    pub session_actions: Arc<dyn SessionActions>,
 }
 
 impl Services {
@@ -164,8 +167,12 @@ impl Services {
         let (media, media_control) = crate::now_playing::spawn(rt, session(), &env.dirs);
         let (kbd_backlight, kbd_backlight_control) = crate::kbd_backlight::spawn(rt, system());
         let (lock, locker_control) = crate::locker::spawn(rt, system(), env.dirs.runtime.clone());
-        let (session, session_control) =
-            crate::session::spawn(rt, system(), locker_control.clone());
+        let (session, session_control) = crate::session::spawn(
+            rt,
+            system(),
+            Arc::clone(&env.session_actions),
+            locker_control.clone(),
+        );
         // Passive (never asks for the bus name) until the daemon sends its first policy.
         let (notifications, notification_history, notifications_control) =
             crate::notifications::spawn(rt, crate::notifications::Setup::of(env));
@@ -242,6 +249,7 @@ impl Services {
             idle,
             idle_control,
             dirs: env.dirs.clone(),
+            session_actions: Arc::clone(&env.session_actions),
         }
     }
 }

@@ -153,7 +153,7 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
 - [ ] **Power menu with the real keyboard** (real arrows, Escape and a scrim click already pass
   on a headless KWin through `dev/accept-real-input.sh`): `sill power-menu open`, then arrows
   move the highlight, Esc closes. Do NOT press Enter on Restart/Shut Down unless you mean it; the
-  dry run (`SILL_POWER_MENU_DRY_RUN=<file>` on a debug build) records instead.
+  dry run (`sill run --session-dry-run <file>` on a debug build) records instead.
 - [ ] **Cmd+Tab** (with `dist/cosmic` system_actions installed): a quick Cmd+Tab tap switches to
   the previous app with no panel; holding shows the panel after about 150 ms; Tab moves;
   releasing Cmd switches; Q quits the selected app; H hides it; Esc cancels.

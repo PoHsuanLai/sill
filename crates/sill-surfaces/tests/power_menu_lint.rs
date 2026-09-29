@@ -7,10 +7,11 @@ mod power_menu_support;
 use dioxus::prelude::*;
 use ds::lint::{LintConfig, Profile, Rule, assert_clean, markup};
 use power_menu_support::{fake, opened};
+use sill_services::Session;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::PowerMenu;
 use sill_surfaces::surfaces::power_menu::{
-    DryRunSession, PowerMenuBackend, PowerMenuLink, PowerMenuProps, Preselect, everything_offered,
+    DryRunSession, PowerMenuBackend, PowerMenuLink, PowerMenuProps, Preselect,
 };
 
 const POWER_MENU_CSS: &str = include_str!("../src/style/power_menu.css");
@@ -46,7 +47,7 @@ fn render_ssr() -> String {
     dom.provide_root_context(SettingsFeed::fixed(ShellFile::default()));
     dom.provide_root_context(PowerMenuLink::new());
     dom.provide_root_context(PowerMenuBackend::dry_run(DryRunSession::new(
-        everything_offered(),
+        Session::everything(),
         None,
     )));
     dom.rebuild_in_place();
@@ -76,7 +77,7 @@ fn the_hidden_power_menu_markup_is_clean() {
 fn the_open_power_menu_markup_is_clean_and_has_no_raw_markup() {
     let running = opened(
         ShellFile::default(),
-        everything_offered(),
+        Session::everything(),
         Preselect::Default,
     );
     let offences = markup(&running.harness.html(), &full_css(), &strict());

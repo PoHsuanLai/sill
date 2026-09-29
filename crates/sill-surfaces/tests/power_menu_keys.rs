@@ -11,7 +11,7 @@ use ds::Key;
 use power_menu_support::{is_open, look, nth_button, opened, primary, ring_on_primary, settle};
 use sill_services::{Offer, Session, SessionAction};
 use sill_settings::{PowerMenuDefault, PowerMenuSettings, ShellFile};
-use sill_surfaces::surfaces::power_menu::{Preselect, everything_offered};
+use sill_surfaces::surfaces::power_menu::Preselect;
 
 fn file(default_action: PowerMenuDefault) -> ShellFile {
     ShellFile {
@@ -31,7 +31,7 @@ fn shut_down_default() -> ShellFile {
 fn it_opens_on_the_default_button_with_the_ring_on_it() {
     let running = opened(
         shut_down_default(),
-        everything_offered(),
+        Session::everything(),
         Preselect::Default,
     );
     assert_eq!(primary(&running.harness).as_deref(), Some("Shut Down"));
@@ -39,7 +39,7 @@ fn it_opens_on_the_default_button_with_the_ring_on_it() {
     assert_eq!(look(&running.harness).as_deref(), Some("open"));
     let suspend = opened(
         file(PowerMenuDefault::Suspend),
-        everything_offered(),
+        Session::everything(),
         Preselect::Default,
     );
     assert_eq!(primary(&suspend.harness).as_deref(), Some("Suspend"));
@@ -49,7 +49,7 @@ fn it_opens_on_the_default_button_with_the_ring_on_it() {
 fn a_launcher_row_opens_on_its_own_button() {
     let running = opened(
         shut_down_default(),
-        everything_offered(),
+        Session::everything(),
         Preselect::Action(SessionAction::Restart),
     );
     assert_eq!(primary(&running.harness).as_deref(), Some("Restart"));
@@ -59,7 +59,7 @@ fn a_launcher_row_opens_on_its_own_button() {
 fn arrows_and_tab_move_the_highlight_and_the_ring() {
     let mut running = opened(
         shut_down_default(),
-        everything_offered(),
+        Session::everything(),
         Preselect::Default,
     );
     let steps = [
@@ -87,7 +87,7 @@ fn arrows_and_tab_move_the_highlight_and_the_ring() {
 fn enter_leaves_then_runs_the_focused_action_on_the_backend() {
     let mut running = opened(
         shut_down_default(),
-        everything_offered(),
+        Session::everything(),
         Preselect::Default,
     );
     running.harness.key(Key::Left);
@@ -120,7 +120,7 @@ fn enter_leaves_then_runs_the_focused_action_on_the_backend() {
 fn escape_leaves_and_closes_running_nothing() {
     let mut running = opened(
         shut_down_default(),
-        everything_offered(),
+        Session::everything(),
         Preselect::Default,
     );
     running.harness.key(Key::Escape);
@@ -136,7 +136,7 @@ fn escape_leaves_and_closes_running_nothing() {
 fn opened_again_while_leaving_it_enters_again_and_stays() {
     let mut running = opened(
         shut_down_default(),
-        everything_offered(),
+        Session::everything(),
         Preselect::Default,
     );
     running.harness.key(Key::Escape);
@@ -172,7 +172,7 @@ fn opened_again_while_leaving_it_enters_again_and_stays() {
 fn a_scrim_click_leaves_and_closes() {
     let mut running = opened(
         shut_down_default(),
-        everything_offered(),
+        Session::everything(),
         Preselect::Default,
     );
     running.harness.click(ds::Point {
@@ -191,7 +191,7 @@ fn a_scrim_click_leaves_and_closes() {
 fn a_click_runs_that_button() {
     let mut running = opened(
         shut_down_default(),
-        everything_offered(),
+        Session::everything(),
         Preselect::Default,
     );
     let log_out = running.harness.centre(&nth_button(1));
@@ -211,7 +211,7 @@ fn a_click_runs_that_button() {
 fn unoffered_buttons_are_skipped_disabled_and_inert() {
     let offers = Session {
         suspend: Offer::Unavailable,
-        ..everything_offered()
+        ..Session::everything()
     };
     let mut running = opened(shut_down_default(), offers, Preselect::Default);
     for attr in ["aria-disabled", "disabled"] {

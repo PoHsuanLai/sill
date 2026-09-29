@@ -86,6 +86,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
             sill_surfaces::surfaces::desktop_widgets::PlacementFile::in_dirs(&env.dirs),
             settings_tx.clone(),
         ),
+        power_menu_keys: args.power_menu_keys(),
     });
     // The notifications service's policy from the settings and the focus mode; the first one
     // sent ends its passive start.
@@ -339,7 +340,7 @@ fn run_event(
             spawn_missing_wallpapers(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_docks(ctx, outputs, services, settings_feed, settings_tx);
             spawn_missing_launchers(ctx, outputs, services, settings_feed, settings_tx, launcher);
-            crate::power_menu::spawn_missing(ctx, outputs, &services.session, |root| {
+            crate::power_menu::spawn_missing(ctx, outputs, |root| {
                 surface_root(root, services, settings_feed)
             });
             // The polkit prompt over the power menu, and the switcher (both Overlay).

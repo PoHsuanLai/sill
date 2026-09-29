@@ -375,6 +375,10 @@ pub fn services() -> (Services, Feeds) {
         dirs: sill_services::env::Dirs::under(std::path::Path::new(
             "/nonexistent/sill-surfaces-test",
         )),
+        session_actions: std::sync::Arc::new(sill_services::env::DryRunActions::new(
+            sill_services::env::DryRunOffers::Everything,
+            None,
+        )),
     };
     let feeds = Feeds {
         clock: clock_tx,

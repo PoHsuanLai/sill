@@ -1,8 +1,8 @@
-//! Where the power menu's chosen action goes, behind one trait: the session service (logind)
-//! in a real session, or a dry run that offers every action and only records the choice. The
-//! daemon picks the dry run in a debug build when `SILL_POWER_MENU_DRY_RUN` names a record
-//! file (`crates/sill/src/power_menu.rs`), and the acceptance script proves it did before it
-//! presses Enter; tests use the dry run too. Nothing here ever runs on its own: only a chosen
+//! Where the power menu's chosen action goes, behind one trait: the session service, or a dry
+//! run of the menu's own that offers every action and only records the choice (tests). The
+//! daemon's menus always use the session service, whose own session actions may be a dry run
+//! (`sill run --session-dry-run`); the live backend reports that as its kind, and the acceptance
+//! script proves it before it presses Enter. Nothing here ever runs on its own: only a chosen
 //! button calls [`SessionBackend::run`].
 
 use std::fmt;
@@ -10,10 +10,8 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use sill_services::units::Presence;
-use sill_services::{
-    Control, Offer, ServiceError, Services, Session, SessionAction, SessionCommand,
-};
+use sill_services::env::ActionReach;
+use sill_services::{Control, ServiceError, Services, Session, SessionAction, SessionCommand};
 use tokio::sync::watch;
 
 use crate::surfaces::power_menu::labels::action_label;
@@ -65,6 +63,10 @@ impl PowerMenuBackend {
         PowerMenuBackend(Arc::new(LiveSession {
             offers: services.session.clone(),
             control: services.session_control.clone(),
+            kind: match services.session_actions.reach() {
+                ActionReach::Logind => BackendKind::Live,
+                ActionReach::DryRun => BackendKind::DryRun,
+            },
         }))
     }
 
@@ -74,15 +76,17 @@ impl PowerMenuBackend {
     }
 }
 
-/// The session service: `SessionCommand::Run` and `Refresh`.
+/// The session service: `SessionCommand::Run` and `Refresh`. Its kind is the service's own:
+/// a daemon whose session actions are a dry run records every choice there.
 struct LiveSession {
     offers: watch::Receiver<Session>,
     control: Control<SessionCommand>,
+    kind: BackendKind,
 }
 
 impl SessionBackend for LiveSession {
     fn kind(&self) -> BackendKind {
-        BackendKind::Live
+        self.kind
     }
 
     fn offers(&self) -> watch::Receiver<Session> {
@@ -112,18 +116,6 @@ impl fmt::Debug for DryRunSession {
         f.debug_struct("DryRunSession")
             .field("record", &self.record)
             .finish_non_exhaustive()
-    }
-}
-
-/// A session that offers every action.
-pub fn everything_offered() -> Session {
-    Session {
-        presence: Presence::Present,
-        lock: Offer::Available,
-        log_out: Offer::Available,
-        restart: Offer::Available,
-        power_off: Offer::Available,
-        suspend: Offer::Available,
     }
 }
 
@@ -194,7 +186,8 @@ impl SessionBackend for DryRunSession {
 
 #[cfg(test)]
 mod tests {
-    use super::{BackendKind, DryRunSession, SessionBackend, dry_run_line, everything_offered};
+    use super::{BackendKind, DryRunSession, SessionBackend, dry_run_line};
+    use sill_services::Session;
     use sill_services::SessionAction;
 
     #[test]
@@ -203,9 +196,9 @@ mod tests {
         let _ = std::fs::create_dir_all(&dir);
         let record = dir.join("record");
         let _ = std::fs::remove_file(&record);
-        let session = DryRunSession::new(everything_offered(), Some(record.clone()));
+        let session = DryRunSession::new(Session::everything(), Some(record.clone()));
         assert_eq!(session.kind(), BackendKind::DryRun);
-        assert_eq!(*session.offers().borrow(), everything_offered());
+        assert_eq!(*session.offers().borrow(), Session::everything());
         assert!(session.run(SessionAction::Restart).is_ok());
         assert!(session.run(SessionAction::PowerOff).is_ok());
         assert_eq!(

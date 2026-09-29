@@ -13,11 +13,13 @@ mod model;
 
 pub use model::{Offer, Session, SessionAction, SessionEvent, reduce_session};
 
+use std::sync::Arc;
+
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
-use crate::env::Bus;
+use crate::env::{Bus, SessionActions};
 use crate::locker::LockerCommand;
 
 /// What the session service can be told.
@@ -38,10 +40,11 @@ pub enum SessionCommand {
 pub fn spawn(
     rt: &Handle,
     bus: Bus,
+    actions: Arc<dyn SessionActions>,
     locker: Control<LockerCommand>,
 ) -> (watch::Receiver<Session>, Control<SessionCommand>) {
     let (tx, rx) = watch::channel(Session::default());
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(bus, tx, commands, locker));
+    rt.spawn(live::run(bus, actions, tx, commands, locker));
     (rx, control)
 }

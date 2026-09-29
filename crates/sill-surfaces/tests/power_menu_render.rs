@@ -8,12 +8,13 @@ mod power_menu_support;
 use std::time::Duration;
 
 use power_menu_support::{HEIGHT, VIEWPORT, WIDTH, look, nth_button, opened, start};
+use sill_services::Session;
 use sill_settings::ShellFile;
-use sill_surfaces::surfaces::power_menu::{PANEL_ID, Preselect, everything_offered};
+use sill_surfaces::surfaces::power_menu::{PANEL_ID, Preselect};
 
 #[test]
 fn hidden_it_draws_nothing() {
-    let mut running = start(ShellFile::default(), everything_offered());
+    let mut running = start(ShellFile::default(), Session::everything());
     running.harness.advance(Duration::from_millis(100));
     assert_eq!(look(&running.harness).as_deref(), Some("closed"));
     assert_eq!(running.harness.count(".ds-sheet"), 0);
@@ -25,7 +26,7 @@ fn hidden_it_draws_nothing() {
 fn open_it_draws_the_sheet_the_buttons_and_the_hints() {
     let running = opened(
         ShellFile::default(),
-        everything_offered(),
+        Session::everything(),
         Preselect::Default,
     );
     let h = &running.harness;
@@ -84,7 +85,7 @@ fn open_it_draws_the_sheet_the_buttons_and_the_hints() {
 fn the_scrim_covers_the_output_and_the_blur_element_is_the_sheet() {
     let running = opened(
         ShellFile::default(),
-        everything_offered(),
+        Session::everything(),
         Preselect::Default,
     );
     let h = &running.harness;
@@ -123,7 +124,7 @@ fn the_scrim_covers_the_output_and_the_blur_element_is_the_sheet() {
 fn the_open_menu_renders() {
     let mut running = opened(
         ShellFile::default(),
-        everything_offered(),
+        Session::everything(),
         Preselect::Default,
     );
     let image = running
