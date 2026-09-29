@@ -703,7 +703,7 @@ where noted, and sill compiles against each.
    in step 9); `Services::spawn` becomes the daemon's `start`.
 5. quire steps land (`ds-settings` dioxus optional, `SettingsDoc`, `Word`, the crate split and
    `ds::prelude`); mechanical sill import rewrite in one commit per crate.
-6. `sill-settings` pure: `Section`, typed values at load, mirrors and `schema_file.rs` gone,
+6. `sill-settings` pure (done): `Section`, typed values at load, mirrors and `schema_file.rs` gone,
    `focus_link`, `watch`, `feed`, `load`/`save` to their new homes, dead keys retired.
 7. `sill-ipc` (done): regrouped, mirrors removed, `sill` `cli/` and `ipc/dispatch/` split, `policy/`
    dir, `Policy` bridges moved.

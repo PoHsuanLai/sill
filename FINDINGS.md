@@ -221,8 +221,8 @@ A settled item is deleted, not marked closed.
   `set_visibility`.
 - **Element regions** (`RegionSpec::Elements`) are resolved after every layout and follow CSS
   transforms; one `RegionSpec::Element` keeps its last rect once its element is gone.
-- **Tokio**: `sill_settings::watch` needs an entered runtime; services spawn on the `Handle` they
-  are given, never with a bare `tokio::spawn`.
+- **Tokio**: services spawn on the `Handle` they are given, never with a bare `tokio::spawn`;
+  the settings watch runs on a `ds_native::TokioSpawner` over the daemon's runtime.
 - **Every Harness test runs on `Clock::Virtual`** and pins `PinnedAppearance`: quire's live
   `use_environment` reads the settings portal and `appearance.toml` off-thread on wall time and
   wakes a settled document with no change (Q455). The bar clock is a `watch` fed by
@@ -256,21 +256,30 @@ A settled item is deleted, not marked closed.
 
 ### Settings
 
-- **`sill-settings` is its own crate** because `ds-settings` depends on dioxus, and
-  `sill-services` must stay UI-free (`scripts/check-boundary.sh`). Surfaces receive settings
-  through a second root context, `SettingsFeed`. The same boundary makes the settings launcher
-  provider re-read `*.settings.toml` itself and re-implement `deep_link`.
+- **`sill-settings` is pure data**: the domain structs, `Section`, `ShellFile` as a
+  `ds_settings::SettingsDoc`, and the schema. The daemon reads, saves, watches and publishes the
+  file (`sill::daemon::settings`, over `ds_settings::Store`); surfaces receive it through a second
+  root context, `SettingsFeed` (`sill-ui-kit`), and read one domain with `use_section`.
 - **One-variant enums cannot be settings** (the derive refuses them): `launcher.material` and
-  `control_center.material` are `PanelMaterial::{Sheet, Popover}`, and `spaces.lookup_order`
-  gained `ByIndexOnly`.
+  `power_menu.material` are `PanelMaterial::{Sheet, Popover}`.
+- **Retired keys**: `control_center.material`, `dock.position`, `session.user_picture` and
+  `spaces.lookup_order` had no reader, so the fields are gone and design/22's rows say
+  `RETIRING`; a file that still sets one is told the key is unknown. `dock.progress_ring_*`,
+  `dock.hold_to_menu_ms` and `notifications.banner_hold_ms` are read (the dock ring, the dock
+  machine's press, the banner hold) and stay.
+- **`screenshot.tool` is typed at load** (`ShotTool`, stored as its text). `calendar.sources`,
+  `screenshot.folders`, `display.scale_overrides` and `widgets.world_clocks` stay text: their
+  parse needs `$HOME` (`~/`) or belongs to the reader, and a typed form would rewrite the
+  person's text on save.
 - **Numbers the docs leave open**: the rank's prefix boost 0.1; frecency buckets at 4/14/31/90
   days (Firefox's); the clock `Thu 24 Sep 14:05`, 24-hour; the banner hold 5200 ms (the key over
   design/13's 5000).
 - **Deep links need unique wording**: `deep_link` resolves only when exactly one key's label or
   help mentions the query.
-- **Unknown keys in `settings.toml`** are reported as a load diagnostic and not kept. A value
-  that does not parse costs only its own key; a file that is not TOML at all keeps the last good
-  file in the watch.
+- **Unknown keys in `settings.toml`** are reported as a load diagnostic and not kept: each is one
+  line on the daemon's stderr (`sill: settings.toml: unknown key ...`), on every read, and the next
+  save drops it. A value that does not parse costs only its own key; a file that is not TOML at
+  all keeps the last good file in the watch and is reported invalid.
 - **Places are state, not settings**: dock pins (`$XDG_CONFIG_HOME/sill/dock.json`) and desktop
   widget positions (`$XDG_STATE_HOME/sill/desktop-widgets.json`, per output connector).
 
@@ -341,6 +350,11 @@ A settled item is deleted, not marked closed.
 - **G331** The desktop grid is measured when the layer mounts; a live output resize re-places
   only on the next spawn.
 - **G351** `sill idle status` counts `ScreenSaver` inhibits but does not name the apps.
+- **G365** The settings provider reads schema files itself (`sill-search`'s
+  `providers/settings/schema_file.rs`, mirrors of `ds_settings::schema`): `ds-settings` still
+  depends on `ds`, which reaches `dioxus`, and the boundary keeps `sill-search` from both.
+  Ends when quire's step 8 splits `ds`: then `sill-search` depends on `ds-settings`, the mirrors
+  and `page_label` go, and `check-boundary.sh` drops `ds-settings` from the rule.
 - **G350** No failure reason on a failed Wi-Fi or Bluetooth row (NetworkManager's `StateReason`
   and BlueZ's error are not read).
 - **G353** Two devices connecting at once share one connect stamp.
