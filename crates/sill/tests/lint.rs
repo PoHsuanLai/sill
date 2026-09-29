@@ -21,14 +21,15 @@ use sill_model::polkit_agent::{
 use sill_model::screenshots::{Shot, ShotId, ShotPreview, Shots};
 use sill_model::session::Session;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
+use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
     BannerLink, BannerOutput, CenterLink, Dir, LevelSource, LockLink, OsdKind, OsdLink,
     PowerMenuLink, Preselect, PromptOutput, SwitcherAsk, SwitcherLink,
 };
 use sill_ui_kit::{
-    Banners, IdleDim, Lock, NotificationCenter, Osd, PolkitPrompt, PowerMenu, ScreenshotThumb,
-    Switcher, Wallpaper,
+    Banners, Dock, IdleDim, Lock, NotificationCenter, Osd, PolkitPrompt, PowerMenu,
+    ScreenshotThumb, Switcher, Wallpaper,
 };
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
@@ -41,6 +42,11 @@ struct SurfaceCase {
 }
 
 const SURFACES: &[SurfaceCase] = &[
+    SurfaceCase {
+        name: "dock",
+        css: sill_ui_kit::surfaces::dock::DOCK_CSS,
+        states: dock_states,
+    },
     SurfaceCase {
         name: "osd",
         css: sill_ui_kit::surfaces::osd::OSD_CSS,
@@ -112,6 +118,27 @@ fn strict() -> LintConfig {
 /// A surface with no markup of its own to lint: a bare element the stylesheet sizes.
 fn no_states() -> Vec<(&'static str, String)> {
     Vec::new()
+}
+
+/// The dock on the dock fixtures, pinned, running and badged; then hiding, with its strip.
+fn dock_states() -> Vec<(&'static str, String)> {
+    let draw = |file: ShellFile| {
+        let mut dock = SurfaceHarness::<Dock>::setup((), ()).settings(file).start();
+        dock.feeds.apps.send_replace(fake::dock::index());
+        dock.feeds.pins.send_replace(fake::dock::pins());
+        dock.feeds.badges.send_replace(fake::dock::badges());
+        dock.feeds
+            .cosmic_wl
+            .send_modify(|wl| wl.toplevels = fake::dock::toplevels_on("DP-1"));
+        dock.harness.advance(Duration::from_millis(40));
+        dock.harness.html()
+    };
+    let mut hiding = ShellFile::default();
+    hiding.dock.autohide = AutoHide::On;
+    let fixed = draw(ShellFile::default());
+    let hidden = draw(hiding);
+    assert!(hidden.contains("id=\"dock-strip\""), "{hidden}");
+    vec![("fixed", fixed), ("hiding", hidden)]
 }
 
 /// The indicator hidden, then shown for a volume change.

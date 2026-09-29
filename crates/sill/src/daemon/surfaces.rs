@@ -1,5 +1,5 @@
 //! Spawning the surfaces every output gets, each row's missing ones after every host event. The
-//! bar, wallpaper, dock and launcher blocks live here; the other surfaces' `spawn_missing` sit in
+//! bar, wallpaper and launcher blocks live here; the other surfaces' `spawn_missing` sit in
 //! their own modules and are called in their drawing order by [`spawn_missing`].
 
 use shell_host::SurfaceId;
@@ -12,7 +12,7 @@ use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::surface::{LockSurface, MountLockProps, Surface, mount_lock};
 use sill_ui_kit::{
-    Banners, HotCorners, IdleDim, Lock, NotificationCenter, Osd, PolkitPrompt, PowerMenu,
+    Banners, Dock, HotCorners, IdleDim, Lock, NotificationCenter, Osd, PolkitPrompt, PowerMenu,
     ScreenshotThumb, Switcher, Wallpaper,
 };
 use tokio::sync::watch;
@@ -46,7 +46,7 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     spawn_missing_bars(ctx, outputs, services, settings_feed, links, settings);
     prepare_wallpapers(outputs, services, &settings.borrow());
     spawn_surface::<Wallpaper>(ctx, outputs, spawn, &());
-    spawn_missing_docks(ctx, outputs, services, settings_feed, links, settings);
+    spawn_surface::<Dock>(ctx, outputs, spawn, &());
     spawn_missing_launchers(ctx, outputs, services, settings_feed, links, settings);
     spawn_surface::<PowerMenu>(ctx, outputs, spawn, &links.power_menu);
     // The polkit prompt over the power menu, and the switcher (both Overlay).
@@ -148,45 +148,6 @@ fn prepare_wallpapers(outputs: &Outputs, services: &Services, settings: &ShellFi
         });
         if let Err(error) = prepared {
             eprintln!("sill: preparing the wallpaper on {:?}: {error}", info.name);
-        }
-    }
-}
-
-/// Spawn a dock for every output whose row has none yet (the bar's pattern). The dock follows
-/// later settings changes to its geometry itself (`surfaces::dock`).
-fn spawn_missing_docks(
-    ctx: &mut HostCtx<ShellMsg>,
-    outputs: &mut Outputs,
-    services: &Services,
-    settings_feed: &SettingsFeed,
-    links: &Links,
-    settings_tx: &watch::Sender<ShellFile>,
-) {
-    let missing: Vec<OutputInfo> = outputs
-        .outputs
-        .iter()
-        .filter(|(_, surfaces)| surfaces.dock.is_none())
-        .map(|(info, _)| info.clone())
-        .collect();
-    let file = settings_tx.borrow().clone();
-    for info in missing {
-        let config = sill_ui_kit::surfaces::dock::dock_layer(&info, &file.dock);
-        let props = sill_ui_kit::surfaces::dock::DockProps {
-            output: info.clone(),
-        };
-        let root = surface_root(
-            HostRoot::with_props(sill_ui_kit::Dock, props),
-            services,
-            settings_feed,
-            links,
-        );
-        match ctx.spawn_layer(config, root) {
-            Ok(id) => {
-                let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
-                surfaces.dock = Some(id);
-                outputs.set(info, surfaces);
-            }
-            Err(error) => eprintln!("sill: spawning the dock on {:?}: {error}", info.name),
         }
     }
 }

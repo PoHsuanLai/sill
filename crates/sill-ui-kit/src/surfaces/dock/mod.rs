@@ -2,38 +2,26 @@
 //! ones grouped by `match_app`, Plank magnification, bounces, labels, badges, clicks, drags and
 //! auto-hide, driven by the pure [`machine`].
 
-pub mod context_menu;
-pub mod geometry;
-pub mod items;
-pub mod layer;
-pub mod machine;
-pub mod tile;
-
 mod activate;
 mod changes;
+pub mod context_menu;
 mod effects;
 mod frame;
+mod geometry;
 mod hit;
 mod icon;
+mod io;
+mod items;
+mod layer;
+pub mod machine;
 mod menu;
 mod menu_geometry;
 mod menu_popup;
 mod pick;
 mod pointer;
-mod session;
+mod surface;
+mod tile;
 mod view;
 
-pub use geometry::magnify_params;
-pub use items::{DockItem, ItemKind, dock_items};
-pub use layer::dock_layer;
-
-use dioxus::prelude::*;
-use shell_host::OutputInfo;
-
-/// The dock on `output`: `Ds` root with the output's SpaceLook, `Material::Dock` pill
-/// (`dock-pill`), hit element (`dock-hit`), tiles laid out by `sill_services::magnify` from the
-/// machine's `displayed` progress.
-#[component]
-pub fn Dock(output: OutputInfo) -> Element {
-    view::dock(output)
-}
+pub use surface::Dock;
+pub use view::DOCK_CSS;

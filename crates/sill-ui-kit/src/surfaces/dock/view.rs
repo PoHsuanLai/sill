@@ -26,21 +26,21 @@ use crate::menu::PopupLook;
 use crate::surfaces::bar::shell_style::shell_metrics;
 use crate::surfaces::dock::frame::{Area, Frame, Rows, frame};
 use crate::surfaces::dock::geometry::{dock_metrics, pill_corner};
+use crate::surfaces::dock::io::{SessionDeps, World, use_dock};
 use crate::surfaces::dock::items::dock_items;
-use crate::surfaces::dock::layer::dock_layer;
+use crate::surfaces::dock::layer::layer;
 use crate::surfaces::dock::machine::{
     DockParams, DockState, Label, Reveal, displayed, lift, slide_offset,
 };
 use crate::surfaces::dock::pointer::{DockInput, PointerInput, button, modifier, point};
-use crate::surfaces::dock::session::{SessionDeps, World, use_dock_session};
 use crate::surfaces::dock::tile::{LabelShown, Tile, TileLook};
 use sill_services::{AppsService, BadgesService, CosmicWlService, PinsService};
 
 /// The dock's own stylesheet (lint-clean under `Profile::Strict`, `tests/dock_lint.rs`).
-pub(crate) const DOCK_CSS: &str = include_str!("../../style/dock.css");
+pub const DOCK_CSS: &str = include_str!("../../style/dock.css");
 
 /// The dock on `output`.
-pub(crate) fn dock(output: OutputInfo) -> Element {
+pub(super) fn dock(output: OutputInfo) -> Element {
     let ds_scale = crate::hooks::use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
@@ -68,8 +68,8 @@ pub(crate) fn dock(output: OutputInfo) -> Element {
         AutoHide::Off => Reveal::Fixed,
         AutoHide::On => Reveal::Hidden,
     });
-    let session = use_dock_session(initial);
-    follow_layer(dock_layer(&output, &file.dock));
+    let session = use_dock(initial);
+    follow_layer(layer(&output, &file));
     let machine = session.machine.read().clone();
     let label = LabelShown(match machine.label {
         Label::Shown { tile } => Some(tile),

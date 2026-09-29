@@ -11,7 +11,7 @@ use shell_host::{
     Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
     Margin, OutputInfo, OutputTarget,
 };
-use sill_settings::{AutoHide, DockSettings};
+use sill_settings::{AutoHide, ShellFile};
 
 use crate::surfaces::dock::machine::Reveal;
 use crate::surfaces::naming::namespace;
@@ -21,7 +21,8 @@ use crate::surfaces::naming::namespace;
 pub const GUTTER_PX: u32 = 8;
 
 /// The dock's layer configuration on `output`.
-pub fn dock_layer(output: &OutputInfo, dock: &DockSettings) -> LayerConfig {
+pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
+    let dock = &settings.dock;
     let tile = u32::from(dock.tile_size_px.0);
     let magnified = u32::from(dock.magnified_size_px.0);
     let pad = u32::from(dock.pill_padding_px.0);
@@ -60,15 +61,15 @@ pub fn dock_layer(output: &OutputInfo, dock: &DockSettings) -> LayerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::dock_layer;
+    use super::layer;
     use crate::surfaces::naming::tests::output;
     use shell_host::{Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel};
-    use sill_settings::{AutoHide, DockSettings};
+    use sill_settings::{AutoHide, DockSettings, ShellFile};
 
     #[test]
     fn the_dock_is_158_tall_and_reserves_68_unless_it_hides() {
         // gut 8 + pad 6 + magnified 96 + tile 48; gut 8 + tile 48 + 2 x pad 6.
-        let config = dock_layer(&output(Some("DP-1")), &DockSettings::default());
+        let config = layer(&output(Some("DP-1")), &ShellFile::default());
         assert_eq!(config.namespace, "sill-dock-DP-1");
         assert_eq!(config.layer, LayerLevel::Top);
         assert_eq!(config.anchor, Anchor::BOTTOM | Anchor::LEFT | Anchor::RIGHT);
@@ -76,11 +77,14 @@ mod tests {
         assert_eq!(config.exclusive, ExclusiveZone::Reserve(68));
         assert_eq!(config.keyboard, KeyboardMode::None);
         assert!(matches!(config.blur, BlurSpec::Region(_)));
-        let hiding = DockSettings {
-            autohide: AutoHide::On,
-            ..DockSettings::default()
+        let hiding = ShellFile {
+            dock: DockSettings {
+                autohide: AutoHide::On,
+                ..DockSettings::default()
+            },
+            ..ShellFile::default()
         };
-        let config = dock_layer(&output(Some("DP-1")), &hiding);
+        let config = layer(&output(Some("DP-1")), &hiding);
         assert_eq!(config.exclusive, ExclusiveZone::Reserve(0));
         assert_eq!(config.blur, BlurSpec::None);
     }

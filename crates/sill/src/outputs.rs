@@ -23,7 +23,6 @@ pub struct OutputSurfaces {
     /// Every surface spawned through `Surface`, in spawn order.
     pub spawned: Vec<Spawned>,
     pub bar: Option<SurfaceId>,
-    pub dock: Option<SurfaceId>,
     pub launcher: Option<SurfaceId>,
     pub catcher: Option<SurfaceId>,
     /// The desktop widget layer (while `widgets.desktop` is on).
@@ -34,10 +33,9 @@ pub struct OutputSurfaces {
 
 impl OutputSurfaces {
     /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 6] {
+    fn fields(&self) -> [Option<SurfaceId>; 5] {
         [
             self.bar,
-            self.dock,
             self.launcher,
             self.catcher,
             self.desktop_widgets,
@@ -70,7 +68,6 @@ impl OutputSurfaces {
         self.spawned.retain(|surface| surface.id != id);
         for field in [
             &mut self.bar,
-            &mut self.dock,
             &mut self.launcher,
             &mut self.catcher,
             &mut self.desktop_widgets,
@@ -194,7 +191,7 @@ mod tests {
     #[test]
     fn spawned_surfaces_are_found_and_forgotten_like_the_rest() {
         let mut row = surfaces(1);
-        row.dock = Some(SurfaceId(2));
+        row.launcher = Some(SurfaceId(2));
         row.spawned.push(Spawned {
             name: "hot-corner",
             slot: "BottomRight".to_owned(),

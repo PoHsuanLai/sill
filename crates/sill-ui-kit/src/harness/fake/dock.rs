@@ -1,9 +1,5 @@
-//! Fake services for the dock's tests and `examples/dock_demo.rs`: the bar's fakes, with an
-//! app index, pins and badges of the dock's own whose senders the caller holds.
-
-#![allow(dead_code)] // Each test binary uses its own subset.
-
-pub use sill_ui_kit::harness::fake;
+//! The dock's fixtures: four apps, two pins, a badge and windows for the fake services to be fed
+//! (`Feeds::apps`, `pins`, `badges`, `cosmic_wl`); they start empty.
 
 use std::path::PathBuf;
 
@@ -16,25 +12,15 @@ use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
 use sill_model::ids::{OutputName, WorkspaceKey};
 use sill_model::pins::DockPins;
 use sill_model::units::{Permille, Visibility};
-use sill_ui_kit::services::Services;
-use tokio::sync::{mpsc, watch};
 
+/// App ids the fixtures use.
 pub const TERM: &str = "com.system76.CosmicTerm";
 pub const FILES: &str = "com.system76.CosmicFiles";
 pub const SETTINGS: &str = "com.system76.CosmicSettings";
 pub const FIREFOX: &str = "org.mozilla.firefox";
 
-/// The dock's senders beside the bar's.
-pub struct DockFeeds {
-    pub bar: fake::Feeds,
-    pub apps: watch::Sender<AppIndex>,
-    pub pins: watch::Sender<DockPins>,
-    pub badges: watch::Sender<Badges>,
-    pub pin_events: mpsc::UnboundedReceiver<sill_model::pins::PinEvent>,
-}
-
 /// An entry named `name` whose icon is the hicolor theme's, when this machine has it.
-pub fn app(id: &str, name: &str, actions: &[(&str, &str)]) -> App {
+fn app(id: &str, name: &str, actions: &[(&str, &str)]) -> App {
     let icon = ["scalable", "256x256", "128x128"]
         .iter()
         .map(|size| PathBuf::from(format!("/usr/share/icons/hicolor/{size}/apps/{id}.svg")))
@@ -120,29 +106,4 @@ pub fn badges() -> Badges {
         },
     );
     badges
-}
-
-/// The bar's fakes with the dock's index, pins, badges and windows.
-pub fn services() -> (Services, DockFeeds) {
-    let (mut services, bar) = fake::services();
-    bar.cosmic_wl
-        .send_modify(|wl| wl.toplevels = toplevels_on("DP-1"));
-    let (apps_tx, apps) = watch::channel(index());
-    let (pins_tx, pins) = watch::channel(pins());
-    let (badges_tx, badges) = watch::channel(badges());
-    let (pins_control, pin_events) = sill_services::Control::channel();
-    services.apps.state = apps;
-    services.pins.state = pins;
-    services.badges.state = badges;
-    services.pins.control = pins_control;
-    (
-        services,
-        DockFeeds {
-            bar,
-            apps: apps_tx,
-            pins: pins_tx,
-            badges: badges_tx,
-            pin_events,
-        },
-    )
 }

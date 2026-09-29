@@ -68,6 +68,12 @@ pub struct Feeds {
     pub polkit_commands: mpsc::UnboundedReceiver<sill_model::polkit_agent::PolkitCommand>,
     /// The prepared wallpapers (none until a test feeds some).
     pub wallpaper: watch::Sender<Wallpapers>,
+    /// The dock's app index, pins and badges (empty until a test feeds them), and the pin
+    /// commands it sends.
+    pub apps: watch::Sender<AppIndex>,
+    pub pins: watch::Sender<DockPins>,
+    pub badges: watch::Sender<Badges>,
+    pub pin_commands: mpsc::UnboundedReceiver<sill_model::pins::PinEvent>,
     /// Receivers and command queues nobody reads here, kept so sends do not fail.
     _keep: Vec<Box<dyn std::any::Any>>,
 }
@@ -110,6 +116,11 @@ pub fn services() -> (Services, Feeds) {
     let (polkit_agent, polkit_io) = Handle::channel(sill_model::polkit_agent::Polkit::default());
     let (wallpaper, wallpaper_io) = Handle::channel(Wallpapers::default());
     keep.push(Box::new(wallpaper_io.commands));
+    let (apps, apps_io) = Handle::channel(AppIndex::default());
+    let (badges, badges_io) = Handle::channel(Badges::default());
+    let (pins, pins_io) = Handle::channel(DockPins::default());
+    keep.push(Box::new(apps_io.commands));
+    keep.push(Box::new(badges_io.commands));
     keep.push(Box::new(clock_io.commands));
     keep.push(Box::new(battery_io.commands));
     keep.push(Box::new(network_io.commands));
@@ -122,9 +133,9 @@ pub fn services() -> (Services, Feeds) {
         volume,
         tray,
         cosmic_wl,
-        apps: fixed(AppIndex::default(), &mut keep),
-        badges: fixed(Badges::default(), &mut keep),
-        pins: fixed(DockPins::default(), &mut keep),
+        apps,
+        badges,
+        pins,
         launch,
         results: fixed(Results::default(), &mut keep),
         wallpaper,
@@ -185,6 +196,10 @@ pub fn services() -> (Services, Feeds) {
         polkit: polkit_io.state,
         polkit_commands: polkit_io.commands,
         wallpaper: wallpaper_io.state,
+        apps: apps_io.state,
+        pins: pins_io.state,
+        badges: badges_io.state,
+        pin_commands: pins_io.commands,
         _keep: keep,
     };
     (services, feeds)

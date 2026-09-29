@@ -7,9 +7,6 @@
 //!
 //! `cargo run -p sill-ui-kit --example dock_demo`
 
-#[path = "../tests/dock_support/mod.rs"]
-mod dock_support;
-
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::io::BufRead;
@@ -19,7 +16,8 @@ use shell_host::{Host, HostCtx, HostEvent, HostRoot, OutputId, OutputInfo};
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_ui_kit::Dock;
 use sill_ui_kit::clock::FrameClock;
-use sill_ui_kit::surfaces::dock::{DockProps, dock_layer};
+use sill_ui_kit::harness::fake;
+use sill_ui_kit::surface::{MountProps, Surface, mount};
 use tokio::sync::mpsc;
 
 /// A line from stdin, or its end.
@@ -36,14 +34,14 @@ fn main() {
 }
 
 fn run() -> Result<(), String> {
-    let (services, feeds) = dock_support::services();
-    let dock_support::DockFeeds {
-        bar, pin_events, ..
-    } = feeds;
-    print_commands("pins", pin_events);
-    print_commands("wl", bar.wl);
-    print_commands("launch", bar.launch);
-    let cosmic_wl = bar.cosmic_wl;
+    let (services, feeds) = fake::services();
+    feeds.apps.send_replace(fake::dock::index());
+    feeds.pins.send_replace(fake::dock::pins());
+    feeds.badges.send_replace(fake::dock::badges());
+    print_commands("pins", feeds.pin_commands);
+    print_commands("wl", feeds.wl);
+    print_commands("launch", feeds.launch);
+    let cosmic_wl = feeds.cosmic_wl;
     let settings = SettingsFeed::fixed(ShellFile::default());
     let clock = FrameClock::new(Instant::now());
     let host =
@@ -54,7 +52,7 @@ fn run() -> Result<(), String> {
         HostEvent::Started => {
             // The fake windows live on the first real output.
             if let Some(name) = ctx.outputs().first().and_then(|o| o.name.clone()) {
-                cosmic_wl.send_modify(|wl| wl.toplevels = dock_support::toplevels_on(&name));
+                cosmic_wl.send_modify(|wl| wl.toplevels = fake::dock::toplevels_on(&name));
             }
             for output in ctx.outputs() {
                 spawn_dock(ctx, output, &services, &settings, clock, &mut docks);
@@ -83,8 +81,8 @@ fn spawn_dock(
     if !docks.insert(output.id) {
         return;
     }
-    let config = dock_layer(&output, &ShellFile::default().dock);
-    let root = HostRoot::with_props(Dock, DockProps { output })
+    let config = Dock::layer(&output, &ShellFile::default(), ());
+    let root = HostRoot::with_props(mount::<Dock>, MountProps::<Dock>::new(output, ()))
         .context(services.clone())
         .context(settings.clone())
         .context(clock)

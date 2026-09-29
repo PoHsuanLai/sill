@@ -1,5 +1,6 @@
 //! Fake services and the values they start at, for tests, demos and the surface harness.
 
+pub mod dock;
 mod feeds;
 mod fixtures;
 
