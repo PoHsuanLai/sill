@@ -25,12 +25,10 @@
 #   7. `sill debug polkit` shows a made-up request with no bus call, and Escape dismisses it.
 #   8. 5 s idle, hidden: 0 frames on the prompt surface.
 #
-# Usage: dev/nested.sh && dev/accept-polkit.sh
+# Usage: dev/nested.sh && dev/accept/polkit.sh
 set -uo pipefail
-# shellcheck source=dev/common.sh
-source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
-# shellcheck source=dev/backdrop.sh
-source "$(dirname "${BASH_SOURCE[0]}")/backdrop.sh"
+# shellcheck source=dev/lib/all.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 OUT_DIR="$SILL_REPO/target/accept-polkit"
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
@@ -40,51 +38,15 @@ AGENT_PATH=/org/sill/PolicyKit1/AuthenticationAgent
 SESSION_ID=accept-polkit
 ACTION=org.sill.test.run
 
-SCRATCH=$(mktemp -d)
-RUNTIME="$SCRATCH/run"
-CONFIG="$SCRATCH/config"
-mkdir -p "$RUNTIME" "$CONFIG/sill"
-chmod 700 "$RUNTIME"
-BUS=
-BUS_PID=
-DAEMON=
+use_nested_socket || exit 1
+scratch_new
+mkdir -p "$CONFIG/sill"
 AUTHORITY=
 
-source "$SHELL_HOST_DEV/.nested-env"
-case "$WAYLAND_DISPLAY" in
-  /*) WL="$WAYLAND_DISPLAY" ;;
-  *) WL="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/$WAYLAND_DISPLAY" ;;
-esac
-
-in_env() {
-  env XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$WL" XDG_CONFIG_HOME="$CONFIG" \
-    DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
-    "$@"
-}
-sill() { in_env "$SILL_BIN" "$@"; }
-now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
 # Keys on the nested compositor's virtual keyboard (never wayland-0).
 keys() { WAYLAND_DISPLAY="$WL" wtype "$@"; }
 # A command to the stand-in Authority.
 authority() { echo "$*" >&3; }
-
-build() {
-  (cd "$SILL_REPO" && cargo build -p sill --features debug &&
-    cargo build -p sill-testkit --example polkit_authority --example polkit_helper) \
-    >"$OUT_DIR/build.log" 2>&1 || { echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
-}
-
-start_bus() {
-  local out
-  out=$(dbus-daemon --config-file="$SILL_REPO/dev/private-bus.conf" --fork \
-    --print-address=1 --print-pid=1) || return 1
-  BUS=$(sed -n 1p <<<"$out")
-  BUS_PID=$(sed -n 2p <<<"$out")
-  case "$BUS" in unix:*) ;; *) echo "no private bus address: $out" >&2; return 1 ;; esac
-  [ "$BUS" != "${DBUS_SESSION_BUS_ADDRESS:-}" ] || { echo "not a private bus" >&2; return 1; }
-  require_private_system_bus "$BUS" || return 1
-  echo "private bus $BUS (pid $BUS_PID)" >&2
-}
 
 start_authority() {
   mkfifo "$SCRATCH/authority.in"
@@ -104,55 +66,24 @@ await_line() {
   return 1
 }
 
-start_daemon() {
+start_polkit_daemon() {
   backdrop_seed "$CONFIG" || return 1
   : >"$CONFIG/sill/settings.toml"
-  use_fake_ddc "$SCRATCH" >/dev/null
-  require_fake_ddc || return 1
-  in_env "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" \
-    --polkit-bus "$BUS" --polkit-helper "$HELPER_BIN" --polkit-session "$SESSION_ID" \
-    >"$OUT_DIR/daemon.log" 2>&1 &
-  DAEMON=$!
-  for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
-  sill ping >/dev/null 2>&1 || { echo "the daemon never answered (see daemon.log)" >&2; return 1; }
-  for _ in $(seq 50); do NAME=$(output_name); [ -n "$NAME" ] && break; sleep 0.1; done
-  [ -n "${NAME:-}" ] || { echo "no bar in 'sill debug stats'" >&2; return 1; }
+  launch_daemon --polkit-bus "$BUS" --polkit-helper "$HELPER_BIN" --polkit-session "$SESSION_ID" \
+    || return 1
+  NAME=$(output_name) || return 1
   PROMPT="sill-polkit-$NAME"
   sleep 1
-}
-
-stop_daemon() {
-  [ -n "$DAEMON" ] || return 0
-  sill quit >/dev/null 2>&1
-  wait "$DAEMON" 2>/dev/null
-  DAEMON=
 }
 
 cleanup() {
   stop_daemon
   exec 3>&- 2>/dev/null
   [ -n "$AUTHORITY" ] && kill "$AUTHORITY" 2>/dev/null
-  [ -n "$BUS_PID" ] && kill "$BUS_PID" 2>/dev/null
-  rm -rf "$SCRATCH"
+  stop_private_bus
+  scratch_drop
 }
 trap cleanup EXIT
-
-output_name() {
-  sill debug stats 2>/dev/null | python3 -c '
-import json, sys
-for row in json.loads(sys.stdin.read())["v"]:
-    s = row["surface"]
-    if s.startswith("sill-bar-"):
-        print(s[len("sill-bar-"):]); break' 2>/dev/null
-}
-
-frames_of() {
-  sill debug stats | python3 -c '
-import json, sys
-for row in json.loads(sys.stdin.read())["v"]:
-    if row["surface"] == sys.argv[1]:
-        print(row["frames"])' "$1"
-}
 
 # One field of `sill polkit status`: registration (its kind), showing, waiting.
 status_field() {
@@ -181,15 +112,6 @@ await_status() {
   done
   echo "status $1 is '$got', wanted '$2'" >&2
   return 1
-}
-
-opaque_pixels() {
-  python3 - "$1" <<'EOF'
-import sys
-from PIL import Image
-img = Image.open(sys.argv[1]).convert("RGBA")
-print(sum(1 for a in img.getchannel("A").tobytes() if a > 0))
-EOF
 }
 
 # How many pixels differ between the PNGs $1 and $2 (all of them when the sizes differ).
@@ -340,22 +262,16 @@ step_idle() {
 WAYLAND_DISPLAY="$WL" wayland-info >/dev/null 2>&1 ||
   { echo "no nested compositor on $WL (dev/nested.sh first)" >&2; exit 1; }
 command -v wtype >/dev/null || { echo "wtype is needed to type on wayland-1" >&2; exit 1; }
-build || exit 1
-for _ in $(seq 120); do
-  pgrep -f "sill run$" >/dev/null || break
-  echo "another sill daemon is running; waiting" >&2
-  sleep 5
-done
-pgrep -f "sill run$" >/dev/null && { echo "another sill daemon is still running" >&2; exit 1; }
-start_bus || exit 1
+build "-p sill-testkit --example polkit_authority --example polkit_helper" || exit 1
+await_no_process "sill run$" || exit 1
+start_private_bus || exit 1
+echo "private bus $BUS (pid $BUS_PID)" >&2
 start_authority || exit 1
-start_daemon || exit 1
-status=0
-for step in step_registered step_begin_shows step_wrong_shakes_and_clears step_right_completes \
-  step_cancel_authentication step_escape_cancels step_debug_polkit step_idle; do
-  if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; fi
-done
-stop_daemon
+start_polkit_daemon || exit 1
+run_steps step_registered step_begin_shows step_wrong_shakes_and_clears step_right_completes \
+  step_cancel_authentication step_escape_cancels step_debug_polkit step_idle
+status=$STATUS
+stop_daemon || status=1
 await_line "^unregistered unix-session session-id=$SESSION_ID path=$AGENT_PATH$" 3 &&
   echo "the agent unregistered as the daemon quit" >&2
 echo "logs in $OUT_DIR; screenshot $SHOTS/polkit-cosmic.png"
