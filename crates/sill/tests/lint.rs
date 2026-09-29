@@ -528,3 +528,17 @@ fn every_surface_draws_clean_markup_in_each_state() {
         }
     }
 }
+
+#[test]
+fn the_banner_stack_names_no_motion_of_its_own() {
+    let banners = SURFACES
+        .iter()
+        .find(|case| case.name == "banners")
+        .expect("a banners row");
+    for motion in ["@keyframes", "transition", "animation"] {
+        assert!(
+            !banners.css.contains(motion),
+            "{motion}: the stack's motion is quire's"
+        );
+    }
+}
