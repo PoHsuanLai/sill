@@ -594,6 +594,13 @@ Settings have one path: the file settles in `daemon/settings/watch.rs`, is publi
 feed (surfaces read it) and followed by each `Policy` (services are told). Focus mode writes
 the file and the file changes the mode; the file stays the one truth.
 
+The person's stylesheet (`~/.config/sill/style.css`, quire's `UserStyle`, ARCHITECTURE.md
+section 11 in quire) takes the same path: `daemon/settings/user_style.rs` watches it through
+`ds_settings::Store`, publishes it on the feed, and `SurfaceRoot` passes it to `Ds`, so every
+surface restyles live. Each surface root carries `data-surface = Surface::NAME`, which makes
+the surface names part of the public selector surface: renaming one breaks the person's file
+and needs a note. `sill style check` prints `ds_lint::user_stylesheet`'s notes for the file.
+
 `dist/` holds what a real login needs: `sill-session`, `sill-session.target`, `sill.desktop`,
 `sill.service`, the COSMIC shortcut overrides, the PAM service and the DDC/CI rules. Nothing
 installs them.
@@ -691,3 +698,8 @@ where noted, and sill compiles against each.
 14. `dev/lib/*.sh` and one script per surface with `--real-input`; untrack `dev/out/*.png`.
 15. Update `check-boundary.sh` to section 1's table; prune FINDINGS to open items and standing
     facts.
+16. User styles: `daemon/settings/user_style.rs`, the feed field, `SurfaceRoot`'s `user_style`
+    and `data-surface`, the `sill style check` verb, a dev script that edits the file under a
+    running daemon on headless KWin and proves every surface restyles without a restart
+    (quire's step 16 lands first).
+
