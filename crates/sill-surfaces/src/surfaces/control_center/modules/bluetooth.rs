@@ -5,8 +5,8 @@
 
 use dioxus::prelude::*;
 use ds::{Availability, Chevron, ModuleState, ModuleTile, StatusState, TextLine};
+use sill_model::bluetooth::{Bluetooth, BtPower};
 use sill_model::units::Presence;
-use sill_services::{Bluetooth, BtPower};
 
 use crate::hooks::use_service;
 use crate::surfaces::bar::glyph_state::bluetooth_glyph_state;
@@ -62,8 +62,8 @@ pub(crate) fn adapter_availability(bluetooth: &Bluetooth) -> Availability {
 mod tests {
     use super::{adapter_availability, power_of, power_state};
     use ds::{Availability, ModuleState};
+    use sill_model::bluetooth::{Bluetooth, BtPower};
     use sill_model::units::Presence;
-    use sill_services::{Bluetooth, BtPower};
 
     #[test]
     fn the_tile_follows_the_adapter() {

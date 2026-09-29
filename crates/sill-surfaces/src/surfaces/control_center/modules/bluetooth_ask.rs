@@ -10,7 +10,8 @@
 
 use dioxus::prelude::*;
 use ds::{Alert, AlertEmphasis, Flow, TextLine};
-use sill_services::{BluetoothCommand, BluetoothService, BtPower};
+use sill_model::bluetooth::{BluetoothCommand, BtPower};
+use sill_services::BluetoothService;
 
 use crate::hooks::use_control;
 
@@ -113,7 +114,7 @@ pub(crate) fn TurnOffAlert(on_answered: EventHandler<()>) -> Element {
 #[cfg(test)]
 mod tests {
     use super::{PowerStep, power_step};
-    use sill_services::BtPower;
+    use sill_model::bluetooth::BtPower;
 
     #[test]
     fn only_turning_off_asks() {

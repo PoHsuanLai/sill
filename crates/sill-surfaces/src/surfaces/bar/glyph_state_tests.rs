@@ -8,11 +8,13 @@ use ds::{
 };
 use sill_model::attempt::{Attempt, Attempts, OpStamp};
 use sill_model::battery::{Battery, Charge};
+use sill_model::bluetooth::{
+    BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower,
+};
 use sill_model::network::{Connectivity, Link, Network};
 use sill_model::units::{Percent, Presence, Seconds};
 use sill_model::volume::{Mute, Volume};
 use sill_model::wifi::Radio;
-use sill_services::{BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower};
 use sill_settings::Percent as KeyPercent;
 
 fn net(link: Link, connectivity: Connectivity, now: Attempt) -> Network {
@@ -265,7 +267,7 @@ fn bluetooth_maps_to_the_bluetooth_glyph() {
         pairing: BtPairing::Paired,
         battery: BtBattery::Unknown,
     };
-    let bt = |power, connection, now| sill_services::Bluetooth {
+    let bt = |power, connection, now| sill_model::bluetooth::Bluetooth {
         presence: Presence::Present,
         power,
         devices: vec![device(connection)],
@@ -278,7 +280,7 @@ fn bluetooth_maps_to_the_bluetooth_glyph() {
     let cases = [
         (
             "no adapter",
-            sill_services::Bluetooth::default(),
+            sill_model::bluetooth::Bluetooth::default(),
             BluetoothState::Off,
         ),
         (

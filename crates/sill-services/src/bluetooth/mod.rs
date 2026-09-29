@@ -7,33 +7,13 @@
 //! those run on the `dbus` crate and link libdbus, a second D-Bus stack beside the `zbus` every
 //! other service here uses, for four interfaces and a dozen properties.
 
-mod bluez;
-mod kind;
-mod live;
-mod model;
+mod backend;
 
-pub use kind::device_kind;
-pub use model::{
-    Bluetooth, BluetoothEvent, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,
-    BtPower, listed_devices, step,
-};
+use sill_model::bluetooth::{Bluetooth, BluetoothCommand};
 
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
-
-/// What the Bluetooth service can be told.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BluetoothCommand {
-    /// Turn the adapter's radio on or off (`Adapter1.Powered`).
-    Power(BtPower),
-    /// Connect a paired device (`Device1.Connect`).
-    Connect(BtAddress),
-    /// Disconnect a device (`Device1.Disconnect`).
-    Disconnect(BtAddress),
-    /// Re-read the adapter and every device (after a resume).
-    Refresh,
-}
 
 /// BlueZ's adapter and devices as a [`Service`]. Without BlueZ or an adapter the state stays
 /// at `Bluetooth::default()` (absent), and the control center shows the module unavailable.
@@ -51,6 +31,6 @@ impl Service for BluetoothService {
         (): (),
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
-        live::run(env.buses.system.clone(), io.state, io.commands)
+        backend::run(env.buses.system.clone(), io.state, io.commands)
     }
 }

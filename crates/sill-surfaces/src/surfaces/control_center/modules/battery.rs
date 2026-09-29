@@ -14,8 +14,8 @@ use ds::{
     StatusState, TextLine,
 };
 use sill_model::battery::{Battery, Charge};
+use sill_model::bluetooth::{Bluetooth, BtBattery, BtConnection};
 use sill_model::units::Presence;
-use sill_services::{Bluetooth, BtBattery, BtConnection};
 
 use super::PowerProfileControl;
 use crate::hooks::{use_service, use_settings};
@@ -112,7 +112,7 @@ pub(crate) fn device_rings(battery: &Battery, bluetooth: &Bluetooth) -> Vec<Devi
         }),
         Presence::Absent => None,
     };
-    let peripherals = sill_services::listed_devices(bluetooth)
+    let peripherals = sill_model::bluetooth::listed_devices(bluetooth)
         .into_iter()
         .filter_map(|device| match (device.connection, device.battery) {
             (BtConnection::Connected, BtBattery::Level(level)) => Some(DeviceRing {
@@ -143,10 +143,10 @@ mod tests {
     use super::{DeviceRing, device_rings};
     use ds::{Device, Fraction, RingMark};
     use sill_model::battery::{Battery, Charge};
-    use sill_model::units::{Percent, Presence};
-    use sill_services::{
+    use sill_model::bluetooth::{
         Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower,
     };
+    use sill_model::units::{Percent, Presence};
 
     fn device(address: &str, connection: BtConnection, battery: BtBattery) -> BtDevice {
         BtDevice {

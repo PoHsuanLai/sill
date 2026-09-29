@@ -2,7 +2,7 @@
 //! the device class (`audio-headphones`, `input-keyboard`, ...). Compared whole: an icon name
 //! is a token, not a substring (CONVENTIONS "Substrings are not tokens").
 
-use super::model::BtKind;
+use super::BtKind;
 
 /// The kind `icon` names; `Other` for an icon this list does not know, or none at all.
 pub fn device_kind(icon: &str) -> BtKind {

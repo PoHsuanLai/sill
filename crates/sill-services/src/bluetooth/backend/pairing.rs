@@ -1,0 +1,68 @@
+//! What the service asks of BlueZ: the radio, connecting and disconnecting a device.
+
+use sill_model::bluetooth::{Bluetooth, BluetoothEvent, BtAddress, BtConnection, BtPower};
+use tokio::sync::{mpsc, watch};
+use zbus::Connection;
+
+use super::bluez::{Adapter1Proxy, Device1Proxy};
+use super::run::{Tracked, apply};
+
+pub(crate) fn run_power(connection: &Connection, tracked: &Tracked, power: BtPower) {
+    let Some(path) = tracked.adapter_path.clone() else {
+        return;
+    };
+    let connection = connection.clone();
+    tokio::spawn(async move {
+        if let Ok(adapter) = Adapter1Proxy::new(&connection, path).await {
+            let _ = adapter.set_powered(power == BtPower::On).await;
+        }
+    });
+}
+
+/// Publishes `Connecting` at once, then carries out the connect in the background: `Device1`'s
+/// own `Connected` property change (watched by [`watch_device`]) is what confirms it, so a
+/// failure here reverts the optimistic state instead of leaving it stuck.
+pub(crate) fn run_connect(
+    connection: &Connection,
+    tx: &watch::Sender<Bluetooth>,
+    internal_tx: &mpsc::UnboundedSender<BluetoothEvent>,
+    tracked: &Tracked,
+    address: BtAddress,
+) {
+    let Some(path) = tracked.device_path.get(&address).cloned() else {
+        return;
+    };
+    apply(
+        tx,
+        BluetoothEvent::Connection {
+            address: address.clone(),
+            connection: BtConnection::Connecting,
+        },
+    );
+    let connection = connection.clone();
+    let internal_tx = internal_tx.clone();
+    tokio::spawn(async move {
+        let ok = match Device1Proxy::new(&connection, path).await {
+            Ok(device) => device.connect().await.is_ok(),
+            Err(_) => false,
+        };
+        if !ok {
+            let _ = internal_tx.send(BluetoothEvent::Connection {
+                address,
+                connection: BtConnection::Disconnected,
+            });
+        }
+    });
+}
+
+pub(crate) fn run_disconnect(connection: &Connection, tracked: &Tracked, address: BtAddress) {
+    let Some(path) = tracked.device_path.get(&address).cloned() else {
+        return;
+    };
+    let connection = connection.clone();
+    tokio::spawn(async move {
+        if let Ok(device) = Device1Proxy::new(&connection, path).await {
+            let _ = device.disconnect().await;
+        }
+    });
+}

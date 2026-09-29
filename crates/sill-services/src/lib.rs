@@ -59,10 +59,7 @@ pub use apps::{
 pub use auth::AuthService;
 pub use badges::BadgesService;
 pub use battery::BatteryService;
-pub use bluetooth::{
-    Bluetooth, BluetoothCommand, BluetoothEvent, BluetoothService, BtAddress, BtBattery,
-    BtConnection, BtDevice, BtKind, BtPairing, BtPower, device_kind, listed_devices,
-};
+pub use bluetooth::BluetoothService;
 pub use clipboard::{Clipboard, ClipboardCommand, ClipboardService};
 pub use clock::ClockService;
 pub use control::Control;

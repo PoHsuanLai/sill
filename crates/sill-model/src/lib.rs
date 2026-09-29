@@ -8,6 +8,7 @@ pub mod attempt;
 pub mod auth;
 pub mod badges;
 pub mod battery;
+pub mod bluetooth;
 pub mod clock;
 pub mod cosmic_wl;
 pub mod idle;

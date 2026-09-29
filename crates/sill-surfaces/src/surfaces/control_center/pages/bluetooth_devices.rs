@@ -9,11 +9,13 @@
 
 use dioxus::prelude::*;
 use ds::{Availability, Icon, ModuleState, RowDisc, RowPhase, RowWork};
-use sill_model::{attempt::Attempts, units::Presence};
-use sill_services::{
-    Bluetooth, BluetoothCommand, BluetoothService, BtAddress, BtBattery, BtConnection, BtDevice,
-    BtKind, BtPairing, BtPower, listed_devices,
+use sill_model::attempt::Attempts;
+use sill_model::bluetooth::{
+    Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,
+    BtPower, listed_devices,
 };
+use sill_model::units::Presence;
+use sill_services::BluetoothService;
 
 use super::foot::{EmptyLine, SettingsFoot};
 use super::head::DetailHead;
@@ -204,13 +206,13 @@ mod tests {
     use crate::surfaces::control_center::rows::RowMark;
     use ds::detail::EventStamp;
     use ds::{Availability, RowDisc, RowPhase};
+    use sill_model::bluetooth::{
+        Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection, BtDevice, BtKind,
+        BtPairing, BtPower,
+    };
     use sill_model::{
         attempt::{Attempt, Attempts, OpStamp},
         units::{Percent, Presence},
-    };
-    use sill_services::{
-        Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection, BtDevice, BtKind,
-        BtPairing, BtPower,
     };
 
     fn device(connection: BtConnection, pairing: BtPairing, battery: BtBattery) -> BtDevice {

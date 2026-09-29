@@ -217,7 +217,7 @@ fn battery_says_so_when_there_is_none() {
     running
         .feeds
         .bluetooth
-        .send_replace(sill_services::Bluetooth::default());
+        .send_replace(sill_model::bluetooth::Bluetooth::default());
     running.harness.advance(Duration::from_millis(100));
     let h = &running.harness;
     assert_eq!(h.count("#widget-battery .ds-battery"), 0);
