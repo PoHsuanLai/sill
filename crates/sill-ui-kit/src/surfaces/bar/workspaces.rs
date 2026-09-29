@@ -6,7 +6,7 @@
 //! own wrapper listens for. Right-click Edit Space waits for the Space editor popup.
 
 use dioxus::prelude::*;
-use ds::{Here, PointerButton, Press, WorkspacePill, WorkspacePills};
+use ds::{PointerButton, Press, Selection, WorkspacePill, WorkspacePills};
 use shell_host::OutputInfo;
 use sill_model::cosmic_wl::{Activity, WlCommand, Workspace};
 use sill_model::ids::OutputName;
@@ -62,7 +62,7 @@ pub fn WorkspaceIndicator(output: OutputInfo) -> Element {
                     },
                     WorkspacePill {
                         label: label(&workspace, index),
-                        current: if workspace.activity == Activity::Active { Here::Current } else { Here::Elsewhere },
+                        current: if workspace.activity == Activity::Active { Selection::Selected } else { Selection::Unselected },
                         onclick: {
                             let wl = wl.clone();
                             move |press: Press| {
