@@ -101,19 +101,22 @@ pub enum HistoryPlace {
 }
 
 /// How the service is started.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Setup {
     /// The session bus the server speaks on (a private `dbus-daemon` in every test).
     pub bus: crate::env::Bus,
     pub history: HistoryPlace,
+    /// What stamps a posting's arrival.
+    pub clock: std::sync::Arc<dyn crate::env::WallClock>,
 }
 
 impl Setup {
-    /// On `env`'s session bus, the history in its state directory.
+    /// On `env`'s session bus with its clock, the history in its state directory.
     pub fn of(env: &crate::env::Env) -> Setup {
         Setup {
             bus: env.buses.session.clone(),
             history: HistoryPlace::At(history_file::path_in(&env.dirs)),
+            clock: std::sync::Arc::clone(&env.clock),
         }
     }
 }

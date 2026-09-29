@@ -49,13 +49,13 @@ pub use provider::{
 };
 pub use sources::{AutoEnv, EventSources, IcsPlace, auto_places, parse_sources};
 
-use jiff::Zoned;
-use jiff::tz::TimeZone;
+use std::sync::Arc;
+
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::control::Control;
-use crate::env::Dirs;
+use crate::env::{Dirs, WallClock};
 
 /// What the events service can be told.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -69,15 +69,17 @@ pub enum EventsCommand {
 
 /// Start the events task on `rt`. Until the first `Sources` the agenda holds today only, with
 /// `SourceStatus::Off`.
-pub fn spawn(rt: &Handle, dirs: &Dirs) -> (watch::Receiver<Agenda>, Control<EventsCommand>) {
-    let (tx, rx) = watch::channel(Agenda::starting(local_today()));
+pub fn spawn(
+    rt: &Handle,
+    dirs: &Dirs,
+    clock: Arc<dyn WallClock>,
+) -> (watch::Receiver<Agenda>, Control<EventsCommand>) {
+    let (tx, rx) = watch::channel(Agenda::starting(clock.now().date()));
     let (control, commands) = Control::channel();
-    rt.spawn(live::run(tx, commands, sources::AutoEnv::of(dirs)));
+    let reach = live::Reach {
+        auto: sources::AutoEnv::of(dirs),
+        clock,
+    };
+    rt.spawn(live::run(tx, commands, reach));
     (rx, control)
-}
-
-/// The local calendar date now, with the system time zone read afresh.
-pub(crate) fn local_today() -> jiff::civil::Date {
-    let zone = TimeZone::try_system().unwrap_or(TimeZone::UTC);
-    Zoned::now().with_time_zone(zone).date()
 }

@@ -10,7 +10,7 @@ mod support;
 use std::collections::HashMap;
 use std::time::Duration;
 
-use sill_services::env::{Bus, BusRoute};
+use sill_services::env::{Bus, BusRoute, SystemClock};
 use sill_services::notifications::{self, BUS_NAME, HistoryPlace, NotificationsHandles, Setup};
 use sill_services::{
     ActionKey, Activation, ActivationToken, NameHolder, NotificationId, Notifications,
@@ -56,6 +56,7 @@ fn setup(bus: &PrivateBus) -> Setup {
     Setup {
         bus: Bus::session(BusRoute::Address(bus.address.clone())),
         history: HistoryPlace::NotKept,
+        clock: std::sync::Arc::new(SystemClock),
     }
 }
 

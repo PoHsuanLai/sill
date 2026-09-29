@@ -17,15 +17,22 @@ use super::live_watch::Touches;
 use super::model::{Agenda, AgendaEvent, held_window, reduce_agenda};
 use super::provider::{EventsProvider, provider_for};
 use super::sources::{AutoEnv, EventSources, IcsPlace, auto_places};
+use crate::env::WallClock;
 
 /// The longest the task sleeps without looking at the date: a resume or a zone change shows
 /// within a minute.
 const DAY_CHECK: Duration = Duration::from_secs(60);
 
+/// What the task reads besides its commands: the places `auto` looks, and the wall clock.
+pub(super) struct Reach {
+    pub(super) auto: AutoEnv,
+    pub(super) clock: Arc<dyn WallClock>,
+}
+
 pub(super) async fn run(
     tx: watch::Sender<Agenda>,
     mut commands: mpsc::UnboundedReceiver<EventsCommand>,
-    auto: AutoEnv,
+    reach: Reach,
 ) {
     let mut sources = loop {
         match commands.recv().await {
@@ -35,7 +42,7 @@ pub(super) async fn run(
         }
     };
     loop {
-        match follow(&tx, &mut commands, &sources, &auto).await {
+        match follow(&tx, &mut commands, &sources, &reach).await {
             Next::Switch(next) => sources = next,
             Next::Stop => return,
         }
@@ -60,15 +67,15 @@ async fn follow(
     tx: &watch::Sender<Agenda>,
     commands: &mut mpsc::UnboundedReceiver<EventsCommand>,
     sources: &EventSources,
-    auto: &AutoEnv,
+    reach: &Reach,
 ) -> Next {
-    let plan = plan_for(sources, auto).await;
+    let plan = plan_for(sources, &reach.auto).await;
     let watched = match &plan {
         Plan::Read(provider) => provider.watched(),
         Plan::Off | Plan::NoCalendars => Vec::new(),
     };
     let mut touches = Touches::watch(&watched);
-    publish(tx, &plan).await;
+    publish(tx, &plan, reach.clock.as_ref()).await;
     loop {
         tokio::select! {
             command = commands.recv() => match command {
@@ -76,16 +83,16 @@ async fn follow(
                 Some(EventsCommand::Sources(next)) if next != *sources => {
                     return Next::Switch(next);
                 }
-                Some(EventsCommand::Sources(_) | EventsCommand::Refresh) => publish(tx, &plan).await,
+                Some(EventsCommand::Sources(_) | EventsCommand::Refresh) => publish(tx, &plan, reach.clock.as_ref()).await,
             },
-            () = touches.settled() => publish(tx, &plan).await,
-            () = tokio::time::sleep(until_day_check()) => {
-                let today = super::local_today();
+            () = touches.settled() => publish(tx, &plan, reach.clock.as_ref()).await,
+            () = tokio::time::sleep(until_day_check(&reach.clock.now())) => {
+                let today = reach.clock.now().date();
                 if today != tx.borrow().today {
                     tx.send_modify(|agenda| {
                         *agenda = reduce_agenda(agenda.clone(), AgendaEvent::Day(today));
                     });
-                    publish(tx, &plan).await;
+                    publish(tx, &plan, reach.clock.as_ref()).await;
                 }
             }
             () = tx.closed() => return Next::Stop,
@@ -113,18 +120,16 @@ async fn plan_for(sources: &EventSources, auto: &AutoEnv) -> Plan {
 }
 
 /// Read `plan` on the blocking pool and publish what it found.
-async fn publish(tx: &watch::Sender<Agenda>, plan: &Plan) {
+async fn publish(tx: &watch::Sender<Agenda>, plan: &Plan, clock: &dyn WallClock) {
     let event = match plan {
         Plan::Off => AgendaEvent::Off,
         Plan::NoCalendars => AgendaEvent::NoCalendars,
         Plan::Read(provider) => {
             let provider = Arc::clone(provider);
             let today = tx.borrow().today;
-            let read = tokio::task::spawn_blocking(move || {
-                let zone = TimeZone::try_system().unwrap_or(TimeZone::UTC);
-                provider.read(held_window(today), &zone)
-            })
-            .await;
+            let zone = clock.now().time_zone().clone();
+            let read =
+                tokio::task::spawn_blocking(move || provider.read(held_window(today), &zone)).await;
             match read {
                 Ok(read) => AgendaEvent::Read {
                     events: read.events,
@@ -143,12 +148,10 @@ async fn publish(tx: &watch::Sender<Agenda>, plan: &Plan) {
     });
 }
 
-/// How long until the date should be looked at again: the next local midnight, at most a
+/// How long after `now` the date should be looked at again: the next local midnight, at most a
 /// minute away.
-fn until_day_check() -> Duration {
-    let zone = TimeZone::try_system().unwrap_or(TimeZone::UTC);
-    let now = Zoned::now().with_time_zone(zone.clone());
-    next_midnight(now.date(), &zone)
+fn until_day_check(now: &Zoned) -> Duration {
+    next_midnight(now.date(), now.time_zone())
         .and_then(|midnight| Duration::try_from(now.timestamp().duration_until(midnight)).ok())
         .map_or(DAY_CHECK, |left| left.min(DAY_CHECK))
         .max(Duration::from_millis(10))

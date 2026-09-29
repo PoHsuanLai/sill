@@ -10,7 +10,7 @@
 //! `BusRoute::Address` of a private `dbus-daemon` (`tests/support/private_bus.rs`).
 
 use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::Arc;
 
 use tokio::sync::{mpsc, watch};
 
@@ -24,6 +24,7 @@ use super::reduce::{NotesState, NotificationsEffect, NotificationsEvent, assign_
 use super::rules;
 use super::state::{History, NameHolder, Notifications, ServerMode, ServerStatus};
 use super::{HistoryPlace, NotificationsCommand, Setup, reduce_notifications};
+use crate::env::WallClock;
 
 /// Run the service until every control is dropped.
 pub(super) async fn run(
@@ -38,6 +39,7 @@ pub(super) async fn run(
         file: file_of(&setup.history),
         live,
         history,
+        clock: Arc::clone(&setup.clock),
     };
     if let Some(path) = &core.file {
         core.apply(NotificationsEvent::Loaded(history_file::load(path)), None)
@@ -84,6 +86,8 @@ struct Core {
     file: Option<PathBuf>,
     live: watch::Sender<Notifications>,
     history: watch::Sender<History>,
+    /// What stamps a posting's arrival.
+    clock: Arc<dyn WallClock>,
 }
 
 impl Core {
@@ -131,7 +135,7 @@ impl Core {
     /// Give `posting` its id and time, and post it.
     async fn post(&mut self, posting: Posting, bus: Option<&Bus>) -> NotificationId {
         let id = assign_id(&self.state, posting.replaces);
-        let note = Notification::posted(id, now(), posting);
+        let note = Notification::posted(id, unix_ms(&self.clock.now()), posting);
         self.apply(NotificationsEvent::Posted(Box::new(note)), bus)
             .await;
         id
@@ -210,9 +214,7 @@ fn publish<T: Clone + PartialEq>(tx: &watch::Sender<T>, value: &T) {
     });
 }
 
-fn now() -> UnixMs {
-    let ms = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_or(0, |since| since.as_millis());
-    UnixMs(i64::try_from(ms).unwrap_or(i64::MAX))
+/// `at` in milliseconds since the Unix epoch.
+fn unix_ms(at: &jiff::Zoned) -> UnixMs {
+    UnixMs(at.timestamp().as_millisecond())
 }

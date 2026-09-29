@@ -1,6 +1,8 @@
 //! The one value every surface gets through `Root::context`: every service's receiver and
 //! control. Clone is cheap (channels are reference-counted).
 
+use std::sync::Arc;
+
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
@@ -118,7 +120,7 @@ impl Services {
     pub fn spawn(rt: &Handle, env: &Env) -> Services {
         let system = || env.buses.system.clone();
         let session = || env.buses.session.clone();
-        let (clock, clock_control) = crate::clock::spawn(rt);
+        let (clock, clock_control) = crate::clock::spawn(rt, Arc::clone(&env.clock));
         let (battery, battery_control) = crate::battery::spawn(rt, system());
         let (network, network_control) = crate::network::spawn(rt, system());
         let (volume, volume_control) = crate::volume::spawn(rt);
@@ -162,7 +164,7 @@ impl Services {
         // Passive (never asks for the bus name) until the daemon sends its first policy.
         let (notifications, notification_history, notifications_control) =
             crate::notifications::spawn(rt, crate::notifications::Setup::of(env));
-        let (agenda, events_control) = crate::events::spawn(rt, &env.dirs);
+        let (agenda, events_control) = crate::events::spawn(rt, &env.dirs, Arc::clone(&env.clock));
         let (shots, shots_control) = crate::screenshots::spawn(rt, &env.dirs);
         let (auth, auth_control) = crate::auth::spawn(rt, crate::auth::AccountPlace::of(env));
         let (polkit, polkit_control) = crate::polkit_agent::spawn(rt, system());

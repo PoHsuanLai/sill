@@ -4,12 +4,13 @@ mod format;
 
 pub use format::{ClockText, format_clock, until_next_minute};
 
-use jiff::Zoned;
-use jiff::tz::TimeZone;
+use std::sync::Arc;
+
 use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch};
 
 use crate::control::Control;
+use crate::env::WallClock;
 
 /// What the clock service can be told.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,19 +19,17 @@ pub enum ClockCommand {
     Refresh,
 }
 
-/// Start the clock task on `rt`: formats the local time now, then at every minute boundary.
-pub fn spawn(rt: &Handle) -> (watch::Receiver<ClockText>, Control<ClockCommand>) {
-    let (tx, rx) = watch::channel(format_clock(local_now().datetime()));
+/// Start the clock task on `rt`: formats `clock`'s local time now, then at every minute
+/// boundary (the system clock reads the zone afresh, so a time-zone change shows at the next
+/// minute, or at once on `Refresh`).
+pub fn spawn(
+    rt: &Handle,
+    clock: Arc<dyn WallClock>,
+) -> (watch::Receiver<ClockText>, Control<ClockCommand>) {
+    let (tx, rx) = watch::channel(format_clock(clock.now().datetime()));
     let (control, commands) = Control::channel();
-    rt.spawn(run(tx, commands));
+    rt.spawn(run(tx, commands, clock));
     (rx, control)
-}
-
-/// The local wall clock, reading the system time zone afresh each time so a time-zone change
-/// shows at the next minute (or at once on `Refresh`).
-fn local_now() -> Zoned {
-    let zone = TimeZone::try_system().unwrap_or(TimeZone::UTC);
-    Zoned::now().with_time_zone(zone)
 }
 
 /// Why the task woke.
@@ -42,10 +41,14 @@ enum Wake {
 }
 
 /// Publish the time at each minute boundary and on `Refresh`, until every receiver is gone.
-async fn run(tx: watch::Sender<ClockText>, mut commands: mpsc::UnboundedReceiver<ClockCommand>) {
+async fn run(
+    tx: watch::Sender<ClockText>,
+    mut commands: mpsc::UnboundedReceiver<ClockCommand>,
+    clock: Arc<dyn WallClock>,
+) {
     let mut listening = true;
     while !tx.is_closed() {
-        let wait = until_next_minute(local_now().time());
+        let wait = until_next_minute(clock.now().time());
         let wake = if listening {
             tokio::select! {
                 () = tokio::time::sleep(wait) => Wake::Minute,
@@ -61,7 +64,7 @@ async fn run(tx: watch::Sender<ClockText>, mut commands: mpsc::UnboundedReceiver
         if matches!(wake, Wake::Deaf) {
             listening = false;
         }
-        let text = format_clock(local_now().datetime());
+        let text = format_clock(clock.now().datetime());
         tx.send_if_modified(|shown| publish(shown, text));
     }
 }
@@ -78,7 +81,10 @@ fn publish(shown: &mut ClockText, text: ClockText) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use super::{ClockCommand, ClockText, publish, spawn};
+    use crate::env::FixedClock;
 
     #[test]
     fn only_a_new_minute_wakes_the_bar() {
@@ -95,17 +101,17 @@ mod tests {
     }
 
     #[test]
-    fn the_first_value_is_the_time_now_and_refresh_is_accepted() {
+    fn the_first_value_is_the_clocks_time_and_refresh_is_accepted() {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_time()
             .build()
             .expect("a current-thread runtime builds"); // test-only
-        let (rx, control) = spawn(rt.handle());
-        let shown = rx.borrow().text.clone();
-        // `Thu 24 Sep 14:05`: a weekday, a day, a month and HH:MM.
-        let words: Vec<&str> = shown.split_whitespace().collect();
-        assert_eq!(words.len(), 4, "{shown}");
-        assert_eq!(words[3].len(), 5, "{shown}");
+        let at = jiff::civil::date(2026, 9, 24)
+            .at(14, 5, 0, 0)
+            .to_zoned(jiff::tz::TimeZone::UTC)
+            .expect("a valid instant"); // test-only
+        let (rx, control) = spawn(rt.handle(), Arc::new(FixedClock(at)));
+        assert_eq!(rx.borrow().text, "Thu 24 Sep 14:05");
         assert!(control.send(ClockCommand::Refresh).is_ok());
     }
 }
