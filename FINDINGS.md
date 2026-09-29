@@ -359,7 +359,7 @@ A settled item is deleted, not marked closed.
 
 ### sill
 
-- **G367** The banners take no keyboard (`KeyboardMode::None`, no keymap, nothing focusable
+- **G368** The banners take no keyboard (`KeyboardMode::None`, no keymap, nothing focusable
   to ask for), so `sill focus-latest` reaches the screenshot thumbnail only. Ends when a banner
   can hold the keyboard: the verb then picks the newer of the thumbnail and the newest banner.
 - **G352** The control center has no sink list: the volume service follows only the default sink.
