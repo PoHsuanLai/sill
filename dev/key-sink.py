@@ -2,7 +2,7 @@
 """A plain GTK 4 window that stands in for the app a person is typing into: it takes the
 keyboard focus when clicked (as a real app window does on KDE) and prints every key it receives,
 one `key <name>` line each, and `focus in` / `focus out` as its window gains and loses the
-keyboard. dev/accept-menus-keyboard-real-input.sh runs it on the headless KWin so a shell surface
+keyboard. dev/accept/bar.sh --real-input runs it on the headless KWin so a shell surface
 opened from the bar must take the keyboard away from a focused window, as on the user's session.
 """
 import sys
