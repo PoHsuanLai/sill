@@ -14,8 +14,8 @@
 #   3. `secret_source` (text marked with x-kde-passwordManagerHint) takes the selection: still 1.
 #   4. `sill launcher open --query lantern`: one clipboard row (`sill debug launcher-rows`),
 #      under Top Hit (a single match, never repeated below it) or Clipboard;
-#      `launcher-key down` onto it (the emoji 🏮 can be the Top Hit for "lantern"),
-#      `sill debug launcher-key enter`, then `wl-paste` answers the string.
+#      `sill debug key` ArrowDown onto it (the emoji 🏮 can be the Top Hit for "lantern"), then
+#      Enter, then `wl-paste` answers the string.
 #   5. `launcher.clipboard_history = "off"`, `sill reload`: off, not_connected, 0 entries.
 #   6. Back on (the nested selection cleared first: turning history on keeps the selection
 #      there is), two copies, `sill clipboard clear`: 0 entries.
@@ -141,7 +141,8 @@ print(json.loads(sys.stdin.read())["v"]["selected"])' 2>/dev/null || echo -1
 
 # 4.
 step_launcher() {
-  local rows="$OUT_DIR/launcher-rows.json"
+  local rows="$OUT_DIR/launcher-rows.json" panel
+  panel="sill-launcher-$(output_name)" || return 1
   # The marked copy was killed above; put the made-up text back as the selection first, so a
   # paste proves the history's offer and not wl-copy's.
   nested_wl wl-copy -- "something else, made up" || return 1
@@ -154,11 +155,11 @@ step_launcher() {
   # Top Hit, so move to the clipboard row first.
   for _ in $(seq 20); do
     [ "$(selected_row)" -lt "$at" ] || break
-    sill debug launcher-key down >/dev/null 2>&1 || return 1
+    sill debug key "$panel" ArrowDown >/dev/null 2>&1 || return 1
     sleep 0.2
   done
   [ "$(selected_row)" = "$at" ] || { echo "could not select the clipboard row ($at)" >&2; return 1; }
-  sill debug launcher-key enter >/dev/null 2>&1 || return 1
+  sill debug key "$panel" Enter >/dev/null 2>&1 || return 1
   for _ in $(seq 30); do
     if [ "$(nested_wl wl-paste --no-newline --type text)" = "$MADE_UP" ]; then
       echo "wl-paste read the offered entry" >&2

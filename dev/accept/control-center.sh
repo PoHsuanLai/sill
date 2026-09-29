@@ -12,8 +12,8 @@
 #   1. A debug click on the control center's item opens `sill-bar-<out>/popup` at the panel's
 #      size (320 + the shadow room), its card 8 px inside the output's right edge (read from a
 #      screenshot); a second click closes it. Screenshot dev/out/control-center-cosmic.png.
-#   2. An outside click (the bar's empty middle) closes it; Escape (wtype, into the popup's grab)
-#      closes it too, or the step says why it could not try.
+#   2. An outside click (the bar's empty middle) closes it; Escape (`sill debug key`: shell-host's
+#      `Inject::Key`, which needs no grab) closes it too, or the step says why it could not try.
 #   3. The Wi-Fi tile's chevron slides the Wi-Fi pane in: the popup takes the pane's size (a
 #      Wi-Fi pane with a long list of networks may be as tall as the grid; then it only has to
 #      change). Its only request is a scan.
@@ -232,11 +232,11 @@ step_dismiss() {
   click_bar $CC_ITEM
   wait_surface "$POPUP" 20 up || return 1
   sleep 0.3
-  if nested wtype -k Escape >>"$log" 2>&1; then
+  if sill debug key "$POPUP" Escape >>"$log" 2>&1; then
     if wait_surface "$POPUP" 20 down; then escape="Escape closed it"; else
-      escape="Escape (wtype) did not reach it: left open"; close_popup; fi
+      escape="Escape did not reach it: left open"; close_popup; fi
   else
-    escape="Escape not tried: wtype failed in the nested session"; close_popup
+    escape="Escape not tried: the daemon refused the key"; close_popup
   fi
   echo "an outside click closed it; $escape" | tee -a "$log" >&2
   ! popup_up
