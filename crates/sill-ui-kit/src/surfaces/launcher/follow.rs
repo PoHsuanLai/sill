@@ -5,7 +5,7 @@
 use dioxus::prelude::*;
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 
-use crate::links::{LauncherLink, Opening, Reveal, Visible};
+use crate::links::{LauncherLink, Opening, Reveal};
 
 /// The shared state, as this surface's signal.
 pub(crate) fn use_shown(link: &LauncherLink) -> ReadSignal<Reveal<Opening>> {
@@ -16,7 +16,7 @@ pub(crate) fn use_shown(link: &LauncherLink) -> ReadSignal<Reveal<Opening>> {
 /// without a host (a test, an SSR render).
 pub(crate) fn use_follow_visibility(shown: ReadSignal<Reveal<Opening>>, output: OutputId) {
     let surface = try_use_context::<SurfaceHandle>();
-    let mut applied = use_hook(|| CopyValue::new(None::<Visible>));
+    let mut applied = use_hook(|| CopyValue::new(None::<Visibility>));
     use_effect(move || {
         let visible = shown.read().shows_on(output);
         if *applied.peek() == Some(visible) {
@@ -24,10 +24,7 @@ pub(crate) fn use_follow_visibility(shown: ReadSignal<Reveal<Opening>>, output: 
         }
         applied.set(Some(visible));
         if let Some(surface) = &surface {
-            surface.apply(SurfaceOp::SetVisibility(match visible {
-                Visible::Yes => Visibility::Shown,
-                Visible::No => Visibility::Hidden,
-            }));
+            surface.apply(SurfaceOp::SetVisibility(visible));
         }
     });
 }

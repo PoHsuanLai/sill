@@ -5,14 +5,13 @@
 
 use dioxus::prelude::*;
 use ds::{LevelLook, Material, Osd, OsdMetrics, OsdPosition, Px, RootChrome, Shown};
-use shell_host::OutputInfo;
+use shell_host::{OutputInfo, Visibility};
 use sill_model::ids::OutputName;
 
 use super::io::{times, use_follow_position, use_osd};
 use super::layer::CARD_ID;
 use super::reading::{card_level, level_of, title};
 use crate::hooks::{use_service, use_settings};
-use crate::links::Visible;
 use crate::links::{OsdKind, OsdLink};
 use crate::root::SurfaceRoot;
 use sill_services::{DisplaysService, VolumeService};
@@ -47,8 +46,8 @@ pub(super) fn osd(output: OutputInfo) -> Element {
         .as_ref()
         .and_then(|c| level_of(c.kind, c.level, &volume, &displays, on.as_ref()));
     let shown = match drawn.phase.visible() {
-        Visible::Yes => Shown::Visible,
-        Visible::No => Shown::Hidden,
+        Visibility::Shown => Shown::Visible,
+        Visibility::Hidden => Shown::Hidden,
     };
     rsx! {
         SurfaceRoot {

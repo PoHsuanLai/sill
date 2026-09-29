@@ -4,9 +4,8 @@
 //! settled, so the surface unmaps then, not when this machine's hold ends. Pure: time is a
 //! [`Stamp`] argument, and the surface wakes the machine at [`OsdPhase::wake`].
 
+use shell_host::Visibility;
 use sill_model::units::Stamp;
-
-use crate::links::Visible;
 
 /// How long the indicator holds after the last change, in milliseconds (`osd.hold_ms`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,10 +34,10 @@ pub enum OsdInput {
 
 impl OsdPhase {
     /// What `shown` the card gets.
-    pub fn visible(self) -> Visible {
+    pub fn visible(self) -> Visibility {
         match self {
-            OsdPhase::Hidden => Visible::No,
-            OsdPhase::Held { .. } => Visible::Yes,
+            OsdPhase::Hidden => Visibility::Hidden,
+            OsdPhase::Held { .. } => Visibility::Shown,
         }
     }
 
@@ -66,7 +65,7 @@ pub fn step(phase: OsdPhase, input: OsdInput, times: OsdTimes) -> OsdPhase {
 #[cfg(test)]
 mod tests {
     use super::{OsdInput, OsdPhase, OsdTimes, step};
-    use crate::links::Visible;
+    use shell_host::Visibility;
     use sill_model::units::Stamp;
 
     const TIMES: OsdTimes = OsdTimes { hold_ms: 1500 };
@@ -138,9 +137,13 @@ mod tests {
 
     #[test]
     fn only_a_held_indicator_is_visible_and_has_a_wake() {
-        const CASES: &[(OsdPhase, Visible, Option<u64>)] = &[
-            (OsdPhase::Hidden, Visible::No, None),
-            (OsdPhase::Held { until: Stamp(10) }, Visible::Yes, Some(10)),
+        const CASES: &[(OsdPhase, Visibility, Option<u64>)] = &[
+            (OsdPhase::Hidden, Visibility::Hidden, None),
+            (
+                OsdPhase::Held { until: Stamp(10) },
+                Visibility::Shown,
+                Some(10),
+            ),
         ];
         for &(phase, visible, wake) in CASES {
             assert_eq!(phase.visible(), visible, "{phase:?}");

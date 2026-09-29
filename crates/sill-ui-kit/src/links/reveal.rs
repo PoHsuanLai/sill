@@ -3,7 +3,7 @@
 //! hold for every panel (the serial that counts openings, the hidden value that remembers it,
 //! what a keyboard focus change does) live here; what an opening carries is the panel's own `O`.
 
-use shell_host::{KeyboardFocus, OutputId};
+use shell_host::{KeyboardFocus, OutputId, Visibility};
 
 /// Counts openings; each is one more than the last.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
@@ -17,13 +17,6 @@ pub enum PanelFocus {
     Awaited,
     /// The panel has held keyboard focus.
     Held,
-}
-
-/// Whether a surface should be mapped.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Visible {
-    Yes,
-    No,
 }
 
 /// One opening of a panel: where it shows, which opening it is, and whether it has had keyboard
@@ -65,10 +58,10 @@ impl<O: Opened> Reveal<O> {
     }
 
     /// Whether the panel shows on `output`.
-    pub fn shows_on(&self, output: OutputId) -> Visible {
+    pub fn shows_on(&self, output: OutputId) -> Visibility {
         match self.opening() {
-            Some(opening) if opening.output() == output => Visible::Yes,
-            _ => Visible::No,
+            Some(opening) if opening.output() == output => Visibility::Shown,
+            _ => Visibility::Hidden,
         }
     }
 

@@ -14,7 +14,6 @@ use sill_settings::OsdSettings;
 use super::layer::{anchor, margin};
 use super::step::{OsdInput, OsdPhase, OsdTimes, step};
 use crate::clock::FrameClock;
-use crate::links::Visible;
 use crate::links::{OsdChange, OsdLatest, OsdLink};
 
 /// The machine's times from `osd`'s hold.
@@ -85,14 +84,14 @@ async fn wake_loop(mut phase: Signal<OsdPhase>, clock: FrameClock, times: CopyVa
 /// to do without a host (a test, an SSR render).
 fn use_map_when_shown(phase: ReadSignal<OsdPhase>) {
     let surface = try_use_context::<SurfaceHandle>();
-    let mut applied = use_hook(|| CopyValue::new(Visible::No));
+    let mut applied = use_hook(|| CopyValue::new(Visibility::Hidden));
     use_effect(move || {
         let visible = phase.read().visible();
         if *applied.peek() == visible {
             return;
         }
         applied.set(visible);
-        if visible == Visible::Yes
+        if visible == Visibility::Shown
             && let Some(surface) = &surface
         {
             surface.apply(SurfaceOp::SetVisibility(Visibility::Shown));

@@ -31,7 +31,7 @@ pub use notification_center::{CenterLink, CenterShown};
 pub use osd::{ChangeSerial, Level, LevelSource, OsdChange, OsdKind, OsdLatest, OsdLink};
 pub use places::PlacementFile;
 pub use power_menu::{PowerMenuLink, PowerMenuOpening, Preselect, Showing};
-pub use reveal::{OpenSerial, Opened, PanelFocus, Reveal, Visible};
+pub use reveal::{OpenSerial, Opened, PanelFocus, Reveal};
 pub use switcher::{AskSerial, Dir, SwitcherAsk, SwitcherAsked, SwitcherLink};
 
 /// The daemon's links.

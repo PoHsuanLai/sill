@@ -176,9 +176,9 @@ fn replace(shown: &mut Reveal<PowerMenuOpening>, next: Reveal<PowerMenuOpening>)
 #[cfg(test)]
 mod tests {
     use super::{leaving, open, toggle};
-    use crate::links::{OpenSerial, PanelFocus, Reveal, Visible};
+    use crate::links::{OpenSerial, PanelFocus, Reveal};
     use crate::links::{PowerMenuLink, PowerMenuOpening, Preselect, Showing};
-    use shell_host::{KeyboardFocus, OutputId};
+    use shell_host::{KeyboardFocus, OutputId, Visibility};
     use sill_model::session::SessionAction;
 
     const ONE: OutputId = OutputId(1);
@@ -215,8 +215,8 @@ mod tests {
             OpenSerial(2),
             "another button"
         );
-        assert_eq!(shown.shows_on(ONE), Visible::Yes);
-        assert_eq!(shown.shows_on(TWO), Visible::No);
+        assert_eq!(shown.shows_on(ONE), Visibility::Shown);
+        assert_eq!(shown.shows_on(TWO), Visibility::Hidden);
     }
 
     #[test]

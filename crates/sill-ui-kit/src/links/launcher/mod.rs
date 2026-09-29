@@ -164,8 +164,8 @@ impl LauncherLink {
 #[cfg(test)]
 mod tests {
     use super::{open, toggle};
-    use crate::links::{LauncherLink, OpenSerial, Opening, PanelFocus, Reveal, Visible};
-    use shell_host::{KeyboardFocus, OutputId};
+    use crate::links::{LauncherLink, OpenSerial, Opening, PanelFocus, Reveal};
+    use shell_host::{KeyboardFocus, OutputId, Visibility};
     use std::time::Instant;
 
     const ONE: OutputId = OutputId(1);
@@ -212,9 +212,9 @@ mod tests {
     #[test]
     fn the_launcher_shows_on_its_output_only() {
         let shown = open(&Reveal::default(), ONE, String::new(), Instant::now());
-        assert_eq!(shown.shows_on(ONE), Visible::Yes);
-        assert_eq!(shown.shows_on(OutputId(2)), Visible::No);
-        assert_eq!(shown.hidden().shows_on(ONE), Visible::No);
+        assert_eq!(shown.shows_on(ONE), Visibility::Shown);
+        assert_eq!(shown.shows_on(OutputId(2)), Visibility::Hidden);
+        assert_eq!(shown.hidden().shows_on(ONE), Visibility::Hidden);
     }
 
     #[test]

@@ -18,7 +18,7 @@ use super::keymap::power_menu_key;
 use super::keys::{initial, offered};
 use super::labels::action_label;
 use super::sheet::{MenuSession, SheetEffect, SheetInput, Then, advance};
-use crate::links::{OpenSerial, PanelFocus, Visible};
+use crate::links::{OpenSerial, PanelFocus};
 use crate::links::{PowerMenuLink, PowerMenuOpening, Reveal};
 
 /// The buttons' elements, for moving the keyboard focus.
@@ -146,7 +146,7 @@ fn use_button_focus(ctx: MenuCtx) {
 /// a host (a test, an SSR render).
 fn use_follow_visibility(shown: ReadSignal<Reveal<PowerMenuOpening>>, output: OutputId) {
     let surface = try_use_context::<SurfaceHandle>();
-    let mut applied = use_hook(|| CopyValue::new(None::<Visible>));
+    let mut applied = use_hook(|| CopyValue::new(None::<Visibility>));
     use_effect(move || {
         let visible = shown.read().shows_on(output);
         if *applied.peek() == Some(visible) {
@@ -154,10 +154,7 @@ fn use_follow_visibility(shown: ReadSignal<Reveal<PowerMenuOpening>>, output: Ou
         }
         applied.set(Some(visible));
         if let Some(surface) = &surface {
-            surface.apply(SurfaceOp::SetVisibility(match visible {
-                Visible::Yes => Visibility::Shown,
-                Visible::No => Visibility::Hidden,
-            }));
+            surface.apply(SurfaceOp::SetVisibility(visible));
         }
     });
 }
