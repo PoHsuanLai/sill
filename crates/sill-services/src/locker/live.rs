@@ -12,13 +12,14 @@ use tokio::sync::{mpsc, watch};
 use zbus::zvariant::OwnedFd;
 
 use super::cause::{LockCause, cause_after, cause_of};
-use super::logind::{self, Logind, next_opt};
+use super::logind::{self, Logind};
 use super::machine::{Cause, Locker, LockerEffect, LockerEvent, next_deadline, step};
 use super::marker::{LockMarker, Restore, marker_path, restore_on_start};
 use super::mode::{Host, LockerMode, SessionManager};
 use super::{Lock, LockerCommand, ShellLockEvent};
 use crate::env::Bus;
 use crate::programs;
+use crate::stream::next_opt;
 use crate::units::Stamp;
 
 /// Everything the loop owns besides the machine.

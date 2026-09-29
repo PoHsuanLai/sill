@@ -45,6 +45,7 @@ pub mod results;
 pub mod screenshots;
 pub mod services;
 pub mod session;
+mod stream;
 pub mod switcher;
 pub mod tray;
 pub mod units;

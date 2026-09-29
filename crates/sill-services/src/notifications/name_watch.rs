@@ -6,10 +6,7 @@
 //! `NameOwnerChanged`, a `NameLost` (another daemon replaced sill) and a policy change all
 //! settle the same way: [`Bus::settle`].
 
-use std::pin::Pin;
-
 use tokio::sync::mpsc;
-use zbus::export::futures_core::Stream;
 use zbus::fdo::{DBusProxy, NameOwnerChangedStream, RequestNameFlags};
 use zbus::names::BusName;
 use zbus::object_server::SignalEmitter;
@@ -169,15 +166,4 @@ fn command_of(pid: u32) -> Option<String> {
         .ok()
         .map(|comm| comm.trim().to_owned())
         .filter(|comm| !comm.is_empty())
-}
-
-/// The next item of a stream that might not exist: `None` never resolves.
-pub(super) async fn next_opt<S>(stream: &mut Option<S>) -> Option<S::Item>
-where
-    S: Stream + Unpin,
-{
-    match stream {
-        Some(stream) => std::future::poll_fn(|cx| Pin::new(&mut *stream).poll_next(cx)).await,
-        None => std::future::pending().await,
-    }
 }

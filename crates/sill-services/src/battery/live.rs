@@ -1,15 +1,13 @@
 //! UPower's display device over the system bus: seeds a real first value, then feeds every
 //! property change through [`reduce_battery`].
 
-use std::pin::Pin;
-
 use tokio::sync::{mpsc, watch};
 use upower_dbus::{BatteryState, DeviceProxy, UPowerProxy};
-use zbus::export::futures_core::Stream;
 
 use super::BatteryCommand;
 use super::model::{Battery, BatteryEvent, Charge, reduce_battery};
 use crate::env::Bus;
+use crate::stream::next;
 use crate::units::{Percent, Presence, Seconds};
 
 /// Connects to UPower's display device and runs until `commands` closes (the `Control` was
@@ -117,12 +115,4 @@ fn seconds_of(value: i64) -> Seconds {
 
 fn charge_of(state: BatteryState) -> Charge {
     Charge::from_upower(state as u32)
-}
-
-/// Polls one `Unpin` stream for its next item, for use as a `tokio::select!` branch.
-async fn next<S>(stream: &mut S) -> Option<S::Item>
-where
-    S: Stream + Unpin,
-{
-    std::future::poll_fn(|cx| Pin::new(&mut *stream).poll_next(cx)).await
 }

@@ -4,11 +4,9 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::pin::Pin;
 use std::time::Instant;
 
 use tokio::sync::{mpsc, watch};
-use zbus::export::futures_core::Stream;
 use zbus::fdo::{DBusProxy, NameOwnerChanged};
 use zbus::message::{Message, Type as MessageType};
 use zbus::names::{BusName, OwnedUniqueName};
@@ -24,6 +22,7 @@ use super::model::{
 use super::mpris::{MediaPlayer2Proxy, PLAYER_INTERFACE, PlayerProxy};
 use super::{MediaVerb, art_cache_name, art_source};
 use crate::env::Bus;
+use crate::stream::next;
 use crate::tray::Availability;
 use crate::units::Stamp;
 
@@ -507,12 +506,4 @@ fn stamp(origin: Instant) -> Stamp {
 fn apply(tx: &watch::Sender<Media>, event: MediaEvent) {
     let next = reduce_media(tx.borrow().clone(), event);
     let _ = tx.send(next);
-}
-
-/// Polls one `Unpin` stream for its next item, for use as a `tokio::select!` branch.
-async fn next<S>(stream: &mut S) -> Option<S::Item>
-where
-    S: Stream + Unpin,
-{
-    std::future::poll_fn(|cx| Pin::new(&mut *stream).poll_next(cx)).await
 }

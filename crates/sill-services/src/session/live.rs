@@ -2,20 +2,19 @@
 //! session's object for Lock and Log Out), publishes them through [`super::reduce_session`], and
 //! carries out [`SessionCommand`]s.
 
-use std::pin::Pin;
 use std::sync::Arc;
 
 use logind_zbus::manager::{IsSupported, ManagerProxy};
 use logind_zbus::session::SessionProxy;
 use tokio::sync::{mpsc, watch};
 use zbus::Connection;
-use zbus::export::futures_core::Stream;
 
 use super::SessionCommand;
 use super::model::{Offer, Session, SessionAction, SessionEvent, reduce_session};
 use crate::control::Control;
 use crate::env::{ActionReach, Bus, SessionActions};
 use crate::locker::LockerCommand;
+use crate::stream::next_opt;
 use crate::units::Presence;
 
 /// Runs until `commands` closes. Without a bus or logind, `tx` holds what `actions` offers
@@ -181,25 +180,5 @@ fn offer_of(result: zbus::Result<IsSupported>) -> Offer {
     match result {
         Ok(supported) => Offer::from_logind(<&str>::from(supported)),
         Err(_) => Offer::Unavailable,
-    }
-}
-
-/// Polls one `Unpin` stream for its next item, for use as a `tokio::select!` branch.
-async fn next<S>(stream: &mut S) -> Option<S::Item>
-where
-    S: Stream + Unpin,
-{
-    std::future::poll_fn(|cx| Pin::new(&mut *stream).poll_next(cx)).await
-}
-
-/// [`next`] for a stream that might not exist: `None` never resolves, so the `tokio::select!`
-/// branch it backs simply never fires instead of needing its own guard.
-async fn next_opt<S>(stream: &mut Option<S>) -> Option<S::Item>
-where
-    S: Stream + Unpin,
-{
-    match stream {
-        Some(stream) => next(stream).await,
-        None => std::future::pending().await,
     }
 }

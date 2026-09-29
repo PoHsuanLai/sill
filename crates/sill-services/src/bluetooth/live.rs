@@ -10,11 +10,9 @@
 //! from the main loop); the adapter's does not, since BlueZ keeps it for the session.
 
 use std::collections::HashMap;
-use std::pin::Pin;
 
 use tokio::sync::{mpsc, oneshot, watch};
 use zbus::Connection;
-use zbus::export::futures_core::Stream;
 use zbus::fdo::ObjectManagerProxy;
 use zbus::zvariant::OwnedObjectPath;
 
@@ -26,6 +24,7 @@ use super::model::{
     reduce_bluetooth,
 };
 use crate::env::Bus;
+use crate::stream::next;
 use crate::units::Percent;
 
 const SERVICE: &str = "org.bluez";
@@ -577,12 +576,4 @@ fn pairing_of(paired: bool) -> BtPairing {
     } else {
         BtPairing::Unpaired
     }
-}
-
-/// Polls one `Unpin` stream for its next item, for use as a `tokio::select!` branch.
-async fn next<S>(stream: &mut S) -> Option<S::Item>
-where
-    S: Stream + Unpin,
-{
-    std::future::poll_fn(|cx| Pin::new(&mut *stream).poll_next(cx)).await
 }

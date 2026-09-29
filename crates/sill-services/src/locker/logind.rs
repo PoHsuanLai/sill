@@ -1,15 +1,12 @@
 //! The locker's half of logind: this session's `Lock` signal, the manager's `PrepareForSleep`,
 //! the sleep delay inhibitor, and `LockSession` for a resident locker.
 
-use std::pin::Pin;
-
 use logind_zbus::manager::{InhibitType, ManagerProxy, PrepareForSleepStream};
 use logind_zbus::session::{LockStream, SessionProxy};
 use logind_zbus::user::UserProxy;
 use zbus::Connection;
 
 use crate::env::Bus;
-use zbus::export::futures_core::Stream;
 use zbus::zvariant::{OwnedFd, OwnedObjectPath};
 
 /// What the live loop listens to and calls. Every part is optional: without a system bus sill
@@ -100,23 +97,4 @@ pub(super) async fn inhibit(manager: &ManagerProxy<'_>) -> Option<OwnedFd> {
         .inhibit(InhibitType::Sleep, "sill", "lock before sleep", "delay")
         .await
         .ok()
-}
-
-/// Polls one `Unpin` stream for its next item, for use as a `tokio::select!` branch.
-async fn next<S>(stream: &mut S) -> Option<S::Item>
-where
-    S: Stream + Unpin,
-{
-    std::future::poll_fn(|cx| Pin::new(&mut *stream).poll_next(cx)).await
-}
-
-/// [`next`] for a stream that might not exist: `None` never resolves.
-pub(crate) async fn next_opt<S>(stream: &mut Option<S>) -> Option<S::Item>
-where
-    S: Stream + Unpin,
-{
-    match stream {
-        Some(stream) => next(stream).await,
-        None => std::future::pending().await,
-    }
 }

@@ -18,13 +18,14 @@ use super::content::{Notification, Posting};
 use super::dbus::{Call, CloseAnswer};
 use super::history_file;
 use super::ids::{NotificationId, UnixMs};
-use super::name_watch::{Bus, next_opt};
+use super::name_watch::Bus;
 use super::policy::NotificationsPolicy;
 use super::reduce::{NotesState, NotificationsEffect, NotificationsEvent, assign_id};
 use super::rules;
 use super::state::{History, NameHolder, Notifications, ServerMode, ServerStatus};
 use super::{HistoryPlace, NotificationsCommand, Setup, reduce_notifications};
 use crate::env::WallClock;
+use crate::stream::next_opt;
 
 /// Run the service until every control is dropped.
 pub(super) async fn run(

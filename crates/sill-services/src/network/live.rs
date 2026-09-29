@@ -1,20 +1,18 @@
 //! NetworkManager's primary connection over the system bus: seeds a real first value, then
 //! feeds every property change through [`reduce_network`].
 
-use std::pin::Pin;
-
 use cosmic_dbus_networkmanager::interface::NetworkManagerProxy;
 use cosmic_dbus_networkmanager::interface::access_point::AccessPointProxy;
 use cosmic_dbus_networkmanager::interface::active_connection::ActiveConnectionProxy;
 use cosmic_dbus_networkmanager::interface::device::wireless::WirelessDeviceProxy;
 use tokio::sync::{mpsc, watch};
 use zbus::Connection;
-use zbus::export::futures_core::Stream;
 use zbus::zvariant::OwnedObjectPath;
 
 use super::NetworkCommand;
 use super::model::{Activating, Connectivity, Link, Network, NetworkEvent, reduce_network};
 use crate::env::Bus;
+use crate::stream::next;
 use crate::units::Percent;
 
 /// Connects to NetworkManager and runs until `commands` closes (the `Control` was dropped). If
@@ -179,12 +177,4 @@ async fn access_point_link(connection: &Connection, device: &OwnedObjectPath) ->
         ssid: String::from_utf8_lossy(&ssid).into_owned(),
         strength: Percent(u16::from(strength)),
     })
-}
-
-/// Polls one `Unpin` stream for its next item, for use as a `tokio::select!` branch.
-async fn next<S>(stream: &mut S) -> Option<S::Item>
-where
-    S: Stream + Unpin,
-{
-    std::future::poll_fn(|cx| Pin::new(&mut *stream).poll_next(cx)).await
 }

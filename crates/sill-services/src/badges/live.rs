@@ -3,11 +3,9 @@
 //! (interface `com.canonical.Unity.LauncherEntry`, signal `Update(s app_uri, a{sv})`).
 
 use std::collections::HashMap;
-use std::pin::Pin;
 
 use sill_launcher::AppId;
 use tokio::sync::{mpsc, watch};
-use zbus::export::futures_core::Stream;
 use zbus::fdo::{DBusProxy, NameOwnerChanged};
 use zbus::message::{Message, Type as MessageType};
 use zbus::names::OwnedUniqueName;
@@ -18,6 +16,7 @@ use super::BadgesCommand;
 use super::model::{BadgeEvent, BadgeProp, Badges, parse_app_uri, reduce_badges};
 use crate::cosmic_wl::Urgency;
 use crate::env::Bus;
+use crate::stream::next;
 use crate::units::{Permille, Visibility};
 
 const INTERFACE: &str = "com.canonical.Unity.LauncherEntry";
@@ -198,14 +197,6 @@ fn handle_departure(
 fn apply(tx: &watch::Sender<Badges>, event: BadgeEvent) {
     let next = reduce_badges(tx.borrow().clone(), event);
     let _ = tx.send(next);
-}
-
-/// Polls one `Unpin` stream for its next item, for use as a `tokio::select!` branch.
-async fn next<S>(stream: &mut S) -> Option<S::Item>
-where
-    S: Stream + Unpin,
-{
-    std::future::poll_fn(|cx| Pin::new(&mut *stream).poll_next(cx)).await
 }
 
 #[cfg(test)]

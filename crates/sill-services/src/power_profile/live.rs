@@ -2,11 +2,9 @@
 //! change through [`super::reduce_power_profiles`], and carries out [`ProfileCommand`]s.
 
 use std::collections::HashMap;
-use std::pin::Pin;
 
 use tokio::sync::{mpsc, watch};
 use zbus::Connection;
-use zbus::export::futures_core::Stream;
 use zbus::fdo::DBusProxy;
 use zbus::zvariant::OwnedValue;
 
@@ -14,6 +12,7 @@ use super::ProfileCommand;
 use super::model::{PowerProfiles, Profile, ProfileDegraded, ProfileEvent, reduce_power_profiles};
 use super::ppd::UPowerPowerProfilesProxy;
 use crate::env::Bus;
+use crate::stream::{next, next_opt};
 
 /// Runs until `commands` closes. Without a bus or the daemon, `tx` stays at its default.
 pub(super) async fn run(
@@ -135,24 +134,4 @@ fn degraded_of(reason: String) -> ProfileDegraded {
 fn apply(tx: &watch::Sender<PowerProfiles>, event: ProfileEvent) {
     let next = reduce_power_profiles(tx.borrow().clone(), event);
     let _ = tx.send(next);
-}
-
-/// Polls one `Unpin` stream for its next item, for use as a `tokio::select!` branch.
-async fn next<S>(stream: &mut S) -> Option<S::Item>
-where
-    S: Stream + Unpin,
-{
-    std::future::poll_fn(|cx| Pin::new(&mut *stream).poll_next(cx)).await
-}
-
-/// [`next`] for a stream that might not exist: `None` never resolves, so the `tokio::select!`
-/// branch it backs simply never fires instead of needing its own guard.
-async fn next_opt<S>(stream: &mut Option<S>) -> Option<S::Item>
-where
-    S: Stream + Unpin,
-{
-    match stream {
-        Some(stream) => next(stream).await,
-        None => std::future::pending().await,
-    }
 }

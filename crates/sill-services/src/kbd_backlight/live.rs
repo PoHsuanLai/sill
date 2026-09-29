@@ -3,15 +3,13 @@
 //! [`KbdCommand`]s. Only a `KbdCommand::Set` writes the backlight; tests never reach this file
 //! (they feed a fake `watch` channel).
 
-use std::pin::Pin;
-
 use tokio::sync::{mpsc, watch};
-use zbus::export::futures_core::Stream;
 
 use super::KbdCommand;
 use super::model::{KbdBacklight, KbdEvent, KbdLevel, reduce_kbd_backlight, step_for};
 use super::upower::KbdBacklightProxy;
 use crate::env::Bus;
+use crate::stream::next_opt;
 use crate::units::Presence;
 
 /// Runs until `commands` closes. Without a bus or UPower, `tx` stays at its default.
@@ -80,15 +78,4 @@ fn step(value: i32) -> Option<u32> {
 fn apply(tx: &watch::Sender<KbdBacklight>, event: KbdEvent) {
     let next = reduce_kbd_backlight(*tx.borrow(), event);
     let _ = tx.send(next);
-}
-
-/// [`next`] for a stream that might not exist: `None` never resolves.
-async fn next_opt<S>(stream: &mut Option<S>) -> Option<S::Item>
-where
-    S: Stream + Unpin,
-{
-    match stream {
-        Some(stream) => std::future::poll_fn(|cx| Pin::new(&mut *stream).poll_next(cx)).await,
-        None => std::future::pending().await,
-    }
 }

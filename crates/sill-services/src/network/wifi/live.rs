@@ -8,7 +8,6 @@
 //! disappears mid-run is not re-found — `Refresh` is a later milestone's, per [`WifiCommand`]).
 
 use std::collections::HashMap;
-use std::pin::Pin;
 
 use cosmic_dbus_networkmanager::interface::NetworkManagerProxy;
 use cosmic_dbus_networkmanager::interface::access_point::AccessPointProxy;
@@ -19,12 +18,12 @@ use cosmic_dbus_networkmanager::interface::settings::SettingsProxy;
 use cosmic_dbus_networkmanager::interface::settings::connection::ConnectionSettingsProxy;
 use tokio::sync::{mpsc, watch};
 use zbus::Connection;
-use zbus::export::futures_core::Stream;
 use zbus::zvariant::{ObjectPath, OwnedObjectPath};
 
 use super::WifiCommand;
 use super::model::{AccessPoint, Association, Radio, Security, Ssid, Wifi, WifiEvent, reduce_wifi};
 use crate::env::Bus;
+use crate::stream::next;
 use crate::units::{Percent, Presence};
 
 /// Runs until `commands` closes. Without a bus, NetworkManager or a wireless device, `tx` stays
@@ -304,12 +303,4 @@ async fn connect(
 fn apply(tx: &watch::Sender<Wifi>, event: WifiEvent) {
     let next = reduce_wifi(tx.borrow().clone(), event);
     let _ = tx.send(next);
-}
-
-/// Polls one `Unpin` stream for its next item, for use as a `tokio::select!` branch.
-async fn next<S>(stream: &mut S) -> Option<S::Item>
-where
-    S: Stream + Unpin,
-{
-    std::future::poll_fn(|cx| Pin::new(&mut *stream).poll_next(cx)).await
 }
