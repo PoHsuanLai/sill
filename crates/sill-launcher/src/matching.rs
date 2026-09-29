@@ -1,5 +1,5 @@
-//! Fuzzy matching with nucleo, smart case (plan: "nucleo Pattern smart-case"), normalised so a
-//! score means the same thing whatever the query's length.
+//! Fuzzy matching with nucleo, smart case, normalised so a score means the same thing whatever the
+//! query's length.
 
 use nucleo_matcher::pattern::{CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config, Matcher, Utf32Str};

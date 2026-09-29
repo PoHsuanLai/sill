@@ -1,5 +1,5 @@
-//! D2 on the real control center (quire CONSUMING "Control center details", design/26 5.2.2,
-//! 5.2.3): the networks and devices panes' row phases from the services' stamps (`Network.join`,
+//! Row details on the real control center (design/26 5.2.2, 5.2.3): the networks and devices
+//! panes' row phases from the services' stamps (`Network.join`,
 //! `Bluetooth.connect`), driven by the fake services on `Clock::Virtual`. Every state change ends
 //! at 0 frames (R3). Nothing here reaches a real radio.
 

@@ -136,7 +136,7 @@ pub fn widgets_css() -> String {
 
 /// One widget of `kind` in `host` at its one size ([`size_of`]), on quire's card, named by [`widget_element_id`],
 /// `lift`ed while the desktop drags it: the kind's provider feeds the card. A card the desktop
-/// took away is `Leaving`: it plays quire's exit and calls `on_gone` once it has (G423).
+/// took away is `Leaving`: it plays quire's exit and calls `on_gone` once it has.
 #[component]
 pub fn Widget(
     kind: WidgetKind,

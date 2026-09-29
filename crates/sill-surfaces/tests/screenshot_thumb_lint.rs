@@ -1,4 +1,4 @@
-//! Coherence rules 1 and 2 (quire CONSUMING.md §5) for the screenshot thumbnail (M10): its
+//! Coherence rules 1 and 2 for the screenshot thumbnail: its
 //! stylesheet under `Profile::Strict`, and the real thumbnail through the markup lint, showing a
 //! hovered card with its Delete action (the harness).
 

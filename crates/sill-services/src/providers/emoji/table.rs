@@ -1,7 +1,7 @@
 //! The emoji the launcher searches: every fully-qualified emoji the `emojis` crate knows
 //! (Unicode's emoji-test data, its CLDR short name, group and skin-tone variants; MIT OR
 //! Apache-2.0 AND Unicode-3.0), each with its CLDR English keywords from the bundled
-//! `data/emoji-keywords.tsv` (Unicode-3.0, `scripts/gen-emoji-keywords.sh`). Lane c fills it.
+//! `data/emoji-keywords.tsv` (Unicode-3.0, `scripts/gen-emoji-keywords.sh`).
 //!
 //! The data model says nothing about painting: a row carries the emoji as text and the system's
 //! colour font draws it (Noto Color Emoji, COLRv1, here). quire's `AnimatedEmoji` catalogue is

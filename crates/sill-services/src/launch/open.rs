@@ -1,19 +1,19 @@
 //! Opening a file, its folder or an address with the desktop's default handler, for the
-//! launcher's M9 rows (FINDINGS "M9 freeze" F643). Lane a fills it:
+//! launcher's rows:
 //!
 //! - `File(path)` and `Url(url)`: `xdg-open <path|url>` in a transient `systemd-run --user
 //!   --scope` like an app launch, with `XDG_ACTIVATION_TOKEN` set to the request's token.
 //! - `Reveal(path)`: `org.freedesktop.FileManager1.ShowItems([file uri], startup id = token)`
 //!   when the name has an owner or is activatable (the call then starts the file manager), so
 //!   the file manager opens the folder with the file selected; else `xdg-open` on
-//!   [`reveal_folder`] (FINDINGS "M9 lane a", F667).
+//!   [`reveal_folder`].
 //!
 //! Nothing here is logged beyond the failure's kind: a path can be private.
 //!
 //! The scope is used when the user manager is reachable (`$XDG_RUNTIME_DIR/systemd/private`
 //! exists; `systemd-run --user` fails without it, and exits 1 like `xdg-open` does, so the
 //! failure could not be told apart afterwards); otherwise, or when `systemd-run` is missing,
-//! `xdg-open` runs in its own process group, as a launch does (FINDINGS "M9 lane a").
+//! `xdg-open` runs in its own process group, as a launch does.
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};

@@ -1,6 +1,6 @@
 //! The dock menu's document in a `ds_native::Harness` at the popup's own size: the frame, the
-//! root and the page have the viewport's height (quire CONSUMING §2), and a press on an item
-//! reaches the menu and picks it.
+//! root and the page have the viewport's height, and a press on an item reaches the menu and
+//! picks it.
 
 use std::cell::RefCell;
 use std::time::Duration;

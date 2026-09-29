@@ -1,5 +1,5 @@
-//! The network: NetworkManager's primary connection over the system bus (plan hooks table,
-//! `use_network`: "cosmic-dbus-networkmanager; MPL, link only").
+//! The network: NetworkManager's primary connection over the system bus
+//! (cosmic-dbus-networkmanager; MPL, link only).
 
 mod live;
 mod model;

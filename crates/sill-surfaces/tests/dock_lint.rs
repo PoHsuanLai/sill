@@ -1,4 +1,4 @@
-//! Coherence rules 1 and 2 (quire CONSUMING.md §5) for the dock: its stylesheets under
+//! Coherence rules 1 and 2 for the dock: its stylesheets under
 //! `Profile::Strict`, and an SSR render of the real `Dock` through the markup lint.
 
 mod dock_support;

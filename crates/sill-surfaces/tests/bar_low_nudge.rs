@@ -1,4 +1,5 @@
-//! G11 (quire design/26 5.1.3) on the real bar in a Blitz document: the battery item nudges once
+//! The low-battery nudge (quire design/26 5.1.3) on the real bar in a Blitz document: the
+//! battery item nudges once
 //! when a discharging battery crosses `bar.battery_low_percent`, never for a wobble back over
 //! it, again only after it was plugged in, and the bar paints 0 frames after each change.
 
@@ -26,7 +27,7 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| services);
-    // Not the desktop's portal and appearance file: they answer off-thread (FINDINGS G370).
+    // Not the desktop's portal and appearance file: they answer off-thread.
     use_context_provider(PinnedAppearance::default);
     use_context_provider(|| SettingsFeed::fixed(ShellFile::default()));
     rsx! { Bar { output: fake::output() } }
@@ -38,7 +39,7 @@ const VIEW: Viewport = Viewport {
     scale_percent: 100,
 };
 
-/// quire's nudge inside the item's button (Q390): it lifts the glyph, never the pill.
+/// quire's nudge inside the item's button: it lifts the glyph, never the pill.
 const NUDGE: &str = ".ds-icon-button > .ds-icon-nudge.a-nudge-up";
 
 fn at(level: u16, charge: Charge) -> Battery {

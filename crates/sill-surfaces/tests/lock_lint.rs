@@ -1,4 +1,4 @@
-//! Coherence rules 1 and 2 (quire CONSUMING.md §5) for the lock screen: its stylesheet under
+//! Coherence rules 1 and 2 for the lock screen: its stylesheet under
 //! `Profile::Strict`, and the real `LockScreen` markup (with the prompt, and without) through
 //! the markup lint.
 

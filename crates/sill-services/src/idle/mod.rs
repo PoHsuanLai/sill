@@ -1,7 +1,7 @@
 //! sill's own idle service: the dim, the displays off, the lock at screen off and the idle
-//! suspend that cosmic-idle did before (the user's pick Q420 B; sill FINDINGS "sill idle (Q420
-//! B)", F900-F913, F930-). Owning idle is how sill knows why it locked ([`crate::locker::LockCause`]),
-//! which the lock grace (`session.lock_grace_s`, [`grace_verdict`]) needs.
+//! suspend that cosmic-idle did before (the user's pick). Owning idle is how sill knows why it
+//! locked ([`crate::locker::LockCause`]), which the lock grace (`session.lock_grace_s`,
+//! [`grace_verdict`]) needs.
 //!
 //! **Passive until the daemon's first [`IdleCommand`]**, and `Off` (nothing held, nothing
 //! touched) anywhere but a sill session with no cosmic-idle running ([`resolve_mode`]), so no

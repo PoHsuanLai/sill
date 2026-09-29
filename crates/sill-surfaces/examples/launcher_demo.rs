@@ -4,10 +4,10 @@
 //! on stdin:
 //!
 //! - `toggle`, `open [QUERY]`, `close`: what `sill launcher ...` does;
-//! - `type TEXT`: the field's text becomes TEXT (shell-host injects no keys, FINDINGS G20);
+//! - `type TEXT`: the field's text becomes TEXT (shell-host injects no keys);
 //! - `key tab|shift-tab|actions|escape`: those keys, through the panel's keyboard machine;
 //! - `press up|down|enter|escape|tab|shift-tab|actions|space|quick-look|right|left|reveal`: a
-//!   key as `sill debug launcher-key` presses it (M9: the preview pane's keys, row chords);
+//!   key as `sill debug launcher-key` presses it (the preview pane's keys, row chords);
 //! - anything else is a shell-host `debug-inject` command (`sill-launcher-<output> capture
 //!   PATH`, `sill-launcher-catcher-<output> click X Y`, `stats`, `quit`).
 //!

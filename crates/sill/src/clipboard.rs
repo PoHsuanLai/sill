@@ -1,5 +1,5 @@
-//! `sill clipboard status|clear` (M9, FINDINGS "M9 freeze" F647, F653): the report says whether
-//! history is kept, over which protocol, and how many entries; never what they hold.
+//! `sill clipboard status|clear`: the report says whether history is kept, over which protocol, and
+//! how many entries; never what they hold.
 
 use sill_ipc::{
     ClipboardReport, ClipboardRequest, Failure, FailureKind, ReportClipMode, ReportClipProtocol,

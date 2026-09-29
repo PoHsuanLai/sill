@@ -48,7 +48,7 @@ pub enum WallpaperDrawer {
 }
 
 /// `spaces.lookup_order`. design/22 lists one variant and names `ByIndexOnly` as the future
-/// second; a settings enum needs two, so it is here now (FINDINGS.md).
+/// second; a settings enum needs two, so it is here now.
 #[derive(
     Debug,
     Clone,

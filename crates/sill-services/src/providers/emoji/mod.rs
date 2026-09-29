@@ -1,11 +1,11 @@
-//! Emoji by name, keyword and CLDR short name (M9 lane c, FINDINGS "M9 freeze" F649), with a
-//! recent-first grid and the person's skin tone (`launcher.emoji_skin_tone`).
+//! Emoji by name, keyword and CLDR short name, with a recent-first grid and the person's skin tone
+//! (`launcher.emoji_skin_tone`).
 //!
-//! The freeze's `query` answers nothing; lane c fills it with [`search::emoji_items`] over
-//! [`table::emoji_table`]: typed text of two or more characters (or any text after `:`) lists
-//! matches; nothing typed lists nothing for the whole launcher, and the recent-first grid when
-//! the Emoji filter asks this provider alone (`Query::scope == Scope::Only(Emoji)`, F651).
-//! Enter copies the emoji (`Activation::Copy`); the launcher cannot type into another app.
+//! `query` answers with [`search::emoji_items`] over [`table::emoji_table`]: typed text of two or
+//! more characters (or any text after `:`) lists matches; nothing typed lists nothing for the whole
+//! launcher, and the recent-first grid when the Emoji filter asks this provider alone
+//! (`Query::scope == Scope::Only(Emoji)`). Enter copies the emoji (`Activation::Copy`); the
+//! launcher cannot type into another app.
 
 pub mod search;
 pub mod table;
@@ -43,7 +43,7 @@ impl Provider for EmojiProvider {
         let asked_alone = query.scope == Scope::Only(ProviderKind::Emoji);
         if trimmed.is_empty() {
             if !asked_alone {
-                // Nothing typed, asked of the whole launcher: no emoji rows (M9 freeze F651).
+                // Nothing typed, asked of the whole launcher: no emoji rows.
                 return;
             }
         } else if !worth_searching(trimmed) {
@@ -85,9 +85,9 @@ impl Provider for EmojiProvider {
     }
 }
 
-/// Rows a query may answer with: `SectionPlan::default_plan().ceiling` (F645), the most any
-/// section publishes; capping to the grid's own display cap and revealing more on "Show More"
-/// is lane d's (`rank::sections::place`).
+/// Rows a query may answer with: `SectionPlan::default_plan().ceiling`, the most any section
+/// publishes; capping to the grid's own display cap and revealing more on "Show More" is left to
+/// `rank::sections::place`.
 const EMOJI_LIMIT: usize = 20;
 
 /// Typed text is worth searching at two or more characters, or any text after a leading `:`

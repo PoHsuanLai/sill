@@ -1,5 +1,5 @@
 /* The screenshot thumbnail (design/20 §1.13; surfaces/screenshot_thumb). The card, its motion,
-   its hover row and its swipe are quire's `ShotThumbnail` (Q181); quire's `BannerStack` holds it
+   its hover row and its swipe are quire's `ShotThumbnail`; quire's `BannerStack` holds it
    at the bottom right. This only makes the stack's column fill the surface, the room around the
    card written inline (`ROOM`). Tokens only. */
 

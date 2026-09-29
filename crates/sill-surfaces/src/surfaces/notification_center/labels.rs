@@ -1,5 +1,5 @@
 //! The center's words, pure: its title, the empty state, and the footer that says when sill is
-//! not the one receiving notifications. A group's name is the card's (`use_app_mark`, F322).
+//! not the one receiving notifications. A group's name is the card's (`use_app_mark`).
 
 use sill_services::{NameHolder, ServerMode, ServerStatus};
 

@@ -1,8 +1,7 @@
-//! Keys for row actions, written in Mac terms (quire design/27 §6.2 rule (e): bindings are
-//! Mac chords, the platform layer resolves Command; Toshy maps it to Ctrl). A row's action
-//! carries its chord so the results run it without opening the actions menu, and the menu and
-//! the preview pane show it beside the action (quire design/09 H5, "fewer icons, more
-//! shortcuts"). M9 freeze, F642. Pure.
+//! Keys for row actions, written in Mac terms (quire design/27 §6.2 rule (e): bindings are Mac
+//! chords, the platform layer resolves Command; Toshy maps it to Ctrl). A row's action carries its
+//! chord so the results run it without opening the actions menu, and the menu and the preview pane
+//! show it beside the action (quire design/09 H5, "fewer icons, more shortcuts"). Pure.
 
 use serde::{Deserialize, Serialize};
 
@@ -62,7 +61,7 @@ impl Chord {
     }
 }
 
-/// The M9 rows' chords (Spotlight's where it has one).
+/// The row actions' chords (Spotlight's where it has one).
 pub mod chords {
     use super::{Chord, ChordKey};
 

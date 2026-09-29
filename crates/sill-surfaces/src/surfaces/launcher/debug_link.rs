@@ -1,5 +1,5 @@
 //! What `sill debug launcher-key` and `sill debug launcher-rows` reach through the
-//! [`LauncherLink`](super::LauncherLink) (M9 lane d, FINDINGS F653): a key the panel steps as if
+//! [`LauncherLink`](super::LauncherLink): a key the panel steps as if
 //! it were pressed, and the rows the panel shows. The panel publishes [`ShownRows`] after every
 //! render while it is open and `None` when it hides; clipboard rows' titles never reach it
 //! (they are `<clipboard>` here already, so no clipboard text leaves the panel).
@@ -48,7 +48,7 @@ pub struct ShownRows {
 }
 
 /// One section as shown: its heading, its lines' titles (a clipboard row's is `<clipboard>`;
-/// the "Show More"/"Show Less" stand-in is a line until quire's header action, Q294), and how
+/// the "Show More"/"Show Less" stand-in is a line until quire's header action), and how
 /// many rows it hides.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ShownRowsSection {

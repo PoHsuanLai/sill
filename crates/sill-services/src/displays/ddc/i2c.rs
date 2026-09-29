@@ -4,8 +4,8 @@
 //!
 //! Access is the distribution's business: Fedora's ddcutil package grants the seat's user
 //! `/dev/i2c-*` on display adapters (`uaccess`), and `dist/udev/60-sill-ddc.rules` does the same
-//! where ddcutil is not installed (FINDINGS "Displays"). Without access every probe comes back
-//! empty and brightness keys fall through to nothing, quietly.
+//! where ddcutil is not installed. Without access every probe comes back empty and brightness keys
+//! fall through to nothing, quietly.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};

@@ -1,7 +1,6 @@
 //! The dbusmenu popup's document: one transparent `Ds` root over one `Menu{Dropdown}` that opens
 //! at once (a bar menu). The root is the viewport (`RootExtent::Viewport`): a root holding only
-//! the floating menu was 0 px tall, and with it the page, so a press never reached the menu
-//! (quire CONSUMING §2's root-frame rule).
+//! the floating menu was 0 px tall, and with it the page, so a press never reached the menu.
 
 use dioxus::prelude::*;
 use ds::{

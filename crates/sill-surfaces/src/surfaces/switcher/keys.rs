@@ -1,4 +1,4 @@
-//! The switcher's keys and the chord's release (F549): pure.
+//! The switcher's keys and the chord's release: pure.
 //!
 //! Which modifier holds the chord: COSMIC binds `Alt+Tab` and `Super+Tab` to the switcher, and
 //! Toshy turns a physical Cmd+Tab into `Alt+Tab` with Alt held for as long as Cmd is
@@ -7,7 +7,7 @@
 //! `wl_keyboard.modifiers`, which the compositor sends after the key), so the release of Alt
 //! arrives as a key-up of `Alt` whose modifiers still hold `ALT`: [`chord_after_keyup`] reads the
 //! key, not only the modifiers. A release before the surface has the keyboard is never seen as
-//! a key; that needs shell-host's modifiers on focus (G180).
+//! a key; that needs shell-host's modifiers on focus.
 
 use dioxus::prelude::{Key, Modifiers};
 

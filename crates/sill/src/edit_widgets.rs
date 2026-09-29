@@ -1,10 +1,9 @@
-//! Edit Widgets on the daemon's side (FINDINGS "Widget interface port"): one hidden surface per
-//! output, kept warm like the notification center; `sill widgets edit` and `edit-close`, which
-//! write its link; and the writer its root is given, which saves the widget keys into
-//! `settings.toml` (`widgets.center`, `widgets.desktop_widgets`, and `widgets.desktop`, which an
-//! add to the desktop turns on) (publishing them at once, as `toggle-desktop` does, so the desktop layer and
-//! the center follow before the watch fires) and the output's places into
-//! `desktop-widgets.json`.
+//! Edit Widgets on the daemon's side: one hidden surface per output, kept warm like the
+//! notification center; `sill widgets edit` and `edit-close`, which write its link; and the writer
+//! its root is given, which saves the widget keys into `settings.toml` (`widgets.center`,
+//! `widgets.desktop_widgets`, and `widgets.desktop`, which an add to the desktop turns on)
+//! (publishing them at once, as `toggle-desktop` does, so the desktop layer and the center follow
+//! before the watch fires) and the output's places into `desktop-widgets.json`.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;

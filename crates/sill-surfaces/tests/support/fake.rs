@@ -34,7 +34,7 @@ pub struct Feeds {
     /// The keyboard backlight: absent until a test feeds one (`kbd_backlight()`).
     pub kbd_backlight: watch::Sender<sill_services::KbdBacklight>,
     pub kbd_commands: mpsc::UnboundedReceiver<sill_services::KbdCommand>,
-    /// M6: the live banners and the history (both empty until a test feeds them).
+    /// The live banners and the history (both empty until a test feeds them).
     pub notifications: watch::Sender<sill_services::Notifications>,
     pub notification_history: watch::Sender<sill_services::History>,
     pub wl: mpsc::UnboundedReceiver<sill_services::WlCommand>,
@@ -45,11 +45,11 @@ pub struct Feeds {
     pub profile_commands: mpsc::UnboundedReceiver<ProfileCommand>,
     pub media_commands: mpsc::UnboundedReceiver<MediaCommand>,
     pub notification_commands: mpsc::UnboundedReceiver<sill_services::NotificationsCommand>,
-    /// M10: the calendar widgets' agenda, the thumbnail's shots, and what the thumbnail sends.
+    /// The calendar widgets' agenda, the thumbnail's shots, and what the thumbnail sends.
     pub agenda: watch::Sender<sill_services::Agenda>,
     pub shots: watch::Sender<sill_services::Shots>,
     pub shot_commands: mpsc::UnboundedReceiver<sill_services::ShotCommand>,
-    /// Q420 B: sill's own idle service (passive, `Off(NoPolicy)`, until a test feeds it).
+    /// sill's own idle service (passive, `Off(NoPolicy)`, until a test feeds it).
     pub idle: watch::Sender<sill_services::Idle>,
     /// The displays (none until a test feeds some), and what the Display module sends.
     pub displays: watch::Sender<sill_services::Displays>,
@@ -307,7 +307,7 @@ pub fn services() -> (Services, Feeds) {
     let (notifications_tx, notifications) = watch::channel(sill_services::Notifications::default());
     let (history_tx, notification_history) = watch::channel(sill_services::History::default());
     let (notifications_control, notification_rx) = Control::channel();
-    // M10: a feed for the calendar widgets and one for the screenshot thumbnail.
+    // A feed for the calendar widgets and one for the screenshot thumbnail.
     let (agenda_tx, agenda) = watch::channel(sill_services::Agenda::default());
     let (shots_tx, shots) = watch::channel(sill_services::Shots::default());
     let (shots_control, shot_rx) = Control::channel();

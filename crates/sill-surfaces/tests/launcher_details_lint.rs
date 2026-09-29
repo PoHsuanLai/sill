@@ -1,5 +1,5 @@
 //! The launcher's stylesheet and its rendered panel (the preview pane up) under quire's
-//! `Profile::Details` (design/26-DETAILS.md; CONSUMING "Details"): `Strict` plus timing only by
+//! `Profile::Details` (design/26-DETAILS.md): `Strict` plus timing only by
 //! the grammar's tokens (`Rule::OffGrammarTiming`) and no `infinite` loop (`Rule::InfiniteLoop`).
 
 mod launcher_harness;

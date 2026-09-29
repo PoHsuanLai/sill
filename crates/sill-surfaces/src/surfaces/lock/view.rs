@@ -22,7 +22,7 @@ pub fn caps_lock(modifiers: Modifiers) -> CapsLock {
 }
 
 /// Caps Lock from shell-host's live modifiers (`use_modifiers()`, published on keyboard focus
-/// and on every change, so it is known before the first key: G180 closed upstream). The surface
+/// and on every change, so it is known before the first key). The surface
 /// uses this; [`caps_lock`] reads a key event's modifiers.
 pub fn caps_of(key: shell_host::LockKey) -> CapsLock {
     match key {
@@ -33,7 +33,7 @@ pub fn caps_of(key: shell_host::LockKey) -> CapsLock {
 
 /// quire's prompt state for `phase`: `Accepted` is quire's `Accepted` (its beat plays before the
 /// unlock), and `Unavailable` is `Idle` (the service's notes are the hint line). quire's
-/// `LockedOut` is never shown: there is no lockout (FINDINGS F862).
+/// `LockedOut` is never shown: there is no lockout.
 pub fn prompt_state(phase: &AuthPhase) -> PromptState {
     match phase {
         AuthPhase::Idle | AuthPhase::Unavailable(_) => PromptState::Idle,

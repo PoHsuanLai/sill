@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# The notifications server's acceptance (lane a, FINDINGS "The M6 fill-in"), on the nested
-# cosmic-comp (dev/nested.sh; a running wayland-1 is reused and never stopped).
+# The notifications server's acceptance, on the nested cosmic-comp (dev/nested.sh; a running
+# wayland-1 is reused and never stopped).
 #
 # Everything D-Bus happens on a private bus (dev/private-bus.conf: no service directories, so
-# nothing is ever activated, F264): the daemon, notify-send, gdbus and the holder example get
+# nothing is ever activated): the daemon, notify-send, gdbus and the holder example get
 # its address, and nothing here reads or writes the real session bus, whose
 # org.freedesktop.Notifications belongs to the person's own daemon (plasmashell here). The daemon
 # also gets its own XDG_RUNTIME_DIR (WAYLAND_DISPLAY an absolute socket path), so another sill

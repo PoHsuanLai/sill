@@ -1,10 +1,9 @@
-//! A desktop widget taken away plays its exit (G423; quire CONSUMING "Edit Widgets, one size"):
-//! when a kind leaves `widgets.desktop_widgets` (an Edit Widgets Remove), the layer keeps drawing
-//! its card at the box it last stood in, `CardPresence::Leaving`, until quire's card calls
-//! `on_gone` at `settle(WidgetOut)`, and then drops it. A leaving card is out of the grid's
-//! placements, so it is out of the input and blur regions and the drag from the moment it
-//! starts leaving. A kind added back while it leaves is placed again, and quire's `Placed`
-//! takes the exit back. Pure but for [`use_leaving`].
+//! A desktop widget taken away plays its exit: when a kind leaves `widgets.desktop_widgets` (an
+//! Edit Widgets Remove), the layer keeps drawing its card at the box it last stood in,
+//! `CardPresence::Leaving`, until quire's card calls `on_gone` at `settle(WidgetOut)`, and then
+//! drops it. A leaving card is out of the grid's placements, so it is out of the input and blur
+//! regions and the drag from the moment it starts leaving. A kind added back while it leaves is
+//! placed again, and quire's `Placed` takes the exit back. Pure but for [`use_leaving`].
 
 use dioxus::prelude::*;
 use sill_settings::WidgetKind;

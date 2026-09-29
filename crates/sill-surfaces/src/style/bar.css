@@ -1,6 +1,6 @@
 /* The bar (design/20 §1.1, design/13 §13.3.1, design/21 §3 and §5). Every length a design doc
    marks proposed comes from a `bar.*` settings key and is written inline by the component;
-   everything here is a token. Attribute selectors carry `*|` (spike S2). */
+   everything here is a token. Attribute selectors carry `*|`. */
 
 /* The box around the Ds root that carries the shell type scale's inputs (quire's
    `ShellMetrics`), so the root's tuned tokens read the settings. */

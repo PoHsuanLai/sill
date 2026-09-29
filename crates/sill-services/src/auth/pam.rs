@@ -1,5 +1,5 @@
-//! PAM itself, through `nonstick` (MIT; a safe API over libpam, FINDINGS F541). Only
-//! `sill auth-check` calls [`check`], in its own short-lived process; the daemon never does.
+//! PAM itself, through `nonstick` (MIT; a safe API over libpam). Only `sill auth-check` calls
+//! [`check`], in its own short-lived process; the daemon never does.
 
 use std::cell::{Cell, RefCell};
 use std::ffi::{OsStr, OsString};

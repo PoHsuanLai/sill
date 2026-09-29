@@ -1,4 +1,4 @@
-# sill, the COSMIC shell, as a systemd user service (plan "CLI/IPC/session").
+# sill, the COSMIC shell, as a systemd user service.
 #
 # Install: copy to ~/.config/systemd/user/sill.service (adjust ExecStart if sill is not in
 # /usr/bin), then `systemctl --user enable --now sill.service` inside a COSMIC session.

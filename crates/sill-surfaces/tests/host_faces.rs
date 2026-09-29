@@ -1,5 +1,5 @@
-//! Every sill process registers quire's faces with shell-host (shell-host F68, sill Q342): a
-//! document under the host that names Inter must find Inter, not the system face.
+//! Every sill process registers quire's faces with shell-host: a document under the host that
+//! names Inter must find Inter, not the system face.
 
 use shell_host::registered_families;
 

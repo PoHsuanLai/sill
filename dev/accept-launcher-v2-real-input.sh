@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
-# Launcher v2 under real keyboard input (M9 lane e, FINDINGS "The M9 fill-in" (e) and "M9 lane
-# e"), on shell-host's private headless KWin (scripts/dev/kwin-virtual.sh, FINDINGS F52) driven
-# by shell-host's scripts/dev/fake-input.sh: every key is a real Wayland key event with a real
-# serial and keyboard focus, reaching the palette's field and quire's key claim as a person's
-# would. `sill debug launcher-rows` and `sill debug capture` only look; no key goes through
-# `sill debug launcher-key`.
+# Launcher v2 under real keyboard input, on shell-host's private headless KWin
+# (scripts/dev/kwin-virtual.sh) driven by shell-host's scripts/dev/fake-input.sh: every key is a
+# real Wayland key event with a real serial and keyboard focus, reaching the palette's field and
+# quire's key claim as a person's would. `sill debug launcher-rows` and `sill debug capture` only
+# look; no key goes through `sill debug launcher-key`.
 #
 # The daemon runs from this checkout's debug build (`--features debug`) on the headless KWin's
 # socket (an absolute WAYLAND_DISPLAY) and KWin's private D-Bus bus (shell-host's
 # private-bus.conf: nothing activatable), with its own XDG_RUNTIME_DIR and a scratch HOME,
 # XDG_CONFIG_HOME, XDG_DATA_HOME, XDG_STATE_HOME and XDG_CACHE_HOME; `launcher.files_backend =
 # "fd"`. The bus goes to the daemon (and the stub file manager, as an argument) only, never to
-# this shell (G52). ONE fake-input client serves the whole run (G50). Nothing here reaches the
+# this shell. ONE fake-input client serves the whole run. Nothing here reaches the
 # user's session (wayland-0), the nested compositor (wayland-1) or the real session bus;
 # `wl-copy`/`wl-paste` get KWin's socket by absolute path and only made-up strings, and no
 # clipboard content is printed.
@@ -27,15 +26,15 @@
 #   4. Real Shift+Tab twice with nothing typed filters to Emoji (the grid); real Down, Down,
 #      Right, Left, Up each move the selection by a row or a cell; real Enter copies the
 #      selected glyph (`wl-paste` on KWin's socket reads it).
-#   5. The clipboard: KWin offers ext_data_control_manager_v1 (G230), so `sill clipboard
+#   5. The clipboard: KWin offers ext_data_control_manager_v1, so `sill clipboard
 #      status` says `memory ext`; a made-up copy made on KWin's socket, then another, shows as
 #      one clipboard row for its word; real Enter restores it (`wl-paste` reads it back). Were
 #      neither protocol offered, status would say `unsupported` and the step would be NOT
 #      PROVEN.
-#   Q340. Real Down past the card's visible rows (Documents filtered, 24 rows): is the selected
+#   Scroll. Real Down past the card's visible rows (Documents filtered, 24 rows): is the selected
 #      row scrolled into view? Real Up back to the first row. Recorded, not asserted (quire's
 #      open gap): OPEN while the selected row is off the card.
-#   Q341. `sill launcher open --query m9`, then a real "x": where the caret starts. Recorded, not
+#   Caret. `sill launcher open --query m9`, then a real "x": where the caret starts. Recorded, not
 #      asserted: OPEN while the query becomes "xm9" (the caret at the start). Then real End and
 #      →: the pane shows (the claim reads the caret at the end).
 #
@@ -43,7 +42,7 @@
 # manager, the daemon (`sill quit`) and the headless KWin are stopped.
 #
 # Exit 0 only when steps 1-5 passed; 1 when one failed; 2 when none failed but one was NOT
-# PROVEN. The Q340/Q341 lines never change the exit status.
+# PROVEN. The scroll and caret lines never change the exit status.
 #
 # Usage: dev/accept-launcher-v2-real-input.sh
 set -uo pipefail
@@ -87,7 +86,7 @@ build() {
 }
 
 # The headless KWin, its socket (absolute) and bus read from its env file without sourcing it
-# into this shell: `kwin-virtual.sh stop` must never find this script naming the bus (G52).
+# into this shell: `kwin-virtual.sh stop` must never find this script naming the bus.
 start_kwin() {
   # Never borrow (and later stop) a headless KWin someone else started.
   [ ! -e "$KWIN_ENV" ] || { echo "$KWIN_ENV exists: another headless KWin is running" >&2; return 1; }
@@ -108,7 +107,7 @@ start_kwin() {
 
 stop_kwin() { "$SHELL_HOST_DEV/kwin-virtual.sh" stop >>"$OUT_DIR/kwin.log" 2>&1; }
 
-# Real input through ONE fake-input client for the whole run (G50).
+# Real input through ONE fake-input client for the whole run.
 start_input() {
   rm -f "$OUT_DIR/input.fifo"; mkfifo "$OUT_DIR/input.fifo" || return 1
   "$SHELL_HOST_DEV/fake-input.sh" <"$OUT_DIR/input.fifo" >"$OUT_DIR/input.log" 2>&1 &
@@ -171,7 +170,7 @@ stop_fm() {
 }
 
 # A scratch home: what the files provider's `fd` finds under it. A PDF with a real page, a
-# PNG, a Markdown note, and 24 `m9-list-NN.txt` for a list longer than the card (Q340).
+# PNG, a Markdown note, and 24 `m9-list-NN.txt` for a list longer than the card.
 seed_home() {
   python3 - "$HOME_DIR" <<'EOF'
 import sys, zlib, struct
@@ -216,7 +215,7 @@ start_daemon() {
   echo "daemon on KWin's bus, runtime $RUNTIME, home $HOME_DIR, output $NAME" >&2
 }
 
-# Ask the daemon to quit and wait up to 10 s; never kill it (FINDINGS G51).
+# Ask the daemon to quit and wait up to 10 s; never kill it.
 stop_daemon() {
   [ -n "$DAEMON" ] || return 0
   in_env timeout 10 "$SILL_BIN" quit >/dev/null 2>&1
@@ -489,7 +488,7 @@ step_clipboard() {
   status=$(clip_status)
   echo "sill clipboard status on KWin: $status" >&2
   case "$status" in
-    "memory unsupported"*) echo "KWin offers no data-control manager (G230)" >&2; return 2 ;;
+    "memory unsupported"*) echo "KWin offers no data-control manager" >&2; return 2 ;;
     "memory ext"* | "memory wlr"*) ;;
     *) return 1 ;;
   esac
@@ -519,7 +518,7 @@ step_clipboard() {
   [ "$pasted" = "$made_up" ]
 }
 
-# Q340. Recorded: whether real Down keeps the selected row on the card.
+# Scroll. Recorded: whether real Down keeps the selected row on the card.
 check_q340() {
   open_empty || return 1
   typed "m9-list" || return 1
@@ -540,13 +539,13 @@ check_q340() {
   back=$(selection_pixels q340-up)
   deep=OPEN
   [ "$last" -gt $(( first / 2 )) ] && deep=CLOSED
-  echo "Q340 $deep: Documents filtered by real Tab ($rows rows); the selected row's tint:" \
+  echo "scroll $deep: Documents filtered by real Tab ($rows rows); the selected row's tint:" \
     "$first px on row 0, $last px after real Down x11 (row 11), $back px after real Up x11" \
     "(row 0); captures q340-{top,down,up}.png" >&2
   close_launcher
 }
 
-# Q341. Recorded: where the caret starts when the launcher opens with a query.
+# Caret. Recorded: where the caret starts when the launcher opens with a query.
 check_q341() {
   close_launcher
   sill launcher open --query m9 >/dev/null 2>&1
@@ -558,7 +557,7 @@ check_q341() {
   local query caret=OPEN
   query=$(field query)
   [ "$query" = m9x ] && caret=CLOSED
-  echo "Q341 $caret: after 'sill launcher open --query m9' a real 'x' makes the query" \
+  echo "caret $caret: after 'sill launcher open --query m9' a real 'x' makes the query" \
     "'$query' (m9x when the caret starts at the end)" >&2
   key BackSpace || return 1
   close_launcher
@@ -609,8 +608,8 @@ for step in step_type_and_preview step_pane_keys step_reveal step_emoji step_cli
     *) echo "FAIL $step"; status=1 ;;
   esac
 done
-check_q340 || echo "Q340 could not be checked" >&2
-check_q341 || echo "Q341 could not be checked" >&2
+check_q340 || echo "the scroll check could not be run" >&2
+check_q341 || echo "the caret check could not be run" >&2
 echo "stopping the input client, the daemon and the headless KWin" >&2
 cleanup
 trap - EXIT

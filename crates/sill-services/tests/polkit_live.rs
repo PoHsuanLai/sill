@@ -1,7 +1,7 @@
 //! sill's polkit agent against a stand-in Authority on a private bus and the stand-in helper
-//! (`examples/polkit_helper.rs`), never polkitd, the system bus or PAM (FINDINGS "M11 freeze"
-//! F547). The bus test is live (a `dbus-daemon`): run it with `cargo test -p sill-services
-//! --test polkit_live -- --ignored --nocapture`. The made-up request's test touches no bus and
+//! (`examples/polkit_helper.rs`), never polkitd, the system bus or PAM. The bus test is live (a
+//! `dbus-daemon`): run it with `cargo test -p sill-services --test polkit_live -- --ignored
+//! --nocapture`. The made-up request's test touches no bus and
 //! runs with the suite.
 
 #[path = "support/private_bus.rs"]

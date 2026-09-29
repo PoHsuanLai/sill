@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
-# Widgets with real input at scale 2 (FINDINGS "Manual run 2026-09-28: widgets", F1020-F1029;
-# "Edit Widgets, one size", F1080+),
-# on shell-host's private headless KWin (scripts/dev/kwin-virtual.sh, 3840 x 2160, its one
-# output set to scale 2 with kscreen-doctor on that KWin's own socket: the BenQ MA270U's 4K at
-# 2x, the user's session) driven by shell-host's scripts/dev/fake-input.sh: every click and key
-# is a real Wayland event with a real serial and keyboard focus. Nothing here reaches the user's
-# session (wayland-0), the nested compositor (wayland-1) or the real session or system bus: the
-# daemon runs from this checkout's debug build (`--features debug`) on the headless KWin's
-# private bus, which stands in for BOTH the daemon's session and system bus (start_kwin refuses
-# to go on if it would be the real one, FINDINGS F1068), with its own XDG_RUNTIME_DIR
-# (WAYLAND_DISPLAY an absolute socket path) and scratch XDG_CONFIG_HOME, XDG_STATE_HOME and
-# XDG_CACHE_HOME. ONE fake-input client serves the whole run. UPower and BlueZ are simply absent
-# on the private bus, so the Batteries widget always reads "No batteries" here: every step below
-# only checks the widget's structure (card count and size), never a real device's name or level.
+# Widgets with real input at scale 2, on shell-host's private headless KWin
+# (scripts/dev/kwin-virtual.sh, 3840 x 2160, its one output set to scale 2 with kscreen-doctor on
+# that KWin's own socket: the BenQ MA270U's 4K at 2x, the user's session) driven by shell-host's
+# scripts/dev/fake-input.sh: every click and key is a real Wayland event with a real serial and
+# keyboard focus. Nothing here reaches the user's session (wayland-0), the nested compositor
+# (wayland-1) or the real session or system bus: the daemon runs from this checkout's debug build
+# (`--features debug`) on the headless KWin's private bus, which stands in for BOTH the daemon's
+# session and system bus (start_kwin refuses to go on if it would be the real one), with its own
+# XDG_RUNTIME_DIR (WAYLAND_DISPLAY an absolute socket path) and scratch XDG_CONFIG_HOME,
+# XDG_STATE_HOME and XDG_CACHE_HOME. ONE fake-input client serves the whole run. UPower and BlueZ
+# are simply absent on the private bus, so the Batteries widget always reads "No batteries" here:
+# every step below only checks the widget's structure (card count and size), never a real device's
+# name or level.
 #
 #   1. Scale: kscreen-doctor reports the output at scale 2, and the bar's capture is 2x.
 #   2. The desktop at scale 2 (`widgets.desktop = "on"`, the default Calendar and Batteries):
@@ -21,18 +20,18 @@
 #      widgets-kwin-s2-battery.png) and the layer over a plain backdrop
 #      (dev/out/widgets-kwin-s2-desktop.png).
 #   3. A real click on the bar's clock opens the notification center: three tiles, each Medium
-#      (164 tall: the month is Medium in the center now, F1020), "Edit Widgets" at their foot
+#      (164 tall: the month is Medium in the center), "Edit Widgets" at their foot
 #      (dev/out/widgets-kwin-s2-center.png).
 #   4. A real click on "Edit Widgets": the center unmaps and Edit Widgets maps on the output as
-#      a sheet at the bottom, centred, 1040 x 400 (Q521; dev/out/widgets-kwin-s2-edit.png).
+#      a sheet at the bottom, centred, 1040 x 400 (dev/out/widgets-kwin-s2-edit.png).
 #   4b. A real click on "World Clock" in the gallery's list: one preview, at Medium (344 wide),
-#      and no size control (Q520; widgets-kwin-s2-one-size.png).
-#   5. A real click on "Add to Desktop": the button says "Added" with its check (Q523; captured
+#      and no size control (widgets-kwin-s2-one-size.png).
+#   5. A real click on "Add to Desktop": the button says "Added" with its check (captured
 #      at once, widgets-kwin-s2-added.png), the daemon writes `world_clock` into
 #      `widgets.desktop_widgets`, and the card rises on the desktop above the sheet: the layer
 #      paints the rise, then shows three frames (widgets-kwin-s2-desktop-added.png).
 #   6. A real click on the Batteries row's "Remove" in the Desktop list: `battery` leaves
-#      `widgets.desktop_widgets`, its card plays its exit (the layer paints it, G423), and the
+#      `widgets.desktop_widgets`, its card plays its exit (the layer paints it), and the
 #      layer shows two frames, the Calendar and the clock (widgets-kwin-s2-desktop-removed.png,
 #      widgets-kwin-s2-removed.png).
 #   7. A real Escape closes Edit Widgets (it unmaps).
@@ -444,7 +443,7 @@ print(round(l / s), round(t / s), round(r / s), round(b / s), round(img.size[0] 
     "$OUT_DIR/edit.png" "$SCALE")
   backdrop_crop "$OUT_DIR/edit.png" "$SHOTS/widgets-kwin-s2-edit.png" "0 0 3840 2160"
   echo "Edit Widgets mapped, the center unmapped; the sheet spans $PANEL (L T R B, then the surface's W H; logical)" >&2
-  # Q521: a sheet at the bottom, centred, 1040 wide, 400 tall, `--s-8` above the bottom.
+  # A sheet at the bottom, centred, 1040 wide, 400 tall, `--s-8` above the bottom.
   python3 -c '
 import sys
 l, t, r, b, w, h = map(int, sys.argv[1].split())
@@ -467,7 +466,7 @@ logical_crop() {
   backdrop_crop "$1" "$2" "$(( l * SCALE )) $(( t * SCALE )) $(( r * SCALE )) $(( b * SCALE ))"
 }
 
-# 4b. Q520: World Clock picked, the gallery shows one preview, at Medium (344 wide), and no
+# 4b. World Clock picked, the gallery shows one preview, at Medium (344 wide), and no
 # size control. The automated check reads the preview row: one run of card across the detail
 # plate, 344 +- 6 wide, a row through its top above the dials; the capture shows the rest.
 step_one_size() {

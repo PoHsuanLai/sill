@@ -1,34 +1,33 @@
 #!/usr/bin/env bash
-# The bar's menus and the keyboard of the control center and the notification center under
-# REAL input (FINDINGS "Manual run 2026-09-28: menus and keyboard"), on shell-host's private
-# headless KWin (scripts/dev/kwin-virtual.sh, FINDINGS F52) driven by shell-host's
-# scripts/dev/fake-input.sh. Every menu and panel here is opened by a real pointer click on its
-# bar item, never by `sill control-center toggle` or `sill notifications open`; every key is a
-# real Wayland key event. `sill debug capture` and `sill debug notify` only look and seed.
+# The bar's menus and the keyboard of the control center and the notification center under REAL
+# input, on shell-host's private headless KWin (scripts/dev/kwin-virtual.sh) driven by shell-host's
+# scripts/dev/fake-input.sh. Every menu and panel here is opened by a real pointer click on its bar
+# item, never by `sill control-center toggle` or `sill notifications open`; every key is a real
+# Wayland key event. `sill debug capture` and `sill debug notify` only look and seed.
 #
 # As on the user's session, an app window has the keyboard first: dev/key-sink.py, a plain GTK 4
 # window clicked into focus, which logs every key it is sent. A shell panel opened from the bar
 # must take the keyboard from it; a key the sink logs went to the app instead.
 #
 # The daemon runs from this checkout's debug build (`--features debug`) on the headless KWin's
-# socket (an absolute WAYLAND_DISPLAY) and its private D-Bus bus (nothing activatable), with its
-# own XDG_RUNTIME_DIR and a scratch HOME and XDG dirs. KWin's private bus is the daemon's
-# session AND system bus (start_kwin refuses to go on if it would be the real one, FINDINGS
-# F1068), so NetworkManager, BlueZ, UPower and the rest are simply absent: the bar's Wi-Fi and
-# Bluetooth items read Unavailable, never a real neighbour SSID or device. The bus goes to the
-# daemon and the sink only, never to this shell (G52). ONE fake-input client serves the whole
-# run (G50). Nothing here reaches the user's session (wayland-0) or the real session bus.
+# socket (an absolute WAYLAND_DISPLAY) and its private D-Bus bus (nothing activatable), with its own
+# XDG_RUNTIME_DIR and a scratch HOME and XDG dirs. KWin's private bus is the daemon's session AND
+# system bus (start_kwin refuses to go on if it would be the real one), so NetworkManager, BlueZ,
+# UPower and the rest are simply absent: the bar's Wi-Fi and Bluetooth items read Unavailable, never
+# a real neighbour SSID or device. The bus goes to the daemon and the sink only, never to this
+# shell. ONE fake-input client serves the whole run. Nothing here reaches the user's session
+# (wayland-0) or the real session bus.
 #
 #   0. A real click on the sink gives it the keyboard; a real "k" reaches it.
 #   1. A real click on bar item A (Wi-Fi), then one on item B (Sound): A's menu closes and B's
 #      opens (B's pill on, A's off; the popup shows what B alone shows).
 #   2. Hover switch: with B's menu open, the real pointer onto A switches the popup to A's menu;
-#      a real click on A keeps it (the click the person meant, F991), a second one closes it.
+#      a real click on A keeps it (the click the person meant), a second one closes it.
 #   3. A real click on the control center's item opens it with the keyboard: real Tab moves the
 #      focus ring (each Tab changes the panel, a Shift+Tab goes back), real Space toggles the
-#      focused tile (Focus, first in `control_center.modules`: `notifications.dnd` turns on, and
-#      off again on a second Space; the tile changes on its own, no `sill reload` needed, F993
-#      fixed), real Escape closes the panel. The sink gets none of these keys.
+#      focused tile (Focus, first in `control_center.modules`: `notifications.dnd` turns on, and off
+#      again on a second Space; the tile changes on its own, no `sill reload` needed), real Escape
+#      closes the panel. The sink gets none of these keys.
 #   4. Two notifications seeded; a real click on the clock opens the notification center with
 #      the keyboard: real Down moves the focus ring onto a row, real Escape closes the center.
 #      The sink gets none of these keys.
@@ -36,13 +35,13 @@
 #      menu-bar panel at a time, as on macOS).
 #   6. A's menu open, a real click on the clock closes the menu and opens the center, which has
 #      the keyboard: real Down moves its ring, real Escape closes it; the sink gets no key.
-#   G391. After a bar menu closes, does the app have the keyboard back (a real "j" reaches the
-#      sink)? Recorded, not asserted: shell-host's side (FINDINGS G391). Only on a full run.
+#   Keyboard back. After a bar menu closes, does the app have the keyboard back (a real "j"
+#      reaches the sink)? Recorded, not asserted: shell-host's side. Only on a full run.
 #
 # Captures: target/accept-menus-keyboard-real-input/*.png. Then the input client, the sink, the
 # daemon (`sill quit`) and the headless KWin are stopped.
 #
-# Exit 0 only when steps 0-6 passed; 1 when one failed. The G391 line never changes it.
+# Exit 0 only when steps 0-6 passed; 1 when one failed. The keyboard-back line never changes it.
 #
 # SHELL_HOST_DEV may name a private copy of shell-host's scripts/dev (with tools/ beside its
 # scripts/): kwin-virtual.sh keeps one .kwin-env per scripts/dev, so a copy runs beside another
@@ -85,7 +84,7 @@ build() {
 }
 
 # The headless KWin, its socket (absolute) and bus read from its env file without sourcing it
-# into this shell: `kwin-virtual.sh stop` must never find this script naming the bus (G52).
+# into this shell: `kwin-virtual.sh stop` must never find this script naming the bus.
 start_kwin() {
   # Never borrow (and later stop) a headless KWin someone else started.
   [ ! -e "$KWIN_ENV" ] || { echo "$KWIN_ENV exists: another headless KWin is running" >&2; return 1; }
@@ -111,7 +110,7 @@ start_kwin() {
 
 stop_kwin() { "$SHELL_HOST_DEV/kwin-virtual.sh" stop >>"$OUT_DIR/kwin.log" 2>&1; }
 
-# Real input through ONE fake-input client for the whole run (G50).
+# Real input through ONE fake-input client for the whole run.
 start_input() {
   rm -f "$OUT_DIR/input.fifo"; mkfifo "$OUT_DIR/input.fifo" || return 1
   "$SHELL_HOST_DEV/fake-input.sh" <"$OUT_DIR/input.fifo" >"$OUT_DIR/input.log" 2>&1 &
@@ -211,7 +210,7 @@ EOF
   echo "daemon on KWin's bus, runtime $RUNTIME, home $HOME_DIR, output $NAME" >&2
 }
 
-# Ask the daemon to quit and wait up to 10 s; never kill it (FINDINGS G51).
+# Ask the daemon to quit and wait up to 10 s; never kill it.
 stop_daemon() {
   [ -n "$DAEMON" ] || return 0
   in_env timeout 10 "$SILL_BIN" quit >/dev/null 2>&1
@@ -452,10 +451,9 @@ step_control_center_keys() {
   b1=$(diff_box cc-0 cc-tab1); b2=$(diff_box cc-tab1 cc-tab2); back=$(diff_box cc-tab1 cc-back)
   echo "control center opened by a real click on its item ($CC_AT): real Tab changed [$b1]," \
     "a second Tab [$b2], Shift+Tab back to the first Tab's look: [$back]" >&2
-  # Space on the focused Focus tile stores `notifications.dnd`. The daemon's file watch
-  # republishes the settings feed the tile reads on its own (FINDINGS F993, fixed by F1030): no
-  # `sill reload` here any more; the key itself is all real, and `settled` waits out the watch's
-  # debounce plus the redraw.
+  # Space on the focused Focus tile stores `notifications.dnd`. The daemon's file watch republishes
+  # the settings feed the tile reads on its own: no `sill reload` here; the key itself is all real,
+  # and `settled` waits out the watch's debounce plus the redraw.
   key space || return 1
   local dnd_on dnd_off
   dnd_on=$(await_dnd on)
@@ -499,8 +497,8 @@ step_center_keys() {
   down=$(diff_box nc-0 nc-down)
   echo "notification center opened by a real click on the clock ($CLOCK_AT): real Down" \
     "changed [$down]" >&2
-  # G390/F74: Tab (unhandled by the center's own key map) reaches Clear All, a quire `Button`;
-  # the modality bridge (`sill_surfaces::host_modality::HostModalityBridge`) now provides
+  # Tab (unhandled by the center's own key map) reaches Clear All, a quire `Button`;
+  # the modality bridge (`sill_surfaces::host_modality::HostModalityBridge`) provides
   # `ds::HostModality` there too, so the ring should draw.
   key Tab || return 1
   settled "$CENTER" nc-tab || return 1
@@ -570,7 +568,7 @@ sink_takes_j() {
   [ "$(sink_keys)" -gt "$before" ] && echo yes || echo no
 }
 
-# G391. Recorded, not asserted (shell-host's side, FINDINGS G391): the sink clicked back into
+# Keyboard back. Recorded, not asserted (shell-host's side): the sink clicked back into
 # focus, a bar menu opened by a real click and closed by real Escape, then a real "j": does the
 # app have the keyboard back? Then the same around the notification center. OPEN while the
 # menu leaves no window with the keyboard.
@@ -587,7 +585,7 @@ check_g391() {
   key Escape && wait_surface "$CENTER" 20 down && sleep 0.3
   after_center=$(sink_takes_j)
   [ "$after_menu" = yes ] && state=CLOSED
-  echo "G391 $state: the app has the keyboard back after a bar menu closes: $after_menu; after" \
+  echo "keyboard back $state: the app has the keyboard back after a bar menu closes: $after_menu; after" \
     "the notification center closes: $after_center" >&2
 }
 
@@ -622,7 +620,7 @@ for step in "${steps[@]}"; do
   esac
   close_popup
 done
-[ "$#" -gt 0 ] || check_g391 || echo "G391 could not be checked" >&2
+[ "$#" -gt 0 ] || check_g391 || echo "the keyboard-back check could not be run" >&2
 echo "stopping the input client, the sink, the daemon and the headless KWin" >&2
 cleanup
 trap - EXIT

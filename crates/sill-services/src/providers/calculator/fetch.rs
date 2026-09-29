@@ -1,5 +1,5 @@
-//! The ECB daily file, off the keystroke path (M9 freeze F650): `refresh_if_due` starts a
-//! background fetch at most once a day (or, after a failed attempt, at most once an hour — a
+//! The ECB daily file, off the keystroke path: `refresh_if_due` starts a background fetch at most
+//! once a day (or, after a failed attempt, at most once an hour — a
 //! blocked or offline `curl` must not start again on every keystroke that follows) and lands it
 //! in the shared rates once it arrives; nothing here runs synchronously inside a query.
 //!
@@ -34,7 +34,7 @@ pub struct Attempt {
     pub outcome: Outcome,
 }
 
-/// `$XDG_CACHE_HOME/sill/ecb-rates.xml` (F650).
+/// `$XDG_CACHE_HOME/sill/ecb-rates.xml`.
 pub fn cache_path() -> PathBuf {
     dirs::cache_dir()
         .unwrap_or_else(|| PathBuf::from("."))

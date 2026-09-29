@@ -1,4 +1,4 @@
-//! sill's own polkit prompt (design/20 §1.10; M11 lane b; FINDINGS "M11 freeze" F546): one
+//! sill's own polkit prompt (design/20 §1.10): one
 //! Overlay per output, kept warm and hidden like the power menu, shown on the main display (the
 //! banners' `BannerLink` output) while `use_polkit().current` holds a request: quire's
 //! `PolkitPrompt` (a narrow `Sheet` over the modal scrim, `peek-in` in and `sheet-out` out: the

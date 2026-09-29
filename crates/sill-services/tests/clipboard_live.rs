@@ -1,7 +1,6 @@
-//! The clipboard history against a compositor (M9 lane b, FINDINGS "M9 freeze" F647): the
-//! live test drives the nested cosmic-comp by socket path with made-up text and a made-up
-//! image; the other test needs no compositor. Nothing read back is printed: a mismatch says
-//! only that it differs.
+//! The clipboard history against a compositor: the live test drives the nested cosmic-comp by
+//! socket path with made-up text and a made-up image; the other test needs no compositor. Nothing
+//! read back is printed: a mismatch says only that it differs.
 
 mod clipboard_support;
 

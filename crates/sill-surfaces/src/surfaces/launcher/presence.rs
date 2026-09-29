@@ -143,7 +143,7 @@ pub fn after_focus(shown: &LauncherShown, focus: Focus) -> LauncherShown {
 pub struct LauncherLink {
     shown: watch::Sender<LauncherShown>,
     hit: watch::Sender<PanelHit>,
-    /// `sill debug launcher-key`'s presses, which the open panel steps (M9, F653).
+    /// `sill debug launcher-key`'s presses, which the open panel steps.
     keys: watch::Sender<LinkPress>,
     /// The rows the open panel shows, for `sill debug launcher-rows`.
     rows: watch::Sender<Option<ShownRows>>,

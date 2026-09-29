@@ -1,6 +1,4 @@
-//! `power_menu.*` (design/20 §1.8: the power menu, a Sheet over a Scrim). No design/22 rows yet;
-//! both keys are in `tests/keys.rs` `AWAITING_ROWS` and FINDINGS "M5 freeze" has their row text.
-//! All Advanced.
+//! `power_menu.*` (design/20 §1.8: the power menu, a Sheet over a Scrim). All Advanced.
 
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};

@@ -11,19 +11,19 @@ use super::popup::MenuSide;
 pub(crate) enum BarMenu {
     /// The frontmost app's name: its windows and Quit.
     App,
-    /// Now Playing's own item (`control_center.menu_bar_now_playing`, M5).
+    /// Now Playing's own item (`control_center.menu_bar_now_playing`).
     NowPlaying,
-    /// Display's own item (`control_center.menu_bar_display`, M5).
+    /// Display's own item (`control_center.menu_bar_display`).
     Display,
     /// Sound's item (`control_center.menu_bar_sound`).
     Volume,
-    /// Bluetooth's own item (`control_center.menu_bar_bluetooth`, M5).
+    /// Bluetooth's own item (`control_center.menu_bar_bluetooth`).
     Bluetooth,
     /// Wi-Fi's item (`control_center.menu_bar_wifi`).
     Network,
     /// Battery's item (`control_center.menu_bar_battery`).
     Battery,
-    /// The control center (design/20 §1.5): the last status item, left of the clock (M5).
+    /// The control center (design/20 §1.5): the last status item, left of the clock.
     ControlCenter,
 }
 
@@ -87,9 +87,8 @@ impl BarMenu {
         }
     }
 
-    /// The control center module whose component a module item's dropdown shows (M5: the
-    /// volume, network and battery menus become the Sound, Wi-Fi and Battery modules); `None`
-    /// for the app menu and the control center.
+    /// The control center module whose component a module item's dropdown shows; `None` for the
+    /// app menu and the control center.
     pub(crate) fn module(self) -> Option<ControlCenterModule> {
         match self {
             BarMenu::NowPlaying => Some(ControlCenterModule::NowPlaying),

@@ -1,4 +1,4 @@
-//! The Now Playing widget (M10 lane b; kind `sill.now-playing`): M5's Now Playing reused, not
+//! The Now Playing widget (kind `sill.now-playing`): the control center's Now Playing reused, not
 //! redrawn. Its entry is the control center's face as data
 //! (`surfaces::control_center::modules::media_face::MediaFace`) and its view the same
 //! `MediaView`; its intents are the transport's presses, which the provider sends to the

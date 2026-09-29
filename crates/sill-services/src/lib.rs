@@ -1,8 +1,7 @@
 //! Effectful services behind watch channels: power, network, Wi-Fi, Bluetooth, power profiles,
-//! Now Playing, the session, the lock screen's password check and the polkit agent (M11),
-//! notifications, calendar events, screenshots, volume, tray, apps, launcher entries, dock pins, launcher search,
-//! wallpaper, sounds, displays and COSMIC Wayland state (plan
-//! "Design: `<shell>` repo", `sill-services`).
+//! Now Playing, the session, the lock screen's password check and the polkit agent, notifications,
+//! calendar events, screenshots, volume, tray, apps, launcher entries, dock pins, launcher search,
+//! wallpaper, sounds, displays and COSMIC Wayland state.
 //!
 //! Every service is one module with the same shape: `spawn(rt) -> (watch::Receiver<T>,
 //! Control<C>)` starts the effect, and a pure `reduce_*(T, Event) -> T` is the only place its

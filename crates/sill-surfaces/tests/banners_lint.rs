@@ -1,4 +1,4 @@
-//! Coherence rules 1 and 2 (quire CONSUMING.md §5) for the banners: the column's stylesheet under
+//! Coherence rules 1 and 2 for the banners: the column's stylesheet under
 //! `Profile::Strict` (the card has none of its own now: it is quire's), and the real column
 //! through the markup lint, idle (an SSR pass) and showing a hovered, grouped card with its
 //! actions and a rich body (the harness).

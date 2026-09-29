@@ -1,6 +1,5 @@
-//! Hot corners on the daemon's side (FINDINGS "M10 freeze"; M10 lane d fills the stubs): the
-//! corner surfaces per output and per active corner, the actions a firing carries out, and
-//! `sill debug corner`.
+//! Hot corners on the daemon's side: the corner surfaces per output and per active corner, the
+//! actions a firing carries out, and `sill debug corner`.
 //!
 //! A firing arrives on the [`CornerLink`] (from a corner surface's machine, or from
 //! [`fake`]); [`spawn_hits`] follows it and carries out [`corner_effect`] of that corner's

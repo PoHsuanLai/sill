@@ -1,5 +1,5 @@
 //! The month grid, computed: pure over the month, the first weekday, today and the busy days,
-//! so the widget and quire's `MonthGrid` (Q180) take the same data.
+//! so the widget and quire's `MonthGrid` take the same data.
 
 use jiff::ToSpan;
 use jiff::civil::{Date, Weekday};

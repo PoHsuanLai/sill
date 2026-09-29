@@ -1,7 +1,7 @@
 //! A scripted stand-in for the keyboard, for the debug daemon's acceptance run only: shell-host
-//! injects pointer input but no keys (FINDINGS G20), and on the nested cosmic-comp the power
+//! injects pointer input but no keys, and on the nested cosmic-comp the power
 //! menu gets no keyboard focus while the nested window has none on the host, so `wtype` keys
-//! never reach it (FINDINGS "M5 power menu"). A debug build started with both
+//! never reach it. A debug build started with both
 //! `SILL_POWER_MENU_DRY_RUN` and `SILL_POWER_MENU_KEYS` provides this root context
 //! (`crates/sill/src/power_menu.rs`); the keys then go through the same [`super::sheet`]
 //! machine a real key does. A release build never provides it.

@@ -1,8 +1,8 @@
 /* A hot corner (design/20 §1.16, design/13 §13.3.12): the surface is `hot_corners.size_px`
    square already (`layer.rs`'s `corner_layer`), as small as 1 px. shell-host resets the body's
-   UA margin on every hosted document (F62), so a box the viewport's size lands exactly on the
+   UA margin on every hosted document, so a box the viewport's size lands exactly on the
    surface and reaches its true origin, the one point a pointer entering at the real screen
    corner lands on. It stays in flow: a bare absolute box would be 0 px tall, since the mount
-   point has no height without flow content (sill F172). Never painted: no background, no
+   point has no height without flow content. Never painted: no background, no
    border. */
 .sill-hot-corner{ width:100vw; height:100vh; }

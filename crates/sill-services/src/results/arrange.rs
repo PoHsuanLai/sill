@@ -1,11 +1,11 @@
-//! The published order of the rows: Spotlight's sections (M9 freeze F645, design/13 §13.3.9),
-//! placed by `sill_launcher::place` and published with their spans, so the launcher reads the
-//! headings from `Results::sections` instead of re-deriving them (F114's rule, retired).
+//! The published order of the rows: Spotlight's sections (design/13 §13.3.9), placed by
+//! `sill_launcher::place` and published with their spans, so the launcher reads the headings from
+//! `Results::sections` instead of re-deriving them.
 //!
 //! - typed text, every provider: Top Hit, then one section per provider in the plan's order.
 //! - nothing typed, every provider: Actions (the System rows), then Recent.
-//! - a filtered query (`Scope::Only`, the Tab filter, F651): that provider's rows alone under
-//!   its own section, typed or not, uncapped by the plan's ceiling (the provider bounds its own
+//! - a filtered query (`Scope::Only`, the Tab filter): that provider's rows alone under its own
+//!   section, typed or not, uncapped by the plan's ceiling (the provider bounds its own
 //!   answer; the emoji grid lists its recent-first set with nothing typed).
 //!
 //! Pure.

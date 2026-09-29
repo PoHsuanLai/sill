@@ -1,4 +1,4 @@
-//! The notification center's list motion (design/26 5.4, design/20 1.6; FINDINGS F1071), on the
+//! The notification center's list motion (design/26 5.4, design/20 1.6), on the
 //! virtual clock with a pinned appearance: the center's rows are one quire `LeavingList`. They
 //! rise once as the center opens; the cards an opened group adds enter; "Show less", Clear and
 //! Clear All fold the rows the model dropped, staggered, and the rows below heal up; an arrival
@@ -205,7 +205,7 @@ fn clear_all_folds_every_row_then_says_the_list_is_empty() {
     running.until(|h| h.count(".sill-nc-empty") == 1);
     assert_eq!(rows(&running.harness), 0);
     assert_settles_to_zero_frames(&mut running.harness);
-    // Clear All went with the history; the column has the keyboard again (F1073).
+    // Clear All went with the history; the column has the keyboard again.
     assert!(running.harness.is_focused(".sill-nc-column"));
 }
 

@@ -9,9 +9,7 @@ use sill_launcher::{Batch, Generation, Item, SectionSpan};
 pub struct Results {
     pub generation: Generation,
     pub items: Vec<Item>,
-    /// The published rows' sections, in order, covering every row (`sill_launcher::place`,
-    /// M9 freeze F645). Empty while the runner still publishes the M4 grouping, which the
-    /// launcher then derives by rule (F114); lane d moves both onto the spans.
+    /// The published rows' sections, in order, covering every row (`sill_launcher::place`).
     #[serde(default)]
     pub sections: Vec<SectionSpan>,
 }

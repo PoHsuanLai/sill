@@ -3,8 +3,7 @@
 //! The group is a ds `WorkspacePills` (the macOS polish pass: one segmented group on the frame),
 //! each workspace a `WorkspacePill`, current for the active one. A primary press activates the
 //! workspace; a press on one pill released over another reorders (`reorder`), which each pill's
-//! own wrapper listens for. Right-click Edit Space waits for the Space editor popup (FINDINGS
-//! "M1 bar-ui").
+//! own wrapper listens for. Right-click Edit Space waits for the Space editor popup.
 
 use dioxus::prelude::*;
 use ds::{Here, PointerButton, Press, WorkspacePill, WorkspacePills};

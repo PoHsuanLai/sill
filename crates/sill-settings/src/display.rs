@@ -1,13 +1,12 @@
-//! `display.*`: how sill treats displays (scale on first sight, brightness and volume keys,
-//! night warmth, font rendering for other apps, colour management). All Advanced for now
-//! (design/22 §5 has no Displays page yet); the rows are listed in sill FINDINGS "Displays"
-//! until quire's design/22 gains them.
+//! `display.*`: how sill treats displays (scale on first sight, brightness and volume keys, night
+//! warmth, font rendering for other apps, colour management). All Advanced for now (design/22 §5
+//! has no Displays page yet).
 //!
 //! `display.scale` is a two-word switch plus a separate list of per-display rows rather than one
-//! key that is either `auto` or a table: the schema derive describes a key by one closed kind,
-//! and a key that changes kind with its value cannot be drawn by one widget. The rows are one
-//! text key, `;`-separated, because the derive's `Vec<_>` shape needs an enum element and has
-//! no list-of-text kind yet (a quire gap, sill FINDINGS "Displays").
+//! key that is either `auto` or a table: the schema derive describes a key by one closed kind, and
+//! a key that changes kind with its value cannot be drawn by one widget. The rows are one text key,
+//! `;`-separated, because the derive's `Vec<_>` shape needs an enum element and has no list-of-text
+//! kind yet (a quire gap).
 
 use ds_settings::schema::Page;
 use ds_settings::{Count, Percent};

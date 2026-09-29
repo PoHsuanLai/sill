@@ -1,4 +1,4 @@
-//! Word-prefix matching for emoji (Q350). Pure.
+//! Word-prefix matching for emoji. Pure.
 //!
 //! A fuzzy score alone lets a query match letters scattered across a long name: "lantern" is a
 //! subsequence of "flag: Netherlands". Spotlight lists an emoji only when each typed word begins

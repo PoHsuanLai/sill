@@ -8,8 +8,7 @@ use crate::cosmic_wl::ids::WorkspaceKey;
 /// A request to the compositor, carried out on the thread's own connection.
 ///
 /// There is no minimize-rectangle command (`SetMinimizeRect`): `set_rectangle` needs the dock's
-/// `wl_surface`, which lives on shell-host's connection, not this one; shell-host gap G2 is
-/// designed but not built, so the M2 freeze amendment (FINDINGS F76) leaves it out.
+/// `wl_surface`, which lives on shell-host's connection, not this one, so it is left out.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum WlCommand {
@@ -27,12 +26,12 @@ pub enum WlCommand {
         relative: Relative,
         other: WorkspaceKey,
     },
-    /// Pin a workspace (needs [`crate::WorkspaceCap::Pin`]). M2 freeze amendment, F76.
+    /// Pin a workspace (needs [`crate::WorkspaceCap::Pin`]).
     PinWorkspace(WorkspaceKey),
-    /// Unpin a workspace (needs [`crate::WorkspaceCap::Pin`]). M2 freeze amendment, F76.
+    /// Unpin a workspace (needs [`crate::WorkspaceCap::Pin`]).
     UnpinWorkspace(WorkspaceKey),
     /// Move a toplevel onto a workspace, on that workspace's output (needs the toplevel
-    /// manager's `move_to_ext_workspace`, version 4). M2 freeze amendment, F76.
+    /// manager's `move_to_ext_workspace`, version 4).
     MoveToplevelToWorkspace {
         toplevel: WindowKey,
         workspace: WorkspaceKey,

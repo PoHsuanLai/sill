@@ -1,9 +1,9 @@
-//! The idle dim surface in a `ds_native::Harness` (sill FINDINGS "Idle units and dim"; quire
-//! CONSUMING.md "Idle dim"), driven only by the idle service's published `Idle.dim` through the
+//! The idle dim surface in a `ds_native::Harness`, driven only by the idle service's published
+//! `Idle.dim` through the
 //! fake services' feed: at rest awake it draws a clear scrim and asks for no frames; a dim fades
 //! in over `--t-idle-dim` to `100 - idle.dim_level_pct`; a wake snaps it out even mid-fade; a
 //! level edit while dimmed does not animate; Reduced motion shows the level at once. On the
-//! virtual clock with the appearance pinned (G370), and every change ends at 0 frames.
+//! virtual clock with the appearance pinned, and every change ends at 0 frames.
 
 mod support;
 
@@ -29,7 +29,7 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| services);
-    // Not the desktop's portal and appearance file: they answer off-thread (FINDINGS G370).
+    // Not the desktop's portal and appearance file: they answer off-thread.
     use_context_provider(|| appearance);
     use_context_provider(|| SettingsFeed::fixed(ShellFile::default()));
     rsx! { IdleDimOverlay { output: support::fake::output() } }

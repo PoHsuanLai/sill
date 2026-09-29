@@ -1,9 +1,8 @@
 //! Watching COSMIC's background config for edits: `notify` on the nearest directory that
-//! exists, 500 ms debounce (design/20 §1.4's own cache row names Lanczos3 and the cross-fade;
-//! the plan's wallpaper line names this debounce). Unlike `sill-settings::watch` (30 ms, a file
-//! `sill` itself always creates), this file may not exist at all outside a COSMIC session, so
-//! the watch starts on whichever ancestor of it is actually there and widens to catch the file
-//! being created later.
+//! exists, 500 ms debounce (design/20 §1.4's own cache row names Lanczos3 and the cross-fade).
+//! Unlike `sill-settings::watch` (30 ms, a file `sill` itself always creates), this file may not
+//! exist at all outside a COSMIC session, so the watch starts on whichever ancestor of it is
+//! actually there and widens to catch the file being created later.
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -12,9 +11,9 @@ use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use tokio::runtime::Handle;
 use tokio::sync::mpsc;
 
-/// design/20 §1.4's wallpaper cache row and the M2 brief both name this debounce (distinct
-/// from `sill-settings`'s 30 ms: a foreign config file is edited far less often than the shell's
-/// own, and cosmic-bg can touch it more than once per background change).
+/// The config watch's debounce (distinct from `sill-settings`'s 30 ms: a foreign config file is
+/// edited far less often than the shell's own, and cosmic-bg can touch it more than once per
+/// background change).
 pub const DEBOUNCE: Duration = Duration::from_millis(500);
 
 /// The nearest existing ancestor of `path` — `path` itself excluded, since a watch's purpose

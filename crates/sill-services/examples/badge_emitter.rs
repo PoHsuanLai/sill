@@ -9,7 +9,7 @@
 //! acceptance script and `tests/badges_live.rs` can drive a real badge and a real clear (the
 //! bus notices the connection close and `badges::live` follows with `NameOwnerChanged`) without
 //! a real app on the other end. Interface `com.canonical.Unity.LauncherEntry`, signal
-//! `Update(s app_uri, a{sv})` (plan LauncherEntry paragraph).
+//! `Update(s app_uri, a{sv})`.
 
 use std::collections::HashMap;
 use std::process::ExitCode;

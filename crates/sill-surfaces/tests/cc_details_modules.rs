@@ -1,5 +1,5 @@
-//! D2 on the real control center (quire CONSUMING "Control center details", design/26 5.2.5,
-//! 5.2.7, 5.2.9, 5.2.10): the Focus moon's morph, Now Playing's play/pause, track and position,
+//! Module details on the real control center (design/26 5.2.5, 5.2.7, 5.2.9, 5.2.10): the Focus
+//! moon's morph, Now Playing's play/pause, track and position,
 //! the Battery module's device rings and the Keyboard Brightness module, driven by the fake
 //! services on `Clock::Virtual`. Every state change ends at 0 frames (R3). Nothing here reaches a
 //! real player or backlight.

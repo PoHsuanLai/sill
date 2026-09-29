@@ -7,7 +7,7 @@
 //! ("dark mode", "magnification", "natural scrolling") each resolve to one key; §9.3's own
 //! "bluetooth" example is explicitly the *other* case — it names the one query meant to resolve
 //! through a live D-Bus settings module (§9.4), which nothing in this workspace implements yet,
-//! so it must resolve to no key here (FINDINGS.md "M4 providers-b").
+//! so it must resolve to no key here.
 
 use std::path::PathBuf;
 
@@ -69,7 +69,7 @@ fn natural_scrolling_resolves_to_scroll_natural() {
 /// design/22-SETTINGS.md §9.3: "bluetooth" is the doc's own example of a query meant for a
 /// *live* settings module (§9.4), not a file schema key — nothing in this fixture, or in the
 /// real installed schemas today, has a static key mentioning it, so the deep link must not
-/// invent one. This is a gap, not a silent omission: FINDINGS.md "M4 providers-b" reports it.
+/// invent one. This is a gap, not a silent omission.
 #[test]
 fn bluetooth_does_not_deep_link_to_any_file_backed_key() {
     let provider = SettingsProvider::with_dirs(vec![fixture_dir()]);

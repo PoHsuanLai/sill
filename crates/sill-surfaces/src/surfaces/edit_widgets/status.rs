@@ -1,10 +1,10 @@
-//! What the last edit in Edit Widgets came to, said under the gallery (FINDINGS F1025, F1082;
-//! design/26 moments): a removal is a Change, its words only; a refusal is a Failure, its words
-//! shaken once (quire's `use_shake`, R6). An add says nothing here: quire's gallery settles its
-//! Add button to a check and "Added" where the person pressed and raises the new placed row
-//! (Q523), and the widget rises on the desktop above the sheet (Q521), so a line here would say
-//! it a third time. An add clears the line, so an earlier refusal is not left standing beside it.
-//! Nothing plays at rest, on the panel's opening, or on a re-render (R1, R3).
+//! What the last edit in Edit Widgets came to, said under the gallery (design/26 moments): a
+//! removal is a Change, its words only; a refusal is a Failure, its words shaken once (quire's
+//! `use_shake`, R6). An add says nothing here: quire's gallery settles its Add button to a check
+//! and "Added" where the person pressed and raises the new placed row, and the widget rises on
+//! the desktop above the sheet, so a line here would say it a third time. An add clears the
+//! line, so an earlier refusal is not left standing beside it. Nothing plays at rest, on the
+//! panel's opening, or on a re-render (R1, R3).
 
 use dioxus::prelude::*;
 use ds::detail::{Detailed, FirstShow, Moment, Touch, use_detail, use_shake};

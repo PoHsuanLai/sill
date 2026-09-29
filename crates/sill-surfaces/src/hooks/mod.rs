@@ -1,4 +1,4 @@
-//! One hook per source (plan hooks table). Every body is `use_context` + `use_watch`: a hook
+//! One hook per source. Every body is `use_context` + `use_watch`: a hook
 //! never owns a channel, spawns a service or reads a file.
 
 mod use_agenda;

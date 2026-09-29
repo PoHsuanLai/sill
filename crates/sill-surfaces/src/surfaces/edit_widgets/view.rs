@@ -1,15 +1,15 @@
 //! Edit Widgets' root: one transparent `Ds` in the Sheet material, as large as the output below
 //! the bar (`RootExtent::Viewport`), holding the catcher (a press on it closes) and quire's
-//! `Panel` as a sheet at the bottom edge (Q521, the reference's gallery), under half the output
-//! so the desktop's widgets stay in view above it and a widget added there is seen arriving. In
-//! the sheet: the title and Done, then quire's `WidgetGallery` over the layout the keys make
-//! (`widgets::layout::layout_of`), one preview per widget at its one size and no size control
-//! (Q520), each edit applied with `widgets::layout::edited` against this output's desktop grid
-//! (measured from the catcher, the same box the desktop widget layer measures) and written
-//! through the root's [`WidgetsWriter`]. An add is shown by the gallery itself, its button
-//! settling to "Added" with a check (Q523); a removal, or why sill could not make an edit, is
-//! said under the gallery ([`EditStatus`]). An add to the desktop also turns `widgets.desktop`
-//! on, so the widget is seen.
+//! `Panel` as a sheet at the bottom edge (the reference's gallery), under half the output so the
+//! desktop's widgets stay in view above it and a widget added there is seen arriving. In the
+//! sheet: the title and Done, then quire's `WidgetGallery` over the layout the keys make
+//! (`widgets::layout::layout_of`), one preview per widget at its one size and no size control,
+//! each edit applied with `widgets::layout::edited` against this output's desktop grid (measured
+//! from the catcher, the same box the desktop widget layer measures) and written through the
+//! root's [`WidgetsWriter`]. An add is shown by the gallery itself, its button settling to
+//! "Added" with a check; a removal, or why sill could not make an edit, is said under the gallery
+//! ([`EditStatus`]). An add to the desktop also turns `widgets.desktop` on, so the widget is
+//! seen.
 
 use std::rc::Rc;
 
@@ -39,7 +39,7 @@ use crate::widgets::{WidgetHost, desktop_size, provide_registry, widgets_css};
 pub const EDIT_WIDGETS_CSS: &str = include_str!("../../style/edit_widgets.css");
 
 /// The sheet's width: the gallery's list (200), a Medium preview on its plate (344 and the
-/// plate's padding), the placed column (280), and their gaps and the panel's padding (Q521).
+/// plate's padding), the placed column (280), and their gaps and the panel's padding.
 const EDIT_WIDTH: f32 = 1040.0;
 
 /// The sheet's height: the Medium preview and its buttons with the title row and the status
@@ -194,7 +194,7 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
                     },
                     // A pointer press anywhere in the panel leaves the keyboard with the panel:
                     // a press on a gallery button focuses nothing, and a Remove takes its
-                    // button away with its row, so Escape reached nothing after one (G420).
+                    // button away with its row, so Escape reached nothing after one.
                     // Pointer only: a key's activation keeps its focus where it is.
                     onmouseup: move |_| {
                         if let Some(element) = column.peek().clone() {

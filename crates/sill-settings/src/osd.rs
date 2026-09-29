@@ -1,6 +1,5 @@
-//! `osd.*`: the volume and brightness indicator (design/20 §1.7). design/22 has no rows for it
-//! yet; `tests/keys.rs` lists them in `AWAITING_ROWS` and sill FINDINGS "OSD" has the row text.
-//! All Advanced until design/22 §5 places them on a page.
+//! `osd.*`: the volume and brightness indicator (design/20 §1.7). All Advanced until design/22 §5
+//! places them on a page.
 
 use ds_settings::schema::Page;
 use ds_settings::{Ms, Px};

@@ -1,7 +1,7 @@
-//! The preview pane's content, decided from a row alone (M9, FINDINGS "M9 freeze" F644): Quick
-//! Look for the launcher. [`preview_for`] is pure; what it names on disk (a text file's first
-//! lines, a PDF's first page, a clipboard image's bytes) the pane loads off the UI thread, and a
-//! PDF page is drawn by quire's `PdfThumb` from the path (sill never rasterises).
+//! The preview pane's content, decided from a row alone: Quick Look for the launcher.
+//! [`preview_for`] is pure; what it names on disk (a text file's first lines, a PDF's first page, a
+//! clipboard image's bytes) the pane loads off the UI thread, and a PDF page is drawn by quire's
+//! `PdfThumb` from the path (sill never rasterises).
 
 use std::path::PathBuf;
 
@@ -104,11 +104,11 @@ impl ExcerptLimit {
 
 /// What the pane shows for `item`, from its subject and title alone.
 ///
-/// Rules (lane d fills; `preview_tests` pins them): an `App` subject is `App` with the row's
-/// title and subtitle; a `File` is `Pdf` at the first page for `application/pdf`, `Image` for an
-/// `image/*` the renderer decodes, `TextFile` for `text/*` and the common source and config
-/// types, `File` for everything else and for folders; a `Clip` is `Clipboard`; an `Emoji` is
-/// `Emoji`; a `Web` is `Web`; `Subject::None` is `None`.
+/// Rules (`preview_tests` pins them): an `App` subject is `App` with the row's title and subtitle;
+/// a `File` is `Pdf` at the first page for `application/pdf`, `Image` for an `image/*` the renderer
+/// decodes, `TextFile` for `text/*` and the common source and config types, `File` for everything
+/// else and for folders; a `Clip` is `Clipboard`; an `Emoji` is `Emoji`; a `Web` is `Web`;
+/// `Subject::None` is `None`.
 pub fn preview_for(item: &Item) -> Preview {
     match &item.subject {
         Subject::None => Preview::None,

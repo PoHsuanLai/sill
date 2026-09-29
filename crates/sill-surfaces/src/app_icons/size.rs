@@ -1,14 +1,14 @@
 //! Which raster size an icon is loaded at: its logical size times the output scale, rounded up
-//! to a size quire draws (quire CONSUMING "App icons and the icon style"). Pure.
+//! to a size quire draws. Pure.
 //!
-//! `ds_settings::app_icon_path` (sill FINDINGS Q71) already picks the nearest file to a size a
+//! `ds_settings::app_icon_path` already picks the nearest file to a size a
 //! caller asks for, so it could take a raw device-pixel count; [`pick`] stays in front of it
 //! anyway (behaviour quire does not cover), because sill still needs to know the bucket itself,
 //! not just get a file back: the retint cache key names it, and a dock tile is loaded once for
 //! the largest size it is ever drawn at (the magnified size when magnification is on), so a
 //! magnification sweep never swaps files mid-flight — [`pick`] is what makes that one, stable
 //! bucket rather than a new one every frame. Every one of the 13 sizes is shipped for every app
-//! and style (quire CONSUMING), so the bucket [`pick`] names is always an exact match.
+//! and style, so the bucket [`pick`] names is always an exact match.
 
 use ds::Scale;
 

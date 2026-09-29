@@ -1,7 +1,6 @@
-//! The launcher latency arithmetic (M4 perf-ime; FINDINGS.md "M4 perf-ime"): formatting and
-//! parsing `launcher.open_latency_ms=<ms>`, the line `dev/accept-launcher.sh` greps out of the
-//! daemon's stderr for its p50/p95/max over 20 toggles. No wall clock: every case is a fixed
-//! `Duration`.
+//! The launcher latency arithmetic: formatting and parsing `launcher.open_latency_ms=<ms>`, the
+//! line `dev/accept-launcher.sh` greps out of the daemon's stderr for its p50/p95/max over 20
+//! toggles. No wall clock: every case is a fixed `Duration`.
 
 use std::time::Duration;
 

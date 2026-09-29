@@ -5,7 +5,7 @@
 //! BlueZ is spoken through hand-written `zbus` proxies (`org.bluez.Adapter1`, `Device1`,
 //! `Battery1` and `org.freedesktop.DBus.ObjectManager`), not `bluer` or `bluez-async`: both of
 //! those run on the `dbus` crate and link libdbus, a second D-Bus stack beside the `zbus` every
-//! other service here uses, for four interfaces and a dozen properties (FINDINGS "M5 freeze").
+//! other service here uses, for four interfaces and a dozen properties.
 
 mod bluez;
 mod kind;

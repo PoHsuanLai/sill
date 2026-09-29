@@ -1,8 +1,7 @@
-//! Loading what a launcher preview names (M9 lane d, FINDINGS "M9 freeze" F644): a text file's
-//! first lines and a clipboard image's bytes. `sill_launcher::preview_for` decides what to show;
-//! this reads it, off the UI thread, bounded (a preview never reads more than
-//! [`HEAD_BYTES`] of a file). A PDF page and an image file are drawn by quire from their paths
-//! and need nothing here.
+//! Loading what a launcher preview names: a text file's first lines and a clipboard image's bytes.
+//! `sill_launcher::preview_for` decides what to show; this reads it, off the UI thread, bounded (a
+//! preview never reads more than [`HEAD_BYTES`] of a file). A PDF page and an image file are drawn
+//! by quire from their paths and need nothing here.
 
 use std::io::Read;
 use std::path::Path;
@@ -22,7 +21,7 @@ pub enum PreviewFault {
 }
 
 /// The first lines of the text file at `path` within `limit`: at most [`HEAD_BYTES`] read, then
-/// `sill_launcher::excerpt_of`. Blocking; lane d fills it.
+/// `sill_launcher::excerpt_of`. Blocking.
 pub fn read_excerpt(path: &Path, limit: ExcerptLimit) -> Result<Excerpt, PreviewFault> {
     let file = std::fs::File::open(path).map_err(fault_of)?;
     let mut head = Vec::with_capacity(HEAD_BYTES);

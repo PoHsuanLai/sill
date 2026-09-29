@@ -4,7 +4,7 @@
 //! widgets slot at the bottom. The column holds the keyboard: every key goes through
 //! [`step_keys`] over the drawn rows.
 //!
-//! The list's motion is quire's (FINDINGS F1071): its rows rise as the center opens (`first:
+//! The list's motion is quire's: its rows rise as the center opens (`first:
 //! Entering`; each opening remounts the column, so once per opening), a row that arrives while
 //! it is open enters with `row-in`, and every row the model drops in one update (a Clear, Clear
 //! All, a dismissal, "Show less") folds, staggered, then the rows below heal up by its height.

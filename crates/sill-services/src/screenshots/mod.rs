@@ -1,8 +1,8 @@
 //! Screenshots: noticing a new one, so the floating thumbnail can show it (design/20 §1.13), and
-//! taking one on `sill screenshot` (sill FINDINGS "M10 freeze").
+//! taking one on `sill screenshot`.
 //!
-//! How sill learns a screenshot happened (researched for the freeze): COSMIC's `cosmic-screenshot`
-//! (1.8.0) asks the portal (`org.freedesktop.portal.Screenshot`, served by
+//! How sill learns a screenshot happened (researched): COSMIC's `cosmic-screenshot` (1.8.0) asks
+//! the portal (`org.freedesktop.portal.Screenshot`, served by
 //! xdg-desktop-portal-cosmic); the portal's picker saves the image as
 //! `Screenshot_%Y-%m-%d_%H-%M-%S.png` in the Pictures folder (its `save_location`: Pictures,
 //! Documents or the clipboard), or with `--interactive=false` cosmic-screenshot saves it into

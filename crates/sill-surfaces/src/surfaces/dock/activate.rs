@@ -1,4 +1,4 @@
-//! What a click on a running app asks the compositor for (design/10 §10.3.6, FINDINGS F82):
+//! What a click on a running app asks the compositor for (design/10 §10.3.6):
 //! activate its most recent window (which also unminimizes), cycle through its windows on
 //! this workspace, and the Option-click hides. Pure over the toplevel list, whose order is
 //! most recently activated first.

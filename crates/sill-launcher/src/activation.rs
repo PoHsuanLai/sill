@@ -15,26 +15,24 @@ pub enum Activation {
     Launch { app: AppId, action: DesktopAction },
     /// Activate an open window.
     FocusWindow { window: WindowKey },
-    /// Ask an open window to close (the windows provider's Close action). M4 freeze
-    /// amendment, FINDINGS F111.
+    /// Ask an open window to close (the windows provider's Close action).
     CloseWindow { window: WindowKey },
     /// Put text on the clipboard (the calculator's result).
     Copy { text: String },
     /// Replace the launcher's query with `text` and keep it open (the calculator's secondary
-    /// action: carry on calculating from the result). M4 freeze amendment, FINDINGS F111.
+    /// action: carry on calculating from the result).
     Insert { text: String },
     /// Open a settings page.
     OpenSettings { target: SettingsTarget },
     /// A session command.
     System(SystemCommand),
     /// Open a file, its folder, or an address with the default handler (`xdg-open`, with the
-    /// surface's activation token). M9 freeze, F643.
+    /// surface's activation token).
     Open { target: OpenTarget },
-    /// Make a clipboard history entry the clipboard again (the clipboard service offers it as
-    /// the selection; the person pastes). M9 freeze, F643.
+    /// Make a clipboard history entry the clipboard again (the clipboard service offers it as the
+    /// selection; the person pastes).
     SetClipboard { entry: ClipKey },
     /// Drop a clipboard history entry (its row's "Forget" action; the launcher stays open).
-    /// M9 freeze, F643.
     ForgetClipboard { entry: ClipKey },
     /// Nothing to do (a header row, a stale result).
     Nothing,

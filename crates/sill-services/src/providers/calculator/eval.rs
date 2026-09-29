@@ -36,8 +36,8 @@ impl Interrupt for Deadline {
 
 /// Evaluates `text` with fend-core, but only when [`looks_like_expression`] says it is worth
 /// trying, and never past `budget`. `rates` is the day's ECB table while
-/// `launcher.currency = "ecb"` (F650); with `None`, currency codes are not units and no
-/// exchange-rate handler is installed.
+/// `launcher.currency = "ecb"`; with `None`, currency codes are not units and no exchange-rate
+/// handler is installed.
 pub fn evaluate(text: &str, budget: Duration, rates: Option<&Rates>) -> EvalOutcome {
     if !looks_like_expression(text, rates) {
         return EvalOutcome::NoMatch;
@@ -121,8 +121,7 @@ mod tests {
         );
     }
 
-    /// With `launcher.currency = "off"` (`rates: None`), a currency code is a plain search term:
-    /// F650.
+    /// With `launcher.currency = "off"` (`rates: None`), a currency code is a plain search term.
     #[test]
     fn without_rates_a_currency_code_never_reaches_fend() {
         assert_eq!(

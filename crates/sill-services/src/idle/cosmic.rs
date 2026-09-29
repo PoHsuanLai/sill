@@ -1,6 +1,6 @@
 //! COSMIC's idle config, read (never written) so COSMIC Settings' Power page keeps working in a
-//! sill session (sill FINDINGS "sill idle (Q420 B)", F901). cosmic-config keeps one file per key
-//! under `<dir>/com.system76.CosmicIdle/v1/<key>`, each a RON value: `Some(900000)` (ms) or
+//! sill session. cosmic-config keeps one file per key under
+//! `<dir>/com.system76.CosmicIdle/v1/<key>`, each a RON value: `Some(900000)` (ms) or
 //! `None` (never). The user's directory (`$XDG_CONFIG_HOME/cosmic`) wins over the system's
 //! (`/usr/share/cosmic`); a missing or unreadable key falls back to cosmic-idle's own default
 //! (cosmic-idle-config at `epoch-1.8.0`: screen off 15 min, suspend 30 min on AC and 15 min on

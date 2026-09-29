@@ -1,7 +1,7 @@
 /* The dock (design/20 §1.2, design/10 §10.3.1-10.3.2, design/08 §4, design/21 §3 and §5).
    Every length the design docs mark proposed comes from a `dock.*` settings key and every
    position from the frame (dock/frame.rs); both are written inline by the component. Everything
-   here is a token. Attribute selectors carry `*|` (spike S2). */
+   here is a token. Attribute selectors carry `*|`. */
 
 /* The pill (`dock-pill`): a box at the pill's rectangle holding the Ds root, which is the pill:
    a Material::Dock root draws the Space gradient at the Dock's tint alpha with the material

@@ -1,4 +1,4 @@
-//! Coherence rules 1 and 2 (quire CONSUMING.md §5) for the power menu: its stylesheet under
+//! Coherence rules 1 and 2 for the power menu: its stylesheet under
 //! `Profile::Strict` (no raw colour, duration, spacing, radius, font size or keyframes), and
 //! the real `PowerMenu` through the markup lint, hidden (an SSR pass) and open (the harness).
 

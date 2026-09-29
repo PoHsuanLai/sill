@@ -7,7 +7,7 @@
 //! Modules, in `control_center.modules` order: Wi-Fi, Bluetooth, Focus, Display (brightness),
 //! Sound (volume and the output's name), Now Playing, Appearance (quire's `AppearancePicker`),
 //! Battery (level, time left, and the power profile's `SegmentedControl`, which has no module
-//! of its own in design/22's list; FINDINGS "M5 freeze"). The Wi-Fi and Bluetooth tiles'
+//! of its own in design/22's list). The Wi-Fi and Bluetooth tiles'
 //! chevrons open their detail pages in place, sliding (`slide-l` in, `slide-r` back; [`page`]).
 //!
 //! Wi-Fi, Bluetooth, Sound, Display, Battery and Now Playing can also be bar items of their own
@@ -15,10 +15,6 @@
 //! default), each dropping down the same module component ([`menu_bar`]). The control center's
 //! own item is the last status item, left of the clock, and its panel hangs from the output's
 //! right edge.
-//!
-//! Only this module's own files and the bar files named in FINDINGS "M5 freeze" belong to the
-//! control-center agent; every service it reads is frozen in `sill_services` and every hook in
-//! `crate::hooks`.
 
 pub mod geometry;
 pub mod labels;
@@ -55,11 +51,10 @@ use sill_services::OutputName;
 /// The control center's contents, inside the bar popup's `Ds` root. `output` is the bar's
 /// (the Display module's brightness target). Escape on the module page, or a pick that ends the
 /// panel, calls `on_close`; every page change calls `on_page` so the popup can resize to
-/// [`estimate_size`] (shell-host's content fit does not measure, G7).
+/// [`estimate_size`] (shell-host's content fit does not measure).
 ///
 /// Needs `sill_services::Services`, `sill_settings::SettingsFeed` and `sill_settings::FocusLink`
-/// in the popup root's context: the bar's popup root does not have them before M5 agent (c)
-/// adds them (FINDINGS "M5 freeze").
+/// in the popup root's context.
 #[component]
 pub fn ControlCenter(
     output: Option<OutputName>,

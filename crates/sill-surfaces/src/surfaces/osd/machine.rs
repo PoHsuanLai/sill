@@ -1,4 +1,4 @@
-//! One indicator's show and hold (design/20 §1.7; quire CONSUMING.md "OSD parts"): a change
+//! One indicator's show and hold (design/20 §1.7): a change
 //! shows it and restarts `osd.hold_ms`; when the hold ends it is hidden. Quire's `Osd` card owns
 //! its own entrance and exit fade from that `shown` and calls `on_hidden` once the exit has
 //! settled, so the surface unmaps then, not when this machine's hold ends. Pure: time is a

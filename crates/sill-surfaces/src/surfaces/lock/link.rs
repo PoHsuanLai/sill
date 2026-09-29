@@ -1,6 +1,6 @@
 //! Which lock surface shows the password prompt: one shared channel the daemon writes (at lock:
 //! the main display, the banners' output; then whichever lock surface gains keyboard focus) and
-//! every lock surface follows. Implemented at the freeze: the daemon's wiring depends on it.
+//! every lock surface follows.
 
 use shell_host::OutputId;
 use tokio::sync::watch;

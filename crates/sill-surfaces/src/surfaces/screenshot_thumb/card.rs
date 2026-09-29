@@ -1,4 +1,4 @@
-//! The card: quire's `ShotThumbnail` (Q181), the picture letterboxed in a Toast card with its
+//! The card: quire's `ShotThumbnail`, the picture letterboxed in a Toast card with its
 //! entrance, exit, hover row, swipe to dismiss and drag threshold. The thumbnail feeds it what
 //! the machine says (shown or leaving) and hears its presses: a click opens the file, Delete
 //! trashes it, a swipe right keeps it (quire's swipe, with the notification keys' metrics, the

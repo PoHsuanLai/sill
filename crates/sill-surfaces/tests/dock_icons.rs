@@ -71,7 +71,7 @@ fn a_mapped_app_still_draws_its_own_icon_on_the_plate() {
     }
 }
 
-/// Under Muted or Monochrome the plate itself carries the icon style (sill FINDINGS Q72):
+/// Under Muted or Monochrome the plate itself carries the icon style:
 /// `IconView`'s `plate_tint` writes `data-icon-style` and the tinted stops and ink as custom
 /// properties (`--plate-base-l` … `--plate-ink-d`), so quire's own stylesheet re-colours the
 /// plate the same hue as the icon on it, in both schemes at once.

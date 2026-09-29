@@ -1,7 +1,7 @@
 //! The real `NotificationCenter` in a `ds_native::Harness` (a Blitz document, no window) on the
 //! fake services, following a `CenterLink` the test writes, as the daemon's surfaces do. The
 //! history is fed through the fake's `watch` channel and the commands the center sends are read
-//! back from its queue: nothing here reaches a bus. On the virtual clock (quire Q380): every
+//! back from its queue: nothing here reaches a bus. On the virtual clock: every
 //! timer and every frame's CSS move only with the test's `advance`.
 
 #![allow(dead_code)] // Each test binary uses its own subset.
@@ -42,7 +42,7 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| world.services.clone());
-    // Not the desktop's portal and appearance file: they answer off-thread (FINDINGS G370).
+    // Not the desktop's portal and appearance file: they answer off-thread.
     use_context_provider(PinnedAppearance::default);
     use_context_provider(|| world.settings.clone());
     use_context_provider(|| world.link.clone());

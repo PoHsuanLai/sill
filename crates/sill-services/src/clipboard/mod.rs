@@ -1,5 +1,5 @@
-//! Clipboard history for the launcher (M9, FINDINGS "M9 freeze" F647; quire design/09 H4,
-//! integrated capture: what was copied is one keystroke away in the launcher).
+//! Clipboard history for the launcher (quire design/09 H4, integrated capture: what was copied is
+//! one keystroke away in the launcher).
 //!
 //! The service keeps the last N copied texts and images **in this process's memory only**:
 //! nothing is written to disk, nothing is logged (the content types redact themselves in

@@ -1,7 +1,7 @@
-//! sill's own idle, live (sill FINDINGS "sill idle (Q420 B)" F913, "sill idle fill"): the
-//! service on the nested cosmic-comp (`wayland-1`, or `SILL_NESTED_WAYLAND`; pinged by
-//! connecting, never stopped; never `wayland-0`) with `org.freedesktop.ScreenSaver` on a private
-//! bus and no logind at all (`BusRoute::Absent`), so nothing can suspend or hint. Run it with
+//! sill's own idle, live: the service on the nested cosmic-comp (`wayland-1`, or
+//! `SILL_NESTED_WAYLAND`; pinged by connecting, never stopped; never `wayland-0`) with
+//! `org.freedesktop.ScreenSaver` on a private bus and no logind at all (`BusRoute::Absent`), so
+//! nothing can suspend or hint. Run it with
 //! `cargo test -p sill-services --test idle_live -- --ignored --nocapture`.
 
 #[path = "support/private_bus.rs"]

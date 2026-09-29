@@ -2,8 +2,8 @@
 //! look in the `launcher.material` material, holding quire's `CommandPalette` embedded in the
 //! surface (no scrim; the card is as tall as its content, its corner a squircle, and it is the
 //! blur and input region; `card.rs` measures it) over the fresh results in the runner's
-//! sections (M9, F645), the selected row's actions as a quire `Menu{Rich}` hung from that row
-//! (Ctrl+K / Alt+K), and the preview pane beside the results while it is shown (F654). The box
+//! sections, the selected row's actions as a quire `Menu{Rich}` hung from that row
+//! (Ctrl+K / Alt+K), and the preview pane beside the results while it is shown. The box
 //! around the root carries the shell type scale (the 22/500 query, 14 and 12 px rows), and the
 //! root hands the card the material stack. A palette mounts with each opening and unmounts when
 //! the launcher hides. The palette's selection is the session's; Space while browsing, → at the
@@ -56,7 +56,7 @@ pub(crate) const LAUNCHER_CSS: &str = include_str!("../../style/launcher.css");
 /// row (its rect in the embedded palette is 6, 80.5, 668 x 45.1 in the card, which starts
 /// `SHADOW_SIDE` and `CARD_INSET` in; the menu hangs 6 px below).
 /// quire reads a new palette's first row before the freshly mapped surface has laid it out and
-/// reports 0 x 0, then nothing more until the selection moves (FINDINGS F164), and the selection
+/// reports 0 x 0, then nothing more until the selection moves, and the selection
 /// is always the first row then.
 pub const FIRST_ROW_FOOT: Point = Point {
     x: Px(48.0 + CARD_INSET as f32),
@@ -93,7 +93,7 @@ impl Shown {
 
 /// The panel on `output`.
 pub(crate) fn launcher(output: OutputInfo) -> Element {
-    // The field's caret for quire's key claim (Q299): the daemon's roots carry quire's focus
+    // The field's caret for quire's key claim: the daemon's roots carry quire's focus
     // write, not its caret read, so the panel provides both for what it mounts.
     ds_native::focus::provide();
     let ds_scale = crate::hooks::use_ds_scale();
@@ -129,8 +129,8 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
     });
     let contacts = use_contacts();
     let touch = contacts.take();
-    // quire's palette plays the cue (Q372): the first result set of an opening rises, a later
-    // set replaces in place. Show More and Show Less it plays itself (Q373).
+    // quire's palette plays the cue: the first result set of an opening rises, a later
+    // set replaces in place. Show More and Show Less it plays itself.
     let list = use_list_detail(list_state(shown.as_ref(), &panel), touch);
     let reveal = RevealCue::Cue(list.cue());
     let aside = use_aside(shown.as_ref(), &icons, panel.left, touch);

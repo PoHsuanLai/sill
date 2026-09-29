@@ -1,10 +1,9 @@
-//! `idle.*`: sill's own idle service (the user's pick Q420 B; sill FINDINGS "sill idle (Q420
-//! B)", F900-F915): the dim, the screen off, the lock at screen off and the idle suspend that
-//! cosmic-idle did before. The screen-off and suspend times come from COSMIC's own config
-//! (`com.system76.CosmicIdle`, which COSMIC Settings' Power page edits) unless `idle.times` is
-//! `sill`; the rest has no COSMIC key and is sill's. design/22 §3.24 has the rows. Seconds are
-//! `Secs` and minutes `Mins` (quire Q445), plain integers in the file as before; every key is on
-//! the Power page, Advanced, with `session.lock_grace_s` (`crate::schema` moves that one key).
+//! `idle.*`: sill's own idle service: the dim, the screen off, the lock at screen off and the idle
+//! suspend that cosmic-idle did before. The screen-off and suspend times come from COSMIC's own
+//! config (`com.system76.CosmicIdle`, which COSMIC Settings' Power page edits) unless `idle.times`
+//! is `sill`; the rest has no COSMIC key and is sill's. design/22 §3.24 has the rows. Seconds are
+//! `Secs` and minutes `Mins`, plain integers in the file as before; every key is on the Power page,
+//! Advanced, with `session.lock_grace_s` (`crate::schema` moves that one key).
 
 use ds_settings::schema::Page;
 use ds_settings::{Mins, Percent, Secs};

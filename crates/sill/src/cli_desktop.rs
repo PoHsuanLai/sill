@@ -1,6 +1,5 @@
 //! `sill screenshot [area|window|screen]`, `sill widgets toggle-desktop`, `sill debug screenshot
-//! PATH` and `sill debug corner CORNER` (FINDINGS "M10 freeze"), and their pure mappings to IPC
-//! requests.
+//! PATH` and `sill debug corner CORNER`, and their pure mappings to IPC requests.
 
 use std::path::PathBuf;
 

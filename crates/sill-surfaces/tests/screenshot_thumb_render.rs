@@ -2,7 +2,7 @@
 //! shot slides in (a pending one waits for its preview) and holds `screenshot.thumbnail_hold_ms`,
 //! then says it was kept and plays out; the pointer on it pauses the hold and leaving it gives the
 //! rest; a click opens it; a swipe right keeps it; Delete trashes it; a drag left or up hands it
-//! nowhere yet (G120) and it stays; a newer shot replaces it; `screenshot.thumbnail = "hide"` and
+//! nowhere yet and it stays; a newer shot replaces it; `screenshot.thumbnail = "hide"` and
 //! another output draw nothing.
 
 mod screenshot_thumb_support;

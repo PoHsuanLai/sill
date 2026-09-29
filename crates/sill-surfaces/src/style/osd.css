@@ -1,4 +1,4 @@
-/* The OSD (design/20 §1.7; quire CONSUMING.md "OSD parts"). Empty: quire's own `Osd` and
+/* The OSD (design/20 §1.7). Empty: quire's own `Osd` and
    `LevelControl` CSS draws the card, its entrance and exit fade, and its position from
    `--osd-margin` (`osd/layer.rs` sizes the surface to it); nothing here is sill's own. Kept so
    `osd_lint.rs`'s coherence check has a file to include, and as the one place to add a rule if

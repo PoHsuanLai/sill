@@ -51,7 +51,7 @@ pub fn BatteryModule() -> Element {
         None => (None, None, None),
     };
     rsx! {
-        // The center was just opened: the fill sweeps in from empty (quire Q391).
+        // The center was just opened: the fill sweeps in from empty.
         ModulePanel { glyph, first: FirstShow::Animate, title, trailing, plate: use_plate(),
             div { class: "sill-cc-battery",
                 if !rings.is_empty() {
@@ -103,7 +103,7 @@ pub(crate) fn device_rings(battery: &Battery, bluetooth: &Bluetooth) -> Vec<Devi
             level: Fraction(battery.level.0.min(100) * 10),
             mark: charging(battery.charge),
             label: "This computer".to_owned(),
-            // It has a battery, so a laptop (Q450).
+            // It has a battery, so a laptop.
             device: Device::Laptop,
         }),
         Presence::Absent => None,

@@ -15,19 +15,19 @@
 #   1. `files_backend = "fd"`: the provider lists m9-report.pdf under ~/Documents for
 #      "m9-rep" and for "M9-REP" (names match without case); the daemon, after `sill launcher
 #      open --query m9-rep`, lists it once in `sill debug launcher-rows`, under Top Hit (a
-#      single match is the Top Hit, never repeated below it: F645, G272) or Documents.
+#      single match is the Top Hit, never repeated below it) or Documents.
 #   2. Enter opens it: the stub opener records the file's path and the token, bare and in a
 #      transient scope.
 #   3. ⌘R reveals it: the running stub file manager records ShowItems with its file:// URI and
 #      the token; with no file manager on the bus, xdg-open opens the folder instead; with the
 #      stub only activatable (a service file on the private bus), the call starts it.
 #   4. `files_backend = "off"`: the provider lists nothing; the daemon, after `sill reload`,
-#      lists no file row in any section, Top Hit included, and no Documents section (G280).
+#      lists no file row in any section, Top Hit included, and no Documents section.
 #   5. Detection on this machine (the real session bus: whether names exist, nothing more), and
 #      Tracker end to end in localsearch's own sandbox (a private bus and a scratch index).
 #
 # Exit 0 when every step passed, 1 when one failed, 2 when none failed but a step waits on
-# another lane.
+# something this build lacks.
 #
 # Usage: dev/nested.sh && dev/accept-launcher-files.sh
 #        dev/accept-launcher-files.sh --self-test   (step 4's check over a table, no compositor)
@@ -209,7 +209,7 @@ step1() {
 }
 
 # The title of the one section of `sill debug launcher-rows` (on stdin) listing row $1, else
-# nothing. A single match is the Top Hit, which is never repeated below it (F645, G272), so a
+# nothing. A single match is the Top Hit, which is never repeated below it, so a
 # file's row is under "Top Hit" or "Documents".
 section_of() {
   python3 -c '
@@ -319,7 +319,7 @@ step4() {
 }
 
 # Where `sill debug launcher-rows` (on stdin) shows a file: "none" when no section is Documents
-# and no row in any section (Top Hit included, G280) is a seeded file's name, "unread" when the
+# and no row in any section (Top Hit included) is a seeded file's name, "unread" when the
 # rows are not JSON, else each offending section and row.
 file_rows() {
   python3 -c '
@@ -336,7 +336,7 @@ print("; ".join(held) if held else "none")'
 }
 
 # `--self-test`: step 4's check over a table of rows, no compositor needed. The first case is
-# G280's: a file as the Top Hit, which the old "no Documents title" check passed.
+# a file as the Top Hit, which a "no Documents title" check alone passes.
 self_test() {
   local ok=0 rows want got
   while IFS='|' read -r rows want; do

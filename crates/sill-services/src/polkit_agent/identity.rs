@@ -1,5 +1,5 @@
-//! Which of polkitd's identities to ask for (F545): the session's own user when listed, else
-//! root, else the first `unix-user`; groups and other kinds are never chosen (polkitd lists a
+//! Which of polkitd's identities to ask for: the session's own user when listed, else root, else
+//! the first `unix-user`; groups and other kinds are never chosen (polkitd lists a
 //! group's members as users when it wants them).
 
 use crate::auth::UserName;

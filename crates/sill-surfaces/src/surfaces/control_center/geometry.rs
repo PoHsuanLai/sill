@@ -4,7 +4,7 @@
 //! `bar.*` key; the modules' own heights are quire's sizes (`sizes.rs`).
 //!
 //! The popup's size is estimated, not measured: shell-host's `PopupSize::FitContent` never
-//! measures the document (G7), so the bar sizes its popup from [`estimate_size`] and repositions
+//! measures the document, so the bar sizes its popup from [`estimate_size`] and repositions
 //! it on a page change, as it does for its menus (`bar/geometry.rs`).
 
 use shell_host::Size;

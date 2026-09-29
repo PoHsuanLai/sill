@@ -1,5 +1,5 @@
-//! The focus link end to end: a set is written to `settings.toml`, the settings watch settles
-//! it, and the mode follows (FINDINGS "M5 freeze", agent b).
+//! The focus link end to end: a set is written to `settings.toml`, the settings watch settles it,
+//! and the mode follows.
 
 mod common;
 

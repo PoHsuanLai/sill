@@ -1,5 +1,4 @@
-//! The battery: UPower's display device over the system bus (plan hooks table, `use_battery`:
-//! "upower_dbus git: display device streams").
+//! The battery: UPower's display device over the system bus.
 
 mod live;
 mod model;

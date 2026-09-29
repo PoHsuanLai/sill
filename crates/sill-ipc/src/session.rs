@@ -1,6 +1,6 @@
-//! M11's requests (sill FINDINGS "M11 freeze"): the app switcher's chord verbs, the lock and
-//! polkit status, and the debug requests that fake an auth verdict, a polkit request and a
-//! switcher open. The reports mirror sill-services' state (this crate may not depend on it).
+//! The session's requests: the app switcher's chord verbs, the lock and polkit status, and the
+//! debug requests that fake an auth verdict, a polkit request and a switcher open. The reports
+//! mirror sill-services' state (this crate may not depend on it).
 
 use serde::{Deserialize, Serialize};
 

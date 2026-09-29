@@ -1,6 +1,6 @@
-//! The indicator's layer surface (design/20 §1.7; quire CONSUMING.md "OSD parts"): Overlay, at
-//! the top right under the bar (as current macOS) or centred above the dock, per `osd.position`;
-//! no keyboard, no input, blurred behind the card (`Element("osd")`, quire's `Osd` root's `id`).
+//! The indicator's layer surface (design/20 §1.7): Overlay, at the top right under the bar (as
+//! current macOS) or centred above the dock, per `osd.position`; no keyboard, no input, blurred
+//! behind the card (`Element("osd")`, quire's `Osd` root's `id`).
 //!
 //! Its exclusive zone is `Auto` (wire 0): it reserves nothing, and the compositor keeps it clear
 //! of what others reserve, so at the top it sits below the bar's reserve (and at the bottom above

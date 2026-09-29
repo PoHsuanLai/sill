@@ -1,5 +1,5 @@
 //! Choosing a row: the panel sends `SearchCommand::Chosen` (the runner counts it and carries
-//! out window and app activations, FINDINGS F117), then asks the row's provider what it does
+//! out window and app activations), then asks the row's provider what it does
 //! (`Provider::activate`, pure, the `Activation` vocabulary) and does the rest itself: the
 //! clipboard, the field, a settings page. The mapping is pure; the panel runs it.
 
@@ -37,7 +37,7 @@ impl fmt::Debug for LauncherProviders {
 }
 
 impl LauncherProviders {
-    /// The real providers over `services`' receivers (the M4 five, then the M9 four, whose
+    /// The real providers over `services`' receivers (the first five, then the four whose
     /// `activate` reads the row alone: their policy here is the default, never queried).
     pub fn from_services(services: &Services) -> LauncherProviders {
         let (_, policy) = watch::channel(LauncherPolicy::default());
@@ -86,7 +86,7 @@ impl LauncherProviders {
 /// What the panel does for an activation, once it has sent `SearchCommand::Chosen`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LauncherEffect {
-    /// The search runner carries it out on `Chosen` (windows, launches; FINDINGS F117): the
+    /// The search runner carries it out on `Chosen` (windows, launches): the
     /// panel only closes.
     ByRunner,
     /// Ask for an activation token for `app`, then send the launch (a settings page).
@@ -98,18 +98,18 @@ pub enum LauncherEffect {
     Copy(String),
     /// Put the text in the search field and stay open.
     Insert(String),
-    /// Ask for an activation token, then open the file, folder or address (M9, F643).
+    /// Ask for an activation token, then open the file, folder or address.
     Open(OpenTarget),
-    /// Make a clipboard history entry the clipboard again (M9).
+    /// Make a clipboard history entry the clipboard again.
     SetClipboard(ClipKey),
-    /// Drop a clipboard history entry and stay open (M9).
+    /// Drop a clipboard history entry and stay open.
     ForgetClipboard(ClipKey),
     /// Nothing sill can do from a surface yet; logged with the reason.
     Unreachable(Unreachable),
-    /// Carry out a session action at once (Lock, Suspend): `SessionCommand::Run` (M5).
+    /// Carry out a session action at once (Lock, Suspend): `SessionCommand::Run`.
     Session(SessionAction),
     /// Open the power menu on the launcher's output, focused on this action, for the person to
-    /// confirm there (Log Out, Restart, Shut Down) (M5).
+    /// confirm there (Log Out, Restart, Shut Down).
     PowerMenu(SessionAction),
     Nothing,
 }
@@ -117,7 +117,7 @@ pub enum LauncherEffect {
 /// Why an activation cannot be carried out from the launcher.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Unreachable {
-    /// A system command no surface can carry out: Reload is the daemon's (FINDINGS F146).
+    /// A system command no surface can carry out: Reload is the daemon's.
     System(SystemCommand),
     /// No quire settings app exists to deep-link a key into.
     SettingsKey(String),
@@ -142,7 +142,7 @@ impl LauncherEffect {
 }
 
 /// The effect of `activation`. `SettingsTarget::Cosmic` opens COSMIC Settings on its default
-/// page: its desktop entry's `Exec` takes no page argument (FINDINGS F146).
+/// page: its desktop entry's `Exec` takes no page argument.
 pub fn effect_of(activation: Activation) -> LauncherEffect {
     match activation {
         Activation::Launch { .. }
@@ -168,7 +168,7 @@ pub fn effect_of(activation: Activation) -> LauncherEffect {
 }
 
 /// A session row: Lock and Suspend at once, Log Out, Restart and Shut Down through the power
-/// menu (it is their confirmation, F178); Reload is the daemon's, which no surface reaches.
+/// menu (it is their confirmation); Reload is the daemon's, which no surface reaches.
 fn system_effect(command: SystemCommand) -> LauncherEffect {
     match SessionAction::of_system(command) {
         Some(action @ (SessionAction::Lock | SessionAction::Suspend)) => {
@@ -300,7 +300,7 @@ mod tests {
         assert_eq!(LauncherEffect::ByRunner.after(), AfterEffect::Close);
     }
 
-    /// M5: the session rows run through the session service or open the power menu.
+    /// The session rows run through the session service or open the power menu.
     #[test]
     fn session_rows_run_or_open_the_power_menu() {
         use sill_services::SessionAction;

@@ -2,7 +2,7 @@
 //! the request on screen, and how each request completes. The live side performs the
 //! [`PolkitEffect`]s and feeds back what happened.
 //!
-//! Rules (lane b fills [`reduce`] to these; `machine_tests.rs` is their table):
+//! Rules ([`reduce`] follows these; `machine_tests.rs` is their table):
 //!
 //! - `Policy(Own)` while not registered: `Register`. `Policy(Off)` while registered:
 //!   `Unregister`, every request completes `Cancelled`, registration `Passive`.

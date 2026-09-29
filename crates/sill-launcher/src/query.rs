@@ -49,9 +49,9 @@ pub struct Query {
     pub text: String,
     pub generation: Generation,
     pub cancel: Cancel,
-    /// Whether every provider was asked, or one alone (the launcher's Tab filter). M9 freeze,
-    /// F651: a provider asked alone lists what it has for nothing typed (the emoji grid, the
-    /// clipboard's newest), which it never does for the whole launcher.
+    /// Whether every provider was asked, or one alone (the launcher's Tab filter). A provider asked
+    /// alone lists what it has for nothing typed (the emoji grid, the clipboard's newest), which it
+    /// never does for the whole launcher.
     pub scope: Scope,
 }
 

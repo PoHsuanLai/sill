@@ -1,4 +1,4 @@
-//! One opening's M9 state beside the M4 [`Session`](super::session::Session): the preview
+//! One opening's pane state beside its [`Session`](super::session::Session): the preview
 //! pane's machine, the sections opened with "Show More", and which providers Tab visits. Pure.
 
 use sill_launcher::ProviderKind;
@@ -8,7 +8,7 @@ use crate::surfaces::launcher::presence::OpenSerial;
 use crate::surfaces::launcher::preview::keys::PreviewState;
 use crate::surfaces::launcher::view::Expanded;
 
-/// The M9 state of one opening.
+/// The pane state of one opening.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct PaneSession {
     pub serial: OpenSerial,

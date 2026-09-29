@@ -46,8 +46,8 @@ const POPUP_SLACK: i32 = 16;
 /// `max_px`.
 const POPUP_MAX: i32 = 640;
 
-/// The element id a popup anchors to for the button at `index` (module doc: "anchor by element
-/// id `tray-<n>` per the freeze").
+/// The element id a popup anchors to for the button at `index` (`tray-<n>`, as the module doc
+/// says).
 fn popup_element_id(index: usize) -> String {
     format!("tray-{index}")
 }

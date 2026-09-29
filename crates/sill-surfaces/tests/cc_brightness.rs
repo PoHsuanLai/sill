@@ -1,5 +1,5 @@
-//! The Display module's brightness capsule on the real control center (FINDINGS "Manual run
-//! 2026-09-28: control center"): a pointer drag and a click on the capsule send the displays
+//! The Display module's brightness capsule on the real control center: a pointer drag and a
+//! click on the capsule send the displays
 //! service the level under the pointer for the bar's output, and a level the service publishes
 //! from elsewhere (a key, the monitor's own buttons) moves the capsule. Fake services on
 //! `Clock::Virtual`, the appearance pinned; every case ends at 0 frames. Nothing here reaches a
@@ -185,7 +185,7 @@ fn a_monitor_that_answers_late_brings_the_capsule_alive() {
         running.harness.attr(CAPSULE, "aria-disabled").as_deref(),
         Some("true")
     );
-    // Q491: its panel dims with it (the header too), and the capsule is out of the tab order.
+    // Its panel dims with it (the header too), and the capsule is out of the tab order.
     assert_eq!(running.harness.count(DISABLED_PANEL), 1, "the panel dims");
     assert_eq!(
         running.harness.attr(CAPSULE, "tabindex"),

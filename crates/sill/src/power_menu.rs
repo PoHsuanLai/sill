@@ -1,4 +1,4 @@
-//! The daemon's M5 half: one power menu surface per output, spawned warm and hidden (the
+//! The daemon's power menu half: one power menu surface per output, spawned warm and hidden (the
 //! launcher's pattern), and the `power-menu` and `control-center` requests, which only write the
 //! shared links the surfaces follow ([`crate::links`]).
 //!
@@ -13,10 +13,10 @@
 //! release build ignores both variables.
 //!
 //! **Scripted keys.** On the nested cosmic-comp the power menu gets no keyboard focus, and
-//! shell-host injects no keys (FINDINGS "M5 power menu"), so a debug build started with
-//! `SILL_POWER_MENU_KEYS` naming a FIFO also feeds each line written to it (`right`, `enter`,
-//! ...) to every power menu as a key. Only alongside the dry run: without it the variable is
-//! refused, so a scripted Enter can never reach logind.
+//! shell-host injects no keys, so a debug build started with `SILL_POWER_MENU_KEYS` naming a FIFO
+//! also feeds each line written to it (`right`, `enter`, ...) to every power menu as a key. Only
+//! alongside the dry run: without it the variable is refused, so a scripted Enter can never reach
+//! logind.
 
 use shell_host::{HostCtx, OutputInfo, Root};
 use sill_ipc::{ControlCenterRequest, PowerMenuRequest, Response};
@@ -215,7 +215,7 @@ fn key_script(_offers: &watch::Receiver<Session>) -> Option<PowerMenuScript> {
 }
 
 /// `sill power-menu open|close|toggle`: on the first output with a power menu (the output under
-/// the pointer is not known to the daemon; FINDINGS F140).
+/// the pointer is not known to the daemon).
 pub fn dispatch_power_menu(
     outputs: &Outputs,
     links: Option<&Links>,
@@ -240,8 +240,7 @@ pub fn dispatch_power_menu(
     Response::Done
 }
 
-/// `sill control-center toggle`: asks the first output's bar (it does nothing until the bar
-/// follows the link, M5 agent c).
+/// `sill control-center toggle`: asks the first output's bar.
 pub fn dispatch_control_center(
     outputs: &Outputs,
     links: Option<&Links>,

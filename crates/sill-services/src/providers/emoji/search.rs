@@ -1,12 +1,12 @@
-//! Matching emoji. Pure; lane c fills it.
+//! Matching emoji. Pure.
 //!
 //! Typed text matches the short name first (a whole-word hit on the name ranks above a
 //! keyword), then keywords, then shortcodes (`:smile` with a leading colon searches shortcodes
-//! and names only), each only when every typed word begins a word there (`words.rs`, Q350: no
-//! letters scattered across a long name); nothing typed with the Emoji filter lists the recent ones (the runner's
-//! frecency, `emoji:<glyph>` keys) then the rest in Unicode order: Spotlight's recent-first
-//! grid. The skin tone applies to every emoji that takes one; the frecency key is always the
-//! default-tone glyph, so changing the tone keeps the recents.
+//! and names only), each only when every typed word begins a word there (`words.rs`: no letters
+//! scattered across a long name); nothing typed with the Emoji filter lists the recent ones (the
+//! runner's frecency, `emoji:<glyph>` keys) then the rest in Unicode order: Spotlight's
+//! recent-first grid. The skin tone applies to every emoji that takes one; the frecency key is
+//! always the default-tone glyph, so changing the tone keeps the recents.
 
 use nucleo_matcher::Matcher;
 use sill_launcher::{
@@ -69,7 +69,7 @@ pub fn emoji_items(
 }
 
 /// Whether each of `needle`'s words begins a word of the fields a search reads: the name, the
-/// keywords (not after `:`) and the shortcodes (Q350: no scattered letters).
+/// keywords (not after `:`) and the shortcodes (no scattered letters).
 fn searched_words(entry: &EmojiEntry, needle: &Needle, shortcode_only: bool) -> Words {
     let keywords: &[&str] = match shortcode_only {
         true => &[],
@@ -156,8 +156,8 @@ fn reverse_position(position: usize) -> u32 {
 }
 
 /// One row for `entry`: the row's title is the glyph itself (`tone` applied), its subtitle the
-/// CLDR name; the frecency key is always the default-tone glyph (F650), so changing the tone
-/// keeps the recents.
+/// CLDR name; the frecency key is always the default-tone glyph, so changing the tone keeps the
+/// recents.
 fn to_item(entry: &EmojiEntry, tone: SkinTone, score: Score) -> Item {
     let glyph = toned(entry.glyph, tone);
     Item {
@@ -233,7 +233,7 @@ mod tests {
                 .map(String::as_str),
             Some("👍")
         );
-        // The M9 freeze's own verify wording (FINDINGS "M9 lane c"): a partial name match.
+        // A partial name match.
         assert_eq!(
             glyphs("thumbs", &Frecency::default())
                 .first()
@@ -250,8 +250,8 @@ mod tests {
         );
     }
 
-    /// Q350: "lantern" lists the lantern and the jack-o-lantern, and no flag whose name merely
-    /// holds its letters in order ("flag: Netherlands").
+    /// "lantern" lists the lantern and the jack-o-lantern, and no flag whose name merely holds its
+    /// letters in order ("flag: Netherlands").
     #[test]
     fn scattered_letters_do_not_match() {
         let lantern = glyphs("lantern", &Frecency::default());

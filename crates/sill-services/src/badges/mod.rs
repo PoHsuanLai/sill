@@ -1,6 +1,5 @@
 //! Launcher entry badges: counts, progress and urgency apps publish over
-//! `com.canonical.Unity.LauncherEntry.Update(s app_uri, a{sv})` (plan hooks table,
-//! `use_launcher_entry`: "zbus match on `com.canonical.Unity.LauncherEntry.Update`").
+//! `com.canonical.Unity.LauncherEntry.Update(s app_uri, a{sv})`.
 //!
 //! [`spawn`] and [`live`] do the effect (a session-bus match rule, zbus 5 on tokio); [`model`]
 //! is the pure reducer. Neither reaches `dioxus`, `ds` or `shell-host`

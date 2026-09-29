@@ -1,10 +1,9 @@
 //! `$XDG_CONFIG_HOME/sill/settings.toml`: the shell's settings domains (design/22-SETTINGS.md
 //! §3.4-3.8 and §3.11-3.14: bar, dock, launcher, scroll, scrollbar, menus, switcher, sound,
 //! notifications, control center, spaces; `display`, `osd`, `power_menu` and `session`; and
-//! M10's `widgets`, `calendar`, `screenshot` and `hot_corners`, which design/22 has no rows for
-//! yet), their schema (§9, `#[derive(SettingsSchema)]` with
-//! `file = "sill/settings.toml"`), lenient load and atomic save through `ds-settings`, a
-//! directory watch, and the per-domain diff (§4.4).
+//! `widgets`, `calendar`, `screenshot` and `hot_corners`), their schema (§9,
+//! `#[derive(SettingsSchema)]` with `file = "sill/settings.toml"`), lenient load and atomic save
+//! through `ds-settings`, a directory watch, and the per-domain diff (§4.4).
 //!
 //! A crate of its own rather than a module of `sill-services`, because `ds-settings` brings
 //! `dioxus` with it and `sill-services` stays UI-free (`scripts/check-boundary.sh`).

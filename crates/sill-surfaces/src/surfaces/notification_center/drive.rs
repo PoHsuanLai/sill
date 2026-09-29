@@ -126,8 +126,7 @@ impl CenterCtx {
     }
 
     /// Give the column the keyboard again: the button pressed (a Clear, Clear All, a card's
-    /// close) leaves with its row, and with it the keyboard, so Escape reached nothing
-    /// (FINDINGS F1073).
+    /// close) leaves with its row, and with it the keyboard, so Escape reached nothing.
     fn take_keyboard(&self) {
         if let Some(column) = self.home.peek().clone() {
             ds::focus_soon(column);

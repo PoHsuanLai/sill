@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 /// Which quire material a panel uses. design/22 fixes Sheet for v1, but a one-variant enum
 /// cannot be a settings key (the schema needs at least two words to pick a widget), and
-/// design/20 §1.3 and §1.5 name Popover for the same panels, so both are offered (FINDINGS.md).
+/// design/20 §1.3 and §1.5 name Popover for the same panels, so both are offered.
 #[derive(
     Debug,
     Clone,
@@ -109,7 +109,7 @@ pub struct ControlCenterSettings {
     )]
     pub grid_padding_px: Px,
     /// design/13 §13.3.7: the panel is at most `output_h - bar_h - bottom_margin_px` tall, then
-    /// scrolls. No design/22 row yet (`AWAITING_ROWS`).
+    /// scrolls.
     #[settings(
         label = "Bottom margin",
         help = "The least space kept between the control center and the screen's bottom edge.",
@@ -126,7 +126,7 @@ pub struct ControlCenterSettings {
         advanced
     )]
     pub modules: Vec<ControlCenterModule>,
-    /// `control_center.material` (§3.1 row, owned by sill: quire FINDINGS F15).
+    /// `control_center.material` (§3.1 row, owned by sill).
     #[settings(
         label = "Material",
         help = "The control center's material.",

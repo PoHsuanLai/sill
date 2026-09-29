@@ -1,5 +1,5 @@
-//! The events service's sources from `calendar.sources` (FINDINGS "M10 freeze"): sent at start
-//! and on every change, the first one ending the service's passive start.
+//! The events service's sources from `calendar.sources`: sent at start and on every change, the
+//! first one ending the service's passive start.
 
 use std::path::PathBuf;
 

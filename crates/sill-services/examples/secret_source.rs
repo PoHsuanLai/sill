@@ -1,5 +1,5 @@
-//! A stand-in password manager for the clipboard history's tests (M9 lane b): it makes a
-//! made-up text the selection of a nested compositor, marked the way KeePassXC and KWallet
+//! A stand-in password manager for the clipboard history's tests: it makes a made-up text the
+//! selection of a nested compositor, marked the way KeePassXC and KWallet
 //! mark a copied password (`x-kde-passwordManagerHint`, value `secret`), through
 //! `ext_data_control_v1` (no window or focus needed). The history must skip it unread.
 //!

@@ -11,7 +11,7 @@ use super::session::MenuBar;
 use super::title::{SlotPill, TitleSlot};
 
 /// The status items' box and glyph from `bar.status_icon_box_px`, `bar.status_glyph_px` and
-/// `bar.glyph_size_policy` (CONSUMING.md §6): under `IconSizeBar22` the glyph fills the box.
+/// `bar.glyph_size_policy`: under `IconSizeBar22` the glyph fills the box.
 pub(crate) fn status_metrics(bar: &BarSettings) -> StatusMetrics {
     let glyph = match bar.glyph_size_policy {
         BarGlyphSize::StatusIcon16 => bar.status_glyph_px.0,
@@ -24,7 +24,7 @@ pub(crate) fn status_metrics(bar: &BarSettings) -> StatusMetrics {
 }
 
 /// The status item for `menu`, drawn as `icon` (a glyph, or a layered status glyph for the Wi-Fi,
-/// battery, volume and Bluetooth items, quire Q390) with `tooltip`. The button draws its own pill
+/// battery, volume and Bluetooth items) with `tooltip`. The button draws its own pill
 /// while expanded, so the slot draws none. A `nudge` (the battery's low cue, quire design/26 G11)
 /// lifts the glyph inside the button; the item passes it for its whole life.
 #[component]

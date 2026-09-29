@@ -1,4 +1,4 @@
-/* The Up Next widget (widgets/up_next.rs; M10 lane a): macOS's Up Next, today's weekday in the
+/* The Up Next widget (widgets/up_next.rs): macOS's Up Next, today's weekday in the
    accent over the day's number, then the next events, each with its calendar's colour (quire's
    label hues) beside its title and time. Quire's tokens only (coherence rule 1). */
 

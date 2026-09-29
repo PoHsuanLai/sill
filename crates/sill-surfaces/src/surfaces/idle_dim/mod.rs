@@ -1,6 +1,5 @@
-//! The idle dim (sill FINDINGS "sill idle (Q420 B)" F902, "Idle units and dim"): before the
-//! displays go off for idleness, every output gets a black scrim at `100 - idle.dim_level_pct`
-//! percent, quire's `IdleDim` (CONSUMING.md "Idle dim"). It is an overlay, never a brightness
+//! The idle dim: before the displays go off for idleness, every output gets a black scrim at
+//! `100 - idle.dim_level_pct` percent, quire's `IdleDim`. It is an overlay, never a brightness
 //! change, so a crash while dimmed leaves nothing dark.
 //!
 //! It follows the idle service's published `Idle.dim` alone: `Dimmed(level)` fades the scrim in

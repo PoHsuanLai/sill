@@ -17,19 +17,19 @@ pub enum ProviderKind {
     Settings,
     /// Lock, log out, suspend, restart, shut down, reload.
     System,
-    /// Documents and folders under the home directory, from a file index (M9).
+    /// Documents and folders under the home directory, from a file index.
     Files,
-    /// The clipboard's history, newest first (M9).
+    /// The clipboard's history, newest first.
     Clipboard,
-    /// Emoji by name, keyword and CLDR short name (M9).
+    /// Emoji by name, keyword and CLDR short name.
     Emoji,
-    /// "Search the web for …": the fallback row (M9).
+    /// "Search the web for …": the fallback row.
     Web,
 }
 
 impl ProviderKind {
-    /// Every provider, in Tab order. The M9 providers follow the M4 five, so a tie between
-    /// rows of equal score still goes to the older kinds first (`reduce_results`).
+    /// Every provider, in Tab order. Files, Clipboard, Emoji and Web follow the first five, so a
+    /// tie between rows of equal score still goes to the older kinds first (`reduce_results`).
     pub const ALL: [ProviderKind; 9] = [
         ProviderKind::Apps,
         ProviderKind::Windows,
@@ -61,7 +61,7 @@ pub struct ItemId(pub String);
 pub struct ActionId(pub String);
 
 /// One clipboard history entry, by the number the clipboard service gave it when it was copied.
-/// Never reused within a session; carries no content (FINDINGS "M9 freeze" F641).
+/// Never reused within a session; carries no content.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct ClipKey(pub u64);

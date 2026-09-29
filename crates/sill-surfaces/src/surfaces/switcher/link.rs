@@ -1,7 +1,6 @@
 //! The daemon's asks to the switcher (`sill switcher next|prev|cancel|commit`, `sill debug
 //! switcher`): one shared channel of the latest ask, numbered so two chords in a row are two
 //! asks. Every output's switcher surface follows it and acts on asks for its own output.
-//! Implemented at the freeze: the daemon's wiring depends on it.
 
 use shell_host::OutputId;
 use sill_launcher::AppId;

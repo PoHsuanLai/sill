@@ -1,7 +1,7 @@
-//! The launcher v2 policy from `launcher.*` (M9 freeze, FINDINGS "M9 freeze" F646, F647): the
-//! search runner's (files, web, emoji tone, currency) and the clipboard service's (history on or
-//! off, its length, the largest image). Both services are passive until the first one, which
-//! this sends at start and again whenever the settings change it.
+//! The launcher v2 policy from `launcher.*`: the search runner's (files, web, emoji tone, currency)
+//! and the clipboard service's (history on or off, its length, the largest image). Both services
+//! are passive until the first one, which this sends at start and again whenever the settings
+//! change it.
 
 use std::time::Duration;
 

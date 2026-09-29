@@ -135,7 +135,7 @@ step_secret() {
 
 # The index (over every section's lines) of the one clipboard row in the `launcher-rows` file
 # $1; fails unless there is exactly one, under "Top Hit" or "Clipboard". A single match is the
-# Top Hit, never repeated below it (F645, G272). Clipboard titles read "<clipboard>" there,
+# Top Hit, never repeated below it. Clipboard titles read "<clipboard>" there,
 # never the text.
 clip_row() {
   python3 - "$1" <<'PY'

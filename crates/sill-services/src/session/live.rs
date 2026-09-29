@@ -48,7 +48,7 @@ pub(super) async fn run(
                     session_id = probe(&connection, &tx, &manager).await;
                 }
                 Some(SessionCommand::Run(SessionAction::Lock)) => {
-                    // M7: the locker service decides (its own locker, or logind's LockSession for
+                    // The locker service decides (its own locker, or logind's LockSession for
                     // COSMIC's resident one); never logind here, so sill nested in another
                     // desktop's session cannot lock that desktop.
                     let _gone_is_inert = locker.send(LockerCommand::Lock);
@@ -127,7 +127,7 @@ async fn run_action(
         return;
     }
     let _ = match action {
-        // Routed to the locker service before this point (M7).
+        // Routed to the locker service before this point.
         SessionAction::Lock => return,
         SessionAction::LogOut => {
             let Some(id) = session_id else { return };

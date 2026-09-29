@@ -1,7 +1,7 @@
-//! What the M9 providers are allowed to do, from the settings (M9 freeze, F646). The daemon
-//! sends it with `SearchCommand::Policy` at start and on every change; until then everything is
-//! off, so `Services::spawn` in a test never reads a file index, never offers a web search and
-//! never converts a currency.
+//! What the settings-gated providers (files, web, emoji, currency) are allowed to do, from the
+//! settings. The daemon sends it with `SearchCommand::Policy` at start and on every change; until
+//! then everything is off, so `Services::spawn` in a test never reads a file index, never offers a
+//! web search and never converts a currency.
 
 use std::time::Duration;
 
@@ -40,7 +40,7 @@ pub enum CurrencyPolicy {
     Ecb,
 }
 
-/// The M9 providers' policy.
+/// The settings-gated providers' policy.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct LauncherPolicy {
     pub files: FilesChoice,

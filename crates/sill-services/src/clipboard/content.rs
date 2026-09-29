@@ -11,7 +11,7 @@ use super::model::{ClipContent, ClipImage, ClipText, ImageCap, Skipped};
 use super::offer::MimePick;
 
 /// The most text read from one selection, in bytes; a longer copy is skipped as
-/// [`Skipped::TooLarge`]. Proposed, with no settings key (FINDINGS "M9 lane b").
+/// [`Skipped::TooLarge`]. Proposed, with no settings key.
 pub(super) const TEXT_LIMIT: ReadLimit = ReadLimit(1 << 20);
 
 /// The most bytes read before a selection is given up as too large.

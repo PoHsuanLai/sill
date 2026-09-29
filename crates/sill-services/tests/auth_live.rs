@@ -1,8 +1,8 @@
-//! Live checks of the auth service (FINDINGS "M11 freeze" F542, F547). Nothing here calls PAM
-//! with anyone's real password: the service runs a `FakeAuthenticator` through `spawn_with`, and
-//! `PamHelper` runs against the stand-in helper (`examples/auth_helper.rs`). The one PAM test
-//! runs only when `SILL_PAM_TEST_USER` and `SILL_PAM_TEST_SECRET` name a throwaway account, and
-//! says it skipped otherwise. `#[ignore]`d: run with
+//! Live checks of the auth service. Nothing here calls PAM with anyone's real password: the service
+//! runs a `FakeAuthenticator` through `spawn_with`, and `PamHelper` runs against the stand-in
+//! helper (`examples/auth_helper.rs`). The one PAM test runs only when `SILL_PAM_TEST_USER` and
+//! `SILL_PAM_TEST_SECRET` name a throwaway account, and says it skipped otherwise. `#[ignore]`d:
+//! run with
 //!
 //! ```sh
 //! cargo test -p sill-services --test auth_live -- --ignored --nocapture
@@ -54,7 +54,7 @@ async fn wrong_once(auth: &mut watch::Receiver<Auth>, control: &Control<AuthComm
     until(auth, "a verdict", |a| a.failures == Attempts(n)).await;
 }
 
-/// No lockout (F862): however many wrong secrets came before, the next one is checked at once.
+/// No lockout: however many wrong secrets came before, the next one is checked at once.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "live: spawns the auth service"]
 async fn many_wrongs_never_lock_out_and_the_right_one_opens() {

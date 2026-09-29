@@ -67,7 +67,7 @@ fn drive(mut phase: Signal<Phase>, surface: Option<SurfaceHandle>, input: PhaseI
 
 /// The places an edit writes for its output: each widget still on the desktop at its new cell,
 /// except that one whose cell did not change keeps its saved entry (a place clamped onto a
-/// smaller output is never written over, F882); then every saved place of a kind the desktop no
+/// smaller output is never written over); then every saved place of a kind the desktop no
 /// longer shows (a widget taken away keeps its place for when it comes back, as a drop does).
 pub(super) fn places_to_save(
     before: &[Placement],

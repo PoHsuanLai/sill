@@ -1,4 +1,4 @@
-//! A [`Preview`] as quire's `PaneContent` (Q292), with what it names on disk loaded off the UI
+//! A [`Preview`] as quire's `PaneContent`, with what it names on disk loaded off the UI
 //! thread: a PDF's page through `ds_native::use_pdf_page` (asked only while the preview is a
 //! PDF, so one pane stays mounted whatever it shows), a text file's head and an image's size
 //! through `load.rs`, a clipboard image's bytes from the clipboard service.

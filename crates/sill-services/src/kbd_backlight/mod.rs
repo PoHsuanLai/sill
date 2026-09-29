@@ -1,5 +1,5 @@
 //! The keyboard backlight: UPower's `org.freedesktop.UPower.KbdBacklight` over the system bus
-//! (design/26 5.2.7 G25: the control center's Keyboard Brightness module).
+//! (design/26 5.2.7: the control center's Keyboard Brightness module).
 //!
 //! UPower rather than `/sys/class/leds/*::kbd_backlight`: UPower finds the LED itself, lets the
 //! session set it with no udev rule or group, and signals every change, the laptop's own

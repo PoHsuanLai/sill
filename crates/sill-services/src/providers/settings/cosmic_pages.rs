@@ -1,5 +1,4 @@
-//! The `cosmic-settings` page table (plan: "settings (cosmic-settings deep-link table if
-//! binary exists)"), added only when that binary is on `PATH`.
+//! The `cosmic-settings` page table, added only when that binary is on `PATH`.
 //!
 //! The page ids and names are `cosmic-settings`'s own subcommands (`cosmic-settings --help`,
 //! version 1.7.0 on the machine this was written on: `cosmic-settings <page>` opens each one

@@ -19,12 +19,12 @@
 # arrows step expects the next offered button to the right of Shut Down.
 #
 # KEYS. On the nested cosmic-comp the power menu gets no keyboard focus (no
-# `power_menu.keyboard=held`) and `wtype` keys never reach it, and shell-host injects no keys
-# (FINDINGS "M5 power menu"). So the keys go through the debug key path: the daemon is also
-# started with SILL_POWER_MENU_KEYS naming a FIFO, and each word written to it (`right`,
-# `enter`, ...) is fed to the power menu as that key, through the same machine a real key
-# drives. The daemon refuses the key path without the dry run, so a scripted Enter can never
-# reach logind; the script also writes a key only while the menu is mapped.
+# `power_menu.keyboard=held`) and `wtype` keys never reach it, and shell-host injects no keys. So
+# the keys go through the debug key path: the daemon is also started with SILL_POWER_MENU_KEYS
+# naming a FIFO, and each word written to it (`right`, `enter`, ...) is fed to the power menu as
+# that key, through the same machine a real key drives. The daemon refuses the key path without the
+# dry run, so a scripted Enter can never reach logind; the script also writes a key only while the
+# menu is mapped.
 #
 #   1. Warm: `sill-power-menu-<out>` exists from the start, hidden (no capture).
 #   2. `sill power-menu open` shows the sheet over the scrim: a capture with the sheet's pixels,

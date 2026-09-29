@@ -1,9 +1,9 @@
 //! Idle's Wayland thread: its own connection to [`IdleDisplay`] (a protocol object cannot cross
 //! connections), `ext_idle_notifier_v1` for the watches (`get_idle_notification`, which honours
-//! the compositor's idle inhibitors; never the input form, F905), and
-//! `zwlr_output_power_manager_v1` with one `zwlr_output_power_v1` per `wl_output` for the
-//! displays. A calloop loop runs over the connection and the service's [`Order`]s. Dropping the
-//! [`Wire`] ends the thread and with it the connection.
+//! the compositor's idle inhibitors; never the input form), and `zwlr_output_power_manager_v1` with
+//! one `zwlr_output_power_v1` per `wl_output` for the displays. A calloop loop runs over the
+//! connection and the service's [`Order`]s. Dropping the [`Wire`] ends the thread and with it the
+//! connection.
 
 use std::io;
 use std::os::unix::net::UnixStream;
@@ -82,8 +82,8 @@ impl Tell {
 /// What the service tells the thread.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum Order {
-    /// Hold these notifications: an unchanged watch is kept (its timer runs on, G342); one that
-    /// idled is kept until it resumes, so the wake is never lost.
+    /// Hold these notifications: an unchanged watch is kept (its timer runs on); one that idled is
+    /// kept until it resumes, so the wake is never lost.
     Watch(Vec<Watch>),
     /// Drop every notification, idled or not, and hold these afresh (after a made-up wake, which
     /// the compositor never saw).

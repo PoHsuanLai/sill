@@ -22,7 +22,7 @@ pub(crate) struct Dropped {
 }
 
 /// The reorder `pressed` then `dropped` asks for: none for a release on the same pill or one
-/// closer than `threshold` px (the drag threshold, `dock.hold_to_menu_move_px`, FINDINGS F9).
+/// closer than `threshold` px (the drag threshold, `dock.hold_to_menu_move_px`).
 pub(crate) fn reorder(pressed: Pressed, dropped: Dropped, threshold: u16) -> Option<WlCommand> {
     let moved = pressed.x.abs_diff(dropped.x);
     if dropped.index == pressed.index || moved < u32::from(threshold) {

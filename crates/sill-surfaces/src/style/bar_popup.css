@@ -6,7 +6,7 @@
 
    The frame is the viewport's size and in flow, and the Ds root fills it (a one-cell grid):
    with an absolutely placed frame every box from `html` down was 0 px tall (neither `#main`
-   nor `.ds` has a height, shell-host F41), so the pointer's hit test never descended to the
+   nor `.ds` has a height), so the pointer's hit test never descended to the
    menu card and no press in a popup reached it. */
 .sill-popup-frame{ display:grid; grid-template-rows:minmax(0,1fr); grid-template-columns:minmax(0,1fr);
   box-sizing:border-box; width:100vw; height:100vh; }

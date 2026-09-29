@@ -1,6 +1,6 @@
 //! The one place a surface turns `Instant`s into the machines' [`Stamp`]s. "Now" is
 //! `ds::time::now`: the wall clock in the daemon, a test harness's virtual clock under
-//! `Clock::Virtual` (quire Q380), so a surface's timers follow the harness's time.
+//! `Clock::Virtual`, so a surface's timers follow the harness's time.
 
 use std::time::Instant;
 

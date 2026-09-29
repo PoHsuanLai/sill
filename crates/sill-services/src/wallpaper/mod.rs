@@ -1,9 +1,9 @@
 //! The wallpaper: one pre-resized PNG per output size and scheme, cached in
-//! `$XDG_CACHE_HOME/sill/wallpaper/<hash>-<w>x<h>.png` (plan "Surfaces": "pre-resized PNG cache
-//! ... via image 0.25 Lanczos3; light/dark cross-fade over t-big; renders only on change").
+//! `$XDG_CACHE_HOME/sill/wallpaper/<hash>-<w>x<h>.png` (image 0.25 Lanczos3; light/dark cross-fade
+//! over t-big; renders only on change).
 //!
-//! design/22 has no key naming the wallpaper file; M2 reads COSMIC's own background config
-//! (`com.system76.CosmicBackground`) until one is added (FINDINGS.md).
+//! design/22 has no key naming the wallpaper file; sill reads COSMIC's own background config
+//! (`com.system76.CosmicBackground`) until one is added.
 //!
 //! [`spawn`]'s task owns everything effectful: [`config::resolve_source`] reads the source path
 //! (I/O, [`config`]), [`watch::watch`] notices it change (I/O, [`watch`]), and
@@ -194,8 +194,8 @@ async fn publish(
     let prepared = rt
         .spawn_blocking(move || {
             let prepared = resize::prepare(&source, width, height, &cache_dir);
-            // The lock screen's blurred copy, beside each image (M11: a failure only costs the
-            // lock screen its picture, never the wallpaper).
+            // The lock screen's blurred copy, beside each image (a failure only costs the lock
+            // screen its picture, never the wallpaper).
             for image in prepared.iter().flat_map(|(light, dark)| [light, dark]) {
                 let _ = ensure_backdrop(image);
             }

@@ -1,4 +1,4 @@
-//! Which keys the preview pane's machine claims from the palette's field (F724, F741). Pure.
+//! Which keys the preview pane's machine claims from the palette's field. Pure.
 //!
 //! Space while browsing, → (the caret decides what it does), and, with the pane holding the
 //! keyboard, ←, Tab and Shift+Tab; Escape while the pane shows or has the keyboard. On a cell of
@@ -73,7 +73,7 @@ mod tests {
             (Key::ArrowRight, none, end, list, right(end)),
             (Key::ArrowRight, none, inside, list, right(inside)),
             (Key::ArrowLeft, none, end, list, None),
-            // A grid cell: ← and → move the cell, the pane shown or not (F741).
+            // A grid cell: ← and → move the cell, the pane shown or not.
             (Key::ArrowRight, none, end, grid, None),
             (Key::ArrowLeft, none, end, grid, None),
             (Key::ArrowRight, none, end, grid_shown, None),

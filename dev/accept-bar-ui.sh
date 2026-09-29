@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Milestone 1 bar-ui acceptance, on a nested headless KWin (`kwin_wayland --virtual` on its own
+# Bar-ui acceptance, on a nested headless KWin (`kwin_wayland --virtual` on its own
 # D-Bus session, torn down afterwards; works while the real session is locked), against
 # `examples/bar_demo.rs` (the real `Bar` on fake services) and shell-host's `probe_toplevel`:
 #
@@ -7,7 +7,7 @@
 #   2. idle: five seconds with nothing changing, 0 frames and 0 commits (`stats`);
 #   3. menus: a click on the control center's item (the status item left of the clock, found
 #      from the bar's capture) opens the menu popup; a click outside it dismisses it. The clock
-#      opens no menu since M6: it toggles the notification center, which the demo does not
+#      opens no menu: it toggles the notification center, which the demo does not
 #      host (the daemon's `dev/accept-bar.sh` checks that);
 #   4. the popup is transparent around its card: its corners, the middle of its top edge and a
 #      point beside the card's top-right corner have alpha <= 16 in its capture (the control
@@ -22,7 +22,7 @@
 #                                         only, since `sill run` may already reserve a bar there;
 #                                         screenshot dev/out/bar-cosmic-menu.png). `dev/accept-bar.sh`
 #                                         calls this for its menus step: sill's debug IPC has no
-#                                         click (FINDINGS "M1 bar-ui").
+#                                         click.
 set -euo pipefail
 mode="${1:-kwin}"
 self="$(realpath "$0")"
@@ -225,7 +225,7 @@ try:
         bar.send(f"{popup} capture {OUT}/popup-surface.png"); bar.expect(lambda v: "capture" in v)
         corners = corner_alphas(f"{OUT}/popup-surface.png")
     # An outside click: the empty middle of the bar (a compositor-level outside press cannot be
-    # synthesized, shell-host F17; the bar treats a press on itself outside the titles the same).
+    # synthesized; the bar treats a press on itself outside the titles the same).
     bar.send(f"{name} click {width // 2} {height // 2}")
     closed = False
     for _ in range(40):

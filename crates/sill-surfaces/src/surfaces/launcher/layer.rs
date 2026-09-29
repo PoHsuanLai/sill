@@ -17,7 +17,7 @@ pub const PANEL_WIDTH: u32 = 680;
 pub const PANEL_HEIGHT: u32 = 460;
 
 /// The room the panel may take: the card and, while the preview pane is shown, the pane beside
-/// it (M9, F654: `CommandPalette { aside }` widens the card by `PREVIEW_WIDTH_PX`). The surface
+/// it (`CommandPalette { aside }` widens the card by `PREVIEW_WIDTH_PX`). The surface
 /// is this wide for good; the card sits centred in it, so it widens by half the pane on each
 /// side and its middle never moves.
 pub const PANEL_ROOM_WIDTH: u32 = PANEL_WIDTH + PREVIEW_WIDTH_PX;

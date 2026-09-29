@@ -1,5 +1,5 @@
-//! Coherence rules 1, 2 and 4 (quire CONSUMING.md §5) for the widgets (M10, "Widget interface
-//! port"): sill's widgets' stylesheets, the desktop layer's and Edit Widgets' under
+//! Coherence rules 1, 2 and 4 for the widgets: sill's widgets' stylesheets, the desktop
+//! layer's and Edit Widgets' under
 //! `Profile::Strict` with no keyframes of their own, and the markup of every widget in both
 //! hosts, of the desktop layer and of Edit Widgets through the markup lint.
 

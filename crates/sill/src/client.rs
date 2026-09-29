@@ -1,5 +1,5 @@
-//! The command-line client: connect to the daemon (starting it if needed), send one request,
-//! print the reply (plan: "clients `connect_or_start(|| spawn([\"run\"]), 3 s)`").
+//! The command-line client: connect to the daemon (starting it if needed), send one request, print
+//! the reply.
 
 use std::io::BufReader;
 use std::process::ExitCode;

@@ -1,6 +1,6 @@
 //! The clock status item. A click toggles the notification center on this output, as the clock
-//! opens Notification Center on macOS 11 on; it no longer opens a date menu (FINDINGS F266, lane
-//! c). Its pill is quire's `MenuBarItem`, on while the center is open here.
+//! opens Notification Center on macOS 11 on; it no longer opens a date menu. Its pill is quire's
+//! `MenuBarItem`, on while the center is open here.
 
 use dioxus::prelude::*;
 use ds::{Button, ButtonVariant, Emphasis, MenuBarItem, Switch};

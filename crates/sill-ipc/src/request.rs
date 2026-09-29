@@ -49,14 +49,14 @@ pub enum Request {
     Switcher(SwitcherRequest),
     /// sill's polkit agent (`sill polkit status`).
     Polkit(PolkitRequest),
-    /// The clipboard history (`sill clipboard status|clear`, M9).
+    /// The clipboard history (`sill clipboard status|clear`).
     Clipboard(ClipboardRequest),
-    /// sill's own idle (`sill idle status`; FINDINGS "sill idle fill").
+    /// sill's own idle (`sill idle status`).
     Idle(IdleRequest),
 }
 
 /// `sill notifications ...`. The center opens on the output the daemon picks (the first with a
-/// center surface, FINDINGS F140), as the power menu does.
+/// center surface), as the power menu does.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum NotificationsRequest {
@@ -74,7 +74,7 @@ pub enum NotificationsRequest {
 }
 
 /// The power menu's verbs. It opens on the output the daemon picks (the first with a power menu
-/// surface: the output under the pointer is not known to the daemon, FINDINGS F140).
+/// surface: the output under the pointer is not known to the daemon).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum PowerMenuRequest {
@@ -162,17 +162,17 @@ pub enum DebugRequest {
     Leave { surface: SurfaceName },
     /// Render `surface` offscreen and write a PNG to `path` (compositor-independent capture).
     Capture { surface: SurfaceName, path: PathBuf },
-    /// A synthetic press and release of `button` at `at` on `surface` (surface-local logical
-    /// px): what opens a bar menu. M2 freeze amendment (F76).
+    /// A synthetic press and release of `button` at `at` on `surface` (surface-local logical px):
+    /// what opens a bar menu.
     Click {
         surface: SurfaceName,
         at: Point,
         button: PointerButton,
     },
     /// `button` presses at `at` on `surface` and stays down: the first half of a real drag
-    /// (shell-host's `Inject::PointerDown`, FINDINGS G330, closed). The existing `Pointer` moves
-    /// while it is held (shell-host now carries the held buttons on every move, the same
-    /// `PointerMove` a real `Motion` produces); `PointerRelease` lets go.
+    /// (shell-host's `Inject::PointerDown`). The existing `Pointer` moves while it is held
+    /// (shell-host now carries the held buttons on every move, the same `PointerMove` a real
+    /// `Motion` produces); `PointerRelease` lets go.
     PointerPress {
         surface: SurfaceName,
         at: Point,
@@ -205,9 +205,9 @@ pub enum DebugRequest {
     Polkit(FakePolkit),
     /// Open the switcher on made-up apps (`dev/accept-switcher.sh`).
     Switcher(FakeSwitcher),
-    /// A key for the open launcher, as if typed (`dev/accept-launcher-v2.sh`, M9).
+    /// A key for the open launcher, as if typed (`dev/accept-launcher-v2.sh`).
     LauncherKey(FakeLauncherKey),
-    /// The open launcher's sections, rows and preview: answered `Response::LauncherRows` (M9).
+    /// The open launcher's sections, rows and preview: answered `Response::LauncherRows`.
     LauncherRows,
     /// Wake idle as the compositor's `resumed` would after real input (`dev/accept-idle.sh`:
     /// the nested cosmic-comp counts no synthetic input as activity). Refused by a daemon built

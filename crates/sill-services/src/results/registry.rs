@@ -1,6 +1,5 @@
 //! The providers the daemon searches, in Tab order, sharing the runner's history and its
-//! policy (M9 freeze: the four M9 providers are registered here once, so no lane edits this
-//! file).
+//! policy.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -18,7 +17,7 @@ use crate::providers::{
 };
 
 /// Every provider. Apps, files and emoji rank with `history`, so a choice counts from the next
-/// keystroke on; the M9 providers read `policy` (all off until the daemon's first).
+/// keystroke on; the settings-gated providers read `policy` (all off until the daemon's first).
 pub(crate) fn providers(
     wiring: &Wiring<'_>,
     history: &History,

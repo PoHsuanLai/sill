@@ -1,13 +1,13 @@
 //! Tracker 3 (localsearch's `org.freedesktop.Tracker3.Miner.Files` endpoint) over zbus: one
-//! SPARQL `Query` per ask, results read from the pipe the endpoint writes its cursor to. Lane a
-//! fills it; [`sparql_for`] and [`escape_literal`] are pure and table-tested.
+//! SPARQL `Query` per ask, results read from the pipe the endpoint writes its cursor to.
+//! [`sparql_for`] and [`escape_literal`] are pure and table-tested.
 //!
 //! The query matches `nfo:fileName` (and `fts:match` on the text when the miner indexes
 //! content), keeps hits under `ask.under`, and asks for `nie:url`, `nie:mimeType` and
 //! `nfo:fileLastModified`, ordered by rank, limited to `ask.limit`.
 //!
-//! As filled (FINDINGS "M9 lane a"): the name alone is matched (a case-insensitive substring,
-//! as `fd` does), never `fts:match`, because a row must say why it is there and `hits.rs` drops
+//! The name alone is matched (a case-insensitive substring, as `fd` does), never `fts:match`,
+//! because a row must say why it is there and `hits.rs` drops
 //! a hit whose name does not match; with no rank to order by, the newest come first.
 
 use std::collections::HashMap;

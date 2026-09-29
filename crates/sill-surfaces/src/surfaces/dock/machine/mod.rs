@@ -2,7 +2,7 @@
 //! component hit-tests pointer events against the frame's layout and feeds them here; it
 //! applies the effects and draws [`displayed`] with `sill_services::magnify`.
 //!
-//! Differences from the doc's sketch, all recorded in FINDINGS.md: pointer events carry the
+//! Differences from the doc's sketch: pointer events carry the
 //! component's hit test (`Hit`, `DropZone`) instead of bare coordinates, so the machine needs no
 //! layout; release carries the tile's app state so the click's action (10.3.6) is decided here;
 //! `Tick` and `WakeAt` are the one-shot timer the doc mentions in prose; `Reveal::Fixed` is the

@@ -1,4 +1,4 @@
-//! The M9 rows the fakes know (lane d): documents that exist in a scratch folder (a one-page
+//! The preview rows the fakes know: documents that exist in a scratch folder (a one-page
 //! PDF, a PNG, a Markdown file and five more PDFs, enough to put Documents over its cap), a
 //! clipboard entry, emoji and the web fallback, each with the subject the real providers give
 //! it and their chords. Nothing here reads the person's home, index or clipboard.
@@ -138,7 +138,7 @@ pub fn slow_head_path() -> PathBuf {
 
 const SLOW_HEAD: &str = "slow-head.txt";
 
-/// Every M9 row, in no order (the fake runner sorts).
+/// Every preview row, in no order (the fake runner sorts).
 pub fn rows() -> Vec<Item> {
     let mut rows = vec![
         document("m9-report.pdf", "application/pdf", 900),
@@ -205,7 +205,7 @@ pub fn web(query: &str) -> Item {
     }
 }
 
-/// What a fake M9 provider's row does.
+/// What a fake preview provider's row does.
 pub fn activate(item: &Item, choice: &Choice) -> Activation {
     match (&item.subject, choice) {
         (Subject::File(file), Choice::Action(id)) if id.0 == "reveal" => Activation::Open {

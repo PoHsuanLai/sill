@@ -11,9 +11,8 @@ use ds_settings::Px;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
 
-/// One widget. The same component draws it in the notification center and on the desktop.
-/// Weather is not a variant yet: it needs a weather source nothing provides (FINDINGS "M10
-/// freeze"); adding it later is additive.
+/// One widget. The same component draws it in the notification center and on the desktop. Weather
+/// is not a variant yet: it needs a weather source nothing provides; adding it later is additive.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ds_settings::SettingsSchema,
 )]

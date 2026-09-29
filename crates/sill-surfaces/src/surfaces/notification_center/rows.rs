@@ -131,7 +131,7 @@ pub fn dismiss(row: &CenterRow) -> RowAct {
     }
 }
 
-/// What a press on a card asks; a link in the body asks nothing of the center (FINDINGS F321).
+/// What a press on a card asks; a link in the body asks nothing of the center.
 pub fn press(row: &CenterRow, press: CardPress) -> Option<RowAct> {
     match (row, press) {
         (_, CardPress::Body) => Some(activate(row)),

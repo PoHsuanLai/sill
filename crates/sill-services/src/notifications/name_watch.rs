@@ -1,6 +1,6 @@
 //! The bus half of the live loop: the connection, who holds `org.freedesktop.Notifications`
 //! (`GetNameOwner`, `GetConnectionUnixProcessID`, `/proc/<pid>/comm`), and asking for or giving
-//! back the name (FINDINGS F263: `AllowReplacement | DoNotQueue`, never `ReplaceExisting`).
+//! back the name (`AllowReplacement | DoNotQueue`, never `ReplaceExisting`).
 //!
 //! The holder is always read back from the bus rather than inferred from a reply, so a
 //! `NameOwnerChanged`, a `NameLost` (another daemon replaced sill) and a policy change all

@@ -1,4 +1,4 @@
-//! Loading what a preview names off the UI thread (F644): a text file's head through
+//! Loading what a preview names off the UI thread: a text file's head through
 //! `sill_services::preview::read_excerpt` on a thread of its own, the answer landing in a
 //! signal keyed by the path it answers, so a late answer for a row the selection has left is
 //! never shown. A clipboard image comes from the clipboard service's history, already in memory.
@@ -80,6 +80,6 @@ pub fn use_clip_png(key: Option<ClipKey>) -> Option<Vec<u8>> {
     let history = use_clipboard();
     let key = key?;
     let image = clip_image(&history.read(), key)?;
-    // quire takes a picture as PNG bytes; the service keeps PNG when it is offered (F647).
+    // quire takes a picture as PNG bytes; the service keeps PNG when it is offered.
     (image.mime.0 == "image/png").then(|| image.bytes.to_vec())
 }

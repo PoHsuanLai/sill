@@ -1,6 +1,5 @@
-//! The IPC server: a std thread accepting one request per connection, forwarding it to the
-//! host thread and writing the reply, or `Failed(Timeout)` after [`REPLY_TIMEOUT`] (plan: "IPC
-//! server on a std thread, 2 s reply timeout").
+//! The IPC server: a std thread accepting one request per connection, forwarding it to the host
+//! thread and writing the reply, or `Failed(Timeout)` after [`REPLY_TIMEOUT`].
 //!
 //! The accept loop and the per-connection read/dispatch/write are generic over how a request is
 //! answered ([`spawn_with`], [`serve_one_with`]) so `crates/sill/tests/ipc.rs` can drive them

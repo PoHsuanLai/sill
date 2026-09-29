@@ -34,9 +34,8 @@ async fn a_renamed_write_fires_exactly_one_change() {
     assert!(extra.is_err(), "expected no further change, got {extra:?}");
 }
 
-/// A rename onto `settings.toml` that is not TOML at all (FINDINGS "Manual run 2026-09-28: menus
-/// and keyboard", F993, F1030): the watch keeps the last good file rather than blanking it to
-/// defaults, and a later good write is still picked up.
+/// A rename onto `settings.toml` that is not TOML at all: the watch keeps the last good file rather
+/// than blanking it to defaults, and a later good write is still picked up.
 #[tokio::test]
 async fn an_unparseable_write_keeps_the_last_good_file() {
     let dir = TempDir::new("watch-bad");

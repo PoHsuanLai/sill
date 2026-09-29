@@ -1,8 +1,7 @@
-//! `sill debug launcher-key KEY` and `sill debug launcher-rows` (M9, FINDINGS "M9 freeze" F653):
-//! what `dev/accept-launcher-v2.sh` drives the open launcher with on the nested compositor,
-//! where there is no keyboard to type on. Both go through the `LauncherLink`: a key the panel
-//! steps as if pressed, and the rows it shows (clipboard titles already `<clipboard>`). Refused
-//! by a daemon built without `debug`.
+//! `sill debug launcher-key KEY` and `sill debug launcher-rows`: what `dev/accept-launcher-v2.sh`
+//! drives the open launcher with on the nested compositor, where there is no keyboard to type on.
+//! Both go through the `LauncherLink`: a key the panel steps as if pressed, and the rows it shows
+//! (clipboard titles already `<clipboard>`). Refused by a daemon built without `debug`.
 
 use sill_ipc::{
     Failure, FailureKind, FakeLauncherKey, LauncherRows, ReportPreview, ReportPreviewKind,

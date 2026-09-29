@@ -25,9 +25,9 @@ pub enum Response {
     Lock(LockReport),
     /// The answer to `Polkit(Status)`.
     Polkit(PolkitReport),
-    /// The answer to `Clipboard(Status)` (M9).
+    /// The answer to `Clipboard(Status)`.
     Clipboard(ClipboardReport),
-    /// The answer to `Debug(LauncherRows)` (M9).
+    /// The answer to `Debug(LauncherRows)`.
     LauncherRows(LauncherRows),
     /// The answer to `Idle(Status)`.
     Idle(IdleReport),

@@ -1,4 +1,4 @@
-//! Dragging the thumbnail out as a file (G120): quire's card says when a press crossed its drag
+//! Dragging the thumbnail out as a file: quire's card says when a press crossed its drag
 //! threshold (`ondrag`), and the thumbnail hands the file to shell-host's drag source
 //! (`SurfaceHandle::start_drag`) while that press is still down: a `text/uri-list` of the
 //! screenshot's `file://` URI, copy or move as the target chooses, with quire's `ShotGhost` as

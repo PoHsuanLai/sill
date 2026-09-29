@@ -1,7 +1,7 @@
-//! Quire's `Osd` in a Blitz harness, on the virtual clock (quire Q380): a change fades it in with the live level
-//! and its real title, a new level moves the bar, the hold (`osd.hold_ms`) ends in the fade out
-//! and then the hidden look, a change during the fade takes it back, and a faked change shows its
-//! own level without touching the services.
+//! Quire's `Osd` in a Blitz harness, on the virtual clock: a change fades it in with the live
+//! level and its real title, a new level moves the bar, the hold (`osd.hold_ms`) ends in the
+//! fade out and then the hidden look, a change during the fade takes it back, and a faked
+//! change shows its own level without touching the services.
 
 mod osd_support;
 
@@ -46,7 +46,7 @@ fn looks_over(
 }
 
 /// Show `kind` on the test output from `source`, taken at this instant (the next `advance` runs
-/// the woken surface first, quire G311); returns when it was asked, on the harness's clock.
+/// the woken surface first); returns when it was asked, on the harness's clock.
 fn show(running: &mut osd_support::Running, kind: OsdKind, source: LevelSource) -> Instant {
     running.link.show(kind, vec![fake::output().id], source);
     running.harness.now()
@@ -155,7 +155,7 @@ fn a_faked_change_shows_its_own_level_and_another_outputs_does_not_show() {
     );
 }
 
-/// The user's pick (2026-09-27, quire D3; FINDINGS F860): the OSD's level is the capsule.
+/// The user's pick: the OSD's level is the capsule.
 #[test]
 fn the_level_is_the_capsule() {
     let mut running = start(file());

@@ -166,7 +166,7 @@ fn groups_carry_shapes_a_grid_and_header_actions() {
     }
 }
 
-/// F1040: every list row carries its first action's chord as `RowChord::on_selected`, so quire
+/// Every list row carries its first action's chord as `RowChord::on_selected`, so quire
 /// shows it on the selected row only and moves it with the selection; the trail keeps only data.
 #[test]
 fn each_row_carries_its_chord_for_the_selection() {

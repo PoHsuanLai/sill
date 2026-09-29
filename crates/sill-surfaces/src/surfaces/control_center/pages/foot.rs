@@ -1,5 +1,5 @@
 //! A detail pane's foot: "Wi-Fi Settings…" or "Bluetooth Settings…", which opens COSMIC
-//! Settings (joining a new network or pairing a device is done there, FINDINGS F183) and closes
+//! Settings (joining a new network or pairing a device is done there) and closes
 //! the panel; and the line a pane shows in place of an empty list.
 
 use dioxus::prelude::*;

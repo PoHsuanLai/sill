@@ -1,16 +1,16 @@
 //! Where the context menu's popup goes and how big it is (design/10 §10.3.7: `Menu{Context}`
 //! anchored to its tile, placement Top, gap 8), in the dock surface's logical pixels.
 //!
-//! As the bar's popups (FINDINGS F45, F53), the popup is the menu plus transparent room for its
+//! As the bar's popups, the popup is the menu plus transparent room for its
 //! shadow: [`SIDE`] each side, [`TOP`] above, [`BOTTOM`] below. The popup hangs above its
 //! anchor (edge and gravity Top, centred), moved down by the room below the menu less the gap,
 //! so the menu's bottom edge is [`GAP`] above the tile. The height is estimated from the
 //! entries (wrapped titles included), generously; a menu that turns out shorter leaves
 //! transparent room above it. shell-host's `PopupSize::FitContent` now measures a popup's
-//! document (G7 closed), but the menu is an overlay placed from the popup's bottom edge by the
-//! size given here, so a size the host changed afterwards would move the menu off its tile. With an `Options` submenu the popup is wide
-//! enough for the submenu to open to the menu's right, and shifted so the menu itself stays
-//! centred over the tile.
+//! document, but the menu is an overlay placed from the popup's bottom edge by the size given
+//! here, so a size the host changed afterwards would move the menu off its tile. With an
+//! `Options` submenu the popup is wide enough for the submenu to open to the menu's right, and
+//! shifted so the menu itself stays centred over the tile.
 
 use ds::MenuEntry;
 use shell_host::{

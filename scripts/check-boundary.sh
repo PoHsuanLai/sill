@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 
 # sill-ipc and sill-launcher are pure: no UI, no D-Bus, no Wayland, no runtime, no audio.
 # sill-services is effectful but UI-free: its state reaches surfaces only through watch
-# channels read by sill-surfaces' hooks (W0 freeze, DESIGN.md "Crates"), so it never links a
+# channels read by sill-surfaces' hooks (DESIGN.md "Crates"), so it never links a
 # renderer. That is also why sill's settings are a crate of their own: ds-settings brings dioxus.
 RULES=(
   "sill-ipc: dioxus dioxus-core zbus wayland-client tokio libpulse-binding"

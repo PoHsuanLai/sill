@@ -1,4 +1,4 @@
-//! Hits to rows, the same for every index. Pure; lane a fills it.
+//! Hits to rows, the same for every index. Pure.
 //!
 //! A row's title is the file name, its subtitle the folder with the home directory as `~`
 //! (`~/Documents/Taxes`), its icon the MIME type's glyph name (`IconRef::Glyph`: `folder`,
@@ -7,9 +7,9 @@
 //! row's frecency, plus a recency boost for a file modified in the last week (proposed: +50,
 //! +25 within a month), so a document you are working on outranks an old namesake.
 //!
-//! A hit whose name does not match is dropped, content hits included (lane a's call, FINDINGS
-//! "M9 lane a"): the row shows a name, so the name must be why it is there. Two indexes naming
-//! one path make one row. Names match without case, as Spotlight's do (Q310).
+//! A hit whose name does not match is dropped, content hits included: the row shows a name, so the
+//! name must be why it is there. Two indexes naming one path make one row. Names match without
+//! case, as Spotlight's do.
 
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -31,7 +31,7 @@ const RECENT: [(u64, u32); 2] = [(7, 50), (30, 25)];
 
 /// `hits` as rows for `needle`, best first; a hit whose name does not match is dropped (an
 /// index can match content, but the row must say why it is there: content hits keep a floor
-/// score instead, lane a's call, recorded in FINDINGS).
+/// score instead).
 pub fn file_items(
     hits: &[FileHit],
     needle: &Needle,
@@ -57,8 +57,8 @@ pub fn file_items(
     rows
 }
 
-/// `needle` matching without case, as Spotlight matches file names (Q310): the launcher's
-/// needle is smart case, and a lower-case needle is case-insensitive. nucleo's operators
+/// `needle` matching without case, as Spotlight matches file names: the launcher's needle is smart
+/// case, and a lower-case needle is case-insensitive. nucleo's operators
 /// (`^`, `$`, `'`, `!`) have no case, so lower-casing keeps them.
 fn without_case(needle: &Needle) -> Needle {
     Needle::parse(&needle.text().to_lowercase())

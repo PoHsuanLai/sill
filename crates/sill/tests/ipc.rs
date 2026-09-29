@@ -1,6 +1,6 @@
-//! The IPC server's public surface, against a fake dispatcher on a temp socket: no running
-//! host, no Wayland display, no `Services`. Checks Ping -> Pong, an over-long line -> `Failed`,
-//! and the 2 s reply timeout (plan "M1 daemon" acceptance).
+//! The IPC server's public surface, against a fake dispatcher on a temp socket: no running host, no
+//! Wayland display, no `Services`. Checks Ping -> Pong, an over-long line -> `Failed`, and the 2 s
+//! reply timeout.
 
 use std::io::BufReader;
 use std::time::{Duration, Instant};

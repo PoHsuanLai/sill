@@ -38,7 +38,7 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| world.services.clone());
-    // Not the desktop's portal and appearance file: they answer off-thread (FINDINGS G370).
+    // Not the desktop's portal and appearance file: they answer off-thread.
     use_context_provider(PinnedAppearance::default);
     use_context_provider(|| world.settings.clone());
     use_context_provider(|| world.link.clone());
@@ -56,7 +56,7 @@ pub struct Running {
 
 impl Running {
     /// Publish `banners` (newest first) as the service would, taken at this instant (the next
-    /// `advance` runs the woken column first, quire G311).
+    /// `advance` runs the woken column first).
     pub fn show(&mut self, banners: Vec<LiveBanner>) {
         self.feeds.notifications.send_replace(Notifications {
             banners,

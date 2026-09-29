@@ -102,7 +102,7 @@ pub enum Command {
         #[command(subcommand)]
         action: IdleAction,
     },
-    /// The launcher's clipboard history (M9).
+    /// The launcher's clipboard history.
     Clipboard {
         #[command(subcommand)]
         action: ClipboardAction,
@@ -202,7 +202,7 @@ pub enum DebugAction {
         corner: CornerArg,
     },
     /// `button` presses at X Y on SURFACE and stays down: the first half of a real drag
-    /// (shell-host's `Inject::PointerDown`, G330 closed). `sill debug pointer` moves while it
+    /// (shell-host's `Inject::PointerDown`). `sill debug pointer` moves while it
     /// is held, and `pointer-release` lets go.
     PointerPress {
         surface: String,
@@ -234,12 +234,12 @@ pub enum DebugAction {
         #[arg(required = true)]
         apps: Vec<String>,
     },
-    /// Press a key on the open launcher (a debug daemon only; M9).
+    /// Press a key on the open launcher (a debug daemon only).
     LauncherKey {
         #[arg(value_enum)]
         key: LauncherKeyArg,
     },
-    /// Print the open launcher's sections, rows and preview (a debug daemon only; M9).
+    /// Print the open launcher's sections, rows and preview (a debug daemon only).
     LauncherRows,
     /// Wake idle as real input would (a debug daemon only; inside the lock grace it opens the
     /// lock).

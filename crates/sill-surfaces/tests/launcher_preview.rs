@@ -1,8 +1,7 @@
-//! Launcher v2 on the real panel in a `ds_native::Harness` (M9 lane d): the runner's sections
+//! Launcher v2 on the real panel in a `ds_native::Harness`: the runner's sections
 //! with Top Hit and "Show More", the preview pane's keys (Space while browsing, ⌘Y, → at the end,
 //! Escape one level at a time), a row chord run from the results, Tab to one provider, and the
-//! `sill debug launcher-*` link. The M9 rows are the fakes' (`launcher_support/m9.rs`): lanes a,
-//! b and c fill the real providers.
+//! `sill debug launcher-*` link. The preview rows are the fakes' (`launcher_support/m9.rs`).
 
 mod launcher_harness;
 
@@ -150,7 +149,7 @@ fn a_real_right_enters_the_pane_only_from_the_fields_end() {
     let mut open = open("m9");
     open.harness.chord(&[Key::Ctrl], Key::Char('y'));
     open.harness.advance(Duration::from_millis(40));
-    // The field opens with its caret at the end (quire Q341, as Spotlight); Home puts it at the
+    // The field opens with its caret at the end (as Spotlight); Home puts it at the
     // start, where → moves the caret rather than entering the pane.
     open.harness.key(Key::Home);
     open.harness.key(Key::Right);
@@ -253,7 +252,7 @@ fn shift_tab_with_nothing_typed_reaches_emoji_alone() {
     );
 }
 
-/// F741: on the emoji grid a real → moves the cell (design/13 §13.3.9, 2D arrow keys) rather than
+/// On the emoji grid a real → moves the cell (design/13 §13.3.9, 2D arrow keys) rather than
 /// showing the preview; ← moves it back; Space after the move is Quick Look (the move was a
 /// browse), and ⌘Y and ⌘→ still reach the pane there.
 #[test]

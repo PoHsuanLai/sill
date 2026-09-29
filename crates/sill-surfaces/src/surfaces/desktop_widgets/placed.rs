@@ -1,14 +1,13 @@
-//! One widget at its place on the layer, and its motion (FINDINGS "Widget drag", "Widget
-//! interface port", "Drag glide on springs"): while dragged it follows the pointer 1:1 and its
-//! card is lifted (quire's `Lift::Lifted`: the card's own scale, drag shadow and drag layer,
-//! sill Q430); let go, it springs into its cell from where the hand let go at the hand's
+//! One widget at its place on the layer, and its motion: while dragged it follows the pointer 1:1
+//! and its card is lifted (quire's `Lift::Lifted`: the card's own scale, drag shadow and drag
+//! layer); let go, it springs into its cell from where the hand let go at the hand's
 //! velocity; a widget making room springs to its new cell, and back, from where it is at the
 //! speed it has. The springs are quire's `SpringPointMotion` (one per axis, Reduced motion
 //! inside, frames only while it moves); `glide` decides what each render asks of it.
 //!
 //! A card rises into its place when it first shows: quire's `Reveal` (design/26 Appear, the
 //! `rise` at `--t-move --e-out`, once, never on a re-render; nothing under Reduced), so a widget
-//! Edit Widgets adds arrives visibly (FINDINGS F1025), and the layer's first map shows its
+//! Edit Widgets adds arrives visibly, and the layer's first map shows its
 //! widgets arriving as the reference's desktop does after a login.
 
 use dioxus::core::queue_effect;

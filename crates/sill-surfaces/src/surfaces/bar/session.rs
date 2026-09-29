@@ -37,7 +37,7 @@ enum Handoff {
 
 /// How long a menu opened while the notification center is up waits for it to leave. On KWin
 /// the center's unmapping moves the activation to the window under it, and a grabbing popup
-/// opened before that move is dismissed by it at once (FINDINGS F994); by this time the center
+/// opened before that move is dismissed by it at once; by this time the center
 /// is gone and the move is over.
 const CENTER_HANDOFF: std::time::Duration = std::time::Duration::from_millis(150);
 
@@ -282,7 +282,7 @@ fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
     }
     match effect {
         BarEffect::Show(menu) => match center_open(deps) {
-            // The center leaves first; the popup opens once it has (F994).
+            // The center leaves first; the popup opens once it has.
             Some(center) => {
                 center.close();
                 let mut handoff = slots.handoff;
@@ -336,8 +336,7 @@ fn show(slots: Slots, deps: &SessionDeps, menu: BarMenu) {
     };
     // Fixed, not `menu_popup`'s FitContent: the document holds only an absolutely
     // placed frame and an overlay, so shell-host's content fit measures it at nothing
-    // and shrinks the popup to 1 x 1 (FINDINGS "Adoption of the bar gaps"). The size is
-    // the geometry's estimate, room included.
+    // and shrinks the popup to 1 x 1. The size is the geometry's estimate, room included.
     let config = PopupConfig {
         anchor: PopupAnchor::Rect,
         size: PopupSize::Fixed,
@@ -390,7 +389,7 @@ fn view(slots: Slots, deps: &SessionDeps, menu: BarMenu) -> Option<PopupView> {
         control_center: &deps.state.control_center,
         fit: Fit {
             page: *slots.page.peek(),
-            // Read, not followed: a scan must not re-render the bar (F175); the size catches
+            // Read, not followed: a scan must not re-render the bar; the size catches
             // up at the popup's next view.
             wifi_rows: wifi_rows(&deps.services.wifi.borrow()),
             device_rows: device_rows(&deps.services.bluetooth.borrow()),

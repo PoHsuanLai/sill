@@ -7,7 +7,7 @@
 //! (§4.1), the icon inside at the design inset, the fallback glyph at its 56 % (§4.3), in the
 //! icon style the dock provides as [`TileLook`] (`icon.rs`, `app_icons`). Under Muted or Monochrome the plate takes
 //! the same `(IconStyle, Tint)` pair `app_icons` hands `ds::icon::retint`, through `IconView`'s
-//! `plate_tint: PlateTint::of(style, tint)` (sill FINDINGS Q72): the plate's two stops and its
+//! `plate_tint: PlateTint::of(style, tint)`: the plate's two stops and its
 //! glyph ink are re-coloured by quire itself, so a Muted or Monochrome dock is one hue, plate
 //! included; `PlateTint::of` is `None` under Colour, which changes nothing. The badge
 //! and the ring hang off the plate and scale with it (design/10 §10.3.2); quire's `RunningDot`

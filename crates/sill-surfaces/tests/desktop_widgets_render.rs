@@ -1,4 +1,4 @@
-//! What the desktop widget layer draws (M10 lane b), the real `DesktopWidgets` in a
+//! What the desktop widget layer draws, the real `DesktopWidgets` in a
 //! `ds_native::Harness` on the fake services: `widgets.desktop_widgets` placed on the grid from
 //! the top right, each in its Widget-material frame at its cell's box; a saved placement kept;
 //! the placements written back to the file the root was given (a temp file here: never the
@@ -162,7 +162,7 @@ fn the_cell_and_the_gap_are_settings() {
     assert_eq!(box_of(&h, "#widget-battery"), (1080, 0, 200, 200));
 }
 
-/// F1025: a widget Edit Widgets adds arrives visibly: its card rises into its place once
+/// A widget Edit Widgets adds arrives visibly: its card rises into its place once
 /// (quire's `Reveal`, design/26 Appear), the widgets already there do not replay theirs, and the
 /// layer then paints nothing.
 #[test]
@@ -218,7 +218,7 @@ fn start_live() -> (Harness, tokio::sync::watch::Sender<ShellFile>, fake::Feeds)
     (h, tx, feeds)
 }
 
-/// G423: a widget Edit Widgets takes off the desktop plays its exit where it stood (quire's
+/// A widget Edit Widgets takes off the desktop plays its exit where it stood (quire's
 /// `widget-out`, `data-presence="leaving"`), then is dropped, and the layer paints nothing; one
 /// added back while it leaves is placed again and never goes.
 #[test]

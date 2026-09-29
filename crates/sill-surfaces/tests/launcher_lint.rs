@@ -1,4 +1,4 @@
-//! Coherence rules 1 and 2 (quire CONSUMING.md §5) for the launcher: its stylesheet under
+//! Coherence rules 1 and 2 for the launcher: its stylesheet under
 //! `Profile::Strict`, and renders of the real `Launcher` (open over results, and with its
 //! actions menu) and `LauncherCatcher` through the markup lint. The panel is rendered by the
 //! harness (its palette embedded, measured and focused as live) and by an SSR pass.

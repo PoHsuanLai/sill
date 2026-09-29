@@ -1,4 +1,4 @@
-//! shell-host F36: the dock holds a `FrameDrive` from `RequestFrames` to `StopFrames`, so
+//! The dock holds a `FrameDrive` from `RequestFrames` to `StopFrames`, so
 //! every motion's settle must be reachable at any frame rate. Nested cosmic-comp calls back
 //! every 1-2 ms, KWin every 16.7; both are run here, frame by frame, until the machine stops
 //! frames.

@@ -2,7 +2,7 @@
    the bar (`Ds { extent: RootExtent::Viewport }`, a transparent Popover root); the panel is
    quire's `Panel` (its edge, width, material, padding and motion), the group heads quire's
    `GroupHeader`, the cards quire's `NotificationCard`. Everything here is layout and tokens.
-   Attribute selectors carry `*|` (spike S2). */
+   Attribute selectors carry `*|`. */
 
 /* The click-outside catcher: every pixel the panel does not cover. */
 .sill-nc-catcher{ position:absolute; top:0; right:0; bottom:0; left:0; }
@@ -24,7 +24,7 @@
 /* The history: the groups' headers and cards, newest first, as one quire `LeavingList` (its
    rows fold, heal and enter). The whole column scrolls (history, then the widgets under it, as
    macOS's Notification Center does), so the list takes its natural height. The gap between
-   rows is inside each row (quire CONSUMING "Leaving list"): a leaving row's measured height,
+   rows is inside each row: a leaving row's measured height,
    gap included, is how far the rows below it heal. */
 .sill-nc-list{ display:flex; flex-direction:column; flex:none; }
 .sill-nc-item{ display:flex; flex-direction:column; padding-top:var(--s-6); }
@@ -39,7 +39,7 @@
 .sill-nc-foot{ padding:var(--s-8) var(--s-4) 0; font-size:var(--fs-help); color:var(--ink-faint);
   border-top:var(--hair) solid var(--line-soft); }
 
-/* The widgets slot (design/20 §1.14, M10): quire's widget tiles under the history, standing
+/* The widgets slot (design/20 §1.14): quire's widget tiles under the history, standing
    apart as the control center's modules do. */
 .sill-nc-widgets{ display:flex; flex-direction:column; align-items:center; gap:var(--s-8); padding-top:var(--s-8); }
 /* "Edit Widgets" under the tiles, centred, as at the foot of macOS's Notification Center. */

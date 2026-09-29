@@ -80,7 +80,7 @@ fn a_budget_of_nothing_is_a_partial_answer() {
     assert_eq!(answer, FileAnswer::Partial(Vec::new()));
 }
 
-/// Step 5 of the lane's acceptance: detection only, reported (FINDINGS "M9 lane a").
+/// Detection only, reported.
 #[test]
 #[ignore = "needs tracker"]
 fn this_machine_has_tracker() {

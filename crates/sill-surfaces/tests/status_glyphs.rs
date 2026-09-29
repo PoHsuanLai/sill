@@ -1,4 +1,4 @@
-//! D1 on the real surfaces (quire Q390-Q392): the fake services, mapped by `glyph_state`, drive
+//! The status glyphs on the real surfaces: the fake services, mapped by `glyph_state`, drive
 //! the status glyphs in the real `Bar`'s Wi-Fi, battery, volume and Bluetooth items and in the
 //! real `ControlCenter`'s Wi-Fi and Bluetooth discs, Battery header and Sound level. Each change
 //! ends at 0 frames (design/26 R3), on the virtual clock.
@@ -31,7 +31,7 @@ fn bar_app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| services);
-    // Not the desktop's portal and appearance file: they answer off-thread (FINDINGS G370).
+    // Not the desktop's portal and appearance file: they answer off-thread.
     use_context_provider(PinnedAppearance::default);
     use_context_provider(|| {
         let mut file = ShellFile::default();
@@ -134,7 +134,7 @@ fn battery(level: u16, charge: Charge) -> Battery {
 
 const WIFI: &str = "[*|aria-label=Network] .ds-status-glyph";
 
-/// G370: with its appearance pinned, nothing off the harness's thread is left to wake the settled
+/// With its appearance pinned, nothing off the harness's thread is left to wake the settled
 /// bar, however much wall time passes. The live appearance's portal replies woke it 5 to 15 ms
 /// of wall time after a settle, which a loaded machine stretched into the settle's quiet window.
 #[test]
@@ -150,7 +150,7 @@ fn the_settled_bar_stays_quiet_on_the_wall_clock() {
 fn the_bar_joins_by_searching_never_wifi_off_then_fills_and_grows_the_badge() {
     let (mut harness, feeds) = bar();
     assert_eq!(lit_arcs(&harness, WIFI), 4, "the fake joins at 72 %");
-    // G300: connecting is Joining with the service's stamp, never the slash of "Wi-Fi off".
+    // Connecting is Joining with the service's stamp, never the slash of "Wi-Fi off".
     feeds.network.send_replace(joining());
     settle_until(&mut harness, |h| lit_arcs(h, WIFI) == 1);
     assert_eq!(harness.count(&format!("{WIFI} [*|data-part=slash]")), 0);

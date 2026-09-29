@@ -9,8 +9,8 @@ use crate::apps::icons::{IconTheme, resolve_icon};
 use crate::apps::index::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing, Terminal};
 use sill_launcher::AppId;
 
-/// The desktop this scan targets. sill only ever runs as the COSMIC session (plan hooks
-/// table), so `OnlyShowIn`/`NotShowIn` are matched against this constant rather than the live
+/// The desktop this scan targets. sill only ever runs as the COSMIC session, so
+/// `OnlyShowIn`/`NotShowIn` are matched against this constant rather than the live
 /// `XDG_CURRENT_DESKTOP`, which keeps the result deterministic under a nested test compositor
 /// too.
 const CURRENT_DESKTOP: &str = "COSMIC";

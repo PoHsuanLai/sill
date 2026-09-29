@@ -1,4 +1,4 @@
-//! One row of the center's list, as quire's `LeavingList` takes it (FINDINGS F1071): a group's
+//! One row of the center's list, as quire's `LeavingList` takes it: a group's
 //! header (quire's `GroupHeader`: the app's icon and name, the count, "N more" or "Show less",
 //! Clear) keyed by its `AppKey`, or a card (quire's `NotificationCard` through [`NoteCard`], the
 //! newest stacked over the rest while folded) keyed by its `NotificationId`. The keyboard's

@@ -1,10 +1,6 @@
 //! `notifications.*` (design/22 §3.12 and `notifications.banner_material` from §3.1; design/13
 //! §13.3.6). Do Not Disturb and the banner style are on the Notifications page (§5); the rest
 //! are Advanced.
-//!
-//! M6 adds four keys design/22 has no rows for yet (`tests/keys.rs` `AWAITING_ROWS`; the row
-//! text is in sill FINDINGS "M6 freeze"): `server`, `banner_position`, `history_cap` and
-//! `center_width_px`.
 
 use ds_settings::schema::Page;
 use ds_settings::{Count, Fraction, Ms, Px, Scalar};
@@ -322,7 +318,7 @@ pub struct NotificationsSettings {
         advanced
     )]
     pub group_offset_px: Px,
-    /// `notifications.banner_material` (§3.1 row, owned by sill: quire FINDINGS F15).
+    /// `notifications.banner_material` (§3.1 row, owned by sill).
     #[settings(
         label = "Banner material",
         help = "The banner's toast material, or ink on paper.",

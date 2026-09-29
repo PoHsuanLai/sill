@@ -1,7 +1,7 @@
 //! What the panel does on its inputs: an opening (reset, first query, `open_latency_ms`), a
 //! keystroke in the field (a new generation, filtered while Tab's filter holds), a key the
 //! palette leaves alone (the keyboard machine), a pick (activation, then close; a "Show More"
-//! line opens its section) and a dismissal. The M9 keys (the preview pane's, row chords, the
+//! line opens its section) and a dismissal. The other keys (the preview pane's, row chords, the
 //! debug link's) are `pane_keys.rs`.
 
 use dioxus::prelude::*;
@@ -31,7 +31,7 @@ use crate::surfaces::power_menu::PowerMenuLink;
 
 /// The stderr line for one opening: from the request's arrival (`sill launcher toggle|open`)
 /// to the first frame the compositor showed of the panel. The daemon's
-/// `launcher.open_latency_ms` (M4 perf-ime) times the IPC dispatch alone.
+/// `launcher.open_latency_ms` times the IPC dispatch alone.
 pub fn first_frame_line(elapsed: std::time::Duration) -> String {
     format!(
         "launcher.open_to_frame_ms={:.3}",
@@ -54,7 +54,7 @@ pub(crate) struct PanelCtx {
     pub(crate) link: LauncherLink,
     pub(crate) shown: ReadSignal<LauncherShown>,
     pub session: Signal<Session>,
-    /// The M9 state: the preview pane, "Show More", Tab's ring.
+    /// The pane state: the preview pane, "Show More", Tab's ring.
     pub pane: Signal<PaneSession>,
     /// The palette field's focus: asked for again when the actions menu closes.
     pub field: FocusRequest,
@@ -70,7 +70,7 @@ pub(crate) struct PanelCtx {
     pub(crate) picking: CopyValue<Picking>,
     /// How many times the preview pane has finished leaving (quire's `on_hidden`).
     pub(crate) left: Signal<u64>,
-    /// quire's palette handle (Q400): a Show More / Show Less run here, not through the
+    /// quire's palette handle: a Show More / Show Less run here, not through the
     /// palette's own Enter or click, still plays the group's rise or heal.
     pub(crate) palette: ds::PaletteHandle,
 }
@@ -181,7 +181,7 @@ impl PanelCtx {
             .map(|opening| self.session.peek().for_opening(&opening))
     }
 
-    /// The M9 state as it stands for the current opening.
+    /// The pane state as it stands for the current opening.
     pub(crate) fn current_pane(&self) -> Option<PaneSession> {
         self.opening()
             .map(|opening| self.pane.peek().for_serial(opening.serial))
@@ -326,7 +326,7 @@ impl PanelCtx {
         self.search(&text, filter);
     }
 
-    /// Keep `pane` as this opening's M9 state.
+    /// Keep `pane` as this opening's pane state.
     pub(crate) fn store_pane(&self, pane: PaneSession) {
         let mut store = self.pane;
         store.set(pane);
@@ -340,8 +340,7 @@ impl PanelCtx {
 
     /// Open or close `section`'s hidden rows; the selection stays on its line.
     /// Its line moves (below the added rows, or up past the removed ones), so the selection
-    /// follows it: left on the old index it would land on another row. (It once also kept sill's
-    /// own `↵` from changing a second group; quire now places the selected row's chord, F1040.)
+    /// follows it: left on the old index it would land on another row.
     pub(crate) fn toggle_section(&self, section: sill_launcher::Section) {
         let (Some(session), Some(pane)) = (self.current(), self.current_pane()) else {
             return;
@@ -379,7 +378,7 @@ impl PanelCtx {
         };
         let choice = self.pane_choice(&item, choice);
         // Chosen first: the runner looks the row up among the current rows, which closing
-        // clears (FINDINGS F117).
+        // clears.
         let _ = self.services.search.send(SearchCommand::Chosen {
             key: ItemKey::of(item.provider, &item.id),
             choice: choice.clone(),

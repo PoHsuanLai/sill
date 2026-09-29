@@ -14,7 +14,7 @@ pub enum MenuSide {
     /// Right-side status items: the menu's right edge 8 px right of the item's.
     Status,
     /// The control center: the menu's right edge at the output's right edge, less the popup
-    /// margin, whatever the item's place (macOS's top-right panel; M5 agent c places it).
+    /// margin, whatever the item's place (macOS's top-right panel).
     OutputEdge,
 }
 
@@ -40,7 +40,7 @@ pub fn menu_popup(button: &str, side: MenuSide, max_px: i32) -> PopupConfig {
 }
 
 /// The offset from the anchor corner design/13 §13.3.2 places a menu at: (-8, +6) for a title,
-/// (+8, +6) for a status item: `PopupConfig::offset` (shell-host closed gap G3).
+/// (+8, +6) for a status item: `PopupConfig::offset`.
 pub fn menu_offset(side: MenuSide) -> (i32, i32) {
     match side {
         MenuSide::Title => (-8, 6),

@@ -1,8 +1,8 @@
-//! One notification drawn as quire's `NotificationCard` (design/13 §13.3.6 "Banner", "Content";
-//! quire CONSUMING.md "Notification parts"), shared by the banners and the notification center
-//! so both read alike. sill supplies the words (the app's icon and name, the age, the body's
-//! runs, the actions) and hears the presses; quire draws the plate, the two-to-six-line body,
-//! the actions and the close button on hover, the group's count and layers, and the swipe.
+//! One notification drawn as quire's `NotificationCard` (design/13 §13.3.6 "Banner", "Content"),
+//! shared by the banners and the notification center so both read alike. sill supplies the words
+//! (the app's icon and name, the age, the body's runs, the actions) and hears the presses; quire
+//! draws the plate, the two-to-six-line body, the actions and the close button on hover, the
+//! group's count and layers, and the swipe.
 
 pub mod actions;
 pub mod body;

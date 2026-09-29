@@ -1,4 +1,4 @@
-//! sill's own lock screen (design/20 §1.9; M11 lane a; FINDINGS "M11 freeze" F544): one
+//! sill's own lock screen (design/20 §1.9): one
 //! `ext-session-lock-v1` surface per output, which shell-host creates when the daemon locks
 //! (`crates/sill/src/lock/`), never a layer surface. Each draws quire's `LockScreen` stage in
 //! `Ds { material: Window, extent: Viewport }`: the output's pre-blurred wallpaper crop

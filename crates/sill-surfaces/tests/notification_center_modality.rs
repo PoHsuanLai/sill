@@ -1,4 +1,4 @@
-//! FINDINGS G390/F74: the center's own quire controls (Clear All) now show quire's focus ring
+//! The center's own quire controls (Clear All) show quire's focus ring
 //! under the keyboard. The center runs the real `NotificationCenter`, whose root wraps quire's
 //! `Ds` in `HostModalityBridge`; with no shell-host `SurfaceHandle` (`ds_native::Harness` has no
 //! seat) the bridge no-ops, same as `use_ds_scale`'s fallback, and the harness's own root

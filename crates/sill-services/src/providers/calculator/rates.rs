@@ -1,9 +1,8 @@
-//! Currency rates for the calculator (M9 lane c, FINDINGS "M9 freeze" F650). Off by default
-//! (`launcher.currency = "off"`): nothing is fetched and currency codes are not units. With
-//! `ecb`, the European Central Bank's daily reference rates (`eurofxref-daily.xml`, EUR based)
-//! are fetched at most once a day by `curl` into `$XDG_CACHE_HOME/sill/ecb-rates.xml`, off the
-//! keystroke path, and handed to fend through its `ExchangeRateFnV2` (base EUR, which is 1).
-//! Units need no network: fend converts them already.
+//! Currency rates for the calculator. Off by default (`launcher.currency = "off"`): nothing is
+//! fetched and currency codes are not units. With `ecb`, the European Central Bank's daily
+//! reference rates (`eurofxref-daily.xml`, EUR based) are fetched at most once a day by `curl` into
+//! `$XDG_CACHE_HOME/sill/ecb-rates.xml`, off the keystroke path, and handed to fend through its
+//! `ExchangeRateFnV2` (base EUR, which is 1). Units need no network: fend converts them already.
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
@@ -40,7 +39,7 @@ const ECB_MARKER: &str = "ecb.int/vocabulary";
 
 /// The rates in an ECB `eurofxref-daily.xml`: every `<Cube currency="USD" rate="1.0876"/>`,
 /// plus `EUR` at 1. A small attribute scan, not an XML parser (the file is three levels of
-/// one element). Lane c fills it.
+/// one element).
 pub fn parse_ecb(xml: &str) -> Result<Rates, RatesFault> {
     if !xml.contains(ECB_MARKER) {
         return Err(RatesFault::NotEcb);

@@ -4,7 +4,7 @@
 //! "Launch order" is read from the window keys: the `cosmic_wl` thread numbers toplevels as it
 //! first sees them, so an app's smallest key is when it first had a window. A tile's
 //! [`TileId`] is a hash of what it stands for, not its position, so a bounce or a pressed tile
-//! stays on its app when another app's tile appears before it (FINDINGS "M3 dock-ui").
+//! stays on its app when another app's tile appears before it.
 
 use sill_launcher::AppId;
 use sill_services::{Activity, AppIndex, DockPins, Toplevel, Toplevels, WindowState, match_app};

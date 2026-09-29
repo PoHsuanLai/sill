@@ -1,7 +1,6 @@
-//! Which terminal wraps a `Terminal=true` entry's `Exec` (plan "Launch": "Terminal=true
-//! wrapper"). `$TERMINAL`, if it names something on `PATH`, else the first of ghostty, wezterm,
-//! foot, cosmic-term found there (FINDINGS.md "M2 launch": the user prefers ghostty, and it is
-//! what this machine has).
+//! Which terminal wraps a `Terminal=true` entry's `Exec`. `$TERMINAL`, if it names something on
+//! `PATH`, else the first of ghostty, wezterm, foot, cosmic-term found there (the user prefers
+//! ghostty, and it is what this machine has).
 
 use std::path::{Path, PathBuf};
 

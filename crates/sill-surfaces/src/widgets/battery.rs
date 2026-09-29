@@ -1,4 +1,4 @@
-//! The Batteries widget's provider (M10 lane b; design/23-WIDGETS.md section 4.1): this
+//! The Batteries widget's provider (design/23-WIDGETS.md section 4.1): this
 //! machine's battery (UPower) and every connected Bluetooth device that reports one (BlueZ
 //! `Battery1`), as quire's `BatteryEntry`. quire's `BatteryWidget` draws them (one ring with the
 //! hero figure, the 2 x 2 grid, the row; each ring holds the device's filled glyph and fills on

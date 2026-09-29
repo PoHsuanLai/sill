@@ -68,7 +68,7 @@ stop_daemon() {
 
 # Every `launcher.open_latency_ms=<ms>` value the daemon's log holds, one per line.
 open_latencies() {
-  # The panel's request-to-first-frame line (M4 launcher-ui) is the real open latency; the
+  # The panel's request-to-first-frame line is the real open latency; the
   # daemon's `open_latency_ms` times the IPC dispatch alone and is the fallback.
   if grep -q 'launcher\.open_to_frame_ms=' "$OUT_DIR/daemon.log"; then
     grep -o 'launcher\.open_to_frame_ms=[0-9.]*' "$OUT_DIR/daemon.log" | cut -d= -f2
@@ -175,7 +175,6 @@ step_shortcut() {
   if [ "$after" -le "$before" ]; then
     echo "skipped: no new launcher.open_latency_ms line; either cosmic-comp's Spawn could not" \
       "resolve 'sill' on its own PATH, or the shortcut never matched a wtype-injected key" \
-      "(see FINDINGS.md 'M4 perf-ime')" \
       | tee -a "$log" >&2
     return 2
   fi

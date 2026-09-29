@@ -3,8 +3,8 @@
 //! whatever digits happen to appear in them (`"3 days ago"`, `"iPhone 15"`).
 //!
 //! ISO currency codes count as units only while `launcher.currency = "ecb"` has given a table
-//! of them (M9 freeze F650): with it `off`, `rates` is `None` and `"10 usd to eur"` reads as a
-//! plain search term, never an expression.
+//! of them: with it `off`, `rates` is `None` and `"10 usd to eur"` reads as a plain search term,
+//! never an expression.
 
 use super::rates::Rates;
 
@@ -99,8 +99,8 @@ const SYMBOLS: &str = "+-*/^%()";
 /// Whether `text` reads as an expression fend should try to evaluate: it has digits, an
 /// operator, or an `=`, and every word in it is a number, a unit, a keyword or a known function
 /// — never a plain search term such as `"cd"` or `"ls -la"`. `rates` is the day's ECB table
-/// while `launcher.currency = "ecb"`, else `None` (F650): only then does a currency code count
-/// as a unit word.
+/// while `launcher.currency = "ecb"`, else `None`: only then does a currency code count as a unit
+/// word.
 pub fn looks_like_expression(text: &str, rates: Option<&Rates>) -> bool {
     let trimmed = text.trim();
     if trimmed.is_empty() {

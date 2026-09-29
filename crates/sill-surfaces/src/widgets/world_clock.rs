@@ -1,4 +1,4 @@
-//! The World Clock widget's provider (M10 lane b): each zone in `widgets.world_clocks` as
+//! The World Clock widget's provider: each zone in `widgets.world_clocks` as
 //! quire's `ClockCity`, the city's time, day or night there, and how far it is from here
 //! ("Today, +7h", "Tomorrow, +13h") as its note, a new entry on the clock's minute tick. quire's
 //! `WorldClockWidget` draws them (dials on the desktop, digits in the tile, up to

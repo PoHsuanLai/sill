@@ -7,9 +7,9 @@
 //! `PolkitCommand::Answer { cookie, secret: Secret::new(text) }` (the text moves into the
 //! `Secret` at once and is never kept in a signal), `oncancel` sending
 //! `PolkitCommand::Dismiss(cookie)`; when the request goes away `shown` turns `Hidden` and the
-//! surface unmaps at `on_hidden` ([`super::stage`]). Nothing is styled under `.ds-polkit*`
-//! (quire CONSUMING "Lock, polkit and switcher"); the only markup of sill's own is the wrapper
-//! that hears the keys' modifiers, since quire's sheet floats in the root's overlay host.
+//! surface unmaps at `on_hidden` ([`super::stage`]). Nothing is styled under `.ds-polkit*`; the
+//! only markup of sill's own is the wrapper that hears the keys' modifiers, since quire's sheet
+//! floats in the root's overlay host.
 
 use dioxus::prelude::*;
 use ds::{BlurState, CapsLock, Ds, Material, PolkitPrompt, RootExtent, Text};
@@ -85,7 +85,7 @@ fn prompt(
             user: view.user,
             state: view.state,
             caps,
-            // The sheet carries the blur region's id (quire Q260), so `layer.rs`'s
+            // The sheet carries the blur region's id, so `layer.rs`'s
             // `RegionSpec::Element(PANEL_ID)` resolves.
             panel_id: Some(super::PANEL_ID.to_owned()),
             oninput: move |_: String| {},

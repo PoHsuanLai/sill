@@ -1,6 +1,6 @@
 //! [`menu_size`] against quire's `Menu{Dropdown}` as a Harness lays it out (`Clock::Virtual`,
 //! the default appearance pinned on the root): each estimate covers the menu card with only a
-//! few pixels to spare (design/29 R9, F1061).
+//! few pixels to spare (design/29 R9).
 
 use std::cell::RefCell;
 use std::time::Duration;

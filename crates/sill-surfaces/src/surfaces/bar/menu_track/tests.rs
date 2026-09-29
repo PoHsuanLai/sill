@@ -165,7 +165,7 @@ fn press_drag_release_picks_or_closes() {
 
 #[test]
 fn a_press_on_a_title_the_pointer_switched_to_keeps_its_menu() {
-    // F991: with A open, the pointer enters B (the hover switch shows B), then presses B. That
+    // With A open, the pointer enters B (the hover switch shows B), then presses B. That
     // press is the click that opens B; only a press on a title already pressed closes.
     let switched = vec![
         (0, MenuIn::PressTitle(A)),

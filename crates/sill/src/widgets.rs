@@ -1,8 +1,8 @@
-//! The desktop widget layer on the daemon's side (FINDINGS "M10 freeze"): one surface per output
-//! while `widgets.desktop` is `On` (closed when it turns `Off`), and `sill widgets
-//! toggle-desktop`, which flips the key in `settings.toml` (the file stays the one truth; the
-//! watch brings the change back as a `ShellMsg::Settings` too, and the reply publishes it at
-//! once so the layer follows before the watch has fired).
+//! The desktop widget layer on the daemon's side: one surface per output while `widgets.desktop` is
+//! `On` (closed when it turns `Off`), and `sill widgets toggle-desktop`, which flips the key in
+//! `settings.toml` (the file stays the one truth; the watch brings the change back as a
+//! `ShellMsg::Settings` too, and the reply publishes it at once so the layer follows before the
+//! watch has fired).
 
 use std::path::Path;
 

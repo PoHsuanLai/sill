@@ -1,5 +1,4 @@
-//! Which of an offer's MIME types to read, and which offers never to read at all. Pure (FINDINGS "M9
-//! freeze" F647, "M9 lane b" F682).
+//! Which of an offer's MIME types to read, and which offers never to read at all. Pure.
 //!
 //! Password managers mark what they copy so clipboard managers leave it alone: KDE's
 //! `x-kde-passwordManagerHint` (value `secret`; KeePassXC, KWallet, Plasma's own), and the

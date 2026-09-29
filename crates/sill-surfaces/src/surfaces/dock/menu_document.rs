@@ -2,8 +2,7 @@
 //! (`menu_geometry`), holding one ds `Menu{Context}` anchored at the menu's bottom-left corner.
 //! The root is `Material::Popover`, transparent on its own box; the menu card paints the
 //! material and its drop, which the frame's room keeps inside the popup surface. The frame is in
-//! flow at the viewport's size and the root fills it (quire CONSUMING §2's root-frame rule), so
-//! a press reaches the menu.
+//! flow at the viewport's size and the root fills it, so a press reaches the menu.
 
 use dioxus::prelude::*;
 use ds::{Anchor, BlurState, Ds, Material, Menu, MenuKind, Point, Px};

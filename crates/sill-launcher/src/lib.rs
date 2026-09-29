@@ -1,5 +1,4 @@
-//! Launcher core: providers, queries, ranking and frecency, with no I/O (plan "Design:
-//! `<shell>` repo": `sill-launcher`, future repo `sift`).
+//! Launcher core: providers, queries, ranking and frecency, with no I/O (future repo `sift`).
 //!
 //! Pure by construction: `scripts/check-boundary.sh` keeps `dioxus`, `zbus`, `wayland-client`,
 //! `tokio` and `libpulse-binding` out of this crate. Providers that need the system live in

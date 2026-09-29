@@ -1,5 +1,5 @@
 //! How tall each module and each detail pane is, for the popup's estimate (shell-host never
-//! measures the popup, G7), from quire's sizes rather than copies of them (design/29 R9):
+//! measures the popup), from quire's sizes rather than copies of them (design/29 R9):
 //! `ds::CONTROL_CENTER` and `ds::ControlSize`. What sill's own sheet adds (`control_center.css`)
 //! is named here. Each is checked against a Harness layout in `tests/cc_estimates.rs`: an
 //! estimate covers its box with under 8 px to spare. Pure.

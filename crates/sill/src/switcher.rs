@@ -1,9 +1,9 @@
-//! The app switcher on the daemon's side (M11 lane c; FINDINGS "M11 freeze" F548, F549): one
-//! warm hidden switcher surface per output, `sill switcher next|prev|cancel|commit` written to
-//! the [`SwitcherLink`] for the output the switcher opens on, and `sill debug switcher`.
+//! The app switcher on the daemon's side: one warm hidden switcher surface per output, `sill
+//! switcher next|prev|cancel|commit` written to the [`SwitcherLink`] for the output the switcher
+//! opens on, and `sill debug switcher`.
 //!
-//! Which output: the one under the pointer (design/13) is not known to the daemon (F140), so
-//! the main display (the banners' output) until a later pass knows the pointer's output.
+//! Which output: the one under the pointer (design/13) is not known to the daemon, so the main
+//! display (the banners' output) until a later pass knows the pointer's output.
 
 use shell_host::{HostCtx, OutputId, OutputInfo, Root};
 use sill_ipc::{FakeSwitcher, Response, SwitcherRequest};

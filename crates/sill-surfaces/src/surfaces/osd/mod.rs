@@ -1,4 +1,4 @@
-//! The OSD (design/20 §1.7; quire CONSUMING.md "OSD parts"): the indicator that shows a new
+//! The OSD (design/20 §1.7): the indicator that shows a new
 //! volume or brightness level, one Overlay surface per output, spawned hidden and kept warm
 //! (`set_visibility`, as the launcher's), mapped for a change and unmapped once quire's `Osd`
 //! card says its exit has faded out (`on_hidden`).

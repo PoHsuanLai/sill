@@ -1,5 +1,5 @@
 //! The sill IPC protocol: newline-delimited JSON requests and responses, one request per
-//! connection (plan "Design: `<shell>` repo", CLI/IPC).
+//! connection.
 //!
 //! Pure: no socket, no runtime. The daemon (`sill::ipc_server`) and the command line
 //! (`sill::cli`) own the stream; this crate owns the words on it.

@@ -5,8 +5,7 @@
 //! `WindowsFirst` (the default, design/22's "plan order") is flat: windows, desktop actions,
 //! Keep in Dock (reading Remove from Dock on a pinned app), Quit. `AppleOrder` is §10.3.7's:
 //! the same, then Keep in Dock and Show in Files in an `Options` submenu, Hide and Quit. Open
-//! at Login is not offered: writing `~/.config/autostart` is a service sill does not have yet
-//! (FINDINGS "M3 dock-ui").
+//! at Login is not offered: writing `~/.config/autostart` is a service sill does not have yet.
 
 use ds::{Availability, Check, MenuEntry, Trail};
 use sill_launcher::AppId;

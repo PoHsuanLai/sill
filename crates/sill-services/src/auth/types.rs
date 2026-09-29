@@ -171,12 +171,12 @@ pub enum AuthCommand {
     /// Check `secret` for this session's user (ignored while `Checking`).
     Submit(Secret),
     /// A new lock begins, or the last one ended: back to `Idle`, notes cleared. The failure count
-    /// is kept until a success (it only counts: no lockout, F862).
+    /// is kept until a success (it only counts: no lockout).
     Reset,
     /// Feed a verdict as if a check had returned it, without PAM (`sill debug auth`).
     Fake(FakeVerdict),
-    /// The lock grace opened the lock (sill FINDINGS "sill idle (Q420 B)", F908): `Accepted`
-    /// with no check, only while a lock is up and nothing is being checked. Only the idle
-    /// service can send it: a [`crate::idle::GraceTicket`] is minted by the grace rule alone.
+    /// The lock grace opened the lock: `Accepted` with no check, only while a lock is up and
+    /// nothing is being checked. Only the idle service can send it: a [`crate::idle::GraceTicket`]
+    /// is minted by the grace rule alone.
     Grace(crate::idle::GraceTicket),
 }

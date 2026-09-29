@@ -42,7 +42,7 @@ pub struct LauncherSettings {
         advanced
     )]
     pub top_vertical_fraction: Fraction,
-    /// `launcher.material` (§3.1 row, owned by sill: quire FINDINGS F15).
+    /// `launcher.material` (§3.1 row, owned by sill).
     #[settings(
         label = "Panel material",
         help = "The launcher panel's material.",
@@ -99,7 +99,7 @@ pub struct LauncherSettings {
         advanced
     )]
     pub row_detail_px: Px,
-    /// `launcher.files_backend` (M9).
+    /// `launcher.files_backend`.
     #[settings(
         label = "File search",
         help = "Where the launcher finds documents: `auto` asks Tracker, else searches your home folder with fd; or name one; `off` searches no files.",
@@ -107,7 +107,7 @@ pub struct LauncherSettings {
         advanced
     )]
     pub files_backend: FilesBackend,
-    /// `launcher.files_budget_ms` (M9).
+    /// `launcher.files_budget_ms`.
     #[settings(
         label = "File search time limit",
         help = "How long one file search may take before the launcher shows what it found so far.",
@@ -117,7 +117,7 @@ pub struct LauncherSettings {
         advanced
     )]
     pub files_budget_ms: Ms,
-    /// `launcher.clipboard_history` (M9).
+    /// `launcher.clipboard_history`.
     #[settings(
         label = "Clipboard history",
         help = "Keep what you copy so the launcher can find it again. Kept in memory only and forgotten when sill stops; copies a password manager marks are never kept.",
@@ -125,7 +125,7 @@ pub struct LauncherSettings {
         advanced
     )]
     pub clipboard_history: ClipboardHistory,
-    /// `launcher.clipboard_cap` (M9).
+    /// `launcher.clipboard_cap`.
     #[settings(
         label = "Clipboard history length",
         help = "How many copied items the history keeps; the oldest goes first.",
@@ -134,7 +134,7 @@ pub struct LauncherSettings {
         advanced
     )]
     pub clipboard_cap: Count,
-    /// `launcher.clipboard_image_max_mb` (M9).
+    /// `launcher.clipboard_image_max_mb`.
     #[settings(
         label = "Largest copied image kept",
         help = "Copied images larger than this are not kept; 0 keeps no images.",
@@ -144,7 +144,7 @@ pub struct LauncherSettings {
         advanced
     )]
     pub clipboard_image_max_mb: Count,
-    /// `launcher.emoji_skin_tone` (M9).
+    /// `launcher.emoji_skin_tone`.
     #[settings(
         label = "Emoji skin tone",
         help = "The skin tone of emoji that have one.",
@@ -152,7 +152,7 @@ pub struct LauncherSettings {
         advanced
     )]
     pub emoji_skin_tone: EmojiSkinTone,
-    /// `launcher.web_search` (M9).
+    /// `launcher.web_search`.
     #[settings(
         label = "Search the web",
         help = "Offer a web search for what you type, as the launcher's last result.",
@@ -160,7 +160,7 @@ pub struct LauncherSettings {
         advanced
     )]
     pub web_search: WebSearch,
-    /// `launcher.web_engine_url` (M9).
+    /// `launcher.web_engine_url`.
     #[settings(
         label = "Web search address",
         help = "The search engine's address, with {query} where the words go. Only https and http addresses are opened.",
@@ -168,7 +168,7 @@ pub struct LauncherSettings {
         advanced
     )]
     pub web_engine_url: String,
-    /// `launcher.currency` (M9).
+    /// `launcher.currency`.
     #[settings(
         label = "Currency conversion",
         help = "Convert currencies in the launcher's calculator with the European Central Bank's daily rates, fetched once a day; `off` fetches nothing.",

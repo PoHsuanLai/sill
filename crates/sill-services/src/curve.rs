@@ -1,7 +1,7 @@
 //! Evaluating a CSS `cubic-bezier` at a point in time, for motion the shell drives from a frame
 //! clock rather than from CSS: the dock's magnification progress (design/10 §10.5.4) and its
-//! auto-hide slide (§10.5.5). quire's `ds::CubicBezier` is token data with no evaluator
-//! (FINDINGS.md); its control points in thousandths are what [`ease`] takes.
+//! auto-hide slide (§10.5.5). quire's `ds::CubicBezier` is token data with no evaluator; its
+//! control points in thousandths are what [`ease`] takes.
 
 use crate::units::Permille;
 

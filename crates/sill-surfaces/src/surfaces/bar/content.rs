@@ -1,11 +1,10 @@
 //! What each bar menu lists, pure over the service values: a ds `Menu{Dropdown}`'s entries, the
 //! control center, or a control center module (design/20 §1.1 and §1.5; the app name "its
-//! windows and Quit"; the Sound, Wi-Fi and Battery items' dropdowns are their modules since M5,
-//! FINDINGS F185). The clock opens no menu: since M6 it toggles the notification center
-//! (FINDINGS F266, F325).
+//! windows and Quit"; the Sound, Wi-Fi and Battery items' dropdowns are their modules). The
+//! clock opens no menu: it toggles the notification center.
 //!
 //! Status lines are `MenuEntry::Info` rows: an item's weight without the header's eyebrow,
-//! never a choice (quire's bar gaps; FINDINGS "Adoption of the bar gaps").
+//! never a choice (quire's bar gaps).
 
 use ds::{Check, MenuEntry, Trail};
 use sill_launcher::WindowKey;
@@ -28,10 +27,10 @@ pub(crate) struct FrontApp {
 pub(crate) enum PopupBody {
     Menu(Vec<MenuEntry<BarPick>>),
     /// The control center (`surfaces::control_center::ControlCenter`), which reads its own
-    /// hooks; the body carries only what sizes the popup (M5 agent c).
+    /// hooks; the body carries only what sizes the popup.
     ControlCenter(ControlCenterSettings),
     /// One module's dropdown from its own bar item: the module's control center component
-    /// (`control_center::modules::Module`), reading its own hooks (M5 agent c).
+    /// (`control_center::modules::Module`), reading its own hooks.
     Module(ControlCenterModule),
 }
 
@@ -222,7 +221,7 @@ mod tests {
         );
         assert_eq!(menu(BarMenu::ControlCenter), ["control center"]);
         assert_eq!(menu(BarMenu::Bluetooth), ["Bluetooth"]);
-        // Since M5 the status items drop down their control center modules (F185).
+        // The status items drop down their control center modules.
         for (item, module) in [
             (BarMenu::Volume, ControlCenterModule::Sound),
             (BarMenu::Network, ControlCenterModule::Wifi),

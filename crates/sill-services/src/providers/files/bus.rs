@@ -1,7 +1,7 @@
 //! Async bus calls from the provider's synchronous `query`. The runner calls every provider on
 //! the blocking pool (`spawn_blocking`), where `Handle::block_on` is the documented way back
-//! into async code (F107); with no runtime at all (an example, a plain test) a current-thread
-//! runtime is made for the one call. Also whether a bus name is owned or only activatable, for
+//! into async code; with no runtime at all (an example, a plain test) a current-thread runtime is
+//! made for the one call. Also whether a bus name is owned or only activatable, for
 //! Tracker's detection and the launcher's reveal.
 
 use std::future::Future;

@@ -74,7 +74,7 @@ pub struct Services {
     pub power_profile_control: Control<ProfileCommand>,
     pub media: watch::Receiver<Media>,
     pub media_control: Control<MediaCommand>,
-    /// The keyboard backlight (design/26 G25): absent on a machine without one.
+    /// The keyboard backlight (design/26 5.2.7): absent on a machine without one.
     pub kbd_backlight: watch::Receiver<KbdBacklight>,
     pub kbd_backlight_control: Control<KbdCommand>,
     pub session: watch::Receiver<Session>,

@@ -6,7 +6,7 @@
 //! uses it for `Can*`). The provider keeps its own availability snapshot for now (its
 //! `OnceLock`, taken on the first query): moving it onto this service's receiver is a change to
 //! the provider's constructor, which the results runner and the launcher panel both call, and
-//! nothing is gained until the power menu needs the two to agree live (FINDINGS "M5 freeze").
+//! nothing is gained until the power menu needs the two to agree live.
 
 mod live;
 mod model;
@@ -33,7 +33,7 @@ pub enum SessionCommand {
 
 /// Start the session task on `rt`. Without logind the receiver stays at `Session::default()`
 /// (absent: nothing offered), and the power menu shows every button unavailable. `locker` is
-/// where `Run(Lock)` goes (M7).
+/// where `Run(Lock)` goes.
 pub fn spawn(
     rt: &Handle,
     locker: Control<LockerCommand>,

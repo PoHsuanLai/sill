@@ -3,7 +3,7 @@
 //! COSMIC's tool cannot be told area or window: `cosmic-screenshot` opens the portal's picker
 //! (whose own buttons choose a rectangle, a window or an output, and where to save) unless
 //! `--interactive=false`, which saves the whole screen into `--save-dir` at once. So `screen`
-//! is exact and `area` and `window` both open the picker (FINDINGS "M10 freeze").
+//! is exact and `area` and `window` both open the picker.
 
 use std::path::{Path, PathBuf};
 

@@ -1,8 +1,8 @@
-/* The Now Playing widget (widgets/now_playing.rs; M10 lane b): the control center's
+/* The Now Playing widget (widgets/now_playing.rs): the control center's
    NowPlayingModule mounted as it is, on a bare ModulePanel inside the widget's frame. Its layout
    rules live in control_center.css, which the notification center and the desktop layer do not
    load, so the same rules are repeated here for its classes, scoped to the widget. Tokens only
-   (coherence rule 1). Attribute selectors carry `*|` (spike S2). */
+   (coherence rule 1). Attribute selectors carry `*|`. */
 .sill-widget-now-playing{ display:flex; flex-direction:column; min-width:0; }
 .sill-widget-now-playing .sill-cc-media{ display:flex; flex-direction:column; gap:var(--s-6);
   min-width:0; }

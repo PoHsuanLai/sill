@@ -1,5 +1,5 @@
-//! What a widget's spring does next (FINDINGS "Drag glide on springs"), decided from how it was
-//! held last render and now, and the hand's release velocity. Pure: `placed` hands the answer to
+//! What a widget's spring does next, decided from how it was held last render and now, and the
+//! hand's release velocity. Pure: `placed` hands the answer to
 //! quire's `SpringPointMotion`, which owns the motion (its springs, Reduced motion, the frames).
 
 use std::time::Instant;

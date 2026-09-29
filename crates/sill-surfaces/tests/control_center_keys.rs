@@ -1,6 +1,6 @@
-//! The control center's keyboard from the moment it opens (FINDINGS "Manual run 2026-09-28:
-//! menus and keyboard"): the panel holds the keyboard, Tab walks its tiles in order, Shift+Tab
-//! walks back, Space and Enter toggle the focused tile, Escape reaches the popover.
+//! The control center's keyboard from the moment it opens: the panel holds the keyboard, Tab
+//! walks its tiles in order, Shift+Tab walks back, Space and Enter toggle the focused tile,
+//! Escape reaches the popover.
 
 mod cc_support;
 

@@ -1,4 +1,4 @@
-//! Asking before Bluetooth goes off (FINDINGS F1070, Q490): on the real control center in a
+//! Asking before Bluetooth goes off: on the real control center in a
 //! quire `Popover`, on the fake services, on the virtual clock with a pinned appearance. A press
 //! that would turn Bluetooth off, on its tile or the pane's switch, shows quire's inline `Alert`
 //! over the panel and sends nothing; Escape, Cancel and a press on the scrim leave it on; Turn

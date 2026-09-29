@@ -1,4 +1,4 @@
-//! Dragging a desktop widget (FINDINGS "Widget drag", "Widget interface port"), the real
+//! Dragging a desktop widget, the real
 //! `DesktopWidgets` in a `ds_native::Harness` on the virtual clock: a press that travels lifts
 //! the widget under the pointer (quire's card `Lift::Lifted`, with quire's slot guide at the
 //! cell it would land in), the one it passes over makes room and goes back after, a release

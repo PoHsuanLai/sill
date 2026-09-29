@@ -1,8 +1,8 @@
 //! `sill_settings::ShellFile`'s `scroll` and `scrollbar` sections, mapped to shell-host's
-//! `ScrollConfig` (`HostCtx::set_scroll_config`, shell-host FINDINGS "Scroll engine" F63). Both
-//! sides carry the same fields under the same serde spelling (design/22 §3.7 `scroll` / §3.8
-//! `scrollbar`), but as two crates' own newtypes and enums, so the mapping is field by field
-//! rather than a shared type. Pure; `daemon.rs` calls it at start and on every settings change.
+//! `ScrollConfig` (`HostCtx::set_scroll_config`). Both sides carry the same fields under the same
+//! serde spelling (design/22 §3.7 `scroll` / §3.8 `scrollbar`), but as two crates' own newtypes and
+//! enums, so the mapping is field by field rather than a shared type. Pure; `daemon.rs` calls it at
+//! start and on every settings change.
 
 use shell_host::scroll::config as host;
 use sill_settings::{

@@ -1,4 +1,4 @@
-//! Coherence rules 1 and 2 (quire CONSUMING.md §5) for the control center: its stylesheet under
+//! Coherence rules 1 and 2 for the control center: its stylesheet under
 //! `Profile::Strict`, and an SSR render of the real `ControlCenter` through the markup lint with
 //! the popup document's sheets.
 

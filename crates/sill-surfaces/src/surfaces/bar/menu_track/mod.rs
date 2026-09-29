@@ -3,10 +3,9 @@
 //! triangle. Pure; `now` an argument; effects returned.
 //!
 //! design/13 §13.7 places this machine in quire (`overlay/menu_track.rs`, driving every ds
-//! `Menu`); quire does not have it, so the bar owns it here until it moves (FINDINGS.md, quire
-//! gap Q1). Arrow keys inside a menu, wrap, disabled skipping and type-to-filter are the quire
-//! `Menu` component's (design/06 §21 decision 3); this machine handles Escape, Left, Right and
-//! Enter, which cross menus.
+//! `Menu`); quire does not have it, so the bar owns it here until it moves. Arrow keys inside a
+//! menu, wrap, disabled skipping and type-to-filter are the quire `Menu` component's (design/06
+//! §21 decision 3); this machine handles Escape, Left, Right and Enter, which cross menus.
 
 mod machine;
 mod triangle;

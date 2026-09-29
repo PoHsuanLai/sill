@@ -1,4 +1,4 @@
-//! What the widgets draw (M10 lane b, "Widget interface port"), each in a `ds_native::Harness`
+//! What the widgets draw, each in a `ds_native::Harness`
 //! on the fake services: the card (quire's `WidgetCard`: a tile in the notification center, the
 //! Widget material's card on the desktop, each at its footprint, `data-widget` its kind),
 //! Battery's rings from the machine and the connected devices and their bump on a change, Now
@@ -165,7 +165,7 @@ fn battery_lists_the_machine_then_connected_devices_with_a_level() {
     });
     let h = &running.harness;
     // The fake machine is at 64%; Buds are connected at 80%; the keyboard is not connected. The
-    // Medium row has four fixed places (Q522): the two batteries from the left, then two bare
+    // Medium row has four fixed places: the two batteries from the left, then two bare
     // places with no number.
     assert_eq!(h.count("#widget-battery .ds-batteries-cell"), 4);
     assert_eq!(

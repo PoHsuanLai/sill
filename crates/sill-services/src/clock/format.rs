@@ -13,7 +13,7 @@ pub struct ClockText {
 }
 
 /// `now` as `<weekday> <day> <month> <HH>:<MM>`, English abbreviations, 24-hour. Locale and a
-/// 12-hour form have no settings key in design/22 yet (FINDINGS.md).
+/// 12-hour form have no settings key in design/22 yet.
 pub fn format_clock(now: DateTime) -> ClockText {
     ClockText {
         text: format!(

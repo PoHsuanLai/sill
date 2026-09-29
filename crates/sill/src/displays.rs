@@ -78,7 +78,7 @@ pub fn on_host_event(services: &Services, event: &HostEvent<ShellMsg>) {
 }
 
 /// The output of the active window: the daemon's stand-in for "under the pointer", which only
-/// the compositor knows (FINDINGS F140).
+/// the compositor knows.
 pub fn focused_output(toplevels: &Toplevels) -> Option<OutputName> {
     toplevels
         .windows

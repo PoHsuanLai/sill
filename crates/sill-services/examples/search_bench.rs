@@ -1,5 +1,5 @@
 //! Query-to-first-batch latency of the launcher search, through the public
-//! `sill_services::results::spawn` (M4 launcher-core, FINDINGS "M4 launcher-core").
+//! `sill_services::results::spawn`.
 //!
 //! `cargo run -p sill-services --example search_bench --release`
 //!

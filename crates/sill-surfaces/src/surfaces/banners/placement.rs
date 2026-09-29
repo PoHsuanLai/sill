@@ -1,7 +1,7 @@
 //! Which output shows the banners. macOS shows notifications on the main display only; sill's
-//! stand-in is the daemon's first output (the one `sill launcher` and `sill power-menu` open on,
-//! FINDINGS F140), written here by the daemon whenever the outputs change. Every other output's
-//! banner surface stays hidden. One output, so a banner is counted, paused and dismissed once.
+//! stand-in is the daemon's first output (the one `sill launcher` and `sill power-menu` open on),
+//! written here by the daemon whenever the outputs change. Every other output's banner surface
+//! stays hidden. One output, so a banner is counted, paused and dismissed once.
 
 use shell_host::OutputId;
 use tokio::sync::watch;

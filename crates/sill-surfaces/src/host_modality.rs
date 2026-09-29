@@ -1,6 +1,6 @@
 //! Bridges shell-host's raw seat modality into quire's `ds::HostModality`, the root context
-//! `Ds` reads to stamp `data-modality` and so decide whether the focus ring shows (FINDINGS
-//! G390, F74). shell-host cannot name quire's `ds` crate (`scripts/check-boundary.sh`), so every
+//! `Ds` reads to stamp `data-modality` and so decide whether the focus ring shows. shell-host
+//! cannot name quire's `ds` crate (`scripts/check-boundary.sh`), so every
 //! surface's own root wraps its `Ds` in this component, which reads shell-host's
 //! `use_input_modality()` (one value per seat, shared by every surface) and republishes it as
 //! `ds::HostModality` with a `use_effect` (shell-host README, "Consuming: input modality (focus

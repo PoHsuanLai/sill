@@ -8,7 +8,7 @@ use super::grid::{
 };
 
 /// The month shown, as steps away from the month of the day they were taken on: a turn of the
-/// day brings the widget back to today's month, as the freeze asks.
+/// day brings the widget back to today's month.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct Shown {
     /// The day the steps were taken on.

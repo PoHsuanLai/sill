@@ -40,7 +40,7 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| world.services.clone());
-    // Not the desktop's portal and appearance file: they answer off-thread (FINDINGS G370).
+    // Not the desktop's portal and appearance file: they answer off-thread.
     use_context_provider(PinnedAppearance::default);
     use_context_provider(|| world.settings.clone());
     use_context_provider(|| world.link.clone());

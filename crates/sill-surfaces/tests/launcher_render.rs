@@ -1,6 +1,6 @@
 //! The panel's picture of fake results, in a `ds_native::Harness`: groups in order under their
 //! headings, the top hit first, the empty query's Actions and Recent, the empty state, and the
-//! row chord (Spotlight's hint: only the selected row shows it, quire's `RowChord`, F1040).
+//! row chord (Spotlight's hint: only the selected row shows it, quire's `RowChord`).
 
 mod launcher_harness;
 
@@ -57,7 +57,7 @@ fn a_query_groups_under_the_top_hit() {
     );
 }
 
-/// F1040: only the selected row shows its chord, as plain text (`.ds-chord`, no key caps), and
+/// Only the selected row shows its chord, as plain text (`.ds-chord`, no key caps), and
 /// the chord moves with the selection; the other rows show only their data.
 #[test]
 fn only_the_selected_row_shows_its_chord() {

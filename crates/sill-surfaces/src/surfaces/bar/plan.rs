@@ -101,7 +101,7 @@ pub(crate) fn choice(entries: &[MenuEntry<BarPick>], index: usize) -> Option<Cho
 /// The bar's effects for `outs`, with `picked` the action behind the release that produced
 /// them. Highlight, submenu, adjacent-menu and timer outputs belong to the ds `Menu` inside the
 /// popup, which draws its own selection; bar menus have no submenus, so the machine never asks
-/// for a tick here (FINDINGS "M1 bar-ui").
+/// for a tick here.
 pub(crate) fn effects(outs: Vec<MenuOut>, picked: Option<BarPick>) -> Vec<BarEffect> {
     let mut picked = picked;
     outs.into_iter()
@@ -303,8 +303,8 @@ mod tests {
                 false,
             ),
             (
-                // The manual run of 2026-09-28 (F991): a real pointer enters B on its way to the
-                // click, so the hover switch shows B before the press lands on B's title.
+                // A real pointer enters B on its way to the click, so the hover switch shows B
+                // before the press lands on B's title.
                 "a click on another title shows its menu, the first one gone",
                 vec![
                     press(BarMenu::Network),

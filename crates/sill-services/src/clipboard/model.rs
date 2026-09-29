@@ -1,6 +1,6 @@
 //! The clipboard history's state, commands and events. Nothing here prints content: the text
 //! and image types redact themselves in `Debug`, and nothing is `Serialize` (history lives in
-//! memory only; FINDINGS "M9 freeze" F647).
+//! memory only).
 
 use std::fmt;
 use std::path::PathBuf;

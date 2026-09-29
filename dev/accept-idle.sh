@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# sill's own idle acceptance (Q420 B; FINDINGS "sill idle (Q420 B)" and "sill idle fill"), on
-# the nested cosmic-comp ONLY (dev/nested.sh; wayland-1 is pinged first, reused, and never
-# stopped or restarted). Its "displays" are windows on the host, so powering them off darkens
-# nothing real.
+# sill's own idle acceptance, on the nested cosmic-comp ONLY (dev/nested.sh; wayland-1 is pinged
+# first, reused, and never stopped or restarted). Its "displays" are windows on the host, so
+# powering them off darkens nothing real.
 #
 # SAFETY. Nothing here reaches logind, the session bus's org.freedesktop.ScreenSaver, PAM, a
 # backlight or wayland-0:
@@ -17,7 +16,7 @@
 # - no input is typed anywhere: a wake is `sill debug idle-wake` (debug build), a made-up
 #   `resumed` (the nested cosmic-comp counts no synthetic input as activity);
 # - whatever fails, the script ends by accepting on the daemon, quitting it, and running the
-#   recovery lock-and-unlock (`session_locker 0`, F381), so the nested session is left unlocked.
+#   recovery lock-and-unlock (`session_locker 0`), so the nested session is left unlocked.
 #
 # Times: screen off 6 s, dim 3 s before it at 50 %, lock grace 5 s, the lock screen's own
 # screen-off 4 s; suspend never, except in step 7 (10 s).
@@ -28,9 +27,10 @@
 #      Both must be the black scrim (every pixel RGB 0), the early one lighter than the late
 #      one, and the late one at 50 % (alpha 128 +- 12). The late capture is kept as
 #      dev/out/idle-dim.png, with the nested screen at that moment as dev/out/idle-dim-cosmic.png
-#      (non-fatal). Once the displays are off the surface is unmapped again. G341 is looked for in the
-#      WAYLAND_DEBUG=client log (set_mode(off) before ext_session_lock_v1.locked, and no
-#      `failed`); the nested winit outputs refuse power control, so it cannot be shown here.
+#      (non-fatal). Once the displays are off the surface is unmapped again. The power-off order
+#      is looked for in the WAYLAND_DEBUG=client log (set_mode(off) before
+#      ext_session_lock_v1.locked, and no `failed`); the nested winit outputs refuse power
+#      control, so it cannot be shown here.
 #   2. A wake within the grace: unlocked with no password (the daemon logs "grace NoPassword").
 #   3. Idle again, then a wake after the grace (7 s): still locked ("grace Ask"); accept opens it.
 #   4. `sill lock` (cause action), the lock screen goes dark after 4 s, a wake at once: still
@@ -41,7 +41,7 @@
 #   6. PrepareForSleep(true) from the stand-in locks with cause sleep; after the wake, a made-up wake:
 #      still locked.
 #   7. SILL_IDLE_TIMES=6,10: off and lock at 6 s, logind Suspend(false) recorded at about 10 s
-#      from the last wake (G342: the lock's new watches do not restart the suspend watch), the
+#      from the last wake (the lock's new watches do not restart the suspend watch), the
 #      idle hint set true then false; after PrepareForSleep true/false and a wake: still locked.
 #
 # Exit 0 when every step passed, 1 on a failure. Another sill daemon started from a
@@ -90,7 +90,7 @@ nested_locker() { WAYLAND_DISPLAY="$NESTED_SOCKET" "$LOCKER" "$@"; }
 now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
 # A wake: `sill debug idle-wake` stands in for the compositor's `resumed` (the nested
 # cosmic-comp 1.8 counts no virtual-keyboard input as activity, and a key typed into the host's
-# window of it would be real input on the person's own session; FINDINGS "sill idle fill").
+# window of it would be real input on the person's own session).
 # It also holds every idle notification afresh, so the idle timers count from here.
 wake() { sill debug idle-wake >/dev/null; }
 # A command to the logind stand-in.
@@ -279,7 +279,7 @@ else:
     print("NOT-SHOWN")
 EOF
 )
-  echo "dimmed at ${dim} ms (want ~3000), displays off at ${off} ms (~6000), locked with cause idle_screen_off at ${locked} ms; G341: $(echo "$g341" | tr '\n' ' ')" \
+  echo "dimmed at ${dim} ms (want ~3000), displays off at ${off} ms (~6000), locked with cause idle_screen_off at ${locked} ms; power-off order: $(echo "$g341" | tr '\n' ' ')" \
     | tee -a "$log" >&2
   echo "idle: $(idle_state); lock: $(lock_state)" | tee -a "$log" >&2
   [ "$dim" -ge 2000 ] && [ "$off" -ge 5000 ] && [ "$locked" -ge 0 ] \
@@ -407,7 +407,7 @@ step_idle_suspend() {
   wake; sleep 1.5
   still=$(lock_state)
   hints=$(grep '^idle-hint' "$OUT_DIR/logind.log" | tr '\n' ' ')
-  echo "idle locked at ${locked} ms; Suspend recorded at ${suspended} ms (want ~10000, not ~16000: G342); $(grep '^suspend ' "$OUT_DIR/logind.log" | tail -n1); after sleep and wake and a made-up wake: '$still'; hints: $hints" \
+  echo "idle locked at ${locked} ms; Suspend recorded at ${suspended} ms (want ~10000, not ~16000); $(grep '^suspend ' "$OUT_DIR/logind.log" | tail -n1); after sleep and wake and a made-up wake: '$still'; hints: $hints" \
     | tee -a "$log" >&2
   [ "$locked" -ge 0 ] && [ "$suspended" -ge 9000 ] && [ "$suspended" -le 12500 ] \
     && [ "$still" = "locked idle_screen_off" ] \

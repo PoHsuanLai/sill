@@ -1,5 +1,5 @@
 //! The one level control the Sound and Display modules share: quire's `ModulePanel` headed by
-//! the glyph, the title and the percentage, over quire's `LevelControl` (Q83) as a capsule with
+//! the glyph, the title and the percentage, over quire's `LevelControl` as a capsule with
 //! a knob (design/29 §13 decision 7: a Regular capsule, 22, with a 20 knob). The look is chosen
 //! here and nowhere else ([`LOOK`]). The OSD reuses the same control through quire's `Osd`.
 
@@ -17,7 +17,7 @@ const LOOK: LevelLook = LevelLook::CapsuleKnob;
 /// `glyph` and `title` over the level at `level` (the percentage as the header's value), the
 /// capsule carrying `level_glyph` (the sun, or the volume's state, the bar item's source);
 /// `on_change` hears every new level from a drag or a key. `Disabled` shows the level and takes
-/// nothing: quire dims the level and the panel's header with it (Q491), so both get it.
+/// nothing: quire dims the level and the panel's header with it, so both get it.
 #[component]
 pub fn LevelModule(
     #[props(into)] glyph: IconSource,

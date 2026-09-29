@@ -1,8 +1,8 @@
-//! The idle machine (sill FINDINGS "sill idle (Q420 B)", F903): the one place idleness changes.
-//! The live side turns idle notifications, logind's signals, the lock, the battery and the
-//! inhibitors into [`IdleEvent`]s and performs the [`IdleEffect`]s, in order.
+//! The idle machine: the one place idleness changes. The live side turns idle notifications,
+//! logind's signals, the lock, the battery and the inhibitors into [`IdleEvent`]s and performs the
+//! [`IdleEffect`]s, in order.
 //!
-//! The rules the fill implements (each a row of `reduce_tests.rs`):
+//! The rules it implements (each a row of `reduce_tests.rs`):
 //! - `Policy` / `Power` / `Inhibition` / `Lock` changes re-derive [`super::watches`] and emit
 //!   `Watch` when they differ from the held set (`Watch(vec![])` while `Off` or inhibited).
 //!   A policy that turns the mode `Off` also undoes whatever idle had done (undim, displays on).

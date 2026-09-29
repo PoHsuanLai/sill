@@ -1,4 +1,4 @@
-//! Coherence rules 1 and 2 (quire CONSUMING.md §5) for the bar: its stylesheet under
+//! Coherence rules 1 and 2 for the bar: its stylesheet under
 //! `Profile::Strict`, and an SSR render of the real `Bar` through the markup lint.
 
 mod support;

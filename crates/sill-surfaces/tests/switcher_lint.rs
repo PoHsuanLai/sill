@@ -1,4 +1,4 @@
-//! Coherence rules 1 and 2 (quire CONSUMING.md §5) for the switcher: its stylesheet under
+//! Coherence rules 1 and 2 for the switcher: its stylesheet under
 //! `Profile::Strict`, and the real `SwitcherPanel` through the markup lint, hidden (an SSR pass)
 //! and shown (the harness, past the show delay).
 

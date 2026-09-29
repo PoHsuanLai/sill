@@ -2,9 +2,9 @@
 //! it, Tab cycles the provider filter, Ctrl+K / Alt+K open the selected row's actions, Escape
 //! closes one level. Pure.
 //!
-//! The frozen [`step`] knows counts, not ids, so an Enter inside the actions menu cannot name
+//! [`step`] knows counts, not ids, so an Enter inside the actions menu cannot name
 //! the action it picks: there `step` closes the menu and emits nothing, and the panel takes the
-//! pick from the quire `Menu` it draws, which owns that menu's keys (FINDINGS F142).
+//! pick from the quire `Menu` it draws, which owns that menu's keys.
 
 use sill_launcher::{Choice, ProviderKind};
 
@@ -286,7 +286,7 @@ mod tests {
         let (state, _) = keys(&[Tab, Tab], 5, 0);
         assert_eq!(state.filter, Filter::Only(ProviderKind::Windows));
         let (state, _) = keys(&[ShiftTab], 5, 0);
-        // The last of `ProviderKind::ALL` (the web fallback since M9).
+        // The last of `ProviderKind::ALL` (the web fallback).
         assert_eq!(state.filter, Filter::Only(ProviderKind::Web));
         let mut filter = Filter::All;
         let mut seen = Vec::new();

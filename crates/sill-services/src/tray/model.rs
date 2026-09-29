@@ -115,7 +115,7 @@ pub enum TrayCommand {
     /// The menu is about to show (dbusmenu `AboutToShow`), so the app can refresh it.
     MenuOpening { item: TrayItemId },
     /// The wheel turned over the item (SNI `Scroll(delta, orientation)`): a volume or
-    /// brightness item steps with it. M2 freeze amendment (FINDINGS F76).
+    /// brightness item steps with it.
     Scroll {
         item: TrayItemId,
         delta: ScrollDelta,

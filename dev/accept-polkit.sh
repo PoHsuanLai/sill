@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# The own polkit agent's acceptance (lane b, FINDINGS "The M11 fill-in"), on the nested
-# cosmic-comp (dev/nested.sh; wayland-1 is pinged first, reused, and never stopped).
+# The own polkit agent's acceptance, on the nested cosmic-comp (dev/nested.sh; wayland-1 is pinged
+# first, reused, and never stopped).
 #
-# Nothing here reaches polkitd, the system bus, PAM or a real password (F547). Every bus is one
+# Nothing here reaches polkitd, the system bus, PAM or a real password. Every bus is one
 # private dbus-daemon (dev/private-bus.conf): the daemon's session and system bus addresses both
 # name it, and its polkit agent is pointed at it by SILL_POLKIT_BUS (read only by a build with
 # debug assertions, crates/sill-services/src/polkit_agent/daemon_setup.rs). There,

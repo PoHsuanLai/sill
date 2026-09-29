@@ -1,6 +1,6 @@
 //! The search task: one generation per keystroke, every provider on its own blocking task,
 //! batches merged through `reduce_results` as they arrive, the merged list published in
-//! Spotlight's sections with their spans (`arrange`, M9 freeze F645).
+//! Spotlight's sections with their spans (`arrange`).
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
@@ -25,7 +25,7 @@ pub(crate) struct Search {
     history: History,
     persist: Persist,
     outlets: Outlets,
-    /// Where the M9 providers read the settings' policy from.
+    /// Where the settings-gated providers read the settings' policy from.
     policy: watch::Sender<LauncherPolicy>,
     cancel: Cancel,
     /// Every row of the newest generation, best first (`reduce_results`'s order).
@@ -152,7 +152,7 @@ impl Search {
     /// carry out what the row's provider says the choice does. The row is looked up among the
     /// newest generation's rows, so the surface sends `Chosen` before it closes (`Cancel`).
     fn chosen(&mut self, key: ItemKey, choice: &Choice) {
-        // A clipboard entry's use is never written to disk (M9 freeze, F641).
+        // A clipboard entry's use is never written to disk.
         if key.counting() == Counting::Counted {
             let frecency = self.history.record(key.clone(), now());
             self.persist.save(frecency);

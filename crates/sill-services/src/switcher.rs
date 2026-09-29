@@ -1,5 +1,5 @@
-//! The app switcher's data (design/13 §13.3.5, M11; FINDINGS "M11 freeze" F548): open windows
-//! grouped into apps in most-recently-used order, as macOS's Cmd+Tab shows applications, not
+//! The app switcher's data (design/13 §13.3.5): open windows grouped into apps in
+//! most-recently-used order, as macOS's Cmd+Tab shows applications, not
 //! windows, and the `cosmic_wl` commands each of its verbs becomes. Pure: the surface derives
 //! the list from `Services.toplevels` and `Services.apps` whenever it shows, and sends the
 //! commands through `Services.wl`; there is no task, since the switcher has no state of its

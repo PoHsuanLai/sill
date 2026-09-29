@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# The banners' acceptance (lane b, FINDINGS "The M6 fill-in" and "M6 banners"), on the nested
-# cosmic-comp (dev/nested.sh; a running wayland-1 is reused and never stopped).
+# The banners' acceptance, on the nested cosmic-comp (dev/nested.sh; a running wayland-1 is reused
+# and never stopped).
 #
 # Every notification comes from `sill debug notify` (the service's own reducer, no D-Bus). The
-# daemon still runs on a private bus (dev/private-bus.conf: no service directories, F264), with
+# daemon still runs on a private bus (dev/private-bus.conf: no service directories), with
 # its own XDG_RUNTIME_DIR (WAYLAND_DISPLAY an absolute socket path) and a scratch
 # XDG_CONFIG_HOME and XDG_STATE_HOME, so nothing here reaches the real session bus's
 # org.freedesktop.Notifications or another sill's IPC socket. Another sill daemon drawing on the
@@ -25,7 +25,8 @@
 #      and kept falls by one.
 #   8. 5 s after the last card leaves: 0 frames on the column.
 #
-# The drag and the swipe are the real-input pass's (lane d): debug injection has no drag.
+# The drag and the swipe are dev/accept-notifications-real-input.sh's: debug injection has no
+# drag.
 #
 # Usage: dev/nested.sh && dev/accept-notifications.sh
 set -uo pipefail

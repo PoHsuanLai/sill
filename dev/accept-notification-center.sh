@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Notification center acceptance (design/20 §1.6, FINDINGS "M6 freeze" F266, lane c), on the
-# nested cosmic-comp (dev/nested.sh; a running wayland-1 is reused and never stopped). Starts
+# Notification center acceptance (design/20 §1.6), on the nested cosmic-comp (dev/nested.sh; a
+# running wayland-1 is reused and never stopped). Starts
 # `sill run` from this checkout's debug build (`--features debug`) with a scratch
 # XDG_CONFIG_HOME and XDG_STATE_HOME, under a private session bus (dev/private-bus.conf: no
 # service directories, so nothing is activated and the real session's
@@ -290,7 +290,7 @@ step_groups() {
   local log="$OUT_DIR/groups.log" before after fold clear rows buttons
   : >"$log"
   if ! sill debug notify "ping" --app Chat --body "are you there?" >>"$log" 2>&1; then
-    echo "sill debug notify: $(tail -n 1 "$log") (the service's live loop is lane a's)" >&2
+    echo "sill debug notify: $(tail -n 1 "$log") (the service's live loop is not in this build)" >&2
     return 2
   fi
   sill debug notify "Re: plans" --app Mail --body "Saturday works." >>"$log" 2>&1 || return 1

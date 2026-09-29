@@ -1,5 +1,4 @@
-//! The one place the clipboard history changes. Pure (FINDINGS "M9 freeze" F647, "M9 lane b"
-//! F686), its rules pinned by the tables below:
+//! The one place the clipboard history changes. Pure, its rules pinned by the tables below:
 //!
 //! - `Command(Policy)`: kept as the state's policy and published as `status.mode`; turning
 //!   history on from off is `Connect`, turning it off is `Disconnect` and drops every entry

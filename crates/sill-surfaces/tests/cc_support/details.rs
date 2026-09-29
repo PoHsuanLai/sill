@@ -1,4 +1,4 @@
-//! Helpers for the D2 control center details tests (`cc_details_rows`, `cc_details_modules`):
+//! Helpers for the control center details tests (`cc_details_rows`, `cc_details_modules`):
 //! the panel on the fake services, a press, a detail pane opened, a percentage read.
 
 use std::time::Duration;

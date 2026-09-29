@@ -1,5 +1,5 @@
-//! Asking before Bluetooth goes off (FINDINGS F1070, quire's `Alert` for sill Q490): the user
-//! cut off their Bluetooth keyboard twice with one press. A press that would power the adapter
+//! Asking before Bluetooth goes off: the user cut off their Bluetooth keyboard twice with one
+//! press. A press that would power the adapter
 //! off, on the Bluetooth tile or the pane's switch, only raises the question; quire's `Alert`
 //! (`Flow::Inline`, over the panel) asks "Turn Bluetooth off?", and only its "Turn Off" sends
 //! `BluetoothCommand::Power(Off)`. Cancel, Escape or a press on the scrim leaves it on. Turning
@@ -90,8 +90,8 @@ pub(crate) fn TurnOffAlert(on_answered: EventHandler<()>) -> Element {
                     "Bluetooth devices such as keyboards and mice will be disconnected.",
                 )),
                 action: "Turn Off",
-                // quire (CONSUMING "Alert"): Turn Off is the default, so Return confirms; a
-                // `Destructive` action would hand Return to Cancel.
+                // Turn Off is the default, so Return confirms; a `Destructive` action would
+                // hand Return to Cancel.
                 emphasis: AlertEmphasis::Default,
                 flow: Flow::Inline,
                 onaction: move |()| {

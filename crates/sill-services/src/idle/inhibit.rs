@@ -1,7 +1,6 @@
-//! Idle inhibitors that are sill's to honour (sill FINDINGS "sill idle (Q420 B)", F905). Wayland's
-//! `zwp_idle_inhibit_manager_v1` is the compositor's: cosmic-comp stops sending `idled` for
-//! `get_idle_notification` while a visible surface inhibits, so sill sees nothing of it. Two
-//! other kinds are sill's:
+//! Idle inhibitors that are sill's to honour. Wayland's `zwp_idle_inhibit_manager_v1` is the
+//! compositor's: cosmic-comp stops sending `idled` for `get_idle_notification` while a visible
+//! surface inhibits, so sill sees nothing of it. Two other kinds are sill's:
 //!
 //! - **`org.freedesktop.ScreenSaver.Inhibit(app, reason) -> cookie`** and `UnInhibit(cookie)` on
 //!   the session bus (at `/org/freedesktop/ScreenSaver` and `/ScreenSaver`), which browsers and

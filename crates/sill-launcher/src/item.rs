@@ -23,7 +23,7 @@ pub struct Item {
     pub score: Score,
     /// Secondary actions (Ctrl+K / Alt+K), in menu order; empty for none.
     pub actions: Vec<Action>,
-    /// What the row is about, for the preview pane and the M9 row kinds (M9 freeze, F641).
+    /// What the row is about, for the preview pane and the new row kinds.
     #[serde(default)]
     pub subject: Subject,
 }
@@ -45,8 +45,8 @@ pub enum IconRef {
 pub struct Action {
     pub id: ActionId,
     pub label: String,
-    /// The chord that runs it straight from the results, shown beside it (quire design/09 H5:
-    /// every action has a key). M9 freeze, F642.
+    /// The chord that runs it straight from the results, shown beside it (quire design/09 H5: every
+    /// action has a key).
     #[serde(default)]
     pub keys: ActionKeys,
 }

@@ -1,6 +1,5 @@
 //! `sill notifications {toggle,open,close,dismiss-all,status}` and `sill debug notify ...`: the
-//! notification center's and the banners' command line (FINDINGS "M6 freeze"), and their pure
-//! mappings to IPC requests.
+//! notification center's and the banners' command line, and their pure mappings to IPC requests.
 
 use clap::{Args, Subcommand, ValueEnum};
 use sill_ipc::{FakeAction, FakeExpire, FakeNotification, FakeUrgency, NotificationsRequest};

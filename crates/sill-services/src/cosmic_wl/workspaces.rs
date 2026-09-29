@@ -34,16 +34,14 @@ pub struct Workspace {
     pub visibility: Visibility,
     /// The protocol's coordinates in its group (COSMIC: one component, the row position). The
     /// group's `workspaces` are already in this order; a surface needs the numbers only to
-    /// place a workspace in a grid. Empty when the compositor gives none. (Added at the M2
-    /// freeze amendment, FINDINGS F76.)
+    /// place a workspace in a grid. Empty when the compositor gives none.
     #[serde(default)]
     pub coordinates: Vec<u32>,
     /// The requests the compositor accepts for this workspace; a command outside it is dropped
-    /// by the thread. (M2 freeze amendment, F76.)
+    /// by the thread.
     #[serde(default)]
     pub capabilities: WorkspaceCaps,
-    /// COSMIC's pinned state; `Unpinned` where the compositor has no such state. (M2 freeze
-    /// amendment, F76.)
+    /// COSMIC's pinned state; `Unpinned` where the compositor has no such state.
     #[serde(default)]
     pub pinning: Pinning,
 }
@@ -219,7 +217,7 @@ mod tests {
 
     #[test]
     fn a_workspace_without_the_amended_fields_still_decodes() {
-        // The shape published before the M2 freeze amendment (F76).
+        // The shape published before these fields were added.
         let old = r#"{"key":4,"name":"4","stable_id":"","activity":"active","urgency":"calm","visibility":"shown"}"#;
         let decoded: Workspace = serde_json::from_str(old).unwrap_or_else(|e| panic!("{e}"));
         assert_eq!(decoded.coordinates, Vec::<u32>::new());

@@ -64,8 +64,8 @@ name = "notifications_holder"
 [[example]]
 name = "auth_helper"
 
-# polkitd's Authority and polkit's helper, stood in for on a private bus (M11 lane b):
-# `tests/polkit_live.rs` and `dev/accept-polkit.sh` drive sill's agent with them, never polkitd.
+# polkitd's Authority and polkit's helper, stood in for on a private bus: `tests/polkit_live.rs` and
+# `dev/accept-polkit.sh` drive sill's agent with them, never polkitd.
 [[example]]
 name = "polkit_authority"
 
@@ -73,8 +73,8 @@ name = "polkit_authority"
 name = "polkit_helper"
 
 # The launcher's files provider driven as the runner drives it, its first row opened through the
-# launch service (M9 lane a): `dev/accept-launcher-files.sh` and `tests/files_tracker_live.rs`
-# run it in a scratch HOME on a private bus, never in the person's own.
+# launch service: `dev/accept-launcher-files.sh` and `tests/files_tracker_live.rs` run it in a
+# scratch HOME on a private bus, never in the person's own.
 [[example]]
 name = "files_probe"
 
@@ -83,9 +83,9 @@ name = "files_probe"
 [[example]]
 name = "file_manager_stub"
 
-# logind, stood in for on a private bus (sill FINDINGS "sill idle fill"): it only records Suspend,
-# SetIdleHint and Inhibit, and sends PrepareForSleep and Lock on command. `dev/accept-idle.sh`
-# runs it with a video player's ScreenSaver.Inhibit, never the real logind.
+# logind, stood in for on a private bus: it only records Suspend, SetIdleHint and Inhibit, and sends
+# PrepareForSleep and Lock on command. `dev/accept-idle.sh` runs it with a video player's
+# ScreenSaver.Inhibit, never the real logind.
 [[example]]
 name = "logind_standin"
 

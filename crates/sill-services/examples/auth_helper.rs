@@ -1,4 +1,4 @@
-//! A stand-in for `sill auth-check` (FINDINGS "M11 freeze" F547): it speaks the helper protocol
+//! A stand-in for `sill auth-check`: it speaks the helper protocol
 //! (`sill_services::auth::protocol`) without PAM, so `tests/auth_live.rs` drives the real
 //! `PamHelper` against a child process and nobody's password is ever checked.
 //!

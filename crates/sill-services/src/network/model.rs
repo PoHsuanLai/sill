@@ -61,8 +61,8 @@ impl Connectivity {
 
 /// What NetworkManager's `ActivatingConnection` reports about a connection other than the
 /// current primary: the primary's own activation already reaches the join through `Link` (a
-/// primary connection can itself be seen `Connecting`, G302), so this only carries a second,
-/// independent connection trying to become primary, Wi-Fi only (the case the reference's
+/// primary connection can itself be seen `Connecting`), so this only carries a second, independent
+/// connection trying to become primary, Wi-Fi only (the case the reference's
 /// searching glyph is for).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -123,8 +123,8 @@ pub fn reduce_network(network: Network, event: NetworkEvent) -> Network {
             link,
             ..network
         },
-        // `link` stays: an activation reported here has not touched the primary connection
-        // (F820, G302). If it does, the `Link` event that follows lands or holds it there.
+        // `link` stays: an activation reported here has not touched the primary connection. If it
+        // does, the `Link` event that follows lands or holds it there.
         NetworkEvent::Activating(state) => Network {
             join: network.join.next(activating_step(network.join.now, state)),
             ..network
@@ -328,7 +328,7 @@ mod tests {
     #[test]
     fn a_join_seen_only_through_activating_connection_still_lands() {
         // idle -> activating (ActivatingConnection, State 1) -> activated (PrimaryConnection
-        // catches up once NetworkManager flips it over): the same stamp throughout, G302.
+        // catches up once NetworkManager flips it over): the same stamp throughout.
         let idle = Network::default();
         let activating = reduce_network(idle, NetworkEvent::Activating(Activating::Joining));
         assert_eq!(

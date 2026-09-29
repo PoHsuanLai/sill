@@ -1,6 +1,6 @@
-//! Which row an operation is on, and its `RowPhase` (quire CONSUMING "Control center details";
-//! design/26 5.2.2 G16-G18, 5.2.3 G20-G21), pure over the service's attempts (`Network.join`,
-//! `Bluetooth.connect`, sill `attempt.rs`) and the row's own item.
+//! Which row an operation is on, and its `RowPhase` (design/26 5.2.2 G16-G18, 5.2.3 G20-G21),
+//! pure over the service's attempts (`Network.join`, `Bluetooth.connect`, sill `attempt.rs`) and
+//! the row's own item.
 //!
 //! The services stamp one attempt at a time and do not say which item it is for; the row whose
 //! item reports `Connecting` is the one. A pane remembers the last item it saw connecting

@@ -5,7 +5,7 @@
 //!
 //! Anchored bottom, left and right with a full-width buffer: the plan's `BOTTOM` alone would
 //! need a width that follows magnification every frame; a full-width transparent surface with
-//! an element input region does not (FINDINGS.md).
+//! an element input region does not.
 
 use shell_host::{
     Anchor, BlurSpec, ExclusiveZone, Extent, KeyboardMode, Layer, LayerConfig, LayerSize, Margin,

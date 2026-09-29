@@ -57,16 +57,14 @@ pub struct ShellFile {
     pub display: DisplaySettings,
     pub osd: OsdSettings,
     pub window: WindowSettings,
-    /// M5 (FINDINGS "M5 freeze"): no design/22 rows yet.
     pub power_menu: PowerMenuSettings,
     /// sill's own lock screen.
     pub session: SessionSettings,
-    /// M10 (FINDINGS "M10 freeze"): no design/22 rows yet.
     pub widgets: WidgetsSettings,
     pub calendar: CalendarSettings,
     pub screenshot: ScreenshotSettings,
     pub hot_corners: HotCornersSettings,
-    /// sill's own idle service (FINDINGS "sill idle (Q420 B)"): no design/22 rows yet.
+    /// sill's own idle service.
     pub idle: IdleSettings,
 }
 

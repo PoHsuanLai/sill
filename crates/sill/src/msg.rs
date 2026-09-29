@@ -15,8 +15,8 @@ pub enum ShellMsg {
     },
     /// `settings.toml` settled on a new value.
     Settings(Box<ShellFile>),
-    /// Hold or drop shell-host's session lock (M11: `crate::lock::spawn_follower` sends it).
+    /// Hold or drop shell-host's session lock (`crate::lock::spawn_follower` sends it).
     Lock(crate::lock::LockWish),
-    /// Map or unmap the idle dim surfaces (Q420 B: `crate::idle_dim::spawn_follower` sends it).
+    /// Map or unmap the idle dim surfaces (`crate::idle_dim::spawn_follower` sends it).
     Dim(sill_services::idle::DimShown),
 }

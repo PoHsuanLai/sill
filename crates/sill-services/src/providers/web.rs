@@ -1,6 +1,6 @@
-//! "Search the web for …" (M9 lane c, FINDINGS "M9 freeze" F650): one row, last, for any typed
-//! text while `launcher.web_search` is on, opening `launcher.web_engine_url` with `{query}`
-//! replaced by the percent-encoded text. Suggestions from the engine are later and off.
+//! "Search the web for …": one row, last, for any typed text while `launcher.web_search` is on,
+//! opening `launcher.web_engine_url` with `{query}` replaced by the percent-encoded text.
+//! Suggestions from the engine are later and off.
 //!
 //! The row's id is fixed (`web:search`), never the query, so frecency counts the fallback's
 //! use without writing what was searched to disk. Enter and ⌘B open the address
@@ -21,8 +21,7 @@ pub const WEB_ROW_ID: &str = "web:search";
 /// The placeholder a template's query goes in.
 pub const QUERY_PLACEHOLDER: &str = "{query}";
 
-/// The row's one action's id (Enter does the same thing; the action just carries the chord,
-/// F650, F642).
+/// The row's one action's id (Enter does the same thing; the action just carries the chord).
 const SEARCH_WEB_ACTION: &str = "search_web";
 
 /// A single row is always the sole, most relevant row this provider offers.
@@ -68,8 +67,8 @@ impl Provider for WebProvider {
             return;
         }
         let Ok(item) = web_item(text, &template) else {
-            // A template that refuses (F650: no `{query}`, or not `https`/`http`) offers
-            // nothing; it is never a reason to fail the launcher.
+            // A template that refuses (no `{query}`, or not `https`/`http`) offers nothing; it is
+            // never a reason to fail the launcher.
             return;
         };
 
@@ -94,7 +93,7 @@ impl Provider for WebProvider {
 }
 
 /// `template` with `{query}` replaced by `text`, percent-encoded (RFC 3986 unreserved kept,
-/// space as `%20`). Lane c fills it.
+/// space as `%20`).
 pub fn search_url(template: &str, text: &str) -> Result<String, TemplateFault> {
     if !template.contains(QUERY_PLACEHOLDER) {
         return Err(TemplateFault::NoPlaceholder);

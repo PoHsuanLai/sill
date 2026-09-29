@@ -1,8 +1,6 @@
-//! The agent object sill serves and the Authority it registers with. Private to the service
-//! and lane b's to shape: the frozen parts are the D-Bus names and signatures, which are
-//! polkit's (`org.freedesktop.PolicyKit1.AuthenticationAgent.xml`), and [`request_from_wire`]'s
-//! contract. The skeleton is here so the `#[interface]`, `#[proxy]` and `DBusError` macros are
-//! proven to build on the workspace's `zbus` features before anyone starts.
+//! The agent object sill serves and the Authority it registers with. Private to the service: the
+//! fixed parts are the D-Bus names and signatures, which are polkit's
+//! (`org.freedesktop.PolicyKit1.AuthenticationAgent.xml`), and [`request_from_wire`]'s contract.
 
 use std::collections::HashMap;
 

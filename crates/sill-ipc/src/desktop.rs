@@ -1,5 +1,5 @@
-//! M10's requests (sill FINDINGS "M10 freeze"): `sill screenshot`, `sill widgets`, and the
-//! debug requests that fake a screenshot and a hot corner's hit.
+//! The desktop's requests: `sill screenshot`, `sill widgets`, and the debug requests that fake a
+//! screenshot and a hot corner's hit.
 
 use std::path::PathBuf;
 

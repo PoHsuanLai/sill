@@ -1,8 +1,8 @@
 //! What one output's indicator draws for a change: the level (the default sink's volume, or the
 //! brightness of the display this output drives), the card's level and glyph (quire's
 //! `LevelControl` draws the waves or sun itself, from the fill and the mute), and the title above
-//! it: the sink's or monitor's real name where the services give one, else "Sound"/"Display"
-//! (quire CONSUMING.md "OSD parts"). Pure.
+//! it: the sink's or monitor's real name where the services give one, else "Sound"/"Display".
+//! Pure.
 //!
 //! A monitor's own speakers follow the software volume (`display.hardware_volume`), so the
 //! volume shown is the sink's level whichever of the two is playing.

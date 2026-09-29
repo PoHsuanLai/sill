@@ -1,10 +1,10 @@
-//! The M9 row kinds (FINDINGS "M9 freeze" F656): which shape a row takes in the palette, and
-//! the words its detail line and trail carry. Pure but for the local time zone [`row_detail`] reads.
+//! The row kinds: which shape a row takes in the palette, and the words its detail line and
+//! trail carry. Pure but for the local time zone [`row_detail`] reads.
 //!
 //! A file row is the file's icon (or a thumbnail), its name, its folder as `~/…` and when it
 //! was modified; a clipboard row an excerpt (or an image's thumbnail) with its age; an emoji a
 //! cell of the grid ([`super::emoji_grid::EmojiGrid`]); the web fallback a plain row with the
-//! engine's host. quire draws each (Q290, Q291): `sections_view::palette_groups` hands these
+//! engine's host. quire draws each: `sections_view::palette_groups` hands these
 //! words to `RowShape::File` and `RowShape::Clip`, and the emoji to the palette's grid.
 
 use jiff::Timestamp;
@@ -17,7 +17,7 @@ use crate::surfaces::notification_card::labels::{age, age_label};
 /// The shape a row takes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RowKind {
-    /// An M4 row: tile, title, detail.
+    /// A plain row: tile, title, detail.
     Plain,
     File,
     Clip,

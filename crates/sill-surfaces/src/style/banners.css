@@ -1,8 +1,7 @@
-/* The banner column (design/20 §1.6, design/13 §13.3.6; sill FINDINGS "Adopting quire's
-   notification parts"): quire's `BannerStack` in the surface's corner, inside its transparent
-   room for the Toast shadow (`--sill-banner-room`, `layer::ROOM`). The stack, the cards and
-   their motion are quire's; this only places the stack. Attribute selectors carry `*|`
-   (spike S2). */
+/* The banner column (design/20 §1.6, design/13 §13.3.6): quire's `BannerStack` in the
+   surface's corner, inside its transparent room for the Toast shadow (`--sill-banner-room`,
+   `layer::ROOM`). The stack, the cards and their motion are quire's; this only places the
+   stack. Attribute selectors carry `*|`. */
 
 .sill-banners{ position:absolute; top:0; right:0; bottom:0; left:0; display:flex; flex-direction:column;
   align-items:flex-end; padding:var(--sill-banner-room); box-sizing:border-box; overflow:hidden; }

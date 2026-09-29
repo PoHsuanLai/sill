@@ -2,7 +2,7 @@
 //! this session ([`IdlePolicy`]), and the pure functions between them: [`resolve_mode`] (who
 //! owns idle here), [`effective_times`] (COSMIC's times or sill's), [`power_source`] (AC or
 //! battery from the battery service) and [`watches`] (which `ext-idle-notify-v1` notifications
-//! to hold). sill FINDINGS "sill idle (Q420 B)" F900-F906.
+//! to hold).
 
 use crate::battery::{Battery, Charge};
 use crate::locker::Host;
@@ -50,7 +50,7 @@ pub enum TimesChoice {
 pub struct DimLevel(pub u8);
 
 /// The warning before the displays go off: dimmed for `lead` first (`idle.dim_s`; zero: no
-/// dim). Drawn as a sill overlay, never by changing a backlight or a monitor's brightness (F902).
+/// dim). Drawn as a sill overlay, never by changing a backlight or a monitor's brightness.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DimPlan {
     pub lead: IdleSecs,
@@ -67,7 +67,7 @@ pub enum IdleLock {
 }
 
 /// `session.lock_grace_s`: after an idle screen-off lock, a wake within this opens the lock
-/// without the password; zero always asks (F908).
+/// without the password; zero always asks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LockGrace(pub IdleSecs);
 
@@ -135,7 +135,7 @@ pub enum PowerSource {
 }
 
 /// One idle notification to hold (`ext_idle_notifier_v1.get_idle_notification`, which honours
-/// the compositor's idle inhibitors; never `get_input_idle_notification`, F905).
+/// the compositor's idle inhibitors; never `get_input_idle_notification`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Watch {
     pub stage: Threshold,

@@ -1,7 +1,7 @@
 //! One check at a time for the lock screen's password field: pure, table-tested.
 //!
-//! Rules (FINDINGS F542, amended by F862: the user chose no growing delay after failed
-//! passwords, so there is no lockout and no wait):
+//! Rules (the user chose no growing delay after failed passwords, so there is no lockout and no
+//! wait):
 //!
 //! - `Submit` while `Open` starts a check (`Check`); while `Checking` it is refused (`Busy`) and
 //!   nothing is checked, so a held Return key cannot queue attempts.

@@ -1,10 +1,8 @@
 //! The `org.freedesktop.Notifications` object, served at `/org/freedesktop/Notifications` once
 //! the service holds the name, and the parse from the wire's arguments into a [`Posting`].
 //!
-//! Private to the service and lane a's to shape (FINDINGS "The M6 fill-in"): the frozen parts
-//! are the D-Bus names and signatures below, which are the spec's, and [`posting_from_wire`]'s
-//! contract. The skeleton is here so the `#[interface]` macro and signal emitters are proven to
-//! build on the workspace's `zbus` features before any agent starts (dependencies first).
+//! Private to the service: the fixed parts are the D-Bus names and signatures below, which are the
+//! spec's, and [`posting_from_wire`]'s contract.
 
 use std::collections::HashMap;
 

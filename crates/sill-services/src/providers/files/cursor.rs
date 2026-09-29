@@ -5,8 +5,7 @@
 //! column count `n` (i32), `n` value types (i32; 0 is unbound, an OPTIONAL that matched
 //! nothing), `n` end offsets (i32), then the row's strings, each followed by a NUL, `last
 //! offset + 1` bytes in all. Column `i` runs from the byte after column `i - 1`'s end (0 for the
-//! first) to its own end offset. Checked against a live localsearch in its test sandbox
-//! (FINDINGS "M9 lane a").
+//! first) to its own end offset. Checked against a live localsearch in its test sandbox.
 
 use std::ffi::OsString;
 use std::os::unix::ffi::OsStringExt;

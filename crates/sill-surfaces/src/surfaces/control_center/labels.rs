@@ -22,8 +22,7 @@ pub fn wifi_status(wifi: &Wifi, network: &Network) -> String {
 }
 
 /// The Bluetooth tile's status line: "Unavailable" (no adapter), "Off" or "On". No device name:
-/// several can be connected at once, and the device list is one chevron away (FINDINGS "Manual
-/// run 2026-09-28: control center").
+/// several can be connected at once, and the device list is one chevron away.
 pub fn bluetooth_tile_status(bluetooth: &Bluetooth) -> &'static str {
     match (bluetooth.presence, bluetooth.power) {
         (Presence::Absent, _) => "Unavailable",

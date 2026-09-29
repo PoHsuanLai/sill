@@ -1,6 +1,6 @@
-//! `sill run`: take the single-instance lock, start the services and the IPC server, connect
-//! the host, and keep one set of surfaces per output (plan: "daemon uses
-//! `latchkey::Agent::new(\"sill\").listen()` (AlreadyRunning -> exit 0)").
+//! `sill run`: take the single-instance lock, start the services and the IPC server, connect the
+//! host, and keep one set of surfaces per output. The lock is
+//! `latchkey::Agent::new("sill").listen()`; `AlreadyRunning` exits 0.
 //!
 //! [`on_event`] is the frozen event handler; it owns the parts that need only `HostCtx` and
 //! [`Outputs`] (output bookkeeping via [`crate::outputs::reconcile`], closing a surface the
@@ -82,8 +82,8 @@ pub fn run() -> ExitCode {
         edit_widgets: sill_surfaces::surfaces::edit_widgets::EditWidgetsLink::new(),
         widgets_writer: crate::edit_widgets::writer(settings_dir.clone(), settings_tx.clone()),
     });
-    // M6: the notifications service's policy from the settings and the focus mode; the first
-    // one sent ends its passive start (FINDINGS "M6 freeze").
+    // The notifications service's policy from the settings and the focus mode; the first one
+    // sent ends its passive start.
     if let Some(links) = crate::links::get() {
         crate::notifications::spawn_policy(
             runtime.handle(),
@@ -98,16 +98,15 @@ pub fn run() -> ExitCode {
     let _ = services
         .polkit_control
         .send(PolkitCommand::Policy(AgentPolicy::Own));
-    // Q420 B: sill's own idle follows `idle.*` and `session.lock_grace_s`; the service is
-    // passive until this first policy, and `Off` anywhere but a sill session with no cosmic-idle
-    // (FINDINGS "sill idle (Q420 B)", "sill idle fill").
+    // sill's own idle follows `idle.*` and `session.lock_grace_s`; the service is passive until
+    // this first policy, and `Off` anywhere but a sill session with no cosmic-idle.
     crate::idle::spawn_policy(
         runtime.handle(),
         settings_feed.0.clone(),
         services.idle_control.clone(),
     );
-    // M9: the launcher v2 providers and the clipboard history follow `launcher.*`; both are
-    // passive until this first policy (FINDINGS "M9 freeze").
+    // The launcher v2 providers and the clipboard history follow `launcher.*`; both are passive
+    // until this first policy.
     crate::launcher_policy::spawn_policy(
         runtime.handle(),
         settings_feed.0.clone(),
@@ -121,8 +120,8 @@ pub fn run() -> ExitCode {
         )),
         ..sill_surfaces::host_config()
     };
-    // M10: the calendar's sources and the screenshots' folders and tool, from the settings
-    // (both services passive until then; lanes a and c fill the followers).
+    // The calendar's sources and the screenshots' folders and tool, from the settings (both
+    // services passive until then).
     crate::calendar::spawn_policy(
         runtime.handle(),
         settings_feed.0.clone(),
@@ -143,9 +142,9 @@ pub fn run() -> ExitCode {
     // Detached: it accepts connections until the process exits with the host (doc on
     // `ipc_server::spawn`).
     let _ipc_thread = ipc_server::spawn(door, handle.clone());
-    // M11: the own lock screen's wish to hold the session lock (lane a fills the follower).
+    // The own lock screen's wish to hold the session lock.
     crate::lock::spawn_follower(runtime.handle(), &services, handle.clone());
-    // Q420 B: the idle dim surfaces are mapped while the idle service dims.
+    // The idle dim surfaces are mapped while the idle service dims.
     crate::idle_dim::spawn_follower(runtime.handle(), &services, handle.clone());
 
     if let Some(dir) = settings_dir.clone() {
@@ -170,7 +169,7 @@ pub fn run() -> ExitCode {
     let mut outputs = Outputs::default();
     let launcher = LauncherLink::new();
     let osd = OsdLink::new();
-    // M10: the hot corners' firings, carried out off the host thread (lane d fills it).
+    // The hot corners' firings, carried out off the host thread.
     if let Some(links) = crate::links::get() {
         crate::corners::spawn_hits(
             runtime.handle(),
@@ -208,7 +207,7 @@ pub fn run() -> ExitCode {
 /// `host.run` has returned (`ctx.exit()`; every surface, and with it every clone of `Services`,
 /// is already gone by then — shell-host's own `Host::run` clears every surface before
 /// returning). Comfortably above `sill-services`' own bounded waits (its `cosmic-randr` call is
-/// 2 s: FINDINGS G51), but not unbounded.
+/// 2 s), but not unbounded.
 const RUNTIME_SHUTDOWN_BOUND: Duration = Duration::from_secs(4);
 
 /// Ends `runtime`, waiting at most [`RUNTIME_SHUTDOWN_BOUND`] for every spawned task's thread to
@@ -260,14 +259,13 @@ fn run_event(
     match event {
         HostEvent::App(ShellMsg::Ipc { request, reply }) => {
             // `Toggle` is timed from here (the IPC request's arrival) regardless of what
-            // `dispatch_request` does with it: M4 perf-ime's `launcher.open_latency_ms` line
-            // (module doc; FINDINGS.md "M4 perf-ime"). Placed at the request's arrival rather
-            // than inside `dispatch_launcher` so M4 launcher-ui can freely rewrite that
-            // function's body — spawning the panel for real, keeping it warm, whatever the
-            // surface needs — without colliding with this edit: the elapsed time this measures
-            // grows on its own, from "IPC overhead only" today to "IPC arrival to the frame
-            // that presents the shown panel" once `dispatch_request` itself waits on that frame
-            // (e.g. via `HostCtx::take_stats` after spawning/showing the surface).
+            // `dispatch_request` does with it: the `launcher.open_latency_ms` line (module doc).
+            // Placed at the request's arrival rather than inside `dispatch_launcher` so that
+            // function's body can change freely — spawning the panel for real, keeping it warm,
+            // whatever the surface needs — without moving this: the elapsed time this measures
+            // grows on its own, from "IPC overhead only" today to "IPC arrival to the frame that
+            // presents the shown panel" once `dispatch_request` itself waits on that frame (e.g.
+            // via `HostCtx::take_stats` after spawning/showing the surface).
             let toggled_at =
                 matches!(request, Request::Launcher(LauncherRequest::Toggle)).then(Instant::now);
             let response = dispatch_request(
@@ -324,8 +322,8 @@ fn run_event(
             }
             // The watch's re-read reaches `settings_tx` (every `SettingsFeed` follower: idle,
             // launcher, notifications, the locker, polkit, calendar, screenshots, corners, the
-            // focus mode) the same way `dispatch_reload` does for `sill reload` (FINDINGS F993,
-            // F1030); geometry and the display policy already follow the same event just below.
+            // focus mode) the same way `dispatch_reload` does for `sill reload`; geometry and the
+            // display policy already follow the same event just below.
             publish_watched_settings(settings_tx, &other);
             crate::displays::on_host_event(services, &other);
             on_event(ctx, outputs, other);
@@ -336,7 +334,7 @@ fn run_event(
             crate::power_menu::spawn_missing(ctx, outputs, &services.session, |root| {
                 surface_root(root, services, settings_feed)
             });
-            // M11: the polkit prompt over the power menu, and the switcher (both Overlay).
+            // The polkit prompt over the power menu, and the switcher (both Overlay).
             crate::polkit::spawn_missing(ctx, outputs, |root| {
                 surface_root(root, services, settings_feed)
             });
@@ -347,8 +345,8 @@ fn run_event(
             crate::notifications::spawn_missing(ctx, outputs, settings_tx, |root| {
                 surface_root(root, services, settings_feed)
             });
-            // M10: the screenshot thumbnail after the banners and before the OSD (all Overlay);
-            // the desktop widgets (Bottom) and the hot corners (Overlay, never painted).
+            // The screenshot thumbnail after the banners and before the OSD (all Overlay); the
+            // desktop widgets (Bottom) and the hot corners (Overlay, never painted).
             crate::screenshots::spawn_missing(ctx, outputs, |root| {
                 surface_root(root, services, settings_feed)
             });
@@ -364,7 +362,7 @@ fn run_event(
             crate::osd::spawn_missing(ctx, outputs, settings_tx, osd, |root| {
                 surface_root(root, services, settings_feed)
             });
-            // Q420 B: the idle dim last, over every other Overlay surface; the session-lock
+            // The idle dim last, over every other Overlay surface; the session-lock
             // surfaces are above every layer surface anyway.
             let dim = services.idle.borrow().dim;
             crate::idle_dim::spawn_missing(ctx, outputs, dim, |root| {
@@ -390,7 +388,7 @@ pub fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostE
         | HostEvent::OutputChanged(_)
         | HostEvent::OutputRemoved(_) => reconcile_outputs(ctx, outputs),
         HostEvent::SurfaceClosed { id, reason } => on_surface_closed(outputs, id, reason),
-        // M11: answered by `run_event` (`crate::lock::on_host_event`), which holds the lock.
+        // Answered by `run_event` (`crate::lock::on_host_event`), which holds the lock.
         HostEvent::KeyboardFocus { .. } | HostEvent::Lock { .. } => {}
         HostEvent::App(ShellMsg::Settings(file)) => {
             resize_bars(ctx, outputs, &file);
@@ -628,9 +626,9 @@ fn spawn_missing_docks(
     }
 }
 
-/// Spawn the launcher's two surfaces for every output whose row has none yet, both hidden at
-/// once: they stay alive and are shown and hidden with `set_visibility`, following `launcher`
-/// (plan "Launcher v1"). The catcher is spawned first.
+/// Spawn the launcher's two surfaces for every output whose row has none yet, both hidden at once:
+/// they stay alive and are shown and hidden with `set_visibility`, following `launcher`. The
+/// catcher is spawned first.
 fn spawn_missing_launchers(
     ctx: &mut HostCtx<ShellMsg>,
     outputs: &mut Outputs,
@@ -693,14 +691,13 @@ pub(crate) fn spawn_hidden(
     }
 }
 
-/// `root` with the contexts every surface the daemon spawns is given: the services, the
-/// settings, quire's rect measurer, `ds_native::measure::MEASURE` (re-exported as
-/// `sill_surfaces::MEASURE`), and its focus write, `ds_native::focus::FOCUS` (re-exported as
-/// `sill_surfaces::FOCUS`), and the field caret, `ds_native::focus::CARET` (G270), which are what `ds_native::measure::provide()` and
-/// `ds_native::focus::provide()` provide from inside a root component. Without them a rect read
-/// or a focus waits a frame and the panic hook prints the collision (FINDINGS Q10, F81,
-/// "Adoption of the bar gaps", "Adoption of the launcher gaps"). Every spawn goes through here,
-/// so a new surface cannot forget them.
+/// `root` with the contexts every surface the daemon spawns is given: the services, the settings,
+/// quire's rect measurer, `ds_native::measure::MEASURE` (re-exported as `sill_surfaces::MEASURE`),
+/// and its focus write, `ds_native::focus::FOCUS` (re-exported as `sill_surfaces::FOCUS`), and the
+/// field caret, `ds_native::focus::CARET`, which are what `ds_native::measure::provide()` and
+/// `ds_native::focus::provide()` provide from inside a root component. Without them a rect read or
+/// a focus waits a frame and the panic hook prints the collision. Every spawn goes through here, so
+/// a new surface cannot forget them.
 pub(crate) fn surface_root(root: Root, services: &Services, settings_feed: &SettingsFeed) -> Root {
     let root = root
         .context(services.clone())
@@ -708,9 +705,9 @@ pub(crate) fn surface_root(root: Root, services: &Services, settings_feed: &Sett
         .context(sill_surfaces::MEASURE)
         .context(sill_surfaces::FOCUS)
         .context(sill_surfaces::CARET);
-    // M5: the focus mode, the power menu and the control center's asks; M6: the notification
-    // center and the banners' output; M10: the hot corners' firings; M11: the switcher's asks
-    // and the lock prompt's output (`crate::links`).
+    // The focus mode, the power menu and the control center's asks; the notification center and
+    // the banners' output; the hot corners' firings; the switcher's asks and the lock prompt's
+    // output (`crate::links`).
     match crate::links::get() {
         Some(links) => root
             .context(links.focus.clone())
@@ -727,7 +724,7 @@ pub(crate) fn surface_root(root: Root, services: &Services, settings_feed: &Sett
     }
 }
 
-/// Each output's lock surface for shell-host's session lock (M11): `LockScreen` with the
+/// Each output's lock surface for shell-host's session lock: `LockScreen` with the
 /// daemon's usual contexts and the lock prompt's link.
 fn lock_factory(
     services: &Services,
@@ -827,7 +824,7 @@ fn dispatch_request(
 
 /// `sill launcher toggle|open|close`: the shared launcher state, which both launcher surfaces
 /// follow. It opens on the first output with a launcher (the output under the pointer is not
-/// known to the daemon; FINDINGS F140).
+/// known to the daemon).
 fn dispatch_launcher(
     outputs: &Outputs,
     launcher: &LauncherLink,
@@ -878,12 +875,11 @@ fn dispatch_reload(dir: Option<&Path>, settings_tx: &watch::Sender<ShellFile>) -
 }
 
 /// `event`'s file, published to `settings_tx`, if it is a watched settings change
-/// (`ShellMsg::Settings`, from the file watch task in [`run`]); anything else is a no-op. The
-/// same act [`dispatch_reload`] performs for `sill reload`, so a plain `settings.toml` edit (or
-/// one of sill's own writes: `crate::widgets`, `sill_settings::focus_link`) takes effect without
-/// one (FINDINGS F993, F1030). `sill_settings::watch` already debounces a burst of writes to one
-/// settled file and keeps the last good file on a parse failure, so there is nothing further to
-/// coalesce or guard here.
+/// (`ShellMsg::Settings`, from the file watch task in [`run`]); anything else is a no-op. The same
+/// act [`dispatch_reload`] performs for `sill reload`, so a plain `settings.toml` edit (or one of
+/// sill's own writes: `crate::widgets`, `sill_settings::focus_link`) takes effect without one.
+/// `sill_settings::watch` already debounces a burst of writes to one settled file and keeps the
+/// last good file on a parse failure, so there is nothing further to coalesce or guard here.
 fn publish_watched_settings(settings_tx: &watch::Sender<ShellFile>, event: &HostEvent<ShellMsg>) {
     if let HostEvent::App(ShellMsg::Settings(file)) = event {
         settings_tx.send_replace((**file).clone());
@@ -951,8 +947,7 @@ fn act(ctx: &mut HostCtx<ShellMsg>, surface: SurfaceName, action: DebugAction) -
 }
 
 /// Pointer/leave/capture, through shell-host's typed `HostCtx::inject` (feature `debug`; a
-/// capture's success and size come back directly through `Injected`, no bridging over stdout —
-/// FINDINGS.md G1 resolved upstream).
+/// capture's success and size come back directly through `Injected`, no bridging over stdout).
 #[cfg(feature = "debug")]
 fn apply_injection(ctx: &mut HostCtx<ShellMsg>, id: SurfaceId, action: DebugAction) -> Response {
     let inject = match to_inject(action) {
@@ -965,7 +960,7 @@ fn apply_injection(ctx: &mut HostCtx<ShellMsg>, id: SurfaceId, action: DebugActi
     }
 }
 
-/// `action` as shell-host's injection; every pointer button maps through (G10 is closed).
+/// `action` as shell-host's injection; every pointer button maps through.
 #[cfg(feature = "debug")]
 fn to_inject(action: DebugAction) -> Result<shell_host::Inject, Response> {
     let point = |at: sill_ipc::Point| shell_host::Point { x: at.x, y: at.y };
@@ -1087,7 +1082,7 @@ fn collect_stats(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<sill_ipc
         })
         .collect();
     // The lock surfaces are the host's (shell-host names each `sill-lock/<output>`), not a row
-    // of `outputs`, so they are found by name while a lock is up (G191).
+    // of `outputs`, so they are found by name while a lock is up.
     let locks: Vec<(String, SurfaceId)> = outputs
         .outputs
         .iter()
@@ -1127,8 +1122,8 @@ fn to_ipc_micros(p: shell_host::Percentiles) -> sill_ipc::Micros {
     }
 }
 
-/// Prints [`open_latency_line`] on stderr: the M4 perf-ime latency line `dev/accept-launcher.sh`
-/// parses for its p50/p95/max over 20 toggles.
+/// Prints [`open_latency_line`] on stderr: the latency line `dev/accept-launcher.sh` parses for its
+/// p50/p95/max over 20 toggles.
 fn log_open_latency(elapsed: Duration) {
     eprintln!("{}", open_latency_line(elapsed));
 }
@@ -1160,7 +1155,7 @@ fn unknown_surface(surface: &SurfaceName) -> Response {
     })
 }
 
-/// A launcher key from `sill debug launcher-key` (M9): only a `debug` daemon presses it.
+/// A launcher key from `sill debug launcher-key`: only a `debug` daemon presses it.
 #[cfg(feature = "debug")]
 fn launcher_key(launcher: &LauncherLink, key: sill_ipc::FakeLauncherKey) -> Response {
     crate::launcher_debug::key(launcher, key)
@@ -1171,7 +1166,7 @@ fn launcher_key(_launcher: &LauncherLink, _key: sill_ipc::FakeLauncherKey) -> Re
     unsupported("launcher keys need a daemon built with the debug feature")
 }
 
-/// The launcher's rows for `sill debug launcher-rows` (M9): only a `debug` daemon answers.
+/// The launcher's rows for `sill debug launcher-rows`: only a `debug` daemon answers.
 #[cfg(feature = "debug")]
 fn launcher_rows(launcher: &LauncherLink) -> Response {
     crate::launcher_debug::rows(launcher)
@@ -1252,7 +1247,7 @@ mod shutdown_tests {
 
 /// [`publish_watched_settings`] (a pure change-to-dispatch mapping: only `ShellMsg::Settings`
 /// dispatches, everything else is a no-op) and the live watch it feeds, end to end through a
-/// temp config dir (FINDINGS F993, F1030).
+/// temp config dir.
 #[cfg(test)]
 mod settings_publish_tests {
     use std::time::Duration;
@@ -1300,9 +1295,8 @@ mod settings_publish_tests {
         assert_eq!(rx.borrow().clone(), ShellFile::default());
     }
 
-    /// The regression itself (FINDINGS "Manual run 2026-09-28: menus and keyboard", F993): a
-    /// `settings.toml` edit under a temp config dir, with no `sill reload`, reaches a
-    /// `SettingsFeed`-shaped channel through the same watch and the same
+    /// The regression itself: a `settings.toml` edit under a temp config dir, with no `sill
+    /// reload`, reaches a `SettingsFeed`-shaped channel through the same watch and the same
     /// `publish_watched_settings` `run_event` now calls.
     #[tokio::test]
     async fn a_file_write_reaches_the_feed_without_a_reload() {

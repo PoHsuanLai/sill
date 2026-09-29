@@ -1,7 +1,7 @@
-//! Screenshots on the daemon's side (FINDINGS "M10 freeze"): one warm, hidden thumbnail surface
-//! per output (the banners' pattern), `sill screenshot`, `sill debug screenshot`, and the
-//! service's policy from `screenshot.folders` and `screenshot.tool` ([`spawn_policy`]; until
-//! it is sent the service stays passive and watches nothing).
+//! Screenshots on the daemon's side: one warm, hidden thumbnail surface per output (the banners'
+//! pattern), `sill screenshot`, `sill debug screenshot`, and the service's policy from
+//! `screenshot.folders` and `screenshot.tool` ([`spawn_policy`]; until it is sent the service stays
+//! passive and watches nothing).
 
 use std::path::PathBuf;
 

@@ -3,8 +3,7 @@
 //! machine, plasmashell). `#[ignore]`d because they start a bus: run with
 //! `cargo test -p sill-services --test notifications_live -- --ignored --nocapture`.
 //!
-//! The first proves the private bus itself; the rest are lane a's done criteria (FINDINGS "The
-//! M6 fill-in") and pass once `notifications/live.rs` is filled.
+//! The first proves the private bus itself; the rest check `notifications/live.rs`.
 
 mod support;
 

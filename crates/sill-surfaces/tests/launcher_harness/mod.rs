@@ -1,6 +1,6 @@
 //! The real `Launcher` in a `ds_native::Harness` (a Blitz document, no window), opened on the
 //! fake services with their search runner: keys and time as a user gives them. The harness runs
-//! on the virtual clock (quire Q380) and the runner as a task on its thread, so what a test sees
+//! on the virtual clock and the runner as a task on its thread, so what a test sees
 //! depends only on what it did, never on how loaded the machine is.
 
 #![allow(dead_code)] // Each test binary uses its own subset.
@@ -46,7 +46,7 @@ fn app() -> Element {
         return rsx! {};
     };
     use_context_provider(|| world.services.clone());
-    // Not the desktop's portal and appearance file: they answer off-thread (FINDINGS G370).
+    // Not the desktop's portal and appearance file: they answer off-thread.
     use_context_provider(PinnedAppearance::default);
     use_context_provider(|| world.settings.clone());
     use_context_provider(|| world.link.clone());
@@ -183,7 +183,7 @@ const FRAMES: u32 = 2000;
 
 /// Advance frame by frame until `done` holds, letting the wall clock run between frames: what
 /// lands off the harness's thread (a PDF page's raster, a text file's head) lands in wall time,
-/// never within one `advance` (quire Q380). Watching for a thing that must not happen, `Never`
+/// never within one `advance`. Watching for a thing that must not happen, `Never`
 /// is the pass.
 pub fn watch(harness: &mut Harness, done: impl Fn(&Harness) -> bool) -> Seen {
     for _ in 0..FRAMES {
@@ -202,7 +202,7 @@ pub fn watch(harness: &mut Harness, done: impl Fn(&Harness) -> bool) -> Seen {
 /// Wait for work done on another thread (a PDF page's raster, a file's head read) to land,
 /// on the wall clock and without moving the harness clock: a loaded machine may take seconds,
 /// and advancing the virtual clock meanwhile would cross quire's pending cap and change what is
-/// drawn. `advance(ZERO)` runs whatever the landing woke, at the current instant (quire G311).
+/// drawn. `advance(ZERO)` runs whatever the landing woke, at the current instant.
 pub fn await_off_thread(harness: &mut Harness, done: impl Fn(&Harness) -> bool) -> Seen {
     let deadline = std::time::Instant::now() + OFF_THREAD_LIMIT;
     while std::time::Instant::now() < deadline {

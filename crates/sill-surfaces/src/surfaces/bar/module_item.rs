@@ -1,6 +1,5 @@
 //! A control center module as its own bar item (`control_center.menu_bar_*`): a status icon
-//! whose dropdown is the module's own component (`PopupBody::Module`). Replaces the pre-M5
-//! volume, network and battery items, whose menus become the Sound, Wi-Fi and Battery modules.
+//! whose dropdown is the module's own component (`PopupBody::Module`).
 
 use dioxus::prelude::*;
 use ds::{Icon, StatusState};
@@ -69,7 +68,7 @@ fn WifiItem() -> Element {
     }
 }
 
-/// Battery: the battery glyph by level and power, nudged once per low crossing (G11); hidden
+/// Battery: the battery glyph by level and power, nudged once per low crossing; hidden
 /// without a battery (UPower's display device absent: a desktop).
 #[component]
 fn BatteryItem() -> Element {

@@ -1,6 +1,6 @@
-//! The service values as quire's status glyph states (quire CONSUMING "Status glyphs", design/26
-//! section 5.1), pure: which Wi-Fi, battery, Bluetooth and volume state each item hands its
-//! glyph. The glyph decides the moment from its own table; these only say what is true.
+//! The service values as quire's status glyph states (design/26 section 5.1), pure: which Wi-Fi,
+//! battery, Bluetooth and volume state each item hands its glyph. The glyph decides the moment
+//! from its own table; these only say what is true.
 
 use ds::detail::EventStamp;
 use ds::{
@@ -55,7 +55,7 @@ pub fn network_glyph(network: &Network, radio: Radio) -> NetworkGlyph {
             NetworkGlyph::Wifi(WifiState::Joining(stamp(network.join.minted)))
         }
         // Moving to another Wi-Fi network while joined: joining, as the reference's menu bar
-        // does (G303). A wired primary keeps its own icon.
+        // does. A wired primary keeps its own icon.
         (Link::Wifi { .. }, Attempt::Running(op), _) => {
             NetworkGlyph::Wifi(WifiState::Joining(stamp(op)))
         }

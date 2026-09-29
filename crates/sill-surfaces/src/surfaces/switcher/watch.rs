@@ -1,13 +1,13 @@
-//! The chord's modifiers as shell-host publishes them (`use_modifiers`, G180), fed to the
+//! The chord's modifiers as shell-host publishes them (`use_modifiers`), fed to the
 //! machine through [`SwitcherCtx::modifiers`]. Mounted per opening on a host surface only
 //! (`use_modifiers` needs one) and only for the compositor's apps (`sill debug switcher`'s
 //! made-up apps close on a key or a click, never on the state they opened in); mounting marks
 //! the opening followed (`hold.rs`: the show delay then ends a tap that never read held).
 //!
-//! shell-host publishes only a change. Since G210 (shell-host F67) an unmap withdraws the
-//! keyboard and resets the modifiers, so an opening normally mounts on "nothing held"; the value
-//! as it mounts is still taken as its baseline, which keeps the switcher right on a host older
-//! than F67 and costs nothing now. A change after that is the seat's real state (a release, the
+//! shell-host publishes only a change. An unmap withdraws the keyboard and resets the modifiers,
+//! so an opening normally mounts on "nothing held"; the value as it mounts is still taken as its
+//! baseline, which keeps the switcher right on a host whose unmap does not reset them and costs
+//! nothing now. A change after that is the seat's real state (a release, the
 //! release).
 
 use dioxus::prelude::*;

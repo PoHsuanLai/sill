@@ -1,6 +1,6 @@
 //! The launcher's search: providers run off the UI thread, batches merge into one ranked list,
-//! stale generations are dropped (plan "Launcher v1": "stale generations dropped"), and every
-//! activation is counted in `$XDG_STATE_HOME/sill/frecency.json`.
+//! stale generations are dropped, and every activation is counted in
+//! `$XDG_STATE_HOME/sill/frecency.json`.
 //!
 //! Each [`SearchCommand::Query`] begins a generation (`Cancel::begin`, so every older query
 //! reads as cancelled) and runs every provider on its own blocking task; their batches merge
@@ -48,7 +48,7 @@ pub enum SearchCommand {
     /// The text changed: begin a generation and query every provider.
     Query(String),
     /// The text changed under the Tab filter: begin a generation and query `provider` alone
-    /// (`Scope::Only`), so its rows are not capped by the other providers' (M9 freeze, F651).
+    /// (`Scope::Only`), so its rows are not capped by the other providers'.
     Filtered {
         text: String,
         provider: ProviderKind,
@@ -57,8 +57,8 @@ pub enum SearchCommand {
     Chosen { key: ItemKey, choice: Choice },
     /// The launcher closed: cancel the running generation.
     Cancel,
-    /// The settings changed what the M9 providers may do (M9 freeze, F646); the daemon sends it
-    /// at start, and until then every M9 provider is off.
+    /// The settings changed what the settings-gated providers may do; the daemon sends it at start,
+    /// and until then every one of them is off.
     Policy(LauncherPolicy),
 }
 

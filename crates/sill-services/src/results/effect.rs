@@ -1,7 +1,6 @@
 //! Where a chosen row's [`Activation`] goes. The runner carries out the ones a service it holds
 //! can do (windows through `cosmic_wl`, apps through `launch`); the rest belong to the
-//! launcher surface or the daemon (FINDINGS F112). Pure mapping, table-tested; the sending is
-//! [`Outlets::carry`].
+//! launcher surface or the daemon. Pure mapping, table-tested; the sending is [`Outlets::carry`].
 
 use sill_launcher::Activation;
 
@@ -40,8 +39,8 @@ pub(crate) fn effect(activation: &Activation) -> Effect {
         | Activation::Insert { .. }
         | Activation::OpenSettings { .. }
         | Activation::System(_)
-        // M9 (F643): opening needs the surface's activation token, and the clipboard entry
-        // goes to the clipboard service from the surface.
+        // Opening needs the surface's activation token, and the clipboard entry goes to the
+        // clipboard service from the surface.
         | Activation::Open { .. }
         | Activation::SetClipboard { .. }
         | Activation::ForgetClipboard { .. }

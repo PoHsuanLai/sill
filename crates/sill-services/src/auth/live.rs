@@ -8,8 +8,9 @@
 //! tagged with a [`Round`] so a verdict that comes back after a `Reset` is dropped; turns `Fake`
 //! into a verdict without the authenticator (after [`FAKE_CHECK_MS`], so the surface sees
 //! `Checking` first, as for a real check: debug builds only); publishes [`super::Auth`]; ends
-//! when every control is gone. There is no lockout wait (F862). The secret lives only in the `Submit` and the check's `Attempt`, both dropped (and
-//! zeroed) when the check ends; it is never logged or published.
+//! when every control is gone. There is no lockout wait. The secret lives only in the `Submit` and
+//! the check's `Attempt`, both dropped (and zeroed) when the check ends; it is never logged or
+//! published.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -126,8 +127,8 @@ impl Live {
         self.publish_out(&out, &Verdict::plain(Outcome::Refused));
     }
 
-    /// The lock grace (F908): `Accepted` as a right password would publish it, with no check,
-    /// so the lock surfaces unlock through their one path. Ignored while a check runs (the
+    /// The lock grace: `Accepted` as a right password would publish it, with no check, so the lock
+    /// surfaces unlock through their one path. Ignored while a check runs (the
     /// person is already typing; their own verdict stands).
     fn grace(&mut self) {
         match self.checks.gate {

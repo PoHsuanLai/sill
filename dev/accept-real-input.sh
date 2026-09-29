@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # Real input acceptance: the power menu and the control center under real Wayland keyboard and
-# pointer input, on a private headless KWin (shell-host scripts/dev/kwin-virtual.sh, FINDINGS
-# F52) driven by shell-host's scripts/dev/fake-input.sh. The nested cosmic-comp gives the shell's
-# surfaces no keyboard and debug clicks carry no input serial (FINDINGS G30, F226); here every key
-# and press is a real one, with a real serial and keyboard focus.
+# pointer input, on a private headless KWin (shell-host scripts/dev/kwin-virtual.sh) driven by
+# shell-host's scripts/dev/fake-input.sh. The nested cosmic-comp gives the shell's surfaces no
+# keyboard and debug clicks carry no input serial; here every key and press is a real one, with a
+# real serial and keyboard focus.
 #
 # Starts `sill run` from this checkout's debug build (`--features debug`) on the headless KWin,
 # with its own XDG_RUNTIME_DIR and a scratch XDG_CONFIG_HOME, XDG_STATE_HOME and XDG_CACHE_HOME.
-# KWin's private bus is the daemon's session AND system bus (start_kwin refuses to go on if it
-# would be the real one, FINDINGS F1068), so nothing here reaches the real session bus, the real
-# system bus (NetworkManager, BlueZ, UPower, logind), or the user's own sill IPC socket. Quits
+# KWin's private bus is the daemon's session AND system bus (start_kwin refuses to go on if it would
+# be the real one), so nothing here reaches the real session bus, the real system bus
+# (NetworkManager, BlueZ, UPower, logind), or the user's own sill IPC socket. Quits
 # the daemon and stops the headless KWin at the end.
 #
 # SAFETY. The daemon is started with SILL_POWER_MENU_DRY_RUN naming a record file, so every power
@@ -51,7 +51,7 @@ chmod 700 "$RUNTIME"
 # already does; read without sourcing `$KWIN_ENV` into this shell (see start_kwin's comment). Its
 # own XDG_RUNTIME_DIR (so its IPC socket is never the real one's), XDG_STATE_HOME and
 # XDG_CACHE_HOME, and KWin's private bus as BOTH DBUS_SESSION_BUS_ADDRESS and
-# DBUS_SYSTEM_BUS_ADDRESS (start_kwin refuses to go on if it would be the real one, F1068).
+# DBUS_SYSTEM_BUS_ADDRESS (start_kwin refuses to go on if it would be the real one).
 in_env() {
   env XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$WL" DBUS_SESSION_BUS_ADDRESS="$BUS" \
     DBUS_SYSTEM_BUS_ADDRESS="$BUS" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" "$@"
@@ -61,7 +61,7 @@ sill() { in_env "$SILL_BIN" "$@"; }
 # Real input into the headless KWin through ONE fake-input client for the whole run: each client
 # is a new fake input device, and KWin re-announces the seat's pointer for each; shell-host then
 # holds a wl_pointer per announcement and a press reaches the bar once per pointer, so a click
-# toggled a popup open and shut (FINDINGS "Adopt quire v0.1.9").
+# toggled a popup open and shut.
 start_input() {
   rm -f "$OUT_DIR/input.fifo"; mkfifo "$OUT_DIR/input.fifo" || return 1
   "$SHELL_HOST_DEV/fake-input.sh" <"$OUT_DIR/input.fifo" >"$OUT_DIR/input.log" 2>&1 &
@@ -216,7 +216,7 @@ stop_daemon() {
 }
 
 # Wait up to 10 s for process $1 (named $2) to end on its own, once already asked to. Unlike
-# `reap` this never kills it: a daemon that goes back to not ending on `quit` (FINDINGS G51)
+# `reap` this never kills it: a daemon that goes back to not ending on `quit`
 # fails the script instead of being silently swept away.
 await_exit() {
   for _ in $(seq 100); do kill -0 "$1" 2>/dev/null || return 0; sleep 0.1; done

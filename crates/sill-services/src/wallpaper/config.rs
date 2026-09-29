@@ -1,6 +1,6 @@
 //! The wallpaper's source: COSMIC's own background config, since design/22 has no settings key
-//! for it (FINDINGS.md "M2 wallpaper"; W0 F19's last bullet). `cosmic-bg` (the COSMIC session's
-//! own background daemon; `/usr/share/cosmic/com.system76.CosmicBackground/v1/all` on a system
+//! for it. `cosmic-bg` (the COSMIC session's own background daemon;
+//! `/usr/share/cosmic/com.system76.CosmicBackground/v1/all` on a system
 //! with it installed) writes one RON record per output plus an `all` fallback that applies to
 //! every output without one of its own; this reader only follows `all`
 //! (`$XDG_CONFIG_HOME/cosmic/com.system76.CosmicBackground/v1/all`), a record shaped like:
@@ -74,8 +74,8 @@ fn ron_string(text: &str) -> Option<(String, &str)> {
 /// The wallpaper source right now: the path COSMIC's `all` record names, when the file exists
 /// on disk — otherwise [`WallpaperSource::None`], which the surface paints as `--paper`. A path
 /// [`image`] cannot decode (COSMIC's own default backgrounds are `.jxl`; this crate's `image`
-/// build carries only `png`/`jpeg`, FINDINGS.md "M2 wallpaper") is not distinguished here: it
-/// reaches the same fallback once the resize fails (`resize::ensure_cached`'s `Err`).
+/// build carries only `png`/`jpeg`) is not distinguished here: it reaches the same fallback once
+/// the resize fails (`resize::ensure_cached`'s `Err`).
 pub fn resolve_source() -> WallpaperSource {
     let path = config_path()
         .and_then(|path| std::fs::read_to_string(path).ok())

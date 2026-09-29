@@ -97,15 +97,15 @@ step_exclusive_zone() {
   done
   kill "$probe" 2>/dev/null; wait "$probe" 2>/dev/null
   height=$(grep '"maximized":true' "$probe_log" | tail -1 | python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["height"])')
-  # The dock (M3) reserves its base + margin too when the daemon runs one on this output: gut 8
-  # + tile 48 + 2 x the 6 px padding (quire's macOS polish pass).
+  # The dock reserves its base + margin too when the daemon runs one on this output: gut 8
+  # + tile 48 + 2 x the 6 px padding.
   local dock_reserve=0
   if sill debug stats 2>/dev/null | grep -q '"sill-dock-'; then dock_reserve=68; fi
   echo "output ${out_h}, maximised window ${height}, bar ${BAR_H}, dock ${dock_reserve}" | tee -a "$OUT_DIR/exclusive-zone.log" >&2
   [ "$height" = "$(( out_h - BAR_H - dock_reserve ))" ]
 }
 
-# 6. Idle: 5 s with the pointer still, the bar's commit counter does not move (plan M0 c).
+# 6. Idle: 5 s with the pointer still, the bar's commit counter does not move.
 #    Also shoots the nested screen to dev/out/bar-cosmic.png, over the test wallpaper
 #    (dev/backdrop.sh: the daemon's own when it draws one, else cosmic-bg's).
 step_idle() {
@@ -149,14 +149,13 @@ for left, right in runs:
 EOF
 }
 
-# 7. Menus: a press on a title opens its menu; an outside press dismisses it (design/13 §13.8
-#    tests 1 and 3), on the daemon's own bar through `sill debug click` (FINDINGS F80). The
-#    title is the control center's item, the status item left of the clock (the clock opens no
-#    menu since M6: it toggles the notification center, step 8); the bar's empty middle stands
-#    in for an outside press (a compositor-level outside press cannot be synthesized, shell-host
-#    F17). Whether the popup is up is whether `sill debug capture <bar>/popup` succeeds:
-#    `debug stats` lists bars only. Shoots the nested screen with the menu open to
-#    dev/out/bar-cosmic-menu.png.
+# 7. Menus: a press on a title opens its menu; an outside press dismisses it (design/13 §13.8 tests
+#    1 and 3), on the daemon's own bar through `sill debug click`. The title is the control center's
+#    item, the status item left of the clock (the clock opens no menu: it toggles the notification
+#    center, step 8); the bar's empty middle stands in for an outside press (a compositor-level
+#    outside press cannot be synthesized). Whether the popup is up is whether `sill debug capture
+#    <bar>/popup` succeeds: `debug stats` lists bars only. Shoots the nested screen with the menu
+#    open to dev/out/bar-cosmic-menu.png.
 step_menus() {
   local log="$OUT_DIR/menus.log" bar width y popup opened=no closed=no items
   : >"$log"
@@ -191,7 +190,7 @@ step_menus() {
   [ "$opened" = yes ] && [ "$closed" = yes ]
 }
 
-# 8. The clock: a click toggles the notification center on its output (M6, FINDINGS F266, F325)
+# 8. The clock: a click toggles the notification center on its output
 #    and opens no bar menu; a second click closes the center. Whether the center is up is
 #    whether `sill debug capture sill-notification-center-<out>` succeeds.
 step_clock_center() {

@@ -7,9 +7,8 @@
 //! The anchor rectangle folds in the room; design/13 §13.3.2's offset from the title is the
 //! config's (`menu_popup`).
 //!
-//! shell-host's `PopupSize::FitContent` never measures the popup's document (FINDINGS "M1
-//! bar-ui", gap G7), so the size is estimated from the entries, generously: the popup's spare
-//! area is transparent.
+//! shell-host's `PopupSize::FitContent` never measures the popup's document, so the size is
+//! estimated from the entries, generously: the popup's spare area is transparent.
 
 use ds::MenuEntry;
 use shell_host::{PopupPlacement, Rect, Size};

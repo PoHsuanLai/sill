@@ -1,6 +1,5 @@
-//! The launcher providers: the M4 five (plan "Launcher v1": apps, calculator, settings,
-//! windows, system) and the M9 four (files, clipboard, emoji, the web fallback; FINDINGS "M9
-//! freeze"). Each implements `sill_launcher::Provider`; they live here, not in the pure
+//! The launcher providers: apps, calculator, settings, windows, system, files, clipboard, emoji and
+//! the web fallback. Each implements `sill_launcher::Provider`; they live here, not in the pure
 //! `sill-launcher`, because each reads a service or the system.
 
 pub mod apps;

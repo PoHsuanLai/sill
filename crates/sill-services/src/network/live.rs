@@ -103,8 +103,8 @@ async fn primary_link(connection: &Connection, nm: &NetworkManagerProxy<'_>) -> 
     }
 }
 
-/// `ActivatingConnection`'s status for the reducer (G302): `Joining` for a non-`/` connection
-/// whose `State` is 1 (activating) and whose `Type` is `802-11-wireless`, else `Idle` — for no
+/// `ActivatingConnection`'s status for the reducer: `Joining` for a non-`/` connection whose
+/// `State` is 1 (activating) and whose `Type` is `802-11-wireless`, else `Idle` — for no
 /// connection activating, one of another type, or one that cannot be read. The reducer, not this
 /// read, decides whether an `Idle` report ends a running join as a failure or holds.
 async fn activating_status(connection: &Connection, nm: &NetworkManagerProxy<'_>) -> Activating {

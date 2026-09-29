@@ -78,7 +78,7 @@ fn basic_keys_are_on_their_section_5_pages() {
     }
 }
 
-/// §5 (Q445): the Power page holds sill's idle service, every `idle.*` key and the lock grace,
+/// §5: the Power page holds sill's idle service, every `idle.*` key and the lock grace,
 /// all Advanced; nothing else is on it, and the rest of `session.*` stays on Accounts.
 #[test]
 fn the_power_page_is_idle_and_the_lock_grace() {
@@ -99,7 +99,7 @@ fn the_power_page_is_idle_and_the_lock_grace() {
     assert_eq!(whole.key.iter().filter(|k| on_power(&k.path.0)).count(), 10);
 }
 
-/// Q445: the idle times carry their unit (`Secs` "s", `Mins` "min") and their §3.24 range.
+/// The idle times carry their unit (`Secs` "s", `Mins` "min") and their §3.24 range.
 #[test]
 fn idle_times_are_bounded_in_their_units() {
     use ds_settings::schema::KeyKind;

@@ -141,7 +141,6 @@ pub fn provider_glyph(kind: ProviderKind) -> Icon {
         ProviderKind::Calculator => Icon::Command,
         ProviderKind::Settings => Icon::Settings,
         ProviderKind::System => Icon::Power,
-        // M9: quire's glyphs for the new providers (Q296).
         ProviderKind::Files => Icon::File,
         ProviderKind::Clipboard => Icon::Clipboard,
         ProviderKind::Emoji => Icon::Smile,

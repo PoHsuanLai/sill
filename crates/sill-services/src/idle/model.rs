@@ -1,5 +1,4 @@
-//! The idle service's published state, commands, wiring and set-up (sill FINDINGS "sill idle
-//! (Q420 B)").
+//! The idle service's published state, commands, wiring and set-up.
 
 use std::path::PathBuf;
 
@@ -18,11 +17,11 @@ use super::policy::{DimLevel, IdleConfig, IdleMode, IdlePolicy, PowerSource};
 pub struct Idle {
     pub mode: IdleMode,
     pub phase: IdlePhase,
-    /// The dim overlay's wish: every output's dim layer shows `Dimmed` (F902).
+    /// The dim overlay's wish: every output's dim layer shows `Dimmed`.
     pub dim: DimShown,
     pub power: PowerSource,
     pub inhibition: Inhibition,
-    /// `org.freedesktop.ScreenSaver` inhibits held (Q446's `sill idle status`).
+    /// `org.freedesktop.ScreenSaver` inhibits held (for `sill idle status`).
     pub inhibits: u32,
     /// Whether logind's `BlockInhibited` names `idle`.
     pub logind: LogindIdle,
@@ -61,7 +60,7 @@ pub enum IdleCommand {
     Use(IdlePolicy),
     /// A made-up `resumed`, then every notification held afresh (`sill debug idle-wake`, sent
     /// only by a daemon built with `debug`): the nested cosmic-comp counts no synthetic input
-    /// as activity (FINDINGS "sill idle fill").
+    /// as activity.
     FakeWake,
 }
 

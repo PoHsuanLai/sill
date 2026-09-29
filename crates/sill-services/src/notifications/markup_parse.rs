@@ -1,6 +1,6 @@
 //! The hand-written parse behind [`super::markup::parse_body`]: a scan over the body that keeps
-//! how deep each style is open, and turns text between tags into runs (FINDINGS F260: five tags
-//! and the entities, no XML crate).
+//! how deep each style is open, and turns text between tags into runs (five tags and the entities,
+//! no XML crate).
 
 use super::markup::{Body, BodyRun, Href, RunLink, RunStyle, Slant, Underline, Weight};
 

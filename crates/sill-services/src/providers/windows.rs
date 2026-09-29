@@ -10,8 +10,7 @@ use tokio::sync::watch;
 use crate::apps::{AppIcon, AppIndex, match_app};
 use crate::cosmic_wl::{Toplevels, Workspaces};
 
-/// The id of a window row's one action: asks the daemon to close it (`Activation::CloseWindow`,
-/// FINDINGS F105/F116).
+/// The id of a window row's one action: asks the daemon to close it (`Activation::CloseWindow`).
 const CLOSE_ACTION: &str = "close";
 
 /// Rows for every toplevel matching the query, most recent first on ties (the order
@@ -94,8 +93,7 @@ impl Provider for WindowsProvider {
             Choice::Primary => Activation::FocusWindow {
                 window: window_key_of(item),
             },
-            // FINDINGS F116 amended `Activation` with `CloseWindow`; the runner routes it to
-            // `WlCommand::Close` (F117).
+            // The runner routes `CloseWindow` to `WlCommand::Close`.
             Choice::Action(_) => Activation::CloseWindow {
                 window: window_key_of(item),
             },

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# The control center's Display module and its Bluetooth confirmation under real input (FINDINGS
-# "Manual run 2026-09-28: control center", "Alert and leaving list"), on shell-host's private headless KWin (scripts/dev/kwin-virtual.sh,
-# FINDINGS F52) driven by shell-host's scripts/dev/fake-input.sh: the control center is opened by
-# a real click on its bar item, and its brightness capsule is dragged and clicked by a real
-# pointer, with real serials, through KWin's own popup grab. No `sill debug` opener, click or
-# pointer is used; `sill debug capture` and `sill debug stats` only look.
+# The control center's Display module and its Bluetooth confirmation under real input, on
+# shell-host's private headless KWin (scripts/dev/kwin-virtual.sh) driven by shell-host's
+# scripts/dev/fake-input.sh: the control center is opened by a real click on its bar item, and its
+# brightness capsule is dragged and clicked by a real pointer, with real serials, through KWin's own
+# popup grab. No `sill debug` opener, click or pointer is used; `sill debug capture` and `sill debug
+# stats` only look.
 #
 # The headless output is 3840 x 2160 at scale 2, as the user's BenQ MA270U (CC_SIZE and CC_SCALE
 # change it), set through kscreen-doctor's in-process backend on KWin's own socket and bus.
@@ -46,7 +46,7 @@
 #       fake adapter off.
 #   B6. A real click on the tile again powers it on, with no alert.
 #   5. A real click outside closes the popup. (Real Escape first, recorded only: the control
-#      center's keyboard focus after a pointer press is another lane's.)
+#      center's keyboard focus after a pointer press is not checked here.)
 #
 # Captures: target/accept-cc-real-input/*.png. Exit 0 only when every step passed; 1 when one
 # failed; 2 when a step could not run safely (named).
@@ -107,7 +107,7 @@ build() {
 }
 
 # The headless KWin, its socket (absolute) and bus read from its env file without sourcing it
-# into this shell: `kwin-virtual.sh stop` must never find this script naming the bus (G52).
+# into this shell: `kwin-virtual.sh stop` must never find this script naming the bus.
 start_kwin() {
   # Never borrow (and later stop) a headless KWin someone else started.
   [ ! -e "$KWIN_ENV" ] || { echo "$KWIN_ENV exists: another headless KWin is running" >&2; return 1; }
@@ -221,7 +221,7 @@ stop_bluez() {
   BLUEZ=
 }
 
-# Ask the daemon to quit and wait up to 10 s; never kill it (FINDINGS G51).
+# Ask the daemon to quit and wait up to 10 s; never kill it.
 stop_daemon() {
   [ -n "$DAEMON" ] || return 0
   in_env timeout 10 "$SILL_BIN" quit >/dev/null 2>&1
@@ -259,7 +259,7 @@ prove_safe() {
     "fake BlueZ on the private bus" >&2
 }
 
-# Real input through ONE fake-input client for the whole run (G50).
+# Real input through ONE fake-input client for the whole run.
 start_input() {
   rm -f "$OUT_DIR/input.fifo"; mkfifo "$OUT_DIR/input.fifo" || return 1
   "$SHELL_HOST_DEV/fake-input.sh" <"$OUT_DIR/input.fifo" >"$OUT_DIR/input.log" 2>&1 &

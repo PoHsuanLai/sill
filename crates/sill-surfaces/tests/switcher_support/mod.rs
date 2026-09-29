@@ -54,7 +54,7 @@ pub struct Running {
 
 impl Running {
     /// Ask the switcher on the test output, taken at this instant: the next `advance` runs the
-    /// woken switcher at `harness.now()` before it steps any timer (quire G311).
+    /// woken switcher at `harness.now()` before it steps any timer.
     pub fn ask(&mut self, ask: SwitcherAsk) {
         self.link.ask(fake::output().id, ask);
     }

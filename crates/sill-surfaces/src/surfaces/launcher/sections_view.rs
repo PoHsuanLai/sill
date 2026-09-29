@@ -46,7 +46,7 @@ impl HeaderAction {
 }
 
 /// What the rows are drawn with: each row's tile, a clipboard image's pixels and the clock.
-/// The selection's chord is quire's to place (`RowChord::on_selected`, F1040).
+/// The selection's chord is quire's to place (`RowChord::on_selected`).
 pub struct Draw<'a> {
     pub tile_of: &'a dyn Fn(&Item) -> Tile,
     pub clip_image: &'a dyn Fn(ClipKey) -> Option<ImageSource>,

@@ -1,5 +1,5 @@
-//! quire's launcher cues as the real panel plays them (quire CONSUMING "Launcher cues", sill
-//! Q370-Q373; FINDINGS "Launcher cues wired"), on the virtual clock: the pane's entrance springs
+//! quire's launcher cues as the real panel plays them, on the virtual clock: the pane's
+//! entrance springs
 //! only on the person's key, another kind cross-fades the media in place, a slow text head shows
 //! "Loading…" after the grace and holds still at the cap, the first result set rises and a later
 //! one does not, Show More rises and Show Less heals. Every step ends at 0 frames.
@@ -272,7 +272,7 @@ fn show_more_rises_and_show_less_heals() {
 }
 
 /// The same Show More through the link (`sill debug launcher-key`): sill runs the group's
-/// action itself and marks it on quire's palette handle (Q400), so the rows still rise.
+/// action itself and marks it on quire's palette handle, so the rows still rise.
 #[test]
 fn a_show_more_through_the_link_still_rises() {
     let mut open = open("m9");

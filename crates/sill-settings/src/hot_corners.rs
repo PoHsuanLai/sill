@@ -1,7 +1,6 @@
 //! `hot_corners.*`: what each screen corner does when the pointer rests in it (design/20 §1.16;
-//! macOS "Desktop & Dock" > Hot Corners, hence `Page::Dock`). design/22 has no rows yet
-//! (`AWAITING_ROWS`); design/13 has no dwell or action table yet (FINDINGS "M10 freeze"). All
-//! Advanced.
+//! macOS "Desktop & Dock" > Hot Corners, hence `Page::Dock`). design/13 has no dwell or action
+//! table yet. All Advanced.
 
 use ds_settings::schema::Page;
 use ds_settings::{Ms, Px};

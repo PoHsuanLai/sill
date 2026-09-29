@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Hot corners acceptance (design/20 §1.16, design/13 §13.3.12, FINDINGS "M10 freeze" F409, lane
-# d), on the nested cosmic-comp (dev/nested.sh; a running wayland-1 is reused and never stopped).
+# Hot corners acceptance (design/20 §1.16, design/13 §13.3.12), on the nested cosmic-comp
+# (dev/nested.sh; a running wayland-1 is reused and never stopped).
 # Starts `sill run` from this checkout's debug build (`--features debug`) with a scratch
 # XDG_CONFIG_HOME and XDG_STATE_HOME, under a private session bus (dev/private-bus.conf), and
 # with its own XDG_RUNTIME_DIR (the nested socket given as an absolute WAYLAND_DISPLAY), so
@@ -25,10 +25,9 @@
 #      element is never painted, so even the real dwell in step 3 left no lasting frames; this
 #      checks the quiet case).
 #
-# `hot_corners.modifier` is retired (shell-host's G121 answer, FINDINGS F61): no compositor gives
-# a keyboard-`None` layer surface a held modifier portably, and taking the keyboard to get one
-# would steal focus, which a hot corner must never do. The machine no longer has a modifier
-# input, so there is nothing left to check here.
+# `hot_corners.modifier` is retired: no compositor gives a keyboard-`None` layer surface a held
+# modifier portably, and taking the keyboard to get one would steal focus, which a hot corner must
+# never do. The machine no longer has a modifier input, so there is nothing left to check here.
 #
 # Exit 0 when every step passed, 1 on a failure. Another sill daemon started from a
 # `target/*/sill run` is waited for (up to 10 minutes), so two shells never share the nested

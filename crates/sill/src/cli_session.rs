@@ -1,6 +1,6 @@
-//! M11's command line (FINDINGS "M11 freeze"): `sill switcher next|prev|cancel|commit`,
-//! `sill lock [now|status]`, `sill polkit status`, `sill debug auth accept|refuse`, `sill debug
-//! polkit`, `sill debug switcher APP...`, and their pure mappings to IPC requests.
+//! The session's command line: `sill switcher next|prev|cancel|commit`, `sill lock [now|status]`,
+//! `sill polkit status`, `sill debug auth accept|refuse`, `sill debug polkit`, `sill debug switcher
+//! APP...`, and their pure mappings to IPC requests.
 
 use clap::{Args, Subcommand, ValueEnum};
 use sill_ipc::{
@@ -30,7 +30,7 @@ pub enum LockVerb {
     Status,
 }
 
-/// `sill idle ...` (FINDINGS "sill idle fill").
+/// `sill idle ...`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
 pub enum IdleAction {
     /// Who owns idle, where it has got to, and what holds it off.

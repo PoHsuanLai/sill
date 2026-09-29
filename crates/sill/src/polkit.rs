@@ -68,8 +68,8 @@ pub fn report_of(polkit: &Polkit) -> PolkitReport {
     }
 }
 
-/// `sill debug polkit`: a made-up request through the same reducer (lane b's live loop answers
-/// it with its in-process stand-in helper).
+/// `sill debug polkit`: a made-up request through the same reducer (the live loop answers it with
+/// its in-process stand-in helper).
 pub fn fake(services: &Services, fake: FakePolkit) -> Response {
     let request = FakeRequest {
         action_id: ActionId(fake.action_id),

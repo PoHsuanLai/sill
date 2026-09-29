@@ -6,7 +6,7 @@
 //! those callbacks via `RefCell::as_ptr()` plus a raw-pointer deref, which is `unsafe` — denied
 //! workspace-wide outside shell-host's one allowed module (CONVENTIONS §11). Driving the
 //! standard mainloop from this one thread means every callback also runs on this one thread, so
-//! `Rc<RefCell<_>>` is sound here with no unsafe at all (see FINDINGS "M1 svc-dbus").
+//! `Rc<RefCell<_>>` is sound here with no unsafe at all.
 
 use std::cell::RefCell;
 use std::rc::Rc;

@@ -1,5 +1,5 @@
-//! A hand-written `zbus` proxy for UPower's keyboard backlight (FINDINGS "M5 freeze" F173: no
-//! crate for three methods and a signal).
+//! A hand-written `zbus` proxy for UPower's keyboard backlight (no crate for three methods and a
+//! signal).
 
 use zbus::proxy;
 

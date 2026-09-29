@@ -1,6 +1,6 @@
-//! Hand-written `zbus` proxies for `org.mpris.MediaPlayer2` and `.Player` (FINDINGS "M5 freeze"
-//! F173: the `mpris` crate runs on the `dbus` crate and libdbus, a second D-Bus stack beside
-//! every proxy elsewhere in this crate). No `default_service`: each player owns a different
+//! Hand-written `zbus` proxies for `org.mpris.MediaPlayer2` and `.Player` (the `mpris` crate runs
+//! on the `dbus` crate and libdbus, a second D-Bus stack beside every proxy elsewhere in this
+//! crate). No `default_service`: each player owns a different
 //! bus name, so every proxy is built with `.destination(name)`.
 
 use std::collections::HashMap;

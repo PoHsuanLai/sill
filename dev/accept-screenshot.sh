@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Screenshot thumbnail acceptance (design/20 §1.13, FINDINGS "M10 freeze" F406-F408, lane c), on
-# the nested cosmic-comp (dev/nested.sh; a running wayland-1 is reused and never stopped). Starts
+# Screenshot thumbnail acceptance (design/20 §1.13), on the nested cosmic-comp (dev/nested.sh; a
+# running wayland-1 is reused and never stopped). Starts
 # `sill run` from this checkout's debug build (`--features debug`) with a scratch
 # XDG_CONFIG_HOME, XDG_STATE_HOME and XDG_CACHE_HOME, its own XDG_RUNTIME_DIR (the nested socket
 # as an absolute WAYLAND_DISPLAY), under a private session bus (dev/private-bus.conf).

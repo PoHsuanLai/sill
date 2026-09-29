@@ -2,10 +2,10 @@
    cross-fades over --t-big when the source or the resolved scheme changes, and otherwise sits
    still (no per-frame work). No image configured: the base `--paper` shows through both empty
    layers, painting the same solid ground `Ds`'s own reset already gives a `.ds` root — there is
-   nothing else to paint. Attribute selectors carry `*|` (spike S2). */
+   nothing else to paint. Attribute selectors carry `*|`. */
 
-/* The root is the viewport (`Ds { extent: RootExtent::Viewport }`, quire CONSUMING §2's
-   root-frame rule), and the picture fills the root: placed against it, as Taffy places an
+/* The root is the viewport (`Ds { extent: RootExtent::Viewport }`, quire's root-frame rule),
+   and the picture fills the root: placed against it, as Taffy places an
    absolute box against its parent (a browser, against the viewport: the same box). */
 .sill-wallpaper{ position:absolute; inset:0; overflow:hidden; background-color:var(--paper); }
 

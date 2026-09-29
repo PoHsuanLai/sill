@@ -1,6 +1,6 @@
-//! Starting apps (plan "Launch": "activation token, DBusActivatable via
-//! org.freedesktop.Application.Activate, Terminal=true wrapper, `systemd-run --user --scope
-//! --collect --unit=app-sill-<id>-<rand>.scope` (fallback process group)").
+//! Starting apps (activation token, DBusActivatable via org.freedesktop.Application.Activate,
+//! Terminal=true wrapper, `systemd-run --user --scope --collect --unit=app-sill-<id>-<rand>.scope`
+//! (fallback process group)).
 //!
 //! The activation token comes from shell-host (`SurfaceHandle::activation_token`) in the
 //! daemon's `sill::launch`, which then sends a [`LaunchCommand`] here. [`spawn`] prefers
@@ -55,8 +55,7 @@ pub enum LaunchCommand {
     ShowInFiles(AppId),
     /// SIGKILL the app's `app-sill-*` scopes (dock Force Quit).
     ForceQuit(AppId),
-    /// Open a file, reveal it, or open an address with the default handler (the launcher's
-    /// M9 rows; FINDINGS "M9 freeze" F643).
+    /// Open a file, reveal it, or open an address with the default handler (the launcher's rows).
     Open(OpenRequest),
 }
 

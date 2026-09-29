@@ -5,7 +5,7 @@
 use sill_settings::{ControlCenterModule, ControlCenterSettings, InMenuBar};
 
 /// The modules that can be bar items, left to right as the bar draws them: the status items
-/// the bar had before M5 keep their order (Sound, then Wi-Fi, then Battery), the new ones join
+/// the bar always had keep their order (Sound, then Wi-Fi, then Battery), the new ones join
 /// around them, and the control center's own item and the clock follow at the right end.
 pub const MENU_BAR_ORDER: [ControlCenterModule; 6] = [
     ControlCenterModule::NowPlaying,

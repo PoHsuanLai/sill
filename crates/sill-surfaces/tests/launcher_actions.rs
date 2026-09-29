@@ -15,7 +15,7 @@ use sill_launcher::WindowKey;
 use sill_services::{LaunchCommand, WlCommand};
 use sill_surfaces::surfaces::launcher::LauncherKey;
 
-/// The selected row (attribute selectors need the namespace wildcard on Blitz, spike S2).
+/// The selected row (attribute selectors need the namespace wildcard on Blitz).
 const SELECTED: &str = ".ds-menu-item[*|aria-selected=true]";
 
 #[test]
@@ -25,7 +25,7 @@ fn the_actions_menu_hangs_from_the_selected_row_and_gives_the_keyboard_back() {
     settle(&mut open.harness, |h| {
         selected_title(h).as_deref() == Some("Files")
     });
-    // quire's palette reports an already laid-out row's rect in the frame it was selected (G310),
+    // quire's palette reports an already laid-out row's rect in the frame it was selected,
     // so Ctrl+K right after the selection hangs the menu from that row.
     let row = open.harness.rect(SELECTED).expect("the selected row");
     open.scripted(LauncherKey::Actions);

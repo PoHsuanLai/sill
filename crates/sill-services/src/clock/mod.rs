@@ -1,5 +1,4 @@
-//! The bar clock: a task that sleeps to each minute boundary and publishes the formatted time
-//! (plan hooks table, `use_clock`: "sleep to minute boundary; pure format_clock").
+//! The bar clock: a task that sleeps to each minute boundary and publishes the formatted time.
 
 mod format;
 

@@ -25,7 +25,7 @@ use crate::widgets::WidgetsSettings;
 use crate::window::WindowSettings;
 
 /// The keys whose struct sits on another page but which design/22 §5 puts on Power: the lock
-/// grace answers sill's idle service, not the locker (§3.19, Q445). The derive gives a whole
+/// grace answers sill's idle service, not the locker (§3.19). The derive gives a whole
 /// struct one page, so [`schemas`] moves these keys after it.
 pub const POWER_KEYS_ELSEWHERE: &[&str] = &["session.lock_grace_s"];
 

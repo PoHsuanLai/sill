@@ -1,8 +1,8 @@
-//! Row chords (M9, F642) between sill's Mac-worded [`Chord`] and the keyboard: how a chord is
+//! Row chords between sill's Mac-worded [`Chord`] and the keyboard: how a chord is
 //! drawn (quire's `Shortcut`, ⌃⌥⇧⌘ in order, Command as `⌘`) and which chord a DOM key is.
 //! Command is whatever the platform layer resolves it to: Toshy maps it to Ctrl, so a Ctrl (or a
 //! Super that reached us unmapped) with a letter is Command (quire design/27 §6.2 (e)). Until
-//! quire's `StandardAction` table lands (Q298) the drawing is this one mapping. Pure.
+//! quire's `StandardAction` table lands the drawing is this one mapping. Pure.
 
 use dioxus::prelude::{Key, Modifiers};
 use ds::Shortcut;

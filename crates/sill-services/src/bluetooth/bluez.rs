@@ -1,7 +1,7 @@
 //! Hand-written `zbus` proxies for the BlueZ interfaces this service reads and calls
-//! (FINDINGS "M5 freeze" F173: not `bluer` or `bluez-async`, both of which run on the `dbus`
-//! crate and link libdbus, a second D-Bus stack beside `zbus`). Each trait names only the
-//! methods and properties [`super::live`] actually uses; BlueZ's own interfaces have more.
+//! (not `bluer` or `bluez-async`, both of which run on the `dbus` crate and link libdbus, a second
+//! D-Bus stack beside `zbus`). Each trait names only the methods and properties [`super::live`]
+//! actually uses; BlueZ's own interfaces have more.
 
 use zbus::proxy;
 

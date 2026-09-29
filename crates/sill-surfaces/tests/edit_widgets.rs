@@ -1,12 +1,12 @@
-//! Edit Widgets (FINDINGS "Widget interface port"), the real surfaces in a `ds_native::Harness`
+//! Edit Widgets, the real surfaces in a `ds_native::Harness`
 //! on the virtual clock and the fake services: the notification center's "Edit Widgets" closes
 //! the center and opens the gallery on its output; in the gallery an added widget is written as
 //! the same keys and places sill keeps (through a fake writer that publishes them back, as the
 //! daemon's does, `widgets.desktop` turned on by an add to the desktop) and shown by quire's
-//! gallery, its Add button settling to "Added" with a check (Q523; nothing said under the
+//! gallery, its Add button settling to "Added" with a check (nothing said under the
 //! gallery), a kind already there is refused with a line shaken once, a removal writes the keys
 //! and says so, the gallery is a sheet at the bottom offering one size per widget and no size
-//! control (Q520, Q521), and Done closes it; every moment settles to zero frames.
+//! control, and Done closes it; every moment settles to zero frames.
 
 #[path = "support/fake.rs"]
 mod fake;
@@ -246,7 +246,7 @@ fn an_added_widget_is_written_as_the_keys_and_places_and_a_second_is_refused() {
         }]
     );
     // quire's gallery says it where the person pressed: the button settles to a check and
-    // "Added" (Q523), and sill says nothing more under the gallery.
+    // "Added", and sill says nothing more under the gallery.
     settle_until(&mut run.harness, |h| {
         h.count(".ds-widget-gallery-added .ds-check-mark") == 1
     });
@@ -330,7 +330,7 @@ fn a_removed_tile_leaves_the_center_key() {
     assert_settles_to_zero_frames(&mut run.harness);
 }
 
-/// Q520, Q521: the gallery is a sheet at the bottom of the output, under half its height, and
+/// The gallery is a sheet at the bottom of the output, under half its height, and
 /// offers each widget at its one size: one preview, no size control, Add at that size.
 #[test]
 fn the_gallery_is_a_bottom_sheet_offering_one_size_per_widget() {
@@ -420,8 +420,8 @@ fn status(h: &Harness) -> Option<(String, String)> {
     Some((outcome, words))
 }
 
-/// F1026: Escape closes the panel after a press inside it (a list entry, Add, Remove), not only
-/// right after it opens, as the real-input run found (G420).
+/// Escape closes the panel after a press inside it (a list entry, Add, Remove), not only
+/// right after it opens.
 #[test]
 fn escape_closes_after_a_press_inside_the_panel() {
     /// What is pressed after World Clock's list entry.

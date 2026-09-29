@@ -1,11 +1,10 @@
 //! Focus modes (design/20 §1.5: the control center's Focus / Do Not Disturb module): the state
 //! the control center sets and a later notifications milestone reads.
 //!
-//! Stored in `notifications.dnd` (design/22 §3.12, design/13 §13.6), the one key design/22 has
-//! for it: `FocusMode` is that key's reading, not a second copy of it. A mode beyond Do Not
-//! Disturb (Sleep, Work) needs a key that can name it, `notifications.focus`, which would
-//! replace `dnd`; until design/22 has that row there is only one mode to be in (FINDINGS "M5
-//! freeze").
+//! Stored in `notifications.dnd` (design/22 §3.12, design/13 §13.6), the one key design/22 has for
+//! it: `FocusMode` is that key's reading, not a second copy of it. A mode beyond Do Not Disturb
+//! (Sleep, Work) needs a key that can name it, `notifications.focus`, which would replace `dnd`;
+//! until design/22 has that row there is only one mode to be in.
 
 use serde::{Deserialize, Serialize};
 

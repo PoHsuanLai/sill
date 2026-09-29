@@ -7,7 +7,7 @@
 //! cell it would land in), and keeps the surface's input and blur
 //! regions on the frames (`RegionSpec::Elements`, resolved after every layout, so they follow a
 //! dragged frame), so a press between them reaches the desktop below. A widget taken away keeps
-//! its card at its last box while it plays its exit, outside the regions (`leaving`, G423).
+//! its card at its last box while it plays its exit, outside the regions (`leaving`).
 //! Nothing here runs a timer: the widgets redraw on their services' changes, a drag's motion runs
 //! only while it moves, and an exit's end is quire's card's to call.
 
@@ -43,7 +43,7 @@ use crate::widgets::{
 pub const WIDGET_RADIUS: i32 = 20;
 
 /// The layer on `output`: its own widget wake (`crate::widgets::WidgetWake`), bumped once when
-/// this layer is mapped (`widgets.desktop` turning `On` spawns a fresh one, FINDINGS "M10 freeze"
+/// this layer is mapped (`widgets.desktop` turning `On` spawns a fresh one,
 /// `crates/sill/src/widgets.rs`), so the batteries' rings and figures count up as they come into
 /// view.
 pub(super) fn desktop(output: OutputInfo) -> Element {
@@ -209,7 +209,7 @@ fn boxes(placements: &[Placement], metrics: GridMetrics) -> Vec<(WidgetKind, Pla
         .collect()
 }
 
-/// Where a live drag would land, as the slot guide's size and box (Q431): none at rest, while
+/// Where a live drag would land, as the slot guide's size and box: none at rest, while
 /// pressed, or over a cell with no room.
 fn slot_guide(held: &Hold, laid: &Laid) -> Option<(WidgetSize, PlaceBox)> {
     let Hold::Live {

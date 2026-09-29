@@ -1,5 +1,5 @@
 //! A scripted stand-in for the keyboard, for `examples/launcher_demo.rs` only: shell-host can
-//! inject pointer input but no keys (FINDINGS G20), so the demo types into the field and
+//! inject pointer input but no keys, so the demo types into the field and
 //! presses Ctrl+K through this root context instead. The daemon never provides it.
 
 use dioxus::prelude::*;

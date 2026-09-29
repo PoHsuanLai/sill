@@ -208,8 +208,8 @@ fn made_up_apps_show_at_once_and_touch_no_window() {
         .map(|a| AppId(a.to_owned()))
         .to_vec();
     running.ask(SwitcherAsk::Fake(apps));
-    // Shown at the ask, and the key target's `focus_soon` lands in the same frame, every run
-    // (quire G312): no `FRAME_SLACK` allowance.
+    // Shown at the ask, and the key target's `focus_soon` lands in the same frame, every run:
+    // no `FRAME_SLACK` allowance.
     wait(&mut running, 0);
     assert_eq!(
         tiles(&running.harness),

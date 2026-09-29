@@ -1,6 +1,5 @@
 //! The tray's dbusmenu document in a `ds_native::Harness` at the popup's size: the root and the
-//! page have the viewport's height (quire CONSUMING §2), and a press on an entry reaches the
-//! menu and picks it.
+//! page have the viewport's height, and a press on an entry reaches the menu and picks it.
 
 use std::cell::RefCell;
 use std::time::Duration;

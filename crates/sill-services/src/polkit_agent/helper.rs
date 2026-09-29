@@ -1,4 +1,4 @@
-//! polkit's helper: where it is and its line protocol (F545), pure.
+//! polkit's helper: where it is and its line protocol, pure.
 
 use std::path::{Path, PathBuf};
 

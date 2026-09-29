@@ -1,6 +1,5 @@
-//! sill's own idle on the wire (sill FINDINGS "sill idle (Q420 B)" Q446, "sill idle fill"):
-//! `sill idle status`, and the lock's cause that `sill lock status` reports. The reports mirror
-//! sill-services' state (this crate may not depend on it).
+//! sill's own idle on the wire: `sill idle status`, and the lock's cause that `sill lock status`
+//! reports. The reports mirror sill-services' state (this crate may not depend on it).
 
 use serde::{Deserialize, Serialize};
 

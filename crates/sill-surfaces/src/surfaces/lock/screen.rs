@@ -14,8 +14,8 @@
 //! output, calls `shell_host::use_lock().unlock()` when the fade settles;
 //! `shell_host::use_lock_phase()` saying `Unlocking` first (the daemon's backstop) skips the
 //! fade. A click on a lock surface moves the prompt there (macOS: the prompt follows the display
-//! you click), as the keyboard's focus does (the daemon). Style nothing under `.ds-lock*`
-//! (quire CONSUMING "Lock, polkit and switcher"): the fade is sill's own wrapper's.
+//! you click), as the keyboard's focus does (the daemon). Style nothing under `.ds-lock*`: the
+//! fade is sill's own wrapper's.
 //!
 //! Outside a lock document (a test's SSR, a harness) there is no `LockHandle`: the stage draws
 //! the same and the unlock is the daemon's backstop alone.

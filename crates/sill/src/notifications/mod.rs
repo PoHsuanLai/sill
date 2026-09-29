@@ -1,8 +1,8 @@
-//! The daemon's M6 half (FINDINGS "M6 freeze"): one banner column and one notification center
-//! per output, spawned warm and hidden (the OSD's and the power menu's pattern); the banners'
-//! output; the `notifications` requests, which write the shared [`crate::links`] or tell the
-//! service; `sill debug notify`; and the service's policy, followed from the settings and the
-//! focus mode ([`spawn_policy`]).
+//! The daemon's notifications half: one banner column and one notification center per output,
+//! spawned warm and hidden (the OSD's and the power menu's pattern); the banners' output; the
+//! `notifications` requests, which write the shared [`crate::links`] or tell the service; `sill
+//! debug notify`; and the service's policy, followed from the settings and the focus mode
+//! ([`spawn_policy`]).
 
 mod fake;
 mod policy;
@@ -75,7 +75,7 @@ pub fn banner_output(outputs: &Outputs) -> BannerOutput {
 }
 
 /// `sill notifications ...`: the center's requests write its link, on the first output with a
-/// center surface (FINDINGS F140); `dismiss-all` and `status` go to the service.
+/// center surface; `dismiss-all` and `status` go to the service.
 pub fn dispatch(
     outputs: &Outputs,
     links: Option<&Links>,

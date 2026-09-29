@@ -1,4 +1,4 @@
-//! The preview pane's keys (M9, FINDINGS "M9 freeze" F654). Pure; lane d fills [`step_preview`].
+//! The preview pane's keys ([`step_preview`]). Pure.
 //!
 //! Quick Look's Space, in a launcher whose field has the keyboard: Space toggles the pane only
 //! while the person is *browsing* (the selection last moved by Up or Down, nothing typed since);

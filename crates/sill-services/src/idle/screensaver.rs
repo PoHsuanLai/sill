@@ -1,5 +1,5 @@
 //! `org.freedesktop.ScreenSaver` on [`Setup::session`](super::Setup), served while idle is
-//! `Own` (F905): `Inhibit(app, reason) -> cookie`, `UnInhibit(cookie)` and `GetActive()`, at
+//! `Own`: `Inhibit(app, reason) -> cookie`, `UnInhibit(cookie)` and `GetActive()`, at
 //! `/org/freedesktop/ScreenSaver` and `/ScreenSaver`. The object hands each call to the live
 //! loop, which owns the inhibitors ([`super::inhibit_step`]); a caller that leaves the bus loses
 //! its inhibits (`NameOwnerChanged`). The name is asked for without replacing a holder: if

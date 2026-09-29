@@ -1,4 +1,4 @@
-//! The lock surface's SSR render (design/20 §1.9; FINDINGS "M11 freeze" F544): the clock on
+//! The lock surface's SSR render (design/20 §1.9): the clock on
 //! every output, the prompt only on the output the `LockLink` names, the prompt's state from the
 //! auth service, the unlock fade's mark on `Accepted`, and the blurred backdrop as the stage's
 //! picture. Outside a lock document (no `LockHandle`), as every test is.

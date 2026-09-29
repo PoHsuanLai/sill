@@ -1,5 +1,4 @@
-//! Arithmetic and unit conversion with fend (plan: "calculator (fend-core, 50 ms budget,
-//! Copy)").
+//! Arithmetic and unit conversion with fend (fend-core, 50 ms budget, Copy).
 
 mod detect;
 mod eval;
@@ -27,14 +26,14 @@ pub const CALCULATOR_BUDGET: Duration = Duration::from_millis(50);
 const ID_PREFIX: &str = "calc:";
 
 /// The id of the result row's secondary action: replaces the query with the result instead of
-/// copying it (`Activation::Insert`, FINDINGS F110/F116).
+/// copying it (`Activation::Insert`).
 const INSERT_ACTION: &str = "insert";
 
 /// A calculator result is always the sole, most relevant row it offers.
 const TOP_SCORE: Score = Score(1000);
 
 /// One row, `= <result>`, when the query evaluates; choosing it copies the result. With
-/// `launcher.currency` on, currency codes convert at `rates` (M9 lane c, F650).
+/// `launcher.currency` on, currency codes convert at `rates`.
 #[derive(Debug, Clone)]
 pub struct CalculatorProvider {
     pub policy: watch::Receiver<LauncherPolicy>,
@@ -42,7 +41,7 @@ pub struct CalculatorProvider {
 }
 
 impl Default for CalculatorProvider {
-    /// Currency off, no rates: the M4 calculator.
+    /// Currency off, no rates: arithmetic and units only.
     fn default() -> Self {
         CalculatorProvider {
             policy: watch::channel(LauncherPolicy::default()).1,
@@ -62,7 +61,7 @@ impl Provider for CalculatorProvider {
         }
         // Loading the day's ECB rates is a disk read and a check whether a fetch is due; asked
         // only when the text could possibly need them, not for every keystroke the calculator
-        // sees while `launcher.currency = "ecb"` (a coordinator follow-up on this lane).
+        // sees while `launcher.currency = "ecb"`.
         let rates = if detect::mentions_possible_currency(&query.text) {
             self.ecb_rates()
         } else {
@@ -71,7 +70,7 @@ impl Provider for CalculatorProvider {
         let EvalOutcome::Value(value) = evaluate(&query.text, CALCULATOR_BUDGET, rates.as_ref())
         else {
             // `NoMatch` (not an expression, or fend rejected it) and `TimedOut` both mean no
-            // item: FINDINGS.md "M4 providers-b".
+            // item.
             return;
         };
         if query.is_cancelled() {
@@ -99,8 +98,8 @@ impl Provider for CalculatorProvider {
 }
 
 impl CalculatorProvider {
-    /// The day's ECB rates while `launcher.currency = "ecb"`, else `None` (F650): loads the
-    /// cache fresh from disk (cheap; never the network) and, off this call's return path,
+    /// The day's ECB rates while `launcher.currency = "ecb"`, else `None`: loads the cache fresh
+    /// from disk (cheap; never the network) and, off this call's return path,
     /// starts a background fetch when the cache is due for a new one.
     fn ecb_rates(&self) -> Option<Rates> {
         if self.policy.borrow().currency != CurrencyPolicy::Ecb {
@@ -140,7 +139,7 @@ fn unix_now() -> UnixTime {
 }
 
 /// The one row a successful evaluation yields: primary Enter copies it, the secondary "Insert"
-/// action carries on calculating from it (FINDINGS F110/F116).
+/// action carries on calculating from it.
 fn result_item(value: &str) -> Item {
     Item {
         id: ItemId(format!("{ID_PREFIX}{value}")),

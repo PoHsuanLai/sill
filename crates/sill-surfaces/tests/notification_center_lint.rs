@@ -1,4 +1,4 @@
-//! Coherence rules 1 and 2 (quire CONSUMING.md §5) for the notification center: its stylesheet
+//! Coherence rules 1 and 2 for the notification center: its stylesheet
 //! under `Profile::Strict` with no keyframes of its own, and the real `NotificationCenter`
 //! through the markup lint, closed (an SSR pass) and open over a history (the harness).
 
@@ -21,7 +21,7 @@ fn strict() -> LintConfig {
 }
 
 fn full_css() -> String {
-    // What the panel injects: its own sheet and the widgets' (M10 lane b).
+    // What the panel injects: its own sheet and the widgets'.
     format!(
         "{}\n{}\n{}",
         ds::stylesheet(),

@@ -60,9 +60,9 @@ impl Provider for AppsProvider {
                 &mut matcher,
             ));
             if needle.is_empty() {
-                // Desktop actions only surface once something is actually typed (F.M4:
-                // an empty query already lists every app by frecency; also listing every
-                // one of their actions would drown that view).
+                // Desktop actions only surface once something is actually typed (an empty query
+                // already lists every app by frecency; also listing every one of their actions
+                // would drown that view).
                 continue;
             }
             for action in &app.actions {

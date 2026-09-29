@@ -1,7 +1,7 @@
-//! sill's own idle on the daemon's side (Q420 B; sill FINDINGS "sill idle (Q420 B)", F910): the
-//! idle service's config from `idle.*` and `session.lock_grace_s` ([`policy_of`]), sent now and
-//! on every change ([`spawn_policy`]). The service resolves the kind of session itself and is
-//! `Off` anywhere but a sill session with no cosmic-idle running.
+//! sill's own idle on the daemon's side: the idle service's config from `idle.*` and
+//! `session.lock_grace_s` ([`policy_of`]), sent now and on every change ([`spawn_policy`]). The
+//! service resolves the kind of session itself and is `Off` anywhere but a sill session with no
+//! cosmic-idle running.
 //!
 //! A build with debug assertions also reads `SILL_IDLE_TIMES` (`<screen_off_s>,<suspend_s>`,
 //! 0 never) and, when it is set, uses those seconds for both power sources instead of the

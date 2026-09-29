@@ -1,7 +1,7 @@
 /* sill's own lock screen (design/20 §1.9): quire's `LockScreen` fills the surface; sill only
    wraps it for the unlock fade, at --t-move --e-exit (design/20 §1.9), which the prompt's
-   surface times before it asks shell-host to unlock. Nothing under `.ds-lock*` is styled here
-   (quire CONSUMING "Lock, polkit and switcher"). Attribute selectors carry `*|` (spike S2). */
+   surface times before it asks shell-host to unlock. Nothing under `.ds-lock*` is styled here.
+   Attribute selectors carry `*|`. */
 
 .sill-lock{ position:absolute; inset:0; opacity:1;
   transition:opacity var(--t-move) var(--e-exit); }

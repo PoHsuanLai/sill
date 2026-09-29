@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
-# M2 wallpaper acceptance (design/20 §1.4), against the running nested cosmic-comp
+# Wallpaper acceptance (design/20 §1.4), against the running nested cosmic-comp
 # (`dev/nested.sh`; this script reuses `WAYLAND_DISPLAY` from shell-host's `.nested-env` and
 # never stops the compositor) with a real `sill run`: `crates/sill/src/daemon.rs` now spawns a
 # `Wallpaper` per output (`spawn_missing_wallpapers`/`spawn_wallpaper`, mirroring the bar's own,
 # wired next to `spawn_missing_bars`) and sends the wallpaper service a `Prepare` at the
-# output's buffer size, so this script starts its own `sill run` rather than routing around the
-# daemon the way an earlier revision had to before that landed.
+# output's buffer size, so this script starts its own `sill run`.
 #
-# The COSMIC background config and sill's own settings live under a scratch XDG_CONFIG_HOME
-# (never the real ~/.config: FINDINGS F1068), so there is nothing to back up or restore. A
-# private dbus-daemon (dev/private-bus.conf) is the daemon's session AND system bus, refused if
-# it would be the real one.
+# The COSMIC background config and sill's own settings live under a scratch XDG_CONFIG_HOME (never
+# the real ~/.config), so there is nothing to back up or restore. A private dbus-daemon
+# (dev/private-bus.conf) is the daemon's session AND system bus, refused if it would be the real
+# one.
 #
 # Checks: a wallpaper surface exists per output and presents at least one frame; its capture's
 # centre pixel matches the marked source image's own centre pixel (cover-fit keeps the crop
@@ -29,10 +28,9 @@ mkdir -p "$OUT_DIR" "$SILL_REPO/dev/out"
 source "$SHELL_HOST_DEV/.nested-env"
 export WAYLAND_DISPLAY
 
-# A scratch XDG_CONFIG_HOME: the COSMIC background config and sill's own settings below are
-# written under it, never under the real ~/.config (FINDINGS F1068's "XDG_* not scratched"
-# cause). A private dbus-daemon (dev/private-bus.conf) stands in as both the daemon's session
-# and system bus, refused if it would be the real one.
+# A scratch XDG_CONFIG_HOME: the COSMIC background config and sill's own settings below are written
+# under it, never under the real ~/.config. A private dbus-daemon (dev/private-bus.conf) stands in
+# as both the daemon's session and system bus, refused if it would be the real one.
 SCRATCH=$(mktemp -d)
 export XDG_CONFIG_HOME="$SCRATCH/config"
 mkdir -p "$XDG_CONFIG_HOME"

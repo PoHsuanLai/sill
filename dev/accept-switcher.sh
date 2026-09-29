@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# App switcher acceptance (design/13 §13.3.5, design/20 §1.11; FINDINGS "M11 freeze" lane c), on
-# the nested cosmic-comp (dev/nested.sh; wayland-1 is pinged first, reused, never stopped or
-# restarted). Starts `sill run` from this checkout's debug build (`--features debug`) with its own
-# XDG_RUNTIME_DIR (WAYLAND_DISPLAY as an absolute socket path) and a scratch XDG_CONFIG_HOME, and
-# three windows of its own inside the nested compositor, never the user's:
+# App switcher acceptance (design/13 §13.3.5, design/20 §1.11), on the nested cosmic-comp
+# (dev/nested.sh; wayland-1 is pinged first, reused, never stopped or restarted). Starts `sill run`
+# from this checkout's debug build (`--features debug`) with its own XDG_RUNTIME_DIR
+# (WAYLAND_DISPLAY as an absolute socket path) and a scratch XDG_CONFIG_HOME, and three windows of
+# its own inside the nested compositor, never the user's:
 #   term    `cosmic-term` (com.system76.CosmicTerm);
 #   demo    shell-host's `demo_window` (app id `demo_window`), which prints its own activated
 #           state: the script's view of the nested toplevel state;
@@ -25,7 +25,7 @@
 #   1. Warm: `sill-switcher-<out>` exists from the start, hidden (its capture fails).
 #   2. The quick tap: `next` + `commit` inside the delay switches to the previous app (demo goes
 #      Active, then, again, Inactive) with no panel frames; `next` alone with nothing held (the
-#      release came before the focus: G180) switches too, with no panel, unless the nested seat
+#      release came before the focus) switches too, with no panel, unless the nested seat
 #      reports a modifier held at the focus (the host session can leave it with Alt down; the
 #      line then says NOT PROVEN and the virtual keyboard's release commits it).
 #   3. Alt held, `next` shows the panel after the show delay, not before, on the three apps
@@ -56,9 +56,9 @@ SHOW_DELAY_MS=400
 
 source "$SHELL_HOST_DEV/.nested-env"
 NESTED_SOCKET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/$WAYLAND_DISPLAY"
-# A private dbus-daemon (dev/private-bus.conf) as both the daemon's session and system bus
-# (FINDINGS F1068): the real one was the default here (DBUS_SESSION_BUS_ADDRESS's own fallback
-# built the real per-user bus path), so NetworkManager, BlueZ, UPower and the rest were real.
+# A private dbus-daemon (dev/private-bus.conf) as both the daemon's session and system bus: the
+# real one was the default here (DBUS_SESSION_BUS_ADDRESS's own fallback built the real per-user
+# bus path), so NetworkManager, BlueZ, UPower and the rest were real.
 BUS=
 BUS_PID=
 RUN_DIR=

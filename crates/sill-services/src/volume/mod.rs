@@ -1,5 +1,5 @@
 //! The output volume: libpulse over pipewire-pulse on a threaded mainloop, following the
-//! default sink (plan hooks table, `use_volume`).
+//! default sink.
 
 mod live;
 mod model;

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Regenerate crates/sill-services/data/emoji-keywords.tsv from Unicode CLDR's English emoji
-# annotations (the launcher's emoji search by keyword: FINDINGS "M9 freeze" F649).
+# annotations (the launcher's emoji search by keyword).
 #
 # Source: CLDR common/annotations/en.xml (Fedora: cldr-emoji-annotation), Unicode-3.0. The
 # output keeps CLDR's copyright line and SPDX identifier; each data line is

@@ -1,4 +1,4 @@
-//! `use_launcher_entry`: LauncherEntry badges (plan hooks table).
+//! `use_launcher_entry`: LauncherEntry badges.
 
 use dioxus::prelude::ReadSignal;
 use shell_host::use_watch;

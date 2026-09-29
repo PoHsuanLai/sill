@@ -1,9 +1,9 @@
-//! The preview pane (M9 lane d, FINDINGS "M9 freeze" F654): Quick Look for the selected row, a
+//! The preview pane: Quick Look for the selected row, a
 //! column right of the results inside the launcher card. What it shows is
 //! `sill_launcher::preview_for(row)`; its keys are [`keys::step_preview`]; its moments go
 //! through quire's `ds::detail` in [`moment::use_pane_detail`].
 //!
-//! It is quire's `PreviewPane` (m9-palette, Q292), set beside the results as the palette's
+//! It is quire's `PreviewPane`, set beside the results as the palette's
 //! `aside`: sill maps a [`Preview`] to quire's `PaneContent` (`content.rs`) and a row's actions
 //! to `PaneAction`s with their chords. A PDF page comes from `ds_native::use_pdf_page` (the
 //! `pdf-thumb` feature): sill passes the path and never rasterises or caches a page (quire keys
@@ -58,7 +58,7 @@ pub fn LauncherPane(
     #[props(default)] touch: Touch,
 ) -> Element {
     let (content, load) = content::use_content(&preview, icon);
-    // quire plays what the cue names (Q370, Q371): the entrance springs only on contact, another
+    // quire plays what the cue names: the entrance springs only on contact, another
     // kind or a load landing cross-fades the media, a slow load shows its pending look. One
     // `ds::PreviewPane` stays mounted whatever it shows, so a kind change is never an entrance.
     let pane = use_pane_detail(pane_state(shown, preview.kind(), load), touch);

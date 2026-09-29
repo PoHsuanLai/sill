@@ -1,4 +1,4 @@
-//! G295 (the G130 root cause): a CSS animation whose `animation-name` goes away before the
+//! A CSS animation whose `animation-name` goes away before the
 //! animation has ended leaves its last animated value on the element for good, in paint and in
 //! the hit test, while `Harness::rect` (layout, no transform) reads the resting box. No wall
 //! clock is involved: this reproduces on every run. Ignored until the Blitz pin restyles an

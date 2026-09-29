@@ -1,13 +1,11 @@
-//! The clipboard history as launcher rows (M9 lane b, FINDINGS "M9 freeze" F647; quire
-//! design/09 H4: what you copied is one keystroke away). The history is the clipboard
-//! service's; this provider only reads it.
+//! The clipboard history as launcher rows (quire design/09 H4: what you copied is one keystroke
+//! away). The history is the clipboard service's; this provider only reads it.
 //!
-//! `query` answers with [`clip_items`] (FINDINGS "M9 lane b" F685): typed text
-//! matches entries' text (images match "image" and their type), nothing typed lists nothing
-//! (the empty launcher shows Actions and Recent, and clipboard rows are never Recent: F645);
-//! asked alone (the Clipboard filter, `Scope::Only`, F651) it lists the newest first. Enter
-//! makes the entry the clipboard again (`Activation::SetClipboard`); "Forget" (⌘⌫,
-//! `Activation::ForgetClipboard`) drops it and the launcher stays open.
+//! `query` answers with [`clip_items`]: typed text matches entries' text (images match "image" and
+//! their type), nothing typed lists nothing (the empty launcher shows Actions and Recent, and
+//! clipboard rows are never Recent); asked alone (the Clipboard filter, `Scope::Only`) it lists the
+//! newest first. Enter makes the entry the clipboard again (`Activation::SetClipboard`); "Forget"
+//! (⌘⌫, `Activation::ForgetClipboard`) drops it and the launcher stays open.
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -75,7 +73,7 @@ impl Provider for ClipboardProvider {
 /// row's title is its first line, trimmed to 80 characters; its subtitle its age and length
 /// ("2 min ago · 1,204 characters"); an image row's title "Image", its subtitle its size and
 /// type. Every row's subject is `Subject::Clip` with an excerpt, never the whole text.
-/// Reads the clock for the ages (Q321); the private `rows::rows_at` is the pure part.
+/// Reads the clock for the ages; the private `rows::rows_at` is the pure part.
 pub fn clip_items(history: &Clipboard, needle: &Needle, matcher: &mut Matcher) -> Vec<Item> {
     rows_at(history, needle, matcher, unix_now())
 }

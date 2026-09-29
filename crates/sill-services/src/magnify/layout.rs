@@ -2,8 +2,8 @@
 //! pointer at the same fraction of its width, neighbours are chained outward from it, and the
 //! pill is clamped inside the output.
 //!
-//! One deliberate difference from the doc (FINDINGS.md): the doc extends the outer slots to the
-//! pill's padding edge, which makes the layout at `P = 0` move with the pointer inside those
+//! One deliberate difference from the doc: the doc extends the outer slots to the pill's padding
+//! edge, which makes the layout at `P = 0` move with the pointer inside those
 //! slots. Here every slot is `T + g` wide and a pointer beyond the outer slots is clamped to
 //! their edge, so rest is rest wherever the pointer is. Gaps between slots wider than `g` (the
 //! Trash separator block, §10.3.9) keep their rest width and follow the pointer through them.

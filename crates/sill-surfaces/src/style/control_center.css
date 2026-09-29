@@ -2,7 +2,7 @@
    bar popup's quire Popover card. The grid, the tiles, the list rows and the pane slide are
    quire's (ModuleGrid, ModuleTile, ModulePanel, SettingsRow, PaneSwitcher); this sheet lays out what sill
    puts around and inside them. Its width, padding and cap are `control_center.*` keys written
-   inline; everything here is layout and tokens. Attribute selectors carry `*|` (spike S2). */
+   inline; everything here is layout and tokens. Attribute selectors carry `*|`. */
 
 /* The panel holds the keyboard (Escape), with no ring of its own. It is positioned: quire's
    inline `Alert` ("Turn Bluetooth off?", its last child) covers it. */

@@ -99,18 +99,16 @@ async fn spawn_scope(
 
 /// Start `argv` (`systemd-run --user --scope ...`-wrapped); when `systemd-run` itself cannot be
 /// started (no user systemd manager, or it is not on `PATH`: `ErrorKind::NotFound`), fall back
-/// to the bare command in its own process group, detached from sill's own (plan "Launch":
-/// "fallback process group"). Either way the returned `Child` *is* the app (`systemd-run
-/// --scope` execs in place of itself), so [`wait_for_exit`] does not need to know which path
-/// was taken.
+/// to the bare command in its own process group, detached from sill's own. Either way the returned
+/// `Child` *is* the app (`systemd-run --scope` execs in place of itself), so [`wait_for_exit`] does
+/// not need to know which path was taken.
 fn start(argv: &[String], token: Option<&str>) -> std::io::Result<tokio::process::Child> {
     start_with(argv, token, user_manager())
 }
 
 /// [`start`] for a user manager in `manager`'s state: when it is unreachable (no
 /// `$XDG_RUNTIME_DIR/systemd/private`, as under a scratch runtime folder) `systemd-run --user`
-/// would only exit 1, so the bare command runs in its own process group straight away (FINDINGS
-/// "M9 lane a", F666).
+/// would only exit 1, so the bare command runs in its own process group straight away.
 fn start_with(
     argv: &[String],
     token: Option<&str>,

@@ -1,4 +1,4 @@
-//! The launcher's ranking formula (plan: "score 0.7 match + 0.3 frecency + prefix boost").
+//! The launcher's ranking formula: score 0.7 match + 0.3 frecency + a prefix boost.
 
 pub mod sections;
 
@@ -38,7 +38,7 @@ impl Prefix {
 }
 
 /// The formula's weights, in thousandths. The plan fixes 0.7 and 0.3; it does not size the
-/// prefix boost, so [`RankWeights::DEFAULT`] proposes 0.1 (FINDINGS.md).
+/// prefix boost, so [`RankWeights::DEFAULT`] proposes 0.1.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RankWeights {
     pub matched: u16,

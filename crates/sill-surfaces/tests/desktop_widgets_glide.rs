@@ -1,6 +1,6 @@
-//! The drag's glide on quire's springs (FINDINGS "Drag glide on springs"), the real
-//! `DesktopWidgets` in a `ds_native::Harness` on the virtual clock with a pinned appearance
-//! (G370): a widget let go while the hand still moves toward its cell carries on past it and
+//! The drag's glide on quire's springs, the real
+//! `DesktopWidgets` in a `ds_native::Harness` on the virtual clock with a pinned appearance:
+//! a widget let go while the hand still moves toward its cell carries on past it and
 //! springs back (0.8 damping, the release's velocity); let go still, it lands without passing
 //! it; under Reduced it never passes it; a widget making room keeps its speed when it is sent
 //! back mid-glide, and springs back home. Every moment settles to zero frames.

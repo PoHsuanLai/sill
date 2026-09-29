@@ -21,8 +21,8 @@ const COSMIC_TK_ICON_THEME: &str = "icon_theme";
 const MAX_SIZE: u16 = 256;
 
 /// COSMIC's `icon_theme` (`com.system76.CosmicTk/v1/icon_theme`), else `Cosmic`, else
-/// `hicolor` (plan hooks table). The third step is `freedesktop_icons::lookup`'s own: every
-/// lookup falls back to the `hicolor` theme whenever the chosen theme is not installed, so this
+/// `hicolor`. The third step is `freedesktop_icons::lookup`'s own: every lookup falls back to the
+/// `hicolor` theme whenever the chosen theme is not installed, so this
 /// function only ever has to choose between the first two.
 pub fn icon_theme() -> IconTheme {
     cosmic_tk_icon_theme().unwrap_or_else(|| IconTheme("Cosmic".to_owned()))

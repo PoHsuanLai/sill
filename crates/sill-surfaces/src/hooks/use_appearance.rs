@@ -1,5 +1,4 @@
-//! `use_appearance`: quire's appearance, from `ds-settings` (plan hooks table: "use_appearance
-//! (from ds)"), unless the root pins one.
+//! `use_appearance`: quire's appearance, from `ds-settings`, unless the root pins one.
 
 use dioxus::prelude::{ReadSignal, try_consume_context, use_hook, use_signal};
 use ds_settings::{AppName, Environment, use_environment};
@@ -8,7 +7,7 @@ use ds_settings::{AppName, Environment, use_environment};
 /// as a root context so its surfaces never read the settings portal or `quire/appearance.toml`.
 /// `use_environment` does both off the harness's thread, on wall time, so under a virtual clock
 /// its replies land whenever the machine gets to them, inside a settle's quiet window too
-/// (FINDINGS G370); and what they return is the developer's own desktop, not the test's.
+/// and what they return is the developer's own desktop, not the test's.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct PinnedAppearance(pub Environment);
 

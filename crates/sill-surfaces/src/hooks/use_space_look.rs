@@ -2,8 +2,8 @@
 //! each surface's `Ds { look }`").
 //!
 //! quire has no `spaces.json` store yet (design/21 §10 names `ds-settings`' writer); until it
-//! does this returns the design/21 §4 default for the workspace's index (FINDINGS.md F17, quire
-//! gap Q3): `PRESETS[index % 8]`, the preset's own grain (35 and 55 for presets 1 and 2) or
+//! does this returns the design/21 §4 default for the workspace's index:
+//! `PRESETS[index % 8]`, the preset's own grain (35 and 55 for presets 1 and 2) or
 //! `spaces.default_grain`, and `spaces.default_card_accent`.
 
 use ds::{CardAccent, Grain, SpaceLook, default_look};

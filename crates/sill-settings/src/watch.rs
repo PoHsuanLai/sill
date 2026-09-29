@@ -76,8 +76,8 @@ pub fn watch(dir: &Path) -> Result<ShellWatch, SettingsError> {
                 }
             }
             // A file that is not TOML at all keeps the last good settings rather than blanking
-            // every setting to its default (FINDINGS F993, F1030): `changes_tx` simply is not
-            // sent, so every receiver keeps what it already had.
+            // every setting to its default: `changes_tx` simply is not sent, so every receiver
+            // keeps what it already had.
             match try_load(&dir) {
                 LoadOutcome::Read(file) => {
                     if changes_tx.send(*file).is_err() {

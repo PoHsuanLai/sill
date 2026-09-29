@@ -1,7 +1,7 @@
 //! The popup's size estimates (`control_center/geometry.rs`) against the control center as a
 //! Harness lays it out on the fake services (`Clock::Virtual`, `PinnedAppearance`): each
 //! module's estimate and each detail pane's covers its laid-out box, with only a few pixels to
-//! spare (design/29 R9; F1042, F1044, F1060).
+//! spare (design/29 R9).
 
 mod cc_support;
 

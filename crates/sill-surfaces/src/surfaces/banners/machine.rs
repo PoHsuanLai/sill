@@ -1,12 +1,12 @@
 //! One banner's life (design/13 §13.4 `Banner`, §13.5): hold, hover pause and resume with at
 //! least `hover_min_remaining`, swiped away, act, close. design/13 places it at
-//! `surfaces/notifications/banner.rs`; the M6 freeze moved it here, beside its surface.
+//! `surfaces/notifications/banner.rs`; it sits here, beside its surface.
 //!
 //! The swipe itself (following the finger, the thresholds, springing back, flying out) is
 //! quire's `NotificationCard { swipe }`: the machine hears only that it went ([`BannerIn::Swiped`]).
 //!
 //! design/13 §13.3.6 says a 5000 ms lifetime; design/22's `notifications.banner_hold_ms` and
-//! design/20 §1.6 (`ToastHold`) say 5200. The key wins (FINDINGS.md).
+//! design/20 §1.6 (`ToastHold`) say 5200. The key wins.
 
 use sill_services::{BannerLife, Stamp};
 use sill_settings::NotificationsSettings;
@@ -33,7 +33,7 @@ pub enum Leave {
     /// The close button, `CloseNotification`, or a replacement.
     Dismissed,
     /// Swiped or dragged away past quire's threshold: kept in the center or dismissed, as
-    /// `notifications.swipe` says (the service's decision, FINDINGS F280).
+    /// `notifications.swipe` says (the service's decision).
     Swiped,
     Acted,
 }

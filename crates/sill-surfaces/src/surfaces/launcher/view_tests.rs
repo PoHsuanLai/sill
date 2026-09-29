@@ -162,7 +162,7 @@ fn a_sections_more_line_moves_with_its_rows() {
     }
 }
 
-/// ← and → belong to the grid only on an Emoji section's cells (F741): an emoji as the Top Hit
+/// ← and → belong to the grid only on an Emoji section's cells: an emoji as the Top Hit
 /// is a list row, and the Emoji header's "Show More" a list stop.
 #[test]
 fn only_an_emoji_sections_cells_are_grid_lines() {

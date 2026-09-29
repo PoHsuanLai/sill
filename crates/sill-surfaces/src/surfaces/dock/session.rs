@@ -2,7 +2,7 @@
 //! context menu popup and the services. The only effectful part of the dock; every decision is
 //! `machine::step`, `effects`, `changes`, `context_menu` or `menu_geometry`.
 //!
-//! Frames follow shell-host's frame hook (F31, F36): the machine's `RequestFrames` takes a
+//! Frames follow shell-host's frame hook: the machine's `RequestFrames` takes a
 //! `FrameDrive`, every frame tick of the surface feeds `Frame`, and `StopFrames` drops the drive,
 //! so an idle dock renders nothing. A `Redraw` stamps the time the next render draws at.
 

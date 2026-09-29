@@ -178,7 +178,7 @@ step_idle() {
   [ "$before" = "$after" ]
 }
 
-# The plate under the dark scheme (sill FINDINGS Q72): the tinted plate's own dark stops, not
+# The plate under the dark scheme: the tinted plate's own dark stops, not
 # the light ones the other shots show.
 step_monochrome_dark() {
   style_monochrome_dark

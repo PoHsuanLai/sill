@@ -1,6 +1,6 @@
-//! M9's requests (sill FINDINGS "M9 freeze" F653): the clipboard history's status and clear,
-//! and the debug requests an acceptance script drives the launcher with (a key, and the rows
-//! as shown). Reports carry counts and kinds only: never a clipboard entry's content.
+//! The launcher's requests: the clipboard history's status and clear, and the debug requests an
+//! acceptance script drives the launcher with (a key, and the rows as shown). Reports carry counts
+//! and kinds only: never a clipboard entry's content.
 
 use serde::{Deserialize, Serialize};
 

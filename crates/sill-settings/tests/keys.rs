@@ -22,7 +22,7 @@ const SECTIONS: &[(&str, &str)] = &[
 ];
 
 /// §3.1 rows that are sill's, not `AppearanceSettings`': the mirror image of ds-settings'
-/// `SILL_OWNED` list (its `tests/keys.rs`, quire FINDINGS F15).
+/// `SILL_OWNED` list (its `tests/keys.rs`).
 const FROM_APPEARANCE: &[&str] = &[
     "notifications.banner_material",
     "control_center.material",
@@ -30,14 +30,14 @@ const FROM_APPEARANCE: &[&str] = &[
 ];
 
 /// Keys registered in sill whose §3 rows quire's design/22 has not gained yet: quire's owner adds
-/// them (sill FINDINGS lists each row). A key here needs no row until it has one; once the row
-/// lands it is checked like every other key, and the entry can go.
+/// them. A key here needs no row until it has one; once the row lands it is checked like every
+/// other key, and the entry can go.
 const AWAITING_ROWS: &[&str] = &[];
 
 /// Keys sill has dropped whose §3 rows quire's design/22 still carries: the mirror of
-/// [`AWAITING_ROWS`] for a retirement (design/28 §6.0). sill drops the spec and lists the key
-/// here, quire's owner removes the row, then the entry goes. A key here needs no spec while its
-/// row remains. (`dock.shipped_icons` went this way: quire fd77336 retired its §3.5 row, F1043.)
+/// [`AWAITING_ROWS`] for a retirement (design/28 §6.0). sill drops the spec and lists the key here,
+/// quire's owner removes the row, then the entry goes. A key here needs no spec while its row
+/// remains.
 const RETIRING: &[&str] = &[
     "session.locker",
     "session.polkit_agent",

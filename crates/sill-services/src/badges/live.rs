@@ -1,7 +1,6 @@
 //! The session-bus half of badges: `LauncherEntry.Update` signals from any sender, decoded
 //! into [`BadgeEvent`]s, and a sender's `NameOwnerChanged` departure clearing what it published
-//! (plan LauncherEntry paragraph; interface `com.canonical.Unity.LauncherEntry`, signal
-//! `Update(s app_uri, a{sv})`).
+//! (interface `com.canonical.Unity.LauncherEntry`, signal `Update(s app_uri, a{sv})`).
 
 use std::collections::HashMap;
 use std::pin::Pin;
@@ -47,8 +46,8 @@ pub(super) async fn run(
     };
 
     // The sender that last published each app's badge, so its departure can clear it. Badges
-    // itself only remembers app -> properties (plan's persisted shape); which connection is
-    // currently speaking for an app is this task's own bookkeeping.
+    // itself only remembers app -> properties; which connection is currently speaking for an app is
+    // this task's own bookkeeping.
     let mut senders: HashMap<AppId, OwnedUniqueName> = HashMap::new();
 
     loop {
@@ -72,8 +71,8 @@ pub(super) async fn run(
     }
 }
 
-/// A bus-wide match on every `Update` signal of the interface, whoever sends it (plan: "zbus 5
-/// match rule on the session bus").
+/// A bus-wide match on every `Update` signal of the interface, whoever sends it (a zbus 5 match
+/// rule on the session bus).
 fn update_rule() -> zbus::Result<MatchRule<'static>> {
     Ok(MatchRule::builder()
         .msg_type(MessageType::Signal)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Milestone 4 launcher-ui acceptance, on the nested cosmic-comp (dev/nested.sh; a running
+# Launcher-ui acceptance, on the nested cosmic-comp (dev/nested.sh; a running
 # wayland-1 is reused and never stopped). Starts `sill run` from this checkout's debug build
 # (`--features debug`) with a scratch XDG_CONFIG_HOME and quits it at the end.
 #

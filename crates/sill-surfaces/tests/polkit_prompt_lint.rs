@@ -1,4 +1,4 @@
-//! Coherence rules 1 and 2 (quire CONSUMING.md §5) for the polkit prompt: sill styles nothing
+//! Coherence rules 1 and 2 for the polkit prompt: sill styles nothing
 //! of it (no stylesheet of its own; quire's `.ds-polkit*` is quire's), and the real
 //! `PolkitPrompt` goes through the markup lint hidden and showing a request.
 

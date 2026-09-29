@@ -1,9 +1,9 @@
-//! The M9 keys (F642, F654): the preview pane's machine (`preview::keys::step_preview`) fed
+//! The pane keys: the preview pane's machine (`preview::keys::step_preview`) fed
 //! from the palette's field and from `sill debug launcher-key`, row chords run from the results
 //! (`action_for_chord`), and Enter on the pane's focused control.
 //!
 //! The field keeps the keyboard: the pane's focus is the machine's `PaneFocus::Pane(n)`, drawn by
-//! quire's `PreviewPane` as `focused`. Keys reach the machine through quire's key claim (Q299):
+//! quire's `PreviewPane` as `focused`. Keys reach the machine through quire's key claim:
 //! [`PanelCtx::claim`] hears every key before the palette with the caret's place, and takes Space
 //! while browsing, → at the field's end (not on an emoji cell, where ← and → are the grid's:
 //! `claim_keys.rs`), and the pane's own keys, so the field never types that Space nor moves its

@@ -6,7 +6,7 @@
 //!   through `cosmic-randr` ([`ScaleSink`]), then never again ([`decide_scale`],
 //!   `$XDG_STATE_HOME/sill/displays.json`).
 //! - **Gamut.** The EDID primaries classified as sRGB, Display P3 or wide ([`classify`]); stored
-//!   for colour management, which cosmic-comp 1.8 does not offer yet (FINDINGS "Displays").
+//!   for colour management, which cosmic-comp 1.8 does not offer yet.
 //! - **DDC/CI.** External monitors' brightness, contrast, speaker volume, mute, input and RGB
 //!   gains ([`Controls`]) on one worker thread, with debounced writes and cached reads.
 //! - **Brightness routing.** Built-in panels through logind, monitors through DDC

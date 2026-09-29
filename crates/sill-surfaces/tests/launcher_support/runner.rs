@@ -1,7 +1,7 @@
 //! The fake search runner: every `SearchCommand::Query` answered on the results `watch` with a
 //! new generation, chosen rows carried out as the real runner does. On its own thread for the
 //! demo's window, or as a task on a harness's thread so a virtual-clock test sees each answer in
-//! the `advance` that asked (quire Q380: off-thread work never lands on the virtual clock).
+//! the `advance` that asked: off-thread work never lands on the virtual clock.
 
 use std::sync::{Arc, Mutex};
 

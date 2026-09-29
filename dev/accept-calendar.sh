@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Calendar acceptance (design/20 §1.12 and §1.14, FINDINGS "M10 freeze" F401-F403, lane a), on
-# the nested cosmic-comp (dev/nested.sh; a running wayland-1 is reused and never stopped).
+# Calendar acceptance (design/20 §1.12 and §1.14), on the nested cosmic-comp (dev/nested.sh; a
+# running wayland-1 is reused and never stopped).
 # Starts `sill run` from this checkout's debug build (`--features debug`) with a scratch
 # XDG_CONFIG_HOME, XDG_STATE_HOME, XDG_CACHE_HOME and XDG_DATA_HOME, under a private session bus
 # (dev/private-bus.conf), and with its own XDG_RUNTIME_DIR (the nested socket as an absolute
@@ -13,20 +13,20 @@
 #   1. `sill notifications open`: a capture of `sill-notification-center-<out>` shows the month
 #      with today on the accent disc (dev/out/calendar-cosmic.png; the output with the center
 #      open, dev/out/calendar-widget-cosmic.png).
-#   2. The Large month lists today's events still to come under it, from the agenda Up Next
-#      reads (FINDINGS "Widget interface port"), then Up Next lists the fixture's next events in
-#      order, as many as the Medium tile's body holds without clipping (two, at the default cell
-#      and `up_next_max`, G291). The colour bars, top to bottom, are the month's work and team,
-#      then Up Next's work and team (quire's label hues `--c-{red,amber,green,blue,violet}`,
-#      picked by the calendar's name as `widgets::up_next::calendar_hue` picks it); personal's
-#      (tomorrow's Dentist) is not today's and is Up Next's third-soonest, so it draws nowhere.
+#   2. The Large month lists today's events still to come under it, from the agenda Up Next reads,
+#      then Up Next lists the fixture's next events in order, as many as the Medium tile's body
+#      holds without clipping (two, at the default cell and `up_next_max`). The colour bars, top to
+#      bottom, are the month's work and team, then Up Next's work and team (quire's label hues
+#      `--c-{red,amber,green,blue,violet}`, picked by the calendar's name as
+#      `widgets::up_next::calendar_hue` picks it); personal's (tomorrow's Dentist) is not today's
+#      and is Up Next's third-soonest, so it draws nowhere.
 #   3. work.ics rewritten with the review cancelled: within 2 s the bars are the month's team,
 #      then Up Next's team and personal (now the two soonest).
 #   4. `calendar.week_numbers = "show"` and `sill reload`: the week column appears (the month,
 #      centred in its tile, moves today's disc right by half a 24 px column).
 #   5. 5 s idle while open, clear of the minute's turn: 0 frames on the center.
 #
-# Exit 0 when every step passed, 2 when the notification center draws no widgets (lane b's
+# Exit 0 when every step passed, 2 when the notification center draws no widgets (the widget
 # slot is not in this build), 1 on a failure. Another sill daemon started from a
 # `target/*/sill run` is waited for (up to 10 minutes).
 #
@@ -262,13 +262,13 @@ step_month_and_up_next() {
   seen=$(probe "$SHOTS/calendar-cosmic.png")
   echo "capture: $seen (work $WORK, team $TEAM, personal $PERSONAL)" | tee -a "$log" >&2
   if [ "$(bars_of "$seen")" = "" ] && [ "$(disc_of "$seen")" = none ]; then
-    echo "the center draws no widgets: lane b's slot (CenterWidgets) is not in this build" >&2
+    echo "the center draws no widgets: the widget slot (CenterWidgets) is not in this build" >&2
     return 2
   fi
   DISC_BEFORE=$(disc_of "$seen")
   [ "$DISC_BEFORE" != none ] || { echo "no accent disc on today" >&2; return 1; }
   [ "$(bars_of "$seen")" = "$WORK $TEAM $WORK $TEAM" ] \
-    || { echo "the month's events and Up Next's are not review, yoga (a Medium tile holds two, G291)" >&2; return 1; }
+    || { echo "the month's events and Up Next's are not review, yoga (a Medium tile holds two)" >&2; return 1; }
 }
 
 # 3.

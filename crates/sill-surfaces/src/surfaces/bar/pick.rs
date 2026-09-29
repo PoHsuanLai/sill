@@ -13,7 +13,7 @@ pub(crate) enum BarPick {
     Quit(Vec<WindowKey>),
     /// Open COSMIC Settings.
     Settings,
-    /// Open the power menu on this bar's output (the app menu's "Shut Down…", M5).
+    /// Open the power menu on this bar's output (the app menu's "Shut Down…").
     PowerMenu,
 }
 

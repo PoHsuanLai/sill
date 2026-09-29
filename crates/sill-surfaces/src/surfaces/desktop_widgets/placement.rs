@@ -1,8 +1,7 @@
 //! Where each desktop widget sits: a grid of `widgets.desktop_cell_px` cells with
 //! `widgets.desktop_gap_px` between them and around them, filled from the top right (macOS
 //! places new desktop widgets at the top left; sill's right side is where the notification
-//! center opens, and its left side is where windows open, so the choice is lane b's to confirm
-//! with the user). Pure.
+//! center opens, and its left side is where windows open). Pure.
 
 use sill_settings::WidgetKind;
 

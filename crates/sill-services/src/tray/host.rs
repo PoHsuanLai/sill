@@ -203,7 +203,7 @@ fn menu_path_of(client: &Client, id: &TrayItemId) -> Option<String> {
 
 /// `event` as a [`TrayEvent`], or `None` when it has no home in the frozen model: SNI's
 /// `AttentionIcon`, `OverlayIcon` and `Tooltip` updates carry no corresponding `TrayEvent`
-/// variant, so they change nothing here (FINDINGS.md "M1 svc-tray").
+/// variant, so they change nothing here.
 fn map_event(client: &Client, event: Event) -> Option<TrayEvent> {
     match event {
         Event::Add(destination, item) => {
@@ -243,7 +243,7 @@ fn map_event(client: &Client, event: Event) -> Option<TrayEvent> {
 /// menu closed) — nothing a shell surface can act on, so they are logged, not propagated: a
 /// tray click that lands a beat late is not worth failing the surface over.
 ///
-/// `Scroll` is sent on `bus`, not through `client` (see [`run`]); FINDINGS F76.
+/// `Scroll` is sent on `bus`, not through `client` (see [`run`]).
 async fn handle_command(client: &Client, bus: Option<&zbus::Connection>, command: TrayCommand) {
     let result = match command {
         TrayCommand::Activate { item, x, y } => {

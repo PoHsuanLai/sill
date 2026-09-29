@@ -1,7 +1,7 @@
-//! The hot corner surface in a `ds_native::Harness` (design/13 §13.3.12, FINDINGS "M10 freeze"
-//! F409): a real pointer dwelling in it fires once, not before the dwell and not twice without a
+//! The hot corner surface in a `ds_native::Harness` (design/13 §13.3.12): a real pointer
+//! dwelling in it fires once, not before the dwell and not twice without a
 //! leave and the re-arm; and its stylesheet is lint-clean under `Profile::Strict` (coherence
-//! rule 1, quire CONSUMING.md §5). On the virtual clock (quire Q380), so the dwell and the re-arm
+//! rule 1). On the virtual clock, so the dwell and the re-arm
 //! are checked to the millisecond.
 
 mod support;

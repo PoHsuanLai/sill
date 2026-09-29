@@ -8,10 +8,10 @@
 //! following every PipeWire change would flash it whenever an app ramps its stream. `sill debug
 //! osd` shows a made-up change and moves nothing real. `osd.enabled = "off"` silences all three.
 //!
-//! **Where.** Volume: the output of the active window (the daemon's stand-in for the output
-//! under the pointer, FINDINGS F140), else the first output. Brightness: the outputs the key
-//! moved, chosen the way the displays service chooses them (`display.brightness_keys_target`:
-//! that same output, or every output), less those with no brightness to show.
+//! **Where.** Volume: the output of the active window (the daemon's stand-in for the output under
+//! the pointer), else the first output. Brightness: the outputs the key moved, chosen the way the
+//! displays service chooses them (`display.brightness_keys_target`: that same output, or every
+//! output), less those with no brightness to show.
 
 use shell_host::{HostCtx, OutputId, OutputInfo, Root};
 use sill_ipc::{DisplayRequest, FakeMute, FakeOsd, OsdTopic, Response};

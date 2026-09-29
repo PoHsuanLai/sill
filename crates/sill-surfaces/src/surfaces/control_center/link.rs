@@ -4,8 +4,7 @@
 //! feeds its menu session a toggle of `BarMenu::ControlCenter`.
 //!
 //! An xdg popup's grab wants the serial of a recent input event, and an IPC request has none;
-//! the compositor may refuse the grab (the popup then shows ungrabbed or not at all). What
-//! cosmic-comp does is for agent (c) to find out and record (FINDINGS "M5 freeze").
+//! the compositor may refuse the grab (the popup then shows ungrabbed or not at all).
 
 use shell_host::OutputId;
 use tokio::sync::watch;

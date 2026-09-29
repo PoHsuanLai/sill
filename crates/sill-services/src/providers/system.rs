@@ -2,13 +2,12 @@
 //!
 //! `query` lists every command whose name (or an alias) matches, except that Suspend, Restart
 //! and Shut Down are left off when logind says it cannot do them right now (`Manager.Can*`,
-//! read-only) or logind is unreachable at all — the "reports `Unavailable` cleanly" half of this
-//! wave's brief; Lock and Reload need no such check (`loginctl lock-session` and the daemon's
-//! own reload need no session permission that can vary at runtime). `activate` stays pure
-//! (`sill_launcher::Provider`'s own contract): it never calls `loginctl` or logind itself, only
-//! says which [`SystemCommand`] was chosen. Every row's Enter is its command: the launcher runs
-//! Lock and Suspend at once and opens the power menu for Log Out, Restart and Shut Down, which
-//! is their confirmation (FINDINGS F178), so no row needs a confirm action of its own.
+//! read-only) or logind is unreachable at all; Lock and Reload need no such check (`loginctl
+//! lock-session` and the daemon's own reload need no session permission that can vary at runtime).
+//! `activate` stays pure (`sill_launcher::Provider`'s own contract): it never calls `loginctl` or
+//! logind itself, only says which [`SystemCommand`] was chosen. Every row's Enter is its command:
+//! the launcher runs Lock and Suspend at once and opens the power menu for Log Out, Restart and
+//! Shut Down, which is their confirmation, so no row needs a confirm action of its own.
 
 use std::sync::OnceLock;
 
@@ -95,8 +94,7 @@ struct Availability {
 }
 
 impl Availability {
-    /// Logind unreachable, or a property it could not answer: offer nothing that needs it
-    /// (the "reports `Unavailable` cleanly" half of this wave's brief).
+    /// Logind unreachable, or a property it could not answer: offer nothing that needs it.
     const NONE: Availability = Availability {
         suspend: Offer::Unavailable,
         restart: Offer::Unavailable,
@@ -220,10 +218,9 @@ fn offer_of(supported: IsSupported) -> Offer {
 }
 
 /// The real check, bridged from this trait's sync `query` into async zbus: `results::spawn`
-/// (M4 launcher-core, plan "spawn_blocking per provider") runs every provider's `query` inside
-/// `tokio::task::spawn_blocking`, and `Handle::block_on` from inside a blocking-pool task is the
-/// documented way back into async code there — this panics only if called directly from an
-/// async task instead (never done here).
+/// runs every provider's `query` inside `tokio::task::spawn_blocking`, and `Handle::block_on` from
+/// inside a blocking-pool task is the documented way back into async code there — this panics only
+/// if called directly from an async task instead (never done here).
 fn probe_availability() -> Availability {
     tokio::runtime::Handle::try_current()
         .ok()
@@ -344,7 +341,7 @@ mod tests {
     }
 
     /// Enter on a Log Out, Restart or Shut Down row names its command, and the launcher opens
-    /// the power menu on it (the confirmation, FINDINGS F178); no row carries an action.
+    /// the power menu on it (the confirmation); no row carries an action.
     #[test]
     fn every_row_names_its_command_on_enter() {
         let provider = SystemProvider::with_availability(ALL_AVAILABLE);

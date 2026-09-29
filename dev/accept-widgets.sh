@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# Widgets acceptance (design/20 §1.14, FINDINGS "M10 freeze" F404/F405, lane b), on the nested
-# cosmic-comp (dev/nested.sh; a running wayland-1 is reused and never stopped). Starts `sill run`
-# from this checkout's debug build (`--features debug`) with a scratch XDG_CONFIG_HOME,
-# XDG_STATE_HOME and XDG_CACHE_HOME, under a private session bus (dev/private-bus.conf: no
-# service directories, so no UPower, BlueZ or real MPRIS player is ever reached) holding one
-# fake MPRIS player (sill-services' `mpris_player` example), and with its own XDG_RUNTIME_DIR
-# (the nested socket as an absolute WAYLAND_DISPLAY). The daemon is quit at the end.
+# Widgets acceptance (design/20 §1.14), on the nested cosmic-comp (dev/nested.sh; a running
+# wayland-1 is reused and never stopped). Starts `sill run` from this checkout's debug build
+# (`--features debug`) with a scratch XDG_CONFIG_HOME, XDG_STATE_HOME and XDG_CACHE_HOME, under a
+# private session bus (dev/private-bus.conf: no service directories, so no UPower, BlueZ or real
+# MPRIS player is ever reached) holding one fake MPRIS player (sill-services' `mpris_player`
+# example), and with its own XDG_RUNTIME_DIR (the nested socket as an absolute WAYLAND_DISPLAY). The
+# daemon is quit at the end.
 #
-#   1. With the default `widgets.center` (Calendar, Up Next, Battery), `sill notifications open`:
-#      a capture of the center shows three widget tiles under the history (Calendar and Up Next
-#      are empty until lane a is merged; Battery says "No batteries": the private bus has no
-#      UPower and no BlueZ). Screenshot dev/out/widgets-center-cosmic.png.
+#   1. With the default `widgets.center` (Calendar, Up Next, Battery), `sill notifications open`: a
+#      capture of the center shows three widget tiles under the history (Battery says "No
+#      batteries": the private bus has no UPower and no BlueZ). Screenshot
+#      dev/out/widgets-center-cosmic.png.
 #   2. `widgets.center` = all five and two world clocks, `sill reload`: five tiles, Now Playing
 #      showing the fake player (dev/out/widgets-center-all-cosmic.png).
 #   3. 5 s idle while open, clear of the minute's turn, with the fake player paused (over MPRIS
 #      on the private bus: a playing track's position steps once a second, which is motion,
-#      not idle, since D2 gave Now Playing its `TrackPosition`): 0 frames on the center.
+#      not idle): 0 frames on the center.
 #   4. `sill widgets toggle-desktop`: `sill-desktop-widgets-<out>` appears in `sill debug stats`,
 #      `widgets.desktop = "on"` in the file, and a capture of the layer shows two frames
 #      (Calendar and Battery) at the top right with nothing painted between them; a COSMIC
@@ -23,21 +23,20 @@
 #      the layer over the wallpaper, with a window). Then shell-host's probe window, maximised,
 #      must hide the first frame (the layer is under windows). The placements are saved in the
 #      scratch `$XDG_STATE_HOME/sill/desktop-widgets.json`.
-#   5. A real drag through shell-host's real pointer path (FINDINGS "Real-pointer drag", G330
-#      closed: `sill debug pointer-press`, `pointer` moved while it is held, `pointer-release`,
-#      the same delivery a real `wl_pointer` press/motion/release uses): the Calendar is pressed
-#      at its centre and carried left and down; mid-drag it is lifted (larger than a cell, under
-#      the pointer); dropped, it snaps to column 8 row 2. Then the Battery is carried onto that
-#      cell and held: the Calendar makes room, stepping up to row 1; dropped, the swap is kept.
-#      The file then names the output. Captures of the layer before, lifted, dropped, making
-#      room and after (target/accept-widgets/drag-*.png), one held half a cell off its snap cell
-#      so quire's slot guide shows beside the lifted card (dev/out/widgets-drag-guide-cosmic.png),
-#      and a screenshot after (dev/out/widgets-drag-cosmic.png).
+#   5. A real drag through shell-host's real pointer path (`sill debug pointer-press`, `pointer`
+#      moved while it is held, `pointer-release`, the same delivery a real `wl_pointer`
+#      press/motion/release uses): the Calendar is pressed at its centre and carried left and down;
+#      mid-drag it is lifted (larger than a cell, under the pointer); dropped, it snaps to column 8
+#      row 2. Then the Battery is carried onto that cell and held: the Calendar makes room, stepping
+#      up to row 1; dropped, the swap is kept. The file then names the output. Captures of the layer
+#      before, lifted, dropped, making room and after (target/accept-widgets/drag-*.png), one held
+#      half a cell off its snap cell so quire's slot guide shows beside the lifted card
+#      (dev/out/widgets-drag-guide-cosmic.png), and a screenshot after
+#      (dev/out/widgets-drag-cosmic.png).
 #   6. 5 s idle: 0 frames on the desktop layer.
-#   7. `sill widgets edit` (FINDINGS "Widget interface port"): `sill-edit-widgets-<out>` maps,
-#      showing quire's widget gallery beside the desktop's widgets (a capture, and
-#      dev/out/widgets-edit-cosmic.png); 3 s idle on it: 0 frames; `sill widgets edit-close`
-#      unmaps it again.
+#   7. `sill widgets edit`: `sill-edit-widgets-<out>` maps, showing quire's widget gallery beside
+#      the desktop's widgets (a capture, and dev/out/widgets-edit-cosmic.png); 3 s idle on it: 0
+#      frames; `sill widgets edit-close` unmaps it again.
 #   8. A second toggle removes the surface and writes `widgets.desktop = "off"`.
 #
 # Exit 0 when every step passed, 1 on a failure. Another sill daemon started from a
@@ -203,7 +202,7 @@ start_daemon() {
     dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- sh -c '
       case "$DBUS_SESSION_BUS_ADDRESS" in
         ""|unix:path=/run/dbus/system_bus_socket)
-          echo "refusing to start the daemon: dbus-run-session gave no private bus (F1068)" >&2
+          echo "refusing to start the daemon: dbus-run-session gave no private bus" >&2
           exit 1 ;;
       esac
       export DBUS_SYSTEM_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS"
@@ -386,9 +385,9 @@ EOF
     && [ "${covered:-0}" -gt 30 ]
 }
 
-# A real drag on the desktop layer, through shell-host's real pointer path (FINDINGS
-# "Real-pointer drag", G330 closed): press, move (the existing `sill debug pointer`, which
-# carries the held button on every move) and release at X Y (layer px).
+# A real drag on the desktop layer, through shell-host's real pointer path: press, move (the
+# existing `sill debug pointer`, which carries the held button on every move) and release at X Y
+# (layer px).
 pointer_press() { sill debug pointer-press "$LAYER" "$@" >/dev/null; }
 pointer_move() { sill debug pointer "$LAYER" "$@" >/dev/null; }
 pointer_release() { sill debug pointer-release "$LAYER" "$@" >/dev/null; }

@@ -1,7 +1,7 @@
 //! The switcher's machine (design/13 §13.4): a quick tap switches with no UI; held past the
 //! show delay the panel appears; release activates the selection.
 //!
-//! The quick tap without the modifiers on focus (G180): a release before the surface has the
+//! The quick tap without the modifiers on focus: a release before the surface has the
 //! keyboard is never a key event, so what arrives inside the show delay decides. A `commit`
 //! (`ModifierReleased`) switches to the armed selection with no UI; so does a second chord (a
 //! second tap whose first release went unseen: the first tap wins, the second is spent). A key
@@ -125,7 +125,7 @@ pub fn step(
         }
         (Switcher::Armed { .. }, SwIn::Key(SwKey::Escape)) => (Switcher::Hidden, Vec::new()),
         // A second chord inside the show delay is a second quick tap whose release was never
-        // seen (G180: no modifiers on focus): the first tap switches, with no UI.
+        // seen (no modifiers on focus): the first tap switches, with no UI.
         (Switcher::Armed { since, sel }, SwIn::Chord(_)) if now.since(since) < p.show_delay_ms => {
             (Switcher::Hidden, vec![SwOut::Activate(app(sel))])
         }
@@ -328,7 +328,7 @@ mod tests {
         }
     }
 
-    /// The quick-tap rule without the modifiers on focus (G180): what arrives inside the show
+    /// The quick-tap rule without the modifiers on focus: what arrives inside the show
     /// delay decides.
     #[test]
     fn quick_taps_whose_release_is_not_seen() {

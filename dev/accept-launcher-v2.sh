@@ -1,35 +1,33 @@
 #!/usr/bin/env bash
-# Launcher v2 acceptance (FINDINGS "M9 freeze", lane d "d-preview"), on the nested cosmic-comp
-# (dev/nested.sh; a running wayland-1 is pinged first, reused and never stopped). Starts
-# `sill run` from this checkout's debug build (`--features debug`) with a scratch HOME holding a
-# PDF, a PNG, a Markdown file and six more `m9-*` documents, `launcher.files_backend = "fd"`, a
-# scratch XDG_CONFIG_HOME, XDG_STATE_HOME and XDG_CACHE_HOME, its own XDG_RUNTIME_DIR (the
-# nested socket as an absolute WAYLAND_DISPLAY) and a private session bus
-# (dev/private-bus.conf). No key is typed anywhere: every key goes through
-# `sill debug launcher-key`, every look through `sill debug launcher-rows` and
-# `sill debug capture` of the nested panel. The daemon is quit at the end.
+# Launcher v2 acceptance, on the nested cosmic-comp (dev/nested.sh; a running wayland-1 is pinged
+# first, reused and never stopped). Starts `sill run` from this checkout's debug build (`--features
+# debug`) with a scratch HOME holding a PDF, a PNG, a Markdown file and six more `m9-*` documents,
+# `launcher.files_backend = "fd"`, a scratch XDG_CONFIG_HOME, XDG_STATE_HOME and XDG_CACHE_HOME, its
+# own XDG_RUNTIME_DIR (the nested socket as an absolute WAYLAND_DISPLAY) and a private session bus
+# (dev/private-bus.conf). No key is typed anywhere: every key goes through `sill debug
+# launcher-key`, every look through `sill debug launcher-rows` and `sill debug capture` of the
+# nested panel. The daemon is quit at the end.
 #
 #   1. Open latency: 10 warm `sill launcher open` / `close`, the panel's
-#      `launcher.open_to_frame_ms` p50/p95/max, reported against master's (FINDINGS F149, F167);
+#      `launcher.open_to_frame_ms` p50/p95/max, reported against master's;
 #      only the count of openings is asserted, since the host's load moves the numbers.
 #   2. `--query m9` lists Top Hit, then Documents.
 #   3. `down`, `space` (Top Hit is the PDF; `up` first so the selection is on it): the preview is
 #      `pdf`, captured (dev/out/launcher-v2-preview-pdf.png).
 #   4. `down` to the PNG: `image`; `space` hides it.
-#   5. `quick-look` while typing shows it; `right` (a debug key is → at the field's end, G271)
+#   5. `quick-look` while typing shows it; `right` (a debug key is → at the field's end)
 #      gives the pane's first control the keyboard; `escape` gives it back (the pane stays),
 #      `escape` hides the pane, `escape` closes the launcher. On a row with actions: an `m9`
-#      document, else, while the files provider (lane a) answers nothing, the Ghostty app row.
+#      document, else, while the files provider answers nothing, the Ghostty app row.
 #   6. Documents over its cap reports `hidden > 0`; Enter on the "Show More" line reveals them.
 #   7. `tab` to Emoji with nothing typed (Shift+Tab twice: Web, then Emoji) shows quire's emoji
 #      grid (dev/out/launcher-v2-emoji.png).
 #   8. 5 s idle after closing: 0 frames on the launcher's surfaces.
 #   C. Real → and End (wtype, nested socket only): the key claim reads the caret under sill.
 #
-# A step that needs rows lanes a (files) and c (emoji) fill exits 2 (SKIP) while those
-# providers answer nothing on this branch; `crates/sill-surfaces/tests/launcher_preview.rs`
-# proves the same steps over fixtures (FINDINGS "M9 lane d"). Exit 0 only when every step
-# passed.
+# A step that needs rows from the files or emoji provider exits 2 (SKIP) while that provider
+# answers nothing on this branch; `crates/sill-surfaces/tests/launcher_preview.rs` proves the
+# same steps over fixtures. Exit 0 only when every step passed.
 #
 # Usage: dev/nested.sh && dev/accept-launcher-v2.sh
 set -uo pipefail
@@ -192,7 +190,7 @@ pct = lambda p: v[min(len(v) - 1, int(round(p * (len(v) - 1))))]
 print(f"{pct(.5):.1f} {pct(.95):.1f} {v[-1]:.1f}")'
 }
 
-# Whether the files provider answers: lane a fills it.
+# Whether the files provider answers.
 documents_answer() { [[ ",$(field headings)," == *",Documents,"* ]]; }
 
 # 1.
@@ -216,13 +214,13 @@ step_latency() {
 step_sections() {
   open_query m9
   echo "m9 headings: $(field headings)" >&2
-  documents_answer || { echo "SKIP: no Documents (lane a's files provider answers nothing here)" >&2; return 2; }
+  documents_answer || { echo "SKIP: no Documents (the files provider answers nothing here)" >&2; return 2; }
   [[ "$(field headings)" == "Top Hit,Documents"* ]]
 }
 
 # 3. and 4.
 step_preview_pdf_and_image() {
-  documents_answer || { echo "SKIP: no Documents (lane a)" >&2; return 2; }
+  documents_answer || { echo "SKIP: no Documents (the files provider answers nothing)" >&2; return 2; }
   key up; key down; key up
   key space
   echo "after up/down/up, space: preview $(field preview)" >&2
@@ -275,7 +273,7 @@ step_pane_levels() {
 step_show_more() {
   close_launcher
   open_query m9
-  documents_answer || { echo "SKIP: no Documents (lane a)" >&2; return 2; }
+  documents_answer || { echo "SKIP: no Documents (the files provider answers nothing)" >&2; return 2; }
   local hidden more
   hidden=$(field hidden:Documents)
   echo "Documents hides $hidden" >&2
@@ -295,20 +293,20 @@ step_emoji() {
   key shift-tab
   sleep 0.5
   echo "after two Shift+Tab: $(field headings) [$(field rows:Emoji)]" >&2
-  [ -n "$(field rows:Emoji)" ] || { echo "SKIP: no Emoji rows (lane c's provider answers nothing here)" >&2; close_launcher; return 2; }
+  [ -n "$(field rows:Emoji)" ] || { echo "SKIP: no Emoji rows (the emoji provider answers nothing here)" >&2; close_launcher; return 2; }
   capture "$SHOTS/launcher-v2-emoji.png"
   close_launcher
 }
 
-# C. The caret under sill (Q299): real keys from `wtype` on the nested socket only. After
-#    `--query m9` the caret is at the start (Q341), so → moves it and the pane stays hidden;
+# C. The caret under sill: real keys from `wtype` on the nested socket only. After
+#    `--query m9` the caret is at the start, so → moves it and the pane stays hidden;
 #    End, then →, finds the caret at the end and opens the pane.
 step_real_caret() {
   command -v wtype >/dev/null 2>&1 || { echo "SKIP: no wtype" >&2; return 2; }
   close_launcher
   open_query m9
-  documents_answer || { echo "SKIP: no Documents (lane a)" >&2; return 2; }
-  # The field opens with its caret at the end (quire Q341): Home puts it at the start first.
+  documents_answer || { echo "SKIP: no Documents (the files provider answers nothing)" >&2; return 2; }
+  # The field opens with its caret at the end: Home puts it at the start first.
   WAYLAND_DISPLAY="$NESTED_SOCKET" wtype -k Home -k Right >>"$OUT_DIR/keys.log" 2>&1; sleep 0.4
   local first
   first=$(field preview)
@@ -330,7 +328,8 @@ step_idle() {
 
 # F. The same looks over the fakes' fixtures (`tests/launcher_support/m9.rs`: a PDF, a PNG, a
 #    Markdown file, five more PDFs, a clipboard entry, emoji), on `examples/launcher_demo.rs` on
-#    the nested compositor after the daemon has quit, while lanes a and c are unmerged:
+#    the nested compositor after the daemon has quit, while the files and emoji providers answer
+#    nothing:
 #    dev/out/launcher-v2-{preview-pdf,preview-image,preview-text,show-more,pane-focus,emoji}-fixtures.png.
 step_fixtures() {
   local demo_bin="$SILL_REPO/target/debug/examples/launcher_demo" log="$OUT_DIR/demo.log"

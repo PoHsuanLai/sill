@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
-# Real input acceptance for the banners and the notification center (M6 lane d, FINDINGS
-# "The M6 fill-in" (d) and "M6 lane d"), on shell-host's private headless KWin
-# (scripts/dev/kwin-virtual.sh, FINDINGS F52) driven by shell-host's scripts/dev/fake-input.sh:
+# Real input acceptance for the banners and the notification center, on shell-host's private
+# headless KWin (scripts/dev/kwin-virtual.sh) driven by shell-host's scripts/dev/fake-input.sh:
 # every hover, press, drag and key is a real Wayland event with a real serial and keyboard focus.
 #
 # The daemon runs from this checkout's debug build (`--features debug`) on the headless KWin and
-# its private D-Bus bus (shell-host's private-bus.conf: nothing activatable, FINDINGS F56), with
+# its private D-Bus bus (shell-host's private-bus.conf: nothing activatable), with
 # its own XDG_RUNTIME_DIR (WAYLAND_DISPLAY an absolute socket path) and a scratch
 # XDG_CONFIG_HOME and XDG_STATE_HOME, `notifications.server = "own"`. It is checked to hold
-# org.freedesktop.Notifications on that bus before anything is posted (G61). Every notification
+# org.freedesktop.Notifications on that bus before anything is posted. Every notification
 # comes from `sill debug notify`; nothing here reaches the real session bus, the user's session
 # (wayland-0) or the nested compositor (wayland-1). ONE fake-input client serves the whole run
 # (each client is a new input device, and KWin re-announces the seat's pointer for each).
@@ -23,7 +22,7 @@
 #   5. A real 90 px drag to the right swipes it away: the column unmaps, banners 0, and it stays in
 #      the notification center (kept unchanged; notifications.swipe = keep_in_center).
 #   6. A real 50 px drag, slowed before the release: the card springs back and stays up.
-#  6b. F1010: after a real click on a card, and after a real swipe, the card's box on the output,
+#  6b. Ghosts: after a real click on a card, and after a real swipe, the card's box on the output,
 #      as KWin composites it (spectacle), is the wallpaper as it was before the card came.
 #   7. A real click on the clock opens the center; real Escape closes it.
 #   8. Opened again by a click on the clock, a real click outside the column closes it.
@@ -31,39 +30,39 @@
 #      Delete clears the group: kept falls by two.
 #  9b. A real click on Clear All (found in a capture of the center): kept falls to 0 and the
 #      center then rests, 0 frames over 3 s.
-#  9c. Clear and Clear All play their exit (quire's LeavingList, FINDINGS F1071): Chat (two) and
+#  9c. Clear and Clear All play their exit (quire's LeavingList): Chat (two) and
 #      CI (one) posted with `sill debug notify`, the center opened by a real click on the clock;
 #      a real click on Chat's Clear (found in a capture): kept falls by two, the list settles
 #      Chat's head and card after their fold (the daemon logs each settled row), the center
 #      draws frames while they fold and CI heals up into Chat's place, then rests at 0 frames
 #      over 3 s; the same for a real click on Clear All.
-#  10. Overflowed with 15 cards, a real wheel over the column (fake-input's `axis`, shell-host
-#      FINDINGS F63) scrolls it: the whole column moves, title included. Rubber-band at the top
-#      is not exercised: wheel scrolling never stretches (F63 §11.3.7's last row and its own "no
-#      stretch at an edge" test); only a finger gesture does, and fake-input has no finger source
-#      (F63's own live gap) — recorded, not proven.
+#  10. Overflowed with 15 cards, a real wheel over the column (fake-input's `axis`) scrolls it: the
+#      whole column moves, title included. Rubber-band at the top is not exercised: wheel scrolling
+#      never stretches (quire's design/11 §11.3.7's last row and its own "no stretch at an edge"
+#      test); only a finger gesture does, and fake-input has no finger source — recorded, not
+#      proven.
 #  11. 5 s idle: 0 frames on the banners and the center.
 #  12. `status` afterwards: holder still sill.
 #
 # Then the input client, the daemon (`sill quit`) and the headless KWin are stopped.
 #
-# Two shell-host gaps once shaped the order (FINDINGS G100, G101, closed by shell-host 902a12c):
-# an enter now moves the document's pointer and an unmap withdraws it, so a "move onto" is one
-# motion and the steps run in their natural order. `repro` keeps both as regression checks.
+# In shell-host an enter moves the document's pointer and an unmap withdraws it, so a "move onto"
+# is one motion and the steps run in their natural order. `repro` keeps both as regression checks.
 #
 # Exit 0 only when every step passed; 1 on a failure.
 #
 # The wallpaper is a fine checkerboard (`seed_checks`) so blur shows as grey. KWIN_SCALE=2 runs
-# the output at 3840 x 2160 and scale 2, the user's KDE setup (F1011). ACCEPT_STEPS="step_a
+# the output at 3840 x 2160 and scale 2, the user's KDE setup. ACCEPT_STEPS="step_a
 # step_b" runs just those steps.
 #
 # Usage: dev/accept-notifications-real-input.sh           (the acceptance)
-#        dev/accept-notifications-real-input.sh ghost     (F1010: the blur left behind mid-drag;
-#                                                          FAILS while shell-host's G410 stands)
+#        dev/accept-notifications-real-input.sh ghost     (the blur left behind mid-drag; FAILS
+#                                                          while shell-host leaves it)
 #        dev/accept-notifications-real-input.sh clear     (9b alone)
 #        dev/accept-notifications-real-input.sh exit      (9c alone)
-#        dev/accept-notifications-real-input.sh repro     (G100, G101 closed: regression checks;
-#                                                          Q170: FAILS while it stands)
+#        dev/accept-notifications-real-input.sh repro     (the enter and unmap regression checks;
+#                                                          the resting-pointer one FAILS while
+#                                                          Blitz skips the enter)
 set -uo pipefail
 # shellcheck source=dev/common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
@@ -73,7 +72,7 @@ KWIN_ENV="$SHELL_HOST_DEV/.kwin-env"
 SIZE=1920x1080
 WIDTH=${SIZE%x*}
 HEIGHT=${SIZE#*x}
-# KWIN_SCALE=2 runs the output at twice the pixels and scale 2 (the user's 4K at 200 %, F1010):
+# KWIN_SCALE=2 runs the output at twice the pixels and scale 2 (the user's 4K at 200 %):
 # every coordinate here stays logical; captures are read back at their own density.
 SCALE=${KWIN_SCALE:-1}
 HOLD_MS=5200
@@ -131,9 +130,8 @@ print(json.load(sys.stdin)["outputs"][0]["name"])')
   in_env kscreen-doctor "output.$output.scale.$SCALE" >>"$OUT_DIR/kwin.log" 2>&1 || return 1
 }
 
-# A wallpaper of fine checks (2 px), seeded as the COSMIC background record sill's wallpaper
-# reads: blur over it shows as flat grey where the checks were, which a flat wallpaper hides
-# (F1010).
+# A wallpaper of fine checks (2 px), seeded as the COSMIC background record sill's wallpaper reads:
+# blur over it shows as flat grey where the checks were, which a flat wallpaper hides.
 seed_checks() {
   local png="$OUT_DIR/checks.png" record="$CONFIG/cosmic/com.system76.CosmicBackground/v1"
   python3 - "$png" "$WIDTH" "$HEIGHT" "$SCALE" <<'EOF' || return 1
@@ -204,7 +202,7 @@ input() {
   return 1
 }
 key() { input "key $1 down" "sleep 30" "key $1 up" "sleep 150"; }
-# A move onto $1 $2: one motion (G100 closed: the enter hovers).
+# A move onto $1 $2: one motion (the enter hovers).
 point() { input "move $1 $2" "sleep 80"; }
 click() { point "$1" "$2"; input "press left" "sleep 40" "release left" "sleep 200"; }
 rest() { point "$REST_X" "$REST_Y"; }
@@ -253,7 +251,7 @@ start_daemon() {
   sleep 1.5
 }
 
-# Ask the daemon to quit and wait up to 10 s; never kill it (FINDINGS G51).
+# Ask the daemon to quit and wait up to 10 s; never kill it.
 stop_daemon() {
   [ -n "$DAEMON" ] || return 0
   in_env timeout 10 "$SILL_BIN" quit >/dev/null 2>&1
@@ -616,9 +614,9 @@ step_center_scroll() {
   mapped "$CENTER" "$OUT_DIR/scroll-after.png" || { echo "no capture after scrolling" >&2; return 1; }
   after=$(column_signature "$OUT_DIR/scroll-after.png")
   echo "5 real wheel detents over the column: top band ${before:0:12} -> ${after:0:12}" >&2
-  echo "rubber-band at the top not exercised: wheel never stretches (F63 §11.3.7's last row" \
+  echo "rubber-band at the top not exercised: wheel never stretches (quire's design/11 §11.3.7's last row" \
     "and its own 'no stretch at an edge' test); only a finger gesture does, and fake-input has" \
-    "no finger source (F63's own gap)" >&2
+    "no finger source" >&2
   key Escape
   wait_surface "$CENTER" 20 down
   clear_all
@@ -637,10 +635,10 @@ step_idle() {
   [ "$((b1 - b0))" = 0 ] && [ "$((c1 - c0))" = 0 ]
 }
 
-# Repros of G100 and G101 (shell-host, closed by 902a12c), `repro` mode: each step states what
-# should happen and failed while the gap stood.
+# Repros of two shell-host gaps, `repro` mode: each step states what should happen and failed
+# while the gap stood.
 #
-# G100: one motion onto a card from outside the column hovers it. Failed: shell-host took the
+# The enter: one motion onto a card from outside the column hovers it. Failed: shell-host took the
 # wl_pointer.enter (with its position) without moving the document's pointer there, so nothing
 # was hovered until the next motion. The step also shows that a second motion hovers it.
 repro_enter_one_motion() {
@@ -651,12 +649,12 @@ repro_enter_one_motion() {
   one=$(close_shown repro-one-motion)
   input "move $(( CARD_X + 1 )) $CARD_Y" "sleep 80" || return 1
   two=$(close_shown repro-two-motions)
-  echo "G100: one motion onto the card: hovered $one; after a second motion: $two" >&2
+  echo "enter: one motion onto the card: hovered $one; after a second motion: $two" >&2
   rest; clear_all
   [ "$one" = yes ]
 }
 
-# G101: after a card left under the pointer and the column unmapped, the next card is hovered
+# The unmap: after a card left under the pointer and the column unmapped, the next card is hovered
 # by one motion onto it from the desktop. Failed: shell-host's unmap rebuilt the wl_surface
 # without `pointer_left` on its document, so the document kept a hover chain on the removed card
 # and the next card was never announced as entered (no pause, no close button) even after the
@@ -671,17 +669,17 @@ repro_hover_after_unmap() {
   post_card "After the unmap" --app accept --expire never || return 1
   point "$CARD_X" "$CARD_Y" || return 1
   hovered=$(close_shown repro-after-unmap)
-  echo "G101: a card after the column unmapped under the pointer, one motion onto it:" \
+  echo "unmap: a card after the column unmapped under the pointer, one motion onto it:" \
     "hovered $hovered" >&2
   rest; clear_all
   [ "$hovered" = yes ]
 }
 
-# Q170 (quire; Blitz's `refresh_hover`): a card that slides in under a resting pointer is not
-# hovered when the pointer then moves on it. Fails: after each layout Blitz re-resolves the
-# hovered node against the last pointer position without dispatching pointerenter (its own
-# TODO), so the card's node is already the hovered one when the motion comes and no enter ever
-# reaches quire's `NotificationCard`: no pause, no close button until the pointer leaves the
+# The resting pointer (quire; Blitz's `refresh_hover`): a card that slides in under a resting
+# pointer is not hovered when the pointer then moves on it. Fails: after each layout Blitz
+# re-resolves the hovered node against the last pointer position without dispatching pointerenter
+# (its own TODO), so the card's node is already the hovered one when the motion comes and no enter
+# ever reaches quire's `NotificationCard`: no pause, no close button until the pointer leaves the
 # card and comes back.
 repro_card_under_resting_pointer() {
   local moved back
@@ -694,7 +692,7 @@ repro_card_under_resting_pointer() {
   moved=$(close_shown repro-under-pointer)
   rest && point "$CARD_X" "$CARD_Y" || return 1
   back=$(close_shown repro-back)
-  echo "Q170: a card slid in under the resting pointer, moved on: hovered $moved;" \
+  echo "resting pointer: a card slid in under the resting pointer, moved on: hovered $moved;" \
     "out and back: $back" >&2
   rest; clear_all
   [ "$moved" = yes ]
@@ -703,7 +701,7 @@ repro_card_under_resting_pointer() {
 # The whole output as KWin composites it (blur, stale buffers and all), to $1: spectacle on the
 # headless KWin's socket and private bus (KWin's ScreenShot2 answers only a client whose desktop
 # file lists it, which spectacle's does). `sill debug capture` renders a surface offscreen and so
-# cannot see what the compositor still draws for it (F1010).
+# cannot see what the compositor still draws for it.
 screen_shot() {
   rm -f "$1"
   in_env QT_QPA_PLATFORM=wayland timeout 20 spectacle -b -n -f -o "$1" >/dev/null 2>&1
@@ -745,7 +743,7 @@ EOF
   return 1
 }
 
-# F1010: after a card leaves (by $1: click or swipe), the output where it stood is what it was
+# Ghosts: after a card leaves (by $1: click or swipe), the output where it stood is what it was
 # before the card came, as KWin composites it. $2 names the captures.
 ghost_check() {
   local how="$1" name="$2" box worst count
@@ -770,12 +768,12 @@ ghost_check() {
   sleep 0.5
   screen_shot "$OUT_DIR/$name-after.png" || return 1
   read -r worst count <<<"$(shot_diff "$OUT_DIR/$name-before.png" "$OUT_DIR/$name-after.png" "$box")"
-  echo "F1010 $how: the card's box ($box) after it left vs before it came: worst $worst," \
+  echo "ghost $how: the card's box ($box) after it left vs before it came: worst $worst," \
     "$count px off (captures $name-{before,up,after}.png)" >&2
   [ "$count" = 0 ]
 }
 
-# F1010, mid-drag: with a real press held 60 px right of where it went down, nothing but the card
+# Ghosts, mid-drag: with a real press held 60 px right of where it went down, nothing but the card
 # is grey. The band the card has moved off (its old left 60 px, from its top to its bottom)
 # must show the wallpaper as it was before the card came.
 step_ghost_held() {
@@ -792,7 +790,7 @@ step_ghost_held() {
   input "release left" "sleep 200" || return 1
   box="$(( CARD_X0 + 8 )) $(( CARD_Y0 + 16 )) $(( CARD_X0 + 52 )) $(( CARD_Y1 - 16 ))"
   read -r worst count <<<"$(shot_diff "$OUT_DIR/ghost-held-before.png" "$OUT_DIR/ghost-held-mid.png" "$box")"
-  echo "F1010 held: the band the card moved off ($box) mid-drag vs before it came: worst $worst," \
+  echo "ghost held: the band the card moved off ($box) mid-drag vs before it came: worst $worst," \
     "$count px off (ghost-held-{before,mid}.png)" >&2
   rest; clear_all
   [ "$count" = 0 ]
@@ -871,7 +869,7 @@ step_center_clear_all() {
   echo "a real click on Clear All at $x $(( y + bar )): kept 0; then 3 s idle:" \
     "$CENTER $((c1 - c0)) frames" >&2
   key Escape
-  wait_surface "$CENTER" 20 down || { echo "real Escape after Clear All left the center up (F1073)" >&2; return 1; }
+  wait_surface "$CENTER" 20 down || { echo "real Escape after Clear All left the center up" >&2; return 1; }
   echo "real Escape then closed it" >&2
   [ "$((c1 - c0))" = 0 ]
 }
@@ -952,7 +950,7 @@ exit_plays() {
   [ "$((c1 - c0))" -ge 5 ] && [ "$((c2 - c1))" = 0 ]
 }
 
-# 9c. Clear and Clear All play their exit (FINDINGS F1071): two groups posted, the center opened
+# 9c. Clear and Clear All play their exit: two groups posted, the center opened
 # by a real click on the clock, a real click on the first group's Clear folds its head and card
 # and the group below heals up; a real click on Clear All folds the rest; the center then rests.
 step_center_clear_exit() {
@@ -983,7 +981,7 @@ step_center_clear_exit() {
   echo "a real click on Clear All at $x $(( y + bar )):" >&2
   exit_plays "$x" "$y" "$bar" 0 2 exit-clear-all || return 1
   key Escape
-  wait_surface "$CENTER" 20 down || { echo "real Escape after Clear All left the center up (F1073)" >&2; return 1; }
+  wait_surface "$CENTER" 20 down || { echo "real Escape after Clear All left the center up" >&2; return 1; }
   echo "real Escape then closed the center" >&2
 }
 

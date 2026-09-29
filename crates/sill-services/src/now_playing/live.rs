@@ -472,8 +472,8 @@ fn art_cache_dir() -> Option<PathBuf> {
     Some(PathBuf::from(home).join(".cache").join("sill").join("art"))
 }
 
-/// Downloads `url` into `cache_path` with `curl` (Fedora ships it; FINDINGS "M5 freeze" F173)
-/// and reports success on `art_tx`. Never downloads twice: [`resolve_art`] only schedules this
+/// Downloads `url` into `cache_path` with `curl` (Fedora ships it) and reports success on `art_tx`.
+/// Never downloads twice: [`resolve_art`] only schedules this
 /// when the file was not already there.
 fn spawn_art_fetch(
     id: PlayerId,

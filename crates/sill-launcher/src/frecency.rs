@@ -1,6 +1,6 @@
-//! How often and how recently a result was chosen (plan: "Frecency age buckets
-//! 100/70/50/30/10 x count in $XDG_STATE_HOME/sill/frecency.json"). Pure: the file is read and
-//! written by `sill-services`, the clock is an argument.
+//! How often and how recently a result was chosen (age buckets 100/70/50/30/10 x count, in
+//! `$XDG_STATE_HOME/sill/frecency.json`). Pure: the file is read and written by `sill-services`,
+//! the clock is an argument.
 
 use std::collections::BTreeMap;
 
@@ -29,8 +29,8 @@ impl ItemKey {
             .find(|kind| key_prefix(*kind) == prefix)
     }
 
-    /// Whether choosing this key's row is counted: its provider's [`counting`]; a key of no
-    /// known provider is counted (as every key was before M9).
+    /// Whether choosing this key's row is counted: its provider's [`counting`]; a key of no known
+    /// provider is counted.
     pub fn counting(&self) -> Counting {
         self.provider().map_or(Counting::Counted, counting)
     }
@@ -114,12 +114,12 @@ impl Frecency {
 pub enum Counting {
     Counted,
     /// Never written to disk: a clipboard entry's key means nothing after the session, and the
-    /// history must leave no trace of its use (M9 freeze, F641).
+    /// history must leave no trace of its use.
     NotCounted,
 }
 
 /// Whether `provider`'s rows are counted. The web fallback is counted under its fixed id (never
-/// the query, which is not a row's identity: FINDINGS F646).
+/// the query, which is not a row's identity).
 pub fn counting(provider: ProviderKind) -> Counting {
     match provider {
         ProviderKind::Clipboard => Counting::NotCounted,
@@ -135,7 +135,7 @@ pub fn counting(provider: ProviderKind) -> Counting {
 }
 
 /// The weight of a use made `days` ago. Buckets at 4, 14, 31 and 90 days (the plan names the
-/// weights, not the boundaries; these are Firefox's frecency buckets, FINDINGS.md).
+/// weights, not the boundaries; these are Firefox's frecency buckets).
 pub fn age_bucket(days: u64) -> u16 {
     match days {
         0..=4 => 100,

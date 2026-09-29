@@ -1,4 +1,4 @@
-//! The launcher v2 keys' value types (M9 freeze, sill FINDINGS "M9 freeze" F652).
+//! The launcher v2 keys' value types.
 
 use serde::{Deserialize, Serialize};
 

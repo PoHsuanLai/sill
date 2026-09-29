@@ -1,6 +1,5 @@
 //! `calendar.*`: where the calendar widgets read events, and how the month is drawn (design/20
-//! §1.12, which M10 moves into the notification center's widgets as macOS 11 does: sill FINDINGS
-//! "M10 freeze"). design/22 has no rows yet (`AWAITING_ROWS`). All Advanced.
+//! §1.12, which sill moves into the notification center's widgets as macOS 11 does). All Advanced.
 
 use ds_settings::Count;
 use ds_settings::schema::Page;

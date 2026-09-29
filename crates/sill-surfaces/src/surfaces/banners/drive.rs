@@ -134,7 +134,7 @@ impl Column {
             }
             CardPress::Close => BannerIn::Close,
             CardPress::Link(href) => {
-                // sill has no URL opener yet (FINDINGS F321): the link keeps its press.
+                // sill has no URL opener yet: the link keeps its press.
                 eprintln!("banners.link={}", href.0);
                 return;
             }

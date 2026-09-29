@@ -1,4 +1,4 @@
-//! `use_clipboard`: the clipboard history (M9), for the preview pane's image of a clipboard
+//! `use_clipboard`: the clipboard history, for the preview pane's image of a clipboard
 //! entry. Its content never reaches a log (`sill_services::clipboard`'s types redact themselves).
 
 use dioxus::prelude::ReadSignal;

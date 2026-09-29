@@ -1,7 +1,7 @@
-//! The indicator's render: one transparent Osd root (quire CONSUMING.md "OSD parts"; design/20
-//! §1.7) holding quire's `Osd` card. The card paints its own tinted frame, owns its own entrance
-//! and exit fade, and calls `on_hidden` once the exit has settled, so `drive.rs` can unmap the
-//! surface then; sill's own hold machine (`machine.rs`) only decides when the card is shown.
+//! The indicator's render: one transparent Osd root (design/20 §1.7) holding quire's `Osd` card.
+//! The card paints its own tinted frame, owns its own entrance and exit fade, and calls
+//! `on_hidden` once the exit has settled, so `drive.rs` can unmap the surface then; sill's own
+//! hold machine (`machine.rs`) only decides when the card is shown.
 
 use dioxus::prelude::*;
 use ds::{BlurState, Ds, LevelLook, Material, Osd, OsdMetrics, OsdPosition, Px, RootChrome, Shown};
@@ -21,8 +21,8 @@ use crate::surfaces::osd::reading::{card_level, level_of, title};
 /// The indicator's stylesheet (lint-clean under `Profile::Strict`, `tests/osd_lint.rs`).
 pub(crate) const OSD_CSS: &str = include_str!("../../style/osd.css");
 
-/// The level's look: the capsule, the user's pick (2026-09-27, quire D3; FINDINGS "User picks:
-/// lock and OSD" F860). Not a setting: the OSD has no look key, and this is the one place.
+/// The level's look: the capsule, the user's pick. Not a setting: the OSD has no look key, and
+/// this is the one place.
 const LOOK: LevelLook = LevelLook::Capsule;
 
 /// `sill_settings::OsdPosition` as quire's `ds::OsdPosition`.

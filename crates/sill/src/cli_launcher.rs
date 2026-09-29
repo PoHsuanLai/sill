@@ -1,5 +1,5 @@
-//! M9's command line (FINDINGS "M9 freeze" F653): `sill clipboard status|clear`, `sill debug
-//! launcher-key KEY` and `sill debug launcher-rows`, and their pure mappings to IPC requests.
+//! The launcher's command line: `sill clipboard status|clear`, `sill debug launcher-key KEY` and
+//! `sill debug launcher-rows`, and their pure mappings to IPC requests.
 
 use clap::{Subcommand, ValueEnum};
 use sill_ipc::{ClipboardRequest, FakeLauncherKey, Request};

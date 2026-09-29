@@ -1,5 +1,5 @@
-//! Which desktop entry a window belongs to (plan: "`match_app(app_id, wm_class, &AppIndex)`
-//! (exact, lowercase, StartupWMClass, reverse-DNS suffix, Flatpak id)").
+//! Which desktop entry a window belongs to: `match_app(app_id, wm_class, &AppIndex)` (exact,
+//! lowercase, StartupWMClass, reverse-DNS suffix, Flatpak id).
 //!
 //! Every rule compares whole tokens: an id is compared whole or by whole dot-separated labels,
 //! never by substring (CONVENTIONS "Substrings are not tokens": `fox` must not match

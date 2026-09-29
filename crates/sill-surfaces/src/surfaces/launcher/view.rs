@@ -1,8 +1,8 @@
-//! What the panel shows over the published results (M9 lane d, F645): the runner's sections
+//! What the panel shows over the published results: the runner's sections
 //! (`Results::sections`, placed by `sill_launcher::place`) capped by [`shown`] unless expanded,
 //! or, under a Tab filter, that provider's rows alone under its own heading. The palette's
 //! cursor stops on each row (each emoji cell) and then on the section header's "Show More" or
-//! "Show Less" (quire's `PaletteGroup` action, Q294), so a line here is a row or that action,
+//! "Show Less" (quire's `PaletteGroup` action), so a line here is a row or that action,
 //! numbered as the palette's `selected` counts them. Pure.
 
 use sill_launcher::{
@@ -22,7 +22,7 @@ pub use sill_launcher::Expanded;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Line {
     Row(Item),
-    /// A section header's trailing action, a stop after the section's rows (Q294).
+    /// A section header's trailing action, a stop after the section's rows.
     More {
         section: Section,
         action: HeaderAction,

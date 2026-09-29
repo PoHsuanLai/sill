@@ -1,5 +1,5 @@
-//! The status tray: an SNI host with dbusmenu (plan hooks table, `use_tray`: "system-tray 0.8.9:
-//! SNI host + dbusmenu; registers watcher if none").
+//! The status tray: an SNI host with dbusmenu (system-tray 0.8.9: SNI host + dbusmenu; registers a
+//! watcher if none).
 //!
 //! [`spawn`] and [`host`] do the effect (a `system_tray::client::Client` on the session bus);
 //! [`icon`] turns a resolved [`TrayIcon`] into the art the bar draws (PNG bytes or a theme

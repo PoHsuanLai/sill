@@ -1,4 +1,4 @@
-//! Coherence rules 1 and 2 (quire CONSUMING.md §5) for the wallpaper: its stylesheet under
+//! Coherence rules 1 and 2 for the wallpaper: its stylesheet under
 //! `Profile::Strict`, and an SSR render of the real `Wallpaper` through the markup lint, with
 //! and without a prepared image.
 

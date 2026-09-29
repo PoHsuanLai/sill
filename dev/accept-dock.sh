@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
-# Milestone 3 acceptance for the dock, on the nested cosmic-comp (dev/nested.sh; a running
-# wayland-1 is reused and never stopped). Starts `sill run` from this checkout's debug build
-# (`--features debug`) with a scratch XDG_CONFIG_HOME, so the pins it writes never touch the
-# real ~/.config/sill, and a private dbus-daemon as both its session and system bus (started
-# before it and refused if it would be the real one, FINDINGS F1068), so NetworkManager, BlueZ,
-# UPower and the rest are simply absent. Quits it at the end.
+# Acceptance for the dock, on the nested cosmic-comp (dev/nested.sh; a running wayland-1 is reused
+# and never stopped). Starts `sill run` from this checkout's debug build (`--features debug`) with a
+# scratch XDG_CONFIG_HOME, so the pins it writes never touch the real ~/.config/sill, and a private
+# dbus-daemon as both its session and system bus (started before it and refused if it would be the
+# real one), so NetworkManager, BlueZ, UPower and the rest are simply absent. Quits it at the end.
 #
 #   1. The dock reserves base + margin: a maximised probe is output_h - bar_h - 68 (gut 8 + tile
-#      48 + 2 x the 6 px padding, quire's macOS polish pass).
+#      48 + 2 x the 6 px padding).
 #   2. Hover sweep at 60 Hz for 1 s through `sill debug pointer`: frames >= 0.9 x callbacks;
 #      then, after `sill debug leave` and the 200 ms shrink, 5 s idle: 0 frames.
 #   3. A click on the pinned, not-running COSMIC Terminal tile launches it: its running dot
@@ -38,7 +37,7 @@ BAR_H="${BAR_H:-24}"
 RESERVE=68
 PILL_RADIUS="${PILL_RADIUS:-12}"
 TERM_ID=com.system76.CosmicTerm
-# Surface-local geometry of the default dock (design/10 §10.3.1 with the polish pass's 6 px
+# Surface-local geometry of the default dock (design/10 §10.3.1 with a 6 px
 # padding): 158 tall, the pill 90..150 with its middle at 120, the baseline at 144, the running
 # dot's centre 3 below it (`dock.running_dot_gap_px`).
 PILL_Y=120
@@ -64,7 +63,7 @@ for row in json.loads(sys.stdin.read())["v"]:
 }
 
 # The dock's cumulative `frames callbacks` (`debug stats` drains the timing samples; the
-# counters stay cumulative, shell-host F29).
+# counters stay cumulative).
 dock_counters() {
   sill debug stats | python3 -c '
 import json, sys

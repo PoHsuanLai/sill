@@ -1,7 +1,6 @@
 //! `screenshot.*`: the floating thumbnail after a screenshot (design/20 §1.13), which folders are
-//! watched for new screenshots, and what `sill screenshot` runs (sill FINDINGS "M10 freeze").
-//! macOS keeps its screenshot shortcuts under Keyboard, hence `Page::KeyboardAndShortcuts`.
-//! design/22 has no rows yet (`AWAITING_ROWS`). All Advanced.
+//! watched for new screenshots, and what `sill screenshot` runs. macOS keeps its screenshot
+//! shortcuts under Keyboard, hence `Page::KeyboardAndShortcuts`. All Advanced.
 
 use ds_settings::Ms;
 use ds_settings::schema::Page;

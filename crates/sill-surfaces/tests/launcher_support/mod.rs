@@ -112,8 +112,8 @@ pub fn catalogue() -> Vec<Item> {
 
 /// The rows a query finds, best first: every row for the empty query, else those whose title
 /// or subtitle holds it (case-insensitively); the calculator answers only a query with a
-/// digit first, the web fallback only typed text, and only when the query starts `m9` (so the M4
-/// tests' rows are as they were); the slow text file only the query `slow-head`.
+/// digit first, the web fallback only typed text, and only when the query starts `m9` (so the
+/// other tests' rows stay as they are); the slow text file only the query `slow-head`.
 pub fn search(query: &str) -> Vec<Item> {
     let needle = query.trim().to_lowercase();
     let mut rows: Vec<Item> = catalogue()
@@ -199,7 +199,7 @@ pub fn services() -> (Services, LauncherFeeds) {
 
 /// Fake services and the search runner that answers them, not yet running: a harness on the
 /// virtual clock runs it as a task on its own thread ([`Runner::run`]), where each answer lands
-/// within the `advance` that sent the query (off-thread work never does, quire Q380).
+/// within the `advance` that sent the query (off-thread work never does).
 pub fn services_with_runner() -> (Services, LauncherFeeds, Runner) {
     let (mut services, bar) = fake::services();
     let (results_tx, results_rx) = watch::channel(Results::default());
@@ -224,8 +224,8 @@ pub fn services_with_runner() -> (Services, LauncherFeeds, Runner) {
     (services, feeds, Runner { commands, answer })
 }
 
-/// What the real runner does with a chosen row (sill-services `results/effect.rs`, FINDINGS
-/// F117): windows go to the compositor thread, launches to the launch service, the rest are
+/// What the real runner does with a chosen row (sill-services `results/effect.rs`): windows go
+/// to the compositor thread, launches to the launch service, the rest are
 /// the surface's.
 fn carry(
     rows: &[Item],
@@ -283,7 +283,7 @@ impl Provider for FakeProvider {
                 target: SettingsTarget::Cosmic(item.id.0.clone()),
             },
             (ProviderKind::System, _) => Activation::System(SystemCommand::Lock),
-            // The M9 kinds: their rows are `m9.rs`'s.
+            // The preview kinds: their rows are `m9.rs`'s.
             (
                 ProviderKind::Files
                 | ProviderKind::Clipboard

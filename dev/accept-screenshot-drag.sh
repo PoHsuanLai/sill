@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Real-input acceptance for dragging the screenshot thumbnail out (G120; shell-host F60's
+# Real-input acceptance for dragging the screenshot thumbnail out (shell-host's
 # `SurfaceHandle::start_drag`), on shell-host's private headless KWin (scripts/dev/kwin-virtual.sh)
 # driven by ONE fake-input client (scripts/dev/fake-input.sh). Never the user's session
 # (wayland-0), never the nested compositor, never ~/Pictures: the daemon runs from this
@@ -131,7 +131,7 @@ TOML
   sleep 1.5
 }
 
-# Ask the daemon to quit and wait up to 10 s; never kill it (FINDINGS G51).
+# Ask the daemon to quit and wait up to 10 s; never kill it.
 stop_daemon() {
   [ -n "$DAEMON" ] || return 0
   in_env timeout 10 "$SILL_BIN" quit >/dev/null 2>&1

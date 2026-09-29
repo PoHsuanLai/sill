@@ -1,6 +1,6 @@
-//! What a row is about, beyond its words: the facts the preview pane and the new row kinds read
-//! (M9, FINDINGS "M9 freeze" F641). A provider fills [`Item::subject`](crate::Item::subject);
-//! `Subject::None` is every M4 row that has nothing more to say.
+//! What a row is about, beyond its words: the facts the preview pane and the new row kinds read. A
+//! provider fills [`Item::subject`](crate::Item::subject); `Subject::None` is every row that has
+//! nothing more to say.
 //!
 //! Clipboard text travels here as an [`Excerpt`], whose `Debug` never prints it: an `Item` may
 //! be debug-printed by a failing test or a log line, and clipboard history is never logged.

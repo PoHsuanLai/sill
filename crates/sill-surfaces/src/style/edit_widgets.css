@@ -1,8 +1,7 @@
 /* Edit Widgets (surfaces/edit_widgets; design/28 section 4.1). The surface is the output below
    the bar (`Ds { extent: RootExtent::Viewport }`, a transparent Sheet root); the panel is
    quire's `Panel` (its edge, width, material, padding and motion) and the gallery quire's
-   `WidgetGallery`. Everything here is layout and tokens. Attribute selectors carry `*|`
-   (spike S2). */
+   `WidgetGallery`. Everything here is layout and tokens. Attribute selectors carry `*|`. */
 
 /* The click-outside catcher: every pixel the panel does not cover. It is also what the desktop
    grid is measured from. */
@@ -13,7 +12,7 @@
 .sill-ew-scope{ position:absolute; top:0; right:0; bottom:0; left:0; pointer-events:none; }
 
 /* Inside the sheet: the column fills it, so quire's gallery fills what the title row and the
-   status line leave and its placed column scrolls on its own (Q521, Q523). The blur region is
+   status line leave and its placed column scrolls on its own. The blur region is
    this box grown by the panel's padding. */
 .sill-ew-column{ display:flex; flex-direction:column; flex:1; min-height:0; gap:var(--s-12);
   color:var(--ink); outline:none; }

@@ -1,7 +1,6 @@
-//! Whether the chord is held, from shell-host's modifiers on focus (`use_modifiers`, G180 closed
-//! by shell-host F66): the compositor sends the seat's modifiers right after
-//! `wl_keyboard.enter`, so a held chord reads `Held` before its first key, and its release reads
-//! `Released` with no key event. Pure.
+//! Whether the chord is held, from shell-host's modifiers on focus (`use_modifiers`): the
+//! compositor sends the seat's modifiers right after `wl_keyboard.enter`, so a held chord reads
+//! `Held` before its first key, and its release reads `Released` with no key event. Pure.
 //!
 //! What it changes: a publish of `Released` while armed or shown is the release (the panel closes
 //! and activates); once the chord is known `Held`, a second chord inside the show delay is Tab

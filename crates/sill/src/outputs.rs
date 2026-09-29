@@ -13,23 +13,23 @@ pub struct OutputSurfaces {
     pub launcher: Option<SurfaceId>,
     pub catcher: Option<SurfaceId>,
     pub osd: Option<SurfaceId>,
-    /// M5: the power menu, warm and hidden.
+    /// The power menu, warm and hidden.
     pub power_menu: Option<SurfaceId>,
-    /// M6: the banner column and the notification center, warm and hidden.
+    /// The banner column and the notification center, warm and hidden.
     pub banners: Option<SurfaceId>,
     pub notification_center: Option<SurfaceId>,
-    /// M10: the screenshot thumbnail (warm and hidden), the desktop widget layer (while
+    /// The screenshot thumbnail (warm and hidden), the desktop widget layer (while
     /// `widgets.desktop` is on), and a surface per active hot corner.
     pub thumbnail: Option<SurfaceId>,
     pub desktop_widgets: Option<SurfaceId>,
     pub corners: CornerSurfaces,
-    /// M11: the polkit prompt and the app switcher, warm and hidden. The lock surfaces are
+    /// The polkit prompt and the app switcher, warm and hidden. The lock surfaces are
     /// shell-host's session lock's, not a row's.
     pub polkit_prompt: Option<SurfaceId>,
     pub switcher: Option<SurfaceId>,
     /// Edit Widgets (the widget gallery), warm and hidden.
     pub edit_widgets: Option<SurfaceId>,
-    /// Q420 B: the idle dim, warm and mapped only while the idle service dims.
+    /// The idle dim, warm and mapped only while the idle service dims.
     pub idle_dim: Option<SurfaceId>,
 }
 
@@ -207,11 +207,10 @@ pub fn reconcile(current: &Outputs, now: &[OutputInfo]) -> Vec<OutputAction> {
     actions
 }
 
-/// The layer-shell namespace the bar on `info` gets (FINDINGS: "its layer namespace
-/// (`sill-bar-DP-1`, `sill-dock-DP-1`)"), and the name a debug request addresses it by. Mirrors
-/// `sill_surfaces::surfaces::naming::namespace("bar", output)`, which is `pub(crate)` to that
-/// crate: `sill_surfaces::surfaces::bar::bar_layer` sets a spawned bar's namespace this way, so
-/// the daemon's debug lookups must agree with it exactly.
+/// The layer-shell namespace the bar on `info` gets (`sill-bar-DP-1`), and the name a debug request
+/// addresses it by. Mirrors `sill_surfaces::surfaces::naming::namespace("bar", output)`, which is
+/// `pub(crate)` to that crate: `sill_surfaces::surfaces::bar::bar_layer` sets a spawned bar's
+/// namespace this way, so the daemon's debug lookups must agree with it exactly.
 pub fn bar_namespace(info: &OutputInfo) -> String {
     match &info.name {
         Some(name) => format!("sill-bar-{name}"),

@@ -1,11 +1,10 @@
-//! `sill auth-check`: the lock screen's PAM helper (FINDINGS "M11 freeze" F540). The auth
-//! service runs it once per attempt (`sill_services::auth::PamHelper`): it reads the whole
-//! request from stdin (`protocol::decode_request`), runs PAM (`pam::check`), writes the notes
-//! and the outcome on stdout (`protocol::render_line`), and exits 0 (an unreadable request is
-//! `fault helper_failed` and exit 2). It never prints the secret, and holds it only as a
-//! `Secret` (zeroed on drop). The request is read into one buffer sized up front and never
-//! grown past [`MAX_REQUEST`], so no copy of the secret is left behind by a reallocation; the
-//! buffer is zeroed as soon as it is decoded.
+//! `sill auth-check`: the lock screen's PAM helper. The auth service runs it once per attempt
+//! (`sill_services::auth::PamHelper`): it reads the whole request from stdin
+//! (`protocol::decode_request`), runs PAM (`pam::check`), writes the notes and the outcome on
+//! stdout (`protocol::render_line`), and exits 0 (an unreadable request is `fault helper_failed`
+//! and exit 2). It never prints the secret, and holds it only as a `Secret` (zeroed on drop). The
+//! request is read into one buffer sized up front and never grown past [`MAX_REQUEST`], so no copy
+//! of the secret is left behind by a reallocation; the buffer is zeroed as soon as it is decoded.
 
 use std::io::{Read, Write};
 use std::process::ExitCode;

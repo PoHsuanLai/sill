@@ -9,7 +9,7 @@
 //! opens Notification Center from the clock as a full-height column pinned to the right edge,
 //! not a menu hanging from the item; the history can fill the output's height, and the widgets
 //! slot below it wants that height too; `sill notifications toggle` must open it without a
-//! pointer serial, which a grabbing popup needs (the control center's F179 problem); and a popup
+//! pointer serial, which a grabbing popup needs (the control center's problem); and a popup
 //! would join the bar's hover switch, which Notification Center does not.
 
 use shell_host::{

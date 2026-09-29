@@ -1,5 +1,4 @@
-//! The idle service's loop (sill FINDINGS "sill idle (Q420 B)", F903-F906, and "sill idle
-//! fill"):
+//! The idle service's loop:
 //!
 //! - passive (no Wayland connection, no bus name, no logind call) until the first `Configure`
 //!   or `Use`, and again whenever the policy's mode is `Off`;
@@ -313,7 +312,7 @@ impl Live {
                 self.order(Order::Displays(power));
             }
             // The dim overlay (`sill-surfaces` `idle_dim`, mapped by the daemon's
-            // `idle_dim` follower) reads `Idle.dim`, published after the step (F902, F960).
+            // `idle_dim` follower) reads `Idle.dim`, published after the step.
             IdleEffect::Dim(level) => eprintln!("sill: idle: dim {level:?}"),
             IdleEffect::Undim => eprintln!("sill: idle: undim"),
             IdleEffect::Lock => {

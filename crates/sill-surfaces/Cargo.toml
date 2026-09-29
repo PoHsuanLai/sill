@@ -11,7 +11,7 @@ publish.workspace = true
 [dependencies]
 dioxus = { workspace = true }
 ds = { workspace = true }
-# `pdf-thumb`: the preview pane's PDF page through `ds_native::PdfFileThumb` (quire m9-parts, F657).
+# `pdf-thumb`: the preview pane's PDF page through `ds_native::PdfFileThumb`.
 ds-native = { workspace = true, features = ["pdf-thumb"] }
 ds-settings = { workspace = true }
 shell-host = { workspace = true }
@@ -25,7 +25,7 @@ tokio = { workspace = true }
 image = { workspace = true }
 resvg = { version = "0.48", default-features = false }
 dirs = { workspace = true }
-# Civil dates for the calendar widgets' month grid and the world clock (M10).
+# Civil dates for the calendar widgets' month grid and the world clock.
 jiff = { workspace = true }
 thiserror = { workspace = true }
 # The widgets' entries are serde data (quire's `ds::Widget::Entry`); the desktop widgets' state
@@ -34,7 +34,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
-# `lint` is off by default (CONSUMING.md section 5): only test builds need `ds::lint::markup`.
+# `lint` is off by default: only test builds need `ds::lint::markup`.
 ds = { workspace = true, features = ["lint"] }
 dioxus-ssr = { workspace = true }
 shell-host = { workspace = true, features = ["debug-inject"] }
