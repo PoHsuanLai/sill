@@ -17,8 +17,8 @@
 #   `sill run --fake-ddc FILE` naming a JSON file of one made-up monitor on the headless output.
 #   The daemon's log must say so ("DDC is the fake in ...") before any input is sent; otherwise
 #   the script stops. The fake never opens /dev/i2c-*.
-# - The outputs list is FAKE: a stand-in `cosmic-randr` that never answers and a stand-in
-#   `kscreen-doctor` that prints the headless output are first on the daemon's PATH.
+# - The outputs list is FAKE: a stand-in `cosmic-randr` that never answers is first on the
+#   daemon's PATH.
 # - KWin's private bus is the daemon's session AND system bus, so the real BlueZ,
 #   NetworkManager and the rest are simply absent; the power menu is a dry run.
 # - Its own XDG_RUNTIME_DIR (no PipeWire), a scratch HOME and XDG dirs. Nothing reaches
@@ -166,23 +166,14 @@ fake_monitor() {
 }
 
 # The stand-ins first on the daemon's PATH: a cosmic-randr that never answers (KWin has no
-# zwlr_output_manager_v1) and a kscreen-doctor that prints only the headless output.
+# zwlr_output_manager_v1), so the displays service reports no outputs.
 standins() {
   cat >"$STANDINS/cosmic-randr" <<'EOF'
 #!/bin/sh
 echo "accept-cc-real-input: stand-in cosmic-randr, no answer" >&2
 exit 1
 EOF
-  cat >"$STANDINS/kscreen-doctor" <<EOF
-#!/bin/sh
-[ "\$1" = --json ] || { echo "accept-cc-real-input: stand-in kscreen-doctor, --json only" >&2; exit 1; }
-cat <<'JSON'
-{"outputs":[{"name":"$NAME","connected":true,"enabled":true,"currentModeId":"1",
- "modes":[{"id":"1","name":"1920x1080@60","refreshRate":60.0,"size":{"width":1920,"height":1080}}],
- "scale":1,"sizeMM":{"width":597,"height":336}}]}
-JSON
-EOF
-  chmod +x "$STANDINS/cosmic-randr" "$STANDINS/kscreen-doctor"
+  chmod +x "$STANDINS/cosmic-randr"
 }
 
 start_daemon() {
@@ -249,13 +240,8 @@ prove_safe() {
     grep "power_menu.backend=dry-run" "$OUT_DIR/daemon.log" || return 1
     grep "fake-bluez: org.bluez on $BUS" "$OUT_DIR/bluez.log" || return 1
   } >"$log" 2>&1
-  for _ in $(seq 60); do
-    grep -q "outputs read from kscreen-doctor" "$OUT_DIR/daemon.log" && break
-    sleep 0.1
-  done
-  grep "outputs read from kscreen-doctor" "$OUT_DIR/daemon.log" >>"$log" || return 1
   SAFE=proven
-  echo "safety proven from the daemon's log: fake DDC ($DDC), the stand-in outputs, dry-run power menu," \
+  echo "safety proven from the daemon's log: fake DDC ($DDC), dry-run power menu," \
     "fake BlueZ on the private bus" >&2
 }
 
