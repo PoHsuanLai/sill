@@ -18,6 +18,14 @@ pub struct Feed<W: ds::Widget> {
     pub onintent: Option<EventHandler<W::Intent>>,
 }
 
+impl<W: ds::Widget> std::fmt::Debug for Feed<W> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Feed")
+            .field("intents", &self.onintent.is_some())
+            .finish_non_exhaustive()
+    }
+}
+
 /// One kind's provider: the `ds::Widget` it feeds, its settings kind, and the hook that reads
 /// its services into a [`Feed`]. The `ds::Widget` is a value ([`Default`]); its size is
 /// [`size_of`].
