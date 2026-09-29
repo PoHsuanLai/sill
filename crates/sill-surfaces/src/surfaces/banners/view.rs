@@ -23,10 +23,10 @@ use super::machine::{BannerIn, BannerParams};
 use super::stack::stack;
 use crate::hooks::{use_control, use_service_part, use_settings};
 use crate::links::BannerLink;
-use crate::root::SurfaceRoot;
-use crate::surfaces::notification_card::{
+use crate::notification_card::{
     CardPart, CardPlace, CardPress, NoteCard, notification_metrics, part_id, wall_now,
 };
+use crate::root::SurfaceRoot;
 
 /// The column's stylesheet (lint-clean under `Profile::Strict`, `tests/banners_lint.rs`).
 pub const BANNERS_CSS: &str = include_str!("../../style/banners.css");

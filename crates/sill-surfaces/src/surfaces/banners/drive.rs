@@ -25,7 +25,7 @@ use super::deck::{Deck, DeckIn, DeckOut, EntryKey, advance};
 use super::machine::{BannerIn, BannerParams};
 use super::stack::Card;
 use crate::clock::FrameClock;
-use crate::surfaces::notification_card::CardPress;
+use crate::notification_card::CardPress;
 
 /// Everything the column's handlers share. Copy: signals and cells only.
 #[derive(Clone, Copy)]

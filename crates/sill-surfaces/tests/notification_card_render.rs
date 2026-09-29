@@ -13,7 +13,7 @@ use sill_model::notifications::{
     parse_body,
 };
 use sill_settings::{BannerMaterial, NotificationsSettings, SettingsFeed, ShellFile};
-use sill_surfaces::surfaces::notification_card::{CardPlace, CardPress, NoteCard};
+use sill_surfaces::notification_card::{CardPlace, CardPress, NoteCard};
 
 const NOW: UnixMs = UnixMs(1_000_000_000);
 

@@ -9,7 +9,7 @@ use shell_host::{BlurSpec, ElementId, ElementRegion, RegionSpec};
 use sill_model::notifications::NotificationId;
 
 use super::layer::CARD_RADIUS;
-use crate::surfaces::notification_card::{CardPart, part_id};
+use crate::notification_card::{CardPart, part_id};
 
 /// How far quire's close button stands out past the plate's top left corner (`--s-6`): the
 /// input region reaches that far round the plate so the whole button takes a press.

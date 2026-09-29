@@ -24,8 +24,8 @@ use super::picture::{ThumbPicture, picture_of};
 use crate::hooks::{use_appearance, use_control, use_service, use_settings};
 use crate::links::BannerLink;
 use crate::look::use_active_look;
+use crate::notification_card::swipe_metrics;
 use crate::root::SurfaceRoot;
-use crate::surfaces::notification_card::swipe_metrics;
 
 /// The thumbnail on `output`.
 pub(super) fn thumb(output: OutputInfo) -> Element {

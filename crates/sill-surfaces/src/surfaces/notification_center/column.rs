@@ -14,7 +14,7 @@ use super::drive::{use_center_ctx, use_phase};
 use super::labels::TITLE;
 use super::phase::{Opening, Phase};
 use crate::hooks::use_settings;
-use crate::surfaces::notification_card::notification_metrics;
+use crate::notification_card::notification_metrics;
 use crate::widgets::provide_widget_wake;
 
 /// The column on `output`, while the center is drawn there.

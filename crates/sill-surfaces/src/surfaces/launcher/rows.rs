@@ -12,7 +12,7 @@ use jiff::tz::TimeZone;
 use sill_launcher::{Item, Subject, UnixTime};
 use sill_model::notifications::UnixMs;
 
-use crate::surfaces::notification_card::labels::{age, age_label};
+use crate::notification_card::labels::{age, age_label};
 
 /// The shape a row takes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

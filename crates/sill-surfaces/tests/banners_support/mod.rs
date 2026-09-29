@@ -150,7 +150,7 @@ pub fn note(
 ) -> Notification {
     Notification {
         id: NotificationId(id),
-        arrived: UnixMs(sill_surfaces::surfaces::notification_card::wall_now().0),
+        arrived: UnixMs(sill_surfaces::notification_card::wall_now().0),
         app: AppRef {
             name: app.to_owned(),
             icon: IconRef::None,

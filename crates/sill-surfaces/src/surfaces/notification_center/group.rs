@@ -13,7 +13,7 @@ use super::drive::CenterCtx;
 use super::groups::Expanded;
 use super::keys::RowFocus;
 use super::rows::{CenterRow, RowAct, RowKey, press};
-use crate::surfaces::notification_card::{CardPlace, CardPress, NoteCard, use_app_mark};
+use crate::notification_card::{CardPlace, CardPress, NoteCard, use_app_mark};
 
 /// Row `at` of the column, `row`, as a list item; `None` when the history no longer holds it.
 pub(super) fn row_item(

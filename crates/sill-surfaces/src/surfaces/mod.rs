@@ -11,7 +11,6 @@ pub mod hot_corners;
 pub mod idle_dim;
 pub mod launcher;
 pub mod lock;
-pub mod notification_card;
 pub mod notification_center;
 pub mod osd;
 pub mod polkit_prompt;

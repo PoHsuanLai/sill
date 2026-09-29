@@ -6,7 +6,7 @@
 use sill_model::notifications::{ActionKey, AppKey, NotificationId};
 
 use super::groups::GroupView;
-use crate::surfaces::notification_card::CardPress;
+use crate::notification_card::CardPress;
 
 /// Whether a card stands alone or on top of its collapsed group.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -144,7 +144,7 @@ pub fn press(row: &CenterRow, press: CardPress) -> Option<RowAct> {
 #[cfg(test)]
 mod tests {
     use super::{CenterRow, RowAct, RowKey, Stack, activate, dismiss, press, rows_of};
-    use crate::surfaces::notification_card::CardPress;
+    use crate::notification_card::CardPress;
     use crate::surfaces::notification_center::GroupView;
     use sill_model::notifications::{ActionKey, AppKey, Href, NotificationId};
 
