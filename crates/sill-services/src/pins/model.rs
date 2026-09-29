@@ -48,7 +48,7 @@ pub enum PinEvent {
 }
 
 /// `pins` after `event`.
-pub fn reduce_pins(pins: DockPins, event: PinEvent) -> DockPins {
+pub fn step(pins: DockPins, event: PinEvent) -> DockPins {
     let DockPins { mut pinned } = pins;
     match event {
         PinEvent::Pin { app, at } => {
@@ -77,7 +77,7 @@ fn clamp(index: u32, len: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{DockPins, PinAt, PinEvent, reduce_pins};
+    use super::{DockPins, PinAt, PinEvent, step};
     use sill_launcher::AppId;
 
     fn pins(ids: &[&str]) -> DockPins {
@@ -185,7 +185,7 @@ mod tests {
             ),
         ];
         for (name, before, event, want) in cases {
-            assert_eq!(reduce_pins(before, event), want, "{name}");
+            assert_eq!(step(before, event), want, "{name}");
         }
     }
 

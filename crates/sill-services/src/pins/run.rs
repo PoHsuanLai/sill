@@ -6,22 +6,15 @@ use std::path::{Path, PathBuf};
 use tokio::sync::{mpsc, watch};
 
 use super::fs_watch;
-use super::model::{DockPins, PinEvent, reduce_pins};
+use super::model::{DockPins, PinEvent, step};
 use super::{load, save};
 
 /// Run until `commands` closes (the `Control` was dropped).
 pub(super) async fn run(
-    dir: Option<PathBuf>,
+    dir: PathBuf,
     tx: watch::Sender<DockPins>,
     mut commands: mpsc::UnboundedReceiver<PinEvent>,
 ) {
-    let Some(dir) = dir else {
-        eprintln!("sill: no config directory; dock pins are not persisted");
-        while let Some(event) = commands.recv().await {
-            apply(&tx, event);
-        }
-        return;
-    };
     let mut touched = match fs_watch::watch(&dir) {
         Ok(touched) => Some(touched),
         Err(error) => {
@@ -53,7 +46,7 @@ pub(super) async fn run(
 }
 
 fn apply(tx: &watch::Sender<DockPins>, event: PinEvent) {
-    tx.send_modify(|pins| *pins = reduce_pins(std::mem::take(pins), event));
+    tx.send_modify(|pins| *pins = step(std::mem::take(pins), event));
 }
 
 fn apply_and_save(dir: &Path, tx: &watch::Sender<DockPins>, event: PinEvent) {

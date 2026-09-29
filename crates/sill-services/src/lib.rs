@@ -113,7 +113,7 @@ pub use now_playing::{
     Abilities, Art, ArtSource, Media, MediaCommand, MediaEvent, MediaPlayer, MediaVerb, Micros,
     NowPlayingService, Playback, PlayerId, Timeline, Track, art_cache_name, art_source,
 };
-pub use pins::{DockPins, PinAt, PinEvent, reduce_pins};
+pub use pins::{DockPins, PinAt, PinEvent, PinsService};
 pub use polkit_agent::{Polkit, PolkitCommand};
 pub use power_profile::{
     PowerProfileService, PowerProfiles, Profile, ProfileCommand, ProfileDegraded, ProfileEvent,

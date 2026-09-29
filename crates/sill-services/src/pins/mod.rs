@@ -7,30 +7,45 @@ mod run;
 #[cfg(test)]
 mod test_support;
 
-pub use model::{DockPins, PinAt, PinEvent, reduce_pins};
+pub use model::{DockPins, PinAt, PinEvent, step};
 
 use std::path::Path;
 
-use tokio::runtime::Handle;
-use tokio::sync::watch;
-
-use crate::control::Control;
-use crate::env::Dirs;
+use crate::env::Env;
 use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
 /// The file's name inside `$XDG_CONFIG_HOME/sill`.
 pub const FILE_NAME: &str = "dock.json";
 
-/// Load the pins, then apply every [`PinEvent`] sent to the control, writing the file
-/// atomically after each; an external edit (another process, a text editor) is picked up
-/// through a 30 ms debounced directory watch and published as if it were a `Replaced` event.
-pub fn spawn(rt: &Handle, dirs: &Dirs) -> (watch::Receiver<DockPins>, Control<PinEvent>) {
-    let dir = Some(dirs.sill_config());
-    let initial = dir.as_deref().map(load).unwrap_or_default();
-    let (tx, rx) = watch::channel(initial);
-    let (control, commands) = Control::channel();
-    rt.spawn(run::run(dir, tx, commands));
-    (rx, control)
+/// The dock pins as a [`Service`]: loaded at once, then every [`PinEvent`] sent to the control
+/// applied and the file written atomically after each; an external edit (another process, a
+/// text editor) is picked up through a 30 ms debounced directory watch and published as if it
+/// were a `Replaced` event.
+#[derive(Debug)]
+pub enum PinsService {}
+
+impl Service for PinsService {
+    const NAME: &'static str = "pins";
+    type State = DockPins;
+    type Command = PinEvent;
+    type Deps = ();
+
+    fn initial(env: &Env, (): &()) -> DockPins {
+        load(&env.dirs.sill_config())
+    }
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let dir = env.dirs.sill_config();
+        async move {
+            run::run(dir, io.state, io.commands).await;
+            Ok(())
+        }
+    }
 }
 
 /// The pins in `dir`; a missing or damaged file is no pins (the dock still shows running
