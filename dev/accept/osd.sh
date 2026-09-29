@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # OSD acceptance (design/20 §1.7), on the nested cosmic-comp (dev/nested.sh; a running
-# wayland-1 is reused and never stopped). Starts `sill run` from this checkout's debug build
-# (`--features debug`) with a scratch XDG_CONFIG_HOME and quits it at the end.
+# one is reused and never stopped). Starts `sill run` from this checkout's debug build
+# (`--features debug`) with a scratch HOME and XDG tree, on a private bus that is both its session
+# and its system bus, and quits it at the end.
 #
 # The changes are made up with `sill debug osd` (a fixed level, shown on the output a real change
 # would use): the nested session shares the real PipeWire default sink, which may be somebody's
@@ -21,51 +22,14 @@
 # dev/out/osd-cosmic-muted.png, of quire's `Osd` card muted (non-fatal: it does not flip the
 # script's exit status).
 #
-# Usage: dev/nested.sh && dev/accept-osd.sh
+# Usage: dev/nested.sh && dev/accept/osd.sh
 set -uo pipefail
-# shellcheck source=dev/common.sh
-source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
-# shellcheck source=dev/backdrop.sh
-source "$(dirname "${BASH_SOURCE[0]}")/backdrop.sh"
+# shellcheck source=dev/lib/all.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 OUT_DIR="$SILL_REPO/target/accept-osd"
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
 HOLD_MS=1500
-BUS=
-BUS_PID=
-
-sill() { "$SILL_BIN" "$@"; }
-nested() { "$SHELL_HOST_DEV/run.sh" "$@"; }
-now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
-
-# The nested output's connector name (the surfaces' namespace suffix).
-output_name() {
-  sill debug stats | python3 -c '
-import json, sys
-for row in json.loads(sys.stdin.read())["v"]:
-    s = row["surface"]
-    if s.startswith("sill-bar-"):
-        print(s[len("sill-bar-"):]); break'
-}
-
-# A surface's cumulative frame counter from `sill debug stats`.
-frames_of() {
-  sill debug stats | python3 -c '
-import json, sys
-for row in json.loads(sys.stdin.read())["v"]:
-    if row["surface"] == sys.argv[1]:
-        print(row["frames"])' "$1"
-}
-
-# How many pixels of the PNG $1 are not fully transparent.
-opaque_pixels() {
-  python3 - "$1" <<'EOF'
-import sys
-from PIL import Image
-img = Image.open(sys.argv[1]).convert("RGBA")
-print(sum(1 for a in img.getchannel("A").tobytes() if a > 0))
-EOF
-}
 
 # Whether the OSD captures (it is mapped) with more than 1000 opaque pixels (the card drew).
 shows() {
@@ -73,33 +37,12 @@ shows() {
   [ "$(opaque_pixels "$OUT_DIR/osd.png")" -gt 1000 ]
 }
 
-build() {
-  (cd "$SILL_REPO" && cargo build -p sill --features debug) >"$OUT_DIR/build.log" 2>&1 || {
-    echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
-}
-
-start_daemon() {
-  CONFIG=$(mktemp -d)
+start_osd_daemon() {
   backdrop_seed "$CONFIG" || return 1
-  use_fake_ddc "$CONFIG" >/dev/null
-  require_fake_ddc || return 1
-  XDG_CONFIG_HOME="$CONFIG" DBUS_SESSION_BUS_ADDRESS="$BUS" DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
-    nested "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" >"$OUT_DIR/daemon.log" 2>&1 &
-  DAEMON=$!
-  for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
-  for _ in $(seq 50); do NAME=$(output_name); [ -n "$NAME" ] && break; sleep 0.1; done
-  [ -n "${NAME:-}" ] || { echo "no bar in 'sill debug stats'" >&2; return 1; }
+  launch_daemon || return 1
+  NAME=$(output_name) || return 1
   OSD="sill-osd-$NAME"
   sleep 1
-}
-
-stop_daemon() {
-  [ -n "${DAEMON:-}" ] || return 0
-  sill quit >/dev/null 2>&1
-  wait "$DAEMON" 2>/dev/null
-  DAEMON=
-  stop_private_bus
-  rm -rf "$CONFIG"
 }
 
 # 1.
@@ -184,24 +127,26 @@ step_muted_shot() {
   "$SHELL_HOST_DEV/shot.sh" "$SHOTS/osd-cosmic-muted.png" >>"$log" 2>&1 || { echo "muted screenshot failed" >&2; return 1; }
 }
 
-source "$SHELL_HOST_DEV/.nested-env"
+cleanup() {
+  local result=0
+  backdrop_down
+  stop_daemon || result=1
+  stop_private_bus
+  scratch_drop
+  return "$result"
+}
+
 nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
+use_nested_socket || exit 1
 build || exit 1
-if sill ping >/dev/null 2>&1; then
-  echo "a sill daemon is already running; quit it first (this script starts its own)" >&2
-  exit 1
-fi
-start_private_bus || exit 1
-start_daemon || { stop_daemon; stop_private_bus; exit 1; }
-BACKDROP_DIR=$(mktemp -d)
-backdrop_up "$BACKDROP_DIR" || echo "backdrop: none (the shot shows the bare compositor)" >&2
-status=0
-for step in step_warm step_shows_then_hides step_retrigger step_idle; do
-  if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; fi
-done
+await_no_process 'target/[a-z]*/sill run' || exit 1
+scratch_new
+start_private_bus || { scratch_drop; exit 1; }
+start_osd_daemon || { cleanup; exit 1; }
+backdrop_up "$CONFIG" || echo "backdrop: none (the shot shows the bare compositor)" >&2
+run_steps step_warm step_shows_then_hides step_retrigger step_idle
+status=$STATUS
 if step_muted_shot; then echo "PASS step_muted_shot"; else echo "FAIL step_muted_shot (non-fatal)"; fi
-backdrop_down
-rm -rf "$BACKDROP_DIR"
-stop_daemon
+cleanup || status=1
 echo "logs in $OUT_DIR; screenshots $SHOTS/osd-cosmic.png, $SHOTS/osd-cosmic-muted.png"
 exit "$status"
