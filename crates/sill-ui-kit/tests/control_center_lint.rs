@@ -9,7 +9,6 @@ use ds::lint::{LintConfig, Profile, Rule, assert_clean, markup};
 use sill_settings::ShellFile;
 
 const CONTROL_CENTER_CSS: &str = include_str!("../src/style/control_center.css");
-const POPUP_CSS: &str = include_str!("../src/style/bar_popup.css");
 
 fn strict() -> LintConfig {
     LintConfig {
@@ -22,7 +21,7 @@ fn full_css() -> String {
     format!(
         "{}\n{}\n{}",
         ds::stylesheet(),
-        POPUP_CSS,
+        sill_ui_kit::menu::POPUP_FRAME_CSS,
         CONTROL_CENTER_CSS
     )
 }

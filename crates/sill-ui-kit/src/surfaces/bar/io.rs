@@ -7,15 +7,12 @@ use std::collections::HashMap;
 use crate::links::FocusLink;
 use crate::settings::SettingsFeed;
 use dioxus::prelude::*;
-use shell_host::{
-    HostRoot, OutputId, OutputInfo, PopupAnchor, PopupConfig, PopupSize, SurfaceHandle,
-};
+use shell_host::{HostRoot, OutputId, OutputInfo, PopupAnchor, PopupConfig, SurfaceHandle};
 use sill_model::ids::OutputName;
 use sill_settings::FocusMode;
 use tokio::sync::{mpsc, watch};
 
 use super::content::{BarState, body, front_app};
-use super::geometry::{Around, MAX_PX, placement};
 use super::layer::layer;
 use super::menu_popup::{BarPopup, PopupLink};
 use super::menu_track::Target;
@@ -25,12 +22,12 @@ use super::model::{BarInput, Handoff, PopupView, SessionDeps, status_box};
 use super::pick::{BarPick, Command, commands};
 use super::plan::{BarEffect, PopupReport, effects, popup_input};
 use super::popup::menu_popup;
+use super::popup::{BOTTOM, MAX_PX, TOP, placement};
 use crate::clock::FrameClock;
 use crate::hooks::{use_service, use_service_part, use_services, use_settings};
 use crate::links::{CenterLink, CenterShown, ControlCenterLink, PowerMenuLink, Preselect};
 use crate::menu::PopupLook;
-use crate::surfaces::control_center::fit::{Fit, device_rows, wifi_rows};
-use crate::surfaces::control_center::{CcPage, PanelCap, height_cap};
+use crate::surfaces::control_center::{PanelCap, height_cap};
 use sill_services::{AppsService, CosmicWlService};
 
 /// How long a menu opened while the notification center is up waits for it to leave. On KWin
@@ -79,7 +76,6 @@ impl MenuBar {
 struct Link {
     view: Option<watch::Sender<Option<PopupView>>>,
     reports: mpsc::UnboundedSender<PopupReport>,
-    pages: mpsc::UnboundedSender<CcPage>,
 }
 
 /// The mutable halves of a session, all `Copy` handles.
@@ -88,8 +84,6 @@ struct Slots {
     track: Signal<MenuTrack>,
     open: Signal<Option<BarMenu>>,
     rects: Signal<HashMap<BarMenu, ds::Rect>>,
-    /// The control center's page, which sizes its popup.
-    page: CopyValue<CcPage>,
     link: CopyValue<Link>,
     handoff: CopyValue<Handoff>,
     /// The session's own input, for the handoff's wake-up (set once the callback exists).
@@ -162,20 +156,14 @@ pub(crate) fn use_menu_session(deps: SessionDeps) -> MenuBar {
         let (tx, rx) = mpsc::unbounded_channel::<PopupReport>();
         (tx, CopyValue::new(Some(rx)))
     });
-    let (pages_tx, pages_rx) = use_hook(|| {
-        let (tx, rx) = mpsc::unbounded_channel::<CcPage>();
-        (tx, CopyValue::new(Some(rx)))
-    });
     let slots = Slots {
         track: use_signal(|| MenuTrack::Closed),
         open: use_signal(|| None),
         rects: use_signal(HashMap::new),
-        page: use_hook(|| CopyValue::new(CcPage::Modules)),
         link: use_hook(|| {
             CopyValue::new(Link {
                 view: None,
                 reports: reports_tx,
-                pages: pages_tx,
             })
         }),
         handoff: use_hook(|| CopyValue::new(Handoff::Idle)),
@@ -193,16 +181,6 @@ pub(crate) fn use_menu_session(deps: SessionDeps) -> MenuBar {
             spawn(async move {
                 while let Some(report) = reports.recv().await {
                     feed.call(BarInput::Popup(report));
-                }
-            });
-        }
-    });
-    use_hook(move || {
-        let mut rx = pages_rx;
-        if let Some(mut pages) = rx.write().take() {
-            spawn(async move {
-                while let Some(page) = pages.recv().await {
-                    feed.call(BarInput::Page(page));
                 }
             });
         }
@@ -226,16 +204,6 @@ fn handle(slots: Slots, deps: &SessionDeps, clock: FrameClock, input: BarInput) 
             (input, None)
         }
         BarInput::Popup(report) => popup_input(report),
-        BarInput::Page(page) => {
-            let mut slot = slots.page;
-            slot.set(page);
-            // Read before the swap, which writes `open`.
-            let showing = *slots.open.peek();
-            if let Some(menu) = showing {
-                apply(slots, deps, BarEffect::Swap(menu));
-            }
-            return;
-        }
         BarInput::CenterGone => {
             let mut handoff = slots.handoff;
             let waiting = handoff.replace(Handoff::Idle);
@@ -261,12 +229,6 @@ fn handle(slots: Slots, deps: &SessionDeps, clock: FrameClock, input: BarInput) 
 fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
     let mut open = slots.open;
     let mut link = slots.link;
-    let showing = *open.peek();
-    if effect_menu(&effect).is_some_and(|menu| showing != Some(menu)) {
-        // A menu shown afresh starts the control center on its grid.
-        let mut page = slots.page;
-        page.set(CcPage::Modules);
-    }
     match effect {
         BarEffect::Show(menu) => match center_open(deps) {
             // The center leaves first; the popup opens once it has.
@@ -321,18 +283,15 @@ fn show(slots: Slots, deps: &SessionDeps, menu: BarMenu) {
     let Some(surface) = &deps.surface else {
         return;
     };
-    // Fixed, not `menu_popup`'s FitContent: the document holds only an absolutely
-    // placed frame and an overlay, so shell-host's content fit measures it at nothing
-    // and shrinks the popup to 1 x 1. The size is the geometry's estimate, room included.
+    // Fitted to the document (`menu_popup`'s FitContent), which is the card and its room; the
+    // cap is the tallest a panel goes, which no text menu (320 tall at most) nears.
     let config = PopupConfig {
         anchor: PopupAnchor::Rect,
-        size: PopupSize::Fixed,
-        ..menu_popup(&deps.namespace, menu.side(), MAX_PX)
+        ..menu_popup(&deps.namespace, menu.side(), popup_cap(deps.cap))
     };
     let first = view.placement;
     let (tx, rx) = watch::channel(Some(view));
     let reports = link.peek().reports.clone();
-    let pages = link.peek().pages.clone();
     surface.open_popup(
         config,
         first,
@@ -340,7 +299,6 @@ fn show(slots: Slots, deps: &SessionDeps, menu: BarMenu) {
             .context(PopupLink {
                 view: rx,
                 reports,
-                pages,
                 output: deps.output_name.clone(),
             })
             .context(deps.services.clone())
@@ -350,14 +308,6 @@ fn show(slots: Slots, deps: &SessionDeps, menu: BarMenu) {
     );
     link.write().view = Some(tx);
     open.set(Some(menu));
-}
-
-/// The menu a show or a swap is for.
-fn effect_menu(effect: &BarEffect) -> Option<BarMenu> {
-    match effect {
-        BarEffect::Show(menu) | BarEffect::Swap(menu) => Some(*menu),
-        BarEffect::Hide | BarEffect::Run(_) => None,
-    }
 }
 
 /// `menu`'s view now, placed under its title; `None` before the title has been measured. The
@@ -371,25 +321,18 @@ fn view(slots: Slots, deps: &SessionDeps, menu: BarMenu) -> Option<PopupView> {
         (None, _) => return None,
     };
     let body = body(menu, &deps.state);
-    let around = Around {
-        bar_width: deps.bar_width,
-        control_center: &deps.state.control_center,
-        fit: Fit {
-            page: *slots.page.peek(),
-            // Read, not followed: a scan must not re-render the bar; the size catches
-            // up at the popup's next view.
-            wifi_rows: wifi_rows(&deps.services.wifi.state.borrow()),
-            device_rows: device_rows(&deps.services.bluetooth.state.borrow()),
-            keyboard: deps.services.kbd_backlight.state.borrow().presence,
-            cap: deps.cap,
-        },
-    };
     Some(PopupView {
         menu,
-        placement: placement(rect, menu.side(), &body, &around),
+        placement: placement(rect, menu.side(), deps.bar_width),
         body,
         look: deps.look,
     })
+}
+
+/// The most the popup grows in either direction: the panel's cap and the room around it, and
+/// never less than a text menu's maximum.
+fn popup_cap(panel: i32) -> i32 {
+    (panel + TOP + BOTTOM).max(MAX_PX)
 }
 
 /// Keep an open popup's contents current as the services change under it.

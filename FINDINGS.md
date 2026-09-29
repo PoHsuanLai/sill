@@ -209,11 +209,21 @@ A settled item is deleted, not marked closed.
 ## Standing facts: shell-host, Blitz and the harness
 
 - **A `.ds` root is as tall as its content**, and neither `#main` nor `.ds` has a height: a root
-  holding only floating content is 0 px tall, so nothing in it is hit-tested. A popup's frame
-  is in flow at `100vw` x `100vh` (a one-cell grid, the shadow room as padding), or the root is
-  `RootExtent::Viewport`. Taffy places a `position:fixed` box against its parent, not the
-  viewport. An empty absolutely placed box with `inset:0` gets no hit area; size it by the
-  viewport.
+  holding only floating content is 0 px tall, so nothing in it is hit-tested. A full-surface root
+  is `RootExtent::Viewport`; a popup's card lies in flow in its frame (the next fact). Taffy places
+  a `position:fixed` box against its parent, not the viewport. An empty absolutely placed box
+  with `inset:0` gets no hit area; size it by the viewport.
+- **A popup is `PopupSize::FitContent`, measured through its frame.** shell-host measures the
+  first content child of `#main` and the far edges of every absolutely positioned box beneath
+  it (shell-host F38). quire lays a floating card absolutely in `.ds-overlay`, which fills the
+  root: measured as it is, the popup would be the whole surface, and shrunk to nothing every
+  press misses (Blitz hit-tests an overlay by its own box, so the overlay must cover the card).
+  `menu/style.css` therefore puts one absolutely placed frame at the surface's origin, padded by
+  the popup's shadow room, and lays the overlay, its outside catcher and the card (not a
+  submenu) in flow inside it: the root is the card's size, the popup is the card plus its room,
+  and a press reaches it. Its one lint exception names quire's classes (`tests/dock.rs`); a quire
+  popup-root mode would end it. A press in the transparent room no longer closes the menu (the
+  catcher is 0 px tall); one outside the popup is the compositor's grab.
 - **A popup is its own `VirtualDom`** and inherits no context from the surface that opened it; it
   calls `ds_native::measure::provide()` and `ds_native::focus::provide()` itself.
 - **shell-host unmaps by destroying and rebuilding the layer surface**, so the presenter is
@@ -412,13 +422,8 @@ A settled item is deleted, not marked closed.
 - design/22 still shows the old defaults for `bar.title_padding_px`,
   `bar.open_title_pill_height_px`, `bar.item_radius_px`, `bar.status_gap_px`,
   `menus.highlight_radius_px` and `control_center.grid_gap_px`/`grid_padding_px`.
-- The control center's estimates carry measured literals where quire has no Rust size
-  (`SettingsRow`'s 44, the menu's section header and info rows); `ControlSize::scale` and
-  `ControlCenterScale::level_module` are not `const fn`.
 - The Harness's `count` misses `[aria-selected="true"] .ds-chord` (an attribute selector with a
   descendant).
-- Bar and tray popups are sized by estimate (`PopupSize::Fixed`); moving them to content fit is
-  planned.
 
 ### shell-host
 

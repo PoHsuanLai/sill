@@ -1,5 +1,6 @@
-//! The tray's dbusmenu document in a `ds_native::Harness` at the popup's size: the root and the
-//! page have the viewport's height, and a press on an entry reaches the menu and picks it.
+//! The tray's dbusmenu document in a `ds_native::Harness` larger than the popup: the frame is
+//! the card and its inset (what `PopupSize::FitContent` measures), and a press on an entry
+//! reaches the menu and picks it.
 
 use std::cell::RefCell;
 use std::time::Duration;
@@ -8,14 +9,14 @@ use dioxus::prelude::*;
 use ds::{Availability, MenuEntry, MenuTrail};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 
-use super::{POPUP_WIDTH, TrayMenuDocument};
+use super::{INSET, TrayMenuDocument};
 
 thread_local! {
     static PICKS: RefCell<Vec<i32>> = const { RefCell::new(Vec::new()) };
 }
 
-/// The popup's height in the test: room for two rows and the slack.
-const HEIGHT: u32 = 120;
+/// The harness viewport: bigger than the popup.
+const SIZE: u32 = 300;
 
 fn entry(id: i32, title: &str) -> MenuEntry<i32> {
     MenuEntry::Item {
@@ -40,22 +41,28 @@ fn app() -> Element {
 }
 
 #[test]
-fn the_root_has_the_popups_height_and_a_press_picks_an_entry() {
+fn the_frame_is_the_card_and_its_inset_and_a_press_picks_an_entry() {
     let viewport = Viewport {
-        width: u32::try_from(POPUP_WIDTH).unwrap_or(1),
-        height: HEIGHT,
+        width: SIZE,
+        height: SIZE,
         scale_percent: 100,
     };
     let mut harness =
         Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
     harness.advance(Duration::from_millis(300));
-    for selector in ["html", ".ds"] {
-        let height = harness.rect(selector).map(|r| r.size.height.0);
-        assert!(
-            height.is_some_and(|h| h > 0.0),
-            "{selector} has a height: {height:?}"
-        );
-    }
+    let frame = harness
+        .rect(".sill-popup-frame")
+        .expect("the frame is laid out"); // test-only
+    let card = harness.rect(".ds-popover").expect("the card is laid out"); // test-only
+    let inset = f32::from(i16::try_from(INSET.side).unwrap_or(0));
+    assert_eq!(
+        (frame.size.width.0, frame.size.height.0),
+        (
+            card.size.width.0 + 2.0 * inset,
+            card.size.height.0 + 2.0 * inset
+        ),
+        "the frame is the card plus its inset, not the viewport"
+    );
     assert_eq!(harness.count(".ds-menu-item"), 2);
     let quit = harness
         .centre(".ds-menu-item:nth-child(2)")

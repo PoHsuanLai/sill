@@ -25,7 +25,7 @@ pub(crate) struct PanelCap(pub i32);
 pub(crate) fn control_center(
     output: Option<OutputName>,
     on_close: EventHandler<()>,
-    on_page: EventHandler<CcPage>,
+    on_page: Option<EventHandler<CcPage>>,
 ) -> Element {
     let cc = use_settings()().control_center;
     let cap = try_use_context::<PanelCap>();
@@ -47,7 +47,9 @@ pub(crate) fn control_center(
                 page.set(next);
                 // The pressed chevron or back button is gone with its pane.
                 home.take();
-                on_page.call(next);
+                if let Some(on_page) = on_page {
+                    on_page.call(next);
+                }
             }
             PageOut::Stay => {}
         }
@@ -139,8 +141,8 @@ pub(crate) fn panel_style(width: u16, padding: u16, cap: Option<PanelCap>) -> St
 }
 
 /// The modules on quire's grid (`control_center.grid_columns` and `grid_gap_px`), in order: a
-/// tile takes a column, a full-width module the row (as [`super::place`] lays them out for the
-/// size estimate). The panel pads the grid and the detail panes alike with `grid_padding_px`,
+/// tile takes a column, a full-width module the row (as [`super::place`] lays them out). The
+/// panel pads the grid and the detail panes alike with `grid_padding_px`,
 /// so the grid pads nothing of its own.
 #[component]
 fn Grid(

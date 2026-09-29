@@ -4,14 +4,14 @@
 //! itself.
 
 use dioxus::prelude::*;
-use ds::{Anchor, MenuEntry, Point, Px};
-use shell_host::{Size, use_surface};
+use ds::MenuEntry;
+use shell_host::use_surface;
 use tokio::sync::mpsc;
 
 use crate::menu::{MenuPopup, PopupLook};
 use crate::root::HostModalityBridge;
 use crate::surfaces::dock::menu::DockMenu;
-use crate::surfaces::dock::menu_geometry::{menu_point, room};
+use crate::surfaces::dock::menu_geometry::room;
 use crate::surfaces::dock::pick::DockPick;
 
 /// What the popup tells the dock.
@@ -27,7 +27,6 @@ pub(crate) enum PopupReport {
 #[derive(Debug, Clone)]
 pub(crate) struct MenuLink {
     pub entries: Vec<MenuEntry<DockPick>>,
-    pub size: Size,
     pub look: PopupLook,
     pub reports: mpsc::UnboundedSender<PopupReport>,
 }
@@ -70,12 +69,10 @@ pub(crate) fn DockMenuPopup() -> Element {
     };
     use_context_provider(|| link.look);
     use_context_provider(room);
-    let (x, y) = menu_point(link.size);
     rsx! {
         HostModalityBridge {
             MenuPopup {
                 model: DockMenu { entries: link.entries.clone() },
-                anchor: Anchor::Point(Point { x: Px(x), y: Px(y) }),
                 on_pick,
                 on_close,
             }

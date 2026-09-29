@@ -15,7 +15,6 @@ use super::plan::PopupReport;
 use crate::links::{CenterLink, PowerMenuLink};
 use crate::menu::PopupLook;
 use crate::services::Services;
-use crate::surfaces::control_center::CcPage;
 
 /// Whether a bar menu waits for the notification center to leave before its popup opens.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -43,8 +42,6 @@ pub(crate) enum BarInput {
     },
     /// What the popup reported.
     Popup(PopupReport),
-    /// The control center moved to `page` (the popup resizes to it).
-    Page(CcPage),
     /// The notification center a menu closed has had time to leave ([`Handoff`]).
     CenterGone,
 }

@@ -1,11 +1,12 @@
-//! The bar popup's own document: a `Ds` root holding one ds
+//! The bar popup's own document: a `Ds` root in the popup frame ([`PopupFrame`]) holding one ds
 //! `Menu{Dropdown}` (or, for the control center and a module's own item, a ds `Popover` around
 //! `control_center::ControlCenter` or the module),
-//! following the bar's view channel: a new view swaps the contents and repositions the popup
-//! (`xdg_popup.reposition`), none closes it. The root is `Material::Popover`, which paints
-//! nothing on its own box (quire's transparent popup root); the menu card paints the material.
-//! The menu opens with no entrance (design/13 §13.3.2) and reports the pointer's hover and
-//! release to the bar's tracking machine.
+//! following the bar's view channel: a new view swaps the contents and, when its anchor moved,
+//! repositions the popup (`xdg_popup.reposition`), none closes it. shell-host fits the popup to
+//! the frame (`PopupSize::FitContent`), so the popup is the card and its room. The root is
+//! `Material::Popover`, which paints nothing on its own box (quire's transparent popup root);
+//! the menu card paints the material. The menu opens with no entrance (design/13 §13.3.2) and
+//! reports the pointer's hover and release to the bar's tracking machine.
 
 use dioxus::prelude::*;
 use ds::{
@@ -18,43 +19,34 @@ use sill_settings::ControlCenterModule;
 use tokio::sync::{mpsc, watch};
 
 use super::content::PopupBody;
-use super::geometry::{MARGIN, frame_style};
 use super::model::PopupView;
 use super::pick::BarPick;
 use super::plan::{PopupReport, choice};
+use super::popup::{MAX_PX, room};
+use crate::menu::PopupFrame;
 use crate::root::HostModalityBridge;
-use crate::surfaces::control_center::{CcPage, ControlCenter, ModuleDropdown};
+use crate::surfaces::control_center::{ControlCenter, ModuleDropdown};
 
 /// The popup's link to its bar, provided as its root context.
 #[derive(Debug, Clone)]
 pub(crate) struct PopupLink {
     pub view: watch::Receiver<Option<PopupView>>,
     pub reports: mpsc::UnboundedSender<PopupReport>,
-    /// The control center's page changes, which resize the popup.
-    pub pages: mpsc::UnboundedSender<CcPage>,
     /// The bar's output (the Display module's brightness target).
     pub output: Option<OutputName>,
 }
 
-/// The anchor that puts a ds floating surface `MARGIN` inside the frame's top-left corner, so at
-/// (`SIDE`, `TOP`) in the popup: `place` clamps it there whatever its size, since the frame is
-/// the surface plus the margin.
+/// The anchor a ds floating surface is given: the frame lays the card in flow (`menu/style.css`),
+/// so it places nothing.
 fn corner() -> Anchor {
-    let at = f32::from(u8::try_from(MARGIN).unwrap_or(8));
-    Anchor::Point(Point {
-        x: Px(at),
-        y: Px(1.0),
-    })
+    Anchor::Point(Point::default())
 }
-
-/// The popup document's own stylesheet: the frame its `Ds` root sits in.
-pub const POPUP_CSS: &str = include_str!("../../style/bar_popup.css");
 
 /// The control center's and the module dropdowns' stylesheet (lint-clean under
 /// `Profile::Strict`, `tests/control_center_lint.rs`).
 pub(crate) const CONTROL_CENTER_CSS: &str = include_str!("../../style/control_center.css");
 
-/// The gap from [`corner`]'s point to the menu's top edge.
+/// The gap `Popover` is asked for from [`corner`]'s point; the frame's flow ignores it.
 const GAP: Px = Px(7.0);
 
 /// The popup root. A popup is a `VirtualDom` of its own and inherits nothing from the bar, so
@@ -87,22 +79,31 @@ pub(crate) fn BarPopup() -> Element {
     };
     let look = current.look;
     let which = current.menu;
-    let content = match current.body {
-        PopupBody::Menu(entries) => rsx! {
-            BarMenuList { key: "{which:?}", entries }
-        },
-        PopupBody::ControlCenter(_) => rsx! {
-            PanelPopover { module: None }
-        },
-        PopupBody::Module(module) => rsx! {
-            PanelPopover { module: Some(module) }
-        },
+    // A text menu wraps at design/13 §13.3.3's maximum; a panel is as wide as its settings say.
+    let (content, widest) = match current.body {
+        PopupBody::Menu(entries) => (
+            rsx! {
+                BarMenuList { key: "{which:?}", entries }
+            },
+            Some(MAX_PX),
+        ),
+        PopupBody::ControlCenter(_) => (
+            rsx! {
+                PanelPopover { module: None }
+            },
+            None,
+        ),
+        PopupBody::Module(module) => (
+            rsx! {
+                PanelPopover { module: Some(module) }
+            },
+            None,
+        ),
     };
     rsx! {
-        style { {POPUP_CSS} }
         style { {CONTROL_CENTER_CSS} }
         HostModalityBridge {
-            div { class: "sill-popup-frame", style: "{frame_style()};{look.metrics.style_attr()}",
+            PopupFrame { room: room(), widest, style: look.metrics.style_attr(),
                 Ds {
                     scale: ds_scale,
                     appearance: look.appearance,
@@ -185,7 +186,6 @@ fn BarMenuList(entries: Vec<ds::MenuEntry<BarPick>>) -> Element {
 fn PanelPopover(module: Option<ControlCenterModule>) -> Element {
     let link = use_context::<PopupLink>();
     let reports = link.reports.clone();
-    let pages = link.pages.clone();
     let output = link.output.clone();
     let dismissed = EventHandler::new(move |()| {
         // The bar may be gone first; then there is nobody to tell.
@@ -193,13 +193,7 @@ fn PanelPopover(module: Option<ControlCenterModule>) -> Element {
     });
     let content = match module {
         None => rsx! {
-            ControlCenter {
-                output,
-                on_close: dismissed,
-                on_page: move |page: CcPage| {
-                    let _ = pages.send(page);
-                },
-            }
+            ControlCenter { output, on_close: dismissed }
         },
         Some(module) => rsx! {
             ModuleDropdown { module, output, on_close: dismissed }

@@ -1,20 +1,23 @@
-//! The popup menu in a `ds_native::Harness` at the popup's own size: the frame, the root and
-//! the page have the viewport's height, and a press on an item reaches the menu and picks it.
+//! The popup menu in a `ds_native::Harness` larger than the popup: the frame is exactly the card
+//! and its room (what `PopupSize::FitContent` measures), and a press on an item reaches the menu
+//! and picks it.
 
 use std::cell::RefCell;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::{
-    Alpha, Anchor, Appearance, Availability, MaterialStack, MenuEntry, MenuTrail, Point, Px,
-    ShellMetrics,
-};
+use ds::{Alpha, Appearance, Availability, MaterialStack, MenuEntry, MenuTrail, ShellMetrics};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 
 use super::{MenuModel, MenuPopup, PopupLook, PopupRoom};
 
-const WIDTH: u32 = 320;
-const HEIGHT: u32 = 260;
+const WIDTH: u32 = 400;
+const HEIGHT: u32 = 400;
+const ROOM: PopupRoom = PopupRoom {
+    side: 20,
+    top: 8,
+    bottom: 32,
+};
 
 thread_local! {
     static PICKS: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
@@ -51,18 +54,10 @@ fn app() -> Element {
         metrics: ShellMetrics::default(),
         stack: MaterialStack::default(),
     });
-    use_context_provider(|| PopupRoom {
-        side: 20,
-        top: 0,
-        bottom: 32,
-    });
+    use_context_provider(|| ROOM);
     rsx! {
         MenuPopup {
             model: Numbers,
-            anchor: Anchor::Point(Point {
-                x: Px(28.0),
-                y: Px(200.0),
-            }),
             on_pick: move |pick: u8| PICKS.with(|p| p.borrow_mut().push(pick)),
             on_close: move |()| {},
         }
@@ -70,7 +65,7 @@ fn app() -> Element {
 }
 
 #[test]
-fn the_frame_has_the_popups_height_and_a_press_picks_an_item() {
+fn the_frame_is_the_card_and_its_room_and_a_press_picks_an_item() {
     let viewport = Viewport {
         width: WIDTH,
         height: HEIGHT,
@@ -79,20 +74,23 @@ fn the_frame_has_the_popups_height_and_a_press_picks_an_item() {
     let mut harness =
         Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
     harness.advance(Duration::from_millis(300));
-    for selector in ["html", ".sill-menu-popup-frame", ".ds"] {
-        let rect = harness.rect(selector).map(|r| r.size.height.0);
-        assert!(
-            rect.is_some_and(|h| h > 0.0),
-            "{selector} has a height: {rect:?}"
-        );
-    }
     let frame = harness
-        .rect(".sill-menu-popup-frame")
-        .map(|r| r.size.height.0);
+        .rect(".sill-popup-frame")
+        .expect("the frame is laid out"); // test-only
+    let card = harness.rect(".ds-popover").expect("the card is laid out"); // test-only
+    let px = |v: i32| f32::from(i16::try_from(v).unwrap_or(0));
     assert_eq!(
-        frame,
-        Some(f32::from(u16::try_from(HEIGHT).unwrap_or(0))),
-        "the frame is the popup"
+        (card.origin.x.0, card.origin.y.0),
+        (px(ROOM.side), px(ROOM.top)),
+        "the card sits at the room's corner"
+    );
+    assert_eq!(
+        (frame.size.width.0, frame.size.height.0),
+        (
+            card.size.width.0 + 2.0 * px(ROOM.side),
+            card.size.height.0 + px(ROOM.top) + px(ROOM.bottom)
+        ),
+        "the frame is the card plus its room, not the viewport"
     );
     assert_eq!(harness.count(".ds-menu-item"), 2);
     let second = harness

@@ -49,11 +49,6 @@ const SURFACES: &[SurfaceCase] = &[
         states: bar_states,
     },
     SurfaceCase {
-        name: "bar_popup",
-        css: sill_ui_kit::surfaces::bar::BAR_POPUP_CSS,
-        states: no_states,
-    },
-    SurfaceCase {
         name: "dock",
         css: sill_ui_kit::surfaces::dock::DOCK_CSS,
         states: dock_states,

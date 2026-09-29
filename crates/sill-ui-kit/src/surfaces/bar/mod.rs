@@ -7,7 +7,6 @@ mod app_name;
 mod clock;
 mod content;
 mod control_center_item;
-mod geometry;
 mod io;
 mod layer;
 mod menu_popup;
@@ -29,7 +28,6 @@ mod tray_menu;
 mod view;
 mod workspaces;
 
-pub use menu_popup::POPUP_CSS as BAR_POPUP_CSS;
 pub(crate) use menus::BarMenu;
 pub(crate) use status_item::StatusIcon;
 pub use surface::Bar;

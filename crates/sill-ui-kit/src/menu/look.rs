@@ -16,8 +16,8 @@ pub struct PopupLook {
     pub stack: MaterialStack,
 }
 
-/// The transparent room, in logical pixels, between the popup surface's edges and its `Ds`
-/// root: the menu card's shadow lives there, and the surface clips at its edges.
+/// The transparent room, in logical pixels, between the popup surface's edges and the menu
+/// card: the card's shadow lives there, and the surface clips at its edges.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PopupRoom {
     pub side: i32,
@@ -26,7 +26,7 @@ pub struct PopupRoom {
 }
 
 impl PopupRoom {
-    /// The frame's inline padding.
+    /// The frame's inline padding: the room itself.
     pub fn style(self) -> String {
         format!(
             "padding:{}px {}px {}px {}px",

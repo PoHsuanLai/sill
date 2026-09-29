@@ -20,10 +20,7 @@ use ds::{
     Check as DsCheck, ChromaLimit, Common, IconButton, IconButtonVariant, IconSource, MenuEntry,
     MenuTrail, Press,
 };
-use shell_host::{
-    HostRoot, OutputInfo, PopupConfig, PopupPlacement, PopupSize, Rect, Size, SurfaceHandle,
-    use_surface,
-};
+use shell_host::{HostRoot, OutputInfo, PopupPlacement, Rect, Size, SurfaceHandle, use_surface};
 use sill_model::tray::{
     Check as TrayCheck, TrayCommand, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind,
     TrayStatus,
@@ -32,20 +29,16 @@ use sill_model::units::{Availability as TrayAvailability, Visibility};
 use sill_services::tray::icon_art;
 use sill_services::{Control, TrayService};
 
-use super::geometry::menu_size;
 use super::popup::{MenuSide, menu_popup};
 use super::tray_input::{
     ItemMenu, ScreenOrigin, TrayAction, chroma_limit, icon_source, press_action, scroll_delta,
 };
-use super::tray_menu::{POPUP_WIDTH, TrayMenuDocument};
+use super::tray_menu::TrayMenuDocument;
 use crate::hooks::{use_appearance, use_control, use_service, use_settings};
 
-/// The room under the menu's estimated height (its 8 px inset from the popup's edge, with
-/// slack for the estimate).
-const POPUP_SLACK: i32 = 16;
 /// The tallest the popup is made, a guard of ours rather than a design value (no design doc
 /// caps a menu's height): a longer dbusmenu is clipped at its foot. Also `menu_popup`'s
-/// `max_px`.
+/// `max_px`, and the size the popup starts at, before its document is measured.
 const POPUP_MAX: i32 = 640;
 
 /// The element id a popup anchors to for the button at `index` (`tray-<n>`, as the module doc
@@ -173,14 +166,8 @@ fn open_menu(
     menu: &[TrayMenuEntry],
     control: &Control<TrayCommand>,
 ) {
-    // Fixed at the estimate: a document of one overlay measures at nothing, and shell-host's
-    // content fit would shrink the popup to 1 x 1 (the bar's menus, `io.rs`).
     let entries = to_ds_entries(menu);
-    let height = (menu_size(&entries).height + POPUP_SLACK).min(POPUP_MAX);
-    let config = PopupConfig {
-        size: PopupSize::Fixed,
-        ..menu_popup(popup_id, MenuSide::Status, POPUP_MAX)
-    };
+    let config = menu_popup(popup_id, MenuSide::Status, POPUP_MAX);
     let placement = PopupPlacement {
         // Ignored for `PopupAnchor::Element` (shell-host's own doc on `PopupPlacement`).
         anchor_rect: Rect {
@@ -190,8 +177,8 @@ fn open_menu(
             height: 0,
         },
         size: Size {
-            width: POPUP_WIDTH,
-            height,
+            width: POPUP_MAX,
+            height: POPUP_MAX,
         },
     };
     let root = HostRoot::with_props(

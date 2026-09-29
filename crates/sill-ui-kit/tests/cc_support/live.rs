@@ -14,6 +14,7 @@ use sill_model::ids::OutputName;
 use sill_settings::{FocusMode, ShellFile};
 use sill_ui_kit::hooks::PinnedAppearance;
 use sill_ui_kit::links::FocusLink;
+use sill_ui_kit::menu::{PopupFrame, PopupRoom};
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::surfaces::control_center::{CcPage, ControlCenter};
@@ -38,8 +39,6 @@ pub enum Report {
 
 /// The popup document's control center sheet, which the bar's popup root injects.
 const CONTROL_CENTER_CSS: &str = include_str!("../../src/style/control_center.css");
-/// The popup document's frame sheet.
-const POPUP_CSS: &str = include_str!("../../src/style/bar_popup.css");
 
 thread_local! {
     static WORLD: RefCell<Option<World>> = const { RefCell::new(None) };
@@ -64,8 +63,7 @@ fn app() -> Element {
     });
     rsx! {
         style { {CONTROL_CENTER_CSS} }
-        style { {POPUP_CSS} }
-        div { class: "sill-popup-frame",
+        PopupFrame { room: PopupRoom { side: 28, top: 8, bottom: 40 },
         Ds { appearance: Appearance::default(), material: Material::Popover,
             Popover {
                 anchor: Anchor::Point(Point { x: Px(8.0), y: Px(1.0) }),

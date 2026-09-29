@@ -58,7 +58,7 @@ use sill_model::ids::OutputName;
 pub fn ControlCenter(
     output: Option<OutputName>,
     on_close: EventHandler<()>,
-    on_page: EventHandler<CcPage>,
+    #[props(default)] on_page: Option<EventHandler<CcPage>>,
 ) -> Element {
     panel::control_center(output, on_close, on_page)
 }

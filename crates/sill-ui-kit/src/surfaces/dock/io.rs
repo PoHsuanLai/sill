@@ -329,15 +329,14 @@ fn open_menu(slots: Slots, deps: &SessionDeps, outward: &Outward, tile: TileId) 
         let _ = reports.send(PopupReport::Dismissed);
         return;
     };
-    let placement = menu_placement(*area, &entries);
+    let placement = menu_placement(*area);
     let link = MenuLink {
-        size: placement.size,
         entries: entries.clone(),
         look: deps.look,
         reports,
     };
     surface.open_popup(
-        menu_config(&entries),
+        menu_config(),
         placement,
         HostRoot::new(DockMenuPopup).context(link),
     );

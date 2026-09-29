@@ -1,11 +1,15 @@
-/* A popup menu's document (design/10 §10.3.7): the frame its Ds root sits in, padded so
-   the root's overlay bounds leave the menu's shadow room inside the popup
-   (the opener's geometry). The Popover root is transparent and the card paints its own drop,
-   which still needs that room: the popup surface clips at its edges. The padding is written
-   inline from the geometry's constants.
+/* A popup's document (design/10 §10.3.7, design/13 §13.3.2): one frame, laid out absolutely at
+   the surface's origin, holding the `Ds` root. shell-host's `PopupSize::FitContent` measures
+   the frame, so the popup is exactly the menu plus the frame's padding, the transparent room
+   for the menu's drop shadow (written inline from `PopupRoom`).
 
-   The frame is the viewport's size and in flow, and the Ds root fills it (a one-cell grid), as
-   the bar popup's: an absolutely placed frame resolved against the 0 px
-   `#main`, so every box from `html` down was 0 px tall and a press never reached the menu. */
-.sill-menu-popup-frame{ display:grid; grid-template-rows:minmax(0,1fr); grid-template-columns:minmax(0,1fr);
-  box-sizing:border-box; width:100vw; height:100vh; }
+   quire lays a floating card out absolutely inside an overlay that fills the root, and the
+   surface would then measure as the whole root, and nothing in a zero-size chain is hit. Inside
+   the frame the overlay, its outside catcher and the card lie in flow, so the root is as big as
+   the card and a press reaches it; a submenu (`data-depth`) stays absolute, beside its parent.
+   The catcher is 0 px tall here: an outside press is the compositor's grab, not the document's.
+   Quire's own classes are named on purpose: a reviewed lint exception in `sill/tests/lint.rs`. */
+.sill-popup-frame{ position:absolute; left:0; top:0; }
+.sill-popup-frame .ds-overlay,
+.sill-popup-frame .ds-overlay-catch,
+.sill-popup-frame .ds-popover:not([*|data-depth]){ position:static; }
