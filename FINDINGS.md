@@ -355,6 +355,9 @@ A settled item is deleted, not marked closed.
   depends on `ds`, which reaches `dioxus`, and the boundary keeps `sill-search` from both.
   Ends when quire's step 8 splits `ds`: then `sill-search` depends on `ds-settings`, the mirrors
   and `page_label` go, and `check-boundary.sh` drops `ds-settings` from the rule.
+- **G366** `sill-settings` depends on `ds` for `#[derive(Word)]` (the derive names `::ds::Word`).
+  Ends when quire's step 8 splits `ds-core` out of `ds`: then it depends on `ds-core` and
+  `check-boundary.sh` can hold `sill-settings` clear of `ds`.
 - **G350** No failure reason on a failed Wi-Fi or Bluetooth row (NetworkManager's `StateReason`
   and BlueZ's error are not read).
 - **G353** Two devices connecting at once share one connect stamp.
