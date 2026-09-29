@@ -99,7 +99,9 @@ impl Env {
             idle_times: IdleTimesSource::Settings,
             polkit: polkit_agent::PolkitRoute {
                 bus: Bus::system(BusRoute::Absent),
-                helper: polkit_agent::HelperChoice::Use(polkit_agent::HelperRoute::Missing),
+                helper: polkit_agent::HelperChoice::Use(
+                    sill_model::polkit_agent::HelperRoute::Missing,
+                ),
                 session: polkit_agent::SessionChoice::Id("sill-test".to_owned()),
             },
             session_actions: Arc::new(DryRunActions::new(DryRunOffers::Everything, None)),

@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use ds::lint::{LintConfig, Profile, Rule, markup};
 use polkit_prompt_support::{asking, fake, request, shown, start};
-use sill_services::polkit_agent::LastTry;
+use sill_model::polkit_agent::LastTry;
 
 fn strict() -> LintConfig {
     LintConfig {

@@ -339,7 +339,7 @@ pub fn services() -> (Services, Feeds) {
         events,
         screenshots,
         auth: fixed(sill_model::auth::Auth::default(), &mut keep),
-        polkit_agent: fixed(sill_services::Polkit::default(), &mut keep),
+        polkit_agent: fixed(sill_model::polkit_agent::Polkit::default(), &mut keep),
         clipboard: fixed(sill_services::Clipboard::default(), &mut keep),
         idle,
         // Nowhere real: a surface that reads a file under these finds nothing.

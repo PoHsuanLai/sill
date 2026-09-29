@@ -2,9 +2,8 @@
 //! the first `unix-user`; groups and other kinds are never chosen (polkitd lists a
 //! group's members as users when it wants them).
 
-use sill_model::auth::UserName;
-
-use super::types::{Identity, Uid};
+use super::{Identity, Uid};
+use crate::auth::UserName;
 
 /// The uid to authenticate as, `own` being this session's user.
 pub fn pick_identity(identities: &[Identity], own: Uid) -> Option<Uid> {
@@ -38,8 +37,8 @@ pub fn name_in_passwd(passwd: &str, uid: Uid) -> Option<UserName> {
 #[cfg(test)]
 mod tests {
     use super::{name_in_passwd, pick_identity};
-    use crate::polkit_agent::types::{Gid, Identity, Uid};
-    use sill_model::auth::UserName;
+    use crate::auth::UserName;
+    use crate::polkit_agent::{Gid, Identity, Uid};
 
     #[test]
     fn own_then_root_then_first_user() {

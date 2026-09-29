@@ -68,7 +68,7 @@ mod tests {
     use ds::{
         AvatarFace, AvatarShape, AvatarSize, AvatarTone, LockUser, PromptState, Shown, person_hue,
     };
-    use sill_services::polkit_agent::Cookie;
+    use sill_model::polkit_agent::Cookie;
 
     use super::{Mapped, Stage, StageIn, advance};
     use crate::surfaces::polkit_prompt::view::PolkitPromptView;

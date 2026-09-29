@@ -100,11 +100,12 @@ impl DebugSeams {
     fn apply(&self, env: Env) -> Env {
         use std::sync::Arc;
 
+        use sill_model::polkit_agent::HelperRoute;
         use sill_services::env::ddc::FileBus;
         use sill_services::env::{
             Bus, BusRoute, DryRunActions, DryRunOffers, IdleTimesSource, SessionActions,
         };
-        use sill_services::polkit_agent::{self, HelperChoice, HelperRoute, SessionChoice};
+        use sill_services::polkit_agent::{self, HelperChoice, SessionChoice};
 
         let ddc: Arc<dyn sill_services::env::ddc::DdcBus> = match &self.fake_ddc {
             Some(path) => {
@@ -183,8 +184,9 @@ mod tests {
     /// Only a named bus leaves polkitd, and never for polkit's own helper.
     #[test]
     fn a_polkit_bus_brings_a_stand_in_helper_or_none() {
+        use sill_model::polkit_agent::HelperRoute;
         use sill_services::env::{Bus, BusRoute};
-        use sill_services::polkit_agent::{HelperChoice, HelperRoute, PolkitRoute, SessionChoice};
+        use sill_services::polkit_agent::{HelperChoice, PolkitRoute, SessionChoice};
 
         let setup = |args: &[&str]| {
             let cli = Cli::try_parse_from([&["sill", "run"], args].concat())

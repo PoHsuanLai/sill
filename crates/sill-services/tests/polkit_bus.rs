@@ -9,13 +9,15 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use sill_model::auth::Secret;
+use sill_model::polkit_agent::machine::MAX_TRIES;
+use sill_model::polkit_agent::{
+    ActionId, Cookie, FAKE_SECRET, FakeRequest, HelperRoute, LastTry, Polkit, PolkitCommand,
+    PromptPhase, Registration,
+};
 use sill_services::control::Control;
 use sill_services::env::{Bus, BusRoute, Env};
-use sill_services::polkit_agent::machine::MAX_TRIES;
 use sill_services::polkit_agent::{
-    AGENT_PATH, ActionId, Cookie, FAKE_SECRET, FakeRequest, HelperChoice, HelperRoute, LastTry,
-    Polkit, PolkitAgentService, PolkitCommand, PolkitRoute, PromptPhase, Registration,
-    SessionChoice,
+    AGENT_PATH, HelperChoice, PolkitAgentService, PolkitRoute, SessionChoice,
 };
 use sill_services::service::spawn;
 use sill_testkit::PrivateBus;
@@ -211,7 +213,7 @@ fn the_agent_registers_answers_fails_and_cancels_on_a_private_bus() {
         // (1) Own registers for the session at AGENT_PATH.
         control
             .send(PolkitCommand::Policy(
-                sill_services::polkit_agent::AgentPolicy::Own,
+                sill_model::polkit_agent::AgentPolicy::Own,
             ))
             .unwrap_or_else(|e| panic!("{e}"));
         until(&mut rx, "registered", |p| {
@@ -292,7 +294,7 @@ fn the_agent_registers_answers_fails_and_cancels_on_a_private_bus() {
         // (5) Off unregisters.
         control
             .send(PolkitCommand::Policy(
-                sill_services::polkit_agent::AgentPolicy::Off,
+                sill_model::polkit_agent::AgentPolicy::Off,
             ))
             .unwrap_or_else(|e| panic!("{e}"));
         until(&mut rx, "passive", |p| {

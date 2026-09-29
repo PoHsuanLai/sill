@@ -1,8 +1,7 @@
 //! What the polkit prompt hands quire's `PolkitPrompt`: pure.
 
 use ds::{AvatarFace, AvatarShape, AvatarSize, AvatarTone, LockUser, PromptState, person_hue};
-use sill_services::Polkit;
-use sill_services::polkit_agent::{Cookie, LastTry, PromptPhase, PromptView};
+use sill_model::polkit_agent::{Cookie, LastTry, Polkit, PromptPhase, PromptView};
 
 /// quire's `PolkitPrompt` props that follow the request (the rest are the surface's handlers).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -74,8 +73,8 @@ fn user_of(name: &str) -> LockUser {
 mod tests {
     use ds::PromptState;
     use sill_model::auth::UserName;
-    use sill_services::Polkit;
-    use sill_services::polkit_agent::{
+    use sill_model::polkit_agent::Polkit;
+    use sill_model::polkit_agent::{
         ActionId, Cookie, Echo, LastTry, PromptPhase, PromptView, Registration,
     };
 

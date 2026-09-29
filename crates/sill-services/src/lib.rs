@@ -98,7 +98,7 @@ pub use notifications::{
 };
 pub use now_playing::NowPlayingService;
 pub use pins::PinsService;
-pub use polkit_agent::{Polkit, PolkitAgentService, PolkitCommand};
+pub use polkit_agent::PolkitAgentService;
 pub use power_profile::PowerProfileService;
 pub use results::{
     CurrencyPolicy, FilesChoice, LauncherPolicy, Results, ResultsEvent, ResultsService,

@@ -4,12 +4,10 @@
 
 use std::collections::HashMap;
 
+use sill_model::polkit_agent::{ActionId, AuthRequest, Completion, Cookie, Gid, Identity, Uid};
 use tokio::sync::{mpsc, oneshot};
 use zbus::zvariant::OwnedValue;
 use zbus::{interface, proxy};
-
-use super::machine::Completion;
-use super::types::{ActionId, AuthRequest, Cookie, Gid, Identity, Uid};
 
 /// Where sill serves its agent object (any path is allowed; this one is sill's).
 pub const AGENT_PATH: &str = "/org/sill/PolicyKit1/AuthenticationAgent";
@@ -143,7 +141,7 @@ mod tests {
     use zbus::zvariant::{OwnedValue, Value};
 
     use super::request_from_wire;
-    use crate::polkit_agent::types::{ActionId, Cookie, Gid, Identity, Uid};
+    use sill_model::polkit_agent::{ActionId, Cookie, Gid, Identity, Uid};
 
     fn owned(value: Value<'_>) -> OwnedValue {
         value

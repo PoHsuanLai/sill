@@ -4,9 +4,8 @@ use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
-use sill_model::auth::UserName;
-
-use super::types::Cookie;
+use super::Cookie;
+use crate::auth::UserName;
 
 /// polkit 124+'s socket-activated helper.
 pub const SOCKET_PATH: &str = "/run/polkit/agent-helper.socket";
@@ -117,8 +116,8 @@ mod tests {
         HelperLine, HelperOpening, HelperRoute, UnknownLine, helper_route, opening,
         parse_helper_line,
     };
-    use crate::polkit_agent::types::Cookie;
-    use sill_model::auth::UserName;
+    use crate::auth::UserName;
+    use crate::polkit_agent::Cookie;
 
     #[test]
     fn the_socket_first_then_the_setuid_helper() {

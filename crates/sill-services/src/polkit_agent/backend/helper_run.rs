@@ -8,29 +8,28 @@
 use std::process::Stdio;
 use std::time::Duration;
 
+use sill_model::auth::{Secret, UserName};
+use sill_model::polkit_agent::{
+    Cookie, FAKE_SECRET, HelperLine, HelperRoute, opening, parse_helper_line,
+};
 use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt, BufReader};
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 
-use sill_model::auth::{Secret, UserName};
-
-use super::helper::{HelperLine, HelperRoute, opening, parse_helper_line};
-use super::types::{Cookie, FAKE_SECRET};
-
 /// Which run a line came from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(super) struct RunId(pub u64);
+pub(crate) struct RunId(pub u64);
 
 /// What a run said.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum RunSaid {
+pub(crate) enum RunSaid {
     Line(HelperLine),
     Ended,
 }
 
 /// One thing a run said, tagged.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct RunEvent {
+pub(crate) struct RunEvent {
     pub cookie: Cookie,
     pub run: RunId,
     pub said: RunSaid,
@@ -38,7 +37,7 @@ pub(super) struct RunEvent {
 
 /// Who answers a run.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum Driver {
+pub(crate) enum Driver {
     /// polkit's helper (or a stand-in program) by this route.
     Helper(HelperRoute),
     /// The in-process stand-in of a made-up request.
@@ -47,7 +46,7 @@ pub(super) enum Driver {
 
 /// A running helper.
 #[derive(Debug)]
-pub(super) struct Run {
+pub(crate) struct Run {
     pub cookie: Cookie,
     pub id: RunId,
     answers: mpsc::UnboundedSender<Secret>,
@@ -69,7 +68,7 @@ impl Drop for Run {
 
 /// Where a run's events go.
 #[derive(Debug, Clone)]
-pub(super) struct Report {
+pub(crate) struct Report {
     cookie: Cookie,
     run: RunId,
     events: mpsc::UnboundedSender<RunEvent>,
@@ -86,7 +85,7 @@ impl Report {
 }
 
 /// Start run `id` for `cookie` as `user`.
-pub(super) fn start(
+pub(crate) fn start(
     driver: &Driver,
     cookie: Cookie,
     user: &UserName,

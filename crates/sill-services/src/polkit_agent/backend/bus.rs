@@ -9,22 +9,22 @@ use zbus::Connection;
 use zbus::zvariant::{OwnedValue, Value};
 
 use super::dbus::{AGENT_PATH, Agent, AuthorityProxy, Call};
-use super::{PolkitRoute, SessionChoice};
 use crate::env::Bus;
+use crate::polkit_agent::{PolkitRoute, SessionChoice};
 
 /// A polkit subject: `(kind, details)`.
-pub(super) type Subject = (String, HashMap<String, OwnedValue>);
+pub(crate) type Subject = (String, HashMap<String, OwnedValue>);
 
 /// A connection serving the agent object, and the subject it registers for.
 #[derive(Debug)]
-pub(super) struct BusLink {
+pub(crate) struct BusLink {
     connection: Connection,
     subject: Subject,
 }
 
 /// Why the agent is not registered.
 #[derive(Debug)]
-pub(super) enum BusTrouble {
+pub(crate) enum BusTrouble {
     /// No bus to talk to (`Registration::NoBus`).
     NoBus,
     /// polkitd (or logind) said no: its message.
@@ -32,7 +32,7 @@ pub(super) enum BusTrouble {
 }
 
 /// Connect per `setup`, serve the agent object handing calls to `calls`, and find the subject.
-pub(super) async fn connect(
+pub(crate) async fn connect(
     setup: &PolkitRoute,
     calls: mpsc::UnboundedSender<Call>,
 ) -> Result<BusLink, BusTrouble> {
@@ -81,7 +81,7 @@ fn subject_of(id: String) -> Result<Subject, zbus::zvariant::Error> {
 }
 
 /// Register the served object for the link's session.
-pub(super) async fn register(link: &BusLink) -> Result<(), BusTrouble> {
+pub(crate) async fn register(link: &BusLink) -> Result<(), BusTrouble> {
     let authority = AuthorityProxy::new(&link.connection)
         .await
         .map_err(|e| BusTrouble::Refused(message_of(&e)))?;
@@ -92,7 +92,7 @@ pub(super) async fn register(link: &BusLink) -> Result<(), BusTrouble> {
 }
 
 /// Unregister; a failure (polkitd gone) leaves nothing to undo.
-pub(super) async fn unregister(link: &BusLink) {
+pub(crate) async fn unregister(link: &BusLink) {
     if let Ok(authority) = AuthorityProxy::new(&link.connection).await {
         let _ = authority
             .unregister_authentication_agent(&link.subject, AGENT_PATH)

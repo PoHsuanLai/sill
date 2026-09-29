@@ -16,6 +16,7 @@ pub mod kbd_backlight;
 pub mod locker;
 pub mod now_playing;
 pub mod pins;
+pub mod polkit_agent;
 pub mod power_profile;
 pub mod session;
 pub mod tray;

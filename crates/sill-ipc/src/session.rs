@@ -66,7 +66,7 @@ pub struct PolkitReport {
     pub waiting: u32,
 }
 
-/// `sill_services::polkit_agent::Registration`'s mirror.
+/// `sill_model::polkit_agent::Registration`'s mirror.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum ReportRegistration {

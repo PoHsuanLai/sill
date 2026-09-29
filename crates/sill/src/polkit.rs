@@ -11,8 +11,8 @@ use shell_host::{HostCtx, OutputInfo, Root};
 use sill_ipc::{
     Failure, FailureKind, FakePolkit, PolkitReport, PolkitRequest, ReportRegistration, Response,
 };
+use sill_model::polkit_agent::{ActionId, FakeRequest, Polkit, PolkitCommand, Registration};
 use sill_services::Services;
-use sill_services::polkit_agent::{ActionId, FakeRequest, Polkit, PolkitCommand, Registration};
 use sill_surfaces::surfaces::polkit_prompt::{PolkitPromptProps, polkit_layer};
 
 use crate::msg::ShellMsg;
@@ -91,7 +91,7 @@ pub fn fake(services: &Services, fake: FakePolkit) -> Response {
 
 #[cfg(test)]
 mod tests {
-    use sill_services::polkit_agent::{Polkit, Registration};
+    use sill_model::polkit_agent::{Polkit, Registration};
 
     use super::report_of;
 

@@ -1,36 +1,42 @@
 //! The agent's loop.
 //!
 //! Stays passive (publishes `Registration::Passive`, touches no bus) until `Policy(Own)`; then
-//! connects to `setup.bus`, serves [`super::dbus::Agent`] at [`super::AGENT_PATH`], finds the
+//! connects to `setup.bus`, serves [`super::dbus::Agent`] at [`crate::polkit_agent::AGENT_PATH`],
+//! finds the
 //! session id (`SessionChoice`: logind's `session/auto` `Id`), and registers
 //! ([`super::bus`]); resolves the helper route once (`HelperChoice`,
-//! [`super::helper::helper_route`]); turns every `Call`, command and helper line into a
-//! [`super::PolkitEvent`] through [`super::reduce`], choosing the identity with
-//! [`super::pick_identity`] and naming it from `/etc/passwd`; runs one helper per `StartHelper`
+//! [`sill_model::polkit_agent::helper_route`]); turns every `Call`, command and helper line into a
+//! [`sill_model::polkit_agent::PolkitEvent`] through [`crate::polkit_agent::reduce`], choosing the
+//! identity with
+//! [`sill_model::polkit_agent::pick_identity`] and naming it from `/etc/passwd`; runs one helper
+//! per `StartHelper`
 //! ([`super::run`]: a child with `kill_on_drop`, or the socket); keeps the answer from `Answer`
 //! only until `SendAnswer` hands it to the run (dropped, and so zeroed, otherwise); answers the
 //! D-Bus call on `Complete`; runs a `Fake` request's helper in-process (accepting
-//! [`super::FAKE_SECRET`]); unregisters on `Policy(Off)` and when every control is gone;
-//! publishes [`super::polkit_of`].
+//! [`sill_model::polkit_agent::FAKE_SECRET`]); unregisters on `Policy(Off)` and when every control
+//! is gone;
+//! publishes [`sill_model::polkit_agent::polkit_of`].
 
 use std::collections::{HashMap, VecDeque};
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 
+use sill_model::auth::{Secret, UserName};
+use sill_model::polkit_agent::helper::helper_route;
+use sill_model::polkit_agent::identity::name_in_passwd;
+use sill_model::polkit_agent::{
+    AuthRequest, Completion, Cookie, FakeRequest, HelperRoute, Identity, Origin, Polkit,
+    PolkitCommand, PolkitEffect, PolkitEvent, PolkitState, Uid, pick_identity, polkit_of, step,
+};
 use tokio::sync::{mpsc, oneshot, watch};
 
-use sill_model::auth::{Secret, UserName};
-
-use super::bus::{self, BusLink, BusTrouble};
+use super::bus::{BusLink, BusTrouble};
 use super::dbus::Call;
-use super::helper::{HelperRoute, helper_route};
-use super::identity::{name_in_passwd, pick_identity};
-use super::machine::{Completion, Origin, PolkitEffect, PolkitEvent, PolkitState, polkit_of, step};
-use super::run::{self, Driver, Run, RunEvent, RunId, RunSaid};
-use super::types::{AuthRequest, Cookie, FakeRequest, Identity, Polkit, PolkitCommand, Uid};
-use super::{HelperChoice, PolkitRoute};
+use super::helper_run::{Driver, Run, RunEvent, RunId, RunSaid};
+use super::{bus, helper_run};
+use crate::polkit_agent::{HelperChoice, PolkitRoute};
 
-pub(super) async fn run(
+pub(crate) async fn run(
     tx: watch::Sender<Polkit>,
     mut commands: mpsc::UnboundedReceiver<PolkitCommand>,
     setup: PolkitRoute,
@@ -48,8 +54,11 @@ pub(super) async fn run(
             Some(event) = events.recv() => live.run_event(event).await,
         }
     }
-    live.feed(PolkitEvent::Policy(super::AgentPolicy::Off), None)
-        .await;
+    live.feed(
+        PolkitEvent::Policy(sill_model::polkit_agent::AgentPolicy::Off),
+        None,
+    )
+    .await;
     live.replies.clear();
 }
 
@@ -242,7 +251,13 @@ impl Live {
         };
         self.serial += 1;
         let id = RunId(self.serial);
-        self.current = Some(run::start(&driver, cookie, user, id, self.events.clone()));
+        self.current = Some(helper_run::start(
+            &driver,
+            cookie,
+            user,
+            id,
+            self.events.clone(),
+        ));
     }
 
     fn stop(&mut self, cookie: &Cookie) {

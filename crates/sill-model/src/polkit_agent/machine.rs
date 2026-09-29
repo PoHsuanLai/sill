@@ -20,12 +20,11 @@
 //! - Completing the first request starts the next one's helper.
 //! - A cookie nobody holds changes nothing.
 
-use sill_model::auth::{PamNote, UserName};
-
 use super::helper::HelperLine;
-use super::types::{
+use super::{
     AgentPolicy, AuthRequest, Cookie, Echo, LastTry, Polkit, PromptPhase, PromptView, Registration,
 };
+use crate::auth::{PamNote, UserName};
 
 /// How many helper runs one request gets (cosmic-osd and libpolkit-agent's clients: three).
 pub const MAX_TRIES: u32 = 3;
@@ -351,5 +350,4 @@ fn complete(
 }
 
 #[cfg(test)]
-#[path = "machine_tests.rs"]
 mod tests;

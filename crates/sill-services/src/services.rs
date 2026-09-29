@@ -257,7 +257,7 @@ mod tests {
         );
         assert_eq!(
             services.polkit_agent.state.borrow().registration,
-            crate::polkit_agent::Registration::Passive,
+            sill_model::polkit_agent::Registration::Passive,
             "no agent registered until the daemon's policy"
         );
         assert_eq!(

@@ -26,66 +26,17 @@
 //! never touches the system bus; every live test runs on a private bus with a stand-in
 //! Authority and a stand-in helper ([`PolkitRoute`]), never polkitd.
 
-mod bus;
-mod dbus;
-pub mod helper;
-pub mod identity;
-mod live;
-pub mod machine;
-mod run;
-mod types;
+mod backend;
 
-pub use dbus::{AGENT_PATH, AUTHORITY_NAME, AUTHORITY_PATH};
-pub use helper::{HelperLine, HelperOpening, HelperRoute, opening, parse_helper_line};
-pub use identity::pick_identity;
-pub use machine::{Completion, Origin, PolkitEffect, PolkitEvent, PolkitState, polkit_of, step};
-pub use types::{
-    ActionId, AgentPolicy, AuthRequest, Cookie, Echo, FAKE_SECRET, FakeRequest, Gid, Identity,
-    LastTry, Polkit, PolkitCommand, PromptPhase, PromptView, Registration, Uid,
-};
+use sill_model::polkit_agent::{Polkit, PolkitCommand};
 
-use crate::env::Bus;
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
-/// How to reach polkit's helper.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum HelperChoice {
-    /// Look for the socket, then the setuid binary ([`helper::helper_route`]).
-    System,
-    /// This route (tests: a stand-in helper program speaking the protocol).
-    Use(HelperRoute),
-}
-
-/// Which logind session to register for.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum SessionChoice {
-    /// logind's session of this process (`/org/freedesktop/login1/session/auto`).
-    Ours,
-    /// This id (tests).
-    Id(String),
-}
-
-/// Where the agent lives.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PolkitRoute {
-    /// polkitd's bus: the system bus, or a private one with a stand-in Authority (tests).
-    pub bus: Bus,
-    pub helper: HelperChoice,
-    pub session: SessionChoice,
-}
-
-impl PolkitRoute {
-    /// The daemon's: polkitd on `system`, polkit's helper, this session.
-    pub fn system(system: Bus) -> PolkitRoute {
-        PolkitRoute {
-            bus: system,
-            helper: HelperChoice::System,
-            session: SessionChoice::Ours,
-        }
-    }
-}
+pub use backend::{
+    AGENT_PATH, AUTHORITY_NAME, AUTHORITY_PATH, HelperChoice, PolkitRoute, SessionChoice,
+};
 
 /// sill's polkit agent as a [`Service`], registering where `env`'s [`PolkitRoute`] says (the
 /// daemon's: [`PolkitRoute::system`]); passive until a `Policy(Own)`.
@@ -105,7 +56,7 @@ impl Service for PolkitAgentService {
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let route = env.polkit.clone();
         async move {
-            live::run(io.state, io.commands, route).await;
+            backend::run(io.state, io.commands, route).await;
             Ok(())
         }
     }

@@ -11,7 +11,7 @@
 
 use std::io::{BufRead, Write};
 
-use sill_services::polkit_agent::FAKE_SECRET;
+use sill_model::polkit_agent::FAKE_SECRET;
 
 fn main() {
     let user = std::env::args().nth(1).unwrap_or_default();

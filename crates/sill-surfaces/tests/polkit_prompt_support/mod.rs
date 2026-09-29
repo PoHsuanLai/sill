@@ -14,7 +14,7 @@ use dioxus::prelude::*;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use shell_host::OutputId;
 use sill_model::auth::UserName;
-use sill_services::polkit_agent::{
+use sill_model::polkit_agent::{
     ActionId, Cookie, Echo, LastTry, Polkit, PolkitCommand, PromptPhase, PromptView, Registration,
 };
 use sill_services::{Control, Services};

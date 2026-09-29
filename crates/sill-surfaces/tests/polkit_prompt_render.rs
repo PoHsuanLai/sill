@@ -11,7 +11,7 @@ use std::time::Duration;
 use ds::ShortcutKey;
 use polkit_prompt_support::{HEIGHT, WIDTH, asking, fake, request, settle, shown, start};
 use shell_host::OutputId;
-use sill_services::polkit_agent::{Cookie, LastTry, PolkitCommand, PromptPhase};
+use sill_model::polkit_agent::{Cookie, LastTry, PolkitCommand, PromptPhase};
 
 #[test]
 fn with_no_request_it_draws_nothing() {
