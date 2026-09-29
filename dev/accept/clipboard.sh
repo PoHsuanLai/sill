@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Clipboard history acceptance, on the nested
-# cosmic-comp (dev/nested.sh; a running wayland-1 is pinged first, reused and never stopped).
-# Starts `sill run` from this checkout's debug build (`--features debug`) with a scratch
-# XDG_CONFIG_HOME and XDG_STATE_HOME, under a private session bus (dev/private-bus.conf), with
-# its own XDG_RUNTIME_DIR and the nested socket as an absolute WAYLAND_DISPLAY. `wl-copy`,
+# cosmic-comp (dev/nested.sh; its socket is pinged first, reused and never stopped).
+# Starts `sill run` from this checkout's debug build (`--features debug`) on a private bus (the
+# daemon's session AND system bus), with a scratch HOME and XDG directories, its own
+# XDG_RUNTIME_DIR and the nested socket as an absolute WAYLAND_DISPLAY. `wl-copy`,
 # `wl-paste` and the `secret_source` example are pointed at the nested socket by absolute path;
 # nothing here touches the session's own compositor (wayland-0) or its clipboard. Everything
 # copied is made up, and no clipboard content is printed or written to a file: only counts,
@@ -22,30 +22,27 @@
 #
 # Exit 0 when every step passed, 1 on a failure.
 #
-# Usage: dev/nested.sh && dev/accept-clipboard.sh
+# Usage: dev/nested.sh && dev/accept/clipboard.sh
 set -uo pipefail
-# shellcheck source=dev/common.sh
-source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+# shellcheck source=dev/lib/all.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 OUT_DIR="$SILL_REPO/target/accept-clipboard"
 mkdir -p "$OUT_DIR"
 
-source "$SHELL_HOST_DEV/.nested-env"
-HOST_RUNTIME="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-NESTED_SOCKET="$HOST_RUNTIME/$WAYLAND_DISPLAY"
-case "$NESTED_SOCKET" in
+use_nested_socket || exit 1
+case "$WL" in
   */wayland-0) echo "refusing wayland-0, the session's own compositor" >&2; exit 1 ;;
 esac
-RUNTIME=$(mktemp -d)
-chmod 700 "$RUNTIME"
+scratch_new
+trap scratch_drop EXIT
 WORD=lantern
 MADE_UP="m9-accept-$WORD-5210 made-up words"
 
-sill() { XDG_RUNTIME_DIR="$RUNTIME" "$SILL_BIN" "$@"; }
 # `wl-*` on the nested compositor only; their stderr (never content) to the log.
-nested_wl() { WAYLAND_DISPLAY="$NESTED_SOCKET" "$@" 2>>"$OUT_DIR/wl.log"; }
+nested_wl() { WAYLAND_DISPLAY="$WL" "$@" 2>>"$OUT_DIR/wl.log"; }
 
 ping_nested() {
-  [ -S "$NESTED_SOCKET" ] && WAYLAND_DISPLAY="$NESTED_SOCKET" wayland-info >/dev/null 2>&1
+  [ -S "$WL" ] && WAYLAND_DISPLAY="$WL" wayland-info >/dev/null 2>&1
 }
 
 # "mode protocol entries" from `sill clipboard status` (counts only, by design).
@@ -73,11 +70,6 @@ wait_status() {
   return 1
 }
 
-build() {
-  (cd "$SILL_REPO" && cargo build -p sill --features debug && cargo build -p sill-testkit --example secret_source) \
-    >"$OUT_DIR/build.log" 2>&1 || { echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
-}
-
 write_settings() {
   mkdir -p "$CONFIG/sill"
   cat >"$CONFIG/sill/settings.toml" <<TOML
@@ -87,28 +79,16 @@ TOML
 }
 
 start_daemon() {
-  CONFIG=$(mktemp -d)
-  STATE=$(mktemp -d)
   write_settings memory
-  use_fake_ddc "$CONFIG" >/dev/null
-  require_fake_ddc || return 1
-  XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_RUNTIME_DIR="$RUNTIME" \
-    WAYLAND_DISPLAY="$NESTED_SOCKET" \
-    dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- \
-    sh -c "$PRIVATE_BOTH_BUSES" "$SILL_BIN" "${FAKE_DDC_FLAGS[@]}" \
-    >"$OUT_DIR/daemon.log" 2>&1 &
-  DAEMON=$!
-  for _ in $(seq 100); do sill ping >/dev/null 2>&1 && return 0; sleep 0.1; done
-  echo "the daemon never answered 'sill ping'" >&2
-  return 1
+  launch_daemon
 }
 
-stop_daemon() {
-  [ -n "${DAEMON:-}" ] || return 0
-  sill quit >/dev/null 2>&1
-  wait "$DAEMON" 2>/dev/null
-  DAEMON=
-  rm -rf "${CONFIG:-}" "${STATE:-}"
+cleanup() {
+  local result=0
+  stop_daemon || result=1
+  stop_private_bus
+  scratch_drop
+  return "$result"
 }
 
 # 1.
@@ -123,7 +103,7 @@ step_copy() {
 # 3.
 step_secret() {
   local secret out="$OUT_DIR/secret.log"
-  "$SILL_REPO/target/debug/examples/secret_source" "$NESTED_SOCKET" 20 >"$out" 2>&1 &
+  "$SILL_REPO/target/debug/examples/secret_source" "$WL" 20 >"$out" 2>&1 &
   secret=$!
   for _ in $(seq 50); do grep -q ready "$out" && break; sleep 0.1; done
   grep -q ready "$out" || { echo "secret_source never set its selection" >&2; kill "$secret"; return 1; }
@@ -212,18 +192,15 @@ step_clear() {
   wait_status "memory ext 0"
 }
 
-ping_nested || { echo "no nested compositor at $NESTED_SOCKET (dev/nested.sh first)" >&2; exit 1; }
+ping_nested || { echo "no nested compositor at $WL (dev/nested.sh first)" >&2; exit 1; }
 command -v wl-copy >/dev/null && command -v wl-paste >/dev/null \
   || { echo "wl-copy and wl-paste are missing (wl-clipboard); not installed by this script" >&2; exit 1; }
-build || exit 1
-for _ in $(seq 600); do
-  pgrep -f 'target/[a-z]*/sill run' >/dev/null || break
-  [ -n "${WAITED:-}" ] || { echo "another sill daemon is running; waiting for it to quit" >&2; WAITED=1; }
-  sleep 1
-done
+build "-p sill-testkit --example secret_source" || exit 1
+await_no_process 'target/[a-z]*/sill run' || exit 1
 : >"$OUT_DIR/wl.log"
 nested_wl wl-copy --clear
-start_daemon || { stop_daemon; exit 1; }
+start_private_bus || exit 1
+start_daemon || { cleanup; exit 1; }
 status=0
 for step in step_status step_copy step_secret step_launcher step_off step_clear; do
   "$step"
@@ -233,8 +210,7 @@ for step in step_status step_copy step_secret step_launcher step_off step_clear;
     *) echo "FAIL $step"; status=1 ;;
   esac
 done
-stop_daemon
+cleanup || status=1
 nested_wl wl-copy --clear
-rm -rf "$RUNTIME"
 echo "logs in $OUT_DIR (counts and fault kinds only)"
 exit "$status"
