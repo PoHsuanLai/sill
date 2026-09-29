@@ -10,7 +10,7 @@
    Space gradient at the Bar's tint alpha and cross-fades it on a workspace switch (design/21
    §3 and §5); the strip paints nothing of its own. */
 .sill-bar{ position:relative; display:flex; align-items:center; justify-content:space-between;
-  padding:0 var(--s-8); color:var(--f-ink-soft); transition:color var(--t-scene) var(--e-out); }
+  padding:0 var(--s-8); color:var(--f-ink-soft); transition:color var(--t-big) var(--e-out); }
 
 .sill-bar-group{ position:relative; display:flex; align-items:center; height:100%; gap:var(--s-4); }
 
