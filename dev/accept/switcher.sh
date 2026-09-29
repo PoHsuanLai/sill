@@ -40,66 +40,24 @@
 #      it, and no window's activation changed.
 #   7. 5 s idle after it hides: 0 frames on the switcher surface.
 #
-# Usage: dev/nested.sh && dev/accept-switcher.sh
+# Usage: dev/nested.sh && dev/accept/switcher.sh
 set -uo pipefail
-# shellcheck source=dev/common.sh
-source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
-# shellcheck source=dev/backdrop.sh
-source "$(dirname "${BASH_SOURCE[0]}")/backdrop.sh"
+# shellcheck source=dev/lib/all.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 OUT_DIR="$SILL_REPO/target/accept-switcher"
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
-HOST_REPO="$(cd "$SHELL_HOST_DEV/../.." && pwd)"
 HOST_TARGET="$SILL_REPO/target/shell-host-examples"
 DEMO="$HOST_TARGET/debug/examples/demo_window"
 SHOW_DELAY_MS=400
 
-source "$SHELL_HOST_DEV/.nested-env"
-NESTED_SOCKET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/$WAYLAND_DISPLAY"
-# A private dbus-daemon (dev/private-bus.conf) as both the daemon's session and system bus: the
-# real one was the default here (DBUS_SESSION_BUS_ADDRESS's own fallback built the real per-user
-# bus path), so NetworkManager, BlueZ, UPower and the rest were real.
-BUS=
-BUS_PID=
-RUN_DIR=
-CONFIG=
-DAEMON=
+use_nested_socket || exit 1
+scratch_new
+mkdir -p "$CONFIG/sill"
 PIDS=()
 HOLD=
 
-sill() { XDG_RUNTIME_DIR="$RUN_DIR" WAYLAND_DISPLAY="$NESTED_SOCKET" "$SILL_BIN" "$@"; }
-nested() { "$SHELL_HOST_DEV/run.sh" "$@"; }
-keys() { WAYLAND_DISPLAY="$NESTED_SOCKET" wtype "$@"; }
-now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
-
-# The nested output's connector name (the surfaces' namespace suffix).
-output_name() {
-  sill debug stats | python3 -c '
-import json, sys
-for row in json.loads(sys.stdin.read())["v"]:
-    s = row["surface"]
-    if s.startswith("sill-bar-"):
-        print(s[len("sill-bar-"):]); break'
-}
-
-# A surface's cumulative frame counter from `sill debug stats`.
-frames_of() {
-  sill debug stats | python3 -c '
-import json, sys
-for row in json.loads(sys.stdin.read())["v"]:
-    if row["surface"] == sys.argv[1]:
-        print(row["frames"])' "$1"
-}
-
-# How many pixels of the PNG $1 are not fully transparent.
-opaque_pixels() {
-  python3 - "$1" <<'EOF'
-import sys
-from PIL import Image
-img = Image.open(sys.argv[1]).convert("RGBA")
-print(sum(1 for a in img.getchannel("A").tobytes() if a > 0))
-EOF
-}
+keys() { WAYLAND_DISPLAY="$WL" wtype "$@"; }
 
 # The mean absolute difference of two PNGs' RGBA bytes (0-255).
 diff_of() {
@@ -163,41 +121,22 @@ wait_demo() {
   return 1
 }
 
-build() {
-  (cd "$SILL_REPO" && cargo build -p sill --features debug) >"$OUT_DIR/build.log" 2>&1 || {
-    echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
+# The debug daemon (the lib's build) and shell-host's demo_window, built in this checkout's own
+# target directory so shell-host's is left alone.
+build_switcher() {
+  build || return 1
   CARGO_TARGET_DIR="$HOST_TARGET" cargo build --manifest-path "$HOST_REPO/Cargo.toml" \
     -p shell-host --features debug-inject --example demo_window >>"$OUT_DIR/build.log" 2>&1 || {
     echo "demo_window build failed (see $OUT_DIR/build.log)" >&2; return 1; }
 }
 
-start_daemon() {
-  RUN_DIR=$(mktemp -d)
-  chmod 700 "$RUN_DIR"
-  CONFIG=$(mktemp -d)
-  mkdir -p "$CONFIG/sill"
+start_switcher_daemon() {
   printf '[switcher]\nshow_delay_ms = %s\n' "$SHOW_DELAY_MS" >"$CONFIG/sill/settings.toml"
   backdrop_seed "$CONFIG" || return 1
-  use_fake_ddc "$CONFIG" >/dev/null
-  require_fake_ddc || return 1
-  XDG_RUNTIME_DIR="$RUN_DIR" WAYLAND_DISPLAY="$NESTED_SOCKET" DBUS_SESSION_BUS_ADDRESS="$BUS" \
-    DBUS_SYSTEM_BUS_ADDRESS="$BUS" \
-    XDG_CONFIG_HOME="$CONFIG" "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" >"$OUT_DIR/daemon.log" 2>&1 &
-  DAEMON=$!
-  for _ in $(seq 100); do sill ping >/dev/null 2>&1 && break; sleep 0.1; done
-  for _ in $(seq 50); do NAME=$(output_name); [ -n "$NAME" ] && break; sleep 0.1; done
-  [ -n "${NAME:-}" ] || { echo "no bar in 'sill debug stats'" >&2; return 1; }
+  launch_daemon || return 1
+  NAME=$(output_name) || return 1
   SWITCHER="sill-switcher-$NAME"
   sleep 1
-}
-
-stop_daemon() {
-  [ -n "${DAEMON:-}" ] || return 0
-  sill quit >/dev/null 2>&1
-  wait "$DAEMON" 2>/dev/null
-  DAEMON=
-  stop_private_bus
-  rm -rf "$CONFIG" "$RUN_DIR"
 }
 
 # The three windows, each waited for; demo's state lines go to demo.log. Each starts through
@@ -221,7 +160,8 @@ start_windows() {
 }
 
 stop_windows() {
-  local pid
+  local pid display
+  display=$(source "$SHELL_HOST_DEV/.nested-env" && echo "$WAYLAND_DISPLAY")
   exec 8>&- 2>/dev/null
   for pid in "${PIDS[@]}"; do
     pkill -P "$pid" 2>/dev/null
@@ -233,7 +173,7 @@ stop_windows() {
   # from this checkout (never the host's, never another checkout's).
   for pid in $(pgrep -x cosmic-term); do
     [ "$(readlink "/proc/$pid/cwd")" = "$SILL_REPO" ] || continue
-    tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null | grep -qx "WAYLAND_DISPLAY=$WAYLAND_DISPLAY" \
+    tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null | grep -qx "WAYLAND_DISPLAY=$display" \
       && kill "$pid" 2>/dev/null
   done
 }
@@ -399,23 +339,22 @@ cleanup() {
   stop_windows
   stop_daemon
   stop_private_bus
+  scratch_drop
 }
 trap cleanup EXIT
 
 nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
 command -v wtype >/dev/null || { echo "wtype not found (the keys)" >&2; exit 1; }
-build || exit 1
+build_switcher || exit 1
 if pgrep -x sill >/dev/null; then
   echo "another sill daemon is running; wait for it to quit" >&2
   exit 1
 fi
 start_private_bus || exit 1
-start_daemon || exit 1
+start_switcher_daemon || exit 1
 start_windows || exit 1
-status=0
-for step in step_warm step_quick_tap step_show_move_cancel step_commit_third step_real_keys \
-  step_quit step_idle; do
-  if "$step"; then echo "PASS $step"; else echo "FAIL $step"; status=1; fi
-done
+run_steps step_warm step_quick_tap step_show_move_cancel step_commit_third step_real_keys \
+  step_quit step_idle
+status=$STATUS
 echo "logs in $OUT_DIR; screenshot $SHOTS/switcher-cosmic.png"
 exit "$status"
