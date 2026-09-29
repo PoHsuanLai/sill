@@ -3,8 +3,8 @@
 //! their own modules and are called in their drawing order by [`spawn_missing`].
 
 use shell_host::SurfaceId;
-use shell_host::scale::{Size as BufferSize, buffer_size};
 use shell_host::{HostCtx, HostRoot, OutputInfo};
+use shell_host::{Size as BufferSize, buffer_size};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};

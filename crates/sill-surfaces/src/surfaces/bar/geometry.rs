@@ -197,7 +197,7 @@ mod tests {
     use crate::surfaces::control_center::fit::Fit;
     use ds::{MenuEntry, Point, Px, Rect as DsRect, Size as DsSize};
     use shell_host::Rect;
-    use shell_host::popup::offset_rect;
+    use shell_host::offset_rect;
     use sill_settings::{ControlCenterModule, ControlCenterSettings};
 
     fn title(x: f32, width: f32) -> DsRect {

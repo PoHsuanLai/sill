@@ -13,8 +13,8 @@ mod fake;
 
 use std::collections::HashSet;
 
-use shell_host::scale::{Size, buffer_size};
 use shell_host::{Host, HostCtx, HostEvent, HostRoot, OutputId, OutputInfo};
+use shell_host::{Size, buffer_size};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_services::Control;

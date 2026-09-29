@@ -108,9 +108,7 @@ fn take_door() -> Result<latchkey::Listening, ExitCode> {
 /// The host's configuration: shell-host's, with the first-mouse window from `first`'s settings.
 fn host_config(first: &ShellFile) -> HostConfig {
     HostConfig {
-        first_mouse_window_ms: shell_host::config::Ms(u32::from(
-            first.menus.first_mouse_window_ms.0,
-        )),
+        first_mouse_window_ms: shell_host::Ms(u32::from(first.menus.first_mouse_window_ms.0)),
         ..sill_surfaces::host_config()
     }
 }

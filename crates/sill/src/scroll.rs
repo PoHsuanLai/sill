@@ -4,7 +4,7 @@
 //! enums, so the mapping is field by field rather than a shared type. Pure; `daemon.rs` calls it at
 //! start and on every settings change.
 
-use shell_host::scroll::config as host;
+use shell_host as host;
 use sill_settings::{
     Fraction, Momentum, MomentumModel, Ms, NaturalScroll, Px, RubberBand, Scalar, ScrollSettings,
     ScrollbarSettings, ScrollbarVisibility, ShellFile, TrackClick,
@@ -61,20 +61,20 @@ fn scrollbar(s: &ScrollbarSettings) -> host::ScrollbarSettings {
     }
 }
 
-fn px(v: Px) -> host::Px {
-    host::Px(v.0)
+fn px(v: Px) -> host::ScrollPx {
+    host::ScrollPx(v.0)
 }
 
-fn ms(v: Ms) -> host::Ms {
-    host::Ms(v.0)
+fn ms(v: Ms) -> host::ScrollMs {
+    host::ScrollMs(v.0)
 }
 
-fn fraction(v: Fraction) -> host::Fraction {
-    host::Fraction(v.0)
+fn fraction(v: Fraction) -> host::ScrollFraction {
+    host::ScrollFraction(v.0)
 }
 
-fn scalar(v: Scalar) -> host::Scalar {
-    host::Scalar(v.0)
+fn scalar(v: Scalar) -> host::ScrollScalar {
+    host::ScrollScalar(v.0)
 }
 
 fn natural_scroll(v: NaturalScroll) -> host::NaturalScroll {
@@ -178,7 +178,7 @@ mod tests {
         file.scroll.wheel_detent_px = Px(53);
         file.scrollbar.hide_delay_ms = Ms(900);
         let got = config(&file);
-        assert_eq!(got.scroll.wheel_detent_px, host::Px(53));
-        assert_eq!(got.scrollbar.hide_delay_ms, host::Ms(900));
+        assert_eq!(got.scroll.wheel_detent_px, host::ScrollPx(53));
+        assert_eq!(got.scrollbar.hide_delay_ms, host::ScrollMs(900));
     }
 }

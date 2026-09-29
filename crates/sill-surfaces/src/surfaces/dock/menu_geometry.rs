@@ -153,7 +153,7 @@ mod tests {
     use crate::surfaces::dock::frame::Area;
     use crate::surfaces::dock::pick::DockPick;
     use ds::{Availability, MenuEntry, MenuTrail};
-    use shell_host::popup::offset_rect;
+    use shell_host::offset_rect;
     use sill_launcher::WindowKey;
     use sill_model::units::Cpx;
 

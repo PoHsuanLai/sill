@@ -13,7 +13,7 @@ use super::super::reply::failed;
 use super::super::reply::unsupported;
 use crate::daemon::msg::ShellMsg;
 
-/// What [`inject`] was asked to do, independent of `shell_host::Inject` (only defined under
+/// What [`inject`] was asked to do, independent of `shell_host::inject::Inject` (only defined under
 /// shell-host's `debug-inject` feature) so both builds compile.
 pub enum Injection {
     Pointer(Point),
@@ -40,14 +40,14 @@ pub fn inject(ctx: &mut HostCtx<ShellMsg>, surface: SurfaceName, injection: Inje
 /// The key `spec` names as shell-host's `Inject::Key`: a name it does not know is the caller's
 /// mistake.
 #[cfg(feature = "debug")]
-fn host_key(spec: &KeySpec, action: KeyAction) -> Result<shell_host::Inject, String> {
+fn host_key(spec: &KeySpec, action: KeyAction) -> Result<shell_host::inject::Inject, String> {
     let stroke = shell_host::inject::parse_key(&spec.0).map_err(|e| e.to_string())?;
     let action = match action {
         KeyAction::Tap => shell_host::inject::KeyAction::Tap,
         KeyAction::Press => shell_host::inject::KeyAction::Press,
         KeyAction::Release => shell_host::inject::KeyAction::Release,
     };
-    Ok(shell_host::Inject::Key { stroke, action })
+    Ok(shell_host::inject::Inject::Key { stroke, action })
 }
 
 /// Through shell-host's typed `HostCtx::inject` (a capture's success and size come back directly
@@ -67,22 +67,22 @@ fn apply(ctx: &mut HostCtx<ShellMsg>, id: SurfaceId, injection: Injection) -> Re
 /// `injection` as shell-host's; every pointer button maps through, and a key is parsed here, at
 /// the boundary.
 #[cfg(feature = "debug")]
-fn to_host(injection: Injection) -> Result<shell_host::Inject, String> {
+fn to_host(injection: Injection) -> Result<shell_host::inject::Inject, String> {
     let point = |at: Point| shell_host::Point { x: at.x, y: at.y };
     Ok(match injection {
         Injection::Key(spec, action) => return host_key(&spec, action),
-        Injection::Pointer(at) => shell_host::Inject::Pointer { at: point(at) },
-        Injection::Leave => shell_host::Inject::Leave,
-        Injection::Capture(path) => shell_host::Inject::Capture { path },
-        Injection::Click(at, button) => shell_host::Inject::Click {
+        Injection::Pointer(at) => shell_host::inject::Inject::Pointer { at: point(at) },
+        Injection::Leave => shell_host::inject::Inject::Leave,
+        Injection::Capture(path) => shell_host::inject::Inject::Capture { path },
+        Injection::Click(at, button) => shell_host::inject::Inject::Click {
             at: point(at),
             button: host_button(button),
         },
-        Injection::Press(at, button) => shell_host::Inject::PointerDown {
+        Injection::Press(at, button) => shell_host::inject::Inject::PointerDown {
             at: point(at),
             button: host_button(button),
         },
-        Injection::Release(at, button) => shell_host::Inject::PointerUp {
+        Injection::Release(at, button) => shell_host::inject::Inject::PointerUp {
             at: point(at),
             button: host_button(button),
         },
@@ -144,7 +144,7 @@ mod tests {
         for (ours, theirs) in buttons {
             assert_eq!(
                 to_host(Injection::Click(at, ours)),
-                Ok(shell_host::Inject::Click {
+                Ok(shell_host::inject::Inject::Click {
                     at: host_at,
                     button: theirs,
                 }),
@@ -152,7 +152,7 @@ mod tests {
             );
             assert_eq!(
                 to_host(Injection::Press(at, ours)),
-                Ok(shell_host::Inject::PointerDown {
+                Ok(shell_host::inject::Inject::PointerDown {
                     at: host_at,
                     button: theirs,
                 }),
@@ -160,7 +160,7 @@ mod tests {
             );
             assert_eq!(
                 to_host(Injection::Release(at, ours)),
-                Ok(shell_host::Inject::PointerUp {
+                Ok(shell_host::inject::Inject::PointerUp {
                     at: host_at,
                     button: theirs,
                 }),
@@ -172,7 +172,8 @@ mod tests {
     #[test]
     fn a_key_spec_parses_into_shell_hosts_key_and_a_bad_one_is_refused() {
         let key = |spec: &str, action| to_host(Injection::Key(KeySpec(spec.to_owned()), action));
-        let Ok(shell_host::Inject::Key { stroke, action }) = key("Tab+shift", KeyAction::Press)
+        let Ok(shell_host::inject::Inject::Key { stroke, action }) =
+            key("Tab+shift", KeyAction::Press)
         else {
             panic!("Tab+shift is a key");
         };
