@@ -6,21 +6,13 @@
 //! (`scripts/check-boundary.sh`): the bar and dock read this module only through [`Badges`] and
 //! [`BadgesCommand`], via `use_service::<BadgesService>`.
 
-mod live;
-mod model;
+mod backend;
 
-pub use model::{Badge, BadgeEvent, BadgeProp, Badges, parse_app_uri, step};
+use sill_model::badges::{Badges, BadgesCommand};
 
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
-
-/// What the badges service can be told.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BadgesCommand {
-    /// Forget every badge (after `sill reload`).
-    Clear,
-}
 
 /// LauncherEntry badges as a [`Service`]: follows `LauncherEntry.Update` on the session bus and
 /// senders leaving it (`NameOwnerChanged` clears their apps' badges). Without a session bus the
@@ -39,6 +31,6 @@ impl Service for BadgesService {
         (): (),
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
-        live::run(env.buses.session.clone(), io.state, io.commands)
+        backend::run(env.buses.session.clone(), io.state, io.commands)
     }
 }

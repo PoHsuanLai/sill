@@ -22,8 +22,8 @@ use dioxus::prelude::*;
 use ds::{
     IconPx, IconSize, IconView, PlateFamily, PlateTint, RunningDot, Shown, Tooltip, TooltipKind,
 };
+use sill_model::badges::Badge;
 use sill_model::units::{Cpx, Permille};
-use sill_services::Badge;
 use sill_settings::{DockSettings, Indicators, ProgressStyle};
 
 use crate::app_icons::{IconLook, use_icon_resolver};

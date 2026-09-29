@@ -6,6 +6,7 @@
 
 use shell_host::{OutputId, OutputInfo, Rect, Scale};
 use sill_launcher::WindowKey;
+use sill_model::badges::Badges;
 use sill_model::battery::{Battery, Charge};
 use sill_model::clock::ClockText;
 use sill_model::cosmic_wl::{
@@ -17,11 +18,10 @@ use sill_model::now_playing::{Media, MediaCommand};
 use sill_model::pins::DockPins;
 use sill_model::power_profile::{PowerProfiles, Profile, ProfileCommand, ProfileDegraded};
 use sill_model::tray::Tray;
-use sill_model::units::Urgency;
-use sill_model::units::{Percent, Presence, Seconds, Visibility};
+use sill_model::units::{Percent, Presence, Seconds, Urgency, Visibility};
 use sill_model::volume::{Mute, Volume};
 use sill_services::{
-    AccessPoint, AppIndex, Association, Badges, Bluetooth, BluetoothCommand, BtAddress, BtBattery,
+    AccessPoint, AppIndex, Association, Bluetooth, BluetoothCommand, BtAddress, BtBattery,
     BtConnection, BtDevice, BtKind, BtPairing, BtPower, Connectivity, Handle, Launches, Link,
     Network, Radio, Results, Security, Service, Services, Ssid, Wallpapers, Wifi, WifiCommand,
 };

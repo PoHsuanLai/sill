@@ -6,9 +6,10 @@ mod dock_support;
 
 use dioxus::prelude::*;
 use sill_launcher::AppId;
+use sill_model::badges::Badges;
 use sill_model::cosmic_wl::Toplevels;
 use sill_model::pins::DockPins;
-use sill_services::{Badges, Services};
+use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile, TrashTile};
 use sill_surfaces::Dock;
 use sill_surfaces::surfaces::dock::DockProps;

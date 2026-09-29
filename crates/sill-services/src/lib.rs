@@ -56,9 +56,7 @@ pub use apps::{
     DesktopActionEntry, ExecArgs, ExecError, Listing, Terminal, expand_exec, match_app,
 };
 pub use auth::{Auth, AuthCommand, AuthPhase, AuthService};
-pub use badges::{
-    Badge, BadgeEvent, BadgeProp, Badges, BadgesCommand, BadgesService, parse_app_uri,
-};
+pub use badges::BadgesService;
 pub use battery::BatteryService;
 pub use bluetooth::{
     Bluetooth, BluetoothCommand, BluetoothEvent, BluetoothService, BtAddress, BtBattery,

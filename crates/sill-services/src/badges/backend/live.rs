@@ -5,6 +5,8 @@
 use std::collections::HashMap;
 
 use sill_launcher::AppId;
+use sill_model::badges::{BadgeEvent, BadgeProp, Badges, BadgesCommand, parse_app_uri, step};
+use sill_model::units::{Permille, Urgency, Visibility};
 use tokio::sync::{mpsc, watch};
 use zbus::fdo::{DBusProxy, NameOwnerChanged};
 use zbus::message::{Message, Type as MessageType};
@@ -12,13 +14,9 @@ use zbus::names::OwnedUniqueName;
 use zbus::zvariant::OwnedValue;
 use zbus::{MatchRule, MessageStream};
 
-use super::BadgesCommand;
-use super::model::{BadgeEvent, BadgeProp, Badges, parse_app_uri, step};
 use crate::env::Bus;
 use crate::error::ServiceError;
 use crate::stream::next;
-use sill_model::units::Urgency;
-use sill_model::units::{Permille, Visibility};
 
 const INTERFACE: &str = "com.canonical.Unity.LauncherEntry";
 const MEMBER: &str = "Update";
@@ -26,7 +24,7 @@ const MEMBER: &str = "Update";
 /// Connects to the session bus and runs until `commands` closes (the `Control` was dropped).
 /// If the bus is unreachable, `tx` is left at `Badges::default()` — starting a service never
 /// fails the shell (`error.rs`).
-pub(super) async fn run(
+pub(crate) async fn run(
     bus: Bus,
     tx: watch::Sender<Badges>,
     mut commands: mpsc::UnboundedReceiver<BadgesCommand>,
@@ -198,7 +196,7 @@ mod tests {
     use zbus::zvariant::{OwnedValue, Value};
 
     use super::{decode_props, permille_of};
-    use crate::badges::model::BadgeProp;
+    use sill_model::badges::BadgeProp;
     use sill_model::units::{Permille, Visibility};
 
     fn dict(pairs: Vec<(&str, Value<'static>)>) -> HashMap<String, OwnedValue> {
