@@ -137,5 +137,6 @@ pub use tray::{
 pub use units::{Cpx, Minutes, Percent, Permille, Presence, Seconds, Stamp, Visibility};
 pub use volume::{Mute, Step, Volume, VolumeCommand, VolumeEvent, VolumeService, stepped};
 pub use wallpaper::{
-    WallpaperCommand, WallpaperImage, WallpaperSource, Wallpapers, cache_file_name,
+    WallpaperCommand, WallpaperImage, WallpaperService, WallpaperSource, Wallpapers,
+    cache_file_name,
 };

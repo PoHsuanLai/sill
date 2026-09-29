@@ -153,7 +153,8 @@ impl Services {
                 launch: launch.clone(),
             }),
         ));
-        let (wallpapers, wallpaper_control) = crate::wallpaper::spawn(rt, &env.dirs);
+        let (wallpapers, wallpaper_control) =
+            parts(spawn::<crate::wallpaper::WallpaperService>(rt, env, ()));
         let (wifi, wifi_control) = parts(spawn::<crate::network::wifi::WifiService>(rt, env, ()));
         let (bluetooth, bluetooth_control) =
             parts(spawn::<crate::bluetooth::BluetoothService>(rt, env, ()));

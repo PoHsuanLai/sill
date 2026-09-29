@@ -37,12 +37,14 @@ fn run() -> Result<(), String> {
         .build()
         .map_err(|e| e.to_string())?;
     let (mut services, _feeds) = fake::services();
-    let (wallpapers, wallpaper_control) = sill_services::wallpaper::spawn(
+    let wallpaper = sill_services::service::spawn::<sill_services::WallpaperService>(
         runtime.handle(),
-        &sill_services::env::Dirs::from_process(),
+        &sill_services::env::Env::from_process(),
+        (),
     );
-    services.wallpapers = wallpapers;
-    services.wallpaper_control = wallpaper_control.clone();
+    let wallpaper_control = wallpaper.control.clone();
+    services.wallpapers = wallpaper.state;
+    services.wallpaper_control = wallpaper.control;
 
     let host = Host::<()>::connect(sill_surfaces::host_config()).map_err(|e| e.to_string())?;
     let mut done = HashSet::<OutputId>::new();

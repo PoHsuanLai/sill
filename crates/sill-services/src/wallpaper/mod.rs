@@ -29,9 +29,10 @@ use serde::{Deserialize, Serialize};
 use tokio::runtime::Handle;
 use tokio::sync::{mpsc, watch as channel};
 
-use crate::control::Control;
 use crate::cosmic_wl::OutputName;
-use crate::env::Dirs;
+use crate::env::{Dirs, Env};
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
 /// Where a wallpaper comes from.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -80,21 +81,31 @@ fn cache_directory(dirs: &Dirs) -> PathBuf {
     dirs.sill_cache().join(CACHE_DIR)
 }
 
-/// Start the wallpaper service: resize on the blocking pool, publish cached paths.
-/// COSMIC's record is read under `dirs`' config directory, the resized copies kept in its cache.
-pub fn spawn(
-    rt: &Handle,
-    dirs: &Dirs,
-) -> (channel::Receiver<Wallpapers>, Control<WallpaperCommand>) {
-    let (tx, rx) = channel::channel(Wallpapers::default());
-    let (control, commands) = Control::channel();
-    let reload = watch::watch(&config_path(&dirs.config), rt);
-    let places = Places {
-        config: dirs.config.clone(),
-        cache: cache_directory(dirs),
-    };
-    rt.spawn(run(tx, commands, reload, places, rt.clone()));
-    (rx, control)
+/// The wallpapers as a [`Service`]: resized on the blocking pool, published as cached paths.
+/// COSMIC's record is read under `env`'s config directory, the resized copies kept in its cache.
+#[derive(Debug)]
+pub enum WallpaperService {}
+
+impl Service for WallpaperService {
+    const NAME: &'static str = "wallpaper";
+    type State = Wallpapers;
+    type Command = WallpaperCommand;
+    type Deps = ();
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let places = Places {
+            config: env.dirs.config.clone(),
+            cache: cache_directory(&env.dirs),
+        };
+        async move {
+            run(io.state, io.commands, places).await;
+            Ok(())
+        }
+    }
 }
 
 /// Waits on `commands` while `listening`; parks forever once it is not (mirrors
@@ -129,10 +140,10 @@ struct Places {
 async fn run(
     tx: channel::Sender<Wallpapers>,
     mut commands: mpsc::UnboundedReceiver<WallpaperCommand>,
-    reload: Option<(notify::RecommendedWatcher, mpsc::UnboundedReceiver<()>)>,
     places: Places,
-    rt: Handle,
 ) {
+    let rt = Handle::current();
+    let reload = watch::watch(&config_path(&places.config), &rt);
     // Held for `run`'s whole life: dropping the watcher stops the watch.
     let (_watcher, mut reload) = match reload {
         Some((watcher, reload)) => (Some(watcher), Some(reload)),
@@ -234,17 +245,19 @@ fn forget(tx: &channel::Sender<Wallpapers>, output: &OutputName) {
 
 #[cfg(test)]
 mod tests {
-    use super::{WallpaperCommand, Wallpapers, spawn};
+    use super::{WallpaperCommand, WallpaperService, Wallpapers};
     use crate::cosmic_wl::OutputName;
+    use crate::service::spawn;
 
-    /// `spawn` never panics (no compositor or config directory needed to start), and a
+    /// Starting never panics (no compositor or config directory needed to start), and a
     /// `Prepare` in a scratch home with no COSMIC background config settles to no entry at
     /// all — never a panic, a hang, or a half-written entry.
     #[tokio::test]
     async fn spawn_does_not_panic_and_prepare_settles_to_a_defined_state() {
         let rt = tokio::runtime::Handle::current();
         let scratch = crate::env::scratch::Scratch::new("wallpaper-spawn");
-        let (mut wallpapers, control) = spawn(&rt, &scratch.env().dirs);
+        let service = spawn::<WallpaperService>(&rt, &scratch.env(), ());
+        let (mut wallpapers, control) = (service.state, service.control);
         assert_eq!(*wallpapers.borrow(), Wallpapers::default());
         control
             .send(WallpaperCommand::Prepare {
