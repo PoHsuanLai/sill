@@ -81,7 +81,7 @@ fn build_probe() -> PathBuf {
             "build",
             "--quiet",
             "-p",
-            "sill-services",
+            "sill-testkit",
             "--example",
             "files_probe",
         ])
