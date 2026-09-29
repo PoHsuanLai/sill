@@ -60,7 +60,7 @@ mod tests {
         let next = Appearance {
             theme: Theme::Dark,
             accent: Accent::ALL[1],
-            motion: Motion::Calm,
+            motion: Motion::Reduced,
         };
         let file = with_appearance(AppearanceFile::default(), next);
         assert_eq!(file.appearance.appearance(), next);
