@@ -1,5 +1,5 @@
 //! Query-to-first-batch latency of the launcher search, through the public
-//! `sill_services::results::spawn`.
+//! `sill_services::results::ResultsService` given its providers.
 //!
 //! `cargo run -p sill-services --example search_bench --release`
 //!
@@ -18,8 +18,10 @@ use sill_launcher::{
     ProviderKind, Query, RankWeights, ResultSink, Score, matching::matcher, rank_text,
 };
 use sill_services::apps::{IconTheme, scan};
-use sill_services::env::Dirs;
-use sill_services::{AppIndex, AppsEvent, Listing, SearchCommand, reduce_apps, results};
+use sill_services::env::Env;
+use sill_services::results;
+use sill_services::service::spawn;
+use sill_services::{AppIndex, AppsEvent, Listing, ResultsService, SearchCommand, reduce_apps};
 
 const QUERIES: &[&str] = &[
     "fi", "firefox", "rich", "act", "only", "o", "fx", "ric", "ff", "fire", "app", "ac",
@@ -104,8 +106,13 @@ fn measure(rt: &tokio::runtime::Runtime, name: &str, index: AppIndex) {
     let apps = index.apps.len();
     // A scratch state folder: the bench's choices never reach the person's launcher history.
     let scratch = std::env::temp_dir().join(format!("sill-search-bench-{}", std::process::id()));
-    let dirs = Dirs::under(&scratch);
-    let (mut rx, control) = results::spawn(rt.handle(), vec![Arc::new(IndexApps(index))], &dirs);
+    let env = Env::isolated(&scratch);
+    let search = spawn::<ResultsService>(
+        rt.handle(),
+        &env,
+        results::Sources::Providers(vec![Arc::new(IndexApps(index))]),
+    );
+    let (mut rx, control) = (search.state, search.control);
     let mut generation = 0u64;
     let mut ask = |text: &str| {
         generation += 1;

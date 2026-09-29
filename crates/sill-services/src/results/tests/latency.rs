@@ -1,6 +1,6 @@
 //! Query to first batch over the fixture app index (`tests/fixtures/applications`), through the
 //! whole runner: `Control::send`, a new generation, a blocking task per provider, the batch on
-//! the channel, `reduce_results`, grouping and the watch. Brief: p95 under 10 ms over 200
+//! the channel, `step`, grouping and the watch. Brief: p95 under 10 ms over 200
 //! queries on a warm index. `examples/search_bench.rs` measures a larger index in release.
 
 use std::path::Path;

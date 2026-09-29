@@ -147,19 +147,18 @@ impl Services {
                 display: env.wayland.clone(),
             },
         );
-        let (results, search) = crate::results::spawn_with_providers(
+        let (results, search) = parts(spawn::<crate::results::ResultsService>(
             rt,
-            crate::results::Wiring {
-                apps: &apps,
-                toplevels: &toplevels,
-                workspaces: &workspaces,
-                clipboard: &clipboard,
-                wl: &wl,
-                launch: &launch,
-                buses: &env.buses,
-                dirs: &env.dirs,
-            },
-        );
+            env,
+            crate::results::Sources::Services(crate::results::ResultsLinks {
+                apps: apps.clone(),
+                toplevels: toplevels.clone(),
+                workspaces: workspaces.clone(),
+                clipboard: clipboard.clone(),
+                wl: wl.clone(),
+                launch: launch.clone(),
+            }),
+        ));
         let (wallpapers, wallpaper_control) = crate::wallpaper::spawn(rt, &env.dirs);
         let (wifi, wifi_control) = parts(spawn::<crate::network::wifi::WifiService>(rt, env, ()));
         let (bluetooth, bluetooth_control) =

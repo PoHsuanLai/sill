@@ -118,8 +118,8 @@ pub use power_profile::{
     PowerProfileService, PowerProfiles, Profile, ProfileCommand, ProfileDegraded, ProfileEvent,
 };
 pub use results::{
-    CurrencyPolicy, FilesChoice, LauncherPolicy, Results, ResultsEvent, SearchCommand, WebPolicy,
-    reduce_results,
+    CurrencyPolicy, FilesChoice, LauncherPolicy, Results, ResultsEvent, ResultsService,
+    SearchCommand, WebPolicy,
 };
 pub use screenshots::{Shot, ShotCommand, ShotId, ShotKind, ShotLeave, ShotPreview, Shots};
 pub use service::{Handle, Service, ServiceIo};

@@ -1,5 +1,5 @@
 //! The search task: one generation per keystroke, every provider on its own blocking task,
-//! batches merged through `reduce_results` as they arrive, the merged list published in
+//! batches merged through `step` as they arrive, the merged list published in
 //! Spotlight's sections with their spans (`arrange`).
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -15,7 +15,7 @@ use super::SearchCommand;
 use super::arrange::{Asked, Typed, arranged};
 use super::effect::{Outlets, effect};
 use super::history::{History, Persist};
-use super::model::{Results, ResultsEvent, reduce_results};
+use super::model::{Results, ResultsEvent, step};
 use super::policy::LauncherPolicy;
 use super::sink::{Arrival, ChannelSink, FinishedOnDrop};
 
@@ -28,7 +28,7 @@ pub(crate) struct Search {
     /// Where the settings-gated providers read the settings' policy from.
     policy: watch::Sender<LauncherPolicy>,
     cancel: Cancel,
-    /// Every row of the newest generation, best first (`reduce_results`'s order).
+    /// Every row of the newest generation, best first (`step`'s order).
     merged: Results,
     /// What the newest generation asked: its text's shape and scope.
     asked: Asked,
@@ -121,7 +121,7 @@ impl Search {
             })
             .cloned()
             .collect();
-        self.merged = reduce_results(
+        self.merged = step(
             std::mem::take(&mut self.merged),
             ResultsEvent::Began(query.generation),
         );
@@ -139,7 +139,7 @@ impl Search {
     /// The launcher closed: cancel the running generation and show nothing.
     fn close(&mut self) {
         let generation = self.cancel.begin();
-        self.merged = reduce_results(
+        self.merged = step(
             std::mem::take(&mut self.merged),
             ResultsEvent::Began(generation),
         );
@@ -181,7 +181,7 @@ impl Search {
     pub(super) fn arrive(&mut self, arrival: Arrival) {
         match arrival {
             Arrival::Batch(batch) => {
-                // Late rows of an overtaken generation: `reduce_results` would drop them too,
+                // Late rows of an overtaken generation: `step` would drop them too,
                 // but they must not cost a publish either.
                 if batch.generation != self.merged.generation {
                     return;
@@ -189,8 +189,7 @@ impl Search {
                 if batch.items.is_empty() {
                     return;
                 }
-                self.merged =
-                    reduce_results(std::mem::take(&mut self.merged), ResultsEvent::Batch(batch));
+                self.merged = step(std::mem::take(&mut self.merged), ResultsEvent::Batch(batch));
                 self.publish();
             }
             Arrival::Finished(generation) if generation == self.merged.generation => {

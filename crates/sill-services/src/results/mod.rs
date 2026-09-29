@@ -4,7 +4,7 @@
 //!
 //! Each [`SearchCommand::Query`] begins a generation (`Cancel::begin`, so every older query
 //! reads as cancelled) and runs every provider on its own blocking task; their batches merge
-//! through [`reduce_results`] as they arrive and the merged rows are published in the command
+//! through [`step`] as they arrive and the merged rows are published in the command
 //! menu's groups (`arrange`: Top hit, then one run per provider in Tab order; with nothing
 //! typed, the System rows then Recent). Batches of an older generation are dropped however
 //! late they arrive.
@@ -24,22 +24,24 @@ mod test_support;
 mod tests;
 
 pub use frecency_file::{FILE_NAME as FRECENCY_FILE, load_frecency, save_frecency};
-pub use model::{Results, ResultsEvent, reduce_results};
+pub use model::{Results, ResultsEvent, step};
 pub use policy::{CurrencyPolicy, FilesChoice, LauncherPolicy, WebPolicy};
 
+use std::fmt;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use sill_launcher::{Choice, ItemKey, Provider, ProviderKind};
-use tokio::runtime::Handle;
 use tokio::sync::watch;
 
 use crate::apps::AppIndex;
 use crate::clipboard::Clipboard;
 use crate::control::Control;
 use crate::cosmic_wl::{Toplevels, WlCommand, Workspaces};
-use crate::env::{Buses, Dirs};
+use crate::env::Env;
+use crate::error::ServiceError;
 use crate::launch::LaunchCommand;
+use crate::service::{Service, ServiceIo};
 use effect::Outlets;
 use history::{History, Persist};
 
@@ -63,68 +65,89 @@ pub enum SearchCommand {
     Policy(LauncherPolicy),
 }
 
-/// Start the search runner with `providers` (queried in parallel on `rt`'s blocking pool),
-/// its history loaded from sill's folder of `dirs`' state directory. Providers built by the caller rank with
-/// their own frecency handle; [`spawn_with_providers`] builds the five sharing this runner's.
-pub fn spawn(
-    rt: &Handle,
-    providers: Vec<Arc<dyn Provider>>,
-    dirs: &Dirs,
-) -> (watch::Receiver<Results>, Control<SearchCommand>) {
-    let dir = Some(dirs.sill_state());
-    let history = History::new(dir.as_deref().map(load_frecency).unwrap_or_default());
-    let policy = watch::Sender::new(LauncherPolicy::default());
-    start(rt, providers, history, dir, Outlets::default(), policy)
+/// What the search runs over.
+pub enum Sources {
+    /// The daemon's providers, reading and sending to these services; the apps, files and emoji
+    /// providers rank with the same history the runner records choices into.
+    Services(ResultsLinks),
+    /// These providers alone, ranking with their own frecency handles (a benchmark).
+    Providers(Vec<Arc<dyn Provider>>),
 }
 
-/// What the daemon's search reads and sends to: the services its providers query and the
-/// ones a chosen row's activation goes to.
-pub(crate) struct Wiring<'a> {
-    pub(crate) apps: &'a watch::Receiver<AppIndex>,
-    pub(crate) toplevels: &'a watch::Receiver<Toplevels>,
-    pub(crate) workspaces: &'a watch::Receiver<Workspaces>,
-    pub(crate) clipboard: &'a watch::Receiver<Clipboard>,
-    pub(crate) wl: &'a Control<WlCommand>,
-    pub(crate) launch: &'a Control<LaunchCommand>,
-    /// logind (the system rows' offers) and Tracker (the files index).
-    pub(crate) buses: &'a Buses,
-    /// The history's and the rates cache's folders, and the home the files provider searches.
-    pub(crate) dirs: &'a Dirs,
+impl fmt::Debug for Sources {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Sources::Services(links) => f.debug_tuple("Services").field(links).finish(),
+            Sources::Providers(providers) => {
+                f.debug_tuple("Providers").field(&providers.len()).finish()
+            }
+        }
+    }
 }
 
-/// The daemon's search: the five providers, the apps provider ranking with the same history
-/// the runner records choices into; windows are focused and closed through `wl`, apps started
-/// through `launch`.
-pub(crate) fn spawn_with_providers(
-    rt: &Handle,
-    wiring: Wiring<'_>,
-) -> (watch::Receiver<Results>, Control<SearchCommand>) {
-    let dir = Some(wiring.dirs.sill_state());
-    let history = History::new(dir.as_deref().map(load_frecency).unwrap_or_default());
-    let (policy, policy_rx) = watch::channel(LauncherPolicy::default());
-    let providers = registry::providers(&wiring, &history, &policy_rx);
-    let outlets = Outlets {
-        wl: Some(wiring.wl.clone()),
-        launch: Some(wiring.launch.clone()),
-    };
-    start(rt, providers, history, dir, outlets, policy)
+/// The services the daemon's search reads and sends to: the ones its providers query, and the
+/// ones a chosen row's activation goes to (windows are focused and closed through `wl`, apps
+/// started through `launch`).
+#[derive(Debug, Clone)]
+pub struct ResultsLinks {
+    pub apps: watch::Receiver<AppIndex>,
+    pub toplevels: watch::Receiver<Toplevels>,
+    pub workspaces: watch::Receiver<Workspaces>,
+    pub clipboard: watch::Receiver<Clipboard>,
+    pub wl: Control<WlCommand>,
+    pub launch: Control<LaunchCommand>,
 }
 
-/// Run the search on `rt` with `history`, saving it under `dir` when there is one.
-fn start(
-    rt: &Handle,
+/// The launcher's search as a [`Service`]: its providers queried in parallel on the blocking
+/// pool, its history loaded from sill's folder of `env`'s state directory. logind (the system
+/// rows' offers) and Tracker (the files index) are reached on `env`'s buses; the rates cache and
+/// the files provider's home are `env`'s directories.
+#[derive(Debug)]
+pub enum ResultsService {}
+
+impl Service for ResultsService {
+    const NAME: &'static str = "results";
+    type State = Results;
+    type Command = SearchCommand;
+    type Deps = Sources;
+
+    fn run(
+        env: &Env,
+        deps: Sources,
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let dir = env.dirs.sill_state();
+        let history = History::new(load_frecency(&dir));
+        let (policy, policy_rx) = watch::channel(LauncherPolicy::default());
+        let (providers, outlets) = match deps {
+            Sources::Services(links) => (
+                registry::providers(&links, env, &history, &policy_rx),
+                Outlets {
+                    wl: Some(links.wl),
+                    launch: Some(links.launch),
+                },
+            ),
+            Sources::Providers(providers) => (providers, Outlets::default()),
+        };
+        async move {
+            runner(providers, history, Some(dir), outlets, policy, io).await;
+            Ok(())
+        }
+    }
+}
+
+/// Run the search with `history`, saving it under `dir` when there is one.
+async fn runner(
     providers: Vec<Arc<dyn Provider>>,
     history: History,
     dir: Option<PathBuf>,
     outlets: Outlets,
     policy: watch::Sender<LauncherPolicy>,
-) -> (watch::Receiver<Results>, Control<SearchCommand>) {
-    let (tx, rx) = watch::channel(Results::default());
-    let (control, commands) = Control::channel();
+    io: ServiceIo<ResultsService>,
+) {
     let initial = history.read(Clone::clone);
-    let _entered = rt.enter();
     let persist = Persist::start(dir, initial);
-    let (search, arrivals) = run::Search::new(providers, history, persist, outlets, policy, tx);
-    rt.spawn(run::run(search, commands, arrivals));
-    (rx, control)
+    let (search, arrivals) =
+        run::Search::new(providers, history, persist, outlets, policy, io.state);
+    run::run(search, io.commands, arrivals).await;
 }

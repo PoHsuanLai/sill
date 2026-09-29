@@ -15,7 +15,7 @@ use tokio::sync::watch;
 use super::effect::Outlets;
 use super::history::History;
 use super::test_support::TempDir;
-use super::{Results, SearchCommand, load_frecency, start};
+use super::{Results, ResultsService, SearchCommand, load_frecency, runner};
 use crate::control::Control;
 use fake::{Fake, Heard, Obeys};
 
@@ -51,15 +51,16 @@ fn search_to(
     outlets: Outlets,
 ) -> (watch::Receiver<Results>, Control<SearchCommand>, History) {
     let history = History::default();
-    let (rx, control) = start(
-        &Handle::current(),
+    let (search, io) = crate::service::Handle::<ResultsService>::channel(Results::default());
+    Handle::current().spawn(runner(
         providers,
         history.clone(),
         Some(dir.path().to_path_buf()),
         outlets,
         watch::channel(super::LauncherPolicy::default()).0,
-    );
-    (rx, control, history)
+        io,
+    ));
+    (search.state, search.control, history)
 }
 
 fn send(control: &Control<SearchCommand>, command: SearchCommand) {

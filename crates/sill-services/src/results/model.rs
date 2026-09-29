@@ -26,7 +26,7 @@ pub enum ResultsEvent {
 
 /// `results` after `event`. A batch from an older generation is dropped; one from a newer
 /// generation (it overtook its own `Began`) starts that generation.
-pub fn reduce_results(results: Results, event: ResultsEvent) -> Results {
+pub fn step(results: Results, event: ResultsEvent) -> Results {
     match event {
         ResultsEvent::Began(generation) if generation > results.generation => Results {
             generation,
@@ -59,7 +59,7 @@ pub fn reduce_results(results: Results, event: ResultsEvent) -> Results {
 
 #[cfg(test)]
 mod tests {
-    use super::{Results, ResultsEvent, reduce_results};
+    use super::{Results, ResultsEvent, step};
     use sill_launcher::{Batch, Generation, IconRef, Item, ItemId, ProviderKind, Score};
 
     fn item(provider: ProviderKind, title: &str, score: u32) -> Item {
@@ -91,7 +91,7 @@ mod tests {
     }
 
     fn after(events: Vec<ResultsEvent>) -> Results {
-        events.into_iter().fold(Results::default(), reduce_results)
+        events.into_iter().fold(Results::default(), step)
     }
 
     #[test]
