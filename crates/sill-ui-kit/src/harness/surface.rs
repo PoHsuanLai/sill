@@ -4,7 +4,6 @@
 
 use std::cell::RefCell;
 use std::fmt;
-use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use dioxus::prelude::*;
@@ -33,10 +32,11 @@ fn app() -> Element {
     }
 }
 
-/// A running surface and what it talks to. Derefs to the `ds_native::Harness` under it
-/// (`advance`, `html`, `pointer_move`, `count`, ...).
+/// A running surface and what it talks to. A field, not a `Deref`, so that
+/// `run.harness.pointer_move(inside(&run.harness))` borrows as it reads.
 pub struct SurfaceHarness<S: Surface> {
-    harness: Harness,
+    /// The document: `advance`, `html`, `pointer_move`, `count`, ...
+    pub harness: Harness,
     /// The fake services' senders: set a state to make the surface see it, read what it sent.
     pub feeds: fake::Feeds,
     /// The surface's link, the daemon's end.
@@ -49,19 +49,6 @@ impl<S: Surface> fmt::Debug for SurfaceHarness<S> {
             .field("surface", &S::NAME)
             .field("harness", &self.harness)
             .finish_non_exhaustive()
-    }
-}
-
-impl<S: Surface> Deref for SurfaceHarness<S> {
-    type Target = Harness;
-    fn deref(&self) -> &Harness {
-        &self.harness
-    }
-}
-
-impl<S: Surface> DerefMut for SurfaceHarness<S> {
-    fn deref_mut(&mut self) -> &mut Harness {
-        &mut self.harness
     }
 }
 

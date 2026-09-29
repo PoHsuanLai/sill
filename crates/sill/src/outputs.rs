@@ -2,7 +2,6 @@
 //! list to spawn and close actions.
 
 use shell_host::{LayerSize, OutputId, OutputInfo, SurfaceId};
-use sill_ui_kit::links::Corner;
 
 /// A layer surface spawned through `Surface`, as `daemon::surfaces` records it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,11 +32,10 @@ pub struct OutputSurfaces {
     /// The banner column and the notification center, warm and hidden.
     pub banners: Option<SurfaceId>,
     pub notification_center: Option<SurfaceId>,
-    /// The screenshot thumbnail (warm and hidden), the desktop widget layer (while
-    /// `widgets.desktop` is on), and a surface per active hot corner.
+    /// The screenshot thumbnail (warm and hidden) and the desktop widget layer (while
+    /// `widgets.desktop` is on).
     pub thumbnail: Option<SurfaceId>,
     pub desktop_widgets: Option<SurfaceId>,
-    pub corners: CornerSurfaces,
     /// The polkit prompt and the app switcher, warm and hidden. The lock surfaces are
     /// shell-host's session lock's, not a row's.
     pub polkit_prompt: Option<SurfaceId>,
@@ -48,48 +46,9 @@ pub struct OutputSurfaces {
     pub idle_dim: Option<SurfaceId>,
 }
 
-/// One output's hot corner surfaces, one per corner whose action is not `None`.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct CornerSurfaces {
-    pub top_left: Option<SurfaceId>,
-    pub top_right: Option<SurfaceId>,
-    pub bottom_left: Option<SurfaceId>,
-    pub bottom_right: Option<SurfaceId>,
-}
-
-impl CornerSurfaces {
-    /// `corner`'s surface.
-    pub fn get(&self, corner: Corner) -> Option<SurfaceId> {
-        *self.slot(corner)
-    }
-
-    /// Set (or forget, with `None`) `corner`'s surface.
-    pub fn set(&mut self, corner: Corner, id: Option<SurfaceId>) {
-        *self.slot_mut(corner) = id;
-    }
-
-    fn slot(&self, corner: Corner) -> &Option<SurfaceId> {
-        match corner {
-            Corner::TopLeft => &self.top_left,
-            Corner::TopRight => &self.top_right,
-            Corner::BottomLeft => &self.bottom_left,
-            Corner::BottomRight => &self.bottom_right,
-        }
-    }
-
-    fn slot_mut(&mut self, corner: Corner) -> &mut Option<SurfaceId> {
-        match corner {
-            Corner::TopLeft => &mut self.top_left,
-            Corner::TopRight => &mut self.top_right,
-            Corner::BottomLeft => &mut self.bottom_left,
-            Corner::BottomRight => &mut self.bottom_right,
-        }
-    }
-}
-
 impl OutputSurfaces {
     /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 18] {
+    fn fields(&self) -> [Option<SurfaceId>; 14] {
         [
             self.bar,
             self.wallpaper,
@@ -101,10 +60,6 @@ impl OutputSurfaces {
             self.notification_center,
             self.thumbnail,
             self.desktop_widgets,
-            self.corners.top_left,
-            self.corners.top_right,
-            self.corners.bottom_left,
-            self.corners.bottom_right,
             self.polkit_prompt,
             self.switcher,
             self.edit_widgets,
@@ -137,10 +92,6 @@ impl OutputSurfaces {
             &mut self.notification_center,
             &mut self.thumbnail,
             &mut self.desktop_widgets,
-            &mut self.corners.top_left,
-            &mut self.corners.top_right,
-            &mut self.corners.bottom_left,
-            &mut self.corners.bottom_right,
             &mut self.polkit_prompt,
             &mut self.switcher,
             &mut self.edit_widgets,
@@ -244,8 +195,8 @@ pub fn wallpaper_namespace(info: &OutputInfo) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{OutputSurfaces, Outputs, bar_namespace, reconcile, wallpaper_namespace};
-    use shell_host::{OutputId, OutputInfo, Rect, Scale, SurfaceId};
+    use super::{OutputSurfaces, Outputs, Spawned, bar_namespace, reconcile, wallpaper_namespace};
+    use shell_host::{LayerExtent, LayerSize, OutputId, OutputInfo, Rect, Scale, SurfaceId};
 
     fn output(id: u32, name: &str, width: i32) -> OutputInfo {
         OutputInfo {
@@ -271,16 +222,24 @@ mod tests {
     }
 
     #[test]
-    fn m10_surfaces_are_found_and_forgotten_like_the_rest() {
-        use sill_ui_kit::links::Corner;
+    fn spawned_surfaces_are_found_and_forgotten_like_the_rest() {
         let mut row = surfaces(1);
         row.thumbnail = Some(SurfaceId(2));
-        row.corners.set(Corner::BottomRight, Some(SurfaceId(3)));
+        row.spawned.push(Spawned {
+            name: "hot-corner",
+            slot: "BottomRight".to_owned(),
+            id: SurfaceId(3),
+            namespace: "sill-hot-corner-bottom-right-DP-1".to_owned(),
+            size: LayerSize {
+                width: LayerExtent::Px(2),
+                height: LayerExtent::Px(2),
+            },
+        });
         assert!(row.contains(SurfaceId(2)));
-        assert_eq!(row.corners.get(Corner::BottomRight), Some(SurfaceId(3)));
+        assert!(row.contains(SurfaceId(3)));
         assert_eq!(row.ids().count(), 3);
         row.clear(SurfaceId(3));
-        assert_eq!(row.corners.get(Corner::BottomRight), None);
+        assert!(!row.contains(SurfaceId(3)));
         assert_eq!(row.ids().count(), 2);
     }
 

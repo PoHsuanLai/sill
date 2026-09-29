@@ -1,5 +1,5 @@
 /* A hot corner (design/20 §1.16, design/13 §13.3.12): the surface is `hot_corners.size_px`
-   square already (`layer.rs`'s `corner_layer`), as small as 1 px. shell-host resets the body's
+   square already (`layer.rs`), as small as 1 px. shell-host resets the body's
    UA margin on every hosted document, so a box the viewport's size lands exactly on the
    surface and reaches its true origin, the one point a pointer entering at the real screen
    corner lands on. It stays in flow: a bare absolute box would be 0 px tall, since the mount

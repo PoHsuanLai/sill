@@ -7,18 +7,20 @@ use shell_host::{
     Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
+use sill_settings::ShellFile;
+
 use crate::links::Corner;
 use crate::surfaces::naming::namespace;
 
-/// `corner` of `output`, `size` logical px square.
-pub fn corner_layer(output: &OutputInfo, corner: Corner, size: u16) -> LayerConfig {
+/// `corner` of `output`, `hot_corners.size_px` logical px square.
+pub fn layer(output: &OutputInfo, settings: &ShellFile, corner: Corner) -> LayerConfig {
     let anchor = match corner {
         Corner::TopLeft => Anchor::TOP | Anchor::LEFT,
         Corner::TopRight => Anchor::TOP | Anchor::RIGHT,
         Corner::BottomLeft => Anchor::BOTTOM | Anchor::LEFT,
         Corner::BottomRight => Anchor::BOTTOM | Anchor::RIGHT,
     };
-    let side = u32::from(size.max(1));
+    let side = u32::from(settings.hot_corners.size_px.0.max(1));
     LayerConfig {
         namespace: namespace(&format!("hot-corner-{}", corner.word()), output),
         layer: LayerLevel::Overlay,
@@ -38,12 +40,24 @@ pub fn corner_layer(output: &OutputInfo, corner: Corner, size: u16) -> LayerConf
 
 #[cfg(test)]
 mod tests {
-    use super::corner_layer;
+    use super::layer;
     use crate::links::Corner;
     use crate::surfaces::naming::tests::output;
+    use ds_settings::Px;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, RegionSpec,
     };
+    use sill_settings::{HotCornersSettings, ShellFile};
+
+    fn sized(px: u16) -> ShellFile {
+        ShellFile {
+            hot_corners: HotCornersSettings {
+                size_px: Px(px),
+                ..HotCornersSettings::default()
+            },
+            ..ShellFile::default()
+        }
+    }
 
     #[test]
     fn each_corner_is_a_tiny_square_at_its_corner_over_everything() {
@@ -71,7 +85,7 @@ mod tests {
             ),
         ];
         for (corner, anchor, name) in cases {
-            let config = corner_layer(&info, corner, 2);
+            let config = layer(&info, &sized(2), corner);
             assert_eq!(config.namespace, name);
             assert_eq!(config.anchor, anchor, "{corner:?}");
             assert_eq!(config.layer, LayerLevel::Overlay);
@@ -83,7 +97,7 @@ mod tests {
             assert_eq!(config.input, RegionSpec::Whole);
         }
         assert_eq!(
-            corner_layer(&info, Corner::TopLeft, 0).size.width,
+            layer(&info, &sized(0), Corner::TopLeft).size.width,
             LayerExtent::Px(1),
             "never zero"
         );

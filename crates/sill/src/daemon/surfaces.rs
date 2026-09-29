@@ -8,9 +8,9 @@ use shell_host::{Size as BufferSize, buffer_size};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
-use sill_ui_kit::Osd;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
+use sill_ui_kit::{HotCorners, Osd};
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
@@ -54,7 +54,7 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     crate::screenshots::spawn_missing(ctx, outputs, root);
     crate::widgets::spawn_missing(ctx, outputs, settings, &services.dirs, root);
     crate::edit_widgets::spawn_missing(ctx, outputs, &services.dirs, root);
-    crate::corners::spawn_missing(ctx, outputs, settings, root);
+    spawn_surface::<HotCorners>(ctx, outputs, spawn, &links.corners);
     spawn_surface::<Osd>(ctx, outputs, spawn, &links.osd);
     let dim = services.idle.state.borrow().dim;
     crate::idle_dim::spawn_missing(ctx, outputs, dim, root);
@@ -315,14 +315,13 @@ pub(crate) fn surface_root(
         .context(sill_ui_kit::root::FOCUS)
         .context(sill_ui_kit::root::CARET);
     // The focus mode, the power menu and the control center's asks; the notification center and
-    // the banners' output; the hot corners' firings; the switcher's asks and the lock prompt's
+    // the banners' output; the switcher's asks and the lock prompt's
     // output (`sill_ui_kit::links`).
     root.context(links.focus.clone())
         .context(links.power_menu.clone())
         .context(links.control_center.clone())
         .context(links.notification_center.clone())
         .context(links.banners.clone())
-        .context(links.corners.clone())
         .context(links.switcher.clone())
         .context(links.lock.clone())
         .context(links.edit_widgets.clone())

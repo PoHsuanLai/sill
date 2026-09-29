@@ -83,10 +83,6 @@ fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, Su
     let idle_dim = surfaces
         .idle_dim
         .map(|id| (crate::idle_dim::namespace(info), id));
-    let corners: Vec<_> = crate::corners::namespaces(info)
-        .into_iter()
-        .filter_map(|(corner, name)| surfaces.corners.get(corner).map(|id| (name, id)))
-        .collect();
     let spawned = surfaces
         .spawned
         .iter()
@@ -102,7 +98,6 @@ fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, Su
         .chain(thumbnail)
         .chain(desktop)
         .chain(edit)
-        .chain(corners)
         .chain(polkit)
         .chain(switcher)
         .chain(idle_dim)

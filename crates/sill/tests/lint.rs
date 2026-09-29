@@ -19,11 +19,18 @@ struct SurfaceCase {
     states: fn() -> Vec<(&'static str, String)>,
 }
 
-const SURFACES: &[SurfaceCase] = &[SurfaceCase {
-    name: "osd",
-    css: sill_ui_kit::surfaces::osd::OSD_CSS,
-    states: osd_states,
-}];
+const SURFACES: &[SurfaceCase] = &[
+    SurfaceCase {
+        name: "osd",
+        css: sill_ui_kit::surfaces::osd::OSD_CSS,
+        states: osd_states,
+    },
+    SurfaceCase {
+        name: "hot_corners",
+        css: sill_ui_kit::surfaces::hot_corners::HOT_CORNERS_CSS,
+        states: no_states,
+    },
+];
 
 fn strict() -> LintConfig {
     LintConfig {
@@ -32,16 +39,21 @@ fn strict() -> LintConfig {
     }
 }
 
+/// A surface with no markup of its own to lint: a bare element the stylesheet sizes.
+fn no_states() -> Vec<(&'static str, String)> {
+    Vec::new()
+}
+
 /// The indicator hidden, then shown for a volume change.
 fn osd_states() -> Vec<(&'static str, String)> {
     let mut osd = SurfaceHarness::<Osd>::setup(OsdLink::new(), ()).start();
-    osd.advance(Duration::from_millis(40));
-    let hidden = osd.html();
+    osd.harness.advance(Duration::from_millis(40));
+    let hidden = osd.harness.html();
     assert!(hidden.contains("data-shown=\"hidden\""), "{hidden}");
     osd.link
         .show(OsdKind::Volume, vec![fake::output().id], LevelSource::Live);
-    osd.advance(Duration::from_millis(60));
-    let shown = osd.html();
+    osd.harness.advance(Duration::from_millis(60));
+    let shown = osd.harness.html();
     assert!(shown.contains("data-presence=\"entering\""), "{shown}");
     vec![("hidden", hidden), ("shown", shown)]
 }

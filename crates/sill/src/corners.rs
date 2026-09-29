@@ -1,5 +1,5 @@
-//! Hot corners on the daemon's side: the corner surfaces per output and per active corner, the
-//! actions a firing carries out.
+//! Hot corners on the daemon's side: the actions a firing carries out. The corner surfaces are
+//! spawned like any `Surface` (`sill_ui_kit::surfaces::hot_corners::HotCorners`).
 //!
 //! A firing arrives on the [`CornerLink`] (from a corner surface's machine, or from
 //! `sill debug corner`); [`spawn_hits`] follows it and carries out [`corner_effect`] of that corner's
@@ -10,7 +10,7 @@
 
 use std::process::Stdio;
 
-use shell_host::{HostCtx, HostRoot, OutputId, SurfaceOp};
+use shell_host::OutputId;
 use sill_ipc::debug::CornerName;
 use sill_launcher::WindowKey;
 use sill_model::cosmic_wl::{Activity, Toplevel, WindowState, WlCommand};
@@ -19,12 +19,8 @@ use sill_model::locker::LockerCommand;
 use sill_settings::{CornerAction, ShellFile};
 use sill_ui_kit::links::{Corner, Links};
 use sill_ui_kit::services::Services;
-use sill_ui_kit::surfaces::hot_corners::{HotCornerProps, corner_layer};
 use tokio::runtime::Handle;
 use tokio::sync::watch;
-
-use crate::daemon::msg::ShellMsg;
-use crate::outputs::Outputs;
 
 /// What a corner's action does, resolved from the settings.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -111,50 +107,6 @@ pub fn corner_of(name: CornerName) -> Corner {
     }
 }
 
-/// Spawn a corner surface for each active corner of every output that lacks one, close the
-/// surfaces of corners whose action became `None` (a settings change), and keep every remaining
-/// one's size at `hot_corners.size_px`.
-pub fn spawn_missing(
-    ctx: &mut HostCtx<ShellMsg>,
-    outputs: &mut Outputs,
-    settings: &watch::Sender<ShellFile>,
-    root: impl Fn(HostRoot) -> HostRoot,
-) {
-    let file = settings.borrow().clone();
-    let wanted = sill_ui_kit::surfaces::hot_corners::active_corners(&file.hot_corners);
-    let size = file.hot_corners.size_px.0;
-    for (info, surfaces) in &mut outputs.outputs {
-        for corner in Corner::ALL {
-            match (wanted.contains(&corner), surfaces.corners.get(corner)) {
-                (false, Some(id)) => {
-                    ctx.close(id);
-                    surfaces.corners.set(corner, None);
-                }
-                (true, None) => {
-                    let config = corner_layer(info, corner, size);
-                    let namespace = config.namespace.clone();
-                    let props = HotCornerProps {
-                        output: info.clone(),
-                        corner,
-                    };
-                    let surface = root(HostRoot::with_props(sill_ui_kit::HotCorner, props));
-                    match ctx.spawn_layer(config, surface) {
-                        Ok(id) => surfaces.corners.set(corner, Some(id)),
-                        Err(error) => {
-                            eprintln!("sill: spawning {namespace} on {:?}: {error}", info.name)
-                        }
-                    }
-                }
-                (true, Some(id)) => {
-                    let config = corner_layer(info, corner, size);
-                    ctx.apply(id, SurfaceOp::SetSize(config.size));
-                }
-                (false, None) => {}
-            }
-        }
-    }
-}
-
 /// Follow `link` on `rt` and carry out each hit's action (read from `settings` at the hit)
 /// through `services` and `links`.
 pub fn spawn_hits(
@@ -236,17 +188,6 @@ async fn act(
             }
         }
     }
-}
-
-/// Every corner surface's namespace on `info`, with its corner, which `debug stats` reports.
-pub fn namespaces(info: &shell_host::OutputInfo) -> Vec<(Corner, String)> {
-    Corner::ALL
-        .into_iter()
-        .map(|corner| {
-            let layer = sill_ui_kit::surfaces::hot_corners::corner_layer(info, corner, 2);
-            (corner, layer.namespace)
-        })
-        .collect()
 }
 
 #[cfg(test)]

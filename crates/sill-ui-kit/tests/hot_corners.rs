@@ -1,23 +1,17 @@
 //! The hot corner surface in a `ds_native::Harness` (design/13 §13.3.12): a real pointer
 //! dwelling in it fires once, not before the dwell and not twice without a
-//! leave and the re-arm; and its stylesheet is lint-clean under `Profile::Strict` (coherence
-//! rule 1). On the virtual clock, so the dwell and the re-arm
+//! leave and the re-arm. On the virtual clock, so the dwell and the re-arm
 //! are checked to the millisecond.
 
-use sill_ui_kit::harness::fake;
-
-use std::cell::RefCell;
 use std::time::Duration;
 
-use dioxus::prelude::*;
-use ds::lint::{LintConfig, Profile, assert_clean};
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use ds_native::{Harness, Viewport};
 use ds_settings::Ms;
 use shell_host::OutputId;
-use sill_settings::{CornerAction, HotCornersSettings, SettingsFeed, ShellFile};
-use sill_ui_kit::HotCorner;
+use sill_settings::{CornerAction, HotCornersSettings, ShellFile};
+use sill_ui_kit::HotCorners;
+use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{Corner, CornerLink};
-use sill_ui_kit::surfaces::hot_corners::HOT_CORNERS_CSS;
 
 const DWELL_MS: u16 = 40;
 const REARM_MS: u16 = 60;
@@ -31,25 +25,7 @@ fn settings() -> HotCornersSettings {
     }
 }
 
-thread_local! {
-    static WORLD: RefCell<Option<(CornerLink, ShellFile)>> = const { RefCell::new(None) };
-}
-
-fn app() -> Element {
-    let Some((link, file)) = WORLD.with(|w| w.borrow().clone()) else {
-        return rsx! {};
-    };
-    use_context_provider(|| link);
-    use_context_provider(|| SettingsFeed::fixed(file));
-    rsx! {
-        HotCorner {
-            output: fake::output(),
-            corner: Corner::TopLeft,
-        }
-    }
-}
-
-/// The corner mounted on `hot_corners`, in a small viewport (the real surface is
+/// The top left corner mounted on `hot_corners`, in a small viewport (the real surface is
 /// `hot_corners.size_px` square; the test's viewport only needs to be big enough that a point
 /// well outside the corner's own `100vw x 100vh` element is still a point the harness can move
 /// the pointer to for a leave).
@@ -59,16 +35,15 @@ fn start(hot_corners: HotCornersSettings) -> (Harness, CornerLink) {
         hot_corners,
         ..ShellFile::default()
     };
-    WORLD.with(|w| *w.borrow_mut() = Some((link.clone(), file)));
-    let viewport = Viewport {
-        width: 4,
-        height: 4,
-        scale_percent: 100,
-    };
-    (
-        Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual)),
-        link,
-    )
+    let running = SurfaceHarness::<HotCorners>::setup(link.clone(), Corner::TopLeft)
+        .settings(file)
+        .viewport(Viewport {
+            width: 4,
+            height: 4,
+            scale_percent: 100,
+        })
+        .start();
+    (running.harness, link)
 }
 
 /// The corner element's own centre (the UA's default margin around `main` means it is not at
@@ -175,12 +150,3 @@ fn ms(value: u16) -> Duration {
 }
 
 const MS: Duration = Duration::from_millis(1);
-
-#[test]
-fn the_stylesheet_is_clean_under_strict() {
-    let strict = LintConfig {
-        profile: Profile::Strict,
-        ..LintConfig::new(&ds::kits())
-    };
-    assert_clean(HOT_CORNERS_CSS, &strict);
-}
