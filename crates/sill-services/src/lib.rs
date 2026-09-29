@@ -124,7 +124,7 @@ pub use results::{
 pub use screenshots::{Shot, ShotCommand, ShotId, ShotKind, ShotLeave, ShotPreview, Shots};
 pub use service::{Handle, Service, ServiceIo};
 pub use services::Services;
-pub use session::{Offer, Session, SessionAction, SessionCommand, SessionEvent, reduce_session};
+pub use session::{Offer, Session, SessionAction, SessionCommand, SessionEvent, SessionService};
 pub use switcher::{AppShown, SwitcherApp, switcher_apps};
 pub use tray::{
     Availability, Check, Pixmap, ScrollAxis, ScrollDelta, Tray, TrayCommand, TrayEvent, TrayIcon,

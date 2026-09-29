@@ -11,16 +11,15 @@
 mod live;
 mod model;
 
-pub use model::{Offer, Session, SessionAction, SessionEvent, reduce_session};
+pub use model::{Offer, Session, SessionAction, SessionEvent, step};
 
 use std::sync::Arc;
 
-use tokio::runtime::Handle;
-use tokio::sync::watch;
-
 use crate::control::Control;
-use crate::env::{Bus, SessionActions};
+use crate::env::Env;
+use crate::error::ServiceError;
 use crate::locker::LockerCommand;
+use crate::service::{Service, ServiceIo};
 
 /// What the session service can be told.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,17 +33,29 @@ pub enum SessionCommand {
     Refresh,
 }
 
-/// Start the session task on `rt`. Without logind the receiver stays at `Session::default()`
-/// (absent: nothing offered), and the power menu shows every button unavailable. `locker` is
-/// where `Run(Lock)` goes.
-pub fn spawn(
-    rt: &Handle,
-    bus: Bus,
-    actions: Arc<dyn SessionActions>,
-    locker: Control<LockerCommand>,
-) -> (watch::Receiver<Session>, Control<SessionCommand>) {
-    let (tx, rx) = watch::channel(Session::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(live::run(bus, actions, tx, commands, locker));
-    (rx, control)
+/// logind's power actions as a [`Service`]. Without logind the state stays at
+/// `Session::default()` (absent: nothing offered), and the power menu shows every button
+/// unavailable. Its `Deps` is the locker's control, where `Run(Lock)` goes; the other actions go
+/// to `env`'s session actions.
+#[derive(Debug)]
+pub enum SessionService {}
+
+impl Service for SessionService {
+    const NAME: &'static str = "session";
+    type State = Session;
+    type Command = SessionCommand;
+    type Deps = Control<LockerCommand>;
+
+    fn run(
+        env: &Env,
+        deps: Self::Deps,
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let bus = env.buses.system.clone();
+        let actions = Arc::clone(&env.session_actions);
+        async move {
+            live::run(bus, actions, io.state, io.commands, deps).await;
+            Ok(())
+        }
+    }
 }

@@ -116,7 +116,7 @@ pub enum SessionEvent {
 }
 
 /// `session` after `event`.
-pub fn reduce_session(session: Session, event: SessionEvent) -> Session {
+pub fn step(session: Session, event: SessionEvent) -> Session {
     let _ = session;
     match event {
         SessionEvent::Probed(probed) => probed,
@@ -126,7 +126,7 @@ pub fn reduce_session(session: Session, event: SessionEvent) -> Session {
 
 #[cfg(test)]
 mod tests {
-    use super::{Offer, Session, SessionAction, SessionEvent, reduce_session};
+    use super::{Offer, Session, SessionAction, SessionEvent, step};
     use crate::units::Presence;
     use sill_launcher::SystemCommand;
 
@@ -175,7 +175,7 @@ mod tests {
             (probed, SessionEvent::Gone, Session::default()),
         ];
         for (before, event, want) in cases {
-            assert_eq!(reduce_session(before, event), want, "{event:?}");
+            assert_eq!(step(before, event), want, "{event:?}");
         }
         assert_eq!(probed.offer(SessionAction::Restart), Offer::NeedsAuth);
     }

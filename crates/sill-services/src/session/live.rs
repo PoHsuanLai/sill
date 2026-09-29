@@ -1,5 +1,5 @@
 //! logind over the system bus: probes `CanSuspend`, `CanReboot` and `CanPowerOff` (and this
-//! session's object for Lock and Log Out), publishes them through [`super::reduce_session`], and
+//! session's object for Lock and Log Out), publishes them through [`super::step`], and
 //! carries out [`SessionCommand`]s.
 
 use std::sync::Arc;
@@ -10,7 +10,7 @@ use tokio::sync::{mpsc, watch};
 use zbus::Connection;
 
 use super::SessionCommand;
-use super::model::{Offer, Session, SessionAction, SessionEvent, reduce_session};
+use super::model::{Offer, Session, SessionAction, SessionEvent, step};
 use crate::control::Control;
 use crate::env::{ActionReach, Bus, SessionActions};
 use crate::locker::LockerCommand;
@@ -104,7 +104,7 @@ async fn refresh(
         Some(logind) => probe(&logind.connection, &logind.manager).await,
         None => (SessionEvent::Gone, None),
     };
-    let next = actions.offers(reduce_session(*tx.borrow(), event));
+    let next = actions.offers(step(*tx.borrow(), event));
     tx.send_if_modified(|shown| {
         let changed = *shown != next;
         *shown = next;

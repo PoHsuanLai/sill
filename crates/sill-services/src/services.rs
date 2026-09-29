@@ -173,12 +173,11 @@ impl Services {
             crate::kbd_backlight::KbdBacklightService,
         >(rt, env, ()));
         let (lock, locker_control) = crate::locker::spawn(rt, system(), env.dirs.runtime.clone());
-        let (session, session_control) = crate::session::spawn(
+        let (session, session_control) = parts(spawn::<crate::session::SessionService>(
             rt,
-            system(),
-            Arc::clone(&env.session_actions),
+            env,
             locker_control.clone(),
-        );
+        ));
         // Passive (never asks for the bus name) until the daemon sends its first policy.
         let (notifications, notification_history, notifications_control) =
             crate::notifications::spawn(rt, crate::notifications::Setup::of(env));
