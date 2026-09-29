@@ -174,5 +174,4 @@ fn keys_of(keys: &WidgetKeys, before: &WidgetLayout, after: &WidgetLayout) -> Wi
 }
 
 #[cfg(test)]
-#[path = "layout_tests.rs"]
 mod tests;

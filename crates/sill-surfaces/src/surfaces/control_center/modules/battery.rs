@@ -22,7 +22,7 @@ use crate::hooks::{use_service, use_settings};
 use crate::status::glyph::battery_glyph;
 use crate::status::lines::battery_lines;
 use crate::surfaces::control_center::modules::use_plate;
-use crate::surfaces::control_center::pages::bluetooth_devices::device_of;
+use crate::widgets::battery::device_of;
 use sill_services::{BatteryService, BluetoothService, PowerProfileService};
 
 /// The Battery module.

@@ -1,5 +1,5 @@
 //! Now Playing's face as data and its one view, shared by the control center's module and the
-//! Now Playing widget (`crate::widgets::now_playing`): the current track as quire's
+//! Now Playing widget: the current track as quire's
 //! `NowPlayingTrack` (the art from an `IconUrl::file`; a new track cross-fades), Previous,
 //! quire's `PlayPauseButton` and Next, each disabled per `Abilities`, then quire's
 //! `TrackPosition` when the player reports both its position and the track's length (design/26
@@ -16,7 +16,23 @@ use ds::{
 use serde::{Deserialize, Serialize};
 use sill_model::now_playing::{Abilities, Art, MediaPlayer, MediaVerb, Micros, Timeline};
 
-use crate::surfaces::control_center::track_lines;
+/// The Now Playing module's two lines: the title (the player's identity when there is none),
+/// and the artists joined with ", " then " — " and the album, leaving out whichever is empty.
+pub fn track_lines(player: &MediaPlayer) -> (String, String) {
+    let track = &player.track;
+    let title = if track.title.is_empty() {
+        player.identity.clone()
+    } else {
+        track.title.clone()
+    };
+    let artists = track.artists.join(", ");
+    let by = [artists.as_str(), track.album.as_str()]
+        .into_iter()
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join(" — ");
+    (title, by)
+}
 
 /// What Now Playing shows.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -145,7 +161,7 @@ pub fn MediaView(face: MediaFace, onpress: Option<EventHandler<Transport>>) -> E
 }
 
 /// The service's playback as quire's: a stopped player offers Play, as a paused one does.
-pub(crate) fn playback_of(playback: sill_model::now_playing::Playback) -> Playback {
+pub fn playback_of(playback: sill_model::now_playing::Playback) -> Playback {
     match playback {
         sill_model::now_playing::Playback::Playing => Playback::Playing,
         sill_model::now_playing::Playback::Paused | sill_model::now_playing::Playback::Stopped => {
@@ -155,7 +171,7 @@ pub(crate) fn playback_of(playback: sill_model::now_playing::Playback) -> Playba
 }
 
 /// The track's times when the player reports both its position and the track's length.
-pub(crate) fn position_of(timeline: Timeline) -> Option<TrackTimes> {
+pub fn position_of(timeline: Timeline) -> Option<TrackTimes> {
     match timeline {
         Timeline::Known {
             position, length, ..

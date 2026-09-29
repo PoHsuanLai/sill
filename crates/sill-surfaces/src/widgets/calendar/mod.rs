@@ -5,8 +5,8 @@
 //! the notification center); its step buttons send `MonthIntent::Step`, which shifts the month.
 
 pub mod grid;
+mod io;
 mod shown;
-mod view;
 
 pub use grid::{DayMark, DayPlace, Eventful, GridDay, GridWeek, IsoWeek, Month, MonthGrid, Step};
-pub use view::CalendarCard;
+pub use io::CalendarCard;

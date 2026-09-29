@@ -2,7 +2,7 @@
 //! over `calendar.up_next_days` and `calendar.up_next_max`), each a title and a time line, as
 //! [`UpNextEntry`]; "No upcoming events" when there are none, and a quiet line naming the source
 //! state when the calendars are off or unreadable. A new entry on the clock's minute tick. The
-//! widget itself ([`UpNext`], `up_next_view.rs`) is a `ds::Widget` of kind `sill.up-next`. The
+//! widget itself ([`UpNext`], `widget.rs`) is a `ds::Widget` of kind `sill.up-next`. The
 //! same agenda feeds the month widget's events ([`today_events`]), in the same colours.
 //!
 //! `up_next_max` is a ceiling, not a promise. The card's body is a fixed number of pixels
@@ -11,27 +11,19 @@
 //! at most [`EVENT_ROWS`], measured once against a real render (`ds_native::Harness`) rather
 //! than guessed.
 
-use dioxus::prelude::*;
 use ds::Word;
-use ds::{EventLine, LabelHue, WidgetCard};
+use ds::{EventLine, LabelHue};
 use jiff::Timestamp;
 use jiff::civil::Date;
 use jiff::tz::TimeZone;
 use sill_model::events::{Agenda, CalEvent, CalendarName, Days, EventTime, SourceStatus, up_next};
 
-pub use super::up_next_view::{DayLine, UpNext, UpNextEntry, UpNextFace, UpNextRow};
-use super::{Place, WidgetKind, widget_element_id};
-use crate::hooks::{use_service, use_settings};
-use crate::widgets::use_widget_wake;
-use sill_services::{ClockService, EventsService};
+use super::widget::{DayLine, UpNextEntry, UpNextFace, UpNextRow};
 
 /// How many whole event rows the card's body holds at its one size (Medium: one 164 px cell
 /// tall, 16 px gap, quire's card inset, the title row and `.sill-un-day` column already drawn):
 /// two before a third would clip.
 pub const EVENT_ROWS: usize = 2;
-
-/// This widget's stylesheet, in [`crate::widgets::widgets_css`].
-pub const CSS: &str = include_str!("../style/widget_up_next.css");
 
 /// What one event's row says.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -171,132 +163,4 @@ pub fn today_events(agenda: &Agenda, now: Timestamp, zone: &TimeZone) -> Vec<Eve
             }
         })
         .collect()
-}
-
-/// The next events on quire's card, as many as its body holds whole.
-#[component]
-pub fn UpNextCard(place: Place) -> Element {
-    let _minute = use_service::<ClockService>()();
-    let agenda = use_service::<EventsService>()();
-    let calendar = use_settings()().calendar;
-    let zone = TimeZone::try_system().unwrap_or(TimeZone::UTC);
-    let max = usize::from(calendar.up_next_max.0).min(EVENT_ROWS);
-    let days = Days(calendar.up_next_days.0);
-    let entry = up_next_entry(&agenda, Timestamp::now(), &zone, days, max);
-    rsx! {
-        WidgetCard {
-            widget: UpNext,
-            timeline: ds::Timeline::now(entry),
-            size: place.size,
-            host: place.host,
-            wake: use_widget_wake(),
-            id: widget_element_id(WidgetKind::UpNext),
-            lift: place.lift,
-            presence: place.presence,
-            on_gone: place.on_gone,
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use jiff::civil::date;
-    use jiff::tz::TimeZone;
-    use sill_model::events::{CalEvent, EventTime};
-    use sill_model::events::{CalendarName, EventUid};
-
-    use super::{EventLines, calendar_hue, event_lines};
-    use ds::LabelHue;
-
-    #[test]
-    fn a_calendar_keeps_one_label_hue_by_its_name() {
-        // FNV-1a of the name, modulo quire's five hues (`dev/accept-calendar.sh` computes the same).
-        let cases = [
-            ("work", LabelHue::Violet),
-            ("team", LabelHue::Green),
-            ("personal", LabelHue::Amber),
-        ];
-        for (name, want) in cases {
-            assert_eq!(calendar_hue(&CalendarName(name.to_owned())), want, "{name}");
-        }
-    }
-
-    #[test]
-    fn an_events_time_line_reads_from_now() {
-        let utc = TimeZone::UTC;
-        let at = |d, h, m| {
-            date(2026, 9, d)
-                .at(h, m, 0, 0)
-                .to_zoned(utc.clone())
-                .map(|z| z.timestamp())
-                .unwrap_or_else(|e| panic!("{e}"))
-        };
-        let event = |title: &str, when| CalEvent {
-            uid: EventUid("x".to_owned()),
-            title: title.to_owned(),
-            when,
-            location: None,
-            calendar: CalendarName("std".to_owned()),
-        };
-        let now = at(26, 10, 0);
-        let lines = |title: &str, when: &str| EventLines {
-            title: title.to_owned(),
-            when: when.to_owned(),
-        };
-        let cases = [
-            (
-                event(
-                    "Standup",
-                    EventTime::Timed {
-                        start: at(26, 10, 30),
-                        end: at(26, 11, 0),
-                    },
-                ),
-                lines("Standup", "10:30 – 11:00"),
-            ),
-            (
-                event(
-                    "",
-                    EventTime::Timed {
-                        start: at(26, 9, 30),
-                        end: at(26, 11, 0),
-                    },
-                ),
-                lines("Untitled", "Now"),
-            ),
-            (
-                event(
-                    "Dentist",
-                    EventTime::Timed {
-                        start: at(27, 9, 0),
-                        end: at(27, 10, 0),
-                    },
-                ),
-                lines("Dentist", "Tomorrow 09:00"),
-            ),
-            (
-                event(
-                    "Holiday",
-                    EventTime::AllDay {
-                        first: date(2026, 9, 26),
-                        last: date(2026, 9, 26),
-                    },
-                ),
-                lines("Holiday", "All day"),
-            ),
-            (
-                event(
-                    "Trip",
-                    EventTime::Timed {
-                        start: at(28, 9, 0),
-                        end: at(28, 10, 0),
-                    },
-                ),
-                lines("Trip", "Mon 09:00"),
-            ),
-        ];
-        for (event, want) in cases {
-            assert_eq!(event_lines(&event, now, &utc), want, "{}", event.title);
-        }
-    }
 }

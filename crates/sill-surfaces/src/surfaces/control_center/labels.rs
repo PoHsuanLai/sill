@@ -3,7 +3,6 @@
 
 use sill_model::bluetooth::{Bluetooth, BtBattery, BtConnection, BtDevice, BtPairing, BtPower};
 use sill_model::network::{Link, Network};
-use sill_model::now_playing::MediaPlayer;
 use sill_model::power_profile::Profile;
 use sill_model::units::Presence;
 use sill_model::wifi::{AccessPoint, Association, Radio, Saved, Wifi};
@@ -100,37 +99,19 @@ pub fn device_detail(device: &BtDevice) -> String {
     }
 }
 
-/// The Now Playing module's two lines: the title (the player's identity when there is none),
-/// and the artists joined with ", " then " — " and the album, leaving out whichever is empty.
-pub fn track_lines(player: &MediaPlayer) -> (String, String) {
-    let track = &player.track;
-    let title = if track.title.is_empty() {
-        player.identity.clone()
-    } else {
-        track.title.clone()
-    };
-    let artists = track.artists.join(", ");
-    let by = [artists.as_str(), track.album.as_str()]
-        .into_iter()
-        .filter(|part| !part.is_empty())
-        .collect::<Vec<_>>()
-        .join(" — ");
-    (title, by)
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
         bluetooth_status, bluetooth_tile_status, device_detail, focus_status, network_detail,
-        profile_label, track_lines, wifi_status,
+        profile_label, wifi_status,
     };
     use sill_model::bluetooth::{
         Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower,
     };
     use sill_model::network::{Link, Network};
-    use sill_model::now_playing::{Abilities, MediaPlayer, Playback, PlayerId, Timeline, Track};
+
     use sill_model::power_profile::Profile;
-    use sill_model::units::{Percent, Presence, Stamp};
+    use sill_model::units::{Percent, Presence};
     use sill_model::wifi::{AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi};
     use sill_settings::FocusMode;
 
@@ -248,39 +229,5 @@ mod tests {
             ..device("Tv", BtConnection::Disconnected, BtBattery::Unknown)
         };
         assert_eq!(device_detail(&stranger), "");
-    }
-
-    #[test]
-    fn now_playing_lines() {
-        let player = |title: &str, artists: &[&str], album: &str| MediaPlayer {
-            id: PlayerId("org.mpris.MediaPlayer2.spotify".to_owned()),
-            identity: "Spotify".to_owned(),
-            playback: Playback::Playing,
-            changed: Stamp(0),
-            track: Track {
-                title: title.to_owned(),
-                artists: artists.iter().map(|a| (*a).to_owned()).collect(),
-                album: album.to_owned(),
-                ..Track::default()
-            },
-            timeline: Timeline::Unknown,
-            abilities: Abilities::default(),
-        };
-        let lines = |p: MediaPlayer| track_lines(&p);
-        assert_eq!(
-            lines(player("So What", &["Miles Davis"], "Kind of Blue")),
-            (
-                "So What".to_owned(),
-                "Miles Davis — Kind of Blue".to_owned()
-            )
-        );
-        assert_eq!(
-            lines(player("Duet", &["A", "B"], "")),
-            ("Duet".to_owned(), "A, B".to_owned())
-        );
-        assert_eq!(
-            lines(player("", &[], "")),
-            ("Spotify".to_owned(), String::new())
-        );
     }
 }

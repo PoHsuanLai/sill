@@ -9,7 +9,7 @@ use ds::Word;
 use ds::{Icon, LabelHue, NoIntent, TextLine, WidgetContext, WidgetHost, WidgetSize, WidgetTitle};
 use serde::{Deserialize, Serialize};
 
-use super::up_next::EVENT_ROWS;
+use super::provider::EVENT_ROWS;
 
 /// The Up Next widget.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]

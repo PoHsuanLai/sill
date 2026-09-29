@@ -1,25 +1,18 @@
 //! The Now Playing widget (kind `sill.now-playing`): the control center's Now Playing reused, not
 //! redrawn. Its entry is the control center's face as data
-//! (`surfaces::control_center::modules::media_face::MediaFace`) and its view the same
+//! (`face::MediaFace`) and its view the same
 //! `MediaView`; its intents are the transport's presses, which the provider sends to the
 //! current player. The module's layout rules live in the control center's stylesheet, which the
-//! widgets' hosts do not load, so `widget_now_playing.css` carries the same few rules for its
+//! widgets' hosts do not load, so `style.css` carries the same few rules for its
 //! classes.
 
 use dioxus::prelude::*;
 use ds::Word;
-use ds::{Icon, TextLine, WidgetCard, WidgetContext, WidgetSize, WidgetTitle};
+use ds::{Icon, TextLine, WidgetContext, WidgetSize, WidgetTitle};
 use sill_model::now_playing::{Abilities, Art, Micros, Playback, Timeline};
 use sill_model::units::{Availability, Stamp};
 
-use super::{Place, WidgetKind, use_widget_wake, widget_element_id};
-use crate::surfaces::control_center::modules::media_face::{
-    MediaFace, MediaView, TrackFace, Transport, position_of,
-};
-use crate::surfaces::control_center::modules::now_playing::use_media;
-
-/// This widget's stylesheet, in [`crate::widgets::widgets_css`].
-pub const CSS: &str = include_str!("../style/widget_now_playing.css");
+use super::face::{MediaFace, MediaView, TrackFace, Transport, position_of};
 
 /// The Now Playing widget.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -79,25 +72,5 @@ impl ds::Widget for NowPlaying {
 
     fn title() -> Option<WidgetTitle> {
         Some(WidgetTitle::new(Icon::Play, "Now Playing"))
-    }
-}
-
-/// The current player on quire's card; a press goes to that player.
-#[component]
-pub fn NowPlayingCard(place: Place) -> Element {
-    let (face, onintent) = use_media();
-    rsx! {
-        WidgetCard {
-            widget: NowPlaying,
-            timeline: ds::Timeline::now(face),
-            size: place.size,
-            host: place.host,
-            wake: use_widget_wake(),
-            id: widget_element_id(WidgetKind::NowPlaying),
-            onintent,
-            lift: place.lift,
-            presence: place.presence,
-            on_gone: place.on_gone,
-        }
     }
 }
