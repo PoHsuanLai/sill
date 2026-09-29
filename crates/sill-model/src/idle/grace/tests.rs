@@ -1,10 +1,10 @@
-use super::{GraceCase, GraceVerdict, SleepSince, WakeDelay, grace_verdict, ticket};
-use crate::idle::policy::{IdleSecs, LockGrace};
-use sill_model::locker::LockCause;
-
 use GraceVerdict::{Ask, NoPassword};
 use LockCause::{Action, IdleScreenOff, Logind, Restored, Sleep};
 use SleepSince::{NoSleep, Slept};
+
+use super::{GraceCase, GraceVerdict, SleepSince, WakeDelay, grace_verdict, ticket};
+use crate::idle::{IdleSecs, LockGrace};
+use crate::locker::LockCause;
 
 /// One row: name, cause, grace (s), wake after (ms), a sleep since, the verdict.
 type Row = (

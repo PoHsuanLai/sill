@@ -13,9 +13,8 @@
 //! The wake is the compositor's `ext_idle_notification_v1.resumed` (real input); a display
 //! turning on for any other reason (a hotplug, a resume) is not a wake.
 
-use sill_model::locker::LockCause;
-
 use super::policy::{IdleSecs, LockGrace};
+use crate::locker::LockCause;
 
 /// Milliseconds from the displays going off (the idle lock's instant) to the wake.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -85,5 +84,4 @@ pub fn ticket(case: &GraceCase) -> Option<GraceTicket> {
 }
 
 #[cfg(test)]
-#[path = "grace_tests.rs"]
 mod tests;

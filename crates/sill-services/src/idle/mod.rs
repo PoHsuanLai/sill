@@ -12,45 +12,16 @@
 //! [`parse_cosmic_value`], [`cosmic_times`], [`inhibit_step`], [`logind_idle`], [`inhibition`],
 //! [`grace_verdict`] and the machine [`step`].
 
-mod cosmic;
-mod grace;
-mod inhibit;
-mod live;
-mod logind;
-mod model;
-mod policy;
-mod reduce;
-mod resolve;
-mod screensaver;
-mod wl;
-mod wl_dispatch;
-mod wl_state;
+mod backend;
 
-pub use cosmic::{
-    COSMIC_IDLE_ID, COSMIC_IDLE_VERSION, CosmicIdle, CosmicIdleTimes, CosmicKey, CosmicValue,
-    cosmic_times, parse_cosmic_value,
-};
-pub use grace::{
-    GraceCase, GraceTicket, GraceVerdict, SleepSince, WakeDelay, grace_verdict, ticket,
-};
-pub use inhibit::{
-    BusPeer, InhibitCookie, InhibitMsg, InhibitReply, Inhibition, Inhibitor, Inhibitors,
-    LogindIdle, inhibit_step, inhibition, logind_idle,
-};
-pub use model::{DimShown, Idle, IdleCommand, IdleLinks, IdlePhase};
+use backend::Reach;
+use sill_model::idle::{Idle, IdleCommand};
 
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
-use model::Reach;
-pub use policy::{
-    DimLevel, DimPlan, IdleConfig, IdleLock, IdleMode, IdlePolicy, IdleSecs, IdleTimes, LockGrace,
-    LockView, LockedScreenOff, OffReason, PowerPair, PowerSource, Threshold, Timeout, TimesChoice,
-    Watch, effective_times, power_source, resolve_mode, watches,
-};
-pub use reduce::{
-    DisplayPower, IdleEffect, IdleEvent, IdleHint, IdleState, LockSeen, PASSIVE, step,
-};
+
+pub use backend::IdleLinks;
 
 /// sill's own idle as a [`Service`], on `env`'s compositor and buses, reading and driving the
 /// services in its [`IdleLinks`]. Passive until the first command.
@@ -70,7 +41,7 @@ impl Service for IdleService {
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let reach = Reach::of(env);
         async move {
-            live::run(reach, deps, io.commands, io.state).await;
+            backend::run(reach, deps, io.commands, io.state).await;
             Ok(())
         }
     }

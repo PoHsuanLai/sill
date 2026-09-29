@@ -17,7 +17,7 @@ use dioxus::prelude::*;
 use ds::detail::IdleDimPhase;
 use ds::{Ds, IdleDim, Material, RootChrome, RootExtent};
 use shell_host::{OutputInfo, Visibility};
-use sill_services::idle::{DimLevel, DimShown};
+use sill_model::idle::{DimLevel, DimShown};
 
 use crate::hooks::{use_appearance, use_ds_scale, use_service};
 use sill_services::IdleService;
@@ -90,7 +90,7 @@ pub fn IdleDimOverlay(output: OutputInfo) -> Element {
 mod tests {
     use ds::detail::IdleDimPhase;
     use shell_host::Visibility;
-    use sill_services::idle::{DimLevel, DimShown};
+    use sill_model::idle::{DimLevel, DimShown};
 
     use super::{DimScene, scene_of, scrim_of, visibility_of};
 

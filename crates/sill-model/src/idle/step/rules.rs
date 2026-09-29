@@ -1,12 +1,11 @@
 //! The machine's rules, one function per event (the module doc of `reduce.rs` lists them).
 
-use sill_model::units::Stamp;
-
 use super::super::grace::{GraceCase, SleepSince, WakeDelay};
 use super::super::inhibit::Inhibition;
 use super::super::model::{DimShown, IdlePhase};
 use super::super::policy::{IdleLock, IdleMode, IdlePolicy, LockView, Threshold, Watch, watches};
 use super::{DisplayPower, IdleEffect, IdleEvent, IdleHint, IdleState, LockSeen};
+use crate::units::Stamp;
 
 type Step = (IdleState, Vec<IdleEffect>);
 

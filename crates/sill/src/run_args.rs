@@ -23,7 +23,7 @@ pub struct DebugSeams {
     /// Idle's screen-off and suspend times in seconds for both power sources (`<screen_off_s>,
     /// <suspend_s>`, 0 never) instead of the settings' minutes.
     #[arg(long, value_name = "OFF_S,SUSPEND_S", value_parser = idle_times)]
-    pub idle_times: Option<sill_services::idle::IdleTimes>,
+    pub idle_times: Option<sill_model::idle::IdleTimes>,
     /// Register the polkit agent with a stand-in Authority on this private bus instead of
     /// polkitd on the system bus. Its helper is then `--polkit-helper` (none without it: every
     /// request fails, never polkit's own helper) and its session `--polkit-session`; logind is
@@ -60,7 +60,7 @@ pub enum DryRunOffersArg {
 
 /// `--idle-times`' value.
 #[cfg(feature = "debug")]
-fn idle_times(text: &str) -> Result<sill_services::idle::IdleTimes, String> {
+fn idle_times(text: &str) -> Result<sill_model::idle::IdleTimes, String> {
     crate::idle::test_times(text)
         .ok_or_else(|| format!("{text:?} is not <screen_off_s>,<suspend_s>"))
 }

@@ -8,8 +8,8 @@
 //! output's surface is spawned already mapped when the service is dimming.
 
 use shell_host::{HostCtx, HostHandle, OutputInfo, Root, Visibility};
+use sill_model::idle::DimShown;
 use sill_services::Services;
-use sill_services::idle::DimShown;
 use sill_surfaces::surfaces::idle_dim::{IdleDimOverlayProps, idle_dim_layer, visibility_of};
 use tokio::runtime::Handle;
 

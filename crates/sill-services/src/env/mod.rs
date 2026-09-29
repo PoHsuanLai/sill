@@ -15,9 +15,9 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::auth::PamHelper;
-use crate::idle::IdleTimes;
 use crate::polkit_agent;
 use ddc::{DdcBus, FileBus, I2cBuses};
+use sill_model::idle::IdleTimes;
 
 pub use authenticator::{Authenticator, FakeAuthenticator, FakeRule};
 pub use buses::{Bus, BusKind, BusRoute, Buses};

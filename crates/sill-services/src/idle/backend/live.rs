@@ -13,23 +13,25 @@
 use std::time::{Duration, Instant};
 
 use logind_zbus::manager::PrepareForSleepStream;
+use sill_model::idle::{
+    Idle, IdleCommand, IdleConfig, IdleEffect, IdleEvent, IdleMode, IdleState, InhibitMsg,
+    Inhibitors, LockSeen, LockView, LogindIdle, inhibit_step, inhibition, power_source, step,
+    ticket,
+};
+use sill_model::locker::{Lock, LockPhase, LockerCommand};
+use sill_model::units::Stamp;
 use tokio::sync::{mpsc, watch};
 use tokio::time::MissedTickBehavior;
 use zbus::fdo::NameOwnerChangedStream;
 
-use super::inhibit::{InhibitMsg, Inhibitors, LogindIdle, inhibit_step, inhibition};
-use super::logind::{self as idle_logind, IdleLogind};
-use super::model::{Idle, IdleCommand, IdleLinks, Reach};
-use super::policy::{IdleConfig, IdleMode, LockView, power_source};
-use super::reduce::{IdleEffect, IdleEvent, IdleState, LockSeen, step};
+use super::links::{IdleLinks, Reach};
+use super::logind::IdleLogind;
 use super::resolve::{RESOLVE_EVERY_S, resolve};
-use super::screensaver::{self, Call, Served};
-use super::wl::{self, Epoch, Heard, Order, Tell, Wire, WlEvent};
+use super::screensaver::{Call, Served};
+use super::wl::{Epoch, Heard, Order, Tell, Wire, WlEvent};
+use super::{logind as idle_logind, screensaver, wl};
 use crate::auth::AuthCommand;
-use crate::idle::grace::ticket;
 use crate::stream::next_opt;
-use sill_model::locker::{Lock, LockPhase, LockerCommand};
-use sill_model::units::Stamp;
 
 /// How often logind's `BlockInhibited` is read.
 const POLL_S: u64 = 5;
@@ -61,7 +63,7 @@ struct Live {
     logind_idle: LogindIdle,
 }
 
-pub(super) async fn run(
+pub(crate) async fn run(
     setup: Reach,
     links: IdleLinks,
     mut commands: mpsc::UnboundedReceiver<IdleCommand>,
@@ -121,7 +123,7 @@ pub(super) async fn run(
                     && args.new_owner().is_none()
                     && args.name().starts_with(':')
                 {
-                    let peer = super::inhibit::BusPeer(args.name().to_string());
+                    let peer = sill_model::idle::BusPeer(args.name().to_string());
                     live.inhibit(InhibitMsg::PeerGone(peer)).await;
                 }
             }
@@ -173,7 +175,7 @@ impl Live {
     }
 
     /// Start what `Own` needs before the machine sees the policy, and stop it after `Off`.
-    async fn use_policy(&mut self, policy: super::IdlePolicy) {
+    async fn use_policy(&mut self, policy: sill_model::idle::IdlePolicy) {
         if policy.mode != self.state.policy.mode {
             eprintln!("sill: idle: {:?}", policy.mode);
         }
@@ -190,8 +192,8 @@ impl Live {
     }
 
     async fn feed_policy_off(&mut self) {
-        let off = super::IdlePolicy {
-            mode: IdleMode::Off(super::OffReason::NoPolicy),
+        let off = sill_model::idle::IdlePolicy {
+            mode: IdleMode::Off(sill_model::idle::OffReason::NoPolicy),
             ..self.state.policy
         };
         self.feed(IdleEvent::Policy(off)).await;
@@ -251,7 +253,7 @@ impl Live {
         let _ = call.reply.send(reply);
     }
 
-    async fn inhibit(&mut self, msg: InhibitMsg) -> super::InhibitReply {
+    async fn inhibit(&mut self, msg: InhibitMsg) -> sill_model::idle::InhibitReply {
         if let InhibitMsg::Inhibit { app, reason, .. } = &msg {
             eprintln!("sill: idle: inhibited by {app:?} ({reason:?})");
         }
@@ -320,7 +322,7 @@ impl Live {
                 let _ = self.links.locker.send(LockerCommand::IdleLock);
             }
             IdleEffect::Grace(case) => {
-                let verdict = super::grace_verdict(&case);
+                let verdict = sill_model::idle::grace_verdict(&case);
                 eprintln!(
                     "sill: idle: grace {verdict:?} (woke after {} ms)",
                     case.woke.0
@@ -369,14 +371,14 @@ impl Live {
 }
 
 /// `config` resolved on the blocking pool; `Off` if that fails.
-async fn resolved(config: IdleConfig, reach: &Reach) -> super::IdlePolicy {
+async fn resolved(config: IdleConfig, reach: &Reach) -> sill_model::idle::IdlePolicy {
     let dir = reach.config.clone();
     let processes = reach.processes.clone();
     tokio::task::spawn_blocking(move || resolve(&config, &dir, processes.as_ref()))
         .await
-        .unwrap_or(super::IdlePolicy {
-            mode: IdleMode::Off(super::OffReason::NoPolicy),
-            ..super::PASSIVE
+        .unwrap_or(sill_model::idle::IdlePolicy {
+            mode: IdleMode::Off(sill_model::idle::OffReason::NoPolicy),
+            ..sill_model::idle::PASSIVE
         })
 }
 

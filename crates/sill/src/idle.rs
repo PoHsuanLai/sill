@@ -12,13 +12,13 @@ use sill_ipc::{
     IdleReport, IdleRequest, ReportDim, ReportIdleMode, ReportIdlePhase, ReportInhibition,
     ReportOffReason, ReportPower, Response,
 };
-use sill_services::Services;
-use sill_services::env::IdleTimesSource;
-use sill_services::idle::{
+use sill_model::idle::{
     DimLevel, DimPlan, DimShown, Idle, IdleCommand, IdleConfig, IdleLock, IdleMode, IdlePhase,
     IdleSecs, IdleTimes, Inhibition, LockGrace, LockedScreenOff, LogindIdle, OffReason, PowerPair,
     PowerSource, Timeout, TimesChoice,
 };
+use sill_services::Services;
+use sill_services::env::IdleTimesSource;
 use sill_settings::{IdleLockAt, IdleTimesFrom, Mins, Secs, ShellFile};
 
 use crate::policy::Policy;
@@ -180,7 +180,7 @@ pub fn report_of(idle: &Idle) -> IdleReport {
 
 #[cfg(test)]
 mod tests {
-    use sill_services::idle::{
+    use sill_model::idle::{
         DimLevel, DimPlan, IdleConfig, IdleLock, IdleSecs, IdleTimes, LockGrace, LockedScreenOff,
         PowerPair, Timeout, TimesChoice,
     };
@@ -283,7 +283,7 @@ mod tests {
             IdleReport, ReportDim, ReportIdleMode, ReportIdlePhase, ReportInhibition,
             ReportOffReason, ReportPower,
         };
-        use sill_services::idle::{
+        use sill_model::idle::{
             DimShown, Idle, IdleMode, IdlePhase, Inhibition, LogindIdle, PowerSource,
         };
         assert_eq!(

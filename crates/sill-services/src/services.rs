@@ -272,7 +272,7 @@ mod tests {
         );
         assert_eq!(
             services.idle.state.borrow().mode,
-            crate::idle::IdleMode::Off(crate::idle::OffReason::NoPolicy),
+            sill_model::idle::IdleMode::Off(sill_model::idle::OffReason::NoPolicy),
             "no idle notification, display or logind touched until the daemon's policy"
         );
     }

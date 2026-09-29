@@ -1320,7 +1320,7 @@ mod settings_publish_tests {
         let (tx, rx) = watch::channel(ShellFile::default());
         for event in [
             HostEvent::Started,
-            HostEvent::App(ShellMsg::Dim(sill_services::idle::DimShown::Clear)),
+            HostEvent::App(ShellMsg::Dim(sill_model::idle::DimShown::Clear)),
         ] {
             publish_watched_settings(&tx, &event);
         }

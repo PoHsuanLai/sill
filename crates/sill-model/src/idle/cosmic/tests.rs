@@ -1,5 +1,5 @@
 use super::{CosmicIdleTimes, CosmicKey, CosmicValue, cosmic_times, parse_cosmic_value};
-use crate::idle::policy::{IdleSecs, Timeout};
+use crate::idle::{IdleSecs, Timeout};
 
 const fn after(s: u32) -> Timeout {
     Timeout::After(IdleSecs(s))

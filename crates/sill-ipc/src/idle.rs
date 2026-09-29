@@ -38,7 +38,7 @@ pub struct IdleReport {
     pub logind: ReportInhibition,
 }
 
-/// `sill_services::idle::IdleMode`'s mirror.
+/// `sill_model::idle::IdleMode`'s mirror.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum ReportIdleMode {
@@ -46,7 +46,7 @@ pub enum ReportIdleMode {
     Off(ReportOffReason),
 }
 
-/// `sill_services::idle::OffReason`'s mirror.
+/// `sill_model::idle::OffReason`'s mirror.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReportOffReason {
@@ -56,7 +56,7 @@ pub enum ReportOffReason {
     CosmicIdleRunning,
 }
 
-/// `sill_services::idle::IdlePhase`'s mirror.
+/// `sill_model::idle::IdlePhase`'s mirror.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReportIdlePhase {
@@ -66,7 +66,7 @@ pub enum ReportIdlePhase {
     Suspending,
 }
 
-/// `sill_services::idle::DimShown`'s mirror: the level is the brightness kept, in percent.
+/// `sill_model::idle::DimShown`'s mirror: the level is the brightness kept, in percent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum ReportDim {

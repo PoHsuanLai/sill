@@ -7,19 +7,19 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::env::Processes;
+use sill_model::idle::{
+    COSMIC_IDLE_ID, COSMIC_IDLE_VERSION, CosmicIdle, CosmicIdleTimes, CosmicKey, IdleConfig,
+    IdlePolicy, TimesChoice, cosmic_times, effective_times, resolve_mode,
+};
 use sill_model::locker::{Host, SessionManager};
 
-use super::cosmic::{
-    COSMIC_IDLE_ID, COSMIC_IDLE_VERSION, CosmicIdle, CosmicIdleTimes, CosmicKey, cosmic_times,
-};
-use super::policy::{IdleConfig, IdlePolicy, TimesChoice, effective_times, resolve_mode};
+use crate::env::Processes;
 
 /// How often a `Configure`d policy is resolved again.
-pub(super) const RESOLVE_EVERY_S: u64 = 15;
+pub(crate) const RESOLVE_EVERY_S: u64 = 15;
 
 /// `config` in this session.
-pub(super) fn resolve(
+pub(crate) fn resolve(
     config: &IdleConfig,
     config_dir: &Path,
     processes: &dyn Processes,

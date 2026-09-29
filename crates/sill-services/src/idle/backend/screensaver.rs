@@ -1,31 +1,31 @@
-//! `org.freedesktop.ScreenSaver` on [`Reach::session`](super::Reach), served while idle is
+//! `org.freedesktop.ScreenSaver` on [`Reach::session`](crate::idle::Reach), served while idle is
 //! `Own`: `Inhibit(app, reason) -> cookie`, `UnInhibit(cookie)` and `GetActive()`, at
 //! `/org/freedesktop/ScreenSaver` and `/ScreenSaver`. The object hands each call to the live
-//! loop, which owns the inhibitors ([`super::inhibit_step`]); a caller that leaves the bus loses
+//! loop, which owns the inhibitors ([`sill_model::idle::inhibit_step`]); a caller that leaves the
+//! bus loses
 //! its inhibits (`NameOwnerChanged`). The name is asked for without replacing a holder: if
 //! another holds it, its inhibits never reach sill, and that is logged.
 
+use sill_model::idle::{BusPeer, Idle, IdlePhase, InhibitCookie, InhibitMsg, InhibitReply};
 use tokio::sync::{mpsc, oneshot, watch};
 use zbus::fdo::{DBusProxy, NameOwnerChangedStream, RequestNameFlags, RequestNameReply};
 use zbus::message::Header;
 use zbus::{Connection, fdo, interface};
 
-use super::inhibit::{BusPeer, InhibitCookie, InhibitMsg, InhibitReply};
 use super::logind::bus;
-use super::model::{Idle, IdlePhase};
 use crate::env::Bus;
 
 /// The well-known name.
-pub(super) const BUS_NAME: &str = "org.freedesktop.ScreenSaver";
+pub(crate) const BUS_NAME: &str = "org.freedesktop.ScreenSaver";
 
 /// The two paths apps call.
-pub(super) const PATHS: [&str; 2] = ["/org/freedesktop/ScreenSaver", "/ScreenSaver"];
+pub(crate) const PATHS: [&str; 2] = ["/org/freedesktop/ScreenSaver", "/ScreenSaver"];
 
 /// A call handed to the loop.
 #[derive(Debug)]
-pub(super) struct Call {
-    pub(super) msg: InhibitMsg,
-    pub(super) reply: oneshot::Sender<InhibitReply>,
+pub(crate) struct Call {
+    pub(crate) msg: InhibitMsg,
+    pub(crate) reply: oneshot::Sender<InhibitReply>,
 }
 
 /// The served object (one per path).
@@ -95,9 +95,9 @@ impl Saver {
 
 /// The served name and the departures it follows. Dropping it closes the connection, which
 /// gives the name back.
-pub(super) struct Served {
+pub(crate) struct Served {
     _connection: Connection,
-    pub(super) departures: Option<NameOwnerChangedStream>,
+    pub(crate) departures: Option<NameOwnerChangedStream>,
 }
 
 impl std::fmt::Debug for Served {
@@ -107,7 +107,7 @@ impl std::fmt::Debug for Served {
 }
 
 /// Serve the object on `session` and ask for the name.
-pub(super) async fn serve(
+pub(crate) async fn serve(
     session: &Bus,
     calls: mpsc::UnboundedSender<Call>,
     idle: watch::Receiver<Idle>,

@@ -148,5 +148,4 @@ pub fn inhibition(inhibitors: &Inhibitors, logind: LogindIdle) -> Inhibition {
 }
 
 #[cfg(test)]
-#[path = "inhibit_tests.rs"]
 mod tests;

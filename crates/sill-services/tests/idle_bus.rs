@@ -8,13 +8,14 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use sill_model::battery::Battery;
+use sill_model::idle::{
+    DimLevel, DimPlan, Idle, IdleCommand, IdleLock, IdleMode, IdlePhase, IdlePolicy, IdleSecs,
+    IdleTimes, Inhibition, LockGrace, LockedScreenOff, PowerPair, Timeout,
+};
 use sill_model::locker::{Lock, LockerCommand};
 use sill_services::env::{BusRoute, Buses, Env, WaylandRoute};
+use sill_services::idle::IdleLinks;
 use sill_services::idle::IdleService;
-use sill_services::idle::{
-    DimLevel, DimPlan, Idle, IdleCommand, IdleLinks, IdleLock, IdleMode, IdlePhase, IdlePolicy,
-    IdleSecs, IdleTimes, Inhibition, LockGrace, LockedScreenOff, PowerPair, Timeout,
-};
 use sill_services::service::spawn;
 use sill_services::{AuthCommand, Control};
 use sill_testkit::PrivateBus;

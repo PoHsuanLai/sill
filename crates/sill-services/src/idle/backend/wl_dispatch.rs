@@ -1,18 +1,17 @@
 //! The idle thread's protocol events.
 
-use cosmic_client_toolkit::sctk::reexports::protocols_wlr::output_power_management::v1::client::{
-    zwlr_output_power_manager_v1::ZwlrOutputPowerManagerV1,
-    zwlr_output_power_v1::{self, ZwlrOutputPowerV1},
-};
-use cosmic_client_toolkit::wayland_client::globals::GlobalListContents;
-use cosmic_client_toolkit::wayland_client::protocol::{
-    wl_output::WlOutput, wl_registry, wl_registry::WlRegistry, wl_seat::WlSeat,
-};
+use cosmic_client_toolkit::sctk::reexports::protocols_wlr::output_power_management::v1::client::zwlr_output_power_v1;
+use cosmic_client_toolkit::sctk::reexports::protocols_wlr::output_power_management::v1::client::zwlr_output_power_manager_v1::ZwlrOutputPowerManagerV1;
+use cosmic_client_toolkit::sctk::reexports::protocols_wlr::output_power_management::v1::client::zwlr_output_power_v1::ZwlrOutputPowerV1;
 use cosmic_client_toolkit::wayland_client::{Connection, Dispatch, Proxy, QueueHandle};
-use cosmic_client_toolkit::wayland_protocols::ext::idle_notify::v1::client::{
-    ext_idle_notification_v1::{self, ExtIdleNotificationV1},
-    ext_idle_notifier_v1::ExtIdleNotifierV1,
-};
+use cosmic_client_toolkit::wayland_client::globals::GlobalListContents;
+use cosmic_client_toolkit::wayland_client::protocol::wl_registry;
+use cosmic_client_toolkit::wayland_client::protocol::wl_output::WlOutput;
+use cosmic_client_toolkit::wayland_client::protocol::wl_registry::WlRegistry;
+use cosmic_client_toolkit::wayland_client::protocol::wl_seat::WlSeat;
+use cosmic_client_toolkit::wayland_protocols::ext::idle_notify::v1::client::ext_idle_notification_v1;
+use cosmic_client_toolkit::wayland_protocols::ext::idle_notify::v1::client::ext_idle_notification_v1::ExtIdleNotificationV1;
+use cosmic_client_toolkit::wayland_protocols::ext::idle_notify::v1::client::ext_idle_notifier_v1::ExtIdleNotifierV1;
 
 use super::wl_state::WlState;
 

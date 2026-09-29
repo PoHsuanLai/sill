@@ -59,7 +59,7 @@ pub struct Feeds {
     pub shots: watch::Sender<sill_services::Shots>,
     pub shot_commands: mpsc::UnboundedReceiver<sill_services::ShotCommand>,
     /// sill's own idle service (passive, `Off(NoPolicy)`, until a test feeds it).
-    pub idle: watch::Sender<sill_services::Idle>,
+    pub idle: watch::Sender<sill_model::idle::Idle>,
     /// The displays (none until a test feeds some), and what the Display module sends.
     pub displays: watch::Sender<sill_services::Displays>,
     pub displays_commands: mpsc::UnboundedReceiver<sill_services::DisplaysCommand>,
@@ -307,7 +307,7 @@ pub fn services() -> (Services, Feeds) {
     // A feed for the calendar widgets and one for the screenshot thumbnail.
     let (events, agenda_io) = Handle::channel(sill_services::Agenda::default());
     let (screenshots, shots_io) = Handle::channel(sill_services::Shots::default());
-    let (idle, idle_io) = Handle::channel(sill_services::Idle::default());
+    let (idle, idle_io) = Handle::channel(sill_model::idle::Idle::default());
     let (displays, displays_io) = Handle::channel(sill_services::Displays::default());
     keep.push(Box::new(clock_io.commands));
     keep.push(Box::new(battery_io.commands));

@@ -1,24 +1,21 @@
 //! The idle thread's protocol state: the held notifications, the outputs and their power
 //! controls, and what it does on each order.
 
-use cosmic_client_toolkit::sctk::reexports::protocols_wlr::output_power_management::v1::client::{
-    zwlr_output_power_manager_v1::ZwlrOutputPowerManagerV1,
-    zwlr_output_power_v1::{Mode, ZwlrOutputPowerV1},
-};
-use cosmic_client_toolkit::wayland_client::globals::GlobalList;
-use cosmic_client_toolkit::wayland_client::protocol::{wl_output::WlOutput, wl_seat::WlSeat};
+use cosmic_client_toolkit::sctk::reexports::protocols_wlr::output_power_management::v1::client::zwlr_output_power_manager_v1::ZwlrOutputPowerManagerV1;
+use cosmic_client_toolkit::sctk::reexports::protocols_wlr::output_power_management::v1::client::zwlr_output_power_v1::{Mode, ZwlrOutputPowerV1};
 use cosmic_client_toolkit::wayland_client::{Proxy, QueueHandle};
-use cosmic_client_toolkit::wayland_protocols::ext::idle_notify::v1::client::{
-    ext_idle_notification_v1::ExtIdleNotificationV1, ext_idle_notifier_v1::ExtIdleNotifierV1,
-};
+use cosmic_client_toolkit::wayland_client::globals::GlobalList;
+use cosmic_client_toolkit::wayland_client::protocol::wl_output::WlOutput;
+use cosmic_client_toolkit::wayland_client::protocol::wl_seat::WlSeat;
+use cosmic_client_toolkit::wayland_protocols::ext::idle_notify::v1::client::ext_idle_notification_v1::ExtIdleNotificationV1;
+use cosmic_client_toolkit::wayland_protocols::ext::idle_notify::v1::client::ext_idle_notifier_v1::ExtIdleNotifierV1;
+use sill_model::idle::{Threshold, Watch, DisplayPower};
 
-use super::policy::{Threshold, Watch};
-use super::reduce::DisplayPower;
 use super::wl::{Offered, Protocols, Tell, WlEvent};
 
 /// Whether a notification has said `idled` and not yet `resumed`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Idleness {
+pub(crate) enum Idleness {
     Waiting,
     Idled,
 }
@@ -34,31 +31,31 @@ struct Held {
 
 /// One output and its power control (none without the manager, or after `failed`).
 #[derive(Debug)]
-pub(super) struct Screen {
-    pub(super) global: u32,
-    pub(super) output: WlOutput,
-    pub(super) power: Option<ZwlrOutputPowerV1>,
+pub(crate) struct Screen {
+    pub(crate) global: u32,
+    pub(crate) output: WlOutput,
+    pub(crate) power: Option<ZwlrOutputPowerV1>,
 }
 
 /// Everything the loop's callbacks reach.
-pub(super) struct WlState {
-    pub(super) qh: QueueHandle<WlState>,
-    pub(super) tell: Tell,
+pub(crate) struct WlState {
+    pub(crate) qh: QueueHandle<WlState>,
+    pub(crate) tell: Tell,
     notifier: Option<ExtIdleNotifierV1>,
     seat: Option<WlSeat>,
-    pub(super) power: Option<ZwlrOutputPowerManagerV1>,
-    pub(super) screens: Vec<Screen>,
+    pub(crate) power: Option<ZwlrOutputPowerManagerV1>,
+    pub(crate) screens: Vec<Screen>,
     held: Vec<Held>,
     /// Notifications no longer wanted that had idled: kept until they resume.
     retiring: Vec<Held>,
     next_id: u64,
     /// What the displays were last told.
-    pub(super) displays: DisplayPower,
+    pub(crate) displays: DisplayPower,
 }
 
 impl WlState {
     /// Bind the notifier, the first seat, the output power manager and every output there is.
-    pub(super) fn bind(globals: &GlobalList, qh: QueueHandle<WlState>, tell: Tell) -> WlState {
+    pub(crate) fn bind(globals: &GlobalList, qh: QueueHandle<WlState>, tell: Tell) -> WlState {
         let notifier = globals.bind::<ExtIdleNotifierV1, _, _>(&qh, 1..=2, ()).ok();
         let seat = globals.bind::<WlSeat, _, _>(&qh, 1..=1, ()).ok();
         let power = globals
@@ -93,7 +90,7 @@ impl WlState {
         state
     }
 
-    pub(super) fn protocols(&self) -> Protocols {
+    pub(crate) fn protocols(&self) -> Protocols {
         let offered = |yes: bool| if yes { Offered::Yes } else { Offered::No };
         Protocols {
             notifier: offered(self.notifier.is_some() && self.seat.is_some()),
@@ -102,7 +99,7 @@ impl WlState {
     }
 
     /// A new output gets a power control, set off at once if the displays are off.
-    pub(super) fn add_screen(&mut self, global: u32, output: WlOutput) {
+    pub(crate) fn add_screen(&mut self, global: u32, output: WlOutput) {
         let power = self
             .power
             .as_ref()
@@ -118,7 +115,7 @@ impl WlState {
     }
 
     /// An output went away: drop its power control and give it back.
-    pub(super) fn remove_screen(&mut self, global: u32) {
+    pub(crate) fn remove_screen(&mut self, global: u32) {
         let (gone, kept) = std::mem::take(&mut self.screens)
             .into_iter()
             .partition(|screen| screen.global == global);
@@ -135,7 +132,7 @@ impl WlState {
 
     /// Hold `watches`: unchanged ones are kept, the rest destroyed (or retired while idled)
     /// and the new ones created.
-    pub(super) fn watch(&mut self, watches: Vec<Watch>) {
+    pub(crate) fn watch(&mut self, watches: Vec<Watch>) {
         let (kept, dropped): (Vec<Held>, Vec<Held>) = std::mem::take(&mut self.held)
             .into_iter()
             .partition(|held| watches.contains(&held.watch));
@@ -166,7 +163,7 @@ impl WlState {
     }
 
     /// Drop every notification and hold `watches` afresh.
-    pub(super) fn renew(&mut self, watches: Vec<Watch>) {
+    pub(crate) fn renew(&mut self, watches: Vec<Watch>) {
         for held in self.held.drain(..).chain(self.retiring.drain(..)) {
             held.note.destroy();
         }
@@ -174,7 +171,7 @@ impl WlState {
     }
 
     /// Every output's power as `power` says.
-    pub(super) fn displays(&mut self, power: DisplayPower) {
+    pub(crate) fn displays(&mut self, power: DisplayPower) {
         self.displays = power;
         let mode = match power {
             DisplayPower::Off => Mode::Off,
@@ -186,7 +183,7 @@ impl WlState {
     }
 
     /// A notification said `idled`.
-    pub(super) fn idled(&mut self, id: u64) {
+    pub(crate) fn idled(&mut self, id: u64) {
         if let Some(held) = self.held.iter_mut().find(|held| held.id == id) {
             held.idleness = Idleness::Idled;
             let stage: Threshold = held.watch.stage;
@@ -195,7 +192,7 @@ impl WlState {
     }
 
     /// A notification said `resumed`: real input. A retired one is destroyed now.
-    pub(super) fn resumed(&mut self, id: u64) {
+    pub(crate) fn resumed(&mut self, id: u64) {
         if let Some(held) = self.held.iter_mut().find(|held| held.id == id) {
             held.idleness = Idleness::Waiting;
         }
@@ -206,7 +203,7 @@ impl WlState {
     }
 
     /// A power control failed (the output went, or it cannot be controlled): forget it.
-    pub(super) fn power_failed(&mut self, control: &ZwlrOutputPowerV1) {
+    pub(crate) fn power_failed(&mut self, control: &ZwlrOutputPowerV1) {
         for screen in &mut self.screens {
             if screen.power.as_ref() == Some(control) {
                 control.destroy();

@@ -9,6 +9,7 @@ pub mod badges;
 pub mod battery;
 pub mod clock;
 pub mod cosmic_wl;
+pub mod idle;
 pub mod ids;
 pub mod kbd_backlight;
 pub mod locker;

@@ -1,12 +1,11 @@
 use super::{DisplayPower, IdleEffect, IdleEvent, IdleHint, IdleState, LockSeen, step};
-use crate::idle::grace::{GraceCase, SleepSince, WakeDelay};
-use crate::idle::model::{DimShown, IdlePhase};
-use crate::idle::policy::{
-    DimLevel, DimPlan, IdleLock, IdleMode, IdlePolicy, IdleSecs, IdleTimes, LockGrace, LockView,
-    LockedScreenOff, OffReason, PowerPair, Threshold, Timeout,
+use crate::idle::{
+    DimLevel, DimPlan, DimShown, GraceCase, IdleLock, IdleMode, IdlePhase, IdlePolicy, IdleSecs,
+    IdleTimes, LockGrace, LockView, LockedScreenOff, OffReason, PowerPair, SleepSince, Threshold,
+    Timeout, WakeDelay,
 };
-use sill_model::locker::LockCause;
-use sill_model::units::Stamp;
+use crate::locker::LockCause;
+use crate::units::Stamp;
 
 fn own() -> IdlePolicy {
     let after = |s| Timeout::After(IdleSecs(s));
@@ -169,7 +168,7 @@ fn turning_off_undoes_what_idle_did() {
 
 #[test]
 fn an_inhibitor_clears_the_dim_and_drops_the_watches() {
-    use crate::idle::inhibit::Inhibition;
+    use crate::idle::Inhibition;
     let (state, effects) = run(&[
         IdleEvent::Policy(own()),
         IdleEvent::Idled(Threshold::Dim, Stamp(10)),
@@ -190,7 +189,7 @@ fn an_inhibitor_clears_the_dim_and_drops_the_watches() {
 
 #[test]
 fn the_idle_lock_keeps_the_suspend_watch_as_it_was() {
-    use crate::idle::policy::Watch;
+    use crate::idle::Watch;
     let (_, effects) = run(&[
         IdleEvent::Policy(own()),
         IdleEvent::Idled(Threshold::ScreenOff, Stamp(900_000)),

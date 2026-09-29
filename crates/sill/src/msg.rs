@@ -18,5 +18,5 @@ pub enum ShellMsg {
     /// Hold or drop shell-host's session lock (`crate::lock::spawn_follower` sends it).
     Lock(crate::lock::LockWish),
     /// Map or unmap the idle dim surfaces (`crate::idle_dim::spawn_follower` sends it).
-    Dim(sill_services::idle::DimShown),
+    Dim(sill_model::idle::DimShown),
 }

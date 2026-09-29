@@ -7,24 +7,24 @@
 
 use std::io;
 
-use cosmic_client_toolkit::sctk::reexports::calloop::channel::{self, Event};
-use cosmic_client_toolkit::sctk::reexports::calloop::{self, EventLoop};
+use cosmic_client_toolkit::sctk::reexports::calloop;
+use cosmic_client_toolkit::sctk::reexports::calloop::channel::Event;
+use cosmic_client_toolkit::sctk::reexports::calloop::{EventLoop, channel};
 use cosmic_client_toolkit::sctk::reexports::calloop_wayland_source::WaylandSource;
 use cosmic_client_toolkit::wayland_client::globals::{GlobalError, registry_queue_init};
+use sill_model::idle::{DisplayPower, Threshold, Watch};
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::policy::{Threshold, Watch};
-use super::reduce::DisplayPower;
 use super::wl_state::WlState;
 use crate::env::{WaylandRoute, WaylandUnreached};
 
 /// Which connection an event came from: the service drops what an older one says.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) struct Epoch(pub(super) u64);
+pub(crate) struct Epoch(pub(crate) u64);
 
 /// What the thread saw.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum WlEvent {
+pub(crate) enum WlEvent {
     /// Connected; whether the two protocols are there.
     Bound(Protocols),
     /// `idled` on the watch of that threshold.
@@ -37,38 +37,38 @@ pub(super) enum WlEvent {
 
 /// Which of idle's protocols the compositor offers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) struct Protocols {
-    pub(super) notifier: Offered,
-    pub(super) output_power: Offered,
+pub(crate) struct Protocols {
+    pub(crate) notifier: Offered,
+    pub(crate) output_power: Offered,
 }
 
 /// Whether a global is offered.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Offered {
+pub(crate) enum Offered {
     Yes,
     No,
 }
 
 /// An event, tagged with its connection.
 #[derive(Debug)]
-pub(super) struct Heard {
-    pub(super) epoch: Epoch,
-    pub(super) event: WlEvent,
+pub(crate) struct Heard {
+    pub(crate) epoch: Epoch,
+    pub(crate) event: WlEvent,
 }
 
 /// How the thread reports to the service's task.
 #[derive(Debug, Clone)]
-pub(super) struct Tell {
+pub(crate) struct Tell {
     epoch: Epoch,
     to: UnboundedSender<Heard>,
 }
 
 impl Tell {
-    pub(super) fn new(epoch: Epoch, to: UnboundedSender<Heard>) -> Tell {
+    pub(crate) fn new(epoch: Epoch, to: UnboundedSender<Heard>) -> Tell {
         Tell { epoch, to }
     }
 
-    pub(super) fn say(&self, event: WlEvent) {
+    pub(crate) fn say(&self, event: WlEvent) {
         // The service outlives every thread it starts; a closed channel means it is ending.
         let _ = self.to.send(Heard {
             epoch: self.epoch,
@@ -79,7 +79,7 @@ impl Tell {
 
 /// What the service tells the thread.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum Order {
+pub(crate) enum Order {
     /// Hold these notifications: an unchanged watch is kept (its timer runs on); one that idled is
     /// kept until it resumes, so the wake is never lost.
     Watch(Vec<Watch>),
@@ -91,19 +91,19 @@ pub(super) enum Order {
 
 /// A running connection; dropping it ends the thread.
 #[derive(Debug)]
-pub(super) struct Wire {
+pub(crate) struct Wire {
     orders: channel::Sender<Order>,
 }
 
 impl Wire {
-    pub(super) fn order(&self, order: Order) {
+    pub(crate) fn order(&self, order: Order) {
         // The thread has ended (the compositor went away); it said so, and orders are moot.
         let _ = self.orders.send(order);
     }
 }
 
 /// Start a thread connected to `display`.
-pub(super) fn start(display: WaylandRoute, tell: Tell) -> io::Result<Wire> {
+pub(crate) fn start(display: WaylandRoute, tell: Tell) -> io::Result<Wire> {
     let (orders, from_service) = channel::channel();
     std::thread::Builder::new()
         .name("sill-idle".to_owned())

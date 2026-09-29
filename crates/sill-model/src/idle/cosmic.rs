@@ -105,5 +105,4 @@ pub fn cosmic_times(read: impl Fn(CosmicKey) -> Option<String>) -> CosmicIdleTim
 }
 
 #[cfg(test)]
-#[path = "cosmic_tests.rs"]
 mod tests;

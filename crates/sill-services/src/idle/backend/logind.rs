@@ -1,23 +1,23 @@
-//! Idle's half of logind, on [`Reach::system`](super::Reach) (a private bus with a stand-in in
+//! Idle's half of logind, on [`Reach::system`](crate::idle::Reach) (a private bus with a stand-in
+//! in
 //! every test): `PrepareForSleep`, `BlockInhibited` (polled: logind does not signal it),
 //! `Suspend(false)` (never `interactive`) and this session's `SetIdleHint`. Whatever fails is
 //! left out and logged once; idle still dims and turns the displays off without it.
 
 use logind_zbus::manager::{ManagerProxy, PrepareForSleepStream};
 use logind_zbus::session::SessionProxy;
+use sill_model::idle::{IdleHint, LogindIdle, logind_idle};
 use zbus::Connection;
 use zbus::proxy::CacheProperties;
 
-use super::inhibit::{LogindIdle, logind_idle};
-use super::reduce::IdleHint;
 use crate::env::Bus;
 use crate::locker::session_path;
 
 /// The connected half.
-pub(super) struct IdleLogind {
+pub(crate) struct IdleLogind {
     manager: ManagerProxy<'static>,
     session: Option<SessionProxy<'static>>,
-    pub(super) sleep: Option<PrepareForSleepStream>,
+    pub(crate) sleep: Option<PrepareForSleepStream>,
 }
 
 impl std::fmt::Debug for IdleLogind {
@@ -27,7 +27,7 @@ impl std::fmt::Debug for IdleLogind {
 }
 
 /// A connection to `bus`; `None` when it is absent or cannot be reached.
-pub(super) async fn bus(bus: &Bus) -> Option<Connection> {
+pub(crate) async fn bus(bus: &Bus) -> Option<Connection> {
     match bus.connect().await {
         Ok(connection) => connection,
         Err(error) => {
@@ -38,7 +38,7 @@ pub(super) async fn bus(bus: &Bus) -> Option<Connection> {
 }
 
 /// Connect to logind on `system`.
-pub(super) async fn connect(system: &Bus) -> Option<IdleLogind> {
+pub(crate) async fn connect(system: &Bus) -> Option<IdleLogind> {
     let connection = bus(system).await?;
     let manager = match ManagerProxy::builder(&connection)
         .cache_properties(CacheProperties::No)
@@ -77,7 +77,7 @@ pub(super) async fn connect(system: &Bus) -> Option<IdleLogind> {
 
 impl IdleLogind {
     /// `BlockInhibited` read as [`LogindIdle`]; `Free` when it cannot be read.
-    pub(super) async fn blocked(&self) -> LogindIdle {
+    pub(crate) async fn blocked(&self) -> LogindIdle {
         match self.manager.block_inhibited().await {
             Ok(text) => logind_idle(&text),
             Err(_) => LogindIdle::Free,
@@ -85,13 +85,13 @@ impl IdleLogind {
     }
 
     /// `Suspend(false)`; a failure (a `block` sleep inhibitor, polkit) is logged.
-    pub(super) async fn suspend(&self) {
+    pub(crate) async fn suspend(&self) {
         if let Err(error) = self.manager.suspend(false).await {
             eprintln!("sill: idle: logind refused to suspend: {error}");
         }
     }
 
-    pub(super) async fn idle_hint(&self, hint: IdleHint) {
+    pub(crate) async fn idle_hint(&self, hint: IdleHint) {
         let Some(session) = &self.session else {
             return;
         };

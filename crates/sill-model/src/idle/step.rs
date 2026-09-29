@@ -20,17 +20,15 @@
 //! - `Lock` seen `Unlocked`: the kept instant and the sleep mark are forgotten.
 //! - Every event while the mode is `Off` changes nothing and emits nothing (the passive start).
 
-use sill_model::locker::LockCause;
-use sill_model::units::Stamp;
-
 use super::grace::{GraceCase, SleepSince};
 use super::inhibit::Inhibition;
-use super::model::{DimShown, IdlePhase};
-use super::policy::DimPlan;
 use super::policy::{
-    DimLevel, IdleLock, IdleMode, IdlePolicy, IdleSecs, IdleTimes, LockGrace, LockView,
+    DimLevel, DimPlan, IdleLock, IdleMode, IdlePolicy, IdleSecs, IdleTimes, LockGrace, LockView,
     LockedScreenOff, PowerPair, PowerSource, Threshold, Timeout, Watch,
 };
+use super::{DimShown, IdlePhase};
+use crate::locker::LockCause;
+use crate::units::Stamp;
 
 /// The machine's whole state.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -154,9 +152,7 @@ pub fn step(state: IdleState, event: IdleEvent) -> (IdleState, Vec<IdleEffect>) 
     rules::step(state, event)
 }
 
-#[path = "reduce_rules.rs"]
 mod rules;
 
 #[cfg(test)]
-#[path = "reduce_tests.rs"]
 mod tests;

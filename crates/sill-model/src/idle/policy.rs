@@ -4,11 +4,10 @@
 //! battery from the battery service) and [`watches`] (which `ext-idle-notify-v1` notifications
 //! to hold).
 
-use sill_model::battery::{Battery, Charge};
-use sill_model::locker::Host;
-use sill_model::units::Presence;
-
 use super::cosmic::{CosmicIdle, CosmicIdleTimes};
+use crate::battery::{Battery, Charge};
+use crate::locker::Host;
+use crate::units::Presence;
 
 /// Whole seconds of idleness (the unit every idle time is kept in; the settings' minutes are
 /// multiplied out once, in the daemon's `policy_of`).
@@ -249,5 +248,4 @@ impl PowerPair {
 }
 
 #[cfg(test)]
-#[path = "policy_tests.rs"]
 mod tests;

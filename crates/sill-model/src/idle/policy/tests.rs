@@ -3,10 +3,10 @@ use super::{
     LockedScreenOff, OffReason, PowerPair, PowerSource, Threshold, Timeout, TimesChoice, Watch,
     effective_times, power_source, resolve_mode, watches,
 };
-use crate::idle::cosmic::{CosmicIdle, CosmicIdleTimes};
-use sill_model::battery::{Battery, Charge};
-use sill_model::locker::Host;
-use sill_model::units::Presence;
+use crate::battery::{Battery, Charge};
+use crate::idle::{CosmicIdle, CosmicIdleTimes};
+use crate::locker::Host;
+use crate::units::Presence;
 
 const fn after(s: u32) -> Timeout {
     Timeout::After(IdleSecs(s))
