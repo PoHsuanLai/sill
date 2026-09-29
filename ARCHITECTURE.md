@@ -680,7 +680,7 @@ where noted, and sill compiles against each.
    dir, `Policy` bridges moved.
 8. `daemon.rs` (done): split into `daemon/{run,events,surfaces,services,settings,msg}`; per-surface
    spawn blocks wait for step 10.
-9. `sill-ui-kit` inside `sill-surfaces` first: `hooks`, `links/` (all links as types, the global
+9. `sill-ui-kit` inside `sill-surfaces` first (done): `hooks`, `links/` (all links as types, the global
    `links.rs` gone), `Reveal<O>`, `SurfaceRoot`, `look`, `Machine` and `use_machine`,
    `MenuPopup<M>`, `status`, `widgets` providers, `harness`. Then rename the crate `sill-ui-kit`.
 10. `Surface` trait and generic `daemon/surfaces.rs`; convert one surface per commit to the one
