@@ -22,7 +22,6 @@ pub enum ReportLockCause {
     Logind,
     Sleep,
     Restored,
-    Adopted,
 }
 
 /// sill's idle as `sill idle status` prints it.

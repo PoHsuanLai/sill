@@ -30,7 +30,7 @@ pub enum CornerAction {
     ControlCenter,
     /// Minimise every window of the workspace; the corner again brings them back.
     ShowDesktop,
-    /// Lock the screen with the configured locker.
+    /// Lock the screen.
     Lock,
     /// COSMIC's workspace overview (`cosmic-workspaces`, COSMIC's own `WorkspaceOverview`).
     Workspaces,

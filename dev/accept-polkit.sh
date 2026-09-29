@@ -10,7 +10,7 @@
 # BeginAuthentication and CancelAuthentication on command, prints each call's result), and
 # examples/polkit_helper.rs plays polkit-agent-helper-1 (the helper protocol; accepts
 # `sill-fake`, refuses anything else, runs no PAM). The daemon gets its own XDG_RUNTIME_DIR and
-# a scratch XDG_CONFIG_HOME with `session.polkit_agent = "sill"`. Keys are typed with `wtype`
+# a scratch XDG_CONFIG_HOME. Keys are typed with `wtype`
 # on wayland-1's virtual keyboard, which reaches only the nested session.
 #
 #   1. The agent registered with the stand-in for ("unix-session", {session-id}) at sill's path,
@@ -107,7 +107,7 @@ await_line() {
 
 start_daemon() {
   backdrop_seed "$CONFIG" || return 1
-  printf '[session]\npolkit_agent = "sill"\n' >"$CONFIG/sill/settings.toml"
+  : >"$CONFIG/sill/settings.toml"
   use_fake_ddc "$SCRATCH" >/dev/null
   require_fake_ddc || return 1
   in_env "$SILL_BIN" run >"$OUT_DIR/daemon.log" 2>&1 &

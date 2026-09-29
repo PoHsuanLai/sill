@@ -21,7 +21,10 @@ use sill_ipc::{
     SurfaceName,
 };
 use sill_launcher::AppId;
-use sill_services::{OutputName, PinAt, PinEvent, Services, WallpaperCommand};
+use sill_services::polkit_agent::AgentPolicy;
+use sill_services::{
+    LockerCommand, OutputName, PinAt, PinEvent, PolkitCommand, Services, WallpaperCommand,
+};
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
 use sill_surfaces::surfaces::launcher::LauncherLink;
 use sill_surfaces::surfaces::osd::OsdLink;
@@ -90,19 +93,11 @@ pub fn run() -> ExitCode {
         );
     }
 
-    // M7: the locker follows `session.locker` (FINDINGS "M7").
-    crate::session::spawn_locker_policy(
-        runtime.handle(),
-        settings_feed.0.clone(),
-        services.locker_control.clone(),
-    );
-    // M11: the own polkit agent registers only while `session.polkit_agent` is `sill`; the
-    // service is passive until this first policy (FINDINGS "M11 freeze").
-    crate::polkit::spawn_policy(
-        runtime.handle(),
-        settings_feed.0.clone(),
-        services.polkit_control.clone(),
-    );
+    // The lock and the polkit agent are sill's own; both services are passive until told.
+    let _ = services.locker_control.send(LockerCommand::Configure);
+    let _ = services
+        .polkit_control
+        .send(PolkitCommand::Policy(AgentPolicy::Own));
     // Q420 B: sill's own idle follows `idle.*` and `session.lock_grace_s`; the service is
     // passive until this first policy, and `Off` anywhere but a sill session with no cosmic-idle
     // (FINDINGS "sill idle (Q420 B)", "sill idle fill").

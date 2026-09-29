@@ -100,7 +100,7 @@ pub struct PromptView {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum Registration {
-    /// Not asked to be the agent (`session.polkit_agent` is not `sill`, or no policy yet).
+    /// Not asked to be the agent (no policy yet, or `Off`).
     #[default]
     Passive,
     /// No system bus.
@@ -119,12 +119,12 @@ pub struct Polkit {
     pub waiting: u32,
 }
 
-/// `session.polkit_agent` as the service sees it.
+/// Whether the service is the session's agent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum AgentPolicy {
-    /// Register and answer (`sill`).
+    /// Register and answer.
     Own,
-    /// Unregister, or never register (anything else).
+    /// Unregister, or never register (tests).
     #[default]
     Off,
 }
@@ -144,7 +144,7 @@ pub struct FakeRequest {
 /// What the agent service can be told.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PolkitCommand {
-    /// `session.polkit_agent` resolved (at start and on every change).
+    /// Be the agent or not (the daemon sends `Own` at start).
     Policy(AgentPolicy),
     /// The person's answer to the current request's prompt.
     Answer { cookie: Cookie, secret: Secret },

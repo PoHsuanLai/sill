@@ -1,11 +1,10 @@
-//! sill's own lock screen on the daemon's side (M11 lane a; FINDINGS "M11 freeze" F544, F551):
-//! the follower that turns the locker's and the auth service's state into a wish to hold the
+//! sill's own lock screen on the daemon's side: the follower that turns the locker's and the auth service's state into a wish to hold the
 //! session lock or not, the host-thread half that takes and drops shell-host's session lock
 //! through [`host::SessionLockHost`], the prompt's output, `sill lock status`, and `sill debug
 //! auth`.
 //!
 //! The flow: `sill lock` (or logind's Lock in a sill session, or a lock marker left by a sill
-//! that died locked) steps the locker service to `Locking` with `drawer: Shell`;
+//! that died locked) steps the locker service to `Locking`;
 //! [`spawn_follower`] sees [`LockWish::Held`] and sends `ShellMsg::Lock`; [`apply`] resets the
 //! auth service, points the [`LockLink`] at the main display and locks with a
 //! [`host::LockFactory`] of `LockScreen`s; `HostEvent::Lock(Locked)` becomes
@@ -29,11 +28,10 @@ use std::time::Duration;
 
 use shell_host::{Focus, HostEvent, HostHandle, LockId, LockState, SurfaceId};
 use sill_ipc::{
-    Failure, FailureKind, FakeAuth, LockReport, ReportDrawer, ReportLockCause, ReportLockPhase,
-    Response,
+    Failure, FailureKind, FakeAuth, LockReport, ReportLockCause, ReportLockPhase, Response,
 };
 use sill_services::{
-    Auth, AuthCommand, AuthPhase, Lock, LockCause, LockDrawer, LockPhase, LockerCommand, Services,
+    Auth, AuthCommand, AuthPhase, Lock, LockCause, LockPhase, LockerCommand, Services,
     ShellLockEvent,
 };
 use sill_surfaces::surfaces::banners::BannerOutput;
@@ -56,13 +54,11 @@ pub enum LockWish {
     Released,
 }
 
-/// The wish from the two services: held while the locker draws with the shell and is not
-/// `Unlocked`, unless the auth service has `Accepted` (the unlock).
+/// The wish from the two services: held while the locker is not `Unlocked`, unless the auth
+/// service has `Accepted` (the unlock).
 pub fn lock_wish(lock: &Lock, auth: &Auth) -> LockWish {
-    match (lock.drawer, lock.phase, &auth.phase) {
-        (LockDrawer::Shell, LockPhase::Locking | LockPhase::Locked, phase)
-            if *phase != AuthPhase::Accepted =>
-        {
+    match (lock.phase, &auth.phase) {
+        (LockPhase::Locking | LockPhase::Locked, phase) if *phase != AuthPhase::Accepted => {
             LockWish::Held
         }
         _ => LockWish::Released,
@@ -228,17 +224,12 @@ pub fn report_of(lock: &Lock) -> LockReport {
             LockPhase::Locking => ReportLockPhase::Locking,
             LockPhase::Locked => ReportLockPhase::Locked,
         },
-        drawer: match lock.drawer {
-            LockDrawer::Program => ReportDrawer::Program,
-            LockDrawer::Shell => ReportDrawer::Shell,
-        },
         cause: lock.cause.map(|cause| match cause {
             LockCause::IdleScreenOff => ReportLockCause::IdleScreenOff,
             LockCause::Action => ReportLockCause::Action,
             LockCause::Logind => ReportLockCause::Logind,
             LockCause::Sleep => ReportLockCause::Sleep,
             LockCause::Restored => ReportLockCause::Restored,
-            LockCause::Adopted => ReportLockCause::Adopted,
         }),
     }
 }

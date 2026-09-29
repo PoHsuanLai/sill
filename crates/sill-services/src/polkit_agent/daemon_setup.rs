@@ -1,7 +1,6 @@
 //! The daemon's [`Setup`]: [`Setup::system`], except in a build with debug assertions whose
 //! environment names a private bus (`dev/accept-polkit.sh`), so the acceptance can run a debug
-//! daemon with `session.polkit_agent = "sill"` against the stand-in Authority and the stand-in
-//! helper and never reach polkitd (F547).
+//! daemon against the stand-in Authority and the stand-in helper and never reach polkitd.
 //!
 //! - `SILL_POLKIT_BUS`: the private bus's address. Unset or empty: [`Setup::system`].
 //! - `SILL_POLKIT_HELPER`: the stand-in helper program. Unset: no helper at all

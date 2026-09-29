@@ -18,7 +18,7 @@ use sill_ipc::{
 };
 use sill_ipc::{
     FakeAuth, FakePolkit, FakeSwitcher, LockReport, LockRequest, PolkitReport, PolkitRequest,
-    ReportDrawer, ReportLockPhase, ReportRegistration, SwitcherRequest,
+    ReportLockPhase, ReportRegistration, SwitcherRequest,
 };
 use sill_ipc::{
     IdleReport, IdleRequest, ReportDim, ReportIdleMode, ReportIdlePhase, ReportInhibition,
@@ -395,18 +395,16 @@ fn responses() -> Vec<(Response, &'static str)> {
         (
             Response::Lock(LockReport {
                 phase: ReportLockPhase::Locked,
-                drawer: ReportDrawer::Shell,
                 cause: Some(ReportLockCause::IdleScreenOff),
             }),
-            r#"{"kind":"lock","v":{"phase":"locked","drawer":"shell","cause":"idle_screen_off"}}"#,
+            r#"{"kind":"lock","v":{"phase":"locked","cause":"idle_screen_off"}}"#,
         ),
         (
             Response::Lock(LockReport {
                 phase: ReportLockPhase::Unlocked,
-                drawer: ReportDrawer::Program,
                 cause: None,
             }),
-            r#"{"kind":"lock","v":{"phase":"unlocked","drawer":"program","cause":null}}"#,
+            r#"{"kind":"lock","v":{"phase":"unlocked","cause":null}}"#,
         ),
         (
             Response::Idle(IdleReport {

@@ -1,16 +1,11 @@
-use sill_ipc::{LockReport, ReportDrawer, ReportLockPhase};
+use sill_ipc::{LockReport, ReportLockPhase};
 use sill_services::auth::AuthFault;
-use sill_services::{Auth, AuthPhase, Lock, LockDrawer, LockPhase};
+use sill_services::{Auth, AuthPhase, Lock, LockPhase};
 
 use super::{LockWish, lock_wish, report_of};
 
-fn lock(phase: LockPhase, drawer: LockDrawer) -> Lock {
-    Lock {
-        phase,
-        pid: None,
-        drawer,
-        cause: None,
-    }
+fn lock(phase: LockPhase) -> Lock {
+    Lock { phase, cause: None }
 }
 
 fn auth(phase: AuthPhase) -> Auth {
@@ -23,54 +18,22 @@ fn auth(phase: AuthPhase) -> Auth {
 #[test]
 fn the_wish_follows_the_locker_until_the_password_is_right() {
     let cases = [
-        (
-            LockPhase::Unlocked,
-            LockDrawer::Shell,
-            AuthPhase::Idle,
-            LockWish::Released,
-        ),
-        (
-            LockPhase::Locking,
-            LockDrawer::Shell,
-            AuthPhase::Idle,
-            LockWish::Held,
-        ),
+        (LockPhase::Unlocked, AuthPhase::Idle, LockWish::Released),
+        (LockPhase::Locking, AuthPhase::Idle, LockWish::Held),
+        (LockPhase::Locked, AuthPhase::Wrong, LockWish::Held),
+        (LockPhase::Locked, AuthPhase::Checking, LockWish::Held),
         (
             LockPhase::Locked,
-            LockDrawer::Shell,
-            AuthPhase::Wrong,
-            LockWish::Held,
-        ),
-        (
-            LockPhase::Locked,
-            LockDrawer::Shell,
-            AuthPhase::Checking,
-            LockWish::Held,
-        ),
-        (
-            LockPhase::Locked,
-            LockDrawer::Shell,
             AuthPhase::Unavailable(AuthFault::TimedOut),
             LockWish::Held,
         ),
-        (
-            LockPhase::Locked,
-            LockDrawer::Shell,
-            AuthPhase::Accepted,
-            LockWish::Released,
-        ),
-        (
-            LockPhase::Locked,
-            LockDrawer::Program,
-            AuthPhase::Idle,
-            LockWish::Released,
-        ),
+        (LockPhase::Locked, AuthPhase::Accepted, LockWish::Released),
     ];
-    for (phase, drawer, auth_phase, want) in cases {
+    for (phase, auth_phase, want) in cases {
         assert_eq!(
-            lock_wish(&lock(phase, drawer), &auth(auth_phase.clone())),
+            lock_wish(&lock(phase), &auth(auth_phase.clone())),
             want,
-            "{phase:?} {drawer:?} {auth_phase:?}"
+            "{phase:?} {auth_phase:?}"
         );
     }
 }
@@ -78,10 +41,9 @@ fn the_wish_follows_the_locker_until_the_password_is_right() {
 #[test]
 fn the_report_mirrors_the_locker() {
     assert_eq!(
-        report_of(&lock(LockPhase::Locking, LockDrawer::Shell)),
+        report_of(&lock(LockPhase::Locking)),
         LockReport {
             phase: ReportLockPhase::Locking,
-            drawer: ReportDrawer::Shell,
             cause: None,
         }
     );
@@ -89,13 +51,12 @@ fn the_report_mirrors_the_locker() {
         report_of(&Lock::default()),
         LockReport {
             phase: ReportLockPhase::Unlocked,
-            drawer: ReportDrawer::Program,
             cause: None,
         }
     );
     let idle = Lock {
         cause: Some(sill_services::LockCause::IdleScreenOff),
-        ..lock(LockPhase::Locked, LockDrawer::Shell)
+        ..lock(LockPhase::Locked)
     };
     assert_eq!(
         report_of(&idle).cause,

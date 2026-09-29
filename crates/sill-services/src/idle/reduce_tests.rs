@@ -5,7 +5,7 @@ use crate::idle::policy::{
     DimLevel, DimPlan, IdleLock, IdleMode, IdlePolicy, IdleSecs, IdleTimes, LockGrace, LockView,
     LockedScreenOff, OffReason, PowerPair, Threshold, Timeout,
 };
-use crate::locker::{LockCause, LockDrawer};
+use crate::locker::LockCause;
 use crate::units::Stamp;
 
 fn own() -> IdlePolicy {
@@ -36,7 +36,6 @@ fn idle_locked() -> LockSeen {
     LockSeen {
         view: LockView::Locked,
         cause: Some(LockCause::IdleScreenOff),
-        drawer: LockDrawer::Shell,
     }
 }
 
@@ -88,7 +87,6 @@ fn dim_then_off_locks_first_and_a_quick_wake_earns_the_grace() {
             IdleEffect::IdleHint(IdleHint::Active),
             IdleEffect::Grace(GraceCase {
                 cause: Some(LockCause::IdleScreenOff),
-                drawer: LockDrawer::Shell,
                 grace: LockGrace(IdleSecs(5)),
                 woke: WakeDelay(3_000),
                 sleep: SleepSince::NoSleep,

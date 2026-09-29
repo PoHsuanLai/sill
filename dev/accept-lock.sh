@@ -2,7 +2,7 @@
 # sill's own lock screen acceptance (design/20 §1.9; FINDINGS "M11 freeze" F544, lane a), on the
 # nested cosmic-comp ONLY (dev/nested.sh; wayland-1 is pinged first, reused, and never stopped or
 # restarted). Starts `sill run` from this checkout's debug build (`--features debug`) with
-# `session.locker = "sill"`, a scratch XDG_CONFIG_HOME, XDG_STATE_HOME and XDG_CACHE_HOME, its
+# a scratch XDG_CONFIG_HOME, XDG_STATE_HOME and XDG_CACHE_HOME, its
 # own XDG_RUNTIME_DIR (the nested socket as an absolute WAYLAND_DISPLAY, so the lock marker and
 # the single-instance lock are the script's), under a private session bus.
 #
@@ -13,7 +13,7 @@
 # ends by accepting on the daemon when it is up, quitting it, and running the recovery
 # lock-and-unlock (`session_locker 0`, F381), so the nested session is always left unlocked.
 #
-#   1. `sill lock`: `sill lock status` says locked/shell within 1 s, and a second lock client
+#   1. `sill lock`: `sill lock status` says locked within 1 s, and a second lock client
 #      (`session_locker`) is refused (exit 3) while sill holds the lock.
 #   2. A capture of every output's lock surface (`sill-lock/<out>`; `debug stats` does not list
 #      lock surfaces, G191); the prompt's output shows the clock and the field
@@ -81,11 +81,11 @@ for row in json.loads(sys.stdin.read())["v"]:
         print(s[len("sill-bar-"):])'
 }
 
-# `sill lock status`'s phase word (locked, locking, unlocked), and its drawer.
+# `sill lock status`'s phase word (locked, locking, unlocked).
 lock_phase() { sill lock status 2>/dev/null | python3 -c '
 import json, sys
 r = json.loads(sys.stdin.read())["v"]
-print(r["phase"], r["drawer"])' 2>/dev/null; }
+print(r["phase"])' 2>/dev/null; }
 
 # ms since $1 until the status is "$2", or -1 within $3 ms.
 until_phase() {
@@ -137,7 +137,7 @@ build() {
 start_daemon() {
   local log="$1"
   mkdir -p "$CONFIG/sill"
-  printf '[session]\nlocker = "sill"\n' >"$CONFIG/sill/settings.toml"
+  : >"$CONFIG/sill/settings.toml"
   backdrop_seed "$CONFIG" || return 1
   use_fake_ddc "$CONFIG" >/dev/null
   require_fake_ddc || return 1
@@ -177,10 +177,10 @@ step_lock() {
   local log="$OUT_DIR/lock.log" start took refused
   start=$(now_ms)
   sill lock >"$log" 2>&1 || { cat "$log" >&2; return 1; }
-  took=$(until_phase "$start" "locked shell" 1000)
+  took=$(until_phase "$start" "locked" 1000)
   nested_locker 1000 >>"$log" 2>&1
   refused=$?
-  echo "locked/shell ${took} ms after 'sill lock'; a second lock client exited ${refused} (3 = refused)" \
+  echo "locked ${took} ms after 'sill lock'; a second lock client exited ${refused} (3 = refused)" \
     | tee -a "$log" >&2
   [ "$took" -ge 0 ] && [ "$refused" = 3 ]
 }
@@ -235,7 +235,7 @@ step_refuse_shakes() {
   last=$(band_diff "$OUT_DIR/idle.png" "$OUT_DIR/refuse-after.png" 70 97)
   echo "refuse: $moved captures moved (spinner, shake); after it settled $last pixels differ; status $(lock_phase)" \
     | tee -a "$log" >&2
-  [ "$moved" -ge 1 ] && [ "$last" -lt 150 ] && [ "$(lock_phase)" = "locked shell" ]
+  [ "$moved" -ge 1 ] && [ "$last" -lt 150 ] && [ "$(lock_phase)" = "locked" ]
 }
 
 # 4.
@@ -251,7 +251,7 @@ step_no_lockout() {
   diff=$(band_diff "$OUT_DIR/idle.png" "$SHOTS/lock-sixwrong-cosmic.png" 70 97)
   echo "six wrongs: $diff pixels differ from the idle prompt (no 'Try again at' line: no lockout, F862); status $(lock_phase); $SHOTS/lock-sixwrong-cosmic.png" \
     | tee -a "$log" >&2
-  [ "$diff" -lt 150 ] && [ "$(lock_phase)" = "locked shell" ]
+  [ "$diff" -lt 150 ] && [ "$(lock_phase)" = "locked" ]
 }
 
 # 5.
@@ -263,7 +263,7 @@ step_idle() {
   WDEBUG=client start_daemon "$wlog" || return 1
   start=$(now_ms)
   sill lock >"$log" 2>&1
-  [ "$(until_phase "$start" "locked shell" 2000)" -ge 0 ] || { echo "not locked" | tee -a "$log" >&2; return 1; }
+  [ "$(until_phase "$start" "locked" 2000)" -ge 0 ] || { echo "not locked" | tee -a "$log" >&2; return 1; }
   # Keep the window inside one minute: the clock redraws once a minute.
   while [ "$(date +%S | sed 's/^0//')" -ge 50 ]; do sleep 1; done
   sleep 2
@@ -290,7 +290,7 @@ EOF
   echo "5 s locked and idle: lock surfaces seen, commits on them: $commits" | tee -a "$log" >&2
   start=$(now_ms)
   sill debug auth accept >>"$log" 2>&1
-  until_phase "$start" "unlocked shell" 3000 >/dev/null
+  until_phase "$start" "unlocked" 3000 >/dev/null
   stop_daemon
   start_daemon "$OUT_DIR/daemon.log" || return 1
   [ "$(echo "$commits" | cut -d' ' -f1)" -ge 1 ] && [ "$(echo "$commits" | cut -d' ' -f2)" = 0 ]
@@ -302,7 +302,7 @@ step_accept() {
   : >"$log"
   start=$(now_ms)
   sill debug auth accept >>"$log" 2>&1 || { cat "$log" >&2; return 1; }
-  took=$(until_phase "$start" "unlocked shell" 3000)
+  took=$(until_phase "$start" "unlocked" 3000)
   if capture "$PROMPT_OUT" "$OUT_DIR/after-unlock.png"; then gone=no; else gone=yes; fi
   nested_locker 200 >>"$log" 2>&1
   free=$?
@@ -317,7 +317,7 @@ step_crash_relocks() {
   : >"$log"
   start=$(now_ms)
   sill lock >>"$log" 2>&1
-  took=$(until_phase "$start" "locked shell" 1000)
+  took=$(until_phase "$start" "locked" 1000)
   [ -e "$MARKER" ] || { echo "no marker at $MARKER while locked" | tee -a "$log" >&2; return 1; }
   pid=$(pgrep -P "$DAEMON" -x sill)
   echo "locked in ${took} ms, marker written; killing sill ($pid) with SIGKILL" | tee -a "$log" >&2
@@ -326,11 +326,11 @@ step_crash_relocks() {
   DAEMON=
   start_daemon "$OUT_DIR/daemon-restarted.log" || return 1
   start=$(now_ms)
-  again=$(until_phase "$start" "locked shell" 3000)
+  again=$(until_phase "$start" "locked" 3000)
   capture "$FIRST" "$OUT_DIR/relocked.png" && cp "$OUT_DIR/relocked.png" "$SHOTS/lock-relocked-cosmic.png"
   start=$(now_ms)
   sill debug auth accept >>"$log" 2>&1
-  took=$(until_phase "$start" "unlocked shell" 3000)
+  took=$(until_phase "$start" "unlocked" 3000)
   echo "restarted: locked from the marker (${again} ms after it answered); accept unlocked in ${took} ms; marker: $(test -e "$MARKER" && echo present || echo removed)" \
     | tee -a "$log" >&2
   [ "$again" -ge 0 ] && [ "$took" -ge 0 ] && [ ! -e "$MARKER" ]
@@ -345,7 +345,7 @@ step_release_refuses_fake() {
   local log="$OUT_DIR/nodebug.log" answer
   stop_daemon
   BIN="$NODEBUG_BIN"
-  printf '[session]\nlocker = "auto"\n' >"$CONFIG/sill/settings.toml"
+  : >"$CONFIG/sill/settings.toml"
   XDG_CONFIG_HOME="$CONFIG" XDG_STATE_HOME="$STATE" XDG_CACHE_HOME="$CACHE" \
     XDG_RUNTIME_DIR="$RUNTIME" WAYLAND_DISPLAY="$NESTED_SOCKET" \
     dbus-run-session --config-file="$SILL_REPO/dev/private-bus.conf" -- \
@@ -365,7 +365,7 @@ step_release_refuses_fake() {
 recover() {
   if [ -n "${DAEMON:-}" ]; then
     case "$(lock_phase)" in
-      "unlocked "*|"") ;;
+      unlocked|"") ;;
       *) sill debug auth accept >/dev/null 2>&1; sleep 1.5 ;;
     esac
     stop_daemon

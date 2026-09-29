@@ -161,7 +161,7 @@ start_logind() {
 start_daemon() {
   local log="$1"
   backdrop_seed "$CONFIG" || return 1
-  printf '[session]\nlocker = "sill"\nlock_grace_s = 5\n\n[idle]\ndim_s = 3\ndim_level_pct = 50\nlocked_screen_off_s = 4\n' \
+  printf '[session]\nlock_grace_s = 5\n\n[idle]\ndim_s = 3\ndim_level_pct = 50\nlocked_screen_off_s = 4\n' \
     >"$CONFIG/sill/settings.toml"
   use_fake_ddc "$SCRATCH" >/dev/null
   require_fake_ddc || return 1

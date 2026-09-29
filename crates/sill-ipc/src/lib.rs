@@ -38,5 +38,5 @@ pub use response::{
 };
 pub use session::{
     FakeAuth, FakePolkit, FakeSwitcher, LockReport, LockRequest, PolkitReport, PolkitRequest,
-    ReportDrawer, ReportLockPhase, ReportRegistration, SwitcherRequest,
+    ReportLockPhase, ReportRegistration, SwitcherRequest,
 };

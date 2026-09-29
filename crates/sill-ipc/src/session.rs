@@ -42,8 +42,7 @@ pub enum PolkitRequest {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct LockReport {
     pub phase: ReportLockPhase,
-    pub drawer: ReportDrawer,
-    /// What started the lock in place; `null` while unlocked (FINDINGS F907).
+    /// What started the lock in place; `null` while unlocked.
     pub cause: Option<ReportLockCause>,
 }
 
@@ -54,14 +53,6 @@ pub enum ReportLockPhase {
     Unlocked,
     Locking,
     Locked,
-}
-
-/// `sill_services::LockDrawer`'s mirror.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ReportDrawer {
-    Program,
-    Shell,
 }
 
 /// sill's polkit agent as `sill polkit status` prints it.

@@ -4,14 +4,13 @@
 //! WAYLAND_DISPLAY=wayland-1 cargo run -p sill-services --example session_locker -- <hold-ms>
 //! ```
 //!
-//! Locks the compositor, prints `locked` on stdout once the compositor says so (the same
-//! "ready" line swaylock's `--ready-fd 1` writes), holds the lock for `hold-ms`, then unlocks and
+//! Locks the compositor, prints `locked` on stdout once the compositor says so, holds the lock for `hold-ms`, then unlocks and
 //! exits 0. `0` is the recovery form: a locker killed without unlocking leaves cosmic-comp
 //! locked until another client locks and unlocks (its session-lock handler accepts a new lock
 //! once the old client is gone), and this is that client. Exit 3 when the compositor refused the
 //! lock (`finished`: someone else holds it), 2 on a usage or connection error.
 //!
-//! `tests/locker_live.rs` runs it as the stand-in locker on the nested compositor.
+//! `dev/accept-lock.sh` and `dev/accept-idle.sh` run it on the nested compositor.
 
 use std::process::ExitCode;
 use std::time::Duration;

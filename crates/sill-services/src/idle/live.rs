@@ -388,6 +388,5 @@ fn seen_of(lock: &Lock) -> LockSeen {
     LockSeen {
         view,
         cause: lock.cause,
-        drawer: lock.drawer,
     }
 }

@@ -1,19 +1,17 @@
-//! The locker's pure state machine: when to start a locker, when to hold and release logind's
-//! sleep delay, and what the lock screen is doing. [`step`] is the only place it changes; the
+//! The locker's pure state machine: when to lock, when to hold and release logind's sleep
+//! delay, and what the lock screen is doing. [`step`] is the only place it changes; the
 //! live side performs the [`LockerEffect`]s it returns and feeds back what happened.
 //!
 //! The sleep delay follows logind's rule that a delay inhibitor only delays a sleep it was
-//! already held for: it is taken as soon as a locker is configured (and again after every
-//! resume), and released once the locker reports locked, the locker exits, or
+//! already held for: it is taken as soon as the lock is configured (and again after every
+//! resume), and released once the lock reports locked, the lock ends, or
 //! [`SLEEP_HOLD_MS`] runs out, whichever is first.
 
 use serde::{Deserialize, Serialize};
 
 use crate::units::Stamp;
 
-/// How long a locker may take to report locked before it is taken as locked anyway. A locker
-/// is never killed for being slow: killing one that did lock would leave the compositor locked
-/// with nothing to unlock it.
+/// How long the lock may take to report locked before it is taken as locked anyway.
 pub const READY_GIVE_UP_MS: u64 = 10_000;
 
 /// How long sleep waits for the lock at most: under logind's default `InhibitDelayMaxSec` (5 s),
@@ -26,7 +24,7 @@ pub const SLEEP_HOLD_MS: u64 = 4_000;
 pub enum LockPhase {
     #[default]
     Unlocked,
-    /// A locker was started (or a lock asked of logind's own locker) and has not said locked.
+    /// A lock was asked for and has not said locked.
     Locking,
     Locked,
 }
@@ -34,14 +32,11 @@ pub enum LockPhase {
 /// Who carries out a lock, once the setting is resolved.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Runner {
-    /// Nothing locks: the setting says off, or no locker is installed.
+    /// Nothing locks.
     #[default]
     Off,
-    /// sill starts the configured locker program.
-    Runs,
-    /// logind's `LockSession` for this session, which a resident locker (COSMIC's own, under
-    /// cosmic-session) is listening for.
-    Delegates,
+    /// sill's own lock screen.
+    Own,
 }
 
 /// Whether logind's `Lock` and `PrepareForSleep` start a lock, or only sill's own Lock does.
@@ -49,8 +44,8 @@ pub enum Runner {
 pub enum Triggers {
     /// A sill session: logind's signals are ours to act on.
     FollowLogind,
-    /// Another desktop owns this logind session (sill nested under KDE, or cosmic-session with
-    /// its resident locker): its signals are not ours.
+    /// Another desktop owns this logind session (sill nested during development, or
+    /// cosmic-session): its signals are not ours.
     #[default]
     IgnoreLogind,
 }
@@ -62,7 +57,7 @@ pub enum Cause {
     Action,
     /// logind's `Lock` signal for this session (`loginctl lock-session`, Super+Escape).
     Logind,
-    /// sill's own idle service turned the displays off (sill FINDINGS "sill idle (Q420 B)").
+    /// sill's own idle service turned the displays off.
     Idle,
 }
 
@@ -74,7 +69,7 @@ pub enum Hold {
     Released,
     /// Held, waiting for a sleep.
     Armed,
-    /// A sleep is waiting on it until the locker reports locked or `until`.
+    /// A sleep is waiting on it until the lock reports locked or `until`.
     Delaying { until: Stamp },
 }
 
@@ -112,7 +107,7 @@ impl Phase {
 /// One thing the live side learnt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LockerEvent {
-    /// The setting resolved (at start and on every change).
+    /// The mode resolved.
     Configured(Runner, Triggers),
     /// A lock was asked for.
     Requested(Cause, Stamp),
@@ -120,12 +115,10 @@ pub enum LockerEvent {
     SleepStarting(Stamp),
     /// logind's `PrepareForSleep(false)`.
     Woke,
-    /// The locker said it holds the lock.
+    /// The compositor granted the lock.
     Reported,
-    /// The locker process ended, or could not be started.
+    /// The lock ended, or could not be taken.
     Exited,
-    /// A locker was already running when sill looked (a previous sill's, or one run by hand).
-    Adopted,
     /// Taking the inhibitor failed.
     InhibitorRefused,
     /// Time passed.
@@ -135,10 +128,6 @@ pub enum LockerEvent {
 /// What the live side must do.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LockerEffect {
-    /// Start the configured locker.
-    Spawn,
-    /// Call logind's `LockSession` for this session.
-    AskLogind,
     /// Take `Inhibit("sleep", "sill", "lock before sleep", "delay")`.
     TakeInhibitor,
     /// Close the inhibitor's descriptor.
@@ -160,13 +149,6 @@ pub fn step(locker: Locker, event: LockerEvent) -> (Locker, Vec<LockerEffect>) {
             phase: Phase::Unlocked,
             ..locker
         }),
-        LockerEvent::Adopted => (
-            Locker {
-                phase: Phase::Locked,
-                ..locker
-            },
-            Vec::new(),
-        ),
         LockerEvent::InhibitorRefused => (
             Locker {
                 hold: Hold::Released,
@@ -191,10 +173,9 @@ pub fn next_deadline(locker: &Locker) -> Option<Stamp> {
     give_up.into_iter().chain(until).min()
 }
 
-/// Whether logind's sleep is ours to delay: a locker we run, in a session whose signals we
-/// follow.
+/// Whether logind's sleep is ours to delay: our own lock, in a session whose signals we follow.
 fn guards_sleep(locker: &Locker) -> bool {
-    locker.runner == Runner::Runs && locker.triggers == Triggers::FollowLogind
+    locker.runner == Runner::Own && locker.triggers == Triggers::FollowLogind
 }
 
 fn configured(locker: Locker, runner: Runner, triggers: Triggers) -> (Locker, Vec<LockerEffect>) {
@@ -218,7 +199,7 @@ fn configured(locker: Locker, runner: Runner, triggers: Triggers) -> (Locker, Ve
     }
 }
 
-/// Take the inhibitor if the locker guards sleep and none is held.
+/// Take the inhibitor if the lock guards sleep and none is held.
 fn arm(locker: Locker) -> (Locker, Vec<LockerEffect>) {
     match (guards_sleep(&locker), locker.hold) {
         (true, Hold::Released) => (
@@ -241,8 +222,7 @@ fn requested(locker: Locker, cause: Cause, now: Stamp) -> (Locker, Vec<LockerEff
         return (locker, Vec::new());
     }
     match (locker.runner, locker.phase) {
-        (Runner::Runs, Phase::Unlocked) => start(locker, now),
-        (Runner::Delegates, _) if cause == Cause::Action => (locker, vec![LockerEffect::AskLogind]),
+        (Runner::Own, Phase::Unlocked) => start(locker, now),
         _ => (locker, Vec::new()),
     }
 }
@@ -255,7 +235,7 @@ fn start(locker: Locker, now: Stamp) -> (Locker, Vec<LockerEffect>) {
             },
             ..locker
         },
-        vec![LockerEffect::Spawn],
+        Vec::new(),
     )
 }
 
@@ -289,7 +269,7 @@ fn locked_if_locking(phase: Phase) -> Phase {
 }
 
 /// Let a waiting sleep go once there is nothing left to wait for: the lock is in place, or
-/// there is no locker any more.
+/// the lock has ended.
 fn settle(locker: Locker) -> (Locker, Vec<LockerEffect>) {
     match (locker.hold, locker.phase) {
         (Hold::Delaying { .. }, Phase::Locked | Phase::Unlocked) => (

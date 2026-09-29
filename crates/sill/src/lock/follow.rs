@@ -47,18 +47,13 @@ pub fn follow(latch: Latch, lock: &Lock, auth: &Auth) -> (Latch, LockWish, Send)
 
 #[cfg(test)]
 mod tests {
-    use sill_services::{Auth, AuthPhase, Lock, LockDrawer, LockPhase};
+    use sill_services::{Auth, AuthPhase, Lock, LockPhase};
 
     use super::{Latch, Send, follow};
     use crate::lock::LockWish;
 
     fn step(latch: Latch, phase: LockPhase, auth: AuthPhase) -> (Latch, LockWish, Send) {
-        let lock = Lock {
-            phase,
-            pid: None,
-            drawer: LockDrawer::Shell,
-            cause: None,
-        };
+        let lock = Lock { phase, cause: None };
         let auth = Auth {
             phase: auth,
             ..Auth::default()

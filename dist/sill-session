@@ -1,10 +1,10 @@
 #!/bin/sh
 # sill-session: a real login with sill as the shell on COSMIC's compositor. DOCUMENTED, NOT
-# INSTALLED by anything (sill FINDINGS "M7"; docs/manual-checks.md "Needs a sill login").
+# INSTALLED by anything (docs/manual-checks.md "Needs a sill login").
 #
 # Why a script of our own: cosmic-session hard-codes its component list (panel, launcher,
 # app library, workspaces, osd, bg, greeter, files applet, idle, notifications) and restarts each
-# one forever, so it cannot be told to run sill instead (plan "Findings: COSMIC").
+# one forever, so it cannot be told to run sill instead.
 #
 # Install (as root), then pick "COSMIC (sill)" at the login screen:
 #   install -m 755 dist/sill-session           /usr/local/bin/sill-session
@@ -20,26 +20,23 @@
 # What runs inside, and why each:
 #   sill run                  bar, wallpaper, dock, launcher, control center, power menu (the
 #                             logout dialog), OSD, notifications (so cosmic-notifications must
-#                             NOT run), and the lock screen (session.locker, M7)
+#                             NOT run), the lock screen and the polkit agent
 #   cosmic-settings-daemon    theme, brightness and power keys COSMIC's own config expects;
 #                             it also runs the shortcuts' system actions (dist/cosmic)
 #   xdg-desktop-portal-cosmic the settings portal quire reads (colour scheme, reduced motion),
 #                             screenshots and file choosers
-#   sill polkit-agent         the polkit agent session.polkit_agent names (auto: KDE's, GNOME's,
-#                             LXQt's, MATE's, else cosmic-osd)
 #   systemd-inhibit           holds logind's handle-power-key, as cosmic-session does, so the
 #                             power key opens sill's power menu instead of powering off
-# Not started: cosmic-idle. sill owns idle (the user's pick Q420 B; FINDINGS "sill idle (Q420 B)"
-# F906, F909, and "sill idle fill"): `sill run` dims, turns the displays off, locks at screen off
-# (so the 5 s lock grace knows why it locked), suspends through logind and serves
+# Not started: cosmic-idle. sill owns idle: `sill run` dims, turns the displays off, locks at
+# screen off (so the 5 s lock grace knows why it locked), suspends through logind and serves
 # org.freedesktop.ScreenSaver, with COSMIC's times from COSMIC Settings' Power page unless
 # `idle.times = "sill"`. A cosmic-idle started by hand makes sill's idle stand aside
 # (`sill idle status` says `cosmic_idle_running`), so the two never both act.
 # Left out on purpose: cosmic-panel, cosmic-launcher, cosmic-app-library, cosmic-bg,
 # cosmic-notifications and cosmic-osd (sill replaces them; cosmic-osd would double sill's
 # volume indicator), cosmic-workspaces and cosmic-files-applet (not used by sill yet), and
-# cosmic-greeter (sill starts it per lock). docs/cosmic-gaps.md lists what else cosmic-session
-# did.
+# cosmic-greeter (sill draws its own lock screen). docs/cosmic-gaps.md lists what else
+# cosmic-session did.
 set -eu
 
 if [ "${1:-}" != "--inside" ]; then
@@ -97,7 +94,6 @@ respawn power-key systemd-inhibit --what=handle-power-key --who=sill-session \
     --why="the power key opens sill's power menu" --mode=block sleep infinity
 respawn settings-daemon cosmic-settings-daemon
 respawn portal /usr/libexec/xdg-desktop-portal-cosmic
-respawn polkit-agent sill polkit-agent
 respawn sill sill run
 
 # Never return: this script's exit would end the compositor.

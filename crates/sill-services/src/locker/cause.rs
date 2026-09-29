@@ -1,5 +1,5 @@
-//! Why the session is locked (sill FINDINGS "sill idle (Q420 B)", F907): the one fact the lock
-//! grace turns on. Since sill owns idle (Q420 B), every lock has exactly one known cause, set by
+//! Why the session is locked: the one fact the lock grace turns on. Since sill owns idle, every
+//! lock has exactly one known cause, set by
 //! whichever request moved the lock from `Unlocked` to `Locking` and kept until it is
 //! `Unlocked` again: a later request while locked never changes it (so an idle screen-off over
 //! a lock someone asked for keeps `Action`, and the grace never applies to it).
@@ -24,11 +24,8 @@ pub enum LockCause {
     /// logind's `PrepareForSleep(true)`: a lid close set to suspend, sill's idle suspend,
     /// `systemctl suspend`, the power menu's Sleep.
     Sleep,
-    /// A sill that died while its own lock held left the marker, and the new one re-locked
-    /// (F544).
+    /// A sill that died while its own lock held left the marker, and the new one re-locked.
     Restored,
-    /// A locker program was already running when sill looked, and was adopted (F386).
-    Adopted,
 }
 
 /// The cause to publish after one step of the locker's machine: `None` once unlocked; `why`
@@ -54,7 +51,6 @@ pub fn cause_of(event: &LockerEvent) -> Option<LockCause> {
         LockerEvent::Requested(Cause::Logind, _) => Some(LockCause::Logind),
         LockerEvent::Requested(Cause::Idle, _) => Some(LockCause::IdleScreenOff),
         LockerEvent::SleepStarting(_) => Some(LockCause::Sleep),
-        LockerEvent::Adopted => Some(LockCause::Adopted),
         LockerEvent::Configured(..)
         | LockerEvent::Woke
         | LockerEvent::Reported

@@ -12,7 +12,6 @@
 pub mod bar;
 pub mod calendar;
 pub mod control_center;
-pub mod diff;
 pub mod display;
 pub mod dock;
 mod dock_words;
@@ -43,7 +42,6 @@ pub mod window;
 pub use bar::{BarGlyphSize, BarSettings};
 pub use calendar::{CalendarSettings, FirstWeekday, WeekNumbers};
 pub use control_center::{ControlCenterModule, ControlCenterSettings, InMenuBar, PanelMaterial};
-pub use diff::{SettingsChange, apply};
 pub use display::{
     BrightnessKeysTarget, ColorManagement, DisplayScaleMode, DisplaySettings, FontRenderingSetting,
     HardwareVolumeMode, NightWarmthMode, ScaleRounding,

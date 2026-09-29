@@ -1,7 +1,7 @@
-//! The locker service's loop: turns commands, logind's signals, the locker's words and the clock
-//! into [`LockerEvent`]s, steps the machine, performs its effects and publishes [`Lock`].
+//! The locker service's loop: turns commands, logind's signals, the shell's lock reports and the
+//! clock into [`LockerEvent`]s, steps the machine, performs its effects and publishes [`Lock`].
 //!
-//! M11 (lane a): in `LockerMode::Own` the loop also keeps [`super::marker`]'s file (written on
+//! In `LockerMode::Own` the loop also keeps [`super::marker`]'s file (written on
 //! `Shell(Locked)`, removed on `Shell(Unlocked | Finished | Refused)`) and, right after a mode
 //! resolves to `Own`, locks at once when [`super::marker::restore_on_start`] says so.
 
@@ -12,13 +12,12 @@ use tokio::sync::{mpsc, watch};
 use zbus::zvariant::OwnedFd;
 
 use super::cause::{LockCause, cause_after, cause_of};
-use super::child::{self, Generation, Heard, Word};
-use super::choice::{Host, LockerChoice, LockerMode, SessionManager, resolve};
 use super::logind::{self, Logind, next_opt};
 use super::machine::{Cause, Locker, LockerEffect, LockerEvent, next_deadline, step};
 use super::marker::{LockMarker, Restore, marker_path, restore_on_start};
-use super::{Lock, LockDrawer, LockerCommand, ShellLockEvent};
-use crate::programs::{self, Pid};
+use super::mode::{Host, LockerMode, SessionManager};
+use super::{Lock, LockerCommand, ShellLockEvent};
+use crate::programs;
 use crate::units::Stamp;
 
 /// Everything the loop owns besides the machine.
@@ -29,10 +28,7 @@ struct Live {
     epoch: Instant,
     logind: Logind,
     inhibitor: Option<OwnedFd>,
-    generation: Generation,
-    pid: Option<Pid>,
-    words: mpsc::UnboundedSender<Word>,
-    /// What started the lock in place (F907).
+    /// What started the lock in place.
     cause: Option<LockCause>,
 }
 
@@ -41,7 +37,6 @@ pub(super) async fn run(
     tx: watch::Sender<Lock>,
     mut commands: mpsc::UnboundedReceiver<LockerCommand>,
 ) {
-    let (words, mut heard) = mpsc::unbounded_channel();
     let mut live = Live {
         tx,
         machine: Locker::default(),
@@ -49,9 +44,6 @@ pub(super) async fn run(
         epoch: Instant::now(),
         logind: logind::connect().await,
         inhibitor: None,
-        generation: Generation::default(),
-        pid: None,
-        words,
         cause: None,
     };
     loop {
@@ -61,7 +53,6 @@ pub(super) async fn run(
                 Some(command) => live.command(command).await,
                 None => break,
             },
-            Some(word) = heard.recv() => live.word(word).await,
             Some(signal) = next_opt(&mut live.logind.sleep) => {
                 let now = live.now();
                 match signal.args() {
@@ -100,8 +91,8 @@ impl Live {
 
     async fn command(&mut self, command: LockerCommand) {
         match command {
-            LockerCommand::Configure(choice) => {
-                let mode = tokio::task::spawn_blocking(move || detect(&choice))
+            LockerCommand::Configure => {
+                let mode = tokio::task::spawn_blocking(detect)
                     .await
                     .unwrap_or(LockerMode::Off);
                 self.use_mode(mode).await;
@@ -111,7 +102,7 @@ impl Live {
                 let now = self.now();
                 self.feed(LockerEvent::Requested(Cause::Action, now)).await;
             }
-            // sill's own idle turned the displays off (F904).
+            // sill's own idle turned the displays off.
             LockerCommand::IdleLock => {
                 let now = self.now();
                 self.feed(LockerEvent::Requested(Cause::Idle, now)).await;
@@ -147,11 +138,6 @@ impl Live {
             let event = LockerEvent::Requested(Cause::Action, now);
             self.feed_as(event, Some(LockCause::Restored)).await;
         }
-        // A locker already running (a previous sill's, or one started by hand) is adopted, so
-        // the next Lock never starts a second.
-        if let Some(pid) = self.running_locker() {
-            self.adopt(pid).await;
-        }
     }
 
     /// Keep the crash marker while the own lock is held (module doc of [`super::marker`]).
@@ -175,42 +161,12 @@ impl Live {
         }
     }
 
-    fn running_locker(&self) -> Option<Pid> {
-        match (&self.mode, self.pid) {
-            (LockerMode::Run { plan, .. }, None) => plan
-                .process_name
-                .as_deref()
-                .and_then(|name| programs::running(name).into_iter().next()),
-            _ => None,
-        }
-    }
-
-    async fn adopt(&mut self, pid: Pid) {
-        self.generation = Generation(self.generation.0 + 1);
-        self.pid = Some(pid);
-        child::watch_adopted(pid, self.generation, self.words.clone());
-        self.feed(LockerEvent::Adopted).await;
-    }
-
-    async fn word(&mut self, word: Word) {
-        if word.generation != self.generation {
-            return;
-        }
-        match word.heard {
-            Heard::Ready => self.feed(LockerEvent::Reported).await,
-            Heard::Exited => {
-                self.pid = None;
-                self.feed(LockerEvent::Exited).await;
-            }
-        }
-    }
-
     /// Steps the machine with `event` and performs what it asks, feeding back any failure.
     async fn feed(&mut self, event: LockerEvent) {
         self.feed_as(event, cause_of(&event)).await;
     }
 
-    /// [`Self::feed`], naming the cause a lock it starts gets (F907).
+    /// [`Self::feed`], naming the cause a lock it starts gets.
     async fn feed_as(&mut self, event: LockerEvent, why: Option<LockCause>) {
         let was = self.machine.phase.public();
         let mut pending = vec![event];
@@ -227,31 +183,6 @@ impl Live {
 
     async fn perform(&mut self, effect: LockerEffect) -> Option<LockerEvent> {
         match effect {
-            LockerEffect::Spawn => {
-                if let Some(pid) = self.running_locker() {
-                    // Started elsewhere since sill last looked: adopt it instead.
-                    self.generation = Generation(self.generation.0 + 1);
-                    self.pid = Some(pid);
-                    child::watch_adopted(pid, self.generation, self.words.clone());
-                    return Some(LockerEvent::Adopted);
-                }
-                let plan = match &self.mode {
-                    LockerMode::Run { plan, .. } => plan,
-                    // The daemon follows the published phase onto shell-host's session lock and
-                    // answers with `LockerCommand::Shell` (FINDINGS F544).
-                    LockerMode::Own { .. } => return None,
-                    LockerMode::Off | LockerMode::Delegate => return Some(LockerEvent::Exited),
-                };
-                self.generation = Generation(self.generation.0 + 1);
-                self.pid = child::start(plan, self.generation, self.words.clone());
-                None
-            }
-            LockerEffect::AskLogind => {
-                if let (Some(manager), Some(id)) = (&self.logind.manager, &self.logind.session_id) {
-                    let _ = manager.lock_session(id).await;
-                }
-                None
-            }
             LockerEffect::TakeInhibitor => {
                 let fd = match &self.logind.manager {
                     Some(manager) => logind::inhibit(manager).await,
@@ -270,14 +201,8 @@ impl Live {
     }
 
     fn publish(&self) {
-        let drawer = match self.mode {
-            LockerMode::Own { .. } => LockDrawer::Shell,
-            LockerMode::Off | LockerMode::Delegate | LockerMode::Run { .. } => LockDrawer::Program,
-        };
         let lock = Lock {
             phase: self.machine.phase.public(),
-            pid: self.pid,
-            drawer,
             cause: self.cause,
         };
         self.tx.send_if_modified(|current| {
@@ -295,13 +220,13 @@ fn marker_file() -> Option<PathBuf> {
         .map(|dir| marker_path(Path::new(&dir)))
 }
 
-/// Resolves `choice` against this session and this machine (blocking: `/proc` and `PATH`).
-fn detect(choice: &LockerChoice) -> LockerMode {
+/// Resolves the mode against this session (blocking: `/proc`).
+fn detect() -> LockerMode {
     let manager = if programs::running("cosmic-session").is_empty() {
         SessionManager::Other
     } else {
         SessionManager::CosmicSession
     };
     let desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default();
-    resolve(choice, Host::of(manager, &desktop), programs::on_path)
+    LockerMode::for_host(Host::of(manager, &desktop))
 }

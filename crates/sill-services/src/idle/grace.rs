@@ -1,12 +1,10 @@
-//! The lock grace (`session.lock_grace_s`; sill FINDINGS "sill idle (Q420 B)", F908): the one
-//! pure rule that may open sill's lock screen without a password, and the ticket that carries
+//! The lock grace (`session.lock_grace_s`): the one pure rule that may open sill's lock screen without a password, and the ticket that carries
 //! its answer to the auth service.
 //!
 //! The rule: `NoPassword` exactly when **all** hold, else `Ask`:
 //! - the lock's cause is [`LockCause::IdleScreenOff`] (sill's own idle path turned the displays
 //!   off and locked; never a lock someone asked for, a logind `Lock`, a sleep, a re-lock after a
-//!   crash, or an adopted locker);
-//! - sill draws the lock screen (`LockDrawer::Shell`; a borrowed locker owns its prompt);
+//!   crash);
 //! - the grace is not zero;
 //! - no sleep began since the displays went off;
 //! - the wake came strictly within the grace of the displays going off (`woke < grace`).
@@ -14,7 +12,7 @@
 //! The wake is the compositor's `ext_idle_notification_v1.resumed` (real input); a display
 //! turning on for any other reason (a hotplug, a resume) is not a wake.
 
-use crate::locker::{LockCause, LockDrawer};
+use crate::locker::LockCause;
 
 use super::policy::{IdleSecs, LockGrace};
 
@@ -35,7 +33,6 @@ pub enum SleepSince {
 pub struct GraceCase {
     /// `None`: nothing is locked, or the cause is unknown (both ask).
     pub cause: Option<LockCause>,
-    pub drawer: LockDrawer,
     pub grace: LockGrace,
     pub woke: WakeDelay,
     pub sleep: SleepSince,
@@ -54,21 +51,17 @@ pub enum GraceVerdict {
 pub fn grace_verdict(case: &GraceCase) -> GraceVerdict {
     let LockGrace(IdleSecs(grace_s)) = case.grace;
     let within = case.woke.0 < u64::from(grace_s) * 1_000;
-    match (case.cause, case.drawer, case.sleep, within) {
-        (Some(LockCause::IdleScreenOff), LockDrawer::Shell, SleepSince::NoSleep, true) => {
-            GraceVerdict::NoPassword
-        }
+    match (case.cause, case.sleep, within) {
+        (Some(LockCause::IdleScreenOff), SleepSince::NoSleep, true) => GraceVerdict::NoPassword,
         (
             Some(
                 LockCause::IdleScreenOff
                 | LockCause::Action
                 | LockCause::Logind
                 | LockCause::Sleep
-                | LockCause::Restored
-                | LockCause::Adopted,
+                | LockCause::Restored,
             )
             | None,
-            LockDrawer::Shell | LockDrawer::Program,
             SleepSince::NoSleep | SleepSince::Slept,
             true | false,
         ) => GraceVerdict::Ask,

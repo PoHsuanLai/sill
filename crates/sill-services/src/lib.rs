@@ -36,7 +36,6 @@ pub mod network;
 pub mod notifications;
 pub mod now_playing;
 pub mod pins;
-pub mod polkit;
 pub mod polkit_agent;
 pub mod power_profile;
 pub mod preview;
@@ -91,9 +90,7 @@ pub use launch::{
     LaunchCommand, LaunchOutcome, LaunchRequest, LaunchedScope, Launches, ScopeUnit,
     reduce_launches,
 };
-pub use locker::{
-    Lock, LockCause, LockDrawer, LockPhase, LockerChoice, LockerCommand, LockerMode, ShellLockEvent,
-};
+pub use locker::{Lock, LockCause, LockPhase, LockerCommand, LockerMode, ShellLockEvent};
 pub use magnify::{Layout, MagnifyParams, TileBox, magnify, rest_centers, sizes, zoom};
 pub use network::wifi::{
     AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi, WifiCommand, WifiEvent,

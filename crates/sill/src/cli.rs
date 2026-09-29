@@ -1,13 +1,6 @@
-//! The command line (plan: `sill run|launcher {toggle,open [--query],close}|dock {pin,unpin}|
-//! reload|quit|ping|debug {stats,pointer,leave,capture}`, plus `debug click` from the M2 freeze
-//! amendment, `display {brightness,volume}` from the displays pass (`cli_display`), and
-//! `power-menu {open,close,toggle}` and `control-center toggle` from the M5 freeze,
-//! `notifications {toggle,open,close,dismiss-all,status}` and `debug notify` from the M6 freeze
-//! (`cli_notifications`), `lock` and `polkit-agent` from M7, `screenshot`, `widgets
-//! toggle-desktop`, `debug screenshot` and `debug corner` from the M10 freeze (`cli_desktop`),
-//! `switcher`, `lock status`, `polkit status`, `debug auth`, `debug polkit`, `debug switcher`
-//! and the hidden `auth-check` helper from the M11 freeze (`cli_session`), and its one pure
-//! mapping to an IPC request.
+//! The command line and its one pure mapping to an IPC request. The verb families live in
+//! `cli_display`, `cli_notifications`, `cli_desktop` and `cli_session`; `run` and the hidden
+//! `auth-check` helper are not requests.
 
 use std::path::PathBuf;
 
@@ -89,8 +82,7 @@ pub enum Command {
         #[command(subcommand)]
         action: NotificationsAction,
     },
-    /// Lock the screen now with the configured locker (`session.locker`), or say what it is
-    /// doing.
+    /// Lock the screen now, or say what the lock screen is doing.
     Lock {
         #[arg(value_enum, default_value_t = LockVerb::Now)]
         verb: LockVerb,
@@ -119,12 +111,6 @@ pub enum Command {
     /// (the daemon runs it; not for people).
     #[command(hide = true)]
     AuthCheck,
-    /// Start the polkit agent `session.polkit_agent` names (dist/sill-session runs this), or
-    /// print which one it would be.
-    PolkitAgent {
-        #[arg(value_enum, default_value_t = AgentVerb::Exec)]
-        verb: AgentVerb,
-    },
     /// Take a screenshot with `screenshot.tool`; its thumbnail shows at the bottom right.
     Screenshot {
         #[arg(value_enum, default_value_t = ShotArg::Area)]
@@ -135,15 +121,6 @@ pub enum Command {
         #[command(subcommand)]
         action: WidgetsAction,
     },
-}
-
-/// `sill polkit-agent [exec|print]`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
-pub enum AgentVerb {
-    /// Replace this process with the agent.
-    Exec,
-    /// Print the agent's command line (nothing when none) and exit.
-    Print,
 }
 
 /// `sill power-menu ...`.
@@ -319,7 +296,7 @@ impl From<ClickButton> for PointerButton {
 /// The request `command` sends; `None` for `run`, which is not a request.
 pub fn request(command: &Command) -> Option<Request> {
     Some(match command {
-        Command::Run | Command::PolkitAgent { .. } | Command::AuthCheck => return None,
+        Command::Run | Command::AuthCheck => return None,
         Command::Lock { verb } => lock_request(*verb),
         Command::Switcher { action } => switcher_request(*action),
         Command::Polkit { action } => polkit_request(*action),
@@ -530,8 +507,6 @@ mod tests {
                     apps: vec!["foot".to_owned(), "firefox".to_owned()],
                 }))),
             ),
-            (&["polkit-agent"], None),
-            (&["polkit-agent", "print"], None),
             (
                 &["screenshot"],
                 Some(Request::Screenshot(ScreenshotRequest::Take(ShotArea::Area))),

@@ -246,7 +246,6 @@ fn resumed(state: IdleState, now: Stamp) -> Step {
     if let (Some(at), LockView::Locked) = (state.idle_locked_at, state.lock.view) {
         effects.push(IdleEffect::Grace(GraceCase {
             cause: state.lock.cause,
-            drawer: state.lock.drawer,
             grace: state.policy.grace,
             woke: WakeDelay(now.since(at)),
             sleep: state.sleep,

@@ -20,7 +20,7 @@
 //! - `Lock` seen `Unlocked`: the kept instant and the sleep mark are forgotten.
 //! - Every event while the mode is `Off` changes nothing and emits nothing (the passive start).
 
-use crate::locker::{LockCause, LockDrawer};
+use crate::locker::LockCause;
 use crate::units::Stamp;
 
 use super::grace::{GraceCase, SleepSince};
@@ -91,14 +91,12 @@ pub const PASSIVE: IdlePolicy = IdlePolicy {
 pub struct LockSeen {
     pub view: LockView,
     pub cause: Option<LockCause>,
-    pub drawer: LockDrawer,
 }
 
 impl LockSeen {
     pub const UNLOCKED: LockSeen = LockSeen {
         view: LockView::Unlocked,
         cause: None,
-        drawer: LockDrawer::Program,
     };
 }
 

@@ -63,7 +63,7 @@ pub struct ShellFile {
     pub window: WindowSettings,
     /// M5 (FINDINGS "M5 freeze"): no design/22 rows yet.
     pub power_menu: PowerMenuSettings,
-    /// M7 (FINDINGS "M7"): the borrowed locker and polkit agent; no design/22 rows yet.
+    /// sill's own lock screen.
     pub session: SessionSettings,
     /// M10 (FINDINGS "M10 freeze"): no design/22 rows yet.
     pub widgets: WidgetsSettings,

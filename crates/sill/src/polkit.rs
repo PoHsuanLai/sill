@@ -1,63 +1,22 @@
-//! sill's own polkit agent on the daemon's side (M11 lane b; FINDINGS "M11 freeze" F546): the
-//! agent's policy from `session.polkit_agent` ([`spawn_policy`]: `Own` only for `sill`; the
-//! service stays passive until the first policy), one warm hidden prompt surface per output,
-//! `sill polkit status`, and `sill debug polkit`.
+//! sill's own polkit agent on the daemon's side: one warm hidden prompt surface per output,
+//! `sill polkit status`, and `sill debug polkit`. The daemon tells the service to register at
+//! start; it stays passive until then.
 //!
-//! Registering an agent is per logind session: nested under KDE, the daemon shares KDE's
-//! session, whose agent (polkit-kde) already holds it, so polkitd refuses sill's
+//! Registering an agent is per logind session: nested in another desktop's session, the daemon
+//! shares that session, whose own agent already holds it, so polkitd refuses sill's
 //! (`Registration::Refused`), and that is the right outcome there. Acceptance runs the agent on
-//! a private bus with a stand-in Authority (F547), never on the system bus.
+//! a private bus with a stand-in Authority, never on the system bus.
 
 use shell_host::{HostCtx, OutputInfo, Root};
 use sill_ipc::{
     Failure, FailureKind, FakePolkit, PolkitReport, PolkitRequest, ReportRegistration, Response,
 };
-use sill_services::polkit::AgentChoice;
-use sill_services::polkit_agent::{
-    ActionId, AgentPolicy, FakeRequest, Polkit, PolkitCommand, Registration,
-};
-use sill_services::{Control, Services};
-use sill_settings::ShellFile;
+use sill_services::Services;
+use sill_services::polkit_agent::{ActionId, FakeRequest, Polkit, PolkitCommand, Registration};
 use sill_surfaces::surfaces::polkit_prompt::{PolkitPromptProps, polkit_layer};
-use tokio::runtime::Handle;
-use tokio::sync::watch;
 
 use crate::msg::ShellMsg;
 use crate::outputs::Outputs;
-
-/// The agent's policy `file` makes: `Own` exactly when `session.polkit_agent` is `sill`.
-pub fn policy_of(file: &ShellFile) -> AgentPolicy {
-    match AgentChoice::parse(&file.session.polkit_agent) {
-        AgentChoice::Own => AgentPolicy::Own,
-        AgentChoice::Auto | AgentChoice::Off | AgentChoice::Known(_) | AgentChoice::Command(_) => {
-            AgentPolicy::Off
-        }
-    }
-}
-
-/// Send [`policy_of`] now and on every settings change that changes it, until either side is
-/// gone (the notifications policy's pattern).
-pub fn spawn_policy(
-    rt: &Handle,
-    mut settings: watch::Receiver<ShellFile>,
-    control: Control<PolkitCommand>,
-) {
-    rt.spawn(async move {
-        let mut sent = None;
-        loop {
-            let policy = policy_of(&settings.borrow_and_update());
-            if sent != Some(policy) {
-                if control.send(PolkitCommand::Policy(policy)).is_err() {
-                    return;
-                }
-                sent = Some(policy);
-            }
-            if settings.changed().await.is_err() {
-                return;
-            }
-        }
-    });
-}
 
 /// Spawn a hidden polkit prompt for every output whose row lacks one (after the power menu, so
 /// on the Overlay layer the prompt draws over it).
@@ -128,24 +87,9 @@ pub fn fake(services: &Services, fake: FakePolkit) -> Response {
 
 #[cfg(test)]
 mod tests {
-    use sill_services::polkit_agent::{AgentPolicy, Polkit, Registration};
-    use sill_settings::ShellFile;
+    use sill_services::polkit_agent::{Polkit, Registration};
 
-    use super::{policy_of, report_of};
-
-    #[test]
-    fn only_sill_makes_the_agent_ours() {
-        let with = |agent: &str| {
-            let mut file = ShellFile::default();
-            file.session.polkit_agent = agent.to_owned();
-            policy_of(&file)
-        };
-        assert_eq!(with("sill"), AgentPolicy::Own);
-        for agent in ["auto", "off", "cosmic-osd", "my-agent --flag"] {
-            assert_eq!(with(agent), AgentPolicy::Off, "{agent}");
-        }
-        assert_eq!(policy_of(&ShellFile::default()), AgentPolicy::Off);
-    }
+    use super::report_of;
 
     #[test]
     fn a_refusal_is_reported() {
