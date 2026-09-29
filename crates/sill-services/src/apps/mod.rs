@@ -162,7 +162,7 @@ mod tests {
     /// here (`tray`, `battery`, `network`), the real scan runs on the runtime after `spawn`
     /// returns, not before, so the receiver's value right after `spawn` is racy with `run`'s
     /// first `publish().await` — this only asserts the receiver is usable, not what it holds
-    /// yet; `apps_live.rs` (`#[ignore]`) exercises the real scan end to end.
+    /// yet.
     #[test]
     fn spawn_does_not_panic_and_the_receiver_is_usable() {
         let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| panic!("{e}"));

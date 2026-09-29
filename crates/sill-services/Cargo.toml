@@ -37,10 +37,6 @@ emojis = { workspace = true }
 mime_guess = { workspace = true }
 percent-encoding = { workspace = true }
 
-# `sill-settings` only for `tests/settings_live.rs` (design/22 §9.2's own local-install path,
-# `sill_settings::schema().write_to`) — a dev-dependency, not linked into the daemon, so it does
-# not cross the `ds-settings`-free boundary `scripts/check-boundary.sh` enforces on this crate's
-# normal dependencies (schema_file.rs's module doc explains why the library itself cannot use it).
 [features]
 default = []
 # `SILL_FAKE_DDC=<file>` makes the displays service's DDC worker talk to made-up monitors in a
@@ -48,16 +44,13 @@ default = []
 # on for the acceptance scripts, so no script can reach a real monitor.
 fake-ddc = []
 
-[dev-dependencies]
-sill-settings = { workspace = true }
-
-# A LauncherEntry emitter for exercising badges without a real app: the dock's acceptance and
-# `tests/badges_live.rs` run it as a child process.
+# A LauncherEntry emitter for exercising badges without a real app: the dock's acceptance runs
+# it as a child process.
 [[example]]
 name = "badge_emitter"
 
-# A fake MPRIS player for exercising Now Playing without a real one: `tests/media_live.rs` runs
-# it as a child process, under its own bus name.
+# A fake MPRIS player for exercising Now Playing without a real one: `dev/accept-widgets.sh`
+# runs it as a child process, under its own bus name.
 [[example]]
 name = "mpris_player"
 

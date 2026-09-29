@@ -223,8 +223,7 @@ fn offer_of(supported: IsSupported) -> Offer {
 /// (M4 launcher-core, plan "spawn_blocking per provider") runs every provider's `query` inside
 /// `tokio::task::spawn_blocking`, and `Handle::block_on` from inside a blocking-pool task is the
 /// documented way back into async code there — this panics only if called directly from an
-/// async task instead (never done here; `tests/providers_system_live.rs` mirrors the real
-/// call shape with its own `spawn_blocking`).
+/// async task instead (never done here).
 fn probe_availability() -> Availability {
     tokio::runtime::Handle::try_current()
         .ok()
