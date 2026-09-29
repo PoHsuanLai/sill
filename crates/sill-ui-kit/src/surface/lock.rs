@@ -7,6 +7,8 @@ use dioxus::prelude::Element;
 use shell_host::{LockConfig, OutputInfo};
 use sill_settings::ShellFile;
 
+use crate::root::use_host_signals;
+
 /// A surface the compositor's session lock draws instead of a layer surface.
 pub trait LockSurface: 'static {
     /// The surface's name, as [`super::Surface::NAME`].
@@ -52,9 +54,10 @@ impl<S: LockSurface> fmt::Debug for MountLockProps<S> {
     }
 }
 
-/// The root component of a lock surface `S`: quire's document host, then its `root`, in the
-/// component's scope.
+/// The root component of a lock surface `S`: quire's document host and the seat's signals, then
+/// its `root`, in the component's scope.
 pub fn mount_lock<S: LockSurface>(props: MountLockProps<S>) -> Element {
     ds_native::provide_host();
+    use_host_signals();
     S::root(props.output)
 }

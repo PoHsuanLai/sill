@@ -225,7 +225,7 @@ A settled item is deleted, not marked closed.
   popup-root mode would end it. A press in the transparent room no longer closes the menu (the
   catcher is 0 px tall); one outside the popup is the compositor's grab.
 - **A popup is its own `VirtualDom`** and inherits no context from the surface that opened it; it
-  calls `ds_native::provide_host()` itself, as `mount` and `mount_lock` do for a surface.
+  calls `ds_native::provide_host()` itself, as `mount` and `mount_lock` do for a surface; its `PopupFrame` provides the seat's `HostSignals`. The screenshot drag icon is the one `Ds` root outside them: it is a picture that takes no input and has no focusable child, so modality and scale do not apply.
 - **shell-host unmaps by destroying and rebuilding the layer surface**, so the presenter is
   recreated on every show. Warm surfaces are spawned hidden at start and shown with
   `set_visibility`.

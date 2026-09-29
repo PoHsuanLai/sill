@@ -7,6 +7,7 @@ use dioxus::prelude::Element;
 use shell_host::OutputInfo;
 
 use super::Surface;
+use crate::root::use_host_signals;
 
 /// What [`mount`] is given: the output and the slot of the surface it draws.
 pub struct MountProps<S: Surface> {
@@ -44,8 +45,10 @@ impl<S: Surface> fmt::Debug for MountProps<S> {
     }
 }
 
-/// The root component of `S`: quire's document host, then its `root`, in the component's scope.
+/// The root component of `S`: quire's document host and the seat's signals, then its `root`, in
+/// the component's scope.
 pub fn mount<S: Surface>(props: MountProps<S>) -> Element {
     ds_native::provide_host();
+    use_host_signals();
     S::root(props.output, props.slot)
 }

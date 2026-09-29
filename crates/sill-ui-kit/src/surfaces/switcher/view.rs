@@ -21,17 +21,16 @@ use super::step::{Switcher, SwitcherParams};
 use super::tiles::{key_of, metrics_of, output_width, tiles};
 use super::watch::ChordWatch;
 use crate::app_icons::{IconContext, LogicalPx, icon_look, use_icon_resolver};
-use crate::hooks::{use_appearance, use_ds_scale, use_service, use_settings};
+use crate::hooks::{use_appearance, use_service, use_settings};
 use crate::links::SwitcherLink;
 use crate::look::use_active_look;
-use crate::root::SurfaceRoot;
+use crate::root::{SurfaceRoot, use_host_scale};
 use sill_services::AppsService;
 
 /// The switcher's stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
 pub const SWITCHER_CSS: &str = include_str!("../../style/switcher.css");
 
 pub(super) fn switcher(output: OutputInfo) -> Element {
-    let ds_scale = use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
     let look = use_active_look(&output);
@@ -46,7 +45,7 @@ pub(super) fn switcher(output: OutputInfo) -> Element {
                 appearance.accent,
                 resolved.scheme,
             ),
-            scale: ds_scale.unwrap_or(ds::Scale::ONE),
+            scale: use_host_scale(),
             resolver: use_icon_resolver(),
         },
         index: use_service::<AppsService>()(),

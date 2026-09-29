@@ -240,7 +240,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 | A launcher result source | `sill_search::providers::<kind>` (`Provider`) |
 | The search runner and its history | `sill_search::results` |
 | Launcher row to menu row | `sill_launcher_ui::launcher::rows::row` (one exhaustive fn) |
-| Surface root: services, feed, host seam, appearance, scale, frame clock | `sill_ui_kit::root::SurfaceRoot` (the host seam is `ds_native::provide_host()`, called by `mount`, `mount_lock` and each popup root) |
+| Surface root: services, feed, host seam, appearance, scale, frame clock | `sill_ui_kit::root::SurfaceRoot` (the host seam is `ds_native::provide_host()`, called by `mount`, `mount_lock` and each popup root; the seat's `HostSignals` (scale, modality) come from `use_host_signals()`, called by `mount`, `mount_lock` and `PopupFrame`, and a surface reads its scale with `use_host_scale()`) |
 | Active workspace look, space look | `sill_ui_kit::look` (`use_active_look`, `use_space_look`) |
 | Open/close a panel from outside it (serial, output) | `sill_ui_kit::links::Reveal<O>`; every link type is one file in `sill_ui_kit::links` |
 | Visible or hidden layer surface | `shell_host::Visibility` |
@@ -498,7 +498,7 @@ Each ends with its tests. Name the concept once and use it in every file name be
 2. `surface.rs`: `pub enum Name {}` and `impl Surface` (`NAME`, `Link`, `Slot`, `slots`,
    `layer`, `start`, `root`). `root` is `view::name(output)`; no `Ds` boilerplate: `SurfaceRoot`
    supplies services, feed, appearance, scale and the frame clock, and `mount` has already
-   installed the host seam (`ds_native::provide_host()`).
+   installed the host seam (`ds_native::provide_host()`) and the seat's `HostSignals`; a `Ds` root passes no `scale`.
 3. A link the daemon or another surface drives is one file in `sill-ui-kit/src/links/<name>.rs`
    (a newtype over `Reveal<O>` or a small watch channel) and a field of `Links` in
    `links/mod.rs`. A surface never imports another surface.

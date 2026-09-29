@@ -6,13 +6,15 @@
 use dioxus::prelude::*;
 
 use super::look::PopupRoom;
+use crate::root::use_host_signals;
 
 /// The frame's stylesheet.
 pub const POPUP_FRAME_CSS: &str = include_str!("style.css");
 
 /// `children` (a `Ds` root) in the popup frame, `room` around the card and at most `widest`
 /// wide in all (none: no cap). `style` is written on the frame beside them, for the custom
-/// properties the root's menu reads.
+/// properties the root's menu reads. The frame provides the seat's `HostSignals` to the root, so
+/// a popup has the same focus ring and scale as a surface.
 #[component]
 pub fn PopupFrame(
     room: PopupRoom,
@@ -20,6 +22,7 @@ pub fn PopupFrame(
     #[props(default)] style: String,
     children: Element,
 ) -> Element {
+    use_host_signals();
     let cap = widest.map_or(String::new(), |px| format!(";max-width:{px}px"));
     rsx! {
         style { {POPUP_FRAME_CSS} }

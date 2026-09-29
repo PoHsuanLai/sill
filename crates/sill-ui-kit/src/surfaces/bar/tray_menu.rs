@@ -28,12 +28,10 @@ pub(crate) fn TrayMenuDocument(
     onpick: EventHandler<i32>,
     onclose: EventHandler<()>,
 ) -> Element {
-    let ds_scale = crate::hooks::use_ds_scale();
     let environment = use_appearance()();
     rsx! {
         PopupFrame { room: INSET, widest: Some(POPUP_WIDTH),
             Ds {
-                scale: ds_scale,
                 extent: RootExtent::Popup,
                 appearance: environment.settings.appearance.appearance(),
                 system: environment.system,

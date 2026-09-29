@@ -9,7 +9,6 @@ use shell_host::use_surface;
 use tokio::sync::mpsc;
 
 use crate::menu::{MenuPopup, PopupLook};
-use crate::root::HostSignalsBridge;
 use crate::surfaces::dock::menu::DockMenu;
 use crate::surfaces::dock::menu_geometry::room;
 use crate::surfaces::dock::pick::DockPick;
@@ -69,12 +68,10 @@ pub(crate) fn DockMenuPopup() -> Element {
     use_context_provider(|| link.look);
     use_context_provider(room);
     rsx! {
-        HostSignalsBridge {
-            MenuPopup {
-                model: DockMenu { entries: link.entries.clone() },
-                on_pick,
-                on_close,
-            }
+        MenuPopup {
+            model: DockMenu { entries: link.entries.clone() },
+            on_pick,
+            on_close,
         }
     }
 }

@@ -24,7 +24,6 @@ use super::pick::BarPick;
 use super::plan::{PopupReport, choice};
 use super::popup::{MAX_PX, room};
 use crate::menu::PopupFrame;
-use crate::root::HostSignalsBridge;
 use crate::surfaces::control_center::{ControlCenter, ModuleDropdown};
 
 /// The popup's link to its bar, provided as its root context.
@@ -53,7 +52,6 @@ const GAP: Px = Px(7.0);
 /// it provides quire's document host itself.
 #[component]
 pub(crate) fn BarPopup() -> Element {
-    let ds_scale = crate::hooks::use_ds_scale();
     ds_native::provide_host();
     let link = use_context::<PopupLink>();
     let surface = use_surface();
@@ -101,19 +99,16 @@ pub(crate) fn BarPopup() -> Element {
     };
     rsx! {
         style { {CONTROL_CENTER_CSS} }
-        HostSignalsBridge {
-            PopupFrame { room: room(), widest, style: look.metrics.style_attr(),
-                Ds {
-                    scale: ds_scale,
-                    extent: RootExtent::Popup,
-                    appearance: look.appearance,
-                    system: look.system,
-                    material: Material::Popover,
-                    blur: BlurState::Unavailable,
-                    tint_alpha: Some(look.tint),
-                    stack: Some(look.stack),
-                    {content}
-                }
+        PopupFrame { room: room(), widest, style: look.metrics.style_attr(),
+            Ds {
+                extent: RootExtent::Popup,
+                appearance: look.appearance,
+                system: look.system,
+                material: Material::Popover,
+                blur: BlurState::Unavailable,
+                tint_alpha: Some(look.tint),
+                stack: Some(look.stack),
+                {content}
             }
         }
     }

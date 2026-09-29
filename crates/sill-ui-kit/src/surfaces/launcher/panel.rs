@@ -25,7 +25,7 @@ use crate::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
 use crate::hooks::{use_appearance, use_service, use_settings};
 use crate::links::LauncherLink;
 use crate::look::use_active_look;
-use crate::root::SurfaceRoot;
+use crate::root::{SurfaceRoot, use_host_scale};
 use crate::surfaces::bar::shell_style::shell_metrics;
 use crate::surfaces::launcher::card::{CardKey, Foot, use_card_hit};
 use crate::surfaces::launcher::contact::use_contacts;
@@ -91,7 +91,6 @@ impl Shown {
 
 /// The panel on `output`.
 pub(crate) fn launcher(output: OutputInfo) -> Element {
-    let ds_scale = crate::hooks::use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
     let look = use_active_look(&output);
@@ -103,7 +102,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
             appearance.accent,
             ds::resolve(appearance, look.theme, environment.system).scheme,
         ),
-        scale: ds_scale.unwrap_or(ds::Scale::ONE),
+        scale: use_host_scale(),
         resolver: use_icon_resolver(),
     };
     let history = use_service::<ClipboardService>();

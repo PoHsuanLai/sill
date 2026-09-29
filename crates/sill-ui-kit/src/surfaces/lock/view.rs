@@ -26,8 +26,7 @@ use shell_host::{LockHandle, LockPhase, OutputInfo, use_lock, use_lock_phase, us
 
 use super::body::{HostLock, LockBody};
 use super::model::caps_of;
-use crate::hooks::{use_appearance, use_ds_scale};
-use crate::root::HostSignalsBridge;
+use crate::hooks::use_appearance;
 
 /// The lock screen's stylesheet (lint-clean under `Profile::Strict`, `tests/lock_lint.rs`).
 pub const LOCK_CSS: &str = include_str!("../../style/lock.css");
@@ -42,17 +41,13 @@ enum Hosted {
 pub(super) fn lock(output: OutputInfo) -> Element {
     let hosted =
         use_hook(|| try_consume_context::<LockHandle>().map_or(Hosted::No, |_| Hosted::Yes));
-    rsx! {
-        HostSignalsBridge {
-            match hosted {
-                Hosted::Yes => rsx! {
-                    HostedStage { output }
-                },
-                Hosted::No => rsx! {
-                    Stage { output, host: HostLock::Holding, caps: CapsLock::Off, on_unlock: None }
-                },
-            }
-        }
+    match hosted {
+        Hosted::Yes => rsx! {
+            HostedStage { output }
+        },
+        Hosted::No => rsx! {
+            Stage { output, host: HostLock::Holding, caps: CapsLock::Off, on_unlock: None }
+        },
     }
 }
 
@@ -79,7 +74,6 @@ fn Stage(
     caps: CapsLock,
     on_unlock: Option<Callback<()>>,
 ) -> Element {
-    let ds_scale = use_ds_scale();
     let environment = use_appearance()();
     let appearance = environment.settings.appearance.appearance();
     let scheme = ds::resolve(
@@ -90,7 +84,6 @@ fn Stage(
     .scheme;
     rsx! {
         Ds {
-            scale: ds_scale,
             appearance,
             system: environment.system,
             material: Material::Window,

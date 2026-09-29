@@ -41,7 +41,6 @@ pub const DOCK_CSS: &str = include_str!("../../style/dock.css");
 
 /// The dock on `output`.
 pub(super) fn dock(output: OutputInfo) -> Element {
-    let ds_scale = crate::hooks::use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
     let on = output.name.clone().map(OutputName);
@@ -143,7 +142,6 @@ pub(super) fn dock(output: OutputInfo) -> Element {
             class: "sill-dock-pill",
             style: "{area_style(&shown.pill)};transform:translateY({px(slide)}px);{metrics.style_attr()}{dock_metrics(&file.dock).style_attr()}",
             Ds {
-                scale: ds_scale,
                 appearance,
                 system: environment.system,
                 look,

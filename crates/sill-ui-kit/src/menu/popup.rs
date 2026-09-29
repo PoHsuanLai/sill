@@ -10,7 +10,6 @@ use ds::{Anchor, BlurState, Ds, Material, Menu, MenuKind, Point, RootExtent};
 use super::frame::PopupFrame;
 use super::look::{PopupLook, PopupRoom};
 use super::model::MenuModel;
-use crate::hooks::use_ds_scale;
 
 /// `model`'s menu: `on_pick` hears a pick, `on_close` the menu closing (after a pick too).
 #[component]
@@ -19,13 +18,11 @@ pub fn MenuPopup<Model: MenuModel>(
     on_pick: EventHandler<Model::Pick>,
     on_close: EventHandler<()>,
 ) -> Element {
-    let scale = use_ds_scale();
     let look = use_context::<PopupLook>();
     let room = use_context::<PopupRoom>();
     rsx! {
         PopupFrame { room, style: look.metrics.style_attr(),
             Ds {
-                scale,
                 extent: RootExtent::Popup,
                 appearance: look.appearance,
                 system: look.system,

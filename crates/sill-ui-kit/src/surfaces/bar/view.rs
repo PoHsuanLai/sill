@@ -29,7 +29,6 @@ pub const BAR_CSS: &str = include_str!("../../style/bar.css");
 /// content on the frame ground (quire's `FrameTint::Tinted` and `Ground::Frame`, the Bar's
 /// defaults), so the bar paints no tint of its own.
 pub(super) fn bar(output: OutputInfo) -> Element {
-    let ds_scale = crate::hooks::use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
     let tray = use_service::<TrayService>()();
@@ -54,7 +53,6 @@ pub(super) fn bar(output: OutputInfo) -> Element {
     rsx! {
         div { class: "sill-bar-root", style: metrics.style_attr(),
         Ds {
-            scale: ds_scale,
             appearance: popup_look.appearance,
             system: popup_look.system,
             look,

@@ -71,3 +71,34 @@ fn the_frame_is_the_card_and_its_inset_and_a_press_picks_an_entry() {
     harness.advance(Duration::from_millis(100));
     assert_eq!(PICKS.with(|p| p.borrow().clone()), vec![9]);
 }
+
+#[test]
+fn a_key_turns_the_tray_menus_ring_on_and_a_hover_keeps_it() {
+    let viewport = Viewport {
+        width: SIZE,
+        height: SIZE,
+        scale_percent: 100,
+    };
+    let mut harness =
+        Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
+    harness.advance(Duration::from_millis(300));
+    let modality = |harness: &Harness| harness.attr(".ds", "data-modality");
+    assert_eq!(modality(&harness).as_deref(), Some("pointer"), "at first");
+    harness.key(ds::ShortcutKey::Down);
+    harness.advance(Duration::from_millis(100));
+    assert_eq!(
+        modality(&harness).as_deref(),
+        Some("keyboard"),
+        "after a key"
+    );
+    let open = harness
+        .centre(".ds-menu-item:nth-child(1)")
+        .expect("the Open entry is laid out"); // test-only
+    harness.pointer_move(open);
+    harness.advance(Duration::from_millis(100));
+    assert_eq!(
+        modality(&harness).as_deref(),
+        Some("keyboard"),
+        "a move is not a press"
+    );
+}

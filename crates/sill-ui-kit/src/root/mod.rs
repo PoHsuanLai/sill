@@ -1,11 +1,12 @@
 //! What every surface's document is rooted in: quire's faces and pre-paint pass, the seat's
 //! signals bridge and [`SurfaceRoot`]. Every root gets quire's document host through
-//! `ds_native::provide_host()`, called at the top of the root component.
+//! `ds_native::provide_host()`, called at the top of the root component, and quire's
+//! `HostSignals` through [`use_host_signals`], called by `mount`, `mount_lock` and `PopupFrame`.
 
 mod host;
 mod signals;
 mod surface_root;
 
 pub use host::{faces, host_config, prepaint};
-pub use signals::HostSignalsBridge;
+pub use signals::{use_host_scale, use_host_signals};
 pub use surface_root::SurfaceRoot;
