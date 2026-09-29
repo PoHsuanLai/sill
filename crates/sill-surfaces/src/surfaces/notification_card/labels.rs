@@ -69,7 +69,7 @@ pub fn app_label(app: &AppRef, entry_name: Option<&str>) -> String {
 #[cfg(test)]
 mod tests {
     use super::{Age, age, age_label, app_label, group_count};
-    use ds::{GroupCount, Layers};
+    use ds::{GroupCount, StackLayers};
     use sill_model::notifications::{AppRef, IconRef, UnixMs};
 
     #[test]

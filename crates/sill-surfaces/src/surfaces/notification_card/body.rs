@@ -37,7 +37,7 @@ fn tone(style: &RunStyle) -> RunTone {
 #[cfg(test)]
 mod tests {
     use super::rich_body;
-    use ds::{Rich, RichRun, Run, RunTone};
+    use ds::{Rich, RichRun, RunTone, TextRun};
     use sill_model::notifications::{Body, parse_body};
 
     fn run(text: &str, tone: RunTone) -> RichRun {
