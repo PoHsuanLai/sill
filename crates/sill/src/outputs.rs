@@ -2,7 +2,7 @@
 //! list to spawn and close actions.
 
 use shell_host::{OutputId, OutputInfo, SurfaceId};
-use sill_surfaces::links::Corner;
+use sill_ui_kit::links::Corner;
 
 /// One output's surfaces (each `None` until spawned).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -208,8 +208,8 @@ pub fn reconcile(current: &Outputs, now: &[OutputInfo]) -> Vec<OutputAction> {
 }
 
 /// The layer-shell namespace the bar on `info` gets (`sill-bar-DP-1`), and the name a debug request
-/// addresses it by. Mirrors `sill_surfaces::surfaces::naming::namespace("bar", output)`, which is
-/// `pub(crate)` to that crate: `sill_surfaces::surfaces::bar::bar_layer` sets a spawned bar's
+/// addresses it by. Mirrors `sill_ui_kit::surfaces::naming::namespace("bar", output)`, which is
+/// `pub(crate)` to that crate: `sill_ui_kit::surfaces::bar::bar_layer` sets a spawned bar's
 /// namespace this way, so the daemon's debug lookups must agree with it exactly.
 pub fn bar_namespace(info: &OutputInfo) -> String {
     match &info.name {
@@ -219,7 +219,7 @@ pub fn bar_namespace(info: &OutputInfo) -> String {
 }
 
 /// The wallpaper's own namespace on `info` (mirrors `bar_namespace`; the wallpaper's own
-/// `sill_surfaces::surfaces::wallpaper::wallpaper_layer` sets it the same way).
+/// `sill_ui_kit::surfaces::wallpaper::wallpaper_layer` sets it the same way).
 pub fn wallpaper_namespace(info: &OutputInfo) -> String {
     match &info.name {
         Some(name) => format!("sill-wallpaper-{name}"),
@@ -257,7 +257,7 @@ mod tests {
 
     #[test]
     fn m10_surfaces_are_found_and_forgotten_like_the_rest() {
-        use sill_surfaces::links::Corner;
+        use sill_ui_kit::links::Corner;
         let mut row = surfaces(1);
         row.thumbnail = Some(SurfaceId(2));
         row.corners.set(Corner::BottomRight, Some(SurfaceId(3)));

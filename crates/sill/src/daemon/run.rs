@@ -12,11 +12,11 @@ use std::time::{Duration, Instant};
 use shell_host::{Host, HostConfig, HostHandle};
 use sill_services::env::Env;
 use sill_settings::{SettingsFeed, ShellFile};
-use sill_surfaces::links::{
+use sill_ui_kit::links::{
     BannerLink, CenterLink, ControlCenterLink, CornerLink, EditWidgetsLink, LauncherLink, Links,
     LockLink, OsdLink, PowerMenuLink, SwitcherLink,
 };
-use sill_surfaces::services::Services;
+use sill_ui_kit::services::Services;
 use tokio::runtime::Runtime;
 use tokio::sync::watch;
 
@@ -108,7 +108,7 @@ fn take_door() -> Result<latchkey::Listening, ExitCode> {
 fn host_config(first: &ShellFile) -> HostConfig {
     HostConfig {
         first_mouse_window_ms: shell_host::Ms(u32::from(first.menus.first_mouse_window_ms.0)),
-        ..sill_surfaces::root::host_config()
+        ..sill_ui_kit::root::host_config()
     }
 }
 
@@ -138,7 +138,7 @@ fn build_links(
         edit_widgets: EditWidgetsLink::new(),
         widgets_writer: crate::edit_widgets::writer(
             settings_dir,
-            sill_surfaces::surfaces::desktop_widgets::PlacementFile::in_dirs(&env.dirs),
+            sill_ui_kit::surfaces::desktop_widgets::PlacementFile::in_dirs(&env.dirs),
             settings.clone(),
         ),
     }

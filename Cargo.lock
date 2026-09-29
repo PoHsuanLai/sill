@@ -5298,8 +5298,8 @@ dependencies = [
  "sill-search",
  "sill-services",
  "sill-settings",
- "sill-surfaces",
  "sill-testkit",
+ "sill-ui-kit",
  "thiserror 2.0.20",
  "tokio",
 ]
@@ -5400,7 +5400,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "sill-surfaces"
+name = "sill-testkit"
+version = "0.1.0"
+dependencies = [
+ "cosmic-client-toolkit",
+ "serde",
+ "sill-launcher",
+ "sill-model",
+ "sill-search",
+ "sill-services",
+ "tokio",
+ "zbus",
+]
+
+[[package]]
+name = "sill-ui-kit"
 version = "0.1.0"
 dependencies = [
  "dioxus",
@@ -5420,23 +5434,9 @@ dependencies = [
  "sill-search",
  "sill-services",
  "sill-settings",
- "sill-surfaces",
+ "sill-ui-kit",
  "thiserror 2.0.20",
  "tokio",
-]
-
-[[package]]
-name = "sill-testkit"
-version = "0.1.0"
-dependencies = [
- "cosmic-client-toolkit",
- "serde",
- "sill-launcher",
- "sill-model",
- "sill-search",
- "sill-services",
- "tokio",
- "zbus",
 ]
 
 [[package]]

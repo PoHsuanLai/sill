@@ -8,8 +8,8 @@ use shell_host::{Size as BufferSize, buffer_size};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
-use sill_surfaces::links::Links;
-use sill_surfaces::services::Services;
+use sill_ui_kit::links::Links;
+use sill_ui_kit::services::Services;
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
@@ -91,12 +91,12 @@ fn spawn_bar(
     file: &ShellFile,
     info: OutputInfo,
 ) {
-    let config = sill_surfaces::surfaces::bar::bar_layer(&info, &file.bar);
-    let props = sill_surfaces::surfaces::bar::BarProps {
+    let config = sill_ui_kit::surfaces::bar::bar_layer(&info, &file.bar);
+    let props = sill_ui_kit::surfaces::bar::BarProps {
         output: info.clone(),
     };
     let root = surface_root(
-        HostRoot::with_props(sill_surfaces::Bar, props),
+        HostRoot::with_props(sill_ui_kit::Bar, props),
         services,
         settings_feed,
         links,
@@ -168,12 +168,12 @@ fn spawn_wallpaper(
             eprintln!("sill: preparing the wallpaper on {:?}: {error}", info.name);
         }
     }
-    let config = sill_surfaces::surfaces::wallpaper::wallpaper_layer(&info);
-    let props = sill_surfaces::surfaces::wallpaper::WallpaperProps {
+    let config = sill_ui_kit::surfaces::wallpaper::wallpaper_layer(&info);
+    let props = sill_ui_kit::surfaces::wallpaper::WallpaperProps {
         output: info.clone(),
     };
     let root = surface_root(
-        HostRoot::with_props(sill_surfaces::Wallpaper, props),
+        HostRoot::with_props(sill_ui_kit::Wallpaper, props),
         services,
         settings_feed,
         links,
@@ -206,12 +206,12 @@ fn spawn_missing_docks(
         .collect();
     let file = settings_tx.borrow().clone();
     for info in missing {
-        let config = sill_surfaces::surfaces::dock::dock_layer(&info, &file.dock);
-        let props = sill_surfaces::surfaces::dock::DockProps {
+        let config = sill_ui_kit::surfaces::dock::dock_layer(&info, &file.dock);
+        let props = sill_ui_kit::surfaces::dock::DockProps {
             output: info.clone(),
         };
         let root = surface_root(
-            HostRoot::with_props(sill_surfaces::Dock, props),
+            HostRoot::with_props(sill_ui_kit::Dock, props),
             services,
             settings_feed,
             links,
@@ -238,7 +238,7 @@ fn spawn_missing_launchers(
     links: &Links,
     settings_tx: &watch::Sender<ShellFile>,
 ) {
-    use sill_surfaces::surfaces::launcher::{
+    use sill_ui_kit::surfaces::launcher::{
         LauncherCatcherProps, LauncherProps, catcher_layer, panel_layer,
     };
     let missing: Vec<OutputInfo> = outputs
@@ -258,13 +258,13 @@ fn spawn_missing_launchers(
             let props = LauncherCatcherProps {
                 output: output.clone(),
             };
-            let root = root(HostRoot::with_props(sill_surfaces::LauncherCatcher, props));
+            let root = root(HostRoot::with_props(sill_ui_kit::LauncherCatcher, props));
             surfaces.catcher = spawn_hidden(ctx, catcher_layer(&info), root, &info);
         }
         if surfaces.launcher.is_none() {
             let config = panel_layer(&info, &file.bar, &file.launcher);
             let root = root(HostRoot::with_props(
-                sill_surfaces::Launcher,
+                sill_ui_kit::Launcher,
                 LauncherProps { output },
             ));
             surfaces.launcher = spawn_hidden(ctx, config, root, &info);
@@ -294,8 +294,8 @@ pub(crate) fn spawn_hidden(
 }
 
 /// `root` with the contexts every surface the daemon spawns is given: the services, the settings,
-/// quire's rect measurer, `ds_native::measure::MEASURE` (re-exported as `sill_surfaces::root::MEASURE`),
-/// and its focus write, `ds_native::focus::FOCUS` (re-exported as `sill_surfaces::root::FOCUS`), and the
+/// quire's rect measurer, `ds_native::measure::MEASURE` (re-exported as `sill_ui_kit::root::MEASURE`),
+/// and its focus write, `ds_native::focus::FOCUS` (re-exported as `sill_ui_kit::root::FOCUS`), and the
 /// field caret, `ds_native::focus::CARET`, which are what `ds_native::measure::provide()` and
 /// `ds_native::focus::provide()` provide from inside a root component. Without them a rect read or
 /// a focus waits a frame and the panic hook prints the collision. Every spawn goes through here, so
@@ -309,12 +309,12 @@ pub(crate) fn surface_root(
     let root = root
         .context(services.clone())
         .context(settings_feed.clone())
-        .context(sill_surfaces::root::MEASURE)
-        .context(sill_surfaces::root::FOCUS)
-        .context(sill_surfaces::root::CARET);
+        .context(sill_ui_kit::root::MEASURE)
+        .context(sill_ui_kit::root::FOCUS)
+        .context(sill_ui_kit::root::CARET);
     // The focus mode, the power menu and the control center's asks; the notification center and
     // the banners' output; the hot corners' firings; the switcher's asks and the lock prompt's
-    // output (`sill_surfaces::links`).
+    // output (`sill_ui_kit::links`).
     root.context(links.focus.clone())
         .context(links.power_menu.clone())
         .context(links.control_center.clone())
@@ -338,9 +338,9 @@ pub(crate) fn lock_factory(
     let settings_feed = settings_feed.clone();
     let links = links.clone();
     crate::lock::host::LockFactory(Box::new(move |info: OutputInfo| {
-        let props = sill_surfaces::surfaces::lock::LockScreenProps { output: info };
+        let props = sill_ui_kit::surfaces::lock::LockScreenProps { output: info };
         surface_root(
-            HostRoot::with_props(sill_surfaces::LockScreen, props),
+            HostRoot::with_props(sill_ui_kit::LockScreen, props),
             &services,
             &settings_feed,
             &links,

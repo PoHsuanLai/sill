@@ -498,7 +498,7 @@ step_center_keys() {
   echo "notification center opened by a real click on the clock ($CLOCK_AT): real Down" \
     "changed [$down]" >&2
   # Tab (unhandled by the center's own key map) reaches Clear All, a quire `Button`;
-  # the modality bridge (`sill_surfaces::host_modality::HostModalityBridge`) provides
+  # the modality bridge (`sill_ui_kit::host_modality::HostModalityBridge`) provides
   # `ds::HostModality` there too, so the ring should draw.
   key Tab || return 1
   settled "$CENTER" nc-tab || return 1

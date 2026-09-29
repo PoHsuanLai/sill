@@ -23,7 +23,7 @@ use crate::daemon::msg::ShellMsg;
 pub const LOCK_NAMESPACE: &str = "sill-lock";
 
 /// Builds each output's lock surface root (the daemon's `surface_root` around
-/// `sill_surfaces::LockScreen`).
+/// `sill_ui_kit::LockScreen`).
 pub struct LockFactory(pub Box<dyn Fn(OutputInfo) -> HostRoot>);
 
 impl fmt::Debug for LockFactory {

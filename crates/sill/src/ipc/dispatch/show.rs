@@ -4,7 +4,7 @@
 
 use sill_ipc::response::Response;
 use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
-use sill_surfaces::links::Preselect;
+use sill_ui_kit::links::Preselect;
 
 use super::reach::Reach;
 use super::reply::unsupported;

@@ -1,7 +1,7 @@
 //! The app switcher on the daemon's side: one warm hidden switcher surface per output.
 
 use shell_host::{HostCtx, HostRoot, OutputInfo};
-use sill_surfaces::surfaces::switcher::{SwitcherPanelProps, switcher_layer};
+use sill_ui_kit::surfaces::switcher::{SwitcherPanelProps, switcher_layer};
 
 use crate::daemon::msg::ShellMsg;
 use crate::outputs::Outputs;
@@ -23,7 +23,7 @@ pub fn spawn_missing(
         let props = SwitcherPanelProps {
             output: info.clone(),
         };
-        let root = root(HostRoot::with_props(sill_surfaces::SwitcherPanel, props));
+        let root = root(HostRoot::with_props(sill_ui_kit::SwitcherPanel, props));
         surfaces.switcher =
             crate::daemon::surfaces::spawn_hidden(ctx, switcher_layer(&info), root, &info);
         outputs.set(info, surfaces);

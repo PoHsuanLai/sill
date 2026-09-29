@@ -19,7 +19,7 @@ sill-launcher = { workspace = true }
 sill-search = { workspace = true }
 sill-services = { workspace = true }
 sill-settings = { workspace = true }
-sill-surfaces = { workspace = true }
+sill-ui-kit = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 

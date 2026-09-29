@@ -3,9 +3,9 @@
 
 use shell_host::{HostCtx, HostRoot, OutputInfo};
 use sill_settings::ShellFile;
-use sill_surfaces::links::BannerOutput;
-use sill_surfaces::surfaces::banners::{BannersProps, banners_layer};
-use sill_surfaces::surfaces::notification_center::{NotificationCenterProps, center_layer};
+use sill_ui_kit::links::BannerOutput;
+use sill_ui_kit::surfaces::banners::{BannersProps, banners_layer};
+use sill_ui_kit::surfaces::notification_center::{NotificationCenterProps, center_layer};
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
@@ -33,7 +33,7 @@ pub fn spawn_missing(
             let props = BannersProps {
                 output: info.clone(),
             };
-            let root = root(HostRoot::with_props(sill_surfaces::Banners, props));
+            let root = root(HostRoot::with_props(sill_ui_kit::Banners, props));
             let config = banners_layer(&info, &file.notifications);
             surfaces.banners = crate::daemon::surfaces::spawn_hidden(ctx, config, root, &info);
         }
@@ -41,10 +41,7 @@ pub fn spawn_missing(
             let props = NotificationCenterProps {
                 output: info.clone(),
             };
-            let root = root(HostRoot::with_props(
-                sill_surfaces::NotificationCenter,
-                props,
-            ));
+            let root = root(HostRoot::with_props(sill_ui_kit::NotificationCenter, props));
             surfaces.notification_center =
                 crate::daemon::surfaces::spawn_hidden(ctx, center_layer(&info), root, &info);
         }

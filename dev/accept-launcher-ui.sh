@@ -77,7 +77,7 @@ EOF
 
 build() {
   (cd "$SILL_REPO" && cargo build -p sill --features debug $([ "$SILL_BIN" = "$SILL_REPO/target/release/sill" ] && echo --release) \
-    && cargo build -p sill-surfaces --example launcher_demo) >"$OUT_DIR/build.log" 2>&1 || {
+    && cargo build -p sill-ui-kit --example launcher_demo) >"$OUT_DIR/build.log" 2>&1 || {
     echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
 }
 

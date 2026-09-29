@@ -11,7 +11,7 @@
 //! data travels on `tokio::sync::watch`, never as a Dioxus signal.
 //!
 //! This crate never reaches `dioxus` (`scripts/check-boundary.sh`): the hooks that read these
-//! channels live in `sill-surfaces::hooks`.
+//! channels live in `sill-ui-kit::hooks`.
 
 pub mod apps;
 pub mod auth;

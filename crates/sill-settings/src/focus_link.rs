@@ -1,7 +1,7 @@
 //! The focus mode, published and settable: a watch of [`FocusMode`] that follows the settled
 //! settings, and a command channel whose `Set` rewrites `settings.toml`. The daemon starts one
 //! ([`spawn_focus`]) and hands it to every surface as a root context beside `SettingsFeed`
-//! (`sill-surfaces::hooks::use_focus_mode`); a later notifications server reads the same
+//! (`sill-ui-kit::hooks::use_focus_mode`); a later notifications server reads the same
 //! receiver.
 //!
 //! Setting goes through the file, never around it: the write is seen by the settings watch like

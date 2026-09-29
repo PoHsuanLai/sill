@@ -11,8 +11,8 @@ use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
 use sill_model::displays::DisplaysCommand;
 use sill_settings::{SettingsFeed, ShellFile};
-use sill_surfaces::links::Links;
-use sill_surfaces::services::Services;
+use sill_ui_kit::links::Links;
+use sill_ui_kit::services::Services;
 use tokio::sync::watch;
 
 use super::msg::ShellMsg;
@@ -250,7 +250,7 @@ fn on_surface_closed(outputs: &mut Outputs, id: SurfaceId, reason: CloseReason) 
 fn resize_bars(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs, file: &ShellFile) {
     for (info, surfaces) in &outputs.outputs {
         let Some(id) = surfaces.bar else { continue };
-        let config = sill_surfaces::surfaces::bar::bar_layer(info, &file.bar);
+        let config = sill_ui_kit::surfaces::bar::bar_layer(info, &file.bar);
         ctx.apply(id, shell_host::SurfaceOp::SetSize(config.size));
         ctx.apply(
             id,

@@ -12,7 +12,7 @@ use sill_model::polkit_agent::{FakeRequest, PolkitCommand};
 use sill_model::screenshots::ShotCommand;
 use sill_model::units::Percent;
 use sill_model::volume::Mute;
-use sill_surfaces::links::SwitcherAsk;
+use sill_ui_kit::links::SwitcherAsk;
 
 use super::super::reach::Reach;
 use super::super::reply::{sent, unsupported};

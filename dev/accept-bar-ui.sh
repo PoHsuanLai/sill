@@ -34,7 +34,7 @@ out="$repo/target/accept-bar-ui"
 mkdir -p "$out" "$repo/dev/out"
 
 build() {
-  (cd "$repo" && cargo build --release -p sill-surfaces --example bar_demo >&2)
+  (cd "$repo" && cargo build --release -p sill-ui-kit --example bar_demo >&2)
   (cd "$host_repo" && cargo build --release -p shell-host --features debug-inject --example probe_toplevel >&2)
 }
 export BAR_DEMO="$repo/target/release/examples/bar_demo"

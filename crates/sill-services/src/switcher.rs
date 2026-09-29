@@ -3,7 +3,7 @@
 //! windows, and the `cosmic_wl` commands each of its verbs becomes. Pure: the surface derives
 //! the list from `Services.toplevels` and `Services.apps` whenever it shows, and sends the
 //! commands through `Services.cosmic_wl`; there is no task, since the switcher has no state of its
-//! own outside the surface's machine (`sill-surfaces` `surfaces::switcher::machine`).
+//! own outside the surface's machine (`sill-ui-kit` `surfaces::switcher::machine`).
 
 use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, WindowKey};

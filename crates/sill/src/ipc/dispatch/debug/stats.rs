@@ -10,13 +10,12 @@ use crate::outputs::{OutputSurfaces, Outputs, bar_namespace, wallpaper_namespace
 
 /// The dock's layer namespace on `info` (`sill-dock-<output>`), which `debug stats` reports.
 fn dock_namespace(info: &OutputInfo) -> String {
-    sill_surfaces::surfaces::dock::dock_layer(info, &sill_settings::DockSettings::default())
-        .namespace
+    sill_ui_kit::surfaces::dock::dock_layer(info, &sill_settings::DockSettings::default()).namespace
 }
 
 /// The launcher panel's and catcher's namespaces on `info`, which `debug stats` reports.
 fn launcher_namespaces(info: &OutputInfo) -> (String, String) {
-    use sill_surfaces::surfaces::launcher::{catcher_layer, panel_layer};
+    use sill_ui_kit::surfaces::launcher::{catcher_layer, panel_layer};
     let panel = panel_layer(info, &Default::default(), &Default::default()).namespace;
     (panel, catcher_layer(info).namespace)
 }
@@ -61,7 +60,7 @@ fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, Su
     let catcher = surfaces.catcher.map(|id| (catcher, id));
     let osd = surfaces.osd.map(|id| (crate::osd::osd_namespace(info), id));
     let power_menu = surfaces.power_menu.map(|id| {
-        let layer = sill_surfaces::surfaces::power_menu::power_menu_layer(info);
+        let layer = sill_ui_kit::surfaces::power_menu::power_menu_layer(info);
         (layer.namespace, id)
     });
     let (banners_name, center_name) = crate::notifications::namespaces(info);

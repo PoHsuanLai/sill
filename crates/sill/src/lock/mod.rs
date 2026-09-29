@@ -28,9 +28,9 @@ use std::time::Duration;
 use shell_host::{HostEvent, HostHandle, KeyboardFocus, LockId, LockState, SurfaceId};
 use sill_model::auth::{Auth, AuthCommand, AuthPhase};
 use sill_model::locker::{Lock, LockPhase, LockerCommand, ShellLockEvent};
-use sill_surfaces::links::BannerOutput;
-use sill_surfaces::links::{LockLink, PromptOutput};
-use sill_surfaces::services::Services;
+use sill_ui_kit::links::BannerOutput;
+use sill_ui_kit::links::{LockLink, PromptOutput};
+use sill_ui_kit::services::Services;
 use tokio::runtime::Handle;
 
 use crate::daemon::msg::ShellMsg;

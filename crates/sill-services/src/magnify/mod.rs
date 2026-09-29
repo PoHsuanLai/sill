@@ -1,5 +1,5 @@
 //! The dock's magnification: the Plank parabola (design/10 §10.5.1) and the pointer-anchored
-//! layout (§10.5.2). Pure; `sill-surfaces::surfaces::dock` calls it once per frame with the
+//! layout (§10.5.2). Pure; `sill-ui-kit::surfaces::dock` calls it once per frame with the
 //! latest pointer x and the eased progress.
 
 mod layout;

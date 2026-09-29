@@ -5,7 +5,7 @@ use sill_services::env::Dirs;
 
 use shell_host::{HostCtx, HostRoot, OutputInfo, SurfaceId};
 use sill_settings::{DesktopWidgets, ShellFile};
-use sill_surfaces::surfaces::desktop_widgets::{DesktopWidgetsProps, PlacementFile, desktop_layer};
+use sill_ui_kit::surfaces::desktop_widgets::{DesktopWidgetsProps, PlacementFile, desktop_layer};
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
@@ -76,7 +76,7 @@ fn spawn(
     let props = DesktopWidgetsProps {
         output: info.clone(),
     };
-    let mut made = root(HostRoot::with_props(sill_surfaces::DesktopWidgets, props));
+    let mut made = root(HostRoot::with_props(sill_ui_kit::DesktopWidgets, props));
     made = made.context(PlacementFile::in_dirs(dirs));
     let config = desktop_layer(&info);
     let namespace = config.namespace.clone();

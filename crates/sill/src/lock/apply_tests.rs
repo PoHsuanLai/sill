@@ -3,7 +3,7 @@
 use shell_host::{
     HostEvent, KeyboardFocus, LockId, LockState, OutputId, OutputInfo, Rect, Scale, SurfaceId,
 };
-use sill_surfaces::links::{LockLink, PromptOutput};
+use sill_ui_kit::links::{LockLink, PromptOutput};
 
 use super::host::{LockFactory, LockRefusal, SessionLockHost};
 use super::{LockWish, ShellLock, apply, on_host_event};

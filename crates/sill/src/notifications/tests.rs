@@ -1,5 +1,5 @@
 use shell_host::{OutputId, OutputInfo, Rect, Scale, SurfaceId};
-use sill_surfaces::links::BannerOutput;
+use sill_ui_kit::links::BannerOutput;
 
 use super::{banner_output, namespaces};
 use crate::outputs::{OutputSurfaces, Outputs};

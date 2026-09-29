@@ -2,8 +2,8 @@
 //! pattern).
 
 use shell_host::{HostCtx, HostRoot, OutputInfo};
-use sill_surfaces::surfaces::screenshot_thumb::ScreenshotThumbProps;
-use sill_surfaces::surfaces::screenshot_thumb::thumb_layer;
+use sill_ui_kit::surfaces::screenshot_thumb::ScreenshotThumbProps;
+use sill_ui_kit::surfaces::screenshot_thumb::thumb_layer;
 
 use crate::daemon::msg::ShellMsg;
 use crate::outputs::Outputs;
@@ -27,7 +27,7 @@ pub fn spawn_missing(
         let props = ScreenshotThumbProps {
             output: info.clone(),
         };
-        let root = root(HostRoot::with_props(sill_surfaces::ScreenshotThumb, props));
+        let root = root(HostRoot::with_props(sill_ui_kit::ScreenshotThumb, props));
         surfaces.thumbnail =
             crate::daemon::surfaces::spawn_hidden(ctx, thumb_layer(&info), root, &info);
         outputs.set(info, surfaces);

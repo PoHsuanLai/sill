@@ -313,7 +313,7 @@ impl Live {
                 eprintln!("sill: idle: displays {power:?}");
                 self.order(Order::Displays(power));
             }
-            // The dim overlay (`sill-surfaces` `idle_dim`, mapped by the daemon's
+            // The dim overlay (`sill-ui-kit` `idle_dim`, mapped by the daemon's
             // `idle_dim` follower) reads `Idle.dim`, published after the step.
             IdleEffect::Dim(level) => eprintln!("sill: idle: dim {level:?}"),
             IdleEffect::Undim => eprintln!("sill: idle: undim"),

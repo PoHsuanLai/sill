@@ -23,9 +23,9 @@ use sill_model::ids::OutputName;
 use sill_model::units::Percent;
 use sill_model::volume::Mute;
 use sill_settings::{OsdEnabled, ShellFile};
-use sill_surfaces::links::{Level, LevelSource, OsdKind, OsdLink};
-use sill_surfaces::services::Services;
-use sill_surfaces::surfaces::osd::{OsdProps, osd_layer};
+use sill_ui_kit::links::{Level, LevelSource, OsdKind, OsdLink};
+use sill_ui_kit::services::Services;
+use sill_ui_kit::surfaces::osd::{OsdProps, osd_layer};
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
@@ -168,7 +168,7 @@ pub fn spawn_missing(
         let props = OsdProps {
             output: info.clone(),
         };
-        let root = root(HostRoot::with_props(sill_surfaces::Osd, props)).context(link.clone());
+        let root = root(HostRoot::with_props(sill_ui_kit::Osd, props)).context(link.clone());
         let config = osd_layer(&info, &file.osd);
         let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
         surfaces.osd = crate::daemon::surfaces::spawn_hidden(ctx, config, root, &info);

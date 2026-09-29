@@ -1,0 +1,56 @@
+[package]
+name = "sill-ui-kit"
+description = "What every surface shares (root, links, hooks, widgets, menus, status), and the surfaces."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+sill-model = { workspace = true }
+dioxus = { workspace = true }
+ds = { workspace = true }
+# `pdf-thumb`: the preview pane's PDF page through `ds_native::PdfFileThumb`.
+ds-native = { workspace = true, features = ["pdf-thumb"] }
+ds-settings = { workspace = true }
+shell-host = { workspace = true }
+sill-search = { workspace = true }
+sill-services = { workspace = true }
+sill-settings = { workspace = true }
+sill-launcher = { workspace = true }
+tokio = { workspace = true }
+# App icons in the icon style (`app_icons`): decode and encode rasters, rasterise theme SVGs
+# (resvg is the renderer usvg/tiny-skia already in the tree belong to; MIT OR Apache-2.0),
+# and find `$XDG_CACHE_HOME`.
+image = { workspace = true }
+resvg = { version = "0.48", default-features = false }
+dirs = { workspace = true }
+# Civil dates for the calendar widgets' month grid and the world clock.
+jiff = { workspace = true }
+thiserror = { workspace = true }
+# The widgets' entries are serde data (quire's `ds::Widget::Entry`); the desktop widgets' state
+# file is JSON.
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[features]
+# Fake services and the values they start at, for tests and demos (`harness`).
+harness = []
+
+[dev-dependencies]
+# The crate's own tests, demos and integration tests drive surfaces through `harness`.
+sill-ui-kit = { workspace = true, features = ["harness"] }
+# `lint` is off by default: only test builds need `ds::lint::markup`.
+ds = { workspace = true, features = ["lint"] }
+dioxus-ssr = { workspace = true }
+shell-host = { workspace = true, features = ["debug-inject"] }
+
+# A standalone bar on a real compositor with fake services, for acceptance
+# (`dev/accept-bar-ui.sh`); `debug-inject` gives it shell-host's stdin commands.
+[[example]]
+name = "bar_demo"
+
+[lints]
+workspace = true

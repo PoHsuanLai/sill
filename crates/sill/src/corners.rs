@@ -17,9 +17,9 @@ use sill_model::cosmic_wl::{Activity, Toplevel, WindowState, WlCommand};
 use sill_model::ids::WorkspaceKey;
 use sill_model::locker::LockerCommand;
 use sill_settings::{CornerAction, ShellFile};
-use sill_surfaces::links::{Corner, Links};
-use sill_surfaces::services::Services;
-use sill_surfaces::surfaces::hot_corners::{HotCornerProps, corner_layer};
+use sill_ui_kit::links::{Corner, Links};
+use sill_ui_kit::services::Services;
+use sill_ui_kit::surfaces::hot_corners::{HotCornerProps, corner_layer};
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
@@ -121,7 +121,7 @@ pub fn spawn_missing(
     root: impl Fn(HostRoot) -> HostRoot,
 ) {
     let file = settings.borrow().clone();
-    let wanted = sill_surfaces::surfaces::hot_corners::active_corners(&file.hot_corners);
+    let wanted = sill_ui_kit::surfaces::hot_corners::active_corners(&file.hot_corners);
     let size = file.hot_corners.size_px.0;
     for (info, surfaces) in &mut outputs.outputs {
         for corner in Corner::ALL {
@@ -137,7 +137,7 @@ pub fn spawn_missing(
                         output: info.clone(),
                         corner,
                     };
-                    let surface = root(HostRoot::with_props(sill_surfaces::HotCorner, props));
+                    let surface = root(HostRoot::with_props(sill_ui_kit::HotCorner, props));
                     match ctx.spawn_layer(config, surface) {
                         Ok(id) => surfaces.corners.set(corner, Some(id)),
                         Err(error) => {
@@ -175,9 +175,9 @@ pub fn spawn_hits(
             };
             let file = settings.borrow().clone();
             let action =
-                sill_surfaces::surfaces::hot_corners::corner_action(&file.hot_corners, hit.corner);
+                sill_ui_kit::surfaces::hot_corners::corner_action(&file.hot_corners, hit.corner);
             let command =
-                sill_surfaces::surfaces::hot_corners::corner_command(&file.hot_corners, hit.corner)
+                sill_ui_kit::surfaces::hot_corners::corner_command(&file.hot_corners, hit.corner)
                     .to_owned();
             let effect = corner_effect(action, &command);
             act(effect, hit.output, &services, &links, &mut stash).await;
@@ -243,7 +243,7 @@ pub fn namespaces(info: &shell_host::OutputInfo) -> Vec<(Corner, String)> {
     Corner::ALL
         .into_iter()
         .map(|corner| {
-            let layer = sill_surfaces::surfaces::hot_corners::corner_layer(info, corner, 2);
+            let layer = sill_ui_kit::surfaces::hot_corners::corner_layer(info, corner, 2);
             (corner, layer.namespace)
         })
         .collect()
@@ -253,7 +253,7 @@ pub fn namespaces(info: &shell_host::OutputInfo) -> Vec<(Corner, String)> {
 mod tests {
     use sill_ipc::debug::CornerName;
     use sill_settings::CornerAction;
-    use sill_surfaces::links::Corner;
+    use sill_ui_kit::links::Corner;
 
     use sill_launcher::WindowKey;
     use sill_model::cosmic_wl::{Activity, Sizing, WindowState};

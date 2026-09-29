@@ -7,8 +7,8 @@
 use shell_host::OutputId;
 use sill_ipc::act::SwitcherRequest;
 use sill_ipc::response::Response;
-use sill_surfaces::links::BannerOutput;
-use sill_surfaces::links::{Dir, SwitcherAsk};
+use sill_ui_kit::links::BannerOutput;
+use sill_ui_kit::links::{Dir, SwitcherAsk};
 
 use super::reach::Reach;
 use super::reply::unsupported;
@@ -56,7 +56,7 @@ fn ask_of(request: SwitcherRequest) -> SwitcherAsk {
 #[cfg(test)]
 mod tests {
     use sill_ipc::act::SwitcherRequest;
-    use sill_surfaces::links::{Dir, SwitcherAsk};
+    use sill_ui_kit::links::{Dir, SwitcherAsk};
 
     use super::ask_of;
 

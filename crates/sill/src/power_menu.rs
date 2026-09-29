@@ -8,7 +8,7 @@
 //! before it presses Enter.
 
 use shell_host::{HostCtx, HostRoot, OutputInfo};
-use sill_surfaces::surfaces::power_menu::{PowerMenuProps, power_menu_layer};
+use sill_ui_kit::surfaces::power_menu::{PowerMenuProps, power_menu_layer};
 
 use crate::daemon::msg::ShellMsg;
 use crate::outputs::Outputs;
@@ -32,7 +32,7 @@ pub fn spawn_missing(
         let props = PowerMenuProps {
             output: info.clone(),
         };
-        let surface = root(HostRoot::with_props(sill_surfaces::PowerMenu, props));
+        let surface = root(HostRoot::with_props(sill_ui_kit::PowerMenu, props));
         match ctx.spawn_layer(config, surface) {
             Ok(id) => {
                 ctx.set_visibility(id, shell_host::Visibility::Hidden);

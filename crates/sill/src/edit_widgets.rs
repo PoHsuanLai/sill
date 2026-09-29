@@ -10,9 +10,9 @@ use std::sync::Arc;
 
 use shell_host::{HostCtx, HostRoot, OutputInfo};
 use sill_settings::ShellFile;
-use sill_surfaces::links::{WidgetsWrite, WidgetsWriter};
-use sill_surfaces::surfaces::desktop_widgets::PlacementFile;
-use sill_surfaces::surfaces::edit_widgets::{EditWidgetsProps, edit_widgets_layer};
+use sill_ui_kit::links::{WidgetsWrite, WidgetsWriter};
+use sill_ui_kit::surfaces::desktop_widgets::PlacementFile;
+use sill_ui_kit::surfaces::edit_widgets::{EditWidgetsProps, edit_widgets_layer};
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
@@ -38,7 +38,7 @@ pub fn spawn_missing(
         let props = EditWidgetsProps {
             output: info.clone(),
         };
-        let mut made = root(HostRoot::with_props(sill_surfaces::EditWidgets, props));
+        let mut made = root(HostRoot::with_props(sill_ui_kit::EditWidgets, props));
         made = made.context(PlacementFile::in_dirs(dirs));
         surfaces.edit_widgets =
             crate::daemon::surfaces::spawn_hidden(ctx, edit_widgets_layer(&info), made, &info);
@@ -94,9 +94,9 @@ pub fn write(
 #[cfg(test)]
 mod tests {
     use sill_settings::{DesktopWidgets, ShellFile, WidgetKind};
-    use sill_surfaces::links::WidgetsWrite;
-    use sill_surfaces::surfaces::desktop_widgets::PlacementFile;
-    use sill_surfaces::widgets::grid::{GridSlot, OutputKey, Placement};
+    use sill_ui_kit::links::WidgetsWrite;
+    use sill_ui_kit::surfaces::desktop_widgets::PlacementFile;
+    use sill_ui_kit::widgets::grid::{GridSlot, OutputKey, Placement};
     use tokio::sync::watch;
 
     use super::write;

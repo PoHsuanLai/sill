@@ -1,5 +1,5 @@
 //! The settings as a surface receives them: one more `Root::context` value beside
-//! `sill_services::Services`, read by `sill-surfaces::hooks::use_settings`.
+//! `sill_services::Services`, read by `sill-ui-kit::hooks::use_settings`.
 
 use tokio::sync::watch;
 

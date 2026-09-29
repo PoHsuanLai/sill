@@ -26,7 +26,7 @@
 #   C. Real → and End (wtype, nested socket only): the key claim reads the caret under sill.
 #
 # A step that needs rows from the files or emoji provider exits 2 (SKIP) while that provider
-# answers nothing on this branch; `crates/sill-surfaces/tests/launcher_preview.rs` proves the
+# answers nothing on this branch; `crates/sill-ui-kit/tests/launcher_preview.rs` proves the
 # same steps over fixtures. Exit 0 only when every step passed.
 #
 # Usage: dev/nested.sh && dev/accept-launcher-v2.sh
@@ -374,7 +374,7 @@ step_fixtures() {
 
 "$SHELL_HOST_DEV/run.sh" wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
 build || exit 1
-(cd "$SILL_REPO" && cargo build -p sill-surfaces --example launcher_demo) >>"$OUT_DIR/build.log" 2>&1 || {
+(cd "$SILL_REPO" && cargo build -p sill-ui-kit --example launcher_demo) >>"$OUT_DIR/build.log" 2>&1 || {
   echo "the demo did not build (see $OUT_DIR/build.log)" >&2
   exit 1
 }

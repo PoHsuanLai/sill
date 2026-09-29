@@ -9,8 +9,8 @@
 
 use shell_host::{HostCtx, HostHandle, HostRoot, OutputInfo, Visibility};
 use sill_model::idle::DimShown;
-use sill_surfaces::services::Services;
-use sill_surfaces::surfaces::idle_dim::{IdleDimOverlayProps, idle_dim_layer, visibility_of};
+use sill_ui_kit::services::Services;
+use sill_ui_kit::surfaces::idle_dim::{IdleDimOverlayProps, idle_dim_layer, visibility_of};
 use tokio::runtime::Handle;
 
 use crate::daemon::msg::ShellMsg;
@@ -34,7 +34,7 @@ pub fn spawn_missing(
         let props = IdleDimOverlayProps {
             output: info.clone(),
         };
-        let surface = root(HostRoot::with_props(sill_surfaces::IdleDimOverlay, props));
+        let surface = root(HostRoot::with_props(sill_ui_kit::IdleDimOverlay, props));
         let id = crate::daemon::surfaces::spawn_hidden(ctx, idle_dim_layer(&info), surface, &info);
         if let Some(id) = id {
             ctx.set_visibility(id, visibility_of(dim));

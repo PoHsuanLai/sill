@@ -18,8 +18,8 @@ use sill_services::locker::LockerService;
 use sill_services::service::spawn;
 use sill_services::volume::VolumeService;
 use sill_settings::SettingsFeed;
-use sill_surfaces::links::Links;
-use sill_surfaces::services::Services;
+use sill_ui_kit::links::Links;
+use sill_ui_kit::services::Services;
 use tokio::runtime::Handle as Runtime;
 
 use crate::policy::{

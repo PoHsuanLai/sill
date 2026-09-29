@@ -4,8 +4,8 @@
 use std::path::Path;
 
 use sill_settings::ShellFile;
-use sill_surfaces::links::Links;
-use sill_surfaces::services::Services;
+use sill_ui_kit::links::Links;
+use sill_ui_kit::services::Services;
 use tokio::sync::watch;
 
 use crate::outputs::Outputs;
