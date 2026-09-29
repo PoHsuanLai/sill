@@ -67,11 +67,7 @@ pub use bluetooth::{
 pub use clipboard::{Clipboard, ClipboardCommand, ClipboardService};
 pub use clock::ClockService;
 pub use control::Control;
-pub use cosmic_wl::{
-    Activity, CosmicWl, CosmicWlService, Pinning, Relative, Sizing, Toplevel, ToplevelEvent,
-    Toplevels, Urgency, WindowState, WlCommand, Workspace, WorkspaceCap, WorkspaceCaps,
-    WorkspaceEvent, WorkspaceGroup, Workspaces,
-};
+pub use cosmic_wl::CosmicWlService;
 pub use displays::{
     BrightnessTarget, DisplayOutput, DisplayPolicy, DisplayScale, Displays, DisplaysCommand,
     DisplaysService, Following, FontRenderingMode, Gamut, HardwareVolume, IdentityKey, KeysTarget,

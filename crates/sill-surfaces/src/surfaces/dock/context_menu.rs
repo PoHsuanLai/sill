@@ -9,7 +9,8 @@
 
 use ds::{Availability, Check, MenuEntry, MenuTrail};
 use sill_launcher::AppId;
-use sill_services::{Activity, App, AppIndex, Toplevel, Toplevels, WindowState, match_app};
+use sill_model::cosmic_wl::{Activity, Toplevel, Toplevels, WindowState};
+use sill_services::{App, AppIndex, match_app};
 use sill_settings::DockMenuOrder;
 
 use crate::surfaces::dock::items::{DockItem, ItemKind};

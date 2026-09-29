@@ -3,8 +3,8 @@
 use serde::{Deserialize, Serialize};
 use sill_launcher::WindowKey;
 
-use crate::cosmic_wl::ids::Activity;
-use sill_model::ids::{OutputName, WorkspaceKey};
+use super::Activity;
+use crate::ids::{OutputName, WorkspaceKey};
 
 /// Every toplevel, most recently activated first (the dock's cycle order, the switcher's
 /// order, the context menu's window list).
@@ -81,7 +81,7 @@ pub fn step(toplevels: Toplevels, event: ToplevelEvent) -> Toplevels {
 #[cfg(test)]
 mod tests {
     use super::{Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, step};
-    use crate::cosmic_wl::ids::Activity;
+    use crate::cosmic_wl::Activity;
     use sill_launcher::WindowKey;
 
     fn window(key: u64, activity: Activity) -> Toplevel {

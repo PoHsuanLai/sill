@@ -4,20 +4,14 @@
 use std::collections::HashSet;
 
 use cosmic_client_toolkit::cosmic_protocols::toplevel_info::v1::client::zcosmic_toplevel_handle_v1::State as WindowFlag;
-use cosmic_client_toolkit::cosmic_protocols::workspace::v2::client::zcosmic_workspace_handle_v2::{
-    State as CosmicFlags, WorkspaceCapabilities as CosmicAbilities,
-};
+use cosmic_client_toolkit::cosmic_protocols::workspace::v2::client::zcosmic_workspace_handle_v2::{State as CosmicFlags, WorkspaceCapabilities as CosmicAbilities};
 use cosmic_client_toolkit::toplevel_info::ToplevelInfo;
-use cosmic_client_toolkit::wayland_protocols::ext::workspace::v1::client::ext_workspace_handle_v1::{
-    State as WorkspaceFlags, WorkspaceCapabilities as Abilities,
-};
+use cosmic_client_toolkit::wayland_protocols::ext::workspace::v1::client::ext_workspace_handle_v1::{State as WorkspaceFlags, WorkspaceCapabilities as Abilities};
 use cosmic_client_toolkit::workspace::Workspace as WorkspaceInfo;
 use sill_launcher::WindowKey;
-
-use crate::cosmic_wl::caps::{WorkspaceCap, WorkspaceCaps};
-use crate::cosmic_wl::ids::{Activity, Pinning, Urgency};
-use crate::cosmic_wl::toplevels::{Sizing, Toplevel, WindowState};
-use crate::cosmic_wl::workspaces::Workspace;
+use sill_model::cosmic_wl::{WorkspaceCap, WorkspaceCaps, Activity, Pinning, Urgency};
+use sill_model::cosmic_wl::toplevels::{Sizing, Toplevel, WindowState};
+use sill_model::cosmic_wl::workspaces::Workspace;
 use sill_model::ids::{OutputName, WorkspaceKey};
 use sill_model::units::Visibility;
 
@@ -148,9 +142,9 @@ mod tests {
         Abilities, CosmicAbilities, CosmicFlags, WindowFlag, WorkspaceFlags, capabilities, pinning,
         sizing, urgency, visibility, window_activity, window_state, workspace_activity,
     };
-    use crate::cosmic_wl::caps::WorkspaceCap;
-    use crate::cosmic_wl::ids::{Activity, Pinning, Urgency};
-    use crate::cosmic_wl::toplevels::{Sizing, WindowState};
+    use sill_model::cosmic_wl::WorkspaceCap;
+    use sill_model::cosmic_wl::toplevels::{Sizing, WindowState};
+    use sill_model::cosmic_wl::{Activity, Pinning, Urgency};
     use sill_model::units::Visibility;
 
     fn flags(of: &[WindowFlag]) -> HashSet<WindowFlag> {

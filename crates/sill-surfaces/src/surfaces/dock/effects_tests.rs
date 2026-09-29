@@ -5,10 +5,10 @@ use crate::surfaces::dock::items::{DockItem, ItemKind};
 use crate::surfaces::dock::machine::{ActivateMode, DockEffect, Instance, TileApp, TileId};
 use crate::surfaces::dock::pick::DockCommand;
 use sill_launcher::{AppId, DesktopAction, WindowKey};
+use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 use sill_model::pins::{DockPins, PinAt, PinEvent};
 use sill_services::{
-    Activity, App, AppIcon, AppIndex, DbusActivation, DesktopActionEntry, LaunchCommand, Listing,
-    Sizing, Terminal, Toplevel, Toplevels, WindowState, WlCommand,
+    App, AppIcon, AppIndex, DbusActivation, DesktopActionEntry, LaunchCommand, Listing, Terminal,
 };
 use std::path::PathBuf;
 

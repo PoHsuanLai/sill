@@ -4,12 +4,13 @@
 
 use shell_host::HostEvent;
 use sill_ipc::{DisplayRequest, LevelRequest, Response, VolumeRequest};
+use sill_model::cosmic_wl::Toplevels;
 use sill_model::ids::OutputName;
 use sill_model::volume::{Step, VolumeCommand};
 use sill_services::displays::ScaleOverride;
 use sill_services::{
     DisplayPolicy, DisplaysCommand, FontRenderingMode, HardwareVolume, KeysTarget, LevelChange,
-    NightWarmth, Ppi, ScaleMode, ScaleRounding, Services, Toplevels,
+    NightWarmth, Ppi, ScaleMode, ScaleRounding, Services,
 };
 
 use crate::msg::ShellMsg;
@@ -93,7 +94,7 @@ pub fn focused_output(toplevels: &Toplevels) -> Option<OutputName> {
     toplevels
         .windows
         .iter()
-        .find(|w| w.activity == sill_services::Activity::Active)
+        .find(|w| w.activity == sill_model::cosmic_wl::Activity::Active)
         .and_then(|w| w.outputs.first().cloned())
 }
 
@@ -201,8 +202,8 @@ mod tests {
 
     #[test]
     fn the_focused_output_is_the_active_windows_first() {
+        use sill_model::cosmic_wl::{Activity, Toplevel, Toplevels};
         use sill_model::ids::OutputName;
-        use sill_services::{Activity, Toplevel, Toplevels};
         let window = |key, activity, outputs: &[&str]| Toplevel {
             key: sill_launcher::WindowKey(key),
             app_id: "foot".to_owned(),

@@ -18,9 +18,9 @@ use ds::{
 };
 use shell_host::OutputInfo;
 use sill_launcher::{ActionId, ClipKey, Item, Preview, Section, preview_for};
+use sill_model::cosmic_wl::{Activity, Workspaces};
 use sill_model::ids::OutputName;
 use sill_services::preview::clip_image;
-use sill_services::{Activity, Workspaces};
 use sill_settings::{PanelMaterial, SpacesSettings};
 
 use crate::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};

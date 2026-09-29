@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use sill_launcher::WindowKey;
 
-use sill_model::ids::WorkspaceKey;
+use crate::ids::WorkspaceKey;
 
 /// A request to the compositor, carried out on the thread's own connection.
 ///
@@ -26,9 +26,9 @@ pub enum WlCommand {
         relative: Relative,
         other: WorkspaceKey,
     },
-    /// Pin a workspace (needs [`crate::WorkspaceCap::Pin`]).
+    /// Pin a workspace (needs [`crate::cosmic_wl::WorkspaceCap::Pin`]).
     PinWorkspace(WorkspaceKey),
-    /// Unpin a workspace (needs [`crate::WorkspaceCap::Pin`]).
+    /// Unpin a workspace (needs [`crate::cosmic_wl::WorkspaceCap::Pin`]).
     UnpinWorkspace(WorkspaceKey),
     /// Move a toplevel onto a workspace, on that workspace's output (needs the toplevel
     /// manager's `move_to_ext_workspace`, version 4).
@@ -51,7 +51,7 @@ mod tests {
     use sill_launcher::WindowKey;
 
     use super::WlCommand;
-    use sill_model::ids::WorkspaceKey;
+    use crate::ids::WorkspaceKey;
 
     #[test]
     fn the_amended_commands_have_pinned_wire_lines() {

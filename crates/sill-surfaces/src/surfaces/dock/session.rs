@@ -44,7 +44,7 @@ pub(crate) struct SessionDeps {
 /// What the services said, as the effects read it.
 #[derive(Clone)]
 pub(crate) struct World {
-    pub toplevels: sill_services::Toplevels,
+    pub toplevels: sill_model::cosmic_wl::Toplevels,
     pub index: sill_services::AppIndex,
     pub pins: sill_model::pins::DockPins,
     pub badges: Badges,

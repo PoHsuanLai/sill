@@ -6,30 +6,11 @@
 //! the state stays empty, the thread parks on the command channel and commands are
 //! dropped: the dock degrades quietly (design/10 §10.7).
 
-mod caps;
-mod command;
-mod describe;
-mod execute;
-mod handlers;
-mod ids;
-mod keys;
-mod publish;
-mod state;
-mod thread;
-pub mod toplevels;
-pub mod workspaces;
+mod backend;
 
-#[cfg(test)]
-mod nested;
+use backend::Publish;
+use sill_model::cosmic_wl::{CosmicWl, WlCommand};
 
-pub use caps::{WorkspaceCap, WorkspaceCaps};
-pub use command::{Relative, WlCommand};
-pub use ids::{Activity, Pinning, Urgency};
-pub use publish::CosmicWl;
-pub use toplevels::{Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState};
-pub use workspaces::{Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces};
-
-use crate::cosmic_wl::publish::Publish;
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
@@ -55,7 +36,7 @@ impl Service for CosmicWlService {
         let ServiceIo { state, commands } = io;
         let started = std::thread::Builder::new()
             .name("cosmic_wl".to_owned())
-            .spawn(move || thread::run(route, Publish::new(state), commands));
+            .spawn(move || backend::run(route, Publish::new(state), commands));
         std::future::ready(started.map(drop).map_err(ServiceError::Thread))
     }
 }

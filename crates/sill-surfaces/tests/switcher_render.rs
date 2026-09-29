@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use ds::ShortcutKey;
 use sill_launcher::{AppId, WindowKey};
-use sill_services::WlCommand;
+use sill_model::cosmic_wl::WlCommand;
 use sill_settings::ShellFile;
 use sill_surfaces::surfaces::switcher::{Dir, SwitcherAsk};
 use switcher_support::{Running, presence, start, tiles, windows};

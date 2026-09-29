@@ -2,7 +2,8 @@
 //! its first window or becoming active ends a launch or critical bounce; LauncherEntry
 //! `urgent` starts a critical bounce and its clearing ends one. Pure over two snapshots.
 
-use sill_services::{Badges, Urgency};
+use sill_model::cosmic_wl::Urgency;
+use sill_services::Badges;
 
 use crate::surfaces::dock::items::DockItem;
 use crate::surfaces::dock::machine::{AppChange, AttentionKind, DockEvent, TileApp};
@@ -54,7 +55,8 @@ mod tests {
     use crate::surfaces::dock::items::{DockItem, ItemKind};
     use crate::surfaces::dock::machine::{AppChange, AttentionKind, DockEvent, TileApp, TileId};
     use sill_launcher::AppId;
-    use sill_services::{Badge, Badges, Urgency};
+    use sill_model::cosmic_wl::Urgency;
+    use sill_services::{Badge, Badges};
 
     const T: TileId = TileId(4);
 

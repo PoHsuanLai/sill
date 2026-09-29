@@ -3,19 +3,20 @@
 //! command channel. On a compositor without the COSMIC protocols it parks on the command
 //! channel instead, dropping commands, until every `Control` is gone.
 
-use cosmic_client_toolkit::sctk::reexports::calloop::channel::{self, Event};
-use cosmic_client_toolkit::sctk::reexports::calloop::{self, EventLoop};
+use cosmic_client_toolkit::sctk::reexports::calloop;
+use cosmic_client_toolkit::sctk::reexports::calloop::channel::Event;
+use cosmic_client_toolkit::sctk::reexports::calloop::{EventLoop, channel};
 use cosmic_client_toolkit::sctk::reexports::calloop_wayland_source::WaylandSource;
 use cosmic_client_toolkit::wayland_client::globals::{
     GlobalError, GlobalList, registry_queue_init,
 };
 use cosmic_client_toolkit::wayland_client::{Connection, EventQueue};
+use sill_model::cosmic_wl::WlCommand;
 use tokio::sync::mpsc::UnboundedReceiver;
 
-use crate::cosmic_wl::command::WlCommand;
-use crate::cosmic_wl::execute::execute;
-use crate::cosmic_wl::publish::Publish;
-use crate::cosmic_wl::state::{Offer, WlState};
+use super::execute::execute;
+use super::publish::Publish;
+use super::state::{Offer, WlState};
 use crate::env::{WaylandRoute, WaylandUnreached};
 
 /// Why the thread is not following a compositor.
@@ -32,7 +33,7 @@ enum Refusal {
 }
 
 /// The thread's body.
-pub(super) fn run(
+pub(crate) fn run(
     endpoint: WaylandRoute,
     publish: Publish,
     commands: UnboundedReceiver<WlCommand>,

@@ -6,7 +6,8 @@
 use std::sync::{Arc, Mutex};
 
 use sill_launcher::{Generation, Item};
-use sill_services::{Control, LaunchCommand, Results, SearchCommand, WlCommand};
+use sill_model::cosmic_wl::WlCommand;
+use sill_services::{Control, LaunchCommand, Results, SearchCommand};
 use sill_surfaces::surfaces::launcher::LauncherProviders;
 use tokio::sync::{mpsc, watch};
 

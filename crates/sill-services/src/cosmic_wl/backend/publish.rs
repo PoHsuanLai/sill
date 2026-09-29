@@ -1,17 +1,9 @@
 //! What the `cosmic_wl` thread publishes, fed only through the pure `step`s.
 
+use sill_model::cosmic_wl::toplevels::ToplevelEvent;
+use sill_model::cosmic_wl::workspaces::WorkspaceEvent;
+use sill_model::cosmic_wl::{CosmicWl, toplevels, workspaces};
 use tokio::sync::watch;
-
-use crate::cosmic_wl::toplevels::{self, ToplevelEvent, Toplevels};
-use crate::cosmic_wl::workspaces::{self, WorkspaceEvent, Workspaces};
-
-/// The compositor's workspaces and windows: one Wayland connection's state, published together
-/// (a reader that wants one of them projects it).
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct CosmicWl {
-    pub workspaces: Workspaces,
-    pub toplevels: Toplevels,
-}
 
 /// The sending half of the service's state. Receivers wake only when a step changed something.
 #[derive(Debug)]
@@ -20,7 +12,7 @@ pub(crate) struct Publish {
 }
 
 impl Publish {
-    pub(super) fn new(tx: watch::Sender<CosmicWl>) -> Publish {
+    pub(crate) fn new(tx: watch::Sender<CosmicWl>) -> Publish {
         Publish { tx }
     }
 

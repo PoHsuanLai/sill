@@ -35,8 +35,8 @@ pub use layer::bar_layer;
 use dioxus::prelude::*;
 use ds::{BlurState, Ds, Material, Point, Px, Rect, Size, SpaceLook};
 use shell_host::{OutputInfo, SurfaceHandle};
+use sill_model::cosmic_wl::Workspaces;
 use sill_model::ids::{OutputName, WorkspaceKey};
-use sill_services::Workspaces;
 use sill_settings::{BarSettings, FocusLink, FocusMode, SettingsFeed, SpacesSettings};
 
 use app_name::AppName;
@@ -73,7 +73,7 @@ fn active_look(
         group
             .workspaces
             .iter()
-            .position(|w| w.activity == sill_services::Activity::Active)
+            .position(|w| w.activity == sill_model::cosmic_wl::Activity::Active)
             .map(|index| (group.workspaces[index].key, index))
     });
     let (key, index) = active.unwrap_or((WorkspaceKey(0), 0));

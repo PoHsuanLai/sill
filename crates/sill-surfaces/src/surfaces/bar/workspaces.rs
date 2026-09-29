@@ -8,8 +8,9 @@
 use dioxus::prelude::*;
 use ds::{Here, PointerButton, Press, WorkspacePill, WorkspacePills};
 use shell_host::OutputInfo;
+use sill_model::cosmic_wl::{Activity, WlCommand, Workspace, WorkspaceGroup};
 use sill_model::ids::OutputName;
-use sill_services::{Activity, CosmicWlService, WlCommand, Workspace, WorkspaceGroup};
+use sill_services::CosmicWlService;
 
 use super::reorder::{Dropped, Pressed, reorder};
 use super::title::pointer_at;

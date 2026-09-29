@@ -8,17 +8,20 @@ use shell_host::{OutputId, OutputInfo, Rect, Scale};
 use sill_launcher::WindowKey;
 use sill_model::battery::{Battery, Charge};
 use sill_model::clock::ClockText;
+use sill_model::cosmic_wl::{
+    Activity, CosmicWl, Pinning, Sizing, Toplevel, Toplevels, Urgency, WindowState, Workspace,
+    WorkspaceCaps, WorkspaceGroup, Workspaces,
+};
 use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
 use sill_model::pins::DockPins;
 use sill_model::power_profile::{PowerProfiles, Profile, ProfileCommand, ProfileDegraded};
 use sill_model::units::{Percent, Presence, Seconds, Visibility};
 use sill_model::volume::{Mute, Volume};
 use sill_services::{
-    AccessPoint, Activity, AppIndex, Association, Badges, Bluetooth, BluetoothCommand, BtAddress,
-    BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower, Connectivity, CosmicWl, Handle,
-    Launches, Link, Media, MediaCommand, Network, Pinning, Radio, Results, Security, Service,
-    Services, Sizing, Ssid, Toplevel, Toplevels, Tray, Urgency, Wallpapers, Wifi, WifiCommand,
-    WindowState, Workspace, WorkspaceCaps, WorkspaceGroup, Workspaces,
+    AccessPoint, AppIndex, Association, Badges, Bluetooth, BluetoothCommand, BtAddress, BtBattery,
+    BtConnection, BtDevice, BtKind, BtPairing, BtPower, Connectivity, Handle, Launches, Link,
+    Media, MediaCommand, Network, Radio, Results, Security, Service, Services, Ssid, Tray,
+    Wallpapers, Wifi, WifiCommand,
 };
 use tokio::sync::{mpsc, watch};
 
@@ -40,7 +43,7 @@ pub struct Feeds {
     pub kbd_commands: mpsc::UnboundedReceiver<sill_model::kbd_backlight::KbdCommand>,
     /// The live banners and the history (both empty until a test feeds them).
     pub notifications: watch::Sender<sill_services::notifications::NotesState>,
-    pub wl: mpsc::UnboundedReceiver<sill_services::WlCommand>,
+    pub wl: mpsc::UnboundedReceiver<sill_model::cosmic_wl::WlCommand>,
     pub volume_commands: mpsc::UnboundedReceiver<sill_model::volume::VolumeCommand>,
     pub launch: mpsc::UnboundedReceiver<sill_services::LaunchCommand>,
     pub wifi_commands: mpsc::UnboundedReceiver<WifiCommand>,

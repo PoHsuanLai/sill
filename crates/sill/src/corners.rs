@@ -13,8 +13,9 @@ use std::process::Stdio;
 use shell_host::{HostCtx, OutputId, Root, SurfaceOp};
 use sill_ipc::{CornerName, Failure, FailureKind, FakeCorner, Response};
 use sill_launcher::WindowKey;
+use sill_model::cosmic_wl::{Activity, Toplevel, WindowState, WlCommand};
 use sill_model::ids::WorkspaceKey;
-use sill_services::{Activity, Services, Toplevel, WindowState, WlCommand};
+use sill_services::Services;
 use sill_settings::{CornerAction, ShellFile};
 use sill_surfaces::surfaces::hot_corners::{Corner, CornerLink, HotCornerProps, corner_layer};
 use sill_surfaces::surfaces::launcher::LauncherLink;
@@ -276,9 +277,9 @@ mod tests {
     use sill_surfaces::surfaces::hot_corners::Corner;
 
     use sill_launcher::WindowKey;
+    use sill_model::cosmic_wl::{Activity, Sizing, WindowState};
+    use sill_model::cosmic_wl::{Toplevel, WlCommand};
     use sill_model::ids::WorkspaceKey;
-    use sill_services::cosmic_wl::{Activity, Sizing, WindowState};
-    use sill_services::{Toplevel, WlCommand};
 
     use super::{CornerEffect, Stash, corner_effect, corner_of, show_desktop};
 

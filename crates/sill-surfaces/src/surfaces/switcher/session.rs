@@ -4,7 +4,7 @@
 
 use ds::TilePresence;
 use sill_launcher::AppId;
-use sill_services::WlCommand;
+use sill_model::cosmic_wl::WlCommand;
 use sill_services::switcher::{AppShown, SwitcherApp, activate, hide, quit};
 
 use super::link::AskSerial;
@@ -115,7 +115,7 @@ impl Session {
 mod tests {
     use ds::TilePresence;
     use sill_launcher::{AppId, WindowKey};
-    use sill_services::WlCommand;
+    use sill_model::cosmic_wl::WlCommand;
     use sill_services::switcher::{AppShown, SwitcherApp};
 
     use super::Session;

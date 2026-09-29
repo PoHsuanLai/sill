@@ -2,8 +2,8 @@
 //! one pill and a release on another, far enough away, moves the pressed workspace before the
 //! other when dragged left and after it when dragged right. Pure.
 
+use sill_model::cosmic_wl::{Relative, WlCommand};
 use sill_model::ids::WorkspaceKey;
-use sill_services::{Relative, WlCommand};
 
 /// A press on a workspace pill.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -44,8 +44,8 @@ pub(crate) fn reorder(pressed: Pressed, dropped: Dropped, threshold: u16) -> Opt
 #[cfg(test)]
 mod tests {
     use super::{Dropped, Pressed, reorder};
+    use sill_model::cosmic_wl::{Relative, WlCommand};
     use sill_model::ids::WorkspaceKey;
-    use sill_services::{Relative, WlCommand};
 
     #[test]
     fn a_drop_moves_the_pressed_workspace_beside_the_other() {

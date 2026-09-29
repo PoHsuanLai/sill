@@ -8,10 +8,8 @@ use crate::surfaces::dock::machine::{TileApp, TileId};
 use crate::surfaces::dock::pick::DockPick;
 use ds::{Check, MenuEntry};
 use sill_launcher::{AppId, WindowKey};
-use sill_services::{
-    Activity, App, AppIcon, DbusActivation, DesktopActionEntry, Listing, Sizing, Terminal,
-    Toplevel, Toplevels, WindowState,
-};
+use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
+use sill_services::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing, Terminal};
 use sill_settings::DockMenuOrder;
 use std::path::PathBuf;
 

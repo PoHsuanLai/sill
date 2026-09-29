@@ -7,17 +7,18 @@ use cosmic_client_toolkit::sctk::output::{OutputHandler, OutputState};
 use cosmic_client_toolkit::sctk::seat::{Capability, SeatHandler, SeatState};
 use cosmic_client_toolkit::toplevel_info::{ToplevelInfoHandler, ToplevelInfoState};
 use cosmic_client_toolkit::toplevel_management::{ToplevelManagerHandler, ToplevelManagerState};
-use cosmic_client_toolkit::wayland_client::protocol::{wl_output::WlOutput, wl_seat::WlSeat};
 use cosmic_client_toolkit::wayland_client::{Connection, QueueHandle, WEnum};
+use cosmic_client_toolkit::wayland_client::protocol::wl_output::WlOutput;
+use cosmic_client_toolkit::wayland_client::protocol::wl_seat::WlSeat;
 use cosmic_client_toolkit::wayland_protocols::ext::foreign_toplevel_list::v1::client::ext_foreign_toplevel_handle_v1::ExtForeignToplevelHandleV1;
 use cosmic_client_toolkit::workspace::{WorkspaceHandler, WorkspaceState};
 use sill_launcher::WindowKey;
-
-use crate::cosmic_wl::describe;
-use crate::cosmic_wl::state::{Keys, WlState};
-use crate::cosmic_wl::toplevels::{Toplevel, ToplevelEvent};
-use crate::cosmic_wl::workspaces::{WorkspaceEvent, WorkspaceGroup, Workspaces};
+use sill_model::cosmic_wl::toplevels::{Toplevel, ToplevelEvent};
+use sill_model::cosmic_wl::workspaces::{WorkspaceEvent, WorkspaceGroup, Workspaces};
 use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
+
+use super::describe;
+use super::state::{Keys, WlState};
 
 impl WlState {
     /// The toplevel behind `handle` as it stands after its latest `done`.

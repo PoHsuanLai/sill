@@ -2,7 +2,8 @@
 //! after the menu has closed (design A6 "closes then picks").
 
 use sill_launcher::{AppId, DesktopAction, WindowKey};
-use sill_services::{LaunchCommand, LaunchRequest, WlCommand};
+use sill_model::cosmic_wl::WlCommand;
+use sill_services::{LaunchCommand, LaunchRequest};
 
 /// One bar menu action.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -52,7 +53,8 @@ pub(crate) fn commands(pick: &BarPick) -> Vec<Command> {
 mod tests {
     use super::{BarPick, Command, commands};
     use sill_launcher::WindowKey;
-    use sill_services::{LaunchCommand, WlCommand};
+    use sill_model::cosmic_wl::WlCommand;
+    use sill_services::LaunchCommand;
 
     #[test]
     fn each_pick_becomes_its_commands() {

@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use sill_launcher::AppId;
 
-use crate::cosmic_wl::Urgency;
+use sill_model::cosmic_wl::Urgency;
 use sill_model::units::{Permille, Visibility};
 
 /// Every app with something to show, by desktop id.
@@ -123,8 +123,8 @@ pub fn parse_app_uri(uri: &str) -> Option<AppId> {
 #[cfg(test)]
 mod tests {
     use super::{Badge, BadgeEvent, BadgeProp, Badges, parse_app_uri, step};
-    use crate::cosmic_wl::Urgency;
     use sill_launcher::AppId;
+    use sill_model::cosmic_wl::Urgency;
     use sill_model::units::{Permille, Visibility};
 
     fn id(s: &str) -> AppId {

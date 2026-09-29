@@ -8,13 +8,13 @@ use sill_launcher::{
 use tokio::sync::watch;
 
 use crate::apps::{AppIcon, AppIndex, match_app};
-use crate::cosmic_wl::{CosmicWl, Workspaces};
+use sill_model::cosmic_wl::{CosmicWl, Workspaces};
 
 /// The id of a window row's one action: asks the daemon to close it (`Activation::CloseWindow`).
 const CLOSE_ACTION: &str = "close";
 
 /// Rows for every toplevel matching the query, most recent first on ties (the order
-/// [`Toplevels`](crate::cosmic_wl::Toplevels) already keeps).
+/// [`Toplevels`](sill_model::cosmic_wl::Toplevels) already keeps).
 #[derive(Debug)]
 pub struct WindowsProvider {
     pub cosmic_wl: watch::Receiver<CosmicWl>,
@@ -157,13 +157,13 @@ fn window_key_of(item: &Item) -> WindowKey {
 mod tests {
     use super::WindowsProvider;
     use crate::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
-    use crate::cosmic_wl::{
-        Activity, CosmicWl, Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, Workspace,
-        WorkspaceGroup, Workspaces, toplevels::step,
-    };
     use sill_launcher::{
         AppId, Cancel, Choice, IconRef, Item, ItemId, Provider, ProviderKind, Query, Score,
         VecSink, WindowKey,
+    };
+    use sill_model::cosmic_wl::{
+        Activity, CosmicWl, Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, Workspace,
+        WorkspaceGroup, Workspaces, toplevels::step,
     };
     use sill_model::ids::{GroupKey, OutputName, WorkspaceKey};
     use std::path::PathBuf;
@@ -216,8 +216,8 @@ mod tests {
             key,
             name: name.to_owned(),
             stable_id: String::new(),
-            activity: crate::cosmic_wl::Activity::Inactive,
-            urgency: crate::cosmic_wl::Urgency::Calm,
+            activity: sill_model::cosmic_wl::Activity::Inactive,
+            urgency: sill_model::cosmic_wl::Urgency::Calm,
             visibility: sill_model::units::Visibility::Shown,
             coordinates: Vec::new(),
             capabilities: Default::default(),

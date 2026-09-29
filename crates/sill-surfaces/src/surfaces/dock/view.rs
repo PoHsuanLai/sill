@@ -15,11 +15,9 @@
 use dioxus::prelude::*;
 use ds::{BlurState, DockFloor, Ds, Ground, Material, SpaceLook};
 use shell_host::{LayerConfig, OutputInfo, SurfaceHandle};
-use sill_model::{
-    ids::{OutputName, WorkspaceKey},
-    units::Cpx,
-};
-use sill_services::{Activity, Workspaces};
+use sill_model::cosmic_wl::{Activity, Workspaces};
+use sill_model::ids::{OutputName, WorkspaceKey};
+use sill_model::units::Cpx;
 use sill_settings::{AutoHide, SpacesSettings};
 
 use crate::app_icons::icon_look;

@@ -1,10 +1,11 @@
 //! The thread's Wayland state, and the only file that names sctk or cctk delegate macros.
 
+use cosmic_client_toolkit::{delegate_toplevel_info, delegate_toplevel_manager, delegate_workspace};
 use cosmic_client_toolkit::cosmic_protocols::toplevel_management::v1::client::zcosmic_toplevel_manager_v1::ZcosmicToplelevelManagementCapabilitiesV1 as ManagerAbility;
+use cosmic_client_toolkit::sctk::{delegate_output, delegate_registry, delegate_seat, registry_handlers};
 use cosmic_client_toolkit::sctk::output::OutputState;
 use cosmic_client_toolkit::sctk::registry::{ProvidesRegistryState, RegistryState};
 use cosmic_client_toolkit::sctk::seat::SeatState;
-use cosmic_client_toolkit::sctk::{delegate_output, delegate_registry, delegate_seat, registry_handlers};
 use cosmic_client_toolkit::toplevel_info::ToplevelInfoState;
 use cosmic_client_toolkit::toplevel_management::ToplevelManagerState;
 use cosmic_client_toolkit::wayland_client::QueueHandle;
@@ -13,10 +14,9 @@ use cosmic_client_toolkit::wayland_protocols::ext::foreign_toplevel_list::v1::cl
 use cosmic_client_toolkit::wayland_protocols::ext::workspace::v1::client::ext_workspace_group_handle_v1::ExtWorkspaceGroupHandleV1;
 use cosmic_client_toolkit::wayland_protocols::ext::workspace::v1::client::ext_workspace_handle_v1::ExtWorkspaceHandleV1;
 use cosmic_client_toolkit::workspace::WorkspaceState;
-use cosmic_client_toolkit::{delegate_toplevel_info, delegate_toplevel_manager, delegate_workspace};
 
-use crate::cosmic_wl::keys::Keyring;
-use crate::cosmic_wl::publish::Publish;
+use super::keys::Keyring;
+use super::publish::Publish;
 
 /// Everything the thread's event queue dispatches into. (No `Debug`: cctk's
 /// `ToplevelManagerState` has none.)

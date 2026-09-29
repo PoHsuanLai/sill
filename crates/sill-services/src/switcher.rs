@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use sill_launcher::{AppId, WindowKey};
 
 use crate::apps::{AppIndex, match_app};
-use crate::cosmic_wl::{Toplevel, Toplevels, WindowState, WlCommand};
+use sill_model::cosmic_wl::{Toplevel, Toplevels, WindowState, WlCommand};
 
 /// Whether an app has a window on screen.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
@@ -111,7 +111,7 @@ mod tests {
 
     use super::{AppShown, SwitcherApp, activate, hide, quit, switcher_apps};
     use crate::apps::AppIndex;
-    use crate::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
+    use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 
     fn window(key: u64, app_id: &str, window: WindowState) -> Toplevel {
         Toplevel {

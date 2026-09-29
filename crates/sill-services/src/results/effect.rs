@@ -5,8 +5,8 @@
 use sill_launcher::Activation;
 
 use crate::control::Control;
-use crate::cosmic_wl::WlCommand;
 use crate::launch::{LaunchCommand, LaunchRequest};
+use sill_model::cosmic_wl::WlCommand;
 
 /// What carrying out an activation takes.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -74,11 +74,11 @@ impl Outlets {
 #[cfg(test)]
 mod tests {
     use super::{Effect, effect};
-    use crate::cosmic_wl::WlCommand;
     use crate::launch::{LaunchCommand, LaunchRequest};
     use sill_launcher::{
         Activation, AppId, DesktopAction, SettingsTarget, SystemCommand, WindowKey,
     };
+    use sill_model::cosmic_wl::WlCommand;
 
     #[test]
     fn windows_go_to_cosmic_wl_apps_to_launch_and_the_rest_elsewhere() {

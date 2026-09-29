@@ -1,27 +1,20 @@
 //! Carrying out a [`WlCommand`] on the thread's connection. A command for an unknown key, or
 //! one the compositor did not say it supports, is dropped: the published state is the answer.
 
-use cosmic_client_toolkit::cosmic_protocols::toplevel_info::v1::client::zcosmic_toplevel_handle_v1::{
-    State as WindowFlag, ZcosmicToplevelHandleV1,
-};
-use cosmic_client_toolkit::cosmic_protocols::toplevel_management::v1::client::zcosmic_toplevel_manager_v1::{
-    ZcosmicToplelevelManagementCapabilitiesV1 as ManagerAbility, ZcosmicToplevelManagerV1,
-};
+use cosmic_client_toolkit::cosmic_protocols::toplevel_info::v1::client::zcosmic_toplevel_handle_v1::{State as WindowFlag, ZcosmicToplevelHandleV1};
+use cosmic_client_toolkit::cosmic_protocols::toplevel_management::v1::client::zcosmic_toplevel_manager_v1::{ZcosmicToplelevelManagementCapabilitiesV1 as ManagerAbility, ZcosmicToplevelManagerV1};
 use cosmic_client_toolkit::cosmic_protocols::workspace::v2::client::zcosmic_workspace_handle_v2::WorkspaceCapabilities as CosmicAbilities;
 use cosmic_client_toolkit::toplevel_info::ToplevelInfo;
 use cosmic_client_toolkit::wayland_client::Proxy;
 use cosmic_client_toolkit::wayland_client::protocol::wl_output::WlOutput;
-use cosmic_client_toolkit::wayland_protocols::ext::workspace::v1::client::ext_workspace_handle_v1::{
-    ExtWorkspaceHandleV1, WorkspaceCapabilities as Abilities,
-};
+use cosmic_client_toolkit::wayland_protocols::ext::workspace::v1::client::ext_workspace_handle_v1::{ExtWorkspaceHandleV1, WorkspaceCapabilities as Abilities};
 use cosmic_client_toolkit::workspace::Workspace as WorkspaceInfo;
 use sill_launcher::WindowKey;
-
-use crate::cosmic_wl::command::{Relative, WlCommand};
-use crate::cosmic_wl::ids::Pinning;
-use crate::cosmic_wl::state::WlState;
-use crate::cosmic_wl::workspaces::WorkspaceEvent;
+use sill_model::cosmic_wl::{Relative, WlCommand, Pinning};
+use sill_model::cosmic_wl::workspaces::WorkspaceEvent;
 use sill_model::ids::WorkspaceKey;
+
+use super::state::WlState;
 
 /// The coordinate a workspace move is measured along. COSMIC's groups are one row, so their
 /// coordinates have one component.

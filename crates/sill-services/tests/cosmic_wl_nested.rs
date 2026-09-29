@@ -12,9 +12,10 @@ use std::time::{Duration, Instant};
 use sill_launcher::WindowKey;
 use tokio::sync::watch;
 
-use super::{Activity, CosmicWl, CosmicWlService, Toplevels, WindowState, WlCommand, Workspaces};
-use crate::control::Control;
-use crate::env::{Env, WaylandRoute};
+use sill_model::cosmic_wl::{Activity, CosmicWl, Toplevels, WindowState, WlCommand, Workspaces};
+use sill_services::CosmicWlService;
+use sill_services::control::Control;
+use sill_services::env::{Env, WaylandRoute};
 
 /// The service on the compositor `route` names, its state twice (a workspaces reader and a
 /// toplevels reader) and its control. The thread starts at once; the runtime only runs the
@@ -33,7 +34,7 @@ fn spawn(
         wayland: route,
         ..Env::isolated(Path::new("/nonexistent/sill-cosmic-wl"))
     };
-    let service = crate::service::spawn::<CosmicWlService>(rt.handle(), &env, ());
+    let service = sill_services::service::spawn::<CosmicWlService>(rt.handle(), &env, ());
     (service.state.clone(), service.state, service.control)
 }
 
@@ -209,7 +210,10 @@ fn client_under_test() -> (String, String) {
     (program.to_owned(), app_id.to_owned())
 }
 
-fn windows_of(toplevels: &watch::Receiver<CosmicWl>, app_id: &str) -> Vec<super::Toplevel> {
+fn windows_of(
+    toplevels: &watch::Receiver<CosmicWl>,
+    app_id: &str,
+) -> Vec<sill_model::cosmic_wl::Toplevel> {
     toplevels
         .borrow()
         .toplevels
@@ -323,7 +327,7 @@ fn a_client_in_nested_cosmic_is_published_and_obeys_commands() {
 #[test]
 #[ignore = "needs a nested cosmic-comp"]
 fn the_amended_workspace_commands_take_effect_in_nested_cosmic() {
-    use super::{Pinning, WorkspaceCap};
+    use sill_model::cosmic_wl::{Pinning, WorkspaceCap};
     use sill_model::ids::WorkspaceKey;
 
     let nested = Nested::start();

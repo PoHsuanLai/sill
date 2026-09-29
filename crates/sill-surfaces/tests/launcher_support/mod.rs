@@ -21,9 +21,8 @@ use sill_launcher::{
     ItemKey, Placement, Provider, ProviderKind, Query, QueryShape, ResultSink, Score, SectionPlan,
     SectionSpan, SettingsTarget, SystemCommand, UnixTime, WindowKey, place,
 };
-use sill_services::{
-    Control, LaunchCommand, LaunchRequest, Results, SearchCommand, Services, WlCommand,
-};
+use sill_model::cosmic_wl::WlCommand;
+use sill_services::{Control, LaunchCommand, LaunchRequest, Results, SearchCommand, Services};
 use sill_surfaces::surfaces::launcher::LauncherProviders;
 use tokio::sync::watch;
 
