@@ -42,7 +42,7 @@ pub mod sources;
 pub use agenda::{Days, up_next};
 pub use model::{
     Agenda, AgendaEvent, CalEvent, CalendarName, EventTime, EventUid, SourceStatus, Window,
-    held_window, reduce_agenda,
+    held_window, step,
 };
 pub use provider::{
     EventsError, EventsProvider, IcsProvider, NullProvider, ProviderRead, provider_for,
@@ -51,11 +51,9 @@ pub use sources::{AutoEnv, EventSources, IcsPlace, auto_places, parse_sources};
 
 use std::sync::Arc;
 
-use tokio::runtime::Handle;
-use tokio::sync::watch;
-
-use crate::control::Control;
-use crate::env::{Dirs, WallClock};
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
 /// What the events service can be told.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -67,19 +65,33 @@ pub enum EventsCommand {
     Refresh,
 }
 
-/// Start the events task on `rt`. Until the first `Sources` the agenda holds today only, with
-/// `SourceStatus::Off`.
-pub fn spawn(
-    rt: &Handle,
-    dirs: &Dirs,
-    clock: Arc<dyn WallClock>,
-) -> (watch::Receiver<Agenda>, Control<EventsCommand>) {
-    let (tx, rx) = watch::channel(Agenda::starting(clock.now().date()));
-    let (control, commands) = Control::channel();
-    let reach = live::Reach {
-        auto: sources::AutoEnv::of(dirs),
-        clock,
-    };
-    rt.spawn(live::run(tx, commands, reach));
-    (rx, control)
+/// Calendar events as a [`Service`], found under `env`'s directories and dated by its clock.
+/// Until the first `Sources` the agenda holds today only, with `SourceStatus::Off`.
+#[derive(Debug)]
+pub enum EventsService {}
+
+impl Service for EventsService {
+    const NAME: &'static str = "events";
+    type State = Agenda;
+    type Command = EventsCommand;
+    type Deps = ();
+
+    fn initial(env: &Env, (): &()) -> Agenda {
+        Agenda::starting(env.clock.now().date())
+    }
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        let reach = live::Reach {
+            auto: sources::AutoEnv::of(&env.dirs),
+            clock: Arc::clone(&env.clock),
+        };
+        async move {
+            live::run(io.state, io.commands, reach).await;
+            Ok(())
+        }
+    }
 }

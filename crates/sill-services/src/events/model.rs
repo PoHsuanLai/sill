@@ -103,7 +103,7 @@ pub enum AgendaEvent {
 ///
 /// The order is zone-free (the agenda is published to every surface): an all-day event sorts as
 /// its first day's UTC midnight; the widgets order by their own day ([`super::up_next`]).
-pub fn reduce_agenda(agenda: Agenda, event: AgendaEvent) -> Agenda {
+pub fn step(agenda: Agenda, event: AgendaEvent) -> Agenda {
     match event {
         AgendaEvent::Day(today) => Agenda { today, ..agenda },
         AgendaEvent::Read {
@@ -173,7 +173,7 @@ mod tests {
 
     use super::{
         Agenda, AgendaEvent, CalEvent, CalendarName, EventTime, EventUid, SourceStatus, Window,
-        held_window, reduce_agenda,
+        held_window, step,
     };
 
     fn all_day(uid: &str, title: &str, day: i8) -> CalEvent {
@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn a_read_sorts_and_a_switch_off_empties() {
         let start = Agenda::starting(date(2026, 9, 26));
-        let read = reduce_agenda(
+        let read = step(
             start.clone(),
             AgendaEvent::Read {
                 events: vec![
@@ -226,13 +226,13 @@ mod tests {
                 problems: Vec::new()
             }
         );
-        let moved = reduce_agenda(read.clone(), AgendaEvent::Day(date(2026, 9, 27)));
+        let moved = step(read.clone(), AgendaEvent::Day(date(2026, 9, 27)));
         assert_eq!(moved.today, date(2026, 9, 27));
         assert_eq!(moved.events, read.events);
-        let off = reduce_agenda(read, AgendaEvent::Off);
+        let off = step(read, AgendaEvent::Off);
         assert_eq!(off.events, Vec::new());
         assert_eq!(off.status, SourceStatus::Off);
-        let none = reduce_agenda(start, AgendaEvent::NoCalendars);
+        let none = step(start, AgendaEvent::NoCalendars);
         assert_eq!(none.status, SourceStatus::NoCalendars);
     }
 }

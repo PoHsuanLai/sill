@@ -1,7 +1,7 @@
 //! The events task: waits for `Sources`, builds the provider (`provider_for`, `auto` reading
 //! `$HOME` and `$XDG_DATA_HOME`), reads it on the blocking pool over
 //! `held_window(today)` in the system zone, watches `watched()` with `notify` (debounced),
-//! re-reads on a change, a `Refresh` and the day's turn, and publishes through `reduce_agenda`.
+//! re-reads on a change, a `Refresh` and the day's turn, and publishes through `step`.
 //! Ends when every receiver is gone.
 
 use std::sync::Arc;
@@ -14,7 +14,7 @@ use tokio::sync::{mpsc, watch};
 
 use super::EventsCommand;
 use super::live_watch::Touches;
-use super::model::{Agenda, AgendaEvent, held_window, reduce_agenda};
+use super::model::{Agenda, AgendaEvent, held_window, step};
 use super::provider::{EventsProvider, provider_for};
 use super::sources::{AutoEnv, EventSources, IcsPlace, auto_places};
 use crate::env::WallClock;
@@ -90,7 +90,7 @@ async fn follow(
                 let today = reach.clock.now().date();
                 if today != tx.borrow().today {
                     tx.send_modify(|agenda| {
-                        *agenda = reduce_agenda(agenda.clone(), AgendaEvent::Day(today));
+                        *agenda = step(agenda.clone(), AgendaEvent::Day(today));
                     });
                     publish(tx, &plan, reach.clock.as_ref()).await;
                 }
@@ -141,7 +141,7 @@ async fn publish(tx: &watch::Sender<Agenda>, plan: &Plan, clock: &dyn WallClock)
         }
     };
     tx.send_if_modified(|agenda| {
-        let next = reduce_agenda(agenda.clone(), event);
+        let next = step(agenda.clone(), event);
         let changed = next != *agenda;
         *agenda = next;
         changed

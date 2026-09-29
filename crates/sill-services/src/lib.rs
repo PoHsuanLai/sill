@@ -82,7 +82,7 @@ pub use displays::{
     LevelChange, NightWarmth, Ppi, ScaleMode, ScaleOverride, ScaleRounding,
 };
 pub use error::ServiceError;
-pub use events::{Agenda, CalEvent, EventTime, EventsCommand, SourceStatus};
+pub use events::{Agenda, CalEvent, EventTime, EventsCommand, EventsService, SourceStatus};
 pub use idle::{Idle, IdleCommand, IdleLinks, IdleService};
 pub use kbd_backlight::{
     KbdBacklight, KbdBacklightService, KbdCommand, KbdEvent, KbdLevel, step_for,

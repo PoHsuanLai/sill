@@ -176,7 +176,7 @@ impl Services {
         let (notifications, notifications_control) = parts(spawn::<
             crate::notifications::NotificationsService,
         >(rt, env, ()));
-        let (agenda, events_control) = crate::events::spawn(rt, &env.dirs, Arc::clone(&env.clock));
+        let (agenda, events_control) = parts(spawn::<crate::events::EventsService>(rt, env, ()));
         let (shots, shots_control) =
             parts(spawn::<crate::screenshots::ScreenshotsService>(rt, env, ()));
         let (auth, auth_control) = parts(spawn::<crate::auth::AuthService>(rt, env, ()));
