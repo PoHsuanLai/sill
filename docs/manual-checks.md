@@ -154,6 +154,14 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   DDC/CI"); drag it: the backlight follows during the drag, not only at the release; click the
   track: it jumps there. Change the brightness with the monitor's own buttons with the control
   center open: the capsule follows within 2 s. Put it back where it was afterwards.
+- [ ] **Screenshot thumbnail from the keyboard**: bind a shortcut to `sill focus-latest` in COSMIC
+  Settings > Keyboard > Custom Shortcuts (or `Spawn("sill focus-latest")` in the `custom` file),
+  keep typing in an app, take a screenshot (`sill screenshot area`): the thumbnail slides in and
+  typing still goes to the app. Press the shortcut: the thumbnail takes the keyboard (its focus
+  ring shows on the picture, the hold stops running out). Enter or Space opens the file, Delete or
+  Backspace trashes it, Escape slides it away and keeps the file; Tab moves to its Delete button
+  and back. After any of them typing reaches the app again. With no thumbnail showing the
+  shortcut does nothing.
 - [ ] **Power menu with the real keyboard** (real arrows, Escape and a scrim click already pass
   on a headless KWin through `dev/accept/power-menu.sh --real-input`): `sill power-menu open`, then arrows
   move the highlight, Esc closes. Do NOT press Enter on Restart/Shut Down unless you mean it; the

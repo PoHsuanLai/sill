@@ -346,10 +346,22 @@ A settled item is deleted, not marked closed.
   (a manual lock, Super+Escape, a lid, a suspend, a restored or adopted lock) asks. A grace is an
   unforgeable `GraceTicket` the idle service hands the auth service; nothing on IPC carries one.
 
+- **The screenshot thumbnail takes the keyboard only when asked** (`sill focus-latest`, an `Act`
+  verb answered on `BannerLink`'s key channel). The layer is `KeyboardMode::None`; on the ask it
+  becomes `Exclusive` (an `OnDemand` layer is focused only by a click, so it cannot be asked
+  for), the seat modality is set to `Keyboard` so quire's ring shows before any key arrives, and
+  the picture is focused by selector. Every way out of the shown state, and the compositor taking
+  the keyboard away, sets `None` again, and the hold is paused while the card holds it.
+  Escape dismisses like the hold running out (the file is kept); Delete and Backspace are the
+  Delete button; Enter and Space are quire's picture.
+
 ## Open items
 
 ### sill
 
+- **G367** The banners take no keyboard (`KeyboardMode::None`, no keymap, nothing focusable
+  to ask for), so `sill focus-latest` reaches the screenshot thumbnail only. Ends when a banner
+  can hold the keyboard: the verb then picks the newer of the thumbnail and the newest banner.
 - **G352** The control center has no sink list: the volume service follows only the default sink.
 - **G360** No desktop context menu, so Edit Widgets opens only from the center's button and
   `sill widgets edit`.
@@ -396,6 +408,10 @@ A settled item is deleted, not marked closed.
 
 ### quire
 
+- **Q580** Enter and Space on a focused `IconButton` do nothing under Blitz (no keyboard
+  activation for a `button`, and quire's `IconButton` has no key handler), so the thumbnail's
+  Delete button reached by Tab cannot be pressed from the keyboard; Delete and Backspace
+  reach the same action from anywhere on the card.
 - **Q3** No per-workspace look store; `use_space_look` computes the preset for the position.
 - **Q4** ds-settings' file I/O and watch are fixed to `appearance.toml`; sill repeats them.
 - **Q20** The tray's dbusmenu popup is not part of the bar's menu session.
