@@ -23,9 +23,9 @@ use sill_launcher::{AppId, OpenTarget};
 use sill_model::launch::{OpenRequest, ScopeUnit, scope_unit};
 
 use super::Reach;
+use super::uri::file_uri;
 use crate::env::Bus;
-use crate::providers::files::bus::{NameState, name_state};
-use crate::providers::files::tracker::file_uri;
+use crate::env::{NameState, name_state};
 
 const FILE_MANAGER: &str = "org.freedesktop.FileManager1";
 
@@ -204,7 +204,7 @@ mod tests {
     use sill_launcher::OpenTarget;
 
     use super::{Shown, Wrapper, asks_file_manager, open_argv, reveal_folder, wrapped};
-    use crate::providers::files::bus::NameState;
+    use crate::env::NameState;
     use sill_model::launch::ScopeUnit;
 
     #[test]

@@ -12,20 +12,20 @@
 
 use std::collections::HashMap;
 use std::io::{PipeReader, PipeWriter, Read};
-use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
 use std::time::{Duration, Instant};
 
-use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, percent_encode};
 use sill_launcher::Query;
 use zbus::zvariant::{Fd, Value};
 
-use super::bus::{NameState, block_on, name_state};
+use super::bus::block_on;
 use super::choice::IndexState;
 use super::cursor::{hit_of_row, parse_cursor};
 use super::index::{FileAnswer, FileAsk, FileIndex, IndexFault, IndexKind};
 use crate::env::Bus;
+use crate::env::{NameState, name_state};
+use crate::launch::file_uri;
 
 /// The miner's bus name (localsearch keeps it beside its newer `org.freedesktop.LocalSearch3`).
 const TRACKER_BUS: &str = "org.freedesktop.Tracker3.Miner.Files";
@@ -34,29 +34,6 @@ const ENDPOINT_INTERFACE: &str = "org.freedesktop.Tracker3.Endpoint";
 
 /// How often the pipe's reader looks at the clock and the query's generation.
 const TICK: Duration = Duration::from_millis(10);
-
-/// What a path keeps unescaped in a `file:` URI: GLib's `g_filename_to_uri` set (unreserved
-/// characters, the sub-delimiters, `:`, `@` and `/`), so a prefix compares equal to the
-/// `nie:url` Tracker stored.
-const URI_PATH: &AsciiSet = &NON_ALPHANUMERIC
-    .remove(b'-')
-    .remove(b'.')
-    .remove(b'_')
-    .remove(b'~')
-    .remove(b'!')
-    .remove(b'$')
-    .remove(b'&')
-    .remove(b'\'')
-    .remove(b'(')
-    .remove(b')')
-    .remove(b'*')
-    .remove(b'+')
-    .remove(b',')
-    .remove(b';')
-    .remove(b'=')
-    .remove(b':')
-    .remove(b'@')
-    .remove(b'/');
 
 /// The Tracker 3 index on `session`. Holds no connection until the first ask.
 #[derive(Debug)]
@@ -136,14 +113,6 @@ pub fn escape_literal(text: &str) -> String {
             }
             out
         })
-}
-
-/// `path` as a `file://` URI, percent-encoded byte by byte.
-pub(crate) fn file_uri(path: &Path) -> String {
-    format!(
-        "file://{}",
-        percent_encode(path.as_os_str().as_bytes(), URI_PATH)
-    )
 }
 
 async fn miner_state(session: &Bus) -> zbus::Result<IndexState> {
@@ -249,10 +218,10 @@ enum Finished {
 
 #[cfg(test)]
 mod tests {
-    use std::path::{Path, PathBuf};
+    use std::path::PathBuf;
     use std::time::Duration;
 
-    use super::{escape_literal, file_uri, sparql_for};
+    use super::{escape_literal, sparql_for};
     use crate::providers::files::index::{FileAsk, HitLimit};
 
     #[test]
@@ -267,20 +236,6 @@ mod tests {
         ];
         for &(text, want) in cases {
             assert_eq!(escape_literal(text), want, "{text:?}");
-        }
-    }
-
-    #[test]
-    fn a_path_is_a_file_uri_as_glib_writes_it() {
-        let cases: &[(&str, &str)] = &[
-            ("/home/p", "file:///home/p"),
-            ("/home/p/a b.pdf", "file:///home/p/a%20b.pdf"),
-            ("/home/p/日", "file:///home/p/%E6%97%A5"),
-            ("/home/p/a#b?c%", "file:///home/p/a%23b%3Fc%25"),
-            ("/home/p/it's (1)+x@y", "file:///home/p/it's%20(1)+x@y"),
-        ];
-        for &(path, want) in cases {
-            assert_eq!(file_uri(Path::new(path)), want, "{path}");
         }
     }
 

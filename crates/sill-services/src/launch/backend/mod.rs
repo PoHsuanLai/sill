@@ -5,7 +5,9 @@ mod open;
 mod reach;
 mod run;
 mod terminal;
+mod uri;
 
 pub use open::{open_argv, reveal_folder};
 pub(crate) use reach::Reach;
 pub(crate) use run::run;
+pub use uri::file_uri;

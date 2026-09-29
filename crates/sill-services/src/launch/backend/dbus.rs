@@ -8,7 +8,7 @@ use sill_model::launch::LaunchRequest;
 use zbus::Connection;
 use zbus::zvariant::Value;
 
-use crate::providers::files::tracker::file_uri;
+use super::uri::file_uri;
 
 /// `org.freedesktop.Application.Activate` on the bus name `app.id`, object path derived from it
 /// (GApplication's own convention: each `.` becomes `/`, each `-` becomes `_`, prefixed with

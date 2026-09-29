@@ -3,6 +3,7 @@
 //! other ambient state to decide where to connect.
 
 mod authenticator;
+mod bus_name;
 mod buses;
 pub mod ddc;
 mod dirs;
@@ -20,6 +21,7 @@ use ddc::{DdcBus, FileBus, I2cBuses};
 use sill_model::idle::IdleTimes;
 
 pub use authenticator::{Authenticator, FakeAuthenticator, FakeRule};
+pub use bus_name::{NameState, name_state};
 pub use buses::{Bus, BusKind, BusRoute, Buses};
 pub use dirs::Dirs;
 pub use processes::{NoProcesses, Pid, ProcScan, Processes};
