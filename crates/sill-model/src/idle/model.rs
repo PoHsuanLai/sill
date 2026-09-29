@@ -2,9 +2,10 @@
 
 use super::inhibit::{Inhibition, LogindIdle};
 use super::policy::{DimLevel, IdleMode, PowerSource};
+use serde::{Deserialize, Serialize};
 
 /// What surfaces (the dim overlay) and `sill idle status` read.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Idle {
     pub mode: IdleMode,
     pub phase: IdlePhase,
@@ -19,7 +20,8 @@ pub struct Idle {
 }
 
 /// Where idleness has got to.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum IdlePhase {
     /// In use, or idle below the first threshold.
     #[default]
@@ -33,7 +35,8 @@ pub enum IdlePhase {
 }
 
 /// The dim overlay's state.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum DimShown {
     #[default]
     Clear,

@@ -1,10 +1,11 @@
 //! The clipboard history's state. Nothing here prints content: the text
-//! and image types redact themselves in `Debug`, and nothing is `Serialize` (history lives in
+//! and image types redact themselves in `Debug`, and only the status types are `Serialize` (history lives in
 //! memory only).
 
 use std::fmt;
 use std::sync::Arc;
 
+use serde::{Deserialize, Serialize};
 use sill_launcher::{ClipKey, Mime, UnixTime};
 
 /// What the launcher and `sill clipboard status` read.
@@ -16,14 +17,15 @@ pub struct Clipboard {
 }
 
 /// Whether history is kept, and how the service reaches the clipboard.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct ClipStatus {
     pub mode: HistoryMode,
     pub protocol: ClipProtocol,
 }
 
 /// `launcher.clipboard_history`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum HistoryMode {
     /// Nothing is kept, and the service holds no Wayland connection. The state until the
     /// daemon's first policy.
@@ -34,7 +36,8 @@ pub enum HistoryMode {
 }
 
 /// Which data-control protocol the service bound.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ClipProtocol {
     /// Not connected (history off, or not started yet).
     #[default]

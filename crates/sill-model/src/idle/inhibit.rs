@@ -12,6 +12,8 @@
 //! While either holds, sill drops its idle notifications (no dim, no screen off, no idle
 //! suspend), as cosmic-idle did, and holds them again when both are free.
 
+use serde::{Deserialize, Serialize};
+
 /// A cookie `Inhibit` handed out. Never zero.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct InhibitCookie(pub u32);
@@ -65,7 +67,8 @@ pub enum InhibitReply {
 }
 
 /// Whether idle is held off by an inhibitor sill honours.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Inhibition {
     #[default]
     Free,
@@ -73,7 +76,8 @@ pub enum Inhibition {
 }
 
 /// Whether logind's `BlockInhibited` names `idle`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum LogindIdle {
     #[default]
     Free,

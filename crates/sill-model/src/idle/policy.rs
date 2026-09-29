@@ -8,6 +8,7 @@ use super::cosmic::{CosmicIdle, CosmicIdleTimes};
 use crate::battery::{Battery, Charge};
 use crate::locker::Host;
 use crate::units::Presence;
+use serde::{Deserialize, Serialize};
 
 /// Whole seconds of idleness (the unit every idle time is kept in; the settings' minutes are
 /// multiplied out once, in the daemon's `policy_of`).
@@ -45,7 +46,7 @@ pub enum TimesChoice {
 }
 
 /// How bright a dimmed display stays, in percent of its brightness (`idle.dim_level_pct`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DimLevel(pub u8);
 
 /// The warning before the displays go off: dimmed for `lead` first (`idle.dim_s`; zero: no
@@ -86,7 +87,8 @@ pub struct IdleConfig {
 }
 
 /// Whether sill runs idle here.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
 pub enum IdleMode {
     /// sill does nothing about idle, and why.
     Off(OffReason),
@@ -101,7 +103,8 @@ impl Default for IdleMode {
 }
 
 /// Why [`IdleMode::Off`] was chosen (for the log and a later `sill idle status`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum OffReason {
     /// No policy yet (the passive start).
     #[default]
@@ -126,7 +129,8 @@ pub struct IdlePolicy {
 }
 
 /// AC or battery.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum PowerSource {
     #[default]
     Ac,

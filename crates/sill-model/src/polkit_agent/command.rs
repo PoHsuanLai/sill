@@ -1,11 +1,13 @@
 //! What the polkit agent can be told.
 
+use serde::{Deserialize, Serialize};
+
 use super::{ActionId, AgentPolicy, Cookie};
 use crate::auth::Secret;
 
 /// A request made up by `sill debug polkit`: shown like a real one, answered by an in-process
 /// stand-in helper that accepts `FAKE_SECRET` and nothing else, and completed to nobody.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct FakeRequest {
     pub action_id: ActionId,
     pub message: String,

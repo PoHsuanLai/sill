@@ -13,6 +13,17 @@ pub struct Toplevels {
     pub windows: Vec<Toplevel>,
 }
 
+impl Toplevels {
+    /// The first output of the active window: where a key press acts when the pointer's output is
+    /// not known. `None` without an active window or when it names no output.
+    pub fn focused_output(&self) -> Option<OutputName> {
+        self.windows
+            .iter()
+            .find(|w| w.activity == Activity::Active)
+            .and_then(|w| w.outputs.first().cloned())
+    }
+}
+
 /// One toplevel, as cctk's `ToplevelInfo` describes it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Toplevel {
@@ -82,6 +93,7 @@ pub fn step(toplevels: Toplevels, event: ToplevelEvent) -> Toplevels {
 mod tests {
     use super::{Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState, step};
     use crate::cosmic_wl::Activity;
+    use crate::ids::OutputName;
     use sill_launcher::WindowKey;
 
     fn window(key: u64, activity: Activity) -> Toplevel {
@@ -186,5 +198,48 @@ mod tests {
         );
         assert_eq!(order(&after), vec![2, 1]);
         assert_eq!(after.windows[1].title, "new");
+    }
+
+    fn named_window(key: u64, activity: Activity, outputs: &[&str]) -> Toplevel {
+        Toplevel {
+            key: sill_launcher::WindowKey(key),
+            app_id: "foot".to_owned(),
+            title: String::new(),
+            activity,
+            window: Default::default(),
+            sizing: Default::default(),
+            workspaces: Vec::new(),
+            outputs: outputs
+                .iter()
+                .map(|o| OutputName((*o).to_owned()))
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn the_focused_output_is_the_active_windows_first() {
+        let cases = [
+            ("no windows", vec![], None),
+            (
+                "the active window's first output",
+                vec![
+                    named_window(1, Activity::Inactive, &["eDP-1"]),
+                    named_window(2, Activity::Active, &["HDMI-A-2", "eDP-1"]),
+                ],
+                Some("HDMI-A-2"),
+            ),
+            (
+                "an active window on no output",
+                vec![named_window(1, Activity::Active, &[])],
+                None,
+            ),
+        ];
+        for (name, windows, want) in cases {
+            assert_eq!(
+                Toplevels { windows }.focused_output(),
+                want.map(|w| OutputName(w.to_owned())),
+                "{name}"
+            );
+        }
     }
 }
