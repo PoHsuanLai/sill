@@ -8,11 +8,13 @@ use shell_host::{Size as BufferSize, buffer_size};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
+use sill_ui_kit::Osd;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;
+use crate::daemon::spawn::spawn_surface;
 use crate::outputs::Outputs;
 
 /// What spawning a surface needs beside the outputs: the services, the settings and the links
@@ -53,7 +55,7 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     crate::widgets::spawn_missing(ctx, outputs, settings, &services.dirs, root);
     crate::edit_widgets::spawn_missing(ctx, outputs, &services.dirs, root);
     crate::corners::spawn_missing(ctx, outputs, settings, root);
-    crate::osd::spawn_missing(ctx, outputs, settings, &links.osd, root);
+    spawn_surface::<Osd>(ctx, outputs, spawn, &links.osd);
     let dim = services.idle.state.borrow().dim;
     crate::idle_dim::spawn_missing(ctx, outputs, dim, root);
 }

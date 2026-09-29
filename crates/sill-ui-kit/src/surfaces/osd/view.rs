@@ -1,24 +1,24 @@
 //! The indicator's render: one transparent Osd root (design/20 §1.7) holding quire's `Osd` card.
 //! The card paints its own tinted frame, owns its own entrance and exit fade, and calls
-//! `on_hidden` once the exit has settled, so `drive.rs` can unmap the surface then; sill's own
-//! hold machine (`machine.rs`) only decides when the card is shown.
+//! `on_hidden` once the exit has settled, so `io.rs` can unmap the surface then; sill's own
+//! hold machine (`step.rs`) only decides when the card is shown.
 
 use dioxus::prelude::*;
 use ds::{LevelLook, Material, Osd, OsdMetrics, OsdPosition, Px, RootChrome, Shown};
 use shell_host::OutputInfo;
 use sill_model::ids::OutputName;
 
+use super::io::{times, use_follow_position, use_osd};
+use super::layer::CARD_ID;
+use super::reading::{card_level, level_of, title};
 use crate::hooks::{use_service, use_settings};
 use crate::links::Visible;
 use crate::links::{OsdKind, OsdLink};
 use crate::root::SurfaceRoot;
-use crate::surfaces::osd::drive::{times, use_follow_position, use_osd};
-use crate::surfaces::osd::layer::CARD_ID;
-use crate::surfaces::osd::reading::{card_level, level_of, title};
 use sill_services::{DisplaysService, VolumeService};
 
-/// The indicator's stylesheet (lint-clean under `Profile::Strict`, `tests/osd_lint.rs`).
-pub(crate) const OSD_CSS: &str = include_str!("../../style/osd.css");
+/// The indicator's stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
+pub const OSD_CSS: &str = include_str!("../../style/osd.css");
 
 /// The level's look: the capsule, the user's pick. Not a setting: the OSD has no look key, and
 /// this is the one place.
@@ -33,7 +33,7 @@ fn position_of(position: sill_settings::OsdPosition) -> OsdPosition {
 }
 
 /// The indicator on `output`.
-pub(crate) fn osd(output: OutputInfo) -> Element {
+pub(super) fn osd(output: OutputInfo) -> Element {
     let file = use_settings()();
     let on = output.name.clone().map(OutputName);
     let link = use_context::<OsdLink>();

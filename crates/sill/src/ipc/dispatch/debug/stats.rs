@@ -58,7 +58,6 @@ fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, Su
     let (panel, catcher) = launcher_namespaces(info);
     let launcher = surfaces.launcher.map(|id| (panel, id));
     let catcher = surfaces.catcher.map(|id| (catcher, id));
-    let osd = surfaces.osd.map(|id| (crate::osd::osd_namespace(info), id));
     let power_menu = surfaces.power_menu.map(|id| {
         let layer = sill_ui_kit::surfaces::power_menu::power_menu_layer(info);
         (layer.namespace, id)
@@ -88,12 +87,15 @@ fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, Su
         .into_iter()
         .filter_map(|(corner, name)| surfaces.corners.get(corner).map(|id| (name, id)))
         .collect();
+    let spawned = surfaces
+        .spawned
+        .iter()
+        .map(|surface| (surface.namespace.clone(), surface.id));
     bar.into_iter()
         .chain(wallpaper)
         .chain(dock)
         .chain(launcher)
         .chain(catcher)
-        .chain(osd)
         .chain(power_menu)
         .chain(banners)
         .chain(center)
@@ -104,6 +106,7 @@ fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, Su
         .chain(polkit)
         .chain(switcher)
         .chain(idle_dim)
+        .chain(spawned)
         .collect()
 }
 

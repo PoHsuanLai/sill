@@ -1,5 +1,5 @@
-//! The daemon's half of the OSD (design/20 §1.7): one indicator per output, spawned hidden and
-//! kept warm, and the decision of which changes show and where.
+//! The daemon's half of the OSD (design/20 §1.7): the decision of which changes show and where.
+//! The indicator per output is spawned like any `Surface` (`sill_ui_kit::Osd`).
 //!
 //! **Which changes show.** Only the ones sill makes itself: `sill display volume ...` and
 //! `sill display brightness ...`, which are what the volume and brightness keys run (`dist/
@@ -13,7 +13,8 @@
 //! displays service chooses them (`display.brightness_keys_target`: that same output, or every
 //! output), less those with no brightness to show.
 
-use shell_host::{HostCtx, HostRoot, OutputId, OutputInfo};
+use crate::outputs::Outputs;
+use shell_host::{OutputId, OutputInfo};
 use sill_ipc::act::DisplayRequest;
 use sill_ipc::debug::OsdTopic;
 use sill_ipc::response::Response;
@@ -25,11 +26,6 @@ use sill_model::volume::Mute;
 use sill_settings::{OsdEnabled, ShellFile};
 use sill_ui_kit::links::{Level, LevelSource, OsdKind, OsdLink};
 use sill_ui_kit::services::Services;
-use sill_ui_kit::surfaces::osd::{OsdProps, osd_layer};
-use tokio::sync::watch;
-
-use crate::daemon::msg::ShellMsg;
-use crate::outputs::Outputs;
 
 /// The outputs that show a `kind` change whose level comes from `level`: see the module doc.
 pub fn osd_outputs(
@@ -146,39 +142,6 @@ pub fn fake(
         kind,
         LevelSource::Fixed(level),
     );
-}
-
-/// Spawn an indicator, hidden, for every output whose row has none yet (the launcher's warm
-/// pattern). `root` adds the contexts every surface gets.
-pub fn spawn_missing(
-    ctx: &mut HostCtx<ShellMsg>,
-    outputs: &mut Outputs,
-    settings: &watch::Sender<ShellFile>,
-    link: &OsdLink,
-    root: impl Fn(HostRoot) -> HostRoot,
-) {
-    let missing: Vec<OutputInfo> = outputs
-        .outputs
-        .iter()
-        .filter(|(_, s)| s.osd.is_none())
-        .map(|(info, _)| info.clone())
-        .collect();
-    let file = settings.borrow().clone();
-    for info in missing {
-        let props = OsdProps {
-            output: info.clone(),
-        };
-        let root = root(HostRoot::with_props(sill_ui_kit::Osd, props)).context(link.clone());
-        let config = osd_layer(&info, &file.osd);
-        let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
-        surfaces.osd = crate::daemon::surfaces::spawn_hidden(ctx, config, root, &info);
-        outputs.set(info, surfaces);
-    }
-}
-
-/// The indicator's namespace on `info`, which `debug stats` reports.
-pub fn osd_namespace(info: &OutputInfo) -> String {
-    osd_layer(info, &Default::default()).namespace
 }
 
 #[cfg(test)]

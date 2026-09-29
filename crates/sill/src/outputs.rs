@@ -28,7 +28,6 @@ pub struct OutputSurfaces {
     pub dock: Option<SurfaceId>,
     pub launcher: Option<SurfaceId>,
     pub catcher: Option<SurfaceId>,
-    pub osd: Option<SurfaceId>,
     /// The power menu, warm and hidden.
     pub power_menu: Option<SurfaceId>,
     /// The banner column and the notification center, warm and hidden.
@@ -90,14 +89,13 @@ impl CornerSurfaces {
 
 impl OutputSurfaces {
     /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 19] {
+    fn fields(&self) -> [Option<SurfaceId>; 18] {
         [
             self.bar,
             self.wallpaper,
             self.dock,
             self.launcher,
             self.catcher,
-            self.osd,
             self.power_menu,
             self.banners,
             self.notification_center,
@@ -134,7 +132,6 @@ impl OutputSurfaces {
             &mut self.dock,
             &mut self.launcher,
             &mut self.catcher,
-            &mut self.osd,
             &mut self.power_menu,
             &mut self.banners,
             &mut self.notification_center,

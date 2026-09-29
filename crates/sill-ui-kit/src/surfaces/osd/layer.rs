@@ -13,7 +13,7 @@ use shell_host::{
     Anchor, BlurSpec, ElementId, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel,
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
-use sill_settings::{OsdPosition, OsdSettings};
+use sill_settings::{OsdPosition, OsdSettings, ShellFile};
 
 use crate::surfaces::naming::namespace;
 
@@ -60,7 +60,8 @@ pub fn margin(osd: &OsdSettings) -> Margin {
 }
 
 /// The indicator's layer configuration on `output`.
-pub fn osd_layer(output: &OutputInfo, osd: &OsdSettings) -> LayerConfig {
+pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
+    let osd = &settings.osd;
     LayerConfig {
         namespace: namespace("osd", output),
         layer: LayerLevel::Overlay,
@@ -84,17 +85,17 @@ pub fn osd_layer(output: &OutputInfo, osd: &OsdSettings) -> LayerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::{CARD_HEIGHT, CARD_WIDTH, ROOM, osd_layer};
+    use super::{CARD_HEIGHT, CARD_WIDTH, ROOM, layer};
     use crate::surfaces::naming::tests::output;
     use ds_settings::Px;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, Margin, RegionSpec,
     };
-    use sill_settings::{OsdPosition, OsdSettings};
+    use sill_settings::{OsdPosition, OsdSettings, ShellFile};
 
     #[test]
     fn the_indicator_floats_over_its_edge_and_takes_nothing() {
-        let config = osd_layer(&output(Some("DP-1")), &OsdSettings::default());
+        let config = layer(&output(Some("DP-1")), &ShellFile::default());
         assert_eq!(config.namespace, "sill-osd-DP-1");
         assert_eq!(config.layer, LayerLevel::Overlay);
         assert_eq!(config.exclusive, ExclusiveZone::Auto);
@@ -148,7 +149,11 @@ mod tests {
             ),
         ];
         for (osd, anchor, margin) in cases {
-            let config = osd_layer(&output(Some("DP-1")), &osd);
+            let file = ShellFile {
+                osd: osd.clone(),
+                ..ShellFile::default()
+            };
+            let config = layer(&output(Some("DP-1")), &file);
             assert_eq!(config.anchor, anchor, "{osd:?}");
             assert_eq!(config.margin, margin, "{osd:?}");
         }

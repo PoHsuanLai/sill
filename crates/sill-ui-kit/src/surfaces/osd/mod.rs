@@ -5,28 +5,19 @@
 //!
 //! The daemon writes each change to the shared [`crate::links::OsdLink`] (`links`): what moved, on which
 //! outputs, and where the level comes from. Each surface runs its own show-and-hold machine
-//! (`machine.rs`) from it (`drive.rs`), reads the level and title from the services
+//! (`step.rs`) from it (`io.rs`), reads the level and title from the services
 //! (`reading.rs`), and hands both to quire's `Osd` card (`view.rs`), which owns its own entrance
 //! and exit fade and the Osd material tinted by the active Space (design/21 §3).
 //!
 //! Which changes show is the daemon's decision (`sill::osd`): the ones sill itself makes for
 //! `sill display volume|brightness` (the keys), never another app's.
 
-pub mod drive;
-pub mod layer;
-pub mod machine;
-pub mod reading;
-
+mod io;
+mod layer;
+mod reading;
+mod step;
+mod surface;
 mod view;
 
-pub use layer::{CARD_HEIGHT, CARD_ID, CARD_WIDTH, ROOM, osd_layer};
-pub use machine::{OsdInput, OsdPhase, OsdTimes, step};
-
-use dioxus::prelude::*;
-use shell_host::OutputInfo;
-
-/// The indicator on `output`. Needs an [`OsdLink`] root context beside the daemon's usual ones.
-#[component]
-pub fn Osd(output: OutputInfo) -> Element {
-    view::osd(output)
-}
+pub use surface::Osd;
+pub use view::OSD_CSS;
