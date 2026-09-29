@@ -15,7 +15,7 @@ mod effects;
 mod frame;
 mod hit;
 mod icon;
-mod menu_document;
+mod menu;
 mod menu_geometry;
 mod menu_popup;
 mod pick;

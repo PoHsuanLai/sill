@@ -18,6 +18,7 @@ use tokio::sync::mpsc;
 
 use crate::clock::FrameClock;
 use crate::hooks::use_services;
+use crate::menu::PopupLook;
 use crate::surfaces::dock::changes::{Snapshot, changes};
 use crate::surfaces::dock::context_menu::{OptionHeld, context_menu, menu_entries, menu_windows};
 use crate::surfaces::dock::effects::{EffectCtx, effect_commands};
@@ -25,7 +26,7 @@ use crate::surfaces::dock::frame::Frame;
 use crate::surfaces::dock::items::DockItem;
 use crate::surfaces::dock::machine::{DockEffect, DockEvent, DockParams, DockState, TileId, step};
 use crate::surfaces::dock::menu_geometry::{menu_config, menu_placement};
-use crate::surfaces::dock::menu_popup::{DockMenuPopup, MenuLink, PopupLook, PopupReport};
+use crate::surfaces::dock::menu_popup::{DockMenuPopup, MenuLink, PopupReport};
 use crate::surfaces::dock::pick::{DockCommand, pick_commands};
 use crate::surfaces::dock::pointer::{DockInput, resolve};
 

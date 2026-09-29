@@ -6,7 +6,6 @@ use std::collections::HashMap;
 
 use crate::services::Services;
 use dioxus::prelude::*;
-use ds::{Alpha, Appearance, MaterialStack, ShellMetrics, SystemPrefs};
 use shell_host::{
     HostRoot, OutputId, PopupAnchor, PopupConfig, PopupPlacement, PopupSize, SurfaceHandle,
 };
@@ -16,7 +15,7 @@ use tokio::sync::{mpsc, watch};
 
 use super::content::{BarState, PopupBody, body};
 use super::geometry::{Around, MAX_PX, placement};
-use super::menu_popup::{MenuPopup, PopupLink};
+use super::menu_popup::{BarPopup, PopupLink};
 use super::menu_track::Target;
 use super::menu_track::{MenuIn, MenuParams, MenuTrack, step};
 use super::menus::BarMenu;
@@ -26,6 +25,7 @@ use super::popup::menu_popup;
 use crate::clock::FrameClock;
 use crate::links::{CenterLink, CenterShown};
 use crate::links::{PowerMenuLink, Preselect};
+use crate::menu::PopupLook;
 use crate::surfaces::control_center::fit::{Fit, device_rows, wifi_rows};
 use crate::surfaces::control_center::{CcPage, PanelCap};
 
@@ -41,19 +41,6 @@ enum Handoff {
 /// opened before that move is dismissed by it at once; by this time the center
 /// is gone and the move is over.
 const CENTER_HANDOFF: std::time::Duration = std::time::Duration::from_millis(150);
-
-/// How a popup's `Ds` root resolves its scheme: the bar's own appearance, handed over so a
-/// popup does not start a second settings watch.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct PopupLook {
-    pub appearance: Appearance,
-    pub system: SystemPrefs,
-    pub tint: Alpha,
-    /// The shell type scale, written around the popup's root (its menu's 22 px rows).
-    pub metrics: ShellMetrics,
-    /// The material stack its root hands the menu card.
-    pub stack: MaterialStack,
-}
 
 /// What the popup shows: one menu's contents, where, and in which appearance.
 #[derive(Debug, Clone, PartialEq)]
@@ -350,7 +337,7 @@ fn show(slots: Slots, deps: &SessionDeps, menu: BarMenu) {
     surface.open_popup(
         config,
         first,
-        HostRoot::new(MenuPopup)
+        HostRoot::new(BarPopup)
             .context(PopupLink {
                 view: rx,
                 reports,

@@ -1,28 +1,18 @@
 //! The context menu popup's surface end: it reports a pick, a dismissal and its own drop to the
 //! dock, and closes itself once the menu has closed; the document it draws is
-//! [`MenuDocument`]'s. A popup is a `VirtualDom` of its own, so it provides quire's measurer
+//! the ui-kit `MenuPopup`'s. A popup is a `VirtualDom` of its own, so it provides quire's measurer
 //! itself.
 
 use dioxus::prelude::*;
-use ds::{Alpha, Appearance, MaterialStack, MenuEntry, ShellMetrics, SystemPrefs};
+use ds::{Anchor, MenuEntry, Point, Px};
 use shell_host::{Size, use_surface};
 use tokio::sync::mpsc;
 
+use crate::menu::{MenuPopup, PopupLook};
 use crate::root::HostModalityBridge;
-use crate::surfaces::dock::menu_document::MenuDocument;
+use crate::surfaces::dock::menu::DockMenu;
+use crate::surfaces::dock::menu_geometry::{menu_point, room};
 use crate::surfaces::dock::pick::DockPick;
-
-/// How the popup's root resolves its scheme: the dock's own, handed over.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct PopupLook {
-    pub appearance: Appearance,
-    pub system: SystemPrefs,
-    pub tint: Alpha,
-    /// The shell type scale, written around the popup's root (its menu's 22 px rows).
-    pub metrics: ShellMetrics,
-    /// The material stack its root hands the menu card.
-    pub stack: MaterialStack,
-}
 
 /// What the popup tells the dock.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,9 +68,17 @@ pub(crate) fn DockMenuPopup() -> Element {
             });
         }
     };
+    use_context_provider(|| link.look);
+    use_context_provider(room);
+    let (x, y) = menu_point(link.size);
     rsx! {
         HostModalityBridge {
-            MenuDocument { on_pick, on_close }
+            MenuPopup {
+                model: DockMenu { entries: link.entries.clone() },
+                anchor: Anchor::Point(Point { x: Px(x), y: Px(y) }),
+                on_pick,
+                on_close,
+            }
         }
     }
 }

@@ -60,7 +60,7 @@ const GAP: Px = Px(7.0);
 /// The popup root. A popup is a `VirtualDom` of its own and inherits nothing from the bar, so
 /// it provides quire's rect measurer itself.
 #[component]
-pub(crate) fn MenuPopup() -> Element {
+pub(crate) fn BarPopup() -> Element {
     let ds_scale = crate::hooks::use_ds_scale();
     ds_native::measure::provide();
     ds_native::focus::provide();

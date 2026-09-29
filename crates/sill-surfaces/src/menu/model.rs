@@ -1,0 +1,14 @@
+//! What a popup menu is: the entries it shows and the value picking one yields. The owning
+//! surface writes an `impl MenuModel` for its menu and its own `Pick` enum; the popup, the
+//! tracking and the keyboard are not its business.
+
+use ds::MenuEntry;
+
+/// A menu's contents.
+pub trait MenuModel: Clone + PartialEq + 'static {
+    /// What picking an entry yields: the owning surface's own vocabulary.
+    type Pick: Clone + PartialEq + 'static;
+
+    /// The entries, top to bottom, each carrying its pick.
+    fn entries(&self) -> Vec<MenuEntry<Self::Pick>>;
+}

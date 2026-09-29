@@ -22,6 +22,7 @@ use sill_settings::AutoHide;
 use crate::app_icons::icon_look;
 use crate::hooks::{use_appearance, use_service, use_service_part, use_settings};
 use crate::look::{active_workspace, use_active_look};
+use crate::menu::PopupLook;
 use crate::surfaces::bar::shell_style::shell_metrics;
 use crate::surfaces::dock::frame::{Area, Frame, Rows, frame};
 use crate::surfaces::dock::geometry::{dock_metrics, pill_corner};
@@ -30,7 +31,6 @@ use crate::surfaces::dock::layer::dock_layer;
 use crate::surfaces::dock::machine::{
     DockParams, DockState, Label, Reveal, displayed, lift, slide_offset,
 };
-use crate::surfaces::dock::menu_popup::PopupLook;
 use crate::surfaces::dock::pointer::{DockInput, PointerInput, button, modifier, point};
 use crate::surfaces::dock::session::{SessionDeps, World, use_dock_session};
 use crate::surfaces::dock::tile::{LabelShown, Tile, TileLook};

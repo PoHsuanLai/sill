@@ -15,6 +15,7 @@ pub mod hooks;
 pub mod links;
 pub mod look;
 pub mod machine;
+pub mod menu;
 pub mod root;
 pub mod services;
 pub mod status;

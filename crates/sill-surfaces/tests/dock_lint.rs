@@ -10,7 +10,7 @@ use sill_surfaces::Dock;
 use sill_surfaces::surfaces::dock::DockProps;
 
 const DOCK_CSS: &str = include_str!("../src/style/dock.css");
-const POPUP_CSS: &str = include_str!("../src/style/dock_popup.css");
+const POPUP_CSS: &str = include_str!("../src/menu/style.css");
 
 fn strict() -> LintConfig {
     LintConfig {

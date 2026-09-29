@@ -18,6 +18,7 @@ use shell_host::{
     PopupSize, PopupToggle, Rect, Size,
 };
 
+use crate::menu::PopupRoom;
 use crate::surfaces::dock::frame::Area;
 
 /// How far `ds::place` keeps a floating surface inside its bounds.
@@ -125,15 +126,14 @@ pub(crate) fn menu_placement<T>(tile: Area, entries: &[MenuEntry<T>]) -> PopupPl
     }
 }
 
-/// The inline padding of the frame the popup's `Ds` root fills: `ds::place`'s margin then puts
-/// the menu's left edge at [`SIDE`] and its bottom at [`BOTTOM`] from the popup's.
-pub(crate) fn frame_style() -> String {
-    format!(
-        "padding:{top}px {side}px {bottom}px {side}px",
-        side = SIDE - MARGIN,
-        top = TOP - MARGIN,
-        bottom = BOTTOM - MARGIN
-    )
+/// The room the frame the popup's `Ds` root fills leaves around the menu: `ds::place`'s margin
+/// then puts the menu's left edge at [`SIDE`] and its bottom at [`BOTTOM`] from the popup's.
+pub(crate) fn room() -> PopupRoom {
+    PopupRoom {
+        side: SIDE - MARGIN,
+        top: TOP - MARGIN,
+        bottom: BOTTOM - MARGIN,
+    }
 }
 
 /// The point the Context menu is anchored at, in the popup: its left edge and its bottom edge
@@ -150,6 +150,7 @@ fn to_f32(v: i32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::{BOTTOM, GAP, SIDE, TOP, menu_config, menu_placement, popup_size};
+
     use crate::surfaces::dock::frame::Area;
     use crate::surfaces::dock::pick::DockPick;
     use ds::{Availability, MenuEntry, MenuTrail};

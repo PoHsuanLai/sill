@@ -42,7 +42,7 @@ use control_center_item::ControlCenterItem;
 use menu_track::{MenuIn, MenuParams, Target};
 use menus::BarMenu;
 use module_item::ModuleItem;
-use session::{BarInput, MenuBar, PopupLook, SessionDeps, use_menu_session};
+use session::{BarInput, MenuBar, SessionDeps, use_menu_session};
 use shell_style::shell_metrics;
 use status_item::status_metrics;
 use tray::Tray;
@@ -52,6 +52,7 @@ use crate::hooks::{use_appearance, use_service, use_service_part, use_services, 
 use crate::links::CenterLink;
 use crate::links::ControlCenterLink;
 use crate::look::use_active_look;
+use crate::menu::PopupLook;
 use crate::surfaces::control_center::{height_cap, menu_bar_modules};
 use sill_services::{AppsService, CosmicWlService, TrayService};
 
