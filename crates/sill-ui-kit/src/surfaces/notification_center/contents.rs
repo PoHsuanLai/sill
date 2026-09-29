@@ -12,7 +12,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
-use ds::{Button, ButtonVariant, LeavingItem, LeavingList, ListPresence};
+use ds::{Button, ButtonVariant, LeavingItem, LeavingList, Presence};
 use shell_host::OutputId;
 use sill_model::notifications::{History, UnixMs};
 
@@ -91,7 +91,7 @@ pub(super) fn Contents(output: OutputId) -> Element {
                 LeavingList::<RowKey> {
                     label: TITLE.to_owned(),
                     items,
-                    first: ListPresence::Entering,
+                    first: Presence::Entering,
                     on_settled: move |key: RowKey| {
                         eprintln!("notification_center.settled={key:?}");
                         drawn.settled(&key);
