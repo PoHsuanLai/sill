@@ -1,5 +1,5 @@
 //! Spawning the surfaces every output gets, each row's missing ones after every host event. The
-//! bar and wallpaper blocks live here; the other surfaces' `spawn_missing` sit in
+//! wallpaper block lives here; the other surfaces' `spawn_missing` sit in
 //! their own modules and are called in their drawing order by [`spawn_missing`].
 
 use shell_host::SurfaceId;
@@ -12,8 +12,8 @@ use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::surface::{LockSurface, MountLockProps, Surface, mount_lock};
 use sill_ui_kit::{
-    Banners, Dock, HotCorners, IdleDim, Launcher, LauncherCatcher, Lock, NotificationCenter, Osd,
-    PolkitPrompt, PowerMenu, ScreenshotThumb, Switcher, Wallpaper,
+    Banners, Bar, Dock, HotCorners, IdleDim, Launcher, LauncherCatcher, Lock, NotificationCenter,
+    Osd, PolkitPrompt, PowerMenu, ScreenshotThumb, Switcher, Wallpaper,
 };
 use tokio::sync::watch;
 
@@ -43,7 +43,7 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
         links,
     } = *spawn;
     let root = |root| surface_root(root, services, settings_feed, links);
-    spawn_missing_bars(ctx, outputs, services, settings_feed, links, settings);
+    spawn_surface::<Bar>(ctx, outputs, spawn, &links.control_center);
     prepare_wallpapers(outputs, services, &settings.borrow());
     spawn_surface::<Wallpaper>(ctx, outputs, spawn, &());
     spawn_surface::<Dock>(ctx, outputs, spawn, &());
@@ -66,59 +66,6 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     spawn_surface::<IdleDim>(ctx, outputs, spawn, &());
     // A surface spawned while the service dims is mapped at once.
     crate::idle_dim::apply(ctx, outputs, services.idle.state.borrow().dim);
-}
-
-/// Spawn a bar for every output whose row has none yet.
-fn spawn_missing_bars(
-    ctx: &mut HostCtx<ShellMsg>,
-    outputs: &mut Outputs,
-    services: &Services,
-    settings_feed: &SettingsFeed,
-    links: &Links,
-    settings_tx: &watch::Sender<ShellFile>,
-) {
-    let missing: Vec<OutputInfo> = outputs
-        .outputs
-        .iter()
-        .filter(|(_, surfaces)| surfaces.bar.is_none())
-        .map(|(info, _)| info.clone())
-        .collect();
-    if missing.is_empty() {
-        return;
-    }
-    let file = settings_tx.borrow().clone();
-    for info in missing {
-        spawn_bar(ctx, outputs, services, settings_feed, links, &file, info);
-    }
-}
-
-fn spawn_bar(
-    ctx: &mut HostCtx<ShellMsg>,
-    outputs: &mut Outputs,
-    services: &Services,
-    settings_feed: &SettingsFeed,
-    links: &Links,
-    file: &ShellFile,
-    info: OutputInfo,
-) {
-    let config = sill_ui_kit::surfaces::bar::bar_layer(&info, &file.bar);
-    let props = sill_ui_kit::surfaces::bar::BarProps {
-        output: info.clone(),
-    };
-    let root = surface_root(
-        HostRoot::with_props(sill_ui_kit::Bar, props),
-        services,
-        settings_feed,
-        links,
-    );
-    match ctx.spawn_layer(config, root) {
-        Ok(id) => {
-            let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
-            surfaces.bar = Some(id);
-            outputs.set(info, surfaces);
-        }
-        Err(error) => eprintln!("sill: spawning the bar on {:?}: {error}", info.name),
-    }
 }
 
 /// Give the wallpaper service the buffer size of every output that is about to get a wallpaper
@@ -197,7 +144,6 @@ pub(crate) fn surface_root(
     // output (`sill_ui_kit::links`).
     root.context(links.focus.clone())
         .context(links.power_menu.clone())
-        .context(links.control_center.clone())
         .context(links.notification_center.clone())
         .context(links.banners.clone())
         .context(links.switcher.clone())

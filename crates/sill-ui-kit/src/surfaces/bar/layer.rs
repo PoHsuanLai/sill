@@ -5,13 +5,13 @@ use shell_host::{
     Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerConfig, LayerExtent, LayerLevel, LayerSize,
     Margin, OutputInfo, OutputTarget, RegionSpec,
 };
-use sill_settings::BarSettings;
+use sill_settings::ShellFile;
 
 use crate::surfaces::naming::namespace;
 
 /// The bar's layer configuration on `output`.
-pub fn bar_layer(output: &OutputInfo, bar: &BarSettings) -> LayerConfig {
-    let height = u32::from(bar.height_px.0);
+pub(super) fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
+    let height = u32::from(settings.bar.height_px.0);
     LayerConfig {
         namespace: namespace("bar", output),
         layer: LayerLevel::Top,
@@ -31,23 +31,26 @@ pub fn bar_layer(output: &OutputInfo, bar: &BarSettings) -> LayerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::bar_layer;
+    use super::layer;
     use crate::surfaces::naming::tests::output;
     use ds_settings::Px;
     use shell_host::{
         Anchor, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, OutputId, OutputTarget,
         RegionSpec,
     };
-    use sill_settings::BarSettings;
+    use sill_settings::{BarSettings, ShellFile};
 
     #[test]
     fn the_bar_reserves_its_settings_height() {
         for height in [32, 24] {
-            let bar = BarSettings {
-                height_px: Px(height),
-                ..BarSettings::default()
+            let settings = ShellFile {
+                bar: BarSettings {
+                    height_px: Px(height),
+                    ..BarSettings::default()
+                },
+                ..ShellFile::default()
             };
-            let config = bar_layer(&output(Some("DP-1")), &bar);
+            let config = layer(&output(Some("DP-1")), &settings);
             assert_eq!(config.namespace, "sill-bar-DP-1");
             assert_eq!(config.layer, LayerLevel::Top);
             assert_eq!(config.anchor, Anchor::TOP | Anchor::LEFT | Anchor::RIGHT);

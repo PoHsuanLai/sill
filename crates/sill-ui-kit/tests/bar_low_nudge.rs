@@ -3,35 +3,16 @@
 //! when a discharging battery crosses `bar.battery_low_percent`, never for a wobble back over
 //! it, again only after it was plugged in, and the bar paints 0 frames after each change.
 
-use sill_ui_kit::harness::fake;
-use std::cell::RefCell;
 use std::time::Duration;
 
-use dioxus::prelude::*;
 use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use ds_native::{Harness, Viewport};
 use sill_model::battery::{Battery, Charge};
 use sill_model::units::{Percent, Presence};
-use sill_settings::{SettingsFeed, ShellFile};
 use sill_ui_kit::Bar;
-use sill_ui_kit::hooks::PinnedAppearance;
-use sill_ui_kit::services::Services;
-
-thread_local! {
-    static SERVICES: RefCell<Option<Services>> = const { RefCell::new(None) };
-}
-
-fn app() -> Element {
-    let services = SERVICES.with(|s| s.borrow().clone());
-    let Some(services) = services else {
-        return rsx! {};
-    };
-    use_context_provider(|| services);
-    // Not the desktop's portal and appearance file: they answer off-thread.
-    use_context_provider(PinnedAppearance::default);
-    use_context_provider(|| SettingsFeed::fixed(ShellFile::default()));
-    rsx! { Bar { output: fake::output() } }
-}
+use sill_ui_kit::harness::SurfaceHarness;
+use sill_ui_kit::harness::fake;
+use sill_ui_kit::links::ControlCenterLink;
 
 const VIEW: Viewport = Viewport {
     width: 1280,
@@ -69,10 +50,11 @@ fn feed(harness: &mut Harness, feeds: &fake::Feeds, battery: Battery) -> bool {
 
 #[test]
 fn the_battery_item_nudges_once_per_crossing() {
-    let (services, feeds) = fake::services();
-    SERVICES.with(|s| *s.borrow_mut() = Some(services));
-    let mut harness =
-        Harness::with_config(app, HarnessConfig::new(VIEW).with_clock(Clock::Virtual));
+    let SurfaceHarness {
+        mut harness, feeds, ..
+    } = SurfaceHarness::<Bar>::setup(ControlCenterLink::new(), ())
+        .viewport(VIEW)
+        .start();
     settle_until(&mut harness, |h| h.count("[*|aria-label=Battery]") == 1);
     assert_settles_to_zero_frames(&mut harness);
     assert_eq!(

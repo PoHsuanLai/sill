@@ -6,12 +6,10 @@
 mod cc_support;
 
 use cc_support::{fake, live};
-use std::cell::RefCell;
 use std::time::Duration;
 
-use dioxus::prelude::*;
 use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use ds_native::{Harness, Viewport};
 use sill_model::attempt::{Attempt, Attempts, OpStamp};
 use sill_model::battery::{Battery, Charge};
 use sill_model::bluetooth::BtConnection;
@@ -19,31 +17,10 @@ use sill_model::network::{Connectivity, Link, Network};
 use sill_model::units::{Percent, Presence};
 use sill_model::volume::{Mute, Volume};
 use sill_model::wifi::Radio;
-use sill_settings::{InMenuBar, SettingsFeed, ShellFile};
+use sill_settings::{InMenuBar, ShellFile};
 use sill_ui_kit::Bar;
-use sill_ui_kit::hooks::PinnedAppearance;
-use sill_ui_kit::services::Services;
-
-thread_local! {
-    static SERVICES: RefCell<Option<Services>> = const { RefCell::new(None) };
-}
-
-/// The bar with its Bluetooth item shown (`control_center.menu_bar_bluetooth`).
-fn bar_app() -> Element {
-    let services = SERVICES.with(|s| s.borrow().clone());
-    let Some(services) = services else {
-        return rsx! {};
-    };
-    use_context_provider(|| services);
-    // Not the desktop's portal and appearance file: they answer off-thread.
-    use_context_provider(PinnedAppearance::default);
-    use_context_provider(|| {
-        let mut file = ShellFile::default();
-        file.control_center.menu_bar_bluetooth = InMenuBar::Show;
-        SettingsFeed::fixed(file)
-    });
-    rsx! { Bar { output: fake::output() } }
-}
+use sill_ui_kit::harness::SurfaceHarness;
+use sill_ui_kit::links::ControlCenterLink;
 
 const BAR: Viewport = Viewport {
     width: 1280,
@@ -51,15 +28,18 @@ const BAR: Viewport = Viewport {
     scale_percent: 100,
 };
 
-/// The real bar on the fake services, settled.
+/// The real bar on the fake services, with its Bluetooth item shown
+/// (`control_center.menu_bar_bluetooth`), settled.
 fn bar() -> (Harness, fake::Feeds) {
-    let (services, feeds) = fake::services();
-    SERVICES.with(|s| *s.borrow_mut() = Some(services));
-    let mut harness =
-        Harness::with_config(bar_app, HarnessConfig::new(BAR).with_clock(Clock::Virtual));
-    settle_until(&mut harness, |h| h.count(&glyph("Bluetooth")) == 1);
-    assert_settles_to_zero_frames(&mut harness);
-    (harness, feeds)
+    let mut file = ShellFile::default();
+    file.control_center.menu_bar_bluetooth = InMenuBar::Show;
+    let mut run = SurfaceHarness::<Bar>::setup(ControlCenterLink::new(), ())
+        .settings(file)
+        .viewport(BAR)
+        .start();
+    settle_until(&mut run.harness, |h| h.count(&glyph("Bluetooth")) == 1);
+    assert_settles_to_zero_frames(&mut run.harness);
+    (run.harness, run.feeds)
 }
 
 /// The control center on the fake services, settled.

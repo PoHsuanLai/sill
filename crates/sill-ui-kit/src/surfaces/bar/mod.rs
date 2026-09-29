@@ -3,193 +3,32 @@
 //! own items (`control_center.menu_bar_*`: Sound, Wi-Fi and Battery by default), the control
 //! center's item and the clock; every menu an `xdg_popup`, tracked by [`menu_track`].
 
-pub mod app_name;
-pub mod clock;
-pub mod control_center_item;
-pub mod layer;
-pub mod menu_track;
-pub mod module_item;
-pub mod popup;
-pub mod tray;
-pub mod workspaces;
-
+mod app_name;
+mod clock;
 mod content;
+mod control_center_item;
 mod geometry;
+mod io;
+mod layer;
 mod menu_popup;
+pub mod menu_track;
 mod menus;
+mod model;
+mod module_item;
 mod pick;
 mod plan;
+mod popup;
 mod reorder;
-mod session;
 pub(crate) mod shell_style;
 mod status_item;
+mod surface;
 mod title;
+mod tray;
 mod tray_input;
 mod tray_menu;
+mod view;
+mod workspaces;
 
-pub use layer::bar_layer;
-
-use dioxus::prelude::*;
-use ds::{BlurState, Ds, Material, Point, Px, Rect, Size};
-use shell_host::{OutputInfo, SurfaceHandle};
-use sill_model::ids::OutputName;
-use sill_settings::{BarSettings, FocusLink, FocusMode, SettingsFeed};
-
-use app_name::AppName;
-use clock::ClockItem;
-use content::{BarState, front_app};
-use control_center_item::ControlCenterItem;
-use menu_track::{MenuIn, MenuParams, Target};
-use menus::BarMenu;
-use module_item::ModuleItem;
-use session::{BarInput, MenuBar, SessionDeps, use_menu_session};
-use shell_style::shell_metrics;
-use status_item::status_metrics;
-use tray::Tray;
-use workspaces::WorkspaceIndicator;
-
-use crate::hooks::{use_appearance, use_service, use_service_part, use_services, use_settings};
-use crate::links::CenterLink;
-use crate::links::ControlCenterLink;
-use crate::look::use_active_look;
-use crate::menu::PopupLook;
-use crate::surfaces::control_center::{height_cap, menu_bar_modules};
-use sill_services::{AppsService, CosmicWlService, TrayService};
-
-/// The bar's own stylesheet (lint-clean under `Profile::Strict`, `tests/bar_lint.rs`).
-pub(crate) const BAR_CSS: &str = include_str!("../../style/bar.css");
-
-/// The bar on `output`: `Ds` root with the workspace's SpaceLook, `Material::Bar`, the left
-/// and right groups, and the one reusable menu popup. The root draws the Space gradient at the
-/// Bar's tint alpha and puts its content on the frame ground (quire's `FrameTint::Tinted` and
-/// `Ground::Frame`, the Bar's defaults), so the bar paints no tint of its own.
-#[component]
-pub fn Bar(output: OutputInfo) -> Element {
-    let ds_scale = crate::hooks::use_ds_scale();
-    let file = use_settings()();
-    let environment = use_appearance()();
-    let _workspaces = use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())();
-    let tray = use_service::<TrayService>()();
-    let on = output.name.clone().map(OutputName);
-    let look = use_active_look(&output);
-    let metrics = shell_metrics(&file);
-    let popup_look = PopupLook {
-        appearance: environment.settings.appearance.appearance(),
-        system: environment.system,
-        tint: environment.tint_alpha(),
-        metrics,
-        stack: environment.material_stack(),
-    };
-    let state = BarState {
-        app: front_app(
-            &use_service_part::<CosmicWlService, _>(|wl| wl.toplevels.clone())(),
-            &use_service::<AppsService>()(),
-            on.as_ref(),
-        ),
-        control_center: file.control_center.clone(),
-    };
-    let focus = try_use_context::<FocusLink>().unwrap_or_else(|| FocusLink::fixed(FocusMode::Off));
-    let bar = use_menu_session(SessionDeps {
-        state,
-        services: use_services(),
-        surface: try_use_context::<SurfaceHandle>(),
-        params: MenuParams::new(&file.menus),
-        look: popup_look,
-        namespace: bar_layer(&output, &file.bar).namespace,
-        output: output.id,
-        power_menu: try_use_context::<crate::links::PowerMenuLink>(),
-        settings: use_context::<SettingsFeed>(),
-        focus,
-        output_name: on.clone(),
-        bar_width: output.logical.width,
-        cap: height_cap(output.logical.height, &file.bar, &file.control_center),
-        status_box: status_box(output.logical.width, &file.bar),
-        center: try_use_context::<CenterLink>(),
-    });
-    use_context_provider(|| bar);
-    use_control_center_asks(bar, output.id);
-    let modules = menu_bar_modules(&file.control_center);
-    let outside = move |input: MenuIn| bar.feed(BarInput::Bar { input, title: None });
-    let strip = format!("height:{}px", file.bar.height_px.0);
-    let status = format!(
-        "gap:{}px;{}",
-        file.bar.status_gap_px.0,
-        status_metrics(&file.bar).style_attr()
-    );
-    rsx! {
-        div { class: "sill-bar-root", style: metrics.style_attr(),
-        Ds {
-            scale: ds_scale,
-            appearance: popup_look.appearance,
-            system: popup_look.system,
-            look,
-            material: Material::Bar,
-            blur: BlurState::Available,
-            tint_alpha: Some(popup_look.tint),
-            stack: Some(popup_look.stack),
-            style { {BAR_CSS} }
-            div {
-                class: "sill-bar",
-                style: strip,
-                onpointerdown: move |_| outside(MenuIn::OutsidePress),
-                onpointerup: move |_| outside(MenuIn::Release(Target::Outside)),
-                div { class: "sill-bar-group",
-                    AppName { output: output.clone() }
-                    WorkspaceIndicator { output: output.clone() }
-                }
-                div { class: "sill-bar-group", style: status,
-                    if !tray.items.is_empty() {
-                        Tray { output: output.clone() }
-                    }
-                    for module in modules {
-                        ModuleItem { key: "{module:?}", output: output.clone(), module }
-                    }
-                    ControlCenterItem { output: output.clone() }
-                    ClockItem { output: output.clone() }
-                }
-            }
-        }
-        }
-    }
-}
-
-/// Follow `sill control-center toggle` (the daemon's `ControlCenterLink`, absent in a demo or a
-/// test): an ask for this bar's output toggles its control center.
-fn use_control_center_asks(bar: MenuBar, output: shell_host::OutputId) {
-    let link = try_use_context::<ControlCenterLink>();
-    use_hook(move || {
-        let Some(link) = link else {
-            return;
-        };
-        let mut asks = link.subscribe();
-        // Only asks made after the bar subscribed.
-        asks.borrow_and_update();
-        spawn(async move {
-            while asks.changed().await.is_ok() {
-                let ask = *asks.borrow_and_update();
-                if ask.output == Some(output) {
-                    bar.toggle(BarMenu::ControlCenter);
-                }
-            }
-        });
-    });
-}
-
-/// The last status item's slot, vertically centred in the bar, at its right end: the control
-/// center's title rect when it opens with no pointer event behind it. The slot is quire's
-/// (design/29): `max(--bar-status-w, box)` wide by the box tall.
-fn status_box(bar_width: i32, bar: &BarSettings) -> Rect {
-    let side = f32::from(bar.status_icon_box_px.0);
-    let width = side.max(f32::from(ds::SHELL_SCALE.status_width.0));
-    let height = f32::from(bar.height_px.0);
-    Rect {
-        origin: Point {
-            x: Px(bar_width as f32 - width),
-            y: Px((height - side) / 2.0),
-        },
-        size: Size {
-            width: Px(width),
-            height: Px(side),
-        },
-    }
-}
+pub use menu_popup::POPUP_CSS as BAR_POPUP_CSS;
+pub use surface::Bar;
+pub use view::BAR_CSS;

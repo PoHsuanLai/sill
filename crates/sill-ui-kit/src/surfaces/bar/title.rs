@@ -7,9 +7,10 @@ use dioxus::prelude::*;
 use ds::{Emphasis, MenuBarItem, RectProbe, Switch};
 use shell_host::Point;
 
+use super::io::MenuBar;
 use super::menu_track::{MenuIn, Target};
 use super::menus::BarMenu;
-use super::session::{BarInput, MenuBar};
+use super::model::BarInput;
 use crate::hooks::use_settings;
 
 /// The pointer's position in the bar, whole logical pixels.

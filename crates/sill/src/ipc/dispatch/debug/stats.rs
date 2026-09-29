@@ -9,7 +9,7 @@ use sill_ui_kit::Lock;
 use sill_ui_kit::surface::LockSurface;
 
 use crate::daemon::msg::ShellMsg;
-use crate::outputs::{OutputSurfaces, Outputs, bar_namespace};
+use crate::outputs::{OutputSurfaces, Outputs};
 
 /// Every known surface's frame statistics: the rows' surfaces, and the lock surfaces while a lock
 /// is up.
@@ -44,7 +44,6 @@ fn lock_surfaces(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs) -> Vec<(String,
 
 /// One output's spawned surfaces, each with its layer namespace.
 fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, SurfaceId)> {
-    let bar = surfaces.bar.map(|id| (bar_namespace(info), id));
     let desktop = surfaces
         .desktop_widgets
         .map(|id| (crate::widgets::namespace(info), id));
@@ -55,11 +54,7 @@ fn row_surfaces(info: &OutputInfo, surfaces: &OutputSurfaces) -> Vec<(String, Su
         .spawned
         .iter()
         .map(|surface| (surface.namespace.clone(), surface.id));
-    bar.into_iter()
-        .chain(desktop)
-        .chain(edit)
-        .chain(spawned)
-        .collect()
+    desktop.into_iter().chain(edit).chain(spawned).collect()
 }
 
 fn wire_stats(name: String, stats: shell_host::FrameStats) -> SurfaceStats {

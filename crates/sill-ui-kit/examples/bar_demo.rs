@@ -19,7 +19,7 @@ use sill_settings::{SettingsFeed, ShellFile};
 use sill_ui_kit::Bar;
 use sill_ui_kit::clock::FrameClock;
 use sill_ui_kit::links::CenterLink;
-use sill_ui_kit::surfaces::bar::{BarProps, bar_layer};
+use sill_ui_kit::surface::{MountProps, Surface, mount};
 use tokio::sync::mpsc;
 
 fn main() {
@@ -95,8 +95,8 @@ fn spawn_bar(
     settings: &SettingsFeed,
     clock: FrameClock,
 ) {
-    let config = bar_layer(&output, &ShellFile::default().bar);
-    let root = HostRoot::with_props(Bar, BarProps { output })
+    let config = Bar::layer(&output, &ShellFile::default(), ());
+    let root = HostRoot::with_props(mount::<Bar>, MountProps::<Bar>::new(output, ()))
         .context(services.clone())
         .context(settings.clone())
         .context(clock)

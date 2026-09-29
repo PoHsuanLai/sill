@@ -6,8 +6,8 @@ use ds::detail::Cue;
 use ds::{IconButton, IconButtonVariant, IconSource, Px, StatusMetrics, Switch, use_rect};
 use sill_settings::{BarGlyphSize, BarSettings};
 
+use super::io::MenuBar;
 use super::menus::BarMenu;
-use super::session::MenuBar;
 use super::title::{SlotPill, TitleSlot};
 
 /// The status items' box and glyph from `bar.status_icon_box_px`, `bar.status_glyph_px` and

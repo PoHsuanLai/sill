@@ -24,12 +24,12 @@ use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
-    BannerLink, BannerOutput, CenterLink, Dir, LauncherLink, LevelSource, LockLink, OsdKind,
-    OsdLink, PowerMenuLink, Preselect, PromptOutput, SwitcherAsk, SwitcherLink,
+    BannerLink, BannerOutput, CenterLink, ControlCenterLink, Dir, LauncherLink, LevelSource,
+    LockLink, OsdKind, OsdLink, PowerMenuLink, Preselect, PromptOutput, SwitcherAsk, SwitcherLink,
 };
 use sill_ui_kit::{
-    Banners, Dock, IdleDim, Launcher, LauncherCatcher, Lock, NotificationCenter, Osd, PolkitPrompt,
-    PowerMenu, ScreenshotThumb, Switcher, Wallpaper,
+    Banners, Bar, Dock, IdleDim, Launcher, LauncherCatcher, Lock, NotificationCenter, Osd,
+    PolkitPrompt, PowerMenu, ScreenshotThumb, Switcher, Wallpaper,
 };
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
@@ -42,6 +42,16 @@ struct SurfaceCase {
 }
 
 const SURFACES: &[SurfaceCase] = &[
+    SurfaceCase {
+        name: "bar",
+        css: sill_ui_kit::surfaces::bar::BAR_CSS,
+        states: bar_states,
+    },
+    SurfaceCase {
+        name: "bar_popup",
+        css: sill_ui_kit::surfaces::bar::BAR_POPUP_CSS,
+        states: no_states,
+    },
     SurfaceCase {
         name: "dock",
         css: sill_ui_kit::surfaces::dock::DOCK_CSS,
@@ -128,6 +138,13 @@ fn strict() -> LintConfig {
 /// A surface with no markup of its own to lint: a bare element the stylesheet sizes.
 fn no_states() -> Vec<(&'static str, String)> {
     Vec::new()
+}
+
+/// The bar with its default items, settled.
+fn bar_states() -> Vec<(&'static str, String)> {
+    let mut bar = SurfaceHarness::<Bar>::setup(ControlCenterLink::new(), ()).start();
+    bar.harness.advance(Duration::ZERO);
+    vec![("idle", bar.harness.html())]
 }
 
 /// The dock on the dock fixtures, pinned, running and badged; then hiding, with its strip.

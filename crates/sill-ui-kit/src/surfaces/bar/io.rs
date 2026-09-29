@@ -4,68 +4,38 @@
 
 use std::collections::HashMap;
 
-use crate::services::Services;
 use dioxus::prelude::*;
 use shell_host::{
-    HostRoot, OutputId, PopupAnchor, PopupConfig, PopupPlacement, PopupSize, SurfaceHandle,
+    HostRoot, OutputId, OutputInfo, PopupAnchor, PopupConfig, PopupSize, SurfaceHandle,
 };
 use sill_model::ids::OutputName;
-use sill_settings::{FocusLink, SettingsFeed};
+use sill_settings::{FocusLink, FocusMode, SettingsFeed};
 use tokio::sync::{mpsc, watch};
 
-use super::content::{BarState, PopupBody, body};
+use super::content::{BarState, body, front_app};
 use super::geometry::{Around, MAX_PX, placement};
+use super::layer::layer;
 use super::menu_popup::{BarPopup, PopupLink};
 use super::menu_track::Target;
 use super::menu_track::{MenuIn, MenuParams, MenuTrack, step};
 use super::menus::BarMenu;
+use super::model::{BarInput, Handoff, PopupView, SessionDeps, status_box};
 use super::pick::{BarPick, Command, commands};
 use super::plan::{BarEffect, PopupReport, effects, popup_input};
 use super::popup::menu_popup;
 use crate::clock::FrameClock;
-use crate::links::{CenterLink, CenterShown};
-use crate::links::{PowerMenuLink, Preselect};
+use crate::hooks::{use_service, use_service_part, use_services, use_settings};
+use crate::links::{CenterLink, CenterShown, ControlCenterLink, PowerMenuLink, Preselect};
 use crate::menu::PopupLook;
 use crate::surfaces::control_center::fit::{Fit, device_rows, wifi_rows};
-use crate::surfaces::control_center::{CcPage, PanelCap};
-
-/// Whether a bar menu waits for the notification center to leave before its popup opens.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Handoff {
-    Idle,
-    Waiting,
-}
+use crate::surfaces::control_center::{CcPage, PanelCap, height_cap};
+use sill_services::{AppsService, CosmicWlService};
 
 /// How long a menu opened while the notification center is up waits for it to leave. On KWin
 /// the center's unmapping moves the activation to the window under it, and a grabbing popup
 /// opened before that move is dismissed by it at once; by this time the center
 /// is gone and the move is over.
 const CENTER_HANDOFF: std::time::Duration = std::time::Duration::from_millis(150);
-
-/// What the popup shows: one menu's contents, where, and in which appearance.
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct PopupView {
-    pub menu: BarMenu,
-    pub body: PopupBody,
-    pub placement: PopupPlacement,
-    pub look: PopupLook,
-}
-
-/// One input to the session.
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) enum BarInput {
-    /// A pointer event on the bar, with the title's measured rect when it came from one.
-    Bar {
-        input: MenuIn,
-        title: Option<(BarMenu, ds::Rect)>,
-    },
-    /// What the popup reported.
-    Popup(PopupReport),
-    /// The control center moved to `page` (the popup resizes to it).
-    Page(CcPage),
-    /// The notification center a menu closed has had time to leave ([`Handoff`]).
-    CenterGone,
-}
 
 /// The session as the bar's titles see it.
 #[derive(Clone, Copy)]
@@ -103,37 +73,6 @@ impl MenuBar {
     }
 }
 
-/// What the session needs from the bar each render.
-pub(crate) struct SessionDeps {
-    pub state: BarState,
-    pub services: Services,
-    pub surface: Option<SurfaceHandle>,
-    pub params: MenuParams,
-    pub look: PopupLook,
-    /// The bar's layer namespace, which names the popup's anchor in `menu_popup`.
-    pub namespace: String,
-    /// The bar's output, where the app menu's "Shut Down…" opens the power menu.
-    pub output: OutputId,
-    /// The power menu's shared state, when the daemon gave the bar one (a demo or a test may
-    /// not).
-    pub power_menu: Option<PowerMenuLink>,
-    /// The popup root's contexts for the control center and the module dropdowns: the
-    /// settings, the focus mode, the bar's output by name.
-    pub settings: SettingsFeed,
-    pub focus: FocusLink,
-    pub output_name: Option<OutputName>,
-    /// The bar's width (the control center hangs from its right end) and the panel's cap
-    /// (`control_center::height_cap`).
-    pub bar_width: i32,
-    pub cap: i32,
-    /// The status items' box, centred in the bar: where a menu opened with no pointer event
-    /// (the control center's toggle) takes its title's rect from.
-    pub status_box: ds::Rect,
-    /// The notification center, which a bar menu closes as it opens (one menu-bar panel at a
-    /// time, as on macOS); absent in a demo or a test.
-    pub center: Option<CenterLink>,
-}
-
 /// The popup channel of the open session: its view sender and the popup's report channel.
 struct Link {
     view: Option<watch::Sender<Option<PopupView>>>,
@@ -153,6 +92,64 @@ struct Slots {
     handoff: CopyValue<Handoff>,
     /// The session's own input, for the handoff's wake-up (set once the callback exists).
     feed: CopyValue<Option<Callback<BarInput>>>,
+}
+
+/// The bar on `output`: its menu session, provided to the titles as context, and the control
+/// center asks it follows.
+pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
+    let file = use_settings()();
+    let on = output.name.clone().map(OutputName);
+    let state = BarState {
+        app: front_app(
+            &use_service_part::<CosmicWlService, _>(|wl| wl.toplevels.clone())(),
+            &use_service::<AppsService>()(),
+            on.as_ref(),
+        ),
+        control_center: file.control_center.clone(),
+    };
+    let focus = try_use_context::<FocusLink>().unwrap_or_else(|| FocusLink::fixed(FocusMode::Off));
+    let bar = use_menu_session(SessionDeps {
+        state,
+        services: use_services(),
+        surface: try_use_context::<SurfaceHandle>(),
+        params: MenuParams::new(&file.menus),
+        look,
+        namespace: layer(output, &file).namespace,
+        output: output.id,
+        power_menu: try_use_context::<PowerMenuLink>(),
+        settings: use_context::<SettingsFeed>(),
+        focus,
+        output_name: on,
+        bar_width: output.logical.width,
+        cap: height_cap(output.logical.height, &file.bar, &file.control_center),
+        status_box: status_box(output.logical.width, &file.bar),
+        center: try_use_context::<CenterLink>(),
+    });
+    use_context_provider(|| bar);
+    use_control_center_asks(bar, output.id);
+    bar
+}
+
+/// Follow `sill control-center toggle` (the daemon's `ControlCenterLink`, absent in a demo or a
+/// test): an ask for this bar's output toggles its control center.
+fn use_control_center_asks(bar: MenuBar, output: OutputId) {
+    let link = try_use_context::<ControlCenterLink>();
+    use_hook(move || {
+        let Some(link) = link else {
+            return;
+        };
+        let mut asks = link.subscribe();
+        // Only asks made after the bar subscribed.
+        asks.borrow_and_update();
+        spawn(async move {
+            while asks.changed().await.is_ok() {
+                let ask = *asks.borrow_and_update();
+                if ask.output == Some(output) {
+                    bar.toggle(BarMenu::ControlCenter);
+                }
+            }
+        });
+    });
 }
 
 /// Start (once) and update (every render) the bar's menu session.

@@ -4,10 +4,9 @@
 
 use sill_ipc::response::Response;
 use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
-use sill_ui_kit::Launcher;
 use sill_ui_kit::links::Preselect;
 use sill_ui_kit::surface::Surface;
-use sill_ui_kit::{NotificationCenter, PowerMenu};
+use sill_ui_kit::{Bar, Launcher, NotificationCenter, PowerMenu};
 
 use super::reach::Reach;
 use super::reply::unsupported;
@@ -87,7 +86,9 @@ fn notification_center(reach: &Reach, reveal: Reveal) -> Response {
 
 /// The control center is a popup of a bar: it toggles under the first bar's item.
 fn control_center(reach: &Reach) -> Response {
-    match first_with(reach.outputs, |s| s.bar.is_some()) {
+    match first_with(reach.outputs, |s| {
+        s.spawned.iter().any(|surface| surface.name == Bar::NAME)
+    }) {
         Some(output) => {
             reach.links.control_center.toggle(output);
             Response::Done

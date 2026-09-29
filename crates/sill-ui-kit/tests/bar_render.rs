@@ -1,35 +1,21 @@
-//! The bar's SSR render reads the frozen channels: what the fake services hold is what the bar
-//! shows, and a value fed before the render changes what it shows.
+//! The bar mounted as a `Surface` on the fake services: what the services hold is what the bar
+//! shows, and a value fed after it started changes what it shows.
 
-use sill_ui_kit::harness::fake;
+use std::time::Duration;
 
-use dioxus::prelude::*;
 use sill_model::battery::Battery;
 use sill_model::clock::ClockText;
 use sill_model::cosmic_wl::Toplevels;
 use sill_model::units::Presence;
-use sill_settings::{SettingsFeed, ShellFile};
 use sill_ui_kit::Bar;
-use sill_ui_kit::services::Services;
-use sill_ui_kit::surfaces::bar::BarProps;
+use sill_ui_kit::harness::SurfaceHarness;
+use sill_ui_kit::links::ControlCenterLink;
 
-fn render(services: Services) -> String {
-    let rt = tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(1)
-        .enable_all()
-        .build()
-        .expect("a runtime builds"); // test-only
-    let _entered = rt.enter();
-    let mut dom = VirtualDom::new_with_props(
-        Bar,
-        BarProps {
-            output: fake::output(),
-        },
-    );
-    dom.provide_root_context(services);
-    dom.provide_root_context(SettingsFeed::fixed(ShellFile::default()));
-    dom.rebuild_in_place();
-    dioxus_ssr::render(&dom)
+/// The bar on the default settings, its first frame drawn.
+fn start() -> SurfaceHarness<Bar> {
+    let mut bar = SurfaceHarness::<Bar>::setup(ControlCenterLink::new(), ()).start();
+    bar.harness.advance(Duration::ZERO);
+    bar
 }
 
 /// How many times `needle` occurs in `html`.
@@ -39,8 +25,7 @@ fn count(html: &str, needle: &str) -> usize {
 
 #[test]
 fn the_bar_shows_what_the_services_hold() {
-    let (services, _feeds) = fake::services();
-    let html = render(services);
+    let html = start().harness.html();
     let cases = [
         ("the clock", "Thu 24 Sep 14:05", 1),
         ("the app name", ">foot<", 1),
@@ -89,8 +74,9 @@ fn the_bar_shows_what_the_services_hold() {
 
 #[test]
 fn fed_values_replace_the_defaults() {
-    let (services, feeds) = fake::services();
-    let before = render(services.clone());
+    let mut bar = start();
+    let before = bar.harness.html();
+    let feeds = &bar.feeds;
     feeds.clock.send_replace(ClockText {
         text: "Fri 25 Sep 09:00".to_owned(),
     });
@@ -101,7 +87,8 @@ fn fed_values_replace_the_defaults() {
     feeds
         .cosmic_wl
         .send_modify(|wl| wl.toplevels = Toplevels::default());
-    let after = render(services);
+    bar.harness.advance(Duration::from_millis(40));
+    let after = bar.harness.html();
     let cases = [
         ("the old time", "Thu 24 Sep 14:05", 1, 0),
         ("the new time", "Fri 25 Sep 09:00", 0, 1),

@@ -174,7 +174,7 @@ fn open_menu(
     control: &Control<TrayCommand>,
 ) {
     // Fixed at the estimate: a document of one overlay measures at nothing, and shell-host's
-    // content fit would shrink the popup to 1 x 1 (the bar's menus, `session.rs`).
+    // content fit would shrink the popup to 1 x 1 (the bar's menus, `io.rs`).
     let entries = to_ds_entries(menu);
     let height = (menu_size(&entries).height + POPUP_SLACK).min(POPUP_MAX);
     let config = PopupConfig {

@@ -5,12 +5,13 @@
 use std::path::PathBuf;
 use std::time::Instant;
 
-use shell_host::{CloseReason, HostCtx, HostEvent, SurfaceId};
+use shell_host::{CloseReason, HostCtx, HostEvent, SurfaceId, SurfaceOp};
 use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
 use sill_model::displays::DisplaysCommand;
 use sill_settings::{SettingsFeed, ShellFile};
+use sill_ui_kit::Bar;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::surface::Surface;
@@ -234,7 +235,7 @@ fn close_every(ctx: &mut HostCtx<ShellMsg>, surfaces: &OutputSurfaces) {
 }
 
 /// A surface the compositor (or a failed spawn) closed: forget it. An unrequested close leaves
-/// its output's row with that field `None`, which `spawn_missing_bars` treats as "needs one".
+/// its output's row without it, which `spawn_surface` treats as "needs one".
 fn on_surface_closed(outputs: &mut Outputs, id: SurfaceId, reason: CloseReason) {
     let Some((info, surfaces)) = outputs.row_with(id) else {
         return;
@@ -248,16 +249,14 @@ fn on_surface_closed(outputs: &mut Outputs, id: SurfaceId, reason: CloseReason) 
     }
 }
 
-/// A settled `settings.toml`: re-apply every bar's geometry (only `bar.height_px` can change
-/// it; the rest is drawn by the bar's own component).
+/// A settled `settings.toml`: re-apply every bar's reserved height (only `bar.height_px` can
+/// change it). `spawn_surface` resizes the layer itself; the rest is drawn by the bar's own
+/// component.
 fn resize_bars(ctx: &mut HostCtx<ShellMsg>, outputs: &Outputs, file: &ShellFile) {
     for (info, surfaces) in &outputs.outputs {
-        let Some(id) = surfaces.bar else { continue };
-        let config = sill_ui_kit::surfaces::bar::bar_layer(info, &file.bar);
-        ctx.apply(id, shell_host::SurfaceOp::SetSize(config.size));
-        ctx.apply(
-            id,
-            shell_host::SurfaceOp::SetExclusiveZone(config.exclusive),
-        );
+        let exclusive = Bar::layer(info, file, ()).exclusive;
+        for bar in surfaces.spawned.iter().filter(|s| s.name == Bar::NAME) {
+            ctx.apply(bar.id, SurfaceOp::SetExclusiveZone(exclusive));
+        }
     }
 }

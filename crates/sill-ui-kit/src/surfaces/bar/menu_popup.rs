@@ -19,9 +19,9 @@ use tokio::sync::{mpsc, watch};
 
 use super::content::PopupBody;
 use super::geometry::{MARGIN, frame_style};
+use super::model::PopupView;
 use super::pick::BarPick;
 use super::plan::{PopupReport, choice};
-use super::session::PopupView;
 use crate::root::HostModalityBridge;
 use crate::surfaces::control_center::{CcPage, ControlCenter, ModuleDropdown};
 
@@ -48,7 +48,7 @@ fn corner() -> Anchor {
 }
 
 /// The popup document's own stylesheet: the frame its `Ds` root sits in.
-pub(crate) const POPUP_CSS: &str = include_str!("../../style/bar_popup.css");
+pub const POPUP_CSS: &str = include_str!("../../style/bar_popup.css");
 
 /// The control center's and the module dropdowns' stylesheet (lint-clean under
 /// `Profile::Strict`, `tests/control_center_lint.rs`).

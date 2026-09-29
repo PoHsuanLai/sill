@@ -23,7 +23,6 @@ pub struct Spawned {
 pub struct OutputSurfaces {
     /// Every surface spawned through `Surface`, in spawn order.
     pub spawned: Vec<Spawned>,
-    pub bar: Option<SurfaceId>,
     /// The desktop widget layer (while `widgets.desktop` is on).
     pub desktop_widgets: Option<SurfaceId>,
     /// Edit Widgets (the widget gallery), warm and hidden.
@@ -32,8 +31,8 @@ pub struct OutputSurfaces {
 
 impl OutputSurfaces {
     /// Every field, for code that treats them uniformly (closing them all, searching by id).
-    fn fields(&self) -> [Option<SurfaceId>; 3] {
-        [self.bar, self.desktop_widgets, self.edit_widgets]
+    fn fields(&self) -> [Option<SurfaceId>; 2] {
+        [self.desktop_widgets, self.edit_widgets]
     }
 
     /// The id of this row's spawned surface `name` (a `Surface::NAME`), if it has one. A slotted
@@ -67,11 +66,7 @@ impl OutputSurfaces {
     /// Forget `id`, whichever surface held it.
     pub fn clear(&mut self, id: SurfaceId) {
         self.spawned.retain(|surface| surface.id != id);
-        for field in [
-            &mut self.bar,
-            &mut self.desktop_widgets,
-            &mut self.edit_widgets,
-        ] {
+        for field in [&mut self.desktop_widgets, &mut self.edit_widgets] {
             if *field == Some(id) {
                 *field = None;
             }
@@ -148,21 +143,12 @@ pub fn reconcile(current: &Outputs, now: &[OutputInfo]) -> Vec<OutputAction> {
     actions
 }
 
-/// The layer-shell namespace the bar on `info` gets (`sill-bar-DP-1`), and the name a debug request
-/// addresses it by. Mirrors `sill_ui_kit::surfaces::naming::namespace("bar", output)`, which is
-/// `pub(crate)` to that crate: `sill_ui_kit::surfaces::bar::bar_layer` sets a spawned bar's
-/// namespace this way, so the daemon's debug lookups must agree with it exactly.
-pub fn bar_namespace(info: &OutputInfo) -> String {
-    match &info.name {
-        Some(name) => format!("sill-bar-{name}"),
-        None => format!("sill-bar-{}", info.id.0),
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{OutputSurfaces, Outputs, Spawned, bar_namespace, reconcile};
+    use super::{OutputSurfaces, Outputs, Spawned, reconcile};
     use shell_host::{LayerExtent, LayerSize, OutputId, OutputInfo, Rect, Scale, SurfaceId};
+    use sill_ui_kit::HotCorners;
+    use sill_ui_kit::surface::Surface;
 
     fn output(id: u32, name: &str, width: i32) -> OutputInfo {
         OutputInfo {
@@ -180,33 +166,38 @@ mod tests {
         }
     }
 
-    fn surfaces(bar: u64) -> OutputSurfaces {
+    fn spawned(name: &'static str, id: u64) -> Spawned {
+        Spawned {
+            name,
+            slot: "BottomRight".to_owned(),
+            id: SurfaceId(id),
+            namespace: format!("sill-{name}-DP-1"),
+            size: LayerSize {
+                width: LayerExtent::Px(2),
+                height: LayerExtent::Px(2),
+            },
+        }
+    }
+
+    fn surfaces(id: u64) -> OutputSurfaces {
         OutputSurfaces {
-            bar: Some(SurfaceId(bar)),
+            spawned: vec![spawned("bar", id)],
             ..OutputSurfaces::default()
         }
     }
 
     #[test]
-    fn spawned_surfaces_are_found_and_forgotten_like_the_rest() {
+    fn spawned_surfaces_are_found_and_forgotten() {
         let mut row = surfaces(1);
-        row.desktop_widgets = Some(SurfaceId(2));
-        row.spawned.push(Spawned {
-            name: "hot-corner",
-            slot: "BottomRight".to_owned(),
-            id: SurfaceId(3),
-            namespace: "sill-hot-corner-bottom-right-DP-1".to_owned(),
-            size: LayerSize {
-                width: LayerExtent::Px(2),
-                height: LayerExtent::Px(2),
-            },
-        });
-        assert!(row.contains(SurfaceId(2)));
+        row.spawned.push(spawned(HotCorners::NAME, 3));
+        assert!(row.contains(SurfaceId(1)));
         assert!(row.contains(SurfaceId(3)));
-        assert_eq!(row.ids().count(), 3);
+        assert_eq!(row.surface_of::<HotCorners>(), Some(SurfaceId(3)));
+        assert_eq!(row.ids().count(), 2);
         row.clear(SurfaceId(3));
         assert!(!row.contains(SurfaceId(3)));
-        assert_eq!(row.ids().count(), 2);
+        assert_eq!(row.surface_of::<HotCorners>(), None);
+        assert_eq!(row.ids().count(), 1);
     }
 
     #[test]
@@ -265,13 +256,5 @@ mod tests {
                 super::OutputAction::CloseAll(OutputId(2)),
             ]
         );
-    }
-
-    #[test]
-    fn the_bar_namespace_uses_the_connector_name_or_falls_back_to_the_id() {
-        assert_eq!(bar_namespace(&output(1, "DP-1", 1920)), "sill-bar-DP-1");
-        let mut nameless = output(7, "unused", 1920);
-        nameless.name = None;
-        assert_eq!(bar_namespace(&nameless), "sill-bar-7");
     }
 }
