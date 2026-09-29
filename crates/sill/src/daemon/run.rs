@@ -1,0 +1,266 @@
+//! `sill run`: take the single-instance lock, start the services and the IPC server, connect the
+//! host, and keep one set of surfaces per output. The lock is
+//! `latchkey::Agent::new("sill").listen()`; `AlreadyRunning` exits 0.
+//!
+//! `Links` is built once here and installed for the surfaces and the IPC dispatch to read
+//! (`crate::links`).
+
+use std::path::PathBuf;
+use std::process::ExitCode;
+use std::time::{Duration, Instant};
+
+use shell_host::{Host, HostConfig, HostHandle};
+use sill_services::env::Env;
+use sill_settings::{SettingsFeed, ShellFile};
+use sill_surfaces::services::Services;
+use sill_surfaces::surfaces::launcher::LauncherLink;
+use sill_surfaces::surfaces::osd::OsdLink;
+use tokio::runtime::Runtime;
+use tokio::sync::watch;
+
+use super::events::{Shell, handle};
+use super::msg::ShellMsg;
+use super::{services, settings};
+use crate::ipc::server;
+use crate::links::Links;
+use crate::outputs::Outputs;
+
+/// Run the daemon until `quit` or a fatal host error, on the seams `args` make.
+pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
+    let door = match take_door() {
+        Ok(door) => door,
+        Err(exit) => return exit,
+    };
+    let runtime = match tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(runtime) => runtime,
+        Err(error) => return fatal(&format!("starting the async runtime: {error}")),
+    };
+
+    let env = args.env();
+    let services = services::start(runtime.handle(), &env);
+    let settings_dir = Some(env.dirs.sill_config());
+    let first = settings_dir
+        .as_deref()
+        .map(sill_settings::load)
+        .unwrap_or_default();
+    let (settings, settings_rx) = watch::channel(first.clone());
+    let settings_feed = SettingsFeed(settings_rx);
+    install_links(
+        &runtime,
+        args,
+        &env,
+        &settings_feed,
+        &settings,
+        settings_dir.clone(),
+    );
+    services::follow_settings(runtime.handle(), &settings_feed, &services, &env);
+
+    let host = match Host::<ShellMsg>::connect(host_config(&first)) {
+        Ok(host) => host,
+        Err(error) => return fatal(&format!("connecting to the compositor: {error}")),
+    };
+    let host_handle = host.handle();
+    // Detached: it accepts connections until the process exits with the host (doc on
+    // `ipc::server::spawn`).
+    let _ipc_thread = server::spawn(door, host_handle.clone());
+
+    let launcher = LauncherLink::new();
+    spawn_followers(
+        &runtime,
+        &services,
+        &settings_feed,
+        &host_handle,
+        &launcher,
+        settings_dir.clone(),
+    );
+    let mut shell = Shell {
+        outputs: Outputs::default(),
+        shell_lock: crate::lock::ShellLock::default(),
+        services,
+        settings_feed,
+        settings_dir,
+        settings,
+        launcher,
+        osd: OsdLink::new(),
+    };
+    let result = host.run(move |ctx, event| handle(&mut shell, ctx, event));
+
+    shutdown_runtime(runtime);
+
+    match result {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => fatal(&format!("{error}")),
+    }
+}
+
+/// The single-instance lock: another daemon already running exits 0.
+fn take_door() -> Result<latchkey::Listening, ExitCode> {
+    let agent = latchkey::Agent::new("sill")
+        .map_err(|error| fatal(&format!("naming this agent: {error}")))?;
+    agent.listen().map_err(|error| match error {
+        latchkey::Error::AlreadyRunning => ExitCode::SUCCESS,
+        error => fatal(&format!("taking the single-instance lock: {error}")),
+    })
+}
+
+/// The host's configuration: shell-host's, with the first-mouse window from `first`'s settings.
+fn host_config(first: &ShellFile) -> HostConfig {
+    HostConfig {
+        first_mouse_window_ms: shell_host::config::Ms(u32::from(
+            first.menus.first_mouse_window_ms.0,
+        )),
+        ..sill_surfaces::host_config()
+    }
+}
+
+/// Build the shared links every surface root is given and install them.
+fn install_links(
+    runtime: &Runtime,
+    args: &crate::run_args::RunArgs,
+    env: &Env,
+    settings_feed: &SettingsFeed,
+    settings: &watch::Sender<ShellFile>,
+    settings_dir: Option<PathBuf>,
+) {
+    crate::links::install(Links {
+        focus: sill_settings::spawn_focus(
+            runtime.handle(),
+            settings_feed.0.clone(),
+            settings_dir.clone(),
+        ),
+        power_menu: sill_surfaces::surfaces::power_menu::PowerMenuLink::new(),
+        control_center: sill_surfaces::surfaces::control_center::ControlCenterLink::new(),
+        notification_center: sill_surfaces::surfaces::notification_center::CenterLink::new(),
+        banners: sill_surfaces::surfaces::banners::BannerLink::new(),
+        corners: sill_surfaces::surfaces::hot_corners::CornerLink::new(),
+        switcher: sill_surfaces::surfaces::switcher::SwitcherLink::new(),
+        lock: sill_surfaces::surfaces::lock::LockLink::new(),
+        edit_widgets: sill_surfaces::surfaces::edit_widgets::EditWidgetsLink::new(),
+        widgets_writer: crate::edit_widgets::writer(
+            settings_dir,
+            sill_surfaces::surfaces::desktop_widgets::PlacementFile::in_dirs(&env.dirs),
+            settings.clone(),
+        ),
+        power_menu_keys: args.power_menu_keys(),
+    });
+}
+
+/// The tasks that act on the host from a service or a setting: the own lock screen's wish to hold
+/// the session lock, the idle dim surfaces (mapped while the idle service dims), the settings
+/// file's watch, and the hot corners' firings, carried out off the host thread.
+fn spawn_followers(
+    runtime: &Runtime,
+    services: &Services,
+    settings_feed: &SettingsFeed,
+    host: &HostHandle<ShellMsg>,
+    launcher: &LauncherLink,
+    settings_dir: Option<PathBuf>,
+) {
+    crate::lock::spawn_follower(runtime.handle(), services, host.clone());
+    crate::idle_dim::spawn_follower(runtime.handle(), services, host.clone());
+    if let Some(dir) = settings_dir {
+        settings::spawn_watch(runtime, dir, host.clone());
+    }
+    if let Some(links) = crate::links::get() {
+        crate::corners::spawn_hits(
+            runtime.handle(),
+            &links.corners,
+            settings_feed.0.clone(),
+            services.clone(),
+            launcher.clone(),
+        );
+    }
+}
+
+/// The bound [`shutdown_runtime`] gives every service's blocking-pool thread to finish once
+/// `host.run` has returned (`ctx.exit()`; every surface, and with it every clone of `Services`,
+/// is already gone by then — shell-host's own `Host::run` clears every surface before
+/// returning). Comfortably above `sill-services`' own bounded waits (its `cosmic-randr` call is
+/// 2 s), but not unbounded.
+const RUNTIME_SHUTDOWN_BOUND: Duration = Duration::from_secs(4);
+
+/// Ends `runtime`, waiting at most [`RUNTIME_SHUTDOWN_BOUND`] for every spawned task's thread to
+/// finish. Dropping a `tokio::runtime::Runtime` plainly waits forever for that, and a
+/// `spawn_blocking` task that calls into something that hangs (`cosmic-randr` under a
+/// compositor without `zwlr_output_manager_v1`) would otherwise keep
+/// the daemon from ever exiting after `sill quit` already got its answer. Past the bound, that
+/// thread (and whatever it is stuck in) is left running and the process exits without it; a
+/// warning on stderr says so.
+fn shutdown_runtime(runtime: tokio::runtime::Runtime) {
+    shutdown_runtime_within(runtime, RUNTIME_SHUTDOWN_BOUND);
+}
+
+/// [`shutdown_runtime`]'s body, `bound` taken as a parameter so a test can shrink it rather than
+/// waiting out the real one.
+fn shutdown_runtime_within(runtime: tokio::runtime::Runtime, bound: Duration) {
+    let started = Instant::now();
+    runtime.shutdown_timeout(bound);
+    if started.elapsed() >= bound {
+        eprintln!(
+            "sill: the async runtime did not shut down within {bound:?}; a service's thread is \
+             still running and is left behind as the process exits"
+        );
+    }
+}
+
+fn fatal(message: &str) -> ExitCode {
+    eprintln!("sill: {message}");
+    ExitCode::FAILURE
+}
+
+#[cfg(test)]
+mod shutdown_tests {
+    use std::sync::mpsc;
+    use std::time::{Duration, Instant};
+
+    use super::shutdown_runtime_within;
+
+    /// A `spawn_blocking` task that never returns — the shape of `cosmic-randr` hanging under a
+    /// compositor without `zwlr_output_manager_v1` — does not keep
+    /// [`shutdown_runtime_within`] waiting past its bound; the leaked thread is left running
+    /// (past the bound `forever` is never drained again, so it stays parked) and the call still
+    /// returns.
+    #[test]
+    fn a_stuck_blocking_task_does_not_hang_the_bound() {
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(1)
+            .enable_all()
+            .build()
+            .unwrap_or_else(|e| panic!("{e}"));
+        let (never_sent, forever) = mpsc::channel::<()>();
+        runtime.spawn_blocking(move || {
+            // `never_sent` moves in and is held here (not dropped) for as long as this closure
+            // runs, so `forever.recv()` below blocks rather than seeing a disconnected sender.
+            let _held = never_sent;
+            let _ = forever.recv();
+        });
+        let bound = Duration::from_millis(200);
+        let started = Instant::now();
+        shutdown_runtime_within(runtime, bound);
+        assert!(
+            started.elapsed() < Duration::from_secs(5),
+            "shutdown waited well past its {bound:?} bound"
+        );
+    }
+
+    /// A runtime with nothing left running shuts down well inside its bound: the bound is a
+    /// ceiling, not a fixed wait.
+    #[test]
+    fn a_clean_runtime_shuts_down_promptly() {
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(1)
+            .enable_all()
+            .build()
+            .unwrap_or_else(|e| panic!("{e}"));
+        let bound = Duration::from_secs(2);
+        let started = Instant::now();
+        shutdown_runtime_within(runtime, bound);
+        assert!(
+            started.elapsed() < bound,
+            "a clean shutdown should not need the whole bound"
+        );
+    }
+}

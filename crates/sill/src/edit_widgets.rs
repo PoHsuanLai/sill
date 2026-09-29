@@ -42,7 +42,7 @@ pub fn spawn_missing(
         let mut made = root(Root::with_props(sill_surfaces::EditWidgets, props));
         made = made.context(PlacementFile::in_dirs(dirs));
         surfaces.edit_widgets =
-            crate::daemon::spawn_hidden(ctx, edit_widgets_layer(&info), made, &info);
+            crate::daemon::surfaces::spawn_hidden(ctx, edit_widgets_layer(&info), made, &info);
         outputs.set(info, surfaces);
     }
 }

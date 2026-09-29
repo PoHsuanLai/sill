@@ -170,7 +170,7 @@ pub fn spawn_missing(
         let root = root(Root::with_props(sill_surfaces::Osd, props)).context(link.clone());
         let config = osd_layer(&info, &file.osd);
         let mut surfaces = outputs.get(info.id).cloned().unwrap_or_default();
-        surfaces.osd = crate::daemon::spawn_hidden(ctx, config, root, &info);
+        surfaces.osd = crate::daemon::surfaces::spawn_hidden(ctx, config, root, &info);
         outputs.set(info, surfaces);
     }
 }

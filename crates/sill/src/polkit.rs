@@ -31,7 +31,8 @@ pub fn spawn_missing(
             output: info.clone(),
         };
         let root = root(Root::with_props(sill_surfaces::PolkitPrompt, props));
-        surfaces.polkit_prompt = crate::daemon::spawn_hidden(ctx, polkit_layer(&info), root, &info);
+        surfaces.polkit_prompt =
+            crate::daemon::surfaces::spawn_hidden(ctx, polkit_layer(&info), root, &info);
         outputs.set(info, surfaces);
     }
 }

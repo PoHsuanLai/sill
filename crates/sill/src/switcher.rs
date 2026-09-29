@@ -24,7 +24,8 @@ pub fn spawn_missing(
             output: info.clone(),
         };
         let root = root(Root::with_props(sill_surfaces::SwitcherPanel, props));
-        surfaces.switcher = crate::daemon::spawn_hidden(ctx, switcher_layer(&info), root, &info);
+        surfaces.switcher =
+            crate::daemon::surfaces::spawn_hidden(ctx, switcher_layer(&info), root, &info);
         outputs.set(info, surfaces);
     }
 }

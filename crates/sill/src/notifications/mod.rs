@@ -34,7 +34,7 @@ pub fn spawn_missing(
             };
             let root = root(Root::with_props(sill_surfaces::Banners, props));
             let config = banners_layer(&info, &file.notifications);
-            surfaces.banners = crate::daemon::spawn_hidden(ctx, config, root, &info);
+            surfaces.banners = crate::daemon::surfaces::spawn_hidden(ctx, config, root, &info);
         }
         if surfaces.notification_center.is_none() {
             let props = NotificationCenterProps {
@@ -42,7 +42,7 @@ pub fn spawn_missing(
             };
             let root = root(Root::with_props(sill_surfaces::NotificationCenter, props));
             surfaces.notification_center =
-                crate::daemon::spawn_hidden(ctx, center_layer(&info), root, &info);
+                crate::daemon::surfaces::spawn_hidden(ctx, center_layer(&info), root, &info);
         }
         outputs.set(info, surfaces);
     }

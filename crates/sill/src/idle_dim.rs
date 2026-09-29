@@ -35,7 +35,7 @@ pub fn spawn_missing(
             output: info.clone(),
         };
         let surface = root(Root::with_props(sill_surfaces::IdleDimOverlay, props));
-        let id = crate::daemon::spawn_hidden(ctx, idle_dim_layer(&info), surface, &info);
+        let id = crate::daemon::surfaces::spawn_hidden(ctx, idle_dim_layer(&info), surface, &info);
         if let Some(id) = id {
             ctx.set_visibility(id, visibility_of(dim));
         }

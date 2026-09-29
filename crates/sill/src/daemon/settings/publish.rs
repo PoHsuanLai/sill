@@ -79,7 +79,7 @@ mod settings_publish_tests {
 
     /// The regression itself: a `settings.toml` edit under a temp config dir, with no `sill
     /// reload`, reaches a `SettingsFeed`-shaped channel through the same watch and the same
-    /// `publish_watched` `run_event` now calls.
+    /// `publish_watched` the host event handler calls.
     #[tokio::test]
     async fn a_file_write_reaches_the_feed_without_a_reload() {
         let dir = temp_dir("live");

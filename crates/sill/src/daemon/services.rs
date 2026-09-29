@@ -3,6 +3,8 @@
 
 use std::sync::Arc;
 
+use sill_model::locker::LockerCommand;
+use sill_model::polkit_agent::{AgentPolicy, PolkitCommand};
 use sill_search::results::{ResultsLinks, ResultsService, Sources};
 use sill_services::apps::AppsService;
 use sill_services::auth::AuthService;
@@ -15,8 +17,15 @@ use sill_services::launch::LaunchService;
 use sill_services::locker::LockerService;
 use sill_services::service::spawn;
 use sill_services::volume::VolumeService;
+use sill_settings::SettingsFeed;
 use sill_surfaces::services::Services;
 use tokio::runtime::Handle as Runtime;
+
+use crate::policy::{
+    calendar::CalendarBridge, clipboard::ClipboardBridge, displays::DisplaysBridge, follow,
+    idle::IdleBridge, notifications::NotificationsBridge, screenshots::ScreenshotsBridge,
+    search::SearchBridge,
+};
 
 /// Start every service on `rt` (the `cosmic_wl` and volume threads on their own threads)
 /// against `env`'s seams, each after the ones it depends on. A service whose system half is
@@ -83,6 +92,67 @@ pub(crate) fn start(rt: &Runtime, env: &Env) -> Services {
         dirs: env.dirs.clone(),
         session_actions: Arc::clone(&env.session_actions),
     }
+}
+
+/// Tell each service that is passive until told what it should do: sill's own lock and polkit
+/// agent, and the policies the settings decide (the first one sent ends a service's passive
+/// start, and each is sent again whenever its answer changes).
+pub(crate) fn follow_settings(rt: &Runtime, feed: &SettingsFeed, services: &Services, env: &Env) {
+    let settings = || feed.0.clone();
+    // The notifications service's policy from the settings and the focus mode.
+    if let Some(links) = crate::links::get() {
+        follow(
+            rt,
+            settings(),
+            NotificationsBridge {
+                focus: links.focus.mode(),
+            },
+            services.notifications.control.clone(),
+        );
+    }
+    // The lock and the polkit agent are sill's own.
+    let _ = services.locker.control.send(LockerCommand::Configure);
+    let _ = services
+        .polkit_agent
+        .control
+        .send(PolkitCommand::Policy(AgentPolicy::Own));
+    // sill's own idle follows `idle.*` and `session.lock_grace_s`, and is `Off` anywhere but a
+    // sill session with no cosmic-idle.
+    let idle = IdleBridge {
+        times: env.idle_times,
+    };
+    follow(rt, settings(), idle, services.idle.control.clone());
+    // The launcher's providers and the clipboard history follow `launcher.*`.
+    follow(
+        rt,
+        settings(),
+        SearchBridge,
+        services.results.control.clone(),
+    );
+    follow(
+        rt,
+        settings(),
+        ClipboardBridge,
+        services.clipboard.control.clone(),
+    );
+    // The displays follow `display.*`.
+    follow(
+        rt,
+        settings(),
+        DisplaysBridge,
+        services.displays.control.clone(),
+    );
+    // The calendar's sources and the screenshots' folders and tool.
+    let home = env.dirs.home.clone();
+    let calendar = CalendarBridge { home: home.clone() };
+    follow(rt, settings(), calendar, services.events.control.clone());
+    let screenshots = ScreenshotsBridge { home };
+    follow(
+        rt,
+        settings(),
+        screenshots,
+        services.screenshots.control.clone(),
+    );
 }
 
 #[cfg(test)]

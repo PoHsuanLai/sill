@@ -28,7 +28,8 @@ pub fn spawn_missing(
             output: info.clone(),
         };
         let root = root(Root::with_props(sill_surfaces::ScreenshotThumb, props));
-        surfaces.thumbnail = crate::daemon::spawn_hidden(ctx, thumb_layer(&info), root, &info);
+        surfaces.thumbnail =
+            crate::daemon::surfaces::spawn_hidden(ctx, thumb_layer(&info), root, &info);
         outputs.set(info, surfaces);
     }
 }
