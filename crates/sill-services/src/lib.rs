@@ -64,8 +64,8 @@ pub use badges::{
 };
 pub use battery::{Battery, BatteryCommand, BatteryEvent, BatteryService, Charge, Remaining};
 pub use bluetooth::{
-    Bluetooth, BluetoothCommand, BluetoothEvent, BtAddress, BtBattery, BtConnection, BtDevice,
-    BtKind, BtPairing, BtPower, device_kind, listed_devices, reduce_bluetooth,
+    Bluetooth, BluetoothCommand, BluetoothEvent, BluetoothService, BtAddress, BtBattery,
+    BtConnection, BtDevice, BtKind, BtPairing, BtPower, device_kind, listed_devices,
 };
 pub use clipboard::{Clipboard, ClipboardCommand};
 pub use clock::{ClockCommand, ClockService, ClockText, format_clock, until_next_minute};

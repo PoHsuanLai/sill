@@ -121,10 +121,10 @@ pub enum BluetoothEvent {
 
 /// `bluetooth` after `event`. A change for an address that is not listed is dropped: the
 /// `Device` event that introduces a device always comes first.
-pub fn reduce_bluetooth(bluetooth: Bluetooth, event: BluetoothEvent) -> Bluetooth {
-    let step = connect_step(&bluetooth, &event);
+pub fn step(bluetooth: Bluetooth, event: BluetoothEvent) -> Bluetooth {
+    let connecting = connect_step(&bluetooth, &event);
     let bluetooth = Bluetooth {
-        connect: bluetooth.connect.next(step),
+        connect: bluetooth.connect.next(connecting),
         ..bluetooth
     };
     reduce_devices(bluetooth, event)
@@ -257,7 +257,7 @@ fn group_of(device: &BtDevice) -> u8 {
 mod tests {
     use super::{
         Bluetooth, BluetoothEvent, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,
-        BtPower, listed_devices, reduce_bluetooth,
+        BtPower, listed_devices, step,
     };
     use crate::attempt::{Attempt, Attempts, OpStamp};
     use crate::units::{Percent, Presence};
@@ -354,7 +354,7 @@ mod tests {
             ),
         ];
         for (name, before, event, want) in cases {
-            assert_eq!(reduce_bluetooth(before, event), want, "{name}");
+            assert_eq!(step(before, event), want, "{name}");
         }
     }
 
@@ -434,7 +434,7 @@ mod tests {
             ),
         ];
         for (name, before, event, want) in cases {
-            assert_eq!(reduce_bluetooth(before, event), want, "{name}");
+            assert_eq!(step(before, event), want, "{name}");
         }
     }
 

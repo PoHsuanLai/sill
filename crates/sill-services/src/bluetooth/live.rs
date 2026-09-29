@@ -1,6 +1,6 @@
 //! BlueZ over the system bus: seeds the adapter and its devices from the object manager, then
 //! feeds every `InterfacesAdded`, `InterfacesRemoved` and property change through
-//! [`super::reduce_bluetooth`], and carries out [`BluetoothCommand`]s.
+//! [`super::step`], and carries out [`BluetoothCommand`]s.
 //!
 //! `tokio::select!` needs a fixed set of branches, but the set of watched devices changes at
 //! runtime, so each adapter/device/battery gets its own spawned task that forwards
@@ -21,9 +21,10 @@ use super::bluez::{Adapter1Proxy, Battery1Proxy, Device1Proxy};
 use super::device_kind;
 use super::model::{
     Bluetooth, BluetoothEvent, BtAddress, BtBattery, BtConnection, BtDevice, BtPairing, BtPower,
-    reduce_bluetooth,
+    step,
 };
 use crate::env::Bus;
+use crate::error::ServiceError;
 use crate::stream::next;
 use crate::units::Percent;
 
@@ -65,25 +66,13 @@ pub(super) async fn run(
     bus: Bus,
     tx: watch::Sender<Bluetooth>,
     mut commands: mpsc::UnboundedReceiver<BluetoothCommand>,
-) {
-    let Ok(Some(connection)) = bus.connect().await else {
-        return;
-    };
-    let Ok(builder) = ObjectManagerProxy::builder(&connection).destination(SERVICE) else {
-        return;
-    };
-    let Ok(builder) = builder.path("/") else {
-        return;
-    };
-    let Ok(object_manager) = builder.build().await else {
-        return;
-    };
-    let Ok(mut added) = object_manager.receive_interfaces_added().await else {
-        return;
-    };
-    let Ok(mut removed) = object_manager.receive_interfaces_removed().await else {
-        return;
-    };
+) -> Result<(), ServiceError> {
+    let connection = bus.connected().await?;
+    let builder = ObjectManagerProxy::builder(&connection).destination(SERVICE)?;
+    let builder = builder.path("/")?;
+    let object_manager = builder.build().await?;
+    let mut added = object_manager.receive_interfaces_added().await?;
+    let mut removed = object_manager.receive_interfaces_removed().await?;
 
     let (internal_tx, mut internal_rx) = mpsc::unbounded_channel::<BluetoothEvent>();
     let mut tracked = Tracked::default();
@@ -128,6 +117,7 @@ pub(super) async fn run(
             }
         }
     }
+    Ok(())
 }
 
 /// Re-reads the adapter and every device under it from a fresh `GetManagedObjects`, seeding or
@@ -508,7 +498,7 @@ fn watch_battery(
     stop_tx
 }
 
-/// Every field [`super::device_kind`] and `reduce_bluetooth`'s `Device` event need, read fresh
+/// Every field [`super::device_kind`] and `step`'s `Device` event need, read fresh
 /// from `device`; its battery is left `Unknown` (a separate interface [`watch_battery`] and
 /// [`seed_battery`] own) and [`apply`] fills it back in from what `tx` already knows.
 async fn read_device(device: &Device1Proxy<'_>) -> Option<BtDevice> {
@@ -528,14 +518,14 @@ async fn read_device(device: &Device1Proxy<'_>) -> Option<BtDevice> {
 }
 
 /// Reduces `event` onto the receiver's current value and publishes the result. A `Device` event
-/// keeps whatever battery `tx` already has for that address, since `reduce_bluetooth` replaces
+/// keeps whatever battery `tx` already has for that address, since `step` replaces
 /// the whole device and [`read_device`] never knows the battery (a separate D-Bus interface).
 fn apply(tx: &watch::Sender<Bluetooth>, event: BluetoothEvent) {
     let event = match event {
         BluetoothEvent::Device(device) => BluetoothEvent::Device(preserve_battery(tx, device)),
         other => other,
     };
-    let next = reduce_bluetooth(tx.borrow().clone(), event);
+    let next = step(tx.borrow().clone(), event);
     let _ = tx.send(next);
 }
 

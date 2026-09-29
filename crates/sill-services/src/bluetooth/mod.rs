@@ -15,14 +15,12 @@ mod model;
 pub use kind::device_kind;
 pub use model::{
     Bluetooth, BluetoothEvent, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,
-    BtPower, listed_devices, reduce_bluetooth,
+    BtPower, listed_devices, step,
 };
 
-use tokio::runtime::Handle;
-use tokio::sync::watch;
-
-use crate::control::Control;
-use crate::env::Bus;
+use crate::env::Env;
+use crate::error::ServiceError;
+use crate::service::{Service, ServiceIo};
 
 /// What the Bluetooth service can be told.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -37,11 +35,22 @@ pub enum BluetoothCommand {
     Refresh,
 }
 
-/// Start the Bluetooth task on `rt`. Without BlueZ or an adapter the receiver stays at
-/// `Bluetooth::default()` (absent), and the control center shows the module unavailable.
-pub fn spawn(rt: &Handle, bus: Bus) -> (watch::Receiver<Bluetooth>, Control<BluetoothCommand>) {
-    let (tx, rx) = watch::channel(Bluetooth::default());
-    let (control, commands) = Control::channel();
-    rt.spawn(live::run(bus, tx, commands));
-    (rx, control)
+/// BlueZ's adapter and devices as a [`Service`]. Without BlueZ or an adapter the state stays
+/// at `Bluetooth::default()` (absent), and the control center shows the module unavailable.
+#[derive(Debug)]
+pub enum BluetoothService {}
+
+impl Service for BluetoothService {
+    const NAME: &'static str = "bluetooth";
+    type State = Bluetooth;
+    type Command = BluetoothCommand;
+    type Deps = ();
+
+    fn run(
+        env: &Env,
+        (): (),
+        io: ServiceIo<Self>,
+    ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
+        live::run(env.buses.system.clone(), io.state, io.commands)
+    }
 }
