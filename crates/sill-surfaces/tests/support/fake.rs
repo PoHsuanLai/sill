@@ -344,7 +344,7 @@ pub fn services() -> (Services, Feeds) {
         screenshots,
         auth: fixed(sill_model::auth::Auth::default(), &mut keep),
         polkit_agent: fixed(sill_model::polkit_agent::Polkit::default(), &mut keep),
-        clipboard: fixed(sill_services::Clipboard::default(), &mut keep),
+        clipboard: fixed(sill_model::clipboard::Clipboard::default(), &mut keep),
         idle,
         // Nowhere real: a surface that reads a file under these finds nothing.
         dirs: sill_services::env::Dirs::under(std::path::Path::new(

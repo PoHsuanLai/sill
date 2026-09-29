@@ -16,7 +16,7 @@ use sill_launcher::{
 };
 use tokio::sync::watch;
 
-use crate::clipboard::Clipboard;
+use sill_model::clipboard::Clipboard;
 
 mod rows;
 
@@ -100,7 +100,7 @@ mod tests {
     use tokio::sync::watch;
 
     use super::{ClipboardProvider, clip_items};
-    use crate::clipboard::{ClipContent, ClipEntry, ClipText, Clipboard};
+    use sill_model::clipboard::{ClipContent, ClipEntry, ClipText, Clipboard};
 
     #[test]
     fn enter_makes_the_entry_the_clipboard_again() {

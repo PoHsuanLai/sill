@@ -7,11 +7,11 @@ mod clipboard_support;
 use std::time::Duration;
 
 use sill_launcher::ClipKey;
-use sill_services::clipboard::ClipboardService;
-use sill_services::clipboard::{
+use sill_model::clipboard::{
     ClipContent, ClipPolicy, ClipProtocol, Clipboard, ClipboardCommand, EntryCap, HistoryMode,
     ImageCap,
 };
+use sill_services::clipboard::ClipboardService;
 use sill_services::control::Control;
 use sill_services::env::{Env, WaylandRoute};
 use sill_services::service::spawn;

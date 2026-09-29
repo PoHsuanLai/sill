@@ -14,10 +14,11 @@ use cosmic_client_toolkit::sctk::reexports::calloop::{LoopHandle, LoopSignal};
 use cosmic_client_toolkit::wayland_client::backend::ObjectId;
 use cosmic_client_toolkit::wayland_client::{Connection, QueueHandle};
 use sill_launcher::UnixTime;
+use sill_model::clipboard::{
+    ClipContent, ClipEvent, ImageCap, ImagesKept, MimePick, OfferVerdict, Skipped, offer_verdict,
+};
 
 use super::content::{content_of, limit_for};
-use super::model::{ClipContent, ClipEvent, ImageCap, Skipped};
-use super::offer::{ImagesKept, MimePick, OfferVerdict, offer_verdict};
 use super::pipes::{ReadEnd, ReadId, ReadOwner, Reading, read_whole, write_whole};
 use super::wire::Tell;
 use super::wl::{Device, Manager, Offer, Source};
@@ -33,7 +34,7 @@ const TEXT_OFFERS: &[&str] = &[
 
 /// The manager and the first seat's device, when the compositor has one of the protocols.
 #[derive(Debug)]
-pub(super) enum Binding {
+pub(crate) enum Binding {
     Bound { manager: Manager, device: Device },
     Unsupported,
 }
@@ -46,14 +47,14 @@ struct Owned {
 }
 
 /// Everything the loop's callbacks reach.
-pub(super) struct WireState {
-    pub(super) conn: Connection,
-    pub(super) qh: QueueHandle<WireState>,
-    pub(super) handle: LoopHandle<'static, WireState>,
-    pub(super) signal: LoopSignal,
-    pub(super) binding: Binding,
-    pub(super) images: ImageCap,
-    pub(super) tell: Tell,
+pub(crate) struct WireState {
+    pub(crate) conn: Connection,
+    pub(crate) qh: QueueHandle<WireState>,
+    pub(crate) handle: LoopHandle<'static, WireState>,
+    pub(crate) signal: LoopSignal,
+    pub(crate) binding: Binding,
+    pub(crate) images: ImageCap,
+    pub(crate) tell: Tell,
     /// The types each live offer announced, until it is chosen or dropped.
     offers: HashMap<ObjectId, Vec<String>>,
     reading: Option<(Reading, MimePick)>,
@@ -62,7 +63,7 @@ pub(super) struct WireState {
 }
 
 impl WireState {
-    pub(super) fn new(
+    pub(crate) fn new(
         conn: Connection,
         qh: QueueHandle<WireState>,
         handle: LoopHandle<'static, WireState>,
@@ -87,18 +88,18 @@ impl WireState {
     }
 
     /// A new offer object; its types follow.
-    pub(super) fn offered(&mut self, offer: &Offer) {
+    pub(crate) fn offered(&mut self, offer: &Offer) {
         self.offers.insert(offer.id(), Vec::new());
     }
 
-    pub(super) fn offer_type(&mut self, offer: &ObjectId, mime: String) {
+    pub(crate) fn offer_type(&mut self, offer: &ObjectId, mime: String) {
         if let Some(types) = self.offers.get_mut(offer) {
             types.push(mime);
         }
     }
 
     /// The selection changed: decide on its types, and read it only when it may be kept.
-    pub(super) fn selection(&mut self, offer: Option<Offer>) {
+    pub(crate) fn selection(&mut self, offer: Option<Offer>) {
         self.cancel_read();
         let Some(offer) = offer else { return };
         let types = self.offers.remove(&offer.id()).unwrap_or_default();
@@ -115,7 +116,7 @@ impl WireState {
     }
 
     /// The primary selection is never followed: its offer is dropped unread.
-    pub(super) fn primary_selection(&mut self, offer: Option<Offer>) {
+    pub(crate) fn primary_selection(&mut self, offer: Option<Offer>) {
         if let Some(offer) = offer {
             self.offers.remove(&offer.id());
             offer.destroy();
@@ -123,7 +124,7 @@ impl WireState {
     }
 
     /// The seat's device is gone: stop, and the thread says it disconnected.
-    pub(super) fn finished(&mut self) {
+    pub(crate) fn finished(&mut self) {
         self.signal.stop();
     }
 
@@ -156,7 +157,7 @@ impl WireState {
     }
 
     /// Offer `content` as the selection (an entry chosen in the launcher).
-    pub(super) fn offer_back(&mut self, content: ClipContent) {
+    pub(crate) fn offer_back(&mut self, content: ClipContent) {
         let Binding::Bound { manager, device } = &self.binding else {
             return;
         };
@@ -178,7 +179,7 @@ impl WireState {
     }
 
     /// Someone pastes the entry the service offers.
-    pub(super) fn send(&mut self, source: &ObjectId, fd: OwnedFd) {
+    pub(crate) fn send(&mut self, source: &ObjectId, fd: OwnedFd) {
         let Some(owned) = self.owned.as_ref().filter(|o| o.source.id() == *source) else {
             return;
         };
@@ -188,7 +189,7 @@ impl WireState {
     }
 
     /// Another client took the selection.
-    pub(super) fn cancelled(&mut self, source: &Source) {
+    pub(crate) fn cancelled(&mut self, source: &Source) {
         if self
             .owned
             .as_ref()

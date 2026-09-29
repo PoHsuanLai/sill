@@ -5,8 +5,8 @@ use sill_ipc::{
     ClipboardReport, ClipboardRequest, Failure, FailureKind, ReportClipMode, ReportClipProtocol,
     Response,
 };
+use sill_model::clipboard::{ClipProtocol, Clipboard, ClipboardCommand, HistoryMode};
 use sill_services::Services;
-use sill_services::clipboard::{ClipProtocol, Clipboard, ClipboardCommand, HistoryMode};
 
 /// The report for `history`.
 pub fn report_of(history: &Clipboard) -> ClipboardReport {
@@ -47,7 +47,7 @@ mod tests {
 
     use sill_ipc::{ClipboardReport, ReportClipMode, ReportClipProtocol};
     use sill_launcher::{ClipKey, UnixTime};
-    use sill_services::clipboard::{
+    use sill_model::clipboard::{
         ClipContent, ClipEntry, ClipProtocol, ClipStatus, ClipText, Clipboard, HistoryMode,
     };
 

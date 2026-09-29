@@ -8,7 +8,7 @@ use std::path::Path;
 
 use sill_launcher::{ClipKey, Excerpt, ExcerptLimit, excerpt_of};
 
-use crate::clipboard::{ClipContent, ClipImage, Clipboard};
+use sill_model::clipboard::{ClipContent, ClipImage, Clipboard};
 
 /// The most of a text file a preview reads.
 pub const HEAD_BYTES: usize = 16 * 1024;

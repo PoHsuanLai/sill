@@ -57,7 +57,7 @@ pub use auth::AuthService;
 pub use badges::BadgesService;
 pub use battery::BatteryService;
 pub use bluetooth::BluetoothService;
-pub use clipboard::{Clipboard, ClipboardCommand, ClipboardService};
+pub use clipboard::ClipboardService;
 pub use clock::ClockService;
 pub use control::Control;
 pub use cosmic_wl::CosmicWlService;

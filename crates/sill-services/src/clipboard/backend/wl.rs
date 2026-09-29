@@ -6,27 +6,22 @@
 
 use std::os::fd::BorrowedFd;
 
-use cosmic_client_toolkit::sctk::reexports::protocols_wlr::data_control::v1::client::{
-    zwlr_data_control_device_v1::ZwlrDataControlDeviceV1,
-    zwlr_data_control_manager_v1::ZwlrDataControlManagerV1,
-    zwlr_data_control_offer_v1::ZwlrDataControlOfferV1,
-    zwlr_data_control_source_v1::ZwlrDataControlSourceV1,
-};
+use cosmic_client_toolkit::sctk::reexports::protocols_wlr::data_control::v1::client::zwlr_data_control_device_v1::ZwlrDataControlDeviceV1;
+use cosmic_client_toolkit::sctk::reexports::protocols_wlr::data_control::v1::client::zwlr_data_control_manager_v1::ZwlrDataControlManagerV1;
+use cosmic_client_toolkit::sctk::reexports::protocols_wlr::data_control::v1::client::zwlr_data_control_offer_v1::ZwlrDataControlOfferV1;
+use cosmic_client_toolkit::sctk::reexports::protocols_wlr::data_control::v1::client::zwlr_data_control_source_v1::ZwlrDataControlSourceV1;
+use cosmic_client_toolkit::wayland_client::{Dispatch, Proxy, QueueHandle};
 use cosmic_client_toolkit::wayland_client::backend::ObjectId;
 use cosmic_client_toolkit::wayland_client::globals::GlobalList;
 use cosmic_client_toolkit::wayland_client::protocol::wl_seat::WlSeat;
-use cosmic_client_toolkit::wayland_client::{Dispatch, Proxy, QueueHandle};
-use cosmic_client_toolkit::wayland_protocols::ext::data_control::v1::client::{
-    ext_data_control_device_v1::ExtDataControlDeviceV1,
-    ext_data_control_manager_v1::ExtDataControlManagerV1,
-    ext_data_control_offer_v1::ExtDataControlOfferV1,
-    ext_data_control_source_v1::ExtDataControlSourceV1,
-};
-
-use super::model::ClipProtocol;
+use cosmic_client_toolkit::wayland_protocols::ext::data_control::v1::client::ext_data_control_device_v1::ExtDataControlDeviceV1;
+use cosmic_client_toolkit::wayland_protocols::ext::data_control::v1::client::ext_data_control_manager_v1::ExtDataControlManagerV1;
+use cosmic_client_toolkit::wayland_protocols::ext::data_control::v1::client::ext_data_control_offer_v1::ExtDataControlOfferV1;
+use cosmic_client_toolkit::wayland_protocols::ext::data_control::v1::client::ext_data_control_source_v1::ExtDataControlSourceV1;
+use sill_model::clipboard::ClipProtocol;
 
 /// The globals the service looks for, preferred first.
-pub(super) fn manager_interfaces() -> [&'static str; 2] {
+pub(crate) fn manager_interfaces() -> [&'static str; 2] {
     [
         ExtDataControlManagerV1::interface().name,
         ZwlrDataControlManagerV1::interface().name,
@@ -35,35 +30,35 @@ pub(super) fn manager_interfaces() -> [&'static str; 2] {
 
 /// The bound manager.
 #[derive(Debug)]
-pub(super) enum Manager {
+pub(crate) enum Manager {
     Ext(ExtDataControlManagerV1),
     Wlr(ZwlrDataControlManagerV1),
 }
 
 /// The seat's data-control device.
 #[derive(Debug)]
-pub(super) enum Device {
+pub(crate) enum Device {
     Ext(ExtDataControlDeviceV1),
     Wlr(ZwlrDataControlDeviceV1),
 }
 
 /// A selection offered to the service.
 #[derive(Debug, Clone)]
-pub(super) enum Offer {
+pub(crate) enum Offer {
     Ext(ExtDataControlOfferV1),
     Wlr(ZwlrDataControlOfferV1),
 }
 
 /// A selection the service offers.
 #[derive(Debug, Clone)]
-pub(super) enum Source {
+pub(crate) enum Source {
     Ext(ExtDataControlSourceV1),
     Wlr(ZwlrDataControlSourceV1),
 }
 
 /// `ext` if the compositor has it, else `zwlr` (version 1: it has no primary selection, which
 /// the service never follows), else nothing.
-pub(super) fn bind_manager<S>(globals: &GlobalList, qh: &QueueHandle<S>) -> Option<Manager>
+pub(crate) fn bind_manager<S>(globals: &GlobalList, qh: &QueueHandle<S>) -> Option<Manager>
 where
     S: Dispatch<ExtDataControlManagerV1, ()> + Dispatch<ZwlrDataControlManagerV1, ()> + 'static,
 {
@@ -79,14 +74,14 @@ where
 }
 
 impl Manager {
-    pub(super) fn protocol(&self) -> ClipProtocol {
+    pub(crate) fn protocol(&self) -> ClipProtocol {
         match self {
             Manager::Ext(_) => ClipProtocol::Ext,
             Manager::Wlr(_) => ClipProtocol::Wlr,
         }
     }
 
-    pub(super) fn device<S>(&self, seat: &WlSeat, qh: &QueueHandle<S>) -> Device
+    pub(crate) fn device<S>(&self, seat: &WlSeat, qh: &QueueHandle<S>) -> Device
     where
         S: Dispatch<ExtDataControlDeviceV1, ()> + Dispatch<ZwlrDataControlDeviceV1, ()> + 'static,
     {
@@ -96,7 +91,7 @@ impl Manager {
         }
     }
 
-    pub(super) fn source<S>(&self, qh: &QueueHandle<S>) -> Source
+    pub(crate) fn source<S>(&self, qh: &QueueHandle<S>) -> Source
     where
         S: Dispatch<ExtDataControlSourceV1, ()> + Dispatch<ZwlrDataControlSourceV1, ()> + 'static,
     {
@@ -110,7 +105,7 @@ impl Manager {
 impl Device {
     /// Make `source` the selection (never the primary selection). A source of the other
     /// family cannot be made (one manager makes both), so it is ignored.
-    pub(super) fn set_selection(&self, source: &Source) {
+    pub(crate) fn set_selection(&self, source: &Source) {
         match (self, source) {
             (Device::Ext(d), Source::Ext(s)) => d.set_selection(Some(s)),
             (Device::Wlr(d), Source::Wlr(s)) => d.set_selection(Some(s)),
@@ -120,7 +115,7 @@ impl Device {
 }
 
 impl Offer {
-    pub(super) fn id(&self) -> ObjectId {
+    pub(crate) fn id(&self) -> ObjectId {
         match self {
             Offer::Ext(o) => o.id(),
             Offer::Wlr(o) => o.id(),
@@ -128,14 +123,14 @@ impl Offer {
     }
 
     /// Ask the source to write `mime` into `fd`.
-    pub(super) fn receive(&self, mime: String, fd: BorrowedFd<'_>) {
+    pub(crate) fn receive(&self, mime: String, fd: BorrowedFd<'_>) {
         match self {
             Offer::Ext(o) => o.receive(mime, fd),
             Offer::Wlr(o) => o.receive(mime, fd),
         }
     }
 
-    pub(super) fn destroy(&self) {
+    pub(crate) fn destroy(&self) {
         match self {
             Offer::Ext(o) => o.destroy(),
             Offer::Wlr(o) => o.destroy(),
@@ -144,21 +139,21 @@ impl Offer {
 }
 
 impl Source {
-    pub(super) fn id(&self) -> ObjectId {
+    pub(crate) fn id(&self) -> ObjectId {
         match self {
             Source::Ext(s) => s.id(),
             Source::Wlr(s) => s.id(),
         }
     }
 
-    pub(super) fn offer(&self, mime: &str) {
+    pub(crate) fn offer(&self, mime: &str) {
         match self {
             Source::Ext(s) => s.offer(mime.to_owned()),
             Source::Wlr(s) => s.offer(mime.to_owned()),
         }
     }
 
-    pub(super) fn destroy(&self) {
+    pub(crate) fn destroy(&self) {
         match self {
             Source::Ext(s) => s.destroy(),
             Source::Wlr(s) => s.destroy(),

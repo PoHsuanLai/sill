@@ -6,7 +6,8 @@ use cosmic_client_toolkit::sctk::reexports::protocols_wlr::data_control::v1::cli
     zwlr_data_control_offer_v1 as wlr_offer, zwlr_data_control_source_v1 as wlr_source,
 };
 use cosmic_client_toolkit::wayland_client::globals::GlobalListContents;
-use cosmic_client_toolkit::wayland_client::protocol::{wl_registry::WlRegistry, wl_seat::WlSeat};
+use cosmic_client_toolkit::wayland_client::protocol::wl_registry::WlRegistry;
+use cosmic_client_toolkit::wayland_client::protocol::wl_seat::WlSeat;
 use cosmic_client_toolkit::wayland_client::{
     Connection, Dispatch, Proxy, QueueHandle, event_created_child,
 };

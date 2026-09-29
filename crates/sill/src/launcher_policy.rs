@@ -6,7 +6,7 @@
 use std::time::Duration;
 
 use sill_launcher::SkinTone;
-use sill_services::clipboard::{ClipPolicy, ClipboardCommand, EntryCap, HistoryMode, ImageCap};
+use sill_model::clipboard::{ClipPolicy, ClipboardCommand, EntryCap, HistoryMode, ImageCap};
 use sill_services::{CurrencyPolicy, FilesChoice, LauncherPolicy, SearchCommand, WebPolicy};
 use sill_settings::{
     ClipboardHistory, CurrencyRates, EmojiSkinTone, FilesBackend, LauncherSettings, ShellFile,
@@ -97,7 +97,7 @@ mod tests {
     use std::time::Duration;
 
     use sill_launcher::SkinTone;
-    use sill_services::clipboard::{EntryCap, HistoryMode, ImageCap};
+    use sill_model::clipboard::{EntryCap, HistoryMode, ImageCap};
     use sill_services::{CurrencyPolicy, FilesChoice, WebPolicy};
     use sill_settings::{
         ClipboardHistory, Count, CurrencyRates, EmojiSkinTone, FilesBackend, LauncherSettings, Ms,

@@ -14,7 +14,7 @@
 
 use sill_launcher::{ClipKey, UnixTime};
 
-use super::model::{
+use super::{
     ClipContent, ClipEffect, ClipEntry, ClipEvent, ClipPolicy, ClipProtocol, ClipState,
     ClipboardCommand, EntryCap, HistoryMode, ImageCap,
 };
@@ -132,7 +132,7 @@ mod tests {
     use sill_launcher::{ClipKey, Mime, UnixTime};
 
     use super::step;
-    use crate::clipboard::model::{
+    use crate::clipboard::{
         ClipContent, ClipEffect, ClipEvent, ClipImage, ClipPolicy, ClipProtocol, ClipState,
         ClipText, ClipboardCommand, EntryCap, HistoryMode, ImageCap, Skipped,
     };

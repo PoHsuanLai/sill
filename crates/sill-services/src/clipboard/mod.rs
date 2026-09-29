@@ -10,23 +10,9 @@
 //! ([`WaylandRoute::Socket`](crate::env::WaylandRoute::Socket))
 //! with their own data only.
 
-mod content;
-mod live;
-mod model;
-mod offer;
-mod pipes;
-mod reduce;
-mod wire;
-mod wire_dispatch;
-mod wire_state;
-mod wl;
+mod backend;
 
-pub use model::{
-    ClipContent, ClipEffect, ClipEntry, ClipEvent, ClipImage, ClipPolicy, ClipProtocol, ClipState,
-    ClipStatus, ClipText, Clipboard, ClipboardCommand, EntryCap, HistoryMode, ImageCap, Skipped,
-};
-pub use offer::{ImagesKept, MimePick, OfferVerdict, SECRET_HINTS, offer_verdict};
-pub use reduce::step;
+use sill_model::clipboard::{Clipboard, ClipboardCommand};
 
 use crate::env::Env;
 use crate::error::ServiceError;
@@ -50,7 +36,7 @@ impl Service for ClipboardService {
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let display = env.wayland.clone();
         async move {
-            live::run(display, io.commands, io.state).await;
+            backend::run(display, io.commands, io.state).await;
             Ok(())
         }
     }

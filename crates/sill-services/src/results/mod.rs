@@ -32,7 +32,6 @@ use std::sync::Arc;
 use sill_launcher::{Choice, ItemKey, Provider, ProviderKind};
 use tokio::sync::watch;
 
-use crate::clipboard::Clipboard;
 use crate::control::Control;
 use crate::env::Env;
 use crate::error::ServiceError;
@@ -40,6 +39,7 @@ use crate::service::{Service, ServiceIo};
 use effect::Outlets;
 use history::{History, Persist};
 use sill_model::apps::AppIndex;
+use sill_model::clipboard::Clipboard;
 use sill_model::cosmic_wl::{CosmicWl, WlCommand};
 use sill_model::launch::LaunchCommand;
 

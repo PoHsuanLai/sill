@@ -5,42 +5,43 @@
 
 use std::io;
 
-use cosmic_client_toolkit::sctk::reexports::calloop::channel::{self, Event};
-use cosmic_client_toolkit::sctk::reexports::calloop::{self, EventLoop};
+use cosmic_client_toolkit::sctk::reexports::calloop;
+use cosmic_client_toolkit::sctk::reexports::calloop::channel::Event;
+use cosmic_client_toolkit::sctk::reexports::calloop::{EventLoop, channel};
 use cosmic_client_toolkit::sctk::reexports::calloop_wayland_source::WaylandSource;
 use cosmic_client_toolkit::wayland_client::globals::{GlobalError, registry_queue_init};
 use cosmic_client_toolkit::wayland_client::protocol::wl_seat::WlSeat;
+use sill_model::clipboard::{ClipContent, ClipEvent, ClipProtocol, ImageCap};
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::model::{ClipContent, ClipEvent, ClipProtocol, ImageCap};
 use super::wire_state::{Binding, WireState};
 use super::wl::{bind_manager, manager_interfaces};
 use crate::env::{WaylandRoute, WaylandUnreached};
 
 /// Which connection an event came from: the service drops what an older one says.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) struct Epoch(pub(super) u64);
+pub(crate) struct Epoch(pub(crate) u64);
 
 /// An event from the thread of one connection.
 #[derive(Debug)]
-pub(super) struct Heard {
-    pub(super) epoch: Epoch,
-    pub(super) event: ClipEvent,
+pub(crate) struct Heard {
+    pub(crate) epoch: Epoch,
+    pub(crate) event: ClipEvent,
 }
 
 /// How the thread reports to the service's task.
 #[derive(Debug, Clone)]
-pub(super) struct Tell {
+pub(crate) struct Tell {
     epoch: Epoch,
     to: UnboundedSender<Heard>,
 }
 
 impl Tell {
-    pub(super) fn new(epoch: Epoch, to: UnboundedSender<Heard>) -> Tell {
+    pub(crate) fn new(epoch: Epoch, to: UnboundedSender<Heard>) -> Tell {
         Tell { epoch, to }
     }
 
-    pub(super) fn say(&self, event: ClipEvent) {
+    pub(crate) fn say(&self, event: ClipEvent) {
         // The service's task outlives every thread it starts; a closed channel means it is
         // ending too, and there is no one left to tell.
         let _ = self.to.send(Heard {
@@ -52,7 +53,7 @@ impl Tell {
 
 /// What the service tells the thread.
 #[derive(Debug)]
-pub(super) enum Order {
+pub(crate) enum Order {
     /// The image cap changed.
     Images(ImageCap),
     /// Make this the selection.
@@ -61,19 +62,19 @@ pub(super) enum Order {
 
 /// A running connection; dropping it ends the thread.
 #[derive(Debug)]
-pub(super) struct Wire {
+pub(crate) struct Wire {
     orders: channel::Sender<Order>,
 }
 
 impl Wire {
-    pub(super) fn order(&self, order: Order) {
+    pub(crate) fn order(&self, order: Order) {
         // The thread has ended (the compositor went away); it said so, and orders are moot.
         let _ = self.orders.send(order);
     }
 }
 
 /// Start a thread connected to `display`.
-pub(super) fn start(display: WaylandRoute, images: ImageCap, tell: Tell) -> io::Result<Wire> {
+pub(crate) fn start(display: WaylandRoute, images: ImageCap, tell: Tell) -> io::Result<Wire> {
     let (orders, from_service) = channel::channel();
     std::thread::Builder::new()
         .name("sill-clipboard".to_owned())

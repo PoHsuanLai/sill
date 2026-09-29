@@ -5,15 +5,14 @@
 //! connects until a policy turns history on, so `Services::spawn` in a test touches no
 //! compositor. Only counts and fault kinds are ever printed.
 
+use sill_model::clipboard::{ClipEffect, ClipEvent, ClipState, Clipboard, ClipboardCommand, step};
 use tokio::sync::{mpsc, watch};
 
-use super::model::{ClipEffect, ClipEvent, ClipState, Clipboard, ClipboardCommand};
-use super::reduce::step;
 use super::wire::{Epoch, Heard, Order, Tell, Wire, start};
 use crate::env::WaylandRoute;
 
 /// Run until every control is dropped.
-pub(super) async fn run(
+pub(crate) async fn run(
     display: WaylandRoute,
     mut commands: mpsc::UnboundedReceiver<ClipboardCommand>,
     tx: watch::Sender<Clipboard>,

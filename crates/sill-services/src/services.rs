@@ -267,7 +267,7 @@ mod tests {
         );
         assert_eq!(
             services.clipboard.state.borrow().status.mode,
-            crate::clipboard::HistoryMode::Off,
+            sill_model::clipboard::HistoryMode::Off,
             "no clipboard read until the daemon's policy"
         );
         assert_eq!(

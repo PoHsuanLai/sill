@@ -11,27 +11,28 @@ use std::os::fd::OwnedFd;
 use std::sync::Arc;
 use std::time::Duration;
 
+use cosmic_client_toolkit::sctk::reexports::calloop;
 use cosmic_client_toolkit::sctk::reexports::calloop::generic::Generic;
 use cosmic_client_toolkit::sctk::reexports::calloop::timer::{TimeoutAction, Timer};
 use cosmic_client_toolkit::sctk::reexports::calloop::{
-    self, Interest, LoopHandle, Mode, PostAction, RegistrationToken,
+    Interest, LoopHandle, Mode, PostAction, RegistrationToken,
 };
 
 use super::content::ReadLimit;
 
 /// How long a source has to write its selection before the read is given up.
-pub(super) const READ_DEADLINE: Duration = Duration::from_secs(2);
+pub(crate) const READ_DEADLINE: Duration = Duration::from_secs(2);
 
 /// How long a paste has to take an offered entry before the write is given up.
 const WRITE_DEADLINE: Duration = Duration::from_secs(5);
 
 /// One read at a time: which one (so a late callback of an abandoned read is ignored).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) struct ReadId(pub(super) u64);
+pub(crate) struct ReadId(pub(crate) u64);
 
 /// How a read ended.
 #[derive(Debug)]
-pub(super) enum ReadEnd {
+pub(crate) enum ReadEnd {
     /// The source closed its end: everything it wrote.
     Whole(Vec<u8>),
     /// More than the limit was written.
@@ -42,20 +43,20 @@ pub(super) enum ReadEnd {
 
 /// A read in progress: its pipe's source and its deadline's.
 #[derive(Debug)]
-pub(super) struct Reading {
-    pub(super) id: ReadId,
-    pub(super) pipe: RegistrationToken,
-    pub(super) deadline: RegistrationToken,
+pub(crate) struct Reading {
+    pub(crate) id: ReadId,
+    pub(crate) pipe: RegistrationToken,
+    pub(crate) deadline: RegistrationToken,
 }
 
 /// What the loop's state does when a read ends or times out.
-pub(super) trait ReadOwner: 'static {
+pub(crate) trait ReadOwner: 'static {
     fn read_ended(&mut self, id: ReadId, end: ReadEnd);
     fn read_timed_out(&mut self, id: ReadId);
 }
 
 /// Read `pipe` until the writer closes it, at most `limit` bytes, within [`READ_DEADLINE`].
-pub(super) fn read_whole<S: ReadOwner>(
+pub(crate) fn read_whole<S: ReadOwner>(
     handle: &LoopHandle<'static, S>,
     pipe: File,
     id: ReadId,
@@ -103,7 +104,7 @@ fn step_read(pipe: &mut impl Read, bytes: &mut Vec<u8>, limit: ReadLimit) -> Opt
 
 /// Write `bytes` into `fd` as the reader takes them, then close it; given up after
 /// [`WRITE_DEADLINE`] or when the reader goes.
-pub(super) fn write_whole<S: 'static>(
+pub(crate) fn write_whole<S: 'static>(
     handle: &LoopHandle<'static, S>,
     fd: OwnedFd,
     bytes: Arc<[u8]>,
@@ -167,8 +168,8 @@ fn step_write(pipe: &mut impl Write, bytes: &[u8], written: &mut usize) -> Progr
 mod tests {
     use std::io::{Cursor, ErrorKind};
 
+    use super::super::content::ReadLimit;
     use super::{Progress, ReadEnd, step_read, step_write};
-    use crate::clipboard::content::ReadLimit;
 
     /// A read's steps until it ended, and how (sizes only).
     type Ended = (usize, Result<usize, &'static str>);

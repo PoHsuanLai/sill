@@ -9,7 +9,7 @@ use sill_launcher::{
 };
 
 use super::FORGET_ACTION;
-use crate::clipboard::{ClipContent, ClipEntry, ClipImage, Clipboard};
+use sill_model::clipboard::{ClipContent, ClipEntry, ClipImage, Clipboard};
 
 /// A title's most characters.
 const TITLE_CHARS: usize = 80;
@@ -168,7 +168,7 @@ mod tests {
     use sill_launcher::{ClipKey, ExcerptLimit, Mime, Needle, UnixTime, matching::matcher};
 
     use super::{age, excerpt, grouped, rows_at, title_of};
-    use crate::clipboard::{ClipContent, ClipEntry, ClipImage, ClipText, Clipboard};
+    use sill_model::clipboard::{ClipContent, ClipEntry, ClipImage, ClipText, Clipboard};
 
     #[test]
     fn a_title_is_the_first_line_that_says_something() {

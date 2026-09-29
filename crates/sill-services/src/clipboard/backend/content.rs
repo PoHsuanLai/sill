@@ -6,20 +6,18 @@ use std::sync::Arc;
 
 use image::ImageReader;
 use sill_launcher::Mime;
-
-use super::model::{ClipContent, ClipImage, ClipText, ImageCap, Skipped};
-use super::offer::MimePick;
+use sill_model::clipboard::{ClipContent, ClipImage, ClipText, ImageCap, MimePick, Skipped};
 
 /// The most text read from one selection, in bytes; a longer copy is skipped as
 /// [`Skipped::TooLarge`]. Proposed, with no settings key.
-pub(super) const TEXT_LIMIT: ReadLimit = ReadLimit(1 << 20);
+pub(crate) const TEXT_LIMIT: ReadLimit = ReadLimit(1 << 20);
 
 /// The most bytes read before a selection is given up as too large.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) struct ReadLimit(pub(super) u64);
+pub(crate) struct ReadLimit(pub(crate) u64);
 
 /// How much of `pick` may be read under the policy's image cap.
-pub(super) fn limit_for(pick: &MimePick, images: ImageCap) -> ReadLimit {
+pub(crate) fn limit_for(pick: &MimePick, images: ImageCap) -> ReadLimit {
     match pick {
         MimePick::Text(_) => TEXT_LIMIT,
         MimePick::Image(_) => ReadLimit(images.0),
@@ -28,7 +26,7 @@ pub(super) fn limit_for(pick: &MimePick, images: ImageCap) -> ReadLimit {
 
 /// `bytes`, read whole as `pick`, as history content: text that is valid UTF-8 and not blank,
 /// or an image whose size its header gives.
-pub(super) fn content_of(pick: &MimePick, bytes: Vec<u8>) -> Result<ClipContent, Skipped> {
+pub(crate) fn content_of(pick: &MimePick, bytes: Vec<u8>) -> Result<ClipContent, Skipped> {
     match pick {
         MimePick::Text(_) => text_of(bytes).map(ClipContent::Text),
         MimePick::Image(mime) => image_of(mime, bytes).map(ClipContent::Image),
@@ -67,8 +65,8 @@ mod tests {
     use image::{ImageFormat, RgbaImage};
 
     use super::{ReadLimit, TEXT_LIMIT, content_of, limit_for};
-    use crate::clipboard::model::{ClipContent, ImageCap, Skipped};
-    use crate::clipboard::offer::MimePick;
+    use sill_model::clipboard::MimePick;
+    use sill_model::clipboard::{ClipContent, ImageCap, Skipped};
 
     fn text(mime: &str) -> MimePick {
         MimePick::Text(mime.to_owned())
