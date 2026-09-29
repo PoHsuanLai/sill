@@ -92,7 +92,7 @@ fn show(
         return;
     }
     let infos: Vec<OutputInfo> = outputs.outputs.iter().map(|(i, _)| i.clone()).collect();
-    let focus = crate::displays::focused_output(&services.cosmic_wl.borrow().toplevels);
+    let focus = crate::displays::focused_output(&services.cosmic_wl.state.borrow().toplevels);
     let keys = crate::displays::policy_from(&file.display).keys_target;
     let ids = osd_outputs(
         kind,
@@ -100,7 +100,7 @@ fn show(
         keys,
         focus.as_ref(),
         &infos,
-        &services.displays.borrow(),
+        &services.displays.state.borrow(),
     );
     link.show(kind, ids, level);
 }

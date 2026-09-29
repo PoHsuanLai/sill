@@ -95,8 +95,8 @@ pub fn start(on: OutputId) -> Running {
     let (mut services, feeds) = fake::services();
     let (polkit, rx) = watch::channel(Polkit::default());
     let (control, commands) = Control::channel();
-    services.polkit = rx;
-    services.polkit_control = control;
+    services.polkit_agent.state = rx;
+    services.polkit_agent.control = control;
     let link = BannerLink::new();
     link.set(BannerOutput::On(on));
     WORLD.with(|w| {

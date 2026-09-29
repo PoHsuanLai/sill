@@ -345,9 +345,9 @@ fn send_all(outward: &Outward, commands: Vec<DockCommand>) {
     let services = &outward.services;
     for command in commands {
         let _gone_is_dropped = match command {
-            DockCommand::Wl(c) => services.wl.send(c),
-            DockCommand::Pins(c) => services.pins_control.send(c),
-            DockCommand::Service(c) => services.launch.send(c),
+            DockCommand::Wl(c) => services.cosmic_wl.control.send(c),
+            DockCommand::Pins(c) => services.pins.control.send(c),
+            DockCommand::Service(c) => services.launch.control.send(c),
             DockCommand::Launch { app, action, uris } => {
                 launch(outward.clone(), app, action, uris);
                 Ok(())
@@ -362,15 +362,17 @@ fn launch(outward: Outward, app: AppId, action: DesktopAction, uris: Vec<String>
             Some(surface) => surface.activation_token(Some(app.0.clone())).await,
             None => None,
         };
-        let _gone_is_dropped = outward
-            .services
-            .launch
-            .send(LaunchCommand::Launch(LaunchRequest {
-                app,
-                action,
-                files: Vec::new(),
-                uris,
-                token,
-            }));
+        let _gone_is_dropped =
+            outward
+                .services
+                .launch
+                .control
+                .send(LaunchCommand::Launch(LaunchRequest {
+                    app,
+                    action,
+                    files: Vec::new(),
+                    uris,
+                    token,
+                }));
     });
 }

@@ -1,24 +1,25 @@
 //! The Wi-Fi tile: a quire `ModuleTile` whose press turns the radio on or off,
 //! [`crate::surfaces::control_center::wifi_status`] as its line, and its chevron to the network
-//! list (`Detail::Wifi`). Reads `use_wifi` and
-//! `use_network`; sends `WifiCommand::Radio`.
+//! list (`Detail::Wifi`). Reads `use_service::<WifiService>` and
+//! `use_service::<NetworkService>`; sends `WifiCommand::Radio`.
 
 use dioxus::prelude::*;
 use ds::{Availability, Chevron, ModuleState, ModuleTile, StatusState, Text, WifiState};
-use sill_services::{Network, Presence, Radio, Wifi, WifiCommand};
+use sill_services::{Network, Presence, Radio, Wifi, WifiCommand, WifiService};
 
-use crate::hooks::{use_network, use_services, use_wifi};
+use crate::hooks::{use_control, use_service};
 use crate::surfaces::bar::glyph_state::{NetworkGlyph, network_glyph};
 use crate::surfaces::control_center::modules::flipped;
 use crate::surfaces::control_center::page::Detail;
 use crate::surfaces::control_center::wifi_status;
+use sill_services::NetworkService;
 
 /// The Wi-Fi tile.
 #[component]
 pub fn WifiModule(on_detail: EventHandler<Detail>) -> Element {
-    let wifi = use_wifi()();
-    let network = use_network()();
-    let control = use_services().wifi_control;
+    let wifi = use_service::<WifiService>()();
+    let network = use_service::<NetworkService>()();
+    let control = use_control::<WifiService>();
     let state = radio_state(wifi.radio);
     rsx! {
         ModuleTile {

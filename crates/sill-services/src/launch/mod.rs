@@ -3,7 +3,7 @@
 //! (fallback process group)).
 //!
 //! The activation token comes from shell-host (`SurfaceHandle::activation_token`) in the
-//! daemon's `sill::launch`, which then sends a [`LaunchCommand`] here. [`spawn`] prefers
+//! daemon's `sill::launch`, which then sends a [`LaunchCommand`] here. [`LaunchService`] prefers
 //! `org.freedesktop.Application.Activate` for a `DBusActivatable` entry (`dbus.rs`); otherwise
 //! it plans the argument vector (`plan.rs`, pure) and runs it inside a transient
 //! `systemd-run --user --scope`, wrapped in the machine's terminal (`terminal.rs`) when the

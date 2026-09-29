@@ -19,7 +19,8 @@
 //! `login` ([`pam::service`]).
 //!
 //! Nothing here runs PAM until a [`AuthCommand::Submit`] arrives, and every test drives a
-//! [`FakeAuthenticator`] (the [`Env`]'s authenticator); no test calls PAM with anyone's real password.
+//! [`FakeAuthenticator`] (the [`Env`]'s authenticator); no test calls PAM with anyone's real
+//! password.
 
 mod account;
 mod authenticator;

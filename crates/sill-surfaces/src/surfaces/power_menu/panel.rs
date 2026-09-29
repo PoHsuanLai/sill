@@ -14,7 +14,7 @@ use ds::{
 use shell_host::OutputInfo;
 use sill_services::{OutputName, Session, SessionAction};
 
-use crate::hooks::{use_appearance, use_ds_scale, use_settings, use_workspaces};
+use crate::hooks::{use_appearance, use_ds_scale, use_service_part, use_settings};
 use crate::surfaces::launcher::panel::{active_look, material};
 use crate::surfaces::power_menu::drive::{MenuCtx, use_menu};
 use crate::surfaces::power_menu::keys::offered;
@@ -23,6 +23,7 @@ use crate::surfaces::power_menu::labels::{
 };
 use crate::surfaces::power_menu::layer::PANEL_ID;
 use crate::surfaces::power_menu::sheet::{MenuSession, SheetInput};
+use sill_services::CosmicWlService;
 
 /// The power menu's stylesheet (lint-clean under `Profile::Strict`,
 /// `tests/power_menu_lint.rs`).
@@ -34,7 +35,11 @@ pub(crate) fn power_menu(output: OutputInfo) -> Element {
     let file = use_settings()();
     let environment = use_appearance()();
     let on = output.name.clone().map(OutputName);
-    let look = active_look(&use_workspaces()(), on.as_ref(), &file.spaces);
+    let look = active_look(
+        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
+        on.as_ref(),
+        &file.spaces,
+    );
     let ctx = use_menu(output.id, file.power_menu.default_action);
     let menu = (ctx.menu)();
     let offers = (ctx.offers)();

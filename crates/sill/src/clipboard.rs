@@ -28,8 +28,10 @@ pub fn report_of(history: &Clipboard) -> ClipboardReport {
 /// Answer `request`.
 pub fn dispatch(services: &Services, request: ClipboardRequest) -> Response {
     match request {
-        ClipboardRequest::Status => Response::Clipboard(report_of(&services.clipboard.borrow())),
-        ClipboardRequest::Clear => match services.clipboard_control.send(ClipboardCommand::Clear) {
+        ClipboardRequest::Status => {
+            Response::Clipboard(report_of(&services.clipboard.state.borrow()))
+        }
+        ClipboardRequest::Clear => match services.clipboard.control.send(ClipboardCommand::Clear) {
             Ok(()) => Response::Done,
             Err(error) => Response::Failed(Failure {
                 kind: FailureKind::Internal,

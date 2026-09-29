@@ -1,39 +1,43 @@
 //! The polkit prompt's root.
 //!
-//! While `use_polkit().current` is a request and the `BannerLink` names this output, the
-//! surface maps itself (`SurfaceOp::SetVisibility`), and a `Ds { material: Sheet, extent:
-//! Viewport }` holds `ds::PolkitPrompt` from [`super::prompt_view`] (keyed by the cookie, so a
-//! new request enters again), `caps` from the last key event's modifiers, `onsubmit` sending
-//! `PolkitCommand::Answer { cookie, secret: Secret::new(text) }` (the text moves into the
-//! `Secret` at once and is never kept in a signal), `oncancel` sending
-//! `PolkitCommand::Dismiss(cookie)`; when the request goes away `shown` turns `Hidden` and the
-//! surface unmaps at `on_hidden` ([`super::stage`]). Nothing is styled under `.ds-polkit*`; the
-//! only markup of sill's own is the wrapper that hears the keys' modifiers, since quire's sheet
-//! floats in the root's overlay host.
+//! While `use_service::<PolkitAgentService>().current` is a request and the `BannerLink` names this
+//! output, the surface maps itself (`SurfaceOp::SetVisibility`), and a `Ds { material: Sheet,
+//! extent: Viewport }` holds `ds::PolkitPrompt` from [`super::prompt_view`] (keyed by the cookie,
+//! so a new request enters again), `caps` from the last key event's modifiers, `onsubmit` sending
+//! `PolkitCommand::Answer { cookie, secret: Secret::new(text) }` (the text moves into the `Secret`
+//! at once and is never kept in a signal), `oncancel` sending `PolkitCommand::Dismiss(cookie)`;
+//! when the request goes away `shown` turns `Hidden` and the surface unmaps at `on_hidden`
+//! ([`super::stage`]). Nothing is styled under `.ds-polkit*`; the only markup of sill's own is the
+//! wrapper that hears the keys' modifiers, since quire's sheet floats in the root's overlay host.
 
 use dioxus::prelude::*;
 use ds::{BlurState, CapsLock, Ds, Material, PolkitPrompt, RootExtent, Text};
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_services::auth::Secret;
 use sill_services::polkit_agent::{Cookie, PolkitCommand};
-use sill_services::{Control, OutputName};
+use sill_services::{Control, OutputName, PolkitAgentService};
 
 use super::stage::{Mapped, Stage, StageIn, advance};
 use super::view::{PolkitPromptView, prompt_view};
 use crate::hooks::{
-    use_appearance, use_ds_scale, use_polkit, use_services, use_settings, use_workspaces,
+    use_appearance, use_control, use_ds_scale, use_service, use_service_part, use_settings,
 };
 use crate::surfaces::banners::BannerLink;
 use crate::surfaces::launcher::panel::active_look;
+use sill_services::CosmicWlService;
 
 pub(super) fn polkit_prompt(output: OutputInfo) -> Element {
     let ds_scale = use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
     let on = output.name.clone().map(OutputName);
-    let look = active_look(&use_workspaces()(), on.as_ref(), &file.spaces);
+    let look = active_look(
+        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
+        on.as_ref(),
+        &file.spaces,
+    );
     let stage = use_stage(output);
-    let control = use_services().polkit_control;
+    let control = use_control::<PolkitAgentService>();
     let mut caps = use_signal(|| CapsLock::Off);
     let drawn = stage().drawn().map(|(view, shown)| (view.clone(), shown));
     rsx! {
@@ -114,7 +118,7 @@ fn settle(mut stage: Signal<Stage>) {
 /// The stage on `output`, following the agent and the banners' output, and the surface's
 /// mapping following the stage. Nothing to map without a host (a test, an SSR render).
 fn use_stage(output: OutputInfo) -> Signal<Stage> {
-    let polkit = use_polkit();
+    let polkit = use_service::<PolkitAgentService>();
     let link = use_hook(|| try_consume_context::<BannerLink>().unwrap_or_default());
     let shows = use_watch(link.subscribe());
     let mut stage = use_signal(Stage::default);

@@ -43,8 +43,8 @@ fn run() -> Result<(), String> {
         (),
     );
     let wallpaper_control = wallpaper.control.clone();
-    services.wallpapers = wallpaper.state;
-    services.wallpaper_control = wallpaper.control;
+    services.wallpaper.state = wallpaper.state;
+    services.wallpaper.control = wallpaper.control;
 
     let host = Host::<()>::connect(sill_surfaces::host_config()).map_err(|e| e.to_string())?;
     let mut done = HashSet::<OutputId>::new();

@@ -128,10 +128,10 @@ pub fn services() -> (Services, DockFeeds) {
     let (pins_tx, pins) = watch::channel(pins());
     let (badges_tx, badges) = watch::channel(badges());
     let (pins_control, pin_events) = sill_services::Control::channel();
-    services.apps = apps;
-    services.pins = pins;
-    services.badges = badges;
-    services.pins_control = pins_control;
+    services.apps.state = apps;
+    services.pins.state = pins;
+    services.badges.state = badges;
+    services.pins.control = pins_control;
     (
         services,
         DockFeeds {

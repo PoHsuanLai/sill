@@ -110,7 +110,7 @@ pub enum Registration {
     Refused(String),
 }
 
-/// What the polkit prompt follows (`Services.polkit`).
+/// What the polkit prompt follows (`Services.polkit_agent`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Polkit {
     pub registration: Registration,

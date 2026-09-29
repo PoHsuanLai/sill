@@ -35,9 +35,9 @@ fn render(auth: Auth, prompt: PromptOutput, wallpapers: Wallpapers) -> String {
     let _entered = rt.enter();
     let (mut services, _feeds) = support::fake::services();
     let (_auth_tx, auth_rx) = watch::channel(auth);
-    services.auth = auth_rx;
+    services.auth.state = auth_rx;
     let (_wallpaper_tx, wallpaper_rx) = watch::channel(wallpapers);
-    services.wallpapers = wallpaper_rx;
+    services.wallpaper.state = wallpaper_rx;
     let link = LockLink::new();
     link.set(prompt);
     let mut dom = VirtualDom::new_with_props(

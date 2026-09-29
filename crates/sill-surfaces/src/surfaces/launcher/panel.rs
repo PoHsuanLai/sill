@@ -23,9 +23,7 @@ use sill_services::{Activity, OutputName, Workspaces};
 use sill_settings::{PanelMaterial, SpacesSettings};
 
 use crate::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
-use crate::hooks::{
-    use_appearance, use_clipboard, use_results, use_settings, use_space_look, use_workspaces,
-};
+use crate::hooks::{use_appearance, use_service, use_service_part, use_settings, use_space_look};
 use crate::surfaces::bar::shell_style::shell_metrics;
 use crate::surfaces::bar::workspaces::group_for;
 use crate::surfaces::launcher::card::{CardKey, Foot, use_card_hit};
@@ -48,6 +46,7 @@ use crate::surfaces::launcher::script::use_script;
 use crate::surfaces::launcher::sections_view::{Draw, palette_groups};
 use crate::surfaces::launcher::session::Session;
 use crate::surfaces::launcher::view::View;
+use sill_services::{ClipboardService, CosmicWlService, ResultsService};
 
 /// The launcher's stylesheet (lint-clean under `Profile::Strict`, `tests/launcher_lint.rs`).
 pub(crate) const LAUNCHER_CSS: &str = include_str!("../../style/launcher.css");
@@ -100,7 +99,11 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
     let file = use_settings()();
     let environment = use_appearance()();
     let on = output.name.clone().map(OutputName);
-    let look = active_look(&use_workspaces()(), on.as_ref(), &file.spaces);
+    let look = active_look(
+        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
+        on.as_ref(),
+        &file.spaces,
+    );
     let appearance = environment.settings.appearance.appearance();
     let icons = RowIcons {
         look: icon_look(
@@ -112,8 +115,8 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
         scale: ds_scale.unwrap_or(ds::Scale::ONE),
         resolver: use_icon_resolver(),
     };
-    let history = use_clipboard();
-    let results = use_results();
+    let history = use_service::<ClipboardService>();
+    let results = use_service::<ResultsService>();
     let panel = use_panel(output.id, results);
     use_script(panel.clone());
     use_link_keys(panel.clone());

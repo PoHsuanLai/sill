@@ -127,7 +127,7 @@ pub fn step(bluetooth: Bluetooth, event: BluetoothEvent) -> Bluetooth {
         connect: bluetooth.connect.next(connecting),
         ..bluetooth
     };
-    reduce_devices(bluetooth, event)
+    step_devices(bluetooth, event)
 }
 
 /// What `event` means for the connect under way: a device entering `Connecting` starts one (or
@@ -172,7 +172,7 @@ fn connection_step(was: Option<BtConnection>, now: BtConnection) -> Step {
 }
 
 /// The devices after `event`.
-fn reduce_devices(bluetooth: Bluetooth, event: BluetoothEvent) -> Bluetooth {
+fn step_devices(bluetooth: Bluetooth, event: BluetoothEvent) -> Bluetooth {
     match event {
         BluetoothEvent::Adapter { power } => Bluetooth {
             presence: Presence::Present,

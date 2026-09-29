@@ -9,7 +9,8 @@ use sill_services::{AuthCommand, AuthPhase, OutputName};
 
 use super::link::{LockLink, PromptOutput};
 use super::{backdrop_for, clock_lines, lock_user, prompt_state};
-use crate::hooks::{use_auth, use_clock, use_services, use_settings, use_wallpapers};
+use crate::hooks::{use_service, use_services, use_settings};
+use sill_services::{AuthService, ClockService, WallpaperService};
 
 /// Where shell-host's session lock is, as the surface needs it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -57,11 +58,11 @@ pub(super) fn LockBody(
 ) -> Element {
     let services = use_services();
     let settings = use_settings()();
-    let wallpapers = use_wallpapers()();
-    let auth_signal = use_auth();
+    let wallpapers = use_service::<WallpaperService>()();
+    let auth_signal = use_service::<AuthService>();
     let auth = auth_signal();
     // The bar clock's text changes each minute: reading it re-renders the lock clock with it.
-    let _minute = use_clock()();
+    let _minute = use_service::<ClockService>()();
     let link = use_context::<LockLink>();
     let prompt_at = shell_host::use_watch(link.subscribe())();
     let here = match prompt_at {
@@ -82,7 +83,7 @@ pub(super) fn LockBody(
         .and_then(|path| ImageSource::file(&path).ok());
     let prompt = match here {
         Here::Yes => {
-            let control = services.auth_control.clone();
+            let control = services.auth.control.clone();
             rsx! {
                 LockPrompt {
                     user: lock_user(&auth.account),

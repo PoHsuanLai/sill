@@ -111,7 +111,7 @@ pub fn spawn_policy(
 /// `sill idle status`.
 pub fn dispatch(services: &Services, request: IdleRequest) -> Response {
     match request {
-        IdleRequest::Status => Response::Idle(report_of(&services.idle.borrow())),
+        IdleRequest::Status => Response::Idle(report_of(&services.idle.state.borrow())),
     }
 }
 
@@ -123,7 +123,7 @@ pub fn fake_wake(services: &Services) -> Response {
 
 #[cfg(feature = "debug")]
 fn fake_wake_in_this_build(services: &Services) -> Response {
-    match services.idle_control.send(IdleCommand::FakeWake) {
+    match services.idle.control.send(IdleCommand::FakeWake) {
         Ok(()) => Response::Done,
         Err(error) => Response::Failed(sill_ipc::Failure {
             kind: sill_ipc::FailureKind::Internal,

@@ -48,8 +48,8 @@ pub(crate) fn effect(activation: &Activation) -> Effect {
     }
 }
 
-/// The services the runner can send effects to; a missing one drops its effects (the public
-/// `spawn`, which is given providers only, has none).
+/// The services the runner can send effects to; a missing one drops its effects (the results
+/// service given its providers alone, [`super::Sources::Providers`], has none).
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Outlets {
     pub(crate) wl: Option<Control<WlCommand>>,

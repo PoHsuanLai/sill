@@ -82,7 +82,7 @@ pub enum DragEnd {
 /// What happened.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ThumbIn {
-    /// The service's current shot (on every change of `use_shots`).
+    /// The service's current shot (on every change of `use_service::<ScreenshotsService>`).
     Current(Option<ShotId>),
     HoldElapsed(HoldToken),
     PointerEnter,

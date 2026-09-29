@@ -1,14 +1,14 @@
 //! The Now Playing module: `Media::current`'s track on the module's panel, drawn by the view it
 //! shares with the Now Playing widget ([`super::media_face::MediaView`]); a press sends
-//! `MediaCommand::Press`. Reads `use_now_playing`; asks the service to re-read the position when
-//! it opens, so the bar starts from where the track is now.
+//! `MediaCommand::Press`. Reads `use_service::<NowPlayingService>`; asks the service to re-read the
+//! position when it opens, so the bar starts from where the track is now.
 
 use dioxus::prelude::*;
 use ds::ModulePanel;
-use sill_services::{MediaCommand, PlayerId};
+use sill_services::{MediaCommand, NowPlayingService, PlayerId};
 
 use super::media_face::{MediaView, Transport, media_face};
-use crate::hooks::{use_now_playing, use_services};
+use crate::hooks::{use_control, use_service};
 use crate::surfaces::control_center::modules::use_plate;
 
 /// The Now Playing module.
@@ -25,8 +25,8 @@ pub fn NowPlayingModule() -> Element {
 
 /// The current player's face and where its presses go: read by the module and the widget.
 pub(crate) fn use_media() -> (super::media_face::MediaFace, EventHandler<Transport>) {
-    let media = use_now_playing()();
-    let control = use_services().media_control;
+    let media = use_service::<NowPlayingService>()();
+    let control = use_control::<NowPlayingService>();
     let playing = media.current().cloned();
     use_position_on_open(playing.as_ref().map(|player| player.id.clone()));
     let face = media_face(playing.as_ref());
@@ -46,7 +46,7 @@ pub(crate) fn use_media() -> (super::media_face::MediaFace, EventHandler<Transpo
 /// Asks the service once, when the module opens on a player, to re-read that player's position
 /// (MPRIS sends no signal as a track plays, so the last report can be minutes old).
 fn use_position_on_open(player: Option<PlayerId>) {
-    let control = use_services().media_control;
+    let control = use_control::<NowPlayingService>();
     let mut asked = use_hook(|| CopyValue::new(None::<PlayerId>));
     if let Some(player) = player
         && asked.peek().as_ref() != Some(&player)

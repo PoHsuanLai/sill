@@ -1,9 +1,9 @@
-//! The Calendar widget's view: reads `use_agenda` (today, the events) and the `calendar`
-//! settings, keeps the month shown in a signal (today's month on mount, stepped by the card's
-//! `MonthIntent::Step`, back to today's month when the day turns), and hands quire's
+//! The Calendar widget's view: reads `use_service::<EventsService>` (today, the events) and the
+//! `calendar` settings, keeps the month shown in a signal (today's month on mount, stepped by the
+//! card's `MonthIntent::Step`, back to today's month when the day turns), and hands quire's
 //! `MonthWidget` one entry: the grid from [`super::grid::month_grid`] and
-//! [`super::grid::busy_days`], today's weekday and date, and today's events from the agenda Up
-//! Next reads ([`crate::widgets::up_next::today_events`]). Redrawn on the clock's minute tick.
+//! [`super::grid::busy_days`], today's weekday and date, and today's events from the agenda Up Next
+//! reads ([`crate::widgets::up_next::today_events`]). Redrawn on the clock's minute tick.
 
 use dioxus::prelude::*;
 use ds::{MonthEntry, MonthFace, MonthIntent, TodayLine, WidgetCard};
@@ -13,15 +13,16 @@ use sill_settings::WeekNumbers;
 
 use super::grid::{Step, busy_days, month_grid};
 use super::shown::{Shown, grid_data, weekday_name};
-use crate::hooks::{use_agenda, use_clock, use_settings};
+use crate::hooks::{use_service, use_settings};
 use crate::widgets::up_next::today_events;
 use crate::widgets::{Place, WidgetKind, use_widget_wake, widget_element_id};
+use sill_services::{ClockService, EventsService};
 
 /// The month, today marked, on quire's card.
 #[component]
 pub fn CalendarCard(place: Place) -> Element {
-    let _minute = use_clock()();
-    let agenda = use_agenda()();
+    let _minute = use_service::<ClockService>()();
+    let agenda = use_service::<EventsService>()();
     let calendar = use_settings()().calendar;
     let today = agenda.today;
     let mut shown = use_signal(|| Shown::today(today));

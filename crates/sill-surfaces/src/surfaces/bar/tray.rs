@@ -27,7 +27,7 @@ use shell_host::{
 use sill_services::tray::icon_art;
 use sill_services::{
     Availability as TrayAvailability, Check as TrayCheck, Control, TrayCommand, TrayIcon, TrayItem,
-    TrayItemId, TrayMenuEntry, TrayMenuKind, TrayStatus, Visibility,
+    TrayItemId, TrayMenuEntry, TrayMenuKind, TrayService, TrayStatus, Visibility,
 };
 
 use super::geometry::menu_size;
@@ -36,7 +36,7 @@ use super::tray_input::{
     ItemMenu, ScreenOrigin, TrayAction, chroma_limit, icon_source, press_action, scroll_delta,
 };
 use super::tray_menu::{POPUP_WIDTH, TrayMenuDocument};
-use crate::hooks::{use_appearance, use_services, use_settings, use_tray};
+use crate::hooks::{use_appearance, use_control, use_service, use_settings};
 
 /// The room under the menu's estimated height (its 8 px inset from the popup's edge, with
 /// slack for the estimate).
@@ -57,7 +57,7 @@ fn popup_element_id(index: usize) -> String {
 /// document, so `tray-<n>` needs no output qualifier; `output` places the presses on screen.
 #[component]
 pub fn Tray(output: OutputInfo) -> Element {
-    let tray = use_tray();
+    let tray = use_service::<TrayService>();
     let items = tray().items;
     let origin = ScreenOrigin {
         x: output.logical.x,
@@ -90,7 +90,7 @@ fn use_icon_source(icon: &TrayIcon, size_px: u16, limit: ChromaLimit) -> IconSou
 #[component]
 fn TrayButton(index: usize, item: TrayItem, origin: ScreenOrigin) -> Element {
     let surface = use_surface();
-    let control = use_services().tray_control;
+    let control = use_control::<TrayService>();
     let size_px = use_settings()().bar.status_icon_box_px.0;
     let limit = chroma_limit(use_appearance()().settings.icons.symbolic_chroma_max.0);
     let icon = use_icon_source(&item.icon, size_px, limit);

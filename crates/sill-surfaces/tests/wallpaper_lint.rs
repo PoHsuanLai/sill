@@ -31,7 +31,7 @@ fn render_ssr(fed: Wallpapers) -> String {
     let _entered = rt.enter();
     let (mut services, _feeds) = support::fake::services();
     let (_tx, rx) = watch::channel(fed);
-    services.wallpapers = rx;
+    services.wallpaper.state = rx;
     let mut dom = VirtualDom::new_with_props(
         Wallpaper,
         WallpaperProps {

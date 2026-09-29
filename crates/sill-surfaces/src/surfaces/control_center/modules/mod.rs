@@ -38,10 +38,11 @@ use ds::{ModuleState, PanelPlate};
 use super::page::Detail;
 use wired::{WiredDisplay, WiredSound};
 
-/// The module `module` names, wired to its service: the Sound and Display modules take a level
-/// and an `on_change`, which this reads from and sends to their services (`use_volume`,
-/// `use_displays`); the others read their own hooks. `output` is the bar's (Display's
-/// brightness target); `on_detail` is a chevron's (Wi-Fi's and Bluetooth's).
+/// The module `module` names, wired to its service: the Sound and Display modules take a level and
+/// an `on_change`, which this reads from and sends to their services
+/// (`use_service::<VolumeService>`, `use_service::<DisplaysService>`); the others read their own
+/// hooks. `output` is the bar's (Display's brightness target); `on_detail` is a chevron's (Wi-Fi's
+/// and Bluetooth's).
 #[component]
 pub fn Module(
     module: ControlCenterModule,

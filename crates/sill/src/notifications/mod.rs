@@ -93,7 +93,7 @@ pub fn dispatch(
             send(services, NotificationsCommand::DismissAll)
         }
         (NotificationsRequest::Status, _, _) => {
-            let notes = services.notifications.borrow();
+            let notes = services.notifications.state.borrow();
             Response::Notifications(report_of(&notes.live, &notes.history))
         }
         (NotificationsRequest::Close, Some(center), _) => {
@@ -154,7 +154,7 @@ pub fn namespaces(info: &OutputInfo) -> (String, String) {
 }
 
 fn send(services: &Services, command: NotificationsCommand) -> Response {
-    match services.notifications_control.send(command) {
+    match services.notifications.control.send(command) {
         Ok(()) => Response::Done,
         Err(error) => Response::Failed(sill_ipc::Failure {
             kind: sill_ipc::FailureKind::Internal,

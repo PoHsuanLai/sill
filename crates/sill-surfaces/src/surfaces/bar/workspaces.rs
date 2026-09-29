@@ -8,11 +8,11 @@
 use dioxus::prelude::*;
 use ds::{Here, PointerButton, Press, WorkspacePill, WorkspacePills};
 use shell_host::OutputInfo;
-use sill_services::{Activity, OutputName, WlCommand, Workspace, WorkspaceGroup};
+use sill_services::{Activity, CosmicWlService, OutputName, WlCommand, Workspace, WorkspaceGroup};
 
 use super::reorder::{Dropped, Pressed, reorder};
 use super::title::pointer_at;
-use crate::hooks::{use_services, use_settings, use_workspaces};
+use crate::hooks::{use_control, use_service_part, use_settings};
 
 /// The group this output shows: the one naming it, or the first when the output has no name.
 pub(crate) fn group_for(
@@ -38,9 +38,9 @@ fn label(workspace: &Workspace, index: usize) -> String {
 /// The workspace indicator: one pill per workspace of this output's group, active sealed, drag to reorder (`move_before`/`move_after`), right-click for Edit Space.
 #[component]
 pub fn WorkspaceIndicator(output: OutputInfo) -> Element {
-    let workspaces = use_workspaces();
+    let workspaces = use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone());
     let settings = use_settings();
-    let wl = use_services().wl;
+    let wl = use_control::<CosmicWlService>();
     let mut pressed = use_signal(|| None::<Pressed>);
     let threshold = settings().dock.hold_to_menu_move_px.0;
     let on = output.name.clone().map(OutputName);

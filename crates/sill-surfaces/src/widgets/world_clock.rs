@@ -10,8 +10,9 @@ use jiff::Timestamp;
 use jiff::tz::TimeZone;
 
 use super::{Place, WidgetKind, widget_element_id};
-use crate::hooks::{use_clock, use_settings};
+use crate::hooks::{use_service, use_settings};
 use crate::widgets::use_widget_wake;
+use sill_services::ClockService;
 
 /// An IANA zone name: `Europe/London`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -137,7 +138,7 @@ pub fn clock_entry(rows: Vec<ClockRow>) -> ClockEntry {
 /// new entry: no timer of its own.
 #[component]
 pub fn WorldClockCard(place: Place) -> Element {
-    let _minute = use_clock()();
+    let _minute = use_service::<ClockService>()();
     let zones = parse_zones(&use_settings()().widgets.world_clocks);
     let entry = clock_entry(clock_rows(Timestamp::now(), &zones, &TimeZone::system()));
     rsx! {

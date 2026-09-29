@@ -10,9 +10,9 @@
 
 use dioxus::prelude::*;
 use ds::{Alert, AlertEmphasis, Flow, Text};
-use sill_services::{BluetoothCommand, BtPower};
+use sill_services::{BluetoothCommand, BluetoothService, BtPower};
 
-use crate::hooks::use_services;
+use crate::hooks::use_control;
 
 /// Whether the panel is asking before Bluetooth goes off.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -55,7 +55,7 @@ pub(crate) fn provide_power_ask() -> PowerAsk {
 /// module drawn on its own), it is sent at once.
 pub(crate) fn use_power_request() -> Callback<BtPower> {
     let ask = try_use_context::<PowerAsk>();
-    let control = use_services().bluetooth_control;
+    let control = use_control::<BluetoothService>();
     use_callback(move |to: BtPower| {
         let send = |power: BtPower| {
             // A stopped service drops it: the tile shows the power it last published.
@@ -80,7 +80,7 @@ pub(crate) fn TurnOffAlert(on_answered: EventHandler<()>) -> Element {
     let Some(PowerAsk(mut confirming)) = try_use_context::<PowerAsk>() else {
         return rsx! {};
     };
-    let control = use_services().bluetooth_control;
+    let control = use_control::<BluetoothService>();
     match confirming() {
         Confirming::Idle => rsx! {},
         Confirming::TurnOff => rsx! {

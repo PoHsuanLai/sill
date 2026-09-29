@@ -5,7 +5,7 @@
 //! [`icon`] turns a resolved [`TrayIcon`] into the art the bar draws (PNG bytes or a theme
 //! file). Neither reaches `dioxus`, `ds` or `shell-host` (`scripts/check-boundary.sh`): the bar
 //! reads this module only through [`Tray`], [`TrayCommand`] and [`icon_art`], via
-//! `sill-surfaces::hooks::use_tray`.
+//! `use_service::<TrayService>`.
 
 mod host;
 mod icon;

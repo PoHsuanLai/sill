@@ -58,7 +58,8 @@ pub fn policy_from(settings: &DisplaySettings) -> DisplayPolicy {
 /// Send the settings' policy (at start, and on every settled settings change).
 pub fn send_policy(services: &Services, file: &ShellFile) {
     let _ = services
-        .displays_control
+        .displays
+        .control
         .send(DisplaysCommand::Policy(policy_from(&file.display)));
 }
 
@@ -70,7 +71,7 @@ pub fn on_host_event(services: &Services, event: &HostEvent<ShellMsg>) {
         | HostEvent::OutputAdded(_)
         | HostEvent::OutputChanged(_)
         | HostEvent::OutputRemoved(_) => {
-            let _ = services.displays_control.send(DisplaysCommand::Rescan);
+            let _ = services.displays.control.send(DisplaysCommand::Rescan);
         }
         HostEvent::App(ShellMsg::Settings(file)) => send_policy(services, file),
         _ => {}
@@ -116,13 +117,13 @@ pub fn volume_command(request: VolumeRequest) -> VolumeCommand {
 pub fn dispatch(services: &Services, request: DisplayRequest) -> Response {
     let sent = match request {
         DisplayRequest::Brightness(level) => {
-            let at = focused_output(&services.cosmic_wl.borrow().toplevels);
-            services.displays_control.send(DisplaysCommand::Brightness {
+            let at = focused_output(&services.cosmic_wl.state.borrow().toplevels);
+            services.displays.control.send(DisplaysCommand::Brightness {
                 at,
                 change: change(level),
             })
         }
-        DisplayRequest::Volume(volume) => services.volume_control.send(volume_command(volume)),
+        DisplayRequest::Volume(volume) => services.volume.control.send(volume_command(volume)),
     };
     match sent {
         Ok(()) => Response::Done,

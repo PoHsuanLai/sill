@@ -59,7 +59,7 @@ fn fixture(tag: &str) -> PathBuf {
 fn paint(fed: Wallpapers, done: impl Fn(&image::RgbaImage) -> bool) -> image::RgbaImage {
     let (mut services, _feeds) = support::fake::services();
     let (_tx, rx) = watch::channel(fed);
-    services.wallpapers = rx;
+    services.wallpaper.state = rx;
     SERVICES.with(|s| *s.borrow_mut() = Some(services));
     let mut harness =
         Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));

@@ -5,9 +5,9 @@
 use dioxus::prelude::*;
 use ds::{Button, ButtonVariant};
 use sill_launcher::{AppId, DesktopAction};
-use sill_services::{LaunchCommand, LaunchRequest};
+use sill_services::{LaunchCommand, LaunchRequest, LaunchService};
 
-use crate::hooks::use_services;
+use crate::hooks::use_control;
 
 /// The app COSMIC's settings run as.
 const SETTINGS_APP: &str = "com.system76.CosmicSettings";
@@ -20,7 +20,7 @@ pub(crate) struct ClosePanel(pub Callback<()>);
 /// The foot: a rule, then `label` opening COSMIC Settings.
 #[component]
 pub(crate) fn SettingsFoot(label: String) -> Element {
-    let launch = use_services().launch;
+    let launch = use_control::<LaunchService>();
     let close = try_use_context::<ClosePanel>();
     rsx! {
         div { class: "sill-cc-detail-foot",

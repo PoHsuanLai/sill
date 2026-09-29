@@ -3,7 +3,7 @@
 //! the same `Idle.dim` to fade in and snap out; this side only maps and unmaps, so an awake output
 //! has no dim surface on screen at all.
 //!
-//! [`spawn_follower`] watches `services.idle` and sends `ShellMsg::Dim` whenever the dim
+//! [`spawn_follower`] watches `services.idle.state` and sends `ShellMsg::Dim` whenever the dim
 //! changes; [`apply`] sets every dim surface's visibility from it ([`visibility_of`]). A new
 //! output's surface is spawned already mapped when the service is dimming.
 
@@ -62,10 +62,10 @@ pub fn namespace(info: &OutputInfo) -> String {
     idle_dim_layer(info).namespace
 }
 
-/// Follow `services.idle` on `rt` and send `ShellMsg::Dim` to the host at start and whenever
+/// Follow `services.idle.state` on `rt` and send `ShellMsg::Dim` to the host at start and whenever
 /// the published dim changes, until the host is gone.
 pub fn spawn_follower(rt: &Handle, services: &Services, host: HostHandle<ShellMsg>) {
-    let mut idle = services.idle.clone();
+    let mut idle = services.idle.state.clone();
     rt.spawn(async move {
         let mut sent = None;
         loop {

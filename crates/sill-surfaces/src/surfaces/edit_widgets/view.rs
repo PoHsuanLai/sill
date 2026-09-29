@@ -28,12 +28,13 @@ use super::layer::EDIT_PANEL_ID;
 use super::link::EditWidgetsLink;
 use super::status::{EditCount, EditStatus, Outcome, outcome_of};
 use super::writer::{WidgetsWrite, WidgetsWriter};
-use crate::hooks::{use_appearance, use_ds_scale, use_settings, use_workspaces};
+use crate::hooks::{use_appearance, use_ds_scale, use_service_part, use_settings};
 use crate::surfaces::desktop_widgets::{OutputKey, PlacementFile, grid_size, place};
 use crate::surfaces::launcher::panel::active_look;
 use crate::surfaces::notification_center::phase::Phase;
 use crate::widgets::layout::{WidgetKeys, edited, layout_of};
 use crate::widgets::{WidgetHost, desktop_size, provide_registry, widgets_css};
+use sill_services::CosmicWlService;
 
 /// Edit Widgets' stylesheet (lint-clean under `Profile::Strict`, `tests/edit_widgets_lint.rs`).
 pub const EDIT_WIDGETS_CSS: &str = include_str!("../../style/edit_widgets.css");
@@ -54,7 +55,11 @@ pub(super) fn edit(output: OutputInfo) -> Element {
     let file = use_settings()();
     let environment = use_appearance()();
     let on = output.name.clone().map(OutputName);
-    let look = active_look(&use_workspaces()(), on.as_ref(), &file.spaces);
+    let look = active_look(
+        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
+        on.as_ref(),
+        &file.spaces,
+    );
     rsx! {
         Ds {
             scale: ds_scale,

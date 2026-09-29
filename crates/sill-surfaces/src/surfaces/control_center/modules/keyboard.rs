@@ -7,17 +7,17 @@
 
 use dioxus::prelude::*;
 use ds::{Fraction, Icon, LevelGlyph};
-use sill_services::{KbdBacklight, KbdCommand, Presence};
+use sill_services::{KbdBacklight, KbdBacklightService, KbdCommand, Presence};
 
 use super::wired::{fraction_of, percent_of};
-use crate::hooks::{use_kbd_backlight, use_services};
+use crate::hooks::{use_control, use_service};
 use crate::surfaces::control_center::LevelModule;
 
 /// The Keyboard Brightness module, or nothing without a backlight.
 #[component]
 pub fn KeyboardModule() -> Element {
-    let backlight = use_kbd_backlight()();
-    let control = use_services().kbd_backlight_control;
+    let backlight = use_service::<KbdBacklightService>()();
+    let control = use_control::<KbdBacklightService>();
     let Some(level) = keyboard_level(backlight) else {
         return rsx! {};
     };

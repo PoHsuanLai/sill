@@ -1,15 +1,15 @@
 //! The thumbnail's root: one transparent Toast root as big as the surface, holding quire's
 //! `BannerStack` at the bottom right with at most one row, quire's `ShotThumbnail`
-//! ([`super::card`]). The card plays its own entrance and exit (`ShotIn`, `ShotOut`) and says
-//! when the exit has settled; after a swipe the row is unlisted and the stack flies it out along
-//! the swipe (`banner-out`) and says so instead. It follows `use_shots` and the `BannerLink`
-//! through [`super::follow`] and [`super::machine::step`].
+//! ([`super::card`]). The card plays its own entrance and exit (`ShotIn`, `ShotOut`) and says when
+//! the exit has settled; after a swipe the row is unlisted and the stack flies it out along the
+//! swipe (`banner-out`) and says so instead. It follows `use_service::<ScreenshotsService>` and the
+//! `BannerLink` through [`super::follow`] and [`super::machine::step`].
 
 use dioxus::prelude::*;
 use ds::{Banner, BannerEntry, BannerKey, BannerPosition, BannerStack, BlurState, Ds, Material};
 use ds::{RootChrome, RootExtent, Shown};
 use shell_host::{OutputId, OutputInfo, use_watch};
-use sill_services::{OutputName, ShotId};
+use sill_services::{OutputName, ScreenshotsService, ShotId};
 use sill_settings::ShotThumbnail;
 
 use super::SCREENSHOT_THUMB_CSS;
@@ -21,11 +21,12 @@ use super::layer::ROOM;
 use super::machine::{ThumbExit, ThumbIn, ThumbParams, ThumbState};
 use super::picture::{ThumbPicture, picture_of};
 use crate::hooks::{
-    use_appearance, use_ds_scale, use_services, use_settings, use_shots, use_workspaces,
+    use_appearance, use_control, use_ds_scale, use_service, use_service_part, use_settings,
 };
 use crate::surfaces::banners::BannerLink;
 use crate::surfaces::launcher::panel::active_look;
 use crate::surfaces::notification_card::swipe_metrics;
+use sill_services::CosmicWlService;
 
 /// The thumbnail on `output`.
 pub(super) fn thumb(output: OutputInfo) -> Element {
@@ -33,7 +34,11 @@ pub(super) fn thumb(output: OutputInfo) -> Element {
     let file = use_settings()();
     let environment = use_appearance()();
     let on = output.name.clone().map(OutputName);
-    let look = active_look(&use_workspaces()(), on.as_ref(), &file.spaces);
+    let look = active_look(
+        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
+        on.as_ref(),
+        &file.spaces,
+    );
     let params = ThumbParams {
         hold_ms: u32::from(file.screenshot.thumbnail_hold_ms.0),
         rest_ms: u32::from(file.notifications.hover_min_remaining_ms.0),
@@ -90,9 +95,9 @@ fn Column(
     metrics: ds::SwipeMetrics,
     ghost: GhostLook,
 ) -> Element {
-    let thumb = use_thumb(params, use_services().shots_control);
+    let thumb = use_thumb(params, use_control::<ScreenshotsService>());
     use_context_provider(|| thumb);
-    let shots = use_shots();
+    let shots = use_service::<ScreenshotsService>();
     let link = use_context::<BannerLink>();
     let place = use_watch(link.subscribe());
     let mut kept = use_hook(|| CopyValue::new(None::<(ShotId, ThumbPicture)>));

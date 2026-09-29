@@ -1,74 +1,20 @@
-//! One hook per source. Every body is `use_context` + `use_watch`: a hook
-//! never owns a channel, spawns a service or reads a file.
+//! The hooks every surface reads its sources through. [`use_service`] (and
+//! [`use_service_part`], [`use_control`]) reach any service by its type; the rest read the
+//! settings, the appearance and the focus mode. A hook never owns a channel, spawns a service or
+//! reads a file.
 
-mod use_agenda;
 mod use_appearance;
-mod use_apps;
-mod use_auth;
-mod use_badges;
-mod use_battery;
-mod use_bluetooth;
-mod use_clipboard;
-mod use_clock;
-mod use_displays;
 mod use_ds_scale;
 mod use_focus_mode;
-mod use_idle;
-mod use_kbd_backlight;
-mod use_launches;
-mod use_locker;
-mod use_network;
-mod use_notification_history;
-mod use_notifications;
-mod use_now_playing;
-mod use_pins;
-mod use_polkit;
-mod use_power_profile;
-mod use_results;
+mod use_service;
 mod use_services;
-mod use_session;
 mod use_settings;
-mod use_shots;
 mod use_space_look;
-mod use_toplevels;
-mod use_tray;
-mod use_volume;
-mod use_wallpapers;
-mod use_wifi;
-mod use_workspaces;
 
-pub use use_agenda::use_agenda;
 pub use use_appearance::{PinnedAppearance, use_appearance};
-pub use use_apps::use_apps;
-pub use use_auth::use_auth;
-pub use use_badges::use_launcher_entry;
-pub use use_battery::use_battery;
-pub use use_bluetooth::use_bluetooth;
-pub use use_clipboard::use_clipboard;
-pub use use_clock::use_clock;
-pub use use_displays::use_displays;
 pub use use_ds_scale::use_ds_scale;
 pub use use_focus_mode::use_focus_mode;
-pub use use_idle::use_idle;
-pub use use_kbd_backlight::use_kbd_backlight;
-pub use use_launches::use_launches;
-pub use use_locker::use_locker;
-pub use use_network::use_network;
-pub use use_notification_history::use_notification_history;
-pub use use_notifications::use_notifications;
-pub use use_now_playing::use_now_playing;
-pub use use_pins::use_pins;
-pub use use_polkit::use_polkit;
-pub use use_power_profile::use_power_profile;
-pub use use_results::use_results;
+pub use use_service::{use_control, use_service, use_service_part};
 pub use use_services::use_services;
-pub use use_session::use_session;
 pub use use_settings::use_settings;
-pub use use_shots::use_shots;
 pub use use_space_look::use_space_look;
-pub use use_toplevels::use_toplevels;
-pub use use_tray::use_tray;
-pub use use_volume::use_volume;
-pub use use_wallpapers::use_wallpapers;
-pub use use_wifi::use_wifi;
-pub use use_workspaces::use_workspaces;

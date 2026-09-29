@@ -1,10 +1,10 @@
 //! Launcher entry badges: counts, progress and urgency apps publish over
 //! `com.canonical.Unity.LauncherEntry.Update(s app_uri, a{sv})`.
 //!
-//! [`spawn`] and [`live`] do the effect (a session-bus match rule, zbus 5 on tokio); [`model`]
-//! is the pure reducer. Neither reaches `dioxus`, `ds` or `shell-host`
+//! [`BadgesService`] and [`live`] do the effect (a session-bus match rule, zbus 5 on tokio);
+//! [`model`] is the pure reducer. Neither reaches `dioxus`, `ds` or `shell-host`
 //! (`scripts/check-boundary.sh`): the bar and dock read this module only through [`Badges`] and
-//! [`BadgesCommand`], via `sill-surfaces::hooks::use_launcher_entry`.
+//! [`BadgesCommand`], via `use_service::<BadgesService>`.
 
 mod live;
 mod model;

@@ -31,13 +31,16 @@ pub async fn run_effect(
                 Some(surface) => surface.activation_token(Some(app.0.clone())).await,
                 None => None,
             };
-            services.launch.send(LaunchCommand::Launch(LaunchRequest {
-                app,
-                action,
-                files: Vec::new(),
-                uris: Vec::new(),
-                token,
-            }))
+            services
+                .launch
+                .control
+                .send(LaunchCommand::Launch(LaunchRequest {
+                    app,
+                    action,
+                    files: Vec::new(),
+                    uris: Vec::new(),
+                    token,
+                }))
         }
         LauncherEffect::Open(target) => {
             let token = match &from.surface {
@@ -46,13 +49,16 @@ pub async fn run_effect(
             };
             services
                 .launch
+                .control
                 .send(LaunchCommand::Open(OpenRequest { target, token }))
         }
         LauncherEffect::SetClipboard(entry) => services
-            .clipboard_control
+            .clipboard
+            .control
             .send(ClipboardCommand::Offer(entry)),
         LauncherEffect::ForgetClipboard(entry) => services
-            .clipboard_control
+            .clipboard
+            .control
             .send(ClipboardCommand::Forget(entry)),
         LauncherEffect::Copy(text) => {
             if let Some(surface) = &from.surface {
@@ -65,7 +71,8 @@ pub async fn run_effect(
             Ok(())
         }
         LauncherEffect::Session(action) => services
-            .session_control
+            .session
+            .control
             .send(sill_services::SessionCommand::Run(action)),
         LauncherEffect::PowerMenu(action) => {
             match &from.power_menu {

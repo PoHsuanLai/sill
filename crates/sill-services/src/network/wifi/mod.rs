@@ -1,10 +1,10 @@
 //! Wi-Fi: NetworkManager's wireless radio, its access points and its saved networks
 //! (design/20 §1.5: the control center's Wi-Fi module and its network list).
 //!
-//! A service of its own beside [`super::NetworkService`] rather than more fields on `Network`: the bar
-//! draws `Network` and would repaint on every scan otherwise, and the two share nothing but the
-//! bus. Same crate as the rest of the network (`cosmic-dbus-networkmanager`, MPL-2.0, linked,
-//! never pasted from).
+//! A service of its own beside [`super::NetworkService`] rather than more fields on `Network`: the
+//! bar draws `Network` and would repaint on every scan otherwise, and the two share nothing but the
+//! bus. Same crate as the rest of the network (`cosmic-dbus-networkmanager`, MPL-2.0, linked, never
+//! pasted from).
 
 mod live;
 mod model;

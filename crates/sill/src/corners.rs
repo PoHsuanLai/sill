@@ -209,7 +209,7 @@ async fn act(
             }
         }
         CornerEffect::ShowDesktop => {
-            let wl = services.cosmic_wl.borrow().clone();
+            let wl = services.cosmic_wl.state.borrow().clone();
             let windows = wl.toplevels.windows;
             let active: Vec<WorkspaceKey> = wl
                 .workspaces
@@ -226,7 +226,7 @@ async fn act(
             let (commands, next) = show_desktop(&windows, &active, stash);
             *stash = next;
             for command in commands {
-                let _ = services.wl.send(command);
+                let _ = services.cosmic_wl.control.send(command);
             }
         }
         CornerEffect::Lock => {

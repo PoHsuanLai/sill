@@ -21,8 +21,9 @@ use sill_services::{Agenda, CalEvent, EventTime, SourceStatus};
 
 pub use super::up_next_view::{DayLine, UpNext, UpNextEntry, UpNextFace, UpNextRow};
 use super::{Place, WidgetKind, widget_element_id};
-use crate::hooks::{use_agenda, use_clock, use_settings};
+use crate::hooks::{use_service, use_settings};
 use crate::widgets::use_widget_wake;
+use sill_services::{ClockService, EventsService};
 
 /// How many whole event rows the card's body holds at its one size (Medium: one 164 px cell
 /// tall, 16 px gap, quire's card inset, the title row and `.sill-un-day` column already drawn):
@@ -175,8 +176,8 @@ pub fn today_events(agenda: &Agenda, now: Timestamp, zone: &TimeZone) -> Vec<Eve
 /// The next events on quire's card, as many as its body holds whole.
 #[component]
 pub fn UpNextCard(place: Place) -> Element {
-    let _minute = use_clock()();
-    let agenda = use_agenda()();
+    let _minute = use_service::<ClockService>()();
+    let agenda = use_service::<EventsService>()();
     let calendar = use_settings()().calendar;
     let zone = TimeZone::try_system().unwrap_or(TimeZone::UTC);
     let max = usize::from(calendar.up_next_max.0).min(EVENT_ROWS);

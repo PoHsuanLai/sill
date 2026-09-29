@@ -391,9 +391,9 @@ fn view(slots: Slots, deps: &SessionDeps, menu: BarMenu) -> Option<PopupView> {
             page: *slots.page.peek(),
             // Read, not followed: a scan must not re-render the bar; the size catches
             // up at the popup's next view.
-            wifi_rows: wifi_rows(&deps.services.wifi.borrow()),
-            device_rows: device_rows(&deps.services.bluetooth.borrow()),
-            keyboard: deps.services.kbd_backlight.borrow().presence,
+            wifi_rows: wifi_rows(&deps.services.wifi.state.borrow()),
+            device_rows: device_rows(&deps.services.bluetooth.state.borrow()),
+            keyboard: deps.services.kbd_backlight.state.borrow().presence,
             cap: deps.cap,
         },
     };
@@ -430,8 +430,8 @@ fn run(pick: &BarPick, deps: &SessionDeps) {
     let services = &deps.services;
     for command in commands(pick) {
         let _gone_is_dropped = match command {
-            Command::Wl(c) => services.wl.send(c),
-            Command::Launch(c) => services.launch.send(c),
+            Command::Wl(c) => services.cosmic_wl.control.send(c),
+            Command::Launch(c) => services.launch.control.send(c),
             Command::PowerMenu => {
                 if let Some(link) = &deps.power_menu {
                     link.open(deps.output, Preselect::Default);

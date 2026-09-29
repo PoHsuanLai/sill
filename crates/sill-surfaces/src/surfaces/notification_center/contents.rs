@@ -26,16 +26,20 @@ use super::labels::{EMPTY, TITLE, server_line};
 use super::layer::PANEL_ID;
 use super::rows::{CenterRow, RowKey, activate, dismiss, rows_of};
 use super::widgets::CenterWidgets;
-use crate::hooks::{use_clock, use_notification_history, use_notifications};
+use crate::hooks::{use_service, use_service_part};
+use sill_services::{ClockService, NotificationsService};
 
 /// The column's contents.
 #[component]
 pub(super) fn Contents(output: OutputId) -> Element {
     let ctx = use_context::<CenterCtx>();
-    let history = use_notification_history()();
-    let server = use_notifications().read().server.clone();
+    let history = use_service_part::<NotificationsService, _>(|notes| notes.history.clone())();
+    let server = use_service_part::<NotificationsService, _>(|notes| notes.live.clone())
+        .read()
+        .server
+        .clone();
     // The ages count in minutes: the clock's tick redraws them.
-    let _minute = use_clock()();
+    let _minute = use_service::<ClockService>()();
     let now = wall_clock();
     let mut focus = use_signal(RowFocus::default);
     let expanded = ctx.expanded.read().clone();

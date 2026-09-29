@@ -6,13 +6,14 @@ use dioxus::prelude::*;
 use ds::{Button, ButtonVariant, Emphasis, MenuBarItem, Switch};
 use shell_host::{OutputInfo, use_watch};
 
-use crate::hooks::{use_clock, use_settings};
+use crate::hooks::{use_service, use_settings};
 use crate::surfaces::notification_center::CenterLink;
+use sill_services::ClockService;
 
 /// The clock status item.
 #[component]
 pub fn ClockItem(output: OutputInfo) -> Element {
-    let clock = use_clock()();
+    let clock = use_service::<ClockService>()();
     let settings = use_settings();
     // A bar without the daemon's links (the demo, a render test) toggles a center of its own.
     let given = try_use_context::<CenterLink>();

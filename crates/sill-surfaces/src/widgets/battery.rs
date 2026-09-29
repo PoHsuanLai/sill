@@ -12,9 +12,10 @@ use sill_services::{
 };
 
 use super::{Place, WidgetKind, widget_element_id};
-use crate::hooks::{use_battery, use_bluetooth};
+use crate::hooks::use_service;
 use crate::surfaces::control_center::pages::bluetooth_devices::device_of;
 use crate::widgets::use_widget_wake;
+use sill_services::{BatteryService, BluetoothService};
 
 /// Whose battery a row is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -110,8 +111,8 @@ pub fn battery_entry(rows: &[BatteryRow]) -> BatteryEntry {
 /// The batteries on quire's card: a new entry each time a level changes.
 #[component]
 pub fn BatteryCard(place: Place) -> Element {
-    let battery = use_battery()();
-    let bluetooth = use_bluetooth()();
+    let battery = use_service::<BatteryService>()();
+    let bluetooth = use_service::<BluetoothService>()();
     let machine = use_hook(|| {
         let host = std::fs::read_to_string("/proc/sys/kernel/hostname").unwrap_or_default();
         machine_name(&host)

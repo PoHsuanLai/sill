@@ -5,7 +5,7 @@ use sill_services::{LockerCommand, Services};
 
 /// `sill lock`.
 pub fn lock(services: &Services) -> Response {
-    match services.locker_control.send(LockerCommand::Lock) {
+    match services.locker.control.send(LockerCommand::Lock) {
         Ok(()) => Response::Done,
         Err(error) => Response::Failed(Failure {
             kind: FailureKind::Internal,

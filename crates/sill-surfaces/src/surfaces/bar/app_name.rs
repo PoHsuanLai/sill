@@ -8,7 +8,8 @@ use sill_services::OutputName;
 use super::content::front_app;
 use super::menus::BarMenu;
 use super::title::{SlotPill, TitleSlot};
-use crate::hooks::{use_apps, use_toplevels};
+use crate::hooks::{use_service, use_service_part};
+use sill_services::{AppsService, CosmicWlService};
 
 /// What the title says with no window on the output.
 const NO_APP: &str = "Desktop";
@@ -16,8 +17,8 @@ const NO_APP: &str = "Desktop";
 /// The frontmost app's name, the first bar title (ui 13/700): its menu lists the app's windows and Quit.
 #[component]
 pub fn AppName(output: OutputInfo) -> Element {
-    let toplevels = use_toplevels();
-    let apps = use_apps();
+    let toplevels = use_service_part::<CosmicWlService, _>(|wl| wl.toplevels.clone());
+    let apps = use_service::<AppsService>();
     let probe = use_rect();
     let on = output.name.clone().map(OutputName);
     let name = front_app(&toplevels(), &apps(), on.as_ref())

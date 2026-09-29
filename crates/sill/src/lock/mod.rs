@@ -71,11 +71,11 @@ pub struct ShellLock {
     pub id: Option<LockId>,
 }
 
-/// Follow `services.lock` and `services.auth` on `rt` and send `ShellMsg::Lock(wish)` to the
-/// host at start and whenever [`lock_wish`] changes (a `Released` after `Accepted` only once
+/// Follow `services.locker.state` and `services.auth.state` on `rt` and send `ShellMsg::Lock(wish)`
+/// to the host at start and whenever [`lock_wish`] changes (a `Released` after `Accepted` only once
 /// [`UNLOCK_BACKSTOP_MS`] has passed with the wish unchanged), until the host is gone.
 pub fn spawn_follower(rt: &Handle, services: &Services, host: HostHandle<ShellMsg>) {
-    let (mut lock, mut auth) = (services.lock.clone(), services.auth.clone());
+    let (mut lock, mut auth) = (services.locker.state.clone(), services.auth.state.clone());
     rt.spawn(async move {
         let mut latch = Latch::default();
         let mut sent = None;
@@ -138,14 +138,15 @@ pub fn apply(
 ) {
     match (wish, held.id) {
         (LockWish::Held, None) => {
-            let _ = services.auth_control.send(AuthCommand::Reset);
+            let _ = services.auth.control.send(AuthCommand::Reset);
             link.set(main_display(outputs));
             match host.lock_session(factory()) {
                 Ok(id) | Err(LockRefusal::InProgress(id)) => held.id = Some(id),
                 Err(LockRefusal::Unsupported) => {
                     eprintln!("sill: the compositor has no ext-session-lock-v1; not locking");
                     let _ = services
-                        .locker_control
+                        .locker
+                        .control
                         .send(LockerCommand::Shell(ShellLockEvent::Refused));
                 }
             }
@@ -187,10 +188,10 @@ pub fn on_host_event(
             LockState::Unlocked => ShellLockEvent::Unlocked,
             LockState::Finished => ShellLockEvent::Finished,
         };
-        let _ = services.locker_control.send(LockerCommand::Shell(told));
+        let _ = services.locker.control.send(LockerCommand::Shell(told));
         if matches!(state, LockState::Unlocked | LockState::Finished) {
             held.id = None;
-            let _ = services.auth_control.send(AuthCommand::Reset);
+            let _ = services.auth.control.send(AuthCommand::Reset);
         }
     }
     if let (Some(surface), Some(id)) = (lock_focus(event), held.id)
@@ -213,7 +214,7 @@ fn lock_focus(event: &HostEvent<ShellMsg>) -> Option<SurfaceId> {
 
 /// `sill lock status`.
 pub fn status(services: &Services) -> Response {
-    Response::Lock(report_of(&services.lock.borrow()))
+    Response::Lock(report_of(&services.locker.state.borrow()))
 }
 
 /// The locker's state as the wire's.
@@ -247,7 +248,8 @@ fn fake_auth_in_this_build(services: &Services, fake: FakeAuth) -> Response {
         FakeAuth::Refuse => sill_services::auth::FakeVerdict::Refuse,
     };
     match services
-        .auth_control
+        .auth
+        .control
         .send(sill_services::AuthCommand::Fake(verdict))
     {
         Ok(()) => Response::Done,

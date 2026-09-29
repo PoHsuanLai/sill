@@ -19,7 +19,8 @@ use ds::{Ds, IdleDim, Material, RootChrome, RootExtent};
 use shell_host::{OutputInfo, Visibility};
 use sill_services::idle::{DimLevel, DimShown};
 
-use crate::hooks::{use_appearance, use_ds_scale, use_idle};
+use crate::hooks::{use_appearance, use_ds_scale, use_service};
+use sill_services::IdleService;
 
 /// What the scrim draws: its opacity and whether it is dimming.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -60,11 +61,11 @@ pub fn visibility_of(dim: DimShown) -> Visibility {
 }
 
 /// The dim on `output`: quire's `IdleDim` alone in a transparent viewport root, following
-/// `use_idle().dim`.
+/// `use_service::<IdleService>().dim`.
 #[component]
 pub fn IdleDimOverlay(output: OutputInfo) -> Element {
     let _ = output;
-    let dim = use_idle()().dim;
+    let dim = use_service::<IdleService>()().dim;
     let environment = use_appearance()();
     let ds_scale = use_ds_scale();
     let mut last = use_hook(|| CopyValue::new(scrim_of(DimLevel(50))));

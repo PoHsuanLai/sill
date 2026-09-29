@@ -230,7 +230,7 @@ fn offer_of(supported: IsSupported) -> Offer {
     }
 }
 
-/// The real check, bridged from this trait's sync `query` into async zbus: `results::spawn`
+/// The real check, bridged from this trait's sync `query` into async zbus: the results service
 /// runs every provider's `query` inside `tokio::task::spawn_blocking`, and `Handle::block_on` from
 /// inside a blocking-pool task is the documented way back into async code there — this panics only
 /// if called directly from an async task instead (never done here).

@@ -21,7 +21,8 @@ use super::icon::{CardArt, card_art, entry_for};
 use super::labels::{age, age_label, app_label, group_count};
 use super::metrics::icon_size;
 use super::{CardPlace, CardPress};
-use crate::hooks::{use_apps, use_services, use_settings};
+use crate::hooks::{use_service, use_services, use_settings};
+use sill_services::AppsService;
 
 /// Now, as the cards' ages count it.
 pub fn wall_now() -> UnixMs {
@@ -80,7 +81,7 @@ pub(super) fn card(
 /// Which app sent a notification, as quire names it: the icon (at `size`) and the name the card
 /// and the center's group header show.
 pub fn use_app_mark(app: &AppRef, size: IconSize) -> AppMark {
-    let apps = use_apps()();
+    let apps = use_service::<AppsService>()();
     let config = use_services().dirs.config;
     let entry = entry_for(app, &apps);
     let art = use_art(app, entry.map(|e| &e.icon), || {

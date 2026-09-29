@@ -10,7 +10,8 @@ use ds::ImageSize;
 use sill_launcher::{ClipKey, Excerpt, ExcerptLimit};
 use sill_services::preview::{PreviewFault, clip_image, read_excerpt};
 
-use crate::hooks::use_clipboard;
+use crate::hooks::use_service;
+use sill_services::ClipboardService;
 
 /// A text file's head as the pane has it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -77,7 +78,7 @@ pub fn use_image_size(path: Option<PathBuf>) -> Option<ImageSize> {
 
 /// The PNG bytes of the clipboard image kept under `key`, while the history holds it.
 pub fn use_clip_png(key: Option<ClipKey>) -> Option<Vec<u8>> {
-    let history = use_clipboard();
+    let history = use_service::<ClipboardService>();
     let key = key?;
     let image = clip_image(&history.read(), key)?;
     // quire takes a picture as PNG bytes; the service keeps PNG when it is offered.

@@ -11,10 +11,11 @@ use super::low_battery::use_low_cue;
 use super::menus::BarMenu;
 use super::status::{battery_lines, network_lines, volume_heading};
 use super::status_item::StatusIcon;
-use crate::hooks::{
-    use_battery, use_bluetooth, use_network, use_now_playing, use_settings, use_volume, use_wifi,
-};
+use crate::hooks::{use_service, use_settings};
 use crate::surfaces::control_center::bluetooth_status;
+use sill_services::{
+    BatteryService, BluetoothService, NetworkService, NowPlayingService, VolumeService, WifiService,
+};
 
 /// `module`'s bar item on `output` (its glyph is the module's status glyph: quire's Wi-Fi,
 /// battery, volume and Bluetooth glyphs through `glyph_state`).
@@ -45,7 +46,7 @@ pub fn ModuleItem(output: OutputInfo, module: ControlCenterModule) -> Element {
 /// Sound: the volume glyph (quire's `VolumeGlyph` state, the Sound module's source too).
 #[component]
 fn SoundItem() -> Element {
-    let volume = use_volume()();
+    let volume = use_service::<VolumeService>()();
     let tooltip = format!("{}: {}%", volume_heading(&volume), volume.level.0);
     rsx! {
         StatusIcon {
@@ -60,8 +61,8 @@ fn SoundItem() -> Element {
 /// with the radio off), or the wire's.
 #[component]
 fn WifiItem() -> Element {
-    let network = use_network()();
-    let radio = use_wifi()().radio;
+    let network = use_service::<NetworkService>()();
+    let radio = use_service::<WifiService>()().radio;
     let [link, _] = network_lines(&network);
     rsx! {
         StatusIcon { menu: BarMenu::Network, icon: network_glyph(&network, radio), tooltip: link }
@@ -72,7 +73,7 @@ fn WifiItem() -> Element {
 /// without a battery (UPower's display device absent: a desktop).
 #[component]
 fn BatteryItem() -> Element {
-    let battery = use_battery()();
+    let battery = use_service::<BatteryService>()();
     let low = use_settings()().bar.battery_low_percent;
     let state = battery_glyph(&battery, low);
     let cue = use_low_cue(state);
@@ -93,7 +94,7 @@ fn BatteryItem() -> Element {
 /// Bluetooth: off, on, connecting, connected, or a failed connect.
 #[component]
 fn BluetoothItem() -> Element {
-    let bluetooth = use_bluetooth()();
+    let bluetooth = use_service::<BluetoothService>()();
     rsx! {
         StatusIcon {
             menu: BarMenu::Bluetooth,
@@ -106,7 +107,7 @@ fn BluetoothItem() -> Element {
 /// Now Playing: shown while any player is up.
 #[component]
 fn NowPlayingItem() -> Element {
-    let media = use_now_playing()();
+    let media = use_service::<NowPlayingService>()();
     if media.players.is_empty() {
         return rsx! {};
     }

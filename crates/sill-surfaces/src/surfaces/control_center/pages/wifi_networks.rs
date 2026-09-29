@@ -16,11 +16,12 @@ use sill_services::{
 
 use super::foot::{ClosePanel, EmptyLine, SettingsFoot, open_settings};
 use super::head::DetailHead;
-use crate::hooks::{use_network, use_services, use_wifi};
+use crate::hooks::{use_service, use_services};
 use crate::surfaces::control_center::modules::wifi::{radio_availability, radio_of, radio_state};
 use crate::surfaces::control_center::network_detail;
 use crate::surfaces::control_center::row_phase::{Aim, FAILED_WORDS, Item, aim_after, row_phase};
 use crate::surfaces::control_center::rows::{RowList, RowMark, RowSpec, use_first_show};
+use sill_services::{NetworkService, WifiService};
 
 /// The Wi-Fi page.
 #[component]
@@ -45,15 +46,15 @@ pub(crate) enum WifiPick {
 /// item's own dropdown.
 #[component]
 pub(crate) fn WifiPane(back: Option<EventHandler<()>>) -> Element {
-    let wifi = use_wifi()();
-    let join = use_network()().join;
+    let wifi = use_service::<WifiService>()();
+    let join = use_service::<NetworkService>()().join;
     let first = use_first_show();
     let mut aim = use_hook(|| CopyValue::new(None::<Ssid>));
     let last = aim_after(aim.peek().clone(), joining(&wifi));
     aim.set(last.clone());
     let services = use_services();
-    let control = services.wifi_control.clone();
-    let launch = services.launch.clone();
+    let control = services.wifi.control.clone();
+    let launch = services.launch.control.clone();
     let close = try_use_context::<ClosePanel>();
     use_hook({
         let control = control.clone();

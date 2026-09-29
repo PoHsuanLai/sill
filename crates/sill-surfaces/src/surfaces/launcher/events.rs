@@ -121,7 +121,7 @@ fn use_openings(ctx: PanelCtx) {
             (None, Some(_)) => {
                 last.set(None);
                 ctx.link.show_rows(None);
-                let _ = ctx.services.search.send(SearchCommand::Cancel);
+                let _ = ctx.services.results.control.send(SearchCommand::Cancel);
             }
             _ => {}
         }
@@ -162,7 +162,8 @@ impl PanelCtx {
         row.set(None);
         let _ = self
             .services
-            .search
+            .results
+            .control
             .send(SearchCommand::Query(opening.query.clone()));
         if let Some(surface) = self.surface.clone() {
             let requested = opening.requested;
@@ -303,13 +304,17 @@ impl PanelCtx {
                 provider,
             },
         };
-        let _ = self.services.search.send(command);
+        let _ = self.services.results.control.send(command);
     }
 
     /// The field's text changed: a new generation of results.
     pub fn typed(&self, text: String) {
         let Some(current) = self.current() else {
-            let _ = self.services.search.send(SearchCommand::Query(text));
+            let _ = self
+                .services
+                .results
+                .control
+                .send(SearchCommand::Query(text));
             return;
         };
         if let Some(pane) = self.current_pane() {
@@ -379,7 +384,7 @@ impl PanelCtx {
         let choice = self.pane_choice(&item, choice);
         // Chosen first: the runner looks the row up among the current rows, which closing
         // clears.
-        let _ = self.services.search.send(SearchCommand::Chosen {
+        let _ = self.services.results.control.send(SearchCommand::Chosen {
             key: ItemKey::of(item.provider, &item.id),
             choice: choice.clone(),
         });

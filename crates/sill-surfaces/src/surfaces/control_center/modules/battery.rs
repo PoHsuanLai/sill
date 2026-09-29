@@ -1,10 +1,11 @@
 //! The Battery module: the bar item's battery glyph and level in its header, one quire
 //! `DeviceBattery` ring per device (this computer, then each connected Bluetooth device that
 //! reports a battery; design/26 5.2.9 G27), the time left, then the power profile's
-//! [`super::PowerProfileControl`]. The center was just opened, so every ring sweeps in from
-//! empty with its percentage counting in step. Without a battery or a device's (a desktop) only
-//! the control shows; without either the module is absent. Reads `use_battery`,
-//! `use_bluetooth`, `use_power_profile` and `bar.battery_low_percent`.
+//! [`super::PowerProfileControl`]. The center was just opened, so every ring sweeps in from empty
+//! with its percentage counting in step. Without a battery or a device's (a desktop) only the
+//! control shows; without either the module is absent. Reads `use_service::<BatteryService>`,
+//! `use_service::<BluetoothService>`, `use_service::<PowerProfileService>` and
+//! `bar.battery_low_percent`.
 
 use dioxus::prelude::*;
 use ds::detail::FirstShow;
@@ -15,18 +16,19 @@ use ds::{
 use sill_services::{Battery, Bluetooth, BtBattery, BtConnection, Charge, Presence};
 
 use super::PowerProfileControl;
-use crate::hooks::{use_battery, use_bluetooth, use_power_profile, use_settings};
+use crate::hooks::{use_service, use_settings};
 use crate::surfaces::bar::glyph_state::battery_glyph;
 use crate::surfaces::bar::status::battery_lines;
 use crate::surfaces::control_center::modules::use_plate;
 use crate::surfaces::control_center::pages::bluetooth_devices::device_of;
+use sill_services::{BatteryService, BluetoothService, PowerProfileService};
 
 /// The Battery module.
 #[component]
 pub fn BatteryModule() -> Element {
-    let battery = use_battery()();
-    let bluetooth = use_bluetooth()();
-    let profiles = use_power_profile()();
+    let battery = use_service::<BatteryService>()();
+    let bluetooth = use_service::<BluetoothService>()();
+    let profiles = use_service::<PowerProfileService>()();
     let low = use_settings()().bar.battery_low_percent;
     let rings = device_rings(&battery, &bluetooth);
     if (battery.presence, profiles.presence, rings.is_empty())

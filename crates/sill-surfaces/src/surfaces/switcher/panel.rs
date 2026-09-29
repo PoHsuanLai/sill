@@ -23,8 +23,9 @@ use super::session::{Session, Windows};
 use super::tiles::{key_of, metrics_of, output_width, tiles};
 use super::watch::ChordWatch;
 use crate::app_icons::{IconContext, LogicalPx, icon_look, use_icon_resolver};
-use crate::hooks::{use_appearance, use_apps, use_ds_scale, use_settings, use_workspaces};
+use crate::hooks::{use_appearance, use_ds_scale, use_service, use_service_part, use_settings};
 use crate::surfaces::launcher::panel::active_look;
+use sill_services::{AppsService, CosmicWlService};
 
 /// The switcher's stylesheet (lint-clean under `Profile::Strict`, `tests/switcher_lint.rs`).
 pub(crate) const SWITCHER_CSS: &str = include_str!("../../style/switcher.css");
@@ -34,7 +35,11 @@ pub(super) fn switcher_panel(output: OutputInfo) -> Element {
     let file = use_settings()();
     let environment = use_appearance()();
     let on = output.name.clone().map(OutputName);
-    let look = active_look(&use_workspaces()(), on.as_ref(), &file.spaces);
+    let look = active_look(
+        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
+        on.as_ref(),
+        &file.spaces,
+    );
     let appearance = environment.settings.appearance.appearance();
     let resolved = ds::resolve(appearance, look.theme, environment.system);
     let level = resolved.motion;
@@ -49,7 +54,7 @@ pub(super) fn switcher_panel(output: OutputInfo) -> Element {
             scale: ds_scale.unwrap_or(ds::Scale::ONE),
             resolver: use_icon_resolver(),
         },
-        index: use_apps()(),
+        index: use_service::<AppsService>()(),
         side: LogicalPx(file.switcher.icon_size_px.0),
     };
     let link = use_context::<SwitcherLink>();

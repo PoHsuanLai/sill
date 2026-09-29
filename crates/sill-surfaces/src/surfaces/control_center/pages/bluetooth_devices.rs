@@ -10,13 +10,13 @@
 use dioxus::prelude::*;
 use ds::{Availability, Icon, ModuleState, RowDisc, RowPhase, RowWork};
 use sill_services::{
-    Attempts, Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection, BtDevice, BtKind,
-    BtPairing, BtPower, Presence, listed_devices,
+    Attempts, Bluetooth, BluetoothCommand, BluetoothService, BtAddress, BtBattery, BtConnection,
+    BtDevice, BtKind, BtPairing, BtPower, Presence, listed_devices,
 };
 
 use super::foot::{EmptyLine, SettingsFoot};
 use super::head::DetailHead;
-use crate::hooks::{use_bluetooth, use_services};
+use crate::hooks::{use_control, use_service};
 use crate::surfaces::control_center::device_detail;
 use crate::surfaces::control_center::modules::bluetooth::{
     adapter_availability, power_of, power_state,
@@ -37,8 +37,8 @@ pub fn BluetoothDevices(on_back: EventHandler<()>) -> Element {
 /// Bluetooth bar item's own dropdown.
 #[component]
 pub(crate) fn BluetoothPane(back: Option<EventHandler<()>>) -> Element {
-    let bluetooth = use_bluetooth()();
-    let control = use_services().bluetooth_control;
+    let bluetooth = use_service::<BluetoothService>()();
+    let control = use_control::<BluetoothService>();
     let first = use_first_show();
     let mut aim = use_hook(|| CopyValue::new(None::<BtAddress>));
     let last = aim_after(aim.peek().clone(), connecting(&bluetooth));

@@ -21,8 +21,9 @@ use ds::{BlurState, Ds, Material, RootExtent};
 use shell_host::OutputInfo;
 use sill_services::{OutputName, WallpaperImage, Wallpapers};
 
-use crate::hooks::{use_appearance, use_wallpapers};
+use crate::hooks::{use_appearance, use_service};
 use crossfade::Layers;
+use sill_services::WallpaperService;
 
 /// The wallpaper's own stylesheet (lint-clean under `Profile::Strict`, `tests/wallpaper_lint.rs`).
 pub(crate) const WALLPAPER_CSS: &str = include_str!("../../style/wallpaper.css");
@@ -52,7 +53,7 @@ fn file_url(path: &std::path::Path) -> String {
 #[component]
 pub fn Wallpaper(output: OutputInfo) -> Element {
     let environment = use_appearance()();
-    let wallpapers = use_wallpapers()();
+    let wallpapers = use_service::<WallpaperService>()();
     let on = output.name.clone().map(OutputName);
     let appearance = environment.settings.appearance.appearance();
     let resolved = ds::resolve(
@@ -94,7 +95,8 @@ pub fn Wallpaper(output: OutputInfo) -> Element {
 
 /// The persistent A/B state ([`Layers`]) a `Ds` frame keeps the same way (`root/ds.rs`'s
 /// `use_frame_layers`): held outside any signal, since `Wallpaper` already re-renders whenever
-/// `use_wallpapers` or `use_appearance` changes, and nothing else needs to read it.
+/// `use_service::<WallpaperService>` or `use_appearance` changes, and nothing else needs to read
+/// it.
 fn use_crossfade(
     image: Option<String>,
 ) -> [(&'static str, Option<&'static str>, Option<String>); 2] {

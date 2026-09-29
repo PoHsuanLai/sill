@@ -9,9 +9,9 @@ use sill_launcher::WindowKey;
 use sill_services::{
     AccessPoint, Activity, AppIndex, Association, Badges, Battery, Bluetooth, BluetoothCommand,
     BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower, Charge, ClockText,
-    Connectivity, Control, CosmicWl, DockPins, GroupKey, Launches, Link, Media, MediaCommand, Mute,
+    Connectivity, CosmicWl, DockPins, GroupKey, Handle, Launches, Link, Media, MediaCommand, Mute,
     Network, OutputName, Percent, Pinning, PowerProfiles, Presence, Profile, ProfileCommand,
-    ProfileDegraded, Radio, Results, Seconds, Security, Services, Sizing, Ssid, Toplevel,
+    ProfileDegraded, Radio, Results, Seconds, Security, Service, Services, Sizing, Ssid, Toplevel,
     Toplevels, Tray, Urgency, Visibility, Volume, Wallpapers, Wifi, WifiCommand, WindowState,
     Workspace, WorkspaceCaps, WorkspaceGroup, WorkspaceKey, Workspaces,
 };
@@ -264,111 +264,72 @@ pub fn media() -> Media {
     }
 }
 
-/// A receiver whose sender is kept in `keep`.
-fn fixed<T: 'static>(value: T, keep: &mut Vec<Box<dyn std::any::Any>>) -> watch::Receiver<T> {
-    let (tx, rx) = watch::channel(value);
-    keep.push(Box::new(tx));
-    rx
-}
-
-/// A control whose queue is kept in `keep`.
-fn control<C: 'static>(keep: &mut Vec<Box<dyn std::any::Any>>) -> Control<C> {
-    let (control, rx) = Control::channel();
-    keep.push(Box::new(rx));
-    control
+/// A handle at `state` whose sender and command queue are kept in `keep`.
+fn fixed<S: Service>(state: S::State, keep: &mut Vec<Box<dyn std::any::Any>>) -> Handle<S> {
+    let (handle, io) = Handle::channel(state);
+    keep.push(Box::new(io));
+    handle
 }
 
 /// Fake services at the fixed values above, and their senders.
 pub fn services() -> (Services, Feeds) {
     let mut keep: Vec<Box<dyn std::any::Any>> = Vec::new();
-    let (clock_tx, clock) = watch::channel(clock());
-    let (battery_tx, battery) = watch::channel(battery());
-    let (network_tx, network) = watch::channel(network());
-    let (volume_tx, volume) = watch::channel(volume());
-    let (tray_tx, tray) = watch::channel(Tray::default());
-    let (cosmic_wl_tx, cosmic_wl) = watch::channel(CosmicWl {
+    let (clock, clock_io) = Handle::channel(clock());
+    let (battery, battery_io) = Handle::channel(battery());
+    let (network, network_io) = Handle::channel(network());
+    let (volume, volume_io) = Handle::channel(volume());
+    let (tray, tray_io) = Handle::channel(Tray::default());
+    let (cosmic_wl, cosmic_wl_io) = Handle::channel(CosmicWl {
         workspaces: workspaces(),
         toplevels: toplevels(),
     });
-    let (wifi_tx, wifi) = watch::channel(wifi());
-    let (bluetooth_tx, bluetooth) = watch::channel(bluetooth());
-    let (profiles_tx, power_profiles) = watch::channel(power_profiles());
+    let (wifi, wifi_io) = Handle::channel(wifi());
+    let (bluetooth, bluetooth_io) = Handle::channel(bluetooth());
+    let (power_profile, profile_io) = Handle::channel(power_profiles());
     // No player until a test or the demo feeds one (`media()`).
-    let (media_tx, media) = watch::channel(Media::default());
-    let (wl, wl_rx) = Control::channel();
-    let (volume_control, volume_rx) = Control::channel();
-    let (launch, launch_rx) = Control::channel();
-    let (wifi_control, wifi_rx) = Control::channel();
-    let (bluetooth_control, bluetooth_rx) = Control::channel();
-    let (power_profile_control, profile_rx) = Control::channel();
-    let (media_control, media_rx) = Control::channel();
-    let (kbd_tx, kbd_backlight) = watch::channel(sill_services::KbdBacklight::default());
-    let (kbd_backlight_control, kbd_rx) = Control::channel();
-    let (notifications_tx, notifications) =
-        watch::channel(sill_services::notifications::NotesState::default());
-    let (notifications_control, notification_rx) = Control::channel();
+    let (now_playing, media_io) = Handle::channel(Media::default());
+    let (launch, launch_io) = Handle::channel(Launches::default());
+    let (kbd_backlight, kbd_io) = Handle::channel(sill_services::KbdBacklight::default());
+    let (notifications, notifications_io) =
+        Handle::channel(sill_services::notifications::NotesState::default());
     // A feed for the calendar widgets and one for the screenshot thumbnail.
-    let (agenda_tx, agenda) = watch::channel(sill_services::Agenda::default());
-    let (shots_tx, shots) = watch::channel(sill_services::Shots::default());
-    let (shots_control, shot_rx) = Control::channel();
-    let (idle_tx, idle) = watch::channel(sill_services::Idle::default());
-    let (displays_tx, displays) = watch::channel(sill_services::Displays::default());
-    let (displays_control, displays_rx) = Control::channel();
+    let (events, agenda_io) = Handle::channel(sill_services::Agenda::default());
+    let (screenshots, shots_io) = Handle::channel(sill_services::Shots::default());
+    let (idle, idle_io) = Handle::channel(sill_services::Idle::default());
+    let (displays, displays_io) = Handle::channel(sill_services::Displays::default());
+    keep.push(Box::new(clock_io.commands));
+    keep.push(Box::new(battery_io.commands));
+    keep.push(Box::new(network_io.commands));
+    keep.push(Box::new(tray_io.commands));
+    keep.push(Box::new(idle_io.commands));
     let services = Services {
         clock,
-        clock_control: control(&mut keep),
         battery,
-        battery_control: control(&mut keep),
         network,
-        network_control: control(&mut keep),
         volume,
-        volume_control,
         tray,
-        tray_control: control(&mut keep),
         cosmic_wl,
-        wl,
         apps: fixed(AppIndex::default(), &mut keep),
-        apps_control: control(&mut keep),
         badges: fixed(Badges::default(), &mut keep),
-        badges_control: control(&mut keep),
         pins: fixed(DockPins::default(), &mut keep),
-        pins_control: control(&mut keep),
-        launches: fixed(Launches::default(), &mut keep),
         launch,
         results: fixed(Results::default(), &mut keep),
-        search: control(&mut keep),
-        wallpapers: fixed(Wallpapers::default(), &mut keep),
-        wallpaper_control: control(&mut keep),
+        wallpaper: fixed(Wallpapers::default(), &mut keep),
         displays,
-        displays_control,
         wifi,
-        wifi_control,
         bluetooth,
-        bluetooth_control,
-        power_profiles,
-        power_profile_control,
-        media,
-        media_control,
+        power_profile,
+        now_playing,
         kbd_backlight,
-        kbd_backlight_control,
         session: fixed(sill_services::Session::default(), &mut keep),
-        session_control: control(&mut keep),
-        lock: fixed(sill_services::Lock::default(), &mut keep),
-        locker_control: control(&mut keep),
+        locker: fixed(sill_services::Lock::default(), &mut keep),
         notifications,
-        notifications_control,
-        agenda,
-        events_control: control(&mut keep),
-        shots,
-        shots_control,
+        events,
+        screenshots,
         auth: fixed(sill_services::Auth::default(), &mut keep),
-        auth_control: control(&mut keep),
-        polkit: fixed(sill_services::Polkit::default(), &mut keep),
-        polkit_control: control(&mut keep),
+        polkit_agent: fixed(sill_services::Polkit::default(), &mut keep),
         clipboard: fixed(sill_services::Clipboard::default(), &mut keep),
-        clipboard_control: control(&mut keep),
         idle,
-        idle_control: control(&mut keep),
         // Nowhere real: a surface that reads a file under these finds nothing.
         dirs: sill_services::env::Dirs::under(std::path::Path::new(
             "/nonexistent/sill-surfaces-test",
@@ -379,33 +340,33 @@ pub fn services() -> (Services, Feeds) {
         )),
     };
     let feeds = Feeds {
-        clock: clock_tx,
-        battery: battery_tx,
-        network: network_tx,
-        volume: volume_tx,
-        tray: tray_tx,
-        cosmic_wl: cosmic_wl_tx,
-        wifi: wifi_tx,
-        bluetooth: bluetooth_tx,
-        power_profiles: profiles_tx,
-        media: media_tx,
-        kbd_backlight: kbd_tx,
-        kbd_commands: kbd_rx,
-        notifications: notifications_tx,
-        wl: wl_rx,
-        volume_commands: volume_rx,
-        launch: launch_rx,
-        wifi_commands: wifi_rx,
-        bluetooth_commands: bluetooth_rx,
-        profile_commands: profile_rx,
-        media_commands: media_rx,
-        notification_commands: notification_rx,
-        agenda: agenda_tx,
-        shots: shots_tx,
-        shot_commands: shot_rx,
-        idle: idle_tx,
-        displays: displays_tx,
-        displays_commands: displays_rx,
+        clock: clock_io.state,
+        battery: battery_io.state,
+        network: network_io.state,
+        volume: volume_io.state,
+        tray: tray_io.state,
+        cosmic_wl: cosmic_wl_io.state,
+        wifi: wifi_io.state,
+        bluetooth: bluetooth_io.state,
+        power_profiles: profile_io.state,
+        media: media_io.state,
+        kbd_backlight: kbd_io.state,
+        kbd_commands: kbd_io.commands,
+        notifications: notifications_io.state,
+        wl: cosmic_wl_io.commands,
+        volume_commands: volume_io.commands,
+        launch: launch_io.commands,
+        wifi_commands: wifi_io.commands,
+        bluetooth_commands: bluetooth_io.commands,
+        profile_commands: profile_io.commands,
+        media_commands: media_io.commands,
+        notification_commands: notifications_io.commands,
+        agenda: agenda_io.state,
+        shots: shots_io.state,
+        shot_commands: shots_io.commands,
+        idle: idle_io.state,
+        displays: displays_io.state,
+        displays_commands: displays_io.commands,
         keep,
     };
     (services, feeds)

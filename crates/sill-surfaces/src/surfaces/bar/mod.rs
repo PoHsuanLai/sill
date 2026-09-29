@@ -52,11 +52,11 @@ use tray::Tray;
 use workspaces::{WorkspaceIndicator, group_for};
 
 use crate::hooks::{
-    use_appearance, use_apps, use_services, use_settings, use_space_look, use_toplevels, use_tray,
-    use_workspaces,
+    use_appearance, use_service, use_service_part, use_services, use_settings, use_space_look,
 };
 use crate::surfaces::control_center::{ControlCenterLink, height_cap, menu_bar_modules};
 use crate::surfaces::notification_center::CenterLink;
+use sill_services::{AppsService, CosmicWlService, TrayService};
 
 /// The bar's own stylesheet (lint-clean under `Profile::Strict`, `tests/bar_lint.rs`).
 pub(crate) const BAR_CSS: &str = include_str!("../../style/bar.css");
@@ -88,8 +88,8 @@ pub fn Bar(output: OutputInfo) -> Element {
     let ds_scale = crate::hooks::use_ds_scale();
     let file = use_settings()();
     let environment = use_appearance()();
-    let workspaces = use_workspaces()();
-    let tray = use_tray()();
+    let workspaces = use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())();
+    let tray = use_service::<TrayService>()();
     let on = output.name.clone().map(OutputName);
     let look = active_look(&workspaces, on.as_ref(), &file.spaces);
     let metrics = shell_metrics(&file);
@@ -101,7 +101,11 @@ pub fn Bar(output: OutputInfo) -> Element {
         stack: environment.material_stack(),
     };
     let state = BarState {
-        app: front_app(&use_toplevels()(), &use_apps()(), on.as_ref()),
+        app: front_app(
+            &use_service_part::<CosmicWlService, _>(|wl| wl.toplevels.clone())(),
+            &use_service::<AppsService>()(),
+            on.as_ref(),
+        ),
         control_center: file.control_center.clone(),
     };
     let focus = try_use_context::<FocusLink>().unwrap_or_else(|| FocusLink::fixed(FocusMode::Off));

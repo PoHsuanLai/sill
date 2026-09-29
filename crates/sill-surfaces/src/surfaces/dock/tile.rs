@@ -26,11 +26,12 @@ use sill_services::{Badge, Cpx, Permille};
 use sill_settings::{DockSettings, Indicators, ProgressStyle};
 
 use crate::app_icons::{IconLook, use_icon_resolver};
-use crate::hooks::{use_apps, use_settings};
+use crate::hooks::{use_service, use_settings};
 use crate::surfaces::dock::frame::Rows;
 use crate::surfaces::dock::icon::{IconContext, TileSizes, drawn, tile_art};
 use crate::surfaces::dock::items::{DockItem, ItemKind};
 use crate::surfaces::dock::machine::{TileApp, TileId};
+use sill_services::AppsService;
 
 /// The tile whose hover label the dock machine shows, if any: the context the dock provides.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -44,7 +45,7 @@ pub struct TileLook(pub IconLook);
 /// A tile at `left` with side `size`, lifted `lift` by a bounce.
 #[component]
 pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge>) -> Element {
-    let apps = use_apps();
+    let apps = use_service::<AppsService>();
     let dock = use_settings()().dock;
     let index = apps();
     let app = item.kind.app_id().and_then(|id| index.get(id));

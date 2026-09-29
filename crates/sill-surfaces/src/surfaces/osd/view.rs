@@ -8,15 +8,14 @@ use ds::{BlurState, Ds, LevelLook, Material, Osd, OsdMetrics, OsdPosition, Px, R
 use shell_host::OutputInfo;
 use sill_services::OutputName;
 
-use crate::hooks::{
-    use_appearance, use_displays, use_ds_scale, use_settings, use_volume, use_workspaces,
-};
+use crate::hooks::{use_appearance, use_ds_scale, use_service, use_service_part, use_settings};
 use crate::surfaces::launcher::panel::active_look;
 use crate::surfaces::launcher::presence::Visible;
 use crate::surfaces::osd::drive::{times, use_follow_position, use_osd};
 use crate::surfaces::osd::layer::CARD_ID;
 use crate::surfaces::osd::link::{OsdKind, OsdLink};
 use crate::surfaces::osd::reading::{card_level, level_of, title};
+use sill_services::{CosmicWlService, DisplaysService, VolumeService};
 
 /// The indicator's stylesheet (lint-clean under `Profile::Strict`, `tests/osd_lint.rs`).
 pub(crate) const OSD_CSS: &str = include_str!("../../style/osd.css");
@@ -39,13 +38,17 @@ pub(crate) fn osd(output: OutputInfo) -> Element {
     let file = use_settings()();
     let environment = use_appearance()();
     let on = output.name.clone().map(OutputName);
-    let look = active_look(&use_workspaces()(), on.as_ref(), &file.spaces);
+    let look = active_look(
+        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
+        on.as_ref(),
+        &file.spaces,
+    );
     let appearance = environment.settings.appearance.appearance();
     let link = use_context::<OsdLink>();
     use_follow_position(&file.osd);
     let drawn = use_osd(&link, output.id, times(&file.osd));
-    let volume = use_volume()();
-    let displays = use_displays()();
+    let volume = use_service::<VolumeService>()();
+    let displays = use_service::<DisplaysService>()();
     let kind = drawn.change.as_ref().map_or(OsdKind::Volume, |c| c.kind);
     let level = drawn
         .change

@@ -31,12 +31,13 @@ use super::leaving::{Leaving, use_leaving};
 use super::placed::Placed;
 use super::placement::{Placement, grid_size, place};
 use super::saved::{OutputKey, PlacementFile};
-use crate::hooks::{use_appearance, use_ds_scale, use_settings, use_workspaces};
+use crate::hooks::{use_appearance, use_ds_scale, use_service_part, use_settings};
 use crate::surfaces::launcher::panel::active_look;
 use crate::widgets::{
     CardPresence, WidgetHost, WidgetSize, desktop_size, provide_registry, provide_widget_wake,
     widget_element_id, widgets_css,
 };
+use sill_services::CosmicWlService;
 
 /// The Widget material's corner (quire's recipe, `--m-radius` 20 px): the frames' regions round
 /// their corners by it.
@@ -53,7 +54,11 @@ pub(super) fn desktop(output: OutputInfo) -> Element {
     let file = use_settings()();
     let environment = use_appearance()();
     let on = output.name.clone().map(OutputName);
-    let look = active_look(&use_workspaces()(), on.as_ref(), &file.spaces);
+    let look = active_look(
+        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
+        on.as_ref(),
+        &file.spaces,
+    );
     let widgets = file.widgets;
     rsx! {
         Ds {

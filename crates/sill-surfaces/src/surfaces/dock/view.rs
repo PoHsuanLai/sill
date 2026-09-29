@@ -19,10 +19,7 @@ use sill_services::{Activity, Cpx, OutputName, WorkspaceKey, Workspaces};
 use sill_settings::{AutoHide, SpacesSettings};
 
 use crate::app_icons::icon_look;
-use crate::hooks::{
-    use_appearance, use_apps, use_launcher_entry, use_pins, use_settings, use_space_look,
-    use_toplevels, use_workspaces,
-};
+use crate::hooks::{use_appearance, use_service, use_service_part, use_settings, use_space_look};
 use crate::surfaces::bar::shell_style::shell_metrics;
 use crate::surfaces::bar::workspaces::group_for;
 use crate::surfaces::dock::frame::{Area, Frame, Rows, frame};
@@ -36,6 +33,7 @@ use crate::surfaces::dock::menu_popup::PopupLook;
 use crate::surfaces::dock::pointer::{DockInput, PointerInput, button, modifier, point};
 use crate::surfaces::dock::session::{SessionDeps, World, use_dock_session};
 use crate::surfaces::dock::tile::{LabelShown, Tile, TileLook};
+use sill_services::{AppsService, BadgesService, CosmicWlService, PinsService};
 
 /// The dock's own stylesheet (lint-clean under `Profile::Strict`, `tests/dock_lint.rs`).
 pub(crate) const DOCK_CSS: &str = include_str!("../../style/dock.css");
@@ -64,15 +62,19 @@ pub(crate) fn dock(output: OutputInfo) -> Element {
     let file = use_settings()();
     let environment = use_appearance()();
     let on = output.name.clone().map(OutputName);
-    let (look, workspace) = active(&use_workspaces()(), on.as_ref(), &file.spaces);
+    let (look, workspace) = active(
+        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
+        on.as_ref(),
+        &file.spaces,
+    );
     let appearance = environment.settings.appearance.appearance();
     let level = ds::resolve(appearance, look.theme, environment.system).motion;
     let params = DockParams::new(&file.dock, level);
     let world = World {
-        toplevels: use_toplevels()(),
-        index: use_apps()(),
-        pins: use_pins()(),
-        badges: use_launcher_entry()(),
+        toplevels: use_service_part::<CosmicWlService, _>(|wl| wl.toplevels.clone())(),
+        index: use_service::<AppsService>()(),
+        pins: use_service::<PinsService>()(),
+        badges: use_service::<BadgesService>()(),
         workspace,
     };
     let metrics = shell_metrics(&file);

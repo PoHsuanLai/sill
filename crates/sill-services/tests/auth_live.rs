@@ -1,8 +1,8 @@
 //! Live checks of the auth service. Nothing here calls PAM with anyone's real password: the service
-//! runs a `FakeAuthenticator` as its `Env`'s authenticator, and `PamHelper` runs against the stand-in
-//! helper (`examples/auth_helper.rs`). The one PAM test runs only when `SILL_PAM_TEST_USER` and
-//! `SILL_PAM_TEST_SECRET` name a throwaway account, and says it skipped otherwise. `#[ignore]`d:
-//! run with
+//! runs a `FakeAuthenticator` as its `Env`'s authenticator, and `PamHelper` runs against the
+//! stand-in helper (`examples/auth_helper.rs`). The one PAM test runs only when
+//! `SILL_PAM_TEST_USER` and `SILL_PAM_TEST_SECRET` name a throwaway account, and says it skipped
+//! otherwise. `#[ignore]`d: run with
 //!
 //! ```sh
 //! cargo test -p sill-services --test auth_live -- --ignored --nocapture

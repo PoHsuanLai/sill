@@ -1,17 +1,17 @@
-//! The banner column: one transparent Toast root as tall as the surface, `NotificationMetrics`
-//! (the `notifications.*` geometry keys) written on a wrapper, holding quire's `BannerStack` of
-//! the deck's listed cards, each quire's `NotificationCard` (through [`NoteCard`]) that pauses the
-//! hold under the pointer and swipes away. It follows `use_notifications` and the
-//! [`BannerLink`] (only the output the link names shows cards), maps its surface while any card
-//! is drawn and unmaps it once the stack has played the last one out (`on_hidden`), and keeps
-//! the input and blur regions on the cards (`elements.rs`).
+//! The banner column: one transparent Toast root as tall as the surface, `NotificationMetrics` (the
+//! `notifications.*` geometry keys) written on a wrapper, holding quire's `BannerStack` of the
+//! deck's listed cards, each quire's `NotificationCard` (through [`NoteCard`]) that pauses the hold
+//! under the pointer and swipes away. It follows the notifications service's live banners and the
+//! [`BannerLink`] (only the output the link names shows cards), maps its surface while any card is
+//! drawn and unmaps it once the stack has played the last one out (`on_hidden`), and keeps the
+//! input and blur regions on the cards (`elements.rs`).
 //!
 //! [`BannerLink`]: super::BannerLink
 
 use dioxus::prelude::*;
 use ds::{BannerKey, BannerStack, BlurState, Ds, Hover, Material, RootChrome, RootExtent, Swipe};
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
-use sill_services::{NotificationId, Notifications};
+use sill_services::{NotificationId, Notifications, NotificationsService};
 use sill_settings::{BannerEntry, BannerPosition, NotificationsSettings};
 
 use super::deck::{DeckIn, Entry, EntryKey, Showing};
@@ -21,13 +21,12 @@ use super::layer::ROOM;
 use super::machine::{BannerIn, BannerParams};
 use super::placement::BannerLink;
 use super::stack::stack;
-use crate::hooks::{
-    use_appearance, use_ds_scale, use_notifications, use_services, use_settings, use_workspaces,
-};
+use crate::hooks::{use_appearance, use_control, use_ds_scale, use_service_part, use_settings};
 use crate::surfaces::launcher::panel::active_look;
 use crate::surfaces::notification_card::{
     CardPart, CardPlace, CardPress, NoteCard, notification_metrics, part_id, wall_now,
 };
+use sill_services::CosmicWlService;
 
 /// The column's stylesheet (lint-clean under `Profile::Strict`, `tests/banners_lint.rs`).
 pub const BANNERS_CSS: &str = include_str!("../../style/banners.css");
@@ -41,7 +40,11 @@ pub(super) fn banners(output: OutputInfo) -> Element {
     let file = use_settings()();
     let environment = use_appearance()();
     let on = output.name.clone().map(sill_services::OutputName);
-    let look = active_look(&use_workspaces()(), on.as_ref(), &file.spaces);
+    let look = active_look(
+        &use_service_part::<CosmicWlService, _>(|wl| wl.workspaces.clone())(),
+        on.as_ref(),
+        &file.spaces,
+    );
     rsx! {
         Ds {
             scale: ds_scale,
@@ -63,9 +66,9 @@ pub(super) fn banners(output: OutputInfo) -> Element {
 /// The cards, inside the root.
 #[component]
 fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> Element {
-    let control = use_services().notifications_control;
+    let control = use_control::<NotificationsService>();
     let column = use_column(BannerParams::new(&settings), control);
-    let live = use_notifications();
+    let live = use_service_part::<NotificationsService, _>(|notes| notes.live.clone());
     let link = use_context::<BannerLink>();
     let shows = use_watch(link.subscribe());
     let max = usize::from(settings.stack_max.0);

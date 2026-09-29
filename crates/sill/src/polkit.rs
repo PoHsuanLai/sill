@@ -50,7 +50,7 @@ pub fn namespace(info: &OutputInfo) -> String {
 /// `sill polkit status`.
 pub fn dispatch(services: &Services, request: PolkitRequest) -> Response {
     match request {
-        PolkitRequest::Status => Response::Polkit(report_of(&services.polkit.borrow())),
+        PolkitRequest::Status => Response::Polkit(report_of(&services.polkit_agent.state.borrow())),
     }
 }
 
@@ -76,7 +76,11 @@ pub fn fake(services: &Services, fake: FakePolkit) -> Response {
         message: fake.message,
         icon: String::new(),
     };
-    match services.polkit_control.send(PolkitCommand::Fake(request)) {
+    match services
+        .polkit_agent
+        .control
+        .send(PolkitCommand::Fake(request))
+    {
         Ok(()) => Response::Done,
         Err(error) => Response::Failed(Failure {
             kind: FailureKind::Internal,

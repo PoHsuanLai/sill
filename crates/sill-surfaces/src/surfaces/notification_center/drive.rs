@@ -9,13 +9,14 @@ use dioxus::prelude::*;
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_services::{
     Activation, ActivationToken, Clear, Control, NotificationId, NotificationsCommand,
+    NotificationsService,
 };
 
 use super::groups::{Expanded, toggle_group};
 use super::link::CenterLink;
 use super::phase::{Phase, PhaseInput, PhaseOut, Wanted, step_phase};
 use super::rows::RowAct;
-use crate::hooks::use_services;
+use crate::hooks::use_control;
 
 /// The column's phase on one output, and the surface it maps. Clone is cheap.
 #[derive(Clone)]
@@ -89,7 +90,7 @@ pub(super) struct CenterCtx {
 pub(super) fn use_center_ctx() -> CenterCtx {
     CenterCtx {
         link: use_context::<CenterLink>(),
-        control: use_services().notifications_control,
+        control: use_control::<NotificationsService>(),
         surface: try_use_context::<SurfaceHandle>(),
         expanded: use_signal(Expanded::default),
         home: use_signal(|| None),

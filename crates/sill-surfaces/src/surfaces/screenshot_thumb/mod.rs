@@ -7,8 +7,8 @@
 //! (`Moved`), a cancel leaves it.
 //!
 //! One warm Overlay per output, spawned hidden like the banners, shown only on the output the
-//! banners' `BannerLink` names (the main display's stand-in), following `use_shots().current`.
-//! `screenshot.thumbnail = "hide"` keeps it hidden. The pure parts: [`machine::step`],
+//! banners' `BannerLink` names (the main display's stand-in), following the screenshots service's
+//! `current`. `screenshot.thumbnail = "hide"` keeps it hidden. The pure parts: [`machine::step`],
 //! [`drag::drag_end`], [`picture::png_size`] and [`layer::thumb_layer`].
 
 pub mod drag;

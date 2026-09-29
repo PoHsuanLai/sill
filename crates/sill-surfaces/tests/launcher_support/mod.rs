@@ -204,14 +204,14 @@ pub fn services_with_runner() -> (Services, LauncherFeeds, Runner) {
     let (mut services, bar) = fake::services();
     let (results_tx, results_rx) = watch::channel(Results::default());
     let (control, commands) = Control::channel();
-    services.results = results_rx;
-    services.search = control;
+    services.results.state = results_rx;
+    services.results.control = control;
     let searches = Arc::new(Mutex::new(Vec::new()));
     let answer = Answer {
         results: results_tx.clone(),
         searches: searches.clone(),
-        wl: services.wl.clone(),
-        launch: services.launch.clone(),
+        wl: services.cosmic_wl.control.clone(),
+        launch: services.launch.control.clone(),
         providers: providers(),
         generation: 0,
         rows: Vec::new(),

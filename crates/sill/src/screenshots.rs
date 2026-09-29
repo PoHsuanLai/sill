@@ -106,7 +106,7 @@ pub fn namespace(info: &OutputInfo) -> String {
 }
 
 fn send(services: &Services, command: ShotCommand) -> Response {
-    match services.shots_control.send(command) {
+    match services.screenshots.control.send(command) {
         Ok(()) => Response::Done,
         Err(error) => Response::Failed(sill_ipc::Failure {
             kind: sill_ipc::FailureKind::Internal,

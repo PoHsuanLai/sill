@@ -1,20 +1,20 @@
 //! The power profile: a quire `SegmentedControl<Profile>` over `PowerProfiles::offered`
 //! (labels from [`crate::surfaces::control_center::profile_label`]), set with
 //! `ProfileCommand::Set`; `ProfileDegraded::Because` shown as a `SectionHeader` value. Absent
-//! when power-profiles-daemon is. Reads `use_power_profile`.
+//! when power-profiles-daemon is. Reads `use_service::<PowerProfileService>`.
 
 use dioxus::prelude::*;
 use ds::{HeaderKind, SectionHeader, SegSize, SegmentedControl};
-use sill_services::{Presence, Profile, ProfileCommand, ProfileDegraded};
+use sill_services::{PowerProfileService, Presence, Profile, ProfileCommand, ProfileDegraded};
 
-use crate::hooks::{use_power_profile, use_services};
+use crate::hooks::{use_control, use_service};
 use crate::surfaces::control_center::profile_label;
 
 /// The power profile control.
 #[component]
 pub fn PowerProfileControl() -> Element {
-    let profiles = use_power_profile()();
-    let control = use_services().power_profile_control;
+    let profiles = use_service::<PowerProfileService>()();
+    let control = use_control::<PowerProfileService>();
     if profiles.presence == Presence::Absent {
         return rsx! {};
     }

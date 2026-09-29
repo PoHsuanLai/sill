@@ -61,8 +61,8 @@ impl PowerMenuBackend {
     /// The session service in `services`.
     pub fn live(services: &Services) -> PowerMenuBackend {
         PowerMenuBackend(Arc::new(LiveSession {
-            offers: services.session.clone(),
-            control: services.session_control.clone(),
+            offers: services.session.state.clone(),
+            control: services.session.control.clone(),
             kind: match services.session_actions.reach() {
                 ActionReach::Logind => BackendKind::Live,
                 ActionReach::DryRun => BackendKind::DryRun,

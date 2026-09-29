@@ -1,112 +1,83 @@
-//! The one value every surface gets through `Root::context`: every service's receiver and
-//! control. Clone is cheap (channels are reference-counted).
+//! The one value every surface gets through `Root::context`: every service's [`Handle`].
+//! Clone is cheap (channels are reference-counted).
 
 use std::sync::Arc;
 
-use tokio::runtime::Handle;
-use tokio::sync::watch;
+use tokio::runtime::Handle as Runtime;
 
-use crate::apps::{AppIndex, AppsCommand};
-use crate::auth::{Auth, AuthCommand};
-use crate::badges::{Badges, BadgesCommand};
-use crate::battery::{Battery, BatteryCommand};
-use crate::bluetooth::{Bluetooth, BluetoothCommand};
-use crate::clipboard::{Clipboard, ClipboardCommand};
-use crate::clock::{ClockCommand, ClockText};
-use crate::control::Control;
-use crate::cosmic_wl::{CosmicWl, WlCommand};
-use crate::displays::{Displays, DisplaysCommand};
+use crate::apps::AppsService;
+use crate::auth::AuthService;
+use crate::badges::BadgesService;
+use crate::battery::BatteryService;
+use crate::bluetooth::BluetoothService;
+use crate::clipboard::ClipboardService;
+use crate::clock::ClockService;
+use crate::cosmic_wl::CosmicWlService;
+use crate::displays::DisplaysService;
 use crate::env::{Dirs, Env, SessionActions};
-use crate::events::{Agenda, EventsCommand};
-use crate::idle::{Idle, IdleCommand, IdleLinks};
-use crate::kbd_backlight::{KbdBacklight, KbdCommand};
-use crate::launch::{LaunchCommand, Launches};
-use crate::locker::{Lock, LockerCommand};
-use crate::network::wifi::{Wifi, WifiCommand};
-use crate::network::{Network, NetworkCommand};
-use crate::notifications::{NotesState, NotificationsCommand};
-use crate::now_playing::{Media, MediaCommand};
-use crate::pins::{DockPins, PinEvent};
-use crate::polkit_agent::{Polkit, PolkitCommand};
-use crate::power_profile::{PowerProfiles, ProfileCommand};
-use crate::results::{Results, SearchCommand};
-use crate::screenshots::{ShotCommand, Shots};
-use crate::service::{Handle as ServiceHandle, Service, spawn};
-use crate::session::{Session, SessionCommand};
-use crate::tray::{Tray, TrayCommand};
-use crate::volume::{Volume, VolumeCommand};
-use crate::wallpaper::{WallpaperCommand, Wallpapers};
+use crate::events::EventsService;
+use crate::idle::{IdleLinks, IdleService};
+use crate::kbd_backlight::KbdBacklightService;
+use crate::launch::LaunchService;
+use crate::locker::LockerService;
+use crate::network::NetworkService;
+use crate::network::wifi::WifiService;
+use crate::notifications::NotificationsService;
+use crate::now_playing::NowPlayingService;
+use crate::pins::PinsService;
+use crate::polkit_agent::PolkitAgentService;
+use crate::power_profile::PowerProfileService;
+use crate::results::{ResultsLinks, ResultsService, Sources};
+use crate::screenshots::ScreenshotsService;
+use crate::service::{Handle, Service, spawn};
+use crate::session::SessionService;
+use crate::tray::TrayService;
+use crate::volume::VolumeService;
+use crate::wallpaper::WallpaperService;
 
-/// Every service's state receiver and command control. Surfaces read receivers through
-/// `sill-surfaces::hooks` (`use_watch`) and send commands through the controls; nothing here is
-/// a Dioxus signal (review rule: never pass a Signal through `Root::context`).
+/// Every running service, each field named after its module. Surfaces read a service through
+/// `sill-surfaces::hooks::use_service` and command it through `use_control`; nothing here is a
+/// Dioxus signal (review rule: never pass a Signal through `Root::context`).
 #[derive(Debug, Clone)]
 pub struct Services {
-    pub clock: watch::Receiver<ClockText>,
-    pub clock_control: Control<ClockCommand>,
-    pub battery: watch::Receiver<Battery>,
-    pub battery_control: Control<BatteryCommand>,
-    pub network: watch::Receiver<Network>,
-    pub network_control: Control<NetworkCommand>,
-    pub volume: watch::Receiver<Volume>,
-    pub volume_control: Control<VolumeCommand>,
-    pub tray: watch::Receiver<Tray>,
-    pub tray_control: Control<TrayCommand>,
-    pub cosmic_wl: watch::Receiver<CosmicWl>,
-    pub wl: Control<WlCommand>,
-    pub apps: watch::Receiver<AppIndex>,
-    pub apps_control: Control<AppsCommand>,
-    pub badges: watch::Receiver<Badges>,
-    pub badges_control: Control<BadgesCommand>,
-    pub pins: watch::Receiver<DockPins>,
-    pub pins_control: Control<PinEvent>,
-    pub launches: watch::Receiver<Launches>,
-    pub launch: Control<LaunchCommand>,
-    pub results: watch::Receiver<Results>,
-    pub search: Control<SearchCommand>,
-    pub wallpapers: watch::Receiver<Wallpapers>,
-    pub wallpaper_control: Control<WallpaperCommand>,
-    pub displays: watch::Receiver<Displays>,
-    pub displays_control: Control<DisplaysCommand>,
-    /// The control center's and power menu's services.
-    pub wifi: watch::Receiver<Wifi>,
-    pub wifi_control: Control<WifiCommand>,
-    pub bluetooth: watch::Receiver<Bluetooth>,
-    pub bluetooth_control: Control<BluetoothCommand>,
-    pub power_profiles: watch::Receiver<PowerProfiles>,
-    pub power_profile_control: Control<ProfileCommand>,
-    pub media: watch::Receiver<Media>,
-    pub media_control: Control<MediaCommand>,
+    pub clock: Handle<ClockService>,
+    pub battery: Handle<BatteryService>,
+    pub network: Handle<NetworkService>,
+    pub wifi: Handle<WifiService>,
+    pub volume: Handle<VolumeService>,
+    pub bluetooth: Handle<BluetoothService>,
     /// The keyboard backlight (design/26 5.2.7): absent on a machine without one.
-    pub kbd_backlight: watch::Receiver<KbdBacklight>,
-    pub kbd_backlight_control: Control<KbdCommand>,
-    pub session: watch::Receiver<Session>,
-    pub session_control: Control<SessionCommand>,
+    pub kbd_backlight: Handle<KbdBacklightService>,
+    pub power_profile: Handle<PowerProfileService>,
+    pub now_playing: Handle<NowPlayingService>,
+    pub badges: Handle<BadgesService>,
+    pub tray: Handle<TrayService>,
+    pub pins: Handle<PinsService>,
+    pub apps: Handle<AppsService>,
+    pub cosmic_wl: Handle<CosmicWlService>,
+    pub launch: Handle<LaunchService>,
+    /// The clipboard history: passive until the daemon's policy.
+    pub clipboard: Handle<ClipboardService>,
+    pub results: Handle<ResultsService>,
+    pub wallpaper: Handle<WallpaperService>,
+    /// Inert until the daemon's first policy.
+    pub displays: Handle<DisplaysService>,
     /// sill's own lock screen; the session's Lock goes through it.
-    pub lock: watch::Receiver<Lock>,
-    pub locker_control: Control<LockerCommand>,
+    pub locker: Handle<LockerService>,
+    pub session: Handle<SessionService>,
     /// The notifications server's live banners and name holder, and its history.
-    pub notifications: watch::Receiver<NotesState>,
-    pub notifications_control: Control<NotificationsCommand>,
+    pub notifications: Handle<NotificationsService>,
     /// Calendar events for the Calendar and Up Next widgets, and screenshots for the floating
     /// thumbnail. Both passive until the daemon configures them.
-    pub agenda: watch::Receiver<Agenda>,
-    pub events_control: Control<EventsCommand>,
-    pub shots: watch::Receiver<Shots>,
-    pub shots_control: Control<ShotCommand>,
+    pub events: Handle<EventsService>,
+    pub screenshots: Handle<ScreenshotsService>,
     /// The lock screen's password check (idle until a secret is submitted), and the polkit
     /// agent (passive until the daemon's policy).
-    pub auth: watch::Receiver<Auth>,
-    pub auth_control: Control<AuthCommand>,
-    pub polkit: watch::Receiver<Polkit>,
-    pub polkit_control: Control<PolkitCommand>,
-    /// The clipboard history: passive until the daemon's policy.
-    pub clipboard: watch::Receiver<Clipboard>,
-    pub clipboard_control: Control<ClipboardCommand>,
+    pub auth: Handle<AuthService>,
+    pub polkit_agent: Handle<PolkitAgentService>,
     /// sill's own idle: passive until the daemon's policy, and `Off` anywhere but a sill
     /// session.
-    pub idle: watch::Receiver<Idle>,
-    pub idle_control: Control<IdleCommand>,
+    pub idle: Handle<IdleService>,
     /// The person's directories the services were started with (the icon theme's config, the
     /// widget placements' state folder).
     pub dirs: Dirs,
@@ -117,147 +88,118 @@ pub struct Services {
 
 impl Services {
     /// Start every service on `rt` (the `cosmic_wl` and volume threads on their own threads)
-    /// against `env`'s seams, and bundle them. A service whose system half is missing still
-    /// yields its receiver, at its default.
-    pub fn spawn(rt: &Handle, env: &Env) -> Services {
-        let (clock, clock_control) = parts(spawn::<crate::clock::ClockService>(rt, env, ()));
-        let (battery, battery_control) =
-            parts(spawn::<crate::battery::BatteryService>(rt, env, ()));
-        let (network, network_control) =
-            parts(spawn::<crate::network::NetworkService>(rt, env, ()));
-        let (volume, volume_control) = parts(spawn::<crate::volume::VolumeService>(rt, env, ()));
-        let (displays, displays_control) = parts(spawn::<crate::displays::DisplaysService>(
+    /// against `env`'s seams, each after the ones it depends on. A service whose system half is
+    /// missing still yields its receiver, at its default.
+    pub fn spawn(rt: &Runtime, env: &Env) -> Services {
+        let volume = spawn::<VolumeService>(rt, env, ());
+        let battery = spawn::<BatteryService>(rt, env, ());
+        let apps = spawn::<AppsService>(rt, env, ());
+        let cosmic_wl = spawn::<CosmicWlService>(rt, env, ());
+        let launch = spawn::<LaunchService>(rt, env, apps.state.clone());
+        let clipboard = spawn::<ClipboardService>(rt, env, ());
+        let results = spawn::<ResultsService>(
             rt,
             env,
-            volume.clone(),
-        ));
-        let (tray, tray_control) = parts(spawn::<crate::tray::TrayService>(rt, env, ()));
-        let (cosmic_wl, wl) = parts(spawn::<crate::cosmic_wl::CosmicWlService>(rt, env, ()));
-        let (apps, apps_control) = parts(spawn::<crate::apps::AppsService>(rt, env, ()));
-        let (badges, badges_control) = parts(spawn::<crate::badges::BadgesService>(rt, env, ()));
-        let (pins, pins_control) = parts(spawn::<crate::pins::PinsService>(rt, env, ()));
-        let (launches, launch) =
-            parts(spawn::<crate::launch::LaunchService>(rt, env, apps.clone()));
-        let (clipboard, clipboard_control) =
-            parts(spawn::<crate::clipboard::ClipboardService>(rt, env, ()));
-        let (results, search) = parts(spawn::<crate::results::ResultsService>(
-            rt,
-            env,
-            crate::results::Sources::Services(crate::results::ResultsLinks {
-                apps: apps.clone(),
-                cosmic_wl: cosmic_wl.clone(),
-                clipboard: clipboard.clone(),
-                wl: wl.clone(),
-                launch: launch.clone(),
+            Sources::Services(ResultsLinks {
+                apps: apps.state.clone(),
+                cosmic_wl: cosmic_wl.state.clone(),
+                clipboard: clipboard.state.clone(),
+                wl: cosmic_wl.control.clone(),
+                launch: launch.control.clone(),
             }),
-        ));
-        let (wallpapers, wallpaper_control) =
-            parts(spawn::<crate::wallpaper::WallpaperService>(rt, env, ()));
-        let (wifi, wifi_control) = parts(spawn::<crate::network::wifi::WifiService>(rt, env, ()));
-        let (bluetooth, bluetooth_control) =
-            parts(spawn::<crate::bluetooth::BluetoothService>(rt, env, ()));
-        let (power_profiles, power_profile_control) = parts(spawn::<
-            crate::power_profile::PowerProfileService,
-        >(rt, env, ()));
-        let (media, media_control) =
-            parts(spawn::<crate::now_playing::NowPlayingService>(rt, env, ()));
-        let (kbd_backlight, kbd_backlight_control) = parts(spawn::<
-            crate::kbd_backlight::KbdBacklightService,
-        >(rt, env, ()));
-        let (lock, locker_control) = parts(spawn::<crate::locker::LockerService>(rt, env, ()));
-        let (session, session_control) = parts(spawn::<crate::session::SessionService>(
-            rt,
-            env,
-            locker_control.clone(),
-        ));
-        // Passive (never asks for the bus name) until the daemon sends its first policy.
-        let (notifications, notifications_control) = parts(spawn::<
-            crate::notifications::NotificationsService,
-        >(rt, env, ()));
-        let (agenda, events_control) = parts(spawn::<crate::events::EventsService>(rt, env, ()));
-        let (shots, shots_control) =
-            parts(spawn::<crate::screenshots::ScreenshotsService>(rt, env, ()));
-        let (auth, auth_control) = parts(spawn::<crate::auth::AuthService>(rt, env, ()));
-        let (polkit, polkit_control) = parts(spawn::<crate::polkit_agent::PolkitAgentService>(
-            rt,
-            env,
-            (),
-        ));
-        let (idle, idle_control) = parts(spawn::<crate::idle::IdleService>(
+        );
+        let locker = spawn::<LockerService>(rt, env, ());
+        let auth = spawn::<AuthService>(rt, env, ());
+        let idle = spawn::<IdleService>(
             rt,
             env,
             IdleLinks {
-                lock: lock.clone(),
-                battery: battery.clone(),
-                locker: locker_control.clone(),
-                auth: auth_control.clone(),
+                lock: locker.state.clone(),
+                battery: battery.state.clone(),
+                locker: locker.control.clone(),
+                auth: auth.control.clone(),
             },
-        ));
-
+        );
         Services {
-            clock,
-            clock_control,
-            battery,
-            battery_control,
-            network,
-            network_control,
+            clock: spawn(rt, env, ()),
+            network: spawn(rt, env, ()),
+            wifi: spawn(rt, env, ()),
+            displays: spawn(rt, env, volume.state.clone()),
+            bluetooth: spawn(rt, env, ()),
+            kbd_backlight: spawn(rt, env, ()),
+            power_profile: spawn(rt, env, ()),
+            now_playing: spawn(rt, env, ()),
+            badges: spawn(rt, env, ()),
+            tray: spawn(rt, env, ()),
+            pins: spawn(rt, env, ()),
+            wallpaper: spawn(rt, env, ()),
+            session: spawn(rt, env, locker.control.clone()),
+            // Passive (never asks for the bus name) until the daemon sends its first policy.
+            notifications: spawn(rt, env, ()),
+            events: spawn(rt, env, ()),
+            screenshots: spawn(rt, env, ()),
+            polkit_agent: spawn(rt, env, ()),
             volume,
-            volume_control,
-            tray,
-            tray_control,
-            cosmic_wl,
-            wl,
+            battery,
             apps,
-            apps_control,
-            badges,
-            badges_control,
-            pins,
-            pins_control,
-            launches,
+            cosmic_wl,
             launch,
-            results,
-            search,
-            wallpapers,
-            wallpaper_control,
-            displays,
-            displays_control,
-            wifi,
-            wifi_control,
-            bluetooth,
-            bluetooth_control,
-            power_profiles,
-            power_profile_control,
-            media,
-            media_control,
-            kbd_backlight,
-            kbd_backlight_control,
-            session,
-            session_control,
-            lock,
-            locker_control,
-            notifications,
-            notifications_control,
-            agenda,
-            events_control,
-            shots,
-            shots_control,
-            auth,
-            auth_control,
-            polkit,
-            polkit_control,
             clipboard,
-            clipboard_control,
+            results,
+            locker,
+            auth,
             idle,
-            idle_control,
             dirs: env.dirs.clone(),
             session_actions: Arc::clone(&env.session_actions),
         }
     }
 }
 
-/// A handle's two halves, for the fields above.
-fn parts<S: Service>(handle: ServiceHandle<S>) -> (watch::Receiver<S::State>, Control<S::Command>) {
-    (handle.state, handle.control)
+/// A service [`Services`] holds, and which field holds it: what lets a reader name a service by
+/// its type alone (`sill-surfaces`' `use_service::<S>()`).
+pub trait Member: Service {
+    fn of(services: &Services) -> &Handle<Self>;
+}
+
+/// `impl Member` for each `field: Service` pair.
+macro_rules! members {
+    ($($field:ident: $service:ty),* $(,)?) => {
+        $(impl Member for $service {
+            fn of(services: &Services) -> &Handle<Self> {
+                &services.$field
+            }
+        })*
+    };
+}
+
+members! {
+    clock: ClockService,
+    battery: BatteryService,
+    network: NetworkService,
+    wifi: WifiService,
+    volume: VolumeService,
+    bluetooth: BluetoothService,
+    kbd_backlight: KbdBacklightService,
+    power_profile: PowerProfileService,
+    now_playing: NowPlayingService,
+    badges: BadgesService,
+    tray: TrayService,
+    pins: PinsService,
+    apps: AppsService,
+    cosmic_wl: CosmicWlService,
+    launch: LaunchService,
+    clipboard: ClipboardService,
+    results: ResultsService,
+    wallpaper: WallpaperService,
+    displays: DisplaysService,
+    locker: LockerService,
+    session: SessionService,
+    notifications: NotificationsService,
+    events: EventsService,
+    screenshots: ScreenshotsService,
+    auth: AuthService,
+    polkit_agent: PolkitAgentService,
+    idle: IdleService,
 }
 
 #[cfg(test)]
@@ -277,50 +219,59 @@ mod tests {
         let scratch = Scratch::new("services-spawn");
         let services = Services::spawn(rt.handle(), &scratch.env());
 
-        assert_eq!(services.clock.borrow().text.split_whitespace().count(), 4);
-        assert_eq!(*services.apps.borrow(), Default::default());
-        assert_eq!(*services.badges.borrow(), Default::default());
-        assert_eq!(*services.pins.borrow(), Default::default());
-        assert_eq!(*services.launches.borrow(), Default::default());
-        assert_eq!(*services.results.borrow(), Default::default());
-        assert_eq!(*services.wallpapers.borrow(), Default::default());
         assert_eq!(
-            services.notifications.borrow().live.server.mode,
+            services
+                .clock
+                .state
+                .borrow()
+                .text
+                .split_whitespace()
+                .count(),
+            4
+        );
+        assert_eq!(*services.apps.state.borrow(), Default::default());
+        assert_eq!(*services.badges.state.borrow(), Default::default());
+        assert_eq!(*services.pins.state.borrow(), Default::default());
+        assert_eq!(*services.launch.state.borrow(), Default::default());
+        assert_eq!(*services.results.state.borrow(), Default::default());
+        assert_eq!(*services.wallpaper.state.borrow(), Default::default());
+        assert_eq!(
+            services.notifications.state.borrow().live.server.mode,
             crate::ServerMode::Passive,
             "passive until the daemon's policy"
         );
         assert_eq!(
-            services.agenda.borrow().status,
+            services.events.state.borrow().status,
             crate::SourceStatus::Off,
             "no calendar read until the daemon names the sources"
         );
         assert_eq!(
-            *services.shots.borrow(),
+            *services.screenshots.state.borrow(),
             Default::default(),
             "nothing watched until the daemon names the folders"
         );
         assert_eq!(
-            *services.displays.borrow(),
+            *services.displays.state.borrow(),
             Default::default(),
             "inert until a policy"
         );
         assert_eq!(
-            services.polkit.borrow().registration,
+            services.polkit_agent.state.borrow().registration,
             crate::polkit_agent::Registration::Passive,
             "no agent registered until the daemon's policy"
         );
         assert_eq!(
-            services.auth.borrow().phase,
+            services.auth.state.borrow().phase,
             crate::AuthPhase::Idle,
             "nothing checked until a secret is submitted"
         );
         assert_eq!(
-            services.clipboard.borrow().status.mode,
+            services.clipboard.state.borrow().status.mode,
             crate::clipboard::HistoryMode::Off,
             "no clipboard read until the daemon's policy"
         );
         assert_eq!(
-            services.idle.borrow().mode,
+            services.idle.state.borrow().mode,
             crate::idle::IdleMode::Off(crate::idle::OffReason::NoPolicy),
             "no idle notification, display or logind touched until the daemon's policy"
         );

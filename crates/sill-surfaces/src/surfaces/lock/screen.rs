@@ -1,21 +1,21 @@
 //! The lock surface's root.
 //!
-//! It draws `Ds { material: Window, extent: Viewport }` holding `ds::LockScreen { wallpaper,
-//! clock, prompt }`: the wallpaper is [`super::backdrop_for`] over `use_wallpapers()` in the
-//! scheme `use_appearance()` resolves (`ImageSource::file`; `None` lets quire paint its veil
+//! It draws `Ds { material: Window, extent: Viewport }` holding `ds::LockScreen { wallpaper, clock,
+//! prompt }`: the wallpaper is [`super::backdrop_for`] over `use_service::<WallpaperService>()` in
+//! the scheme `use_appearance()` resolves (`ImageSource::file`; `None` lets quire paint its veil
 //! alone); the clock is `ds::LockClock` from [`super::clock_lines`] over the minute
-//! (`use_clock()` wakes it) and `session.lock_clock`; the prompt, only on the output the
-//! [`super::LockLink`] names, is `ds::LockPrompt` with [`super::lock_user`] over
-//! `use_auth().account`, [`super::prompt_state`] over `use_auth().phase`, the Caps Lock mark
-//! from shell-host's `use_modifiers()` (published on keyboard focus, so a Caps Lock toggled
-//! before the lock shows from the first frame; [`super::view::caps_of`]), and `onsubmit` sending
-//! `AuthCommand::Submit(Secret::new(text))` on `Services.auth_control` (the text is moved into
-//! the `Secret` there, never stored or logged). On `Accepted` it fades and, on the prompt's
-//! output, calls `shell_host::use_lock().unlock()` when the fade settles;
-//! `shell_host::use_lock_phase()` saying `Unlocking` first (the daemon's backstop) skips the
-//! fade. A click on a lock surface moves the prompt there (macOS: the prompt follows the display
-//! you click), as the keyboard's focus does (the daemon). Style nothing under `.ds-lock*`: the
-//! fade is sill's own wrapper's.
+//! (`use_service::<ClockService>()` wakes it) and `session.lock_clock`; the prompt, only on the
+//! output the [`super::LockLink`] names, is `ds::LockPrompt` with [`super::lock_user`] over
+//! `use_service::<AuthService>().account`, [`super::prompt_state`] over
+//! `use_service::<AuthService>().phase`, the Caps Lock mark from shell-host's `use_modifiers()`
+//! (published on keyboard focus, so a Caps Lock toggled before the lock shows from the first frame;
+//! [`super::view::caps_of`]), and `onsubmit` sending `AuthCommand::Submit(Secret::new(text))` on
+//! the auth service's control (the text is moved into the `Secret` there, never stored or logged).
+//! On `Accepted` it fades and, on the prompt's output, calls `shell_host::use_lock().unlock()` when
+//! the fade settles; `shell_host::use_lock_phase()` saying `Unlocking` first (the daemon's
+//! backstop) skips the fade. A click on a lock surface moves the prompt there (macOS: the prompt
+//! follows the display you click), as the keyboard's focus does (the daemon). Style nothing under
+//! `.ds-lock*`: the fade is sill's own wrapper's.
 //!
 //! Outside a lock document (a test's SSR, a harness) there is no `LockHandle`: the stage draws
 //! the same and the unlock is the daemon's backstop alone.

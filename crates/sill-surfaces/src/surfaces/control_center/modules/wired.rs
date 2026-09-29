@@ -4,20 +4,20 @@
 use dioxus::prelude::*;
 use ds::{Availability, Fraction};
 use sill_services::{
-    BrightnessTarget, Displays, DisplaysCommand, Following, OutputName, Percent, Presence, Volume,
-    VolumeCommand,
+    BrightnessTarget, Displays, DisplaysCommand, DisplaysService, Following, OutputName, Percent,
+    Presence, Volume, VolumeCommand, VolumeService,
 };
 
 use super::{DisplayModule, SoundModule};
-use crate::hooks::{use_displays, use_services, use_volume};
+use crate::hooks::{use_control, use_service};
 use crate::surfaces::bar::glyph_state::volume_glyph;
 use crate::surfaces::bar::status::volume_heading;
 
 /// The Sound module on the default sink.
 #[component]
 pub(crate) fn WiredSound() -> Element {
-    let volume = use_volume()();
-    let control = use_services().volume_control;
+    let volume = use_service::<VolumeService>()();
+    let control = use_control::<VolumeService>();
     let (level, device, availability) = sound_of(&volume);
     rsx! {
         SoundModule {
@@ -39,8 +39,8 @@ pub(crate) fn WiredSound() -> Element {
 /// shows (`SetBrightness` on `output`).
 #[component]
 pub(crate) fn WiredDisplay(output: Option<OutputName>) -> Element {
-    let displays = use_displays()();
-    let control = use_services().displays_control;
+    let displays = use_service::<DisplaysService>()();
+    let control = use_control::<DisplaysService>();
     use_hook({
         let control = control.clone();
         // A stopped service drops it: the capsule shows the level it last published.

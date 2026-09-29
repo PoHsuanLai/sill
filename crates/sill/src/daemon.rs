@@ -95,21 +95,22 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
             runtime.handle(),
             settings_feed.0.clone(),
             links.focus.mode(),
-            services.notifications_control.clone(),
+            services.notifications.control.clone(),
         );
     }
 
     // The lock and the polkit agent are sill's own; both services are passive until told.
-    let _ = services.locker_control.send(LockerCommand::Configure);
+    let _ = services.locker.control.send(LockerCommand::Configure);
     let _ = services
-        .polkit_control
+        .polkit_agent
+        .control
         .send(PolkitCommand::Policy(AgentPolicy::Own));
     // sill's own idle follows `idle.*` and `session.lock_grace_s`; the service is passive until
     // this first policy, and `Off` anywhere but a sill session with no cosmic-idle.
     crate::idle::spawn_policy(
         runtime.handle(),
         settings_feed.0.clone(),
-        services.idle_control.clone(),
+        services.idle.control.clone(),
         env.idle_times,
     );
     // The launcher v2 providers and the clipboard history follow `launcher.*`; both are passive
@@ -117,8 +118,8 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     crate::launcher_policy::spawn_policy(
         runtime.handle(),
         settings_feed.0.clone(),
-        services.search.clone(),
-        services.clipboard_control.clone(),
+        services.results.control.clone(),
+        services.clipboard.control.clone(),
     );
 
     let config = HostConfig {
@@ -132,13 +133,13 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     crate::calendar::spawn_policy(
         runtime.handle(),
         settings_feed.0.clone(),
-        services.events_control.clone(),
+        services.events.control.clone(),
         env.dirs.home.clone(),
     );
     crate::screenshots::spawn_policy(
         runtime.handle(),
         settings_feed.0.clone(),
-        services.shots_control.clone(),
+        services.screenshots.control.clone(),
         env.dirs.home.clone(),
     );
 
@@ -373,7 +374,7 @@ fn run_event(
             });
             // The idle dim last, over every other Overlay surface; the session-lock
             // surfaces are above every layer surface anyway.
-            let dim = services.idle.borrow().dim;
+            let dim = services.idle.state.borrow().dim;
             crate::idle_dim::spawn_missing(ctx, outputs, dim, |root| {
                 surface_root(root, services, settings_feed)
             });
@@ -570,7 +571,7 @@ fn spawn_wallpaper(
             },
             info.scale,
         );
-        let prepared = services.wallpaper_control.send(WallpaperCommand::Prepare {
+        let prepared = services.wallpaper.control.send(WallpaperCommand::Prepare {
             output: OutputName(name),
             width: buffer.width.unsigned_abs(),
             height: buffer.height.unsigned_abs(),
@@ -863,7 +864,7 @@ fn dispatch_dock(services: &Services, request: DockRequest) -> Response {
         },
         DockRequest::Unpin { app } => PinEvent::Unpin(AppId(app.0)),
     };
-    match services.pins_control.send(event) {
+    match services.pins.control.send(event) {
         Ok(()) => Response::Done,
         Err(error) => internal(&error),
     }

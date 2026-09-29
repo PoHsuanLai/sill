@@ -46,12 +46,12 @@ impl LauncherProviders {
         let buses = Buses::absent();
         LauncherProviders(vec![
             Arc::new(AppsProvider {
-                apps: services.apps.clone(),
+                apps: services.apps.state.clone(),
                 frecency: Arc::new(Mutex::default()),
             }),
             Arc::new(WindowsProvider {
-                cosmic_wl: services.cosmic_wl.clone(),
-                apps: services.apps.clone(),
+                cosmic_wl: services.cosmic_wl.state.clone(),
+                apps: services.apps.state.clone(),
             }),
             Arc::new(CalculatorProvider::default()),
             Arc::new(SettingsProvider::default()),
@@ -63,7 +63,7 @@ impl LauncherProviders {
                 home: PathBuf::from("/"),
             }),
             Arc::new(ClipboardProvider {
-                history: services.clipboard.clone(),
+                history: services.clipboard.state.clone(),
             }),
             Arc::new(EmojiProvider {
                 policy: policy.clone(),

@@ -32,12 +32,9 @@ fn touches(event: &notify::Event, target: &Path) -> bool {
     !event.kind.is_access() && event.paths.iter().any(|path| path == target)
 }
 
-/// Start watching for `target` to change or appear, debouncing onto `rt` (never the bare
-/// `tokio::spawn`: the caller may not have entered a runtime on its own thread — `services.rs`'s
-/// own test calls `Services::spawn` from a plain thread holding only a `Handle`, and the real
-/// daemon spawns every service before it ever enters one; only `Handle::spawn` works from
-/// there). `None` when no ancestor of it exists at all; the caller still has
-/// `config::resolve_source`'s read at spawn time, it just never updates live.
+/// Start watching for `target` to change or appear, debouncing onto `rt`. `None` when no
+/// ancestor of it exists at all; the caller still has `config::resolve_source`'s read at start,
+/// it just never updates live.
 pub fn watch(
     target: &Path,
     rt: &Handle,

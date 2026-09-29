@@ -78,12 +78,12 @@ impl Env {
         }
     }
 
-    /// Nothing outside the process: no bus, a compositor socket in `scratch` that does not
-    /// exist, every directory inside `scratch`, the system clock (read only), DDC monitors from
-    /// a file that is not there (none), no polkit helper, session actions that are only
-    /// recorded, and a password check that refuses everything. For tests that start services and must never
-    /// reach the person's session or files. `scratch` must exist: the wallpaper service watches
-    /// the nearest existing folder above COSMIC's record.
+    /// Nothing outside the process: no bus, a compositor socket in `scratch` that does not exist,
+    /// every directory inside `scratch`, the system clock (read only), DDC monitors from a file
+    /// that is not there (none), no polkit helper, session actions that are only recorded, and a
+    /// password check that refuses everything. For tests that start services and must never reach
+    /// the person's session or files. `scratch` must exist: the wallpaper service watches the
+    /// nearest existing folder above COSMIC's record.
     pub fn isolated(scratch: &Path) -> Env {
         Env {
             buses: Buses::absent(),
