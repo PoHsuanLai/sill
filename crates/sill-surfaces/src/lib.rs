@@ -14,6 +14,7 @@ pub mod clock;
 pub mod hooks;
 pub mod links;
 pub mod look;
+pub mod machine;
 pub mod root;
 pub mod services;
 pub mod status;
