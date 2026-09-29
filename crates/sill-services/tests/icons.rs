@@ -5,7 +5,7 @@
 //! crate has no API to point a lookup at an arbitrary directory instead of a named, installed
 //! theme. The only way to steer it is the environment it reads at that first use, and this
 //! workspace denies `unsafe_code` everywhere but shell-host's one allowed module
-//! (CONVENTIONS §11), which rules out `std::env::set_var` (`unsafe fn` since edition 2024).
+//! (CONVENTIONS §2), which rules out `std::env::set_var` (`unsafe fn` since edition 2024).
 //!
 //! So this test writes its fixture theme into a real, already-scanned base path instead:
 //! `$HOME/.icons` (`freedesktop_icons::theme::paths::icon_theme_base_paths`'s own

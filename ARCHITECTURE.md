@@ -187,3 +187,46 @@ rules (`dist/udev`, `dist/modules-load.d`). Nothing installs them.
   pointer and keyboard input, on shell-host's headless KWin (`*-real-input.sh`), always with a
   private bus, a fake DDC and scratch XDG dirs (`dev/common.sh`). `docs/manual-checks.md` lists
   what needs a person; `docs/cosmic-gaps.md` what COSMIC does not do yet.
+
+## Repo rules
+
+- **Crate boundaries** are the table under "Crates": UI reaches services only through
+  `sill-surfaces`' `use_service`, `use_service_part` and `use_control`.
+- **A service** has the shape under "The service pattern", and its seams come from
+  `sill_services::env::Env` and nothing else; other services it reads or drives are its `Deps`.
+  A service whose system half is missing still
+  yields its receiver, at its default. A service that could touch the person's session is
+  passive until the daemon sends its first policy.
+- **Never pass a Dioxus signal through `Root::context`**; roots get `Services`, `SettingsFeed`
+  and plain links (watch channels).
+- **Design-system rules** are quire's (its ARCHITECTURE.md, "Repo rules"): every class is `ds-`;
+  sill never styles `.ds-*` or `[data-theme|accent|motion|material]`, writes no raw
+  `button`/`input`/menu markup, and takes every colour, duration, easing, keyframe and font from
+  quire's tokens. Motion is quire's (`ds::detail`, springs, timers); sill writes no keyframes.
+- **Every time-based UI test runs on `Clock::Virtual`** and pins `PinnedAppearance`; production
+  time goes through `ds::time`.
+- **A new settings key** is a design/22 row in quire first; `sill-settings/tests/keys.rs`
+  cross-checks every key against quire's rows, both directions. An unknown key in a file sill
+  reads is reported as a load diagnostic, not preserved.
+- **Every IPC wire form is pinned by a test** (`sill-ipc/tests/serde.rs`).
+- **No `unsafe`** anywhere in the workspace.
+- **Dependencies:** sill-only dependencies sit after the pinned block in the root `Cargo.toml`.
+- **Unit tests** may sit in a sibling `*_tests.rs` as well as in `mod tests`.
+- **The real system, named:** no test or script reaches the real session or system bus,
+  NetworkManager, UPower, logind, BlueZ, `/dev/i2c-*`, the real `~/.config`, or the person's
+  Wayland session. Live tests (`*_live.rs`) are `#[ignore]`d and use
+  `tests/support/private_bus.rs`. Scripts give the daemon a private bus on both addresses, a
+  fake DDC, scratch XDG dirs and its own `XDG_RUNTIME_DIR` (`dev/common.sh`), and run on the
+  nested cosmic-comp or shell-host's headless KWin. No test locks a session it did not start,
+  calls logind's `Suspend`, or registers a polkit agent outside a private bus.
+- **Strong copyleft sill reads for facts only:** cosmic-comp, cosmic-greeter, cosmic-idle,
+  cosmic-osd, systemd (GPL).
+- **Gate** (`~/sill-wt/sill-gate.sh`, or its steps by hand):
+
+  ```bash
+  cargo fmt --all --check
+  cargo clippy --workspace --all-targets --all-features -- -D warnings
+  cargo test --workspace --features sill/debug
+  ./scripts/check-boundary.sh
+  cargo deny check licenses
+  ```

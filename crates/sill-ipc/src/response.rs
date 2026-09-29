@@ -75,7 +75,7 @@ pub struct Failure {
     pub message: String,
 }
 
-/// The decision a failure carries (CONVENTIONS §0 "errors carry a decision").
+/// The decision a failure carries (CONVENTIONS §7: "an error exists so a caller can act").
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FailureKind {

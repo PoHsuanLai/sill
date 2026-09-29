@@ -1,5 +1,5 @@
 //! The provider seam: apps, windows, calculator, settings and system are five implementations
-//! swapped behind it (CONVENTIONS §0 "traits are seams").
+//! swapped behind it (CONVENTIONS §5).
 
 use crate::activation::Activation;
 use crate::ids::ProviderKind;

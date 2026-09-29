@@ -109,7 +109,7 @@ mod tests {
 
     // SVG-vs-raster preference against a real fixture theme directory is `tests/icons.rs` (an
     // integration test): `freedesktop_icons`' theme table is a process-wide lazy static seeded
-    // from `$HOME`/XDG env once, and this workspace denies `unsafe_code` (CONVENTIONS §11), so
+    // from `$HOME`/XDG env once, and this workspace denies `unsafe_code` (CONVENTIONS §2), so
     // there is no sound way to repoint it from inside this binary's own unit tests. See that
     // file's doc comment.
 

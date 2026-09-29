@@ -1,5 +1,5 @@
 //! The units and two-state words every service shares. Integers throughout: floats stay out
-//! of state (CONVENTIONS §2), so every type here is `Eq`.
+//! of state (CONVENTIONS §12), so every type here is `Eq`.
 
 use serde::{Deserialize, Serialize};
 

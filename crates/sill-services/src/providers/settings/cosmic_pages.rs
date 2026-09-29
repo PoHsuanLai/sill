@@ -68,7 +68,7 @@ pub fn real_path_dirs() -> Vec<PathBuf> {
 /// Whether `program` names a file directly under one of `dirs` — the search `$PATH` lookup
 /// performs, but taking the directories as a plain argument so a test can supply a fake one
 /// instead of the real `$PATH`: `std::env::set_var` is `unsafe` since edition 2024, and
-/// CONVENTIONS §11 forbids `unsafe` outside shell-host's one allowed module.
+/// CONVENTIONS §2 forbids `unsafe` outside shell-host's one allowed module.
 pub fn is_on_path(dirs: &[PathBuf], program: &str) -> bool {
     dirs.iter().any(|dir| dir.join(program).is_file())
 }

@@ -4,7 +4,7 @@
 //! mainloop: the threaded mainloop's callbacks are invoked from a second, C-spawned thread, and
 //! the crate's own canonical usage reaches back into the shared `Context`/`Mainloop` from inside
 //! those callbacks via `RefCell::as_ptr()` plus a raw-pointer deref, which is `unsafe` — denied
-//! workspace-wide outside shell-host's one allowed module (CONVENTIONS §11). Driving the
+//! workspace-wide outside shell-host's one allowed module (CONVENTIONS §2). Driving the
 //! standard mainloop from this one thread means every callback also runs on this one thread, so
 //! `Rc<RefCell<_>>` is sound here with no unsafe at all.
 

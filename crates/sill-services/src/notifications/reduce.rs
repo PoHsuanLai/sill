@@ -1,6 +1,6 @@
 //! The one place the service's state changes: [`step`], pure, with the D-Bus
 //! signals, sounds and history writes it implies returned as [`NotificationsEffect`]s for the
-//! live loop to carry out (CONVENTIONS §0: an effect is returned, not performed).
+//! live loop to carry out (CONVENTIONS §6: an effect is returned, not performed).
 //!
 //! The rules, which `reduce_tests.rs` tables:
 //!

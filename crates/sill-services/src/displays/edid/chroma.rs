@@ -17,7 +17,7 @@ impl Chromaticity {
         (round(self.x), round(self.y))
     }
 
-    /// The point as plain numbers for geometry. Never stored (CONVENTIONS §2).
+    /// The point as plain numbers for geometry. Never stored (CONVENTIONS §12).
     pub(crate) fn xy(self) -> (f64, f64) {
         (f64::from(self.x) / 1024.0, f64::from(self.y) / 1024.0)
     }

@@ -2,7 +2,7 @@
 //! alt>`, the five XML entities and numeric references) parsed once, at the D-Bus boundary, into
 //! styled runs the surfaces draw with quire's text components. Nothing downstream sees markup.
 //!
-//! Parse, don't validate (CONVENTIONS §0): a body that is not well-formed still becomes runs. An
+//! Parse at the boundary (CONVENTIONS §4): a body that is not well-formed still becomes runs. An
 //! unknown tag is dropped and its text kept; a `<` that opens no tag is text; `<br>` (not in the
 //! spec, but common from web senders) is a line break; an image becomes its `alt` text, since
 //! sill does not advertise `body-images`.
