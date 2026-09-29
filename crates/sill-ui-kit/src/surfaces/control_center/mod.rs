@@ -34,13 +34,14 @@ mod sizes;
 pub use dropdown::ModuleDropdown;
 pub(crate) use panel::PanelCap;
 
-pub use geometry::{Placed, Span, estimate_size, height_cap, place, span};
+pub use geometry::{Placed, estimate_size, height_cap, place};
 pub use labels::{
     bluetooth_status, bluetooth_tile_status, device_detail, focus_status, network_detail,
     profile_label, wifi_status,
 };
 pub use level::LevelModule;
 pub use menu_bar::{MENU_BAR_ORDER, in_menu_bar, menu_bar_modules};
+pub use modules::Span;
 pub use page::{CcPage, Detail, PageInput, PageOut, Slide, step_page};
 
 use dioxus::prelude::*;

@@ -8,13 +8,17 @@ use ds::{Availability, Chevron, ModuleState, ModuleTile, StatusState, TextLine};
 use sill_model::bluetooth::{Bluetooth, BtPower};
 use sill_model::units::Presence;
 
+use super::cc_module::{BarItemFace, CcCx, CcModule, Span};
 use crate::hooks::use_service;
 use crate::status::glyph::bluetooth_glyph_state;
-use crate::surfaces::control_center::bluetooth_tile_status;
+use crate::surfaces::bar::{BarMenu, StatusIcon};
 use crate::surfaces::control_center::modules::bluetooth_ask::use_power_request;
 use crate::surfaces::control_center::modules::flipped;
 use crate::surfaces::control_center::page::Detail;
+use crate::surfaces::control_center::pages::bluetooth_devices::BluetoothPane;
+use crate::surfaces::control_center::{bluetooth_status, bluetooth_tile_status};
 use sill_services::BluetoothService;
+use sill_settings::{ControlCenterSettings, InMenuBar};
 
 /// The Bluetooth tile.
 #[component]
@@ -55,6 +59,51 @@ pub(crate) fn adapter_availability(bluetooth: &Bluetooth) -> Availability {
     match bluetooth.presence {
         Presence::Present => Availability::Enabled,
         Presence::Absent => Availability::Disabled,
+    }
+}
+
+/// The Bluetooth item in the bar: off, on, connecting, connected, or a failed connect.
+#[component]
+fn BluetoothItem() -> Element {
+    let bluetooth = use_service::<BluetoothService>()();
+    rsx! {
+        StatusIcon {
+            menu: BarMenu::Bluetooth,
+            icon: StatusState::Bluetooth(bluetooth_glyph_state(&bluetooth)),
+            tooltip: format!("Bluetooth: {}", bluetooth_status(&bluetooth)),
+        }
+    }
+}
+
+/// The Bluetooth module as the control center and the bar draw it.
+pub(crate) struct BluetoothCc;
+
+impl CcModule for BluetoothCc {
+    fn span(&self) -> Span {
+        Span::One
+    }
+
+    fn tile(&self, cx: &CcCx) -> Element {
+        rsx! { BluetoothModule { on_detail: cx.on_detail } }
+    }
+
+    fn dropdown(&self, _cx: &CcCx) -> Option<Element> {
+        Some(rsx! { BluetoothPane { back: None } })
+    }
+
+    fn menu_bar(&self, settings: &ControlCenterSettings) -> InMenuBar {
+        settings.menu_bar_bluetooth
+    }
+
+    fn bar_item(&self) -> Option<BarItemFace> {
+        Some(BarItemFace {
+            menu: BarMenu::Bluetooth,
+            item: || rsx! { BluetoothItem {} },
+        })
+    }
+
+    fn detail(&self, page: Detail, cx: &CcCx) -> Option<Element> {
+        (page == Detail::Bluetooth).then(|| rsx! { BluetoothPane { back: cx.on_back } })
     }
 }
 

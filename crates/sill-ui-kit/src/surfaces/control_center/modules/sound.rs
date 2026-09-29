@@ -9,7 +9,15 @@
 use dioxus::prelude::*;
 use ds::{Availability, Fraction, StatusState, VolumeState};
 
+use super::cc_module::{BarItemFace, CcCx, CcModule, Span};
+use super::wired::WiredSound;
+use crate::hooks::use_service;
+use crate::status::glyph::volume_glyph;
+use crate::status::lines::volume_heading;
+use crate::surfaces::bar::{BarMenu, StatusIcon};
 use crate::surfaces::control_center::LevelModule;
+use sill_services::VolumeService;
+use sill_settings::{ControlCenterSettings, InMenuBar};
 
 /// The Sound module at `level` on `device` (`Volume::sink`), its glyphs drawing `volume`.
 #[component]
@@ -29,5 +37,44 @@ pub fn SoundModule(
             on_change,
             availability,
         }
+    }
+}
+
+/// The Sound item in the bar: the volume glyph (quire's `VolumeGlyph` state, the Sound module's
+/// source too).
+#[component]
+fn SoundItem() -> Element {
+    let volume = use_service::<VolumeService>()();
+    let tooltip = format!("{}: {}%", volume_heading(&volume), volume.level.0);
+    rsx! {
+        StatusIcon {
+            menu: BarMenu::Volume,
+            icon: StatusState::Volume(volume_glyph(&volume)),
+            tooltip,
+        }
+    }
+}
+
+/// The Sound module as the control center and the bar draw it.
+pub(crate) struct SoundCc;
+
+impl CcModule for SoundCc {
+    fn span(&self) -> Span {
+        Span::Row
+    }
+
+    fn tile(&self, _cx: &CcCx) -> Element {
+        rsx! { WiredSound {} }
+    }
+
+    fn menu_bar(&self, settings: &ControlCenterSettings) -> InMenuBar {
+        settings.menu_bar_sound
+    }
+
+    fn bar_item(&self) -> Option<BarItemFace> {
+        Some(BarItemFace {
+            menu: BarMenu::Volume,
+            item: || rsx! { SoundItem {} },
+        })
     }
 }

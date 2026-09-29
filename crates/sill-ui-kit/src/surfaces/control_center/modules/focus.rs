@@ -6,6 +6,7 @@ use dioxus::prelude::*;
 use ds::{DiscMotion, Icon, ModuleState, ModuleTile, TextLine};
 use sill_settings::{FocusLink, FocusMode};
 
+use super::cc_module::{CcCx, CcModule, Span};
 use crate::hooks::use_focus_mode;
 use crate::surfaces::control_center::focus_status;
 use crate::surfaces::control_center::modules::flipped;
@@ -42,6 +43,19 @@ pub(crate) fn mode_of(state: ModuleState) -> FocusMode {
     match state {
         ModuleState::On | ModuleState::Busy => FocusMode::DoNotDisturb,
         ModuleState::Off => FocusMode::Off,
+    }
+}
+
+/// The Focus module as the control center draws it: a tile, never a bar item.
+pub(crate) struct FocusCc;
+
+impl CcModule for FocusCc {
+    fn span(&self) -> Span {
+        Span::One
+    }
+
+    fn tile(&self, _cx: &CcCx) -> Element {
+        rsx! { FocusModule {} }
     }
 }
 

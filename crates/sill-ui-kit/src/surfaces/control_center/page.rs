@@ -5,9 +5,9 @@
 /// A module with a detail page.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Detail {
-    /// The Wi-Fi network list (`pages::WifiNetworks`).
+    /// The Wi-Fi network list (`pages::wifi_networks::WifiPane`).
     Wifi,
-    /// The Bluetooth device list (`pages::BluetoothDevices`).
+    /// The Bluetooth device list (`pages::bluetooth_devices::BluetoothPane`).
     Bluetooth,
 }
 

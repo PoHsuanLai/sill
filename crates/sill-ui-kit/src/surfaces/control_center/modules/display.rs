@@ -8,7 +8,11 @@
 use dioxus::prelude::*;
 use ds::{Availability, Fraction, Icon, LevelGlyph};
 
+use super::cc_module::{BarItemFace, CcCx, CcModule, Span};
+use super::wired::WiredDisplay;
+use crate::surfaces::bar::{BarMenu, StatusIcon};
 use crate::surfaces::control_center::LevelModule;
+use sill_settings::{ControlCenterSettings, InMenuBar};
 
 /// The Display module at `level`.
 #[component]
@@ -26,5 +30,37 @@ pub fn DisplayModule(
             on_change,
             availability,
         }
+    }
+}
+
+/// The Display module as the control center and the bar draw it.
+pub(crate) struct DisplayCc;
+
+impl CcModule for DisplayCc {
+    fn span(&self) -> Span {
+        Span::Row
+    }
+
+    fn tile(&self, cx: &CcCx) -> Element {
+        rsx! { WiredDisplay { output: cx.output.clone() } }
+    }
+
+    fn menu_bar(&self, settings: &ControlCenterSettings) -> InMenuBar {
+        settings.menu_bar_display
+    }
+
+    fn bar_item(&self) -> Option<BarItemFace> {
+        Some(BarItemFace {
+            menu: BarMenu::Display,
+            item: || {
+                rsx! {
+                    StatusIcon {
+                        menu: BarMenu::Display,
+                        icon: Icon::Sun,
+                        tooltip: "Display".to_owned(),
+                    }
+                }
+            },
+        })
     }
 }

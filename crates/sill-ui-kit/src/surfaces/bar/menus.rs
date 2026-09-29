@@ -3,6 +3,8 @@
 
 use sill_settings::ControlCenterModule;
 
+use crate::surfaces::control_center::modules::{KINDS, module};
+
 use super::menu_track::MenuId;
 use super::popup::MenuSide;
 
@@ -90,15 +92,11 @@ impl BarMenu {
     /// The control center module whose component a module item's dropdown shows; `None` for the
     /// app menu and the control center.
     pub(crate) fn module(self) -> Option<ControlCenterModule> {
-        match self {
-            BarMenu::NowPlaying => Some(ControlCenterModule::NowPlaying),
-            BarMenu::Display => Some(ControlCenterModule::Display),
-            BarMenu::Volume => Some(ControlCenterModule::Sound),
-            BarMenu::Bluetooth => Some(ControlCenterModule::Bluetooth),
-            BarMenu::Network => Some(ControlCenterModule::Wifi),
-            BarMenu::Battery => Some(ControlCenterModule::Battery),
-            BarMenu::App | BarMenu::ControlCenter => None,
-        }
+        KINDS.into_iter().find(|&kind| {
+            module(kind)
+                .bar_item()
+                .is_some_and(|item| item.menu == self)
+        })
     }
 }
 

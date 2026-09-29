@@ -30,5 +30,7 @@ mod view;
 mod workspaces;
 
 pub use menu_popup::POPUP_CSS as BAR_POPUP_CSS;
+pub(crate) use menus::BarMenu;
+pub(crate) use status_item::StatusIcon;
 pub use surface::Bar;
 pub use view::BAR_CSS;

@@ -4,6 +4,8 @@
 
 use sill_settings::{ControlCenterModule, ControlCenterSettings, InMenuBar};
 
+use super::modules::module;
+
 /// The modules that can be bar items, left to right as the bar draws them: the status items
 /// the bar always had keep their order (Sound, then Wi-Fi, then Battery), the new ones join
 /// around them, and the control center's own item and the clock follow at the right end.
@@ -16,20 +18,10 @@ pub const MENU_BAR_ORDER: [ControlCenterModule; 6] = [
     ControlCenterModule::Battery,
 ];
 
-/// `module`'s `control_center.menu_bar_*` key; `Hide` for a module that cannot be a bar item
+/// `kind`'s `control_center.menu_bar_*` key; `Hide` for a module that cannot be a bar item
 /// (Focus, Appearance).
-pub fn in_menu_bar(cc: &ControlCenterSettings, module: ControlCenterModule) -> InMenuBar {
-    match module {
-        ControlCenterModule::Wifi => cc.menu_bar_wifi,
-        ControlCenterModule::Bluetooth => cc.menu_bar_bluetooth,
-        ControlCenterModule::Sound => cc.menu_bar_sound,
-        ControlCenterModule::Display => cc.menu_bar_display,
-        ControlCenterModule::Battery => cc.menu_bar_battery,
-        ControlCenterModule::NowPlaying => cc.menu_bar_now_playing,
-        ControlCenterModule::Focus
-        | ControlCenterModule::KeyboardBrightness
-        | ControlCenterModule::Appearance => InMenuBar::Hide,
-    }
+pub fn in_menu_bar(cc: &ControlCenterSettings, kind: ControlCenterModule) -> InMenuBar {
+    module(kind).menu_bar(cc)
 }
 
 /// The modules shown as bar items, in [`MENU_BAR_ORDER`].

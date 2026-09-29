@@ -11,6 +11,7 @@ use sill_model::kbd_backlight::{KbdBacklight, KbdCommand};
 use sill_model::units::Presence;
 use sill_services::KbdBacklightService;
 
+use super::cc_module::{CcCx, CcModule, Span};
 use super::wired::{fraction_of, percent_of};
 use crate::hooks::{use_control, use_service};
 use crate::surfaces::control_center::LevelModule;
@@ -42,6 +43,19 @@ pub(crate) fn keyboard_level(backlight: KbdBacklight) -> Option<Fraction> {
     match backlight.presence {
         Presence::Present => Some(fraction_of(backlight.level.percent())),
         Presence::Absent => None,
+    }
+}
+
+/// The Keyboard Brightness module as the control center draws it: a level row, never a bar item.
+pub(crate) struct KeyboardCc;
+
+impl CcModule for KeyboardCc {
+    fn span(&self) -> Span {
+        Span::Row
+    }
+
+    fn tile(&self, _cx: &CcCx) -> Element {
+        rsx! { KeyboardModule {} }
     }
 }
 

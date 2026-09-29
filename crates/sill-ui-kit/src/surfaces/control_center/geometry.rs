@@ -10,32 +10,9 @@
 use shell_host::Size;
 use sill_settings::{BarSettings, ControlCenterModule, ControlCenterSettings};
 
+use super::modules::{Span, module};
 use super::page::CcPage;
 use super::sizes::{detail_height, module_height};
-
-/// How many grid columns a module takes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Span {
-    /// One column: a square-ish tile (Wi-Fi, Bluetooth, Focus).
-    One,
-    /// The whole row: sliders (Display, Sound), Now Playing, Appearance, Battery.
-    Row,
-}
-
-/// A module's span.
-pub fn span(module: ControlCenterModule) -> Span {
-    match module {
-        ControlCenterModule::Wifi | ControlCenterModule::Bluetooth | ControlCenterModule::Focus => {
-            Span::One
-        }
-        ControlCenterModule::Display
-        | ControlCenterModule::KeyboardBrightness
-        | ControlCenterModule::Sound
-        | ControlCenterModule::NowPlaying
-        | ControlCenterModule::Appearance
-        | ControlCenterModule::Battery => Span::Row,
-    }
-}
 
 /// One module's cell in the grid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -64,8 +41,8 @@ pub fn place(modules: &[ControlCenterModule], columns: u16) -> Vec<Placed> {
     let start = Cursor { row: 0, column: 0 };
     modules
         .iter()
-        .scan(start, |at, &module| {
-            let span = span(module);
+        .scan(start, |at, &kind| {
+            let span = module(kind).span();
             let fresh = match (span, at.column) {
                 (_, 0) => *at,
                 (Span::One, column) if column < columns => *at,
@@ -75,7 +52,7 @@ pub fn place(modules: &[ControlCenterModule], columns: u16) -> Vec<Placed> {
                 },
             };
             let placed = Placed {
-                module,
+                module: kind,
                 row: fresh.row,
                 column: fresh.column,
                 span,

@@ -10,12 +10,17 @@ use sill_model::units::Presence;
 use sill_model::wifi::{Radio, Wifi, WifiCommand};
 use sill_services::WifiService;
 
+use super::cc_module::{BarItemFace, CcCx, CcModule, Span};
 use crate::hooks::{use_control, use_service};
 use crate::status::glyph::{NetworkGlyph, network_glyph};
+use crate::status::lines::network_lines;
+use crate::surfaces::bar::{BarMenu, StatusIcon};
 use crate::surfaces::control_center::modules::flipped;
 use crate::surfaces::control_center::page::Detail;
+use crate::surfaces::control_center::pages::wifi_networks::WifiPane;
 use crate::surfaces::control_center::wifi_status;
 use sill_services::NetworkService;
+use sill_settings::{ControlCenterSettings, InMenuBar};
 
 /// The Wi-Fi tile.
 #[component]
@@ -73,6 +78,50 @@ pub(crate) fn wifi_tile_state(wifi: &Wifi, network: &Network) -> WifiState {
         (Radio::Off | Radio::Blocked, _) => WifiState::Off,
         (Radio::On, NetworkGlyph::Wifi(state)) => state,
         (Radio::On, NetworkGlyph::Plain(_)) => WifiState::Idle,
+    }
+}
+
+/// The Wi-Fi item in the bar: the Wi-Fi glyph (searching while it joins, its bars and badge once
+/// joined, the slash with the radio off), or the wire's.
+#[component]
+fn WifiItem() -> Element {
+    let network = use_service::<NetworkService>()();
+    let radio = use_service::<WifiService>()().radio;
+    let [link, _] = network_lines(&network);
+    rsx! {
+        StatusIcon { menu: BarMenu::Network, icon: network_glyph(&network, radio), tooltip: link }
+    }
+}
+
+/// The Wi-Fi module as the control center and the bar draw it.
+pub(crate) struct WifiCc;
+
+impl CcModule for WifiCc {
+    fn span(&self) -> Span {
+        Span::One
+    }
+
+    fn tile(&self, cx: &CcCx) -> Element {
+        rsx! { WifiModule { on_detail: cx.on_detail } }
+    }
+
+    fn dropdown(&self, _cx: &CcCx) -> Option<Element> {
+        Some(rsx! { WifiPane { back: None } })
+    }
+
+    fn menu_bar(&self, settings: &ControlCenterSettings) -> InMenuBar {
+        settings.menu_bar_wifi
+    }
+
+    fn bar_item(&self) -> Option<BarItemFace> {
+        Some(BarItemFace {
+            menu: BarMenu::Network,
+            item: || rsx! { WifiItem {} },
+        })
+    }
+
+    fn detail(&self, page: Detail, cx: &CcCx) -> Option<Element> {
+        (page == Detail::Wifi).then(|| rsx! { WifiPane { back: cx.on_back } })
     }
 }
 

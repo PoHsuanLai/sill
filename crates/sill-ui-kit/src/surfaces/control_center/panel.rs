@@ -10,11 +10,10 @@ use ds::{GridColumns, ModuleGrid, Pane, PaneSwitcher, Px};
 use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
 
-use super::modules::Module;
 use super::modules::bluetooth_ask::{TurnOffAlert, provide_power_ask};
+use super::modules::{CcCx, KINDS, Module, module};
 use super::page::{CcPage, Detail, PageInput, PageOut, step_page};
 use super::pages::foot::ClosePanel;
-use super::pages::{BluetoothDevices, WifiNetworks};
 use crate::hooks::use_settings;
 
 /// The panel's greatest height on its output ([`super::height_cap`]), which the bar's popup
@@ -59,18 +58,19 @@ pub(crate) fn control_center(
             modules: cc.modules.clone(),
             columns: GridColumns(cc.grid_columns.0),
             gap: Px(f32::from(cc.grid_gap_px.0)),
-            output,
+            output: output.clone(),
             on_detail: move |detail: Detail| go.call(PageInput::Open(detail)),
         }
     };
-    let detail = match opened() {
-        Detail::Wifi => rsx! {
-            WifiNetworks { on_back: move |()| go.call(PageInput::Back) }
-        },
-        Detail::Bluetooth => rsx! {
-            BluetoothDevices { on_back: move |()| go.call(PageInput::Back) }
-        },
+    let cx = CcCx {
+        output: output.clone(),
+        on_detail: EventHandler::new(|_| {}),
+        on_back: Some(EventHandler::new(move |()| go.call(PageInput::Back))),
     };
+    let detail = KINDS
+        .into_iter()
+        .find_map(|kind| module(kind).detail(opened(), &cx))
+        .unwrap_or_else(|| rsx! {});
     let style = panel_style(cc.width_px.0, cc.grid_padding_px.0, cap);
     rsx! {
         div {
@@ -152,8 +152,8 @@ fn Grid(
 ) -> Element {
     rsx! {
         ModuleGrid { columns, gap, padding: Px(0.0),
-            for module in modules {
-                Module { key: "{module:?}", module, output: output.clone(), on_detail }
+            for kind in modules {
+                Module { key: "{kind:?}", kind, output: output.clone(), on_detail }
             }
         }
     }

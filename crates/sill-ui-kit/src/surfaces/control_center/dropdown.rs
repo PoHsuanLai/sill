@@ -8,11 +8,9 @@ use ds::PanelPlate;
 use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
 
-use super::modules::Module;
+use super::modules::CcCx;
 use super::modules::bluetooth_ask::{TurnOffAlert, provide_power_ask};
-use super::pages::bluetooth_devices::BluetoothPane;
 use super::pages::foot::ClosePanel;
-use super::pages::wifi_networks::WifiPane;
 use super::panel::{PanelCap, panel_style, use_keyboard_home};
 use crate::hooks::use_settings;
 
@@ -30,19 +28,12 @@ pub fn ModuleDropdown(
     use_context_provider(|| ClosePanel(Callback::new(move |()| on_close.call(()))));
     use_context_provider(|| PanelPlate::Bare);
     provide_power_ask();
-    let body = match module {
-        ControlCenterModule::Wifi => rsx! { WifiPane { back: None } },
-        ControlCenterModule::Bluetooth => rsx! { BluetoothPane { back: None } },
-        ControlCenterModule::Focus
-        | ControlCenterModule::Display
-        | ControlCenterModule::KeyboardBrightness
-        | ControlCenterModule::Sound
-        | ControlCenterModule::NowPlaying
-        | ControlCenterModule::Appearance
-        | ControlCenterModule::Battery => rsx! {
-            Module { module, output, on_detail: move |_| {} }
-        },
+    let cx = CcCx {
+        output,
+        on_detail: EventHandler::new(|_| {}),
+        on_back: None,
     };
+    let body = super::modules::module(module).dropdown(&cx);
     rsx! {
         div {
             class: "sill-cc",

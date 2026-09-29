@@ -7,6 +7,7 @@ use dioxus::prelude::*;
 use ds::{Appearance, AppearancePicker, ModulePanel, PickerLayout};
 use ds_settings::{AppName, AppearanceFile, config_dir};
 
+use super::cc_module::{CcCx, CcModule, Span};
 use crate::hooks::use_appearance;
 use crate::surfaces::control_center::modules::use_plate;
 
@@ -46,6 +47,19 @@ fn with_appearance(file: AppearanceFile, next: Appearance) -> AppearanceFile {
     file.appearance.accent = next.accent;
     file.appearance.motion_level = next.motion;
     file
+}
+
+/// The Appearance module as the control center draws it: a row, never a bar item.
+pub(crate) struct AppearanceCc;
+
+impl CcModule for AppearanceCc {
+    fn span(&self) -> Span {
+        Span::Row
+    }
+
+    fn tile(&self, _cx: &CcCx) -> Element {
+        rsx! { AppearanceModule {} }
+    }
 }
 
 #[cfg(test)]

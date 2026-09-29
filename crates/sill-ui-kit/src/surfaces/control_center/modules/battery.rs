@@ -18,12 +18,16 @@ use sill_model::bluetooth::{Bluetooth, BtBattery, BtConnection};
 use sill_model::units::Presence;
 
 use super::PowerProfileControl;
+use super::cc_module::{BarItemFace, CcCx, CcModule, Span};
 use crate::hooks::{use_service, use_settings};
 use crate::status::glyph::battery_glyph;
 use crate::status::lines::battery_lines;
+use crate::status::low_battery::use_low_cue;
+use crate::surfaces::bar::{BarMenu, StatusIcon};
 use crate::surfaces::control_center::modules::use_plate;
 use crate::widgets::battery::device_of;
 use sill_services::{BatteryService, BluetoothService, PowerProfileService};
+use sill_settings::{ControlCenterSettings, InMenuBar};
 
 /// The Battery module.
 #[component]
@@ -135,6 +139,52 @@ fn charging(charge: Charge) -> RingMark {
         Charge::Unknown | Charge::Discharging | Charge::Empty | Charge::Full | Charge::Idle => {
             RingMark::Plain
         }
+    }
+}
+
+/// The Battery item in the bar: the battery glyph by level and power, nudged once per low
+/// crossing; hidden without a battery (UPower's display device absent: a desktop).
+#[component]
+fn BatteryItem() -> Element {
+    let battery = use_service::<BatteryService>()();
+    let low = use_settings()().bar.battery_low_percent;
+    let state = battery_glyph(&battery, low);
+    let cue = use_low_cue(state);
+    let Some(state) = state else {
+        return rsx! {};
+    };
+    let [level, _] = battery_lines(&battery);
+    rsx! {
+        StatusIcon {
+            menu: BarMenu::Battery,
+            icon: StatusState::Battery(state),
+            tooltip: level,
+            nudge: Some(cue),
+        }
+    }
+}
+
+/// The Battery module as the control center and the bar draw it.
+pub(crate) struct BatteryCc;
+
+impl CcModule for BatteryCc {
+    fn span(&self) -> Span {
+        Span::Row
+    }
+
+    fn tile(&self, _cx: &CcCx) -> Element {
+        rsx! { BatteryModule {} }
+    }
+
+    fn menu_bar(&self, settings: &ControlCenterSettings) -> InMenuBar {
+        settings.menu_bar_battery
+    }
+
+    fn bar_item(&self) -> Option<BarItemFace> {
+        Some(BarItemFace {
+            menu: BarMenu::Battery,
+            item: || rsx! { BatteryItem {} },
+        })
     }
 }
 

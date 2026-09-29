@@ -28,14 +28,6 @@ use crate::surfaces::control_center::modules::bluetooth_ask::use_power_request;
 use crate::surfaces::control_center::row_phase::{Aim, FAILED_WORDS, Item, aim_after, row_phase};
 use crate::surfaces::control_center::rows::{RowList, RowMark, RowSpec, use_first_show};
 
-/// The Bluetooth page.
-#[component]
-pub fn BluetoothDevices(on_back: EventHandler<()>) -> Element {
-    rsx! {
-        BluetoothPane { back: Some(on_back) }
-    }
-}
-
 /// The Bluetooth pane, with a back button in the control center and without one as the
 /// Bluetooth bar item's own dropdown.
 #[component]

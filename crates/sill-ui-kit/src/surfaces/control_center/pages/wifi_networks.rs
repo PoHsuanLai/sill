@@ -24,14 +24,6 @@ use crate::surfaces::control_center::row_phase::{Aim, FAILED_WORDS, Item, aim_af
 use crate::surfaces::control_center::rows::{RowList, RowMark, RowSpec, use_first_show};
 use sill_services::{NetworkService, WifiService};
 
-/// The Wi-Fi page.
-#[component]
-pub fn WifiNetworks(on_back: EventHandler<()>) -> Element {
-    rsx! {
-        WifiPane { back: Some(on_back) }
-    }
-}
-
 /// What choosing a network row does.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum WifiPick {

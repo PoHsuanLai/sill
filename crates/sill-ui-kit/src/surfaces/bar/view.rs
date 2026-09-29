@@ -77,7 +77,7 @@ pub(super) fn bar(output: OutputInfo) -> Element {
                         Tray { output: output.clone() }
                     }
                     for module in modules {
-                        ModuleItem { key: "{module:?}", output: output.clone(), module }
+                        ModuleItem { key: "{module:?}", module }
                     }
                     ControlCenterItem { output: output.clone() }
                     ClockItem { output: output.clone() }
