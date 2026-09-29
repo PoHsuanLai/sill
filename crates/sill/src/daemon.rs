@@ -22,8 +22,9 @@ use sill_ipc::{
 };
 use sill_launcher::AppId;
 use sill_model::ids::OutputName;
+use sill_model::pins::{PinAt, PinEvent};
 use sill_services::polkit_agent::AgentPolicy;
-use sill_services::{LockerCommand, PinAt, PinEvent, PolkitCommand, Services, WallpaperCommand};
+use sill_services::{LockerCommand, PolkitCommand, Services, WallpaperCommand};
 use sill_settings::{SettingsFeed, ShellFile, WallpaperDrawer};
 use sill_surfaces::surfaces::launcher::LauncherLink;
 use sill_surfaces::surfaces::osd::OsdLink;

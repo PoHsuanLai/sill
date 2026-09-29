@@ -3,14 +3,14 @@
 
 use std::path::{Path, PathBuf};
 
+use sill_model::pins::{DockPins, PinEvent, step};
 use tokio::sync::{mpsc, watch};
 
+use super::file::{load, save};
 use super::fs_watch;
-use super::model::{DockPins, PinEvent, step};
-use super::{load, save};
 
 /// Run until `commands` closes (the `Control` was dropped).
-pub(super) async fn run(
+pub(crate) async fn run(
     dir: PathBuf,
     tx: watch::Sender<DockPins>,
     mut commands: mpsc::UnboundedReceiver<PinEvent>,

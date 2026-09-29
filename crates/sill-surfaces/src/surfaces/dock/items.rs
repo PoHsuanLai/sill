@@ -7,7 +7,8 @@
 //! stays on its app when another app's tile appears before it.
 
 use sill_launcher::AppId;
-use sill_services::{Activity, AppIndex, DockPins, Toplevel, Toplevels, WindowState, match_app};
+use sill_model::pins::DockPins;
+use sill_services::{Activity, AppIndex, Toplevel, Toplevels, WindowState, match_app};
 use sill_settings::TrashTile;
 
 use crate::surfaces::dock::machine::{TileApp, TileId};
@@ -158,9 +159,10 @@ mod tests {
     use crate::surfaces::dock::machine::TileApp;
     use sill_launcher::{AppId, WindowKey};
     use sill_model::ids::OutputName;
+    use sill_model::pins::DockPins;
     use sill_services::{
-        Activity, App, AppIcon, AppIndex, DbusActivation, DockPins, Listing, Sizing, Terminal,
-        Toplevel, Toplevels, WindowState,
+        Activity, App, AppIcon, AppIndex, DbusActivation, Listing, Sizing, Terminal, Toplevel,
+        Toplevels, WindowState,
     };
     use sill_settings::TrashTile;
     use std::path::PathBuf;

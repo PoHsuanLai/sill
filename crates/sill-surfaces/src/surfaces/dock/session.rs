@@ -46,7 +46,7 @@ pub(crate) struct SessionDeps {
 pub(crate) struct World {
     pub toplevels: sill_services::Toplevels,
     pub index: sill_services::AppIndex,
-    pub pins: sill_services::DockPins,
+    pub pins: sill_model::pins::DockPins,
     pub badges: Badges,
     pub workspace: Option<sill_model::ids::WorkspaceKey>,
 }

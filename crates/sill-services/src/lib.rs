@@ -108,7 +108,7 @@ pub use now_playing::{
     Abilities, Art, ArtSource, Media, MediaCommand, MediaEvent, MediaPlayer, MediaVerb, Micros,
     NowPlayingService, Playback, PlayerId, Timeline, Track, art_cache_name, art_source,
 };
-pub use pins::{DockPins, PinAt, PinEvent, PinsService};
+pub use pins::PinsService;
 pub use polkit_agent::{Polkit, PolkitAgentService, PolkitCommand};
 pub use power_profile::PowerProfileService;
 pub use results::{

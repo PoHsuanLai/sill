@@ -9,13 +9,12 @@ pub mod fake;
 use std::path::PathBuf;
 
 use sill_launcher::{AppId, WindowKey};
-use sill_model::{
-    ids::{OutputName, WorkspaceKey},
-    units::{Permille, Visibility},
-};
+use sill_model::ids::{OutputName, WorkspaceKey};
+use sill_model::pins::DockPins;
+use sill_model::units::{Permille, Visibility};
 use sill_services::{
-    Activity, App, AppIcon, AppIndex, Badge, Badges, DbusActivation, DesktopActionEntry, DockPins,
-    Listing, Services, Sizing, Terminal, Toplevel, Toplevels, WindowState,
+    Activity, App, AppIcon, AppIndex, Badge, Badges, DbusActivation, DesktopActionEntry, Listing,
+    Services, Sizing, Terminal, Toplevel, Toplevels, WindowState,
 };
 use tokio::sync::{mpsc, watch};
 
@@ -30,7 +29,7 @@ pub struct DockFeeds {
     pub apps: watch::Sender<AppIndex>,
     pub pins: watch::Sender<DockPins>,
     pub badges: watch::Sender<Badges>,
-    pub pin_events: mpsc::UnboundedReceiver<sill_services::PinEvent>,
+    pub pin_events: mpsc::UnboundedReceiver<sill_model::pins::PinEvent>,
 }
 
 /// An entry named `name` whose icon is the hicolor theme's, when this machine has it.

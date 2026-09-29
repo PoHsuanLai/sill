@@ -8,8 +8,8 @@ use std::time::Duration;
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use tokio::sync::mpsc;
 
+use super::file::FILE_NAME;
 use crate::error::ServiceError;
-use crate::pins::FILE_NAME;
 
 /// How long the directory must be quiet before a touch is reported settled.
 pub const DEBOUNCE: Duration = Duration::from_millis(30);
@@ -70,8 +70,8 @@ pub fn watch(dir: &Path) -> Result<FileTouch, ServiceError> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::file::FILE_NAME;
     use super::watch;
-    use crate::pins::FILE_NAME;
     use sill_testkit::TempDir;
 
     /// A rename onto `FILE_NAME` (the atomic writer's own move) settles as exactly one touch,

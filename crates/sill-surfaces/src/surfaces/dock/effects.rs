@@ -3,7 +3,8 @@
 
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::ids::WorkspaceKey;
-use sill_services::{AppIndex, DockPins, PinAt, PinEvent, Toplevels};
+use sill_model::pins::{DockPins, PinAt, PinEvent};
+use sill_services::{AppIndex, Toplevels};
 
 use crate::surfaces::dock::activate::activation;
 use crate::surfaces::dock::items::{DockItem, ItemKind, item_windows};

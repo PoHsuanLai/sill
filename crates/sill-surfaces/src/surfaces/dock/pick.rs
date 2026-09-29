@@ -3,7 +3,8 @@
 //! carries no activation token yet: the session asks shell-host for one first (plan "Launch").
 
 use sill_launcher::{AppId, DesktopAction, WindowKey};
-use sill_services::{LaunchCommand, PinAt, PinEvent, WlCommand};
+use sill_model::pins::{PinAt, PinEvent};
+use sill_services::{LaunchCommand, WlCommand};
 
 /// One context menu action (design/10 §10.3.7).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -79,7 +80,8 @@ pub fn pick_commands(pick: &DockPick) -> Vec<DockCommand> {
 mod tests {
     use super::{DockCommand, DockPick, pick_commands};
     use sill_launcher::{AppId, DesktopAction, WindowKey};
-    use sill_services::{LaunchCommand, PinAt, PinEvent, WlCommand};
+    use sill_model::pins::{PinAt, PinEvent};
+    use sill_services::{LaunchCommand, WlCommand};
 
     #[test]
     fn each_pick_becomes_its_commands() {
