@@ -696,11 +696,18 @@ where noted, and sill compiles against each.
 9. `sill-ui-kit` inside `sill-surfaces` first (done): `hooks`, `links/` (all links as types, the global
    `links.rs` gone), `Reveal<O>`, `SurfaceRoot`, `look`, `Machine` and `use_machine`,
    `MenuPopup<M>`, `status`, `widgets` providers, `harness`. Then rename the crate `sill-ui-kit`.
-10. `Surface` trait and generic `daemon/surfaces.rs`; convert one surface per commit to the one
-    shape (order: osd, hot_corners, idle_dim, wallpaper, power_menu, switcher, polkit_prompt,
-    lock, banners, notification_center, screenshot_thumb, dock, launcher, bar, control_center,
-    desktop_widgets, edit_widgets); each commit moves its tests onto `SurfaceHarness` and its
-    `*_lint.rs` into the table.
+10. `Surface` trait and generic `daemon/surfaces.rs` (done); one surface per commit converted to the
+    one shape (order: osd, hot_corners, idle_dim, wallpaper, power_menu, switcher, polkit_prompt,
+    lock, banners, notification_center, screenshot_thumb, dock, launcher, bar, desktop_widgets,
+    edit_widgets); each commit moved its tests onto `SurfaceHarness` and its `*_lint.rs` into the
+    table. As built: `lock` is a `LockSurface` (`mount_lock`, the `LockHarness`; shell-host's
+    session lock spawns one per output, `lock/host.rs`), the launcher's click catcher is
+    a surface of its own (`LauncherCatcher`) beside the `Launcher` panel, and `control_center`
+    is not a surface: it is the bar's popup and the `Bar` surface mounts it. `OutputSurfaces` is
+    only the row's `spawned` list, found through `surface_of::<S>()`; the wallpaper's `Prepare`
+    stays a daemon step (`prepare_wallpapers`), and `bar.height_px`'s reserved height is
+    re-applied by `daemon/events.rs`'s `resize_bars` because the generic resize re-applies only
+    the layer size.
 11. Removals inside surfaces: G7 estimate stack (FitContent), `bar/menu_track/` (ds's),
     `CcModule`, `WidgetProvider`, dead components, `Visible` to `shell_host::Visibility`.
 12. Split the surface crates out of `sill-ui-kit`'s host: `sill-overlays`, `sill-notify-ui`,

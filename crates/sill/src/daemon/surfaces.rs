@@ -1,6 +1,6 @@
-//! Spawning the surfaces every output gets, each row's missing ones after every host event. The
-//! wallpaper block lives here; the other surfaces' `spawn_missing` sit in
-//! their own modules and are called in their drawing order by [`spawn_missing`].
+//! Spawning the surfaces every output gets, each row's missing ones after every host event, all
+//! through `spawn_surface` in their drawing order ([`spawn_missing`]). The wallpaper's `Prepare`
+//! for the wallpaper service lives here.
 
 use shell_host::SurfaceId;
 use shell_host::{HostCtx, HostRoot, OutputInfo};

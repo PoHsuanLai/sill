@@ -35,7 +35,6 @@ fn row(banners: Option<u64>) -> OutputSurfaces {
             })
             .into_iter()
             .collect(),
-        ..OutputSurfaces::default()
     }
 }
 

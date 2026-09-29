@@ -88,4 +88,16 @@ mod tests {
         assert_eq!(config.exclusive, ExclusiveZone::Reserve(0));
         assert_eq!(config.blur, BlurSpec::None);
     }
+
+    #[test]
+    fn a_resized_output_leaves_the_reserved_space_alone() {
+        // The daemon re-asks the compositor only for what the config changed; the dock's whole
+        // config, its exclusive zone included, follows the settings and not the output's size.
+        let before = output(Some("DP-1"));
+        let mut after = before.clone();
+        after.logical.width *= 2;
+        after.logical.height *= 2;
+        let file = ShellFile::default();
+        assert_eq!(layer(&before, &file), layer(&after, &file));
+    }
 }

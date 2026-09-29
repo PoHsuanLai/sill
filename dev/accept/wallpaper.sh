@@ -2,9 +2,9 @@
 # Wallpaper acceptance (design/20 §1.4), against the running nested cosmic-comp
 # (`dev/nested.sh`; this script takes its socket from shell-host's `.nested-env` and never stops
 # the compositor) with a real `sill run`, which spawns a `Wallpaper` per output
-# (`spawn_missing_wallpapers`/`spawn_wallpaper`, next to `spawn_missing_bars`) and sends the
-# wallpaper service a `Prepare` at the output's buffer size, so this script starts its own
-# `sill run`.
+# (`spawn_surface::<Wallpaper>` in `daemon/surfaces.rs`) and sends the
+# wallpaper service a `Prepare` (`prepare_wallpapers`) at the output's buffer size, so this
+# script starts its own `sill run`.
 #
 # The COSMIC background config and sill's own settings live under a scratch XDG_CONFIG_HOME (never
 # the real ~/.config), so there is nothing to back up or restore. The daemon runs in its own
