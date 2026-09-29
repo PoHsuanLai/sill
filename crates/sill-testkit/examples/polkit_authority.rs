@@ -1,6 +1,6 @@
 //! A stand-in for polkitd's Authority on a private bus: it owns `org.freedesktop.PolicyKit1` there,
 //! records the agent that registers, and on command calls that agent's `BeginAuthentication` and
-//! `CancelAuthentication`, printing what happens. It is how `dev/accept-polkit.sh` plays polkitd
+//! `CancelAuthentication`, printing what happens. It is how `dev/accept/polkit.sh` plays polkitd
 //! without polkitd.
 //!
 //! The address is an argument, never `DBUS_SYSTEM_BUS_ADDRESS`, so this cannot reach the real

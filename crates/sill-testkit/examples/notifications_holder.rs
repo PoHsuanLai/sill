@@ -1,6 +1,6 @@
 //! Another notification daemon, as far as the bus can tell: holds `org.freedesktop.Notifications`
 //! on the private bus at the address it is given until it is killed, so
-//! `dev/accept-notifications-bus.sh` can check that sill reports it and never replaces it.
+//! `dev/accept/notifications.sh --bus` can check that sill reports it and never replaces it.
 //!
 //! The address is an argument, never `DBUS_SESSION_BUS_ADDRESS`, so this cannot reach the real
 //! session bus by accident (plasmashell holds the name there).

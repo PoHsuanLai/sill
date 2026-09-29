@@ -4,7 +4,7 @@
 //! **Dry run.** A chosen action goes to the session service, which takes it through the daemon's
 //! `SessionActions` (`sill_services::env`): logind's, or, in a debug build started with `sill run
 //! --session-dry-run RECORD`, a dry run that only prints and records it. Each surface prints
-//! `power_menu.backend=dry-run` as it mounts in that case, which `dev/accept-power-menu.sh` checks
+//! `power_menu.backend=dry-run` as it mounts in that case, which `dev/accept/power-menu.sh` checks
 //! before it presses Enter.
 
 use shell_host::{HostCtx, HostRoot, OutputInfo};

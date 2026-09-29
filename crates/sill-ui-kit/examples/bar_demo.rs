@@ -1,4 +1,4 @@
-//! The bar on a real compositor with fake services, for acceptance (`dev/accept-bar-ui.sh`):
+//! The bar on a real compositor with fake services, for acceptance (`dev/accept/bar.sh`):
 //! one `sill_ui_kit::Bar` per output, fed by fixed `watch` channels (a Thursday afternoon, a
 //! 64 % battery, Wi-Fi joined to `home` with two more networks in range, Bluetooth headphones,
 //! the Balanced power mode, a track playing, three workspaces, two terminal windows), driven by

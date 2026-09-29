@@ -23,7 +23,7 @@ pub enum Request {
     Status(StatusRequest),
     /// Change something.
     Act(ActRequest),
-    /// Development probes (`dev/accept-*.sh`); answered even in a release build, acted on only
+    /// Development probes (`dev/accept/*.sh`); answered even in a release build, acted on only
     /// when the daemon was built with the `debug` feature.
     Debug(DebugRequest),
 }

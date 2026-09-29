@@ -5,7 +5,7 @@
 //!
 //! The daemon's [`IdleTimesSource`] can fix the times instead of the settings: a `debug` build's
 //! `sill run --idle-times <screen_off_s>,<suspend_s>` (0 never, [`test_times`]) uses those
-//! seconds for both power sources, since `dev/accept-idle.sh` needs seconds and the keys count
+//! seconds for both power sources, since `dev/accept/idle.sh` needs seconds and the keys count
 //! minutes.
 
 use sill_model::idle::{

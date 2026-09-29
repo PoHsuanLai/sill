@@ -1,6 +1,6 @@
 //! A video player's half of `org.freedesktop.ScreenSaver` on a private bus: it calls `Inhibit`,
 //! holds the cookie while it runs, and on command calls `UnInhibit`. Closing its stdin ends it (so
-//! its unique name leaves the bus, which also ends the inhibit). `dev/accept-idle.sh` runs it to
+//! its unique name leaves the bus, which also ends the inhibit). `dev/accept/idle.sh` runs it to
 //! check that an inhibit holds sill's idle off.
 //!
 //! Commands, one per stdin line: `inhibit`, `uninhibit`, `active`. Output: `cookie <n>`,

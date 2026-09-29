@@ -48,7 +48,7 @@ dioxus-ssr = { workspace = true }
 shell-host = { workspace = true, features = ["debug-inject"] }
 
 # A standalone bar on a real compositor with fake services, for acceptance
-# (`dev/accept-bar-ui.sh`); `debug-inject` gives it shell-host's stdin commands.
+# (`dev/accept/bar.sh`); `debug-inject` gives it shell-host's stdin commands.
 [[example]]
 name = "bar_demo"
 

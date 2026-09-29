@@ -10,7 +10,7 @@
 //! once the old client is gone), and this is that client. Exit 3 when the compositor refused the
 //! lock (`finished`: someone else holds it), 2 on a usage or connection error.
 //!
-//! `dev/accept-lock.sh` and `dev/accept-idle.sh` run it on the nested compositor.
+//! `dev/accept/lock.sh` and `dev/accept/idle.sh` run it on the nested compositor.
 
 use std::process::ExitCode;
 use std::time::Duration;

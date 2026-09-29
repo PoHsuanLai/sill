@@ -8,7 +8,7 @@ use ds::LabelHue;
 
 #[test]
 fn a_calendar_keeps_one_label_hue_by_its_name() {
-    // FNV-1a of the name, modulo quire's five hues (`dev/accept-calendar.sh` computes the same).
+    // FNV-1a of the name, modulo quire's five hues (`dev/accept/calendar.sh` computes the same).
     let cases = [
         ("work", LabelHue::Violet),
         ("team", LabelHue::Green),

@@ -1,5 +1,5 @@
 //! The launcher toggle's latency line: `launcher.open_latency_ms=<ms>` on stderr, timed from the
-//! IPC request's arrival, which `dev/accept-launcher.sh` greps out for its p50/p95/max over 20
+//! IPC request's arrival, which `dev/accept/launcher.sh` greps out for its p50/p95/max over 20
 //! toggles.
 
 use std::time::Duration;

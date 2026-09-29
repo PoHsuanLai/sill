@@ -105,7 +105,7 @@ fn use_openings(
 }
 
 /// Print `power_menu.keyboard=held` once per opening, when the surface first has the keyboard
-/// (the daemon feeds the link its focus): `dev/accept-real-input.sh` sends real keys only then.
+/// (the daemon feeds the link its focus): `dev/accept/power-menu.sh --real-input` sends real keys only then.
 fn use_keyboard_line(shown: ReadSignal<Reveal<PowerMenuOpening>>, output: OutputId) {
     let mut seen = use_hook(|| CopyValue::new(None::<(OpenSerial, PanelFocus)>));
     use_effect(move || {
@@ -163,7 +163,7 @@ fn use_follow_visibility(shown: ReadSignal<Reveal<PowerMenuOpening>>, output: Ou
 }
 
 /// The actions `session` offers, in the buttons' order, as their labels joined by commas (the
-/// log line `dev/accept-power-menu.sh` reads the arrows' path from).
+/// log line `dev/accept/power-menu.sh` reads the arrows' path from).
 fn offered_labels(session: &Session) -> String {
     SessionAction::POWER_MENU
         .into_iter()

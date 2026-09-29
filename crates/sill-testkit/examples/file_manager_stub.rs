@@ -1,6 +1,6 @@
 //! A file manager, as far as the bus can tell: owns `org.freedesktop.FileManager1` on the
 //! private bus at the address it is given and prints every call it gets, so
-//! `dev/accept-launcher-files.sh` can check that ⌘R on a file row reveals it through
+//! `dev/accept/launcher.sh` can check that ⌘R on a file row reveals it through
 //! `ShowItems` with the activation token, without opening anything.
 //!
 //! The address is an argument, never `DBUS_SESSION_BUS_ADDRESS`, so this cannot reach the real

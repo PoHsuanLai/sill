@@ -1,7 +1,7 @@
 //! A stand-in for logind on a private bus: it owns `org.freedesktop.login1` there and **only
 //! records** what sill asks (`Suspend`, `SetIdleHint`, `Inhibit`, `LockSession`), and on command
 //! sends the signals sill follows (`PrepareForSleep`, the session's `Lock`) or changes
-//! `BlockInhibited`. Nothing here suspends, locks or hints anything. It is how `dev/accept-idle.sh`
+//! `BlockInhibited`. Nothing here suspends, locks or hints anything. It is how `dev/accept/idle.sh`
 //! plays logind.
 //!
 //! The address is an argument, never `DBUS_SYSTEM_BUS_ADDRESS`, so this cannot reach the real

@@ -1,5 +1,5 @@
 //! The launcher on a real compositor with fake services, for manual runs and the acceptance
-//! (`dev/accept-launcher-ui.sh`): a catcher and a panel per output, spawned hidden as the
+//! (`dev/accept/launcher.sh`): a catcher and a panel per output, spawned hidden as the
 //! daemon spawns them, over a fake search runner (`tests/launcher_support`), driven by lines
 //! on stdin:
 //!

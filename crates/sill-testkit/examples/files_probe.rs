@@ -1,6 +1,6 @@
 //! Drives the launcher's files provider the way the runner does (its `query` on the blocking
 //! pool), prints its rows, and optionally carries out the first row's activation through the
-//! real launch service (`LaunchCommand::Open`): `dev/accept-launcher-files.sh` and
+//! real launch service (`LaunchCommand::Open`): `dev/accept/launcher.sh` and
 //! `tests/files_tracker_live.rs` run it in a scratch environment (a scratch `HOME`, a private
 //! bus, a stub opener), never in the person's own.
 //!

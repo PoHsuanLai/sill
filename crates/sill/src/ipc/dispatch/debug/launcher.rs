@@ -1,4 +1,4 @@
-//! `sill debug launcher-key KEY` and `sill debug launcher-rows`: what `dev/accept-launcher-v2.sh`
+//! `sill debug launcher-key KEY` and `sill debug launcher-rows`: what `dev/accept/launcher.sh`
 //! drives the open launcher with on the nested compositor, where there is no keyboard to type
 //! on. Both go through the `LauncherLink`: a key the panel steps as if pressed, and the rows it
 //! shows (clipboard titles already `<clipboard>`). Refused by a daemon built without `debug`.

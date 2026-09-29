@@ -103,7 +103,7 @@ mod tests {
 
     /// A 100 x 100 source: a 40 x 40 opaque-red block centred in an opaque-blue field, large
     /// enough (and far enough from every edge) that Lanczos3's ringing near a resize never
-    /// reaches its own centre pixel, the way `dev/accept-wallpaper.sh` checks a real output's
+    /// reaches its own centre pixel, the way `dev/accept/wallpaper.sh` checks a real output's
     /// captured centre pixel against the source's.
     fn marked_source() -> ImageBuffer<Rgba<u8>, Vec<u8>> {
         ImageBuffer::from_fn(100, 100, |x, y| {

@@ -1,4 +1,4 @@
-//! The dock on a real compositor with fake services, for acceptance (`dev/accept-dock.sh`):
+//! The dock on a real compositor with fake services, for acceptance (`dev/accept/dock.sh`):
 //! one `sill_ui_kit::Dock` per output, fed by fixed `watch` channels (COSMIC Files and
 //! Terminal pinned, Terminal active with two windows, Firefox running with a count of 7 and
 //! 40 % progress), driven by shell-host's `debug-inject` commands on stdin (`sill-dock-<output>

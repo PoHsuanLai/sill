@@ -73,7 +73,7 @@
 #        dev/out/launcher-v2-{preview-pdf,preview-image,preview-text,show-more,pane-focus,
 #        emoji}-fixtures.png.
 #     A step that needs rows from the files or emoji provider exits 2 (SKIP) while that provider
-#     answers nothing on this branch; `crates/sill-surfaces/tests/launcher_preview.rs` proves the
+#     answers nothing on this branch; `crates/sill-ui-kit/tests/launcher_preview.rs` proves the
 #     same steps over fixtures.
 #
 #   files: the launcher's Documents
@@ -586,7 +586,7 @@ step_ui_demo() {
 
 group_ui() {
   group_begin ui
-  build "-p sill-surfaces --example launcher_demo" || { group_end; return 1; }
+  build "-p sill-ui-kit --example launcher_demo" || { group_end; return 1; }
   read -r _ OUT_H < <(nested_output_size)
   [ -n "${OUT_H:-}" ] || { echo "no nested output (dev/nested.sh first)" >&2; group_end; return 1; }
   start_private_bus || { group_end; return 1; }
@@ -804,7 +804,7 @@ step_palette_fixtures() {
 
 group_palette() {
   group_begin palette
-  build "-p sill-surfaces --example launcher_demo" || { group_end; return 1; }
+  build "-p sill-ui-kit --example launcher_demo" || { group_end; return 1; }
   : >"$OUT_DIR/keys.log"
   seed_documents "$HOME_DIR" 3000 pdfs
   mkdir -p "$CONFIG/sill"

@@ -510,7 +510,7 @@ step_demo_nested() { run_bar_demo cosmic "$SHOTS/bar-cosmic-menu.png"; }
 
 # The demo and shell-host's probe, built (a no-op when up to date).
 build_demo() {
-  build "-p sill-surfaces --example bar_demo --release" || return 1
+  build "-p sill-ui-kit --example bar_demo --release" || return 1
   (cd "$HOST_REPO" && cargo build --release -p shell-host --features debug-inject \
     --example probe_toplevel) >>"$OUT_DIR/build.log" 2>&1 || {
     echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
@@ -832,7 +832,7 @@ step_center_keys() {
   echo "notification center opened by a real click on the clock ($CLOCK_AT): real Down" \
     "changed [$down]" >&2
   # Tab (unhandled by the center's own key map) reaches Clear All, a quire `Button`;
-  # the modality bridge (`sill_surfaces::host_modality::HostModalityBridge`) provides
+  # the modality bridge (`sill_ui_kit::host_modality::HostModalityBridge`) provides
   # `ds::HostModality` there too, so the ring should draw.
   press_keys Tab || return 1
   settled "$CENTER" nc-tab || return 1

@@ -5,7 +5,7 @@
 //! percentage as the hero figure), a Small frame with several (the 2 x 2 grid, empty places
 //! padded in), and a Medium frame (a row of rings, the percentage under each, one low and one
 //! charging). The private session bus this widget runs against for real
-//! (`dev/accept-widgets.sh`) has no batteries at all, so this is the only picture of it short of
+//! (`dev/accept/widgets.sh`) has no batteries at all, so this is the only picture of it short of
 //! a live capture. Review material only, never a gate (as `ds_native::snapshot`'s own doc
 //! comment says): the rasteriser changes with Blitz revisions.
 

@@ -57,7 +57,7 @@ pub enum DebugRequest {
         action: KeyAction,
     },
     /// Show the OSD for a made-up change, on the output a real one of its kind would use,
-    /// moving no real level (`dev/accept-osd.sh`: the session's default sink may be somebody's
+    /// moving no real level (`dev/accept/osd.sh`: the session's default sink may be somebody's
     /// headphones). `percent` is 0-100; more is taken as 100.
     Osd {
         topic: OsdTopic,
@@ -65,29 +65,29 @@ pub enum DebugRequest {
         mute: Mute,
     },
     /// Post a made-up notification straight to the notifications service, without D-Bus
-    /// (`dev/accept-notifications.sh`): it goes through the same reducer as a `Notify`, so it
+    /// (`dev/accept/notifications.sh`): it goes through the same reducer as a `Notify`, so it
     /// shows a banner and enters the history, and its actions answer nobody.
     Notify(Box<Posting>),
     /// Show the screenshot thumbnail for a file, as if the folder watch had seen it
-    /// (`dev/accept-screenshot.sh`: nothing of the session is captured).
+    /// (`dev/accept/screenshot.sh`: nothing of the session is captured).
     Screenshot { path: PathBuf },
     /// Carry out a hot corner's action on the first output, as if its dwell had just run out
-    /// (`dev/accept-hot-corners.sh`).
+    /// (`dev/accept/hot-corners.sh`).
     Corner(CornerName),
     /// Feed the lock screen's password check a made-up verdict; refused by a daemon built
-    /// without `debug` (`dev/accept-lock.sh`, on the nested compositor only).
+    /// without `debug` (`dev/accept/lock.sh`, on the nested compositor only).
     Auth(FakeVerdict),
-    /// Show a made-up polkit request (`dev/accept-polkit.sh`); the stand-in helper accepts
+    /// Show a made-up polkit request (`dev/accept/polkit.sh`); the stand-in helper accepts
     /// `sill-fake`.
     Polkit(FakeRequest),
-    /// Open the switcher on made-up apps, the current one first (`dev/accept-switcher.sh`): shown
+    /// Open the switcher on made-up apps, the current one first (`dev/accept/switcher.sh`): shown
     /// at once (no show delay), and Q, H and release act on no real window.
     Switcher { apps: Vec<AppId> },
-    /// A key for the open launcher, as if typed (`dev/accept-launcher-v2.sh`).
+    /// A key for the open launcher, as if typed (`dev/accept/launcher.sh`).
     LauncherKey(LauncherKey),
     /// The open launcher's sections, rows and preview: answered `Response::LauncherRows`.
     LauncherRows,
-    /// Wake idle as the compositor's `resumed` would after real input (`dev/accept-idle.sh`:
+    /// Wake idle as the compositor's `resumed` would after real input (`dev/accept/idle.sh`:
     /// the nested cosmic-comp counts no synthetic input as activity). Refused by a daemon built
     /// without `debug`: inside the lock grace it opens the lock.
     IdleWake,
