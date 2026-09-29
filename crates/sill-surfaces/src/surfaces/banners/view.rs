@@ -14,7 +14,8 @@ use ds::{
     RootExtent,
 };
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
-use sill_services::{NotificationId, Notifications, NotificationsService};
+use sill_model::notifications::{NotificationId, Notifications};
+use sill_services::NotificationsService;
 use sill_settings::{BannerEntry, BannerPosition, NotificationsSettings};
 
 use super::deck::{DeckIn, Entry, EntryKey, Showing};
@@ -147,7 +148,7 @@ fn note_of(
     notes: &Notifications,
     id: NotificationId,
     column: &Column,
-) -> Option<sill_services::Notification> {
+) -> Option<sill_model::notifications::Notification> {
     notes
         .banner(id)
         .map(|b| b.note.clone())

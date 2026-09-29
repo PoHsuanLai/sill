@@ -10,7 +10,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::content::{Expiry, Notification, NotifyUrgency, Residency, SoundHint};
-use super::state::{BannerLife, ServerMode};
+use super::{BannerLife, ServerMode};
 
 /// Everything the service is told by the daemon.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
@@ -122,12 +122,12 @@ pub fn chime(note: &Notification, policy: &NotificationsPolicy) -> Chime {
 #[cfg(test)]
 mod tests {
     use super::{Chime, NotificationsPolicy, Presentation, Presented, Quiet, chime, presented};
-    use crate::notifications::content::{
+    use crate::notifications::BannerLife;
+    use crate::notifications::Body;
+    use crate::notifications::{
         AppRef, Expiry, Hints, IconRef, Notification, NotifyUrgency, Residency, SoundHint,
     };
-    use crate::notifications::ids::{NotificationId, UnixMs};
-    use crate::notifications::markup::Body;
-    use crate::notifications::state::BannerLife;
+    use crate::notifications::{NotificationId, UnixMs};
 
     fn note(urgency: NotifyUrgency, residency: Residency, expiry: Expiry) -> Notification {
         Notification {

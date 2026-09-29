@@ -268,7 +268,7 @@ mod tests {
     use std::path::PathBuf;
 
     use super::{AppRef, Expiry, IconRef, NotifyUrgency, pair_actions};
-    use crate::notifications::ids::{ActionKey, AppKey};
+    use crate::notifications::{ActionKey, AppKey};
 
     #[test]
     fn wire_words_become_values() {

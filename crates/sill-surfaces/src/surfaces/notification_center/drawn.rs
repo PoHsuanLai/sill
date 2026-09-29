@@ -63,7 +63,7 @@ fn drawn_after(before: &[RowKey], listed: &[RowKey]) -> Vec<RowKey> {
 mod tests {
     use super::drawn_after;
     use crate::surfaces::notification_center::rows::RowKey;
-    use sill_services::{AppKey, NotificationId};
+    use sill_model::notifications::{AppKey, NotificationId};
 
     #[test]
     fn a_dropped_row_stays_drawn_until_it_settles() {

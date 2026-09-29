@@ -1,6 +1,6 @@
 use shell_host::{OutputId, OutputInfo, Rect, Scale, SurfaceId};
 use sill_ipc::{ReportHolder, ReportMode};
-use sill_services::{NameHolder, NameOwner, Notifications, ServerMode, ServerStatus};
+use sill_model::notifications::{NameHolder, NameOwner, Notifications, ServerMode, ServerStatus};
 use sill_surfaces::surfaces::banners::BannerOutput;
 
 use super::{banner_output, namespaces, report_of};

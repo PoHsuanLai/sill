@@ -10,7 +10,7 @@
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 use sill_launcher::{Item, Subject, UnixTime};
-use sill_services::UnixMs;
+use sill_model::notifications::UnixMs;
 
 use crate::surfaces::notification_card::labels::{age, age_label};
 

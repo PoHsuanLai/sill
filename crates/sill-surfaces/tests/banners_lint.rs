@@ -10,7 +10,7 @@ use std::time::Duration;
 use banners_support::{fake, live, note, start};
 use dioxus::prelude::*;
 use ds::lint::{LintConfig, Profile, Rule, assert_clean, markup};
-use sill_services::parse_body;
+use sill_model::notifications::parse_body;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Banners;
 use sill_surfaces::surfaces::banners::{BANNER_VARS, BANNERS_CSS, BannerLink, BannersProps};

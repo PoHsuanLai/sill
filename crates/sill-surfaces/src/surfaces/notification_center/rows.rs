@@ -3,7 +3,7 @@
 //! less", Clear) and then its cards: a collapsed group of several is its newest card stacked over
 //! the rest (macOS: a press on the stack opens it, its close clears the group).
 
-use sill_services::{ActionKey, AppKey, NotificationId};
+use sill_model::notifications::{ActionKey, AppKey, NotificationId};
 
 use super::groups::GroupView;
 use crate::surfaces::notification_card::CardPress;
@@ -146,7 +146,7 @@ mod tests {
     use super::{CenterRow, RowAct, RowKey, Stack, activate, dismiss, press, rows_of};
     use crate::surfaces::notification_card::CardPress;
     use crate::surfaces::notification_center::GroupView;
-    use sill_services::{ActionKey, AppKey, Href, NotificationId};
+    use sill_model::notifications::{ActionKey, AppKey, Href, NotificationId};
 
     fn key(k: &str) -> AppKey {
         AppKey(k.to_owned())

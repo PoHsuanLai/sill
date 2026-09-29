@@ -8,7 +8,7 @@ mod center_support;
 
 use center_support::{HEIGHT, WIDTH, fake, opened, settle, start, two_apps};
 use ds::{Anim, MotionLevel, StaggerIndex, settle as settle_time};
-use sill_services::{
+use sill_model::notifications::{
     AppKey, Clear, History, NameHolder, NameOwner, Notifications, NotificationsCommand, ServerMode,
     ServerStatus,
 };
@@ -214,7 +214,7 @@ fn a_press_on_a_stack_opens_it_and_a_lone_cards_close_dismisses_it() {
     assert_eq!(
         running.commands_until(1),
         vec![NotificationsCommand::Dismiss(
-            sill_services::NotificationId(4)
+            sill_model::notifications::NotificationId(4)
         )]
     );
 }

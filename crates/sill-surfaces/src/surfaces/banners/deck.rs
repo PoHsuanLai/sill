@@ -11,8 +11,8 @@
 //! longer listed; it stays in the deck until the stack says its exit has played
 //! (`BannerIn::Left`, from `on_hidden`).
 
+use sill_model::notifications::NotificationsCommand;
 use sill_model::units::Stamp;
-use sill_services::NotificationsCommand;
 
 use super::commands::leave_commands;
 use super::machine::{Banner, BannerIn, BannerOut, BannerParams, Deadline, Persistence, step};

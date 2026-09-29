@@ -9,7 +9,7 @@ mod center_support;
 use center_support::{fake, note, settle, start, two_apps};
 use ds_native::Harness;
 use ds_native::harness::assert_settles_to_zero_frames;
-use sill_services::{AppGroup, AppKey, Clear, History, NotificationsCommand};
+use sill_model::notifications::{AppGroup, AppKey, Clear, History, NotificationsCommand};
 use sill_settings::ShellFile;
 
 /// A group's toggle ("N more", "Show less") and Clear, in its header.

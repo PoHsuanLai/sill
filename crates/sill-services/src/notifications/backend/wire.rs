@@ -4,20 +4,18 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use sill_model::notifications::{
+    AppRef, Expiry, Hints, IconRef, NoteImage, NotificationId, NotifyUrgency, Pixels, Posting,
+    Residency, SoundHint, Transience, pair_actions, parse_body,
+};
 use zbus::zvariant::{OwnedValue, Value};
 
-use super::content::{
-    AppRef, Expiry, Hints, IconRef, NoteImage, NotifyUrgency, Pixels, Posting, Residency,
-    SoundHint, Transience, pair_actions,
-};
 use super::dbus::WireNotify;
-use super::ids::NotificationId;
-use super::markup::parse_body;
 
 type HintMap = HashMap<String, OwnedValue>;
 
 /// The posting `call` stands for.
-pub(super) fn posting(call: WireNotify) -> Posting {
+pub(crate) fn posting(call: WireNotify) -> Posting {
     let hints = &call.hints;
     Posting {
         replaces: NotificationId::replacing(call.replaces_id),

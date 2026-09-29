@@ -1,21 +1,16 @@
-//! Table tests for `reduce.rs` (its module doc is the rule list).
-
-use super::{
-    Clear, CloseReason, NotesState, NotificationsEffect, NotificationsEvent, assign_id, step,
-};
-use crate::notifications::content::{
-    Action, AppRef, Expiry, Hints, IconRef, Notification, NotifyUrgency, Residency, SoundHint,
-    Transience,
-};
-use crate::notifications::history_file::{STORED_VERSION, StoredHistory};
-use crate::notifications::ids::{ActionKey, Activation, AppKey, NotificationId, UnixMs};
-use crate::notifications::markup::Body;
-use crate::notifications::policy::{HistoryCap, NotificationsPolicy, Quiet};
-use crate::notifications::state::{AppGroup, History, NameHolder, ServerMode, ServerStatus};
+//! Table tests for `step.rs` (its module doc is the rule list).
 
 use NotificationsEffect::{Closed, SaveHistory, Sound};
 use NotificationsEvent::{
     BannerTimedOut, ClosedByApp, Dismissed, DismissedAll, HistoryCleared, Invoked, Loaded,
+};
+
+use super::{assign_id, step};
+use crate::notifications::{
+    Action, ActionKey, Activation, AppGroup, AppKey, AppRef, Body, Clear, CloseReason, Expiry,
+    Hints, History, HistoryCap, IconRef, NameHolder, NotesState, Notification, NotificationId,
+    NotificationsEffect, NotificationsEvent, NotificationsPolicy, NotifyUrgency, Quiet, Residency,
+    STORED_VERSION, ServerMode, ServerStatus, SoundHint, StoredHistory, Transience, UnixMs,
 };
 
 fn posted(note: Notification) -> NotificationsEvent {
@@ -433,7 +428,7 @@ fn the_server_status_is_published() {
 
 #[test]
 fn a_swipe_keeps_the_notification_in_the_center_unless_set_to_dismiss() {
-    use crate::notifications::policy::Swipe;
+    use crate::notifications::Swipe;
     use NotificationsEvent::SwipedAway;
     let keep = NotificationsPolicy::default();
     let dismiss = NotificationsPolicy {

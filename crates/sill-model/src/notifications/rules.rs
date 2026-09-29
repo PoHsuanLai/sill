@@ -2,16 +2,17 @@
 //! steps over [`NotesState`] that return the state and the effects they imply.
 
 use super::content::{Notification, Residency, Transience};
-use super::history_file::StoredHistory;
 use super::ids::{ActionKey, Activation, NotificationId};
 use super::policy::{Chime, HistoryCap, NotificationsPolicy, Presented, chime, presented};
-use super::reduce::{Clear, CloseReason, NotesState, NotificationsEffect};
-use super::state::{AppGroup, BannerLife, History, LiveBanner};
+use super::stored::StoredHistory;
+use super::{
+    AppGroup, BannerLife, Clear, CloseReason, History, LiveBanner, NotesState, NotificationsEffect,
+};
 
 type Step = (NotesState, Vec<NotificationsEffect>);
 
 /// Whether the service holds `id`: a live banner or a kept notification.
-pub(super) fn holds(state: &NotesState, id: NotificationId) -> bool {
+pub fn holds(state: &NotesState, id: NotificationId) -> bool {
     find(state, id).is_some()
 }
 

@@ -7,57 +7,16 @@
 
 use std::path::{Path, PathBuf};
 
-use serde::{Deserialize, Serialize};
+use sill_model::notifications::{STORED_VERSION, StoredHistory};
 
-use super::content::NoteImage;
-use super::ids::NotificationId;
-use super::reduce::NotesState;
-use super::state::History;
 use crate::error::ServiceError;
 
 /// The file's name inside `$XDG_STATE_HOME/sill`.
 pub const FILE_NAME: &str = "notifications.json";
 
-/// The shape this build writes. A file of another version is read as empty.
-pub const STORED_VERSION: u32 = 1;
-
-/// What the file holds.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct StoredHistory {
-    pub version: u32,
-    /// The last id handed out, so ids after a restart do not collide with kept ones.
-    pub last_id: NotificationId,
-    pub history: History,
-}
-
-impl Default for StoredHistory {
-    fn default() -> Self {
-        StoredHistory {
-            version: STORED_VERSION,
-            last_id: NotificationId::default(),
-            history: History::default(),
-        }
-    }
-}
-
 /// `notifications.json` in sill's folder of `dirs`' state directory.
 pub fn path_in(dirs: &crate::env::Dirs) -> PathBuf {
     dirs.sill_state().join(FILE_NAME)
-}
-
-/// What `state` writes: its history and last id, pixel images dropped.
-pub fn for_disk(state: &NotesState) -> StoredHistory {
-    let mut history = state.history.clone();
-    for note in history.groups.iter_mut().flat_map(|g| g.notes.iter_mut()) {
-        if let NoteImage::Pixels(_) = note.hints.image {
-            note.hints.image = NoteImage::None;
-        }
-    }
-    StoredHistory {
-        version: STORED_VERSION,
-        last_id: state.last_id,
-        history,
-    }
 }
 
 /// The file at `path`; empty when there is none, it cannot be read, or it is another version
@@ -90,14 +49,15 @@ pub fn save(path: &Path, stored: &StoredHistory) -> Result<(), ServiceError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{STORED_VERSION, StoredHistory, for_disk, load, save};
-    use crate::notifications::content::{
+    use super::{load, save};
+    use sill_model::notifications::Body;
+    use sill_model::notifications::NotesState;
+    use sill_model::notifications::{AppGroup, History};
+    use sill_model::notifications::{AppKey, NotificationId, UnixMs};
+    use sill_model::notifications::{
         AppRef, Expiry, Hints, IconRef, NoteImage, Notification, Pixels,
     };
-    use crate::notifications::ids::{AppKey, NotificationId, UnixMs};
-    use crate::notifications::markup::Body;
-    use crate::notifications::reduce::NotesState;
-    use crate::notifications::state::{AppGroup, History};
+    use sill_model::notifications::{STORED_VERSION, StoredHistory, for_disk};
 
     fn note(id: u32, image: NoteImage) -> Notification {
         Notification {

@@ -22,74 +22,18 @@
 //! banners and name holder, and the history: one server's state, stepped together), and [`step`]
 //! is the only place it changes.
 
-mod capabilities;
-mod content;
-mod dbus;
-pub mod history_file;
-mod ids;
-mod live;
-mod markup;
-mod markup_parse;
-mod name_watch;
-mod policy;
-mod reduce;
-mod rules;
-mod state;
-mod wire;
+mod backend;
 
-pub use capabilities::{CAPABILITIES, SERVER_INFORMATION, SPEC_VERSION, ServerInformation};
-pub use content::{
-    Action, AppRef, Expiry, Hints, IconRef, NoteImage, Notification, NotifyUrgency, Pixels,
-    Posting, Residency, SoundHint, Transience, pair_actions,
-};
-pub use dbus::{BUS_NAME, OBJECT_PATH};
-pub use history_file::StoredHistory;
-pub use ids::{ActionKey, Activation, ActivationToken, AppKey, NotificationId, UnixMs};
-pub use markup::{Body, BodyRun, Href, RunLink, RunStyle, Slant, Underline, Weight, parse_body};
-pub use policy::{
-    Chime, HistoryCap, NotificationsPolicy, Presentation, Presented, Quiet, Swipe, chime, presented,
-};
-pub use reduce::{
-    Clear, CloseReason, NotesState, NotificationsEffect, NotificationsEvent, assign_id, step,
-};
-pub use state::{
-    AppGroup, BannerLife, History, LiveBanner, NameHolder, NameOwner, Notifications, ServerMode,
-    ServerStatus,
-};
+use sill_model::notifications::{NotesState, NotificationsCommand};
 
 use crate::env::Env;
 use crate::error::ServiceError;
 use crate::service::{Service, ServiceIo};
 
-/// What the notifications service can be told: by the daemon (the policy, a debug post), by the
-/// banners and the center (the person's actions), and by `sill notifications`.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum NotificationsCommand {
-    /// The settings and focus mode now in effect; the first one ends the passive start.
-    Policy(NotificationsPolicy),
-    /// A notification as if `Notify` had been called (`sill debug notify`); no reply id.
-    Post(Box<Posting>),
-    /// The person dismissed it (the close button, a history row's clear).
-    Dismiss(NotificationId),
-    /// The person swiped or dragged its banner away: kept in the center or dismissed, as
-    /// `notifications.swipe` says ([`Swipe`]).
-    SwipeAway(NotificationId),
-    /// Dismiss every live banner.
-    DismissAll,
-    /// A banner's hold ran out.
-    BannerTimedOut(NotificationId),
-    /// The person chose `action` (`default`: the body was clicked).
-    InvokeAction {
-        id: NotificationId,
-        action: ActionKey,
-        token: Activation,
-    },
-    /// The center's Clear.
-    ClearHistory(Clear),
-}
+pub use backend::{BUS_NAME, OBJECT_PATH};
 
 /// The notifications server as a [`Service`]: on `env`'s session bus with its clock, the
-/// history in its state directory ([`history_file::path_in`]). Passive until the daemon's first
+/// history in its state directory. Passive until the daemon's first
 /// policy (module doc).
 #[derive(Debug)]
 pub enum NotificationsService {}
@@ -106,10 +50,10 @@ impl Service for NotificationsService {
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let bus = env.buses.session.clone();
-        let file = history_file::path_in(&env.dirs);
+        let file = backend::history_path(&env.dirs);
         let clock = std::sync::Arc::clone(&env.clock);
         async move {
-            live::run(bus, file, clock, io.state, io.commands).await;
+            backend::run(bus, file, clock, io.state, io.commands).await;
             Ok(())
         }
     }

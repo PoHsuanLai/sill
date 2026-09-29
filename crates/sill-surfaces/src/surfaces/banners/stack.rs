@@ -3,7 +3,7 @@
 //! count chip, cards ordered by their newest notification, newest first, at most
 //! `notifications.stack_max` of them; the rest wait until a card leaves.
 
-use sill_services::{AppKey, BannerLife, LiveBanner, NotificationId};
+use sill_model::notifications::{AppKey, BannerLife, LiveBanner, NotificationId};
 
 /// One card: an app's live banners, drawn as its newest.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -61,7 +61,7 @@ fn longer(a: BannerLife, b: BannerLife) -> BannerLife {
 #[cfg(test)]
 mod tests {
     use super::{Card, stack};
-    use sill_services::{
+    use sill_model::notifications::{
         AppKey, AppRef, BannerLife, Body, Expiry, Hints, IconRef, LiveBanner, Notification,
         NotificationId, UnixMs,
     };

@@ -1,9 +1,8 @@
 //! The notifications service's policy, from the settings and the focus mode: sent once at start
 //! (which ends the service's passive start) and again whenever either changes.
 
-use sill_services::notifications::Swipe;
-use sill_services::{
-    HistoryCap, NotificationsCommand, NotificationsPolicy, Presentation, Quiet, ServerMode,
+use sill_model::notifications::{
+    HistoryCap, NotificationsCommand, NotificationsPolicy, Presentation, Quiet, ServerMode, Swipe,
 };
 use sill_settings::{
     BannerStyle, FocusMode, NotificationServer, NotificationSwipe, NotificationsSettings, ShellFile,
@@ -65,8 +64,8 @@ impl Policy for Bridge {
 #[cfg(test)]
 mod tests {
     use super::policy_of;
-    use sill_services::notifications::Swipe;
-    use sill_services::{HistoryCap, Presentation, Quiet, ServerMode};
+    use sill_model::notifications::Swipe;
+    use sill_model::notifications::{HistoryCap, Presentation, Quiet, ServerMode};
     use sill_settings::{
         BannerStyle, Count, FocusMode, NotificationServer, NotificationSwipe, NotificationsSettings,
     };
@@ -100,7 +99,8 @@ mod tests {
 
     #[test]
     fn the_policy_is_sent_at_once_and_again_on_a_change() {
-        use sill_services::{Control, NotificationsCommand};
+        use sill_model::notifications::NotificationsCommand;
+        use sill_services::Control;
         use sill_settings::ShellFile;
         use tokio::sync::watch;
 

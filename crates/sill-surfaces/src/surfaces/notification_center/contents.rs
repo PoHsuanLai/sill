@@ -14,7 +14,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use dioxus::prelude::*;
 use ds::{Button, ButtonVariant, LeavingItem, LeavingList, ListPresence};
 use shell_host::OutputId;
-use sill_services::{History, UnixMs};
+use sill_model::notifications::{History, UnixMs};
 
 use super::drawn::{Rows, use_drawn};
 use super::drive::CenterCtx;

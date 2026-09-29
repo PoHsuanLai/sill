@@ -14,7 +14,9 @@ use banners_support::{Done, Running, live, note, start};
 use ds::Point;
 use ds_settings::Ms;
 use shell_host::OutputId;
-use sill_services::{ActionKey, Activation, NotificationId, NotificationsCommand, parse_body};
+use sill_model::notifications::{
+    ActionKey, Activation, NotificationId, NotificationsCommand, parse_body,
+};
 use sill_settings::{NotificationsSettings, ShellFile};
 use sill_surfaces::surfaces::banners::BannerOutput;
 

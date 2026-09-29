@@ -2,7 +2,7 @@
 //! first, collapsed to the newest with 'N more'"): which rows each group shows, and which groups
 //! the person has opened.
 
-use sill_services::{AppKey, History, Notification, NotificationId};
+use sill_model::notifications::{AppKey, History, Notification, NotificationId};
 
 /// The groups the person has opened, in the order they opened them.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -54,7 +54,7 @@ fn view_of(key: &AppKey, notes: &[Notification], expanded: &Expanded) -> GroupVi
 #[cfg(test)]
 mod tests {
     use super::{Expanded, GroupView, group_views, toggle_group};
-    use sill_services::{
+    use sill_model::notifications::{
         AppGroup, AppKey, AppRef, Body, Expiry, Hints, History, IconRef, Notification,
         NotificationId, UnixMs,
     };

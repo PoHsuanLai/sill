@@ -3,7 +3,7 @@
 //! `Element("toast-<id>")`) and sill's wrapper around the whole card, which a group's layers
 //! reach below the plate. Unique per document, since a notification id is.
 
-use sill_services::NotificationId;
+use sill_model::notifications::NotificationId;
 
 /// One named part of a banner.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -25,7 +25,7 @@ pub fn part_id(id: NotificationId, part: CardPart) -> String {
 #[cfg(test)]
 mod tests {
     use super::{CardPart, part_id};
-    use sill_services::NotificationId;
+    use sill_model::notifications::NotificationId;
 
     #[test]
     fn each_part_has_its_own_id() {

@@ -7,10 +7,10 @@ use std::rc::Rc;
 
 use dioxus::prelude::*;
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
-use sill_services::{
-    Activation, ActivationToken, Clear, Control, NotificationId, NotificationsCommand,
-    NotificationsService,
+use sill_model::notifications::{
+    Activation, ActivationToken, Clear, NotificationId, NotificationsCommand,
 };
+use sill_services::{Control, NotificationsService};
 
 use super::groups::{Expanded, toggle_group};
 use super::link::CenterLink;
@@ -147,7 +147,12 @@ impl CenterCtx {
     }
 
     /// Invoke `action` with an activation token when the compositor gives one, then close.
-    fn invoke(&self, id: NotificationId, action: sill_services::ActionKey, app: Option<String>) {
+    fn invoke(
+        &self,
+        id: NotificationId,
+        action: sill_model::notifications::ActionKey,
+        app: Option<String>,
+    ) {
         let (surface, control, link) = (
             self.surface.clone(),
             self.control.clone(),

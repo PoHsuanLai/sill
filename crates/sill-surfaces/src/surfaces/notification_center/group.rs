@@ -7,7 +7,7 @@
 
 use dioxus::prelude::*;
 use ds::{GroupHeader, IconSize, LeavingItem};
-use sill_services::{AppGroup, History, Notification, UnixMs};
+use sill_model::notifications::{AppGroup, History, Notification, UnixMs};
 
 use super::drive::CenterCtx;
 use super::groups::Expanded;
@@ -79,10 +79,10 @@ fn HeadRow(group: AppGroup, expanded: ds::Expanded, ring: Ring) -> Element {
 }
 
 /// The sender of an empty group: nobody.
-fn nobody() -> sill_services::AppRef {
-    sill_services::AppRef {
+fn nobody() -> sill_model::notifications::AppRef {
+    sill_model::notifications::AppRef {
         name: String::new(),
-        icon: sill_services::IconRef::None,
+        icon: sill_model::notifications::IconRef::None,
         desktop_entry: None,
     }
 }

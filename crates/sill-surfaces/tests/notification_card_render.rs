@@ -9,7 +9,7 @@ mod fake;
 
 use dioxus::prelude::*;
 use ds::{Ds, Material};
-use sill_services::{
+use sill_model::notifications::{
     Action, ActionKey, AppRef, Expiry, Hints, IconRef, Notification, NotificationId, UnixMs,
     parse_body,
 };

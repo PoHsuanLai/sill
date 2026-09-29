@@ -8,8 +8,8 @@
 //! design/13 §13.3.6 says a 5000 ms lifetime; design/22's `notifications.banner_hold_ms` and
 //! design/20 §1.6 (`ToastHold`) say 5200. The key wins.
 
+use sill_model::notifications::BannerLife;
 use sill_model::units::Stamp;
-use sill_services::BannerLife;
 use sill_settings::NotificationsSettings;
 
 /// When a shown banner leaves by itself.

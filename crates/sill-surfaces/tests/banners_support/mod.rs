@@ -11,10 +11,11 @@ use std::cell::RefCell;
 
 use dioxus::prelude::*;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
-use sill_services::{
+use sill_model::notifications::{
     Action, ActionKey, AppRef, BannerLife, Body, Expiry, Hints, IconRef, LiveBanner, Notification,
-    NotificationId, Notifications, NotificationsCommand, Services, UnixMs,
+    NotificationId, Notifications, NotificationsCommand, UnixMs,
 };
+use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::Banners;
 use sill_surfaces::hooks::PinnedAppearance;

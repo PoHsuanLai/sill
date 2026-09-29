@@ -21,7 +21,7 @@ pub use view::{use_app_mark, wall_now};
 
 use dioxus::prelude::*;
 use ds::{Hover, NotificationSwipe};
-use sill_services::{ActionKey, Href, Notification, UnixMs};
+use sill_model::notifications::{ActionKey, Href, Notification, UnixMs};
 
 /// Where the card is drawn: a banner paints the Toast material (ink on paper under
 /// `notifications.banner_material = "inverse"`); a center row the center's Popover.

@@ -4,7 +4,7 @@
 
 use dioxus::prelude::*;
 use ds::{CardAction, TextLine};
-use sill_services::{Action, Notification};
+use sill_model::notifications::{Action, Notification};
 
 use super::CardPress;
 

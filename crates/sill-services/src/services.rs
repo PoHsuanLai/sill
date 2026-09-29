@@ -237,7 +237,7 @@ mod tests {
         assert_eq!(*services.wallpaper.state.borrow(), Default::default());
         assert_eq!(
             services.notifications.state.borrow().live.server.mode,
-            crate::ServerMode::Passive,
+            sill_model::notifications::ServerMode::Passive,
             "passive until the daemon's policy"
         );
         assert_eq!(

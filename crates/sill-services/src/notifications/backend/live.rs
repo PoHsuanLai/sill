@@ -2,7 +2,7 @@
 //! who holds `org.freedesktop.Notifications`, own it only while the policy says `Own` (never
 //! replacing a holder: `AllowReplacement | DoNotQueue`, and ask again when the name falls
 //! free), serve [`super::dbus::Server`] while owned, load the history, and run every call and
-//! command through [`super::step`], carrying out its effects (signals,
+//! command through [`sill_model::notifications::step`], carrying out its effects (signals,
 //! `history_file::save`; a `Sound` is dropped, as sill plays no sounds yet) and
 //! publishing the result.
 //!
@@ -12,23 +12,21 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use sill_model::notifications::{
+    NameHolder, NotesState, Notification, NotificationId, NotificationsCommand,
+    NotificationsEffect, NotificationsEvent, NotificationsPolicy, Posting, ServerMode,
+    ServerStatus, UnixMs, assign_id, for_disk, holds, step,
+};
 use tokio::sync::{mpsc, watch};
 
-use super::content::{Notification, Posting};
 use super::dbus::{Call, CloseAnswer};
 use super::history_file;
-use super::ids::{NotificationId, UnixMs};
 use super::name_watch::Bus;
-use super::policy::NotificationsPolicy;
-use super::reduce::{NotesState, NotificationsEffect, NotificationsEvent, assign_id};
-use super::rules;
-use super::state::{NameHolder, ServerMode, ServerStatus};
-use super::{NotificationsCommand, step};
 use crate::env::{Bus as BusRoute, WallClock};
 use crate::stream::next_opt;
 
 /// Run the service until every control is dropped.
-pub(super) async fn run(
+pub(crate) async fn run(
     route: BusRoute,
     file: PathBuf,
     clock: Arc<dyn WallClock>,
@@ -115,7 +113,7 @@ impl Core {
                 let _ = reply.send(id);
             }
             Call::Close { id, reply } => {
-                let answer = if rules::holds(&self.state, id) {
+                let answer = if holds(&self.state, id) {
                     self.apply(NotificationsEvent::ClosedByApp(id), bus).await;
                     CloseAnswer::Closed
                 } else {
@@ -187,7 +185,7 @@ impl Core {
     }
 
     fn save(&self) {
-        if let Err(error) = history_file::save(&self.file, &history_file::for_disk(&self.state)) {
+        if let Err(error) = history_file::save(&self.file, &for_disk(&self.state)) {
             eprintln!("sill: notifications: saving the history: {error}");
         }
     }

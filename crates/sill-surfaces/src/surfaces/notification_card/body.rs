@@ -1,10 +1,10 @@
-//! The body as quire draws it: the service's parsed markup (`sill_services::Body`, `<b>`, `<i>`,
+//! The body as quire draws it: the service's parsed markup (`sill_model::notifications::Body`, `<b>`, `<i>`,
 //! `<u>`, `<a href>`) as quire's [`Rich`] runs. A run has one tone in quire, so a run that is
 //! several at once takes the strongest: a link, then bold, then italic, then underline. The line
 //! clamp and its fade are quire's (`NotificationCard`), so nothing is clipped here.
 
 use ds::{Rich, RichRun, RunTone, TextRun};
-use sill_services::{Body, BodyRun, RunLink, RunStyle, Slant, Underline, Weight};
+use sill_model::notifications::{Body, BodyRun, RunLink, RunStyle, Slant, Underline, Weight};
 
 /// `body` as quire's runs; `None` for an empty body (the card then draws no body line).
 pub fn rich_body(body: &Body) -> Option<Rich> {
@@ -37,8 +37,8 @@ fn tone(style: &RunStyle) -> RunTone {
 #[cfg(test)]
 mod tests {
     use super::rich_body;
-    use ds::{Rich, RichRun, RunTone, TextRun};
-    use sill_services::{Body, parse_body};
+    use ds::{Rich, RichRun, Run, RunTone};
+    use sill_model::notifications::{Body, parse_body};
 
     fn run(text: &str, tone: RunTone) -> RichRun {
         RichRun::Run(TextRun::new(text, tone))

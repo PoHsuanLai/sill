@@ -6,7 +6,7 @@
 //! it has gone.
 
 use shell_host::{BlurSpec, ElementId, ElementRegion, RegionSpec};
-use sill_services::NotificationId;
+use sill_model::notifications::NotificationId;
 
 use super::layer::CARD_RADIUS;
 use crate::surfaces::notification_card::{CardPart, part_id};
@@ -80,7 +80,7 @@ fn region(note: NotificationId, part: CardPart, radius: i32, inflate: i32) -> El
 mod tests {
     use super::{CardShape, Regions, element_regions};
     use shell_host::{BlurSpec, ElementId, ElementRegion, RegionSpec};
-    use sill_services::NotificationId;
+    use sill_model::notifications::NotificationId;
 
     fn el(id: &str, radius: i32, inflate: i32) -> ElementRegion {
         ElementRegion {

@@ -6,14 +6,11 @@
 
 use std::collections::HashMap;
 
+use sill_model::notifications::{CAPABILITIES, NotificationId, Posting, SERVER_INFORMATION};
 use tokio::sync::{mpsc, oneshot};
 use zbus::object_server::SignalEmitter;
 use zbus::zvariant::OwnedValue;
 use zbus::{fdo, interface};
-
-use super::capabilities::{CAPABILITIES, SERVER_INFORMATION};
-use super::content::Posting;
-use super::ids::NotificationId;
 
 /// The well-known name.
 pub const BUS_NAME: &str = "org.freedesktop.Notifications";
@@ -58,7 +55,7 @@ pub struct WireNotify {
     pub expire_timeout: i32,
 }
 
-/// `call` parsed: the body's markup into runs ([`super::markup::parse_body`]); the actions
+/// `call` parsed: the body's markup into runs ([`sill_model::notifications::parse_body`]); the actions
 /// paired; `urgency` (byte), `category`, `desktop-entry` (a trailing `.desktop` dropped),
 /// `image-data` / `image_data` / `icon_data` (converted to straight RGBA; a malformed one is
 /// no image), else `image-path`, `transient` and `resident` (booleans; some senders send a
@@ -178,10 +175,10 @@ mod tests {
     use zbus::zvariant::{OwnedValue, Value};
 
     use super::{WireNotify, posting_from_wire};
-    use crate::notifications::content::{
+    use sill_model::notifications::NotificationId;
+    use sill_model::notifications::{
         IconRef, NoteImage, NotifyUrgency, Pixels, Residency, SoundHint, Transience,
     };
-    use crate::notifications::ids::NotificationId;
 
     fn owned(value: Value<'_>) -> OwnedValue {
         value.try_into_owned().unwrap_or_else(|e| panic!("{e}"))

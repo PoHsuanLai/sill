@@ -8,7 +8,9 @@ mod center_support;
 
 use center_support::{opened, ringed, two_apps};
 use ds::ShortcutKey;
-use sill_services::{ActionKey, Activation, AppKey, Clear, NotificationId, NotificationsCommand};
+use sill_model::notifications::{
+    ActionKey, Activation, AppKey, Clear, NotificationId, NotificationsCommand,
+};
 use sill_surfaces::surfaces::notification_center::CenterShown;
 
 #[test]

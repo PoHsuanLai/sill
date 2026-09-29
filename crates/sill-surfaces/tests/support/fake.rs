@@ -49,7 +49,7 @@ pub struct Feeds {
     pub kbd_backlight: watch::Sender<sill_model::kbd_backlight::KbdBacklight>,
     pub kbd_commands: mpsc::UnboundedReceiver<sill_model::kbd_backlight::KbdCommand>,
     /// The live banners and the history (both empty until a test feeds them).
-    pub notifications: watch::Sender<sill_services::notifications::NotesState>,
+    pub notifications: watch::Sender<sill_model::notifications::NotesState>,
     pub wl: mpsc::UnboundedReceiver<sill_model::cosmic_wl::WlCommand>,
     pub volume_commands: mpsc::UnboundedReceiver<sill_model::volume::VolumeCommand>,
     pub launch: mpsc::UnboundedReceiver<sill_model::launch::LaunchCommand>,
@@ -57,7 +57,8 @@ pub struct Feeds {
     pub bluetooth_commands: mpsc::UnboundedReceiver<BluetoothCommand>,
     pub profile_commands: mpsc::UnboundedReceiver<ProfileCommand>,
     pub media_commands: mpsc::UnboundedReceiver<MediaCommand>,
-    pub notification_commands: mpsc::UnboundedReceiver<sill_services::NotificationsCommand>,
+    pub notification_commands:
+        mpsc::UnboundedReceiver<sill_model::notifications::NotificationsCommand>,
     /// The calendar widgets' agenda, the thumbnail's shots, and what the thumbnail sends.
     pub agenda: watch::Sender<sill_model::events::Agenda>,
     pub shots: watch::Sender<sill_services::Shots>,
@@ -307,7 +308,7 @@ pub fn services() -> (Services, Feeds) {
     let (kbd_backlight, kbd_io) =
         Handle::channel(sill_model::kbd_backlight::KbdBacklight::default());
     let (notifications, notifications_io) =
-        Handle::channel(sill_services::notifications::NotesState::default());
+        Handle::channel(sill_model::notifications::NotesState::default());
     // A feed for the calendar widgets and one for the screenshot thumbnail.
     let (events, agenda_io) = Handle::channel(sill_model::events::Agenda::default());
     let (screenshots, shots_io) = Handle::channel(sill_services::Shots::default());

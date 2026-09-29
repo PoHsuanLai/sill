@@ -1,10 +1,10 @@
 //! `sill debug notify`: a made-up notification as the posting a `Notify` would have made.
 //!
-//! The body is parsed with `sill_services::parse_body`, as the D-Bus path parses a `Notify`'s,
+//! The body is parsed with `sill_model::notifications::parse_body`, as the D-Bus path parses a `Notify`'s,
 //! so `--body "<b>bold</b>"` shows as it would from a real sender.
 
 use sill_ipc::{FakeExpire, FakeNotification, FakeUrgency};
-use sill_services::{
+use sill_model::notifications::{
     Action, ActionKey, AppRef, Expiry, Hints, IconRef, NotificationId, NotifyUrgency, Posting,
     parse_body,
 };
@@ -55,7 +55,7 @@ pub fn posting_of(fake: FakeNotification) -> Posting {
 mod tests {
     use super::posting_of;
     use sill_ipc::{FakeAction, FakeExpire, FakeNotification, FakeUrgency};
-    use sill_services::{ActionKey, AppKey, Expiry, NotificationId, NotifyUrgency};
+    use sill_model::notifications::{ActionKey, AppKey, Expiry, NotificationId, NotifyUrgency};
 
     #[test]
     fn a_fake_becomes_the_posting_notify_would_make() {

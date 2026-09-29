@@ -6,7 +6,7 @@
 use std::path::{Path, PathBuf};
 
 use sill_model::apps::{App, AppIcon, AppIndex, match_app};
-use sill_services::{AppRef, IconRef};
+use sill_model::notifications::{AppRef, IconRef};
 
 /// The icon a card draws.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -75,7 +75,7 @@ mod tests {
     use super::{CardArt, card_art, entry_for};
     use sill_launcher::AppId;
     use sill_model::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal};
-    use sill_services::{AppRef, IconRef};
+    use sill_model::notifications::{AppRef, IconRef};
     use std::path::PathBuf;
 
     fn entry(id: &str, name: &str, icon: &str) -> App {

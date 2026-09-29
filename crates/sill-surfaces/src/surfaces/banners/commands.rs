@@ -3,7 +3,7 @@
 //! `NotificationsCommand`s. A card stands for every banner grouped under it, so leaving is said
 //! for each; an action is the newest one's.
 
-use sill_services::{ActionKey, Activation, NotificationsCommand};
+use sill_model::notifications::{ActionKey, Activation, NotificationsCommand};
 
 use super::machine::Leave;
 use super::stack::Card;
@@ -39,7 +39,7 @@ mod tests {
     use super::{action_command, leave_commands};
     use crate::surfaces::banners::machine::Leave;
     use crate::surfaces::banners::stack::Card;
-    use sill_services::{
+    use sill_model::notifications::{
         ActionKey, Activation, ActivationToken, AppKey, BannerLife, NotificationId,
         NotificationsCommand,
     };

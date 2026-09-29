@@ -14,9 +14,10 @@ use shell_host::{HostCtx, OutputInfo, Root};
 use sill_ipc::{
     FakeNotification, NotificationsReport, NotificationsRequest, ReportHolder, ReportMode, Response,
 };
-use sill_services::{
-    History, NameHolder, Notifications, NotificationsCommand, ServerMode, Services,
+use sill_model::notifications::{
+    History, NameHolder, Notifications, NotificationsCommand, ServerMode,
 };
+use sill_services::Services;
 use sill_settings::ShellFile;
 use sill_surfaces::surfaces::banners::{BannerOutput, BannersProps, banners_layer};
 use sill_surfaces::surfaces::notification_center::{NotificationCenterProps, center_layer};

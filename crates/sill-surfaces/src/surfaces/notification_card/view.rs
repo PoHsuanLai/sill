@@ -12,8 +12,8 @@ use ds::{
     NotificationSwipe, RootChrome, Scheme, Surface, TextLine,
 };
 use sill_model::apps::AppIcon;
+use sill_model::notifications::{AppRef, Href, Notification, UnixMs};
 use sill_services::apps::{icon_theme, resolve_icon};
-use sill_services::{AppRef, Href, Notification, UnixMs};
 use sill_settings::BannerMaterial;
 
 use super::actions::card_actions;

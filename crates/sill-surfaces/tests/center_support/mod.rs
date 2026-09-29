@@ -15,10 +15,11 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds_native::harness::settle_until;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
-use sill_services::{
+use sill_model::notifications::{
     AppGroup, AppKey, AppRef, Body, Expiry, Hints, History, IconRef, Notification, NotificationId,
-    NotificationsCommand, Services, UnixMs,
+    NotificationsCommand, UnixMs,
 };
+use sill_services::Services;
 use sill_settings::{SettingsFeed, ShellFile};
 use sill_surfaces::NotificationCenter;
 use sill_surfaces::hooks::PinnedAppearance;

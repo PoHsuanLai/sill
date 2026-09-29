@@ -34,7 +34,7 @@ pub enum Response {
 }
 
 /// The notifications server as `sill notifications status` prints it (the IPC mirror of
-/// `sill_services::ServerStatus`: this crate may not depend on sill-services).
+/// `sill_model::notifications::ServerStatus`: this crate may not depend on sill-services).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NotificationsReport {
     pub mode: ReportMode,

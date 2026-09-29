@@ -1,7 +1,7 @@
 //! The center's words, pure: its title, the empty state, and the footer that says when sill is
 //! not the one receiving notifications. A group's name is the card's (`use_app_mark`).
 
-use sill_services::{NameHolder, ServerMode, ServerStatus};
+use sill_model::notifications::{NameHolder, ServerMode, ServerStatus};
 
 /// The column's title.
 pub const TITLE: &str = "Notifications";
@@ -25,7 +25,7 @@ pub fn server_line(server: &ServerStatus) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::server_line;
-    use sill_services::{NameHolder, NameOwner, ServerMode, ServerStatus};
+    use sill_model::notifications::{NameHolder, NameOwner, ServerMode, ServerStatus};
 
     #[test]
     fn the_footer_names_whoever_else_shows_notifications() {

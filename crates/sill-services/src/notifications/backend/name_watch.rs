@@ -6,6 +6,9 @@
 //! `NameOwnerChanged`, a `NameLost` (another daemon replaced sill) and a policy change all
 //! settle the same way: [`Bus::settle`].
 
+use sill_model::notifications::{
+    ActionKey, Activation, CloseReason, NameHolder, NameOwner, NotificationId, ServerMode,
+};
 use tokio::sync::mpsc;
 use zbus::fdo::{DBusProxy, NameOwnerChangedStream, RequestNameFlags};
 use zbus::names::BusName;
@@ -13,14 +16,10 @@ use zbus::object_server::SignalEmitter;
 use zbus::{Connection, fdo};
 
 use super::dbus::{BUS_NAME, Call, OBJECT_PATH, Server};
-use super::ids::ActionKey;
-use super::ids::{Activation, NotificationId};
-use super::reduce::CloseReason;
-use super::state::{NameHolder, NameOwner, ServerMode};
 
 /// A connection to the bus the service speaks on.
 #[derive(Debug)]
-pub(super) struct Bus {
+pub(crate) struct Bus {
     connection: Connection,
     dbus: DBusProxy<'static>,
     /// Where the served object sends its calls.
@@ -30,7 +29,7 @@ pub(super) struct Bus {
 impl Bus {
     /// Connect to `bus`, with the `NameOwnerChanged` stream for the name; `None` when the bus
     /// is absent or unreachable (the service then runs without one: `sill debug notify` works).
-    pub(super) async fn connect(
+    pub(crate) async fn connect(
         bus: &crate::env::Bus,
         calls: mpsc::UnboundedSender<Call>,
     ) -> Option<(Bus, Option<NameOwnerChangedStream>)> {
@@ -58,7 +57,7 @@ impl Bus {
     }
 
     /// Ask for or give back the name as `mode` says, then report who holds it.
-    pub(super) async fn settle(&self, mode: ServerMode) -> NameHolder {
+    pub(crate) async fn settle(&self, mode: ServerMode) -> NameHolder {
         let holder = self.holder().await;
         match (mode, &holder) {
             (ServerMode::Own, NameHolder::Nobody) => {
@@ -123,7 +122,7 @@ impl Bus {
     }
 
     /// Give the name back and stop serving the object.
-    pub(super) async fn release(&self) {
+    pub(crate) async fn release(&self) {
         if let Err(error) = self.connection.release_name(BUS_NAME).await {
             eprintln!("sill: notifications: releasing {BUS_NAME}: {error}");
         }
@@ -135,7 +134,7 @@ impl Bus {
     }
 
     /// Emit `NotificationClosed`.
-    pub(super) async fn closed(&self, id: NotificationId, reason: CloseReason) {
+    pub(crate) async fn closed(&self, id: NotificationId, reason: CloseReason) {
         let Ok(emitter) = SignalEmitter::new(&self.connection, OBJECT_PATH) else {
             return;
         };
@@ -145,7 +144,7 @@ impl Bus {
     }
 
     /// Emit `ActivationToken` (when there is one), then `ActionInvoked`.
-    pub(super) async fn invoked(&self, id: NotificationId, action: &ActionKey, token: &Activation) {
+    pub(crate) async fn invoked(&self, id: NotificationId, action: &ActionKey, token: &Activation) {
         let Ok(emitter) = SignalEmitter::new(&self.connection, OBJECT_PATH) else {
             return;
         };

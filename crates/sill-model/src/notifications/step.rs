@@ -34,109 +34,9 @@
 //!   of the two. No `SaveHistory`.
 //! - **Server**: the bus name's news.
 
-use serde::{Deserialize, Serialize};
-
-use super::content::{Notification, SoundHint};
-use super::history_file::StoredHistory;
-use super::ids::{ActionKey, Activation, AppKey, NotificationId};
+use super::ids::NotificationId;
 use super::policy::{NotificationsPolicy, Swipe};
-use super::rules;
-use super::state::{History, Notifications, ServerStatus};
-
-/// Everything the service holds: what it publishes on its two receivers, and the last id it
-/// handed out.
-#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub struct NotesState {
-    pub live: Notifications,
-    pub history: History,
-    pub last_id: NotificationId,
-}
-
-/// One thing that happened to the service.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
-pub enum NotificationsEvent {
-    /// A `Notify` (or `sill debug notify`), with the id [`assign_id`] gave it.
-    Posted(Box<Notification>),
-    /// `CloseNotification`.
-    ClosedByApp(NotificationId),
-    /// The person dismissed it: the close button, a row's clear (a swipe under
-    /// `Swipe::Dismiss`).
-    Dismissed(NotificationId),
-    /// The person swiped its banner away: under `Swipe::KeepInCenter` the banner leaves and the
-    /// notification stays in the history (`Closed` with `Dismissed`: the banner is gone); under
-    /// `Swipe::Dismiss`, as `Dismissed`.
-    SwipedAway(NotificationId),
-    /// Every banner dismissed at once.
-    DismissedAll,
-    /// A banner's hold ran out (the banner surface counts it, pausing while hovered).
-    BannerTimedOut(NotificationId),
-    /// The person chose an action (`default` for the body).
-    Invoked {
-        id: NotificationId,
-        action: ActionKey,
-        token: Activation,
-    },
-    HistoryCleared(Clear),
-    /// The history file, read at start.
-    Loaded(StoredHistory),
-    Server(ServerStatus),
-}
-
-/// Which history to clear.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
-pub enum Clear {
-    All,
-    App(AppKey),
-}
-
-/// Something the live loop must do.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", content = "v", rename_all = "snake_case")]
-pub enum NotificationsEffect {
-    /// Emit `NotificationClosed(id, reason)`.
-    Closed {
-        id: NotificationId,
-        reason: CloseReason,
-    },
-    /// Emit `ActivationToken(id, token)` when there is one, then `ActionInvoked(id, action)`.
-    Invoked {
-        id: NotificationId,
-        action: ActionKey,
-        token: Activation,
-    },
-    /// Write the history file.
-    SaveHistory,
-    /// Play this sound (through the sound service).
-    Sound(SoundHint),
-}
-
-/// `NotificationClosed`'s reason.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum CloseReason {
-    /// 1: it expired.
-    Expired,
-    /// 2: the person dismissed it.
-    Dismissed,
-    /// 3: `CloseNotification`.
-    ClosedByCall,
-    /// 4: undefined.
-    Undefined,
-}
-
-impl CloseReason {
-    /// The spec's number.
-    pub fn wire(self) -> u32 {
-        match self {
-            CloseReason::Expired => 1,
-            CloseReason::Dismissed => 2,
-            CloseReason::ClosedByCall => 3,
-            CloseReason::Undefined => 4,
-        }
-    }
-}
+use super::{CloseReason, NotesState, NotificationsEffect, NotificationsEvent, rules};
 
 /// The id a posting gets: the one it replaces when that one is still held (a live banner or
 /// in the history), else one past `last_id`, skipping 0 when it wraps.
@@ -194,5 +94,4 @@ pub fn step(
 }
 
 #[cfg(test)]
-#[path = "reduce_tests.rs"]
 mod tests;

@@ -7,14 +7,14 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
+use sill_model::notifications::{
+    ActionKey, Activation, ActivationToken, NameHolder, NotesState, NotificationId,
+    NotificationsCommand, NotificationsPolicy, ServerMode,
+};
 use sill_services::control::Control;
 use sill_services::env::{BusRoute, Buses, Env};
-use sill_services::notifications::{self, BUS_NAME, NotesState, NotificationsService};
+use sill_services::notifications::{self, BUS_NAME, NotificationsService};
 use sill_services::service::spawn;
-use sill_services::{
-    ActionKey, Activation, ActivationToken, NameHolder, NotificationId, NotificationsCommand,
-    NotificationsPolicy, ServerMode,
-};
 use sill_testkit::{Heard, PrivateBus, Signals, TempDir};
 use tokio::sync::watch;
 use zbus::Message;
@@ -232,7 +232,7 @@ fn capabilities_and_server_information_answer_as_the_spec_says() {
             .body()
             .deserialize()
             .unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(words, notifications::CAPABILITIES);
+        assert_eq!(words, sill_model::notifications::CAPABILITIES);
         let info: (String, String, String, String) = call(&connection, "GetServerInformation", &())
             .await
             .unwrap_or_else(|e| panic!("GetServerInformation: {e}"))
