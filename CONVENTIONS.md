@@ -32,7 +32,7 @@ quietly.
 
 ## 2. Files and modules
 
-- **One concept per file.** Name the file after the concept (`presence.rs`, `wifi_networks.rs`),
+- **One concept per file.** Name the file after the concept (`use_presence.rs`, `wifi_networks.rs`),
   never after the work that produced it. Forbidden in file, module, test and function names:
   `v2`, `new_`, `old_`, `fixes`, `followups`, `polish`, `gaps`, `round`, `wave`, a ticket id,
   another project's name. *Because:* tests named `mailo5_*`, `palette_followups` and
@@ -202,6 +202,9 @@ remembers.
 - **Docs describe the present.** ARCHITECTURE.md is the map, CONVENTIONS.md the rules, FINDINGS.md
   the open items plus standing facts. No changelogs, no wave plans, no migration guides left
   behind after the migration.
+- **Paths in docs exist.** A backticked file path in a doc names a file that is there.
+  `scripts/check-doc-paths.sh` lists the ones that are not; run it after moving or renaming
+  files. It is a tool, not a gate.
 
 ## 10. Change discipline
 
@@ -257,7 +260,8 @@ remembers.
 
 - **The gate passes before work is reported complete:** `cargo fmt --all --check`, `cargo
   clippy --workspace --all-targets --all-features -- -D warnings`, `cargo test --workspace`,
-  `./scripts/check-boundary.sh` where the repo has one, and `cargo deny check licenses`.
+  `./scripts/check-boundary.sh` where the repo has one (quire also runs
+  `./scripts/check-consumer.sh`), and `cargo deny check licenses`.
   ARCHITECTURE.md gives the repo's exact commands. Check every exit code, never a piped summary.
 - **`cargo tree -i <dep>` exits 101 when the dependency is absent**, which is the state a
   boundary check wants; a boundary script checks for output, not exit status.
