@@ -15,7 +15,7 @@
 .sill-bar-group{ position:relative; display:flex; align-items:center; height:100%; gap:var(--s-4); }
 
 /* A title's hit box. The pill behind a text title is its ds MenuBarItem's; a status item's
-   IconButton{Status} draws its own. */
+   Button{StatusItem} draws its own. */
 .sill-bar-title{ display:flex; align-items:center; }
 
 /* Digits keep their width, so the status items beside the clock do not move each minute. */

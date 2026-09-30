@@ -253,7 +253,7 @@ fn delete_trashes_it() {
     running.harness.advance(Duration::from_millis(300));
     let button = running
         .harness
-        .centre(".ds-shot-actions .ds-icon-button")
+        .centre(".ds-shot-actions .ds-button")
         .expect("the Delete button"); // test-only
     running.harness.pointer_move(button);
     running.harness.advance(Duration::from_millis(40));

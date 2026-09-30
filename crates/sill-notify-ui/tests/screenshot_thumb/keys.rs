@@ -11,7 +11,7 @@ use sill_settings::ShellFile;
 use super::{Done, HOLD_MS, Running, commands, file, leave, leaving, one_up, start, until};
 
 const PICTURE: &str = ".ds-shot-picture";
-const ACTION: &str = ".ds-shot-actions .ds-icon-button";
+const ACTION: &str = ".ds-shot-actions .ds-button";
 
 /// The card up, then the keyboard asked for and given a few frames to land.
 fn focused(running: &mut Running) {

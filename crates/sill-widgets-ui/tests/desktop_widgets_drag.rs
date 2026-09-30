@@ -245,7 +245,7 @@ fn a_click_on_a_control_still_works_and_a_drag_from_it_does_not_press_it() {
     let before = box_of(&run.harness, "widget-now-playing");
     let next = run
         .harness
-        .centre("#widget-now-playing .sill-cc-media-buttons .ds-icon-button:last-child")
+        .centre("#widget-now-playing .sill-cc-media-buttons .ds-button:last-child")
         .expect("the Next button is laid out");
     run.harness.click(next);
     settle_until(&mut run.harness, |h| h.count(".sill-dw-shield") == 0);

@@ -127,7 +127,7 @@ fn TrayButton(index: usize, item: TrayItem, origin: ScreenOrigin) -> Element {
 }
 
 /// One status item's markup: no hook, so `tests` can render it directly. The unclassed `span`
-/// only listens for the wheel, which `IconButton` does not report.
+/// only listens for the wheel, which `Button` does not report.
 #[component]
 fn TrayButtonView(
     index: usize,

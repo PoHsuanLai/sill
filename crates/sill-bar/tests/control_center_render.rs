@@ -58,7 +58,7 @@ fn the_grid_shows_what_the_services_hold() {
         ("no device named on the Bluetooth tile", ">Buds<", 0),
         ("Bluetooth and Do Not Disturb on", ">On<", 2),
         ("Do Not Disturb", ">Focus<", 1),
-        ("two quire level controls", "class=\"ds-level\"", 2),
+        ("two quire capsule sliders", "class=\"ds-slider\"", 2),
         (
             "the sink as Sound's title",
             ">Built-in Audio Analog Stereo<",

@@ -54,7 +54,7 @@ fn the_bar_shows_what_the_services_hold() {
         ("on the frame ground", "data-ground=\"frame\"", 1),
         ("no tint layer of the bar's own", "sill-bar-tint", 0),
         // Sound, Wi-Fi and Battery (`control_center.menu_bar_*`), then the control center.
-        ("four status items", "data-variant=\"status\"", 4),
+        ("four status items", "data-variant=\"status-item\"", 4),
         (
             "the control center item",
             "aria-label=\"Control Center\"",

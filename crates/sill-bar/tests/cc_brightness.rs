@@ -20,10 +20,10 @@ use sill_model::ids::{DdcId, OutputName};
 use sill_model::units::Percent;
 use tokio::sync::mpsc::UnboundedReceiver;
 
-const CAPSULE: &str = ".ds-level[*|aria-label=\"Display\"]";
+const CAPSULE: &str = ".ds-slider[*|aria-label=\"Display\"]";
 /// A module panel dimmed with its level (Display's, the one disabled here).
 const DISABLED_PANEL: &str = ".ds-module-panel[*|aria-disabled=true]";
-const RAIL: &str = ".ds-level[*|aria-label=\"Display\"] .ds-level-rail";
+const RAIL: &str = ".ds-slider[*|aria-label=\"Display\"] .ds-slider-rail";
 
 /// A monitor on `DP-1` (the panel's bar output) answering DDC at `level` of 100.
 fn monitor(level: u16) -> Displays {

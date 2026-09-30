@@ -120,10 +120,14 @@ fn command_y_while_typing_then_right_enter_the_pane_and_escape_steps_out() {
     let html = open.harness.html();
     assert!(html.contains("Reveal in Files"), "the pane's controls");
     assert!(
-        open.harness.count(".ds-preview .ds-chord") > 0 && html.contains("⌘"),
+        open.harness.count(".ds-preview .ds-key-equivalent") > 0 && html.contains("⌘"),
         "with their chords, as plain text after the label (F1040)"
     );
-    assert_eq!(open.harness.count(".ds-preview .ds-kbd"), 0, "no key caps");
+    assert_eq!(
+        open.harness.count(".ds-preview .ds-key-equivalent-key"),
+        0,
+        "no key caps"
+    );
     assert!(
         html.contains("data-focused=\"true\""),
         "→ at the end, with the pane shown, gave its first control the keyboard"

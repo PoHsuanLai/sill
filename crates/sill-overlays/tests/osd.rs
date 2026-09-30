@@ -168,10 +168,12 @@ fn the_level_is_the_capsule() {
     show(&mut running, OsdKind::Volume, LevelSource::Live);
     running.harness.advance(Duration::from_millis(40));
     let html = running.harness.html();
-    let at = html.find("class=\"ds-level\"").expect("a level control");
+    let at = html
+        .find("class=\"ds-level-indicator\"")
+        .expect("a level control");
     let tag = &html[at..];
     let tag = &tag[..tag.find('>').unwrap_or(tag.len())];
-    assert!(tag.contains("data-look=\"capsule\""), "{tag}");
+    assert!(tag.contains("data-style=\"continuous\""), "{tag}");
 }
 
 /// The card's presence: quire's `Osd` (`#osd`) is `"hidden"` while `data-shown="hidden"`, else
@@ -193,7 +195,7 @@ fn look(harness: &Harness) -> Option<String> {
 /// The level control's `aria-valuenow`.
 fn level(harness: &Harness) -> Option<u16> {
     let html = harness.html();
-    let rest = &html[html.find("class=\"ds-level\"")?..];
+    let rest = &html[html.find("class=\"ds-level-indicator\"")?..];
     let rest = &rest[rest.find("aria-valuenow=\"")? + "aria-valuenow=\"".len()..];
     rest[..rest.find('"')?].parse().ok()
 }

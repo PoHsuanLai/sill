@@ -70,14 +70,14 @@ fn ran(running: &mut Running) -> Vec<SessionAction> {
     ran
 }
 
-/// The focused button's label: the one drawn `Primary`.
+/// The focused button's label: the one that answers Return.
 fn primary(harness: &Harness) -> Option<String> {
-    harness.text_of(".ds-button[*|data-variant=primary]")
+    harness.text_of(".ds-button[*|data-answers=return]")
 }
 
-/// Whether the keyboard focus is on the `Primary` button (quire's focus ring is there).
+/// Whether the keyboard focus is on the default button (quire's focus ring is there).
 fn ring_on_primary(harness: &Harness) -> bool {
-    harness.is_focused(".ds-button[*|data-variant=primary]")
+    harness.is_focused(".ds-button[*|data-answers=return]")
 }
 
 /// The sheet's phase: its panel's `data-look` (`open` or `leaving`), `closed` with no sheet.
@@ -131,24 +131,33 @@ fn open_it_draws_the_sheet_the_buttons_and_the_hints() {
         Some("Shut down this computer now?")
     );
     let buttons = [
-        ("Log Out", "secondary", None),
-        ("Restart", "danger", Some("regular")),
-        ("Shut Down", "primary", None),
-        ("Suspend", "secondary", None),
+        ("Log Out", "normal", None),
+        ("Restart", "destructive", None),
+        ("Shut Down", "normal", Some("return")),
+        ("Suspend", "normal", None),
     ];
     assert_eq!(
         h.count(".sill-power-menu-buttons .ds-button"),
         buttons.len()
     );
-    for (n, (label, variant, size)) in buttons.iter().enumerate() {
+    for (n, (label, role, answers)) in buttons.iter().enumerate() {
         let button = nth_button(n + 1);
         assert_eq!(h.text_of(&button).as_deref(), Some(*label));
         assert_eq!(
-            h.attr(&button, "data-variant").as_deref(),
-            Some(*variant),
+            h.attr(&button, "data-role").as_deref(),
+            Some(*role),
             "{label}"
         );
-        assert_eq!(h.attr(&button, "data-size").as_deref(), *size, "{label}");
+        assert_eq!(
+            h.attr(&button, "data-answers").as_deref(),
+            *answers,
+            "{label}"
+        );
+        assert_eq!(
+            h.attr(&button, "data-size").as_deref(),
+            Some("regular"),
+            "{label}"
+        );
     }
     // Restart (Danger, Regular) stands level with Log Out and Suspend (Secondary); Shut Down
     // (Primary) is their box less the Secondary's two hairlines, quire's own geometry.
@@ -164,7 +173,11 @@ fn open_it_draws_the_sheet_the_buttons_and_the_hints() {
         "Danger stands level with Secondary: {heights:?}"
     );
     assert_eq!(h.count(".sill-power-menu-hint"), 3);
-    assert_eq!(h.count(".sill-power-menu-hint .ds-kbd"), 4, "← →, ↵, Esc");
+    assert_eq!(
+        h.count(".sill-power-menu-hint .ds-key-equivalent-key"),
+        4,
+        "← →, ↵, Esc"
+    );
 }
 
 #[test]

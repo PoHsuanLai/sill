@@ -57,32 +57,46 @@ fn a_query_groups_under_the_top_hit() {
     );
 }
 
-/// Only the selected row shows its chord, as plain text (`.ds-chord`, no key caps), and
+/// Only the selected row shows its chord, as plain text (`.ds-key-equivalent`, no key caps), and
 /// the chord moves with the selection; the other rows show only their data.
 #[test]
 fn only_the_selected_row_shows_its_chord() {
     let mut open = open("fi");
     let h = &open.harness;
     assert_eq!(selected_title(h).as_deref(), Some("Firefox"));
-    assert_eq!(h.count(".ds-chord"), 1, "one chord, on the selection");
+    assert_eq!(
+        h.count(".ds-key-equivalent"),
+        1,
+        "one chord, on the selection"
+    );
     assert!(
-        selected_row(&h.html()).contains("ds-chord"),
+        selected_row(&h.html()).contains("ds-key-equivalent"),
         "on the selected row"
     );
-    assert_eq!(h.count(".ds-menu-item .ds-kbd"), 0, "no key caps on a row");
-    let top = h.text_of(".ds-chord").expect("the top hit's chord");
+    assert_eq!(
+        h.count(".ds-menu-item .ds-key-equivalent-key"),
+        0,
+        "no key caps on a row"
+    );
+    let top = h
+        .text_of(".ds-key-equivalent")
+        .expect("the top hit's chord");
     assert!(!top.is_empty(), "the top hit's chord");
     open.harness.key(ShortcutKey::Down);
     open.harness.advance(Duration::from_millis(40));
     let h = &open.harness;
     assert_eq!(selected_title(h).as_deref(), Some("Files"));
-    assert_eq!(h.count(".ds-chord"), 1, "the chord moved, not copied");
+    assert_eq!(
+        h.count(".ds-key-equivalent"),
+        1,
+        "the chord moved, not copied"
+    );
     assert!(
-        selected_row(&h.html()).contains("ds-chord"),
+        selected_row(&h.html()).contains("ds-key-equivalent"),
         "on the selected row"
     );
     assert_eq!(
-        h.text_of(".ds-chord").as_deref(),
+        h.text_of(".ds-key-equivalent").as_deref(),
         Some("⌃K"),
         "Files has actions without a chord of their own"
     );

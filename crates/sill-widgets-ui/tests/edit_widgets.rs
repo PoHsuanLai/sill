@@ -212,7 +212,7 @@ fn an_added_widget_is_written_as_the_keys_and_places_and_a_second_is_refused() {
 fn a_removed_tile_leaves_the_center_key() {
     let mut run = opened();
     let up_next = ".ds-widget-gallery-surface[*|data-host=tile] \
-                   .ds-widget-gallery-row:nth-child(3) .ds-button[*|data-variant=danger]";
+                   .ds-widget-gallery-row:nth-child(3) .ds-button[*|data-role=destructive]";
     run.click(up_next);
     let writes = run.writes();
     assert_eq!(
@@ -292,7 +292,8 @@ fn the_gallery_is_a_bottom_sheet_offering_one_size_per_widget() {
     }
     let h = &run.harness;
     assert_eq!(
-        h.count(".ds-widget-gallery .ds-segmented") + h.count(".ds-widget-gallery .ds-segment"),
+        h.count(".ds-widget-gallery .ds-segmented")
+            + h.count(".ds-widget-gallery .ds-segmented-segment"),
         0,
         "no size control anywhere: {}",
         h.html()
@@ -354,7 +355,7 @@ fn escape_closes_after_a_press_inside_the_panel() {
             Then::AddToDesktop => run.click(ADD_TO_DESKTOP),
             Then::RemoveADesktopRow => run.click(
                 ".ds-widget-gallery-surface[*|data-host=desktop] \
-                 .ds-widget-gallery-row:nth-child(3) .ds-button[*|data-variant=danger]",
+                 .ds-widget-gallery-row:nth-child(3) .ds-button[*|data-role=destructive]",
             ),
         }
         run.harness.advance(Duration::from_millis(100));

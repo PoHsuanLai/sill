@@ -409,12 +409,6 @@ A settled item is deleted, not marked closed.
 
 ### quire
 
-- **Q580** Enter and Space on a focused `IconButton` do nothing under Blitz (no keyboard
-  activation for a `button`, and quire's `IconButton` has no key handler), so the thumbnail's
-  Delete button reached by Tab cannot be pressed from the keyboard; Delete and Backspace
-  reach the same action from anywhere on the card. The same holds for the notification card's
-  close button (a bare `button`): Tab reaches it, Enter does nothing; Escape, Delete and
-  Backspace close the card from anywhere on it. quire's `Button` (the card's actions) is fine.
 - **Q3** No per-workspace look store; `use_space_look` computes the preset for the position.
 - **Q20** The tray's dbusmenu popup is not part of the bar's menu session.
 - **Q21** A dbusmenu submenu is dropped (no room beside the popup for it).

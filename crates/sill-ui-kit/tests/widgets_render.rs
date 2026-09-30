@@ -248,7 +248,7 @@ fn now_playing_is_the_control_centers_view_and_presses_reach_the_fake() {
         Some("sill.now-playing")
     );
     let next = h
-        .centre("#widget-now-playing .sill-cc-media-buttons .ds-icon-button:last-child")
+        .centre("#widget-now-playing .sill-cc-media-buttons .ds-button:last-child")
         .expect("the Next button is laid out");
     running.harness.click(next);
     running.harness.advance(Duration::from_millis(50));

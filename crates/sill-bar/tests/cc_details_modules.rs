@@ -29,7 +29,7 @@ fn playing(playback: Playback, title: &str) -> sill_model::now_playing::Media {
     media
 }
 
-const TOGGLE: &str = ".sill-cc-media-buttons [*|data-playback]";
+const TOGGLE: &str = ".sill-cc-media-buttons .ds-button:nth-child(2)";
 
 #[test]
 fn now_playing_morphs_its_button_cross_fades_the_track_and_steps_the_position() {
@@ -131,7 +131,7 @@ fn each_devices_ring_stands_at_its_level_when_the_center_opens() {
 
 // ---- Keyboard brightness --------------------------------------------------------------------
 
-const KEYS: &str = ".ds-level[*|aria-label=\"Keyboard Brightness\"]";
+const KEYS: &str = ".ds-slider[*|aria-label=\"Keyboard Brightness\"]";
 
 #[test]
 fn the_keyboard_module_follows_the_backlight_and_hides_without_one() {
