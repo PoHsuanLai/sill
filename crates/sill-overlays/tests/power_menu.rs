@@ -1,11 +1,12 @@
 //! The power menu on the harness, following a `PowerMenuLink` the test writes as the daemon does,
 //! over the fake session service: the offers it publishes are the ones the buttons show, and the
 //! `SessionCommand::Run` it is sent is the choice made, so nothing here can reach logind.
-//! Hidden it draws nothing; open, quire's Sheet centred full-output (it dims nothing), the
-//! question for the focused button, the four buttons in design/20 section 1.8's order and
-//! variants at one height, the key hints, and the blur element covering exactly the sheet; then
-//! the keyboard and pointer (arrows move, Enter confirms, Esc closes, a press outside the sheet closes). A
-//! chosen action is sent only after the exit motion has settled and the menu has closed.
+//! Hidden it draws nothing; open, quire's Alert on a Sheet centred full-output (it dims nothing),
+//! the question for the opening's action, its buttons (that action first and the default, then the
+//! other offered ones, then Cancel) and the blur element covering exactly the sheet; then the
+//! keyboard and pointer (Return presses the default, Tab moves, Space presses, Escape cancels, a
+//! press outside the sheet closes). A chosen action is sent only after the exit motion has settled
+//! and the menu has closed.
 
 use std::time::Duration;
 
@@ -80,11 +81,12 @@ fn ring_on_primary(harness: &Harness) -> bool {
     harness.focus_of(".ds-button[*|data-answers=return]") == FocusState::Focused
 }
 
-/// The sheet's phase: its panel's `data-look` (`open` or `leaving`), `closed` with no sheet.
+/// The sheet's phase: its `data-presence` (`entering`, `present` or `leaving`), `closed` with no
+/// sheet.
 fn look(harness: &Harness) -> Option<String> {
-    match harness.count(".sill-power-menu-panel") {
+    match harness.count(".ds-sheet") {
         0 => Some("closed".to_owned()),
-        _ => harness.attr(".sill-power-menu-panel", "data-look"),
+        _ => harness.attr(".ds-sheet", "data-presence"),
     }
 }
 
@@ -93,9 +95,9 @@ fn is_open(link: &PowerMenuLink) -> bool {
     link.now().opening().is_some()
 }
 
-/// The `n`th button (1-based, `SessionAction::POWER_MENU` order).
+/// The `n`th button of the alert (1-based, top to bottom).
 fn nth_button(n: usize) -> String {
-    format!(".sill-power-menu-buttons .ds-button:nth-child({n})")
+    format!(".ds-alert-slot:nth-child({n}) .ds-button")
 }
 
 #[test]
@@ -105,10 +107,11 @@ fn hidden_it_draws_nothing() {
     assert_eq!(look(&running.harness).as_deref(), Some("closed"));
     assert_eq!(running.harness.count(".ds-sheet"), 0);
     assert_eq!(running.harness.count(".ds-button"), 0);
+    assert_eq!(running.harness.count(".ds-alert"), 0);
 }
 
 #[test]
-fn open_it_draws_the_sheet_the_buttons_and_the_hints() {
+fn open_it_draws_the_alert_and_its_buttons() {
     let running = opened(
         ShellFile::default(),
         Session::everything(),
@@ -122,19 +125,26 @@ fn open_it_draws_the_sheet_the_buttons_and_the_hints() {
         Some("centre")
     );
     assert_eq!(
-        h.text_of(".sill-power-menu-prompt").as_deref(),
+        h.text_of(".ds-alert-title").as_deref(),
         Some("Shut down this computer now?")
     );
+    assert_eq!(
+        h.text_of(".ds-alert-body").as_deref(),
+        Some("Your apps will quit and the computer will turn off.")
+    );
+    assert_eq!(
+        h.attr(".ds-alert-footer", "data-layout").as_deref(),
+        Some("stack"),
+        "five buttons stack, the default on top"
+    );
     let buttons = [
+        ("Shut Down", "normal", Some("return")),
         ("Log Out", "normal", None),
         ("Restart", "destructive", None),
-        ("Shut Down", "normal", Some("return")),
         ("Suspend", "normal", None),
+        ("Cancel", "normal", Some("escape")),
     ];
-    assert_eq!(
-        h.count(".sill-power-menu-buttons .ds-button"),
-        buttons.len()
-    );
+    assert_eq!(h.count(".ds-alert-footer .ds-button"), buttons.len());
     for (n, (label, role, answers)) in buttons.iter().enumerate() {
         let button = nth_button(n + 1);
         assert_eq!(h.text_of(&button).as_deref(), Some(*label));
@@ -148,30 +158,11 @@ fn open_it_draws_the_sheet_the_buttons_and_the_hints() {
             *answers,
             "{label}"
         );
-        assert_eq!(
-            h.attr(&button, "data-size").as_deref(),
-            Some("regular"),
-            "{label}"
-        );
     }
-    // Restart (Danger, Regular) stands level with Log Out and Suspend (Secondary); Shut Down
-    // (Primary) is their box less the Secondary's two hairlines, quire's own geometry.
-    let heights: Vec<f32> = [1, 2, 4]
-        .into_iter()
-        .filter_map(|n| h.rect(&nth_button(n)).map(|r| r.size.height.0))
-        .collect();
-    assert_eq!(heights.len(), 3);
-    assert!(
-        heights
-            .iter()
-            .all(|height| (height - heights[0]).abs() < 0.5),
-        "Danger stands level with Secondary: {heights:?}"
-    );
-    assert_eq!(h.count(".sill-power-menu-hint"), 3);
     assert_eq!(
-        h.count(".sill-power-menu-hint .ds-key-equivalent-key"),
-        4,
-        "← →, ↵, Esc"
+        h.count(".ds-key-equivalent"),
+        0,
+        "no key hints: the alert's buttons say what Return and Escape do"
     );
 }
 
@@ -250,7 +241,7 @@ fn it_opens_on_the_default_button_with_the_ring_on_it() {
     );
     assert_eq!(primary(&running.harness).as_deref(), Some("Shut Down"));
     assert!(ring_on_primary(&running.harness), "the keyboard is on it");
-    assert_eq!(look(&running.harness).as_deref(), Some("open"));
+    assert_eq!(look(&running.harness).as_deref(), Some("present"));
     let suspend = opened(
         file(PowerMenuDefault::Suspend),
         Session::everything(),
@@ -269,45 +260,38 @@ fn a_launcher_row_opens_on_its_own_button() {
     assert_eq!(primary(&running.harness).as_deref(), Some("Restart"));
 }
 
+/// The label of the button that holds the keyboard.
+fn focused(harness: &Harness) -> Option<String> {
+    (1..=6)
+        .map(nth_button)
+        .find(|button| harness.focus_of(button) == FocusState::Focused)
+        .and_then(|button| harness.text_of(&button))
+}
+
 #[test]
-fn arrows_and_tab_move_the_highlight_and_the_ring() {
+fn tab_and_shift_tab_move_the_ring_between_the_buttons_and_run_nothing() {
     let mut running = opened(
         shut_down_default(),
         Session::everything(),
         Preselect::Default,
     );
-    let steps = [
-        (ShortcutKey::Right, "Suspend"),
-        (ShortcutKey::Right, "Log Out"),
-        (ShortcutKey::Left, "Suspend"),
-        (ShortcutKey::Up, "Shut Down"),
-        (ShortcutKey::Tab, "Suspend"),
-        (ShortcutKey::Down, "Log Out"),
-        (ShortcutKey::Right, "Restart"),
-    ];
+    let steps = [(ShortcutKey::Tab, "Log Out"), (ShortcutKey::Tab, "Restart")];
     for (key, want) in steps {
         running.harness.send(Input::key(key));
         let harness = &mut running.harness;
-        settle(harness, |h| {
-            primary(h).as_deref() == Some(want) && ring_on_primary(h)
-        });
-        assert_eq!(primary(harness).as_deref(), Some(want), "after {key:?}");
-        assert!(ring_on_primary(harness), "the ring follows to {want}");
+        settle(harness, |h| focused(h).as_deref() == Some(want));
+        assert_eq!(focused(harness).as_deref(), Some(want), "after {key:?}");
     }
     assert!(ran(&mut running).is_empty(), "moving runs nothing");
 }
 
 #[test]
-fn enter_leaves_then_runs_the_focused_action_on_the_backend() {
+fn return_leaves_then_runs_the_default_action_on_the_backend() {
     let mut running = opened(
         shut_down_default(),
         Session::everything(),
-        Preselect::Default,
+        Preselect::Action(SessionAction::Restart),
     );
-    running.harness.send(Input::key(ShortcutKey::Left));
-    settle(&mut running.harness, |h| {
-        primary(h).as_deref() == Some("Restart")
-    });
     running.harness.send(Input::key(ShortcutKey::Enter));
     running.harness.advance(Duration::from_millis(20));
     assert_eq!(look(&running.harness).as_deref(), Some("leaving"));
@@ -328,6 +312,23 @@ fn enter_leaves_then_runs_the_focused_action_on_the_backend() {
         0,
         "nothing drawn hidden"
     );
+}
+
+#[test]
+fn space_presses_the_button_the_keyboard_is_on() {
+    let mut running = opened(
+        shut_down_default(),
+        Session::everything(),
+        Preselect::Default,
+    );
+    running.harness.send(Input::key(ShortcutKey::Tab));
+    settle(&mut running.harness, |h| {
+        focused(h).as_deref() == Some("Log Out")
+    });
+    running.harness.send(Input::key(ShortcutKey::Space));
+    let link = running.link.clone();
+    settle(&mut running.harness, |_| !is_open(&link));
+    assert_eq!(ran(&mut running), vec![SessionAction::LogOut]);
 }
 
 #[test]
@@ -364,8 +365,10 @@ fn opened_again_while_leaving_it_enters_again_and_stays() {
         Some("leaving")
     );
     running.link.open(fake::output().id, Preselect::Default);
-    settle(&mut running.harness, |h| look(h).as_deref() == Some("open"));
-    assert_eq!(look(&running.harness).as_deref(), Some("open"));
+    settle(&mut running.harness, |h| {
+        look(h).as_deref() == Some("present")
+    });
+    assert_eq!(look(&running.harness).as_deref(), Some("present"));
     assert_ne!(
         running
             .harness
@@ -390,7 +393,7 @@ fn a_press_outside_the_sheet_leaves_and_closes() {
     running.harness.send(Input::click(ds::Point {
         x: ds::Px(20.0),
         y: ds::Px(780.0),
-    }));
+    });
     running.harness.advance(Duration::from_millis(20));
     assert_eq!(look(&running.harness).as_deref(), Some("leaving"));
     let link = running.link.clone();
@@ -406,54 +409,60 @@ fn a_click_runs_that_button() {
         Session::everything(),
         Preselect::Default,
     );
-    let log_out = running.harness.centre(&nth_button(1));
+    let log_out = running.harness.centre(&nth_button(2));
     assert_eq!(
-        running.harness.text_of(&nth_button(1)).as_deref(),
+        running.harness.text_of(&nth_button(2)).as_deref(),
         Some("Log Out")
     );
-    running.harness.send(Input::click(
-        log_out.expect("the Log Out button is laid out"),
-    )); // test-only
+    running
+        .harness.send(Input::click(log_out.expect("the Log Out button is laid out"))); // test-only
     let link = running.link.clone();
     settle(&mut running.harness, |_| !is_open(&link));
     assert_eq!(ran(&mut running), vec![SessionAction::LogOut]);
 }
 
 #[test]
-fn unoffered_buttons_are_skipped_disabled_and_inert() {
-    let offers = Session {
-        suspend: Offer::Unavailable,
-        ..Session::everything()
-    };
-    let mut running = opened(shut_down_default(), offers, Preselect::Default);
-    for attr in ["aria-disabled", "disabled"] {
-        assert_eq!(
-            running.harness.attr(&nth_button(4), attr).as_deref(),
-            Some("true"),
-            "Suspend's {attr}"
-        );
-    }
-    running.harness.send(Input::key(ShortcutKey::Right));
-    settle(&mut running.harness, |h| {
-        primary(h).as_deref() == Some("Log Out")
-    });
-    assert_eq!(primary(&running.harness).as_deref(), Some("Log Out"));
-    let suspend = running.harness.centre(&nth_button(4));
-    running.harness.send(Input::click(
-        suspend.expect("the Suspend button is laid out"),
-    )); // test-only
-    running.harness.advance(Duration::from_millis(400));
-    assert!(is_open(&running.link), "a disabled button does nothing");
+fn cancel_leaves_and_closes_running_nothing() {
+    let mut running = opened(
+        shut_down_default(),
+        Session::everything(),
+        Preselect::Default,
+    );
+    let cancel = running.harness.centre(&nth_button(5));
+    running
+        .harness.send(Input::click(cancel.expect("the Cancel button is laid out"))); // test-only
+    let link = running.link.clone();
+    settle(&mut running.harness, |_| !is_open(&link));
     assert!(ran(&mut running).is_empty());
 }
 
 #[test]
-fn nothing_offered_runs_nothing_on_enter() {
+fn an_action_logind_does_not_offer_is_left_out() {
+    let offers = Session {
+        suspend: Offer::Unavailable,
+        ..Session::everything()
+    };
+    let running = opened(shut_down_default(), offers, Preselect::Default);
+    let h = &running.harness;
+    let labels: Vec<Option<String>> = (1..=4).map(|n| h.text_of(&nth_button(n))).collect();
+    assert_eq!(
+        labels,
+        ["Shut Down", "Log Out", "Restart", "Cancel"].map(|label| Some(label.to_owned()))
+    );
+    assert_eq!(h.count(".ds-alert-footer .ds-button"), 4);
+}
+
+#[test]
+fn with_nothing_offered_the_alert_only_cancels() {
     let mut running = opened(shut_down_default(), Session::default(), Preselect::Default);
-    assert_eq!(primary(&running.harness).as_deref(), Some("Shut Down"));
+    assert_eq!(
+        running.harness.count(".ds-alert-footer .ds-button"),
+        1,
+        "only Cancel"
+    );
     running.harness.send(Input::key(ShortcutKey::Enter));
-    running.harness.advance(Duration::from_millis(400));
-    assert!(is_open(&running.link));
+    let link = running.link.clone();
+    settle(&mut running.harness, |_| !is_open(&link));
     assert!(ran(&mut running).is_empty());
 }
 

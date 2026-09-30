@@ -1,6 +1,5 @@
-//! The power menu's words and button looks, pure.
+//! The power menu's words, pure.
 
-use ds::{Answers, ButtonRole};
 use sill_model::session::SessionAction;
 
 /// A button's label (the launcher's row titles: "Log Out", "Restart", "Shut Down", "Suspend";
@@ -15,21 +14,7 @@ pub fn action_label(action: SessionAction) -> &'static str {
     }
 }
 
-/// A button's quire look (design/20 §1.8): the focused button answers Return and takes the accent;
-/// Restart and Shut Down are destructive (they end every running app); the rest are plain.
-pub fn button_look(action: SessionAction, focused: SessionAction) -> (Answers, ButtonRole) {
-    match action {
-        _ if action == focused => (Answers::Return, ButtonRole::Normal),
-        SessionAction::Restart | SessionAction::PowerOff => {
-            (Answers::Nothing, ButtonRole::Destructive)
-        }
-        SessionAction::Lock | SessionAction::LogOut | SessionAction::Suspend => {
-            (Answers::Nothing, ButtonRole::Normal)
-        }
-    }
-}
-
-/// The sheet's question for the focused button, as macOS's shut-down dialog asks it.
+/// The alert's question for the default action, as macOS's shut-down dialog asks it.
 pub fn prompt(action: SessionAction) -> &'static str {
     match action {
         SessionAction::Lock => "Lock the screen now?",
@@ -40,7 +25,7 @@ pub fn prompt(action: SessionAction) -> &'static str {
     }
 }
 
-/// The line under the question: what the focused action does to the running apps.
+/// The line under the question: what the default action does to the running apps.
 pub fn consequence(action: SessionAction) -> &'static str {
     match action {
         SessionAction::Lock => "Your apps keep running behind the lock screen.",
@@ -53,12 +38,11 @@ pub fn consequence(action: SessionAction) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{action_label, button_look, consequence, prompt};
-    use ds::{Answers, ButtonRole};
+    use super::{action_label, consequence, prompt};
     use sill_model::session::SessionAction;
 
     #[test]
-    fn every_button_has_its_label_and_look() {
+    fn every_action_has_its_label_question_and_consequence() {
         use SessionAction::{Lock, LogOut, PowerOff, Restart, Suspend};
         const LABELS: &[(SessionAction, &str)] = &[
             (Lock, "Lock"),
@@ -70,27 +54,9 @@ mod tests {
         for &(action, want) in LABELS {
             assert_eq!(action_label(action), want, "{action:?}");
         }
-        let cases = [
-            (PowerOff, PowerOff, (Answers::Return, ButtonRole::Normal)),
-            (
-                Restart,
-                PowerOff,
-                (Answers::Nothing, ButtonRole::Destructive),
-            ),
-            (
-                PowerOff,
-                LogOut,
-                (Answers::Nothing, ButtonRole::Destructive),
-            ),
-            (LogOut, PowerOff, (Answers::Nothing, ButtonRole::Normal)),
-            (Suspend, PowerOff, (Answers::Nothing, ButtonRole::Normal)),
-        ];
         for &(action, _) in LABELS {
             assert!(prompt(action).ends_with('?'), "{action:?}");
             assert!(consequence(action).ends_with('.'), "{action:?}");
-        }
-        for (action, focused, want) in cases {
-            assert_eq!(button_look(action, focused), want, "{action:?} {focused:?}");
         }
     }
 }

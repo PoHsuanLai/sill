@@ -1,10 +1,7 @@
 //! The effects end of the menu: follow the [`PowerMenuLink`] onto the surface's visibility and
-//! an opening's [`MenuSession`], feed [`advance`] the keys, clicks and dismissals, move the
-//! keyboard focus onto the focused button, and hand a chosen action to the [`PowerMenuBackend`]
-//! once quire's `Sheet` has played its exit (its `on_hidden`). Once hidden, nothing runs and
-//! nothing asks for a frame.
-
-use std::rc::Rc;
+//! an opening's [`MenuSession`], feed [`advance`] the alert's answers and dismissals, and hand a
+//! chosen action to the [`PowerMenuBackend`] once quire's `Sheet` has played its exit (its
+//! `on_hidden`). Once hidden, nothing runs and nothing asks for a frame.
 
 use dioxus::prelude::*;
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
@@ -13,16 +10,12 @@ use sill_settings::PowerMenuDefault;
 use sill_ui_kit::services::Services;
 
 use super::backend::{DryRunSession, PowerMenuBackend};
+use super::choice::{initial, offered};
 use super::follow::{Follow, follow};
-use super::keymap::power_menu_key;
-use super::keys::{initial, offered};
 use super::labels::action_label;
 use super::sheet::{MenuSession, SheetEffect, SheetInput, Then, advance};
 use sill_ui_kit::links::{OpenSerial, PanelFocus};
 use sill_ui_kit::links::{PowerMenuLink, PowerMenuOpening, Reveal};
-
-/// The buttons' elements, for moving the keyboard focus.
-type Buttons = Vec<(SessionAction, Rc<MountedData>)>;
 
 /// Everything the menu's handlers reach. Clone is cheap.
 #[derive(Clone)]
@@ -31,7 +24,6 @@ pub(super) struct MenuCtx {
     backend: PowerMenuBackend,
     pub offers: ReadSignal<Session>,
     pub menu: Signal<Option<MenuSession>>,
-    buttons: Signal<Buttons>,
 }
 
 /// The menu on `output`, opening focused per `default`.
@@ -56,12 +48,10 @@ pub(super) fn use_menu(output: OutputId, default: PowerMenuDefault) -> MenuCtx {
         link: link.clone(),
         backend,
         menu: use_signal(|| None),
-        buttons: use_signal(Vec::new),
     };
     let shown = use_watch(link.subscribe());
     use_follow_visibility(shown, output);
     use_openings(ctx.clone(), shown, output, default);
-    use_button_focus(ctx.clone());
     ctx
 }
 
@@ -87,10 +77,10 @@ fn use_openings(
         let now = *menu.peek();
         match (follow(opening.as_ref(), now), opening) {
             (Follow::Start, Some(opening)) => {
-                let keys = initial(opening.preselect, *wanted.peek(), &ctx.offers.peek());
-                menu.set(Some(MenuSession::opened(opening.serial, keys)));
+                let default = initial(opening.preselect, *wanted.peek(), &ctx.offers.peek());
+                menu.set(Some(MenuSession::opened(opening.serial, default)));
                 ctx.backend.0.refresh();
-                eprintln!("power_menu.opened focus={}", action_label(keys.focused));
+                eprintln!("power_menu.opened default={}", action_label(default));
                 eprintln!("power_menu.offers={}", offered_labels(&ctx.offers.peek()));
             }
             (Follow::Reshow, _) => {
@@ -120,24 +110,6 @@ fn use_keyboard_line(shown: ReadSignal<Reveal<PowerMenuOpening>>, output: Output
         seen.set(now);
         if let Some((_, PanelFocus::Held)) = now {
             eprintln!("power_menu.keyboard=held");
-        }
-    });
-}
-
-/// Give the focused button the keyboard, so quire's focus ring moves with the arrows.
-fn use_button_focus(ctx: MenuCtx) {
-    let (menu, buttons) = (ctx.menu, ctx.buttons);
-    use_effect(move || {
-        let focused = menu().map(|m| m.keys.focused);
-        let element = focused.and_then(|focused| {
-            buttons
-                .read()
-                .iter()
-                .find(|(action, _)| *action == focused)
-                .map(|(_, element)| element.clone())
-        });
-        if let Some(element) = element {
-            ds::focus_soon(element);
         }
     });
 }
@@ -181,33 +153,11 @@ impl MenuCtx {
             let mut menu = self.menu;
             menu.set(Some(next));
         }
-        if next.keys != current.keys {
-            eprintln!("power_menu.focus={}", action_label(next.keys.focused));
-        }
         match effect {
             SheetEffect::Nothing => {}
             SheetEffect::Leave => self.link.leaving(),
             SheetEffect::Finish(then) => self.finish(then),
         }
-    }
-
-    /// A key reached the surface: the menu's own keys are taken from Blitz (Tab would move the
-    /// focus, Enter would also click the focused button).
-    pub fn key(&self, event: &KeyboardEvent) {
-        if let Some(key) = power_menu_key(&event.key(), event.modifiers()) {
-            event.prevent_default();
-            event.stop_propagation();
-            self.input(SheetInput::Key(key));
-        }
-    }
-
-    /// A button's element, once mounted.
-    pub fn mounted(&self, action: SessionAction, element: Rc<MountedData>) {
-        let mut buttons = self.buttons;
-        buttons.with_mut(|buttons| {
-            buttons.retain(|(a, _)| *a != action);
-            buttons.push((action, element));
-        });
     }
 
     /// Close, then carry out a chosen action.

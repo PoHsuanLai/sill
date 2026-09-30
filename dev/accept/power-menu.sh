@@ -9,9 +9,9 @@
 # reached logind. The daemon is started with `sill run --session-dry-run RECORD`: a debug build
 # then takes every session action through a dry run that only prints and records the chosen one,
 # never logind (crates/sill/src/run_args.rs, crates/sill-services/src/env/session_actions.rs).
-# Before Enter is ever pressed, the script proves the dry run is in force from the daemon's own
+# Before a button is ever pressed, the script proves the dry run is in force from the daemon's own
 # log (the "dry run, recording to" line, and `power_menu.backend=dry-run` with no
-# `power_menu.backend=live`); without that proof the Enter step is skipped (exit 2), never run.
+# `power_menu.backend=live`); without that proof the pressing steps are skipped (exit 2), never run.
 #
 # KEYS. By default every key is `sill debug key SURFACE KEY`: shell-host's `Inject::Key`, which
 # enters the power menu where a real xkb key does (the same machine, focus, modality and IME),
@@ -23,19 +23,19 @@
 #   1. Warm: `sill-power-menu-<out>` exists from the start, hidden (no capture).
 #   2. `sill power-menu open` shows the sheet over the scrim: a capture with the sheet's pixels,
 #      into dev/out/power-menu.png. `close` hides it; `toggle` twice round-trips.
-#   3. The arrows move the focus: Right from Shut Down is the next offered button (Suspend, or
-#      Log Out when logind refuses Suspend), Left twice is Restart (the panel's
-#      `power_menu.focus=` lines).
-#   4. Enter on the dry run records Restart (`session.dry_run would=Restart` in the record
-#      file) and the menu closes; nothing else is recorded.
+#   3. Tab moves the keyboard to the next button: the frame differs from the opening's by the
+#      focus ring's move (dev/out/power-menu-tab.png).
+#   4. Space presses the button the keyboard is on: the dry run records `would=LogOut`
+#      (`session.dry_run would=LogOut` in the record file) and the menu closes; nothing else is
+#      recorded. Opened again, Return presses the default button (Shut Down): `would=PowerOff`.
 #   5. Escape closes it, recording nothing.
 #   6. 5 s idle after it hides: 0 frames on the power menu surface.
 #
-# --real-input steps (Enter is never pressed and no button is clicked):
+# --real-input steps (Return and Space are never pressed and no button is clicked):
 #   1. The power menu opens and holds the real keyboard (`power_menu.keyboard=held`).
-#   2. Real Right moves the focus Shut Down -> Suspend, Left Left -> Restart.
+#   2. A real Tab moves the keyboard to the next button: the frame differs from the opening's.
 #   3. Real Escape closes it, recording nothing.
-#   4. Opened again, a real click on the scrim closes it, recording nothing.
+#   4. Opened again, a real click outside the alert closes it, recording nothing.
 #
 # Exit 0 only when every step passed; 2 when a step could not run safely (named); 1 on a failure.
 #
@@ -127,60 +127,51 @@ step_open_close_toggle() {
   echo "open shows the sheet over the scrim; close hides it; toggle twice round-trips" | tee -a "$log" >&2
 }
 
-# The button Right moves to from Shut Down: the next one the last opening offered, round to the
-# start (the buttons' order: Log Out, Restart, Shut Down, Suspend).
-right_of_shut_down() {
-  grep 'power_menu.offers=' "$OUT_DIR/daemon.log" | tail -n 1 | python3 -c '
-import sys
-offered = sys.stdin.read().strip().split("=", 1)[1].split(",")
-order = ["Log Out", "Restart", "Shut Down", "Suspend"]
-start = order.index("Shut Down")
-for step in range(1, len(order)):
-    label = order[(start + step) % len(order)]
-    if label in offered:
-        print(label); break'
-}
-
 # 3.
-step_arrows() {
-  local log="$OUT_DIR/arrows.log" before status right
+step_tab() {
+  local log="$OUT_DIR/tab.log" status before
   : >"$log"
   open_with_keyboard "$log"; status=$?
   [ "$status" = 0 ] || return "$status"
-  grep -q "power_menu.opened focus=Shut Down" "$OUT_DIR/daemon.log" || {
+  grep -q "power_menu.opened default=Shut Down" "$OUT_DIR/daemon.log" || {
     echo "the menu did not open on Shut Down (power_menu.default_action)" >&2; return 1; }
   grep 'power_menu.offers=' "$OUT_DIR/daemon.log" | tail -n 1 | tee -a "$log" >&2
-  right=$(right_of_shut_down)
-  [ -n "$right" ] || { echo "no offered button right of Shut Down" >&2; return 1; }
-  before=$(count_log "power_menu.focus=$right")
-  type_keys "$log" ArrowRight || return 2
-  wait_log "power_menu.focus=$right" 20 1 "$before" || { echo "Right: no focus on $right" >&2; return 1; }
-  before=$(count_log 'power_menu.focus=Restart')
-  type_keys "$log" ArrowLeft ArrowLeft || return 2
-  wait_log 'power_menu.focus=Restart' 20 1 "$before" || { echo "Left Left: no focus on Restart" >&2; return 1; }
-  sleep 0.3
-  sill debug capture "$MENU" "$SHOTS/power-menu-restart.png" >>"$log" 2>&1 || echo "capture failed" >&2
-  echo "Right: Shut Down -> $right; Left Left: -> Restart" | tee -a "$log" >&2
+  capture "$MENU" "$OUT_DIR/before-tab.png" || { echo "no capture before Tab" >&2; return 1; }
+  type_keys "$log" Tab || return 2
+  sleep 0.4
+  sill debug capture "$MENU" "$SHOTS/power-menu-tab.png" >>"$log" 2>&1 || { echo "no capture after Tab" >&2; return 1; }
+  before=$(changed_fraction "$OUT_DIR/before-tab.png" "$SHOTS/power-menu-tab.png")
+  echo "Tab: $before of the frame changed" | tee -a "$log" >&2
+  [ "$before" != 0.0000 ] || { echo "Tab: the keyboard did not move" >&2; return 1; }
 }
 
-# 4. Runs only on a proven dry run, on the menu step 3 left open at Restart.
-step_enter_records() {
-  local log="$OUT_DIR/enter.log"
+# 4. Runs only on a proven dry run, on the menu step 3 left open with the keyboard on the
+# second button (Log Out, the first one after the default).
+step_presses_record() {
+  local log="$OUT_DIR/press.log"
   : >"$log"
   if [ "$DRY_RUN" != proven ]; then
-    echo "the dry run is not proven: Enter is NOT pressed" | tee -a "$log" >&2
+    echo "the dry run is not proven: no button is pressed" | tee -a "$log" >&2
     sill power-menu close >/dev/null 2>&1
     return 2
   fi
-  wait_surface "$MENU" 5 up || { echo "the menu is not open for Enter" >&2; return 1; }
+  wait_surface "$MENU" 5 up || { echo "the menu is not open for Space" >&2; return 1; }
+  : >"$RECORD"
+  type_keys "$log" Space || return 2
+  for _ in $(seq 30); do grep -q 'would=LogOut' "$RECORD" && break; sleep 0.1; done
+  wait_surface "$MENU" 20 down || { echo "Space: the menu stayed up" >&2; return 1; }
+  [ "$(cat "$RECORD")" = "session.dry_run would=LogOut" ] || {
+    echo "the record is not exactly one LogOut: $(cat "$RECORD")" >&2; return 1; }
+  echo "Space recorded 'would=LogOut' and closed the menu" | tee -a "$log" >&2
+  : >"$RECORD"
+  open_with_keyboard "$log" || return 2
   type_keys "$log" Enter || return 2
-  for _ in $(seq 30); do grep -q 'would=Restart' "$RECORD" && break; sleep 0.1; done
+  for _ in $(seq 30); do grep -q 'would=PowerOff' "$RECORD" && break; sleep 0.1; done
   wait_surface "$MENU" 20 down || { echo "Enter: the menu stayed up" >&2; return 1; }
-  echo "record file after Enter:" >>"$log"; cat "$RECORD" >>"$log"
-  [ "$(cat "$RECORD")" = "session.dry_run would=Restart" ] || {
-    echo "the record is not exactly one Restart: $(cat "$RECORD")" >&2; return 1; }
-  grep -q 'session.dry_run would=Restart' "$OUT_DIR/daemon.log" || return 1
-  echo "Enter recorded 'would=Restart' on the dry run and closed the menu" | tee -a "$log" >&2
+  [ "$(cat "$RECORD")" = "session.dry_run would=PowerOff" ] || {
+    echo "the record is not exactly one PowerOff: $(cat "$RECORD")" >&2; return 1; }
+  echo "Return recorded 'would=PowerOff' (Shut Down, the default) and closed the menu" | tee -a "$log" >&2
+  : >"$RECORD"
 }
 
 # 5.
@@ -222,17 +213,17 @@ step_real_keyboard() {
 }
 
 # Real 2.
-step_real_arrows() {
+step_real_tab() {
   local before
   [ "$DRY_RUN" = proven ] || return 2
-  mapped "$MENU" || { echo "the menu is not up for the arrows" >&2; return 1; }
-  before=$(count_log 'power_menu.focus=Suspend')
-  key Right
-  wait_log 'power_menu.focus=Suspend' 20 1 "$before" || { echo "Right: no focus on Suspend" >&2; return 1; }
-  before=$(count_log 'power_menu.focus=Restart')
-  key Left; key Left
-  wait_log 'power_menu.focus=Restart' 20 1 "$before" || { echo "Left Left: no focus on Restart" >&2; return 1; }
-  echo "real Right: Shut Down -> Suspend; real Left Left: -> Restart" >&2
+  mapped "$MENU" || { echo "the menu is not up for Tab" >&2; return 1; }
+  capture "$MENU" "$OUT_DIR/before-tab.png" || return 1
+  key Tab
+  sleep 0.4
+  capture "$MENU" "$OUT_DIR/after-tab.png" || return 1
+  before=$(changed_fraction "$OUT_DIR/before-tab.png" "$OUT_DIR/after-tab.png")
+  [ "$before" != 0.0000 ] || { echo "real Tab: the keyboard did not move" >&2; return 1; }
+  echo "real Tab moved the keyboard to the next button ($before of the frame changed)" >&2
 }
 
 # Real 3.
@@ -252,9 +243,9 @@ step_real_scrim_click() {
   wait_surface "$MENU" 30 up || { echo "open: never mapped" >&2; return 1; }
   sleep 0.6
   click 40 $(( ${SIZE#*x} - 40 ))
-  wait_surface "$MENU" 20 down || { echo "a scrim click left the menu up" >&2; return 1; }
-  [ ! -s "$RECORD" ] || { echo "the scrim click recorded: $(cat "$RECORD")" >&2; return 1; }
-  echo "a real click on the scrim closed the menu, recording nothing" >&2
+  wait_surface "$MENU" 20 down || { echo "a click outside the alert left the menu up" >&2; return 1; }
+  [ ! -s "$RECORD" ] || { echo "the outside click recorded: $(cat "$RECORD")" >&2; return 1; }
+  echo "a real click outside the alert closed the menu, recording nothing" >&2
 }
 
 cleanup() {
@@ -272,9 +263,9 @@ start_menu_daemon || { cleanup; exit 1; }
 prove_dry_run power_menu || echo "the dry run could not be proven from the daemon's log" >&2
 if [ "$MODE" = real ]; then
   start_input || echo "no fake input client" >&2
-  run_steps step_real_keyboard step_real_arrows step_real_escape step_real_scrim_click
+  run_steps step_real_keyboard step_real_tab step_real_escape step_real_scrim_click
 else
-  run_steps step_warm step_open_close_toggle step_arrows step_enter_records step_escape step_idle
+  run_steps step_warm step_open_close_toggle step_tab step_presses_record step_escape step_idle
 fi
 status=$STATUS
 sill power-menu close >/dev/null 2>&1

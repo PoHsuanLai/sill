@@ -35,17 +35,16 @@ pub fn follow(opening: Option<&PowerMenuOpening>, menu: Option<MenuSession>) -> 
 #[cfg(test)]
 mod tests {
     use super::{Follow, follow};
-    use crate::power_menu::keys::PowerMenuState;
     use crate::power_menu::sheet::{MenuSession, SheetPhase, Then};
     use shell_host::OutputId;
     use sill_model::session::SessionAction;
     use sill_ui_kit::links::{OpenSerial, PanelFocus};
     use sill_ui_kit::links::{PowerMenuOpening, Preselect, Showing};
 
-    fn menu(focused: SessionAction, phase: SheetPhase) -> MenuSession {
+    fn menu(default: SessionAction, phase: SheetPhase) -> MenuSession {
         MenuSession {
             serial: OpenSerial(1),
-            keys: PowerMenuState { focused },
+            default,
             phase,
         }
     }

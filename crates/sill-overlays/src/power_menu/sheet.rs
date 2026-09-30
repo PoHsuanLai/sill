@@ -1,4 +1,4 @@
-//! One opening of the sheet, pure: the keyboard machine's focus ([`super::step`]) plus whether
+//! One opening of the sheet, pure: the action the alert is about ([`super::choice`]) plus whether
 //! the sheet is up or on its way out. Escape, a press outside the sheet and a chosen action all leave the
 //! same way, quire's `Sheet` playing its own exit (`sheet-out`, the scrim fading); at its
 //! `on_hidden` the menu closes and, for a chosen action, the action runs, so a suspend or a
@@ -7,7 +7,7 @@
 use ds::Shown;
 use sill_model::session::{Session, SessionAction};
 
-use super::keys::{PowerMenuKey, PowerMenuOut, PowerMenuState, offered, step};
+use super::choice::offered;
 use sill_ui_kit::links::OpenSerial;
 
 /// What happens once the sheet has left.
@@ -25,14 +25,6 @@ pub enum SheetPhase {
 }
 
 impl SheetPhase {
-    /// The panel's `data-look` word.
-    pub fn slug(self) -> &'static str {
-        match self {
-            SheetPhase::Open => "open",
-            SheetPhase::Leaving(_) => "leaving",
-        }
-    }
-
     /// quire's `Sheet { shown }` for this phase.
     pub fn shown(self) -> Shown {
         match self {
@@ -46,16 +38,17 @@ impl SheetPhase {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MenuSession {
     pub serial: OpenSerial,
-    pub keys: PowerMenuState,
+    /// The action the alert is about: its default button, the one Return presses.
+    pub default: SessionAction,
     pub phase: SheetPhase,
 }
 
 impl MenuSession {
-    /// A fresh opening, focused on `keys`.
-    pub fn opened(serial: OpenSerial, keys: PowerMenuState) -> MenuSession {
+    /// A fresh opening about `default`.
+    pub fn opened(serial: OpenSerial, default: SessionAction) -> MenuSession {
         MenuSession {
             serial,
-            keys,
+            default,
             phase: SheetPhase::Open,
         }
     }
@@ -64,10 +57,9 @@ impl MenuSession {
 /// What reaches the sheet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SheetInput {
-    Key(PowerMenuKey),
     /// A button was clicked.
     Pressed(SessionAction),
-    /// Escape through quire's `Sheet`, or a scrim click.
+    /// Cancel, Escape through the alert, or a press outside it.
     Dismissed,
     /// The sheet's exit settled (quire's `on_hidden`).
     Settled,
@@ -91,10 +83,9 @@ pub fn advance(
     input: SheetInput,
     session: &Session,
 ) -> (MenuSession, SheetEffect) {
-    let leave = |keys: PowerMenuState, then: Then| {
+    let leave = |then: Then| {
         (
             MenuSession {
-                keys,
                 phase: SheetPhase::Leaving(then),
                 ..menu
             },
@@ -102,15 +93,10 @@ pub fn advance(
         )
     };
     match (menu.phase, input) {
-        (SheetPhase::Open, SheetInput::Key(key)) => match step(menu.keys, key, session) {
-            (keys, PowerMenuOut::Stay) => (MenuSession { keys, ..menu }, SheetEffect::Nothing),
-            (keys, PowerMenuOut::Run(action)) => leave(keys, Then::Run(action)),
-            (keys, PowerMenuOut::Close) => leave(keys, Then::Close),
-        },
         (SheetPhase::Open, SheetInput::Pressed(action)) if offered(session, action) => {
-            leave(PowerMenuState { focused: action }, Then::Run(action))
+            leave(Then::Run(action))
         }
-        (SheetPhase::Open, SheetInput::Dismissed) => leave(menu.keys, Then::Close),
+        (SheetPhase::Open, SheetInput::Dismissed) => leave(Then::Close),
         (SheetPhase::Leaving(then), SheetInput::Settled) => (menu, SheetEffect::Finish(then)),
         (SheetPhase::Leaving(_), SheetInput::Reshown) => (
             MenuSession {
@@ -126,15 +112,14 @@ pub fn advance(
 #[cfg(test)]
 mod tests {
     use super::{MenuSession, SheetEffect, SheetInput, SheetPhase, Then, advance};
-    use crate::power_menu::keys::{PowerMenuKey, PowerMenuState};
     use ds::Shown;
     use sill_model::session::{Offer, Session, SessionAction};
     use sill_ui_kit::links::OpenSerial;
 
-    fn menu(focused: SessionAction, phase: SheetPhase) -> MenuSession {
+    fn menu(default: SessionAction, phase: SheetPhase) -> MenuSession {
         MenuSession {
             serial: OpenSerial(3),
-            keys: PowerMenuState { focused },
+            default,
             phase,
         }
     }
@@ -151,30 +136,9 @@ mod tests {
         let cases: Vec<(MenuSession, SheetInput, &Session, MenuSession, SheetEffect)> = vec![
             (
                 menu(PowerOff, Open),
-                SheetInput::Key(PowerMenuKey::Right),
-                &all,
-                menu(Suspend, Open),
-                SheetEffect::Nothing,
-            ),
-            (
-                menu(Restart, Open),
-                SheetInput::Key(PowerMenuKey::Enter),
-                &all,
-                menu(Restart, Leaving(Then::Run(Restart))),
-                SheetEffect::Leave,
-            ),
-            (
-                menu(Restart, Open),
-                SheetInput::Key(PowerMenuKey::Escape),
-                &all,
-                menu(Restart, Leaving(Then::Close)),
-                SheetEffect::Leave,
-            ),
-            (
-                menu(PowerOff, Open),
                 SheetInput::Pressed(LogOut),
                 &all,
-                menu(LogOut, Leaving(Then::Run(LogOut))),
+                menu(PowerOff, Leaving(Then::Run(LogOut))),
                 SheetEffect::Leave,
             ),
             (
@@ -194,13 +158,6 @@ mod tests {
             (
                 menu(Restart, Leaving(Then::Run(Restart))),
                 SheetInput::Pressed(Restart),
-                &all,
-                menu(Restart, Leaving(Then::Run(Restart))),
-                SheetEffect::Nothing,
-            ),
-            (
-                menu(Restart, Leaving(Then::Run(Restart))),
-                SheetInput::Key(PowerMenuKey::Left),
                 &all,
                 menu(Restart, Leaving(Then::Run(Restart))),
                 SheetEffect::Nothing,
@@ -241,8 +198,6 @@ mod tests {
                 "{from:?} {input:?}"
             );
         }
-        assert_eq!(Open.slug(), "open");
-        assert_eq!(Leaving(Then::Close).slug(), "leaving");
         assert_eq!(Open.shown(), Shown::Visible);
         assert_eq!(Leaving(Then::Close).shown(), Shown::Hidden);
     }

@@ -1,18 +1,7 @@
 /* The power menu (design/20 §1.8). The surface is the whole output (`Ds { extent:
-   RootExtent::Viewport }`): quire's Sheet stands centred over its modal scrim and plays its own
-   entrance and exit; everything here is a token. */
+   RootExtent::Viewport }`): quire's Alert stands centred on its Sheet, which plays its own
+   entrance and exit; everything here is layout. */
 
-/* The sheet's content, centred as macOS's shut-down dialog is: a mark, the question, what it
-   does, the buttons, the key hints. */
-.sill-power-menu-panel{ display:flex; flex-direction:column; align-items:center; text-align:center;
-  gap:var(--s-6); padding:var(--s-22) var(--s-26) var(--s-16); color:var(--ink); }
-.sill-power-menu-mark{ display:flex; align-items:center; justify-content:center; color:var(--ink-soft);
-  padding-bottom:var(--s-4); }
-.sill-power-menu-prompt{ font-size:var(--fs-heading); font-weight:700; }
-.sill-power-menu-detail{ font-size:var(--fs-small); color:var(--ink-soft); }
-.sill-power-menu-buttons{ display:flex; flex-wrap:wrap; justify-content:center; align-items:center;
-  gap:var(--s-8); padding-top:var(--s-14); }
-.sill-power-menu-hints{ display:flex; justify-content:center; gap:var(--s-16); padding-top:var(--s-10);
-  font-size:var(--fs-small); color:var(--ink-faint); }
-.sill-power-menu-hint{ display:inline-flex; align-items:center; gap:var(--s-4); }
-.sill-power-menu-hint-text{ display:inline; }
+/* The click-outside catcher: every pixel the alert does not cover (a sheet dims nothing and
+   catches no click, so this surface closes the menu itself). */
+.sill-power-menu-catcher{ position:absolute; top:0; right:0; bottom:0; left:0; }

@@ -169,9 +169,9 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   action, Tab walks to its buttons (Enter presses one), Escape, Delete or Backspace closes it
   and the ring moves on to the other; closing the last gives typing back to the app. With none
   showing the shortcut does nothing.
-- [ ] **Power menu with the real keyboard** (real arrows, Escape and a scrim click already pass
-  on a headless KWin through `dev/accept/power-menu.sh --real-input`): `sill power-menu open`, then arrows
-  move the highlight, Esc closes. Do NOT press Enter on Restart/Shut Down unless you mean it; the
+- [ ] **Power menu with the real keyboard** (real Tab, Escape and a click outside the alert already pass
+  on a headless KWin through `dev/accept/power-menu.sh --real-input`): `sill power-menu open`, then Tab
+  moves the ring between the buttons, Esc closes. Do NOT press Return or Space on Restart/Shut Down unless you mean it; the
   dry run (`sill run --session-dry-run <file>` on a debug build) records instead.
 - [ ] **Cmd+Tab** (with `dist/cosmic` system_actions installed): a quick Cmd+Tab tap switches to
   the previous app with no panel; holding shows the panel after about 150 ms; Tab moves;

@@ -311,7 +311,7 @@ A settled item is deleted, not marked closed.
   and `CloseNotification` are dismissals. A click with no `default` action dismisses. A
   notification never wakes sleeping displays (and there is no key for it).
 - **The launcher's session rows**: Lock and Suspend run at once; Log Out, Restart and Shut Down
-  open the power menu on that button, which is the confirmation.
+  open the power menu on that button, which is the confirmation: quire's `Alert` about that action, that button first and the default (Return), the other actions logind offers after it, then Cancel; an action logind refuses is left out, not drawn disabled, and there are no arrow keys (Tab and Shift+Tab move, Space presses, Escape cancels).
 - **The calendar is a widget** (the clock opens the notification center, not a date popup).
 - **Widgets have one size per host**: Medium for every kind in the center; on the desktop the
   month and the batteries Small, the rest Medium. A drop lands in the cell nearest where it is

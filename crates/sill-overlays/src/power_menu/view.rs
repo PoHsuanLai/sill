@@ -1,22 +1,19 @@
 //! The power menu's render: one `Ds` root in `power_menu.material` (the active Space's look),
-//! as large as the output (`RootExtent::Viewport`), holding quire's `Sheet` centred over its
-//! modal scrim with the question, the four action buttons in `SessionAction::POWER_MENU` order
-//! (each disabled where the backend's offers say so) and the `Kbd` hints. The sheet is keyed by
-//! the opening, so each opening plays the entrance and starts its focus over; it plays its own
-//! exit and says when it has settled (`on_hidden`), where the menu closes and a chosen action
-//! runs.
+//! as large as the output (`RootExtent::Viewport`), holding quire's `Alert` centred on its `Sheet`
+//! (it dims nothing): the question and what it does for the opening's action, then the actions
+//! logind offers as the alert's buttons, the opening's action first (Return presses it), and
+//! Cancel (Escape presses it). The alert is keyed by the opening, so each opening plays the
+//! entrance and starts its focus over; it plays its own exit and says when it has settled
+//! (`on_hidden`), where the menu closes and a chosen action runs.
 
 use dioxus::prelude::*;
-use ds::{
-    Attach, Availability, Button, Common, Glyph, Icon, IconSize, RootExtent, Sheet, Shortcut,
-};
-use ds::{ControlSize, KeyEquivalent, KeyStyle};
+use ds::{Alert, AlertButton, AlertRole, Common, Icon, RootExtent, TextLine};
 use shell_host::OutputInfo;
 use sill_model::session::{Session, SessionAction};
 
+use super::choice::answers;
 use super::io::{MenuCtx, use_menu};
-use super::keys::offered;
-use super::labels::{action_label, button_look, consequence, prompt};
+use super::labels::{action_label, consequence, prompt};
 use super::layer::PANEL_ID;
 use super::sheet::{MenuSession, SheetInput};
 use sill_ui_kit::hooks::use_settings;
@@ -40,88 +37,72 @@ pub(super) fn power_menu(output: OutputInfo) -> Element {
             extent: RootExtent::Viewport,
             style { {POWER_MENU_CSS} }
             if let Some(menu) = menu {
-                {sheet(&ctx, menu, &offers)}
+                {alert(&ctx, menu, &offers)}
             }
         }
     }
 }
 
-/// The sheet for one opening.
-fn sheet(ctx: &MenuCtx, menu: MenuSession, offers: &Session) -> Element {
-    let focused = menu.keys.focused;
-    let (close, hidden, keys, catch) = (ctx.clone(), ctx.clone(), ctx.clone(), ctx.clone());
+/// The alert for one opening.
+fn alert(ctx: &MenuCtx, menu: MenuSession, offers: &Session) -> Element {
+    let (hidden, catch) = (ctx.clone(), ctx.clone());
+    let buttons = buttons(ctx, menu, offers);
     rsx! {
-        // A sheet dims nothing and catches no click (macOS; design/30): a press outside it is
-        // this surface's own, so it closes the menu as the scrim did.
-        div {
-            key: "{menu.serial.0}",
-            style: "position:absolute;inset:0",
-            onpointerdown: move |_| catch.input(SheetInput::Dismissed),
-        }
-        Sheet {
-            label: "Power".to_owned(),
-            shown: Some(menu.phase.shown()),
-            on_hidden: move |()| hidden.input(SheetInput::Settled),
-            attach: Attach::Centre,
-            onclose: move |()| close.input(SheetInput::Dismissed),
+        Fragment { key: "{menu.serial.0}",
+            // A sheet dims nothing and catches no click (macOS; design/30): a press outside it is
+            // this surface's own, so it closes the menu as the scrim did.
             div {
-                id: PANEL_ID,
-                class: "sill-power-menu-panel",
-                "data-look": menu.phase.slug(),
-                onkeydown: move |event| keys.key(&event),
-                div { class: "sill-power-menu-mark",
-                    Glyph { icon: Icon::Power, size: IconSize::Bar }
-                }
-                div { class: "sill-power-menu-prompt", {prompt(focused)} }
-                div { class: "sill-power-menu-detail", {consequence(focused)} }
-                div { class: "sill-power-menu-buttons",
-                    for action in SessionAction::POWER_MENU {
-                        {button(ctx, action, focused, offers)}
-                    }
-                }
-                div { class: "sill-power-menu-hints",
-                    {hint(vec![ds::ShortcutKey::Left, ds::ShortcutKey::Right], "Choose")}
-                    {hint(vec![ds::ShortcutKey::Enter], action_label(focused))}
-                    {hint(vec![ds::ShortcutKey::Escape], "Cancel")}
-                }
+                class: "sill-power-menu-catcher",
+                onpointerdown: move |_| catch.input(SheetInput::Dismissed),
+            }
+            Alert {
+                title: prompt(menu.default),
+                message: Some(TextLine::from(consequence(menu.default))),
+                icon: Icon::Power,
+                buttons,
+                shown: Some(menu.phase.shown()),
+                on_hidden: move |()| hidden.input(SheetInput::Settled),
+                common: Common {
+                    id: Some(PANEL_ID.to_owned()),
+                    ..Common::default()
+                },
             }
         }
     }
 }
 
-/// One action's button.
-fn button(
-    ctx: &MenuCtx,
-    action: SessionAction,
-    focused: SessionAction,
-    offers: &Session,
-) -> Element {
-    let (mount, press) = (ctx.clone(), ctx.clone());
-    let availability = if offered(offers, action) {
-        Availability::Enabled
-    } else {
-        Availability::Disabled
-    };
-    let (answers, role) = button_look(action, focused);
-    rsx! {
-        Button {
-            common: Common { mounted: Some(EventHandler::new(move |event: MountedEvent| mount.mounted(action, event.data()))), ..Common::default() },
-            key: "{action_label(action)}",
-            answers,
-            role,
-            label: action_label(action),
-            availability,
-            onclick: move |_| press.input(SheetInput::Pressed(action)),
-        }
-    }
+/// The alert's answers: each offered action, the opening's first, and Cancel.
+fn buttons(ctx: &MenuCtx, menu: MenuSession, offers: &Session) -> Vec<AlertButton> {
+    let actions = answers(menu.default, offers)
+        .into_iter()
+        .enumerate()
+        .map(|(place, action)| {
+            let press = ctx.clone();
+            AlertButton::new(
+                action_label(action),
+                role(action, place),
+                EventHandler::new(move |()| press.input(SheetInput::Pressed(action))),
+            )
+        });
+    let cancel = ctx.clone();
+    let cancel = AlertButton::new(
+        "Cancel",
+        AlertRole::Cancel,
+        EventHandler::new(move |()| cancel.input(SheetInput::Dismissed)),
+    );
+    actions.chain(std::iter::once(cancel)).collect()
 }
 
-/// A key hint: the caps, then what they do.
-fn hint(keys: Vec<ds::ShortcutKey>, what: &str) -> Element {
-    rsx! {
-        span { class: "sill-power-menu-hint",
-            KeyEquivalent { shortcut: Shortcut(keys), style: KeyStyle::Cap, size: ControlSize::Mini}
-            span { class: "sill-power-menu-hint-text", {what.to_owned()} }
-        }
+/// What an action's button means. Restart and Shut Down end every running app, so they are
+/// destructive, drawn in red; but the alert never makes a destructive button its default, so the
+/// first button, the one Return presses, is a plain one whichever action it is.
+fn role(action: SessionAction, place: usize) -> AlertRole {
+    match action {
+        SessionAction::Restart | SessionAction::PowerOff if place > 0 => AlertRole::Destructive,
+        SessionAction::Restart
+        | SessionAction::PowerOff
+        | SessionAction::Lock
+        | SessionAction::LogOut
+        | SessionAction::Suspend => AlertRole::Normal,
     }
 }
