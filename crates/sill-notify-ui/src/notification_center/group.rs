@@ -1,4 +1,4 @@
-//! One row of the center's list, as quire's `LeavingList` takes it: a group's
+//! One row of the center's list, as quire's `List` takes it: a group's
 //! header (quire's `GroupHeader`: the app's icon and name, the count, "N more" or "Show less",
 //! Clear) keyed by its `AppKey`, or a card (quire's `NotificationCard` through [`NoteCard`], the
 //! newest stacked over the rest while folded) keyed by its `NotificationId`. The keyboard's
@@ -6,7 +6,7 @@
 //! padding (`.sill-nc-item`), never the list's.
 
 use dioxus::prelude::*;
-use ds::{IconSize, LeavingItem};
+use ds::{IconSize, ListItem};
 use ds_shell::GroupHeader;
 use sill_model::notifications::{AppGroup, History, Notification, UnixMs};
 
@@ -23,7 +23,7 @@ pub(super) fn row_item(
     (at, row): (usize, &CenterRow),
     focus: RowFocus,
     now: UnixMs,
-) -> Option<LeavingItem<RowKey>> {
+) -> Option<ListItem<RowKey>> {
     let ring = ringed(focus, at);
     let group = history
         .groups
@@ -40,12 +40,13 @@ pub(super) fn row_item(
             }
         }
     };
-    Some(LeavingItem {
-        key: row.key(),
-        row: rsx! {
+    Some(ListItem::row(
+        row.key(),
+        String::new(),
+        rsx! {
             div { class: "sill-nc-item", "data-group": "{group.key.0}", {content} }
         },
-    })
+    ))
 }
 
 /// Whether the person opened `group`.

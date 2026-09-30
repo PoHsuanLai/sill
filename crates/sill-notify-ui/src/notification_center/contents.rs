@@ -1,5 +1,5 @@
 //! Inside the column: the title with Clear All (`Button{Quiet}`), the history grouped by app
-//! (`group_views`) as one quire `LeavingList` of headers and cards (each drawn by `group.rs`),
+//! (`group_views`) as one quire `List` of headers and cards (each drawn by `group.rs`),
 //! or the empty state; the footer when sill is not the one receiving notifications; and the
 //! widgets slot at the bottom. The column holds the keyboard: every key goes through
 //! [`step_keys`] over the drawn rows.
@@ -13,7 +13,7 @@ use ds::Bezel;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
-use ds::{Button, LeavingItem, LeavingList};
+use ds::{Button, List, ListItem};
 use shell_host::OutputId;
 use sill_model::notifications::{History, UnixMs};
 
@@ -48,7 +48,7 @@ pub(super) fn Contents(output: OutputId) -> Element {
     let keys = (ctx.clone(), rows.clone());
     let clear = ctx.clone();
     let home = ctx.clone();
-    let items: Vec<LeavingItem<RowKey>> = rows
+    let items: Vec<ListItem<RowKey>> = rows
         .iter()
         .enumerate()
         .filter_map(|row| row_item(&history, &expanded, row, focus(), now))
@@ -89,7 +89,7 @@ pub(super) fn Contents(output: OutputId) -> Element {
                 if drawn.rows() == Rows::None {
                     div { class: "sill-nc-empty", {EMPTY} }
                 }
-                LeavingList::<RowKey> {
+                List::<RowKey> {
                     label: TITLE.to_owned(),
                     items,
                     on_settled: move |key: RowKey| {

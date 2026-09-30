@@ -15,8 +15,8 @@ const TOGGLE: &str = ".ds-group-header-actions .ds-button:first-child";
 const CLEAR: &str = ".ds-group-header-actions .ds-button:last-child";
 
 /// The list, and its rows.
-const LIST: &str = ".sill-nc-list > .ds-leaving-list";
-const ROW: &str = ".ds-leaving-row";
+const LIST: &str = ".sill-nc-list > .ds-list";
+const ROW: &str = ".ds-list-item";
 
 /// The center opened over `history`, as soon as its panel is drawn.
 fn opening(history: History) -> Running {
