@@ -10,7 +10,7 @@ its traits, its recipes and its repo rules. Where they disagree, this file wins 
 
 | Repo | What sill takes from it |
 | --- | --- |
-| quire (`../quire`, path deps) | `ds-core` (vocabulary, units, `Word`, colour, time), `ds-style` (appearance, tokens, materials), `ds-motion` (timelines, `Presence`, gestures), `ds` (components, `DocumentHost`, menus, `ds::prelude`), `ds-shell` (shell components, widget contract, status glyphs, battery), `ds-lint`, `ds-settings` (`SettingsDoc`, `Store`, schema derive; dioxus behind a feature), `ds-blitz` (`provide_host()`, measure, focus, caret, snap), `ds-harness` (`Driver`, `DocQuery`; dev only) |
+| quire (`../quire`, path deps) | `ds-core` (vocabulary, units, `Word`, colour, time), `ds-style` (appearance, tokens, materials), `ds-motion` (timelines, `Presence`, gestures), `ds` (components, `DocumentHost`, menus, `ds::prelude`), `ds-shell` (shell components, widget contract, status glyphs, battery), `ds-lint`, `ds-settings` (`SettingsDoc`, `Store`, schema derive; dioxus behind a feature), `ds-native` (`provide_host()`, measure, focus, caret, snap, `Harness`, `Driver`, `DocQuery`) |
 | shell-host (`../shell-host`) | Host, layer surfaces and popups, input, frames, regions, session lock, scroll engine, `Visibility`, `Inject` (pointer and key, `debug-inject`) |
 | latchkey (git) | the single-instance agent socket |
 
@@ -22,37 +22,44 @@ Consumers of quire import `ds::prelude::*` plus the named crate for anything out
 
 Layers, lowest first. A crate depends only on the crates listed for it; every other edge is
 forbidden and Cargo enforces it (a surface crate that does not list another cannot name it).
+`scripts/check-boundary.sh` keeps the table exact: its `EDGES` rows are each crate's direct normal
+and build path dependencies, sill and quire and shell-host alike; dev dependencies are not
+listed except where noted.
 
 | # | Crate | What it is | May depend on (sill crates, then key externals) |
 | --- | --- | --- | --- |
 | 0 | `sill-launcher` | Launcher core: `Provider`, `Query` (generation, cancel), `Item`, `Activation`, matching (nucleo), ranking, sections, frecency, chords, preview facts. Pure; a future repo | none; nucleo-matcher, serde |
-| 0 | `sill-testkit` | Dev only: `PrivateBus`, `TempDir`, signal helpers, stand-in programs in `examples/` | none; std only |
-| 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service | `sill-launcher`, `ds-core`; serde, jiff, thiserror |
+| 0 | `sill-testkit` | Dev only: `PrivateBus`, `TempDir`, signal helpers, stand-in programs in `examples/` | none; std only (its dev dependencies, the crates it tests, are outside the table) |
+| 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service | `sill-launcher`; serde, jiff, thiserror |
 | 2 | `sill-settings` | `settings.toml` as data: one struct per domain, `Section`, `ShellFile`, schema, typed values parsed at load. No I/O, no runtime, no dioxus | `sill-model`, `ds-core`, `ds-settings` (no features) |
-| 2 | `sill-ipc` | The wire: `Request`/`Response`, one JSON line, 64 KiB cap. Serialises `sill-model` types | `sill-model`; serde, serde_json, thiserror |
-| 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`; tokio, zbus, cctk, libpulse, notify, nonstick, ddc, image |
+| 2 | `sill-ipc` | The wire: `Request`/`Response`, one JSON line, 64 KiB cap. Serialises `sill-model` types | `sill-model`, `sill-launcher`; serde, serde_json, thiserror |
+| 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`, `sill-launcher`; tokio, zbus, cctk, libpulse, notify, nonstick, ddc, image |
 | 4 | `sill-search` | The launcher's runner (`ResultsService`), `providers/`, excerpts and clip images | `sill-services`, `sill-model`, `sill-launcher`, `ds-settings` (no features: the schema files the settings provider indexes); fend, emojis |
-| 5 | `sill-ui-kit` | What every surface shares: `Services` registry, `SurfaceRoot`, `Surface`, `links/`, `Machine`, hooks, `MenuPopup<M>`, `app_icons`, `status`, `notification_card`, `widgets/`, `harness` (feature) | `sill-search`, `sill-services`, `sill-settings`, `sill-model`, `sill-launcher`, `ds`, `ds-shell`, `ds-settings` (dioxus), `ds-blitz`, `shell-host`; dioxus, resvg, image; dev: `ds-harness` |
-| 6 | `sill-bar` | Bar, its menus, tray, control center and its modules | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-services`*, `ds`, `ds-shell`, `shell-host` |
-| 6 | `sill-dock` | Dock, magnify, context menu | same set as `sill-bar` |
-| 6 | `sill-launcher-ui` | Launcher panel and catcher, rows, preview pane, actions | same set + `sill-launcher`, `sill-search`* |
-| 6 | `sill-notify-ui` | Banners, notification center, screenshot thumbnail | same set as `sill-bar` |
-| 6 | `sill-widgets-ui` | Desktop widget layer, Edit Widgets | same set as `sill-bar` |
-| 6 | `sill-overlays` | OSD, power menu, polkit prompt, switcher, idle dim, hot corners, wallpaper, lock | same set as `sill-bar` |
-| 7 | `sill` | Binary and library: `cli/`, `daemon/`, `ipc/`, `policy/` | every crate above; clap, latchkey, `ds-lint` and `ds-shell` (`sill style check`); dev: `sill-testkit`, `sill-ui-kit` (harness) |
+| 5 | `sill-ui-kit` | What every surface shares: `Services` registry, `SettingsFeed`, `SurfaceRoot`, `Surface` and its `mount`, `links/`, `Machine`, hooks, `look`, `panel`, `shell_style`, `MenuPopup<M>`, `app_icons`, `status`, `notification_card`, `widgets/`, `harness` (feature: fake services, `SurfaceHarness`) | `sill-search`, `sill-services`, `sill-settings`, `sill-model`, `sill-launcher`, `ds`, `ds-shell`, `ds-settings` (dioxus), `ds-native`, `shell-host`; dioxus, resvg, image; dev: `ds-lint` |
+| 6 | `sill-bar` | Bar, its menus, tray, control center and its modules | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `ds-native`, `shell-host`; dev: `ds-lint` |
+| 6 | `sill-dock` | Dock, magnify, context menu | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-native`, `shell-host`; dev: `ds-lint` |
+| 6 | `sill-launcher-ui` | Launcher panel and catcher, rows, preview pane, actions | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-search`*, `sill-services`*; `ds`, `ds-native`, `shell-host`; dev: `ds-lint`, `ds-shell` |
+| 6 | `sill-notify-ui` | Banners, notification center, screenshot thumbnail | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `ds-native`, `shell-host` |
+| 6 | `sill-widgets-ui` | Desktop widget layer, Edit Widgets | `sill-ui-kit`, `sill-settings`; `ds`, `ds-shell`, `shell-host`; dev: `sill-model`, `ds-lint` |
+| 6 | `sill-overlays` | OSD, power menu, polkit prompt, switcher, idle dim, hot corners, wallpaper, lock | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `shell-host` |
+| 7 | `sill` | Binary and library: `cli/`, `daemon/`, `ipc/`, `policy/` | every crate above except `sill-testkit`; `ds-native`, `ds-settings`, `shell-host`; clap, latchkey, `ds-lint` and `ds-shell` (`sill style check`); dev: `sill-testkit`, `sill-ui-kit` (harness), `ds` |
 
 `*` A surface crate names `sill-services` (and `sill-search` for the launcher) only for service
 marker types (`BatteryService`), `Control` and `Handle`, the type arguments of `use_service`.
 It never names `Env`, `Service::run`, `spawn` or a `backend`. Surface crates never depend on one
 another, and none depends on `sill`.
 
-Boundary script (`scripts/check-boundary.sh`, checks output of `cargo tree -i`, never status):
+Boundary script (`scripts/check-boundary.sh`; `RULES` check the output of `cargo tree -i`, never
+its status, and `EDGES` compare each crate's direct path dependencies with the table above):
 
-| Crates | Reach none of |
+| Crates | Reach none of (through any path) |
 | --- | --- |
-| `sill-launcher`, `sill-model`, `sill-settings`, `sill-ipc` | dioxus, dioxus-core, zbus, wayland-client, tokio, libpulse-binding, shell-host, ds, ds-shell, ds-blitz, blitz-dom |
-| `sill-services`, `sill-search` | dioxus, dioxus-core, blitz-dom, shell-host, ds, ds-shell, ds-blitz, ds-settings with its dioxus feature |
-| `sill-testkit` | every sill crate |
+| `sill-launcher`, `sill-model`, `sill-ipc` | dioxus, dioxus-core, zbus, wayland-client, tokio, libpulse-binding, shell-host, ds, ds-shell, ds-native, blitz-dom |
+| `sill-settings`, `sill-search` | dioxus, dioxus-core, blitz-dom, shell-host, ds, ds-shell, ds-native (`ds-settings` brings zbus and tokio to both) |
+| `sill-services` | the same, and `ds-settings` |
+| `sill-testkit` | every other sill crate |
+| `sill-ui-kit` | every surface crate, `sill` |
+| each surface crate | every other surface crate, `sill` |
 
 ## 2. Inside each crate: top-level modules, lowest layer first
 
@@ -66,7 +73,7 @@ re-export; the one type a module is named after may sit in its `mod.rs`.
 | `sill-ipc` | `line` (encode, decode, cap), `error`, `request`, `response`, `show`, `status`, `act`, `debug` (one word file per request group) |
 | `sill-services` | `error`, `control`, `stream`, `env/`, `service`, then one dir per service (26, all but `results`) in dependency order of their `Deps`; a service dir never imports another service dir: cross-service data is `sill-model` types in `Deps` |
 | `sill-search` | `preview`, `providers/<kind>/`, `results/` (`registry`, `run`, `sink`, `history`, `frecency_file`, `effect`), `ResultsService` in `results/mod.rs` |
-| `sill-ui-kit` | `look`, `clock`, `links/`, `settings`, `services`, `hooks/`, `machine`, `root`, `surface`, `menu/`, `status/`, `app_icons/`, `notification_card/`, `widgets/`, `harness/` (feature `harness`) |
+| `sill-ui-kit` | `look`, `clock`, `links/`, `settings`, `shell_style`, `services`, `hooks/`, `machine`, `panel`, `root`, `surface/` (`mount`, `lock`, `start`, `place`, `naming`), `menu/`, `status/`, `app_icons/`, `notification_card/`, `widgets/`, `harness/` (feature `harness`) |
 | each surface crate | one dir per surface, named after it (`osd/`, `dock/`, `banners/`); `lib.rs` re-exports each surface marker type and nothing else |
 | `sill` | `policy/`, `ipc/`, `cli/`, `daemon/` (`daemon` is the top: it names every crate) |
 
@@ -138,7 +145,7 @@ code into `tests.rs`. Exceptions and renames:
 | `pins/{fs_watch,run}.rs`, `pins/test_support.rs` | `pins/backend/`; `test_support.rs` goes to `sill-testkit` |
 | `polkit_agent/{types,machine,identity,helper}.rs` | `sill-model/src/polkit_agent/` |
 | `polkit_agent/{bus,dbus,run,live}.rs` | `polkit_agent/backend/` |
-| `screenshots/{reduce,names}.rs`; `tool.rs` (parse only) | `sill-model/src/screenshots/`; the tool string is parsed at load by `sill-settings` into a typed `ScreenshotTool` |
+| `screenshots/{reduce,names}.rs`; `tool.rs` (parse only) | `sill-model/src/screenshots/`; the tool string is parsed at load by `sill-settings` into a typed `ShotTool` |
 | `screenshots/{child,folder_watch,live,preview}.rs` | `screenshots/backend/` |
 | `wallpaper/{cache,geometry}.rs` | `sill-model/src/wallpaper/` |
 | `wallpaper/{config,resize,watch,backdrop}.rs`, logic in `mod.rs` | `wallpaper/backend/` |
@@ -492,9 +499,12 @@ Each ends with its tests. Name the concept once and use it in every file name be
 
 ### Add a surface
 
-1. Choose the crate from the surfaces table below. Create `src/<name>/` with the roles in
-   "The one shape of a surface": `mod.rs`, `surface.rs`, `layer.rs`, `model.rs`, `step.rs`,
-   `io.rs`, `view.rs`, `style.css`, `tests.rs`.
+1. Choose the crate from the surfaces table below (a new crate is a new row of section 1 and of
+   `EDGES` in `scripts/check-boundary.sh`). The surface lives in that crate, in `src/<name>/` with
+   the roles in "The one shape of a surface": `mod.rs`, `surface.rs`, `layer.rs`, `model.rs`,
+   `step.rs`, `io.rs`, `view.rs`, `style.css`, `tests.rs`. `lib.rs` declares `pub mod <name>` and
+   re-exports the marker type; `mod.rs` re-exports the stylesheet const (`NAME_CSS`) the lint
+   row needs.
 2. `surface.rs`: `pub enum Name {}` and `impl Surface` (`NAME`, `Link`, `Slot`, `slots`,
    `layer`, `start`, `root`). `root` is `view::name(output)`; no `Ds` boilerplate: `SurfaceRoot`
    supplies services, feed, appearance, scale and the frame clock, and `mount` has already
@@ -506,16 +516,18 @@ Each ends with its tests. Name the concept once and use it in every file name be
 5. Timed state: `impl Machine` in `step.rs`, run by `use_machine` in `io.rs`.
 6. `sill/src/daemon/surfaces.rs`: in `spawn_missing`, at the surface's place in the drawing order
    (later spawns draw over earlier ones on one layer), add
-   `spawn_surface::<Name>(ctx, outputs, spawn, &links.name)` (`&()` when `Link = ()`); the
-   generic `daemon/spawn.rs` spawns, resizes and closes. No per-surface spawn code: delete the
-   surface's `spawn_missing`, its `Option<SurfaceId>` field in `outputs.rs` (declaration,
-   `fields`, `clear`) and its namespace helper (`debug stats` reads `OutputSurfaces::spawned`),
-   and its link's `.context(..)` line in `surface_root`.
+   `spawn_surface::<Name>(ctx, outputs, spawn, &links.name)` (`&()` when `Link = ()`) and import
+   the marker from the surface's crate; the generic `daemon/spawn.rs` spawns, resizes and closes.
+   There is no per-surface spawn code, `outputs.rs` field or namespace helper (`debug stats`
+   reads `OutputSurfaces::spawned`). The link is a field of `Links`, handed to the root by
+   `surface_root`.
 7. IPC verb if it opens from the command line (recipe below).
-8. Tests: `crates/<crate>/tests/<name>.rs` on `SurfaceHarness::<Name>::setup(link, slot)
-   .settings(..).viewport(..).appearance(..).start()` (render, keys, motion on the virtual clock);
-   a `SurfaceCase` row in `SURFACES` in `crates/sill/tests/lint.rs` (its stylesheet const and a
-   function drawing each state to lint); `dev/accept/<name>.sh`.
+8. Tests, in the surface's crate: `crates/<crate>/tests/<name>.rs` on
+   `SurfaceHarness::<Name>::setup(link, slot).settings(..).viewport(..).appearance(..).start()`
+   (render, keys, motion on the virtual clock), and unit tests in `src/<name>/tests.rs`. The lint
+   is the one place outside the crate: a `SurfaceCase` row in `SURFACES` in
+   `crates/sill/tests/lint.rs` (the stylesheet const and a function drawing each state to lint).
+   Then `dev/accept/<name>.sh`.
 9. Add the row to the surfaces table in this file.
 
 ### Add a control-center module
@@ -642,7 +654,7 @@ installs them.
 | Pure (`sill-model` steps, `sill-launcher`, `sill-settings` parse, `sill-ipc` words) | `CASES` tables beside the code; serde round trips against exact bytes |
 | Service backend | `sill-services/tests/<x>_bus.rs`: `Env::isolated(tmp)` with `Buses` set to a `PrivateBus` address; peers are `sill-testkit` stand-ins. Runs in the gate. Only a test that needs a compositor is `#[ignore]`d and run from a dev script |
 | Providers, runner | `VecSink` and a fake `Sources::Providers`; the runner's latency test |
-| Surface | `SurfaceHarness<S: Surface>` (`sill-ui-kit`, feature `harness`) over quire's `ds_native::Harness` (no `ds-harness` crate exists): `SurfaceHarness::<S>::setup(link, slot)` then `.settings(ShellFile)`, `.viewport(..)`, `.appearance(..)`, `.start()`. It mounts `surface::mount::<S>` on fake `Services` (`fake::services()`; state set through `run.feeds`, commands read), a `PinnedAppearance`, `Clock::Virtual`, the surface's link (`run.link`) and the settings; the viewport is the surface's layer size unless overridden. `run.harness` is the `Harness` (`advance`, `html`, `pointer_move`, `count`). One live harness per thread. Real-input checks are dev scripts on shell-host's headless KWin |
+| Surface | `SurfaceHarness<S: Surface>` (`sill-ui-kit`, feature `harness`) over quire's `ds_native::Harness`: `SurfaceHarness::<S>::setup(link, slot)` then `.settings(ShellFile)`, `.viewport(..)`, `.appearance(..)`, `.start()`. It mounts `surface::mount::<S>` on fake `Services` (`fake::services()`; state set through `run.feeds`, commands read), a `PinnedAppearance`, `Clock::Virtual`, the surface's link (`run.link`) and the settings; the viewport is the surface's layer size unless overridden. `run.harness` is the `Harness` (`advance`, `html`, `pointer_move`, `count`). One live harness per thread. Real-input checks are dev scripts on shell-host's headless KWin |
 | Machines | table tests of `step`; `use_machine` is tested once in `sill-ui-kit` |
 | Markup lint | `crates/sill/tests/lint.rs`: `const SURFACES: &[SurfaceCase]`, one loop over all 17, each row names its surface |
 | IPC and CLI | `crates/sill/tests/ipc.rs` (fake dispatcher, cap, timeout), `cli/request.rs` table |
@@ -734,8 +746,8 @@ where noted, and sill compiles against each.
     `DryRunSession` key paths. `dev/key-sink.py` stays: a focus-holding test client for
     `bar.sh --real-input`, not a key stand-in.
 14. (done) `dev/lib/*.sh` and one script per surface with `--real-input`; untrack `dev/out/*.png`.
-15. Update `check-boundary.sh` to section 1's table; prune FINDINGS to open items and standing
-    facts.
+15. (done) Update `check-boundary.sh` to section 1's table; prune FINDINGS to open items and
+    standing facts.
 16. User styles (done): `daemon/settings/user_style.rs`, the feed field, `SurfaceRoot`'s `user_style`
     and `data-surface`, the `sill style check` verb, a dev script that edits the file under a
     running daemon on headless KWin and proves every surface restyles without a restart

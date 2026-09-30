@@ -219,11 +219,10 @@ A settled item is deleted, not marked closed.
   root: measured as it is, the popup would be the whole surface, and shrunk to nothing every
   press misses (Blitz hit-tests an overlay by its own box, so the overlay must cover the card).
   `menu/style.css` therefore puts one absolutely placed frame at the surface's origin, padded by
-  the popup's shadow room, and lays the overlay, its outside catcher and the card (not a
-  submenu) in flow inside it: the root is the card's size, the popup is the card plus its room,
-  and a press reaches it. Its one lint exception names quire's classes (`tests/dock.rs`); a quire
-  popup-root mode would end it. A press in the transparent room no longer closes the menu (the
-  catcher is 0 px tall); one outside the popup is the compositor's grab.
+  the popup's shadow room, and quire's `RootExtent::Popup` lays the overlay, its outside catcher
+  and the card (not a submenu) in flow inside it: the root is the card's size, the popup is the
+  card plus its room, and a press reaches it. A press in the transparent room no longer closes the
+  menu (the catcher is 0 px tall); one outside the popup is the compositor's grab.
 - **A popup is its own `VirtualDom`** and inherits no context from the surface that opened it; it
   calls `ds_native::provide_host()` itself, as `mount` and `mount_lock` do for a surface; its `PopupFrame` provides the seat's `HostSignals`. The screenshot drag icon is the one `Ds` root outside them: it is a picture that takes no input and has no focusable child, so modality and scale do not apply.
 - **shell-host unmaps by destroying and rebuilding the layer surface**, so the presenter is
@@ -417,7 +416,6 @@ A settled item is deleted, not marked closed.
   close button (a bare `button`): Tab reaches it, Enter does nothing; Escape, Delete and
   Backspace close the card from anywhere on it. quire's `Button` (the card's actions) is fine.
 - **Q3** No per-workspace look store; `use_space_look` computes the preset for the position.
-- **Q4** ds-settings' file I/O and watch are fixed to `appearance.toml`; sill repeats them.
 - **Q20** The tray's dbusmenu popup is not part of the bar's menu session.
 - **Q21** A dbusmenu submenu is dropped (no room beside the popup for it).
 - **Q22** SNI `ContextMenu(x, y)` has no `TrayCommand`.
