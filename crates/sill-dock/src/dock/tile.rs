@@ -10,13 +10,13 @@
 //! no press of its own: the dock's input layer reads every pointer event.
 
 use dioxus::prelude::*;
+use ds::base::vocab::Activity;
 use ds::components::controls::badge::BadgeContent;
 use ds::prelude::*;
-use ds_core::vocab::Activity;
+use ds::style::icon::family::PlateFamily;
+use ds::style::icon::plate_tint::PlateTint;
+use ds::style::scale::use_scale;
 use ds_shell::prelude::*;
-use ds_style::icon::family::PlateFamily;
-use ds_style::icon::plate_tint::PlateTint;
-use ds_style::scale::use_scale;
 use sill_model::badges::Badge;
 use sill_model::units::{Cpx, Permille};
 use sill_settings::{DockSettings, Indicators};

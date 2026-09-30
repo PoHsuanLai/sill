@@ -3,11 +3,11 @@
 //! the screen that press was, and how far the wheel turned over it.
 
 use dioxus::html::geometry::WheelDelta;
+use ds::base::press::{PointerButton, Press};
 use ds::icon::{IconKind, classify_with};
 use ds::prelude::*;
-use ds_core::press::{PointerButton, Press};
-use ds_style::icon::classify::ChromaLimit;
-use ds_style::icon::url::IconUrl;
+use ds::style::icon::classify::ChromaLimit;
+use ds::style::icon::url::IconUrl;
 use sill_model::tray::{ScrollAxis, ScrollDelta, TrayCommand, TrayItemId};
 use sill_services::tray::IconArt;
 
@@ -131,8 +131,8 @@ mod tests {
     };
     use dioxus::html::geometry::WheelDelta;
     use dioxus::prelude::Modifiers;
+    use ds::base::press::{PointerButton, Press};
     use ds::prelude::*;
-    use ds_core::press::{PointerButton, Press};
     use sill_model::tray::{ScrollAxis, ScrollDelta, TrayCommand, TrayItemId};
     use sill_services::tray::IconArt;
     use std::path::PathBuf;
@@ -178,7 +178,7 @@ mod tests {
             assert_eq!(
                 kind(&icon_source(
                     art,
-                    ds_style::icon::classify::ChromaLimit::default()
+                    ds::style::icon::classify::ChromaLimit::default()
                 )),
                 want,
                 "{name}"
@@ -261,7 +261,7 @@ mod tests {
         for &(key, want) in CASES {
             assert_eq!(
                 chroma_limit(key),
-                ds_style::icon::classify::ChromaLimit(want),
+                ds::style::icon::classify::ChromaLimit(want),
                 "{key}"
             );
         }

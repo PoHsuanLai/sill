@@ -1,6 +1,6 @@
 //! What a sill process hands shell-host: quire's faces and the pre-paint pass.
 
-use ds_style::fonts::FACES;
+use ds::style::fonts::FACES;
 
 /// The pre-paint pass the daemon installs on its host (`HostConfig::prepaint`): quire's
 /// device-pixel layout snap, a no-op at whole scales.

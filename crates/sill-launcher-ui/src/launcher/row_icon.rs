@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 
 use ds::prelude::*;
-use ds_style::icon::url::IconUrl;
+use ds::style::icon::url::IconUrl;
 use sill_launcher::{IconRef, Item};
 
 use crate::launcher::entries::glyph;

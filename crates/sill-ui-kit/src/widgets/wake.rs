@@ -6,7 +6,7 @@
 //! [`crate::widgets::Widget`] and its host, so every host wakes its widgets in one place.
 
 use dioxus::prelude::*;
-use ds_motion::wake::WakeStamp;
+use ds::motion::wake::WakeStamp;
 
 /// One host's wake, provided once for the widgets under it to read.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]

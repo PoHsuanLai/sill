@@ -16,13 +16,13 @@
 //! prop at all: `TrayButton` reads it itself instead of receiving it).
 
 use dioxus::prelude::*;
+use ds::base::press::Press;
 use ds::components::controls::button_model::ImagePosition;
 use ds::prelude::Check as DsCheck;
 use ds::prelude::*;
 use ds::root::common::Common;
-use ds_core::press::Press;
+use ds::style::icon::classify::ChromaLimit;
 use ds_shell::prelude::*;
-use ds_style::icon::classify::ChromaLimit;
 use shell_host::{HostRoot, OutputInfo, PopupPlacement, Rect, Size, SurfaceHandle, use_surface};
 use sill_model::tray::{
     Check as TrayCheck, TrayCommand, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind,

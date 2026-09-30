@@ -1,8 +1,8 @@
 //! The effects end of one corner: feed the pointer's enter and leave to the trigger machine
-//! ([`step`]), run its dwell and re-arm on quire's one timer (`ds_core::time::clock::sleep`), and write a firing
+//! ([`step`]), run its dwell and re-arm on quire's one timer (`ds::base::time::clock::sleep`), and write a firing
 //! to the [`CornerLink`].
 
-use ds_core::time::clock::sleep;
+use ds::base::time::clock::sleep;
 use std::time::Duration;
 
 use dioxus::core::Task;

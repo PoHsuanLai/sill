@@ -13,9 +13,9 @@ use ds::components::controls::button_model::Bezel;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
+use ds::base::vocab::FocusStyle;
 use ds::components::content::label::{LabelRole, LabelStyle};
 use ds::prelude::*;
-use ds_core::vocab::FocusStyle;
 use shell_host::OutputId;
 use sill_model::notifications::{History, UnixMs};
 

@@ -1,11 +1,11 @@
 //! The effects end of one switcher surface: follow the [`SwitcherLink`] for this output, step the
 //! pure [`step`] machine, and carry out what it says. A chord maps the surface (keyboard
 //! `Exclusive`, so it sees the release) and snapshots the apps; the show delay is quire's one timer
-//! (`ds_core::time::clock::sleep`); `Activate`, `Quit` and `HideApp` go to `Services.cosmic_wl`; a quit tile folds
+//! (`ds::base::time::clock::sleep`); `Activate`, `Quit` and `HideApp` go to `Services.cosmic_wl`; a quit tile folds
 //! and is dropped at `settle(Anim::Fold)`; the machine back at `Hidden` unmaps at once. Hidden, no
 //! task runs and nothing asks for a frame.
 
-use ds_core::time::clock::sleep;
+use ds::base::time::clock::sleep;
 use std::time::Duration;
 
 use super::apps::{SwitcherApp, switcher_apps};

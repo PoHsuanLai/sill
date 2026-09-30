@@ -1,9 +1,9 @@
 //! The numbers the machine runs on: `dock.*` settings plus quire's motion tokens
 //! at the active motion level. Built once per settings change, never hard-coded.
 
+use ds::motion::hover_intent::HoverProfile;
 use ds::prelude::*;
-use ds_motion::hover_intent::HoverProfile;
-use ds_style::tokens::easing::{CubicBezier, EasingToken};
+use ds::style::tokens::easing::{CubicBezier, EasingToken};
 use sill_model::units::{Cpx, Permille};
 use sill_settings::{
     ActiveClick, Bounce as BounceSetting, DockModifierClicks, DockSettings, LaunchAnim,
@@ -102,7 +102,7 @@ impl DockParams {
 pub(crate) mod tests {
     use super::{DockParams, eased};
     use ds::prelude::*;
-    use ds_style::tokens::easing::CubicBezier;
+    use ds::style::tokens::easing::CubicBezier;
     use sill_model::units::{Cpx, Permille};
     use sill_settings::DockSettings;
 

@@ -8,8 +8,8 @@ use std::rc::Rc;
 
 use dioxus::prelude::*;
 use ds::components::lists::preview::switcher::PaneSwitcher;
+use ds::motion::pane_slide::Pane;
 use ds::prelude::*;
-use ds_motion::pane_slide::Pane;
 use ds_shell::control_center::module_grid::GridColumns;
 use ds_shell::prelude::*;
 use sill_model::ids::OutputName;
@@ -170,7 +170,7 @@ fn Grid(
 mod tests {
     use super::{PanelCap, pane_of, panel_style};
     use crate::control_center::{CcPage, Detail};
-    use ds_motion::pane_slide::Pane;
+    use ds::motion::pane_slide::Pane;
 
     #[test]
     fn the_panel_scrolls_past_its_cap() {

@@ -7,9 +7,9 @@
 //! surface's input and blur region.
 
 use dioxus::prelude::*;
+use ds::motion::swipe::SwipeMetrics;
 use ds::prelude::*;
 use ds::root::common::Common;
-use ds_motion::swipe::SwipeMetrics;
 use ds_shell::notifications::parts::Hover;
 use ds_shell::notifications::swipe::NotificationSwipe;
 use ds_shell::prelude::*;

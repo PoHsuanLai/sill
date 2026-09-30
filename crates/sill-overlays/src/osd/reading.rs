@@ -7,9 +7,9 @@
 //! A monitor's own speakers follow the software volume (`display.hardware_volume`), so the
 //! volume shown is the sink's level whichever of the two is playing.
 
+use ds::base::vocab::Muting;
 use ds::components::content::level_glyph::vocab::LevelGlyph;
 use ds::prelude::*;
-use ds_core::vocab::Muting;
 use ds_shell::osd::OsdLevel;
 use sill_model::displays::{BrightnessTarget, Displays};
 use sill_model::ids::OutputName;
@@ -120,9 +120,9 @@ fn monitor_name(displays: &Displays, target: &BrightnessTarget) -> Option<String
 #[cfg(test)]
 mod tests {
     use super::{card_level, level_of, title};
+    use ds::base::vocab::Muting;
     use ds::components::content::level_glyph::vocab::LevelGlyph;
     use ds::prelude::*;
-    use ds_core::vocab::Muting;
     use sill_model::displays::Displays;
     use sill_model::displays::ddc::Endpoint;
     use sill_model::displays::{Controls, DdcDisplay, Level as DdcLevel};

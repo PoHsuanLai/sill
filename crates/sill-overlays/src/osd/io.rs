@@ -1,10 +1,10 @@
 //! The effects end of one indicator: follow the [`OsdLink`], feed the [`step`] machine, wake it
-//! with quire's one timer (`ds_core::time::clock::sleep`, for durations from `osd.hold_ms`, never a literal), map
+//! with quire's one timer (`ds::base::time::clock::sleep`, for durations from `osd.hold_ms`, never a literal), map
 //! the surface once the machine shows something, unmap it once quire's `Osd` card says its exit
 //! has settled (`on_hidden`), and move it when `osd.position` or the gap changes. Once hidden and
 //! gone, no task runs and nothing asks for a frame.
 
-use ds_core::time::clock::sleep;
+use ds::base::time::clock::sleep;
 use std::time::Duration;
 
 use dioxus::core::Task;

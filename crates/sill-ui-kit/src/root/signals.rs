@@ -16,9 +16,9 @@
 //! the hooks run in the same order on every render.
 
 use dioxus::prelude::*;
+use ds::base::vocab::Activity;
+use ds::base::vocab::InputModality as DsModality;
 use ds::prelude::*;
-use ds_core::vocab::Activity;
-use ds_core::vocab::InputModality as DsModality;
 use shell_host::{InputModality as SeatModality, Scale as SeatScale, SurfaceHandle};
 
 /// shell-host's raw modality, as quire's own.

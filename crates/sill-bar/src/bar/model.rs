@@ -2,7 +2,7 @@
 //! bar each render, and the notification-center handoff it waits on.
 
 use ds::prelude::*;
-use ds_style::tokens::shell_scale::SHELL_SCALE;
+use ds::style::tokens::shell_scale::SHELL_SCALE;
 use shell_host::{OutputId, PopupPlacement, SurfaceHandle};
 use sill_model::ids::OutputName;
 use sill_settings::BarSettings;

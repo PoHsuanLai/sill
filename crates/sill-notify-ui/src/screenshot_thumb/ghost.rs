@@ -5,9 +5,9 @@
 use dioxus::prelude::*;
 use ds::components::content::image_source::ImageSize;
 use ds::prelude::*;
+use ds::style::material::stack::MaterialStack;
 use ds_settings::Environment;
 use ds_shell::prelude::*;
-use ds_style::material::stack::MaterialStack;
 use shell_host::{DragIcon, HostRoot, Size};
 
 use super::picture::ThumbPicture;

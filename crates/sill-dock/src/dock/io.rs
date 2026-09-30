@@ -7,7 +7,7 @@
 //! so an idle dock renders nothing. A `Redraw` stamps the time the next render draws at.
 
 use dioxus::prelude::*;
-use ds_core::time::clock::sleep;
+use ds::base::time::clock::sleep;
 use shell_host::{FrameDrive, HostRoot, SurfaceHandle};
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::badges::Badges;

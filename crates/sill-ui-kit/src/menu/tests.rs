@@ -7,10 +7,10 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::prelude::*;
+use ds::style::material::stack::MaterialStack;
+use ds::style::tokens::shell_type::ShellMetrics;
 use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
 use ds_settings::UserStyle;
-use ds_style::material::stack::MaterialStack;
-use ds_style::tokens::shell_type::ShellMetrics;
 use sill_settings::ShellFile;
 
 use crate::settings::SettingsFeed;

@@ -3,8 +3,8 @@
 //! second settings watch; the opener provides both as root contexts.
 
 use ds::prelude::*;
-use ds_style::material::stack::MaterialStack;
-use ds_style::tokens::shell_type::ShellMetrics;
+use ds::style::material::stack::MaterialStack;
+use ds::style::tokens::shell_type::ShellMetrics;
 
 /// How a popup's `Ds` root resolves its scheme: the opener's own, handed over.
 #[derive(Debug, Clone, Copy, PartialEq)]

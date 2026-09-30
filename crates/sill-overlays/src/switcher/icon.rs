@@ -7,8 +7,8 @@
 use std::path::Path;
 
 use ds::prelude::*;
-use ds_style::icon::render::IconPx;
-use ds_style::icon::url::IconUrl;
+use ds::style::icon::render::IconPx;
+use ds::style::icon::url::IconUrl;
 use sill_launcher::AppId;
 use sill_model::apps::{AppIcon, AppIndex};
 

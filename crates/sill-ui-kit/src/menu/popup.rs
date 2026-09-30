@@ -7,7 +7,7 @@
 use dioxus::prelude::*;
 use ds::host::measure::Anchor;
 use ds::prelude::*;
-use ds_style::appearance::blur::BlurState;
+use ds::style::appearance::blur::BlurState;
 
 use super::frame::PopupFrame;
 use super::look::{PopupLook, PopupRoom};

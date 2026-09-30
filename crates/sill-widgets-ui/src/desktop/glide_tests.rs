@@ -1,7 +1,8 @@
 use std::time::{Duration, Instant};
 
 use ds::detail::Touch;
-use ds::motion::{Release, Velocity};
+use ds::motion::spring_point::Release;
+use ds::motion::velocity::Velocity;
 use ds::prelude::*;
 
 use super::{Ask, Glide, PointMeter, Pose, Seen, ask, drawn, to_layer, to_point};

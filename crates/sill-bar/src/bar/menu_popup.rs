@@ -9,11 +9,11 @@
 //! reports the pointer's hover and release to the bar's tracking machine.
 
 use dioxus::prelude::*;
+use ds::base::geometry::placement::{Align, Side};
+use ds::base::press::Press;
 use ds::host::measure::Anchor;
 use ds::prelude::*;
-use ds_core::geometry::placement::{Align, Side};
-use ds_core::press::Press;
-use ds_style::appearance::blur::BlurState;
+use ds::style::appearance::blur::BlurState;
 use shell_host::{PopupPlacement, SurfaceOp, use_surface, use_watch};
 use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;

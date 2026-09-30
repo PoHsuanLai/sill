@@ -6,8 +6,8 @@
 //! `BarPointer` hears. Right-click Edit Space waits for the Space editor popup.
 
 use dioxus::prelude::*;
+use ds::base::press::{PointerButton, Press};
 use ds::prelude::*;
-use ds_core::press::{PointerButton, Press};
 use ds_shell::bar::pointer::BarPointer;
 use ds_shell::prelude::*;
 use shell_host::OutputInfo;

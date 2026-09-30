@@ -3,8 +3,8 @@
 
 use crate::magnify::MagnifyParams;
 use ds::prelude::*;
+use ds::style::tokens::shape::Corner;
 use ds_shell::tokens::dock::{DockFloorSetting, DockMetrics};
-use ds_style::tokens::shape::Corner;
 use sill_model::units::Cpx;
 use sill_settings::{DockFloor, DockSettings};
 

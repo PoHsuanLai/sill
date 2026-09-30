@@ -2,7 +2,7 @@
 //! box and paint order, the places a layout or a drop keeps, and the regions the frames take.
 
 use ds::detail::Touch;
-use ds::motion::Release;
+use ds::motion::spring_point::Release;
 use ds::prelude::*;
 use shell_host::{BlurSpec, ElementId, ElementRegion, RegionSpec};
 use sill_settings::WidgetKind;

@@ -2,7 +2,7 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_style::appearance::blur::BlurState;
+use ds::style::appearance::blur::BlurState;
 use shell_host::OutputInfo;
 use sill_model::ids::OutputName;
 

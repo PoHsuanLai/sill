@@ -22,8 +22,8 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
+use ds::style::appearance::blur::BlurState;
 use ds_shell::lock::vocab::CapsLock;
-use ds_style::appearance::blur::BlurState;
 use shell_host::{LockHandle, LockPhase, OutputInfo, use_lock, use_lock_phase, use_modifiers};
 
 use super::body::{HostLock, LockBody};

@@ -6,7 +6,7 @@
 use dioxus::prelude::*;
 use ds::components::controls::segmented::Tracking;
 use ds::prelude::*;
-use ds_style::tokens::control_size::ControlSize;
+use ds::style::tokens::control_size::ControlSize;
 use sill_model::power_profile::{Profile, ProfileCommand, ProfileDegraded};
 use sill_model::units::Presence;
 use sill_services::PowerProfileService;

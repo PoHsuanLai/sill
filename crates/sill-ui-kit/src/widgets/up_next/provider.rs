@@ -12,8 +12,8 @@
 //! than guessed.
 
 use ds::prelude::*;
+use ds::style::tokens::label_hue::LabelHue;
 use ds_shell::widget::calendar::EventLine;
-use ds_style::tokens::label_hue::LabelHue;
 use jiff::Timestamp;
 use jiff::civil::Date;
 use jiff::tz::TimeZone;

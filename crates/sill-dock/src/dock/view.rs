@@ -15,8 +15,8 @@
 use dioxus::prelude::*;
 use ds::prelude::*;
 use ds::root::chrome::Ground;
+use ds::style::appearance::blur::BlurState;
 use ds_shell::prelude::*;
-use ds_style::appearance::blur::BlurState;
 use shell_host::{LayerConfig, OutputInfo, SurfaceHandle};
 use sill_model::ids::OutputName;
 use sill_model::units::Cpx;

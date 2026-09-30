@@ -1,11 +1,11 @@
 //! The shell-wide style inputs from the settings (quire's macOS polish pass): the shell type
-//! scale (`ds_style::tokens::shell_type::ShellMetrics`: the bar's items, text menus, the launcher, tooltips). Each surface
+//! scale (`ds::style::tokens::shell_type::ShellMetrics`: the bar's items, text menus, the launcher, tooltips). Each surface
 //! writes the metrics inline on an element around its `Ds` root and hands the root the material
 //! stack from `ds_settings::Environment::material_stack`, so every card under it reads the keys;
 //! absent, the keys' defaults apply anyway (quire's tokens fall back to them).
 
 use ds::prelude::*;
-use ds_style::tokens::shell_type::{FontWeight, ShellMetrics};
+use ds::style::tokens::shell_type::{FontWeight, ShellMetrics};
 use sill_settings::{PanelMaterial, ShellFile};
 
 /// The shell type scale from `bar.*`, `menus.*` and `launcher.*`.
@@ -42,10 +42,10 @@ pub fn material(material: PanelMaterial) -> Material {
 #[cfg(test)]
 mod tests {
     use super::shell_metrics;
+    use ds::style::tokens::control_size::ControlSize;
+    use ds::style::tokens::shell_scale::SHELL_SCALE;
+    use ds::style::tokens::shell_type::ShellMetrics;
     use ds_shell::tokens::control_center::CONTROL_CENTER;
-    use ds_style::tokens::control_size::ControlSize;
-    use ds_style::tokens::shell_scale::SHELL_SCALE;
-    use ds_style::tokens::shell_type::ShellMetrics;
     use sill_settings::{Px, ShellFile};
 
     #[test]

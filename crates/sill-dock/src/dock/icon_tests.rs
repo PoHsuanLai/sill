@@ -2,7 +2,7 @@ use super::{IconContext, TileArt, TileSizes, drawn, tile_art};
 use crate::dock::items::ItemKind;
 use ds::icon::{IconStyle, Tint};
 use ds::prelude::*;
-use ds_style::icon::render::IconPx;
+use ds::style::icon::render::IconPx;
 use sill_launcher::AppId;
 use sill_model::apps::{App, AppIcon, DbusActivation, Listing, Terminal};
 use sill_settings::{DockSettings, Magnification};

@@ -2,8 +2,8 @@
 //! the context the bar's titles feed it through. The only effectful part of the menus; every
 //! decision is `track::step`, `plan::effects` or `content::body`.
 
+use ds::base::time::clock::sleep;
 use ds::prelude::*;
-use ds_core::time::clock::sleep;
 use std::collections::HashMap;
 
 use dioxus::prelude::*;

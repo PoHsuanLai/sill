@@ -5,7 +5,7 @@
 //! effect handler. Nothing here decides: the surface's `io.rs` feeds inputs and carries out
 //! outputs.
 
-use ds_core::time::clock::sleep;
+use ds::base::time::clock::sleep;
 use std::collections::VecDeque;
 use std::time::Duration;
 

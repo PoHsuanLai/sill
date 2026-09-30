@@ -5,7 +5,8 @@
 use std::time::Instant;
 
 use ds::detail::Touch;
-use ds::motion::{Release, VelocityMeter};
+use ds::motion::spring_point::Release;
+use ds::motion::velocity::VelocityMeter;
 use ds::prelude::*;
 
 use super::arrange::LayerPoint;

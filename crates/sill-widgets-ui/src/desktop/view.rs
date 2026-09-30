@@ -13,8 +13,8 @@
 
 use dioxus::prelude::*;
 use ds::host::measure::use_rect;
+use ds::motion::wake::WakeStamp;
 use ds::prelude::*;
-use ds_motion::wake::WakeStamp;
 use ds_shell::prelude::*;
 use ds_shell::tokens::widgets::WidgetMetrics;
 use shell_host::OutputInfo;

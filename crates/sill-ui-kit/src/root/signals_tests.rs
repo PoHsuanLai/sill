@@ -7,8 +7,8 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::prelude::*;
+use ds::style::tokens::pixel::PixelToken;
 use ds_harness::{Clock, Driver, Harness, HarnessConfig, Query, Viewport};
-use ds_style::tokens::pixel::PixelToken;
 use shell_host::{InputModality as SeatModality, Scale as SeatScale};
 
 use super::use_republished;

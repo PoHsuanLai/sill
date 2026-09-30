@@ -1,13 +1,13 @@
 //! One icon status item: a quire `MenuBarItem`, expanded while its menu is
-//! open (design/20 §1.1), sized by the bar's status keys through `ds_style::tokens::status::StatusMetrics`.
+//! open (design/20 §1.1), sized by the bar's status keys through `ds::style::tokens::status::StatusMetrics`.
 
 use dioxus::prelude::*;
 use ds::components::controls::button_model::ImagePosition;
 use ds::host::measure::use_rect;
 use ds::prelude::*;
 use ds::root::common::Common;
+use ds::style::tokens::status::StatusMetrics;
 use ds_shell::prelude::*;
-use ds_style::tokens::status::StatusMetrics;
 use sill_settings::{BarGlyphSize, BarSettings};
 
 use super::menus::BarMenu;

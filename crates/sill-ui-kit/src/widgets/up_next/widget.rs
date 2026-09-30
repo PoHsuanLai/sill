@@ -6,10 +6,10 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
+use ds::style::tokens::label_hue::LabelHue;
 use ds_shell::prelude::*;
 use ds_shell::widget::contract::NoIntent;
 use ds_shell::widget::kind::WidgetTitle;
-use ds_style::tokens::label_hue::LabelHue;
 use serde::{Deserialize, Serialize};
 
 use super::provider::EVENT_ROWS;

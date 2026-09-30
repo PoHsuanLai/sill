@@ -7,7 +7,7 @@
 //! the service dropped leaves silently; another output's column draws nothing; and the keyboard
 //! ([`keys`]) is asked for and never taken.
 
-use ds_core::time::FRAME_SLACK;
+use ds::base::time::FRAME_SLACK;
 use ds_harness::{Driver, Input, Query};
 use std::time::Duration;
 

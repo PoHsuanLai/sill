@@ -3,7 +3,7 @@
 
 use dioxus::prelude::*;
 use ds::prelude::*;
-use ds_style::appearance::blur::BlurState;
+use ds::style::appearance::blur::BlurState;
 use shell_host::OutputInfo;
 
 use super::app_name::AppName;

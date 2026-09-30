@@ -14,7 +14,7 @@ use dioxus::prelude::*;
 use ds::components::menus::palette::palette_claim::FieldKey;
 use ds::host::measure::Anchor;
 use ds::prelude::*;
-use ds_style::tokens::shape::Corner;
+use ds::style::tokens::shape::Corner;
 use shell_host::OutputInfo;
 use sill_launcher::{ActionId, ClipKey, Item, Preview, Section, preview_for};
 use sill_search::preview::clip_image;

@@ -4,7 +4,7 @@
 
 use dioxus::prelude::*;
 use ds::detail::Touch;
-use ds::motion::Release;
+use ds::motion::spring_point::Release;
 use shell_host::SurfaceHandle;
 use sill_settings::WidgetKind;
 

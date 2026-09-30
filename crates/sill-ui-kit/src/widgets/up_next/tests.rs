@@ -4,7 +4,7 @@ use sill_model::events::{CalEvent, EventTime};
 use sill_model::events::{CalendarName, EventUid};
 
 use super::{EventLines, calendar_hue, event_lines};
-use ds_style::tokens::label_hue::LabelHue;
+use ds::style::tokens::label_hue::LabelHue;
 
 #[test]
 fn a_calendar_keeps_one_label_hue_by_its_name() {

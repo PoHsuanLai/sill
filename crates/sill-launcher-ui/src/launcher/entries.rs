@@ -11,7 +11,7 @@
 use std::path::Path;
 
 use ds::prelude::*;
-use ds_style::icon::url::IconUrl;
+use ds::style::icon::url::IconUrl;
 use sill_launcher::{Action, ActionId, IconRef, Item, ItemId, ProviderKind};
 
 use crate::launcher::chord_keys::action_shortcut;

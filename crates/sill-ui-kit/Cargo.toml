@@ -12,9 +12,6 @@ publish.workspace = true
 sill-model = { workspace = true }
 dioxus = { workspace = true }
 ds = { workspace = true }
-ds-core = { workspace = true }
-ds-style = { workspace = true }
-ds-motion = { workspace = true }
 ds-shell = { workspace = true }
 ds-blitz = { workspace = true }
 ds-settings = { workspace = true, features = ["dioxus"] }

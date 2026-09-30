@@ -7,7 +7,8 @@
 //!
 use dioxus::core::queue_effect;
 use dioxus::prelude::*;
-use ds::motion::{SpringPointMotion, SpringResponse, use_spring_point_motion};
+use ds::motion::spring_point::{SpringPointMotion, use_spring_point_motion};
+use ds::motion::spring_spec::SpringResponse;
 use ds_shell::widget::kind::Lift;
 use sill_settings::WidgetKind;
 
@@ -88,7 +89,7 @@ fn apply(motion: SpringPointMotion, asked: Ask) {
         Ask::Aside(to) => motion.go(
             to_point(to),
             ds::detail::Touch::Remote,
-            ds::motion::Release::default(),
+            ds::motion::spring_point::Release::default(),
             SpringResponse::Move,
         ),
     }

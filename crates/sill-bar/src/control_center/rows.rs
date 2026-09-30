@@ -5,11 +5,11 @@
 
 use crate::control_center::item_phase::{ItemPhase, RowDisc};
 use dioxus::prelude::*;
+use ds::base::vocab::RowState;
 use ds::components::content::status::battery_state::BatteryState;
 use ds::components::lists::list::model::ListStyle;
 use ds::components::lists::row::size::RowSize;
 use ds::prelude::*;
-use ds_core::vocab::RowState;
 use sill_model::units::Percent;
 
 /// What a row ends in.
