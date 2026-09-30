@@ -12,7 +12,7 @@ use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_settings::OsdSettings;
 
 use super::layer::{anchor, margin};
-use super::step::{OsdInput, OsdPhase, OsdTimes, step};
+use super::step::{OsdHold, OsdInput, OsdTimes, step};
 use sill_ui_kit::clock::FrameClock;
 use sill_ui_kit::links::{OsdChange, OsdLatest, OsdLink};
 
@@ -27,7 +27,7 @@ pub fn times(osd: &OsdSettings) -> OsdTimes {
 /// handler for quire's `Osd::on_hidden`.
 #[derive(Clone)]
 pub(crate) struct Drawn {
-    pub phase: OsdPhase,
+    pub phase: OsdHold,
     pub change: Option<OsdChange>,
     pub on_hidden: EventHandler<()>,
 }
@@ -39,7 +39,7 @@ pub(crate) fn use_osd(link: &OsdLink, output: OutputId, now_times: OsdTimes) -> 
     // A surface respawned after a close does not replay the change before it.
     let mut seen = use_hook(|| CopyValue::new(link.now().serial()));
     let mut shown = use_signal(|| None::<OsdChange>);
-    let mut phase = use_signal(OsdPhase::default);
+    let mut phase = use_signal(OsdHold::default);
     let mut waking = use_hook(|| CopyValue::new(None::<Task>));
     // Read by the handlers at each change and wake; a settings change applies from the next.
     let mut times = use_hook(|| CopyValue::new(now_times));
@@ -68,8 +68,8 @@ pub(crate) fn use_osd(link: &OsdLink, output: OutputId, now_times: OsdTimes) -> 
     }
 }
 
-/// Wake the machine at each [`OsdPhase::wake`] until it is hidden.
-async fn wake_loop(mut phase: Signal<OsdPhase>, clock: FrameClock, times: CopyValue<OsdTimes>) {
+/// Wake the machine at each [`OsdHold::wake`] until it is hidden.
+async fn wake_loop(mut phase: Signal<OsdHold>, clock: FrameClock, times: CopyValue<OsdTimes>) {
     loop {
         let wake = phase.peek().wake();
         let Some(at) = wake else { break };
@@ -82,7 +82,7 @@ async fn wake_loop(mut phase: Signal<OsdPhase>, clock: FrameClock, times: CopyVa
 /// Map the surface once the machine shows something. Never unmaps here: quire's `Osd` card owns
 /// the exit fade, and [`use_unmap`] is the surface's only way down, once it has settled. Nothing
 /// to do without a host (a test, an SSR render).
-fn use_map_when_shown(phase: ReadSignal<OsdPhase>) {
+fn use_map_when_shown(phase: ReadSignal<OsdHold>) {
     let surface = try_use_context::<SurfaceHandle>();
     let mut applied = use_hook(|| CopyValue::new(Visibility::Hidden));
     use_effect(move || {

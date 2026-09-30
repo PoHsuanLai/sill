@@ -4,7 +4,7 @@
 //! saved network sends `WifiCommand::Connect`, a new one opens COSMIC Settings' Wi-Fi page (no
 //! password prompt yet), the connected one `Disconnect`. The join's stamp (`Network.join`) is
 //! the joining row's phase: a spinner where the lock was, the disc sealing when it lands, a
-//! shake when it fails ([`crate::control_center::row_phase`]). Sends
+//! shake when it fails ([`crate::control_center::item_phase`]). Sends
 //! `WifiCommand::Scan` when it opens. "Wi-Fi Settings…" at the foot.
 
 use dioxus::prelude::*;
@@ -18,11 +18,11 @@ use sill_model::wifi::{
 
 use super::feature_switch::{FeatureSwitch, back_button};
 use super::foot::{ClosePanel, SettingsFoot, open_settings};
+use crate::control_center::item_phase::{
+    Aim, FAILED_WORDS, Item, ItemPhase, RowDisc, aim_after, item_phase,
+};
 use crate::control_center::modules::wifi::{radio_availability, radio_of, radio_state};
 use crate::control_center::network_detail;
-use crate::control_center::row_phase::{
-    Aim, FAILED_WORDS, Item, RowDisc, RowPhase, aim_after, row_phase,
-};
 use crate::control_center::rows::{RowList, RowMark, RowSpec};
 use sill_services::{NetworkService, WifiService};
 use sill_ui_kit::hooks::{use_service, use_services};
@@ -127,7 +127,7 @@ pub(crate) fn network_rows(
                 } else {
                     Aim::Other
                 };
-                network_row(&ap, saved, row_phase(join, item_of(ap.association), aim))
+                network_row(&ap, saved, item_phase(join, item_of(ap.association), aim))
             })
             .collect(),
         (Presence::Absent, _) | (_, Radio::Off | Radio::Blocked) => Vec::new(),
@@ -146,7 +146,7 @@ fn item_of(association: Association) -> Item {
 /// One network's row in `phase`: the accent disc on the network in use (no check: the disc says
 /// it), a lock on a secured one (the joining spinner takes its place), the failure's words in
 /// the detail line.
-pub(crate) fn network_row(ap: &AccessPoint, saved: Saved, phase: RowPhase) -> RowSpec<WifiPick> {
+pub(crate) fn network_row(ap: &AccessPoint, saved: Saved, phase: ItemPhase) -> RowSpec<WifiPick> {
     let value = match (ap.association, saved) {
         (Association::Connected, _) => WifiPick::Leave,
         (Association::Connecting | Association::Idle, Saved::Known) => {
@@ -163,8 +163,10 @@ pub(crate) fn network_row(ap: &AccessPoint, saved: Saved, phase: RowPhase) -> Ro
         Association::Connecting | Association::Idle => RowDisc::Off,
     };
     let detail = match phase {
-        RowPhase::Failed(_) => FAILED_WORDS.to_owned(),
-        RowPhase::Rest | RowPhase::Pending(_) | RowPhase::Succeeded(_) => network_detail(ap, saved),
+        ItemPhase::Failed(_) => FAILED_WORDS.to_owned(),
+        ItemPhase::Rest | ItemPhase::Pending(_) | ItemPhase::Succeeded(_) => {
+            network_detail(ap, saved)
+        }
     };
     RowSpec {
         key: ap.ssid.0.clone(),
@@ -203,7 +205,7 @@ pub(crate) fn empty_title(wifi: &Wifi, rows: usize) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::{WifiPick, empty_title, joining, network_row, network_rows};
-    use crate::control_center::row_phase::{RowDisc, RowPhase};
+    use crate::control_center::item_phase::{ItemPhase, RowDisc};
     use crate::control_center::rows::RowMark;
     use ds::Icon;
     use ds::detail::EventStamp;
@@ -230,7 +232,7 @@ mod tests {
             (
                 ap("home", 80, Association::Connected, Security::Secured),
                 Saved::Known,
-                RowPhase::Rest,
+                ItemPhase::Rest,
                 WifiPick::Leave,
                 RowMark::Lock,
                 RowDisc::On,
@@ -240,7 +242,7 @@ mod tests {
             (
                 ap("office", 50, Association::Idle, Security::Secured),
                 Saved::Known,
-                RowPhase::Rest,
+                ItemPhase::Rest,
                 WifiPick::Join(Ssid("office".to_owned())),
                 RowMark::Lock,
                 RowDisc::Off,
@@ -250,7 +252,7 @@ mod tests {
             (
                 ap("cafe", 20, Association::Idle, Security::Open),
                 Saved::New,
-                RowPhase::Rest,
+                ItemPhase::Rest,
                 WifiPick::Setup,
                 RowMark::Nothing,
                 RowDisc::Off,
@@ -260,7 +262,7 @@ mod tests {
             (
                 ap("office", 50, Association::Idle, Security::Secured),
                 Saved::Known,
-                RowPhase::Failed(e(2)),
+                ItemPhase::Failed(e(2)),
                 WifiPick::Join(Ssid("office".to_owned())),
                 RowMark::Lock,
                 RowDisc::Off,
@@ -316,16 +318,16 @@ mod tests {
         assert_eq!(
             phases(&wifi, Attempt::Running(OpStamp(4))),
             vec![
-                row("home", RowPhase::Rest),
-                row("office", RowPhase::Pending(EventStamp(4)))
+                row("home", ItemPhase::Rest),
+                row("office", ItemPhase::Pending(EventStamp(4)))
             ],
         );
         wifi.access_points[1].association = Association::Connected;
         assert_eq!(
             phases(&wifi, Attempt::Quiet),
             vec![
-                row("office", RowPhase::Succeeded(EventStamp(4))),
-                row("home", RowPhase::Rest)
+                row("office", ItemPhase::Succeeded(EventStamp(4))),
+                row("home", ItemPhase::Rest)
             ],
         );
     }

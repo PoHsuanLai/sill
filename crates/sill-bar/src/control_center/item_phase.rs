@@ -1,4 +1,4 @@
-//! Which row an operation is on, and its `RowPhase` (design/26 5.2.2 G16-G18, 5.2.3 G20-G21),
+//! Which row an operation is on, and its `ItemPhase` (design/26 5.2.2 G16-G18, 5.2.3 G20-G21),
 //! pure over the service's attempts (`Network.join`, `Bluetooth.connect`, sill `attempt.rs`) and
 //! the row's own item.
 //!
@@ -15,7 +15,7 @@ use sill_model::attempt::{Attempt, Attempts, OpStamp};
 /// An operation on a row's item, stamped by the service that runs it: a running one makes the row
 /// busy, a failed one puts its reason in the detail line.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub(crate) enum RowPhase {
+pub(crate) enum ItemPhase {
     /// Nothing running.
     #[default]
     Rest,
@@ -65,18 +65,18 @@ pub(crate) fn aim_after<K>(last: Option<K>, connecting: Option<K>) -> Option<K> 
 /// A row's phase: pending while its item connects under a running attempt, failed with the
 /// failure's stamp when it was the last to connect, succeeded with the landed attempt's stamp
 /// when it was the last to connect and is now in use, and at rest otherwise.
-pub(crate) fn row_phase(attempts: Attempts, item: Item, aim: Aim) -> RowPhase {
+pub(crate) fn item_phase(attempts: Attempts, item: Item, aim: Aim) -> ItemPhase {
     match (attempts.now, item, aim) {
-        (Attempt::Running(stamp), Item::Connecting, _) => RowPhase::Pending(event(stamp)),
+        (Attempt::Running(stamp), Item::Connecting, _) => ItemPhase::Pending(event(stamp)),
         (Attempt::Failed(stamp), Item::Idle | Item::Connecting, Aim::Last) => {
-            RowPhase::Failed(event(stamp))
+            ItemPhase::Failed(event(stamp))
         }
-        (Attempt::Quiet, Item::InUse, Aim::Last) => RowPhase::Succeeded(event(attempts.minted)),
+        (Attempt::Quiet, Item::InUse, Aim::Last) => ItemPhase::Succeeded(event(attempts.minted)),
         (Attempt::Running(_), Item::Idle | Item::InUse, _)
         | (Attempt::Failed(_), Item::InUse, _)
         | (Attempt::Failed(_), Item::Idle | Item::Connecting, Aim::Other)
         | (Attempt::Quiet, Item::Idle | Item::Connecting, _)
-        | (Attempt::Quiet, Item::InUse, Aim::Other) => RowPhase::Rest,
+        | (Attempt::Quiet, Item::InUse, Aim::Other) => ItemPhase::Rest,
     }
 }
 
@@ -90,7 +90,7 @@ pub(crate) const FAILED_WORDS: &str = "Couldn’t connect";
 
 #[cfg(test)]
 mod tests {
-    use super::{Aim, Item, RowPhase, aim_after, row_phase};
+    use super::{Aim, Item, ItemPhase, aim_after, item_phase};
     use ds::detail::EventStamp;
     use sill_model::attempt::{Attempt, Attempts, OpStamp};
 
@@ -113,74 +113,74 @@ mod tests {
                 at(Running(s(1)), 1),
                 Item::Connecting,
                 Aim::Last,
-                RowPhase::Pending(e(1)),
+                ItemPhase::Pending(e(1)),
             ),
             (
                 "another row's attempt",
                 at(Running(s(1)), 1),
                 Item::Idle,
                 Aim::Other,
-                RowPhase::Rest,
+                ItemPhase::Rest,
             ),
             (
                 "the network in use while another joins",
                 at(Running(s(1)), 1),
                 Item::InUse,
                 Aim::Other,
-                RowPhase::Rest,
+                ItemPhase::Rest,
             ),
             (
                 "landed on this row",
                 at(Quiet, 1),
                 Item::InUse,
                 Aim::Last,
-                RowPhase::Succeeded(e(1)),
+                ItemPhase::Succeeded(e(1)),
             ),
             (
                 "in use, never seen joining",
                 at(Quiet, 1),
                 Item::InUse,
                 Aim::Other,
-                RowPhase::Rest,
+                ItemPhase::Rest,
             ),
             (
                 "failed on this row",
                 at(Failed(s(2)), 2),
                 Item::Idle,
                 Aim::Last,
-                RowPhase::Failed(e(2)),
+                ItemPhase::Failed(e(2)),
             ),
             (
                 "failed on another row",
                 at(Failed(s(2)), 2),
                 Item::Idle,
                 Aim::Other,
-                RowPhase::Rest,
+                ItemPhase::Rest,
             ),
             (
                 "a failure beside a connected device",
                 at(Failed(s(2)), 2),
                 Item::InUse,
                 Aim::Last,
-                RowPhase::Rest,
+                ItemPhase::Rest,
             ),
             (
                 "connecting with no attempt stamped",
                 at(Quiet, 0),
                 Item::Connecting,
                 Aim::Last,
-                RowPhase::Rest,
+                ItemPhase::Rest,
             ),
             (
                 "idle at rest",
                 at(Quiet, 3),
                 Item::Idle,
                 Aim::Last,
-                RowPhase::Rest,
+                ItemPhase::Rest,
             ),
         ];
         for (name, attempts, item, aim, want) in cases {
-            assert_eq!(row_phase(attempts, item, aim), want, "{name}");
+            assert_eq!(item_phase(attempts, item, aim), want, "{name}");
         }
     }
 

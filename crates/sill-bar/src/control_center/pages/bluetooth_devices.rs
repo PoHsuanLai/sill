@@ -4,7 +4,7 @@
 //! end); choosing a paired device sends `BluetoothCommand::Connect` or `Disconnect`. The
 //! connect's stamp (`Bluetooth.connect`) is the connecting row's phase: its glyph breathes, its
 //! disc seals when it connects, it shakes when it fails
-//! ([`crate::control_center::row_phase`]). Pairing a new device is COSMIC Settings'
+//! ([`crate::control_center::item_phase`]). Pairing a new device is COSMIC Settings'
 //! ("Bluetooth Settings…" at the foot).
 
 use dioxus::prelude::*;
@@ -21,11 +21,11 @@ use sill_services::BluetoothService;
 use super::feature_switch::{FeatureSwitch, back_button};
 use super::foot::SettingsFoot;
 use crate::control_center::device_detail;
+use crate::control_center::item_phase::{
+    Aim, FAILED_WORDS, Item, ItemPhase, RowDisc, aim_after, item_phase,
+};
 use crate::control_center::modules::bluetooth::{adapter_availability, power_of, power_state};
 use crate::control_center::modules::bluetooth_ask::use_power_request;
-use crate::control_center::row_phase::{
-    Aim, FAILED_WORDS, Item, RowDisc, RowPhase, aim_after, row_phase,
-};
 use crate::control_center::rows::{RowList, RowMark, RowSpec};
 use sill_ui_kit::hooks::{use_control, use_service};
 
@@ -104,19 +104,19 @@ pub(crate) fn device_rows(
 }
 
 /// `device`'s phase in the connect attempts.
-fn phase_of(connect: Attempts, device: &BtDevice, aim: Aim) -> RowPhase {
+fn phase_of(connect: Attempts, device: &BtDevice, aim: Aim) -> ItemPhase {
     let item = match device.connection {
         BtConnection::Disconnected => Item::Idle,
         BtConnection::Connecting => Item::Connecting,
         BtConnection::Connected => Item::InUse,
     };
-    row_phase(connect, item, aim)
+    item_phase(connect, item, aim)
 }
 
 /// One device's row in `phase`: a connected one disconnects, a paired one connects, a stranger
 /// (paired in COSMIC Settings) is shown and cannot be chosen. The accent disc and the battery
 /// at the end say it is connected (no check); the failure's words go in the detail line.
-pub(crate) fn device_row(device: &BtDevice, phase: RowPhase) -> RowSpec<BluetoothCommand> {
+pub(crate) fn device_row(device: &BtDevice, phase: ItemPhase) -> RowSpec<BluetoothCommand> {
     let address: BtAddress = device.address.clone();
     let (value, availability) = match (device.connection, device.pairing) {
         (BtConnection::Connected | BtConnection::Connecting, _) => {
@@ -139,8 +139,8 @@ pub(crate) fn device_row(device: &BtDevice, phase: RowPhase) -> RowSpec<Bluetoot
         }
     };
     let detail = match phase {
-        RowPhase::Failed(_) => FAILED_WORDS.to_owned(),
-        RowPhase::Rest | RowPhase::Pending(_) | RowPhase::Succeeded(_) => device_detail(device),
+        ItemPhase::Failed(_) => FAILED_WORDS.to_owned(),
+        ItemPhase::Rest | ItemPhase::Pending(_) | ItemPhase::Succeeded(_) => device_detail(device),
     };
     RowSpec {
         key: device.address.0.clone(),
@@ -183,7 +183,7 @@ pub(crate) fn empty_title(bluetooth: &Bluetooth, rows: usize) -> Option<String> 
 #[cfg(test)]
 mod tests {
     use super::{connecting, device_row, device_rows, empty_title};
-    use crate::control_center::row_phase::{RowDisc, RowPhase};
+    use crate::control_center::item_phase::{ItemPhase, RowDisc};
     use crate::control_center::rows::RowMark;
     use ds::Availability;
     use ds::detail::EventStamp;
@@ -251,7 +251,7 @@ mod tests {
             ),
         ];
         for (connection, pairing, battery, command, availability, mark, disc) in cases {
-            let row = device_row(&device(connection, pairing, battery), RowPhase::Rest);
+            let row = device_row(&device(connection, pairing, battery), ItemPhase::Rest);
             assert_eq!(
                 (row.value, row.availability, row.mark, row.disc),
                 (command, availability, mark, disc),
@@ -278,7 +278,7 @@ mod tests {
         };
         assert_eq!(connecting(&bluetooth), Some(aa.clone()));
         let phase = |bluetooth: &Bluetooth| device_rows(bluetooth, Some(&aa))[0].phase;
-        assert_eq!(phase(&bluetooth), RowPhase::Pending(EventStamp(3)));
+        assert_eq!(phase(&bluetooth), ItemPhase::Pending(EventStamp(3)));
         bluetooth.devices[0].connection = BtConnection::Disconnected;
         bluetooth.connect = Attempts {
             now: Attempt::Failed(OpStamp(4)),
@@ -287,11 +287,11 @@ mod tests {
         let row = &device_rows(&bluetooth, Some(&aa))[0];
         assert_eq!(
             (row.phase, row.detail.as_str()),
-            (RowPhase::Failed(EventStamp(4)), "Couldn’t connect")
+            (ItemPhase::Failed(EventStamp(4)), "Couldn’t connect")
         );
         assert_eq!(
             device_rows(&bluetooth, None)[0].phase,
-            RowPhase::Rest,
+            ItemPhase::Rest,
             "a failure the pane never saw start"
         );
     }

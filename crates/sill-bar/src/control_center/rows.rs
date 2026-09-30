@@ -3,7 +3,7 @@
 //! test them. Rows are keyed by their item (an SSID, an address), so a row's detail state stays
 //! with its item when the list reorders.
 
-use crate::control_center::row_phase::{RowDisc, RowPhase};
+use crate::control_center::item_phase::{ItemPhase, RowDisc};
 use dioxus::prelude::*;
 use ds::{
     Accessory, Availability, BatteryState, Fraction, Icon, List, ListItem, ListStyle, Row,
@@ -31,7 +31,7 @@ pub(crate) struct RowSpec<T> {
     pub title: String,
     pub detail: String,
     pub mark: RowMark,
-    pub phase: RowPhase,
+    pub phase: ItemPhase,
     pub disc: RowDisc,
     pub availability: Availability,
 }
@@ -77,10 +77,10 @@ fn leading(glyph: Icon, disc: RowDisc) -> RowLeading {
 }
 
 /// A row is busy while its operation runs.
-fn availability(own: Availability, phase: RowPhase) -> Availability {
+fn availability(own: Availability, phase: ItemPhase) -> Availability {
     match phase {
-        RowPhase::Pending(_) => Availability::Busy,
-        RowPhase::Rest | RowPhase::Succeeded(_) | RowPhase::Failed(_) => own,
+        ItemPhase::Pending(_) => Availability::Busy,
+        ItemPhase::Rest | ItemPhase::Succeeded(_) | ItemPhase::Failed(_) => own,
     }
 }
 
