@@ -3,7 +3,8 @@
 //! `MenuBarItem`, on while the center is open here.
 
 use dioxus::prelude::*;
-use ds::{Button, ButtonVariant, Common, Emphasis, Shown};
+use ds::Bezel;
+use ds::{Button, Common, Emphasis, Shown};
 use ds_shell::MenuBarItem;
 use shell_host::{OutputInfo, use_watch};
 
@@ -31,7 +32,7 @@ pub fn ClockItem(output: OutputInfo) -> Element {
                 div { class: "sill-bar-clock",
                     Button {
                         common: Common { aria_label: Some("Notification Center".to_owned()), ..Common::default() },
-                        variant: ButtonVariant::Quiet,
+                        bezel: Bezel::Inline,
                         label: clock.text,
                         onclick: move |_| link.toggle(output.id),
                     }

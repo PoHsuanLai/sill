@@ -6,14 +6,13 @@
 //! 5.2.10, G28-G30). Nothing playing: "Not Playing" and no buttons. The view reads no hook: a
 //! press is a [`Transport`] handed to its caller, which sends it to the player.
 
+use ds::IconSwap;
+use ds::{Bezel, Button, ControlSize, ImagePosition};
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::{
-    Availability, ExternalIcon, Icon, IconButton, IconButtonVariant, IconSize, IconSource, IconUrl,
-    TextLine,
-};
-use ds_shell::{NowPlayingTrack, PlayPauseButton, Playback, TrackPosition};
+use ds::{Availability, ExternalIcon, Icon, IconSize, IconSource, IconUrl, TextLine};
+use ds_shell::{NowPlayingTrack, Playback, TrackPosition};
 use serde::{Deserialize, Serialize};
 use sill_model::now_playing::{Abilities, Art, MediaPlayer, MediaVerb, Micros, Timeline};
 
@@ -133,20 +132,25 @@ pub fn MediaView(face: MediaFace, onpress: Option<EventHandler<Transport>>) -> E
                     NowPlayingTrack { art: art_of(&track.art), title: track.title.clone(), by }
                 }
                 div { class: "sill-cc-media-buttons",
-                    IconButton {
-                        variant: IconButtonVariant::Tool,
+                    Button {
+                        bezel: Bezel::Toolbar, size: ControlSize::Large, image: ImagePosition::Only,
                         icon: Icon::SkipBack,
                         label: "Previous".to_owned(),
                         availability: available(abilities.previous),
                         onclick: press(Transport::Previous),
                     }
-                    PlayPauseButton {
-                        playback,
+                    Button {
+                        bezel: Bezel::Toolbar,
+                        size: ControlSize::Large,
+                        image: ImagePosition::Only,
+                        swap: IconSwap::CrossFade,
+                        icon: playback.next_action(),
+                        label: playback.label(),
                         availability: available(abilities.play_pause),
                         onclick: press(Transport::PlayPause),
                     }
-                    IconButton {
-                        variant: IconButtonVariant::Tool,
+                    Button {
+                        bezel: Bezel::Toolbar, size: ControlSize::Large, image: ImagePosition::Only,
                         icon: Icon::SkipForward,
                         label: "Next".to_owned(),
                         availability: available(abilities.next),

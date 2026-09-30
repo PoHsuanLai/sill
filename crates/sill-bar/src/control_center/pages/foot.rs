@@ -3,7 +3,8 @@
 //! the panel; and the line a pane shows in place of an empty list.
 
 use dioxus::prelude::*;
-use ds::{Button, ButtonVariant};
+use ds::Bezel;
+use ds::Button;
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::launch::{LaunchCommand, LaunchRequest};
 use sill_services::LaunchService;
@@ -26,7 +27,7 @@ pub(crate) fn SettingsFoot(label: String) -> Element {
     rsx! {
         div { class: "sill-cc-detail-foot",
             Button {
-                variant: ButtonVariant::Quiet,
+                bezel: Bezel::Inline,
                 label,
                 onclick: move |_| {
                     // A stopped launcher drops it; the panel closes either way.

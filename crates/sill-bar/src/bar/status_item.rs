@@ -1,8 +1,9 @@
-//! One icon status item: a ds `IconButton{Status}` in a title slot, expanded while its menu is
+//! One icon status item: a ds `Button{Status}` in a title slot, expanded while its menu is
 //! open (design/20 §1.1), sized by the bar's status keys through `ds::StatusMetrics`.
 
 use dioxus::prelude::*;
-use ds::{Common, IconButton, IconButtonVariant, IconSource, Px, Shown, StatusMetrics, use_rect};
+use ds::{Bezel, Button, ImagePosition};
+use ds::{Common, IconSource, Px, Shown, StatusMetrics, use_rect};
 use sill_settings::{BarGlyphSize, BarSettings};
 
 use super::io::MenuBar;
@@ -40,13 +41,13 @@ pub(crate) fn StatusIcon(
     };
     rsx! {
         TitleSlot { menu, probe, pill: SlotPill::Control,
-            IconButton {
+            Button {
                 common: Common { mounted: Some(EventHandler::new(move |event| probe.on_mounted(event))), ..Common::default() },
-                variant: IconButtonVariant::Status,
+                bezel: Bezel::StatusItem, image: ImagePosition::Only,
                 icon,
                 label: menu.label().to_owned(),
-                tooltip: Some(tooltip),
-                expanded: Some(expanded),
+                title: Some(tooltip),
+                shown: Some(expanded),
                 onclick: move |_| {},
             }
         }

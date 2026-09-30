@@ -4,7 +4,7 @@
 //! hold machine (`step.rs`) only decides when the card is shown.
 
 use dioxus::prelude::*;
-use ds::{LevelLook, Material, Px, RootChrome, Shown};
+use ds::{LevelStyle, Material, Px, RootChrome, Shown};
 use ds_shell::{Osd, OsdMetrics, OsdPosition};
 use shell_host::{OutputInfo, Visibility};
 use sill_model::ids::OutputName;
@@ -20,9 +20,9 @@ use sill_ui_kit::root::SurfaceRoot;
 /// The indicator's stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
 pub const OSD_CSS: &str = include_str!("style.css");
 
-/// The level's look: the capsule, the user's pick. Not a setting: the OSD has no look key, and
+/// The level's style: the capsule, the user's pick. Not a setting: the OSD has no look key, and
 /// this is the one place.
-const LOOK: LevelLook = LevelLook::Capsule;
+const LOOK: LevelStyle = LevelStyle::Continuous;
 
 /// `sill_settings::OsdPosition` as quire's `ds_shell::OsdPosition`.
 fn position_of(position: sill_settings::OsdPosition) -> OsdPosition {
@@ -63,7 +63,7 @@ pub(super) fn osd(output: OutputInfo) -> Element {
                     label: Some(title(kind, &volume, &displays, on.as_ref())),
                     level: Some(card_level(kind, level)),
                     position: position_of(file.osd.position),
-                    look: LOOK,
+                    style: LOOK,
                     id: Some(CARD_ID.to_owned()),
                     on_hidden: drawn.on_hidden,
                 }

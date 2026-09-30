@@ -2,7 +2,8 @@
 //! has none), the title, and the feature's switch.
 
 use dioxus::prelude::*;
-use ds::{Availability, Check, Icon, IconButton, IconButtonVariant, Toggle};
+use ds::{Availability, Check, Icon, Toggle};
+use ds::{Bezel, Button, ControlSize, ImagePosition};
 use ds_shell::ModuleState;
 
 /// `title` with its switch at `state`; a back button when `back` is given.
@@ -16,8 +17,8 @@ pub(crate) fn DetailHead(
 ) -> Element {
     let back = back.map(|back| {
         rsx! {
-            IconButton {
-                variant: IconButtonVariant::Tool,
+            Button {
+                bezel: Bezel::Toolbar, size: ControlSize::Large, image: ImagePosition::Only,
                 icon: Icon::ChevronLeft,
                 label: "Back".to_owned(),
                 onclick: move |_| back.call(()),

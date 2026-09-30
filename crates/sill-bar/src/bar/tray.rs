@@ -1,4 +1,4 @@
-//! The tray: one `IconButton{Status}` per status notifier item, its dbusmenu as a quire `Menu`.
+//! The tray: one `Button{Status}` per status notifier item, its dbusmenu as a quire `Menu`.
 //!
 //! Each item draws its own icon: a pixmap or a theme icon through `sill_services::icon_art`,
 //! symbolic (drawn in the frame's ink, like a glyph) or an image by design/08-ICONS.md §1.5, as
@@ -16,10 +16,8 @@
 //! prop at all: `TrayButton` reads it itself instead of receiving it).
 
 use dioxus::prelude::*;
-use ds::{
-    Check as DsCheck, ChromaLimit, Common, IconButton, IconButtonVariant, IconSource, MenuEntry,
-    MenuTrail, Press,
-};
+use ds::{Bezel, Button, ImagePosition};
+use ds::{Check as DsCheck, ChromaLimit, Common, IconSource, MenuEntry, MenuTrail, Press};
 use shell_host::{HostRoot, OutputInfo, PopupPlacement, Rect, Size, SurfaceHandle, use_surface};
 use sill_model::tray::{
     Check as TrayCheck, TrayCommand, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind,
@@ -48,7 +46,7 @@ fn popup_element_id(index: usize) -> String {
     format!("tray-{index}")
 }
 
-/// The tray: one `IconButton{Status}` per status notifier item, its dbusmenu as a quire
+/// The tray: one `Button{Status}` per status notifier item, its dbusmenu as a quire
 /// `Menu{Dropdown}`. The items are global, not per-output, and each output's bar is its own
 /// document, so `tray-<n>` needs no output qualifier; `output` places the presses on screen.
 #[component]
@@ -148,12 +146,12 @@ fn TrayButtonView(
         // an element carrying it (design/11 §11.3.7), so a scroll over a tray icon still reaches
         // the item (TrayCommand::Scroll).
         span { "data-wheel": "capture", onwheel: move |event| onwheel.call(event),
-            IconButton {
+            Button {
                 common: Common { id: Some(popup_element_id(index)), ..Common::default() },
-                variant: IconButtonVariant::Status,
+                bezel: Bezel::StatusItem, image: ImagePosition::Only,
                 icon,
                 label: title,
-                tooltip: Some(tooltip),
+                title: Some(tooltip),
                 onclick,
             }
         }

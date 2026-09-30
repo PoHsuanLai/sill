@@ -11,12 +11,11 @@
 //! ([`EditStatus`]). An add to the desktop also turns `widgets.desktop` on, so the widget is
 //! seen.
 
+use ds::Answers;
 use std::rc::Rc;
 
 use dioxus::prelude::*;
-use ds::{
-    Button, ButtonVariant, Material, Panel, PanelEdge, PanelScrim, Px, RootExtent, Shown, use_rect,
-};
+use ds::{Button, Material, Panel, PanelEdge, PanelScrim, Px, RootExtent, Shown, use_rect};
 use ds_shell::WidgetGallery;
 use ds_shell::widget::{DesktopGrid, WidgetEdit};
 use shell_host::OutputInfo;
@@ -193,7 +192,7 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
                     div { class: "sill-ew-head",
                         span { class: "sill-ew-title", "Edit Widgets" }
                         Button {
-                            variant: ButtonVariant::Primary,
+                            answers: Answers::Return,
                             label: "Done",
                             onclick: move |_| done.close(),
                         }

@@ -6,7 +6,8 @@
 //! stylesheets (`widgets_css`).
 
 use dioxus::prelude::*;
-use ds::{Button, ButtonVariant};
+use ds::Bezel;
+use ds::Button;
 use shell_host::OutputId;
 
 use super::io::CenterCtx;
@@ -31,7 +32,7 @@ pub fn CenterWidgets(output: OutputId) -> Element {
         if let Some(edit) = edit {
             div { class: "sill-nc-edit",
                 Button {
-                    variant: ButtonVariant::Quiet,
+                    bezel: Bezel::Inline,
                     label: "Edit Widgets",
                     onclick: move |_| {
                         if let Some(ctx) = &ctx {

@@ -1,6 +1,6 @@
-//! The power menu's words and button variants, pure.
+//! The power menu's words and button looks, pure.
 
-use ds::{ButtonSize, ButtonVariant};
+use ds::{Answers, ButtonRole};
 use sill_model::session::SessionAction;
 
 /// A button's label (the launcher's row titles: "Log Out", "Restart", "Shut Down", "Suspend";
@@ -15,25 +15,17 @@ pub fn action_label(action: SessionAction) -> &'static str {
     }
 }
 
-/// A button's quire variant (design/20 §1.8 `Button{Primary, Secondary, Danger}`): the focused
-/// button `Primary`; Restart and Shut Down `Danger` (they end every running app); the rest
-/// `Secondary`.
-pub fn button_variant(action: SessionAction, focused: SessionAction) -> ButtonVariant {
+/// A button's quire look (design/20 §1.8): the focused button answers Return and takes the accent;
+/// Restart and Shut Down are destructive (they end every running app); the rest are plain.
+pub fn button_look(action: SessionAction, focused: SessionAction) -> (Answers, ButtonRole) {
     match action {
-        _ if action == focused => ButtonVariant::Primary,
-        SessionAction::Restart | SessionAction::PowerOff => ButtonVariant::Danger,
-        SessionAction::Lock | SessionAction::LogOut | SessionAction::Suspend => {
-            ButtonVariant::Secondary
+        _ if action == focused => (Answers::Return, ButtonRole::Normal),
+        SessionAction::Restart | SessionAction::PowerOff => {
+            (Answers::Nothing, ButtonRole::Destructive)
         }
-    }
-}
-
-/// A button's quire size: `Danger` is Mini-sized at rest, so it takes Primary's box to stand
-/// level with the rest (quire's `ButtonSize::Regular`); the others keep their own.
-pub fn button_size(variant: ButtonVariant) -> Option<ButtonSize> {
-    match variant {
-        ButtonVariant::Danger => Some(ButtonSize::Regular),
-        _ => None,
+        SessionAction::Lock | SessionAction::LogOut | SessionAction::Suspend => {
+            (Answers::Nothing, ButtonRole::Normal)
+        }
     }
 }
 
@@ -61,12 +53,12 @@ pub fn consequence(action: SessionAction) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{action_label, button_size, button_variant, consequence, prompt};
-    use ds::{ButtonSize, ButtonVariant};
+    use super::{action_label, button_look, consequence, prompt};
+    use ds::{Answers, ButtonRole};
     use sill_model::session::SessionAction;
 
     #[test]
-    fn every_button_has_its_label_and_variant() {
+    fn every_button_has_its_label_and_look() {
         use SessionAction::{Lock, LogOut, PowerOff, Restart, Suspend};
         const LABELS: &[(SessionAction, &str)] = &[
             (Lock, "Lock"),
@@ -79,34 +71,26 @@ mod tests {
             assert_eq!(action_label(action), want, "{action:?}");
         }
         let cases = [
-            (PowerOff, PowerOff, ButtonVariant::Primary),
-            (Restart, PowerOff, ButtonVariant::Danger),
-            (PowerOff, LogOut, ButtonVariant::Danger),
-            (LogOut, PowerOff, ButtonVariant::Secondary),
-            (Suspend, PowerOff, ButtonVariant::Secondary),
+            (PowerOff, PowerOff, (Answers::Return, ButtonRole::Normal)),
+            (
+                Restart,
+                PowerOff,
+                (Answers::Nothing, ButtonRole::Destructive),
+            ),
+            (
+                PowerOff,
+                LogOut,
+                (Answers::Nothing, ButtonRole::Destructive),
+            ),
+            (LogOut, PowerOff, (Answers::Nothing, ButtonRole::Normal)),
+            (Suspend, PowerOff, (Answers::Nothing, ButtonRole::Normal)),
         ];
         for &(action, _) in LABELS {
             assert!(prompt(action).ends_with('?'), "{action:?}");
             assert!(consequence(action).ends_with('.'), "{action:?}");
         }
         for (action, focused, want) in cases {
-            assert_eq!(
-                button_variant(action, focused),
-                want,
-                "{action:?} {focused:?}"
-            );
-        }
-    }
-
-    #[test]
-    fn danger_buttons_stand_level_with_the_rest() {
-        let cases = [
-            (ButtonVariant::Danger, Some(ButtonSize::Regular)),
-            (ButtonVariant::Primary, None),
-            (ButtonVariant::Secondary, None),
-        ];
-        for (variant, want) in cases {
-            assert_eq!(button_size(variant), want, "{variant:?}");
+            assert_eq!(button_look(action, focused), want, "{action:?} {focused:?}");
         }
     }
 }

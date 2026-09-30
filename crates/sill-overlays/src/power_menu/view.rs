@@ -8,15 +8,16 @@
 
 use dioxus::prelude::*;
 use ds::{
-    Availability, Button, Common, Glyph, Icon, IconSize, Kbd, KbdSize, RootExtent, ScrimStrength,
-    Sheet, SheetPlacement, Shortcut,
+    Availability, Button, Common, Glyph, Icon, IconSize, RootExtent, ScrimStrength, Sheet,
+    SheetPlacement, Shortcut,
 };
+use ds::{ControlSize, KeyEquivalent, KeyStyle};
 use shell_host::OutputInfo;
 use sill_model::session::{Session, SessionAction};
 
 use super::io::{MenuCtx, use_menu};
 use super::keys::offered;
-use super::labels::{action_label, button_size, button_variant, consequence, prompt};
+use super::labels::{action_label, button_look, consequence, prompt};
 use super::layer::PANEL_ID;
 use super::sheet::{MenuSession, SheetInput};
 use sill_ui_kit::hooks::use_settings;
@@ -97,13 +98,13 @@ fn button(
     } else {
         Availability::Disabled
     };
-    let variant = button_variant(action, focused);
+    let (answers, role) = button_look(action, focused);
     rsx! {
         Button {
             common: Common { mounted: Some(EventHandler::new(move |event: MountedEvent| mount.mounted(action, event.data()))), ..Common::default() },
             key: "{action_label(action)}",
-            variant,
-            size: button_size(variant),
+            answers,
+            role,
             label: action_label(action),
             availability,
             onclick: move |_| press.input(SheetInput::Pressed(action)),
@@ -115,7 +116,7 @@ fn button(
 fn hint(keys: Vec<ds::ShortcutKey>, what: &str) -> Element {
     rsx! {
         span { class: "sill-power-menu-hint",
-            Kbd { shortcut: Shortcut(keys), size: KbdSize::Small }
+            KeyEquivalent { shortcut: Shortcut(keys), style: KeyStyle::Cap, size: ControlSize::Mini}
             span { class: "sill-power-menu-hint-text", {what.to_owned()} }
         }
     }

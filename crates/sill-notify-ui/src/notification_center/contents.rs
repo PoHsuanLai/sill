@@ -9,10 +9,11 @@
 //! Clear, Clear All, a dismissal, "Show less") fades and slides up, then the rows below close the
 //! gap.
 
+use ds::Bezel;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
-use ds::{Button, ButtonVariant, LeavingItem, LeavingList};
+use ds::{Button, LeavingItem, LeavingList};
 use shell_host::OutputId;
 use sill_model::notifications::{History, UnixMs};
 
@@ -78,7 +79,7 @@ pub(super) fn Contents(output: OutputId) -> Element {
                 span { class: "sill-nc-title", {TITLE} }
                 if !history.groups.is_empty() {
                     Button {
-                        variant: ButtonVariant::Quiet,
+                        bezel: Bezel::Inline,
                         label: "Clear All",
                         onclick: move |_| clear.clear_all(),
                     }

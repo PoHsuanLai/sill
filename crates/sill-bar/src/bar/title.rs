@@ -1,7 +1,7 @@
 //! A bar title or status item's hit box: it feeds the menu session its presses, releases and
 //! pointer entries (design/13 §13.3.2: open on press, click mode on release over the title,
 //! hover switch on entry). A text title sits in a ds `MenuBarItem`, which draws the hover and
-//! open pill (the macOS polish pass); a status item's `IconButton{Status}` draws its own.
+//! open pill (the macOS polish pass); a status item's `Button{Status}` draws its own.
 
 use dioxus::prelude::*;
 use ds::{Emphasis, RectProbe, Shown};
@@ -28,7 +28,7 @@ pub(crate) fn pointer_at(event: &PointerEvent) -> Point {
 pub(crate) enum SlotPill {
     /// A ds `MenuBarItem` around a text title (the app name, `Strong`; the clock, `Plain`).
     Item(Emphasis),
-    /// The control inside it: an `IconButton{Status}` is `--f-pill` while `expanded`.
+    /// The control inside it: an `Button{Status}` is `--f-pill` while `expanded`.
     Control,
 }
 

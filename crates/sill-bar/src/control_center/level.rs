@@ -1,18 +1,16 @@
 //! The one level control the Sound and Display modules share: quire's `ModulePanel` headed by
-//! the glyph, the title and the percentage, over quire's `LevelControl` as a capsule with
+//! the glyph, the title and the percentage, over quire's `Slider` as a capsule with
 //! a knob (design/29 §13 decision 7: a Regular capsule, 22, with a 20 knob). The look is chosen
-//! here and nowhere else ([`LOOK`]). The OSD reuses the same control through quire's `Osd`.
+//! here and nowhere else ([`LOOK`]). The OSD draws the same level through quire's `Osd`.
 
 use dioxus::prelude::*;
-use ds::{
-    Availability, Fraction, IconSource, LevelControl, LevelLook, LevelMode, LevelSource, TextLine,
-};
+use ds::{Availability, Fraction, IconSource, LevelSource, Slider, SliderLook, TextLine};
 use ds_shell::ModulePanel;
 
 use super::modules::use_plate;
 
 /// The control center's level look.
-const LOOK: LevelLook = LevelLook::CapsuleKnob;
+const LOOK: SliderLook = SliderLook::CapsuleKnob;
 
 /// `glyph` and `title` over the level at `level` (the percentage as the header's value), the
 /// capsule carrying `level_glyph` (the sun, or the volume's state, the bar item's source);
@@ -35,11 +33,10 @@ pub fn LevelModule(
             trailing: rsx! { "{percent}%" },
             plate: use_plate(),
             availability,
-            LevelControl {
+            Slider {
                 label: title.clone(),
                 value: level,
                 glyph: level_glyph,
-                mode: LevelMode::Interactive,
                 look: LOOK,
                 availability,
                 onchange: move |value: Fraction| on_change.call(value),

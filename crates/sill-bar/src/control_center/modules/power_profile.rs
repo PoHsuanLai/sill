@@ -4,7 +4,8 @@
 //! when power-profiles-daemon is. Reads `use_service::<PowerProfileService>`.
 
 use dioxus::prelude::*;
-use ds::{HeaderKind, SectionHeader, SegSize, SegmentedControl};
+use ds::{Choice, ControlSize, Tracking};
+use ds::{HeaderKind, SectionHeader, SegmentedControl};
 use sill_model::power_profile::{Profile, ProfileCommand, ProfileDegraded};
 use sill_model::units::Presence;
 use sill_services::PowerProfileService;
@@ -34,9 +35,9 @@ pub fn PowerProfileControl() -> Element {
             SectionHeader { kind: HeaderKind::Field, text: "Power Mode".to_owned(), value: degraded }
             SegmentedControl::<Profile> {
                 label: "Power Mode".to_owned(),
-                options,
-                value: profiles.active,
-                size: SegSize::Small,
+                choices: Choice::pairs(options),
+                tracking: Tracking::SelectOne(profiles.active),
+                size: ControlSize::Mini,
                 onchange: move |profile: Profile| {
                     // A stopped service drops it: the control shows what it last published.
                     let _gone = control.send(ProfileCommand::Set(profile));
