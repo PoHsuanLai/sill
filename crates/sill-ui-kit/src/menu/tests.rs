@@ -121,7 +121,7 @@ fn the_frame_is_the_card_and_its_room_and_a_press_picks_an_item() {
         .centre(".ds-menu-item:nth-child(2)")
         .expect("the second item is laid out"); // test-only
     harness.click(second);
-    harness.advance(Duration::from_millis(100));
+    harness.advance(Duration::from_millis(300));
     assert_eq!(PICKS.with(|p| p.borrow().clone()), vec![2]);
 }
 

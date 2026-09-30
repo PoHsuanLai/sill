@@ -55,14 +55,14 @@ fn office_link() -> Link {
 }
 
 /// The spinner that holds a row's trailing slot while its operation runs.
-const PENDING: &str = ".ds-settings-row-trail[*|data-mark=pending]";
+const PENDING: &str = ".ds-row-trailing[*|data-mark=busy]";
 
 fn row(n: usize) -> String {
-    format!(".sill-cc-rows > .ds-settings-row:nth-child({n})")
+    format!(".ds-list > .ds-list-item:nth-child({n}) > .ds-row")
 }
 
 fn title(harness: &Harness, n: usize) -> Option<String> {
-    harness.text_of(&format!("{} .ds-settings-row-title", row(n)))
+    harness.text_of(&format!("{} .ds-row-title", row(n)))
 }
 
 #[test]
@@ -111,7 +111,7 @@ fn a_network_joins_with_a_spinner_where_its_lock_was_then_takes_the_disc() {
     let harness = &mut running.harness;
     harness.advance(ms(0));
     assert_eq!(title(harness, 1).as_deref(), Some("office"));
-    let glyph = format!("{} .ds-settings-row-glyph", row(1));
+    let glyph = format!("{} .ds-row-leading", row(1));
     assert_eq!(harness.attr(&glyph, "data-disc").as_deref(), Some("on"));
     assert_eq!(
         harness.attr(&row(1), "aria-pressed"),
@@ -119,14 +119,14 @@ fn a_network_joins_with_a_spinner_where_its_lock_was_then_takes_the_disc() {
         "no check on the network in use: the disc says it"
     );
     assert_eq!(
-        harness.count(&format!("{} .ds-settings-row-trail svg.ds-ic", row(1))),
+        harness.count(&format!("{} .ds-row-trailing svg.ds-ic", row(1))),
         1,
         "the lock is back"
     );
     assert_eq!(harness.count(PENDING), 0);
     assert_eq!(
         harness
-            .attr(&format!("{} .ds-settings-row-glyph", row(2)), "data-disc")
+            .attr(&format!("{} .ds-row-leading", row(2)), "data-disc")
             .as_deref(),
         Some("off")
     );
@@ -164,7 +164,7 @@ fn a_failed_join_says_so_and_does_not_shake() {
     );
     assert_eq!(
         harness
-            .text_of(&format!("{} .ds-settings-row-detail", row(1)))
+            .text_of(&format!("{} .ds-row-detail", row(1)))
             .as_deref(),
         Some("Couldn’t connect")
     );
@@ -180,12 +180,12 @@ fn a_connecting_device_spins_and_a_connected_one_shows_its_battery_at_once() {
     press(&mut running.harness, "[*|aria-label=\"Bluetooth details\"]");
     running.harness.advance(ms(50));
     // The connected Buds' battery is its level from the first frame: nothing sweeps in.
-    let buds = format!("{} .ds-settings-row-figure", row(1));
+    let buds = format!("{} .ds-row-figure", row(1));
     assert_eq!(figure(&running.harness, &buds), Some(80));
     assert_eq!(
         running
             .harness
-            .attr(&format!("{} .ds-settings-row-glyph", row(1)), "data-disc")
+            .attr(&format!("{} .ds-row-leading", row(1)), "data-disc")
             .as_deref(),
         Some("on")
     );
@@ -198,7 +198,7 @@ fn a_connecting_device_spins_and_a_connected_one_shows_its_battery_at_once() {
             minted: OpStamp(2),
         };
     });
-    let glyph = format!("{} .ds-settings-row-glyph", row(2));
+    let glyph = format!("{} .ds-row-leading", row(2));
     let harness = &mut running.harness;
     harness.advance(ms(0));
     assert_eq!(harness.count(&format!("{} {PENDING}", row(2))), 1);
@@ -210,7 +210,7 @@ fn a_connecting_device_spins_and_a_connected_one_shows_its_battery_at_once() {
     });
     let harness = &mut running.harness;
     harness.advance(ms(0));
-    let keys = format!("{} .ds-settings-row-figure", row(2));
+    let keys = format!("{} .ds-row-figure", row(2));
     assert_eq!(figure(harness, &keys), Some(55));
     assert_eq!(harness.count(PENDING), 0);
     assert_settles_to_zero_frames(harness);

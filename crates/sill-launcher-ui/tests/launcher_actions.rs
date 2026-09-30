@@ -16,7 +16,7 @@ use sill_model::cosmic_wl::WlCommand;
 use sill_model::launch::LaunchCommand;
 
 /// The selected row (attribute selectors need the namespace wildcard on Blitz).
-const SELECTED: &str = ".ds-menu-item[*|aria-selected=true]";
+const SELECTED: &str = ".ds-row[*|aria-selected=true]";
 
 #[test]
 fn the_actions_menu_hangs_from_the_selected_row_and_gives_the_keyboard_back() {
@@ -78,10 +78,10 @@ fn the_actions_menu_hangs_from_the_selected_row_and_gives_the_keyboard_back() {
 #[test]
 fn the_row_under_the_pointer_is_the_selection() {
     let mut open = open("fi");
-    let rows = open.harness.count(".ds-menu-item");
+    let rows = open.harness.count(".ds-row");
     assert_eq!(rows, 4);
     let card = open.harness.rect(".ds-palette").expect("the card");
-    let first = open.harness.rect(".ds-menu-item").expect("the first row");
+    let first = open.harness.rect(".ds-row").expect("the first row");
     // Rows are equally tall under their headings; walk down until the window row is selected.
     let mut y = first.origin.y.0 + first.size.height.0 / 2.0;
     let x = first.origin.x.0 + first.size.width.0 / 2.0;

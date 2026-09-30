@@ -22,7 +22,7 @@ fn headings(html: &str) -> Vec<String> {
     ]
     .iter()
     .filter_map(|h| {
-        html.find(&format!("ds-section-header-text\">{h}<"))
+        html.find(&format!("ds-section-header-title\">{h}<"))
             .map(|at| (at, (*h).to_owned()))
     })
     .collect::<std::collections::BTreeMap<_, _>>()
@@ -74,7 +74,7 @@ fn only_the_selected_row_shows_its_chord() {
         "on the selected row"
     );
     assert_eq!(
-        h.count(".ds-menu-item .ds-key-equivalent-key"),
+        h.count(".ds-row .ds-key-equivalent-key"),
         0,
         "no key caps on a row"
     );
@@ -124,9 +124,9 @@ fn the_empty_query_lists_actions_then_recent() {
 #[test]
 fn nothing_matching_shows_the_empty_state() {
     let open = open("zzz");
-    assert_eq!(open.harness.count(".ds-menu-item"), 0);
+    assert_eq!(open.harness.count(".ds-row"), 0);
     assert_eq!(
-        open.harness.text_of(".ds-menu-empty").as_deref(),
+        open.harness.text_of(".ds-palette-empty").as_deref(),
         Some("Nothing matches \"zzz\".")
     );
 }

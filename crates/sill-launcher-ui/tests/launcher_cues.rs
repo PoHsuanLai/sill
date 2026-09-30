@@ -37,7 +37,7 @@ fn fading(harness: &Harness) -> bool {
 }
 
 fn revealing(harness: &Harness) -> bool {
-    harness.attr(".ds-menu", "data-reveal").is_some()
+    harness.attr(".ds-palette-list", "data-reveal").is_some()
 }
 
 #[test]

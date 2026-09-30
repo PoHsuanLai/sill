@@ -51,14 +51,14 @@ fn down_down_enter_runs_the_third_row() {
 fn tab_moves_to_the_next_group() {
     let mut open = open("fi");
     open.harness.key(ShortcutKey::Tab);
-    settle(&mut open.harness, |h| h.count(".ds-menu-item") == 2);
+    settle(&mut open.harness, |h| h.count(".ds-row") == 2);
     assert_eq!(
         titles(&open.harness),
         vec!["Firefox", "Files"],
         "Applications only"
     );
     open.harness.key(ShortcutKey::Tab);
-    settle(&mut open.harness, |h| h.count(".ds-menu-item") == 1);
+    settle(&mut open.harness, |h| h.count(".ds-row") == 1);
     assert_eq!(
         titles(&open.harness),
         vec!["Firefox — sill launcher"],

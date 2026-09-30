@@ -276,14 +276,14 @@ fn the_wifi_pane_lists_networks_and_a_row_joins_one() {
         Some(WifiCommand::Scan)
     );
     // home (joined, checked), office (saved, locked), cafe (new, open): quire SettingsRows.
-    assert_eq!(running.harness.count(".ds-settings-row"), 3);
+    assert_eq!(running.harness.count(".ds-row"), 3);
     assert_eq!(
-        running.harness.text_of(".ds-settings-row-title").as_deref(),
+        running.harness.text_of(".ds-row-title").as_deref(),
         Some("home")
     );
     let office = running
         .harness
-        .centre(".ds-settings-row:nth-child(2)")
+        .centre(".ds-list-item:nth-child(2) > .ds-row")
         .expect("the office row");
     running.harness.click(office);
     running.harness.advance(Duration::from_millis(50));

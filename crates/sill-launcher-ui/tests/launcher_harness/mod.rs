@@ -108,7 +108,7 @@ pub fn open(query: &str) -> Open {
         ..
     } = running;
     settle(&mut harness, |h| {
-        h.count(".ds-menu-item") > 0 || h.count(".ds-menu-empty") > 0
+        h.count(".ds-row") > 0 || h.count(".ds-palette-empty") > 0
     });
     Open {
         harness,
@@ -128,10 +128,10 @@ pub fn settle(harness: &mut Harness, done: impl Fn(&Harness) -> bool) {
     harness.advance(Duration::from_millis(20));
 }
 
-/// The rows' titles, in order (marks and all: the text inside each `.ds-menu-title`).
+/// The rows' titles, in order (marks and all: the text inside each `.ds-row-title`).
 pub fn titles(harness: &Harness) -> Vec<String> {
     let html = harness.html();
-    html.split("class=\"ds-menu-title\"")
+    html.split("class=\"ds-row-title ds-truncate\"")
         .skip(1)
         .filter_map(|rest| {
             let inner = &rest[rest.find('>')? + 1..];
@@ -144,7 +144,7 @@ pub fn titles(harness: &Harness) -> Vec<String> {
 pub fn selected_title(harness: &Harness) -> Option<String> {
     let html = harness.html();
     let rest = html.split("aria-selected=\"true\"").nth(1)?;
-    let rest = &rest[rest.find("class=\"ds-menu-title\"")?..];
+    let rest = &rest[rest.find("class=\"ds-row-title ds-truncate\"")?..];
     let inner = &rest[rest.find('>')? + 1..];
     Some(strip_tags(&inner[..inner.find("</b>")?]))
 }
