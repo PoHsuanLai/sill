@@ -214,7 +214,7 @@ fn a_chevron_slides_its_pane_in_and_escape_unwinds() {
         "the grid is gone"
     );
     assert_eq!(
-        running.harness.text_of(".sill-cc-empty").as_deref(),
+        running.harness.text_of(".ds-empty-state").as_deref(),
         Some("Wi-Fi is off")
     );
     // Escape with the pressed chevron gone: the panel holds the keyboard.

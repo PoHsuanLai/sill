@@ -8,7 +8,10 @@
 //! `bar.battery_low_percent`.
 
 use dioxus::prelude::*;
-use ds::{BatteryPower, BatteryState, Fraction, IconSource, LowAt, StatusState, TextLine};
+use ds::{
+    BatteryPower, BatteryState, Fraction, IconSource, Label, LabelRole, LabelStyle, LowAt,
+    StatusState, TextLine,
+};
 use ds_shell::{BatteryRing, Device, DeviceGlyph, ModulePanel, Readout};
 use sill_model::battery::{Battery, Charge};
 use sill_model::bluetooth::{Bluetooth, BtBattery, BtConnection};
@@ -71,7 +74,7 @@ pub fn BatteryModule() -> Element {
                     }
                 }
                 if let Some(head) = head {
-                    span { class: "sill-cc-status", "{head.left}" }
+                    Label { text: head.left, role: LabelRole::Tertiary, style: LabelStyle::Footnote }
                 }
                 PowerProfileControl {}
             }

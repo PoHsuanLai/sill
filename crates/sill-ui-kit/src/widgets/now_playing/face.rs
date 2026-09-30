@@ -1,7 +1,7 @@
 //! Now Playing's face as data and its one view, shared by the control center's module and the
 //! Now Playing widget: the current track as quire's
 //! `NowPlayingTrack` (the art from an `IconUrl::file`; a new track cross-fades), Previous,
-//! quire's `PlayPauseButton` and Next, each disabled per `Abilities`, then quire's
+//! Play or Pause and Next as large toolbar `Button`s, each disabled per `Abilities`, then quire's
 //! `TrackPosition` when the player reports both its position and the track's length (design/26
 //! 5.2.10, G28-G30). Nothing playing: "Not Playing" and no buttons. The view reads no hook: a
 //! press is a [`Transport`] handed to its caller, which sends it to the player.

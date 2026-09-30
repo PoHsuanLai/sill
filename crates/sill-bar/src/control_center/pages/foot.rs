@@ -1,10 +1,11 @@
 //! A detail pane's foot: "Wi-Fi Settings…" or "Bluetooth Settings…", which opens COSMIC
 //! Settings (joining a new network or pairing a device is done there) and closes
-//! the panel; and the line a pane shows in place of an empty list.
+//! the panel.
 
 use dioxus::prelude::*;
 use ds::Bezel;
 use ds::Button;
+use ds_shell::PaneFooter;
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::launch::{LaunchCommand, LaunchRequest};
 use sill_services::LaunchService;
@@ -19,13 +20,13 @@ const SETTINGS_APP: &str = "com.system76.CosmicSettings";
 #[derive(Clone, Copy)]
 pub(crate) struct ClosePanel(pub Callback<()>);
 
-/// The foot: a rule, then `label` opening COSMIC Settings.
+/// The foot: `label` opening COSMIC Settings.
 #[component]
 pub(crate) fn SettingsFoot(label: String) -> Element {
     let launch = use_control::<LaunchService>();
     let close = try_use_context::<ClosePanel>();
     rsx! {
-        div { class: "sill-cc-detail-foot",
+        PaneFooter {
             Button {
                 bezel: Bezel::Inline,
                 label,
@@ -38,14 +39,6 @@ pub(crate) fn SettingsFoot(label: String) -> Element {
                 },
             }
         }
-    }
-}
-
-/// The line in place of an empty list: "Wi-Fi is off", "No devices".
-#[component]
-pub(crate) fn EmptyLine(text: String) -> Element {
-    rsx! {
-        div { class: "sill-cc-empty", "{text}" }
     }
 }
 

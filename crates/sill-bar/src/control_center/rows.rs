@@ -6,8 +6,8 @@
 use crate::control_center::row_phase::{RowDisc, RowPhase};
 use dioxus::prelude::*;
 use ds::{
-    Accessory, Availability, BatteryState, Fraction, Icon, List, ListItem, Row, RowLeading,
-    RowSize, RowState, Selection, TextLine,
+    Accessory, Availability, BatteryState, Fraction, Icon, List, ListItem, ListStyle, Row,
+    RowLeading, RowSize, RowState, Selection, TextLine,
 };
 use sill_model::units::Percent;
 
@@ -63,7 +63,7 @@ pub(crate) fn RowList<T: Clone + PartialEq + 'static>(
         })
         .collect();
     rsx! {
-        List::<String> { label, items }
+        List::<String> { label, items, style: ListStyle::Inset }
     }
 }
 

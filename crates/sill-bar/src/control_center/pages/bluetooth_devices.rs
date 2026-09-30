@@ -8,7 +8,8 @@
 //! ("Bluetooth Settings…" at the foot).
 
 use dioxus::prelude::*;
-use ds::{Availability, Check, Icon};
+use ds::{Availability, Check, EmptyState, Icon};
+use ds_shell::PaneHeader;
 use sill_model::attempt::Attempts;
 use sill_model::bluetooth::{
     Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,
@@ -17,8 +18,8 @@ use sill_model::bluetooth::{
 use sill_model::units::Presence;
 use sill_services::BluetoothService;
 
-use super::foot::{EmptyLine, SettingsFoot};
-use super::head::DetailHead;
+use super::feature_switch::{FeatureSwitch, back_button};
+use super::foot::SettingsFoot;
 use crate::control_center::device_detail;
 use crate::control_center::modules::bluetooth::{adapter_availability, power_of, power_state};
 use crate::control_center::modules::bluetooth_ask::use_power_request;
@@ -38,20 +39,25 @@ pub(crate) fn BluetoothPane(back: Option<EventHandler<()>>) -> Element {
     let last = aim_after(aim.peek().clone(), connecting(&bluetooth));
     aim.set(last.clone());
     let rows = device_rows(&bluetooth, last.as_ref());
-    let empty = empty_line(&bluetooth, rows.len());
+    let empty = empty_title(&bluetooth, rows.len());
     let request = use_power_request();
     rsx! {
         div { class: "sill-cc-detail",
-            DetailHead {
-                title: "Bluetooth".to_owned(),
-                back,
-                state: power_state(bluetooth.power),
-                availability: adapter_availability(&bluetooth),
-                // Off asks first (`bluetooth_ask`); the switch shows the power last published.
-                on_toggle: move |to: Check| request.call(power_of(to)),
+            PaneHeader {
+                title: "Bluetooth",
+                back: back_button(back),
+                trailing: rsx! {
+                    FeatureSwitch {
+                        title: "Bluetooth".to_owned(),
+                        state: power_state(bluetooth.power),
+                        availability: adapter_availability(&bluetooth),
+                        // Off asks first (`bluetooth_ask`); the switch shows the power last published.
+                        on_toggle: move |to: Check| request.call(power_of(to)),
+                    }
+                },
             }
-            if let Some(text) = empty {
-                EmptyLine { text }
+            if let Some(title) = empty {
+                EmptyState { title, icon: Icon::Bluetooth }
             } else {
                 RowList::<BluetoothCommand> {
                     label: "Devices".to_owned(),
@@ -163,8 +169,8 @@ pub(crate) fn device_glyph(kind: BtKind) -> Icon {
     }
 }
 
-/// What the pane says instead of a list, if anything.
-pub(crate) fn empty_line(bluetooth: &Bluetooth, rows: usize) -> Option<String> {
+/// What the pane says instead of a list, if anything: the empty state's title.
+pub(crate) fn empty_title(bluetooth: &Bluetooth, rows: usize) -> Option<String> {
     let text = match (bluetooth.presence, bluetooth.power, rows) {
         (Presence::Absent, _, _) => "No Bluetooth adapter",
         (_, BtPower::Off, _) => "Bluetooth is off",
@@ -176,7 +182,7 @@ pub(crate) fn empty_line(bluetooth: &Bluetooth, rows: usize) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{connecting, device_row, device_rows, empty_line};
+    use super::{connecting, device_row, device_rows, empty_title};
     use crate::control_center::row_phase::{RowDisc, RowPhase};
     use crate::control_center::rows::RowMark;
     use ds::Availability;
@@ -299,15 +305,15 @@ mod tests {
             connect: Default::default(),
         };
         assert_eq!(
-            empty_line(&Bluetooth::default(), 0).as_deref(),
+            empty_title(&Bluetooth::default(), 0).as_deref(),
             Some("No Bluetooth adapter")
         );
-        assert_eq!(empty_line(&on, 0).as_deref(), Some("No devices"));
-        assert_eq!(empty_line(&on, 2), None);
+        assert_eq!(empty_title(&on, 0).as_deref(), Some("No devices"));
+        assert_eq!(empty_title(&on, 2), None);
         let off = Bluetooth {
             power: BtPower::Off,
             ..on
         };
-        assert_eq!(empty_line(&off, 0).as_deref(), Some("Bluetooth is off"));
+        assert_eq!(empty_title(&off, 0).as_deref(), Some("Bluetooth is off"));
     }
 }

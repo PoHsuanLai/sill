@@ -8,15 +8,16 @@
 //! `WifiCommand::Scan` when it opens. "Wi-Fi Settings…" at the foot.
 
 use dioxus::prelude::*;
-use ds::{Availability, Check, Icon};
+use ds::{Availability, Check, EmptyState, Icon};
+use ds_shell::PaneHeader;
 use sill_model::attempt::Attempts;
 use sill_model::units::Presence;
 use sill_model::wifi::{
     AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi, WifiCommand, listed_networks,
 };
 
-use super::foot::{ClosePanel, EmptyLine, SettingsFoot, open_settings};
-use super::head::DetailHead;
+use super::feature_switch::{FeatureSwitch, back_button};
+use super::foot::{ClosePanel, SettingsFoot, open_settings};
 use crate::control_center::modules::wifi::{radio_availability, radio_of, radio_state};
 use crate::control_center::network_detail;
 use crate::control_center::row_phase::{
@@ -58,21 +59,26 @@ pub(crate) fn WifiPane(back: Option<EventHandler<()>>) -> Element {
         }
     });
     let rows = network_rows(&wifi, join, last.as_ref());
-    let empty = empty_line(&wifi, rows.len());
+    let empty = empty_title(&wifi, rows.len());
     let toggle = control.clone();
     rsx! {
         div { class: "sill-cc-detail",
-            DetailHead {
-                title: "Wi-Fi".to_owned(),
-                back,
-                state: radio_state(wifi.radio),
-                availability: radio_availability(&wifi),
-                on_toggle: move |to: Check| {
-                    let _gone = toggle.send(WifiCommand::Radio(radio_of(to)));
+            PaneHeader {
+                title: "Wi-Fi",
+                back: back_button(back),
+                trailing: rsx! {
+                    FeatureSwitch {
+                        title: "Wi-Fi".to_owned(),
+                        state: radio_state(wifi.radio),
+                        availability: radio_availability(&wifi),
+                        on_toggle: move |to: Check| {
+                            let _gone = toggle.send(WifiCommand::Radio(radio_of(to)));
+                        },
+                    }
                 },
             }
-            if let Some(text) = empty {
-                EmptyLine { text }
+            if let Some(title) = empty {
+                EmptyState { title, icon: Icon::Wifi }
             } else {
                 RowList::<WifiPick> {
                     label: "Networks".to_owned(),
@@ -182,8 +188,8 @@ fn signal_glyph(strength: u16) -> Icon {
     }
 }
 
-/// What the pane says instead of a list, if anything.
-pub(crate) fn empty_line(wifi: &Wifi, rows: usize) -> Option<String> {
+/// What the pane says instead of a list, if anything: the empty state's title.
+pub(crate) fn empty_title(wifi: &Wifi, rows: usize) -> Option<String> {
     let text = match (wifi.device, wifi.radio, rows) {
         (Presence::Absent, _, _) => "No Wi-Fi device",
         (_, Radio::Blocked, _) => "Wi-Fi is turned off by a switch",
@@ -196,7 +202,7 @@ pub(crate) fn empty_line(wifi: &Wifi, rows: usize) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{WifiPick, empty_line, joining, network_row, network_rows};
+    use super::{WifiPick, empty_title, joining, network_row, network_rows};
     use crate::control_center::row_phase::{RowDisc, RowPhase};
     use crate::control_center::rows::RowMark;
     use ds::Icon;
@@ -350,7 +356,7 @@ mod tests {
         ];
         for (device, radio, rows, want) in cases {
             assert_eq!(
-                empty_line(&wifi(device, radio), rows).as_deref(),
+                empty_title(&wifi(device, radio), rows).as_deref(),
                 want,
                 "{device:?} {radio:?} {rows}"
             );
