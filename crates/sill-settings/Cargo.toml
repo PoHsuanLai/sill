@@ -10,7 +10,6 @@ publish.workspace = true
 
 [dependencies]
 ds-core = { workspace = true }
-ds = { workspace = true }
 sill-model = { workspace = true }
 ds-settings = { workspace = true }
 serde = { workspace = true }
