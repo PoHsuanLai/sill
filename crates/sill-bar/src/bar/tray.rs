@@ -35,6 +35,7 @@ use super::tray_input::{
 };
 use super::tray_menu::TrayMenuDocument;
 use sill_ui_kit::hooks::{use_appearance, use_control, use_service, use_settings};
+use sill_ui_kit::settings::SettingsFeed;
 
 /// The tallest the popup is made, a guard of ours rather than a design value (no design doc
 /// caps a menu's height): a longer dbusmenu is clipped at its foot. Also `menu_popup`'s
@@ -85,6 +86,7 @@ fn use_icon_source(icon: &TrayIcon, size_px: u16, limit: ChromaLimit) -> IconSou
 #[component]
 fn TrayButton(index: usize, item: TrayItem, origin: ScreenOrigin) -> Element {
     let surface = use_surface();
+    let feed = use_context::<SettingsFeed>();
     let control = use_control::<TrayService>();
     let size_px = use_settings()().bar.status_icon_box_px.0;
     let limit = chroma_limit(use_appearance()().settings.icons.symbolic_chroma_max.0);
@@ -108,7 +110,7 @@ fn TrayButton(index: usize, item: TrayItem, origin: ScreenOrigin) -> Element {
                 let _ = control.send(TrayCommand::MenuOpening {
                     item: item_id.clone(),
                 });
-                open_menu(&surface, &popup_id, &item_id, &menu, &control);
+                open_menu(&surface, &feed, &popup_id, &item_id, &menu, &control);
             }
             TrayAction::Nothing => {}
         }
@@ -161,6 +163,7 @@ fn TrayButtonView(
 /// Open `item`'s dbusmenu as a `Menu{Dropdown}` popup anchored to the `popup_id` element.
 fn open_menu(
     surface: &SurfaceHandle,
+    feed: &SettingsFeed,
     popup_id: &str,
     item: &TrayItemId,
     menu: &[TrayMenuEntry],
@@ -188,7 +191,8 @@ fn open_menu(
             item: item.clone(),
             control: control.clone(),
         },
-    );
+    )
+    .context(feed.clone());
     surface.open_popup(config, placement, root);
 }
 

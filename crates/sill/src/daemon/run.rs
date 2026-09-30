@@ -46,7 +46,11 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     let store = settings::store(&env.dirs.config);
     let first = settings::load(&store);
     let (settings, settings_rx) = watch::channel(first.clone());
-    let settings_feed = SettingsFeed(settings_rx);
+    let (user_style, user_style_rx) = watch::channel(settings::load_user_style(&store));
+    let settings_feed = SettingsFeed {
+        settings: settings_rx,
+        user_style: user_style_rx,
+    };
     let links = build_links(&runtime, &env, &settings_feed, &settings, &store);
     services::follow_settings(runtime.handle(), &settings_feed, &links, &services, &env);
 
@@ -74,6 +78,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         settings_feed,
         store,
         settings,
+        user_style,
         links,
     };
     let result = host.run(move |ctx, event| handle(&mut shell, ctx, event));
@@ -114,7 +119,11 @@ fn build_links(
 ) -> Links {
     let places = PlacementFile::in_dirs(&env.dirs);
     Links {
-        focus: settings::spawn_focus(runtime.handle(), settings_feed.0.clone(), store.clone()),
+        focus: settings::spawn_focus(
+            runtime.handle(),
+            settings_feed.settings.clone(),
+            store.clone(),
+        ),
         launcher: LauncherLink::new(),
         osd: OsdLink::new(),
         power_menu: PowerMenuLink::new(),
@@ -148,10 +157,11 @@ fn spawn_followers(
     crate::lock::spawn_follower(runtime.handle(), services, host.clone());
     crate::idle_dim::spawn_follower(runtime.handle(), services, host.clone());
     settings::spawn_watch(runtime, store, host.clone());
+    settings::spawn_user_style_watch(runtime, store, host.clone());
     crate::corners::spawn_hits(
         runtime.handle(),
         links.clone(),
-        settings_feed.0.clone(),
+        settings_feed.settings.clone(),
         services.clone(),
     );
 }

@@ -6,6 +6,7 @@ use shell_host::OutputInfo;
 
 use super::io::use_hot_corner;
 use sill_ui_kit::links::Corner;
+use sill_ui_kit::root::use_root_style;
 
 /// This surface's stylesheet: the one rule the transparent element needs (a bare `div` has no
 /// height without one), lint-clean under `Profile::Strict` (`crates/sill/tests/lint.rs`).
@@ -15,10 +16,12 @@ pub const HOT_CORNERS_CSS: &str = include_str!("style.css");
 pub(super) fn hot_corner(output: OutputInfo, corner: Corner) -> Element {
     let entering = use_hot_corner(output.id, corner);
     let leaving = entering.clone();
+    let surface = use_root_style().surface;
     rsx! {
         style { {HOT_CORNERS_CSS} }
         div {
             class: "sill-hot-corner",
+            "data-surface": surface,
             onpointerenter: move |_| entering.enter(),
             onpointerleave: move |_| leaving.leave(),
         }

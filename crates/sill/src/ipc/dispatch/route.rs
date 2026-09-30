@@ -25,11 +25,12 @@ pub fn route(ctx: &mut HostCtx<ShellMsg>, reach: &Reach, request: Request) -> Re
     }
 }
 
-/// Re-read `settings.toml` and publish it: the bar and every surface pick it up through the
-/// settings feed, the scroll engine through `ctx`. Dock pins are not re-read here: the pins
+/// Re-read `settings.toml` and `style.css` and publish them: the bar and every surface pick them
+/// up through the settings feed, the scroll engine through `ctx`. Dock pins are not re-read here: the pins
 /// service watches its own file.
 fn reload(ctx: &mut HostCtx<ShellMsg>, reach: &Reach) -> Response {
     crate::daemon::settings::reload(reach.store, reach.settings);
+    crate::daemon::settings::reload_user_style(reach.store, reach.user_style);
     ctx.set_scroll_config(crate::scroll::config(&reach.settings.borrow()));
     Response::Done
 }

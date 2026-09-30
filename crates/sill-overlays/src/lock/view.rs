@@ -28,6 +28,7 @@ use shell_host::{LockHandle, LockPhase, OutputInfo, use_lock, use_lock_phase, us
 use super::body::{HostLock, LockBody};
 use super::model::caps_of;
 use sill_ui_kit::hooks::use_appearance;
+use sill_ui_kit::root::use_root_style;
 
 /// The lock screen's stylesheet (lint-clean under `Profile::Strict`, `tests/lock_lint.rs`).
 pub const LOCK_CSS: &str = include_str!("style.css");
@@ -76,6 +77,7 @@ fn Stage(
     on_unlock: Option<Callback<()>>,
 ) -> Element {
     let environment = use_appearance()();
+    let root = use_root_style();
     let appearance = environment.settings.appearance.appearance();
     let scheme = ds::resolve(
         appearance,
@@ -91,6 +93,8 @@ fn Stage(
             material: Material::Window,
             extent: RootExtent::Viewport,
             blur: BlurState::Unavailable,
+            surface: root.surface,
+            user_style: root.user_style,
             style { {LOCK_CSS} }
             LockBody { output, scheme, host, caps, on_unlock }
         }

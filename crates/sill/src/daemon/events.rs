@@ -4,7 +4,7 @@
 
 use std::time::Instant;
 
-use ds_settings::Store;
+use ds_settings::{Store, UserStyle};
 use shell_host::{CloseReason, HostCtx, HostEvent, KeyboardFocus, SurfaceId, SurfaceOp};
 use sill_bar::Bar;
 use sill_ipc::request::Request;
@@ -39,6 +39,8 @@ pub struct Shell {
     /// The settings file's store.
     pub store: Store,
     pub settings: watch::Sender<ShellFile>,
+    /// The person's `style.css`, which every surface root draws.
+    pub user_style: watch::Sender<UserStyle>,
     /// The links every surface root is given and the requests write.
     pub links: Links,
 }
@@ -75,6 +77,7 @@ fn answer(shell: &Shell, ctx: &mut HostCtx<ShellMsg>, request: Request) -> Respo
         links: &shell.links,
         store: &shell.store,
         settings: &shell.settings,
+        user_style: &shell.user_style,
     };
     let response = route(ctx, &reach, request);
     if let Some(toggled_at) = toggled_at {
@@ -125,6 +128,7 @@ fn host_event(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
     // The watch's re-read reaches the feed (every follower: the policies, the locker, corners, the
     // focus mode) the same way `sill reload` does; geometry follows the same event just below.
     settings::publish_watched(&shell.settings, &event);
+    settings::publish_watched_style(&shell.user_style, &event);
     rescan_displays(&shell.services, &event);
     on_event(ctx, &mut shell.outputs, event);
     spawn_missing(shell, ctx);
@@ -205,6 +209,8 @@ fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostEvent
             resize_bars(ctx, outputs, &file);
             ctx.set_scroll_config(crate::scroll::config(&file));
         }
+        // Published by `host_event` to the feed the surfaces draw it from; no geometry follows.
+        HostEvent::App(ShellMsg::UserStyle(_)) => {}
         // Answered by `handle`, which holds the lock's state.
         HostEvent::App(ShellMsg::Lock(_)) => {}
         // Answered by `handle`, which maps the idle dim surfaces.

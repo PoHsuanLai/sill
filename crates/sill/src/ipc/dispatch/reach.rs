@@ -1,7 +1,7 @@
 //! What a request can reach: the services, the outputs' surfaces, the links the surfaces follow
 //! and the settings the daemon holds.
 
-use ds_settings::Store;
+use ds_settings::{Store, UserStyle};
 use sill_settings::ShellFile;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
@@ -19,4 +19,5 @@ pub struct Reach<'a> {
     /// The settings file's store.
     pub store: &'a Store,
     pub settings: &'a watch::Sender<ShellFile>,
+    pub user_style: &'a watch::Sender<UserStyle>,
 }

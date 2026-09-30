@@ -105,7 +105,7 @@ pub(crate) fn follow_settings(
     services: &Services,
     env: &Env,
 ) {
-    let settings = || feed.0.clone();
+    let settings = || feed.settings.clone();
     // The notifications service's policy from the settings and the focus mode.
     follow(
         rt,

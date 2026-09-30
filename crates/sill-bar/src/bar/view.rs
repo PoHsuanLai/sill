@@ -20,6 +20,7 @@ use sill_services::TrayService;
 use sill_ui_kit::hooks::{use_appearance, use_service, use_settings};
 use sill_ui_kit::look::use_active_look;
 use sill_ui_kit::menu::PopupLook;
+use sill_ui_kit::root::use_root_style;
 use sill_ui_kit::shell_style::shell_metrics;
 
 /// The bar's own stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
@@ -41,6 +42,7 @@ pub(super) fn bar(output: OutputInfo) -> Element {
         metrics,
         stack: environment.material_stack(),
     };
+    let root = use_root_style();
     let session = use_bar(&output, popup_look);
     let modules = menu_bar_modules(&file.control_center);
     let outside = move |input: Event| session.feed(BarInput::Bar { input, title: None });
@@ -61,6 +63,8 @@ pub(super) fn bar(output: OutputInfo) -> Element {
             blur: BlurState::Available,
             tint_alpha: Some(popup_look.tint),
             stack: Some(popup_look.stack),
+            surface: root.surface,
+            user_style: root.user_style,
             style { {BAR_CSS} }
             div {
                 class: "sill-bar",

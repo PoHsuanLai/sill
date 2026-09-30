@@ -9,6 +9,7 @@ use std::rc::Rc;
 use crate::settings::SettingsFeed;
 use dioxus::prelude::*;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use ds_settings::UserStyle;
 use shell_host::{LayerExtent, OutputInfo};
 use sill_settings::ShellFile;
 use tokio::sync::watch;
@@ -46,6 +47,8 @@ pub struct SurfaceHarness<S: Surface> {
     pub link: S::Link,
     /// The settings file the surface follows: send a new one to change a setting live.
     pub settings: watch::Sender<ShellFile>,
+    /// The person's `style.css` the surface follows: send a new one to restyle it live.
+    pub user_style: watch::Sender<UserStyle>,
 }
 
 impl<S: Surface> fmt::Debug for SurfaceHarness<S> {
@@ -68,6 +71,7 @@ pub struct SurfaceSetup<S: Surface> {
     appearance: PinnedAppearance,
     services: Option<(Services, fake::Feeds)>,
     root_hook: Option<Rc<dyn Fn()>>,
+    user_style: UserStyle,
 }
 
 impl<S: Surface> fmt::Debug for SurfaceSetup<S> {
@@ -91,6 +95,7 @@ impl<S: Surface> SurfaceHarness<S> {
             appearance: PinnedAppearance::default(),
             services: None,
             root_hook: None,
+            user_style: UserStyle::default(),
         }
     }
 }
@@ -99,6 +104,12 @@ impl<S: Surface> SurfaceSetup<S> {
     /// The settings file the surface reads.
     pub fn settings(mut self, settings: ShellFile) -> Self {
         self.settings = settings;
+        self
+    }
+
+    /// The person's `style.css` the surface starts with.
+    pub fn user_style(mut self, text: &str) -> Self {
+        self.user_style = UserStyle(text.to_owned());
         self
     }
 
@@ -139,11 +150,16 @@ impl<S: Surface> SurfaceSetup<S> {
             appearance,
             services,
             root_hook,
+            user_style,
         } = self;
         let viewport = viewport.unwrap_or_else(|| layer_viewport::<S>(&output, &settings, slot));
         let (services, feeds) = services.unwrap_or_else(fake::services);
         let (settings, settings_rx) = watch::channel(settings);
-        let feed = SettingsFeed(settings_rx);
+        let (user_style_tx, user_style_rx) = watch::channel(user_style);
+        let feed = SettingsFeed {
+            settings: settings_rx,
+            user_style: user_style_rx,
+        };
         let context_link = link.clone();
         let build: Build = Rc::new(move || {
             use_context_provider(|| services.clone());
@@ -163,6 +179,7 @@ impl<S: Surface> SurfaceSetup<S> {
             feeds,
             link,
             settings,
+            user_style: user_style_tx,
         }
     }
 }

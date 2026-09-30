@@ -8,6 +8,10 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds::{Alpha, Appearance, Availability, MaterialStack, MenuEntry, MenuTrail, ShellMetrics};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use ds_settings::UserStyle;
+use sill_settings::ShellFile;
+
+use crate::settings::SettingsFeed;
 
 use super::{MenuModel, MenuPopup, PopupLook, PopupRoom};
 
@@ -47,6 +51,23 @@ impl MenuModel for Numbers {
 }
 
 fn app() -> Element {
+    provide_popup_contexts();
+    popup()
+}
+
+/// The popup as its opener leaves it, plus the person's stylesheet on the feed it hands over.
+fn styled_app() -> Element {
+    use_context_provider(|| SettingsFeed {
+        user_style: tokio::sync::watch::channel(UserStyle(STYLE.to_owned())).1,
+        ..SettingsFeed::fixed(ShellFile::default())
+    });
+    provide_popup_contexts();
+    popup()
+}
+
+const STYLE: &str = ".ds-popover { color: red }";
+
+fn provide_popup_contexts() {
     use_context_provider(|| PopupLook {
         appearance: Appearance::default(),
         system: ds::SystemPrefs::default(),
@@ -55,11 +76,15 @@ fn app() -> Element {
         stack: MaterialStack::default(),
     });
     use_context_provider(|| ROOM);
+}
+
+fn popup() -> Element {
     rsx! {
         MenuPopup {
             model: Numbers,
             on_pick: move |pick: u8| PICKS.with(|p| p.borrow_mut().push(pick)),
             on_close: move |()| {},
+            surface: "test-menu",
         }
     }
 }
@@ -99,4 +124,36 @@ fn the_frame_is_the_card_and_its_room_and_a_press_picks_an_item() {
     harness.click(second);
     harness.advance(Duration::from_millis(100));
     assert_eq!(PICKS.with(|p| p.borrow().clone()), vec![2]);
+}
+
+#[test]
+fn a_popup_names_its_surface_and_draws_the_person_style_its_opener_handed_over() {
+    let viewport = Viewport {
+        width: WIDTH,
+        height: HEIGHT,
+        scale_percent: 100,
+    };
+    let start = |app: fn() -> Element| {
+        let mut harness =
+            Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
+        harness.advance(Duration::from_millis(100));
+        harness
+    };
+    let bare = start(app);
+    assert_eq!(
+        bare.attr(".ds", "data-surface").as_deref(),
+        Some("test-menu")
+    );
+    assert_eq!(
+        bare.html().matches("data-ds-user").count(),
+        0,
+        "no feed: no style"
+    );
+    let styled = start(styled_app);
+    assert_eq!(
+        styled.attr(".ds", "data-surface").as_deref(),
+        Some("test-menu")
+    );
+    assert_eq!(styled.html().matches("data-ds-user").count(), 1);
+    assert!(styled.html().contains(STYLE), "{}", styled.html());
 }

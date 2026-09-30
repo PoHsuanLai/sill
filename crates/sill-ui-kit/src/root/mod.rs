@@ -6,7 +6,9 @@
 mod host;
 mod signals;
 mod surface_root;
+mod user_style;
 
 pub use host::{faces, host_config, prepaint};
 pub use signals::{use_host_scale, use_host_signals};
 pub use surface_root::SurfaceRoot;
+pub use user_style::{RootStyle, SurfaceName, use_root_style};

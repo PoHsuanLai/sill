@@ -8,8 +8,10 @@ use std::rc::Rc;
 use crate::settings::SettingsFeed;
 use dioxus::prelude::*;
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use ds_settings::UserStyle;
 use shell_host::OutputInfo;
 use sill_settings::ShellFile;
+use tokio::sync::watch;
 
 use super::fake;
 use super::surface::{Build, WORLD, app};
@@ -25,6 +27,8 @@ pub struct LockHarness<S: LockSurface> {
     pub feeds: fake::Feeds,
     /// The surface's link, the daemon's end.
     pub link: S::Link,
+    /// The person's `style.css` the surface follows: send a new one to restyle it live.
+    pub user_style: watch::Sender<UserStyle>,
 }
 
 impl<S: LockSurface> fmt::Debug for LockHarness<S> {
@@ -102,7 +106,11 @@ impl<S: LockSurface> LockSetup<S> {
         };
         let (mut services, feeds) = fake::services();
         change(&mut services);
-        let feed = SettingsFeed::fixed(settings);
+        let (user_style, user_style_rx) = watch::channel(UserStyle::default());
+        let feed = SettingsFeed {
+            user_style: user_style_rx,
+            ..SettingsFeed::fixed(settings)
+        };
         let context_link = link.clone();
         let build: Build = Rc::new(move || {
             use_context_provider(|| services.clone());
@@ -118,6 +126,7 @@ impl<S: LockSurface> LockSetup<S> {
             harness,
             feeds,
             link,
+            user_style,
         }
     }
 }

@@ -72,6 +72,7 @@ fn start(file: ShellFile) -> Running {
         feeds,
         link,
         settings: tx,
+        ..
     } = SurfaceHarness::<EditWidgets>::setup(EditWidgetsLink::new().with_writer(writer), ())
         .settings(file)
         .viewport(viewport)

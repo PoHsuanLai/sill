@@ -22,6 +22,9 @@ pub(crate) enum PopupReport {
     Gone,
 }
 
+/// The dock menu's surface name: the value of its `data-surface`.
+pub(crate) const DOCK_MENU: &str = "dock-menu";
+
 /// The popup's root context.
 #[derive(Debug, Clone)]
 pub(crate) struct MenuLink {
@@ -72,6 +75,7 @@ pub(crate) fn DockMenuPopup() -> Element {
             model: DockMenu { entries: link.entries.clone() },
             on_pick,
             on_close,
+            surface: DOCK_MENU,
         }
     }
 }

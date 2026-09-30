@@ -8,7 +8,7 @@ use crate::settings::SettingsFeed;
 
 /// Every settled `settings.toml`; a surface reads the domains it draws.
 pub fn use_settings() -> ReadSignal<ShellFile> {
-    use_watch(use_context::<SettingsFeed>().0)
+    use_watch(use_context::<SettingsFeed>().settings)
 }
 
 /// One domain of the settings: `use_section::<BarSettings>()`. It changes only when that domain

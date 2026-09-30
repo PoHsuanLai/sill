@@ -14,6 +14,7 @@ use crate::launcher::follow::{use_follow_visibility, use_shown};
 use crate::launcher::panel::LAUNCHER_CSS;
 use sill_ui_kit::hooks::use_settings;
 use sill_ui_kit::links::LauncherLink;
+use sill_ui_kit::root::use_root_style;
 
 /// The catcher on `output`.
 pub(super) fn catcher(output: OutputInfo) -> Element {
@@ -23,10 +24,12 @@ pub(super) fn catcher(output: OutputInfo) -> Element {
     let file = use_settings()();
     let hit = use_watch(link.subscribe_hit());
     follow_input(input(&output, &file.bar, &file.launcher, hit()));
+    let surface = use_root_style().surface;
     rsx! {
         style { {LAUNCHER_CSS} }
         div {
             class: "sill-launcher-catcher",
+            "data-surface": surface,
             onmousedown: move |_| link.close(),
         }
     }

@@ -18,8 +18,8 @@ pub fn store(config: &Path) -> Store {
 }
 
 /// Print what `loaded` reports, one line per key.
-pub fn report(loaded: &Loaded<ShellFile>) {
-    for line in loaded.diagnostics(ShellFile::FILE) {
+pub fn report<D: SettingsDoc>(loaded: &Loaded<D>) {
+    for line in loaded.diagnostics(D::FILE) {
         eprintln!("sill: {line}");
     }
 }

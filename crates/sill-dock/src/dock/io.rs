@@ -29,6 +29,7 @@ use crate::dock::pointer::{DockInput, resolve};
 use sill_ui_kit::clock::FrameClock;
 use sill_ui_kit::hooks::use_services;
 use sill_ui_kit::menu::PopupLook;
+use sill_ui_kit::settings::SettingsFeed;
 
 /// What the session decides against, from the dock's latest render.
 #[derive(Clone)]
@@ -40,6 +41,8 @@ pub(crate) struct SessionDeps {
     pub world: World,
     pub order: DockMenuOrder,
     pub look: PopupLook,
+    /// Handed to the menu popup, so it draws the person's stylesheet.
+    pub feed: SettingsFeed,
     /// `dock.remove_threshold_px`.
     pub remove: sill_model::units::Cpx,
 }
@@ -338,7 +341,9 @@ fn open_menu(slots: Slots, deps: &SessionDeps, outward: &Outward, tile: TileId) 
     surface.open_popup(
         menu_config(),
         placement,
-        HostRoot::new(DockMenuPopup).context(link),
+        HostRoot::new(DockMenuPopup)
+            .context(link)
+            .context(deps.feed.clone()),
     );
 }
 

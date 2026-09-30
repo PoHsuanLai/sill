@@ -2,6 +2,7 @@
 
 use std::sync::mpsc::SyncSender;
 
+use ds_settings::UserStyle;
 use sill_ipc::request::Request;
 use sill_ipc::response::Response;
 use sill_settings::ShellFile;
@@ -16,6 +17,8 @@ pub enum ShellMsg {
     },
     /// `settings.toml` settled on a new value.
     Settings(Box<ShellFile>),
+    /// `style.css` settled on a new text (empty when the file is gone).
+    UserStyle(Box<UserStyle>),
     /// Hold or drop shell-host's session lock (`crate::lock::spawn_follower` sends it).
     Lock(crate::lock::LockWish),
     /// Map or unmap the idle dim surfaces (`crate::idle_dim::spawn_follower` sends it).

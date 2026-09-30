@@ -9,6 +9,7 @@ use super::io::use_crossfade;
 use super::model::{file_url, image_for};
 use sill_services::WallpaperService;
 use sill_ui_kit::hooks::{use_appearance, use_service};
+use sill_ui_kit::root::use_root_style;
 
 /// The wallpaper's own stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
 pub const WALLPAPER_CSS: &str = include_str!("style.css");
@@ -34,6 +35,7 @@ pub(super) fn wallpaper(output: OutputInfo) -> Element {
         file_url(path)
     });
     let layers = use_crossfade(url);
+    let root = use_root_style();
     rsx! {
         Ds {
             sheet: Some(ds_shell::stylesheet()),
@@ -42,6 +44,8 @@ pub(super) fn wallpaper(output: OutputInfo) -> Element {
             material: Material::Widget,
             extent: RootExtent::Viewport,
             blur: BlurState::Unavailable,
+            surface: root.surface,
+            user_style: root.user_style,
             style { {WALLPAPER_CSS} }
             div { class: "sill-wallpaper",
                 for (slot , back , image) in layers {

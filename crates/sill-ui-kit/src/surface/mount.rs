@@ -3,11 +3,11 @@
 use std::fmt;
 use std::marker::PhantomData;
 
-use dioxus::prelude::Element;
+use dioxus::prelude::{Element, use_context_provider};
 use shell_host::OutputInfo;
 
 use super::Surface;
-use crate::root::use_host_signals;
+use crate::root::{SurfaceName, use_host_signals};
 
 /// What [`mount`] is given: the output and the slot of the surface it draws.
 pub struct MountProps<S: Surface> {
@@ -49,6 +49,7 @@ impl<S: Surface> fmt::Debug for MountProps<S> {
 /// the component's scope.
 pub fn mount<S: Surface>(props: MountProps<S>) -> Element {
     ds_native::provide_host();
+    use_context_provider(|| SurfaceName(S::NAME));
     use_host_signals();
     S::root(props.output, props.slot)
 }

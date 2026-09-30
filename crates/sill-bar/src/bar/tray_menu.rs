@@ -6,8 +6,11 @@
 use dioxus::prelude::*;
 use ds::{Anchor, Ds, Material, Menu, MenuEntrance, MenuEntry, MenuKind, Point, RootExtent};
 
-use sill_ui_kit::hooks::use_appearance;
+use sill_ui_kit::hooks::{use_appearance, use_user_style};
 use sill_ui_kit::menu::{PopupFrame, PopupRoom};
+use sill_ui_kit::root::RootStyle;
+
+use super::menu_popup::BAR_MENU;
 
 /// The widest the popup is, card and inset together (design/04-COMPONENTS.md section 20,
 /// Dropdown: "min 186, auto"; a longer label wraps).
@@ -29,6 +32,7 @@ pub(crate) fn TrayMenuDocument(
     onclose: EventHandler<()>,
 ) -> Element {
     let environment = use_appearance()();
+    let root = RootStyle::popup(BAR_MENU, use_user_style());
     rsx! {
         PopupFrame { room: INSET, widest: Some(POPUP_WIDTH),
             Ds {
@@ -37,6 +41,8 @@ pub(crate) fn TrayMenuDocument(
                 appearance: environment.settings.appearance.appearance(),
                 system: environment.system,
                 material: Material::Popover,
+                surface: root.surface,
+                user_style: root.user_style,
                 Menu {
                     kind: MenuKind::Dropdown,
                     // The frame lays the card in flow: the anchor places nothing.

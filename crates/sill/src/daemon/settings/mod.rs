@@ -4,9 +4,13 @@
 mod focus;
 mod publish;
 mod store;
+mod user_style;
 mod watch;
 
 pub use focus::spawn_focus;
 pub use publish::{publish_watched, reload};
 pub use store::{load, save, store};
+pub use user_style::{
+    load_user_style, publish_watched_style, reload_user_style, spawn_user_style_watch,
+};
 pub use watch::spawn_watch;

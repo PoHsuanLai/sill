@@ -33,6 +33,8 @@ use sill_ui_kit::app_icons::icon_look;
 use sill_ui_kit::hooks::{use_appearance, use_service, use_service_part, use_settings};
 use sill_ui_kit::look::{active_workspace, use_active_look};
 use sill_ui_kit::menu::PopupLook;
+use sill_ui_kit::root::use_root_style;
+use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::shell_style::shell_metrics;
 
 /// The dock's own stylesheet (lint-clean under `Profile::Strict`, `tests/dock_lint.rs`).
@@ -42,6 +44,8 @@ pub const DOCK_CSS: &str = include_str!("style.css");
 pub(super) fn dock(output: OutputInfo) -> Element {
     let file = use_settings()();
     let environment = use_appearance()();
+    let root = use_root_style();
+    let feed = use_context::<SettingsFeed>();
     let on = output.name.clone().map(OutputName);
     let look = use_active_look(&output);
     let workspace = active_workspace(
@@ -117,6 +121,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         params,
         world: world.clone(),
         order: file.dock.context_menu_order,
+        feed: feed.clone(),
         look: PopupLook {
             appearance,
             system: environment.system,
@@ -151,6 +156,8 @@ pub(super) fn dock(output: OutputInfo) -> Element {
                 blur: BlurState::Available,
                 tint_alpha: Some(environment.tint_alpha()),
                 stack: Some(stack),
+                surface: root.surface,
+                user_style: root.user_style,
                 style { {DOCK_CSS} }
                 DockFloor {}
                 div {

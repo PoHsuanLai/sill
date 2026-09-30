@@ -24,7 +24,15 @@ use super::pick::BarPick;
 use super::plan::{PopupReport, choice};
 use super::popup::{MAX_PX, room};
 use crate::control_center::{ControlCenter, ModuleDropdown};
+use sill_ui_kit::hooks::use_user_style;
 use sill_ui_kit::menu::PopupFrame;
+use sill_ui_kit::root::RootStyle;
+
+/// The surface name of a bar menu (and a tray item's): the value of its `data-surface`.
+pub(crate) const BAR_MENU: &str = "bar-menu";
+
+/// The surface name of the control center and a module's own popup.
+pub(crate) const CONTROL_CENTER: &str = "control-center";
 
 /// The popup's link to its bar, provided as its root context.
 #[derive(Debug, Clone)]
@@ -55,6 +63,7 @@ pub(crate) fn BarPopup() -> Element {
     ds_native::provide_host();
     let link = use_context::<PopupLink>();
     let surface = use_surface();
+    let user_style = use_user_style();
     let view = use_watch(link.view.clone());
     let mut placed = use_hook(|| CopyValue::new(None::<PopupPlacement>));
     let reports = link.reports.clone();
@@ -77,26 +86,30 @@ pub(crate) fn BarPopup() -> Element {
     let look = current.look;
     let which = current.menu;
     // A text menu wraps at design/13 §13.3.3's maximum; a panel is as wide as its settings say.
-    let (content, widest) = match current.body {
+    let (content, widest, name) = match current.body {
         PopupBody::Menu(entries) => (
             rsx! {
                 BarMenuList { key: "{which:?}", entries }
             },
             Some(MAX_PX),
+            BAR_MENU,
         ),
         PopupBody::ControlCenter(_) => (
             rsx! {
                 PanelPopover { module: None }
             },
             None,
+            CONTROL_CENTER,
         ),
         PopupBody::Module(module) => (
             rsx! {
                 PanelPopover { module: Some(module) }
             },
             None,
+            CONTROL_CENTER,
         ),
     };
+    let root = RootStyle::popup(name, user_style);
     rsx! {
         style { {CONTROL_CENTER_CSS} }
         PopupFrame { room: room(), widest, style: look.metrics.style_attr(),
@@ -109,6 +122,8 @@ pub(crate) fn BarPopup() -> Element {
                 blur: BlurState::Unavailable,
                 tint_alpha: Some(look.tint),
                 stack: Some(look.stack),
+                surface: root.surface,
+                user_style: root.user_style,
                 {content}
             }
         }
