@@ -39,7 +39,7 @@ forbidden and Cargo enforces it (a surface crate that does not list another cann
 | 6 | `sill-notify-ui` | Banners, notification center, screenshot thumbnail | same set as `sill-bar` |
 | 6 | `sill-widgets-ui` | Desktop widget layer, Edit Widgets | same set as `sill-bar` |
 | 6 | `sill-overlays` | OSD, power menu, polkit prompt, switcher, idle dim, hot corners, wallpaper, lock | same set as `sill-bar` |
-| 7 | `sill` | Binary and library: `cli/`, `daemon/`, `ipc/`, `policy/` | every crate above; clap, latchkey; dev: `sill-testkit`, `sill-ui-kit` (harness), `ds-lint` |
+| 7 | `sill` | Binary and library: `cli/`, `daemon/`, `ipc/`, `policy/` | every crate above; clap, latchkey, `ds-lint` and `ds-shell` (`sill style check`); dev: `sill-testkit`, `sill-ui-kit` (harness) |
 
 `*` A surface crate names `sill-services` (and `sill-search` for the launcher) only for service
 marker types (`BatteryService`), `Control` and `Handle`, the type arguments of `use_service`.
@@ -736,7 +736,7 @@ where noted, and sill compiles against each.
 14. (done) `dev/lib/*.sh` and one script per surface with `--real-input`; untrack `dev/out/*.png`.
 15. Update `check-boundary.sh` to section 1's table; prune FINDINGS to open items and standing
     facts.
-16. User styles: `daemon/settings/user_style.rs`, the feed field, `SurfaceRoot`'s `user_style`
+16. User styles (done): `daemon/settings/user_style.rs`, the feed field, `SurfaceRoot`'s `user_style`
     and `data-surface`, the `sill style check` verb, a dev script that edits the file under a
     running daemon on headless KWin and proves every surface restyles without a restart
     (quire's step 16 lands first).

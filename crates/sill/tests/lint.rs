@@ -584,3 +584,33 @@ fn the_surface_names_are_unique() {
     names.dedup();
     assert_eq!(names.len(), before, "two surfaces share a name");
 }
+
+/// The popups' names, which the rows above do not mount: `crates/sill-ui-kit`'s `BAR_MENU`,
+/// `CONTROL_CENTER` and `DOCK_MENU`.
+const POPUP_NAMES: &[&str] = &["bar-menu", "control-center", "dock-menu"];
+
+#[test]
+fn docs_selectors_lists_every_surface_and_popup_name() {
+    let page = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../docs/selectors.md"
+    ))
+    .expect("docs/selectors.md is in the repository"); // test-only
+    let mut missing: Vec<&str> = SURFACES
+        .iter()
+        .map(|case| case.surface)
+        .chain(POPUP_NAMES.iter().copied())
+        .filter(|name| !page.contains(&format!("| `{name}` |")))
+        .collect();
+    missing.sort_unstable();
+    assert_eq!(missing, Vec::<&str>::new(), "not in docs/selectors.md");
+    let listed = page
+        .lines()
+        .filter(|line| line.starts_with("| `") && !line.starts_with("| `data-surface`"))
+        .count();
+    assert_eq!(
+        listed,
+        SURFACES.len() + POPUP_NAMES.len(),
+        "docs/selectors.md lists a name nothing draws"
+    );
+}
