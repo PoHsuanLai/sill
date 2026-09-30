@@ -10,33 +10,39 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-# sill-ipc, sill-launcher and sill-model are pure: no UI, no D-Bus, no Wayland, no runtime, no
-# audio, no design system.
-# sill-services and sill-search are effectful but UI-free: their state reaches surfaces only
-# through watch channels read by sill-ui-kit's hooks (DESIGN.md "Crates"), so neither links a
-# renderer. sill-settings is data and reaches neither ds nor dioxus: it names ds-core for `Word`
-# and ds-settings (its dioxus feature off) for the schema; sill-search reads schema files through
-# ds-settings the same way.
+# ARCHITECTURE.md section 1 is the crate map; this file is its mechanical form, in two parts.
 #
+# RULES: what a crate reaches through ANY path (`cargo tree -i`, transitive).
+# sill-launcher, sill-model and sill-ipc are pure: no UI, no D-Bus, no Wayland, no runtime, no
+# audio, no design system. sill-settings is data and UI-free, but it names ds-settings (its dioxus
+# feature off), whose file I/O brings zbus and tokio, so only the UI is forbidden to it.
+# sill-services and sill-search are effectful but UI-free: their state reaches surfaces only
+# through watch channels read by sill-ui-kit's hooks, so neither links a renderer.
+# sill-testkit is std only and names no sill crate.
 # sill-ui-kit is what every surface shares, so it reaches no surface crate and not the binary.
-# The surface crates (layer 6) never depend on one another and none depends on `sill`; the daemon
-# is the one crate that names them all. Cargo enforces the direct edges (a crate that does not
-# list another cannot name it); the checks here catch a leak through any path.
+# The surface crates never depend on one another and none depends on `sill`; the daemon is the one
+# crate that names them all.
+PURE="dioxus dioxus-core zbus wayland-client tokio libpulse-binding shell-host ds ds-shell ds-native blitz-dom"
+UI_FREE="dioxus dioxus-core blitz-dom shell-host ds ds-shell ds-native"
+SURFACES=(sill-overlays sill-notify-ui sill-widgets-ui sill-dock sill-launcher-ui sill-bar)
+# The other surfaces, and the binary, for one surface crate.
+others() {
+  local self="$1" c
+  for c in "${SURFACES[@]}" sill; do [ "$c" = "$self" ] || printf '%s ' "$c"; done
+}
 RULES=(
-  "sill-ipc: dioxus dioxus-core zbus wayland-client tokio libpulse-binding"
-  "sill-launcher: dioxus dioxus-core zbus wayland-client tokio libpulse-binding"
-  "sill-model: dioxus dioxus-core zbus wayland-client tokio libpulse-binding shell-host ds blitz-dom"
-  "sill-settings: dioxus dioxus-core blitz-dom shell-host ds ds-shell"
-  "sill-services: dioxus dioxus-core blitz-dom shell-host ds ds-settings"
-  "sill-search: dioxus dioxus-core blitz-dom shell-host ds ds-shell"
-  "sill-ui-kit: sill-overlays sill-notify-ui sill-widgets-ui sill-dock sill-launcher-ui sill-bar sill"
-  "sill-overlays: sill-notify-ui sill-widgets-ui sill-dock sill-launcher-ui sill-bar sill"
-  "sill-notify-ui: sill-overlays sill-widgets-ui sill-dock sill-launcher-ui sill-bar sill"
-  "sill-widgets-ui: sill-overlays sill-notify-ui sill-dock sill-launcher-ui sill-bar sill"
-  "sill-dock: sill-overlays sill-notify-ui sill-widgets-ui sill-launcher-ui sill-bar sill"
-  "sill-launcher-ui: sill-overlays sill-notify-ui sill-widgets-ui sill-dock sill-bar sill"
-  "sill-bar: sill-overlays sill-notify-ui sill-widgets-ui sill-dock sill-launcher-ui sill"
+  "sill-launcher: $PURE"
+  "sill-model: $PURE"
+  "sill-settings: $UI_FREE"
+  "sill-ipc: $PURE"
+  "sill-services: $UI_FREE ds-settings"
+  "sill-search: $UI_FREE"
+  "sill-testkit: sill-launcher sill-model sill-settings sill-ipc sill-services sill-search sill-ui-kit ${SURFACES[*]} sill"
+  "sill-ui-kit: ${SURFACES[*]} sill"
 )
+for surface in "${SURFACES[@]}"; do
+  RULES+=("$surface: $(others "$surface")")
+done
 fail=0
 
 for rule in "${RULES[@]}"; do
@@ -60,6 +66,46 @@ for rule in "${RULES[@]}"; do
   if [ "$leaked" -eq 0 ]; then
     echo "boundary holds: $crate reaches none of ${forbidden[*]}"
   fi
+done
+
+# The allowed edges between our own crates and quire and shell-host (ARCHITECTURE.md section 1):
+# each crate's DIRECT normal and build dependencies that are path dependencies, and nothing else.
+# A dependency on a crate not listed is a leak; so is one the crate no longer has, so the table
+# stays exact. Dev dependencies are outside it (a test may reach further than the crate does).
+EDGES=(
+  "sill-launcher:"
+  "sill-testkit:"
+  "sill-model: sill-launcher"
+  "sill-settings: ds-core ds-settings sill-model"
+  "sill-ipc: sill-launcher sill-model"
+  "sill-services: sill-launcher sill-model"
+  "sill-search: ds-settings sill-launcher sill-model sill-services"
+  "sill-ui-kit: ds ds-native ds-settings ds-shell shell-host sill-launcher sill-model sill-search sill-services sill-settings"
+  "sill-bar: ds ds-native ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
+  "sill-dock: ds ds-native ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
+  "sill-launcher-ui: ds ds-native shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-ui-kit"
+  "sill-notify-ui: ds ds-native ds-settings ds-shell shell-host sill-model sill-services sill-settings sill-ui-kit"
+  "sill-widgets-ui: ds ds-shell shell-host sill-settings sill-ui-kit"
+  "sill-overlays: ds ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
+  "sill: ds-native ds-settings shell-host sill-bar sill-dock sill-ipc sill-launcher sill-launcher-ui sill-model sill-notify-ui sill-overlays sill-search sill-services sill-settings sill-ui-kit sill-widgets-ui"
+)
+for edge in "${EDGES[@]}"; do
+  crate="${edge%%:*}"
+  read -r -a allowed <<<"${edge#*:}"
+  found=$(cargo tree -p "$crate" --depth 1 -e normal,build --prefix none --all-features 2>/dev/null \
+    | grep '(/' | awk '{print $1}' | grep -vx "$crate" | sort -u | tr '\n' ' ')
+  want=$(printf '%s\n' "${allowed[@]}" | grep . | sort -u | tr '\n' ' ')
+  if [ "$found" != "$want" ]; then
+    echo "EDGE: $crate depends on [${found% }], the table allows [${want% }]"
+    fail=1
+  else
+    echo "edges hold: $crate depends on [${found% }]"
+  fi
+done
+
+# Every workspace member has a row above, so a new crate cannot slip in unchecked.
+for member in $(cargo metadata --no-deps --format-version 1 2>/dev/null | grep -o '"name":"sill[a-z-]*"' | cut -d'"' -f4 | sort -u); do
+  printf '%s\n' "${EDGES[@]}" | grep -q "^$member:" || { echo "ERROR: $member has no row in EDGES"; fail=1; }
 done
 
 exit "$fail"
