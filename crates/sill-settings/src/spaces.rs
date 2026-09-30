@@ -5,7 +5,6 @@
 use crate::file::ShellFile;
 use crate::section::Section;
 use ds_core::word::Word;
-use ds_settings::Count;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
 
@@ -36,14 +35,6 @@ pub enum WallpaperDrawer {
 #[settings(file = "sill/settings.toml", domain = "spaces", page = Page::Spaces)]
 pub struct SpacesSettings {
     #[settings(
-        label = "Default grain",
-        help = "The grain of a Space that has no look of its own (presets 1 and 2 keep theirs).",
-        section = "Defaults",
-        range = "0..=100",
-        advanced
-    )]
-    pub default_grain: Count,
-    #[settings(
         label = "Default accent",
         help = "The accent you picked, or the Space's own hue.",
         section = "Defaults",
@@ -62,7 +53,6 @@ pub struct SpacesSettings {
 impl Default for SpacesSettings {
     fn default() -> Self {
         SpacesSettings {
-            default_grain: Count(40),
             default_card_accent: DefaultCardAccent::Chosen,
             wallpaper_drawer: WallpaperDrawer::Shell,
         }
