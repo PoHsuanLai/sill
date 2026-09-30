@@ -9,8 +9,11 @@
 //! [`BannerLink`]: sill_ui_kit::links::BannerLink
 
 use dioxus::prelude::*;
-use ds::{Material, RootChrome, RootExtent};
-use ds_shell::{BannerKey, BannerStack, Hover, NotificationSwipe};
+use ds::prelude::*;
+use ds_shell::notifications::banner_stack::BannerKey;
+use ds_shell::notifications::parts::Hover;
+use ds_shell::notifications::swipe::NotificationSwipe;
+use ds_shell::prelude::*;
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_model::notifications::{NotificationId, Notifications};
 use sill_services::NotificationsService;
@@ -77,7 +80,7 @@ fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> 
         .collect();
     use_regions(element_regions(&shapes));
     let notes = live();
-    let banners: Vec<ds_shell::Banner> = deck
+    let banners: Vec<ds_shell::notifications::banner_stack::Banner> = deck
         .listed()
         .into_iter()
         .filter_map(|entry| banner(column, &notes, entry))
@@ -108,7 +111,11 @@ fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> 
 }
 
 /// One listed card as quire's banner.
-fn banner(column: Column, notes: &Notifications, entry: &Entry) -> Option<ds_shell::Banner> {
+fn banner(
+    column: Column,
+    notes: &Notifications,
+    entry: &Entry,
+) -> Option<ds_shell::notifications::banner_stack::Banner> {
     let id = entry.card.newest()?;
     let note = note_of(notes, id, &column)?;
     let key = entry.key;
@@ -129,7 +136,7 @@ fn banner(column: Column, notes: &Notifications, entry: &Entry) -> Option<ds_she
             }
         }
     };
-    Some(ds_shell::Banner {
+    Some(ds_shell::notifications::banner_stack::Banner {
         key: BannerKey(key.0),
         card: element,
     })
@@ -148,10 +155,12 @@ fn note_of(
 }
 
 /// quire's word for `notifications.banner_position`.
-fn position(corner: BannerPosition) -> ds_shell::BannerPosition {
+fn position(corner: BannerPosition) -> ds_shell::notifications::banner_stack::BannerPosition {
     match corner {
-        BannerPosition::TopRight => ds_shell::BannerPosition::TopRight,
-        BannerPosition::BottomRight => ds_shell::BannerPosition::BottomRight,
+        BannerPosition::TopRight => ds_shell::notifications::banner_stack::BannerPosition::TopRight,
+        BannerPosition::BottomRight => {
+            ds_shell::notifications::banner_stack::BannerPosition::BottomRight
+        }
     }
 }
 
@@ -246,12 +255,12 @@ mod tests {
         let cases = [
             (
                 BannerPosition::TopRight,
-                ds_shell::BannerPosition::TopRight,
+                ds_shell::notifications::banner_stack::BannerPosition::TopRight,
                 "top",
             ),
             (
                 BannerPosition::BottomRight,
-                ds_shell::BannerPosition::BottomRight,
+                ds_shell::notifications::banner_stack::BannerPosition::BottomRight,
                 "bottom",
             ),
         ];

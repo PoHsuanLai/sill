@@ -8,7 +8,7 @@ mod launcher_harness;
 use ds_harness::{Driver, Input, Query};
 use std::time::Duration;
 
-use ds::ShortcutKey;
+use ds::prelude::*;
 use launcher_harness::launcher_support::m9;
 use launcher_harness::{Open, Press, Seen, await_off_thread, is_open, open, settle};
 use sill_launcher::{OpenTarget, PreviewKind};

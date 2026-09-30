@@ -2,8 +2,9 @@
 //! (the macOS polish pass: tile 48, gap 8, pad 6, dot 4 centred 3 under the tile, floor off).
 
 use crate::magnify::MagnifyParams;
-use ds::{Corner, Px};
-use ds_shell::{DockFloorSetting, DockMetrics};
+use ds::prelude::*;
+use ds_shell::tokens::dock::{DockFloorSetting, DockMetrics};
+use ds_style::tokens::shape::Corner;
 use sill_model::units::Cpx;
 use sill_settings::{DockFloor, DockSettings};
 
@@ -58,7 +59,7 @@ pub fn magnify_params(dock: &DockSettings, output_width_px: i32) -> MagnifyParam
 mod tests {
     use super::{dock_metrics, magnify_params};
     use crate::magnify::MagnifyParams;
-    use ds_shell::DockMetrics;
+    use ds_shell::tokens::dock::DockMetrics;
     use sill_model::units::Cpx;
     use sill_settings::DockSettings;
 

@@ -9,7 +9,8 @@
 //! and draws [`TurnOffAlert`] as the last child of its positioned body.
 
 use dioxus::prelude::*;
-use ds::{Alert, AlertButton, AlertRole, Flow, TextLine};
+use ds::components::overlays::alert_model::{AlertButton, AlertRole};
+use ds::prelude::*;
 use sill_model::bluetooth::{BluetoothCommand, BtPower};
 use sill_services::BluetoothService;
 

@@ -7,7 +7,9 @@
 //! does [`use_space_look`] returns the design/21 §4 default for the workspace's index:
 //! `PRESETS[index % 8]` and `spaces.default_card_accent`.
 
-use ds::{CardAccent, SpaceLook, default_look};
+use ds::prelude::*;
+use ds_style::space::look::CardAccent;
+use ds_style::space::presets::default_look;
 use shell_host::OutputInfo;
 use sill_model::cosmic_wl::{Activity, WorkspaceGroup, Workspaces};
 use sill_model::ids::{OutputName, WorkspaceKey};
@@ -75,7 +77,9 @@ fn card_accent(accent: DefaultCardAccent) -> CardAccent {
 #[cfg(test)]
 mod tests {
     use super::use_space_look;
-    use ds::{CardAccent, PRESETS, Theme};
+    use ds::prelude::*;
+    use ds_style::space::look::CardAccent;
+    use ds_style::space::presets::PRESETS;
     use sill_settings::{DefaultCardAccent, SpacesSettings};
 
     #[test]

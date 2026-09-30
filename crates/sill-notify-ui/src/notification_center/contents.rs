@@ -9,13 +9,13 @@
 //! Clear, Clear All, a dismissal, "Show less") fades and slides up, then the rows below close the
 //! gap.
 
-use ds::Bezel;
+use ds::components::controls::button_model::Bezel;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
-use ds::{
-    Button, EmptyState, FocusStyle, Icon, Label, LabelRole, LabelStyle, List, ListItem, Word,
-};
+use ds::components::content::label::{LabelRole, LabelStyle};
+use ds::prelude::*;
+use ds_core::vocab::FocusStyle;
 use shell_host::OutputId;
 use sill_model::notifications::{History, UnixMs};
 

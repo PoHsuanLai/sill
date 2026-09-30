@@ -2,7 +2,7 @@
 //! moment past its going so quire's sheet can play its exit, and whether the surface is mapped.
 //! A new request replaces a leaving one at once (keyed by its cookie, it enters again).
 
-use ds::Shown;
+use ds::prelude::*;
 
 use super::model::PolkitPromptView;
 
@@ -65,8 +65,11 @@ impl Stage {
 
 #[cfg(test)]
 mod tests {
-    use ds::{AvatarFace, AvatarShape, AvatarSize, AvatarTone, Shown, person_hue};
-    use ds_shell::{LockUser, PromptState};
+    use ds::components::content::avatar::{
+        AvatarFace, AvatarShape, AvatarSize, AvatarTone, person_hue,
+    };
+    use ds::prelude::*;
+    use ds_shell::lock::vocab::{LockUser, PromptState};
     use sill_model::polkit_agent::Cookie;
 
     use super::{Mapped, Stage, StageIn, advance};

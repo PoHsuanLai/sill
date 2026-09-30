@@ -36,7 +36,7 @@ pub enum Refused {
     Placed(WidgetKind),
     /// Not a widget sill can place.
     #[error("{} is not a widget sill places", .0.as_str())]
-    Foreign(ds_shell::WidgetKind),
+    Foreign(ds_shell::prelude::WidgetKind),
     /// A widget has one size; there is no other to change to.
     #[error("a widget has one size")]
     OneSize,

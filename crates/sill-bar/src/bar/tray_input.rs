@@ -3,9 +3,11 @@
 //! the screen that press was, and how far the wheel turned over it.
 
 use dioxus::html::geometry::WheelDelta;
-use ds::ChromaLimit;
 use ds::icon::{IconKind, classify_with};
-use ds::{ExternalIcon, Icon, IconSize, IconSource, IconUrl, PointerButton, Press};
+use ds::prelude::*;
+use ds_core::press::{PointerButton, Press};
+use ds_style::icon::classify::ChromaLimit;
+use ds_style::icon::url::IconUrl;
 use sill_model::tray::{ScrollAxis, ScrollDelta, TrayCommand, TrayItemId};
 use sill_services::tray::IconArt;
 
@@ -97,7 +99,7 @@ pub(crate) fn press_action(
 }
 
 /// A surface-local point in the compositor's logical space, whole pixels.
-pub(crate) fn screen_point(origin: ScreenOrigin, at: ds::Point) -> (i32, i32) {
+pub(crate) fn screen_point(origin: ScreenOrigin, at: Point) -> (i32, i32) {
     (
         origin.x + at.x.0.round() as i32,
         origin.y + at.y.0.round() as i32,
@@ -129,7 +131,8 @@ mod tests {
     };
     use dioxus::html::geometry::WheelDelta;
     use dioxus::prelude::Modifiers;
-    use ds::{Icon, IconSource, PointerButton, Press, Px};
+    use ds::prelude::*;
+    use ds_core::press::{PointerButton, Press};
     use sill_model::tray::{ScrollAxis, ScrollDelta, TrayCommand, TrayItemId};
     use sill_services::tray::IconArt;
     use std::path::PathBuf;
@@ -173,7 +176,10 @@ mod tests {
         for (art, want) in cases {
             let name = format!("{art:?}").chars().take(40).collect::<String>();
             assert_eq!(
-                kind(&icon_source(art, ds::ChromaLimit::default())),
+                kind(&icon_source(
+                    art,
+                    ds_style::icon::classify::ChromaLimit::default()
+                )),
                 want,
                 "{name}"
             );
@@ -189,7 +195,7 @@ mod tests {
         Press {
             button,
             modifiers: Modifiers::empty(),
-            at: ds::Point { x: Px(x), y: Px(y) },
+            at: Point { x: Px(x), y: Px(y) },
         }
     }
 
@@ -253,7 +259,11 @@ mod tests {
     fn the_settings_key_is_read_in_thousandths_and_out_of_range_is_the_default() {
         const CASES: &[(u16, u16)] = &[(40, 40), (10, 10), (200, 200), (201, 40), (1000, 40)];
         for &(key, want) in CASES {
-            assert_eq!(chroma_limit(key), ds::ChromaLimit(want), "{key}");
+            assert_eq!(
+                chroma_limit(key),
+                ds_style::icon::classify::ChromaLimit(want),
+                "{key}"
+            );
         }
     }
 

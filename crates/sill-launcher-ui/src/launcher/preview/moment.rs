@@ -4,7 +4,8 @@
 //! moment itself (quire rule 4): the cue goes to quire's `PreviewPane` (`cue`, and `operation`
 //! from `use_operation`), which plays it.
 
-use ds::detail::{Detail, Detailed, Moment, Touch, use_detail};
+use ds::detail::{Detail, Touch};
+use ds::prelude::*;
 use sill_launcher::PreviewKind;
 
 /// The pane as the person sees it.
@@ -58,7 +59,8 @@ pub fn use_pane_detail(state: PaneState, touch: Touch) -> Detail<PaneState> {
 mod tests {
     use super::PaneState;
     use super::PaneState::{Failed, Hidden, Pending, Showing};
-    use ds::detail::{Moment, first_table, moment_table};
+    use ds::detail::{first_table, moment_table};
+    use ds::prelude::*;
     use sill_launcher::PreviewKind::{Image, Pdf, TextFile};
 
     #[test]

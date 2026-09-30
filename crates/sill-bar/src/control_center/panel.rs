@@ -3,11 +3,15 @@
 //! `crate::control_center::modules`), the detail panes behind quire's `PaneSwitcher`,
 //! and Escape.
 
+use ds::focus::soon::focus_soon;
 use std::rc::Rc;
 
 use dioxus::prelude::*;
-use ds::{Pane, PaneSwitcher, Px};
-use ds_shell::{GridColumns, ModuleGrid};
+use ds::components::lists::preview::switcher::PaneSwitcher;
+use ds::prelude::*;
+use ds_motion::pane_slide::Pane;
+use ds_shell::control_center::module_grid::GridColumns;
+use ds_shell::prelude::*;
 use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
 
@@ -117,13 +121,13 @@ impl KeyboardHome {
     pub(crate) fn mounted(mut self, event: MountedEvent) {
         let element = event.data();
         self.0.set(Some(element.clone()));
-        ds::focus_soon(element);
+        focus_soon(element);
     }
 
     /// Give the panel the keyboard again.
     pub(crate) fn take(self) {
         if let Some(element) = self.0.peek().clone() {
-            ds::focus_soon(element);
+            focus_soon(element);
         }
     }
 }
@@ -166,7 +170,7 @@ fn Grid(
 mod tests {
     use super::{PanelCap, pane_of, panel_style};
     use crate::control_center::{CcPage, Detail};
-    use ds::Pane;
+    use ds_motion::pane_slide::Pane;
 
     #[test]
     fn the_panel_scrolls_past_its_cap() {

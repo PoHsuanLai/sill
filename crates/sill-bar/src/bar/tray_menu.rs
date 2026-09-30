@@ -4,7 +4,8 @@
 //! its 8 px inset, and a press reaches the menu.
 
 use dioxus::prelude::*;
-use ds::{Anchor, Ds, Material, Menu, MenuItem, Point, RootExtent};
+use ds::host::measure::Anchor;
+use ds::prelude::*;
 
 use sill_ui_kit::hooks::{use_appearance, use_user_style};
 use sill_ui_kit::menu::{PopupFrame, PopupRoom};
@@ -44,7 +45,7 @@ pub(crate) fn TrayMenuDocument(
                 surface: root.surface,
                 user_style: root.user_style,
                 Menu {
-                    placement: ds::MenuPlacement::Bar,
+                    placement: MenuPlacement::Bar,
                     // The frame lays the card in flow: the anchor places nothing.
                     anchor: Anchor::Point(Point::default()),
                     items: entries,

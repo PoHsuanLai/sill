@@ -2,11 +2,12 @@
 //! battery, Bluetooth and volume state each item hands its glyph. The glyph decides the moment
 //! from its own table; these only say what is true.
 
+use ds::components::content::status::battery_state::{BatteryPower, BatteryState, LowAt};
+use ds::components::content::status::bluetooth_state::BluetoothState;
+use ds::components::content::status::volume::{VolumeState, VolumeWaves};
+use ds::components::content::status::wifi_state::{WifiBars, WifiReach, WifiState};
 use ds::detail::EventStamp;
-use ds::{
-    BatteryPower, BatteryState, BluetoothState, Fraction, Icon, IconSource, LowAt, StatusState,
-    VolumeState, VolumeWaves, WifiBars, WifiReach, WifiState,
-};
+use ds::prelude::*;
 use sill_model::attempt::{Attempt, OpStamp};
 use sill_model::battery::{Battery, Charge};
 use sill_model::bluetooth::{Bluetooth, BtConnection, BtPower};

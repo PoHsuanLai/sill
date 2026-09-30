@@ -6,7 +6,8 @@
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-use ds::{ImageSize, ImageSource};
+use ds::components::content::image_source::ImageSize;
+use ds::prelude::*;
 use sill_model::screenshots::{Shot, ShotPreview};
 
 /// The shape a picture is drawn in when its header says nothing: the surface's 16:10.
@@ -70,7 +71,7 @@ pub fn png_size(head: &[u8]) -> Option<ImageSize> {
 
 #[cfg(test)]
 mod tests {
-    use ds::ImageSize;
+    use ds::components::content::image_source::ImageSize;
 
     use super::{PNG_HEAD, png_size};
 

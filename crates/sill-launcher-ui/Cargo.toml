@@ -12,6 +12,8 @@ publish.workspace = true
 dioxus = { workspace = true }
 dirs = { workspace = true }
 ds = { workspace = true }
+ds-core = { workspace = true }
+ds-style = { workspace = true }
 ds-blitz = { workspace = true, features = ["pdf"] }
 image = { workspace = true }
 jiff = { workspace = true }

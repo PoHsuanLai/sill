@@ -9,10 +9,11 @@
 //! reports the pointer's hover and release to the bar's tracking machine.
 
 use dioxus::prelude::*;
-use ds::{
-    Align, Anchor, BlurState, Ds, Material, Menu, Placement, Point, Popover, Press, Px, RootExtent,
-    Side,
-};
+use ds::host::measure::Anchor;
+use ds::prelude::*;
+use ds_core::geometry::placement::{Align, Side};
+use ds_core::press::Press;
+use ds_style::appearance::blur::BlurState;
 use shell_host::{PopupPlacement, SurfaceOp, use_surface, use_watch};
 use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
@@ -136,7 +137,7 @@ pub(crate) fn BarPopup() -> Element {
 /// session closed. The keyboard's pick still arrives as `Picked`, and quire calls `onpick`
 /// before `onclose`, so a close reports a dismissal only when nothing was picked.
 #[component]
-fn BarMenuList(entries: Vec<ds::MenuItem<BarPick>>) -> Element {
+fn BarMenuList(entries: Vec<MenuItem<BarPick>>) -> Element {
     let link = use_context::<PopupLink>();
     let mut picked = use_hook(|| CopyValue::new(false));
     let mut hovered = use_hook(|| CopyValue::new(None::<usize>));
@@ -178,7 +179,7 @@ fn BarMenuList(entries: Vec<ds::MenuItem<BarPick>>) -> Element {
     };
     rsx! {
         Menu {
-            placement: ds::MenuPlacement::Bar,
+            placement: MenuPlacement::Bar,
             anchor: corner(),
             items: entries,
             onpick: on_pick,

@@ -11,6 +11,8 @@ publish.workspace = true
 [dependencies]
 dioxus = { workspace = true }
 ds = { workspace = true }
+ds-style = { workspace = true }
+ds-motion = { workspace = true }
 ds-shell = { workspace = true }
 shell-host = { workspace = true }
 sill-settings = { workspace = true }

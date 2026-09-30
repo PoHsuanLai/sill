@@ -1,7 +1,7 @@
 //! The words on a card: the app's name, how long ago it arrived, and the group's count (quire
 //! draws the chip from two and the layers behind the card).
 
-use ds_shell::{GroupCount, StackLayers};
+use ds_shell::notifications::parts::{GroupCount, StackLayers};
 use sill_model::notifications::{AppRef, UnixMs};
 
 /// How long ago a notification arrived, as a card shows it (design/13 §13.3.6: "time data 10
@@ -69,7 +69,7 @@ pub fn app_label(app: &AppRef, entry_name: Option<&str>) -> String {
 #[cfg(test)]
 mod tests {
     use super::{Age, age, age_label, app_label, group_count};
-    use ds_shell::{GroupCount, StackLayers};
+    use ds_shell::notifications::parts::{GroupCount, StackLayers};
     use sill_model::notifications::{AppRef, IconRef, UnixMs};
 
     #[test]

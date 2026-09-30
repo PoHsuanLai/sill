@@ -1,6 +1,6 @@
 //! Widgets (design/20 §1.14): each kind on quire's widget interface. quire owns the
-//! card (`ds_shell::WidgetCard`: footprint, corner, inset, material, Space tint, title row, lift); a
-//! widget is a `ds_shell::Widget` (quire's `BatteryWidget`, `WorldClockWidget` and `MonthWidget`, and
+//! card (`ds_shell::prelude::WidgetCard`: footprint, corner, inset, material, Space tint, title row, lift); a
+//! widget is a `ds_shell::prelude::Widget` (quire's `BatteryWidget`, `WorldClockWidget` and `MonthWidget`, and
 //! sill's own [`up_next::UpNext`] and [`now_playing::NowPlaying`]), and sill only provides each
 //! one's entries from its services ([`Widget`] picks the provider for a kind, [`with_provider`]). Drawn the same in
 //! two hosts: the notification center's widget slot below the history
@@ -29,8 +29,9 @@ pub mod world_clock;
 mod tests;
 
 pub use card::{Card, Feed, OnProvider, Widget, WidgetProvider, card, with_provider};
+pub use ds_shell::prelude::{WidgetHost, WidgetSize};
 pub use ds_shell::widget::cells;
-pub use ds_shell::{Lift, WidgetHost, WidgetSize};
+pub use ds_shell::widget::kind::Lift;
 pub use place::{Place, desktop_size, size_of};
 pub use registry::{kind_id, kind_of, provide_registry, registry, widget_element_id, widgets_css};
 pub use sill_settings::WidgetKind;

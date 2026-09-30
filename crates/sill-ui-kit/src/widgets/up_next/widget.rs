@@ -5,9 +5,11 @@
 //! builds it); it has no controls.
 
 use dioxus::prelude::*;
-use ds::Word;
-use ds::{Icon, LabelHue, TextLine};
-use ds_shell::{NoIntent, WidgetContext, WidgetHost, WidgetSize, WidgetTitle};
+use ds::prelude::*;
+use ds_shell::prelude::*;
+use ds_shell::widget::contract::NoIntent;
+use ds_shell::widget::kind::WidgetTitle;
+use ds_style::tokens::label_hue::LabelHue;
 use serde::{Deserialize, Serialize};
 
 use super::provider::EVENT_ROWS;
@@ -58,12 +60,12 @@ pub struct UpNextRow {
     pub when: String,
 }
 
-impl ds_shell::Widget for UpNext {
+impl Widget for UpNext {
     type Entry = UpNextEntry;
     type Intent = NoIntent;
 
-    fn kind() -> ds_shell::WidgetKind {
-        ds_shell::WidgetKind::fixed("sill.up-next")
+    fn kind() -> WidgetKind {
+        WidgetKind::fixed("sill.up-next")
     }
 
     fn name() -> TextLine {

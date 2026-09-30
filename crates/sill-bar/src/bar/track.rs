@@ -4,7 +4,10 @@
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
-use ds::{MenuTarget, MenuTiming, MenuTrack, MenuTrackEffect, MenuTrackEvent, Point, Px};
+use ds::prelude::*;
+use ds::stack::menu_track::types::{
+    MenuTarget, MenuTiming, MenuTrack, MenuTrackEffect, MenuTrackEvent,
+};
 use sill_model::units::Stamp;
 use sill_settings::MenusSettings;
 

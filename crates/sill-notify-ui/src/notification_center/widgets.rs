@@ -6,8 +6,8 @@
 //! stylesheets (`widgets_css`).
 
 use dioxus::prelude::*;
-use ds::Bezel;
-use ds::Button;
+use ds::components::controls::button_model::Bezel;
+use ds::prelude::*;
 use shell_host::OutputId;
 
 use super::io::CenterCtx;

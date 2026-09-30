@@ -4,8 +4,10 @@
 //! here and nowhere else ([`LOOK`]). The OSD draws the same level through quire's `Osd`.
 
 use dioxus::prelude::*;
-use ds::{Availability, Fraction, IconSource, LevelSource, Slider, SliderLook, TextLine};
-use ds_shell::ModulePanel;
+use ds::components::content::level_glyph::vocab::LevelSource;
+use ds::components::controls::slider_model::SliderLook;
+use ds::prelude::*;
+use ds_shell::prelude::*;
 
 use super::modules::use_plate;
 

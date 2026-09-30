@@ -6,9 +6,10 @@
 //! `BannerLink` through [`super::follow`] and [`super::step::step`].
 
 use dioxus::prelude::*;
-use ds::Material;
-use ds::{RootChrome, RootExtent, Shown};
-use ds_shell::{Banner, BannerKey, BannerPosition, BannerStack};
+use ds::prelude::*;
+use ds_motion::swipe::SwipeMetrics;
+use ds_shell::notifications::banner_stack::{Banner, BannerKey, BannerPosition};
+use ds_shell::prelude::*;
 use shell_host::{OutputId, OutputInfo, use_watch};
 use sill_model::screenshots::ShotId;
 use sill_services::ScreenshotsService;
@@ -83,7 +84,7 @@ fn Column(
     output: OutputId,
     params: ThumbParams,
     setting: ShotThumbnail,
-    metrics: ds::SwipeMetrics,
+    metrics: SwipeMetrics,
     ghost: GhostLook,
 ) -> Element {
     let thumb = use_thumb(
@@ -164,7 +165,7 @@ fn id_of(key: BannerKey) -> ShotId {
 
 #[cfg(test)]
 mod tests {
-    use ds::Shown;
+    use ds::prelude::*;
     use sill_model::screenshots::ShotId;
 
     use super::row_of;

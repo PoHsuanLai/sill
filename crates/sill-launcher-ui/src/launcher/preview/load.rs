@@ -6,7 +6,7 @@
 use std::path::PathBuf;
 
 use dioxus::prelude::*;
-use ds::ImageSize;
+use ds::components::content::image_source::ImageSize;
 use sill_launcher::{ClipKey, Excerpt, ExcerptLimit};
 use sill_search::preview::{PreviewFault, clip_image, read_excerpt};
 

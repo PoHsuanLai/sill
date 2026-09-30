@@ -6,7 +6,8 @@
 //! `BrightnessTarget::None`.
 
 use dioxus::prelude::*;
-use ds::{Availability, Fraction, Icon, LevelGlyph};
+use ds::components::content::level_glyph::vocab::LevelGlyph;
+use ds::prelude::*;
 
 use super::cc_module::{BarItemFace, CcCx, CcModule, Span};
 use super::wired::WiredDisplay;

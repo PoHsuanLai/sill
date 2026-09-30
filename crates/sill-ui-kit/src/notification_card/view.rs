@@ -7,11 +7,12 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 use dioxus::prelude::*;
-use ds::{
-    Common, ExternalIcon, Icon, IconSize, IconSource, IconUrl, Material, RootChrome, Scheme,
-    Surface, TextLine,
-};
-use ds_shell::{AppMark, Hover, NotificationCard, NotificationSwipe};
+use ds::prelude::*;
+use ds::root::common::Common;
+use ds_shell::notifications::parts::{AppMark, Hover};
+use ds_shell::notifications::swipe::NotificationSwipe;
+use ds_shell::prelude::*;
+use ds_style::icon::url::IconUrl;
 use sill_model::apps::AppIcon;
 use sill_model::notifications::{AppRef, Href, Notification, UnixMs};
 use sill_services::apps::{icon_theme, resolve_icon};
@@ -55,7 +56,7 @@ pub(super) fn card(
     let side = icon_size(&settings);
     let app = use_app_mark(&note.app, IconSize::Px(side));
     let on_press = wiring.on_press;
-    let (material, theme) = material_of(place, settings.banner_material, ds::use_scope().scheme);
+    let (material, theme) = material_of(place, settings.banner_material, use_scope().scheme);
     let swipe_metrics = super::metrics::swipe_metrics(&settings);
     rsx! {
         Surface { material, theme, chrome: RootChrome::Transparent,

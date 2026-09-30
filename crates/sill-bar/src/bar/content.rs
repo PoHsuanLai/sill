@@ -6,7 +6,7 @@
 //! Status lines are `MenuItem::Info` rows: an item's weight without the header's eyebrow,
 //! never a choice (quire's bar gaps).
 
-use ds::{Check, MenuItem};
+use ds::prelude::*;
 use sill_launcher::WindowKey;
 use sill_model::apps::{AppIndex, match_app};
 use sill_model::cosmic_wl::Toplevels;
@@ -135,7 +135,7 @@ fn item(title: String, value: BarPick, check: Option<Check>) -> MenuItem<BarPick
         image: None,
         key: None,
         check,
-        availability: ds::Availability::Enabled,
+        availability: Availability::Enabled,
     }
 }
 
@@ -144,7 +144,7 @@ mod tests {
     use super::{BarState, FrontApp, PopupBody, body, front_app};
     use crate::bar::menus::BarMenu;
     use crate::bar::pick::BarPick;
-    use ds::MenuItem;
+    use ds::prelude::*;
     use sill_launcher::WindowKey;
     use sill_model::apps::AppIndex;
     use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};

@@ -1,7 +1,8 @@
 //! The bar's menu session as data: what its popup shows, what it is fed, what it needs from the
 //! bar each render, and the notification-center handoff it waits on.
 
-use ds::{Point, Px, Rect, Size};
+use ds::prelude::*;
+use ds_style::tokens::shell_scale::SHELL_SCALE;
 use shell_host::{OutputId, PopupPlacement, SurfaceHandle};
 use sill_model::ids::OutputName;
 use sill_settings::BarSettings;
@@ -12,7 +13,7 @@ use super::content::{BarState, PopupBody};
 use super::menus::BarMenu;
 use super::plan::PopupReport;
 use super::track::Event;
-use ds::MenuTiming;
+use ds::stack::menu_track::types::MenuTiming;
 use sill_ui_kit::links::{CenterLink, PowerMenuLink};
 use sill_ui_kit::menu::PopupLook;
 use sill_ui_kit::services::Services;
@@ -39,7 +40,7 @@ pub(crate) enum BarInput {
     /// A pointer event on the bar, with the title's measured rect when it came from one.
     Bar {
         input: Event,
-        title: Option<(BarMenu, ds::Rect)>,
+        title: Option<(BarMenu, Rect)>,
     },
     /// What the popup reported.
     Popup(PopupReport),
@@ -72,7 +73,7 @@ pub(crate) struct SessionDeps {
     pub cap: i32,
     /// The status items' box, centred in the bar: where a menu opened with no pointer event
     /// (the control center's toggle) takes its title's rect from.
-    pub status_box: ds::Rect,
+    pub status_box: Rect,
     /// The notification center, which a bar menu closes as it opens (one menu-bar panel at a
     /// time, as on macOS); absent in a demo or a test.
     pub center: Option<CenterLink>,
@@ -83,7 +84,7 @@ pub(crate) struct SessionDeps {
 /// (design/29): `max(--bar-status-w, box)` wide by the box tall.
 pub(super) fn status_box(bar_width: i32, bar: &BarSettings) -> Rect {
     let side = f32::from(bar.status_icon_box_px.0);
-    let width = side.max(f32::from(ds::SHELL_SCALE.status_width.0));
+    let width = side.max(f32::from(SHELL_SCALE.status_width.0));
     let height = f32::from(bar.height_px.0);
     Rect {
         origin: Point {

@@ -7,7 +7,8 @@
 use super::{
     HEIGHT, WIDTH, advance, commands, commands_until, fake, opened, settle, start, two_apps, until,
 };
-use ds::{Anim, MotionLevel, settle as settle_time};
+use ds::prelude::settle as settle_time;
+use ds::prelude::*;
 use ds_harness::{Driver, Input, Query};
 use sill_model::notifications::{
     AppKey, Clear, History, NameHolder, NameOwner, Notifications, NotificationsCommand, ServerMode,
@@ -284,9 +285,9 @@ fn the_footer_names_the_daemon_holding_the_name() {
 #[test]
 fn a_press_outside_the_panel_closes_it_after_quires_exit() {
     let mut running = opened(two_apps());
-    running.harness.send(Input::click(ds::Point {
-        x: ds::Px(100.0),
-        y: ds::Px(400.0),
+    running.harness.send(Input::click(Point {
+        x: Px(100.0),
+        y: Px(400.0),
     }));
     until(&mut running, |h| {
         h.attr(".ds-side-panel", "data-presence").as_deref() != Some("present")

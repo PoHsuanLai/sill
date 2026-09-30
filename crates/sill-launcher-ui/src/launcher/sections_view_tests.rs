@@ -1,7 +1,11 @@
+use ds::components::lists::emoji_grid::grid::EMOJI_COLUMNS;
 use std::path::PathBuf;
 
 use dioxus::prelude::*;
-use ds::{Accessory, ChordShown, ClipBody, GroupEntries, RowChord, RowShape};
+use ds::components::lists::row::chord::ChordShown;
+use ds::components::lists::row::shape::{ClipBody, RowShape};
+use ds::components::menus::palette::palette_group::GroupEntries;
+use ds::prelude::*;
 use sill_launcher::{
     Action, ActionId, ActionKeys, CharCount, ClipFacts, ClipKey, ClipKind, EmojiFacts, Excerpt,
     FileFacts, IconRef, Item, ItemId, Mime, More, ProviderKind, Score, Section, ShownSection,
@@ -154,7 +158,7 @@ fn groups_carry_shapes_a_grid_and_header_actions() {
         GroupEntries::Grid(grid) => {
             assert_eq!(grid.cells[0].glyph, "🎉");
             assert_eq!(grid.cells[0].name, "party popper");
-            assert_eq!(grid.columns, ds::EMOJI_COLUMNS);
+            assert_eq!(grid.columns, EMOJI_COLUMNS);
         }
         GroupEntries::List(_) => panic!("the emoji grid"),
     }

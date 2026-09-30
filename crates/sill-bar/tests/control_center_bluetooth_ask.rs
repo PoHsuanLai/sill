@@ -8,7 +8,7 @@ mod cc_support;
 
 use cc_support::details::{center, ms, open, press};
 use cc_support::live::Report;
-use ds::{Point, Px};
+use ds::prelude::*;
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
 use ds_harness::{Driver, FocusState, Harness, Input, Query};
 use sill_model::bluetooth::{BluetoothCommand, BtPower};
@@ -85,7 +85,7 @@ fn the_tile_asks_before_off_and_only_turn_off_or_return_sends_it() {
     assert_settles_to_zero_frames(&mut running.harness);
 
     // Escape cancels, and the panel keeps the popover open.
-    running.harness.send(Input::key(ds::ShortcutKey::Escape));
+    running.harness.send(Input::key(ShortcutKey::Escape));
     answered(&mut running, None);
     assert!(running.reports().is_empty(), "Escape stopped at the alert");
 
@@ -102,7 +102,7 @@ fn the_tile_asks_before_off_and_only_turn_off_or_return_sends_it() {
     press_tile(&mut running.harness);
     asked(&mut running);
     running.harness.advance(ms(100));
-    running.harness.send(Input::key(ds::ShortcutKey::Enter));
+    running.harness.send(Input::key(ShortcutKey::Enter));
     answered(&mut running, OFF);
 
     // Turn Off.
@@ -115,7 +115,7 @@ fn the_tile_asks_before_off_and_only_turn_off_or_return_sends_it() {
     // The panel has the keyboard back: Escape now closes the control center.
     assert_eq!(running.harness.focus_of(".sill-cc"), FocusState::Focused);
     assert!(running.reports().is_empty());
-    running.harness.send(Input::key(ds::ShortcutKey::Escape));
+    running.harness.send(Input::key(ShortcutKey::Escape));
     running.harness.advance(ms(400));
     assert_eq!(running.reports().last(), Some(&Report::Closed));
 }
@@ -145,7 +145,7 @@ fn the_panes_switch_asks_too() {
     asked(&mut running);
     assert_settles_to_zero_frames(&mut running.harness);
     // Escape answers the alert; the pane stays (its own Escape goes back).
-    running.harness.send(Input::key(ds::ShortcutKey::Escape));
+    running.harness.send(Input::key(ShortcutKey::Escape));
     answered(&mut running, None);
     assert_eq!(
         running.harness.attr(".ds-panes", "data-shown").as_deref(),

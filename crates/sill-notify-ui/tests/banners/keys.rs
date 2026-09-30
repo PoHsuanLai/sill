@@ -6,7 +6,7 @@
 use ds_harness::{Driver, FocusState, Input, Query};
 use std::time::Duration;
 
-use ds::ShortcutKey;
+use ds::prelude::*;
 use sill_model::notifications::{ActionKey, Activation, NotificationId, NotificationsCommand};
 use sill_ui_kit::links::Transient;
 

@@ -3,7 +3,9 @@
 //! several at once takes the strongest: a link, then bold, then italic, then underline. The line
 //! clamp and its fade are quire's (`NotificationCard`), so nothing is clipped here.
 
-use ds::{Rich, RichRun, RunTone, TextRun};
+use ds::components::content::rich_text::{Rich, RichRun};
+use ds::components::content::text_runs::RunTone;
+use ds::prelude::*;
 use sill_model::notifications::{Body, BodyRun, RunLink, RunStyle, Slant, Underline, Weight};
 
 /// `body` as quire's runs; `None` for an empty body (the card then draws no body line).
@@ -37,7 +39,9 @@ fn tone(style: &RunStyle) -> RunTone {
 #[cfg(test)]
 mod tests {
     use super::rich_body;
-    use ds::{Rich, RichRun, RunTone, TextRun};
+    use ds::components::content::rich_text::{Rich, RichRun};
+    use ds::components::content::text_runs::RunTone;
+    use ds::prelude::*;
     use sill_model::notifications::{Body, parse_body};
 
     fn run(text: &str, tone: RunTone) -> RichRun {

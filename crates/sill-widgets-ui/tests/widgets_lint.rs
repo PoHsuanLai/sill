@@ -9,7 +9,7 @@ use std::cell::RefCell;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::{Ds, Material, RootExtent};
+use ds::prelude::*;
 use ds_harness::{Clock, Driver, Harness, HarnessConfig, Viewport};
 use ds_lint::{LintConfig, Profile, assert_clean, markup};
 use sill_settings::{ShellFile, WidgetKind};
@@ -85,7 +85,7 @@ fn app() -> Element {
         WidgetHost::Desktop => Material::Widget,
     };
     rsx! {
-        Ds { sheet: Some(ds_shell::stylesheet()), appearance: ds::Appearance::default(), material, extent: RootExtent::Viewport,
+        Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance::default(), material, extent: RootExtent::Viewport,
             style { {widgets_css()} }
             for kind in ALL {
                 Widget { kind, host }

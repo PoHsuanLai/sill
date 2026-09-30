@@ -17,8 +17,9 @@ pub mod load;
 pub mod moment;
 
 use dioxus::prelude::*;
+use ds::components::lists::preview::pane::PaneAction;
 use ds::detail::{Touch, use_operation};
-use ds::{IconSource, PaneAction, Shortcut, Shown};
+use ds::prelude::*;
 use sill_launcher::{Action, Preview};
 
 use crate::launcher::chord_keys::action_shortcut;
@@ -60,13 +61,13 @@ pub fn LauncherPane(
     let (content, load) = content::use_content(&preview, icon);
     // quire plays what the cue names: the entrance springs only on contact, another
     // kind or a load landing cross-fades the media, a slow load shows its pending look. One
-    // `ds::PreviewPane` stays mounted whatever it shows, so a kind change is never an entrance.
+    // `ds::prelude::PreviewPane` stays mounted whatever it shows, so a kind change is never an entrance.
     let pane = use_pane_detail(pane_state(shown, preview.kind(), load), touch);
     let operation = use_operation(pane.cue());
     let actions = pane_actions(&actions);
     rsx! {
         div { id: PREVIEW_ID, class: "sill-launcher-preview",
-            ds::PreviewPane {
+            ds::prelude::PreviewPane {
                 content,
                 actions,
                 focused,
@@ -106,7 +107,7 @@ mod tests {
     use super::content::Load;
     use super::moment::PaneState;
     use super::pane_state;
-    use ds::Shown;
+    use ds::prelude::*;
     use sill_launcher::PreviewKind;
 
     #[test]

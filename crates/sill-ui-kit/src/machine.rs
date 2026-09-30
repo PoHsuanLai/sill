@@ -5,6 +5,7 @@
 //! effect handler. Nothing here decides: the surface's `io.rs` feeds inputs and carries out
 //! outputs.
 
+use ds_core::time::clock::sleep;
 use std::collections::VecDeque;
 use std::time::Duration;
 
@@ -143,7 +144,7 @@ impl<M: Machine> MachineRef<M> {
         if let Some(at) = self.state.peek().wake() {
             let wait = Duration::from_millis(at.since(now));
             waking.set(Some(spawn(async move {
-                ds::sleep(wait).await;
+                sleep(wait).await;
                 self.advance(M::In::from(Elapsed));
             })));
         }

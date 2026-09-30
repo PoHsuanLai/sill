@@ -7,7 +7,7 @@
 //! the same, then Keep in Dock and Show in Files in an `Options` submenu, Hide and Quit. Open
 //! at Login is not offered: writing `~/.config/autostart` is a service sill does not have yet.
 
-use ds::{Availability, Check, MenuItem};
+use ds::prelude::*;
 use sill_launcher::AppId;
 use sill_model::apps::{App, AppIndex, match_app};
 use sill_model::cosmic_wl::{Activity, Toplevel, Toplevels, WindowState};

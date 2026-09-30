@@ -9,7 +9,7 @@ use std::io::Write;
 use std::path::Path;
 use std::time::Duration;
 
-use ds::ShortcutKey;
+use ds::prelude::*;
 use ds_harness::harness::assert_settles_to_zero_frames;
 use ds_harness::{ClassPresence, Driver, Harness, Input, Query};
 use launcher_harness::launcher_support::m9;

@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use cc_support::live::{self, Report};
 use cc_support::{count, fake, render, render_dropdown};
-use ds::ShortcutKey;
+use ds::prelude::*;
 use ds_settings::{Count, Px};
 use sill_bar::control_center::{CcPage, Detail};
 use sill_model::bluetooth::Bluetooth;

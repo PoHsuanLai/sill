@@ -6,7 +6,9 @@
 
 use std::path::Path;
 
-use ds::{ExternalIcon, Icon, IconPx, IconSize, IconSource, IconUrl};
+use ds::prelude::*;
+use ds_style::icon::render::IconPx;
+use ds_style::icon::url::IconUrl;
 use sill_launcher::AppId;
 use sill_model::apps::{AppIcon, AppIndex};
 

@@ -1,10 +1,11 @@
 //! The shell-wide style inputs from the settings (quire's macOS polish pass): the shell type
-//! scale (`ds::ShellMetrics`: the bar's items, text menus, the launcher, tooltips). Each surface
+//! scale (`ds_style::tokens::shell_type::ShellMetrics`: the bar's items, text menus, the launcher, tooltips). Each surface
 //! writes the metrics inline on an element around its `Ds` root and hands the root the material
 //! stack from `ds_settings::Environment::material_stack`, so every card under it reads the keys;
 //! absent, the keys' defaults apply anyway (quire's tokens fall back to them).
 
-use ds::{FontWeight, Material, Px, ShellMetrics};
+use ds::prelude::*;
+use ds_style::tokens::shell_type::{FontWeight, ShellMetrics};
 use sill_settings::{PanelMaterial, ShellFile};
 
 /// The shell type scale from `bar.*`, `menus.*` and `launcher.*`.
@@ -41,7 +42,10 @@ pub fn material(material: PanelMaterial) -> Material {
 #[cfg(test)]
 mod tests {
     use super::shell_metrics;
-    use ds::ShellMetrics;
+    use ds_shell::tokens::control_center::CONTROL_CENTER;
+    use ds_style::tokens::control_size::ControlSize;
+    use ds_style::tokens::shell_scale::SHELL_SCALE;
+    use ds_style::tokens::shell_type::ShellMetrics;
     use sill_settings::{Px, ShellFile};
 
     #[test]
@@ -59,17 +63,13 @@ mod tests {
     fn the_default_sizes_are_quires_ladder() {
         let file = ShellFile::default();
         let px = |value: Px| value.0;
-        let regular = ds::ControlSize::Regular.scale().height.0;
+        let regular = ControlSize::Regular.scale().height.0;
         let cases = [
-            (
-                "bar.height_px",
-                px(file.bar.height_px),
-                ds::SHELL_SCALE.bar.0,
-            ),
+            ("bar.height_px", px(file.bar.height_px), SHELL_SCALE.bar.0),
             (
                 "bar.open_title_pill_height_px",
                 px(file.bar.open_title_pill_height_px),
-                ds::SHELL_SCALE.item().0,
+                SHELL_SCALE.item().0,
             ),
             (
                 "bar.status_icon_box_px",
@@ -84,17 +84,17 @@ mod tests {
             (
                 "control_center.width_px",
                 px(file.control_center.width_px),
-                ds_shell::CONTROL_CENTER.width.0,
+                CONTROL_CENTER.width.0,
             ),
             (
                 "control_center.grid_gap_px",
                 px(file.control_center.grid_gap_px),
-                ds_shell::CONTROL_CENTER.gap.0,
+                CONTROL_CENTER.gap.0,
             ),
             (
                 "control_center.grid_padding_px",
                 px(file.control_center.grid_padding_px),
-                ds_shell::CONTROL_CENTER.padding.0,
+                CONTROL_CENTER.padding.0,
             ),
         ];
         for (key, ours, quires) in cases {

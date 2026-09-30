@@ -2,7 +2,7 @@
 //! surface writes an `impl MenuModel` for its menu and its own `Pick` enum; the popup, the
 //! tracking and the keyboard are not its business.
 
-use ds::MenuItem;
+use ds::prelude::*;
 
 /// A menu's contents.
 pub trait MenuModel: Clone + PartialEq + 'static {

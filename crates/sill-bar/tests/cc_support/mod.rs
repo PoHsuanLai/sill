@@ -8,7 +8,7 @@ pub use sill_ui_kit::harness::fake;
 pub mod live;
 
 use dioxus::prelude::*;
-use ds::{Appearance, Ds, Material};
+use ds::prelude::*;
 use sill_bar::control_center::{ControlCenter, ModuleDropdown};
 use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;

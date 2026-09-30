@@ -7,10 +7,11 @@
 //! clipboard row `RowShape::Clip`.
 
 use dioxus::prelude::*;
-use ds::{
-    Accessory, ClipBody, EMOJI_CELL, EMOJI_COLUMNS, EmojiCell, EmojiCells, ImageSize, ImageSource,
-    PaletteGroup, PaletteGroups, PaletteRow, RowLeading, RowShape,
-};
+use ds::components::content::image_source::ImageSize;
+use ds::components::lists::emoji_grid::grid::{EMOJI_CELL, EMOJI_COLUMNS, EmojiCell, EmojiCells};
+use ds::components::lists::row::shape::{ClipBody, RowShape};
+use ds::components::menus::palette::palette_group::{PaletteGroup, PaletteGroups, PaletteRow};
+use ds::prelude::*;
 use sill_launcher::{ClipKey, ClipKind, Item, More, Section, ShownSection, Subject, UnixTime};
 
 use crate::launcher::entries::{RowRef, kind_trail, row_chord};

@@ -7,7 +7,9 @@
 //! (`on_hidden`), where the menu closes and a chosen action runs.
 
 use dioxus::prelude::*;
-use ds::{Alert, AlertButton, AlertRole, Common, Icon, RootExtent, TextLine};
+use ds::components::overlays::alert_model::{AlertButton, AlertRole};
+use ds::prelude::*;
+use ds::root::common::Common;
 use shell_host::OutputInfo;
 use sill_model::session::{Session, SessionAction};
 

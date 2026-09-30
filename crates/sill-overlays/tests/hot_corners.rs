@@ -3,6 +3,7 @@
 //! leave and the re-arm. On the virtual clock, so the dwell and the re-arm
 //! are checked to the millisecond.
 
+use ds::prelude::*;
 use std::time::Duration;
 
 use ds_harness::{Driver, Harness, Input, Viewport};
@@ -48,18 +49,18 @@ fn start(hot_corners: HotCornersSettings) -> (Harness, CornerLink) {
 
 /// The corner element's own centre (the UA's default margin around `main` means it is not at
 /// the viewport's origin).
-fn inside(harness: &Harness) -> ds::Point {
+fn inside(harness: &Harness) -> Point {
     harness
         .centre(".sill-hot-corner")
         .expect("the corner element is laid out")
 }
 
 /// Well clear of the corner element, still inside the viewport.
-fn outside(harness: &Harness) -> ds::Point {
+fn outside(harness: &Harness) -> Point {
     let at = inside(harness);
-    ds::Point {
-        x: at.x + ds::Px(200.0),
-        y: at.y + ds::Px(200.0),
+    Point {
+        x: at.x + Px(200.0),
+        y: at.y + Px(200.0),
     }
 }
 

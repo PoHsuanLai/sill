@@ -150,6 +150,7 @@ mod tests {
     use crate::app_icons::key::{IconKey, TintKey};
     use crate::app_icons::size::AssetPx;
     use ds::icon::{IconStyle, Tint};
+    use ds::prelude::*;
 
     /// A made key is shown from its cache file; one never started shows its source (no
     /// runtime in a unit test, so nothing is started either).
@@ -170,7 +171,7 @@ mod tests {
                 hue: 150.0,
                 chroma: 0.06,
             }),
-            scheme: ds::Scheme::Light,
+            scheme: Scheme::Light,
         };
         let other = IconKey {
             px: AssetPx(72),

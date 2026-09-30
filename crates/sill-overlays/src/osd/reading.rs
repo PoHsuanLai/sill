@@ -7,7 +7,10 @@
 //! A monitor's own speakers follow the software volume (`display.hardware_volume`), so the
 //! volume shown is the sink's level whichever of the two is playing.
 
-use ds::{Fraction, LevelGlyph, Muting};
+use ds::components::content::level_glyph::vocab::LevelGlyph;
+use ds::prelude::*;
+use ds_core::vocab::Muting;
+use ds_shell::osd::OsdLevel;
 use sill_model::displays::{BrightnessTarget, Displays};
 use sill_model::ids::OutputName;
 use sill_model::units::{Percent, Presence};
@@ -44,8 +47,8 @@ pub fn level_of(
 
 /// The level quire's card draws: the fill (empty when muted or unknown) and the glyph
 /// `LevelControl` follows it with (a speaker's waves for volume, the sun for brightness).
-pub fn card_level(kind: OsdKind, level: Option<Level>) -> ds_shell::OsdLevel {
-    ds_shell::OsdLevel {
+pub fn card_level(kind: OsdKind, level: Option<Level>) -> OsdLevel {
+    OsdLevel {
         value: fill(level),
         glyph: glyph(kind, level),
     }
@@ -117,7 +120,9 @@ fn monitor_name(displays: &Displays, target: &BrightnessTarget) -> Option<String
 #[cfg(test)]
 mod tests {
     use super::{card_level, level_of, title};
-    use ds::{Fraction, LevelGlyph, Muting};
+    use ds::components::content::level_glyph::vocab::LevelGlyph;
+    use ds::prelude::*;
+    use ds_core::vocab::Muting;
     use sill_model::displays::Displays;
     use sill_model::displays::ddc::Endpoint;
     use sill_model::displays::{Controls, DdcDisplay, Level as DdcLevel};

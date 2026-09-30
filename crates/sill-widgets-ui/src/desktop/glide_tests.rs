@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use ds::detail::Touch;
 use ds::motion::{Release, Velocity};
-use ds::{Point, Px};
+use ds::prelude::*;
 
 use super::{Ask, Glide, PointMeter, Pose, Seen, ask, drawn, to_layer, to_point};
 use crate::desktop::arrange::LayerPoint;

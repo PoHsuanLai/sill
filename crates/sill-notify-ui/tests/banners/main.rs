@@ -7,10 +7,11 @@
 //! the service dropped leaves silently; another output's column draws nothing; and the keyboard
 //! ([`keys`]) is asked for and never taken.
 
+use ds_core::time::FRAME_SLACK;
 use ds_harness::{Driver, Input, Query};
 use std::time::Duration;
 
-use ds::Point;
+use ds::prelude::*;
 use ds_settings::Ms;
 use shell_host::OutputId;
 use sill_model::notifications::{
@@ -155,7 +156,7 @@ fn one(actions: &[(&str, &str)]) -> Running {
 
 fn right(from: Point, dx: f32) -> Point {
     Point {
-        x: ds::Px(from.x.0 + dx),
+        x: Px(from.x.0 + dx),
         y: from.y,
     }
 }
@@ -198,7 +199,7 @@ fn a_banner_slides_in_holds_and_times_out() {
     );
     assert_eq!(h.count("#banner-1"), 1, "the whole card's id");
     // The hold starts once the card has risen, a `FRAME_SLACK` after it was shown.
-    let leaves = shown + ds::FRAME_SLACK + Duration::from_millis(HOLD_MS);
+    let leaves = shown + FRAME_SLACK + Duration::from_millis(HOLD_MS);
     let before = leaves - running.harness.now() - Duration::from_millis(1);
     running.harness.advance(before);
     assert_eq!(
@@ -248,8 +249,8 @@ fn hovering_opens_the_card_and_pauses_the_hold() {
     assert_eq!(leaving(&running), 0, "paused while hovered");
     assert!(commands(&mut running).is_empty());
     running.harness.send(Input::pointer_move(Point {
-        x: ds::Px(2.0),
-        y: ds::Px(690.0),
+        x: Px(2.0),
+        y: Px(690.0),
     }));
     running.harness.advance(Duration::from_millis(60));
     assert_eq!(hover(&running).as_deref(), Some("off"));

@@ -3,8 +3,10 @@
 //! center, as `--notifications-*` tokens), the swipe keys as a `SwipeMetrics`, and the icon's
 //! side.
 
-use ds::{IconPx, Px, Speed, SwipeMetrics};
-use ds_shell::NotificationMetrics;
+use ds::prelude::*;
+use ds_motion::swipe::{Speed, SwipeMetrics};
+use ds_shell::tokens::notifications::NotificationMetrics;
+use ds_style::icon::render::IconPx;
 use sill_settings::NotificationsSettings;
 
 /// The geometry keys as quire's tokens.
@@ -39,9 +41,10 @@ pub fn icon_size(n: &NotificationsSettings) -> IconPx {
 #[cfg(test)]
 mod tests {
     use super::{icon_size, notification_metrics, swipe_metrics};
-    use ds::{IconPx, SwipeMetrics};
+    use ds_motion::swipe::SwipeMetrics;
     use ds_settings::Px;
-    use ds_shell::NotificationMetrics;
+    use ds_shell::tokens::notifications::NotificationMetrics;
+    use ds_style::icon::render::IconPx;
     use sill_settings::NotificationsSettings;
 
     #[test]
@@ -63,13 +66,13 @@ mod tests {
                     ..n
                 },
                 NotificationMetrics {
-                    banner_width: ds::Px(420.0),
-                    center_width: ds::Px(500.0),
-                    icon: ds::Px(400.0),
+                    banner_width: ds::prelude::Px(420.0),
+                    center_width: ds::prelude::Px(500.0),
+                    icon: ds::prelude::Px(400.0),
                     ..NotificationMetrics::default()
                 },
                 SwipeMetrics {
-                    dismiss: ds::Px(120.0),
+                    dismiss: ds::prelude::Px(120.0),
                     ..SwipeMetrics::default()
                 },
                 IconPx(255),

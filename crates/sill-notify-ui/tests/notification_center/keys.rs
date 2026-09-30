@@ -5,7 +5,7 @@
 //! closes.
 
 use super::{advance, commands, opened, ringed, two_apps};
-use ds::ShortcutKey;
+use ds::prelude::*;
 use ds_harness::{Driver, FocusState, Input, Query};
 use sill_model::notifications::{
     ActionKey, Activation, AppKey, Clear, NotificationId, NotificationsCommand,

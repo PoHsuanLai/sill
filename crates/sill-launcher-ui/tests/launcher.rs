@@ -7,7 +7,7 @@ mod launcher_harness;
 use ds_harness::{Driver, Input, Query};
 use std::time::Duration;
 
-use ds::ShortcutKey;
+use ds::prelude::*;
 use launcher_harness::{open, selected_title, titles};
 
 fn headings(html: &str) -> Vec<String> {

@@ -12,7 +12,7 @@ use std::cell::RefCell;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::{Appearance, Ds, Material};
+use ds::prelude::*;
 use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
 use ds_lint::{LintConfig, Profile, markup};
 use jiff::civil::Date;

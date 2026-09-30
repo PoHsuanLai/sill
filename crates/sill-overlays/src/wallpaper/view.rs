@@ -1,7 +1,8 @@
 //! The wallpaper's render: an `Ds` root over two cross-fading image layers.
 
 use dioxus::prelude::*;
-use ds::{BlurState, Ds, Material, RootExtent};
+use ds::prelude::*;
+use ds_style::appearance::blur::BlurState;
 use shell_host::OutputInfo;
 use sill_model::ids::OutputName;
 
@@ -15,22 +16,18 @@ use sill_ui_kit::root::use_root_style;
 pub const WALLPAPER_CSS: &str = include_str!("style.css");
 
 /// The wallpaper on `output`: an `Ds` root over two cross-fading image layers showing the
-/// cached file for the resolved scheme (`ds::resolve`, the same call `Ds` makes internally, so
+/// cached file for the resolved scheme (`ds::prelude::resolve`, the same call `Ds` makes internally, so
 /// the two never disagree about which scheme is current).
 pub(super) fn wallpaper(output: OutputInfo) -> Element {
     let environment = use_appearance()();
     let wallpapers = use_service::<WallpaperService>()();
     let on = output.name.clone().map(OutputName);
     let appearance = environment.settings.appearance.appearance();
-    let resolved = ds::resolve(
-        appearance,
-        ds::SpaceLook::default().theme,
-        environment.system,
-    );
+    let resolved = resolve(appearance, SpaceLook::default().theme, environment.system);
     let url = image_for(&wallpapers, on.as_ref()).map(|image| {
         let path = match resolved.scheme {
-            ds::Scheme::Light => &image.light,
-            ds::Scheme::Dark => &image.dark,
+            Scheme::Light => &image.light,
+            Scheme::Dark => &image.dark,
         };
         file_url(path)
     });

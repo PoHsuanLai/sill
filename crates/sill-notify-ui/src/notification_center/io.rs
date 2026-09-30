@@ -3,6 +3,7 @@
 //! a row's [`RowAct`] to the notifications service. Once hidden nothing runs and nothing asks
 //! for a frame.
 
+use ds::focus::soon::focus_soon;
 use std::rc::Rc;
 
 use dioxus::prelude::*;
@@ -130,7 +131,7 @@ impl CenterCtx {
     /// close) leaves with its row, and with it the keyboard, so Escape reached nothing.
     fn take_keyboard(&self) {
         if let Some(column) = self.home.peek().clone() {
-            ds::focus_soon(column);
+            focus_soon(column);
         }
     }
 

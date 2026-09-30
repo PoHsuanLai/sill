@@ -3,7 +3,7 @@
 //! the name alone (step 1: a freedesktop `*-symbolic` icon is symbolic). The chroma test for the
 //! rest (step 2) is quire's `ds::icon::classify`, which the bar runs on the PNG bytes: this
 //! crate does not reach `ds` (`scripts/check-boundary.sh`). The URL itself is quire's too
-//! (`ds::IconUrl::png` does the base64, `IconUrl::file` the path).
+//! (`ds_style::icon::url::IconUrl::png` does the base64, `IconUrl::file` the path).
 
 use std::path::{Path, PathBuf};
 

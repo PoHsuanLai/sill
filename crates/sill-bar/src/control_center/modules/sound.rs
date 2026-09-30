@@ -7,7 +7,8 @@
 //! `SetSink` the volume service does not have; it is left for later.
 
 use dioxus::prelude::*;
-use ds::{Availability, Fraction, StatusState, VolumeState};
+use ds::components::content::status::volume::VolumeState;
+use ds::prelude::*;
 
 use super::cc_module::{BarItemFace, CcCx, CcModule, Span};
 use super::wired::WiredSound;

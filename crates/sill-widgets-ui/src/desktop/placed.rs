@@ -8,7 +8,7 @@
 use dioxus::core::queue_effect;
 use dioxus::prelude::*;
 use ds::motion::{SpringPointMotion, SpringResponse, use_spring_point_motion};
-use ds_shell::Lift;
+use ds_shell::widget::kind::Lift;
 use sill_settings::WidgetKind;
 
 use super::arrange::LayerPoint;
@@ -16,7 +16,7 @@ use super::drag::corner;
 use super::geometry::PlaceBox;
 use super::glide::{Ask, Seen, ask, drawn, to_layer, to_point};
 pub use super::glide::{Glide, Pose};
-use ds::Shown;
+use ds::prelude::*;
 use sill_ui_kit::widgets::{Widget, WidgetHost};
 
 /// `kind` at `target` (its cell's box), in `pose`; `glide` is how it was let go when

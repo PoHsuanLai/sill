@@ -4,7 +4,7 @@
 
 mod launcher_harness;
 
-use ds::ShortcutKey;
+use ds::prelude::*;
 use ds_harness::{Driver, Input, Query};
 use launcher_harness::{Press, open, settle};
 use sill_launcher_ui::launcher::{CARD_ID, PANEL_HEIGHT};

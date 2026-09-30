@@ -15,7 +15,7 @@ use std::cell::RefCell;
 use std::path::PathBuf;
 
 use dioxus::prelude::*;
-use ds::{Ds, Material, RootExtent};
+use ds::prelude::*;
 use ds_harness::{Viewport, snapshot};
 use sill_model::battery::{Battery, Charge};
 use sill_model::bluetooth::{
@@ -53,7 +53,7 @@ fn app() -> Element {
         WidgetHost::Desktop => Material::Widget,
     };
     rsx! {
-        Ds { sheet: Some(ds_shell::stylesheet()), appearance: ds::Appearance::default(), material, extent: RootExtent::Viewport,
+        Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance::default(), material, extent: RootExtent::Viewport,
             style { {widgets_css()} }
             div { style: "padding:24px;",
                 Widget { kind: WidgetKind::Battery, host: world.host }

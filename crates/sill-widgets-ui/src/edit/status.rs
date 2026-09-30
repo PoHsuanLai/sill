@@ -7,8 +7,9 @@
 //! panel's opening, or on a re-render (R1, R3).
 
 use dioxus::prelude::*;
-use ds::detail::{Detailed, Moment, Touch, use_detail, use_shake};
-use ds::{Label, LabelRole, LabelStyle};
+use ds::components::content::label::{LabelRole, LabelStyle};
+use ds::detail::{Touch, use_shake};
+use ds::prelude::*;
 use ds_shell::widget::{WidgetEdit, WidgetLayout};
 
 use sill_ui_kit::widgets::layout::Refused;
@@ -138,10 +139,11 @@ pub(super) fn EditStatus(outcome: Outcome) -> Element {
 
 #[cfg(test)]
 mod tests {
-    use ds::detail::{Moment, moment_table};
+    use ds::detail::moment_table;
+    use ds::prelude::*;
     use ds_shell::catalog::PlacementId;
+    use ds_shell::prelude::*;
     use ds_shell::widget::{LayoutError, Order, WidgetAt, WidgetEdit, WidgetLayout};
-    use ds_shell::{WidgetHost, WidgetSize};
 
     use super::{EditCount, Outcome, Said, outcome_of};
     use sill_ui_kit::widgets::layout::Refused;

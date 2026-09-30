@@ -1,8 +1,8 @@
 //! The dim's render: quire's `IdleDim` alone in a transparent viewport root.
 
 use dioxus::prelude::*;
-use ds::{Ds, Material, RootChrome, RootExtent};
-use ds_shell::IdleDim;
+use ds::prelude::*;
+use ds_shell::idle_dim::IdleDim;
 use shell_host::OutputInfo;
 
 use super::io::use_dim;

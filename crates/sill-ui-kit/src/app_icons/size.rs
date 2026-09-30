@@ -10,7 +10,7 @@
 //! bucket rather than a new one every frame. Every one of the 13 sizes is shipped for every app
 //! and style, so the bucket [`pick`] names is always an exact match.
 
-use ds::Scale;
+use ds::prelude::*;
 
 /// A raster's side in device pixels: one of [`ASSET_SIZES`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -40,7 +40,7 @@ pub fn pick(logical: LogicalPx, scale: Scale) -> AssetPx {
 #[cfg(test)]
 mod tests {
     use super::{AssetPx, LogicalPx, pick};
-    use ds::Scale;
+    use ds::prelude::*;
 
     #[test]
     fn a_tile_takes_the_drawn_size_that_covers_it() {

@@ -4,12 +4,11 @@
 //! quire's own settings watch then publishes to every surface).
 
 use dioxus::prelude::*;
-use ds::{
-    Accent, Appearance, Arrangement, Choice, RadioGroup, SectionHeader, SegmentedControl, Theme,
-    Tracking, Word,
-};
+use ds::components::controls::radio_group::Arrangement;
+use ds::components::controls::segmented::Tracking;
+use ds::prelude::*;
 use ds_settings::{AppName, AppearanceFile, ConfigRoot, Store};
-use ds_shell::ModulePanel;
+use ds_shell::prelude::*;
 
 use super::cc_module::{CcCx, CcModule, Span};
 use crate::control_center::modules::use_plate;
@@ -83,8 +82,7 @@ impl CcModule for AppearanceCc {
 #[cfg(test)]
 mod tests {
     use super::with_appearance;
-    use ds::Word;
-    use ds::{Accent, Appearance, Motion, Theme};
+    use ds::prelude::*;
     use ds_settings::AppearanceFile;
 
     #[test]

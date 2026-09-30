@@ -2,7 +2,8 @@
 //! right groups, and the one reusable menu popup's session in context.
 
 use dioxus::prelude::*;
-use ds::{BlurState, Ds, Material};
+use ds::prelude::*;
+use ds_style::appearance::blur::BlurState;
 use shell_host::OutputInfo;
 
 use super::app_name::AppName;

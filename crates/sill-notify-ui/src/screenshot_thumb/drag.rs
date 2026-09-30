@@ -6,6 +6,7 @@
 //! dismisses the card, a move counts the file as the target's, a cancel or a refusal leaves the
 //! card and resumes the hold.
 
+use ds::prelude::*;
 use shell_host::{DragAction, DragActions, DragOutcome, DragPayload, DragSpec};
 
 use super::ghost::{GhostLook, ghost_icon};
@@ -29,7 +30,7 @@ pub fn drag_end(outcome: &DragOutcome) -> DragEnd {
 /// The drag of `picture`'s file, its ghost drawn in `look`; `None` when the file's path makes no
 /// URI (a relative path).
 pub fn file_drag(picture: &ThumbPicture, look: GhostLook) -> Option<DragSpec> {
-    let uri = ds::ImageSource::file(&picture.file).ok()?.0;
+    let uri = ImageSource::file(&picture.file).ok()?.0;
     Some(DragSpec {
         payload: DragPayload::Uris(vec![uri]),
         actions: DragActions::CopyOrMove,
@@ -41,7 +42,8 @@ pub fn file_drag(picture: &ThumbPicture, look: GhostLook) -> Option<DragSpec> {
 mod tests {
     use std::path::PathBuf;
 
-    use ds::{ImageSize, ImageSource};
+    use ds::components::content::image_source::ImageSize;
+    use ds::prelude::*;
     use shell_host::{DragAction, DragActions, DragOutcome, DragPayload, DragRefused};
 
     use super::{drag_end, file_drag};

@@ -5,24 +5,24 @@
 //! quire's `StandardAction` table lands the drawing is this one mapping. Pure.
 
 use dioxus::prelude::{Key, Modifiers};
-use ds::Shortcut;
+use ds::prelude::*;
 use sill_launcher::{ActionKeys, Chord, ChordKey, Modifier};
 
 /// `chord` as quire draws a shortcut.
 pub fn shortcut(chord: &Chord) -> Shortcut {
     let mods = chord.mods.iter().map(|m| match m {
-        Modifier::Control => ds::ShortcutKey::Ctrl,
-        Modifier::Option => ds::ShortcutKey::Alt,
-        Modifier::Shift => ds::ShortcutKey::Shift,
-        Modifier::Command => ds::ShortcutKey::Super,
+        Modifier::Control => ShortcutKey::Ctrl,
+        Modifier::Option => ShortcutKey::Alt,
+        Modifier::Shift => ShortcutKey::Shift,
+        Modifier::Command => ShortcutKey::Super,
     });
     let key = match chord.key {
-        ChordKey::Enter => ds::ShortcutKey::Enter,
-        ChordKey::Space => ds::ShortcutKey::Space,
-        ChordKey::Left => ds::ShortcutKey::Left,
-        ChordKey::Right => ds::ShortcutKey::Right,
-        ChordKey::Backspace => ds::ShortcutKey::Backspace,
-        ChordKey::Char(c) => ds::ShortcutKey::Char(c),
+        ChordKey::Enter => ShortcutKey::Enter,
+        ChordKey::Space => ShortcutKey::Space,
+        ChordKey::Left => ShortcutKey::Left,
+        ChordKey::Right => ShortcutKey::Right,
+        ChordKey::Backspace => ShortcutKey::Backspace,
+        ChordKey::Char(c) => ShortcutKey::Char(c),
     };
     Shortcut(mods.chain(std::iter::once(key)).collect())
 }

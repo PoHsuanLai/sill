@@ -1,10 +1,13 @@
 //! One icon status item: a quire `MenuBarItem`, expanded while its menu is
-//! open (design/20 §1.1), sized by the bar's status keys through `ds::StatusMetrics`.
+//! open (design/20 §1.1), sized by the bar's status keys through `ds_style::tokens::status::StatusMetrics`.
 
 use dioxus::prelude::*;
-use ds::ImagePosition;
-use ds::{Common, IconSource, Px, StatusMetrics, use_rect};
-use ds_shell::MenuBarItem;
+use ds::components::controls::button_model::ImagePosition;
+use ds::host::measure::use_rect;
+use ds::prelude::*;
+use ds::root::common::Common;
+use ds_shell::prelude::*;
+use ds_style::tokens::status::StatusMetrics;
 use sill_settings::{BarGlyphSize, BarSettings};
 
 use super::menus::BarMenu;
@@ -51,7 +54,7 @@ pub(crate) fn StatusIcon(
 #[cfg(test)]
 mod tests {
     use super::status_metrics;
-    use ds::Px;
+    use ds::prelude::*;
     use sill_settings::{BarGlyphSize, BarSettings, Px as KeyPx};
 
     #[test]

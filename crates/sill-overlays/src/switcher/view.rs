@@ -10,8 +10,11 @@
 //! `onhover` / `onactivate` as `Hover` / `Click`. Style nothing under `.ds-switcher*`.
 
 use dioxus::prelude::*;
-use ds::{Material, RootChrome, RootExtent, Shown};
-use ds_shell::{AppKey, SwitcherApp as Tile};
+use ds::focus::soon::focus_soon;
+use ds::prelude::*;
+use ds_shell::prelude::*;
+use ds_shell::switcher::app_switcher::AppKey;
+use ds_shell::switcher::app_switcher::SwitcherApp as Tile;
 use shell_host::{OutputInfo, SurfaceHandle};
 
 use super::icon::SwitcherIcons;
@@ -36,7 +39,7 @@ pub(super) fn switcher(output: OutputInfo) -> Element {
     let environment = use_appearance()();
     let look = use_active_look(&output);
     let appearance = environment.settings.appearance.appearance();
-    let resolved = ds::resolve(appearance, look.theme, environment.system);
+    let resolved = resolve(appearance, look.theme, environment.system);
     let level = resolved.motion;
     let icons = SwitcherIcons {
         cx: IconContext {
@@ -75,13 +78,13 @@ pub(super) fn switcher(output: OutputInfo) -> Element {
                     key: "{session.serial.0}",
                     class: "sill-switcher",
                     tabindex: "0",
-                    onmounted: move |event: MountedEvent| ds::focus_soon(event.data()),
+                    onmounted: move |event: MountedEvent| focus_soon(event.data()),
                     onkeydown: move |event: KeyboardEvent| ctx.key_down(&event),
                     onkeyup: move |event: KeyboardEvent| ctx.key_up(&event),
                     {chord_watch(host.as_ref(), session, ctx)}
                     if let Some((apps, selected)) = row {
                         div { id: PANEL_ID, class: "sill-switcher-panel",
-                            ds_shell::AppSwitcher {
+                            AppSwitcher {
                                 apps,
                                 selected,
                                 output: width,

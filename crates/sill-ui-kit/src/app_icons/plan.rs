@@ -59,6 +59,7 @@ mod tests {
     use crate::app_icons::look::IconLook;
     use crate::app_icons::size::AssetPx;
     use ds::icon::{IconStyle, Tint};
+    use ds::prelude::*;
     use std::path::Path;
 
     fn look(style: IconStyle) -> IconLook {
@@ -68,7 +69,7 @@ mod tests {
                 hue: 268.0,
                 chroma: 0.06,
             },
-            scheme: ds::Scheme::Light,
+            scheme: Scheme::Light,
         }
     }
 

@@ -8,11 +8,12 @@
 //! `bar.battery_low_percent`.
 
 use dioxus::prelude::*;
-use ds::{
-    BatteryPower, BatteryState, Fraction, IconSource, Label, LabelRole, LabelStyle, LowAt,
-    StatusState, TextLine,
-};
-use ds_shell::{BatteryRing, Device, DeviceGlyph, ModulePanel, Readout};
+use ds::components::content::label::{LabelRole, LabelStyle};
+use ds::components::content::status::battery_state::{BatteryPower, BatteryState, LowAt};
+use ds::prelude::*;
+use ds_shell::battery::device_glyph::Device;
+use ds_shell::battery::ring::Readout;
+use ds_shell::prelude::*;
 use sill_model::battery::{Battery, Charge};
 use sill_model::bluetooth::{Bluetooth, BtBattery, BtConnection};
 use sill_model::units::Presence;
@@ -191,8 +192,9 @@ impl CcModule for BatteryCc {
 #[cfg(test)]
 mod tests {
     use super::{DeviceRing, device_rings};
-    use ds::{BatteryPower, BatteryState, Fraction, LowAt};
-    use ds_shell::Device;
+    use ds::components::content::status::battery_state::{BatteryPower, BatteryState, LowAt};
+    use ds::prelude::*;
+    use ds_shell::battery::device_glyph::Device;
     use sill_model::battery::{Battery, Charge};
     use sill_model::bluetooth::{
         Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower,

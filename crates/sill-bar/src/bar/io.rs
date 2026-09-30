@@ -2,6 +2,8 @@
 //! the context the bar's titles feed it through. The only effectful part of the menus; every
 //! decision is `track::step`, `plan::effects` or `content::body`.
 
+use ds::prelude::*;
+use ds_core::time::clock::sleep;
 use std::collections::HashMap;
 
 use dioxus::prelude::*;
@@ -82,7 +84,7 @@ struct Link {
 struct Slots {
     track: Signal<Track>,
     open: Signal<Option<BarMenu>>,
-    rects: Signal<HashMap<BarMenu, ds::Rect>>,
+    rects: Signal<HashMap<BarMenu, Rect>>,
     link: CopyValue<Link>,
     handoff: CopyValue<Handoff>,
     /// The session's own input, for the handoff's wake-up (set once the callback exists).
@@ -242,7 +244,7 @@ fn apply(slots: Slots, deps: &SessionDeps, effect: BarEffect) {
                 open.set(Some(menu));
                 if let Some(feed) = *slots.feed.peek() {
                     spawn(async move {
-                        ds::sleep(CENTER_HANDOFF).await;
+                        sleep(CENTER_HANDOFF).await;
                         feed.call(BarInput::CenterGone);
                     });
                 }

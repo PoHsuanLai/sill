@@ -6,7 +6,9 @@
 //! reads ([`crate::widgets::up_next::today_events`]). Redrawn on the clock's minute tick.
 
 use dioxus::prelude::*;
-use ds_shell::{MonthEntry, MonthFace, MonthIntent, TodayLine};
+use ds_shell::month_grid::data::MonthStep;
+use ds_shell::widget::calendar::MonthWidget;
+use ds_shell::widget::calendar::{MonthEntry, MonthFace, MonthIntent, TodayLine};
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 use sill_settings::{CalendarSettings, WeekNumbers};
@@ -23,11 +25,11 @@ use sill_services::{ClockService, EventsService};
 pub struct CalendarProvider;
 
 impl WidgetProvider for CalendarProvider {
-    type W = ds_shell::MonthWidget;
+    type W = MonthWidget;
     const KIND: WidgetKind = WidgetKind::Calendar;
     const DESKTOP_SIZE: WidgetSize = WidgetSize::Small;
 
-    fn use_feed() -> Feed<ds_shell::MonthWidget> {
+    fn use_feed() -> Feed<MonthWidget> {
         let _minute = use_service::<ClockService>()();
         let agenda = use_service::<EventsService>()();
         let calendar = use_section::<CalendarSettings>()();
@@ -38,8 +40,8 @@ impl WidgetProvider for CalendarProvider {
         let busy = busy_days(&agenda.events, &zone, month);
         let grid = month_grid(month, calendar.first_weekday, today, &busy);
         let weeks = match calendar.week_numbers {
-            WeekNumbers::Hide => ds_shell::WeekNumbers::Hide,
-            WeekNumbers::Show => ds_shell::WeekNumbers::Show,
+            WeekNumbers::Hide => ds_shell::month_grid::data::WeekNumbers::Hide,
+            WeekNumbers::Show => ds_shell::month_grid::data::WeekNumbers::Show,
         };
         let face = MonthFace {
             today: Some(TodayLine {
@@ -53,8 +55,8 @@ impl WidgetProvider for CalendarProvider {
         let onintent = EventHandler::new(move |intent: MonthIntent| {
             let MonthIntent::Step(step) = intent;
             let step = match step {
-                ds_shell::MonthStep::Previous => Step::Previous,
-                ds_shell::MonthStep::Next => Step::Next,
+                MonthStep::Previous => Step::Previous,
+                MonthStep::Next => Step::Next,
             };
             shown.set(shown().stepped(today, step));
         });

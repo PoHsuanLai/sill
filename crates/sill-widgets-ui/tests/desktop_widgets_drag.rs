@@ -11,7 +11,7 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use ds::{Point, Px};
+use ds::prelude::*;
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
 use ds_harness::{Driver, Harness, Input, Query, Viewport};
 use sill_model::now_playing::{MediaCommand, MediaVerb};

@@ -6,8 +6,10 @@
 //! `BarPointer` hears. Right-click Edit Space waits for the Space editor popup.
 
 use dioxus::prelude::*;
-use ds::{PointerButton, Press, Selection};
-use ds_shell::{BarPointer, WorkspacePill, WorkspacePills};
+use ds::prelude::*;
+use ds_core::press::{PointerButton, Press};
+use ds_shell::bar::pointer::BarPointer;
+use ds_shell::prelude::*;
 use shell_host::OutputInfo;
 use sill_model::cosmic_wl::{Activity, WlCommand, Workspace};
 use sill_model::ids::OutputName;

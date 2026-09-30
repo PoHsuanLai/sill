@@ -3,7 +3,8 @@ use super::{
     WidgetHost, WidgetKind, WidgetSize, cells, kind_id, kind_of, registry, size_of,
     widget_element_id,
 };
-use ds::Word;
+use ds::prelude::*;
+use ds_shell::prelude::*;
 
 #[test]
 fn each_widget_has_its_footprint_in_each_host() {
@@ -47,10 +48,10 @@ fn each_kind_is_named_in_the_registry_at_its_one_size() {
             );
         }
     }
-    assert!(all_sized(ds_shell::WidgetRegistry::quire()).is_ok());
+    assert!(all_sized(WidgetRegistry::quire()).is_ok());
     assert_eq!(registry.all().len(), WidgetKind::ALL.len());
     assert_eq!(
-        kind_of(&ds_shell::WidgetKind::fixed("org.example.weather")),
+        kind_of(&ds_shell::prelude::WidgetKind::fixed("org.example.weather")),
         None
     );
 }

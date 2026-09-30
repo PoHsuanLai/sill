@@ -11,13 +11,17 @@
 //! ([`EditStatus`]). An add to the desktop also turns `widgets.desktop` on, so the widget is
 //! seen.
 
-use ds::Answers;
+use ds::components::controls::button_model::Answers;
+use ds::focus::soon::focus_soon;
 use std::rc::Rc;
 
 use dioxus::prelude::*;
+use ds::components::content::label::LabelStyle;
+use ds::components::overlays::sheet_attach::Attach;
 use ds::components::overlays::sheet_width::SheetWidth;
-use ds::{Attach, Button, Label, LabelStyle, Material, RootExtent, Sheet, Shown, use_rect};
-use ds_shell::WidgetGallery;
+use ds::host::measure::use_rect;
+use ds::prelude::*;
+use ds_shell::prelude::*;
 use ds_shell::widget::{DesktopGrid, WidgetEdit};
 use shell_host::OutputInfo;
 use sill_settings::{DesktopWidgets, WidgetsSettings};
@@ -220,14 +224,14 @@ fn shown_after(edit: &WidgetEdit, now: DesktopWidgets) -> DesktopWidgets {
 
 /// The column takes the keyboard as it mounts, so Escape reaches the panel.
 fn take_keyboard(element: Rc<MountedData>) {
-    ds::focus_soon(element);
+    focus_soon(element);
 }
 
 #[cfg(test)]
 mod tests {
     use ds_shell::catalog::PlacementId;
+    use ds_shell::prelude::*;
     use ds_shell::widget::WidgetEdit;
-    use ds_shell::{WidgetHost, WidgetSize};
     use sill_settings::{DesktopWidgets, WidgetKind};
 
     use super::shown_after;

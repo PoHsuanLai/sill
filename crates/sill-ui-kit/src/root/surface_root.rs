@@ -5,7 +5,8 @@
 //! and its extent.
 
 use dioxus::prelude::*;
-use ds::{BlurState, Ds, Material, RootChrome, RootExtent};
+use ds::prelude::*;
+use ds_style::appearance::blur::BlurState;
 use shell_host::OutputInfo;
 
 use crate::hooks::use_appearance;

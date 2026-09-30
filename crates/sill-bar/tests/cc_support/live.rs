@@ -8,9 +8,9 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::{mpsc, watch};
 
 use dioxus::prelude::*;
-use ds::{
-    Align, Anchor, Appearance, Ds, Material, Placement, Point, Popover, Px, RootExtent, Side,
-};
+use ds::host::measure::Anchor;
+use ds::prelude::*;
+use ds_core::geometry::placement::{Align, Side};
 use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use sill_bar::control_center::{CcPage, ControlCenter};
 use sill_model::ids::OutputName;

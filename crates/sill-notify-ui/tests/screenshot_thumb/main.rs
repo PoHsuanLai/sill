@@ -9,7 +9,7 @@ use ds_harness::{Driver, Input, Query};
 use std::path::PathBuf;
 use std::time::Duration;
 
-use ds::{Point, Px};
+use ds::prelude::*;
 use ds_settings::Ms;
 use shell_host::OutputId;
 use sill_model::screenshots::{Shot, ShotCommand, ShotId, ShotLeave, ShotPreview, Shots};

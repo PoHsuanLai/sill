@@ -1,8 +1,10 @@
 //! The frontmost app's name, the first bar title (ui 13/700): its menu lists the app's windows and Quit.
 
 use dioxus::prelude::*;
-use ds::{Common, Emphasis, use_rect};
-use ds_shell::MenuBarItem;
+use ds::host::measure::use_rect;
+use ds::prelude::*;
+use ds::root::common::Common;
+use ds_shell::prelude::*;
 use shell_host::OutputInfo;
 use sill_model::ids::OutputName;
 

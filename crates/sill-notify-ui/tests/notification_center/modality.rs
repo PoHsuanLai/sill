@@ -6,7 +6,7 @@
 //! `Ds` reads instead: the harness's way of driving modality, not shell-host's.
 
 use super::{advance, opened, two_apps};
-use ds::ShortcutKey;
+use ds::prelude::*;
 use ds_harness::{Driver, FocusState, Harness, Input, Query};
 
 fn modality(harness: &Harness) -> Option<String> {

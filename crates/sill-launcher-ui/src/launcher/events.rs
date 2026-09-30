@@ -4,7 +4,10 @@
 //! line opens its section) and a dismissal. The other keys (the preview pane's, row chords) are `pane_keys.rs`.
 
 use dioxus::prelude::*;
-use ds::{FocusRequest, Rect, use_focus_request};
+use ds::components::menus::palette::palette_motion::PaletteHandle;
+use ds::components::menus::palette::palette_motion::use_palette_handle;
+use ds::focus::request::{FocusRequest, use_focus_request};
+use ds::prelude::*;
 use shell_host::{OutputId, SurfaceHandle};
 use sill_launcher::{Choice, ItemKey};
 use sill_model::results::{Results, SearchCommand};
@@ -70,7 +73,7 @@ pub(crate) struct PanelCtx {
     pub(crate) left: Signal<u64>,
     /// quire's palette handle: a Show More / Show Less run here, not through the
     /// palette's own Enter or click, still plays the group's rise or heal.
-    pub(crate) palette: ds::PaletteHandle,
+    pub(crate) palette: PaletteHandle,
 }
 
 /// The panel's state and handlers on `output`, following the shared launcher state.
@@ -99,7 +102,7 @@ pub(crate) fn use_panel(output: OutputId, results: ReadSignal<Results>) -> Panel
         power_menu: try_use_context::<PowerMenuLink>(),
         picking: use_hook(|| CopyValue::new(Picking::No)),
         left: use_signal(|| 0),
-        palette: ds::use_palette_handle(),
+        palette: use_palette_handle(),
     };
     use_openings(ctx.clone());
     ctx

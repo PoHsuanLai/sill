@@ -6,13 +6,16 @@
 //! 5.2.10, G28-G30). Nothing playing: "Not Playing" and no buttons. The view reads no hook: a
 //! press is a [`Transport`] handed to its caller, which sends it to the player.
 
-use ds::IconSwap;
-use ds::{Bezel, Button, ControlSize, ImagePosition};
+use ds::components::controls::button_model::IconSwap;
+use ds::components::controls::button_model::{Bezel, ImagePosition};
+use ds::prelude::*;
+use ds_style::tokens::control_size::ControlSize;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::{Availability, ExternalIcon, Icon, IconSize, IconSource, IconUrl, TextLine};
-use ds_shell::{NowPlayingTrack, Playback, TrackPosition};
+use ds_shell::now_playing::kind::Playback;
+use ds_shell::prelude::*;
+use ds_style::icon::url::IconUrl;
 use serde::{Deserialize, Serialize};
 use sill_model::now_playing::{Abilities, Art, MediaPlayer, MediaVerb, Micros, Timeline};
 

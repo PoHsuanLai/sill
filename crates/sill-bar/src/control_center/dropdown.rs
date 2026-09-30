@@ -4,7 +4,7 @@
 //! `ModulePanel`, the popover card being its plate.
 
 use dioxus::prelude::*;
-use ds_shell::PanelPlate;
+use ds_shell::control_center::module_panel::PanelPlate;
 use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
 

@@ -4,7 +4,7 @@
 //! `on_hidden` the menu closes and, for a chosen action, the action runs, so a suspend or a
 //! polkit prompt never finds the sheet still up. Shown again while leaving, it is up again.
 
-use ds::Shown;
+use ds::prelude::*;
 use sill_model::session::{Session, SessionAction};
 
 use super::choice::offered;
@@ -112,7 +112,7 @@ pub fn advance(
 #[cfg(test)]
 mod tests {
     use super::{MenuSession, SheetEffect, SheetInput, SheetPhase, Then, advance};
-    use ds::Shown;
+    use ds::prelude::*;
     use sill_model::session::{Offer, Session, SessionAction};
     use sill_ui_kit::links::OpenSerial;
 

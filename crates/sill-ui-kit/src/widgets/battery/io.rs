@@ -4,6 +4,7 @@ use super::provider::{battery_entry, battery_rows, machine_name};
 use crate::hooks::use_service;
 use crate::widgets::{Feed, WidgetKind, WidgetProvider, WidgetSize};
 use dioxus::prelude::*;
+use ds_shell::widget::battery::BatteryWidget;
 use sill_services::{BatteryService, BluetoothService};
 
 /// The batteries: a new entry each time a level changes.
@@ -11,11 +12,11 @@ use sill_services::{BatteryService, BluetoothService};
 pub struct BatteryProvider;
 
 impl WidgetProvider for BatteryProvider {
-    type W = ds_shell::BatteryWidget;
+    type W = BatteryWidget;
     const KIND: WidgetKind = WidgetKind::Battery;
     const DESKTOP_SIZE: WidgetSize = WidgetSize::Small;
 
-    fn use_feed() -> Feed<ds_shell::BatteryWidget> {
+    fn use_feed() -> Feed<BatteryWidget> {
         let battery = use_service::<BatteryService>()();
         let bluetooth = use_service::<BluetoothService>()();
         let machine = use_hook(|| {

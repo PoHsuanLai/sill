@@ -4,7 +4,8 @@
 //! `WorldClockWidget` draws them (dials on the desktop, digits in the tile, up to
 //! `ds_shell::widget::MAX_CITIES`). A zone jiff does not know is left out.
 
-use ds_shell::{ClockCity, ClockEntry, ClockTime, DayPhase, Seconds};
+use ds_shell::clock::kind::{ClockTime, DayPhase, Seconds};
+use ds_shell::widget::clock::{ClockCity, ClockEntry};
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 

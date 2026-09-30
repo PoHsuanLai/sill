@@ -7,7 +7,7 @@
 use sill_ui_kit::harness::fake;
 
 use dioxus::prelude::*;
-use ds::{Ds, Material};
+use ds::prelude::*;
 use sill_model::notifications::{
     Action, ActionKey, AppRef, Expiry, Hints, IconRef, Notification, NotificationId, UnixMs,
     parse_body,
@@ -28,7 +28,7 @@ struct Shown {
 #[allow(non_snake_case)]
 fn Root(shown: Shown) -> Element {
     rsx! {
-        Ds { sheet: Some(ds_shell::stylesheet()), appearance: ds::Appearance::default(), material: Material::Toast,
+        Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance::default(), material: Material::Toast,
             NoteCard {
                 note: shown.note,
                 count: shown.count,

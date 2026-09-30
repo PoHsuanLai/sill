@@ -5,7 +5,10 @@
 
 use std::path::Path;
 
-use ds::{Icon, IconSource, ImageSize, ImageSource, PANE_MEDIA, PaneContent, PaneMono, PdfPage};
+use ds::components::content::image_source::ImageSize;
+use ds::components::content::pdf_thumb::PdfPage;
+use ds::components::lists::preview::content::{PANE_MEDIA, PaneContent, PaneMono};
+use ds::prelude::*;
 use sill_launcher::{ClipKind, Excerpt, Mime, Preview};
 
 use crate::launcher::preview::load::{Loaded, use_clip_png, use_excerpt, use_image_size};
@@ -202,7 +205,7 @@ fn kind_words(mime: &Mime) -> String {
 mod tests {
     use super::{Load, load_of};
     use crate::launcher::preview::load::Loaded;
-    use ds::{PdfPage, PdfTrouble};
+    use ds::components::content::pdf_thumb::{PdfPage, PdfTrouble};
     use sill_launcher::Excerpt;
     use sill_search::preview::PreviewFault;
 

@@ -13,8 +13,10 @@
 //! itself.
 
 use dioxus::prelude::*;
-use ds::{BlurState, Ds, Ground, Material};
-use ds_shell::DockFloor;
+use ds::prelude::*;
+use ds::root::chrome::Ground;
+use ds_shell::prelude::*;
+use ds_style::appearance::blur::BlurState;
 use shell_host::{LayerConfig, OutputInfo, SurfaceHandle};
 use sill_model::ids::OutputName;
 use sill_model::units::Cpx;
@@ -54,7 +56,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
     )
     .map(|(key, _)| key);
     let appearance = environment.settings.appearance.appearance();
-    let level = ds::resolve(appearance, look.theme, environment.system).motion;
+    let level = resolve(appearance, look.theme, environment.system).motion;
     let params = DockParams::new(&file.dock, level);
     let world = World {
         toplevels: use_service_part::<CosmicWlService, _>(|wl| wl.toplevels.clone())(),
@@ -87,7 +89,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         &environment.settings.icons,
         &look,
         appearance.accent,
-        ds::resolve(appearance, look.theme, environment.system).scheme,
+        resolve(appearance, look.theme, environment.system).scheme,
     ));
     let mut tile_look = use_context_provider(|| Signal::new(TileLook::default()));
     if *tile_look.peek() != icons {

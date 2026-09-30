@@ -6,8 +6,10 @@
 //! is the row's own padding (`.sill-nc-item`), never the list's.
 
 use dioxus::prelude::*;
-use ds::{Common, DataAttr, DataName, IconSize, ListItem};
-use ds_shell::GroupHeader;
+use ds::prelude::*;
+use ds::root::common::Common;
+use ds::root::pass_through::{DataAttr, DataName};
+use ds_shell::prelude::*;
 use sill_model::notifications::{AppGroup, History, Notification, UnixMs};
 
 use super::groups::Expanded;
@@ -50,16 +52,16 @@ pub(super) fn row_item(
 }
 
 /// Whether the person opened `group`.
-fn opened(expanded: &Expanded, group: &AppGroup) -> ds::Shown {
+fn opened(expanded: &Expanded, group: &AppGroup) -> Shown {
     match expanded.0.contains(&group.key) {
-        true => ds::Shown::Visible,
-        false => ds::Shown::Hidden,
+        true => Shown::Visible,
+        false => Shown::Hidden,
     }
 }
 
 /// A group's header row.
 #[component]
-fn HeadRow(group: AppGroup, expanded: ds::Shown, ring: Ring) -> Element {
+fn HeadRow(group: AppGroup, expanded: Shown, ring: Ring) -> Element {
     let ctx = use_context::<CenterCtx>();
     let app = group.notes.first().map(|note| note.app.clone());
     let mark = use_app_mark(&app.unwrap_or_else(nobody), IconSize::Base);

@@ -4,9 +4,9 @@
 //! `use_service::<NetworkService>`; sends `WifiCommand::Radio`.
 
 use dioxus::prelude::*;
-use ds::Check;
-use ds::{Availability, StatusState, TextLine, WifiState};
-use ds_shell::ModuleTile;
+use ds::components::content::status::wifi_state::WifiState;
+use ds::prelude::*;
+use ds_shell::prelude::*;
 use sill_model::network::Network;
 use sill_model::units::Presence;
 use sill_model::wifi::{Radio, Wifi, WifiCommand};
@@ -129,9 +129,9 @@ impl CcModule for WifiCc {
 #[cfg(test)]
 mod tests {
     use super::{radio_availability, radio_of, radio_state, wifi_tile_state};
-    use ds::Check;
+    use ds::components::content::status::wifi_state::{WifiBars, WifiReach, WifiState};
     use ds::detail::EventStamp;
-    use ds::{Availability, WifiBars, WifiReach, WifiState};
+    use ds::prelude::*;
     use sill_model::network::{Connectivity, Link, Network};
     use sill_model::wifi::{Radio, Wifi};
     use sill_model::{
@@ -202,7 +202,7 @@ mod tests {
             strength: Percent(90),
         };
         let joined = WifiState::Joined {
-            bars: WifiBars::of(ds::Fraction(900)),
+            bars: WifiBars::of(Fraction(900)),
             reach: WifiReach::Internet,
         };
         // (name, radio, link, join, the disc's state)

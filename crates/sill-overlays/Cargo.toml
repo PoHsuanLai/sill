@@ -11,6 +11,8 @@ publish.workspace = true
 [dependencies]
 dioxus = { workspace = true }
 ds = { workspace = true }
+ds-core = { workspace = true }
+ds-style = { workspace = true }
 ds-settings = { workspace = true, features = ["dioxus"] }
 ds-shell = { workspace = true }
 jiff = { workspace = true }

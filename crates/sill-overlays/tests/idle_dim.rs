@@ -5,6 +5,7 @@
 //! level edit while dimmed does not animate; Reduced motion shows the level at once. On the
 //! virtual clock with the appearance pinned, and every change ends at 0 frames.
 
+use ds::prelude::*;
 use std::time::Duration;
 
 use ds_harness::harness::assert_settles_to_zero_frames;
@@ -37,7 +38,7 @@ fn start(appearance: PinnedAppearance) -> Running {
 
 fn reduced() -> PinnedAppearance {
     let mut environment = Environment::default();
-    environment.settings.appearance.motion_level = ds::Motion::Reduced;
+    environment.settings.appearance.motion_level = Motion::Reduced;
     PinnedAppearance(environment)
 }
 

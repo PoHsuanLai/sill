@@ -1,6 +1,6 @@
 //! What a surface's app icons depend on besides the icon itself.
 
-use ds::Scale;
+use ds::prelude::*;
 
 use crate::app_icons::cache::IconResolver;
 use crate::app_icons::look::IconLook;

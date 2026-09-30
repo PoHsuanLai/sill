@@ -4,8 +4,9 @@
 //! itself.
 
 use dioxus::prelude::*;
-use ds::{RectProbe, Shown};
-use ds_shell::BarPointer;
+use ds::host::measure::RectProbe;
+use ds::prelude::*;
+use ds_shell::bar::pointer::BarPointer;
 use shell_host::Point;
 
 use super::io::MenuBar;

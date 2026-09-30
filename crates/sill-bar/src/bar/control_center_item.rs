@@ -4,7 +4,7 @@
 //! rather than from the item.
 
 use dioxus::prelude::*;
-use ds::Icon;
+use ds::prelude::*;
 use shell_host::OutputInfo;
 
 use super::menus::BarMenu;

@@ -4,8 +4,11 @@
 //! Pure.
 
 use ds::icon::{IconStyle, Tint};
-use ds::{Accent, CardAccent, Scheme, SpaceLook, accent_of, derive};
+use ds::prelude::*;
 use ds_settings::{IconsSettings, MonochromeTint};
+use ds_style::space::look::CardAccent;
+use ds_style::space::palette::derive;
+use ds_style::tokens::accent_table::accent_of;
 
 /// The style and the tint every app icon on a surface is drawn in.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -91,8 +94,10 @@ fn card_accent(space: &SpaceLook, accent: Accent) -> String {
 mod tests {
     use super::{IconLook, icon_look};
     use ds::icon::{IconStyle, Tint};
-    use ds::{Accent, CardAccent, Scheme, default_look};
+    use ds::prelude::*;
     use ds_settings::{IconsSettings, MonochromeTint};
+    use ds_style::space::look::CardAccent;
+    use ds_style::space::presets::default_look;
 
     fn icons(style: ds_settings::IconStyle, tint: MonochromeTint) -> IconsSettings {
         IconsSettings {

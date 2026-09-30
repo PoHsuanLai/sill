@@ -2,8 +2,10 @@
 //! quire's `AppKey` and the machine's indices. Pure.
 
 use super::apps::SwitcherApp;
-use ds::{IconSource, Px};
-use ds_shell::{AppKey, SwitcherApp as Tile, SwitcherMetrics};
+use ds::prelude::*;
+use ds_shell::switcher::app_switcher::AppKey;
+use ds_shell::switcher::app_switcher::SwitcherApp as Tile;
+use ds_shell::switcher::switcher_fit::SwitcherMetrics;
 use sill_launcher::AppId;
 use sill_model::apps::AppIndex;
 use sill_settings::SwitcherSettings;
@@ -66,8 +68,9 @@ pub fn output_width(width: i32) -> Option<Px> {
 #[cfg(test)]
 mod tests {
     use crate::switcher::apps::{AppShown, SwitcherApp};
-    use ds::{IconSource, Px};
-    use ds_shell::{AppKey, SwitcherMetrics};
+    use ds::prelude::*;
+    use ds_shell::switcher::app_switcher::AppKey;
+    use ds_shell::switcher::switcher_fit::SwitcherMetrics;
     use sill_launcher::AppId;
     use sill_model::apps::AppIndex;
     use sill_settings::SwitcherSettings;
@@ -85,7 +88,7 @@ mod tests {
     #[test]
     fn tiles_keys_and_metrics() {
         let apps = [app("foot"), app("org.mozilla.firefox")];
-        let icon = |_: &AppId| IconSource::Glyph(ds::Icon::ArrowRight);
+        let icon = |_: &AppId| IconSource::Glyph(Icon::ArrowRight);
         let row = tiles(&apps, &AppIndex::default(), icon);
         assert_eq!(
             row.iter().map(|t| t.key.clone()).collect::<Vec<_>>(),

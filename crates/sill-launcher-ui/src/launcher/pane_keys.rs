@@ -11,7 +11,7 @@
 //! having moved the selection) come after it, to [`PanelCtx::field_key`].
 
 use dioxus::prelude::*;
-use ds::{Claim, FieldKey};
+use ds::components::menus::palette::palette_claim::{Claim, FieldKey};
 use sill_launcher::{Choice, Item, Preview, action_for_chord, chords, preview_for};
 
 use crate::launcher::chord_keys::chord_of;
@@ -174,10 +174,10 @@ impl PanelCtx {
 
 /// quire's caret as the pane's machine reads it: a caret nobody could read is not at the end
 /// (→ moves it; ⌘Y and ⌘→ still reach the pane).
-fn caret_of(caret: ds::Caret) -> Caret {
+fn caret_of(caret: ds::host::caret::Caret) -> Caret {
     match caret {
-        ds::Caret::AtEnd => Caret::AtEnd,
-        ds::Caret::Inside | ds::Caret::Unknown => Caret::Inside,
+        ds::host::caret::Caret::AtEnd => Caret::AtEnd,
+        ds::host::caret::Caret::Inside | ds::host::caret::Caret::Unknown => Caret::Inside,
     }
 }
 
@@ -188,8 +188,8 @@ mod tests {
 
     #[test]
     fn only_a_caret_read_at_the_end_is_at_the_end() {
-        assert_eq!(caret_of(ds::Caret::AtEnd), Caret::AtEnd);
-        assert_eq!(caret_of(ds::Caret::Inside), Caret::Inside);
-        assert_eq!(caret_of(ds::Caret::Unknown), Caret::Inside);
+        assert_eq!(caret_of(ds::host::caret::Caret::AtEnd), Caret::AtEnd);
+        assert_eq!(caret_of(ds::host::caret::Caret::Inside), Caret::Inside);
+        assert_eq!(caret_of(ds::host::caret::Caret::Unknown), Caret::Inside);
     }
 }

@@ -7,6 +7,7 @@
 //! and says so, the gallery is a sheet at the bottom offering one size per widget and no size
 //! control, and Done closes it; every moment settles to zero frames.
 
+use ds::prelude::*;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -360,7 +361,7 @@ fn escape_closes_after_a_press_inside_the_panel() {
             ),
         }
         run.harness.advance(Duration::from_millis(100));
-        run.harness.send(Input::key(ds::ShortcutKey::Escape));
+        run.harness.send(Input::key(ShortcutKey::Escape));
         run.harness.advance(Duration::from_millis(50));
         assert_eq!(run.edit.now(), EditShown::Closed, "after {then:?}");
         settle_until(&mut run.harness, |h| h.count(".ds-sheet") == 0);

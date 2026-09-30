@@ -6,8 +6,9 @@ use std::cell::RefCell;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::{Appearance, Ds, Material, PixelToken};
+use ds::prelude::*;
 use ds_harness::{Clock, Driver, Harness, HarnessConfig, Query, Viewport};
+use ds_style::tokens::pixel::PixelToken;
 use shell_host::{InputModality as SeatModality, Scale as SeatScale};
 
 use super::use_republished;
@@ -81,7 +82,7 @@ fn the_seats_modality_sets_the_roots_focus_ring_and_follows_it_back() {
 fn the_seats_scale_reaches_the_roots_pixel_tokens() {
     let mut harness = start();
     let style = |harness: &Harness| harness.attr(".ds", "style").unwrap_or_default();
-    let scaled = PixelToken::style_attr(ds::Scale(150));
+    let scaled = PixelToken::style_attr(Scale(150));
     assert!(!scaled.is_empty(), "1.25x writes tokens");
     assert!(!style(&harness).contains(&scaled), "1x writes none");
     seat().scale.set(SeatScale(150));

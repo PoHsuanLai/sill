@@ -2,8 +2,9 @@
 //! prompt's output, and the unlock fade (the module doc of `screen.rs` has the rules).
 
 use dioxus::prelude::*;
-use ds::{ImageSource, TextLine};
-use ds_shell::{CapsLock, LockPrompt, LockScreen};
+use ds::prelude::*;
+use ds_shell::lock::vocab::CapsLock;
+use ds_shell::prelude::*;
 use shell_host::OutputInfo;
 use sill_model::auth::{Auth, AuthCommand, AuthFault, AuthPhase, PamNote, Secret};
 use sill_model::ids::OutputName;
@@ -57,7 +58,7 @@ fn hint_of(auth: &Auth) -> Option<TextLine> {
 #[component]
 pub(super) fn LockBody(
     output: OutputInfo,
-    scheme: ds::Scheme,
+    scheme: Scheme,
     host: HostLock,
     caps: CapsLock,
     on_unlock: Option<Callback<()>>,
@@ -114,7 +115,7 @@ pub(super) fn LockBody(
             LockScreen {
                 wallpaper,
                 clock: rsx! {
-                    ds_shell::LockClock { time: lines.time, date: lines.date }
+                    LockClock { time: lines.time, date: lines.date }
                 },
                 prompt,
             }

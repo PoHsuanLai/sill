@@ -11,10 +11,11 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use ds::{Point, Px, ReducedMotion, SystemPrefs};
+use ds::prelude::*;
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
 use ds_harness::{Driver, Harness, Input, Query, Viewport};
 use ds_settings::Environment;
+use ds_style::appearance::system::ReducedMotion;
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::hooks::PinnedAppearance;

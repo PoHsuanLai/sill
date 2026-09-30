@@ -6,7 +6,8 @@
 //! laptop's own brightness keys included.
 
 use dioxus::prelude::*;
-use ds::{Fraction, Icon, LevelGlyph};
+use ds::components::content::level_glyph::vocab::LevelGlyph;
+use ds::prelude::*;
 use sill_model::kbd_backlight::{KbdBacklight, KbdCommand};
 use sill_model::units::Presence;
 use sill_services::KbdBacklightService;
@@ -62,7 +63,7 @@ impl CcModule for KeyboardCc {
 #[cfg(test)]
 mod tests {
     use super::keyboard_level;
-    use ds::Fraction;
+    use ds::prelude::*;
     use sill_model::kbd_backlight::{KbdBacklight, KbdLevel};
     use sill_model::units::Presence;
 

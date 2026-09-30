@@ -2,8 +2,11 @@
 //! provider's feed on quire's card, and the one match on the kind ([`with_provider`]).
 
 use dioxus::prelude::*;
-use ds::{Common, Shown};
-use ds_shell::{Lift, Timeline, WidgetCard, WidgetHost, WidgetSize};
+use ds::prelude::*;
+use ds::root::common::Common;
+use ds_shell::prelude::*;
+use ds_shell::widget::kind::Lift;
+use ds_shell::widget::timeline::Timeline;
 use sill_settings::WidgetKind;
 
 use super::{
@@ -13,12 +16,12 @@ use super::{
 
 /// What a provider hands the card: the entry now, and where the widget's controls go (none for
 /// a widget without any).
-pub struct Feed<W: ds_shell::Widget> {
+pub struct Feed<W: ds_shell::prelude::Widget> {
     pub entry: W::Entry,
     pub onintent: Option<EventHandler<W::Intent>>,
 }
 
-impl<W: ds_shell::Widget> std::fmt::Debug for Feed<W> {
+impl<W: ds_shell::prelude::Widget> std::fmt::Debug for Feed<W> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Feed")
             .field("intents", &self.onintent.is_some())
@@ -26,20 +29,20 @@ impl<W: ds_shell::Widget> std::fmt::Debug for Feed<W> {
     }
 }
 
-/// One kind's provider: the `ds_shell::Widget` it feeds, its settings kind, and the hook that reads
-/// its services into a [`Feed`]. The `ds_shell::Widget` is a value ([`Default`]); its size on the
+/// One kind's provider: the `ds_shell::prelude::Widget` it feeds, its settings kind, and the hook that reads
+/// its services into a [`Feed`]. The `ds_shell::prelude::Widget` is a value ([`Default`]); its size on the
 /// desktop is [`Self::DESKTOP_SIZE`](WidgetProvider::DESKTOP_SIZE) (the notification center's
 /// tiles are all Medium, see [`size_of`](super::size_of)); its name in quire's registry is
 /// [`registry_id`](WidgetProvider::registry_id).
 pub trait WidgetProvider: Clone + PartialEq + Default + 'static {
-    type W: ds_shell::Widget;
+    type W: ds_shell::prelude::Widget;
     const KIND: WidgetKind;
     const DESKTOP_SIZE: WidgetSize;
     fn use_feed() -> Feed<Self::W>;
 
     /// The widget's name in quire's registry.
-    fn registry_id() -> ds_shell::WidgetKind {
-        <Self::W as ds_shell::Widget>::kind()
+    fn registry_id() -> ds_shell::prelude::WidgetKind {
+        <Self::W as ds_shell::prelude::Widget>::kind()
     }
 }
 

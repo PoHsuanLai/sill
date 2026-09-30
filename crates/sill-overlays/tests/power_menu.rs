@@ -10,7 +10,7 @@
 
 use std::time::Duration;
 
-use ds::ShortcutKey;
+use ds::prelude::*;
 use ds_harness::{Driver, FocusState, Harness, Input, Query, Viewport};
 use sill_model::session::{Offer, Session, SessionAction, SessionCommand};
 use sill_overlays::PowerMenu;
@@ -390,9 +390,9 @@ fn a_press_outside_the_sheet_leaves_and_closes() {
         Session::everything(),
         Preselect::Default,
     );
-    running.harness.send(Input::click(ds::Point {
-        x: ds::Px(20.0),
-        y: ds::Px(780.0),
+    running.harness.send(Input::click(Point {
+        x: Px(20.0),
+        y: Px(780.0),
     }));
     running.harness.advance(Duration::from_millis(20));
     assert_eq!(look(&running.harness).as_deref(), Some("leaving"));

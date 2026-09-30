@@ -10,8 +10,13 @@
 //! no press of its own: the dock's input layer reads every pointer event.
 
 use dioxus::prelude::*;
-use ds::{Activity, BadgeContent, Fraction, PlateFamily, PlateTint, Px, Shown};
-use ds_shell::DockTile;
+use ds::components::controls::badge::BadgeContent;
+use ds::prelude::*;
+use ds_core::vocab::Activity;
+use ds_shell::prelude::*;
+use ds_style::icon::family::PlateFamily;
+use ds_style::icon::plate_tint::PlateTint;
+use ds_style::scale::use_scale;
 use sill_model::badges::Badge;
 use sill_model::units::{Cpx, Permille};
 use sill_settings::{DockSettings, Indicators};
@@ -51,7 +56,7 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
     let look = try_use_context::<Signal<TileLook>>().map_or(TileLook::default(), |look| look());
     let cx = IconContext {
         look: look.0,
-        scale: ds::use_scale(),
+        scale: use_scale(),
         resolver: use_icon_resolver(),
     };
     let icon = drawn(tile_art(&item.kind, app), sizes, &cx);

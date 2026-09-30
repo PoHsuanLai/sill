@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use cc_support::fake;
 use cc_support::live::{self, Report};
-use ds::ShortcutKey;
+use ds::prelude::*;
 use sill_model::wifi::{Radio, WifiCommand};
 
 #[test]

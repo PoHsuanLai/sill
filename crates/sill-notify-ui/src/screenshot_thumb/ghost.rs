@@ -3,12 +3,11 @@
 //! contexts, so the appearance it is drawn in travels as its props ([`GhostLook`]).
 
 use dioxus::prelude::*;
-use ds::{
-    Alpha, Appearance, Ds, ImageSize, ImageSource, Material, MaterialStack, RootChrome, RootExtent,
-    SpaceLook, SystemPrefs,
-};
+use ds::components::content::image_source::ImageSize;
+use ds::prelude::*;
 use ds_settings::Environment;
-use ds_shell::ShotGhost;
+use ds_shell::prelude::*;
+use ds_style::material::stack::MaterialStack;
 use shell_host::{DragIcon, HostRoot, Size};
 
 use super::picture::ThumbPicture;

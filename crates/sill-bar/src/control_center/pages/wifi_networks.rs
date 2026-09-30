@@ -8,8 +8,8 @@
 //! `WifiCommand::Scan` when it opens. "Wi-Fi Settings…" at the foot.
 
 use dioxus::prelude::*;
-use ds::{Availability, Check, EmptyState, Icon};
-use ds_shell::PaneHeader;
+use ds::prelude::*;
+use ds_shell::prelude::*;
 use sill_model::attempt::Attempts;
 use sill_model::units::Presence;
 use sill_model::wifi::{
@@ -207,8 +207,8 @@ mod tests {
     use super::{WifiPick, empty_title, joining, network_row, network_rows};
     use crate::control_center::item_phase::{ItemPhase, RowDisc};
     use crate::control_center::rows::RowMark;
-    use ds::Icon;
     use ds::detail::EventStamp;
+    use ds::prelude::*;
     use sill_model::wifi::{AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi};
     use sill_model::{
         attempt::{Attempt, Attempts, OpStamp},

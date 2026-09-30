@@ -3,9 +3,8 @@
 //! through the root context's `sill_ui_kit::links::FocusLink`.
 
 use dioxus::prelude::*;
-use ds::Check;
-use ds::{Icon, TextLine};
-use ds_shell::ModuleTile;
+use ds::prelude::*;
+use ds_shell::prelude::*;
 use sill_settings::FocusMode;
 use sill_ui_kit::links::FocusLink;
 

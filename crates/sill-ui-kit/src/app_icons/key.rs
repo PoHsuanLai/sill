@@ -4,8 +4,8 @@
 
 use std::path::PathBuf;
 
-use ds::Scheme;
 use ds::icon::{IconStyle, Tint};
+use ds::prelude::*;
 
 use crate::app_icons::size::AssetPx;
 
@@ -119,8 +119,8 @@ fn fnv1a(bytes: &[u8]) -> u64 {
 mod tests {
     use super::{IconKey, TintKey, fnv1a};
     use crate::app_icons::size::AssetPx;
-    use ds::Scheme;
     use ds::icon::{IconStyle, Tint};
+    use ds::prelude::*;
     use std::collections::HashSet;
     use std::path::PathBuf;
 

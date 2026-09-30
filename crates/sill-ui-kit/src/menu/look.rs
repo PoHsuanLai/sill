@@ -2,7 +2,9 @@
 //! popup's surface leaves around the menu. A popup is a document of its own and starts no
 //! second settings watch; the opener provides both as root contexts.
 
-use ds::{Alpha, Appearance, MaterialStack, ShellMetrics, SystemPrefs};
+use ds::prelude::*;
+use ds_style::material::stack::MaterialStack;
+use ds_style::tokens::shell_type::ShellMetrics;
 
 /// How a popup's `Ds` root resolves its scheme: the opener's own, handed over.
 #[derive(Debug, Clone, Copy, PartialEq)]

@@ -12,8 +12,11 @@
 //! only while it moves, and an exit's end is quire's card's to call.
 
 use dioxus::prelude::*;
-use ds::{Material, Px, RootChrome, RootExtent, Shown, WakeStamp, use_rect};
-use ds_shell::{WidgetMetrics, WidgetSlotGuide};
+use ds::host::measure::use_rect;
+use ds::prelude::*;
+use ds_motion::wake::WakeStamp;
+use ds_shell::prelude::*;
+use ds_shell::tokens::widgets::WidgetMetrics;
 use shell_host::OutputInfo;
 use sill_settings::WidgetKind;
 

@@ -1,9 +1,9 @@
-//! Bridges shell-host's raw seat modality and surface scale into quire's `ds::HostSignals`, the
+//! Bridges shell-host's raw seat modality and surface scale into quire's `ds::prelude::HostSignals`, the
 //! root context `Ds` reads to stamp `data-modality` (and so decide whether the focus ring shows)
 //! and to size the pixel tokens. shell-host cannot name quire's `ds` crate
 //! (`scripts/check-boundary.sh`), so sill republishes: [`use_host_signals`] reads shell-host's
 //! `use_input_modality()` (one value per seat, shared by every surface) and `use_surface_scale()`
-//! and provides them as `ds::HostSignals` with a `use_effect` (shell-host README, "Consuming:
+//! and provides them as `ds::prelude::HostSignals` with a `use_effect` (shell-host README, "Consuming:
 //! input modality (focus rings)"). It runs once per document root: in `mount` and `mount_lock`
 //! for a surface and in `PopupFrame` for a popup, so every `Ds` root has the same keyboard-only
 //! focus ring and one scale, and no surface calls it by hand. The seat's window activity is not
@@ -16,7 +16,9 @@
 //! the hooks run in the same order on every render.
 
 use dioxus::prelude::*;
-use ds::{Activity, HostSignals, InputModality as DsModality, Scale};
+use ds::prelude::*;
+use ds_core::vocab::Activity;
+use ds_core::vocab::InputModality as DsModality;
 use shell_host::{InputModality as SeatModality, Scale as SeatScale, SurfaceHandle};
 
 /// shell-host's raw modality, as quire's own.
@@ -27,7 +29,7 @@ fn to_ds(modality: SeatModality) -> DsModality {
     }
 }
 
-/// Provides `ds::HostSignals` to this component and everything under it, kept live from
+/// Provides `ds::prelude::HostSignals` to this component and everything under it, kept live from
 /// shell-host's per-seat [`shell_host::use_input_modality`] and the surface's
 /// [`shell_host::use_surface_scale`]. Nothing is provided on a component with no `SurfaceHandle`.
 pub fn use_host_signals() {
@@ -40,7 +42,7 @@ pub fn use_host_signals() {
     }
 }
 
-/// The seat's `modality` and the surface's `scale`, provided as `ds::HostSignals`.
+/// The seat's `modality` and the surface's `scale`, provided as `ds::prelude::HostSignals`.
 pub(super) fn use_republished(modality: ReadSignal<SeatModality>, scale: ReadSignal<SeatScale>) {
     let signals = use_context_provider(|| HostSignals {
         modality: Signal::new(to_ds(*modality.peek())),

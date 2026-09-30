@@ -1,18 +1,23 @@
 //! The effects end of the column: follow the service's banners and the [`BannerLink`] into the
-//! [`deck`](super::deck), carry out what it decides with quire's one timer (`ds::sleep`, for
+//! [`deck`](super::deck), carry out what it decides with quire's one timer (`ds_core::time::clock::sleep`, for
 //! quire's `FRAME_SLACK` or the hold from `notifications.*`, never a literal), turn the card's
 //! presses, hover and swipe and the stack's `on_hidden` into the deck's inputs, and send the
 //! service what a press means (`commands.rs`). Once the last card has gone, no task runs.
 //!
 //! [`BannerLink`]: sill_ui_kit::links::BannerLink
 
+use ds_core::time::clock::sleep;
 use std::collections::BTreeMap;
 use std::time::Duration;
 
 use dioxus::core::{Runtime, ScopeId, Task, current_scope_id};
 use dioxus::prelude::*;
-use ds::{FRAME_SLACK, FocusError, HostSignals, InputModality, Select, focus_by_selector};
-use ds_shell::Hover;
+use ds::focus::select::Select;
+use ds::focus::selector::{FocusError, focus_by_selector};
+use ds::prelude::*;
+use ds_core::time::FRAME_SLACK;
+use ds_core::vocab::InputModality;
+use ds_shell::notifications::parts::Hover;
 use shell_host::{KeyboardMode, SurfaceHandle, SurfaceOp};
 use sill_model::notifications::{
     ActionKey, Activation, ActivationToken, LiveBanner, Notification, NotificationId,
@@ -88,7 +93,7 @@ impl Column {
             DeckOut::Rise(key) => {
                 self.link.peek().appeared(Transient::Banner);
                 spawn(async move {
-                    ds::sleep(FRAME_SLACK).await;
+                    sleep(FRAME_SLACK).await;
                     self.input(DeckIn::Risen(key));
                 });
             }
@@ -151,7 +156,7 @@ impl Column {
         if let Some(at) = self.deck.peek().next_wake() {
             let wait = Duration::from_millis(at.since(now));
             waking.set(Some(spawn(async move {
-                ds::sleep(wait).await;
+                sleep(wait).await;
                 self.input(DeckIn::Tick);
             })));
         }

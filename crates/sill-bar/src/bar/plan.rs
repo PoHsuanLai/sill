@@ -2,8 +2,8 @@
 //! §13.3.2 "one reusable `xdg_popup` per bar; hover switch = `xdg_popup.reposition` + content
 //! swap"), and from what the popup reports back to the machine's inputs. Pure.
 
-use ds::{Availability, MenuItem};
-use ds::{Branch, ItemPath, MenuKey, Pickable, Point};
+use ds::prelude::*;
+use ds::stack::menu_track::types::{Branch, ItemPath, MenuKey, Pickable};
 
 use super::menus::BarMenu;
 use super::pick::BarPick;
@@ -125,7 +125,8 @@ mod tests {
     use crate::bar::menus::BarMenu;
     use crate::bar::pick::BarPick;
     use crate::bar::track::{Event, Target, Track, step, timing};
-    use ds::{MenuPhase, Point, Px};
+    use ds::prelude::*;
+    use ds::stack::menu_track::types::MenuPhase;
     use sill_model::units::Stamp;
 
     /// A bar input: a pointer event on a title or the bar, or what the popup reported.
@@ -371,7 +372,7 @@ mod tests {
 
     #[test]
     fn choices_are_numbered_over_items_only() {
-        use ds::{Availability, MenuItem};
+        use ds::prelude::*;
         let entry = |pick: BarPick, availability| MenuItem::Item {
             value: pick,
             title: String::new(),

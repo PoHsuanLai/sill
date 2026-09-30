@@ -6,7 +6,7 @@
 //! `resolve_stylist` never reads).
 
 use dioxus::prelude::*;
-use ds::{Point, Px};
+use ds::prelude::*;
 use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
 use std::time::Duration;
 

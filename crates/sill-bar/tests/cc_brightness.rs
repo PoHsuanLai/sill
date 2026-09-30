@@ -9,7 +9,7 @@ mod cc_support;
 
 use cc_support::details::{center, center_at, ms};
 
-use ds::{Point, Px};
+use ds::prelude::*;
 use ds_harness::harness::assert_settles_to_zero_frames;
 use ds_harness::{Driver, Harness, Input, Query};
 use sill_model::displays::ddc::Endpoint;

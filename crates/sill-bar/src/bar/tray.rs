@@ -16,9 +16,13 @@
 //! prop at all: `TrayButton` reads it itself instead of receiving it).
 
 use dioxus::prelude::*;
-use ds::ImagePosition;
-use ds::{Check as DsCheck, ChromaLimit, Common, IconSource, MenuItem, Press};
-use ds_shell::MenuBarItem;
+use ds::components::controls::button_model::ImagePosition;
+use ds::prelude::Check as DsCheck;
+use ds::prelude::*;
+use ds::root::common::Common;
+use ds_core::press::Press;
+use ds_shell::prelude::*;
+use ds_style::icon::classify::ChromaLimit;
 use shell_host::{HostRoot, OutputInfo, PopupPlacement, Rect, Size, SurfaceHandle, use_surface};
 use sill_model::tray::{
     Check as TrayCheck, TrayCommand, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind,
@@ -253,8 +257,8 @@ fn to_ds_entry(entry: &TrayMenuEntry) -> MenuItem<i32> {
             key: None,
             check: to_ds_check(*check),
             availability: match enabled {
-                TrayAvailability::Enabled => ds::Availability::Enabled,
-                TrayAvailability::Disabled => ds::Availability::Disabled,
+                TrayAvailability::Enabled => Availability::Enabled,
+                TrayAvailability::Disabled => Availability::Disabled,
             },
         },
     }
@@ -273,6 +277,7 @@ mod tests {
     use super::TrayButtonView;
     use dioxus::core::VirtualDom;
     use dioxus::prelude::*;
+    use ds::prelude::*;
     use ds_lint::{LintConfig, Profile, Rule, markup};
     use sill_model::tray::{TrayIcon, TrayItem, TrayItemId, TrayStatus};
 
@@ -288,7 +293,7 @@ mod tests {
 
     /// Two fake tray entries, the way `Tray`'s own `for` loop would place them.
     fn two_fake_entries((a, b): (TrayItem, TrayItem)) -> Element {
-        let icon = ds::IconSource::Glyph(ds::Icon::Window);
+        let icon = IconSource::Glyph(Icon::Window);
         rsx! {
             TrayButtonView { index: 0usize, item: a, icon: icon.clone(), onclick: move |_| {}, onwheel: move |_| {} }
             TrayButtonView { index: 1usize, item: b, icon, onclick: move |_| {}, onwheel: move |_| {} }

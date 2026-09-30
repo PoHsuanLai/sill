@@ -8,7 +8,7 @@
 
 mod launcher_harness;
 
-use ds::ShortcutKey;
+use ds::prelude::*;
 use ds_harness::{Driver, FocusState, Input, Query};
 use launcher_harness::launcher_support::{self, FIREFOX_WINDOW};
 use launcher_harness::{Press, is_open, open, selected_title, settle};
@@ -90,10 +90,8 @@ fn the_row_under_the_pointer_is_the_selection() {
     while selected_title(&open.harness).as_deref() != Some("Firefox — sill launcher")
         && y < card.origin.y.0 + card.size.height.0
     {
-        open.harness.send(Input::pointer_move(ds::Point {
-            x: ds::Px(x),
-            y: ds::Px(y),
-        }));
+        open.harness
+            .send(Input::pointer_move(Point { x: Px(x), y: Px(y) }));
         open.harness.advance(std::time::Duration::from_millis(20));
         y += 4.0;
     }

@@ -1,17 +1,18 @@
 //! The effects end of one switcher surface: follow the [`SwitcherLink`] for this output, step the
 //! pure [`step`] machine, and carry out what it says. A chord maps the surface (keyboard
 //! `Exclusive`, so it sees the release) and snapshots the apps; the show delay is quire's one timer
-//! (`ds::sleep`); `Activate`, `Quit` and `HideApp` go to `Services.cosmic_wl`; a quit tile folds
+//! (`ds_core::time::clock::sleep`); `Activate`, `Quit` and `HideApp` go to `Services.cosmic_wl`; a quit tile folds
 //! and is dropped at `settle(Anim::Fold)`; the machine back at `Hidden` unmaps at once. Hidden, no
 //! task runs and nothing asks for a frame.
 
+use ds_core::time::clock::sleep;
 use std::time::Duration;
 
 use super::apps::{SwitcherApp, switcher_apps};
 use dioxus::core::Task;
 use dioxus::prelude::*;
-use ds::{Anim, MotionLevel};
-use ds_shell::AppKey;
+use ds::prelude::*;
+use ds_shell::switcher::app_switcher::AppKey;
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_launcher::AppId;
 use sill_ui_kit::services::Services;
@@ -199,7 +200,7 @@ impl SwitcherCtx {
             task.cancel();
         }
         ticking.set(Some(spawn(async move {
-            ds::sleep(Duration::from_millis(ms)).await;
+            sleep(Duration::from_millis(ms)).await;
             let mut ticking = self.ticking;
             ticking.set(None);
             let (state, hold) = (*self.state.peek(), *self.hold.peek());
@@ -214,9 +215,9 @@ impl SwitcherCtx {
             return;
         };
         session.with_mut(|s| *s = s.take().map(|s| s.leave(&app)));
-        let settle = ds::settle(Anim::RowOut, *self.level.peek());
+        let settle = settle(Anim::RowOut, *self.level.peek());
         spawn(async move {
-            ds::sleep(settle).await;
+            sleep(settle).await;
             let mut session = self.session;
             if session.peek().as_ref().map(|s| s.serial) != Some(serial) {
                 return;

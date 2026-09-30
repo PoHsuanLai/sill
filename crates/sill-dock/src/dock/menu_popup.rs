@@ -4,7 +4,7 @@
 //! itself.
 
 use dioxus::prelude::*;
-use ds::MenuItem;
+use ds::prelude::*;
 use shell_host::use_surface;
 use tokio::sync::mpsc;
 

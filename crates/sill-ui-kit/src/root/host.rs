@@ -1,5 +1,7 @@
 //! What a sill process hands shell-host: quire's faces and the pre-paint pass.
 
+use ds_style::fonts::FACES;
+
 /// The pre-paint pass the daemon installs on its host (`HostConfig::prepaint`): quire's
 /// device-pixel layout snap, a no-op at whole scales.
 pub fn prepaint() -> shell_host::Prepaint {
@@ -10,7 +12,7 @@ pub fn prepaint() -> shell_host::Prepaint {
 /// them every document under shell-host falls back to the system face, since none of them is
 /// installed on the system.
 pub fn faces() -> shell_host::FontFaces {
-    shell_host::FontFaces(ds::FACES.iter().map(|face| face.bytes).collect())
+    shell_host::FontFaces(FACES.iter().map(|face| face.bytes).collect())
 }
 
 /// The host configuration every sill process starts from: quire's faces and the pre-paint

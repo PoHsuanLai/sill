@@ -7,6 +7,7 @@
 //! so an idle dock renders nothing. A `Redraw` stamps the time the next render draws at.
 
 use dioxus::prelude::*;
+use ds_core::time::clock::sleep;
 use shell_host::{FrameDrive, HostRoot, SurfaceHandle};
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::badges::Badges;
@@ -305,7 +306,7 @@ fn wake(feed: Option<Callback<DockInput>>, clock: FrameClock, at: Stamp) {
     let Some(feed) = feed else { return };
     let wait = std::time::Duration::from_millis(at.since(clock.now()));
     spawn(async move {
-        ds::sleep(wait).await;
+        sleep(wait).await;
         feed.call(DockInput::Event(DockEvent::Tick));
     });
 }

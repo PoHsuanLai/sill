@@ -1,7 +1,7 @@
 //! Table tests for `layout.rs`.
 
+use ds_shell::prelude::*;
 use ds_shell::widget::{DesktopGrid, GridCell, LayoutError, Order, WidgetAt, WidgetEdit};
-use ds_shell::{WidgetHost, WidgetSize};
 
 use super::{Refused, WidgetKeys, edited, layout_of};
 use crate::widgets::grid::{GridSlot, Placement};
@@ -202,7 +202,7 @@ fn what_cannot_be_placed_is_refused() {
         ..keys()
     };
     let foreign = WidgetEdit::Add {
-        kind: ds_shell::WidgetKind::fixed("org.example.weather"),
+        kind: ds_shell::prelude::WidgetKind::fixed("org.example.weather"),
         size: WidgetSize::Small,
         host: WidgetHost::Tile,
     };
@@ -233,7 +233,7 @@ fn what_cannot_be_placed_is_refused() {
             foreign.clone(),
             keys(),
             GRID,
-            Refused::Foreign(ds_shell::WidgetKind::fixed("org.example.weather")),
+            Refused::Foreign(ds_shell::prelude::WidgetKind::fixed("org.example.weather")),
         ),
         (
             WidgetEdit::Resize(ds_shell::catalog::PlacementId(4), WidgetSize::Medium),

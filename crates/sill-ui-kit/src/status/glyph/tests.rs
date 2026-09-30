@@ -1,11 +1,12 @@
 //! Table tests for the glyph states: every row of quire's status glyph table.
 
 use super::{NetworkGlyph, battery_glyph, bluetooth_glyph_state, network_glyph, volume_glyph};
+use ds::components::content::status::battery_state::{BatteryPower, BatteryState, LowAt};
+use ds::components::content::status::bluetooth_state::BluetoothState;
+use ds::components::content::status::volume::{VolumeState, VolumeWaves};
+use ds::components::content::status::wifi_state::{WifiBars, WifiReach, WifiState};
 use ds::detail::EventStamp;
-use ds::{
-    BatteryPower, BatteryState, BluetoothState, Fraction, Icon, LowAt, VolumeState, VolumeWaves,
-    WifiBars, WifiReach, WifiState,
-};
+use ds::prelude::*;
 use sill_model::attempt::{Attempt, Attempts, OpStamp};
 use sill_model::battery::{Battery, Charge};
 use sill_model::bluetooth::{

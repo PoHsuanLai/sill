@@ -5,7 +5,7 @@
 use ds_harness::{Driver, FocusState, Input, Query};
 use std::time::Duration;
 
-use ds::ShortcutKey;
+use ds::prelude::*;
 use sill_model::screenshots::ShotLeave;
 use sill_settings::ShellFile;
 

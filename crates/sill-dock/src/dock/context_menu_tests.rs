@@ -6,7 +6,7 @@ use super::{
 use crate::dock::items::{DockItem, ItemKind};
 use crate::dock::machine::{TileApp, TileId};
 use crate::dock::pick::DockPick;
-use ds::{Check, MenuItem};
+use ds::prelude::*;
 use sill_launcher::{AppId, WindowKey};
 use sill_model::apps::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing, Terminal};
 use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};

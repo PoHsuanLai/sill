@@ -6,9 +6,11 @@ use std::cell::RefCell;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::{Alpha, Appearance, Availability, MaterialStack, MenuItem, ShellMetrics};
+use ds::prelude::*;
 use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
 use ds_settings::UserStyle;
+use ds_style::material::stack::MaterialStack;
+use ds_style::tokens::shell_type::ShellMetrics;
 use sill_settings::ShellFile;
 
 use crate::settings::SettingsFeed;
@@ -69,7 +71,7 @@ const STYLE: &str = ".ds-popover { color: red }";
 fn provide_popup_contexts() {
     use_context_provider(|| PopupLook {
         appearance: Appearance::default(),
-        system: ds::SystemPrefs::default(),
+        system: SystemPrefs::default(),
         tint: Alpha(800),
         metrics: ShellMetrics::default(),
         stack: MaterialStack::default(),

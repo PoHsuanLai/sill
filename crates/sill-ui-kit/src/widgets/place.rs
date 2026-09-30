@@ -1,8 +1,9 @@
 //! Where a widget's card is drawn and how big it is there.
 
 use dioxus::prelude::EventHandler;
-use ds::Shown;
-use ds_shell::{Lift, WidgetHost, WidgetSize};
+use ds::prelude::*;
+use ds_shell::prelude::*;
+use ds_shell::widget::kind::Lift;
 use sill_settings::WidgetKind;
 
 use super::{OnProvider, WidgetProvider, with_provider};

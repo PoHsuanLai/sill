@@ -1,7 +1,8 @@
 use super::{IconContext, TileArt, TileSizes, drawn, tile_art};
 use crate::dock::items::ItemKind;
 use ds::icon::{IconStyle, Tint};
-use ds::{Icon, IconPx, IconSize, IconSource, Scale};
+use ds::prelude::*;
+use ds_style::icon::render::IconPx;
 use sill_launcher::AppId;
 use sill_model::apps::{App, AppIcon, DbusActivation, Listing, Terminal};
 use sill_settings::{DockSettings, Magnification};
@@ -77,7 +78,7 @@ fn cx(style: IconStyle, scale: u32) -> IconContext {
                 hue: 268.0,
                 chroma: 0.06,
             },
-            scheme: ds::Scheme::Light,
+            scheme: Scheme::Light,
         },
         scale: Scale(scale),
         resolver: IconResolver {

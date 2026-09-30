@@ -8,7 +8,9 @@
 use std::rc::Rc;
 
 use dioxus::prelude::*;
-use ds::{DocumentHost, FRAME_SLACK, Measured, sleep, use_document_host};
+use ds::prelude::*;
+use ds_core::time::FRAME_SLACK;
+use ds_core::time::clock::sleep;
 use shell_host::{RegionSpec, SurfaceHandle, use_watch};
 
 use crate::launcher::hit::{ActionsShown, hit_for, panel_input};

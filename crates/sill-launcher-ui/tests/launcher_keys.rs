@@ -7,7 +7,7 @@
 
 mod launcher_harness;
 
-use ds::ShortcutKey;
+use ds::prelude::*;
 use ds_harness::{Driver, Input, Query};
 use launcher_harness::launcher_support::{self, FIREFOX_WINDOW};
 use launcher_harness::{is_open, open, settle, titles};

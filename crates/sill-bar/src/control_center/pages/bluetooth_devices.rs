@@ -8,8 +8,8 @@
 //! ("Bluetooth Settings…" at the foot).
 
 use dioxus::prelude::*;
-use ds::{Availability, Check, EmptyState, Icon};
-use ds_shell::PaneHeader;
+use ds::prelude::*;
+use ds_shell::prelude::*;
 use sill_model::attempt::Attempts;
 use sill_model::bluetooth::{
     Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,
@@ -185,8 +185,8 @@ mod tests {
     use super::{connecting, device_row, device_rows, empty_title};
     use crate::control_center::item_phase::{ItemPhase, RowDisc};
     use crate::control_center::rows::RowMark;
-    use ds::Availability;
     use ds::detail::EventStamp;
+    use ds::prelude::*;
     use sill_model::bluetooth::{
         Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection, BtDevice, BtKind,
         BtPairing, BtPower,

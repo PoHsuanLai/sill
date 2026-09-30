@@ -6,7 +6,8 @@
 //! surface.
 
 use dioxus::prelude::*;
-use ds::{Material, Px, Shown, SidePanel, WakeStamp};
+use ds::prelude::*;
+use ds_motion::wake::WakeStamp;
 use shell_host::OutputId;
 
 use super::contents::Contents;

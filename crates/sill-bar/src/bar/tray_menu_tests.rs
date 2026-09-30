@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::{Availability, MenuItem};
+use ds::prelude::*;
 use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
 
 use super::{INSET, TrayMenuDocument};
@@ -81,7 +81,7 @@ fn a_key_turns_the_tray_menus_ring_on_and_a_hover_keeps_it() {
     harness.advance(Duration::from_millis(300));
     let modality = |harness: &Harness| harness.attr(".ds", "data-modality");
     assert_eq!(modality(&harness).as_deref(), Some("pointer"), "at first");
-    harness.send(Input::key(ds::ShortcutKey::Down));
+    harness.send(Input::key(ShortcutKey::Down));
     harness.advance(Duration::from_millis(300));
     assert_eq!(
         modality(&harness).as_deref(),

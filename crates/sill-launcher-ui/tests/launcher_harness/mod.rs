@@ -13,7 +13,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::ShortcutKey;
+use ds::prelude::*;
 use ds_harness::harness::settle_until;
 use ds_harness::{Driver, Harness, Input, Query};
 use launcher_support::{LauncherFeeds, Runner, fake};

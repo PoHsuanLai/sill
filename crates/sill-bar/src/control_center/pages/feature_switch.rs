@@ -2,7 +2,8 @@
 //! button's handler as quire's `PaneHeader` takes it.
 
 use dioxus::prelude::*;
-use ds::{Availability, Check, Press, Toggle};
+use ds::prelude::*;
+use ds_core::press::Press;
 
 /// The feature's switch, named `title`, at `state` (a mixed state reads as on).
 #[component]

@@ -11,10 +11,10 @@
 //! key), Tab, Shift+Tab, Ctrl+K and Alt+K from its `onkey` (after).
 
 use dioxus::prelude::*;
-use ds::{
-    Anchor, CommandPalette, CommandPaletteHost, Corner, FieldKey, IconSource, ImageSource, Menu,
-    MenuPlacement, Point, Px, Rect, RowLeading,
-};
+use ds::components::menus::palette::palette_claim::FieldKey;
+use ds::host::measure::Anchor;
+use ds::prelude::*;
+use ds_style::tokens::shape::Corner;
 use shell_host::OutputInfo;
 use sill_launcher::{ActionId, ClipKey, Item, Preview, Section, preview_for};
 use sill_search::preview::clip_image;
@@ -97,7 +97,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
             &environment.settings.icons,
             &look,
             appearance.accent,
-            ds::resolve(appearance, look.theme, environment.system).scheme,
+            resolve(appearance, look.theme, environment.system).scheme,
         ),
         scale: use_host_scale(),
         resolver: use_icon_resolver(),
@@ -167,7 +167,7 @@ pub(crate) struct Aside {
     actions: Vec<sill_launcher::Action>,
     icon: Option<IconSource>,
     focused: Option<usize>,
-    shown: ds::Shown,
+    shown: ds::prelude::Shown,
     serial: sill_ui_kit::links::OpenSerial,
     touch: ds::detail::Touch,
 }
@@ -204,7 +204,7 @@ fn use_aside(
                     PaneFocus::Pane(index) => Some(index),
                     PaneFocus::Results => None,
                 },
-                shown: ds::Shown::Visible,
+                shown: ds::prelude::Shown::Visible,
                 serial: shown.session.serial,
                 touch,
             };
@@ -216,7 +216,7 @@ fn use_aside(
             .clone()
             .filter(|leaving| leaving.serial == shown.session.serial)
             .map(|leaving| Aside {
-                shown: ds::Shown::Hidden,
+                shown: ds::prelude::Shown::Hidden,
                 focused: None,
                 touch,
                 ..leaving
@@ -373,7 +373,7 @@ fn now() -> sill_launcher::UnixTime {
 /// scale, and the icon cache.
 struct RowIcons {
     look: IconLook,
-    scale: ds::Scale,
+    scale: Scale,
     resolver: sill_ui_kit::app_icons::IconResolver,
 }
 
@@ -400,7 +400,7 @@ pub fn empty_text(query: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{empty_text, measured};
-    use ds::{Material, Point, Px, Rect, Size};
+    use ds::prelude::*;
     use sill_settings::PanelMaterial;
     use sill_ui_kit::shell_style::material;
 

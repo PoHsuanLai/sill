@@ -4,8 +4,12 @@
 //! hold machine (`step.rs`) only decides when the card is shown.
 
 use dioxus::prelude::*;
-use ds::{Common, LevelStyle, Material, Px, RootChrome, Shown};
-use ds_shell::{Osd, OsdMetrics, OsdPosition};
+use ds::components::controls::level_indicator::LevelStyle;
+use ds::prelude::*;
+use ds::root::common::Common;
+use ds_shell::osd::OsdPosition;
+use ds_shell::prelude::*;
+use ds_shell::tokens::osd::OsdMetrics;
 use shell_host::{OutputInfo, Visibility};
 use sill_model::ids::OutputName;
 
@@ -24,7 +28,7 @@ pub const OSD_CSS: &str = include_str!("style.css");
 /// this is the one place.
 const LOOK: LevelStyle = LevelStyle::Continuous;
 
-/// `sill_settings::OsdPosition` as quire's `ds_shell::OsdPosition`.
+/// `sill_settings::OsdPosition` as quire's `ds_shell::osd::OsdPosition`.
 fn position_of(position: sill_settings::OsdPosition) -> OsdPosition {
     match position {
         sill_settings::OsdPosition::TopRight => OsdPosition::TopRight,

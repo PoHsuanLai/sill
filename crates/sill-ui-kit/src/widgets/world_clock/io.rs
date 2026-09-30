@@ -1,5 +1,6 @@
 //! The world clocks' feed, from the clock service.
 
+use ds_shell::widget::clock::WorldClockWidget;
 use jiff::Timestamp;
 use jiff::tz::TimeZone;
 use sill_services::ClockService;
@@ -14,11 +15,11 @@ use crate::widgets::{Feed, WidgetKind, WidgetProvider, WidgetSize};
 pub struct WorldClockProvider;
 
 impl WidgetProvider for WorldClockProvider {
-    type W = ds_shell::WorldClockWidget;
+    type W = WorldClockWidget;
     const KIND: WidgetKind = WidgetKind::WorldClock;
     const DESKTOP_SIZE: WidgetSize = WidgetSize::Medium;
 
-    fn use_feed() -> Feed<ds_shell::WorldClockWidget> {
+    fn use_feed() -> Feed<WorldClockWidget> {
         let _minute = use_service::<ClockService>()();
         let zones = parse_zones(&use_settings()().widgets.world_clocks);
         Feed {

@@ -7,7 +7,7 @@
 
 use std::time::Duration;
 
-use ds::ShortcutKey;
+use ds::prelude::*;
 use ds_harness::{Driver, FocusState, Harness, Input, Query, Viewport};
 use sill_launcher::{AppId, WindowKey};
 use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
@@ -284,9 +284,9 @@ fn hover_selects_and_a_click_activates() {
         .harness
         .rect(".ds-switcher-cell")
         .expect("the tiles are laid out"); // test-only
-    let at = ds::Point {
-        x: ds::Px(first.origin.x.0 + 2.0 * 120.0 + first.size.width.0 / 2.0),
-        y: ds::Px(first.origin.y.0 + first.size.height.0 / 2.0),
+    let at = Point {
+        x: Px(first.origin.x.0 + 2.0 * 120.0 + first.size.width.0 / 2.0),
+        y: Px(first.origin.y.0 + first.size.height.0 / 2.0),
     };
     running.harness.send(Input::pointer_move(at));
     wait(&mut running, 20);

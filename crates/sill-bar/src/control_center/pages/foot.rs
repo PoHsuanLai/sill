@@ -3,9 +3,9 @@
 //! the panel.
 
 use dioxus::prelude::*;
-use ds::Bezel;
-use ds::Button;
-use ds_shell::PaneFooter;
+use ds::components::controls::button_model::Bezel;
+use ds::prelude::*;
+use ds_shell::prelude::*;
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::launch::{LaunchCommand, LaunchRequest};
 use sill_services::LaunchService;

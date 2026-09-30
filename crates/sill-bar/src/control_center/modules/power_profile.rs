@@ -4,8 +4,9 @@
 //! when power-profiles-daemon is. Reads `use_service::<PowerProfileService>`.
 
 use dioxus::prelude::*;
-use ds::{Choice, ControlSize, Tracking};
-use ds::{SectionHeader, SegmentedControl};
+use ds::components::controls::segmented::Tracking;
+use ds::prelude::*;
+use ds_style::tokens::control_size::ControlSize;
 use sill_model::power_profile::{Profile, ProfileCommand, ProfileDegraded};
 use sill_model::units::Presence;
 use sill_services::PowerProfileService;

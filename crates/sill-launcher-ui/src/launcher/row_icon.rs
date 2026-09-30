@@ -7,7 +7,8 @@
 
 use std::path::{Path, PathBuf};
 
-use ds::{ExternalIcon, IconSize, IconSource, IconUrl, RowLeading};
+use ds::prelude::*;
+use ds_style::icon::url::IconUrl;
 use sill_launcher::{IconRef, Item};
 
 use crate::launcher::entries::glyph;
@@ -73,7 +74,7 @@ fn external(path: &Path) -> Option<ExternalIcon> {
 mod tests {
     use super::{RowArt, row_art, row_tile};
     use ds::icon::{IconStyle, Tint};
-    use ds::{Icon, IconSource, RowLeading, Scale};
+    use ds::prelude::*;
     use sill_launcher::{IconRef, Item, ItemId, ProviderKind, Score};
     use sill_ui_kit::app_icons::cache::Generation;
     use sill_ui_kit::app_icons::{IconContext, IconLook, IconResolver};
@@ -137,7 +138,7 @@ mod tests {
             look: IconLook {
                 style,
                 tint: Tint::NEUTRAL,
-                scheme: ds::Scheme::Light,
+                scheme: Scheme::Light,
             },
             scale: Scale(scale),
             resolver: IconResolver {

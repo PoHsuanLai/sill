@@ -10,10 +10,8 @@
 
 use std::path::Path;
 
-use ds::{
-    Accessory, ExternalIcon, Icon, IconSize, IconSource, IconUrl, MenuItem, RowChord, RowLeading,
-    Shortcut,
-};
+use ds::prelude::*;
+use ds_style::icon::url::IconUrl;
 use sill_launcher::{Action, ActionId, IconRef, Item, ItemId, ProviderKind};
 
 use crate::launcher::chord_keys::action_shortcut;
@@ -67,8 +65,8 @@ pub(crate) fn row_chord(item: &Item) -> RowChord {
         .find_map(|action| action_shortcut(&action.keys));
     let keys = match (first, item.actions.is_empty()) {
         (Some(chord), _) => chord,
-        (None, false) => Shortcut(vec![ds::ShortcutKey::Ctrl, ds::ShortcutKey::Char('k')]),
-        (None, true) => Shortcut(vec![ds::ShortcutKey::Enter]),
+        (None, false) => Shortcut(vec![ShortcutKey::Ctrl, ShortcutKey::Char('k')]),
+        (None, true) => Shortcut(vec![ShortcutKey::Enter]),
     };
     RowChord::on_selected(keys)
 }
@@ -173,7 +171,8 @@ mod tests {
     use super::{RowRef, glyph, kebab, kind_trail, named, row_chord, tile};
     use crate::launcher::chord_keys::shortcut;
     use crate::launcher::groups::Mix;
-    use ds::{Accessory, ChordShown, Icon, RowChord, Shortcut};
+    use ds::components::lists::row::chord::ChordShown;
+    use ds::prelude::*;
     use sill_launcher::{
         Action, ActionId, ActionKeys, IconRef, Item, ItemId, ProviderKind, Score, chords,
     };
@@ -202,11 +201,9 @@ mod tests {
     /// in a mixed section.
     #[test]
     fn rows_carry_their_chord_for_the_selection_and_only_data_trails() {
-        let enter = RowChord::on_selected(Shortcut(vec![ds::ShortcutKey::Enter]));
-        let ctrl_k = RowChord::on_selected(Shortcut(vec![
-            ds::ShortcutKey::Ctrl,
-            ds::ShortcutKey::Char('k'),
-        ]));
+        let enter = RowChord::on_selected(Shortcut(vec![ShortcutKey::Enter]));
+        let ctrl_k =
+            RowChord::on_selected(Shortcut(vec![ShortcutKey::Ctrl, ShortcutKey::Char('k')]));
         let firefox = item(ProviderKind::Apps, "Firefox", 2);
         let mail = item(ProviderKind::Windows, "Mail", 0);
         assert_eq!(row_chord(&firefox), ctrl_k);
@@ -241,7 +238,7 @@ mod tests {
     fn rows_carry_their_identity_and_glyph() {
         let lock = item(ProviderKind::System, "Lock", 0);
         assert_eq!(RowRef::of(&lock).id, lock.id);
-        assert_eq!(tile(&lock), ds::RowLeading::Icon(Icon::Power));
+        assert_eq!(tile(&lock), RowLeading::Icon(Icon::Power));
     }
 
     #[test]
@@ -261,7 +258,7 @@ mod tests {
 
     #[test]
     fn a_resolved_icon_file_is_the_rows_tile() {
-        use ds::{IconSize, IconSource, RowLeading};
+        use ds::prelude::*;
         let mut app = item(ProviderKind::Apps, "Firefox", 0);
         let word = |tile: RowLeading| match tile {
             RowLeading::Source(IconSource::Image(e)) => {

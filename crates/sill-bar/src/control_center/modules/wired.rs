@@ -2,7 +2,7 @@
 //! Sound and Display dropdowns draw.
 
 use dioxus::prelude::*;
-use ds::{Availability, Fraction};
+use ds::prelude::*;
 use sill_model::displays::{BrightnessTarget, Displays, DisplaysCommand, Following};
 use sill_model::ids::OutputName;
 use sill_model::units::{Percent, Presence};
@@ -120,7 +120,7 @@ pub(crate) fn percent_of(fraction: Fraction) -> Percent {
 #[cfg(test)]
 mod tests {
     use super::{brightness_of, fraction_of, percent_of, set_brightness, sound_of};
-    use ds::{Availability, Fraction};
+    use ds::prelude::*;
     use sill_model::displays::{Displays, DisplaysCommand};
     use sill_model::volume::{Mute, Volume};
     use sill_model::{

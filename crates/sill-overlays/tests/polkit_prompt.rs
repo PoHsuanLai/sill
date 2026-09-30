@@ -6,7 +6,7 @@
 
 use std::time::Duration;
 
-use ds::ShortcutKey;
+use ds::prelude::*;
 use ds_harness::{Driver, Harness, Input, Query, Viewport};
 use shell_host::OutputId;
 use sill_model::auth::UserName;

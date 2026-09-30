@@ -1,7 +1,8 @@
 use jiff::civil::date;
 use jiff::tz::TimeZone;
 
-use ds_shell::{ClockCity, ClockEntry, DayPhase};
+use ds_shell::clock::kind::DayPhase;
+use ds_shell::widget::clock::{ClockCity, ClockEntry};
 
 use super::provider::{clock_time, offset_text};
 use super::{ClockRow, ZoneName, clock_entry, clock_rows, parse_zones, phase_of};
