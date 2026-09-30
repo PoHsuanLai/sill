@@ -20,6 +20,7 @@ pub use parts::{CardPart, part_id};
 pub use view::{use_app_mark, wall_now};
 
 use dioxus::prelude::*;
+use ds::Common;
 use ds_shell::{Hover, NotificationSwipe};
 use sill_model::notifications::{ActionKey, Href, Notification, UnixMs};
 
@@ -46,7 +47,8 @@ pub enum CardPress {
 
 /// `note` as a card; `count` notifications stand behind it (1: no chip, no layers). `id` names
 /// quire's plate for a region (a banner's `toast-<id>`); `swipe` lets a drag dismiss it;
-/// `on_hover` hears the pointer come and go.
+/// `on_hover` hears the pointer come and go; `common` puts the caller's own data on the card's
+/// root (a list's keyboard ring).
 #[component]
 pub fn NoteCard(
     note: Notification,
@@ -57,6 +59,7 @@ pub fn NoteCard(
     #[props(default)] swipe: NotificationSwipe,
     #[props(default)] on_hover: Option<EventHandler<Hover>>,
     on_press: EventHandler<CardPress>,
+    #[props(default)] common: Common,
 ) -> Element {
     view::card(
         note,
@@ -64,7 +67,7 @@ pub fn NoteCard(
         place,
         now,
         view::CardWiring {
-            id,
+            common: Common { id, ..common },
             swipe,
             on_hover,
             on_press,

@@ -37,7 +37,7 @@ pub fn wall_now() -> UnixMs {
 /// What a card is told beyond its notification.
 #[derive(Clone, PartialEq)]
 pub(super) struct CardWiring {
-    pub id: Option<String>,
+    pub common: Common,
     pub swipe: NotificationSwipe,
     pub on_hover: Option<EventHandler<Hover>>,
     pub on_press: EventHandler<CardPress>,
@@ -72,7 +72,7 @@ pub(super) fn card(
                 on_hover: wiring.on_hover,
                 material,
                 icon_size: side,
-                common: Common { id: wiring.id, ..Common::default() },
+                common: wiring.common,
                 swipe: wiring.swipe,
                 swipe_metrics,
             }

@@ -1,4 +1,4 @@
-//! Which rows the center still draws: the ones it lists, and the ones quire's `LeavingList` is
+//! Which rows the center still draws: the ones it lists, and the ones quire's `List` is
 //! still folding away after the model dropped them. The empty state ("No Notifications") waits
 //! for the last of them to settle, so after Clear All it takes the column's place once the rows
 //! have folded rather than under them.

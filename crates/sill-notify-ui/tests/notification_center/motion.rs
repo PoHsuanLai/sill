@@ -1,5 +1,5 @@
 //! The notification center's list motion (design/26 5.4, design/20 1.6), on the
-//! virtual clock with a pinned appearance: the center's rows are one quire `LeavingList`. They
+//! virtual clock with a pinned appearance: the center's rows are one quire `List`. They
 //! are there as the center opens; the cards an opened group adds enter; "Show less", Clear and
 //! Clear All fade the rows the model dropped and the rows below close the gap; an arrival
 //! while the center is open enters. Every one of them ends at rest, asking for no frame.
@@ -174,7 +174,7 @@ fn clear_fades_the_group_and_the_groups_below_close_the_gap() {
     assert_eq!(rows(&running.harness), 2);
     assert!(heal_distance(&running.harness) > 60.0, "Chat heals up");
     assert_settles_to_zero_frames(&mut running.harness);
-    assert_eq!(running.harness.count(".sill-nc-group-head"), 1);
+    assert_eq!(running.harness.count(".ds-group-header"), 1);
 }
 
 #[test]
@@ -195,12 +195,12 @@ fn clear_all_fades_every_row_together_then_says_the_list_is_empty() {
         .send_modify(|n| n.history = History::default());
     until(&mut running, |h| rows_in(h, "leaving") == 4);
     let h = &running.harness;
-    assert_eq!(h.count(".sill-nc-empty"), 0, "not under the leaving rows");
+    assert_eq!(h.count(".ds-empty-state"), 0, "not under the leaving rows");
     let styles: Vec<Option<String>> = (1..=4)
         .map(|n| h.attr(&format!("{ROW}:nth-child({n})"), "style"))
         .collect();
     assert_eq!(styles, vec![None; 4], "all together, none after another");
-    until(&mut running, |h| h.count(".sill-nc-empty") == 1);
+    until(&mut running, |h| h.count(".ds-empty-state") == 1);
     assert_eq!(rows(&running.harness), 0);
     assert_settles_to_zero_frames(&mut running.harness);
     // Clear All went with the history; the column has the keyboard again.

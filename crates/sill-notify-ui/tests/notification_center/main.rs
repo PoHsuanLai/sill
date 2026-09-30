@@ -141,9 +141,8 @@ pub fn two_apps() -> History {
 /// The one row (card or group header) that carries the keyboard's ring, as its card's stack
 /// size or `head`; `None` without a ring.
 pub fn ringed(harness: &Harness) -> Option<String> {
-    match harness.count(".sill-nc-row[*|data-focus=ring]") {
-        1 => harness.attr(".sill-nc-row[*|data-focus=ring]", "data-stack"),
-        _ => (harness.count(".sill-nc-group-head[*|data-focus=ring]") == 1)
-            .then(|| "head".to_owned()),
+    match harness.count(".ds-notification[*|data-focus=ring]") {
+        1 => harness.attr(".ds-notification[*|data-focus=ring]", "data-stack"),
+        _ => (harness.count(".ds-group-header[*|data-focus=ring]") == 1).then(|| "head".to_owned()),
     }
 }

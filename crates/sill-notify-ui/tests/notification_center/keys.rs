@@ -42,7 +42,7 @@ fn return_opens_a_group_then_invokes_a_lone_card_and_closes() {
     running.harness.send(Input::key(ShortcutKey::Down));
     running.harness.send(Input::key(ShortcutKey::Enter));
     advance(&mut running, 40);
-    assert_eq!(running.harness.count(".sill-nc-row"), 4, "Mail opened");
+    assert_eq!(running.harness.count(".ds-notification"), 4, "Mail opened");
     assert!(commands(&mut running).is_empty());
     running.harness.send(Input::key(ShortcutKey::Down));
     running.harness.send(Input::key(ShortcutKey::Enter));
@@ -65,7 +65,11 @@ fn return_on_a_stack_opens_it() {
     running.harness.send(Input::key(ShortcutKey::Down));
     running.harness.send(Input::key(ShortcutKey::Enter));
     advance(&mut running, 40);
-    assert_eq!(running.harness.count(".sill-nc-row"), 4, "the stack opened");
+    assert_eq!(
+        running.harness.count(".ds-notification"),
+        4,
+        "the stack opened"
+    );
     assert!(commands(&mut running).is_empty());
 }
 

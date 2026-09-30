@@ -35,7 +35,7 @@ fn a_key_turns_the_centers_ring_on_and_a_press_turns_it_off() {
     );
     let title = running
         .harness
-        .centre(".sill-nc-title")
+        .centre(".sill-nc-head .ds-label")
         .expect("the title is laid out"); // test-only
     running.harness.send(Input::click(title));
     advance(&mut running, 20);

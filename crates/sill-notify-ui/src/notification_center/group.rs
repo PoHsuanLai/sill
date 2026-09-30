@@ -2,11 +2,11 @@
 //! header (quire's `GroupHeader`: the app's icon and name, the count, "N more" or "Show less",
 //! Clear) keyed by its `AppKey`, or a card (quire's `NotificationCard` through [`NoteCard`], the
 //! newest stacked over the rest while folded) keyed by its `NotificationId`. The keyboard's
-//! ring is drawn round the header or the card it is on. The gap between rows is the row's own
-//! padding (`.sill-nc-item`), never the list's.
+//! ring is quire's: the header or card it is on carries `data-focus=ring`. The gap between rows
+//! is the row's own padding (`.sill-nc-item`), never the list's.
 
 use dioxus::prelude::*;
-use ds::{IconSize, ListItem};
+use ds::{Common, DataAttr, DataName, IconSize, ListItem};
 use ds_shell::GroupHeader;
 use sill_model::notifications::{AppGroup, History, Notification, UnixMs};
 
@@ -67,15 +67,14 @@ fn HeadRow(group: AppGroup, expanded: ds::Shown, ring: Ring) -> Element {
     let (toggle, clear) = (ctx.clone(), ctx);
     let (open, gone) = (group.key.clone(), group.key);
     rsx! {
-        div { class: "sill-nc-group-head", "data-focus": ring.attribute(),
-            GroupHeader {
-                icon: mark.icon,
-                name: mark.name,
-                count,
-                expanded,
-                on_toggle: move |_| toggle.act(RowAct::Toggle(open.clone()), None),
-                on_clear: move |_| clear.act(RowAct::Clear(gone.clone()), None),
-            }
+        GroupHeader {
+            icon: mark.icon,
+            name: mark.name,
+            count,
+            expanded,
+            on_toggle: move |_| toggle.act(RowAct::Toggle(open.clone()), None),
+            on_clear: move |_| clear.act(RowAct::Clear(gone.clone()), None),
+            common: row_data(ring, None),
         }
     }
 }
@@ -120,21 +119,32 @@ fn CardRow(note: Notification, row: CenterRow, ring: Ring, now: UnixMs) -> Eleme
     let stack = row.stack_count();
     let app = note.app.desktop_entry.clone();
     rsx! {
-        div {
-            class: "sill-nc-row",
-            "data-focus": ring.attribute(),
-            "data-stack": stack,
-            NoteCard {
-                note,
-                count: stack,
-                place: CardPlace::Center,
-                now,
-                on_press: move |card: CardPress| {
-                    if let Some(act) = press(&row, card) {
-                        ctx.act(act, app.clone());
-                    }
-                },
-            }
+        NoteCard {
+            note,
+            count: stack,
+            place: CardPlace::Center,
+            now,
+            common: row_data(ring, Some(stack)),
+            on_press: move |card: CardPress| {
+                if let Some(act) = press(&row, card) {
+                    ctx.act(act, app.clone());
+                }
+            },
         }
+    }
+}
+
+/// The data the list's owner writes on a row's root: the keyboard's ring, and how many stand
+/// behind a card.
+fn row_data(ring: Ring, stack: Option<usize>) -> Common {
+    let focus = DataName::parse("focus").map(|name| DataAttr::new(name, ring.attribute()));
+    let stacked = stack.and_then(|count| {
+        DataName::parse("stack")
+            .ok()
+            .map(|name| DataAttr::new(name, count.to_string()))
+    });
+    Common {
+        data: focus.into_iter().chain(stacked).collect(),
+        ..Common::default()
     }
 }

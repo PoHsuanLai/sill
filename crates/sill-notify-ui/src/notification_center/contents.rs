@@ -13,7 +13,7 @@ use ds::Bezel;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
-use ds::{Button, List, ListItem};
+use ds::{Button, EmptyState, Icon, Label, LabelRole, LabelStyle, List, ListItem};
 use shell_host::OutputId;
 use sill_model::notifications::{History, UnixMs};
 
@@ -76,7 +76,7 @@ pub(super) fn Contents(output: OutputId) -> Element {
                 }
             },
             div { class: "sill-nc-head",
-                span { class: "sill-nc-title", {TITLE} }
+                Label { text: TITLE, style: LabelStyle::Title }
                 if !history.groups.is_empty() {
                     Button {
                         bezel: Bezel::Inline,
@@ -87,7 +87,7 @@ pub(super) fn Contents(output: OutputId) -> Element {
             }
             div { class: "sill-nc-list",
                 if drawn.rows() == Rows::None {
-                    div { class: "sill-nc-empty", {EMPTY} }
+                    EmptyState { title: EMPTY, icon: Icon::Bell }
                 }
                 List::<RowKey> {
                     label: TITLE.to_owned(),
@@ -99,7 +99,9 @@ pub(super) fn Contents(output: OutputId) -> Element {
                 }
             }
             if let Some(line) = server_line(&server) {
-                div { class: "sill-nc-foot", {line} }
+                div { class: "sill-nc-foot",
+                    Label { text: line, role: LabelRole::Tertiary, style: LabelStyle::Footnote }
+                }
             }
             div { class: "sill-nc-widgets", CenterWidgets { output } }
         }

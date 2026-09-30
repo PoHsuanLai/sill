@@ -38,7 +38,7 @@ pub enum CenterRow {
     },
 }
 
-/// What a row is, for the center's `LeavingList`: a header by its group, a card by its
+/// What a row is, for the center's `List`: a header by its group, a card by its
 /// notification. Not by its `Stack`, which changes as the group folds, so the newest card stays
 /// put when a group opens or closes.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
