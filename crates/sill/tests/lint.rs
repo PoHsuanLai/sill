@@ -8,6 +8,7 @@ use std::time::Duration;
 use ds_lint::{LintConfig, Profile, markup, stylesheet};
 use sill_dock::Dock;
 use sill_launcher::WindowKey;
+use sill_launcher_ui::{Launcher, LauncherCatcher};
 use sill_model::auth::UserName;
 use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, WindowState};
 use sill_model::idle::{DimLevel, DimShown, Idle, IdleMode, IdlePhase};
@@ -25,13 +26,13 @@ use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
 use sill_settings::{AutoHide, ShellFile};
+use sill_ui_kit::Bar;
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
     BannerLink, BannerOutput, CenterLink, ControlCenterLink, Dir, EditWidgetsLink, LauncherLink,
     LevelSource, LockLink, OsdKind, OsdLink, PlacementFile, PowerMenuLink, Preselect, PromptOutput,
     SwitcherAsk, SwitcherLink,
 };
-use sill_ui_kit::{Bar, Launcher, LauncherCatcher};
 use sill_widgets_ui::{DesktopWidgets, EditWidgets};
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
@@ -56,12 +57,12 @@ const SURFACES: &[SurfaceCase] = &[
     },
     SurfaceCase {
         name: "launcher",
-        css: sill_ui_kit::surfaces::launcher::LAUNCHER_CSS,
+        css: sill_launcher_ui::launcher::LAUNCHER_CSS,
         states: launcher_states,
     },
     SurfaceCase {
         name: "launcher_catcher",
-        css: sill_ui_kit::surfaces::launcher::LAUNCHER_CSS,
+        css: sill_launcher_ui::launcher::LAUNCHER_CSS,
         states: launcher_catcher_states,
     },
     SurfaceCase {

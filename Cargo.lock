@@ -5353,6 +5353,7 @@ dependencies = [
  "sill-dock",
  "sill-ipc",
  "sill-launcher",
+ "sill-launcher-ui",
  "sill-model",
  "sill-notify-ui",
  "sill-overlays",
@@ -5403,6 +5404,29 @@ dependencies = [
  "nucleo-matcher",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "sill-launcher-ui"
+version = "0.1.0"
+dependencies = [
+ "dioxus",
+ "dioxus-ssr",
+ "dirs 6.0.0",
+ "ds",
+ "ds-lint",
+ "ds-native",
+ "ds-shell",
+ "image",
+ "jiff",
+ "shell-host",
+ "sill-launcher",
+ "sill-model",
+ "sill-search",
+ "sill-services",
+ "sill-settings",
+ "sill-ui-kit",
+ "tokio",
 ]
 
 [[package]]

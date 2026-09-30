@@ -9,12 +9,12 @@ use shell_host::{CloseReason, HostCtx, HostEvent, KeyboardFocus, SurfaceId, Surf
 use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
+use sill_launcher_ui::Launcher;
 use sill_model::displays::DisplaysCommand;
 use sill_notify_ui::{Banners, ScreenshotThumb};
 use sill_overlays::PowerMenu;
 use sill_settings::ShellFile;
 use sill_ui_kit::Bar;
-use sill_ui_kit::Launcher;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::links::Transient;
 use sill_ui_kit::services::Services;

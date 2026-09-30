@@ -4,10 +4,11 @@
 
 use sill_ipc::response::Response;
 use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
+use sill_launcher_ui::Launcher;
 use sill_notify_ui::NotificationCenter;
 use sill_overlays::PowerMenu;
+use sill_ui_kit::Bar;
 use sill_ui_kit::links::Preselect;
-use sill_ui_kit::{Bar, Launcher};
 use sill_widgets_ui::EditWidgets;
 
 use super::reach::Reach;

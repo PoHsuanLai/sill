@@ -1,0 +1,38 @@
+[package]
+name = "sill-launcher-ui"
+description = "The launcher: its panel, click catcher, rows, preview pane and actions."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+dioxus = { workspace = true }
+dirs = { workspace = true }
+ds = { workspace = true }
+ds-native = { workspace = true, features = ["pdf-thumb"] }
+image = { workspace = true }
+jiff = { workspace = true }
+shell-host = { workspace = true }
+sill-launcher = { workspace = true }
+sill-model = { workspace = true }
+sill-search = { workspace = true }
+sill-services = { workspace = true }
+sill-settings = { workspace = true }
+sill-ui-kit = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+sill-ui-kit = { workspace = true, features = ["harness"] }
+dioxus-ssr = { workspace = true }
+ds-lint = { workspace = true }
+ds-shell = { workspace = true }
+shell-host = { workspace = true, features = ["debug-inject"] }
+
+[[example]]
+name = "launcher_demo"
+
+[lints]
+workspace = true

@@ -21,6 +21,7 @@ sill-search = { workspace = true }
 sill-services = { workspace = true }
 sill-settings = { workspace = true }
 sill-ui-kit = { workspace = true }
+sill-launcher-ui = { workspace = true }
 sill-dock = { workspace = true }
 sill-widgets-ui = { workspace = true }
 sill-notify-ui = { workspace = true }

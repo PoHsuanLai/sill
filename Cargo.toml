@@ -4,6 +4,7 @@ members = [
   "crates/sill-dock",
   "crates/sill-ipc",
   "crates/sill-launcher",
+  "crates/sill-launcher-ui",
   "crates/sill-model",
   "crates/sill-notify-ui",
   "crates/sill-overlays",
@@ -34,6 +35,7 @@ sill-services = { path = "crates/sill-services" }
 sill-settings = { path = "crates/sill-settings" }
 sill-testkit  = { path = "crates/sill-testkit" }
 sill-ui-kit   = { path = "crates/sill-ui-kit" }
+sill-launcher-ui = { path = "crates/sill-launcher-ui" }
 sill-dock = { path = "crates/sill-dock" }
 sill-widgets-ui = { path = "crates/sill-widgets-ui" }
 sill-notify-ui = { path = "crates/sill-notify-ui" }

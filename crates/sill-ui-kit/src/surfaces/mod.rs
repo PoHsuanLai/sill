@@ -3,4 +3,3 @@
 
 pub mod bar;
 pub mod control_center;
-pub mod launcher;
