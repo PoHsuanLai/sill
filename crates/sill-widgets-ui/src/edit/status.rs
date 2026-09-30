@@ -8,8 +8,8 @@
 
 use dioxus::prelude::*;
 use ds::components::content::label::{LabelRole, LabelStyle};
-use ds::motion::detail::touch::Touch;
 use ds::motion::detail::once::use_shake;
+use ds::motion::detail::touch::Touch;
 use ds::prelude::*;
 use ds_shell::widget::{WidgetEdit, WidgetLayout};
 

@@ -4,8 +4,8 @@
 //! moment itself (quire rule 4): the cue goes to quire's `PreviewPane` (`cue`, and `operation`
 //! from `use_operation`), which plays it.
 
-use ds::motion::detail::use_detail::Detail;
 use ds::motion::detail::touch::Touch;
+use ds::motion::detail::use_detail::Detail;
 use ds::prelude::*;
 use sill_launcher::PreviewKind;
 

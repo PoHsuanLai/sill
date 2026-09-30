@@ -149,9 +149,9 @@ mod tests {
     use super::{make, styled};
     use crate::app_icons::key::{IconKey, TintKey};
     use crate::app_icons::size::AssetPx;
+    use ds::prelude::*;
     use ds::style::icon::retint::IconStyle;
     use ds::style::icon::retint::Tint;
-    use ds::prelude::*;
 
     /// A made key is shown from its cache file; one never started shows its source (no
     /// runtime in a unit test, so nothing is started either).

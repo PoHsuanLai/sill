@@ -9,10 +9,10 @@ use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use ds::prelude::*;
 use ds::style::icon::retint::IconStyle;
 use ds::style::icon::retint::Tint;
 use ds::style::icon::retint::retint_in;
-use ds::prelude::*;
 use image::imageops::FilterType;
 use image::{ImageFormat, RgbaImage};
 
@@ -130,9 +130,9 @@ pub fn fresh(target: &Path, source: &Path) -> bool {
 mod tests {
     use super::{Recolour, fresh, render, write_atomic};
     use crate::app_icons::size::AssetPx;
+    use ds::prelude::*;
     use ds::style::icon::retint::IconStyle;
     use ds::style::icon::retint::Tint;
-    use ds::prelude::*;
     use std::path::PathBuf;
 
     fn temp(tag: &str) -> PathBuf {

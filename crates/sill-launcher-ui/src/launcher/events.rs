@@ -172,7 +172,10 @@ impl PanelCtx {
                 let drive = surface.drive_frames();
                 let _tick = surface.next_frame().await;
                 drop(drive);
-                eprintln!("{}", first_frame_line(ds::base::time::clock::since(requested)));
+                eprintln!(
+                    "{}",
+                    first_frame_line(ds::base::time::clock::since(requested))
+                );
             });
         }
     }

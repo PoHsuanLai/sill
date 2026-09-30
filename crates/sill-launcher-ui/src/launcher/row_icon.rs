@@ -73,9 +73,9 @@ fn external(path: &Path) -> Option<ExternalIcon> {
 #[cfg(test)]
 mod tests {
     use super::{RowArt, row_art, row_tile};
+    use ds::prelude::*;
     use ds::style::icon::retint::IconStyle;
     use ds::style::icon::retint::Tint;
-    use ds::prelude::*;
     use sill_launcher::{IconRef, Item, ItemId, ProviderKind, Score};
     use sill_ui_kit::app_icons::cache::Generation;
     use sill_ui_kit::app_icons::{IconContext, IconLook, IconResolver};

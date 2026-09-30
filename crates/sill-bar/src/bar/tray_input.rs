@@ -4,10 +4,10 @@
 
 use dioxus::html::geometry::WheelDelta;
 use ds::base::press::{PointerButton, Press};
-use ds::style::icon::classify::IconKind;
-use ds::style::icon::classify::classify_with;
 use ds::prelude::*;
 use ds::style::icon::classify::ChromaLimit;
+use ds::style::icon::classify::IconKind;
+use ds::style::icon::classify::classify_with;
 use ds::style::icon::url::IconUrl;
 use sill_model::tray::{ScrollAxis, ScrollDelta, TrayCommand, TrayItemId};
 use sill_services::tray::IconArt;
