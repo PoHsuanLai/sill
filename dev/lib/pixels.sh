@@ -41,3 +41,27 @@ x, y = int(float(sys.argv[2]) * scale), int(float(sys.argv[3]) * scale)
 print(*img.getpixel((x, y)))
 PY
 }
+
+# The fraction (0 to 1) of pixels of PNG $1 that differ from PNG $2 by more than a small step in
+# some channel; 1 when the two are not the same size.
+changed_fraction() {
+  python3 - "$1" "$2" <<'PY'
+import sys
+from PIL import Image
+a = Image.open(sys.argv[1]).convert("RGBA")
+b = Image.open(sys.argv[2]).convert("RGBA")
+if a.size != b.size:
+    print(1.0)
+else:
+    pa, pb = a.tobytes(), b.tobytes()
+    n = a.width * a.height
+    differ = sum(
+        1 for i in range(n)
+        if max(abs(pa[4 * i + c] - pb[4 * i + c]) for c in range(4)) > 12
+    )
+    print(f"{differ / n:.4f}")
+PY
+}
+
+# Whether the decimal $1 is at least $2.
+at_least() { python3 -c 'import sys; sys.exit(0 if float(sys.argv[1]) >= float(sys.argv[2]) else 1)' "$1" "$2"; }
