@@ -1,11 +1,11 @@
 //! The catcher closes the launcher on a press anywhere on it (design/06 §20.2), in a
-//! `ds_native::Harness`.
+//! `ds_harness::Harness`.
 
 mod launcher_harness;
 
 use std::time::Duration;
 
-use ds_native::Viewport;
+use ds_harness::Viewport;
 use launcher_harness::launcher_support::fake;
 use sill_launcher_ui::LauncherCatcher;
 use sill_ui_kit::harness::SurfaceHarness;

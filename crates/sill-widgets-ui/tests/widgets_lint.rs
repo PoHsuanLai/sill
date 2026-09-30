@@ -10,8 +10,8 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Ds, Material, RootExtent};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use ds_lint::{LintConfig, Profile, assert_clean, markup};
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::harness::SurfaceHarness;
 use sill_ui_kit::hooks::PinnedAppearance;

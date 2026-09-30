@@ -6,7 +6,7 @@
 //! reported on stderr like any damaged settings file. Nothing here parses the CSS:
 //! `sill style check` reports what is wrong in it.
 
-use ds_native::TokioSpawner;
+use ds_blitz::TokioSpawner;
 use ds_settings::{Store, UserStyle, WatchState};
 use shell_host::{HostEvent, HostHandle};
 use tokio::runtime::Runtime;

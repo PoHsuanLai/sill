@@ -1,4 +1,4 @@
-//! The tray's dbusmenu document in a `ds_native::Harness` larger than the popup: the frame is
+//! The tray's dbusmenu document in a `ds_harness::Harness` larger than the popup: the frame is
 //! the card and its inset (what `PopupSize::FitContent` measures), and a press on an entry
 //! reaches the menu and picks it.
 
@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Availability, MenuItem};
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 
 use super::{INSET, TrayMenuDocument};
 

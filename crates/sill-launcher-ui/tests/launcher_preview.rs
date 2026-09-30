@@ -1,4 +1,4 @@
-//! Launcher v2 on the real panel in a `ds_native::Harness`: the runner's sections
+//! Launcher v2 on the real panel in a `ds_harness::Harness`: the runner's sections
 //! with Top Hit and "Show More", the preview pane's keys (Space while browsing, ⌘Y, → at the end,
 //! Escape one level at a time), a row chord run from the results, Tab to one provider, and the
 //! rows `sill debug launcher-rows` reports. The preview rows are the fakes' (`launcher_support/m9.rs`).

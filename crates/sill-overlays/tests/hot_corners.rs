@@ -1,11 +1,11 @@
-//! The hot corner surface in a `ds_native::Harness` (design/13 §13.3.12): a real pointer
+//! The hot corner surface in a `ds_harness::Harness` (design/13 §13.3.12): a real pointer
 //! dwelling in it fires once, not before the dwell and not twice without a
 //! leave and the re-arm. On the virtual clock, so the dwell and the re-arm
 //! are checked to the millisecond.
 
 use std::time::Duration;
 
-use ds_native::{Harness, Viewport};
+use ds_harness::{Harness, Viewport};
 use ds_settings::Ms;
 use shell_host::OutputId;
 use sill_overlays::HotCorners;

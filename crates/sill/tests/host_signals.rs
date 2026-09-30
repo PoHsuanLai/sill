@@ -7,7 +7,7 @@
 use std::time::Duration;
 
 use ds::{PixelToken, Scale, ShortcutKey};
-use ds_native::Viewport;
+use ds_harness::Viewport;
 use sill_bar::Bar;
 use sill_dock::Dock;
 use sill_overlays::{IdleDim, Wallpaper};

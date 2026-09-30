@@ -60,7 +60,7 @@ const GAP: Px = Px(7.0);
 /// it provides quire's document host itself.
 #[component]
 pub(crate) fn BarPopup() -> Element {
-    ds_native::provide_host();
+    ds_blitz::provide_host();
     let link = use_context::<PopupLink>();
     let surface = use_surface();
     let user_style = use_user_style();

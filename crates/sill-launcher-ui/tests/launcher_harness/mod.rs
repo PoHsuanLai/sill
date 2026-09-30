@@ -14,8 +14,8 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::ShortcutKey;
-use ds_native::Harness;
-use ds_native::harness::settle_until;
+use ds_harness::Harness;
+use ds_harness::harness::settle_until;
 use launcher_support::{LauncherFeeds, Runner, fake};
 use sill_launcher_ui::Launcher;
 use sill_launcher_ui::launcher::LauncherProviders;

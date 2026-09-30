@@ -57,7 +57,7 @@ impl<S: LockSurface> fmt::Debug for MountLockProps<S> {
 /// The root component of a lock surface `S`: quire's document host and the seat's signals, then
 /// its `root`, in the component's scope.
 pub fn mount_lock<S: LockSurface>(props: MountLockProps<S>) -> Element {
-    ds_native::provide_host();
+    ds_blitz::provide_host();
     use_context_provider(|| SurfaceName(S::NAME));
     use_host_signals();
     S::root(props.output)

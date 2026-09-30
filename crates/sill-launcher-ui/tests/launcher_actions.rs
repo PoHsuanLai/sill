@@ -1,4 +1,4 @@
-//! The actions menu and the selection on the real panel in a `ds_native::Harness`: the menu
+//! The actions menu and the selection on the real panel in a `ds_harness::Harness`: the menu
 //! hangs from the selected row's rect, holds that row's actions, and on Escape gives the field
 //! the keyboard back without remounting the palette; a row the pointer moves over is the
 //! selection Enter runs.

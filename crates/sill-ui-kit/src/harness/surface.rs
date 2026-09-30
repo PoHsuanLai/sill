@@ -1,4 +1,4 @@
-//! [`SurfaceHarness`]: any [`Surface`] mounted in a `ds_native::Harness` the way the daemon
+//! [`SurfaceHarness`]: any [`Surface`] mounted in a `ds_harness::Harness` the way the daemon
 //! mounts it, on the fake services, a pinned appearance and the virtual clock, with the
 //! surface's link in the test's hand.
 
@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 use crate::settings::SettingsFeed;
 use dioxus::prelude::*;
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use ds_settings::UserStyle;
 use shell_host::{LayerExtent, OutputInfo};
 use sill_settings::ShellFile;

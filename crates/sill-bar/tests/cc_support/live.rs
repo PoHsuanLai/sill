@@ -1,4 +1,4 @@
-//! The real `ControlCenter` in a `ds_native::Harness` (a Blitz document, no window), inside a
+//! The real `ControlCenter` in a `ds_harness::Harness` (a Blitz document, no window), inside a
 //! quire `Popover` as the bar's popup draws it, on the fake services: for the tests that click
 //! and press keys.
 
@@ -11,7 +11,7 @@ use dioxus::prelude::*;
 use ds::{
     Align, Anchor, Appearance, Ds, Material, Placement, Point, Popover, Px, RootExtent, Side,
 };
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use sill_bar::control_center::{CcPage, ControlCenter};
 use sill_model::ids::OutputName;
 use sill_settings::{FocusMode, ShellFile};

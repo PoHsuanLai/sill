@@ -5,7 +5,7 @@
 //!
 //! It is quire's `PreviewPane`, set beside the results as the palette's
 //! `aside`: sill maps a [`Preview`] to quire's `PaneContent` (`content.rs`) and a row's actions
-//! to `PaneAction`s with their chords. A PDF page comes from `ds_native::use_pdf_page` (the
+//! to `PaneAction`s with their chords. A PDF page comes from `ds_blitz::use_pdf_page` (the
 //! `pdf-thumb` feature): sill passes the path and never rasterises or caches a page (quire keys
 //! its cache on path, mtime, size and scale). The pane never takes the keyboard: `focused` draws
 //! the ring on the action the panel's Tab reached. The pane is the future Quick Look app's shared

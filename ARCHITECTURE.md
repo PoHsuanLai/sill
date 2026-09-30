@@ -24,8 +24,7 @@ Layers, lowest first. A crate depends only on the crates listed for it; every ot
 forbidden and Cargo enforces it (a surface crate that does not list another cannot name it).
 `scripts/check-boundary.sh` keeps the table exact: its `EDGES` rows are each crate's direct normal
 and build path dependencies, sill and quire and shell-host alike; dev dependencies are not
-listed except where noted. Until quire's step 9 splits `ds-native` into `ds-blitz` and
-`ds-harness`, both names mean today's `ds-native` (the script's `EDGES` and `RULES` say `ds-native`).
+listed except where noted.
 
 | # | Crate | What it is | May depend on (sill crates, then key externals) |
 | --- | --- | --- | --- |
@@ -36,7 +35,7 @@ listed except where noted. Until quire's step 9 splits `ds-native` into `ds-blit
 | 2 | `sill-ipc` | The wire: `Request`/`Response`, one JSON line, 64 KiB cap. Serialises `sill-model` types | `sill-model`, `sill-launcher`; serde, serde_json, thiserror |
 | 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`, `sill-launcher`; tokio, zbus, cctk, libpulse, notify, nonstick, ddc, image |
 | 4 | `sill-search` | The launcher's runner (`ResultsService`), `providers/`, excerpts and clip images | `sill-services`, `sill-model`, `sill-launcher`, `ds-settings` (no features: the schema files the settings provider indexes); fend, emojis |
-| 5 | `sill-ui-kit` | What every surface shares: `Services` registry, `SettingsFeed`, `SurfaceRoot`, `Surface` and its `mount`, `links/`, `Machine`, hooks, `look`, `panel`, `shell_style`, `MenuPopup<M>`, `app_icons`, `status`, `notification_card`, `widgets/`, `harness` (feature: fake services, `SurfaceHarness`) | `sill-search`, `sill-services`, `sill-settings`, `sill-model`, `sill-launcher`, `ds`, `ds-shell`, `ds-settings` (dioxus), `ds-blitz`, `shell-host`; dioxus, resvg, image; dev: `ds-lint`, `ds-harness` |
+| 5 | `sill-ui-kit` | What every surface shares: `Services` registry, `SettingsFeed`, `SurfaceRoot`, `Surface` and its `mount`, `links/`, `Machine`, hooks, `look`, `panel`, `shell_style`, `MenuPopup<M>`, `app_icons`, `status`, `notification_card`, `widgets/`, `harness` (feature: fake services, `SurfaceHarness`) | `sill-search`, `sill-services`, `sill-settings`, `sill-model`, `sill-launcher`, `ds`, `ds-shell`, `ds-settings` (dioxus), `ds-blitz`, `ds-harness` (optional: feature `harness`), `shell-host`; dioxus, resvg, image; dev: `ds-lint` |
 | 6 | `sill-bar` | Bar, its menus, tray, control center and its modules | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `ds-blitz`, `shell-host`; dev: `ds-lint` |
 | 6 | `sill-dock` | Dock, magnify, context menu | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-blitz`, `shell-host`; dev: `ds-lint` |
 | 6 | `sill-launcher-ui` | Launcher panel and catcher, rows, preview pane, actions | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-search`*, `sill-services`*; `ds`, `ds-blitz`, `shell-host`; dev: `ds-lint`, `ds-shell` |
@@ -248,7 +247,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 | A launcher result source | `sill_search::providers::<kind>` (`Provider`) |
 | The search runner and its history | `sill_search::results` |
 | Launcher row to menu row | `sill_launcher_ui::launcher::rows::row` (one exhaustive fn) |
-| Surface root: services, feed, host seam, appearance, scale, frame clock | `sill_ui_kit::root::SurfaceRoot` (the host seam is `ds_native::provide_host()`, called by `mount`, `mount_lock` and each popup root; the seat's `HostSignals` (scale, modality) come from `use_host_signals()`, called by `mount`, `mount_lock` and `PopupFrame`, and a surface reads its scale with `use_host_scale()`) |
+| Surface root: services, feed, host seam, appearance, scale, frame clock | `sill_ui_kit::root::SurfaceRoot` (the host seam is `ds_blitz::provide_host()`, called by `mount`, `mount_lock` and each popup root; the seat's `HostSignals` (scale, modality) come from `use_host_signals()`, called by `mount`, `mount_lock` and `PopupFrame`, and a surface reads its scale with `use_host_scale()`) |
 | Active workspace look, space look | `sill_ui_kit::look` (`use_active_look`, `use_space_look`) |
 | Open/close a panel from outside it (serial, output) | `sill_ui_kit::links::Reveal<O>`; every link type is one file in `sill_ui_kit::links` |
 | Visible or hidden layer surface | `shell_host::Visibility` |
@@ -509,7 +508,7 @@ Each ends with its tests. Name the concept once and use it in every file name be
 2. `surface.rs`: `pub enum Name {}` and `impl Surface` (`NAME`, `Link`, `Slot`, `slots`,
    `layer`, `start`, `root`). `root` is `view::name(output)`; no `Ds` boilerplate: `SurfaceRoot`
    supplies services, feed, appearance, scale and the frame clock, and `mount` has already
-   installed the host seam (`ds_native::provide_host()`) and the seat's `HostSignals`; a `Ds` root passes no `scale`.
+   installed the host seam (`ds_blitz::provide_host()`) and the seat's `HostSignals`; a `Ds` root passes no `scale`.
 3. A link the daemon or another surface drives is one file in `sill-ui-kit/src/links/<name>.rs`
    (a newtype over `Reveal<O>` or a small watch channel) and a field of `Links` in
    `links/mod.rs`. A surface never imports another surface.
@@ -655,7 +654,7 @@ installs them.
 | Pure (`sill-model` steps, `sill-launcher`, `sill-settings` parse, `sill-ipc` words) | `CASES` tables beside the code; serde round trips against exact bytes |
 | Service backend | `sill-services/tests/<x>_bus.rs`: `Env::isolated(tmp)` with `Buses` set to a `PrivateBus` address; peers are `sill-testkit` stand-ins. Runs in the gate. Only a test that needs a compositor is `#[ignore]`d and run from a dev script |
 | Providers, runner | `VecSink` and a fake `Sources::Providers`; the runner's latency test |
-| Surface | `SurfaceHarness<S: Surface>` (`sill-ui-kit`, feature `harness`) over quire's `ds_native::Harness` (`ds-harness` after quire's step 9): `SurfaceHarness::<S>::setup(link, slot)` then `.settings(ShellFile)`, `.viewport(..)`, `.appearance(..)`, `.start()`. It mounts `surface::mount::<S>` on fake `Services` (`fake::services()`; state set through `run.feeds`, commands read), a `PinnedAppearance`, `Clock::Virtual`, the surface's link (`run.link`) and the settings; the viewport is the surface's layer size unless overridden. `run.harness` is the `Harness` (`advance`, `html`, `pointer_move`, `count`). One live harness per thread. Real-input checks are dev scripts on shell-host's headless KWin |
+| Surface | `SurfaceHarness<S: Surface>` (`sill-ui-kit`, feature `harness`) over quire's `ds_harness::Harness`: `SurfaceHarness::<S>::setup(link, slot)` then `.settings(ShellFile)`, `.viewport(..)`, `.appearance(..)`, `.start()`. It mounts `surface::mount::<S>` on fake `Services` (`fake::services()`; state set through `run.feeds`, commands read), a `PinnedAppearance`, `Clock::Virtual`, the surface's link (`run.link`) and the settings; the viewport is the surface's layer size unless overridden. `run.harness` is the `Harness` (`advance`, `html`, `pointer_move`, `count`). One live harness per thread. Real-input checks are dev scripts on shell-host's headless KWin |
 | Machines | table tests of `step`; `use_machine` is tested once in `sill-ui-kit` |
 | Markup lint | `crates/sill/tests/lint.rs`: `const SURFACES: &[SurfaceCase]`, one loop over all 17, each row names its surface |
 | IPC and CLI | `crates/sill/tests/ipc.rs` (fake dispatcher, cap, timeout), `cli/request.rs` table |

@@ -1,4 +1,4 @@
-//! [`LockHarness`]: any [`LockSurface`] mounted in a `ds_native::Harness` outside a lock document
+//! [`LockHarness`]: any [`LockSurface`] mounted in a `ds_harness::Harness` outside a lock document
 //! (no shell-host `LockHandle`, as in every test), on the fake services, a pinned appearance and
 //! the virtual clock, with the surface's link in the test's hand.
 
@@ -7,7 +7,7 @@ use std::rc::Rc;
 
 use crate::settings::SettingsFeed;
 use dioxus::prelude::*;
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use ds_settings::UserStyle;
 use shell_host::OutputInfo;
 use sill_settings::ShellFile;

@@ -1,4 +1,4 @@
-//! The idle dim surface in a `ds_native::Harness`, driven only by the idle service's published
+//! The idle dim surface in a `ds_harness::Harness`, driven only by the idle service's published
 //! `Idle.dim` through the
 //! fake services' feed: at rest awake it draws a clear scrim and asks for no frames; a dim fades
 //! in over `--t-idle-dim` to `100 - idle.dim_level_pct`; a wake snaps it out even mid-fade; a
@@ -7,8 +7,8 @@
 
 use std::time::Duration;
 
-use ds_native::Viewport;
-use ds_native::harness::assert_settles_to_zero_frames;
+use ds_harness::Viewport;
+use ds_harness::harness::assert_settles_to_zero_frames;
 use ds_settings::Environment;
 use sill_model::idle::{DimLevel, DimShown, Idle, IdleMode, IdlePhase};
 use sill_overlays::IdleDim;

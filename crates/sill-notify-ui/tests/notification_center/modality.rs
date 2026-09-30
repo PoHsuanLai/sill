@@ -1,13 +1,13 @@
 //! The center's own quire controls (Clear All) show quire's focus ring
 //! under the keyboard. The center runs the real `NotificationCenter`, whose root wraps quire's
-//! `Ds` under the `HostSignals` that `mount` provides; with no shell-host `SurfaceHandle` (`ds_native::Harness` has no
+//! `Ds` under the `HostSignals` that `mount` provides; with no shell-host `SurfaceHandle` (`ds_harness::Harness` has no
 //! seat) the bridge provides nothing, and the harness's own root
-//! `HostSignals` (driven by its `key`/`click`, `ds_native::launch`'s own mechanism) is what
+//! `HostSignals` (driven by its `key`/`click`, `ds_blitz::launch`'s own mechanism) is what
 //! `Ds` reads instead: the harness's way of driving modality, not shell-host's.
 
 use super::{advance, opened, two_apps};
 use ds::ShortcutKey;
-use ds_native::Harness;
+use ds_harness::Harness;
 
 fn modality(harness: &Harness) -> Option<String> {
     harness.attr(".ds", "data-modality")

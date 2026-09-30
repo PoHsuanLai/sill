@@ -1,4 +1,4 @@
-//! The panel's picture of fake results, in a `ds_native::Harness`: groups in order under their
+//! The panel's picture of fake results, in a `ds_harness::Harness`: groups in order under their
 //! headings, the top hit first, the empty query's Actions and Recent, the empty state, and the
 //! row chord (Spotlight's hint: only the selected row shows it, quire's `RowChord`).
 

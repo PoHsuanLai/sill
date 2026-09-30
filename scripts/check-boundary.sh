@@ -22,8 +22,8 @@ cd "$(dirname "$0")/.."
 # sill-ui-kit is what every surface shares, so it reaches no surface crate and not the binary.
 # The surface crates never depend on one another and none depends on `sill`; the daemon is the one
 # crate that names them all.
-PURE="dioxus dioxus-core zbus wayland-client tokio libpulse-binding shell-host ds ds-shell ds-native blitz-dom"
-UI_FREE="dioxus dioxus-core blitz-dom shell-host ds ds-shell ds-native"
+PURE="dioxus dioxus-core zbus wayland-client tokio libpulse-binding shell-host ds ds-shell ds-blitz ds-harness blitz-dom"
+UI_FREE="dioxus dioxus-core blitz-dom shell-host ds ds-shell ds-blitz ds-harness"
 SURFACES=(sill-overlays sill-notify-ui sill-widgets-ui sill-dock sill-launcher-ui sill-bar)
 # The other surfaces, and the binary, for one surface crate.
 others() {
@@ -80,14 +80,14 @@ EDGES=(
   "sill-ipc: sill-launcher sill-model"
   "sill-services: sill-launcher sill-model"
   "sill-search: ds-settings sill-launcher sill-model sill-services"
-  "sill-ui-kit: ds ds-native ds-settings ds-shell shell-host sill-launcher sill-model sill-search sill-services sill-settings"
-  "sill-bar: ds ds-native ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
-  "sill-dock: ds ds-native ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
-  "sill-launcher-ui: ds ds-native shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-ui-kit"
-  "sill-notify-ui: ds ds-native ds-settings ds-shell shell-host sill-model sill-services sill-settings sill-ui-kit"
+  "sill-ui-kit: ds ds-blitz ds-harness ds-settings ds-shell shell-host sill-launcher sill-model sill-search sill-services sill-settings"
+  "sill-bar: ds ds-blitz ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
+  "sill-dock: ds ds-blitz ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
+  "sill-launcher-ui: ds ds-blitz shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-ui-kit"
+  "sill-notify-ui: ds ds-blitz ds-settings ds-shell shell-host sill-model sill-services sill-settings sill-ui-kit"
   "sill-widgets-ui: ds ds-shell shell-host sill-settings sill-ui-kit"
   "sill-overlays: ds ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
-  "sill: ds-lint ds-native ds-settings ds-shell shell-host sill-bar sill-dock sill-ipc sill-launcher sill-launcher-ui sill-model sill-notify-ui sill-overlays sill-search sill-services sill-settings sill-ui-kit sill-widgets-ui"
+  "sill: ds-lint ds-blitz ds-settings ds-shell shell-host sill-bar sill-dock sill-ipc sill-launcher sill-launcher-ui sill-model sill-notify-ui sill-overlays sill-search sill-services sill-settings sill-ui-kit sill-widgets-ui"
 )
 for edge in "${EDGES[@]}"; do
   crate="${edge%%:*}"

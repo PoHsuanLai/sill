@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use dioxus::prelude::{ReadSignal, try_consume_context, use_hook, use_signal};
 use ds::Spawner;
-use ds_native::TokioSpawner;
+use ds_blitz::TokioSpawner;
 use ds_settings::{AppName, ConfigRoot, Environment, Store, SystemPrefsSource, use_environment};
 
 /// An appearance a root pins in place of the desktop's: a test or a headless render provides it

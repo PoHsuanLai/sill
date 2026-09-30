@@ -8,7 +8,7 @@
 use std::time::Duration;
 
 use ds::ShortcutKey;
-use ds_native::{Harness, Viewport};
+use ds_harness::{Harness, Viewport};
 use sill_launcher::{AppId, WindowKey};
 use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 use sill_model::ids::{OutputName, WorkspaceKey};

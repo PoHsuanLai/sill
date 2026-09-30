@@ -5,7 +5,7 @@
 
 use std::time::{Duration, Instant};
 
-use ds_native::Harness;
+use ds_harness::Harness;
 use ds_settings::Ms;
 use sill_model::units::Percent;
 use sill_model::volume::{Mute, Volume};

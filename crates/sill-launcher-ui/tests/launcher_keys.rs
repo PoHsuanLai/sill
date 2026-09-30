@@ -1,4 +1,4 @@
-//! The launcher's keyboard map (design/06 §20.2) on the real panel in a `ds_native::Harness`,
+//! The launcher's keyboard map (design/06 §20.2) on the real panel in a `ds_harness::Harness`,
 //! over the fake search runner: Down, Down, Enter runs the third row; Tab moves to the next
 //! provider's group; Escape closes.
 //!

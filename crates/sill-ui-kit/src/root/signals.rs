@@ -9,7 +9,7 @@
 //! focus ring and one scale, and no surface calls it by hand. The seat's window activity is not
 //! reported to a surface, so the window is always active.
 //!
-//! A headless render with no `SurfaceHandle` (a `ds_native::Harness` test) has no seat to read,
+//! A headless render with no `SurfaceHandle` (a `ds_harness::Harness` test) has no seat to read,
 //! so the hook provides nothing: `Ds` then reads whatever `HostSignals` the harness itself
 //! provides at its root (its own seat, driven by its `key`/`click`), or falls back to `Pointer`
 //! and 1x with none at all. Whether the handle exists never changes over a component's life, so

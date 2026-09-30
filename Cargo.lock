@@ -1824,6 +1824,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "ds-blitz"
+version = "0.1.0"
+dependencies = [
+ "anyrender",
+ "anyrender_pdfrum",
+ "anyrender_vello_hybrid",
+ "arboard",
+ "blitz-dom",
+ "blitz-html",
+ "blitz-paint",
+ "blitz-shell",
+ "blitz-traits",
+ "dioxus",
+ "dioxus-asset-resolver",
+ "dioxus-native",
+ "dioxus-native-dom",
+ "ds",
+ "image",
+ "keyboard-types 0.7.0",
+ "parley",
+ "pdfrum",
+ "peniko",
+ "thiserror 2.0.20",
+ "tokio",
+ "webbrowser",
+ "wgpu",
+ "wgpu_context",
+]
+
+[[package]]
 name = "ds-core"
 version = "0.1.0"
 dependencies = [
@@ -1844,6 +1874,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "ds-harness"
+version = "0.1.0"
+dependencies = [
+ "anyrender",
+ "anyrender_vello_cpu",
+ "anyrender_vello_hybrid",
+ "blitz-dom",
+ "blitz-html",
+ "blitz-paint",
+ "blitz-traits",
+ "dioxus",
+ "dioxus-native-dom",
+ "ds",
+ "ds-blitz",
+ "image",
+ "keyboard-types 0.7.0",
+ "peniko",
+ "rustc-hash 2.1.3",
+ "vello_common 0.1.0",
+ "vello_hybrid",
+ "wgpu",
+ "wgpu_context",
+]
+
+[[package]]
 name = "ds-lint"
 version = "0.1.0"
 dependencies = [
@@ -1859,40 +1914,6 @@ dependencies = [
  "dioxus",
  "ds-core",
  "ds-style",
-]
-
-[[package]]
-name = "ds-native"
-version = "0.1.0"
-dependencies = [
- "anyrender",
- "anyrender_pdfrum",
- "anyrender_vello_cpu",
- "anyrender_vello_hybrid",
- "arboard",
- "blitz-dom",
- "blitz-html",
- "blitz-paint",
- "blitz-shell",
- "blitz-traits",
- "dioxus",
- "dioxus-asset-resolver",
- "dioxus-native",
- "dioxus-native-dom",
- "ds",
- "image",
- "keyboard-types 0.7.0",
- "parley",
- "pdfrum",
- "peniko",
- "rustc-hash 2.1.3",
- "thiserror 2.0.20",
- "tokio",
- "vello_common 0.1.0",
- "vello_hybrid",
- "webbrowser",
- "wgpu",
- "wgpu_context",
 ]
 
 [[package]]
@@ -5343,8 +5364,9 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "ds",
+ "ds-blitz",
+ "ds-harness",
  "ds-lint",
- "ds-native",
  "ds-settings",
  "ds-shell",
  "keyboard-types 0.7.0",
@@ -5375,8 +5397,9 @@ dependencies = [
  "dioxus",
  "dioxus-ssr",
  "ds",
+ "ds-blitz",
+ "ds-harness",
  "ds-lint",
- "ds-native",
  "ds-settings",
  "ds-shell",
  "image",
@@ -5395,8 +5418,9 @@ version = "0.1.0"
 dependencies = [
  "dioxus",
  "ds",
+ "ds-blitz",
+ "ds-harness",
  "ds-lint",
- "ds-native",
  "ds-settings",
  "ds-shell",
  "shell-host",
@@ -5436,8 +5460,9 @@ dependencies = [
  "dioxus-ssr",
  "dirs 6.0.0",
  "ds",
+ "ds-blitz",
+ "ds-harness",
  "ds-lint",
- "ds-native",
  "ds-shell",
  "image",
  "jiff",
@@ -5468,7 +5493,8 @@ version = "0.1.0"
 dependencies = [
  "dioxus",
  "ds",
- "ds-native",
+ "ds-blitz",
+ "ds-harness",
  "ds-settings",
  "ds-shell",
  "image",
@@ -5485,7 +5511,7 @@ version = "0.1.0"
 dependencies = [
  "dioxus",
  "ds",
- "ds-native",
+ "ds-harness",
  "ds-settings",
  "ds-shell",
  "image",
@@ -5586,8 +5612,9 @@ dependencies = [
  "dioxus-ssr",
  "dirs 6.0.0",
  "ds",
+ "ds-blitz",
+ "ds-harness",
  "ds-lint",
- "ds-native",
  "ds-settings",
  "ds-shell",
  "image",
@@ -5612,8 +5639,8 @@ version = "0.1.0"
 dependencies = [
  "dioxus",
  "ds",
+ "ds-harness",
  "ds-lint",
- "ds-native",
  "ds-settings",
  "ds-shell",
  "shell-host",

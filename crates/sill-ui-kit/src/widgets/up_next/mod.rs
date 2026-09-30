@@ -8,7 +8,7 @@
 //! `up_next_max` is a ceiling, not a promise. The card's body is a fixed number of pixels
 //! (`--widget-cell`, `--widget-gap`; quire's card), so asking for more rows than it holds would
 //! draw the last one half off the bottom, clipped by the card's `overflow:hidden`. The view draws
-//! at most [`EVENT_ROWS`], measured once against a real render (`ds_native::Harness`) rather
+//! at most [`EVENT_ROWS`], measured once against a real render (`ds_harness::Harness`) rather
 //! than guessed.
 
 /// This widget's stylesheet, in [`crate::widgets::widgets_css`].

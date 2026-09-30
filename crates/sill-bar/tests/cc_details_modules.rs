@@ -9,7 +9,7 @@ mod cc_support;
 use cc_support::details::{center, figure, ms, press};
 use cc_support::{fake, live};
 
-use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
+use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
 use sill_model::kbd_backlight::{KbdBacklight, KbdCommand, KbdLevel};
 use sill_model::now_playing::{MediaCommand, MediaVerb, Micros, Playback, Timeline};
 use sill_model::units::{Percent, Presence, Stamp};

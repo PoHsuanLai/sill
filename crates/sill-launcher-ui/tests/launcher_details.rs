@@ -1,12 +1,12 @@
 //! The launcher's moments end (design/26-DETAILS.md R3, the idle-frame rule): opened, its
 //! preview pane shown and hidden again, the panel settles to 0 frames, with no CSS animation
-//! running and no Rust timer waking the document (`ds_native::Harness::wakes`).
+//! running and no Rust timer waking the document (`ds_harness::Harness::wakes`).
 
 mod launcher_harness;
 
 use std::time::Duration;
 
-use ds_native::harness::assert_settles_to_zero_frames;
+use ds_harness::harness::assert_settles_to_zero_frames;
 use launcher_harness::{Open, Press, Seen, await_off_thread, loaded, open, settle};
 
 /// Press `key` on the harness's keyboard.

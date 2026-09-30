@@ -1,7 +1,7 @@
 //! The settings file's watch: each settled change becomes a `ShellMsg::Settings` for the host
 //! thread, which publishes it.
 
-use ds_native::TokioSpawner;
+use ds_blitz::TokioSpawner;
 use ds_settings::{Store, WatchState};
 use shell_host::HostHandle;
 use sill_settings::ShellFile;

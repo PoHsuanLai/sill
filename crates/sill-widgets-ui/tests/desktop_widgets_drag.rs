@@ -1,5 +1,5 @@
 //! Dragging a desktop widget, the real
-//! `DesktopWidgets` in a `ds_native::Harness` on the virtual clock: a press that travels lifts
+//! `DesktopWidgets` in a `ds_harness::Harness` on the virtual clock: a press that travels lifts
 //! the widget under the pointer (quire's card `Lift::Lifted`, with quire's slot guide at the
 //! cell it would land in), the one it passes over makes room and goes back after, a release
 //! snaps it into the grid and saves the place for this output, a click still reaches a widget's
@@ -12,8 +12,8 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use ds::{Point, Px};
-use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_native::{Harness, Viewport};
+use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
+use ds_harness::{Harness, Viewport};
 use sill_model::now_playing::{MediaCommand, MediaVerb};
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::harness::{SurfaceHarness, fake};

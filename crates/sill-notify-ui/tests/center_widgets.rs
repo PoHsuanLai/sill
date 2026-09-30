@@ -43,8 +43,8 @@ fn the_center_draws_widgets_center_in_order_under_the_history() {
 mod center_support {
     use std::time::Duration;
 
-    use ds_native::Harness;
-    use ds_native::harness::settle_until;
+    use ds_harness::Harness;
+    use ds_harness::harness::settle_until;
     use sill_model::notifications::{
         AppGroup, AppKey, AppRef, Body, Expiry, Hints, History, IconRef, Notification,
         NotificationId, UnixMs,
@@ -101,7 +101,7 @@ mod center_support {
     /// The center opened over `history`, once its entrance has played.
     pub fn opened(history: History) -> SurfaceHarness<NotificationCenter> {
         let mut running = SurfaceHarness::<NotificationCenter>::setup(CenterLink::new(), ())
-            .viewport(ds_native::Viewport {
+            .viewport(ds_harness::Viewport {
                 width: 1280,
                 height: 800,
                 scale_percent: 100,

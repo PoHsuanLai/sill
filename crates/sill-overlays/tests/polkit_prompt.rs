@@ -7,7 +7,7 @@
 use std::time::Duration;
 
 use ds::ShortcutKey;
-use ds_native::{Harness, Viewport};
+use ds_harness::{Harness, Viewport};
 use shell_host::OutputId;
 use sill_model::auth::UserName;
 use sill_model::polkit_agent::{
@@ -91,7 +91,7 @@ fn shown(view: PromptView) -> Running {
 /// Advance until `done` holds (`settle_until`, which fails with the document if it never does);
 /// then one more frame's worth.
 fn settle(harness: &mut Harness, done: impl Fn(&Harness) -> bool) {
-    ds_native::harness::settle_until(harness, done);
+    ds_harness::harness::settle_until(harness, done);
     harness.advance(Duration::from_millis(20));
 }
 

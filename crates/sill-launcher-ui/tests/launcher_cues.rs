@@ -10,8 +10,8 @@ use std::path::Path;
 use std::time::Duration;
 
 use ds::ShortcutKey;
-use ds_native::Harness;
-use ds_native::harness::assert_settles_to_zero_frames;
+use ds_harness::Harness;
+use ds_harness::harness::assert_settles_to_zero_frames;
 use launcher_harness::launcher_support::m9;
 use launcher_harness::{Open, Press, Seen, await_off_thread, loaded, open, settle, watch};
 use sill_launcher::PreviewKind;

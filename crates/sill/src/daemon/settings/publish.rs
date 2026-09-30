@@ -33,7 +33,7 @@ pub fn publish_watched(settings_tx: &watch::Sender<ShellFile>, event: &HostEvent
 mod settings_publish_tests {
     use std::time::Duration;
 
-    use ds_native::TokioSpawner;
+    use ds_blitz::TokioSpawner;
     use shell_host::HostEvent;
     use sill_settings::ShellFile;
     use tokio::sync::watch;

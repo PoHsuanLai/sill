@@ -1,12 +1,12 @@
 //! A picture of the Battery widget (design/23-WIDGETS.md section 4.1, the fourth pass "Flat,
-//! bright, measured"), rendered headless (quire's `ds_native::snapshot`) to `target/`, for a
+//! bright, measured"), rendered headless (quire's `ds_harness::snapshot`) to `target/`, for a
 //! side-by-side with the reference's own gallery ("Widget reference" page, `ds-gallery`'s
 //! `widget_reference.rs`): a Small frame with one device (the ring at the top left, the
 //! percentage as the hero figure), a Small frame with several (the 2 x 2 grid, empty places
 //! padded in), and a Medium frame (a row of rings, the percentage under each, one low and one
 //! charging). The private session bus this widget runs against for real
 //! (`dev/accept/widgets.sh`) has no batteries at all, so this is the only picture of it short of
-//! a live capture. Review material only, never a gate (as `ds_native::snapshot`'s own doc
+//! a live capture. Review material only, never a gate (as `ds_harness::snapshot`'s own doc
 //! comment says): the rasteriser changes with Blitz revisions.
 
 use sill_ui_kit::harness::fake;
@@ -16,7 +16,7 @@ use std::path::PathBuf;
 
 use dioxus::prelude::*;
 use ds::{Ds, Material, RootExtent};
-use ds_native::{Viewport, snapshot};
+use ds_harness::{Viewport, snapshot};
 use sill_model::battery::{Battery, Charge};
 use sill_model::bluetooth::{
     Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,

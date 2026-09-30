@@ -12,7 +12,7 @@ publish.workspace = true
 dioxus = { workspace = true }
 dirs = { workspace = true }
 ds = { workspace = true }
-ds-native = { workspace = true, features = ["pdf-thumb"] }
+ds-blitz = { workspace = true, features = ["pdf"] }
 image = { workspace = true }
 jiff = { workspace = true }
 shell-host = { workspace = true }
@@ -25,6 +25,7 @@ sill-ui-kit = { workspace = true }
 tokio = { workspace = true }
 
 [dev-dependencies]
+ds-harness = { workspace = true }
 sill-ui-kit = { workspace = true, features = ["harness"] }
 dioxus-ssr = { workspace = true }
 ds-lint = { workspace = true }

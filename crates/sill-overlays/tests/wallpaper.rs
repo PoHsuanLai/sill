@@ -1,4 +1,4 @@
-//! The wallpaper in a `ds_native::Harness`, fed the frozen `wallpapers` channel: an entry for its
+//! The wallpaper in a `ds_harness::Harness`, fed the frozen `wallpapers` channel: an entry for its
 //! own output shows that entry's light-scheme path as a `file://` URL (the pinned appearance
 //! resolves to the light scheme, `ds-settings`' own default), an entry for another output is
 //! ignored, and no entry paints no image at all (`--paper` shows through instead). Painted over
@@ -10,7 +10,7 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use ds_native::Backdrop;
+use ds_harness::Backdrop;
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_overlays::Wallpaper;
@@ -22,7 +22,7 @@ use sill_ui_kit::surface::{OutputRank, Place, Surface};
 const IMAGE: [u8; 3] = [220, 40, 20];
 
 /// The surface under test: small, so vello_cpu paints it quickly.
-const VIEWPORT: ds_native::Viewport = ds_native::Viewport {
+const VIEWPORT: ds_harness::Viewport = ds_harness::Viewport {
     width: 320,
     height: 200,
     scale_percent: 100,

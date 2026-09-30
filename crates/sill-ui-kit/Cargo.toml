@@ -13,9 +13,11 @@ sill-model = { workspace = true }
 dioxus = { workspace = true }
 ds = { workspace = true }
 ds-shell = { workspace = true }
-ds-native = { workspace = true }
+ds-blitz = { workspace = true }
 ds-settings = { workspace = true, features = ["dioxus"] }
 shell-host = { workspace = true }
+# The test driver, for the `harness` feature.
+ds-harness = { workspace = true, optional = true }
 sill-search = { workspace = true }
 sill-services = { workspace = true }
 sill-settings = { workspace = true }
@@ -37,7 +39,7 @@ serde_json = { workspace = true }
 
 [features]
 # Fake services and the values they start at, for tests and demos (`harness`).
-harness = []
+harness = ["dep:ds-harness"]
 
 [dev-dependencies]
 # The crate's own tests drive surfaces through `harness`.

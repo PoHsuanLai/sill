@@ -48,8 +48,10 @@ ds         = { path = "../quire/crates/ds" }
 ds-lint    = { path = "../quire/crates/ds-lint" }
 ds-shell   = { path = "../quire/crates/ds-shell" }
 ds-settings = { path = "../quire/crates/ds-settings", features = ["tokio"] }  # the shell runs zbus on tokio everywhere (quire CONSUMING §1)
-# The Blitz host glue: sill takes only its rect measurer (`ds_native::measure`).
-ds-native  = { path = "../quire/crates/ds-native" }
+# The Blitz host glue: sill takes only its rect measurer (`ds_blitz::measure`), and the test driver
+# (`ds-harness`) for its surface tests.
+ds-blitz   = { path = "../quire/crates/ds-blitz" }
+ds-harness = { path = "../quire/crates/ds-harness" }
 shell-host = { path = "../shell-host/crates/shell-host" }
 
 # ---- BEGIN PINNED BLOCK (source of truth: quire/docs/workspace-deps.toml) ----
@@ -64,10 +66,10 @@ shell-host = { path = "../shell-host/crates/shell-host" }
 # (a cancelled animation's last value no longer sticks), the same rev as quire and shell-host.
 blitz-dom = { git = "https://github.com/PoHsuanLai/blitz", rev = "bf58814298b829bb42673424e86926cbd2af8f07", default-features = false, features = ["svg", "system-fonts", "custom-widget", "accessibility"] }
 blitz-paint = { git = "https://github.com/PoHsuanLai/blitz", rev = "bf58814298b829bb42673424e86926cbd2af8f07", features = ["custom-widget"] }
-# The HTML parser (html5ever 0.39): an `<iframe srcdoc>` builds a real sub-document. ds-native
+# The HTML parser (html5ever 0.39): an `<iframe srcdoc>` builds a real sub-document. ds-blitz
 # installs it in headless documents; the window gets it through dioxus-native's `html` feature.
 blitz-html = { git = "https://github.com/PoHsuanLai/blitz", rev = "bf58814298b829bb42673424e86926cbd2af8f07" }
-# The system clipboard's text/html, for an edit surface's paste (ds-native): blitz-shell's own
+# The system clipboard's text/html, for an edit surface's paste (ds-blitz): blitz-shell's own
 # arboard (its `clipboard` feature, same features), read directly since ShellProvider has text only.
 arboard = { version = "3.6", default-features = false }
 # Safe syscalls where std has none: SOCK_SEQPACKET for the palmrest socket (shell-host

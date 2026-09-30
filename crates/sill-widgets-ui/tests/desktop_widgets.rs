@@ -7,7 +7,7 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use ds_native::{Harness, Viewport};
+use ds_harness::{Harness, Viewport};
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::harness::SurfaceHarness;
 use sill_ui_kit::links::PlacementFile;
@@ -160,7 +160,7 @@ fn the_cell_and_the_gap_are_settings() {
 /// section 1.3), the widgets already there stay as they were, and the layer then paints nothing.
 #[test]
 fn an_added_widget_appears_at_its_place_and_the_layer_goes_quiet() {
-    use ds_native::harness::assert_settles_to_zero_frames;
+    use ds_harness::harness::assert_settles_to_zero_frames;
     let Running {
         harness: mut h,
         settings: tx,
@@ -180,8 +180,8 @@ fn an_added_widget_appears_at_its_place_and_the_layer_goes_quiet() {
     assert_settles_to_zero_frames(&mut h);
 }
 
-fn settle_until_two(h: &mut ds_native::Harness) {
-    ds_native::harness::settle_until(h, |h| h.count(".ds-widget") == 2);
+fn settle_until_two(h: &mut ds_harness::Harness) {
+    ds_harness::harness::settle_until(h, |h| h.count(".ds-widget") == 2);
 }
 
 /// A widget Edit Widgets takes off the desktop plays its exit where it stood (quire's
@@ -189,7 +189,7 @@ fn settle_until_two(h: &mut ds_native::Harness) {
 /// added back while it leaves is placed again and never goes.
 #[test]
 fn a_removed_widget_plays_its_exit_then_goes() {
-    use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
+    use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
     let Running {
         harness: mut h,
         settings: tx,

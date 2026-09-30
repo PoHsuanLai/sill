@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Appearance, Ds, Material, PixelToken};
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use shell_host::{InputModality as SeatModality, Scale as SeatScale};
 
 use super::use_republished;

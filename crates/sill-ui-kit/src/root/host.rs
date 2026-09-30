@@ -3,7 +3,7 @@
 /// The pre-paint pass the daemon installs on its host (`HostConfig::prepaint`): quire's
 /// device-pixel layout snap, a no-op at whole scales.
 pub fn prepaint() -> shell_host::Prepaint {
-    shell_host::Prepaint::hook(ds_native::snap_to_device)
+    shell_host::Prepaint::hook(ds_blitz::snap_to_device)
 }
 
 /// quire's bundled faces (Inter, Inter Display, Space Mono), for `HostConfig::fonts`. Without

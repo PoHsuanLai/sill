@@ -11,7 +11,7 @@ publish.workspace = true
 [dependencies]
 dioxus = { workspace = true }
 ds = { workspace = true }
-ds-native = { workspace = true }
+ds-blitz = { workspace = true }
 ds-settings = { workspace = true, features = ["dioxus"] }
 ds-shell = { workspace = true }
 image = { workspace = true }
@@ -24,6 +24,7 @@ sill-ui-kit = { workspace = true }
 tokio = { workspace = true }
 
 [dev-dependencies]
+ds-harness = { workspace = true }
 sill-ui-kit = { workspace = true, features = ["harness"] }
 dioxus-ssr = { workspace = true }
 ds-lint = { workspace = true }

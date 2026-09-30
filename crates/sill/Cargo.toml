@@ -12,7 +12,7 @@ publish.workspace = true
 sill-model = { workspace = true }
 clap = { workspace = true }
 ds-lint = { workspace = true }
-ds-native = { workspace = true }
+ds-blitz = { workspace = true }
 ds-settings = { workspace = true }
 ds-shell = { workspace = true }
 latchkey = { workspace = true }
@@ -33,6 +33,7 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 
 [dev-dependencies]
+ds-harness = { workspace = true }
 sill-testkit = { workspace = true }
 # `tests/lint.rs` mounts every surface on the harness and lints its markup and stylesheet.
 sill-ui-kit = { workspace = true, features = ["harness"] }

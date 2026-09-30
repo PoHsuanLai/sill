@@ -1,5 +1,5 @@
 //! A [`Preview`] as quire's `PaneContent`, with what it names on disk loaded off the UI
-//! thread: a PDF's page through `ds_native::use_pdf_page` (asked only while the preview is a
+//! thread: a PDF's page through `ds_blitz::use_pdf_page` (asked only while the preview is a
 //! PDF, so one pane stays mounted whatever it shows), a text file's head and an image's size
 //! through `load.rs`, a clipboard image's bytes from the clipboard service.
 
@@ -43,7 +43,7 @@ pub(super) fn use_content(preview: &Preview, icon: Option<IconSource>) -> (PaneC
         },
         _ => None,
     };
-    let page = ds_native::use_pdf_page(pdf, PANE_MEDIA);
+    let page = ds_blitz::use_pdf_page(pdf, PANE_MEDIA);
     let excerpt = use_excerpt(text);
     let size = use_image_size(image);
     let clip_png = use_clip_png(clip);

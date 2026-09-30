@@ -3,7 +3,7 @@
 
 use std::time::Duration;
 
-use ds_native::TokioSpawner;
+use ds_blitz::TokioSpawner;
 use ds_settings::UserStyle;
 use shell_host::HostEvent;
 use tokio::sync::watch;

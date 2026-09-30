@@ -1,4 +1,4 @@
-//! The dock in a `ds_native::Harness` on the fake services: pinned apps then running ones
+//! The dock in a `ds_harness::Harness` on the fake services: pinned apps then running ones
 //! grouped by app, the Trash, running dots, the badge, the ring, the regions' elements, the
 //! icon style on each plate; a value fed after the first frame changes what it shows.
 

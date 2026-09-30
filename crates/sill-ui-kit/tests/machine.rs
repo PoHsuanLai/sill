@@ -6,7 +6,7 @@ use std::cell::{Cell, RefCell};
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use sill_model::units::Stamp;
 use sill_ui_kit::machine::{Elapsed, Machine, use_machine};
 

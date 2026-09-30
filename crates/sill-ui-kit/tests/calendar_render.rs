@@ -13,8 +13,8 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Appearance, Ds, Material};
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use ds_lint::{LintConfig, Profile, markup};
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use jiff::civil::Date;
 use jiff::tz::TimeZone;
 use jiff::{Timestamp, ToSpan, Zoned};

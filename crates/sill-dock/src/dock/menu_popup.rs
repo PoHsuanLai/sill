@@ -36,7 +36,7 @@ pub(crate) struct MenuLink {
 /// The popup root.
 #[component]
 pub(crate) fn DockMenuPopup() -> Element {
-    ds_native::provide_host();
+    ds_blitz::provide_host();
     let link = use_context::<MenuLink>();
     let surface = use_surface();
     let gone = link.reports.clone();

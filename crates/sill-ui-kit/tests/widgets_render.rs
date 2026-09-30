@@ -1,4 +1,4 @@
-//! What the widgets draw, each in a `ds_native::Harness`
+//! What the widgets draw, each in a `ds_harness::Harness`
 //! on the fake services: the card (quire's `WidgetCard`: a tile in the notification center, the
 //! Widget material's card on the desktop, each at its footprint, `data-widget` its kind),
 //! Battery's rings from the machine and the connected devices and their bump on a change, Now
@@ -11,8 +11,8 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Ds, Material, RootExtent};
-use ds_native::harness::settle_until;
-use ds_native::{Clock, Harness, HarnessConfig, Viewport};
+use ds_harness::harness::settle_until;
+use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use sill_model::now_playing::{MediaCommand, MediaVerb};
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::hooks::PinnedAppearance;

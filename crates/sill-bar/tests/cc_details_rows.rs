@@ -8,8 +8,8 @@ mod cc_support;
 use cc_support::details::{center, figure, ms, open, press};
 use cc_support::fake;
 
-use ds_native::Harness;
-use ds_native::harness::assert_settles_to_zero_frames;
+use ds_harness::Harness;
+use ds_harness::harness::assert_settles_to_zero_frames;
 use sill_model::attempt::{Attempt, Attempts, OpStamp};
 use sill_model::bluetooth::{BtBattery, BtConnection};
 use sill_model::network::{Connectivity, Link, Network};

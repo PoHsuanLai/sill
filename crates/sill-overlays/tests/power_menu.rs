@@ -10,7 +10,7 @@
 use std::time::Duration;
 
 use ds::ShortcutKey;
-use ds_native::{Harness, Viewport};
+use ds_harness::{Harness, Viewport};
 use sill_model::session::{Offer, Session, SessionAction, SessionCommand};
 use sill_overlays::PowerMenu;
 use sill_settings::{PowerMenuDefault, PowerMenuSettings, ShellFile};
@@ -55,7 +55,7 @@ fn opened(file: ShellFile, offers: Session, preselect: Preselect) -> Running {
 /// Advance until `done` holds (`settle_until`, which fails with the document if it never does);
 /// then one more frame's worth.
 fn settle(harness: &mut Harness, done: impl Fn(&Harness) -> bool) {
-    ds_native::harness::settle_until(harness, done);
+    ds_harness::harness::settle_until(harness, done);
     harness.advance(Duration::from_millis(20));
 }
 

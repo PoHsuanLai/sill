@@ -10,8 +10,8 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_native::{Harness, Viewport};
+use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
+use ds_harness::{Harness, Viewport};
 use sill_settings::{DesktopWidgets, ShellFile, WidgetKind};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{EditShown, EditWidgetsLink, WidgetsWrite, WidgetsWriter};

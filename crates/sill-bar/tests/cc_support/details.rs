@@ -3,8 +3,8 @@
 
 use std::time::Duration;
 
-use ds_native::Harness;
-use ds_native::harness::settle_until;
+use ds_harness::Harness;
+use ds_harness::harness::settle_until;
 
 use super::{fake, live};
 

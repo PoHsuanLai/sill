@@ -5,8 +5,8 @@
 //! while the center is open enters. Every one of them ends at rest, asking for no frame.
 
 use super::{Running, advance, commands_until, fake, note, settle, start, two_apps, until};
-use ds_native::Harness;
-use ds_native::harness::assert_settles_to_zero_frames;
+use ds_harness::Harness;
+use ds_harness::harness::assert_settles_to_zero_frames;
 use sill_model::notifications::{AppGroup, AppKey, Clear, History, NotificationsCommand};
 use sill_settings::ShellFile;
 

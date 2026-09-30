@@ -209,7 +209,7 @@ struct TrayMenuProps {
 /// close closing the popup. A popup inherits nothing from the bar, so it provides quire's
 /// document host itself.
 fn tray_menu_popup(props: TrayMenuProps) -> Element {
-    ds_native::provide_host();
+    ds_blitz::provide_host();
     let surface = use_surface();
     let control = props.control.clone();
     let item = props.item.clone();
