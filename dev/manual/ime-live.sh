@@ -33,7 +33,7 @@ case "${1:-start}" in
     rm -f "$PIPE" "$DEMO_PID" "$TAIL_PID"
     mkfifo "$PIPE" || exit 1
     cd "$(dirname "${BASH_SOURCE[0]}")/../.."
-    cargo build -q -p sill-ui-kit --example launcher_demo || exit 1
+    cargo build -q -p sill-launcher-ui --example launcher_demo || exit 1
     WAYLAND_DISPLAY=wayland-0 target/debug/examples/launcher_demo <"$PIPE" >"$D/ime-demo.log" 2>&1 &
     echo $! >"$DEMO_PID"
     tail -f "$IN" >"$PIPE" &

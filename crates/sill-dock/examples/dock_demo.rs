@@ -5,7 +5,7 @@
 //! hover X Y`, `click X Y [primary|secondary|middle]`, `leave`, `capture PATH`, `stats`,
 //! `quit`). Commands the dock sends to the fake services are printed on stderr.
 //!
-//! `cargo run -p sill-ui-kit --example dock_demo`
+//! `cargo run -p sill-dock --example dock_demo`
 
 use std::collections::HashSet;
 use std::fmt::Debug;

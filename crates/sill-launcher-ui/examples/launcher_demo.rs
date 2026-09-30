@@ -11,7 +11,7 @@
 //!
 //! What the launcher sends to the fake launch and compositor services is printed on stderr.
 //!
-//! `cargo run -p sill-ui-kit --example launcher_demo`
+//! `cargo run -p sill-launcher-ui --example launcher_demo`
 
 #[path = "../tests/launcher_support/mod.rs"]
 mod launcher_support;

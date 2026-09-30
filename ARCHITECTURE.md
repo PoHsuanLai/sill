@@ -727,7 +727,7 @@ where noted, and sill compiles against each.
     the layer size.
 11. Removals inside surfaces (done): G7 estimate stack (FitContent), `bar/menu_track/` (ds's),
     `CcModule`, `WidgetProvider`, dead components, `Visible` to `shell_host::Visibility`.
-12. Split the surface crates out of `sill-ui-kit`'s host: `sill-overlays`, `sill-notify-ui`,
+12. (done) Split the surface crates out of `sill-ui-kit`'s host: `sill-overlays`, `sill-notify-ui`,
     `sill-widgets-ui`, `sill-dock`, `sill-launcher-ui`, `sill-bar`; magnify to `sill-dock`,
     switcher derivation to `sill-overlays`; delete `sill-surfaces`.
 13. (done) shell-host `Inject::Key`: delete the script stand-ins, `launcher_debug` and the

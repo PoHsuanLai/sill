@@ -6,7 +6,7 @@
 //! `<surface> capture PATH`, `quit`). Commands the bar sends to the fake services are printed
 //! on stderr, never carried out.
 //!
-//! `cargo run -p sill-ui-kit --example bar_demo`
+//! `cargo run -p sill-bar --example bar_demo`
 
 use sill_ui_kit::harness::fake;
 

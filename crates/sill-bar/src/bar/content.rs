@@ -28,7 +28,7 @@ pub(crate) struct FrontApp {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PopupBody {
     Menu(Vec<MenuEntry<BarPick>>),
-    /// The control center (`surfaces::control_center::ControlCenter`), which reads its own
+    /// The control center (`control_center::ControlCenter`), which reads its own
     /// hooks; the body carries only what sizes the popup.
     ControlCenter(ControlCenterSettings),
     /// One module's dropdown from its own bar item: the module's control center component

@@ -6,7 +6,7 @@
 //! Driven by shell-host's `debug-inject` commands on stdin (`stats`, `<surface> capture PATH`,
 //! `quit`; `sill-bar-demo`'s own convention, `bar_demo.rs`'s module doc).
 //!
-//! `cargo run -p sill-ui-kit --example wallpaper_demo`
+//! `cargo run -p sill-overlays --example wallpaper_demo`
 
 use sill_ui_kit::harness::fake;
 

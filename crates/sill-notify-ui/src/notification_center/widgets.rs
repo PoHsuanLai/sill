@@ -2,7 +2,7 @@
 //! one [`Widget`] in the center host for each of `widgets.center`, in order, each at its one
 //! size in the center ([`size_of`], Medium) on quire's card (a tile on the Popover), then "Edit
 //! Widgets" at the bottom, as macOS's Notification Center has it: it closes the center and opens the Edit
-//! Widgets sheet on this output (`surfaces::edit_widgets`). The panel injects sill's widgets'
+//! Widgets sheet on this output (`sill_ui_kit::links::edit_widgets`). The panel injects sill's widgets'
 //! stylesheets (`widgets_css`).
 
 use dioxus::prelude::*;

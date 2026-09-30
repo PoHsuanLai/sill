@@ -4,8 +4,8 @@
 //! sill's own [`up_next::UpNext`] and [`now_playing::NowPlaying`]), and sill only provides each
 //! one's entries from its services ([`Widget`] picks the provider for a kind, [`with_provider`]). Drawn the same in
 //! two hosts: the notification center's widget slot below the history
-//! (`surfaces::notification_center::CenterWidgets`) and the desktop widget layer
-//! (`surfaces::desktop_widgets`).
+//! (`sill_notify_ui::notification_center::CenterWidgets`) and the desktop widget layer
+//! (`sill_widgets_ui::desktop`).
 //!
 //! Which kinds are placed stays a closed enum in the settings (`sill_settings::WidgetKind`,
 //! `widgets.center`, `widgets.desktop_widgets`) until `layout.toml` (design/28 section 5.6):
