@@ -93,13 +93,15 @@ re-export; the one type a module is named after may sit in its `mod.rs`.
 | `tests.rs` | unit tests; integration tests are `crates/<crate>/tests/<surface>.rs` on `SurfaceHarness<S>` |
 
 A concept over about 300 lines becomes a sub-directory with the same roles (`dock/machine/`,
-`launcher/preview/`, `control_center/pages/`). No `drive.rs`, `link.rs`, `presence.rs`,
-`session.rs`, `machine.rs`, `panel.rs`: those seven names for "the model" and "the io" are
+`launcher/preview/`, `control_center/pages/`). No files named `drive`, `link`, `presence`, `session`, `machine` or `panel`: those names for "the model" and "the io" are
 `model.rs`, `step.rs`, `io.rs`.
 
 ---
 
-## 3. Where today's code goes
+## 3. Where the old code went
+
+<!-- paths: skip -->
+The old locations of what moved, and where each landed.
 
 ### `sill-services` (ends with 26 services and the seams)
 
@@ -215,6 +217,8 @@ code into `tests.rs`. Exceptions and renames:
 | `power_menu.rs`, `switcher.rs`, `widgets.rs`, `edit_widgets.rs`, `polkit.rs`, `session.rs`, `notifications/mod.rs`, `screenshots.rs`, `clipboard.rs` (verb halves) | the verb halves are `ipc/dispatch/{show,status,act}.rs` arms; the spawn halves are gone (generic `daemon/surfaces.rs`) |
 | `launcher_debug.rs`, `notifications/fake.rs` | `ipc/dispatch/debug.rs` (debug feature) |
 | `tests/{ipc,latency}.rs` | stay |
+
+<!-- paths: end -->
 
 ---
 
@@ -411,13 +415,13 @@ Bluetooth, Focus, Display, Keyboard, Sound, Now Playing, Appearance, Battery.
 
 ```rust
 pub trait WidgetProvider: Clone + PartialEq + 'static {
-    type W: ds::Widget;                       // a value: `ds::Widget: Default`
+    type W: ds_shell::prelude::Widget;        // a value: `Widget: Default`
     const KIND: WidgetKind;
     const DESKTOP_SIZE: WidgetSize;           // its one size on the desktop (tiles are all Medium)
     fn use_feed() -> Feed<Self::W>;           // reads the services; one hook, one shape
-    fn registry_id() -> ds::WidgetKind;       // provided: `W::kind()`, the name in quire's registry
+    fn registry_id() -> ds_shell::prelude::WidgetKind;  // provided: `W::kind()`, the name in quire's registry
 }
-pub struct Feed<W: ds::Widget> {
+pub struct Feed<W: ds_shell::prelude::Widget> {
     pub entry: W::Entry,                                   // the entry now
     pub onintent: Option<EventHandler<W::Intent>>,         // the card's controls; none without any
 }
@@ -441,7 +445,7 @@ Implementors: calendar, up next, batteries, now playing, world clock.
 ```rust
 pub trait MenuModel: 'static {
     type Pick;
-    fn entries(&self) -> Vec<ds::MenuEntry>;
+    fn entries(&self) -> Vec<ds::prelude::MenuItem<Self::Pick>>;
     fn pick(&self, path: &ItemPath) -> Option<Self::Pick>;
 }
 #[component] pub fn MenuPopup<M: MenuModel>(model: M, anchor: Anchor, on_pick: EventHandler<M::Pick>) -> Element;
@@ -537,7 +541,7 @@ Each ends with its tests. Name the concept once and use it in every file name be
 2. `sill-bar/src/control_center/modules/<name>.rs`: the component over `use_service`, and `impl
    CcModule for NameModule`; a detail page in `pages/<name>.rs` if it has one.
 3. The one arm in `modules/mod.rs::module`. No other `match` on the kind.
-4. Tests: a row in `tests/control_center.rs`, whose loop runs every `ControlCenterModule::ALL`
+4. Tests: a row in `sill-bar/tests/control_center_render.rs`, whose loop runs every `ControlCenterModule::ALL`
    through tile, dropdown and detail on `SurfaceHarness::<ControlCenter>`.
 
 ### Add a widget
@@ -549,15 +553,15 @@ Each ends with its tests. Name the concept once and use it in every file name be
 3. `const DESKTOP_SIZE` on the provider, and the one arm in `widgets/card.rs::with_provider`;
    `WidgetKind::ALL`, the slug, `kind_id`, `size_of` and the element id follow. Add the
    variant's row to the table test in `widgets/tests.rs` (slug, element id, size).
-4. Tests: entry table in `tests.rs`; a row in `sill-widgets-ui/tests/desktop.rs` and in
-   `sill-notify-ui/tests/center.rs` render loops (both hosts).
+4. Tests: entry table in `tests.rs`; a row in `sill-widgets-ui/tests/desktop_widgets.rs` and in
+   `sill-notify-ui/tests/center_widgets.rs` render loops (both hosts).
 
 ### Add a launcher provider
 
 1. `ProviderKind` variant, and an `Activation` variant only if none fits, in `sill-launcher`.
 2. `sill-search/src/providers/<kind>/mod.rs`: `impl Provider`; effects take `Env` values
    (paths, buses) through the constructor.
-3. Register in `providers/registry.rs`, in rank order.
+3. Register in `sill-search/src/results/registry.rs`, in rank order.
 4. The row's arm in `sill-launcher-ui/src/launcher/rows.rs::row` (exhaustive).
 5. Tests: `query` and `activate` tables beside the provider with `VecSink`; a rank test row in
    `sill-launcher`.
@@ -626,10 +630,10 @@ in `sill-ui-kit`, and the center's "Edit Widgets" asks through `links::edit_widg
 
 ## 8. The daemon
 
-`sill run` (`daemon/run.rs`) takes the single-instance lock, builds `Env` (`daemon/args.rs`),
+`sill run` (`daemon/run.rs`) takes the single-instance lock, builds `Env` (`run_args.rs`),
 starts services (`daemon/services.rs`) and settings (`daemon/settings/`), starts the IPC server
 (`ipc/server.rs`), connects the host and reconciles one row of surfaces per output
-(`daemon/outputs.rs`, `daemon/surfaces.rs`). `Links` is built once in `run.rs`. The `debug`
+(`outputs.rs`, `daemon/surfaces.rs`). `Links` is built once in `run.rs`. The `debug`
 feature adds `sill debug ...` and the fake DDC flags; a build without it refuses them.
 
 Settings have one path: the file settles in `daemon/settings/watch.rs`, is published on the
@@ -637,7 +641,7 @@ feed (surfaces read it) and followed by each `Policy` (services are told). Focus
 the file and the file changes the mode; the file stays the one truth.
 
 The person's stylesheet (`~/.config/sill/style.css`, quire's `UserStyle`, ARCHITECTURE.md
-section 11 in quire) takes the same path: `daemon/settings/user_style.rs` watches it through
+section 10 in quire) takes the same path: `daemon/settings/user_style.rs` watches it through
 `ds_settings::Store`, publishes it on the feed, and `SurfaceRoot` passes it to `Ds`, so every
 surface restyles live. Each surface root carries `data-surface = Surface::NAME`, which makes
 the surface names part of the public selector surface: renaming one breaks the person's file
@@ -698,58 +702,3 @@ installs them.
   ./scripts/check-boundary.sh
   cargo deny check licenses
   ```
-
-## 11. Migration order
-
-Each step lands through the gate worktree and keeps master green; quire's own steps land first
-where noted, and sill compiles against each.
-
-1. `sill-testkit` (done): move `env/scratch.rs`, `tests/support/*`, the 13 examples and both
-   `test_support.rs`; services tests use it. `_live` tests move to private buses.
-2. `Env` completion (done): `Processes` seam (from `programs.rs`), `DdcBus` files into `env/`,
-   `Authenticator` into `env/`; delete `curve.rs`.
-3. `sill-model` (done): `units`, `ids`, `attempt` first, then one service per commit (state, command,
-   step out; effect files into `backend/`), keeping `sill-services` re-exports off: callers
-   change in the same commit. Wi-Fi splits from network here.
-4. `sill-search` (done): `providers/`, `results/` runtime, `preview.rs` out; `results` state to
-   `sill-model`. `services.rs` moves to `sill-surfaces` as a module (it becomes `sill-ui-kit`'s
-   in step 9); `Services::spawn` becomes the daemon's `start`.
-5. quire steps land (`ds-settings` dioxus optional, `SettingsDoc`, `Word`, the crate split and
-   `ds::prelude`); mechanical sill import rewrite in one commit per crate.
-6. `sill-settings` pure (done): `Section`, typed values at load, mirrors and `schema_file.rs` gone,
-   `focus_link`, `watch`, `feed`, `load`/`save` to their new homes, dead keys retired.
-7. `sill-ipc` (done): regrouped, mirrors removed, `sill` `cli/` and `ipc/dispatch/` split, `policy/`
-   dir, `Policy` bridges moved.
-8. `daemon.rs` (done): split into `daemon/{run,events,surfaces,services,settings,msg}`; per-surface
-   spawn blocks wait for step 10.
-9. `sill-ui-kit` inside `sill-surfaces` first (done): `hooks`, `links/` (all links as types, the global
-   `links.rs` gone), `Reveal<O>`, `SurfaceRoot`, `look`, `Machine` and `use_machine`,
-   `MenuPopup<M>`, `status`, `widgets` providers, `harness`. Then rename the crate `sill-ui-kit`.
-10. `Surface` trait and generic `daemon/surfaces.rs` (done); one surface per commit converted to the
-    one shape (order: osd, hot_corners, idle_dim, wallpaper, power_menu, switcher, polkit_prompt,
-    lock, banners, notification_center, screenshot_thumb, dock, launcher, bar, desktop_widgets,
-    edit_widgets); each commit moved its tests onto `SurfaceHarness` and its `*_lint.rs` into the
-    table. As built: `lock` is a `LockSurface` (`mount_lock`, the `LockHarness`; shell-host's
-    session lock spawns one per output, `lock/host.rs`), the launcher's click catcher is
-    a surface of its own (`LauncherCatcher`) beside the `Launcher` panel, and `control_center`
-    is not a surface: it is the bar's popup and the `Bar` surface mounts it. `OutputSurfaces` is
-    only the row's `spawned` list, found through `surface_of::<S>()`; the wallpaper's `Prepare`
-    stays a daemon step (`prepare_wallpapers`), and `bar.height_px`'s reserved height is
-    re-applied by `daemon/events.rs`'s `resize_bars` because the generic resize re-applies only
-    the layer size.
-11. Removals inside surfaces (done): G7 estimate stack (FitContent), `bar/menu_track/` (ds's),
-    `CcModule`, `WidgetProvider`, dead components, `Visible` to `shell_host::Visibility`.
-12. (done) Split the surface crates out of `sill-ui-kit`'s host: `sill-overlays`, `sill-notify-ui`,
-    `sill-widgets-ui`, `sill-dock`, `sill-launcher-ui`, `sill-bar`; magnify to `sill-dock`,
-    switcher derivation to `sill-overlays`; delete `sill-surfaces`.
-13. (done) shell-host `Inject::Key`: delete the script stand-ins, `launcher_debug` and the
-    `DryRunSession` key paths. `dev/key-sink.py` stays: a focus-holding test client for
-    `bar.sh --real-input`, not a key stand-in.
-14. (done) `dev/lib/*.sh` and one script per surface with `--real-input`; untrack `dev/out/*.png`.
-15. (done) Update `check-boundary.sh` to section 1's table; prune FINDINGS to open items and
-    standing facts.
-16. User styles (done): `daemon/settings/user_style.rs`, the feed field, `SurfaceRoot`'s `user_style`
-    and `data-surface`, the `sill style check` verb, a dev script that edits the file under a
-    running daemon on headless KWin and proves every surface restyles without a restart
-    (quire's step 16 lands first).
-

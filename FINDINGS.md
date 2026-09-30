@@ -224,14 +224,14 @@ A settled item is deleted, not marked closed.
   card plus its room, and a press reaches it. A press in the transparent room no longer closes the
   menu (the catcher is 0 px tall); one outside the popup is the compositor's grab.
 - **A popup is its own `VirtualDom`** and inherits no context from the surface that opened it; it
-  calls `ds_native::provide_host()` itself, as `mount` and `mount_lock` do for a surface; its `PopupFrame` provides the seat's `HostSignals`. The screenshot drag icon is the one `Ds` root outside them: it is a picture that takes no input and has no focusable child, so modality and scale do not apply.
+  calls `ds_blitz::provide_host()` itself, as `mount` and `mount_lock` do for a surface; its `PopupFrame` provides the seat's `HostSignals`. The screenshot drag icon is the one `Ds` root outside them: it is a picture that takes no input and has no focusable child, so modality and scale do not apply.
 - **shell-host unmaps by destroying and rebuilding the layer surface**, so the presenter is
   recreated on every show. Warm surfaces are spawned hidden at start and shown with
   `set_visibility`.
 - **Element regions** (`RegionSpec::Elements`) are resolved after every layout and follow CSS
   transforms; one `RegionSpec::Element` keeps its last rect once its element is gone.
 - **Tokio**: services spawn on the `Handle` they are given, never with a bare `tokio::spawn`;
-  the settings watch runs on a `ds_native::TokioSpawner` over the daemon's runtime.
+  the settings watch runs on a `ds_blitz::TokioSpawner` over the daemon's runtime.
 - **Every Harness test runs on `Clock::Virtual`** and pins `PinnedAppearance`: quire's live
   `use_environment` reads the settings portal and `appearance.toml` off-thread on wall time and
   wakes a settled document with no change (Q455). The bar clock is a `watch` fed by
