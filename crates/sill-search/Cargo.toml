@@ -12,6 +12,7 @@ publish.workspace = true
 sill-launcher = { workspace = true }
 sill-model = { workspace = true }
 sill-services = { workspace = true }
+ds-settings = { workspace = true }
 emojis = { workspace = true }
 fend-core = { workspace = true }
 jiff = { workspace = true }

@@ -4,7 +4,7 @@
 use nucleo_matcher::Matcher;
 use sill_launcher::{FrecencyScore, Needle, RankWeights, Score, rank_text};
 
-use super::schema_file::{RawKey, RawSchema, page_label};
+use ds_settings::schema::{KeySpec, Schema};
 
 /// One settings key, flattened out of whichever schema named it (design/22 §9.3: "the query...
 /// resolves... no hand-kept table" — every field here comes straight off the schema).
@@ -18,13 +18,13 @@ pub struct IndexedKey {
     pub page_label: String,
 }
 
-impl From<RawKey> for IndexedKey {
-    fn from(raw: RawKey) -> IndexedKey {
+impl From<&KeySpec> for IndexedKey {
+    fn from(spec: &KeySpec) -> IndexedKey {
         IndexedKey {
-            path: raw.path,
-            page_label: page_label(&raw.page),
-            label: raw.label,
-            help: raw.help,
+            path: spec.path.0.clone(),
+            page_label: spec.page.label().to_owned(),
+            label: spec.label.0.clone(),
+            help: spec.help.0.clone(),
         }
     }
 }
@@ -37,11 +37,11 @@ pub struct SettingsIndex {
 
 impl SettingsIndex {
     /// Flattens every schema's keys into one index, in the order the schemas were found.
-    pub fn build(schemas: Vec<RawSchema>) -> SettingsIndex {
+    pub fn build(schemas: Vec<Schema>) -> SettingsIndex {
         SettingsIndex {
             keys: schemas
-                .into_iter()
-                .flat_map(|schema| schema.key)
+                .iter()
+                .flat_map(|schema| &schema.key)
                 .map(IndexedKey::from)
                 .collect(),
         }
@@ -80,9 +80,8 @@ impl SettingsIndex {
     /// key matches or more than one does (design/22 §9.3's deep link rule: "a query that
     /// resolves to two keys is not a deep link, it is a search result list").
     ///
-    /// This mirrors `ds_settings::schema::deep_link`'s algorithm exactly; it is not that
-    /// function, because `sill-services` cannot depend on `ds-settings`
-    /// (`schema_file` module doc, `scripts/check-boundary.sh`).
+    /// The rule of `ds_settings::schema::deep_link` over the flattened keys, with the query
+    /// trimmed and an empty query resolving to nothing.
     pub fn deep_link(&self, query: &str) -> Option<&IndexedKey> {
         let query = query.trim().to_lowercase();
         if query.is_empty() {
@@ -105,6 +104,7 @@ mod tests {
     use sill_launcher::Needle;
 
     use super::{IndexedKey, SettingsIndex};
+    use ds_settings::schema::Schema;
 
     fn key(path: &str, label: &str, help: &str, page: &str) -> IndexedKey {
         IndexedKey {
@@ -202,5 +202,80 @@ mod tests {
         let idx = index();
         let mut m = Matcher::new(Config::DEFAULT);
         assert!(idx.search(&Needle::parse("zzzzzz"), &mut m).is_empty());
+    }
+
+    #[test]
+    fn a_schema_file_indexes_each_key_with_its_pages_label() {
+        let text = r#"
+app = "sill"
+file = "sill/settings.toml"
+version = 1
+
+[[key]]
+path = "dock.magnification"
+default = "on"
+label = "Magnification"
+help = "Icons grow as the pointer nears them."
+section = "Magnification"
+exposure = "basic"
+
+[key.kind]
+kind = "toggle"
+
+[key.kind.v]
+variants = ["on", "off"]
+
+[key.page]
+kind = "dock"
+
+[[key]]
+path = "idle.lock_after_mins"
+default = "5"
+label = "Lock after"
+help = "Minutes of idleness before the screen locks."
+section = "Idle"
+exposure = "basic"
+
+[key.kind]
+kind = "text"
+
+[key.page]
+kind = "power"
+"#;
+        let schema = Schema::from_toml(text).expect("the schema text parses");
+        let index = SettingsIndex::build(vec![schema]);
+        let keys: Vec<(&str, &str, &str, &str)> = index
+            .iter()
+            .map(|key| {
+                (
+                    key.path.as_str(),
+                    key.label.as_str(),
+                    key.help.as_str(),
+                    key.page_label.as_str(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            keys,
+            vec![
+                (
+                    "dock.magnification",
+                    "Magnification",
+                    "Icons grow as the pointer nears them.",
+                    "Dock"
+                ),
+                (
+                    "idle.lock_after_mins",
+                    "Lock after",
+                    "Minutes of idleness before the screen locks.",
+                    "Power"
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_malformed_schema_file_does_not_parse() {
+        assert!(Schema::from_toml("not = [valid").is_err());
     }
 }

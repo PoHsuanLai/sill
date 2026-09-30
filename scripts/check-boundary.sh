@@ -14,13 +14,16 @@ cd "$(dirname "$0")/.."
 # audio, no design system.
 # sill-services and sill-search are effectful but UI-free: their state reaches surfaces only
 # through watch channels read by sill-ui-kit's hooks (DESIGN.md "Crates"), so neither links a
-# renderer. That is also why sill's settings are a crate of their own: ds-settings brings dioxus.
+# renderer. sill-settings is data and reaches neither ds nor dioxus: it names ds-core for `Word`
+# and ds-settings (its dioxus feature off) for the schema; sill-search reads schema files through
+# ds-settings the same way.
 RULES=(
   "sill-ipc: dioxus dioxus-core zbus wayland-client tokio libpulse-binding"
   "sill-launcher: dioxus dioxus-core zbus wayland-client tokio libpulse-binding"
   "sill-model: dioxus dioxus-core zbus wayland-client tokio libpulse-binding shell-host ds blitz-dom"
+  "sill-settings: dioxus dioxus-core blitz-dom shell-host ds ds-shell"
   "sill-services: dioxus dioxus-core blitz-dom shell-host ds ds-settings"
-  "sill-search: dioxus dioxus-core blitz-dom shell-host ds ds-settings"
+  "sill-search: dioxus dioxus-core blitz-dom shell-host ds ds-shell"
 )
 fail=0
 

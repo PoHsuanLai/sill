@@ -3,7 +3,7 @@
 
 pub mod cosmic_pages;
 pub mod index;
-pub mod schema_file;
+pub mod schema_files;
 
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -15,8 +15,9 @@ use sill_launcher::{
 };
 
 use cosmic_pages::{cosmic_pages_table, is_on_path, real_path_dirs, search_cosmic_pages};
+use ds_settings::schema::{Schema, data_dirs_from};
 use index::{IndexedKey, SettingsIndex};
-use schema_file::{data_dirs, fingerprint, parse_schema, schema_paths};
+use schema_files::{fingerprint, schema_paths};
 
 /// A key's `Item.id`: `activate` strips this back off, rather than re-parsing the row's title.
 const KEY_ID_PREFIX: &str = "key:";
@@ -50,10 +51,14 @@ impl Default for SettingsProvider {
 }
 
 impl SettingsProvider {
-    /// Indexes the installed quire and sill schemas (`schema_file::data_dirs` of the data
-    /// directory `data_home`), adding the COSMIC pages table when `cosmic-settings` is on `PATH`.
+    /// Indexes the installed quire and sill schemas (`ds_settings::schema::data_dirs_from` of
+    /// the data directory `data_home` and `$XDG_DATA_DIRS`, a system search path read like `$PATH`), adding the COSMIC pages table when `cosmic-settings` is on `PATH`.
     pub fn new(data_home: &Path) -> SettingsProvider {
-        SettingsProvider::with_dirs(data_dirs(data_home))
+        SettingsProvider::with_dirs(data_dirs_from(
+            Some(data_home.into()),
+            std::env::var_os("XDG_DATA_DIRS"),
+            None,
+        ))
     }
 
     /// As [`SettingsProvider::new`], but discovering schemas under `dirs` instead of the real
@@ -98,7 +103,7 @@ impl SettingsProvider {
                 .iter()
                 .filter_map(|path| {
                     let text = std::fs::read_to_string(path).ok()?;
-                    match parse_schema(&text) {
+                    match Schema::from_toml(&text) {
                         Ok(schema) => Some(schema),
                         Err(error) => {
                             eprintln!(

@@ -46,7 +46,9 @@ exposure = "advanced"
 
 [key.kind]
 kind = "list"
-v = "text"
+
+[key.kind.v]
+kind = "text"
 
 [key.page]
 kind = "app"
