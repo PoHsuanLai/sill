@@ -42,7 +42,6 @@ fn the_grid_shows_what_the_services_hold() {
             "class=\"ds-module-panel-head\"",
             3,
         ),
-        ("the compact picker", "data-layout=\"compact\"", 1),
         ("no plate of sill's", "sill-cc-module", 0),
         (
             "Wi-Fi, Bluetooth and Focus on",
@@ -68,7 +67,8 @@ fn the_grid_shows_what_the_services_hold() {
         ("its level", ">40%<", 1),
         ("Display", ">Display<", 1),
         ("nothing playing", ">Not Playing<", 1),
-        ("quire's appearance picker", "class=\"ds-appearance\"", 1),
+        ("the theme control", "aria-label=\"Theme\"", 1),
+        ("the accent circles", "data-arrangement=\"swatches\"", 1),
         ("the battery's time", "2:05 remaining", 1),
         ("the power modes", ">Performance<", 1),
         ("no raw button of sill's", "<button class=\"sill", 0),
