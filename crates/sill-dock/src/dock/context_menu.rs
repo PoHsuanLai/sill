@@ -7,7 +7,7 @@
 //! the same, then Keep in Dock and Show in Files in an `Options` submenu, Hide and Quit. Open
 //! at Login is not offered: writing `~/.config/autostart` is a service sill does not have yet.
 
-use ds::{Availability, Check, MenuEntry, MenuTrail};
+use ds::{Availability, Check, MenuItem};
 use sill_launcher::AppId;
 use sill_model::apps::{App, AppIndex, match_app};
 use sill_model::cosmic_wl::{Activity, Toplevel, Toplevels, WindowState};
@@ -158,7 +158,7 @@ pub fn menu_entries(
     item: &DockItem,
     windows: &[&Toplevel],
     order: DockMenuOrder,
-) -> Vec<MenuEntry<DockPick>> {
+) -> Vec<MenuItem<DockPick>> {
     let app: Option<AppId> = item.kind.app_id().cloned();
     let keys: Vec<_> = windows.iter().map(|w| w.key).collect();
     let mut listed = windows.iter();
@@ -177,7 +177,7 @@ pub fn menu_entries(
     let before = at.map_or(rest.len(), |at| {
         rows[..at].iter().filter(|r| !in_options(r)).count()
     });
-    let mut out: Vec<MenuEntry<DockPick>> = rest[..before]
+    let mut out: Vec<MenuItem<DockPick>> = rest[..before]
         .iter()
         .filter_map(|row| row_entry(row, app.as_ref(), &keys, order, &mut listed))
         .collect();
@@ -195,11 +195,11 @@ fn options_submenu(
     app: Option<&AppId>,
     keys: &[sill_launcher::WindowKey],
     order: DockMenuOrder,
-) -> MenuEntry<DockPick> {
+) -> MenuItem<DockPick> {
     let mut none = [].iter();
-    MenuEntry::Submenu {
+    MenuItem::Submenu {
         title: "Options".to_owned(),
-        tile: None,
+        image: None,
         availability: Availability::Enabled,
         children: rows
             .iter()
@@ -215,11 +215,11 @@ fn row_entry(
     keys: &[sill_launcher::WindowKey],
     order: DockMenuOrder,
     listed: &mut std::slice::Iter<&Toplevel>,
-) -> Option<MenuEntry<DockPick>> {
+) -> Option<MenuItem<DockPick>> {
     let owned = |f: fn(AppId) -> DockPick| app.cloned().map(f);
     let (title, value, check) = match row {
-        DockMenuRow::Header(text) => return Some(MenuEntry::Header(text.clone())),
-        DockMenuRow::Separator => return Some(MenuEntry::Separator),
+        DockMenuRow::Header(text) => return Some(MenuItem::Header(text.clone())),
+        DockMenuRow::Separator => return Some(MenuItem::Separator),
         DockMenuRow::Window {
             title,
             active,
@@ -252,13 +252,12 @@ fn row_entry(
         DockMenuRow::Quit => ("Quit".to_owned(), DockPick::Quit(keys.to_vec()), None),
         DockMenuRow::ForceQuit => ("Force Quit".to_owned(), owned(DockPick::ForceQuit)?, None),
     };
-    Some(MenuEntry::Item {
-        value,
-        title,
-        detail: None,
-        tile: None,
-        trail: MenuTrail::None,
-        check,
+    Some(MenuItem::Item {
+        value: value,
+        title: title,
+        image: None,
+        key: None,
+        check: check,
         availability: Availability::Enabled,
     })
 }

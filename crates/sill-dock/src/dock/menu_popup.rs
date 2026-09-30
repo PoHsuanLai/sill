@@ -4,7 +4,7 @@
 //! itself.
 
 use dioxus::prelude::*;
-use ds::MenuEntry;
+use ds::MenuItem;
 use shell_host::use_surface;
 use tokio::sync::mpsc;
 
@@ -28,7 +28,7 @@ pub(crate) const DOCK_MENU: &str = "dock-menu";
 /// The popup's root context.
 #[derive(Debug, Clone)]
 pub(crate) struct MenuLink {
-    pub entries: Vec<MenuEntry<DockPick>>,
+    pub entries: Vec<MenuItem<DockPick>>,
     pub look: PopupLook,
     pub reports: mpsc::UnboundedSender<PopupReport>,
 }

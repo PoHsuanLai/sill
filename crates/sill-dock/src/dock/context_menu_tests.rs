@@ -6,7 +6,7 @@ use super::{
 use crate::dock::items::{DockItem, ItemKind};
 use crate::dock::machine::{TileApp, TileId};
 use crate::dock::pick::DockPick;
-use ds::{Check, MenuEntry};
+use ds::{Check, MenuItem};
 use sill_launcher::{AppId, WindowKey};
 use sill_model::apps::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing, Terminal};
 use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
@@ -70,28 +70,27 @@ fn pinned(app: TileApp) -> DockItem {
     }
 }
 
-fn names(entries: &[MenuEntry<DockPick>]) -> Vec<String> {
+fn names(entries: &[MenuItem<DockPick>]) -> Vec<String> {
     entries
         .iter()
         .map(|e| match e {
-            MenuEntry::Header(t) => format!("# {t}"),
-            MenuEntry::Item { title, check, .. } => match check {
+            MenuItem::Header(t) => format!("# {t}"),
+            MenuItem::Item { title, check, .. } => match check {
                 Some(Check::On) => format!("{title} ✓"),
                 _ => title.clone(),
             },
-            MenuEntry::Submenu {
+            MenuItem::Submenu {
                 title, children, ..
             } => {
                 format!("{title} > [{}]", names(children).join(", "))
             }
-            MenuEntry::Info { title, .. } => format!("i {title}"),
-            MenuEntry::Row(row) => format!("r {}", row.title.plain_text()),
-            MenuEntry::Separator => "--".to_owned(),
+            MenuItem::Info { title, .. } => format!("i {title}"),
+            MenuItem::Separator => "--".to_owned(),
         })
         .collect()
 }
 
-fn menu(item: &DockItem, order: DockMenuOrder, option: OptionHeld) -> Vec<MenuEntry<DockPick>> {
+fn menu(item: &DockItem, order: DockMenuOrder, option: OptionHeld) -> Vec<MenuItem<DockPick>> {
     let app = term();
     let all = toplevels();
     let rows = context_menu(item, Some(&app), &all, order, option);
@@ -150,7 +149,7 @@ fn a_running_pinned_app_lists_windows_actions_remove_and_quit() {
     let picks: Vec<DockPick> = entries
         .into_iter()
         .filter_map(|e| match e {
-            MenuEntry::Item { value, .. } => Some(value),
+            MenuItem::Item { value, .. } => Some(value),
             _ => None,
         })
         .collect();
