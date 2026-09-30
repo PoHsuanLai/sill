@@ -4,8 +4,7 @@ Your stylesheet is `~/.config/sill/style.css`. It is read live: save the file an
 restyles, delete it and they return to the design system's own look. `sill style check [FILE]`
 reports what is wrong or worth knowing in it.
 
-Every surface's root carries `data-surface`, so `.ds[*|data-surface=bar]` is the bar's root (write
-attribute selectors with the `*|` namespace, or Blitz never matches them). The rest of the public
+Every surface's root carries `data-surface`, so `.ds[data-surface=bar]` is the bar's root. The rest of the public
 selector surface (component classes, attribute axes, token variables) is quire's `docs/selectors.md`.
 Token overrides are the recommended form: `.ds { --accent: ... }` restyles every surface at once.
 

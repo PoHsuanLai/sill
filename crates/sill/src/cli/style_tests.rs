@@ -65,7 +65,7 @@ fn each_stylesheet_prints_its_report_and_exits_by_its_parse_errors() {
 
 #[test]
 fn the_shells_own_surfaces_are_public_selectors() {
-    let report = check("[*|data-surface=bar] .ds-button { color: red }");
+    let report = check("[data-surface=bar] .ds-button { color: red }");
     assert_eq!(report.notes, vec![]);
 }
 

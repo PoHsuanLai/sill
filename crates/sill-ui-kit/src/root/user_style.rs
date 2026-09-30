@@ -1,5 +1,5 @@
 //! What every `Ds` root takes from the person's desktop beyond the look: its own name, so a user
-//! stylesheet can target it (`[*|data-surface=bar]`), and the person's stylesheet itself. Both are
+//! stylesheet can target it (`[data-surface=bar]`), and the person's stylesheet itself. Both are
 //! public selector surface (ARCHITECTURE.md section 8): a surface's name is `Surface::NAME`,
 //! a popup's is the name its opener gives its [`crate::menu::PopupFrame`].
 

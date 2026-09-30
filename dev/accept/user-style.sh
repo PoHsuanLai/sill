@@ -8,7 +8,7 @@
 #   1. Baseline: the bar, the dock and the OSD (held up by `osd.hold_ms`) are captured with no
 #      style.css.
 #   2. `sill style check` on the style to be written prints its notes and exits 0.
-#   3. style.css is written with a rule per surface (`.ds[*|data-surface=NAME]` and a token
+#   3. style.css is written with a rule per surface (`.ds[data-surface=NAME]` and a token
 #      override: the bar's and the dock's frame alpha to 0, the OSD's ink and shadow ring to magenta). Every
 #      surface's capture changes without a restart (the same daemon pid answers ping);
 #      `sill style check` on a file that is not CSS exits 1.
@@ -36,8 +36,8 @@ SETTLED=0.002
 # takes the alpha $1 (`--m-frame-alpha`), and the OSD's ink and card shadow the colour $2
 # (`--ink`, `--m-box`).
 style_for() {
-  printf '.ds[*|data-surface=bar], .ds[*|data-surface=dock] { --m-frame-alpha: %s }\n' "$1"
-  printf '.ds[*|data-surface=osd] { --ink: %s; --m-box: 0 0 0 6px %s }\n' "$2" "$2"
+  printf '.ds[data-surface=bar], .ds[data-surface=dock] { --m-frame-alpha: %s }\n' "$1"
+  printf '.ds[data-surface=osd] { --ink: %s; --m-box: 0 0 0 6px %s }\n' "$2" "$2"
 }
 
 start_daemon() {
