@@ -168,25 +168,15 @@ fn an_added_widget_is_written_as_the_keys_and_places_and_a_second_is_refused() {
             ],
         }]
     );
-    // quire's gallery says it where the person pressed: the button settles to a check and
-    // "Added", and sill says nothing more under the gallery.
-    settle_until(&mut run.harness, |h| {
-        h.count(".ds-widget-gallery-added .ds-check-mark") == 1
-    });
-    assert_eq!(
-        run.harness.text_of(ADD_TO_DESKTOP).as_deref(),
-        Some("Added")
-    );
-    assert_eq!(status(&run.harness), None, "no line under the gallery");
-    settle_until(&mut run.harness, |h| rows(h, "desktop") == 3);
-    // The check goes after its hold and the button reads as before; nothing moves after.
-    settle_until(&mut run.harness, |h| {
-        h.count(".ds-widget-gallery-added") == 0
-    });
+    // quire's gallery shows no check for the add (the success beat is gone): the button reads as
+    // before, and sill says nothing more under the gallery.
     assert_eq!(
         run.harness.text_of(ADD_TO_DESKTOP).as_deref(),
         Some("Add to Desktop")
     );
+    assert_eq!(status(&run.harness), None, "no line under the gallery");
+    settle_until(&mut run.harness, |h| rows(h, "desktop") == 3);
+    assert_eq!(run.harness.count(".ds-widget-gallery-added"), 0);
     assert_settles_to_zero_frames(&mut run.harness);
 
     run.click(&clock);

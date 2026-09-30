@@ -1,5 +1,5 @@
-//! Module details on the real control center (design/26 5.2.5, 5.2.7, 5.2.9, 5.2.10): the Focus
-//! moon's morph, Now Playing's play/pause, track and position,
+//! Module details on the real control center (design/26 5.2.7, 5.2.9, 5.2.10): Now Playing's
+//! play/pause, track and position,
 //! the Battery module's device rings and the Keyboard Brightness module, driven by the fake
 //! services on `Clock::Virtual`. Every state change ends at 0 frames (R3). Nothing here reaches a
 //! real player or backlight.
@@ -9,66 +9,10 @@ mod cc_support;
 use cc_support::details::{center, figure, ms, press};
 use cc_support::{fake, live};
 
-use ds_native::Harness;
 use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
 use sill_model::kbd_backlight::{KbdBacklight, KbdCommand, KbdLevel};
 use sill_model::now_playing::{MediaCommand, MediaVerb, Micros, Playback, Timeline};
 use sill_model::units::{Percent, Presence, Stamp};
-use sill_settings::FocusMode;
-
-// ---- Focus ----------------------------------------------------------------------------------
-
-const FOCUS: &str = ".ds-module-grid > .ds-module-tile:nth-child(3)";
-
-/// The Focus disc's incoming glyph's class while its morph plays.
-fn incoming(harness: &Harness) -> String {
-    harness
-        .attr(&format!("{FOCUS} [*|data-morph=in]"), "class")
-        .unwrap_or_default()
-}
-
-#[test]
-fn the_focus_moon_fills_springing_only_under_the_tiles_press() {
-    let mut running = center(|_| {});
-    let harness = &mut running.harness;
-    assert_settles_to_zero_frames(harness);
-    press(harness, &format!("{FOCUS} .ds-module-title"));
-    harness.advance(ms(0));
-    assert_eq!(
-        running.focus_sets.try_recv().ok(),
-        Some(FocusMode::DoNotDisturb),
-        "the tile asks for Do Not Disturb"
-    );
-    running.focus.send_replace(FocusMode::DoNotDisturb);
-    let harness = &mut running.harness;
-    harness.advance(ms(0));
-    assert!(
-        incoming(harness).contains("a-morph-in-spring"),
-        "{}",
-        incoming(harness)
-    );
-    assert_eq!(
-        harness.count(&format!(
-            "{FOCUS} [*|data-morph=in] path[*|fill=currentColor]"
-        )),
-        1,
-        "the filled moon grows in"
-    );
-    assert_settles_to_zero_frames(harness);
-    // From elsewhere (a schedule, the settings file): no spring either way.
-    running.focus.send_replace(FocusMode::Off);
-    running.harness.advance(ms(0));
-    assert!(!incoming(&running.harness).contains("spring"));
-    assert_settles_to_zero_frames(&mut running.harness);
-    running.focus.send_replace(FocusMode::DoNotDisturb);
-    running.harness.advance(ms(0));
-    let class = incoming(&running.harness);
-    assert!(
-        class.contains("a-morph-in") && !class.contains("spring"),
-        "{class}"
-    );
-    assert_settles_to_zero_frames(&mut running.harness);
-}
 
 // ---- Now Playing ----------------------------------------------------------------------------
 
@@ -158,24 +102,24 @@ fn a_player_without_a_length_shows_no_position() {
 const RING: &str = ".sill-cc-batteries > .ds-device-battery";
 
 #[test]
-fn each_devices_ring_sweeps_in_counting_when_the_center_opens() {
+fn each_devices_ring_stands_at_its_level_when_the_center_opens() {
     let (services, feeds) = fake::services();
     let mut running = live::start(services, feeds);
     let harness = &mut running.harness;
     settle_until(harness, |h| h.count(RING) == 2);
     let this = format!("{RING}:nth-child(1) .ds-battery-figure");
     let buds = format!("{RING}:nth-child(2) .ds-battery-figure");
-    let start = (figure(harness, &this), figure(harness, &buds));
-    assert!(
-        start.0.unwrap_or(0) < 64 && start.1.unwrap_or(0) < 80,
-        "{start:?}"
+    // Nothing sweeps in on first show (quire design/30 section 1.3): the figures are the levels.
+    assert_eq!(
+        (figure(harness, &this), figure(harness, &buds)),
+        (Some(64), Some(80))
     );
     assert_settles_to_zero_frames(harness);
     assert_eq!(
         (figure(harness, &this), figure(harness, &buds)),
         (Some(64), Some(80))
     );
-    // A change sweeps from where it is.
+    // A change moves the ring; the figure changes at once.
     running
         .feeds
         .battery

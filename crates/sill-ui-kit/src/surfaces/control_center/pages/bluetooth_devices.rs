@@ -8,7 +8,7 @@
 //! ("Bluetooth Settings…" at the foot).
 
 use dioxus::prelude::*;
-use ds::{Availability, Icon, ModuleState, RowDisc, RowPhase, RowWork};
+use ds::{Availability, Icon, ModuleState, RowDisc, RowPhase};
 use sill_model::attempt::Attempts;
 use sill_model::bluetooth::{
     Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,
@@ -26,7 +26,7 @@ use crate::surfaces::control_center::modules::bluetooth::{
 };
 use crate::surfaces::control_center::modules::bluetooth_ask::use_power_request;
 use crate::surfaces::control_center::row_phase::{Aim, FAILED_WORDS, Item, aim_after, row_phase};
-use crate::surfaces::control_center::rows::{RowList, RowMark, RowSpec, use_first_show};
+use crate::surfaces::control_center::rows::{RowList, RowMark, RowSpec};
 
 /// The Bluetooth pane, with a back button in the control center and without one as the
 /// Bluetooth bar item's own dropdown.
@@ -34,7 +34,6 @@ use crate::surfaces::control_center::rows::{RowList, RowMark, RowSpec, use_first
 pub(crate) fn BluetoothPane(back: Option<EventHandler<()>>) -> Element {
     let bluetooth = use_service::<BluetoothService>()();
     let control = use_control::<BluetoothService>();
-    let first = use_first_show();
     let mut aim = use_hook(|| CopyValue::new(None::<BtAddress>));
     let last = aim_after(aim.peek().clone(), connecting(&bluetooth));
     aim.set(last.clone());
@@ -57,7 +56,6 @@ pub(crate) fn BluetoothPane(back: Option<EventHandler<()>>) -> Element {
                 RowList::<BluetoothCommand> {
                     label: "Devices".to_owned(),
                     rows,
-                    first,
                     onpick: move |command: BluetoothCommand| {
                         let _gone = control.send(command);
                     },
@@ -146,7 +144,6 @@ pub(crate) fn device_row(device: &BtDevice, phase: RowPhase) -> RowSpec<Bluetoot
         detail,
         mark,
         phase,
-        work: RowWork::Glyph,
         disc,
         availability,
     }

@@ -161,21 +161,18 @@ fn the_bar_joins_by_searching_never_wifi_off_then_fills_and_grows_the_badge() {
 }
 
 #[test]
-fn the_bar_shakes_once_for_a_failed_join_and_slashes_with_the_radio_off() {
+fn the_bar_does_not_shake_for_a_failed_join_and_slashes_with_the_radio_off() {
     let (mut harness, feeds) = bar();
     let failed = network(
         Link::Disconnected,
         Connectivity::Unknown,
         Attempt::Failed(OpStamp(2)),
     );
-    feeds.network.send_replace(failed.clone());
-    settle_until(&mut harness, |h| h.has_class(WIFI, "a-shake-x"));
-    assert_settles_to_zero_frames(&mut harness);
     feeds.network.send_replace(failed);
     harness.advance(Duration::from_millis(60));
     assert!(
         !harness.has_class(WIFI, "a-shake-x"),
-        "the same stamp shook again"
+        "only a failed secure entry shakes (quire design/30 section 1.3)"
     );
     assert_settles_to_zero_frames(&mut harness);
     feeds.wifi.send_modify(|wifi| wifi.radio = Radio::Off);
@@ -234,7 +231,7 @@ fn the_bar_volume_keeps_the_slash_at_zero_and_its_waves_follow() {
 }
 
 #[test]
-fn the_bar_bluetooth_breathes_while_connecting_and_seals_when_connected() {
+fn the_bar_bluetooth_shows_its_dots_once_connected() {
     let (mut harness, feeds) = bar();
     let item = glyph("Bluetooth");
     feeds.bluetooth.send_modify(|bt| {
@@ -244,12 +241,7 @@ fn the_bar_bluetooth_breathes_while_connecting_and_seals_when_connected() {
             minted: OpStamp(1),
         };
     });
-    settle_until(&mut harness, |h| {
-        matches!(
-            h.attr(&item, "data-pending").as_deref(),
-            Some("high" | "low")
-        )
-    });
+    settle_until(&mut harness, |h| !lit(h, &item, "dots"));
     feeds.bluetooth.send_modify(|bt| {
         bt.devices[0].connection = BtConnection::Connected;
         bt.connect.now = Attempt::Quiet;
@@ -278,19 +270,19 @@ fn fill(harness: &Harness) -> f32 {
 }
 
 #[test]
-fn the_centers_battery_sweeps_in_when_opened() {
+fn the_centers_battery_stands_at_its_level_when_opened() {
     let (services, feeds) = fake::services();
     let mut running = live::start(services, feeds);
     let harness = &mut running.harness;
     settle_until(harness, |h| h.count(BATTERY_HEAD) == 1);
+    // Nothing sweeps in on first show (quire design/30 section 1.3).
     let start = fill(harness);
     harness.advance(Duration::from_millis(200));
-    let midway = fill(harness);
     assert_settles_to_zero_frames(harness);
     let full = fill(harness);
     assert!(
-        start < midway && midway < full,
-        "the fill sweeps in from empty: {start} {midway} {full}"
+        start > 0.0 && (start - full).abs() < 0.01,
+        "{start} then {full}"
     );
 }
 

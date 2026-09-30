@@ -15,7 +15,6 @@ pub mod groups;
 pub mod hit;
 pub mod keymap;
 pub mod keys;
-pub mod list_detail;
 pub mod pane_session;
 pub mod preview;
 pub mod row_icon;

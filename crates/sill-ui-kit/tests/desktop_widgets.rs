@@ -156,38 +156,32 @@ fn the_cell_and_the_gap_are_settings() {
     assert_eq!(box_of(&h, "#widget-battery"), (1080, 0, 200, 200));
 }
 
-/// A widget Edit Widgets adds arrives visibly: its card rises into its place once
-/// (quire's `Reveal`, design/26 Appear), the widgets already there do not replay theirs, and the
-/// layer then paints nothing.
+/// A widget Edit Widgets adds is simply there, at its place: nothing rises in (quire design/30
+/// section 1.3), the widgets already there stay as they were, and the layer then paints nothing.
 #[test]
-fn an_added_widget_rises_into_its_place_once() {
-    use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
+fn an_added_widget_appears_at_its_place_and_the_layer_goes_quiet() {
+    use ds_native::harness::assert_settles_to_zero_frames;
     let Running {
         harness: mut h,
         settings: tx,
         ..
     } = start("rise", ShellFile::default());
-    settle_until(&mut h, |h| h.count(".ds-widget") == 2);
-    settle_until(&mut h, |h| {
-        h.count(".sill-dw-place [*|data-reveal=play]") == 0
-    });
+    settle_until_two(&mut h);
     assert_settles_to_zero_frames(&mut h);
 
     tx.send_modify(|file| file.widgets.desktop_widgets.push(WidgetKind::WorldClock));
     h.advance(Duration::from_millis(16));
     assert_eq!(h.count("#widget-world-clock"), 1);
     assert_eq!(
-        h.count(".sill-dw-place [*|data-reveal=play]"),
-        1,
-        "only the new card rises: {}",
-        h.html()
+        h.count(".sill-dw-place [*|data-reveal]"),
+        0,
+        "no reveal wrapper"
     );
-    assert!(h.is_animating(), "the rise is playing");
-    settle_until(&mut h, |h| {
-        h.count(".sill-dw-place [*|data-reveal=play]") == 0
-    });
-    assert_eq!(h.count(".sill-dw-place [*|data-reveal=still]"), 3);
     assert_settles_to_zero_frames(&mut h);
+}
+
+fn settle_until_two(h: &mut ds_native::Harness) {
+    ds_native::harness::settle_until(h, |h| h.count(".ds-widget") == 2);
 }
 
 /// A widget Edit Widgets takes off the desktop plays its exit where it stood (quire's

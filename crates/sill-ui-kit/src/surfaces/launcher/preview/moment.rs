@@ -4,7 +4,7 @@
 //! moment itself (quire rule 4): the cue goes to quire's `PreviewPane` (`cue`, and `operation`
 //! from `use_operation`), which plays it.
 
-use ds::detail::{Detail, Detailed, FirstShow, Moment, Touch, use_detail};
+use ds::detail::{Detail, Detailed, Moment, Touch, use_detail};
 use sill_launcher::PreviewKind;
 
 /// The pane as the person sees it.
@@ -51,7 +51,7 @@ impl Detailed for PaneState {
 /// Track the pane's `state`, caused by `touch` (a key or a press in the panel, else
 /// `Touch::Remote`). The pane mounts when the person shows it, so its first frame animates.
 pub fn use_pane_detail(state: PaneState, touch: Touch) -> Detail<PaneState> {
-    use_detail(state, FirstShow::Animate, touch)
+    use_detail(state, touch)
 }
 
 #[cfg(test)]

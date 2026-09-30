@@ -130,11 +130,11 @@ pub struct BarSettings {
         advanced
     )]
     pub item_radius_px: Px,
-    /// `bar.battery_low_percent` (quire design/26 G10, G11): at or under this charge, on
-    /// battery, the bar's battery fill turns `--battery-low` and the item nudges once.
+    /// `bar.battery_low_percent` (quire design/26 G10): at or under this charge, on
+    /// battery, the bar's battery fill turns `--battery-low`.
     #[settings(
         label = "Low battery",
-        help = "At or under this charge the battery glyph turns red and nudges once.",
+        help = "At or under this charge the battery glyph turns red.",
         section = "Bar",
         range = "5..=50",
         unit = "%",

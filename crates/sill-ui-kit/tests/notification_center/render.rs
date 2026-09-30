@@ -7,7 +7,7 @@
 use super::{
     HEIGHT, WIDTH, advance, commands, commands_until, fake, opened, settle, start, two_apps, until,
 };
-use ds::{Anim, MotionLevel, StaggerIndex, settle as settle_time};
+use ds::{Anim, MotionLevel, settle as settle_time};
 use sill_model::notifications::{
     AppKey, Clear, History, NameHolder, NameOwner, Notifications, NotificationsCommand, ServerMode,
     ServerStatus,
@@ -290,11 +290,7 @@ fn a_press_outside_the_panel_closes_it_after_quires_exit() {
         Some("leaving"),
         "still drawn while quire's exit plays"
     );
-    let exit = settle_time(
-        Anim::PanelOut,
-        MotionLevel::Standard,
-        StaggerIndex::default(),
-    );
+    let exit = settle_time(Anim::PanelOut, MotionLevel::Standard);
     settle(&mut running.harness, |h| h.count(".ds-panel") == 0);
     assert_eq!(running.harness.count(".ds-panel"), 0, "gone after {exit:?}");
     assert!(commands(&mut running).is_empty());

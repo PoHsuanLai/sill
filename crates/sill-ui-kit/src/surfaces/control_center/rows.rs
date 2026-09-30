@@ -4,10 +4,7 @@
 //! with its item when the list reorders.
 
 use dioxus::prelude::*;
-use ds::detail::FirstShow;
-use ds::{
-    Availability, Fraction, Icon, RowDisc, RowPhase, RowTrailing, RowWork, SettingsRow, TextLine,
-};
+use ds::{Availability, Fraction, Icon, RowDisc, RowPhase, RowTrailing, SettingsRow, TextLine};
 use sill_model::units::Percent;
 
 /// What a row ends in.
@@ -21,7 +18,7 @@ pub(crate) enum RowMark {
 }
 
 /// One row: its key, what choosing it yields, its glyph, title and detail (empty for none), its
-/// mark, the operation on its item, where that operation's loop shows, and its disc.
+/// mark, the operation on its item and its disc.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct RowSpec<T> {
     pub key: String,
@@ -31,18 +28,15 @@ pub(crate) struct RowSpec<T> {
     pub detail: String,
     pub mark: RowMark,
     pub phase: RowPhase,
-    pub work: RowWork,
     pub disc: RowDisc,
     pub availability: Availability,
 }
 
-/// The rows, in order, named `label`; choosing one calls `onpick` with its value. `first` is
-/// `Animate` on the pane's first frame (a battery sweeps in), `Still` after.
+/// The rows, in order, named `label`; choosing one calls `onpick` with its value.
 #[component]
 pub(crate) fn RowList<T: Clone + PartialEq + 'static>(
     label: String,
     rows: Vec<RowSpec<T>>,
-    first: FirstShow,
     onpick: EventHandler<T>,
 ) -> Element {
     let items: Vec<(RowSpec<T>, Option<TextLine>)> = rows
@@ -62,9 +56,7 @@ pub(crate) fn RowList<T: Clone + PartialEq + 'static>(
                     detail,
                     trailing: trailing(row.mark),
                     phase: row.phase,
-                    work: row.work,
                     disc: row.disc,
-                    first,
                     availability: row.availability,
                     onclick: {
                         let value = row.value.clone();
@@ -83,15 +75,4 @@ fn trailing(mark: RowMark) -> RowTrailing {
         RowMark::Lock => RowTrailing::Glyph(Icon::Lock),
         RowMark::Battery(level) => RowTrailing::Battery(Fraction(level.0.min(100) * 10)),
     }
-}
-
-/// `Animate` on a pane's first frame, `Still` on every later one: the pane was just opened
-/// (a chevron, a bar item), so its rows' batteries sweep in once (R1).
-pub(crate) fn use_first_show() -> FirstShow {
-    let mut seen = use_hook(|| CopyValue::new(FirstShow::Animate));
-    let now = *seen.peek();
-    if now == FirstShow::Animate {
-        seen.set(FirstShow::Still);
-    }
-    now
 }

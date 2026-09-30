@@ -129,7 +129,7 @@ pub fn MediaView(face: MediaFace, onpress: Option<EventHandler<Transport>>) -> E
         div { class: "sill-cc-media",
             div { class: "sill-cc-media-row",
                 div { class: "sill-cc-media-track",
-                    NowPlayingTrack { art: art_of(&track.art), title: track.title.clone(), by, playback }
+                    NowPlayingTrack { art: art_of(&track.art), title: track.title.clone(), by }
                 }
                 div { class: "sill-cc-media-buttons",
                     IconButton {

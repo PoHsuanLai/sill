@@ -1,8 +1,7 @@
-//! quire's launcher cues as the real panel plays them, on the virtual clock: the pane's
-//! entrance springs
-//! only on the person's key, another kind cross-fades the media in place, a slow text head shows
-//! "Loading…" after the grace and holds still at the cap, the first result set rises and a later
-//! one does not, Show More rises and Show Less heals. Every step ends at 0 frames.
+//! quire's launcher cues as the real panel plays them, on the virtual clock: the pane enters
+//! and rests, another kind cross-fades the media in place, a slow text head shows "Loading…" at
+//! once and keeps turning for as long as it reads, a later result set replaces in place, Show
+//! More enters its rows and Show Less heals. Every step but the pending one ends at 0 frames.
 
 mod launcher_harness;
 
@@ -29,10 +28,6 @@ fn press(open: &mut Open, key: Press) {
     open.harness.advance(Duration::ZERO);
 }
 
-fn touch(harness: &Harness) -> Option<String> {
-    harness.attr(".ds-preview", "data-touch")
-}
-
 fn entrance(harness: &Harness) -> Option<String> {
     harness.attr(".ds-preview", "data-pulse")
 }
@@ -41,28 +36,23 @@ fn fading(harness: &Harness) -> bool {
     harness.has_class(".ds-preview-media", "a-morph-fade-in")
 }
 
-fn rising(harness: &Harness) -> bool {
-    harness.attr(".ds-menu", "data-reveal").as_deref() == Some("play")
+fn revealing(harness: &Harness) -> bool {
+    harness.attr(".ds-menu", "data-reveal").is_some()
 }
 
 #[test]
-fn the_entrance_springs_on_a_real_key() {
+fn the_pane_enters_on_a_real_key_and_rests() {
     let mut open = open("m9");
     assert_settles_to_zero_frames(&mut open.harness);
     quick_look(&mut open);
     settle(&mut open.harness, |h| h.count(".ds-preview") == 1);
-    assert_eq!(touch(&open.harness).as_deref(), Some("contact"));
     assert_eq!(
         await_off_thread(&mut open.harness, loaded),
         Seen::Once,
         "the page lands"
     );
     assert_settles_to_zero_frames(&mut open.harness);
-    assert_eq!(
-        touch(&open.harness).as_deref(),
-        Some("contact"),
-        "the entrance keeps the touch that started it"
-    );
+    assert_eq!(open.harness.attr(".ds-preview", "data-touch"), None);
 }
 
 #[test]
@@ -143,7 +133,7 @@ impl Drop for SlowHead<'_> {
 }
 
 #[test]
-fn a_slow_text_head_shows_loading_after_the_grace_then_the_text() {
+fn a_slow_text_head_shows_loading_at_once_then_the_text() {
     let path = m9::slow_head_path();
     let head = SlowHead::make(&path);
     let mut open = open("slow-head");
@@ -153,21 +143,11 @@ fn a_slow_text_head_shows_loading_after_the_grace_then_the_text() {
         open.link.rows().and_then(|r| r.preview),
         Some(PreviewKind::TextFile)
     );
-    // Within the grace: nothing but the busy pane.
-    assert_eq!(
-        open.harness.count(".ds-preview-pending"),
-        0,
-        "the grace shows nothing"
-    );
+    // No grace: the pending look is there from the first frames, and the pane is busy.
+    settle(&mut open.harness, |h| h.count(".ds-preview-pending") == 1);
     assert_eq!(
         open.harness.attr(".ds-preview", "aria-busy").as_deref(),
         Some("true")
-    );
-    open.harness.advance(Duration::from_millis(450));
-    assert_eq!(
-        open.harness.count(".ds-preview-pending"),
-        1,
-        "past the grace"
     );
     assert!(
         open.harness
@@ -175,15 +155,9 @@ fn a_slow_text_head_shows_loading_after_the_grace_then_the_text() {
             .is_some_and(|text| text.contains("Loading\u{2026}")),
         "the words say so"
     );
-    // Past the cap the ring holds still: 0 frames while the read still runs.
+    // No cap: it keeps turning for as long as the read runs.
     open.harness.advance(Duration::from_secs(10));
-    assert_eq!(
-        open.harness
-            .attr(".ds-preview-media", "data-pending")
-            .as_deref(),
-        Some("still")
-    );
-    assert_settles_to_zero_frames(&mut open.harness);
+    assert_eq!(open.harness.count(".ds-preview-pending"), 1);
 
     head.land("The head landed.\n");
     let landed = await_off_thread(&mut open.harness, |h| {
@@ -197,16 +171,18 @@ fn a_slow_text_head_shows_loading_after_the_grace_then_the_text() {
 }
 
 #[test]
-fn the_first_result_set_rises_and_a_later_one_does_not() {
+fn a_result_set_replaces_in_place_with_no_reveal() {
     let mut open = open("m9");
-    assert!(rising(&open.harness), "the opening's first set rises");
+    assert!(
+        !revealing(&open.harness),
+        "the opening's first set is simply there"
+    );
     assert_settles_to_zero_frames(&mut open.harness);
-    assert!(!rising(&open.harness), "and settles");
 
     // A new answer (typed): replaced in place.
     open.harness.key(ShortcutKey::Backspace);
-    let rose = watch(&mut open.harness, rising);
-    assert_eq!(rose, Seen::Never, "a later set replays no rise");
+    let rose = watch(&mut open.harness, revealing);
+    assert_eq!(rose, Seen::Never, "a later set plays nothing");
     assert_eq!(
         open.link.rows().map(|r| r.query).as_deref(),
         Some("m"),
@@ -220,7 +196,7 @@ fn row_motion(harness: &Harness, motion: &str) -> bool {
 }
 
 #[test]
-fn show_more_rises_and_show_less_heals() {
+fn show_more_enters_its_rows_and_show_less_heals() {
     let mut open = open("m9");
     assert_settles_to_zero_frames(&mut open.harness);
     // Top Hit, five documents, then the Show More line (6): the person's Down and Enter.
@@ -230,15 +206,15 @@ fn show_more_rises_and_show_less_heals() {
     open.harness.advance(Duration::from_millis(20));
     assert_eq!(open.link.rows().map(|r| r.selected), Some(6));
     open.harness.key(ShortcutKey::Enter);
-    let rose = watch(&mut open.harness, |h| row_motion(h, "rise"));
-    assert_eq!(rose, Seen::Once, "the added rows rise");
+    let rose = watch(&mut open.harness, |h| row_motion(h, "in"));
+    assert_eq!(rose, Seen::Once, "the added rows enter");
     assert_eq!(
         open.link.rows().map(|r| r.sections[1].hidden),
         Some(0),
         "all seven show"
     );
     assert_settles_to_zero_frames(&mut open.harness);
-    assert!(!row_motion(&open.harness, "rise"), "the rise settled");
+    assert!(!row_motion(&open.harness, "in"), "the entrance settled");
 
     // The selection followed its line, now Show Less (8): Enter again, the rows after heal up.
     assert_eq!(open.link.rows().map(|r| r.selected), Some(8));
@@ -256,9 +232,9 @@ fn show_more_rises_and_show_less_heals() {
 }
 
 /// The same Show More through the link (`sill debug launcher-key`): sill runs the group's
-/// action itself and marks it on quire's palette handle, so the rows still rise.
+/// action itself and marks it on quire's palette handle, so the rows still enter.
 #[test]
-fn a_show_more_through_the_link_still_rises() {
+fn a_show_more_through_the_link_still_enters() {
     let mut open = open("m9");
     assert_settles_to_zero_frames(&mut open.harness);
     for _ in 0..6 {
@@ -266,7 +242,7 @@ fn a_show_more_through_the_link_still_rises() {
     }
     assert_eq!(open.link.rows().map(|r| r.selected), Some(6));
     open.press(Press::Enter);
-    let rose = watch(&mut open.harness, |h| row_motion(h, "rise"));
-    assert_eq!(rose, Seen::Once, "the added rows rise");
+    let rose = watch(&mut open.harness, |h| row_motion(h, "in"));
+    assert_eq!(rose, Seen::Once, "the added rows enter");
     assert_settles_to_zero_frames(&mut open.harness);
 }

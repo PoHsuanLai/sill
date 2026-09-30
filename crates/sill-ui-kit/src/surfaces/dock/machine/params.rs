@@ -1,12 +1,16 @@
 //! The numbers the machine runs on: `dock.*` settings plus quire's motion tokens
 //! at the active motion level. Built once per settings change, never hard-coded.
 
-use ds::{Easing, EasingToken, MotionLevel, StyleDelay};
+use ds::{Easing, EasingToken, MotionLevel};
 use sill_model::units::Cpx;
 use sill_settings::{
     ActiveClick, Bounce as BounceSetting, DockModifierClicks, DockSettings, LaunchAnim,
     Magnification,
 };
+
+/// The label's first delay, 350 ms: what quire's `--d-fly` was. quire's `HoverProfile::Label` is
+/// 100 ms; the dock keeps its own until it runs on `HoverIntent`.
+const FLY_DELAY_MS: u64 = 350;
 
 /// Every parameter [`super::step`] reads.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,7 +24,7 @@ pub struct DockParams {
     pub ease_out: [i16; 4],
     /// `--e-exit` at the motion level.
     pub ease_exit: [i16; 4],
-    /// `--d-fly`: the label's first delay.
+    /// The label's first delay, [`FLY_DELAY_MS`].
     pub fly_delay_ms: u64,
     /// `dock.hover_label_warm_ms`.
     pub warm_ms: u64,
@@ -67,7 +71,7 @@ impl DockParams {
             leave_ms: u64::from(dock.magnify_leave_ms.0),
             ease_out: curve(EasingToken::Out),
             ease_exit: curve(EasingToken::Exit),
-            fly_delay_ms: u64::try_from(StyleDelay::Fly.delay(level).as_millis()).unwrap_or(350),
+            fly_delay_ms: FLY_DELAY_MS,
             warm_ms: u64::from(dock.hover_label_warm_ms.0),
             hold_ms: u64::from(dock.hold_to_menu_ms.0),
             drag_threshold: px(dock.hold_to_menu_move_px.0),

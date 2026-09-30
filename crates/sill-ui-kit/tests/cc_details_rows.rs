@@ -1,7 +1,7 @@
 //! Row details on the real control center (design/26 5.2.2, 5.2.3): the networks and devices
 //! panes' row phases from the services' stamps (`Network.join`,
-//! `Bluetooth.connect`), driven by the fake services on `Clock::Virtual`. Every state change ends
-//! at 0 frames (R3). Nothing here reaches a real radio.
+//! `Bluetooth.connect`), driven by the fake services on `Clock::Virtual`. A pending row spins at
+//! once and for as long as its operation runs; every other state change ends at 0 frames (R3). Nothing here reaches a real radio.
 
 mod cc_support;
 
@@ -54,6 +54,9 @@ fn office_link() -> Link {
     }
 }
 
+/// The spinner that holds a row's trailing slot while its operation runs.
+const PENDING: &str = ".ds-settings-row-trail[*|data-mark=pending]";
+
 fn row(n: usize) -> String {
     format!(".sill-cc-rows > .ds-settings-row:nth-child({n})")
 }
@@ -63,7 +66,7 @@ fn title(harness: &Harness, n: usize) -> Option<String> {
 }
 
 #[test]
-fn a_network_joins_with_a_spinner_where_its_lock_was_then_seals_its_disc() {
+fn a_network_joins_with_a_spinner_where_its_lock_was_then_takes_the_disc() {
     let mut running = center(|feeds| {
         feeds
             .wifi
@@ -87,26 +90,16 @@ fn a_network_joins_with_a_spinner_where_its_lock_was_then_seals_its_disc() {
     harness.advance(ms(0));
     assert_eq!(title(harness, 2).as_deref(), Some("office"));
     assert_eq!(harness.attr(&row(2), "aria-busy").as_deref(), Some("true"));
-    harness.advance(ms(399));
-    assert_eq!(
-        harness.count(&format!("{} .ds-spinner", row(2))),
-        0,
-        "a fast join shows nothing"
-    );
-    harness.advance(ms(1));
-    assert_eq!(harness.count(&format!("{} .ds-spinner", row(2))), 1);
-    assert_eq!(harness.count(".ds-spinner"), 1, "only the joining row");
+    // The spinner takes the lock's place at once, with no grace.
+    assert_eq!(harness.count(&format!("{} {PENDING}", row(2))), 1);
+    assert_eq!(harness.count(PENDING), 1, "only the joining row");
     harness.advance(ms(10_000));
     assert_eq!(
-        harness
-            .attr(&format!("{} .ds-spinner", row(2)), "data-pending")
-            .as_deref(),
-        Some("still"),
-        "held still at the cap"
+        harness.count(&format!("{} {PENDING}", row(2))),
+        1,
+        "it keeps turning for as long as the join runs"
     );
-    assert_settles_to_zero_frames(harness);
-    // It lands: office moves to the top, keeps its row, and its disc seals once (from the
-    // service, not a press: no spring).
+    // It lands: office moves to the top, keeps its row, and its disc is on.
     running
         .feeds
         .wifi
@@ -119,14 +112,6 @@ fn a_network_joins_with_a_spinner_where_its_lock_was_then_seals_its_disc() {
     harness.advance(ms(0));
     assert_eq!(title(harness, 1).as_deref(), Some("office"));
     let glyph = format!("{} .ds-settings-row-glyph", row(1));
-    assert!(
-        harness
-            .attr(&glyph, "class")
-            .unwrap_or_default()
-            .contains("a-seal-out"),
-        "{:?}",
-        harness.attr(&glyph, "class")
-    );
     assert_eq!(harness.attr(&glyph, "data-disc").as_deref(), Some("on"));
     assert_eq!(
         harness.attr(&row(1), "aria-pressed"),
@@ -138,6 +123,7 @@ fn a_network_joins_with_a_spinner_where_its_lock_was_then_seals_its_disc() {
         1,
         "the lock is back"
     );
+    assert_eq!(harness.count(PENDING), 0);
     assert_eq!(
         harness
             .attr(&format!("{} .ds-settings-row-glyph", row(2)), "data-disc")
@@ -145,17 +131,10 @@ fn a_network_joins_with_a_spinner_where_its_lock_was_then_seals_its_disc() {
         Some("off")
     );
     assert_settles_to_zero_frames(harness);
-    assert!(
-        !harness
-            .attr(&glyph, "class")
-            .unwrap_or_default()
-            .contains("a-seal-out"),
-        "the seal plays once"
-    );
 }
 
 #[test]
-fn a_failed_join_shakes_its_row_once_and_says_so() {
+fn a_failed_join_says_so_and_does_not_shake() {
     let mut running = center(|feeds| {
         feeds
             .wifi
@@ -166,9 +145,9 @@ fn a_failed_join_shakes_its_row_once_and_says_so() {
     });
     open(&mut running.harness, "Wi-Fi details");
     assert_eq!(title(&running.harness, 1).as_deref(), Some("home"));
-    // A join already running when the pane opens is pending; past the cap it holds still.
-    running.harness.advance(ms(10_000));
-    assert_settles_to_zero_frames(&mut running.harness);
+    // A join already running when the pane opens is pending at once.
+    running.harness.advance(ms(500));
+    assert_eq!(running.harness.count(&format!("{} {PENDING}", row(1))), 1);
     running
         .feeds
         .wifi
@@ -179,35 +158,30 @@ fn a_failed_join_shakes_its_row_once_and_says_so() {
         .send_replace(join(Link::Disconnected, Attempt::Failed(OpStamp(7)), 7));
     let harness = &mut running.harness;
     harness.advance(ms(0));
-    assert!(harness.has_class(&row(1), "a-shake-x"));
+    assert!(
+        !harness.has_class(&row(1), "a-shake-x"),
+        "only a failed secure entry shakes"
+    );
     assert_eq!(
         harness
             .text_of(&format!("{} .ds-settings-row-detail", row(1)))
             .as_deref(),
         Some("Couldn’t connect")
     );
+    assert_eq!(harness.count(PENDING), 0);
     assert_settles_to_zero_frames(harness);
-    // The same failure again (a re-poll) is no moment (R6).
-    running
-        .feeds
-        .network
-        .send_replace(join(Link::Disconnected, Attempt::Failed(OpStamp(7)), 7));
-    running.harness.advance(ms(0));
-    assert!(!running.harness.has_class(&row(1), "a-shake-x"));
-    assert_settles_to_zero_frames(&mut running.harness);
 }
 
 // ---- Bluetooth devices ----------------------------------------------------------------------
 
 #[test]
-fn a_device_breathes_while_connecting_then_seals_and_its_battery_sweeps_in() {
+fn a_connecting_device_spins_and_a_connected_one_shows_its_battery_at_once() {
     let mut running = center(|_| {});
     press(&mut running.harness, "[*|aria-label=\"Bluetooth details\"]");
     running.harness.advance(ms(50));
-    // The pane was just opened: the connected Buds' battery counts up in step with its sweep.
+    // The connected Buds' battery is its level from the first frame: nothing sweeps in.
     let buds = format!("{} .ds-settings-row-figure", row(1));
-    let start = figure(&running.harness, &buds).unwrap_or(0);
-    assert!(start < 80, "the battery sweeps in from empty: {start}");
+    assert_eq!(figure(&running.harness, &buds), Some(80));
     assert_eq!(
         running
             .harness
@@ -216,8 +190,7 @@ fn a_device_breathes_while_connecting_then_seals_and_its_battery_sweeps_in() {
         Some("on")
     );
     assert_settles_to_zero_frames(&mut running.harness);
-    assert_eq!(figure(&running.harness, &buds), Some(80));
-    // The keyboard connects: its glyph breathes after the grace.
+    // The keyboard connects: a spinner takes its trailing slot at once.
     running.feeds.bluetooth.send_modify(|bt| {
         bt.devices[1].connection = BtConnection::Connecting;
         bt.connect = Attempts {
@@ -227,24 +200,9 @@ fn a_device_breathes_while_connecting_then_seals_and_its_battery_sweeps_in() {
     });
     let glyph = format!("{} .ds-settings-row-glyph", row(2));
     let harness = &mut running.harness;
-    harness.advance(ms(400));
-    assert_eq!(
-        harness.attr(&glyph, "data-pending").as_deref(),
-        Some("step")
-    );
-    assert_eq!(
-        harness.count(&format!("{} .ds-spinner", row(2))),
-        0,
-        "the glyph breathes; no spinner"
-    );
-    harness.advance(ms(10_000));
-    assert_eq!(
-        harness.attr(&glyph, "data-pending").as_deref(),
-        Some("still"),
-        "held still at the cap"
-    );
-    assert_settles_to_zero_frames(harness);
-    // Connected with a battery: the disc seals and the battery arrives, sweeping in.
+    harness.advance(ms(0));
+    assert_eq!(harness.count(&format!("{} {PENDING}", row(2))), 1);
+    // Connected with a battery: the disc is on and the battery shows its level.
     running.feeds.bluetooth.send_modify(|bt| {
         bt.devices[1].connection = BtConnection::Connected;
         bt.devices[1].battery = BtBattery::Level(Percent(55));
@@ -252,15 +210,9 @@ fn a_device_breathes_while_connecting_then_seals_and_its_battery_sweeps_in() {
     });
     let harness = &mut running.harness;
     harness.advance(ms(0));
-    assert!(
-        harness
-            .attr(&glyph, "class")
-            .unwrap_or_default()
-            .contains("a-seal-out")
-    );
     let keys = format!("{} .ds-settings-row-figure", row(2));
-    assert!(figure(harness, &keys).unwrap_or(0) < 55);
-    assert_settles_to_zero_frames(harness);
     assert_eq!(figure(harness, &keys), Some(55));
+    assert_eq!(harness.count(PENDING), 0);
+    assert_settles_to_zero_frames(harness);
     assert_eq!(harness.attr(&glyph, "data-disc").as_deref(), Some("on"));
 }

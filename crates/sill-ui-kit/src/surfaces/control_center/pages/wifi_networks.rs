@@ -8,7 +8,7 @@
 //! `WifiCommand::Scan` when it opens. "Wi-Fi Settings…" at the foot.
 
 use dioxus::prelude::*;
-use ds::{Availability, Icon, ModuleState, RowDisc, RowPhase, RowWork};
+use ds::{Availability, Icon, ModuleState, RowDisc, RowPhase};
 use sill_model::attempt::Attempts;
 use sill_model::units::Presence;
 use sill_model::wifi::{
@@ -21,7 +21,7 @@ use crate::hooks::{use_service, use_services};
 use crate::surfaces::control_center::modules::wifi::{radio_availability, radio_of, radio_state};
 use crate::surfaces::control_center::network_detail;
 use crate::surfaces::control_center::row_phase::{Aim, FAILED_WORDS, Item, aim_after, row_phase};
-use crate::surfaces::control_center::rows::{RowList, RowMark, RowSpec, use_first_show};
+use crate::surfaces::control_center::rows::{RowList, RowMark, RowSpec};
 use sill_services::{NetworkService, WifiService};
 
 /// What choosing a network row does.
@@ -41,7 +41,6 @@ pub(crate) enum WifiPick {
 pub(crate) fn WifiPane(back: Option<EventHandler<()>>) -> Element {
     let wifi = use_service::<WifiService>()();
     let join = use_service::<NetworkService>()().join;
-    let first = use_first_show();
     let mut aim = use_hook(|| CopyValue::new(None::<Ssid>));
     let last = aim_after(aim.peek().clone(), joining(&wifi));
     aim.set(last.clone());
@@ -76,7 +75,6 @@ pub(crate) fn WifiPane(back: Option<EventHandler<()>>) -> Element {
                 RowList::<WifiPick> {
                     label: "Networks".to_owned(),
                     rows,
-                    first,
                     onpick: move |pick: WifiPick| {
                         let _gone = match pick {
                             WifiPick::Join(ssid) => control.send(WifiCommand::Connect(ssid)),
@@ -168,7 +166,6 @@ pub(crate) fn network_row(ap: &AccessPoint, saved: Saved, phase: RowPhase) -> Ro
         detail,
         mark,
         phase,
-        work: RowWork::Trailing,
         disc,
         availability: Availability::Enabled,
     }
@@ -200,7 +197,7 @@ mod tests {
     use super::{WifiPick, empty_line, joining, network_row, network_rows};
     use crate::surfaces::control_center::rows::RowMark;
     use ds::detail::EventStamp;
-    use ds::{Icon, RowDisc, RowPhase, RowWork};
+    use ds::{Icon, RowDisc, RowPhase};
     use sill_model::wifi::{AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi};
     use sill_model::{
         attempt::{Attempt, Attempts, OpStamp},
@@ -271,10 +268,9 @@ mod tests {
                     row.disc,
                     row.glyph,
                     row.detail.as_str(),
-                    row.work,
                     row.phase
                 ),
-                (pick, mark, disc, glyph, detail, RowWork::Trailing, phase),
+                (pick, mark, disc, glyph, detail, phase),
                 "{}",
                 ap.ssid.0
             );

@@ -4,15 +4,15 @@
 //! widgets slot at the bottom. The column holds the keyboard: every key goes through
 //! [`step_keys`] over the drawn rows.
 //!
-//! The list's motion is quire's: its rows rise as the center opens (`first:
-//! Entering`; each opening remounts the column, so once per opening), a row that arrives while
-//! it is open enters with `row-in`, and every row the model drops in one update (a Clear, Clear
-//! All, a dismissal, "Show less") folds, staggered, then the rows below heal up by its height.
+//! The list's motion is quire's: the rows are simply there as the center opens, a row that
+//! arrives while it is open enters with `row-in`, and every row the model drops in one update (a
+//! Clear, Clear All, a dismissal, "Show less") fades and slides up, then the rows below close the
+//! gap.
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
-use ds::{Button, ButtonVariant, LeavingItem, LeavingList, Presence};
+use ds::{Button, ButtonVariant, LeavingItem, LeavingList};
 use shell_host::OutputId;
 use sill_model::notifications::{History, UnixMs};
 
@@ -91,7 +91,6 @@ pub(super) fn Contents(output: OutputId) -> Element {
                 LeavingList::<RowKey> {
                     label: TITLE.to_owned(),
                     items,
-                    first: Presence::Entering,
                     on_settled: move |key: RowKey| {
                         eprintln!("notification_center.settled={key:?}");
                         drawn.settled(&key);

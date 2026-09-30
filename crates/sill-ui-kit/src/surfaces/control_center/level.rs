@@ -6,7 +6,7 @@
 use dioxus::prelude::*;
 use ds::{
     Availability, Fraction, IconSource, LevelControl, LevelLook, LevelMode, LevelSource,
-    ModulePanel, TextLine, Tick,
+    ModulePanel, TextLine,
 };
 
 use super::modules::use_plate;
@@ -41,7 +41,6 @@ pub fn LevelModule(
                 glyph: level_glyph,
                 mode: LevelMode::Interactive,
                 look: LOOK,
-                tick: Tick::Quiet,
                 availability,
                 onchange: move |value: Fraction| on_change.call(value),
             }

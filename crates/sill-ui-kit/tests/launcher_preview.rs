@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use ds::ShortcutKey;
 use launcher_harness::launcher_support::m9;
-use launcher_harness::{Open, Press, is_open, open, settle};
+use launcher_harness::{Open, Press, Seen, await_off_thread, is_open, open, settle};
 use sill_launcher::{OpenTarget, PreviewKind};
 use sill_model::launch::LaunchCommand;
 use sill_model::results::SearchCommand;
@@ -84,12 +84,9 @@ fn space_while_browsing_shows_the_pdf_and_then_the_image() {
         Some(PreviewKind::Pdf),
         "browsing: Quick Look"
     );
-    settle(&mut open.harness, |h| h.count(".ds-pdf-thumb") == 1);
-    assert_eq!(
-        open.harness.count(".ds-pdf-thumb"),
-        1,
-        "quire's PDF thumbnail"
-    );
+    // The page rasters off the harness's thread; the pending look holds the pane until it lands.
+    let landed = await_off_thread(&mut open.harness, |h| h.count(".ds-pdf-thumb") == 1);
+    assert_eq!(landed, Seen::Once, "quire's PDF thumbnail");
     press(&mut open, Press::Down);
     assert_eq!(
         rows(&open).preview,

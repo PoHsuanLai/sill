@@ -10,7 +10,7 @@ use std::time::Duration;
 use crate::services::Services;
 use dioxus::core::Task;
 use dioxus::prelude::*;
-use ds::{Anim, AppKey, MotionLevel, StaggerIndex};
+use ds::{Anim, AppKey, MotionLevel};
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_launcher::AppId;
 use sill_services::switcher::{SwitcherApp, switcher_apps};
@@ -206,14 +206,14 @@ impl SwitcherCtx {
         })));
     }
 
-    /// Q: `app`'s tile folds, then goes; the panel stays (closing when none is left).
+    /// Q: `app`'s tile fades out, then goes; the panel stays (closing when none is left).
     fn fold(self, app: AppId) {
         let mut session = self.session;
         let Some(serial) = session.peek().as_ref().map(|s| s.serial) else {
             return;
         };
         session.with_mut(|s| *s = s.take().map(|s| s.leave(&app)));
-        let settle = ds::settle(Anim::Fold, *self.level.peek(), StaggerIndex::default());
+        let settle = ds::settle(Anim::RowOut, *self.level.peek());
         spawn(async move {
             ds::sleep(settle).await;
             let mut session = self.session;

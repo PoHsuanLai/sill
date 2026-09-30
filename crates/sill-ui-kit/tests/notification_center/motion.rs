@@ -1,7 +1,7 @@
 //! The notification center's list motion (design/26 5.4, design/20 1.6), on the
 //! virtual clock with a pinned appearance: the center's rows are one quire `LeavingList`. They
-//! rise once as the center opens; the cards an opened group adds enter; "Show less", Clear and
-//! Clear All fold the rows the model dropped, staggered, and the rows below heal up; an arrival
+//! are there as the center opens; the cards an opened group adds enter; "Show less", Clear and
+//! Clear All fade the rows the model dropped and the rows below close the gap; an arrival
 //! while the center is open enters. Every one of them ends at rest, asking for no frame.
 
 use super::{Running, advance, commands_until, fake, note, settle, start, two_apps, until};
@@ -51,17 +51,16 @@ fn in_head(group: &str, control: &str) -> String {
 }
 
 #[test]
-fn opening_rises_the_rows_once_then_rests() {
+fn opening_shows_the_rows_at_once_then_rests() {
     let mut running = opening(two_apps());
     let h = &running.harness;
     assert_eq!(
-        h.attr(LIST, "data-presence").as_deref(),
-        Some("entering"),
-        "the rows rise as the center opens"
+        rows_in(h, "present"),
+        4,
+        "the rows are simply there as the center opens"
     );
-    assert_eq!(rows_in(h, "entering"), 4, "each head and card rises");
+    assert_eq!(rows_in(h, "entering"), 0);
     assert_settles_to_zero_frames(&mut running.harness);
-    assert_eq!(rows_in(&running.harness, "present"), 4);
     // A re-render (the same history again) replays nothing.
     running
         .feeds
@@ -73,14 +72,13 @@ fn opening_rises_the_rows_once_then_rests() {
 }
 
 #[test]
-fn opening_a_group_enters_the_cards_it_adds_and_show_less_folds_and_heals() {
+fn opening_a_group_enters_the_cards_it_adds_and_show_less_removes_and_closes_the_gap() {
     let mut running = at_rest();
     let toggle = in_head("mail", TOGGLE);
     let more = running.harness.centre(&toggle).expect("N more");
     running.harness.click(more);
     until(&mut running, |h| rows(h) == 6);
     let h = &running.harness;
-    assert_eq!(h.attr(LIST, "data-presence").as_deref(), Some("present"));
     assert_eq!(rows_in(h, "entering"), 2, "Mail's two older cards enter");
     assert_settles_to_zero_frames(&mut running.harness);
     assert_eq!(rows_in(&running.harness, "present"), 6);
@@ -91,9 +89,9 @@ fn opening_a_group_enters_the_cards_it_adds_and_show_less_folds_and_heals() {
     assert_eq!(
         running
             .harness
-            .count(&format!("{ROW}[*|data-presence=leaving][*|data-exit=fold]")),
+            .count(&format!("{ROW}[*|data-presence=leaving][*|data-exit=row]")),
         2,
-        "they fold"
+        "they fade and slide up"
     );
     assert_eq!(rows(&running.harness), 6, "still drawn while they fold");
     until(&mut running, |h| rows_in(h, "healing") == 2);
@@ -144,7 +142,7 @@ fn the_rows_keep_one_gap_inside_themselves() {
 }
 
 #[test]
-fn clear_folds_the_group_and_the_groups_below_heal() {
+fn clear_fades_the_group_and_the_groups_below_close_the_gap() {
     let mut running = at_rest();
     let clear = running
         .harness
@@ -166,11 +164,11 @@ fn clear_folds_the_group_and_the_groups_below_heal() {
         .send_modify(|n| n.history = left);
     until(&mut running, |h| rows_in(h, "leaving") == 2);
     let h = &running.harness;
-    assert_eq!(rows(h), 4, "Mail's head and stack fold where they stood");
+    assert_eq!(rows(h), 4, "Mail's head and stack fade where they stood");
     assert_eq!(
         h.attr(&format!("{ROW}[*|data-presence=leaving]"), "data-exit")
             .as_deref(),
-        Some("fold")
+        Some("row")
     );
     until(&mut running, |h| rows_in(h, "healing") == 2);
     assert_eq!(rows(&running.harness), 2);
@@ -180,7 +178,7 @@ fn clear_folds_the_group_and_the_groups_below_heal() {
 }
 
 #[test]
-fn clear_all_folds_every_row_then_says_the_list_is_empty() {
+fn clear_all_fades_every_row_together_then_says_the_list_is_empty() {
     let mut running = at_rest();
     let all = running
         .harness
@@ -197,15 +195,11 @@ fn clear_all_folds_every_row_then_says_the_list_is_empty() {
         .send_modify(|n| n.history = History::default());
     until(&mut running, |h| rows_in(h, "leaving") == 4);
     let h = &running.harness;
-    assert_eq!(h.count(".sill-nc-empty"), 0, "not under the folding rows");
-    let staggered: Vec<Option<String>> = (1..=4)
+    assert_eq!(h.count(".sill-nc-empty"), 0, "not under the leaving rows");
+    let styles: Vec<Option<String>> = (1..=4)
         .map(|n| h.attr(&format!("{ROW}:nth-child({n})"), "style"))
         .collect();
-    assert_eq!(
-        staggered,
-        (0..4).map(|i| Some(format!("--i:{i}"))).collect::<Vec<_>>(),
-        "one after another"
-    );
+    assert_eq!(styles, vec![None; 4], "all together, none after another");
     until(&mut running, |h| h.count(".sill-nc-empty") == 1);
     assert_eq!(rows(&running.harness), 0);
     assert_settles_to_zero_frames(&mut running.harness);
@@ -252,7 +246,6 @@ fn an_arrival_while_open_enters() {
         .send_modify(|n| n.history = more);
     until(&mut running, |h| rows(h) == 6);
     let h = &running.harness;
-    assert_eq!(h.attr(LIST, "data-presence").as_deref(), Some("present"));
     assert_eq!(rows_in(h, "entering"), 2, "CI's head and card enter");
     assert_settles_to_zero_frames(&mut running.harness);
     assert_eq!(rows_in(&running.harness, "present"), 6);

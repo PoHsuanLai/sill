@@ -2,9 +2,7 @@
 //! prompt's output, and the unlock fade (the module doc of `screen.rs` has the rules).
 
 use dioxus::prelude::*;
-use ds::{
-    Anim, CapsLock, ImageSource, LockPrompt, LockScreen, TextLine, TimerPhase, use_motion_timer,
-};
+use ds::{CapsLock, ImageSource, LockPrompt, LockScreen, TextLine};
 use shell_host::OutputInfo;
 use sill_model::auth::{Auth, AuthCommand, AuthFault, AuthPhase, PamNote, Secret};
 use sill_model::ids::OutputName;
@@ -123,25 +121,34 @@ pub(super) fn LockBody(
     }
 }
 
-/// On `Accepted` while the host holds the lock, the prompt's surface times the fade and then
-/// asks shell-host to unlock; the others only fade.
+/// Whether the unlock has been asked for this acceptance.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Unlock {
+    /// Not yet.
+    Waiting,
+    /// Asked; not again until the prompt leaves `Accepted`.
+    Asked,
+}
+
+/// On `Accepted` while the host holds the lock, asks shell-host to unlock at once (quire's
+/// picture accept beat is gone); the others do nothing.
 fn use_unlock_fade(
     auth: ReadSignal<Auth>,
     host: HostLock,
     here: Here,
     on_unlock: Option<Callback<()>>,
 ) {
-    // quire's accepted beat (the picture's accept) settles before the unlock.
-    let timer = use_motion_timer(Anim::PictureAccept);
+    let mut asked = use_hook(|| CopyValue::new(Unlock::Waiting));
     use_effect(use_reactive!(|host, here, on_unlock| {
         let accepted = auth.read().phase == AuthPhase::Accepted;
         match (accepted, host, here, on_unlock) {
             (true, HostLock::Holding, Here::Yes, Some(unlock)) => {
-                if timer.phase() == TimerPhase::Idle {
-                    timer.start(EventHandler::new(move |()| unlock.call(())));
+                if *asked.peek() == Unlock::Waiting {
+                    asked.set(Unlock::Asked);
+                    unlock.call(());
                 }
             }
-            (false, _, _, _) => timer.cancel(),
+            (false, _, _, _) => asked.set(Unlock::Waiting),
             _ => {}
         }
     }));

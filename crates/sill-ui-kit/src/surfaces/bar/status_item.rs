@@ -2,7 +2,6 @@
 //! open (design/20 §1.1), sized by the bar's status keys through `ds::StatusMetrics`.
 
 use dioxus::prelude::*;
-use ds::detail::Cue;
 use ds::{Common, IconButton, IconButtonVariant, IconSource, Px, Shown, StatusMetrics, use_rect};
 use sill_settings::{BarGlyphSize, BarSettings};
 
@@ -25,14 +24,12 @@ pub(crate) fn status_metrics(bar: &BarSettings) -> StatusMetrics {
 
 /// The status item for `menu`, drawn as `icon` (a glyph, or a layered status glyph for the Wi-Fi,
 /// battery, volume and Bluetooth items) with `tooltip`. The button draws its own pill
-/// while expanded, so the slot draws none. A `nudge` (the battery's low cue, quire design/26 G11)
-/// lifts the glyph inside the button; the item passes it for its whole life.
+/// while expanded, so the slot draws none.
 #[component]
 pub(crate) fn StatusIcon(
     menu: BarMenu,
     #[props(into)] icon: IconSource,
     tooltip: String,
-    #[props(default)] nudge: Option<Cue>,
 ) -> Element {
     let bar = use_context::<MenuBar>();
     let probe = use_rect();
@@ -50,7 +47,6 @@ pub(crate) fn StatusIcon(
                 label: menu.label().to_owned(),
                 tooltip: Some(tooltip),
                 expanded: Some(expanded),
-                nudge,
                 onclick: move |_| {},
             }
         }

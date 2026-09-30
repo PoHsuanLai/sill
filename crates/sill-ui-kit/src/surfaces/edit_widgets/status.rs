@@ -7,7 +7,7 @@
 //! panel's opening, or on a re-render (R1, R3).
 
 use dioxus::prelude::*;
-use ds::detail::{Detailed, FirstShow, Moment, Touch, use_detail, use_shake};
+use ds::detail::{Detailed, Moment, Touch, use_detail, use_shake};
 use ds::widget::{WidgetEdit, WidgetLayout};
 
 use crate::widgets::layout::Refused;
@@ -119,7 +119,7 @@ fn host_words(host: WidgetHost) -> &'static str {
 /// The line under the gallery for `outcome`; nothing while it is quiet.
 #[component]
 pub(super) fn EditStatus(outcome: Outcome) -> Element {
-    let detail = use_detail(outcome.clone(), FirstShow::Still, Touch::Remote);
+    let detail = use_detail(outcome.clone(), Touch::Remote);
     let shake = use_shake(detail.cue()).attrs();
     let Some(said) = outcome.said() else {
         return rsx! {};

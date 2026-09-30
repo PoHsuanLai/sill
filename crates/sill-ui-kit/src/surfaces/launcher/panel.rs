@@ -11,10 +11,9 @@
 //! key), Tab, Shift+Tab, Ctrl+K and Alt+K from its `onkey` (after).
 
 use dioxus::prelude::*;
-use ds::detail::RevealCue;
 use ds::{
     Anchor, CommandPalette, CommandPaletteHost, Corner, FieldKey, IconSource, ImageSource,
-    Material, Menu, MenuKind, PaletteEntrance, Point, Px, Rect,
+    Material, Menu, MenuKind, Point, Px, Rect,
 };
 use shell_host::OutputInfo;
 use sill_launcher::{ActionId, ClipKey, Item, Preview, Section, preview_for};
@@ -36,7 +35,6 @@ use crate::surfaces::launcher::keys::ActionsMenu;
 use crate::surfaces::launcher::layer::{
     CARD_ID, CARD_INSET, CARD_RADIUS, PANEL_HEIGHT, PANEL_ROOM_WIDTH, PANEL_WIDTH, SHADOW_SIDE,
 };
-use crate::surfaces::launcher::list_detail::{ListState, Rows, use_list_detail};
 use crate::surfaces::launcher::pane_session::PaneSession;
 use crate::surfaces::launcher::preview::keys::{Pane, PaneFocus};
 use crate::surfaces::launcher::preview::{LauncherPane, PREVIEW_WIDTH_PX};
@@ -120,10 +118,6 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
     });
     let contacts = use_contacts();
     let touch = contacts.take();
-    // quire's palette plays the cue: the first result set of an opening rises, a later
-    // set replaces in place. Show More and Show Less it plays itself.
-    let list = use_list_detail(list_state(shown.as_ref(), &panel), touch);
-    let reveal = RevealCue::Cue(list.cue());
     let aside = use_aside(shown.as_ref(), &icons, panel.left, touch);
     if let Some(shown) = &shown {
         publish_rows(&panel.link, shown);
@@ -158,7 +152,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
                     class: "sill-launcher-body",
                     style: "margin-left:{left}px;width:{width}px;height:{PANEL_HEIGHT}px",
                     if let Some(shown) = shown {
-                        {palette(&panel, &shown, foot, &icons, &clip_image, Beside { aside, reveal })}
+                        {palette(&panel, &shown, foot, &icons, &clip_image, Beside { aside })}
                     }
                 }
             }
@@ -240,25 +234,6 @@ fn icon_source(tile: ds::MenuTile) -> Option<IconSource> {
     }
 }
 
-/// The results as the person sees them (`list_detail.rs`): closed, waiting on the opening's
-/// first answer, nothing matching, or an answer's rows with the sections Show More opened.
-fn list_state(shown: Option<&Shown>, panel: &PanelCtx) -> ListState {
-    let Some(shown) = shown else {
-        return ListState::Closed;
-    };
-    let opening = shown.session.serial;
-    let answer = panel.results.peek().generation;
-    match (answer > shown.session.since, shown.view.len()) {
-        (false, _) => ListState::Waiting(opening),
-        (true, 0) => ListState::Empty(opening),
-        (true, _) => ListState::Rows(Rows {
-            opening,
-            answer,
-            expanded: shown.pane.expanded.clone(),
-        }),
-    }
-}
-
 /// Tell `sill debug launcher-rows` what shows.
 fn publish_rows(link: &LauncherLink, shown: &Shown) {
     let mut rows = shown
@@ -296,7 +271,7 @@ fn palette(
     clip_image: &dyn Fn(ClipKey) -> Option<ImageSource>,
     beside: Beside,
 ) -> Element {
-    let Beside { aside, reveal } = beside;
+    let Beside { aside } = beside;
     let session = &shown.session;
     let selected_item = shown.selected();
     let actions = match session.keys.actions {
@@ -335,7 +310,6 @@ fn palette(
             onpick: move |row: RowRef| pick.pick(row, sill_launcher::Choice::Primary),
             onclose: move |()| close.dismissed(),
             host: CommandPaletteHost::Surface,
-            entrance: PaletteEntrance::CmdkIn,
             id: CARD_ID.to_owned(),
             corner: Some(Corner::Squircle(Px(CARD_RADIUS))),
             focus: panel.field,
@@ -347,7 +321,6 @@ fn palette(
             handle: Some(panel.palette),
             aside: pane,
             aside_width: Px(PREVIEW_WIDTH_PX as f32),
-            reveal,
         }
         div {
             class: "sill-launcher-foot",
@@ -367,10 +340,9 @@ fn palette(
     }
 }
 
-/// What the palette plays beside its rows: the preview pane, and the rows' first-show cue.
+/// What the palette plays beside its rows: the preview pane.
 struct Beside {
     aside: Option<Aside>,
-    reveal: RevealCue,
 }
 
 /// The preview pane for `aside`: quire's, through [`LauncherPane`].

@@ -8,7 +8,6 @@
 //! `bar.battery_low_percent`.
 
 use dioxus::prelude::*;
-use ds::detail::FirstShow;
 use ds::{
     BatteryState, Device, DeviceBattery, DeviceGlyph, Fraction, IconSource, ModulePanel, RingMark,
     StatusState, TextLine,
@@ -22,7 +21,6 @@ use super::cc_module::{BarItemFace, CcCx, CcModule, Span};
 use crate::hooks::{use_service, use_settings};
 use crate::status::glyph::battery_glyph;
 use crate::status::lines::battery_lines;
-use crate::status::low_battery::use_low_cue;
 use crate::surfaces::bar::{BarMenu, StatusIcon};
 use crate::surfaces::control_center::modules::use_plate;
 use crate::widgets::battery::device_of;
@@ -59,8 +57,7 @@ pub fn BatteryModule() -> Element {
         None => (None, None, None),
     };
     rsx! {
-        // The center was just opened: the fill sweeps in from empty.
-        ModulePanel { glyph, first: FirstShow::Animate, title, trailing, plate: use_plate(),
+        ModulePanel { glyph, title, trailing, plate: use_plate(),
             div { class: "sill-cc-battery",
                 if !rings.is_empty() {
                     div { class: "sill-cc-batteries", role: "group", "aria-label": "Device batteries",
@@ -70,7 +67,6 @@ pub fn BatteryModule() -> Element {
                                 level: ring.level,
                                 mark: ring.mark,
                                 label: ring.label.clone(),
-                                first: FirstShow::Animate,
                                 DeviceGlyph { device: ring.device }
                             }
                         }
@@ -142,14 +138,12 @@ fn charging(charge: Charge) -> RingMark {
     }
 }
 
-/// The Battery item in the bar: the battery glyph by level and power, nudged once per low
-/// crossing; hidden without a battery (UPower's display device absent: a desktop).
+/// The Battery item in the bar: the battery glyph by level and power; hidden without a battery (UPower's display device absent: a desktop).
 #[component]
 fn BatteryItem() -> Element {
     let battery = use_service::<BatteryService>()();
     let low = use_settings()().bar.battery_low_percent;
     let state = battery_glyph(&battery, low);
-    let cue = use_low_cue(state);
     let Some(state) = state else {
         return rsx! {};
     };
@@ -159,7 +153,6 @@ fn BatteryItem() -> Element {
             menu: BarMenu::Battery,
             icon: StatusState::Battery(state),
             tooltip: level,
-            nudge: Some(cue),
         }
     }
 }

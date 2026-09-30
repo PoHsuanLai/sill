@@ -382,47 +382,27 @@ fn on_the_desktop_the_world_clock_draws_dials_tinted_for_day_or_night() {
     assert_eq!(h.count("#widget-world-clock .ds-clock[*|data-phase]"), 2);
 }
 
-/// Renamed from `a_battery_level_that_changes_bumps_once`: sill no longer wears its own
-/// `Bumped` pulse on the percentage text (quire's `BatteryFigure` draws it now), so
-/// `.ds-bumped.a-bump` never appears; and "nothing bumps on mount" no longer holds; quire's ring
-/// always sweeps from empty on mount (design/23-WIDGETS.md section 4.1), so a fresh widget is
-/// moving from its first frame. What still holds, and what this checks instead: a level change
-/// bumps the ring's own `data-pulse` to `a` while it re-sweeps, then it comes to rest.
+/// A level change moves the ring's arc from where it is to the new level, then it rests; the
+/// ring stands at its level on mount and does not sweep in (quire design/23 section 4.1, design/30
+/// section 1.3).
 #[test]
-fn a_battery_level_that_changes_bumps_the_ring_again() {
+fn a_battery_level_that_changes_moves_the_ring_then_it_rests() {
     let mut running = start(WidgetKind::Battery, WidgetHost::Tile, ShellFile::default());
-    let moving = "#widget-battery .ds-battery[*|data-pulse=a]";
-    settle_until(&mut running.harness, |h| h.count(moving) == 0);
+    let arc = "#widget-battery .ds-battery-arc path";
+    running.harness.advance(Duration::from_millis(50));
+    let before = running.harness.attr(arc, "d");
+    assert!(before.is_some(), "the ring is drawn from the first frame");
     let mut battery = running.feeds.battery.borrow().clone();
     battery.level = sill_model::units::Percent(65);
     running.feeds.battery.send_replace(battery);
-    running.harness.advance(Duration::from_millis(30));
-    assert!(
-        running.harness.count(moving) >= 1,
-        "the new level bumps: {}",
-        running.harness.html()
-    );
-    settle_until(&mut running.harness, |h| h.count(moving) == 0);
-    assert_eq!(running.harness.count(moving), 0, "and comes to rest");
-}
-
-#[test]
-fn opening_the_center_again_replays_the_batterys_fill() {
-    let mut running = center_support::opened(center_support::two_apps());
-    let moving = "#widget-battery .ds-battery[*|data-pulse=a]";
-    // Let the first opening's mount-sweep settle, so the next `moving` we see is the reopening's
-    // own wake, not a straggler from mounting.
-    settle_until(&mut running.harness, |h| h.count(moving) == 0);
-    running.link.close();
-    center_support::settle(&mut running.harness, |h| h.count(".ds-panel") == 0);
-    running.link.open(center_support::fake::output().id);
-    center_support::settle(&mut running.harness, |h| h.count(".ds-panel") == 1);
-    assert!(
-        running.harness.count(moving) >= 1,
-        "the widget host's wake replays the ring's fill on reopen: {}",
-        running.harness.html()
-    );
-    settle_until(&mut running.harness, |h| h.count(moving) == 0);
+    running.harness.advance(Duration::from_millis(60));
+    let moving = running.harness.attr(arc, "d");
+    assert_ne!(moving, before, "the new level moves the arc");
+    running.harness.advance(Duration::from_millis(600));
+    let rested = running.harness.attr(arc, "d");
+    assert_ne!(rested, before);
+    running.harness.advance(Duration::from_millis(500));
+    assert_eq!(running.harness.attr(arc, "d"), rested, "and comes to rest");
 }
 
 #[test]
