@@ -378,7 +378,7 @@ mod tests {
             image: None,
             key: None,
             check: None,
-            availability: availability,
+            availability,
         };
         let entries = vec![
             MenuItem::Header("Foot".to_owned()),

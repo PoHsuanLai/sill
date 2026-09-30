@@ -130,11 +130,11 @@ fn lines_menu<const N: usize>(lines: [String; N]) -> Vec<MenuItem<BarPick>> {
 /// A plain item.
 fn item(title: String, value: BarPick, check: Option<Check>) -> MenuItem<BarPick> {
     MenuItem::Item {
-        value: value,
-        title: title,
+        value,
+        title,
         image: None,
         key: None,
-        check: check,
+        check,
         availability: ds::Availability::Enabled,
     }
 }

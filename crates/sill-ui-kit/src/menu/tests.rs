@@ -38,7 +38,7 @@ impl MenuModel for Numbers {
         [(1, "First"), (2, "Second")]
             .into_iter()
             .map(|(value, title)| MenuItem::Item {
-                value: value,
+                value,
                 title: title.to_owned(),
                 image: None,
                 key: None,

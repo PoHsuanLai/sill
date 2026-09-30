@@ -253,11 +253,11 @@ fn row_entry(
         DockMenuRow::ForceQuit => ("Force Quit".to_owned(), owned(DockPick::ForceQuit)?, None),
     };
     Some(MenuItem::Item {
-        value: value,
-        title: title,
+        value,
+        title,
         image: None,
         key: None,
-        check: check,
+        check,
         availability: Availability::Enabled,
     })
 }
