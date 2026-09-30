@@ -271,11 +271,13 @@ A settled item is deleted, not marked closed.
   root context, `SettingsFeed` (`sill-ui-kit`), and read one domain with `use_section`.
 - **One-variant enums cannot be settings** (the derive refuses them): `launcher.material` and
   `power_menu.material` are `PanelMaterial::{Sheet, Popover}`.
-- **Retired keys**: `control_center.material`, `dock.position`, `session.user_picture` and
-  `spaces.lookup_order` had no reader, so the fields are gone and design/22's rows say
-  `RETIRING`; a file that still sets one is told the key is unknown. `dock.progress_ring_*`,
-  `dock.hold_to_menu_ms` and `notifications.banner_hold_ms` are read (the dock ring, the dock
-  machine's press, the banner hold) and stay.
+- **Retired keys**: `control_center.material`, `dock.position`, `session.user_picture`,
+  `spaces.lookup_order`, `notifications.banner_entry_direction` and, with step 4a.8, `dock.progress_style`,
+  `dock.badge_size_px`, `dock.badge_radius_px`, `dock.progress_ring_diameter_px` and
+  `dock.progress_ring_stroke_px` had no reader (quire's `DockTile` draws its own `Badge` and progress
+  bar), so the fields are gone and design/22's rows say `RETIRING`; a file that still sets one is
+  told the key is unknown. `dock.hold_to_menu_ms` and `notifications.banner_hold_ms` are read (the
+  dock machine's press, the banner hold) and stay.
 - **`screenshot.tool` is typed at load** (`ShotTool`, stored as its text). `calendar.sources`,
   `screenshot.folders`, `display.scale_overrides` and `widgets.world_clocks` stay text: their
   parse needs `$HOME` (`~/`) or belongs to the reader, and a typed form would rewrite the

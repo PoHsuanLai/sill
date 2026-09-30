@@ -1,5 +1,5 @@
 //! The dock in a `ds_harness::Harness` on the fake services: pinned apps then running ones
-//! grouped by app, the Trash, running dots, the badge, the ring, the regions' elements, the
+//! grouped by app, the Trash, running dots, the badge, the progress bar, the regions' elements, the
 //! icon style on each plate; a value fed after the first frame changes what it shows.
 
 use ds_harness::Driver;
@@ -45,8 +45,9 @@ fn count(html: &str, needle: &str) -> usize {
 
 /// The tiles' names in document order (a label is drawn only while it is up).
 fn labels(html: &str) -> Vec<String> {
-    html.split("class=\"sill-dock-tile\" aria-label=\"")
+    html.split("class=\"ds-dock-tile\" data-running=\"")
         .skip(1)
+        .filter_map(|rest| rest.split("aria-label=\"").nth(1))
         .filter_map(|rest| rest.split('"').next().map(str::to_owned))
         .collect()
 }
@@ -61,8 +62,8 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
         "{html}"
     );
     let cases = [
-        ("four tiles", "class=\"sill-dock-tile\"", 4),
-        ("terminal and firefox run", "class=\"sill-dock-dot\"", 2),
+        ("four tiles", "class=\"ds-dock-tile\"", 4),
+        ("terminal and firefox run", "data-running=\"active\"", 2),
         (
             "each with quire's running dot",
             "class=\"ds-running-dot\"",
@@ -88,8 +89,8 @@ fn pinned_then_running_then_trash_with_dots_and_a_badge() {
         ),
         ("the material stack", "--m-vibrancy:1;", 1),
         ("firefox's count", ">7</span>", 1),
-        ("one badge", "class=\"sill-dock-badge\"", 1),
-        ("firefox's ring", "class=\"sill-dock-ring\"", 1),
+        ("one badge", "class=\"ds-badge\"", 1),
+        ("firefox's progress bar", "class=\"ds-dock-progress\"", 1),
         ("the hit element", "id=\"dock-hit\"", 1),
         ("the pill element", "id=\"dock-pill\"", 1),
         (
@@ -129,8 +130,8 @@ fn fed_values_replace_the_defaults() {
     let after = run.harness.html();
     assert_eq!(labels(&after), ["Firefox", "Trash"]);
     let cases = [
-        ("no window, no dot", "class=\"sill-dock-dot\"", 2, 0),
-        ("no badge", "class=\"sill-dock-badge\"", 1, 0),
+        ("no window, no dot", "class=\"ds-running-dot\"", 2, 0),
+        ("no badge", "class=\"ds-badge\"", 1, 0),
     ];
     for (name, needle, was, now) in cases {
         assert_eq!(

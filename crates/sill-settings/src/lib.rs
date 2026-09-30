@@ -44,7 +44,7 @@ pub use display::{
 };
 pub use dock::{
     ActiveClick, AutoHide, Bounce, DockFloor, DockMenuOrder, DockModifierClicks, DockSettings,
-    Indicators, LaunchAnim, Magnification, ProgressStyle, TrashTile,
+    Indicators, LaunchAnim, Magnification, TrashTile,
 };
 pub use file::{APP, ShellFile};
 pub use focus::{FocusMode, focus_mode, with_focus_mode};

@@ -13,16 +13,14 @@
 
 use std::path::{Path, PathBuf};
 
-use ds::{ExternalIcon, Icon, IconPx, IconSize, IconSource, IconUrl};
+use ds::{ExternalIcon, Icon, IconPx, IconSize, IconSource, IconUrl, Px};
+use ds_shell::plate_side;
 use sill_model::apps::{App, AppIcon};
 use sill_settings::{DockSettings, Magnification};
 
 use crate::dock::items::ItemKind;
 pub use sill_ui_kit::app_icons::IconContext;
 use sill_ui_kit::app_icons::{LogicalPx, pick, theme_art};
-
-/// design/08 §2.2: the plate is 80.5 % of the tile (824 / 1024).
-pub const PLATE_PERMILLE: i32 = 805;
 
 /// design/08 §4.1: a third-party icon fills 72 % of the plate.
 pub const ICON_PERMILLE: i32 = 720;
@@ -83,16 +81,11 @@ impl TileSizes {
             largest: largest.max(side),
         }
     }
-
-    /// The plate's side now.
-    pub fn plate(self) -> f64 {
-        share(self.side, PLATE_PERMILLE)
-    }
 }
 
 /// `art` drawn at `sizes` in `cx`: always on quire's plate (§4.1's plate-mask rule).
 pub fn drawn(art: TileArt, sizes: TileSizes, cx: &IconContext) -> IconSource {
-    let plate_icon = |side: f64| share(share(side, PLATE_PERMILLE), ICON_PERMILLE);
+    let plate_icon = |side: f64| share(f64::from(plate_side(Px(side as f32)).0), ICON_PERMILLE);
     match art {
         TileArt::Glyph(icon) => IconSource::Glyph(icon),
         TileArt::Symbolic(path) => external(&path, plate_icon(sizes.side))

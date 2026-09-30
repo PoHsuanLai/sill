@@ -1,30 +1,20 @@
-//! One dock tile: the plated icon at its magnified size and bounce lift, the running dot, the
-//! count badge (`Count`, `999+`), the progress ring, the pressed scrim.
-//!
-//! The tile's box is its slot at the current size, standing on the baseline and lifted by the
-//! bounce; the plate is 80.5 % of it (design/08 §2.2), a quire `IconView` plate (the squircle
-//! with its gradient, highlight, rim and drop; the macOS polish pass) in the neutral paper family
-//! (§4.1), the icon inside at the design inset, the fallback glyph at its 56 % (§4.3), in the
-//! icon style the dock provides as [`TileLook`] (`icon.rs`, `app_icons`). Under Muted or Monochrome the plate takes
-//! the same `(IconStyle, Tint)` pair `app_icons` hands `ds::icon::retint`, through `IconView`'s
-//! `plate_tint: PlateTint::of(style, tint)`: the plate's two stops and its
-//! glyph ink are re-coloured by quire itself, so a Muted or Monochrome dock is one hue, plate
-//! included; `PlateTint::of` is `None` under Colour, which changes nothing. The badge
-//! and the ring hang off the plate and scale with it (design/10 §10.3.2); quire's `RunningDot`
-//! sits in a box at the tile's rest place, so it stays on the baseline while the tile bounces. The hover label is a ds
-//! `DockLabel` over the plate, shown and hidden by the dock machine alone (`shown`): up
-//! from its `ShowLabel` (the fly delay, the warm skip) to its `HideLabel` (the pointer left, a
-//! button went down, a context menu opened). The dock provides the machine's shown label as
-//! context; the frozen `Tile` props are unchanged. No pressed scrim: the frozen props carry no
-//! press.
+//! One dock tile: quire's `DockTile` at the tile's magnified size and bounce lift, in the slot the
+//! frame gives it. `DockTile` draws the plated icon (a quire `IconView` plate; under Muted or
+//! Monochrome its two stops and its glyph ink are re-coloured through `PlateTint::of(style,
+//! tint)`, `None` under Colour), its `Badge` (a count, `999+` past 999), the `ProgressIndicator`
+//! bar while the app works, the running dot and the hover label (`DockLabel`), and lifts the
+//! plate by a bounce while the dot stays on the baseline. The label is shown and hidden by the
+//! dock machine alone (`shown`): up from its `ShowLabel` (the fly delay, the warm skip) to its
+//! `HideLabel` (the pointer left, a button went down, a context menu opened). The dock provides
+//! the machine's shown label as context; the frozen `Tile` props are unchanged. The tile takes
+//! no press of its own: the dock's input layer reads every pointer event.
 
 use dioxus::prelude::*;
-use ds::{IconPx, IconSize, IconView, PlateFamily, PlateTint, Shown};
-use ds_shell::DockLabel;
-use ds_shell::RunningDot;
+use ds::{Activity, BadgeContent, Fraction, PlateFamily, PlateTint, Px, Shown};
+use ds_shell::DockTile;
 use sill_model::badges::Badge;
 use sill_model::units::{Cpx, Permille};
-use sill_settings::{DockSettings, Indicators, ProgressStyle};
+use sill_settings::{DockSettings, Indicators};
 
 use crate::dock::frame::Rows;
 use crate::dock::icon::{IconContext, TileSizes, drawn, tile_art};
@@ -58,72 +48,42 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
     };
     let side = px(size);
     let sizes = TileSizes::new(side, &dock);
-    let plate = sizes.plate();
     let look = try_use_context::<Signal<TileLook>>().map_or(TileLook::default(), |look| look());
     let cx = IconContext {
         look: look.0,
         scale: ds::use_scale(),
         resolver: use_icon_resolver(),
     };
-    let source = drawn(tile_art(&item.kind, app), sizes, &cx);
+    let icon = drawn(tile_art(&item.kind, app), sizes, &cx);
     let rows = Rows::new(&dock);
-    let top = px(rows.baseline) - side - px(lift);
-    let running = item.app != TileApp::NotRunning && dock.indicators == Indicators::On;
-    let grow = side / f64::from(dock.tile_size_px.0.max(1));
-    let count = badge.and_then(|b| b.shown_count());
-    let progress = badge.and_then(|b| b.shown_progress());
+    let top = px(rows.baseline) - side;
+    let running = if item.app != TileApp::NotRunning && dock.indicators == Indicators::On {
+        Activity::Active
+    } else {
+        Activity::Inactive
+    };
     let label = try_use_context::<Signal<LabelShown>>().map_or(LabelShown(None), |shown| shown());
     let shown = if label.0 == Some(item.tile) {
         Shown::Visible
     } else {
         Shown::Hidden
     };
-    let inset = (side - plate) / 2.0;
     rsx! {
         div {
             class: "sill-dock-tile",
-            "aria-label": "{name}",
             style: "left:{px(left)}px;top:{top}px;width:{side}px;height:{side}px",
-            div {
-                class: "sill-dock-plate",
-                style: plate_style(plate),
-                IconView {
-                    source,
-                    size: plate_size(plate),
-                    plate: Some(PlateFamily::Neutral),
-                    plate_tint: PlateTint::of(look.0.style, look.0.tint),
-                }
-                if let Some(count) = count {
-                    span {
-                        class: "sill-dock-badge",
-                        style: badge_style(&dock, grow),
-                        {count_text(count)}
-                    }
-                }
-                if let (Some(progress), ProgressStyle::Ring) = (progress, dock.progress_style) {
-                    span {
-                        class: "sill-dock-ring",
-                        style: ring_style(&dock, grow, progress),
-                        span { class: "sill-dock-ring-hole" }
-                    }
-                }
-            }
-            div {
-                class: "sill-dock-label",
-                style: "left:{inset:.2}px;top:{inset:.2}px",
-                DockLabel { text: name.clone(), shown,
-                    span {
-                        class: "sill-dock-label-box",
-                        style: "width:{plate:.2}px;height:{plate:.2}px",
-                    }
-                }
-            }
-            if running {
-                span {
-                    class: "sill-dock-dot",
-                    style: "top:{px(lift):.2}px;height:{side:.2}px",
-                    RunningDot {}
-                }
+            DockTile {
+                icon,
+                plate: Some(PlateFamily::Neutral),
+                plate_tint: PlateTint::of(look.0.style, look.0.tint),
+                badge: badge.and_then(|b| b.shown_count()).map(count),
+                progress: badge.and_then(|b| b.shown_progress()).map(fraction),
+                running,
+                side: Px(side as f32),
+                lift: Px(px(lift) as f32),
+                label: name,
+                label_shown: Some(shown),
+                onclick: |_| {},
             }
         }
     }
@@ -134,55 +94,12 @@ fn px(v: Cpx) -> f64 {
     f64::from(v.0) / 100.0
 }
 
-/// A count as the badge shows it (design/10 §10.3.2: `> 999` reads `999+`).
-pub fn count_text(count: u64) -> String {
-    if count > 999 {
-        "999+".to_owned()
-    } else {
-        count.to_string()
-    }
+/// A count as quire's `Badge` takes it (it says `999+` past 999 itself).
+fn count(count: u64) -> BadgeContent {
+    BadgeContent::Number(u32::try_from(count).unwrap_or(u32::MAX))
 }
 
-/// The plate's box, which the badge and the ring hang from.
-fn plate_style(plate: f64) -> String {
-    format!("width:{plate:.2}px;height:{plate:.2}px")
-}
-
-/// The quire plate's side in whole pixels (at least one).
-fn plate_size(plate: f64) -> IconSize {
-    // Rounded and clamped to u8's range, so the cast is exact.
-    IconSize::Px(IconPx(plate.round().clamp(1.0, 255.0) as u8))
-}
-
-/// The badge: `dock.badge_size_px` tall, `dock.badge_radius_px` round, scaled with the tile.
-fn badge_style(dock: &DockSettings, grow: f64) -> String {
-    let h = f64::from(dock.badge_size_px.0);
-    format!(
-        "height:{h}px;min-width:{h}px;border-radius:{}px;transform:scale({grow:.4})",
-        dock.badge_radius_px.0
-    )
-}
-
-/// The ring: `dock.progress_ring_diameter_px` wide, an arc of `progress` from 12 o'clock.
-fn ring_style(dock: &DockSettings, grow: f64, progress: Permille) -> String {
-    let d = f64::from(dock.progress_ring_diameter_px.0);
-    let turn = f64::from(progress.0.min(1000)) / 1000.0;
-    format!(
-        "width:{d}px;height:{d}px;padding:{}px;transform:scale({grow:.4});\
-         background-image:conic-gradient(var(--accent-text) 0turn {turn:.3}turn, var(--line) {turn:.3}turn 1turn)",
-        dock.progress_ring_stroke_px.0
-    )
-}
-
-#[cfg(test)]
-mod tests {
-    use super::count_text;
-
-    #[test]
-    fn counts_over_999_read_999_plus() {
-        const CASES: &[(u64, &str)] = &[(1, "1"), (7, "7"), (999, "999"), (1234, "999+")];
-        for &(count, want) in CASES {
-            assert_eq!(count_text(count), want, "{count}");
-        }
-    }
+/// A progress as quire's `ProgressIndicator` takes it: a share in thousandths, at most all.
+fn fraction(progress: Permille) -> Fraction {
+    Fraction(u16::try_from(progress.0.min(1000)).unwrap_or(1000))
 }

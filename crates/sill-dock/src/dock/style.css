@@ -22,27 +22,5 @@
 
 .sill-dock-separator{ position:absolute; width:var(--hair); background-color:var(--f-line); }
 
-/* A tile: its slot at the current size; the plate centred in it. */
-.sill-dock-tile{ position:absolute; display:flex; align-items:center; justify-content:center; }
-
-/* The plate's box: quire's IconView plate fills it, and the badge and the ring hang from it. */
-.sill-dock-plate{ position:relative; display:flex; align-items:center; justify-content:center; }
-
-/* design/10 §10.3.2: the red capsule, top-right, scaling with the tile from its corner. */
-.sill-dock-badge{ position:absolute; top:-2px; right:-2px; display:flex; align-items:center; justify-content:center;
-  padding:0 var(--s-5); background-color:var(--danger); color:var(--danger-ink); font-family:var(--font-ui);
-  font-size:var(--fs-eyebrow); font-weight:700; font-variant-numeric:tabular-nums; transform-origin:100% 0; }
-
-/* The progress ring: an arc over its track on a --raise disc, bottom-right. */
-.sill-dock-ring{ position:absolute; right:-2px; bottom:-2px; display:flex; border-radius:var(--r-pill); transform-origin:100% 100%;
-  box-shadow:0 0 0 1px var(--raise); }
-.sill-dock-ring-hole{ flex:1; border-radius:var(--r-pill); background-color:var(--raise); }
-
-/* The hover label's target: a box over the plate for ds Tooltip{Fly}, which the dock machine
-   shows and hides (`shown`). */
-.sill-dock-label{ position:absolute; display:flex; }
-.sill-dock-label-box{ display:block; }
-
-/* The running dot's box: the tile's rest place, moved down by the bounce's lift so quire's
-   RunningDot under it stays on the baseline while the tile bounces. */
-.sill-dock-dot{ position:absolute; left:0; width:100%; pointer-events:none; }
+/* A tile's slot: quire's DockTile fills it, at the size the frame gives this tile now. */
+.sill-dock-tile{ position:absolute; }

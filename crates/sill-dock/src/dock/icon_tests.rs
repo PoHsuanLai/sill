@@ -139,10 +139,10 @@ fn icons_take_their_share_of_the_plate_in_whole_pixels() {
         IconSource::Image(e) => e.size,
         other => panic!("{other:?}"),
     };
-    // A 48 px tile's plate is 38.64 px: the icon 27.8.
+    // A 48 px tile's plate is quire's 39 whole pixels: the icon 28.1.
     assert_eq!(size(48.0), IconSize::Px(IconPx(28)));
-    // Fully magnified (96 px): 55.6.
-    assert_eq!(size(96.0), IconSize::Px(IconPx(56)));
+    // Fully magnified (96 px): a 77 px plate, the icon 55.4.
+    assert_eq!(size(96.0), IconSize::Px(IconPx(55)));
 }
 
 /// Without magnification the theme icon is loaded once, at the tile's rest size (the source

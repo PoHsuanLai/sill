@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 pub use crate::dock_words::{
     ActiveClick, AutoHide, Bounce, DockFloor, DockMenuOrder, DockModifierClicks, Indicators,
-    LaunchAnim, Magnification, ProgressStyle, TrashTile,
+    LaunchAnim, Magnification, TrashTile,
 };
 
 /// The dock's settings.
@@ -59,13 +59,6 @@ pub struct DockSettings {
         advanced
     )]
     pub tile_gap_px: Px,
-    #[settings(
-        label = "Progress style",
-        help = "A ring on the icon, or a bar under it.",
-        section = "Indicators",
-        advanced
-    )]
-    pub progress_style: ProgressStyle,
     #[settings(
         label = "Automatically hide the dock",
         help = "Hide the dock until the pointer reaches the screen's bottom edge.",
@@ -154,42 +147,6 @@ pub struct DockSettings {
         advanced
     )]
     pub running_dot_diameter_px: Px,
-    #[settings(
-        label = "Badge height",
-        help = "The height of a count badge.",
-        section = "Indicators",
-        range = "12..=32",
-        unit = "px",
-        advanced
-    )]
-    pub badge_size_px: Px,
-    #[settings(
-        label = "Badge radius",
-        help = "The corner radius of a count badge.",
-        section = "Indicators",
-        range = "0..=16",
-        unit = "px",
-        advanced
-    )]
-    pub badge_radius_px: Px,
-    #[settings(
-        label = "Progress ring",
-        help = "The diameter of a progress ring.",
-        section = "Indicators",
-        range = "12..=48",
-        unit = "px",
-        advanced
-    )]
-    pub progress_ring_diameter_px: Px,
-    #[settings(
-        label = "Progress ring stroke",
-        help = "The width of a progress ring's arc.",
-        section = "Indicators",
-        range = "1..=8",
-        unit = "px",
-        advanced
-    )]
-    pub progress_ring_stroke_px: Px,
     #[settings(
         label = "Separator height",
         help = "The height of the line before Trash.",
@@ -332,7 +289,6 @@ impl Default for DockSettings {
             magnified_size_px: Px(96),
             influence_radius_px: Px(96),
             tile_gap_px: Px(8),
-            progress_style: ProgressStyle::Ring,
             autohide: AutoHide::Off,
             autohide_delay_ms: Ms(200),
             autohide_slide_ms: Ms(500),
@@ -345,10 +301,6 @@ impl Default for DockSettings {
             pill_radius_px: Px(22),
             edge_clamp_px: Px(8),
             running_dot_diameter_px: Px(4),
-            badge_size_px: Px(18),
-            badge_radius_px: Px(9),
-            progress_ring_diameter_px: Px(20),
-            progress_ring_stroke_px: Px(3),
             separator_height_px: Px(36),
             magnify_enter_ms: Ms(120),
             magnify_leave_ms: Ms(200),

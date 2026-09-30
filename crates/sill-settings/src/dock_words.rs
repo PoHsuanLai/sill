@@ -39,8 +39,6 @@ words! {
     DockMenuOrder { #[default] WindowsFirst, AppleOrder }
     /// `dock.modifier_clicks`.
     DockModifierClicks { #[default] AppleMapping, Off }
-    /// `dock.progress_style`.
-    ProgressStyle { #[default] Ring, Bar }
     /// `dock.floor`: the reflective band along the pill's floor, under the tiles.
     DockFloor { #[default] Off, On }
 }
