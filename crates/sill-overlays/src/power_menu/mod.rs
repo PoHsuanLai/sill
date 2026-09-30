@@ -23,4 +23,3 @@ mod surface;
 mod view;
 
 pub use surface::PowerMenu;
-pub use view::POWER_MENU_CSS;

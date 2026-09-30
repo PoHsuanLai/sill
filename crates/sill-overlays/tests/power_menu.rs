@@ -465,11 +465,3 @@ fn with_nothing_offered_the_alert_only_cancels() {
     settle(&mut running.harness, |_| !is_open(&link));
     assert!(ran(&mut running).is_empty());
 }
-
-#[test]
-fn the_stylesheet_names_no_keyframes_of_its_own() {
-    assert!(
-        !sill_overlays::power_menu::POWER_MENU_CSS.contains("@keyframes"),
-        "motion is quire's (coherence rule 4)"
-    );
-}

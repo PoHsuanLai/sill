@@ -15,6 +15,7 @@ use super::labels::TITLE;
 use sill_ui_kit::hooks::use_settings;
 use sill_ui_kit::notification_card::notification_metrics;
 use sill_ui_kit::panel::{Opening, Phase};
+use sill_ui_kit::root::ClickAway;
 use sill_ui_kit::widgets::provide_widget_wake;
 
 /// The column on `output`, while the center is drawn there.
@@ -53,10 +54,7 @@ fn Opened(
     let metrics = notification_metrics(&settings);
     let (catch, escape) = (ctx.clone(), ctx.clone());
     rsx! {
-        div {
-            class: "sill-nc-catcher",
-            onpointerdown: move |_| catch.close(),
-        }
+        ClickAway { onpress: move |()| catch.close() }
         div { class: "sill-nc-scope", style: metrics.style_attr(),
             SidePanel {
                 label: TITLE.to_owned(),

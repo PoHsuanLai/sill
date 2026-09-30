@@ -136,7 +136,7 @@ const SURFACES: &[SurfaceCase] = &[
     SurfaceCase {
         name: "power_menu",
         surface: <PowerMenu as Surface>::NAME,
-        css: sill_overlays::power_menu::POWER_MENU_CSS,
+        css: "", // quire's Alert and sill's ClickAway: the surface has no stylesheet
         states: power_menu_states,
     },
     SurfaceCase {
@@ -302,7 +302,7 @@ fn wallpaper_states() -> Vec<(&'static str, String)> {
     vec![("no image", bare), ("with an image", pictured)]
 }
 
-/// The menu hidden, then open on the default button once its sheet has settled.
+/// The menu hidden, then open on the default action once its sheet has settled.
 fn power_menu_states() -> Vec<(&'static str, String)> {
     let mut menu = SurfaceHarness::<PowerMenu>::setup(PowerMenuLink::new(), ()).start();
     menu.feeds.session.send_replace(Session::everything());
@@ -311,7 +311,7 @@ fn power_menu_states() -> Vec<(&'static str, String)> {
     menu.link.open(fake::output().id, Preselect::Default);
     menu.harness.advance(Duration::from_millis(700));
     let open = menu.harness.html();
-    assert!(open.contains("sill-power-menu-panel"), "{open}");
+    assert!(open.contains("ds-alert"), "{open}");
     vec![("hidden", hidden), ("open", open)]
 }
 
@@ -459,7 +459,7 @@ fn notification_center_states() -> Vec<(&'static str, String)> {
     center.link.open(fake::output().id);
     center.harness.advance(Duration::from_millis(700));
     let open = center.harness.html();
-    assert!(open.contains("sill-nc-row"), "{open}");
+    assert!(open.contains("ds-notification"), "{open}");
     vec![("closed", closed), ("open", open)]
 }
 

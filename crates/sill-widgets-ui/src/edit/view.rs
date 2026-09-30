@@ -16,7 +16,7 @@ use std::rc::Rc;
 
 use dioxus::prelude::*;
 use ds::components::overlays::sheet_width::SheetWidth;
-use ds::{Attach, Button, Material, RootExtent, Sheet, Shown, use_rect};
+use ds::{Attach, Button, Label, LabelStyle, Material, RootExtent, Sheet, Shown, use_rect};
 use ds_shell::WidgetGallery;
 use ds_shell::widget::{DesktopGrid, WidgetEdit};
 use shell_host::OutputInfo;
@@ -30,7 +30,7 @@ use sill_ui_kit::hooks::use_section;
 use sill_ui_kit::links::EditWidgetsLink;
 use sill_ui_kit::links::WidgetsWrite;
 use sill_ui_kit::panel::Phase;
-use sill_ui_kit::root::SurfaceRoot;
+use sill_ui_kit::root::{ClickAway, SurfaceRoot};
 use sill_ui_kit::widgets::grid::OutputKey;
 use sill_ui_kit::widgets::layout::{WidgetKeys, edited, layout_of};
 use sill_ui_kit::widgets::{WidgetHost, desktop_size, provide_registry, widgets_css};
@@ -151,10 +151,9 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
     };
     let (catch, escape, done) = (link.clone(), link.clone(), link);
     rsx! {
-        div {
-            class: "sill-ew-catcher",
-            onmounted: move |event| probe.on_mounted(event),
-            onpointerdown: move |_| catch.close(),
+        ClickAway {
+            mounted: EventHandler::new(move |event| probe.on_mounted(event)),
+            onpress: move |()| catch.close(),
         }
         div { class: "sill-ew-scope",
             Sheet {
@@ -185,7 +184,7 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
                         }
                     },
                     div { class: "sill-ew-head",
-                        span { class: "sill-ew-title", "Edit Widgets" }
+                        Label { text: "Edit Widgets", style: LabelStyle::Title }
                         Button {
                             answers: Answers::Return,
                             label: "Done",

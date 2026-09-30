@@ -3,12 +3,8 @@
    quire's `Panel` (its edge, width, material, padding and motion) and the gallery quire's
    `WidgetGallery`. Everything here is layout and tokens. Attribute selectors carry `*|`. */
 
-/* The click-outside catcher: every pixel the panel does not cover. It is also what the desktop
-   grid is measured from. */
-.sill-ew-catcher{ position:absolute; top:0; right:0; bottom:0; left:0; }
-
 /* The wrapper around quire's panel: it fills the root, as quire's panel scope must, and lets
-   presses through to the catcher; the panel takes its own. */
+   presses through to the click-away layer (which the desktop grid is measured from); the panel takes its own. */
 .sill-ew-scope{ position:absolute; top:0; right:0; bottom:0; left:0; pointer-events:none; }
 
 /* Inside the sheet: the column fills it, so quire's gallery fills what the title row and the
@@ -19,9 +15,5 @@
   color:var(--ink); outline:none; }
 .sill-ew-head{ display:flex; flex:none; align-items:center; justify-content:space-between; gap:var(--s-8);
   padding:0 0 var(--s-6) var(--s-4); }
-.sill-ew-title{ font-size:var(--fs-subhead); font-weight:700; }
-/* What the last removal or refusal came to (an add is the gallery's to show): the words, in
-   `--ink-soft`. */
-.sill-ew-status{ display:flex; flex:none; align-items:center; padding:0 var(--s-4); font-size:var(--fs-help);
-  color:var(--ink-soft); }
-.sill-ew-status-words{ flex:1 1 auto; min-width:0; }
+/* What the last removal or refusal came to (an add is the gallery's to show). */
+.sill-ew-status{ display:flex; flex:none; align-items:center; padding:0 var(--s-4); }

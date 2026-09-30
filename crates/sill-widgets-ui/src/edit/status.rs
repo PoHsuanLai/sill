@@ -8,6 +8,7 @@
 
 use dioxus::prelude::*;
 use ds::detail::{Detailed, Moment, Touch, use_detail, use_shake};
+use ds::{Label, LabelRole, LabelStyle};
 use ds_shell::widget::{WidgetEdit, WidgetLayout};
 
 use sill_ui_kit::widgets::layout::Refused;
@@ -130,7 +131,7 @@ pub(super) fn EditStatus(outcome: Outcome) -> Element {
     };
     rsx! {
         div { class, "data-pulse": alias, "data-outcome": outcome.slug(), role: "status",
-            span { class: "sill-ew-status-words", "{said.words}" }
+            Label { text: said.words.clone(), role: LabelRole::Secondary, style: LabelStyle::Footnote }
         }
     }
 }

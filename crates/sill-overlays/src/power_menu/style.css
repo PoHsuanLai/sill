@@ -1,7 +1,0 @@
-/* The power menu (design/20 §1.8). The surface is the whole output (`Ds { extent:
-   RootExtent::Viewport }`): quire's Alert stands centred on its Sheet, which plays its own
-   entrance and exit; everything here is layout. */
-
-/* The click-outside catcher: every pixel the alert does not cover (a sheet dims nothing and
-   catches no click, so this surface closes the menu itself). */
-.sill-power-menu-catcher{ position:absolute; top:0; right:0; bottom:0; left:0; }

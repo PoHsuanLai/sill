@@ -332,7 +332,7 @@ fn nothing_is_said_until_something_is_edited() {
 /// The status line's outcome and words, when there is one.
 fn status(h: &Harness) -> Option<(String, String)> {
     let outcome = h.attr(".sill-ew-status", "data-outcome")?;
-    let words = h.text_of(".sill-ew-status-words")?;
+    let words = h.text_of(".sill-ew-status .ds-label")?;
     Some((outcome, words))
 }
 

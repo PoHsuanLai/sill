@@ -17,12 +17,8 @@ use super::labels::{action_label, consequence, prompt};
 use super::layer::PANEL_ID;
 use super::sheet::{MenuSession, SheetInput};
 use sill_ui_kit::hooks::use_settings;
-use sill_ui_kit::root::SurfaceRoot;
+use sill_ui_kit::root::{ClickAway, SurfaceRoot};
 use sill_ui_kit::shell_style::material;
-
-/// The power menu's stylesheet (lint-clean under `Profile::Strict`,
-/// `crates/sill/tests/lint.rs`).
-pub const POWER_MENU_CSS: &str = include_str!("style.css");
 
 /// The panel on `output`.
 pub(super) fn power_menu(output: OutputInfo) -> Element {
@@ -35,7 +31,6 @@ pub(super) fn power_menu(output: OutputInfo) -> Element {
             output: output.clone(),
             material: material(file.power_menu.material),
             extent: RootExtent::Viewport,
-            style { {POWER_MENU_CSS} }
             if let Some(menu) = menu {
                 {alert(&ctx, menu, &offers)}
             }
@@ -51,10 +46,7 @@ fn alert(ctx: &MenuCtx, menu: MenuSession, offers: &Session) -> Element {
         Fragment { key: "{menu.serial.0}",
             // A sheet dims nothing and catches no click (macOS; design/30): a press outside it is
             // this surface's own, so it closes the menu as the scrim did.
-            div {
-                class: "sill-power-menu-catcher",
-                onpointerdown: move |_| catch.input(SheetInput::Dismissed),
-            }
+            ClickAway { onpress: move |()| catch.input(SheetInput::Dismissed) }
             Alert {
                 title: prompt(menu.default),
                 message: Some(TextLine::from(consequence(menu.default))),
