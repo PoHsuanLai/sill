@@ -9,7 +9,6 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
-ds-style = { workspace = true }
 sill-model = { workspace = true }
 sill-launcher = { workspace = true }
 tokio = { workspace = true }
