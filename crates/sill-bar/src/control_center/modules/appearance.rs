@@ -1,10 +1,13 @@
-//! The Appearance module: quire's `AppearancePicker` (the one picker, plan) in its compact
-//! layout, which fits the module's width, its value from
+//! The Appearance module: the theme as a quire `SegmentedControl` and the accent as a `RadioGroup`
+//! of colour circles (`Arrangement::Swatches`), its value from
 //! `use_appearance`, a change written to `quire/appearance.toml` through `ds-settings` (the file
 //! quire's own settings watch then publishes to every surface).
 
 use dioxus::prelude::*;
-use ds::{Appearance, AppearancePicker, PickerLayout};
+use ds::{
+    Accent, Appearance, Arrangement, Choice, RadioGroup, SectionHeader, SegmentedControl, Theme,
+    Tracking, Word,
+};
 use ds_settings::{AppName, AppearanceFile, ConfigRoot, Store};
 use ds_shell::ModulePanel;
 
@@ -16,13 +19,30 @@ use sill_ui_kit::hooks::use_appearance;
 #[component]
 pub fn AppearanceModule() -> Element {
     let environment = use_appearance()();
+    let value = environment.settings.appearance.appearance();
+    let system = environment.system.scheme;
+    let hint = match (value.theme, system) {
+        (Theme::System, scheme) => Some(scheme.label().to_owned()),
+        (Theme::Light | Theme::Dark, _) => None,
+    };
     rsx! {
         ModulePanel { plate: use_plate(),
-            AppearancePicker {
-                value: environment.settings.appearance.appearance(),
-                system: environment.system,
-                layout: PickerLayout::Compact,
-                onchange: move |next: Appearance| save(next),
+            div { class: "sill-cc-appearance",
+                SectionHeader { title: "Theme", value: hint }
+                SegmentedControl::<Theme> {
+                    label: "Theme",
+                    choices: Choice::pairs(Theme::ALL.iter().map(|theme| (*theme, theme.label()))),
+                    tracking: Tracking::SelectOne(value.theme),
+                    onchange: move |theme| save(Appearance { theme, ..value }),
+                }
+                SectionHeader { title: "Accent" }
+                RadioGroup::<Accent> {
+                    label: "Accent",
+                    arrangement: Arrangement::Swatches,
+                    choices: Accent::ALL.iter().map(|accent| Choice::accent(*accent)).collect(),
+                    value: value.accent,
+                    onchange: move |accent| save(Appearance { accent, ..value }),
+                }
             }
         }
     }

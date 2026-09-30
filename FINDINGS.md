@@ -433,9 +433,6 @@ A settled item is deleted, not marked closed.
   opacity; sill passes `100 - idle.dim_level_pct`.
 - **Q570** The inline alert's scrim ignores the container's radius and its panel lets the rows
   show through.
-- **Q6000** The Appearance module still draws with `ds::AppearancePicker` (a Part 4 name): quire's
-  `RadioGroup` cannot draw an accent swatch, so the replacement waits on quire's decision (quire
-  FINDINGS "Part 4 names still alive").
 - **Q6001** The Up Next and Now Playing widgets style their inner words in sill's own CSS (a
   weekday in the accent, a 24 px light day number, a faint "No upcoming events"): `Label` has no
   accent role and no display-light style, so those rules stay until it has.

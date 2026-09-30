@@ -18,6 +18,9 @@
 .sill-cc-media-track{ display:block; flex:1 1 0; min-width:0; }
 .sill-cc-media-buttons{ display:flex; align-items:center; gap:var(--s-2); }
 
+/* Appearance: the theme row and the accent row, one under the other. */
+.sill-cc-appearance{ display:grid; gap:var(--s-14); }
+
 /* Battery: one ring per device, its lines, the power mode. */
 .sill-cc-battery{ display:flex; flex-direction:column; gap:var(--s-6); }
 .sill-cc-batteries{ display:flex; flex-wrap:wrap; gap:var(--s-12); }

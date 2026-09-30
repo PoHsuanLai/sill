@@ -1,6 +1,6 @@
 //! One file per control center module (design/13 §13.3.7's list), each a component over its
 //! hook, drawn only with quire components (`Toggle`, `Slider`, `SegmentedControl`,
-//! `AppearancePicker`, `SectionHeader`, `Button{Mini}`, `Button`, `Glyph`, `IconView`), and
+//! `SegmentedControl`, `RadioGroup`, `SectionHeader`, `Button{Mini}`, `Button`, `Glyph`, `IconView`), and
 //! [`Module`], which picks one by `control_center.modules`' word.
 
 mod cc_module;

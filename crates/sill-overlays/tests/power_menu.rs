@@ -393,7 +393,7 @@ fn a_press_outside_the_sheet_leaves_and_closes() {
     running.harness.send(Input::click(ds::Point {
         x: ds::Px(20.0),
         y: ds::Px(780.0),
-    });
+    }));
     running.harness.advance(Duration::from_millis(20));
     assert_eq!(look(&running.harness).as_deref(), Some("leaving"));
     let link = running.link.clone();
@@ -414,8 +414,9 @@ fn a_click_runs_that_button() {
         running.harness.text_of(&nth_button(2)).as_deref(),
         Some("Log Out")
     );
-    running
-        .harness.send(Input::click(log_out.expect("the Log Out button is laid out"))); // test-only
+    running.harness.send(Input::click(
+        log_out.expect("the Log Out button is laid out"),
+    )); // test-only
     let link = running.link.clone();
     settle(&mut running.harness, |_| !is_open(&link));
     assert_eq!(ran(&mut running), vec![SessionAction::LogOut]);
@@ -430,7 +431,8 @@ fn cancel_leaves_and_closes_running_nothing() {
     );
     let cancel = running.harness.centre(&nth_button(5));
     running
-        .harness.send(Input::click(cancel.expect("the Cancel button is laid out"))); // test-only
+        .harness
+        .send(Input::click(cancel.expect("the Cancel button is laid out"))); // test-only
     let link = running.link.clone();
     settle(&mut running.harness, |_| !is_open(&link));
     assert!(ran(&mut running).is_empty());

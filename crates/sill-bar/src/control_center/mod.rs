@@ -5,7 +5,7 @@
 //! `output_h - bar_h - control_center.bottom_margin_px` and scrolling past that.
 //!
 //! Modules, in `control_center.modules` order: Wi-Fi, Bluetooth, Focus, Display (brightness),
-//! Sound (volume and the output's name), Now Playing, Appearance (quire's `AppearancePicker`),
+//! Sound (volume and the output's name), Now Playing, Appearance (a theme control and accent circles),
 //! Battery (level, time left, and the power profile's `SegmentedControl`, which has no module
 //! of its own in design/22's list). The Wi-Fi and Bluetooth tiles'
 //! chevrons open their detail pages in place, sliding (`slide-l` in, `slide-r` back; [`page`]).
