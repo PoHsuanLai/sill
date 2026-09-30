@@ -12,7 +12,7 @@
 //! only while it moves, and an exit's end is quire's card's to call.
 
 use dioxus::prelude::*;
-use ds::{Material, Px, RootChrome, RootExtent, WakeStamp, use_rect};
+use ds::{Material, Px, RootChrome, RootExtent, Shown, WakeStamp, use_rect};
 use ds_shell::{WidgetMetrics, WidgetSlotGuide};
 use shell_host::OutputInfo;
 use sill_settings::WidgetKind;
@@ -30,7 +30,7 @@ use sill_ui_kit::links::PlacementFile;
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::widgets::grid::OutputKey;
 use sill_ui_kit::widgets::{
-    CardPresence, WidgetHost, desktop_size, provide_registry, provide_widget_wake, widgets_css,
+    WidgetHost, desktop_size, provide_registry, provide_widget_wake, widgets_css,
 };
 
 /// The layer's own stylesheet (the grid), injected beside `widgets_css`.
@@ -148,17 +148,17 @@ fn Grid(
                     WidgetSlotGuide { size, host: WidgetHost::Desktop }
                 }
             }
-            for Draw { kind, target, pose, glide, presence } in places {
+            for Draw { kind, target, pose, glide, shown } in places {
                 Placed {
                     key: "{kind:?}",
                     kind,
                     target,
                     pose,
                     glide,
-                    presence,
-                    on_gone: match presence {
-                        CardPresence::Leaving => Some(cards.on_gone(kind)),
-                        CardPresence::Placed => None,
+                    shown,
+                    on_hidden: match shown {
+                        Shown::Hidden => Some(cards.on_gone(kind)),
+                        Shown::Visible => None,
                     },
                 }
             }

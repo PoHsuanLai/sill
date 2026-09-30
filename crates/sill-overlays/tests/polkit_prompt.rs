@@ -186,7 +186,7 @@ fn checking_closes_the_field_and_a_wrong_try_shakes() {
         Some("wrong")
     );
     assert_eq!(
-        running.harness.count(".ds-polkit-field"),
+        running.harness.count(".ds-polkit .ds-password-field"),
         1,
         "the field stays"
     );

@@ -3,8 +3,9 @@
 //! through the root context's `sill_ui_kit::links::FocusLink`.
 
 use dioxus::prelude::*;
+use ds::Check;
 use ds::{Icon, TextLine};
-use ds_shell::{ModuleState, ModuleTile};
+use ds_shell::ModuleTile;
 use sill_settings::FocusMode;
 use sill_ui_kit::links::FocusLink;
 
@@ -23,7 +24,7 @@ pub fn FocusModule() -> Element {
             glyph: Icon::Moon,
             title: "Focus",
             status: Some(TextLine::from(focus_status(mode))),
-            state: focus_state(mode),
+            value: focus_state(mode),
             onclick: move |_| {
                 // Gone: the daemon's focus task has stopped; the tile keeps what it last read.
                 let _delivery = link.set(mode_of(flipped(focus_state(mode))));
@@ -32,17 +33,17 @@ pub fn FocusModule() -> Element {
     }
 }
 
-pub(crate) fn focus_state(mode: FocusMode) -> ModuleState {
+pub(crate) fn focus_state(mode: FocusMode) -> Check {
     match mode {
-        FocusMode::DoNotDisturb => ModuleState::On,
-        FocusMode::Off => ModuleState::Off,
+        FocusMode::DoNotDisturb => Check::On,
+        FocusMode::Off => Check::Off,
     }
 }
 
-pub(crate) fn mode_of(state: ModuleState) -> FocusMode {
+pub(crate) fn mode_of(state: Check) -> FocusMode {
     match state {
-        ModuleState::On | ModuleState::Busy => FocusMode::DoNotDisturb,
-        ModuleState::Off => FocusMode::Off,
+        Check::On | Check::Mixed => FocusMode::DoNotDisturb,
+        Check::Off => FocusMode::Off,
     }
 }
 

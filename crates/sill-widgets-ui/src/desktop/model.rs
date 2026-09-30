@@ -1,9 +1,9 @@
 //! What the desktop layer computes from its places: the last layout, the last drop, each card's
 //! box and paint order, the places a layout or a drop keeps, and the regions the frames take.
 
+use ds::Shown;
 use ds::detail::Touch;
 use ds::motion::Release;
-use ds_shell::CardPresence;
 use shell_host::{BlurSpec, ElementId, ElementRegion, RegionSpec};
 use sill_settings::WidgetKind;
 
@@ -62,7 +62,7 @@ pub(super) struct Draw {
     pub(super) target: PlaceBox,
     pub(super) pose: Pose,
     pub(super) glide: Glide,
-    pub(super) presence: CardPresence,
+    pub(super) shown: Shown,
 }
 
 /// What each widget draws, in paint order: the cards leaving first, under the rest, then the
@@ -81,7 +81,7 @@ pub(super) fn draw_order(
         target: l.target,
         pose: Pose::Resting,
         glide: Glide::Aside,
-        presence: CardPresence::Leaving,
+        shown: Shown::Hidden,
     });
     let mut places: Vec<Draw> = boxes(on_screen, metrics)
         .into_iter()
@@ -103,7 +103,7 @@ pub(super) fn draw_order(
                 target,
                 pose,
                 glide,
-                presence: CardPresence::Placed,
+                shown: Shown::Visible,
             }
         })
         .collect();

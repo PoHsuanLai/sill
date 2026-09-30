@@ -7,7 +7,7 @@
 //! surface's input and blur region.
 
 use dioxus::prelude::*;
-use ds::{Icon, Px, Shown, SwipeMetrics};
+use ds::{Common, Icon, Px, Shown, SwipeMetrics};
 use ds_shell::{DragStart, Hover, NotificationSwipe, ShotThumbnail, ThumbAction};
 use sill_model::screenshots::ShotId;
 
@@ -47,7 +47,7 @@ pub(super) fn ThumbCard(
                 Hover::Over => ThumbIn::PointerEnter,
                 Hover::Away => ThumbIn::PointerLeave,
             }),
-            id: THUMB_ID.to_owned(),
+            common: Common { id: Some(THUMB_ID.to_owned()), ..Common::default() },
             swipe: NotificationSwipe::Dismiss(EventHandler::new(move |()| thumb.input(ThumbIn::SwipedAway))),
             swipe_metrics: metrics,
         }

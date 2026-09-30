@@ -4,8 +4,9 @@
 //! `use_service::<NetworkService>`; sends `WifiCommand::Radio`.
 
 use dioxus::prelude::*;
+use ds::Check;
 use ds::{Availability, StatusState, TextLine, WifiState};
-use ds_shell::{Chevron, ModuleState, ModuleTile};
+use ds_shell::ModuleTile;
 use sill_model::network::Network;
 use sill_model::units::Presence;
 use sill_model::wifi::{Radio, Wifi, WifiCommand};
@@ -35,8 +36,7 @@ pub fn WifiModule(on_detail: EventHandler<Detail>) -> Element {
             glyph: StatusState::Wifi(wifi_tile_state(&wifi, &network)),
             title: "Wi-Fi",
             status: Some(TextLine::from(wifi_status(&wifi, &network))),
-            state,
-            chevron: Chevron::Detail,
+            value: state,
             availability: radio_availability(&wifi),
             onclick: move |_| {
                 // A stopped service drops it: the tile shows the radio it last published.
@@ -48,18 +48,18 @@ pub fn WifiModule(on_detail: EventHandler<Detail>) -> Element {
 }
 
 /// The tile's switch for the radio (`Blocked` shows off, and the switch is disabled).
-pub(crate) fn radio_state(radio: Radio) -> ModuleState {
+pub(crate) fn radio_state(radio: Radio) -> Check {
     match radio {
-        Radio::On => ModuleState::On,
-        Radio::Off | Radio::Blocked => ModuleState::Off,
+        Radio::On => Check::On,
+        Radio::Off | Radio::Blocked => Check::Off,
     }
 }
 
 /// The radio a switch asks for.
-pub(crate) fn radio_of(state: ModuleState) -> Radio {
+pub(crate) fn radio_of(state: Check) -> Radio {
     match state {
-        ModuleState::On | ModuleState::Busy => Radio::On,
-        ModuleState::Off => Radio::Off,
+        Check::On | Check::Mixed => Radio::On,
+        Check::Off => Radio::Off,
     }
 }
 
@@ -129,9 +129,9 @@ impl CcModule for WifiCc {
 #[cfg(test)]
 mod tests {
     use super::{radio_availability, radio_of, radio_state, wifi_tile_state};
+    use ds::Check;
     use ds::detail::EventStamp;
     use ds::{Availability, WifiBars, WifiReach, WifiState};
-    use ds_shell::ModuleState;
     use sill_model::network::{Connectivity, Link, Network};
     use sill_model::wifi::{Radio, Wifi};
     use sill_model::{
@@ -165,25 +165,25 @@ mod tests {
             (
                 Presence::Present,
                 Radio::On,
-                ModuleState::On,
+                Check::On,
                 Availability::Enabled,
             ),
             (
                 Presence::Present,
                 Radio::Off,
-                ModuleState::Off,
+                Check::Off,
                 Availability::Enabled,
             ),
             (
                 Presence::Present,
                 Radio::Blocked,
-                ModuleState::Off,
+                Check::Off,
                 Availability::Disabled,
             ),
             (
                 Presence::Absent,
                 Radio::Off,
-                ModuleState::Off,
+                Check::Off,
                 Availability::Disabled,
             ),
         ];
@@ -192,7 +192,7 @@ mod tests {
             assert_eq!(radio_state(radio), state, "{radio:?}");
             assert_eq!(radio_availability(&w), availability, "{device:?} {radio:?}");
         }
-        assert_eq!(radio_of(ModuleState::On), Radio::On);
+        assert_eq!(radio_of(Check::On), Radio::On);
     }
 
     #[test]

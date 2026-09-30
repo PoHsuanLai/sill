@@ -8,8 +8,8 @@ use std::time::SystemTime;
 
 use dioxus::prelude::*;
 use ds::{
-    ExternalIcon, Icon, IconSize, IconSource, IconUrl, Material, RootChrome, Scheme, Surface,
-    TextLine,
+    Common, ExternalIcon, Icon, IconSize, IconSource, IconUrl, Material, RootChrome, Scheme,
+    Surface, TextLine,
 };
 use ds_shell::{AppMark, Hover, NotificationCard, NotificationSwipe};
 use sill_model::apps::AppIcon;
@@ -72,7 +72,7 @@ pub(super) fn card(
                 on_hover: wiring.on_hover,
                 material,
                 icon_size: side,
-                id: wiring.id,
+                common: Common { id: wiring.id, ..Common::default() },
                 swipe: wiring.swipe,
                 swipe_metrics,
             }

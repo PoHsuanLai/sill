@@ -99,7 +99,7 @@ fn a_player_without_a_length_shows_no_position() {
 
 // ---- Battery --------------------------------------------------------------------------------
 
-const RING: &str = ".sill-cc-batteries > .ds-device-battery";
+const RING: &str = ".sill-cc-batteries > .ds-battery-ring";
 
 #[test]
 fn each_devices_ring_stands_at_its_level_when_the_center_opens() {

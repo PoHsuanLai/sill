@@ -37,8 +37,8 @@ fn the_bar_shows_what_the_services_hold() {
         ("each a quire pill", "class=\"ds-ws-pill\"", 3),
         ("one current pill", "aria-current=\"true\"", 1),
         (
-            "the app name and the clock as menu-bar items",
-            "class=\"ds-bar-item\"",
+            "the app name and the clock as menu-bar title items",
+            "data-image=\"leading\"",
             2,
         ),
         ("the app name bold", "data-emphasis=\"strong\"", 1),
@@ -54,7 +54,7 @@ fn the_bar_shows_what_the_services_hold() {
         ("on the frame ground", "data-ground=\"frame\"", 1),
         ("no tint layer of the bar's own", "sill-bar-tint", 0),
         // Sound, Wi-Fi and Battery (`control_center.menu_bar_*`), then the control center.
-        ("four status items", "data-variant=\"status-item\"", 4),
+        ("four status items", "data-image=\"only\"", 4),
         (
             "the control center item",
             "aria-label=\"Control Center\"",

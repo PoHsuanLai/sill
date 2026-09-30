@@ -8,8 +8,7 @@
 //! `WifiCommand::Scan` when it opens. "Wi-Fi Settings…" at the foot.
 
 use dioxus::prelude::*;
-use ds::{Availability, Icon};
-use ds_shell::ModuleState;
+use ds::{Availability, Check, Icon};
 use sill_model::attempt::Attempts;
 use sill_model::units::Presence;
 use sill_model::wifi::{
@@ -68,7 +67,7 @@ pub(crate) fn WifiPane(back: Option<EventHandler<()>>) -> Element {
                 back,
                 state: radio_state(wifi.radio),
                 availability: radio_availability(&wifi),
-                on_toggle: move |to: ModuleState| {
+                on_toggle: move |to: Check| {
                     let _gone = toggle.send(WifiCommand::Radio(radio_of(to)));
                 },
             }

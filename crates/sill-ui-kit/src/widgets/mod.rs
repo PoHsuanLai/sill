@@ -30,7 +30,7 @@ mod tests;
 
 pub use card::{Card, Feed, OnProvider, Widget, WidgetProvider, card, with_provider};
 pub use ds_shell::widget::cells;
-pub use ds_shell::{CardPresence, Lift, WidgetHost, WidgetSize};
+pub use ds_shell::{Lift, WidgetHost, WidgetSize};
 pub use place::{Place, desktop_size, size_of};
 pub use registry::{kind_id, kind_of, provide_registry, registry, widget_element_id, widgets_css};
 pub use sill_settings::WidgetKind;

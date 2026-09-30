@@ -1,9 +1,9 @@
 //! A desktop widget taken away plays its exit: when a kind leaves `widgets.desktop_widgets` (an
 //! Edit Widgets Remove), the layer keeps drawing its card at the box it last stood in,
-//! `CardPresence::Leaving`, until quire's card calls `on_gone` at `settle(WidgetOut)`, and then
+//! `Shown::Hidden`, until quire's card calls `on_hidden` when its exit has settled, and then
 //! drops it. A leaving card is out of the grid's placements, so it is out of the input and blur
 //! regions and the drag from the moment it starts leaving. A kind added back while it leaves is
-//! placed again, and quire's `Placed` takes the exit back. Pure but for [`use_leaving`].
+//! placed again, and `Shown::Visible` takes the exit back. Pure but for [`use_leaving`].
 
 use dioxus::prelude::*;
 use sill_settings::WidgetKind;

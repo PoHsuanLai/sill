@@ -5,8 +5,8 @@
 //! the host's wake); sill only reads the services. Nothing to show (a desktop with no battery
 //! and no devices): `Absent("No batteries")`.
 
-use ds::Fraction;
-use ds_shell::{BatteryCell, BatteryEntry, Device, RingMark};
+use ds::{BatteryPower, BatteryState, Fraction, LowAt};
+use ds_shell::{BatteryCell, BatteryEntry, Device};
 use sill_model::battery::{Battery, Charge};
 use sill_model::bluetooth::{Bluetooth, BtBattery, BtConnection, BtKind};
 use sill_model::units::{Percent, Presence};
@@ -95,17 +95,20 @@ pub fn cell_of(row: &BatteryRow) -> BatteryCell {
         BatteryOwner::ThisMachine => Device::Laptop,
         BatteryOwner::Device(kind) => device_of(kind),
     };
-    let mark = match row.charge {
-        Charge::Charging => RingMark::Charging,
+    let power = match row.charge {
+        Charge::Charging => BatteryPower::Charging,
         Charge::Unknown | Charge::Discharging | Charge::Empty | Charge::Full | Charge::Idle => {
-            RingMark::Plain
+            BatteryPower::Battery
         }
     };
     BatteryCell {
         name: row.name.clone(),
         device,
-        level: Fraction(row.level.0.min(100) * 10),
-        mark,
+        state: BatteryState {
+            level: Fraction(row.level.0.min(100) * 10),
+            power,
+            low_at: LowAt::default(),
+        },
     }
 }
 

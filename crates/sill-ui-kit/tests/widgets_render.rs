@@ -11,7 +11,6 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Ds, Material, RootExtent};
-use ds_harness::harness::settle_until;
 use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
 use sill_model::now_playing::{MediaCommand, MediaVerb};
 use sill_settings::{ShellFile, WidgetKind};
@@ -156,11 +155,7 @@ fn on_the_desktop_the_frame_is_a_surface_in_the_widget_material() {
 #[test]
 fn battery_lists_the_machine_then_connected_devices_with_a_level() {
     let mut running = start(WidgetKind::Battery, WidgetHost::Tile, ShellFile::default());
-    // quire's ring and figure sweep from empty on mount (design/23-WIDGETS.md section 4.1); let
-    // that first fill settle before reading the figures' final count.
-    settle_until(&mut running.harness, |h| {
-        h.count("#widget-battery .ds-battery[*|data-pulse=a]") == 0
-    });
+    running.harness.advance(Duration::from_millis(50));
     let h = &running.harness;
     // The fake machine is at 64%; Buds are connected at 80%; the keyboard is not connected. The
     // Medium row has four fixed places: the two batteries from the left, then two bare
@@ -178,7 +173,7 @@ fn battery_lists_the_machine_then_connected_devices_with_a_level() {
     );
     let cell = |n: usize, part: &str| {
         h.attr(
-            &format!("#widget-battery .ds-batteries-cell:nth-child({n}) .ds-battery"),
+            &format!("#widget-battery .ds-batteries-cell:nth-child({n}) .ds-battery .ds-progress"),
             part,
         )
     };
@@ -188,7 +183,7 @@ fn battery_lists_the_machine_then_connected_devices_with_a_level() {
     );
     let figure = |n: usize| {
         h.text_of(&format!(
-            "#widget-battery .ds-batteries-cell:nth-child({n}) .ds-battery-figure"
+            "#widget-battery .ds-batteries-cell:nth-child({n}) .ds-batteries-figure"
         ))
     };
     assert_eq!(
@@ -348,7 +343,7 @@ fn on_the_desktop_the_world_clock_draws_dials_tinted_for_day_or_night() {
 #[test]
 fn a_battery_level_that_changes_moves_the_ring_then_it_rests() {
     let mut running = start(WidgetKind::Battery, WidgetHost::Tile, ShellFile::default());
-    let arc = "#widget-battery .ds-battery-arc path";
+    let arc = "#widget-battery .ds-battery .ds-progress-fill path";
     running.harness.advance(Duration::from_millis(50));
     let before = running.harness.attr(arc, "d");
     assert!(before.is_some(), "the ring is drawn from the first frame");

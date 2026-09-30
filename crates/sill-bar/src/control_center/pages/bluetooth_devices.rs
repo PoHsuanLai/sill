@@ -8,8 +8,7 @@
 //! ("Bluetooth Settings…" at the foot).
 
 use dioxus::prelude::*;
-use ds::{Availability, Icon};
-use ds_shell::ModuleState;
+use ds::{Availability, Check, Icon};
 use sill_model::attempt::Attempts;
 use sill_model::bluetooth::{
     Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,
@@ -49,7 +48,7 @@ pub(crate) fn BluetoothPane(back: Option<EventHandler<()>>) -> Element {
                 state: power_state(bluetooth.power),
                 availability: adapter_availability(&bluetooth),
                 // Off asks first (`bluetooth_ask`); the switch shows the power last published.
-                on_toggle: move |to: ModuleState| request.call(power_of(to)),
+                on_toggle: move |to: Check| request.call(power_of(to)),
             }
             if let Some(text) = empty {
                 EmptyLine { text }

@@ -11,7 +11,7 @@
 //! wrapper that hears the keys' modifiers, since quire's sheet floats in the root's overlay host.
 
 use dioxus::prelude::*;
-use ds::{Material, RootExtent, TextLine};
+use ds::{Common, Material, RootExtent, TextLine};
 use ds_shell::{CapsLock, PolkitPrompt};
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_model::auth::Secret;
@@ -75,7 +75,7 @@ fn prompt(
             caps,
             // The sheet carries the blur region's id, so `layer.rs`'s
             // `RegionSpec::Element(PANEL_ID)` resolves.
-            panel_id: Some(PANEL_ID.to_owned()),
+            common: Common { id: Some(PANEL_ID.to_owned()), ..Common::default() },
             oninput: move |_: String| {},
             onsubmit: move |text: String| {
                 let secret = Secret::new(text);

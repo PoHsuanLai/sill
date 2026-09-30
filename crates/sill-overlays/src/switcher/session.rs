@@ -3,7 +3,7 @@
 //! leaving after a Q. Pure: `io.rs` holds it and carries out what it says.
 
 use super::apps::{AppShown, SwitcherApp, activate, hide, quit};
-use ds_shell::TilePresence;
+use ds::Shown;
 use sill_launcher::AppId;
 use sill_model::cosmic_wl::WlCommand;
 
@@ -64,12 +64,13 @@ impl Session {
         self.apps.iter().map(|app| app.app.clone()).collect()
     }
 
-    /// Whether `app`'s tile is folding.
-    pub fn presence(&self, app: &AppId) -> TilePresence {
+    /// Whether `app`'s tile is listed: `Hidden` while it folds (quire's `AppSwitcher` keeps a tile
+    /// it is no longer given until its exit has settled).
+    pub fn shown(&self, app: &AppId) -> Shown {
         if self.leaving.contains(app) {
-            TilePresence::Leaving
+            Shown::Hidden
         } else {
-            TilePresence::Present
+            Shown::Visible
         }
     }
 
@@ -114,7 +115,7 @@ impl Session {
 #[cfg(test)]
 mod tests {
     use crate::switcher::apps::{AppShown, SwitcherApp};
-    use ds_shell::TilePresence;
+    use ds::Shown;
     use sill_launcher::{AppId, WindowKey};
     use sill_model::cosmic_wl::WlCommand;
 
@@ -184,8 +185,8 @@ mod tests {
     #[test]
     fn a_quit_tile_folds_then_goes() {
         let session = Session::made_up(AskSerial(1), vec![id("a"), id("b")]).leave(&id("b"));
-        assert_eq!(session.presence(&id("b")), TilePresence::Leaving);
-        assert_eq!(session.presence(&id("a")), TilePresence::Present);
+        assert_eq!(session.shown(&id("b")), Shown::Hidden);
+        assert_eq!(session.shown(&id("a")), Shown::Visible);
         let session = session.gone(&id("b"));
         assert_eq!(session.ids(), vec![id("a")]);
         assert_eq!(session.leaving, Vec::<AppId>::new());

@@ -4,7 +4,7 @@
 //! hold machine (`step.rs`) only decides when the card is shown.
 
 use dioxus::prelude::*;
-use ds::{LevelStyle, Material, Px, RootChrome, Shown};
+use ds::{Common, LevelStyle, Material, Px, RootChrome, Shown};
 use ds_shell::{Osd, OsdMetrics, OsdPosition};
 use shell_host::{OutputInfo, Visibility};
 use sill_model::ids::OutputName;
@@ -64,7 +64,7 @@ pub(super) fn osd(output: OutputInfo) -> Element {
                     level: Some(card_level(kind, level)),
                     position: position_of(file.osd.position),
                     style: LOOK,
-                    id: Some(CARD_ID.to_owned()),
+                    common: Common { id: Some(CARD_ID.to_owned()), ..Common::default() },
                     on_hidden: drawn.on_hidden,
                 }
             }

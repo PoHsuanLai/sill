@@ -16,8 +16,9 @@
 //! prop at all: `TrayButton` reads it itself instead of receiving it).
 
 use dioxus::prelude::*;
-use ds::{Bezel, Button, ImagePosition};
+use ds::ImagePosition;
 use ds::{Check as DsCheck, ChromaLimit, Common, IconSource, MenuItem, Press};
+use ds_shell::MenuBarItem;
 use shell_host::{HostRoot, OutputInfo, PopupPlacement, Rect, Size, SurfaceHandle, use_surface};
 use sill_model::tray::{
     Check as TrayCheck, TrayCommand, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind,
@@ -146,9 +147,9 @@ fn TrayButtonView(
         // an element carrying it (design/11 §11.3.7), so a scroll over a tray icon still reaches
         // the item (TrayCommand::Scroll).
         span { "data-wheel": "capture", onwheel: move |event| onwheel.call(event),
-            Button {
+            MenuBarItem {
                 common: Common { id: Some(popup_element_id(index)), ..Common::default() },
-                bezel: Bezel::StatusItem, image: ImagePosition::Only,
+                image: ImagePosition::Only,
                 icon,
                 label: title,
                 title: Some(tooltip),

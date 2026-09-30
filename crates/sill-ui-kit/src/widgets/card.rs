@@ -2,7 +2,8 @@
 //! provider's feed on quire's card, and the one match on the kind ([`with_provider`]).
 
 use dioxus::prelude::*;
-use ds_shell::{CardPresence, Lift, Timeline, WidgetCard, WidgetHost, WidgetSize};
+use ds::{Common, Shown};
+use ds_shell::{Lift, Timeline, WidgetCard, WidgetHost, WidgetSize};
 use sill_settings::WidgetKind;
 
 use super::{
@@ -55,11 +56,11 @@ pub fn Card<P: WidgetProvider>(provider: P, place: Place) -> Element {
             size: place.size,
             host: place.host,
             wake: use_widget_wake(),
-            id: widget_element_id(P::KIND),
+            common: Common { id: Some(widget_element_id(P::KIND)), ..Common::default() },
             onintent,
             lift: place.lift,
-            presence: place.presence,
-            on_gone: place.on_gone,
+            shown: place.shown,
+            on_hidden: place.on_hidden,
         }
     }
 }
@@ -97,21 +98,21 @@ pub fn card(kind: WidgetKind, place: Place) -> Element {
 
 /// One widget of `kind` in `host` at its one size ([`size_of`]), on quire's card, `lift`ed while
 /// the desktop drags it: the kind's provider feeds the card. A card the desktop took away is
-/// `Leaving`: it plays quire's exit and calls `on_gone` once it has.
+/// `Hidden`: it plays quire's exit and calls `on_hidden` once it has.
 #[component]
 pub fn Widget(
     kind: WidgetKind,
     host: WidgetHost,
     #[props(default)] lift: Lift,
-    #[props(default)] presence: CardPresence,
-    #[props(default)] on_gone: Option<EventHandler<()>>,
+    #[props(default = Shown::Visible)] shown: Shown,
+    #[props(default)] on_hidden: Option<EventHandler<()>>,
 ) -> Element {
     let place = Place {
         host,
         size: super::size_of(kind, host),
         lift,
-        presence,
-        on_gone,
+        shown,
+        on_hidden,
     };
     card(kind, place)
 }

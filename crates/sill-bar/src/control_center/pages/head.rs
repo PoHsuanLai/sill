@@ -4,16 +4,15 @@
 use dioxus::prelude::*;
 use ds::{Availability, Check, Icon, Toggle};
 use ds::{Bezel, Button, ControlSize, ImagePosition};
-use ds_shell::ModuleState;
 
 /// `title` with its switch at `state`; a back button when `back` is given.
 #[component]
 pub(crate) fn DetailHead(
     title: String,
     back: Option<EventHandler<()>>,
-    state: ModuleState,
+    state: Check,
     availability: Availability,
-    on_toggle: EventHandler<ModuleState>,
+    on_toggle: EventHandler<Check>,
 ) -> Element {
     let back = back.map(|back| {
         rsx! {
@@ -26,8 +25,8 @@ pub(crate) fn DetailHead(
         }
     });
     let value = match state {
-        ModuleState::On | ModuleState::Busy => Check::On,
-        ModuleState::Off => Check::Off,
+        Check::On | Check::Mixed => Check::On,
+        Check::Off => Check::Off,
     };
     rsx! {
         div { class: "sill-cc-detail-head",
@@ -38,8 +37,8 @@ pub(crate) fn DetailHead(
                 value,
                 availability,
                 onchange: move |to: Check| on_toggle.call(match to {
-                    Check::On => ModuleState::On,
-                    Check::Off | Check::Mixed => ModuleState::Off,
+                    Check::On => Check::On,
+                    Check::Off | Check::Mixed => Check::Off,
                 }),
             }
         }

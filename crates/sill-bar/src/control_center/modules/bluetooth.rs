@@ -4,8 +4,9 @@
 //! `BluetoothCommand::Power`, asking first before off ([`super::bluetooth_ask`]).
 
 use dioxus::prelude::*;
+use ds::Check;
 use ds::{Availability, StatusState, TextLine};
-use ds_shell::{Chevron, ModuleState, ModuleTile};
+use ds_shell::ModuleTile;
 use sill_model::bluetooth::{Bluetooth, BtPower};
 use sill_model::units::Presence;
 
@@ -32,8 +33,7 @@ pub fn BluetoothModule(on_detail: EventHandler<Detail>) -> Element {
             glyph: StatusState::Bluetooth(bluetooth_glyph_state(&bluetooth)),
             title: "Bluetooth",
             status: Some(TextLine::from(bluetooth_tile_status(&bluetooth))),
-            state,
-            chevron: Chevron::Detail,
+            value: state,
             availability: adapter_availability(&bluetooth),
             onclick: move |_| request.call(power_of(flipped(state))),
             on_detail: move |_| on_detail.call(Detail::Bluetooth),
@@ -41,17 +41,17 @@ pub fn BluetoothModule(on_detail: EventHandler<Detail>) -> Element {
     }
 }
 
-pub(crate) fn power_state(power: BtPower) -> ModuleState {
+pub(crate) fn power_state(power: BtPower) -> Check {
     match power {
-        BtPower::On => ModuleState::On,
-        BtPower::Off => ModuleState::Off,
+        BtPower::On => Check::On,
+        BtPower::Off => Check::Off,
     }
 }
 
-pub(crate) fn power_of(state: ModuleState) -> BtPower {
+pub(crate) fn power_of(state: Check) -> BtPower {
     match state {
-        ModuleState::On | ModuleState::Busy => BtPower::On,
-        ModuleState::Off => BtPower::Off,
+        Check::On | Check::Mixed => BtPower::On,
+        Check::Off => BtPower::Off,
     }
 }
 
@@ -112,7 +112,7 @@ impl CcModule for BluetoothCc {
 mod tests {
     use super::{adapter_availability, power_of, power_state};
     use ds::Availability;
-    use ds_shell::ModuleState;
+    use ds::Check;
     use sill_model::bluetooth::{Bluetooth, BtPower};
     use sill_model::units::Presence;
 
@@ -129,7 +129,7 @@ mod tests {
             Availability::Disabled
         );
         assert_eq!(adapter_availability(&on), Availability::Enabled);
-        assert_eq!(power_state(BtPower::On), ModuleState::On);
-        assert_eq!(power_of(ModuleState::Off), BtPower::Off);
+        assert_eq!(power_state(BtPower::On), Check::On);
+        assert_eq!(power_of(Check::Off), BtPower::Off);
     }
 }

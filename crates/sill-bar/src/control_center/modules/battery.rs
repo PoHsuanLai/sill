@@ -1,5 +1,5 @@
 //! The Battery module: the bar item's battery glyph and level in its header, one quire
-//! `DeviceBattery` ring per device (this computer, then each connected Bluetooth device that
+//! `BatteryRing` per device (this computer, then each connected Bluetooth device that
 //! reports a battery; design/26 5.2.9 G27), the time left, then the power profile's
 //! [`super::PowerProfileControl`]. The center was just opened, so every ring sweeps in from empty
 //! with its percentage counting in step. Without a battery or a device's (a desktop) only the
@@ -8,8 +8,8 @@
 //! `bar.battery_low_percent`.
 
 use dioxus::prelude::*;
-use ds::{BatteryState, Fraction, IconSource, StatusState, TextLine};
-use ds_shell::{Device, DeviceBattery, DeviceGlyph, ModulePanel, RingMark};
+use ds::{BatteryPower, BatteryState, Fraction, IconSource, LowAt, StatusState, TextLine};
+use ds_shell::{BatteryRing, Device, DeviceGlyph, ModulePanel, Readout};
 use sill_model::battery::{Battery, Charge};
 use sill_model::bluetooth::{Bluetooth, BtBattery, BtConnection};
 use sill_model::units::Presence;
@@ -60,11 +60,11 @@ pub fn BatteryModule() -> Element {
                 if !rings.is_empty() {
                     div { class: "sill-cc-batteries", role: "group", "aria-label": "Device batteries",
                         for ring in rings {
-                            DeviceBattery {
+                            BatteryRing {
                                 key: "{ring.key}",
-                                level: ring.level,
-                                mark: ring.mark,
+                                state: ring.state,
                                 label: ring.label.clone(),
+                                readout: Readout::Under,
                                 DeviceGlyph { device: ring.device }
                             }
                         }
@@ -86,12 +86,11 @@ struct BatteryHead {
     left: String,
 }
 
-/// One device's ring: its key, level, whether it is charging, its name and its filled glyph.
+/// One device's ring: its key, its battery state, its name and its filled glyph.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct DeviceRing {
     pub key: String,
-    pub level: Fraction,
-    pub mark: RingMark,
+    pub state: BatteryState,
     pub label: String,
     pub device: Device,
 }
@@ -102,8 +101,7 @@ pub(crate) fn device_rings(battery: &Battery, bluetooth: &Bluetooth) -> Vec<Devi
     let computer = match battery.presence {
         Presence::Present => Some(DeviceRing {
             key: "computer".to_owned(),
-            level: Fraction(battery.level.0.min(100) * 10),
-            mark: charging(battery.charge),
+            state: ring_state(battery.level.0, charging(battery.charge)),
             label: "This computer".to_owned(),
             // It has a battery, so a laptop.
             device: Device::Laptop,
@@ -115,8 +113,7 @@ pub(crate) fn device_rings(battery: &Battery, bluetooth: &Bluetooth) -> Vec<Devi
         .filter_map(|device| match (device.connection, device.battery) {
             (BtConnection::Connected, BtBattery::Level(level)) => Some(DeviceRing {
                 key: device.address.0.clone(),
-                level: Fraction(level.0.min(100) * 10),
-                mark: RingMark::Plain,
+                state: ring_state(level.0, BatteryPower::Battery),
                 label: device.name.clone(),
                 device: device_of(device.kind),
             }),
@@ -126,13 +123,22 @@ pub(crate) fn device_rings(battery: &Battery, bluetooth: &Bluetooth) -> Vec<Devi
     computer.into_iter().chain(peripherals).collect()
 }
 
-/// The ring's mark: the bolt while charging.
-fn charging(charge: Charge) -> RingMark {
+/// The ring's power: the bolt while charging.
+fn charging(charge: Charge) -> BatteryPower {
     match charge {
-        Charge::Charging => RingMark::Charging,
+        Charge::Charging => BatteryPower::Charging,
         Charge::Unknown | Charge::Discharging | Charge::Empty | Charge::Full | Charge::Idle => {
-            RingMark::Plain
+            BatteryPower::Battery
         }
+    }
+}
+
+/// A ring's state: `percent` (capped at 100) on `power`.
+fn ring_state(percent: u16, power: BatteryPower) -> BatteryState {
+    BatteryState {
+        level: Fraction(percent.min(100) * 10),
+        power,
+        low_at: LowAt::default(),
     }
 }
 
@@ -182,8 +188,8 @@ impl CcModule for BatteryCc {
 #[cfg(test)]
 mod tests {
     use super::{DeviceRing, device_rings};
-    use ds::Fraction;
-    use ds_shell::{Device, RingMark};
+    use ds::{BatteryPower, BatteryState, Fraction, LowAt};
+    use ds_shell::Device;
     use sill_model::battery::{Battery, Charge};
     use sill_model::bluetooth::{
         Bluetooth, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing, BtPower,
@@ -227,10 +233,13 @@ mod tests {
             ],
             connect: Default::default(),
         };
-        let ring = |key: &str, level, mark, label: &str, device| DeviceRing {
+        let ring = |key: &str, level, power, label: &str, device| DeviceRing {
             key: key.to_owned(),
-            level: Fraction(level),
-            mark,
+            state: BatteryState {
+                level: Fraction(level),
+                power,
+                low_at: LowAt::default(),
+            },
             label: label.to_owned(),
             device,
         };
@@ -244,18 +253,24 @@ mod tests {
                     ring(
                         "computer",
                         930,
-                        RingMark::Charging,
+                        BatteryPower::Charging,
                         "This computer",
                         Device::Laptop,
                     ),
-                    ring("mouse", 840, RingMark::Plain, "mouse", Device::Mouse),
+                    ring("mouse", 840, BatteryPower::Battery, "mouse", Device::Mouse),
                 ],
             ),
             (
                 "a desktop and a mouse",
                 Battery::default(),
                 bluetooth,
-                vec![ring("mouse", 840, RingMark::Plain, "mouse", Device::Mouse)],
+                vec![ring(
+                    "mouse",
+                    840,
+                    BatteryPower::Battery,
+                    "mouse",
+                    Device::Mouse,
+                )],
             ),
             (
                 "nothing",

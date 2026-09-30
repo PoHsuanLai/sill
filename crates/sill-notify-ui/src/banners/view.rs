@@ -14,7 +14,7 @@ use ds_shell::{BannerKey, BannerStack, Hover, NotificationSwipe};
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_model::notifications::{NotificationId, Notifications};
 use sill_services::NotificationsService;
-use sill_settings::{BannerEntry, BannerPosition, NotificationsSettings};
+use sill_settings::{BannerPosition, NotificationsSettings};
 
 use super::deck::{DeckIn, Entry, EntryKey, Showing};
 use super::deck_keys::KeysIn;
@@ -101,7 +101,6 @@ fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> 
             BannerStack {
                 banners,
                 position: position(settings.banner_position),
-                entry: entry(settings.banner_entry_direction),
                 on_hidden: move |key: BannerKey| column.hidden(EntryKey(key.0)),
             }
         }
@@ -153,15 +152,6 @@ fn position(corner: BannerPosition) -> ds_shell::BannerPosition {
     match corner {
         BannerPosition::TopRight => ds_shell::BannerPosition::TopRight,
         BannerPosition::BottomRight => ds_shell::BannerPosition::BottomRight,
-    }
-}
-
-/// `notifications.banner_entry_direction` as the stack's entry edge (a swiped card still
-/// leaves to the right).
-fn entry(edge: BannerEntry) -> ds_shell::BannerEntry {
-    match edge {
-        BannerEntry::FromRight => ds_shell::BannerEntry::FromRight,
-        BannerEntry::FromBelow => ds_shell::BannerEntry::FromBelow,
     }
 }
 

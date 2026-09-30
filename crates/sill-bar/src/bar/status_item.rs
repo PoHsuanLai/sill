@@ -1,14 +1,14 @@
-//! One icon status item: a ds `Button{Status}` in a title slot, expanded while its menu is
+//! One icon status item: a quire `MenuBarItem` in a title slot, expanded while its menu is
 //! open (design/20 §1.1), sized by the bar's status keys through `ds::StatusMetrics`.
 
 use dioxus::prelude::*;
-use ds::{Bezel, Button, ImagePosition};
-use ds::{Common, IconSource, Px, Shown, StatusMetrics, use_rect};
+use ds::ImagePosition;
+use ds::{Common, IconSource, Px, StatusMetrics, use_rect};
+use ds_shell::MenuBarItem;
 use sill_settings::{BarGlyphSize, BarSettings};
 
-use super::io::MenuBar;
 use super::menus::BarMenu;
-use super::title::{SlotPill, TitleSlot};
+use super::title::{TitleSlot, shown_of};
 
 /// The status items' box and glyph from `bar.status_icon_box_px`, `bar.status_glyph_px` and
 /// `bar.glyph_size_policy`: under `IconSizeBar22` the glyph fills the box.
@@ -32,22 +32,16 @@ pub(crate) fn StatusIcon(
     #[props(into)] icon: IconSource,
     tooltip: String,
 ) -> Element {
-    let bar = use_context::<MenuBar>();
     let probe = use_rect();
-    let expanded = if bar.is_open(menu) {
-        Shown::Visible
-    } else {
-        Shown::Hidden
-    };
     rsx! {
-        TitleSlot { menu, probe, pill: SlotPill::Control,
-            Button {
+        TitleSlot { menu, probe,
+            MenuBarItem {
                 common: Common { mounted: Some(EventHandler::new(move |event| probe.on_mounted(event))), ..Common::default() },
-                bezel: Bezel::StatusItem, image: ImagePosition::Only,
+                image: ImagePosition::Only,
                 icon,
                 label: menu.label().to_owned(),
                 title: Some(tooltip),
-                shown: Some(expanded),
+                shown: shown_of(menu),
                 onclick: move |_| {},
             }
         }

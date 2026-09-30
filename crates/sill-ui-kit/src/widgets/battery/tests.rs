@@ -4,8 +4,8 @@ use sill_model::bluetooth::{
 };
 use sill_model::units::{Percent, Presence};
 
-use ds::Fraction;
-use ds_shell::{BatteryCell, BatteryEntry, Device, RingMark};
+use ds::{BatteryPower, BatteryState, Fraction, LowAt};
+use ds_shell::{BatteryCell, BatteryEntry, Device};
 
 use super::provider::machine_name;
 use super::{BatteryOwner, BatteryRow, battery_entry, battery_rows, cell_of};
@@ -18,33 +18,36 @@ fn a_row_is_a_cell_in_permille_with_its_device_and_a_bolt_while_charging() {
         level: Percent(level),
         charge,
     };
-    let cell = |device, level, mark| BatteryCell {
+    let cell = |device, level, power| BatteryCell {
         name: "desk".to_owned(),
         device,
-        level: Fraction(level),
-        mark,
+        state: BatteryState {
+            level: Fraction(level),
+            power,
+            low_at: LowAt::default(),
+        },
     };
     let this = BatteryOwner::ThisMachine;
     let cases = [
         (
             row(this, 81, Charge::Charging),
-            cell(Device::Laptop, 810, RingMark::Charging),
+            cell(Device::Laptop, 810, BatteryPower::Charging),
         ),
         (
             row(this, 7, Charge::Discharging),
-            cell(Device::Laptop, 70, RingMark::Plain),
+            cell(Device::Laptop, 70, BatteryPower::Battery),
         ),
         (
             row(this, 100, Charge::Full),
-            cell(Device::Laptop, 1000, RingMark::Plain),
+            cell(Device::Laptop, 1000, BatteryPower::Battery),
         ),
         (
             row(BatteryOwner::Device(BtKind::Headset), 0, Charge::Unknown),
-            cell(Device::Headphones, 0, RingMark::Plain),
+            cell(Device::Headphones, 0, BatteryPower::Battery),
         ),
         (
             row(BatteryOwner::Device(BtKind::Mouse), 140, Charge::Unknown),
-            cell(Device::Mouse, 1000, RingMark::Plain),
+            cell(Device::Mouse, 1000, BatteryPower::Battery),
         ),
     ];
     for (row, want) in cases {
@@ -56,7 +59,7 @@ fn a_row_is_a_cell_in_permille_with_its_device_and_a_bolt_while_charging() {
     );
     assert_eq!(
         battery_entry(&[row(this, 50, Charge::Idle)]),
-        BatteryEntry::Devices(vec![cell(Device::Laptop, 500, RingMark::Plain)])
+        BatteryEntry::Devices(vec![cell(Device::Laptop, 500, BatteryPower::Battery)])
     );
 }
 

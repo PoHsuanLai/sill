@@ -4,13 +4,13 @@
 //! `AppSwitcher` centred in it.
 //!
 //! [`super::io`] follows the [`sill_ui_kit::links::SwitcherLink`] for this output and runs the machine;
-//! this file only draws: the tiles from [`super::tiles`] over the opening's apps (a quit tile
-//! `TilePresence::Leaving` until its fold settles), `selected` the machine's selection as
+//! this file only draws: the tiles from [`super::tiles`] over the opening's apps (a quit tile is left out of the list
+//! while its fold plays: quire keeps drawing it until it settles), `selected` the machine's selection as
 //! [`super::key_of`], `metrics` [`super::metrics_of`], `output` [`super::output_width`], and
 //! `onhover` / `onactivate` as `Hover` / `Click`. Style nothing under `.ds-switcher*`.
 
 use dioxus::prelude::*;
-use ds::{Material, RootChrome, RootExtent};
+use ds::{Material, RootChrome, RootExtent, Shown};
 use ds_shell::{AppKey, SwitcherApp as Tile};
 use shell_host::{OutputInfo, SurfaceHandle};
 
@@ -108,10 +108,13 @@ fn chord_watch(host: Option<&SurfaceHandle>, session: &Session, ctx: SwitcherCtx
 
 /// The tiles and the selected one's key.
 fn row(session: &Session, sel: usize, icons: &SwitcherIcons) -> (Vec<Tile>, AppKey) {
-    let mut row = tiles(&session.apps, &icons.index, |app| icons.source(app));
-    for (tile, app) in row.iter_mut().zip(&session.apps) {
-        tile.presence = session.presence(&app.app);
-    }
+    let listed: Vec<_> = session
+        .apps
+        .iter()
+        .filter(|app| session.shown(&app.app) == Shown::Visible)
+        .cloned()
+        .collect();
+    let row = tiles(&listed, &icons.index, |app| icons.source(app));
     let selected = session
         .apps
         .get(sel.min(session.apps.len().saturating_sub(1)))

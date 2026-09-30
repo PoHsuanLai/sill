@@ -1,14 +1,14 @@
 //! The thumbnail's root: one transparent Toast root as big as the surface, holding quire's
 //! `BannerStack` at the bottom right with at most one row, quire's `ShotThumbnail`
-//! ([`super::card`]). The card plays its own entrance and exit (`ShotIn`, `ShotOut`) and says when
+//! ([`super::card`]). The card plays its own entrance and exit (quire's `panel-in` and `panel-out`) and says when
 //! the exit has settled; after a swipe the row is unlisted and the stack flies it out along the
-//! swipe (`banner-out`) and says so instead. It follows `use_service::<ScreenshotsService>` and the
+//! swipe (`panel-out`) and says so instead. It follows `use_service::<ScreenshotsService>` and the
 //! `BannerLink` through [`super::follow`] and [`super::step::step`].
 
 use dioxus::prelude::*;
 use ds::Material;
 use ds::{RootChrome, RootExtent, Shown};
-use ds_shell::{Banner, BannerEntry, BannerKey, BannerPosition, BannerStack};
+use ds_shell::{Banner, BannerKey, BannerPosition, BannerStack};
 use shell_host::{OutputId, OutputInfo, use_watch};
 use sill_model::screenshots::ShotId;
 use sill_services::ScreenshotsService;
@@ -146,7 +146,6 @@ fn Column(
             BannerStack {
                 banners,
                 position: BannerPosition::BottomRight,
-                entry: BannerEntry::FromRight,
                 on_hidden: move |key: BannerKey| thumb.settled(id_of(key), ThumbExit::Row),
             }
         }

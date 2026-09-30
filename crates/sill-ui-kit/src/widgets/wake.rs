@@ -1,5 +1,5 @@
 //! The stamp a widget host provides to wake every widget's fill on open or show
-//! (design/23-WIDGETS.md section 4.1; quire's `BatteryLevel`, `BatteryFigure`, `WakeStamp`): the
+//! (design/23-WIDGETS.md section 4.1; quire's `BatteryRing`, `WakeStamp`): the
 //! notification center provides one from its own opening
 //! (`crate::panel::Opening`), the desktop layer at its own mount.
 //! A widget reads it with [`use_widget_wake`] instead of a `wake` prop threaded through

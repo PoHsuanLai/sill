@@ -185,7 +185,7 @@ fn settle_until_two(h: &mut ds_harness::Harness) {
 }
 
 /// A widget Edit Widgets takes off the desktop plays its exit where it stood (quire's
-/// `widget-out`, `data-presence="leaving"`), then is dropped, and the layer paints nothing; one
+/// exit, `data-presence="leaving"`), then is dropped, and the layer paints nothing; one
 /// added back while it leaves is placed again and never goes.
 #[test]
 fn a_removed_widget_plays_its_exit_then_goes() {
@@ -211,17 +211,15 @@ fn a_removed_widget_plays_its_exit_then_goes() {
         "the card stays, leaving: {}",
         h.html()
     );
-    assert!(
-        h.has_class("#widget-battery", "a-widget-out"),
-        "{}",
-        h.html()
-    );
     assert_eq!(
         box_of(&h, "#widget-battery"),
         stood,
         "it leaves from where it stood"
     );
-    assert_eq!(h.attr("#widget-calendar", "data-presence"), None);
+    assert_eq!(
+        h.attr("#widget-calendar", "data-presence").as_deref(),
+        Some("present")
+    );
     assert!(h.is_animating(), "the exit is playing");
     settle_until(&mut h, |h| h.count("#widget-battery") == 0);
     assert_eq!(h.count(".ds-widget"), 1);
@@ -240,7 +238,10 @@ fn a_removed_widget_plays_its_exit_then_goes() {
     );
     tx.send_modify(|file| file.widgets.desktop_widgets.push(WidgetKind::Calendar));
     h.advance(Duration::from_millis(16));
-    assert_eq!(h.attr("#widget-calendar", "data-presence"), None);
+    assert_eq!(
+        h.attr("#widget-calendar", "data-presence").as_deref(),
+        Some("present")
+    );
     assert_settles_to_zero_frames(&mut h);
     assert_eq!(
         h.count("#widget-calendar"),

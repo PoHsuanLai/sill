@@ -16,19 +16,20 @@ use super::drag::corner;
 use super::geometry::PlaceBox;
 use super::glide::{Ask, Seen, ask, drawn, to_layer, to_point};
 pub use super::glide::{Glide, Pose};
-use sill_ui_kit::widgets::{CardPresence, Widget, WidgetHost};
+use ds::Shown;
+use sill_ui_kit::widgets::{Widget, WidgetHost};
 
 /// `kind` at `target` (its cell's box), in `pose`; `glide` is how it was let go when
-/// it is the widget just dropped. `Leaving`, it plays its exit where it stands and calls
-/// `on_gone` once it has (`super::leaving`).
+/// it is the widget just dropped. `Hidden`, it plays its exit where it stands and calls
+/// `on_hidden` once it has (`super::leaving`).
 #[component]
 pub fn Placed(
     kind: WidgetKind,
     target: PlaceBox,
     pose: Pose,
     glide: Glide,
-    #[props(default)] presence: CardPresence,
-    #[props(default)] on_gone: Option<EventHandler<()>>,
+    #[props(default = Shown::Visible)] shown: Shown,
+    #[props(default)] on_hidden: Option<EventHandler<()>>,
 ) -> Element {
     let at = use_glide(corner(&target), pose, glide);
     let style = place_style(at, &target);
@@ -38,7 +39,7 @@ pub fn Placed(
     };
     rsx! {
         div { class: "sill-dw-place", style,
-            Widget { kind, host: WidgetHost::Desktop, lift, presence, on_gone }
+            Widget { kind, host: WidgetHost::Desktop, lift, shown, on_hidden }
             // While dragged, a press's release lands here and never on the widget's own controls,
             // which move along under the pointer.
             if lift == Lift::Lifted {

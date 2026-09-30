@@ -36,7 +36,8 @@ use dioxus::prelude::*;
 use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
 
-use ds_shell::{ModuleState, PanelPlate};
+use ds::Check;
+use ds_shell::PanelPlate;
 
 pub use cc_module::Span;
 pub(crate) use cc_module::{CcCx, CcModule};
@@ -106,10 +107,7 @@ pub(crate) fn use_plate() -> PanelPlate {
     try_use_context::<PanelPlate>().unwrap_or_default()
 }
 
-/// The state a press on a tile asks for: on from off, off from on or on the way.
-pub(crate) fn flipped(state: ModuleState) -> ModuleState {
-    match state {
-        ModuleState::Off => ModuleState::On,
-        ModuleState::On | ModuleState::Busy => ModuleState::Off,
-    }
+/// The state a press on a tile asks for: on from off, off from on.
+pub(crate) fn flipped(state: Check) -> Check {
+    state.flipped()
 }
