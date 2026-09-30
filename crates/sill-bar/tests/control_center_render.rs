@@ -45,7 +45,7 @@ fn the_grid_shows_what_the_services_hold() {
         ("no plate of sill's", "sill-cc-module", 0),
         (
             "Wi-Fi, Bluetooth and Focus on",
-            "data-state=\"on\" aria-pressed=\"true\"",
+            "data-state=\"on\" data-availability=\"enabled\" aria-pressed=\"true\"",
             3,
         ),
         (
@@ -152,7 +152,7 @@ fn fed_values_replace_the_defaults() {
     let cases = [
         (
             "only Focus on",
-            "data-state=\"on\" aria-pressed=\"true\"",
+            "data-state=\"on\" data-availability=\"enabled\" aria-pressed=\"true\"",
             1,
         ),
         ("Wi-Fi off", ">Off<", 1),

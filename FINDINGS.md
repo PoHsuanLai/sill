@@ -451,3 +451,8 @@ A settled item is deleted, not marked closed.
   screen, is not seen.
 - **G290** The presented frame puts two widgets' contents in the center's first tile when all
   five are shown; `sill debug capture` of the same surface is right.
+
+- **`notifications.banner_entry_direction` is unread.** quire's `BannerStack` slides every banner in
+  from the right and out to the right (design/30 section 1.3, step 4a.7), so the setting and
+  `sill_settings::BannerEntry` have no reader. It ends with step 4a.8, which deletes the key and the
+  enum with the rest of sill's local notification pieces.

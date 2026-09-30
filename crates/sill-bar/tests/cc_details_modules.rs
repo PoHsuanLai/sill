@@ -46,9 +46,19 @@ fn now_playing_morphs_its_button_cross_fades_the_track_and_steps_the_position() 
     );
     let harness = &mut running.harness;
     assert_eq!(harness.attr(TOGGLE, "aria-label").as_deref(), Some("Pause"));
-    assert_eq!(harness.text_of(".ds-track-time").as_deref(), Some("1:05"));
+    assert_eq!(
+        harness
+            .text_of(".ds-track-times .ds-label:first-child")
+            .as_deref(),
+        Some("1:05")
+    );
     harness.advance(ms(1_000));
-    assert_eq!(harness.text_of(".ds-track-time").as_deref(), Some("1:06"));
+    assert_eq!(
+        harness
+            .text_of(".ds-track-times .ds-label:first-child")
+            .as_deref(),
+        Some("1:06")
+    );
     // A press asks the player (a fake: nothing real plays or pauses).
     press(harness, TOGGLE);
     harness.advance(ms(0));
@@ -69,9 +79,13 @@ fn now_playing_morphs_its_button_cross_fades_the_track_and_steps_the_position() 
     assert_eq!(harness.attr(TOGGLE, "aria-label").as_deref(), Some("Play"));
     assert_eq!(harness.count(".sill-cc-media-buttons [*|data-morph=in]"), 1);
     assert_settles_to_zero_frames(harness);
-    let held = harness.text_of(".ds-track-time");
+    let held = harness.text_of(".ds-track-times .ds-label:first-child");
     harness.advance(ms(3_000));
-    assert_eq!(harness.text_of(".ds-track-time"), held, "paused, it holds");
+    assert_eq!(
+        harness.text_of(".ds-track-times .ds-label:first-child"),
+        held,
+        "paused, it holds"
+    );
     // A new track cross-fades in.
     running
         .feeds

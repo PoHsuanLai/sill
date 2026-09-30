@@ -98,11 +98,11 @@ fn at(kind: WidgetKind, column: u16, row: u16) -> Placement {
 
 /// The gallery's list entry for the widget named `name`.
 fn kind_option(h: &Harness, name: &str) -> String {
-    let count = h.count(".ds-widget-gallery-kind");
+    let count = h.count(".ds-widget-gallery .ds-list-item");
     (1..=count)
-        .map(|n| format!(".ds-widget-gallery-kind:nth-child({n})"))
+        .map(|n| format!(".ds-widget-gallery .ds-list-item:nth-child({n}) .ds-row"))
         .find(|selector| {
-            h.text_of(&format!("{selector} .ds-widget-gallery-name"))
+            h.text_of(&format!("{selector} .ds-row-title"))
                 .is_some_and(|text| text == name)
         })
         .unwrap_or_else(|| panic!("{name} is listed"))
@@ -136,7 +136,7 @@ fn opened() -> Running {
 #[test]
 fn an_added_widget_is_written_as_the_keys_and_places_and_a_second_is_refused() {
     let mut run = opened();
-    assert_eq!(run.harness.count(".ds-widget-gallery-kind"), 5);
+    assert_eq!(run.harness.count(".ds-widget-gallery .ds-list-item"), 5);
     assert_eq!(
         (rows(&run.harness, "desktop"), rows(&run.harness, "tile")),
         (2, 3),
