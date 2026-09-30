@@ -180,9 +180,10 @@ red() { [ "$1" -gt 150 ] && [ "$2" -lt 110 ] && [ "$4" -gt 128 ]; }
 # 4.
 step_badge() {
   local log="$OUT_DIR/badge.log" x y before after start
-  # Inside the badge's right padding, clear of its digit: the capsule's right edge is 2 px
-  # right of the plate's (80.5 % of a 48 px tile), its middle 7 px below the plate's top.
-  x=$(( $(first_tile_x) + 19 )); y=$(( 144 - 48 + 5 + 6 ))
+  # Inside the badge's right padding, clear of its digit: quire's Small `Badge` is a 14 px tall
+  # capsule hung off the plate's top right corner (`DockTile`), its right edge 2 px right of the
+  # plate's (80.5 % of a 48 px tile) and its middle 7 px below the tile's top.
+  x=$(( $(first_tile_x) + 21 )); y=$(( 144 - 48 + 7 ))
   before=$(pixel "$DOCK" "$x" "$y" "$OUT_W")
   cp "$OUT_DIR/pixel.png" "$OUT_DIR/badge-before.png"
   start=$(date +%s%N)
