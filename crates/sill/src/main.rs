@@ -26,6 +26,7 @@ fn main() -> ExitCode {
     match cli.command {
         Some(cli::Command::Run(args)) => sill::daemon::run(&args),
         Some(cli::Command::AuthCheck) => sill::cli::auth_check::main(),
+        Some(cli::Command::Style { action }) => sill::cli::style::main(&action),
         Some(command) => match cli::request(&command) {
             Some(request) => sill::cli::client::main(&request),
             None => ExitCode::SUCCESS,

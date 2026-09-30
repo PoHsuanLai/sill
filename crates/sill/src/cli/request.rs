@@ -14,10 +14,10 @@ use super::launcher::{clipboard_request, launcher_request};
 use super::notifications::notifications_request;
 use super::session::{idle_request, lock_request, polkit_request, switcher_request};
 
-/// The request `command` sends; `None` for `run` and `auth-check`, which are not requests.
+/// The request `command` sends; `None` for `run`, `style` and `auth-check`, which are not requests.
 pub fn request(command: &Command) -> Option<Request> {
     Some(match command {
-        Command::Run(_) | Command::AuthCheck => return None,
+        Command::Run(_) | Command::AuthCheck | Command::Style { .. } => return None,
         Command::Ping => Request::Ping,
         Command::Quit => Request::Quit,
         Command::Reload => Request::Reload,

@@ -108,6 +108,8 @@ fn every_command_line_sends_its_request() {
     let cases: Vec<(&[&str], Option<Request>)> = vec![
         (&["run"], None),
         (&["auth-check"], None),
+        (&["style", "check"], None),
+        (&["style", "check", "other.css"], None),
         (&["ping"], Some(Request::Ping)),
         (&["reload"], Some(Request::Reload)),
         (&["focus-latest"], act(ActRequest::FocusLatest)),

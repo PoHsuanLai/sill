@@ -9,6 +9,7 @@ use super::display::DisplayAction;
 use super::launcher::{ClipboardAction, LauncherAction};
 use super::notifications::NotificationsAction;
 use super::session::{IdleAction, LockVerb, PolkitAction, SwitcherAction};
+use super::style::StyleAction;
 
 /// What to do.
 #[derive(Debug, Clone, PartialEq, Eq, Subcommand)]
@@ -98,5 +99,10 @@ pub enum Command {
     Widgets {
         #[command(subcommand)]
         action: WidgetsAction,
+    },
+    /// Your own stylesheet, `style.css`.
+    Style {
+        #[command(subcommand)]
+        action: StyleAction,
     },
 }
