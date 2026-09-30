@@ -10,8 +10,8 @@
 
 use dioxus::prelude::*;
 use ds::{
-    Align, Anchor, BlurState, Ds, Material, Menu, MenuEntrance, MenuKind, Placement, Point,
-    Popover, Press, Px, RootExtent, Side,
+    Align, Anchor, BlurState, Ds, Material, Menu, Placement, Point, Popover, Press, Px,
+    RootExtent, Side,
 };
 use shell_host::{PopupPlacement, SurfaceOp, use_surface, use_watch};
 use sill_model::ids::OutputName;
@@ -136,7 +136,7 @@ pub(crate) fn BarPopup() -> Element {
 /// session closed. The keyboard's pick still arrives as `Picked`, and quire calls `onpick`
 /// before `onclose`, so a close reports a dismissal only when nothing was picked.
 #[component]
-fn BarMenuList(entries: Vec<ds::MenuEntry<BarPick>>) -> Element {
+fn BarMenuList(entries: Vec<ds::MenuItem<BarPick>>) -> Element {
     let link = use_context::<PopupLink>();
     let mut picked = use_hook(|| CopyValue::new(false));
     let mut hovered = use_hook(|| CopyValue::new(None::<usize>));
@@ -178,14 +178,13 @@ fn BarMenuList(entries: Vec<ds::MenuEntry<BarPick>>) -> Element {
     };
     rsx! {
         Menu {
-            kind: MenuKind::Dropdown,
+            placement: ds::MenuPlacement::Bar,
             anchor: corner(),
-            entries,
+            items: entries,
             onpick: on_pick,
             onclose: on_close,
             on_hover,
             on_release,
-            entrance: MenuEntrance::Instant,
         }
     }
 }

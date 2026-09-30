@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::{Availability, MenuEntry, MenuTrail};
+use ds::{Availability, MenuItem};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 
 use super::{INSET, TrayMenuDocument};
@@ -18,13 +18,12 @@ thread_local! {
 /// The harness viewport: bigger than the popup.
 const SIZE: u32 = 300;
 
-fn entry(id: i32, title: &str) -> MenuEntry<i32> {
-    MenuEntry::Item {
+fn entry(id: i32, title: &str) -> MenuItem<i32> {
+    MenuItem::Item {
         value: id,
         title: title.to_owned(),
-        detail: None,
-        tile: None,
-        trail: MenuTrail::None,
+        image: None,
+        key: None,
         check: None,
         availability: Availability::Enabled,
     }

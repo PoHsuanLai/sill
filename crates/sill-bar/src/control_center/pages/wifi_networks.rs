@@ -8,7 +8,7 @@
 //! `WifiCommand::Scan` when it opens. "Wi-Fi Settings…" at the foot.
 
 use dioxus::prelude::*;
-use ds::{Availability, Icon, RowDisc, RowPhase};
+use ds::{Availability, Icon};
 use ds_shell::ModuleState;
 use sill_model::attempt::Attempts;
 use sill_model::units::Presence;
@@ -20,7 +20,9 @@ use super::foot::{ClosePanel, EmptyLine, SettingsFoot, open_settings};
 use super::head::DetailHead;
 use crate::control_center::modules::wifi::{radio_availability, radio_of, radio_state};
 use crate::control_center::network_detail;
-use crate::control_center::row_phase::{Aim, FAILED_WORDS, Item, aim_after, row_phase};
+use crate::control_center::row_phase::{
+    Aim, FAILED_WORDS, Item, RowDisc, RowPhase, aim_after, row_phase,
+};
 use crate::control_center::rows::{RowList, RowMark, RowSpec};
 use sill_services::{NetworkService, WifiService};
 use sill_ui_kit::hooks::{use_service, use_services};
@@ -196,9 +198,10 @@ pub(crate) fn empty_line(wifi: &Wifi, rows: usize) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::{WifiPick, empty_line, joining, network_row, network_rows};
+    use crate::control_center::row_phase::{RowDisc, RowPhase};
     use crate::control_center::rows::RowMark;
+    use ds::Icon;
     use ds::detail::EventStamp;
-    use ds::{Icon, RowDisc, RowPhase};
     use sill_model::wifi::{AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi};
     use sill_model::{
         attempt::{Attempt, Attempts, OpStamp},

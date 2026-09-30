@@ -1,10 +1,14 @@
-//! A detail pane's list (networks, devices) as quire `SettingsRow`s: each row's value, glyph,
+//! A detail pane's list (networks, devices) as a quire `List` of settings-height `Row`s: each row's value, glyph,
 //! words, trailing mark, operation phase and disc as data, so the pages build them purely and
 //! test them. Rows are keyed by their item (an SSID, an address), so a row's detail state stays
 //! with its item when the list reorders.
 
+use crate::control_center::row_phase::{RowDisc, RowPhase};
 use dioxus::prelude::*;
-use ds::{Availability, Fraction, Icon, RowDisc, RowPhase, RowTrailing, SettingsRow, TextLine};
+use ds::{
+    Accessory, Availability, BatteryState, Fraction, Icon, List, ListItem, Row, RowLeading,
+    RowSize, RowState, Selection, TextLine,
+};
 use sill_model::units::Percent;
 
 /// What a row ends in.
@@ -39,40 +43,55 @@ pub(crate) fn RowList<T: Clone + PartialEq + 'static>(
     rows: Vec<RowSpec<T>>,
     onpick: EventHandler<T>,
 ) -> Element {
-    let items: Vec<(RowSpec<T>, Option<TextLine>)> = rows
+    let items: Vec<ListItem<String>> = rows
         .into_iter()
         .map(|row| {
             let detail = (!row.detail.is_empty()).then(|| TextLine::from(row.detail.clone()));
-            (row, detail)
+            let value = row.value.clone();
+            let content = rsx! {
+                Row {
+                    leading: leading(row.glyph, row.disc),
+                    title: row.title.clone(),
+                    detail,
+                    accessory: accessory(row.mark),
+                    state: RowState { availability: availability(row.availability, row.phase), ..RowState::default() },
+                    size: RowSize::Settings,
+                    onclick: move |_| onpick.call(value.clone()),
+                }
+            };
+            ListItem::row(row.key.clone(), row.title.clone(), content)
         })
         .collect();
     rsx! {
-        div { class: "sill-cc-rows", role: "group", "aria-label": "{label}",
-            for (row, detail) in items {
-                SettingsRow {
-                    key: "{row.key}",
-                    glyph: Some(row.glyph),
-                    title: row.title.clone(),
-                    detail,
-                    trailing: trailing(row.mark),
-                    phase: row.phase,
-                    disc: row.disc,
-                    availability: row.availability,
-                    onclick: {
-                        let value = row.value.clone();
-                        move |_| onpick.call(value.clone())
-                    },
-                }
-            }
-        }
+        List::<String> { label, items }
     }
 }
 
-/// quire's trailing mark for `mark`.
-fn trailing(mark: RowMark) -> RowTrailing {
+/// quire's leading element for a row's glyph and disc.
+fn leading(glyph: Icon, disc: RowDisc) -> RowLeading {
+    match disc {
+        RowDisc::None => RowLeading::Icon(glyph),
+        RowDisc::Off => RowLeading::Disc(glyph, Selection::Unselected),
+        RowDisc::On => RowLeading::Disc(glyph, Selection::Selected),
+    }
+}
+
+/// A row is busy while its operation runs.
+fn availability(own: Availability, phase: RowPhase) -> Availability {
+    match phase {
+        RowPhase::Pending(_) => Availability::Busy,
+        RowPhase::Rest | RowPhase::Succeeded(_) | RowPhase::Failed(_) => own,
+    }
+}
+
+/// quire's accessory for `mark`.
+fn accessory(mark: RowMark) -> Accessory {
     match mark {
-        RowMark::Nothing => RowTrailing::None,
-        RowMark::Lock => RowTrailing::Glyph(Icon::Lock),
-        RowMark::Battery(level) => RowTrailing::Battery(Fraction(level.0.min(100) * 10)),
+        RowMark::Nothing => Accessory::None,
+        RowMark::Lock => Accessory::Glyph(Icon::Lock),
+        RowMark::Battery(level) => Accessory::Battery(BatteryState {
+            level: Fraction(level.0.min(100) * 10),
+            ..BatteryState::default()
+        }),
     }
 }

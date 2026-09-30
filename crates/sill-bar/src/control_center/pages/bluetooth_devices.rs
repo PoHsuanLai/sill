@@ -8,7 +8,7 @@
 //! ("Bluetooth Settings…" at the foot).
 
 use dioxus::prelude::*;
-use ds::{Availability, Icon, RowDisc, RowPhase};
+use ds::{Availability, Icon};
 use ds_shell::ModuleState;
 use sill_model::attempt::Attempts;
 use sill_model::bluetooth::{
@@ -23,7 +23,9 @@ use super::head::DetailHead;
 use crate::control_center::device_detail;
 use crate::control_center::modules::bluetooth::{adapter_availability, power_of, power_state};
 use crate::control_center::modules::bluetooth_ask::use_power_request;
-use crate::control_center::row_phase::{Aim, FAILED_WORDS, Item, aim_after, row_phase};
+use crate::control_center::row_phase::{
+    Aim, FAILED_WORDS, Item, RowDisc, RowPhase, aim_after, row_phase,
+};
 use crate::control_center::rows::{RowList, RowMark, RowSpec};
 use sill_ui_kit::hooks::{use_control, use_service};
 
@@ -176,9 +178,10 @@ pub(crate) fn empty_line(bluetooth: &Bluetooth, rows: usize) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::{connecting, device_row, device_rows, empty_line};
+    use crate::control_center::row_phase::{RowDisc, RowPhase};
     use crate::control_center::rows::RowMark;
+    use ds::Availability;
     use ds::detail::EventStamp;
-    use ds::{Availability, RowDisc, RowPhase};
     use sill_model::bluetooth::{
         Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection, BtDevice, BtKind,
         BtPairing, BtPower,

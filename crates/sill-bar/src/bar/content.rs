@@ -3,10 +3,10 @@
 //! windows and Quit"; the Sound, Wi-Fi and Battery items' dropdowns are their modules). The
 //! clock opens no menu: it toggles the notification center.
 //!
-//! Status lines are `MenuEntry::Info` rows: an item's weight without the header's eyebrow,
+//! Status lines are `MenuItem::Info` rows: an item's weight without the header's eyebrow,
 //! never a choice (quire's bar gaps).
 
-use ds::{Check, MenuEntry, MenuTrail};
+use ds::{Check, MenuItem};
 use sill_launcher::WindowKey;
 use sill_model::apps::{AppIndex, match_app};
 use sill_model::cosmic_wl::Toplevels;
@@ -27,7 +27,7 @@ pub(crate) struct FrontApp {
 /// What a bar popup draws.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PopupBody {
-    Menu(Vec<MenuEntry<BarPick>>),
+    Menu(Vec<MenuItem<BarPick>>),
     /// The control center (`control_center::ControlCenter`), which reads its own
     /// hooks; the body carries only what sizes the popup.
     ControlCenter(ControlCenterSettings),
@@ -85,9 +85,9 @@ pub(crate) fn front_app(
 
 /// The app menu: a header, one item per window, Quit; then "Shut Down…", which opens the power
 /// menu (design/20 §1.8; the bar has no system menu of its own).
-fn app_menu(app: Option<&FrontApp>) -> Vec<MenuEntry<BarPick>> {
+fn app_menu(app: Option<&FrontApp>) -> Vec<MenuItem<BarPick>> {
     let power = [
-        MenuEntry::Separator,
+        MenuItem::Separator,
         item("Shut Down…".to_owned(), BarPick::PowerMenu, None),
     ];
     let Some(app) = app else {
@@ -105,37 +105,36 @@ fn app_menu(app: Option<&FrontApp>) -> Vec<MenuEntry<BarPick>> {
         BarPick::Quit(app.windows.iter().map(|(key, _)| *key).collect()),
         None,
     );
-    std::iter::once(MenuEntry::Header(app.name.clone()))
+    std::iter::once(MenuItem::Header(app.name.clone()))
         .chain(windows)
-        .chain([MenuEntry::Separator, quit])
+        .chain([MenuItem::Separator, quit])
         .chain(power)
         .collect()
 }
 
 /// Status lines, then Settings.
-fn lines_menu<const N: usize>(lines: [String; N]) -> Vec<MenuEntry<BarPick>> {
+fn lines_menu<const N: usize>(lines: [String; N]) -> Vec<MenuItem<BarPick>> {
     lines
         .into_iter()
-        .map(|title| MenuEntry::Info {
+        .map(|title| MenuItem::Info {
             title,
             detail: None,
         })
         .chain([
-            MenuEntry::Separator,
+            MenuItem::Separator,
             item("Settings…".to_owned(), BarPick::Settings, None),
         ])
         .collect()
 }
 
 /// A plain item.
-fn item(title: String, value: BarPick, check: Option<Check>) -> MenuEntry<BarPick> {
-    MenuEntry::Item {
-        value,
-        title,
-        detail: None,
-        tile: None,
-        trail: MenuTrail::None,
-        check,
+fn item(title: String, value: BarPick, check: Option<Check>) -> MenuItem<BarPick> {
+    MenuItem::Item {
+        value: value,
+        title: title,
+        image: None,
+        key: None,
+        check: check,
         availability: ds::Availability::Enabled,
     }
 }
@@ -145,7 +144,7 @@ mod tests {
     use super::{BarState, FrontApp, PopupBody, body, front_app};
     use crate::bar::menus::BarMenu;
     use crate::bar::pick::BarPick;
-    use ds::MenuEntry;
+    use ds::MenuItem;
     use sill_launcher::WindowKey;
     use sill_model::apps::AppIndex;
     use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
@@ -165,16 +164,15 @@ mod tests {
         }
     }
 
-    fn titles(entries: &[MenuEntry<BarPick>]) -> Vec<String> {
+    fn titles(entries: &[MenuItem<BarPick>]) -> Vec<String> {
         entries
             .iter()
             .map(|e| match e {
-                MenuEntry::Header(t) => format!("# {t}"),
-                MenuEntry::Item { title, .. } => title.clone(),
-                MenuEntry::Submenu { title, .. } => format!("{title} >"),
-                MenuEntry::Info { title, .. } => format!("i {title}"),
-                MenuEntry::Row(row) => format!("r {}", row.title.plain_text()),
-                MenuEntry::Separator => "--".to_owned(),
+                MenuItem::Header(t) => format!("# {t}"),
+                MenuItem::Item { title, .. } => title.clone(),
+                MenuItem::Submenu { title, .. } => format!("{title} >"),
+                MenuItem::Info { title, .. } => format!("i {title}"),
+                MenuItem::Separator => "--".to_owned(),
             })
             .collect()
     }
@@ -239,7 +237,7 @@ mod tests {
             PopupBody::Menu(entries) => entries
                 .into_iter()
                 .filter_map(|entry| match entry {
-                    MenuEntry::Item { value, .. } => Some(value),
+                    MenuItem::Item { value, .. } => Some(value),
                     _ => None,
                 })
                 .collect(),

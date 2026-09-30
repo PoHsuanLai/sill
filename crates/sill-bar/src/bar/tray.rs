@@ -17,7 +17,7 @@
 
 use dioxus::prelude::*;
 use ds::{Bezel, Button, ImagePosition};
-use ds::{Check as DsCheck, ChromaLimit, Common, IconSource, MenuEntry, MenuTrail, Press};
+use ds::{Check as DsCheck, ChromaLimit, Common, IconSource, MenuItem, Press};
 use shell_host::{HostRoot, OutputInfo, PopupPlacement, Rect, Size, SurfaceHandle, use_surface};
 use sill_model::tray::{
     Check as TrayCheck, TrayCommand, TrayIcon, TrayItem, TrayItemId, TrayMenuEntry, TrayMenuKind,
@@ -200,7 +200,7 @@ fn open_menu(
 /// `Control` has no `PartialEq` (module doc) and `#[component]` would demand one.
 #[derive(Clone)]
 struct TrayMenuProps {
-    entries: Vec<MenuEntry<i32>>,
+    entries: Vec<MenuItem<i32>>,
     item: TrayItemId,
     control: Control<TrayCommand>,
 }
@@ -227,7 +227,7 @@ fn tray_menu_popup(props: TrayMenuProps) -> Element {
 
 /// `menu`'s shown items at the top level (a row's children are dropped, module doc), hidden
 /// dbusmenu rows (`visibility: Hidden`) dropped.
-fn to_ds_entries(menu: &[TrayMenuEntry]) -> Vec<MenuEntry<i32>> {
+fn to_ds_entries(menu: &[TrayMenuEntry]) -> Vec<MenuItem<i32>> {
     menu.iter()
         .filter(|entry| match &entry.kind {
             TrayMenuKind::Separator => true,
@@ -237,20 +237,19 @@ fn to_ds_entries(menu: &[TrayMenuEntry]) -> Vec<MenuEntry<i32>> {
         .collect()
 }
 
-fn to_ds_entry(entry: &TrayMenuEntry) -> MenuEntry<i32> {
+fn to_ds_entry(entry: &TrayMenuEntry) -> MenuItem<i32> {
     match &entry.kind {
-        TrayMenuKind::Separator => MenuEntry::Separator,
+        TrayMenuKind::Separator => MenuItem::Separator,
         TrayMenuKind::Item {
             label,
             check,
             enabled,
             ..
-        } => MenuEntry::Item {
+        } => MenuItem::Item {
             value: entry.id,
             title: label.clone(),
-            detail: None,
-            tile: None,
-            trail: MenuTrail::None,
+            image: None,
+            key: None,
             check: to_ds_check(*check),
             availability: match enabled {
                 TrayAvailability::Enabled => ds::Availability::Enabled,

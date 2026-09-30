@@ -9,9 +9,35 @@
 //! join) rests: quire plays a plain Change for a Succeeded nobody watched start, and no Change
 //! reads the same.
 
-use ds::RowPhase;
 use ds::detail::EventStamp;
 use sill_model::attempt::{Attempt, Attempts, OpStamp};
+
+/// An operation on a row's item, stamped by the service that runs it: a running one makes the row
+/// busy, a failed one puts its reason in the detail line.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub(crate) enum RowPhase {
+    /// Nothing running.
+    #[default]
+    Rest,
+    /// Joining or connecting this row's item.
+    Pending(EventStamp),
+    /// The operation ended as asked.
+    Succeeded(EventStamp),
+    /// It did not happen.
+    Failed(EventStamp),
+}
+
+/// The disc a row's glyph sits on: none, the paper disc, or the accent disc of the item in use.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub(crate) enum RowDisc {
+    /// The bare glyph.
+    #[default]
+    None,
+    /// An item not in use.
+    Off,
+    /// The item in use.
+    On,
+}
 
 /// Where a row's item stands with the device.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -64,8 +90,7 @@ pub(crate) const FAILED_WORDS: &str = "Couldn’t connect";
 
 #[cfg(test)]
 mod tests {
-    use super::{Aim, Item, aim_after, row_phase};
-    use ds::RowPhase;
+    use super::{Aim, Item, RowPhase, aim_after, row_phase};
     use ds::detail::EventStamp;
     use sill_model::attempt::{Attempt, Attempts, OpStamp};
 

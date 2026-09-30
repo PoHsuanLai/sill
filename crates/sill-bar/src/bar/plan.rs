@@ -2,7 +2,7 @@
 //! §13.3.2 "one reusable `xdg_popup` per bar; hover switch = `xdg_popup.reposition` + content
 //! swap"), and from what the popup reports back to the machine's inputs. Pure.
 
-use ds::{Availability, MenuEntry};
+use ds::{Availability, MenuItem};
 use ds::{Branch, ItemPath, MenuKey, Pickable, Point};
 
 use super::menus::BarMenu;
@@ -80,13 +80,13 @@ fn item(index: usize) -> Target {
 
 /// The enabled item at choice `index` of `entries`, numbered as quire's `Menu` numbers
 /// `on_hover`: items and submenu parents count, headers, status lines and rules do not.
-pub(crate) fn choice(entries: &[MenuEntry<BarPick>], index: usize) -> Option<Choice> {
+pub(crate) fn choice(entries: &[MenuItem<BarPick>], index: usize) -> Option<Choice> {
     let entry = entries
         .iter()
-        .filter(|entry| matches!(entry, MenuEntry::Item { .. } | MenuEntry::Submenu { .. }))
+        .filter(|entry| matches!(entry, MenuItem::Item { .. } | MenuItem::Submenu { .. }))
         .nth(index)?;
     match entry {
-        MenuEntry::Item {
+        MenuItem::Item {
             value,
             availability: Availability::Enabled,
             ..
@@ -371,24 +371,23 @@ mod tests {
 
     #[test]
     fn choices_are_numbered_over_items_only() {
-        use ds::{Availability, MenuEntry, MenuTrail};
-        let entry = |pick: BarPick, availability| MenuEntry::Item {
+        use ds::{Availability, MenuItem};
+        let entry = |pick: BarPick, availability| MenuItem::Item {
             value: pick,
             title: String::new(),
-            detail: None,
-            tile: None,
-            trail: MenuTrail::None,
+            image: None,
+            key: None,
             check: None,
-            availability,
+            availability: availability,
         };
         let entries = vec![
-            MenuEntry::Header("Foot".to_owned()),
-            MenuEntry::Info {
+            MenuItem::Header("Foot".to_owned()),
+            MenuItem::Info {
                 title: "line".to_owned(),
                 detail: None,
             },
             entry(BarPick::Settings, Availability::Enabled),
-            MenuEntry::Separator,
+            MenuItem::Separator,
             entry(BarPick::Quit(Vec::new()), Availability::Disabled),
         ];
         let cases = [

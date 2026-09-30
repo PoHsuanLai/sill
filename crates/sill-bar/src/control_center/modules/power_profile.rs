@@ -5,7 +5,7 @@
 
 use dioxus::prelude::*;
 use ds::{Choice, ControlSize, Tracking};
-use ds::{HeaderKind, SectionHeader, SegmentedControl};
+use ds::{SectionHeader, SegmentedControl};
 use sill_model::power_profile::{Profile, ProfileCommand, ProfileDegraded};
 use sill_model::units::Presence;
 use sill_services::PowerProfileService;
@@ -32,7 +32,7 @@ pub fn PowerProfileControl() -> Element {
     };
     rsx! {
         div { class: "sill-cc-profile",
-            SectionHeader { kind: HeaderKind::Field, text: "Power Mode".to_owned(), value: degraded }
+            SectionHeader { title: "Power Mode".to_owned(), value: degraded }
             SegmentedControl::<Profile> {
                 label: "Power Mode".to_owned(),
                 choices: Choice::pairs(options),
