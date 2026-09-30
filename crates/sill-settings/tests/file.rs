@@ -4,14 +4,14 @@
 mod common;
 
 use common::TempDir;
-use ds_settings::{ConfigRoot, Px, Store};
+use ds_settings::{ConfigRoot, Count, Px, Store};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use sill_model::screenshots::ShotTool;
 use sill_settings::{
-    APP, BarSettings, Bounce, ControlCenterSettings, DefaultCardAccent, Dnd, DockSettings,
-    LauncherSettings, MenusSettings, NotificationsSettings, ScrollSettings, ScrollbarSettings,
-    ShellFile, SpacesSettings, SwitcherSettings,
+    APP, BarSettings, Bounce, ControlCenterSettings, Dnd, DockSettings, LauncherSettings,
+    MenusSettings, NotificationsSettings, ScrollSettings, ScrollbarSettings, ShellFile,
+    SpacesSettings, SwitcherSettings,
 };
 
 /// The store whose `sill` directory is inside `dir`.
@@ -80,8 +80,8 @@ fn a_bad_value_costs_only_its_own_key() {
         ),
         (
             "a table that is not a table is its defaults",
-            "dock = 7\n[spaces]\ndefault_card_accent = \"space_hue\"\n",
-            with(|f| f.spaces.default_card_accent = DefaultCardAccent::SpaceHue),
+            "dock = 7\n[spaces]\ndefault_grain = 55\n",
+            with(|f| f.spaces.default_grain = Count(55)),
         ),
         (
             "a list of unknown modules is the default list",

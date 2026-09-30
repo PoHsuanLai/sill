@@ -116,7 +116,7 @@ mod tests {
     #[test]
     fn colour_and_muted_ignore_the_tint() {
         use ds_settings::IconStyle as S;
-        let work = default_look(0, CardAccent::Chosen);
+        let work = default_look(0, Grain(35), CardAccent::Chosen);
         for (style, want) in [(S::Colour, IconStyle::Colour), (S::Muted, IconStyle::Muted)] {
             let look = icon_look(
                 &icons(style, MonochromeTint::Space),
@@ -140,8 +140,8 @@ mod tests {
     #[test]
     fn monochrome_takes_its_tint_from_the_setting() {
         use ds_settings::IconStyle::Monochrome;
-        let work = default_look(0, CardAccent::Chosen);
-        let home = default_look(1, CardAccent::Chosen);
+        let work = default_look(0, Grain(35), CardAccent::Chosen);
+        let home = default_look(1, Grain(55), CardAccent::Chosen);
         let at = |tint, space, accent| {
             icon_look(&icons(Monochrome, tint), space, accent, Scheme::Light).tint
         };
@@ -163,7 +163,7 @@ mod tests {
             at(MonochromeTint::Accent, &work, Accent::Red),
             28.0
         ));
-        let home_hue = default_look(1, CardAccent::SpaceHue);
+        let home_hue = default_look(1, Grain(55), CardAccent::SpaceHue);
         assert!(hue_near(
             at(MonochromeTint::Accent, &home_hue, Accent::Red),
             152.0
@@ -189,7 +189,7 @@ mod tests {
     #[test]
     fn only_a_retinted_style_keys_on_the_scheme() {
         use ds_settings::IconStyle as S;
-        let work = default_look(0, CardAccent::Chosen);
+        let work = default_look(0, Grain(35), CardAccent::Chosen);
         let cases = [
             (S::Colour, Scheme::Light),
             (S::Muted, Scheme::Dark),
