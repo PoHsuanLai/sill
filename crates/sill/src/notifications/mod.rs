@@ -1,7 +1,7 @@
 //! The daemon's notifications half: the banners' output. The banner column and the notification
 //! center are spawned like any `Surface` (`sill_ui_kit::{Banners, NotificationCenter}`).
 
-use sill_ui_kit::Banners;
+use sill_notify_ui::Banners;
 use sill_ui_kit::links::BannerOutput;
 
 use crate::outputs::Outputs;

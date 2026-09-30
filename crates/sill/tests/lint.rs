@@ -21,6 +21,7 @@ use sill_model::polkit_agent::{
 use sill_model::screenshots::{Shot, ShotId, ShotPreview, Shots};
 use sill_model::session::Session;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
+use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
 use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
@@ -29,10 +30,7 @@ use sill_ui_kit::links::{
     LevelSource, LockLink, OsdKind, OsdLink, PlacementFile, PowerMenuLink, Preselect, PromptOutput,
     SwitcherAsk, SwitcherLink,
 };
-use sill_ui_kit::{
-    Banners, Bar, DesktopWidgets, Dock, EditWidgets, Launcher, LauncherCatcher, NotificationCenter,
-    ScreenshotThumb,
-};
+use sill_ui_kit::{Bar, DesktopWidgets, Dock, EditWidgets, Launcher, LauncherCatcher};
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
 struct SurfaceCase {
@@ -91,17 +89,17 @@ const SURFACES: &[SurfaceCase] = &[
     },
     SurfaceCase {
         name: "banners",
-        css: sill_ui_kit::surfaces::banners::BANNERS_CSS,
+        css: sill_notify_ui::banners::BANNERS_CSS,
         states: banners_states,
     },
     SurfaceCase {
         name: "notification_center",
-        css: sill_ui_kit::surfaces::notification_center::NOTIFICATION_CENTER_CSS,
+        css: sill_notify_ui::notification_center::NOTIFICATION_CENTER_CSS,
         states: notification_center_states,
     },
     SurfaceCase {
         name: "screenshot_thumb",
-        css: sill_ui_kit::surfaces::screenshot_thumb::SCREENSHOT_THUMB_CSS,
+        css: sill_notify_ui::screenshot_thumb::SCREENSHOT_THUMB_CSS,
         states: screenshot_thumb_states,
     },
     SurfaceCase {
@@ -132,7 +130,7 @@ const SURFACES: &[SurfaceCase] = &[
 ];
 
 /// The custom properties surfaces write on themselves.
-const OWN_VARS: &[&str] = &sill_ui_kit::surfaces::banners::BANNER_VARS;
+const OWN_VARS: &[&str] = &sill_notify_ui::banners::BANNER_VARS;
 
 fn strict() -> LintConfig {
     LintConfig {
