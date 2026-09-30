@@ -1,6 +1,6 @@
 [package]
 name = "sill-ui-kit"
-description = "What every surface shares (root, links, hooks, widgets, menus, status), and the surfaces."
+description = "What every surface shares: root, links, hooks, menus, status, notification cards, widget providers and the test harness."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -13,8 +13,7 @@ sill-model = { workspace = true }
 dioxus = { workspace = true }
 ds = { workspace = true }
 ds-shell = { workspace = true }
-# `pdf-thumb`: the preview pane's PDF page through `ds_native::PdfFileThumb`.
-ds-native = { workspace = true, features = ["pdf-thumb"] }
+ds-native = { workspace = true }
 ds-settings = { workspace = true, features = ["dioxus"] }
 shell-host = { workspace = true }
 sill-search = { workspace = true }
@@ -41,17 +40,11 @@ serde_json = { workspace = true }
 harness = []
 
 [dev-dependencies]
-# The crate's own tests, demos and integration tests drive surfaces through `harness`.
+# The crate's own tests drive surfaces through `harness`.
 sill-ui-kit = { workspace = true, features = ["harness"] }
 # `lint` is off by default: only test builds need `ds::lint::markup`.
 ds-lint = { workspace = true }
 dioxus-ssr = { workspace = true }
-shell-host = { workspace = true, features = ["debug-inject"] }
-
-# A standalone bar on a real compositor with fake services, for acceptance
-# (`dev/accept/bar.sh`); `debug-inject` gives it shell-host's stdin commands.
-[[example]]
-name = "bar_demo"
 
 [lints]
 workspace = true

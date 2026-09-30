@@ -1,10 +1,11 @@
-//! What every surface shares, and the surfaces: the [`root`] every surface document starts with,
-//! the [`links`] the daemon and the surfaces talk through, the [`hooks`] that read services and
-//! settings, the active workspace's [`look`], the timed [`machine`]s, [`menu`] popups, [`status`]
-//! glyphs, [`widgets`] both the notification center and the desktop draw, and the surfaces:
-//! bar, wallpaper, dock, launcher, OSD, control center, power menu, notification banners and
-//! notification center, the screenshot thumbnail, hot corners, the desktop widget layer, and the
-//! own lock screen, polkit prompt and app switcher.
+//! What every surface shares: the [`root`] every surface document starts with, the [`surface`]
+//! seam the daemon spawns them through, the [`links`] the daemon and the surfaces talk through,
+//! the [`hooks`] that read services and settings, the active workspace's [`look`], the timed
+//! [`machine`]s, [`menu`] popups, [`status`] glyphs, the [`notification_card`] and the
+//! [`widgets`] more than one surface draws, the app icons, and (behind the `harness` feature)
+//! the fake services and the harness that drive a surface in a test. The surfaces themselves
+//! live in `sill-overlays`, `sill-notify-ui`, `sill-widgets-ui`, `sill-dock`,
+//! `sill-launcher-ui` and `sill-bar`.
 //!
 //! Surfaces read shared state only through [`hooks`], which read `crate::services::Services` and
 //! `settings::SettingsFeed` from the root context with `shell_host::use_watch`. Nothing
@@ -28,7 +29,4 @@ pub mod settings;
 pub mod shell_style;
 pub mod status;
 pub mod surface;
-pub mod surfaces;
 pub mod widgets;
-
-pub use surfaces::bar::Bar;

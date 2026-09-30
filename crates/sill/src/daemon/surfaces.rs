@@ -5,6 +5,7 @@
 use shell_host::SurfaceId;
 use shell_host::{HostCtx, HostRoot, OutputInfo};
 use shell_host::{Size as BufferSize, buffer_size};
+use sill_bar::Bar;
 use sill_dock::Dock;
 use sill_launcher_ui::{Launcher, LauncherCatcher};
 use sill_model::ids::OutputName;
@@ -12,7 +13,6 @@ use sill_model::wallpaper::WallpaperCommand;
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
 use sill_settings::{ShellFile, WallpaperDrawer};
-use sill_ui_kit::Bar;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::links::PlacementFile;
 use sill_ui_kit::services::Services;

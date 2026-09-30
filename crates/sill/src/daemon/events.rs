@@ -6,6 +6,7 @@ use std::time::Instant;
 
 use ds_settings::Store;
 use shell_host::{CloseReason, HostCtx, HostEvent, KeyboardFocus, SurfaceId, SurfaceOp};
+use sill_bar::Bar;
 use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
@@ -14,7 +15,6 @@ use sill_model::displays::DisplaysCommand;
 use sill_notify_ui::{Banners, ScreenshotThumb};
 use sill_overlays::PowerMenu;
 use sill_settings::ShellFile;
-use sill_ui_kit::Bar;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::links::Transient;
 use sill_ui_kit::services::Services;

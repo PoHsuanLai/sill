@@ -6,6 +6,7 @@
 use std::time::Duration;
 
 use ds_lint::{LintConfig, Profile, markup, stylesheet};
+use sill_bar::Bar;
 use sill_dock::Dock;
 use sill_launcher::WindowKey;
 use sill_launcher_ui::{Launcher, LauncherCatcher};
@@ -26,7 +27,6 @@ use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
 use sill_overlays::{IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
 use sill_settings::{AutoHide, ShellFile};
-use sill_ui_kit::Bar;
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
     BannerLink, BannerOutput, CenterLink, ControlCenterLink, Dir, EditWidgetsLink, LauncherLink,
@@ -47,7 +47,7 @@ struct SurfaceCase {
 const SURFACES: &[SurfaceCase] = &[
     SurfaceCase {
         name: "bar",
-        css: sill_ui_kit::surfaces::bar::BAR_CSS,
+        css: sill_bar::bar::BAR_CSS,
         states: bar_states,
     },
     SurfaceCase {

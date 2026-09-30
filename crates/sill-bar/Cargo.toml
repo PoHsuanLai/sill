@@ -1,0 +1,36 @@
+[package]
+name = "sill-bar"
+description = "The menu bar, its menus and tray, and the control center it hangs."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+dioxus = { workspace = true }
+ds = { workspace = true }
+ds-native = { workspace = true }
+ds-settings = { workspace = true, features = ["dioxus"] }
+ds-shell = { workspace = true }
+image = { workspace = true }
+shell-host = { workspace = true }
+sill-launcher = { workspace = true }
+sill-model = { workspace = true }
+sill-services = { workspace = true }
+sill-settings = { workspace = true }
+sill-ui-kit = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+sill-ui-kit = { workspace = true, features = ["harness"] }
+dioxus-ssr = { workspace = true }
+ds-lint = { workspace = true }
+shell-host = { workspace = true, features = ["debug-inject"] }
+
+[[example]]
+name = "bar_demo"
+
+[lints]
+workspace = true
