@@ -5,7 +5,7 @@
 
 use sill_model::units::Stamp;
 
-use super::deck::{Deck, DeckOut, Entry, Speak, arrive, feed};
+use super::deck::{Deck, DeckOut, Entry, KeyFocus, Speak, arrive, feed};
 use super::stack::Card;
 use super::step::{Banner, BannerIn, BannerParams, Persistence, step};
 
@@ -54,6 +54,20 @@ fn refresh(e: Entry, card: Card, now: Stamp, p: &BannerParams) -> Entry {
             step(
                 entering,
                 BannerIn::Entered,
+                now,
+                Persistence::of(card.life),
+                p,
+            )
+            .0
+        }
+        (_, banner) => banner,
+    };
+    // A card the keyboard is on keeps its hold paused through a newer notification.
+    let banner = match (e.keys, banner) {
+        (KeyFocus::Held, Banner::Shown { .. }) => {
+            step(
+                banner,
+                BannerIn::HoverIn,
                 now,
                 Persistence::of(card.life),
                 p,

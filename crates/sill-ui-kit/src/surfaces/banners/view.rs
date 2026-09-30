@@ -16,13 +16,15 @@ use sill_services::NotificationsService;
 use sill_settings::{BannerEntry, BannerPosition, NotificationsSettings};
 
 use super::deck::{DeckIn, Entry, EntryKey, Showing};
+use super::deck_keys::KeysIn;
 use super::elements::{CardShape, Regions, element_regions};
 use super::io::{Column, use_column};
+use super::keys::banner_key;
 use super::layer::ROOM;
 use super::stack::stack;
 use super::step::{BannerIn, BannerParams};
 use crate::hooks::{use_control, use_service_part, use_settings};
-use crate::links::BannerLink;
+use crate::links::{BannerLink, KeyWhat, Transient};
 use crate::notification_card::{
     CardPart, CardPlace, CardPress, NoteCard, notification_metrics, part_id, wall_now,
 };
@@ -53,13 +55,14 @@ pub(super) fn banners(output: OutputInfo) -> Element {
 #[component]
 fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> Element {
     let control = use_control::<NotificationsService>();
-    let column = use_column(BannerParams::new(&settings), control);
-    let live = use_service_part::<NotificationsService, _>(|notes| notes.live.clone());
     let link = use_context::<BannerLink>();
+    let column = use_column(BannerParams::new(&settings), control, link.clone());
+    let live = use_service_part::<NotificationsService, _>(|notes| notes.live.clone());
     let shows = use_watch(link.subscribe());
     let max = usize::from(settings.stack_max.0);
     use_follow_stack(column, live, shows, output, max);
     use_map_while_showing(column);
+    use_keyboard_asks(column, &link);
     let deck = (column.deck)();
     let shapes: Vec<CardShape> = deck
         .drawn()
@@ -87,6 +90,13 @@ fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> 
             class: "sill-banners",
             "data-corner": corner_slug(settings.banner_position),
             style,
+            onkeydown: move |event: KeyboardEvent| {
+                if let Some(input) = banner_key(&event.key(), settings.banner_position) {
+                    event.prevent_default();
+                    event.stop_propagation();
+                    column.keys(input);
+                }
+            },
             BannerStack {
                 banners,
                 position: position(settings.banner_position),
@@ -179,6 +189,25 @@ fn use_follow_stack(
         column.keep(&banners);
         column.input(DeckIn::Cards(cards));
     }));
+}
+
+/// Follow the link's keyboard events: `sill focus-latest` choosing the banners, and the
+/// compositor taking the keyboard away.
+fn use_keyboard_asks(column: Column, link: &BannerLink) {
+    let keys = use_watch(link.subscribe_keys());
+    let mut heard = use_hook(|| CopyValue::new(keys.peek().serial));
+    use_effect(move || {
+        let event = *keys.read();
+        if *heard.peek() == event.serial {
+            return;
+        }
+        heard.set(event.serial);
+        match event.what {
+            KeyWhat::Asked(Transient::Banner) => column.keys(KeysIn::Asked),
+            KeyWhat::Lost(Transient::Banner) => column.keys(KeysIn::Lost),
+            KeyWhat::Idle | KeyWhat::Asked(_) | KeyWhat::Lost(_) => {}
+        }
+    });
 }
 
 /// Keep the surface's input and blur regions on `regions`, sending them only when they change.

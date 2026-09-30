@@ -10,12 +10,20 @@
 //! cards show (`stack.rs`) and how they follow the service over time (`deck.rs`); what each
 //! decision tells the service (`commands.rs`); and the input and blur regions (`elements.rs`).
 //! The card's words are `notification_card`, shared with the notification center.
+//!
+//! The column never takes the keyboard on appear. `sill focus-latest` asks for it through the
+//! link, which names the banners when they appeared after the screenshot thumbnail; the newest
+//! card then holds it (`deck_keys.rs`, pure) and its hold pauses, arrows move along the stack,
+//! Escape, Delete and Backspace dismiss and hand it on, and every way out gives it back
+//! (`keys.rs` is the keymap, `io.rs` sets the surface's `Exclusive` and `None`).
 
 mod commands;
 mod deck;
 mod deck_cards;
+mod deck_keys;
 mod elements;
 mod io;
+mod keys;
 mod layer;
 mod stack;
 mod step;

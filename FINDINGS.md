@@ -354,14 +354,24 @@ A settled item is deleted, not marked closed.
   the keyboard away, sets `None` again, and the hold is paused while the card holds it.
   Escape dismisses like the hold running out (the file is kept); Delete and Backspace are the
   Delete button; Enter and Space are quire's picture.
+- **The banners take the keyboard the same way**, one card at a time. The transients tell
+  `BannerLink` when a card appears and when none is up; `sill focus-latest` asks it, and it names
+  the one that appeared last (`KeyWhat::Asked(Transient)`), so only that surface answers (the
+  compositor's focus loss names its surface the same way). The keyboard goes to the newest
+  listed card's plate (quire's `NotificationCard` plate is a focusable button: Enter and Space
+  press it, Tab walks its action buttons, which activate on Enter) and pauses that card's hold
+  only (`Entry::keys`, folded with the pointer so the hold resumes when neither is on it). Up and
+  Down follow the stack as drawn (newest at the top or the bottom, by `banner_position`), the ends
+  do not wrap, and the thumbnail is a separate surface they never reach. Escape, Delete and
+  Backspace dismiss the card and hand the keyboard to the next older card (else the newer); a
+  press, a swipe or the service dropping the holder gives it back instead, as does the last one
+  leaving. The notification card has no reply field; when it gets one, Tab reaches it by
+  document order.
 
 ## Open items
 
 ### sill
 
-- **G368** The banners take no keyboard (`KeyboardMode::None`, no keymap, nothing focusable
-  to ask for), so `sill focus-latest` reaches the screenshot thumbnail only. Ends when a banner
-  can hold the keyboard: the verb then picks the newer of the thumbnail and the newest banner.
 - **G352** The control center has no sink list: the volume service follows only the default sink.
 - **G360** No desktop context menu, so Edit Widgets opens only from the center's button and
   `sill widgets edit`.
@@ -411,7 +421,9 @@ A settled item is deleted, not marked closed.
 - **Q580** Enter and Space on a focused `IconButton` do nothing under Blitz (no keyboard
   activation for a `button`, and quire's `IconButton` has no key handler), so the thumbnail's
   Delete button reached by Tab cannot be pressed from the keyboard; Delete and Backspace
-  reach the same action from anywhere on the card.
+  reach the same action from anywhere on the card. The same holds for the notification card's
+  close button (a bare `button`): Tab reaches it, Enter does nothing; Escape, Delete and
+  Backspace close the card from anywhere on it. quire's `Button` (the card's actions) is fine.
 - **Q3** No per-workspace look store; `use_space_look` computes the preset for the position.
 - **Q4** ds-settings' file I/O and watch are fixed to `appearance.toml`; sill repeats them.
 - **Q20** The tray's dbusmenu popup is not part of the bar's menu session.

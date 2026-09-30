@@ -15,6 +15,7 @@ use sill_model::notifications::NotificationsCommand;
 use sill_model::units::Stamp;
 
 use super::commands::leave_commands;
+use super::deck_keys::{KeysIn, keys, release_leavers};
 use super::stack::Card;
 use super::step::{Banner, BannerIn, BannerOut, BannerParams, Deadline, Persistence, step};
 
@@ -38,9 +39,24 @@ pub struct Entry {
     pub card: Card,
     pub banner: Banner,
     pub pointer: Pointer,
+    pub keys: KeyFocus,
+}
+
+/// Whether the keyboard is on a card: only when the person asked for it, and on one card at a
+/// time.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum KeyFocus {
+    Held,
+    #[default]
+    Away,
 }
 
 impl Entry {
+    /// Whether the pointer or the keyboard is on it: its hold is paused.
+    fn held(&self) -> bool {
+        self.pointer == Pointer::Over || self.keys == KeyFocus::Held
+    }
+
     /// Whether it has started to leave (or has gone).
     pub fn leaving(&self) -> bool {
         matches!(self.banner, Banner::Leaving { .. } | Banner::Gone)
@@ -51,7 +67,7 @@ impl Entry {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Deck {
     pub entries: Vec<Entry>,
-    next: u32,
+    pub(super) next: u32,
 }
 
 /// What reaches the deck.
@@ -65,6 +81,8 @@ pub enum DeckIn {
     Card(EntryKey, BannerIn),
     /// A hold may have run out.
     Tick,
+    /// The keyboard, asked for, moved or given back (`deck_keys.rs`).
+    Keys(KeysIn),
 }
 
 /// What the column must do.
@@ -74,6 +92,12 @@ pub enum DeckOut {
     Rise(EntryKey),
     /// Tell the service.
     Send(NotificationsCommand),
+    /// Ask the compositor for the keyboard and put the focus on this card.
+    TakeKeyboard(EntryKey),
+    /// The keyboard stays; put the focus on this card.
+    FocusCard(EntryKey),
+    /// Give the keyboard back to what had it.
+    ReleaseKeyboard,
 }
 
 impl Deck {
@@ -126,10 +150,14 @@ pub enum Showing {
 pub fn advance(deck: Deck, input: DeckIn, now: Stamp, p: &BannerParams) -> (Deck, Vec<DeckOut>) {
     let mut out = Vec::new();
     let (keyed, input) = match input {
-        DeckIn::Cards(cards) => return super::deck_cards::follow(deck, cards, now, p),
+        DeckIn::Cards(cards) => {
+            let (deck, out) = super::deck_cards::follow(deck, cards, now, p);
+            return release_leavers(deck, out);
+        }
         DeckIn::Risen(key) => (Some(key), BannerIn::Entered),
         DeckIn::Card(key, input) => (Some(key), input),
         DeckIn::Tick => (None, BannerIn::Tick),
+        DeckIn::Keys(input) => return keys(deck, input, now, p),
     };
     let entries = deck
         .entries
@@ -140,7 +168,7 @@ pub fn advance(deck: Deck, input: DeckIn, now: Stamp, p: &BannerParams) -> (Deck
         })
         .filter(|e| e.banner != Banner::Gone)
         .collect();
-    (Deck { entries, ..deck }, out)
+    release_leavers(Deck { entries, ..deck }, out)
 }
 
 /// Whether a card's leaving is told to the service.
@@ -151,8 +179,10 @@ pub(super) enum Speak {
     No,
 }
 
-/// `e` after `input`, its effects appended to `out`. A card the pointer is over is hovered again
-/// as soon as it is shown (after it rose, or after a newer notification restarted its hold).
+/// `e` after `input`, its effects appended to `out`. The pointer and the keyboard each pause the
+/// hold, and it resumes only when neither is on the card; the machine hears the pause as hover.
+/// A held card is paused again as soon as it is shown (after it rose, or after a newer
+/// notification restarted its hold).
 pub(super) fn feed(
     e: Entry,
     input: BannerIn,
@@ -161,16 +191,31 @@ pub(super) fn feed(
     out: &mut Vec<DeckOut>,
     speak: Speak,
 ) -> Entry {
-    let pointer = match input {
-        BannerIn::HoverIn => Pointer::Over,
-        BannerIn::HoverOut => Pointer::Away,
-        _ => e.pointer,
+    let held = e.held();
+    let (pointer, keys) = match input {
+        BannerIn::HoverIn => (Pointer::Over, e.keys),
+        BannerIn::HoverOut => (Pointer::Away, e.keys),
+        BannerIn::KeysIn => (e.pointer, KeyFocus::Held),
+        BannerIn::KeysOut => (e.pointer, KeyFocus::Away),
+        _ => (e.pointer, e.keys),
     };
-    let e = apply(Entry { pointer, ..e }, input, now, p, out, speak);
-    match (e.pointer, e.banner, input) {
-        (Pointer::Over, Banner::Shown { .. }, other) if other != BannerIn::HoverIn => {
-            apply(e, BannerIn::HoverIn, now, p, out, speak)
+    let e = Entry { pointer, keys, ..e };
+    let heard = match input {
+        BannerIn::HoverIn | BannerIn::HoverOut | BannerIn::KeysIn | BannerIn::KeysOut => {
+            match (held, e.held()) {
+                (false, true) => Some(BannerIn::HoverIn),
+                (true, false) => Some(BannerIn::HoverOut),
+                _ => None,
+            }
         }
+        other => Some(other),
+    };
+    let e = match heard {
+        Some(heard) => apply(e, heard, now, p, out, speak),
+        None => e,
+    };
+    match (e.held(), e.banner) {
+        (true, Banner::Shown { .. }) => apply(e, BannerIn::HoverIn, now, p, out, speak),
         _ => e,
     }
 }
@@ -202,6 +247,7 @@ pub(super) fn arrive(deck: &mut Deck, card: Card, now: Stamp, out: &mut Vec<Deck
         card,
         banner: Banner::Entering { since: now },
         pointer: Pointer::Away,
+        keys: KeyFocus::Away,
     });
     out.push(DeckOut::Rise(key));
 }

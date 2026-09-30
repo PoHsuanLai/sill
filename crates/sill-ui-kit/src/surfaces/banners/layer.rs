@@ -1,7 +1,7 @@
 //! The banners' layer surface (design/20 §1.6, design/13 §13.3.6): Overlay, a column down the
 //! output's right edge (`TOP | RIGHT | BOTTOM`, so a stack of any height fits and
 //! `notifications.banner_position` only moves the cards inside it), exclusive zone `Auto` (clear
-//! of the bar's reserve above and the dock's below, as the OSD), no keyboard.
+//! of the bar's reserve above and the dock's below, as the OSD), no keyboard until `sill focus-latest` asks (the surface then sets `Exclusive`, `io.rs`).
 //!
 //! Input and blur start empty: the surface sets both to its cards' element regions
 //! (`elements.rs`, through `shell_host::use_surface`) as they enter and leave, so the

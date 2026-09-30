@@ -4,7 +4,8 @@
 //! hold; a press on the card invokes `default`; the close button dismisses it; a drag past
 //! quire's threshold swipes it away (`SwipeAway`), a short one springs back; a link in the body
 //! keeps its press; one app's banners group into one card with a count and two layers; a card
-//! the service dropped leaves silently; and another output's column draws nothing.
+//! the service dropped leaves silently; another output's column draws nothing; and the keyboard
+//! ([`keys`]) is asked for and never taken.
 
 use std::time::Duration;
 
@@ -19,6 +20,8 @@ use sill_settings::{NotificationsSettings, ShellFile};
 use sill_ui_kit::Banners;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{BannerLink, BannerOutput};
+
+mod keys;
 
 type Running = SurfaceHarness<Banners>;
 
