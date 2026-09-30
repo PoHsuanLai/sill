@@ -25,19 +25,22 @@ use sill_model::screenshots::{Shot, ShotId, ShotPreview, Shots};
 use sill_model::session::Session;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
-use sill_overlays::{IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
+use sill_overlays::{HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
 use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
-    BannerLink, BannerOutput, CenterLink, ControlCenterLink, Dir, EditWidgetsLink, LauncherLink,
-    LevelSource, LockLink, OsdKind, OsdLink, PlacementFile, PowerMenuLink, Preselect, PromptOutput,
-    SwitcherAsk, SwitcherLink,
+    BannerLink, BannerOutput, CenterLink, ControlCenterLink, Corner, CornerLink, Dir,
+    EditWidgetsLink, LauncherLink, LevelSource, LockLink, OsdKind, OsdLink, PlacementFile,
+    PowerMenuLink, Preselect, PromptOutput, SwitcherAsk, SwitcherLink,
 };
+use sill_ui_kit::surface::{LockSurface, Surface};
 use sill_widgets_ui::{DesktopWidgets, EditWidgets};
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
 struct SurfaceCase {
     name: &'static str,
+    /// The surface's name, the `data-surface` of its root: public selector surface.
+    surface: &'static str,
     /// The surface's own stylesheet; empty when quire's alone styles it.
     css: &'static str,
     /// The document the surface draws in each state, named: what the harness's `html` says.
@@ -47,86 +50,103 @@ struct SurfaceCase {
 const SURFACES: &[SurfaceCase] = &[
     SurfaceCase {
         name: "bar",
+        surface: <Bar as Surface>::NAME,
         css: sill_bar::bar::BAR_CSS,
         states: bar_states,
     },
     SurfaceCase {
         name: "dock",
+        surface: <Dock as Surface>::NAME,
         css: sill_dock::dock::DOCK_CSS,
         states: dock_states,
     },
     SurfaceCase {
         name: "launcher",
+        surface: <Launcher as Surface>::NAME,
         css: sill_launcher_ui::launcher::LAUNCHER_CSS,
         states: launcher_states,
     },
     SurfaceCase {
         name: "launcher_catcher",
+        surface: <LauncherCatcher as Surface>::NAME,
         css: sill_launcher_ui::launcher::LAUNCHER_CSS,
         states: launcher_catcher_states,
     },
     SurfaceCase {
         name: "desktop_widgets",
+        surface: <DesktopWidgets as Surface>::NAME,
         css: sill_widgets_ui::desktop::DESKTOP_WIDGETS_CSS,
         states: desktop_widgets_states,
     },
     SurfaceCase {
         name: "edit_widgets",
+        surface: <EditWidgets as Surface>::NAME,
         css: sill_widgets_ui::edit::EDIT_WIDGETS_CSS,
         states: edit_widgets_states,
     },
     SurfaceCase {
         name: "osd",
+        surface: <Osd as Surface>::NAME,
         css: sill_overlays::osd::OSD_CSS,
         states: osd_states,
     },
     SurfaceCase {
         name: "idle_dim",
+        surface: <IdleDim as Surface>::NAME,
         css: "",
         states: idle_dim_states,
     },
     SurfaceCase {
         name: "lock",
+        surface: <Lock as LockSurface>::NAME,
         css: sill_overlays::lock::LOCK_CSS,
         states: lock_states,
     },
     SurfaceCase {
         name: "banners",
+        surface: <Banners as Surface>::NAME,
         css: sill_notify_ui::banners::BANNERS_CSS,
         states: banners_states,
     },
     SurfaceCase {
         name: "notification_center",
+        surface: <NotificationCenter as Surface>::NAME,
         css: sill_notify_ui::notification_center::NOTIFICATION_CENTER_CSS,
         states: notification_center_states,
     },
     SurfaceCase {
         name: "screenshot_thumb",
+        surface: <ScreenshotThumb as Surface>::NAME,
         css: sill_notify_ui::screenshot_thumb::SCREENSHOT_THUMB_CSS,
         states: screenshot_thumb_states,
     },
     SurfaceCase {
         name: "hot_corners",
+        surface: <HotCorners as Surface>::NAME,
         css: sill_overlays::hot_corners::HOT_CORNERS_CSS,
-        states: no_states,
+        states: hot_corners_states,
     },
     SurfaceCase {
         name: "wallpaper",
+        surface: <Wallpaper as Surface>::NAME,
         css: sill_overlays::wallpaper::WALLPAPER_CSS,
         states: wallpaper_states,
     },
     SurfaceCase {
         name: "power_menu",
+        surface: <PowerMenu as Surface>::NAME,
         css: sill_overlays::power_menu::POWER_MENU_CSS,
         states: power_menu_states,
     },
     SurfaceCase {
         name: "switcher",
+        surface: <Switcher as Surface>::NAME,
         css: sill_overlays::switcher::SWITCHER_CSS,
         states: switcher_states,
     },
     SurfaceCase {
         name: "polkit_prompt",
+        surface: <PolkitPrompt as Surface>::NAME,
         css: "",
         states: polkit_prompt_states,
     },
@@ -143,11 +163,13 @@ fn strict() -> LintConfig {
     }
 }
 
-/// A surface with no markup of its own to lint: a bare element the stylesheet sizes.
-fn no_states() -> Vec<(&'static str, String)> {
-    Vec::new()
+/// The top left corner's square.
+fn hot_corners_states() -> Vec<(&'static str, String)> {
+    let mut corner =
+        SurfaceHarness::<HotCorners>::setup(CornerLink::new(), Corner::TopLeft).start();
+    corner.harness.advance(Duration::ZERO);
+    vec![("top_left", corner.harness.html())]
 }
-
 /// The bar with its default items, settled.
 fn bar_states() -> Vec<(&'static str, String)> {
     let mut bar = SurfaceHarness::<Bar>::setup(ControlCenterLink::new(), ()).start();
@@ -538,4 +560,27 @@ fn the_banner_stack_names_no_motion_of_its_own() {
             "{motion}: the stack's motion is quire's"
         );
     }
+}
+
+#[test]
+fn every_surface_root_names_itself_for_the_person_stylesheet() {
+    for case in SURFACES {
+        let attribute = format!("data-surface=\"{}\"", case.surface);
+        for (state, html) in (case.states)() {
+            assert!(
+                html.matches(&attribute).count() == 1,
+                "{} ({state}): one root carries {attribute}: {html}",
+                case.name
+            );
+        }
+    }
+}
+
+#[test]
+fn the_surface_names_are_unique() {
+    let mut names: Vec<&str> = SURFACES.iter().map(|case| case.surface).collect();
+    names.sort_unstable();
+    let before = names.len();
+    names.dedup();
+    assert_eq!(names.len(), before, "two surfaces share a name");
 }
