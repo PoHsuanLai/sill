@@ -230,13 +230,21 @@ fn after(out: Vec<DeckOut>, setup: usize) -> Vec<DeckOut> {
     out.into_iter().skip(setup).collect()
 }
 
+/// One row of the keyboard table: name, inputs, who holds the keyboard after, the effects.
+type KeyCase = (
+    &'static str,
+    Vec<(u64, DeckIn)>,
+    Vec<EntryKey>,
+    Vec<DeckOut>,
+);
+
 #[test]
 fn the_keyboard_table() {
     use DeckOut::{FocusCard, ReleaseKeyboard, Send, TakeKeyboard};
     use KeysIn::{Asked, Dismissed, Lost, Moved};
     use Neighbour::{Newer, Older};
     let dismiss = |id| Send(NotificationsCommand::Dismiss(NotificationId(id)));
-    let cases: Vec<(&str, Vec<(u64, DeckIn)>, Vec<EntryKey>, Vec<DeckOut>)> = vec![
+    let cases: Vec<KeyCase> = vec![
         ("nothing to ask", vec![keys(Asked)], vec![], vec![]),
         (
             "ask takes the newest",
