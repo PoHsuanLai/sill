@@ -1833,6 +1833,7 @@ dependencies = [
  "arboard",
  "blitz-dom",
  "blitz-html",
+ "blitz-kit",
  "blitz-paint",
  "blitz-shell",
  "blitz-traits",
@@ -1850,7 +1851,6 @@ dependencies = [
  "tokio",
  "webbrowser",
  "wgpu",
- "wgpu_context",
 ]
 
 [[package]]
@@ -1882,6 +1882,7 @@ dependencies = [
  "anyrender_vello_hybrid",
  "blitz-dom",
  "blitz-html",
+ "blitz-kit",
  "blitz-paint",
  "blitz-traits",
  "dioxus",
