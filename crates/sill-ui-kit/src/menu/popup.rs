@@ -5,7 +5,7 @@
 //! Reads [`PopupLook`] and [`PopupRoom`] from the root context.
 
 use dioxus::prelude::*;
-use ds::{Anchor, BlurState, Ds, Material, Menu, MenuKind, Point, RootExtent};
+use ds::{Anchor, BlurState, Ds, Material, Menu, Point, RootExtent};
 
 use super::frame::PopupFrame;
 use super::look::{PopupLook, PopupRoom};
@@ -39,10 +39,10 @@ pub fn MenuPopup<Model: MenuModel>(
                 surface: root.surface,
                 user_style: root.user_style,
                 Menu {
-                    kind: MenuKind::Context,
+                    placement: ds::MenuPlacement::Context,
                     // The frame lays the card in flow: the anchor places nothing.
                     anchor: Anchor::Point(Point::default()),
-                    entries: model.entries(),
+                    items: model.entries(),
                     onpick: on_pick,
                     onclose: on_close,
                 }

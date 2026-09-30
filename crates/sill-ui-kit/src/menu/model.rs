@@ -2,7 +2,7 @@
 //! surface writes an `impl MenuModel` for its menu and its own `Pick` enum; the popup, the
 //! tracking and the keyboard are not its business.
 
-use ds::MenuEntry;
+use ds::MenuItem;
 
 /// A menu's contents.
 pub trait MenuModel: Clone + PartialEq + 'static {
@@ -10,5 +10,5 @@ pub trait MenuModel: Clone + PartialEq + 'static {
     type Pick: Clone + PartialEq + 'static;
 
     /// The entries, top to bottom, each carrying its pick.
-    fn entries(&self) -> Vec<MenuEntry<Self::Pick>>;
+    fn entries(&self) -> Vec<MenuItem<Self::Pick>>;
 }

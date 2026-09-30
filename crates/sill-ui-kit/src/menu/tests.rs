@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::{Alpha, Appearance, Availability, MaterialStack, MenuEntry, MenuTrail, ShellMetrics};
+use ds::{Alpha, Appearance, Availability, MaterialStack, MenuItem, ShellMetrics};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use ds_settings::UserStyle;
 use sill_settings::ShellFile;
@@ -34,15 +34,14 @@ struct Numbers;
 impl MenuModel for Numbers {
     type Pick = u8;
 
-    fn entries(&self) -> Vec<MenuEntry<u8>> {
+    fn entries(&self) -> Vec<MenuItem<u8>> {
         [(1, "First"), (2, "Second")]
             .into_iter()
-            .map(|(value, title)| MenuEntry::Item {
-                value,
+            .map(|(value, title)| MenuItem::Item {
+                value: value,
                 title: title.to_owned(),
-                detail: None,
-                tile: None,
-                trail: MenuTrail::None,
+                image: None,
+                key: None,
                 check: None,
                 availability: Availability::Enabled,
             })
