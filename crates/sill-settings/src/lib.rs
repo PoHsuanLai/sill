@@ -54,8 +54,8 @@ pub use launcher::LauncherSettings;
 pub use launcher_kinds::{ClipboardHistory, CurrencyRates, EmojiSkinTone, FilesBackend, WebSearch};
 pub use menus::MenusSettings;
 pub use notifications::{
-    BannerEntry, BannerMaterial, BannerPosition, BannerStyle, Dnd, NotificationServer,
-    NotificationSwipe, NotificationsSettings,
+    BannerMaterial, BannerPosition, BannerStyle, Dnd, NotificationServer, NotificationSwipe,
+    NotificationsSettings,
 };
 pub use osd::{OsdEnabled, OsdPosition, OsdSettings};
 pub use power_menu::{PowerMenuDefault, PowerMenuSettings};

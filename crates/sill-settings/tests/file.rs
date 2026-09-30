@@ -155,7 +155,8 @@ fn a_retired_key_is_reported_unknown() {
     write(
         &dir,
         b"[dock]\nposition = \"bottom\"\n[session]\nuser_picture = \"auto\"\n\
-          [spaces]\nlookup_order = \"by_id_then_index\"\n[control_center]\nmaterial = \"sheet\"\n",
+          [spaces]\nlookup_order = \"by_id_then_index\"\n[control_center]\nmaterial = \"sheet\"\n\
+          [notifications]\nbanner_entry_direction = \"from_right\"\n",
     );
     let loaded = store(&dir).load::<ShellFile>();
     let unknown: Vec<&str> = loaded.unknown.iter().map(|k| k.0.as_str()).collect();
@@ -164,6 +165,7 @@ fn a_retired_key_is_reported_unknown() {
         [
             "control_center.material",
             "dock.position",
+            "notifications.banner_entry_direction",
             "session.user_picture",
             "spaces.lookup_order"
         ]

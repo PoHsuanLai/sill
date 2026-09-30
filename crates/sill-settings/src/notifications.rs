@@ -33,16 +33,6 @@ pub enum BannerStyle {
     None,
 }
 
-/// `notifications.banner_entry_direction` (design/05 §12 open decision 7).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
-#[serde(rename_all = "snake_case")]
-#[word(case = snake)]
-pub enum BannerEntry {
-    #[default]
-    FromRight,
-    FromBelow,
-}
-
 /// `notifications.banner_material` (design/13 §13.9 open decision 7).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
@@ -175,13 +165,6 @@ pub struct NotificationsSettings {
     )]
     pub banner_hold_ms: Ms,
     #[settings(
-        label = "Banner entrance",
-        help = "Which way banners slide in.",
-        section = "Banners",
-        advanced
-    )]
-    pub banner_entry_direction: BannerEntry,
-    #[settings(
         label = "Time after hover",
         help = "The least time a banner stays after the pointer leaves it.",
         section = "Banners",
@@ -311,7 +294,6 @@ impl Default for NotificationsSettings {
             banner_padding_px: Px(12),
             icon_px: Px(32),
             banner_hold_ms: Ms(5200),
-            banner_entry_direction: BannerEntry::FromRight,
             hover_min_remaining_ms: Ms(1500),
             close_button_px: Px(18),
             swipe_dismiss_px: Px(80),
