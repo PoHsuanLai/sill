@@ -10,8 +10,8 @@
 
 use dioxus::prelude::*;
 use ds::{
-    Align, Anchor, BlurState, Ds, Material, Menu, Placement, Point, Popover, Press, Px,
-    RootExtent, Side,
+    Align, Anchor, BlurState, Ds, Material, Menu, Placement, Point, Popover, Press, Px, RootExtent,
+    Side,
 };
 use shell_host::{PopupPlacement, SurfaceOp, use_surface, use_watch};
 use sill_model::ids::OutputName;
