@@ -4,12 +4,13 @@
 
 use crate::file::ShellFile;
 use crate::section::Section;
+use ds_core::word::Word;
 use ds_settings::Count;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
 
 /// `spaces.default_card_accent`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum DefaultCardAccent {
@@ -20,7 +21,7 @@ pub enum DefaultCardAccent {
 
 /// `spaces.wallpaper_drawer`: who paints the desktop background. `Shell` (default) spawns sill's
 /// own wallpaper surface on every output; `Cosmic` leaves it to COSMIC's own `cosmic-bg`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum WallpaperDrawer {

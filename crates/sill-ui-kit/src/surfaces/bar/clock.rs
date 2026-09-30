@@ -3,7 +3,8 @@
 //! `MenuBarItem`, on while the center is open here.
 
 use dioxus::prelude::*;
-use ds::{Button, ButtonVariant, Common, Emphasis, MenuBarItem, Shown};
+use ds::{Button, ButtonVariant, Common, Emphasis, Shown};
+use ds_shell::MenuBarItem;
 use shell_host::{OutputInfo, use_watch};
 
 use crate::hooks::{use_service, use_settings};

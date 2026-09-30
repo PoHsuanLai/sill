@@ -28,7 +28,7 @@ struct Shown {
 #[allow(non_snake_case)]
 fn Root(shown: Shown) -> Element {
     rsx! {
-        Ds { appearance: ds::Appearance::default(), material: Material::Toast,
+        Ds { sheet: Some(ds_shell::stylesheet()), appearance: ds::Appearance::default(), material: Material::Toast,
             NoteCard {
                 note: shown.note,
                 count: shown.count,

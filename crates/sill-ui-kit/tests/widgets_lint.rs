@@ -9,8 +9,8 @@ use std::cell::RefCell;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::lint::{LintConfig, Profile, assert_clean, markup};
 use ds::{Ds, Material, RootExtent};
+use ds_lint::{LintConfig, Profile, assert_clean, markup};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::harness::SurfaceHarness;
@@ -34,14 +34,14 @@ const ALL: [WidgetKind; 5] = [
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::new(&ds::kits())
+        ..LintConfig::new(&ds_shell::kits())
     }
 }
 
 fn full_css() -> String {
     format!(
         "{}\n{}\n{}\n{}",
-        ds::stylesheet(),
+        ds_shell::stylesheet(),
         widgets_css(),
         DESKTOP_WIDGETS_CSS,
         EDIT_WIDGETS_CSS
@@ -85,7 +85,7 @@ fn app() -> Element {
         WidgetHost::Desktop => Material::Widget,
     };
     rsx! {
-        Ds { appearance: ds::Appearance::default(), material, extent: RootExtent::Viewport,
+        Ds { sheet: Some(ds_shell::stylesheet()), appearance: ds::Appearance::default(), material, extent: RootExtent::Viewport,
             style { {widgets_css()} }
             for kind in ALL {
                 Widget { kind, host }

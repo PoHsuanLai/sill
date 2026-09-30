@@ -3,6 +3,7 @@
 
 use crate::file::ShellFile;
 use crate::section::Section;
+use ds_core::word::Word;
 use ds_settings::schema::Page;
 use ds_settings::{Count, Px};
 use serde::{Deserialize, Serialize};
@@ -10,7 +11,7 @@ use serde::{Deserialize, Serialize};
 /// Which quire material a panel uses. design/22 fixes Sheet for v1, but a one-variant enum
 /// cannot be a settings key (the schema needs at least two words to pick a widget), and
 /// design/20 §1.3 and §1.5 name Popover for the same panels, so both are offered.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum PanelMaterial {
@@ -23,7 +24,7 @@ pub enum PanelMaterial {
 
 /// Whether a module also shows as its own bar item with its own dropdown (macOS's "Show in Menu
 /// Bar"), beside the control center's own item.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum InMenuBar {
@@ -33,7 +34,7 @@ pub enum InMenuBar {
 }
 
 /// One control center module, in `control_center.modules` order.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum ControlCenterModule {

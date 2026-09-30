@@ -7,9 +7,8 @@
 //! surface's input and blur region.
 
 use dioxus::prelude::*;
-use ds::{
-    DragStart, Hover, Icon, NotificationSwipe, Px, ShotThumbnail, Shown, SwipeMetrics, ThumbAction,
-};
+use ds::{Icon, Px, Shown, SwipeMetrics};
+use ds_shell::{DragStart, Hover, NotificationSwipe, ShotThumbnail, ThumbAction};
 use sill_model::screenshots::ShotId;
 
 use super::ghost::GhostLook;

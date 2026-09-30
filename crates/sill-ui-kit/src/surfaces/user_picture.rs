@@ -1,7 +1,7 @@
 //! The person's picture as quire's `LockUser` carries it (`UserPicture`): helpers
 //! shared by the lock screen and the polkit prompt.
 
-use ds::{LockUser, UserPicture};
+use ds_shell::{LockUser, UserPicture};
 
 /// The initial an initials face shows, if the picture is one.
 pub fn initial_of(user: &LockUser) -> Option<char> {

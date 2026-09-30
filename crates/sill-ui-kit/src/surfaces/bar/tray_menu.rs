@@ -32,6 +32,7 @@ pub(crate) fn TrayMenuDocument(
     rsx! {
         PopupFrame { room: INSET, widest: Some(POPUP_WIDTH),
             Ds {
+                sheet: Some(ds_shell::stylesheet()),
                 extent: RootExtent::Popup,
                 appearance: environment.settings.appearance.appearance(),
                 system: environment.system,

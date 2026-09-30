@@ -2,7 +2,7 @@
 //! bottom of Notification Center): quire's `WidgetGallery` in a sheet at the bottom of the
 //! output, where the person adds a widget to the desktop or the notification center or takes
 //! one away (each widget has one size: the gallery previews and adds it and offers no
-//! other). Every choice is a `WidgetEdit` applied through quire's `ds::widget::apply`
+//! other). Every choice is a `WidgetEdit` applied through quire's `ds_shell::widget::apply`
 //! (`crate::widgets::layout::edited`) and written back as the keys and places sill already keeps
 //! (`widgets.center`, `widgets.desktop_widgets`, `desktop-widgets.json`, and `widgets.desktop`
 //! turned on by an add to the desktop) through the [`crate::links::EditWidgetsLink`]'s writer the daemon gives it.

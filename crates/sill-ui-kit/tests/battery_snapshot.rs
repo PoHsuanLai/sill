@@ -53,7 +53,7 @@ fn app() -> Element {
         WidgetHost::Desktop => Material::Widget,
     };
     rsx! {
-        Ds { appearance: ds::Appearance::default(), material, extent: RootExtent::Viewport,
+        Ds { sheet: Some(ds_shell::stylesheet()), appearance: ds::Appearance::default(), material, extent: RootExtent::Viewport,
             style { {widgets_css()} }
             div { style: "padding:24px;",
                 Widget { kind: WidgetKind::Battery, host: world.host }

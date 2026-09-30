@@ -1,9 +1,9 @@
 //! What the desktop layer computes from its places: the last layout, the last drop, each card's
 //! box and paint order, the places a layout or a drop keeps, and the regions the frames take.
 
-use ds::CardPresence;
 use ds::detail::Touch;
 use ds::motion::Release;
+use ds_shell::CardPresence;
 use shell_host::{BlurSpec, ElementId, ElementRegion, RegionSpec};
 use sill_settings::WidgetKind;
 

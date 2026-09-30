@@ -4,7 +4,7 @@
 
 use std::time::Duration;
 
-use ds::lint::{LintConfig, Profile, assert_clean};
+use ds_lint::{LintConfig, Profile, assert_clean};
 use ds_settings::{Environment, IconStyle};
 use sill_launcher::AppId;
 use sill_model::badges::Badges;
@@ -217,7 +217,7 @@ fn the_plate_carries_the_icon_style_under_muted_and_monochrome() {
 fn the_popup_frame_stylesheet_is_clean_under_strict() {
     let strict = LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::new(&ds::kits())
+        ..LintConfig::new(&ds_shell::kits())
     };
     assert_clean(sill_ui_kit::menu::POPUP_FRAME_CSS, &strict);
 }

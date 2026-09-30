@@ -8,7 +8,8 @@
 
 use dioxus::prelude::*;
 use ds::Word;
-use ds::{Icon, TextLine, WidgetContext, WidgetSize, WidgetTitle};
+use ds::{Icon, TextLine};
+use ds_shell::{WidgetContext, WidgetSize, WidgetTitle};
 use sill_model::now_playing::{Abilities, Art, Micros, Playback, Timeline};
 use sill_model::units::{Availability, Stamp};
 
@@ -18,12 +19,12 @@ use super::face::{MediaFace, MediaView, TrackFace, Transport, position_of};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct NowPlaying;
 
-impl ds::Widget for NowPlaying {
+impl ds_shell::Widget for NowPlaying {
     type Entry = MediaFace;
     type Intent = Transport;
 
-    fn kind() -> ds::WidgetKind {
-        ds::WidgetKind::fixed("sill.now-playing")
+    fn kind() -> ds_shell::WidgetKind {
+        ds_shell::WidgetKind::fixed("sill.now-playing")
     }
 
     fn name() -> TextLine {

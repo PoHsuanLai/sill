@@ -12,6 +12,7 @@ publish.workspace = true
 sill-model = { workspace = true }
 dioxus = { workspace = true }
 ds = { workspace = true }
+ds-shell = { workspace = true }
 # `pdf-thumb`: the preview pane's PDF page through `ds_native::PdfFileThumb`.
 ds-native = { workspace = true, features = ["pdf-thumb"] }
 ds-settings = { workspace = true, features = ["dioxus"] }
@@ -43,7 +44,7 @@ harness = []
 # The crate's own tests, demos and integration tests drive surfaces through `harness`.
 sill-ui-kit = { workspace = true, features = ["harness"] }
 # `lint` is off by default: only test builds need `ds::lint::markup`.
-ds = { workspace = true, features = ["lint"] }
+ds-lint = { workspace = true }
 dioxus-ssr = { workspace = true }
 shell-host = { workspace = true, features = ["debug-inject"] }
 

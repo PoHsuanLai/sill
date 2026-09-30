@@ -1,6 +1,6 @@
 //! What the scrim draws for a published dim, and whether the daemon maps the surface.
 
-use ds::IdleDimPhase;
+use ds_shell::IdleDimPhase;
 use shell_host::Visibility;
 use sill_model::idle::{DimLevel, DimShown};
 
@@ -44,7 +44,7 @@ pub fn visibility_of(dim: DimShown) -> Visibility {
 
 #[cfg(test)]
 mod tests {
-    use ds::IdleDimPhase;
+    use ds_shell::IdleDimPhase;
     use shell_host::Visibility;
     use sill_model::idle::{DimLevel, DimShown};
 

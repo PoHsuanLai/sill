@@ -2,7 +2,7 @@
 //! over `calendar.up_next_days` and `calendar.up_next_max`), each a title and a time line, as
 //! [`UpNextEntry`]; "No upcoming events" when there are none, and a quiet line naming the source
 //! state when the calendars are off or unreadable. A new entry on the clock's minute tick. The
-//! widget itself ([`UpNext`], `widget.rs`) is a `ds::Widget` of kind `sill.up-next`. The
+//! widget itself ([`UpNext`], `widget.rs`) is a `ds_shell::Widget` of kind `sill.up-next`. The
 //! same agenda feeds the month widget's events ([`today_events`]), in the same colours.
 //!
 //! `up_next_max` is a ceiling, not a promise. The card's body is a fixed number of pixels
@@ -11,8 +11,9 @@
 //! at most [`EVENT_ROWS`], measured once against a real render (`ds_native::Harness`) rather
 //! than guessed.
 
+use ds::LabelHue;
 use ds::Word;
-use ds::{EventLine, LabelHue};
+use ds_shell::EventLine;
 use jiff::Timestamp;
 use jiff::civil::Date;
 use jiff::tz::TimeZone;
@@ -149,18 +150,24 @@ pub fn up_next_entry(
 }
 
 /// Today's events still to come, as the month widget lists them (its Medium card shows the
-/// first; quire caps the list at `ds::widget::LARGE_EVENTS`): the same agenda and lines Up Next
+/// first; quire caps the list at `ds_shell::widget::LARGE_EVENTS`): the same agenda and lines Up Next
 /// draws.
 pub fn today_events(agenda: &Agenda, now: Timestamp, zone: &TimeZone) -> Vec<EventLine> {
-    up_next(&agenda.events, now, zone, Days(0), ds::widget::LARGE_EVENTS)
-        .iter()
-        .map(|event| {
-            let lines = event_lines(event, now, zone);
-            EventLine {
-                time: lines.when,
-                title: lines.title,
-                hue: calendar_hue(&event.calendar),
-            }
-        })
-        .collect()
+    up_next(
+        &agenda.events,
+        now,
+        zone,
+        Days(0),
+        ds_shell::widget::LARGE_EVENTS,
+    )
+    .iter()
+    .map(|event| {
+        let lines = event_lines(event, now, zone);
+        EventLine {
+            time: lines.when,
+            title: lines.title,
+            hue: calendar_hue(&event.calendar),
+        }
+    })
+    .collect()
 }

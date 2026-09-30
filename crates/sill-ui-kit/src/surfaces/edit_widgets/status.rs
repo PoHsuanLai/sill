@@ -8,7 +8,7 @@
 
 use dioxus::prelude::*;
 use ds::detail::{Detailed, Moment, Touch, use_detail, use_shake};
-use ds::widget::{WidgetEdit, WidgetLayout};
+use ds_shell::widget::{WidgetEdit, WidgetLayout};
 
 use crate::widgets::layout::Refused;
 use crate::widgets::{WidgetHost, WidgetKind, kind_of, registry};
@@ -137,10 +137,10 @@ pub(super) fn EditStatus(outcome: Outcome) -> Element {
 
 #[cfg(test)]
 mod tests {
-    use ds::catalog::PlacementId;
     use ds::detail::{Moment, moment_table};
-    use ds::widget::{LayoutError, Order, WidgetAt, WidgetEdit, WidgetLayout};
-    use ds::{WidgetHost, WidgetSize};
+    use ds_shell::catalog::PlacementId;
+    use ds_shell::widget::{LayoutError, Order, WidgetAt, WidgetEdit, WidgetLayout};
+    use ds_shell::{WidgetHost, WidgetSize};
 
     use super::{EditCount, Outcome, Said, outcome_of};
     use crate::widgets::layout::Refused;

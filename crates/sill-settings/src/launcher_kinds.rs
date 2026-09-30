@@ -1,9 +1,10 @@
 //! The launcher v2 keys' value types.
 
+use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 
 /// `launcher.files_backend`: which file index the launcher's Documents search asks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum FilesBackend {
@@ -19,7 +20,7 @@ pub enum FilesBackend {
 }
 
 /// `launcher.clipboard_history`: whether copied things are kept for the launcher.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum ClipboardHistory {
@@ -31,7 +32,7 @@ pub enum ClipboardHistory {
 }
 
 /// `launcher.emoji_skin_tone`: the tone applied to emoji that take one.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum EmojiSkinTone {
@@ -46,7 +47,7 @@ pub enum EmojiSkinTone {
 }
 
 /// `launcher.web_search`: whether typed text offers "Search the web for …".
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum WebSearch {
@@ -57,7 +58,7 @@ pub enum WebSearch {
 
 /// `launcher.currency`: currency conversion in the calculator, which needs daily rates from the
 /// network.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum CurrencyRates {

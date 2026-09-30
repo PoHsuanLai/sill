@@ -5,7 +5,7 @@
 mod cc_support;
 
 use cc_support::{fake, render};
-use ds::lint::{LintConfig, Profile, Rule, assert_clean, markup};
+use ds_lint::{LintConfig, Profile, Rule, assert_clean, markup};
 use sill_settings::ShellFile;
 
 const CONTROL_CENTER_CSS: &str = include_str!("../src/style/control_center.css");
@@ -13,14 +13,14 @@ const CONTROL_CENTER_CSS: &str = include_str!("../src/style/control_center.css")
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::new(&ds::kits())
+        ..LintConfig::new(&ds_shell::kits())
     }
 }
 
 fn full_css() -> String {
     format!(
         "{}\n{}\n{}",
-        ds::stylesheet(),
+        ds_shell::stylesheet(),
         sill_ui_kit::menu::POPUP_FRAME_CSS,
         CONTROL_CENTER_CSS
     )

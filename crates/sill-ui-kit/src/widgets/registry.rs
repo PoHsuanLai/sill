@@ -2,17 +2,18 @@
 //! names it, the registry with sill's two widgets added and every kind held to its one size in
 //! each host, and the stylesheets sill's own widgets need.
 
-use ds::{WidgetHost, Word};
+use ds::Word;
+use ds_shell::WidgetHost;
 use sill_settings::WidgetKind;
 
 use super::{OnProvider, WidgetProvider, now_playing, size_of, up_next, with_provider};
 
 /// `kind`'s name in quire's registry.
-pub fn kind_id(kind: WidgetKind) -> ds::WidgetKind {
+pub fn kind_id(kind: WidgetKind) -> ds_shell::WidgetKind {
     struct RegistryId;
     impl OnProvider for RegistryId {
-        type Out = ds::WidgetKind;
-        fn on<P: WidgetProvider>(self) -> ds::WidgetKind {
+        type Out = ds_shell::WidgetKind;
+        fn on<P: WidgetProvider>(self) -> ds_shell::WidgetKind {
             P::registry_id()
         }
     }
@@ -20,7 +21,7 @@ pub fn kind_id(kind: WidgetKind) -> ds::WidgetKind {
 }
 
 /// The settings' kind named `id`; none for a widget sill does not place.
-pub fn kind_of(id: &ds::WidgetKind) -> Option<WidgetKind> {
+pub fn kind_of(id: &ds_shell::WidgetKind) -> Option<WidgetKind> {
     WidgetKind::ALL
         .iter()
         .copied()
@@ -29,8 +30,8 @@ pub fn kind_of(id: &ds::WidgetKind) -> Option<WidgetKind> {
 
 /// Every widget sill can place, quire's three and sill's two, each taking [`size_of`] in each
 /// host, so quire's gallery previews and adds that one size and offers no other.
-pub fn registry() -> ds::WidgetRegistry {
-    let quire = ds::WidgetRegistry::quire();
+pub fn registry() -> ds_shell::WidgetRegistry {
+    let quire = ds_shell::WidgetRegistry::quire();
     match all_sized(quire.clone()) {
         Ok(all) => all,
         Err(why) => {
@@ -44,13 +45,15 @@ pub fn registry() -> ds::WidgetRegistry {
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub(super) enum RegistryError {
     #[error("{0}")]
-    Taken(#[from] ds::widget::TakenKind),
+    Taken(#[from] ds_shell::widget::TakenKind),
     #[error("{0}")]
-    Unsized(#[from] ds::widget::UnsizedKind),
+    Unsized(#[from] ds_shell::widget::UnsizedKind),
 }
 
 /// `quire` with sill's two widgets added and every kind held to its one size in each host.
-pub(super) fn all_sized(quire: ds::WidgetRegistry) -> Result<ds::WidgetRegistry, RegistryError> {
+pub(super) fn all_sized(
+    quire: ds_shell::WidgetRegistry,
+) -> Result<ds_shell::WidgetRegistry, RegistryError> {
     let all = quire
         .with::<up_next::UpNext>()?
         .with::<now_playing::NowPlaying>()?;
@@ -67,7 +70,7 @@ pub(super) fn all_sized(quire: ds::WidgetRegistry) -> Result<ds::WidgetRegistry,
 /// Provide [`registry`] to a host root's subtree (the desktop layer, the notification center,
 /// Edit Widgets).
 pub fn provide_registry() {
-    ds::provide_widget_registry(registry());
+    ds_shell::provide_widget_registry(registry());
 }
 
 /// The element id of a widget's card on the desktop layer: its input and blur region.

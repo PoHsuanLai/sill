@@ -4,7 +4,8 @@
 //! open pill (the macOS polish pass); a status item's `IconButton{Status}` draws its own.
 
 use dioxus::prelude::*;
-use ds::{Emphasis, MenuBarItem, RectProbe, Shown};
+use ds::{Emphasis, RectProbe, Shown};
+use ds_shell::MenuBarItem;
 use shell_host::Point;
 
 use super::io::MenuBar;

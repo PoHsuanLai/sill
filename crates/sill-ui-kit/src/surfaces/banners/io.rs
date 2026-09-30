@@ -11,7 +11,8 @@ use std::time::Duration;
 
 use dioxus::core::{Runtime, ScopeId, Task, current_scope_id};
 use dioxus::prelude::*;
-use ds::{FRAME_SLACK, FocusError, HostSignals, Hover, InputModality, Select, focus_by_selector};
+use ds::{FRAME_SLACK, FocusError, HostSignals, InputModality, Select, focus_by_selector};
+use ds_shell::Hover;
 use shell_host::{KeyboardMode, SurfaceHandle, SurfaceOp};
 use sill_model::notifications::{
     ActionKey, Activation, ActivationToken, LiveBanner, Notification, NotificationId,

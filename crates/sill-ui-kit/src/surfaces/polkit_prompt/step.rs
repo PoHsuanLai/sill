@@ -65,9 +65,8 @@ impl Stage {
 
 #[cfg(test)]
 mod tests {
-    use ds::{
-        AvatarFace, AvatarShape, AvatarSize, AvatarTone, LockUser, PromptState, Shown, person_hue,
-    };
+    use ds::{AvatarFace, AvatarShape, AvatarSize, AvatarTone, Shown, person_hue};
+    use ds_shell::{LockUser, PromptState};
     use sill_model::polkit_agent::Cookie;
 
     use super::{Mapped, Stage, StageIn, advance};

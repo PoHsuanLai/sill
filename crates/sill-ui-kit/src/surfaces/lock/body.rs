@@ -2,7 +2,8 @@
 //! prompt's output, and the unlock fade (the module doc of `screen.rs` has the rules).
 
 use dioxus::prelude::*;
-use ds::{CapsLock, ImageSource, LockPrompt, LockScreen, TextLine};
+use ds::{ImageSource, TextLine};
+use ds_shell::{CapsLock, LockPrompt, LockScreen};
 use shell_host::OutputInfo;
 use sill_model::auth::{Auth, AuthCommand, AuthFault, AuthPhase, PamNote, Secret};
 use sill_model::ids::OutputName;
@@ -113,7 +114,7 @@ pub(super) fn LockBody(
             LockScreen {
                 wallpaper,
                 clock: rsx! {
-                    ds::LockClock { time: lines.time, date: lines.date }
+                    ds_shell::LockClock { time: lines.time, date: lines.date }
                 },
                 prompt,
             }

@@ -6,7 +6,8 @@
 //! own wrapper listens for. Right-click Edit Space waits for the Space editor popup.
 
 use dioxus::prelude::*;
-use ds::{PointerButton, Press, Selection, WorkspacePill, WorkspacePills};
+use ds::{PointerButton, Press, Selection};
+use ds_shell::{WorkspacePill, WorkspacePills};
 use shell_host::OutputInfo;
 use sill_model::cosmic_wl::{Activity, WlCommand, Workspace};
 use sill_model::ids::OutputName;

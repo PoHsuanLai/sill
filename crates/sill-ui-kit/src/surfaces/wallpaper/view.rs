@@ -36,6 +36,7 @@ pub(super) fn wallpaper(output: OutputInfo) -> Element {
     let layers = use_crossfade(url);
     rsx! {
         Ds {
+            sheet: Some(ds_shell::stylesheet()),
             appearance,
             system: environment.system,
             material: Material::Widget,

@@ -20,7 +20,7 @@ pub use parts::{CardPart, part_id};
 pub use view::{use_app_mark, wall_now};
 
 use dioxus::prelude::*;
-use ds::{Hover, NotificationSwipe};
+use ds_shell::{Hover, NotificationSwipe};
 use sill_model::notifications::{ActionKey, Href, Notification, UnixMs};
 
 /// Where the card is drawn: a banner paints the Toast material (ink on paper under

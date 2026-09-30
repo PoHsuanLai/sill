@@ -3,7 +3,8 @@
 //! keep their press.
 
 use dioxus::prelude::*;
-use ds::{CardAction, TextLine};
+use ds::TextLine;
+use ds_shell::CardAction;
 use sill_model::notifications::{Action, Notification};
 
 use super::CardPress;

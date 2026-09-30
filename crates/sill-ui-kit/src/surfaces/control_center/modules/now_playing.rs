@@ -10,7 +10,7 @@ use crate::surfaces::control_center::modules::use_plate;
 use crate::widgets::now_playing::{MediaView, use_media};
 use dioxus::prelude::*;
 use ds::Icon;
-use ds::ModulePanel;
+use ds_shell::ModulePanel;
 use sill_services::NowPlayingService;
 use sill_settings::{ControlCenterSettings, InMenuBar};
 

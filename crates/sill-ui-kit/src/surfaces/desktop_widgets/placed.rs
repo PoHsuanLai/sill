@@ -7,8 +7,8 @@
 //!
 use dioxus::core::queue_effect;
 use dioxus::prelude::*;
-use ds::Lift;
 use ds::motion::{SpringPointMotion, SpringResponse, use_spring_point_motion};
+use ds_shell::Lift;
 use sill_settings::WidgetKind;
 
 use super::arrange::LayerPoint;

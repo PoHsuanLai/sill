@@ -5,23 +5,24 @@
 //! the host's wake); sill only reads the services. Nothing to show (a desktop with no battery
 //! and no devices): `Absent("No batteries")`.
 
-use ds::{BatteryCell, BatteryEntry, Device, Fraction, RingMark};
+use ds::Fraction;
+use ds_shell::{BatteryCell, BatteryEntry, Device, RingMark};
 use sill_model::battery::{Battery, Charge};
 use sill_model::bluetooth::{Bluetooth, BtBattery, BtConnection, BtKind};
 use sill_model::units::{Percent, Presence};
 
 /// A device's filled glyph (quire's `DeviceGlyph`, twelve devices): the battery rings' glyph
 /// in the Batteries widget and the control center's Battery module.
-pub fn device_of(kind: BtKind) -> ds::Device {
+pub fn device_of(kind: BtKind) -> ds_shell::Device {
     match kind {
-        BtKind::Headphones | BtKind::Headset => ds::Device::Headphones,
-        BtKind::Speaker => ds::Device::Speaker,
-        BtKind::Keyboard => ds::Device::Keyboard,
-        BtKind::Mouse => ds::Device::Mouse,
-        BtKind::Gamepad => ds::Device::Gamepad,
-        BtKind::Phone => ds::Device::Phone,
-        BtKind::Computer => ds::Device::Laptop,
-        BtKind::Other => ds::Device::Other,
+        BtKind::Headphones | BtKind::Headset => ds_shell::Device::Headphones,
+        BtKind::Speaker => ds_shell::Device::Speaker,
+        BtKind::Keyboard => ds_shell::Device::Keyboard,
+        BtKind::Mouse => ds_shell::Device::Mouse,
+        BtKind::Gamepad => ds_shell::Device::Gamepad,
+        BtKind::Phone => ds_shell::Device::Phone,
+        BtKind::Computer => ds_shell::Device::Laptop,
+        BtKind::Other => ds_shell::Device::Other,
     }
 }
 

@@ -2,7 +2,7 @@
 //! (macOS's switcher keeps its row while it is up), whose windows its verbs touch, and the tiles
 //! leaving after a Q. Pure: `io.rs` holds it and carries out what it says.
 
-use ds::TilePresence;
+use ds_shell::TilePresence;
 use sill_launcher::AppId;
 use sill_model::cosmic_wl::WlCommand;
 use sill_services::switcher::{AppShown, SwitcherApp, activate, hide, quit};
@@ -113,7 +113,7 @@ impl Session {
 
 #[cfg(test)]
 mod tests {
-    use ds::TilePresence;
+    use ds_shell::TilePresence;
     use sill_launcher::{AppId, WindowKey};
     use sill_model::cosmic_wl::WlCommand;
     use sill_services::switcher::{AppShown, SwitcherApp};

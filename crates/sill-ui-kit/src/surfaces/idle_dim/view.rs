@@ -1,7 +1,8 @@
 //! The dim's render: quire's `IdleDim` alone in a transparent viewport root.
 
 use dioxus::prelude::*;
-use ds::{Ds, IdleDim, Material, RootChrome, RootExtent};
+use ds::{Ds, Material, RootChrome, RootExtent};
+use ds_shell::IdleDim;
 use shell_host::OutputInfo;
 
 use super::io::use_dim;
@@ -14,6 +15,7 @@ pub(super) fn idle_dim(output: OutputInfo) -> Element {
     let environment = use_appearance()();
     rsx! {
         Ds {
+            sheet: Some(ds_shell::stylesheet()),
             appearance: environment.settings.appearance.appearance(),
             system: environment.system,
             material: Material::Sheet,

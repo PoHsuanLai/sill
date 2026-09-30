@@ -271,7 +271,7 @@ mod tests {
     use super::TrayButtonView;
     use dioxus::core::VirtualDom;
     use dioxus::prelude::*;
-    use ds::lint::{LintConfig, Profile, Rule, markup};
+    use ds_lint::{LintConfig, Profile, Rule, markup};
     use sill_model::tray::{TrayIcon, TrayItem, TrayItemId, TrayStatus};
 
     fn fake_item(name: &str) -> TrayItem {
@@ -301,7 +301,7 @@ mod tests {
     }
 
     fn full_css() -> &'static str {
-        ds::stylesheet()
+        ds_shell::stylesheet()
     }
 
     #[test]
@@ -312,7 +312,7 @@ mod tests {
             full_css(),
             &LintConfig {
                 profile: Profile::Strict,
-                ..LintConfig::new(&ds::kits())
+                ..LintConfig::new(&ds_shell::kits())
             },
         );
         assert!(offences.is_empty(), "{offences:#?}");
@@ -321,7 +321,7 @@ mod tests {
     #[test]
     fn no_raw_button_or_img_outside_ds_components() {
         let html = render_ssr();
-        let offences = markup(&html, full_css(), &LintConfig::new(&ds::kits()));
+        let offences = markup(&html, full_css(), &LintConfig::new(&ds_shell::kits()));
         assert!(
             offences.iter().all(|o| o.rule != Rule::RawMarkup),
             "{offences:#?}"

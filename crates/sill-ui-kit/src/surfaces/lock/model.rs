@@ -1,10 +1,8 @@
 //! What the lock screen hands quire's `LockClock` and `LockPrompt`, from the auth service's
 //! state, the keyboard and the clock: pure.
 
-use ds::{
-    AvatarFace, AvatarShape, AvatarSize, AvatarTone, CapsLock, ImageSource, LockUser, PromptState,
-    UserPicture, person_hue,
-};
+use ds::{AvatarFace, AvatarShape, AvatarSize, AvatarTone, ImageSource, person_hue};
+use ds_shell::{CapsLock, LockUser, PromptState, UserPicture};
 use sill_model::auth::{Account, AuthPhase, AvatarSource, UserName};
 use sill_settings::LockClock;
 
@@ -101,8 +99,8 @@ fn time_text(at: &jiff::Zoned, format: LockClock) -> String {
 
 #[cfg(test)]
 mod tests {
-    use ds::UserPicture;
-    use ds::{CapsLock, PromptState};
+    use ds_shell::UserPicture;
+    use ds_shell::{CapsLock, PromptState};
     use sill_model::auth::AuthPhase;
     use sill_model::auth::{Account, AuthFault, AvatarSource, RealName, UserName};
     use sill_settings::LockClock;

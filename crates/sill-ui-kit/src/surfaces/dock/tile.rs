@@ -19,9 +19,8 @@
 //! press.
 
 use dioxus::prelude::*;
-use ds::{
-    IconPx, IconSize, IconView, PlateFamily, PlateTint, RunningDot, Shown, Tooltip, TooltipKind,
-};
+use ds::{IconPx, IconSize, IconView, PlateFamily, PlateTint, Shown, Tooltip, TooltipKind};
+use ds_shell::RunningDot;
 use sill_model::badges::Badge;
 use sill_model::units::{Cpx, Permille};
 use sill_settings::{DockSettings, Indicators, ProgressStyle};

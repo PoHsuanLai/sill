@@ -3,12 +3,13 @@
 
 use crate::file::ShellFile;
 use crate::section::Section;
+use ds_core::word::Word;
 use ds_settings::schema::Page;
 use ds_settings::{Ms, Px};
 use serde::{Deserialize, Serialize};
 
 /// `osd.enabled`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum OsdEnabled {
@@ -18,7 +19,7 @@ pub enum OsdEnabled {
 }
 
 /// `osd.position`: the output edge the indicator sits on, centred along it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum OsdPosition {

@@ -13,7 +13,8 @@
 //! itself.
 
 use dioxus::prelude::*;
-use ds::{BlurState, DockFloor, Ds, Ground, Material};
+use ds::{BlurState, Ds, Ground, Material};
+use ds_shell::DockFloor;
 use shell_host::{LayerConfig, OutputInfo, SurfaceHandle};
 use sill_model::ids::OutputName;
 use sill_model::units::Cpx;
@@ -142,6 +143,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
             class: "sill-dock-pill",
             style: "{area_style(&shown.pill)};transform:translateY({px(slide)}px);{metrics.style_attr()}{dock_metrics(&file.dock).style_attr()}",
             Ds {
+                sheet: Some(ds_shell::stylesheet()),
                 appearance,
                 system: environment.system,
                 look,

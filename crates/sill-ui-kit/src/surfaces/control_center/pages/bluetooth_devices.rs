@@ -8,7 +8,8 @@
 //! ("Bluetooth Settings…" at the foot).
 
 use dioxus::prelude::*;
-use ds::{Availability, Icon, ModuleState, RowDisc, RowPhase};
+use ds::{Availability, Icon, RowDisc, RowPhase};
+use ds_shell::ModuleState;
 use sill_model::attempt::Attempts;
 use sill_model::bluetooth::{
     Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection, BtDevice, BtKind, BtPairing,

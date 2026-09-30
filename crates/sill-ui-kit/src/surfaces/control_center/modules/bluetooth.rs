@@ -4,7 +4,8 @@
 //! `BluetoothCommand::Power`, asking first before off ([`super::bluetooth_ask`]).
 
 use dioxus::prelude::*;
-use ds::{Availability, Chevron, ModuleState, ModuleTile, StatusState, TextLine};
+use ds::{Availability, StatusState, TextLine};
+use ds_shell::{Chevron, ModuleState, ModuleTile};
 use sill_model::bluetooth::{Bluetooth, BtPower};
 use sill_model::units::Presence;
 
@@ -110,7 +111,8 @@ impl CcModule for BluetoothCc {
 #[cfg(test)]
 mod tests {
     use super::{adapter_availability, power_of, power_state};
-    use ds::{Availability, ModuleState};
+    use ds::Availability;
+    use ds_shell::ModuleState;
     use sill_model::bluetooth::{Bluetooth, BtPower};
     use sill_model::units::Presence;
 

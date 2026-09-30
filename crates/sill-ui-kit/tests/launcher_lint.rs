@@ -8,7 +8,7 @@ mod launcher_harness;
 use launcher_harness::launcher_support;
 
 use dioxus::prelude::*;
-use ds::lint::{LintConfig, Profile, Rule, markup};
+use ds_lint::{LintConfig, Profile, Rule, markup};
 use sill_settings::ShellFile;
 use sill_ui_kit::Launcher;
 use sill_ui_kit::links::LauncherLink;
@@ -20,7 +20,7 @@ const LAUNCHER_CSS: &str = include_str!("../src/style/launcher.css");
 fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::new(&ds::kits())
+        ..LintConfig::new(&ds_shell::kits())
     }
 }
 
@@ -63,7 +63,7 @@ fn panel_ssr() -> String {
 }
 
 fn full_css() -> String {
-    format!("{}\n{}", ds::stylesheet(), LAUNCHER_CSS)
+    format!("{}\n{}", ds_shell::stylesheet(), LAUNCHER_CSS)
 }
 
 #[test]

@@ -76,17 +76,17 @@ mod tests {
             (
                 "control_center.width_px",
                 px(file.control_center.width_px),
-                ds::CONTROL_CENTER.width.0,
+                ds_shell::CONTROL_CENTER.width.0,
             ),
             (
                 "control_center.grid_gap_px",
                 px(file.control_center.grid_gap_px),
-                ds::CONTROL_CENTER.gap.0,
+                ds_shell::CONTROL_CENTER.gap.0,
             ),
             (
                 "control_center.grid_padding_px",
                 px(file.control_center.grid_padding_px),
-                ds::CONTROL_CENTER.padding.0,
+                ds_shell::CONTROL_CENTER.padding.0,
             ),
         ];
         for (key, ours, quires) in cases {

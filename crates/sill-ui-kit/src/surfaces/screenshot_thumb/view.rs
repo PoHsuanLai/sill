@@ -6,8 +6,9 @@
 //! `BannerLink` through [`super::follow`] and [`super::step::step`].
 
 use dioxus::prelude::*;
-use ds::{Banner, BannerEntry, BannerKey, BannerPosition, BannerStack, Material};
+use ds::Material;
 use ds::{RootChrome, RootExtent, Shown};
+use ds_shell::{Banner, BannerEntry, BannerKey, BannerPosition, BannerStack};
 use shell_host::{OutputId, OutputInfo, use_watch};
 use sill_model::screenshots::ShotId;
 use sill_services::ScreenshotsService;

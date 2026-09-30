@@ -1,7 +1,8 @@
 //! The dock's settings as `sill_services::magnify`'s parameters and as quire's `DockMetrics`
 //! (the macOS polish pass: tile 48, gap 8, pad 6, dot 4 centred 3 under the tile, floor off).
 
-use ds::{Corner, DockFloorSetting, DockMetrics, Px};
+use ds::{Corner, Px};
+use ds_shell::{DockFloorSetting, DockMetrics};
 use sill_model::units::Cpx;
 use sill_services::MagnifyParams;
 use sill_settings::{DockFloor, DockSettings};
@@ -56,7 +57,7 @@ pub fn magnify_params(dock: &DockSettings, output_width_px: i32) -> MagnifyParam
 #[cfg(test)]
 mod tests {
     use super::{dock_metrics, magnify_params};
-    use ds::DockMetrics;
+    use ds_shell::DockMetrics;
     use sill_model::units::Cpx;
     use sill_services::MagnifyParams;
     use sill_settings::DockSettings;

@@ -6,7 +6,8 @@
 //! padding (`.sill-nc-item`), never the list's.
 
 use dioxus::prelude::*;
-use ds::{GroupHeader, IconSize, LeavingItem};
+use ds::{IconSize, LeavingItem};
+use ds_shell::GroupHeader;
 use sill_model::notifications::{AppGroup, History, Notification, UnixMs};
 
 use super::groups::Expanded;

@@ -4,7 +4,8 @@
 //! `use_service::<NetworkService>`; sends `WifiCommand::Radio`.
 
 use dioxus::prelude::*;
-use ds::{Availability, Chevron, ModuleState, ModuleTile, StatusState, TextLine, WifiState};
+use ds::{Availability, StatusState, TextLine, WifiState};
+use ds_shell::{Chevron, ModuleState, ModuleTile};
 use sill_model::network::Network;
 use sill_model::units::Presence;
 use sill_model::wifi::{Radio, Wifi, WifiCommand};
@@ -129,7 +130,8 @@ impl CcModule for WifiCc {
 mod tests {
     use super::{radio_availability, radio_of, radio_state, wifi_tile_state};
     use ds::detail::EventStamp;
-    use ds::{Availability, ModuleState, WifiBars, WifiReach, WifiState};
+    use ds::{Availability, WifiBars, WifiReach, WifiState};
+    use ds_shell::ModuleState;
     use sill_model::network::{Connectivity, Link, Network};
     use sill_model::wifi::{Radio, Wifi};
     use sill_model::{

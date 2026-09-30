@@ -11,8 +11,9 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use ds::{
     Availability, ExternalIcon, Icon, IconButton, IconButtonVariant, IconSize, IconSource, IconUrl,
-    NowPlayingTrack, PlayPauseButton, Playback, TextLine, TrackPosition,
+    TextLine,
 };
+use ds_shell::{NowPlayingTrack, PlayPauseButton, Playback, TrackPosition};
 use serde::{Deserialize, Serialize};
 use sill_model::now_playing::{Abilities, Art, MediaPlayer, MediaVerb, Micros, Timeline};
 

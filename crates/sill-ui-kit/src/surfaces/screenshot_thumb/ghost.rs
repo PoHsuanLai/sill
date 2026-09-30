@@ -5,9 +5,10 @@
 use dioxus::prelude::*;
 use ds::{
     Alpha, Appearance, Ds, ImageSize, ImageSource, Material, MaterialStack, RootChrome, RootExtent,
-    ShotGhost, SpaceLook, SystemPrefs,
+    SpaceLook, SystemPrefs,
 };
 use ds_settings::Environment;
+use ds_shell::ShotGhost;
 use shell_host::{DragIcon, HostRoot, Size};
 
 use super::picture::ThumbPicture;
@@ -78,6 +79,7 @@ fn ghost_root(ghost: Ghost) -> Element {
     let look = ghost.look;
     rsx! {
         Ds {
+            sheet: Some(ds_shell::stylesheet()),
             appearance: look.appearance,
             system: look.system,
             look: look.look,

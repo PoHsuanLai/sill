@@ -25,6 +25,7 @@ pub fn SurfaceRoot(
     let look = use_active_look(&output);
     rsx! {
         Ds {
+            sheet: Some(ds_shell::stylesheet()),
             appearance: environment.settings.appearance.appearance(),
             system: environment.system,
             look,

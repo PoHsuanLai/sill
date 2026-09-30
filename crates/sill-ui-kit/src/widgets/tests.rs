@@ -47,9 +47,12 @@ fn each_kind_is_named_in_the_registry_at_its_one_size() {
             );
         }
     }
-    assert!(all_sized(ds::WidgetRegistry::quire()).is_ok());
+    assert!(all_sized(ds_shell::WidgetRegistry::quire()).is_ok());
     assert_eq!(registry.all().len(), WidgetKind::ALL.len());
-    assert_eq!(kind_of(&ds::WidgetKind::fixed("org.example.weather")), None);
+    assert_eq!(
+        kind_of(&ds_shell::WidgetKind::fixed("org.example.weather")),
+        None
+    );
 }
 
 #[test]

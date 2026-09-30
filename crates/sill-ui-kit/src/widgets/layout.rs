@@ -4,13 +4,13 @@
 //! size in each host ([`super::size_of`]): nothing is picked, so an add is made
 //! at that size whatever the gallery asked, and a resize is refused. [`layout_of`] reads the
 //! keys as one layout for Edit Widgets; [`edited`] applies one of its edits through quire's
-//! `ds::widget::apply` and writes the result back as the same keys and places. Pure.
+//! `ds_shell::widget::apply` and writes the result back as the same keys and places. Pure.
 //!
 //! sill places each kind at most once per surface (the drag, the regions and the state file
 //! are keyed by kind), so adding a kind a surface already shows is refused
 //! ([`Refused::Placed`]); two of one kind are the placements' instances in P2.
 
-use ds::widget::{DesktopGrid, GridCell, Order, WidgetAt, WidgetEdit, WidgetLayout, apply};
+use ds_shell::widget::{DesktopGrid, GridCell, Order, WidgetAt, WidgetEdit, WidgetLayout, apply};
 
 use super::{WidgetHost, WidgetKind, kind_id, kind_of, size_of};
 use crate::widgets::grid::{GridSlot, Placement};
@@ -30,13 +30,13 @@ pub struct WidgetKeys {
 pub enum Refused {
     /// quire's layout refused it: no room, a taken cell, an unknown placement.
     #[error("{0}")]
-    Layout(ds::widget::LayoutError),
+    Layout(ds_shell::widget::LayoutError),
     /// That surface already shows this kind.
     #[error("{0:?} is already placed there")]
     Placed(WidgetKind),
     /// Not a widget sill can place.
     #[error("{} is not a widget sill places", .0.as_str())]
-    Foreign(ds::WidgetKind),
+    Foreign(ds_shell::WidgetKind),
     /// A widget has one size; there is no other to change to.
     #[error("a widget has one size")]
     OneSize,
@@ -46,13 +46,13 @@ impl Refused {
     /// What Edit Widgets says under the gallery.
     pub fn words(&self) -> &'static str {
         match self {
-            Refused::Layout(ds::widget::LayoutError::Full) => {
+            Refused::Layout(ds_shell::widget::LayoutError::Full) => {
                 "There is no room on the desktop for it."
             }
-            Refused::Layout(ds::widget::LayoutError::Taken) => {
+            Refused::Layout(ds_shell::widget::LayoutError::Taken) => {
                 "That place on the desktop is taken."
             }
-            Refused::Layout(ds::widget::LayoutError::Unknown(_)) => {
+            Refused::Layout(ds_shell::widget::LayoutError::Unknown(_)) => {
                 "That widget is no longer placed."
             }
             Refused::Placed(_) => "It is already there.",

@@ -12,8 +12,8 @@ use std::cell::RefCell;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds::lint::{LintConfig, Profile, markup};
 use ds::{Appearance, Ds, Material};
+use ds_lint::{LintConfig, Profile, markup};
 use ds_native::{Clock, Harness, HarnessConfig, Viewport};
 use jiff::civil::Date;
 use jiff::tz::TimeZone;
@@ -58,7 +58,7 @@ fn app() -> Element {
     use_context_provider(|| world.settings.clone());
     let css = widgets_css();
     rsx! {
-        Ds { appearance: Appearance::default(), material: Material::Popover,
+        Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance::default(), material: Material::Popover,
             style { {css} }
             match world.kind {
                 Kind::Calendar => rsx! { {widget(WidgetKind::Calendar, WidgetHost::Tile)} },
@@ -152,10 +152,10 @@ fn read(events: Vec<CalEvent>) -> Agenda {
 }
 
 fn clean(html: &str) {
-    let css = format!("{}\n{}", ds::stylesheet(), widgets_css());
+    let css = format!("{}\n{}", ds_shell::stylesheet(), widgets_css());
     let strict = LintConfig {
         profile: Profile::Strict,
-        ..LintConfig::new(&ds::kits())
+        ..LintConfig::new(&ds_shell::kits())
     };
     let offences = markup(html, &css, &strict);
     assert!(offences.is_empty(), "{offences:#?}");

@@ -9,7 +9,8 @@
 //! [`BannerLink`]: crate::links::BannerLink
 
 use dioxus::prelude::*;
-use ds::{BannerKey, BannerStack, Hover, Material, NotificationSwipe, RootChrome, RootExtent};
+use ds::{Material, RootChrome, RootExtent};
+use ds_shell::{BannerKey, BannerStack, Hover, NotificationSwipe};
 use shell_host::{OutputInfo, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 use sill_model::notifications::{NotificationId, Notifications};
 use sill_services::NotificationsService;
@@ -76,7 +77,7 @@ fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> 
         .collect();
     use_regions(element_regions(&shapes));
     let notes = live();
-    let banners: Vec<ds::Banner> = deck
+    let banners: Vec<ds_shell::Banner> = deck
         .listed()
         .into_iter()
         .filter_map(|entry| banner(column, &notes, entry))
@@ -108,7 +109,7 @@ fn ColumnView(output: shell_host::OutputId, settings: NotificationsSettings) -> 
 }
 
 /// One listed card as quire's banner.
-fn banner(column: Column, notes: &Notifications, entry: &Entry) -> Option<ds::Banner> {
+fn banner(column: Column, notes: &Notifications, entry: &Entry) -> Option<ds_shell::Banner> {
     let id = entry.card.newest()?;
     let note = note_of(notes, id, &column)?;
     let key = entry.key;
@@ -129,7 +130,7 @@ fn banner(column: Column, notes: &Notifications, entry: &Entry) -> Option<ds::Ba
             }
         }
     };
-    Some(ds::Banner {
+    Some(ds_shell::Banner {
         key: BannerKey(key.0),
         card: element,
     })
@@ -148,19 +149,19 @@ fn note_of(
 }
 
 /// quire's word for `notifications.banner_position`.
-fn position(corner: BannerPosition) -> ds::BannerPosition {
+fn position(corner: BannerPosition) -> ds_shell::BannerPosition {
     match corner {
-        BannerPosition::TopRight => ds::BannerPosition::TopRight,
-        BannerPosition::BottomRight => ds::BannerPosition::BottomRight,
+        BannerPosition::TopRight => ds_shell::BannerPosition::TopRight,
+        BannerPosition::BottomRight => ds_shell::BannerPosition::BottomRight,
     }
 }
 
 /// `notifications.banner_entry_direction` as the stack's entry edge (a swiped card still
 /// leaves to the right).
-fn entry(edge: BannerEntry) -> ds::BannerEntry {
+fn entry(edge: BannerEntry) -> ds_shell::BannerEntry {
     match edge {
-        BannerEntry::FromRight => ds::BannerEntry::FromRight,
-        BannerEntry::FromBelow => ds::BannerEntry::FromBelow,
+        BannerEntry::FromRight => ds_shell::BannerEntry::FromRight,
+        BannerEntry::FromBelow => ds_shell::BannerEntry::FromBelow,
     }
 }
 
@@ -255,12 +256,12 @@ mod tests {
         let cases = [
             (
                 BannerPosition::TopRight,
-                ds::BannerPosition::TopRight,
+                ds_shell::BannerPosition::TopRight,
                 "top",
             ),
             (
                 BannerPosition::BottomRight,
-                ds::BannerPosition::BottomRight,
+                ds_shell::BannerPosition::BottomRight,
                 "bottom",
             ),
         ];

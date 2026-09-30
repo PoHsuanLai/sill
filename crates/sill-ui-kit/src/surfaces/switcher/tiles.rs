@@ -1,7 +1,8 @@
 //! What the switcher hands quire's `AppSwitcher`: the tiles, the metrics, and the way between
 //! quire's `AppKey` and the machine's indices. Pure.
 
-use ds::{AppKey, IconSource, Px, SwitcherApp as Tile, SwitcherMetrics};
+use ds::{IconSource, Px};
+use ds_shell::{AppKey, SwitcherApp as Tile, SwitcherMetrics};
 use sill_launcher::AppId;
 use sill_model::apps::AppIndex;
 use sill_services::switcher::SwitcherApp;
@@ -64,7 +65,8 @@ pub fn output_width(width: i32) -> Option<Px> {
 
 #[cfg(test)]
 mod tests {
-    use ds::{AppKey, IconSource, Px, SwitcherMetrics};
+    use ds::{IconSource, Px};
+    use ds_shell::{AppKey, SwitcherMetrics};
     use sill_launcher::AppId;
     use sill_model::apps::AppIndex;
     use sill_services::switcher::{AppShown, SwitcherApp};

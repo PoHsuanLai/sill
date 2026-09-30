@@ -36,7 +36,7 @@ use dioxus::prelude::*;
 use sill_model::ids::OutputName;
 use sill_settings::ControlCenterModule;
 
-use ds::{ModuleState, PanelPlate};
+use ds_shell::{ModuleState, PanelPlate};
 
 pub use cc_module::Span;
 pub(crate) use cc_module::{CcCx, CcModule};

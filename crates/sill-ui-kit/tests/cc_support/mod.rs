@@ -21,7 +21,7 @@ use sill_ui_kit::surfaces::control_center::{ControlCenter, ModuleDropdown};
 #[component]
 fn Panel() -> Element {
     rsx! {
-        Ds { appearance: Appearance::default(), material: Material::Popover,
+        Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance::default(), material: Material::Popover,
             ControlCenter {
                 output: Some(OutputName("DP-1".to_owned())),
                 on_close: move |()| {},
@@ -35,7 +35,7 @@ fn Panel() -> Element {
 #[component]
 fn Dropdown(module: ControlCenterModule) -> Element {
     rsx! {
-        Ds { appearance: Appearance::default(), material: Material::Popover,
+        Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance::default(), material: Material::Popover,
             ModuleDropdown {
                 module,
                 output: Some(OutputName("DP-1".to_owned())),

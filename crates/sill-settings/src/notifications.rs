@@ -4,12 +4,13 @@
 
 use crate::file::ShellFile;
 use crate::section::Section;
+use ds_core::word::Word;
 use ds_settings::schema::Page;
 use ds_settings::{Count, Fraction, Ms, Px, Scalar};
 use serde::{Deserialize, Serialize};
 
 /// `notifications.dnd`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum Dnd {
@@ -19,7 +20,7 @@ pub enum Dnd {
 }
 
 /// `notifications.banner_style`: the default for apps without their own choice.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum BannerStyle {
@@ -33,7 +34,7 @@ pub enum BannerStyle {
 }
 
 /// `notifications.banner_entry_direction` (design/05 §12 open decision 7).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum BannerEntry {
@@ -43,7 +44,7 @@ pub enum BannerEntry {
 }
 
 /// `notifications.banner_material` (design/13 §13.9 open decision 7).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum BannerMaterial {
@@ -56,7 +57,7 @@ pub enum BannerMaterial {
 
 /// `notifications.swipe`: what swiping a banner away does. macOS keeps it in Notification
 /// Center; only its close button, `CloseNotification` or Clear removes it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum NotificationSwipe {
@@ -68,7 +69,7 @@ pub enum NotificationSwipe {
 }
 
 /// `notifications.server`: whether sill serves `org.freedesktop.Notifications`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum NotificationServer {
@@ -82,7 +83,7 @@ pub enum NotificationServer {
 
 /// `notifications.banner_position`: the output corner banners stack in (design/20 §3 open
 /// decision 2: top right as macOS, or bottom right nearer mail's toast).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum BannerPosition {

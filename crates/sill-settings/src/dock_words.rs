@@ -1,13 +1,14 @@
 //! The dock's closed choices (design/22 §4.1): every two-state key is an enum with named
 //! variants, never a `bool`.
 
+use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 
 macro_rules! words {
     ($(#[$doc:meta] $name:ident { #[default] $first:ident $(, $rest:ident)* $(,)? })*) => {$(
         #[$doc]
         #[derive(
-            Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word,
+            Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word,
         )]
         #[serde(rename_all = "snake_case")]
         #[word(case = snake)]

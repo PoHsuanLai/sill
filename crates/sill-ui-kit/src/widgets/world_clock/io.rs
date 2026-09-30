@@ -14,11 +14,11 @@ use crate::widgets::{Feed, WidgetKind, WidgetProvider, WidgetSize};
 pub struct WorldClockProvider;
 
 impl WidgetProvider for WorldClockProvider {
-    type W = ds::WorldClockWidget;
+    type W = ds_shell::WorldClockWidget;
     const KIND: WidgetKind = WidgetKind::WorldClock;
     const DESKTOP_SIZE: WidgetSize = WidgetSize::Medium;
 
-    fn use_feed() -> Feed<ds::WorldClockWidget> {
+    fn use_feed() -> Feed<ds_shell::WorldClockWidget> {
         let _minute = use_service::<ClockService>()();
         let zones = parse_zones(&use_settings()().widgets.world_clocks);
         Feed {

@@ -4,8 +4,9 @@
 //! quire's own settings watch then publishes to every surface).
 
 use dioxus::prelude::*;
-use ds::{Appearance, AppearancePicker, ModulePanel, PickerLayout};
+use ds::{Appearance, AppearancePicker, PickerLayout};
 use ds_settings::{AppName, AppearanceFile, ConfigRoot, Store};
+use ds_shell::ModulePanel;
 
 use super::cc_module::{CcCx, CcModule, Span};
 use crate::hooks::use_appearance;

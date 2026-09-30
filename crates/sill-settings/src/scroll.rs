@@ -5,12 +5,13 @@
 
 use crate::file::ShellFile;
 use crate::section::Section;
+use ds_core::word::Word;
 use ds_settings::schema::Page;
 use ds_settings::{Fraction, Ms, Px, Scalar};
 use serde::{Deserialize, Serialize};
 
 /// `scroll.natural`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum NaturalScroll {
@@ -21,7 +22,7 @@ pub enum NaturalScroll {
 }
 
 /// `scroll.momentum`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum Momentum {
@@ -31,7 +32,7 @@ pub enum Momentum {
 }
 
 /// `scroll.momentum_model` (design/11 §11.9 open decision 1).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum MomentumModel {
@@ -43,7 +44,7 @@ pub enum MomentumModel {
 }
 
 /// `scroll.rubber_band`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum RubberBand {
@@ -56,7 +57,7 @@ pub enum RubberBand {
 }
 
 /// `scroll.scrollbars`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum ScrollbarVisibility {

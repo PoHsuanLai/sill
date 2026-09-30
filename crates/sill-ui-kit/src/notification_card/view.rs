@@ -8,9 +8,10 @@ use std::time::SystemTime;
 
 use dioxus::prelude::*;
 use ds::{
-    AppMark, ExternalIcon, Hover, Icon, IconSize, IconSource, IconUrl, Material, NotificationCard,
-    NotificationSwipe, RootChrome, Scheme, Surface, TextLine,
+    ExternalIcon, Icon, IconSize, IconSource, IconUrl, Material, RootChrome, Scheme, Surface,
+    TextLine,
 };
+use ds_shell::{AppMark, Hover, NotificationCard, NotificationSwipe};
 use sill_model::apps::AppIcon;
 use sill_model::notifications::{AppRef, Href, Notification, UnixMs};
 use sill_services::apps::{icon_theme, resolve_icon};

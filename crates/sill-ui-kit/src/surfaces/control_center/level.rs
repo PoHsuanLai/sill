@@ -5,9 +5,9 @@
 
 use dioxus::prelude::*;
 use ds::{
-    Availability, Fraction, IconSource, LevelControl, LevelLook, LevelMode, LevelSource,
-    ModulePanel, TextLine,
+    Availability, Fraction, IconSource, LevelControl, LevelLook, LevelMode, LevelSource, TextLine,
 };
+use ds_shell::ModulePanel;
 
 use super::modules::use_plate;
 

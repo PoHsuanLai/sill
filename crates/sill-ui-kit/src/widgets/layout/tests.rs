@@ -1,7 +1,7 @@
 //! Table tests for `layout.rs`.
 
-use ds::widget::{DesktopGrid, GridCell, LayoutError, Order, WidgetAt, WidgetEdit};
-use ds::{WidgetHost, WidgetSize};
+use ds_shell::widget::{DesktopGrid, GridCell, LayoutError, Order, WidgetAt, WidgetEdit};
+use ds_shell::{WidgetHost, WidgetSize};
 
 use super::{Refused, WidgetKeys, edited, layout_of};
 use crate::widgets::grid::{GridSlot, Placement};
@@ -110,14 +110,14 @@ fn each_edit_writes_the_same_keys_and_places() {
         ),
         (
             "remove from the center",
-            WidgetEdit::Remove(ds::catalog::PlacementId(2)),
+            WidgetEdit::Remove(ds_shell::catalog::PlacementId(2)),
             vec![Calendar, Battery],
             vec![Calendar, Battery],
             vec![at(Calendar, 4, 0), at(Battery, 4, 1)],
         ),
         (
             "remove from the desktop",
-            WidgetEdit::Remove(ds::catalog::PlacementId(4)),
+            WidgetEdit::Remove(ds_shell::catalog::PlacementId(4)),
             vec![Calendar, UpNext, Battery],
             vec![Battery],
             vec![at(Battery, 4, 1)],
@@ -178,8 +178,12 @@ fn a_widget_that_fits_nowhere_stays_in_the_key() {
         ],
         ..keys()
     };
-    let got = edited(&keys, WidgetEdit::Remove(ds::catalog::PlacementId(4)), GRID)
-        .unwrap_or_else(|e| panic!("{e}"));
+    let got = edited(
+        &keys,
+        WidgetEdit::Remove(ds_shell::catalog::PlacementId(4)),
+        GRID,
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(got.desktop, vec![WidgetKind::Battery, WidgetKind::UpNext]);
 }
 
@@ -198,7 +202,7 @@ fn what_cannot_be_placed_is_refused() {
         ..keys()
     };
     let foreign = WidgetEdit::Add {
-        kind: ds::WidgetKind::fixed("org.example.weather"),
+        kind: ds_shell::WidgetKind::fixed("org.example.weather"),
         size: WidgetSize::Small,
         host: WidgetHost::Tile,
     };
@@ -229,16 +233,16 @@ fn what_cannot_be_placed_is_refused() {
             foreign.clone(),
             keys(),
             GRID,
-            Refused::Foreign(ds::WidgetKind::fixed("org.example.weather")),
+            Refused::Foreign(ds_shell::WidgetKind::fixed("org.example.weather")),
         ),
         (
-            WidgetEdit::Resize(ds::catalog::PlacementId(4), WidgetSize::Medium),
+            WidgetEdit::Resize(ds_shell::catalog::PlacementId(4), WidgetSize::Medium),
             keys(),
             GRID,
             Refused::OneSize,
         ),
         (
-            WidgetEdit::Resize(ds::catalog::PlacementId(2), WidgetSize::Small),
+            WidgetEdit::Resize(ds_shell::catalog::PlacementId(2), WidgetSize::Small),
             keys(),
             GRID,
             Refused::OneSize,

@@ -28,7 +28,9 @@ tokio = { workspace = true }
 sill-testkit = { workspace = true }
 # `tests/lint.rs` mounts every surface on the harness and lints its markup and stylesheet.
 sill-ui-kit = { workspace = true, features = ["harness"] }
-ds = { workspace = true, features = ["lint"] }
+ds = { workspace = true }
+ds-lint = { workspace = true }
+ds-shell = { workspace = true }
 # The key a `debug key` request parses to (dispatch/debug/inject.rs tests).
 keyboard-types = { workspace = true }
 

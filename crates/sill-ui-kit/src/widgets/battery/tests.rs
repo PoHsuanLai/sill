@@ -4,7 +4,8 @@ use sill_model::bluetooth::{
 };
 use sill_model::units::{Percent, Presence};
 
-use ds::{BatteryCell, BatteryEntry, Device, Fraction, RingMark};
+use ds::Fraction;
+use ds_shell::{BatteryCell, BatteryEntry, Device, RingMark};
 
 use super::provider::machine_name;
 use super::{BatteryOwner, BatteryRow, battery_entry, battery_rows, cell_of};

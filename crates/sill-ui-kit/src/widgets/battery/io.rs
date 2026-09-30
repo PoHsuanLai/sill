@@ -11,11 +11,11 @@ use sill_services::{BatteryService, BluetoothService};
 pub struct BatteryProvider;
 
 impl WidgetProvider for BatteryProvider {
-    type W = ds::BatteryWidget;
+    type W = ds_shell::BatteryWidget;
     const KIND: WidgetKind = WidgetKind::Battery;
     const DESKTOP_SIZE: WidgetSize = WidgetSize::Small;
 
-    fn use_feed() -> Feed<ds::BatteryWidget> {
+    fn use_feed() -> Feed<ds_shell::BatteryWidget> {
         let battery = use_service::<BatteryService>()();
         let bluetooth = use_service::<BluetoothService>()();
         let machine = use_hook(|| {

@@ -5,7 +5,7 @@
 
 use std::time::Duration;
 
-use ds::lint::{LintConfig, Profile, markup, stylesheet};
+use ds_lint::{LintConfig, Profile, markup, stylesheet};
 use sill_launcher::WindowKey;
 use sill_model::auth::UserName;
 use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, WindowState};
@@ -137,7 +137,7 @@ fn strict() -> LintConfig {
     LintConfig {
         profile: Profile::Strict,
         own_vars: OWN_VARS.iter().map(|var| (*var).to_owned()).collect(),
-        ..LintConfig::new(&ds::kits())
+        ..LintConfig::new(&ds_shell::kits())
     }
 }
 
@@ -509,7 +509,7 @@ fn every_surface_draws_clean_markup_in_each_state() {
     for case in SURFACES {
         let css = format!(
             "{}\n{}\n{}",
-            ds::stylesheet(),
+            ds_shell::stylesheet(),
             case.css,
             injected_css(case.name)
         );

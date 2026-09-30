@@ -10,7 +10,8 @@
 //! `onhover` / `onactivate` as `Hover` / `Click`. Style nothing under `.ds-switcher*`.
 
 use dioxus::prelude::*;
-use ds::{AppKey, Material, RootChrome, RootExtent, SwitcherApp as Tile};
+use ds::{Material, RootChrome, RootExtent};
+use ds_shell::{AppKey, SwitcherApp as Tile};
 use shell_host::{OutputInfo, SurfaceHandle};
 
 use super::icon::SwitcherIcons;
@@ -80,7 +81,7 @@ pub(super) fn switcher(output: OutputInfo) -> Element {
                     {chord_watch(host.as_ref(), session, ctx)}
                     if let Some((apps, selected)) = row {
                         div { id: PANEL_ID, class: "sill-switcher-panel",
-                            ds::AppSwitcher {
+                            ds_shell::AppSwitcher {
                                 apps,
                                 selected,
                                 output: width,

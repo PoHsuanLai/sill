@@ -14,11 +14,11 @@
 use std::rc::Rc;
 
 use dioxus::prelude::*;
-use ds::widget::{DesktopGrid, WidgetEdit};
 use ds::{
-    Button, ButtonVariant, Material, Panel, PanelEdge, PanelScrim, Px, RootExtent, Shown,
-    WidgetGallery, use_rect,
+    Button, ButtonVariant, Material, Panel, PanelEdge, PanelScrim, Px, RootExtent, Shown, use_rect,
 };
+use ds_shell::WidgetGallery;
+use ds_shell::widget::{DesktopGrid, WidgetEdit};
 use shell_host::OutputInfo;
 use sill_settings::{DesktopWidgets, WidgetsSettings};
 
@@ -231,9 +231,9 @@ fn take_keyboard(element: Rc<MountedData>) {
 
 #[cfg(test)]
 mod tests {
-    use ds::catalog::PlacementId;
-    use ds::widget::WidgetEdit;
-    use ds::{WidgetHost, WidgetSize};
+    use ds_shell::catalog::PlacementId;
+    use ds_shell::widget::WidgetEdit;
+    use ds_shell::{WidgetHost, WidgetSize};
     use sill_settings::{DesktopWidgets, WidgetKind};
 
     use super::shown_after;

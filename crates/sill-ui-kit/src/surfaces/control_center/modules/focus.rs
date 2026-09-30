@@ -4,7 +4,8 @@
 
 use crate::links::FocusLink;
 use dioxus::prelude::*;
-use ds::{Icon, ModuleState, ModuleTile, TextLine};
+use ds::{Icon, TextLine};
+use ds_shell::{ModuleState, ModuleTile};
 use sill_settings::FocusMode;
 
 use super::cc_module::{CcCx, CcModule, Span};

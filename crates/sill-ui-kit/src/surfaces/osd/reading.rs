@@ -44,8 +44,8 @@ pub fn level_of(
 
 /// The level quire's card draws: the fill (empty when muted or unknown) and the glyph
 /// `LevelControl` follows it with (a speaker's waves for volume, the sun for brightness).
-pub fn card_level(kind: OsdKind, level: Option<Level>) -> ds::OsdLevel {
-    ds::OsdLevel {
+pub fn card_level(kind: OsdKind, level: Option<Level>) -> ds_shell::OsdLevel {
+    ds_shell::OsdLevel {
         value: fill(level),
         glyph: glyph(kind, level),
     }

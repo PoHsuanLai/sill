@@ -3,7 +3,8 @@
 //! center, as `--notifications-*` tokens), the swipe keys as a `SwipeMetrics`, and the icon's
 //! side.
 
-use ds::{IconPx, NotificationMetrics, Px, Speed, SwipeMetrics};
+use ds::{IconPx, Px, Speed, SwipeMetrics};
+use ds_shell::NotificationMetrics;
 use sill_settings::NotificationsSettings;
 
 /// The geometry keys as quire's tokens.
@@ -38,8 +39,9 @@ pub fn icon_size(n: &NotificationsSettings) -> IconPx {
 #[cfg(test)]
 mod tests {
     use super::{icon_size, notification_metrics, swipe_metrics};
-    use ds::{IconPx, NotificationMetrics, SwipeMetrics};
+    use ds::{IconPx, SwipeMetrics};
     use ds_settings::Px;
+    use ds_shell::NotificationMetrics;
     use sill_settings::NotificationsSettings;
 
     #[test]

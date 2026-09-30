@@ -9,13 +9,14 @@
 
 use crate::file::ShellFile;
 use crate::section::Section;
+use ds_core::word::Word;
 use ds_settings::Px;
 use ds_settings::schema::Page;
 use serde::{Deserialize, Serialize};
 
 /// One widget. The same component draws it in the notification center and on the desktop. Weather
 /// is not a variant yet: it needs a weather source nothing provides; adding it later is additive.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 pub enum WidgetKind {
     /// The month, today marked (macOS's Calendar widget, month size).
@@ -31,7 +32,7 @@ pub enum WidgetKind {
 }
 
 /// `widgets.desktop`: whether the desktop widget layer is shown.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, ds::Word)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 #[word(case = snake)]
 pub enum DesktopWidgets {
@@ -120,7 +121,7 @@ impl Section for WidgetsSettings {
 #[cfg(test)]
 mod tests {
     use super::WidgetKind;
-    use ds::Word;
+    use ds_core::word::Word;
 
     #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
     struct Keys {
