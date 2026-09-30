@@ -1,8 +1,8 @@
 //! The numbers the machine runs on: `dock.*` settings plus quire's motion tokens
 //! at the active motion level. Built once per settings change, never hard-coded.
 
-use ds::{Easing, EasingToken, HoverProfile, MotionLevel};
-use sill_model::units::Cpx;
+use ds::{CubicBezier, EasingToken, Fraction, HoverProfile, MotionLevel};
+use sill_model::units::{Cpx, Permille};
 use sill_settings::{
     ActiveClick, Bounce as BounceSetting, DockModifierClicks, DockSettings, LaunchAnim,
     Magnification,
@@ -22,10 +22,10 @@ pub struct DockParams {
     pub enter_ms: u64,
     /// `dock.magnify_leave_ms`.
     pub leave_ms: u64,
-    /// `--e-out` at the motion level, as `[x1, y1, x2, y2]` thousandths.
-    pub ease_out: [i16; 4],
+    /// `--e-out` at the motion level.
+    pub ease_out: CubicBezier,
     /// `--e-exit` at the motion level.
-    pub ease_exit: [i16; 4],
+    pub ease_exit: CubicBezier,
     /// The label's first delay, [`fly_delay_ms`].
     pub fly_delay_ms: u64,
     /// `dock.hover_label_warm_ms`.
@@ -57,13 +57,16 @@ pub struct DockParams {
     pub pill_blur_radius: i32,
 }
 
+/// `curve` at time `t` (thousandths, at most all): quire's one evaluator, [`CubicBezier::at`].
+pub(super) fn eased(curve: CubicBezier, t: Permille) -> Permille {
+    let at = Fraction(u16::try_from(t.0.min(1000)).unwrap_or(1000));
+    Permille(u32::from(curve.at(at).0))
+}
+
 impl DockParams {
     /// The parameters for `dock` settings at motion `level`.
     pub fn new(dock: &DockSettings, level: MotionLevel) -> DockParams {
-        let curve = |token: EasingToken| match token.easing(level) {
-            Easing::Cubic(bezier) => bezier.0,
-            Easing::Linear => [0, 0, 1000, 1000],
-        };
+        let curve = |token: EasingToken| token.easing(level).curve();
         let px = |v: u16| Cpx::px(i32::from(v));
         let pad = i32::from(dock.pill_padding_px.0);
         let gutter = 8;
@@ -95,9 +98,9 @@ impl DockParams {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::DockParams;
-    use ds::MotionLevel;
-    use sill_model::units::Cpx;
+    use super::{DockParams, eased};
+    use ds::{CubicBezier, MotionLevel};
+    use sill_model::units::{Cpx, Permille};
     use sill_settings::DockSettings;
 
     /// The design defaults at the standard level: what every machine test runs on.
@@ -117,6 +120,24 @@ pub(crate) mod tests {
         assert_eq!(p.amplitude, Cpx::px(48));
         assert_eq!((p.autohide_delay_ms, p.slide_ms), (200, 500));
         assert_eq!(p.slide_distance, Cpx::px(76), "gut + H_p + 8 = 8 + 60 + 8");
-        assert_eq!(p.ease_out, [220, 900, 300, 1000]);
+        assert_eq!(p.ease_out, CubicBezier([220, 900, 300, 1000]));
+    }
+
+    #[test]
+    fn the_curves_run_from_nothing_to_all_and_ease_out_leads_linear() {
+        let out = CubicBezier([220, 900, 300, 1000]);
+        let linear = CubicBezier([0, 0, 1000, 1000]);
+        // (curve, t, at least, at most)
+        let cases = [
+            (out, 0, 0, 0),
+            (out, 1000, 1000, 1000),
+            (out, 5000, 1000, 1000),
+            (out, 250, 500, 1000),
+            (linear, 500, 495, 505),
+        ];
+        for (curve, t, least, most) in cases {
+            let got = eased(curve, Permille(t)).0;
+            assert!((least..=most).contains(&got), "{curve:?} at {t}: {got}");
+        }
     }
 }

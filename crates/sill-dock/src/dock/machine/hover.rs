@@ -4,8 +4,8 @@
 use sill_model::units::{Cpx, Permille, Stamp};
 use sill_settings::Magnification;
 
-use super::easing::ease;
 use super::params::DockParams;
+use super::params::eased;
 use super::types::{DockEffect, DockEvent, DockState, Hit, MenuState, Pointer};
 
 /// Whether a pointer move since the last frame still needs drawing.
@@ -89,9 +89,9 @@ pub fn displayed(dock: &DockState, now: Stamp, p: &DockParams) -> (Permille, Cpx
     let shown = match dock.hover {
         Hover::Rest => Permille::ZERO,
         Hover::Frozen { shown, .. } => shown,
-        Hover::Entering { .. } | Hover::Tracking { .. } => ease(p.ease_out, lin),
+        Hover::Entering { .. } | Hover::Tracking { .. } => eased(p.ease_out, lin),
         Hover::Leaving { .. } => {
-            Permille(1000u32.saturating_sub(ease(p.ease_out, Permille(1000 - lin.0.min(1000))).0))
+            Permille(1000u32.saturating_sub(eased(p.ease_out, Permille(1000 - lin.0.min(1000))).0))
         }
     };
     (shown, dock.x)

@@ -3,8 +3,8 @@
 use shell_host::{BlurSpec, ElementId, ExclusiveZone, RegionSpec};
 use sill_model::units::{Cpx, Permille, Stamp};
 
-use super::easing::ease;
 use super::params::DockParams;
+use super::params::eased;
 use super::press::Press;
 use super::types::{DockEffect, DockEvent, DockState, Hit, MenuState};
 
@@ -68,9 +68,9 @@ pub fn slide_offset(reveal: &Reveal, now: Stamp, p: &DockParams) -> Cpx {
         Reveal::Fixed | Reveal::Shown => Cpx(0),
         Reveal::Hidden | Reveal::Armed { .. } => p.slide_distance,
         Reveal::Showing { since } => scaled(Permille(
-            1000u32.saturating_sub(ease(p.ease_out, t(since)).0.min(1000)),
+            1000u32.saturating_sub(eased(p.ease_out, t(since)).0.min(1000)),
         )),
-        Reveal::Hiding { since } => scaled(Permille(ease(p.ease_exit, t(since)).0.min(1000))),
+        Reveal::Hiding { since } => scaled(Permille(eased(p.ease_exit, t(since)).0.min(1000))),
     }
 }
 
