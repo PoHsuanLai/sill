@@ -42,11 +42,11 @@ fn count(html: &str, needle: &str) -> usize {
     html.matches(needle).count()
 }
 
-/// The hover labels in document order: each tile's name.
+/// The tiles' names in document order (a label is drawn only while it is up).
 fn labels(html: &str) -> Vec<String> {
-    html.split("class=\"ds-fly\" role=\"tooltip\">")
+    html.split("class=\"sill-dock-tile\" aria-label=\"")
         .skip(1)
-        .filter_map(|rest| rest.split('<').next().map(str::to_owned))
+        .filter_map(|rest| rest.split('"').next().map(str::to_owned))
         .collect()
 }
 

@@ -25,7 +25,7 @@ const CLEAR: &str = ".ds-group-header-actions .ds-button:last-child";
 fn closed_it_draws_nothing() {
     let mut running = start(ShellFile::default(), two_apps());
     advance(&mut running, 100);
-    assert_eq!(running.harness.count(".ds-panel"), 0);
+    assert_eq!(running.harness.count(".ds-side-panel"), 0);
     assert_eq!(running.harness.count(".sill-nc-catcher"), 0);
 }
 
@@ -33,7 +33,7 @@ fn closed_it_draws_nothing() {
 fn open_it_is_quires_full_height_panel_at_the_right_edge() {
     let running = opened(two_apps());
     let h = &running.harness;
-    let panel = h.rect(".ds-panel").expect("the panel is laid out");
+    let panel = h.rect(".ds-side-panel").expect("the panel is laid out");
     let width = f32::from(ShellFile::default().notifications.center_width_px.0);
     assert!((panel.size.width.0 - width).abs() < 0.5, "{panel:?}");
     let right = panel.origin.x.0 + panel.size.width.0;
@@ -47,11 +47,11 @@ fn open_it_is_quires_full_height_panel_at_the_right_edge() {
         "full height: {panel:?}"
     );
     assert_eq!(
-        h.attr(".ds-panel-scope", "data-material").as_deref(),
+        h.attr(".ds-side-panel-scope", "data-material").as_deref(),
         Some("popover")
     );
     assert_eq!(
-        h.attr(".ds-panel", "data-presence").as_deref(),
+        h.attr(".ds-side-panel", "data-presence").as_deref(),
         Some("present"),
         "quire's entrance has played"
     );
@@ -280,20 +280,24 @@ fn a_press_outside_the_panel_closes_it_after_quires_exit() {
         y: ds::Px(400.0),
     });
     until(&mut running, |h| {
-        h.attr(".ds-panel", "data-presence").as_deref() != Some("present")
+        h.attr(".ds-side-panel", "data-presence").as_deref() != Some("present")
     });
     assert_eq!(running.link.now(), CenterShown::Closed);
     assert_eq!(
         running
             .harness
-            .attr(".ds-panel", "data-presence")
+            .attr(".ds-side-panel", "data-presence")
             .as_deref(),
         Some("leaving"),
         "still drawn while quire's exit plays"
     );
     let exit = settle_time(Anim::PanelOut, MotionLevel::Standard);
-    settle(&mut running.harness, |h| h.count(".ds-panel") == 0);
-    assert_eq!(running.harness.count(".ds-panel"), 0, "gone after {exit:?}");
+    settle(&mut running.harness, |h| h.count(".ds-side-panel") == 0);
+    assert_eq!(
+        running.harness.count(".ds-side-panel"),
+        0,
+        "gone after {exit:?}"
+    );
     assert!(commands(&mut running).is_empty());
 }
 
@@ -304,11 +308,11 @@ fn opened_again_while_leaving_it_stays() {
     advance(&mut running, 60);
     running.link.open(fake::output().id);
     advance(&mut running, 600);
-    assert_eq!(running.harness.count(".ds-panel"), 1);
+    assert_eq!(running.harness.count(".ds-side-panel"), 1);
     assert_eq!(
         running
             .harness
-            .attr(".ds-panel", "data-presence")
+            .attr(".ds-side-panel", "data-presence")
             .as_deref(),
         Some("present")
     );
@@ -322,5 +326,5 @@ fn a_press_inside_the_panel_keeps_it_open() {
     // Nothing should change, so nothing to wait on: a margin past the panel's exit time.
     advance(&mut running, 400);
     assert_eq!(running.link.now(), CenterShown::Open(fake::output().id));
-    assert_eq!(running.harness.count(".ds-panel"), 1);
+    assert_eq!(running.harness.count(".ds-side-panel"), 1);
 }

@@ -82,6 +82,7 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
     rsx! {
         div {
             class: "sill-dock-tile",
+            "aria-label": "{name}",
             style: "left:{px(left)}px;top:{top}px;width:{side}px;height:{side}px",
             div {
                 class: "sill-dock-plate",
@@ -110,7 +111,7 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
             div {
                 class: "sill-dock-label",
                 style: "left:{inset:.2}px;top:{inset:.2}px",
-                DockLabel { text: name, shown,
+                DockLabel { text: name.clone(), shown,
                     span {
                         class: "sill-dock-label-box",
                         style: "width:{plate:.2}px;height:{plate:.2}px",

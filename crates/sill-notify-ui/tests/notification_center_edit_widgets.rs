@@ -62,6 +62,6 @@ fn the_centers_edit_widgets_opens_the_gallery_on_its_output() {
     click(&mut run, ".sill-nc-edit .ds-button");
     assert_eq!(run.link.now(), CenterShown::Closed);
     assert_eq!(edit.now(), EditShown::Open(output));
-    settle_until(&mut run.harness, |h| h.count(".ds-panel") == 0);
+    settle_until(&mut run.harness, |h| h.count(".ds-side-panel") == 0);
     assert_settles_to_zero_frames(&mut run.harness);
 }

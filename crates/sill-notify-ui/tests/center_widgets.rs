@@ -113,7 +113,7 @@ mod center_support {
             .send_modify(|n| n.history = history);
         running.harness.advance(Duration::from_millis(40));
         running.link.open(fake::output().id);
-        settle(&mut running.harness, |h| h.count(".ds-panel") == 1);
+        settle(&mut running.harness, |h| h.count(".ds-side-panel") == 1);
         running.harness.advance(Duration::from_millis(600));
         running
     }

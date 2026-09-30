@@ -47,6 +47,8 @@ fn asked(running: &mut cc_support::live::Running) {
         None,
         "asking sends nothing"
     );
+    // Past the sheet's slide in (`--t-big`): a press lands where the buttons are drawn.
+    running.harness.advance(ms(500));
 }
 
 /// The alert went, sending `want`.
@@ -89,15 +91,8 @@ fn the_tile_asks_before_off_and_only_turn_off_or_return_sends_it() {
     press(&mut running.harness, CANCEL);
     answered(&mut running, None);
 
-    // A press on the scrim, beside the alert's panel.
-    press_tile(&mut running.harness);
-    asked(&mut running);
-    let stage = running.harness.rect(ALERT).expect("the stage");
-    running.harness.click(Point {
-        x: Px(stage.origin.x.0 + 6.0),
-        y: Px(stage.origin.y.0 + 6.0),
-    });
-    answered(&mut running, None);
+    // (A press beside the alert's panel is no cancel: a sheet dims nothing and takes no click
+    // for the alert; the stage only keeps the pointer from the tiles under it.)
 
     // Return turns it off.
     press_tile(&mut running.harness);

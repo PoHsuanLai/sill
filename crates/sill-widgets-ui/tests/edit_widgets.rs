@@ -204,7 +204,7 @@ fn an_added_widget_is_written_as_the_keys_and_places_and_a_second_is_refused() {
 
     run.click(".sill-ew-head .ds-button");
     assert_eq!(run.edit.now(), EditShown::Closed);
-    settle_until(&mut run.harness, |h| h.count(".ds-panel") == 0);
+    settle_until(&mut run.harness, |h| h.count(".ds-sheet") == 0);
     assert_settles_to_zero_frames(&mut run.harness);
 }
 
@@ -251,10 +251,10 @@ fn the_gallery_is_a_bottom_sheet_offering_one_size_per_widget() {
     let mut run = opened();
     let h = &run.harness;
     assert_eq!(
-        h.attr(".ds-panel-stage", "data-edge").as_deref(),
+        h.attr(".ds-sheet", "data-attach").as_deref(),
         Some("bottom")
     );
-    let (left, top, width, height) = box_of(h, ".ds-panel");
+    let (left, top, width, height) = box_of(h, ".ds-sheet");
     assert!(top + height >= 800 - 8 - 1, "at the bottom: {top} {height}");
     assert!(height <= 400, "under half the output: {height}");
     assert_eq!(width, 1040, "{left} {width}");
@@ -362,7 +362,7 @@ fn escape_closes_after_a_press_inside_the_panel() {
         run.harness.key(ds::ShortcutKey::Escape);
         run.harness.advance(Duration::from_millis(50));
         assert_eq!(run.edit.now(), EditShown::Closed, "after {then:?}");
-        settle_until(&mut run.harness, |h| h.count(".ds-panel") == 0);
+        settle_until(&mut run.harness, |h| h.count(".ds-sheet") == 0);
         assert_settles_to_zero_frames(&mut run.harness);
     }
 }
