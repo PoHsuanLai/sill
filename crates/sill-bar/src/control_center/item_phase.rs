@@ -9,7 +9,7 @@
 //! join) rests: quire plays a plain Change for a Succeeded nobody watched start, and no Change
 //! reads the same.
 
-use ds::detail::EventStamp;
+use ds::motion::detail::stamp::EventStamp;
 use sill_model::attempt::{Attempt, Attempts, OpStamp};
 
 /// An operation on a row's item, stamped by the service that runs it: a running one makes the row
@@ -91,7 +91,7 @@ pub(crate) const FAILED_WORDS: &str = "Couldn’t connect";
 #[cfg(test)]
 mod tests {
     use super::{Aim, Item, ItemPhase, aim_after, item_phase};
-    use ds::detail::EventStamp;
+    use ds::motion::detail::stamp::EventStamp;
     use sill_model::attempt::{Attempt, Attempts, OpStamp};
 
     fn at(now: Attempt, minted: u32) -> Attempts {

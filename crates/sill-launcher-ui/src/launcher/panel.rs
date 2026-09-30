@@ -169,7 +169,7 @@ pub(crate) struct Aside {
     focused: Option<usize>,
     shown: ds::prelude::Shown,
     serial: sill_ui_kit::links::OpenSerial,
-    touch: ds::detail::Touch,
+    touch: ds::motion::detail::touch::Touch,
 }
 
 /// The pane while it shows, and after it is hidden until quire has played it out
@@ -178,7 +178,7 @@ fn use_aside(
     shown: Option<&Shown>,
     icons: &RowIcons,
     left: Signal<u64>,
-    touch: ds::detail::Touch,
+    touch: ds::motion::detail::touch::Touch,
 ) -> Option<Aside> {
     let mut last = use_hook(|| CopyValue::new(None::<Aside>));
     let mut seen = use_hook(|| CopyValue::new(0_u64));

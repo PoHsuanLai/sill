@@ -3,7 +3,8 @@
 //! (in the dark, Muted and Monochrome lift a raster into quire's tone band, design/29 §11 F3).
 //! Pure.
 
-use ds::icon::{IconStyle, Tint};
+use ds::style::icon::retint::IconStyle;
+use ds::style::icon::retint::Tint;
 use ds::prelude::*;
 use ds::style::space::look::CardAccent;
 use ds::style::space::palette::derive;
@@ -61,7 +62,7 @@ pub fn icon_look(
     }
 }
 
-/// `icons.style` in `ds::icon`'s words.
+/// `icons.style` in `ds::style::icon`'s words.
 fn style_of(style: ds_settings::IconStyle) -> IconStyle {
     match style {
         ds_settings::IconStyle::Colour => IconStyle::Colour,
@@ -93,7 +94,8 @@ fn card_accent(space: &SpaceLook, accent: Accent) -> String {
 #[cfg(test)]
 mod tests {
     use super::{IconLook, icon_look};
-    use ds::icon::{IconStyle, Tint};
+    use ds::style::icon::retint::IconStyle;
+    use ds::style::icon::retint::Tint;
     use ds::prelude::*;
     use ds::style::space::look::CardAccent;
     use ds::style::space::presets::default_look;

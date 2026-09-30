@@ -2,7 +2,7 @@
 //!
 //! Each item draws its own icon: a pixmap or a theme icon through `sill_services::icon_art`,
 //! symbolic (drawn in the frame's ink, like a glyph) or an image by design/08-ICONS.md §1.5, as
-//! `tray_input::icon_source` decides with quire's `ds::icon::classify`. The button carries the
+//! `tray_input::icon_source` decides with quire's `ds::style::icon::classify::classify_with`. The button carries the
 //! `tray-<n>` id the popup anchors to, and hands over the pointer button and point: the primary
 //! button opens the dbusmenu (or activates an item without one), the secondary opens the
 //! dbusmenu, the middle one is SNI's secondary activation, each with the press's screen point.

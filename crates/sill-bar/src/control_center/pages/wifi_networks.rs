@@ -207,7 +207,7 @@ mod tests {
     use super::{WifiPick, empty_title, joining, network_row, network_rows};
     use crate::control_center::item_phase::{ItemPhase, RowDisc};
     use crate::control_center::rows::RowMark;
-    use ds::detail::EventStamp;
+    use ds::motion::detail::stamp::EventStamp;
     use ds::prelude::*;
     use sill_model::wifi::{AccessPoint, Association, Radio, Saved, Security, Ssid, Wifi};
     use sill_model::{

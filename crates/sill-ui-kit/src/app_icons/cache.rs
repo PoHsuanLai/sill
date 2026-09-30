@@ -137,8 +137,8 @@ fn make(key: IconKey, source: PathBuf, dir: PathBuf) {
 }
 
 /// The tint a key was made from, back from its whole steps.
-fn tint_of(key: &IconKey) -> ds::icon::Tint {
-    ds::icon::Tint {
+fn tint_of(key: &IconKey) -> ds::style::icon::retint::Tint {
+    ds::style::icon::retint::Tint {
         hue: f32::from(key.tint.hue_tenths) / 10.0,
         chroma: f32::from(key.tint.chroma_ten_thousandths) / 10_000.0,
     }
@@ -149,7 +149,8 @@ mod tests {
     use super::{make, styled};
     use crate::app_icons::key::{IconKey, TintKey};
     use crate::app_icons::size::AssetPx;
-    use ds::icon::{IconStyle, Tint};
+    use ds::style::icon::retint::IconStyle;
+    use ds::style::icon::retint::Tint;
     use ds::prelude::*;
 
     /// A made key is shown from its cache file; one never started shows its source (no

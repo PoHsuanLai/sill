@@ -1,7 +1,7 @@
 //! Turning a [`TrayIcon`] into the art the bar draws: a pixmap's PNG bytes, or the file a named
 //! icon resolves to in the installed theme, with what design/08-ICONS.md §1.5 can tell from
 //! the name alone (step 1: a freedesktop `*-symbolic` icon is symbolic). The chroma test for the
-//! rest (step 2) is quire's `ds::icon::classify`, which the bar runs on the PNG bytes: this
+//! rest (step 2) is quire's `ds::style::icon::classify::classify_with`, which the bar runs on the PNG bytes: this
 //! crate does not reach `ds` (`scripts/check-boundary.sh`). The URL itself is quire's too
 //! (`IconUrl::png` does the base64, `IconUrl::file` the path).
 

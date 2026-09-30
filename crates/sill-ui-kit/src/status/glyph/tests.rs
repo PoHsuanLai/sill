@@ -5,7 +5,7 @@ use ds::components::content::status::battery_state::{BatteryPower, BatteryState,
 use ds::components::content::status::bluetooth_state::BluetoothState;
 use ds::components::content::status::volume::{VolumeState, VolumeWaves};
 use ds::components::content::status::wifi_state::{WifiBars, WifiReach, WifiState};
-use ds::detail::EventStamp;
+use ds::motion::detail::stamp::EventStamp;
 use ds::prelude::*;
 use sill_model::attempt::{Attempt, Attempts, OpStamp};
 use sill_model::battery::{Battery, Charge};

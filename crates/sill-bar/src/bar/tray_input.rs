@@ -4,7 +4,8 @@
 
 use dioxus::html::geometry::WheelDelta;
 use ds::base::press::{PointerButton, Press};
-use ds::icon::{IconKind, classify_with};
+use ds::style::icon::classify::IconKind;
+use ds::style::icon::classify::classify_with;
 use ds::prelude::*;
 use ds::style::icon::classify::ChromaLimit;
 use ds::style::icon::url::IconUrl;
@@ -44,7 +45,7 @@ pub(crate) fn chroma_limit(thousandths: u16) -> ChromaLimit {
     ChromaLimit::try_from(f32::from(thousandths) / 1000.0).unwrap_or_default()
 }
 
-/// The art `art` as quire draws it: a PNG by the chroma test (`ds::icon::classify_with` at
+/// The art `art` as quire draws it: a PNG by the chroma test (`ds::style::icon::classify::classify_with` at
 /// `limit`), a theme file by its name, and the window glyph when there is none or its URL is
 /// refused. A PNG the test cannot decode is shown as it is.
 pub(crate) fn icon_source(art: Option<IconArt>, limit: ChromaLimit) -> IconSource {

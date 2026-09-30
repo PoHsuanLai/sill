@@ -36,7 +36,7 @@ pub fn pill_corner(dock: &DockSettings) -> Corner {
 /// The blur region's corner radius for the pill: the circle the squircle's shadows follow,
 /// which touches it at 45 degrees (`Corner::css`'s radius), in whole pixels.
 pub fn pill_blur_radius(dock: &DockSettings) -> i32 {
-    let share = ds::icon::plate::shadow_radius_share();
+    let share = ds::style::tokens::plate::shadow_radius_share();
     // A radius key is at most u16::MAX, so the rounded product fits an i32.
     (f64::from(dock.pill_radius_px.0) * share).round() as i32
 }

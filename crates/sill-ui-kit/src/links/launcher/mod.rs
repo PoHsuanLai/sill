@@ -74,14 +74,14 @@ impl LauncherLink {
 
     /// `launcher toggle` on `output`.
     pub fn toggle(&self, output: OutputId) {
-        let now = ds::time::now();
+        let now = ds::base::time::clock::now();
         self.shown
             .send_modify(|shown| *shown = toggle(shown, output, now));
     }
 
     /// `launcher open --query` on `output`.
     pub fn open(&self, output: OutputId, query: String) {
-        let now = ds::time::now();
+        let now = ds::base::time::clock::now();
         self.shown
             .send_modify(|shown| *shown = open(shown, output, query, now));
     }

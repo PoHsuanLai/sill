@@ -1,7 +1,7 @@
 //! The preview pane: Quick Look for the selected row, a
 //! column right of the results inside the launcher card. What it shows is
 //! `sill_launcher::preview_for(row)`; its keys are [`keys::step_preview`]; its moments go
-//! through quire's `ds::detail` in [`moment::use_pane_detail`].
+//! through quire's `ds::motion::detail` in [`moment::use_pane_detail`].
 //!
 //! It is quire's `PreviewPane`, set beside the results as the palette's
 //! `aside`: sill maps a [`Preview`] to quire's `PaneContent` (`content.rs`) and a row's actions
@@ -18,7 +18,8 @@ pub mod moment;
 
 use dioxus::prelude::*;
 use ds::components::lists::preview::pane::PaneAction;
-use ds::detail::{Touch, use_operation};
+use ds::motion::detail::touch::Touch;
+use ds::motion::detail::use_operation::use_operation;
 use ds::prelude::*;
 use sill_launcher::{Action, Preview};
 

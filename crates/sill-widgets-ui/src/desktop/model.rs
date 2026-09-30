@@ -1,7 +1,7 @@
 //! What the desktop layer computes from its places: the last layout, the last drop, each card's
 //! box and paint order, the places a layout or a drop keeps, and the regions the frames take.
 
-use ds::detail::Touch;
+use ds::motion::detail::touch::Touch;
 use ds::motion::spring_point::Release;
 use ds::prelude::*;
 use shell_host::{BlurSpec, ElementId, ElementRegion, RegionSpec};

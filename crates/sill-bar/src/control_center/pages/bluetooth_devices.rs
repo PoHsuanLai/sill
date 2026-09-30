@@ -185,7 +185,7 @@ mod tests {
     use super::{connecting, device_row, device_rows, empty_title};
     use crate::control_center::item_phase::{ItemPhase, RowDisc};
     use crate::control_center::rows::RowMark;
-    use ds::detail::EventStamp;
+    use ds::motion::detail::stamp::EventStamp;
     use ds::prelude::*;
     use sill_model::bluetooth::{
         Bluetooth, BluetoothCommand, BtAddress, BtBattery, BtConnection, BtDevice, BtKind,

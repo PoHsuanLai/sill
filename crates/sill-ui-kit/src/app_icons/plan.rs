@@ -11,7 +11,7 @@
 
 use std::path::{Path, PathBuf};
 
-use ds::icon::IconStyle;
+use ds::style::icon::retint::IconStyle;
 
 use crate::app_icons::key::{IconKey, TintKey};
 use crate::app_icons::look::IconLook;
@@ -58,7 +58,8 @@ mod tests {
     use super::{Art, theme_art};
     use crate::app_icons::look::IconLook;
     use crate::app_icons::size::AssetPx;
-    use ds::icon::{IconStyle, Tint};
+    use ds::style::icon::retint::IconStyle;
+    use ds::style::icon::retint::Tint;
     use ds::prelude::*;
     use std::path::Path;
 

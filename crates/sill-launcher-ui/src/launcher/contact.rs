@@ -3,7 +3,8 @@
 //! else (an answer arriving, a load landing) is `Touch::Remote`.
 
 use dioxus::prelude::*;
-use ds::detail::{Handled, Touch};
+use ds::motion::detail::touch::Handled;
+use ds::motion::detail::touch::Touch;
 
 /// The panel's last contact, until a render takes it.
 #[derive(Clone, Copy)]

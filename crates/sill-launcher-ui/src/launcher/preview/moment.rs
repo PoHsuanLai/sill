@@ -1,10 +1,11 @@
-//! The preview pane's moments through quire's `ds::detail` (design/26-DETAILS.md): its states as
+//! The preview pane's moments through quire's `ds::motion::detail` (design/26-DETAILS.md): its states as
 //! the person sees them, what each change means (an exhaustive [`Detailed`] table), and
 //! [`use_pane_detail`], the one place the pane calls `use_detail`. The launcher never plays a
 //! moment itself (quire rule 4): the cue goes to quire's `PreviewPane` (`cue`, and `operation`
 //! from `use_operation`), which plays it.
 
-use ds::detail::{Detail, Touch};
+use ds::motion::detail::use_detail::Detail;
+use ds::motion::detail::touch::Touch;
 use ds::prelude::*;
 use sill_launcher::PreviewKind;
 
@@ -59,7 +60,8 @@ pub fn use_pane_detail(state: PaneState, touch: Touch) -> Detail<PaneState> {
 mod tests {
     use super::PaneState;
     use super::PaneState::{Failed, Hidden, Pending, Showing};
-    use ds::detail::{first_table, moment_table};
+    use ds::motion::detail::detailed::first_table;
+    use ds::motion::detail::detailed::moment_table;
     use ds::prelude::*;
     use sill_launcher::PreviewKind::{Image, Pdf, TextFile};
 

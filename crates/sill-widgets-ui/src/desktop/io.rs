@@ -3,7 +3,7 @@
 //! file, and keep the surface's input and blur regions on the placed frames.
 
 use dioxus::prelude::*;
-use ds::detail::Touch;
+use ds::motion::detail::touch::Touch;
 use ds::motion::spring_point::Release;
 use shell_host::SurfaceHandle;
 use sill_settings::WidgetKind;
@@ -70,7 +70,7 @@ impl Feeder {
 
     /// Keep the pointer's moves for the release velocity; a release reads it.
     fn measure(&self, input: DragInput) -> Release {
-        let when = ds::time::now();
+        let when = ds::base::time::clock::now();
         let now = *self.meter.peek();
         let (next, release) = match input {
             DragInput::Down(at) => (PointMeter::pressed(at, when), Release::default()),

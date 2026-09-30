@@ -1,6 +1,7 @@
 use super::{IconContext, TileArt, TileSizes, drawn, tile_art};
 use crate::dock::items::ItemKind;
-use ds::icon::{IconStyle, Tint};
+use ds::style::icon::retint::IconStyle;
+use ds::style::icon::retint::Tint;
 use ds::prelude::*;
 use ds::style::icon::render::IconPx;
 use sill_launcher::AppId;

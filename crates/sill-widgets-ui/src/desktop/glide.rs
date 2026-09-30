@@ -4,7 +4,7 @@
 
 use std::time::Instant;
 
-use ds::detail::Touch;
+use ds::motion::detail::touch::Touch;
 use ds::motion::spring_point::Release;
 use ds::motion::velocity::VelocityMeter;
 use ds::prelude::*;

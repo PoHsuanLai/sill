@@ -130,7 +130,7 @@ impl CcModule for WifiCc {
 mod tests {
     use super::{radio_availability, radio_of, radio_state, wifi_tile_state};
     use ds::components::content::status::wifi_state::{WifiBars, WifiReach, WifiState};
-    use ds::detail::EventStamp;
+    use ds::motion::detail::stamp::EventStamp;
     use ds::prelude::*;
     use sill_model::network::{Connectivity, Link, Network};
     use sill_model::wifi::{Radio, Wifi};

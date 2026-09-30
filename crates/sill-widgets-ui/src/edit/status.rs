@@ -8,7 +8,8 @@
 
 use dioxus::prelude::*;
 use ds::components::content::label::{LabelRole, LabelStyle};
-use ds::detail::{Touch, use_shake};
+use ds::motion::detail::touch::Touch;
+use ds::motion::detail::once::use_shake;
 use ds::prelude::*;
 use ds_shell::widget::{WidgetEdit, WidgetLayout};
 
@@ -139,7 +140,7 @@ pub(super) fn EditStatus(outcome: Outcome) -> Element {
 
 #[cfg(test)]
 mod tests {
-    use ds::detail::moment_table;
+    use ds::motion::detail::detailed::moment_table;
     use ds::prelude::*;
     use ds_shell::catalog::PlacementId;
     use ds_shell::prelude::*;

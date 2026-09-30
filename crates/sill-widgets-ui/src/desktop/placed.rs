@@ -88,7 +88,7 @@ fn apply(motion: SpringPointMotion, asked: Ask) {
         }
         Ask::Aside(to) => motion.go(
             to_point(to),
-            ds::detail::Touch::Remote,
+            ds::motion::detail::touch::Touch::Remote,
             ds::motion::spring_point::Release::default(),
             SpringResponse::Move,
         ),

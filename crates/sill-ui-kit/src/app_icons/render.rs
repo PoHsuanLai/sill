@@ -2,14 +2,16 @@
 //! tokio's blocking pool, never on the UI thread.
 //!
 //! The source is read, rasterised at the key's size (an SVG through resvg, a PNG or JPEG
-//! decoded and fitted), put through `ds::icon::retint_in` for its scheme and written as a PNG,
+//! decoded and fitted), put through `ds::style::icon::retint::retint_in` for its scheme and written as a PNG,
 //! atomically.
 
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use ds::icon::{IconStyle, Tint, retint_in};
+use ds::style::icon::retint::IconStyle;
+use ds::style::icon::retint::Tint;
+use ds::style::icon::retint::retint_in;
 use ds::prelude::*;
 use image::imageops::FilterType;
 use image::{ImageFormat, RgbaImage};
@@ -128,7 +130,8 @@ pub fn fresh(target: &Path, source: &Path) -> bool {
 mod tests {
     use super::{Recolour, fresh, render, write_atomic};
     use crate::app_icons::size::AssetPx;
-    use ds::icon::{IconStyle, Tint};
+    use ds::style::icon::retint::IconStyle;
+    use ds::style::icon::retint::Tint;
     use ds::prelude::*;
     use std::path::PathBuf;
 
