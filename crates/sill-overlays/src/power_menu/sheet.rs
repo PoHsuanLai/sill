@@ -1,5 +1,5 @@
 //! One opening of the sheet, pure: the keyboard machine's focus ([`super::step`]) plus whether
-//! the sheet is up or on its way out. Escape, a scrim click and a chosen action all leave the
+//! the sheet is up or on its way out. Escape, a press outside the sheet and a chosen action all leave the
 //! same way, quire's `Sheet` playing its own exit (`sheet-out`, the scrim fading); at its
 //! `on_hidden` the menu closes and, for a chosen action, the action runs, so a suspend or a
 //! polkit prompt never finds the sheet still up. Shown again while leaving, it is up again.

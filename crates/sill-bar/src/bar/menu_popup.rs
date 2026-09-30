@@ -10,8 +10,8 @@
 
 use dioxus::prelude::*;
 use ds::{
-    Align, Anchor, BlurState, Ds, Elevation, Material, Menu, MenuEntrance, MenuKind, Placement,
-    Point, Popover, Press, Px, RootExtent, Side,
+    Align, Anchor, BlurState, Ds, Material, Menu, MenuEntrance, MenuKind, Placement, Point,
+    Popover, Press, Px, RootExtent, Side,
 };
 use shell_host::{PopupPlacement, SurfaceOp, use_surface, use_watch};
 use sill_model::ids::OutputName;
@@ -215,7 +215,6 @@ fn PanelPopover(module: Option<ControlCenterModule>) -> Element {
             anchor: corner(),
             placement: Placement::new(Side::Bottom, Align::Start),
             gap: GAP,
-            elevation: Elevation::Pop,
             onclose: dismissed,
             {content}
         }

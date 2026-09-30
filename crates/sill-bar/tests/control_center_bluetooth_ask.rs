@@ -16,8 +16,8 @@ use sill_model::bluetooth::{BluetoothCommand, BtPower};
 /// The Bluetooth tile: the grid's second module (Wi-Fi, Bluetooth, Focus, ...).
 const TILE: &str = ".ds-module-grid > .ds-module-tile:nth-child(2)";
 const ALERT: &str = ".sill-cc > .ds-alert-stage";
-const CANCEL: &str = ".ds-alert-slot:first-child .ds-button";
-const TURN_OFF: &str = ".ds-alert-slot:last-child .ds-button";
+const CANCEL: &str = ".ds-alert-slot:last-child .ds-button";
+const TURN_OFF: &str = ".ds-alert-slot:first-child .ds-button";
 
 /// A press on the tile's disc (left of its words, well clear of its chevron).
 fn press_tile(harness: &mut Harness) {
@@ -37,7 +37,7 @@ fn asked(running: &mut cc_support::live::Running) {
         Some("Turn Bluetooth off?")
     );
     assert_eq!(
-        h.text_of(".ds-alert-message").as_deref(),
+        h.text_of(".ds-alert-body").as_deref(),
         Some("Bluetooth devices such as keyboards and mice will be disconnected.")
     );
     assert_eq!(h.text_of(CANCEL).as_deref(), Some("Cancel"));

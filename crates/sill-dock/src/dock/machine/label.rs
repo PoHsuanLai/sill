@@ -182,11 +182,11 @@ mod tests {
                     tile: TileId(1),
                     since: Stamp(0),
                 },
-                vec![DockEffect::WakeAt(Stamp(350))],
+                vec![DockEffect::WakeAt(Stamp(100))],
             ),
             (
-                "not shown at 349 ms",
-                show(349),
+                "not shown at 99 ms",
+                show(99),
                 Label::Pending {
                     tile: TileId(1),
                     since: Stamp(0),
@@ -194,28 +194,28 @@ mod tests {
                 vec![],
             ),
             (
-                "shown at 350 ms",
-                show(350),
+                "shown at 100 ms",
+                show(100),
                 Label::Shown { tile: TileId(1) },
                 vec![DockEffect::ShowLabel { tile: TileId(1) }],
             ),
             (
                 "a neighbour shows at once",
-                [show(350), vec![(400, over(2))]].concat(),
+                [show(100), vec![(150, over(2))]].concat(),
                 Label::Shown { tile: TileId(2) },
                 vec![DockEffect::ShowLabel { tile: TileId(2) }],
             ),
             (
                 "leaving warms",
-                [show(350), vec![(400, DockEvent::PointerLeave)]].concat(),
-                Label::Warm { until: Stamp(800) },
-                vec![DockEffect::HideLabel, DockEffect::WakeAt(Stamp(800))],
+                [show(100), vec![(150, DockEvent::PointerLeave)]].concat(),
+                Label::Warm { until: Stamp(550) },
+                vec![DockEffect::HideLabel, DockEffect::WakeAt(Stamp(550))],
             ),
             (
                 "back within 400 ms: 0 ms delay",
                 [
-                    show(350),
-                    vec![(400, DockEvent::PointerLeave), (700, over(3))],
+                    show(100),
+                    vec![(150, DockEvent::PointerLeave), (450, over(3))],
                 ]
                 .concat(),
                 Label::Shown { tile: TileId(3) },
@@ -224,19 +224,19 @@ mod tests {
             (
                 "back after 500 ms: the fly delay again",
                 [
-                    show(350),
+                    show(100),
                     vec![
-                        (400, DockEvent::PointerLeave),
-                        (800, DockEvent::Tick),
-                        (900, over(3)),
+                        (150, DockEvent::PointerLeave),
+                        (600, DockEvent::Tick),
+                        (700, over(3)),
                     ],
                 ]
                 .concat(),
                 Label::Pending {
                     tile: TileId(3),
-                    since: Stamp(900),
+                    since: Stamp(700),
                 },
-                vec![DockEffect::WakeAt(Stamp(1250))],
+                vec![DockEffect::WakeAt(Stamp(800))],
             ),
             (
                 "moving to another tile while pending restarts the delay",
@@ -245,12 +245,12 @@ mod tests {
                     tile: TileId(2),
                     since: Stamp(200),
                 },
-                vec![DockEffect::WakeAt(Stamp(550))],
+                vec![DockEffect::WakeAt(Stamp(300))],
             ),
             (
                 "a press hides it",
                 [
-                    show(350),
+                    show(100),
                     vec![(
                         400,
                         DockEvent::Press {

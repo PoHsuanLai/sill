@@ -15,7 +15,8 @@ use ds::Answers;
 use std::rc::Rc;
 
 use dioxus::prelude::*;
-use ds::{Button, Material, Panel, PanelEdge, PanelScrim, Px, RootExtent, Shown, use_rect};
+use ds::components::overlays::sheet_width::SheetWidth;
+use ds::{Attach, Button, Material, RootExtent, Sheet, Shown, use_rect};
 use ds_shell::WidgetGallery;
 use ds_shell::widget::{DesktopGrid, WidgetEdit};
 use shell_host::OutputInfo;
@@ -36,10 +37,6 @@ use sill_ui_kit::widgets::{WidgetHost, desktop_size, provide_registry, widgets_c
 
 /// Edit Widgets' stylesheet (lint-clean under `Profile::Strict`, `tests/edit_widgets_lint.rs`).
 pub const EDIT_WIDGETS_CSS: &str = include_str!("style.css");
-
-/// The sheet's width: the gallery's list (200), a Medium preview on its plate (344 and the
-/// plate's padding), the placed column (280), and their gaps and the panel's padding.
-const EDIT_WIDTH: f32 = 1040.0;
 
 /// The sheet's height: the Medium preview and its buttons with the title row and the status
 /// line. quire holds it under half the output, so the desktop's top-right columns, where new
@@ -160,16 +157,14 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
             onpointerdown: move |_| catch.close(),
         }
         div { class: "sill-ew-scope",
-            Panel {
+            Sheet {
                 label: "Edit Widgets".to_owned(),
-                shown,
+                shown: Some(shown),
                 on_hidden,
                 onclose: move |()| escape.close(),
-                width: Px(EDIT_WIDTH),
-                height: Px(EDIT_HEIGHT),
-                edge: PanelEdge::Bottom,
-                material: Material::Sheet,
-                scrim: PanelScrim::None,
+                attach: Attach::Bottom,
+                width: SheetWidth::Wide,
+                div { class: "sill-ew-frame", style: "height:{EDIT_HEIGHT}px",
                 div {
                     id: EDIT_PANEL_ID,
                     class: "sill-ew-column",
@@ -199,6 +194,7 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
                     }
                     WidgetGallery { layout, onedit }
                     EditStatus { outcome: outcome() }
+                }
                 }
             }
         }

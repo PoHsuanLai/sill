@@ -1,8 +1,8 @@
 //! The power menu (design/20 §1.8): one Overlay surface per output, kept warm and hidden like
-//! the launcher, that shows a full-output quire `Scrim` under a centred `Sheet` holding Log Out,
+//! the launcher, that shows a full-output centred quire `Sheet` (it dims nothing) holding Log Out,
 //! Restart, Shut Down and Suspend as quire `Button`s (`Primary` for the focused one, `Danger`
 //! for Shut Down and Restart, `Secondary` otherwise) with `Kbd` hints.
-//! Keyboard `Exclusive`: arrows move, Enter confirms, Escape closes; a scrim click closes.
+//! Keyboard `Exclusive`: arrows move, Enter confirms, Escape closes; a press outside the sheet closes.
 //!
 //! Opened by `sill power-menu {open,toggle}`, the bar's app menu ("Shut Down…"), and the
 //! launcher's Log Out, Restart and Shut Down rows (focused on that row's action). All of them

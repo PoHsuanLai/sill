@@ -9,7 +9,7 @@
 //! and draws [`TurnOffAlert`] as the last child of its positioned body.
 
 use dioxus::prelude::*;
-use ds::{Alert, AlertEmphasis, Flow, TextLine};
+use ds::{Alert, AlertButton, AlertRole, Flow, TextLine};
 use sill_model::bluetooth::{BluetoothCommand, BtPower};
 use sill_services::BluetoothService;
 
@@ -90,22 +90,30 @@ pub(crate) fn TurnOffAlert(on_answered: EventHandler<()>) -> Element {
                 message: Some(TextLine::from(
                     "Bluetooth devices such as keyboards and mice will be disconnected.",
                 )),
-                action: "Turn Off",
-                // Turn Off is the default, so Return confirms; a `Destructive` action would
-                // hand Return to Cancel.
-                emphasis: AlertEmphasis::Default,
+                // Turn Off is first, so it is the default and Return confirms; a `Destructive`
+                // role would hand Return to Cancel.
+                buttons: vec![
+                    AlertButton::new(
+                        "Turn Off",
+                        AlertRole::Normal,
+                        EventHandler::new(move |()| {
+                            eprintln!("control_center.bluetooth_ask=turn-off");
+                            let _gone = control.send(BluetoothCommand::Power(BtPower::Off));
+                            confirming.set(Confirming::Idle);
+                            on_answered.call(());
+                        }),
+                    ),
+                    AlertButton::new(
+                        "Cancel",
+                        AlertRole::Cancel,
+                        EventHandler::new(move |()| {
+                            eprintln!("control_center.bluetooth_ask=cancel");
+                            confirming.set(Confirming::Idle);
+                            on_answered.call(());
+                        }),
+                    ),
+                ],
                 flow: Flow::Inline,
-                onaction: move |()| {
-                    eprintln!("control_center.bluetooth_ask=turn-off");
-                    let _gone = control.send(BluetoothCommand::Power(BtPower::Off));
-                    confirming.set(Confirming::Idle);
-                    on_answered.call(());
-                },
-                oncancel: move |()| {
-                    eprintln!("control_center.bluetooth_ask=cancel");
-                    confirming.set(Confirming::Idle);
-                    on_answered.call(());
-                },
             }
         },
     }

@@ -1,10 +1,10 @@
 //! The power menu on the harness, following a `PowerMenuLink` the test writes as the daemon does,
 //! over the fake session service: the offers it publishes are the ones the buttons show, and the
 //! `SessionCommand::Run` it is sent is the choice made, so nothing here can reach logind.
-//! Hidden it draws nothing; open, quire's Sheet centred over its full-output modal scrim, the
+//! Hidden it draws nothing; open, quire's Sheet centred full-output (it dims nothing), the
 //! question for the focused button, the four buttons in design/20 section 1.8's order and
 //! variants at one height, the key hints, and the blur element covering exactly the sheet; then
-//! the keyboard and pointer (arrows move, Enter confirms, Esc closes, a scrim click closes). A
+//! the keyboard and pointer (arrows move, Enter confirms, Esc closes, a press outside the sheet closes). A
 //! chosen action is sent only after the exit motion has settled and the menu has closed.
 
 use std::time::Duration;
@@ -104,7 +104,6 @@ fn hidden_it_draws_nothing() {
     running.harness.advance(Duration::from_millis(100));
     assert_eq!(look(&running.harness).as_deref(), Some("closed"));
     assert_eq!(running.harness.count(".ds-sheet"), 0);
-    assert_eq!(running.harness.count(".ds-scrim"), 0);
     assert_eq!(running.harness.count(".ds-button"), 0);
 }
 
@@ -117,13 +116,9 @@ fn open_it_draws_the_sheet_the_buttons_and_the_hints() {
     );
     let h = &running.harness;
     assert_eq!(h.count(".ds-sheet"), 1);
-    assert_eq!(h.count(".ds-scrim"), 1);
+    assert_eq!(h.count(".ds-scrim"), 0, "a sheet dims nothing");
     assert_eq!(
-        h.attr(".ds-scrim", "data-strength").as_deref(),
-        Some("modal")
-    );
-    assert_eq!(
-        h.attr(".ds-sheet", "data-placement").as_deref(),
+        h.attr(".ds-sheet", "data-attach").as_deref(),
         Some("centre")
     );
     assert_eq!(
@@ -181,19 +176,13 @@ fn open_it_draws_the_sheet_the_buttons_and_the_hints() {
 }
 
 #[test]
-fn the_scrim_covers_the_output_and_the_blur_element_is_the_sheet() {
+fn the_blur_element_is_the_sheet() {
     let running = opened(
         ShellFile::default(),
         Session::everything(),
         Preselect::Default,
     );
     let h = &running.harness;
-    let scrim = h.rect(".ds-scrim").expect("the scrim is laid out"); // test-only
-    assert_eq!(
-        (scrim.size.width.0, scrim.size.height.0),
-        (WIDTH, HEIGHT),
-        "the whole output dims"
-    );
     let sheet = h.rect(".ds-sheet").expect("the sheet is laid out"); // test-only
     let panel = h
         .rect("#power-menu-panel")
@@ -392,7 +381,7 @@ fn opened_again_while_leaving_it_enters_again_and_stays() {
 }
 
 #[test]
-fn a_scrim_click_leaves_and_closes() {
+fn a_press_outside_the_sheet_leaves_and_closes() {
     let mut running = opened(
         shut_down_default(),
         Session::everything(),

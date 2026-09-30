@@ -20,7 +20,6 @@ use sill_ui_kit::links::{BannerLink, BannerOutput};
 type Running = SurfaceHarness<PolkitPrompt>;
 
 const WIDTH: f32 = 1280.0;
-const HEIGHT: f32 = 800.0;
 
 const VIEWPORT: Viewport = Viewport {
     width: 1280,
@@ -101,7 +100,6 @@ fn with_no_request_it_draws_nothing() {
     let mut running = start(fake::output().id);
     running.harness.advance(Duration::from_millis(100));
     assert_eq!(running.harness.count(".ds-sheet"), 0);
-    assert_eq!(running.harness.count(".ds-scrim"), 0);
     assert_eq!(running.harness.count(".ds-polkit"), 0);
 }
 
@@ -115,7 +113,7 @@ fn a_request_for_another_output_draws_nothing_here() {
 }
 
 #[test]
-fn a_request_draws_quires_prompt_on_a_narrow_sheet_over_the_scrim() {
+fn a_request_draws_quires_prompt_on_a_narrow_sheet() {
     let running = shown(request("c1", asking(), LastTry::None));
     let h = &running.harness;
     assert_eq!(h.count(".ds-sheet"), 1);
@@ -126,13 +124,10 @@ fn a_request_draws_quires_prompt_on_a_narrow_sheet_over_the_scrim() {
         "the sheet carries the blur region's id"
     );
     assert_eq!(
-        h.attr(".ds-sheet", "data-placement").as_deref(),
+        h.attr(".ds-sheet", "data-attach").as_deref(),
         Some("centre")
     );
-    assert_eq!(
-        h.attr(".ds-scrim", "data-strength").as_deref(),
-        Some("modal")
-    );
+    assert_eq!(h.count(".ds-scrim"), 0, "a sheet dims nothing");
     assert_eq!(h.attr(".ds-polkit", "data-state").as_deref(), Some("idle"));
     assert_eq!(
         h.text_of(".ds-polkit-title").as_deref(),
@@ -144,12 +139,6 @@ fn a_request_draws_quires_prompt_on_a_narrow_sheet_over_the_scrim() {
     );
     assert_eq!(h.text_of(".ds-polkit-user").as_deref(), Some("ada"));
     assert_eq!(h.count(".ds-polkit-details"), 1);
-    let scrim = h.rect(".ds-scrim").expect("the scrim is laid out"); // test-only
-    assert_eq!(
-        (scrim.size.width.0, scrim.size.height.0),
-        (WIDTH, HEIGHT),
-        "the whole output dims"
-    );
     let sheet = h.rect(".ds-sheet").expect("the sheet is laid out"); // test-only
     let middle = sheet.origin.x.0 + sheet.size.width.0 / 2.0;
     assert!((middle - WIDTH / 2.0).abs() < 1.0, "centred: {sheet:?}");

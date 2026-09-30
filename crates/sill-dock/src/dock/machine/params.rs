@@ -1,16 +1,18 @@
 //! The numbers the machine runs on: `dock.*` settings plus quire's motion tokens
 //! at the active motion level. Built once per settings change, never hard-coded.
 
-use ds::{Easing, EasingToken, MotionLevel};
+use ds::{Easing, EasingToken, HoverProfile, MotionLevel};
 use sill_model::units::Cpx;
 use sill_settings::{
     ActiveClick, Bounce as BounceSetting, DockModifierClicks, DockSettings, LaunchAnim,
     Magnification,
 };
 
-/// The label's first delay, 350 ms: what quire's `--d-fly` was. quire's `HoverProfile::Label` is
-/// 100 ms; the dock keeps its own until it runs on `HoverIntent`.
-const FLY_DELAY_MS: u64 = 350;
+/// The label's first delay: quire's `HoverProfile::Label` (100 ms; design/30 section 1.2), where
+/// it was 350 ms (`--d-fly`) before the dock followed `DockLabel`.
+fn fly_delay_ms() -> u64 {
+    u64::try_from(HoverProfile::Label.open().as_millis()).unwrap_or(100)
+}
 
 /// Every parameter [`super::step`] reads.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,7 +26,7 @@ pub struct DockParams {
     pub ease_out: [i16; 4],
     /// `--e-exit` at the motion level.
     pub ease_exit: [i16; 4],
-    /// The label's first delay, [`FLY_DELAY_MS`].
+    /// The label's first delay, [`fly_delay_ms`].
     pub fly_delay_ms: u64,
     /// `dock.hover_label_warm_ms`.
     pub warm_ms: u64,
@@ -71,7 +73,7 @@ impl DockParams {
             leave_ms: u64::from(dock.magnify_leave_ms.0),
             ease_out: curve(EasingToken::Out),
             ease_exit: curve(EasingToken::Exit),
-            fly_delay_ms: FLY_DELAY_MS,
+            fly_delay_ms: fly_delay_ms(),
             warm_ms: u64::from(dock.hover_label_warm_ms.0),
             hold_ms: u64::from(dock.hold_to_menu_ms.0),
             drag_threshold: px(dock.hold_to_menu_move_px.0),
@@ -107,7 +109,7 @@ pub(crate) mod tests {
     fn defaults_are_design_10s_numbers() {
         let p = params();
         assert_eq!((p.enter_ms, p.leave_ms), (120, 200));
-        assert_eq!(p.fly_delay_ms, 350);
+        assert_eq!(p.fly_delay_ms, 100);
         assert_eq!(p.warm_ms, 400);
         assert_eq!(p.hold_ms, 600);
         assert_eq!(p.drag_threshold, Cpx::px(8));

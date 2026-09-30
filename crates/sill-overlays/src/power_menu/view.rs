@@ -8,8 +8,7 @@
 
 use dioxus::prelude::*;
 use ds::{
-    Availability, Button, Common, Glyph, Icon, IconSize, RootExtent, ScrimStrength, Sheet,
-    SheetPlacement, Shortcut,
+    Attach, Availability, Button, Common, Glyph, Icon, IconSize, RootExtent, Sheet, Shortcut,
 };
 use ds::{ControlSize, KeyEquivalent, KeyStyle};
 use shell_host::OutputInfo;
@@ -50,15 +49,20 @@ pub(super) fn power_menu(output: OutputInfo) -> Element {
 /// The sheet for one opening.
 fn sheet(ctx: &MenuCtx, menu: MenuSession, offers: &Session) -> Element {
     let focused = menu.keys.focused;
-    let (close, hidden, keys) = (ctx.clone(), ctx.clone(), ctx.clone());
+    let (close, hidden, keys, catch) = (ctx.clone(), ctx.clone(), ctx.clone(), ctx.clone());
     rsx! {
-        Sheet {
+        // A sheet dims nothing and catches no click (macOS; design/30): a press outside it is
+        // this surface's own, so it closes the menu as the scrim did.
+        div {
             key: "{menu.serial.0}",
+            style: "position:absolute;inset:0",
+            onpointerdown: move |_| catch.input(SheetInput::Dismissed),
+        }
+        Sheet {
             label: "Power".to_owned(),
             shown: Some(menu.phase.shown()),
             on_hidden: move |()| hidden.input(SheetInput::Settled),
-            placement: SheetPlacement::Centre,
-            scrim: ScrimStrength::Modal,
+            attach: Attach::Centre,
             onclose: move |()| close.input(SheetInput::Dismissed),
             div {
                 id: PANEL_ID,

@@ -12,14 +12,15 @@
 //! included; `PlateTint::of` is `None` under Colour, which changes nothing. The badge
 //! and the ring hang off the plate and scale with it (design/10 §10.3.2); quire's `RunningDot`
 //! sits in a box at the tile's rest place, so it stays on the baseline while the tile bounces. The hover label is a ds
-//! `Tooltip{Fly}` over the plate, shown and hidden by the dock machine alone (`shown`): up
+//! `DockLabel` over the plate, shown and hidden by the dock machine alone (`shown`): up
 //! from its `ShowLabel` (the fly delay, the warm skip) to its `HideLabel` (the pointer left, a
 //! button went down, a context menu opened). The dock provides the machine's shown label as
 //! context; the frozen `Tile` props are unchanged. No pressed scrim: the frozen props carry no
 //! press.
 
 use dioxus::prelude::*;
-use ds::{IconPx, IconSize, IconView, PlateFamily, PlateTint, Shown, Tooltip, TooltipKind};
+use ds::{IconPx, IconSize, IconView, PlateFamily, PlateTint, Shown};
+use ds_shell::DockLabel;
 use ds_shell::RunningDot;
 use sill_model::badges::Badge;
 use sill_model::units::{Cpx, Permille};
@@ -109,7 +110,7 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
             div {
                 class: "sill-dock-label",
                 style: "left:{inset:.2}px;top:{inset:.2}px",
-                Tooltip { kind: TooltipKind::Fly, text: name, shown,
+                DockLabel { text: name, shown,
                     span {
                         class: "sill-dock-label-box",
                         style: "width:{plate:.2}px;height:{plate:.2}px",

@@ -6,7 +6,7 @@
 //! surface.
 
 use dioxus::prelude::*;
-use ds::{Material, Panel, PanelEdge, PanelScrim, Px, Shown, WakeStamp};
+use ds::{Material, Px, Shown, SidePanel, WakeStamp};
 use shell_host::OutputId;
 
 use super::contents::Contents;
@@ -58,15 +58,13 @@ fn Opened(
             onpointerdown: move |_| catch.close(),
         }
         div { class: "sill-nc-scope", style: metrics.style_attr(),
-            Panel {
+            SidePanel {
                 label: TITLE.to_owned(),
                 shown,
                 on_hidden,
                 onclose: move |()| escape.close(),
                 width: Px(metrics.center_width.0),
-                edge: PanelEdge::Right,
                 material: Material::Popover,
-                scrim: PanelScrim::None,
                 Contents { output }
             }
         }

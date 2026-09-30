@@ -6,7 +6,7 @@
 /// The panel's corner: quire's Popover (`--r-panel`, 14).
 pub const PANEL_RADIUS: i32 = 14;
 
-/// quire's `Panel` pads its content by `--s-12`: the column inside is that much smaller.
+/// quire's `SidePanel` pads its content by `--s-12` (Edit Widgets' frame does the same): the column inside is that much smaller.
 pub const PANEL_PADDING: i32 = 12;
 
 /// One opening: each one remounts the column, so its entrance plays and its focus and opened

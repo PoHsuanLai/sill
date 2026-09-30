@@ -14,6 +14,7 @@
 /* Inside the sheet: the column fills it, so quire's gallery fills what the title row and the
    status line leave and its placed column scrolls on its own. The blur region is
    this box grown by the panel's padding. */
+.sill-ew-frame{ display:flex; flex-direction:column; box-sizing:border-box; padding:var(--s-12); }
 .sill-ew-column{ display:flex; flex-direction:column; flex:1; min-height:0; gap:var(--s-12);
   color:var(--ink); outline:none; }
 .sill-ew-head{ display:flex; flex:none; align-items:center; justify-content:space-between; gap:var(--s-8);
