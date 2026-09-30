@@ -3,9 +3,11 @@
 //! written here by the daemon whenever the outputs change. Every other output's banner surface
 //! stays hidden. One output, so a banner is counted, paused and dismissed once.
 //!
-//! The link is also the transients' shared keyboard channel: `sill focus-latest` asks for the
-//! keyboard here, and the surface that follows it (the screenshot thumbnail) answers when it is
-//! showing. The compositor's focus loss on that surface comes back the same way.
+//! The link is also the transients' shared keyboard channel: each transient surface (the
+//! screenshot thumbnail, the banner column) says here when a card appears and when none is left,
+//! `sill focus-latest` asks for the keyboard and the link names the one that appeared last, and
+//! only that surface answers. The compositor's focus loss on a surface comes back the same way,
+//! naming the surface.
 
 use shell_host::OutputId;
 use tokio::sync::watch;
@@ -34,16 +36,23 @@ pub struct KeyEvent {
     pub what: KeyWhat,
 }
 
+/// A kind of transient surface: it appears by itself and leaves by itself.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Transient {
+    Thumbnail,
+    Banner,
+}
+
 /// The two things the keyboard of a transient can be told.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum KeyWhat {
     /// Nothing yet.
     #[default]
     Idle,
-    /// The person asked for the keyboard on the newest transient (`sill focus-latest`).
-    Asked,
-    /// The compositor took the keyboard away from the surface that held it.
-    Lost,
+    /// The person asked for the keyboard (`sill focus-latest`): this transient appeared last.
+    Asked(Transient),
+    /// The compositor took the keyboard away from this transient's surface.
+    Lost(Transient),
 }
 
 /// The daemon's half and every banner surface's receiver. Clone is cheap.
@@ -51,6 +60,8 @@ pub enum KeyWhat {
 pub struct BannerLink {
     output: watch::Sender<BannerOutput>,
     keys: watch::Sender<KeyEvent>,
+    /// The transients that have a card up, the one that appeared last at the end.
+    showing: watch::Sender<Vec<Transient>>,
 }
 
 impl Default for BannerLink {
@@ -65,6 +76,7 @@ impl BannerLink {
         BannerLink {
             output: watch::Sender::new(BannerOutput::Nowhere),
             keys: watch::Sender::new(KeyEvent::default()),
+            showing: watch::Sender::new(Vec::new()),
         }
     }
 
@@ -87,14 +99,32 @@ impl BannerLink {
         self.output.subscribe()
     }
 
-    /// Ask for the keyboard on the newest transient (`sill focus-latest`).
-    pub fn ask_keyboard(&self) {
-        self.tell(KeyWhat::Asked);
+    /// A card of `transient` has appeared: it is now the newest.
+    pub fn appeared(&self, transient: Transient) {
+        self.showing.send_modify(|showing| {
+            showing.retain(|t| *t != transient);
+            showing.push(transient);
+        });
     }
 
-    /// The compositor took the keyboard from the surface that had it.
-    pub fn keyboard_lost(&self) {
-        self.tell(KeyWhat::Lost);
+    /// `transient` has no card up any more.
+    pub fn gone(&self, transient: Transient) {
+        self.showing
+            .send_modify(|showing| showing.retain(|t| *t != transient));
+    }
+
+    /// Ask for the keyboard on the transient that appeared last (`sill focus-latest`); nothing
+    /// when none is up.
+    pub fn ask_keyboard(&self) {
+        let newest = self.showing.borrow().last().copied();
+        if let Some(transient) = newest {
+            self.tell(KeyWhat::Asked(transient));
+        }
+    }
+
+    /// The compositor took the keyboard from `transient`'s surface.
+    pub fn keyboard_lost(&self, transient: Transient) {
+        self.tell(KeyWhat::Lost(transient));
     }
 
     fn tell(&self, what: KeyWhat) {
@@ -114,7 +144,7 @@ impl BannerLink {
 
 #[cfg(test)]
 mod tests {
-    use crate::links::{BannerLink, BannerOutput, KeyWhat};
+    use crate::links::{BannerLink, BannerOutput, KeyWhat, Transient};
     use shell_host::OutputId;
 
     #[test]
@@ -133,17 +163,55 @@ mod tests {
     #[test]
     fn two_asks_in_a_row_are_two_events() {
         let link = BannerLink::new();
+        link.appeared(Transient::Banner);
         let mut rx = link.subscribe_keys();
         link.ask_keyboard();
         let first = *rx.borrow_and_update();
         link.ask_keyboard();
         assert!(rx.has_changed().unwrap_or(false));
         let second = *rx.borrow_and_update();
-        link.keyboard_lost();
+        link.keyboard_lost(Transient::Banner);
         let third = *rx.borrow_and_update();
         assert_eq!(
             (first.what, second.serial - first.serial, third.what),
-            (KeyWhat::Asked, 1, KeyWhat::Lost)
+            (
+                KeyWhat::Asked(Transient::Banner),
+                1,
+                KeyWhat::Lost(Transient::Banner)
+            )
         );
+    }
+
+    #[test]
+    fn the_ask_names_the_transient_that_appeared_last_and_is_still_up() {
+        use Transient::{Banner, Thumbnail};
+        let asked = |link: &BannerLink| {
+            let mut rx = link.subscribe_keys();
+            link.ask_keyboard();
+            rx.has_changed()
+                .unwrap_or(false)
+                .then(|| rx.borrow_and_update().what)
+        };
+        let link = BannerLink::new();
+        assert_eq!(asked(&link), None, "nothing up: nobody is asked");
+        link.appeared(Banner);
+        link.appeared(Thumbnail);
+        assert_eq!(asked(&link), Some(KeyWhat::Asked(Thumbnail)));
+        link.appeared(Banner);
+        assert_eq!(
+            asked(&link),
+            Some(KeyWhat::Asked(Banner)),
+            "banner is newer"
+        );
+        link.appeared(Banner);
+        link.appeared(Thumbnail);
+        link.gone(Thumbnail);
+        assert_eq!(
+            asked(&link),
+            Some(KeyWhat::Asked(Banner)),
+            "the thumbnail left"
+        );
+        link.gone(Banner);
+        assert_eq!(asked(&link), None);
     }
 }

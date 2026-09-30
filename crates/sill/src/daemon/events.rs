@@ -13,10 +13,11 @@ use sill_model::displays::DisplaysCommand;
 use sill_settings::ShellFile;
 use sill_ui_kit::Bar;
 use sill_ui_kit::links::Links;
+use sill_ui_kit::links::Transient;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::surface::Surface;
-use sill_ui_kit::{Launcher, PowerMenu, ScreenshotThumb};
+use sill_ui_kit::{Banners, Launcher, PowerMenu, ScreenshotThumb};
 use tokio::sync::watch;
 
 use super::msg::ShellMsg;
@@ -129,7 +130,7 @@ fn host_event(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
 
 /// A keyboard focus change of the launcher's or the power menu's surface goes to its link: a
 /// focus loss closes the launcher (design/06 §20.2). The thumbnail's surface loses the keyboard
-/// only when the compositor takes it, and its link says so.
+/// only when the compositor takes it, as the banner column's does, and the banners' link says which.
 fn follow_keyboard_focus(shell: &Shell, event: &HostEvent<ShellMsg>) {
     let HostEvent::KeyboardFocus { id, focus } = event else {
         return;
@@ -147,8 +148,13 @@ fn follow_keyboard_focus(shell: &Shell, event: &HostEvent<ShellMsg>) {
     if on(|surfaces| surfaces.surface_of::<PowerMenu>()) {
         shell.links.power_menu.focus(*focus);
     }
-    if *focus == KeyboardFocus::Lost && on(|surfaces| surfaces.surface_of::<ScreenshotThumb>()) {
-        shell.links.banners.keyboard_lost();
+    if *focus == KeyboardFocus::Lost {
+        if on(|surfaces| surfaces.surface_of::<ScreenshotThumb>()) {
+            shell.links.banners.keyboard_lost(Transient::Thumbnail);
+        }
+        if on(|surfaces| surfaces.surface_of::<Banners>()) {
+            shell.links.banners.keyboard_lost(Transient::Banner);
+        }
     }
 }
 

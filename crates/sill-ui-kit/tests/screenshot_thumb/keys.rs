@@ -70,7 +70,9 @@ fn the_hold_pauses_while_the_keyboard_is_held_and_resumes_when_it_is_lost() {
         .advance(Duration::from_millis(HOLD_MS + 800));
     assert_eq!(leaving(&running), 0, "paused past the hold");
     assert_eq!(commands(&mut running), Vec::new());
-    running.link.keyboard_lost();
+    running
+        .link
+        .keyboard_lost(sill_ui_kit::links::Transient::Thumbnail);
     let rest = u64::from(ShellFile::default().notifications.hover_min_remaining_ms.0);
     running.harness.advance(Duration::from_millis(rest - 300));
     assert_eq!(leaving(&running), 0, "the rest after the keyboard goes");
@@ -159,4 +161,28 @@ fn a_second_ask_brings_the_keyboard_back_to_the_picture() {
     running.link.ask_keyboard();
     running.harness.advance(Duration::from_millis(200));
     assert!(running.harness.is_focused(PICTURE));
+}
+
+#[test]
+fn the_ask_goes_to_the_thumbnail_only_when_it_appeared_after_the_banners() {
+    use sill_ui_kit::links::Transient;
+    let mut older_banner = start(file());
+    older_banner.link.appeared(Transient::Banner);
+    one_up(&mut older_banner);
+    older_banner.link.ask_keyboard();
+    older_banner.harness.advance(Duration::from_millis(200));
+    assert!(
+        older_banner.harness.is_focused(PICTURE),
+        "the thumbnail is newer"
+    );
+
+    let mut newer_banner = start(file());
+    one_up(&mut newer_banner);
+    newer_banner.link.appeared(Transient::Banner);
+    newer_banner.link.ask_keyboard();
+    newer_banner.harness.advance(Duration::from_millis(200));
+    assert!(
+        !newer_banner.harness.is_focused(PICTURE),
+        "a banner is newer"
+    );
 }

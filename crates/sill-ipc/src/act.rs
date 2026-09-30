@@ -29,8 +29,9 @@ pub enum ActRequest {
     ClearClipboard,
     /// Dismiss every banner on screen (each sender hears `NotificationClosed`, reason 2).
     DismissNotifications,
-    /// Give the keyboard to the newest transient card (`sill focus-latest`; bound in COSMIC's
-    /// shortcuts like the launcher's). Nothing happens when none is showing.
+    /// Give the keyboard to the newest transient card: the screenshot thumbnail or the newest
+    /// banner, whichever appeared last (`sill focus-latest`; bound in COSMIC's shortcuts like the
+    /// launcher's). Nothing happens when none is showing.
     FocusLatest,
 }
 

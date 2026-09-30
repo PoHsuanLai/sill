@@ -17,7 +17,7 @@ mod power_menu;
 mod reveal;
 mod switcher;
 
-pub use banners::{BannerLink, BannerOutput, KeyEvent, KeyWhat};
+pub use banners::{BannerLink, BannerOutput, KeyEvent, KeyWhat, Transient};
 pub use control_center::{ControlCenterAsk, ControlCenterLink};
 pub use edit_widgets::{EditShown, EditWidgetsLink, WidgetsWrite, WidgetsWriter};
 pub use focus::{Delivery, FocusLink};

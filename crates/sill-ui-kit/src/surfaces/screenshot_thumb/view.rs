@@ -22,7 +22,7 @@ use super::layer::ROOM;
 use super::picture::{ThumbPicture, picture_of};
 use super::step::{ThumbExit, ThumbIn, ThumbParams, ThumbState};
 use crate::hooks::{use_appearance, use_control, use_service, use_settings};
-use crate::links::{BannerLink, KeyWhat};
+use crate::links::{BannerLink, KeyWhat, Transient};
 use crate::look::use_active_look;
 use crate::notification_card::swipe_metrics;
 use crate::root::SurfaceRoot;
@@ -85,7 +85,11 @@ fn Column(
     metrics: ds::SwipeMetrics,
     ghost: GhostLook,
 ) -> Element {
-    let thumb = use_thumb(params, use_control::<ScreenshotsService>());
+    let thumb = use_thumb(
+        params,
+        use_control::<ScreenshotsService>(),
+        use_context::<BannerLink>(),
+    );
     use_context_provider(|| thumb);
     let shots = use_service::<ScreenshotsService>();
     let link = use_context::<BannerLink>();
@@ -113,9 +117,9 @@ fn Column(
         }
         heard.set(event.serial);
         match event.what {
-            KeyWhat::Asked => thumb.input(ThumbIn::FocusAsked),
-            KeyWhat::Lost => thumb.input(ThumbIn::FocusLost),
-            KeyWhat::Idle => {}
+            KeyWhat::Asked(Transient::Thumbnail) => thumb.input(ThumbIn::FocusAsked),
+            KeyWhat::Lost(Transient::Thumbnail) => thumb.input(ThumbIn::FocusLost),
+            KeyWhat::Idle | KeyWhat::Asked(_) | KeyWhat::Lost(_) => {}
         }
     });
     let banners: Vec<Banner> = match (row_of(*thumb.state.read()), kept.peek().clone()) {

@@ -16,6 +16,8 @@ use shell_host::{KeyboardMode, SurfaceHandle, SurfaceOp, Visibility};
 use sill_model::screenshots::{ShotCommand, ShotId};
 use sill_services::Control;
 
+use crate::links::{BannerLink, Transient};
+
 use super::drag::{drag_end, file_drag};
 use super::ghost::GhostLook;
 use super::picture::ThumbPicture;
@@ -30,6 +32,7 @@ pub(super) struct Thumb {
     pub state: Signal<ThumbState>,
     params: CopyValue<ThumbParams>,
     control: CopyValue<Control<ShotCommand>>,
+    link: CopyValue<BannerLink>,
     surface: CopyValue<Option<SurfaceHandle>>,
     signals: CopyValue<Option<HostSignals>>,
     hold: CopyValue<Option<Task>>,
@@ -82,7 +85,10 @@ impl Thumb {
 
     fn perform(self, out: ThumbOut) {
         match out {
-            ThumbOut::Show(_) => self.visibility(Visibility::Shown),
+            ThumbOut::Show(_) => {
+                self.link.peek().appeared(Transient::Thumbnail);
+                self.visibility(Visibility::Shown);
+            }
             ThumbOut::StartHold(token, ms) => {
                 self.stop_hold();
                 let wait = Duration::from_millis(u64::from(ms));
@@ -97,11 +103,13 @@ impl Thumb {
             }
             ThumbOut::Leave(id, why) => {
                 self.stop_hold();
+                self.link.peek().gone(Transient::Thumbnail);
                 // A stopped service has nothing to act on: the thumbnail still goes.
                 let _ = self.control.peek().send(ShotCommand::Leave(id, why));
             }
             ThumbOut::Hide => {
                 self.stop_hold();
+                self.link.peek().gone(Transient::Thumbnail);
                 self.visibility(Visibility::Hidden);
             }
             ThumbOut::TakeKeyboard => self.take_keyboard(),
@@ -149,13 +157,18 @@ impl Thumb {
 }
 
 /// The thumbnail's shared state, its timers owned by the calling component's scope.
-pub(super) fn use_thumb(params: ThumbParams, control: Control<ShotCommand>) -> Thumb {
+pub(super) fn use_thumb(
+    params: ThumbParams,
+    control: Control<ShotCommand>,
+    link: BannerLink,
+) -> Thumb {
     let surface = try_use_context::<SurfaceHandle>();
     let signals = try_use_context::<HostSignals>();
     let thumb = use_hook(|| Thumb {
         state: Signal::new(ThumbState::Hidden),
         params: CopyValue::new(params),
         control: CopyValue::new(control),
+        link: CopyValue::new(link),
         surface: CopyValue::new(surface),
         signals: CopyValue::new(signals),
         hold: CopyValue::new(None),
