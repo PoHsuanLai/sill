@@ -8,8 +8,8 @@
 
 use dioxus::prelude::*;
 use ds::{
-    ClipBody, EMOJI_CELL, EMOJI_COLUMNS, EmojiCell, EmojiCells, ImageSize, ImageSource, MenuEntry,
-    MenuRow, MenuTile, MenuTrail, PaletteGroup, PaletteGroups, RowShape,
+    Accessory, ClipBody, EMOJI_CELL, EMOJI_COLUMNS, EmojiCell, EmojiCells, ImageSize, ImageSource,
+    PaletteGroup, PaletteGroups, PaletteRow, RowLeading, RowShape,
 };
 use sill_launcher::{ClipKey, ClipKind, Item, More, Section, ShownSection, Subject, UnixTime};
 
@@ -48,7 +48,7 @@ impl HeaderAction {
 /// What the rows are drawn with: each row's tile, a clipboard image's pixels and the clock.
 /// The selection's chord is quire's to place (`RowChord::on_selected`).
 pub struct Draw<'a> {
-    pub tile_of: &'a dyn Fn(&Item) -> MenuTile,
+    pub tile_of: &'a dyn Fn(&Item) -> RowLeading,
     pub clip_image: &'a dyn Fn(ClipKey) -> Option<ImageSource>,
     pub now: UnixTime,
 }
@@ -119,25 +119,25 @@ fn emoji_cells(rows: &[Item]) -> EmojiCells<RowRef> {
 impl Draw<'_> {
     /// `item` as a plain row: title, detail, the trail (a file's date, a clip's age, else a
     /// mixed section's kind) and its chord, which quire shows while it is the selection.
-    fn plain(&self, item: &Item, mix: Mix) -> MenuEntry<RowRef> {
+    fn plain(&self, item: &Item, mix: Mix) -> PaletteRow<RowRef> {
         let words = row_detail(item, self.now);
         let trail = match words.trail.is_empty() {
-            false => MenuTrail::Note(words.trail.clone()),
+            false => Accessory::Text(words.trail.clone()),
             true => kind_trail(item, mix),
         };
-        MenuEntry::Row(MenuRow {
+        PaletteRow {
             detail: (!words.detail.is_empty()).then(|| words.detail.into()),
-            tile: Some((self.tile_of)(item)),
-            trail,
+            leading: (self.tile_of)(item),
+            accessory: trail,
             chord: row_chord(item),
-            ..MenuRow::new(RowRef::of(item), item.title.clone())
-        })
+            ..PaletteRow::new(RowRef::of(item), item.title.clone())
+        }
     }
 
     /// `item` in its shape: a file's folder and date, a clipboard entry's text or picture and
     /// age (both in the shape, so the trail keeps only a mixed section's kind), else
     /// [`Draw::plain`].
-    fn shaped(&self, item: &Item, mix: Mix) -> MenuEntry<RowRef> {
+    fn shaped(&self, item: &Item, mix: Mix) -> PaletteRow<RowRef> {
         let words = row_detail(item, self.now);
         let shape = match &item.subject {
             Subject::File(file) => RowShape::File {
@@ -151,13 +151,13 @@ impl Draw<'_> {
             },
             _ => return self.plain(item, mix),
         };
-        MenuEntry::Row(MenuRow {
-            tile: Some((self.tile_of)(item)),
-            trail: kind_trail(item, mix),
+        PaletteRow {
+            leading: (self.tile_of)(item),
+            accessory: kind_trail(item, mix),
             chord: row_chord(item),
             shape,
-            ..MenuRow::new(RowRef::of(item), item.title.clone())
-        })
+            ..PaletteRow::new(RowRef::of(item), item.title.clone())
+        }
     }
 
     fn clip_body(&self, key: ClipKey, kind: &ClipKind) -> ClipBody {

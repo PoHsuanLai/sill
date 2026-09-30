@@ -11,8 +11,8 @@
 use std::path::Path;
 
 use ds::{
-    Availability, ExternalIcon, Icon, IconSize, IconSource, IconUrl, MenuEntry, MenuTile,
-    MenuTrail, RowChord, Shortcut,
+    Accessory, ExternalIcon, Icon, IconSize, IconSource, IconUrl, MenuItem, RowChord, RowLeading,
+    Shortcut,
 };
 use sill_launcher::{Action, ActionId, IconRef, Item, ItemId, ProviderKind};
 
@@ -45,17 +45,15 @@ impl RowRef {
 }
 
 /// The actions menu's entries for a row, each trailing its chord when it has one (H5).
-pub fn action_entries(actions: &[Action]) -> Vec<MenuEntry<ActionId>> {
+pub fn action_entries(actions: &[Action]) -> Vec<MenuItem<ActionId>> {
     actions
         .iter()
-        .map(|action| MenuEntry::Item {
-            value: action.id.clone(),
-            title: action.label.clone(),
-            detail: None,
-            tile: None,
-            trail: action_shortcut(&action.keys).map_or(MenuTrail::None, MenuTrail::Shortcut),
-            check: None,
-            availability: Availability::Enabled,
+        .map(|action| {
+            let item = MenuItem::new(action.id.clone(), action.label.clone());
+            match action_shortcut(&action.keys) {
+                Some(key) => item.with_key(key),
+                None => item,
+            }
         })
         .collect()
 }
@@ -76,10 +74,10 @@ pub(crate) fn row_chord(item: &Item) -> RowChord {
 }
 
 /// Only data trails a row: its kind in a mixed group, else nothing.
-pub(crate) fn kind_trail(item: &Item, mix: Mix) -> MenuTrail {
+pub(crate) fn kind_trail(item: &Item, mix: Mix) -> Accessory {
     match mix {
-        Mix::Mixed => MenuTrail::Note(kind_note(item.provider).to_owned()),
-        Mix::Single => MenuTrail::None,
+        Mix::Mixed => Accessory::Text(kind_note(item.provider).to_owned()),
+        Mix::Single => Accessory::None,
     }
 }
 
@@ -99,12 +97,12 @@ pub(crate) fn kind_note(kind: ProviderKind) -> &'static str {
 }
 
 /// The row's tile: its resolved icon file, else its glyph.
-pub fn tile(item: &Item) -> MenuTile {
+pub fn tile(item: &Item) -> RowLeading {
     match &item.icon {
         IconRef::File(path) => {
-            file_icon(path).map_or(MenuTile::Icon(glyph(item)), MenuTile::Source)
+            file_icon(path).map_or(RowLeading::Icon(glyph(item)), RowLeading::Source)
         }
-        IconRef::Glyph(_) | IconRef::None => MenuTile::Icon(glyph(item)),
+        IconRef::Glyph(_) | IconRef::None => RowLeading::Icon(glyph(item)),
     }
 }
 
@@ -175,7 +173,7 @@ mod tests {
     use super::{RowRef, glyph, kebab, kind_trail, named, row_chord, tile};
     use crate::launcher::chord_keys::shortcut;
     use crate::launcher::groups::Mix;
-    use ds::{ChordShown, Icon, MenuTrail, RowChord, Shortcut};
+    use ds::{Accessory, ChordShown, Icon, RowChord, Shortcut};
     use sill_launcher::{
         Action, ActionId, ActionKeys, IconRef, Item, ItemId, ProviderKind, Score, chords,
     };
@@ -220,13 +218,13 @@ mod tests {
         );
         assert_eq!(
             kind_trail(&firefox, Mix::Mixed),
-            MenuTrail::Note("Application".to_owned())
+            Accessory::Text("Application".to_owned())
         );
         assert_eq!(
             kind_trail(&mail, Mix::Mixed),
-            MenuTrail::Note("Window".to_owned())
+            Accessory::Text("Window".to_owned())
         );
-        assert_eq!(kind_trail(&firefox, Mix::Single), MenuTrail::None);
+        assert_eq!(kind_trail(&firefox, Mix::Single), Accessory::None);
     }
 
     #[test]
@@ -243,7 +241,7 @@ mod tests {
     fn rows_carry_their_identity_and_glyph() {
         let lock = item(ProviderKind::System, "Lock", 0);
         assert_eq!(RowRef::of(&lock).id, lock.id);
-        assert_eq!(tile(&lock), ds::MenuTile::Icon(Icon::Power));
+        assert_eq!(tile(&lock), ds::RowLeading::Icon(Icon::Power));
     }
 
     #[test]
@@ -263,14 +261,14 @@ mod tests {
 
     #[test]
     fn a_resolved_icon_file_is_the_rows_tile() {
-        use ds::{IconSize, IconSource, MenuTile};
+        use ds::{IconSize, IconSource, RowLeading};
         let mut app = item(ProviderKind::Apps, "Firefox", 0);
-        let word = |tile: MenuTile| match tile {
-            MenuTile::Source(IconSource::Image(e)) => {
+        let word = |tile: RowLeading| match tile {
+            RowLeading::Source(IconSource::Image(e)) => {
                 format!("image {} {:?}", e.url.as_str(), e.size)
             }
-            MenuTile::Source(IconSource::Symbolic(e)) => format!("symbolic {}", e.url.as_str()),
-            MenuTile::Icon(icon) => format!("glyph {icon:?}"),
+            RowLeading::Source(IconSource::Symbolic(e)) => format!("symbolic {}", e.url.as_str()),
+            RowLeading::Icon(icon) => format!("glyph {icon:?}"),
             other => format!("{other:?}"),
         };
         assert_eq!(

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use dioxus::prelude::*;
-use ds::{ChordShown, ClipBody, GroupEntries, MenuEntry, MenuTrail, RowChord, RowShape};
+use ds::{Accessory, ChordShown, ClipBody, GroupEntries, RowChord, RowShape};
 use sill_launcher::{
     Action, ActionId, ActionKeys, CharCount, ClipFacts, ClipKey, ClipKind, EmojiFacts, Excerpt,
     FileFacts, IconRef, Item, ItemId, Mime, More, ProviderKind, Score, Section, ShownSection,
@@ -121,41 +121,35 @@ fn groups_carry_shapes_a_grid_and_header_actions() {
         GroupEntries::List(entries) => entries[0].clone(),
         GroupEntries::Grid(_) => panic!("a list"),
     };
-    match row(0) {
-        MenuEntry::Row(row) => {
-            assert_eq!(
-                row.trail,
-                MenuTrail::Note("Document".to_owned()),
-                "Top Hit mixes kinds"
-            );
-            assert_eq!(
-                row.shape,
-                RowShape::File {
-                    thumb: None,
-                    location: "~/Documents".to_owned(),
-                    modified: "Yesterday".to_owned(),
-                }
-            );
+    let top = row(0);
+    assert_eq!(
+        top.accessory,
+        Accessory::Text("Document".to_owned()),
+        "Top Hit mixes kinds"
+    );
+    assert_eq!(
+        top.shape,
+        RowShape::File {
+            thumb: None,
+            location: "~/Documents".to_owned(),
+            modified: "Yesterday".to_owned(),
         }
-        other => panic!("a file row: {other:?}"),
-    }
-    match row(1) {
-        MenuEntry::Row(row) => assert_eq!(row.trail, MenuTrail::None, "the date is in the shape"),
-        other => panic!("a file row: {other:?}"),
-    }
-    match row(2) {
-        MenuEntry::Row(row) => assert_eq!(
-            row.shape,
-            RowShape::Clip {
-                body: ClipBody::Text {
-                    excerpt: "hello".to_owned(),
-                    lines: 2
-                },
-                age: "2m".to_owned(),
-            }
-        ),
-        other => panic!("a clipboard row: {other:?}"),
-    }
+    );
+    assert_eq!(
+        row(1).accessory,
+        Accessory::None,
+        "the date is in the shape"
+    );
+    assert_eq!(
+        row(2).shape,
+        RowShape::Clip {
+            body: ClipBody::Text {
+                excerpt: "hello".to_owned(),
+                lines: 2
+            },
+            age: "2m".to_owned(),
+        }
+    );
     match &groups.0[3].entries {
         GroupEntries::Grid(grid) => {
             assert_eq!(grid.cells[0].glyph, "🎉");
@@ -181,22 +175,19 @@ fn each_row_carries_its_chord_for_the_selection() {
     let groups = dom.in_scope(ScopeId::ROOT, || {
         palette_groups(&sample(), &draw, &|_| EventHandler::new(|()| {}))
     });
-    let rows: Vec<(RowChord, MenuTrail)> = groups.0[..3]
+    let rows: Vec<(RowChord, Accessory)> = groups.0[..3]
         .iter()
         .map(|group| match &group.entries {
-            GroupEntries::List(entries) => match &entries[0] {
-                MenuEntry::Row(row) => (row.chord.clone(), row.trail.clone()),
-                other => panic!("a shaped row: {other:?}"),
-            },
+            GroupEntries::List(entries) => (entries[0].chord.clone(), entries[0].accessory.clone()),
             GroupEntries::Grid(_) => panic!("a list"),
         })
         .collect();
     assert_eq!(
         rows,
         vec![
-            (reveal.clone(), MenuTrail::Note("Document".to_owned())),
-            (reveal.clone(), MenuTrail::None),
-            (reveal, MenuTrail::None),
+            (reveal.clone(), Accessory::Text("Document".to_owned())),
+            (reveal.clone(), Accessory::None),
+            (reveal, Accessory::None),
         ]
     );
     assert!(

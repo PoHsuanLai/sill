@@ -13,7 +13,7 @@
 use dioxus::prelude::*;
 use ds::{
     Anchor, CommandPalette, CommandPaletteHost, Corner, FieldKey, IconSource, ImageSource, Menu,
-    MenuKind, Point, Px, Rect,
+    MenuPlacement, Point, Px, Rect, RowLeading,
 };
 use shell_host::OutputInfo;
 use sill_launcher::{ActionId, ClipKey, Item, Preview, Section, preview_for};
@@ -225,10 +225,10 @@ fn use_aside(
 }
 
 /// A row's tile as the pane's icon.
-fn icon_source(tile: ds::MenuTile) -> Option<IconSource> {
+fn icon_source(tile: RowLeading) -> Option<IconSource> {
     match tile {
-        ds::MenuTile::Source(source) => Some(source),
-        ds::MenuTile::Icon(icon) => Some(IconSource::Glyph(icon)),
+        RowLeading::Source(source) => Some(source),
+        RowLeading::Icon(icon) => Some(IconSource::Glyph(icon)),
         _ => None,
     }
 }
@@ -327,9 +327,9 @@ fn palette(
         }
         if let (Some(entries), Some(row)) = (actions, selected) {
             Menu::<ActionId> {
-                kind: MenuKind::Rich,
+                placement: MenuPlacement::Popup,
                 anchor: hung.map_or(Anchor::Point(FIRST_ROW_FOOT), Anchor::Rect),
-                entries,
+                items: entries,
                 onpick: move |action: ActionId| {
                     action_pick.pick(row.clone(), sill_launcher::Choice::Action(action))
                 },
@@ -378,7 +378,7 @@ struct RowIcons {
 }
 
 impl RowIcons {
-    fn tile(&self, item: &sill_launcher::Item) -> ds::MenuTile {
+    fn tile(&self, item: &sill_launcher::Item) -> RowLeading {
         let cx = IconContext {
             look: self.look,
             scale: self.scale,
