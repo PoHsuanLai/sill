@@ -459,6 +459,10 @@ A settled item is deleted, not marked closed.
   screen, is not seen.
 - **G290** The presented frame puts two widgets' contents in the center's first tile when all
   five are shown; `sill debug capture` of the same surface is right.
+- **G6012** `dev/accept/widgets.sh --real-input` fails `step_real_add` and `step_real_remove` on sill
+  master too (checked in a scratch worktree of master d079c35a): the gallery's default selection
+  is Up Next where the script expects World Clock, and Remove is clicked at a fixed offset. The
+  script's coordinates need re-deriving from the gallery.
 - **G6010** Click-outside is done by covering the output. The notification center, Edit Widgets
   and the power menu draw sill's `ClickAway` (a transparent full-output element) under their
   panel, and the launcher runs a whole second layer surface (`sill-launcher-catcher`) for it,
