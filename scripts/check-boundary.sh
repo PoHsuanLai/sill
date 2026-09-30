@@ -87,7 +87,7 @@ EDGES=(
   "sill-notify-ui: ds ds-native ds-settings ds-shell shell-host sill-model sill-services sill-settings sill-ui-kit"
   "sill-widgets-ui: ds ds-shell shell-host sill-settings sill-ui-kit"
   "sill-overlays: ds ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
-  "sill: ds-native ds-settings shell-host sill-bar sill-dock sill-ipc sill-launcher sill-launcher-ui sill-model sill-notify-ui sill-overlays sill-search sill-services sill-settings sill-ui-kit sill-widgets-ui"
+  "sill: ds-lint ds-native ds-settings ds-shell shell-host sill-bar sill-dock sill-ipc sill-launcher sill-launcher-ui sill-model sill-notify-ui sill-overlays sill-search sill-services sill-settings sill-ui-kit sill-widgets-ui"
 )
 for edge in "${EDGES[@]}"; do
   crate="${edge%%:*}"
