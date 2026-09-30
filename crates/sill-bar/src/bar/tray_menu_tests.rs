@@ -26,6 +26,8 @@ fn entry(id: i32, title: &str) -> MenuItem<i32> {
         key: None,
         check: None,
         availability: Availability::Enabled,
+        hint: None,
+        after: AfterPick::Close,
     }
 }
 

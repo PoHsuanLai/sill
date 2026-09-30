@@ -260,6 +260,8 @@ fn to_ds_entry(entry: &TrayMenuEntry) -> MenuItem<i32> {
                 TrayAvailability::Enabled => Availability::Enabled,
                 TrayAvailability::Disabled => Availability::Disabled,
             },
+            hint: None,
+            after: AfterPick::Close,
         },
     }
 }

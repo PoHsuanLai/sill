@@ -373,13 +373,8 @@ mod tests {
     #[test]
     fn choices_are_numbered_over_items_only() {
         use ds::prelude::*;
-        let entry = |pick: BarPick, availability| MenuItem::Item {
-            value: pick,
-            title: String::new(),
-            image: None,
-            key: None,
-            check: None,
-            availability,
+        let entry = |pick: BarPick, availability| {
+            MenuItem::new(pick, String::new()).with_availability(availability)
         };
         let entries = vec![
             MenuItem::Header("Foot".to_owned()),

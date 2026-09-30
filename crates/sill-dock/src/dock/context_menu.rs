@@ -259,6 +259,8 @@ fn row_entry(
         key: None,
         check,
         availability: Availability::Enabled,
+        hint: None,
+        after: AfterPick::Close,
     })
 }
 

@@ -46,6 +46,8 @@ impl MenuModel for Numbers {
                 key: None,
                 check: None,
                 availability: Availability::Enabled,
+                hint: None,
+                after: AfterPick::Close,
             })
             .collect()
     }

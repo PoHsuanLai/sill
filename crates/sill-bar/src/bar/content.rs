@@ -136,6 +136,8 @@ fn item(title: String, value: BarPick, check: Option<Check>) -> MenuItem<BarPick
         key: None,
         check,
         availability: Availability::Enabled,
+        hint: None,
+        after: AfterPick::Close,
     }
 }
 
