@@ -34,16 +34,6 @@ pub struct BarSettings {
         advanced
     )]
     pub height_px: Px,
-    /// `bar.title_hit_height_px`.
-    #[settings(
-        label = "Title hit height",
-        help = "The clickable height of a bar title or status item.",
-        section = "Bar",
-        range = "16..=48",
-        unit = "px",
-        advanced
-    )]
-    pub title_hit_height_px: Px,
     /// `bar.title_padding_px`.
     #[settings(
         label = "Title padding",
@@ -148,7 +138,6 @@ impl Default for BarSettings {
     fn default() -> Self {
         BarSettings {
             height_px: Px(24),
-            title_hit_height_px: Px(24),
             title_padding_px: Px(8),
             open_title_pill_height_px: Px(22),
             status_icon_box_px: Px(22),

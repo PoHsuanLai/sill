@@ -1,4 +1,4 @@
-//! One icon status item: a quire `MenuBarItem` in a title slot, expanded while its menu is
+//! One icon status item: a quire `MenuBarItem`, expanded while its menu is
 //! open (design/20 §1.1), sized by the bar's status keys through `ds::StatusMetrics`.
 
 use dioxus::prelude::*;
@@ -8,7 +8,7 @@ use ds_shell::MenuBarItem;
 use sill_settings::{BarGlyphSize, BarSettings};
 
 use super::menus::BarMenu;
-use super::title::{TitleSlot, shown_of};
+use super::title::{shown_of, use_title_pointer};
 
 /// The status items' box and glyph from `bar.status_icon_box_px`, `bar.status_glyph_px` and
 /// `bar.glyph_size_policy`: under `IconSizeBar22` the glyph fills the box.
@@ -25,7 +25,7 @@ pub(crate) fn status_metrics(bar: &BarSettings) -> StatusMetrics {
 
 /// The status item for `menu`, drawn as `icon` (a glyph, or a layered status glyph for the Wi-Fi,
 /// battery, volume and Bluetooth items) with `tooltip`. The button draws its own pill
-/// while expanded, so the slot draws none.
+/// while expanded.
 #[component]
 pub(crate) fn StatusIcon(
     menu: BarMenu,
@@ -33,17 +33,17 @@ pub(crate) fn StatusIcon(
     tooltip: String,
 ) -> Element {
     let probe = use_rect();
+    let pointer = use_title_pointer(menu, probe);
     rsx! {
-        TitleSlot { menu, probe,
-            MenuBarItem {
-                common: Common { mounted: Some(EventHandler::new(move |event| probe.on_mounted(event))), ..Common::default() },
-                image: ImagePosition::Only,
-                icon,
-                label: menu.label().to_owned(),
-                title: Some(tooltip),
-                shown: shown_of(menu),
-                onclick: move |_| {},
-            }
+        MenuBarItem {
+            common: Common { mounted: Some(EventHandler::new(move |event| probe.on_mounted(event))), ..Common::default() },
+            image: ImagePosition::Only,
+            icon,
+            label: menu.label().to_owned(),
+            title: Some(tooltip),
+            shown: shown_of(menu),
+            pointer,
+            onclick: move |_| {},
         }
     }
 }

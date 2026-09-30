@@ -8,14 +8,13 @@ use ds_shell::MenuBarItem;
 use shell_host::{OutputInfo, use_watch};
 
 use sill_services::ClockService;
-use sill_ui_kit::hooks::{use_service, use_settings};
+use sill_ui_kit::hooks::use_service;
 use sill_ui_kit::links::CenterLink;
 
 /// The clock status item.
 #[component]
 pub fn ClockItem(output: OutputInfo) -> Element {
     let clock = use_service::<ClockService>()();
-    let settings = use_settings();
     // A bar without the daemon's links (the demo, a render test) toggles a center of its own.
     let given = try_use_context::<CenterLink>();
     let link = use_hook(move || given.unwrap_or_default());
@@ -24,19 +23,16 @@ pub fn ClockItem(output: OutputInfo) -> Element {
         true => Shown::Visible,
         false => Shown::Hidden,
     };
-    let style = format!("height:{}px", settings().bar.title_hit_height_px.0);
     rsx! {
-        div { class: "sill-bar-title", style,
-            MenuBarItem {
-                common: Common {
-                    aria_label: Some("Notification Center".to_owned()),
-                    extra_class: ExtraClass::parse("sill-bar-clock").ok(),
-                    ..Common::default()
-                },
-                shown: open,
-                label: clock.text,
-                onclick: move |_| link.toggle(output.id),
-            }
+        MenuBarItem {
+            common: Common {
+                aria_label: Some("Notification Center".to_owned()),
+                extra_class: ExtraClass::parse("sill-bar-clock").ok(),
+                ..Common::default()
+            },
+            shown: open,
+            label: clock.text,
+            onclick: move |_| link.toggle(output.id),
         }
     }
 }

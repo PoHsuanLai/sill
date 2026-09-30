@@ -3,11 +3,11 @@
 //! The group is a ds `WorkspacePills` (the macOS polish pass: one segmented group on the frame),
 //! each workspace a `WorkspacePill`, current for the active one. A primary press activates the
 //! workspace; a press on one pill released over another reorders (`reorder`), which each pill's
-//! own wrapper listens for. Right-click Edit Space waits for the Space editor popup.
+//! `BarPointer` hears. Right-click Edit Space waits for the Space editor popup.
 
 use dioxus::prelude::*;
 use ds::{PointerButton, Press, Selection};
-use ds_shell::{WorkspacePill, WorkspacePills};
+use ds_shell::{BarPointer, WorkspacePill, WorkspacePills};
 use shell_host::OutputInfo;
 use sill_model::cosmic_wl::{Activity, WlCommand, Workspace};
 use sill_model::ids::OutputName;
@@ -43,36 +43,36 @@ pub fn WorkspaceIndicator(output: OutputInfo) -> Element {
         div { class: "sill-bar-spaces",
             WorkspacePills { label: "Workspaces",
             for (index , workspace) in group.workspaces.into_iter().enumerate() {
-                div {
+                WorkspacePill {
                     key: "{workspace.key.0}",
-                    class: "sill-bar-space",
-                    onpointerdown: move |event| {
-                        let x = pointer_at(&event).x;
-                        pressed.set(Some(Pressed { key: workspace.key, index, x }));
-                    },
-                    onpointerup: {
-                        let wl = wl.clone();
-                        move |event| {
+                    label: label(&workspace, index),
+                    current: if workspace.activity == Activity::Active { Selection::Selected } else { Selection::Unselected },
+                    pointer: BarPointer {
+                        down: Some(EventHandler::new(move |event: PointerEvent| {
                             let x = pointer_at(&event).x;
-                            let dropped = Dropped { key: workspace.key, index, x };
-                            let command = pressed.take().and_then(|p| reorder(p, dropped, threshold));
-                            if let Some(command) = command {
-                                let _ = wl.send(command);
+                            pressed.set(Some(Pressed { key: workspace.key, index, x }));
+                        })),
+                        up: Some(EventHandler::new({
+                            let wl = wl.clone();
+                            move |event: PointerEvent| {
+                                let x = pointer_at(&event).x;
+                                let dropped = Dropped { key: workspace.key, index, x };
+                                let command = pressed.take().and_then(|p| reorder(p, dropped, threshold));
+                                if let Some(command) = command {
+                                    let _ = wl.send(command);
+                                }
+                            }
+                        })),
+                        enter: None,
+                    },
+                    onclick: {
+                        let wl = wl.clone();
+                        move |press: Press| {
+                            if press.button == PointerButton::Primary {
+                                let _ = wl.send(WlCommand::ActivateWorkspace(workspace.key));
                             }
                         }
                     },
-                    WorkspacePill {
-                        label: label(&workspace, index),
-                        current: if workspace.activity == Activity::Active { Selection::Selected } else { Selection::Unselected },
-                        onclick: {
-                            let wl = wl.clone();
-                            move |press: Press| {
-                                if press.button == PointerButton::Primary {
-                                    let _ = wl.send(WlCommand::ActivateWorkspace(workspace.key));
-                                }
-                            }
-                        },
-                    }
                 }
             }
             }

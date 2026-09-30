@@ -272,7 +272,8 @@ A settled item is deleted, not marked closed.
 - **One-variant enums cannot be settings** (the derive refuses them): `launcher.material` and
   `power_menu.material` are `PanelMaterial::{Sheet, Popover}`.
 - **Retired keys**: `control_center.material`, `dock.position`, `session.user_picture`,
-  `spaces.lookup_order`, `notifications.banner_entry_direction` and, with step 4a.8, `dock.progress_style`,
+  `spaces.lookup_order`, `notifications.banner_entry_direction` and, with step 4a.8, `bar.title_hit_height_px` (a
+  bar item's hit box is the item's own), `dock.progress_style`,
   `dock.badge_size_px`, `dock.badge_radius_px`, `dock.progress_ring_diameter_px` and
   `dock.progress_ring_stroke_px` had no reader (quire's `DockTile` draws its own `Badge` and progress
   bar), so the fields are gone and design/22's rows say `RETIRING`; a file that still sets one is

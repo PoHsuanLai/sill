@@ -1,17 +1,17 @@
-//! A bar title or status item's hit box: it feeds the menu session its presses, releases and
-//! pointer entries (design/13 §13.3.2: open on press, click mode on release over the title,
-//! hover switch on entry). Its child is a quire `MenuBarItem`, a title or a status glyph, which
-//! draws the hover and open pill itself.
+//! A bar title or status item's pointer: its quire `MenuBarItem`, a title or a status glyph, hands
+//! the menu session its presses, releases and pointer entries (design/13 §13.3.2: open on press,
+//! click mode on release over the title, hover switch on entry) and draws the hover and open pill
+//! itself.
 
 use dioxus::prelude::*;
 use ds::{RectProbe, Shown};
+use ds_shell::BarPointer;
 use shell_host::Point;
 
 use super::io::MenuBar;
 use super::menus::BarMenu;
 use super::model::BarInput;
 use super::track::{Event, Target, point};
-use sill_ui_kit::hooks::use_settings;
 
 /// The pointer's position in the bar, whole logical pixels.
 pub(crate) fn pointer_at(event: &PointerEvent) -> Point {
@@ -31,13 +31,11 @@ pub(crate) fn shown_of(menu: BarMenu) -> Shown {
     }
 }
 
-/// The hit box around a title's ds button. `probe` measures that button (its `mounted`), and
-/// its rect travels with every event so the popup can be placed under it.
-#[component]
-pub(crate) fn TitleSlot(menu: BarMenu, probe: RectProbe, children: Element) -> Element {
+/// What a title's ds button hands to the menu session: its presses, releases and pointer entries.
+/// `probe` measures that button (its `mounted`), and its rect travels with every event so the
+/// popup can be placed under it.
+pub(crate) fn use_title_pointer(menu: BarMenu, probe: RectProbe) -> BarPointer {
     let bar = use_context::<MenuBar>();
-    let settings = use_settings();
-    let style = format!("height:{}px", settings().bar.title_hit_height_px.0);
     let title = move || probe.rect().map(|rect| (menu, rect));
     let send = move |input: Event| {
         bar.feed(BarInput::Bar {
@@ -45,22 +43,20 @@ pub(crate) fn TitleSlot(menu: BarMenu, probe: RectProbe, children: Element) -> E
             title: title(),
         });
     };
-    rsx! {
-        div {
-            class: "sill-bar-title",
-            style,
-            onpointerdown: move |event| {
-                event.stop_propagation();
-                send(Event::PressTitle(menu.id()));
-            },
-            onpointerup: move |event| {
-                event.stop_propagation();
-                send(Event::Release(Target::Title(menu.id())));
-            },
-            onpointerenter: move |event| {
-                send(Event::Move(point(pointer_at(&event)), Target::Title(menu.id())));
-            },
-            {children}
-        }
+    BarPointer {
+        down: Some(EventHandler::new(move |event: PointerEvent| {
+            event.stop_propagation();
+            send(Event::PressTitle(menu.id()));
+        })),
+        up: Some(EventHandler::new(move |event: PointerEvent| {
+            event.stop_propagation();
+            send(Event::Release(Target::Title(menu.id())));
+        })),
+        enter: Some(EventHandler::new(move |event: PointerEvent| {
+            send(Event::Move(
+                point(pointer_at(&event)),
+                Target::Title(menu.id()),
+            ));
+        })),
     }
 }

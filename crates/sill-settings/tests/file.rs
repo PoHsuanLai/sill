@@ -154,7 +154,7 @@ fn a_retired_key_is_reported_unknown() {
     let dir = TempDir::new("retired");
     write(
         &dir,
-        b"[dock]\nposition = \"bottom\"\nprogress_style = \"ring\"\nbadge_size_px = 18\n[session]\nuser_picture = \"auto\"\n\
+        b"[bar]\ntitle_hit_height_px = 24\n[dock]\nposition = \"bottom\"\nprogress_style = \"ring\"\nbadge_size_px = 18\n[session]\nuser_picture = \"auto\"\n\
           [spaces]\nlookup_order = \"by_id_then_index\"\n[control_center]\nmaterial = \"sheet\"\n\
           [notifications]\nbanner_entry_direction = \"from_right\"\n",
     );
@@ -163,6 +163,7 @@ fn a_retired_key_is_reported_unknown() {
     assert_eq!(
         unknown,
         [
+            "bar.title_hit_height_px",
             "control_center.material",
             "dock.badge_size_px",
             "dock.position",

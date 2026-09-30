@@ -8,7 +8,7 @@ use sill_model::ids::OutputName;
 
 use super::content::front_app;
 use super::menus::BarMenu;
-use super::title::{TitleSlot, shown_of};
+use super::title::{shown_of, use_title_pointer};
 use sill_services::{AppsService, CosmicWlService};
 use sill_ui_kit::hooks::{use_service, use_service_part};
 
@@ -24,15 +24,15 @@ pub fn AppName(output: OutputInfo) -> Element {
     let on = output.name.clone().map(OutputName);
     let name = front_app(&toplevels(), &apps(), on.as_ref())
         .map_or_else(|| NO_APP.to_owned(), |app| app.name);
+    let pointer = use_title_pointer(BarMenu::App, probe);
     rsx! {
-        TitleSlot { menu: BarMenu::App, probe,
-            MenuBarItem {
-                common: Common { mounted: Some(EventHandler::new(move |event| probe.on_mounted(event))), ..Common::default() },
-                emphasis: Emphasis::Strong,
-                shown: shown_of(BarMenu::App),
-                label: name,
-                onclick: move |_| {},
-            }
+        MenuBarItem {
+            common: Common { mounted: Some(EventHandler::new(move |event| probe.on_mounted(event))), ..Common::default() },
+            emphasis: Emphasis::Strong,
+            shown: shown_of(BarMenu::App),
+            label: name,
+            pointer,
+            onclick: move |_| {},
         }
     }
 }

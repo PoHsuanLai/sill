@@ -33,7 +33,6 @@ fn the_bar_shows_what_the_services_hold() {
         ("the volume item", "aria-label=\"Volume\"", 1),
         ("the network item", "aria-label=\"Network\"", 1),
         ("the battery item", "aria-label=\"Battery\"", 1),
-        ("three workspace pills", "class=\"sill-bar-space\"", 3),
         ("in one segmented group", "class=\"ds-ws-pills\"", 1),
         ("each a quire pill", "class=\"ds-ws-pill\"", 3),
         ("one current pill", "aria-current=\"true\"", 1),

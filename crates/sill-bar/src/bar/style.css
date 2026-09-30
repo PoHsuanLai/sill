@@ -14,17 +14,8 @@
 
 .sill-bar-group{ position:relative; display:flex; align-items:center; height:100%; gap:var(--s-4); }
 
-/* A title's hit box. The pill behind a text title is its ds MenuBarItem's; a status item's
-   Button{StatusItem} draws its own. */
-.sill-bar-title{ display:flex; align-items:center; }
-
 /* Digits keep their width, so the status items beside the clock do not move each minute. */
 .sill-bar-clock{ display:flex; font-variant-numeric:tabular-nums; }
 
-/* The workspace group (ds WorkspacePills) and each pill's own wrapper, which takes the drag
-   that reorders; the wrapper stretches so the pill fills the group's height. */
+/* The workspace group (ds WorkspacePills). */
 .sill-bar-spaces{ display:flex; align-items:center; margin-left:var(--s-6); }
-.sill-bar-space{ display:flex; align-self:stretch; }
-
-/* The volume menu's panel inside its ds Popover. */
-.sill-volume-panel{ display:flex; flex-direction:column; gap:var(--s-10); width:240px; padding:var(--s-12); }
