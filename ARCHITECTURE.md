@@ -646,6 +646,9 @@ section 10 in quire) takes the same path: `daemon/settings/user_style.rs` watche
 surface restyles live. Each surface root carries `data-surface = Surface::NAME`, which makes
 the surface names part of the public selector surface: renaming one breaks the person's file
 and needs a note. `sill style check` prints `ds_lint::user_stylesheet`'s notes for the file.
+The person's rules are unlayered and win over both cascade layers: quire's `@layer ds`, and
+`@layer app`, where every sill surface's own CSS goes (`ds::prelude::AppStyle { css }`, never a
+bare `style { {CSS} }`). A user rule written `[data-surface=bar]` (plain, no `*|`) matches.
 
 `dist/` holds what a real login needs: `sill-session`, `sill-session.target`, `sill.desktop`,
 `sill.service`, the COSMIC shortcut overrides, the PAM service and the DDC/CI rules. Nothing

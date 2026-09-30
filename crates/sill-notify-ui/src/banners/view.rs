@@ -49,7 +49,7 @@ pub(super) fn banners(output: OutputInfo) -> Element {
             material: Material::Toast,
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,
-            style { {BANNERS_CSS} }
+            AppStyle { css: BANNERS_CSS }
             ColumnView { output: output.id, settings: file.notifications.clone() }
         }
     }

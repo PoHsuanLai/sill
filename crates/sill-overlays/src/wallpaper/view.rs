@@ -43,7 +43,7 @@ pub(super) fn wallpaper(output: OutputInfo) -> Element {
             blur: BlurState::Unavailable,
             surface: root.surface,
             user_style: root.user_style,
-            style { {WALLPAPER_CSS} }
+            AppStyle { css: WALLPAPER_CSS }
             div { class: "sill-wallpaper",
                 for (slot , back , image) in layers {
                     div {

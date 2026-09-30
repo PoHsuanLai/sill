@@ -160,7 +160,7 @@ pub(super) fn dock(output: OutputInfo) -> Element {
                 stack: Some(stack),
                 surface: root.surface,
                 user_style: root.user_style,
-                style { {DOCK_CSS} }
+                AppStyle { css: DOCK_CSS }
                 DockFloor {}
                 div {
                     class: "sill-dock-body",

@@ -19,7 +19,7 @@ const CSS: &str = "@keyframes slide{ from{ transform:translateX(400px); } to{ tr
 fn app() -> Element {
     let mut on = use_signal(|| true);
     rsx! {
-        style { {CSS} }
+        AppStyle { css: CSS }
         div { class: if on() { "box on" } else { "box" } }
         div { class: "btn", onpointerdown: move |_| on.set(false) }
     }

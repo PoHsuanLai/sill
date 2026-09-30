@@ -23,8 +23,8 @@ pub(super) fn notification_center(output: OutputInfo) -> Element {
             output: output.clone(),
             material: Material::Popover,
             extent: RootExtent::Viewport,
-            style { {NOTIFICATION_CENTER_CSS} }
-            style { {widgets_css()} }
+            AppStyle { css: NOTIFICATION_CENTER_CSS }
+            AppStyle { css: widgets_css() }
             Column { output: output.id }
         }
     }

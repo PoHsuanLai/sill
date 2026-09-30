@@ -146,7 +146,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
             SurfaceRoot {
                 output: output.clone(),
                 material: material(file.launcher.material),
-                style { {LAUNCHER_CSS} }
+                AppStyle { css: LAUNCHER_CSS }
                 div {
                     class: "sill-launcher-body",
                     style: "margin-left:{left}px;width:{width}px;height:{PANEL_HEIGHT}px",

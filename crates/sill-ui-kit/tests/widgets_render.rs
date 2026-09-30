@@ -46,7 +46,7 @@ fn app() -> Element {
     };
     rsx! {
         Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance::default(), material, extent: RootExtent::Viewport,
-            style { {widgets_css()} }
+            AppStyle { css: widgets_css() }
             div { style: "width:344px;",
                 Widget { kind: world.kind, host: world.host }
             }

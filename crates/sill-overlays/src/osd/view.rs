@@ -59,7 +59,7 @@ pub(super) fn osd(output: OutputInfo) -> Element {
             output: output.clone(),
             material: Material::Osd,
             chrome: Some(RootChrome::Transparent),
-            style { {OSD_CSS} }
+            AppStyle { css: OSD_CSS }
             div {
                 style: OsdMetrics { margin: Px(f32::from(file.osd.margin_px.0)) }.style_attr(),
                 Osd {

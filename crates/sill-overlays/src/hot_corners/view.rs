@@ -2,6 +2,7 @@
 //! no material, never painted), feeding the pointer's enter and leave to [`super::io`].
 
 use dioxus::prelude::*;
+use ds::prelude::AppStyle;
 use shell_host::OutputInfo;
 
 use super::io::use_hot_corner;
@@ -18,7 +19,7 @@ pub(super) fn hot_corner(output: OutputInfo, corner: Corner) -> Element {
     let leaving = entering.clone();
     let surface = use_root_style().surface;
     rsx! {
-        style { {HOT_CORNERS_CSS} }
+        AppStyle { css: HOT_CORNERS_CSS }
         div {
             class: "sill-hot-corner",
             "data-surface": surface,

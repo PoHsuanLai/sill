@@ -112,7 +112,7 @@ pub(crate) fn BarPopup() -> Element {
     };
     let root = RootStyle::popup(name, user_style);
     rsx! {
-        style { {CONTROL_CENTER_CSS} }
+        AppStyle { css: CONTROL_CENTER_CSS }
         PopupFrame { room: room(), widest, style: look.metrics.style_attr(),
             Ds {
                 sheet: Some(ds_shell::stylesheet()),

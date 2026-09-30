@@ -6,6 +6,7 @@
 //! whichever surface is on top and a press under a short card closes the launcher.
 
 use dioxus::prelude::*;
+use ds::prelude::AppStyle;
 use shell_host::{OutputInfo, use_watch};
 
 use super::layer::input;
@@ -26,7 +27,7 @@ pub(super) fn catcher(output: OutputInfo) -> Element {
     follow_input(input(&output, &file.bar, &file.launcher, hit()));
     let surface = use_root_style().surface;
     rsx! {
-        style { {LAUNCHER_CSS} }
+        AppStyle { css: LAUNCHER_CSS }
         div {
             class: "sill-launcher-catcher",
             "data-surface": surface,

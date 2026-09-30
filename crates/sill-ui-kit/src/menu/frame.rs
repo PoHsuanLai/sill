@@ -4,6 +4,7 @@
 //! passes `RootExtent::Popup`, so quire lays its card in flow.
 
 use dioxus::prelude::*;
+use ds::prelude::AppStyle;
 
 use super::look::PopupRoom;
 use crate::root::use_host_signals;
@@ -25,7 +26,7 @@ pub fn PopupFrame(
     use_host_signals();
     let cap = widest.map_or(String::new(), |px| format!(";max-width:{px}px"));
     rsx! {
-        style { {POPUP_FRAME_CSS} }
+        AppStyle { css: POPUP_FRAME_CSS }
         div {
             class: "sill-popup-frame",
             style: "{room.style()}{cap};{style}",

@@ -48,7 +48,7 @@ pub(super) fn screenshot_thumb(output: OutputInfo) -> Element {
             material: Material::Toast,
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,
-            style { {SCREENSHOT_THUMB_CSS} }
+            AppStyle { css: SCREENSHOT_THUMB_CSS }
             Column {
                 output: output.id,
                 params,

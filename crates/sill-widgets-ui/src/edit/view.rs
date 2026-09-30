@@ -55,8 +55,8 @@ pub(super) fn edit_widgets(output: OutputInfo) -> Element {
             output: output.clone(),
             material: Material::Sheet,
             extent: RootExtent::Viewport,
-            style { {EDIT_WIDGETS_CSS} }
-            style { {widgets_css()} }
+            AppStyle { css: EDIT_WIDGETS_CSS }
+            AppStyle { css: widgets_css() }
             Stage { output }
         }
     }

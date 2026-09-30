@@ -86,7 +86,7 @@ fn app() -> Element {
     };
     rsx! {
         Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance::default(), material, extent: RootExtent::Viewport,
-            style { {widgets_css()} }
+            AppStyle { css: widgets_css() }
             for kind in ALL {
                 Widget { kind, host }
             }

@@ -59,7 +59,7 @@ fn app() -> Element {
     let css = widgets_css();
     rsx! {
         Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance::default(), material: Material::Popover,
-            style { {css} }
+            AppStyle { css: css }
             match world.kind {
                 Kind::Calendar => rsx! { {widget(WidgetKind::Calendar, WidgetHost::Tile)} },
                 Kind::CalendarOnDesktop => rsx! { {widget(WidgetKind::Calendar, WidgetHost::Desktop)} },

@@ -53,8 +53,8 @@ pub(super) fn desktop(output: OutputInfo) -> Element {
             material: Material::Widget,
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,
-            style { {DESKTOP_WIDGETS_CSS} }
-            style { {widgets_css()} }
+            AppStyle { css: DESKTOP_WIDGETS_CSS }
+            AppStyle { css: widgets_css() }
             Grid {
                 kinds: widgets.desktop_widgets,
                 cell: widgets.desktop_cell_px.0,

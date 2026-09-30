@@ -66,7 +66,7 @@ pub(super) fn bar(output: OutputInfo) -> Element {
             stack: Some(popup_look.stack),
             surface: root.surface,
             user_style: root.user_style,
-            style { {BAR_CSS} }
+            AppStyle { css: BAR_CSS }
             div {
                 class: "sill-bar",
                 style: strip,

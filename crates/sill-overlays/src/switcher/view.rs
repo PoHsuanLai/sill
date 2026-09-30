@@ -72,7 +72,7 @@ pub(super) fn switcher(output: OutputInfo) -> Element {
             material: Material::Osd,
             chrome: Some(RootChrome::Transparent),
             extent: RootExtent::Viewport,
-            style { {SWITCHER_CSS} }
+            AppStyle { css: SWITCHER_CSS }
             if let Some(session) = &session {
                 div {
                     key: "{session.serial.0}",

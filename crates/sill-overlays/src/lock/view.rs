@@ -91,7 +91,7 @@ fn Stage(
             blur: BlurState::Unavailable,
             surface: root.surface,
             user_style: root.user_style,
-            style { {LOCK_CSS} }
+            AppStyle { css: LOCK_CSS }
             LockBody { output, scheme, host, caps, on_unlock }
         }
     }

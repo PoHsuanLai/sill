@@ -64,7 +64,7 @@ fn app() -> Element {
         }
     });
     rsx! {
-        style { {CONTROL_CENTER_CSS} }
+        AppStyle { css: CONTROL_CENTER_CSS }
         PopupFrame { room: PopupRoom { side: 28, top: 8, bottom: 40 },
         Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance::default(), material: Material::Popover,
             extent: RootExtent::Popup,
