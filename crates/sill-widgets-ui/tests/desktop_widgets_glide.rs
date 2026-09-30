@@ -16,10 +16,10 @@ use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
 use ds_native::{Harness, Viewport};
 use ds_settings::Environment;
 use sill_settings::{ShellFile, WidgetKind};
-use sill_ui_kit::DesktopWidgets;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::hooks::PinnedAppearance;
 use sill_ui_kit::links::PlacementFile;
+use sill_widgets_ui::DesktopWidgets;
 
 const VIEWPORT: Viewport = Viewport {
     width: 1280,

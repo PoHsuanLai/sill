@@ -6,8 +6,8 @@ use sill_settings::ShellFile;
 
 use super::layer::layer;
 use super::view::edit_widgets;
-use crate::links::EditWidgetsLink;
-use crate::surface::{Place, Start, Surface};
+use sill_ui_kit::links::EditWidgetsLink;
+use sill_ui_kit::surface::{Place, Start, Surface};
 
 /// The widget gallery, a sheet at the bottom of the output.
 #[derive(Debug)]

@@ -25,18 +25,18 @@ use super::leaving::use_leaving;
 use super::model::{Draw, Dropped, Laid, boxes, draw_order, logical, recorded, slot_guide};
 use super::placed::Placed;
 use super::placement::{grid_size, place};
-use crate::hooks::use_settings;
-use crate::links::PlacementFile;
-use crate::root::SurfaceRoot;
-use crate::widgets::grid::OutputKey;
-use crate::widgets::{
+use sill_ui_kit::hooks::use_settings;
+use sill_ui_kit::links::PlacementFile;
+use sill_ui_kit::root::SurfaceRoot;
+use sill_ui_kit::widgets::grid::OutputKey;
+use sill_ui_kit::widgets::{
     CardPresence, WidgetHost, desktop_size, provide_registry, provide_widget_wake, widgets_css,
 };
 
 /// The layer's own stylesheet (the grid), injected beside `widgets_css`.
-pub const DESKTOP_WIDGETS_CSS: &str = include_str!("../../style/desktop_widgets.css");
+pub const DESKTOP_WIDGETS_CSS: &str = include_str!("style.css");
 
-/// The layer on `output`: its own widget wake (`crate::widgets::WidgetWake`), bumped once when
+/// The layer on `output`: its own widget wake (`sill_ui_kit::widgets::WidgetWake`), bumped once when
 /// this layer is mapped (`widgets.desktop` turning `On` spawns a fresh one), so the batteries' rings and figures count up as they come into
 /// view.
 pub(super) fn desktop(output: OutputInfo) -> Element {

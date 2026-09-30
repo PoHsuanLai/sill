@@ -15,7 +15,8 @@ use sill_ui_kit::links::PlacementFile;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::surface::{LockSurface, MountLockProps, mount_lock};
-use sill_ui_kit::{Bar, DesktopWidgets, Dock, EditWidgets, Launcher, LauncherCatcher};
+use sill_ui_kit::{Bar, Dock, Launcher, LauncherCatcher};
+use sill_widgets_ui::{DesktopWidgets, EditWidgets};
 use tokio::sync::watch;
 
 use crate::daemon::msg::ShellMsg;

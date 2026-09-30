@@ -32,7 +32,5 @@ pub mod surfaces;
 pub mod widgets;
 
 pub use surfaces::bar::Bar;
-pub use surfaces::desktop_widgets::DesktopWidgets;
 pub use surfaces::dock::Dock;
-pub use surfaces::edit_widgets::EditWidgets;
 pub use surfaces::launcher::{Launcher, LauncherCatcher};

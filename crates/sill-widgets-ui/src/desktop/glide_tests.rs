@@ -5,7 +5,7 @@ use ds::motion::{Release, Velocity};
 use ds::{Point, Px};
 
 use super::{Ask, Glide, PointMeter, Pose, Seen, ask, drawn, to_layer, to_point};
-use crate::surfaces::desktop_widgets::arrange::LayerPoint;
+use crate::desktop::arrange::LayerPoint;
 
 fn lp(x: i32, y: i32) -> LayerPoint {
     LayerPoint { x, y }

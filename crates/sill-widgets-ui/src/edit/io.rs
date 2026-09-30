@@ -6,9 +6,9 @@
 use dioxus::prelude::*;
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 
-use crate::links::EditWidgetsLink;
-use crate::panel::{Phase, PhaseInput, PhaseOut, Wanted, step_phase};
-use crate::widgets::grid::Placement;
+use sill_ui_kit::links::EditWidgetsLink;
+use sill_ui_kit::panel::{Phase, PhaseInput, PhaseOut, Wanted, step_phase};
+use sill_ui_kit::widgets::grid::Placement;
 
 /// The panel's phase on one output, and the surface it maps. Clone is cheap.
 #[derive(Clone)]
@@ -38,8 +38,10 @@ pub(super) fn use_phase(output: OutputId) -> EditPhase {
     let follow = surface.clone();
     use_effect(move || {
         let wanted = match *shown.read() {
-            crate::links::EditShown::Open(on) if on == output => Wanted::Here,
-            crate::links::EditShown::Open(_) | crate::links::EditShown::Closed => Wanted::NotHere,
+            sill_ui_kit::links::EditShown::Open(on) if on == output => Wanted::Here,
+            sill_ui_kit::links::EditShown::Open(_) | sill_ui_kit::links::EditShown::Closed => {
+                Wanted::NotHere
+            }
         };
         drive(phase, follow.clone(), PhaseInput::Link(wanted));
     });
@@ -91,7 +93,7 @@ mod tests {
     use sill_settings::WidgetKind;
 
     use super::places_to_save;
-    use crate::widgets::grid::{GridSlot, Placement};
+    use sill_ui_kit::widgets::grid::{GridSlot, Placement};
 
     fn at(kind: WidgetKind, column: u16, row: u16) -> Placement {
         Placement {

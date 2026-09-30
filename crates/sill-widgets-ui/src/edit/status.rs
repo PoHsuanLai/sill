@@ -10,8 +10,8 @@ use dioxus::prelude::*;
 use ds::detail::{Detailed, Moment, Touch, use_detail, use_shake};
 use ds_shell::widget::{WidgetEdit, WidgetLayout};
 
-use crate::widgets::layout::Refused;
-use crate::widgets::{WidgetHost, WidgetKind, kind_of, registry};
+use sill_ui_kit::widgets::layout::Refused;
+use sill_ui_kit::widgets::{WidgetHost, WidgetKind, kind_of, registry};
 
 /// Which edit of this opening a line is about: the same words twice are two moments.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -104,7 +104,7 @@ pub(super) fn outcome_of(
 /// The widget's name as the gallery lists it.
 fn name_of(kind: WidgetKind) -> String {
     registry()
-        .get(&crate::widgets::kind_id(kind))
+        .get(&sill_ui_kit::widgets::kind_id(kind))
         .map_or_else(|| format!("{kind:?}"), |info| info.name.plain_text())
 }
 
@@ -143,8 +143,8 @@ mod tests {
     use ds_shell::{WidgetHost, WidgetSize};
 
     use super::{EditCount, Outcome, Said, outcome_of};
-    use crate::widgets::layout::Refused;
-    use crate::widgets::{WidgetKind, kind_id};
+    use sill_ui_kit::widgets::layout::Refused;
+    use sill_ui_kit::widgets::{WidgetKind, kind_id};
 
     fn said(words: &str, edit: u32) -> Said {
         Said {

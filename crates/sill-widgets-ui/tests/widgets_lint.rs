@@ -18,10 +18,10 @@ use sill_ui_kit::hooks::PinnedAppearance;
 use sill_ui_kit::links::{EditWidgetsLink, PlacementFile};
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
-use sill_ui_kit::surfaces::desktop_widgets::DESKTOP_WIDGETS_CSS;
-use sill_ui_kit::surfaces::edit_widgets::EDIT_WIDGETS_CSS;
 use sill_ui_kit::widgets::{Widget, WidgetHost, widgets_css};
-use sill_ui_kit::{DesktopWidgets, EditWidgets};
+use sill_widgets_ui::desktop::DESKTOP_WIDGETS_CSS;
+use sill_widgets_ui::edit::EDIT_WIDGETS_CSS;
+use sill_widgets_ui::{DesktopWidgets, EditWidgets};
 
 const ALL: [WidgetKind; 5] = [
     WidgetKind::Calendar,

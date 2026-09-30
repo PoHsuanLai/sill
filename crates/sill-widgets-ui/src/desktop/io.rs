@@ -12,8 +12,8 @@ use super::arrange::LayerPoint;
 use super::drag::{DragInput, DragWorld, Hold, Landing, step};
 use super::glide::PointMeter;
 use super::model::{Dropped, Laid, merged, widget_regions};
-use crate::links::PlacementFile;
-use crate::widgets::grid::{OutputKey, Placement};
+use sill_ui_kit::links::PlacementFile;
+use sill_ui_kit::widgets::grid::{OutputKey, Placement};
 
 /// Read this output's places from the file again when the desktop's widgets change (Edit
 /// Widgets wrote them there), so a widget it added lands in the cell it chose.

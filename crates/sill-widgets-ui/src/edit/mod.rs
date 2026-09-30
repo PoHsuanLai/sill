@@ -3,15 +3,15 @@
 //! output, where the person adds a widget to the desktop or the notification center or takes
 //! one away (each widget has one size: the gallery previews and adds it and offers no
 //! other). Every choice is a `WidgetEdit` applied through quire's `ds_shell::widget::apply`
-//! (`crate::widgets::layout::edited`) and written back as the keys and places sill already keeps
+//! (`sill_ui_kit::widgets::layout::edited`) and written back as the keys and places sill already keeps
 //! (`widgets.center`, `widgets.desktop_widgets`, `desktop-widgets.json`, and `widgets.desktop`
-//! turned on by an add to the desktop) through the [`crate::links::EditWidgetsLink`]'s writer the daemon gives it.
+//! turned on by an add to the desktop) through the [`sill_ui_kit::links::EditWidgetsLink`]'s writer the daemon gives it.
 //! An add is shown by the gallery ("Added" and a check on its button) and by the widget
 //! rising on the desktop above the sheet; a removal's words, or a refusal shaken once, are said
 //! under the gallery (`status`).
 //!
 //! One Overlay surface per output, spawned hidden and kept warm like the notification center,
-//! following one shared [`crate::links::EditWidgetsLink`]: opened from the center's "Edit Widgets" and by
+//! following one shared [`sill_ui_kit::links::EditWidgetsLink`]: opened from the center's "Edit Widgets" and by
 //! `sill widgets edit`; closed by Done, Escape, a click outside the panel, or `sill widgets
 //! edit-close`. The desktop has no context menu yet, so there is no desktop entry to it.
 

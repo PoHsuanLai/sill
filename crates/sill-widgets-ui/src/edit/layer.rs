@@ -8,8 +8,8 @@ use shell_host::{
     LayerSize, Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
-use crate::panel::{PANEL_PADDING, PANEL_RADIUS};
-use crate::surface::namespace;
+use sill_ui_kit::panel::{PANEL_PADDING, PANEL_RADIUS};
+use sill_ui_kit::surface::namespace;
 
 /// The element id of the gallery's column inside quire's `Panel`: the blur region, grown by the
 /// panel's padding to the panel's own box.
@@ -41,8 +41,8 @@ pub(super) fn layer(output: &OutputInfo) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use super::layer;
-    use crate::harness::fake::output_named as output;
     use shell_host::{Anchor, ExclusiveZone, KeyboardMode, LayerLevel, RegionSpec};
+    use sill_ui_kit::harness::fake::output_named as output;
 
     #[test]
     fn the_sheet_covers_the_output_below_the_bar_and_takes_the_keyboard_on_demand() {

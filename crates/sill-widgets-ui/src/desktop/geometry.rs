@@ -3,8 +3,8 @@
 //! and between its cells. Pure.
 
 use super::placement::GridSize;
-use crate::widgets::grid::GridSlot;
-use crate::widgets::{WidgetSize, cells};
+use sill_ui_kit::widgets::grid::GridSlot;
+use sill_ui_kit::widgets::{WidgetSize, cells};
 
 /// A widget's box on the layer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -54,9 +54,9 @@ pub fn place_box(slot: GridSlot, size: WidgetSize, metrics: GridMetrics) -> Plac
 #[cfg(test)]
 mod tests {
     use super::{GridMetrics, PlaceBox, place_box};
-    use crate::surfaces::desktop_widgets::placement::GridSize;
-    use crate::widgets::WidgetSize;
-    use crate::widgets::grid::GridSlot;
+    use crate::desktop::placement::GridSize;
+    use sill_ui_kit::widgets::WidgetSize;
+    use sill_ui_kit::widgets::grid::GridSlot;
 
     #[test]
     fn boxes_sit_on_a_grid_flush_with_the_right_edge() {

@@ -11,8 +11,8 @@ use super::drag::Hold;
 use super::geometry::{GridMetrics, PlaceBox, place_box};
 use super::glide::{Glide, Pose};
 use super::leaving::Leaving;
-use crate::widgets::grid::Placement;
-use crate::widgets::{WidgetSize, desktop_size, widget_element_id};
+use sill_ui_kit::widgets::grid::Placement;
+use sill_ui_kit::widgets::{WidgetSize, desktop_size, widget_element_id};
 
 /// What the grid last laid out: what a pointer input is resolved against.
 #[derive(Debug, Clone, PartialEq)]

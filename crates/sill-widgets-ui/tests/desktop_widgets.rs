@@ -9,10 +9,10 @@ use std::time::Duration;
 
 use ds_native::{Harness, Viewport};
 use sill_settings::{ShellFile, WidgetKind};
-use sill_ui_kit::DesktopWidgets;
 use sill_ui_kit::harness::SurfaceHarness;
 use sill_ui_kit::links::PlacementFile;
 use sill_ui_kit::widgets::grid::{GridSlot, OutputKey, Placement};
+use sill_widgets_ui::DesktopWidgets;
 
 const VIEWPORT: Viewport = Viewport {
     width: 1280,

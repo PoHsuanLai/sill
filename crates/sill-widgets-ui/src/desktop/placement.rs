@@ -5,8 +5,8 @@
 
 use sill_settings::WidgetKind;
 
-use crate::widgets::grid::{GridSlot, Placement};
-use crate::widgets::{WidgetSize, cells};
+use sill_ui_kit::widgets::grid::{GridSlot, Placement};
+use sill_ui_kit::widgets::{WidgetSize, cells};
 
 /// How many cells fit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -159,8 +159,8 @@ mod tests {
     use sill_settings::WidgetKind;
 
     use super::{GridSize, clamp, grid_size, place};
-    use crate::widgets::WidgetSize;
-    use crate::widgets::grid::{GridSlot, Placement};
+    use sill_ui_kit::widgets::WidgetSize;
+    use sill_ui_kit::widgets::grid::{GridSlot, Placement};
 
     #[test]
     fn the_grid_counts_cells_and_gaps() {

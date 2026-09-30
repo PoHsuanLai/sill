@@ -3,7 +3,7 @@
 //! window, shown while `widgets.desktop` is `On`. One surface per output
 //! ([`layer::layer`]); its input and blur regions are the widgets' frames only, so a
 //! click between them reaches the desktop below. Where each widget sits is saved state, per
-//! output (`$XDG_STATE_HOME/sill/desktop-widgets.json`, [`crate::links::PlacementFile`]), placed by
+//! output (`$XDG_STATE_HOME/sill/desktop-widgets.json`, [`sill_ui_kit::links::PlacementFile`]), placed by
 //! [`placement::place`]; a widget is moved by dragging it ([`drag`], [`arrange`], [`placed`],
 //! [`glide`]), plain pointer events on the layer, at the frame level:
 //! nothing inside a widget's own view takes part. A widget taken away plays its exit before it

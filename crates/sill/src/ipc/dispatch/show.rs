@@ -7,7 +7,8 @@ use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
 use sill_notify_ui::NotificationCenter;
 use sill_overlays::PowerMenu;
 use sill_ui_kit::links::Preselect;
-use sill_ui_kit::{Bar, EditWidgets, Launcher};
+use sill_ui_kit::{Bar, Launcher};
+use sill_widgets_ui::EditWidgets;
 
 use super::reach::Reach;
 use super::reply::unsupported;

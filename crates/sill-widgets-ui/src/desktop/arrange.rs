@@ -9,8 +9,8 @@ use sill_settings::WidgetKind;
 
 use super::geometry::GridMetrics;
 use super::placement::{Footprint, GridSize, clamp, nearest_free};
-use crate::widgets::grid::{GridSlot, Placement};
-use crate::widgets::{WidgetSize, desktop_size};
+use sill_ui_kit::widgets::grid::{GridSlot, Placement};
+use sill_ui_kit::widgets::{WidgetSize, desktop_size};
 
 /// A point on the layer in whole logical px (may lie off it: a drag goes where the pointer goes).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

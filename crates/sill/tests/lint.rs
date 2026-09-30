@@ -30,7 +30,8 @@ use sill_ui_kit::links::{
     LevelSource, LockLink, OsdKind, OsdLink, PlacementFile, PowerMenuLink, Preselect, PromptOutput,
     SwitcherAsk, SwitcherLink,
 };
-use sill_ui_kit::{Bar, DesktopWidgets, Dock, EditWidgets, Launcher, LauncherCatcher};
+use sill_ui_kit::{Bar, Dock, Launcher, LauncherCatcher};
+use sill_widgets_ui::{DesktopWidgets, EditWidgets};
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
 struct SurfaceCase {
@@ -64,12 +65,12 @@ const SURFACES: &[SurfaceCase] = &[
     },
     SurfaceCase {
         name: "desktop_widgets",
-        css: sill_ui_kit::surfaces::desktop_widgets::DESKTOP_WIDGETS_CSS,
+        css: sill_widgets_ui::desktop::DESKTOP_WIDGETS_CSS,
         states: desktop_widgets_states,
     },
     SurfaceCase {
         name: "edit_widgets",
-        css: sill_ui_kit::surfaces::edit_widgets::EDIT_WIDGETS_CSS,
+        css: sill_widgets_ui::edit::EDIT_WIDGETS_CSS,
         states: edit_widgets_states,
     },
     SurfaceCase {

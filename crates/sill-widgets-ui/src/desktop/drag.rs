@@ -8,8 +8,8 @@ use sill_settings::WidgetKind;
 
 use super::arrange::{LayerPoint, make_room, snap};
 use super::geometry::{GridMetrics, PlaceBox};
-use crate::widgets::desktop_size;
-use crate::widgets::grid::{GridSlot, Placement};
+use sill_ui_kit::widgets::desktop_size;
+use sill_ui_kit::widgets::grid::{GridSlot, Placement};
 
 /// One pointer input on the layer, in layer px.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

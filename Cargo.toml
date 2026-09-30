@@ -11,6 +11,7 @@ members = [
   "crates/sill-settings",
   "crates/sill-testkit",
   "crates/sill-ui-kit",
+  "crates/sill-widgets-ui",
   "crates/sill",
 ]
 
@@ -32,6 +33,7 @@ sill-services = { path = "crates/sill-services" }
 sill-settings = { path = "crates/sill-settings" }
 sill-testkit  = { path = "crates/sill-testkit" }
 sill-ui-kit   = { path = "crates/sill-ui-kit" }
+sill-widgets-ui = { path = "crates/sill-widgets-ui" }
 sill-notify-ui = { path = "crates/sill-notify-ui" }
 sill-overlays = { path = "crates/sill-overlays" }
 # Sibling repos, checked out next to this one.

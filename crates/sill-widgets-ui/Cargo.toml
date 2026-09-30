@@ -1,0 +1,28 @@
+[package]
+name = "sill-widgets-ui"
+description = "The widget surfaces: the desktop widget layer and Edit Widgets."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+dioxus = { workspace = true }
+ds = { workspace = true }
+ds-shell = { workspace = true }
+shell-host = { workspace = true }
+sill-settings = { workspace = true }
+sill-ui-kit = { workspace = true }
+
+[dev-dependencies]
+sill-ui-kit = { workspace = true, features = ["harness"] }
+ds-lint = { workspace = true }
+ds-native = { workspace = true }
+ds-settings = { workspace = true, features = ["dioxus"] }
+sill-model = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

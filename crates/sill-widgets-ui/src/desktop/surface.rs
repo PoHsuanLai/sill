@@ -7,8 +7,8 @@ use sill_settings::{DesktopWidgets as Desktop, ShellFile};
 
 use super::layer::layer;
 use super::view::desktop;
-use crate::links::PlacementFile;
-use crate::surface::{Place, Start, Surface};
+use sill_ui_kit::links::PlacementFile;
+use sill_ui_kit::surface::{Place, Start, Surface};
 
 /// The widgets on the desktop, above the wallpaper and under every window.
 #[derive(Debug)]

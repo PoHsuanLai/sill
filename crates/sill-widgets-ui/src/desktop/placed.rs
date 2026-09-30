@@ -16,7 +16,7 @@ use super::drag::corner;
 use super::geometry::PlaceBox;
 use super::glide::{Ask, Seen, ask, drawn, to_layer, to_point};
 pub use super::glide::{Glide, Pose};
-use crate::widgets::{CardPresence, Widget, WidgetHost};
+use sill_ui_kit::widgets::{CardPresence, Widget, WidgetHost};
 
 /// `kind` at `target` (its cell's box), in `pose`; `glide` is how it was let go when
 /// it is the widget just dropped. `Leaving`, it plays its exit where it stands and calls
@@ -96,7 +96,7 @@ fn apply(motion: SpringPointMotion, asked: Ask) {
 #[cfg(test)]
 mod tests {
     use super::{LayerPoint, place_style};
-    use crate::surfaces::desktop_widgets::geometry::PlaceBox;
+    use crate::desktop::geometry::PlaceBox;
 
     #[test]
     fn the_style_places() {

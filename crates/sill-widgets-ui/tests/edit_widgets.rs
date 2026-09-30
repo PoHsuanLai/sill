@@ -13,10 +13,10 @@ use std::time::Duration;
 use ds_native::harness::{assert_settles_to_zero_frames, settle_until};
 use ds_native::{Harness, Viewport};
 use sill_settings::{DesktopWidgets, ShellFile, WidgetKind};
-use sill_ui_kit::EditWidgets;
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{EditShown, EditWidgetsLink, WidgetsWrite, WidgetsWriter};
 use sill_ui_kit::widgets::grid::{GridSlot, OutputKey, Placement};
+use sill_widgets_ui::EditWidgets;
 use tokio::sync::watch;
 
 /// The surface, the link it follows and every write it made.

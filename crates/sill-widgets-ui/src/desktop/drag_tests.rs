@@ -1,11 +1,11 @@
 use sill_settings::WidgetKind;
 
 use super::{DragInput, DragWorld, Hold, Landing, shown, step};
-use crate::surfaces::desktop_widgets::arrange::LayerPoint;
-use crate::surfaces::desktop_widgets::geometry::{GridMetrics, PlaceBox, place_box};
-use crate::surfaces::desktop_widgets::placement::GridSize;
-use crate::widgets::grid::{GridSlot, Placement};
-use crate::widgets::{WidgetHost, size_of};
+use crate::desktop::arrange::LayerPoint;
+use crate::desktop::geometry::{GridMetrics, PlaceBox, place_box};
+use crate::desktop::placement::GridSize;
+use sill_ui_kit::widgets::grid::{GridSlot, Placement};
+use sill_ui_kit::widgets::{WidgetHost, size_of};
 
 fn metrics() -> GridMetrics {
     GridMetrics {

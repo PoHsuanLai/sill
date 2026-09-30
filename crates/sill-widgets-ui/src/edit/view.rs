@@ -25,18 +25,18 @@ use sill_settings::{DesktopWidgets, WidgetsSettings};
 use super::io::{places_to_save, use_phase};
 use super::layer::EDIT_PANEL_ID;
 use super::status::{EditCount, EditStatus, Outcome, outcome_of};
-use crate::hooks::use_section;
-use crate::links::EditWidgetsLink;
-use crate::links::WidgetsWrite;
-use crate::panel::Phase;
-use crate::root::SurfaceRoot;
-use crate::surfaces::desktop_widgets::{grid_size, place};
-use crate::widgets::grid::OutputKey;
-use crate::widgets::layout::{WidgetKeys, edited, layout_of};
-use crate::widgets::{WidgetHost, desktop_size, provide_registry, widgets_css};
+use crate::desktop::{grid_size, place};
+use sill_ui_kit::hooks::use_section;
+use sill_ui_kit::links::EditWidgetsLink;
+use sill_ui_kit::links::WidgetsWrite;
+use sill_ui_kit::panel::Phase;
+use sill_ui_kit::root::SurfaceRoot;
+use sill_ui_kit::widgets::grid::OutputKey;
+use sill_ui_kit::widgets::layout::{WidgetKeys, edited, layout_of};
+use sill_ui_kit::widgets::{WidgetHost, desktop_size, provide_registry, widgets_css};
 
 /// Edit Widgets' stylesheet (lint-clean under `Profile::Strict`, `tests/edit_widgets_lint.rs`).
-pub const EDIT_WIDGETS_CSS: &str = include_str!("../../style/edit_widgets.css");
+pub const EDIT_WIDGETS_CSS: &str = include_str!("style.css");
 
 /// The sheet's width: the gallery's list (200), a Medium preview on its plate (344 and the
 /// plate's padding), the placed column (280), and their gaps and the panel's padding.
@@ -112,7 +112,7 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
         .map(|&kind| (kind, desktop_size(kind)))
         .collect();
     let placed = grid.map_or_else(Vec::new, |g| {
-        let size = crate::surfaces::desktop_widgets::GridSize {
+        let size = crate::desktop::GridSize {
             columns: g.columns,
             rows: g.rows,
         };
@@ -237,7 +237,7 @@ mod tests {
     use sill_settings::{DesktopWidgets, WidgetKind};
 
     use super::shown_after;
-    use crate::widgets::kind_id;
+    use sill_ui_kit::widgets::kind_id;
 
     #[test]
     fn only_an_add_to_the_desktop_turns_the_desktops_widgets_on() {

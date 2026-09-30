@@ -1,10 +1,10 @@
 use sill_settings::WidgetKind;
 
 use super::{LayerPoint, make_room, snap};
-use crate::surfaces::desktop_widgets::geometry::GridMetrics;
-use crate::surfaces::desktop_widgets::placement::GridSize;
-use crate::widgets::WidgetSize;
-use crate::widgets::grid::{GridSlot, Placement};
+use crate::desktop::geometry::GridMetrics;
+use crate::desktop::placement::GridSize;
+use sill_ui_kit::widgets::WidgetSize;
+use sill_ui_kit::widgets::grid::{GridSlot, Placement};
 
 /// 1000 px wide, five 164 px cells and 16 px gaps: column `c` starts at 100 + 180 c, row `r` at
 /// 16 + 180 r (`geometry`'s own table).

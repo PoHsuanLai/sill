@@ -13,7 +13,7 @@ use shell_host::{
     Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
-use crate::surface::namespace;
+use sill_ui_kit::surface::namespace;
 
 /// The desktop widgets on `output`.
 pub(super) fn layer(output: &OutputInfo) -> LayerConfig {
@@ -37,11 +37,11 @@ pub(super) fn layer(output: &OutputInfo) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use super::layer;
-    use crate::harness::fake::output_named as output;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, OutputTarget,
         RegionSpec,
     };
+    use sill_ui_kit::harness::fake::output_named as output;
 
     #[test]
     fn the_layer_is_under_windows_over_the_whole_output_and_takes_nothing_yet() {
