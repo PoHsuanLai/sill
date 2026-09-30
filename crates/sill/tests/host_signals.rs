@@ -8,11 +8,12 @@ use std::time::Duration;
 
 use ds::{PixelToken, Scale, ShortcutKey};
 use ds_native::Viewport;
+use sill_dock::Dock;
 use sill_overlays::{IdleDim, Wallpaper};
+use sill_ui_kit::Bar;
 use sill_ui_kit::harness::{SurfaceHarness, SurfaceSetup};
 use sill_ui_kit::links::ControlCenterLink;
 use sill_ui_kit::surface::Surface;
-use sill_ui_kit::{Bar, Dock};
 
 const VIEW: Viewport = Viewport {
     width: 480,

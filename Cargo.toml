@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
+  "crates/sill-dock",
   "crates/sill-ipc",
   "crates/sill-launcher",
   "crates/sill-model",
@@ -33,6 +34,7 @@ sill-services = { path = "crates/sill-services" }
 sill-settings = { path = "crates/sill-settings" }
 sill-testkit  = { path = "crates/sill-testkit" }
 sill-ui-kit   = { path = "crates/sill-ui-kit" }
+sill-dock = { path = "crates/sill-dock" }
 sill-widgets-ui = { path = "crates/sill-widgets-ui" }
 sill-notify-ui = { path = "crates/sill-notify-ui" }
 sill-overlays = { path = "crates/sill-overlays" }

@@ -5350,6 +5350,7 @@ dependencies = [
  "keyboard-types 0.7.0",
  "latchkey",
  "shell-host",
+ "sill-dock",
  "sill-ipc",
  "sill-launcher",
  "sill-model",
@@ -5362,6 +5363,25 @@ dependencies = [
  "sill-ui-kit",
  "sill-widgets-ui",
  "thiserror 2.0.20",
+ "tokio",
+]
+
+[[package]]
+name = "sill-dock"
+version = "0.1.0"
+dependencies = [
+ "dioxus",
+ "ds",
+ "ds-lint",
+ "ds-native",
+ "ds-settings",
+ "ds-shell",
+ "shell-host",
+ "sill-launcher",
+ "sill-model",
+ "sill-services",
+ "sill-settings",
+ "sill-ui-kit",
  "tokio",
 ]
 

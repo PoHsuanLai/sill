@@ -6,6 +6,7 @@
 use std::time::Duration;
 
 use ds_lint::{LintConfig, Profile, markup, stylesheet};
+use sill_dock::Dock;
 use sill_launcher::WindowKey;
 use sill_model::auth::UserName;
 use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, WindowState};
@@ -30,7 +31,7 @@ use sill_ui_kit::links::{
     LevelSource, LockLink, OsdKind, OsdLink, PlacementFile, PowerMenuLink, Preselect, PromptOutput,
     SwitcherAsk, SwitcherLink,
 };
-use sill_ui_kit::{Bar, Dock, Launcher, LauncherCatcher};
+use sill_ui_kit::{Bar, Launcher, LauncherCatcher};
 use sill_widgets_ui::{DesktopWidgets, EditWidgets};
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
@@ -50,7 +51,7 @@ const SURFACES: &[SurfaceCase] = &[
     },
     SurfaceCase {
         name: "dock",
-        css: sill_ui_kit::surfaces::dock::DOCK_CSS,
+        css: sill_dock::dock::DOCK_CSS,
         states: dock_states,
     },
     SurfaceCase {
