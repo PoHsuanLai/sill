@@ -3,6 +3,7 @@
 //! against quire's classes and its own stylesheet. A surface's row names it; a failure names the
 //! row and the state.
 
+use ds_harness::{Driver, Input, Query};
 use std::time::Duration;
 
 use ds_lint::{LintConfig, Profile, markup, stylesheet};
@@ -415,7 +416,7 @@ fn banners_states() -> Vec<(&'static str, String)> {
         .harness
         .centre(".ds-notification-plate")
         .expect("a card"); // test-only
-    column.harness.pointer_move(plate);
+    column.harness.send(Input::pointer_move(plate));
     column.harness.advance(Duration::from_millis(60));
     let hovered = column.harness.html();
     assert!(hovered.contains("data-hover=\"on\""), "{hovered}");
@@ -484,7 +485,7 @@ fn screenshot_thumb_states() -> Vec<(&'static str, String)> {
     });
     thumb.harness.advance(Duration::from_millis(1_300));
     let card = thumb.harness.centre(".ds-shot-picture").expect("a card"); // test-only
-    thumb.harness.pointer_move(card);
+    thumb.harness.send(Input::pointer_move(card));
     thumb.harness.advance(Duration::from_millis(300));
     let shown = thumb.harness.html();
     assert!(shown.contains("ds-shot-image"), "{shown}");

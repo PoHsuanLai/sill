@@ -1893,6 +1893,7 @@ dependencies = [
  "keyboard-types 0.7.0",
  "peniko",
  "rustc-hash 2.1.3",
+ "thiserror 2.0.20",
  "vello_common 0.1.0",
  "vello_hybrid",
  "wgpu",

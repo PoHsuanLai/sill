@@ -8,6 +8,7 @@ use super::{
     HEIGHT, WIDTH, advance, commands, commands_until, fake, opened, settle, start, two_apps, until,
 };
 use ds::{Anim, MotionLevel, settle as settle_time};
+use ds_harness::{Driver, Input, Query};
 use sill_model::notifications::{
     AppKey, Clear, History, NameHolder, NameOwner, Notifications, NotificationsCommand, ServerMode,
     ServerStatus,
@@ -145,13 +146,13 @@ fn n_more_opens_the_group_and_show_less_closes_it() {
     let mut running = opened(two_apps());
     let toggle = format!(".sill-nc-item[*|data-group=mail] {TOGGLE}");
     let more = running.harness.centre(&toggle).expect("N more");
-    running.harness.click(more);
+    running.harness.send(Input::click(more));
     until(&mut running, |h| h.count(".sill-nc-row") == 4);
     let h = &running.harness;
     assert_eq!(h.count(".sill-nc-row"), 4, "Mail's three and Chat's one");
     assert_eq!(h.text_of(&toggle).as_deref(), Some("Show less"));
     let less = h.centre(&toggle).expect("Show less");
-    running.harness.click(less);
+    running.harness.send(Input::click(less));
     until(&mut running, |h| h.count(".sill-nc-row") == 2);
     assert_eq!(running.harness.count(".sill-nc-row"), 2);
     assert!(
@@ -167,13 +168,13 @@ fn clear_and_clear_all_go_to_the_service() {
         .harness
         .centre(&format!(".sill-nc-item[*|data-group=chat] {CLEAR}"))
         .expect("Chat's Clear");
-    running.harness.click(clear);
+    running.harness.send(Input::click(clear));
     let mut sent = commands_until(&mut running, 1);
     let all = running
         .harness
         .centre(".sill-nc-head .ds-button")
         .expect("Clear All");
-    running.harness.click(all);
+    running.harness.send(Input::click(all));
     sent.extend(commands_until(&mut running, 1));
     assert_eq!(
         sent,
@@ -191,14 +192,14 @@ fn a_press_on_a_stack_opens_it_and_a_lone_cards_close_dismisses_it() {
         .harness
         .centre(".sill-nc-item[*|data-group=mail] .ds-notification-plate")
         .expect("Mail's stack");
-    running.harness.click(stack);
+    running.harness.send(Input::click(stack));
     until(&mut running, |h| h.count(".sill-nc-row") == 4);
     assert_eq!(running.harness.count(".sill-nc-row"), 4, "the stack opened");
     let chat = running
         .harness
         .centre(".sill-nc-item[*|data-group=chat] .ds-notification-plate")
         .expect("Chat's card");
-    running.harness.pointer_move(chat);
+    running.harness.send(Input::pointer_move(chat));
     until(&mut running, |h| {
         h.attr(
             ".sill-nc-item[*|data-group=chat] .ds-notification",
@@ -212,7 +213,7 @@ fn a_press_on_a_stack_opens_it_and_a_lone_cards_close_dismisses_it() {
         .harness
         .centre(".sill-nc-item[*|data-group=chat] .ds-notification-close")
         .expect("its close button");
-    running.harness.click(close);
+    running.harness.send(Input::click(close));
     assert_eq!(
         commands_until(&mut running, 1),
         vec![NotificationsCommand::Dismiss(
@@ -275,10 +276,10 @@ fn the_footer_names_the_daemon_holding_the_name() {
 #[test]
 fn a_press_outside_the_panel_closes_it_after_quires_exit() {
     let mut running = opened(two_apps());
-    running.harness.click(ds::Point {
+    running.harness.send(Input::click(ds::Point {
         x: ds::Px(100.0),
         y: ds::Px(400.0),
-    });
+    }));
     until(&mut running, |h| {
         h.attr(".ds-side-panel", "data-presence").as_deref() != Some("present")
     });
@@ -322,7 +323,7 @@ fn opened_again_while_leaving_it_stays() {
 fn a_press_inside_the_panel_keeps_it_open() {
     let mut running = opened(two_apps());
     let title = running.harness.centre(".sill-nc-title").expect("the title");
-    running.harness.click(title);
+    running.harness.send(Input::click(title));
     // Nothing should change, so nothing to wait on: a margin past the panel's exit time.
     advance(&mut running, 400);
     assert_eq!(running.link.now(), CenterShown::Open(fake::output().id));

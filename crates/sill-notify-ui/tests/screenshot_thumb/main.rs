@@ -5,6 +5,7 @@
 //! nowhere yet and it stays; a newer shot replaces it; `screenshot.thumbnail = "hide"` and
 //! another output draw nothing; the keyboard ([`keys`]) is asked for and never taken.
 
+use ds_harness::{Driver, Input, Query};
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -136,14 +137,16 @@ fn moved(from: Point, dx: f32, dy: f32) -> Point {
 
 /// A drag by (`dx`, `dy`) from `from` in four moves 30 ms apart.
 fn drag(running: &mut Running, from: Point, dx: f32, dy: f32) {
-    running.harness.pointer_down(from);
+    running.harness.send(Input::pointer_down(from));
     for n in 1..=4u8 {
         running.harness.advance(Duration::from_millis(30));
         let k = f32::from(n) / 4.0;
-        running.harness.pointer_move(moved(from, dx * k, dy * k));
+        running
+            .harness
+            .send(Input::pointer_move(moved(from, dx * k, dy * k)));
     }
     running.harness.advance(Duration::from_millis(30));
-    running.harness.pointer_up(moved(from, dx, dy));
+    running.harness.send(Input::pointer_up(moved(from, dx, dy)));
 }
 
 /// The card is gone from the stack (the exit has played) within `limit`.
@@ -193,7 +196,7 @@ fn the_pointer_pauses_the_hold_and_leaving_gives_the_rest() {
     let mut running = start(file());
     one_up(&mut running);
     let card = card(&running);
-    running.harness.pointer_move(card);
+    running.harness.send(Input::pointer_move(card));
     running.harness.advance(Duration::from_millis(40));
     assert_eq!(
         running.harness.attr(".ds-shot", "data-hover").as_deref(),
@@ -204,10 +207,10 @@ fn the_pointer_pauses_the_hold_and_leaving_gives_the_rest() {
         .advance(Duration::from_millis(HOLD_MS + 500));
     assert_eq!((cards(&running), leaving(&running)), (1, 0), "paused");
     assert_eq!(commands(&mut running), Vec::new());
-    running.harness.pointer_move(Point {
+    running.harness.send(Input::pointer_move(Point {
         x: Px(2.0),
         y: Px(2.0),
-    });
+    }));
     let rest = u64::from(ShellFile::default().notifications.hover_min_remaining_ms.0);
     running.harness.advance(Duration::from_millis(rest - 300));
     assert_eq!(leaving(&running), 0, "the rest after a hover");
@@ -224,7 +227,7 @@ fn a_click_opens_it() {
     let mut running = start(file());
     one_up(&mut running);
     let card = card(&running);
-    running.harness.click(card);
+    running.harness.send(Input::click(card));
     running.harness.advance(Duration::from_millis(40));
     assert_eq!(commands(&mut running), leave(1, ShotLeave::Opened));
     assert_eq!(leaving(&running), 1);
@@ -249,15 +252,15 @@ fn delete_trashes_it() {
     let mut running = start(file());
     one_up(&mut running);
     let card = card(&running);
-    running.harness.pointer_move(card);
+    running.harness.send(Input::pointer_move(card));
     running.harness.advance(Duration::from_millis(300));
     let button = running
         .harness
         .centre(".ds-shot-actions .ds-button")
         .expect("the Delete button"); // test-only
-    running.harness.pointer_move(button);
+    running.harness.send(Input::pointer_move(button));
     running.harness.advance(Duration::from_millis(40));
-    running.harness.click(button);
+    running.harness.send(Input::click(button));
     running.harness.advance(Duration::from_millis(40));
     assert_eq!(commands(&mut running), leave(1, ShotLeave::Trashed));
 }
@@ -267,7 +270,7 @@ fn a_drag_out_with_no_host_is_refused_the_card_stays_and_the_hold_resumes() {
     let mut running = start(file());
     one_up(&mut running);
     let card = card(&running);
-    running.harness.pointer_move(card);
+    running.harness.send(Input::pointer_move(card));
     drag(&mut running, card, -100.0, -60.0);
     running.harness.advance(Duration::from_millis(400));
     assert_eq!(

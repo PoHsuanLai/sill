@@ -5,6 +5,7 @@
 
 mod launcher_harness;
 
+use ds_harness::{Driver, Input, Query};
 use std::time::Duration;
 
 use ds::ShortcutKey;
@@ -73,7 +74,7 @@ fn m9_lists_top_hit_then_documents_capped_with_show_more() {
 fn space_while_browsing_shows_the_pdf_and_then_the_image() {
     let mut open = open("m9");
     // The harness's field opens with its caret at the start; a person's ends at the query.
-    open.harness.key(ShortcutKey::End);
+    open.harness.send(Input::key(ShortcutKey::End));
     press(&mut open, Press::Space);
     assert_eq!(rows(&open).preview, None, "typing: Space is a space");
     assert_eq!(rows(&open).query, "m9 ");
@@ -101,7 +102,7 @@ fn space_while_browsing_shows_the_pdf_and_then_the_image() {
 fn command_y_while_typing_then_right_enter_the_pane_and_escape_steps_out() {
     let mut open = open("m9");
     open.harness
-        .chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y'));
+        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y')));
     open.harness.advance(Duration::from_millis(40));
     assert_eq!(
         rows(&open).preview,
@@ -153,19 +154,19 @@ fn command_y_while_typing_then_right_enter_the_pane_and_escape_steps_out() {
 fn a_real_right_enters_the_pane_only_from_the_fields_end() {
     let mut open = open("m9");
     open.harness
-        .chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y'));
+        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y')));
     open.harness.advance(Duration::from_millis(40));
     // The field opens with its caret at the end (as Spotlight); Home puts it at the
     // start, where → moves the caret rather than entering the pane.
-    open.harness.key(ShortcutKey::Home);
-    open.harness.key(ShortcutKey::Right);
+    open.harness.send(Input::key(ShortcutKey::Home));
+    open.harness.send(Input::key(ShortcutKey::Right));
     open.harness.advance(Duration::from_millis(40));
     assert!(
         !open.harness.html().contains("data-focused=\"true\""),
         "the caret moved"
     );
-    open.harness.key(ShortcutKey::End);
-    open.harness.key(ShortcutKey::Right);
+    open.harness.send(Input::key(ShortcutKey::End));
+    open.harness.send(Input::key(ShortcutKey::Right));
     open.harness.advance(Duration::from_millis(40));
     assert!(
         open.harness.html().contains("data-focused=\"true\""),
@@ -177,10 +178,10 @@ fn a_real_right_enters_the_pane_only_from_the_fields_end() {
 #[test]
 fn a_real_space_after_a_real_down_is_quick_look() {
     let mut open = open("m9");
-    open.harness.key(ShortcutKey::Down);
-    open.harness.key(ShortcutKey::Up);
+    open.harness.send(Input::key(ShortcutKey::Down));
+    open.harness.send(Input::key(ShortcutKey::Up));
     open.harness.advance(Duration::from_millis(40));
-    open.harness.key(ShortcutKey::Space);
+    open.harness.send(Input::key(ShortcutKey::Space));
     open.harness.advance(Duration::from_millis(40));
     let shown = rows(&open);
     assert_eq!(
@@ -199,14 +200,14 @@ fn a_real_space_after_a_real_down_is_quick_look() {
 fn a_real_escape_in_the_field_hides_the_pane_before_it_closes() {
     let mut open = open("m9");
     open.harness
-        .chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y'));
+        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y')));
     open.harness.advance(Duration::from_millis(40));
     assert_eq!(rows(&open).preview, Some(PreviewKind::Pdf));
-    open.harness.key(ShortcutKey::Escape);
+    open.harness.send(Input::key(ShortcutKey::Escape));
     open.harness.advance(Duration::from_millis(40));
     assert!(is_open(&open.link), "the first Escape was the pane's");
     assert_eq!(rows(&open).preview, None);
-    open.harness.key(ShortcutKey::Escape);
+    open.harness.send(Input::key(ShortcutKey::Escape));
     let link = open.link.clone();
     settle(&mut open.harness, |_| !is_open(&link));
     assert!(!is_open(&open.link));
@@ -216,7 +217,7 @@ fn a_real_escape_in_the_field_hides_the_pane_before_it_closes() {
 fn command_r_reveals_the_selected_file() {
     let mut open = open("m9");
     open.harness
-        .chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('r'));
+        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('r')));
     let link = open.link.clone();
     settle(&mut open.harness, |_| !is_open(&link));
     match open.feeds.bar.launch.try_recv() {
@@ -271,36 +272,37 @@ fn real_left_and_right_move_the_emoji_grid_and_command_y_previews() {
     settle(&mut open.harness, |h| h.count(".ds-emoji-cell") == 3);
     assert_eq!(headings(&open), ["Emoji"]);
     assert_eq!(rows(&open).selected, 0);
-    open.harness.key(ShortcutKey::Right);
+    open.harness.send(Input::key(ShortcutKey::Right));
     open.harness.advance(Duration::from_millis(40));
     let shown = rows(&open);
     assert_eq!(shown.selected, 1, "→ moved to the next cell");
     assert_eq!(shown.preview, None, "→ on a cell is not the preview's");
-    open.harness.key(ShortcutKey::Right);
-    open.harness.key(ShortcutKey::Left);
+    open.harness.send(Input::key(ShortcutKey::Right));
+    open.harness.send(Input::key(ShortcutKey::Left));
     open.harness.advance(Duration::from_millis(40));
     assert_eq!(rows(&open).selected, 1, "→ then ← came back");
-    open.harness.key(ShortcutKey::Space);
+    open.harness.send(Input::key(ShortcutKey::Space));
     open.harness.advance(Duration::from_millis(40));
     assert_eq!(
         rows(&open).preview,
         Some(PreviewKind::Emoji),
         "browsing the grid: Space is Quick Look"
     );
-    open.harness.key(ShortcutKey::Right);
+    open.harness.send(Input::key(ShortcutKey::Right));
     open.harness.advance(Duration::from_millis(40));
     let shown = rows(&open);
     assert_eq!(shown.selected, 2, "→ still moves with the pane shown");
     assert_eq!(shown.preview, Some(PreviewKind::Emoji), "the pane follows");
     open.harness
-        .chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y'));
+        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y')));
     open.harness.advance(Duration::from_millis(40));
     assert_eq!(rows(&open).preview, None, "⌘Y hides it");
     open.harness
-        .chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y'));
+        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y')));
     open.harness.advance(Duration::from_millis(40));
     assert_eq!(rows(&open).preview, Some(PreviewKind::Emoji), "⌘Y shows it");
-    open.harness.chord(&[ShortcutKey::Ctrl], ShortcutKey::Right);
+    open.harness
+        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Right));
     open.harness.advance(Duration::from_millis(40));
     assert!(
         open.harness.html().contains("data-focused=\"true\""),

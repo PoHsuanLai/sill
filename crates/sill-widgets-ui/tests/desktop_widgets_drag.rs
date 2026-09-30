@@ -13,7 +13,7 @@ use std::time::Duration;
 
 use ds::{Point, Px};
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_harness::{Harness, Viewport};
+use ds_harness::{Driver, Harness, Input, Query, Viewport};
 use sill_model::now_playing::{MediaCommand, MediaVerb};
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
@@ -110,14 +110,14 @@ const CALENDAR: (f32, f32) = (1182.0, 98.0);
 /// Press the Calendar and move the pointer to `to` in a few steps, without releasing.
 fn pick_up(h: &mut Harness, to: (f32, f32)) {
     let from = point(CALENDAR.0, CALENDAR.1);
-    h.pointer_move(from);
-    h.pointer_down(from);
+    h.send(Input::pointer_move(from));
+    h.send(Input::pointer_down(from));
     for step in 1..=4 {
         let part = step as f32 / 4.0;
-        h.pointer_move(point(
+        h.send(Input::pointer_move(point(
             CALENDAR.0 + (to.0 - CALENDAR.0) * part,
             CALENDAR.1 + (to.1 - CALENDAR.1) * part,
-        ));
+        )));
         h.advance(Duration::from_millis(16));
     }
 }
@@ -147,7 +147,7 @@ fn a_press_that_travels_lifts_the_widget_under_the_pointer() {
     );
     // Held still, the lift settles: nothing moves while it is held.
     assert_settles_to_zero_frames(h);
-    h.pointer_up(point(1100.0, 98.0));
+    h.send(Input::pointer_up(point(1100.0, 98.0)));
     settle_until(h, |h| h.count(".ds-widget[*|data-lift=lifted]") == 0);
     assert_eq!(h.count(".sill-dw-shield"), 0);
     assert_eq!(guide(h), None, "no guide at rest");
@@ -162,7 +162,7 @@ fn a_drop_snaps_into_the_grid_and_is_saved_for_this_output() {
     pick_up(h, (560.0, 300.0));
     assert_eq!(box_of(h, "widget-calendar"), (478, 218, 164, 164));
     assert_eq!(guide(h), Some((560, 196, 164, 164)));
-    h.pointer_up(point(560.0, 300.0));
+    h.send(Input::pointer_up(point(560.0, 300.0)));
     h.advance(Duration::from_millis(16));
     assert_ne!(
         box_of(h, "widget-calendar"),
@@ -198,12 +198,12 @@ fn the_widget_it_is_over_makes_room_and_goes_back_after() {
     settle_until(h, |h| box_of(h, "widget-battery") == (1100, 16, 164, 164));
     assert_settles_to_zero_frames(h);
     // Moved on to an empty cell: the Battery goes back to its own place.
-    h.pointer_move(point(500.0, 600.0));
+    h.send(Input::pointer_move(point(500.0, 600.0)));
     settle_until(h, |h| box_of(h, "widget-battery") == (1100, 196, 164, 164));
     assert_settles_to_zero_frames(h);
     // Back over it and dropped there: the swap is kept.
-    h.pointer_move(point(1182.0, 278.0));
-    h.pointer_up(point(1182.0, 278.0));
+    h.send(Input::pointer_move(point(1182.0, 278.0)));
+    h.send(Input::pointer_up(point(1182.0, 278.0)));
     settle_until(h, |h| {
         box_of(h, "widget-calendar") == (1100, 196, 164, 164)
             && box_of(h, "widget-battery") == (1100, 16, 164, 164)
@@ -247,7 +247,7 @@ fn a_click_on_a_control_still_works_and_a_drag_from_it_does_not_press_it() {
         .harness
         .centre("#widget-now-playing .sill-cc-media-buttons .ds-button:last-child")
         .expect("the Next button is laid out");
-    run.harness.click(next);
+    run.harness.send(Input::click(next));
     settle_until(&mut run.harness, |h| h.count(".sill-dw-shield") == 0);
     run.harness.advance(Duration::from_millis(50));
     assert_eq!(
@@ -265,19 +265,19 @@ fn a_click_on_a_control_still_works_and_a_drag_from_it_does_not_press_it() {
     // A press on the same button that travels drags the widget instead; its release lands on
     // the shield, never on the button that moved along under it.
     let h = &mut run.harness;
-    h.pointer_move(next);
-    h.pointer_down(next);
+    h.send(Input::pointer_move(next));
+    h.send(Input::pointer_down(next));
     let away = point(next.x.0 - 400.0, next.y.0 + 200.0);
     for step in 1..=4 {
         let part = step as f32 / 4.0;
-        h.pointer_move(point(
+        h.send(Input::pointer_move(point(
             next.x.0 + (away.x.0 - next.x.0) * part,
             next.y.0 + (away.y.0 - next.y.0) * part,
-        ));
+        )));
         h.advance(Duration::from_millis(16));
     }
     assert_eq!(lifted(h, "widget-now-playing"), 1);
-    h.pointer_up(away);
+    h.send(Input::pointer_up(away));
     settle_until(h, |h| h.count(".ds-widget[*|data-lift=lifted]") == 0);
     assert_settles_to_zero_frames(h);
     assert_eq!(

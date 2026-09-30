@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Alpha, Appearance, Availability, MaterialStack, MenuItem, ShellMetrics};
-use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
 use ds_settings::UserStyle;
 use sill_settings::ShellFile;
 
@@ -95,8 +95,7 @@ fn the_frame_is_the_card_and_its_room_and_a_press_picks_an_item() {
         height: HEIGHT,
         scale_percent: 100,
     };
-    let mut harness =
-        Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
+    let mut harness = Harness::new(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
     harness.advance(Duration::from_millis(300));
     let frame = harness
         .rect(".sill-popup-frame")
@@ -120,7 +119,7 @@ fn the_frame_is_the_card_and_its_room_and_a_press_picks_an_item() {
     let second = harness
         .centre(".ds-menu-item:nth-child(2)")
         .expect("the second item is laid out"); // test-only
-    harness.click(second);
+    harness.send(Input::click(second));
     harness.advance(Duration::from_millis(300));
     assert_eq!(PICKS.with(|p| p.borrow().clone()), vec![2]);
 }
@@ -134,7 +133,7 @@ fn a_popup_names_its_surface_and_draws_the_person_style_its_opener_handed_over()
     };
     let start = |app: fn() -> Element| {
         let mut harness =
-            Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
+            Harness::new(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
         harness.advance(Duration::from_millis(100));
         harness
     };

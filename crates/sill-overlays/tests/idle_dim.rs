@@ -7,8 +7,8 @@
 
 use std::time::Duration;
 
-use ds_harness::Viewport;
 use ds_harness::harness::assert_settles_to_zero_frames;
+use ds_harness::{Driver, Query, Viewport};
 use ds_settings::Environment;
 use sill_model::idle::{DimLevel, DimShown, Idle, IdleMode, IdlePhase};
 use sill_overlays::IdleDim;

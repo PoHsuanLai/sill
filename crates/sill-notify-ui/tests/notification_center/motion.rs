@@ -5,8 +5,8 @@
 //! while the center is open enters. Every one of them ends at rest, asking for no frame.
 
 use super::{Running, advance, commands_until, fake, note, settle, start, two_apps, until};
-use ds_harness::Harness;
 use ds_harness::harness::assert_settles_to_zero_frames;
+use ds_harness::{Driver, FocusState, Harness, Input, Query};
 use sill_model::notifications::{AppGroup, AppKey, Clear, History, NotificationsCommand};
 use sill_settings::ShellFile;
 
@@ -76,7 +76,7 @@ fn opening_a_group_enters_the_cards_it_adds_and_show_less_removes_and_closes_the
     let mut running = at_rest();
     let toggle = in_head("mail", TOGGLE);
     let more = running.harness.centre(&toggle).expect("N more");
-    running.harness.click(more);
+    running.harness.send(Input::click(more));
     until(&mut running, |h| rows(h) == 6);
     let h = &running.harness;
     assert_eq!(rows_in(h, "entering"), 2, "Mail's two older cards enter");
@@ -84,7 +84,7 @@ fn opening_a_group_enters_the_cards_it_adds_and_show_less_removes_and_closes_the
     assert_eq!(rows_in(&running.harness, "present"), 6);
     // "Show less": the two cards it hides fold as one batch; Chat's rows then heal up.
     let less = running.harness.centre(&toggle).expect("Show less");
-    running.harness.click(less);
+    running.harness.send(Input::click(less));
     until(&mut running, |h| rows_in(h, "leaving") == 2);
     assert_eq!(
         running
@@ -121,7 +121,7 @@ fn the_rows_keep_one_gap_inside_themselves() {
         .harness
         .centre(&in_head("mail", TOGGLE))
         .expect("N more");
-    running.harness.click(more);
+    running.harness.send(Input::click(more));
     until(&mut running, |h| rows(h) == 6);
     assert_settles_to_zero_frames(&mut running.harness);
     let h = &running.harness;
@@ -148,7 +148,7 @@ fn clear_fades_the_group_and_the_groups_below_close_the_gap() {
         .harness
         .centre(&in_head("mail", CLEAR))
         .expect("Mail's Clear");
-    running.harness.click(clear);
+    running.harness.send(Input::click(clear));
     assert_eq!(
         commands_until(&mut running, 1),
         vec![NotificationsCommand::ClearHistory(Clear::App(AppKey(
@@ -184,7 +184,7 @@ fn clear_all_fades_every_row_together_then_says_the_list_is_empty() {
         .harness
         .centre(".sill-nc-head .ds-button")
         .expect("Clear All");
-    running.harness.click(all);
+    running.harness.send(Input::click(all));
     assert_eq!(
         commands_until(&mut running, 1),
         vec![NotificationsCommand::ClearHistory(Clear::All)]
@@ -204,7 +204,10 @@ fn clear_all_fades_every_row_together_then_says_the_list_is_empty() {
     assert_eq!(rows(&running.harness), 0);
     assert_settles_to_zero_frames(&mut running.harness);
     // Clear All went with the history; the column has the keyboard again.
-    assert!(running.harness.is_focused(".sill-nc-column"));
+    assert_eq!(
+        running.harness.focus_of(".sill-nc-column"),
+        FocusState::Focused
+    );
 }
 
 #[test]
@@ -214,7 +217,7 @@ fn a_clear_gives_the_column_the_keyboard_back() {
         .harness
         .centre(&in_head("chat", CLEAR))
         .expect("Chat's Clear");
-    running.harness.click(clear);
+    running.harness.send(Input::click(clear));
     let mut left = two_apps();
     left.groups.truncate(1);
     running
@@ -223,8 +226,9 @@ fn a_clear_gives_the_column_the_keyboard_back() {
         .send_modify(|n| n.history = left);
     until(&mut running, |h| rows(h) == 2);
     assert_settles_to_zero_frames(&mut running.harness);
-    assert!(
-        running.harness.is_focused(".sill-nc-column"),
+    assert_eq!(
+        running.harness.focus_of(".sill-nc-column"),
+        FocusState::Focused,
         "Escape reaches the column, not the gone button"
     );
 }

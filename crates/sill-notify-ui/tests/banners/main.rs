@@ -7,6 +7,7 @@
 //! the service dropped leaves silently; another output's column draws nothing; and the keyboard
 //! ([`keys`]) is asked for and never taken.
 
+use ds_harness::{Driver, Input, Query};
 use std::time::Duration;
 
 use ds::Point;
@@ -161,15 +162,15 @@ fn right(from: Point, dx: f32) -> Point {
 
 /// A drag of `dx` from `from` in four moves, `step` apart.
 fn drag(running: &mut Running, from: Point, dx: f32, step: Duration) {
-    running.harness.pointer_down(from);
+    running.harness.send(Input::pointer_down(from));
     for n in 1..=4u8 {
         running.harness.advance(step);
         running
             .harness
-            .pointer_move(right(from, dx * f32::from(n) / 4.0));
+            .send(Input::pointer_move(right(from, dx * f32::from(n) / 4.0)));
     }
     running.harness.advance(step);
-    running.harness.pointer_up(right(from, dx));
+    running.harness.send(Input::pointer_up(right(from, dx)));
 }
 
 #[test]
@@ -228,7 +229,7 @@ fn a_banner_slides_in_holds_and_times_out() {
 fn hovering_opens_the_card_and_pauses_the_hold() {
     let mut running = one(&[("reply", "Reply")]);
     let plate = plate(&running);
-    running.harness.pointer_move(plate);
+    running.harness.send(Input::pointer_move(plate));
     running.harness.advance(Duration::from_millis(60));
     assert_eq!(hover(&running).as_deref(), Some("on"));
     assert_eq!(
@@ -246,10 +247,10 @@ fn hovering_opens_the_card_and_pauses_the_hold() {
         .advance(Duration::from_millis(HOLD_MS + 500));
     assert_eq!(leaving(&running), 0, "paused while hovered");
     assert!(commands(&mut running).is_empty());
-    running.harness.pointer_move(Point {
+    running.harness.send(Input::pointer_move(Point {
         x: ds::Px(2.0),
         y: ds::Px(690.0),
-    });
+    }));
     running.harness.advance(Duration::from_millis(60));
     assert_eq!(hover(&running).as_deref(), Some("off"));
     assert_eq!(
@@ -264,7 +265,7 @@ fn hovering_opens_the_card_and_pauses_the_hold() {
 fn a_press_on_the_card_invokes_default() {
     let mut running = one(&[("default", "Open")]);
     let plate = plate(&running);
-    running.harness.click(plate);
+    running.harness.send(Input::click(plate));
     running.harness.advance(Duration::from_millis(100));
     assert_eq!(
         commands(&mut running),
@@ -281,13 +282,13 @@ fn a_press_on_the_card_invokes_default() {
 fn the_close_button_dismisses() {
     let mut running = one(&[]);
     let plate = plate(&running);
-    running.harness.pointer_move(plate);
+    running.harness.send(Input::pointer_move(plate));
     running.harness.advance(Duration::from_millis(300));
     let close = running
         .harness
         .centre(".ds-notification-close")
         .expect("a close button"); // test-only
-    running.harness.click(close);
+    running.harness.send(Input::click(close));
     running.harness.advance(Duration::from_millis(60));
     assert_eq!(
         commands(&mut running),
@@ -332,7 +333,7 @@ fn a_link_in_the_body_keeps_its_press() {
         Some("italic")
     );
     let link = h.centre(".ds-run-link").expect("the link"); // test-only
-    running.harness.click(link);
+    running.harness.send(Input::click(link));
     running.harness.advance(Duration::from_millis(60));
     assert!(commands(&mut running).is_empty(), "the card is not opened");
     assert_eq!(leaving(&running), 0);

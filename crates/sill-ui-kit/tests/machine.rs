@@ -6,7 +6,7 @@ use std::cell::{Cell, RefCell};
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
 use sill_model::units::Stamp;
 use sill_ui_kit::machine::{Elapsed, Machine, use_machine};
 
@@ -107,15 +107,14 @@ fn running(hold_ms: u64) -> Harness {
         height: 40,
         scale_percent: 100,
     };
-    let mut harness =
-        Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
+    let mut harness = Harness::new(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
     harness.advance(Duration::from_millis(20));
     harness
 }
 
 fn press(harness: &mut Harness) {
     let at = harness.centre("#press").expect("the press target");
-    harness.click(at);
+    harness.send(Input::click(at));
 }
 
 fn word(harness: &Harness) -> Option<String> {

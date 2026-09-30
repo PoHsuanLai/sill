@@ -4,6 +4,7 @@
 
 mod launcher_harness;
 
+use ds_harness::{Driver, Input, Query};
 use std::time::Duration;
 
 use ds::ShortcutKey;
@@ -82,7 +83,7 @@ fn only_the_selected_row_shows_its_chord() {
         .text_of(".ds-key-equivalent")
         .expect("the top hit's chord");
     assert!(!top.is_empty(), "the top hit's chord");
-    open.harness.key(ShortcutKey::Down);
+    open.harness.send(Input::key(ShortcutKey::Down));
     open.harness.advance(Duration::from_millis(40));
     let h = &open.harness;
     assert_eq!(selected_title(h).as_deref(), Some("Files"));

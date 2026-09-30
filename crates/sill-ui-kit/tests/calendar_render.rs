@@ -13,7 +13,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Appearance, Ds, Material};
-use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
 use ds_lint::{LintConfig, Profile, markup};
 use jiff::civil::Date;
 use jiff::tz::TimeZone;
@@ -90,7 +90,7 @@ fn start(kind: Kind, file: ShellFile, agenda: Agenda) -> Running {
             kind,
         });
     });
-    let mut harness = Harness::with_config(
+    let mut harness = Harness::new(
         app,
         HarnessConfig::new(Viewport {
             width: 380,
@@ -353,7 +353,7 @@ fn on_the_desktop_the_calendar_is_the_compact_month_inside_its_small_frame() {
         let next = h
             .centre(".ds-month-step:last-child")
             .expect("the next button");
-        running.harness.click(next);
+        running.harness.send(Input::click(next));
         running.harness.advance(Duration::from_millis(600));
     }
     assert!(weeks.contains(&6), "a six-week month was drawn: {weeks:?}");

@@ -120,8 +120,7 @@ impl<S: LockSurface> LockSetup<S> {
             mount_lock::<S>(MountLockProps::new(output.clone()))
         });
         WORLD.with(|world| *world.borrow_mut() = Some(build));
-        let harness =
-            Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
+        let harness = Harness::new(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
         LockHarness {
             harness,
             feeds,

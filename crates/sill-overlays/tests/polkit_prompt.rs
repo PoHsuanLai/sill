@@ -7,7 +7,7 @@
 use std::time::Duration;
 
 use ds::ShortcutKey;
-use ds_harness::{Harness, Viewport};
+use ds_harness::{Driver, Harness, Input, Query, Viewport};
 use shell_host::OutputId;
 use sill_model::auth::UserName;
 use sill_model::polkit_agent::{
@@ -149,9 +149,9 @@ fn a_request_draws_quires_prompt_on_a_narrow_sheet() {
 fn enter_answers_with_what_was_typed_and_escape_dismisses() {
     let mut running = shown(request("c1", asking(), LastTry::None));
     for c in "sill-fake".chars() {
-        running.harness.key(ShortcutKey::Char(c));
+        running.harness.send(Input::key(ShortcutKey::Char(c)));
     }
-    running.harness.key(ShortcutKey::Enter);
+    running.harness.send(Input::key(ShortcutKey::Enter));
     running.harness.advance(Duration::from_millis(40));
     let asked = sent(&mut running);
     let [PolkitCommand::Answer { cookie, secret }] = asked.as_slice() else {
@@ -164,7 +164,7 @@ fn enter_answers_with_what_was_typed_and_escape_dismisses() {
         !running.harness.html().contains("sill-fake"),
         "the secret is not in the markup"
     );
-    running.harness.key(ShortcutKey::Escape);
+    running.harness.send(Input::key(ShortcutKey::Escape));
     running.harness.advance(Duration::from_millis(40));
     assert_eq!(
         sent(&mut running),

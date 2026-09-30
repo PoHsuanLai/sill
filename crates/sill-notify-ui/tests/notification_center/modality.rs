@@ -7,7 +7,7 @@
 
 use super::{advance, opened, two_apps};
 use ds::ShortcutKey;
-use ds_harness::Harness;
+use ds_harness::{Driver, FocusState, Harness, Input, Query};
 
 fn modality(harness: &Harness) -> Option<String> {
     harness.attr(".ds", "data-modality")
@@ -21,10 +21,11 @@ fn a_key_turns_the_centers_ring_on_and_a_press_turns_it_off() {
         Some("pointer"),
         "at first"
     );
-    running.harness.key(ShortcutKey::Tab);
+    running.harness.send(Input::key(ShortcutKey::Tab));
     advance(&mut running, 20);
-    assert!(
-        running.harness.is_focused(".ds-button"),
+    assert_eq!(
+        running.harness.focus_of(".ds-button"),
+        FocusState::Focused,
         "Tab reaches Clear All"
     );
     assert_eq!(
@@ -36,7 +37,7 @@ fn a_key_turns_the_centers_ring_on_and_a_press_turns_it_off() {
         .harness
         .centre(".sill-nc-title")
         .expect("the title is laid out"); // test-only
-    running.harness.click(title);
+    running.harness.send(Input::click(title));
     advance(&mut running, 20);
     assert_eq!(
         modality(&running.harness).as_deref(),

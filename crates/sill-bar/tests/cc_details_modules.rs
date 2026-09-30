@@ -8,6 +8,7 @@ mod cc_support;
 
 use cc_support::details::{center, figure, ms, press};
 use cc_support::{fake, live};
+use ds_harness::{Driver, Query};
 
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
 use sill_model::kbd_backlight::{KbdBacklight, KbdCommand, KbdLevel};

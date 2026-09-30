@@ -6,6 +6,7 @@
 
 mod cc_support;
 
+use ds_harness::{Driver, Input, Query};
 use std::time::Duration;
 
 use cc_support::live::{self, Report};
@@ -189,13 +190,13 @@ fn a_chevron_slides_its_pane_in_and_escape_unwinds() {
         .harness
         .centre(".ds-module-title")
         .expect("the Wi-Fi tile");
-    running.harness.click(switch);
+    running.harness.send(Input::click(switch));
     running.harness.advance(step);
     assert_eq!(
         running.feeds.wifi_commands.try_recv().ok(),
         Some(WifiCommand::Radio(Radio::On))
     );
-    running.harness.click(chevron);
+    running.harness.send(Input::click(chevron));
     // quire's PaneSwitcher slides the detail in and drops the grid once it settles.
     running.harness.advance(Duration::from_millis(600));
     assert_eq!(
@@ -217,7 +218,7 @@ fn a_chevron_slides_its_pane_in_and_escape_unwinds() {
         Some("Wi-Fi is off")
     );
     // Escape with the pressed chevron gone: the panel holds the keyboard.
-    running.harness.key(ShortcutKey::Escape);
+    running.harness.send(Input::key(ShortcutKey::Escape));
     running.harness.advance(Duration::from_millis(600));
     assert_eq!(
         running.harness.attr(".ds-panes", "data-shown").as_deref(),
@@ -236,7 +237,7 @@ fn a_chevron_slides_its_pane_in_and_escape_unwinds() {
         ]
     );
     // Escape on the grid reaches the popover, which closes.
-    running.harness.key(ShortcutKey::Escape);
+    running.harness.send(Input::key(ShortcutKey::Escape));
     running.harness.advance(Duration::from_millis(400));
     assert_eq!(running.reports().last(), Some(&Report::Closed));
 }
@@ -268,7 +269,7 @@ fn the_wifi_pane_lists_networks_and_a_row_joins_one() {
         .harness
         .centre(".ds-module-chevron")
         .expect("the Wi-Fi chevron");
-    running.harness.click(chevron);
+    running.harness.send(Input::click(chevron));
     running.harness.advance(Duration::from_millis(600));
     // The pane asks for a scan as it opens (a fake service: nothing real changes).
     assert_eq!(
@@ -285,7 +286,7 @@ fn the_wifi_pane_lists_networks_and_a_row_joins_one() {
         .harness
         .centre(".ds-list-item:nth-child(2) > .ds-row")
         .expect("the office row");
-    running.harness.click(office);
+    running.harness.send(Input::click(office));
     running.harness.advance(Duration::from_millis(50));
     assert_eq!(
         running.feeds.wifi_commands.try_recv().ok(),

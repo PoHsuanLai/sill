@@ -5,6 +5,7 @@
 mod launcher_harness;
 
 use ds::ShortcutKey;
+use ds_harness::{Driver, Input, Query};
 use launcher_harness::{Press, open, settle};
 use sill_launcher_ui::launcher::{CARD_ID, PANEL_HEIGHT};
 use sill_ui_kit::links::PanelHit;
@@ -68,7 +69,7 @@ fn more_rows_grow_the_card_and_the_actions_menu_takes_the_panel() {
         PanelHit::Whole,
         "the menu may hang below the card"
     );
-    long.harness.key(ShortcutKey::Escape);
+    long.harness.send(Input::key(ShortcutKey::Escape));
     settle(&mut long.harness, |h| h.count(".ds-popover") == 0);
     measured(&mut long);
     assert_eq!(

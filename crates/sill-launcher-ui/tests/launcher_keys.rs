@@ -8,6 +8,7 @@
 mod launcher_harness;
 
 use ds::ShortcutKey;
+use ds_harness::{Driver, Input, Query};
 use launcher_harness::launcher_support::{self, FIREFOX_WINDOW};
 use launcher_harness::{is_open, open, settle, titles};
 use sill_launcher::WindowKey;
@@ -21,9 +22,9 @@ fn down_down_enter_runs_the_third_row() {
         titles(&open.harness),
         vec!["Firefox", "Files", "Firefox — sill launcher", "Wi-Fi"]
     );
-    open.harness.key(ShortcutKey::Down);
-    open.harness.key(ShortcutKey::Down);
-    open.harness.key(ShortcutKey::Enter);
+    open.harness.send(Input::key(ShortcutKey::Down));
+    open.harness.send(Input::key(ShortcutKey::Down));
+    open.harness.send(Input::key(ShortcutKey::Enter));
     let link = open.link.clone();
     settle(&mut open.harness, |_| !is_open(&link));
     assert!(!is_open(&open.link), "Enter closes the launcher");
@@ -50,14 +51,14 @@ fn down_down_enter_runs_the_third_row() {
 #[test]
 fn tab_moves_to_the_next_group() {
     let mut open = open("fi");
-    open.harness.key(ShortcutKey::Tab);
+    open.harness.send(Input::key(ShortcutKey::Tab));
     settle(&mut open.harness, |h| h.count(".ds-row") == 2);
     assert_eq!(
         titles(&open.harness),
         vec!["Firefox", "Files"],
         "Applications only"
     );
-    open.harness.key(ShortcutKey::Tab);
+    open.harness.send(Input::key(ShortcutKey::Tab));
     settle(&mut open.harness, |h| h.count(".ds-row") == 1);
     assert_eq!(
         titles(&open.harness),
@@ -65,7 +66,7 @@ fn tab_moves_to_the_next_group() {
         "then Windows"
     );
     // The field still has the keyboard after the palette remounted: Enter runs the window.
-    open.harness.key(ShortcutKey::Enter);
+    open.harness.send(Input::key(ShortcutKey::Enter));
     let link = open.link.clone();
     settle(&mut open.harness, |_| !is_open(&link));
     assert_eq!(
@@ -78,7 +79,7 @@ fn tab_moves_to_the_next_group() {
 fn escape_closes() {
     let mut open = open("fi");
     assert!(is_open(&open.link));
-    open.harness.key(ShortcutKey::Escape);
+    open.harness.send(Input::key(ShortcutKey::Escape));
     let link = open.link.clone();
     settle(&mut open.harness, |_| !is_open(&link));
     assert!(!is_open(&open.link));
@@ -92,7 +93,7 @@ fn escape_closes() {
 #[test]
 fn enter_on_the_top_hit_launches_it() {
     let mut open = open("fire");
-    open.harness.key(ShortcutKey::Enter);
+    open.harness.send(Input::key(ShortcutKey::Enter));
     let link = open.link.clone();
     settle(&mut open.harness, |_| !is_open(&link));
     match open.feeds.bar.launch.try_recv() {

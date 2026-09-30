@@ -129,7 +129,7 @@ pub fn start_at(services: Services, feeds: fake::Feeds, scale_percent: u16) -> R
         scale_percent,
     };
     Running {
-        harness: Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual)),
+        harness: Harness::new(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual)),
         feeds,
         focus,
         focus_sets,

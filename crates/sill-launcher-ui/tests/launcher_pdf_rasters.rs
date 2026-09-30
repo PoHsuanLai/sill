@@ -5,6 +5,7 @@
 
 mod launcher_harness;
 
+use ds_harness::Driver;
 use std::time::Duration;
 
 use launcher_harness::{Press, open};

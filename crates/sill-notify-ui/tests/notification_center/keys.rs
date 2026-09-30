@@ -6,6 +6,7 @@
 
 use super::{advance, commands, opened, ringed, two_apps};
 use ds::ShortcutKey;
+use ds_harness::{Driver, FocusState, Input, Query};
 use sill_model::notifications::{
     ActionKey, Activation, AppKey, Clear, NotificationId, NotificationsCommand,
 };
@@ -14,8 +15,9 @@ use sill_ui_kit::links::CenterShown;
 #[test]
 fn the_column_holds_the_keyboard_and_the_arrows_move_the_ring() {
     let mut running = opened(two_apps());
-    assert!(
-        running.harness.is_focused(".sill-nc-column"),
+    assert_eq!(
+        running.harness.focus_of(".sill-nc-column"),
+        FocusState::Focused,
         "focused as it opens"
     );
     assert_eq!(ringed(&running.harness), None);
@@ -28,7 +30,7 @@ fn the_column_holds_the_keyboard_and_the_arrows_move_the_ring() {
         (ShortcutKey::Up, Some("head")),
     ];
     for (key, want) in steps {
-        running.harness.key(key);
+        running.harness.send(Input::key(key));
         advance(&mut running, 20);
         assert_eq!(ringed(&running.harness).as_deref(), want, "{key:?}");
     }
@@ -37,13 +39,13 @@ fn the_column_holds_the_keyboard_and_the_arrows_move_the_ring() {
 #[test]
 fn return_opens_a_group_then_invokes_a_lone_card_and_closes() {
     let mut running = opened(two_apps());
-    running.harness.key(ShortcutKey::Down);
-    running.harness.key(ShortcutKey::Enter);
+    running.harness.send(Input::key(ShortcutKey::Down));
+    running.harness.send(Input::key(ShortcutKey::Enter));
     advance(&mut running, 40);
     assert_eq!(running.harness.count(".sill-nc-row"), 4, "Mail opened");
     assert!(commands(&mut running).is_empty());
-    running.harness.key(ShortcutKey::Down);
-    running.harness.key(ShortcutKey::Enter);
+    running.harness.send(Input::key(ShortcutKey::Down));
+    running.harness.send(Input::key(ShortcutKey::Enter));
     advance(&mut running, 40);
     assert_eq!(
         commands(&mut running),
@@ -59,9 +61,9 @@ fn return_opens_a_group_then_invokes_a_lone_card_and_closes() {
 #[test]
 fn return_on_a_stack_opens_it() {
     let mut running = opened(two_apps());
-    running.harness.key(ShortcutKey::Down);
-    running.harness.key(ShortcutKey::Down);
-    running.harness.key(ShortcutKey::Enter);
+    running.harness.send(Input::key(ShortcutKey::Down));
+    running.harness.send(Input::key(ShortcutKey::Down));
+    running.harness.send(Input::key(ShortcutKey::Enter));
     advance(&mut running, 40);
     assert_eq!(running.harness.count(".sill-nc-row"), 4, "the stack opened");
     assert!(commands(&mut running).is_empty());
@@ -70,16 +72,16 @@ fn return_on_a_stack_opens_it() {
 #[test]
 fn delete_clears_a_group_and_dismisses_a_lone_card() {
     let mut running = opened(two_apps());
-    running.harness.key(ShortcutKey::Down);
-    running.harness.key(ShortcutKey::Delete);
+    running.harness.send(Input::key(ShortcutKey::Down));
+    running.harness.send(Input::key(ShortcutKey::Delete));
     advance(&mut running, 20);
     // The service has not answered, so the rows are still Mail's header and stack and Chat's
     // header and card; the ring stayed on Mail's header. Backspace is the Mac keyboard's Delete.
-    running.harness.key(ShortcutKey::Down);
-    running.harness.key(ShortcutKey::Delete);
-    running.harness.key(ShortcutKey::Down);
-    running.harness.key(ShortcutKey::Down);
-    running.harness.key(ShortcutKey::Backspace);
+    running.harness.send(Input::key(ShortcutKey::Down));
+    running.harness.send(Input::key(ShortcutKey::Delete));
+    running.harness.send(Input::key(ShortcutKey::Down));
+    running.harness.send(Input::key(ShortcutKey::Down));
+    running.harness.send(Input::key(ShortcutKey::Backspace));
     advance(&mut running, 20);
     let mail = || NotificationsCommand::ClearHistory(Clear::App(AppKey("mail".to_owned())));
     assert_eq!(
@@ -95,7 +97,7 @@ fn delete_clears_a_group_and_dismisses_a_lone_card() {
 #[test]
 fn escape_closes() {
     let mut running = opened(two_apps());
-    running.harness.key(ShortcutKey::Escape);
+    running.harness.send(Input::key(ShortcutKey::Escape));
     advance(&mut running, 20);
     assert_eq!(running.link.now(), CenterShown::Closed);
     assert!(commands(&mut running).is_empty());

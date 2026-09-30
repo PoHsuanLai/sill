@@ -10,8 +10,8 @@ use std::path::Path;
 use std::time::Duration;
 
 use ds::ShortcutKey;
-use ds_harness::Harness;
 use ds_harness::harness::assert_settles_to_zero_frames;
+use ds_harness::{ClassPresence, Driver, Harness, Input, Query};
 use launcher_harness::launcher_support::m9;
 use launcher_harness::{Open, Press, Seen, await_off_thread, loaded, open, settle, watch};
 use sill_launcher::PreviewKind;
@@ -33,7 +33,7 @@ fn entrance(harness: &Harness) -> Option<String> {
 }
 
 fn fading(harness: &Harness) -> bool {
-    harness.has_class(".ds-preview-media", "a-morph-fade-in")
+    harness.has_class(".ds-preview-media", "a-morph-fade-in") == ClassPresence::Present
 }
 
 fn revealing(harness: &Harness) -> bool {
@@ -180,7 +180,7 @@ fn a_result_set_replaces_in_place_with_no_reveal() {
     assert_settles_to_zero_frames(&mut open.harness);
 
     // A new answer (typed): replaced in place.
-    open.harness.key(ShortcutKey::Backspace);
+    open.harness.send(Input::key(ShortcutKey::Backspace));
     let rose = watch(&mut open.harness, revealing);
     assert_eq!(rose, Seen::Never, "a later set plays nothing");
     assert_eq!(
@@ -201,11 +201,11 @@ fn show_more_enters_its_rows_and_show_less_heals() {
     assert_settles_to_zero_frames(&mut open.harness);
     // Top Hit, five documents, then the Show More line (6): the person's Down and Enter.
     for _ in 0..6 {
-        open.harness.key(ShortcutKey::Down);
+        open.harness.send(Input::key(ShortcutKey::Down));
     }
     open.harness.advance(Duration::from_millis(20));
     assert_eq!(open.link.rows().map(|r| r.selected), Some(6));
-    open.harness.key(ShortcutKey::Enter);
+    open.harness.send(Input::key(ShortcutKey::Enter));
     let rose = watch(&mut open.harness, |h| row_motion(h, "in"));
     assert_eq!(rose, Seen::Once, "the added rows enter");
     assert_eq!(
@@ -218,7 +218,7 @@ fn show_more_enters_its_rows_and_show_less_heals() {
 
     // The selection followed its line, now Show Less (8): Enter again, the rows after heal up.
     assert_eq!(open.link.rows().map(|r| r.selected), Some(8));
-    open.harness.key(ShortcutKey::Enter);
+    open.harness.send(Input::key(ShortcutKey::Enter));
     let healed = watch(&mut open.harness, |h| row_motion(h, "heal-from"));
     assert_eq!(healed, Seen::Once, "what follows heals up");
     let shown = open.link.rows();

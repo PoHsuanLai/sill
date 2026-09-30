@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Ds, Material, RootExtent};
-use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
 use sill_model::now_playing::{MediaCommand, MediaVerb};
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::hooks::PinnedAppearance;
@@ -87,8 +87,7 @@ fn start_with(
             host,
         });
     });
-    let mut harness =
-        Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
+    let mut harness = Harness::new(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
     harness.advance(Duration::from_millis(100));
     Running { harness, feeds }
 }
@@ -245,7 +244,7 @@ fn now_playing_is_the_control_centers_view_and_presses_reach_the_fake() {
     let next = h
         .centre("#widget-now-playing .sill-cc-media-buttons .ds-button:last-child")
         .expect("the Next button is laid out");
-    running.harness.click(next);
+    running.harness.send(Input::click(next));
     running.harness.advance(Duration::from_millis(50));
     let sent: Vec<_> =
         std::iter::from_fn(|| running.feeds.media_commands.try_recv().ok()).collect();

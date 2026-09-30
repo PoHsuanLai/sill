@@ -3,6 +3,7 @@
 //! auth service, the unlock fade's mark on `Accepted`, and the blurred backdrop as the stage's
 //! picture. Outside a lock document (no `LockHandle`), as every test is.
 
+use ds_harness::Driver;
 use std::time::Duration;
 
 use shell_host::OutputId;

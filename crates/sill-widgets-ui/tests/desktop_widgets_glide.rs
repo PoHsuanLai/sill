@@ -13,7 +13,7 @@ use std::time::Duration;
 
 use ds::{Point, Px, ReducedMotion, SystemPrefs};
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_harness::{Harness, Viewport};
+use ds_harness::{Driver, Harness, Input, Query, Viewport};
 use ds_settings::Environment;
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
@@ -106,12 +106,12 @@ const GRAB: (f32, f32) = (1182.0, 98.0);
 /// Press the Calendar and move the pointer left along its row to `x`, `step` px a frame.
 fn sweep_left(h: &mut Harness, x: f32, step: f32) {
     let from = point(GRAB.0, GRAB.1);
-    h.pointer_move(from);
-    h.pointer_down(from);
+    h.send(Input::pointer_move(from));
+    h.send(Input::pointer_down(from));
     let mut at = GRAB.0;
     while at > x {
         at = (at - step).max(x);
-        h.pointer_move(point(at, GRAB.1));
+        h.send(Input::pointer_move(point(at, GRAB.1)));
         h.advance(FRAME);
     }
 }
@@ -132,7 +132,7 @@ fn trace_x(h: &mut Harness, frames: usize) -> Vec<i32> {
 fn throw_short(h: &mut Harness, hold: Duration) -> Vec<i32> {
     sweep_left(h, 682.0, 24.0);
     h.advance(hold);
-    h.pointer_up(point(682.0, GRAB.1));
+    h.send(Input::pointer_up(point(682.0, GRAB.1)));
     trace_x(h, 94)
 }
 
@@ -198,10 +198,13 @@ fn under_reduced_motion_a_throw_never_passes_its_cell() {
 /// Hold the Calendar over the Battery's cell: the Battery makes room, springing up to (1100, 16).
 fn over_the_battery(h: &mut Harness) {
     let from = point(GRAB.0, GRAB.1);
-    h.pointer_move(from);
-    h.pointer_down(from);
+    h.send(Input::pointer_move(from));
+    h.send(Input::pointer_down(from));
     for step in 1..=4 {
-        h.pointer_move(point(GRAB.0, GRAB.1 + 45.0 * step as f32));
+        h.send(Input::pointer_move(point(
+            GRAB.0,
+            GRAB.1 + 45.0 * step as f32,
+        )));
         h.advance(FRAME);
     }
 }
@@ -220,7 +223,7 @@ fn a_widget_sent_back_mid_glide_keeps_its_speed() {
         "on its way up: {going}"
     );
     // Moved on to an empty cell: the Battery's cell is its own again.
-    h.pointer_move(point(500.0, 600.0));
+    h.send(Input::pointer_move(point(500.0, 600.0)));
     h.advance(FRAME);
     let (_, next) = corner(h, BATTERY);
     assert!(
@@ -230,7 +233,7 @@ fn a_widget_sent_back_mid_glide_keeps_its_speed() {
     settle_until(h, |h| corner(h, BATTERY) == (1100, 196));
     assert_settles_to_zero_frames(h);
     assert_eq!(corner(h, BATTERY), (1100, 196));
-    h.pointer_up(point(500.0, 600.0));
+    h.send(Input::pointer_up(point(500.0, 600.0)));
     settle_until(h, |h| corner(h, CALENDAR) == (380, 556));
     assert_settles_to_zero_frames(h);
 }
@@ -242,7 +245,7 @@ fn a_widget_that_made_room_springs_back_home() {
     over_the_battery(h);
     settle_until(h, |h| corner(h, BATTERY) == (1100, 16));
     assert_settles_to_zero_frames(h);
-    h.pointer_move(point(500.0, 600.0));
+    h.send(Input::pointer_move(point(500.0, 600.0)));
     let back: Vec<i32> = (0..94)
         .map(|_| {
             h.advance(FRAME);
@@ -259,6 +262,6 @@ fn a_widget_that_made_room_springs_back_home() {
         "moved aside by another's drag, it goes critically damped, never past home: {back:?}"
     );
     assert_settles_to_zero_frames(h);
-    h.pointer_up(point(500.0, 600.0));
+    h.send(Input::pointer_up(point(500.0, 600.0)));
     assert_settles_to_zero_frames(h);
 }

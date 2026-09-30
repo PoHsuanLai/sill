@@ -4,6 +4,7 @@
 
 mod cc_support;
 
+use ds_harness::{Driver, FocusState, Input, Query};
 use std::time::Duration;
 
 use cc_support::fake;
@@ -18,51 +19,56 @@ fn tab_walks_the_tiles_and_space_toggles_the_focused_one() {
     let step = Duration::from_millis(50);
     // The popover places its card a frame after it measures the anchor.
     running.harness.advance(Duration::from_millis(300));
-    assert!(
-        running.harness.is_focused(".sill-cc"),
+    assert_eq!(
+        running.harness.focus_of(".sill-cc"),
+        FocusState::Focused,
         "the panel holds the keyboard as it opens"
     );
     // Wi-Fi's tile, then its chevron (the default modules: Wi-Fi, Bluetooth, Focus, ...).
-    running.harness.key(ShortcutKey::Tab);
+    running.harness.send(Input::key(ShortcutKey::Tab));
     running.harness.advance(step);
-    assert!(
-        running.harness.is_focused(".ds-module-tile"),
+    assert_eq!(
+        running.harness.focus_of(".ds-module-tile"),
+        FocusState::Focused,
         "Tab: the first tile"
     );
-    running.harness.key(ShortcutKey::Tab);
+    running.harness.send(Input::key(ShortcutKey::Tab));
     running.harness.advance(step);
-    assert!(
-        running.harness.is_focused(".ds-module-chevron"),
+    assert_eq!(
+        running.harness.focus_of(".ds-module-chevron"),
+        FocusState::Focused,
         "Tab: its chevron"
     );
     running
         .harness
-        .chord(&[ShortcutKey::Shift], ShortcutKey::Tab);
+        .send(Input::chord(&[ShortcutKey::Shift], ShortcutKey::Tab));
     running.harness.advance(step);
-    assert!(
-        running.harness.is_focused(".ds-module-tile"),
+    assert_eq!(
+        running.harness.focus_of(".ds-module-tile"),
+        FocusState::Focused,
         "Shift+Tab: back on the tile"
     );
     // The fake Wi-Fi is on: Space asks for the radio off, Enter again for it off (the fake
     // service does not change), and nothing leaves the panel.
-    running.harness.key(ShortcutKey::Space);
+    running.harness.send(Input::key(ShortcutKey::Space));
     running.harness.advance(step);
     assert_eq!(
         running.feeds.wifi_commands.try_recv().ok(),
         Some(WifiCommand::Radio(Radio::Off))
     );
-    running.harness.key(ShortcutKey::Enter);
+    running.harness.send(Input::key(ShortcutKey::Enter));
     running.harness.advance(step);
     assert_eq!(
         running.feeds.wifi_commands.try_recv().ok(),
         Some(WifiCommand::Radio(Radio::Off))
     );
-    assert!(
-        running.harness.is_focused(".ds-module-tile"),
+    assert_eq!(
+        running.harness.focus_of(".ds-module-tile"),
+        FocusState::Focused,
         "the tile keeps the focus"
     );
     assert!(running.reports().is_empty(), "no page change, no close");
-    running.harness.key(ShortcutKey::Escape);
+    running.harness.send(Input::key(ShortcutKey::Escape));
     running.harness.advance(Duration::from_millis(400));
     assert_eq!(running.reports().last(), Some(&Report::Closed));
 }

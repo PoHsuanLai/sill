@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Availability, MenuItem};
-use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Driver, Harness, HarnessConfig, Input, Query, Viewport};
 
 use super::{INSET, TrayMenuDocument};
 
@@ -46,8 +46,7 @@ fn the_frame_is_the_card_and_its_inset_and_a_press_picks_an_entry() {
         height: SIZE,
         scale_percent: 100,
     };
-    let mut harness =
-        Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
+    let mut harness = Harness::new(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
     harness.advance(Duration::from_millis(300));
     let frame = harness
         .rect(".sill-popup-frame")
@@ -66,7 +65,7 @@ fn the_frame_is_the_card_and_its_inset_and_a_press_picks_an_entry() {
     let quit = harness
         .centre(".ds-menu-item:nth-child(2)")
         .expect("the Quit entry is laid out"); // test-only
-    harness.click(quit);
+    harness.send(Input::click(quit));
     harness.advance(Duration::from_millis(300));
     assert_eq!(PICKS.with(|p| p.borrow().clone()), vec![9]);
 }
@@ -78,12 +77,11 @@ fn a_key_turns_the_tray_menus_ring_on_and_a_hover_keeps_it() {
         height: SIZE,
         scale_percent: 100,
     };
-    let mut harness =
-        Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
+    let mut harness = Harness::new(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
     harness.advance(Duration::from_millis(300));
     let modality = |harness: &Harness| harness.attr(".ds", "data-modality");
     assert_eq!(modality(&harness).as_deref(), Some("pointer"), "at first");
-    harness.key(ds::ShortcutKey::Down);
+    harness.send(Input::key(ds::ShortcutKey::Down));
     harness.advance(Duration::from_millis(300));
     assert_eq!(
         modality(&harness).as_deref(),
@@ -93,7 +91,7 @@ fn a_key_turns_the_tray_menus_ring_on_and_a_hover_keeps_it() {
     let open = harness
         .centre(".ds-menu-item:nth-child(1)")
         .expect("the Open entry is laid out"); // test-only
-    harness.pointer_move(open);
+    harness.send(Input::pointer_move(open));
     harness.advance(Duration::from_millis(300));
     assert_eq!(
         modality(&harness).as_deref(),

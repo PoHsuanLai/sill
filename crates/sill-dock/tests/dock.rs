@@ -2,6 +2,7 @@
 //! grouped by app, the Trash, running dots, the badge, the ring, the regions' elements, the
 //! icon style on each plate; a value fed after the first frame changes what it shows.
 
+use ds_harness::Driver;
 use std::time::Duration;
 
 use ds_lint::{LintConfig, Profile, assert_clean};

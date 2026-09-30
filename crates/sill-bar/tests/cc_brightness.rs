@@ -10,8 +10,8 @@ mod cc_support;
 use cc_support::details::{center, center_at, ms};
 
 use ds::{Point, Px};
-use ds_harness::Harness;
 use ds_harness::harness::assert_settles_to_zero_frames;
+use ds_harness::{Driver, Harness, Input, Query};
 use sill_model::displays::ddc::Endpoint;
 use sill_model::displays::{
     Controls, DdcDisplay, Displays, DisplaysCommand, Following, Level, LevelChange,
@@ -99,19 +99,19 @@ fn drag_at(scale_percent: u16) {
     assert_eq!(harness.attr(CAPSULE, "aria-disabled"), None, "enabled");
     let from = along(harness, 0.40);
     let to = along(harness, 0.80);
-    harness.pointer_move(from);
-    harness.pointer_down(from);
+    harness.send(Input::pointer_move(from));
+    harness.send(Input::pointer_down(from));
     // The rail is measured after the press, in a task.
     harness.advance(ms(16));
     for step in 1..=8u8 {
         let part = f32::from(step) / 8.0;
-        harness.pointer_move(Point {
+        harness.send(Input::pointer_move(Point {
             x: Px(from.x.0 + (to.x.0 - from.x.0) * part),
             y: from.y,
-        });
+        }));
         harness.advance(ms(16));
     }
-    harness.pointer_up(to);
+    harness.send(Input::pointer_up(to));
     harness.advance(ms(50));
     let sent = levels(&mut running.feeds.displays_commands);
     assert!(
@@ -145,7 +145,7 @@ fn click_at(scale_percent: u16) {
         feeds.displays.send_replace(monitor(40));
     });
     let at = along(&running.harness, 0.25);
-    running.harness.click(at);
+    running.harness.send(Input::click(at));
     running.harness.advance(ms(50));
     let sent = levels(&mut running.feeds.displays_commands);
     assert_eq!(sent.len(), 1, "one jump: {sent:?}");
@@ -196,7 +196,7 @@ fn a_monitor_that_answers_late_brings_the_capsule_alive() {
         "no tab stop"
     );
     let at = along(&running.harness, 0.5);
-    running.harness.click(at);
+    running.harness.send(Input::click(at));
     running.harness.advance(ms(50));
     assert_eq!(
         levels(&mut running.feeds.displays_commands),
@@ -208,7 +208,7 @@ fn a_monitor_that_answers_late_brings_the_capsule_alive() {
     assert_eq!(shown(&running.harness).as_deref(), Some("40"));
     assert_eq!(running.harness.attr(CAPSULE, "aria-disabled"), None);
     assert_eq!(running.harness.count(DISABLED_PANEL), 0, "the panel lit");
-    running.harness.click(at);
+    running.harness.send(Input::click(at));
     running.harness.advance(ms(50));
     let sent = levels(&mut running.feeds.displays_commands);
     assert!(

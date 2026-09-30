@@ -5,7 +5,7 @@
 
 use std::time::Duration;
 
-use ds_harness::{Harness, Viewport};
+use ds_harness::{Driver, Harness, Input, Viewport};
 use ds_settings::Ms;
 use shell_host::OutputId;
 use sill_overlays::HotCorners;
@@ -68,7 +68,7 @@ fn a_dwell_fires_once_and_not_before() {
     let (mut harness, link) = start(settings());
     harness.advance(Duration::from_millis(10));
     assert_eq!(link.last(), None);
-    harness.pointer_move(inside(&harness));
+    harness.send(Input::pointer_move(inside(&harness)));
     harness.advance(ms(DWELL_MS) - MS);
     assert_eq!(link.last(), None, "not a millisecond before the dwell");
     harness.advance(MS);
@@ -87,9 +87,9 @@ fn a_dwell_fires_once_and_not_before() {
 #[test]
 fn leaving_before_the_dwell_cancels_it() {
     let (mut harness, link) = start(settings());
-    harness.pointer_move(inside(&harness));
+    harness.send(Input::pointer_move(inside(&harness)));
     harness.advance(Duration::from_millis(DWELL_MS as u64 / 2));
-    harness.pointer_move(outside(&harness));
+    harness.send(Input::pointer_move(outside(&harness)));
     harness.advance(Duration::from_millis(DWELL_MS as u64 * 3));
     assert_eq!(link.last(), None, "left before the dwell ran out");
 }
@@ -97,16 +97,16 @@ fn leaving_before_the_dwell_cancels_it() {
 #[test]
 fn leaving_and_the_rearm_lets_it_fire_again() {
     let (mut harness, link) = start(settings());
-    harness.pointer_move(inside(&harness));
+    harness.send(Input::pointer_move(inside(&harness)));
     harness.advance(Duration::from_millis(DWELL_MS as u64 * 2));
     let first = link.last().expect("the first dwell fired");
     assert_eq!(first.seq, 1);
     // Leaving well before the re-arm is over and coming back starts no new dwell at all (only a
     // leave while re-armed does; entering while `Spent` just notes the pointer is back in), so
     // however long it then stays inside, nothing fires again.
-    harness.pointer_move(outside(&harness));
+    harness.send(Input::pointer_move(outside(&harness)));
     harness.advance(Duration::from_millis(REARM_MS as u64 / 4));
-    harness.pointer_move(inside(&harness));
+    harness.send(Input::pointer_move(inside(&harness)));
     harness.advance(Duration::from_millis(DWELL_MS as u64 * 5));
     assert_eq!(
         link.last(),
@@ -114,9 +114,9 @@ fn leaving_and_the_rearm_lets_it_fire_again() {
         "still within the re-arm, no fresh dwell was armed"
     );
     // Leaving again for past the re-arm, then a fresh dwell fires once more.
-    harness.pointer_move(outside(&harness));
+    harness.send(Input::pointer_move(outside(&harness)));
     harness.advance(Duration::from_millis(REARM_MS as u64 * 3));
-    harness.pointer_move(inside(&harness));
+    harness.send(Input::pointer_move(inside(&harness)));
     harness.advance(Duration::from_millis(DWELL_MS as u64 * 3));
     let second = link.last().expect("re-armed");
     assert_eq!(
@@ -129,12 +129,12 @@ fn leaving_and_the_rearm_lets_it_fire_again() {
 /// newest firing's sequence number.
 fn back_after(after: Duration) -> u64 {
     let (mut harness, link) = start(settings());
-    harness.pointer_move(inside(&harness));
+    harness.send(Input::pointer_move(inside(&harness)));
     harness.advance(ms(DWELL_MS));
     assert_eq!(link.last().map(|fired| fired.seq), Some(1));
-    harness.pointer_move(outside(&harness));
+    harness.send(Input::pointer_move(outside(&harness)));
     harness.advance(after);
-    harness.pointer_move(inside(&harness));
+    harness.send(Input::pointer_move(inside(&harness)));
     harness.advance(ms(DWELL_MS) * 2);
     link.last().map_or(0, |fired| fired.seq)
 }

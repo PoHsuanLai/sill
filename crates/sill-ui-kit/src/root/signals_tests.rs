@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Appearance, Ds, Material, PixelToken};
-use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Driver, Harness, HarnessConfig, Query, Viewport};
 use shell_host::{InputModality as SeatModality, Scale as SeatScale};
 
 use super::use_republished;
@@ -43,8 +43,7 @@ fn start() -> Harness {
         height: 100,
         scale_percent: 100,
     };
-    let mut harness =
-        Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
+    let mut harness = Harness::new(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
     harness.advance(Duration::from_millis(50));
     harness
 }

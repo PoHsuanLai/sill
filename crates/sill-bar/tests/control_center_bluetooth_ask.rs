@@ -9,8 +9,8 @@ mod cc_support;
 use cc_support::details::{center, ms, open, press};
 use cc_support::live::Report;
 use ds::{Point, Px};
-use ds_harness::Harness;
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
+use ds_harness::{Driver, FocusState, Harness, Input, Query};
 use sill_model::bluetooth::{BluetoothCommand, BtPower};
 
 /// The Bluetooth tile: the grid's second module (Wi-Fi, Bluetooth, Focus, ...).
@@ -22,10 +22,10 @@ const TURN_OFF: &str = ".ds-alert-slot:first-child .ds-button";
 /// A press on the tile's disc (left of its words, well clear of its chevron).
 fn press_tile(harness: &mut Harness) {
     let rect = harness.rect(TILE).expect("the Bluetooth tile");
-    harness.click(Point {
+    harness.send(Input::click(Point {
         x: Px(rect.origin.x.0 + 24.0),
         y: Px(rect.origin.y.0 + rect.size.height.0 / 2.0),
-    });
+    }));
 }
 
 /// The alert is up, over the panel, and has sent nothing.
@@ -77,11 +77,15 @@ fn the_tile_asks_before_off_and_only_turn_off_or_return_sends_it() {
         "over the panel: {stage:?} {panel:?}"
     );
     running.harness.advance(ms(100));
-    assert!(running.harness.is_focused(TURN_OFF), "Return is Turn Off");
+    assert_eq!(
+        running.harness.focus_of(TURN_OFF),
+        FocusState::Focused,
+        "Return is Turn Off"
+    );
     assert_settles_to_zero_frames(&mut running.harness);
 
     // Escape cancels, and the panel keeps the popover open.
-    running.harness.key(ds::ShortcutKey::Escape);
+    running.harness.send(Input::key(ds::ShortcutKey::Escape));
     answered(&mut running, None);
     assert!(running.reports().is_empty(), "Escape stopped at the alert");
 
@@ -98,7 +102,7 @@ fn the_tile_asks_before_off_and_only_turn_off_or_return_sends_it() {
     press_tile(&mut running.harness);
     asked(&mut running);
     running.harness.advance(ms(100));
-    running.harness.key(ds::ShortcutKey::Enter);
+    running.harness.send(Input::key(ds::ShortcutKey::Enter));
     answered(&mut running, OFF);
 
     // Turn Off.
@@ -109,9 +113,9 @@ fn the_tile_asks_before_off_and_only_turn_off_or_return_sends_it() {
     assert_settles_to_zero_frames(&mut running.harness);
 
     // The panel has the keyboard back: Escape now closes the control center.
-    assert!(running.harness.is_focused(".sill-cc"));
+    assert_eq!(running.harness.focus_of(".sill-cc"), FocusState::Focused);
     assert!(running.reports().is_empty());
-    running.harness.key(ds::ShortcutKey::Escape);
+    running.harness.send(Input::key(ds::ShortcutKey::Escape));
     running.harness.advance(ms(400));
     assert_eq!(running.reports().last(), Some(&Report::Closed));
 }
@@ -141,7 +145,7 @@ fn the_panes_switch_asks_too() {
     asked(&mut running);
     assert_settles_to_zero_frames(&mut running.harness);
     // Escape answers the alert; the pane stays (its own Escape goes back).
-    running.harness.key(ds::ShortcutKey::Escape);
+    running.harness.send(Input::key(ds::ShortcutKey::Escape));
     answered(&mut running, None);
     assert_eq!(
         running.harness.attr(".ds-panes", "data-shown").as_deref(),

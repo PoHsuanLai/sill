@@ -1,6 +1,7 @@
 //! The bar mounted as a `Surface` on the fake services: what the services hold is what the bar
 //! shows, and a value fed after it started changes what it shows.
 
+use ds_harness::Driver;
 use std::time::Duration;
 
 use sill_bar::Bar;

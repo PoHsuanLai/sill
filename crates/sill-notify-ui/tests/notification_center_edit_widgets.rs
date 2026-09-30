@@ -5,8 +5,8 @@
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use ds_harness::Viewport;
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
+use ds_harness::{Driver, Input, Query, Viewport};
 use sill_notify_ui::NotificationCenter;
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
@@ -23,7 +23,7 @@ fn click(running: &mut SurfaceHarness<NotificationCenter>, selector: &str) {
         .harness
         .centre(selector)
         .unwrap_or_else(|| panic!("{selector} is laid out: {}", running.harness.html()));
-    running.harness.click(at);
+    running.harness.send(Input::click(at));
     running.harness.advance(Duration::from_millis(50));
 }
 

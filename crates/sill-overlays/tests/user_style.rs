@@ -2,6 +2,7 @@
 //! feed's stylesheet in `<style data-ds-user>`, redraws it when the feed changes and drops the
 //! element when the file goes.
 
+use ds_harness::{Driver, Query};
 use std::time::Duration;
 
 use ds_settings::UserStyle;

@@ -3,8 +3,8 @@
 
 use std::time::Duration;
 
-use ds_harness::Harness;
 use ds_harness::harness::settle_until;
+use ds_harness::{Driver, Harness, Input, Query};
 
 use super::{fake, live};
 
@@ -35,7 +35,7 @@ pub fn press(harness: &mut Harness, selector: &str) {
     let at = harness
         .centre(selector)
         .unwrap_or_else(|| panic!("{selector} is laid out: {}", harness.html()));
-    harness.click(at);
+    harness.send(Input::click(at));
 }
 
 /// Opens the detail pane behind the chevron named `label`.

@@ -37,7 +37,7 @@ pub(super) fn app() -> Element {
 }
 
 /// A running surface and what it talks to. A field, not a `Deref`, so that
-/// `run.harness.pointer_move(inside(&run.harness))` borrows as it reads.
+/// `run.harness.send(Input::pointer_move(inside(&run.harness)))` borrows as it reads.
 pub struct SurfaceHarness<S: Surface> {
     /// The document: `advance`, `html`, `pointer_move`, `count`, ...
     pub harness: Harness,
@@ -172,8 +172,7 @@ impl<S: Surface> SurfaceSetup<S> {
             mount::<S>(MountProps::new(output.clone(), slot))
         });
         WORLD.with(|world| *world.borrow_mut() = Some(build));
-        let harness =
-            Harness::with_config(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
+        let harness = Harness::new(app, HarnessConfig::new(viewport).with_clock(Clock::Virtual));
         SurfaceHarness {
             harness,
             feeds,

@@ -3,6 +3,7 @@
 //! hold; Up and Down move along the stack, Enter presses the card, Tab reaches its buttons,
 //! Enter presses a button too, Escape, Delete and Backspace dismiss the card and hand the focus on.
 
+use ds_harness::{Driver, FocusState, Input, Query};
 use std::time::Duration;
 
 use ds::ShortcutKey;
@@ -40,15 +41,16 @@ fn focused() -> Running {
     let mut running = two();
     running.link.ask_keyboard();
     running.harness.advance(Duration::from_millis(200));
-    assert!(
-        running.harness.is_focused(NEWEST),
+    assert_eq!(
+        running.harness.focus_of(NEWEST),
+        FocusState::Focused,
         "the newest card has the keyboard"
     );
     running
 }
 
 fn press(running: &mut Running, key: ShortcutKey) {
-    running.harness.key(key);
+    running.harness.send(Input::key(key));
     running.harness.advance(Duration::from_millis(60));
 }
 
@@ -59,7 +61,10 @@ fn dismissed(id: u32) -> NotificationsCommand {
 #[test]
 fn they_appear_without_the_keyboard_and_keys_do_nothing_until_it_is_asked_for() {
     let mut running = two();
-    assert!(!running.harness.is_focused(NEWEST) && !running.harness.is_focused(OLDER));
+    assert!(
+        running.harness.focus_of(NEWEST) == FocusState::Unfocused
+            && running.harness.focus_of(OLDER) == FocusState::Unfocused
+    );
     assert_ne!(
         running.harness.attr(".ds", "data-modality").as_deref(),
         Some("keyboard"),
@@ -118,19 +123,21 @@ fn only_the_holders_hold_pauses_and_it_resumes_when_the_keyboard_is_lost() {
 fn arrows_move_along_the_stack_and_stop_at_its_ends() {
     let mut running = focused();
     press(&mut running, ShortcutKey::Up);
-    assert!(
-        running.harness.is_focused(NEWEST),
+    assert_eq!(
+        running.harness.focus_of(NEWEST),
+        FocusState::Focused,
         "nothing above the newest"
     );
     press(&mut running, ShortcutKey::Down);
-    assert!(running.harness.is_focused(OLDER));
+    assert_eq!(running.harness.focus_of(OLDER), FocusState::Focused);
     press(&mut running, ShortcutKey::Down);
-    assert!(
-        running.harness.is_focused(OLDER),
+    assert_eq!(
+        running.harness.focus_of(OLDER),
+        FocusState::Focused,
         "nothing below the oldest"
     );
     press(&mut running, ShortcutKey::Up);
-    assert!(running.harness.is_focused(NEWEST));
+    assert_eq!(running.harness.focus_of(NEWEST), FocusState::Focused);
 }
 
 #[test]
@@ -158,8 +165,9 @@ fn escape_delete_and_backspace_dismiss_and_the_focus_moves_on() {
         let mut running = focused();
         press(&mut running, key);
         assert_eq!(commands(&mut running), vec![dismissed(2)], "{key:?}");
-        assert!(
-            running.harness.is_focused(OLDER),
+        assert_eq!(
+            running.harness.focus_of(OLDER),
+            FocusState::Focused,
             "{key:?}: on to the next card"
         );
         press(&mut running, key);
@@ -177,13 +185,14 @@ fn tab_reaches_the_cards_buttons_and_the_card_keys_still_act_there() {
     let mut running = one(&[("reply", "Reply")]);
     running.link.ask_keyboard();
     running.harness.advance(Duration::from_millis(200));
-    assert!(running.harness.is_focused("#toast-1"));
+    assert_eq!(running.harness.focus_of("#toast-1"), FocusState::Focused);
     let mut reached = false;
     for _ in 0..4 {
         press(&mut running, ShortcutKey::Tab);
         reached |= running
             .harness
-            .is_focused(".ds-notification-actions .ds-button");
+            .focus_of(".ds-notification-actions .ds-button")
+            == FocusState::Focused;
     }
     assert!(reached, "Tab reaches the Reply button");
     press(&mut running, ShortcutKey::Escape);
@@ -201,7 +210,7 @@ fn a_second_ask_brings_the_keyboard_back_to_the_holder() {
     press(&mut running, ShortcutKey::Tab);
     running.link.ask_keyboard();
     running.harness.advance(Duration::from_millis(200));
-    assert!(running.harness.is_focused(OLDER));
+    assert_eq!(running.harness.focus_of(OLDER), FocusState::Focused);
 }
 
 #[test]
@@ -211,8 +220,9 @@ fn the_ask_goes_to_the_newer_of_the_thumbnail_and_the_banners() {
     running.link.appeared(Transient::Thumbnail);
     running.link.ask_keyboard();
     running.harness.advance(Duration::from_millis(200));
-    assert!(
-        !running.harness.is_focused(NEWEST),
+    assert_eq!(
+        running.harness.focus_of(NEWEST),
+        FocusState::Unfocused,
         "the thumbnail was the newer"
     );
     // A banner that appears after it takes the next ask.
@@ -227,8 +237,9 @@ fn the_ask_goes_to_the_newer_of_the_thumbnail_and_the_banners() {
     running.harness.advance(Duration::from_millis(400));
     running.link.ask_keyboard();
     running.harness.advance(Duration::from_millis(200));
-    assert!(
-        running.harness.is_focused("#toast-3"),
+    assert_eq!(
+        running.harness.focus_of("#toast-3"),
+        FocusState::Focused,
         "the newest banner is now the newer"
     );
 }

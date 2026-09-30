@@ -8,7 +8,7 @@
 use std::time::Duration;
 
 use ds::ShortcutKey;
-use ds_harness::{Harness, Viewport};
+use ds_harness::{Driver, FocusState, Harness, Input, Query, Viewport};
 use sill_launcher::{AppId, WindowKey};
 use sill_model::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState, WlCommand};
 use sill_model::ids::{OutputName, WorkspaceKey};
@@ -148,8 +148,9 @@ fn a_chord_shows_the_apps_after_the_delay_with_the_previous_selected() {
         tiles(&running.harness),
         (names(&["term", "calc", "edit"]), Some("calc".to_owned()))
     );
-    assert!(
-        running.harness.is_focused(".sill-switcher"),
+    assert_eq!(
+        running.harness.focus_of(".sill-switcher"),
+        FocusState::Focused,
         "the key target has the focus"
     );
     assert_eq!(sent(&mut running), vec![]);
@@ -184,22 +185,27 @@ fn a_second_chord_inside_the_delay_is_a_second_quick_tap() {
 #[test]
 fn keys_and_chords_step_and_the_release_activates() {
     let mut running = shown();
-    running.harness.chord(&[ShortcutKey::Alt], ShortcutKey::Tab);
+    running
+        .harness
+        .send(Input::chord(&[ShortcutKey::Alt], ShortcutKey::Tab));
     wait(&mut running, 20);
     assert_eq!(tiles(&running.harness).1.as_deref(), Some("edit"));
+    running.harness.send(Input::chord(
+        &[ShortcutKey::Alt, ShortcutKey::Shift],
+        ShortcutKey::Tab,
+    ));
     running
         .harness
-        .chord(&[ShortcutKey::Alt, ShortcutKey::Shift], ShortcutKey::Tab);
-    running
-        .harness
-        .chord(&[ShortcutKey::Alt], ShortcutKey::Char('`'));
+        .send(Input::chord(&[ShortcutKey::Alt], ShortcutKey::Char('`')));
     wait(&mut running, 20);
     assert_eq!(tiles(&running.harness).1.as_deref(), Some("term"));
     ask(&mut running, SwitcherAsk::Chord(Dir::Prev));
     wait(&mut running, 20);
     assert_eq!(tiles(&running.harness).1.as_deref(), Some("edit"));
     assert_eq!(sent(&mut running), vec![], "stepping touches no window");
-    running.harness.chord(&[ShortcutKey::Alt], ShortcutKey::Alt);
+    running
+        .harness
+        .send(Input::chord(&[ShortcutKey::Alt], ShortcutKey::Alt));
     wait(&mut running, 20);
     assert_eq!(panels(&running), 0, "closed at the release");
     assert_eq!(sent(&mut running), vec![WlCommand::Activate(WindowKey(3))]);
@@ -210,7 +216,7 @@ fn escape_and_cancel_close_touching_nothing() {
     let mut running = shown();
     running
         .harness
-        .chord(&[ShortcutKey::Alt], ShortcutKey::Escape);
+        .send(Input::chord(&[ShortcutKey::Alt], ShortcutKey::Escape));
     wait(&mut running, 20);
     assert_eq!(panels(&running), 0);
     ask(&mut running, SwitcherAsk::Chord(Dir::Next));
@@ -219,7 +225,9 @@ fn escape_and_cancel_close_touching_nothing() {
     ask(&mut running, SwitcherAsk::Cancel);
     wait(&mut running, 20);
     assert_eq!(panels(&running), 0);
-    running.harness.chord(&[ShortcutKey::Alt], ShortcutKey::Alt);
+    running
+        .harness
+        .send(Input::chord(&[ShortcutKey::Alt], ShortcutKey::Alt));
     wait(&mut running, 20);
     assert_eq!(sent(&mut running), vec![]);
 }
@@ -229,7 +237,7 @@ fn q_quits_the_selected_app_and_its_tile_folds_away() {
     let mut running = shown();
     running
         .harness
-        .chord(&[ShortcutKey::Alt], ShortcutKey::Char('q'));
+        .send(Input::chord(&[ShortcutKey::Alt], ShortcutKey::Char('q')));
     wait(&mut running, 20);
     assert_eq!(
         sent(&mut running),
@@ -256,7 +264,7 @@ fn h_hides_the_selected_app_and_stays() {
     let mut running = shown();
     running
         .harness
-        .chord(&[ShortcutKey::Alt], ShortcutKey::Char('h'));
+        .send(Input::chord(&[ShortcutKey::Alt], ShortcutKey::Char('h')));
     wait(&mut running, 20);
     assert_eq!(
         sent(&mut running),
@@ -280,14 +288,14 @@ fn hover_selects_and_a_click_activates() {
         x: ds::Px(first.origin.x.0 + 2.0 * 120.0 + first.size.width.0 / 2.0),
         y: ds::Px(first.origin.y.0 + first.size.height.0 / 2.0),
     };
-    running.harness.pointer_move(at);
+    running.harness.send(Input::pointer_move(at));
     wait(&mut running, 20);
     assert_eq!(
         tiles(&running.harness).1.as_deref(),
         Some("edit"),
         "hover selects"
     );
-    running.harness.click(at);
+    running.harness.send(Input::click(at));
     wait(&mut running, 20);
     assert_eq!(panels(&running), 0);
     assert_eq!(sent(&mut running), vec![WlCommand::Activate(WindowKey(3))]);
@@ -308,14 +316,17 @@ fn made_up_apps_show_at_once_and_touch_no_window() {
         tiles(&running.harness),
         (names(&["files", "mail", "notes"]), Some("mail".to_owned()))
     );
-    assert!(
-        running.harness.is_focused(".sill-switcher"),
+    assert_eq!(
+        running.harness.focus_of(".sill-switcher"),
+        FocusState::Focused,
         "focused at the ask"
     );
     running
         .harness
-        .chord(&[ShortcutKey::Alt], ShortcutKey::Char('q'));
-    running.harness.chord(&[ShortcutKey::Alt], ShortcutKey::Alt);
+        .send(Input::chord(&[ShortcutKey::Alt], ShortcutKey::Char('q')));
+    running
+        .harness
+        .send(Input::chord(&[ShortcutKey::Alt], ShortcutKey::Alt));
     wait(&mut running, 20);
     assert_eq!(panels(&running), 0);
     assert_eq!(sent(&mut running), vec![]);

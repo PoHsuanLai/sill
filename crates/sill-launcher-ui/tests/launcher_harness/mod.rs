@@ -14,8 +14,8 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::ShortcutKey;
-use ds_harness::Harness;
 use ds_harness::harness::settle_until;
+use ds_harness::{Driver, Harness, Input, Query};
 use launcher_support::{LauncherFeeds, Runner, fake};
 use sill_launcher_ui::Launcher;
 use sill_launcher_ui::launcher::LauncherProviders;
@@ -70,20 +70,20 @@ impl Open {
         let ctrl = [ShortcutKey::Ctrl];
         let h = &mut self.harness;
         match key {
-            Press::Up => h.key(ShortcutKey::Up),
-            Press::Down => h.key(ShortcutKey::Down),
-            Press::Enter => h.key(ShortcutKey::Enter),
-            Press::Escape => h.key(ShortcutKey::Escape),
-            Press::Space => h.key(ShortcutKey::Space),
-            Press::Left => h.key(ShortcutKey::Left),
+            Press::Up => h.send(Input::key(ShortcutKey::Up)),
+            Press::Down => h.send(Input::key(ShortcutKey::Down)),
+            Press::Enter => h.send(Input::key(ShortcutKey::Enter)),
+            Press::Escape => h.send(Input::key(ShortcutKey::Escape)),
+            Press::Space => h.send(Input::key(ShortcutKey::Space)),
+            Press::Left => h.send(Input::key(ShortcutKey::Left)),
             Press::Right => {
-                h.key(ShortcutKey::End);
-                h.key(ShortcutKey::Right);
+                h.send(Input::key(ShortcutKey::End));
+                h.send(Input::key(ShortcutKey::Right));
             }
-            Press::ShiftTab => h.chord(&[ShortcutKey::Shift], ShortcutKey::Tab),
-            Press::Actions => h.chord(&ctrl, ShortcutKey::Char('k')),
-            Press::QuickLook => h.chord(&ctrl, ShortcutKey::Char('y')),
-            Press::Reveal => h.chord(&ctrl, ShortcutKey::Char('r')),
+            Press::ShiftTab => h.send(Input::chord(&[ShortcutKey::Shift], ShortcutKey::Tab)),
+            Press::Actions => h.send(Input::chord(&ctrl, ShortcutKey::Char('k'))),
+            Press::QuickLook => h.send(Input::chord(&ctrl, ShortcutKey::Char('y'))),
+            Press::Reveal => h.send(Input::chord(&ctrl, ShortcutKey::Char('r'))),
         }
     }
 }

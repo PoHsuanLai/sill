@@ -1,6 +1,8 @@
 //! The notification center's widget slot: it draws `widgets.center` in order under the history,
 //! each at its one size (Medium), and "Edit Widgets" under it: the real `NotificationCenter` on the fake services.
 
+use ds_harness::Query;
+
 #[test]
 fn the_center_draws_widgets_center_in_order_under_the_history() {
     let running = center_support::opened(center_support::two_apps());
@@ -43,8 +45,8 @@ fn the_center_draws_widgets_center_in_order_under_the_history() {
 mod center_support {
     use std::time::Duration;
 
-    use ds_harness::Harness;
     use ds_harness::harness::settle_until;
+    use ds_harness::{Driver, Harness, Query};
     use sill_model::notifications::{
         AppGroup, AppKey, AppRef, Body, Expiry, Hints, History, IconRef, Notification,
         NotificationId, UnixMs,

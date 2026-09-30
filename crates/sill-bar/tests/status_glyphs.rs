@@ -9,7 +9,7 @@ use cc_support::{fake, live};
 use std::time::Duration;
 
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_harness::{Harness, Viewport};
+use ds_harness::{ClassPresence, Driver, Harness, Query, Viewport};
 use sill_bar::Bar;
 use sill_model::attempt::{Attempt, Attempts, OpStamp};
 use sill_model::battery::{Battery, Charge};
@@ -170,8 +170,9 @@ fn the_bar_does_not_shake_for_a_failed_join_and_slashes_with_the_radio_off() {
     );
     feeds.network.send_replace(failed);
     harness.advance(Duration::from_millis(60));
-    assert!(
-        !harness.has_class(WIFI, "a-shake-x"),
+    assert_eq!(
+        harness.has_class(WIFI, "a-shake-x"),
+        ClassPresence::Absent,
         "only a failed secure entry shakes (quire design/30 section 1.3)"
     );
     assert_settles_to_zero_frames(&mut harness);

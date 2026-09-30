@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
-use ds_harness::{Harness, Viewport};
+use ds_harness::{ClassPresence, Driver, Harness, Input, Query, Viewport};
 use sill_settings::{DesktopWidgets, ShellFile, WidgetKind};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{EditShown, EditWidgetsLink, WidgetsWrite, WidgetsWriter};
@@ -37,7 +37,7 @@ impl Running {
             .harness
             .centre(selector)
             .unwrap_or_else(|| panic!("{selector} is laid out: {}", self.harness.html()));
-        self.harness.click(at);
+        self.harness.send(Input::click(at));
         self.harness.advance(Duration::from_millis(50));
     }
 }
@@ -187,8 +187,9 @@ fn an_added_widget_is_written_as_the_keys_and_places_and_a_second_is_refused() {
         status(&run.harness),
         Some(("refused".to_owned(), "It is already there.".to_owned()))
     );
-    assert!(
+    assert_eq!(
         run.harness.has_class(".sill-ew-status", "a-shake-x"),
+        ClassPresence::Present,
         "a refusal shakes once: {}",
         run.harness.html()
     );
@@ -198,7 +199,7 @@ fn an_added_widget_is_written_as_the_keys_and_places_and_a_second_is_refused() {
         "no check for a refusal"
     );
     settle_until(&mut run.harness, |h| {
-        !h.has_class(".sill-ew-status", "a-shake-x")
+        h.has_class(".sill-ew-status", "a-shake-x") == ClassPresence::Absent
     });
     assert_settles_to_zero_frames(&mut run.harness);
 
@@ -359,7 +360,7 @@ fn escape_closes_after_a_press_inside_the_panel() {
             ),
         }
         run.harness.advance(Duration::from_millis(100));
-        run.harness.key(ds::ShortcutKey::Escape);
+        run.harness.send(Input::key(ds::ShortcutKey::Escape));
         run.harness.advance(Duration::from_millis(50));
         assert_eq!(run.edit.now(), EditShown::Closed, "after {then:?}");
         settle_until(&mut run.harness, |h| h.count(".ds-sheet") == 0);

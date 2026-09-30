@@ -7,7 +7,7 @@
 use std::time::Duration;
 
 use ds::{PixelToken, Scale, ShortcutKey};
-use ds_harness::Viewport;
+use ds_harness::{Driver, Input, Query, Viewport};
 use sill_bar::Bar;
 use sill_dock::Dock;
 use sill_overlays::{IdleDim, Wallpaper};
@@ -36,11 +36,11 @@ fn key_then_press<S: Surface>(setup: SurfaceSetup<S>) {
     let mut run = setup.viewport(VIEW).start();
     settle(&mut run);
     assert_eq!(modality(&run).as_deref(), Some("pointer"), "at first");
-    run.harness.key(ShortcutKey::Tab);
+    run.harness.send(Input::key(ShortcutKey::Tab));
     settle(&mut run);
     assert_eq!(modality(&run).as_deref(), Some("keyboard"), "after a key");
     let at = run.harness.centre(".ds").expect("the root is laid out"); // test-only
-    run.harness.click(at);
+    run.harness.send(Input::click(at));
     settle(&mut run);
     assert_eq!(modality(&run).as_deref(), Some("pointer"), "after a press");
 }

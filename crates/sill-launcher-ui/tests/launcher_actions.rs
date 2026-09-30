@@ -9,6 +9,7 @@
 mod launcher_harness;
 
 use ds::ShortcutKey;
+use ds_harness::{Driver, FocusState, Input, Query};
 use launcher_harness::launcher_support::{self, FIREFOX_WINDOW};
 use launcher_harness::{Press, is_open, open, selected_title, settle};
 use sill_launcher::WindowKey;
@@ -21,7 +22,7 @@ const SELECTED: &str = ".ds-row[*|aria-selected=true]";
 #[test]
 fn the_actions_menu_hangs_from_the_selected_row_and_gives_the_keyboard_back() {
     let mut open = open("fi");
-    open.harness.key(ShortcutKey::Down);
+    open.harness.send(Input::key(ShortcutKey::Down));
     settle(&mut open.harness, |h| {
         selected_title(h).as_deref() == Some("Files")
     });
@@ -42,14 +43,15 @@ fn the_actions_menu_hangs_from_the_selected_row_and_gives_the_keyboard_back() {
         (0.0..=12.0).contains(&below),
         "the menu hangs under the row: row {row:?}, menu {menu:?}"
     );
-    open.harness.key(ShortcutKey::Escape);
+    open.harness.send(Input::key(ShortcutKey::Escape));
     settle(&mut open.harness, |h| {
-        h.count(".ds-popover") == 0 && h.is_focused("input")
+        h.count(".ds-popover") == 0 && h.focus_of("input") == FocusState::Focused
     });
     assert_eq!(open.harness.count(".ds-popover"), 0, "the menu closed");
     assert!(is_open(&open.link), "the launcher stays");
-    assert!(
-        open.harness.is_focused("input"),
+    assert_eq!(
+        open.harness.focus_of("input"),
+        FocusState::Focused,
         "the field has the keyboard"
     );
     // The palette's entrance (cmdk-in since the polish pass) may still be running when the
@@ -64,7 +66,7 @@ fn the_actions_menu_hangs_from_the_selected_row_and_gives_the_keyboard_back() {
         "the palette's entrance never settled"
     );
     assert_eq!(selected_title(&open.harness).as_deref(), Some("Files"));
-    open.harness.key(ShortcutKey::Enter);
+    open.harness.send(Input::key(ShortcutKey::Enter));
     let link = open.link.clone();
     settle(&mut open.harness, |_| !is_open(&link));
     match open.feeds.bar.launch.try_recv() {
@@ -88,10 +90,10 @@ fn the_row_under_the_pointer_is_the_selection() {
     while selected_title(&open.harness).as_deref() != Some("Firefox — sill launcher")
         && y < card.origin.y.0 + card.size.height.0
     {
-        open.harness.pointer_move(ds::Point {
+        open.harness.send(Input::pointer_move(ds::Point {
             x: ds::Px(x),
             y: ds::Px(y),
-        });
+        }));
         open.harness.advance(std::time::Duration::from_millis(20));
         y += 4.0;
     }
@@ -99,7 +101,7 @@ fn the_row_under_the_pointer_is_the_selection() {
         selected_title(&open.harness).as_deref(),
         Some("Firefox — sill launcher")
     );
-    open.harness.key(ShortcutKey::Enter);
+    open.harness.send(Input::key(ShortcutKey::Enter));
     let link = open.link.clone();
     settle(&mut open.harness, |_| !is_open(&link));
     assert_eq!(

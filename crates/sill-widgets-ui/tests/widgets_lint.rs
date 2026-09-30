@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use ds::{Ds, Material, RootExtent};
-use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
+use ds_harness::{Clock, Driver, Harness, HarnessConfig, Viewport};
 use ds_lint::{LintConfig, Profile, assert_clean, markup};
 use sill_settings::{ShellFile, WidgetKind};
 use sill_ui_kit::harness::SurfaceHarness;
@@ -135,8 +135,7 @@ fn hosted(host: WidgetHost) -> (Harness, Alive) {
             host,
         });
     });
-    let harness =
-        Harness::with_config(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
+    let harness = Harness::new(app, HarnessConfig::new(VIEWPORT).with_clock(Clock::Virtual));
     (harness, Box::new(feeds))
 }
 
