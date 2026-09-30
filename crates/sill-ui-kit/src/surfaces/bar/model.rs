@@ -9,12 +9,13 @@ use sill_model::ids::OutputName;
 use sill_settings::BarSettings;
 
 use super::content::{BarState, PopupBody};
-use super::menu_track::{MenuIn, MenuParams};
 use super::menus::BarMenu;
 use super::plan::PopupReport;
+use super::track::Event;
 use crate::links::{CenterLink, PowerMenuLink};
 use crate::menu::PopupLook;
 use crate::services::Services;
+use ds::MenuTiming;
 
 /// Whether a bar menu waits for the notification center to leave before its popup opens.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -37,7 +38,7 @@ pub(crate) struct PopupView {
 pub(crate) enum BarInput {
     /// A pointer event on the bar, with the title's measured rect when it came from one.
     Bar {
-        input: MenuIn,
+        input: Event,
         title: Option<(BarMenu, ds::Rect)>,
     },
     /// What the popup reported.
@@ -51,7 +52,7 @@ pub(crate) struct SessionDeps {
     pub state: BarState,
     pub services: Services,
     pub surface: Option<SurfaceHandle>,
-    pub params: MenuParams,
+    pub timing: MenuTiming,
     pub look: PopupLook,
     /// The bar's layer namespace, which names the popup's anchor in `menu_popup`.
     pub namespace: String,

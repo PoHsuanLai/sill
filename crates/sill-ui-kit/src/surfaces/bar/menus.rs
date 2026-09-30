@@ -5,8 +5,8 @@ use sill_settings::ControlCenterModule;
 
 use crate::surfaces::control_center::modules::{KINDS, module};
 
-use super::menu_track::MenuId;
 use super::popup::MenuSide;
+use super::track::MenuId;
 
 /// A bar title or status item that opens a menu.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -116,10 +116,7 @@ mod tests {
             };
             assert_eq!(menu.side(), side, "{menu:?}");
         }
-        assert_eq!(
-            BarMenu::of(crate::surfaces::bar::menu_track::MenuId(99)),
-            None
-        );
+        assert_eq!(BarMenu::of(crate::surfaces::bar::track::MenuId(99)), None);
         let modules: Vec<_> = BarMenu::ALL
             .into_iter()
             .filter_map(BarMenu::module)

@@ -725,7 +725,7 @@ where noted, and sill compiles against each.
     stays a daemon step (`prepare_wallpapers`), and `bar.height_px`'s reserved height is
     re-applied by `daemon/events.rs`'s `resize_bars` because the generic resize re-applies only
     the layer size.
-11. Removals inside surfaces: G7 estimate stack (FitContent), `bar/menu_track/` (ds's),
+11. Removals inside surfaces (done): G7 estimate stack (FitContent), `bar/menu_track/` (ds's),
     `CcModule`, `WidgetProvider`, dead components, `Visible` to `shell_host::Visibility`.
 12. Split the surface crates out of `sill-ui-kit`'s host: `sill-overlays`, `sill-notify-ui`,
     `sill-widgets-ui`, `sill-dock`, `sill-launcher-ui`, `sill-bar`; magnify to `sill-dock`,

@@ -1,6 +1,6 @@
 //! The bar's menu session: the tracking machine in a signal, its effects on the one popup, and
 //! the context the bar's titles feed it through. The only effectful part of the menus; every
-//! decision is `menu_track::step`, `plan::effects` or `content::body`.
+//! decision is `track::step`, `plan::effects` or `content::body`.
 
 use std::collections::HashMap;
 
@@ -15,14 +15,13 @@ use tokio::sync::{mpsc, watch};
 use super::content::{BarState, body, front_app};
 use super::layer::layer;
 use super::menu_popup::{BarPopup, PopupLink};
-use super::menu_track::Target;
-use super::menu_track::{MenuIn, MenuParams, MenuTrack, step};
 use super::menus::BarMenu;
 use super::model::{BarInput, Handoff, PopupView, SessionDeps, status_box};
 use super::pick::{BarPick, Command, commands};
 use super::plan::{BarEffect, PopupReport, effects, popup_input};
 use super::popup::menu_popup;
 use super::popup::{BOTTOM, MAX_PX, TOP, placement};
+use super::track::{Event, Target, Track, step};
 use crate::clock::FrameClock;
 use crate::hooks::{use_service, use_service_part, use_services, use_settings};
 use crate::links::{CenterLink, CenterShown, ControlCenterLink, PowerMenuLink, Preselect};
@@ -58,14 +57,14 @@ impl MenuBar {
     /// `sill control-center toggle`, which has no pointer event behind it.
     pub(crate) fn toggle(&self, menu: BarMenu) {
         let press = BarInput::Bar {
-            input: MenuIn::PressTitle(menu.id()),
+            input: Event::PressTitle(menu.id()),
             title: None,
         };
         let showing = *self.open.peek() == Some(menu);
         self.feed(press);
         if !showing {
             self.feed(BarInput::Bar {
-                input: MenuIn::Release(Target::Title(menu.id())),
+                input: Event::Release(Target::Title(menu.id())),
                 title: None,
             });
         }
@@ -81,7 +80,7 @@ struct Link {
 /// The mutable halves of a session, all `Copy` handles.
 #[derive(Clone, Copy)]
 struct Slots {
-    track: Signal<MenuTrack>,
+    track: Signal<Track>,
     open: Signal<Option<BarMenu>>,
     rects: Signal<HashMap<BarMenu, ds::Rect>>,
     link: CopyValue<Link>,
@@ -108,7 +107,7 @@ pub(super) fn use_bar(output: &OutputInfo, look: PopupLook) -> MenuBar {
         state,
         services: use_services(),
         surface: try_use_context::<SurfaceHandle>(),
-        params: MenuParams::new(&file.menus),
+        timing: super::track::timing(&file.menus),
         look,
         namespace: layer(output, &file).namespace,
         output: output.id,
@@ -157,7 +156,7 @@ pub(crate) fn use_menu_session(deps: SessionDeps) -> MenuBar {
         (tx, CopyValue::new(Some(rx)))
     });
     let slots = Slots {
-        track: use_signal(|| MenuTrack::Closed),
+        track: use_signal(|| Track::new(deps.timing)),
         open: use_signal(|| None),
         rects: use_signal(HashMap::new),
         link: use_hook(|| {
@@ -207,9 +206,13 @@ fn handle(slots: Slots, deps: &SessionDeps, clock: FrameClock, input: BarInput) 
         BarInput::CenterGone => {
             let mut handoff = slots.handoff;
             let waiting = handoff.replace(Handoff::Idle);
-            if let (Handoff::Waiting, MenuTrack::Tracking { menu, .. }) =
-                (waiting, &*slots.track.peek())
-                && let Some(menu) = BarMenu::of(*menu)
+            if waiting == Handoff::Waiting
+                && let Some(menu) = slots
+                    .track
+                    .peek()
+                    .open_menu()
+                    .copied()
+                    .and_then(BarMenu::of)
             {
                 show(slots, deps, menu);
             }
@@ -217,7 +220,7 @@ fn handle(slots: Slots, deps: &SessionDeps, clock: FrameClock, input: BarInput) 
         }
     };
     let mut track = slots.track;
-    let (next, outs) = step(track.peek().clone(), input, clock.now(), &deps.params);
+    let (next, outs) = step(track.peek().clone(), input, clock.now());
     if *track.peek() != next {
         track.set(next);
     }

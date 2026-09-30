@@ -9,9 +9,9 @@ use ds_shell::MenuBarItem;
 use shell_host::Point;
 
 use super::io::MenuBar;
-use super::menu_track::{MenuIn, Target};
 use super::menus::BarMenu;
 use super::model::BarInput;
+use super::track::{Event, Target, point};
 use crate::hooks::use_settings;
 
 /// The pointer's position in the bar, whole logical pixels.
@@ -50,7 +50,7 @@ pub(crate) fn TitleSlot(
         Shown::Hidden
     };
     let title = move || probe.rect().map(|rect| (menu, rect));
-    let send = move |input: MenuIn| {
+    let send = move |input: Event| {
         bar.feed(BarInput::Bar {
             input,
             title: title(),
@@ -62,14 +62,14 @@ pub(crate) fn TitleSlot(
             style,
             onpointerdown: move |event| {
                 event.stop_propagation();
-                send(MenuIn::PressTitle(menu.id()));
+                send(Event::PressTitle(menu.id()));
             },
             onpointerup: move |event| {
                 event.stop_propagation();
-                send(MenuIn::Release(Target::Title(menu.id())));
+                send(Event::Release(Target::Title(menu.id())));
             },
             onpointerenter: move |event| {
-                send(MenuIn::Move(pointer_at(&event), Target::Title(menu.id())));
+                send(Event::Move(point(pointer_at(&event)), Target::Title(menu.id())));
             },
             match pill {
                 SlotPill::Item(emphasis) => rsx! {

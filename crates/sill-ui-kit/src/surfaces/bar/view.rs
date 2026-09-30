@@ -9,11 +9,11 @@ use super::app_name::AppName;
 use super::clock::ClockItem;
 use super::control_center_item::ControlCenterItem;
 use super::io::use_bar;
-use super::menu_track::{MenuIn, Target};
 use super::model::BarInput;
 use super::module_item::ModuleItem;
 use super::shell_style::shell_metrics;
 use super::status_item::status_metrics;
+use super::track::{Event, Target};
 use super::tray::Tray;
 use super::workspaces::WorkspaceIndicator;
 use crate::hooks::{use_appearance, use_service, use_settings};
@@ -43,7 +43,7 @@ pub(super) fn bar(output: OutputInfo) -> Element {
     };
     let session = use_bar(&output, popup_look);
     let modules = menu_bar_modules(&file.control_center);
-    let outside = move |input: MenuIn| session.feed(BarInput::Bar { input, title: None });
+    let outside = move |input: Event| session.feed(BarInput::Bar { input, title: None });
     let strip = format!("height:{}px", file.bar.height_px.0);
     let status = format!(
         "gap:{}px;{}",
@@ -65,8 +65,8 @@ pub(super) fn bar(output: OutputInfo) -> Element {
             div {
                 class: "sill-bar",
                 style: strip,
-                onpointerdown: move |_| outside(MenuIn::OutsidePress),
-                onpointerup: move |_| outside(MenuIn::Release(Target::Outside)),
+                onpointerdown: move |_| outside(Event::OutsidePress),
+                onpointerup: move |_| outside(Event::Release(Target::Outside)),
                 div { class: "sill-bar-group",
                     AppName { output: output.clone() }
                     WorkspaceIndicator { output: output.clone() }

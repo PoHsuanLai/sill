@@ -3,11 +3,11 @@
 //! swap"), and from what the popup reports back to the machine's inputs. Pure.
 
 use ds::{Availability, MenuEntry};
-use shell_host::Point;
+use ds::{Branch, ItemPath, MenuKey, Pickable, Point};
 
-use super::menu_track::{Branch, ItemPath, MenuIn, MenuKey, MenuOut, Pick, Target};
 use super::menus::BarMenu;
 use super::pick::BarPick;
+use super::track::{Effect, Event, Target};
 
 /// One thing the bar does.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -55,17 +55,17 @@ pub(crate) enum PopupReport {
 /// `Picked` that follows finds the session closed. `Picked` remains for the keyboard's Enter.
 /// Hover moves carry no point: the popup is another surface, and the point only feeds the
 /// safe triangle, which bar menus (no submenus) never arm.
-pub(crate) fn popup_input(report: PopupReport) -> (MenuIn, Option<BarPick>) {
+pub(crate) fn popup_input(report: PopupReport) -> (Event, Option<BarPick>) {
     match report {
-        PopupReport::Picked(pick) => (MenuIn::Release(item(0)), Some(pick)),
-        PopupReport::Hovered(Some(index)) => (MenuIn::Move(Point::default(), item(index)), None),
-        PopupReport::Hovered(None) => (MenuIn::Move(Point::default(), Target::Menu), None),
+        PopupReport::Picked(pick) => (Event::Release(item(0)), Some(pick)),
+        PopupReport::Hovered(Some(index)) => (Event::Move(Point::default(), item(index)), None),
+        PopupReport::Hovered(None) => (Event::Move(Point::default(), Target::Menu), None),
         PopupReport::Released(Some(choice)) => {
-            (MenuIn::Release(item(choice.index)), Some(choice.pick))
+            (Event::Release(item(choice.index)), Some(choice.pick))
         }
-        PopupReport::Released(None) => (MenuIn::Release(Target::Menu), None),
-        PopupReport::Dismissed => (MenuIn::Key(MenuKey::Escape), None),
-        PopupReport::Gone => (MenuIn::OutsidePress, None),
+        PopupReport::Released(None) => (Event::Release(Target::Menu), None),
+        PopupReport::Dismissed => (Event::Key(MenuKey::Escape), None),
+        PopupReport::Gone => (Event::OutsidePress, None),
     }
 }
 
@@ -73,7 +73,7 @@ pub(crate) fn popup_input(report: PopupReport) -> (MenuIn, Option<BarPick>) {
 fn item(index: usize) -> Target {
     Target::Item {
         path: ItemPath(vec![u16::try_from(index).unwrap_or(u16::MAX)]),
-        pick: Pick::Enabled,
+        pick: Pickable::Enabled,
         branch: Branch::Leaf,
     }
 }
@@ -102,19 +102,19 @@ pub(crate) fn choice(entries: &[MenuEntry<BarPick>], index: usize) -> Option<Cho
 /// them. Highlight, submenu, adjacent-menu and timer outputs belong to the ds `Menu` inside the
 /// popup, which draws its own selection; bar menus have no submenus, so the machine never asks
 /// for a tick here.
-pub(crate) fn effects(outs: Vec<MenuOut>, picked: Option<BarPick>) -> Vec<BarEffect> {
+pub(crate) fn effects(outs: Vec<Effect>, picked: Option<BarPick>) -> Vec<BarEffect> {
     let mut picked = picked;
     outs.into_iter()
         .filter_map(|out| match out {
-            MenuOut::Open(id, _) => BarMenu::of(id).map(BarEffect::Show),
-            MenuOut::Switch(id) => BarMenu::of(id).map(BarEffect::Swap),
-            MenuOut::Close(_) => Some(BarEffect::Hide),
-            MenuOut::Pick(_) => picked.take().map(BarEffect::Run),
-            MenuOut::Highlight(_)
-            | MenuOut::RequestTick(_)
-            | MenuOut::OpenSub(_)
-            | MenuOut::CloseSub
-            | MenuOut::Adjacent(_) => None,
+            Effect::Open(id, _) => BarMenu::of(id).map(BarEffect::Show),
+            Effect::Check(id) => BarMenu::of(id).map(BarEffect::Swap),
+            Effect::Close(_) => Some(BarEffect::Hide),
+            Effect::Pick(_) => picked.take().map(BarEffect::Run),
+            Effect::Highlight(_)
+            | Effect::RequestTick(_)
+            | Effect::OpenSub(_)
+            | Effect::CloseSub
+            | Effect::Adjacent(_) => None,
         })
         .collect()
 }
@@ -122,28 +122,28 @@ pub(crate) fn effects(outs: Vec<MenuOut>, picked: Option<BarPick>) -> Vec<BarEff
 #[cfg(test)]
 mod tests {
     use super::{BarEffect, Choice, PopupReport, choice, effects, popup_input};
-    use crate::surfaces::bar::menu_track::{MenuIn, MenuParams, MenuTrack, Target, step};
     use crate::surfaces::bar::menus::BarMenu;
     use crate::surfaces::bar::pick::BarPick;
-    use shell_host::Point;
+    use crate::surfaces::bar::track::{Event, Target, Track, step, timing};
+    use ds::{MenuPhase, Point, Px};
     use sill_model::units::Stamp;
 
     /// A bar input: a pointer event on a title or the bar, or what the popup reported.
     enum Input {
-        Bar(MenuIn),
+        Bar(Event),
         Popup(PopupReport),
     }
 
-    fn run(inputs: Vec<Input>) -> (MenuTrack, Vec<BarEffect>) {
-        let params = MenuParams::new(&sill_settings::MenusSettings::default());
+    fn run(inputs: Vec<Input>) -> (Track, Vec<BarEffect>) {
+        let timing = timing(&sill_settings::MenusSettings::default());
         inputs.into_iter().enumerate().fold(
-            (MenuTrack::Closed, Vec::new()),
+            (Track::new(timing), Vec::new()),
             |(track, mut all), (ms, input)| {
                 let (input, picked) = match input {
                     Input::Bar(input) => (input, None),
                     Input::Popup(report) => popup_input(report),
                 };
-                let (track, outs) = step(track, input, Stamp(ms as u64 * 16), &params);
+                let (track, outs) = step(track, input, Stamp(ms as u64 * 16));
                 all.extend(effects(outs, picked));
                 (track, all)
             },
@@ -151,15 +151,21 @@ mod tests {
     }
 
     fn press(menu: BarMenu) -> Input {
-        Input::Bar(MenuIn::PressTitle(menu.id()))
+        Input::Bar(Event::PressTitle(menu.id()))
     }
 
     fn release(menu: BarMenu) -> Input {
-        Input::Bar(MenuIn::Release(Target::Title(menu.id())))
+        Input::Bar(Event::Release(Target::Title(menu.id())))
     }
 
     fn enter(menu: BarMenu) -> Input {
-        Input::Bar(MenuIn::Move(Point { x: 0, y: 0 }, Target::Title(menu.id())))
+        Input::Bar(Event::Move(
+            Point {
+                x: Px(0.0),
+                y: Px(0.0),
+            },
+            Target::Title(menu.id()),
+        ))
     }
 
     #[test]
@@ -222,7 +228,7 @@ mod tests {
                 vec![
                     press(BarMenu::Volume),
                     release(BarMenu::Volume),
-                    Input::Bar(MenuIn::OutsidePress),
+                    Input::Bar(Event::OutsidePress),
                 ],
                 vec![BarEffect::Show(BarMenu::Volume), BarEffect::Hide],
                 false,
@@ -356,7 +362,7 @@ mod tests {
             let (track, got) = run(inputs);
             assert_eq!(got, want, "{name}");
             assert_eq!(
-                matches!(track, MenuTrack::Tracking { .. }),
+                matches!(track.phase, MenuPhase::Tracking(_)),
                 open,
                 "{name}: {track:?}"
             );
