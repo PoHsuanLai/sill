@@ -10,7 +10,7 @@ its traits, its recipes and its repo rules. Where they disagree, this file wins 
 
 | Repo | What sill takes from it |
 | --- | --- |
-| quire (`../quire`, path deps) | `ds-core` (vocabulary, units, `Word`, colour, time), `ds-style` (appearance, tokens, materials), `ds-motion` (timelines, `Presence`, gestures), `ds` (components, `DocumentHost`, menus, `ds::prelude`), `ds-shell` (shell components, widget contract, status glyphs, battery), `ds-lint`, `ds-settings` (`SettingsDoc`, `Store`, schema derive; dioxus behind a feature), `ds-native` (`provide_host()`, measure, focus, caret, snap, `Harness`, `Driver`, `DocQuery`) |
+| quire (`../quire`, path deps) | `ds-core` (vocabulary, units, `Word`, colour, time), `ds-style` (appearance, tokens, materials), `ds-motion` (timelines, `Presence`, gestures), `ds` (components, `DocumentHost`, menus, `ds::prelude`), `ds-shell` (shell components, widget contract, status glyphs, battery), `ds-lint`, `ds-settings` (`SettingsDoc`, `Store`, schema derive; dioxus behind a feature), `ds-blitz` (`provide_host()`, measure, focus, caret, snap), `ds-harness` (`Driver`, `DocQuery`; dev only) |
 | shell-host (`../shell-host`) | Host, layer surfaces and popups, input, frames, regions, session lock, scroll engine, `Visibility`, `Inject` (pointer and key, `debug-inject`) |
 | latchkey (git) | the single-instance agent socket |
 
@@ -24,7 +24,8 @@ Layers, lowest first. A crate depends only on the crates listed for it; every ot
 forbidden and Cargo enforces it (a surface crate that does not list another cannot name it).
 `scripts/check-boundary.sh` keeps the table exact: its `EDGES` rows are each crate's direct normal
 and build path dependencies, sill and quire and shell-host alike; dev dependencies are not
-listed except where noted.
+listed except where noted. Until quire's step 9 splits `ds-native` into `ds-blitz` and
+`ds-harness`, both names mean today's `ds-native` (the script's `EDGES` and `RULES` say `ds-native`).
 
 | # | Crate | What it is | May depend on (sill crates, then key externals) |
 | --- | --- | --- | --- |
@@ -35,14 +36,14 @@ listed except where noted.
 | 2 | `sill-ipc` | The wire: `Request`/`Response`, one JSON line, 64 KiB cap. Serialises `sill-model` types | `sill-model`, `sill-launcher`; serde, serde_json, thiserror |
 | 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`, `sill-launcher`; tokio, zbus, cctk, libpulse, notify, nonstick, ddc, image |
 | 4 | `sill-search` | The launcher's runner (`ResultsService`), `providers/`, excerpts and clip images | `sill-services`, `sill-model`, `sill-launcher`, `ds-settings` (no features: the schema files the settings provider indexes); fend, emojis |
-| 5 | `sill-ui-kit` | What every surface shares: `Services` registry, `SettingsFeed`, `SurfaceRoot`, `Surface` and its `mount`, `links/`, `Machine`, hooks, `look`, `panel`, `shell_style`, `MenuPopup<M>`, `app_icons`, `status`, `notification_card`, `widgets/`, `harness` (feature: fake services, `SurfaceHarness`) | `sill-search`, `sill-services`, `sill-settings`, `sill-model`, `sill-launcher`, `ds`, `ds-shell`, `ds-settings` (dioxus), `ds-native`, `shell-host`; dioxus, resvg, image; dev: `ds-lint` |
-| 6 | `sill-bar` | Bar, its menus, tray, control center and its modules | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `ds-native`, `shell-host`; dev: `ds-lint` |
-| 6 | `sill-dock` | Dock, magnify, context menu | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-native`, `shell-host`; dev: `ds-lint` |
-| 6 | `sill-launcher-ui` | Launcher panel and catcher, rows, preview pane, actions | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-search`*, `sill-services`*; `ds`, `ds-native`, `shell-host`; dev: `ds-lint`, `ds-shell` |
-| 6 | `sill-notify-ui` | Banners, notification center, screenshot thumbnail | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `ds-native`, `shell-host` |
+| 5 | `sill-ui-kit` | What every surface shares: `Services` registry, `SettingsFeed`, `SurfaceRoot`, `Surface` and its `mount`, `links/`, `Machine`, hooks, `look`, `panel`, `shell_style`, `MenuPopup<M>`, `app_icons`, `status`, `notification_card`, `widgets/`, `harness` (feature: fake services, `SurfaceHarness`) | `sill-search`, `sill-services`, `sill-settings`, `sill-model`, `sill-launcher`, `ds`, `ds-shell`, `ds-settings` (dioxus), `ds-blitz`, `shell-host`; dioxus, resvg, image; dev: `ds-lint`, `ds-harness` |
+| 6 | `sill-bar` | Bar, its menus, tray, control center and its modules | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `ds-blitz`, `shell-host`; dev: `ds-lint` |
+| 6 | `sill-dock` | Dock, magnify, context menu | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-blitz`, `shell-host`; dev: `ds-lint` |
+| 6 | `sill-launcher-ui` | Launcher panel and catcher, rows, preview pane, actions | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-search`*, `sill-services`*; `ds`, `ds-blitz`, `shell-host`; dev: `ds-lint`, `ds-shell` |
+| 6 | `sill-notify-ui` | Banners, notification center, screenshot thumbnail | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `ds-blitz`, `shell-host` |
 | 6 | `sill-widgets-ui` | Desktop widget layer, Edit Widgets | `sill-ui-kit`, `sill-settings`; `ds`, `ds-shell`, `shell-host`; dev: `sill-model`, `ds-lint` |
 | 6 | `sill-overlays` | OSD, power menu, polkit prompt, switcher, idle dim, hot corners, wallpaper, lock | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `shell-host` |
-| 7 | `sill` | Binary and library: `cli/`, `daemon/`, `ipc/`, `policy/` | every crate above except `sill-testkit`; `ds-native`, `ds-settings`, `shell-host`; clap, latchkey, `ds-lint` and `ds-shell` (`sill style check`); dev: `sill-testkit`, `sill-ui-kit` (harness), `ds` |
+| 7 | `sill` | Binary and library: `cli/`, `daemon/`, `ipc/`, `policy/` | every crate above except `sill-testkit`; `ds-blitz`, `ds-settings`, `shell-host`; clap, latchkey, `ds-lint` and `ds-shell` (`sill style check`); dev: `sill-testkit`, `sill-ui-kit` (harness), `ds` |
 
 `*` A surface crate names `sill-services` (and `sill-search` for the launcher) only for service
 marker types (`BatteryService`), `Control` and `Handle`, the type arguments of `use_service`.
@@ -54,8 +55,8 @@ its status, and `EDGES` compare each crate's direct path dependencies with the t
 
 | Crates | Reach none of (through any path) |
 | --- | --- |
-| `sill-launcher`, `sill-model`, `sill-ipc` | dioxus, dioxus-core, zbus, wayland-client, tokio, libpulse-binding, shell-host, ds, ds-shell, ds-native, blitz-dom |
-| `sill-settings`, `sill-search` | dioxus, dioxus-core, blitz-dom, shell-host, ds, ds-shell, ds-native (`ds-settings` brings zbus and tokio to both) |
+| `sill-launcher`, `sill-model`, `sill-ipc` | dioxus, dioxus-core, zbus, wayland-client, tokio, libpulse-binding, shell-host, ds, ds-shell, ds-blitz, blitz-dom |
+| `sill-settings`, `sill-search` | dioxus, dioxus-core, blitz-dom, shell-host, ds, ds-shell, ds-blitz (`ds-settings` brings zbus and tokio to both) |
 | `sill-services` | the same, and `ds-settings` |
 | `sill-testkit` | every other sill crate |
 | `sill-ui-kit` | every surface crate, `sill` |
@@ -654,7 +655,7 @@ installs them.
 | Pure (`sill-model` steps, `sill-launcher`, `sill-settings` parse, `sill-ipc` words) | `CASES` tables beside the code; serde round trips against exact bytes |
 | Service backend | `sill-services/tests/<x>_bus.rs`: `Env::isolated(tmp)` with `Buses` set to a `PrivateBus` address; peers are `sill-testkit` stand-ins. Runs in the gate. Only a test that needs a compositor is `#[ignore]`d and run from a dev script |
 | Providers, runner | `VecSink` and a fake `Sources::Providers`; the runner's latency test |
-| Surface | `SurfaceHarness<S: Surface>` (`sill-ui-kit`, feature `harness`) over quire's `ds_native::Harness`: `SurfaceHarness::<S>::setup(link, slot)` then `.settings(ShellFile)`, `.viewport(..)`, `.appearance(..)`, `.start()`. It mounts `surface::mount::<S>` on fake `Services` (`fake::services()`; state set through `run.feeds`, commands read), a `PinnedAppearance`, `Clock::Virtual`, the surface's link (`run.link`) and the settings; the viewport is the surface's layer size unless overridden. `run.harness` is the `Harness` (`advance`, `html`, `pointer_move`, `count`). One live harness per thread. Real-input checks are dev scripts on shell-host's headless KWin |
+| Surface | `SurfaceHarness<S: Surface>` (`sill-ui-kit`, feature `harness`) over quire's `ds_native::Harness` (`ds-harness` after quire's step 9): `SurfaceHarness::<S>::setup(link, slot)` then `.settings(ShellFile)`, `.viewport(..)`, `.appearance(..)`, `.start()`. It mounts `surface::mount::<S>` on fake `Services` (`fake::services()`; state set through `run.feeds`, commands read), a `PinnedAppearance`, `Clock::Virtual`, the surface's link (`run.link`) and the settings; the viewport is the surface's layer size unless overridden. `run.harness` is the `Harness` (`advance`, `html`, `pointer_move`, `count`). One live harness per thread. Real-input checks are dev scripts on shell-host's headless KWin |
 | Machines | table tests of `step`; `use_machine` is tested once in `sill-ui-kit` |
 | Markup lint | `crates/sill/tests/lint.rs`: `const SURFACES: &[SurfaceCase]`, one loop over all 17, each row names its surface |
 | IPC and CLI | `crates/sill/tests/ipc.rs` (fake dispatcher, cap, timeout), `cli/request.rs` table |
