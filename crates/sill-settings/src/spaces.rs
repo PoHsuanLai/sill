@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 #[word(case = snake)]
 pub enum DefaultCardAccent {
     #[default]
-    Postmark,
+    Chosen,
     SpaceHue,
 }
 
@@ -45,7 +45,7 @@ pub struct SpacesSettings {
     pub default_grain: Count,
     #[settings(
         label = "Default accent",
-        help = "Postmark blue, or the Space's own hue.",
+        help = "The accent you picked, or the Space's own hue.",
         section = "Defaults",
         advanced
     )]
@@ -63,7 +63,7 @@ impl Default for SpacesSettings {
     fn default() -> Self {
         SpacesSettings {
             default_grain: Count(40),
-            default_card_accent: DefaultCardAccent::Postmark,
+            default_card_accent: DefaultCardAccent::Chosen,
             wallpaper_drawer: WallpaperDrawer::Shell,
         }
     }

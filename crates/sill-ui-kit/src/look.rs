@@ -72,7 +72,7 @@ pub fn use_space_look(index: usize, spaces: &SpacesSettings) -> SpaceLook {
 /// `spaces.default_card_accent` in quire's words.
 fn card_accent(accent: DefaultCardAccent) -> CardAccent {
     match accent {
-        DefaultCardAccent::Postmark => CardAccent::Postmark,
+        DefaultCardAccent::Chosen => CardAccent::Chosen,
         DefaultCardAccent::SpaceHue => CardAccent::SpaceHue,
     }
 }

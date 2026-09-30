@@ -31,7 +31,7 @@ exposure = "basic"
 kind = "menu"
 
 [key.kind.v]
-variants = ["red", "orange", "yellow", "green", "blue", "violet"]
+variants = ["red", "orange", "yellow", "green", "graphite", "pink", "purple", "blue"]
 
 [key.page]
 kind = "appearance"

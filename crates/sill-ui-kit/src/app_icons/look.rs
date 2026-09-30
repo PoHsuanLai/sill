@@ -83,7 +83,7 @@ fn tint_of(tint: MonochromeTint, space: &SpaceLook, accent: Accent) -> Tint {
 fn card_accent(space: &SpaceLook, accent: Accent) -> String {
     match space.card_accent {
         CardAccent::SpaceHue => derive(&space.dots, Scheme::Light).accent,
-        CardAccent::Postmark => accent_of(accent, Scheme::Light).fill.css(),
+        CardAccent::Chosen => accent_of(accent, Scheme::Light).fill.css(),
     }
 }
 
@@ -109,7 +109,7 @@ mod tests {
     #[test]
     fn colour_and_muted_ignore_the_tint() {
         use ds_settings::IconStyle as S;
-        let work = default_look(0, Grain(35), CardAccent::Postmark);
+        let work = default_look(0, Grain(35), CardAccent::Chosen);
         for (style, want) in [(S::Colour, IconStyle::Colour), (S::Muted, IconStyle::Muted)] {
             let look = icon_look(
                 &icons(style, MonochromeTint::Space),
@@ -129,12 +129,12 @@ mod tests {
     }
 
     /// Space follows the workspace's preset (Work near 268, Home near 152), Accent the card's
-    /// accent (Postmark: the appearance accent; SpaceHue: the Space's), Neutral none.
+    /// accent (Chosen: the appearance accent; SpaceHue: the Space's), Neutral none.
     #[test]
     fn monochrome_takes_its_tint_from_the_setting() {
         use ds_settings::IconStyle::Monochrome;
-        let work = default_look(0, Grain(35), CardAccent::Postmark);
-        let home = default_look(1, Grain(55), CardAccent::Postmark);
+        let work = default_look(0, Grain(35), CardAccent::Chosen);
+        let home = default_look(1, Grain(55), CardAccent::Chosen);
         let at = |tint, space, accent| {
             icon_look(&icons(Monochrome, tint), space, accent, Scheme::Light).tint
         };
@@ -182,7 +182,7 @@ mod tests {
     #[test]
     fn only_a_retinted_style_keys_on_the_scheme() {
         use ds_settings::IconStyle as S;
-        let work = default_look(0, Grain(35), CardAccent::Postmark);
+        let work = default_look(0, Grain(35), CardAccent::Chosen);
         let cases = [
             (S::Colour, Scheme::Light),
             (S::Muted, Scheme::Dark),
