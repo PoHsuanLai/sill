@@ -7,6 +7,7 @@ use shell_host::{HostCtx, HostRoot, OutputInfo};
 use shell_host::{Size as BufferSize, buffer_size};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
+use sill_overlays::{HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
 use sill_settings::{ShellFile, WallpaperDrawer};
 use sill_ui_kit::links::Links;
 use sill_ui_kit::links::PlacementFile;
@@ -14,9 +15,8 @@ use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::surface::{LockSurface, MountLockProps, mount_lock};
 use sill_ui_kit::{
-    Banners, Bar, DesktopWidgets, Dock, EditWidgets, HotCorners, IdleDim, Launcher,
-    LauncherCatcher, Lock, NotificationCenter, Osd, PolkitPrompt, PowerMenu, ScreenshotThumb,
-    Switcher, Wallpaper,
+    Banners, Bar, DesktopWidgets, Dock, EditWidgets, Launcher, LauncherCatcher, NotificationCenter,
+    ScreenshotThumb,
 };
 use tokio::sync::watch;
 

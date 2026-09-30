@@ -1,5 +1,5 @@
 //! Hot corners on the daemon's side: the actions a firing carries out. The corner surfaces are
-//! spawned like any `Surface` (`sill_ui_kit::surfaces::hot_corners::HotCorners`).
+//! spawned like any `Surface` (`sill_overlays::hot_corners::HotCorners`).
 //!
 //! A firing arrives on the [`CornerLink`] (from a corner surface's machine, or from
 //! `sill debug corner`); [`spawn_hits`] follows it and carries out [`corner_effect`] of that corner's
@@ -126,11 +126,9 @@ pub fn spawn_hits(
                 continue;
             };
             let file = settings.borrow().clone();
-            let action =
-                sill_ui_kit::surfaces::hot_corners::corner_action(&file.hot_corners, hit.corner);
-            let command =
-                sill_ui_kit::surfaces::hot_corners::corner_command(&file.hot_corners, hit.corner)
-                    .to_owned();
+            let action = sill_overlays::hot_corners::corner_action(&file.hot_corners, hit.corner);
+            let command = sill_overlays::hot_corners::corner_command(&file.hot_corners, hit.corner)
+                .to_owned();
             let effect = corner_effect(action, &command);
             act(effect, hit.output, &services, &links, &mut stash).await;
         }

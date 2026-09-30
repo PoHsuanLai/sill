@@ -5353,6 +5353,7 @@ dependencies = [
  "sill-ipc",
  "sill-launcher",
  "sill-model",
+ "sill-overlays",
  "sill-search",
  "sill-services",
  "sill-settings",
@@ -5391,6 +5392,27 @@ dependencies = [
  "serde_json",
  "sill-launcher",
  "thiserror 2.0.20",
+]
+
+[[package]]
+name = "sill-overlays"
+version = "0.1.0"
+dependencies = [
+ "dioxus",
+ "ds",
+ "ds-native",
+ "ds-settings",
+ "ds-shell",
+ "image",
+ "jiff",
+ "serde",
+ "shell-host",
+ "sill-launcher",
+ "sill-model",
+ "sill-services",
+ "sill-settings",
+ "sill-ui-kit",
+ "tokio",
 ]
 
 [[package]]

@@ -1,5 +1,5 @@
 //! The daemon's half of the OSD (design/20 §1.7): the decision of which changes show and where.
-//! The indicator per output is spawned like any `Surface` (`sill_ui_kit::Osd`).
+//! The indicator per output is spawned like any `Surface` (`sill_overlays::Osd`).
 //!
 //! **Which changes show.** Only the ones sill makes itself: `sill display volume ...` and
 //! `sill display brightness ...`, which are what the volume and brightness keys run (`dist/

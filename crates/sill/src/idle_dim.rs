@@ -1,4 +1,4 @@
-//! The daemon's half of the idle dim: the dim surfaces (`sill_ui_kit::IdleDim`, one per output,
+//! The daemon's half of the idle dim: the dim surfaces (`sill_overlays::IdleDim`, one per output,
 //! spawned warm and hidden) are mapped only while the idle service publishes `Idle.dim = Dimmed(_)`. The surface itself follows
 //! the same `Idle.dim` to fade in and snap out; this side only maps and unmaps, so an awake output
 //! has no dim surface on screen at all.
@@ -10,10 +10,10 @@
 
 use shell_host::{HostCtx, HostHandle, Visibility};
 use sill_model::idle::DimShown;
-use sill_ui_kit::IdleDim;
+use sill_overlays::IdleDim;
+use sill_overlays::idle_dim::visibility_of;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::surface::Surface;
-use sill_ui_kit::surfaces::idle_dim::visibility_of;
 use tokio::runtime::Handle;
 
 use crate::daemon::msg::ShellMsg;

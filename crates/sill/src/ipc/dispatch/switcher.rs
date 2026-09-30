@@ -7,7 +7,7 @@
 use shell_host::OutputId;
 use sill_ipc::act::SwitcherRequest;
 use sill_ipc::response::Response;
-use sill_ui_kit::Switcher;
+use sill_overlays::Switcher;
 use sill_ui_kit::links::BannerOutput;
 use sill_ui_kit::links::{Dir, SwitcherAsk};
 

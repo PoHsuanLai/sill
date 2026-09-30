@@ -21,6 +21,7 @@ use sill_model::polkit_agent::{
 use sill_model::screenshots::{Shot, ShotId, ShotPreview, Shots};
 use sill_model::session::Session;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
+use sill_overlays::{IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
 use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
@@ -29,8 +30,8 @@ use sill_ui_kit::links::{
     SwitcherAsk, SwitcherLink,
 };
 use sill_ui_kit::{
-    Banners, Bar, DesktopWidgets, Dock, EditWidgets, IdleDim, Launcher, LauncherCatcher, Lock,
-    NotificationCenter, Osd, PolkitPrompt, PowerMenu, ScreenshotThumb, Switcher, Wallpaper,
+    Banners, Bar, DesktopWidgets, Dock, EditWidgets, Launcher, LauncherCatcher, NotificationCenter,
+    ScreenshotThumb,
 };
 
 /// One surface's row: its stylesheet and a way to draw each state to lint.
@@ -75,7 +76,7 @@ const SURFACES: &[SurfaceCase] = &[
     },
     SurfaceCase {
         name: "osd",
-        css: sill_ui_kit::surfaces::osd::OSD_CSS,
+        css: sill_overlays::osd::OSD_CSS,
         states: osd_states,
     },
     SurfaceCase {
@@ -85,7 +86,7 @@ const SURFACES: &[SurfaceCase] = &[
     },
     SurfaceCase {
         name: "lock",
-        css: sill_ui_kit::surfaces::lock::LOCK_CSS,
+        css: sill_overlays::lock::LOCK_CSS,
         states: lock_states,
     },
     SurfaceCase {
@@ -105,22 +106,22 @@ const SURFACES: &[SurfaceCase] = &[
     },
     SurfaceCase {
         name: "hot_corners",
-        css: sill_ui_kit::surfaces::hot_corners::HOT_CORNERS_CSS,
+        css: sill_overlays::hot_corners::HOT_CORNERS_CSS,
         states: no_states,
     },
     SurfaceCase {
         name: "wallpaper",
-        css: sill_ui_kit::surfaces::wallpaper::WALLPAPER_CSS,
+        css: sill_overlays::wallpaper::WALLPAPER_CSS,
         states: wallpaper_states,
     },
     SurfaceCase {
         name: "power_menu",
-        css: sill_ui_kit::surfaces::power_menu::POWER_MENU_CSS,
+        css: sill_overlays::power_menu::POWER_MENU_CSS,
         states: power_menu_states,
     },
     SurfaceCase {
         name: "switcher",
-        css: sill_ui_kit::surfaces::switcher::SWITCHER_CSS,
+        css: sill_overlays::switcher::SWITCHER_CSS,
         states: switcher_states,
     },
     SurfaceCase {

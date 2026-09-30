@@ -21,6 +21,7 @@ sill-search = { workspace = true }
 sill-services = { workspace = true }
 sill-settings = { workspace = true }
 sill-ui-kit = { workspace = true }
+sill-overlays = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 

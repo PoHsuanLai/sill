@@ -124,7 +124,7 @@ pub fn reconcile(current: &Outputs, now: &[OutputInfo]) -> Vec<OutputAction> {
 mod tests {
     use super::{OutputSurfaces, Outputs, Spawned, reconcile};
     use shell_host::{LayerExtent, LayerSize, OutputId, OutputInfo, Rect, Scale, SurfaceId};
-    use sill_ui_kit::HotCorners;
+    use sill_overlays::HotCorners;
     use sill_ui_kit::surface::Surface;
 
     fn output(id: u32, name: &str, width: i32) -> OutputInfo {

@@ -4,6 +4,7 @@ members = [
   "crates/sill-ipc",
   "crates/sill-launcher",
   "crates/sill-model",
+  "crates/sill-overlays",
   "crates/sill-search",
   "crates/sill-services",
   "crates/sill-settings",
@@ -30,6 +31,7 @@ sill-services = { path = "crates/sill-services" }
 sill-settings = { path = "crates/sill-settings" }
 sill-testkit  = { path = "crates/sill-testkit" }
 sill-ui-kit   = { path = "crates/sill-ui-kit" }
+sill-overlays = { path = "crates/sill-overlays" }
 # Sibling repos, checked out next to this one.
 ds-core    = { path = "../quire/crates/ds-core" }
 ds         = { path = "../quire/crates/ds" }

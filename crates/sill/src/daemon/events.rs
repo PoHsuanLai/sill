@@ -10,6 +10,7 @@ use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_ipc::show::{LauncherRequest, ShowRequest};
 use sill_model::displays::DisplaysCommand;
+use sill_overlays::PowerMenu;
 use sill_settings::ShellFile;
 use sill_ui_kit::Bar;
 use sill_ui_kit::links::Links;
@@ -17,7 +18,7 @@ use sill_ui_kit::links::Transient;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::surface::Surface;
-use sill_ui_kit::{Banners, Launcher, PowerMenu, ScreenshotThumb};
+use sill_ui_kit::{Banners, Launcher, ScreenshotThumb};
 use tokio::sync::watch;
 
 use super::msg::ShellMsg;

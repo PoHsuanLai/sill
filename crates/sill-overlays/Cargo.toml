@@ -1,0 +1,36 @@
+[package]
+name = "sill-overlays"
+description = "The overlay surfaces: OSD, power menu, polkit prompt, app switcher, idle dim, hot corners, wallpaper and the lock screen."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+dioxus = { workspace = true }
+ds = { workspace = true }
+ds-settings = { workspace = true, features = ["dioxus"] }
+ds-shell = { workspace = true }
+jiff = { workspace = true }
+serde = { workspace = true }
+shell-host = { workspace = true }
+sill-launcher = { workspace = true }
+sill-model = { workspace = true }
+sill-services = { workspace = true }
+sill-settings = { workspace = true }
+sill-ui-kit = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+sill-ui-kit = { workspace = true, features = ["harness"] }
+ds-native = { workspace = true }
+image = { workspace = true }
+shell-host = { workspace = true, features = ["debug-inject"] }
+
+[[example]]
+name = "wallpaper_demo"
+
+[lints]
+workspace = true

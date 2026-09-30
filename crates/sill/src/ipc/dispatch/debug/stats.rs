@@ -4,8 +4,8 @@
 
 use shell_host::{HostCtx, SurfaceId};
 use sill_ipc::debug::{Micros, SurfaceName, SurfaceStats};
+use sill_overlays::Lock;
 use sill_settings::ShellFile;
-use sill_ui_kit::Lock;
 use sill_ui_kit::surface::LockSurface;
 
 use crate::daemon::msg::ShellMsg;
