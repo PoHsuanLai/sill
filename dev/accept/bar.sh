@@ -623,7 +623,7 @@ diff_box() {
   python3 - "$OUT_DIR/$1.png" "$OUT_DIR/$2.png" <<'EOF'
 import sys
 from PIL import Image, ImageChops
-a, b = (Image.open(p).convert("RGBA") for p in sys.argv[1:3])
+a, b = (Image.open(p).convert("RGB") for p in sys.argv[1:3])
 if a.size != b.size:
     print("size"); sys.exit(0)
 box = ImageChops.difference(a, b).getbbox()

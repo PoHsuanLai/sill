@@ -21,7 +21,7 @@
 #
 # Default steps:
 #   1. Warm: `sill-power-menu-<out>` exists from the start, hidden (no capture).
-#   2. `sill power-menu open` shows the sheet over the scrim: a capture with the sheet's pixels,
+#   2. `sill power-menu open` shows the alert on its sheet: a capture with the sheet's pixels,
 #      into dev/out/power-menu.png. `close` hides it; `toggle` twice round-trips.
 #   3. Tab moves the keyboard to the next button: the frame differs from the opening's by the
 #      focus ring's move (dev/out/power-menu-tab.png).
@@ -54,12 +54,12 @@ RECORD="$OUT_DIR/dry-run.record"
 mkdir -p "$OUT_DIR" "$SHOTS"
 scratch_new
 
-# Whether the menu captures (it is mapped) with the scrim and sheet drawn (most of the output
-# covered), into $2 (default: the scratch capture).
+# Whether the menu captures (it is mapped) with the alert's sheet drawn (about 340 x 320 px of
+# the output opaque, so at least half of that), into $2 (default: the scratch capture).
 shows() {
   local png="${2:-$OUT_DIR/menu.png}"
   sill debug capture "$MENU" "$png" >>"$1" 2>&1 || return 1
-  [ "$(opaque_pixels "$png")" -gt 100000 ]
+  [ "$(opaque_pixels "$png")" -gt 50000 ]
 }
 
 start_menu_daemon() {
@@ -124,7 +124,7 @@ step_open_close_toggle() {
   wait_surface "$MENU" 20 up || { echo "toggle: never mapped" >&2; return 1; }
   sill power-menu toggle >>"$log" 2>&1 || return 1
   wait_surface "$MENU" 20 down || { echo "toggle: still mapped" >&2; return 1; }
-  echo "open shows the sheet over the scrim; close hides it; toggle twice round-trips" | tee -a "$log" >&2
+  echo "open shows the alert on its sheet; close hides it; toggle twice round-trips" | tee -a "$log" >&2
 }
 
 # 3.

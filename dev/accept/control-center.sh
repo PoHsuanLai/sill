@@ -62,7 +62,8 @@
 #       "Turn Bluetooth off?" over the panel (the daemon logs `bluetooth_ask=shown`); the fake
 #       adapter stays powered.
 #   B2. Real Escape cancels it: the popup stays, the adapter stays powered.
-#   B3. Asked again, a real click on the scrim (beside the alert) cancels it.
+#   B3. Asked again, a real click beside the alert cancels nothing (the alert is modal and dims
+#       nothing); a real click on Cancel then cancels it.
 #   B4. Asked again, a real click on Cancel cancels it.
 #   B5. Asked again, a real click on Turn Off (the accent button in the capture) powers the fake
 #       adapter off.
@@ -669,8 +670,8 @@ step_real_click() {
 }
 
 # The blue blobs of popup capture $1, one per line, "cx cy w h" in the capture's logical px:
-# pixels whose blue beats their red by more than $2 (20: a lit tile's tinted plate, about
-# (210, 224, 244); 60: the accent itself, a lit disc or a filled button, about (148, 192, 254)).
+# pixels whose blue beats their red by more than $2 (60: the accent itself, a lit disc or a
+# filled button, about (148, 192, 254); 20 also takes a tint of it).
 accent_blobs() {
   python3 - "$OUT_DIR/$1.png" "$SCALE" "$2" <<'EOF'
 import sys
@@ -743,13 +744,13 @@ step_real_bt_ask() {
   origin=$(popup_origin)
   [ -n "$origin" ] || { echo "no KWin window the popup's size" >&2; return 1; }
   read -r ox oy <<<"$origin"
-  # A lit tile's plate is tinted: Bluetooth's is the only lit tile here (Wi-Fi has no
-  # NetworkManager, Focus is off), the topmost wide tinted blob. Its disc is 24 px in.
-  accent_blobs bt-before 20 >"$OUT_DIR/bt-before.blobs"
-  disc=$(awk '$3 >= 100 && $4 >= 40 && $4 <= 90' "$OUT_DIR/bt-before.blobs" | sort -k2 -n | head -n 1)
+  # A lit tile's disc is the accent (its plate is not tinted): Bluetooth's is the only lit disc
+  # here (Wi-Fi has no NetworkManager, Focus is off), the topmost accent blob about a Large
+  # control (28) across.
+  accent_blobs bt-before 60 >"$OUT_DIR/bt-before.blobs"
+  disc=$(awk '$3 >= 24 && $3 <= 34 && $4 >= 24 && $4 <= 34' "$OUT_DIR/bt-before.blobs" | sort -k2 -n | head -n 1)
   [ -n "$disc" ] || { echo "no lit tile in the popup (bt-before.png)" >&2; return 1; }
   read -r cx cy bw _ <<<"$disc"
-  cx=$(( cx - bw / 2 + 24 ))
   DISC="$(( ox + cx )) $(( oy + cy ))"
   # Just under the disc, still on the tile: the scrim covers it while the alert is up.
   SCRIM="$(( ox + cx )) $(( oy + cy + 20 ))"
@@ -786,14 +787,19 @@ step_real_bt_escape() {
 }
 
 # B3.
-step_real_bt_scrim() {
+step_real_bt_beside() {
   local before
   found && raise_alert || return 1
   before=$(cancels)
   # shellcheck disable=SC2086
   click $SCRIM || return 1
-  cancelled "$before" || { echo "a real click on the scrim ($SCRIM) did not cancel" >&2; return 1; }
-  echo "a real click on the scrim ($SCRIM) cancelled the alert; the adapter stays powered" >&2
+  sleep 1
+  [ "$(cancels)" = "$before" ] || { echo "a real click beside the alert ($SCRIM) cancelled it" >&2; return 1; }
+  mapped "$POPUP" || { echo "a click beside the alert closed the control center" >&2; return 1; }
+  # shellcheck disable=SC2086
+  click $CANCEL || return 1
+  cancelled "$before" || { echo "a real click on Cancel ($CANCEL) did not cancel" >&2; return 1; }
+  echo "a real click beside the alert ($SCRIM) cancelled nothing; Cancel then cancelled it" >&2
 }
 
 # B4.
@@ -873,12 +879,12 @@ run_real() {
   # The seat's devices are announced with the input client's: the first events only make them known.
   input "move 300 900" "sleep 80" "move 310 900" "sleep 80" || exit 1
   if [ "$SELECT" = bluetooth ]; then
-    run_steps step_real_open step_real_bt_ask step_real_bt_escape step_real_bt_scrim step_real_bt_cancel \
+    run_steps step_real_open step_real_bt_ask step_real_bt_escape step_real_bt_beside step_real_bt_cancel \
       step_real_bt_turn_off step_real_bt_on step_real_close
   else
     run_steps step_real_click_escape step_real_outside_click step_real_open step_real_late_monitor \
       step_real_external step_real_drag step_real_click step_real_bt_ask step_real_bt_escape \
-      step_real_bt_scrim step_real_bt_cancel step_real_bt_turn_off step_real_bt_on step_real_close
+      step_real_bt_beside step_real_bt_cancel step_real_bt_turn_off step_real_bt_on step_real_close
   fi
   status=$STATUS
   echo "stopping the input client, the daemon and the headless KWin" >&2
