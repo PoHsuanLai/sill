@@ -1,6 +1,13 @@
-//! The column's life on one output, pure: the [`crate::links::CenterLink`] says whether the center is
-//! wanted here; the column enters, stays, plays its exit and only then is the surface unmapped
-//! (the link has no "leaving" state, so the exit is the surface's own to count).
+//! The panel a column surface hangs in: the notification center and Edit Widgets share its
+//! corner and padding, and its life on one output, pure. A link says whether the column is wanted
+//! here; it enters, stays, plays its exit and only then is the surface unmapped (the link has no
+//! "leaving" state, so the exit is the surface's own to count).
+
+/// The panel's corner: quire's Popover (`--r-panel`, 14).
+pub const PANEL_RADIUS: i32 = 14;
+
+/// quire's `Panel` pads its content by `--s-12`: the column inside is that much smaller.
+pub const PANEL_PADDING: i32 = 12;
 
 /// One opening: each one remounts the column, so its entrance plays and its focus and opened
 /// groups start over.

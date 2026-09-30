@@ -37,6 +37,23 @@ pub fn output() -> OutputInfo {
     }
 }
 
+/// A 1920 x 1080 output with id 7 and the name `name` (unnamed when `None`), for layer tests.
+pub fn output_named(name: Option<&str>) -> OutputInfo {
+    OutputInfo {
+        id: OutputId(7),
+        name: name.map(str::to_owned),
+        description: None,
+        logical: Rect {
+            x: 0,
+            y: 0,
+            width: 1920,
+            height: 1080,
+        },
+        scale: Scale::ONE,
+        refresh_mhz: 60_000,
+    }
+}
+
 /// Three workspaces on `DP-1`, the second active.
 pub fn workspaces() -> Workspaces {
     workspaces_on("DP-1")

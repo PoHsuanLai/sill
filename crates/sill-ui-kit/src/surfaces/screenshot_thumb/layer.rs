@@ -10,7 +10,7 @@ use shell_host::{
 
 use sill_settings::ShellFile;
 
-use crate::surfaces::naming::namespace;
+use crate::surface::namespace;
 
 /// The card's element id: its input and blur region.
 pub const THUMB_ID: &str = "thumb";
@@ -66,7 +66,7 @@ mod tests {
     use sill_settings::ShellFile;
 
     use super::{ROOM, THUMB_WIDTH, layer, thumb_region};
-    use crate::surfaces::naming::tests::output;
+    use crate::harness::fake::output_named as output;
     use shell_host::{Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel};
 
     #[test]

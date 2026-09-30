@@ -15,7 +15,7 @@ use shell_host::{
 };
 use sill_settings::{OsdPosition, OsdSettings, ShellFile};
 
-use crate::surfaces::naming::namespace;
+use crate::surface::namespace;
 
 /// The card's size: quire's `Osd` fixes the width at 296 (a control-center module spanning both
 /// columns); the height is the title line over the Capsule level, at the card's own padding and
@@ -86,7 +86,7 @@ pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use super::{CARD_HEIGHT, CARD_WIDTH, ROOM, layer};
-    use crate::surfaces::naming::tests::output;
+    use crate::harness::fake::output_named as output;
     use ds_settings::Px;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, Margin, RegionSpec,

@@ -24,7 +24,7 @@ use crate::app_icons::icon_look;
 use crate::hooks::{use_appearance, use_service, use_service_part, use_settings};
 use crate::look::{active_workspace, use_active_look};
 use crate::menu::PopupLook;
-use crate::surfaces::bar::shell_style::shell_metrics;
+use crate::shell_style::shell_metrics;
 use crate::surfaces::dock::frame::{Area, Frame, Rows, frame};
 use crate::surfaces::dock::geometry::{dock_metrics, pill_corner};
 use crate::surfaces::dock::io::{SessionDeps, World, use_dock};

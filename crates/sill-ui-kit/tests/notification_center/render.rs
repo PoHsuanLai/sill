@@ -14,7 +14,8 @@ use sill_model::notifications::{
 };
 use sill_settings::ShellFile;
 use sill_ui_kit::links::CenterShown;
-use sill_ui_kit::surfaces::notification_center::{PANEL_ID, PANEL_PADDING};
+use sill_ui_kit::panel::PANEL_PADDING;
+use sill_ui_kit::surfaces::notification_center::PANEL_ID;
 
 /// A group's toggle ("N more", "Show less") and Clear, in its header.
 const TOGGLE: &str = ".ds-group-header-actions .ds-button:first-child";

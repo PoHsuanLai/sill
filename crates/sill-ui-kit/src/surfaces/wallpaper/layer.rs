@@ -5,7 +5,7 @@ use shell_host::{
     Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
-use crate::surfaces::naming::namespace;
+use crate::surface::namespace;
 
 /// The wallpaper's layer configuration on `output`.
 pub fn layer(output: &OutputInfo) -> LayerConfig {
@@ -29,7 +29,7 @@ pub fn layer(output: &OutputInfo) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use super::layer;
-    use crate::surfaces::naming::tests::output;
+    use crate::harness::fake::output_named as output;
     use shell_host::{Anchor, BlurSpec, ExclusiveZone, LayerLevel, RegionSpec};
 
     #[test]

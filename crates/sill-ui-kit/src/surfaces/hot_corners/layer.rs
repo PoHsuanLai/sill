@@ -10,7 +10,7 @@ use shell_host::{
 use sill_settings::ShellFile;
 
 use crate::links::Corner;
-use crate::surfaces::naming::namespace;
+use crate::surface::namespace;
 
 /// `corner` of `output`, `hot_corners.size_px` logical px square.
 pub fn layer(output: &OutputInfo, settings: &ShellFile, corner: Corner) -> LayerConfig {
@@ -41,8 +41,8 @@ pub fn layer(output: &OutputInfo, settings: &ShellFile, corner: Corner) -> Layer
 #[cfg(test)]
 mod tests {
     use super::layer;
+    use crate::harness::fake::output_named as output;
     use crate::links::Corner;
-    use crate::surfaces::naming::tests::output;
     use ds_settings::Px;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, RegionSpec,

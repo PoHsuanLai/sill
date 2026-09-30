@@ -19,17 +19,12 @@ use shell_host::{
 
 use sill_settings::ShellFile;
 
-use crate::surfaces::naming::namespace;
+use crate::panel::{PANEL_PADDING, PANEL_RADIUS};
+use crate::surface::namespace;
 
 /// The element id of the column inside quire's `Panel` (which takes no id of its own): the blur
 /// region, grown by the panel's padding to the panel's own box.
 pub const PANEL_ID: &str = "notification-center-panel";
-
-/// The panel's corner: quire's Popover (`--r-panel`, 14).
-pub const PANEL_RADIUS: i32 = 14;
-
-/// quire's `Panel` pads its content by `--s-12`: the column inside is that much smaller.
-pub const PANEL_PADDING: i32 = 12;
 
 /// The panel's blur region.
 fn panel_region() -> RegionSpec {
@@ -64,7 +59,7 @@ mod tests {
     use super::{layer, panel_region};
     use sill_settings::ShellFile;
 
-    use crate::surfaces::naming::tests::output;
+    use crate::harness::fake::output_named as output;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, RegionSpec,
     };

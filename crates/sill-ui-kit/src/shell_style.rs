@@ -4,11 +4,11 @@
 //! stack from `ds_settings::Environment::material_stack`, so every card under it reads the keys;
 //! absent, the keys' defaults apply anyway (quire's tokens fall back to them).
 
-use ds::{FontWeight, Px, ShellMetrics};
-use sill_settings::ShellFile;
+use ds::{FontWeight, Material, Px, ShellMetrics};
+use sill_settings::{PanelMaterial, ShellFile};
 
 /// The shell type scale from `bar.*`, `menus.*` and `launcher.*`.
-pub(crate) fn shell_metrics(file: &ShellFile) -> ShellMetrics {
+pub fn shell_metrics(file: &ShellFile) -> ShellMetrics {
     let px = |value: sill_settings::Px| Px(f32::from(value.0));
     let weight = |value: sill_settings::Count| FontWeight(value.0.clamp(100, 900));
     let mut metrics = ShellMetrics::default();
@@ -28,6 +28,14 @@ pub(crate) fn shell_metrics(file: &ShellFile) -> ShellMetrics {
     metrics.launcher.row_detail = px(file.launcher.row_detail_px);
     metrics.tip = px(file.menus.tooltip_font_px);
     metrics
+}
+
+/// `launcher.material` in quire's words (design/22 Sheet; design/20 Popover).
+pub fn material(material: PanelMaterial) -> Material {
+    match material {
+        PanelMaterial::Sheet => Material::Sheet,
+        PanelMaterial::Popover => Material::Popover,
+    }
 }
 
 #[cfg(test)]

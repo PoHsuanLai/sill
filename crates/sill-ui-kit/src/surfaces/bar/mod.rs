@@ -17,7 +17,6 @@ mod pick;
 mod plan;
 mod popup;
 mod reorder;
-pub(crate) mod shell_style;
 mod status_item;
 mod surface;
 mod title;

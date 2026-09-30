@@ -11,7 +11,6 @@ use super::control_center_item::ControlCenterItem;
 use super::io::use_bar;
 use super::model::BarInput;
 use super::module_item::ModuleItem;
-use super::shell_style::shell_metrics;
 use super::status_item::status_metrics;
 use super::track::{Event, Target};
 use super::tray::Tray;
@@ -19,6 +18,7 @@ use super::workspaces::WorkspaceIndicator;
 use crate::hooks::{use_appearance, use_service, use_settings};
 use crate::look::use_active_look;
 use crate::menu::PopupLook;
+use crate::shell_style::shell_metrics;
 use crate::surfaces::control_center::menu_bar_modules;
 use sill_services::TrayService;
 

@@ -8,8 +8,8 @@ use shell_host::{
 use sill_settings::{BarSettings, LauncherSettings};
 
 use crate::links::PanelHit;
+use crate::surface::namespace;
 use crate::surfaces::launcher::layer::{CARD_INSET, panel_rect};
-use crate::surfaces::naming::namespace;
 
 /// The catcher's input region once shown: the output less what the panel takes (`hit`: its
 /// card, or the whole panel), so a click on the panel reaches the panel whichever of the two
@@ -92,9 +92,9 @@ pub fn layer(output: &OutputInfo) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use super::{input, layer};
+    use crate::harness::fake::output_named as output;
     use crate::links::PanelHit;
     use crate::surfaces::launcher::layer::panel_rect;
-    use crate::surfaces::naming::tests::output;
     use shell_host::{Anchor, BlurSpec, KeyboardMode, Rect, RegionSpec};
     use sill_settings::{BarSettings, LauncherSettings};
 

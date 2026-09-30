@@ -9,7 +9,7 @@ use shell_host::{
     Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
-use crate::surfaces::naming::namespace;
+use crate::surface::namespace;
 
 /// The dim's layer configuration on `output`.
 pub fn layer(output: &OutputInfo) -> LayerConfig {
@@ -38,7 +38,7 @@ mod tests {
     };
 
     use super::layer;
-    use crate::surfaces::naming::tests::output;
+    use crate::harness::fake::output_named as output;
 
     #[test]
     fn the_dim_covers_the_output_and_takes_nothing() {

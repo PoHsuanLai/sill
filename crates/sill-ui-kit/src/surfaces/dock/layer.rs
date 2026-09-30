@@ -13,8 +13,8 @@ use shell_host::{
 };
 use sill_settings::{AutoHide, ShellFile};
 
+use crate::surface::namespace;
 use crate::surfaces::dock::machine::Reveal;
-use crate::surfaces::naming::namespace;
 
 /// design/10 §10.3.1: the gutter under the pill, the card inset (settled). The pill's own
 /// padding is `dock.pill_padding_px`.
@@ -62,7 +62,7 @@ pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use super::layer;
-    use crate::surfaces::naming::tests::output;
+    use crate::harness::fake::output_named as output;
     use shell_host::{Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel};
     use sill_settings::{AutoHide, DockSettings, ShellFile};
 

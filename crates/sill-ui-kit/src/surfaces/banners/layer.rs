@@ -17,7 +17,7 @@ use shell_host::{
 };
 use sill_settings::{NotificationsSettings, ShellFile};
 
-use crate::surfaces::naming::namespace;
+use crate::surface::namespace;
 
 /// Transparent room around the column for the Toast material's shadow (the OSD's 40).
 pub const ROOM: u32 = 40;
@@ -61,7 +61,7 @@ pub fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use super::{ROOM, layer};
-    use crate::surfaces::naming::tests::output;
+    use crate::harness::fake::output_named as output;
     use ds_settings::Px;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, Margin, RegionSpec,

@@ -8,9 +8,9 @@ use shell_host::{
 use sill_settings::{BarSettings, LauncherSettings, ShellFile};
 
 use crate::links::PanelHit;
+use crate::surface::namespace;
 use crate::surfaces::launcher::hit::{card_region, panel_input};
 use crate::surfaces::launcher::preview::PREVIEW_WIDTH_PX;
-use crate::surfaces::naming::namespace;
 
 /// The panel's fixed size (design/13 §13.3.9, settled by the plan): the area the card is laid
 /// out in, at most this tall.
@@ -94,7 +94,7 @@ pub fn panel_rect(output: &OutputInfo, bar: &BarSettings, launcher: &LauncherSet
 #[cfg(test)]
 mod tests {
     use super::{layer, panel_top};
-    use crate::surfaces::naming::tests::output;
+    use crate::harness::fake::output_named as output;
     use shell_host::{Anchor, BlurSpec, KeyboardMode, LayerExtent, LayerLevel, RegionSpec};
     use sill_settings::{BarSettings, LauncherSettings, ShellFile};
 

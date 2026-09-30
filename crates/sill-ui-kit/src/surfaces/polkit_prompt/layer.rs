@@ -9,7 +9,7 @@ use shell_host::{
 
 use sill_settings::ShellFile;
 
-use crate::surfaces::naming::namespace;
+use crate::surface::namespace;
 
 /// The sheet's element id: the surface's blur region.
 pub(super) const PANEL_ID: &str = "polkit-panel";
@@ -43,7 +43,7 @@ pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use super::layer as polkit_layer;
-    use crate::surfaces::naming::tests::output;
+    use crate::harness::fake::output_named as output;
     use shell_host::{Anchor, ExclusiveZone, KeyboardMode, LayerLevel, RegionSpec};
     use sill_settings::ShellFile;
 

@@ -12,20 +12,19 @@
 
 use dioxus::prelude::*;
 use ds::{
-    Anchor, CommandPalette, CommandPaletteHost, Corner, FieldKey, IconSource, ImageSource,
-    Material, Menu, MenuKind, Point, Px, Rect,
+    Anchor, CommandPalette, CommandPaletteHost, Corner, FieldKey, IconSource, ImageSource, Menu,
+    MenuKind, Point, Px, Rect,
 };
 use shell_host::OutputInfo;
 use sill_launcher::{ActionId, ClipKey, Item, Preview, Section, preview_for};
 use sill_search::preview::clip_image;
-use sill_settings::PanelMaterial;
 
 use crate::app_icons::{IconContext, IconLook, icon_look, use_icon_resolver};
 use crate::hooks::{use_appearance, use_service, use_settings};
 use crate::links::LauncherLink;
 use crate::look::use_active_look;
 use crate::root::{SurfaceRoot, use_host_scale};
-use crate::surfaces::bar::shell_style::shell_metrics;
+use crate::shell_style::{material, shell_metrics};
 use crate::surfaces::launcher::card::{CardKey, Foot, use_card_hit};
 use crate::surfaces::launcher::contact::use_contacts;
 use crate::surfaces::launcher::entries::{RowRef, action_entries};
@@ -398,17 +397,10 @@ pub fn empty_text(query: &str) -> String {
     }
 }
 
-/// `launcher.material` in quire's words (design/22 Sheet; design/20 Popover).
-pub fn material(material: PanelMaterial) -> Material {
-    match material {
-        PanelMaterial::Sheet => Material::Sheet,
-        PanelMaterial::Popover => Material::Popover,
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{empty_text, material, measured};
+    use super::{empty_text, measured};
+    use crate::shell_style::material;
     use ds::{Material, Point, Px, Rect, Size};
     use sill_settings::PanelMaterial;
 

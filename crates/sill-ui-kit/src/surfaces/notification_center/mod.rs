@@ -10,7 +10,6 @@ pub mod groups;
 pub mod keymap;
 pub mod keys;
 pub mod labels;
-pub mod phase;
 pub mod rows;
 pub mod widgets;
 
@@ -25,7 +24,7 @@ mod view;
 
 pub use groups::{Expanded, GroupView, group_views, toggle_group};
 pub use keys::{CenterKey, CenterOut, RowFocus, step_keys};
-pub use layer::{PANEL_ID, PANEL_PADDING, PANEL_RADIUS};
+pub use layer::PANEL_ID;
 pub use surface::NotificationCenter;
 pub use view::NOTIFICATION_CENTER_CSS;
 pub use widgets::CenterWidgets;

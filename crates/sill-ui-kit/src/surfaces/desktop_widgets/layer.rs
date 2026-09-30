@@ -13,7 +13,7 @@ use shell_host::{
     Margin, OutputInfo, OutputTarget, RegionSpec,
 };
 
-use crate::surfaces::naming::namespace;
+use crate::surface::namespace;
 
 /// The desktop widgets on `output`.
 pub(super) fn layer(output: &OutputInfo) -> LayerConfig {
@@ -37,7 +37,7 @@ pub(super) fn layer(output: &OutputInfo) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use super::layer;
-    use crate::surfaces::naming::tests::output;
+    use crate::harness::fake::output_named as output;
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, OutputTarget,
         RegionSpec,

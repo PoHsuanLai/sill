@@ -9,7 +9,7 @@ use shell_host::{
 
 use sill_settings::ShellFile;
 
-use crate::surfaces::naming::namespace;
+use crate::surface::namespace;
 
 /// The panel's element id: the surface's input and blur region.
 pub(super) const PANEL_ID: &str = "switcher-panel";
@@ -47,7 +47,7 @@ pub fn layer(output: &OutputInfo, _settings: &ShellFile) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use super::{layer as switcher_layer, panel_region};
-    use crate::surfaces::naming::tests::output;
+    use crate::harness::fake::output_named as output;
     use shell_host::{Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerLevel};
     use sill_settings::ShellFile;
 

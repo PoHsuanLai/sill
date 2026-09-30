@@ -9,11 +9,13 @@
 
 mod lock;
 mod mount;
+mod naming;
 mod place;
 mod start;
 
 pub use lock::{LockSurface, MountLockProps, mount_lock};
 pub use mount::{MountProps, mount};
+pub use naming::namespace;
 pub use place::{OutputRank, Place};
 pub use start::Start;
 

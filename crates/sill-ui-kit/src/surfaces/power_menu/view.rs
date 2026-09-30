@@ -21,7 +21,7 @@ use super::layer::PANEL_ID;
 use super::sheet::{MenuSession, SheetInput};
 use crate::hooks::use_settings;
 use crate::root::SurfaceRoot;
-use crate::surfaces::launcher::panel::material;
+use crate::shell_style::material;
 
 /// The power menu's stylesheet (lint-clean under `Profile::Strict`,
 /// `crates/sill/tests/lint.rs`).

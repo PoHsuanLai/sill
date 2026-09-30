@@ -1,5 +1,5 @@
 //! The effects end of Edit Widgets: follow the [`EditWidgetsLink`] through the notification
-//! center's phase machine (`notification_center::phase`: enter, stay, play the exit, then
+//! center's phase machine (`panel`: enter, stay, play the exit, then
 //! unmap) onto the surface's visibility, and work out which places an edit writes to the state
 //! file. Once hidden nothing runs and nothing asks for a frame.
 
@@ -7,9 +7,7 @@ use dioxus::prelude::*;
 use shell_host::{OutputId, SurfaceHandle, SurfaceOp, Visibility, use_watch};
 
 use crate::links::EditWidgetsLink;
-use crate::surfaces::notification_center::phase::{
-    Phase, PhaseInput, PhaseOut, Wanted, step_phase,
-};
+use crate::panel::{Phase, PhaseInput, PhaseOut, Wanted, step_phase};
 use crate::widgets::grid::Placement;
 
 /// The panel's phase on one output, and the surface it maps. Clone is cheap.

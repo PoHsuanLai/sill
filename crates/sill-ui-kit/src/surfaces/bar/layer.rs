@@ -7,7 +7,7 @@ use shell_host::{
 };
 use sill_settings::ShellFile;
 
-use crate::surfaces::naming::namespace;
+use crate::surface::namespace;
 
 /// The bar's layer configuration on `output`.
 pub(super) fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
@@ -32,7 +32,7 @@ pub(super) fn layer(output: &OutputInfo, settings: &ShellFile) -> LayerConfig {
 #[cfg(test)]
 mod tests {
     use super::layer;
-    use crate::surfaces::naming::tests::output;
+    use crate::harness::fake::output_named as output;
     use ds_settings::Px;
     use shell_host::{
         Anchor, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, OutputId, OutputTarget,
