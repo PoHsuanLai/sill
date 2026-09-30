@@ -433,6 +433,14 @@ A settled item is deleted, not marked closed.
   opacity; sill passes `100 - idle.dim_level_pct`.
 - **Q570** The inline alert's scrim ignores the container's radius and its panel lets the rows
   show through.
+- **Q6000** The Appearance module still draws with `ds::AppearancePicker` (a Part 4 name): quire's
+  `RadioGroup` cannot draw an accent swatch, so the replacement waits on quire's decision (quire
+  FINDINGS "Part 4 names still alive").
+- **Q6001** The Up Next and Now Playing widgets style their inner words in sill's own CSS (a
+  weekday in the accent, a 24 px light day number, a faint "No upcoming events"): `Label` has no
+  accent role and no display-light style, so those rules stay until it has.
+- **Q6002** `Alert` has no disabled button and no arrow keys, so the power menu leaves out an
+  action logind refuses instead of drawing it disabled, and Tab replaces the arrows.
 - **Q184** Hot corners have no behaviour section in design/13.
 - design/22 still shows the old defaults for `bar.title_padding_px`,
   `bar.open_title_pill_height_px`, `bar.item_radius_px`, `bar.status_gap_px`,
@@ -454,3 +462,14 @@ A settled item is deleted, not marked closed.
   screen, is not seen.
 - **G290** The presented frame puts two widgets' contents in the center's first tile when all
   five are shown; `sill debug capture` of the same surface is right.
+- **G6010** Click-outside is done by covering the output. The notification center, Edit Widgets
+  and the power menu draw sill's `ClickAway` (a transparent full-output element) under their
+  panel, and the launcher runs a whole second layer surface (`sill-launcher-catcher`) for it,
+  because a sheet dims nothing and catches no click (design/30 Part 4). shell-host should deliver
+  a press outside a surface's panel region as an event (or dismiss a surface on it), so
+  `ClickAway`, the launcher's catcher surface and the `-scope` wrappers that let presses through
+  to it can go.
+- **G6011** A popup document is framed by sill's `PopupFrame` (sill-ui-kit `menu/frame.rs`): an
+  absolutely placed box whose padding is the popup's transparent shadow room, so
+  `PopupSize::FitContent` measures the card plus that room. shell-host should take the room in
+  `PopupSize::FitContent` and lay the root itself, which deletes `PopupFrame` and its rule.
