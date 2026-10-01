@@ -2,9 +2,10 @@
 
 use sill_settings::{
     BarSettings, CalendarSettings, ControlCenterSettings, DisplaySettings, DockSettings,
-    HotCornersSettings, IdleSettings, LauncherSettings, MenusSettings, NotificationsSettings,
-    OsdSettings, PowerMenuSettings, ScreenshotSettings, ScrollSettings, ScrollbarSettings, Section,
-    SessionSettings, ShellFile, SpacesSettings, SwitcherSettings, WidgetsSettings, WindowSettings,
+    HotCornersSettings, IdleSettings, KeyboardOverride, KeyboardSettings, LauncherSettings,
+    MenusSettings, NotificationsSettings, OsdSettings, PowerMenuSettings, ScreenshotSettings,
+    ScrollSettings, ScrollbarSettings, Section, SessionSettings, ShellFile, SpacesSettings,
+    SwitcherSettings, WidgetsSettings, WindowSettings,
 };
 
 /// The table `S::KEY` names in `file`'s TOML, and whether it equals `S::of(file)`.
@@ -20,6 +21,10 @@ fn distinct() -> ShellFile {
     let mut file = ShellFile::default();
     file.bar.height_px = sill_settings::Px(31);
     file.dock.tile_size_px = sill_settings::Px(41);
+    file.keyboard.overrides = vec![KeyboardOverride {
+        app: "foot".to_owned(),
+        profile: "term".to_owned(),
+    }];
     file
 }
 
@@ -37,6 +42,7 @@ fn every_domain_finds_its_own_table() {
         ("dock", table_matches::<DockSettings>(&file)),
         ("hot_corners", table_matches::<HotCornersSettings>(&file)),
         ("idle", table_matches::<IdleSettings>(&file)),
+        ("keyboard", table_matches::<KeyboardSettings>(&file)),
         ("launcher", table_matches::<LauncherSettings>(&file)),
         ("menus", table_matches::<MenusSettings>(&file)),
         (

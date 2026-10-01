@@ -157,6 +157,23 @@ A settled item is deleted, not marked closed.
   typed word begins a word of its name, keywords or shortcodes. A 300-cell grid scrolls inside
   a 60 Hz frame at p95 on vello_cpu and vello_hybrid at 100-200 %.
 
+- **keycap**: the daemon's socket is `SOCK_SEQPACKET` (`keycap-protocol`), held by one thread
+  (`poll` on the socket and an eventfd), reconnecting after 1 s doubling to 30 s. Each connection
+  starts with the current `Focus` and the text of `~/.config/keycap/keycap.toml`, whatever was sent
+  before. Unit state comes from systemd's `GetUnit` and `ActiveState` on the system bus after the
+  socket has been down 3 s, then every 5 s: `GetUnit` answers `NoSuchUnit` for an installed unit
+  that is not loaded (stopped and collected), which reads as `NotInstalled`, and that is as
+  silent as `Unknown`. A stopped unit is silent on purpose; only a unit that gave up (five
+  failures in 30 s) is `Failed`. sill's own notifications carry no action that reaches a
+  service, so the notices point at `sill keycap retry` and `sill keycap resume`.
+  `keyboard.overrides` (design/22 §3.25) is a list of `{ app, profile }` tables, which needs
+  quire's `ds-settings` list-of-tables keys (`SettingsRow`, quire PR #2): sill builds against
+  quire's `claude/settings-rows` branch until that PR merges. A row whose `profile` is not a
+  profile name or whose `app` is empty is dropped, a row that is not a table of two texts is
+  dropped on load, each costs only itself and is logged as `sill: settings.toml: ...`, and when
+  two rows name one app the last wins. The settings `Policy` sends `KeycapCommand::Overrides`
+  and the service re-chooses the focused window's profile.
+
 ## Standing facts: displays
 
 - **Scale policy**: density along the diagonal from the EDID's preferred-timing millimetres (else

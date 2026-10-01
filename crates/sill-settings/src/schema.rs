@@ -10,6 +10,7 @@ use crate::display::DisplaySettings;
 use crate::dock::DockSettings;
 use crate::hot_corners::HotCornersSettings;
 use crate::idle::IdleSettings;
+use crate::keyboard::KeyboardSettings;
 use crate::launcher::LauncherSettings;
 use crate::menus::MenusSettings;
 use crate::notifications::NotificationsSettings;
@@ -67,6 +68,7 @@ pub fn schemas() -> Vec<Schema> {
         ScreenshotSettings::schema(),
         HotCornersSettings::schema(),
         IdleSettings::schema(),
+        KeyboardSettings::schema(),
     ]
 }
 

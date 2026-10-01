@@ -12,6 +12,7 @@ its traits, its recipes and its repo rules. Where they disagree, this file wins 
 | --- | --- |
 | quire (`../quire`, path deps) | `ds-core` (vocabulary, units, `Word`, colour, time), `ds-style` (appearance, tokens, materials), `ds-motion` (timelines, `Presence`, gestures), `ds` (components, `DocumentHost`, menus, `ds::prelude`), `ds-shell` (shell components, widget contract, status glyphs, battery), `ds-lint`, `ds-settings` (`SettingsDoc`, `Store`, schema derive; dioxus behind a feature), `ds-blitz` (`provide_host()`, measure, focus, caret, snap), `ds-harness` (`Driver`, `DocQuery`; dev only) |
 | shell-host (`../shell-host`) | Host, layer surfaces and popups, input, frames, regions, session lock, scroll engine, `Visibility`, `Inject` (pointer and key, `debug-inject`) |
+| keycap (`../keycap`, path dep) | `keycap-protocol`: the socket messages, `ProfileName`, `Status`; `sill-model` and `sill-services` take it (serde, serde_json, thiserror only) |
 | latchkey (git) | the single-instance agent socket |
 
 Consumers of quire import `ds::prelude::*` plus the named crate for anything outside it.
@@ -30,10 +31,10 @@ listed except where noted.
 | --- | --- | --- | --- |
 | 0 | `sill-launcher` | Launcher core: `Provider`, `Query` (generation, cancel), `Item`, `Activation`, matching (nucleo), ranking, sections, frecency, chords, preview facts. Pure; a future repo | none; nucleo-matcher, serde |
 | 0 | `sill-testkit` | Dev only: `PrivateBus`, `TempDir`, signal helpers, stand-in programs in `examples/` | none; std only (its dev dependencies, the crates it tests, are outside the table) |
-| 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service | `sill-launcher`; serde, jiff, thiserror |
-| 2 | `sill-settings` | `settings.toml` as data: one struct per domain, `Section`, `ShellFile`, schema, typed values parsed at load. No I/O, no runtime, no dioxus | `sill-model`, `ds-core`, `ds-settings` (no features) |
+| 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service | `sill-launcher`, `keycap-protocol`; serde, jiff, thiserror |
+| 2 | `sill-settings` | `settings.toml` as data: one struct per domain, `Section`, `ShellFile`, schema, typed values parsed at load. No I/O, no runtime, no dioxus | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core`, `ds-settings` (no features) |
 | 2 | `sill-ipc` | The wire: `Request`/`Response`, one JSON line, 64 KiB cap. Serialises `sill-model` types | `sill-model`, `sill-launcher`; serde, serde_json, thiserror |
-| 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`, `sill-launcher`; tokio, zbus, cctk, libpulse, notify, nonstick, ddc, image |
+| 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`, `sill-launcher`, `keycap-protocol`; tokio, zbus, rustix, cctk, libpulse, notify, nonstick, ddc, image |
 | 4 | `sill-search` | The launcher's runner (`ResultsService`), `providers/`, excerpts and clip images | `sill-services`, `sill-model`, `sill-launcher`, `ds-settings` (no features: the schema files the settings provider indexes); fend, emojis |
 | 5 | `sill-ui-kit` | What every surface shares: `Services` registry, `SettingsFeed`, `SurfaceRoot`, `Surface` and its `mount`, `links/`, `Machine`, hooks, `look`, `panel`, `shell_style`, `MenuPopup<M>`, `app_icons`, `status`, `notification_card`, `widgets/`, `harness` (feature: fake services, `SurfaceHarness`) | `sill-search`, `sill-services`, `sill-settings`, `sill-model`, `sill-launcher`, `ds`, `ds-shell`, `ds-settings` (dioxus), `ds-blitz`, `ds-harness` (optional: feature `harness`), `shell-host`; dioxus, resvg, image; dev: `ds-lint` |
 | 6 | `sill-bar` | Bar, its menus, tray, control center and its modules | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `ds-blitz`, `shell-host`; dev: `ds-lint` |
@@ -68,10 +69,10 @@ re-export; the one type a module is named after may sit in its `mod.rs`.
 
 | Crate | Modules (layer order) |
 | --- | --- |
-| `sill-model` | `units`, `ids`, `attempt`, `vocab` (enums shared with settings), then one dir per service (`battery`, `clock`, ... 27 services; `results` holds search state; `focus` holds the focus mode, which is not a service). Each service dir: `mod.rs`, `model.rs` (State), `command.rs` (Command, Event, Effect), `step.rs`, `tests.rs`; a sub-concept gets a sub-dir with the same roles. Service dirs never import each other |
-| `sill-settings` | `section` (trait), one file per domain (`bar`, `dock`, ..., 20 domains), `file` (`ShellFile`, `SettingsDoc` impl), `schema`, `keys` (typed enums and unit newtypes that no service shares) |
+| `sill-model` | `units`, `ids`, `attempt`, `vocab` (enums shared with settings), then one dir per service (`battery`, `clock`, ... 28 services; `results` holds search state; `focus` holds the focus mode, which is not a service; `keyboard` holds the pure keyboard-profile choice, which is not a service either, and `keycap` the keycap service's state and its pure decisions: the focus to send, the notice to post, how to read the unit, how long to wait to reconnect). Each service dir: `mod.rs`, `model.rs` (State), `command.rs` (Command, Event, Effect), `step.rs`, `tests.rs`; a sub-concept gets a sub-dir with the same roles. Service dirs never import each other |
+| `sill-settings` | `section` (trait), one file per domain (`bar`, `dock`, ..., 21 domains), `file` (`ShellFile`, `SettingsDoc` impl), `schema`, `keys` (typed enums and unit newtypes that no service shares) |
 | `sill-ipc` | `line` (encode, decode, cap), `error`, `request`, `response`, `show`, `status`, `act`, `debug` (one word file per request group) |
-| `sill-services` | `error`, `control`, `stream`, `env/`, `service`, then one dir per service (26, all but `results`) in dependency order of their `Deps`; a service dir never imports another service dir: cross-service data is `sill-model` types in `Deps` |
+| `sill-services` | `error`, `control`, `stream`, `env/`, `service`, then `file_touch` (a debounced watch on one file), then one dir per service (27, all but `results`) in dependency order of their `Deps`; a service dir never imports another service dir: cross-service data is `sill-model` types in `Deps` |
 | `sill-search` | `preview`, `providers/<kind>/`, `results/` (`registry`, `run`, `sink`, `history`, `frecency_file`, `effect`), `ResultsService` in `results/mod.rs` |
 | `sill-ui-kit` | `look`, `clock`, `links/`, `settings`, `shell_style`, `services`, `hooks/`, `machine`, `panel`, `root`, `surface/` (`mount`, `lock`, `start`, `place`, `naming`), `menu/`, `status/`, `app_icons/`, `notification_card/`, `widgets/`, `harness/` (feature `harness`) |
 | each surface crate | one dir per surface, named after it (`osd/`, `dock/`, `banners/`); `lib.rs` re-exports each surface marker type and nothing else |
@@ -103,7 +104,7 @@ A concept over about 300 lines becomes a sub-directory with the same roles (`doc
 <!-- paths: skip -->
 The old locations of what moved, and where each landed.
 
-### `sill-services` (ends with 26 services and the seams)
+### `sill-services` (ends with 27 services and the seams)
 
 Rule for every service dir `X`: a file that names zbus, wayland, notify, `std::fs`, `Command`,
 libpulse, PAM or tokio is effect code; every other file is pure. Pure files go to
@@ -144,7 +145,7 @@ code into `tests.rs`. Exceptions and renames:
 | `notifications/{state,reduce,rules,content,markup,markup_parse,ids,capabilities,policy}.rs` | `sill-model/src/notifications/` |
 | `notifications/{dbus,wire,live,history_file,name_watch}.rs` | `notifications/backend/` |
 | `pins/model.rs` | `sill-model/src/pins/` |
-| `pins/{fs_watch,run}.rs`, `pins/test_support.rs` | `pins/backend/`; `test_support.rs` goes to `sill-testkit` |
+| `pins/{fs_watch,run}.rs`, `pins/test_support.rs` | `pins/backend/run.rs`, and `fs_watch.rs` becomes the shared `file_touch.rs` (`keycap` watches `keycap.toml` with it); `test_support.rs` goes to `sill-testkit` |
 | `polkit_agent/{types,machine,identity,helper}.rs` | `sill-model/src/polkit_agent/` |
 | `polkit_agent/{bus,dbus,run,live}.rs` | `polkit_agent/backend/` |
 | `screenshots/{reduce,names}.rs`; `tool.rs` (parse only) | `sill-model/src/screenshots/`; the tool string is parsed at load by `sill-settings` into a typed `ShotTool` |
@@ -169,7 +170,7 @@ code into `tests.rs`. Exceptions and renames:
 
 | From | To |
 | --- | --- |
-| `sill-settings/src/{bar,calendar,control_center,display,dock,hot_corners,idle,launcher,menus,notifications,osd,power_menu,screenshot,scroll,scrollbar,session,spaces,switcher,widgets,window}.rs` | stay, each `impl Section`; keys with no reader deleted; `flatten extra` and `version` deleted |
+| `sill-settings/src/{bar,calendar,control_center,display,dock,hot_corners,idle,keyboard,launcher,menus,notifications,osd,power_menu,screenshot,scroll,scrollbar,session,spaces,switcher,widgets,window}.rs` | stay, each `impl Section`; keys with no reader deleted; `flatten extra` and `version` deleted |
 | `dock_words.rs`, `launcher_kinds.rs`, enums a service reads | `sill-model/src/vocab/` or the service dir; the settings field uses that type |
 | `focus.rs` (`FocusMode`) | `sill-model/src/focus/` |
 | `focus_link.rs` | `sill-ui-kit/src/links/focus.rs` (the link) and `sill/src/daemon/settings/focus.rs` (the task that writes the file) |
@@ -212,7 +213,7 @@ code into `tests.rs`. Exceptions and renames:
 | `outputs.rs` | `daemon/outputs.rs` (a map keyed by surface name and slot, replacing the 19-field struct) |
 | `ipc_server.rs` | `ipc/server.rs` |
 | `links.rs` (global `OnceLock`) | deleted; `Links` is built in `daemon/run.rs` and passed to `daemon/surfaces.rs` |
-| `policy.rs`, `calendar.rs`, `displays.rs`, `idle.rs`, `launcher_policy.rs`, `notifications/policy.rs`, `screenshots.rs` (policy half), `clipboard.rs` (policy half) | `policy/{mod,follow}.rs` and one file per bridge: `calendar`, `displays`, `idle`, `notifications`, `screenshots`, `search`, `clipboard` |
+| `policy.rs`, `calendar.rs`, `displays.rs`, `idle.rs`, `launcher_policy.rs`, `notifications/policy.rs`, `screenshots.rs` (policy half), `clipboard.rs` (policy half) | `policy/{mod,follow}.rs` and one file per bridge: `calendar`, `displays`, `idle`, `keyboard`, `notifications`, `screenshots`, `search`, `clipboard` |
 | `lock/`, `idle_dim.rs`, `corners.rs`, `osd.rs`, `scroll.rs`, `launch.rs` | `daemon/followers/{lock,idle_dim,corners,osd,scroll,launch}.rs`: act on the host from a service or a setting |
 | `power_menu.rs`, `switcher.rs`, `widgets.rs`, `edit_widgets.rs`, `polkit.rs`, `session.rs`, `notifications/mod.rs`, `screenshots.rs`, `clipboard.rs` (verb halves) | the verb halves are `ipc/dispatch/{show,status,act}.rs` arms; the spawn halves are gone (generic `daemon/surfaces.rs`) |
 | `launcher_debug.rs`, `notifications/fake.rs` | `ipc/dispatch/debug.rs` (debug feature) |
@@ -228,7 +229,11 @@ Look a concept up here before writing it. If it has a home, extend it.
 
 | Concept | Home |
 | --- | --- |
-| Everything ambient (buses, Wayland route, directories, wall clock, DDC, session actions, authenticator, idle times, polkit route, processes) | `sill_services::env::Env` |
+| Everything ambient (buses, Wayland route, directories, wall clock, DDC, session actions, authenticator, idle times, polkit route, processes, keycap's socket path) | `sill_services::env::Env` (`keycap_socket`: `/run/keycap/keycap.sock` from the process, none when isolated, so no test or script reaches the real daemon) |
+| The focused window's keyboard profile | `sill_model::keyboard::wanted` over `ProfileSource`s; sent by `sill_services::keycap` (`focus_to_send` decides when) |
+| The person's per-app keyboard profiles (`keyboard.overrides`) | `sill_settings::keyboard` (`KeyboardSettings`; `overrides` parses the rows once, per row, with a line for each one dropped), told to keycap by `sill::policy::keyboard` as `KeycapCommand::Overrides`; `KeycapAsk` is the part of the command on the IPC wire |
+| Notices about keycap (failed, conflict, paused) | `sill_model::keycap::{attention, notice_for, notice_text}`; posted by `sill_services::keycap::backend::notice` (no action: `sill keycap retry` and `resume` are the way out) |
+| Watching one file for edits | `sill_services::file_touch` |
 | Service trait, runner, `Handle<S>`, `Control<C>` | `sill_services::{service, control}` |
 | A service's State, Command, Event, Effect | `sill_model::<service>::{model, command}` |
 | A service's pure transition | `sill_model::<service>::step::step` |
@@ -314,7 +319,7 @@ pub trait Section: Clone + PartialEq + Send + Sync + 'static {
 }
 ```
 
-Implementors: the 20 domain structs. One per settings table; a new key is a field, not a
+Implementors: the 21 domain structs. One per settings table; a new key is a field, not a
 `Section`. `use_section::<S>() -> ReadSignal<S>` and `Policy::of` read through it.
 
 ### `Policy` (`sill::policy`)
@@ -330,7 +335,7 @@ pub trait Policy: Send + 'static {
 pub fn follow<P: Policy>(rt: &Handle, settings: watch::Receiver<ShellFile>, policy: P, control: Control<P::Command>);
 ```
 
-Implementors: `calendar`, `displays`, `idle`, `notifications` (`changed` waits on the focus
+Implementors: `calendar`, `displays`, `idle`, `keyboard`, `notifications` (`changed` waits on the focus
 mode), `screenshots`, `search`, `clipboard`. One per service that is passive until told. A
 policy builds typed `sill-model` values; a service never sees a settings string.
 
@@ -579,6 +584,10 @@ Each ends with its tests. Name the concept once and use it in every file name be
 2. `sill-settings/src/<domain>.rs`: a field of a typed value: a `Word` enum, a `ds-settings`
    unit newtype, or a two-variant enum (no `bool`); the default is the design's. A string that
    names a closed set is an enum parsed at load; a shared enum lives in `sill-model`.
+   A list of tables is a `Vec<Row>` with `#[derive(SettingsRow)]` on the row (quire design/22
+   §9.1); the file keeps the person's text, a function in the domain file turns the rows into
+   typed values once per load and names each row it dropped, and a malformed row costs only
+   itself (`keyboard.rs` is the pattern).
 3. A new domain is a file, a `Section` impl, a `ShellFile` field and a `schema.rs` entry.
 4. The reader: a surface reads `use_section::<Domain>()`; a service is told through its
    `Policy`. `sill --write-schema <dir>` regenerates the schema.

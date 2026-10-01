@@ -171,6 +171,10 @@ emojis = "0.9"
 mime_guess = "2.0"
 # The web fallback's `{query}` escaping (RFC 3986): MIT OR Apache-2.0, already in the tree.
 percent-encoding = "2.3"
+# The keycap daemon's socket contract (messages, `ProfileName`, `Status`): sibling checkout,
+# MIT OR Apache-2.0 like every repo here; serde, serde_json and thiserror only, so sill-model
+# stays pure.
+keycap-protocol = { path = "../keycap/crates/keycap-protocol" }
 
 
 [workspace.lints.rust]

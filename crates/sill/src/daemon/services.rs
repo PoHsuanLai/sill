@@ -13,8 +13,10 @@ use sill_services::clipboard::ClipboardService;
 use sill_services::cosmic_wl::CosmicWlService;
 use sill_services::env::Env;
 use sill_services::idle::{IdleLinks, IdleService};
+use sill_services::keycap::{KeycapLinks, KeycapService};
 use sill_services::launch::LaunchService;
 use sill_services::locker::LockerService;
+use sill_services::notifications::NotificationsService;
 use sill_services::service::spawn;
 use sill_services::volume::VolumeService;
 use sill_ui_kit::links::Links;
@@ -24,8 +26,8 @@ use tokio::runtime::Handle as Runtime;
 
 use crate::policy::{
     calendar::CalendarBridge, clipboard::ClipboardBridge, displays::DisplaysBridge, follow,
-    idle::IdleBridge, notifications::NotificationsBridge, screenshots::ScreenshotsBridge,
-    search::SearchBridge,
+    idle::IdleBridge, keyboard::KeyboardBridge, notifications::NotificationsBridge,
+    screenshots::ScreenshotsBridge, search::SearchBridge,
 };
 
 /// Start every service on `rt` (the `cosmic_wl` and volume threads on their own threads)
@@ -49,6 +51,8 @@ pub(crate) fn start(rt: &Runtime, env: &Env) -> Services {
             launch: launch.control.clone(),
         }),
     );
+    // Passive (never asks for the bus name) until the daemon sends its first policy.
+    let notifications = spawn::<NotificationsService>(rt, env, ());
     let locker = spawn::<LockerService>(rt, env, ());
     let auth = spawn::<AuthService>(rt, env, ());
     let idle = spawn::<IdleService>(
@@ -59,6 +63,16 @@ pub(crate) fn start(rt: &Runtime, env: &Env) -> Services {
             battery: battery.state.clone(),
             locker: locker.control.clone(),
             auth: auth.control.clone(),
+        },
+    );
+    let keycap = spawn::<KeycapService>(
+        rt,
+        env,
+        KeycapLinks {
+            cosmic_wl: cosmic_wl.state.clone(),
+            apps: apps.state.clone(),
+            notifications: notifications.control.clone(),
+            notes: notifications.state.clone(),
         },
     );
     Services {
@@ -75,8 +89,7 @@ pub(crate) fn start(rt: &Runtime, env: &Env) -> Services {
         pins: spawn(rt, env, ()),
         wallpaper: spawn(rt, env, ()),
         session: spawn(rt, env, locker.control.clone()),
-        // Passive (never asks for the bus name) until the daemon sends its first policy.
-        notifications: spawn(rt, env, ()),
+        notifications,
         events: spawn(rt, env, ()),
         screenshots: spawn(rt, env, ()),
         polkit_agent: spawn(rt, env, ()),
@@ -90,6 +103,7 @@ pub(crate) fn start(rt: &Runtime, env: &Env) -> Services {
         locker,
         auth,
         idle,
+        keycap,
         dirs: env.dirs.clone(),
         session_actions: Arc::clone(&env.session_actions),
     }
@@ -146,6 +160,13 @@ pub(crate) fn follow_settings(
         settings(),
         DisplaysBridge,
         services.displays.control.clone(),
+    );
+    // keycap's per-app profiles follow `keyboard.overrides`.
+    follow(
+        rt,
+        settings(),
+        KeyboardBridge,
+        services.keycap.control.clone(),
     );
     // The calendar's sources and the screenshots' folders and tool.
     let home = env.dirs.home.clone();
@@ -228,6 +249,11 @@ mod tests {
             services.clipboard.state.borrow().status.mode,
             sill_model::clipboard::HistoryMode::Off,
             "no clipboard read until the daemon's policy"
+        );
+        assert_eq!(
+            *services.keycap.state.borrow(),
+            sill_model::keycap::KeycapState::Unknown,
+            "no socket and no system bus in an isolated Env: nothing is asked"
         );
         assert_eq!(
             services.idle.state.borrow().mode,

@@ -24,11 +24,19 @@ pub fn report<D: SettingsDoc>(loaded: &Loaded<D>) {
     }
 }
 
+/// Print what `loaded` reports, and the `keyboard.overrides` rows that did not become an override.
+pub fn report_shell(loaded: &Loaded<ShellFile>) {
+    report(loaded);
+    for line in sill_settings::overrides(&loaded.value.keyboard).1 {
+        eprintln!("sill: {}: {line}", ShellFile::FILE.0);
+    }
+}
+
 /// The stored settings, or the defaults when there are none or they cannot be read; what the file
 /// held that was not used is reported.
 pub fn load(store: &Store) -> ShellFile {
     let loaded = store.load::<ShellFile>();
-    report(&loaded);
+    report_shell(&loaded);
     loaded.value
 }
 

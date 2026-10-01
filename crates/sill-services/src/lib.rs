@@ -1,7 +1,7 @@
 //! Effectful services behind watch channels: power, network, Wi-Fi, Bluetooth, power profiles,
 //! Now Playing, the session, the lock screen's password check and the polkit agent, notifications,
-//! calendar events, screenshots, volume, tray, apps, launching, dock pins, wallpaper, displays and
-//! COSMIC Wayland state.
+//! calendar events, screenshots, volume, tray, apps, launching, dock pins, wallpaper, displays,
+//! COSMIC Wayland state and the keycap keyboard daemon.
 //!
 //! Every service is one module with the same shape: a marker type implementing [`Service`],
 //! started by [`service::spawn`] against [`env::Env`]'s seams into a [`Handle`] (a watch
@@ -26,8 +26,10 @@ pub mod displays;
 pub mod env;
 pub mod error;
 pub mod events;
+mod file_touch;
 pub mod idle;
 pub mod kbd_backlight;
+pub mod keycap;
 pub mod launch;
 pub mod locker;
 pub mod network;
@@ -59,6 +61,7 @@ pub use error::ServiceError;
 pub use events::EventsService;
 pub use idle::{IdleLinks, IdleService};
 pub use kbd_backlight::KbdBacklightService;
+pub use keycap::{KeycapLinks, KeycapService};
 pub use launch::LaunchService;
 pub use locker::LockerService;
 pub use network::NetworkService;

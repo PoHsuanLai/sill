@@ -3173,6 +3173,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "keycap-protocol"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+]
+
+[[package]]
 name = "khronos-egl"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5426,6 +5435,7 @@ dependencies = [
 name = "sill-ipc"
 version = "0.1.0"
 dependencies = [
+ "keycap-protocol",
  "serde",
  "serde_json",
  "sill-launcher",
@@ -5471,6 +5481,7 @@ name = "sill-model"
 version = "0.1.0"
 dependencies = [
  "jiff",
+ "keycap-protocol",
  "serde",
  "serde_json",
  "sill-launcher",
@@ -5552,11 +5563,13 @@ dependencies = [
  "freedesktop-icons",
  "image",
  "jiff",
+ "keycap-protocol",
  "libpulse-binding",
  "logind-zbus",
  "nonstick",
  "notify",
  "percent-encoding",
+ "rustix",
  "serde",
  "serde_json",
  "sill-launcher",
@@ -5575,7 +5588,9 @@ version = "0.1.0"
 dependencies = [
  "ds-core",
  "ds-settings",
+ "keycap-protocol",
  "serde",
+ "sill-launcher",
  "sill-model",
  "toml",
 ]

@@ -154,6 +154,7 @@ pub fn services() -> (Services, Feeds) {
         polkit_agent,
         clipboard: fixed(sill_model::clipboard::Clipboard::default(), &mut keep),
         idle,
+        keycap: fixed(sill_model::keycap::KeycapState::default(), &mut keep),
         // Nowhere real: a surface that reads a file under these finds nothing.
         dirs: sill_services::env::Dirs::under(std::path::Path::new(
             "/nonexistent/sill-ui-kit-test",

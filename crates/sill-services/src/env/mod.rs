@@ -12,13 +12,15 @@ mod session_actions;
 mod wall_clock;
 mod wayland;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
 
 use crate::auth::PamHelper;
 use crate::polkit_agent;
 use ddc::{DdcBus, FileBus, I2cBuses};
 use sill_model::idle::IdleTimes;
+use sill_model::keycap::{UNIT_GRACE, UNIT_RECHECK};
 
 pub use authenticator::{Authenticator, FakeAuthenticator, FakeRule};
 pub use bus_name::{NameState, name_state};
@@ -53,6 +55,29 @@ pub struct Env {
     pub authenticator: Arc<dyn Authenticator>,
     /// The processes a service looks for by name: a `/proc` scan, or none.
     pub processes: Arc<dyn Processes>,
+    /// keycap's control socket; `None` means the keycap service never connects.
+    pub keycap_socket: Option<PathBuf>,
+    /// How long keycap's socket may be down before systemd is asked about the unit, and how often
+    /// after that; the process's own is the model's, a test's is short.
+    pub keycap_unit_wait: UnitWait,
+}
+
+/// When the keycap service asks systemd about its unit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UnitWait {
+    /// How long the socket is down before the first question.
+    pub grace: Duration,
+    /// How long between questions after that.
+    pub recheck: Duration,
+}
+
+impl Default for UnitWait {
+    fn default() -> UnitWait {
+        UnitWait {
+            grace: UNIT_GRACE,
+            recheck: UNIT_RECHECK,
+        }
+    }
 }
 
 /// Where idle's screen-off and suspend times come from.
@@ -67,8 +92,8 @@ pub enum IdleTimesSource {
 
 impl Env {
     /// The process's own: its buses, its compositor, its directories, the system clock, the
-    /// kernel's i2c buses, polkitd on the system bus, logind's session actions and PAM through
-    /// `sill auth-check`.
+    /// kernel's i2c buses, polkitd on the system bus, logind's session actions, PAM through
+    /// `sill auth-check` and keycap's socket under `/run/keycap`.
     pub fn from_process() -> Env {
         let buses = Buses::from_process();
         Env {
@@ -82,14 +107,16 @@ impl Env {
             session_actions: Arc::new(LogindActions),
             authenticator: Arc::new(PamHelper::this_exe()),
             processes: Arc::new(ProcScan),
+            keycap_socket: Some(PathBuf::from(keycap_protocol::SOCKET_PATH)),
+            keycap_unit_wait: UnitWait::default(),
         }
     }
 
     /// Nothing outside the process: no bus, a compositor socket in `scratch` that does not exist,
     /// every directory inside `scratch`, the system clock (read only), DDC monitors from a file
     /// that is not there (none), no polkit helper, session actions that are only recorded, and a
-    /// password check that refuses everything, and no processes running. For tests that start services and must never reach
-    /// the person's session or files. `scratch` must exist: the wallpaper service watches the
+    /// password check that refuses everything, no processes running and no keycap socket. For
+    /// tests that start services and must never reach the person's session or files. `scratch` must exist: the wallpaper service watches the
     /// nearest existing folder above COSMIC's record.
     pub fn isolated(scratch: &Path) -> Env {
         Env {
@@ -112,6 +139,8 @@ impl Env {
                 delay: std::time::Duration::ZERO,
             }),
             processes: Arc::new(NoProcesses),
+            keycap_socket: None,
+            keycap_unit_wait: UnitWait::default(),
         }
     }
 }

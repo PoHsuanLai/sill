@@ -4,6 +4,7 @@ use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
 use freedesktop_desktop_entry::DesktopEntry;
+use keycap_protocol::ProfileName;
 use sill_launcher::AppId;
 use sill_model::apps::{App, AppIcon, DbusActivation, DesktopActionEntry, Listing, Terminal};
 
@@ -117,6 +118,8 @@ pub fn parse_entry(
         },
         actions: actions(&entry, locales),
         mime_types: owned_list(entry.mime_type()),
+        categories: owned_list(entry.categories()),
+        keyboard_profile: keyboard_profile(&entry, path),
         keywords: entry
             .keywords(locales)
             .unwrap_or_default()
@@ -147,6 +150,23 @@ fn owned_list(field: Option<Vec<&str>>) -> Vec<String> {
         .filter(|s| !s.is_empty())
         .map(str::to_owned)
         .collect()
+}
+
+/// The desktop entry key naming the keyboard profile an app wants.
+const KEYBOARD_PROFILE_KEY: &str = "X-Keycap-Profile";
+
+/// `X-Keycap-Profile`, parsed once here. A value that is not a profile name costs only this
+/// key: it is logged and the entry is indexed without a profile, as every other bad field.
+fn keyboard_profile(entry: &DesktopEntry, path: &Path) -> Option<ProfileName> {
+    let value = entry.desktop_entry(KEYBOARD_PROFILE_KEY)?.trim();
+    ProfileName::parse(value)
+        .inspect_err(|error| {
+            eprintln!(
+                "sill: apps: {}: {KEYBOARD_PROFILE_KEY} {value:?} ignored: {error}",
+                path.display()
+            )
+        })
+        .ok()
 }
 
 /// `Type=Application`, or no `Type` at all (a handful of real-world entries omit it; treating
@@ -213,6 +233,7 @@ mod tests {
     use super::super::icons::IconTheme;
     use super::{entry_id, is_application, is_listed, on_path, parse_entry};
     use freedesktop_desktop_entry::DesktopEntry;
+    use keycap_protocol::ProfileName;
     use sill_model::apps::Listing;
     use std::path::{Path, PathBuf};
 
@@ -331,5 +352,55 @@ mod tests {
             .unwrap_or_else(|| panic!("expected an App"));
         assert_eq!(app.listing, Listing::Hidden);
         assert_eq!(app.name, "X");
+    }
+
+    #[test]
+    fn parse_entry_reads_categories_and_a_declared_keyboard_profile() {
+        const HEAD: &str = "[Desktop Entry]\nType=Application\nName=X\nExec=x\n";
+        const CASES: &[(&str, &str, &[&str], Option<&str>)] = &[
+            ("neither", "", &[], None),
+            (
+                "categories with the trailing semicolon",
+                "Categories=System;TerminalEmulator;\n",
+                &["System", "TerminalEmulator"],
+                None,
+            ),
+            (
+                "a declared profile",
+                "X-Keycap-Profile=terminal\n",
+                &[],
+                Some("terminal"),
+            ),
+            (
+                "a profile name is trimmed",
+                "X-Keycap-Profile= game-1 \n",
+                &[],
+                Some("game-1"),
+            ),
+            (
+                "an invalid profile is ignored",
+                "X-Keycap-Profile=Not A Name\n",
+                &[],
+                None,
+            ),
+            (
+                "an empty profile is ignored",
+                "X-Keycap-Profile=\n",
+                &[],
+                None,
+            ),
+        ];
+        let theme = IconTheme("hicolor".to_owned());
+        for &(name, extra, categories, profile) in CASES {
+            let text = format!("{HEAD}{extra}");
+            let app = parse_entry(Path::new("/a/x.desktop"), "x", &text, &theme, &[])
+                .unwrap_or_else(|| panic!("{name}: expected an App"));
+            assert_eq!(app.categories, categories, "{name}");
+            assert_eq!(
+                app.keyboard_profile,
+                profile.map(|p| ProfileName::parse(p).unwrap_or_else(|e| panic!("{e}"))),
+                "{name}"
+            );
+        }
     }
 }

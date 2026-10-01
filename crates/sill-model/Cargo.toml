@@ -10,6 +10,7 @@ publish.workspace = true
 
 [dependencies]
 sill-launcher = { workspace = true }
+keycap-protocol = { workspace = true }
 jiff = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }

@@ -1,13 +1,12 @@
 //! The pins task: load once, apply every command, save atomically, and pick up an external
-//! edit through [`fs_watch`].
+//! edit through [`crate::file_touch`].
 
 use std::path::{Path, PathBuf};
 
 use sill_model::pins::{DockPins, PinEvent, step};
 use tokio::sync::{mpsc, watch};
 
-use super::file::{load, save};
-use super::fs_watch;
+use super::file::{FILE_NAME, load, save};
 
 /// Run until `commands` closes (the `Control` was dropped).
 pub(crate) async fn run(
@@ -15,7 +14,7 @@ pub(crate) async fn run(
     tx: watch::Sender<DockPins>,
     mut commands: mpsc::UnboundedReceiver<PinEvent>,
 ) {
-    let mut touched = match fs_watch::watch(&dir) {
+    let mut touched = match crate::file_touch::watch(&dir, FILE_NAME) {
         Ok(touched) => Some(touched),
         Err(error) => {
             eprintln!("sill: watching {}: {error}", dir.display());

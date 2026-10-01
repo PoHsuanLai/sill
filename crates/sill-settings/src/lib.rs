@@ -1,7 +1,7 @@
 //! `$XDG_CONFIG_HOME/sill/settings.toml`: the shell's settings domains (design/22-SETTINGS.md
 //! §3.4-3.8 and §3.11-3.14: bar, dock, launcher, scroll, scrollbar, menus, switcher, sound,
 //! notifications, control center, spaces; `display`, `osd`, `power_menu` and `session`; and
-//! `widgets`, `calendar`, `screenshot` and `hot_corners`), their schema (§9,
+//! `widgets`, `calendar`, `screenshot` and `hot_corners`; §3.24-3.25: `idle` and `keyboard`), their schema (§9,
 //! `#[derive(SettingsSchema)]` with `file = "sill/settings.toml"`), and [`Section`], each
 //! domain as a reader finds it in a [`ShellFile`].
 //!
@@ -18,6 +18,7 @@ pub mod file;
 pub mod focus;
 pub mod hot_corners;
 pub mod idle;
+pub mod keyboard;
 pub mod launcher;
 pub mod launcher_kinds;
 pub mod menus;
@@ -50,6 +51,7 @@ pub use file::{APP, ShellFile};
 pub use focus::{FocusMode, focus_mode, with_focus_mode};
 pub use hot_corners::{CornerAction, HotCornersSettings};
 pub use idle::{IdleLockAt, IdleSettings, IdleTimesFrom};
+pub use keyboard::{KeyboardOverride, KeyboardSettings, RejectedRow, overrides};
 pub use launcher::LauncherSettings;
 pub use launcher_kinds::{ClipboardHistory, CurrencyRates, EmojiSkinTone, FilesBackend, WebSearch};
 pub use menus::MenusSettings;

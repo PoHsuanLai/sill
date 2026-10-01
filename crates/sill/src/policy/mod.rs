@@ -7,6 +7,7 @@ pub mod clipboard;
 pub mod displays;
 mod follow;
 pub mod idle;
+pub mod keyboard;
 pub mod notifications;
 pub mod screenshots;
 pub mod search;

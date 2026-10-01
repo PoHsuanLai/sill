@@ -18,6 +18,8 @@ pub mod events;
 pub mod idle;
 pub mod ids;
 pub mod kbd_backlight;
+pub mod keyboard;
+pub mod keycap;
 pub mod launch;
 pub mod locker;
 pub mod network;

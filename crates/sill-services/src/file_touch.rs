@@ -1,20 +1,19 @@
-//! A directory watch on [`FILE_NAME`]: 30 ms debounce, so an external edit (or our own atomic
+//! A directory watch on one file in it: 30 ms debounce, so an external edit (or our own atomic
 //! write) shows up as one settled touch rather than a burst of rename events.
 
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::path::Path;
 use std::time::Duration;
 
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use tokio::sync::mpsc;
 
-use super::file::FILE_NAME;
 use crate::error::ServiceError;
 
 /// How long the directory must be quiet before a touch is reported settled.
 pub const DEBOUNCE: Duration = Duration::from_millis(30);
 
-/// A running watch on one directory's [`FILE_NAME`].
+/// A running watch on one file of a directory.
 pub struct FileTouch {
     signals: mpsc::UnboundedReceiver<()>,
     _watcher: RecommendedWatcher,
@@ -35,19 +34,20 @@ impl FileTouch {
     }
 }
 
-/// Whether `event` touches [`FILE_NAME`] itself: not its temp file, not a sibling, and not a
-/// mere `Access` (counting a re-read as a change would re-read forever).
-fn touches_the_file(event: &notify::Event) -> bool {
+/// Whether `event` touches the file called `name` itself: not its temp file, not a sibling, and
+/// not a mere `Access` (counting a re-read as a change would re-read forever).
+fn touches_the_file(event: &notify::Event, name: &OsStr) -> bool {
     !event.kind.is_access()
         && event
             .paths
             .iter()
-            .any(|path| path.file_name() == Some(OsStr::new(FILE_NAME)))
+            .any(|path| path.file_name() == Some(name))
 }
 
-/// Start watching `dir` (created if missing) for changes to [`FILE_NAME`]. Needs a Tokio
+/// Start watching `dir` (created if missing) for changes to its file `name`. Needs a Tokio
 /// runtime (the watcher's callback sends into an unbounded channel; nothing here blocks it).
-pub fn watch(dir: &Path) -> Result<FileTouch, ServiceError> {
+pub fn watch(dir: &Path, name: &str) -> Result<FileTouch, ServiceError> {
+    let name = OsString::from(name);
     std::fs::create_dir_all(dir).map_err(|source| ServiceError::Io {
         path: dir.to_path_buf(),
         source,
@@ -55,7 +55,7 @@ pub fn watch(dir: &Path) -> Result<FileTouch, ServiceError> {
     let (signal, signals) = mpsc::unbounded_channel::<()>();
     let mut watcher = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
         if let Ok(event) = res
-            && touches_the_file(&event)
+            && touches_the_file(&event, &name)
         {
             // A dropped signal means the watch task ended: nobody is left to re-read for.
             let _ = signal.send(());
@@ -70,16 +70,17 @@ pub fn watch(dir: &Path) -> Result<FileTouch, ServiceError> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::file::FILE_NAME;
     use super::watch;
     use sill_testkit::TempDir;
 
-    /// A rename onto `FILE_NAME` (the atomic writer's own move) settles as exactly one touch,
+    const FILE_NAME: &str = "dock.json";
+
+    /// A rename onto the file (the atomic writer's own move) settles as exactly one touch,
     /// and a change to an unrelated sibling file is not reported at all.
     #[tokio::test]
     async fn watch_fires_once_on_rename_and_ignores_siblings() {
         let dir = TempDir::new("fs-watch");
-        let mut touched = watch(dir.path()).unwrap_or_else(|e| panic!("{e}"));
+        let mut touched = watch(dir.path(), FILE_NAME).unwrap_or_else(|e| panic!("{e}"));
 
         let tmp = dir.path().join("dock.json.part");
         std::fs::write(&tmp, b"{}").unwrap_or_else(|e| panic!("{e}"));

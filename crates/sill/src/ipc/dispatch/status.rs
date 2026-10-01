@@ -23,5 +23,6 @@ pub fn dispatch(reach: &Reach, request: StatusRequest) -> Response {
             StatusReport::Clipboard(ClipboardStatus::of(&services.clipboard.state.borrow()))
         }
         StatusRequest::Idle => StatusReport::Idle(*services.idle.state.borrow()),
+        StatusRequest::Keycap => StatusReport::Keycap(services.keycap.state.borrow().clone()),
     })
 }

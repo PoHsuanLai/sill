@@ -33,6 +33,8 @@ fn term() -> App {
             exec: "cosmic-term".to_owned(),
         }],
         mime_types: Vec::new(),
+        categories: Vec::new(),
+        keyboard_profile: None,
         keywords: Vec::new(),
         listing: Listing::Shown,
         path: PathBuf::from("/usr/share/applications/com.system76.CosmicTerm.desktop"),

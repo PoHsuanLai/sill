@@ -25,6 +25,8 @@ fn app(id: &str, icon: AppIcon) -> App {
         activation: DbusActivation::Exec,
         actions: Vec::new(),
         mime_types: Vec::new(),
+        categories: Vec::new(),
+        keyboard_profile: None,
         keywords: Vec::new(),
         listing: Listing::Shown,
         path: PathBuf::from("/usr/share/applications/term.desktop"),

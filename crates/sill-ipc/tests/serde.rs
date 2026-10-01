@@ -4,6 +4,7 @@
 use std::io::Cursor;
 use std::path::PathBuf;
 
+use keycap_protocol::{Grab, Keyboard, KeyboardInfo, Mode, Status};
 use sill_ipc::act::{
     ActRequest, DisplayRequest, DockRequest, LevelRequest, SwitcherRequest, VolumeRequest,
 };
@@ -25,6 +26,7 @@ use sill_model::clipboard::{ClipProtocol, ClipStatus, HistoryMode};
 use sill_model::idle::{
     DimLevel, DimShown, Idle, IdleMode, IdlePhase, Inhibition, LogindIdle, OffReason, PowerSource,
 };
+use sill_model::keycap::{KeycapAsk, KeycapState};
 use sill_model::locker::{Lock, LockCause, LockPhase};
 use sill_model::notifications::{
     Action, ActionKey, AppRef, Expiry, Hints, IconRef, NameHolder, NameOwner, NotifyUrgency,
@@ -148,6 +150,10 @@ fn requests() -> Vec<(Request, &'static str)> {
             r#"{"kind":"status","v":"idle"}"#,
         ),
         (
+            Request::Status(StatusRequest::Keycap),
+            r#"{"kind":"status","v":"keycap"}"#,
+        ),
+        (
             Request::Act(ActRequest::Dock(DockRequest::Pin {
                 app: app("org.mozilla.firefox"),
             })),
@@ -228,6 +234,14 @@ fn requests() -> Vec<(Request, &'static str)> {
         (
             Request::Act(ActRequest::FocusLatest),
             r#"{"kind":"act","v":{"kind":"focus_latest"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Keycap(KeycapAsk::Retry)),
+            r#"{"kind":"act","v":{"kind":"keycap","v":"retry"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Keycap(KeycapAsk::Resume)),
+            r#"{"kind":"act","v":{"kind":"keycap","v":"resume"}}"#,
         ),
         (
             Request::Debug(DebugRequest::Stats),
@@ -462,6 +476,27 @@ fn responses() -> Vec<(Response, &'static str)> {
                 cause: None,
             })),
             r#"{"kind":"status","v":{"kind":"lock","v":{"phase":"unlocked","cause":null}}}"#,
+        ),
+        (
+            Response::Status(StatusReport::Keycap(KeycapState::Failed)),
+            r#"{"kind":"status","v":{"kind":"keycap","v":{"kind":"failed"}}}"#,
+        ),
+        (
+            Response::Status(StatusReport::Keycap(KeycapState::Connected {
+                status: Status {
+                    mode: Mode::Paused,
+                    keyboards: vec![Keyboard {
+                        info: KeyboardInfo {
+                            name: "Apple Keyboard".to_owned(),
+                            path: "/dev/input/event4".to_owned(),
+                            vendor: 0x5ac,
+                            product: 0x250,
+                        },
+                        grab: Grab::Conflict,
+                    }],
+                },
+            })),
+            r#"{"kind":"status","v":{"kind":"keycap","v":{"kind":"connected","v":{"status":{"mode":"paused","keyboards":[{"info":{"name":"Apple Keyboard","path":"/dev/input/event4","vendor":1452,"product":592},"grab":"conflict"}]}}}}}"#,
         ),
         (
             Response::Status(StatusReport::Idle(Idle {

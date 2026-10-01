@@ -1,9 +1,10 @@
 //! What a client changes: the dock's pins, the brightness and volume keys, the lock, a
 //! screenshot, the desktop widgets, the switcher's chord, the clipboard history, the banners and
-//! the keyboard on the newest transient.
+//! the keyboard on the newest transient and keycap.
 
 use serde::{Deserialize, Serialize};
 use sill_launcher::AppId;
+use sill_model::keycap::KeycapAsk;
 use sill_model::screenshots::ShotKind;
 
 /// A verb that changes something and answers `Done` once it is asked.
@@ -33,6 +34,8 @@ pub enum ActRequest {
     /// banner, whichever appeared last (`sill focus-latest`; bound in COSMIC's shortcuts like the
     /// launcher's). Nothing happens when none is showing.
     FocusLatest,
+    /// Restart keycap, or end its pause (`sill keycap retry|resume`).
+    Keycap(KeycapAsk),
 }
 
 /// Pin changes.

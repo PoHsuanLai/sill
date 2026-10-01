@@ -12,6 +12,7 @@ mod command;
 mod debug;
 mod desktop;
 mod display;
+mod keycap;
 mod launcher;
 mod made_up;
 mod notifications;

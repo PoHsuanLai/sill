@@ -7,7 +7,7 @@ use shell_host::HostHandle;
 use sill_settings::ShellFile;
 use tokio::runtime::Runtime;
 
-use super::store::report;
+use super::store::report_shell;
 use crate::daemon::msg::ShellMsg;
 
 /// Watch `store`'s `settings.toml` on `runtime`, sending each settled file to `host`. A directory
@@ -20,7 +20,7 @@ pub fn spawn_watch(runtime: &Runtime, store: &Store, host: HostHandle<ShellMsg>)
     }
     runtime.spawn(async move {
         while let Some(loaded) = watch.changed().await {
-            report(&loaded);
+            report_shell(&loaded);
             if host
                 .send(ShellMsg::Settings(Box::new(loaded.value)))
                 .is_err()

@@ -66,6 +66,11 @@ impl Dirs {
     pub fn sill_config(&self) -> PathBuf {
         self.config.join("sill")
     }
+
+    /// keycap's folder under the config directory: the person's `keycap.toml` is in it.
+    pub fn keycap_config(&self) -> PathBuf {
+        self.config.join("keycap")
+    }
 }
 
 #[cfg(test)]
@@ -89,5 +94,6 @@ mod tests {
         assert_eq!(dirs.runtime.as_deref(), Some(Path::new("/scratch/run")));
         assert_eq!(dirs.pictures, None);
         assert_eq!(dirs.sill_state(), Path::new("/scratch/state/sill"));
+        assert_eq!(dirs.keycap_config(), Path::new("/scratch/config/keycap"));
     }
 }

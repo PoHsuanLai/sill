@@ -15,6 +15,7 @@ use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
 use sill_ipc::status::StatusRequest;
 use sill_launcher::AppId;
 use sill_model::auth::FakeVerdict;
+use sill_model::keycap::KeycapAsk;
 use sill_model::notifications::{
     Action, ActionKey, AppRef, Expiry, Hints, IconRef, NotificationId, NotifyUrgency, Posting,
     parse_body,
@@ -135,6 +136,15 @@ fn every_command_line_sends_its_request() {
         ),
         (&["polkit", "status"], status(StatusRequest::Polkit)),
         (&["idle", "status"], status(StatusRequest::Idle)),
+        (&["keycap", "status"], status(StatusRequest::Keycap)),
+        (
+            &["keycap", "retry"],
+            act(ActRequest::Keycap(KeycapAsk::Retry)),
+        ),
+        (
+            &["keycap", "resume"],
+            act(ActRequest::Keycap(KeycapAsk::Resume)),
+        ),
         (&["clipboard", "status"], status(StatusRequest::Clipboard)),
         (&["clipboard", "clear"], act(ActRequest::ClearClipboard)),
         (&["screenshot"], act(ActRequest::Screenshot(ShotKind::Area))),

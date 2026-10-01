@@ -18,6 +18,7 @@ use sill_services::env::{Dirs, SessionActions};
 use sill_services::events::EventsService;
 use sill_services::idle::IdleService;
 use sill_services::kbd_backlight::KbdBacklightService;
+use sill_services::keycap::KeycapService;
 use sill_services::launch::LaunchService;
 use sill_services::locker::LockerService;
 use sill_services::network::NetworkService;
@@ -77,6 +78,8 @@ pub struct Services {
     /// sill's own idle: passive until the daemon's policy, and `Off` anywhere but a sill
     /// session.
     pub idle: Handle<IdleService>,
+    /// The keycap keyboard daemon: its connection, and the notices about it.
+    pub keycap: Handle<KeycapService>,
     /// The person's directories the services were started with (the icon theme's config, the
     /// widget placements' state folder).
     pub dirs: Dirs,
@@ -130,4 +133,5 @@ members! {
     auth: AuthService,
     polkit_agent: PolkitAgentService,
     idle: IdleService,
+    keycap: KeycapService,
 }

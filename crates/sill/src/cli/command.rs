@@ -6,6 +6,7 @@ use clap::Subcommand;
 use super::debug::DebugAction;
 use super::desktop::{ControlCenterAction, DockAction, PowerMenuAction, ShotArg, WidgetsAction};
 use super::display::DisplayAction;
+use super::keycap::KeycapAction;
 use super::launcher::{ClipboardAction, LauncherAction};
 use super::notifications::NotificationsAction;
 use super::session::{IdleAction, LockVerb, PolkitAction, SwitcherAction};
@@ -76,6 +77,11 @@ pub enum Command {
     Idle {
         #[command(subcommand)]
         action: IdleAction,
+    },
+    /// The Mac keyboard layout: whether keycap runs, restart it, or end its pause.
+    Keycap {
+        #[command(subcommand)]
+        action: KeycapAction,
     },
     /// The launcher's clipboard history.
     Clipboard {

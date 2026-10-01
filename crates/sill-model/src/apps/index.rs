@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 
+use keycap_protocol::ProfileName;
 use serde::{Deserialize, Serialize};
 use sill_launcher::AppId;
 
@@ -45,6 +46,12 @@ pub struct App {
     pub actions: Vec<DesktopActionEntry>,
     /// `MimeType=`, for file drops onto a dock tile.
     pub mime_types: Vec<String>,
+    /// `Categories=`, the registered category names, for what a keyboard profile may follow
+    /// (a `TerminalEmulator` wants the terminal profile).
+    pub categories: Vec<String>,
+    /// `X-Keycap-Profile`, the keyboard profile this app asks for; `None` when the entry does
+    /// not say or names something that is not a profile name.
+    pub keyboard_profile: Option<ProfileName>,
     /// `Keywords=`, localised, matched by the launcher.
     pub keywords: Vec<String>,
     /// `NoDisplay`/`Hidden`/`OnlyShowIn`: hidden entries still match windows, never list.
@@ -154,6 +161,8 @@ pub(crate) mod tests {
             activation: DbusActivation::Exec,
             actions: Vec::new(),
             mime_types: Vec::new(),
+            categories: Vec::new(),
+            keyboard_profile: None,
             keywords: Vec::new(),
             listing: Listing::Shown,
             path: PathBuf::from(format!("/usr/share/applications/{id}.desktop")),

@@ -11,6 +11,8 @@ publish.workspace = true
 [dependencies]
 sill-model = { workspace = true }
 sill-launcher = { workspace = true }
+keycap-protocol = { workspace = true }
+rustix = { workspace = true }
 tokio = { workspace = true }
 zbus = { workspace = true }
 cosmic-client-toolkit = { workspace = true }

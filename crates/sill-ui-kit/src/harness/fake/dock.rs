@@ -46,6 +46,8 @@ fn app(id: &str, name: &str, actions: &[(&str, &str)]) -> App {
             })
             .collect(),
         mime_types: Vec::new(),
+        categories: Vec::new(),
+        keyboard_profile: None,
         keywords: Vec::new(),
         listing: Listing::Shown,
         path: PathBuf::from(format!("/usr/share/applications/{id}.desktop")),

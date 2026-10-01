@@ -1,17 +1,18 @@
 //! What a client reads: the notifications server, the lock, the polkit agent, the clipboard
-//! history and idle. Each answer is the `sill-model` state, serialised; the two that hold more
+//! history, idle and keycap. Each answer is the `sill-model` state, serialised; the two that hold more
 //! than a client should see (a clipboard entry's text, a polkit prompt's cookie) are reduced to
 //! counts and names here.
 
 use serde::{Deserialize, Serialize};
 use sill_model::clipboard::{ClipStatus, Clipboard};
 use sill_model::idle::Idle;
+use sill_model::keycap::KeycapState;
 use sill_model::locker::Lock;
 use sill_model::notifications::{History, Notifications, ServerStatus};
 use sill_model::polkit_agent::{ActionId, Polkit, Registration};
 
 /// `sill notifications status|...`, `sill lock status`, `sill polkit status`, `sill clipboard
-/// status`, `sill idle status`.
+/// status`, `sill idle status`, `sill keycap status`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum StatusRequest {
@@ -26,6 +27,8 @@ pub enum StatusRequest {
     Clipboard,
     /// Who owns idle, where it has got to, and what holds it off.
     Idle,
+    /// Whether keycap runs, and what it says about its mode and the keyboards.
+    Keycap,
 }
 
 /// The one answer to a [`StatusRequest`], the same variant.
@@ -37,6 +40,7 @@ pub enum StatusReport {
     Polkit(PolkitStatus),
     Clipboard(ClipboardStatus),
     Idle(Idle),
+    Keycap(KeycapState),
 }
 
 /// The notifications server and what it holds.
