@@ -324,13 +324,15 @@ step_sleep_locks() {
   : >"$log"
   wake; start=$(now_ms)
   logind sleep
-  locked=$(until_match "$start" lock_state '^locked sleep$' 4000)
+  # Functional: locked within 15 s; the 4 s (inside logind's 5 s inhibitor delay) is a budget.
+  locked=$(until_match "$start" lock_state '^locked sleep$' 15000)
   logind wake; sleep 0.5
   wake; sleep 1.5
   still=$(lock_state)
   echo "PrepareForSleep(true): locked (sleep) at ${locked} ms; after the wake and a made-up wake: '$still'; stand-in: $(grep -c '^inhibit sleep delay' "$OUT_DIR/logind.log") sleep delay inhibitor(s) taken" \
     | tee -a "$log" >&2
-  [ "$locked" -ge 0 ] && [ "$still" = "locked sleep" ] && ok=0
+  [ "$locked" -ge 0 ] && budget_check "locked ${locked} ms after PrepareForSleep against 4000 ms" "$(( locked <= 4000 ))" \
+    && [ "$still" = "locked sleep" ] && ok=0
   open_lock || ok=1
   return $ok
 }
