@@ -20,9 +20,11 @@
 # Usage: dev/nested.sh && dev/accept/idle-cpu.sh
 #   DURATION=60 WARMUP=20 MAX_CPU_PCT=1.0 MAX_THREADS=120 SILL_PROFILE=release|debug (default release)
 set -uo pipefail
+# Idle cost is a release measurement (a debug build's CPU says nothing): release unless asked.
+export SILL_PROFILE="${SILL_PROFILE:-release}"
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_REPO/target/accept-idle-cpu"
+OUT_DIR="$SILL_TARGET/accept-idle-cpu"
 mkdir -p "$OUT_DIR"
 DURATION="${DURATION:-60}"
 WARMUP="${WARMUP:-20}"
@@ -30,8 +32,6 @@ INTERVAL="${INTERVAL:-5}"
 MAX_CPU_PCT="${MAX_CPU_PCT:-1.0}"
 MAX_THREADS="${MAX_THREADS:-120}"
 MAX_RSS_MB="${MAX_RSS_MB:-}"
-PROFILE="${SILL_PROFILE:-release}"
-SILL_BIN="$SILL_REPO/target/$PROFILE/sill"
 CSV="$OUT_DIR/idle.csv"
 
 # utime+stime in clock ticks of every thread of $1 (the process's own stat line).
@@ -82,12 +82,8 @@ cleanup() {
 
 nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
 use_nested_socket || exit 1
-if [ "$PROFILE" = release ]; then
-  (cd "$SILL_REPO" && cargo build --release -p sill --features debug) >"$OUT_DIR/build.log" 2>&1 \
-    || { echo "build failed (see $OUT_DIR/build.log)" >&2; exit 1; }
-else
-  build || exit 1
-fi
+await_no_process || exit 1
+build || exit 1
 IN_ENV_EXTRA+=(LP_NUM_THREADS=2)
 scratch_new
 start_private_bus || { scratch_drop; exit 1; }
