@@ -125,7 +125,7 @@ dependencies = [
  "ndk-context",
  "ndk-sys",
  "num_enum",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -1196,7 +1196,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 3.0.6",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -1340,7 +1340,7 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10d60334b3b2e7c9d91ef8150abfb6fa4c1c39ebbcf4a81c2e346aad939fee3e"
 dependencies = [
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -1448,7 +1448,7 @@ dependencies = [
  "ndk-context",
  "ndk-sys",
  "percent-encoding",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tokio",
 ]
 
@@ -1809,7 +1809,7 @@ dependencies = [
  "ds-motion",
  "ds-style",
  "serde",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -1836,7 +1836,7 @@ dependencies = [
  "pdfrum",
  "pdfrum-anyrender",
  "peniko",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tokio",
  "webbrowser",
  "wgpu",
@@ -1851,7 +1851,7 @@ dependencies = [
  "futures-timer",
  "keyboard-types 0.7.0",
  "serde",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -1885,7 +1885,7 @@ dependencies = [
  "keyboard-types 0.7.0",
  "peniko",
  "rustc-hash 2.1.3",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "vello_common 0.1.0",
  "vello_hybrid",
  "wgpu",
@@ -1929,7 +1929,7 @@ dependencies = [
  "notify",
  "serde",
  "serde_json",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "toml",
  "zbus",
 ]
@@ -1955,7 +1955,7 @@ dependencies = [
  "image",
  "serde",
  "serde_json",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -2279,7 +2279,7 @@ dependencies = [
  "gettext-rs",
  "log",
  "memchr",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "unicase",
  "xdg 3.0.0",
 ]
@@ -2543,7 +2543,7 @@ dependencies = [
  "hashbrown 0.16.1",
  "log",
  "presser",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "windows",
 ]
 
@@ -3084,7 +3084,7 @@ dependencies = [
  "jni-sys 0.4.1",
  "log",
  "simd_cesu8",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "walkdir",
  "windows-link",
 ]
@@ -3187,7 +3187,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -3761,7 +3761,7 @@ dependencies = [
  "once_cell",
  "rustc-hash 1.1.0",
  "spirv",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "unicode-ident",
 ]
 
@@ -4240,7 +4240,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -4308,7 +4308,7 @@ dependencies = [
 [[package]]
 name = "pdfrum"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "kurbo",
  "pdfrum-common",
@@ -4323,13 +4323,13 @@ dependencies = [
  "pdfrum-render",
  "pdfrum-text",
  "peniko",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "pdfrum-anyrender"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "anyrender",
  "pdfrum-common",
@@ -4342,17 +4342,17 @@ dependencies = [
 [[package]]
 name = "pdfrum-cmap"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "pdfrum-common",
  "pdfrum-object",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "pdfrum-common"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "kurbo",
 ]
@@ -4360,7 +4360,7 @@ dependencies = [
 [[package]]
 name = "pdfrum-crypt"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "aes",
  "cbc",
@@ -4370,7 +4370,7 @@ dependencies = [
  "pdfrum-object",
  "sha1",
  "sha2",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "unicode-normalization",
  "zeroize",
 ]
@@ -4378,7 +4378,7 @@ dependencies = [
 [[package]]
 name = "pdfrum-doc"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "kurbo",
  "pdfrum-common",
@@ -4387,14 +4387,14 @@ dependencies = [
  "pdfrum-object",
  "pdfrum-page",
  "ryu",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "unicode-bidi",
 ]
 
 [[package]]
 name = "pdfrum-edit"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "getrandom 0.4.3",
  "kurbo",
@@ -4410,26 +4410,26 @@ dependencies = [
  "sha2",
  "skrifa 0.47.0",
  "subsetter",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "zeroize",
 ]
 
 [[package]]
 name = "pdfrum-filters"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "miniz_oxide 0.9.1",
  "pdfrum-common",
  "pdfrum-object",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "weezl 0.2.1",
 ]
 
 [[package]]
 name = "pdfrum-font"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "pdfrum-cmap",
  "pdfrum-common",
@@ -4439,24 +4439,24 @@ dependencies = [
  "read-fonts 0.44.0",
  "skrifa 0.47.0",
  "smallvec",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "pdfrum-object"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "bytes",
  "pdfrum-common",
  "ryu",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "pdfrum-page"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "kurbo",
  "moxcms 0.9.1",
@@ -4465,26 +4465,26 @@ dependencies = [
  "pdfrum-font",
  "pdfrum-object",
  "smallvec",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "zune-jpeg",
 ]
 
 [[package]]
 name = "pdfrum-parser"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "pdfrum-common",
  "pdfrum-crypt",
  "pdfrum-filters",
  "pdfrum-object",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "pdfrum-raster-vello-cpu"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "kurbo",
  "pdfrum-page",
@@ -4496,7 +4496,7 @@ dependencies = [
 [[package]]
 name = "pdfrum-render"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "kurbo",
  "pdfrum-common",
@@ -4505,13 +4505,13 @@ dependencies = [
  "pdfrum-page",
  "peniko",
  "smallvec",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "pdfrum-text"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "kurbo",
  "pdfrum-common",
@@ -4519,17 +4519,17 @@ dependencies = [
  "pdfrum-object",
  "pdfrum-page",
  "smallvec",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "pdfrum-type1"
 version = "0.4.0"
-source = "git+https://github.com/PoHsuanLai/pdfrum?rev=8bb03de59fe5b40ca21255dfd349553e48b54d9b#8bb03de59fe5b40ca21255dfd349553e48b54d9b"
+source = "git+https://github.com/PoHsuanLai/pdfrum?rev=e21b9352e0e070e4572ad67d16a309c570df2b83#e21b9352e0e070e4572ad67d16a309c570df2b83"
 dependencies = [
  "pdfrum-common",
  "read-fonts 0.44.0",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -4675,7 +4675,7 @@ dependencies = [
  "bytemuck",
  "pollster",
  "raw-window-handle",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "ultraviolet",
  "wgpu",
 ]
@@ -5003,7 +5003,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60dc65c0ff1a7ae1294b0c67b9f14baf70b644404010370171787bfac1038fc0"
 dependencies = [
  "libredox",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -5338,7 +5338,7 @@ dependencies = [
  "serde",
  "serde_json",
  "smithay-client-toolkit 0.20.0",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tokio",
  "vello_common 0.1.0",
  "vello_hybrid",
@@ -5394,7 +5394,7 @@ dependencies = [
  "sill-testkit",
  "sill-ui-kit",
  "sill-widgets-ui",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tokio",
 ]
 
@@ -5449,7 +5449,7 @@ dependencies = [
  "serde_json",
  "sill-launcher",
  "sill-model",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -5495,7 +5495,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sill-launcher",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -5587,7 +5587,7 @@ dependencies = [
  "sill-model",
  "sill-testkit",
  "system-tray",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tokio",
  "upower_dbus",
  "zbus",
@@ -5645,7 +5645,7 @@ dependencies = [
  "sill-services",
  "sill-settings",
  "sill-ui-kit",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tokio",
 ]
 
@@ -5757,9 +5757,9 @@ checksum = "9b0e903ee191d8f7a8fbf0d712c3a1699d19e04ceba5ad1eb673053c7d938a09"
 
 [[package]]
 name = "smallvec"
-version = "1.16.1"
+version = "1.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba467056f1b547ed52077911161fc86985becbc60e8e1857c8a144dab0def891"
+checksum = "f9395f0f0eee849a9b707b2f06bb92a6a422090e2123bb2ef8e87a0e61892a8e"
 
 [[package]]
 name = "smithay-client-toolkit"
@@ -5777,7 +5777,7 @@ dependencies = [
  "memmap2",
  "pkg-config",
  "rustix",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "wayland-backend",
  "wayland-client",
  "wayland-csd-frame",
@@ -5804,7 +5804,7 @@ dependencies = [
  "log",
  "memmap2",
  "rustix",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "wayland-client",
  "wayland-csd-frame",
  "wayland-cursor",
@@ -6090,7 +6090,7 @@ dependencies = [
  "memmap2",
  "serde",
  "subsecond-types",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -6180,7 +6180,7 @@ dependencies = [
  "cfg-if",
  "futures-lite",
  "serde",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tokio",
  "tracing",
  "zbus",
@@ -6259,11 +6259,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.20"
+version = "2.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec86235f5fcc2a73650310756d2ac5b138a5780bbbdfae3eeccec992c435ba4f"
+checksum = "09e52cb86a36cede5cb101bf8908837b3e4c6e5e59fe7fd85c23fb56200d189e"
 dependencies = [
- "thiserror-impl 2.0.20",
+ "thiserror-impl 2.0.21",
 ]
 
 [[package]]
@@ -6279,9 +6279,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.20"
+version = "2.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc04cd3e1236dd4a98afca4569f2deb3f120e5422a4023be2cb683f8486292af"
+checksum = "fe5197923287db20a58125f0bc85c062f7f2c892de97b18c356f9efb14b28524"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6668,7 +6668,7 @@ dependencies = [
  "peniko",
  "png",
  "smallvec",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -6683,7 +6683,7 @@ dependencies = [
  "log",
  "peniko",
  "smallvec",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -6722,7 +6722,7 @@ dependencies = [
  "glifo 0.2.0",
  "hashbrown 0.17.1",
  "log",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "vello_common 0.1.0",
  "vello_sparse_shaders",
  "wgpu",
@@ -7078,7 +7078,7 @@ dependencies = [
  "half",
  "itertools",
  "num-traits",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "wesl-macros",
  "wgsl-parse",
  "wgsl-types",
@@ -7150,7 +7150,7 @@ dependencies = [
  "raw-window-handle",
  "rustc-hash 1.1.0",
  "smallvec",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "wgpu-core-deps-apple",
  "wgpu-core-deps-emscripten",
  "wgpu-core-deps-wasm",
@@ -7239,7 +7239,7 @@ dependencies = [
  "raw-window-metal",
  "renderdoc-sys",
  "smallvec",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "wasm-bindgen",
  "wayland-sys",
  "web-sys",
@@ -7296,7 +7296,7 @@ dependencies = [
  "lalrpop-util",
  "lexical",
  "logos",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "wgsl-types",
 ]
 
