@@ -9,7 +9,8 @@ use super::display::DisplayAction;
 use super::keycap::KeycapAction;
 use super::launcher::{ClipboardAction, LauncherAction};
 use super::notifications::NotificationsAction;
-use super::session::{IdleAction, LockVerb, PolkitAction, SwitcherAction};
+use super::render_gpu::SessionAction;
+use super::session::{IdleAction, LockVerb, PolkitAction, SwitcherAction, WorkspaceAction};
 use super::style::StyleAction;
 
 /// What to do.
@@ -67,6 +68,16 @@ pub enum Command {
     Switcher {
         #[command(subcommand)]
         action: SwitcherAction,
+    },
+    /// Helpers for the login script (`dist/sill-session`).
+    Session {
+        #[command(subcommand)]
+        action: SessionAction,
+    },
+    /// Step the workspace (palmrest's swipes run these).
+    Workspace {
+        #[command(subcommand)]
+        action: WorkspaceAction,
     },
     /// sill's own polkit agent.
     Polkit {

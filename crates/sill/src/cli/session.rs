@@ -2,7 +2,7 @@
 //! `sill polkit status` and `sill idle status`, and their pure mappings to requests.
 
 use clap::{Subcommand, ValueEnum};
-use sill_ipc::act::{ActRequest, SwitcherRequest};
+use sill_ipc::act::{ActRequest, SwitcherRequest, WorkspaceRequest};
 use sill_ipc::request::Request;
 use sill_ipc::status::StatusRequest;
 
@@ -17,6 +17,17 @@ pub enum SwitcherAction {
     Cancel,
     /// Switch to the selection and close it.
     Commit,
+}
+
+/// `sill workspace ...`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
+pub enum WorkspaceAction {
+    /// Go to the workspace before the active one.
+    Prev,
+    /// Go to the workspace after the active one.
+    Next,
+    /// Show every workspace (not built yet: this fails with "unsupported").
+    Overview,
 }
 
 /// `sill lock [VERB]`.
@@ -49,6 +60,15 @@ pub fn switcher_request(action: SwitcherAction) -> Request {
         SwitcherAction::Prev => SwitcherRequest::Prev,
         SwitcherAction::Cancel => SwitcherRequest::Cancel,
         SwitcherAction::Commit => SwitcherRequest::Commit,
+    }))
+}
+
+/// The request `sill workspace ACTION` sends.
+pub fn workspace_request(action: WorkspaceAction) -> Request {
+    Request::Act(ActRequest::Workspace(match action {
+        WorkspaceAction::Prev => WorkspaceRequest::Prev,
+        WorkspaceAction::Next => WorkspaceRequest::Next,
+        WorkspaceAction::Overview => WorkspaceRequest::Overview,
     }))
 }
 

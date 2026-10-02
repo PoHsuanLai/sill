@@ -1,6 +1,13 @@
 #%PAM-1.0
 # sill's own lock screen: the password check `sill auth-check` runs.
-# Install as /etc/pam.d/sill; without it sill falls back to the `login` service. The same
-# shape as swaylock's own file: the login stack decides which modules run.
+# Installed as /etc/pam.d/sill by dist/install.sh; without it sill falls back to the `login`
+# service. The same shape as swaylock's own file: the login stack decides which modules run.
 auth     include  login
 account  include  login
+# The wallet, the way Plasma's own stacks have it (/usr/lib/pam.d/plasmalogin): the leading `-`
+# makes a missing module no error, and `optional` means it can never fail an unlock. These two
+# lines do not open the wallet at login: the display manager's PAM stack does that (its session
+# module starts ksecretd), and dist/sill-session sends the password on to it. They are here so a
+# login that goes through this service (a greeter pointed at it) behaves like Plasma's.
+-auth    optional pam_kwallet5.so
+-session optional pam_kwallet5.so auto_start

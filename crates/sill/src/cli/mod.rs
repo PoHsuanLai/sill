@@ -16,6 +16,7 @@ mod keycap;
 mod launcher;
 mod made_up;
 mod notifications;
+pub mod render_gpu;
 mod request;
 mod session;
 pub mod style;

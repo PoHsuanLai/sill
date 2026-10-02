@@ -187,15 +187,25 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
 
 ## Needs a sill login (`dist/sill-session`)
 
-Install first (as root; nothing installs these for you): `install -m 755 dist/sill-session
-/usr/local/bin/sill-session`, `install -m 644 dist/sill.desktop
-/usr/share/wayland-sessions/sill.desktop`, `install -m 644 dist/sill-session.target
-/usr/lib/systemd/user/sill-session.target`, `install -m 644 dist/pam.d/sill /etc/pam.d/sill`
-(without it sill uses the `login` service), and sill itself on `PATH` (`cargo install --path
-crates/sill` or a copy in `/usr/local/bin`). Copy `dist/cosmic/.../system_actions` to
-`~/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1/` so the power key and
-Super+Shift+Esc open sill's power menu. Then pick "COSMIC (sill)" at the login screen.
+Install with `dist/install.sh` (`--dry-run` first; it builds, installs the binary, the session
+script, the entry, the target, the PAM service and the COSMIC seed files, and never touches
+Plasma or Toshy). `docs/first-login.md` is the checklist for the first real login; the boxes
+below are what it proves. Then pick "COSMIC (sill)" at the login screen.
 
+- [ ] **The session script itself, nested** (`dev/session-smoke.sh`: the real `dist/sill-session`
+  on a nested cosmic-comp, scratch HOME, private bus): environment, seeds, `session.env`,
+  `sill workspace`. Passed 2026-10-03 at the commit that added it.
+- [ ] **GPU choice**: the session log (`journalctl -b | grep 'render device'`) says what
+  `sill session detect-gpu` chose and why (the GPU the monitor is on, when there are several);
+  `sill` is not at 100% CPU. `sill session detect-gpu` on this desktop prints `pci-0000:10:00.0`
+  (the iGPU the monitor is on).
+- [ ] **Key repeat** is 400 ms / 10 per second at once (hold a key); seeded through
+  `~/.config/cosmic/com.system76.CosmicComp/v1/xkb_config`.
+- [ ] **Secrets**: `secret-tool search xdg:schema org.freedesktop.Secret.Generic` finds the
+  Secret Service without a wallet prompt; Chrome and Electron apps stay signed in.
+- [ ] **Workspace gestures**: with two workspaces, `sill workspace next` and `prev` move between
+  them; at the ends nothing happens; the Magic Mouse two-finger swipes do the same (palmrest).
+  `sill workspace overview` fails with "unsupported" (no overview yet).
 - [ ] **The session comes up**: bar, dock, wallpaper; `systemctl --user is-active
   graphical-session.target` says `active`; `sill polkit status` says `registered`.
 - [ ] **The power key** opens sill's power menu and does not power off (`systemd-inhibit --list`

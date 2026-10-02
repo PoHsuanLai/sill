@@ -14,7 +14,7 @@ use tokio::sync::watch;
 
 use super::reach::Reach;
 use super::reply::{failed, sent};
-use super::{keys, switcher};
+use super::{keys, switcher, workspace};
 
 /// The change `request` asks for.
 pub fn dispatch(reach: &Reach, request: ActRequest) -> Response {
@@ -26,6 +26,7 @@ pub fn dispatch(reach: &Reach, request: ActRequest) -> Response {
         ActRequest::Screenshot(kind) => screenshot(reach, kind),
         ActRequest::ToggleDesktopWidgets => toggle_desktop_widgets(reach.store, reach.settings),
         ActRequest::Switcher(request) => switcher::chord(reach, request),
+        ActRequest::Workspace(request) => workspace::step(reach, request),
         ActRequest::ClearClipboard => sent(
             services.clipboard.control.send(ClipboardCommand::Clear),
             "clipboard",

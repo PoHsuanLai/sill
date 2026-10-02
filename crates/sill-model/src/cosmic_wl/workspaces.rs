@@ -94,7 +94,34 @@ fn activate_in(group: WorkspaceGroup, key: WorkspaceKey) -> WorkspaceGroup {
     }
 }
 
+/// Which way `sill workspace` steps.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Step {
+    Prev,
+    Next,
+}
+
 impl Workspaces {
+    /// The workspace one `step` away from the active one, in the first group that has an active
+    /// workspace (the main display's, in the compositor's order). There is no wrap-around: at
+    /// the first or last workspace this is `None`, as COSMIC's own shortcuts stop there.
+    pub fn neighbour(&self, step: Step) -> Option<WorkspaceKey> {
+        let group = self
+            .groups
+            .iter()
+            .find(|g| g.workspaces.iter().any(|w| w.activity == Activity::Active))?;
+        let at = group
+            .workspaces
+            .iter()
+            .position(|w| w.activity == Activity::Active)?;
+        let to = match step {
+            Step::Prev => at.checked_sub(1)?,
+            Step::Next => at + 1,
+        };
+        group.workspaces.get(to).map(|w| w.key)
+    }
+
     /// The group showing on `output`, if any.
     pub fn group_on(&self, output: &OutputName) -> Option<&WorkspaceGroup> {
         self.groups.iter().find(|g| g.outputs.contains(output))
@@ -111,7 +138,7 @@ impl Workspaces {
 
 #[cfg(test)]
 mod tests {
-    use super::{Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces, step};
+    use super::{Step, Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces, step};
     use crate::cosmic_wl::{Activity, Pinning};
     use crate::cosmic_wl::{WorkspaceCap, WorkspaceCaps};
     use crate::ids::{GroupKey, OutputName, WorkspaceKey};
@@ -235,5 +262,20 @@ mod tests {
         assert_eq!(key_on("DP-1"), Some(2));
         assert_eq!(key_on("DP-2"), Some(3));
         assert_eq!(key_on("HDMI-1"), None);
+    }
+
+    #[test]
+    fn stepping_stops_at_the_ends_and_uses_the_first_group() {
+        let key = |all: &Workspaces, step| all.neighbour(step).map(|k| k.0);
+        let cases = [
+            (two_outputs(1, 3), Step::Next, Some(2)),
+            (two_outputs(1, 3), Step::Prev, None),
+            (two_outputs(2, 3), Step::Prev, Some(1)),
+            (two_outputs(2, 3), Step::Next, None),
+            (Workspaces::default(), Step::Next, None),
+        ];
+        for (all, step, want) in cases {
+            assert_eq!(key(&all, step), want, "{step:?}");
+        }
     }
 }

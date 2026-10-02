@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use clap::Parser;
 use sill_ipc::act::{
     ActRequest, DisplayRequest, DockRequest, LevelRequest, SwitcherRequest, VolumeRequest,
+    WorkspaceRequest,
 };
 use sill_ipc::debug::{
     CornerName, DebugRequest, KeyAction, KeySpec, OsdTopic, Point, PointerButton, SurfaceName,
@@ -108,6 +109,7 @@ fn every_command_line_sends_its_request() {
     let volume = |v| act(ActRequest::Display(DisplayRequest::Volume(v)));
     let cases: Vec<(&[&str], Option<Request>)> = vec![
         (&["run"], None),
+        (&["session", "detect-gpu"], None),
         (&["auth-check"], None),
         (&["style", "check"], None),
         (&["style", "check", "other.css"], None),
@@ -133,6 +135,18 @@ fn every_command_line_sends_its_request() {
         (
             &["switcher", "commit"],
             act(ActRequest::Switcher(SwitcherRequest::Commit)),
+        ),
+        (
+            &["workspace", "next"],
+            act(ActRequest::Workspace(WorkspaceRequest::Next)),
+        ),
+        (
+            &["workspace", "prev"],
+            act(ActRequest::Workspace(WorkspaceRequest::Prev)),
+        ),
+        (
+            &["workspace", "overview"],
+            act(ActRequest::Workspace(WorkspaceRequest::Overview)),
         ),
         (&["polkit", "status"], status(StatusRequest::Polkit)),
         (&["idle", "status"], status(StatusRequest::Idle)),

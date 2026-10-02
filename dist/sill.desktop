@@ -1,5 +1,5 @@
 [Desktop Entry]
-# A wayland-sessions entry for dist/sill-session (documented, not installed: see that script).
+# A wayland-sessions entry for dist/sill-session (installed by dist/install.sh).
 Name=COSMIC (sill)
 Comment=COSMIC's compositor with sill as the shell
 Exec=/usr/local/bin/sill-session

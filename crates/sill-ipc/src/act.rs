@@ -34,6 +34,9 @@ pub enum ActRequest {
     /// banner, whichever appeared last (`sill focus-latest`; bound in COSMIC's shortcuts like the
     /// launcher's). Nothing happens when none is showing.
     FocusLatest,
+    /// Step the workspace, or open the overview (`sill workspace {next,prev,overview}`; palmrest's
+    /// two-finger swipes run these).
+    Workspace(WorkspaceRequest),
     /// Restart keycap, or end its pause (`sill keycap retry|resume`).
     Keycap(KeycapAsk),
 }
@@ -96,4 +99,16 @@ pub enum SwitcherRequest {
     Cancel,
     /// Switch to the selection and close it (the modifier's release).
     Commit,
+}
+
+/// `sill workspace ...`: palmrest's swipes run `prev` and `next`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkspaceRequest {
+    /// The workspace before the active one (none at the first).
+    Prev,
+    /// The workspace after the active one (none at the last).
+    Next,
+    /// The overview of every workspace. sill has none yet, so this answers `Unsupported`.
+    Overview,
 }

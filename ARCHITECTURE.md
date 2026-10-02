@@ -658,8 +658,14 @@ The person's rules are unlayered and win over both cascade layers: quire's `@lay
 bare `style { {CSS} }`). A user rule written `[data-surface=bar]` (plain, no `*|`) matches.
 
 `dist/` holds what a real login needs: `sill-session`, `sill-session.target`, `sill.desktop`,
-`sill.service`, the COSMIC shortcut overrides, the PAM service and the DDC/CI rules. Nothing
-installs them.
+`sill.service`, the COSMIC seed files (shortcuts, key repeat), the PAM service and the DDC/CI
+rules. `dist/install.sh` (`--dry-run` prints) and `dist/uninstall.sh` put them in place and take
+them out, sharing `dist/install-lib.sh`; they never touch Plasma or Toshy, and skip the DDC rules
+and `sill.service`. `sill-session` seeds the COSMIC files into `~/.config/cosmic` when missing
+(never overwriting), sets `COSMIC_RENDER_DEVICE` from `sill session detect-gpu` (the GPU the monitor
+is on, when there are several; a person's own value wins), sets the fcitx5 environment when fcitx5
+is installed and starts the wallet's Secret Service; `~/.config/sill/session.env` overrides its settings. `dev/session-smoke.sh`
+runs the script itself nested. `docs/first-login.md` is the user's checklist.
 
 ## 9. Test harness
 

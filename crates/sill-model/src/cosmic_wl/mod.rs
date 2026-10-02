@@ -13,4 +13,4 @@ pub use command::{Relative, WlCommand};
 pub use ids::{Activity, Pinning};
 pub use model::CosmicWl;
 pub use toplevels::{Sizing, Toplevel, ToplevelEvent, Toplevels, WindowState};
-pub use workspaces::{Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces};
+pub use workspaces::{Step, Workspace, WorkspaceEvent, WorkspaceGroup, Workspaces};

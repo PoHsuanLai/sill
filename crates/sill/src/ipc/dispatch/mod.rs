@@ -10,6 +10,7 @@ mod route;
 mod show;
 mod status;
 mod switcher;
+mod workspace;
 
 pub use reach::Reach;
 pub use route::route;

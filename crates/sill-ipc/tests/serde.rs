@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use keycap_protocol::{Grab, Keyboard, KeyboardInfo, Mode, Status};
 use sill_ipc::act::{
     ActRequest, DisplayRequest, DockRequest, LevelRequest, SwitcherRequest, VolumeRequest,
+    WorkspaceRequest,
 };
 use sill_ipc::debug::{
     CornerName, DebugRequest, KeyAction, KeySpec, LauncherRows, Micros, OsdTopic, Point,
@@ -218,6 +219,18 @@ fn requests() -> Vec<(Request, &'static str)> {
         (
             Request::Act(ActRequest::Switcher(SwitcherRequest::Cancel)),
             r#"{"kind":"act","v":{"kind":"switcher","v":"cancel"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Workspace(WorkspaceRequest::Next)),
+            r#"{"kind":"act","v":{"kind":"workspace","v":"next"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Workspace(WorkspaceRequest::Prev)),
+            r#"{"kind":"act","v":{"kind":"workspace","v":"prev"}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Workspace(WorkspaceRequest::Overview)),
+            r#"{"kind":"act","v":{"kind":"workspace","v":"overview"}}"#,
         ),
         (
             Request::Act(ActRequest::Switcher(SwitcherRequest::Commit)),

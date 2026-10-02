@@ -83,5 +83,5 @@ Read from cosmic-session `epoch-1.8.0`. "Kept" means the script does it another 
 | Restarts every component forever | the script restarts each one, giving up after five quick exits | kept |
 | Screen reader (orca) when a11y is on | not started | yes for anyone who needs it; add orca to the script by hand |
 | XDG autostart without systemd | only through `xdg-desktop-autostart.target` | no on Fedora (systemd) |
-| cosmic-workspaces (the overview), cosmic-files-applet | not started | not until sill has a workspace overview; the files applet is a cosmic-panel part |
+| cosmic-workspaces (the overview), cosmic-files-applet | not started | not until sill has a workspace overview (`sill workspace overview` answers `unsupported`; `next` and `prev` work); the files applet is a cosmic-panel part |
 | `org.gnome.SessionManager` shim for apps that inhibit logout | none (neither does cosmic-session in 1.8.0: cosmic-osd only calls it) | no |
