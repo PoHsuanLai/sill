@@ -18,7 +18,7 @@ const SECTIONS: &[(&str, &str)] = &[
     ("### 3.11 `menus`", "### 3.12 `notifications`"),
     ("### 3.12 `notifications`", "### 3.13 `control_center`"),
     ("### 3.13 `control_center`", "### 3.14 `spaces`"),
-    ("### 3.14 `spaces`", "## 4. Rust shape"),
+    ("### 3.14 `spaces`", "### 3.26 `ai`"),
 ];
 
 /// §3.1 rows that are sill's, not `AppearanceSettings`': the mirror image of ds-settings'
