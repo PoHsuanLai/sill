@@ -31,11 +31,11 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_REPO/target/accept-polkit"
+OUT_DIR="$SILL_TARGET/accept-polkit"
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
-AUTHORITY_BIN="$SILL_REPO/target/debug/examples/polkit_authority"
-HELPER_BIN="$SILL_REPO/target/debug/examples/polkit_helper"
+AUTHORITY_BIN="$SILL_OUT/examples/polkit_authority"
+HELPER_BIN="$SILL_OUT/examples/polkit_helper"
 AGENT_PATH=/org/sill/PolicyKit1/AuthenticationAgent
 SESSION_ID=accept-polkit
 ACTION=org.sill.test.run

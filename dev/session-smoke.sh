@@ -41,7 +41,7 @@ not_in_probe() { ! grep -q -- "^$1=" "$PROBE"; }
 HOST_WL="${WAYLAND_DISPLAY:-wayland-0}"
 case "$HOST_WL" in /*) ;; *) HOST_WL="${XDG_RUNTIME_DIR:?needs a host session}/$HOST_WL" ;; esac
 [ -S "$HOST_WL" ] || { echo "no host Wayland socket at $HOST_WL" >&2; exit 1; }
-REAL_SILL="${SILL_BIN:-$SILL_REPO/target/debug/sill}"
+REAL_SILL="${SILL_BIN:-$SILL_OUT/sill}"
 [ -x "$REAL_SILL" ] || { echo "build first: cargo build -p sill --features debug ($REAL_SILL)" >&2; exit 1; }
 
 
@@ -142,8 +142,8 @@ end_scenario() {
   sleep 1
   [ -z "$COMP_PID" ] || kill -9 -- "-$COMP_PID" 2>/dev/null
   if [ "$FAILED" != 0 ] && [ -d "$OUT_DIR" ]; then
-    mkdir -p "$SILL_REPO/target" && rm -rf "$SILL_REPO/target/session-smoke-out" &&
-      cp -r "$OUT_DIR" "$SILL_REPO/target/session-smoke-out"
+    mkdir -p "$SILL_TARGET" && rm -rf "$SILL_TARGET/session-smoke-out" &&
+      cp -r "$OUT_DIR" "$SILL_TARGET/session-smoke-out"
   fi
   COMP_PID=
   stop_private_bus

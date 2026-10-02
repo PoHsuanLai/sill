@@ -13,17 +13,22 @@
 #   1. `sill notifications open`: a capture of `sill-notification-center-<out>` shows the month
 #      with today on the accent disc (dev/out/calendar-cosmic.png; the output with the center
 #      open, dev/out/calendar-widget-cosmic.png).
-#   2. The Large month lists today's events still to come under it, from the agenda Up Next reads,
-#      then Up Next lists the fixture's next events in order, as many as the Medium tile's body
-#      holds without clipping (two, at the default cell and `up_next_max`). The colour bars, top to
-#      bottom, are the month's work and team, then Up Next's work and team (quire's label hues
+#   2. The center's Calendar tile is the Medium card (a today column beside the compact month): it
+#      shows the NEXT event of the agenda Up Next reads, one row (quire's `MonthFace.events`: Medium
+#      takes the first, only Large lists several). Then Up Next lists the fixture's next events in
+#      order, as many as the Medium tile's body holds without clipping (two, at the default cell
+#      and `up_next_max`). The colour bars, top to bottom, are the Calendar's work, then Up Next's
+#      work and team (quire's label hues
 #      `--c-{red,amber,green,blue,violet}`, picked by the calendar's name as
 #      `widgets::up_next::calendar_hue` picks it); personal's (tomorrow's Dentist) is not today's
 #      and is Up Next's third-soonest, so it draws nowhere.
-#   3. work.ics rewritten with the review cancelled: within 2 s the bars are the month's team,
+#   3. work.ics rewritten with the review cancelled: within 2 s the bars are the Calendar's team,
 #      then Up Next's team and personal (now the two soonest).
-#   4. `calendar.week_numbers = "show"` and `sill reload`: the week column appears (the month,
-#      centred in its tile, moves today's disc right by half a 24 px column).
+#   4. `calendar.week_numbers = "show"` and `sill reload`: the center's Calendar is the Medium
+#      card, whose compact month never draws the week column whatever the setting says (quire's
+#      `month_grid::shown_weeks`: "a week column would not fit"), so today's disc stays where it
+#      was (within 2 px) and the card still draws (the reload broke nothing). The week column
+#      itself is quire's Regular grid, covered by quire's own tests.
 #   5. 5 s idle while open, clear of the minute's turn: 0 frames on the center.
 #
 # Exit 0 when every step passed, 2 when the notification center draws no widgets (the widget
@@ -34,7 +39,7 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_REPO/target/accept-calendar"
+OUT_DIR="$SILL_TARGET/accept-calendar"
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
 
@@ -212,8 +217,8 @@ step_month_and_up_next() {
   fi
   DISC_BEFORE=$(disc_of "$seen")
   [ "$DISC_BEFORE" != none ] || { echo "no accent disc on today" >&2; return 1; }
-  [ "$(bars_of "$seen")" = "$WORK $TEAM $WORK $TEAM" ] \
-    || { echo "the month's events and Up Next's are not review, yoga (a Medium tile holds two)" >&2; return 1; }
+  [ "$(bars_of "$seen")" = "$WORK $WORK $TEAM" ] \
+    || { echo "expected the Calendar's next event (review), then Up Next's review and yoga" >&2; return 1; }
 }
 
 # 3.
@@ -235,7 +240,7 @@ step_edit() {
 }
 
 # 4.
-step_week_numbers() {
+step_week_numbers_ignored() {
   local log="$OUT_DIR/weeks.log" seen before after
   : >"$log"
   write_settings show
@@ -246,8 +251,8 @@ step_week_numbers() {
   seen=$(probe "$OUT_DIR/weeks.png")
   before=$(cut -d' ' -f1 <<<"$DISC_BEFORE")
   after=$(disc_of "$seen" | cut -d' ' -f1)
-  echo "week numbers shown: $seen; today's disc from x $before to x $after" | tee -a "$log" >&2
-  [ "$after" != none ] && [ $(( after - before )) -ge 9 ] && [ $(( after - before )) -le 15 ]
+  echo "week numbers set to show, the compact month ignores them: $seen; today's disc from x $before to x $after" | tee -a "$log" >&2
+  [ "$after" != none ] && [ $(( after - before )) -ge -2 ] && [ $(( after - before )) -le 2 ]
 }
 
 # 5.
@@ -267,11 +272,11 @@ step_idle() {
 use_nested_socket || exit 1
 nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
 build || exit 1
-await_no_process 'target/[a-z]*/sill run' || exit 1
+await_no_process || exit 1
 start_private_bus || exit 1
 start_daemon || { cleanup; exit 1; }
 status=0
-for step in step_month_and_up_next step_edit step_week_numbers step_idle; do
+for step in step_month_and_up_next step_edit step_week_numbers_ignored step_idle; do
   "$step"
   code=$?
   case "$code" in

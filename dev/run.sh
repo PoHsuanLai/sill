@@ -7,7 +7,7 @@ set -euo pipefail
 # shellcheck source=dev/lib/compositor.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib/compositor.sh"
 if [ "$#" -eq 0 ]; then
-  (cd "$SILL_REPO" && cargo build -p sill --features debug)
+  (cd "$SILL_REPO" && cargo build "${SILL_CARGO_PROFILE[@]}" -p sill --features debug)
   exec "$SHELL_HOST_DEV/run.sh" "$SILL_BIN" run
 fi
 exec "$SHELL_HOST_DEV/run.sh" "$@"

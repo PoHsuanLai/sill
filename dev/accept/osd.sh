@@ -26,7 +26,7 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_REPO/target/accept-osd"
+OUT_DIR="$SILL_TARGET/accept-osd"
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
 HOLD_MS=1500
@@ -81,7 +81,10 @@ step_shows_then_hides() {
   local limit=$(( HOLD_MS + 250 + 400 ))
   echo "shown ${shown} ms after the change; hidden by ${gone} ms (hold ${HOLD_MS} ms, limit ${limit} ms)" \
     | tee -a "$log" >&2
-  [ "$shown" -ge 0 ] && [ "$shown" -le 200 ] && [ "$gone" -ge "$HOLD_MS" ] && [ "$gone" -le "$limit" ]
+  # Shown by 200 ms is a latency budget (release builds only; the time includes the capture's own
+  # round trip, so it also tracks host load); the hold and the hide are functional.
+  [ "$shown" -ge 0 ] && budget_check "OSD shown ${shown} ms after the change against 200 ms" "$(( shown <= 200 ))" \
+    && [ "$gone" -ge "$HOLD_MS" ] && [ "$gone" -le "$limit" ]
 }
 
 # 4.
@@ -139,7 +142,7 @@ cleanup() {
 nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
 use_nested_socket || exit 1
 build || exit 1
-await_no_process 'target/[a-z]*/sill run' || exit 1
+await_no_process || exit 1
 scratch_new
 start_private_bus || { scratch_drop; exit 1; }
 start_osd_daemon || { cleanup; exit 1; }

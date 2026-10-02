@@ -44,8 +44,8 @@ set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 case "${1:-}" in
-  --real-input) MODE=real; OUT_DIR="$SILL_REPO/target/accept-screenshot-drag" ;;
-  "") MODE=nested; OUT_DIR="$SILL_REPO/target/accept-screenshot" ;;
+  --real-input) MODE=real; OUT_DIR="$SILL_TARGET/accept-screenshot-drag" ;;
+  "") MODE=nested; OUT_DIR="$SILL_TARGET/accept-screenshot" ;;
   *) echo "usage: dev/accept/screenshot.sh [--real-input]" >&2; exit 2 ;;
 esac
 SHOTS="$SILL_REPO/dev/out"
@@ -314,7 +314,7 @@ setup_nested() {
   use_nested_socket || return 1
   command -v grim >/dev/null 2>&1 || { echo "grim is needed for the nested screenshot" >&2; return 1; }
   build || return 1
-  await_no_process 'target/[a-z]*/sill run' || echo "going on with it still running" >&2
+  await_no_process || echo "going on with it still running" >&2
   stubs
   start_private_bus || return 1
   start_nested_daemon

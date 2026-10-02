@@ -39,9 +39,9 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_REPO/target/accept-lock"
+OUT_DIR="$SILL_TARGET/accept-lock"
 SHOTS="$SILL_REPO/dev/out"
-LOCKER="$SILL_REPO/target/debug/examples/session_locker"
+LOCKER="$SILL_OUT/examples/session_locker"
 NODEBUG_BIN="$OUT_DIR/sill-nodebug"
 mkdir -p "$OUT_DIR" "$SHOTS"
 
@@ -97,8 +97,14 @@ band_diff() {
   python3 - "$1" "$2" "$3" "$4" <<'EOF'
 import sys
 from PIL import Image, ImageChops
-a = Image.open(sys.argv[1]).convert("RGB")
-b = Image.open(sys.argv[2]).convert("RGB")
+try:
+    a = Image.open(sys.argv[1]).convert("RGB")
+    b = Image.open(sys.argv[2]).convert("RGB")
+except OSError:
+    # A capture that never completed leaves no readable PNG: that is a difference, not a crash
+    # (an empty answer made the step's `[ ... -lt ... ]` fail with "integer expected", exit 2,
+    # which the runner reads as SKIP).
+    print(10**9); sys.exit()
 if a.size != b.size:
     print(10**9); sys.exit()
 w, h = a.size
@@ -112,8 +118,8 @@ EOF
 # comes first: the debug build replaces target/debug/sill), then the debug daemon and the stand-in
 # locker.
 build_all() {
-  (cd "$SILL_REPO" && cargo build -p sill) >"$OUT_DIR/build.log" 2>&1 \
-    && cp "$SILL_REPO/target/debug/sill" "$NODEBUG_BIN" \
+  (cd "$SILL_REPO" && cargo build "${SILL_CARGO_PROFILE[@]}" -p sill) >"$OUT_DIR/build.log" 2>&1 \
+    && cp "$SILL_OUT/sill" "$NODEBUG_BIN" \
     && build "-p sill-testkit --example session_locker" || return 1
 }
 
@@ -207,11 +213,17 @@ step_refuse_shakes() {
     fi
   done
   sleep 0.6
-  capture_lock "$PROMPT_OUT" "$OUT_DIR/refuse-after.png"
+  # A capture of a 2560 px surface can pass the client's 2 s wait on a loaded host (three tries
+  # inside capture_lock): try again a few times, from a clean file, before calling it a failure.
+  for _ in 1 2 3; do
+    rm -f "$OUT_DIR/refuse-after.png"
+    capture_lock "$PROMPT_OUT" "$OUT_DIR/refuse-after.png" && break
+    sleep 1
+  done
   last=$(band_diff "$OUT_DIR/idle.png" "$OUT_DIR/refuse-after.png" 70 97)
   echo "refuse: $moved captures moved (spinner, shake); after it settled $last pixels differ; status $(lock_phase)" \
     | tee -a "$log" >&2
-  [ "$moved" -ge 1 ] && [ "$last" -lt 150 ] && [ "$(lock_phase)" = "locked" ]
+  [ "$moved" -ge 1 ] && [ "${last:-1000000000}" -lt 150 ] && [ "$(lock_phase)" = "locked" ]
 }
 
 # 4.
@@ -329,7 +341,7 @@ step_release_refuses_fake() {
   answer=$(sill debug auth accept 2>&1)
   echo "a build without debug answers 'sill debug auth accept': $answer" | tee -a "$log" >&2
   stop_daemon
-  SILL_BIN="$SILL_REPO/target/debug/sill"
+  SILL_BIN="$SILL_OUT/sill"
   echo "$answer" | grep -q "without the debug feature"
 }
 
@@ -354,7 +366,7 @@ recover() {
 WAYLAND_DISPLAY="$WL" wayland-info >/dev/null 2>&1 || {
   echo "no nested compositor at $WL (dev/nested.sh first)" >&2; exit 1; }
 build_all || exit 1
-await_no_process 'target/[a-z]*/sill run' || exit 1
+await_no_process || exit 1
 start_private_bus || exit 1
 trap recover EXIT
 status=0

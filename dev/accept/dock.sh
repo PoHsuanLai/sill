@@ -48,13 +48,13 @@ set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 case "${1:-}" in
-  --icons) MODE=icons; OUT_DIR="$SILL_REPO/target/accept-icons" ;;
-  "") MODE=dock; OUT_DIR="$SILL_REPO/target/accept-dock" ;;
+  --icons) MODE=icons; OUT_DIR="$SILL_TARGET/accept-icons" ;;
+  "") MODE=dock; OUT_DIR="$SILL_TARGET/accept-dock" ;;
   *) echo "usage: dev/accept/dock.sh [--icons]" >&2; exit 2 ;;
 esac
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
-EMITTER="$SILL_REPO/target/debug/examples/badge_emitter"
+EMITTER="$SILL_OUT/examples/badge_emitter"
 BAR_H="${BAR_H:-24}"
 RESERVE=68
 PILL_RADIUS="${PILL_RADIUS:-12}"
@@ -361,7 +361,7 @@ else
   read -r OUT_W OUT_H < <(nested_output_size)
   [ -n "${OUT_W:-}" ] || { echo "no nested output (dev/nested.sh first)" >&2; exit 1; }
 fi
-await_no_process 'target/[a-z]*/sill run' || exit 1
+await_no_process || exit 1
 scratch_new
 start_private_bus || { scratch_drop; exit 1; }
 if [ "$MODE" = icons ]; then

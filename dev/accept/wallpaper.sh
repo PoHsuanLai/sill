@@ -21,7 +21,7 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_REPO/target/accept-wallpaper"
+OUT_DIR="$SILL_TARGET/accept-wallpaper"
 mkdir -p "$OUT_DIR" "$SILL_REPO/dev/out"
 
 use_nested_socket || exit 1

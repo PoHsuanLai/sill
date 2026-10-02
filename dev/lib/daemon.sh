@@ -21,16 +21,16 @@ in_env() {
 # The daemon's CLI, in the daemon's environment.
 sill() { in_env "$SILL_BIN" "$@"; }
 
-# Builds the debug daemon plus, as further arguments "$@", other cargo invocations' arguments
+# Builds the daemon (SILL_PROFILE: debug or release, with `--features debug`) plus, as further arguments "$@", other cargo invocations' arguments
 # (each one a quoted string such as "-p sill-testkit --example badge_emitter"), into
 # $OUT_DIR/build.log.
 build() {
   local extra
   {
-    (cd "$SILL_REPO" && cargo build -p sill --features debug) || return 1
+    (cd "$SILL_REPO" && cargo build "${SILL_CARGO_PROFILE[@]}" -p sill --features debug) || return 1
     for extra in "$@"; do
       # shellcheck disable=SC2086 # one word per cargo argument
-      (cd "$SILL_REPO" && cargo build $extra) || return 1
+      (cd "$SILL_REPO" && cargo build "${SILL_CARGO_PROFILE[@]}" $extra) || return 1
     done
   } >"$OUT_DIR/build.log" 2>&1 || { echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
 }

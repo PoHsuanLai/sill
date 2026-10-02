@@ -28,7 +28,7 @@
 #   5. A real drag through shell-host's real pointer path (`sill debug pointer-press`, `pointer`
 #      moved while it is held, `pointer-release`, the same delivery a real `wl_pointer`
 #      press/motion/release uses): the Calendar is pressed at its centre and carried left and down;
-#      mid-drag it is lifted (larger than a cell, under the pointer); dropped, it snaps to column 8
+#      mid-drag it is lifted (a cell wide plus its drag shadow, under the pointer); dropped, it snaps to column 8
 #      row 2. Then the Battery is carried onto that cell and held: the Calendar makes room, stepping
 #      up to row 1; dropped, the swap is kept. The file then names the output. Captures of the layer
 #      before, lifted, dropped, making room and after (target/accept-widgets/drag-*.png), one held
@@ -88,10 +88,10 @@ case "${1:-}" in
   "") MODE=nested ;;
   *) echo "usage: dev/accept/widgets.sh [--real-input]" >&2; exit 2 ;;
 esac
-OUT_DIR="$SILL_REPO/target/accept-widgets"
+OUT_DIR="$SILL_TARGET/accept-widgets"
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
-PLAYER="$SILL_REPO/target/debug/examples/mpris_player"
+PLAYER="$SILL_OUT/examples/mpris_player"
 PLAYER_PID=
 TERM_PID=
 # The bar's reserve: the desktop layer (exclusive `Auto`) starts under it, so a capture of the
@@ -371,7 +371,7 @@ sys.exit(0 if ok else 1)' "$1" "$2" "$3"
 
 # 5.
 step_drag() {
-  local log="$OUT_DIR/drag.log" cal bat l t r b cx cy bx by lifted saved
+  local log="$OUT_DIR/drag.log" cal bat l t r b cx cy bx by lifted lifted_w lifted_x lifted_y saved
   : >"$log"
   sill debug capture "$LAYER" "$OUT_DIR/drag-before.png" >>"$log" 2>&1 || return 1
   desktop_frames "$OUT_DIR/drag-before.png" >"$OUT_DIR/drag-before.txt"
@@ -385,11 +385,20 @@ step_drag() {
   sleep 0.5
   sill debug capture "$LAYER" "$OUT_DIR/drag-lifted.png" >>"$log" 2>&1 || return 1
   shot "$SHOTS/widgets-drag-lifted-cosmic.png" || echo "screenshot failed" >&2
+  # quire's lift is the drag shadow, not a scale (`.ds-widget[data-lift=lifted]` in
+  # ds-shell/src/widget/frame.css): the card keeps its cell's size and the detected frame is at
+  # most a few px wider where the shadow starts. So "lifted" is: the frame under the pointer, about a
+  # cell wide (the cell, up to 24 px of shadow).
   lifted=$(desktop_frames "$OUT_DIR/drag-lifted.png" | python3 -c '
 import sys
+px, py = int(sys.argv[1]), int(sys.argv[2])
 rows = [list(map(int, l.split())) for l in sys.stdin if l.strip()]
-print(max(r - l + 1 for l, t, r, b in rows))')
-  echo "lifted: the widest frame is $lifted px (a cell is 164)" | tee -a "$log" >&2
+# The lifted card is the frame nearest the pointer (the other widget has not moved).
+l, t, r, b = min(rows, key=lambda row: abs((row[0] + row[2]) // 2 - px) + abs((row[1] + row[3]) // 2 - py))
+print(r - l + 1, (l + r) // 2, (t + b) // 2)' $(( cx - 900 )) $(( cy + 360 )))
+  read -r lifted_w lifted_x lifted_y <<<"$lifted"
+  echo "lifted: the frame under the pointer is ${lifted_w} px (a cell is 164) centred at $lifted_x,$lifted_y (pointer $(( cx - 900 )),$(( cy + 360 )))" \
+    | tee -a "$log" >&2
   # Held off its cell by half a cell, the card no longer covers quire's slot guide at the cell
   # it would land in; then back over the cell before the release.
   pointer_move $(( cx - 900 + 70 )) $(( cy + 360 + 50 )) || return 1
@@ -417,7 +426,9 @@ print(max(r - l + 1 for l, t, r, b in rows))')
   desktop_frames "$OUT_DIR/drag-after.png" >"$OUT_DIR/drag-after.txt"
   saved=$(tr -d '\n ' <"$STATE/sill/desktop-widgets.json" 2>/dev/null)
   echo "after: $(tr '\n' ';' <"$OUT_DIR/drag-after.txt") saved $saved" | tee -a "$log" >&2
-  [ "${lifted:-0}" -ge 168 ] \
+  [ "${lifted_w:-0}" -ge 164 ] && [ "${lifted_w:-999}" -le 188 ] \
+    && [ "${lifted_x:-9999}" -ge $(( cx - 900 - 12 )) ] && [ "${lifted_x:-0}" -le $(( cx - 900 + 12 )) ] \
+    && [ "${lifted_y:-9999}" -ge $(( cy + 360 - 12 )) ] && [ "${lifted_y:-0}" -le $(( cy + 360 + 12 )) ] \
     && frame_at "$(sed -n 1p "$OUT_DIR/drag-after.txt")" $(( l - 900 )) $(( t + 180 )) \
     && frame_at "$(sed -n 2p "$OUT_DIR/drag-after.txt")" $(( l - 900 )) $(( t + 360 )) \
     && [[ "$saved" == *"\"output\":\"$NAME\""* ]]
@@ -489,7 +500,7 @@ run_nested() {
   use_nested_socket || exit 1
   nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
   build_nested || exit 1
-  await_no_process 'target/[a-z]*/sill run' || exit 1
+  await_no_process || exit 1
   start_private_bus || exit 1
   start_nested_daemon || { cleanup_nested; exit 1; }
   run_steps step_center_default step_center_all step_center_idle step_toggle_on \

@@ -18,8 +18,8 @@
 #      Wi-Fi pane with a long list of networks may be as tall as the grid; then it only has to
 #      change). Its only request is a scan.
 #      Screenshot dev/out/control-center-wifi-cosmic.png.
-#   4. The Wi-Fi bar item opens the Wi-Fi pane directly: its popup is the pane's size from
-#      step 3, not the grid's.
+#   4. The Wi-Fi bar item opens the Wi-Fi pane directly: its popup is about the pane's size from
+#      step 3 (within 24 px: no back header), not the grid's.
 #   5. `sill control-center toggle` opens it with no pointer event behind it, and again closes
 #      it; whether cosmic-comp maps a popup opened without a fresh input serial, and whether its
 #      grab holds (an outside click dismisses it), is printed. Not mapped: exit 2, naming it.
@@ -91,11 +91,21 @@ case "${1:-}" in
   "") MODE=nested ;;
   *) usage ;;
 esac
-OUT_DIR="$SILL_REPO/target/accept-control-center"
+OUT_DIR="$SILL_TARGET/accept-control-center"
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
-# The panel's popup: control_center.width_px (320) plus the shadow room (28 each side).
-PANEL_POPUP_W=376
+# The panel's popup: the card (control_center.width_px, 320 by default) plus the transparent
+# shadow room on each side (`SIDE` in crates/sill-bar/src/bar/popup.rs, read from the source so
+# the script follows it) plus the card's own hairline border, a pixel or two a side. A pixel
+# count is not a design value, so the check is a range: [card + 2 * room, + 2 * 4], the 8 being
+# the most a hairline plus rounding can add. (It was a hard 376 and failed at 378.)
+PANEL_CARD_W=320
+PANEL_SIDE=$(sed -n 's/^pub(crate) const SIDE: i32 = \([0-9]*\);.*/\1/p' \
+  "$SILL_REPO/crates/sill-bar/src/bar/popup.rs")
+PANEL_SIDE="${PANEL_SIDE:-28}"
+PANEL_POPUP_MIN=$(( PANEL_CARD_W + 2 * PANEL_SIDE ))
+PANEL_POPUP_MAX=$(( PANEL_POPUP_MIN + 8 ))
+panel_width_ok() { [ "${1:-0}" -ge "$PANEL_POPUP_MIN" ] && [ "${1:-0}" -le "$PANEL_POPUP_MAX" ]; }
 # The output's scale: the headless KWin's is set (the user's BenQ MA270U: 3840 x 2160 at 2,
 # CC_SCALE=1 CC_SIZE=1920x1080 for 1x), the nested compositor's is read as 1.
 SCALE=1
@@ -110,6 +120,8 @@ STANDINS="$SCRATCH/bin"
 RECORD="$SCRATCH/power-menu.record"
 BTLOG="$SCRATCH/bluez.powered"
 BLUEZ=
+NM_PID=
+NMLOG="$SCRATCH/nm.requests"
 NAME=
 POPUP=
 BAR=
@@ -215,9 +227,9 @@ step_item_click() {
   # shellcheck disable=SC2086
   click_bar $CC_ITEM
   wait_surface "$POPUP" 20 down || { echo "a second click left it open" | tee -a "$log" >&2; return 1; }
-  echo "item click: popup ${width} wide (want $PANEL_POPUP_W), card ${gap} px from the output's right edge (want about 8); a second click closed it" \
+  echo "item click: popup ${width} wide (want $PANEL_POPUP_MIN to $PANEL_POPUP_MAX), card ${gap} px from the output's right edge (want about 8); a second click closed it" \
     | tee -a "$log" >&2
-  [ "$width" = "$PANEL_POPUP_W" ] && [ "$gap" -ge 4 ] && [ "$gap" -le 12 ]
+  panel_width_ok "$width" && [ "$gap" -ge 4 ] && [ "$gap" -le 12 ]
 }
 
 # 2.
@@ -262,7 +274,10 @@ step_wifi_pane() {
   close_popup
   PANE_H=$after
   GRID_H=$before
-  echo "the chevron: popup ${before} -> ${after} tall" | tee -a "$log" >&2
+  echo "the chevron: popup ${before} -> ${after} tall; the fake NetworkManager was asked: $(tr '\n' ' ' <"$NMLOG")" \
+    | tee -a "$log" >&2
+  # The pane's only request is a scan: no radio, join or disconnect reached the fake.
+  ! grep -qv '^scan$' "$NMLOG" || { echo "the Wi-Fi pane asked for more than a scan" >&2; return 1; }
   [ -n "$after" ] && [ "$after" != "$before" ]
 }
 
@@ -280,7 +295,11 @@ step_module_item() {
   close_popup
   echo "the Wi-Fi item: a ${width}x${height} popup (the pane from step 3 is ${PANE_H:-?} tall, the grid ${GRID_H:-?})" \
     | tee -a "$log" >&2
-  [ "$width" = "$PANEL_POPUP_W" ] && [ "$height" = "${PANE_H:-}" ] && [ "$height" != "${GRID_H:-}" ]
+  # The bar item's dropdown is the pane without the in-panel page's back header: a few px
+  # shorter than the chevron's page (281 against 287 at the time of writing), so "the pane's
+  # size" is within 24 px of it, and far from the grid's.
+  panel_width_ok "$width" && [ -n "${PANE_H:-}" ] && [ $(( height - PANE_H )) -ge -24 ] \
+    && [ $(( height - PANE_H )) -le 24 ] && [ "$height" != "${GRID_H:-}" ]
 }
 
 # 5.
@@ -341,6 +360,7 @@ cleanup_nested() {
   local result=0
   backdrop_down
   stop_daemon || result=1
+  stop_nm
   stop_private_bus
   scratch_drop
   return "$result"
@@ -351,6 +371,7 @@ run_nested() {
   nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
   build || exit 1
   start_private_bus || exit 1
+  start_nm || { cleanup_nested; exit 1; }
   start_nested_daemon || { cleanup_nested; exit 1; }
   backdrop_up "$SCRATCH/backdrop" || echo "backdrop: none (the shot shows the bare compositor)" >&2
   run_steps step_item_click step_dismiss step_wifi_pane step_module_item step_toggle step_idle
@@ -413,6 +434,28 @@ start_bluez() {
   done
   echo "the fake BlueZ did not start (see $OUT_DIR/bluez.log)" >&2
   return 1
+}
+
+# The fake NetworkManager on the private bus, before the daemon (the Network and Wi-Fi services
+# seed once). It logs scans, radio and connection requests to $NMLOG and changes nothing real.
+start_nm() {
+  : >"$NMLOG"
+  python3 "$SILL_REPO/dev/fake-nm.py" "$BUS" "$NMLOG" >"$OUT_DIR/nm.log" 2>&1 &
+  NM_PID=$!
+  for _ in $(seq 50); do
+    grep -q "fake-nm: org.freedesktop.NetworkManager on $BUS" "$OUT_DIR/nm.log" && return 0
+    kill -0 "$NM_PID" 2>/dev/null || break
+    sleep 0.1
+  done
+  echo "the fake NetworkManager did not start (see $OUT_DIR/nm.log)" >&2
+  return 1
+}
+
+stop_nm() {
+  [ -n "${NM_PID:-}" ] || return 0
+  kill "$NM_PID" 2>/dev/null
+  reap "$NM_PID" "fake NetworkManager"
+  NM_PID=
 }
 
 stop_bluez() {

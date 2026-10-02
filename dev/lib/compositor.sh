@@ -7,7 +7,23 @@ if [ ! -x "$SHELL_HOST_DEV/nested.sh" ]; then
   echo "dev: shell-host's harness not found at $SHELL_HOST_DEV (set SHELL_HOST_DEV)" >&2
   exit 1
 fi
-SILL_BIN="${SILL_BIN:-$SILL_REPO/target/debug/sill}"
+# The build every script runs: SILL_PROFILE=debug (the default) or release, from cargo's target
+# directory (CARGO_TARGET_DIR when set, else this checkout's target/). Both carry
+# `--features debug` (the fake DDC, `sill debug ...`), which `build` passes. The latency budgets
+# (a warm launcher open, the switcher's key-to-frame time, ...) are release budgets: a debug
+# build is several times slower, so `budgets_apply` is false there and a script prints the
+# measurement but does not fail it. Run the suite with SILL_PROFILE=release for the full verdict.
+SILL_PROFILE="${SILL_PROFILE:-debug}"
+# shellcheck disable=SC2034 # SILL_CARGO_PROFILE is read by daemon.sh, run.sh and lock.sh
+case "$SILL_PROFILE" in
+  debug) SILL_CARGO_PROFILE=() ;;
+  release) SILL_CARGO_PROFILE=(--release) ;;
+  *) echo "dev: SILL_PROFILE must be debug or release, not '$SILL_PROFILE'" >&2; exit 1 ;;
+esac
+SILL_TARGET="${CARGO_TARGET_DIR:-$SILL_REPO/target}"
+SILL_OUT="$SILL_TARGET/$SILL_PROFILE"
+SILL_BIN="${SILL_BIN:-$SILL_OUT/sill}"
+budgets_apply() { [ "$SILL_PROFILE" = release ]; }
 HOST_REPO="$(cd "$SHELL_HOST_DEV/../.." && pwd)"
 KWIN_ENV="$SHELL_HOST_DEV/.kwin-env"
 SIZE="${SIZE:-1920x1080}"
@@ -96,11 +112,22 @@ use_nested_socket() {
   [ -S "$WL" ] || { echo "no nested compositor at $WL (dev/nested.sh first)" >&2; return 1; }
 }
 
-# Waits up to 10 minutes for no process of the person's to match pgrep pattern $1: another sill
-# daemon on the nested output would be in the screenshots. Fails when one is still there.
+# True when a `sill run` of the person's draws on the compositor socket $WL (its WAYLAND_DISPLAY,
+# read from /proc): only a daemon on the same output is in this script's screenshots. Daemons on
+# other compositors (another agent's nested session, the real one) are none of its business.
+daemon_on_wl() {
+  local pid
+  for pid in $(pgrep -u "$(id -u)" -f 'sill run'); do
+    tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null | grep -qx "WAYLAND_DISPLAY=$WL" && return 0
+  done
+  return 1
+}
+
+# Waits up to 10 minutes for no other sill daemon on this script's compositor ($WL): it would be
+# in the screenshots. Fails when one is still there.
 await_no_process() {
   local waited=0
-  while pgrep -u "$USER" -f "$1" >/dev/null; do
+  while daemon_on_wl; do
     [ "$waited" = 0 ] && echo "another sill daemon is running; waiting for it to finish" >&2
     waited=$((waited + 1))
     [ "$waited" -gt 600 ] && { echo "it is still running after 10 min" >&2; return 1; }

@@ -34,7 +34,7 @@ case "${1:-start}" in
     mkfifo "$PIPE" || exit 1
     cd "$(dirname "${BASH_SOURCE[0]}")/../.."
     cargo build -q -p sill-launcher-ui --example launcher_demo || exit 1
-    WAYLAND_DISPLAY=wayland-0 target/debug/examples/launcher_demo <"$PIPE" >"$D/ime-demo.log" 2>&1 &
+    WAYLAND_DISPLAY=wayland-0 "${CARGO_TARGET_DIR:-target}/debug/examples/launcher_demo" <"$PIPE" >"$D/ime-demo.log" 2>&1 &
     echo $! >"$DEMO_PID"
     tail -f "$IN" >"$PIPE" &
     echo $! >"$TAIL_PID"

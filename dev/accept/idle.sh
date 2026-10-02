@@ -51,13 +51,13 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_REPO/target/accept-idle"
+OUT_DIR="$SILL_TARGET/accept-idle"
 SHOTS="$SILL_REPO/dev/out"
 DIM_SURFACE=
 mkdir -p "$OUT_DIR" "$SHOTS"
-LOCKER="$SILL_REPO/target/debug/examples/session_locker"
-LOGIND_BIN="$SILL_REPO/target/debug/examples/logind_standin"
-CLIENT_BIN="$SILL_REPO/target/debug/examples/screensaver_client"
+LOCKER="$SILL_OUT/examples/session_locker"
+LOGIND_BIN="$SILL_OUT/examples/logind_standin"
+CLIENT_BIN="$SILL_OUT/examples/screensaver_client"
 
 use_nested_socket || exit 1
 case "$(basename "$WL")" in
@@ -385,7 +385,7 @@ recover() {
 WAYLAND_DISPLAY="$WL" wayland-info >/dev/null 2>&1 || {
   echo "no nested compositor at $WL (dev/nested.sh first)" >&2; exit 1; }
 build "-p sill-testkit --example session_locker --example logind_standin --example screensaver_client" || exit 1
-await_no_process 'target/[a-z]*/sill run' || exit 1
+await_no_process || exit 1
 trap recover EXIT
 status=0
 if start_private_bus && start_logind && start_idle_daemon WAYLAND_DEBUG=client; then

@@ -26,7 +26,7 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_REPO/target/accept-clipboard"
+OUT_DIR="$SILL_TARGET/accept-clipboard"
 mkdir -p "$OUT_DIR"
 
 use_nested_socket || exit 1
@@ -103,7 +103,7 @@ step_copy() {
 # 3.
 step_secret() {
   local secret out="$OUT_DIR/secret.log"
-  "$SILL_REPO/target/debug/examples/secret_source" "$WL" 20 >"$out" 2>&1 &
+  "$SILL_OUT/examples/secret_source" "$WL" 20 >"$out" 2>&1 &
   secret=$!
   for _ in $(seq 50); do grep -q ready "$out" && break; sleep 0.1; done
   grep -q ready "$out" || { echo "secret_source never set its selection" >&2; kill "$secret"; return 1; }
@@ -197,7 +197,7 @@ ping_nested || { echo "no nested compositor at $WL (dev/nested.sh first)" >&2; e
 command -v wl-copy >/dev/null && command -v wl-paste >/dev/null \
   || { echo "wl-copy and wl-paste are missing (wl-clipboard); not installed by this script" >&2; exit 1; }
 build "-p sill-testkit --example secret_source" || exit 1
-await_no_process 'target/[a-z]*/sill run' || exit 1
+await_no_process || exit 1
 : >"$OUT_DIR/wl.log"
 nested_wl wl-copy --clear
 start_private_bus || exit 1

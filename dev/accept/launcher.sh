@@ -150,7 +150,7 @@ while [ $# -gt 0 ]; do
 done
 [ "$MODE" != real ] || [ "${#ONLY[@]}" = 0 ] || usage
 
-OUT_ROOT="$SILL_REPO/target/accept-launcher"
+OUT_ROOT="$SILL_TARGET/accept-launcher"
 SHOTS="$SILL_REPO/dev/out"
 OUT_DIR="$OUT_ROOT"
 
@@ -296,7 +296,7 @@ EOF
 }
 
 # The stub file manager (examples/file_manager_stub.rs) on the private bus.
-STUB_FM="$SILL_REPO/target/debug/examples/file_manager_stub"
+STUB_FM="$SILL_OUT/examples/file_manager_stub"
 FM=
 start_fm() {
   "$STUB_FM" "$BUS" >"$OUT_DIR/file-manager.log" 2>&1 &
@@ -359,7 +359,7 @@ step_toggle_latency() {
   fi
   read -r p50 p95 max < <(open_latencies | tail -n "$TOGGLES" | percentiles)
   echo "p50 ${p50} ms, p95 ${p95} ms, max ${max} ms" | tee -a "$log" >&2
-  python3 -c "import sys; sys.exit(0 if float('$p95') < $P95_BUDGET_MS else 1)"
+  budget_check "p95 ${p95} ms against $P95_BUDGET_MS ms" "$(python3 -c "print(int(float('$p95') < $P95_BUDGET_MS))")"
 }
 
 # toggle 2.
@@ -411,7 +411,7 @@ group_toggle() {
 
 # ---------------------------------------------------------------- group ui
 
-DEMO="$SILL_REPO/target/debug/examples/launcher_demo"
+DEMO="$SILL_OUT/examples/launcher_demo"
 
 # How many pixels differ between the PNGs $1 and $2.
 differing_pixels() {
@@ -473,7 +473,8 @@ print(f"toggle -> panel capture: first opening {first} ms; 10 warm openings "
       f"min {warm[0]} p50 {warm[len(warm)//2]} max {warm[-1]} ms")
 print("daemon launcher.open_to_frame_ms (request to first frame): $frames")
 EOF
-  [ "$(printf '%s\n' "${warm[@]}" | sort -n | tail -1)" -le 100 ]
+  budget_check "slowest warm opening $(printf '%s\n' "${warm[@]}" | sort -n | tail -1) ms against 100 ms" \
+    "$(( $(printf '%s\n' "${warm[@]}" | sort -n | tail -1) <= 100 ))"
 }
 
 # ui 3.
@@ -799,7 +800,7 @@ group_palette() {
 
 # ---------------------------------------------------------------- group files
 
-FILES_PROBE="$SILL_REPO/target/debug/examples/files_probe"
+FILES_PROBE="$SILL_OUT/examples/files_probe"
 TOKEN=sill-accept-files-token
 STEP_FAILED=0
 STEP_PENDING=0

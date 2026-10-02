@@ -22,7 +22,7 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_REPO/target/accept-user-style"
+OUT_DIR="$SILL_TARGET/accept-user-style"
 mkdir -p "$OUT_DIR"
 NAME=
 SURFACES=()

@@ -33,7 +33,7 @@ set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 [ "$#" = 0 ] || { echo "usage: dev/accept/notification-center.sh" >&2; exit 2; }
-OUT_DIR="$SILL_REPO/target/accept-notification-center"
+OUT_DIR="$SILL_TARGET/accept-notification-center"
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
 scratch_new
@@ -314,7 +314,7 @@ main() {
   trap cleanup EXIT
   use_nested_socket || exit 1
   build || exit 1
-  await_no_process 'target/[a-z]*/sill run' || echo "going on with it still running" >&2
+  await_no_process || echo "going on with it still running" >&2
   start_private_bus || exit 1
   start_center_daemon || exit 1
   run_steps step_warm step_toggle_open_close step_clock step_groups step_outside step_idle

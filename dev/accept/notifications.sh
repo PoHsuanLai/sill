@@ -119,9 +119,9 @@ case "${1:-}" in
   *) echo "$USAGE" >&2; exit 2 ;;
 esac
 case "$MODE" in
-  banners) OUT_DIR="$SILL_REPO/target/accept-notifications" ;;
-  bus) OUT_DIR="$SILL_REPO/target/accept-notifications-bus" ;;
-  real) OUT_DIR="$SILL_REPO/target/accept-notifications-real-input" ;;
+  banners) OUT_DIR="$SILL_TARGET/accept-notifications" ;;
+  bus) OUT_DIR="$SILL_TARGET/accept-notifications-bus" ;;
+  real) OUT_DIR="$SILL_TARGET/accept-notifications-real-input" ;;
 esac
 SHOTS="$SILL_REPO/dev/out"
 SIZE=1920x1080
@@ -146,7 +146,7 @@ REST_X=$(( WIDTH / 3 ))
 REST_Y=$(( HEIGHT / 2 ))
 DBUS_NAME=org.freedesktop.Notifications
 OBJECT=/org/freedesktop/Notifications
-HOLDER_BIN="$SILL_REPO/target/debug/examples/notifications_holder"
+HOLDER_BIN="$SILL_OUT/examples/notifications_holder"
 HOLDER=
 MONITOR=
 KWIN_UP=no
@@ -343,7 +343,7 @@ step_grouping() {
 # 6.
 step_dnd() {
   local kept up=no
-  settings on
+  dnd_setting on
   sill reload >>"$OUT_DIR/notify.log" 2>&1 || return 1
   sleep 0.5
   kept=$(status_field kept)
@@ -357,7 +357,7 @@ step_dnd() {
   sleep 10
   shows && up=yes
   echo "DND: a normal one kept without a banner (kept $kept -> $((kept + 1))); a critical one up after 10 s: $up" >&2
-  settings off
+  dnd_setting off
   sill reload >>"$OUT_DIR/notify.log" 2>&1
   [ "$up" = yes ] && clear_banners
 }
@@ -1230,7 +1230,7 @@ cleanup() {
 setup_banners() {
   use_nested_socket || return 1
   build || return 1
-  await_no_process '/sill run$' || return 1
+  await_no_process || return 1
   start_private_bus || return 1
   : >"$OUT_DIR/notify.log"
   dnd_setting off

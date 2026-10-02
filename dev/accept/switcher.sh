@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # App switcher acceptance (design/13 §13.3.5, design/20 §1.11), on the nested cosmic-comp
 # (dev/nested.sh; wayland-1 is pinged first, reused, never stopped or restarted). Starts `sill run`
-# from this checkout's debug build (`--features debug`) with its own XDG_RUNTIME_DIR
+# from this checkout's build (SILL_PROFILE, debug by default; `--features debug`) with its own XDG_RUNTIME_DIR
 # (WAYLAND_DISPLAY as an absolute socket path) and a scratch XDG_CONFIG_HOME, and three windows of
 # its own inside the nested compositor, never the user's:
 #   term    `cosmic-term` (com.system76.CosmicTerm);
@@ -42,10 +42,10 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_REPO/target/accept-switcher"
+OUT_DIR="$SILL_TARGET/accept-switcher"
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
-HOST_TARGET="$SILL_REPO/target/shell-host-examples"
+HOST_TARGET="$SILL_TARGET/shell-host-examples"
 DEMO="$HOST_TARGET/debug/examples/demo_window"
 SHOW_DELAY_MS=400
 
@@ -184,11 +184,18 @@ stop_windows() {
   done
 }
 
-# The chord `sill switcher next`, then Alt held for $1 ms (in the background, its pid in HOLD),
-# down inside the show delay.
+# How much longer a held chord is held on a debug build: every `sill debug capture` and key
+# takes several times as long there, and a step's own captures run while Alt is down, so a hold
+# sized for an idle host ends before the step does (a loaded host, load 20 or more, is the same) and "the release did not activate" is a script
+# artefact, not a finding. The nominal holds are the ones in the steps.
+HOLD_SCALE=3
+budgets_apply || HOLD_SCALE=6
+
+# The chord `sill switcher next`, then Alt held for $1 ms times HOLD_SCALE (in the background,
+# its pid in HOLD), down inside the show delay.
 chord_held() {
   sill switcher next >>"$OUT_DIR/chords.log" 2>&1
-  alt_held "$1" &
+  alt_held $(( $1 * HOLD_SCALE )) &
   HOLD=$!
   sleep 0.05
 }
@@ -216,6 +223,10 @@ quick_commit() {
   echo "$took $(( f1 - f0 ))"
 }
 
+# A quick next+commit ($1 ms) is inside the show delay: a release budget (the time is two IPC
+# round trips). On a debug build it is only printed (the frames-at-most-2 check still applies).
+within_delay() { budgets_apply || return 0; [ "$1" -lt "$SHOW_DELAY_MS" ]; }
+
 # 2. MRU calc, demo, term.
 step_quick_tap() {
   local log="$OUT_DIR/quick.log" took frames ok=yes seat=none f0 f1
@@ -223,11 +234,11 @@ step_quick_tap() {
   read -r took frames <<<"$(quick_commit "$log")"
   wait_demo Active 2000 || ok=no
   echo "quick next+commit in ${took} ms: demo $(demo_state) (the previous app); switcher frames ${frames}" | tee -a "$log" >&2
-  [ "$took" -lt "$SHOW_DELAY_MS" ] && [ "$frames" -le 2 ] || ok=no
+  within_delay "$took" && [ "$frames" -le 2 ] || ok=no
   read -r took frames <<<"$(quick_commit "$log")"
   wait_demo Inactive 2000 || ok=no
   echo "again in ${took} ms: demo $(demo_state) (calc); switcher frames ${frames}" | tee -a "$log" >&2
-  [ "$took" -lt "$SHOW_DELAY_MS" ] && [ "$frames" -le 2 ] || ok=no
+  within_delay "$took" && [ "$frames" -le 2 ] || ok=no
   f0=$(frames_of "$SWITCHER")
   sill switcher next >>"$log" 2>&1
   sleep "$(python3 -c "print(($SHOW_DELAY_MS + 300) / 1000)")"
@@ -299,7 +310,8 @@ step_real_keys() {
   local log="$OUT_DIR/keys-step.log" moved
   : >"$log"
   chord_held 2000
-  sleep 0.35
+  # The panel shows after the 400 ms delay: wait for it, a fixed 350 ms sat on the boundary.
+  wait_panel 3000 >/dev/null
   panel_to "$OUT_DIR/k1.png" || { echo "no panel while Alt is held" >&2; wait "$HOLD"; return 1; }
   press ArrowRight || { wait "$HOLD"; return 1; }
   sleep 0.5
@@ -355,10 +367,7 @@ trap cleanup EXIT
 
 nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; exit 1; }
 build_switcher || exit 1
-if pgrep -x sill >/dev/null; then
-  echo "another sill daemon is running; wait for it to quit" >&2
-  exit 1
-fi
+await_no_process || exit 1
 start_private_bus || exit 1
 start_switcher_daemon || exit 1
 start_windows || exit 1

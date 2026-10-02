@@ -83,12 +83,12 @@
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
-OUT_DIR="$SILL_REPO/target/accept-bar"
+OUT_DIR="$SILL_TARGET/accept-bar"
 SHOTS="$SILL_REPO/dev/out"
 mkdir -p "$OUT_DIR" "$SHOTS"
 # The bar's height: `bar.height_px`, 24 unless the settings say otherwise.
 BAR_H="${BAR_H:-24}"
-BAR_DEMO="$SILL_REPO/target/release/examples/bar_demo"
+BAR_DEMO="$SILL_TARGET/release/examples/bar_demo"
 SINK=
 NAME=
 STATUS=0
@@ -310,7 +310,7 @@ step_quit() {
 run_daemon_steps() {
   nested wayland-info >/dev/null 2>&1 || { echo "no nested compositor (dev/nested.sh first)" >&2; return 1; }
   use_nested_socket || return 1
-  await_no_process 'target/[a-z]*/sill run' || return 1
+  await_no_process || return 1
   scratch_new
   start_private_bus || { scratch_drop; return 1; }
   start_bar_daemon || { stop_daemon; stop_private_bus; scratch_drop; return 1; }
@@ -510,7 +510,10 @@ step_demo_nested() { run_bar_demo cosmic "$SHOTS/bar-cosmic-menu.png"; }
 
 # The demo and shell-host's probe, built (a no-op when up to date).
 build_demo() {
-  build "-p sill-bar --example bar_demo --release" || return 1
+  build || return 1
+  # Always the release demo (BAR_DEMO), whatever SILL_PROFILE the daemon steps run on.
+  (cd "$SILL_REPO" && cargo build --release -p sill-bar --example bar_demo) >>"$OUT_DIR/build.log" 2>&1 || {
+    echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }
   (cd "$HOST_REPO" && cargo build --release -p shell-host --features debug-inject \
     --example probe_toplevel) >>"$OUT_DIR/build.log" 2>&1 || {
     echo "build failed (see $OUT_DIR/build.log)" >&2; return 1; }

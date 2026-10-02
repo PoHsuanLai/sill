@@ -36,3 +36,17 @@ run_steps() {
 clear_of_the_minute() {
   if [ "$((10#$(date +%S)))" -ge 50 ]; then sleep $((62 - 10#$(date +%S))); fi
 }
+
+# A latency budget's verdict. $1: what was measured against what; $2: 1 when it is inside the
+# budget, 0 when not. The budgets are release budgets (budgets_apply, compositor.sh): on a debug
+# build, which runs several times slower, the line is printed as "not enforced" and the check
+# passes, so a debug run fails only on functional faults.
+budget_check() {
+  if budgets_apply; then
+    echo "budget: $1" >&2
+    [ "$2" = 1 ]
+  else
+    echo "budget (not enforced on a $SILL_PROFILE build; run with SILL_PROFILE=release): $1; inside: $([ "$2" = 1 ] && echo yes || echo no)" >&2
+    return 0
+  fi
+}
