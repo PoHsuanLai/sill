@@ -114,18 +114,18 @@ mod tests {
         let first = f.tiles[0].left.0 / 100;
         let trash = f.tiles[3].left.0 / 100;
         let cases = [
-            ("the first tile", at(first + 10, 120), Some(TileId(0))),
-            ("the gutter under it", at(first + 10, 157), Some(TileId(0))),
-            ("the gap right of it", at(first + 49, 120), Some(TileId(0))),
-            ("above the pill", at(first + 10, 80), None),
-            ("the Trash tile", at(trash + 5, 120), Some(TileId(9))),
+            ("the first tile", at(first + 10, 96), Some(TileId(0))),
+            ("the gutter under it", at(first + 10, 133), Some(TileId(0))),
+            ("the gap right of it", at(first + 49, 96), Some(TileId(0))),
+            ("above the pill", at(first + 10, 56), None),
+            ("the Trash tile", at(trash + 5, 96), Some(TileId(9))),
         ];
         for (name, point, want) in cases {
             assert_eq!(hit(&f, &items, point).tile(), want, "{name}");
         }
-        assert_eq!(hit(&f, &items, at(first + 10, 80)), Hit::Outside);
+        assert_eq!(hit(&f, &items, at(first + 10, 56)), Hit::Outside);
         assert_eq!(
-            hit(&f, &items, at(trash + 5, 120)),
+            hit(&f, &items, at(trash + 5, 96)),
             Hit::Tile {
                 tile: TileId(9),
                 app: TileApp::Inactive

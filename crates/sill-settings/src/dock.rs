@@ -36,7 +36,7 @@ pub struct DockSettings {
         label = "Magnified size",
         help = "The size of the icon under the pointer.",
         section = "Magnification",
-        range = "32..=128",
+        range = "32..=72",
         unit = "px",
         advanced
     )]
@@ -286,8 +286,8 @@ impl Default for DockSettings {
         DockSettings {
             magnification: Magnification::On,
             tile_size_px: Px(48),
-            magnified_size_px: Px(96),
-            influence_radius_px: Px(96),
+            magnified_size_px: Px(72),
+            influence_radius_px: Px(72),
             tile_gap_px: Px(8),
             autohide: AutoHide::Off,
             autohide_delay_ms: Ms(200),

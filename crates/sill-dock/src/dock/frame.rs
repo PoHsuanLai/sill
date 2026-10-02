@@ -202,9 +202,9 @@ mod tests {
     #[test]
     fn the_rows_are_design_10s_geometry() {
         let rows = Rows::new(&DockSettings::default());
-        assert_eq!(rows.surface, Cpx::px(158));
-        assert_eq!(rows.baseline, Cpx::px(144), "gut + pad above the bottom");
-        assert_eq!(rows.pill_top, Cpx::px(90));
+        assert_eq!(rows.surface, Cpx::px(134));
+        assert_eq!(rows.baseline, Cpx::px(120), "gut + pad above the bottom");
+        assert_eq!(rows.pill_top, Cpx::px(66));
         assert_eq!(rows.pill_height, Cpx::px(60), "a tile and the 6 px padding");
     }
 
@@ -220,7 +220,7 @@ mod tests {
         );
         assert_eq!((f.pill.left, f.pill.width), (Cpx::px(762), Cpx::px(396)));
         assert_eq!(f.separator, None);
-        assert_eq!(f.hit.top, Cpx::px(90), "the pill's top at rest");
+        assert_eq!(f.hit.top, Cpx::px(66), "the pill's top at rest");
         assert_eq!(f.hit.height, Cpx::px(68), "pill plus gutter");
         assert!(f.tiles.iter().all(|t| t.width == Cpx::px(48)));
         assert_eq!(f.tiles[0].left, Cpx::px(768));
@@ -259,8 +259,56 @@ mod tests {
             Permille::ONE,
             x,
         );
-        assert_eq!(f.tiles[3].width, Cpx::px(96));
-        assert_eq!(f.hit.top, Cpx::px(144 - 96));
+        assert_eq!(f.tiles[3].width, Cpx::px(72));
+        assert_eq!(f.hit.top, Cpx::px(120 - 72));
         assert!(f.tiles[3].contains(x, Cpx::px(100)), "the anchored tile");
+    }
+
+    /// design/10 §10.3.3 and R7: under the pointer the plate widens to hold the grown and slid
+    /// tiles, it stays as tall as at rest and every tile's bottom stays on the baseline; the
+    /// neighbours slide apart without overlapping; the tile under the pointer is the 72 px cap.
+    #[test]
+    fn magnifying_widens_the_plate_keeps_the_baseline_and_slides_the_neighbours_apart() {
+        let items = items(6, true);
+        let dock = DockSettings::default();
+        let rest = frame(&items, &dock, 1920, Permille::ZERO, Cpx(0));
+        let under = rest.tiles[6].left.0 + Cpx::px(24).0;
+        let near = frame(&items, &dock, 1920, Permille::ONE, Cpx(under));
+        assert!(
+            near.pill.width.0 > rest.pill.width.0 + Cpx::px(20).0,
+            "the plate widens: {:?} to {:?}",
+            rest.pill,
+            near.pill
+        );
+        assert_eq!(
+            (near.pill.top, near.pill.height),
+            (rest.pill.top, rest.pill.height),
+            "as tall as at rest"
+        );
+        let bottom = |a: &super::Area| a.top.0 + a.height.0;
+        for (at, (now, was)) in near.tiles.iter().zip(&rest.tiles).enumerate() {
+            assert_eq!(bottom(now), bottom(was), "tile {at} stays on the baseline");
+        }
+        assert_eq!(near.tiles[6].width, Cpx::px(72), "the cap");
+        assert!(
+            near.tiles
+                .iter()
+                .skip(1)
+                .zip(&near.tiles)
+                .all(|(next, before)| next.left >= before.right()),
+            "no overlap: {:?}",
+            near.tiles
+        );
+        assert!(
+            near.tiles[0].left < rest.tiles[0].left,
+            "the row spreads outward"
+        );
+        let held =
+            near.tiles[0].left >= near.pill.left && near.tiles[6].right() <= near.pill.right();
+        assert!(
+            held,
+            "every tile is on the plate: {:?} {:?}",
+            near.pill, near.tiles
+        );
     }
 }

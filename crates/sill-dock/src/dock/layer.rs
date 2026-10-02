@@ -67,13 +67,13 @@ mod tests {
     use sill_ui_kit::harness::fake::output_named as output;
 
     #[test]
-    fn the_dock_is_158_tall_and_reserves_68_unless_it_hides() {
-        // gut 8 + pad 6 + magnified 96 + tile 48; gut 8 + tile 48 + 2 x pad 6.
+    fn the_dock_is_134_tall_and_reserves_68_unless_it_hides() {
+        // gut 8 + pad 6 + magnified 72 + tile 48 = 134; gut 8 + tile 48 + 2 x pad 6.
         let config = layer(&output(Some("DP-1")), &ShellFile::default());
         assert_eq!(config.namespace, "sill-dock-DP-1");
         assert_eq!(config.layer, LayerLevel::Top);
         assert_eq!(config.anchor, Anchor::BOTTOM | Anchor::LEFT | Anchor::RIGHT);
-        assert_eq!(config.size.height, LayerExtent::Px(158));
+        assert_eq!(config.size.height, LayerExtent::Px(134));
         assert_eq!(config.exclusive, ExclusiveZone::Reserve(68));
         assert_eq!(config.keyboard, KeyboardMode::None);
         assert!(matches!(config.blur, BlurSpec::Region(_)));

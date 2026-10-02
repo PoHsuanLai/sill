@@ -39,8 +39,18 @@ mod tests {
     use crate::magnify::MagnifyParams;
     use sill_model::units::{Cpx, Permille};
 
+    /// The doubled tile (S = 96, R = 96, M = 2), the worked numbers of design/10 §10.5 and §10.8;
+    /// the settings' own default is the 72 px cap.
+    fn twice(output: Cpx) -> MagnifyParams {
+        MagnifyParams {
+            magnified: Cpx::px(96),
+            radius: Cpx::px(96),
+            ..MagnifyParams::design_defaults(output)
+        }
+    }
+
     fn p() -> MagnifyParams {
-        MagnifyParams::design_defaults(Cpx::px(1920))
+        twice(Cpx::px(1920))
     }
 
     /// Seven tiles at pitch `T + g` = 52 px.

@@ -10,7 +10,7 @@ mod use_services;
 mod use_settings;
 mod use_user_style;
 
-pub use use_appearance::{PinnedAppearance, use_appearance};
+pub use use_appearance::{PinnedAppearance, SwitchableAppearance, use_appearance};
 pub use use_focus_mode::use_focus_mode;
 pub use use_service::{use_control, use_service, use_service_part};
 pub use use_services::use_services;

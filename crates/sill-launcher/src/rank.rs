@@ -1,4 +1,5 @@
-//! The launcher's ranking formula: score 0.7 match + 0.3 frecency + a prefix boost.
+//! The launcher's ranking formula: score 0.7 match + 0.3 frecency + a boost for where the query
+//! sits in the title (whole, prefix, word start), and a scattered hit scaled down.
 
 pub mod sections;
 
@@ -9,49 +10,78 @@ use crate::frecency::FrecencyScore;
 use crate::matching::{MatchScore, Needle};
 
 /// A result's rank; higher sorts first. Thousandths: a perfect match with full frecency and a
-/// prefix boost is `1000 + prefix_boost`.
+/// whole-title hit is `1000 + exact_boost`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Score(pub u32);
 
-/// Whether the title starts with the typed text (case-insensitively), which earns the boost:
-/// typing `fi` should put Files above Firefox's fuzzier cousins only when Files starts with it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+/// How the typed text sits in the title, best first: the launcher ranks a whole-title or
+/// prefix hit above a hit at a word start, that above a plain substring, and all of those above
+/// letters scattered along the title (`term` in "Capture Current Monitor"), which is what a
+/// fuzzy matcher finds in nearly any long title.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Prefix {
+    /// The letters are all there but spread along the title, or the title has them out of order
+    /// for the matcher to find (`term` in "Capture Current Monitor").
+    Scattered,
+    /// The title contains the whole query inside a word: `mail` in "KMail".
+    Elsewhere,
+    /// Every typed word begins a word of the title: `mail` in "Check Mail".
+    WordStarts,
     /// The title starts with the whole trimmed query.
     Starts,
-    /// It does not, or the query is empty.
-    Elsewhere,
+    /// The title is the query.
+    Exact,
 }
 
 impl Prefix {
-    /// Whether `title` starts with `query`, both lower-cased, the query trimmed.
+    /// Where `query` sits in `title`, both lower-cased, the query trimmed. An empty query is
+    /// [`Prefix::Elsewhere`]: nothing was typed, so no title is placed above another by it.
     pub fn of(query: &str, title: &str) -> Prefix {
         let query = query.trim().to_lowercase();
-        if !query.is_empty() && title.to_lowercase().starts_with(&query) {
-            Prefix::Starts
-        } else {
-            Prefix::Elsewhere
+        let title = title.to_lowercase();
+        let words_begin = || {
+            query.split_whitespace().all(|word| {
+                title
+                    .split(|c: char| !c.is_alphanumeric())
+                    .any(|part| part.starts_with(word))
+            })
+        };
+        match () {
+            () if query.is_empty() => Prefix::Elsewhere,
+            () if title == query => Prefix::Exact,
+            () if title.starts_with(&query) => Prefix::Starts,
+            () if words_begin() => Prefix::WordStarts,
+            () if title.contains(&query) => Prefix::Elsewhere,
+            () => Prefix::Scattered,
         }
     }
 }
 
 /// The formula's weights, in thousandths. The plan fixes 0.7 and 0.3; it does not size the
-/// prefix boost, so [`RankWeights::DEFAULT`] proposes 0.1.
+/// boosts, so [`RankWeights::DEFAULT`] proposes them: a prefix hit +0.25, a whole-title hit
+/// +0.35, a word-start hit +0.15, and a scattered hit worth 0.4 of its blend.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RankWeights {
     pub matched: u16,
     pub frecency: u16,
+    pub exact_boost: u16,
     pub prefix_boost: u16,
+    pub word_boost: u16,
+    /// What a scattered hit's blend is multiplied by, in thousandths.
+    pub scattered: u16,
 }
 
 impl RankWeights {
-    /// 0.7 match, 0.3 frecency, +0.1 prefix.
+    /// 0.7 match, 0.3 frecency, the boosts above.
     pub const DEFAULT: RankWeights = RankWeights {
         matched: 700,
         frecency: 300,
-        prefix_boost: 100,
+        exact_boost: 350,
+        prefix_boost: 250,
+        word_boost: 150,
+        scattered: 400,
     };
 }
 
@@ -61,7 +91,8 @@ impl Default for RankWeights {
     }
 }
 
-/// `matched x weight + frecency x weight + boost when the title starts with the query`.
+/// `matched x weight + frecency x weight`, plus the boost of where the query sits in the title
+/// (a scattered hit's blend scaled down instead).
 pub fn rank(
     matched: MatchScore,
     frecency: FrecencyScore,
@@ -71,11 +102,14 @@ pub fn rank(
     let blend = (u32::from(weights.matched) * u32::from(matched.0)
         + u32::from(weights.frecency) * u32::from(frecency.0))
         / 1000;
-    let boost = match prefix {
-        Prefix::Starts => u32::from(weights.prefix_boost),
-        Prefix::Elsewhere => 0,
-    };
-    Score(blend + boost)
+    let boost = |permille: u16| blend + u32::from(permille);
+    Score(match prefix {
+        Prefix::Exact => boost(weights.exact_boost),
+        Prefix::Starts => boost(weights.prefix_boost),
+        Prefix::WordStarts => boost(weights.word_boost),
+        Prefix::Elsewhere => blend,
+        Prefix::Scattered => blend * u32::from(weights.scattered) / 1000,
+    })
 }
 
 /// The rank of a row titled `title` for `needle`, or `None` when it does not match.
@@ -108,9 +142,12 @@ mod tests {
             (1000, 0, Prefix::Elsewhere, 700),
             (0, 1000, Prefix::Elsewhere, 300),
             (1000, 1000, Prefix::Elsewhere, 1000),
-            (1000, 1000, Prefix::Starts, 1100),
+            (1000, 1000, Prefix::WordStarts, 1150),
+            (1000, 1000, Prefix::Starts, 1250),
+            (1000, 1000, Prefix::Exact, 1350),
             (500, 500, Prefix::Elsewhere, 500),
-            (800, 100, Prefix::Starts, 560 + 30 + 100),
+            (800, 100, Prefix::Starts, 560 + 30 + 250),
+            (1000, 0, Prefix::Scattered, 280),
             (1, 1, Prefix::Elsewhere, 1),
         ];
         for &(m, f, prefix, want) in CASES {
@@ -128,15 +165,23 @@ mod tests {
     }
 
     #[test]
-    fn prefix_is_whole_query_at_the_start_ignoring_case() {
+    fn the_query_is_placed_in_the_title() {
         const CASES: &[(&str, &str, Prefix)] = &[
             ("fi", "Files", Prefix::Starts),
             ("FI", "files", Prefix::Starts),
             (" fi ", "Files", Prefix::Starts),
             ("fi", "Firefox", Prefix::Starts),
+            ("files", "Files", Prefix::Exact),
             ("fox", "Firefox", Prefix::Elsewhere),
+            ("mail", "KMail", Prefix::Elsewhere),
+            ("mail", "Check Mail", Prefix::WordStarts),
+            ("mail", "KMail Header Theme Editor", Prefix::Elsewhere),
+            ("term", "Capture Current Monitor", Prefix::Scattered),
+            ("term", "Telegram", Prefix::Scattered),
             ("", "Files", Prefix::Elsewhere),
-            ("files manager", "Files", Prefix::Elsewhere),
+            ("files manager", "Files", Prefix::Scattered),
+            ("new win", "New Window", Prefix::Starts),
+            ("win new", "New Window", Prefix::WordStarts),
         ];
         for &(query, title, want) in CASES {
             assert_eq!(Prefix::of(query, title), want, "{query:?} / {title}");

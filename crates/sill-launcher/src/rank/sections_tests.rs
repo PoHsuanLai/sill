@@ -120,6 +120,29 @@ fn typed_text_is_the_weighted_top_hit_then_sections_in_order() {
                 (Section::Emoji, vec!["😀"]),
             ],
         ),
+        (
+            "emoji, clipboard and system rows never take Top Hit, whatever their score",
+            vec![
+                (Emoji, "✉", 900_000_000),
+                (Clipboard, "mail me", 5000),
+                (System, "Lock", 4000),
+                (Apps, "Mailo", 950),
+            ],
+            vec![
+                (Section::TopHit, vec!["Mailo"]),
+                (Section::Clipboard, vec!["mail me"]),
+                (Section::Emoji, vec!["✉"]),
+                (Section::System, vec!["Lock"]),
+            ],
+        ),
+        (
+            "with no primary row there is no Top Hit at all",
+            vec![(Emoji, "✉", 900_000_000), (Web, "Search the web", 2000)],
+            vec![
+                (Section::Emoji, vec!["✉"]),
+                (Section::Web, vec!["Search the web"]),
+            ],
+        ),
     ];
     for (name, rows, want) in cases {
         let placement = place(

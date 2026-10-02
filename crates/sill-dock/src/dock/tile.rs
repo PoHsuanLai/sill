@@ -16,6 +16,7 @@ use ds::prelude::*;
 use ds::style::icon::family::PlateFamily;
 use ds::style::icon::plate_tint::PlateTint;
 use ds::style::scale::use_scale;
+use ds_shell::dock::tile::plate_side;
 use ds_shell::prelude::*;
 use sill_model::badges::Badge;
 use sill_model::units::{Cpx, Permille};
@@ -37,6 +38,9 @@ pub struct LabelShown(pub Option<TileId>);
 /// tile renders without one).
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct TileLook(pub IconLook);
+
+/// The gap between the label and the top of the plate (design/10 §10.3.4).
+const LABEL_GAP: u32 = 7;
 
 /// A tile at `left` with side `size`, lifted `lift` by a bounce.
 #[component]
@@ -62,6 +66,8 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
     let icon = drawn(tile_art(&item.kind, app), sizes, &cx);
     let rows = Rows::new(&dock);
     let top = px(rows.baseline) - side;
+    // How far the plate's top is below the tile's, less the bounce: the label stands above it.
+    let rise = (side - f64::from(plate_side(Px(side as f32)).0)) / 2.0 - px(lift);
     let running = if item.app != TileApp::NotRunning && dock.indicators == Indicators::On {
         Activity::Active
     } else {
@@ -86,9 +92,19 @@ pub fn Tile(item: DockItem, left: Cpx, size: Cpx, lift: Cpx, badge: Option<Badge
                 running,
                 side: Px(side as f32),
                 lift: Px(px(lift) as f32),
-                label: name,
-                label_shown: Some(shown),
+                label: name.clone(),
+                // Never quire's own: its card is placed in the pill-sized root's coordinates and
+                // lands the pill's origin away from its tile. The label is drawn below, in the
+                // tile's own box, so it follows the tile every frame.
+                label_shown: Some(Shown::Hidden),
                 onclick: |_| {},
+            }
+            if shown == Shown::Visible {
+                span {
+                    class: "sill-dock-label",
+                    style: "bottom:calc(100% - {rise}px + {LABEL_GAP}px)",
+                    span { class: "sill-dock-label-text", "{name}" }
+                }
             }
         }
     }

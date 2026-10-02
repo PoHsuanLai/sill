@@ -126,12 +126,26 @@ impl Draw<'_> {
             false => Accessory::Text(words.trail.clone()),
             true => kind_trail(item, mix),
         };
+        let (title, detail, leading) = match &item.subject {
+            // An emoji's row is its name, led by the glyph in the icon slot: the provider's
+            // title is the glyph itself, which as a title draws tiny above its own name.
+            Subject::Emoji(emoji) => (
+                emoji.name.clone(),
+                None,
+                RowLeading::Text(emoji.glyph.clone()),
+            ),
+            _ => (
+                item.title.clone(),
+                (!words.detail.is_empty()).then(|| words.detail.into()),
+                (self.tile_of)(item),
+            ),
+        };
         PaletteRow {
-            detail: (!words.detail.is_empty()).then(|| words.detail.into()),
-            leading: (self.tile_of)(item),
+            detail,
+            leading,
             accessory: trail,
             chord: row_chord(item),
-            ..PaletteRow::new(RowRef::of(item), item.title.clone())
+            ..PaletteRow::new(RowRef::of(item), title)
         }
     }
 

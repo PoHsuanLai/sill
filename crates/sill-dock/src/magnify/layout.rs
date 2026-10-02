@@ -154,9 +154,19 @@ mod tests {
     use crate::magnify::MagnifyParams;
     use sill_model::units::{Cpx, Permille};
 
+    /// The doubled tile (S = 96, R = 96, M = 2), the worked numbers of design/10 §10.5 and §10.8;
+    /// the settings' own default is the 72 px cap.
+    fn twice(output: Cpx) -> MagnifyParams {
+        MagnifyParams {
+            magnified: Cpx::px(96),
+            radius: Cpx::px(96),
+            ..MagnifyParams::design_defaults(output)
+        }
+    }
+
     /// An output wide enough that no clamp is active for up to 30 tiles at full zoom.
     fn wide() -> MagnifyParams {
-        MagnifyParams::design_defaults(Cpx::px(6000))
+        twice(Cpx::px(6000))
     }
 
     fn slot_edges(layout: &Layout, gap: i32) -> Vec<(i32, i32)> {
@@ -179,7 +189,7 @@ mod tests {
 
     #[test]
     fn rest_is_centred_and_matches_the_pill_formula() {
-        let p = first_spacing(MagnifyParams::design_defaults(Cpx::px(1920)));
+        let p = first_spacing(twice(Cpx::px(1920)));
         let centers = rest_centers(7, &p);
         // W_0 = 7 * 48 + 6 * 4 + 16 = 376; left = (1920 - 376) / 2 = 772.
         assert_eq!(centers[0], Cpx::px(772 + 8 + 24));
@@ -191,7 +201,7 @@ mod tests {
 
     #[test]
     fn progress_zero_is_rest_wherever_the_pointer_is() {
-        let p = MagnifyParams::design_defaults(Cpx::px(1920));
+        let p = twice(Cpx::px(1920));
         let centers = rest_centers(7, &p);
         let rest = magnify(&centers, centers[0], Permille::ZERO, &p);
         for x in (70_000..120_000).step_by(371) {
@@ -280,7 +290,7 @@ mod tests {
     fn the_pill_is_clamped_inside_the_output() {
         // Three tiles whose rest pill touches the left clamp (8 px): magnifying the first tile
         // would push the pill past the edge, so everything shifts right by exactly the excess.
-        let p = MagnifyParams::design_defaults(Cpx::px(1000));
+        let p = twice(Cpx::px(1000));
         let first = 8 + 8 + 24;
         let centers: Vec<Cpx> = (0..3).map(|k| Cpx::px(first + 52 * k)).collect();
         let left = magnify(&centers, centers[0], Permille::ONE, &p);
@@ -323,7 +333,7 @@ mod tests {
 
     #[test]
     fn no_tiles_is_an_empty_pill_in_the_middle() {
-        let p = MagnifyParams::design_defaults(Cpx::px(1000));
+        let p = twice(Cpx::px(1000));
         let layout = magnify(&[], Cpx(0), Permille::ONE, &p);
         assert!(layout.tiles.is_empty());
         assert_eq!(layout.pill_left, Cpx::px(500));

@@ -24,3 +24,10 @@
 
 /* A tile's slot: quire's DockTile fills it, at the size the frame gives this tile now. */
 .sill-dock-tile{ position:absolute; }
+
+/* The hover label (design/10 §10.3.4): the tile's name in quire's small dark pill, centred over
+   the tile, its bottom 7 px above the plate. The row is wider than the tile so the pill centres
+   on it whatever its width; it never takes the pointer. */
+.sill-dock-label{ position:absolute; left:-120px; right:-120px; display:flex; justify-content:center; pointer-events:none; z-index:var(--z-card); }
+.sill-dock-label-text{ padding:var(--s-3) var(--s-8); background:var(--ink); color:var(--paper); border-radius:var(--r-small);
+  font-size:var(--fs-shell-tip); white-space:nowrap; animation:fade var(--t-quick) var(--e-out); }

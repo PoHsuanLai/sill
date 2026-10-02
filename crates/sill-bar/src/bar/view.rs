@@ -21,7 +21,7 @@ use sill_services::TrayService;
 use sill_ui_kit::hooks::{use_appearance, use_service, use_settings};
 use sill_ui_kit::look::use_active_look;
 use sill_ui_kit::menu::PopupLook;
-use sill_ui_kit::root::use_root_style;
+use sill_ui_kit::root::{SchemeKeyed, use_root_style};
 use sill_ui_kit::shell_style::shell_metrics;
 
 /// The bar's own stylesheet (lint-clean under `Profile::Strict`, `crates/sill/tests/lint.rs`).
@@ -53,41 +53,45 @@ pub(super) fn bar(output: OutputInfo) -> Element {
         file.bar.status_gap_px.0,
         status_metrics(&file.bar).style_attr()
     );
+    let scheme = resolve(popup_look.appearance, look.theme, popup_look.system).scheme;
     rsx! {
-        div { class: "sill-bar-root", style: metrics.style_attr(),
-        Ds {
-            sheet: Some(ds_shell::stylesheet()),
-            appearance: popup_look.appearance,
-            system: popup_look.system,
-            look,
-            material: Material::Bar,
-            blur: BlurState::Available,
-            tint_alpha: Some(popup_look.tint),
-            stack: Some(popup_look.stack),
-            surface: root.surface,
-            user_style: root.user_style,
-            AppStyle { css: BAR_CSS }
-            div {
-                class: "sill-bar",
-                style: strip,
-                onpointerdown: move |_| outside(Event::OutsidePress),
-                onpointerup: move |_| outside(Event::Release(Target::Outside)),
-                div { class: "sill-bar-group",
-                    AppName { output: output.clone() }
-                    WorkspaceIndicator { output: output.clone() }
-                }
-                div { class: "sill-bar-group", style: status,
-                    if !tray.items.is_empty() {
-                        Tray { output: output.clone() }
-                    }
-                    for module in modules {
-                        ModuleItem { key: "{module:?}", module }
-                    }
-                    ControlCenterItem { output: output.clone() }
-                    ClockItem { output: output.clone() }
-                }
-            }
-        }
-        }
+           div { class: "sill-bar-root", style: metrics.style_attr(),
+           SchemeKeyed {
+    scheme: scheme.slug().to_owned(),
+    Ds {
+               sheet: Some(ds_shell::stylesheet()),
+               appearance: popup_look.appearance,
+               system: popup_look.system,
+               look,
+               material: Material::Bar,
+               blur: BlurState::Available,
+               tint_alpha: Some(popup_look.tint),
+               stack: Some(popup_look.stack),
+               surface: root.surface,
+               user_style: root.user_style,
+               AppStyle { css: BAR_CSS }
+               div {
+                   class: "sill-bar",
+                   style: strip,
+                   onpointerdown: move |_| outside(Event::OutsidePress),
+                   onpointerup: move |_| outside(Event::Release(Target::Outside)),
+                   div { class: "sill-bar-group",
+                       AppName { output: output.clone() }
+                       WorkspaceIndicator { output: output.clone() }
+                   }
+                   div { class: "sill-bar-group", style: status,
+                       if !tray.items.is_empty() {
+                           Tray { output: output.clone() }
+                       }
+                       for module in modules {
+                           ModuleItem { key: "{module:?}", module }
+                       }
+                       ControlCenterItem { output: output.clone() }
+                       ClockItem { output: output.clone() }
+                   }
+               }
+           }
     }
+           }
+       }
 }

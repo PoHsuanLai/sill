@@ -21,6 +21,10 @@ use sill_model::apps::{App, AppIcon, AppIndex, DesktopActionEntry, Listing};
 /// are not tokens").
 const ACTION_JOINER: char = '\u{1}';
 
+/// How much of its own rank a desktop action keeps, in thousandths: "Check Mail" is a row of
+/// KMail and ranks under KMail, as Spotlight lists an app before its actions.
+const ACTION_WEIGHT: u32 = 850;
+
 /// Rows for every listed app matching the query, and one row per matching desktop action; the
 /// app row's own `actions` menu (Ctrl+K / Alt+K) lists every desktop action regardless of
 /// whether it matched on its own.
@@ -110,11 +114,15 @@ fn app_item(
     matcher: &mut Matcher,
 ) -> Option<Item> {
     let id = ItemId(app.id.0.clone());
-    let mut texts: Vec<&str> = vec![app.name.as_str()];
+    let mut texts: Vec<(&str, u32)> = vec![(app.name.as_str(), NAME_WEIGHT)];
     if !app.generic_name.is_empty() {
-        texts.push(app.generic_name.as_str());
+        texts.push((app.generic_name.as_str(), GENERIC_WEIGHT));
     }
-    texts.extend(app.keywords.iter().map(String::as_str));
+    texts.extend(
+        app.keywords
+            .iter()
+            .map(|keyword| (keyword.as_str(), KEYWORD_WEIGHT)),
+    );
     let frecency_score = frecency.score(&ItemKey::of(ProviderKind::Apps, &id), now);
     let score = best_score(needle, &texts, frecency_score, weights, matcher)?;
     Some(Item {
@@ -141,7 +149,8 @@ fn action_item(
 ) -> Option<Item> {
     let id = ItemId(format!("{}{ACTION_JOINER}{}", app.id.0, action.id));
     let frecency_score = frecency.score(&ItemKey::of(ProviderKind::Apps, &id), now);
-    let score = rank_text(needle, &action.name, frecency_score, weights, matcher)?;
+    let Score(own) = rank_text(needle, &action.name, frecency_score, weights, matcher)?;
+    let score = Score(own * ACTION_WEIGHT / 1000);
     Some(Item {
         id,
         provider: ProviderKind::Apps,
@@ -154,17 +163,28 @@ fn action_item(
     })
 }
 
-/// The best rank of any of `texts` against `needle`, or `None` when none match.
+/// How much of its rank a match keeps by what it matched, in thousandths: the app's own name in
+/// full, its generic name ("Terminal" for Konsole) and its keywords less, so an app named for what
+/// was typed ranks above one that only describes itself with it.
+const NAME_WEIGHT: u32 = 1000;
+const GENERIC_WEIGHT: u32 = 800;
+const KEYWORD_WEIGHT: u32 = 700;
+
+/// The best rank of any of `texts` (each with its weight) against `needle`, or `None` when none
+/// match.
 fn best_score(
     needle: &Needle,
-    texts: &[&str],
+    texts: &[(&str, u32)],
     frecency: FrecencyScore,
     weights: &RankWeights,
     matcher: &mut Matcher,
 ) -> Option<Score> {
     texts
         .iter()
-        .filter_map(|text| rank_text(needle, text, frecency, weights, matcher))
+        .filter_map(|&(text, weight)| {
+            let Score(rank) = rank_text(needle, text, frecency, weights, matcher)?;
+            Some(Score(rank * weight / 1000))
+        })
         .max()
 }
 

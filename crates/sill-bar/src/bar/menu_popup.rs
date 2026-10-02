@@ -27,7 +27,7 @@ use super::popup::{MAX_PX, room};
 use crate::control_center::{ControlCenter, ModuleDropdown};
 use sill_ui_kit::hooks::use_user_style;
 use sill_ui_kit::menu::PopupFrame;
-use sill_ui_kit::root::RootStyle;
+use sill_ui_kit::root::{RootStyle, SchemeKeyed};
 
 /// The surface name of a bar menu (and a tray item's): the value of its `data-surface`.
 pub(crate) const BAR_MENU: &str = "bar-menu";
@@ -112,23 +112,26 @@ pub(crate) fn BarPopup() -> Element {
     };
     let root = RootStyle::popup(name, user_style);
     rsx! {
-        AppStyle { css: CONTROL_CENTER_CSS }
-        PopupFrame { room: room(), widest, style: look.metrics.style_attr(),
-            Ds {
-                sheet: Some(ds_shell::stylesheet()),
-                extent: RootExtent::Popup,
-                appearance: look.appearance,
-                system: look.system,
-                material: Material::Popover,
-                blur: BlurState::Unavailable,
-                tint_alpha: Some(look.tint),
-                stack: Some(look.stack),
-                surface: root.surface,
-                user_style: root.user_style,
-                {content}
-            }
-        }
+           AppStyle { css: CONTROL_CENTER_CSS }
+           PopupFrame { room: room(), widest, style: look.metrics.style_attr(),
+               SchemeKeyed {
+    scheme: resolve(look.appearance, Theme::System, look.system).scheme.slug().to_owned(),
+    Ds {
+                   sheet: Some(ds_shell::stylesheet()),
+                   extent: RootExtent::Popup,
+                   appearance: look.appearance,
+                   system: look.system,
+                   material: Material::Popover,
+                   blur: BlurState::Unavailable,
+                   tint_alpha: Some(look.tint),
+                   stack: Some(look.stack),
+                   surface: root.surface,
+                   user_style: root.user_style,
+                   {content}
+               }
     }
+           }
+       }
 }
 
 /// A ds `Menu{Dropdown}`, at once (no entrance: a bar menu, and every hover switch); the root

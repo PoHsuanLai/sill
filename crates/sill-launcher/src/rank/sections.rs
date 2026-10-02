@@ -92,7 +92,10 @@ impl SectionPlan {
     /// The proposed numbers: apps rank as they are and show six (design/06 §11.3's mail cap),
     /// documents a little under them and five, windows three, the calculator its one answer,
     /// settings and system three, clipboard three, emoji a grid row of eight, and the web
-    /// fallback one row that never takes Top Hit.
+    /// fallback one row. Top Hit comes from the primary providers only (apps, documents,
+    /// windows, the calculator, settings), as Spotlight's does: the secondary ones (system
+    /// commands, clipboard, emoji, web) have weight 0. Emoji rows also score on a scale of their
+    /// own (the position bits that order the grid), which no weight could compare with an app's.
     pub fn default_plan() -> SectionPlan {
         use ProviderKind as K;
         use Section as S;
@@ -109,9 +112,9 @@ impl SectionPlan {
                 rule(K::Windows, S::Windows, 900, 3),
                 rule(K::Calculator, S::Calculator, 1000, 1),
                 rule(K::Settings, S::Settings, 700, 3),
-                rule(K::Clipboard, S::Clipboard, 600, 3),
-                rule(K::Emoji, S::Emoji, 500, 8),
-                rule(K::System, S::System, 800, 3),
+                rule(K::Clipboard, S::Clipboard, 0, 3),
+                rule(K::Emoji, S::Emoji, 0, 8),
+                rule(K::System, S::System, 0, 3),
                 rule(K::Web, S::Web, 0, 1),
             ],
             order: vec![

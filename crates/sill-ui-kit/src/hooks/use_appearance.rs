@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use dioxus::prelude::{ReadSignal, try_consume_context, use_hook, use_signal};
+use dioxus::prelude::{ReadSignal, Signal, try_consume_context, use_hook, use_signal};
 use ds::base::spawner::Spawner;
 use ds_blitz::TokioSpawner;
 use ds_settings::{AppName, ConfigRoot, Environment, Store, SystemPrefsSource, use_environment};
@@ -15,13 +15,23 @@ use ds_settings::{AppName, ConfigRoot, Environment, Store, SystemPrefsSource, us
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct PinnedAppearance(pub Environment);
 
-/// `quire/appearance.toml` and the settings portal, live; or the root's [`PinnedAppearance`].
+/// A pinned appearance a test can change while the surface runs, as the person does from the
+/// control center: the harness provides it and holds the signal (`SurfaceHarness::set_appearance`).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SwitchableAppearance(pub Signal<Environment>);
+
+/// `quire/appearance.toml` and the settings portal, live; or the root's [`SwitchableAppearance`]
+/// or [`PinnedAppearance`].
 pub fn use_appearance() -> ReadSignal<Environment> {
     // Read once, so the branch below (and the hooks it calls) is the same on every render.
+    let switchable = use_hook(try_consume_context::<SwitchableAppearance>);
     let pinned = use_hook(try_consume_context::<PinnedAppearance>);
-    match pinned {
-        Some(PinnedAppearance(environment)) => ReadSignal::new(use_signal(move || environment)),
-        None => {
+    match (switchable, pinned) {
+        (Some(SwitchableAppearance(signal)), _) => ReadSignal::new(signal),
+        (None, Some(PinnedAppearance(environment))) => {
+            ReadSignal::new(use_signal(move || environment))
+        }
+        (None, None) => {
             // The runtime the host entered on this thread runs the file and portal watches.
             let spawner: Arc<dyn Spawner> = use_hook(|| Arc::new(TokioSpawner::current()));
             let store = Store::new(ConfigRoot::Xdg, AppName::QUIRE);

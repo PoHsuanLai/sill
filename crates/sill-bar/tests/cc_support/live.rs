@@ -42,6 +42,9 @@ pub enum Report {
 /// The popup document's control center sheet, which the bar's popup root injects.
 const CONTROL_CENTER_CSS: &str = include_str!("../../src/control_center/style.css");
 
+/// The theme the panel's root draws in; a test changes it while the panel is up (`Running::set_theme`).
+static THEME: GlobalSignal<Theme> = Signal::global(|| Theme::Light);
+
 thread_local! {
     static WORLD: RefCell<Option<World>> = const { RefCell::new(None) };
 }
@@ -66,7 +69,7 @@ fn app() -> Element {
     rsx! {
         AppStyle { css: CONTROL_CENTER_CSS }
         PopupFrame { room: PopupRoom { side: 28, top: 8, bottom: 40 },
-        Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance::default(), material: Material::Popover,
+        Ds { sheet: Some(ds_shell::stylesheet()), appearance: Appearance { theme: THEME(), ..Appearance::default() }, material: Material::Popover,
             extent: RootExtent::Popup,
             Popover {
                 anchor: Anchor::Point(Point { x: Px(8.0), y: Px(1.0) }),
@@ -99,6 +102,11 @@ pub struct Running {
 }
 
 impl Running {
+    /// Switch the panel to `theme` while it is up, as the control center's own theme control does.
+    pub fn set_theme(&mut self, theme: Theme) {
+        self.harness.within(|| *THEME.write() = theme);
+    }
+
     /// Everything reported so far.
     pub fn reports(&self) -> Vec<Report> {
         self.reports.lock().map(|r| r.clone()).unwrap_or_default()

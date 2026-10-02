@@ -68,7 +68,11 @@ fn the_grid_shows_what_the_services_hold() {
         ("Display", ">Display<", 1),
         ("nothing playing", ">Not Playing<", 1),
         ("the theme control", "aria-label=\"Theme\"", 1),
-        ("the accent circles", "data-arrangement=\"swatches\"", 1),
+        (
+            "no accent circles (the accent lives in Settings)",
+            "data-arrangement=\"swatches\"",
+            0,
+        ),
         ("the battery's time", "2:05 remaining", 1),
         ("the power modes", ">Performance<", 1),
         ("no raw button of sill's", "<button class=\"sill", 0),

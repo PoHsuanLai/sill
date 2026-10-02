@@ -9,13 +9,13 @@ use std::rc::Rc;
 use crate::settings::SettingsFeed;
 use dioxus::prelude::*;
 use ds_harness::{Clock, Harness, HarnessConfig, Viewport};
-use ds_settings::UserStyle;
+use ds_settings::{Environment, UserStyle};
 use shell_host::{LayerExtent, OutputInfo};
 use sill_settings::ShellFile;
 use tokio::sync::watch;
 
 use super::fake;
-use crate::hooks::PinnedAppearance;
+use crate::hooks::{PinnedAppearance, SwitchableAppearance};
 use crate::services::Services;
 use crate::surface::{MountProps, Surface, mount};
 
@@ -27,6 +27,11 @@ thread_local! {
     /// runs on its own thread), so a second one started while the first is still driven would
     /// replace what the first draws.
     pub(super) static WORLD: RefCell<Option<Build>> = const { RefCell::new(None) };
+}
+
+thread_local! {
+    /// The signal behind the live harness's appearance (see [`SurfaceHarness::set_appearance`]).
+    static APPEARANCE: RefCell<Option<Signal<Environment>>> = const { RefCell::new(None) };
 }
 
 pub(super) fn app() -> Element {
@@ -49,6 +54,8 @@ pub struct SurfaceHarness<S: Surface> {
     pub settings: watch::Sender<ShellFile>,
     /// The person's `style.css` the surface follows: send a new one to restyle it live.
     pub user_style: watch::Sender<UserStyle>,
+    /// The size and scale the document draws at.
+    pub(super) viewport: Viewport,
 }
 
 impl<S: Surface> fmt::Debug for SurfaceHarness<S> {
@@ -84,6 +91,17 @@ impl<S: Surface> fmt::Debug for SurfaceSetup<S> {
 }
 
 impl<S: Surface> SurfaceHarness<S> {
+    /// Change the appearance the surface follows while it runs, as the control center's theme
+    /// control does, and draw what follows (the surface is not settled: `advance` it).
+    pub fn set_appearance(&mut self, environment: Environment) {
+        let signal = APPEARANCE.with(|slot| *slot.borrow());
+        self.harness.within(|| {
+            if let Some(mut signal) = signal {
+                signal.set(environment);
+            }
+        });
+    }
+
     /// The setup for `slot` of `S` (`()` for a surface with one) on `link`.
     pub fn setup(link: S::Link, slot: S::Slot) -> SurfaceSetup<S> {
         SurfaceSetup {
@@ -164,7 +182,9 @@ impl<S: Surface> SurfaceSetup<S> {
         let build: Build = Rc::new(move || {
             use_context_provider(|| services.clone());
             use_context_provider(|| feed.clone());
-            use_context_provider(|| appearance.clone());
+            let live =
+                use_context_provider(|| SwitchableAppearance(Signal::new(appearance.0.clone())));
+            APPEARANCE.with(|slot| *slot.borrow_mut() = Some(live.0));
             use_context_provider(|| context_link.clone());
             if let Some(hook) = &root_hook {
                 hook();
@@ -179,6 +199,7 @@ impl<S: Surface> SurfaceSetup<S> {
             link,
             settings,
             user_style: user_style_tx,
+            viewport,
         }
     }
 }

@@ -162,7 +162,7 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
     let cases: &[(&str, toml::Value)] = &[
         ("bar.height_px", toml::Value::Integer(24)),
         ("dock.tile_size_px", toml::Value::Integer(48)),
-        ("dock.influence_radius_px", toml::Value::Integer(96)),
+        ("dock.influence_radius_px", toml::Value::Integer(72)),
         ("dock.magnification", toml::Value::String("on".to_owned())),
         ("dock.autohide", toml::Value::String("off".to_owned())),
         ("launcher.top_vertical_fraction", toml::Value::Integer(400)),

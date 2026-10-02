@@ -1,10 +1,9 @@
-//! The Appearance module: the theme as a quire `SegmentedControl` and the accent as a `RadioGroup`
-//! of colour circles (`Arrangement::Swatches`), its value from
+//! The Appearance module: the theme as a quire `SegmentedControl`, its value from
 //! `use_appearance`, a change written to `quire/appearance.toml` through `ds-settings` (the file
-//! quire's own settings watch then publishes to every surface).
+//! quire's own settings watch then publishes to every surface). The accent is not here: it lives
+//! in Settings (cleanup DECISIONS: the control center keeps the dark-mode switch only).
 
 use dioxus::prelude::*;
-use ds::components::controls::radio_group::Arrangement;
 use ds::components::controls::segmented::Tracking;
 use ds::prelude::*;
 use ds_settings::{AppName, AppearanceFile, ConfigRoot, Store};
@@ -33,14 +32,6 @@ pub fn AppearanceModule() -> Element {
                     choices: Choice::pairs(Theme::ALL.iter().map(|theme| (*theme, theme.label()))),
                     tracking: Tracking::SelectOne(value.theme),
                     onchange: move |theme| save(Appearance { theme, ..value }),
-                }
-                SectionHeader { title: "Accent" }
-                RadioGroup::<Accent> {
-                    label: "Accent",
-                    arrangement: Arrangement::Swatches,
-                    choices: Accent::ALL.iter().map(|accent| Choice::accent(*accent)).collect(),
-                    value: value.accent,
-                    onchange: move |accent| save(Appearance { accent, ..value }),
                 }
             }
         }

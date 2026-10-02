@@ -4,8 +4,10 @@
 
 pub mod fake;
 
+mod ink;
 mod lock;
 mod surface;
 
+pub use ink::ink_contrast;
 pub use lock::{LockHarness, LockSetup};
 pub use surface::{SurfaceHarness, SurfaceSetup};

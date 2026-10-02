@@ -199,3 +199,40 @@ fn each_row_carries_its_chord_for_the_selection() {
             .all(|(chord, _)| chord.shown == ChordShown::Selected)
     );
 }
+
+/// An emoji row outside the grid (under Recent, or anywhere a mixed list shows one) is its name led
+/// by the glyph in the icon slot. Its title is the glyph itself, which drew tiny above its own name.
+#[test]
+fn an_emoji_in_a_list_is_its_name_led_by_the_glyph() {
+    let emoji = item(
+        ProviderKind::Emoji,
+        "📫",
+        Subject::Emoji(EmojiFacts {
+            glyph: "📫".to_owned(),
+            name: "closed mailbox with raised flag".to_owned(),
+            tone: SkinTone::Default,
+        }),
+    );
+    let draw = Draw {
+        tile_of: &tile,
+        clip_image: &|_| None,
+        now: NOW,
+    };
+    let section = ShownSection {
+        section: Section::Recent,
+        rows: vec![emoji],
+        more: More::Nothing,
+    };
+    let mut dom = VirtualDom::new(|| rsx! {});
+    dom.rebuild_in_place();
+    let groups = dom.in_scope(ScopeId::ROOT, || {
+        palette_groups(&[section], &draw, &|_| EventHandler::new(|()| {}))
+    });
+    let GroupEntries::List(entries) = &groups.0[0].entries else {
+        panic!("a list");
+    };
+    let row = &entries[0];
+    assert_eq!(row.title, "closed mailbox with raised flag".into());
+    assert_eq!(row.detail, None);
+    assert_eq!(row.leading, RowLeading::Text("📫".to_owned()));
+}
