@@ -223,20 +223,24 @@ step_month_and_up_next() {
 
 # 3.
 step_edit() {
-  local log="$OUT_DIR/edit.log" start seen elapsed
+  local log="$OUT_DIR/edit.log" start began seen elapsed
   : >"$log"
   start=$(date +%s%N)
   write_fixture CANCELLED
-  for _ in $(seq 40); do
+  # Poll for up to 15 s: the change must show (functional); how soon is a release budget below.
+  # The time counted is when the capture that first showed it BEGAN: a capture of a 2560 px
+  # surface takes seconds on a loaded host, which says nothing about the file watcher.
+  for _ in $(seq 150); do
+    began=$(date +%s%N)
     sill debug capture "$CENTER" "$OUT_DIR/edit.png" >>"$log" 2>&1 || return 1
     seen=$(probe "$OUT_DIR/edit.png")
     [ "$(bars_of "$seen")" = "$TEAM $TEAM $PERSONAL" ] && break
     sleep 0.05
   done
-  elapsed=$(( ($(date +%s%N) - start) / 1000000 ))
-  echo "after the edit: $seen, shown after ${elapsed} ms (the probe's own time included)" \
-    | tee -a "$log" >&2
-  [ "$(bars_of "$seen")" = "$TEAM $TEAM $PERSONAL" ] && [ "$elapsed" -le 2000 ]
+  elapsed=$(( (began - start) / 1000000 ))
+  echo "after the edit: $seen, shown by a capture begun ${elapsed} ms after it" | tee -a "$log" >&2
+  [ "$(bars_of "$seen")" = "$TEAM $TEAM $PERSONAL" ] \
+    && budget_check "an edited calendar file shows ${elapsed} ms after the write against 2000 ms" "$(( elapsed <= 2000 ))"
 }
 
 # 4.

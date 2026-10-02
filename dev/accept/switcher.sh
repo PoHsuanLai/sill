@@ -110,7 +110,8 @@ wait_hidden() {
 # demo_window's activated state, as it last printed it ("Active" or "Inactive").
 demo_state() {
   grep '^{.*"event":"state"' "$OUT_DIR/demo.log" | tail -1 \
-    | python3 -c 'import json,sys; t=sys.stdin.read(); print(json.loads(t)["activated"] if t else "none")'
+    | python3 -c 'import json,sys; t=sys.stdin.read(); print(json.loads(t)["activated"] if t else "none")' 2>/dev/null \
+    || echo none
 }
 
 # How many state lines demo_window has printed.
@@ -157,7 +158,7 @@ start_windows() {
   "$SHELL_HOST_DEV/run.sh" "$DEMO" <"$OUT_DIR/demo.in" >"$OUT_DIR/demo.log" 2>&1 &
   PIDS+=($!)
   exec 8>"$OUT_DIR/demo.in"
-  wait_demo Active 10000 || { echo "demo_window never became active" >&2; return 1; }
+  wait_demo Active 30000 || { echo "demo_window never became active" >&2; return 1; }
   QT_QPA_PLATFORM=wayland "$SHELL_HOST_DEV/run.sh" kcalc >"$OUT_DIR/calc.log" 2>&1 &
   CALC_PID=$!
   PIDS+=("$CALC_PID")

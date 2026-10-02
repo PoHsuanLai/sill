@@ -10,9 +10,10 @@ fi
 # The build every script runs: SILL_PROFILE=debug (the default) or release, from cargo's target
 # directory (CARGO_TARGET_DIR when set, else this checkout's target/). Both carry
 # `--features debug` (the fake DDC, `sill debug ...`), which `build` passes. The latency budgets
-# (a warm launcher open, the switcher's key-to-frame time, ...) are release budgets: a debug
-# build is several times slower, so `budgets_apply` is false there and a script prints the
-# measurement but does not fail it. Run the suite with SILL_PROFILE=release for the full verdict.
+# (a warm launcher open, a banner's first frame, ...) are release budgets: a debug build is
+# several times slower, so `budgets_apply` is false there (and on a host whose load is past its
+# core count) and a script prints the measurement but does not fail it. Run the suite with
+# SILL_PROFILE=release on a quiet host for the full verdict.
 SILL_PROFILE="${SILL_PROFILE:-debug}"
 # shellcheck disable=SC2034 # SILL_CARGO_PROFILE is read by daemon.sh, run.sh and lock.sh
 case "$SILL_PROFILE" in
@@ -23,7 +24,17 @@ esac
 SILL_TARGET="${CARGO_TARGET_DIR:-$SILL_REPO/target}"
 SILL_OUT="$SILL_TARGET/$SILL_PROFILE"
 SILL_BIN="${SILL_BIN:-$SILL_OUT/sill}"
-budgets_apply() { [ "$SILL_PROFILE" = release ]; }
+# A budget also needs a host that is not oversubscribed: the figures include `sill debug capture`
+# and key round trips, which stretch several-fold when the one-minute load average is past the
+# core count (another build or an agent suite running), and then say nothing about the shell.
+budgets_apply() {
+  [ "$SILL_PROFILE" = release ] || return 1
+  awk -v cores="$(nproc)" '{ exit !($1 < cores) }' /proc/loadavg
+}
+budgets_why() {
+  [ "$SILL_PROFILE" = release ] || { echo "a $SILL_PROFILE build; run with SILL_PROFILE=release"; return; }
+  echo "host load $(cut -d' ' -f1 /proc/loadavg) is past its $(nproc) cores"
+}
 HOST_REPO="$(cd "$SHELL_HOST_DEV/../.." && pwd)"
 KWIN_ENV="$SHELL_HOST_DEV/.kwin-env"
 SIZE="${SIZE:-1920x1080}"

@@ -296,7 +296,8 @@ step_accept() {
   free=$?
   echo "unlocked ${took} ms after 'sill debug auth accept' (limit 250 + 454 + 500: the check, the accepted beat, slack); lock surface gone: $gone; marker: $(test -e "$MARKER" && echo present || echo removed); a stand-in locker then locked and unlocked: exit $free" \
     | tee -a "$log" >&2
-  [ "$took" -ge 0 ] && [ "$took" -le 1204 ] && [ "$gone" = yes ] && [ ! -e "$MARKER" ] && [ "$free" = 0 ]
+  [ "$took" -ge 0 ] && budget_check "unlocked ${took} ms after accept against 1204 ms" "$(( took <= 1204 ))" \
+    && [ "$gone" = yes ] && [ ! -e "$MARKER" ] && [ "$free" = 0 ]
 }
 
 # 7.

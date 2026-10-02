@@ -169,7 +169,7 @@ step_launch() {
   # Let the launch bounce land before the badge step looks at the tile.
   sleep 1
   "$SHELL_HOST_DEV/shot.sh" "$OUT_DIR/launched.png" >/dev/null 2>&1 || true
-  [ "$found" = yes ] && [ "$took" -le 3000 ]
+  [ "$found" = yes ] && budget_check "the launched app's dot after ${took} ms against 3000 ms" "$(( took <= 3000 ))"
 }
 
 # Whether an RGBA pixel is the running dot's ink (dark on the light pill).
@@ -199,7 +199,7 @@ step_badge() {
   local took=$(( ($(date +%s%N) - start) / 1000000 ))
   kill "$emitter" 2>/dev/null; wait "$emitter" 2>/dev/null
   echo "badge pixel at $x,$y: $before -> $after after ${took} ms (red: $found)" | tee "$log" >&2
-  [ "$found" = yes ] && [ "$took" -le 1000 ]
+  [ "$found" = yes ] && budget_check "the badge after ${took} ms against 1000 ms" "$(( took <= 1000 ))"
 }
 
 # 5.

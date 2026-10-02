@@ -188,7 +188,8 @@ step_debug_shot_shows_then_hides() {
   limit=$(( HOLD_MS + 800 + 400 ))
   echo "shown ${shown} ms after 'sill debug screenshot'; hidden at ${gone} ms (hold ${HOLD_MS} ms, limit ${limit} ms); file kept: $(test -f "$ELSEWHERE/Screenshot_a.png" && echo yes || echo no)" \
     | tee -a "$log" >&2
-  [ "$shown" -ge 0 ] && [ "$shown" -le 500 ] && [ "$gone" -ge "$HOLD_MS" ] && [ "$gone" -le "$limit" ] \
+  [ "$shown" -ge 0 ] && budget_check "the screenshot thumbnail shown ${shown} ms after the request against 500 ms" "$(( shown <= 500 ))" \
+    && [ "$gone" -ge "$HOLD_MS" ] && [ "$gone" -le "$limit" ] \
     && [ -f "$ELSEWHERE/Screenshot_a.png" ]
 }
 
