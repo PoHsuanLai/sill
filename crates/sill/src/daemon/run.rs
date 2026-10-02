@@ -27,6 +27,11 @@ use super::{services, settings};
 use crate::ipc::server;
 use crate::outputs::Outputs;
 
+/// The most threads the blocking pool may hold. The services keep a few for good (volume, the DDC
+/// worker) and the rest come and go with a scan or a lookup; a cap turns a runaway
+/// `spawn_blocking` loop into queued work, not hundreds of threads (tokio's default is 512).
+const BLOCKING_THREADS: usize = 48;
+
 /// Run the daemon until `quit` or a fatal host error, on the seams `args` make.
 pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     let door = match take_door() {
@@ -35,6 +40,7 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
     };
     let runtime = match tokio::runtime::Builder::new_multi_thread()
         .enable_all()
+        .max_blocking_threads(BLOCKING_THREADS)
         .build()
     {
         Ok(runtime) => runtime,

@@ -107,7 +107,7 @@ fn watch_dirs(
     config: &Path,
     dirs: &[PathBuf],
     signal: mpsc::UnboundedSender<()>,
-) -> Vec<RecommendedWatcher> {
+) -> Option<RecommendedWatcher> {
     let mut targets: Vec<PathBuf> = dirs.iter().filter(|dir| dir.is_dir()).cloned().collect();
     let theme_file = icons::cosmic_tk_icon_theme_path(config);
     if let Some(parent) = theme_file.parent()
@@ -116,27 +116,67 @@ fn watch_dirs(
     {
         targets.push(parent.to_owned());
     }
-    targets
+    // One watcher for every directory: `notify`'s inotify backend runs one thread per watcher.
+    let mut watcher = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
+        if res.is_ok_and(|event| changes(&event)) {
+            // A dropped signal means the task ended: nobody is left to rescan for.
+            let _ = signal.send(());
+        }
+    })
+    .ok()?;
+    let watched = targets
         .into_iter()
-        .filter_map(|dir| {
-            let tx = signal.clone();
-            let mut watcher =
-                notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
-                    if res.is_ok() {
-                        // A dropped signal means the task ended: nobody is left to rescan for.
-                        let _ = tx.send(());
-                    }
-                })
-                .ok()?;
-            watcher.watch(&dir, RecursiveMode::Recursive).ok()?;
-            Some(watcher)
-        })
-        .collect()
+        .filter(|dir| watcher.watch(dir, RecursiveMode::Recursive).is_ok())
+        .count();
+    (watched > 0).then_some(watcher)
+}
+
+/// Whether `event` is a change to what a scan reads. Opening, reading and closing a file for
+/// reading are not: the scan itself does all three to every `.desktop` file, and counting them
+/// made each rescan signal the next one, forever (a busy loop of scans and blocking-pool threads
+/// at idle). A file closed after a write is.
+fn changes(event: &notify::Event) -> bool {
+    use notify::EventKind;
+    use notify::event::{AccessKind, AccessMode};
+    match event.kind {
+        EventKind::Access(AccessKind::Close(AccessMode::Write)) => true,
+        EventKind::Access(_) => false,
+        _ => true,
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::changes;
     use crate::apps::AppsService;
+    use notify::event::{
+        AccessKind, AccessMode, CreateKind, DataChange, Event, EventKind, ModifyKind, RemoveKind,
+    };
+
+    /// A scan's own reads (open, read, close without writing) must not count as a change, or the
+    /// watcher feeds the scan that feeds it.
+    #[test]
+    fn a_scans_own_reads_are_not_changes() {
+        let kinds = [
+            (EventKind::Access(AccessKind::Open(AccessMode::Any)), false),
+            (EventKind::Access(AccessKind::Read), false),
+            (
+                EventKind::Access(AccessKind::Close(AccessMode::Read)),
+                false,
+            ),
+            (
+                EventKind::Access(AccessKind::Close(AccessMode::Write)),
+                true,
+            ),
+            (EventKind::Create(CreateKind::File), true),
+            (EventKind::Modify(ModifyKind::Data(DataChange::Any)), true),
+            (EventKind::Remove(RemoveKind::File), true),
+        ];
+        for (kind, counts) in kinds {
+            assert_eq!(changes(&Event::new(kind)), counts, "{kind:?}");
+        }
+    }
+
     use sill_model::apps::AppIndex;
 
     /// Starting must never panic (matching every other service: `services.rs`'s own test reads
