@@ -7,11 +7,12 @@
 //! classes.
 
 use dioxus::prelude::*;
+use ds::base::time::stamp::Stamp;
 use ds::prelude::*;
 use ds_shell::prelude::*;
 use ds_shell::widget::kind::WidgetTitle;
 use sill_model::now_playing::{Abilities, Art, Micros, Playback, Timeline};
-use sill_model::units::{Availability, Stamp};
+use sill_model::units::Availability;
 
 use super::face::{MediaFace, MediaView, TrackFace, Transport, position_of};
 

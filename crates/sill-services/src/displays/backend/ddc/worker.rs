@@ -8,11 +8,11 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, RecvTimeoutError};
 use std::time::{Duration, Instant};
 
+use ds_core::time::stamp::Stamp;
 use sill_model::displays::DdcDisplay;
 use sill_model::displays::ddc::debounce::{Debounce, Write};
 use sill_model::displays::ddc::vcp::{Controls, Feature};
 use sill_model::ids::DdcId;
-use sill_model::units::Stamp;
 use tokio::sync::watch;
 
 use super::retry;

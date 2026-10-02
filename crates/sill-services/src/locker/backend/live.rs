@@ -9,11 +9,11 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
 
+use ds_core::time::stamp::Stamp;
 use sill_model::locker::{
     Cause, Host, Lock, LockCause, Locker, LockerCommand, LockerEffect, LockerEvent, LockerMode,
     SessionManager, ShellLockEvent, cause_after, cause_of, next_deadline, step,
 };
-use sill_model::units::Stamp;
 use tokio::sync::{mpsc, watch};
 use zbus::zvariant::OwnedFd;
 

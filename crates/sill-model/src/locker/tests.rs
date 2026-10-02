@@ -5,7 +5,7 @@ use super::{
     Cause, Hold, Locker, LockerEffect, LockerEvent, Phase, READY_GIVE_UP_MS, Runner, SLEEP_HOLD_MS,
     Triggers, next_deadline, step,
 };
-use crate::units::Stamp;
+use ds_core::time::stamp::Stamp;
 
 const T0: Stamp = Stamp(1_000);
 

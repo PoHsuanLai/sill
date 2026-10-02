@@ -10,7 +10,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::LockCause;
-use crate::units::Stamp;
+use ds_core::time::stamp::Stamp;
 
 /// How long the lock may take to report locked before it is taken as locked anyway.
 pub const READY_GIVE_UP_MS: u64 = 10_000;

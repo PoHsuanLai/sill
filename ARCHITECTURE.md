@@ -31,12 +31,12 @@ listed except where noted.
 | --- | --- | --- | --- |
 | 0 | `sill-launcher` | Launcher core: `Provider`, `Query` (generation, cancel), `Item`, `Activation`, matching (nucleo), ranking, sections, frecency, chords, preview facts. Pure; a future repo | none; nucleo-matcher, serde |
 | 0 | `sill-testkit` | Dev only: `PrivateBus`, `TempDir`, signal helpers, stand-in programs in `examples/` | none; std only (its dev dependencies, the crates it tests, are outside the table) |
-| 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service | `sill-launcher`, `keycap-protocol`; serde, jiff, thiserror |
+| 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service | `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`); serde, jiff, thiserror |
 | 2 | `sill-settings` | `settings.toml` as data: one struct per domain, `Section`, `ShellFile`, schema, typed values parsed at load. No I/O, no runtime, no dioxus | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core`, `ds-settings` (no features) |
 | 2 | `sill-ipc` | The wire: `Request`/`Response`, one JSON line, 64 KiB cap. Serialises `sill-model` types | `sill-model`, `sill-launcher`; serde, serde_json, thiserror |
-| 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`, `sill-launcher`, `keycap-protocol`; tokio, zbus, rustix, cctk, libpulse, notify, nonstick, ddc, image |
+| 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`); tokio, zbus, rustix, cctk, libpulse, notify, nonstick, ddc, image |
 | 4 | `sill-search` | The launcher's runner (`ResultsService`), `providers/`, excerpts and clip images | `sill-services`, `sill-model`, `sill-launcher`, `ds-settings` (no features: the schema files the settings provider indexes); fend, emojis |
-| 5 | `sill-ui-kit` | What every surface shares: `Services` registry, `SettingsFeed`, `SurfaceRoot`, `Surface` and its `mount`, `links/`, `Machine`, hooks, `look`, `panel`, `shell_style`, `MenuPopup<M>`, `app_icons`, `status`, `notification_card`, `widgets/`, `harness` (feature: fake services, `SurfaceHarness`) | `sill-search`, `sill-services`, `sill-settings`, `sill-model`, `sill-launcher`, `ds`, `ds-shell`, `ds-settings` (dioxus), `ds-blitz`, `ds-harness` (optional: feature `harness`), `shell-host`; dioxus, resvg, image; dev: `ds-lint` |
+| 5 | `sill-ui-kit` | What every surface shares: `Services` registry, `SettingsFeed`, `SurfaceRoot`, `Surface` and its `mount`, `links/`, hooks, `look`, `panel`, `shell_style`, `MenuPopup<M>`, `app_icons`, `status`, `notification_card`, `widgets/`, `harness` (feature: fake services, `SurfaceHarness`) | `sill-search`, `sill-services`, `sill-settings`, `sill-model`, `sill-launcher`, `ds`, `ds-shell`, `ds-settings` (dioxus), `ds-blitz`, `ds-harness` (optional: feature `harness`), `shell-host`; dioxus, resvg, image; dev: `ds-lint` |
 | 6 | `sill-bar` | Bar, its menus, tray, control center and its modules | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `ds-blitz`, `shell-host`; dev: `ds-lint` |
 | 6 | `sill-dock` | Dock, magnify, context menu | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-blitz`, `shell-host`; dev: `ds-lint` |
 | 6 | `sill-launcher-ui` | Launcher panel and catcher, rows, preview pane, actions | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-search`*, `sill-services`*; `ds`, `ds-blitz`, `shell-host`; dev: `ds-lint`, `ds-shell` |
@@ -74,7 +74,7 @@ re-export; the one type a module is named after may sit in its `mod.rs`.
 | `sill-ipc` | `line` (encode, decode, cap), `error`, `request`, `response`, `show`, `status`, `act`, `debug` (one word file per request group) |
 | `sill-services` | `error`, `control`, `stream`, `env/`, `service`, then `file_touch` (a debounced watch on one file), then one dir per service (27, all but `results`) in dependency order of their `Deps`; a service dir never imports another service dir: cross-service data is `sill-model` types in `Deps` |
 | `sill-search` | `preview`, `providers/<kind>/`, `results/` (`registry`, `run`, `sink`, `history`, `frecency_file`, `effect`), `ResultsService` in `results/mod.rs` |
-| `sill-ui-kit` | `look`, `clock`, `links/`, `settings`, `shell_style`, `services`, `hooks/`, `machine`, `panel`, `root`, `surface/` (`mount`, `lock`, `start`, `place`, `naming`), `menu/`, `status/`, `app_icons/`, `notification_card/`, `widgets/`, `harness/` (feature `harness`) |
+| `sill-ui-kit` | `look`, `links/`, `settings`, `shell_style`, `services`, `hooks/`, `panel`, `root`, `surface/` (`mount`, `lock`, `start`, `place`, `naming`), `menu/`, `status/`, `app_icons/`, `notification_card/`, `widgets/`, `harness/` (feature `harness`) |
 | each surface crate | one dir per surface, named after it (`osd/`, `dock/`, `banners/`); `lib.rs` re-exports each surface marker type and nothing else |
 | `sill` | `policy/`, `ipc/`, `cli/`, `daemon/` (`daemon` is the top: it names every crate) |
 
@@ -86,7 +86,7 @@ re-export; the one type a module is named after may sit in its `mod.rs`.
 | `surface.rs` | the marker type named after the surface and its thin `impl Surface` |
 | `layer.rs` | `fn layer(&OutputInfo, &ShellFile, slot) -> LayerConfig` and its constants |
 | `model.rs` | state types (data only) |
-| `step.rs` | the pure transitions; `impl Machine` for a timed one |
+| `step.rs` | the pure transitions; `impl Machine` (quire's, `ds::base::machine`) for a timed one |
 | `keys.rs` | the keymap table, when the surface takes keys |
 | `io.rs` | `use_<surface>`: reads services and settings, follows the link, feeds `use_machine`, carries effects |
 | `view.rs` | components; no decisions beyond reading the model |
@@ -183,7 +183,7 @@ code into `tests.rs`. Exceptions and renames:
 
 | From (`crates/sill-surfaces/`) | To |
 | --- | --- |
-| `src/hooks/*`, `clock.rs` (`FrameClock`), `host_modality.rs`, `src/lib.rs` host config helpers | `sill-ui-kit/src/{hooks,clock,root}` |
+| `src/hooks/*`, `host_modality.rs`, `src/lib.rs` host config helpers | `sill-ui-kit/src/{hooks,root}`; `clock.rs` (`FrameClock`) is `ds::base::time::stamp::FrameClock` |
 | `src/app_icons/`, `surfaces/notification_card/`, `surfaces/user_picture.rs`, `surfaces/naming.rs` | `sill-ui-kit/src/{app_icons,notification_card,surface}`; `user_picture` is `ds-shell`'s |
 | `src/widgets/` (providers, layout, wake) | `sill-ui-kit/src/widgets/<kind>/` |
 | `bar/menu_track/` | deleted; `ds`'s `menu_track` |
@@ -240,7 +240,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 | A service's I/O | `sill_services::<service>::backend` |
 | Every running service's handle, `Member`, `use_service` | `sill_ui_kit::services`, `sill_ui_kit::hooks` |
 | Starting every service in `Deps` order | `sill::daemon::services::start` |
-| Units and ids (`Stamp`, `Cpx`, `Minutes`, `AppId`, `WorkspaceKey`) | `sill_model::{units, ids}` (`Percent`, `Fraction`: `ds-core`) |
+| Units and ids (`Cpx`, `Minutes`, `AppId`, `WorkspaceKey`) | `sill_model::{units, ids}` (`Percent`, `Fraction`, `Stamp`: `ds-core`) |
 | Retry and stale-answer stamps | `sill_model::attempt` |
 | A closed vocabulary shared by a settings key and a service | `sill_model::vocab` or the service dir, implementing `ds_core::Word` |
 | A settings domain, its typed values | `sill_settings::<domain>`, `impl Section` |
@@ -263,7 +263,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 | Layer namespace `sill-<surface>-<output>` | `sill_ui_kit::surface::namespace` |
 | Spawning and closing surfaces per output | `sill::daemon::surfaces` (generic over `Surface`) |
 | Which surfaces exist on which output | `sill::daemon::outputs` |
-| A timed pure state machine and its timer | `sill_ui_kit::machine` (`Machine`, `use_machine`) |
+| A timed pure state machine and its timer; a machine's `Stamp` and the `FrameClock` that makes it | quire: `ds::base::machine` (`Machine`, `Elapsed`), `ds::machine` (`use_machine`, `MachineRef`), `ds::base::time::stamp` (`Stamp`, `FrameClock`); sill has none of its own |
 | Popup menus (bar, tray, dock, launcher actions) | `sill_ui_kit::menu` (`MenuModel`, `MenuPopup<M>`) over `ds`'s `menu_track` |
 | Popup sizing | shell-host `FitContent`; no estimation code |
 | App icons, look, cache | `sill_ui_kit::app_icons` |
@@ -383,21 +383,19 @@ slot is erased to its `Debug` text in the output's row (`OutputSurfaces::spawned
 keeps the layer namespace `debug stats` reports. A slot the settings drop is closed, and a layer
 size that changed is re-applied, by `daemon/spawn.rs`.
 
-### `Machine` (`sill_ui_kit::machine`)
+### `Machine` (quire: `ds::base::machine`, hook `ds::machine`)
 
-```rust
-pub trait Machine: Clone + PartialEq + Default + 'static {
-    type In; type Out; type Params: Clone + PartialEq + 'static;
-    fn step(self, input: Self::In, at: Stamp, params: &Self::Params) -> (Self, Vec<Self::Out>);
-    fn wake(&self) -> Option<Stamp>;                // when to step again with no input
-}
-pub fn use_machine<M: Machine>(params: M::Params, on_out: impl FnMut(M::Out) + 'static) -> MachineRef<M>;
-impl<M: Machine> MachineRef<M> { pub fn send(&self, input: M::In); pub fn state(&self) -> ReadSignal<M>; }
-```
+The trait, `Elapsed`, `use_machine` and `MachineRef` are quire's, with the same signatures
+(`step(self, In, at: Stamp, &Params) -> (Self, Vec<Out>)`, `wake(&self) -> Option<Stamp>`; see
+quire ARCHITECTURE.md section 5), and so are `Stamp` (whole milliseconds from an origin) and the
+`FrameClock` that makes one from the thread's clock, which a harness's virtual clock drives. sill
+keeps neither a trait nor a stamp of its own.
 
-Implementors: dock hover/press/reveal/label/bounce, switcher, osd, banners deck, hot corners,
-screenshot thumb, power menu, polkit stage, notification-center keys, launcher keys. One per
-state that changes over time or by input. A state that only maps values is a free `step`.
+Intended implementors: dock hover/press/reveal/label/bounce, switcher, osd, banners deck, hot
+corners, screenshot thumb, power menu, polkit stage, notification-center keys, launcher keys. One
+per state that changes over time or by input. A state that only maps values is a free `step`.
+Today these surfaces keep a pure `step` taking a `Stamp` and run their own timers in `io.rs`;
+none implements the trait yet, and each moves to `use_machine` when it is next touched.
 
 ### `CcModule` (`sill_bar::control_center::modules`)
 
@@ -522,7 +520,7 @@ Each ends with its tests. Name the concept once and use it in every file name be
    (a newtype over `Reveal<O>` or a small watch channel) and a field of `Links` in
    `links/mod.rs`. A surface never imports another surface.
 4. Settings keys: recipe below. Services it reads: `use_service` in `io.rs` only.
-5. Timed state: `impl Machine` in `step.rs`, run by `use_machine` in `io.rs`.
+5. Timed state: `impl Machine` (`ds::base::machine`) in `step.rs`, run by `ds::machine::use_machine` in `io.rs`.
 6. `sill/src/daemon/surfaces.rs`: in `spawn_missing`, at the surface's place in the drawing order
    (later spawns draw over earlier ones on one layer), add
    `spawn_surface::<Name>(ctx, outputs, spawn, &links.name)` (`&()` when `Link = ()`) and import
@@ -671,7 +669,7 @@ installs them.
 | Service backend | `sill-services/tests/<x>_bus.rs`: `Env::isolated(tmp)` with `Buses` set to a `PrivateBus` address; peers are `sill-testkit` stand-ins. Runs in the gate. Only a test that needs a compositor is `#[ignore]`d and run from a dev script |
 | Providers, runner | `VecSink` and a fake `Sources::Providers`; the runner's latency test |
 | Surface | `SurfaceHarness<S: Surface>` (`sill-ui-kit`, feature `harness`) over quire's `ds_harness::Harness`: `SurfaceHarness::<S>::setup(link, slot)` then `.settings(ShellFile)`, `.viewport(..)`, `.appearance(..)`, `.start()`. It mounts `surface::mount::<S>` on fake `Services` (`fake::services()`; state set through `run.feeds`, commands read), a `PinnedAppearance`, `Clock::Virtual`, the surface's link (`run.link`) and the settings; the viewport is the surface's layer size unless overridden. `run.harness` is the `Harness` (`advance`, `html`, `pointer_move`, `count`). One live harness per thread. Real-input checks are dev scripts on shell-host's headless KWin |
-| Machines | table tests of `step`; `use_machine` is tested once in `sill-ui-kit` |
+| Machines | table tests of `step`; `use_machine` is tested once, in quire's `ds-conformance/tests/machine.rs` |
 | Markup lint | `crates/sill/tests/lint.rs`: `const SURFACES: &[SurfaceCase]`, one loop over all 17, each row names its surface |
 | IPC and CLI | `crates/sill/tests/ipc.rs` (fake dispatcher, cap, timeout), `cli/request.rs` table |
 | Daemon latency | `crates/sill/tests/latency.rs` |

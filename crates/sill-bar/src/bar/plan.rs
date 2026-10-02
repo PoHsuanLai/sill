@@ -125,9 +125,9 @@ mod tests {
     use crate::bar::menus::BarMenu;
     use crate::bar::pick::BarPick;
     use crate::bar::track::{Event, Target, Track, step, timing};
+    use ds::base::time::stamp::Stamp;
     use ds::prelude::*;
     use ds::stack::menu_track::types::MenuPhase;
-    use sill_model::units::Stamp;
 
     /// A bar input: a pointer event on a title or the bar, or what the popup reported.
     enum Input {

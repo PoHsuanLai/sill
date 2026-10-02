@@ -1,5 +1,5 @@
 use super::{Abilities, Media, MediaEvent, MediaPlayer, Playback, PlayerId, Timeline, Track, step};
-use crate::units::Stamp;
+use ds_core::time::stamp::Stamp;
 
 fn player(name: &str, playback: Playback, changed: u64) -> MediaPlayer {
     MediaPlayer {

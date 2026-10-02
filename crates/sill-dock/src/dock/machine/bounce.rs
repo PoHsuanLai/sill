@@ -1,7 +1,8 @@
 //! Bounces (design/10 §10.3.5, §10.5.3): launch, informational and critical, ballistic
 //! `lift(u) = A 4u(1 - u)`, and a stop that always finishes the current period.
 
-use sill_model::units::{Cpx, Stamp};
+use ds::base::time::stamp::Stamp;
+use sill_model::units::Cpx;
 use sill_settings::Bounce as BounceSetting;
 
 use super::params::DockParams;
@@ -149,7 +150,8 @@ mod tests {
     use crate::dock::machine::params::tests::params;
     use crate::dock::machine::types::{AppChange, AttentionKind, DockEvent, DockState, TileId};
     use crate::dock::machine::{DockParams, step};
-    use sill_model::units::{Cpx, Stamp};
+    use ds::base::time::stamp::Stamp;
+    use sill_model::units::Cpx;
     use sill_settings::Bounce as BounceSetting;
 
     const T: TileId = TileId(2);

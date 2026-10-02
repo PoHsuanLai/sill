@@ -37,26 +37,6 @@ impl Cpx {
     }
 }
 
-/// A monotonic instant in whole milliseconds since an arbitrary origin (the daemon's start).
-/// Machines take it as an argument; only the component converts the frame clock into one.
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Serialize, Deserialize,
-)]
-#[serde(transparent)]
-pub struct Stamp(pub u64);
-
-impl Stamp {
-    /// Milliseconds from `earlier` to `self`, zero if `earlier` is later.
-    pub fn since(self, earlier: Stamp) -> u64 {
-        self.0.saturating_sub(earlier.0)
-    }
-
-    /// `self` plus `ms` milliseconds.
-    pub fn after(self, ms: u64) -> Stamp {
-        Stamp(self.0.saturating_add(ms))
-    }
-}
-
 /// Whole seconds (a battery's time to empty).
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Serialize, Deserialize,

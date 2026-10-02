@@ -1,7 +1,7 @@
 //! What the locker service hears and what it can be told.
 
 use super::{Cause, LockerMode, Runner, Triggers};
-use crate::units::Stamp;
+use ds_core::time::stamp::Stamp;
 
 /// One thing the live side learnt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

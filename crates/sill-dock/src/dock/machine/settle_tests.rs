@@ -6,7 +6,8 @@
 use super::params::tests::params;
 use super::{AttentionKind, step};
 use super::{Button, DockEffect, DockEvent, DockState, DropZone, Hit, Point, TileApp, TileId};
-use sill_model::units::{Cpx, Stamp};
+use ds::base::time::stamp::Stamp;
+use sill_model::units::Cpx;
 
 /// The tick rates: 1 ms, and 16.7 ms as alternating 17 and 16 ms frames.
 const RATES: &[(&str, &[u64])] = &[("1 ms", &[1]), ("16.7 ms", &[17, 17, 16])];

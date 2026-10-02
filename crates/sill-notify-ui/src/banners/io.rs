@@ -13,6 +13,7 @@ use std::time::Duration;
 use dioxus::core::{Runtime, ScopeId, Task, current_scope_id};
 use dioxus::prelude::*;
 use ds::base::time::FRAME_SLACK;
+use ds::base::time::stamp::Stamp;
 use ds::base::vocab::InputModality;
 use ds::focus::select::Select;
 use ds::focus::selector::{FocusError, focus_by_selector};
@@ -23,7 +24,6 @@ use sill_model::notifications::{
     ActionKey, Activation, ActivationToken, LiveBanner, Notification, NotificationId,
     NotificationsCommand,
 };
-use sill_model::units::Stamp;
 use sill_services::Control;
 
 use super::commands::action_command;
@@ -31,7 +31,7 @@ use super::deck::{Deck, DeckIn, DeckOut, EntryKey, advance};
 use super::deck_keys::KeysIn;
 use super::stack::Card;
 use super::step::{BannerIn, BannerParams};
-use sill_ui_kit::clock::FrameClock;
+use ds::base::time::stamp::FrameClock;
 use sill_ui_kit::links::{BannerLink, Transient};
 use sill_ui_kit::notification_card::{CardPart, CardPress, part_id};
 

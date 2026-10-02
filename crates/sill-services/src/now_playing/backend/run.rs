@@ -6,11 +6,12 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+use ds_core::time::stamp::Stamp;
 use sill_model::now_playing::{
     Abilities, Art, Media, MediaCommand, MediaEvent, MediaPlayer, MediaVerb, Micros, Playback,
     PlayerId, Timeline, Track, step,
 };
-use sill_model::units::{Availability, Stamp};
+use sill_model::units::Availability;
 use tokio::sync::{mpsc, watch};
 use zbus::fdo::{DBusProxy, NameOwnerChanged};
 use zbus::message::{Message, Type as MessageType};

@@ -12,8 +12,8 @@
 //! an opening that reaches the delay without reading the chord held gets `ModifierReleased`
 //! instead of its `Tick`.
 
+use ds::base::time::stamp::Stamp;
 use sill_launcher::AppId;
-use sill_model::units::Stamp;
 use sill_settings::SwitcherSettings;
 
 use sill_ui_kit::links::Dir;
@@ -188,8 +188,8 @@ fn select(sel: usize) -> (Switcher, Vec<SwOut>) {
 #[cfg(test)]
 mod tests {
     use super::{SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
+    use ds::base::time::stamp::Stamp;
     use sill_launcher::AppId;
-    use sill_model::units::Stamp;
     use sill_ui_kit::links::Dir;
 
     /// One scripted input sequence: `(ms, input)` pairs.

@@ -12,6 +12,7 @@
 
 use std::time::{Duration, Instant};
 
+use ds_core::time::stamp::Stamp;
 use logind_zbus::manager::PrepareForSleepStream;
 use sill_model::auth::AuthCommand;
 use sill_model::idle::{
@@ -20,7 +21,6 @@ use sill_model::idle::{
     ticket,
 };
 use sill_model::locker::{Lock, LockPhase, LockerCommand};
-use sill_model::units::Stamp;
 use tokio::sync::{mpsc, watch};
 use tokio::time::MissedTickBehavior;
 use zbus::fdo::NameOwnerChangedStream;

@@ -14,7 +14,7 @@ use sill_settings::OsdSettings;
 
 use super::layer::{anchor, margin};
 use super::step::{OsdHold, OsdInput, OsdTimes, step};
-use sill_ui_kit::clock::FrameClock;
+use ds::base::time::stamp::FrameClock;
 use sill_ui_kit::links::{OsdChange, OsdLatest, OsdLink};
 
 /// The machine's times from `osd`'s hold.

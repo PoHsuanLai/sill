@@ -5480,6 +5480,7 @@ dependencies = [
 name = "sill-model"
 version = "0.1.0"
 dependencies = [
+ "ds-core",
  "jiff",
  "keycap-protocol",
  "serde",
@@ -5559,6 +5560,7 @@ dependencies = [
  "ddc",
  "ddc-i2c",
  "dirs 6.0.0",
+ "ds-core",
  "freedesktop-desktop-entry",
  "freedesktop-icons",
  "image",

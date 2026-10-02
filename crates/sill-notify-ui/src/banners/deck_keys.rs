@@ -5,7 +5,7 @@
 //! any other way (a press, a swipe, the service dropping it) gives it back too, and no exit
 //! leaves it taken.
 
-use sill_model::units::Stamp;
+use ds::base::time::stamp::Stamp;
 
 use super::deck::{Deck, DeckOut, Entry, EntryKey, KeyFocus, Speak, feed};
 use super::step::{BannerIn, BannerParams};

@@ -12,10 +12,10 @@ use std::fmt::Debug;
 use std::io::BufRead;
 use std::time::Instant;
 
+use ds::base::time::stamp::FrameClock;
 use shell_host::{Host, HostCtx, HostEvent, HostRoot, OutputId, OutputInfo};
 use sill_dock::Dock;
 use sill_settings::ShellFile;
-use sill_ui_kit::clock::FrameClock;
 use sill_ui_kit::harness::fake;
 use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::surface::{MountProps, Surface, mount};

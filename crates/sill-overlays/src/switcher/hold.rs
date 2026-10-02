@@ -65,8 +65,8 @@ pub fn chord_input(state: Switcher, hold: Option<Chord>, dir: Dir) -> SwIn {
 
 #[cfg(test)]
 mod tests {
+    use ds::base::time::stamp::Stamp;
     use shell_host::{Modifier, Modifiers};
-    use sill_model::units::Stamp;
 
     use super::{Hold, Watch, chord_input, chord_of, tick_input};
     use crate::switcher::keys::Chord;

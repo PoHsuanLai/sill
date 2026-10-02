@@ -1,7 +1,8 @@
 //! Auto-hide (design/10 §10.3.11, §10.4 "Reveal", §10.5.5). `Fixed` is auto-hide off.
 
+use ds::base::time::stamp::Stamp;
 use shell_host::{BlurSpec, ElementId, ExclusiveZone, RegionSpec};
-use sill_model::units::{Cpx, Permille, Stamp};
+use sill_model::units::{Cpx, Permille};
 
 use super::params::DockParams;
 use super::params::eased;
@@ -179,7 +180,8 @@ mod tests {
     use crate::dock::machine::params::tests::params;
     use crate::dock::machine::types::{DockEvent, DockState, Hit, Point};
     use crate::dock::machine::{DropZone, step};
-    use sill_model::units::{Cpx, Stamp};
+    use ds::base::time::stamp::Stamp;
+    use sill_model::units::Cpx;
 
     /// One scripted input sequence: `(ms, input)` pairs.
     type Script = Vec<(u64, DockEvent)>;

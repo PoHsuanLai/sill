@@ -1,7 +1,8 @@
 //! Magnification progress (design/10 §10.3.3 table, §10.4 hover transitions, §10.5.4).
 //! States hold the *linear* progress; [`displayed`] eases it for drawing.
 
-use sill_model::units::{Cpx, Permille, Stamp};
+use ds::base::time::stamp::Stamp;
+use sill_model::units::{Cpx, Permille};
 use sill_settings::Magnification;
 
 use super::params::DockParams;

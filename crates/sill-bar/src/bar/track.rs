@@ -4,11 +4,11 @@
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
+use ds::base::time::stamp::Stamp;
 use ds::prelude::*;
 use ds::stack::menu_track::types::{
     MenuTarget, MenuTiming, MenuTrack, MenuTrackEffect, MenuTrackEvent,
 };
-use sill_model::units::Stamp;
 use sill_settings::MenusSettings;
 
 /// A bar menu: one per title and status item.

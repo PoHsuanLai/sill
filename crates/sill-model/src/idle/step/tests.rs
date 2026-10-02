@@ -5,7 +5,7 @@ use crate::idle::{
     Timeout, WakeDelay,
 };
 use crate::locker::LockCause;
-use crate::units::Stamp;
+use ds_core::time::stamp::Stamp;
 
 fn own() -> IdlePolicy {
     let after = |s| Timeout::After(IdleSecs(s));

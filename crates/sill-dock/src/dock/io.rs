@@ -8,11 +8,11 @@
 
 use dioxus::prelude::*;
 use ds::base::time::clock::sleep;
+use ds::base::time::stamp::Stamp;
 use shell_host::{FrameDrive, HostRoot, SurfaceHandle};
 use sill_launcher::{AppId, DesktopAction};
 use sill_model::badges::Badges;
 use sill_model::launch::{LaunchCommand, LaunchRequest};
-use sill_model::units::Stamp;
 use sill_settings::DockMenuOrder;
 use sill_ui_kit::services::Services;
 use tokio::sync::mpsc;
@@ -27,7 +27,7 @@ use crate::dock::menu_geometry::{menu_config, menu_placement};
 use crate::dock::menu_popup::{DockMenuPopup, MenuLink, PopupReport};
 use crate::dock::pick::{DockCommand, pick_commands};
 use crate::dock::pointer::{DockInput, resolve};
-use sill_ui_kit::clock::FrameClock;
+use ds::base::time::stamp::FrameClock;
 use sill_ui_kit::hooks::use_services;
 use sill_ui_kit::menu::PopupLook;
 use sill_ui_kit::settings::SettingsFeed;

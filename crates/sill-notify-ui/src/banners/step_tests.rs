@@ -1,7 +1,7 @@
 //! Table tests for `step.rs`.
 
 use super::{Banner, BannerIn, BannerOut, BannerParams, Deadline, Leave, Persistence, step};
-use sill_model::units::Stamp;
+use ds::base::time::stamp::Stamp;
 use sill_settings::NotificationsSettings;
 
 fn p() -> BannerParams {

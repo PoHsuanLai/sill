@@ -10,10 +10,11 @@ use cc_support::details::{center, figure, ms, press};
 use cc_support::{fake, live};
 use ds_harness::{Driver, Query};
 
+use ds::base::time::stamp::Stamp;
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
 use sill_model::kbd_backlight::{KbdBacklight, KbdCommand, KbdLevel};
 use sill_model::now_playing::{MediaCommand, MediaVerb, Micros, Playback, Timeline};
-use sill_model::units::{Percent, Presence, Stamp};
+use sill_model::units::{Percent, Presence};
 
 // ---- Now Playing ----------------------------------------------------------------------------
 

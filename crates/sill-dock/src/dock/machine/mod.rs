@@ -28,7 +28,7 @@ pub use types::{
     Modifier, Point, Pointer, Spring, TileApp, TileId,
 };
 
-use sill_model::units::Stamp;
+use ds::base::time::stamp::Stamp;
 
 /// `dock` after `event` at `now`, and what the component must do about it.
 pub fn step(

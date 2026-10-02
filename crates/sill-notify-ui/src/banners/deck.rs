@@ -11,8 +11,8 @@
 //! longer listed; it stays in the deck until the stack says its exit has played
 //! (`BannerIn::Left`, from `on_hidden`).
 
+use ds::base::time::stamp::Stamp;
 use sill_model::notifications::NotificationsCommand;
-use sill_model::units::Stamp;
 
 use super::commands::leave_commands;
 use super::deck_keys::{KeysIn, keys, release_leavers};

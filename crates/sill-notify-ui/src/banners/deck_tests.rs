@@ -4,8 +4,8 @@ use super::{Deck, DeckIn, DeckOut, EntryKey, KeyFocus, Showing, advance};
 use crate::banners::deck_keys::{KeysIn, Neighbour};
 use crate::banners::stack::Card;
 use crate::banners::step::{Banner, BannerIn, BannerParams, Deadline, Leave};
+use ds::base::time::stamp::Stamp;
 use sill_model::notifications::{AppKey, BannerLife, NotificationId, NotificationsCommand};
-use sill_model::units::Stamp;
 use sill_settings::NotificationsSettings;
 
 fn p() -> BannerParams {

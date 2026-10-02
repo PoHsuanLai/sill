@@ -22,7 +22,7 @@ use super::keys::{Chord, chord_after_keyup, sw_key};
 use super::session::Session;
 use super::step::{SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
 use super::tiles::index_of;
-use sill_ui_kit::clock::FrameClock;
+use ds::base::time::stamp::FrameClock;
 use sill_ui_kit::links::Dir;
 use sill_ui_kit::links::{AskSerial, SwitcherAsk, SwitcherLink};
 

@@ -14,10 +14,10 @@ use std::collections::HashSet;
 use std::fmt::Debug;
 use std::time::Instant;
 
+use ds::base::time::stamp::FrameClock;
 use shell_host::{Host, HostCtx, HostEvent, HostRoot, OutputId, OutputInfo};
 use sill_bar::Bar;
 use sill_settings::ShellFile;
-use sill_ui_kit::clock::FrameClock;
 use sill_ui_kit::links::CenterLink;
 use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::surface::{MountProps, Surface, mount};

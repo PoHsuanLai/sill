@@ -13,13 +13,11 @@
 //! `.ds-*` class, or writes raw `button`/`input`/menu markup (coherence rules 1-2).
 
 pub mod app_icons;
-pub mod clock;
 #[cfg(feature = "harness")]
 pub mod harness;
 pub mod hooks;
 pub mod links;
 pub mod look;
-pub mod machine;
 pub mod menu;
 pub mod notification_card;
 pub mod panel;

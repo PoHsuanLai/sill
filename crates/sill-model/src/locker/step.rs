@@ -4,7 +4,7 @@ use super::{
     Cause, Hold, Locker, LockerEffect, LockerEvent, Phase, READY_GIVE_UP_MS, Runner, SLEEP_HOLD_MS,
     Triggers,
 };
-use crate::units::Stamp;
+use ds_core::time::stamp::Stamp;
 
 /// `locker` after `event`, and the effects to perform.
 pub fn step(locker: Locker, event: LockerEvent) -> (Locker, Vec<LockerEffect>) {

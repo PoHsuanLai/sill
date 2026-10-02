@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{Abilities, MediaPlayer, Playback, PlayerId, Timeline, Track};
-use crate::units::Stamp;
+use ds_core::time::stamp::Stamp;
 
 /// One change on the bus.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
