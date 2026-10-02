@@ -169,7 +169,7 @@ fn defaults_in_the_schema_are_the_structs_defaults() {
         ("scroll.natural", toml::Value::String("natural".to_owned())),
         ("scroll.momentum_a", toml::Value::Float(30.0)),
         ("notifications.banner_hold_ms", toml::Value::Integer(5200)),
-        ("spaces.default_grain", toml::Value::Integer(40)),
+        ("spaces.default_grain", toml::Value::Integer(0)),
         ("menus.first_mouse_window_ms", toml::Value::Integer(100)),
         ("display.scale", toml::Value::String("auto".to_owned())),
         ("display.density_target_ppi", toml::Value::Integer(109)),

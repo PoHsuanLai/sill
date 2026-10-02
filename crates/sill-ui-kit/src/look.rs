@@ -95,8 +95,8 @@ mod tests {
             default_card_accent: DefaultCardAccent::SpaceHue,
             ..SpacesSettings::default()
         };
-        // (index, preset, grain): presets 1 and 2 keep 35 and 55, the rest take the key.
-        const CASES: &[(usize, usize, u8)] = &[(0, 0, 35), (1, 1, 55), (2, 2, 20), (9, 1, 55)];
+        // (index, preset, grain): every preset takes the key.
+        const CASES: &[(usize, usize, u8)] = &[(0, 0, 20), (1, 1, 20), (2, 2, 20), (9, 1, 20)];
         for &(index, preset, grain) in CASES {
             let look = use_space_look(index, &spaces);
             assert_eq!(look.dots, PRESETS[preset].dots.to_vec(), "index {index}");

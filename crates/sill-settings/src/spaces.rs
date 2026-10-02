@@ -37,7 +37,7 @@ pub enum WallpaperDrawer {
 pub struct SpacesSettings {
     #[settings(
         label = "Default grain",
-        help = "The grain of a Space that has no look of its own (presets 1 and 2 keep theirs).",
+        help = "The grain of a Space that has no look of its own (none by default; every preset takes it).",
         section = "Defaults",
         range = "0..=100",
         advanced
@@ -62,7 +62,7 @@ pub struct SpacesSettings {
 impl Default for SpacesSettings {
     fn default() -> Self {
         SpacesSettings {
-            default_grain: Count(40),
+            default_grain: Count(0),
             default_card_accent: DefaultCardAccent::Chosen,
             wallpaper_drawer: WallpaperDrawer::Shell,
         }
