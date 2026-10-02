@@ -68,26 +68,33 @@ pub(crate) async fn seed_battery(
     true
 }
 
-/// Follows the adapter's `Powered` property for the rest of the session (BlueZ keeps the
-/// adapter object as long as the daemon runs, so this watcher never needs stopping).
+/// Follows the adapter's `Powered` property until `stop` fires or drops (BlueZ going away).
 pub(crate) fn watch_adapter(
     connection: Connection,
     path: OwnedObjectPath,
     internal_tx: mpsc::UnboundedSender<BluetoothEvent>,
-) {
+) -> oneshot::Sender<()> {
+    let (stop_tx, mut stop_rx) = oneshot::channel();
     tokio::spawn(async move {
         let Ok(adapter) = Adapter1Proxy::new(&connection, path).await else {
             return;
         };
         let mut powered = adapter.receive_powered_changed().await;
-        while let Some(change) = next(&mut powered).await {
-            if let Ok(value) = change.get().await {
-                let _ = internal_tx.send(BluetoothEvent::Adapter {
-                    power: power_of(value),
-                });
+        loop {
+            tokio::select! {
+                _ = &mut stop_rx => return,
+                Some(change) = next(&mut powered) => {
+                    if let Ok(value) = change.get().await {
+                        let _ = internal_tx.send(BluetoothEvent::Adapter {
+                            power: power_of(value),
+                        });
+                    }
+                }
+                else => return,
             }
         }
     });
+    stop_tx
 }
 
 /// Follows a device's `Alias`, `Icon`, `Paired` (a whole-device re-read and re-publish) and

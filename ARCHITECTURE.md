@@ -234,6 +234,8 @@ Look a concept up here before writing it. If it has a home, extend it.
 | The person's per-app keyboard profiles (`keyboard.overrides`) | `sill_settings::keyboard` (`KeyboardSettings`; `overrides` parses the rows once, per row, with a line for each one dropped), told to keycap by `sill::policy::keyboard` as `KeycapCommand::Overrides`; `KeycapAsk` is the part of the command on the IPC wire |
 | Notices about keycap (failed, conflict, paused) | `sill_model::keycap::{attention, notice_for, notice_text}`; posted by `sill_services::keycap::backend::notice` (no action: `sill keycap retry` and `resume` are the way out) |
 | Watching one file for edits | `sill_services::file_touch` |
+| A bus daemon that starts late or restarts (UPower, power-profiles, NetworkManager, BlueZ) | `sill_services::owner` (`appeared`, `changed` on `NameOwnerChanged`); a service runs its session only while the name is owned and resets its state when it is not. A `notify` watch signals only on writes, never on the open/read/close a scan itself makes (`apps::backend::run::changes`) |
+| Idle cost (CPU, threads, RSS of the daemon doing nothing) | `dev/accept/idle-cpu.sh` (nested, 60 s sample; fails above 1 % CPU or 120 threads); the runtime's blocking pool is capped in `daemon::run` |
 | Service trait, runner, `Handle<S>`, `Control<C>` | `sill_services::{service, control}` |
 | A service's State, Command, Event, Effect | `sill_model::<service>::{model, command}` |
 | A service's pure transition | `sill_model::<service>::step::step` |

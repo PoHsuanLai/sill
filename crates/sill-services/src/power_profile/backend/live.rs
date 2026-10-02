@@ -8,58 +8,70 @@ use sill_model::power_profile::{
 };
 use tokio::sync::{mpsc, watch};
 use zbus::Connection;
-use zbus::fdo::DBusProxy;
 use zbus::zvariant::OwnedValue;
 
 use super::ppd::UPowerPowerProfilesProxy;
 use crate::env::Bus;
 use crate::error::ServiceError;
-use crate::stream::{next, next_opt};
+use crate::owner::{self, Ended};
+use crate::stream::next;
 
-/// Runs until `commands` closes. Without a bus or the daemon, `tx` stays at its default.
+const SERVICE: &str = "org.freedesktop.UPower.PowerProfiles";
+
+/// Runs until `commands` closes. Without the daemon `tx` stays at its default; the daemon
+/// starting late, leaving or restarting is followed through `NameOwnerChanged` ([`crate::owner`]).
 pub(crate) async fn run(
     bus: Bus,
     tx: watch::Sender<PowerProfiles>,
     mut commands: mpsc::UnboundedReceiver<ProfileCommand>,
 ) -> Result<(), ServiceError> {
     let connection = bus.connected().await?;
-    let Some(ppd) = connect(&connection).await else {
-        return Ok(());
+    loop {
+        owner::appeared(&connection, SERVICE).await;
+        tokio::select! {
+            ended = session(&connection, &tx, &mut commands) => match ended {
+                Ended::Commands => return Ok(()),
+                Ended::Unreadable => owner::changed(&connection, SERVICE).await,
+            },
+            () = owner::changed(&connection, SERVICE) => {}
+        }
+        apply(&tx, ProfileEvent::Gone);
+    }
+}
+
+/// One daemon lifetime: seed the three properties, then follow every change and carry out
+/// [`ProfileCommand`]s.
+async fn session(
+    connection: &Connection,
+    tx: &watch::Sender<PowerProfiles>,
+    commands: &mut mpsc::UnboundedReceiver<ProfileCommand>,
+) -> Ended {
+    let Some(ppd) = connect(connection).await else {
+        return Ended::Unreadable;
     };
-    seed(&tx, &ppd).await;
+    seed(tx, &ppd).await;
 
     let mut active = ppd.receive_active_profile_changed().await;
     let mut profiles = ppd.receive_profiles_changed().await;
     let mut degraded = ppd.receive_performance_degraded_changed().await;
-    let mut departures = watch_departure(&connection).await;
 
     loop {
         tokio::select! {
-            Some(signal) = next_opt(&mut departures) => {
-                if let Ok(args) = signal.args()
-                    && args.new_owner().is_none()
-                {
-                    // The daemon left the bus; a later `Refresh` (or the next property change,
-                    // once whoever now owns the name answers) re-seeds through the same proxy —
-                    // destinations route by well-known name, so it needs no reconnect.
-                    apply(&tx, ProfileEvent::Gone);
-                }
-            }
             Some(change) = next(&mut active) => {
                 if let Ok(value) = change.get().await
                     && let Some(profile) = Profile::from_daemon(&value)
                 {
-                    apply(&tx, ProfileEvent::Active(profile));
+                    apply(tx, ProfileEvent::Active(profile));
                 }
             }
             Some(change) = next(&mut profiles) => {
                 if let Ok(value) = change.get().await {
-                    apply(&tx, ProfileEvent::Offered(value.iter().filter_map(profile_of).collect()));
+                    apply(tx, ProfileEvent::Offered(value.iter().filter_map(profile_of).collect()));
                 }
             }
             Some(change) = next(&mut degraded) => {
                 if let Ok(value) = change.get().await {
-                    apply(&tx, ProfileEvent::Degraded(degraded_of(value)));
+                    apply(tx, ProfileEvent::Degraded(degraded_of(value)));
                 }
             }
             command = commands.recv() => match command {
@@ -68,12 +80,11 @@ pub(crate) async fn run(
                         let _ = ppd.set_active_profile(profile.daemon_word()).await;
                     }
                 }
-                Some(ProfileCommand::Refresh) => seed(&tx, &ppd).await,
-                None => break,
+                Some(ProfileCommand::Refresh) => seed(tx, &ppd).await,
+                None => return Ended::Commands,
             }
         }
     }
-    Ok(())
 }
 
 /// The daemon's proxy, confirmed with a real property read (building a proxy never itself
@@ -81,18 +92,6 @@ pub(crate) async fn run(
 async fn connect(connection: &Connection) -> Option<UPowerPowerProfilesProxy<'_>> {
     let proxy = UPowerPowerProfilesProxy::new(connection).await.ok()?;
     proxy.active_profile().await.ok().map(|_| proxy)
-}
-
-/// A stream of `NameOwnerChanged` for the daemon's own well-known name only, so its `new_owner()`
-/// being empty means the daemon itself left (not some unrelated name on the bus). `None` if the
-/// `DBusProxy` or the match itself could not be built, which is no worse than not detecting the
-/// departure at all ([`next_opt`] simply never fires for it).
-async fn watch_departure(connection: &Connection) -> Option<zbus::fdo::NameOwnerChangedStream> {
-    let name = "org.freedesktop.UPower.PowerProfiles";
-    let dbus = DBusProxy::new(connection).await.ok()?;
-    dbus.receive_name_owner_changed_with_args(&[(0, name)])
-        .await
-        .ok()
 }
 
 /// Reads every property once and publishes the resulting `PowerProfiles`.

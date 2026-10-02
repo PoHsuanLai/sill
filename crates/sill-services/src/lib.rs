@@ -35,6 +35,7 @@ pub mod locker;
 pub mod network;
 pub mod notifications;
 pub mod now_playing;
+mod owner;
 pub mod pins;
 pub mod polkit_agent;
 pub mod power_profile;

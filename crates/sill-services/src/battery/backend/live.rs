@@ -5,23 +5,52 @@ use sill_model::battery::{Battery, BatteryCommand, BatteryEvent, Charge, step};
 use sill_model::units::{Percent, Presence, Seconds};
 use tokio::sync::{mpsc, watch};
 use upower_dbus::{BatteryState, DeviceProxy, UPowerProxy};
+use zbus::Connection;
 
 use crate::env::Bus;
 use crate::error::ServiceError;
+use crate::owner::{self, Ended};
 use crate::stream::next;
 
-/// Connects to UPower's display device and runs until `commands` closes (the `Control` was
-/// dropped). If the bus or UPower is unreachable, `tx` is left at its seeded default (absent).
+const SERVICE: &str = "org.freedesktop.UPower";
+
+/// Follows UPower's display device and runs until `commands` closes (the `Control` was
+/// dropped). Without UPower, `tx` is left at its seeded default (absent); UPower starting late
+/// or restarting is followed through `NameOwnerChanged` ([`crate::owner`]).
 pub(crate) async fn run(
     bus: Bus,
     tx: watch::Sender<Battery>,
     mut commands: mpsc::UnboundedReceiver<BatteryCommand>,
 ) -> Result<(), ServiceError> {
     let connection = bus.connected().await?;
-    let upower = UPowerProxy::new(&connection).await?;
-    let device = upower.get_display_device().await?;
+    loop {
+        owner::appeared(&connection, SERVICE).await;
+        tokio::select! {
+            ended = session(&connection, &tx, &mut commands) => match ended {
+                Ended::Commands => return Ok(()),
+                Ended::Unreadable => owner::changed(&connection, SERVICE).await,
+            },
+            () = owner::changed(&connection, SERVICE) => {}
+        }
+        apply(&tx, BatteryEvent::Presence(Presence::Absent));
+    }
+}
 
-    seed(&tx, &device).await;
+/// One UPower lifetime: seed, then follow every property change. [`Ended::Commands`] when `commands`
+/// closed, [`Ended::Unreadable`] when UPower did not answer.
+async fn session(
+    connection: &Connection,
+    tx: &watch::Sender<Battery>,
+    commands: &mut mpsc::UnboundedReceiver<BatteryCommand>,
+) -> Ended {
+    let Ok(upower) = UPowerProxy::new(connection).await else {
+        return Ended::Unreadable;
+    };
+    let Ok(device) = upower.get_display_device().await else {
+        return Ended::Unreadable;
+    };
+
+    seed(tx, &device).await;
 
     let mut presence = device.receive_is_present_changed().await;
     let mut level = device.receive_percentage_changed().await;
@@ -33,34 +62,34 @@ pub(crate) async fn run(
         tokio::select! {
             Some(change) = next(&mut presence) => {
                 if let Ok(present) = change.get().await {
-                    apply(&tx, BatteryEvent::Presence(presence_of(present)));
+                    apply(tx, BatteryEvent::Presence(presence_of(present)));
                 }
             }
             Some(change) = next(&mut level) => {
                 if let Ok(value) = change.get().await {
-                    apply(&tx, BatteryEvent::Level(percent_of(value)));
+                    apply(tx, BatteryEvent::Level(percent_of(value)));
                 }
             }
             Some(change) = next(&mut charge) => {
                 if let Ok(value) = change.get().await {
-                    apply(&tx, BatteryEvent::Charge(charge_of(value)));
+                    apply(tx, BatteryEvent::Charge(charge_of(value)));
                 }
             }
             Some(change) = next(&mut to_empty) => {
                 if let Ok(value) = change.get().await {
-                    apply(&tx, BatteryEvent::TimeToEmpty(seconds_of(value)));
+                    apply(tx, BatteryEvent::TimeToEmpty(seconds_of(value)));
                 }
             }
             Some(change) = next(&mut to_full) => {
                 if let Ok(value) = change.get().await {
-                    apply(&tx, BatteryEvent::TimeToFull(seconds_of(value)));
+                    apply(tx, BatteryEvent::TimeToFull(seconds_of(value)));
                 }
             }
             command = commands.recv() => match command {
                 Some(BatteryCommand::Refresh) => {
                     let _ = device.refresh().await;
                 }
-                None => return Ok(()),
+                None => return Ended::Commands,
             }
         }
     }

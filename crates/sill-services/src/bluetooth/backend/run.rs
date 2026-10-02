@@ -16,7 +16,7 @@ use sill_model::bluetooth::{
 };
 use tokio::sync::{mpsc, oneshot, watch};
 use zbus::Connection;
-use zbus::fdo::ObjectManagerProxy;
+use zbus::fdo::{DBusProxy, InterfacesAddedStream, InterfacesRemovedStream, ObjectManagerProxy};
 use zbus::zvariant::OwnedObjectPath;
 
 use super::devices::{
@@ -25,7 +25,7 @@ use super::devices::{
 use super::pairing::{run_connect, run_disconnect, run_power};
 use crate::env::Bus;
 use crate::error::ServiceError;
-use crate::stream::next;
+use crate::stream::{next, next_opt};
 
 const SERVICE: &str = "org.bluez";
 
@@ -40,6 +40,7 @@ const BATTERY_IFACE: &str = "org.bluez.Battery1";
 #[derive(Default)]
 pub(crate) struct Tracked {
     pub(crate) adapter_path: Option<OwnedObjectPath>,
+    pub(crate) adapter_stop: Option<oneshot::Sender<()>>,
     pub(crate) device_path: HashMap<BtAddress, OwnedObjectPath>,
     pub(crate) device_stop: HashMap<OwnedObjectPath, oneshot::Sender<()>>,
     pub(crate) battery_stop: HashMap<OwnedObjectPath, oneshot::Sender<()>>,
@@ -64,38 +65,43 @@ impl Tracked {
 }
 
 /// Runs until `commands` closes. Without a bus, BlueZ or an adapter, `tx` stays at its default.
+/// BlueZ may start after sill or restart under it: a `NameOwnerChanged` for `org.bluez` rebuilds
+/// the object manager's streams and re-seeds when the name gains an owner, and publishes
+/// `Gone` (stopping every watcher) when it loses it.
 pub(crate) async fn run(
     bus: Bus,
     tx: watch::Sender<Bluetooth>,
     mut commands: mpsc::UnboundedReceiver<BluetoothCommand>,
 ) -> Result<(), ServiceError> {
     let connection = bus.connected().await?;
-    let builder = ObjectManagerProxy::builder(&connection).destination(SERVICE)?;
-    let builder = builder.path("/")?;
-    let object_manager = builder.build().await?;
-    let mut added = object_manager.receive_interfaces_added().await?;
-    let mut removed = object_manager.receive_interfaces_removed().await?;
+    let dbus = DBusProxy::new(&connection).await?;
+    let mut owner_changes = dbus
+        .receive_name_owner_changed_with_args(&[(0, SERVICE)])
+        .await?;
 
     let (internal_tx, mut internal_rx) = mpsc::unbounded_channel::<BluetoothEvent>();
     let mut tracked = Tracked::default();
-    seed(
-        &connection,
-        &tx,
-        &internal_tx,
-        &mut tracked,
-        &object_manager,
-    )
-    .await;
+    let mut live = attach(&connection, &tx, &internal_tx, &mut tracked).await;
 
     loop {
         tokio::select! {
-            Some(signal) = next(&mut added) => {
+            Some(signal) = next(&mut owner_changes) => {
+                let Ok(args) = signal.args() else { continue };
+                if args.new_owner().is_some() {
+                    live = attach(&connection, &tx, &internal_tx, &mut tracked).await;
+                } else {
+                    live = Live::default();
+                    apply(&tx, BluetoothEvent::Gone);
+                    tracked = Tracked::default();
+                }
+            }
+            Some(signal) = next_opt(&mut live.added) => {
                 if let Ok(args) = signal.args() {
                     let path = args.object_path().to_owned().into();
                     handle_added(&connection, &tx, &internal_tx, &mut tracked, path, args.interfaces_and_properties()).await;
                 }
             }
-            Some(signal) = next(&mut removed) => {
+            Some(signal) = next_opt(&mut live.removed) => {
                 if let Ok(args) = signal.args() {
                     let path = args.object_path().to_owned().into();
                     handle_removed(&tx, &mut tracked, path, args.interfaces());
@@ -113,13 +119,60 @@ pub(crate) async fn run(
                     run_disconnect(&connection, &tracked, address);
                 }
                 Some(BluetoothCommand::Refresh) => {
-                    seed(&connection, &tx, &internal_tx, &mut tracked, &object_manager).await;
+                    if let Some(object_manager) = &live.object_manager {
+                        seed(&connection, &tx, &internal_tx, &mut tracked, object_manager).await;
+                    }
                 }
                 None => break,
             }
         }
     }
     Ok(())
+}
+
+/// The object manager and its two signal streams, built fresh each time `org.bluez` gains an
+/// owner (a stream opened against a previous owner is not trusted to follow the next one).
+#[derive(Default)]
+struct Live {
+    object_manager: Option<ObjectManagerProxy<'static>>,
+    added: Option<InterfacesAddedStream>,
+    removed: Option<InterfacesRemovedStream>,
+}
+
+/// Builds a [`Live`] and seeds from it, dropping every earlier watcher first; empty when the
+/// proxy or its streams cannot be built (the next owner change tries again).
+async fn attach(
+    connection: &Connection,
+    tx: &watch::Sender<Bluetooth>,
+    internal_tx: &mpsc::UnboundedSender<BluetoothEvent>,
+    tracked: &mut Tracked,
+) -> Live {
+    *tracked = Tracked::default();
+    let Some(live) = open(connection).await else {
+        return Live::default();
+    };
+    if let Some(object_manager) = &live.object_manager {
+        seed(connection, tx, internal_tx, tracked, object_manager).await;
+    }
+    live
+}
+
+async fn open(connection: &Connection) -> Option<Live> {
+    let object_manager = ObjectManagerProxy::builder(connection)
+        .destination(SERVICE)
+        .ok()?
+        .path("/")
+        .ok()?
+        .build()
+        .await
+        .ok()?;
+    let added = object_manager.receive_interfaces_added().await.ok()?;
+    let removed = object_manager.receive_interfaces_removed().await.ok()?;
+    Some(Live {
+        object_manager: Some(object_manager),
+        added: Some(added),
+        removed: Some(removed),
+    })
 }
 
 /// Re-reads the adapter and every device under it from a fresh `GetManagedObjects`, seeding or
@@ -149,11 +202,11 @@ async fn seed(
         return;
     };
     if tracked.adapter_path.as_ref() != Some(&adapter_path) {
-        watch_adapter(
+        tracked.adapter_stop = Some(watch_adapter(
             connection.clone(),
             adapter_path.clone(),
             internal_tx.clone(),
-        );
+        ));
     }
     tracked.adapter_path = Some(adapter_path.clone());
     seed_adapter(connection, tx, &adapter_path).await;
@@ -214,7 +267,7 @@ async fn handle_added(
     if tracked.adapter_path.is_none() && has(ADAPTER_IFACE) {
         tracked.adapter_path = Some(path.clone());
         seed_adapter(connection, tx, &path).await;
-        watch_adapter(connection.clone(), path, internal_tx.clone());
+        tracked.adapter_stop = Some(watch_adapter(connection.clone(), path, internal_tx.clone()));
         return;
     }
     let Some(adapter_path) = tracked.adapter_path.clone() else {

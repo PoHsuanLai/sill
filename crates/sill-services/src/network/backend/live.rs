@@ -15,19 +15,44 @@ use zbus::zvariant::OwnedObjectPath;
 
 use crate::env::Bus;
 use crate::error::ServiceError;
+use crate::owner::{self, Ended};
 use crate::stream::next;
 
-/// Connects to NetworkManager and runs until `commands` closes (the `Control` was dropped). If
-/// the bus or NetworkManager is unreachable, `tx` is left at its seeded default (disconnected).
+const SERVICE: &str = "org.freedesktop.NetworkManager";
+
+/// Follows NetworkManager and runs until `commands` closes (the `Control` was dropped). Without
+/// it `tx` is left at its seeded default (disconnected); NetworkManager starting late or
+/// restarting is followed through `NameOwnerChanged` ([`crate::owner`]).
 pub(crate) async fn run(
     bus: Bus,
     tx: watch::Sender<Network>,
     mut commands: mpsc::UnboundedReceiver<NetworkCommand>,
 ) -> Result<(), ServiceError> {
     let connection = bus.connected().await?;
-    let nm = NetworkManagerProxy::new(&connection).await?;
+    loop {
+        owner::appeared(&connection, SERVICE).await;
+        tokio::select! {
+            ended = session(&connection, &tx, &mut commands) => match ended {
+                Ended::Commands => return Ok(()),
+                Ended::Unreadable => owner::changed(&connection, SERVICE).await,
+            },
+            () = owner::changed(&connection, SERVICE) => {}
+        }
+        apply(&tx, NetworkEvent::Gone);
+    }
+}
 
-    refresh(&connection, &nm, &tx).await;
+/// One NetworkManager lifetime: seed, then follow every change.
+async fn session(
+    connection: &Connection,
+    tx: &watch::Sender<Network>,
+    commands: &mut mpsc::UnboundedReceiver<NetworkCommand>,
+) -> Ended {
+    let Ok(nm) = NetworkManagerProxy::new(connection).await else {
+        return Ended::Unreadable;
+    };
+
+    refresh(connection, &nm, tx).await;
 
     let mut primary = nm.receive_primary_connection_changed().await;
     let mut activating = nm.receive_activating_connection_changed().await;
@@ -36,23 +61,22 @@ pub(crate) async fn run(
     loop {
         tokio::select! {
             Some(_) = next(&mut primary) => {
-                apply(&tx, NetworkEvent::Link(primary_link(&connection, &nm).await));
+                apply(tx, NetworkEvent::Link(primary_link(connection, &nm).await));
             }
             Some(_) = next(&mut activating) => {
-                apply(&tx, NetworkEvent::Activating(activating_status(&connection, &nm).await));
+                apply(tx, NetworkEvent::Activating(activating_status(connection, &nm).await));
             }
             Some(change) = next(&mut connectivity) => {
                 if let Ok(value) = change.get().await {
-                    apply(&tx, NetworkEvent::Connectivity(Connectivity::from_nm(value)));
+                    apply(tx, NetworkEvent::Connectivity(Connectivity::from_nm(value)));
                 }
             }
             command = commands.recv() => match command {
-                Some(NetworkCommand::Refresh) => refresh(&connection, &nm, &tx).await,
-                None => break,
+                Some(NetworkCommand::Refresh) => refresh(connection, &nm, tx).await,
+                None => return Ended::Commands,
             }
         }
     }
-    Ok(())
 }
 
 /// Reads the primary connection, `ActivatingConnection` and connectivity once and sends the
