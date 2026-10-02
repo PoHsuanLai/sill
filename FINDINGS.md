@@ -254,6 +254,11 @@ A settled item is deleted, not marked closed.
   wakes a settled document with no change (Q455). The bar clock is a `watch` fed by
   sill-services' ticker, not a ds timer, and must stay one (a re-armed `ds::sleep` would chase
   the virtual drain forever).
+- **The shell renders on the compositor's GPU** (shell-host F80). With `HostConfig::adapter` at
+  `Auto`, shell-host reads `main_device` from the compositor's default dmabuf feedback, maps it
+  to PCI ids through sysfs and ranks the wgpu adapter with those ids first; sill sets nothing.
+  `WGPU_ADAPTER_NAME` still wins. The chosen adapter is on stderr (`shell-host: adapter ...`),
+  so the daemon log (and the journal) says which GPU the shell took.
 - **G295: Blitz keeps a cancelled CSS animation's last value.** When `animation-name` goes away
   mid-animation, the cancelling restyle cascades the value at that moment and nothing restyles
   the node again (stylo sets `ElementAnimationSet::dirty`, Blitz never reads it). The stale

@@ -117,9 +117,15 @@ Tick what passed in `docs/manual-checks.md`.
   line in `~/.config/sill/session.env` (plain `NAME=value`, read at the next login; the file is
   never created for you), for example `COSMIC_RENDER_DEVICE=pci-0000:01:00.0` (an address from
   `ls /dev/dri/by-path`), `COSMIC_RENDER_DEVICE=` (empty: detect nothing, let cosmic-comp choose),
-  or `COSMIC_DISABLE_SYNCOBJ=1` if the journal shows DRM sync-object errors. sill's own windows pick
-  their GPU separately through wgpu (`WGPU_ADAPTER_NAME=<part of the adapter's name>` in the same
-  file overrides it); if the shell is slow or the CPU is busy, try that first.
+  or `COSMIC_DISABLE_SYNCOBJ=1` if the journal shows DRM sync-object errors. sill's own windows
+  render on the same GPU as the compositor, on any hardware: the shell asks the compositor which
+  device it renders on (the `main_device` of `zwp_linux_dmabuf_v1`'s default feedback, which
+  needs version 4) and takes the wgpu adapter with that PCI vendor and device id, so frames
+  cross no GPU boundary. If the compositor does not say, or no adapter matches, wgpu's own order
+  applies (a discrete GPU first), and any adapter that fails a first test frame is skipped. The
+  journal line `shell-host: adapter <name> ...` names the one chosen. To override, put
+  `WGPU_ADAPTER_NAME=<part of the adapter's name>` (for example `AMD` or `NVIDIA`) in the same
+  file: it wins over the detection. If the shell is slow or the CPU is busy, check that line first.
 
 ## 6. Where the logs are
 
