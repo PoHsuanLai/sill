@@ -331,7 +331,9 @@ step_quit() {
   : >"$log"
   lines=$(demo_lines)
   chord_held 3000
-  sleep 0.75
+  # Keys go to the panel once it is up (a debug build takes longer than 750 ms to draw it).
+  wait_panel 4000 >/dev/null
+  sleep 0.3
   press ArrowRight || { wait "$HOLD"; return 1; }
   sleep 0.4
   press q || { wait "$HOLD"; return 1; }
