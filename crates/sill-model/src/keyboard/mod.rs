@@ -9,5 +9,5 @@ mod source;
 mod tests;
 
 pub use choose::{choose, focused, wanted};
-pub use model::{CategoryTable, DeclaredProfile, FocusedWindow, UserOverrides};
+pub use model::{CategoryTable, DeclaredProfile, FocusedWindow, OwnProfiles, UserOverrides};
 pub use source::ProfileSource;

@@ -5,8 +5,8 @@ use keycap_protocol::ProfileName;
 use sill_launcher::{AppId, WindowKey};
 
 use super::{
-    CategoryTable, DeclaredProfile, FocusedWindow, ProfileSource, UserOverrides, choose, focused,
-    wanted,
+    CategoryTable, DeclaredProfile, FocusedWindow, OwnProfiles, ProfileSource, UserOverrides,
+    choose, focused, wanted,
 };
 use crate::apps::{App, AppIcon, AppIndex, AppsEvent, DbusActivation, Listing, Terminal, step};
 use crate::cosmic_wl::{Activity, Sizing, Toplevel, Toplevels, WindowState};
@@ -54,6 +54,11 @@ fn index() -> AppIndex {
     step(
         AppIndex::default(),
         AppsEvent::Scanned(vec![
+            app(
+                "com.mitchellh.ghostty",
+                &["System", "TerminalEmulator"],
+                None,
+            ),
             app("foot", &["System", "TerminalEmulator"], None),
             app("game", &["Game"], Some("gaming")),
             app("kitty", &["TerminalEmulator"], Some("kitty-keys")),
@@ -82,6 +87,7 @@ fn alone(source: &dyn ProfileSource, id: &str) -> Option<ProfileName> {
 #[test]
 fn each_source_answers_alone() {
     let standard = CategoryTable::standard();
+    let own = OwnProfiles::standard();
     let overrides = overrides();
     let cases: &[(&str, &dyn ProfileSource, &str, Option<&str>)] = &[
         ("override names the app", &overrides, "foot", Some("mine")),
@@ -108,6 +114,13 @@ fn each_source_answers_alone() {
         ),
         ("a category outside the table", &standard, "game", None),
         ("a category for an unknown app", &standard, "ghost", None),
+        (
+            "ghostty has a profile of its own",
+            &own,
+            "com.mitchellh.ghostty",
+            Some("ghostty"),
+        ),
+        ("another terminal has none", &own, "foot", None),
     ];
     for &(case, source, id, want) in cases {
         assert_eq!(alone(source, id), want.map(name), "{case}");
@@ -122,6 +135,24 @@ fn the_first_matching_category_row_wins() {
         ("System".to_owned(), name("system")),
     ]);
     assert_eq!(alone(&table, "foot"), Some(name("terminal")));
+}
+
+#[test]
+fn an_own_profile_matches_a_part_of_the_app_id_in_any_case() {
+    let own = OwnProfiles(vec![("ghostty".to_owned(), name("ghostty"))]);
+    for (id, want) in [
+        ("com.mitchellh.ghostty", Some("ghostty")),
+        ("Ghostty", Some("ghostty")),
+        ("ghostty-nightly", Some("ghostty")),
+        ("foot", None),
+    ] {
+        let window = toplevel(1, id, Activity::Active);
+        let focus = FocusedWindow {
+            toplevel: &window,
+            app: None,
+        };
+        assert_eq!(own.profile_for(&focus), want.map(name), "{id}");
+    }
 }
 
 #[test]
@@ -230,6 +261,7 @@ fn a_terminal_window_chooses_terminal_end_to_end() {
 fn the_wanted_profile_follows_the_active_window() {
     let index = index();
     let standard = CategoryTable::standard();
+    let own = OwnProfiles::standard();
     let none = UserOverrides::default();
     let on = |windows: Vec<Toplevel>| Toplevels { windows };
     let cases: Vec<(&str, &UserOverrides, Toplevels, &str)> = vec![
@@ -264,7 +296,7 @@ fn the_wanted_profile_follows_the_active_window() {
     ];
     for (case, overrides, toplevels, want) in cases {
         assert_eq!(
-            wanted(overrides, &standard, &toplevels, &index),
+            wanted(overrides, &own, &standard, &toplevels, &index),
             name(want),
             "{case}"
         );
@@ -272,8 +304,18 @@ fn the_wanted_profile_follows_the_active_window() {
     let mine = overrides();
     let terminal = on(vec![toplevel(1, "foot", Activity::Active)]);
     assert_eq!(
-        wanted(&mine, &standard, &terminal, &index),
+        wanted(&mine, &own, &standard, &terminal, &index),
         name("mine"),
         "the user's override first"
+    );
+    let own_choice = UserOverrides(BTreeMap::from([(
+        AppId("com.mitchellh.ghostty".to_owned()),
+        name("mine"),
+    )]));
+    let ghostty = on(vec![toplevel(1, "com.mitchellh.ghostty", Activity::Active)]);
+    assert_eq!(
+        wanted(&own_choice, &own, &standard, &ghostty, &index),
+        name("mine"),
+        "the user's override beats keycap's own profile for the app"
     );
 }

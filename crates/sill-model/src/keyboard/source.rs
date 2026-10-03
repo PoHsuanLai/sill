@@ -2,7 +2,7 @@
 
 use keycap_protocol::ProfileName;
 
-use super::model::{CategoryTable, DeclaredProfile, FocusedWindow, UserOverrides};
+use super::model::{CategoryTable, DeclaredProfile, FocusedWindow, OwnProfiles, UserOverrides};
 
 /// One opinion about which profile a window wants. A source that has none says `None` and the
 /// next one is asked; a new source is a new impl, never a new branch in [`super::choose`].
@@ -32,6 +32,27 @@ impl CategoryTable {
 /// The name keycap's built-in config gives its terminal profile.
 fn terminal_profile() -> ProfileName {
     ProfileName::parse("terminal").unwrap_or_else(|_| ProfileName::default_profile())
+}
+
+impl OwnProfiles {
+    /// The apps keycap's built-in config has a profile for: Ghostty (`com.mitchellh.ghostty`),
+    /// whose split and clear chords differ from the other terminals'.
+    pub fn standard() -> Self {
+        Self(vec![(
+            "ghostty".to_owned(),
+            ProfileName::parse("ghostty").unwrap_or_else(|_| ProfileName::default_profile()),
+        )])
+    }
+}
+
+impl ProfileSource for OwnProfiles {
+    fn profile_for(&self, window: &FocusedWindow<'_>) -> Option<ProfileName> {
+        let app_id = window.toplevel.app_id.to_lowercase();
+        self.0
+            .iter()
+            .find(|(part, _)| app_id.contains(part.as_str()))
+            .map(|(_, profile)| profile.clone())
+    }
 }
 
 impl ProfileSource for CategoryTable {

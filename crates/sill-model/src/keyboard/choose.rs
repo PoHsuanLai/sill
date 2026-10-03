@@ -2,7 +2,7 @@
 
 use keycap_protocol::ProfileName;
 
-use super::model::{CategoryTable, DeclaredProfile, FocusedWindow, UserOverrides};
+use super::model::{CategoryTable, DeclaredProfile, FocusedWindow, OwnProfiles, UserOverrides};
 use super::source::ProfileSource;
 use crate::apps::{AppIndex, match_app};
 use crate::cosmic_wl::{Activity, Toplevels};
@@ -20,14 +20,16 @@ pub fn choose(sources: &[&dyn ProfileSource], window: Option<FocusedWindow<'_>>)
 }
 
 /// The profile the focused window wants under sill's sources, most specific first: the user's
-/// overrides, what the app declares, then the category table.
+/// overrides, what the app declares, the profiles keycap has for one app (Ghostty), then the
+/// category table.
 pub fn wanted(
     overrides: &UserOverrides,
+    own: &OwnProfiles,
     categories: &CategoryTable,
     toplevels: &Toplevels,
     apps: &AppIndex,
 ) -> ProfileName {
-    let sources: [&dyn ProfileSource; 3] = [overrides, &DeclaredProfile, categories];
+    let sources: [&dyn ProfileSource; 4] = [overrides, &DeclaredProfile, own, categories];
     choose(&sources, focused(toplevels, apps))
 }
 

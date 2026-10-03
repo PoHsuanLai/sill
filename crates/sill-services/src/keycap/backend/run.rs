@@ -4,7 +4,7 @@
 use keycap_protocol::{ProfileName, ToDaemon};
 use sill_model::apps::AppIndex;
 use sill_model::cosmic_wl::CosmicWl;
-use sill_model::keyboard::{CategoryTable, UserOverrides, wanted};
+use sill_model::keyboard::{CategoryTable, OwnProfiles, UserOverrides, wanted};
 use sill_model::keycap::{
     Attention, KeycapCommand, KeycapEvent, KeycapState, NoticeChange, attention, focus_to_send,
     notice_for, step, user_config, watching_unit,
@@ -44,6 +44,7 @@ struct Live {
     /// The profile keycap was last sent.
     chosen: Option<ProfileName>,
     overrides: UserOverrides,
+    own: OwnProfiles,
     categories: CategoryTable,
     /// When the unit is read next; `None` while it is not worth reading.
     check_at: Option<Instant>,
@@ -83,6 +84,7 @@ pub(crate) async fn run(
         shown: None,
         chosen: None,
         overrides: UserOverrides::default(),
+        own: OwnProfiles::standard(),
         categories: CategoryTable::standard(),
         check_at: None,
     };
@@ -158,6 +160,7 @@ impl Live {
     fn refocus(&mut self) {
         let next = wanted(
             &self.overrides,
+            &self.own,
             &self.categories,
             &self.cosmic_wl.borrow().toplevels,
             &self.apps.borrow(),
