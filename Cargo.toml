@@ -158,7 +158,7 @@ nucleo-matcher = "0.3.1"
 fend-core = "1.5.8"
 clap = { version = "4", features = ["derive"] }
 # latchkey lives in mailo until it is split into its own repo; cargo finds crates/latchkey itself.
-latchkey = { git = "https://github.com/PoHsuanLai/mailo", rev = "43ebf45f244a23c1e79c84b5d859b6fa1ba5bc7a" }
+latchkey = { git = "https://github.com/PoHsuanLai/mailo", rev = "a0c444ad741c0562ca0ba60a2586b7badc5a0670" }
 # ---- END PINNED BLOCK ----
 
 # sill-only, outside the pinned block (they are not shared with quire or shell-host).

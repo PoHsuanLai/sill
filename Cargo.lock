@@ -4066,7 +4066,7 @@ dependencies = [
 [[package]]
 name = "latchkey"
 version = "0.1.0"
-source = "git+https://github.com/PoHsuanLai/mailo?rev=43ebf45f244a23c1e79c84b5d859b6fa1ba5bc7a#43ebf45f244a23c1e79c84b5d859b6fa1ba5bc7a"
+source = "git+https://github.com/PoHsuanLai/mailo?rev=a0c444ad741c0562ca0ba60a2586b7badc5a0670#a0c444ad741c0562ca0ba60a2586b7badc5a0670"
 dependencies = [
  "interprocess",
 ]
