@@ -1,6 +1,6 @@
-//! The service's children: the opener and the trash (`xdg-open`, `gio trash`), started and
-//! reaped, and the tool, whose exit the service waits for. Found on `PATH`, so a test puts a
-//! stand-in first.
+//! The service's children: the opener and the trash (`xdg-open`, `gio trash`), started through
+//! `Env::children` (a test records them), and the tool, whose exit the service waits for. The tool
+//! is found on `PATH`, so a test puts a stand-in first.
 
 use std::ffi::OsStr;
 use std::process::Stdio;
@@ -8,11 +8,21 @@ use std::process::Stdio;
 use sill_model::screenshots::CommandLine;
 use tokio::process::Command;
 
-/// Start `program` with `args` and reap it in the background; a failure to start is logged.
-pub(crate) fn detach(program: &str, args: &[&OsStr]) {
-    let mut command = Command::new(program);
-    command.args(args);
-    wait_then(command, program, || {});
+use crate::env::{Children, ProcessGroup, Start};
+
+/// Start `program` with `args` through `children`; a failure to start is logged.
+pub(crate) fn detach(children: &dyn Children, program: &str, args: &[&OsStr]) {
+    let start = Start {
+        argv: std::iter::once(OsStr::new(program))
+            .chain(args.iter().copied())
+            .map(OsStr::to_owned)
+            .collect(),
+        token: None,
+        group: ProcessGroup::Shared,
+    };
+    if let Err(error) = children.detach(&start) {
+        eprintln!("screenshots: {program}: {error}");
+    }
 }
 
 /// Run `line` and call `ended` once it exits (or could not start).

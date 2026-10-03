@@ -45,8 +45,9 @@ impl Service for ScreenshotsService {
         io: ServiceIo<Self>,
     ) -> impl Future<Output = Result<(), ServiceError>> + Send + 'static {
         let dirs = env.dirs.clone();
+        let children = env.children.clone();
         async move {
-            backend::run(io.state, io.commands, dirs).await;
+            backend::run(io.state, io.commands, dirs, children).await;
             Ok(())
         }
     }

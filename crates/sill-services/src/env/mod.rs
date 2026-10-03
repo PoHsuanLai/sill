@@ -5,6 +5,7 @@
 mod authenticator;
 mod bus_name;
 mod buses;
+mod children;
 pub mod ddc;
 mod dirs;
 mod processes;
@@ -25,6 +26,7 @@ use sill_model::keycap::{UNIT_GRACE, UNIT_RECHECK};
 pub use authenticator::{Authenticator, FakeAuthenticator, FakeRule};
 pub use bus_name::{NameState, name_state};
 pub use buses::{Bus, BusKind, BusRoute, Buses};
+pub use children::{Children, ProcessGroup, RealChildren, RecordedChildren, Start};
 pub use dirs::Dirs;
 pub use processes::{NoProcesses, Pid, ProcScan, Processes};
 pub use session_actions::{
@@ -55,6 +57,9 @@ pub struct Env {
     pub authenticator: Arc<dyn Authenticator>,
     /// The processes a service looks for by name: a `/proc` scan, or none.
     pub processes: Arc<dyn Processes>,
+    /// The children a service starts and does not wait for (the file opener, the trash): real
+    /// processes, or a record of what would have started.
+    pub children: Arc<dyn Children>,
     /// keycap's control socket; `None` means the keycap service never connects.
     pub keycap_socket: Option<PathBuf>,
     /// How long keycap's socket may be down before systemd is asked about the unit, and how often
@@ -107,6 +112,7 @@ impl Env {
             session_actions: Arc::new(LogindActions),
             authenticator: Arc::new(PamHelper::this_exe()),
             processes: Arc::new(ProcScan),
+            children: Arc::new(RealChildren),
             keycap_socket: Some(PathBuf::from(keycap_protocol::SOCKET_PATH)),
             keycap_unit_wait: UnitWait::default(),
         }
@@ -115,7 +121,7 @@ impl Env {
     /// Nothing outside the process: no bus, a compositor socket in `scratch` that does not exist,
     /// every directory inside `scratch`, the system clock (read only), DDC monitors from a file
     /// that is not there (none), no polkit helper, session actions that are only recorded, and a
-    /// password check that refuses everything, no processes running and no keycap socket. For
+    /// password check that refuses everything, no processes running, no child started (each is recorded) and no keycap socket. For
     /// tests that start services and must never reach the person's session or files. `scratch` must exist: the wallpaper service watches the
     /// nearest existing folder above COSMIC's record.
     pub fn isolated(scratch: &Path) -> Env {
@@ -139,6 +145,7 @@ impl Env {
                 delay: std::time::Duration::ZERO,
             }),
             processes: Arc::new(NoProcesses),
+            children: RecordedChildren::shared(),
             keycap_socket: None,
             keycap_unit_wait: UnitWait::default(),
         }

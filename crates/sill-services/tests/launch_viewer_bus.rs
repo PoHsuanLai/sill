@@ -4,7 +4,9 @@
 //! file, the place and the results the launcher chose it from arrive as the `Request` the
 //! viewer's windows are opened from. Without a `dbus-daemon` they say so and skip.
 
+use std::ffi::OsString;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Duration;
 
 use anyview_core::{FilePath, ResultsId, Resume, SequenceOrigin};
@@ -15,7 +17,7 @@ use anyview_platform::{
 use sill_launcher::{Generation, OpenTarget, ViewerOpen};
 use sill_model::apps::AppIndex;
 use sill_model::launch::{LaunchCommand, OpenRequest};
-use sill_services::env::{BusRoute, Buses, Env};
+use sill_services::env::{BusRoute, Buses, Env, RecordedChildren};
 use sill_services::launch::LaunchService;
 use sill_services::service::spawn;
 use sill_testkit::{PrivateBus, TempDir};
@@ -37,12 +39,28 @@ async fn viewer(bus: &PrivateBus, scratch: &TempDir) -> Primary {
     }
 }
 
-/// The launch service on `bus`, told by the returned control.
-fn launcher(bus: &PrivateBus, scratch: &TempDir) -> sill_services::Control<LaunchCommand> {
+/// The launch service on `bus`, told by the returned control, and the record of the children it
+/// started (the isolated `Env` starts none: a fallback to `xdg-open` is recorded, never run).
+fn launcher(
+    bus: &PrivateBus,
+    scratch: &TempDir,
+) -> (sill_services::Control<LaunchCommand>, Arc<RecordedChildren>) {
+    let children = RecordedChildren::shared();
     let mut env = Env::isolated(scratch.path());
     env.buses = Buses::new(BusRoute::Absent, BusRoute::Address(bus.address.clone()));
+    env.children = children.clone();
     let (_apps, apps) = watch::channel(AppIndex::default());
-    spawn::<LaunchService>(&tokio::runtime::Handle::current(), &env, apps).control
+    let control = spawn::<LaunchService>(&tokio::runtime::Handle::current(), &env, apps).control;
+    (control, children)
+}
+
+/// The command lines `children` was asked to start, once there is one (or `WAIT` has gone).
+async fn started_within(children: &RecordedChildren) -> Vec<Vec<OsString>> {
+    let end = tokio::time::Instant::now() + WAIT;
+    while children.started().is_empty() && tokio::time::Instant::now() < end {
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    children.started().into_iter().map(|s| s.argv).collect()
 }
 
 fn open(target: OpenTarget) -> LaunchCommand {
@@ -63,7 +81,7 @@ async fn a_file_chosen_in_the_launcher_reaches_the_viewer_with_the_results_it_ca
     };
     let scratch = TempDir::new("launch-viewer-handoff");
     let mut viewer = viewer(&bus, &scratch).await;
-    let control = launcher(&bus, &scratch);
+    let (control, _children) = launcher(&bus, &scratch);
 
     control
         .send(open(OpenTarget::Viewer(ViewerOpen {
@@ -115,7 +133,7 @@ async fn the_play_control_asks_the_viewer_to_play_the_file() {
     };
     let scratch = TempDir::new("launch-viewer-play");
     let mut viewer = viewer(&bus, &scratch).await;
-    let control = launcher(&bus, &scratch);
+    let (control, _children) = launcher(&bus, &scratch);
 
     control
         .send(open(OpenTarget::Play(PathBuf::from("/m/song.flac"))))
@@ -125,4 +143,23 @@ async fn the_play_control_asks_the_viewer_to_play_the_file() {
         .await
         .unwrap_or_else(|_| panic!("the viewer heard nothing within {WAIT:?}"));
     assert_eq!(heard, Some(Request::Play(file("/m/song.flac"))));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn without_a_viewer_on_the_bus_the_file_goes_to_the_default_handler() {
+    let Some(bus) = PrivateBus::start() else {
+        return;
+    };
+    let scratch = TempDir::new("launch-viewer-absent");
+    let (control, children) = launcher(&bus, &scratch);
+
+    control
+        .send(open(OpenTarget::Play(PathBuf::from("/m/song.flac"))))
+        .unwrap_or_else(|e| panic!("{e}"));
+
+    assert_eq!(
+        started_within(&children).await,
+        [["xdg-open", "/m/song.flac"].map(OsString::from).to_vec()],
+        "recorded, not run: an isolated `Env` starts no child"
+    );
 }

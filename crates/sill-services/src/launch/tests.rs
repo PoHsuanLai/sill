@@ -83,3 +83,64 @@ async fn a_launch_runs_in_a_real_systemd_scope_and_exits() {
     .unwrap_or_else(|_| panic!("the scope never reported Exited within 10s"));
     eprintln!("sill: live launch unit {} exited", started.0);
 }
+
+/// What an isolated `Env` is asked to open: recorded, never started, so no test ever opens a file
+/// in the person's session. With no session bus there is no viewer to take a file and no file
+/// manager to reveal one, and with a scratch runtime folder no user systemd, so each target is
+/// `xdg-open` on its own, and the recorder holds exactly those.
+#[tokio::test]
+async fn opening_with_no_session_records_the_opener_and_starts_nothing() {
+    use std::ffi::OsString;
+
+    use sill_launcher::{Generation, OpenTarget, ViewerOpen};
+    use sill_model::launch::OpenRequest;
+
+    use crate::env::{ProcessGroup, RecordedChildren};
+
+    let (_apps_tx, apps_rx) = tokio::sync::watch::channel(AppIndex::default());
+    let scratch = sill_testkit::TempDir::new("launch-open-recorded");
+    let children = RecordedChildren::shared();
+    let mut env = crate::env::Env::isolated(scratch.path());
+    env.children = children.clone();
+    let control = spawn::<LaunchService>(&tokio::runtime::Handle::current(), &env, apps_rx).control;
+
+    let targets = [
+        OpenTarget::File(PathBuf::from("/h/a.pdf")),
+        OpenTarget::Viewer(ViewerOpen {
+            file: PathBuf::from("/h/b.pdf"),
+            search: Generation(1),
+            results: vec![PathBuf::from("/h/b.pdf")],
+        }),
+        OpenTarget::Play(PathBuf::from("/m/song.flac")),
+        OpenTarget::Url("https://example.com/".to_owned()),
+    ];
+    for target in &targets {
+        control
+            .send(LaunchCommand::Open(OpenRequest {
+                target: target.clone(),
+                token: Some("tok".to_owned()),
+            }))
+            .unwrap_or_else(|e| panic!("{e}"));
+    }
+
+    let end = tokio::time::Instant::now() + Duration::from_secs(5);
+    while children.started().len() < targets.len() && tokio::time::Instant::now() < end {
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    let started = children.started();
+    let opened: Vec<Vec<OsString>> = started.iter().map(|s| s.argv.clone()).collect();
+    let want = [
+        "/h/a.pdf",
+        "/h/b.pdf",
+        "/m/song.flac",
+        "https://example.com/",
+    ]
+    .map(|what| vec![OsString::from("xdg-open"), OsString::from(what)]);
+    assert_eq!(opened, want);
+    assert!(
+        started
+            .iter()
+            .all(|s| s.group == ProcessGroup::Own && s.token.as_deref() == Some("tok")),
+        "bare, in its own process group, told the token"
+    );
+}

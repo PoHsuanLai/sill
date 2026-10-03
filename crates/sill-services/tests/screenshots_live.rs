@@ -8,9 +8,10 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use sill_model::screenshots::{
-    ShotCommand, ShotFolders, ShotKind, ShotPolicy, ShotPreview, ShotTool, Shots, Taking, Watching,
+    ShotCommand, ShotFolders, ShotKind, ShotLeave, ShotPolicy, ShotPreview, ShotTool, Shots,
+    Taking, Watching,
 };
-use sill_services::env::{Dirs, Env};
+use sill_services::env::{Dirs, Env, RecordedChildren};
 use sill_services::screenshots::ScreenshotsService;
 use sill_services::service::spawn;
 use tokio::sync::watch;
@@ -132,5 +133,48 @@ async fn a_stand_in_tool_takes_a_screenshot_that_the_watch_sees() {
     })
     .await;
     assert!(idle.is_some(), "the tool's exit ends the take");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn opening_and_trashing_a_shot_are_recorded_never_run() {
+    let dir = folder("leave");
+    let children = RecordedChildren::shared();
+    let env = Env {
+        dirs: Dirs::under(&dir.join("dirs")),
+        children: children.clone(),
+        ..Env::isolated(&dir)
+    };
+    let shots = spawn::<ScreenshotsService>(&tokio::runtime::Handle::current(), &env, ());
+    let (mut rx, control) = (shots.state, shots.control);
+    let policy = ShotPolicy {
+        folders: ShotFolders::At(vec![dir.clone()]),
+        tool: ShotTool::Off,
+    };
+    control.send(ShotCommand::Configure(policy)).expect("sent"); // test-only
+    let _ = until(&mut rx, Duration::from_secs(2), |s| {
+        matches!(s.watching, Watching::Folders(_))
+    })
+    .await;
+    let target = dir.join("Screenshot_c.png");
+    std::fs::copy(FIXTURE, &target).expect("copied"); // test-only
+    let seen = until(&mut rx, Duration::from_secs(2), current_is(&target)).await;
+    let id = seen
+        .and_then(|shots| shots.current.map(|shot| shot.id))
+        .expect("the file is current"); // test-only
+
+    control
+        .send(ShotCommand::Leave(id, ShotLeave::Opened))
+        .expect("sent"); // test-only
+    let end = Instant::now() + Duration::from_secs(2);
+    while children.started().is_empty() && Instant::now() < end {
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    let argv: Vec<_> = children.started().into_iter().map(|s| s.argv).collect();
+    assert_eq!(
+        argv,
+        [vec!["xdg-open".into(), target.as_os_str().to_owned()]],
+        "the opener is recorded with the file, not started"
+    );
     let _ = std::fs::remove_dir_all(&dir);
 }

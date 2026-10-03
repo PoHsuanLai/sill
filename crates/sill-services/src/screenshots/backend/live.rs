@@ -11,6 +11,7 @@
 //! Passive until the first `Configure`: the policy starts `Off` (no folder, no tool).
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use notify::RecommendedWatcher;
 use sill_model::screenshots::{
@@ -19,7 +20,7 @@ use sill_model::screenshots::{
 };
 use tokio::sync::{mpsc, watch};
 
-use crate::env::Dirs;
+use crate::env::{Children, Dirs};
 
 /// The task's own state beside the published [`Shots`].
 struct Live {
@@ -31,12 +32,15 @@ struct Live {
     watcher: Option<RecommendedWatcher>,
     /// Pictures and home (the folders), and the cache (the previews).
     dirs: Dirs,
+    /// Starts the opener and the trash.
+    children: Arc<dyn Children>,
 }
 
 pub(crate) async fn run(
     tx: watch::Sender<Shots>,
     mut commands: mpsc::UnboundedReceiver<ShotCommand>,
     dirs: Dirs,
+    children: Arc<dyn Children>,
 ) {
     let (events, mut heard) = mpsc::unbounded_channel();
     let mut live = Live {
@@ -46,6 +50,7 @@ pub(crate) async fn run(
         folders: Vec::new(),
         watcher: None,
         dirs,
+        children,
     };
     loop {
         let event = tokio::select! {
@@ -115,9 +120,15 @@ impl Live {
                     });
                 });
             }
-            ShotEffect::Open(path) => super::child::detach("xdg-open", &[path.as_os_str()]),
+            ShotEffect::Open(path) => {
+                super::child::detach(self.children.as_ref(), "xdg-open", &[path.as_os_str()])
+            }
             ShotEffect::Trash(path) => {
-                super::child::detach("gio", &["trash".as_ref(), path.as_os_str()]);
+                super::child::detach(
+                    self.children.as_ref(),
+                    "gio",
+                    &["trash".as_ref(), path.as_os_str()],
+                );
             }
             ShotEffect::RunTool(kind) => self.run_tool(kind),
         }

@@ -27,8 +27,7 @@ use sill_model::launch::{OpenRequest, ScopeUnit, scope_unit};
 use super::Reach;
 use super::uri::file_uri;
 use super::viewer::{Handed, hand_over, viewer_request};
-use crate::env::Bus;
-use crate::env::{NameState, name_state};
+use crate::env::{Bus, Children, NameState, ProcessGroup, Start, name_state};
 
 const FILE_MANAGER: &str = "org.freedesktop.FileManager1";
 
@@ -77,7 +76,12 @@ pub(crate) async fn open(setup: &Reach, request: OpenRequest) {
         Manager::Reachable => Wrapper::Scope(next_unit()),
         Manager::Missing => Wrapper::Bare,
     };
-    if let Err(error) = spawn_open(open_argv(&request.target), &wrapper, token) {
+    if let Err(error) = spawn_open(
+        setup.children.as_ref(),
+        open_argv(&request.target),
+        &wrapper,
+        token,
+    ) {
         eprintln!("sill: launch: opening failed ({:?})", error.kind());
     }
 }
@@ -102,6 +106,16 @@ enum Wrapper {
     Scope(ScopeUnit),
     /// Its own process group.
     Bare,
+}
+
+impl Wrapper {
+    /// The group the child is started in: systemd isolates a scope, a bare child leads its own.
+    fn group(&self) -> ProcessGroup {
+        match self {
+            Wrapper::Scope(_) => ProcessGroup::Shared,
+            Wrapper::Bare => ProcessGroup::Own,
+        }
+    }
 }
 
 /// `FileManager1.ShowItems([uri], token)` when a file manager holds the name or can be
@@ -170,40 +184,24 @@ fn wrapped(argv: Vec<OsString>, wrapper: &Wrapper) -> Vec<OsString> {
 }
 
 /// Start `argv` under `wrapper` with the token; when `systemd-run` itself is missing, start it
-/// bare. The child is reaped on the runtime, never waited on here.
-fn spawn_open(argv: Vec<OsString>, wrapper: &Wrapper, token: Option<&str>) -> std::io::Result<()> {
-    let child = match spawn(&wrapped(argv.clone(), wrapper), wrapper, token) {
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound && *wrapper != Wrapper::Bare => {
-            spawn(&argv, &Wrapper::Bare, token)
-        }
-        result => result,
-    }?;
-    tokio::spawn(reap(child));
-    Ok(())
-}
-
-fn spawn(
-    argv: &[OsString],
+/// bare. The child is reaped by `children`, never waited on here.
+fn spawn_open(
+    children: &dyn Children,
+    argv: Vec<OsString>,
     wrapper: &Wrapper,
     token: Option<&str>,
-) -> std::io::Result<tokio::process::Child> {
-    let (program, args) = argv.split_first().ok_or_else(|| {
-        std::io::Error::new(std::io::ErrorKind::InvalidInput, "empty argument vector")
-    })?;
-    let mut command = tokio::process::Command::new(program);
-    command.args(args).stdin(std::process::Stdio::null());
-    if let Some(token) = token {
-        command.env("XDG_ACTIVATION_TOKEN", token);
-        command.env("DESKTOP_STARTUP_ID", token);
+) -> std::io::Result<()> {
+    let start = |argv: Vec<OsString>, group: ProcessGroup| Start {
+        argv,
+        token: token.map(str::to_owned),
+        group,
+    };
+    match children.detach(&start(wrapped(argv.clone(), wrapper), wrapper.group())) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound && *wrapper != Wrapper::Bare => {
+            children.detach(&start(argv, ProcessGroup::Own))
+        }
+        result => result,
     }
-    if *wrapper == Wrapper::Bare {
-        command.process_group(0);
-    }
-    command.kill_on_drop(false).spawn()
-}
-
-async fn reap(mut child: tokio::process::Child) {
-    let _ = child.wait().await;
 }
 
 #[cfg(test)]
