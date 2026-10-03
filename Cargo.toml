@@ -56,10 +56,12 @@ ds-harness = { path = "../quire/crates/ds-harness" }
 shell-host = { path = "../shell-host/crates/shell-host" }
 # The viewer's format library and the launcher's half of its desktop contract: the pane's peeks
 # (`anyview-peek`), the vocabulary (`anyview-core`), the history the viewer keeps
-# (`anyview-store`) and the viewer's D-Bus requests (`anyview-platform`). Taken by path from the
+# (`anyview-store`), the viewer's D-Bus requests and its thumbnail cache (`anyview-platform`),
+# and the picture type a thumbnail becomes (`anyview-image`). Taken by path from the
 # sibling checkout until anyview is merged and its revision is pinned in quire's
 # `docs/workspace-deps.toml` like pdfrum (FINDINGS: "anyview is taken by path").
 anyview-core = { path = "../anyview/crates/anyview-core" }
+anyview-image = { path = "../anyview/crates/anyview-image" }
 anyview-peek = { path = "../anyview/crates/anyview-peek", default-features = false }
 anyview-platform = { path = "../anyview/crates/anyview-platform" }
 anyview-store = { path = "../anyview/crates/anyview-store" }
@@ -163,6 +165,10 @@ latchkey = { git = "https://github.com/PoHsuanLai/mailo", rev = "d8140adb0c70e6c
 # ---- END PINNED BLOCK ----
 
 # sill-only, outside the pinned block (they are not shared with quire or shell-host).
+# The launcher-ui tests write a freedesktop thumbnail by hand: its name is the MD5 of the file's URI
+# and its text chunks are PNG's. Both MIT OR Apache-2.0, both already in the lock through anyview.
+md-5 = "0.10"
+png = "0.18"
 # DDC/CI to external monitors over /dev/i2c-N: the `Ddc` trait (VCP get/set) and its Linux i2c
 # transport. Both MIT; `with-linux` only, never `with-linux-enumerate` (that links libudev):
 # sill maps connectors to buses itself from sysfs and the EDID each bus answers with.

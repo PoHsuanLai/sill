@@ -44,8 +44,8 @@ keyboard-types = { workspace = true }
 
 [features]
 default = ["media"]
-# The launcher's preview pane reads a recording's facts and cover with libav (anyview-peek's `media`).
-# `--no-default-features` leaves libav out of the daemon.
+# The launcher's preview pane reads a recording's facts and an audio cover (anyview-peek's `media`,
+# pure-Rust header parsers). `--no-default-features` leaves them out of the daemon.
 media = ["sill-launcher-ui/media"]
 # `sill debug pointer|leave|capture|key` act on surfaces (shell-host's per-surface injection).
 # Without it those requests answer `Failed(Unsupported)`; `debug stats` always works.

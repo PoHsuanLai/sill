@@ -12,6 +12,7 @@
 //! the panel's Tab reached. The pane is the future Quick Look app's shared part (design/20 §2.4).
 
 mod content;
+pub mod frames;
 pub mod keys;
 pub mod load;
 pub mod moment;

@@ -161,7 +161,7 @@ impl Look for Gated {
             let held = self.held.lock().unwrap_or_else(PoisonError::into_inner);
             let _ = held.recv();
         }
-        ViewerLook.at(path)
+        ViewerLook::without_frames().at(path)
     }
 }
 

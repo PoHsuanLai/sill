@@ -86,7 +86,7 @@ EDGES=(
   "sill-ui-kit: ds ds-blitz ds-harness ds-settings ds-shell shell-host sill-launcher sill-model sill-search sill-services sill-settings"
   "sill-bar: ds ds-blitz ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
   "sill-dock: ds ds-blitz ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
-  "sill-launcher-ui: anyview-core anyview-peek ds ds-blitz shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-ui-kit"
+  "sill-launcher-ui: anyview-core anyview-image anyview-peek anyview-platform ds ds-blitz shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-ui-kit"
   "sill-notify-ui: ds ds-blitz ds-settings ds-shell shell-host sill-model sill-services sill-settings sill-ui-kit"
   "sill-widgets-ui: ds ds-shell shell-host sill-launcher sill-model sill-settings sill-ui-kit"
   "sill-overlays: ds ds-behaviour ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"

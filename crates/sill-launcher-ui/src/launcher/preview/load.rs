@@ -1,7 +1,7 @@
 //! Loading what a preview names off the UI thread.
 //!
 //! A file is looked at by the viewer's own parts: [`anyview_peek::probe`] says what it is (its
-//! size, its date, its first bytes: the `Sniffed` that every peek takes) and [`anyview_peek::peek`]
+//! size, its date, its first bytes: the `Sniffed` that every peek takes) and [`anyview_peek::peek_with`]
 //! makes what the pane draws. That blocks, so it runs on the pane's one worker: a thread started
 //! with the pane and ended with it, fed by a slot that holds the latest request only. The arrow
 //! keys ask for a new file on every press; holding Down through fifty files peeks at the few the
@@ -15,13 +15,16 @@ use std::sync::{Arc, Condvar, Mutex, PoisonError};
 use std::time::Duration;
 
 use anyview_core::{ByteLen, FilePath, PeekBudget, PixelArea};
-use anyview_peek::{AnyPeeked, PeekError, peek, probe};
+use anyview_peek::{AnyPeeked, NoFrames, PeekError, VideoFrames, peek_with, probe};
 use dioxus::prelude::*;
 use sill_launcher::ClipKey;
 use sill_search::preview::clip_image;
 use sill_services::ClipboardService;
 use sill_ui_kit::hooks::use_service;
+use sill_ui_kit::services::Services;
 use tokio::sync::oneshot;
+
+use super::frames::ThumbnailFrames;
 
 /// What a peek of a file may spend: it reads a PDF whole, and a picture is fitted to a pane's
 /// worth of pixels (`PANE` is 328 by 220 px, drawn at up to twice that). Constants until quire's
@@ -56,23 +59,40 @@ pub trait Look: Send + Sync + 'static {
     fn at(&self, path: &Path) -> Result<Arc<AnyPeeked>, PreviewFault>;
 }
 
-/// The viewer's parts: probe the file, then peek at it as sniffed.
-#[derive(Debug, Clone, Copy)]
-pub struct ViewerLook;
+/// The viewer's parts: probe the file, then peek at it as sniffed. A video's frame, which the
+/// peek does not decode, comes from `frames`.
+#[derive(Debug, Clone)]
+pub struct ViewerLook {
+    frames: Arc<dyn VideoFrames>,
+}
+
+impl ViewerLook {
+    /// A look that takes a video's picture from `frames`.
+    pub fn new(frames: Arc<dyn VideoFrames>) -> ViewerLook {
+        ViewerLook { frames }
+    }
+
+    /// A look with no source of video frames: a video without a cover shows its facts.
+    pub fn without_frames() -> ViewerLook {
+        ViewerLook::new(Arc::new(NoFrames))
+    }
+}
 
 impl Look for ViewerLook {
     fn at(&self, path: &Path) -> Result<Arc<AnyPeeked>, PreviewFault> {
         let file = FilePath::new(path).map_err(|_| PreviewFault::Unreadable)?;
         let probed = probe(&file).map_err(fault_of)?;
-        Ok(Arc::new(peek(
+        Ok(Arc::new(peek_with(
             &probed.source,
             &probed.sniffed,
             &PANE_BUDGET,
+            self.frames.as_ref(),
         )))
     }
 }
 
-/// How the pane looks at files, as a root context; the viewer's own when none is provided.
+/// How the pane looks at files, as a root context; the viewer's own over the thumbnail cache of
+/// the daemon's `Dirs` when none is provided.
 #[derive(Clone)]
 pub struct Looking(pub Arc<dyn Look>);
 
@@ -80,6 +100,15 @@ impl std::fmt::Debug for Looking {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("Looking")
     }
+}
+
+/// The viewer's look over the thumbnail cache in the services' cache directory; without services
+/// (a root that mounts the pane alone) it has no video frames.
+fn cached_look() -> Arc<dyn Look> {
+    let look = try_consume_context::<Services>().map_or_else(ViewerLook::without_frames, |s| {
+        ViewerLook::new(Arc::new(ThumbnailFrames::in_cache(&s.dirs.cache)))
+    });
+    Arc::new(look)
 }
 
 /// Probing fails only for a path that is not there or cannot be read; the other errors are the
@@ -90,7 +119,7 @@ fn fault_of(error: PeekError) -> PreviewFault {
         PeekError::Unreadable { .. }
         | PeekError::Image(_)
         | PeekError::Text(_)
-        | PeekError::Media(_)
+        | PeekError::Media { .. }
         | PeekError::Archive(_)
         | PeekError::Font(_)
         | PeekError::Pdf(_)
@@ -188,10 +217,7 @@ fn work(slot: &Slot, look: &dyn Look) {
 pub fn use_peek(path: Option<PathBuf>) -> Option<Peeking> {
     let mut answer = use_signal(|| None::<(PathBuf, Result<Arc<AnyPeeked>, PreviewFault>)>);
     let worker = use_hook(|| {
-        let look = try_consume_context::<Looking>().map_or_else(
-            || Arc::new(ViewerLook) as Arc<dyn Look>,
-            |looking| looking.0,
-        );
+        let look = try_consume_context::<Looking>().map_or_else(cached_look, |looking| looking.0);
         Rc::new(Worker::start(look))
     });
     let mut asked = use_hook(|| CopyValue::new(None::<PathBuf>));
@@ -261,10 +287,12 @@ mod tests {
         let dir = scratch_dir();
         let present = dir.join("notes.txt");
         std::fs::write(&present, "first line\nsecond\n").unwrap_or_else(|e| panic!("{e}"));
-        let peeked = ViewerLook.at(&present).unwrap_or_else(|e| panic!("{e:?}"));
+        let peeked = ViewerLook::without_frames()
+            .at(&present)
+            .unwrap_or_else(|e| panic!("{e:?}"));
         assert_eq!(peeked.name, "notes.txt");
         assert_eq!(
-            ViewerLook.at(&dir.join("absent.txt")),
+            ViewerLook::without_frames().at(&dir.join("absent.txt")),
             Err(PreviewFault::Missing)
         );
         std::fs::remove_dir_all(&dir).unwrap_or_else(|e| panic!("{e}"));

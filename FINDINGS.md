@@ -433,9 +433,9 @@ A settled item is deleted, not marked closed.
 
 ### sill
 
-- **anyview is taken by path.** The root `Cargo.toml` names `anyview-core`, `anyview-peek`,
+- **anyview is taken by path.** The root `Cargo.toml` names `anyview-core`, `anyview-image`, `anyview-peek`,
   `anyview-platform` and `anyview-store` at `../anyview/crates/...`, a sibling checkout. Ends when
-  anyview's integration branch is merged: the four become the git revision pinned in quire's
+  anyview's integration branch is merged: the five become the git revision pinned in quire's
   `docs/workspace-deps.toml` (as pdfrum is), copied into the pinned block here.
 - **The pane's peek budget is a constant.** `preview::load::PANE_BUDGET` (64 MiB read, one megapixel
   of picture, 500 ms) stands in for settings keys; anyview's `PeekBudget::time` is not enforced. Ends

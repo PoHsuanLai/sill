@@ -7,13 +7,13 @@
 #
 # The binary must be built with `--features debug` (that is what gives `sill run` its `--fake-ddc`,
 # so a release build never opens the real /dev/i2c-*), e.g.
-#   cargo build --release -p sill --features debug                          # with libav
+#   cargo build --release -p sill --features debug                          # with media
 #   cargo build --release -p sill --features debug --no-default-features    # without it
 #
 # Everything runs in a scratch tree (HOME and every XDG directory), on a private dbus-daemon that
 # is both session and system bus, with the fake DDC fixture. Phases:
 #   cold:   --cold fresh daemons, each timed on its FIRST open (the process has just started;
-#           libav's shared libraries, if linked, are loaded by now, but nothing is warm)
+#           nothing is warm)
 #   warm:   one daemon, one discarded open, then --samples opens with an empty query, each closed
 #   media:  the same daemon, --samples opens with a query that lists the media files, so the
 #           launcher has the recordings' rows (the preview pane's peek of a recording is a
@@ -94,7 +94,7 @@ printf '[launcher]\nfiles_backend = "fd"\nweb_search = "on"\n' >"$CONFIG/sill/se
 start_private_bus || exit 1
 {
   echo "label $LABEL, binary $SILL_BIN"
-  echo "size $(stat -c %s "$SILL_BIN") bytes, libav libs linked: $(ldd "$SILL_BIN" | grep -c 'libav\|libsw')"
+  echo "size $(stat -c %s "$SILL_BIN") bytes"
   echo "load average at start: $(cut -d' ' -f1-3 /proc/loadavg)"
 } | tee -a "$OUT_DIR/summary.txt"
 

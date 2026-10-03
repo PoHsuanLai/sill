@@ -11,7 +11,7 @@ use sill_launcher_ui::launcher::preview::load::{Look, ViewerLook};
 
 fn millis(path: &Path) -> f64 {
     let start = Instant::now();
-    let _ = ViewerLook.at(path);
+    let _ = ViewerLook::without_frames().at(path);
     start.elapsed().as_secs_f64() * 1000.0
 }
 
