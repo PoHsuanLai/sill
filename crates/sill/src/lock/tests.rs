@@ -27,6 +27,10 @@ fn the_wish_follows_the_locker_until_the_password_is_right() {
             LockWish::Held,
         ),
         (LockPhase::Locked, AuthPhase::Accepted, LockWish::Released),
+        // A verdict left over from the lock before is no unlock of a lock not yet taken: the
+        // stall where a sleep's lock stayed `locking` until the locker's 10 s give-up.
+        (LockPhase::Locking, AuthPhase::Accepted, LockWish::Held),
+        (LockPhase::Unlocked, AuthPhase::Accepted, LockWish::Released),
     ];
     for (phase, auth_phase, want) in cases {
         assert_eq!(

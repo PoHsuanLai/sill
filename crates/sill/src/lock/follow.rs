@@ -99,6 +99,13 @@ mod tests {
                 Idle,
                 (Latch::Free, LockWish::Released, Send::Now),
             ),
+            // A stale `Accepted` beside a new lock is not an unlock.
+            (
+                Latch::Free,
+                Locking,
+                Accepted,
+                (Latch::Free, LockWish::Held, Send::Now),
+            ),
             // A new lock asked for right away clears the latch.
             (
                 Latch::Unlocking,

@@ -50,12 +50,17 @@ pub enum LockWish {
 }
 
 /// The wish from the two services: held while the locker is not `Unlocked`, unless the auth
-/// service has `Accepted` (the unlock).
+/// service has `Accepted` (the unlock) on a lock that has reported `Locked`.
+///
+/// A lock that is only `Locking` is a new one, and an `Accepted` beside it is a stale verdict of
+/// the lock before (a check that came back, or a grace accept that landed, after that lock
+/// ended): it opens nothing, and must not stop the new lock from being taken. Read as the unlock
+/// it left a sleep's lock unasked for until the locker's give-up, 10 s later ([`apply`] resets
+/// the auth service when it takes the lock, which clears the stale verdict).
 pub fn lock_wish(lock: &Lock, auth: &Auth) -> LockWish {
     match (lock.phase, &auth.phase) {
-        (LockPhase::Locking | LockPhase::Locked, phase) if *phase != AuthPhase::Accepted => {
-            LockWish::Held
-        }
+        (LockPhase::Locking, _) => LockWish::Held,
+        (LockPhase::Locked, phase) if *phase != AuthPhase::Accepted => LockWish::Held,
         _ => LockWish::Released,
     }
 }
