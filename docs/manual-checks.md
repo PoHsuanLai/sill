@@ -114,6 +114,23 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   to the center twice: the second is refused, its line shaken once. Escape, Done and a click
   outside the sheet each close it. Automated at scale 2 by `dev/accept/widgets.sh --real-input`;
   by hand only the feel is left.
+- [ ] **The desktop's context menu with a real mouse**: with `sill widgets toggle-desktop` on,
+  press the secondary button on the bare wallpaper: a menu opens with its corner at the pointer
+  (and flips left or up near the right and bottom edges): Change Wallpaper..., Edit Widgets...,
+  Show View Options. Release without moving: nothing is picked. Change Wallpaper... opens COSMIC
+  Settings on its Wallpaper page (the desktop entry `com.system76.CosmicSettings.Wallpaper`; the
+  entry is absent from the menu on a machine without it). Edit Widgets... rises the sheet on the
+  monitor you pressed on, not the others. Rest on Show View Options: its submenu opens below the
+  menu (G365) with the widget size and spacing in force checked; Large grows the widgets at
+  once, and the choice survives a restart. A secondary press while the menu is open closes it
+  (on the real compositor the press ends the menu's grab) and a second press opens a new one;
+  it must never end the session (a second popup made while one holds the grab is a protocol
+  error). With two monitors, each keeps its own widget list: add World Clock on one, remove
+  the Batteries on the other, and `sill widgets toggle-desktop` off and on. Automated at scale
+  1 on two outputs by `dev/accept/widgets.sh --outputs`; by hand only the feel is left.
+- [ ] **`sill widgets edit` on the focused monitor**: with a window active on the second
+  monitor, run `sill widgets edit`: the sheet rises on that monitor (the
+  active window's output, as the daemon knows it).
 
 ## Visual review
 
@@ -125,11 +142,12 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   slots with no gap, the control center's 22 capsule with its white knob, the 10/10 grid.
   Compare side by side with the reference screenshots.
 - [ ] **Widgets by eye**: `sill widgets toggle-desktop`, then check the analog world-clock dials
-  (set `widgets.world_clocks`, add World Clock to `widgets.desktop_widgets`) and the battery
+  (set `widgets.world_clocks`, add World Clock in Edit Widgets) and the battery
   rings with real Bluetooth devices connected. The center's month is Medium (today beside the
   compact month, filling its tile); check it reads right, and whether the desktop's Small
   Batteries with two or three devices (a 2 x 2 grid, empty places as bare tracks, no numbers)
-  reads as intended.
+  reads as intended. A city on another date than yours says it under its name ("Sat 3 Oct"),
+  and "Today" otherwise; check the two lines fit under each dial.
 - [ ] **Screenshot thumbnail drag onto a real app**: show a thumbnail (take a screenshot, or
   `sill debug screenshot <a copy of a PNG>`), drag it onto a file manager window: the file
   copies there, the card leaves, the original stays; onto a terminal it inserts the path.

@@ -347,8 +347,12 @@ A settled item is deleted, not marked closed.
   line on the daemon's stderr (`sill: settings.toml: unknown key ...`), on every read, and the next
   save drops it. A value that does not parse costs only its own key; a file that is not TOML at
   all keeps the last good file in the watch and is reported invalid.
-- **Places are state, not settings**: dock pins (`$XDG_CONFIG_HOME/sill/dock.json`) and desktop
-  widget positions (`$XDG_STATE_HOME/sill/desktop-widgets.json`, per output connector).
+- **Places are state, not settings**: dock pins (`$XDG_CONFIG_HOME/sill/dock.json`) and, per
+  output connector, the desktop's widget list and cells (`$XDG_STATE_HOME/sill/desktop-widgets.json`:
+  `{"outputs":[{"output":"DP-1","widgets":[...],"places":[...]}]}`). `widgets.desktop_widgets` is
+  the default list: an output has a `widgets` list of its own once Edit Widgets has edited it
+  there, and follows the setting until then: each monitor edits its own layout, which design/28 4.1
+  (membership global) does not say. The center's `widgets.center` stays one list.
 
 ### Surfaces
 
@@ -430,12 +434,24 @@ A settled item is deleted, not marked closed.
 ### sill
 
 - **G352** The control center has no sink list: the volume service follows only the default sink.
-- **G360** No desktop context menu, so Edit Widgets opens only from the center's button and
-  `sill widgets edit`.
 - **G361** One widget of a kind per surface: the drag, regions and state file are keyed by kind.
-- **G362** `sill widgets edit` opens on the first output with the surface, not the focused one.
-- **G363** An edit writes only its own output's places.
-- **G364** World Clock redraws on the minute tick; it does not send dated entries.
+- **G364** World Clock builds its entry from the clock at each minute tick; it does not send
+  dated timeline entries, so a city's date flips on the first tick after its midnight.
+- **G365** A submenu in a `FitContent` popup opens below its parent, not beside it: the popup's
+  document is as wide as the menu, so `ds`'s submenu finds no room to the right (Q21's cause).
+  The desktop menu's Show View Options opens below, and the dock's `Options` has the same cause.
+  The fix is room in the popup (shell-host reserving the submenu's width) or `ds` placing a submenu into the
+  popup's `max`.
+- **G366** Change Wallpaper... opens COSMIC Settings (its Wallpaper page when the machine has
+  that desktop entry): sill has no wallpaper picker of its own, and the choice of app is not a
+  setting (`PICKERS` in `sill-widgets-ui/src/desktop/menu/model.rs`; design/22 has no row for
+  one).
+- **G367** A secondary press on a widget opens the desktop's menu, not the widget's own
+  (design/28 4.1: Edit "<widget>", Remove, sizes).
+- **G368** The menu opens only when none is up: a second popup made while one holds the grab is
+  a protocol error that ends the connection. A secondary press that the compositor does not
+  treat as ending the grab (KWin sends no `popup_done` for a press on the popup's own client)
+  does nothing until the menu is dismissed.
 - **G331** The desktop grid is measured when the layer mounts; a live output resize re-places
   only on the next spawn.
 - **G351** `sill idle status` counts `ScreenSaver` inhibits but does not name the apps.

@@ -20,6 +20,15 @@ use crate::desktop::arrange::LayerPoint;
 /// The document's `data-surface`: what a user stylesheet names the menu by.
 const DESKTOP_MENU: &str = "desktop-menu";
 
+/// Whether the layer has its menu's popup up. A second popup may not be created while one holds
+/// the grab (xdg-shell: the compositor ends the connection), so a press that would open another
+/// waits for the first one to be gone.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Popup {
+    Up,
+    Down,
+}
+
 /// Where the carried-out asks go: the services (the launch), the Edit Widgets link (its opening
 /// and its writer), and the output the menu belongs to.
 #[derive(Clone)]
@@ -63,12 +72,17 @@ pub(in crate::desktop) fn use_desktop_menu(
         })
     });
     deps.set(Deps { world, look });
-    use_hook(move || listen(deps, outward, inbox));
+    let mut popup = use_hook(|| CopyValue::new(Popup::Down));
+    use_hook(move || listen(deps, popup, outward, inbox));
     let to_open = reports.clone();
     Callback::new(move |at: LayerPoint| {
         let Some(surface) = surface.clone() else {
             return;
         };
+        if *popup.peek() == Popup::Up {
+            return;
+        }
+        popup.set(Popup::Up);
         let held = deps.peek().clone();
         let mut root = HostRoot::new(context_menu_popup::<MenuWorld>).context(ContextMenuLink {
             model: held.world,
@@ -83,9 +97,11 @@ pub(in crate::desktop) fn use_desktop_menu(
     })
 }
 
-/// The task that carries out each pick the popup reports, over the world the layer last drew.
+/// The task that carries out each pick the popup reports, over the world the layer last drew,
+/// and notes when the popup is gone.
 fn listen(
     deps: CopyValue<Deps>,
+    popup: CopyValue<Popup>,
     outward: Outward,
     inbox: CopyValue<Option<mpsc::UnboundedReceiver<MenuReport<super::model::DesktopPick>>>>,
 ) {
@@ -93,13 +109,17 @@ fn listen(
     let Some(mut rx) = inbox.write().take() else {
         return;
     };
+    let mut popup = popup;
     spawn(async move {
         while let Some(report) = rx.recv().await {
-            if let MenuReport::Picked(pick) = report {
-                let world = deps.peek().world.clone();
-                for command in commands(pick, &world, outward.output) {
-                    carry_out(&outward, command);
+            match report {
+                MenuReport::Picked(pick) => {
+                    let world = deps.peek().world.clone();
+                    for command in commands(pick, &world, outward.output) {
+                        carry_out(&outward, command);
+                    }
                 }
+                MenuReport::Dismissed | MenuReport::Gone => popup.set(Popup::Down),
             }
         }
     });

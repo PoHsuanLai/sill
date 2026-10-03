@@ -36,10 +36,23 @@
 #      (dev/out/widgets-drag-guide-cosmic.png), and a screenshot after
 #      (dev/out/widgets-drag-cosmic.png).
 #   6. 5 s idle: 0 frames on the desktop layer.
-#   7. `sill widgets edit`: `sill-edit-widgets-<out>` maps, showing quire's widget gallery beside
+#   7. World Clock on the desktop (`world_clocks` = Pacific/Kiritimati and Pacific/Pago_Pago, and the
+#      daemon's TZ is Pacific/Kiritimati): the first city is here, its day line says "Today"; the
+#      second, 25 hours behind, is on another date and its day line says it ("Fri 2 Oct"), which is
+#      wider. Measured on the layer's capture (dev/out/widgets-clock-dates-cosmic.png).
+#   8. The desktop's context menu, through shell-host's real pointer path (`sill debug click
+#      --button secondary` on the layer): a secondary press on the bare desktop opens a popup of
+#      three entries, Change Wallpaper..., Edit Widgets... and Show View Options
+#      (dev/out/widgets-desktop-menu-cosmic.png). Change Wallpaper... starts the wallpaper picker
+#      (a scratch desktop entry standing in for COSMIC Settings' Wallpaper page, whose Exec writes a
+#      marker); Edit Widgets... maps `sill-edit-widgets-<out>` on this output; hovering Show View
+#      Options opens its submenu (dev/out/widgets-view-options-cosmic.png) and picking Large
+#      writes `widgets.desktop_cell_px = 196`, the layer's frames grow to match, and picking
+#      Standard puts 164 back.
+#   9. `sill widgets edit`: `sill-edit-widgets-<out>` maps, showing quire's widget gallery beside
 #      the desktop's widgets (a capture, and dev/out/widgets-edit-cosmic.png); 3 s idle on it: 0
 #      frames; `sill widgets edit-close` unmaps it again.
-#   8. A second toggle removes the surface and writes `widgets.desktop = "off"`.
+#  10. A second toggle removes the surface and writes `widgets.desktop = "off"`.
 #
 # --real-input: real input at scale 2, on shell-host's private headless KWin
 # (scripts/dev/kwin-virtual.sh, 3840 x 2160, its one output set to scale 2 with kscreen-doctor on
@@ -66,27 +79,45 @@
 #   4b. A real click on "World Clock" in the gallery's list: one preview, at Medium (344 wide),
 #      and no size control (widgets-kwin-s2-one-size.png).
 #   5. A real click on "Add to Desktop": the button says "Added" with its check (captured
-#      at once, widgets-kwin-s2-added.png), the daemon writes `world_clock` into
-#      `widgets.desktop_widgets`, and the card rises on the desktop above the sheet: the layer
-#      paints the rise, then shows three frames (widgets-kwin-s2-desktop-added.png).
-#   6. A real click on the Batteries row's "Remove" in the Desktop list: `battery` leaves
-#      `widgets.desktop_widgets`, its card plays its exit (the layer paints it), and the
+#      at once, widgets-kwin-s2-added.png), the daemon writes `world_clock` into this
+#      output's own widget list (`desktop-widgets.json`), and the card rises on the desktop above
+#      the sheet: the layer paints the rise, then shows three frames
+#      (widgets-kwin-s2-desktop-added.png).
+#   6. A real click on the Batteries row's "Remove" in the Desktop list: `battery` leaves the
+#      output's list, its card plays its exit (the layer paints it), and the
 #      layer shows two frames, the Calendar and the clock (widgets-kwin-s2-desktop-removed.png,
 #      widgets-kwin-s2-removed.png).
 #   7. A real Escape closes Edit Widgets (it unmaps).
 #   8. 5 s idle: 0 frames on the desktop layer.
 #
+# --outputs: two outputs, each its own monitor's desktop and its own Edit Widgets, on the same
+# headless KWin (`KWIN_VIRTUAL_OUTPUTS=2`: two 1920 x 1080 outputs at scale 1; shell-host's
+# kwin-virtual.sh passes it to `kwin_wayland --output-count`), driven by `sill debug click` (the
+# real pointer path, no fake-input client), on the same private buses and scratch tree.
+#
+#   1. Both outputs have a desktop layer, each showing the setting's Calendar and Batteries.
+#   2. A secondary press on the second output's desktop and a pick of Edit Widgets... maps
+#      `sill-edit-widgets-<second>` and not the first output's.
+#   3. In that sheet, World Clock and Add to Desktop: the second output's own list in
+#      `desktop-widgets.json` is the three widgets, the first output has none (it follows the
+#      setting, which is untouched), and the second layer shows three frames, the first two
+#      (dev/out/widgets-outputs-sheet-cosmic.png).
+#   4. On the first output the same way, Remove on its Batteries: its list is the Calendar alone,
+#      the second output still has its three.
+#
 # Exit 0 only when every step passed; 1 on a failure.
 #
 # Usage: dev/nested.sh && dev/accept/widgets.sh
 #        dev/accept/widgets.sh --real-input
+#        dev/accept/widgets.sh --outputs
 set -uo pipefail
 # shellcheck source=dev/lib/all.sh
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/all.sh"
 case "${1:-}" in
   --real-input) MODE=real ;;
+  --outputs) MODE=outputs ;;
   "") MODE=nested ;;
-  *) echo "usage: dev/accept/widgets.sh [--real-input]" >&2; exit 2 ;;
+  *) echo "usage: dev/accept/widgets.sh [--real-input|--outputs]" >&2; exit 2 ;;
 esac
 OUT_DIR="$SILL_TARGET/accept-widgets"
 SHOTS="$SILL_REPO/dev/out"
@@ -200,6 +231,17 @@ build_nested() {
 
 start_nested_daemon() {
   backdrop_seed "$CONFIG" || return 1
+  # The daemon's zone is Pacific/Kiritimati (UTC+14): a World Clock city there is "Today", and
+  # one in Pacific/Pago_Pago (UTC-11, 25 hours behind) is always on another date.
+  IN_ENV_EXTRA+=(TZ=Pacific/Kiritimati)
+  # The wallpaper picker the desktop menu opens, a scratch desktop entry named as COSMIC
+  # Settings' Wallpaper page whose Exec writes a marker: no real app is started.
+  PICKER_MARK="$OUT_DIR/picker-opened"
+  mkdir -p "$DATA/applications"
+  printf '#!/bin/sh\necho opened >"%s"\n' "$PICKER_MARK" >"$OUT_DIR/picker.sh"
+  chmod +x "$OUT_DIR/picker.sh"
+  printf '[Desktop Entry]\nType=Application\nName=Wallpaper\nExec=%s\n' "$OUT_DIR/picker.sh" \
+    >"$DATA/applications/com.system76.CosmicSettings.Wallpaper.desktop"
   in_env "$PLAYER" sillaccept --title "So What" --artist "Miles Davis" --album "Kind of Blue" &
   PLAYER_PID=$!
   launch_daemon || return 1
@@ -445,7 +487,205 @@ step_desktop_idle() {
   [ "$(( f1 - f0 ))" = 0 ]
 }
 
+# The width of each World Clock city's day line in the capture $1 of the layer, "HERE BEHIND":
+# the first city's (at the frame $2's left) and the second's (at its right), measured on the
+# capture over a plain ground. Each column is the dial, the city, its day line and its offset, in
+# rows of ink at least 6 tall; the day line is the third.
+clock_day_widths() {
+  python3 - "$1" "$2" <<'EOF'
+import sys
+from PIL import Image
+img = Image.open(sys.argv[1]).convert("RGBA")
+ground = Image.new("RGBA", img.size, (74, 98, 138, 255))
+ground.alpha_composite(img)
+rgb = ground.convert("RGB")
+l, t, r, b = map(int, sys.argv[2].split())
+def lines(x0, x1):
+    out, run = [], None
+    for y in range(t + 8, b - 4):
+        row = [rgb.getpixel((x, y)) for x in range(x0, x1)]
+        mid = sorted(row)[len(row) // 2]
+        xs = [x0 + i for i, p in enumerate(row) if sum(abs(p[k] - mid[k]) for k in range(3)) > 45]
+        if len(xs) >= 2:
+            run = [y, y, min(xs), max(xs)] if run is None else [run[0], y, min(run[2], min(xs)), max(run[3], max(xs))]
+        elif run is not None:
+            out.append(run); run = None
+    if run is not None:
+        out.append(run)
+    return [row for row in out if row[1] - row[0] + 1 >= 6]
+widths = []
+for x0, x1 in ((l + 6, l + 120), (r - 120, r - 6)):
+    day = lines(x0, x1)[2]
+    widths.append(day[3] - day[2] + 1)
+print(*widths)
+EOF
+}
+
 # 7.
+step_clock_dates() {
+  local log="$OUT_DIR/clock-dates.log" frame here behind
+  : >"$log"
+  cat >"$CONFIG/sill/settings.toml" <<'TOML'
+[widgets]
+desktop = "on"
+desktop_widgets = ["calendar", "battery", "world_clock"]
+world_clocks = "Pacific/Kiritimati; Pacific/Pago_Pago"
+TOML
+  sill reload >>"$log" 2>&1 || return 1
+  sleep 2
+  capture_patient "$LAYER" "$OUT_DIR/clock-dates.png" || return 1
+  frame=$(desktop_frames "$OUT_DIR/clock-dates.png" | awk '$3 - $1 > 300 { print; exit }')
+  [ -n "$frame" ] || { echo "no World Clock frame (over 300 px wide) on $LAYER" | tee -a "$log" >&2; return 1; }
+  shot "$SHOTS/widgets-clock-dates-cosmic.png" || echo "screenshot failed" >&2
+  read -r here behind <<<"$(clock_day_widths "$OUT_DIR/clock-dates.png" "$frame")"
+  echo "World Clock at $frame: the city here has a day line ${here:-?} px wide (\"Today\"), the city 25 hours behind ${behind:-?} px (a date)" \
+    | tee -a "$log" >&2
+  [ "${here:-99}" -le 37 ] && [ "${behind:-0}" -ge 40 ]
+}
+
+# Where the desktop menu is opened (layer px): bare desktop, clear of the widgets at the right.
+MENU_AT="300 300"
+
+# The popup's lines of text, one Y each (popup px, the middle of the line), top to bottom, then
+# "x" and the card's middle X: runs of at least 6 rows in the card's opaque pixels where more than
+# 8 differ from the card's own ground on that row. A highlighted entry is one run its own height.
+menu_lines() {
+  python3 - "$1" <<'EOF'
+import sys
+from PIL import Image
+im = Image.open(sys.argv[1]).convert("RGBA")
+l, t, r, b = im.getchannel("A").point(lambda a: 255 if a > 200 else 0).getbbox()
+runs, run = [], None
+for y in range(t, b):
+    ground = next((im.getpixel((x, y)) for x in (l + 3, l + 11) if im.getpixel((x, y))[3] > 200), None)
+    n = 0 if ground is None else sum(
+        1 for x in range(l, r)
+        if im.getpixel((x, y))[3] > 200 and sum(abs(im.getpixel((x, y))[k] - ground[k]) for k in range(3)) > 40)
+    if n > 8:
+        run = [y, y] if run is None else [run[0], y]
+    elif run is not None:
+        runs.append(run); run = None
+if run is not None:
+    runs.append(run)
+for a, z in runs:
+    if z - a + 1 >= 6:
+        print((a + z) // 2)
+print("x", (l + r) // 2)
+EOF
+}
+
+# Opens the desktop menu of layer $1 with a secondary press at MENU_AT and captures its popup into
+# $2 once it has been drawn for half a second: its entries take a press only after their
+# opening fade.
+menu_open_on() {
+  sill debug click "$1" $MENU_AT --button secondary >>"$OUT_DIR/menu.log" 2>&1 || return 1
+  for _ in $(seq 40); do
+    if sill debug capture "$1/popup" "$2" >/dev/null 2>&1; then
+      sleep 0.5
+      sill debug capture "$1/popup" "$2" >>"$OUT_DIR/menu.log" 2>&1 && return 0
+    fi
+    sleep 0.1
+  done
+  echo "the desktop menu never opened on $1" | tee -a "$OUT_DIR/menu.log" >&2
+  return 1
+}
+
+# The same on this output's layer.
+menu_open() { menu_open_on "$LAYER" "$1"; }
+
+# Waits up to 4 s for the desktop menu's popup to be gone.
+menu_closed() {
+  for _ in $(seq 40); do
+    sill debug capture "$LAYER/popup" "$OUT_DIR/popup-gone.png" >/dev/null 2>&1 || return 0
+    sleep 0.1
+  done
+  echo "the desktop menu is still up" | tee -a "$OUT_DIR/menu.log" >&2
+  return 1
+}
+
+# `widgets.desktop_cell_px` in the scratch settings.
+setting_cell_px() {
+  python3 -c '
+import sys, tomllib
+with open(sys.argv[1], "rb") as f:
+    print(tomllib.load(f).get("widgets", {}).get("desktop_cell_px", 164))' "$CONFIG/sill/settings.toml"
+}
+
+# Waits up to 5 s for `widgets.desktop_cell_px` to be $1.
+wait_cell_px() {
+  for _ in $(seq 25); do [ "$(setting_cell_px)" = "$1" ] && return 0; sleep 0.2; done
+  return 1
+}
+
+# The widest frame on the layer now, in px.
+widest_frame() {
+  sill debug capture "$LAYER" "$OUT_DIR/frames-now.png" >>"$OUT_DIR/menu.log" 2>&1 || return 1
+  desktop_frames "$OUT_DIR/frames-now.png" | awk '{ w = $3 - $1 + 1; if (w > m) m = w } END { print m }'
+}
+
+# 8.
+step_desktop_menu() {
+  local log="$OUT_DIR/menu.log" edit="sill-edit-widgets-$NAME" lines count x
+  local change edit_y view_y large standard before
+  : >"$log"
+  rm -f "$PICKER_MARK" "$OUT_DIR/menu-edit.png"
+  # The menu: three entries on the bare desktop.
+  menu_open "$OUT_DIR/menu.png" || return 1
+  shot "$SHOTS/widgets-desktop-menu-cosmic.png" || echo "screenshot failed" >&2
+  lines=$(menu_lines "$OUT_DIR/menu.png")
+  count=$(grep -vc '^x' <<<"$lines")
+  x=$(sed -n 's/^x //p' <<<"$lines")
+  change=$(sed -n 1p <<<"$lines"); edit_y=$(sed -n 2p <<<"$lines"); view_y=$(sed -n 3p <<<"$lines")
+  echo "the desktop menu: $count lines at $(grep -v '^x' <<<"$lines" | tr '\n' ' ')(popup px; middle x $x)" | tee -a "$log" >&2
+  [ "$count" = 3 ] || return 1
+  # Change Wallpaper... starts the picker.
+  sill debug click "$LAYER/popup" "$x" "$change" >>"$log" 2>&1 || return 1
+  for _ in $(seq 50); do [ -e "$PICKER_MARK" ] && break; sleep 0.1; done
+  [ -e "$PICKER_MARK" ] || { echo "Change Wallpaper never started the picker" | tee -a "$log" >&2; return 1; }
+  menu_closed || return 1
+  echo "Change Wallpaper... started the picker" | tee -a "$log" >&2
+  # Edit Widgets... maps the sheet on this output.
+  menu_open "$OUT_DIR/menu.png" || return 1
+  sill debug click "$LAYER/popup" "$x" "$edit_y" >>"$log" 2>&1 || return 1
+  for _ in $(seq 40); do
+    sill debug capture "$edit" "$OUT_DIR/menu-edit.png" >>"$log" 2>&1 && break
+    sleep 0.1
+  done
+  [ -s "$OUT_DIR/menu-edit.png" ] || { echo "Edit Widgets never mapped $edit" | tee -a "$log" >&2; return 1; }
+  menu_closed || return 1
+  sill widgets edit-close >>"$log" 2>&1 || return 1
+  sleep 0.8
+  echo "Edit Widgets... mapped $edit" | tee -a "$log" >&2
+  # Show View Options: hovered, its submenu opens; Large is picked.
+  menu_open "$OUT_DIR/menu.png" || return 1
+  sill debug pointer "$LAYER/popup" "$x" "$view_y" >>"$log" 2>&1 || return 1
+  sleep 1
+  sill debug capture "$LAYER/popup" "$OUT_DIR/menu-view.png" >>"$log" 2>&1 || return 1
+  shot "$SHOTS/widgets-view-options-cosmic.png" || echo "screenshot failed" >&2
+  lines=$(menu_lines "$OUT_DIR/menu-view.png")
+  count=$(grep -vc '^x' <<<"$lines")
+  echo "View Options hovered: $count lines (3 entries, then the submenu's two headers and six choices)" | tee -a "$log" >&2
+  [ "$count" = 11 ] || return 1
+  before=$(widest_frame)
+  large=$(sed -n 7p <<<"$lines")
+  sill debug click "$LAYER/popup" "$x" "$large" >>"$log" 2>&1 || return 1
+  wait_cell_px 196 || { echo "Large did not write widgets.desktop_cell_px = 196 (it is $(setting_cell_px))" | tee -a "$log" >&2; return 1; }
+  menu_closed || return 1
+  sleep 1.5
+  echo "Large: widgets.desktop_cell_px = 196; the widest frame was $before px, is $(widest_frame) px" | tee -a "$log" >&2
+  [ "$(widest_frame)" -gt "$before" ] || return 1
+  # And Standard puts it back.
+  menu_open "$OUT_DIR/menu.png" || return 1
+  sill debug pointer "$LAYER/popup" "$x" "$view_y" >>"$log" 2>&1 || return 1
+  sleep 1
+  sill debug capture "$LAYER/popup" "$OUT_DIR/menu-view.png" >>"$log" 2>&1 || return 1
+  standard=$(menu_lines "$OUT_DIR/menu-view.png" | sed -n 6p)
+  sill debug click "$LAYER/popup" "$x" "$standard" >>"$log" 2>&1 || return 1
+  wait_cell_px 164 || { echo "Standard did not put widgets.desktop_cell_px back to 164 (it is $(setting_cell_px))" | tee -a "$log" >&2; return 1; }
+  menu_closed
+}
+
+# 9.
 step_edit() {
   local log="$OUT_DIR/edit.log" edit="sill-edit-widgets-$NAME" f0 f1 up=
   : >"$log"
@@ -473,7 +713,7 @@ step_edit() {
   [ "$(( f1 - f0 ))" = 0 ]
 }
 
-# 8.
+# 10.
 step_toggle_off() {
   local log="$OUT_DIR/toggle-off.log"
   kill_terms
@@ -504,7 +744,7 @@ run_nested() {
   start_private_bus || exit 1
   start_nested_daemon || { cleanup_nested; exit 1; }
   run_steps step_center_default step_center_all step_center_idle step_toggle_on \
-    step_drag step_desktop_idle step_edit step_toggle_off
+    step_drag step_desktop_idle step_clock_dates step_desktop_menu step_edit step_toggle_off
   status=$STATUS
   cleanup_nested || status=1
   echo "logs in $OUT_DIR; screenshots $SHOTS/widgets-center-cosmic.png, $SHOTS/widgets-center-all-cosmic.png, $SHOTS/widgets-desktop-cosmic.png, $SHOTS/widgets-edit-cosmic.png"
@@ -599,13 +839,25 @@ for l, r in bands:
 EOF
 }
 
-# The kinds in `widgets.desktop_widgets` in the scratch settings, space-separated.
+# The kinds output $1's desktop shows ($NAME without an argument), space-separated: its own list
+# in the scratch state file once Edit Widgets has edited it, else `widgets.desktop_widgets` in
+# the scratch settings.
 desktop_kinds() {
   python3 -c '
-import sys, tomllib
-with open(sys.argv[1], "rb") as f:
-    print(" ".join(tomllib.load(f).get("widgets", {}).get("desktop_widgets", ["calendar", "battery"])))' \
-    "$CONFIG/sill/settings.toml"
+import json, sys, tomllib
+settings, state, name = sys.argv[1:4]
+kinds = None
+try:
+    with open(state) as f:
+        for out in json.load(f).get("outputs", []):
+            if out.get("output") == name and "widgets" in out:
+                kinds = out["widgets"]
+except (OSError, ValueError):
+    pass
+if kinds is None:
+    with open(settings, "rb") as f:
+        kinds = tomllib.load(f).get("widgets", {}).get("desktop_widgets", ["calendar", "battery"])
+print(" ".join(kinds))' "$CONFIG/sill/settings.toml" "$STATE/sill/desktop-widgets.json" "${1:-$NAME}"
 }
 
 # A capture over a plain backdrop, cropped to BOX ("L T R B", device px), into FILE.
@@ -814,7 +1066,7 @@ sys.exit(0 if n == 1 and abs(w[0] - 344) <= 6 else 1)' "$run"
 }
 
 # 5. A real click on "Add to Desktop": the button says "Added" with its check (captured at
-# once, inside quire's 900 ms hold), the daemon writes `world_clock`, and the card rises into
+# once, inside quire's 900 ms hold), the daemon writes `world_clock` into the output's list, and the card rises into
 # its place on the desktop above the sheet: the layer paints the rise (frames), then 3 frames.
 step_real_add() {
   local left top before after frames_now f0 f1
@@ -852,7 +1104,7 @@ print(sum(1 for v in d.getdata() if v))' "$OUT_DIR/add-button.png" "$OUT_DIR/add
     && [ "$changed" -gt 200 ] && [ $(( f1 - f0 )) -ge 3 ]
 }
 
-# 6. A real click on the Batteries row's Remove: `battery` leaves the key, its card plays its
+# 6. A real click on the Batteries row's Remove: `battery` leaves the output's list, its card plays its
 # exit where it stood (the layer paints it: frames), and then the layer shows 2 frames.
 step_real_remove() {
   local left top before after frames_now f0 f1
@@ -932,4 +1184,158 @@ run_real() {
   exit "$status"
 }
 
-if [ "$MODE" = real ]; then run_real; else run_nested; fi
+# --- two outputs on the headless KWin ---
+
+# The desktop layers' output names, one per line, in the order the daemon spawned them.
+layer_outputs() {
+  sill debug stats | python3 -c '
+import json, sys
+for row in json.loads(sys.stdin.read())["v"]:
+    if row["surface"].startswith("sill-desktop-widgets-"):
+        print(row["surface"][len("sill-desktop-widgets-"):])'
+}
+
+# How many widget frames the layer of output $1 shows now.
+frames_on() {
+  capture_patient "sill-desktop-widgets-$1" "$OUT_DIR/frames-$1.png" || return 1
+  desktop_cards "$OUT_DIR/frames-$1.png" | wc -l
+}
+
+# Edit Widgets' sheet, in logical px from its plate's top-left corner (quire's gallery in the
+# 1040 x 400 sheet): the list's World Clock entry, "Add to Desktop" under the preview, and the
+# Remove of the Desktop list's second row. The plate's corner is read off a capture of the
+# sheet (scale 1: its pixels are logical).
+SHEET_WORLD_CLOCK="60 96"
+SHEET_ADD_DESKTOP="383 311"
+SHEET_REMOVE_SECOND="995 144"
+
+# "L T" of the sheet's plate in the capture $1.
+sheet_corner() {
+  python3 -c '
+import sys
+from PIL import Image
+l, t, _, _ = Image.open(sys.argv[1]).getchannel("A").point(lambda a: 255 if a > 200 else 0).getbbox()
+print(l, t)' "$1"
+}
+
+# Presses the sheet of output $1 at the offset "DX DY" from its plate's corner.
+sheet_click() {
+  local edit="sill-edit-widgets-$1" left top dx dy
+  capture_patient "$edit" "$OUT_DIR/sheet-$1.png" || return 1
+  read -r left top <<<"$(sheet_corner "$OUT_DIR/sheet-$1.png")"
+  read -r dx dy <<<"$2"
+  sill debug click "$edit" $(( left + dx )) $(( top + dy )) >>"$OUT_DIR/outputs.log" 2>&1
+}
+
+# Opens the desktop menu on output $1 and picks its second entry, Edit Widgets..., then waits
+# for that output's sheet to map and for the menu to be gone.
+edit_from_menu() {
+  local name="$1" layer="sill-desktop-widgets-$1" lines x y
+  menu_open_on "$layer" "$OUT_DIR/menu-$name.png" || return 1
+  lines=$(menu_lines "$OUT_DIR/menu-$name.png")
+  x=$(sed -n 's/^x //p' <<<"$lines"); y=$(sed -n 2p <<<"$lines")
+  sill debug click "$layer/popup" "$x" "$y" >>"$OUT_DIR/outputs.log" 2>&1 || return 1
+  wait_presented "sill-edit-widgets-$name" 40 up || { echo "Edit Widgets never mapped on $name" >&2; return 1; }
+  for _ in $(seq 40); do
+    capture_patient "$layer/popup" "$OUT_DIR/popup-gone.png" || return 0
+    sleep 0.1
+  done
+  echo "the menu on $name is still up" >&2
+  return 1
+}
+
+# `widgets.desktop_widgets` in the scratch settings, space-separated: the default list for an
+# output that has none of its own.
+setting_desktop_widgets() {
+  python3 -c '
+import sys, tomllib
+with open(sys.argv[1], "rb") as f:
+    print(" ".join(tomllib.load(f).get("widgets", {}).get("desktop_widgets", ["calendar", "battery"])))' \
+    "$CONFIG/sill/settings.toml"
+}
+
+# 1.
+step_outputs_layers() {
+  local log="$OUT_DIR/outputs.log"
+  : >"$log"
+  FIRST=$(layer_outputs | sed -n 1p)
+  SECOND=$(layer_outputs | sed -n 2p)
+  [ -n "$SECOND" ] || { echo "only one output has a desktop layer: $(layer_outputs | tr '\n' ' ') (shell-host's kwin-virtual.sh needs KWIN_VIRTUAL_OUTPUTS)" | tee -a "$log" >&2; return 1; }
+  echo "two outputs, $FIRST and $SECOND, each with a desktop layer showing $(frames_on "$FIRST") and $(frames_on "$SECOND") frames (the setting's Calendar and Batteries)" \
+    | tee -a "$log" >&2
+  [ "$(frames_on "$FIRST")" = 2 ] && [ "$(frames_on "$SECOND")" = 2 ]
+}
+
+# 2. A secondary press on the second output's desktop opens Edit Widgets there and only there.
+step_outputs_menu_opens_its_own_sheet() {
+  local log="$OUT_DIR/outputs.log"
+  edit_from_menu "$SECOND" || return 1
+  if capture_patient "sill-edit-widgets-$FIRST" "$OUT_DIR/probe.png"; then
+    echo "Edit Widgets is mapped on $FIRST too" | tee -a "$log" >&2; return 1
+  fi
+  capture_patient "sill-edit-widgets-$SECOND" "$OUT_DIR/sheet-$SECOND.png" || return 1
+  echo "the menu on $SECOND mapped Edit Widgets on $SECOND and not on $FIRST" | tee -a "$log" >&2
+}
+
+# 3. Add World Clock to the second output's desktop: its own list in the state file gets it, the
+# first output's has none, and the setting is as it was; the second layer shows three frames, the
+# first two.
+step_outputs_add_on_the_second() {
+  local log="$OUT_DIR/outputs.log" kinds
+  sheet_click "$SECOND" "$SHEET_WORLD_CLOCK" || return 1
+  sleep 1
+  sheet_click "$SECOND" "$SHEET_ADD_DESKTOP" || return 1
+  for _ in $(seq 30); do kinds=$(desktop_kinds "$SECOND"); [[ "$kinds" == *world_clock* ]] && break; sleep 0.2; done
+  sleep 2
+  capture_patient "sill-edit-widgets-$SECOND" "$OUT_DIR/sheet-added-$SECOND.png" || return 1
+  crop_over_ground "$OUT_DIR/sheet-added-$SECOND.png" "$SHOTS/widgets-outputs-sheet-cosmic.png" "0 0 1920 988"
+  echo "$SECOND's list: '$kinds'; $FIRST's: '$(desktop_kinds "$FIRST")'; the setting widgets.desktop_widgets: '$(setting_desktop_widgets)'; frames $(frames_on "$SECOND") and $(frames_on "$FIRST")" \
+    | tee -a "$log" >&2
+  sill widgets edit-close >>"$log" 2>&1 || return 1
+  sleep 1
+  [ "$kinds" = "calendar battery world_clock" ] && [ "$(desktop_kinds "$FIRST")" = "calendar battery" ] \
+    && [ "$(frames_on "$SECOND")" = 3 ] && [ "$(frames_on "$FIRST")" = 2 ] \
+    && [ "$(setting_desktop_widgets)" = "calendar battery" ]
+}
+
+# 4. Remove the Batteries from the first output's desktop: its list loses them, the second
+# output's keeps its three.
+step_outputs_remove_on_the_first() {
+  local log="$OUT_DIR/outputs.log" kinds
+  edit_from_menu "$FIRST" || return 1
+  sheet_click "$FIRST" "$SHEET_REMOVE_SECOND" || return 1
+  for _ in $(seq 30); do kinds=$(desktop_kinds "$FIRST"); [ "$kinds" = calendar ] && break; sleep 0.2; done
+  sleep 2
+  echo "$FIRST's list: '$kinds'; $SECOND's: '$(desktop_kinds "$SECOND")'; frames $(frames_on "$FIRST") and $(frames_on "$SECOND")" \
+    | tee -a "$log" >&2
+  sill widgets edit-close >>"$log" 2>&1
+  [ "$kinds" = calendar ] && [ "$(desktop_kinds "$SECOND")" = "calendar battery world_clock" ] \
+    && [ "$(frames_on "$FIRST")" = 1 ] && [ "$(frames_on "$SECOND")" = 3 ]
+}
+
+cleanup_outputs() {
+  stop_daemon
+  stop_kwin
+  scratch_drop
+}
+
+run_outputs() {
+  build || exit 1
+  KWIN_VIRTUAL_OUTPUTS=2 start_kwin || { stop_kwin; scratch_drop; exit 1; }
+  mkdir -p "$CONFIG/sill"
+  printf '[widgets]\ndesktop = "on"\n[notifications]\nserver = "passive"\n' >"$CONFIG/sill/settings.toml"
+  launch_daemon || { cleanup_outputs; exit 1; }
+  sleep 3
+  run_steps step_outputs_layers step_outputs_menu_opens_its_own_sheet step_outputs_add_on_the_second \
+    step_outputs_remove_on_the_first
+  status=$STATUS
+  cleanup_outputs
+  echo "logs and captures in $OUT_DIR; screenshot $SHOTS/widgets-outputs-sheet-cosmic.png"
+  exit "$status"
+}
+
+case "$MODE" in
+  real) run_real ;;
+  outputs) run_outputs ;;
+  nested) run_nested ;;
+esac

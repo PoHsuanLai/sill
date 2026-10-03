@@ -272,13 +272,14 @@ Look a concept up here before writing it. If it has a home, extend it.
 | Spawning and closing surfaces per output | `sill::daemon::surfaces` (generic over `Surface`) |
 | Which surfaces exist on which output | `sill::daemon::outputs` |
 | A timed pure state machine and its timer; a machine's `Stamp` and the `FrameClock` that makes it | quire: `ds::base::machine` (`Machine`, `Elapsed`), `ds::machine` (`use_machine`, `MachineRef`), `ds::base::time::stamp` (`Stamp`, `FrameClock`); sill has none of its own |
-| Popup menus (bar, tray, dock, launcher actions) | `sill_ui_kit::menu` (`MenuModel`, `MenuPopup<M>`) over `ds`'s `menu_track` |
+| Popup menus (bar, tray, dock, launcher actions) | `sill_ui_kit::menu` (`MenuModel`, `MenuPopup<M>`) over `ds`'s `menu_track`; a context menu a layer opens at its pointer is `context_menu_popup::<M>` (the popup root, reporting over a channel) |
 | Popup sizing | shell-host `FitContent`; no estimation code |
 | App icons, look, cache | `sill_ui_kit::app_icons` |
 | Status glyph props from service state | `sill_ui_kit::status` over `ds-shell` glyphs |
 | Notification card | `sill_ui_kit::notification_card` |
 | Widget provider, `Card<P>`, registry, layout mapping | `sill_ui_kit::widgets` |
-| Desktop widget grid; Edit Widgets sheet | `sill_widgets_ui::{desktop, edit}` |
+| Desktop widget grid; the desktop's context menu; Edit Widgets sheet | `sill_widgets_ui::{desktop, desktop::menu, edit}` |
+| Where each output's desktop widgets and their cells are kept | `sill_ui_kit::links::PlacementFile` (`desktop-widgets.json`: per output a widget list, once Edit Widgets has edited it, and the cells) |
 | Control-center module | `sill_bar::control_center::modules::<name>`, picked by `module(kind)` |
 | Dock magnification | `sill_dock::magnify` |
 | Switcher app derivation | `sill_overlays::switcher::apps` |
@@ -636,12 +637,12 @@ Each ends with its tests. Name the concept once and use it in every file name be
 | `dock` | `sill-dock` | Bottom | Magnify, machines, context menu, badges, running dots |
 | `launcher`, `launcher_catcher` | `sill-launcher-ui` | Overlay | Panel plus click catcher, one `Reveal` link |
 | `banners`, `notification_center`, `screenshot_thumb` | `sill-notify-ui` | Overlay | Cards from `sill-ui-kit::notification_card` |
-| `desktop_widgets`, `edit_widgets` | `sill-widgets-ui` | Bottom, Overlay | Providers from `sill-ui-kit::widgets` |
+| `desktop_widgets`, `edit_widgets` | `sill-widgets-ui` | Bottom, Overlay | Providers from `sill-ui-kit::widgets`; the desktop layer takes the pointer over the whole output and opens its context menu (a `MenuPopup` of `desktop::menu`) on a secondary press; each output's layer and sheet follow that output's own widget list |
 | `osd`, `power_menu`, `polkit_prompt`, `confirm`, `switcher`, `idle_dim`, `hot_corners`, `wallpaper` | `sill-overlays` | Overlay (wallpaper Background) | Hot corners: one slot per corner. `confirm` is `confirm_sheet/`: intentd's question on quire's `Sheet`, mapped on the banners' output |
 | `lock` | `sill-overlays` | session lock | `LockSurface`; one per output through shell-host |
 
 The notification center draws widgets and the desktop layer draws them too, so providers live
-in `sill-ui-kit`, and the center's "Edit Widgets" asks through `links::edit_widgets`.
+in `sill-ui-kit`, and the center's "Edit Widgets" and the desktop menu's ask through `links::edit_widgets`, which also carries the desktop's writes (`WidgetsChange`).
 
 ## 8. The daemon
 
