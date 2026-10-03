@@ -62,6 +62,7 @@ fn provider(files: FilesChoice, index: Arc<dyn FileIndex>) -> FilesProvider {
         frecency: Arc::new(Mutex::default()),
         source: IndexSource::Given(index),
         home: PathBuf::from("/home/p"),
+        viewer_store: PathBuf::from("/nowhere/anyview"),
     }
 }
 
@@ -174,4 +175,106 @@ fn the_fake_index_keeps_to_home() {
         .map(|i| i.subtitle.as_str())
         .collect();
     assert_eq!(subtitles, ["~/a"]);
+}
+
+/// A viewer store under `dir` holding `entries` (newest first), as the viewer writes it.
+fn viewer_store(dir: &std::path::Path, entries: Vec<anyview_store::HistoryEntry>) -> PathBuf {
+    let store = dir.join("anyview");
+    std::fs::create_dir_all(&store).unwrap_or_else(|e| panic!("{e}"));
+    let history = anyview_store::History { entries };
+    let json = serde_json::to_string(&history).unwrap_or_else(|e| panic!("{e}"));
+    std::fs::write(store.join("history.json"), json).unwrap_or_else(|e| panic!("{e}"));
+    store
+}
+
+fn viewed(
+    path: &std::path::Path,
+    seconds_ago: u64,
+    label: anyview_store::ResumeLabel,
+) -> anyview_store::HistoryEntry {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |since| since.as_secs());
+    anyview_store::HistoryEntry {
+        path: anyview_core::FilePath::new(path).unwrap_or_else(|e| panic!("{e}")),
+        kind: anyview_core::FormatKind::Pdf,
+        viewed: anyview_store::Viewed(now - seconds_ago),
+        label,
+    }
+}
+
+#[test]
+fn a_file_the_viewer_remembers_is_a_row_the_index_did_not_bring() {
+    let dir = sill_testkit::TempDir::new("files-viewed-row");
+    let book = dir.path().join("elsewhere/novel.pdf");
+    std::fs::create_dir_all(book.parent().unwrap_or(dir.path())).unwrap_or_else(|e| panic!("{e}"));
+    std::fs::write(&book, b"%PDF").unwrap_or_else(|e| panic!("{e}"));
+    let gone = dir.path().join("elsewhere/novel-gone.pdf");
+    let store = viewer_store(
+        dir.path(),
+        vec![
+            viewed(&book, 60, anyview_store::ResumeLabel::Page { number: 143 }),
+            viewed(&gone, 30, anyview_store::ResumeLabel::Unlabelled),
+        ],
+    );
+    let files = FilesProvider {
+        viewer_store: store,
+        home: dir.path().to_path_buf(),
+        ..provider(FilesChoice::Auto, scripted(FileAnswer::Hits(Vec::new())))
+    };
+    let mut sink = VecSink::default();
+    files.query(&Query::begin("novel", &Cancel::new()), &mut sink);
+    assert_eq!(titles(&sink), [["novel.pdf"]], "the one still on disk");
+    let row = &sink.0[0].items[0];
+    assert_eq!(row.subtitle, "~/elsewhere · Page 143");
+    assert!(
+        row.actions.iter().any(|action| action.id.0 == "open"),
+        "an ordinary file row, with the shared actions"
+    );
+}
+
+#[test]
+fn a_viewed_file_outranks_its_namesake_the_index_brought_with_the_same_age() {
+    let dir = sill_testkit::TempDir::new("files-viewed-rank");
+    let (a, b) = (
+        dir.path().join("a/notes.pdf"),
+        dir.path().join("b/notes.pdf"),
+    );
+    for file in [&a, &b] {
+        std::fs::create_dir_all(file.parent().unwrap_or(dir.path()))
+            .unwrap_or_else(|e| panic!("{e}"));
+        std::fs::write(file, b"%PDF").unwrap_or_else(|e| panic!("{e}"));
+    }
+    let index = Arc::new(FakeIndex {
+        hits: vec![
+            hit(a.to_str().unwrap_or_default()),
+            hit(b.to_str().unwrap_or_default()),
+        ],
+    });
+    let order = |entries: Vec<anyview_store::HistoryEntry>| {
+        let files = FilesProvider {
+            viewer_store: viewer_store(dir.path(), entries),
+            home: dir.path().to_path_buf(),
+            ..provider(FilesChoice::Auto, index.clone())
+        };
+        let mut sink = VecSink::default();
+        files.query(&Query::begin("notes", &Cancel::new()), &mut sink);
+        sink.0[0]
+            .items
+            .iter()
+            .map(|row| row.id.0.clone())
+            .collect::<Vec<String>>()
+    };
+    let (a_id, b_id) = (a.display().to_string(), b.display().to_string());
+    let label = anyview_store::ResumeLabel::Unlabelled;
+    assert_eq!(
+        order(vec![viewed(&b, 10, label)]),
+        [b_id.clone(), a_id.clone()],
+        "b was viewed"
+    );
+    assert_eq!(
+        order(vec![viewed(&a, 10, label)]),
+        [a_id, b_id],
+        "a was viewed"
+    );
 }

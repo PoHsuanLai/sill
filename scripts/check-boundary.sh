@@ -20,6 +20,8 @@ cd "$(dirname "$0")/.."
 # through watch channels read by sill-ui-kit's hooks, so neither links a renderer.
 # sill-testkit is std only and names no sill crate.
 # sill-ui-kit is what every surface shares, so it reaches no surface crate and not the binary.
+# `sill` (the whole process) takes the viewer's light tier, its history, its vocabulary and its
+# D-Bus requests, and never its media player: it reaches neither libmpv binding.
 # The surface crates never depend on one another and none depends on `sill`; the daemon is the one
 # crate that names them all.
 PURE="dioxus dioxus-core zbus wayland-client tokio libpulse-binding shell-host ds ds-shell ds-blitz ds-harness blitz-dom"
@@ -39,6 +41,7 @@ RULES=(
   "sill-search: $UI_FREE"
   "sill-testkit: sill-launcher sill-model sill-settings sill-ipc sill-services sill-search sill-ui-kit ${SURFACES[*]} sill"
   "sill-ui-kit: ${SURFACES[*]} sill"
+  "sill: mpv-wgpu-player rsmpv"
 )
 for surface in "${SURFACES[@]}"; do
   RULES+=("$surface: $(others "$surface")")
@@ -78,12 +81,12 @@ EDGES=(
   "sill-model: docket-core ds-core keycap-protocol prov sill-launcher"
   "sill-settings: ds-core ds-settings keycap-protocol sill-launcher sill-model"
   "sill-ipc: sill-launcher sill-model"
-  "sill-services: docket-client docket-core docket-dbus ds-core keycap-protocol porter-core prov sill-launcher sill-model"
-  "sill-search: ds-settings sill-launcher sill-model sill-services"
+  "sill-services: anyview-core anyview-platform docket-client docket-core docket-dbus ds-core keycap-protocol porter-core prov sill-launcher sill-model"
+  "sill-search: anyview-core anyview-store ds-core ds-settings sill-launcher sill-model sill-services"
   "sill-ui-kit: ds ds-blitz ds-harness ds-settings ds-shell shell-host sill-launcher sill-model sill-search sill-services sill-settings"
   "sill-bar: ds ds-blitz ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
   "sill-dock: ds ds-blitz ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
-  "sill-launcher-ui: ds ds-blitz shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-ui-kit"
+  "sill-launcher-ui: anyview-core anyview-peek ds ds-blitz shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-ui-kit"
   "sill-notify-ui: ds ds-blitz ds-settings ds-shell shell-host sill-model sill-services sill-settings sill-ui-kit"
   "sill-widgets-ui: ds ds-shell shell-host sill-launcher sill-model sill-settings sill-ui-kit"
   "sill-overlays: ds ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"

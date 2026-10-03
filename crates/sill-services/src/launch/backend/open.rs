@@ -1,6 +1,8 @@
 //! Opening a file, its folder or an address with the desktop's default handler, for the
 //! launcher's rows:
 //!
+//! - `Viewer(open)` and `Play(path)`: a call to the viewer (`viewer.rs`); when it does not take
+//!   it, `xdg-open <path>` as for a `File`.
 //! - `File(path)` and `Url(url)`: `xdg-open <path|url>` in a transient `systemd-run --user
 //!   --scope` like an app launch, with `XDG_ACTIVATION_TOKEN` set to the request's token.
 //! - `Reveal(path)`: `org.freedesktop.FileManager1.ShowItems([file uri], startup id = token)`
@@ -24,6 +26,7 @@ use sill_model::launch::{OpenRequest, ScopeUnit, scope_unit};
 
 use super::Reach;
 use super::uri::file_uri;
+use super::viewer::{Handed, hand_over, viewer_request};
 use crate::env::Bus;
 use crate::env::{NameState, name_state};
 
@@ -38,7 +41,8 @@ static OPENS: AtomicU32 = AtomicU32::new(0);
 /// path, the folder for a reveal, or the address), before the scope wrapper.
 pub fn open_argv(target: &OpenTarget) -> Vec<OsString> {
     let what = match target {
-        OpenTarget::File(path) => OsString::from(path),
+        OpenTarget::File(path) | OpenTarget::Play(path) => OsString::from(path),
+        OpenTarget::Viewer(open) => OsString::from(&open.file),
         OpenTarget::Reveal(path) => OsString::from(reveal_folder(path)),
         OpenTarget::Url(url) => OsString::from(url),
     };
@@ -54,10 +58,16 @@ pub fn reveal_folder(path: &Path) -> PathBuf {
         .to_path_buf()
 }
 
-/// Carry out `request`: a reveal through the file manager when one is on the bus, else (and
-/// for a file or an address) `xdg-open`.
+/// Carry out `request`: a file for the viewer handed to it when it takes the call, a reveal
+/// through the file manager when one is on the bus, else (and for a file or an address)
+/// `xdg-open`.
 pub(crate) async fn open(setup: &Reach, request: OpenRequest) {
     let token = request.token.as_deref();
+    if let Some(call) = viewer_request(&request.target)
+        && hand_over(&setup.session, &call).await == Handed::Yes
+    {
+        return;
+    }
     if let OpenTarget::Reveal(path) = &request.target
         && show_items(&setup.session, path, token).await == Shown::Yes
     {

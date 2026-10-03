@@ -433,6 +433,42 @@ A settled item is deleted, not marked closed.
 
 ### sill
 
+- **anyview is taken by path.** The root `Cargo.toml` names `anyview-core`, `anyview-peek`,
+  `anyview-platform` and `anyview-store` at `../anyview/crates/...`, a sibling checkout. Ends when
+  anyview's integration branch is merged: the four become the git revision pinned in quire's
+  `docs/workspace-deps.toml` (as pdfrum is), copied into the pinned block here.
+- **The pane's peek budget is a constant.** `preview::load::PANE_BUDGET` (64 MiB read, one megapixel
+  of picture, 500 ms) stands in for settings keys; anyview's `PeekBudget::time` is not enforced. Ends
+  when quire's `22-SETTINGS` has `viewer.peek.*` rows and `launcher.preview_*` reads them.
+- **A row offers only the shared file actions the launcher carries out.** Open (⌘O, and Enter), Reveal
+  (⌘R), Copy Path (⌥⌘C) and Play are carried; Open With, Copy File (⌘C), Share, Rename, Duplicate, Move to
+  Trash, Convert To and Play in Mini Window are in `anyview_core::actions_for` and not on the row, each
+  waiting for what carries it (an app chooser, file offers on the clipboard service, a trash). Copy Path
+  moved from ⌘C to the shared table's ⌥⌘C. Ends when `files::actions::carried` has an arm for each.
+- **Opening from the pane hands over no place.** The pane shows a file's start and holds no scroll, so
+  `OpenTarget::Viewer` carries no `Resume` and the viewer continues where the file was last left. The
+  wire has the place for a pane that keeps one. Ends when the pane scrolls or plays.
+- **The pane does not grow into the viewer's window.** The handoff opens the viewer's window beside the
+  closing launcher with no shared-element animation. Ends when a window can start from a rectangle
+  (the launcher passes the pane's) and quire has the motion for it.
+- **The viewer is called without an activation token.** `Handoff` and `Play` take none, so the viewer's window
+  depends on the compositor to raise it. Ends with anyview's matching item.
+- **An audio file shows facts, not its cover or length, and the play control is an action.** The pane has
+  no audio peek until anyview-media lands; "Play" in the actions sends `Play` over D-Bus and the viewer
+  opens the file until its background session exists. Ends with anyview-media.
+- **A PDF's first page is the one picture that is not a texture.** It comes through `PdfPage::Ready`'s
+  PNG `data:` URL (quire's FINDINGS), so it is encoded and decoded once per page. Ends with quire's
+  `pdf_thumb_pixels`.
+- **The pane's picture is a `TextureLayer`, unseen on a real surface.** The harness's CPU painter draws
+  none (a picture's pane is blank there), and no one has looked at it on a shell-host surface, whose
+  renderer must hand its device to quire's `Gpu` for the texture to draw. Ends when
+  `docs/manual-checks.md` "A file from the launcher in the viewer" is ticked on COSMIC; if the picture is
+  blank there, the pane needs the PNG fallback its FINDINGS names.
+- **Each file peek writes the pane's stylesheet.** `anyview_peek::Pane` draws its own `AppStyle`, one
+  `<style>` per pane. Ends when the launcher draws `anyview_peek::STYLE` once at its root.
+- **A file row's glyph and actions come from its media type, the pane from its bytes.** A row built from
+  the viewer's history has its kind's commonest type (`image/png` for any raster); a file whose name lies
+  gets the wrong actions and the right pane. Ends if the index's rows are sniffed.
 - **G352** The control center has no sink list: the volume service follows only the default sink.
 - **G361** One widget of a kind per surface: the drag, regions and state file are keyed by kind.
 - **G364** World Clock builds its entry from the clock at each minute tick; it does not send

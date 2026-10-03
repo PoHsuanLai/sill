@@ -20,14 +20,14 @@ pub mod subject;
 pub mod time;
 
 pub use activation::{
-    Activation, DesktopAction, OpenTarget, SettingsTarget, SystemCommand, WindowKey,
+    Activation, DesktopAction, OpenTarget, SettingsTarget, SystemCommand, ViewerOpen, WindowKey,
 };
 pub use chord::{ActionKeys, Chord, ChordKey, Modifier, action_for_chord, chords};
 pub use frecency::{Counting, Frecency, FrecencyScore, ItemKey, Use, age_bucket, counting};
 pub use ids::{ActionId, AppId, ClipKey, ItemId, ProviderKind};
 pub use item::{Action, Choice, IconRef, Item};
 pub use matching::{MatchScore, Needle};
-pub use preview::{ExcerptLimit, PageIndex, Preview, PreviewKind, excerpt_of, preview_for};
+pub use preview::{ExcerptLimit, Preview, PreviewKind, excerpt_of, preview_for};
 pub use provider::Provider;
 pub use query::{Cancel, Generation, Query, Scope};
 pub use rank::sections::{

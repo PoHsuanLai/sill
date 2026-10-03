@@ -153,6 +153,8 @@ fn provider(args: &Args) -> FilesProvider {
         frecency: Arc::new(Mutex::default()),
         source,
         home: args.home.clone(),
+        // No viewer history: the probe asks the index alone.
+        viewer_store: args.home.join(".files-probe-no-viewer"),
     }
 }
 
@@ -258,8 +260,8 @@ fn backend(name: &str) -> Backend {
 fn choice_of(name: &str) -> Choice {
     match name {
         "primary" => Choice::Primary,
-        "reveal" => Choice::Action(ActionId("reveal".to_owned())),
-        "copy" => Choice::Action(ActionId("copy-path".to_owned())),
+        "reveal" => Choice::Action(ActionId("reveal_in_folder".to_owned())),
+        "copy" => Choice::Action(ActionId("copy_path".to_owned())),
         other => usage(&format!("unknown choice {other}")),
     }
 }

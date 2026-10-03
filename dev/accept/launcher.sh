@@ -47,8 +47,8 @@
 #        the host's load moves the numbers.
 #     2. `--query m9` lists Top Hit, then Documents.
 #     3. `down`, `space` (Top Hit is the PDF; `up` first so the selection is on it): the preview
-#        is `pdf`, captured (dev/out/launcher-v2-preview-pdf.png).
-#     4. `down` to the PNG: `image`; `space` hides it.
+#        is `file`, captured (dev/out/launcher-v2-preview-pdf.png).
+#     4. `down` to the PNG: `file` again, the viewer's pane for a picture; `space` hides it.
 #     5. `quick-look` while typing shows it; `right` (→ with the caret at the
 #        field's end, where `--query` leaves it) gives the pane's first control the keyboard; `escape` gives it back (the pane stays),
 #        `escape` hides the pane, `escape` closes the launcher. On a row with actions: an `m9`
@@ -633,7 +633,7 @@ step_palette_preview_pdf_and_image() {
   debug_key up; debug_key down; debug_key up
   debug_key space
   echo "after up/down/up, space: preview $(field preview)" >&2
-  [ "$(field preview)" = pdf ] || return 1
+  [ "$(field preview)" = file ] || return 1
   sleep 1.5
   capture_launcher "$SHOTS/launcher-v2-preview-pdf.png" || return 1
   local png
@@ -650,7 +650,7 @@ step_palette_preview_pdf_and_image() {
   while [ "$(field selected)" -gt "$png" ]; do debug_key up; done
   while [ "$(field selected)" -lt "$png" ]; do debug_key down; done
   echo "on the PNG: preview $(field preview)" >&2
-  [ "$(field preview)" = image ] || return 1
+  [ "$(field preview)" = file ] || return 1
   capture_launcher "$SHOTS/launcher-v2-preview-image.png"
   debug_key space
   [ "$(field preview)" = hidden ]
@@ -719,7 +719,7 @@ step_palette_caret() {
   first=$(field preview)
   debug_key End; debug_key right; sleep 0.6
   echo "Home, →: preview $first; End then →: preview $(field preview), query '$(field query)'" >&2
-  [ "$first" = hidden ] && [ "$(field preview)" = pdf ] && [ "$(field query)" = m9 ]
+  [ "$first" = hidden ] && [ "$(field preview)" = file ] && [ "$(field query)" = m9 ]
 }
 
 # palette 8.
@@ -1202,9 +1202,9 @@ step_real_type_and_preview() {
   typed "-rep" || return 1
   await_field query m9-rep || return 1
   chord Control_L y || return 1
-  await_field preview pdf || return 1
+  await_field preview file || return 1
   shot preview-ctrl-y
-  echo "typing '-rep', real Ctrl+Y (⌘Y): preview pdf while typing" >&2
+  echo "typing '-rep', real Ctrl+Y (⌘Y): preview file while typing" >&2
 }
 
 # real 2.
@@ -1215,7 +1215,7 @@ step_real_pane_keys() {
   await_field rows:"Top Hit" m9-report.pdf || return 1
   [ "$(field preview)" = hidden ] || return 1
   press Right || return 1
-  await_field preview pdf || { echo "the first → did not show the pane" >&2; return 1; }
+  await_field preview file || { echo "the first → did not show the pane" >&2; return 1; }
   shot pane-shown
   press Right || return 1
   shot pane-tab0
@@ -1241,7 +1241,7 @@ step_real_pane_keys() {
   shot pane-escape1
   e1=$(diff_box pane-shown pane-escape1)
   echo "real Escape 1: preview $(field preview), the ring gone (against before entering: [$e1])" >&2
-  [ "$(field preview)" = pdf ] && [ "$e1" = none ] || return 1
+  [ "$(field preview)" = file ] && [ "$e1" = none ] || return 1
   press Escape || return 1
   await_field preview hidden || return 1
   is_open || { echo "the second Escape closed the launcher" >&2; return 1; }

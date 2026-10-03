@@ -5,11 +5,11 @@
 //!
 //! It is quire's `PreviewPane`, set beside the results as the palette's
 //! `aside`: sill maps a [`Preview`] to quire's `PaneContent` (`content.rs`) and a row's actions
-//! to `PaneAction`s with their chords. A PDF page comes from `ds_blitz::use_pdf_page` (the
-//! `pdf-thumb` feature): sill passes the path and never rasterises or caches a page (quire keys
-//! its cache on path, mtime, size and scale). The pane never takes the keyboard: `focused` draws
-//! the ring on the action the panel's Tab reached. The pane is the future Quick Look app's shared
-//! part (design/20 §2.4).
+//! to `PaneAction`s with their chords. A file's content is the viewer's own pane
+//! (`anyview_peek::Pane`) in `PaneContent::Slot`: the viewer's parts sniff and peek at it off the
+//! UI thread (`load.rs`), so a file looks the same here as in the viewer's window, and sill
+//! names no format. The pane never takes the keyboard: `focused` draws the ring on the action
+//! the panel's Tab reached. The pane is the future Quick Look app's shared part (design/20 §2.4).
 
 mod content;
 pub mod keys;
@@ -113,16 +113,16 @@ mod tests {
 
     #[test]
     fn the_pane_state_follows_its_showing_and_its_load() {
-        let pdf = PreviewKind::Pdf;
+        let file = PreviewKind::File;
         let cases = [
-            (Shown::Visible, Load::Ready, PaneState::Showing(pdf)),
+            (Shown::Visible, Load::Ready, PaneState::Showing(file)),
             (Shown::Visible, Load::Reading, PaneState::Pending),
             (Shown::Visible, Load::Failed, PaneState::Failed),
             (Shown::Hidden, Load::Reading, PaneState::Hidden),
             (Shown::Hidden, Load::Ready, PaneState::Hidden),
         ];
         for (shown, load, want) in cases {
-            assert_eq!(pane_state(shown, pdf, load), want, "{shown:?} {load:?}");
+            assert_eq!(pane_state(shown, file, load), want, "{shown:?} {load:?}");
         }
     }
 }

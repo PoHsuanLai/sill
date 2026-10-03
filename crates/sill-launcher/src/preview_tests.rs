@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use super::{ExcerptLimit, PageIndex, Preview, PreviewKind, excerpt_of, preview_for};
+use super::{ExcerptLimit, Preview, PreviewKind, excerpt_of, preview_for};
 use crate::ids::{AppId, ClipKey, ItemId, ProviderKind};
 use crate::item::{IconRef, Item};
 use crate::rank::Score;
@@ -23,25 +23,27 @@ fn row(provider: ProviderKind, title: &str, subtitle: &str, subject: Subject) ->
     }
 }
 
-fn file(path: &str, mime: &str) -> Subject {
-    Subject::File(FileFacts {
+fn file_facts(path: &str, mime: &str) -> FileFacts {
+    FileFacts {
         path: PathBuf::from(path),
         mime: Mime(mime.to_owned()),
         modified: UnixTime(0),
-    })
+    }
+}
+
+fn file(path: &str, mime: &str) -> Subject {
+    Subject::File(file_facts(path, mime))
 }
 
 #[test]
 fn a_preview_kind_is_its_variant() {
+    let file = FileFacts {
+        path: PathBuf::from("/a.pdf"),
+        mime: Mime("application/pdf".to_owned()),
+        modified: UnixTime(0),
+    };
     assert_eq!(Preview::None.kind(), PreviewKind::None);
-    assert_eq!(
-        Preview::Pdf {
-            path: PathBuf::from("/a.pdf"),
-            page: PageIndex::FIRST
-        }
-        .kind(),
-        PreviewKind::Pdf
-    );
+    assert_eq!(Preview::File(file).kind(), PreviewKind::File);
 }
 
 #[test]
@@ -81,6 +83,8 @@ fn every_subject_has_its_preview() {
                 detail: "File manager".to_owned(),
             },
         ),
+        // Every file is the viewer's to sniff, whatever the index called it: the row decides
+        // nothing about the format.
         (
             row(
                 ProviderKind::Files,
@@ -88,10 +92,7 @@ fn every_subject_has_its_preview() {
                 "",
                 file("/h/a.pdf", "application/pdf"),
             ),
-            Preview::Pdf {
-                path: PathBuf::from("/h/a.pdf"),
-                page: PageIndex::FIRST,
-            },
+            Preview::File(file_facts("/h/a.pdf", "application/pdf")),
         ),
         (
             row(
@@ -100,16 +101,7 @@ fn every_subject_has_its_preview() {
                 "",
                 file("/h/p.png", "image/png"),
             ),
-            Preview::Image(PathBuf::from("/h/p.png")),
-        ),
-        (
-            row(
-                ProviderKind::Files,
-                "n.md",
-                "",
-                file("/h/n.md", "text/markdown"),
-            ),
-            Preview::TextFile(PathBuf::from("/h/n.md")),
+            Preview::File(file_facts("/h/p.png", "image/png")),
         ),
         (
             row(
@@ -118,7 +110,7 @@ fn every_subject_has_its_preview() {
                 "",
                 file("/h/c.rs", "text/rust"),
             ),
-            Preview::TextFile(PathBuf::from("/h/c.rs")),
+            Preview::File(file_facts("/h/c.rs", "text/rust")),
         ),
         (
             row(
@@ -127,11 +119,7 @@ fn every_subject_has_its_preview() {
                 "",
                 file("/h/Documents", Mime::FOLDER),
             ),
-            Preview::File(FileFacts {
-                path: PathBuf::from("/h/Documents"),
-                mime: Mime(Mime::FOLDER.to_owned()),
-                modified: UnixTime(0),
-            }),
+            Preview::File(file_facts("/h/Documents", Mime::FOLDER)),
         ),
         (
             row(
@@ -140,11 +128,7 @@ fn every_subject_has_its_preview() {
                 "",
                 file("/h/z.zip", "application/zip"),
             ),
-            Preview::File(FileFacts {
-                path: PathBuf::from("/h/z.zip"),
-                mime: Mime("application/zip".to_owned()),
-                modified: UnixTime(0),
-            }),
+            Preview::File(file_facts("/h/z.zip", "application/zip")),
         ),
         (
             row(

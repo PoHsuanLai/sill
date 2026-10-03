@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use crate::ids::{AppId, ClipKey};
+use crate::query::Generation;
 
 /// The effect of choosing a result.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -44,11 +45,27 @@ pub enum Activation {
 pub enum OpenTarget {
     /// The file or folder itself, in its default app.
     File(PathBuf),
+    /// A file in the viewer, with the search results it was chosen from, so ← and → walk them.
+    Viewer(ViewerOpen),
+    /// A file the viewer plays with no window of its own (audio).
+    Play(PathBuf),
     /// "Reveal in Files": the folder holding this path, the path selected where the file
     /// manager can (`org.freedesktop.FileManager1.ShowItems`), else the folder opened.
     Reveal(PathBuf),
     /// An address (the web fallback's search).
     Url(String),
+}
+
+/// A file chosen in the launcher to be opened in the viewer.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ViewerOpen {
+    /// The file.
+    pub file: PathBuf,
+    /// The search the results came from.
+    pub search: Generation,
+    /// The files of the results it was chosen from, in the order the launcher shows them, with
+    /// `file` among them; empty when the row came from no list.
+    pub results: Vec<PathBuf>,
 }
 
 /// Which entry point of an app to start.
@@ -94,8 +111,11 @@ pub enum SystemCommand {
 
 #[cfg(test)]
 mod tests {
-    use super::{Activation, DesktopAction, OpenTarget, SettingsTarget, SystemCommand, WindowKey};
+    use super::{
+        Activation, DesktopAction, OpenTarget, SettingsTarget, SystemCommand, ViewerOpen, WindowKey,
+    };
     use crate::ids::{AppId, ClipKey};
+    use crate::query::Generation;
     use std::path::PathBuf;
 
     /// Every variant's wire form, pinned: the daemon and the launcher UI agree on these.
@@ -148,6 +168,25 @@ mod tests {
                     target: OpenTarget::File(PathBuf::from("/home/p/a b.pdf")),
                 },
                 r#"{"kind":"open","v":{"target":{"kind":"file","v":"/home/p/a b.pdf"}}}"#,
+            ),
+            (
+                Activation::Open {
+                    target: OpenTarget::Viewer(ViewerOpen {
+                        file: PathBuf::from("/home/p/b.pdf"),
+                        search: Generation(41),
+                        results: vec![
+                            PathBuf::from("/home/p/a.pdf"),
+                            PathBuf::from("/home/p/b.pdf"),
+                        ],
+                    }),
+                },
+                r#"{"kind":"open","v":{"target":{"kind":"viewer","v":{"file":"/home/p/b.pdf","search":41,"results":["/home/p/a.pdf","/home/p/b.pdf"]}}}}"#,
+            ),
+            (
+                Activation::Open {
+                    target: OpenTarget::Play(PathBuf::from("/home/p/a.flac")),
+                },
+                r#"{"kind":"open","v":{"target":{"kind":"play","v":"/home/p/a.flac"}}}"#,
             ),
             (
                 Activation::Open {

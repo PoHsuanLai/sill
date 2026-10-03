@@ -16,7 +16,7 @@ pub enum PaneState {
     Hidden,
     /// Showing a preview of this kind, all of it loaded.
     Showing(PreviewKind),
-    /// Waiting on a slow load: a text file's head, a PDF's page.
+    /// Waiting on a slow load: a file's peek.
     Pending,
     /// What it names could not be read: the still words say so.
     Failed,
@@ -63,25 +63,25 @@ mod tests {
     use ds::motion::detail::detailed::first_table;
     use ds::motion::detail::detailed::moment_table;
     use ds::prelude::*;
-    use sill_launcher::PreviewKind::{Image, Pdf, TextFile};
+    use sill_launcher::PreviewKind::{Emoji, File, Web};
 
     #[test]
     fn the_pane_moments() {
         #[rustfmt::skip]
         moment_table::<PaneState>(&[
-            (Hidden, Showing(Image), Moment::Appear),
+            (Hidden, Showing(File), Moment::Appear),
             (Hidden, Pending, Moment::Pending),
             (Hidden, Failed, Moment::Appear),
-            (Showing(Image), Showing(Pdf), Moment::Preview),
-            (Showing(Image), Showing(Image), Moment::Rest),
-            (Showing(Image), Pending, Moment::Pending),
-            (Showing(Image), Failed, Moment::Preview),
-            (Pending, Showing(TextFile), Moment::Change),
+            (Showing(File), Showing(Emoji), Moment::Preview),
+            (Showing(File), Showing(File), Moment::Rest),
+            (Showing(File), Pending, Moment::Pending),
+            (Showing(File), Failed, Moment::Preview),
+            (Pending, Showing(Web), Moment::Change),
             (Pending, Failed, Moment::Failure),
             (Pending, Pending, Moment::Rest),
-            (Failed, Showing(Image), Moment::Preview),
+            (Failed, Showing(File), Moment::Preview),
             (Failed, Pending, Moment::Pending),
-            (Showing(Pdf), Hidden, Moment::Dismiss),
+            (Showing(Emoji), Hidden, Moment::Dismiss),
             (Pending, Hidden, Moment::Dismiss),
             (Failed, Hidden, Moment::Dismiss),
             (Hidden, Hidden, Moment::Rest),
@@ -92,7 +92,7 @@ mod tests {
     fn the_pane_first_frames() {
         first_table::<PaneState>(&[
             (Hidden, Moment::Rest),
-            (Showing(Image), Moment::Appear),
+            (Showing(File), Moment::Appear),
             (Pending, Moment::Pending),
             (Failed, Moment::Appear),
         ]);

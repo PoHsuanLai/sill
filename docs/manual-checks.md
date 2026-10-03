@@ -94,6 +94,16 @@ sections below. The monitor is the BenQ MA270U (27", 3840 x 2160).
   the emoji in another app. By eye: the focus ring on the pane's buttons in the dark scheme, and
   the chord hint on the selected row only. If ⌘ chords act like a terminal's, Toshy still thinks
   the terminal has focus: note it.
+- [ ] **A file from the launcher in the viewer** (needs `anyview` installed with its
+  `org.quire.Anyview1.service` activation file, or already running). Type part of a document's
+  name with other documents listed: the pane shows the viewer's own picture of it (a picture, a
+  page, lines, a table, an archive's listing, a font's specimen); a picture and a PDF page must
+  show on COSMIC, where the pane's picture is a `TextureLayer` that the headless harness cannot
+  draw (a blank plate there is a finding). Enter, or ⌘O, opens the viewer on that file, and ← and →
+  there walk the rows the launcher listed, in its order. On an audio file the pane's "Play"
+  starts it and the launcher closes. A file the viewer opened yesterday is found by its name
+  (with "Page N" after the folder if it was left on one). With no viewer installed, Enter still
+  opens the file in its default app.
 - [ ] **Clipboard history in real apps**: copy text in two apps, then open the launcher and type
   a word of it: both show as Clipboard rows, and Enter puts one back (paste it somewhere; also
   an older row with Ctrl+V in a text editor and a terminal). Copy a password from KeePassXC (or

@@ -1,9 +1,8 @@
 //! The preview pane's content, decided from a row alone: Quick Look for the launcher.
-//! [`preview_for`] is pure; what it names on disk (a text file's first lines, a PDF's first page, a
-//! clipboard image's bytes) the pane loads off the UI thread, and a PDF page is drawn by quire's
-//! `PdfThumb` from the path (sill never rasterises).
-
-use std::path::PathBuf;
+//! [`preview_for`] is pure. A file is previewed by the viewer's own parts (`anyview_peek`): the
+//! pane sniffs it and peeks at it off the UI thread, so what a file looks like is the viewer's to
+//! say and this crate names no format. What a clipboard image is, the pane loads from the
+//! clipboard service.
 
 use serde::{Deserialize, Serialize};
 
@@ -18,15 +17,9 @@ pub enum Preview {
     /// Nothing to preview: the pane shows nothing (and Space does not open it).
     #[default]
     None,
-    /// An image file (`image/*` the renderer decodes: PNG, JPEG, SVG, WebP, GIF).
-    Image(PathBuf),
     /// Text already in hand.
     Text { excerpt: Excerpt },
-    /// A text file: its first lines, read by the pane ([`excerpt_of`] over its head).
-    TextFile(PathBuf),
-    /// A PDF's page, drawn by quire's `PdfThumb`.
-    Pdf { path: PathBuf, page: PageIndex },
-    /// Any other file or a folder: its facts (name, kind, size, modified, where).
+    /// A file or a folder: sniffed and peeked at by the viewer's parts, off the UI thread.
     File(FileFacts),
     /// An app: its icon, name and description.
     App {
@@ -42,24 +35,12 @@ pub enum Preview {
     Web(WebFacts),
 }
 
-/// A page, from 0.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct PageIndex(pub u32);
-
-impl PageIndex {
-    pub const FIRST: PageIndex = PageIndex(0);
-}
-
 /// The kind of a preview, for a report or a test: its variant's name.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PreviewKind {
     None,
-    Image,
     Text,
-    TextFile,
-    Pdf,
     File,
     App,
     Clipboard,
@@ -72,10 +53,7 @@ impl Preview {
     pub fn kind(&self) -> PreviewKind {
         match self {
             Preview::None => PreviewKind::None,
-            Preview::Image(_) => PreviewKind::Image,
             Preview::Text { .. } => PreviewKind::Text,
-            Preview::TextFile(_) => PreviewKind::TextFile,
-            Preview::Pdf { .. } => PreviewKind::Pdf,
             Preview::File(_) => PreviewKind::File,
             Preview::App { .. } => PreviewKind::App,
             Preview::Clipboard(_) => PreviewKind::Clipboard,
@@ -85,7 +63,7 @@ impl Preview {
     }
 }
 
-/// How much of a text the pane shows.
+/// How much of a text an excerpt keeps.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ExcerptLimit {
     /// At most this many lines.
@@ -105,10 +83,8 @@ impl ExcerptLimit {
 /// What the pane shows for `item`, from its subject and title alone.
 ///
 /// Rules (`preview_tests` pins them): an `App` subject is `App` with the row's title and subtitle;
-/// a `File` is `Pdf` at the first page for `application/pdf`, `Image` for an `image/*` the renderer
-/// decodes, `TextFile` for `text/*` and the common source and config types, `File` for everything
-/// else and for folders; a `Clip` is `Clipboard`; an `Emoji` is `Emoji`; a `Web` is `Web`;
-/// `Subject::None` is `None`.
+/// a `File` is `File`, whatever its type; a `Clip` is `Clipboard`; an `Emoji` is `Emoji`; a `Web`
+/// is `Web`; `Subject::None` is `None`.
 pub fn preview_for(item: &Item) -> Preview {
     match &item.subject {
         Subject::None => Preview::None,
@@ -117,52 +93,10 @@ pub fn preview_for(item: &Item) -> Preview {
             name: item.title.clone(),
             detail: item.subtitle.clone(),
         },
-        Subject::File(facts) => file_preview(facts),
+        Subject::File(facts) => Preview::File(facts.clone()),
         Subject::Clip(facts) => Preview::Clipboard(facts.clone()),
         Subject::Emoji(facts) => Preview::Emoji(facts.clone()),
         Subject::Web(facts) => Preview::Web(facts.clone()),
-    }
-}
-
-/// Image types the renderer decodes.
-const DECODED_IMAGES: [&str; 6] = [
-    "image/png",
-    "image/jpeg",
-    "image/svg+xml",
-    "image/webp",
-    "image/gif",
-    "image/bmp",
-];
-
-/// `application/*` types that are text in all but name: source, config and data files.
-const TEXT_APPLICATIONS: [&str; 14] = [
-    "application/json",
-    "application/xml",
-    "application/toml",
-    "application/x-toml",
-    "application/yaml",
-    "application/x-yaml",
-    "application/javascript",
-    "application/x-shellscript",
-    "application/x-sh",
-    "application/sql",
-    "application/x-desktop",
-    "application/x-perl",
-    "application/x-python",
-    "application/x-ruby",
-];
-
-fn file_preview(facts: &FileFacts) -> Preview {
-    let mime = facts.mime.0.as_str();
-    let path = facts.path.clone();
-    match mime {
-        "application/pdf" => Preview::Pdf {
-            path,
-            page: PageIndex::FIRST,
-        },
-        m if DECODED_IMAGES.contains(&m) => Preview::Image(path),
-        m if m.starts_with("text/") || TEXT_APPLICATIONS.contains(&m) => Preview::TextFile(path),
-        _ => Preview::File(facts.clone()),
     }
 }
 

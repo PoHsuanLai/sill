@@ -30,7 +30,7 @@ fn holding_down_through_pdfs_rasterises_only_a_few() {
     let shown = open.link.rows().expect("the open panel publishes its rows");
     assert_eq!(
         shown.preview,
-        Some(PreviewKind::Pdf),
+        Some(PreviewKind::File),
         "the last PDF's preview"
     );
     // Let the queue drain.

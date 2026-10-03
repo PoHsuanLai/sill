@@ -45,6 +45,7 @@ pub(crate) fn providers(
             frecency: history.shared(),
             source: IndexSource::Detect(env.buses.session.clone()),
             home: env.dirs.home.clone(),
+            viewer_store: env.dirs.data.join(anyview_store::STORE_FOLDER),
         }),
         Arc::new(ClipboardProvider {
             history: links.clipboard.clone(),

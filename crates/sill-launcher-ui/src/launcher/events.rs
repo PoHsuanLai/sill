@@ -13,7 +13,9 @@ use sill_launcher::{Choice, ItemKey};
 use sill_model::results::{Results, SearchCommand};
 use sill_ui_kit::services::Services;
 
-use crate::launcher::activate::{AfterEffect, LauncherEffect, LauncherProviders, effect_of};
+use crate::launcher::activate::{
+    AfterEffect, LauncherEffect, LauncherProviders, effect_of, file_results, with_results,
+};
 use crate::launcher::entries::RowRef;
 use crate::launcher::follow::{use_follow_visibility, use_shown};
 use crate::launcher::groups::fresh;
@@ -393,6 +395,13 @@ impl PanelCtx {
             choice: choice.clone(),
         });
         let effect = effect_of(self.providers.activation(&item, &choice));
+        let effect = match self.current_pane() {
+            Some(pane) => {
+                let shown = self.view_of(&session, &pane.expanded);
+                with_results(effect, results.generation, file_results(&shown.rows()))
+            }
+            None => effect,
+        };
         picking.set(Picking::Yes);
         if let LauncherEffect::Insert(text) = &effect {
             // The field takes the text and the launcher stays; the palette's `onclose` that

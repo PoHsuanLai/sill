@@ -82,7 +82,7 @@ fn space_while_browsing_shows_the_pdf_and_then_the_image() {
     press(&mut open, Press::Space);
     assert_eq!(
         rows(&open).preview,
-        Some(PreviewKind::Pdf),
+        Some(PreviewKind::File),
         "browsing: Quick Look"
     );
     // The page rasters off the harness's thread; the pending look holds the pane until it lands.
@@ -91,11 +91,89 @@ fn space_while_browsing_shows_the_pdf_and_then_the_image() {
     press(&mut open, Press::Down);
     assert_eq!(
         rows(&open).preview,
-        Some(PreviewKind::Image),
+        Some(PreviewKind::File),
         "the pane follows the row"
     );
+    let picture = await_off_thread(&mut open.harness, |h| {
+        h.count(".anyview-pane[data-kind=raster]") == 1
+    });
+    assert_eq!(picture, Seen::Once, "the viewer's pane draws the PNG");
     press(&mut open, Press::Space);
     assert_eq!(rows(&open).preview, None, "Space again hides it");
+}
+
+#[test]
+fn a_file_is_drawn_by_the_viewers_pane_in_quires_slot_whatever_it_is() {
+    let mut open = open("m9");
+    open.harness
+        .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y')));
+    open.harness.advance(Duration::from_millis(40));
+    // (the kind the viewer's pane says it shows, how far down the file is from the Top Hit)
+    let cases = [("pdf", 0), ("raster", 1), ("markdown", 2)];
+    for (kind, downs_from_top) in cases {
+        for _ in 0..downs_from_top {
+            press(&mut open, Press::Down);
+        }
+        let selector = format!(".anyview-pane[data-kind={kind}]");
+        let drawn = await_off_thread(&mut open.harness, |h| h.count(&selector) == 1);
+        assert_eq!(drawn, Seen::Once, "{kind}");
+        assert_eq!(
+            open.harness.attr(".ds-preview", "data-content").as_deref(),
+            Some("slot"),
+            "{kind}: one quire pane, with the viewer's in its media area"
+        );
+        assert_eq!(
+            open.harness.count(".ds-preview > .ds-preview-caption"),
+            0,
+            "{kind}: the viewer's pane draws its own name and facts, quire adds none"
+        );
+        assert!(
+            open.harness
+                .count(".ds-preview .anyview-pane .ds-fact-list-item")
+                > 0,
+            "{kind}: its facts"
+        );
+        // Back to the top for the next row's count.
+        for _ in 0..downs_from_top {
+            press(&mut open, Press::Up);
+        }
+    }
+}
+
+#[test]
+fn enter_on_a_file_row_opens_it_in_the_viewer_with_the_results_shown() {
+    let mut open = open("m9");
+    press(&mut open, Press::Enter);
+    let link = open.link.clone();
+    settle(&mut open.harness, |_| !is_open(&link));
+    match open.feeds.bar.launch.try_recv() {
+        Ok(LaunchCommand::Open(request)) => match request.target {
+            OpenTarget::Viewer(open_in_viewer) => {
+                assert_eq!(open_in_viewer.file, m9::folder().join("m9-report.pdf"));
+                let shown: Vec<_> = open_in_viewer
+                    .results
+                    .iter()
+                    .filter_map(|path| path.file_name())
+                    .map(|name| name.to_string_lossy().into_owned())
+                    .collect();
+                assert_eq!(
+                    shown,
+                    [
+                        "m9-report.pdf",
+                        "m9-shot.png",
+                        "m9-notes.md",
+                        "m9-extra-1.pdf",
+                        "m9-extra-2.pdf",
+                        "m9-extra-3.pdf",
+                    ],
+                    "the Top Hit and the five documents shown, in order (not the two behind Show More): \
+                     ← and → walk these"
+                );
+            }
+            other => panic!("not the viewer: {other:?}"),
+        },
+        other => panic!("no open: {other:?}"),
+    }
 }
 
 #[test]
@@ -106,7 +184,7 @@ fn command_y_while_typing_then_right_enter_the_pane_and_escape_steps_out() {
     open.harness.advance(Duration::from_millis(40));
     assert_eq!(
         rows(&open).preview,
-        Some(PreviewKind::Pdf),
+        Some(PreviewKind::File),
         "⌘Y while typing"
     );
     let html = open.harness.html();
@@ -140,7 +218,7 @@ fn command_y_while_typing_then_right_enter_the_pane_and_escape_steps_out() {
     );
     assert_eq!(
         rows(&open).preview,
-        Some(PreviewKind::Pdf),
+        Some(PreviewKind::File),
         "the pane stays"
     );
     press(&mut open, Press::Escape);
@@ -186,7 +264,7 @@ fn a_real_space_after_a_real_down_is_quick_look() {
     let shown = rows(&open);
     assert_eq!(
         shown.preview,
-        Some(PreviewKind::Pdf),
+        Some(PreviewKind::File),
         "browsing: Quick Look"
     );
     assert_eq!(shown.selected, 0, "the selection stays on the row");
@@ -202,7 +280,7 @@ fn a_real_escape_in_the_field_hides_the_pane_before_it_closes() {
     open.harness
         .send(Input::chord(&[ShortcutKey::Ctrl], ShortcutKey::Char('y')));
     open.harness.advance(Duration::from_millis(40));
-    assert_eq!(rows(&open).preview, Some(PreviewKind::Pdf));
+    assert_eq!(rows(&open).preview, Some(PreviewKind::File));
     open.harness.send(Input::key(ShortcutKey::Escape));
     open.harness.advance(Duration::from_millis(40));
     assert!(is_open(&open.link), "the first Escape was the pane's");

@@ -6,6 +6,7 @@ mod reach;
 mod run;
 mod terminal;
 mod uri;
+mod viewer;
 
 pub use open::{open_argv, reveal_folder};
 pub(crate) use reach::Reach;

@@ -598,9 +598,9 @@ fn responses() -> Vec<(Response, &'static str)> {
                     hidden: 2,
                 }],
                 selected: 0,
-                preview: Some(PreviewKind::Pdf),
+                preview: Some(PreviewKind::File),
             }),
-            r#"{"kind":"launcher_rows","v":{"query":"rep","sections":[{"title":"Documents","rows":["report.pdf"],"hidden":2}],"selected":0,"preview":"pdf"}}"#,
+            r#"{"kind":"launcher_rows","v":{"query":"rep","sections":[{"title":"Documents","rows":["report.pdf"],"hidden":2}],"selected":0,"preview":"file"}}"#,
         ),
         (
             Response::LauncherRows(LauncherRows {

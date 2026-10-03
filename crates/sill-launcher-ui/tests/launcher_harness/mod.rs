@@ -10,6 +10,7 @@ pub mod launcher_support;
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::time::Duration;
 
 use dioxus::prelude::*;
@@ -19,15 +20,23 @@ use ds_harness::{Driver, Harness, Input, Query};
 use launcher_support::{LauncherFeeds, Runner, fake};
 use sill_launcher_ui::Launcher;
 use sill_launcher_ui::launcher::LauncherProviders;
+use sill_launcher_ui::launcher::preview::load::{Look, Looking};
 use sill_ui_kit::harness::SurfaceHarness;
 use sill_ui_kit::links::LauncherLink;
 
 /// What the test gives the root beside the surface's own contexts: the providers and the search
 /// runner, which runs as a task on the harness's thread once.
-fn in_root(providers: LauncherProviders, runner: Runner) -> impl Fn() + 'static {
+fn in_root(
+    providers: LauncherProviders,
+    runner: Runner,
+    look: Option<Arc<dyn Look>>,
+) -> impl Fn() + 'static {
     let runner = Rc::new(RefCell::new(Some(runner)));
     move || {
         use_context_provider(|| providers.clone());
+        if let Some(look) = &look {
+            use_context_provider(|| Looking(Arc::clone(look)));
+        }
         use_hook(|| {
             if let Some(runner) = runner.borrow_mut().take() {
                 spawn(runner.run());
@@ -90,6 +99,11 @@ impl Open {
 
 /// The launcher opened with `query` typed, once its rows (or its empty state) have drawn.
 pub fn open(query: &str) -> Open {
+    open_looking(query, None)
+}
+
+/// [`open`], with the pane looking at files as `look` says rather than as the viewer's parts do.
+pub fn open_looking(query: &str, look: Option<Arc<dyn Look>>) -> Open {
     let (services, feeds, runner) = launcher_support::services_with_runner();
     let LauncherFeeds {
         bar,
@@ -100,7 +114,7 @@ pub fn open(query: &str) -> Open {
     link.open(fake::output().id, query.to_owned());
     let running = SurfaceHarness::<Launcher>::setup(link.clone(), ())
         .services(services, bar)
-        .in_root(in_root(launcher_support::providers(), runner))
+        .in_root(in_root(launcher_support::providers(), runner, look))
         .start();
     let SurfaceHarness {
         mut harness,

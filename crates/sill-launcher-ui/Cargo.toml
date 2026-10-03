@@ -8,12 +8,19 @@ rust-version.workspace = true
 repository.workspace = true
 publish.workspace = true
 
+# `media` (on by default) lets the preview pane read a recording's facts and cover with libav. Off, a
+# recording previews as its type, size and date and libav is not linked.
+[features]
+default = ["media"]
+media = ["anyview-peek/media"]
+
 [dependencies]
+anyview-core = { workspace = true }
+anyview-peek = { workspace = true }
 dioxus = { workspace = true }
 dirs = { workspace = true }
 ds = { workspace = true }
 ds-blitz = { workspace = true, features = ["pdf"] }
-image = { workspace = true }
 jiff = { workspace = true }
 shell-host = { workspace = true }
 sill-launcher = { workspace = true }
@@ -26,6 +33,7 @@ tokio = { workspace = true }
 
 [dev-dependencies]
 ds-harness = { workspace = true }
+image = { workspace = true }
 sill-ui-kit = { workspace = true, features = ["harness"] }
 dioxus-ssr = { workspace = true }
 ds-lint = { workspace = true }

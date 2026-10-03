@@ -7,8 +7,8 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 
 use sill_launcher::{
-    Activation, AppId, Choice, ClipKey, DesktopAction, Item, OpenTarget, Provider, ProviderKind,
-    SettingsTarget, SystemCommand,
+    Activation, AppId, Choice, ClipKey, DesktopAction, Generation, Item, Mime, OpenTarget,
+    Provider, ProviderKind, SettingsTarget, Subject, SystemCommand, ViewerOpen,
 };
 use std::path::PathBuf;
 
@@ -63,6 +63,7 @@ impl LauncherProviders {
                 frecency: Arc::new(Mutex::default()),
                 source: IndexSource::Detect(buses.session),
                 home: PathBuf::from("/"),
+                viewer_store: PathBuf::from("/"),
             }),
             Arc::new(ClipboardProvider {
                 history: services.clipboard.state.clone(),
@@ -168,6 +169,41 @@ pub fn effect_of(activation: Activation) -> LauncherEffect {
         Activation::SetClipboard { entry } => LauncherEffect::SetClipboard(entry),
         Activation::ForgetClipboard { entry } => LauncherEffect::ForgetClipboard(entry),
         Activation::Nothing => LauncherEffect::Nothing,
+    }
+}
+
+/// The files of `rows`, in the order shown: the results a file opened in the viewer is chosen from,
+/// which its arrow keys walk. A folder is a row of the list but not a file to walk.
+pub fn file_results(rows: &[&Item]) -> Vec<PathBuf> {
+    rows.iter()
+        .filter_map(|item| match &item.subject {
+            Subject::File(file) if file.mime.0 != Mime::FOLDER => Some(file.path.clone()),
+            Subject::File(_)
+            | Subject::None
+            | Subject::App(_)
+            | Subject::Clip(_)
+            | Subject::Emoji(_)
+            | Subject::Web(_) => None,
+        })
+        .collect()
+}
+
+/// `effect` with the results of search `search` added when it opens a file in the viewer: the
+/// provider that chose the effect saw one row, and only the panel knows the list around it.
+pub fn with_results(
+    effect: LauncherEffect,
+    search: Generation,
+    files: Vec<PathBuf>,
+) -> LauncherEffect {
+    match effect {
+        LauncherEffect::Open(OpenTarget::Viewer(open)) => {
+            LauncherEffect::Open(OpenTarget::Viewer(ViewerOpen {
+                search,
+                results: files,
+                ..open
+            }))
+        }
+        other => other,
     }
 }
 
@@ -302,6 +338,65 @@ mod tests {
             AfterEffect::StayOpen
         );
         assert_eq!(LauncherEffect::ByRunner.after(), AfterEffect::Close);
+    }
+
+    #[test]
+    fn the_results_the_viewer_walks_are_the_files_shown_in_order() {
+        use super::{file_results, with_results};
+        use sill_launcher::{
+            FileFacts, Generation, Mime, OpenTarget, Subject, UnixTime, ViewerOpen,
+        };
+        use std::path::PathBuf;
+
+        let file = |path: &str, mime: &str| Item {
+            subject: Subject::File(FileFacts {
+                path: PathBuf::from(path),
+                mime: Mime(mime.to_owned()),
+                modified: UnixTime(0),
+            }),
+            ..item(ProviderKind::Files)
+        };
+        let rows = [
+            file("/h/b.pdf", "application/pdf"),
+            file("/h/docs", Mime::FOLDER),
+            item(ProviderKind::Calculator),
+            file("/h/a.png", "image/png"),
+        ];
+        let shown: Vec<&Item> = rows.iter().collect();
+        let files = file_results(&shown);
+        assert_eq!(
+            files,
+            [PathBuf::from("/h/b.pdf"), PathBuf::from("/h/a.png")]
+        );
+
+        let open = |results: Vec<PathBuf>, search| {
+            LauncherEffect::Open(OpenTarget::Viewer(ViewerOpen {
+                file: PathBuf::from("/h/a.png"),
+                search,
+                results,
+            }))
+        };
+        assert_eq!(
+            with_results(
+                open(Vec::new(), Generation(0)),
+                Generation(7),
+                files.clone()
+            ),
+            open(files.clone(), Generation(7)),
+            "a file opened in the viewer is told the list around it"
+        );
+        let others = [
+            LauncherEffect::Open(OpenTarget::File(PathBuf::from("/h/docs"))),
+            LauncherEffect::Open(OpenTarget::Play(PathBuf::from("/h/a.flac"))),
+            LauncherEffect::Copy("x".to_owned()),
+        ];
+        for effect in others {
+            assert_eq!(
+                with_results(effect.clone(), Generation(7), files.clone()),
+                effect,
+                "{effect:?} has no list to carry"
+            );
+        }
     }
 
     /// The session rows run through the session service or open the power menu.

@@ -2,8 +2,8 @@
 //!
 //! A row's title is the file name, its subtitle the folder with the home directory as `~`
 //! (`~/Documents/Taxes`), its icon the MIME type's glyph name (`IconRef::Glyph`: `folder`,
-//! `image`, `file`), its subject `Subject::File`, its id the absolute path, its actions
-//! "Reveal in Files" (⌘R) and "Copy Path" (⌘C). The score is `rank_text` over the name with the
+//! `image`, `file`), its subject `Subject::File`, its id the absolute path, its actions the shared
+//! list for its kind (`actions.rs`). The score is `rank_text` over the name with the
 //! row's frecency, plus a recency boost for a file modified in the last week (proposed: +50,
 //! +25 within a month), so a document you are working on outranks an old namesake.
 //!
@@ -16,15 +16,12 @@ use std::path::Path;
 
 use nucleo_matcher::Matcher;
 use sill_launcher::{
-    Action, ActionId, ActionKeys, FileFacts, Frecency, IconRef, Item, ItemId, ItemKey, Mime,
-    Needle, ProviderKind, RankWeights, Score, Subject, UnixTime, chords, rank_text,
+    FileFacts, Frecency, FrecencyScore, IconRef, Item, ItemId, ItemKey, Mime, Needle, ProviderKind,
+    RankWeights, Score, Subject, UnixTime, rank_text,
 };
 
+use super::actions::row_actions;
 use super::index::FileHit;
-
-/// The action ids a file row carries.
-pub const REVEAL_ACTION: &str = "reveal";
-pub const COPY_PATH_ACTION: &str = "copy-path";
 
 /// The recency boost: `(younger than this many days, points)`, first match wins.
 const RECENT: [(u64, u32); 2] = [(7, 50), (30, 25)];
@@ -57,6 +54,20 @@ pub fn file_items(
     rows
 }
 
+/// Whether `name` matches `needle` as a row's name must (without case), for a source that would
+/// otherwise look up files the name rules out.
+pub fn name_matches(needle: &Needle, name: &str, matcher: &mut Matcher) -> bool {
+    let needle = without_case(needle);
+    rank_text(
+        &needle,
+        name,
+        FrecencyScore::NONE,
+        &RankWeights::DEFAULT,
+        matcher,
+    )
+    .is_some()
+}
+
 /// `needle` matching without case, as Spotlight matches file names: the launcher's needle is smart
 /// case, and a lower-case needle is case-insensitive. nucleo's operators
 /// (`^`, `$`, `'`, `!`) have no case, so lower-casing keeps them.
@@ -86,6 +97,11 @@ fn file_item(
     let used = frecency.score(&ItemKey::of(ProviderKind::Files, &id), now);
     let Score(matched) = rank_text(needle, &hit.name, used, weights, matcher)?;
     let folder = hit.path.parent().unwrap_or(&hit.path);
+    let facts = FileFacts {
+        path: hit.path.clone(),
+        mime: hit.mime.clone(),
+        modified: hit.modified,
+    };
     Some(Item {
         id,
         provider: ProviderKind::Files,
@@ -93,12 +109,8 @@ fn file_item(
         subtitle: tilde(folder, home),
         icon: IconRef::Glyph(glyph_of(&hit.mime).to_owned()),
         score: Score(matched + recency_boost(hit.modified, now)),
-        actions: file_actions(),
-        subject: Subject::File(FileFacts {
-            path: hit.path.clone(),
-            mime: hit.mime.clone(),
-            modified: hit.modified,
-        }),
+        actions: row_actions(&facts),
+        subject: Subject::File(facts),
     })
 }
 
@@ -117,21 +129,6 @@ fn glyph_of(mime: &Mime) -> &'static str {
         other if other.starts_with("image/") => "image",
         _ => "file",
     }
-}
-
-fn file_actions() -> Vec<Action> {
-    vec![
-        Action {
-            id: ActionId(REVEAL_ACTION.to_owned()),
-            label: "Reveal in Files".to_owned(),
-            keys: ActionKeys::Chord(chords::reveal()),
-        },
-        Action {
-            id: ActionId(COPY_PATH_ACTION.to_owned()),
-            label: "Copy Path".to_owned(),
-            keys: ActionKeys::Chord(chords::copy()),
-        },
-    ]
 }
 
 #[cfg(test)]
@@ -202,7 +199,12 @@ mod tests {
         assert!(
             matches!(&rows[0].subject, Subject::File(f) if f.path == Path::new("/home/p/Documents/report.pdf"))
         );
-        assert_eq!(rows[0].actions.len(), 2);
+        let actions: Vec<&str> = rows[0].actions.iter().map(|a| a.id.0.as_str()).collect();
+        assert_eq!(
+            actions,
+            ["open", "reveal_in_folder", "copy_path"],
+            "a pdf's row: the shared list, as the launcher shows and carries it"
+        );
     }
 
     #[test]
@@ -240,14 +242,12 @@ mod tests {
         for &(id, want) in cases {
             assert_eq!(glyph(id), Some(IconRef::Glyph(want.to_owned())), "{id}");
         }
-        let keys: Vec<&ActionKeys> = rows[0].actions.iter().map(|a| &a.keys).collect();
-        assert_eq!(
-            keys,
-            [
-                &ActionKeys::Chord(chords::reveal()),
-                &ActionKeys::Chord(chords::copy())
-            ]
-        );
+        let reveal = rows[0]
+            .actions
+            .iter()
+            .find(|a| a.id.0 == "reveal_in_folder")
+            .map(|a| &a.keys);
+        assert_eq!(reveal, Some(&ActionKeys::Chord(chords::reveal())));
     }
 
     #[test]

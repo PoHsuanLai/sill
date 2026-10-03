@@ -5,15 +5,15 @@
 
 mod launcher_harness;
 
-use std::io::Write;
-use std::path::Path;
 use std::time::Duration;
 
 use ds::prelude::*;
 use ds_harness::harness::assert_settles_to_zero_frames;
 use ds_harness::{ClassPresence, Driver, Harness, Input, Query};
 use launcher_harness::launcher_support::m9;
-use launcher_harness::{Open, Press, Seen, await_off_thread, loaded, open, settle, watch};
+use launcher_harness::{
+    Open, Press, Seen, await_off_thread, loaded, open, open_looking, settle, watch,
+};
 use sill_launcher::PreviewKind;
 
 /// Show the preview pane with ⌘Y through the harness's keyboard.
@@ -68,20 +68,20 @@ fn another_kind_cross_fades_and_never_replays_the_entrance() {
     assert_settles_to_zero_frames(&mut open.harness);
     assert_eq!(
         open.link.rows().and_then(|r| r.preview),
-        Some(PreviewKind::Pdf)
+        Some(PreviewKind::File)
     );
     let before = entrance(&open.harness);
 
-    // Down onto the PNG: the selection moved onto another kind (a Preview moment).
+    // Down onto the PNG: the selection moved onto another file; its peek lands in the same pane.
     press(&mut open, Press::Down);
     assert_eq!(
         open.link.rows().and_then(|r| r.preview),
-        Some(PreviewKind::Image)
+        Some(PreviewKind::File)
     );
     assert_eq!(
-        watch(&mut open.harness, fading),
+        await_off_thread(&mut open.harness, fading),
         Seen::Once,
-        "the media fades in"
+        "the media fades in when the peek lands"
     );
     assert_eq!(
         entrance(&open.harness),
@@ -98,50 +98,17 @@ fn another_kind_cross_fades_and_never_replays_the_entrance() {
     assert_eq!(entrance(&open.harness), before);
 }
 
-/// The FIFO the slow text file's head is read from: its read waits until the test writes it.
-struct SlowHead<'a>(&'a Path);
-
-impl SlowHead<'_> {
-    fn make(path: &Path) -> SlowHead<'_> {
-        let _ = std::fs::remove_file(path);
-        let made = std::process::Command::new("mkfifo")
-            .arg(path)
-            .status()
-            .expect("mkfifo runs"); // test-only
-        assert!(made.success(), "mkfifo {}", path.display());
-        SlowHead(path)
-    }
-
-    /// Write `text` as the head and close the FIFO, so the read lands.
-    fn land(&self, text: &'static str) {
-        let path = self.0.to_path_buf();
-        std::thread::spawn(move || {
-            let mut fifo = std::fs::OpenOptions::new()
-                .write(true)
-                .open(path)
-                .expect("the FIFO opens for writing"); // test-only
-            fifo.write_all(text.as_bytes())
-                .expect("the head is written"); // test-only
-        });
-    }
-}
-
-impl Drop for SlowHead<'_> {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_file(self.0);
-    }
-}
-
 #[test]
-fn a_slow_text_head_shows_loading_at_once_then_the_text() {
+fn a_slow_look_shows_loading_at_once_then_the_text() {
     let path = m9::slow_head_path();
-    let head = SlowHead::make(&path);
-    let mut open = open("slow-head");
+    std::fs::write(&path, "The head landed.\n").expect("the slow file"); // test-only
+    let (look, release) = m9::gated(path.clone());
+    let mut open = open_looking("slow-head", Some(look));
     press(&mut open, Press::QuickLook);
     settle(&mut open.harness, |h| h.count(".ds-preview") == 1);
     assert_eq!(
         open.link.rows().and_then(|r| r.preview),
-        Some(PreviewKind::TextFile)
+        Some(PreviewKind::File)
     );
     // No grace: the pending look is there from the first frames, and the pane is busy.
     settle(&mut open.harness, |h| h.count(".ds-preview-pending") == 1);
@@ -155,11 +122,11 @@ fn a_slow_text_head_shows_loading_at_once_then_the_text() {
             .is_some_and(|text| text.contains("Loading\u{2026}")),
         "the words say so"
     );
-    // No cap: it keeps turning for as long as the read runs.
+    // No cap: it keeps turning for as long as the look runs.
     open.harness.advance(Duration::from_secs(10));
     assert_eq!(open.harness.count(".ds-preview-pending"), 1);
 
-    head.land("The head landed.\n");
+    release.send(()).expect("the look is held"); // test-only
     let landed = await_off_thread(&mut open.harness, |h| {
         h.text_of(".ds-preview-media")
             .is_some_and(|text| text.contains("The head landed."))
@@ -168,6 +135,7 @@ fn a_slow_text_head_shows_loading_at_once_then_the_text() {
     assert_eq!(open.harness.count(".ds-preview-pending"), 0);
     assert_eq!(open.harness.attr(".ds-preview", "aria-busy"), None);
     assert_settles_to_zero_frames(&mut open.harness);
+    let _ = std::fs::remove_file(&path);
 }
 
 #[test]

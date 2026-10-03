@@ -37,7 +37,7 @@ sill-settings = { path = "crates/sill-settings" }
 sill-testkit  = { path = "crates/sill-testkit" }
 sill-ui-kit   = { path = "crates/sill-ui-kit" }
 sill-bar = { path = "crates/sill-bar" }
-sill-launcher-ui = { path = "crates/sill-launcher-ui" }
+sill-launcher-ui = { path = "crates/sill-launcher-ui", default-features = false }
 sill-dock = { path = "crates/sill-dock" }
 sill-widgets-ui = { path = "crates/sill-widgets-ui" }
 sill-notify-ui = { path = "crates/sill-notify-ui" }
@@ -53,6 +53,15 @@ ds-settings = { path = "../quire/crates/ds-settings", features = ["tokio"] }  # 
 ds-blitz   = { path = "../quire/crates/ds-blitz" }
 ds-harness = { path = "../quire/crates/ds-harness" }
 shell-host = { path = "../shell-host/crates/shell-host" }
+# The viewer's format library and the launcher's half of its desktop contract: the pane's peeks
+# (`anyview-peek`), the vocabulary (`anyview-core`), the history the viewer keeps
+# (`anyview-store`) and the viewer's D-Bus requests (`anyview-platform`). Taken by path from the
+# sibling checkout until anyview is merged and its revision is pinned in quire's
+# `docs/workspace-deps.toml` like pdfrum (FINDINGS: "anyview is taken by path").
+anyview-core = { path = "../anyview/crates/anyview-core" }
+anyview-peek = { path = "../anyview/crates/anyview-peek", default-features = false }
+anyview-platform = { path = "../anyview/crates/anyview-platform" }
+anyview-store = { path = "../anyview/crates/anyview-store" }
 
 # ---- BEGIN PINNED BLOCK (source of truth: quire/docs/workspace-deps.toml) ----
 # Copied verbatim into [workspace.dependencies] of quire, shell-host and sill. Bumped only by a

@@ -67,13 +67,13 @@ mod tests {
                 hidden: 2,
             }],
             selected: 0,
-            preview: Some(PreviewKind::Pdf),
+            preview: Some(PreviewKind::File),
         }));
         let Response::LauncherRows(shown) = rows(&link) else {
             panic!("an open launcher answers its rows");
         };
         assert_eq!(shown.sections[0].hidden, 2);
-        assert_eq!(shown.preview, Some(PreviewKind::Pdf));
+        assert_eq!(shown.preview, Some(PreviewKind::File));
         assert_eq!(report(ShownRows::default()).preview, None);
     }
 }

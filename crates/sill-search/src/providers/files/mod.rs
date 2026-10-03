@@ -2,15 +2,18 @@
 //! index `launcher.files_backend` picks ([`choice::pick`]): Tracker 3, or `fd`/`plocate` within
 //! a time budget.
 //!
-//! Nothing typed asks no index; with
-//! the policy's `FilesChoice::Off` or no index picked, nothing; otherwise one [`FileAsk`] with
-//! the policy's budget under `$HOME`, its hits ranked by [`hits::file_items`] and pushed as
-//! one batch (a `Partial` answer is pushed too). Enter opens the file (`Activation::Open`),
-//! "Reveal in Files" (⌘R) its folder, "Copy Path" (⌘C) copies the path.
+//! Nothing typed asks no index; with the policy's `FilesChoice::Off`, nothing; otherwise one
+//! [`FileAsk`] with the policy's budget under `$HOME` (none when no index is picked), plus the
+//! files the viewer remembers (`viewed.rs`: they rank with the launcher's frecency, and the ones
+//! the index did not bring are rows of their own), ranked by [`hits::file_items`] and pushed as
+//! one batch (a `Partial` answer is pushed too). A row carries the shared list of actions for
+//! its kind (`actions.rs`); Enter is its Open: a folder in the file manager, a file in the
+//! viewer.
 //!
 //! Tests never read the person's index or home directory: they use [`FakeIndex`] and temp
 //! directories; a live backend test only checks that the backend exists (`choice::detect`).
 
+pub mod actions;
 pub(crate) mod bus;
 pub mod choice;
 mod cursor;
@@ -22,22 +25,26 @@ mod program;
 mod query_tests;
 mod stat;
 pub mod tracker;
+mod viewed;
 pub mod walk;
 
 pub use fake::FakeIndex;
 pub use index::{FileAnswer, FileAsk, FileHit, FileIndex, HitLimit, IndexFault, IndexKind};
 
+use std::collections::BTreeSet;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use anyview_core::FileAction;
+use anyview_store::read_history;
+use ds_core::word::Word;
 use sill_launcher::{
-    Activation, Batch, Choice, Frecency, Item, Needle, OpenTarget, Provider, ProviderKind, Query,
+    ActionId, Activation, Batch, Choice, Frecency, Item, Needle, Provider, ProviderKind, Query,
     RankWeights, ResultSink, Subject, UnixTime, matching,
 };
 use tokio::sync::watch;
 
-use hits::{COPY_PATH_ACTION, REVEAL_ACTION};
 use sill_model::results::{FilesChoice, LauncherPolicy};
 use tracker::TrackerIndex;
 
@@ -72,6 +79,8 @@ pub struct FilesProvider {
     pub source: IndexSource,
     /// Where hits must live (the home directory).
     pub home: PathBuf,
+    /// The viewer's store, which holds the history of files it opened (`<data>/anyview`).
+    pub viewer_store: PathBuf,
 }
 
 impl Provider for FilesProvider {
@@ -85,31 +94,42 @@ impl Provider for FilesProvider {
             return;
         }
         let policy = self.policy.borrow().clone();
-        let Some(index) = index_for(&self.source, policy.files) else {
+        if policy.files == FilesChoice::Off {
             return;
-        };
-        let ask = FileAsk {
-            text: text.to_owned(),
-            under: self.home.clone(),
-            limit: ASK_LIMIT,
-            budget: policy.files_budget,
-        };
-        let hits = match index.search(&ask, query) {
-            FileAnswer::Hits(hits) | FileAnswer::Partial(hits) => hits,
-            FileAnswer::Unavailable(_) => return,
-        };
+        }
+        let indexed = self.index_hits(&policy, text, query);
         if query.is_cancelled() {
             return;
         }
+        let answered = indexed.is_some();
+        let mut hits = indexed.unwrap_or_default();
+        let history = read_history(&self.viewer_store);
+        let views = history.entries();
+        let known: BTreeSet<PathBuf> = hits.iter().map(|hit| hit.path.clone()).collect();
+        let (needle, mut matcher) = (Needle::parse(text), matching::matcher());
+        let viewed_hits: Vec<FileHit> = viewed::viewed_hits(
+            views,
+            |name| hits::name_matches(&needle, name, &mut matcher),
+            viewed::modified_of,
+        )
+        .into_iter()
+        .filter(|hit| !known.contains(&hit.path))
+        .collect();
+        if !answered && viewed_hits.is_empty() {
+            return;
+        }
+        hits.extend(viewed_hits);
+        let frecency = viewed::fold_views(snapshot(&self.frecency), views);
         let items = hits::file_items(
             &hits,
-            &Needle::parse(text),
+            &needle,
             &self.home,
-            &snapshot(&self.frecency),
+            &frecency,
             unix_now(),
             &RankWeights::DEFAULT,
-            &mut matching::matcher(),
+            &mut matcher,
         );
+        let items = viewed::with_places(items, views);
         sink.push(Batch {
             provider: ProviderKind::Files,
             generation: query.generation,
@@ -122,18 +142,38 @@ impl Provider for FilesProvider {
             return Activation::Nothing;
         };
         match choice {
-            Choice::Primary => Activation::Open {
-                target: OpenTarget::File(file.path.clone()),
-            },
-            Choice::Action(id) if id.0 == REVEAL_ACTION => Activation::Open {
-                target: OpenTarget::Reveal(file.path.clone()),
-            },
-            Choice::Action(id) if id.0 == COPY_PATH_ACTION => Activation::Copy {
-                text: file.path.to_string_lossy().into_owned(),
-            },
-            Choice::Action(_) => Activation::Nothing,
+            Choice::Primary => actions::activation_of(&open_action(), file),
+            Choice::Action(id) => actions::activation_of(id, file),
         }
     }
+}
+
+impl FilesProvider {
+    /// What the index brings for `text` within the policy's budget: `None` when no index is
+    /// picked or it cannot answer.
+    fn index_hits(
+        &self,
+        policy: &LauncherPolicy,
+        text: &str,
+        query: &Query,
+    ) -> Option<Vec<FileHit>> {
+        let index = index_for(&self.source, policy.files)?;
+        let ask = FileAsk {
+            text: text.to_owned(),
+            under: self.home.clone(),
+            limit: ASK_LIMIT,
+            budget: policy.files_budget,
+        };
+        match index.search(&ask, query) {
+            FileAnswer::Hits(hits) | FileAnswer::Partial(hits) => Some(hits),
+            FileAnswer::Unavailable(_) => None,
+        }
+    }
+}
+
+/// Enter's action: the same as the row's Open.
+fn open_action() -> ActionId {
+    ActionId(FileAction::Open.slug().to_owned())
 }
 
 /// Most hits one ask brings back: the Documents section publishes at most 20 rows, and a hit
@@ -194,8 +234,8 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use sill_launcher::{
-        ActionId, Activation, Choice, FileFacts, IconRef, Item, ItemId, Mime, OpenTarget, Provider,
-        ProviderKind, Score, Subject, UnixTime,
+        ActionId, Activation, Choice, FileFacts, Generation, IconRef, Item, ItemId, Mime,
+        OpenTarget, Provider, ProviderKind, Score, Subject, UnixTime, ViewerOpen,
     };
     use tokio::sync::watch;
 
@@ -210,50 +250,82 @@ mod tests {
                 sill_services::env::BusRoute::Absent,
             )),
             home: PathBuf::from("/home/p"),
+            viewer_store: PathBuf::from("/home/p/.local/share/anyview"),
         }
     }
 
-    #[test]
-    fn a_file_row_opens_reveals_and_copies_its_path() {
-        let row = Item {
-            id: ItemId("/home/p/a.pdf".to_owned()),
+    fn row(path: &str, mime: &str) -> Item {
+        Item {
+            id: ItemId(path.to_owned()),
             provider: ProviderKind::Files,
-            title: "a.pdf".to_owned(),
+            title: "a".to_owned(),
             subtitle: "~".to_owned(),
             icon: IconRef::None,
             score: Score(0),
             actions: Vec::new(),
             subject: Subject::File(FileFacts {
-                path: PathBuf::from("/home/p/a.pdf"),
-                mime: Mime("application/pdf".to_owned()),
+                path: PathBuf::from(path),
+                mime: Mime(mime.to_owned()),
                 modified: UnixTime(0),
             }),
-        };
+        }
+    }
+
+    #[test]
+    fn a_file_row_opens_in_the_viewer_reveals_and_copies_its_path() {
+        let pdf = row("/home/p/a.pdf", "application/pdf");
+        let folder = row("/home/p/docs", Mime::FOLDER);
         let action = |id: &str| Choice::Action(ActionId(id.to_owned()));
         let path = PathBuf::from("/home/p/a.pdf");
+        let viewer = Activation::Open {
+            target: OpenTarget::Viewer(ViewerOpen {
+                file: path.clone(),
+                search: Generation::default(),
+                results: Vec::new(),
+            }),
+        };
         let cases = [
+            ("enter on a file", &pdf, Choice::Primary, viewer.clone()),
+            ("open on a file", &pdf, action("open"), viewer),
             (
+                "enter on a folder",
+                &folder,
                 Choice::Primary,
                 Activation::Open {
-                    target: OpenTarget::File(path.clone()),
+                    target: OpenTarget::File(PathBuf::from("/home/p/docs")),
                 },
             ),
             (
-                action("reveal"),
+                "reveal",
+                &pdf,
+                action("reveal_in_folder"),
                 Activation::Open {
                     target: OpenTarget::Reveal(path),
                 },
             ),
             (
-                action("copy-path"),
+                "copy the path",
+                &pdf,
+                action("copy_path"),
                 Activation::Copy {
                     text: "/home/p/a.pdf".to_owned(),
                 },
             ),
-            (action("other"), Activation::Nothing),
+            (
+                "an action the launcher does not carry",
+                &pdf,
+                action("share"),
+                Activation::Nothing,
+            ),
+            (
+                "an id that is no action",
+                &pdf,
+                action("other"),
+                Activation::Nothing,
+            ),
         ];
-        for (choice, want) in cases {
-            assert_eq!(provider().activate(&row, &choice), want, "{choice:?}");
+        for (name, row, choice, want) in cases {
+            assert_eq!(provider().activate(row, &choice), want, "{name}");
         }
     }
 }

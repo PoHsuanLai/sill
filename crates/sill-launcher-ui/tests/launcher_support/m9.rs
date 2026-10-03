@@ -4,7 +4,11 @@
 //! it and their chords. Nothing here reads the person's home, index or clipboard.
 
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::{Arc, Mutex, OnceLock, PoisonError, mpsc};
+
+use anyview_peek::AnyPeeked;
+use sill_launcher_ui::launcher::preview::load::{Look, PreviewFault, ViewerLook};
+use sill_search::providers::files::actions::{activation_of, row_actions};
 
 use sill_launcher::{
     Action, ActionId, ActionKeys, Activation, CharCount, Choice, ClipFacts, ClipKey, ClipKind,
@@ -99,34 +103,29 @@ fn action(id: &str, label: &str, keys: ActionKeys) -> Action {
     }
 }
 
+/// A file row as the files provider builds it: its actions are the real ones for its kind.
 fn document(name: &str, mime: &str, score: u32) -> Item {
     let path = folder().join(name);
+    let facts = FileFacts {
+        path,
+        mime: Mime(mime.to_owned()),
+        modified: UnixTime(1_790_000_000),
+    };
     Item {
-        id: ItemId(path.display().to_string()),
+        id: ItemId(facts.path.display().to_string()),
         provider: ProviderKind::Files,
         title: name.to_owned(),
         subtitle: "~/scratch".to_owned(),
         icon: IconRef::None,
         score: Score(score),
-        actions: vec![
-            action(
-                "reveal",
-                "Reveal in Files",
-                ActionKeys::Chord(chords::reveal()),
-            ),
-            action("copy-path", "Copy Path", ActionKeys::Chord(chords::copy())),
-        ],
-        subject: Subject::File(FileFacts {
-            path,
-            mime: Mime(mime.to_owned()),
-            modified: UnixTime(1_790_000_000),
-        }),
+        actions: row_actions(&facts),
+        subject: Subject::File(facts),
     }
 }
 
-/// The text file whose head is slow to read: `slow-head.txt` in the scratch folder, found only by
-/// the query `slow-head`. The fixture writes no file there: a test makes it a FIFO
-/// ([`slow_head_path`]) so the pane's read waits until the test writes the head.
+/// The text file the pane is slow to look at: `slow-head.txt` in the scratch folder, found only by
+/// the query `slow-head`. A test writes the file ([`slow_head_path`]) and holds the pane's look at
+/// it open with a [`Gated`] look until it releases it.
 pub fn slow_head() -> Item {
     document(SLOW_HEAD, "text/plain", 950)
 }
@@ -134,6 +133,36 @@ pub fn slow_head() -> Item {
 /// Where [`slow_head`] points.
 pub fn slow_head_path() -> PathBuf {
     folder().join(SLOW_HEAD)
+}
+
+/// A look that holds the file at `slow` until the test sends on the returned sender, and looks
+/// at every other file as the viewer's parts do.
+pub fn gated(slow: PathBuf) -> (Arc<Gated>, mpsc::Sender<()>) {
+    let (release, held) = mpsc::channel();
+    (
+        Arc::new(Gated {
+            slow,
+            held: Mutex::new(held),
+        }),
+        release,
+    )
+}
+
+/// See [`gated`].
+pub struct Gated {
+    slow: PathBuf,
+    held: Mutex<mpsc::Receiver<()>>,
+}
+
+impl Look for Gated {
+    fn at(&self, path: &Path) -> Result<Arc<AnyPeeked>, PreviewFault> {
+        if path == self.slow {
+            // A sender that went away releases the look too, so a failed test does not hang.
+            let held = self.held.lock().unwrap_or_else(PoisonError::into_inner);
+            let _ = held.recv();
+        }
+        ViewerLook.at(path)
+    }
 }
 
 const SLOW_HEAD: &str = "slow-head.txt";
@@ -208,15 +237,8 @@ pub fn web(query: &str) -> Item {
 /// What a fake preview provider's row does.
 pub fn activate(item: &Item, choice: &Choice) -> Activation {
     match (&item.subject, choice) {
-        (Subject::File(file), Choice::Action(id)) if id.0 == "reveal" => Activation::Open {
-            target: OpenTarget::Reveal(file.path.clone()),
-        },
-        (Subject::File(file), Choice::Action(_)) => Activation::Copy {
-            text: file.path.display().to_string(),
-        },
-        (Subject::File(file), Choice::Primary) => Activation::Open {
-            target: OpenTarget::File(file.path.clone()),
-        },
+        (Subject::File(file), Choice::Action(id)) => activation_of(id, file),
+        (Subject::File(file), Choice::Primary) => activation_of(&ActionId("open".to_owned()), file),
         (Subject::Clip(clip), Choice::Action(_)) => Activation::ForgetClipboard { entry: clip.key },
         (Subject::Clip(clip), Choice::Primary) => Activation::SetClipboard { entry: clip.key },
         (Subject::Emoji(emoji), _) => Activation::Copy {
