@@ -221,9 +221,15 @@ step_item_click() {
   sleep 0.6
   width=$(popup_width)
   sill debug capture "$POPUP" "$OUT_DIR/panel.png" >>"$log" 2>&1 || return 1
-  "$SHELL_HOST_DEV/shot.sh" "$SHOTS/control-center-cosmic.png" >>"$log" 2>&1 \
-    || echo "screenshot failed" >&2
-  gap=$(card_right_gap "$SHOTS/control-center-cosmic.png")
+  # A screenshot taken before the compositor shows the popup has no card in it (gap = the whole
+  # width): take it again, up to four times.
+  for _ in 1 2 3 4; do
+    "$SHELL_HOST_DEV/shot.sh" "$SHOTS/control-center-cosmic.png" >>"$log" 2>&1 \
+      || echo "screenshot failed" >&2
+    gap=$(card_right_gap "$SHOTS/control-center-cosmic.png")
+    [ "$gap" -lt 100 ] && break
+    sleep 0.5
+  done
   # shellcheck disable=SC2086
   click_bar $CC_ITEM
   wait_surface "$POPUP" 20 down || { echo "a second click left it open" | tee -a "$log" >&2; return 1; }
@@ -332,6 +338,7 @@ step_idle() {
   local log="$OUT_DIR/idle.log" f0 f1
   close_popup
   sleep 1
+  await_frames_settled "$BAR" || echo "the bar was still drawing 20 s after the popup closed" >&2
   clear_of_the_minute
   f0=$(frames_of "$BAR")
   sleep 5

@@ -83,7 +83,7 @@ step_shows_then_hides() {
     | tee -a "$log" >&2
   # Shown by 200 ms is a latency budget (release builds only; the time includes the capture's own
   # round trip, so it also tracks host load); the hold and the hide are functional.
-  [ "$shown" -ge 0 ] && budget_check "OSD shown ${shown} ms after the change against 200 ms" "$(( shown <= 200 ))" \
+  [ "$shown" -ge 0 ] && budget_check "OSD shown ${shown} ms after the change (less the capture's own $(capture_cost_ms) ms) against 200 ms" "$(( $(captured_ms "$shown") <= 200 ))" \
     && [ "$gone" -ge "$HOLD_MS" ] && [ "$gone" -le "$limit" ]
 }
 

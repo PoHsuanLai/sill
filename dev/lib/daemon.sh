@@ -71,6 +71,42 @@ stop_daemon() {
   return "$result"
 }
 
+# What one `sill debug capture` of the bar costs, in ms (the best of three; measured once, on the
+# first use). Latency figures that are read off a capture loop ("the OSD showed N ms after the
+# change") include the capture that finally saw it, 150 to 300 ms of PNG encoding and IPC on a
+# 2560 px output; `captured_ms N` takes it off, so a budget judges the shell and not the probe.
+CAPTURE_COST_MS=
+capture_cost_ms() {
+  if [ -z "$CAPTURE_COST_MS" ]; then
+    local bar best=999999 t0 t
+    bar=$(surface_named sill-bar-)
+    for _ in 1 2 3; do
+      t0=$(date +%s%N)
+      sill debug capture "$bar" "$OUT_DIR/cost.png" >/dev/null 2>&1
+      t=$(( ($(date +%s%N) - t0) / 1000000 ))
+      [ "$t" -ge "$best" ] || best=$t
+    done
+    CAPTURE_COST_MS=$best
+  fi
+  echo "$CAPTURE_COST_MS"
+}
+captured_ms() { echo $(( $1 - $(capture_cost_ms) )); }
+
+# Waits (up to $2 s, default 20) until surface $1 draws no frame for 1.5 s: an animation that
+# ends later on a loaded host (a dock shrinking, a popup closing) is not idle yet, and a fixed
+# sleep after it would count its last frames against "0 frames at idle".
+await_frames_settled() {
+  local last now quiet=0
+  last=$(frames_of "$1")
+  for _ in $(seq $(( ${2:-20} * 2 ))); do
+    sleep 0.5
+    now=$(frames_of "$1")
+    if [ "$now" = "$last" ]; then quiet=$(( quiet + 1 )); else quiet=0; last=$now; fi
+    [ "$quiet" -ge 3 ] && return 0
+  done
+  return 1
+}
+
 # The first surface of `sill debug stats` named PREFIX... (popups, `NAME/menu`, never match).
 surface_named() {
   sill debug stats | python3 -c '

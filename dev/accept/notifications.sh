@@ -282,7 +282,7 @@ step_shows_holds_hides() {
   gone=$(( t < 0 ? -1 : $(since "$start") ))
   local limit=$((HOLD_MS + EXIT_MS + SLACK_MS))
   echo "shown ${shown} ms after the notification; hidden at ${gone} ms (hold ${HOLD_MS}, limit ${limit})" >&2
-  [ "$shown" -ge 0 ] && budget_check "the banner shown ${shown} ms after the notification against 300 ms" "$(( shown <= 300 ))" \
+  [ "$shown" -ge 0 ] && budget_check "the banner shown ${shown} ms after the notification (less the capture's own $(capture_cost_ms) ms) against 300 ms" "$(( $(captured_ms "$shown") <= 300 ))" \
     && [ "$gone" -ge "$HOLD_MS" ] && [ "$gone" -le "$limit" ] \
     || return 1
   await_status banners 0 && await_status kept 1 || return 1
