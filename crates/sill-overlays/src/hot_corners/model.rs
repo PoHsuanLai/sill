@@ -1,11 +1,11 @@
 //! What the settings say about the corners: which do something, and what.
 
-use sill_settings::{CornerAction, HotCornersSettings};
+use sill_settings::{CornerAction, HotCornerSettings};
 
 use sill_ui_kit::links::Corner;
 
 /// What `corner` does per `settings`.
-pub fn corner_action(settings: &HotCornersSettings, corner: Corner) -> CornerAction {
+pub fn corner_action(settings: &HotCornerSettings, corner: Corner) -> CornerAction {
     match corner {
         Corner::TopLeft => settings.top_left,
         Corner::TopRight => settings.top_right,
@@ -15,7 +15,7 @@ pub fn corner_action(settings: &HotCornersSettings, corner: Corner) -> CornerAct
 }
 
 /// The command `corner` runs when its action is `Command`.
-pub fn corner_command(settings: &HotCornersSettings, corner: Corner) -> &str {
+pub fn corner_command(settings: &HotCornerSettings, corner: Corner) -> &str {
     match corner {
         Corner::TopLeft => &settings.top_left_command,
         Corner::TopRight => &settings.top_right_command,
@@ -25,7 +25,7 @@ pub fn corner_command(settings: &HotCornersSettings, corner: Corner) -> &str {
 }
 
 /// The corners that get a surface: every one whose action is not `None`.
-pub fn active_corners(settings: &HotCornersSettings) -> Vec<Corner> {
+pub fn active_corners(settings: &HotCornerSettings) -> Vec<Corner> {
     Corner::ALL
         .into_iter()
         .filter(|corner| corner_action(settings, *corner) != CornerAction::None)
@@ -34,14 +34,14 @@ pub fn active_corners(settings: &HotCornersSettings) -> Vec<Corner> {
 
 #[cfg(test)]
 mod tests {
-    use sill_settings::{CornerAction, HotCornersSettings};
+    use sill_settings::{CornerAction, HotCornerSettings};
 
     use super::{active_corners, corner_action, corner_command};
     use sill_ui_kit::links::Corner;
 
     #[test]
     fn only_corners_with_an_action_get_a_surface() {
-        let mut settings = HotCornersSettings::default();
+        let mut settings = HotCornerSettings::default();
         assert_eq!(active_corners(&settings), Vec::new());
         settings.top_left = CornerAction::Launcher;
         settings.bottom_right = CornerAction::Command;

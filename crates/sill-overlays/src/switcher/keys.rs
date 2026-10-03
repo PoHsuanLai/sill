@@ -11,7 +11,7 @@
 
 use dioxus::prelude::{Key, Modifiers};
 
-use super::step::SwKey;
+use ds_behaviour::switcher::SwKey;
 
 /// Whether the chord's modifier is still down.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -64,7 +64,7 @@ mod tests {
     use dioxus::prelude::{Key, Modifiers};
 
     use super::{Chord, chord_after_keyup, sw_key};
-    use crate::switcher::step::SwKey;
+    use ds_behaviour::switcher::SwKey;
 
     #[test]
     fn keys_while_up() {

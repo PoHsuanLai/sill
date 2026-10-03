@@ -14,7 +14,8 @@
 use shell_host::{Modifier, Modifiers};
 
 use super::keys::Chord;
-use super::step::{SwIn, SwKey, Switcher};
+use super::model::heading;
+use ds_behaviour::switcher::{SwIn, SwKey, Switcher};
 use sill_ui_kit::links::Dir;
 
 /// Whether an opening follows the modifiers: on a host surface, for the compositor's apps
@@ -59,7 +60,7 @@ pub fn chord_input(state: Switcher, hold: Option<Chord>, dir: Dir) -> SwIn {
     match (state, hold, dir) {
         (Switcher::Armed { .. }, Some(Chord::Held), Dir::Next) => SwIn::Key(SwKey::Tab),
         (Switcher::Armed { .. }, Some(Chord::Held), Dir::Prev) => SwIn::Key(SwKey::ShiftTab),
-        _ => SwIn::Chord(dir),
+        _ => SwIn::Chord(heading(dir)),
     }
 }
 
@@ -70,7 +71,8 @@ mod tests {
 
     use super::{Hold, Watch, chord_input, chord_of, tick_input};
     use crate::switcher::keys::Chord;
-    use crate::switcher::step::{SwIn, SwKey, Switcher};
+    use crate::switcher::model::heading;
+    use ds_behaviour::switcher::{SwIn, SwKey, Switcher};
     use sill_ui_kit::links::Dir;
 
     #[test]
@@ -135,24 +137,24 @@ mod tests {
                 Dir::Prev,
                 SwIn::Key(SwKey::ShiftTab),
             ),
-            (armed, None, Dir::Next, SwIn::Chord(Dir::Next)),
+            (armed, None, Dir::Next, SwIn::Chord(heading(Dir::Next))),
             (
                 armed,
                 Some(Chord::Released),
                 Dir::Next,
-                SwIn::Chord(Dir::Next),
+                SwIn::Chord(heading(Dir::Next)),
             ),
             (
                 Switcher::Hidden,
                 Some(Chord::Held),
                 Dir::Next,
-                SwIn::Chord(Dir::Next),
+                SwIn::Chord(heading(Dir::Next)),
             ),
             (
                 Switcher::Shown { sel: 1 },
                 Some(Chord::Held),
                 Dir::Prev,
-                SwIn::Chord(Dir::Prev),
+                SwIn::Chord(heading(Dir::Prev)),
             ),
         ];
         for (state, hold, dir, want) in cases {

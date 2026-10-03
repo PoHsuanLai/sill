@@ -7,7 +7,7 @@ use ds::prelude::*;
 use sill_launcher::AppId;
 use sill_model::cosmic_wl::WlCommand;
 
-use super::step::SwOut;
+use super::model::AppOut;
 use sill_ui_kit::links::AskSerial;
 
 /// Whose windows a session's verbs touch.
@@ -91,12 +91,17 @@ impl Session {
 
     /// The commands `out` becomes: over the app as `live` has it now (a window may have come or
     /// gone since the chord), else as the session saw it; none for made-up apps.
-    pub fn commands(&self, out: &SwOut, live: &[SwitcherApp]) -> Vec<WlCommand> {
+    pub fn commands(&self, out: &AppOut, live: &[SwitcherApp]) -> Vec<WlCommand> {
         let (id, verb): (&AppId, fn(&SwitcherApp) -> Vec<WlCommand>) = match out {
-            SwOut::Activate(id) => (id, activate),
-            SwOut::Quit(id) => (id, quit),
-            SwOut::HideApp(id) => (id, hide),
-            SwOut::Show | SwOut::Hide | SwOut::Select(_) | SwOut::RequestTick(_) => {
+            AppOut::Activate(id) => (id, activate),
+            AppOut::Quit(id) => (id, quit),
+            AppOut::HideApp(id) => (id, hide),
+            // `sw_key` maps no Up or Down, so the machine never asks for App Exposé.
+            AppOut::Show
+            | AppOut::Hide
+            | AppOut::Select(_)
+            | AppOut::Expose(_)
+            | AppOut::RequestTick(_) => {
                 return Vec::new();
             }
         };
@@ -120,7 +125,7 @@ mod tests {
     use sill_model::cosmic_wl::WlCommand;
 
     use super::Session;
-    use crate::switcher::step::SwOut;
+    use crate::switcher::model::AppOut;
     use sill_ui_kit::links::AskSerial;
 
     fn app(id: &str, windows: &[u64], shown: AppShown) -> SwitcherApp {
@@ -148,25 +153,25 @@ mod tests {
         let live = [app("calc", &[3, 2], AppShown::AllMinimized)];
         let cases = [
             (
-                SwOut::Activate(id("calc")),
+                AppOut::Activate(id("calc")),
                 vec![
                     WlCommand::Unminimize(WindowKey(3)),
                     WlCommand::Activate(WindowKey(3)),
                 ],
             ),
             (
-                SwOut::Quit(id("calc")),
+                AppOut::Quit(id("calc")),
                 vec![
                     WlCommand::Close(WindowKey(3)),
                     WlCommand::Close(WindowKey(2)),
                 ],
             ),
             (
-                SwOut::HideApp(id("term")),
+                AppOut::HideApp(id("term")),
                 vec![WlCommand::Minimize(WindowKey(1))],
             ),
-            (SwOut::Activate(id("gone")), vec![]),
-            (SwOut::Hide, vec![]),
+            (AppOut::Activate(id("gone")), vec![]),
+            (AppOut::Hide, vec![]),
         ];
         for (out, want) in cases {
             assert_eq!(session.commands(&out, &live), want, "{out:?}");
@@ -178,8 +183,8 @@ mod tests {
         let session = Session::made_up(AskSerial(1), vec![id("a"), id("b")]);
         let live = [app("a", &[1], AppShown::Visible)];
         assert_eq!(session.ids(), vec![id("a"), id("b")]);
-        assert_eq!(session.commands(&SwOut::Quit(id("a")), &live), vec![]);
-        assert_eq!(session.commands(&SwOut::Activate(id("a")), &live), vec![]);
+        assert_eq!(session.commands(&AppOut::Quit(id("a")), &live), vec![]);
+        assert_eq!(session.commands(&AppOut::Activate(id("a")), &live), vec![]);
     }
 
     #[test]

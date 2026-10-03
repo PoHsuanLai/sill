@@ -11,7 +11,7 @@ use crate::calendar::CalendarSettings;
 use crate::control_center::ControlCenterSettings;
 use crate::display::DisplaySettings;
 use crate::dock::DockSettings;
-use crate::hot_corners::HotCornersSettings;
+use crate::hot_corners::HotCornerSettings;
 use crate::idle::IdleSettings;
 use crate::keyboard::KeyboardSettings;
 use crate::launcher::LauncherSettings;
@@ -54,7 +54,7 @@ pub struct ShellFile {
     pub widgets: WidgetsSettings,
     pub calendar: CalendarSettings,
     pub screenshot: ScreenshotSettings,
-    pub hot_corners: HotCornersSettings,
+    pub hot_corners: HotCornerSettings,
     /// sill's own idle service.
     pub idle: IdleSettings,
     /// How the keyboard is treated per app (keycap profiles).

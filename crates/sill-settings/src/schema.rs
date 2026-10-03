@@ -8,7 +8,7 @@ use crate::calendar::CalendarSettings;
 use crate::control_center::ControlCenterSettings;
 use crate::display::DisplaySettings;
 use crate::dock::DockSettings;
-use crate::hot_corners::HotCornersSettings;
+use crate::hot_corners::HotCornerSettings;
 use crate::idle::IdleSettings;
 use crate::keyboard::KeyboardSettings;
 use crate::launcher::LauncherSettings;
@@ -66,7 +66,7 @@ pub fn schemas() -> Vec<Schema> {
         WidgetsSettings::schema(),
         CalendarSettings::schema(),
         ScreenshotSettings::schema(),
-        HotCornersSettings::schema(),
+        HotCornerSettings::schema(),
         IdleSettings::schema(),
         KeyboardSettings::schema(),
     ]

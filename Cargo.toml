@@ -43,6 +43,7 @@ sill-widgets-ui = { path = "crates/sill-widgets-ui" }
 sill-notify-ui = { path = "crates/sill-notify-ui" }
 sill-overlays = { path = "crates/sill-overlays" }
 # Sibling repos, checked out next to this one.
+ds-behaviour = { path = "../quire/crates/ds-behaviour" }
 ds-core    = { path = "../quire/crates/ds-core" }
 ds         = { path = "../quire/crates/ds" }
 ds-lint    = { path = "../quire/crates/ds-lint" }

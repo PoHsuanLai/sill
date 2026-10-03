@@ -10,19 +10,19 @@ use ds_harness::{Driver, Harness, Input, Viewport};
 use ds_settings::Ms;
 use shell_host::OutputId;
 use sill_overlays::HotCorners;
-use sill_settings::{CornerAction, HotCornersSettings, ShellFile};
+use sill_settings::{CornerAction, HotCornerSettings, ShellFile};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
 use sill_ui_kit::links::{Corner, CornerLink};
 
 const DWELL_MS: u16 = 40;
 const REARM_MS: u16 = 60;
 
-fn settings() -> HotCornersSettings {
-    HotCornersSettings {
+fn settings() -> HotCornerSettings {
+    HotCornerSettings {
         top_left: CornerAction::Launcher,
         dwell_ms: Ms(DWELL_MS),
         rearm_ms: Ms(REARM_MS),
-        ..HotCornersSettings::default()
+        ..HotCornerSettings::default()
     }
 }
 
@@ -30,7 +30,7 @@ fn settings() -> HotCornersSettings {
 /// `hot_corners.size_px` square; the test's viewport only needs to be big enough that a point
 /// well outside the corner's own `100vw x 100vh` element is still a point the harness can move
 /// the pointer to for a leave).
-fn start(hot_corners: HotCornersSettings) -> (Harness, CornerLink) {
+fn start(hot_corners: HotCornerSettings) -> (Harness, CornerLink) {
     let link = CornerLink::new();
     let file = ShellFile {
         hot_corners,

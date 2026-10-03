@@ -2,7 +2,7 @@
 
 use sill_settings::{
     BarSettings, CalendarSettings, ControlCenterSettings, DisplaySettings, DockSettings,
-    HotCornersSettings, IdleSettings, KeyboardOverride, KeyboardSettings, LauncherSettings,
+    HotCornerSettings, IdleSettings, KeyboardOverride, KeyboardSettings, LauncherSettings,
     MenusSettings, NotificationsSettings, OsdSettings, PowerMenuSettings, ScreenshotSettings,
     ScrollSettings, ScrollbarSettings, Section, SessionSettings, ShellFile, SpacesSettings,
     SwitcherSettings, WidgetsSettings, WindowSettings,
@@ -40,7 +40,7 @@ fn every_domain_finds_its_own_table() {
         ),
         ("display", table_matches::<DisplaySettings>(&file)),
         ("dock", table_matches::<DockSettings>(&file)),
-        ("hot_corners", table_matches::<HotCornersSettings>(&file)),
+        ("hot_corners", table_matches::<HotCornerSettings>(&file)),
         ("idle", table_matches::<IdleSettings>(&file)),
         ("keyboard", table_matches::<KeyboardSettings>(&file)),
         ("launcher", table_matches::<LauncherSettings>(&file)),

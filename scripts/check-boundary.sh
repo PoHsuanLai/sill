@@ -89,7 +89,7 @@ EDGES=(
   "sill-launcher-ui: anyview-core anyview-peek ds ds-blitz shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-ui-kit"
   "sill-notify-ui: ds ds-blitz ds-settings ds-shell shell-host sill-model sill-services sill-settings sill-ui-kit"
   "sill-widgets-ui: ds ds-shell shell-host sill-launcher sill-model sill-settings sill-ui-kit"
-  "sill-overlays: ds ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
+  "sill-overlays: ds ds-behaviour ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
   "sill: ds-lint ds-blitz ds-settings ds-shell shell-host sill-bar sill-dock sill-ipc sill-launcher sill-launcher-ui sill-model sill-notify-ui sill-overlays sill-search sill-services sill-settings sill-ui-kit sill-widgets-ui"
 )
 for edge in "${EDGES[@]}"; do

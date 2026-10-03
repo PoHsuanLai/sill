@@ -6687,6 +6687,7 @@ version = "0.1.0"
 dependencies = [
  "dioxus",
  "ds",
+ "ds-behaviour",
  "ds-harness",
  "ds-settings",
  "ds-shell",

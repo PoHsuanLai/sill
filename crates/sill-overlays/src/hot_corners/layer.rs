@@ -45,15 +45,15 @@ mod tests {
     use shell_host::{
         Anchor, BlurSpec, ExclusiveZone, KeyboardMode, LayerExtent, LayerLevel, RegionSpec,
     };
-    use sill_settings::{HotCornersSettings, ShellFile};
+    use sill_settings::{HotCornerSettings, ShellFile};
     use sill_ui_kit::harness::fake::output_named as output;
     use sill_ui_kit::links::Corner;
 
     fn sized(px: u16) -> ShellFile {
         ShellFile {
-            hot_corners: HotCornersSettings {
+            hot_corners: HotCornerSettings {
                 size_px: Px(px),
-                ..HotCornersSettings::default()
+                ..HotCornerSettings::default()
             },
             ..ShellFile::default()
         }

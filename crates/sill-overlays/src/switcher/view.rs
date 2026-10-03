@@ -21,9 +21,9 @@ use super::icon::SwitcherIcons;
 use super::io::{SwitcherCtx, use_switcher};
 use super::layer::PANEL_ID;
 use super::session::{Session, Windows};
-use super::step::{Switcher, SwitcherParams};
 use super::tiles::{key_of, metrics_of, output_width, tiles};
 use super::watch::ChordWatch;
+use ds_behaviour::switcher::Switcher;
 use sill_services::AppsService;
 use sill_ui_kit::app_icons::{IconContext, LogicalPx, icon_look, use_icon_resolver};
 use sill_ui_kit::hooks::{use_appearance, use_service, use_settings};
@@ -56,7 +56,7 @@ pub(super) fn switcher(output: OutputInfo) -> Element {
         side: LogicalPx(file.switcher.icon_size_px.0),
     };
     let link = use_context::<SwitcherLink>();
-    let ctx = use_switcher(&link, output.id, SwitcherParams::new(&file.switcher), level);
+    let ctx = use_switcher(&link, output.id, file.switcher.params(), level);
     let state = (ctx.state)();
     let session = (ctx.session)();
     let row = match (state, &session) {

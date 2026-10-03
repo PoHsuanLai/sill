@@ -1,5 +1,5 @@
 //! The effects end of one switcher surface: follow the [`SwitcherLink`] for this output, step the
-//! pure [`step`] machine, and carry out what it says. A chord maps the surface (keyboard
+//! pure [`step`] machine (`ds_behaviour::switcher`, the one the compositor runs too), and carry out what it says. A chord maps the surface (keyboard
 //! `Exclusive`, so it sees the release) and snapshots the apps; the show delay is quire's one timer
 //! (`ds::base::time::clock::sleep`); `Activate`, `Quit` and `HideApp` go to `Services.cosmic_wl`; a quit tile folds
 //! and is dropped at `settle(Anim::Fold)`; the machine back at `Hidden` unmaps at once. Hidden, no
@@ -19,10 +19,11 @@ use sill_ui_kit::services::Services;
 
 use super::hold::{Hold, Watch, chord_input, tick_input};
 use super::keys::{Chord, chord_after_keyup, sw_key};
+use super::model::{AppOut, after, heading};
 use super::session::Session;
-use super::step::{SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
 use super::tiles::index_of;
 use ds::base::time::stamp::FrameClock;
+use ds_behaviour::switcher::{SwIn, SwKey, SwOut, Switcher, SwitcherParams, step};
 use sill_ui_kit::links::Dir;
 use sill_ui_kit::links::{AskSerial, SwitcherAsk, SwitcherLink};
 
@@ -120,8 +121,14 @@ impl SwitcherCtx {
         let ids = session.ids();
         self.open(session);
         let (now, params) = (self.clock.peek().now(), *self.params.peek());
-        let (armed, first) = step(Switcher::Hidden, SwIn::Chord(Dir::Next), now, &ids, &params);
-        let later = now.after(params.show_delay_ms);
+        let (armed, first) = step(
+            Switcher::Hidden,
+            SwIn::Chord(heading(Dir::Next)),
+            now,
+            &ids,
+            &params,
+        );
+        let later = after(now, params.show_delay);
         let (shown, then) = step(armed, SwIn::Tick, later, &ids, &params);
         let outs = first.into_iter().chain(then);
         self.apply(
@@ -153,7 +160,7 @@ impl SwitcherCtx {
         self.apply(next, outs);
     }
 
-    fn apply(self, next: Switcher, outs: Vec<SwOut>) {
+    fn apply(self, next: Switcher, outs: Vec<AppOut>) {
         let session = self.session.peek().clone();
         if let Some(session) = &session {
             let live = self.live();
@@ -170,6 +177,8 @@ impl SwitcherCtx {
                 SwOut::Quit(app) => self.fold(app),
                 SwOut::Show | SwOut::Hide | SwOut::Select(_) => {}
                 SwOut::Activate(_) | SwOut::HideApp(_) => {}
+                // `sw_key` maps no Up or Down, so the machine never asks for App Exposé.
+                SwOut::Expose(_) => {}
             }
         }
         if next == Switcher::Hidden {
