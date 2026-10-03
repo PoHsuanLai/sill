@@ -298,6 +298,7 @@ Look a concept up here before writing it. If it has a home, extend it.
 | Surface test driver | `sill_ui_kit::harness::SurfaceHarness<S>` |
 | Lint of surface markup | `crates/sill/tests/lint.rs`, one table |
 | Dev script helpers | `dev/lib/*.sh` |
+| A demo desktop (nested, scratch, left running) with a scripted tour, shots and a video | `dev/demo.sh start\|tour\|video\|shot\|stop` |
 
 ---
 

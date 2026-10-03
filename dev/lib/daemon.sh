@@ -4,6 +4,8 @@
 # variables to every in_env call; IN_ENV_UNSET (an array of names) removes them.
 IN_ENV_EXTRA=()
 IN_ENV_UNSET=()
+# Commands that go before the daemon's binary on its launch line (`setsid`, to outlive the script).
+LAUNCH_PREFIX=()
 DAEMON=
 
 # Runs "$@" with every ambient thing pointed at the script's own: its compositor, the private bus
@@ -41,7 +43,7 @@ launch_daemon() {
   use_fake_ddc "$CONFIG" >/dev/null
   require_private_system_bus "$BUS" || return 1
   require_fake_ddc || return 1
-  in_env "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" "$@" >"$OUT_DIR/daemon.log" 2>&1 &
+  in_env "${LAUNCH_PREFIX[@]}" "$SILL_BIN" run "${FAKE_DDC_FLAGS[@]}" "$@" >"$OUT_DIR/daemon.log" 2>&1 &
   DAEMON=$!
   wait_ping
 }

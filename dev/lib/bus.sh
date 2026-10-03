@@ -88,7 +88,13 @@ require_fake_ddc() {
 # directories, so nothing a script starts reads or writes the real ones. in_env (daemon.sh)
 # hands them to every process it runs. Remove with scratch_drop.
 scratch_new() {
-  SCRATCH=$(mktemp -d)
+  scratch_use "$(mktemp -d)"
+}
+
+# The same tree under the existing directory $1 (made by an earlier scratch_new, its path kept by
+# a script whose steps run in separate processes: dev/demo.sh). Creates what is missing.
+scratch_use() {
+  SCRATCH="$1"
   HOME_DIR="$SCRATCH/home"
   RUNTIME="$SCRATCH/run"
   CONFIG="$SCRATCH/config"
