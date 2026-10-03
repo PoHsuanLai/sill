@@ -1,17 +1,46 @@
 //! The World Clock widget's provider: each zone in `widgets.world_clocks` as
-//! quire's `ClockCity`, the city's time, day or night there, and how far it is from here
-//! ("Today, +7h", "Tomorrow, +13h") as its note, a new entry on the clock's minute tick. quire's
+//! quire's `ClockCity`, the city's time, day or night there, and under it two notes: its day
+//! ("Today", or its date, "Sat 27 Sep", when that differs from here's) and how far it is from
+//! here ("+7h"), a new entry on the clock's minute tick. quire's
 //! `WorldClockWidget` draws them (dials on the desktop, digits in the tile, up to
 //! `ds_shell::widget::MAX_CITIES`). A zone jiff does not know is left out.
 
 use ds_shell::clock::kind::{ClockTime, DayPhase, Seconds};
 use ds_shell::widget::clock::{ClockCity, ClockEntry};
 use jiff::Timestamp;
+use jiff::civil::Date;
 use jiff::tz::TimeZone;
 
 /// An IANA zone name: `Europe/London`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ZoneName(pub String);
+
+/// The calendar day in a zone against here's.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DayThere {
+    /// The same date as here.
+    Today,
+    /// Another date than here's: the one it is there.
+    On(Date),
+}
+
+impl DayThere {
+    /// `date` there against `here`'s date.
+    pub fn of(there: Date, here: Date) -> DayThere {
+        match there == here {
+            true => DayThere::Today,
+            false => DayThere::On(there),
+        }
+    }
+
+    /// The line under the city: `Today`, or the date as `Sat 27 Sep`.
+    pub fn text(&self) -> String {
+        match self {
+            DayThere::Today => "Today".to_owned(),
+            DayThere::On(date) => date.strftime("%a %-d %b").to_string(),
+        }
+    }
+}
 
 /// One row.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -22,7 +51,9 @@ pub struct ClockRow {
     pub time: ClockTime,
     /// Day or night there, which tints the dial.
     pub phase: DayPhase,
-    /// `Today, +7h`, `Yesterday, -5h30`, `Tomorrow, +13h`, `Today, same time`.
+    /// Its date when it is not today's here.
+    pub day: DayThere,
+    /// `+7h`, `-5h30`, `same time`.
     pub offset: String,
 }
 
@@ -70,12 +101,12 @@ pub fn clock_rows(now: Timestamp, zones: &[ZoneName], here: &TimeZone) -> Vec<Cl
         .filter_map(|zone| {
             let there = now.to_zoned(TimeZone::get(&zone.0).ok()?);
             let apart = there.offset().seconds() - local.offset().seconds();
-            let day = day_word(there.date().cmp(&local.date()));
             Some(ClockRow {
                 city: city_of(zone),
                 time: clock_time(there.hour(), there.minute()),
                 phase: phase_of(there.hour()),
-                offset: format!("{day}, {}", offset_text(apart)),
+                day: DayThere::of(there.date(), local.date()),
+                offset: offset_text(apart),
             })
         })
         .collect()
@@ -88,15 +119,6 @@ fn city_of(zone: &ZoneName) -> String {
         .next()
         .unwrap_or(&zone.0)
         .replace('_', " ")
-}
-
-/// The zone's calendar day against here's.
-fn day_word(there: std::cmp::Ordering) -> &'static str {
-    match there {
-        std::cmp::Ordering::Less => "Yesterday",
-        std::cmp::Ordering::Equal => "Today",
-        std::cmp::Ordering::Greater => "Tomorrow",
-    }
 }
 
 /// `+7h`, `-5h30`, `same time`.
@@ -122,7 +144,7 @@ pub fn clock_entry(rows: Vec<ClockRow>) -> ClockEntry {
                     name: row.city,
                     time: row.time,
                     phase: row.phase,
-                    notes: vec![row.offset],
+                    notes: vec![row.day.text(), row.offset],
                 })
                 .collect(),
         ),

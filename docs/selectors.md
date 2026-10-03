@@ -16,6 +16,7 @@ Renaming a surface below is a breaking change for your file, so it is named in t
 | `bar-menu` | a menu the bar opens (a menu-bar menu, a tray item's menu) |
 | `control-center` | the control center and a module's own popup |
 | `dock` | the dock |
+| `desktop-menu` | the desktop's context menu (Change Wallpaper, Edit Widgets, Show View Options) |
 | `dock-menu` | a dock tile's context menu |
 | `launcher` | the launcher panel |
 | `launcher-catcher` | the transparent surface behind the launcher that a press closes it from |

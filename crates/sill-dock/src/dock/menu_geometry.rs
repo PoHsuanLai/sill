@@ -15,18 +15,16 @@ use shell_host::{
 };
 
 use crate::dock::frame::Area;
-use sill_ui_kit::menu::PopupRoom;
+use sill_ui_kit::menu::{CONTEXT_MENU_WIDTH, PopupRoom};
 
-/// The popup's room around the menu, for `--shadow-pop` (its ambient layer reaches 28 px).
-pub(crate) const SIDE: i32 = 28;
-pub(crate) const TOP: i32 = 8;
-pub(crate) const BOTTOM: i32 = 40;
+/// The popup's room around the menu.
+pub(crate) const SIDE: i32 = PopupRoom::CONTEXT.side;
+pub(crate) const BOTTOM: i32 = PopupRoom::CONTEXT.bottom;
 /// design/10 §10.3.7: the menu's gap above its tile.
 pub(crate) const GAP: i32 = 8;
 
-/// A Context menu's width: quire's `menu.css` fixes Slim and Context at 220. The menu is
-/// centred over its tile by it.
-pub(crate) const MENU_W: i32 = 220;
+/// A Context menu's width. The menu is centred over its tile by it.
+pub(crate) const MENU_W: i32 = CONTEXT_MENU_WIDTH;
 
 /// The widest and tallest the popup grows: the menu, a submenu beside it, and their room.
 const POPUP_MAX: i32 = 2 * MENU_W + 8 + 2 * SIDE;
@@ -74,11 +72,7 @@ pub(crate) fn menu_placement(tile: Area) -> PopupPlacement {
 
 /// The room the popup's frame leaves around the menu.
 pub(crate) fn room() -> PopupRoom {
-    PopupRoom {
-        side: SIDE,
-        top: TOP,
-        bottom: BOTTOM,
-    }
+    PopupRoom::CONTEXT
 }
 
 #[cfg(test)]

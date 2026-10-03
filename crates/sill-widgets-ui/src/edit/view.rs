@@ -23,7 +23,7 @@ use ds::host::measure::use_rect;
 use ds::prelude::*;
 use ds_shell::prelude::*;
 use ds_shell::widget::{DesktopGrid, WidgetEdit};
-use shell_host::OutputInfo;
+use shell_host::{OutputInfo, use_watch};
 use sill_settings::{DesktopWidgets, WidgetsSettings};
 
 use super::io::{places_to_save, use_phase};
@@ -32,7 +32,7 @@ use super::status::{EditCount, EditStatus, Outcome, outcome_of};
 use crate::desktop::{grid_size, place};
 use sill_ui_kit::hooks::use_section;
 use sill_ui_kit::links::EditWidgetsLink;
-use sill_ui_kit::links::WidgetsWrite;
+use sill_ui_kit::links::{WidgetsChange, WidgetsWrite};
 use sill_ui_kit::panel::Phase;
 use sill_ui_kit::root::{ClickAway, SurfaceRoot};
 use sill_ui_kit::widgets::grid::OutputKey;
@@ -85,7 +85,8 @@ fn Stage(output: OutputInfo) -> Element {
 fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Element {
     let link = use_context::<EditWidgetsLink>();
     let mut column = use_signal(|| None::<Rc<MountedData>>);
-    let writer = link.writer().cloned();
+    // Each write re-reads what this output keeps in the file.
+    let _written = *use_watch(link.written()).read();
     let file = link.places().cloned();
     let probe = use_rect();
     let widgets = use_section::<WidgetsSettings>()();
@@ -106,8 +107,12 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
     });
     let key = OutputKey::of(output.name.as_deref());
     let saved = file.as_ref().map(|f| f.load(&key)).unwrap_or_default();
-    let sized: Vec<_> = widgets
-        .desktop_widgets
+    // This output's own widgets, else the setting's.
+    let shown_here = file
+        .as_ref()
+        .and_then(|f| f.kinds(&key))
+        .unwrap_or_else(|| widgets.desktop_widgets.clone());
+    let sized: Vec<_> = shown_here
         .iter()
         .map(|&kind| (kind, desktop_size(kind)))
         .collect();
@@ -120,12 +125,13 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
     });
     let keys = WidgetKeys {
         center: widgets.center.clone(),
-        desktop: widgets.desktop_widgets.clone(),
+        desktop: shown_here.clone(),
         placed,
     };
     let desktop_shown = widgets.desktop;
     let layout = layout_of(&keys);
     let before = layout.clone();
+    let edit_link = link.clone();
     let onedit = move |edit: WidgetEdit| {
         let Some(grid) = grid else { return };
         let now = count.peek().next();
@@ -145,10 +151,7 @@ fn Opened(output: OutputInfo, shown: Shown, on_hidden: EventHandler<()>) -> Elem
                     places,
                 };
                 eprintln!("edit_widgets.write={change:?}");
-                match &writer {
-                    Some(writer) => writer.write(change),
-                    None => eprintln!("sill: Edit Widgets has no writer; nothing was saved"),
-                }
+                edit_link.write(WidgetsChange::Edit(change));
             }
             Err(why) => eprintln!("edit_widgets.refused={why}"),
         }

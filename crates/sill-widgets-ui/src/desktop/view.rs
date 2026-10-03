@@ -17,19 +17,21 @@ use ds::motion::wake::WakeStamp;
 use ds::prelude::*;
 use ds_shell::prelude::*;
 use ds_shell::tokens::widgets::WidgetMetrics;
-use shell_host::OutputInfo;
+use shell_host::{OutputInfo, use_watch};
 use sill_settings::WidgetKind;
 
 use super::drag::{DragInput, Hold, shown};
 use super::geometry::GridMetrics;
 use super::glide::PointMeter;
-use super::io::{Feeder, save, use_regions, use_reload};
+use super::io::{Feeder, save, secondary_press, use_regions, use_reload};
 use super::leaving::use_leaving;
+use super::menu::{MenuWorld, use_desktop_menu};
 use super::model::{Draw, Dropped, Laid, boxes, draw_order, logical, recorded, slot_guide};
 use super::placed::Placed;
 use super::placement::{grid_size, place};
-use sill_ui_kit::hooks::use_settings;
-use sill_ui_kit::links::PlacementFile;
+use sill_ui_kit::hooks::{use_services, use_settings};
+use sill_ui_kit::links::{DesktopView, EditWidgetsLink, PlacementFile, Written};
+use sill_ui_kit::menu::use_popup_look;
 use sill_ui_kit::root::SurfaceRoot;
 use sill_ui_kit::widgets::grid::OutputKey;
 use sill_ui_kit::widgets::{
@@ -47,6 +49,11 @@ pub(super) fn desktop(output: OutputInfo) -> Element {
     provide_registry();
     let file = use_settings()();
     let widgets = file.widgets;
+    let written = use_written();
+    let key = OutputKey::of(output.name.as_deref());
+    let kinds = try_use_context::<PlacementFile>()
+        .and_then(|places| places.kinds(&key))
+        .unwrap_or(widgets.desktop_widgets);
     rsx! {
         SurfaceRoot {
             output: output.clone(),
@@ -56,7 +63,8 @@ pub(super) fn desktop(output: OutputInfo) -> Element {
             AppStyle { css: DESKTOP_WIDGETS_CSS }
             AppStyle { css: widgets_css() }
             Grid {
-                kinds: widgets.desktop_widgets,
+                kinds,
+                written,
                 cell: widgets.desktop_cell_px.0,
                 gap: widgets.desktop_gap_px.0,
                 threshold: file.window.move_threshold_px.0,
@@ -70,6 +78,7 @@ pub(super) fn desktop(output: OutputInfo) -> Element {
 #[component]
 fn Grid(
     kinds: Vec<WidgetKind>,
+    written: Written,
     cell: u16,
     gap: u16,
     threshold: u16,
@@ -80,7 +89,16 @@ fn Grid(
     let key = OutputKey::of(output.name.as_deref());
     let mut kept =
         use_hook(|| CopyValue::new(file.as_ref().map(|f| f.load(&key)).unwrap_or_default()));
-    use_reload(&kinds, file.as_ref(), &key, kept);
+    use_reload((&kinds, written), file.as_ref(), &key, kept);
+    let apps = use_watch(use_services().apps.state.clone());
+    let world = MenuWorld::of(
+        &apps.read(),
+        DesktopView {
+            cell: sill_settings::Px(cell),
+            gap: sill_settings::Px(gap),
+        },
+    );
+    let menu = use_desktop_menu(&output, world, use_popup_look());
     let hold = use_signal(Hold::default);
     let dropped = use_signal(|| None::<Dropped>);
     let meter = use_hook(|| CopyValue::new(PointMeter::default()));
@@ -143,7 +161,10 @@ fn Grid(
             class: "sill-dw-grid",
             style: grid_style(cell, gap),
             onmounted: move |event| probe.on_mounted(event),
-            onmousedown: move |event| down.pointer(&event, DragInput::Down),
+            onmousedown: move |event| {
+                secondary_press(&event, menu);
+                down.pointer(&event, DragInput::Down);
+            },
             onmousemove: move |event| moved.pointer(&event, DragInput::Move),
             onmouseup: move |event| up.pointer(&event, DragInput::Up),
             if let Some((size, spot)) = guide {
@@ -177,4 +198,11 @@ fn grid_style(cell: u16, gap: u16) -> String {
         gap: Px(f32::from(gap)),
     }
     .style_attr()
+}
+
+/// How many writes the Edit Widgets link has carried out, live: the layer reads its output's
+/// widgets from the state file again after each. Without a link (a test render) it never moves.
+fn use_written() -> Written {
+    let link = try_use_context::<EditWidgetsLink>().unwrap_or_default();
+    *use_watch(link.written()).read()
 }

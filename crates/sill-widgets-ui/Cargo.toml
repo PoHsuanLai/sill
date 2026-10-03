@@ -13,16 +13,17 @@ dioxus = { workspace = true }
 ds = { workspace = true }
 ds-shell = { workspace = true }
 shell-host = { workspace = true }
+sill-launcher = { workspace = true }
+sill-model = { workspace = true }
 sill-settings = { workspace = true }
 sill-ui-kit = { workspace = true }
+tokio = { workspace = true }
 
 [dev-dependencies]
 sill-ui-kit = { workspace = true, features = ["harness"] }
 ds-lint = { workspace = true }
 ds-harness = { workspace = true }
 ds-settings = { workspace = true, features = ["dioxus"] }
-sill-model = { workspace = true }
-tokio = { workspace = true }
 
 [lints]
 workspace = true

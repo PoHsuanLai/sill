@@ -5,7 +5,7 @@ use ds_shell::clock::kind::DayPhase;
 use ds_shell::widget::clock::{ClockCity, ClockEntry};
 
 use super::provider::{clock_time, offset_text};
-use super::{ClockRow, ZoneName, clock_entry, clock_rows, parse_zones, phase_of};
+use super::{ClockRow, DayThere, ZoneName, clock_entry, clock_rows, parse_zones, phase_of};
 
 #[test]
 fn zones_parse() {
@@ -48,17 +48,23 @@ fn rows_say_the_time_and_the_day_there() {
     ];
     let got: Vec<_> = clock_rows(now, &zones, &here)
         .into_iter()
-        .map(|r: ClockRow| (r.city, r.time.digits(), r.phase, r.offset))
+        .map(|r: ClockRow| (r.city, r.time.digits(), r.phase, r.day, r.offset))
         .collect();
     let row = |city: &str, time: &str, phase, offset: &str| {
-        (city.to_owned(), time.to_owned(), phase, offset.to_owned())
+        (
+            city.to_owned(),
+            time.to_owned(),
+            phase,
+            DayThere::Today,
+            offset.to_owned(),
+        )
     };
     assert_eq!(
         got,
         vec![
-            row("London", "03:00", DayPhase::Night, "Today, -7h"),
-            row("Auckland", "14:00", DayPhase::Day, "Today, +4h"),
-            row("Taipei", "10:00", DayPhase::Day, "Today, same time"),
+            row("London", "03:00", DayPhase::Night, "-7h"),
+            row("Auckland", "14:00", DayPhase::Day, "+4h"),
+            row("Taipei", "10:00", DayPhase::Day, "same time"),
         ]
     );
 }
@@ -86,7 +92,8 @@ fn a_row_is_a_city_with_its_offset_as_the_note() {
         city: "London".to_owned(),
         time,
         phase: DayPhase::Day,
-        offset: "Today, -7h".to_owned(),
+        day: DayThere::Today,
+        offset: "-7h".to_owned(),
     };
     assert_eq!(
         clock_entry(vec![row]),
@@ -94,7 +101,7 @@ fn a_row_is_a_city_with_its_offset_as_the_note() {
             name: "London".to_owned(),
             time,
             phase: DayPhase::Day,
-            notes: vec!["Today, -7h".to_owned()],
+            notes: vec!["Today".to_owned(), "-7h".to_owned()],
         }])
     );
     assert_eq!(
@@ -118,23 +125,82 @@ fn the_day_there_is_named_across_midnight() {
     ];
     let got: Vec<_> = clock_rows(now, &zones, &here)
         .into_iter()
-        .map(|r| (r.city, r.time.digits(), r.offset))
+        .map(|r| (r.city, r.time.digits(), r.day, r.offset))
         .collect();
-    let want = |city: &str, time: &str, offset: &str| {
-        (city.to_owned(), time.to_owned(), offset.to_owned())
+    let want = |city: &str, time: &str, day, offset: &str| {
+        (city.to_owned(), time.to_owned(), day, offset.to_owned())
     };
     assert_eq!(
         got,
         vec![
-            want("Kolkata", "04:00", "Tomorrow, +4h30"),
-            want("Los Angeles", "15:30", "Today, -8h"),
-            want("Kiritimati", "12:30", "Tomorrow, +13h"),
+            want("Kolkata", "04:00", DayThere::On(date(2026, 9, 27)), "+4h30"),
+            want("Los Angeles", "15:30", DayThere::Today, "-8h"),
+            want(
+                "Kiritimati",
+                "12:30",
+                DayThere::On(date(2026, 9, 27)),
+                "+13h"
+            ),
         ]
     );
     let tokyo = TimeZone::get("Asia/Tokyo").unwrap_or_else(|e| panic!("{e}"));
     let rows = clock_rows(now, &[ZoneName("Europe/London".to_owned())], &tokyo);
     assert_eq!(
-        rows.first().map(|r| r.offset.as_str()),
-        Some("Yesterday, -8h")
+        rows.first().map(|r| (r.day, r.offset.as_str())),
+        Some((DayThere::On(date(2026, 9, 26)), "-8h"))
+    );
+}
+
+#[test]
+fn the_day_line_is_today_or_the_date_there() {
+    let cases = [
+        (
+            "same date",
+            DayThere::of(date(2026, 9, 26), date(2026, 9, 26)),
+            "Today",
+        ),
+        (
+            "the next day",
+            DayThere::of(date(2026, 9, 27), date(2026, 9, 26)),
+            "Sun 27 Sep",
+        ),
+        (
+            "the day before, a single-digit day",
+            DayThere::of(date(2026, 10, 2), date(2026, 10, 3)),
+            "Fri 2 Oct",
+        ),
+        (
+            "across a year's end",
+            DayThere::of(date(2027, 1, 1), date(2026, 12, 31)),
+            "Fri 1 Jan",
+        ),
+    ];
+    for (name, day, want) in cases {
+        assert_eq!(day.text(), want, "{name}");
+    }
+}
+
+#[test]
+fn a_city_on_another_date_names_it_in_the_first_note() {
+    let here = TimeZone::get("Europe/London").unwrap_or_else(|e| panic!("{e}"));
+    let now = date(2026, 9, 26)
+        .at(23, 30, 0, 0)
+        .to_zoned(here.clone())
+        .map(|z| z.timestamp())
+        .unwrap_or_else(|e| panic!("{e}"));
+    let zones = [
+        ZoneName("Asia/Kolkata".to_owned()),
+        ZoneName("America/Los_Angeles".to_owned()),
+    ];
+    let ClockEntry::Cities(cities) = clock_entry(clock_rows(now, &zones, &here)) else {
+        panic!("two zones make cities");
+    };
+    let notes: Vec<_> = cities.into_iter().map(|c| c.notes).collect();
+    assert_eq!(
+        notes,
+        vec![
+            vec!["Sun 27 Sep".to_owned(), "+4h30".to_owned()],
+            vec!["Today".to_owned(), "-8h".to_owned()],
+        ]
     );
 }

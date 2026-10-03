@@ -1,6 +1,7 @@
 //! The desktop widget layer's surface: the `Bottom` layer (design/20 §1.14: above the wallpaper,
 //! below windows), the whole output, exclusive zone `Auto` (clear of the bar's and the dock's
-//! reserve), no keyboard, input and blur empty until the surface sets them to its widgets'
+//! reserve), no keyboard, input over the whole layer (a press of the secondary button on the
+//! wallpaper opens the desktop's menu) and blur empty until the surface sets it to its widgets'
 //! frames (`RegionSpec::Elements` of each `widget_element_id`).
 //!
 //! Why `Bottom` and not a second `Background` surface above sill's wallpaper: the layer-shell
@@ -30,7 +31,7 @@ pub(super) fn layer(output: &OutputInfo) -> LayerConfig {
         keyboard: KeyboardMode::None,
         output: OutputTarget::Output(output.id),
         blur: BlurSpec::None,
-        input: RegionSpec::Empty,
+        input: RegionSpec::Whole,
     }
 }
 
@@ -44,7 +45,7 @@ mod tests {
     use sill_ui_kit::harness::fake::output_named as output;
 
     #[test]
-    fn the_layer_is_under_windows_over_the_whole_output_and_takes_nothing_yet() {
+    fn the_layer_is_under_windows_over_the_whole_output_and_takes_the_pointer_everywhere() {
         let info = output(Some("DP-1"));
         let config = layer(&info);
         assert_eq!(config.namespace, "sill-desktop-widgets-DP-1");
@@ -56,6 +57,6 @@ mod tests {
         assert_eq!(config.keyboard, KeyboardMode::None);
         assert_eq!(config.output, OutputTarget::Output(info.id));
         assert_eq!(config.blur, BlurSpec::None);
-        assert_eq!(config.input, RegionSpec::Empty);
+        assert_eq!(config.input, RegionSpec::Whole);
     }
 }

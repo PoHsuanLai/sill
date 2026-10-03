@@ -650,8 +650,8 @@ fn the_surface_names_are_unique() {
 }
 
 /// The popups' names, which the rows above do not mount: `crates/sill-ui-kit`'s `BAR_MENU`,
-/// `CONTROL_CENTER` and `DOCK_MENU`.
-const POPUP_NAMES: &[&str] = &["bar-menu", "control-center", "dock-menu"];
+/// `CONTROL_CENTER`, `DOCK_MENU` and `DESKTOP_MENU`.
+const POPUP_NAMES: &[&str] = &["bar-menu", "control-center", "desktop-menu", "dock-menu"];
 
 #[test]
 fn docs_selectors_lists_every_surface_and_popup_name() {

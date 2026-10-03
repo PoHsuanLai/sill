@@ -11,19 +11,19 @@ use sill_settings::WidgetKind;
 use super::arrange::LayerPoint;
 use super::drag::{DragInput, DragWorld, Hold, Landing, step};
 use super::glide::PointMeter;
-use super::model::{Dropped, Laid, merged, widget_regions};
-use sill_ui_kit::links::PlacementFile;
+use super::model::{Dropped, Laid, merged, widget_blur};
+use sill_ui_kit::links::{PlacementFile, Written};
 use sill_ui_kit::widgets::grid::{OutputKey, Placement};
 
-/// Read this output's places from the file again when the desktop's widgets change (Edit
-/// Widgets wrote them there), so a widget it added lands in the cell it chose.
+/// Read this output's places from the file again when its widgets change or Edit Widgets has
+/// written (it wrote them there), so a widget it added lands in the cell it chose.
 pub(super) fn use_reload(
-    kinds: &[WidgetKind],
+    (kinds, written): (&[WidgetKind], Written),
     file: Option<&PlacementFile>,
     key: &OutputKey,
     mut kept: CopyValue<Vec<Placement>>,
 ) {
-    let now = kinds.to_vec();
+    let now = (kinds.to_vec(), written);
     let mut seen = use_hook(|| CopyValue::new(now.clone()));
     if *seen.peek() == now {
         return;
@@ -118,6 +118,20 @@ impl Feeder {
     }
 }
 
+/// A press of the secondary button on the layer opens the desktop's menu with its corner there;
+/// any other button does nothing here.
+pub(super) fn secondary_press(event: &Event<MouseData>, open: Callback<LayerPoint>) {
+    use dioxus::html::input_data::MouseButton;
+    use dioxus::html::point_interaction::{InteractionLocation, PointerInteraction};
+    if event.trigger_button() == Some(MouseButton::Secondary) {
+        let at = event.client_coordinates();
+        open.call(LayerPoint {
+            x: at.x.round() as i32,
+            y: at.y.round() as i32,
+        });
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Primary {
     Yes,
@@ -132,8 +146,8 @@ pub(super) fn save(file: Option<&PlacementFile>, key: &OutputKey, placements: &[
     }
 }
 
-/// Keep the surface's regions on the placed frames, sending them only when the set of widgets
-/// changes (the regions are the frames' elements, resolved after each layout, so they follow a
+/// Keep the surface's blur region on the placed frames, sending it only when the set of widgets
+/// changes (the region is the frames' elements, resolved after each layout, so it follows a
 /// frame that moves). Nothing to do without a host (a test, an SSR render).
 pub(super) fn use_regions(placements: &[Placement]) {
     let surface = try_use_context::<SurfaceHandle>();
@@ -143,9 +157,7 @@ pub(super) fn use_regions(placements: &[Placement]) {
         return;
     }
     if let Some(surface) = surface {
-        let (input, blur) = widget_regions(placements);
-        surface.set_input_region(input);
-        surface.set_blur(blur);
+        surface.set_blur(widget_blur(placements));
     }
     last.set(Some(kinds));
 }

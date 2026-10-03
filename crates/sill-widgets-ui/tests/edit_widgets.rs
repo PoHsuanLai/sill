@@ -13,9 +13,12 @@ use std::time::Duration;
 
 use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
 use ds_harness::{ClassPresence, Driver, Harness, Input, Query, Viewport};
+use shell_host::{OutputId, OutputInfo};
 use sill_settings::{DesktopWidgets, ShellFile, WidgetKind};
 use sill_ui_kit::harness::{SurfaceHarness, fake};
-use sill_ui_kit::links::{EditShown, EditWidgetsLink, WidgetsWrite, WidgetsWriter};
+use sill_ui_kit::links::{
+    EditShown, EditWidgetsLink, PlacementFile, WidgetsChange, WidgetsWrite, WidgetsWriter,
+};
 use sill_ui_kit::widgets::grid::{GridSlot, OutputKey, Placement};
 use sill_widgets_ui::EditWidgets;
 use tokio::sync::watch;
@@ -23,6 +26,7 @@ use tokio::sync::watch;
 /// The surface, the link it follows and every write it made.
 struct Running {
     harness: Harness,
+    settings: Arc<Mutex<Option<watch::Sender<ShellFile>>>>,
     edit: EditWidgetsLink,
     writes: Arc<Mutex<Vec<WidgetsWrite>>>,
     _feeds: fake::Feeds,
@@ -31,6 +35,18 @@ struct Running {
 impl Running {
     fn writes(&self) -> Vec<WidgetsWrite> {
         self.writes.lock().map(|w| w.clone()).unwrap_or_default()
+    }
+
+    /// `widgets.desktop_widgets` as the surface's settings hold it now.
+    fn desktop_widgets(&self) -> Vec<WidgetKind> {
+        self.settings
+            .lock()
+            .ok()
+            .and_then(|held| {
+                held.as_ref()
+                    .map(|tx| tx.borrow().widgets.desktop_widgets.clone())
+            })
+            .unwrap_or_default()
     }
 
     fn click(&mut self, selector: &str) {
@@ -43,22 +59,42 @@ impl Running {
     }
 }
 
+/// A scratch state file no other test shares.
+fn scratch_places(name: &str) -> PlacementFile {
+    let dir = std::env::temp_dir().join(format!("sill-ew-{name}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    PlacementFile(dir.join("desktop-widgets.json"))
+}
+
 fn start(file: ShellFile) -> Running {
+    start_in(file, scratch_places("sheet"), fake::output())
+}
+
+/// The sheet of `output` over `places`: one over the same file as another's is a second
+/// monitor's.
+fn start_in(file: ShellFile, places: PlacementFile, output: OutputInfo) -> Running {
     let writes = Arc::new(Mutex::new(Vec::new()));
     let log = writes.clone();
     let settings: Arc<Mutex<Option<watch::Sender<ShellFile>>>> = Arc::default();
     let publish = settings.clone();
-    // The daemon's writer saves the keys and publishes them; this one records and publishes.
-    let writer = WidgetsWriter(Arc::new(move |change: WidgetsWrite| {
+    let saved = places.clone();
+    // The daemon's writer saves the keys and the output's list and places and publishes the
+    // keys; this one records and does the same.
+    let writer = WidgetsWriter(Arc::new(move |change: WidgetsChange| {
+        let WidgetsChange::Edit(change) = change else {
+            return;
+        };
         if let Ok(held) = publish.lock()
             && let Some(tx) = held.as_ref()
         {
             tx.send_modify(|file| {
                 file.widgets.center = change.center.clone();
-                file.widgets.desktop_widgets = change.desktop.clone();
                 file.widgets.desktop = change.shown;
             });
         }
+        saved
+            .save_layout(&change.output, &change.desktop, &change.places)
+            .unwrap_or_else(|e| panic!("saving: {e}"));
         if let Ok(mut log) = log.lock() {
             log.push(change);
         }
@@ -74,16 +110,23 @@ fn start(file: ShellFile) -> Running {
         link,
         settings: tx,
         ..
-    } = SurfaceHarness::<EditWidgets>::setup(EditWidgetsLink::new().with_writer(writer), ())
-        .settings(file)
-        .viewport(viewport)
-        .start();
+    } = SurfaceHarness::<EditWidgets>::setup(
+        EditWidgetsLink::new()
+            .with_places(places)
+            .with_writer(writer),
+        (),
+    )
+    .output(output)
+    .settings(file)
+    .viewport(viewport)
+    .start();
     if let Ok(mut held) = settings.lock() {
         *held = Some(tx);
     }
     harness.advance(Duration::from_millis(60));
     Running {
         harness,
+        settings,
         edit: link,
         writes,
         _feeds: feeds,
@@ -122,16 +165,21 @@ fn rows(h: &Harness, host: &str) -> usize {
 /// are listed once it knows their cells).
 fn opened() -> Running {
     let mut run = start(ShellFile::default());
+    open_with_desktop_rows(&mut run, fake::output().id, 2);
+    run
+}
+
+/// Open `run`'s gallery on `output` and wait for `desktop_rows` placed rows on the desktop.
+fn open_with_desktop_rows(run: &mut Running, output: OutputId, desktop_rows: usize) {
     assert_eq!(
         run.harness.count(".ds-widget-gallery"),
         0,
         "hidden until opened"
     );
-    run.edit.open(fake::output().id);
-    settle_until(&mut run.harness, |h| rows(h, "desktop") == 2);
+    run.edit.open(output);
+    settle_until(&mut run.harness, |h| rows(h, "desktop") == desktop_rows);
     // The panel has slid in and holds still before anything is pressed.
     assert_settles_to_zero_frames(&mut run.harness);
-    run
 }
 
 #[test]
@@ -367,4 +415,94 @@ fn escape_closes_after_a_press_inside_the_panel() {
         settle_until(&mut run.harness, |h| h.count(".ds-sheet") == 0);
         assert_settles_to_zero_frames(&mut run.harness);
     }
+}
+
+/// A state file where `HDMI-A-1` has a list of its own and `DP-1` follows the setting.
+fn two_monitors(name: &str) -> PlacementFile {
+    let places = scratch_places(name);
+    places
+        .save_layout(
+            &OutputKey::of(Some("HDMI-A-1")),
+            &[WidgetKind::Battery],
+            &[at(WidgetKind::Battery, 6, 0)],
+        )
+        .unwrap_or_else(|e| panic!("seeding: {e}"));
+    places
+}
+
+/// The widgets each monitor's own list holds in the file.
+fn lists(places: &PlacementFile) -> (Option<Vec<WidgetKind>>, Option<Vec<WidgetKind>>) {
+    (
+        places.kinds(&OutputKey::of(Some("DP-1"))),
+        places.kinds(&OutputKey::of(Some("HDMI-A-1"))),
+    )
+}
+
+#[test]
+fn each_monitors_sheet_lists_and_edits_its_own_desktop_widgets() {
+    let places = two_monitors("per-output");
+    let hdmi = fake::output_named(Some("HDMI-A-1"));
+    // HDMI-A-1's own list is one widget; the sheet lists that one, not the setting's two.
+    let mut second = start_in(ShellFile::default(), places.clone(), hdmi.clone());
+    open_with_desktop_rows(&mut second, hdmi.id, 1);
+    assert_eq!(lists(&places), (None, Some(vec![WidgetKind::Battery])));
+    let clock = kind_option(&second.harness, "World Clock");
+    second.click(&clock);
+    second.click(ADD_TO_DESKTOP);
+    let writes = second.writes();
+    assert_eq!(writes.len(), 1, "one edit, one write");
+    assert_eq!(
+        (writes[0].output.clone(), writes[0].desktop.clone()),
+        (
+            OutputKey::of(Some("HDMI-A-1")),
+            vec![WidgetKind::Battery, WidgetKind::WorldClock]
+        ),
+        "the edit is HDMI-A-1's"
+    );
+    assert_eq!(
+        lists(&places),
+        (
+            None,
+            Some(vec![WidgetKind::Battery, WidgetKind::WorldClock])
+        ),
+        "DP-1 still follows the setting"
+    );
+    settle_until(&mut second.harness, |h| rows(h, "desktop") == 2);
+
+    // The first monitor's sheet over the same file lists the setting's two widgets; removing one
+    // writes its own list and leaves HDMI-A-1's.
+    let mut first = start_in(ShellFile::default(), places.clone(), fake::output());
+    open_with_desktop_rows(&mut first, fake::output().id, 2);
+    first.click(
+        ".ds-widget-gallery-surface[*|data-host=desktop] \
+         .ds-widget-gallery-row:nth-child(2) .ds-button[*|data-role=destructive]",
+    );
+    assert_eq!(
+        lists(&places),
+        (
+            Some(vec![WidgetKind::Battery]),
+            Some(vec![WidgetKind::Battery, WidgetKind::WorldClock])
+        ),
+        "removing the month from DP-1 leaves its batteries, and HDMI-A-1's list as it was"
+    );
+    assert_eq!(
+        first.writes().last().map(|w| w.output.clone()),
+        Some(OutputKey::of(Some("DP-1")))
+    );
+}
+
+#[test]
+fn an_edit_of_one_monitor_does_not_touch_the_setting_the_others_follow() {
+    let places = two_monitors("setting");
+    let hdmi = fake::output_named(Some("HDMI-A-1"));
+    let mut run = start_in(ShellFile::default(), places.clone(), hdmi.clone());
+    open_with_desktop_rows(&mut run, hdmi.id, 1);
+    let clock = kind_option(&run.harness, "World Clock");
+    run.click(&clock);
+    run.click(ADD_TO_DESKTOP);
+    assert_eq!(
+        run.desktop_widgets(),
+        ShellFile::default().widgets.desktop_widgets,
+        "widgets.desktop_widgets is the default list, not one monitor's"
+    );
 }

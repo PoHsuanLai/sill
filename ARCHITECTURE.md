@@ -42,7 +42,7 @@ listed except where noted.
 | 6 | `sill-dock` | Dock, magnify, context menu | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-blitz`, `shell-host`; dev: `ds-lint` |
 | 6 | `sill-launcher-ui` | Launcher panel and catcher, rows, preview pane, actions | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-search`*, `sill-services`*; `ds`, `ds-blitz`, `shell-host`; dev: `ds-lint`, `ds-shell` |
 | 6 | `sill-notify-ui` | Banners, notification center, screenshot thumbnail | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `ds-blitz`, `shell-host` |
-| 6 | `sill-widgets-ui` | Desktop widget layer, Edit Widgets | `sill-ui-kit`, `sill-settings`; `ds`, `ds-shell`, `shell-host`; dev: `sill-model`, `ds-lint` |
+| 6 | `sill-widgets-ui` | Desktop widget layer and its context menu, Edit Widgets | `sill-ui-kit`, `sill-model`, `sill-launcher`, `sill-settings`; `ds`, `ds-shell`, `shell-host`; dev: `ds-lint` |
 | 6 | `sill-overlays` | OSD, power menu, polkit prompt, switcher, idle dim, hot corners, wallpaper, lock | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `shell-host` |
 | 7 | `sill` | Binary and library: `cli/`, `daemon/`, `ipc/`, `policy/` | every crate above except `sill-testkit`; `ds-blitz`, `ds-settings`, `shell-host`; clap, latchkey, `ds-lint` and `ds-shell` (`sill style check`); dev: `sill-testkit`, `sill-ui-kit` (harness), `ds` |
 

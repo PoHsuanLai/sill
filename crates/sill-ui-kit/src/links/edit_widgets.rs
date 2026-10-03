@@ -1,14 +1,16 @@
 //! Whether Edit Widgets is open, and on which output: one shared state written by every opener
-//! (the notification center's "Edit Widgets", `sill widgets edit`) and followed by every
-//! output's Edit Widgets surface onto its own visibility, as `CenterLink` is. It also holds where
-//! Edit Widgets' changes go: the daemon's writer saves the keys into `settings.toml` (publishing
-//! them at once, as `sill widgets toggle-desktop` does) and the output's places into
-//! `desktop-widgets.json`; a test's records them. A link without one changes nothing.
+//! (the notification center's "Edit Widgets", the desktop's menu, `sill widgets edit`) and
+//! followed by every output's Edit Widgets surface onto its own visibility, as `CenterLink` is.
+//! It also holds where the desktop's changes go: the daemon's writer saves the notification
+//! center's keys and the desktop's view into `settings.toml` (publishing them at once, as `sill
+//! widgets toggle-desktop` does) and an output's widgets and places into `desktop-widgets.json`;
+//! a test's records them. A write is announced on [`EditWidgetsLink::written`], so each output's
+//! desktop layer and sheet read the file again. A link without a writer changes nothing.
 
 use std::sync::Arc;
 
 use shell_host::OutputId;
-use sill_settings::{DesktopWidgets, WidgetKind};
+use sill_settings::{DesktopWidgets, Px, WidgetKind};
 use tokio::sync::watch;
 
 use super::PlacementFile;
@@ -26,6 +28,7 @@ pub enum EditShown {
 #[derive(Debug, Clone)]
 pub struct EditWidgetsLink {
     shown: watch::Sender<EditShown>,
+    written: watch::Sender<Written>,
     writer: Option<WidgetsWriter>,
     places: Option<PlacementFile>,
 }
@@ -41,6 +44,7 @@ impl EditWidgetsLink {
     pub fn new() -> EditWidgetsLink {
         EditWidgetsLink {
             shown: watch::Sender::new(EditShown::Closed),
+            written: watch::Sender::new(Written::default()),
             writer: None,
             places: None,
         }
@@ -58,9 +62,22 @@ impl EditWidgetsLink {
         self
     }
 
-    /// The writer, when the daemon gave one; without it an edit changes nothing.
-    pub fn writer(&self) -> Option<&WidgetsWriter> {
-        self.writer.as_ref()
+    /// Carry out `change` through the writer and announce it on [`EditWidgetsLink::written`];
+    /// without a writer nothing is saved and nothing is announced.
+    pub fn write(&self, change: WidgetsChange) {
+        match &self.writer {
+            Some(writer) => {
+                writer.write(change);
+                self.written.send_modify(|serial| *serial = serial.next());
+            }
+            None => eprintln!("sill: the desktop has no writer; nothing was saved"),
+        }
+    }
+
+    /// A receiver that changes after each [`EditWidgetsLink::write`], for a surface that reads
+    /// what the writer saved.
+    pub fn written(&self) -> watch::Receiver<Written> {
+        self.written.subscribe()
     }
 
     /// The file the desktop's places are in, when the daemon gave one.
@@ -97,17 +114,46 @@ impl EditWidgetsLink {
     }
 }
 
-/// One change: the widget keys whole, and the places of one output.
+/// How many writes the link has carried out: a receiver of it sees each one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Written(pub u32);
+
+impl Written {
+    /// The count after one more write.
+    pub fn next(self) -> Written {
+        Written(self.0.wrapping_add(1))
+    }
+}
+
+/// What the desktop asks to have saved.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WidgetsChange {
+    /// Edit Widgets' edit of one output.
+    Edit(WidgetsWrite),
+    /// The desktop menu's choice of the grid.
+    View(DesktopView),
+}
+
+/// The widget grid's measures, as the desktop menu's View Options set them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DesktopView {
+    /// `widgets.desktop_cell_px`.
+    pub cell: Px,
+    /// `widgets.desktop_gap_px`.
+    pub gap: Px,
+}
+
+/// One edit: the notification center's widgets, and what one output's desktop shows and where.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WidgetsWrite {
     /// `widgets.center`.
     pub center: Vec<WidgetKind>,
-    /// `widgets.desktop_widgets`.
+    /// The widgets `output` shows: the output's own list in the state file.
     pub desktop: Vec<WidgetKind>,
     /// `widgets.desktop`: `On` after an add to the desktop (the widget is to be seen), else as
     /// it was.
     pub shown: DesktopWidgets,
-    /// Whose places.
+    /// Whose widgets and places.
     pub output: OutputKey,
     /// That output's places, every kind it keeps one for.
     pub places: Vec<Placement>,
@@ -115,11 +161,11 @@ pub struct WidgetsWrite {
 
 /// The writer, as a root context. Clone is cheap.
 #[derive(Clone)]
-pub struct WidgetsWriter(pub Arc<dyn Fn(WidgetsWrite) + Send + Sync>);
+pub struct WidgetsWriter(pub Arc<dyn Fn(WidgetsChange) + Send + Sync>);
 
 impl WidgetsWriter {
     /// Write `change`.
-    pub fn write(&self, change: WidgetsWrite) {
+    pub fn write(&self, change: WidgetsChange) {
         (self.0)(change);
     }
 }

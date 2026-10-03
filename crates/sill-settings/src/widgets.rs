@@ -62,7 +62,7 @@ pub struct WidgetsSettings {
     pub desktop: DesktopWidgets,
     #[settings(
         label = "Desktop widgets",
-        help = "Which widgets the desktop shows; they are placed on a grid and can be moved.",
+        help = "Which widgets the desktop shows, placed on a grid and movable; an output that has been through Edit Widgets keeps a list of its own.",
         section = "Widgets",
         advanced
     )]

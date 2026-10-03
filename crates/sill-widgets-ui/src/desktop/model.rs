@@ -150,10 +150,11 @@ pub(super) fn merged(placed: &[Placement], saved: &[Placement]) -> Vec<Placement
 /// their corners by it.
 pub const WIDGET_RADIUS: i32 = 20;
 
-/// The input and blur regions `placements` take: each widget's frame.
-pub fn widget_regions(placements: &[Placement]) -> (RegionSpec, BlurSpec) {
+/// The blur region `placements` take: each widget's frame. The input region is the whole layer
+/// (a press between the widgets is the desktop menu's), so only the blur follows the frames.
+pub fn widget_blur(placements: &[Placement]) -> BlurSpec {
     if placements.is_empty() {
-        return (RegionSpec::Empty, BlurSpec::None);
+        return BlurSpec::None;
     }
     let regions: Vec<ElementRegion> = placements
         .iter()
@@ -163,8 +164,5 @@ pub fn widget_regions(placements: &[Placement]) -> (RegionSpec, BlurSpec) {
             inflate: 0,
         })
         .collect();
-    (
-        RegionSpec::Elements(regions.clone()),
-        BlurSpec::Region(RegionSpec::Elements(regions)),
-    )
+    BlurSpec::Region(RegionSpec::Elements(regions))
 }

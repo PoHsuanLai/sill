@@ -6,6 +6,9 @@ use ds::prelude::*;
 use ds::style::material::stack::MaterialStack;
 use ds::style::tokens::shell_type::ShellMetrics;
 
+use crate::hooks::{use_appearance, use_settings};
+use crate::shell_style::shell_metrics;
+
 /// How a popup's `Ds` root resolves its scheme: the opener's own, handed over.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PopupLook {
@@ -27,12 +30,36 @@ pub struct PopupRoom {
     pub bottom: i32,
 }
 
+/// A Context menu's width: quire's `menu.css` fixes Slim and Context at 220.
+pub const CONTEXT_MENU_WIDTH: i32 = 220;
+
 impl PopupRoom {
+    /// The room around a context menu, for `--shadow-pop` (its ambient layer reaches 28 px).
+    pub const CONTEXT: PopupRoom = PopupRoom {
+        side: 28,
+        top: 8,
+        bottom: 40,
+    };
+
     /// The frame's inline padding: the room itself.
     pub fn style(self) -> String {
         format!(
             "padding:{}px {}px {}px {}px",
             self.top, self.side, self.bottom, self.side
         )
+    }
+}
+
+/// The look a popup this surface opens is handed: the surface's own appearance, tint, type
+/// scale and material stack, read live from the settings and the desktop's appearance.
+pub fn use_popup_look() -> PopupLook {
+    let environment = use_appearance()();
+    let metrics = shell_metrics(&use_settings()());
+    PopupLook {
+        appearance: environment.settings.appearance.appearance(),
+        system: environment.system,
+        tint: environment.tint_alpha(),
+        metrics,
+        stack: environment.material_stack(),
     }
 }

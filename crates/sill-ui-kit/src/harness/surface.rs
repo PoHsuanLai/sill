@@ -119,6 +119,12 @@ impl<S: Surface> SurfaceHarness<S> {
 }
 
 impl<S: Surface> SurfaceSetup<S> {
+    /// An output other than [`fake::output`] (`DP-1`), as a second monitor's surface.
+    pub fn output(mut self, output: OutputInfo) -> Self {
+        self.output = output;
+        self
+    }
+
     /// The settings file the surface reads.
     pub fn settings(mut self, settings: ShellFile) -> Self {
         self.settings = settings;

@@ -19,7 +19,9 @@ mod switcher;
 
 pub use banners::{BannerLink, BannerOutput, KeyEvent, KeyWhat, Transient};
 pub use control_center::{ControlCenterAsk, ControlCenterLink};
-pub use edit_widgets::{EditShown, EditWidgetsLink, WidgetsWrite, WidgetsWriter};
+pub use edit_widgets::{
+    DesktopView, EditShown, EditWidgetsLink, WidgetsChange, WidgetsWrite, WidgetsWriter, Written,
+};
 pub use focus::{Delivery, FocusLink};
 pub use hot_corners::{Corner, CornerHit, CornerLink};
 pub use launcher::{CLIPBOARD_TITLE, LauncherLink, Opening, PanelHit, ShownRows, ShownRowsSection};

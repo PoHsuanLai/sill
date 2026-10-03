@@ -5782,6 +5782,7 @@ dependencies = [
  "ds-settings",
  "ds-shell",
  "shell-host",
+ "sill-launcher",
  "sill-model",
  "sill-settings",
  "sill-ui-kit",

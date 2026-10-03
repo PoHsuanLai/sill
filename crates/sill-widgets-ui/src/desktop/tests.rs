@@ -1,7 +1,7 @@
 use shell_host::{BlurSpec, RegionSpec};
 use sill_settings::WidgetKind;
 
-use super::model::{merged, recorded, widget_regions};
+use super::model::{merged, recorded, widget_blur};
 use sill_ui_kit::widgets::grid::{GridSlot, Placement};
 
 fn at(kind: WidgetKind, column: u16, row: u16) -> Placement {
@@ -52,14 +52,14 @@ fn a_layout_records_new_places_but_never_writes_over_saved_ones() {
 }
 
 #[test]
-fn the_regions_are_the_frames_or_nothing() {
-    assert_eq!(widget_regions(&[]), (RegionSpec::Empty, BlurSpec::None));
-    let (input, blur) = widget_regions(&[
+fn the_blur_is_the_frames_or_nothing() {
+    assert_eq!(widget_blur(&[]), BlurSpec::None);
+    let blur = widget_blur(&[
         at(WidgetKind::Calendar, 0, 0),
         at(WidgetKind::Battery, 1, 0),
     ]);
-    let RegionSpec::Elements(regions) = &input else {
-        panic!("element regions: {input:?}");
+    let BlurSpec::Region(RegionSpec::Elements(regions)) = &blur else {
+        panic!("element regions: {blur:?}");
     };
     let ids: Vec<_> = regions.iter().map(|r| r.id.clone()).collect();
     assert_eq!(
@@ -69,5 +69,4 @@ fn the_regions_are_the_frames_or_nothing() {
             shell_host::ElementId::new("widget-battery"),
         ]
     );
-    assert_eq!(blur, BlurSpec::Region(input.clone()));
 }

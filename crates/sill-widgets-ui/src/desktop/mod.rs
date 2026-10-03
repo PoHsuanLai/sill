@@ -16,6 +16,7 @@ mod glide;
 mod io;
 mod layer;
 mod leaving;
+mod menu;
 mod model;
 mod placed;
 mod placement;

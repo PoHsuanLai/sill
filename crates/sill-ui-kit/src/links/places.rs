@@ -1,26 +1,32 @@
-//! Where the desktop widgets sit, kept across runs, per output:
-//! `$XDG_STATE_HOME/sill/desktop-widgets.json` (state, not a setting, like the dock's pins), a
-//! JSON array of `{"output", "kind", "column", "row"}`. `output` is the connector name (`DP-1`),
-//! left out for an output with no name. The layer reads and writes it only through a
-//! [`PlacementFile`] its root was given (the daemon provides one): a test or a render with none
-//! keeps its placements in memory and never touches a file. An entry that cannot be read is
-//! skipped, a file that cannot be read is no placements.
+//! What each output's desktop keeps across runs: which widgets it shows (its own list, once an
+//! Edit Widgets on that output has made one) and where they sit. One file,
+//! `$XDG_STATE_HOME/sill/desktop-widgets.json` (state, not a setting, like the dock's pins):
+//! `{"outputs":[{"output":"DP-1","widgets":["calendar"],"places":[{"kind":"calendar","column":9,
+//! "row":0}]}]}`. `output` is the connector name (`DP-1`), left out for an output with no name;
+//! `widgets` is left out for an output that follows `widgets.desktop_widgets`. The layer reads and
+//! writes it only through a [`PlacementFile`] its root was given (the daemon provides one): a
+//! test or a render with none keeps its placements in memory and never touches a file. An entry
+//! that cannot be read is skipped, a file that cannot be read is nothing saved.
 
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sill_settings::WidgetKind;
 
 use crate::widgets::grid::{GridSlot, OutputKey, Placement};
 
-/// One entry of the file.
+/// What one output keeps.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SavedEntry {
+pub struct SavedOutput {
     pub output: OutputKey,
-    pub placement: Placement,
+    /// The widgets this output shows; none: it follows `widgets.desktop_widgets`.
+    pub kinds: Option<Vec<WidgetKind>>,
+    /// Where its widgets sit, including those it keeps a place for while they are away.
+    pub places: Vec<Placement>,
 }
 
-/// The file the placements are kept in, provided as root context by the daemon.
+/// The file the state is kept in, provided as root context by the daemon.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PlacementFile(pub PathBuf);
 
@@ -30,109 +36,176 @@ impl PlacementFile {
         PlacementFile(dirs.sill_state().join("desktop-widgets.json"))
     }
 
-    /// Every entry in the file; none when it is missing or unreadable.
-    pub fn entries(&self) -> Vec<SavedEntry> {
+    /// Every output in the file; none when it is missing or unreadable.
+    pub fn outputs(&self) -> Vec<SavedOutput> {
         std::fs::read_to_string(&self.0)
             .map(|text| decode(&text))
             .unwrap_or_default()
     }
 
-    /// `output`'s placements ([`for_output`]).
+    /// `output`'s placements ([`places_of`]).
     pub fn load(&self, output: &OutputKey) -> Vec<Placement> {
-        for_output(&self.entries(), output)
+        places_of(&self.outputs(), output)
     }
 
-    /// Make `placements` `output`'s, keeping every other output's, through a temporary file and
-    /// a rename.
-    pub fn save(&self, output: &OutputKey, placements: &[Placement]) -> std::io::Result<()> {
-        let entries = with_output(self.entries(), output, placements);
+    /// The widgets `output` shows, when it has a list of its own ([`kinds_of`]).
+    pub fn kinds(&self, output: &OutputKey) -> Option<Vec<WidgetKind>> {
+        kinds_of(&self.outputs(), output)
+    }
+
+    /// Make `places` `output`'s, keeping its widget list and every other output's.
+    pub fn save(&self, output: &OutputKey, places: &[Placement]) -> std::io::Result<()> {
+        let kinds = self.kinds(output);
+        self.write(output, kinds, places)
+    }
+
+    /// Make `kinds` the widgets `output` shows and `places` where they sit, keeping every other
+    /// output's.
+    pub fn save_layout(
+        &self,
+        output: &OutputKey,
+        kinds: &[WidgetKind],
+        places: &[Placement],
+    ) -> std::io::Result<()> {
+        self.write(output, Some(kinds.to_vec()), places)
+    }
+
+    /// Replace `output`'s record through a temporary file and a rename.
+    fn write(
+        &self,
+        output: &OutputKey,
+        kinds: Option<Vec<WidgetKind>>,
+        places: &[Placement],
+    ) -> std::io::Result<()> {
+        let record = SavedOutput {
+            output: output.clone(),
+            kinds,
+            places: places.to_vec(),
+        };
+        let outputs = with_output(self.outputs(), record);
         if let Some(dir) = self.0.parent() {
             std::fs::create_dir_all(dir)?;
         }
         let tmp = self.0.with_extension("part");
-        std::fs::write(&tmp, encode(&entries))?;
+        std::fs::write(&tmp, encode(&outputs))?;
         std::fs::rename(&tmp, &self.0)
     }
 }
 
-/// `output`'s placements.
-pub fn for_output(entries: &[SavedEntry], output: &OutputKey) -> Vec<Placement> {
-    entries
+/// `output`'s placements; none for an output the file does not know.
+pub fn places_of(outputs: &[SavedOutput], output: &OutputKey) -> Vec<Placement> {
+    outputs
         .iter()
-        .filter(|e| e.output == *output)
-        .map(|e| e.placement)
-        .collect()
+        .find(|saved| saved.output == *output)
+        .map(|saved| saved.places.clone())
+        .unwrap_or_default()
 }
 
-/// `entries` with `output`'s replaced by `placements` (after every other output's).
-pub fn with_output(
-    entries: Vec<SavedEntry>,
-    output: &OutputKey,
-    placements: &[Placement],
-) -> Vec<SavedEntry> {
-    entries
+/// The widgets `output` shows, when it has a list of its own.
+pub fn kinds_of(outputs: &[SavedOutput], output: &OutputKey) -> Option<Vec<WidgetKind>> {
+    outputs
+        .iter()
+        .find(|saved| saved.output == *output)
+        .and_then(|saved| saved.kinds.clone())
+}
+
+/// `outputs` with `record` in place of its output's (after every other output's).
+pub fn with_output(outputs: Vec<SavedOutput>, record: SavedOutput) -> Vec<SavedOutput> {
+    let others = outputs
         .into_iter()
-        .filter(|e| e.output != *output)
-        .chain(placements.iter().map(|p| SavedEntry {
-            output: output.clone(),
-            placement: *p,
-        }))
-        .collect()
+        .filter(|saved| saved.output != record.output)
+        .collect::<Vec<_>>();
+    others.into_iter().chain(std::iter::once(record)).collect()
 }
 
-/// One entry as the file spells it.
+/// One placed widget as the file spells it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct Wire {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    output: Option<String>,
+struct WirePlace {
     kind: WidgetKind,
     column: u16,
     row: u16,
 }
 
-impl From<&SavedEntry> for Wire {
-    fn from(entry: &SavedEntry) -> Wire {
-        Wire {
-            output: match &entry.output {
+/// One output as the file spells it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+struct WireOutput {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    output: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    widgets: Option<Vec<WidgetKind>>,
+    places: Vec<WirePlace>,
+}
+
+impl From<&SavedOutput> for WireOutput {
+    fn from(saved: &SavedOutput) -> WireOutput {
+        WireOutput {
+            output: match &saved.output {
                 OutputKey::Named(name) => Some(name.clone()),
                 OutputKey::Unnamed => None,
             },
-            kind: entry.placement.kind,
-            column: entry.placement.slot.column,
-            row: entry.placement.slot.row,
+            widgets: saved.kinds.clone(),
+            places: saved
+                .places
+                .iter()
+                .map(|p| WirePlace {
+                    kind: p.kind,
+                    column: p.slot.column,
+                    row: p.slot.row,
+                })
+                .collect(),
         }
     }
 }
 
-impl From<Wire> for SavedEntry {
-    fn from(wire: Wire) -> SavedEntry {
-        SavedEntry {
-            output: OutputKey::of(wire.output.as_deref()),
-            placement: Placement {
-                kind: wire.kind,
-                slot: GridSlot {
-                    column: wire.column,
-                    row: wire.row,
-                },
-            },
-        }
-    }
-}
-
-/// `entries` as the file's JSON.
-pub fn encode(entries: &[SavedEntry]) -> String {
-    let wires: Vec<Wire> = entries.iter().map(Wire::from).collect();
+/// `outputs` as the file's JSON.
+pub fn encode(outputs: &[SavedOutput]) -> String {
+    let wires: Vec<WireOutput> = outputs.iter().map(WireOutput::from).collect();
+    let file = serde_json::json!({ "outputs": wires });
     // Strings, a closed enum and numbers: nothing here can fail to encode.
-    serde_json::to_string_pretty(&wires).unwrap_or_default() + "\n"
+    serde_json::to_string_pretty(&file).unwrap_or_default() + "\n"
 }
 
-/// The entries in the file's JSON array; an element that is not an entry is skipped.
-pub fn decode(text: &str) -> Vec<SavedEntry> {
-    serde_json::from_str::<Vec<serde_json::Value>>(text)
+/// The outputs in the file's JSON; an element that is not one is skipped.
+pub fn decode(text: &str) -> Vec<SavedOutput> {
+    serde_json::from_str::<Value>(text)
+        .ok()
+        .as_ref()
+        .and_then(|file| file.get("outputs"))
+        .and_then(Value::as_array)
+        .map(|outputs| outputs.iter().filter_map(output_of).collect())
         .unwrap_or_default()
-        .into_iter()
-        .filter_map(|value| serde_json::from_value::<Wire>(value).ok())
-        .map(SavedEntry::from)
+}
+
+/// One element of `outputs`: its places and its widget list each skip what cannot be read.
+fn output_of(value: &Value) -> Option<SavedOutput> {
+    let record = value.as_object()?;
+    let each = |key: &str| record.get(key).and_then(Value::as_array);
+    Some(SavedOutput {
+        output: OutputKey::of(record.get("output").and_then(Value::as_str)),
+        kinds: each("widgets").map(|kinds| {
+            kinds
+                .iter()
+                .filter_map(|kind| serde_json::from_value(kind.clone()).ok())
+                .collect()
+        }),
+        places: each("places")
+            .map(|places| place_list(places))
+            .unwrap_or_default(),
+    })
+}
+
+/// The places among `values`.
+fn place_list(values: &[Value]) -> Vec<Placement> {
+    values
+        .iter()
+        .filter_map(|value| serde_json::from_value::<WirePlace>(value.clone()).ok())
+        .map(|wire| Placement {
+            kind: wire.kind,
+            slot: GridSlot {
+                column: wire.column,
+                row: wire.row,
+            },
+        })
         .collect()
 }
 
