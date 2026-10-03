@@ -13,6 +13,12 @@ sill-model = { workspace = true }
 sill-launcher = { workspace = true }
 ds-core = { workspace = true }
 keycap-protocol = { workspace = true }
+docket-core = { workspace = true }
+docket-dbus = { workspace = true }
+docket-client = { workspace = true }
+prov = { workspace = true }
+porter-core = { workspace = true }
+toml = { workspace = true }
 rustix = { workspace = true }
 tokio = { workspace = true }
 zbus = { workspace = true }

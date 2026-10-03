@@ -19,7 +19,8 @@ use sill_ipc::request::Request;
 use sill_ipc::response::{Failure, FailureKind, Response};
 use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
 use sill_ipc::status::{
-    ClipboardStatus, NotificationsStatus, PolkitStatus, StatusReport, StatusRequest,
+    ClipboardStatus, IntentsStatus, LinkStatus, NotificationsStatus, PolkitStatus, StatusReport,
+    StatusRequest,
 };
 use sill_launcher::{AppId, PreviewKind};
 use sill_model::auth::FakeVerdict;
@@ -27,6 +28,8 @@ use sill_model::clipboard::{ClipProtocol, ClipStatus, HistoryMode};
 use sill_model::idle::{
     DimLevel, DimShown, Idle, IdleMode, IdlePhase, Inhibition, LogindIdle, OffReason, PowerSource,
 };
+use sill_model::intents::IntentsAsk;
+use sill_model::intents::terminal::{Breaker, ControlReach, parse_grant};
 use sill_model::keycap::{KeycapAsk, KeycapState};
 use sill_model::locker::{Lock, LockCause, LockPhase};
 use sill_model::notifications::{
@@ -153,6 +156,20 @@ fn requests() -> Vec<(Request, &'static str)> {
         (
             Request::Status(StatusRequest::Keycap),
             r#"{"kind":"status","v":"keycap"}"#,
+        ),
+        (
+            Request::Status(StatusRequest::Intents),
+            r#"{"kind":"status","v":"intents"}"#,
+        ),
+        (
+            Request::Act(ActRequest::Intents(IntentsAsk::Revoke(
+                parse_grant("org.quire.Shell:shell.dock.pin").expect("a grant"), // test-only
+            ))),
+            r#"{"kind":"act","v":{"kind":"intents","v":{"kind":"revoke","v":{"app":"org.quire.Shell","name":"shell.dock.pin"}}}}"#,
+        ),
+        (
+            Request::Act(ActRequest::Intents(IntentsAsk::Resume)),
+            r#"{"kind":"act","v":{"kind":"intents","v":{"kind":"resume"}}}"#,
         ),
         (
             Request::Act(ActRequest::Dock(DockRequest::Pin {
@@ -489,6 +506,17 @@ fn responses() -> Vec<(Response, &'static str)> {
                 cause: None,
             })),
             r#"{"kind":"status","v":{"kind":"lock","v":{"phase":"unlocked","cause":null}}}"#,
+        ),
+        (
+            Response::Status(StatusReport::Intents(IntentsStatus {
+                link: LinkStatus::Serving,
+                showing: Some("c-1".to_owned()),
+                waiting: 2,
+                grants: vec!["org.quire.Shell:shell.dock.pin".to_owned()],
+                breaker: Breaker::Tripped,
+                reach: ControlReach::Reached,
+            })),
+            r#"{"kind":"status","v":{"kind":"intents","v":{"link":"serving","showing":"c-1","waiting":2,"grants":["org.quire.Shell:shell.dock.pin"],"breaker":"tripped","reach":"reached"}}}"#,
         ),
         (
             Response::Status(StatusReport::Keycap(KeycapState::Failed)),

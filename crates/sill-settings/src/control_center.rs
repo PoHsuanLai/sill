@@ -48,6 +48,9 @@ pub enum ControlCenterModule {
     NowPlaying,
     Appearance,
     Battery,
+    /// What the terminal may do without asking, and the way back from a pause (intentd's
+    /// `Control`); drawn only while it has a grant or a pause to show.
+    Terminal,
 }
 
 /// The control center popover.
@@ -162,7 +165,7 @@ impl Default for ControlCenterSettings {
     fn default() -> Self {
         use ControlCenterModule::{
             Appearance, Battery, Bluetooth, Display, Focus, KeyboardBrightness, NowPlaying, Sound,
-            Wifi,
+            Terminal, Wifi,
         };
         ControlCenterSettings {
             width_px: Px(320),
@@ -180,6 +183,7 @@ impl Default for ControlCenterSettings {
                 NowPlaying,
                 Appearance,
                 Battery,
+                Terminal,
             ],
             menu_bar_wifi: InMenuBar::Show,
             menu_bar_bluetooth: InMenuBar::Hide,

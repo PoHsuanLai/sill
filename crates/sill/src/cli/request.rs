@@ -10,6 +10,7 @@ use super::desktop::{
     control_center_request, dock_request, power_menu_request, screenshot_request, widgets_request,
 };
 use super::display::display_request;
+use super::intents::intents_request;
 use super::keycap::keycap_request;
 use super::launcher::{clipboard_request, launcher_request};
 use super::notifications::notifications_request;
@@ -41,6 +42,7 @@ pub fn request(command: &Command) -> Option<Request> {
         Command::Polkit { action } => polkit_request(*action),
         Command::Idle { action } => idle_request(*action),
         Command::Keycap { action } => keycap_request(*action),
+        Command::Intents { action } => intents_request(action),
         Command::Clipboard { action } => clipboard_request(*action),
         Command::Debug { action } => debug_request(action),
     })

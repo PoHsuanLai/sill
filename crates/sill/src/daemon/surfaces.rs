@@ -11,7 +11,9 @@ use sill_launcher_ui::{Launcher, LauncherCatcher};
 use sill_model::ids::OutputName;
 use sill_model::wallpaper::WallpaperCommand;
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
-use sill_overlays::{HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
+use sill_overlays::{
+    ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper,
+};
 use sill_settings::{ShellFile, WallpaperDrawer};
 use sill_ui_kit::links::Links;
 use sill_ui_kit::links::PlacementFile;
@@ -55,6 +57,8 @@ pub fn spawn_missing(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, spawn: 
     spawn_surface::<PowerMenu>(ctx, outputs, spawn, &links.power_menu);
     // The polkit prompt over the power menu, and the switcher (both Overlay).
     spawn_surface::<PolkitPrompt>(ctx, outputs, spawn, &links.banners);
+    // The confirmation sheet beside it: both ask the person, on the banners' output.
+    spawn_surface::<ConfirmSheet>(ctx, outputs, spawn, &links.banners);
     spawn_surface::<Switcher>(ctx, outputs, spawn, &links.switcher);
     // Before the OSD, so the OSD draws over a banner (both on the Overlay layer).
     spawn_surface::<Banners>(ctx, outputs, spawn, &links.banners);

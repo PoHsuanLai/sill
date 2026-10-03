@@ -110,6 +110,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
+name = "almanac-core"
+version = "0.1.0"
+dependencies = [
+ "porter-core",
+ "prov",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "android-activity"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -488,6 +499,12 @@ name = "autocfg"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
+
+[[package]]
+name = "base64"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
 name = "base64"
@@ -1196,7 +1213,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 2.0.119",
+ "syn 3.0.6",
+]
+
+[[package]]
+name = "cua-action"
+version = "0.1.0"
+dependencies = [
+ "keyboard-types 0.7.0",
+ "serde",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -1773,6 +1799,45 @@ dependencies = [
 ]
 
 [[package]]
+name = "docket-client"
+version = "0.1.0"
+dependencies = [
+ "docket-core",
+ "docket-dbus",
+ "futures-util",
+ "prov",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "zbus",
+]
+
+[[package]]
+name = "docket-core"
+version = "0.1.0"
+dependencies = [
+ "almanac-core",
+ "cua-action",
+ "model-provider",
+ "porter-core",
+ "prov",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "docket-dbus"
+version = "0.1.0"
+dependencies = [
+ "docket-core",
+ "porter-dbus",
+ "prov",
+ "thiserror 2.0.21",
+ "zbus",
+]
+
+[[package]]
 name = "doctest-file"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1810,6 +1875,7 @@ dependencies = [
  "ds-style",
  "serde",
  "thiserror 2.0.21",
+ "toml",
 ]
 
 [[package]]
@@ -2387,6 +2453,10 @@ dependencies = [
  "pin-project-lite",
  "slab",
 ]
+
+[[package]]
+name = "genai-names"
+version = "0.1.0"
 
 [[package]]
 name = "generational-box"
@@ -3693,6 +3763,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "model-provider"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "cua-action",
+ "genai-names",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "vision-prep",
+]
+
+[[package]]
 name = "moxcms"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4760,6 +4843,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "porter-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "porter-dbus"
+version = "0.1.0"
+dependencies = [
+ "porter-core",
+ "serde",
+ "serde_json",
+ "zbus",
+]
+
+[[package]]
 name = "potential_utf"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4838,6 +4940,14 @@ name = "profiling"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d595e54a326bc53c1c197b32d295e14b169e3cfeaa8dc82b529f947fba6bcf5"
+
+[[package]]
+name = "prov"
+version = "0.1.0"
+dependencies = [
+ "porter-core",
+ "serde",
+]
 
 [[package]]
 name = "pxfm"
@@ -5379,6 +5489,7 @@ dependencies = [
  "ds-shell",
  "keyboard-types 0.7.0",
  "latchkey",
+ "serde_json",
  "shell-host",
  "sill-bar",
  "sill-dock",
@@ -5411,6 +5522,7 @@ dependencies = [
  "ds-settings",
  "ds-shell",
  "image",
+ "serde_json",
  "shell-host",
  "sill-launcher",
  "sill-model",
@@ -5489,9 +5601,12 @@ dependencies = [
 name = "sill-model"
 version = "0.1.0"
 dependencies = [
+ "docket-core",
  "ds-core",
  "jiff",
  "keycap-protocol",
+ "porter-core",
+ "prov",
  "serde",
  "serde_json",
  "sill-launcher",
@@ -5528,6 +5643,7 @@ dependencies = [
  "image",
  "jiff",
  "serde",
+ "serde_json",
  "shell-host",
  "sill-launcher",
  "sill-model",
@@ -5569,6 +5685,9 @@ dependencies = [
  "ddc",
  "ddc-i2c",
  "dirs 6.0.0",
+ "docket-client",
+ "docket-core",
+ "docket-dbus",
  "ds-core",
  "freedesktop-desktop-entry",
  "freedesktop-icons",
@@ -5580,6 +5699,8 @@ dependencies = [
  "nonstick",
  "notify",
  "percent-encoding",
+ "porter-core",
+ "prov",
  "rustix",
  "serde",
  "serde_json",
@@ -5589,6 +5710,7 @@ dependencies = [
  "system-tray",
  "thiserror 2.0.21",
  "tokio",
+ "toml",
  "upower_dbus",
  "zbus",
 ]
@@ -6611,7 +6733,7 @@ version = "0.48.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "977d0a4abdef933f424a99fe09f95576e089b90aebc6f016a3bc813762493e91"
 dependencies = [
- "base64",
+ "base64 0.23.1",
  "data-url",
  "flate2",
  "fontdb",
@@ -6744,6 +6866,15 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "vision-prep"
+version = "0.1.0"
+dependencies = [
+ "cua-action",
+ "serde",
+ "thiserror 2.0.21",
+]
 
 [[package]]
 name = "void"

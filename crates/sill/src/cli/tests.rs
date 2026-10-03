@@ -16,6 +16,8 @@ use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
 use sill_ipc::status::StatusRequest;
 use sill_launcher::AppId;
 use sill_model::auth::FakeVerdict;
+use sill_model::intents::IntentsAsk;
+use sill_model::intents::terminal::parse_grant;
 use sill_model::keycap::KeycapAsk;
 use sill_model::notifications::{
     Action, ActionKey, AppRef, Expiry, Hints, IconRef, NotificationId, NotifyUrgency, Posting,
@@ -158,6 +160,17 @@ fn every_command_line_sends_its_request() {
         (
             &["keycap", "resume"],
             act(ActRequest::Keycap(KeycapAsk::Resume)),
+        ),
+        (&["intents", "status"], status(StatusRequest::Intents)),
+        (
+            &["intents", "revoke", "org.quire.Shell:shell.dock.pin"],
+            act(ActRequest::Intents(IntentsAsk::Revoke(
+                parse_grant("org.quire.Shell:shell.dock.pin").expect("a grant"), // test-only
+            ))),
+        ),
+        (
+            &["intents", "resume"],
+            act(ActRequest::Intents(IntentsAsk::Resume)),
         ),
         (&["clipboard", "status"], status(StatusRequest::Clipboard)),
         (&["clipboard", "clear"], act(ActRequest::ClearClipboard)),

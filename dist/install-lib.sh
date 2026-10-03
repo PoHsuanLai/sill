@@ -13,6 +13,9 @@ SESSION_DEST=/usr/local/bin/sill-session
 DESKTOP_DEST=/usr/share/wayland-sessions/sill.desktop
 TARGET_DEST=/etc/systemd/user/sill-session.target
 PAM_DEST=/etc/pam.d/sill
+# What the shell can be asked to do (`org.quire.Shell`): intentd reads every manifest under
+# $XDG_DATA_DIRS/quire/intents/, and /usr/local/share is in the default XDG_DATA_DIRS.
+INTENTS_DEST=/usr/local/share/quire/intents/org.quire.Shell.toml
 # The seed files sill-session copies into ~/.config/cosmic when they are missing there: the
 # shortcuts (dist/cosmic) and the keyboard repeat. System-wide COSMIC defaults under
 # /usr/share/cosmic belong to cosmic-settings-daemon's package, so nothing is written there.

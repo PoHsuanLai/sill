@@ -17,6 +17,7 @@ pub mod displays;
 pub mod events;
 pub mod idle;
 pub mod ids;
+pub mod intents;
 pub mod kbd_backlight;
 pub mod keyboard;
 pub mod keycap;

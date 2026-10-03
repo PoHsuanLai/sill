@@ -17,6 +17,7 @@ pub mod keyboard;
 pub mod now_playing;
 pub mod power_profile;
 pub mod sound;
+pub mod terminal;
 pub mod wifi;
 
 mod wired;
@@ -30,6 +31,7 @@ pub use keyboard::KeyboardModule;
 pub use now_playing::NowPlayingModule;
 pub use power_profile::PowerProfileControl;
 pub use sound::SoundModule;
+pub use terminal::TerminalModule;
 pub use wifi::WifiModule;
 
 use dioxus::prelude::*;
@@ -51,10 +53,11 @@ use focus::FocusCc;
 use keyboard::KeyboardCc;
 use now_playing::NowPlayingCc;
 use sound::SoundCc;
+use terminal::TerminalCc;
 use wifi::WifiCc;
 
 /// Every module, in the order the settings' enum lists them.
-pub(crate) const KINDS: [ControlCenterModule; 9] = [
+pub(crate) const KINDS: [ControlCenterModule; 10] = [
     ControlCenterModule::Wifi,
     ControlCenterModule::Bluetooth,
     ControlCenterModule::Focus,
@@ -64,6 +67,7 @@ pub(crate) const KINDS: [ControlCenterModule; 9] = [
     ControlCenterModule::NowPlaying,
     ControlCenterModule::Appearance,
     ControlCenterModule::Battery,
+    ControlCenterModule::Terminal,
 ];
 
 /// The module `kind` names: the one place that matches on the kind.
@@ -78,6 +82,7 @@ pub(crate) fn module(kind: ControlCenterModule) -> &'static dyn CcModule {
         ControlCenterModule::NowPlaying => &NowPlayingCc,
         ControlCenterModule::Appearance => &AppearanceCc,
         ControlCenterModule::Battery => &BatteryCc,
+        ControlCenterModule::Terminal => &TerminalCc,
     }
 }
 

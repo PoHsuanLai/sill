@@ -75,10 +75,10 @@ done
 EDGES=(
   "sill-launcher:"
   "sill-testkit:"
-  "sill-model: ds-core keycap-protocol sill-launcher"
+  "sill-model: docket-core ds-core keycap-protocol prov sill-launcher"
   "sill-settings: ds-core ds-settings keycap-protocol sill-launcher sill-model"
   "sill-ipc: sill-launcher sill-model"
-  "sill-services: ds-core keycap-protocol sill-launcher sill-model"
+  "sill-services: docket-client docket-core docket-dbus ds-core keycap-protocol porter-core prov sill-launcher sill-model"
   "sill-search: ds-settings sill-launcher sill-model sill-services"
   "sill-ui-kit: ds ds-blitz ds-harness ds-settings ds-shell shell-host sill-launcher sill-model sill-search sill-services sill-settings"
   "sill-bar: ds ds-blitz ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"

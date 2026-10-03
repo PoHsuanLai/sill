@@ -2,7 +2,7 @@
 
 use sill_ipc::response::Response;
 use sill_ipc::status::{
-    ClipboardStatus, NotificationsStatus, PolkitStatus, StatusReport, StatusRequest,
+    ClipboardStatus, IntentsStatus, NotificationsStatus, PolkitStatus, StatusReport, StatusRequest,
 };
 
 use super::reach::Reach;
@@ -24,5 +24,8 @@ pub fn dispatch(reach: &Reach, request: StatusRequest) -> Response {
         }
         StatusRequest::Idle => StatusReport::Idle(*services.idle.state.borrow()),
         StatusRequest::Keycap => StatusReport::Keycap(services.keycap.state.borrow().clone()),
+        StatusRequest::Intents => {
+            StatusReport::Intents(IntentsStatus::of(&services.intents.state.borrow()))
+        }
     })
 }

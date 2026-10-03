@@ -26,7 +26,9 @@ use sill_model::screenshots::{Shot, ShotId, ShotPreview, Shots};
 use sill_model::session::Session;
 use sill_model::wallpaper::{WallpaperImage, Wallpapers};
 use sill_notify_ui::{Banners, NotificationCenter, ScreenshotThumb};
-use sill_overlays::{HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper};
+use sill_overlays::{
+    ConfirmSheet, HotCorners, IdleDim, Lock, Osd, PolkitPrompt, PowerMenu, Switcher, Wallpaper,
+};
 use sill_settings::{AutoHide, ShellFile};
 use sill_ui_kit::harness::{LockHarness, SurfaceHarness, fake};
 use sill_ui_kit::links::{
@@ -150,6 +152,12 @@ const SURFACES: &[SurfaceCase] = &[
         surface: <PolkitPrompt as Surface>::NAME,
         css: "",
         states: polkit_prompt_states,
+    },
+    SurfaceCase {
+        name: "confirm_sheet",
+        surface: <ConfirmSheet as Surface>::NAME,
+        css: sill_overlays::confirm_sheet::CONFIRM_SHEET_CSS,
+        states: confirm_sheet_states,
     },
 ];
 
@@ -370,6 +378,61 @@ fn polkit_prompt_states() -> Vec<(&'static str, String)> {
     let shown = prompt.harness.html();
     assert!(shown.contains("ds-polkit"), "{shown}");
     vec![("hidden", hidden), ("shown", shown)]
+}
+
+/// The sheet hidden, then asking a press (arming, then armed), the terminal's offer, and a hold.
+fn confirm_sheet_states() -> Vec<(&'static str, String)> {
+    use sill_model::intents::sheet::{Pending, Serial, Sheets};
+    use sill_model::intents::{Intents, IntentsLink};
+    let wire = |offer: &str, gesture: &str, effect: &str| {
+        format!(
+            r#"{{"id":"c-1","space":"desktop","actor":{{"kind":"cli"}},"app":"org.quire.Mail",
+            "action":"Archive a thread","effect":"{effect}","count":1,"detail":{{"kind":"plain"}},
+            "lines":[{{"label":"Thread","value":{{"kind":"plain","v":"Digest"}}}},
+                     {{"label":"Subject","value":{{"kind":"quoted","v":{{"text":"Invoice 7","from":{{"kind":"mail"}}}}}}}}],
+            "why":[{{"kind":"from_terminal"}}],"taint":{{"kind":"clean"}},"offer":"{offer}",
+            "gesture":"{gesture}","anchor":{{"kind":"centre"}},"expires":120}}"#
+        )
+    };
+    let asking = |offer: &str, gesture: &str, effect: &str| Intents {
+        link: IntentsLink::Serving,
+        sheets: Sheets {
+            queue: vec![Pending {
+                serial: Serial(1),
+                request: serde_json::from_str(&wire(offer, gesture, effect))
+                    .unwrap_or_else(|e| panic!("{e}")),
+            }],
+        },
+        ..Intents::default()
+    };
+    let link = BannerLink::new();
+    link.set(BannerOutput::On(fake::output().id));
+    let mut sheet = SurfaceHarness::<ConfirmSheet>::setup(link, ()).start();
+    sheet.harness.advance(Duration::from_millis(40));
+    let mut states = vec![("hidden", sheet.harness.html())];
+    for (name, offer, gesture, effect, wait) in [
+        ("arming", "once_only", "press", "undoable_write", 300),
+        ("armed", "once_only", "press", "undoable_write", 700),
+        (
+            "from_the_terminal",
+            "once_or_from_terminal",
+            "press",
+            "undoable_write",
+            700,
+        ),
+        ("hold", "once_only", "hold_to_confirm", "destructive", 700),
+    ] {
+        sheet
+            .feeds
+            .intents
+            .send_replace(asking(offer, gesture, effect));
+        sheet.harness.advance(Duration::from_millis(wait));
+        states.push((name, sheet.harness.html()));
+        sheet.feeds.intents.send_replace(Intents::default());
+        sheet.harness.advance(Duration::from_millis(700));
+    }
+    assert!(states[2].1.contains("sill-confirm"), "{}", states[2].1);
+    states
 }
 
 /// The idle column, then a grouped card, hovered, with two actions and a body with a link.

@@ -66,6 +66,10 @@ pub struct Feeds {
     /// The polkit agent's request (none until a test feeds one), and what the prompt sends it.
     pub polkit: watch::Sender<sill_model::polkit_agent::Polkit>,
     pub polkit_commands: mpsc::UnboundedReceiver<sill_model::polkit_agent::PolkitCommand>,
+    /// intentd's seat: the confirmations waiting and the terminal's grants (none until a test feeds
+    /// them), and what the sheet and the control center send it.
+    pub intents: watch::Sender<sill_model::intents::Intents>,
+    pub intents_commands: mpsc::UnboundedReceiver<sill_model::intents::IntentsCommand>,
     /// The prepared wallpapers (none until a test feeds some).
     pub wallpaper: watch::Sender<Wallpapers>,
     /// The dock's app index, pins and badges (empty until a test feeds them), and the pin
@@ -114,6 +118,7 @@ pub fn services() -> (Services, Feeds) {
     let (displays, displays_io) = Handle::channel(sill_model::displays::Displays::default());
     let (session, session_io) = Handle::channel(sill_model::session::Session::default());
     let (polkit_agent, polkit_io) = Handle::channel(sill_model::polkit_agent::Polkit::default());
+    let (intents, intents_io) = Handle::channel(sill_model::intents::Intents::default());
     let (wallpaper, wallpaper_io) = Handle::channel(Wallpapers::default());
     keep.push(Box::new(wallpaper_io.commands));
     let (apps, apps_io) = Handle::channel(AppIndex::default());
@@ -155,6 +160,7 @@ pub fn services() -> (Services, Feeds) {
         clipboard: fixed(sill_model::clipboard::Clipboard::default(), &mut keep),
         idle,
         keycap: fixed(sill_model::keycap::KeycapState::default(), &mut keep),
+        intents,
         // Nowhere real: a surface that reads a file under these finds nothing.
         dirs: sill_services::env::Dirs::under(std::path::Path::new(
             "/nonexistent/sill-ui-kit-test",
@@ -196,6 +202,8 @@ pub fn services() -> (Services, Feeds) {
         session_commands: session_io.commands,
         polkit: polkit_io.state,
         polkit_commands: polkit_io.commands,
+        intents: intents_io.state,
+        intents_commands: intents_io.commands,
         wallpaper: wallpaper_io.state,
         apps: apps_io.state,
         pins: pins_io.state,

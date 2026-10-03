@@ -33,6 +33,7 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 
 [dev-dependencies]
+serde_json = { workspace = true }
 ds-harness = { workspace = true }
 sill-testkit = { workspace = true }
 # `tests/lint.rs` mounts every surface on the harness and lints its markup and stylesheet.

@@ -6,6 +6,8 @@
 use serde::{Deserialize, Serialize};
 use sill_model::clipboard::{ClipStatus, Clipboard};
 use sill_model::idle::Idle;
+use sill_model::intents::terminal::{Breaker, ControlReach, grant_name};
+use sill_model::intents::{Intents, IntentsLink};
 use sill_model::keycap::KeycapState;
 use sill_model::locker::Lock;
 use sill_model::notifications::{History, Notifications, ServerStatus};
@@ -29,6 +31,8 @@ pub enum StatusRequest {
     Idle,
     /// Whether keycap runs, and what it says about its mode and the keyboards.
     Keycap,
+    /// Whether sill serves intentd's sheet, what waits on it, and the terminal's grants.
+    Intents,
 }
 
 /// The one answer to a [`StatusRequest`], the same variant.
@@ -41,6 +45,7 @@ pub enum StatusReport {
     Clipboard(ClipboardStatus),
     Idle(Idle),
     Keycap(KeycapState),
+    Intents(IntentsStatus),
 }
 
 /// The notifications server and what it holds.
@@ -97,6 +102,55 @@ impl PolkitStatus {
             registration: polkit.registration.clone(),
             showing: polkit.current.as_ref().map(|view| view.action_id.clone()),
             waiting: polkit.waiting,
+        }
+    }
+}
+
+/// Where sill stands with intentd: whether it serves the sheet, what is on it, and the terminal.
+/// Names and counts only: a question's arguments are the person's, never on the wire.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IntentsStatus {
+    pub link: LinkStatus,
+    /// The confirmation on screen (its id), if any.
+    pub showing: Option<String>,
+    /// Questions waiting behind it.
+    pub waiting: u32,
+    /// The terminal's standing grants, `app:action`.
+    pub grants: Vec<String>,
+    pub breaker: Breaker,
+    /// Whether intentd's `Control` answered the last read.
+    pub reach: ControlReach,
+}
+
+/// Whether sill serves the sheet.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LinkStatus {
+    /// Not asked to serve yet.
+    Passive,
+    /// `org.quire.Confirm1` and `org.quire.Shell` are sill's.
+    Serving,
+    /// It could not take the names (no bus, a name taken); the log says which.
+    Unavailable,
+}
+
+impl IntentsStatus {
+    /// The status of `intents`.
+    pub fn of(intents: &Intents) -> Self {
+        IntentsStatus {
+            link: match intents.link {
+                IntentsLink::Passive => LinkStatus::Passive,
+                IntentsLink::Serving => LinkStatus::Serving,
+                IntentsLink::Unavailable(_) => LinkStatus::Unavailable,
+            },
+            showing: intents
+                .sheets
+                .current()
+                .map(|pending| pending.request.id.as_str().to_owned()),
+            waiting: count(intents.sheets.waiting()),
+            grants: intents.terminal.grants.iter().map(grant_name).collect(),
+            breaker: intents.terminal.breaker,
+            reach: intents.terminal.reach,
         }
     }
 }

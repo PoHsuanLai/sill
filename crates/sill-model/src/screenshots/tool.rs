@@ -7,10 +7,11 @@
 
 use std::path::{Path, PathBuf};
 
+use ds_core::word::Word;
 use serde::{Deserialize, Serialize};
 
 /// `sill screenshot`'s argument.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Word)]
 #[serde(rename_all = "snake_case")]
 pub enum ShotKind {
     Area,

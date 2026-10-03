@@ -4,6 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 use sill_launcher::AppId;
+use sill_model::intents::IntentsAsk;
 use sill_model::keycap::KeycapAsk;
 use sill_model::screenshots::ShotKind;
 
@@ -39,6 +40,8 @@ pub enum ActRequest {
     Workspace(WorkspaceRequest),
     /// Restart keycap, or end its pause (`sill keycap retry|resume`).
     Keycap(KeycapAsk),
+    /// Withdraw a standing terminal grant, or let a paused terminal go on (`sill intents revoke|resume`).
+    Intents(IntentsAsk),
 }
 
 /// Pin changes.

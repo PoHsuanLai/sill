@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Install the sill session from this checkout: build `sill` in release, then put the binary, the
-# session script, the login-screen entry, the user target, the PAM service and the COSMIC seed
-# files where a login reads them. Run as yourself; sudo asks once. Safe to run again.
+# session script, the login-screen entry, the user target, the PAM service, the intents manifest
+# (`org.quire.Shell`, for intentd and `quire-do`) and the COSMIC seed files where a login reads
+# them. Run as yourself; sudo asks once. Safe to run again.
 #
 #   dist/install.sh --dry-run    print every step, change nothing (not even a build)
 #   dist/install.sh              do it
@@ -13,7 +14,7 @@ set -euo pipefail
 # shellcheck source=install-lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/install-lib.sh"
 
-usage() { sed -n '2,10p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 parse_flags "$@"
 [ "$DRY" = 0 ] || echo "dry run: nothing below is executed"
 
@@ -37,10 +38,12 @@ step "3/6 the binary and the session script"
 put 755 "$BUILT" "$BIN_DEST"
 put 755 "$DIST/sill-session" "$SESSION_DEST"
 
-step "4/6 the login-screen entry, the user target and the PAM service"
+step "4/6 the login-screen entry, the user target, the PAM service and the intents manifest"
 put 644 "$DIST/sill.desktop" "$DESKTOP_DEST"
 put 644 "$DIST/sill-session.target" "$TARGET_DEST"
 put 644 "$DIST/pam.d/sill" "$PAM_DEST"
+# intentd (docket) lists it, and `quire-do shell --list` shows it: sill serves it as `org.quire.Shell`.
+put 644 "$DIST/intents/org.quire.Shell.toml" "$INTENTS_DEST"
 
 step "5/6 the COSMIC seed files (copied into ~/.config/cosmic at login when missing; never overwritten)"
 while IFS= read -r file; do
@@ -49,7 +52,7 @@ done < <(seeds)
 
 step "6/6 SELinux labels and the user manager"
 if command -v restorecon >/dev/null; then
-  run sudo restorecon -F "$BIN_DEST" "$SESSION_DEST" "$DESKTOP_DEST" "$TARGET_DEST" "$PAM_DEST"
+  run sudo restorecon -F "$BIN_DEST" "$SESSION_DEST" "$DESKTOP_DEST" "$TARGET_DEST" "$PAM_DEST" "$INTENTS_DEST"
   run sudo restorecon -RF "$SEED_DEST"
 else
   note "no restorecon: skipped"

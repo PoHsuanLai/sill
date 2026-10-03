@@ -25,6 +25,7 @@ Renaming a surface below is a breaking change for your file, so it is named in t
 | `osd` | the volume and brightness indicator |
 | `power-menu` | the power menu |
 | `polkit` | the polkit prompt |
+| `confirm` | the confirmation sheet (what intentd asks before the terminal, the companion or an agent acts) |
 | `switcher` | the app switcher |
 | `desktop-widgets` | the desktop widgets |
 | `edit-widgets` | the widget editor |

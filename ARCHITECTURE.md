@@ -13,6 +13,7 @@ its traits, its recipes and its repo rules. Where they disagree, this file wins 
 | quire (`../quire`, path deps) | `ds-core` (vocabulary, units, `Word`, colour, time), `ds-style` (appearance, tokens, materials), `ds-motion` (timelines, `Presence`, gestures), `ds` (components, `DocumentHost`, menus, `ds::prelude`), `ds-shell` (shell components, widget contract, status glyphs, battery), `ds-lint`, `ds-settings` (`SettingsDoc`, `Store`, schema derive; dioxus behind a feature), `ds-blitz` (`provide_host()`, measure, focus, caret, snap), `ds-harness` (`Driver`, `DocQuery`; dev only) |
 | shell-host (`../shell-host`) | Host, layer surfaces and popups, input, frames, regions, session lock, scroll engine, `Visibility`, `Inject` (pointer and key, `debug-inject`) |
 | keycap (`../keycap`, path dep) | `keycap-protocol`: the socket messages, `ProfileName`, `Status`; `sill-model` and `sill-services` take it (serde, serde_json, thiserror only) |
+| docket (`../docket`, path deps) | `docket-core` (the wire vocabulary: `ConfirmRequest`, `ConfirmAnswer`, `Invocation`, `Manifest`; serde data over porter, almanac and stoker types, no runtime), `docket-dbus` (`ControlProxy`, `ConfirmProxy`, the bus names) and `docket-client` (`serve_on`, the `IntentProvider` trait); `sill-model` takes the first (and `prov`), `sill-services` all three. Its `scripts/check-intents.sh` is copied into `scripts/`. Because docket's own path dependencies resolve beside it, a checkout of sill also needs `../porter`, `../stoker` and `../almanac` |
 | latchkey (git) | the single-instance agent socket |
 
 Consumers of quire import `ds::prelude::*` plus the named crate for anything outside it.
@@ -31,10 +32,10 @@ listed except where noted.
 | --- | --- | --- | --- |
 | 0 | `sill-launcher` | Launcher core: `Provider`, `Query` (generation, cancel), `Item`, `Activation`, matching (nucleo), ranking, sections, frecency, chords, preview facts. Pure; a future repo | none; nucleo-matcher, serde |
 | 0 | `sill-testkit` | Dev only: `PrivateBus`, `TempDir`, signal helpers, stand-in programs in `examples/` | none; std only (its dev dependencies, the crates it tests, are outside the table) |
-| 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service | `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`); serde, jiff, thiserror |
+| 1 | `sill-model` | Pure vocabulary: ids, units, `Attempt`, every service's `State`/`Command`/`Event`/`Effect` and its `step`, vocabulary enums shared by a settings key and a service | `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`), `docket-core`, `prov`; serde, jiff, thiserror |
 | 2 | `sill-settings` | `settings.toml` as data: one struct per domain, `Section`, `ShellFile`, schema, typed values parsed at load. No I/O, no runtime, no dioxus | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core`, `ds-settings` (no features) |
 | 2 | `sill-ipc` | The wire: `Request`/`Response`, one JSON line, 64 KiB cap. Serialises `sill-model` types | `sill-model`, `sill-launcher`; serde, serde_json, thiserror |
-| 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`); tokio, zbus, rustix, cctk, libpulse, notify, nonstick, ddc, image |
+| 3 | `sill-services` | Effects: `Env` seams, `Service` trait, runner, `Handle`, `Control`, one dir per service `{mod.rs, backend/}`. UI-free | `sill-model`, `sill-launcher`, `keycap-protocol`, `ds-core` (`Stamp`), `docket-core`, `docket-dbus`, `docket-client`, `prov`, `porter-core`; tokio, zbus, rustix, cctk, libpulse, notify, nonstick, ddc, image, toml |
 | 4 | `sill-search` | The launcher's runner (`ResultsService`), `providers/`, excerpts and clip images | `sill-services`, `sill-model`, `sill-launcher`, `ds-settings` (no features: the schema files the settings provider indexes); fend, emojis |
 | 5 | `sill-ui-kit` | What every surface shares: `Services` registry, `SettingsFeed`, `SurfaceRoot`, `Surface` and its `mount`, `links/`, hooks, `look`, `panel`, `shell_style`, `MenuPopup<M>`, `app_icons`, `status`, `notification_card`, `widgets/`, `harness` (feature: fake services, `SurfaceHarness`) | `sill-search`, `sill-services`, `sill-settings`, `sill-model`, `sill-launcher`, `ds`, `ds-shell`, `ds-settings` (dioxus), `ds-blitz`, `ds-harness` (optional: feature `harness`), `shell-host`; dioxus, resvg, image; dev: `ds-lint` |
 | 6 | `sill-bar` | Bar, its menus, tray, control center and its modules | `sill-ui-kit`, `sill-model`, `sill-settings`, `sill-launcher`, `sill-services`*; `ds`, `ds-shell`, `ds-settings`, `ds-blitz`, `shell-host`; dev: `ds-lint` |
@@ -69,10 +70,10 @@ re-export; the one type a module is named after may sit in its `mod.rs`.
 
 | Crate | Modules (layer order) |
 | --- | --- |
-| `sill-model` | `units`, `ids`, `attempt`, `vocab` (enums shared with settings), then one dir per service (`battery`, `clock`, ... 28 services; `results` holds search state; `focus` holds the focus mode, which is not a service; `keyboard` holds the pure keyboard-profile choice, which is not a service either, and `keycap` the keycap service's state and its pure decisions: the focus to send, the notice to post, how to read the unit, how long to wait to reconnect). Each service dir: `mod.rs`, `model.rs` (State), `command.rs` (Command, Event, Effect), `step.rs`, `tests.rs`; a sub-concept gets a sub-dir with the same roles. Service dirs never import each other |
+| `sill-model` | `units`, `ids`, `attempt`, `vocab` (enums shared with settings), then one dir per service (`battery`, `clock`, ... 29 services, `intents` among them: its `sheet/`, `terminal/` and `shell/` sub-dirs are the confirmation queue, the terminal's grants and the shell's own actions; `results` holds search state; `focus` holds the focus mode, which is not a service; `keyboard` holds the pure keyboard-profile choice, which is not a service either, and `keycap` the keycap service's state and its pure decisions: the focus to send, the notice to post, how to read the unit, how long to wait to reconnect). Each service dir: `mod.rs`, `model.rs` (State), `command.rs` (Command, Event, Effect), `step.rs`, `tests.rs`; a sub-concept gets a sub-dir with the same roles. Service dirs never import each other |
 | `sill-settings` | `section` (trait), one file per domain (`bar`, `dock`, ..., 21 domains), `file` (`ShellFile`, `SettingsDoc` impl), `schema`, `keys` (typed enums and unit newtypes that no service shares) |
 | `sill-ipc` | `line` (encode, decode, cap), `error`, `request`, `response`, `show`, `status`, `act`, `debug` (one word file per request group) |
-| `sill-services` | `error`, `control`, `stream`, `env/`, `service`, then `file_touch` (a debounced watch on one file), then one dir per service (27, all but `results`) in dependency order of their `Deps`; a service dir never imports another service dir: cross-service data is `sill-model` types in `Deps` |
+| `sill-services` | `error`, `control`, `stream`, `env/`, `service`, then `file_touch` (a debounced watch on one file), then one dir per service (28, all but `results`) in dependency order of their `Deps`; a service dir never imports another service dir: cross-service data is `sill-model` types in `Deps` |
 | `sill-search` | `preview`, `providers/<kind>/`, `results/` (`registry`, `run`, `sink`, `history`, `frecency_file`, `effect`), `ResultsService` in `results/mod.rs` |
 | `sill-ui-kit` | `look`, `links/`, `settings`, `shell_style`, `services`, `hooks/`, `panel`, `root`, `surface/` (`mount`, `lock`, `start`, `place`, `naming`), `menu/`, `status/`, `app_icons/`, `notification_card/`, `widgets/`, `harness/` (feature `harness`) |
 | each surface crate | one dir per surface, named after it (`osd/`, `dock/`, `banners/`); `lib.rs` re-exports each surface marker type and nothing else |
@@ -104,7 +105,7 @@ A concept over about 300 lines becomes a sub-directory with the same roles (`doc
 <!-- paths: skip -->
 The old locations of what moved, and where each landed.
 
-### `sill-services` (ends with 27 services and the seams)
+### `sill-services` (ends with 28 services and the seams)
 
 Rule for every service dir `X`: a file that names zbus, wayland, notify, `std::fs`, `Command`,
 libpulse, PAM or tokio is effect code; every other file is pure. Pure files go to
@@ -195,7 +196,7 @@ code into `tests.rs`. Exceptions and renames:
 | `launcher/*` | `sill-launcher-ui/src/launcher/`; `OpenSerial`, `PanelFocus`, `LauncherShown` to `sill-ui-kit/src/links/launcher.rs`, `Visible` to `shell_host::Visibility` |
 | `banners/`, `notification_center/`, `screenshot_thumb/` | `sill-notify-ui/src/` |
 | `desktop_widgets/`, `edit_widgets/` | `sill-widgets-ui/src/{desktop,edit}/` |
-| `osd/`, `power_menu/`, `polkit_prompt/`, `switcher/`, `idle_dim/`, `hot_corners/`, `wallpaper/`, `lock/` | `sill-overlays/src/<same>/` |
+| `osd/`, `power_menu/`, `polkit_prompt/`, `confirm_sheet/`, `switcher/`, `idle_dim/`, `hot_corners/`, `wallpaper/`, `lock/` | `sill-overlays/src/<same>/` |
 | `power_menu/script.rs`, `launcher/script.rs`, `launcher/debug_link.rs` | deleted once shell-host has `Inject::Key` |
 | `src/style/*.css` | `<concept>/style.css` beside its `view.rs` (`bar_popup.css`, `dock_popup.css` become `menu/style.css`) |
 | `examples/*_demo.rs` | deleted; the acceptance scripts run the real daemon |
@@ -230,8 +231,13 @@ Look a concept up here before writing it. If it has a home, extend it.
 | Concept | Home |
 | --- | --- |
 | Everything ambient (buses, Wayland route, directories, wall clock, DDC, session actions, authenticator, idle times, polkit route, processes, keycap's socket path) | `sill_services::env::Env` (`keycap_socket`: `/run/keycap/keycap.sock` from the process, none when isolated, so no test or script reaches the real daemon) |
-| The focused window's keyboard profile | `sill_model::keyboard::wanted` over `ProfileSource`s; sent by `sill_services::keycap` (`focus_to_send` decides when) |
+| The focused window's keyboard profile | `sill_model::keyboard::wanted` over `ProfileSource`s (the user's overrides, what the app declares, keycap's own per-app profiles such as `ghostty`, then the category table); sent by `sill_services::keycap` (`focus_to_send` decides when) |
 | The person's per-app keyboard profiles (`keyboard.overrides`) | `sill_settings::keyboard` (`KeyboardSettings`; `overrides` parses the rows once, per row, with a line for each one dropped), told to keycap by `sill::policy::keyboard` as `KeycapCommand::Overrides`; `KeycapAsk` is the part of the command on the IPC wire |
+| The confirmation sheet's queue, its answers and receipts | `sill_model::intents::sheet` (`Sheets`, `SheetChoice`, `step`; the receipt says `SheetFallback`, never `HardwareSeat`), served as `org.quire.Confirm1` by `sill_services::intents` |
+| What the sheet says (title, byline, facts, reasons) | `sill_model::intents::sheet::sheet_view`: fixed words and the router's own formatting, never a model's text |
+| Arming, Escape and the hold of the confirmation sheet | `sill_overlays::confirm_sheet::gate` (a `Machine` on quire's clock) |
+| The terminal's standing grants, the breaker, Resume | `sill_model::intents::terminal`; read and changed through intentd's `Control` by `sill_services::intents`; drawn by the control center's `Terminal` module |
+| The shell's own actions as `org.quire.Shell` | declared in `dist/intents/org.quire.Shell.toml` (installed by `dist/install.sh`), read by `sill_model::intents::shell`, served by `sill_services::intents` (the provider), done by `sill::intents` (the same requests `sill <verb>` makes) |
 | Notices about keycap (failed, conflict, paused) | `sill_model::keycap::{attention, notice_for, notice_text}`; posted by `sill_services::keycap::backend::notice` (no action: `sill keycap retry` and `resume` are the way out) |
 | Watching one file for edits | `sill_services::file_touch` |
 | A bus daemon that starts late or restarts (UPower, power-profiles, NetworkManager, BlueZ) | `sill_services::owner` (`appeared`, `changed` on `NameOwnerChanged`); a service runs its session only while the name is owned and resets its state when it is not. A `notify` watch signals only on writes, never on the open/read/close a scan itself makes (`apps::backend::run::changes`) |
@@ -307,7 +313,7 @@ pub struct Handle<S: Service> { pub state: watch::Receiver<S::State>, pub contro
 pub fn spawn<S: Service>(rt: &tokio::runtime::Handle, env: &Env, deps: S::Deps) -> Handle<S>;
 ```
 
-Implementors: the 27 `<Module>Service` markers (`enum XService {}`), 26 in `sill-services`,
+Implementors: the 28 `<Module>Service` markers (`enum XService {}`), 27 in `sill-services`,
 `ResultsService` in `sill-search`. Add an implementor for a new long-lived backend that
 publishes one state. Add nothing for a helper without a task. Not a `Service`: a one-shot call
 (`launch::open`), a pure derivation (`switcher::apps`), or a UI link.
@@ -631,7 +637,7 @@ Each ends with its tests. Name the concept once and use it in every file name be
 | `launcher`, `launcher_catcher` | `sill-launcher-ui` | Overlay | Panel plus click catcher, one `Reveal` link |
 | `banners`, `notification_center`, `screenshot_thumb` | `sill-notify-ui` | Overlay | Cards from `sill-ui-kit::notification_card` |
 | `desktop_widgets`, `edit_widgets` | `sill-widgets-ui` | Bottom, Overlay | Providers from `sill-ui-kit::widgets` |
-| `osd`, `power_menu`, `polkit_prompt`, `switcher`, `idle_dim`, `hot_corners`, `wallpaper` | `sill-overlays` | Overlay (wallpaper Background) | Hot corners: one slot per corner |
+| `osd`, `power_menu`, `polkit_prompt`, `confirm`, `switcher`, `idle_dim`, `hot_corners`, `wallpaper` | `sill-overlays` | Overlay (wallpaper Background) | Hot corners: one slot per corner. `confirm` is `confirm_sheet/`: intentd's question on quire's `Sheet`, mapped on the banners' output |
 | `lock` | `sill-overlays` | session lock | `LockSurface`; one per output through shell-host |
 
 The notification center draws widgets and the desktop layer draws them too, so providers live
@@ -660,7 +666,7 @@ The person's rules are unlayered and win over both cascade layers: quire's `@lay
 bare `style { {CSS} }`). A user rule written `[data-surface=bar]` (plain, no `*|`) matches.
 
 `dist/` holds what a real login needs: `sill-session`, `sill-session.target`, `sill.desktop`,
-`sill.service`, the COSMIC seed files (shortcuts, key repeat), the PAM service and the DDC/CI
+`sill.service`, `intents/org.quire.Shell.toml` (what `quire-do shell` lists and intentd gates), the COSMIC seed files (shortcuts, key repeat), the PAM service and the DDC/CI
 rules. `dist/install.sh` (`--dry-run` prints) and `dist/uninstall.sh` put them in place and take
 them out, sharing `dist/install-lib.sh`; they never touch Plasma or Toshy, and skip the DDC rules
 and `sill.service`. `sill-session` seeds the COSMIC files into `~/.config/cosmic` when missing
@@ -718,5 +724,6 @@ runs the script itself nested. `docs/first-login.md` is the user's checklist.
   cargo clippy --workspace --all-targets --all-features -- -D warnings
   cargo test --workspace --features sill/debug
   ./scripts/check-boundary.sh
+  ./scripts/check-intents.sh   # every .desktop file has a valid intents manifest (docket's check)
   cargo deny check licenses
   ```

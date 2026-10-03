@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Remove what dist/install.sh put in place: the binary, the session script, the login-screen
-# entry, the user target, the PAM service and the seed files. Plasma, Toshy, keycap and your
+# entry, the user target, the PAM service, the intents manifest and the seed files. Plasma, Toshy, keycap and your
 # own config are not touched. Run as yourself; sudo asks once.
 #
 #   dist/uninstall.sh --dry-run        print every step, change nothing
@@ -23,7 +23,7 @@ refuse_root
 need_sudo
 
 step "2/3 system files"
-for path in "$DESKTOP_DEST" "$SESSION_DEST" "$TARGET_DEST" "$PAM_DEST" "$BIN_DEST"; do
+for path in "$DESKTOP_DEST" "$SESSION_DEST" "$TARGET_DEST" "$PAM_DEST" "$INTENTS_DEST" "$BIN_DEST"; do
   if [ -e "$path" ]; then run sudo rm -f "$path"; else note "already gone: $path"; fi
 done
 if [ "${FLAG_forget_seeds:-0}" = 1 ]; then

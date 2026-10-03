@@ -1,0 +1,142 @@
+# What sill's shell can be asked to do (`org.quire.Shell`), declared once for every face: the
+# launcher and the companion (D-Bus), outside agents (MCP) and the terminal (`quire-do shell ...`).
+# sill serves them as `IntentProvider1` on that bus name; intentd gates every call. Installed by
+# dist/install.sh under $XDG_DATA_DIRS/quire/intents/. Every field is written (porter's
+# provider-file rule); the action names carry the app's own prefix (`shell`). The parsed form is
+# held to `sill_model::intents::shell` by a test, so a name or an option cannot drift.
+#
+# Effects. The effect classes were made for apps with data, so the shell's own picks are these:
+# changing what is on screen (the launcher, a workspace) only looks, so it is `read`; pinning to
+# the dock changes a file the shell can restore, so it is an `undoable_write` with a token; locking
+# the screen and taking a screenshot have no undo the shell can offer, so they are `destructive`
+# (the person holds the button to confirm), and a screenshot is `ask_always`.
+vocab = 1
+app = "org.quire.Shell"
+entities = []
+
+[[actions]]
+name = "shell.launcher.open"
+label = "Open the launcher"
+on = { kind = "nothing" }
+effect = "read"
+classes = ["app_own"]
+undo = "not_undoable"
+reach = "offered"
+latency = "quick"
+result = { kind = "nothing" }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+
+[[actions.params]]
+name = "query"
+label = "What to search for"
+ty = { kind = "text", v = { max = 200, lines = "one" } }
+need = { kind = "optional" }
+sink = "inert"
+
+[[actions]]
+name = "shell.workspace.switch"
+label = "Switch workspace"
+on = { kind = "nothing" }
+effect = "read"
+classes = ["app_own"]
+undo = "not_undoable"
+reach = "offered"
+latency = "quick"
+result = { kind = "nothing" }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+
+[[actions.params]]
+name = "direction"
+label = "Which way"
+ty = { kind = "choice", v = [
+  { id = "next", label = "Next" },
+  { id = "prev", label = "Previous" },
+] }
+need = { kind = "defaulted", v = { kind = "choice", v = "next" } }
+sink = "inert"
+
+[[actions]]
+name = "shell.dock.pin"
+label = "Keep an app in the dock"
+on = { kind = "nothing" }
+effect = "undoable_write"
+classes = ["app_own"]
+undo = "token"
+reach = "offered"
+latency = "quick"
+result = { kind = "nothing" }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+
+[[actions.params]]
+name = "app"
+label = "Desktop id of the app"
+ty = { kind = "text", v = { max = 200, lines = "one" } }
+need = { kind = "required" }
+sink = "inert"
+
+[[actions]]
+name = "shell.dock.unpin"
+label = "Take an app out of the dock"
+on = { kind = "nothing" }
+effect = "undoable_write"
+classes = ["app_own"]
+undo = "token"
+reach = "offered"
+latency = "quick"
+result = { kind = "nothing" }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+
+[[actions.params]]
+name = "app"
+label = "Desktop id of the app"
+ty = { kind = "text", v = { max = 200, lines = "one" } }
+need = { kind = "required" }
+sink = "inert"
+
+[[actions]]
+name = "shell.lock"
+label = "Lock the screen"
+on = { kind = "nothing" }
+effect = "destructive"
+classes = ["app_own"]
+undo = "not_undoable"
+reach = "offered"
+latency = "quick"
+result = { kind = "nothing" }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+params = []
+
+[[actions]]
+name = "shell.screenshot"
+label = "Take a screenshot"
+on = { kind = "nothing" }
+effect = "destructive"
+classes = ["app_own"]
+undo = "not_undoable"
+reach = "ask_always"
+latency = "quick"
+result = { kind = "nothing" }
+keys = { kind = "none" }
+lasting = "no"
+dry_run = "none"
+
+[[actions.params]]
+name = "kind"
+label = "What to capture"
+ty = { kind = "choice", v = [
+  { id = "screen", label = "The screen" },
+  { id = "window", label = "A window" },
+  { id = "area", label = "An area" },
+] }
+need = { kind = "defaulted", v = { kind = "choice", v = "screen" } }
+sink = "inert"

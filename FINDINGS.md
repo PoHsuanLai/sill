@@ -283,6 +283,39 @@ A settled item is deleted, not marked closed.
   screen shows the real account's name from `/etc/passwd` (by uid), which no environment
   variable sandboxes.
 
+## Standing facts: the seat at intentd
+
+- **One connection owns three roles.** intentd names a caller's role from the well-known names its
+  connection owns (`dist/intentd.toml`: `org.quire.Shell` is `launcher`, `confirm` and `control`;
+  `Confirm1`'s owner is trusted only while it also owns that name). So `sill_services::intents`
+  claims `org.quire.Shell` first (the provider, `docket_client::serve_on`), then
+  `org.quire.Confirm1`, and makes its `Control` calls from the same connection. It is passive until
+  the daemon's `IntentsCommand::Serve`, like the polkit agent.
+- **Phase A, not unforgeable.** The sheet is a layer surface on a stock compositor; its receipt says
+  `InputProof::SheetFallback`, never `HardwareSeat`. Anything that can type into the session
+  (uinput, an injected key) can answer it. Phase B is the same surface on the compositor's
+  trusted surface (docs/cosmic-gaps.md).
+- **The answer is a signal to the asker alone.** `Confirm` returns `/org/quire/Confirm1/request/<n>`
+  and the person's answer goes back as `org.quire.Intents1.Request.Response(0, <ConfirmAnswer
+  JSON>)` to the caller's unique name (a withdrawn question: code 1). Only the owner of
+  `org.quire.Intents1` may call `Confirm`, `Cancel` or the provider, and only a question's own
+  asker may close its request object. A question expires on its own clock (`expires`), is
+  dropped when intentd leaves the bus, and is never an allow.
+- **The sheet arms for 500 ms and a destructive action is a 1 s hold**, both constants in
+  `crates/sill-overlays/src/confirm_sheet/gate.rs` until design/22 has `confirm.arm_ms` and `confirm.hold_ms`. Return and
+  every button are ignored while it arms; Escape denies at any time; the keyboard lands on Allow
+  for a press and on Don't Allow when Allow needs a hold.
+- **The shell's actions use `read` for what only changes the view** (the launcher, a workspace),
+  `undoable_write` with a token for a dock pin and unpin, and `destructive` for the lock and a
+  screenshot: the effect classes were made for apps with data and have no word for either. The
+  parsed manifest is held to the model by `crates/sill-services/tests/shell_manifest.rs`.
+- **"Resume the terminal" calls `Control.Resume(Only(desktop))`**, the terminal's Space, so it
+  also lifts a halt of that Space; a global halt (`all`) stays. The Terminal module draws only
+  while there is a grant or a pause to show.
+- **Checkouts.** docket's own path dependencies resolve beside it, so every checkout of sill also
+  needs `../porter`, `../stoker` and `../almanac` (and `../docket`); `~/sill-wt/gate` needs the
+  same links as its other siblings.
+
 ## Decisions in force (departures from the design docs)
 
 ### Settings

@@ -79,7 +79,7 @@ mod tests {
     fn the_default_modules_lay_out_in_two_columns() {
         use ControlCenterModule::{
             Appearance, Battery, Bluetooth, Display, Focus, KeyboardBrightness, NowPlaying, Sound,
-            Wifi,
+            Terminal, Wifi,
         };
         let cells: Vec<(ControlCenterModule, u16, u16, Span)> =
             place(&ControlCenterSettings::default().modules, 2)
@@ -98,6 +98,7 @@ mod tests {
                 (NowPlaying, 5, 0, Span::Row),
                 (Appearance, 6, 0, Span::Row),
                 (Battery, 7, 0, Span::Row),
+                (Terminal, 8, 0, Span::Row),
             ]
         );
     }

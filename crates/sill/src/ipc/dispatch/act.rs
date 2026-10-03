@@ -39,6 +39,7 @@ pub fn dispatch(reach: &Reach, request: ActRequest) -> Response {
             "notifications",
         ),
         ActRequest::Keycap(command) => sent(services.keycap.control.send(command.into()), "keycap"),
+        ActRequest::Intents(ask) => sent(services.intents.control.send(ask.into()), "intents"),
         ActRequest::FocusLatest => {
             reach.links.banners.ask_keyboard();
             Response::Done

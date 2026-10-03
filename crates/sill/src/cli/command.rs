@@ -6,6 +6,7 @@ use clap::Subcommand;
 use super::debug::DebugAction;
 use super::desktop::{ControlCenterAction, DockAction, PowerMenuAction, ShotArg, WidgetsAction};
 use super::display::DisplayAction;
+use super::intents::IntentsAction;
 use super::keycap::KeycapAction;
 use super::launcher::{ClipboardAction, LauncherAction};
 use super::notifications::NotificationsAction;
@@ -93,6 +94,11 @@ pub enum Command {
     Keycap {
         #[command(subcommand)]
         action: KeycapAction,
+    },
+    /// What intentd may ask of sill: its confirmation sheet, and the terminal's standing grants.
+    Intents {
+        #[command(subcommand)]
+        action: IntentsAction,
     },
     /// The launcher's clipboard history.
     Clipboard {

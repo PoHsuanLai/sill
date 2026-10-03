@@ -12,12 +12,15 @@ publish.workspace = true
 sill-launcher = { workspace = true }
 ds-core = { workspace = true }
 keycap-protocol = { workspace = true }
+docket-core = { workspace = true }
+prov = { workspace = true }
 jiff = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }
+porter-core = { workspace = true }
 
 [lints]
 workspace = true

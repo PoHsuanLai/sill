@@ -3,6 +3,7 @@
 
 use std::sync::Arc;
 
+use sill_model::intents::IntentsCommand;
 use sill_model::locker::LockerCommand;
 use sill_model::polkit_agent::{AgentPolicy, PolkitCommand};
 use sill_search::results::{ResultsLinks, ResultsService, Sources};
@@ -13,6 +14,7 @@ use sill_services::clipboard::ClipboardService;
 use sill_services::cosmic_wl::CosmicWlService;
 use sill_services::env::Env;
 use sill_services::idle::{IdleLinks, IdleService};
+use sill_services::intents::{IntentsLinks, IntentsService};
 use sill_services::keycap::{KeycapLinks, KeycapService};
 use sill_services::launch::LaunchService;
 use sill_services::locker::LockerService;
@@ -33,7 +35,7 @@ use crate::policy::{
 /// Start every service on `rt` (the `cosmic_wl` and volume threads on their own threads)
 /// against `env`'s seams, each after the ones it depends on. A service whose system half is
 /// missing still yields its receiver, at its default.
-pub(crate) fn start(rt: &Runtime, env: &Env) -> Services {
+pub(crate) fn start(rt: &Runtime, env: &Env, intents: IntentsLinks) -> Services {
     let volume = spawn::<VolumeService>(rt, env, ());
     let battery = spawn::<BatteryService>(rt, env, ());
     let apps = spawn::<AppsService>(rt, env, ());
@@ -93,6 +95,7 @@ pub(crate) fn start(rt: &Runtime, env: &Env) -> Services {
         events: spawn(rt, env, ()),
         screenshots: spawn(rt, env, ()),
         polkit_agent: spawn(rt, env, ()),
+        intents: spawn::<IntentsService>(rt, env, intents),
         volume,
         battery,
         apps,
@@ -129,8 +132,10 @@ pub(crate) fn follow_settings(
         },
         services.notifications.control.clone(),
     );
-    // The lock and the polkit agent are sill's own.
+    // The lock, the polkit agent and the seat at intentd (the confirmation sheet, the terminal's
+    // grants, `org.quire.Shell`) are sill's own.
     let _ = services.locker.control.send(LockerCommand::Configure);
+    let _ = services.intents.control.send(IntentsCommand::Serve);
     let _ = services
         .polkit_agent
         .control
@@ -197,7 +202,12 @@ mod tests {
         // No bus, no compositor, every directory in a scratch folder: nothing here reaches the
         // person's session or files.
         let scratch = TempDir::new("services-spawn");
-        let services = start(rt.handle(), &Env::isolated(scratch.path()));
+        let (calls, _shell_calls) = tokio::sync::mpsc::unbounded_channel();
+        let services = start(
+            rt.handle(),
+            &Env::isolated(scratch.path()),
+            sill_services::intents::IntentsLinks { calls },
+        );
 
         assert_eq!(
             services
@@ -254,6 +264,11 @@ mod tests {
             *services.keycap.state.borrow(),
             sill_model::keycap::KeycapState::Unknown,
             "no socket and no system bus in an isolated Env: nothing is asked"
+        );
+        assert_eq!(
+            services.intents.state.borrow().link,
+            sill_model::intents::IntentsLink::Passive,
+            "no bus name claimed until the daemon says to serve"
         );
         assert_eq!(
             services.idle.state.borrow().mode,

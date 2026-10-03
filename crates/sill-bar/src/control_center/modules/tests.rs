@@ -22,7 +22,8 @@ fn every_kind_is_listed_once_and_the_default_grid_shows_them_all() {
 #[test]
 fn tiles_take_a_column_and_sliders_and_panels_the_row() {
     use ControlCenterModule::{
-        Appearance, Battery, Bluetooth, Display, Focus, KeyboardBrightness, NowPlaying, Sound, Wifi,
+        Appearance, Battery, Bluetooth, Display, Focus, KeyboardBrightness, NowPlaying, Sound,
+        Terminal, Wifi,
     };
     const CASES: &[(ControlCenterModule, Span)] = &[
         (Wifi, Span::One),
@@ -34,6 +35,7 @@ fn tiles_take_a_column_and_sliders_and_panels_the_row() {
         (NowPlaying, Span::Row),
         (Appearance, Span::Row),
         (Battery, Span::Row),
+        (Terminal, Span::Row),
     ];
     for &(kind, span) in CASES {
         assert_eq!(module(kind).span(), span, "{kind:?}");

@@ -6,6 +6,7 @@ pub mod corners;
 pub mod daemon;
 pub mod edit_widgets;
 pub mod idle_dim;
+pub mod intents;
 pub mod ipc;
 pub mod launch;
 pub mod lock;

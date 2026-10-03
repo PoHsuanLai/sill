@@ -97,11 +97,18 @@ fn runtime() -> tokio::runtime::Runtime {
         .unwrap_or_else(|e| panic!("{e}"))
 }
 
+/// The intents service's link to a daemon that is not there: nothing reads it.
+fn unlinked() -> sill_services::IntentsLinks {
+    sill_services::IntentsLinks {
+        calls: tokio::sync::mpsc::unbounded_channel().0,
+    }
+}
+
 #[test]
 fn a_wish_takes_and_drops_the_lock_once() {
     let rt = runtime();
     let scratch = Scratch::new("lock-wish");
-    let services = crate::daemon::services::start(rt.handle(), &scratch.env());
+    let services = crate::daemon::services::start(rt.handle(), &scratch.env(), unlinked());
     let (mut host, mut held, link) = (FakeHost::default(), ShellLock::default(), LockLink::new());
     let outputs = outputs();
     let wish = |host: &mut FakeHost, held: &mut ShellLock, wish| {
@@ -168,7 +175,7 @@ fn a_wish_takes_and_drops_the_lock_once() {
 fn a_refusal_is_not_held_and_a_lock_in_progress_is_adopted() {
     let rt = runtime();
     let scratch = Scratch::new("lock-refusal");
-    let services = crate::daemon::services::start(rt.handle(), &scratch.env());
+    let services = crate::daemon::services::start(rt.handle(), &scratch.env(), unlinked());
     let link = LockLink::new();
     let outputs = outputs();
     let mut refused = FakeHost {

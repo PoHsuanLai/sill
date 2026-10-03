@@ -312,6 +312,38 @@ folder and polkit rule `dist/keycap.polkit.rules`), then log in to a sill sessio
 - [ ] Log out and in again: the login screen already has the layout, and after login the terminal
   and the browser behave as in the second item.
 
+## The confirmation sheet and `quire-do` on a real COSMIC login
+
+Needs docket's `intentd` running (`systemctl --user start intentd` from docket's `dist/`) and
+`quire-do` on the PATH; `dist/install.sh` has put `org.quire.Shell.toml` where intentd reads it.
+`dev/accept/confirm.sh` runs the whole chain on a private headless KWin; these are the parts that
+need a person, a real compositor or real eyes.
+
+- [ ] **The sheet's look**: `quire-do shell dock.pin --app firefox.desktop` in a terminal. A
+  narrow sheet appears centred on the main display: "Keep an app in the dock?", "The terminal wants
+  to do this in Shell.", the app as a fact, the reasons, "Allow from the terminal: this action,
+  until logout", Don't Allow and Allow. The buttons are greyed for about half a second; Return in
+  that half second does nothing; afterwards Return allows. Compare with
+  `dev/out/confirm.png` from the acceptance run. Dark and light.
+- [ ] **Hold to confirm**: `quire-do shell lock`. The Allow button reads "Hold to Allow"; a click does
+  nothing; holding it with the mouse for a second locks the screen (the label says
+  "Keep holding" meanwhile); letting go early abandons it. From the keyboard, Tab to it and hold
+  Return or Space for a second; a tap does nothing. The keyboard starts on Don't Allow.
+- [ ] **Escape and the scrim**: Escape denies at once, also in the first half second; the terminal
+  exits 4.
+- [ ] **A second question waits**: run two `quire-do shell dock.pin` calls back to back: the second
+  shows "1 more waiting" under the first, and appears (arming again) after the first is answered.
+- [ ] **Control center, Terminal**: after "Allow from the terminal" a Terminal module appears at
+  the foot of the control center listing the action with Revoke. Revoke it: the row goes and the
+  next `quire-do` call asks again. (The module is absent while nothing is granted.)
+- [ ] **A paused terminal**: three refused calls in a row (`quire-do memory forget memory.fact:x`,
+  exit 3) pause it; the next call exits 7. Intentd does not yet announce the pause
+  (`BreakerTripped` is declared and not emitted), so the Terminal module shows nothing until a grant
+  exists; `sill intents resume` is the way back today.
+- [ ] **The keyboard still reaches the window behind**: after answering, typing reaches the
+  terminal again (the sheet's `Exclusive` keyboard is released when it leaves).
+- [ ] **Phase A is forgeable**: a key typed by uinput answers the sheet. Known; Phase B closes it.
+
 ## Owned by another repository
 
 - [ ] shell-host spike item f at a fractional output (1.5): run on the nested compositor at
