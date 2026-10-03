@@ -9,7 +9,7 @@ use ds::prelude::*;
 
 use sill_ui_kit::hooks::{use_appearance, use_user_style};
 use sill_ui_kit::menu::{PopupFrame, PopupRoom};
-use sill_ui_kit::root::{RootStyle, SchemeKeyed};
+use sill_ui_kit::root::RootStyle;
 
 use super::menu_popup::BAR_MENU;
 
@@ -35,29 +35,26 @@ pub(crate) fn TrayMenuDocument(
     let environment = use_appearance()();
     let root = RootStyle::popup(BAR_MENU, use_user_style());
     rsx! {
-           PopupFrame { room: INSET, widest: Some(POPUP_WIDTH),
-               SchemeKeyed {
-    scheme: resolve(environment.settings.appearance.appearance(), Theme::System, environment.system).scheme.slug().to_owned(),
-    Ds {
-                   sheet: Some(ds_shell::stylesheet()),
-                   extent: RootExtent::Popup,
-                   appearance: environment.settings.appearance.appearance(),
-                   system: environment.system,
-                   material: Material::Popover,
-                   surface: root.surface,
-                   user_style: root.user_style,
-                   Menu {
-                       placement: MenuPlacement::Bar,
-                       // The frame lays the card in flow: the anchor places nothing.
-                       anchor: Anchor::Point(Point::default()),
-                       items: entries,
-                       onpick,
-                       onclose,
-                   }
-               }
+        PopupFrame { room: INSET, widest: Some(POPUP_WIDTH),
+            Ds {
+                sheet: Some(ds_shell::stylesheet()),
+                extent: RootExtent::Popup,
+                appearance: environment.settings.appearance.appearance(),
+                system: environment.system,
+                material: Material::Popover,
+                surface: root.surface,
+                user_style: root.user_style,
+                Menu {
+                    placement: MenuPlacement::Bar,
+                    // The frame lays the card in flow: the anchor places nothing.
+                    anchor: Anchor::Point(Point::default()),
+                    items: entries,
+                    onpick,
+                    onclose,
+                }
+            }
+        }
     }
-           }
-       }
 }
 
 #[cfg(test)]

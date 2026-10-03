@@ -13,7 +13,7 @@ use super::frame::PopupFrame;
 use super::look::{PopupLook, PopupRoom};
 use super::model::MenuModel;
 use crate::hooks::use_user_style;
-use crate::root::{RootStyle, SchemeKeyed};
+use crate::root::RootStyle;
 
 /// `model`'s menu: `on_pick` hears a pick, `on_close` the menu closing (after a pick too).
 /// `surface` names the document for a user stylesheet (`data-surface`), `dock-menu`.
@@ -28,30 +28,27 @@ pub fn MenuPopup<Model: MenuModel>(
     let root = RootStyle::popup(surface, use_user_style());
     let room = use_context::<PopupRoom>();
     rsx! {
-           PopupFrame { room, style: look.metrics.style_attr(),
-               SchemeKeyed {
-    scheme: resolve(look.appearance, Theme::System, look.system).scheme.slug().to_owned(),
-    Ds {
-                   sheet: Some(ds_shell::stylesheet()),
-                   extent: RootExtent::Popup,
-                   appearance: look.appearance,
-                   system: look.system,
-                   material: Material::Popover,
-                   blur: BlurState::Unavailable,
-                   tint_alpha: Some(look.tint),
-                   stack: Some(look.stack),
-                   surface: root.surface,
-                   user_style: root.user_style,
-                   Menu {
-                       placement: MenuPlacement::Context,
-                       // The frame lays the card in flow: the anchor places nothing.
-                       anchor: Anchor::Point(Point::default()),
-                       items: model.entries(),
-                       onpick: on_pick,
-                       onclose: on_close,
-                   }
-               }
+        PopupFrame { room, style: look.metrics.style_attr(),
+            Ds {
+                sheet: Some(ds_shell::stylesheet()),
+                extent: RootExtent::Popup,
+                appearance: look.appearance,
+                system: look.system,
+                material: Material::Popover,
+                blur: BlurState::Unavailable,
+                tint_alpha: Some(look.tint),
+                stack: Some(look.stack),
+                surface: root.surface,
+                user_style: root.user_style,
+                Menu {
+                    placement: MenuPlacement::Context,
+                    // The frame lays the card in flow: the anchor places nothing.
+                    anchor: Anchor::Point(Point::default()),
+                    items: model.entries(),
+                    onpick: on_pick,
+                    onclose: on_close,
+                }
+            }
+        }
     }
-           }
-       }
 }

@@ -11,7 +11,7 @@ use shell_host::OutputInfo;
 
 use crate::hooks::use_appearance;
 use crate::look::use_active_look;
-use crate::root::{SchemeKeyed, use_root_style};
+use crate::root::use_root_style;
 
 /// The surface on `output`, drawn as `material` (`chrome` and `extent` when the material's own
 /// are not wanted) around `children`.
@@ -26,30 +26,21 @@ pub fn SurfaceRoot(
     let environment = use_appearance()();
     let look = use_active_look(&output);
     let root = use_root_style();
-    let scheme = resolve(
-        environment.settings.appearance.appearance(),
-        look.theme,
-        environment.system,
-    )
-    .scheme;
     rsx! {
-           SchemeKeyed {
-    scheme: scheme.slug().to_owned(),
-    Ds {
-               sheet: Some(ds_shell::stylesheet()),
-               appearance: environment.settings.appearance.appearance(),
-               system: environment.system,
-               look,
-               material,
-               chrome,
-               extent,
-               blur: BlurState::Available,
-               tint_alpha: Some(environment.tint_alpha()),
-               stack: Some(environment.material_stack()),
-               surface: root.surface,
-               user_style: root.user_style,
-               {children}
-           }
+        Ds {
+            sheet: Some(ds_shell::stylesheet()),
+            appearance: environment.settings.appearance.appearance(),
+            system: environment.system,
+            look,
+            material,
+            chrome,
+            extent,
+            blur: BlurState::Available,
+            tint_alpha: Some(environment.tint_alpha()),
+            stack: Some(environment.material_stack()),
+            surface: root.surface,
+            user_style: root.user_style,
+            {children}
+        }
     }
-       }
 }

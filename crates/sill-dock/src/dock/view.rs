@@ -35,7 +35,7 @@ use sill_ui_kit::app_icons::icon_look;
 use sill_ui_kit::hooks::{use_appearance, use_service, use_service_part, use_settings};
 use sill_ui_kit::look::{active_workspace, use_active_look};
 use sill_ui_kit::menu::PopupLook;
-use sill_ui_kit::root::{SchemeKeyed, use_root_style};
+use sill_ui_kit::root::use_root_style;
 use sill_ui_kit::settings::SettingsFeed;
 use sill_ui_kit::shell_style::shell_metrics;
 
@@ -143,72 +143,69 @@ pub(super) fn dock(output: OutputInfo) -> Element {
         slide,
     );
     rsx! {
-           div {
-               id: "dock-pill",
-               class: "sill-dock-pill",
-               style: "{area_style(&shown.pill)};transform:translateY({px(slide)}px);{metrics.style_attr()}{dock_metrics(&file.dock).style_attr()}",
-               SchemeKeyed {
-    scheme: resolve(appearance, look.theme, environment.system).scheme.slug().to_owned(),
-    Ds {
-                   sheet: Some(ds_shell::stylesheet()),
-                   appearance,
-                   system: environment.system,
-                   look,
-                   material: Material::Dock,
-                   radius: Some(pill_corner(&file.dock)),
-                   ground: Some(Ground::Paper),
-                   blur: BlurState::Available,
-                   tint_alpha: Some(environment.tint_alpha()),
-                   stack: Some(stack),
-                   surface: root.surface,
-                   user_style: root.user_style,
-                   AppStyle { css: DOCK_CSS }
-                   DockFloor {}
-                   div {
-                       class: "sill-dock-body",
-                       style: "height:{px(shown.pill.height)}px",
-                   }
-                   div {
-                       class: "sill-dock",
-                       style: surface_style(&shown.pill, width, rows.surface),
-                       onmouseenter: move |event| send(PointerInput::Enter(point(&event))),
-                       onmousemove: move |event| send(PointerInput::Move(point(&event))),
-                       onmouseleave: move |_| send(PointerInput::Leave),
-                       onmousedown: move |event| {
-                           if let Some(b) = button(&event) {
-                               send(PointerInput::Press(b, point(&event)));
-                           }
-                       },
-                       onmouseup: move |event| {
-                           if let Some(b) = button(&event) {
-                               send(PointerInput::Release(b, point(&event), modifier(&event)));
-                           }
-                       },
-                       div { id: "dock-hit", class: "sill-dock-hit", style: area_style(&shown.hit) }
-                       if let Some(sep) = shown.separator {
-                           div {
-                               class: "sill-dock-separator",
-                               style: separator_style(sep, &rows, file.dock.separator_height_px.0),
-                           }
-                       }
-                       for ((item, area), lift) in items.iter().zip(&shown.tiles).zip(lifts) {
-                           Tile {
-                               key: "{item.tile.0}",
-                               item: item.clone(),
-                               left: area.left,
-                               size: area.width,
-                               lift,
-                               badge: item.kind.app_id().and_then(|id| world.badges.apps.get(id)).copied(),
-                           }
-                       }
-                       if file.dock.autohide == AutoHide::On {
-                           div { id: "dock-strip", class: "sill-dock-hit", style: area_style(&strip) }
-                       }
-                   }
-               }
+        div {
+            id: "dock-pill",
+            class: "sill-dock-pill",
+            style: "{area_style(&shown.pill)};transform:translateY({px(slide)}px);{metrics.style_attr()}{dock_metrics(&file.dock).style_attr()}",
+            Ds {
+                sheet: Some(ds_shell::stylesheet()),
+                appearance,
+                system: environment.system,
+                look,
+                material: Material::Dock,
+                radius: Some(pill_corner(&file.dock)),
+                ground: Some(Ground::Paper),
+                blur: BlurState::Available,
+                tint_alpha: Some(environment.tint_alpha()),
+                stack: Some(stack),
+                surface: root.surface,
+                user_style: root.user_style,
+                AppStyle { css: DOCK_CSS }
+                DockFloor {}
+                div {
+                    class: "sill-dock-body",
+                    style: "height:{px(shown.pill.height)}px",
+                }
+                div {
+                    class: "sill-dock",
+                    style: surface_style(&shown.pill, width, rows.surface),
+                    onmouseenter: move |event| send(PointerInput::Enter(point(&event))),
+                    onmousemove: move |event| send(PointerInput::Move(point(&event))),
+                    onmouseleave: move |_| send(PointerInput::Leave),
+                    onmousedown: move |event| {
+                        if let Some(b) = button(&event) {
+                            send(PointerInput::Press(b, point(&event)));
+                        }
+                    },
+                    onmouseup: move |event| {
+                        if let Some(b) = button(&event) {
+                            send(PointerInput::Release(b, point(&event), modifier(&event)));
+                        }
+                    },
+                    div { id: "dock-hit", class: "sill-dock-hit", style: area_style(&shown.hit) }
+                    if let Some(sep) = shown.separator {
+                        div {
+                            class: "sill-dock-separator",
+                            style: separator_style(sep, &rows, file.dock.separator_height_px.0),
+                        }
+                    }
+                    for ((item, area), lift) in items.iter().zip(&shown.tiles).zip(lifts) {
+                        Tile {
+                            key: "{item.tile.0}",
+                            item: item.clone(),
+                            left: area.left,
+                            size: area.width,
+                            lift,
+                            badge: item.kind.app_id().and_then(|id| world.badges.apps.get(id)).copied(),
+                        }
+                    }
+                    if file.dock.autohide == AutoHide::On {
+                        div { id: "dock-strip", class: "sill-dock-hit", style: area_style(&strip) }
+                    }
+                }
+            }
+        }
     }
-           }
-       }
 }
 
 /// Re-apply the layer's size, exclusive zone and regions when the settings change them (the
