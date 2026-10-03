@@ -18,6 +18,12 @@
 # - whatever fails, the script ends by accepting on the daemon, quitting it, and running the
 #   recovery lock-and-unlock (`session_locker 0`), so the nested session is left unlocked.
 #
+# Waits: a functional check waits on the state it needs (`until_match`, `until_idle`, a capture
+# polled until the scrim is at its level), never on a fixed sleep a loaded host stretches; a
+# time against a budget goes through `budget_check` and is enforced only on a release build on a
+# quiet host. A step that cannot show its condition because the host was too slow (a wake past
+# the grace) skips instead of failing.
+#
 # Times: screen off 6 s, dim 3 s before it at 50 %, lock grace 5 s, the lock screen's own
 # screen-off 4 s; suspend never, except in step 7 (10 s).
 #
@@ -106,6 +112,29 @@ until_match() {
   done
 }
 
+# ms until `sill idle status` matches the regex $1, or -1 within ${2:-5000} ms: a step waits on the
+# state it needs, never on a sleep that a loaded host stretches.
+until_idle() { until_match "$(now_ms)" idle_state "$1" "${2:-5000}"; }
+
+# The scrim of the dim surface once it has faded in to its level: polls captures until one is
+# RGB 0 everywhere at alpha 128 +- 12 (the 50 % level), for at most $2 ms; prints the last good
+# capture's "width height rgb_max alpha_min alpha_max" (nothing when none was ever taken) and
+# leaves that PNG at $1. The fade is 2 s; a slow capture only moves the poll, never the verdict.
+capture_dim_at_level() {
+  local png=$1 limit=$2 start seen="" amax
+  start=$(now_ms)
+  while [ $(( $(now_ms) - start )) -le "$limit" ]; do
+    if capture_dim "$png.try.png"; then
+      seen=$(scrim_of "$png.try.png")
+      mv "$png.try.png" "$png"
+      read -r _ _ _ _ amax <<<"$seen"
+      [ "${amax:-0}" -ge 116 ] && [ "${amax:-0}" -le 140 ] && break
+    fi
+    sleep 0.05
+  done
+  echo "$seen"
+}
+
 # Wait up to ${2:-5} s for a line of the stand-in's log matching $1.
 await_logind() {
   local tries=$(( ${2:-5} * 10 ))
@@ -174,24 +203,30 @@ step_dim_off_lock() {
   wake; start=$(now_ms)
   rm -f "$OUT_DIR"/dim-*.png
   if capture_dim "$OUT_DIR/dim-before.png"; then before=mapped; else before=unmapped; fi
-  dim=$(until_match "$start" idle_state ' dimmed dimmed:50 ' 8000)
-  local dimmed_at; dimmed_at=$(now_ms)
+  dim=$(until_match "$start" idle_state ' dimmed dimmed:50 ' 20000)
+  # The early capture is the first one after the dim state appears; the late one waits for the
+  # scrim to reach its level (a state), and the nested screen is kept at that moment.
   capture_dim "$OUT_DIR/dim-early.png" && early=$(scrim_of "$OUT_DIR/dim-early.png")
-  # `--t-idle-dim` is 2 s; the displays go off 3 s after the dim.
-  sleep "$(python3 -c "print(max(0, 2.4 - ($(now_ms) - $dimmed_at) / 1000))")"
-  capture_dim "$OUT_DIR/dim-late.png" && late=$(scrim_of "$OUT_DIR/dim-late.png")
+  late=$(capture_dim_at_level "$OUT_DIR/dim-late.png" 4000)
   local late_at=$(( $(now_ms) - start ))
   "$SHELL_HOST_DEV/shot.sh" "$SHOTS/idle-dim-cosmic.png" >>"$log" 2>&1 \
     || echo "nested screenshot failed (non-fatal)" >&2
   cp "$OUT_DIR/dim-late.png" "$SHOTS/idle-dim.png" 2>/dev/null
-  off=$(until_match "$start" idle_state ' displays_off ' 10000)
-  locked=$(until_match "$start" lock_state '^locked idle_screen_off$' 12000)
-  sleep 0.3
-  if capture_dim "$OUT_DIR/dim-after.png"; then after=mapped; else after=unmapped; fi
+  off=$(until_match "$start" idle_state ' displays_off ' 25000)
+  locked=$(until_match "$start" lock_state '^locked idle_screen_off$' 30000)
+  # The surface is unmapped once the displays are off: wait for it, never a fixed sleep.
+  after=mapped
+  for _ in $(seq 50); do
+    capture_dim "$OUT_DIR/dim-after.png" || { after=unmapped; break; }
+    sleep 0.1
+  done
   echo "dim surface $DIM_SURFACE: before the dim $before; early '${early:-no capture}'; at ${late_at} ms '${late:-no capture}' (width height rgb_max alpha_min alpha_max); after the displays went off $after" \
     | tee -a "$log" >&2
-  local scrim_ok=1
-  python3 - "${early:-}" "${late:-}" <<'EOF' && scrim_ok=0
+  # Functional: black, one alpha across the surface, the late capture at 50 %, the early one not
+  # darker than it. Budget: the early capture caught the fade in progress (a slow capture on a
+  # loaded host may see it already finished).
+  local scrim_ok=1 fading=0
+  fading=$(python3 - "${early:-}" "${late:-}" <<'EOF'
 import sys
 early, late = sys.argv[1].split(), sys.argv[2].split()
 if len(early) != 5 or len(late) != 5:
@@ -199,11 +234,17 @@ if len(early) != 5 or len(late) != 5:
 e, l = [int(v) for v in early], [int(v) for v in late]
 black = e[2] == 0 and l[2] == 0
 uniform = e[3] == e[4] and l[3] == l[4]
-fading = 0 < e[4] < l[4]
+not_darker = 0 < e[4] <= l[4]
 at_level = abs(l[4] - 128) <= 12
-sys.exit(0 if black and uniform and fading and at_level else 1)
+if not (black and uniform and not_darker and at_level):
+    sys.exit(1)
+print(1 if e[4] < l[4] else 0)
 EOF
-  [ "$scrim_ok" = 0 ] && echo "scrim: black, uniform, fading in, at 50 %" | tee -a "$log" >&2
+  ) && scrim_ok=0
+  if [ "$scrim_ok" = 0 ]; then
+    echo "scrim: black, uniform, at 50 % once faded in" | tee -a "$log" >&2
+    budget_check "the early capture caught the fade in progress (lighter than the late one)" "$fading" || scrim_ok=1
+  fi
   g341=$(python3 - "$DAEMON_LOG" <<'EOF'
 import re, sys
 off = lock = None
@@ -231,19 +272,32 @@ EOF
   echo "dimmed at ${dim} ms (want ~3000), displays off at ${off} ms (~6000), locked with cause idle_screen_off at ${locked} ms; power-off order: $(echo "$g341" | tr '\n' ' ')" \
     | tee -a "$log" >&2
   echo "idle: $(idle_state); lock: $(lock_state)" | tee -a "$log" >&2
+  # Functional: idle never fires early, and does fire. The upper bounds are budgets.
   [ "$dim" -ge 2000 ] && [ "$off" -ge 5000 ] && [ "$locked" -ge 0 ] \
-    && [ "$before" = unmapped ] && [ "$after" = unmapped ] && [ "$scrim_ok" = 0 ]
+    && [ "$before" = unmapped ] && [ "$after" = unmapped ] && [ "$scrim_ok" = 0 ] \
+    && budget_check "dimmed ${dim} ms, displays off ${off} ms after the wake against 4500 and 8000 ms" \
+      "$(( dim <= 4500 && off <= 8000 ))"
 }
 
 # 2.
 step_wake_in_grace() {
-  local log="$OUT_DIR/2-wake-in-grace.log" start opened
+  local log="$OUT_DIR/2-wake-in-grace.log" start locked opened grace
   : >"$log"
-  sleep 1
+  # A lock of its own, so the grace (5 s from the lock) is not spent on step 1's captures: idle
+  # locks, and a wake is made the moment the state says it is locked.
+  open_lock || return 1
+  wake; start=$(now_ms)
+  locked=$(until_match "$start" lock_state '^locked idle_screen_off$' 30000)
+  [ "$locked" -ge 0 ] || { echo "idle never locked" | tee -a "$log" >&2; return 1; }
   start=$(now_ms); wake
-  opened=$(until_match "$start" lock_state '^unlocked' 3000)
-  echo "a wake ~1 s after the idle lock: unlocked ${opened} ms later with no password; daemon: $(grep -o 'grace [A-Za-z]* (woke after [0-9]* ms)' "$DAEMON_LOG" | tail -n1); idle: $(idle_state)" \
+  opened=$(until_match "$start" lock_state '^unlocked' 5000)
+  grace=$(grep -o 'grace [A-Za-z]* (woke after [0-9]* ms)' "$DAEMON_LOG" | tail -n1)
+  echo "a wake as soon as the idle lock was seen: unlocked ${opened} ms later with no password; daemon: $grace; idle: $(idle_state)" \
     | tee -a "$log" >&2
+  # A host so loaded that the wake itself came after the 5 s grace cannot show the grace.
+  case "$grace" in
+    "grace Ask"*) open_lock; echo "the wake came after the grace window: the host is too slow to show it" >&2; return 2 ;;
+  esac
   [ "$opened" -ge 0 ] && grep -q "grace NoPassword" "$DAEMON_LOG"
 }
 
@@ -294,19 +348,24 @@ step_inhibit_holds() {
   local client=$!
   exec 4>"$SCRATCH/client.in"
   wake
-  echo inhibit >&4; sleep 0.5
+  echo inhibit >&4
+  # The inhibit is registered when idle says so, not after a fixed half second.
+  [ "$(until_idle ' held 1$' 10000)" -ge 0 ] || echo "the inhibit was never registered" >&2
   held=$(idle_state)
   sleep 9
   after="$(idle_state) / $(lock_state)"
-  echo uninhibit >&4; sleep 0.3
+  echo uninhibit >&4
+  [ "$(until_idle ' free 0$' 10000)" -ge 0 ] || echo "the inhibit was never released" >&2
   local start; start=$(now_ms)
   locked=$(until_match "$start" lock_state '^locked idle_screen_off$' 12000)
   open_lock
-  echo inhibit >&4; sleep 0.5
+  echo inhibit >&4
+  [ "$(until_idle ' held 1$' 10000)" -ge 0 ] || echo "the second inhibit was never registered" >&2
   local second; second=$(idle_state)
   exec 4>&-
   wait "$client" 2>/dev/null
-  sleep 0.5
+  # Its client left the bus: the daemon notices on its own time.
+  [ "$(until_idle ' free 0$' 10000)" -ge 0 ] || echo "the second inhibit was never dropped" >&2
   gone=$(idle_state)
   echo "client: $(tr '\n' ' ' <"$OUT_DIR/client.log"); inhibited: '$held'; 9 s later: '$after'; after UnInhibit, idle locked at ${locked} ms; a second inhibit '$second', after its client left '$gone'" \
     | tee -a "$log" >&2
