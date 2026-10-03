@@ -1,7 +1,8 @@
 //! What each monitor's desktop layer shows, the real `DesktopWidgets` mounted as a `Surface` on
 //! the fake services: the widgets its own output's list in the state file names, else the
 //! setting's list; another monitor's list changes nothing here; and an Edit Widgets write
-//! through the link is read again, so the layer follows its sheet. A World Clock on the desktop
+//! through the link is read again, so the layer follows its sheet, and a widget an edit removes
+//! plays its exit. A World Clock on the desktop
 //! names the date of a city whose day is not today's.
 
 use std::path::PathBuf;
@@ -9,6 +10,7 @@ use std::time::Duration;
 
 use dioxus::prelude::use_context_provider;
 use ds::prelude::Word;
+use ds_harness::harness::{assert_settles_to_zero_frames, settle_until};
 use ds_harness::{Driver, Harness, Query, Viewport};
 use shell_host::OutputInfo;
 use sill_settings::{ShellFile, WidgetKind};
@@ -164,6 +166,43 @@ fn an_edit_written_for_this_output_is_drawn_and_one_for_another_is_not() {
         ["widget-battery", "widget-world-clock"],
         "this monitor's own edit is read again"
     );
+}
+
+#[test]
+fn a_widget_an_edit_removes_from_this_output_plays_its_exit() {
+    let (dir, places) = state("exit");
+    let mut run = start(dir, places, fake::output());
+    assert_settles_to_zero_frames(&mut run.harness);
+    let stood = run
+        .harness
+        .rect("#widget-battery")
+        .map(|r| (r.origin.x.0, r.origin.y.0));
+    run.link.write(WidgetsChange::Edit(WidgetsWrite {
+        center: vec![WidgetKind::Calendar],
+        desktop: vec![WidgetKind::Calendar],
+        shown: sill_settings::DesktopWidgets::On,
+        output: OutputKey::of(Some("DP-1")),
+        places: vec![at(WidgetKind::Calendar, 6, 0)],
+    }));
+    run.harness.advance(Duration::from_millis(16));
+    assert_eq!(
+        run.harness
+            .attr("#widget-battery", "data-presence")
+            .as_deref(),
+        Some("leaving"),
+        "the card stays while it plays its exit"
+    );
+    assert_eq!(
+        run.harness
+            .rect("#widget-battery")
+            .map(|r| (r.origin.x.0, r.origin.y.0)),
+        stood,
+        "it leaves from where it stood"
+    );
+    assert!(run.harness.is_animating(), "the exit is playing");
+    settle_until(&mut run.harness, |h| h.count("#widget-battery") == 0);
+    assert_eq!(drawn(&run.harness), ["widget-calendar"]);
+    assert_settles_to_zero_frames(&mut run.harness);
 }
 
 #[test]

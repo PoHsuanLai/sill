@@ -1,13 +1,14 @@
-//! The desktop widget layer (design/20 §1.14; macOS Sonoma's desktop widgets): the
-//! widgets `widgets.desktop_widgets` names, placed on a grid over the wallpaper and under every
-//! window, shown while `widgets.desktop` is `On`. One surface per output
-//! ([`layer::layer`]); its input and blur regions are the widgets' frames only, so a
-//! click between them reaches the desktop below. Where each widget sits is saved state, per
-//! output (`$XDG_STATE_HOME/sill/desktop-widgets.json`, [`sill_ui_kit::links::PlacementFile`]), placed by
-//! [`placement::place`]; a widget is moved by dragging it ([`drag`], [`arrange`], [`placed`],
-//! [`glide`]), plain pointer events on the layer, at the frame level:
-//! nothing inside a widget's own view takes part. A widget taken away plays its exit before it
-//! goes ([`leaving`]).
+//! The desktop widget layer (design/20 §1.14; macOS Sonoma's desktop widgets): the widgets of
+//! this output's own list in the state file, else `widgets.desktop_widgets`, placed on a grid
+//! over the wallpaper and under every window, shown while `widgets.desktop` is `On`. One surface
+//! per output ([`layer::layer`]); its input region is the whole output, so a press of the
+//! secondary button on the wallpaper opens the desktop's menu ([`menu`]), and its blur region is
+//! the widgets' frames. Each output's list and where each widget sits are saved state
+//! (`$XDG_STATE_HOME/sill/desktop-widgets.json`, [`sill_ui_kit::links::PlacementFile`]), the
+//! places set by [`placement::place`]; a widget is moved by dragging it ([`drag`], [`arrange`],
+//! [`placed`], [`glide`]), plain pointer events on the layer, at the frame level: nothing inside
+//! a widget's own view takes part. A widget taken away plays its exit before it goes
+//! ([`leaving`]).
 
 mod arrange;
 mod drag;

@@ -1,13 +1,14 @@
 //! The layer's root: a transparent root in the Widget material as large as the layer
 //! (`RootExtent::Viewport`), holding the grid. The grid measures itself once laid out, places
-//! `widgets.desktop_widgets` (each at its one desktop size) with `place` over `grid_size`
-//! (this output's saved places first, from the [`PlacementFile`] the surface is given, read
-//! again when Edit Widgets changes the desktop's widgets), draws each widget at its box,
-//! lets a widget be dragged to another cell (`drag`, `placed`; quire's `WidgetSlotGuide` at the
-//! cell it would land in), and keeps the surface's input and blur
-//! regions on the frames (`RegionSpec::Elements`, resolved after every layout, so they follow a
-//! dragged frame), so a press between them reaches the desktop below. A widget taken away keeps
-//! its card at its last box while it plays its exit, outside the regions (`leaving`).
+//! this output's widgets (its own list in the [`PlacementFile`] the surface is given, else
+//! `widgets.desktop_widgets`; each at its one desktop size) with `place` over `grid_size`
+//! (this output's saved places first), both read again when Edit Widgets writes, draws each
+//! widget at its box, lets a widget be dragged to another cell (`drag`, `placed`; quire's
+//! `WidgetSlotGuide` at the cell it would land in), opens the desktop's menu at a press of the
+//! secondary button (`menu`), and keeps the surface's blur region on the frames
+//! (`RegionSpec::Elements`, resolved after every layout, so it follows a dragged frame). A widget
+//! taken away keeps its card at its last box while it plays its exit, outside the region
+//! (`leaving`).
 //! Nothing here runs a timer: the widgets redraw on their services' changes, a drag's motion runs
 //! only while it moves, and an exit's end is quire's card's to call.
 

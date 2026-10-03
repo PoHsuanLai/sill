@@ -1,6 +1,7 @@
 //! The panels a client opens and closes: the launcher, the power menu, the control center, the
 //! notification center and Edit Widgets. Each opens on the output the daemon picks (the output
-//! under the pointer is not known to the daemon), which is the first with that surface.
+//! under the pointer is not known to the daemon), which is the first with that surface; Edit
+//! Widgets prefers the output of the active window.
 
 use serde::{Deserialize, Serialize};
 
@@ -46,8 +47,8 @@ pub enum LauncherRequest {
     Close,
 }
 
-/// Edit Widgets has no toggle: it opens on the first output that has its surface, and closes
-/// wherever it is open.
+/// Edit Widgets has no toggle: it opens on the output of the active window when that output has
+/// its surface, else on the first that has, and closes wherever it is open.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EditWidgetsRequest {

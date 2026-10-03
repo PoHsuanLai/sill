@@ -4,16 +4,19 @@
 //! one away (each widget has one size: the gallery previews and adds it and offers no
 //! other). Every choice is a `WidgetEdit` applied through quire's `ds_shell::widget::apply`
 //! (`sill_ui_kit::widgets::layout::edited`) and written back as the keys and places sill already keeps
-//! (`widgets.center`, `widgets.desktop_widgets`, `desktop-widgets.json`, and `widgets.desktop`
-//! turned on by an add to the desktop) through the [`sill_ui_kit::links::EditWidgetsLink`]'s writer the daemon gives it.
+//! (`widgets.center`; the output's own widget list and cells in `desktop-widgets.json`; and
+//! `widgets.desktop` turned on by an add to the desktop) through the
+//! [`sill_ui_kit::links::EditWidgetsLink`]'s writer the daemon gives it. The sheet lists and edits
+//! the desktop widgets of the output it is open on, so each monitor has its own layout.
 //! An add is shown by the gallery ("Added" and a check on its button) and by the widget
 //! rising on the desktop above the sheet; a removal's words, or a refusal shaken once, are said
 //! under the gallery (`status`).
 //!
 //! One Overlay surface per output, spawned hidden and kept warm like the notification center,
-//! following one shared [`sill_ui_kit::links::EditWidgetsLink`]: opened from the center's "Edit Widgets" and by
-//! `sill widgets edit`; closed by Done, Escape, a click outside the panel, or `sill widgets
-//! edit-close`. The desktop has no context menu yet, so there is no desktop entry to it.
+//! following one shared [`sill_ui_kit::links::EditWidgetsLink`]: opened from the center's "Edit
+//! Widgets", from the desktop's menu (on the output pressed) and by `sill widgets edit` (on the
+//! output of the active window); closed by Done, Escape, a click outside the panel, or `sill
+//! widgets edit-close`.
 
 mod io;
 mod layer;

@@ -1,6 +1,6 @@
 //! The effects end of the desktop layer: read the places again when Edit Widgets changes the
 //! desktop's widgets, turn pointer events into drag inputs and carry a drop's places to the
-//! file, and keep the surface's input and blur regions on the placed frames.
+//! file, and keep the surface's blur region on the placed frames.
 
 use dioxus::prelude::*;
 use ds::motion::detail::touch::Touch;
