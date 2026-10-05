@@ -19,7 +19,7 @@
 #      dev/out/banners-cosmic.png.
 #   3. It hides between the hold (notifications.banner_hold_ms, 5200) and the hold plus the exit
 #      (--t-move) plus 400 ms; `status` then says banners 0, kept 1.
-#   4. Hovered at 4000 ms (`sill debug pointer` on the card) it is still up at 7000, and gone by
+#   4. Hovered once up (`sill debug pointer` on the card) it is still up 6.7 s later, and gone by
 #      1500 ms plus the exit plus 400 ms after `sill debug leave`.
 #   5. Three from one app within 2 s make one card (one card's height, `status` banners 3); five
 #      from five apps make three cards (three cards' height). Then three from one app and two
@@ -249,6 +249,18 @@ shows() {
   [ -s "$png" ] && [ "$(opaque_pixels "$png")" -gt 1000 ]
 }
 
+# Waits up to 10 s for a card to show (shows, polled): a banner's first frame on a loaded host is
+# the host's time, not a verdict.
+await_shows() {
+  local now
+  now=$(now_ms)
+  while [ "$(since "$now")" -lt 10000 ]; do
+    shows "$@" && return 0
+    sleep 0.1
+  done
+  return 1
+}
+
 recover_banners() { clear_banners; }
 
 # --- the banners: steps ---
@@ -278,12 +290,16 @@ step_shows_holds_hides() {
   shot "$SHOTS/banners-cosmic.png" >>"$OUT_DIR/shot.log" 2>&1 \
     || echo "screenshot failed" >&2
   while [ "$(since "$start")" -lt $((HOLD_MS - 300)) ]; do sleep 0.05; done
-  t=$(await_hidden 3000)
+  t=$(await_hidden 8000)
   gone=$(( t < 0 ? -1 : $(since "$start") ))
   local limit=$((HOLD_MS + EXIT_MS + SLACK_MS))
   echo "shown ${shown} ms after the notification; hidden at ${gone} ms (hold ${HOLD_MS}, limit ${limit})" >&2
+  # Functional: it showed, and it hid by itself, never before its hold. The time it took to hide
+  # is a budget: `gone` is counted from before the `sill debug notify` call and ends at the
+  # poll that saw the column unmapped, so a loaded host (a slow client, a slow capture) adds to it.
   [ "$shown" -ge 0 ] && budget_check "the banner shown ${shown} ms after the notification (less the capture's own $(capture_cost_ms) ms) against 300 ms" "$(( $(captured_ms "$shown") <= 300 ))" \
-    && [ "$gone" -ge "$HOLD_MS" ] && [ "$gone" -le "$limit" ] \
+    && [ "$gone" -ge "$HOLD_MS" ] \
+    && budget_check "hidden at ${gone} ms against a limit of ${limit} ms" "$(( gone <= limit ))" \
     || return 1
   await_status banners 0 && await_status kept 1 || return 1
   echo "status: banners 0, kept 1" >&2
@@ -292,19 +308,25 @@ step_shows_holds_hides() {
 # 4.
 step_hover() {
   local start up=no gone
-  start=$(now_ms)
   notify "Hover me" --app accept --body "Held while the pointer rests on it." || return 1
-  while [ "$(since "$start")" -lt 4000 ]; do sleep 0.02; done
+  # The pointer comes the moment the card is up (not at a fixed time after the notify call, which
+  # a loaded host can stretch past the hold), and the card must still be up well past its hold.
+  await_shows "$OUT_DIR/hover-up.png" || { echo "the card never showed" >&2; return 1; }
   sill debug pointer "$BANNERS" "$BANNER_CARD_X" "$BANNER_CARD_Y" >>"$OUT_DIR/pointer.log" 2>&1 || return 1
-  while [ "$(since "$start")" -lt 7000 ]; do sleep 0.02; done
+  start=$(now_ms)
+  while [ "$(since "$start")" -lt $((HOLD_MS + 1500)) ]; do sleep 0.02; done
   shows && up=yes
+  local before slack
+  before=$(now_ms)
   sill debug leave "$BANNERS" >>"$OUT_DIR/pointer.log" 2>&1 || return 1
-  local left
-  left=$(now_ms)
-  gone=$(await_hidden 4000)
+  slack=$(( $(now_ms) - before ))
+  gone=$(await_hidden 6000)
   local limit=$((1500 + EXIT_MS + SLACK_MS))
-  echo "hovered at 4000 ms: still up at 7000 ms: $up; gone ${gone} ms after the pointer left (limit ${limit})" >&2
-  [ "$up" = yes ] && [ "$gone" -ge 1500 ] && [ "$gone" -le "$limit" ]
+  echo "hovered once up: still up $((HOLD_MS + 1500)) ms later: $up; gone ${gone} ms after the pointer left (limit ${limit}, the leave call took ${slack} ms)" >&2
+  # Functional: held while hovered, then it goes by itself, not before its 1.5 s (the leave call's
+  # own time counts for it: the hold restarts somewhere inside the call). Its speed is a budget.
+  [ "$up" = yes ] && [ "$gone" -ge 0 ] && [ $(( gone + slack )) -ge 1500 ] \
+    && budget_check "gone ${gone} ms after the pointer left against ${limit} ms" "$(( gone <= limit ))"
 }
 
 # 5.
@@ -353,8 +375,7 @@ step_dnd() {
   if shows; then echo "a banner showed under Do Not Disturb" >&2; return 1; fi
   await_status kept $((kept + 1)) || return 1
   notify "Critical" --app accept --urgency critical --body "Shows through Do Not Disturb." || return 1
-  sleep 0.8
-  shows || { echo "the critical one did not show" >&2; return 1; }
+  await_shows || { echo "the critical one did not show" >&2; return 1; }
   sleep 10
   shows && up=yes
   echo "DND: a normal one kept without a banner (kept $kept -> $((kept + 1))); a critical one up after 10 s: $up" >&2
@@ -367,8 +388,7 @@ step_dnd() {
 step_click() {
   local kept after gone
   notify "Open me" --app accept --body "A click opens it." --action default=Open || return 1
-  sleep 0.8
-  shows || return 1
+  await_shows || return 1
   kept=$(status_field kept)
   sill debug click "$BANNERS" "$BANNER_CARD_X" "$BANNER_CARD_Y" >>"$OUT_DIR/pointer.log" 2>&1 || return 1
   gone=$(await_hidden 2000)

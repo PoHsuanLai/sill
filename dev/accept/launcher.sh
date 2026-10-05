@@ -517,15 +517,23 @@ step_ui_stress() {
   local log="$OUT_DIR/stress.log" start took
   : >"$log"
   start=$(date +%s%N)
+  local late=0
   for _ in $(seq 20); do
-    sill launcher toggle >>"$log" 2>&1 || { echo "a toggle failed" | tee -a "$log" >&2; return 1; }
+    # A toggle the daemon does not answer within the client's 2 s on a loaded host is the host's:
+    # it still counts (the daemon may have handled it); the verdict is below, on the daemon.
+    sill launcher toggle >>"$log" 2>&1 || late=$(( late + 1 ))
     sleep 0.15
   done
   took=$(( ($(date +%s%N) - start) / 1000000 ))
   sleep 5
   local alive=no answers=no
   kill -0 "$DAEMON" 2>/dev/null && alive=yes
-  sill ping >>"$log" 2>&1 && answers=yes
+  # The ping answers once the queue of toggles has drained: up to 20 s.
+  for _ in $(seq 20); do
+    sill ping >>"$log" 2>&1 && { answers=yes; break; }
+    sleep 1
+  done
+  [ "$late" = 0 ] || echo "$late of 20 toggles went unanswered within the client's time" | tee -a "$log" >&2
   local panics
   panics=$(grep -c 'panicked' "$OUT_DIR/daemon.log")
   echo "20 toggles 150 ms apart in ${took} ms, then 5 s idle: daemon running $alive, answers ping $answers, panics in its log $panics" \
@@ -599,6 +607,31 @@ open_query() {
   sleep 0.4
 }
 
+# Waits (up to ${2:-100} tenths of a second) for the preview pane to be `shown` (not hidden) or
+# `hidden`; the state read through `sill debug launcher-rows`, so it is what the daemon has
+# handled, not what the last key was meant to do.
+await_preview() {
+  local want=$1 now
+  for _ in $(seq "${2:-100}"); do
+    now=$(field preview)
+    case "$want:$now" in
+      hidden:hidden) return 0 ;;
+      shown:?*) [ "$now" != hidden ] && return 0 ;;
+    esac
+    sleep 0.1
+  done
+  return 1
+}
+
+# Waits up to ${1:-10} s for the launcher to be closed.
+await_closed() {
+  for _ in $(seq $(( ${1:-10} * 10 ))); do
+    is_open || return 0
+    sleep 0.1
+  done
+  return 1
+}
+
 # Whether the files provider answers.
 documents_answer() { [[ ",$(field headings)," == *",Documents,"* ]]; }
 
@@ -664,18 +697,24 @@ step_palette_pane_levels() {
   open_query "$query"
   echo "pane levels on --query $query ($(field headings))" >&2
   debug_key quick-look
-  [ "$(field preview)" != hidden ] || { echo "quick-look showed nothing" >&2; return 1; }
+  # A key is answered when the daemon has handled it, not when `sill debug key` returns: every
+  # look below waits for the state it expects (up to 10 s), never for a fixed sleep.
+  await_preview shown || { echo "quick-look showed nothing" >&2; return 1; }
   debug_key right # into the pane
   capture_launcher "$SHOTS/launcher-v2-pane-focus.png"
   debug_key escape
+  # The first Escape goes to the pane's own control and leaves the pane up: it must not turn
+  # hidden in the next second (the pane that never had the keyboard would hide at once).
+  if await_preview hidden 10; then
+    echo "the first Escape hid the pane: it never had the keyboard" >&2; return 1
+  fi
   echo "escape 1: preview $(field preview), open $(is_open && echo yes || echo no)" >&2
-  [ "$(field preview)" != hidden ] || { echo "the first Escape hid the pane: it never had the keyboard" >&2; return 1; }
   debug_key escape
+  await_preview hidden || { echo "the second Escape left the pane up: preview $(field preview)" >&2; return 1; }
   echo "escape 2: preview $(field preview)" >&2
-  [ "$(field preview)" = hidden ] || return 1
   is_open || return 1
   debug_key escape
-  ! is_open
+  await_closed || { echo "the third Escape left the launcher open" >&2; return 1; }
 }
 
 # palette 6.

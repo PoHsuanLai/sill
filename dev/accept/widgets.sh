@@ -273,7 +273,7 @@ step_center_default() {
   sill notifications open >>"$log" 2>&1 || return 1
   wait_surface "$CENTER" 20 up || { echo "the center never mapped" >&2; return 1; }
   sleep 0.8
-  sill debug capture "$CENTER" "$OUT_DIR/center.png" >>"$log" 2>&1 || return 1
+  capture_settled "$CENTER" "$OUT_DIR/center.png" || return 1
   shot "$SHOTS/widgets-center-cosmic.png" || echo "screenshot failed" >&2
   center_tiles "$OUT_DIR/center.png" >"$OUT_DIR/center-tiles.txt"
   tiles=$(wc -l <"$OUT_DIR/center-tiles.txt")
@@ -294,7 +294,7 @@ world_clocks = "Europe/London; America/New_York"
 TOML
   sill reload >>"$log" 2>&1 || return 1
   sleep 1
-  sill debug capture "$CENTER" "$OUT_DIR/center-all.png" >>"$log" 2>&1 || return 1
+  capture_settled "$CENTER" "$OUT_DIR/center-all.png" || return 1
   shot "$SHOTS/widgets-center-all-cosmic.png" || echo "screenshot failed" >&2
   center_tiles "$OUT_DIR/center-all.png" >"$OUT_DIR/center-all-tiles.txt"
   tiles=$(wc -l <"$OUT_DIR/center-all-tiles.txt")
@@ -337,14 +337,20 @@ step_toggle_on() {
   : >"$log"
   has_surface "$LAYER" && { echo "$LAYER exists before any toggle" >&2; return 1; }
   sill widgets toggle-desktop >>"$log" 2>&1 || { cat "$log" >&2; return 1; }
-  for _ in $(seq 40); do has_surface "$LAYER" && break; sleep 0.05; done
+  # Up to 10 s for each thing a toggle does, polled: the layer, the setting in the file.
+  for _ in $(seq 200); do has_surface "$LAYER" && break; sleep 0.05; done
   has_surface "$LAYER" || { echo "$LAYER never appeared" | tee -a "$log" >&2; return 1; }
+  for _ in $(seq 100); do [ "$(setting_desktop)" = on ] && break; sleep 0.1; done
   [ "$(setting_desktop)" = on ] || { echo "widgets.desktop is not on in the file" >&2; return 1; }
-  sleep 1
-  sill debug capture "$LAYER" "$OUT_DIR/desktop.png" >>"$log" 2>&1 || return 1
+  capture_settled "$LAYER" "$OUT_DIR/desktop.png" || return 1
   desktop_frames "$OUT_DIR/desktop.png" >"$OUT_DIR/desktop-frames.txt"
   frames=$(wc -l <"$OUT_DIR/desktop-frames.txt")
-  saved=$(tr -d '\n ' <"$STATE/sill/desktop-widgets.json" 2>/dev/null)
+  # The layout is saved by the layer on its own time: wait for the two widgets to be in the file.
+  for _ in $(seq 100); do
+    saved=$(tr -d '\n ' <"$STATE/sill/desktop-widgets.json" 2>/dev/null)
+    [[ "$saved" == *calendar* ]] && [[ "$saved" == *battery* ]] && break
+    sleep 0.1
+  done
   if [ "$COMPOSITOR" = casement ]; then
     # What follows covers the layer with a terminal and a maximised window and reads output
     # screenshots: window management (P1/P2) and `casementctl shot` (P1-C1) on casement.
@@ -417,7 +423,7 @@ sys.exit(0 if ok else 1)' "$1" "$2" "$3"
 step_drag() {
   local log="$OUT_DIR/drag.log" cal bat l t r b cx cy bx by lifted lifted_w lifted_x lifted_y saved
   : >"$log"
-  sill debug capture "$LAYER" "$OUT_DIR/drag-before.png" >>"$log" 2>&1 || return 1
+  capture_settled "$LAYER" "$OUT_DIR/drag-before.png" || return 1
   desktop_frames "$OUT_DIR/drag-before.png" >"$OUT_DIR/drag-before.txt"
   cal=$(sed -n 1p "$OUT_DIR/drag-before.txt"); bat=$(sed -n 2p "$OUT_DIR/drag-before.txt")
   read -r l t r b <<<"$cal"
@@ -427,7 +433,7 @@ step_drag() {
   # The Calendar five cells left and two down (a cell and its gap are 180 px).
   drag_to "$cx" "$cy" $(( cx - 900 )) $(( cy + 360 )) || return 1
   sleep 0.5
-  sill debug capture "$LAYER" "$OUT_DIR/drag-lifted.png" >>"$log" 2>&1 || return 1
+  capture_settled "$LAYER" "$OUT_DIR/drag-lifted.png" || return 1
   shot "$SHOTS/widgets-drag-lifted-cosmic.png" || echo "screenshot failed" >&2
   # quire's lift is the drag shadow, not a scale (`.ds-widget[data-lift=lifted]` in
   # ds-shell/src/widget/frame.css): the card keeps its cell's size and the detected frame is at
@@ -447,13 +453,13 @@ print(r - l + 1, (l + r) // 2, (t + b) // 2)' $(( cx - 900 )) $(( cy + 360 )))
   # it would land in; then back over the cell before the release.
   pointer_move $(( cx - 900 + 70 )) $(( cy + 360 + 50 )) || return 1
   sleep 0.5
-  sill debug capture "$LAYER" "$OUT_DIR/drag-guide.png" >>"$log" 2>&1 || return 1
+  capture_settled "$LAYER" "$OUT_DIR/drag-guide.png" || return 1
   shot "$SHOTS/widgets-drag-guide-cosmic.png" || echo "screenshot failed" >&2
   pointer_move $(( cx - 900 )) $(( cy + 360 )) || return 1
   sleep 0.3
   pointer_release $(( cx - 900 )) $(( cy + 360 )) || return 1
   sleep 0.8
-  sill debug capture "$LAYER" "$OUT_DIR/drag-dropped.png" >>"$log" 2>&1 || return 1
+  capture_settled "$LAYER" "$OUT_DIR/drag-dropped.png" || return 1
   desktop_frames "$OUT_DIR/drag-dropped.png" >"$OUT_DIR/drag-dropped.txt"
   echo "dropped: $(tr '\n' ';' <"$OUT_DIR/drag-dropped.txt")" | tee -a "$log" >&2
   frame_at "$(grep -v "^$l " "$OUT_DIR/drag-dropped.txt" | head -1)" $(( l - 900 )) $(( t + 360 )) \
@@ -461,11 +467,11 @@ print(r - l + 1, (l + r) // 2, (t + b) // 2)' $(( cx - 900 )) $(( cy + 360 )))
   # The Battery onto the Calendar's new cell, held there: the Calendar makes room (row 1).
   drag_to "$bx" "$by" $(( cx - 900 )) $(( cy + 360 )) || return 1
   sleep 0.8
-  sill debug capture "$LAYER" "$OUT_DIR/drag-room.png" >>"$log" 2>&1 || return 1
+  capture_settled "$LAYER" "$OUT_DIR/drag-room.png" || return 1
   shot "$SHOTS/widgets-drag-room-cosmic.png" || echo "screenshot failed" >&2
   pointer_release $(( cx - 900 )) $(( cy + 360 )) || return 1
   sleep 0.8
-  sill debug capture "$LAYER" "$OUT_DIR/drag-after.png" >>"$log" 2>&1 || return 1
+  capture_settled "$LAYER" "$OUT_DIR/drag-after.png" || return 1
   shot "$SHOTS/widgets-drag-cosmic.png" || echo "screenshot failed" >&2
   desktop_frames "$OUT_DIR/drag-after.png" >"$OUT_DIR/drag-after.txt"
   saved=$(tr -d '\n ' <"$STATE/sill/desktop-widgets.json" 2>/dev/null)
@@ -824,6 +830,24 @@ capture_patient() {
     sleep 0.1
   done
   return 1
+}
+
+# A capture of SURFACE into FILE once the surface has stopped changing: captures (patiently) until two
+# in a row are identical, for at most 30 s. A step that moved something (a drag, a toggle, a
+# reload) waits for the picture to settle, not for a sleep a loaded host stretches.
+capture_settled() {
+  local surface="$1" file="$2" prev="$2.prev" start
+  rm -f "$prev"
+  start=$(date +%s)
+  while [ $(( $(date +%s) - start )) -lt 30 ]; do
+    capture_patient "$surface" "$file" || return 1
+    if [ -s "$prev" ] && cmp -s "$prev" "$file"; then rm -f "$prev"; return 0; fi
+    cp -f "$file" "$prev"
+    sleep 0.2
+  done
+  rm -f "$prev"
+  echo "$surface never stopped changing" >&2
+  return 0
 }
 
 # Whether SURFACE is mapped (a capture succeeds).

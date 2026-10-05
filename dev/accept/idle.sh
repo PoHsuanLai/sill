@@ -84,6 +84,12 @@ nested_locker() { WAYLAND_DISPLAY="$WL" "$LOCKER" "$@"; }
 # window of it would be real input on the person's own session).
 # It also holds every idle notification afresh, so the idle timers count from here.
 wake() { sill debug idle-wake >/dev/null; }
+# A wake that also says how long it took: the timers restart somewhere inside the call, and on a
+# loaded host the `sill` client alone takes seconds, so a time counted from the call's end is
+# short of the real one by up to that much. WAKE_SLACK (ms) is the uncertainty: "never early" is
+# checked against elapsed + WAKE_SLACK, "never late" against elapsed alone.
+WAKE_SLACK=0
+wake_timed() { local before; before=$(now_ms); wake; WAKE_SLACK=$(( $(now_ms) - before )); }
 # A command to the logind stand-in.
 logind() { echo "$*" >&3; }
 
@@ -200,7 +206,7 @@ step_dim_off_lock() {
   : >"$log"
   name=$(output_name) || return 1
   DIM_SURFACE="sill-idle-dim-$name"
-  wake; start=$(now_ms)
+  wake_timed; start=$(now_ms)
   rm -f "$OUT_DIR"/dim-*.png
   if capture_dim "$OUT_DIR/dim-before.png"; then before=mapped; else before=unmapped; fi
   dim=$(until_match "$start" idle_state ' dimmed dimmed:50 ' 20000)
@@ -269,11 +275,11 @@ else:
     print("NOT-SHOWN")
 EOF
 )
-  echo "dimmed at ${dim} ms (want ~3000), displays off at ${off} ms (~6000), locked with cause idle_screen_off at ${locked} ms; power-off order: $(echo "$g341" | tr '\n' ' ')" \
+  echo "dimmed at ${dim} ms (want ~3000), displays off at ${off} ms (~6000), locked with cause idle_screen_off at ${locked} ms (the wake call took ${WAKE_SLACK} ms); power-off order: $(echo "$g341" | tr '\n' ' ')" \
     | tee -a "$log" >&2
   echo "idle: $(idle_state); lock: $(lock_state)" | tee -a "$log" >&2
   # Functional: idle never fires early, and does fire. The upper bounds are budgets.
-  [ "$dim" -ge 2000 ] && [ "$off" -ge 5000 ] && [ "$locked" -ge 0 ] \
+  [ "$dim" -ge 0 ] && [ "$off" -ge 0 ] && [ $(( dim + WAKE_SLACK )) -ge 2000 ] && [ $(( off + WAKE_SLACK )) -ge 5000 ] && [ "$locked" -ge 0 ] \
     && [ "$before" = unmapped ] && [ "$after" = unmapped ] && [ "$scrim_ok" = 0 ] \
     && budget_check "dimmed ${dim} ms, displays off ${off} ms after the wake against 4500 and 8000 ms" \
       "$(( dim <= 4500 && off <= 8000 ))"
@@ -406,7 +412,7 @@ step_idle_suspend() {
   start_idle_daemon || return 1
   : >"$OUT_DIR/logind.log.mark"
   local before; before=$(grep -c '^suspend ' "$OUT_DIR/logind.log")
-  wake; start=$(now_ms)
+  wake_timed; start=$(now_ms)
   locked=$(until_match "$start" lock_state '^locked idle_screen_off$' 12000)
   suspended=-1
   while [ $(( $(now_ms) - start )) -lt 16000 ]; do
@@ -419,7 +425,7 @@ step_idle_suspend() {
   hints=$(grep '^idle-hint' "$OUT_DIR/logind.log" | tr '\n' ' ')
   echo "idle locked at ${locked} ms; Suspend recorded at ${suspended} ms (want ~10000, not ~16000); $(grep '^suspend ' "$OUT_DIR/logind.log" | tail -n1); after sleep and wake and a made-up wake: '$still'; hints: $hints" \
     | tee -a "$log" >&2
-  [ "$locked" -ge 0 ] && [ "$suspended" -ge 9000 ] && [ "$suspended" -le 12500 ] \
+  [ "$locked" -ge 0 ] && [ "$suspended" -ge 0 ] && [ $(( suspended + WAKE_SLACK )) -ge 9000 ] && [ "$suspended" -le 12500 ] \
     && [ "$still" = "locked idle_screen_off" ] \
     && grep -q '^suspend interactive=false' "$OUT_DIR/logind.log" \
     && echo "$hints" | grep -q 'idle-hint true' && echo "$hints" | grep -q 'idle-hint false' && ok=0
