@@ -22,6 +22,12 @@ sill-search = { workspace = true }
 sill-services = { workspace = true }
 sill-settings = { workspace = true }
 sill-launcher = { workspace = true }
+# The companion's wire and the types it names, converted to quire's view types in `companion`.
+companion-wire = { workspace = true }
+docket-core = { workspace = true }
+ds-core = { workspace = true }
+porter-core = { workspace = true }
+prov = { workspace = true }
 tokio = { workspace = true }
 # App icons in the icon style (`app_icons`): decode and encode rasters, rasterise theme SVGs
 # (resvg is the renderer usvg/tiny-skia already in the tree belong to; MIT OR Apache-2.0),

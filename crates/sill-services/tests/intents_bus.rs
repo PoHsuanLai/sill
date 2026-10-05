@@ -19,6 +19,7 @@ use sill_model::intents::sheet::SheetChoice;
 use sill_model::intents::terminal::{Breaker, ControlReach};
 use sill_model::intents::{Intents, IntentsCommand, IntentsLink, LinkTrouble};
 use sill_services::env::{BusRoute, Buses, Env};
+use sill_services::seat::seat;
 use sill_services::service::{Handle, spawn};
 use sill_services::{IntentsLinks, IntentsService, ShellCall};
 use sill_testkit::PrivateBus;
@@ -128,7 +129,10 @@ async fn desk() -> Option<Desk> {
     let seat = spawn::<IntentsService>(
         &tokio::runtime::Handle::current(),
         &env,
-        IntentsLinks { calls },
+        IntentsLinks {
+            calls,
+            seat: seat().0,
+        },
     );
     let held = Arc::new(Mutex::new(Held::default()));
     let intentd = connect(&bus.address).await;
@@ -447,7 +451,10 @@ async fn no_session_bus_is_no_sheet_and_not_a_crash() {
     let seat = spawn::<IntentsService>(
         &tokio::runtime::Handle::current(),
         &env,
-        IntentsLinks { calls },
+        IntentsLinks {
+            calls,
+            seat: seat().0,
+        },
     );
     seat.control
         .send(IntentsCommand::Serve)

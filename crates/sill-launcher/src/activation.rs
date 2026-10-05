@@ -218,7 +218,8 @@ mod tests {
             (
                 Activation::Intent(docket_core::CallRequest {
                     action: docket_core::ActionRef {
-                        app: prov::AppName::parse("org.quire.Mail").unwrap_or_else(|e| panic!("{e}")),
+                        app: prov::AppName::parse("org.quire.Mail")
+                            .unwrap_or_else(|e| panic!("{e}")),
                         name: prov::ActionName::parse("mail.message.open")
                             .unwrap_or_else(|e| panic!("{e}")),
                     },

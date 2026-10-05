@@ -7,6 +7,7 @@
 #![allow(dead_code)] // Each test binary uses its own subset.
 
 pub use sill_ui_kit::harness::fake;
+pub mod companion;
 pub mod m9;
 mod runner;
 
@@ -214,6 +215,7 @@ pub fn services_with_runner() -> (Services, LauncherFeeds, Runner) {
         wl: services.cosmic_wl.control.clone(),
         launch: services.launch.control.clone(),
         providers: providers(),
+        companion: services.companion.state.clone(),
         generation: 0,
         rows: Vec::new(),
     };
@@ -284,6 +286,16 @@ impl Provider for FakeProvider {
                 target: SettingsTarget::Cosmic(item.id.0.clone()),
             },
             (ProviderKind::System, _) => Activation::System(SystemCommand::Lock),
+            // The companion's kinds: the real providers say what their rows do (`tests/launcher_companion.rs`).
+            (ProviderKind::Companion, choice) => sill_search::providers::CompanionProvider {
+                companion: watch::channel(sill_model::companion::Companion::default()).1,
+            }
+            .activate(item, choice),
+            (ProviderKind::Runs, choice) => sill_search::providers::RunsProvider {
+                companion: watch::channel(sill_model::companion::Companion::default()).1,
+            }
+            .activate(item, choice),
+            (ProviderKind::Things | ProviderKind::Memory, _) => Activation::Nothing,
             // The preview kinds: their rows are `m9.rs`'s.
             (
                 ProviderKind::Files

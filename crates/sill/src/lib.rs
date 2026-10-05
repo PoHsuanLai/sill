@@ -2,6 +2,7 @@
 //! internals (`main.rs` is a thin wrapper over this crate).
 
 pub mod cli;
+pub mod companion;
 pub mod corners;
 pub mod daemon;
 pub mod edit_widgets;

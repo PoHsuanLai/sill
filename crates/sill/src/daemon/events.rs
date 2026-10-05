@@ -55,6 +55,9 @@ pub fn handle(shell: &mut Shell, ctx: &mut HostCtx<ShellMsg>, event: HostEvent<S
         }
         HostEvent::App(ShellMsg::Lock(wish)) => apply_lock(shell, ctx, wish),
         HostEvent::App(ShellMsg::Dim(dim)) => crate::idle_dim::apply(ctx, &shell.outputs, dim),
+        HostEvent::App(ShellMsg::Summon(out)) => {
+            crate::companion::apply(&shell.outputs, &shell.services, &shell.links.launcher, out)
+        }
         other => host_event(shell, ctx, other),
     }
 }
@@ -215,6 +218,8 @@ fn on_event(ctx: &mut HostCtx<ShellMsg>, outputs: &mut Outputs, event: HostEvent
         HostEvent::App(ShellMsg::Lock(_)) => {}
         // Answered by `handle`, which maps the idle dim surfaces.
         HostEvent::App(ShellMsg::Dim(_)) => {}
+        // Answered by `handle`, which holds the launcher link and the outputs.
+        HostEvent::App(ShellMsg::Summon(_)) => {}
         HostEvent::App(ShellMsg::Ipc { reply, .. }) => {
             // Never reached through `handle`, which answers `Ipc` itself; answered rather
             // than dropped in case another caller ever delivers one here directly.

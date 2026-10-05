@@ -111,6 +111,13 @@ impl View {
             .position(|line| matches!(line, Line::More { section: at, .. } if *at == section))
     }
 
+    /// The line of the first row `wanted` says yes to.
+    pub fn line_of(&self, wanted: impl Fn(&Item) -> bool) -> Option<usize> {
+        self.lines()
+            .iter()
+            .position(|line| matches!(line, Line::Row(item) if wanted(item)))
+    }
+
     /// The row on line `index`, when that line is a row.
     pub fn row(&self, index: usize) -> Option<Item> {
         match self.lines().into_iter().nth(index)? {

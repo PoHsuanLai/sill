@@ -26,6 +26,7 @@ pub fn dispatch(reach: &Reach, request: ShowRequest) -> Response {
         ShowRequest::NotificationCenter(reveal) => notification_center(reach, reveal),
         ShowRequest::ControlCenter => control_center(reach),
         ShowRequest::EditWidgets(request) => edit_widgets(reach, request),
+        ShowRequest::Companion(request) => crate::companion::dispatch(reach, request),
     }
 }
 
@@ -126,7 +127,7 @@ fn edit_widgets(reach: &Reach, request: EditWidgetsRequest) -> Response {
 }
 
 /// The output named `focus` among `candidates` (an output's id and name), else the first.
-fn focused_or_first(
+pub(crate) fn focused_or_first(
     candidates: &[(OutputId, Option<String>)],
     focus: Option<&OutputName>,
 ) -> Option<OutputId> {

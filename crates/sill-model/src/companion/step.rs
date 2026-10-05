@@ -109,12 +109,12 @@ fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
                 ..state
             }
         }
-        CompanionEvent::CardPressed { task, action } => with_answer(state, &task, |answer| {
-            AnswerFacts {
+        CompanionEvent::CardPressed { task, action } => {
+            with_answer(state, &task, |answer| AnswerFacts {
                 busy: Busy::Acting(action),
                 ..answer
-            }
-        }),
+            })
+        }
         CompanionEvent::CardEnded(task) => with_answer(state, &task, |answer| AnswerFacts {
             busy: Busy::Idle,
             ..answer

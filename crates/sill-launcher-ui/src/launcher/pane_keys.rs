@@ -34,6 +34,9 @@ impl PanelCtx {
         if launcher_key(&pressed, modifiers) == Some(LauncherKey::Actions) {
             return Claim::Pass;
         }
+        if let Some(claim) = self.companion_claim(&pressed, modifiers) {
+            return claim;
+        }
         if let Some(chord) = chord_of(&pressed, modifiers) {
             return self.chord(&chord);
         }

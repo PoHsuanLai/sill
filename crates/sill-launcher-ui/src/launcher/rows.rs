@@ -29,7 +29,13 @@ pub enum RowKind {
 /// `item`'s kind, from its subject.
 pub fn row_kind(item: &Item) -> RowKind {
     match item.subject {
-        Subject::None | Subject::App(_) => RowKind::Plain,
+        Subject::None
+        | Subject::App(_)
+        | Subject::Entity(_)
+        | Subject::Answer(_)
+        | Subject::Run(_)
+        | Subject::Activity(_)
+        | Subject::Memory(_) => RowKind::Plain,
         Subject::File(_) => RowKind::File,
         Subject::Clip(_) => RowKind::Clip,
         Subject::Emoji(_) => RowKind::EmojiCell,
@@ -64,9 +70,14 @@ fn detail_in(item: &Item, now: UnixTime, zone: &TimeZone) -> RowDetail {
             age_label(age(ms(facts.copied), ms(now))),
         ),
         Subject::Web(facts) => (facts.engine.clone(), String::new()),
-        Subject::None | Subject::App(_) | Subject::Emoji(_) => {
-            (item.subtitle.clone(), String::new())
-        }
+        Subject::None
+        | Subject::App(_)
+        | Subject::Emoji(_)
+        | Subject::Entity(_)
+        | Subject::Answer(_)
+        | Subject::Run(_)
+        | Subject::Activity(_)
+        | Subject::Memory(_) => (item.subtitle.clone(), String::new()),
     };
     RowDetail { detail, trail }
 }

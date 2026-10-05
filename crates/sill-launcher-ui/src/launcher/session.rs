@@ -1,10 +1,18 @@
 //! One opening's panel state: the typed query, the generation the launcher opened over (older
 //! results are stale) and the keyboard machine's state. Pure.
 
-use sill_launcher::Generation;
+use sill_launcher::{Generation, LauncherMode, ProviderKind};
 
-use crate::launcher::keys::LauncherState;
+use crate::launcher::keys::{Filter, LauncherState};
 use sill_ui_kit::links::{OpenSerial, Opening};
+
+/// The filter a panel starts in: every provider to search, the companion's own rows to talk.
+pub fn filter_for(mode: LauncherMode) -> Filter {
+    match mode {
+        LauncherMode::Search => Filter::All,
+        LauncherMode::Companion => Filter::Only(ProviderKind::Companion),
+    }
+}
 
 /// The panel's state for one opening.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -14,6 +22,9 @@ pub struct Session {
     /// Results of this generation or older belong to an earlier keystroke or opening.
     pub since: Generation,
     pub keys: LauncherState,
+    /// The search text that was in the field when the panel became a prompt: the field empties
+    /// (it is a chip of the prompt), and leaving companion mode puts it back.
+    pub kept: Option<String>,
 }
 
 impl Session {
@@ -23,7 +34,11 @@ impl Session {
             serial: opening.serial,
             query: opening.query.clone(),
             since,
-            keys: LauncherState::default(),
+            keys: LauncherState {
+                filter: filter_for(opening.mode),
+                ..LauncherState::default()
+            },
+            kept: None,
         }
     }
 
@@ -55,7 +70,7 @@ mod tests {
     use super::Session;
     use crate::launcher::keys::{Filter, LauncherState};
     use shell_host::OutputId;
-    use sill_launcher::{Generation, ProviderKind};
+    use sill_launcher::{Generation, LauncherMode, ProviderKind};
     use sill_ui_kit::links::{OpenSerial, Opening, PanelFocus};
     use std::time::Instant;
 
@@ -64,9 +79,24 @@ mod tests {
             output: OutputId(1),
             query: query.to_owned(),
             serial: OpenSerial(serial),
+            mode: LauncherMode::Search,
             requested: Instant::now(),
             focus: PanelFocus::Awaited,
         }
+    }
+
+    #[test]
+    fn a_companion_opening_starts_on_the_companions_rows() {
+        let companion = Opening {
+            mode: LauncherMode::Companion,
+            ..opening(1, "")
+        };
+        let session = Session::opened(&companion, Generation(0));
+        assert_eq!(session.keys.filter, Filter::Only(ProviderKind::Companion));
+        assert_eq!(
+            Session::opened(&opening(1, ""), Generation(0)).keys.filter,
+            Filter::All
+        );
     }
 
     #[test]
@@ -88,7 +118,11 @@ mod tests {
             "the same opening"
         );
         let next = moved.for_opening(&opening(2, ""));
-        assert_eq!(next.keys, LauncherState::default());
+        assert_eq!(
+            next.keys,
+            LauncherState::default(),
+            "a search opening starts at every provider"
+        );
         assert_eq!(
             next.since,
             Generation(0),

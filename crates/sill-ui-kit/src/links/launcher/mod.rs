@@ -13,6 +13,7 @@ mod panel_hit;
 use std::time::Instant;
 
 use shell_host::{KeyboardFocus, OutputId};
+use sill_launcher::LauncherMode;
 use tokio::sync::watch;
 
 use crate::links::{OpenSerial, PanelFocus, Reveal};
@@ -21,21 +22,40 @@ pub use debug::{CLIPBOARD_TITLE, ShownRows, ShownRowsSection};
 pub use opening::Opening;
 pub use panel_hit::PanelHit;
 
-/// `shown` opened on `output` with `query`, as a new opening.
-fn open(shown: &Reveal<Opening>, output: OutputId, query: String, now: Instant) -> Reveal<Opening> {
+/// `shown` opened on `output` with `query` in `mode`, as a new opening.
+fn open(
+    shown: &Reveal<Opening>,
+    output: OutputId,
+    query: String,
+    mode: LauncherMode,
+    now: Instant,
+) -> Reveal<Opening> {
     Reveal::Revealed(Opening {
         output,
         query,
         serial: OpenSerial(shown.serial().0 + 1),
+        mode,
         requested: now,
         focus: PanelFocus::Awaited,
     })
 }
 
+/// `shown` with its mode changed in place: the same opening (the serial stays, so the panel does
+/// not remount), a hidden launcher unchanged.
+fn switched(shown: &Reveal<Opening>, mode: LauncherMode) -> Reveal<Opening> {
+    match shown {
+        Reveal::Revealed(opening) => Reveal::Revealed(Opening {
+            mode,
+            ..opening.clone()
+        }),
+        Reveal::Hidden { .. } => shown.clone(),
+    }
+}
+
 /// `launcher toggle`: open when hidden (with an empty query), hide when shown.
 fn toggle(shown: &Reveal<Opening>, output: OutputId, now: Instant) -> Reveal<Opening> {
     match shown {
-        Reveal::Hidden { .. } => open(shown, output, String::new(), now),
+        Reveal::Hidden { .. } => open(shown, output, String::new(), LauncherMode::Search, now),
         Reveal::Revealed(_) => shown.hidden(),
     }
 }
@@ -81,9 +101,24 @@ impl LauncherLink {
 
     /// `launcher open --query` on `output`.
     pub fn open(&self, output: OutputId, query: String) {
+        self.open_in(output, query, LauncherMode::Search);
+    }
+
+    /// Open on `output` with `query`, in `mode` (the companion opens its prompt this way).
+    pub fn open_in(&self, output: OutputId, query: String, mode: LauncherMode) {
         let now = ds::base::time::clock::now();
         self.shown
-            .send_modify(|shown| *shown = open(shown, output, query, now));
+            .send_modify(|shown| *shown = open(shown, output, query, mode, now));
+    }
+
+    /// Change the open panel's mode in place; nothing when it is hidden.
+    pub fn switch_mode(&self, mode: LauncherMode) {
+        self.shown.send_if_modified(|shown| {
+            let next = switched(shown, mode);
+            let changed = next != *shown;
+            *shown = next;
+            changed
+        });
     }
 
     /// `launcher close`, Escape, an activation or a catcher click.
@@ -146,9 +181,10 @@ impl LauncherLink {
 
 #[cfg(test)]
 mod tests {
-    use super::{open, toggle};
+    use super::{open, switched, toggle};
     use crate::links::{LauncherLink, OpenSerial, Opening, PanelFocus, Reveal};
     use shell_host::{KeyboardFocus, OutputId, Visibility};
+    use sill_launcher::LauncherMode;
     use std::time::Instant;
 
     const ONE: OutputId = OutputId(1);
@@ -174,15 +210,46 @@ mod tests {
         // Every opening counts on, through a close or over an open one.
         let again = toggle(&closed, ONE, now);
         assert_eq!(again.opening().map(|o| o.serial), Some(OpenSerial(2)));
-        let typed = open(&again, ONE, "fi".to_owned(), now);
+        let typed = open(&again, ONE, "fi".to_owned(), LauncherMode::Search, now);
         assert_eq!(typed.opening().map(|o| o.serial), Some(OpenSerial(3)));
         assert_eq!(typed.opening().map(|o| o.query.as_str()), Some("fi"));
     }
 
     #[test]
+    fn switching_the_mode_keeps_the_opening_and_its_serial() {
+        let now = Instant::now();
+        let shown = open(
+            &Reveal::default(),
+            ONE,
+            "fi".to_owned(),
+            LauncherMode::Search,
+            now,
+        );
+        let switched = switched(&shown, LauncherMode::Companion);
+        let (before, after) = (shown.opening().cloned(), switched.opening().cloned());
+        assert_eq!(
+            after.as_ref().map(|o| o.mode),
+            Some(LauncherMode::Companion)
+        );
+        assert_eq!(
+            after.map(|o| (o.serial, o.query, o.output)),
+            before.map(|o| (o.serial, o.query, o.output)),
+            "only the mode changed"
+        );
+        let hidden = shown.hidden();
+        assert_eq!(super::switched(&hidden, LauncherMode::Companion), hidden);
+    }
+
+    #[test]
     fn a_focus_loss_closes_only_a_panel_that_held_focus() {
         let now = Instant::now();
-        let shown = open(&Reveal::default(), ONE, String::new(), now);
+        let shown = open(
+            &Reveal::default(),
+            ONE,
+            String::new(),
+            LauncherMode::Search,
+            now,
+        );
         // The late leave from the previous opening's unmap: ignored.
         assert_eq!(shown.after_focus(KeyboardFocus::Lost), shown);
         let held = shown.after_focus(KeyboardFocus::Gained);
@@ -194,7 +261,13 @@ mod tests {
 
     #[test]
     fn the_launcher_shows_on_its_output_only() {
-        let shown = open(&Reveal::default(), ONE, String::new(), Instant::now());
+        let shown = open(
+            &Reveal::default(),
+            ONE,
+            String::new(),
+            LauncherMode::Search,
+            Instant::now(),
+        );
         assert_eq!(shown.shows_on(ONE), Visibility::Shown);
         assert_eq!(shown.shows_on(OutputId(2)), Visibility::Hidden);
         assert_eq!(shown.hidden().shows_on(ONE), Visibility::Hidden);

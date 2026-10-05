@@ -1,8 +1,8 @@
 //! The companion's one presence, derived from what is happening (design/32 section 4.10).
 
 use companion_wire::AnswerPhase;
-use ds_core::vocab::CompanionPresence;
 use docket_core::RunMode;
+use ds_core::vocab::CompanionPresence;
 
 use super::model::Companion;
 use super::run_state::{RunState, run_state_of};
@@ -22,13 +22,15 @@ pub fn presence_of(state: &Companion) -> CompanionPresence {
         .values()
         .any(|answer| matches!(answer.wire.phase, AnswerPhase::NeedsYou(_)))
         || run_states().any(|(run, _)| matches!(run, RunState::NeedsYou | RunState::TakenOver));
-    let acting = run_states().any(|(run, place)| run == RunState::Running && place == RunMode::InPlace);
+    let acting =
+        run_states().any(|(run, place)| run == RunState::Running && place == RunMode::InPlace);
     let working = state.answers.values().any(|answer| {
         matches!(
             answer.wire.phase,
             AnswerPhase::Thinking | AnswerPhase::Streaming
         )
-    }) || run_states().any(|(run, _)| matches!(run, RunState::Starting | RunState::Running));
+    }) || run_states()
+        .any(|(run, _)| matches!(run, RunState::Starting | RunState::Running));
     let listening = matches!(
         state.summon,
         Summon::InApp { .. } | Summon::InLauncher { .. }

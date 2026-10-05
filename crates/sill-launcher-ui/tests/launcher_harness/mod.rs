@@ -18,6 +18,7 @@ use ds::prelude::*;
 use ds_harness::harness::settle_until;
 use ds_harness::{Driver, Harness, Input, Query};
 use launcher_support::{LauncherFeeds, Runner, fake};
+use sill_launcher::LauncherMode;
 use sill_launcher_ui::Launcher;
 use sill_launcher_ui::launcher::LauncherProviders;
 use sill_launcher_ui::launcher::preview::load::{Look, Looking};
@@ -71,6 +72,10 @@ pub enum Press {
     QuickLook,
     /// Ctrl+R (⌘R).
     Reveal,
+    /// Ctrl+Enter (⌘Enter).
+    CommandEnter,
+    /// Ctrl+. (⌘.).
+    CommandPeriod,
 }
 
 impl Open {
@@ -93,6 +98,8 @@ impl Open {
             Press::Actions => h.send(Input::chord(&ctrl, ShortcutKey::Char('k'))),
             Press::QuickLook => h.send(Input::chord(&ctrl, ShortcutKey::Char('y'))),
             Press::Reveal => h.send(Input::chord(&ctrl, ShortcutKey::Char('r'))),
+            Press::CommandEnter => h.send(Input::chord(&ctrl, ShortcutKey::Enter)),
+            Press::CommandPeriod => h.send(Input::chord(&ctrl, ShortcutKey::Char('.'))),
         }
     }
 }
@@ -104,14 +111,30 @@ pub fn open(query: &str) -> Open {
 
 /// [`open`], with the pane looking at files as `look` says rather than as the viewer's parts do.
 pub fn open_looking(query: &str, look: Option<Arc<dyn Look>>) -> Open {
-    let (services, feeds, runner) = launcher_support::services_with_runner();
+    open_with(query, LauncherMode::Search, look, |_| {})
+}
+
+/// The launcher opened in `mode` with `query` in the field, after `seed` has set the fake
+/// services' state (the companion's answers, say) so the first rows already draw it.
+pub fn open_in(query: &str, mode: LauncherMode, seed: impl FnOnce(&mut fake::Feeds)) -> Open {
+    open_with(query, mode, None, seed)
+}
+
+fn open_with(
+    query: &str,
+    mode: LauncherMode,
+    look: Option<Arc<dyn Look>>,
+    seed: impl FnOnce(&mut fake::Feeds),
+) -> Open {
+    let (services, mut feeds, runner) = launcher_support::services_with_runner();
+    seed(&mut feeds.bar);
     let LauncherFeeds {
         bar,
         results,
         searches,
     } = feeds;
     let link = LauncherLink::new();
-    link.open(fake::output().id, query.to_owned());
+    link.open_in(fake::output().id, query.to_owned(), mode);
     let running = SurfaceHarness::<Launcher>::setup(link.clone(), ())
         .services(services, bar)
         .in_root(in_root(launcher_support::providers(), runner, look))

@@ -107,3 +107,16 @@ fn the_panel_ssr_markup_lint_is_clean() {
     let offences = markup(&panel_ssr(), &full_css(), &strict());
     assert!(offences.is_empty(), "{offences:#?}");
 }
+
+#[test]
+fn the_panel_in_companion_mode_with_an_answer_card_lints_clean() {
+    use launcher_harness::launcher_support::companion::{companion, draft, fresh};
+    let open = launcher_harness::open_in("", sill_launcher::LauncherMode::Companion, |bar| {
+        bar.companion
+            .send_replace(companion(vec![draft()], fresh()));
+    });
+    let html = open.harness.html();
+    assert!(html.contains("ds-answer-card"), "the card is up: {html}");
+    let offences = markup(&html, &full_css(), &strict());
+    assert!(offences.is_empty(), "{offences:#?}");
+}

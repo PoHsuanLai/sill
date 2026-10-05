@@ -5,11 +5,13 @@
 
 use std::sync::{Arc, Mutex};
 
-use sill_launcher::{Generation, Item};
+use sill_launcher::{Cancel, Generation, Item, Provider, ProviderKind, Query, Scope, VecSink};
 use sill_launcher_ui::launcher::LauncherProviders;
+use sill_model::companion::Companion;
 use sill_model::cosmic_wl::WlCommand;
 use sill_model::launch::LaunchCommand;
 use sill_model::results::{Results, SearchCommand};
+use sill_search::providers::{CompanionProvider, RunsProvider};
 use sill_services::Control;
 use tokio::sync::{mpsc, watch};
 
@@ -22,20 +24,47 @@ pub(super) struct Answer {
     pub(super) wl: Control<WlCommand>,
     pub(super) launch: Control<LaunchCommand>,
     pub(super) providers: LauncherProviders,
+    /// The fake companion service's state, which the companion's providers read.
+    pub(super) companion: watch::Receiver<Companion>,
     pub(super) generation: u64,
     pub(super) rows: Vec<Item>,
 }
 
 impl Answer {
+    /// What the real provider of `kind` lists for `text` asked alone.
+    fn companion_rows(&self, kind: ProviderKind, text: &str) -> Vec<Item> {
+        let provider: Box<dyn Provider> = match kind {
+            ProviderKind::Runs => Box::new(RunsProvider {
+                companion: self.companion.clone(),
+            }),
+            _ => Box::new(CompanionProvider {
+                companion: self.companion.clone(),
+            }),
+        };
+        let query = Query {
+            scope: Scope::Only(kind),
+            ..Query::begin(text, &Cancel::new())
+        };
+        let mut sink = VecSink::default();
+        provider.query(&query, &mut sink);
+        sink.0.into_iter().flat_map(|batch| batch.items).collect()
+    }
+
     /// Carry out one command and log it.
     fn take(&mut self, command: SearchCommand) {
         match &command {
             SearchCommand::Query(text) | SearchCommand::Filtered { text, .. } => {
                 self.generation += 1;
-                self.rows = search(text);
                 let only = match &command {
                     SearchCommand::Filtered { provider, .. } => Some(*provider),
                     _ => None,
+                };
+                self.rows = match only {
+                    // The companion's rows are the real providers', over the fake service's state.
+                    Some(kind @ (ProviderKind::Companion | ProviderKind::Runs)) => {
+                        self.companion_rows(kind, text)
+                    }
+                    _ => search(text),
                 };
                 let placement = placed(&self.rows, text, only);
                 self.results.send_replace(Results {

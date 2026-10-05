@@ -3,6 +3,7 @@
 
 use std::sync::Arc;
 
+use sill_model::companion::SummonOut;
 use sill_model::intents::IntentsCommand;
 use sill_model::locker::LockerCommand;
 use sill_model::polkit_agent::{AgentPolicy, PolkitCommand};
@@ -11,20 +12,23 @@ use sill_services::apps::AppsService;
 use sill_services::auth::AuthService;
 use sill_services::battery::BatteryService;
 use sill_services::clipboard::ClipboardService;
+use sill_services::companion::{CompanionLinks, CompanionService};
 use sill_services::cosmic_wl::CosmicWlService;
 use sill_services::env::Env;
 use sill_services::idle::{IdleLinks, IdleService};
-use sill_services::intents::{IntentsLinks, IntentsService};
+use sill_services::intents::{IntentsLinks, IntentsService, ShellCall};
 use sill_services::keycap::{KeycapLinks, KeycapService};
 use sill_services::launch::LaunchService;
 use sill_services::locker::LockerService;
 use sill_services::notifications::NotificationsService;
+use sill_services::seat::seat;
 use sill_services::service::spawn;
 use sill_services::volume::VolumeService;
 use sill_ui_kit::links::Links;
 use sill_ui_kit::services::Services;
 use sill_ui_kit::settings::SettingsFeed;
 use tokio::runtime::Handle as Runtime;
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::policy::{
     calendar::CalendarBridge, clipboard::ClipboardBridge, displays::DisplaysBridge, follow,
@@ -34,8 +38,25 @@ use crate::policy::{
 
 /// Start every service on `rt` (the `cosmic_wl` and volume threads on their own threads)
 /// against `env`'s seams, each after the ones it depends on. A service whose system half is
-/// missing still yields its receiver, at its default.
-pub(crate) fn start(rt: &Runtime, env: &Env, intents: IntentsLinks) -> Services {
+/// missing still yields its receiver, at its default. `shell_calls` is where the shell's own
+/// actions go, `summons` where a summon's launcher effects go.
+pub(crate) fn start(
+    rt: &Runtime,
+    env: &Env,
+    shell_calls: UnboundedSender<ShellCall>,
+    summons: UnboundedSender<SummonOut>,
+) -> Services {
+    // The connection the intents service claims `org.quire.Shell` on, which the companion speaks
+    // on as the launcher.
+    let (seat_publisher, seat_view) = seat();
+    let companion = spawn::<CompanionService>(
+        rt,
+        env,
+        CompanionLinks {
+            seat: seat_view,
+            summons,
+        },
+    );
     let volume = spawn::<VolumeService>(rt, env, ());
     let battery = spawn::<BatteryService>(rt, env, ());
     let apps = spawn::<AppsService>(rt, env, ());
@@ -49,6 +70,8 @@ pub(crate) fn start(rt: &Runtime, env: &Env, intents: IntentsLinks) -> Services 
             apps: apps.state.clone(),
             cosmic_wl: cosmic_wl.state.clone(),
             clipboard: clipboard.state.clone(),
+            companion: companion.state.clone(),
+            companion_control: companion.control.clone(),
             wl: cosmic_wl.control.clone(),
             launch: launch.control.clone(),
         }),
@@ -95,7 +118,15 @@ pub(crate) fn start(rt: &Runtime, env: &Env, intents: IntentsLinks) -> Services 
         events: spawn(rt, env, ()),
         screenshots: spawn(rt, env, ()),
         polkit_agent: spawn(rt, env, ()),
-        intents: spawn::<IntentsService>(rt, env, intents),
+        intents: spawn::<IntentsService>(
+            rt,
+            env,
+            IntentsLinks {
+                calls: shell_calls,
+                seat: seat_publisher,
+            },
+        ),
+        companion,
         volume,
         battery,
         apps,
@@ -203,11 +234,8 @@ mod tests {
         // person's session or files.
         let scratch = TempDir::new("services-spawn");
         let (calls, _shell_calls) = tokio::sync::mpsc::unbounded_channel();
-        let services = start(
-            rt.handle(),
-            &Env::isolated(scratch.path()),
-            sill_services::intents::IntentsLinks { calls },
-        );
+        let (summons, _launcher_effects) = tokio::sync::mpsc::unbounded_channel();
+        let services = start(rt.handle(), &Env::isolated(scratch.path()), calls, summons);
 
         assert_eq!(
             services
@@ -224,6 +252,11 @@ mod tests {
         assert_eq!(*services.pins.state.borrow(), Default::default());
         assert_eq!(*services.launch.state.borrow(), Default::default());
         assert_eq!(*services.results.state.borrow(), Default::default());
+        assert_eq!(
+            *services.companion.state.borrow(),
+            Default::default(),
+            "no seat, no companion: nothing known"
+        );
         assert_eq!(*services.wallpaper.state.borrow(), Default::default());
         assert_eq!(
             services.notifications.state.borrow().live.server.mode,

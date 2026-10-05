@@ -4,6 +4,7 @@
 
 use dioxus::prelude::{Key, Modifiers};
 
+use crate::launcher::companion::CompanionKey;
 use crate::launcher::keys::LauncherKey;
 
 /// `key` with `modifiers` held, when the panel handles it.
@@ -23,9 +24,22 @@ pub fn launcher_key(key: &Key, modifiers: Modifiers) -> Option<LauncherKey> {
     }
 }
 
+/// `key` with `modifiers` held, when it is one companion mode reads before the palette does:
+/// Escape, command-Enter and command-period (Toshy maps Cmd to Ctrl, so Ctrl and Meta both
+/// count).
+pub fn companion_key(key: &Key, modifiers: Modifiers) -> Option<CompanionKey> {
+    let command = modifiers.intersects(Modifiers::CONTROL | Modifiers::META);
+    match key {
+        Key::Escape if modifiers.is_empty() => Some(CompanionKey::Escape),
+        Key::Enter if command => Some(CompanionKey::CommandEnter),
+        Key::Character(text) if command && text == "." => Some(CompanionKey::CommandPeriod),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::launcher_key;
+    use super::{companion_key, launcher_key};
     use crate::launcher::keys::LauncherKey;
     use dioxus::prelude::{Key, Modifiers};
 
@@ -55,6 +69,32 @@ mod tests {
         ];
         for (key, modifiers, want) in cases {
             assert_eq!(launcher_key(&key, modifiers), want, "{key:?} {modifiers:?}");
+        }
+    }
+
+    #[test]
+    fn companion_keys_are_escape_and_the_command_pair() {
+        use crate::launcher::companion::CompanionKey as K;
+        let k = |s: &str| Key::Character(s.to_owned());
+        let none = Modifiers::empty();
+        let cases: Vec<(Key, Modifiers, Option<K>)> = vec![
+            (Key::Escape, none, Some(K::Escape)),
+            (Key::Escape, Modifiers::SHIFT, None),
+            (Key::Enter, none, None),
+            (Key::Enter, Modifiers::CONTROL, Some(K::CommandEnter)),
+            (Key::Enter, Modifiers::META, Some(K::CommandEnter)),
+            (Key::Enter, Modifiers::ALT, None),
+            (k("."), Modifiers::CONTROL, Some(K::CommandPeriod)),
+            (k("."), Modifiers::META, Some(K::CommandPeriod)),
+            (k("."), none, None),
+            (k(","), Modifiers::CONTROL, None),
+        ];
+        for (key, modifiers, want) in cases {
+            assert_eq!(
+                companion_key(&key, modifiers),
+                want,
+                "{key:?} {modifiers:?}"
+            );
         }
     }
 }

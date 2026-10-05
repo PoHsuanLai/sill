@@ -13,4 +13,6 @@ mod switcher;
 mod workspace;
 
 pub use reach::Reach;
+pub(crate) use reply::sent;
 pub use route::route;
+pub(crate) use show::focused_or_first;

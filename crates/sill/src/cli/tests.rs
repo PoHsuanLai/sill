@@ -12,7 +12,7 @@ use sill_ipc::debug::{
     CornerName, DebugRequest, KeyAction, KeySpec, OsdTopic, Point, PointerButton, SurfaceName,
 };
 use sill_ipc::request::Request;
-use sill_ipc::show::{EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
+use sill_ipc::show::{CompanionRequest, EditWidgetsRequest, LauncherRequest, Reveal, ShowRequest};
 use sill_ipc::status::StatusRequest;
 use sill_launcher::AppId;
 use sill_model::auth::FakeVerdict;
@@ -194,6 +194,22 @@ fn every_command_line_sends_its_request() {
         (
             &["widgets", "edit-close"],
             show(ShowRequest::EditWidgets(EditWidgetsRequest::Close)),
+        ),
+        (
+            &["companion", "tap"],
+            show(ShowRequest::Companion(CompanionRequest::Tap)),
+        ),
+        (
+            &["companion", "summon"],
+            show(ShowRequest::Companion(CompanionRequest::Summon)),
+        ),
+        (
+            &["companion", "dismiss"],
+            show(ShowRequest::Companion(CompanionRequest::Dismiss)),
+        ),
+        (
+            &["companion", "stop-all"],
+            show(ShowRequest::Companion(CompanionRequest::StopAll)),
         ),
         (
             &["power-menu", "open"],

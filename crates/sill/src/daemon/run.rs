@@ -10,7 +10,6 @@ use std::time::{Duration, Instant};
 
 use ds_settings::Store;
 use shell_host::{Host, HostConfig, HostHandle};
-use sill_services::IntentsLinks;
 use sill_services::env::Env;
 use sill_settings::ShellFile;
 use sill_ui_kit::links::{
@@ -50,7 +49,8 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
 
     let env = args.env();
     let (shell_calls, shell_actions) = tokio::sync::mpsc::unbounded_channel();
-    let services = services::start(runtime.handle(), &env, IntentsLinks { calls: shell_calls });
+    let (summons_tx, summons) = tokio::sync::mpsc::unbounded_channel();
+    let services = services::start(runtime.handle(), &env, shell_calls, summons_tx);
     let store = settings::store(&env.dirs.config);
     let first = settings::load(&store);
     let (settings, settings_rx) = watch::channel(first.clone());
@@ -80,6 +80,13 @@ pub fn run(args: &crate::run_args::RunArgs) -> ExitCode {
         &store,
     );
     crate::intents::spawn_follower(runtime.handle(), host_handle.clone(), shell_actions);
+    crate::companion::spawn_follower(
+        runtime.handle(),
+        host_handle.clone(),
+        summons,
+        &links.launcher,
+        services.companion.control.clone(),
+    );
     let mut shell = Shell {
         outputs: Outputs::default(),
         shell_lock: crate::lock::ShellLock::default(),

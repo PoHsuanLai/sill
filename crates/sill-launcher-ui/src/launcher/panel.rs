@@ -16,7 +16,7 @@ use ds::host::measure::Anchor;
 use ds::prelude::*;
 use ds::style::tokens::shape::Corner;
 use shell_host::OutputInfo;
-use sill_launcher::{ActionId, ClipKey, Item, Preview, Section, preview_for};
+use sill_launcher::{ActionId, ClipKey, Item, LauncherMode, Preview, Section, preview_for};
 use sill_search::preview::clip_image;
 
 use crate::launcher::card::{CardKey, Foot, use_card_hit};
@@ -69,6 +69,7 @@ pub(crate) struct Shown {
     pub session: Session,
     pub pane: PaneSession,
     pub view: View,
+    pub mode: LauncherMode,
 }
 
 impl Shown {
@@ -77,12 +78,20 @@ impl Shown {
         self.view.row(self.session.keys.selected)
     }
 
-    /// What the pane shows: nothing while hidden.
+    /// What the pane shows: nothing while hidden. In companion mode an answer's card or a run's
+    /// facts is the pane whenever its row is selected (it is the card in the preview pane,
+    /// not a pane to open).
     pub fn preview(&self) -> Option<Preview> {
-        match self.pane.preview.pane {
+        let selected = self.selected();
+        let companions = match (self.mode, &selected) {
+            (LauncherMode::Companion, Some(item)) => Some(preview_for(item))
+                .filter(|p| matches!(p, Preview::Answer(_) | Preview::Run(_))),
+            _ => None,
+        };
+        companions.or(match self.pane.preview.pane {
             Pane::Hidden => None,
-            Pane::Shown => Some(self.selected().as_ref().map_or(Preview::None, preview_for)),
-        }
+            Pane::Shown => Some(selected.as_ref().map_or(Preview::None, preview_for)),
+        })
     }
 }
 
@@ -113,6 +122,7 @@ pub(crate) fn launcher(output: OutputInfo) -> Element {
             view: panel.view_of(&session, &pane.expanded),
             session,
             pane,
+            mode: opening.mode,
         }
     });
     let contacts = use_contacts();
@@ -299,8 +309,14 @@ fn palette(
     rsx! {
         CommandPalette::<RowRef> {
             key: "{session.serial.0}",
-            label: "Search",
-            placeholder: "Search apps, files, windows and settings",
+            label: match shown.mode {
+                LauncherMode::Search => "Search",
+                LauncherMode::Companion => "Ask",
+            },
+            placeholder: match shown.mode {
+                LauncherMode::Search => "Search apps, files, windows and settings",
+                LauncherMode::Companion => "Ask the companion",
+            },
             query: session.query.clone(),
             tokens: Vec::new(),
             groups,

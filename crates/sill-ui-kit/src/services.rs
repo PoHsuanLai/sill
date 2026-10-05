@@ -12,6 +12,7 @@ use sill_services::battery::BatteryService;
 use sill_services::bluetooth::BluetoothService;
 use sill_services::clipboard::ClipboardService;
 use sill_services::clock::ClockService;
+use sill_services::companion::CompanionService;
 use sill_services::cosmic_wl::CosmicWlService;
 use sill_services::displays::DisplaysService;
 use sill_services::env::{Dirs, SessionActions};
@@ -84,6 +85,9 @@ pub struct Services {
     /// sill's seat at intentd: the confirmation sheet it serves, the terminal's grants, the shell's
     /// own actions as `org.quire.Shell`; passive until the daemon says to serve.
     pub intents: Handle<IntentsService>,
+    /// The companion: where a summon goes, its answers, the computer-use runs, the undo journal
+    /// and the launcher's two lookups; it speaks as the shell on the connection `intents` holds.
+    pub companion: Handle<CompanionService>,
     /// The person's directories the services were started with (the icon theme's config, the
     /// widget placements' state folder).
     pub dirs: Dirs,
@@ -139,4 +143,5 @@ members! {
     idle: IdleService,
     keycap: KeycapService,
     intents: IntentsService,
+    companion: CompanionService,
 }

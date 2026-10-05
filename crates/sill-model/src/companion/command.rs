@@ -3,7 +3,9 @@
 
 use almanac_core::{MemoryItem, TimelineEntry};
 use companion_wire::AnswerWire;
-use docket_core::{CardActionId, ContextKeep, Hit, SummonAnswer, SummonSerial, UndoEntry, UndoScope};
+use docket_core::{
+    CallRequest, CardActionId, ContextKeep, Hit, SummonAnswer, SummonSerial, UndoEntry, UndoScope,
+};
 use ds_core::vocab::MemoryVerb;
 use prov::{AppName, RunId, TaskId};
 use sill_launcher::{Generation, LauncherMode, RunControl, WindowKey};
@@ -105,6 +107,8 @@ pub enum CompanionCommand {
     },
     /// Read the undo journal again.
     RefreshJournal,
+    /// Perform an action of an app as the person asked for it (a thing's primary action).
+    Perform(CallRequest),
 }
 
 /// What happens in the service.

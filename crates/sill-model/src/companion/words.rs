@@ -16,7 +16,9 @@ pub fn answer_line(answer: &AnswerFacts) -> (String, String) {
     };
     let standing = match &answer.wire.phase {
         AnswerPhase::Thinking => "Thinking".to_owned(),
-        AnswerPhase::Streaming => first_line(&answer.wire.body).unwrap_or_else(|| "Writing".to_owned()),
+        AnswerPhase::Streaming => {
+            first_line(&answer.wire.body).unwrap_or_else(|| "Writing".to_owned())
+        }
         AnswerPhase::NeedsYou(needs) => match needs {
             NeedsYou::Confirm(_) => "Needs your confirmation".to_owned(),
             NeedsYou::Form(_) => "Needs a few details".to_owned(),
@@ -57,7 +59,12 @@ fn refusal_words(body: &AnswerBody) -> String {
 pub fn activity_line(entry: &UndoEntry) -> (String, String) {
     let who = match &entry.actor {
         Actor::User { .. } => "You",
-        _ => "Companion",
+        Actor::Companion { .. } => "Companion",
+        Actor::Mcp { .. } => "An outside agent",
+        Actor::Cli => "A terminal",
+        Actor::App { .. } | Actor::ThirdParty { .. } => "An app",
+        Actor::System { .. } => "The system",
+        Actor::Unknown => "Something",
     };
     let standing = match &entry.state {
         UndoState::Available => String::new(),

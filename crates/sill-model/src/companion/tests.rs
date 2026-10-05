@@ -102,7 +102,11 @@ fn presence_priority_table() {
         ),
         (
             "an answer streaming over a prompt composing",
-            state_with(&[facts("t-1", AnswerPhase::Streaming)], &[], launcher_summon()),
+            state_with(
+                &[facts("t-1", AnswerPhase::Streaming)],
+                &[],
+                launcher_summon(),
+            ),
             P::Working,
         ),
         (
@@ -159,7 +163,11 @@ fn presence_priority_table() {
             "a run's confirmation waits on the person",
             state_with(
                 &[],
-                &[run("r-1", RunStateSlug::Confirming, RunMode::AgentWorkspace)],
+                &[run(
+                    "r-1",
+                    RunStateSlug::Confirming,
+                    RunMode::AgentWorkspace,
+                )],
                 Summon::Rest,
             ),
             P::Waiting,
@@ -245,7 +253,11 @@ fn a_serving_app_is_asked_with_a_fresh_serial_and_falls_back_when_it_is_silent()
         vec![CompanionEffect::Prepare, CompanionEffect::Summon(ask)]
     );
     assert_eq!(state.asked_serial, 1);
-    assert_eq!(wake(&state), Some(Stamp(1080)), "the app has app_wait to answer");
+    assert_eq!(
+        wake(&state),
+        Some(Stamp(1080)),
+        "the app has app_wait to answer"
+    );
     let (state, effects) = step(state, CompanionEvent::Elapsed, Stamp(1080), &params());
     assert_eq!(
         effects,
@@ -284,7 +296,11 @@ fn an_app_that_takes_the_summon_holds_it_until_dismissed() {
         Stamp(20),
         &params(),
     );
-    assert!(matches!(state.summon, Summon::InApp { .. }), "{:?}", state.summon);
+    assert!(
+        matches!(state.summon, Summon::InApp { .. }),
+        "{:?}",
+        state.summon
+    );
     assert_eq!(effects, Vec::new());
     assert_eq!(presence_of(&state), CompanionPresence::Listening);
 }
@@ -308,20 +324,33 @@ fn hit(key: &str) -> Hit {
 fn a_lookup_keeps_only_the_newest_ask_and_late_hits_extend_it() {
     let at = Stamp(0);
     let run = |state: Companion, event| step(state, event, at, &params()).0;
-    let state = run(Companion::default(), CompanionEvent::ThingsAsked(Generation(5)));
+    let state = run(
+        Companion::default(),
+        CompanionEvent::ThingsAsked(Generation(5)),
+    );
     assert_eq!(state.things.phase, LookupPhase::Asked);
     // An answer to an older keystroke is dropped.
-    let state = run(state, CompanionEvent::ThingsFound(Generation(4), vec![hit("old")]));
+    let state = run(
+        state,
+        CompanionEvent::ThingsFound(Generation(4), vec![hit("old")]),
+    );
     assert_eq!(state.things.found, Vec::new());
     assert_eq!(state.things.phase, LookupPhase::Asked);
-    let state = run(state, CompanionEvent::ThingsFound(Generation(5), vec![hit("a")]));
+    let state = run(
+        state,
+        CompanionEvent::ThingsFound(Generation(5), vec![hit("a")]),
+    );
     assert_eq!(state.things.phase, LookupPhase::Answered);
     assert_eq!(state.things.found, vec![hit("a")]);
     let state = run(
         state,
         CompanionEvent::ThingsLate(Generation(5), vec![hit("a"), hit("b")]),
     );
-    assert_eq!(state.things.found, vec![hit("a"), hit("b")], "a hit already shown is not added again");
+    assert_eq!(
+        state.things.found,
+        vec![hit("a"), hit("b")],
+        "a hit already shown is not added again"
+    );
     let state = run(state, CompanionEvent::ThingsAsked(Generation(6)));
     assert_eq!(
         (state.things.generation, state.things.found.len()),
@@ -357,7 +386,10 @@ fn an_answer_keeps_its_prompt_and_its_button_state_through_updates() {
             action: action.clone(),
         },
     );
-    let state = run(state, CompanionEvent::Answer(wire("t-1", AnswerPhase::Streaming)));
+    let state = run(
+        state,
+        CompanionEvent::Answer(wire("t-1", AnswerPhase::Streaming)),
+    );
     let answer = &state.answers[&task("t-1")];
     assert_eq!(answer.prompt, "forward the receipts");
     assert_eq!(answer.busy, Busy::Acting(action));
@@ -394,9 +426,41 @@ fn runs_come_and_go_by_their_id() {
         step: 4,
         ..first.clone()
     };
-    let (state, _) = step(state, CompanionEvent::Run(Box::new(moved.clone())), at, &params());
+    let (state, _) = step(
+        state,
+        CompanionEvent::Run(Box::new(moved.clone())),
+        at,
+        &params(),
+    );
     assert_eq!(state.runs.len(), 1);
     assert_eq!(state.runs[&first.run], moved);
     let (state, _) = step(state, CompanionEvent::RunGone(first.run), at, &params());
     assert!(state.runs.is_empty());
+}
+
+#[test]
+fn stop_all_pauses_the_runs_that_are_going_and_no_other() {
+    let finished = RunFacts {
+        outcome: Some(CuaOutcome::Done),
+        ..run("r-4", RunStateSlug::Finished, RunMode::InPlace)
+    };
+    let state = state_with(
+        &[],
+        &[
+            run("r-1", RunStateSlug::Acting, RunMode::InPlace),
+            run("r-2", RunStateSlug::Paused, RunMode::InPlace),
+            run("r-3", RunStateSlug::Confirming, RunMode::AgentWorkspace),
+            finished,
+        ],
+        Summon::Rest,
+    );
+    let ids: Vec<String> = going_runs(&state)
+        .iter()
+        .map(|r| r.as_str().to_owned())
+        .collect();
+    assert_eq!(
+        ids,
+        ["r-1", "r-3"],
+        "paused and finished runs are left alone"
+    );
 }

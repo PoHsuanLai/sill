@@ -70,6 +70,10 @@ pub struct Feeds {
     /// them), and what the sheet and the control center send it.
     pub intents: watch::Sender<sill_model::intents::Intents>,
     pub intents_commands: mpsc::UnboundedReceiver<sill_model::intents::IntentsCommand>,
+    /// The companion's answers, runs and journal (none until a test feeds them), and what the
+    /// launcher and the surfaces send it.
+    pub companion: watch::Sender<sill_model::companion::Companion>,
+    pub companion_commands: mpsc::UnboundedReceiver<sill_model::companion::CompanionCommand>,
     /// The prepared wallpapers (none until a test feeds some).
     pub wallpaper: watch::Sender<Wallpapers>,
     /// The dock's app index, pins and badges (empty until a test feeds them), and the pin
@@ -119,6 +123,7 @@ pub fn services() -> (Services, Feeds) {
     let (session, session_io) = Handle::channel(sill_model::session::Session::default());
     let (polkit_agent, polkit_io) = Handle::channel(sill_model::polkit_agent::Polkit::default());
     let (intents, intents_io) = Handle::channel(sill_model::intents::Intents::default());
+    let (companion, companion_io) = Handle::channel(sill_model::companion::Companion::default());
     let (wallpaper, wallpaper_io) = Handle::channel(Wallpapers::default());
     keep.push(Box::new(wallpaper_io.commands));
     let (apps, apps_io) = Handle::channel(AppIndex::default());
@@ -161,6 +166,7 @@ pub fn services() -> (Services, Feeds) {
         idle,
         keycap: fixed(sill_model::keycap::KeycapState::default(), &mut keep),
         intents,
+        companion,
         // Nowhere real: a surface that reads a file under these finds nothing.
         dirs: sill_services::env::Dirs::under(std::path::Path::new(
             "/nonexistent/sill-ui-kit-test",
@@ -204,6 +210,8 @@ pub fn services() -> (Services, Feeds) {
         polkit_commands: polkit_io.commands,
         intents: intents_io.state,
         intents_commands: intents_io.commands,
+        companion: companion_io.state,
+        companion_commands: companion_io.commands,
         wallpaper: wallpaper_io.state,
         apps: apps_io.state,
         pins: pins_io.state,

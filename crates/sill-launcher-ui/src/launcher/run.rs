@@ -5,11 +5,13 @@
 
 use shell_host::{OutputId, SurfaceHandle};
 use sill_model::clipboard::ClipboardCommand;
+use sill_model::companion::CompanionCommand;
 use sill_model::launch::{LaunchCommand, LaunchRequest, OpenRequest};
 use sill_services::ServiceError;
 use sill_ui_kit::services::Services;
 
 use crate::launcher::activate::{LauncherEffect, Unreachable};
+use crate::launcher::companion::command_of;
 use sill_ui_kit::links::{PowerMenuLink, Preselect};
 
 /// Where an effect is carried out from: the panel's surface (a launch's token), its output
@@ -83,6 +85,18 @@ pub async fn run_effect(
             }
             Ok(())
         }
+        LauncherEffect::Ask(input) => services
+            .companion
+            .control
+            .send(CompanionCommand::Ask(input)),
+        LauncherEffect::Intent(call) => services
+            .companion
+            .control
+            .send(CompanionCommand::Perform(call)),
+        LauncherEffect::Companion(act) => match command_of(act) {
+            Some(command) => services.companion.control.send(command),
+            None => Ok(()),
+        },
         LauncherEffect::ByRunner | LauncherEffect::Insert(_) | LauncherEffect::Nothing => Ok(()),
     }
 }

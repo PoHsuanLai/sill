@@ -91,6 +91,10 @@ pub(crate) fn kind_note(kind: ProviderKind) -> &'static str {
         ProviderKind::Clipboard => "Clipboard",
         ProviderKind::Emoji => "Emoji",
         ProviderKind::Web => "Web",
+        ProviderKind::Things => "Thing",
+        ProviderKind::Companion => "Companion",
+        ProviderKind::Runs => "Run",
+        ProviderKind::Memory => "Memory",
     }
 }
 
@@ -143,6 +147,10 @@ pub fn provider_glyph(kind: ProviderKind) -> Icon {
         ProviderKind::Clipboard => Icon::Clipboard,
         ProviderKind::Emoji => Icon::Smile,
         ProviderKind::Web => Icon::Globe,
+        ProviderKind::Things => Icon::Inbox,
+        ProviderKind::Companion => Icon::Sparkles,
+        ProviderKind::Runs => Icon::Play,
+        ProviderKind::Memory => Icon::Clock,
     }
 }
 

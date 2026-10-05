@@ -1,5 +1,5 @@
 //! The panels a client opens and closes: the launcher, the power menu, the control center, the
-//! notification center and Edit Widgets. Each opens on the output the daemon picks (the output
+//! notification center, Edit Widgets and the companion. Each opens on the output the daemon picks (the output
 //! under the pointer is not known to the daemon), which is the first with that surface; Edit
 //! Widgets prefers the output of the active window.
 
@@ -21,6 +21,8 @@ pub enum ShowRequest {
     ControlCenter,
     /// Edit Widgets, the widget gallery (`sill widgets {edit,edit-close}`).
     EditWidgets(EditWidgetsRequest),
+    /// The companion's summon (`sill companion {tap,summon,dismiss,stop-all}`).
+    Companion(CompanionRequest),
 }
 
 /// How a panel changes: the shortcut that flips it, or the two that set it.
@@ -54,4 +56,20 @@ pub enum LauncherRequest {
 pub enum EditWidgetsRequest {
     Open,
     Close,
+}
+
+/// The companion's four verbs (`sill companion {tap,summon,dismiss,stop-all}`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CompanionRequest {
+    /// The double-tap fired as a single tap of the key (the keyboard remapper's route B): the
+    /// daemon's `Tap` machine decides whether this one is the second.
+    Tap,
+    /// A double-tap already detected (route A, or the compositor later).
+    Summon,
+    /// Put the companion away: close the launcher it opened, or end the prompt in an app.
+    Dismiss,
+    /// Pause every run in the focused Space (the soft form of the kill switch; the hard chord is
+    /// the compositor's).
+    StopAll,
 }

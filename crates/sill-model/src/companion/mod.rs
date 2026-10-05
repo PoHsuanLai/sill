@@ -22,11 +22,9 @@ mod words;
 pub use command::{
     AskInput, CompanionCommand, CompanionEffect, CompanionEvent, CompanionParams, FocusInput,
 };
-pub use model::{
-    AnswerFacts, Busy, Companion, CompanionLink, Lookup, LookupPhase, RunFacts,
-};
+pub use model::{AnswerFacts, Busy, Companion, CompanionLink, Lookup, LookupPhase, RunFacts};
 pub use presence::presence_of;
-pub use run_state::{RunState, run_controls, run_state_of};
+pub use run_state::{RunState, going_runs, run_controls, run_state_of};
 pub use step::{step, wake};
 pub use summon::{
     Fallback, FocusFacts, InField, LauncherFacts, LauncherOrigin, Serves, Summon, SummonCx,

@@ -11,8 +11,9 @@ use super::ResultsLinks;
 use super::history::History;
 use crate::providers::files::IndexSource;
 use crate::providers::{
-    AppsProvider, CalculatorProvider, ClipboardProvider, EmojiProvider, FilesProvider,
-    SettingsProvider, SystemProvider, WebProvider, WindowsProvider,
+    AppsProvider, CalculatorProvider, ClipboardProvider, CompanionProvider, EmojiProvider,
+    FilesProvider, MemoryProvider, RunsProvider, SettingsProvider, SystemProvider, ThingsProvider,
+    WebProvider, WindowsProvider,
 };
 use sill_services::env::Env;
 
@@ -56,6 +57,20 @@ pub(crate) fn providers(
         }),
         Arc::new(WebProvider {
             policy: policy.clone(),
+        }),
+        Arc::new(ThingsProvider {
+            companion: links.companion.clone(),
+            control: links.companion_control.clone(),
+        }),
+        Arc::new(CompanionProvider {
+            companion: links.companion.clone(),
+        }),
+        Arc::new(RunsProvider {
+            companion: links.companion.clone(),
+        }),
+        Arc::new(MemoryProvider {
+            companion: links.companion.clone(),
+            control: links.companion_control.clone(),
         }),
     ]
 }

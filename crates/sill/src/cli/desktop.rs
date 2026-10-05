@@ -1,10 +1,10 @@
 //! The desktop's command line: `sill dock`, `sill power-menu`, `sill control-center`, `sill
-//! screenshot` and `sill widgets`.
+//! screenshot`, `sill widgets` and `sill companion`.
 
 use clap::{Subcommand, ValueEnum};
 use sill_ipc::act::{ActRequest, DockRequest};
 use sill_ipc::request::Request;
-use sill_ipc::show::{EditWidgetsRequest, Reveal, ShowRequest};
+use sill_ipc::show::{CompanionRequest, EditWidgetsRequest, Reveal, ShowRequest};
 use sill_launcher::AppId;
 use sill_model::screenshots::ShotKind;
 
@@ -53,6 +53,19 @@ pub enum WidgetsAction {
     EditClose,
 }
 
+/// `sill companion ...`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Subcommand)]
+pub enum CompanionAction {
+    /// One tap of the double-tap key; the second within `companion.double_tap_ms` summons.
+    Tap,
+    /// Summon the companion now (a double tap already detected).
+    Summon,
+    /// Put the companion away.
+    Dismiss,
+    /// Pause every run in the focused Space.
+    StopAll,
+}
+
 /// The request `sill dock ACTION` sends.
 pub fn dock_request(action: &DockAction) -> Request {
     Request::Act(ActRequest::Dock(match action {
@@ -99,4 +112,14 @@ pub fn widgets_request(action: WidgetsAction) -> Request {
             Request::Show(ShowRequest::EditWidgets(EditWidgetsRequest::Close))
         }
     }
+}
+
+/// The request `sill companion ACTION` sends.
+pub fn companion_request(action: CompanionAction) -> Request {
+    Request::Show(ShowRequest::Companion(match action {
+        CompanionAction::Tap => CompanionRequest::Tap,
+        CompanionAction::Summon => CompanionRequest::Summon,
+        CompanionAction::Dismiss => CompanionRequest::Dismiss,
+        CompanionAction::StopAll => CompanionRequest::StopAll,
+    }))
 }

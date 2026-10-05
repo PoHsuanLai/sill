@@ -8,10 +8,15 @@ use std::sync::Arc;
 
 use anyview_peek::{AnyPeeked, Pane};
 use dioxus::prelude::*;
+use ds::components::companion::answer::view::AnswerCard;
 use ds::components::content::image_source::{ImageSize, ImageSource};
 use ds::components::lists::preview::content::{PaneContent, PaneMono};
 use ds::prelude::*;
 use sill_launcher::{ClipKind, Mime, Preview};
+use sill_model::companion::{Companion, RunFacts, memory_line, run_state_of};
+use sill_services::CompanionService;
+use sill_ui_kit::companion::{ViewCx, answer_view, without_actions};
+use sill_ui_kit::hooks::use_service;
 
 use crate::launcher::preview::load::{Peeking, PreviewFault, use_clip_png, use_peek};
 
@@ -42,8 +47,14 @@ pub(super) fn use_content(preview: &Preview, icon: Option<IconSource>) -> (PaneC
     };
     let peeking = use_peek(file);
     let clip_png = use_clip_png(clip);
+    let companion = use_service::<CompanionService>();
     let load = load_of(peeking.as_ref());
-    let content = content_of(preview, icon, Loads { peeking, clip_png });
+    let content = content_of(
+        preview,
+        icon,
+        Loads { peeking, clip_png },
+        &companion.read(),
+    );
     (content, load)
 }
 
@@ -62,7 +73,12 @@ struct Loads {
     clip_png: Option<Vec<u8>>,
 }
 
-fn content_of(preview: &Preview, icon: Option<IconSource>, loads: Loads) -> PaneContent {
+fn content_of(
+    preview: &Preview,
+    icon: Option<IconSource>,
+    loads: Loads,
+    companion: &Companion,
+) -> PaneContent {
     match preview {
         Preview::None => facts(Icon::Search, "No preview", Vec::new()),
         Preview::File(file) => match loads.peeking {
@@ -108,6 +124,83 @@ fn content_of(preview: &Preview, icon: Option<IconSource>, loads: Loads) -> Pane
             host: web.engine.clone(),
             url: web.url.clone(),
         },
+        Preview::Answer(task) => answer_card(task, companion),
+        Preview::Run(run) => run_facts(run, companion),
+        Preview::Memory(item) => memory_facts(item, companion),
+        // An app's own account of a thing: its preview is read on demand, and says nothing
+        // until it has.
+        Preview::Intent(_) => facts(Icon::Info, "No preview", Vec::new()),
+    }
+}
+
+/// An answer's card in the pane's slot: its body and footer (the pane lists the row's actions).
+fn answer_card(task: &prov::TaskId, companion: &Companion) -> PaneContent {
+    let Some(answer) = companion.answers.get(task) else {
+        return facts(
+            Icon::Sparkles,
+            "Companion",
+            vec![("Answer", "Gone".to_owned())],
+        );
+    };
+    let zone = jiff::tz::TimeZone::system();
+    let display = |_: docket_core::Handle| None;
+    let cx = ViewCx {
+        zone: &zone,
+        display: &display,
+    };
+    let view = without_actions(answer_view(&answer.wire, &answer.prompt, &cx));
+    PaneContent::Slot {
+        label: answer.prompt.clone(),
+        element: rsx! {
+            AnswerCard { view, on_action: move |_| {} }
+        },
+    }
+}
+
+/// A run's facts: what it was asked, where it stands and what it last thought.
+fn run_facts(run: &prov::RunId, companion: &Companion) -> PaneContent {
+    let Some(RunFacts {
+        goal,
+        window,
+        step,
+        state,
+        outcome,
+        thought,
+        ..
+    }) = companion.runs.get(run)
+    else {
+        return facts(Icon::Play, "Run", vec![("Run", "Gone".to_owned())]);
+    };
+    facts(
+        Icon::Play,
+        goal,
+        vec![
+            ("State", run_state_of(*state, *outcome).label().to_owned()),
+            ("Step", step.to_string()),
+            ("Window", window.clone().unwrap_or_default()),
+            ("Thought", thought.clone().unwrap_or_default()),
+        ],
+    )
+}
+
+/// A memory row's facts: who did what, and in which app.
+fn memory_facts(item: &almanac_core::MemoryItem, companion: &Companion) -> PaneContent {
+    let entry = companion.memory.found.iter().find(
+        |entry| matches!(item, almanac_core::MemoryItem::Event(event) if *event == entry.event),
+    );
+    match entry {
+        Some(entry) => {
+            let (title, app) = memory_line(entry);
+            facts(
+                Icon::Clock,
+                &title,
+                vec![
+                    ("App", app),
+                    ("Facts from it", entry.derived_facts.0.to_string()),
+                ],
+            )
+        }
+        None => facts(Icon::Clock, "Memory", vec![("Row", "Gone".to_owned())]),
     }
 }
 

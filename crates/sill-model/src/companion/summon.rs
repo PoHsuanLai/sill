@@ -2,9 +2,9 @@
 //! prompt of its own, the focused app's prompt when it serves the companion and answers within
 //! `app_wait`. A pure machine; the service carries each [`SummonOut`] out.
 
+use docket_core::{SummonAnswer, SummonSerial};
 use ds_core::machine::{Elapsed, Machine};
 use ds_core::time::stamp::Stamp;
-use docket_core::{SummonAnswer, SummonSerial};
 use prov::AppName;
 use sill_launcher::{LauncherMode, WindowKey};
 
@@ -205,14 +205,9 @@ impl Machine for Summon {
                 (Summon::Rest, leave(origin))
             }
             (Summon::InLauncher { .. }, SummonIn::LauncherClosed) => (Summon::Rest, Vec::new()),
-            (
-                Summon::InApp {
-                    app,
-                    window,
-                    ..
-                },
-                SummonIn::Summon(_) | SummonIn::Dismiss,
-            ) => ask(app, window, at, params, cx, Fallback::Rest),
+            (Summon::InApp { app, window, .. }, SummonIn::Summon(_) | SummonIn::Dismiss) => {
+                ask(app, window, at, params, cx, Fallback::Rest)
+            }
             (
                 Summon::AskingApp {
                     serial: asked,
@@ -411,7 +406,11 @@ mod tests {
             (
                 "rest, search open: the palette becomes the prompt",
                 Summon::Rest,
-                SummonIn::Summon(facts(LauncherFacts::Open(LauncherMode::Search), mail, Serves::Yes)),
+                SummonIn::Summon(facts(
+                    LauncherFacts::Open(LauncherMode::Search),
+                    mail,
+                    Serves::Yes,
+                )),
                 100,
                 from_search.clone(),
                 vec![SummonOut::SwitchLauncher(LauncherMode::Companion)],
@@ -419,7 +418,11 @@ mod tests {
             (
                 "rest, companion open and not ours: close it",
                 Summon::Rest,
-                SummonIn::Summon(facts(LauncherFacts::Open(LauncherMode::Companion), None, Serves::No)),
+                SummonIn::Summon(facts(
+                    LauncherFacts::Open(LauncherMode::Companion),
+                    None,
+                    Serves::No,
+                )),
                 100,
                 Summon::Rest,
                 vec![SummonOut::CloseLauncher],
@@ -560,8 +563,12 @@ mod tests {
             ),
         ];
         for (name, from, input, at, next, outs) in cases {
-            let (state, out) =
-                from.step(input, Stamp(at), &SummonParams::default(), &SummonCx::default());
+            let (state, out) = from.step(
+                input,
+                Stamp(at),
+                &SummonParams::default(),
+                &SummonCx::default(),
+            );
             assert_eq!(state, next, "{name}: state");
             assert_eq!(out, outs, "{name}: outputs");
         }
@@ -574,7 +581,11 @@ mod tests {
             ..SummonParams::default()
         };
         let (state, out) = Summon::Rest.step(
-            SummonIn::Summon(facts(LauncherFacts::Closed, Some("org.quire.Mail"), Serves::Yes)),
+            SummonIn::Summon(facts(
+                LauncherFacts::Closed,
+                Some("org.quire.Mail"),
+                Serves::Yes,
+            )),
             Stamp(0),
             &params,
             &SummonCx::default(),

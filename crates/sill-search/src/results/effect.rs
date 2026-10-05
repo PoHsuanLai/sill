@@ -44,6 +44,10 @@ pub(crate) fn effect(activation: &Activation) -> Effect {
         | Activation::Open { .. }
         | Activation::SetClipboard { .. }
         | Activation::ForgetClipboard { .. }
+        // The companion's acts need the panel's own context (what was kept, where it was asked
+        // from), so the surface sends them.
+        | Activation::Intent(_)
+        | Activation::Companion(_)
         | Activation::Nothing => Effect::Elsewhere,
     }
 }

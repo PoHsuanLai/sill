@@ -3,6 +3,7 @@
 use std::time::Instant;
 
 use shell_host::OutputId;
+use sill_launcher::LauncherMode;
 
 use crate::links::{OpenSerial, Opened, PanelFocus};
 
@@ -16,6 +17,9 @@ pub struct Opening {
     /// Which opening this is: a new one remounts the panel's contents (the entrance plays,
     /// the field is focused and the selection starts at the top).
     pub serial: OpenSerial,
+    /// What the panel is for: finding things, or talking to the companion. A change of it in
+    /// place (the same serial) keeps the rows, the selection and the query.
+    pub mode: LauncherMode,
     /// When the request arrived, for `open_latency_ms`.
     pub requested: Instant,
     /// Whether the panel has had keyboard focus since it opened.

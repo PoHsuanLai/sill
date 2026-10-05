@@ -27,6 +27,7 @@ use sill_model::intents::{Intents, IntentsCommand};
 
 use crate::env::Env;
 use crate::error::ServiceError;
+use crate::seat::SeatPublisher;
 use crate::service::{Service, ServiceIo};
 
 pub use backend::manifest;
@@ -42,6 +43,9 @@ pub struct ShellCall {
 #[derive(Debug, Clone)]
 pub struct IntentsLinks {
     pub calls: mpsc::UnboundedSender<ShellCall>,
+    /// Where the connection the seat claims its names on is published, for the companion
+    /// service to speak as the shell on.
+    pub seat: SeatPublisher,
 }
 
 /// The seat as a [`Service`].

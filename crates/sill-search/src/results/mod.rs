@@ -27,6 +27,7 @@ use history::{History, Persist};
 use sill_launcher::Provider;
 use sill_model::apps::AppIndex;
 use sill_model::clipboard::Clipboard;
+use sill_model::companion::{Companion, CompanionCommand};
 use sill_model::cosmic_wl::{CosmicWl, WlCommand};
 use sill_model::launch::LaunchCommand;
 use sill_model::results::{LauncherPolicy, Results, SearchCommand};
@@ -67,6 +68,9 @@ pub struct ResultsLinks {
     pub apps: watch::Receiver<AppIndex>,
     pub cosmic_wl: watch::Receiver<CosmicWl>,
     pub clipboard: watch::Receiver<Clipboard>,
+    /// The companion's state, which its three providers read, and where its two lookups go.
+    pub companion: watch::Receiver<Companion>,
+    pub companion_control: Control<CompanionCommand>,
     pub wl: Control<WlCommand>,
     pub launch: Control<LaunchCommand>,
 }

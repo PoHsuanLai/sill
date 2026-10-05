@@ -9,13 +9,14 @@ use ds::components::menus::palette::palette_motion::use_palette_handle;
 use ds::focus::request::{FocusRequest, use_focus_request};
 use ds::prelude::*;
 use shell_host::{OutputId, SurfaceHandle};
-use sill_launcher::{Choice, ItemKey};
+use sill_launcher::{Choice, CompanionAct, ItemKey, LauncherMode};
 use sill_model::results::{Results, SearchCommand};
 use sill_ui_kit::services::Services;
 
 use crate::launcher::activate::{
     AfterEffect, LauncherEffect, LauncherProviders, effect_of, file_results, with_results,
 };
+use crate::launcher::companion::{Way, ask_input, companion_filter};
 use crate::launcher::entries::RowRef;
 use crate::launcher::follow::{use_follow_visibility, use_shown};
 use crate::launcher::groups::fresh;
@@ -28,7 +29,7 @@ use crate::launcher::preview::keys::{PreviewKey, PreviewState};
 use crate::launcher::run::{EffectFrom, run_effect};
 use crate::launcher::session::Session;
 use crate::launcher::view::{Expanded, View, toggled, view};
-use sill_ui_kit::hooks::use_services;
+use sill_ui_kit::hooks::{use_service, use_services};
 use sill_ui_kit::links::PowerMenuLink;
 use sill_ui_kit::links::{LauncherLink, OpenSerial, Opening, Reveal};
 
@@ -76,6 +77,8 @@ pub(crate) struct PanelCtx {
     /// quire's palette handle: a Show More / Show Less run here, not through the
     /// palette's own Enter or click, still plays the group's rise or heal.
     pub(crate) palette: PaletteHandle,
+    /// The answer the selection is to move to once the rows have it (after an ask).
+    pub(crate) wanted: Signal<Option<prov::TaskId>>,
 }
 
 /// The panel's state and handlers on `output`, following the shared launcher state.
@@ -105,21 +108,45 @@ pub(crate) fn use_panel(output: OutputId, results: ReadSignal<Results>) -> Panel
         picking: use_hook(|| CopyValue::new(Picking::No)),
         left: use_signal(|| 0),
         palette: use_palette_handle(),
+        wanted: use_signal(|| None),
     };
     use_openings(ctx.clone());
+    // The companion's rows come from its own state, which the search does not watch: ask again
+    // whenever an answer, a run or the journal moves, in companion mode.
+    let companion = use_service::<sill_services::CompanionService>();
+    use_effect({
+        let ctx = ctx.clone();
+        move || {
+            let _ = companion.read();
+            ctx.companion_refresh();
+        }
+    });
+    // A new answer's row arrives with the search that follows the ask: select it then.
+    use_effect({
+        let ctx = ctx.clone();
+        move || {
+            let _ = results.read();
+            ctx.apply_wanted();
+        }
+    });
     ctx
 }
 
 /// Start a session on every opening on this output; cancel the search on a close.
 fn use_openings(ctx: PanelCtx) {
-    let mut last = use_hook(|| CopyValue::new(None::<OpenSerial>));
+    let mut last = use_hook(|| CopyValue::new(None::<(OpenSerial, LauncherMode)>));
     use_effect(move || {
         let opening = ctx.opening_tracked();
         let seen = *last.peek();
         match (opening, seen) {
-            (Some(opening), seen) if seen != Some(opening.serial) => {
-                last.set(Some(opening.serial));
+            (Some(opening), seen) if seen.map(|(serial, _)| serial) != Some(opening.serial) => {
+                last.set(Some((opening.serial, opening.mode)));
                 ctx.opened(&opening);
+            }
+            // The same opening in another mode: the double tap switched it in place.
+            (Some(opening), Some((_, mode))) if mode != opening.mode => {
+                last.set(Some((opening.serial, opening.mode)));
+                ctx.mode_changed(&opening);
             }
             (None, Some(_)) => {
                 last.set(None);
@@ -163,11 +190,8 @@ impl PanelCtx {
         });
         let mut row = self.row;
         row.set(None);
-        let _ = self
-            .services
-            .results
-            .control
-            .send(SearchCommand::Query(opening.query.clone()));
+        let filter = crate::launcher::session::filter_for(opening.mode);
+        self.search(&opening.query, filter);
         if let Some(surface) = self.surface.clone() {
             let requested = opening.requested;
             spawn(async move {
@@ -256,7 +280,17 @@ impl PanelCtx {
                     LauncherKey::ShiftTab => previous_filter,
                     _ => next_filter,
                 };
-                let filter = next_in_ring(was, &ring, next);
+                let filter = if self.in_companion_mode() {
+                    // There is no "every provider" in a prompt: Tab goes round the companion's
+                    // own rows, the runs and the memory.
+                    let way = match key {
+                        LauncherKey::ShiftTab => Way::Backward,
+                        _ => Way::Forward,
+                    };
+                    companion_filter(was, way)
+                } else {
+                    next_in_ring(was, &ring, next)
+                };
                 self.store_pane(PaneSession {
                     ring,
                     preview: PreviewState::default(),
@@ -395,6 +429,15 @@ impl PanelCtx {
             choice: choice.clone(),
         });
         let effect = effect_of(self.providers.activation(&item, &choice));
+        let effect = match effect {
+            // The prompt goes with what this opening kept: the window it was summoned over.
+            LauncherEffect::Companion(CompanionAct::Ask { prompt }) => {
+                let companion = self.services.companion.state.borrow();
+                let toplevels = self.services.cosmic_wl.state.borrow().toplevels.clone();
+                LauncherEffect::Ask(ask_input(prompt, &companion.summon, &toplevels))
+            }
+            other => other,
+        };
         let effect = match self.current_pane() {
             Some(pane) => {
                 let shown = self.view_of(&session, &pane.expanded);
@@ -424,10 +467,17 @@ impl PanelCtx {
             _ => None,
         };
         let ctx = self.clone();
+        let asked = matches!(effect, LauncherEffect::Ask(_));
+        let front = self.services.companion.state.borrow().front.clone();
         spawn(async move {
             let after = effect.after();
             if let Err(error) = run_effect(effect, &from, &services).await {
                 eprintln!("sill: launcher: {error}");
+            }
+            if asked {
+                // The prompt is sent: the field empties and the selection follows the answer.
+                ctx.typed(String::new());
+                ctx.after_ask(front).await;
             }
             if after == AfterEffect::Close {
                 link.close();

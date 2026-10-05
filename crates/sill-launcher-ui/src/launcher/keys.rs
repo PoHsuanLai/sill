@@ -286,8 +286,8 @@ mod tests {
         let (state, _) = keys(&[Tab, Tab], 5, 0);
         assert_eq!(state.filter, Filter::Only(ProviderKind::Windows));
         let (state, _) = keys(&[ShiftTab], 5, 0);
-        // The last of `ProviderKind::ALL` (the web fallback).
-        assert_eq!(state.filter, Filter::Only(ProviderKind::Web));
+        // The last of `ProviderKind::ALL` (the memory timeline).
+        assert_eq!(state.filter, Filter::Only(ProviderKind::Memory));
         let mut filter = Filter::All;
         let mut seen = Vec::new();
         for _ in 0..=ProviderKind::ALL.len() {

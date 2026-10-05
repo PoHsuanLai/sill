@@ -85,6 +85,7 @@ pub(crate) async fn run(reach: Reach, links: IntentsLinks, io: ServiceIo<Intents
         }
     };
     let Seat { connection } = seat;
+    links.seat.publish(connection.clone());
     let mut live = Live {
         state: Intents::default(),
         tx,
@@ -108,6 +109,7 @@ pub(crate) async fn run(reach: Reach, links: IntentsLinks, io: ServiceIo<Intents
         }
     }
     live.feed(IntentsEvent::Link(IntentsLink::Passive));
+    links.seat.withdraw();
 }
 
 struct Live {

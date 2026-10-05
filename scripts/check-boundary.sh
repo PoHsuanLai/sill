@@ -76,21 +76,21 @@ done
 # A dependency on a crate not listed is a leak; so is one the crate no longer has, so the table
 # stays exact. Dev dependencies are outside it (a test may reach further than the crate does).
 EDGES=(
-  "sill-launcher:"
+  "sill-launcher: almanac-core docket-core ds-core prov"
   "sill-testkit:"
-  "sill-model: docket-core ds-core keycap-protocol prov sill-launcher"
+  "sill-model: almanac-core companion-wire cua-bus docket-core ds-core keycap-protocol prov sill-launcher"
   "sill-settings: ds-core ds-settings keycap-protocol sill-launcher sill-model"
   "sill-ipc: sill-launcher sill-model"
-  "sill-services: anyview-core anyview-platform docket-client docket-core docket-dbus ds-core keycap-protocol porter-core prov sill-launcher sill-model"
-  "sill-search: anyview-core anyview-store ds-core ds-settings sill-launcher sill-model sill-services"
-  "sill-ui-kit: ds ds-blitz ds-harness ds-settings ds-shell shell-host sill-launcher sill-model sill-search sill-services sill-settings"
+  "sill-services: almanac-core almanac-dbus anyview-core anyview-platform companion-wire cua-bus cua-dbus docket-client docket-core docket-dbus ds-core keycap-protocol porter-core prov sill-launcher sill-model"
+  "sill-search: almanac-core anyview-core anyview-store companion-wire docket-core ds-core ds-settings prov sill-launcher sill-model sill-services"
+  "sill-ui-kit: companion-wire docket-core ds ds-blitz ds-core ds-harness ds-settings ds-shell porter-core prov shell-host sill-launcher sill-model sill-search sill-services sill-settings"
   "sill-bar: ds ds-blitz ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
   "sill-dock: ds ds-blitz ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
-  "sill-launcher-ui: anyview-core anyview-image anyview-peek anyview-platform ds ds-blitz shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-ui-kit"
+  "sill-launcher-ui: almanac-core anyview-core anyview-image anyview-peek anyview-platform companion-wire docket-core ds ds-blitz prov shell-host sill-launcher sill-model sill-search sill-services sill-settings sill-ui-kit"
   "sill-notify-ui: ds ds-blitz ds-settings ds-shell shell-host sill-model sill-services sill-settings sill-ui-kit"
   "sill-widgets-ui: ds ds-shell shell-host sill-launcher sill-model sill-settings sill-ui-kit"
   "sill-overlays: ds ds-behaviour ds-settings ds-shell shell-host sill-launcher sill-model sill-services sill-settings sill-ui-kit"
-  "sill: ds-lint ds-blitz ds-settings ds-shell shell-host sill-bar sill-dock sill-ipc sill-launcher sill-launcher-ui sill-model sill-notify-ui sill-overlays sill-search sill-services sill-settings sill-ui-kit sill-widgets-ui"
+  "sill: ds-lint ds-blitz ds-settings ds-shell prov shell-host sill-bar sill-dock sill-ipc sill-launcher sill-launcher-ui sill-model sill-notify-ui sill-overlays sill-search sill-services sill-settings sill-ui-kit sill-widgets-ui"
 )
 for edge in "${EDGES[@]}"; do
   crate="${edge%%:*}"

@@ -20,8 +20,21 @@ pub enum LauncherMode {
 }
 
 /// What a person can do to a run from its row.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    ds_core::word::Word,
+)]
 #[serde(rename_all = "snake_case")]
+#[word(case = snake)]
 pub enum RunControl {
     /// Look at the window it works in.
     Watch,

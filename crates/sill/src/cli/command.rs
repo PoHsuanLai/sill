@@ -4,7 +4,9 @@
 use clap::Subcommand;
 
 use super::debug::DebugAction;
-use super::desktop::{ControlCenterAction, DockAction, PowerMenuAction, ShotArg, WidgetsAction};
+use super::desktop::{
+    CompanionAction, ControlCenterAction, DockAction, PowerMenuAction, ShotArg, WidgetsAction,
+};
 use super::display::DisplayAction;
 use super::intents::IntentsAction;
 use super::keycap::KeycapAction;
@@ -122,6 +124,11 @@ pub enum Command {
     Widgets {
         #[command(subcommand)]
         action: WidgetsAction,
+    },
+    /// The companion: summon it, put it away, or pause what it is doing.
+    Companion {
+        #[command(subcommand)]
+        action: CompanionAction,
     },
     /// Your own stylesheet, `style.css`.
     Style {

@@ -316,6 +316,35 @@ A settled item is deleted, not marked closed.
   needs `../porter`, `../stoker` and `../almanac` (and `../docket`); `~/sill-wt/gate` needs the
   same links as its other siblings.
 
+## Standing facts: the companion
+
+- **Everything said to intentd and the companion goes out on the shell's own connection.** intentd
+  names a caller's role from the names its connection owns, so a turn (`Session.Turn`), a search,
+  an undo or a journal read from any other connection would not be the launcher's. The intents
+  service claims `org.quire.Shell`, then publishes that connection on `sill_services::seat`; the
+  companion service follows it (and every follower it starts goes when the seat is given up).
+  Without the seat the machines still run (a summon opens the launcher) and a lookup answers
+  `Failed`.
+- **The two machines run inside the companion service**, on quire's `Machine` (`Tap`, `Summon` in
+  `sill_model::companion`), stamped in milliseconds from the service's start and woken by one timer
+  for the earlier of their deadlines; at rest there is none. A tap or a summon first finds out
+  whether the focused app owns its bus name, in order, so two quick taps stay two taps. The
+  launcher effects a summon asks for leave on a channel to the daemon (`ShellMsg::Summon`), and the
+  panel closing is told back by a watcher of the launcher link.
+- **An answer is a card in the pane, and the pane follows the selected row.** In companion mode the
+  panel starts on the Companion filter (the Ask row, the answers, recent activity; Tab goes round
+  Companion, Runs, Memory and never to "every provider"); an answer or run row on the selection is
+  the pane without Space. Enter on an answer is its card's default button and on a row with none
+  leaves the panel as it is (`Mode(Companion)` is the no-op activation), so only Promote closes.
+  The card is drawn without its buttons: the pane lists the row's actions, with their keys.
+- **Lookups wait on state.** Things and Memory are asked by a command to the service, which
+  publishes the answer under the query's generation; the provider's `query` blocks on that
+  generation (or a newer one replacing it) and never sleeps. Late hits (`Intents1.Search.Hits`)
+  extend the same generation's list.
+- **`companiond` does not take `Answer.Act` yet** (it answers "this answer has no cards"), so a
+  card button's busy state ends with the error; the service ends it on the request's `Response`
+  from companiond's own request object once it does.
+
 ## Decisions in force (departures from the design docs)
 
 ### Settings
@@ -516,6 +545,36 @@ A settled item is deleted, not marked closed.
   under load; a paused tokio clock would pin it.
 - `dev/accept/bar.sh --real-input`'s `step_center_then_menu` failed once on a
   center/menu focus race; not yet looked at.
+- **No `companion.*` settings rows yet.** The double tap's window (350 ms), the app's wait for a
+  summon (80 ms) and where a summon in a field goes are `CompanionParams::default()`; the daemon
+  sends no `Params`. Ends when quire's design/22 has `companion.double_tap_ms`,
+  `companion.app_wait_ms` and `companion.in_field` and a `companion` domain reads them
+  (Q: the rows; the toggles `companion.summon`, `companion.notify` and `agent.undo.keep_h` go with them).
+- **quire's companion components are placeholders.** `AnswerCard`, `ContextChips`, `RunRow`,
+  `ActivityStrip`, `MemoryTimeline` draw an empty root, and `CommandPalette` has no `mode` or
+  `chips` prop, so the prompt keeps the search text as state (`Session::kept`) and shows no chip.
+  Ends with quire's W1 to W3 fills; then the pane's slot draws the real card and the chip shows.
+- **A handle in an answer reads as an ellipsis.** The conversions take a `display` function
+  (`sill_ui_kit::companion::ViewCx`); nothing yet asks `Session.Display` for the text a handle
+  stands for. Ends when the service resolves the handles of the answers it follows.
+- **A thing opens with `<kind>.open`.** The things provider performs the indexed kind's `open`
+  action (`mail.thread.open`); docket has no convention that says an app declares one. Ends with a
+  docket ask (an `open` action per indexed kind, or `Follow::Open` on a hit).
+- **Memory rows have no verbs.** `CompanionCommand::Memory` is accepted and does nothing: Forget
+  needs the preview alert (design/32 section 4.9), Keep a `ConfirmReceipt` only the shell's own UI
+  can make, Export a file handle. The timeline lists events; facts and the pending list are not on
+  it yet.
+- **Runs sit under their own Tab.** Design/32 section 4.4 lists active runs in the companion
+  mode's own rows; here they are the Runs filter (Tab). "Watch" is the compositor's and the service
+  does nothing for it.
+- **Every ask is in the `desktop` Space.** Sill mints no Space ids yet (P6); `Companion1.Open` is
+  given `SpaceId::desktop()`.
+- **`Companion1.Told` (a direct turn to a subagent) is not sent**, and a plan card has no Stop or
+  Undo All button: the plan's own step machine is quire's (`plan_step`, unfilled).
+- **The summon's origin is always the double tap**; a voice summon waits for voice.
+- **No Toshy snippet ships for route B.** `dist/cosmic` binds `Ctrl+Alt+Shift+Super F19` to `sill companion tap`
+  (and `F20` to `summon`, route A); the remap of a lone Cmd tap to that chord is written in the keyboard
+  remapper's own config until spike T says tap-versus-hold is safe on Cmd.
 
 ### quire
 

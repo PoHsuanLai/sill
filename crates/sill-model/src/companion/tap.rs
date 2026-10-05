@@ -95,14 +95,7 @@ impl Machine for Tap {
 mod tests {
     use super::*;
 
-    type Case = (
-        &'static str,
-        Tap,
-        TapIn,
-        u64,
-        Tap,
-        &'static [TapOut],
-    );
+    type Case = (&'static str, Tap, TapIn, u64, Tap, &'static [TapOut]);
 
     #[test]
     fn tap_machine_table() {

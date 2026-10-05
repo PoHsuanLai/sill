@@ -10,6 +10,7 @@
 
 pub mod activate;
 pub mod chord_keys;
+pub mod companion;
 pub mod entries;
 pub mod groups;
 pub mod hit;

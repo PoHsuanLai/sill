@@ -1,4 +1,6 @@
 {
     (modifiers: [Ctrl, Alt], key: "space"): Spawn("sill launcher toggle"),
     (modifiers: [Super], key: "space"): Spawn("sill launcher toggle"),
+    (modifiers: [Ctrl, Alt, Shift, Super], key: "F19"): Spawn("sill companion tap"),
+    (modifiers: [Ctrl, Alt, Shift, Super], key: "F20"): Spawn("sill companion summon"),
 }

@@ -3,11 +3,15 @@
 
 use cua_bus::{CuaOutcome, RunStateSlug};
 use docket_core::RunMode;
+use ds_core::word::Word;
+use prov::RunId;
 use sill_launcher::RunControl;
+
+use super::model::Companion;
 
 /// A run as a row words it. The view enum of quire's run row has the same variants; the
 /// conversion between them is `sill-ui-kit`'s `*_total` test.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Word)]
 pub enum RunState {
     /// Asking consent or leasing a window.
     Starting,
@@ -90,7 +94,24 @@ pub fn run_controls(state: RunState, place: RunMode, undoable: u32) -> Vec<RunCo
         RunState::Failed | RunState::Stopped | RunState::BudgetOut => &[],
     };
     let undo = (!state.is_live() && undoable > 0).then_some(C::UndoAll);
-    watch.into_iter().chain(rest.iter().copied()).chain(undo).collect()
+    watch
+        .into_iter()
+        .chain(rest.iter().copied())
+        .chain(undo)
+        .collect()
+}
+
+/// The runs that are going now (not paused, not over), which "stop everything" pauses. A run
+/// waiting on the person, or already taken over, is going too: pausing it holds it where it is.
+pub fn going_runs(companion: &Companion) -> Vec<RunId> {
+    companion
+        .runs
+        .values()
+        .filter(|run| {
+            run_state_of(run.state, run.outcome).is_live() && run.state != RunStateSlug::Paused
+        })
+        .map(|run| run.run.clone())
+        .collect()
 }
 
 #[cfg(test)]

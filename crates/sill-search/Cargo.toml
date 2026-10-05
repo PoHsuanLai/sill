@@ -15,6 +15,10 @@ sill-launcher = { workspace = true }
 sill-model = { workspace = true }
 sill-services = { workspace = true }
 ds-core = { workspace = true }
+docket-core = { workspace = true }
+prov = { workspace = true }
+companion-wire = { workspace = true }
+almanac-core = { workspace = true }
 ds-settings = { workspace = true }
 emojis = { workspace = true }
 fend-core = { workspace = true }
@@ -29,6 +33,7 @@ toml = { workspace = true }
 zbus = { workspace = true }
 
 [dev-dependencies]
+cua-bus = { workspace = true }
 sill-testkit = { workspace = true }
 serde_json = { workspace = true }
 

@@ -7,8 +7,8 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 
 use sill_launcher::{
-    Activation, AppId, Choice, ClipKey, DesktopAction, Generation, Item, Mime, OpenTarget,
-    Provider, ProviderKind, SettingsTarget, Subject, SystemCommand, ViewerOpen,
+    Activation, AppId, Choice, ClipKey, CompanionAct, DesktopAction, Generation, Item, Mime,
+    OpenTarget, Provider, ProviderKind, SettingsTarget, Subject, SystemCommand, ViewerOpen,
 };
 use std::path::PathBuf;
 
@@ -16,8 +16,9 @@ use sill_model::results::LauncherPolicy;
 use sill_model::session::SessionAction;
 use sill_search::providers::files::IndexSource;
 use sill_search::providers::{
-    AppsProvider, CalculatorProvider, ClipboardProvider, EmojiProvider, FilesProvider,
-    SettingsProvider, SystemProvider, WebProvider, WindowsProvider,
+    AppsProvider, CalculatorProvider, ClipboardProvider, CompanionProvider, EmojiProvider,
+    FilesProvider, MemoryProvider, RunsProvider, SettingsProvider, SystemProvider, ThingsProvider,
+    WebProvider, WindowsProvider,
 };
 use sill_services::env::Buses;
 use sill_ui_kit::services::Services;
@@ -73,6 +74,20 @@ impl LauncherProviders {
                 frecency: Arc::new(Mutex::default()),
             }),
             Arc::new(WebProvider { policy }),
+            Arc::new(ThingsProvider {
+                companion: services.companion.state.clone(),
+                control: services.companion.control.clone(),
+            }),
+            Arc::new(CompanionProvider {
+                companion: services.companion.state.clone(),
+            }),
+            Arc::new(RunsProvider {
+                companion: services.companion.state.clone(),
+            }),
+            Arc::new(MemoryProvider {
+                companion: services.companion.state.clone(),
+                control: services.companion.control.clone(),
+            }),
         ])
     }
 
@@ -109,6 +124,12 @@ pub enum LauncherEffect {
     SetClipboard(ClipKey),
     /// Drop a clipboard history entry and stay open.
     ForgetClipboard(ClipKey),
+    /// Perform an app's action as the person picked it (a thing's `open`).
+    Intent(docket_core::CallRequest),
+    /// Something for the companion: the panel sends it with what it knows of this opening.
+    Companion(CompanionAct),
+    /// A prompt, with what this opening kept, ready to send.
+    Ask(sill_model::companion::AskInput),
     /// Nothing sill can do from a surface yet; logged with the reason.
     Unreachable(Unreachable),
     /// Carry out a session action at once (Lock, Suspend): `SessionCommand::Run`.
@@ -140,7 +161,20 @@ impl LauncherEffect {
     /// clipboard entry.
     pub fn after(&self) -> AfterEffect {
         match self {
-            LauncherEffect::Insert(_) | LauncherEffect::ForgetClipboard(_) => AfterEffect::StayOpen,
+            LauncherEffect::Insert(_)
+            | LauncherEffect::ForgetClipboard(_)
+            | LauncherEffect::Ask(_) => AfterEffect::StayOpen,
+            LauncherEffect::Companion(act) => match act {
+                // Promoting an answer opens its app; everything else is done from the panel,
+                // which stays to show what came of it.
+                CompanionAct::Promote { .. } => AfterEffect::Close,
+                CompanionAct::Ask { .. }
+                | CompanionAct::Card { .. }
+                | CompanionAct::Run { .. }
+                | CompanionAct::Undo { .. }
+                | CompanionAct::Memory { .. }
+                | CompanionAct::Mode(_) => AfterEffect::StayOpen,
+            },
             _ => AfterEffect::Close,
         }
     }
@@ -168,6 +202,8 @@ pub fn effect_of(activation: Activation) -> LauncherEffect {
         Activation::Open { target } => LauncherEffect::Open(target),
         Activation::SetClipboard { entry } => LauncherEffect::SetClipboard(entry),
         Activation::ForgetClipboard { entry } => LauncherEffect::ForgetClipboard(entry),
+        Activation::Intent(call) => LauncherEffect::Intent(call),
+        Activation::Companion(act) => LauncherEffect::Companion(act),
         Activation::Nothing => LauncherEffect::Nothing,
     }
 }
@@ -183,7 +219,12 @@ pub fn file_results(rows: &[&Item]) -> Vec<PathBuf> {
             | Subject::App(_)
             | Subject::Clip(_)
             | Subject::Emoji(_)
-            | Subject::Web(_) => None,
+            | Subject::Web(_)
+            | Subject::Entity(_)
+            | Subject::Answer(_)
+            | Subject::Run(_)
+            | Subject::Activity(_)
+            | Subject::Memory(_) => None,
         })
         .collect()
 }
