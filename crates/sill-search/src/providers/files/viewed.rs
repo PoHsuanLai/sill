@@ -98,10 +98,8 @@ fn place_of(id: &ItemId, views: &[HistoryEntry]) -> Option<String> {
         .find(|view| view.path.as_path() == Path::new(&id.0))?;
     match view.label {
         ResumeLabel::Unlabelled => None,
-        label
-        @ (ResumeLabel::Page { .. } | ResumeLabel::Time { .. } | ResumeLabel::Line { .. }) => {
-            Some(label.to_string())
-        }
+        // Every other label says where the file was left; anyview's Display words it.
+        label => Some(label.to_string()),
     }
 }
 
@@ -240,15 +238,31 @@ mod tests {
                 ResumeLabel::Page { number: 143 },
             ),
             view("/h/b.png", FormatKind::Raster, 5, ResumeLabel::Unlabelled),
+            view(
+                "/h/d.epub",
+                FormatKind::Book,
+                5,
+                ResumeLabel::Section { number: 7 },
+            ),
         ];
         let rows = with_places(
-            vec![row("/h/a.pdf"), row("/h/b.png"), row("/h/c.txt")],
+            vec![
+                row("/h/a.pdf"),
+                row("/h/b.png"),
+                row("/h/c.txt"),
+                row("/h/d.epub"),
+            ],
             &views,
         );
         let subtitles: Vec<&str> = rows.iter().map(|r| r.subtitle.as_str()).collect();
         assert_eq!(
             subtitles,
-            ["~/Documents · Page 143", "~/Documents", "~/Documents"]
+            [
+                "~/Documents · Page 143",
+                "~/Documents",
+                "~/Documents",
+                "~/Documents · Section 7"
+            ]
         );
     }
 }
