@@ -98,14 +98,14 @@ pub(super) async fn follow(
         .await
         .ok()
         .and_then(|view| from_json::<AnswerWire>(&view).ok())
-        && events.send(CompanionEvent::Answer(wire)).is_err()
+        && events.send(CompanionEvent::Answer(Box::new(wire))).is_err()
     {
         return;
     }
     while let Some(signal) = next(&mut updates).await {
         let Ok(args) = signal.args() else { continue };
         if let Ok(wire) = from_json::<AnswerWire>(args.view())
-            && events.send(CompanionEvent::Answer(wire)).is_err()
+            && events.send(CompanionEvent::Answer(Box::new(wire))).is_err()
         {
             return;
         }

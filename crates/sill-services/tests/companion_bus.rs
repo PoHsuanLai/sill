@@ -1095,7 +1095,7 @@ async fn the_timeline_is_read_for_the_generation_that_asked() {
     let rows = desk
         .state(|c| {
             (c.memory.generation == Generation(3) && c.memory.phase == LookupPhase::Answered)
-                .then(|| c.memory.found.len())
+                .then_some(c.memory.found.len())
         })
         .await;
     assert_eq!(rows, 2);

@@ -294,7 +294,7 @@ impl Live {
             CompanionCommand::RefreshJournal => self.refresh_journal(),
             CompanionCommand::Perform(call) => {
                 self.on_bus("performing an action", move |connection| async move {
-                    intents::perform(&connection, call).await
+                    intents::perform(&connection, *call).await
                 });
             }
         }

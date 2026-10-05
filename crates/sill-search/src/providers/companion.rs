@@ -355,7 +355,7 @@ mod tests {
             ]
         );
         let mut sorted = found.clone();
-        sorted.sort_by(|a, b| b.score.cmp(&a.score));
+        sorted.sort_by_key(|item| std::cmp::Reverse(item.score));
         assert_eq!(sorted, found, "the rows are already in rank order");
     }
 

@@ -388,7 +388,7 @@ fn an_answer_keeps_its_prompt_and_its_button_state_through_updates() {
     );
     let state = run(
         state,
-        CompanionEvent::Answer(wire("t-1", AnswerPhase::Streaming)),
+        CompanionEvent::Answer(Box::new(wire("t-1", AnswerPhase::Streaming))),
     );
     let answer = &state.answers[&task("t-1")];
     assert_eq!(answer.prompt, "forward the receipts");
@@ -404,7 +404,7 @@ fn an_answer_keeps_its_prompt_and_its_button_state_through_updates() {
 fn an_answer_from_elsewhere_is_kept_without_a_prompt() {
     let (state, _) = step(
         Companion::default(),
-        CompanionEvent::Answer(wire("t-9", AnswerPhase::Done)),
+        CompanionEvent::Answer(Box::new(wire("t-9", AnswerPhase::Done))),
         Stamp(0),
         &params(),
     );

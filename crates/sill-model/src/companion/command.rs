@@ -108,7 +108,7 @@ pub enum CompanionCommand {
     /// Read the undo journal again.
     RefreshJournal,
     /// Perform an action of an app as the person asked for it (a thing's primary action).
-    Perform(CallRequest),
+    Perform(Box<CallRequest>),
 }
 
 /// What happens in the service.
@@ -136,7 +136,7 @@ pub enum CompanionEvent {
         prompt: String,
     },
     /// An answer appeared or changed.
-    Answer(AnswerWire),
+    Answer(Box<AnswerWire>),
     /// An answer's object went away.
     AnswerGone(TaskId),
     /// A card button was pressed: its call is running.

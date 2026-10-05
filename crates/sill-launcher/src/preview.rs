@@ -36,7 +36,7 @@ pub enum Preview {
     /// A web search: the engine and the address.
     Web(WebFacts),
     /// What an app says a thing looks like (`Intents1.Run.Preview`), once it has answered.
-    Intent(docket_core::Preview),
+    Intent(Box<docket_core::Preview>),
     /// The companion's answer to a prompt: a card read live from the companion by its task.
     Answer(TaskId),
     /// A computer-use run: its row read live from cuad.

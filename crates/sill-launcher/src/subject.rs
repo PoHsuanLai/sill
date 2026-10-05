@@ -34,7 +34,7 @@ pub enum Subject {
     /// A web search (the web fallback).
     Web(WebFacts),
     /// A thing an app indexed (the things provider).
-    Entity(EntityRef),
+    Entity(Box<EntityRef>),
     /// The companion's answer to a prompt, by its task (the companion provider).
     Answer(TaskId),
     /// A computer-use run (the runs provider).

@@ -125,7 +125,7 @@ pub enum LauncherEffect {
     /// Drop a clipboard history entry and stay open.
     ForgetClipboard(ClipKey),
     /// Perform an app's action as the person picked it (a thing's `open`).
-    Intent(docket_core::CallRequest),
+    Intent(Box<docket_core::CallRequest>),
     /// Something for the companion: the panel sends it with what it knows of this opening.
     Companion(CompanionAct),
     /// A prompt, with what this opening kept, ready to send.

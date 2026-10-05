@@ -167,7 +167,7 @@ fn refused(refusal: &RefusalWire, footer: CardFooter) -> RefusedAnswer {
         ),
         RefusalWire::NotAllowed(code) => (
             RefusedView::NotAllowed {
-                what: refusal_words(&docket_core::CallRefusal::Denied(code.clone())),
+                what: refusal_words(&docket_core::CallRefusal::Denied(*code)),
             },
             Vec::new(),
         ),

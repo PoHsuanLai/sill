@@ -98,7 +98,7 @@ fn summoned(
 fn bookkeeping(state: Companion, event: CompanionEvent) -> Companion {
     match event {
         CompanionEvent::Asked { task, prompt } => asked(state, task, prompt),
-        CompanionEvent::Answer(wire) => answered(state, wire),
+        CompanionEvent::Answer(wire) => answered(state, *wire),
         CompanionEvent::AnswerGone(task) => {
             let mut answers = state.answers;
             answers.remove(&task);

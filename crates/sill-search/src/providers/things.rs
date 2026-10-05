@@ -56,9 +56,10 @@ impl Provider for ThingsProvider {
 
     fn activate(&self, item: &Item, choice: &Choice) -> Activation {
         match (&item.subject, choice) {
-            (Subject::Entity(entity), Choice::Primary) => {
-                open_call(&entity.id).map_or(Activation::Nothing, Activation::Intent)
-            }
+            (Subject::Entity(entity), Choice::Primary) => open_call(&entity.id)
+                .map_or(Activation::Nothing, |call| {
+                    Activation::Intent(Box::new(call))
+                }),
             _ => Activation::Nothing,
         }
     }
@@ -118,7 +119,7 @@ fn row(hit: &Hit, at: usize) -> Item {
         icon: IconRef::Glyph("inbox".to_owned()),
         score: Score(u32::try_from(1000usize.saturating_sub(at)).unwrap_or(0)),
         actions: Vec::new(),
-        subject: Subject::Entity(entity.clone()),
+        subject: Subject::Entity(Box::new(entity.clone())),
     }
 }
 
